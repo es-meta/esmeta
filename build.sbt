@@ -32,7 +32,11 @@ lazy val root = project
 
     // libraries
     libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % "0.14.1",
+      "io.circe" %% "circe-generic" % "0.14.1",
+      "io.circe" %% "circe-parser" % "0.14.1",
       "org.scalatest" %% "scalatest" % "3.2.10" % Test,
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.0"
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
