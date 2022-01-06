@@ -6,11 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Test
+    - name: Testing
       run: sbt test
   lint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Check for scalafmt conformance
-      uses: openlawteam/scalafmt-ci@v2
+    - name: Checking Format
+      run: sbt scalafmtSbtCheck scalafmtCheck "Test / scalafmtCheck"
