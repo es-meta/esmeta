@@ -8,7 +8,7 @@ jobs:
     steps:
     - name: Test
       run: sbt test
-  lint
+  lint:
     runs-on: ubuntu-latest
     steps:
     - name: Format
