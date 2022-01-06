@@ -3,9 +3,9 @@ package esmeta.util
 import Math.{log, round}
 import java.text.SimpleDateFormat
 import java.util.Date
-import esmeta._
-import esmeta.error._
-import scala.Console._
+import esmeta.*
+import esmeta.error.*
+import scala.Console.*
 import scala.collection.mutable
 import scala.util.Random
 

@@ -37,6 +37,8 @@ lazy val root = project
       "io.circe" %% "circe-parser" % "0.14.1",
       "org.scalatest" %% "scalatest" % "3.2.10" % Test,
       "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.0",
+      "org.apache.commons" % "commons-text" % "1.9",
+      "org.jsoup" % "jsoup" % "1.14.3",
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is

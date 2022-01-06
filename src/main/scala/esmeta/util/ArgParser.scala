@@ -1,25 +1,25 @@
 package esmeta.util
 
-import scala.util.parsing.combinator._
+import scala.util.parsing.combinator.*
 import scala.io.Source
-import esmeta.{ESMeta, Command, ESMetaConfig}
+import esmeta.{ESMeta, Command, GlobalConfig}
 import esmeta.phase.PhaseOption
-import esmeta.error._
-import io.circe._, io.circe.syntax._, io.circe.parser.{parse => parseJson}
+import esmeta.error.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.{parse => parseJson}
 
 /** argument parser
   *
   * @param cmd
   *   a command
-  * @param esmetaConfig:
+  * @param globalConfig:
   *   ESMeta configuration
   */
-class ArgParser(cmd: Command[_], esmetaConfig: ESMetaConfig)
+class ArgParser(cmd: Command[_], globalConfig: GlobalConfig)
   extends RegexParsers {
   private var ruleList: List[Parser[Unit]] = Nil
   private var optNameSet: Set[String] = Set()
 
-  addRule(esmetaConfig, "", ESMeta.options)
+  addRule(globalConfig, "", ESMeta.options)
 
   /** add parsing rules
     *
@@ -110,7 +110,7 @@ class ArgParser(cmd: Command[_], esmetaConfig: ESMetaConfig)
 
     // a filename list
     lazy val fileName: Parser[Unit] = str ^^ { s =>
-      esmetaConfig.args = s :: esmetaConfig.args
+      globalConfig.args = s :: globalConfig.args
     }
 
     // Generate a parser.
@@ -123,6 +123,6 @@ class ArgParser(cmd: Command[_], esmetaConfig: ESMetaConfig)
       jsonArgs.foreach(parse(parser, _).get)
       jsonArgs = Nil
 
-    esmetaConfig.args = esmetaConfig.args.reverse
+    globalConfig.args = globalConfig.args.reverse
   }
 }

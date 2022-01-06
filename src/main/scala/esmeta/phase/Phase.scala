@@ -1,6 +1,6 @@
 package esmeta.phase
 
-import esmeta.{ESMetaConfig, SILENT}
+import esmeta.{GlobalConfig, SILENT}
 import esmeta.util.ArgParser
 
 /** phases
@@ -21,7 +21,7 @@ trait Phase[Input, Output] {
   /** run phase */
   def apply(
     in: Input,
-    esmetaConfig: ESMetaConfig,
+    globalConfig: GlobalConfig,
     config: Config = defaultConfig,
   ): Output
 
@@ -37,15 +37,15 @@ trait Phase[Input, Output] {
   /** get phase runner */
   def getRunner(
     parser: ArgParser,
-  ): (Input, ESMetaConfig) => Output =
+  ): (Input, GlobalConfig) => Output =
     val config = defaultConfig
     parser.addRule(config, name, options)
-    (in, esmetaConfig) => {
+    (in, globalConfig) => {
       if (!SILENT)
         println(s"========================================")
         println(s" $name phase")
         println(s"----------------------------------------")
-      apply(in, esmetaConfig, config)
+      apply(in, globalConfig, config)
     }
 
   /** get shape string of options */

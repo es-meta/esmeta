@@ -21,15 +21,15 @@ sealed abstract class Command[Result](
   def help: String
 
   /** show the final result */
-  def showResult(res: Result): Unit = ()
+  def showResult(res: Result): Unit = println(res)
 
   /** run command with command-line arguments */
   def apply(args: List[String]): Result =
-    val esmetaConfig = ESMetaConfig(this)
-    val parser = new ArgParser(this, esmetaConfig)
+    val globalConfig = GlobalConfig(this)
+    val parser = new ArgParser(this, globalConfig)
     val runner = pList.getRunner(parser)
     parser(args)
-    ESMeta(this, runner(_), esmetaConfig)
+    ESMeta(this, runner(_), globalConfig)
 
   /** append a phase to create a new phase list */
   def >>[R](phase: Phase[Result, R]): PhaseList[R] = pList >> phase
@@ -43,4 +43,9 @@ case object CmdBase extends Command("", PhaseNil) {
 /** `help` command */
 case object CmdHelp extends Command("help", CmdBase >> Help) {
   def help = "shows help messages."
+}
+
+/** `extract` command */
+case object CmdExtract extends Command("extract", CmdBase >> Extract) {
+  def help = "extracts specification model from ECMA-262 (spec.html)."
 }

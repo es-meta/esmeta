@@ -1,7 +1,7 @@
 package esmeta.util
 
 import esmeta.phase.ArgRegex
-import esmeta.error._
+import esmeta.error.*
 
 /** option kinds
   *

@@ -30,8 +30,8 @@ object ESMeta {
   /** execute ESMeta with a runner */
   def apply[Result](
     command: Command[Result],
-    runner: ESMetaConfig => Result,
-    config: ESMetaConfig,
+    runner: GlobalConfig => Result,
+    config: GlobalConfig,
   ): Result =
     // set the start time.
     val startTime = System.currentTimeMillis
@@ -49,16 +49,22 @@ object ESMeta {
     result
 
   /** commands */
-  val commands: List[Command[_]] = List(CmdHelp)
+  val commands: List[Command[_]] = List(
+    CmdHelp,
+    CmdExtract,
+  )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
   }
 
   /** phases */
-  var phases: List[Phase[_, _]] = List(Help)
+  var phases: List[Phase[_, _]] = List(
+    Help,
+    Extract,
+  )
 
   /** global options */
-  val options: List[PhaseOption[ESMetaConfig]] = List(
+  val options: List[PhaseOption[GlobalConfig]] = List(
     ("silent", BoolOption(c => SILENT = true), "do not show final results."),
     ("debug", BoolOption(c => DEBUG = true), "turn on the debug mode."),
     ("log", BoolOption(c => LOG = true), "turn on the logging mode."),
@@ -98,7 +104,7 @@ object ESMeta {
 }
 
 /** global configuration */
-case class ESMetaConfig(
+case class GlobalConfig(
   var command: Command[_],
   var args: List[String] = Nil,
 )
