@@ -11,5 +11,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Format
-      run: sbt scalafmtSbtCheck scalafmtCheck Test/scalafmtCheck
+    - uses: actions/checkout@v2
+    - name: Check for scalafmt conformance
+      uses: openlawteam/scalafmt-ci@v2
+      with:
+        args: "--exclude=third_party --list"
