@@ -1,20 +1,24 @@
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
-ThisBuild / version       := "0.1.0"
-ThisBuild / scalaVersion  := "3.1.0"
-ThisBuild / organization  := "esmeta"
+ThisBuild / version := "0.1.0"
+ThisBuild / scalaVersion := "3.1.0"
+ThisBuild / organization := "esmeta"
 ThisBuild / scalacOptions := Seq(
-  "-deprecation",     // emit warning and location for usages of deprecated APIs
-  "-explain",         // explain errors in more detail
-  "-explain-types",   // explain type errors in more detail
-  "-feature",         // emit warning and location for usages of features that should be imported explicitly
-  "-print-lines",     // show source code line numbers.
-  "-unchecked",       // enable additional warnings where generated code depends on assumptions
-  "-Xmigration",      // warn about constructs whose behavior may have changed since version
+  "-deprecation", // emit warning and location for usages of deprecated APIs
+  "-explain", // explain errors in more detail
+  "-explain-types", // explain type errors in more detail
+  "-feature", // emit warning and location for usages of features that should be imported explicitly
+  "-print-lines", // show source code line numbers.
+  "-unchecked", // enable additional warnings where generated code depends on assumptions
+  "-Xmigration", // warn about constructs whose behavior may have changed since version
 )
 ThisBuild / javacOptions ++= Seq(
-  "-encoding", "UTF-8"
+  "-encoding",
+  "UTF-8",
 )
+
+// automatic reload build.sbt
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
@@ -37,7 +41,8 @@ lazy val root = project
     retrieveManaged := true,
 
     // test setting
-    Test / testOptions += Tests.Argument("-fDG", baseDirectory.value + "/tests/detail"),
+    Test / testOptions += Tests
+      .Argument("-fDG", baseDirectory.value + "/tests/detail"),
     Test / parallelExecution := true,
 
     // assembly setting
