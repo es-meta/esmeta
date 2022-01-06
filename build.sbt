@@ -28,7 +28,7 @@ lazy val root = project
 
     // libraries
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.10" % "test",
+      "org.scalatest" %% "scalatest" % "3.2.10" % Test,
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is

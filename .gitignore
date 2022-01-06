@@ -3,6 +3,7 @@
 *.log
 *.swo
 *.swp
+.bloop/
 .bsp/
 .cache/
 .history
@@ -12,6 +13,7 @@
 logs/
 project/project/
 project/target/
+project/metals.sbt
 target/
 
 ## tests

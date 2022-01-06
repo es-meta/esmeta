@@ -1,0 +1,15 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test
+      run: sbt test
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Format
+      run: sbt scalafmtSbtCheck scalafmtCheck test:scalafmtCheck

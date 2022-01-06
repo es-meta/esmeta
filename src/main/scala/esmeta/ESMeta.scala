@@ -1,5 +1,4 @@
 package esmeta
 
-@main def main(command: String, args: String*): Unit = {
-  println(s"$command ${args.mkString(" ")}")
-}
+@main def main(args: String*): Unit =
+  println(s"${args.mkString(" ")}")
