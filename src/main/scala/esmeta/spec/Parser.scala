@@ -8,17 +8,20 @@ import scala.util.parsing.combinator.*
 
 /** specification parsing rules */
 trait Parsers extends RegexParsers {
+  import ProductionKind.*
+  import NtArgKind.*
+  import Symbol.*
 
-  /** common parsers */
+  // common parsers
   protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
   lazy val newline = "\r?\n|\r|\f".r
   lazy val word = "\\w+".r
 
-  /** productions */
+  // productions
   lazy val prods: Parser[List[Production]] =
     rep1(rep(newline) ~> prod)
 
-  /** productions */
+  // productions
   lazy val prod: Parser[Production] =
     lhs ~ kind ~ opt("one of") ~ rep1(newline ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
@@ -30,18 +33,17 @@ trait Parsers extends RegexParsers {
         Production(l, k, false, rs)
     }
 
-  /** production kinds */
+  // production kinds
   lazy val kind: Parser[ProductionKind] =
-    import ProductionKind.*
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Normal
 
-  /** production left-hand-sides (LHSs) */
+  // production left-hand-sides (LHSs)
   lazy val lhs: Parser[Lhs] =
     word ~ opt("[" ~> repsep(word, ",") <~ "]") ^^ { case name ~ params =>
       Lhs(name, params.getOrElse(Nil))
     }
 
-  /** production alternative right-hand-sides (RHSs) */
+  // production alternative right-hand-sides (RHSs)
   lazy val rhs: Parser[Rhs] =
     opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ { case c ~ ss ~ i =>
       Rhs(c, ss, i)
@@ -52,31 +54,38 @@ trait Parsers extends RegexParsers {
     }
   lazy val rhsId: Parser[String] = "#" ~> "[-a-zA-Z0-9]+".r
 
-  /** grammar symbols */
-  import Symbol.*
+  // grammar symbols
   lazy val symbol: Parser[Symbol] =
-    empty | nlt | character | butnot | onlyif | lookahead | nt | term
+    term | butnot | lookahead | nt | empty | nlt | character | butnot | lookahead | nt | term
+
+  // terminals
   lazy val term: Parser[Terminal] =
     "`[^`]+`|```".r ^^ { case str =>
       Terminal(str.substring(1, str.length - 1))
     }
+
+  // nonterminals
   lazy val nt: Parser[Nonterminal] =
     word ~ opt("[" ~> rep1sep(ntArg, ",") <~ "]") ~ opt("?") ^^ {
       case name ~ args ~ opt =>
         Nonterminal(name, args.getOrElse(Nil), opt.isDefined)
     }
+
+  // butnot symbols
   lazy val butnot: Parser[ButNot] =
     (nt <~ ("but not" ~ opt("one of"))) ~ rep1sep(symbol, opt("or")) ^^ {
       case base ~ cases => ButNot(base, cases)
     }
-  lazy val onlyif: Parser[OnlyIf] =
-    nt ~ ("[> but only if " ~> "[^\\]]+".r <~ "]") ^^ { case base ~ msg =>
-      OnlyIf(base, msg)
-    }
-  lazy val empty: Parser[EmptySymbol.type] = "[empty]" ^^^ EmptySymbol
-  lazy val nlt: Parser[NoLineTerminatorSymbol.type] =
-    "\\[no [\\|]?LineTerminator[\\|]? here\\]".r ^^^ NoLineTerminatorSymbol
-  lazy val character: Parser[Symbol with CharacterSymbol] = (
+
+  // empty symbols
+  lazy val empty: Parser[Empty.type] = "[empty]" ^^^ Empty
+
+  // no-line-terminator symbols
+  lazy val nlt: Parser[NoLineTerminator.type] =
+    "\\[no [\\|]?LineTerminator[\\|]? here\\]".r ^^^ NoLineTerminator
+
+  // character symbols
+  lazy val character: Parser[Symbol] = (
     "<" ~> word <~ ">" ^^ { Unicode(_) } |
       ".*code point.*ID_Start.*".r ^^^ UnicodeIdStart |
       ".*code point.*ID_Continue.*".r ^^^ UnicodeIdContinue |
@@ -87,7 +96,8 @@ trait Parsers extends RegexParsers {
       ".*HexDigits.*≤ 0x10FFFF.*".r ^^^ CodePoint |
       ".*Hex4Digits.*0xD800 to 0xDBFF.*".r ^^^ HexLeadSurrogate |
       ".*Hex4Digits.*0xDC00 to 0xDFFF.*".r ^^^ HexTrailSurrogate |
-      ".*Hex4Digits.*not.*0xD800 to 0xDFFF.*".r ^^^ HexNonSurrogate
+      ".*Hex4Digits.*not.*0xD800 to 0xDFFF.*".r ^^^ HexNonSurrogate |
+      ".*DecimalEscape.*CapturingGroupNumber.*|DecimalEscape|.*≤.*_NcapturingParens.*".r ^^^ NonUnicodeModeDecimalEscape
   )
 
   // lookahead symbol
@@ -95,14 +105,11 @@ trait Parsers extends RegexParsers {
     case b ~ cases => Lookahead(b, cases)
   }
   lazy val laList = opt("{") ~> repsep(rep(symbol), ",") <~ opt("}")
-  lazy val containsSymbol = (
-    ("==" | "<" | "∈") ^^^ true |
-      ("!=" | "<!" | "∉") ^^^ false
-  )
+  lazy val containsSymbol =
+    ("==" | "<" | "∈") ^^^ true | ("!=" | "<!" | "∉") ^^^ false
 
-  /** nonterminal arguments */
+  // nonterminal arguments
   lazy val ntArg: Parser[NtArg] =
-    import NtArgKind.*
     ("+" ^^^ True | "~" ^^^ False | "?" ^^^ Pass) ~ word ^^ {
       case kind ~ name => NtArg(kind, name)
     }
