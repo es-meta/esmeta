@@ -12,7 +12,7 @@ object Stringifier {
   given Appendable[Spec] = (app, spec) => ???
 
   // for grammars
-  given grammarApp: Appendable[Grammar] = (app, grammar) => {
+  given Appendable[Grammar] = (app, grammar) => {
     given Appendable[List[Production]] = iterableApp(sep = LINE_SEP)
     app >> getSortedProds(grammar)
   }
