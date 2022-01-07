@@ -36,7 +36,7 @@ enum Head:
   )
 
   /** buil-in operation  heads */
-  case class BuiltinOperationHead(
+  case BuiltinOperationHead(
     ref: lang.Ref,
     origParams: List[Param],
   )
@@ -44,9 +44,8 @@ enum Head:
 /** algorithm parameters */
 case class Param(
   name: String,
-  kind: ParamKind,
+  kind: Param.Kind,
 )
-
-/** algorithm parameters */
-enum ParamKind:
-  case Normal, Optional, Variadic
+object Param:
+  enum Kind:
+    case Normal, Optional, Variadic

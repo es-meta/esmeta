@@ -23,8 +23,8 @@ class Appender(tab: String = "  ") {
   def :>[T: Appendable](x: T)(using a: Appendable[T]): Appender =
     a(this >> LINE_SEP >> indentStr, x)
 
-  /** wrap with `{` and `}` and one-level higher indentation */
-  def wrap(f: => Unit): Appender = wrap("{", f, "}")
+  /** wrap without brackets and one-level higher indentation */
+  def wrap(f: => Unit): Appender = wrap("", f, "")
 
   /** wrap with open/close brackets and one-level higher indentation */
   def wrap(open: String, f: => Unit, close: String): Appender =
@@ -46,7 +46,10 @@ object Appender {
     right: String = "",
   )(using tApp: Appendable[T]): Appendable[Iterable[T]] = (app, iter) =>
     app >> left
-    for (x <- iter) app >> x
+    if (!iter.isEmpty) {
+      app >> iter.head
+      for (x <- iter.tail) app >> sep >> x
+    }
     app >> right
 
   /** arrows for pairs */

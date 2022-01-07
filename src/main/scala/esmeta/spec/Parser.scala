@@ -8,8 +8,8 @@ import scala.util.parsing.combinator.*
 
 /** specification parsing rules */
 trait Parsers extends RegexParsers {
-  import ProductionKind.*
-  import NtArgKind.*
+  import Production.Kind.*
+  import NtArg.Kind.*
   import Symbol.*
 
   // common parsers
@@ -23,7 +23,7 @@ trait Parsers extends RegexParsers {
 
   // productions
   lazy val prod: Parser[Production] =
-    lhs ~ kind ~ opt("one of") ~ rep1(newline ~> rhs) ^^ {
+    lhs ~ prodKind ~ opt("one of") ~ rep1(newline ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
         val rs =
           for (r <- origRs; s <- r.symbols)
@@ -34,7 +34,7 @@ trait Parsers extends RegexParsers {
     }
 
   // production kinds
-  lazy val kind: Parser[ProductionKind] =
+  lazy val prodKind: Parser[Production.Kind] =
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Normal
 
   // production left-hand-sides (LHSs)

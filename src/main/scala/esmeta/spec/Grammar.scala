@@ -6,14 +6,13 @@ case class Grammar(prods: List[Production])
 /** productions */
 case class Production(
   lhs: Lhs,
-  kind: ProductionKind,
+  kind: Production.Kind,
   oneof: Boolean,
   rhsList: List[Rhs],
 )
-
-/** production kinds */
-enum ProductionKind:
-  case Normal, Lexical, NumericString
+object Production:
+  enum Kind:
+    case Normal, Lexical, NumericString
 
 /** production left-hand-sides (LHSs) */
 case class Lhs(name: String, params: List[String])
@@ -85,6 +84,7 @@ enum Symbol:
   case NonUnicodeModeDecimalEscape
 
 /** nonterminal arguments */
-case class NtArg(kind: NtArgKind, name: String)
-enum NtArgKind:
-  case True, False, Pass
+case class NtArg(kind: NtArg.Kind, name: String)
+object NtArg:
+  enum Kind:
+    case True, False, Pass
