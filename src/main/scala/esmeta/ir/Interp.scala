@@ -4,13 +4,13 @@ import esmeta.DEBUG
 import esmeta.error._
 import esmeta.util.Useful._
 import esmeta.util._
-import scala.annotation.{ tailrec, targetName }
-import scala.collection.mutable.{ Map => MMap }
+import scala.annotation.{tailrec, targetName}
+import scala.collection.mutable.{Map => MMap}
 
 // IR Interpreter
 class Interp(
   val st: State,
-  timeLimit: Option[Long]
+  timeLimit: Option[Long],
 ) {
   import Interp._
 
@@ -36,8 +36,8 @@ class Interp(
   // step target
   trait StepTarget {
     override def toString: String = this match {
-      case Terminate => "TERMINATED"
-      case ReturnUndef => "RETURN"
+      case Terminate        => "TERMINATED"
+      case ReturnUndef      => "RETURN"
       case NextStep(cursor) => ??? // cursor.toString()
     }
   }
@@ -48,10 +48,11 @@ class Interp(
   // get next step target
   def nextTarget: StepTarget = st.context.cursorOpt match {
     case Some(cursor) => NextStep(cursor)
-    case None => st.ctxtStack match {
-      case Nil => Terminate
-      case _ => ReturnUndef
-    }
+    case None =>
+      st.ctxtStack match {
+        case Nil => Terminate
+        case _   => ReturnUndef
+      }
   }
 
   // step
@@ -76,8 +77,8 @@ class Interp(
       // text-based debugging
       if (DEBUG) cursor match {
         case InstCursor(Inst.ISeq(_), _) =>
-        case _ => ???
-          // println(s"[$iter] ${st.context.name}: ${cursor.toString()}")
+        case _                           => ???
+        // println(s"[$iter] ${st.context.name}: ${cursor.toString()}")
       }
 
       // interp the current cursor
@@ -97,16 +98,16 @@ class Interp(
   // fixpoint
   @tailrec
   final def fixpoint: State = step match {
-    case true => fixpoint
+    case true  => fixpoint
     case false => st
   }
 
   // transition for instructions
   def interp(inst: Inst, rest: List[Inst]): Unit = inst match {
-    case inst: Inst.ISeq => interp(inst, rest)
-    case inst: CondInst => interp(inst, rest)
-    case inst: CallInst => interp(inst)
-    case inst: ArrowInst => interp(inst)
+    case inst: Inst.ISeq  => interp(inst, rest)
+    case inst: CondInst   => interp(inst, rest)
+    case inst: CallInst   => interp(inst)
+    case inst: ArrowInst  => interp(inst)
     case inst: NormalInst => interp(inst)
   }
 
@@ -116,11 +117,11 @@ class Interp(
   // transition for conditional instructions
   @targetName("interpCondInst")
   def interp(inst: CondInst, rest: List[Inst]): Unit = ???
-  
+
   // transition for call instructions
   @targetName("interpCallInst")
   def interp(inst: CallInst): Unit = ???
-  
+
   // transition for normal instructions
   @targetName("interpNormalInst")
   def interp(inst: NormalInst): Unit = ???
@@ -155,7 +156,7 @@ class Interp(
 object Interp {
   def apply(
     st: State,
-    timeLimit: Option[Long]
+    timeLimit: Option[Long],
   ): State = {
     val interp = new Interp(st, timeLimit)
     interp.fixpoint
