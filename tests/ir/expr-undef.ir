@@ -1,0 +1,2 @@
+// undefined
+assert (= undefined undefined)

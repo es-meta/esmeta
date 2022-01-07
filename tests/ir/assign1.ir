@@ -1,0 +1,4 @@
+// assign1
+let a = 0
+a = 42
+assert (= a 42)

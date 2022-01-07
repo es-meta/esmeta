@@ -1,0 +1,3 @@
+let obj = (new Record)
+obj.a = 1
+assert (= obj.a 1)

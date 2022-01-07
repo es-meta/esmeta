@@ -1,0 +1,12 @@
+// list pops
+let list = (new [4, 5, 3, 7, 5, 2, 3])
+assert (= list.length 7i)
+assert (= (pop list 0i) 4)
+assert (= (pop list 0i) 5)
+assert (= (pop list 0i) 3)
+assert (= (pop list 0i) 7)
+
+assert (= list.length 3i)
+assert (= list[0i] 5)
+assert (= list[1i] 2)
+assert (= list[2i] 3)

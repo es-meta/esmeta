@@ -1,0 +1,5 @@
+// map allocation
+let x = (new Record)
+let y = (new Record)
+assert (= x x)
+assert (! (= x y))

@@ -1,0 +1,3 @@
+if true let x = 1
+else let x = "fail"
+assert (= x 1)

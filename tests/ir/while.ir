@@ -1,0 +1,8 @@
+// while loops
+let i = 0
+let x = 0
+while (< i 10) {
+  i = (+ i 1)
+  x = (+ x i)
+}
+assert (= x 55)

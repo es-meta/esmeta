@@ -1,0 +1,6 @@
+// lists
+let list = (new [1, 2, 3])
+assert (= list.length 3i)
+assert (= list[0i] 1)
+assert (= list[1i] 2)
+assert (= list[2i] 3)

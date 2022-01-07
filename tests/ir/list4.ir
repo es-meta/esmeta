@@ -1,0 +1,4 @@
+// list contains
+let list = (new [4, 5, 3, 7, 5, 2, 3])
+assert (contains list 4)
+assert (! (contains list 10))

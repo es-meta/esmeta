@@ -1,0 +1,5 @@
+let a = 2
+cont x = () [=>] assert (= a 2)
+a = 1
+app y = (x)
+assert false
