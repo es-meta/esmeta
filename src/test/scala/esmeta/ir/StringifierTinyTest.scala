@@ -26,7 +26,7 @@ class StringifierTinyTest extends IRTest {
   // registration
   def init: Unit = {}
 
-  // {
+  // TODO {
   //   import Inst._, Expr._, Value._, Ref._, RefValue._, Obj._, UOp._, BOp._, COp._
 
   //   val irMapElems = List(

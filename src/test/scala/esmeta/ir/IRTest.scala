@@ -6,7 +6,7 @@ import esmeta.ir._
 trait IRTest extends ESMetaTest {
   def category: String = "ir"
 
-  // eval IR codes
+  // TODO eval IR codes
   // def irEval(st: State): State = Interp(st)
   // def irEval(str: String): State =
   //   Interp(State(InstCursor).moveTo(Program(str)))
