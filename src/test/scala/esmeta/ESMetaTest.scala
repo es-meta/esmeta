@@ -17,15 +17,15 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   protected var resMap: Map[String, Result] = Map()
   implicit val ResultDecoder: Decoder[Result] = new Decoder[Result] {
     final def apply(c: HCursor): Decoder.Result[Result] = c.value match {
-      case Json.True => Right(Pass)
-      case Json.False => Right(Fail)
+      case Json.True       => Right(Pass)
+      case Json.False      => Right(Fail)
       case v if v.isString => Right(Yet(v.asString.get))
       case _ => Left(DecodingFailure(s"unknown Result: ${c.value}", c.history))
     }
   }
   implicit val ResultEncoder: Encoder[Result] = Encoder.instance {
-    case Pass => Json.True
-    case Fail => Json.False
+    case Pass     => Json.True
+    case Fail     => Json.False
     case Yet(msg) => Json.fromString(msg)
   }
 
@@ -52,7 +52,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // get score
   def getScore(res: Map[String, Result]): (Int, Int) = (
     res.count { case (k, r) => r == Pass },
-    res.size
+    res.size,
   )
 
   // tag name
@@ -76,9 +76,9 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
       map <- json.as[Map[String, Result]]
       (name, result) <- map.toSeq.sortBy(_._1)
     } (resMap.get(name), result) match {
-      case (None, _) => error(s"'[$tag] $name' test is removed")
+      case (None, _)          => error(s"'[$tag] $name' test is removed")
       case (Some(Fail), Pass) => error(s"'[$tag] $name' test becomes failed")
-      case _ =>
+      case _                  =>
     }
 
     // save abstract result if backward-compatible
