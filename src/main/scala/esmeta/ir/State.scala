@@ -58,7 +58,7 @@ object InstCursor extends CursorGen[InstCursor] {
 
 /** IR Heaps */
 case class Heap(
-  map: MMap[Addr, Int] = MMap(),
+  map: MMap[Addr, Obj] = MMap(),
   var size: Int = 0,
 )
 

@@ -3,6 +3,9 @@ package esmeta.ir
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
+/** IR Programs */
+case class Program(insts: List[Inst])
+
 /** IR Instructions */
 type CondInst = Inst.IIf | Inst.IWhile
 type CallInst = Inst.IApp | Inst.IAccess
