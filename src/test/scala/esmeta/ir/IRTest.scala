@@ -16,12 +16,12 @@ trait IRTest extends ESMetaTest {
   // }
 
   // tests for IR parser
-  def irParseTest(program: Program): Program = {
-    // val newProgram = Program(program.toString)
-    val newProgram = ???
-    assert(program == newProgram)
-    program
-  }
-  def irParseTest(str: String): Program = ??? // irParseTest(Program(str))
-  def irParseTestFile(filename: String): Program = ???
+  // def irParseTest(program: Program): Program = {
+  //   // val newProgram = Program(program.toString)
+  //   val newProgram = ???
+  //   assert(program == newProgram)
+  //   program
+  // }
+  // def irParseTest(str: String): Program = ??? // irParseTest(Program(str))
+  // def irParseTestFile(filename: String): Program = ???
 }

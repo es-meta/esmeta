@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta._
 import esmeta.ir._
-import esmeta.util.JvmUseful._
+import esmeta.util.FileUtils._
 
 class EvalTinyTest extends IRTest {
   val name: String = "irEvalTest"

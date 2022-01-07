@@ -1,5 +1,6 @@
 package esmeta.ir
 
+import esmeta.util.Useful._
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
@@ -13,6 +14,7 @@ type ArrowInst = Inst.IClo | Inst.ICont | Inst.IWithCont
 type NormalInst =
   Inst.IExpr | Inst.ILet | Inst.IAssign | Inst.IDelete | Inst.IAppend |
     Inst.IPrepend | Inst.IReturn | Inst.IThrow | Inst.IAssert | Inst.IPrint
+
 enum Inst:
   case IIf(cond: Expr, thenInst: Inst, elseInst: Inst)
   case IWhile(cond: Expr, body: Inst)

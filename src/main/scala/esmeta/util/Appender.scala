@@ -31,6 +31,14 @@ class Appender(tab: String = "  ") {
     this >> open
     indent += 1; f; indent -= 1
     this :> close
+
+  /** wrap iterable with detail option */
+  def wrapIterable[T](iter: Iterable[T], detail: Boolean = true)(using
+    tApp: Appendable[T],
+  ): Appender =
+    if iter.isEmpty then this >> "{}"
+    else if !detail then this >> "{ ... }"
+    else this.wrap { for (elem <- iter) this :> elem }
 }
 
 /** helper for appender */

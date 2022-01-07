@@ -18,8 +18,8 @@ case class State(
 /** IR Contexts */
 case class Context(
   var cursorOpt: Option[Cursor] = None,
-  val retId: Id = ???,
-  val name: String = ???,
+  val retId: Id = ID_RETURN,
+  val name: String = STR_TOP_LEVEL,
   // var prevCursorOpt: Option[Cursor] = None,
   // val astOpt: Option[AST] = None,
   // val algo: Option[Algo] = None,
@@ -65,7 +65,10 @@ case class Heap(
 /** IR Objects */
 enum Obj(ty: Ty):
   case IRSymbol(desc: Value) extends Obj(Ty("Symbol"))
-  case IRMap(var ty: Ty, props: MMap[Value, (Value, Long)], var size: Long)
+  // XXX
+  // case IRMap(var ty: Ty, props: MMap[Value, (Value, Long)], var size: Long)
+  //   extends Obj(ty)
+  case IRMap(var ty: Ty, props: MMap[Value, Value], var size: Long)
     extends Obj(ty)
   case IRList(var values: Vector[Value] = Vector()) extends Obj(Ty("List"))
   case IRNotSupported(tyname: String, desc: String) extends Obj(Ty(tyname))
