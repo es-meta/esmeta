@@ -8,13 +8,6 @@ import scala.collection.mutable.{Map => MMap}
 case class Program(insts: List[Inst])
 
 /** IR Instructions */
-type CondInst = Inst.IIf | Inst.IWhile
-type CallInst = Inst.IApp | Inst.IAccess
-type ArrowInst = Inst.IClo | Inst.ICont | Inst.IWithCont
-type NormalInst =
-  Inst.IExpr | Inst.ILet | Inst.IAssign | Inst.IDelete | Inst.IAppend |
-    Inst.IPrepend | Inst.IReturn | Inst.IThrow | Inst.IAssert | Inst.IPrint
-
 enum Inst:
   case IIf(cond: Expr, thenInst: Inst, elseInst: Inst)
   case IWhile(cond: Expr, body: Inst)
@@ -34,6 +27,12 @@ enum Inst:
   case ICont(id: Id, params: List[Id], body: Inst)
   case IWithCont(id: Id, params: List[Id], body: Inst)
   case ISeq(insts: List[Inst])
+import Inst.*
+type CondInst = IIf | IWhile
+type CallInst = IApp | IAccess
+type ArrowInst = IClo | ICont | IWithCont
+type NormalInst = IExpr | ILet | IAssign | IDelete | IAppend | IPrepend |
+  IReturn | IThrow | IAssert | IPrint
 
 /** IR Expressions */
 enum Expr:
