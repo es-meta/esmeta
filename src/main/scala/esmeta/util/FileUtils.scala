@@ -94,8 +94,14 @@ object FileUtils {
         }
     }
 
-  /** read HTML */
-  def readHtml(filename: String): Document = Jsoup.parse(readFile(filename))
+  /** read HTML with filename */
+  def readHtmlFile(filename: String): Document = readHtml(readFile(filename))
+
+  /** read HTML string */
+  def readHtml(content: String): Document =
+    val document = Jsoup.parse(content)
+    document.outputSettings.prettyPrint(false)
+    document
 
   /** delete files */
   def deleteFile(filename: String): Unit = new File(filename).delete
@@ -171,12 +177,8 @@ object FileUtils {
     executeCmd(s"git rev-parse HEAD", dir).trim
 
   /** get Element array using queries */
-  def getElems(elem: Element, query: String): Array[Element] =
-    toArray(elem.select(query))
-
-  /** convert elements to an array of elements */
-  def toArray(elems: Elements): Array[Element] =
-    elems.toArray(Array[Element]())
+  def getElems(elem: Element, query: String): List[Element] =
+    elem.select(query).toArray(Array[Element]()).toList
 
   /** get range of element */
   def getRange(elem: Element): Option[(Int, Int)] =
