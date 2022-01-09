@@ -4,7 +4,7 @@ import java.io.{Reader, File, PrintWriter}
 import java.nio.file.{Files, StandardCopyOption}
 import esmeta.*
 import esmeta.error.*
-import esmeta.util.Useful.*
+import esmeta.util.BaseUtils.*
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.*
 import scala.concurrent.duration.*

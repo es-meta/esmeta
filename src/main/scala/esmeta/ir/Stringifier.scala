@@ -3,7 +3,7 @@ package esmeta.ir
 import esmeta.LINE_SEP
 import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.Useful.*
+import esmeta.util.BaseUtils.*
 import esmeta.ir.*
 import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
 

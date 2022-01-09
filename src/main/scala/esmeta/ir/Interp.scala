@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.DEBUG
 import esmeta.error._
-import esmeta.util.Useful._
+import esmeta.util.BaseUtils._
 import esmeta.util._
 import scala.annotation.{tailrec, targetName}
 import scala.collection.mutable.{Map => MMap}

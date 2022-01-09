@@ -9,8 +9,8 @@ import scala.Console.*
 import scala.collection.mutable
 import scala.util.Random
 
-/** useful utilities */
-object Useful {
+/** base utilities */
+object BaseUtils {
 
   /** create a new function with a cache */
   def cached[A, B](f: A => B): A => B = {

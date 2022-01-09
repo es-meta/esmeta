@@ -2,7 +2,7 @@ package esmeta.spec
 
 import esmeta.LINE_SEP
 import esmeta.util.HtmlUtils.*
-import esmeta.util.Useful.*
+import esmeta.util.BaseUtils.*
 import org.jsoup.nodes.Document
 import scala.util.parsing.combinator.*
 

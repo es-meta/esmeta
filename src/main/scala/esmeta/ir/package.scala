@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.util.Useful._
+import esmeta.util.BaseUtils._
 import Value._
 
 /** stringify */

@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.util.Useful._
+import esmeta.util.BaseUtils._
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
