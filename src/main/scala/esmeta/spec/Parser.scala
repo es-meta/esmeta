@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
-import esmeta.util.FileUtils.*
+import esmeta.util.HtmlUtils.*
 import esmeta.util.Useful.*
 import org.jsoup.nodes.Document
 import scala.util.parsing.combinator.*
@@ -121,7 +121,7 @@ object Parser extends Parsers {
 
   /** parses a specification */
   def parseSpec(content: String): Spec = {
-    val document = readHtml(content)
+    val document = parseHtml(content)
     Spec(
       version = None,
       grammar = parseGrammar(document),

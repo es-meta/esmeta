@@ -2,22 +2,19 @@ package esmeta.util
 
 import java.io.{Reader, File, PrintWriter}
 import java.nio.file.{Files, StandardCopyOption}
-import esmeta._
-import esmeta.error._
-import esmeta.util.Useful._
-import org.apache.commons.text.StringEscapeUtils
-import org.jsoup._
-import org.jsoup.nodes._
-import org.jsoup.select._
+import esmeta.*
+import esmeta.error.*
+import esmeta.util.Useful.*
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent._
-import scala.concurrent.duration._
+import scala.concurrent.*
+import scala.concurrent.duration.*
 import scala.io.Source
-import scala.sys.process._
-import io.circe._, io.circe.syntax._, io.circe.parser._
+import scala.sys.process.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
 /** file utilities */
 object FileUtils {
+  // encoding
   private val ENC = "utf8"
 
   /** file reader */
@@ -94,14 +91,9 @@ object FileUtils {
         }
     }
 
-  /** read HTML with filename */
-  def readHtmlFile(filename: String): Document = readHtml(readFile(filename))
-
-  /** read HTML string */
-  def readHtml(content: String): Document =
-    val document = Jsoup.parse(content)
-    document.outputSettings.prettyPrint(false)
-    document
+  /** read HTML */
+  def readHtml(filename: String): org.jsoup.nodes.Document =
+    HtmlUtils.parseHtml(readFile(filename))
 
   /** delete files */
   def deleteFile(filename: String): Unit = new File(filename).delete
@@ -149,15 +141,6 @@ object FileUtils {
   /** file existence check */
   def exists(name: String): Boolean = new File(name).exists
 
-  /** revert entity name to character */
-  val unescapeHtml = StringEscapeUtils.unescapeHtml4(_)
-
-  /** revert character to entity name */
-  val escapeHtml = StringEscapeUtils.escapeHtml4(_)
-
-  /** escape js file to pass it to shell */
-  def escapeJS(str: String): String = StringEscapeUtils.escapeXSI(str)
-
   /** check whether a shell command is normally terminated */
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined
 
@@ -175,23 +158,6 @@ object FileUtils {
   /** get git current version */
   def currentVersion(dir: String = CUR_DIR): String =
     executeCmd(s"git rev-parse HEAD", dir).trim
-
-  /** get Element array using queries */
-  def getElems(elem: Element, query: String): List[Element] =
-    elem.select(query).toArray(Array[Element]()).toList
-
-  /** get range of element */
-  def getRange(elem: Element): Option[(Int, Int)] =
-    val s = elem.attr("s")
-    val e = elem.attr("e")
-    if (s == "") None else Some((s.toInt, e.toInt))
-
-  /** get raw body of element */
-  def getRawBody(elem: Element)(using lines: Array[String]): Array[String] =
-    getRange(elem) match {
-      case Some((s, e)) if s + 1 < e => lines.slice(s + 1, e - 1)
-      case _ => Array(elem.html.replaceAll(LINE_SEP, " "))
-    }
 
   /** set timeout with optinal limitation */
   def timeout[T](f: => T, limit: Option[Long]): T =
