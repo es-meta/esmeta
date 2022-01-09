@@ -13,7 +13,7 @@ import scala.sys.process.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
 /** file utilities */
-object FileUtils {
+object SystemUtils {
   // encoding
   private val ENC = "utf8"
 

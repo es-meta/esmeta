@@ -4,7 +4,7 @@ import java.io._
 import esmeta.error.NotSupported
 import esmeta.phase._
 import esmeta.util.BaseUtils._
-import esmeta.util.FileUtils._
+import esmeta.util.SystemUtils._
 import org.scalatest._
 import io.circe._, io.circe.syntax._, io.circe.parser._
 

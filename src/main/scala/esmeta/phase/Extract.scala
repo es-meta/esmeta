@@ -3,7 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.spec.*
 import esmeta.util.*
-import esmeta.util.FileUtils.*
+import esmeta.util.SystemUtils.*
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
