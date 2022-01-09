@@ -5,7 +5,6 @@ import esmeta.util.Appender
 
 /** stringifier for specifications */
 object Stringifier {
-  import Utils.*
   import Appender.*
 
   // for specifications
@@ -14,7 +13,14 @@ object Stringifier {
   // for grammars
   given Appendable[Grammar] = (app, grammar) => {
     given Appendable[List[Production]] = iterableApp(sep = LINE_SEP)
-    app >> getSortedProds(grammar)
+    app >> "########################################"
+    app :> "# Productions"
+    app :> "########################################"
+    app :> grammar.prods
+    app :> "########################################"
+    app :> "# Productions for Web"
+    app :> "########################################"
+    app :> grammar.prodsForWeb
   }
 
   // for productions

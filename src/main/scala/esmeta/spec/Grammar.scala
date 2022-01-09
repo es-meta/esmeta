@@ -1,7 +1,10 @@
 package esmeta.spec
 
 /** grammars */
-case class Grammar(prods: List[Production])
+case class Grammar(
+  prods: List[Production],
+  prodsForWeb: List[Production],
+)
 
 /** productions */
 case class Production(

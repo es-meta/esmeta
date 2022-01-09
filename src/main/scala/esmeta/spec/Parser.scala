@@ -23,12 +23,21 @@ object Parser extends ProductionParsers {
   }
 
   /** parses a grammar */
-  def parseGrammar(document: Document): Grammar = Grammar(for {
-    elem <- getElems(document, "emu-grammar[type=definition]:not([example])")
-    content = unescapeHtml(elem.html.trim)
-    prods = parseProductions(content)
-    prod <- prods
-  } yield prod)
+  def parseGrammar(document: Document): Grammar = {
+    import Utils.*
+    val allProds = for {
+      elem <- getElems(document, "emu-grammar[type=definition]:not([example])")
+      content = unescapeHtml(elem.html.trim)
+      prods = parseProductions(content)
+      prod <- prods
+      inAnnex = isInAnnex(elem)
+    } yield (prod, inAnnex)
+    val prods = sort(for ((prod, inAnnex) <- allProds if !inAnnex) yield prod)
+    val prodsForWeb = sort(for (
+      (prod, inAnnex) <- allProds if inAnnex
+    ) yield prod)
+    Grammar(prods, prodsForWeb)
+  }
 
   /** parses productions */
   def parseProductions(content: String): List[Production] =
