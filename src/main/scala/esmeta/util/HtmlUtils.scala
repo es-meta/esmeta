@@ -27,17 +27,4 @@ object HtmlUtils {
   /** get Element array using queries */
   def getElems(elem: Element, query: String): List[Element] =
     elem.select(query).toArray(Array[Element]()).toList
-
-  /** get range of element */
-  def getRange(elem: Element): Option[(Int, Int)] =
-    val s = elem.attr("s")
-    val e = elem.attr("e")
-    if (s == "") None else Some((s.toInt, e.toInt))
-
-  /** get raw body of element */
-  def getRawBody(elem: Element)(using lines: Array[String]): Array[String] =
-    getRange(elem) match {
-      case Some((s, e)) if s + 1 < e => lines.slice(s + 1, e - 1)
-      case _ => Array(elem.html.replaceAll(LINE_SEP, " "))
-    }
 }
