@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
+import esmeta.spec.Utils.*
 import esmeta.spec.parsers.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BaseUtils.*
@@ -8,13 +9,14 @@ import org.jsoup.nodes.*
 import scala.util.parsing.combinator.*
 
 /** specification parser */
-object Parser extends ProductionParsers {
+object Parser {
+  val parser = new ProductionParsers with HeadParsers
 
   /** parses a specification */
   def parseSpec(content: String): Spec = {
     val document = parseHtml(content)
     val grammar = parseGrammar(document)
-    val algorithms = parseAlgorithms(document, grammar)
+    val algorithms = parseAlgorithms(document, getIdxMap(grammar))
     Spec(
       version = None,
       grammar = grammar,
@@ -41,20 +43,25 @@ object Parser extends ProductionParsers {
 
   /** parses productions */
   def parseProductions(content: String): List[Production] =
-    parseAll(prods, content).get
+    parser.parseAll(parser.prods, content).get
 
   /** parses algorithms */
-  def parseAlgorithms(document: Document, grammar: Grammar): List[Algorithm] =
+  def parseAlgorithms(
+    document: Document,
+    idxMap: Map[String, (Int, Int)],
+  ): List[Algorithm] =
     for {
       elem <- getElems(document, "emu-alg:not([example])")
-      algo <- parseAlgorithms(elem, grammar)
+      algo <- parseAlgorithms(elem, idxMap)
     } yield algo
 
   /** parses an algorithm */
-  def parseAlgorithms(elem: Element, grammar: Grammar): List[Algorithm] = {
-    val heads = parseHead(elem)
-    ???
-  }
+  def parseAlgorithms(
+    elem: Element,
+    idxMap: Map[String, (Int, Int)],
+  ): List[Algorithm] = for {
+    head <- parseHeads(elem, idxMap)
+  } yield ???
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
@@ -157,9 +164,84 @@ object Parser extends ProductionParsers {
     "sec-statement-rules",
     "sec-expression-rules",
   )
-  def parseHead(elem: Element): List[Head] = {
+
+  /** parses algorithm heads */
+  def parseHeads(elem: Element, idxMap: Map[String, (Int, Int)]): List[Head] = {
     if (IGNORE_ALGO_PARENT_IDS contains elem.parent.id) return Nil
     if (elem.parent.tagName != "emu-clause") return Nil
-    ???
+
+    // TODO handle unusual html structure of HasCallInTailPosition
+    // if (rulePattern.matches(headElem.text)) {
+    //   headElem = headElem.parent.siblingElements.get(0)
+    // }
+
+    val headElem = elem.siblingElements.get(0)
+    val headContent = unescapeHtml(headElem.html.trim)
+    val prevElem = elem.previousElementSibling
+    val prevContent = unescapeHtml(prevElem.html.trim)
+    // TODO handle the `type` attribute of `emu-clause` (e.g. internal method / concrete method)
+    if (isSyntaxDirected(prevElem))
+      getSyntaxDirectedOperationHead(headContent, prevContent, idxMap)
+    else getAbstractOperationHead(headContent)
+
+    Nil // XXX REMOVE
   }
+
+  // ///////////////////////////////////////////////////////////////////////////
+  // Private Helpers
+  // ///////////////////////////////////////////////////////////////////////////
+  import Head.*
+
+  // check whether current algorithm head is for syntax directed functions.
+  private def isSyntaxDirected(prevElem: Element): Boolean =
+    prevElem.tagName == "emu-grammar"
+
+  // get syntax-directed operation heads
+  private def getSyntaxDirectedOperationHead(
+    headContent: String,
+    prevContent: String,
+    idxMap: Map[String, (Int, Int)],
+  ): List[Head] = {
+    val (isStatic, name, params) =
+      parser.parseAll(parser.synDirOpHeadName, headContent).get
+
+    for {
+      prod <- parser.parseAll(parser.prods, prevContent).get
+      lhsName = prod.lhs.name
+      rhs <- prod.rhsList
+      rhsName <- allNames(rhs)
+      syntax = lhsName + ":" + rhsName
+      (idx, subIdx) = idxMap(syntax)
+      rhsParams = getRhsParams(rhs)
+      head = SyntaxDirectedOperationHead(
+        lhsName,
+        idx,
+        subIdx,
+        rhsParams,
+        name,
+        isStatic,
+        params,
+      )
+    } yield head
+  }
+
+  // get parameters from RHSs
+  def getRhsParams(rhs: Rhs): List[Param] = {
+    import Param.Kind.*
+    val names = getNTs(rhs).map(_.name)
+    val duplicated = names.filter(p => names.count(_ == p) > 1).toSet
+    var counter = Map[String, Int]()
+    val paramNames = names.map(name => {
+      if (duplicated contains name) {
+        val k = counter.getOrElse(name, 0)
+        counter += name -> (k + 1)
+        s"$name$k"
+      } else name
+    })
+    paramNames.map(Param(_, Normal, None))
+  }
+
+  // normal head
+  private def getAbstractOperationHead(content: String): List[Head] =
+    List(parser.parseAll(parser.absOpHead, content).get)
 }

@@ -12,7 +12,7 @@ trait ProductionParsers extends RhsParsers {
 
   // productions
   lazy val prod: Parser[Production] =
-    lhs ~ prodKind ~ opt("one of") ~ rep1(newline ~> rhs) ^^ {
+    lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
         val rs =
           for (r <- origRs; s <- r.symbols)

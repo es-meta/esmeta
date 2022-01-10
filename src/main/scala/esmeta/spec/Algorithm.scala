@@ -32,7 +32,6 @@ enum Head:
     methodName: String,
     isStatic: Boolean,
     withParams: List[Param],
-    needPrefix: Boolean,
   )
 
   /** buil-in operation  heads */
@@ -45,6 +44,7 @@ enum Head:
 case class Param(
   name: String,
   kind: Param.Kind,
+  ty: Option[String], // TODO more precisely represent parameter types
 )
 object Param:
   enum Kind:

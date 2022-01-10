@@ -1,6 +1,7 @@
 package esmeta.spec.parsers
 
 import esmeta.spec.*
+import scala.util.parsing.combinator.*
 
 /** parsers for grammar symbols */
 trait SymbolParsers extends BaseParsers {
