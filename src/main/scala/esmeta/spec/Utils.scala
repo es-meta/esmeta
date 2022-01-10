@@ -61,4 +61,20 @@ object Utils {
     case ButNot(base, _)   => Some(base)
     case _                 => None
   }
+
+  // get parameters from RHSs
+  def getRhsParams(rhs: Rhs): List[Param] = {
+    import Param.Kind.*
+    val names = getNTs(rhs).map(_.name)
+    val duplicated = names.filter(p => names.count(_ == p) > 1).toSet
+    var counter = Map[String, Int]()
+    val paramNames = names.map(name => {
+      if (duplicated contains name) {
+        val k = counter.getOrElse(name, 0)
+        counter += name -> (k + 1)
+        s"$name$k"
+      } else name
+    })
+    paramNames.map(Param(_, Normal, "unknown"))
+  }
 }

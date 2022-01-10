@@ -12,16 +12,15 @@ case class Algorithm(
 
 /** algorithm heads */
 enum Head:
-  /** abstract opration (AO) heads */
-  case AbstractOperationHead(name: String, params: List[Param])
-
-  /** abstract method heads */
-  case AbstractMethodHead(
-    base: String,
-    methodName: String,
-    receiverParam: Param,
-    origParams: List[Param],
+  /** abstract operation (AO) heads */
+  case AbstractOperationHead(
+    name: String,
+    params: List[Param],
+    isHostDefined: Boolean,
   )
+
+  /** numeric method heads */
+  case NumericMethodHead(ty: String, name: String, params: List[Param])
 
   /** syntax-directed operation (SOD) heads */
   case SyntaxDirectedOperationHead(
@@ -34,17 +33,31 @@ enum Head:
     withParams: List[Param],
   )
 
-  /** buil-in operation  heads */
-  case BuiltinOperationHead(
-    ref: lang.Ref,
-    origParams: List[Param],
+  /** concrete method heads */
+  case ConcreteMethodHead(
+    methodName: String,
+    receiverParam: Param,
+    params: List[Param],
+  )
+
+  /** internal method heads */
+  case InternalMethodHead(
+    methodName: String,
+    receiverParam: Param,
+    params: List[Param],
+  )
+
+  /** buil-in heads */
+  case BuiltinHead(
+    ref: String, // TODO more precisely represent references
+    params: List[Param],
   )
 
 /** algorithm parameters */
 case class Param(
   name: String,
   kind: Param.Kind,
-  ty: Option[String], // TODO more precisely represent parameter types
+  ty: String, // TODO more precisely represent parameter types
 )
 object Param:
   enum Kind:
