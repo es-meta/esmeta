@@ -71,16 +71,6 @@ class StringifierTinyTest extends SpecTest {
     val rhs1: Rhs = Rhs(Some(rhsCond), symbols, None)
     val rhs2: Rhs = Rhs(Some(rhsCond), symbols, Some("Identifier"))
     val lhs = Lhs("lhs", List("Yield", "Await", "In"))
-    val prod_str1 =
-      """lhs[Yield, Await, In] :: one of
-  [+Yield] `{` `}`
-  [+Yield] `{` `}` #Identifier
-"""
-    val prod_str2 =
-      """lhs[Yield, Await, In] :
-  [+Yield] `{` `}`
-  [+Yield] `{` `}` #Identifier
-"""
     val prod1 = Production(lhs, Production.Kind.Lexical, true, List(rhs1, rhs2))
     val prod2 = Production(lhs, Production.Kind.Normal, false, List(rhs1, rhs2))
 
@@ -94,8 +84,14 @@ class StringifierTinyTest extends SpecTest {
     )
 
     testFor("Production")(
-      prod1 -> prod_str1,
-      prod2 -> prod_str2,
+      prod1 -> """lhs[Yield, Await, In] :: one of
+                 |  [+Yield] `{` `}`
+                 |  [+Yield] `{` `}` #Identifier
+                 |""".stripMargin,
+      prod2 -> """lhs[Yield, Await, In] :
+                 |  [+Yield] `{` `}`
+                 |  [+Yield] `{` `}` #Identifier
+                 |""".stripMargin,
     )
 
     testFor("Production.Kind")(
@@ -105,15 +101,21 @@ class StringifierTinyTest extends SpecTest {
     )
 
     testFor("Grammar")(
-      Grammar(List(prod1, prod2), List(prod1)) ->
-        ("""########################################
-# Productions
-########################################
-""" + prod_str1 + "\n" + prod_str2 + "\n" +
-          """########################################
-# Productions for Web
-########################################
-""" + prod_str1),
+      Grammar(List(prod1), List(prod2)) ->
+        s"""########################################
+           |# Productions
+           |########################################
+           |lhs[Yield, Await, In] :: one of
+           |  [+Yield] `{` `}`
+           |  [+Yield] `{` `}` #Identifier
+           |
+           |########################################
+           |# Productions for Web
+           |########################################
+           |lhs[Yield, Await, In] :
+           |  [+Yield] `{` `}`
+           |  [+Yield] `{` `}` #Identifier
+           |""".stripMargin,
     )
   }
 
