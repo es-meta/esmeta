@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.lang
+import Stringifier.*
 
 /** abstract algorithms */
 case class Algorithm(
@@ -8,10 +9,10 @@ case class Algorithm(
   id: String,
   body: lang.Stmt,
   code: String,
-)
+) extends SpecElem
 
 /** algorithm heads */
-enum Head:
+enum Head extends SpecElem:
   /** abstract operation (AO) heads */
   case AbstractOperationHead(
     name: String,
@@ -58,7 +59,7 @@ case class Param(
   name: String,
   kind: Param.Kind,
   ty: String, // TODO more precisely represent parameter types
-)
+) extends SpecElem
 object Param:
-  enum Kind:
+  enum Kind extends SpecElem:
     case Normal, Optional, Variadic

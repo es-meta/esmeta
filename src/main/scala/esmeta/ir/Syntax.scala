@@ -5,10 +5,10 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
 /** IR Programs */
-case class Program(insts: List[Inst])
+case class Program(insts: List[Inst]) extends IRElem
 
 /** IR Instructions */
-enum Inst:
+enum Inst extends IRElem:
   case IIf(cond: Expr, thenInst: Inst, elseInst: Inst)
   case IWhile(cond: Expr, body: Inst)
   case IApp(id: Id, fexpr: Expr, args: List[Expr])
@@ -35,7 +35,7 @@ type NormalInst = IExpr | ILet | IAssign | IDelete | IAppend | IPrepend |
   IReturn | IThrow | IAssert | IPrint
 
 /** IR Expressions */
-enum Expr:
+enum Expr extends IRElem:
   case ENum(n: Double)
   case EINum(n: Long)
   case EBigINum(b: BigInt)
@@ -67,22 +67,22 @@ enum Expr:
   case ENotSupported(msg: String)
 
 /** IR References */
-enum Ref:
+enum Ref extends IRElem:
   case RefId(id: Id)
   case RefProp(ref: Ref, expr: Expr)
 
 /** IR Identifiers */
-case class Id(name: String)
+case class Id(name: String) extends IRElem
 
 /** IR Types */
-case class Ty(name: String)
+case class Ty(name: String) extends IRElem
 
 /** IR Unary Operators */
-enum UOp:
+enum UOp extends IRElem:
   case ONeg, ONot, OBNot
 
 /** IR Binary Operators */
-enum BOp:
+enum BOp extends IRElem:
   case OPlus
   case OSub
   case OMul
@@ -104,7 +104,7 @@ enum BOp:
   case OURShift
 
 /** IR Convert Operators */
-enum COp:
+enum COp extends IRElem:
   case CStrToNum
   case CStrToBigInt
   case CNumToStr

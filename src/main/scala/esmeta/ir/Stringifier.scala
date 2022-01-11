@@ -4,44 +4,59 @@ import esmeta.LINE_SEP
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.ir.*
 import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
 
-/** stringifier for IR */
-class Stringifier(detail: Boolean = true) {
+case class Stringifier(detail: Boolean) {
   // ////////////////////////////////////////////////////////////////////////////
   // Syntax
   // ////////////////////////////////////////////////////////////////////////////
-  // instrctions without detail information
-  lazy val DetailInstApp: Appendable[Inst] = (app, inst) =>
-    if detail then app >> inst
-    else app >> "..."
-
   // default iterable
-  given [T](using tApp: Appendable[T]): Appendable[Iterable[T]] =
-    iterableApp[T]("(", ", ", ")")
+  given [T](using tRule: Rule[T]): Rule[Iterable[T]] =
+    iterableRule[T]("(", ", ", ")")
 
   // default pair
   given [T, S](using
-    tApp: Appendable[T],
-    sApp: Appendable[S],
-  ): Appendable[(T, S)] = arrowApp[T, S]
+    tRule: Rule[T],
+    sRule: Rule[S],
+  ): Rule[(T, S)] = arrowRule[T, S]
+
+  // elements
+  given elemRule: Rule[IRElem] = (app, elem) =>
+    elem match {
+      case elem: Program  => progRule(app, elem)
+      case elem: Inst     => instRule(app, elem)
+      case elem: Expr     => exprRule(app, elem)
+      case elem: Ref      => refRule(app, elem)
+      case elem: Ty       => tyRule(app, elem)
+      case elem: Id       => idRule(app, elem)
+      case elem: UOp      => uopRule(app, elem)
+      case elem: BOp      => bopRule(app, elem)
+      case elem: COp      => copRule(app, elem)
+      case elem: State    => stateRule(app, elem)
+      case elem: Context  => ctxtRule(app, elem)
+      case elem: Cursor   => cursorRule(app, elem)
+      case elem: Heap     => heapRule(app, elem)
+      case elem: Obj      => objRule(app, elem)
+      case elem: Value    => valRule(app, elem)
+      case elem: RefValue => refValRule(app, elem)
+    }
 
   // programs
-  given Appendable[Program] = (app, program) =>
-    program.insts.foldLeft(app)(_ :> _ >> LINE_SEP)
+  given progRule: Rule[Program] =
+    (app, program) => program.insts.foldLeft(app)(_ :> _ >> LINE_SEP)
 
   // instructions
-  given Appendable[Inst] = (app, inst) =>
+  given instRule: Rule[Inst] = (app, inst) =>
     inst match
-      case IExpr(expr)          => app >> expr
-      case ILet(id, expr)       => app >> "let " >> id >> " = " >> expr
-      case IAssign(ref, expr)   => app >> ref >> " = " >> expr
-      case IDelete(ref)         => app >> "delete " >> ref
-      case IAppend(expr, list)  => app >> "append " >> expr >> " -> " >> list
-      case IPrepend(expr, list) => app >> "prepend " >> expr >> " -> " >> list
-      case IReturn(expr)        => app >> "return " >> expr
-      case ithrow @ IThrow(id)  => app >> "throw " >> id
+      case IExpr(expr)         => app >> expr
+      case ILet(id, expr)      => app >> "let " >> id >> " = " >> expr
+      case IAssign(ref, expr)  => app >> ref >> " = " >> expr
+      case IDelete(ref)        => app >> "delete " >> ref
+      case IAppend(expr, list) => app >> "append " >> expr >> " -> " >> list
+      case IPrepend(expr, list) =>
+        app >> "prepend " >> expr >> " -> " >> list
+      case IReturn(expr)       => app >> "return " >> expr
+      case ithrow @ IThrow(id) => app >> "throw " >> id
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " "
         app >> thenInst >> " else "
@@ -51,28 +66,32 @@ class Stringifier(detail: Boolean = true) {
       case IAssert(expr)      => app >> "assert " >> expr
       case IPrint(expr)       => app >> "print " >> expr
       case iapp @ IApp(id, fexpr, args) =>
-        given Appendable[Iterable[Expr]] = iterableApp[Expr](sep = " ")
+        given Rule[Iterable[Expr]] = iterableRule[Expr](sep = " ")
         app >> "app " >> id >> " = (" >> fexpr
         if (!args.isEmpty) app >> " " >> args
         app >> ")"
       case iaccess @ IAccess(id, bexpr, expr, args) =>
-        given Appendable[Iterable[Expr]] = iterableApp[Expr](sep = " ")
+        given Rule[Iterable[Expr]] = iterableRule[Expr](sep = " ")
         app >> "access " >> id >> " = (" >> bexpr >> " " >> expr
         if (!args.isEmpty) app >> " " >> args
         app >> ")"
       case IClo(id, params, captured, body) =>
-        given Appendable[Iterable[Id]] = iterableApp[Id](sep = ", ")
-        given Appendable[Inst] = DetailInstApp
+        given Rule[Iterable[Id]] = iterableRule[Id](sep = ", ")
+        given Rule[Inst] = instDetailRule
         app >> "clo " >> id >> " = (" >> params >> ")[" >> captured >> "] => " >> body
       case ICont(id, params, body) =>
-        given Appendable[Inst] = DetailInstApp
+        given Rule[Inst] = instDetailRule
         app >> "cont " >> id >> " = " >> params >> " [=>] " >> body
       case IWithCont(id, params, inst) =>
-        given Appendable[Inst] = DetailInstApp
+        given Rule[Inst] = instDetailRule
         app >> "withcont " >> id >> " " >> params >> " = " >> inst
 
+  // instrctions without detail information
+  lazy val instDetailRule: Rule[Inst] = (app, inst) =>
+    if (detail) app >> inst else app >> "..."
+
   // expressions
-  given Appendable[Expr] = (app, expr) =>
+  given exprRule: Rule[Expr] = (app, expr) =>
     expr match
       case ENum(n)      => app >> s"$n"
       case EINum(n)     => app >> s"${n}i"
@@ -86,11 +105,11 @@ class Stringifier(detail: Boolean = true) {
       case EComp(ty, value, target) =>
         app >> "(comp[" >> ty >> "] " >> value >> " => " >> target >> ")"
       case EMap(ty, props) =>
-        given Appendable[Iterable[(Expr, Expr)]] =
-          iterableApp[(Expr, Expr)]("(", ", ", ")")
+        given Rule[Iterable[(Expr, Expr)]] =
+          iterableRule[(Expr, Expr)]("(", ", ", ")")
         app >> "(new " >> ty >> props >> ")"
       case EList(exprs) =>
-        given Appendable[Iterable[Expr]] = iterableApp[Expr]("[", ", ", "]")
+        given Rule[Iterable[Expr]] = iterableRule[Expr]("[", ", ", "]")
         app >> "(new " >> exprs >> ")"
       case ESymbol(desc)   => app >> "(new '" >> desc >> ")"
       case EPop(list, idx) => app >> "(pop " >> list >> " " >> idx >> ")"
@@ -106,12 +125,13 @@ class Stringifier(detail: Boolean = true) {
         app >> "(get-elems " >> base >> " " >> name >> ")"
       case EGetSyntax(base) => app >> "(get-syntax " >> base >> ")"
       case EParseSyntax(code, rule, parserParams) =>
-        given Appendable[Iterable[Boolean]] = iterableApp[Boolean](sep = " ")
+        given Rule[Iterable[Boolean]] =
+          iterableRule[Boolean](sep = " ")
         app >> "(parse-syntax " >> code >> " " >> rule
         if (!parserParams.isEmpty) app >> " " >> parserParams
         app >> ")"
       case EConvert(expr, cop, list) =>
-        given Appendable[Iterable[Expr]] = iterableApp[Expr](sep = " ")
+        given Rule[Iterable[Expr]] = iterableRule[Expr](sep = " ")
         app >> "(convert " >> expr >> " " >> cop
         for (l <- list) app >> " " >> l
         app >> ")"
@@ -127,7 +147,7 @@ class Stringifier(detail: Boolean = true) {
       case ENotSupported(msg) => app >> "??? \"" >> normStr(msg) >> "\""
 
   // ref
-  given Appendable[Ref] = (app, ref) =>
+  given refRule: Rule[Ref] = (app, ref) =>
     ref match
       case RefId(id) => app >> id
       case RefProp(ref, EStr(str)) if "[_a-zA-Z0-9]+".r.matches(str) =>
@@ -135,13 +155,13 @@ class Stringifier(detail: Boolean = true) {
       case RefProp(ref, expr) => app >> ref >> "[" >> expr >> "]"
 
   // types
-  given Appendable[Ty] = (app, ty) => app >> ty.name
+  given tyRule: Rule[Ty] = (app, ty) => app >> ty.name
 
   // identifiers
-  given Appendable[Id] = (app, id) => app >> id.name
+  given idRule: Rule[Id] = (app, id) => app >> id.name
 
   // unary operators
-  given Appendable[UOp] = (app, uop) =>
+  given uopRule: Rule[UOp] = (app, uop) =>
     app >> (uop match {
       case ONeg  => "-"
       case ONot  => "!"
@@ -149,7 +169,7 @@ class Stringifier(detail: Boolean = true) {
     })
 
   // binary operators
-  given Appendable[BOp] = (app, bop) =>
+  given bopRule: Rule[BOp] = (app, bop) =>
     app >> (bop match
       case OPlus    => "+"
       case OSub     => "-"
@@ -173,7 +193,7 @@ class Stringifier(detail: Boolean = true) {
     )
 
   // convert operators
-  given Appendable[COp] = (app, cop) =>
+  given copRule: Rule[COp] = (app, cop) =>
     app >> (cop match
       case CStrToNum    => "str2num"
       case CStrToBigInt => "str2bigint"
@@ -187,11 +207,12 @@ class Stringifier(detail: Boolean = true) {
   // States
   // ////////////////////////////////////////////////////////////////////////////
   // states
-  given Appendable[State] = (app, st) =>
+  given stateRule: Rule[State] = (app, st) =>
     app.wrap {
       val State(_, context, ctxtStack, globals, heap, fnameOpt) = st
       app :> "context: " >> context >> LINE_SEP
-      given Appendable[Iterable[String]] = iterableApp[String]("[", ", ", "]")
+      given Rule[Iterable[String]] =
+        iterableRule[String]("[", ", ", "]")
       app :> "context-stack: " >> ctxtStack.map(_.name) >> LINE_SEP
       app :> "globals: "
       app.wrapIterable(globals, detail) >> LINE_SEP
@@ -200,7 +221,7 @@ class Stringifier(detail: Boolean = true) {
     }
 
   // contexts
-  given Appendable[Context] = (app, context) =>
+  given ctxtRule: Rule[Context] = (app, context) =>
     app.wrap {
       val Context(cursorOpt, retId, name, locals) = context
       app :> "name: " >> name >> LINE_SEP
@@ -216,19 +237,19 @@ class Stringifier(detail: Boolean = true) {
     }
 
   // cursors
-  given Appendable[Cursor] = (app, cursor) =>
+  given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
       case InstCursor(cur, rest) =>
         app >> cur >> " [# rest: " >> rest.size >> "]"
 
   // heaps
-  given Appendable[Heap] = (app, heap) =>
+  given heapRule: Rule[Heap] = (app, heap) =>
     val Heap(map, size) = heap
     app >> s"(SIZE = " >> size.toString >> "): "
     app.wrapIterable(map)
 
   // objects
-  given Appendable[Obj] = (app, obj) =>
+  given objRule: Rule[Obj] = (app, obj) =>
     obj match
       case IRSymbol(desc) => app >> "(Symbol " >> desc >> ")"
       case map @ IRMap(ty, _, _) => {
@@ -236,14 +257,15 @@ class Stringifier(detail: Boolean = true) {
         app.wrapIterable(map.props.toList)
       }
       case IRList(values) => {
-        given Appendable[Iterable[Value]] = iterableApp[Value]("[", ", ", "]")
+        given Rule[Iterable[Value]] =
+          iterableRule[Value]("[", ", ", "]")
         app >> values.toList
       }
       case IRNotSupported(tyname, msg) =>
         app >> "(NotSupported \"" >> tyname >> "\" \"" >> msg >> "\")"
 
   // values
-  given Appendable[Value] = (app, v) =>
+  given valRule: Rule[Value] = (app, v) =>
     v match
       case Num(double)       => app >> double.toString
       case INum(long)        => app >> long.toString >> "i"
@@ -261,30 +283,31 @@ class Stringifier(detail: Boolean = true) {
       case comp: CompValue   => app >> comp
 
   // completions
-  given Appendable[CompValue] = (app, c) =>
+  given compValRule: Rule[CompValue] = (app, c) =>
     c match
-      case CompValue(CONST_NORMAL, value, None) => app >> "N(" >> value >> ")"
+      case CompValue(CONST_NORMAL, value, None) =>
+        app >> "N(" >> value >> ")"
       case CompValue(ty, value, target) =>
         app >> "Completion[" >> ty >> "]" >> "(" >> value
         target.map(app >> " => " >> _)
         app >> ")"
 
   // closures
-  given Appendable[Clo] = (
+  given cloRule: Rule[Clo] = (
     app,
     clo,
   ) =>
-    given Appendable[Map[Id, Value]] = mapApp[Id, Value]
+    given Rule[Map[Id, Value]] = mapRule[Id, Value]
     val Clo(_, params, locals, _) = clo
     app >> clo.ctxtName >> ":closure" >> params >> locals.toMap >> " => ..." // XXX
 
   // continuations
-  given Appendable[Cont] = (app, cont) =>
+  given contRule: Rule[Cont] = (app, cont) =>
     val Cont(params, context, ctxtStack) = cont
     app >> context.name >> params >> " [=>] ..."
 
   // reference values
-  given Appendable[RefValue] = (app, refV) =>
+  given refValRule: Rule[RefValue] = (app, refV) =>
     refV match
       case RefValueId(id)           => app >> id
       case RefValueProp(base, prop) => app >> base >> "[" >> prop >> "]"

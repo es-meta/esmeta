@@ -1,10 +1,12 @@
 package esmeta.spec
 
+import Stringifier.*
+
 /** grammars */
 case class Grammar(
   prods: List[Production],
   prodsForWeb: List[Production],
-)
+) extends SpecElem
 
 /** productions */
 case class Production(
@@ -12,26 +14,26 @@ case class Production(
   kind: Production.Kind,
   oneof: Boolean,
   rhsList: List[Rhs],
-)
+) extends SpecElem
 object Production:
-  enum Kind:
+  enum Kind extends SpecElem:
     case Normal, Lexical, NumericString
 
 /** production left-hand-sides (LHSs) */
-case class Lhs(name: String, params: List[String])
+case class Lhs(name: String, params: List[String]) extends SpecElem
 
 /** production alternative right-hand-sides (RHSs) */
 case class Rhs(
   condition: Option[RhsCond],
   symbols: List[Symbol],
   id: Option[String],
-)
+) extends SpecElem
 
 /** condidtions for RHSs */
-case class RhsCond(name: String, pass: Boolean)
+case class RhsCond(name: String, pass: Boolean) extends SpecElem
 
 /** grammar symbols */
-enum Symbol:
+enum Symbol extends SpecElem:
   /** terminal symbols */
   case Terminal(term: String)
 
@@ -87,7 +89,7 @@ enum Symbol:
   case NonUnicodeModeDecimalEscape
 
 /** nonterminal arguments */
-case class NtArg(kind: NtArg.Kind, name: String)
+case class NtArg(kind: NtArg.Kind, name: String) extends SpecElem
 object NtArg:
-  enum Kind:
+  enum Kind extends SpecElem:
     case True, False, Pass

@@ -3,14 +3,6 @@ package esmeta.ir
 import esmeta.util.BaseUtils._
 import Value._
 
-/** stringify */
-val getStringifier = {
-  cached[(Boolean), Stringifier](key => {
-    val (detail) = key
-    new Stringifier(detail)
-  })
-}
-
 /** predefined constants */
 val CONST_EMPTY = Const("empty")
 val CONST_UNRESOLVABLE = Const("unresolvable")

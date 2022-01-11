@@ -5,4 +5,4 @@ case class Spec(
   version: Option[String],
   grammar: Grammar,
   algorithms: List[Algorithm],
-)
+) extends SpecElem

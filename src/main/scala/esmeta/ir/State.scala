@@ -3,7 +3,6 @@ package esmeta.ir
 import scala.collection.mutable.{Map => MMap}
 import esmeta.util._
 import esmeta.util.BaseUtils._
-// import esmeta.error.NotSupported
 
 /** IR States */
 case class State(
@@ -13,22 +12,22 @@ case class State(
   val globals: MMap[Id, Value] = MMap(),
   val heap: Heap = Heap(),
   var fnameOpt: Option[String] = None,
-)
+) extends IRElem
 
 /** IR Contexts */
 case class Context(
   var cursorOpt: Option[Cursor] = None,
   val retId: Id = ID_RETURN,
   val name: String = STR_TOP_LEVEL,
-  // var prevCursorOpt: Option[Cursor] = None,
-  // val astOpt: Option[AST] = None,
-  // val algo: Option[Algo] = None,
+  // TODO var prevCursorOpt: Option[Cursor] = None,
+  // TODO val astOpt: Option[AST] = None,
+  // TODO val algo: Option[Algo] = None,
   val locals: MMap[Id, Value] = MMap(),
-  // val viewOpt: Option[View] = None
-)
+  // TODO val viewOpt: Option[View] = None
+) extends IRElem
 
 /** Evaluation cursors */
-sealed trait Cursor {
+sealed trait Cursor extends IRElem {
   // next cursor
   def next: Option[Cursor] = this match {
     case InstCursor(_, rest) => InstCursor.from(rest)
@@ -40,7 +39,7 @@ sealed trait Cursor {
 }
 
 // generator of evaluation cursors
-sealed trait CursorGen[T <: Cursor] {
+sealed trait CursorGen[T <: Cursor] extends IRElem {
   def apply(inst: Inst): Option[T]
 }
 
@@ -60,10 +59,10 @@ object InstCursor extends CursorGen[InstCursor] {
 case class Heap(
   map: MMap[Addr, Obj] = MMap(),
   var size: Int = 0,
-)
+) extends IRElem
 
 /** IR Objects */
-enum Obj(ty: Ty):
+enum Obj(ty: Ty) extends IRElem:
   case IRSymbol(desc: Value) extends Obj(Ty("Symbol"))
   // XXX
   // case IRMap(var ty: Ty, props: MMap[Value, (Value, Long)], var size: Long)
@@ -74,13 +73,13 @@ enum Obj(ty: Ty):
   case IRNotSupported(tyname: String, desc: String) extends Obj(Ty(tyname))
 
 /** IR Reference Value */
-enum RefValue:
+enum RefValue extends IRElem:
   case RefValueId(id: Id)
   case RefValueProp(base: Value, prop: Value)
 
 /** IR Values */
 type Addr = Value.NamedAddr | Value.DynamicAddr
-enum Value:
+enum Value extends IRElem:
   case Num(double: Double)
   case INum(long: Long)
   case BigINum(b: BigInt)
@@ -89,7 +88,7 @@ enum Value:
   case Undef
   case Null
   case Absent
-  // case Func(algo: Algo)
+  // TODO case Func(algo: Algo)
   case Const(name: String)
   case NamedAddr(name: String)
   case DynamicAddr(long: Long)
@@ -116,5 +115,5 @@ enum Value:
     ctxtStack: List[Context],
   )
 
-// AST values
+// TODO AST values
 // case class ASTVal(ast: AST) extends Value

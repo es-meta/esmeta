@@ -134,4 +134,8 @@ object BaseUtils {
     }
     aux()
   }
+
+  // stringify
+  def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
+    rule(new Appender, t).toString
 }

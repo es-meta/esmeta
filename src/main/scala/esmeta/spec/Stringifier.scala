@@ -7,12 +7,36 @@ import esmeta.util.Appender
 object Stringifier {
   import Appender.*
 
+  given elemRule: Rule[SpecElem] = (app, elem) =>
+    elem match {
+      case elem: Spec            => specRule(app, elem)
+      case elem: Grammar         => grammarRule(app, elem)
+      case elem: Production      => prodRule(app, elem)
+      case elem: Lhs             => lhsRule(app, elem)
+      case elem: Production.Kind => prodKindRule(app, elem)
+      case elem: Rhs             => rhsRule(app, elem)
+      case elem: RhsCond         => rhsCondRule(app, elem)
+      case elem: Symbol          => symbolRule(app, elem)
+      case elem: NtArg           => ntArgRule(app, elem)
+      case elem: NtArg.Kind      => ntArgKindRule(app, elem)
+      case elem: Algorithm       => algoRule(app, elem)
+      case elem: Head            => headRule(app, elem)
+      case elem: Param           => paramRule(app, elem)
+      case elem: Param.Kind      => paramKindRule(app, elem)
+    }
+
   // for specifications
-  given Appendable[Spec] = (app, spec) => ???
+  given specRule: Rule[Spec] = (app, spec) => {
+    val Spec(version, grammar, algorithms) = spec
+    version.map(app >> "- version: " >> _ >> LINE_SEP)
+    app :> "- grammar: " >> grammar
+    app :> "- algorithms: "
+    app.wrap(for (algo <- algorithms) app :> algo)
+  }
 
   // for grammars
-  given Appendable[Grammar] = (app, grammar) => {
-    given Appendable[List[Production]] = iterableApp(sep = LINE_SEP)
+  given grammarRule: Rule[Grammar] = (app, grammar) => {
+    given Rule[List[Production]] = iterableRule(sep = LINE_SEP)
     app >> "########################################"
     app :> "# Productions"
     app :> "########################################"
@@ -24,21 +48,21 @@ object Stringifier {
   }
 
   // for productions
-  given Appendable[Production] = (app, prod) => {
+  given prodRule: Rule[Production] = (app, prod) => {
     val Production(lhs, kind, oneof, rhsList) = prod
     app >> lhs >> " " >> kind >> (if (oneof) " one of" else "")
     app.wrap(for (rhs <- rhsList) app :> rhs)
   }
 
   // for production left-hand-sides (LHSs)
-  given Appendable[Lhs] = (app, lhs) => {
+  given lhsRule: Rule[Lhs] = (app, lhs) => {
     val Lhs(name, params) = lhs
-    given Appendable[List[String]] = iterableApp("[", ", ", "]")
+    given Rule[List[String]] = iterableRule("[", ", ", "]")
     app >> name >> params
   }
 
   // for production kinds
-  given Appendable[Production.Kind] = (app, kind) => {
+  given prodKindRule: Rule[Production.Kind] = (app, kind) => {
     import Production.Kind.*
     app >> (kind match {
       case Normal        => ":"
@@ -48,9 +72,9 @@ object Stringifier {
   }
 
   // for production alternative right-hand-sides (RHSs)
-  given Appendable[Rhs] = (app, rhs) => {
+  given rhsRule: Rule[Rhs] = (app, rhs) => {
     val Rhs(condition, symbols, id) = rhs
-    given Appendable[List[Symbol]] = iterableApp(sep = " ")
+    given Rule[List[Symbol]] = iterableRule(sep = " ")
     condition.foreach(app >> _ >> " ")
     app >> symbols
     id.foreach(app >> " " >> _)
@@ -58,17 +82,17 @@ object Stringifier {
   }
 
   // for condidtions for RHSs
-  given Appendable[RhsCond] = (app, rhsCond) => {
+  given rhsCondRule: Rule[RhsCond] = (app, rhsCond) => {
     val RhsCond(name, pass) = rhsCond
     app >> "[" >> (if (pass) "+" else "~") >> name >> "]"
   }
 
   // for condidtions for symbols
-  given Appendable[Symbol] = (app, symbol) =>
+  given symbolRule: Rule[Symbol] = (app, symbol) =>
     import Symbol.*
-    given n: Appendable[List[NtArg]] = iterableApp("[", ", ", "]")
-    given t: Appendable[List[Symbol]] = iterableApp(sep = " ")
-    given ts: Appendable[List[List[Symbol]]] = iterableApp("{", ", ", "}")
+    given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
+    given t: Rule[List[Symbol]] = iterableRule(sep = " ")
+    given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")
     symbol match {
       case Terminal(term) => app >> s"`$term`"
       case Nonterminal(name, args, opt) =>
@@ -96,13 +120,13 @@ object Stringifier {
     }
 
   // for condidtions for nonterminal arguments
-  given Appendable[NtArg] = (app, ntArg) => {
+  given ntArgRule: Rule[NtArg] = (app, ntArg) => {
     val NtArg(kind, name) = ntArg
     app >> kind >> name
   }
 
   // for condidtions for nonterminal argument kinds
-  given ntArgKindApp: Appendable[NtArg.Kind] = (app, kind) =>
+  given ntArgKindRule: Rule[NtArg.Kind] = (app, kind) =>
     import NtArg.Kind.*
     app >> (kind match {
       case True  => "+"
@@ -111,11 +135,14 @@ object Stringifier {
     })
 
   // for algorithms
-  given Appendable[Algorithm] = (app, algo) => ???
+  given algoRule: Rule[Algorithm] = (app, algo) => ???
 
   // for algorithm heads
-  given Appendable[Head] = (app, head) => ???
+  given headRule: Rule[Head] = (app, head) => ???
 
   // for algorithm parameters
-  given Appendable[Param] = (app, param) => ???
+  given paramRule: Rule[Param] = (app, param) => ???
+
+  // for algorithm parameter kinds
+  given paramKindRule: Rule[Param.Kind] = (app, param) => ???
 }

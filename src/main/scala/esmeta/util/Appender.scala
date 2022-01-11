@@ -16,11 +16,11 @@ class Appender(tab: String = "  ") {
   var indent = 0
   private def indentStr: String = tab * indent
 
-  /** append an appendable */
-  def >>[T: Appendable](x: T)(using a: Appendable[T]): Appender = a(this, x)
+  /** append an Rule */
+  def >>[T: Rule](x: T)(using a: Rule[T]): Appender = a(this, x)
 
-  /** append an appendable with a newline and an indentation */
-  def :>[T: Appendable](x: T)(using a: Appendable[T]): Appender =
+  /** append an Rule with a newline and an indentation */
+  def :>[T: Rule](x: T)(using a: Rule[T]): Appender =
     a(this >> LINE_SEP >> indentStr, x)
 
   /** wrap without brackets and one-level higher indentation */
@@ -34,7 +34,7 @@ class Appender(tab: String = "  ") {
 
   /** wrap iterable with detail option */
   def wrapIterable[T](iter: Iterable[T], detail: Boolean = true)(using
-    tApp: Appendable[T],
+    tRule: Rule[T],
   ): Appender =
     if iter.isEmpty then this >> "{}"
     else if !detail then this >> "{ ... }"
@@ -44,15 +44,15 @@ class Appender(tab: String = "  ") {
 /** helper for appender */
 object Appender {
 
-  /** appendable * */
-  type Appendable[T] = (Appender, T) => Appender
+  /** Rule * */
+  type Rule[T] = (Appender, T) => Appender
 
   /** iterable with separator */
-  def iterableApp[T](
+  def iterableRule[T](
     left: String = "",
     sep: String = "",
     right: String = "",
-  )(using tApp: Appendable[T]): Appendable[Iterable[T]] = (app, iter) =>
+  )(using tRule: Rule[T]): Rule[Iterable[T]] = (app, iter) =>
     app >> left
     if (!iter.isEmpty) {
       app >> iter.head
@@ -61,35 +61,35 @@ object Appender {
     app >> right
 
   /** arrows for pairs */
-  def arrowApp[T, U](using
-    tApp: Appendable[T],
-    uApp: Appendable[U],
-  ): Appendable[(T, U)] = (app, pair) =>
+  def arrowRule[T, U](using
+    tRule: Rule[T],
+    uRule: Rule[U],
+  ): Rule[(T, U)] = (app, pair) =>
     val (t, u) = pair
     app >> t >> " -> " >> u
 
   /** map appender */
-  def mapApp[K, V](using
-    kApp: Appendable[K],
-    vApp: Appendable[V],
-  ): Appendable[Map[K, V]] = (app, map) =>
-    given Appendable[(K, V)] = arrowApp
+  def mapRule[K, V](using
+    kRule: Rule[K],
+    vRule: Rule[V],
+  ): Rule[Map[K, V]] = (app, map) =>
+    given Rule[(K, V)] = arrowRule
     if (map.size == 0) app >> "{}"
     else app.wrap(for (pair <- map) app :> pair)
 
   /** sorted map appender */
-  def sortedMapApp[K, V](using
+  def sortedMapRule[K, V](using
     kOrd: Ordering[K],
-    kApp: Appendable[K],
-    vApp: Appendable[V],
-  ): Appendable[Map[K, V]] = (app, map) =>
-    given Appendable[(K, V)] = arrowApp
+    kRule: Rule[K],
+    vRule: Rule[V],
+  ): Rule[Map[K, V]] = (app, map) =>
+    given Rule[(K, V)] = arrowRule
     if (map.size == 0) app >> "{}"
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)
 
   // basic values
-  given Appendable[String] = (app, str) => { app.sb ++= str; app }
-  given Appendable[Int] = _ >> _.toString
-  given Appendable[Long] = _ >> _.toString
-  given Appendable[Boolean] = _ >> _.toString
+  given Rule[String] = (app, str) => { app.sb ++= str; app }
+  given Rule[Int] = _ >> _.toString
+  given Rule[Long] = _ >> _.toString
+  given Rule[Boolean] = _ >> _.toString
 }
