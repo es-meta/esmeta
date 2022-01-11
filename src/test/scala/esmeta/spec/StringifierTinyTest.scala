@@ -87,13 +87,13 @@ class StringifierTinyTest extends SpecTest {
     val rhs1: Rhs = Rhs(Some(rhsCond), symbols, None)
     val rhs2: Rhs = Rhs(Some(rhsCond), symbols, Some("Identifier"))
     val lhs = Lhs("lhs", List("Yield", "Await", "In"))
-    val prod_str1 = 
-    """lhs[Yield, Await, In] :: one of
+    val prod_str1 =
+      """lhs[Yield, Await, In] :: one of
   [+Yield] `{` `}`
   [+Yield] `{` `}` #Identifier
 """
-    val prod_str2 = 
-    """lhs[Yield, Await, In] :
+    val prod_str2 =
+      """lhs[Yield, Await, In] :
   [+Yield] `{` `}`
   [+Yield] `{` `}` #Identifier
 """
@@ -102,34 +102,34 @@ class StringifierTinyTest extends SpecTest {
 
     test("Rhs")(
       rhs1 -> "[+Yield] `{` `}`",
-      rhs2 -> "[+Yield] `{` `}` #Identifier"
+      rhs2 -> "[+Yield] `{` `}` #Identifier",
     )
 
     test("Lhs")(
-      lhs -> "lhs[Yield, Await, In]"
+      lhs -> "lhs[Yield, Await, In]",
     )
 
     test("Production")(
       prod1 -> prod_str1,
-      prod2 -> prod_str2
+      prod2 -> prod_str2,
     )
 
     test("Production.Kind")(
       Production.Kind.Normal -> ":",
       Production.Kind.Lexical -> "::",
-      Production.Kind.NumericString -> ":::"
+      Production.Kind.NumericString -> ":::",
     )
 
     test("Grammar")(
       Grammar(List(prod1, prod2), List(prod1)) ->
-( """########################################
+        ("""########################################
 # Productions
 ########################################
-""" + prod_str1 + "\n" + prod_str2 + "\n" + 
-"""########################################
+""" + prod_str1 + "\n" + prod_str2 + "\n" +
+          """########################################
 # Productions for Web
 ########################################
-""" + prod_str1 )
+""" + prod_str1),
     )
 
     // EXAMPLE test("Inst")(
