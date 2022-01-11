@@ -6,11 +6,12 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
 
+/** stringifier for IR */
 case class Stringifier(detail: Boolean) {
   // ////////////////////////////////////////////////////////////////////////////
   // Syntax
   // ////////////////////////////////////////////////////////////////////////////
-  import Appender.arrowRule
+  import Appender.given
 
   // elements
   given elemRule: Rule[IRElem] = (app, elem) =>

@@ -2,15 +2,13 @@ package esmeta.spec
 
 import esmeta.LINE_SEP
 import esmeta.spec.Utils.*
-import esmeta.spec.parsers.*
 import esmeta.util.HtmlUtils.*
-import esmeta.util.BaseUtils.*
+import esmeta.util.BasicParser
 import org.jsoup.nodes.*
-import scala.util.parsing.combinator.*
 
 /** specification parser */
-object Parser {
-  val parser = new ProductionParsers with HeadParsers
+trait Parser[T] extends BasicParser[T] with Parsers
+object Parser extends Parsers {
 
   /** parses a specification */
   def parseSpec(content: String): Spec = {
@@ -26,7 +24,6 @@ object Parser {
 
   /** parses a grammar */
   def parseGrammar(document: Document): Grammar = {
-    import Utils.*
     val allProds = for {
       elem <- getElems(document, "emu-grammar[type=definition]:not([example])")
       content = unescapeHtml(elem.html.trim)
@@ -43,7 +40,7 @@ object Parser {
 
   /** parses productions */
   def parseProductions(content: String): List[Production] =
-    parse(parser.prods, content)
+    parse(prods, content)
 
   /** parses algorithms */
   def parseAlgorithms(
@@ -308,8 +305,8 @@ object Parser {
   import Head.*
 
   // parse with parsing rules
-  private def parse[T](rule: parser.Parser[T], str: String): T =
-    parser.parseAll(rule, str).get
+  private def parse[T](rule: Parser[T], str: String): T =
+    parseAll(rule, str).get
 
   // get abstract operation heads
   private def getAbsOpHead(
@@ -317,15 +314,15 @@ object Parser {
     isHostDefined: Boolean,
   ): List[AbstractOperationHead] =
     val headContent = getFirstSiblingContent(elem)
-    val absOpHeadGen = parse(parser.absOpHeadGen, headContent)
-    List(absOpHeadGen(isHostDefined))
+    val generator = parse(absOpHeadGen, headContent)
+    List(generator(isHostDefined))
 
   // get numeric method heads
   private def getNumMethodHead(
     elem: Element,
   ): List[NumericMethodHead] =
     val headContent = getFirstSiblingContent(elem)
-    List(parse(parser.numMethodHead, headContent))
+    List(parse(numMethodHead, headContent))
 
   // get syntax-directed operation (SDO) heads
   private def getSdoHead(
@@ -334,16 +331,16 @@ object Parser {
   ): List[SyntaxDirectedOperationHead] = {
     val headContent = getFirstSiblingContent(elem)
     val prevContent = getPrevContent(elem)
-    val sdoHeadGen = parse(parser.sdoHeadGen, headContent)
+    val generator = parse(sdoHeadGen, headContent)
     for {
-      prod <- parse(parser.prods, prevContent)
+      prod <- parse(prods, prevContent)
       lhsName = prod.lhs.name
       rhs <- prod.rhsList
       rhsName <- allNames(rhs)
       syntax = lhsName + ":" + rhsName
       (idx, subIdx) = idxMap(syntax)
       rhsParams = getRhsParams(rhs)
-    } yield sdoHeadGen(
+    } yield generator(
       lhsName,
       idx,
       subIdx,
@@ -356,25 +353,25 @@ object Parser {
     elem: Element,
   ): List[ConcreteMethodHead] =
     val headContent = getFirstSiblingContent(elem)
-    val concMethodHeadGen =
-      parse(parser.concMethodHeadGen, headContent)
+    val generator =
+      parse(concMethodHeadGen, headContent)
     val dataMap = toDataMap(getPrevElem(elem))
     val forData = dataMap("for")
-    val receiverParam = parse(parser.paramDesc, forData)
-    List(concMethodHeadGen(receiverParam))
+    val receiverParam = parse(paramDesc, forData)
+    List(generator(receiverParam))
 
   // get internal method heads
   private def getInMethodHead(elem: Element): List[InternalMethodHead] =
     val headContent = getFirstSiblingContent(elem)
-    val inMethodHeadGen =
-      parse(parser.inMethodHeadGen, headContent)
+    val generator =
+      parse(inMethodHeadGen, headContent)
     val dataMap = toDataMap(getPrevElem(elem))
     val forData = dataMap("for")
-    val receiverParam = parse(parser.paramDesc, forData)
-    List(inMethodHeadGen(receiverParam))
+    val receiverParam = parse(paramDesc, forData)
+    List(generator(receiverParam))
 
   // get built-in heads
   private def getBuiltinHead(elem: Element): List[BuiltinHead] =
     val headContent = getFirstSiblingContent(elem)
-    List(parse(parser.builtinHead, headContent))
+    List(parse(builtinHead, headContent))
 }

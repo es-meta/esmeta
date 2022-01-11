@@ -1,7 +1,7 @@
-package esmeta.ir
+package esmeta.lang
 
 import esmeta.util.BasicParser
 
-/** IR parser */
+/** language parser */
 trait Parser[T] extends BasicParser[T] with Parsers
 object Parser extends Parsers
