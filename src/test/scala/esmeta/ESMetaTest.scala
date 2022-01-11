@@ -49,6 +49,23 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
+  // check stringify
+  def checkEquals[T](desc: String)(cases: (T, T)*): Unit =
+    check(desc)(cases.foreach { case (result, expected) =>
+      if (result != expected) {
+        println(s"[FAILED] $desc")
+        println(s"- result: $result")
+        println(s"- expected: $expected")
+        assert(result == expected)
+      }
+    })
+
+  // check stringify
+  def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
+    checkEquals(desc)(cases.map { case (input, expected) =>
+      (input.toString, expected)
+    }*)
+
   // get score
   def getScore(res: Map[String, Result]): (Int, Int) = (
     res.count { case (k, r) => r == Pass },
@@ -93,18 +110,6 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     jpw.println(resMap.asJson.spaces2SortKeys)
     jpw.close()
   }
-
-  // test helper
-  def testFor[T](desc: String)(cases: (T, String)*): Unit =
-    check(desc)(cases.foreach { case (input, expected) =>
-      val result = input.toString
-      if (result != expected) {
-        println(s"[FAILED] $desc")
-        println(s"- result: $result")
-        println(s"- expected: $expected")
-        assert(result == expected)
-      }
-    })
 
   // test name
   val name: String

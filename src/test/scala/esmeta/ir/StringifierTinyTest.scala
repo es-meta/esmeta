@@ -26,7 +26,7 @@ class StringifierTinyTest extends IRTest {
     val sIdList = "(x, y)"
 
     // Syntax
-    testFor("Inst")(
+    checkStringify("Inst")(
       IExpr(EINum(4)) -> "4i",
       ILet(Id("x"), EINum(4)) -> "let x = 4i",
       IAssign(RefId(Id("x")), ENum(3.0)) -> "x = 3.0",
@@ -55,7 +55,7 @@ class StringifierTinyTest extends IRTest {
       IWithCont(Id("x"), idList, irReturn) ->
         s"withcont x $sIdList = $sReturn",
     )
-    testFor("Expr")(
+    checkStringify("Expr")(
       ENum(3.0) -> "3.0",
       ENum(Double.PositiveInfinity) -> "Infinity",
       ENum(Double.NegativeInfinity) -> "-Infinity",
@@ -96,19 +96,19 @@ class StringifierTinyTest extends IRTest {
       EKeys(EStr("obj"), true) -> "(map-keys \"obj\" [int-sorted])",
       ENotSupported("hi") -> "??? \"hi\"",
     )
-    testFor("Ref")(
+    checkStringify("Ref")(
       RefId(Id("y")) -> "y",
       RefProp(RefId(Id("z")), EStr("w")) -> "z.w",
       RefProp(RefId(Id("x")), ENum(3.0)) -> "x[3.0]",
     )
-    testFor("Ty")(Ty("T") -> "T")
-    testFor("Id")(Id("x") -> "x")
-    testFor("UOp")(
+    checkStringify("Ty")(Ty("T") -> "T")
+    checkStringify("Id")(Id("x") -> "x")
+    checkStringify("UOp")(
       ONeg -> "-",
       ONot -> "!",
       OBNot -> "~",
     )
-    testFor("BOp")(
+    checkStringify("BOp")(
       OPlus -> "+",
       OSub -> "-",
       OMul -> "*",
@@ -129,7 +129,7 @@ class StringifierTinyTest extends IRTest {
       OURShift -> ">>>",
       OSRShift -> ">>",
     )
-    testFor("COp")(
+    checkStringify("COp")(
       CStrToNum -> "str2num",
       CStrToBigInt -> "str2bigint",
       CNumToStr -> "num2str",
@@ -139,7 +139,7 @@ class StringifierTinyTest extends IRTest {
     )
 
     // State
-    testFor("State")(
+    checkStringify("State")(
       State() -> """{
       |  context: {
       |    name: TOP_LEVEL
@@ -153,7 +153,7 @@ class StringifierTinyTest extends IRTest {
       |  filename: UNKNOWN
       |}""".stripMargin,
     )
-    testFor("Context")(
+    checkStringify("Context")(
       Context() -> """{
       |  name: TOP_LEVEL
       |  return: RETURN
@@ -161,7 +161,7 @@ class StringifierTinyTest extends IRTest {
       |  local-vars: {}
       |}""".stripMargin,
     )
-    testFor("Heap")(
+    checkStringify("Heap")(
       Heap(
         MMap(NamedAddr("namedaddr") -> IRSymbol(Num(3.0))),
         1,
@@ -169,7 +169,7 @@ class StringifierTinyTest extends IRTest {
       |  #namedaddr -> (Symbol 3.0)
       |}""".stripMargin,
     )
-    testFor("Obj")(
+    checkStringify("Obj")(
       IRSymbol(Str("const")) -> """(Symbol "const")""",
       IRMap(
         Ty("T"),
@@ -182,7 +182,7 @@ class StringifierTinyTest extends IRTest {
       IRList(Vector(Num(3.0), INum(42))) -> "[3.0, 42i]",
       IRNotSupported("tyname", "desc") -> """(NotSupported "tyname" "desc")""",
     )
-    testFor("Value")(
+    checkStringify("Value")(
       Num(3.0) -> "3.0",
       INum(2) -> "2i",
       BigINum(BigInt("1920380182930189023")) -> "1920380182930189023n",
@@ -193,14 +193,14 @@ class StringifierTinyTest extends IRTest {
       Null -> "null",
       Absent -> "absent",
     )
-    testFor("Addr")(
+    checkStringify("Addr")(
       NamedAddr("GLOBAL") -> "#GLOBAL",
       DynamicAddr(3) -> "#3",
     )
-    // testFor("ASTVal")(
+    // checkStringify("ASTVal")(
     //   ASTVal(PrimaryExpression0(List(), Span())) -> "☊[PrimaryExpression](this)"
     // )
-    // testFor("Func")(
+    // checkStringify("Func")(
     //   Func(Algo(NormalHead("normalname", List()), "x", IExpr(EINum(4)), List())) ->
     //     "λ(normalname)",
     //   Func(Algo(MethodHead("base", "methodname", Param("p"), List()), "x", IExpr(EINum(4)), List())) ->
@@ -212,14 +212,14 @@ class StringifierTinyTest extends IRTest {
     //   Func(Algo(BuiltinHead(RefProp(RefId(Id("id")), ENum(3.0)), List()), "x", IExpr(EINum(4)), List())) ->
     //     "λ(GLOBAL.id[3.0])"
     // )
-    testFor("Clo")(
+    checkStringify("Clo")(
       Clo("clo", idList, MMap[Id, Value](Id("z") -> Num(3.0)), None) ->
         "clo:closure(x, y)[z -> 3.0] => ...",
     )
-    testFor("Cont")(
+    checkStringify("Cont")(
       Cont(idList, Context(), List()) -> "TOP_LEVEL(x, y) [=>] ...",
     )
-    testFor("RefValue")(
+    checkStringify("RefValue")(
       RefValueId(Id("x")) -> "x",
       RefValueProp(NamedAddr("namedaddr"), Num(3.0)) -> "#namedaddr[3.0]",
       RefValueProp(

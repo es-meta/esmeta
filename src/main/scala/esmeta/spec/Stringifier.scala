@@ -5,7 +5,7 @@ import esmeta.util.Appender
 
 /** stringifier for specifications */
 object Stringifier {
-  import Appender.*
+  import Appender.*, Symbol.*
 
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match {
@@ -67,7 +67,8 @@ object Stringifier {
   given lhsRule: Rule[Lhs] = (app, lhs) => {
     val Lhs(name, params) = lhs
     given Rule[List[String]] = iterableRule("[", ", ", "]")
-    app >> name >> params
+    app >> name
+    if (!params.isEmpty) app >> params else app
   }
 
   // for production kinds
@@ -98,7 +99,6 @@ object Stringifier {
 
   // for condidtions for symbols
   given symbolRule: Rule[Symbol] = (app, symbol) =>
-    import Symbol.*
     given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
     given t: Rule[List[Symbol]] = iterableRule(sep = " ")
     given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")

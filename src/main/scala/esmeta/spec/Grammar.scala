@@ -15,12 +15,13 @@ case class Production(
   oneof: Boolean,
   rhsList: List[Rhs],
 ) extends SpecElem
-object Production:
+object Production extends Parser[Production]:
   enum Kind extends SpecElem:
     case Normal, Lexical, NumericString
 
 /** production left-hand-sides (LHSs) */
 case class Lhs(name: String, params: List[String]) extends SpecElem
+object Lhs extends Parser[Lhs]
 
 /** production alternative right-hand-sides (RHSs) */
 case class Rhs(
@@ -28,9 +29,11 @@ case class Rhs(
   symbols: List[Symbol],
   id: Option[String],
 ) extends SpecElem
+object Rhs extends Parser[Rhs]
 
 /** condidtions for RHSs */
 case class RhsCond(name: String, pass: Boolean) extends SpecElem
+object RhsCond extends Parser[RhsCond]
 
 /** grammar symbols */
 enum Symbol extends SpecElem:
@@ -87,9 +90,10 @@ enum Symbol extends SpecElem:
 
   /** NonUnicodeModeDecimalEscape symbols */
   case NonUnicodeModeDecimalEscape
+object Symbol extends Parser[Symbol]
 
 /** nonterminal arguments */
 case class NtArg(kind: NtArg.Kind, name: String) extends SpecElem
-object NtArg:
+object NtArg extends Parser[NtArg]:
   enum Kind extends SpecElem:
     case True, False, Pass

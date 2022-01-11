@@ -7,11 +7,11 @@ import Symbol.*, NtArg.Kind.*, Production.Kind.*, Head.*
 /** specification parsers */
 trait Parsers extends BasicParsers {
   // production lists
-  lazy val prods: Parser[List[Production]] =
+  given prods: Parser[List[Production]] =
     rep1(rep(newline) ~> prod)
 
   // productions
-  lazy val prod: Parser[Production] =
+  given prod: Parser[Production] =
     lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
         val rs =
@@ -27,19 +27,19 @@ trait Parsers extends BasicParsers {
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Normal
 
   // production left-hand-sides (LHSs)
-  lazy val lhs: Parser[Lhs] =
+  given lhs: Parser[Lhs] =
     word ~ opt("[" ~> repsep(word, ",") <~ "]") ^^ { case name ~ params =>
       Lhs(name, params.getOrElse(Nil))
     }
 
   // production alternative right-hand-sides (RHSs)
-  lazy val rhs: Parser[Rhs] =
+  given rhs: Parser[Rhs] =
     opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ { case c ~ ss ~ i =>
       Rhs(c, ss, i)
     }
 
   // RHS conditions
-  lazy val rhsCond: Parser[RhsCond] =
+  given rhsCond: Parser[RhsCond] =
     "[" ~> ("[+~]".r) ~ word <~ "]" ^^ { case str ~ name =>
       RhsCond(name, str == "+")
     }
@@ -51,8 +51,8 @@ trait Parsers extends BasicParsers {
   protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
   // grammar symbols
-  lazy val symbol: Parser[Symbol] =
-    term | butnot | lookahead | nt | empty | nlt | character
+  given symbol: Parser[Symbol] =
+    term | butnot | lookahead | character | nt | empty | nlt
 
   // terminals
   lazy val term: Parser[Terminal] =
@@ -104,10 +104,10 @@ trait Parsers extends BasicParsers {
   lazy val laList: Parser[List[List[Symbol]]] =
     opt("{") ~> repsep(rep(symbol), ",") <~ opt("}")
   lazy val containsSymbol: Parser[Boolean] =
-    ("==" | "<" | "∈") ^^^ true | ("!=" | "<!" | "∉") ^^^ false
+    ("!=" | "<!" | "∉") ^^^ false | ("==" | "<" | "∈") ^^^ true
 
   // nonterminal arguments
-  lazy val ntArg: Parser[NtArg] =
+  given ntArg: Parser[NtArg] =
     ("+" ^^^ True | "~" ^^^ False | "?" ^^^ Pass) ~ word ^^ {
       case kind ~ name => NtArg(kind, name)
     }

@@ -21,7 +21,7 @@ class StringifierTinyTest extends SpecTest {
     val nt: Nonterminal = Nonterminal("Identifier", Nil, false)
     val symbols = List(Terminal("{"), Terminal("}"))
 
-    testFor("Symbol")(
+    checkStringify("Symbol")(
       Terminal("{") -> "`{`",
       Nonterminal(
         "Identifier",
@@ -53,67 +53,79 @@ class StringifierTinyTest extends SpecTest {
       HexNonSurrogate -> "<HexNonSurrogate>",
       NonUnicodeModeDecimalEscape -> "<NonUnicodeModeDecimalEscape>",
     )
-    testFor("NtArg")(
+
+    checkStringify("NtArg")(
       NtArg(NtArg.Kind.True, "Await") -> "+Await",
       NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
       NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
     )
 
-    testFor("NtArg.Kind")(
+    checkStringify("NtArg.Kind")(
       NtArg.Kind.True -> "+",
       NtArg.Kind.False -> "~",
       NtArg.Kind.Pass -> "?",
     )
 
-    testFor("RhsCond")(
+    checkStringify("RhsCond")(
       RhsCond("Hello", true) -> "[+Hello]",
       RhsCond("Bye", false) -> "[~Bye]",
     )
 
     val rhsCond: RhsCond = RhsCond("Yield", true)
     val rhs1: Rhs = Rhs(Some(rhsCond), symbols, None)
-    val rhs2: Rhs = Rhs(Some(rhsCond), symbols, Some("Identifier"))
-    val lhs = Lhs("lhs", List("Yield", "Await", "In"))
-    val prod1 = Production(lhs, Production.Kind.Lexical, true, List(rhs1, rhs2))
-    val prod2 = Production(lhs, Production.Kind.Normal, false, List(rhs1, rhs2))
+    val rhs2: Rhs = Rhs(None, symbols, Some("this-is-id"))
+    val rhs3: Rhs = Rhs(None, List(Terminal("a")), None)
+    val lhs1 = Lhs("Identifier", List("Yield", "Await", "In"))
+    val lhs2 = Lhs("Identifier", Nil)
+    val prod1 =
+      Production(lhs2, Production.Kind.Lexical, true, List(rhs3, rhs3))
+    val prod2 =
+      Production(lhs2, Production.Kind.Normal, false, List(rhs1, rhs2))
+    val prod3 =
+      Production(lhs1, Production.Kind.NumericString, false, List(rhs1))
 
-    testFor("Rhs")(
+    checkStringify("Rhs")(
       rhs1 -> "[+Yield] `{` `}`",
-      rhs2 -> "[+Yield] `{` `}` #Identifier",
+      rhs2 -> "`{` `}` #this-is-id",
+      rhs3 -> "`a`",
     )
 
-    testFor("Lhs")(
-      lhs -> "lhs[Yield, Await, In]",
+    checkStringify("Lhs")(
+      lhs1 -> "Identifier[Yield, Await, In]",
+      lhs2 -> "Identifier",
     )
 
-    testFor("Production")(
-      prod1 -> """lhs[Yield, Await, In] :: one of
-                 |  [+Yield] `{` `}`
-                 |  [+Yield] `{` `}` #Identifier
+    checkStringify("Production")(
+      prod1 -> """Identifier :: one of
+                 |  `a`
+                 |  `a`
                  |""".stripMargin,
-      prod2 -> """lhs[Yield, Await, In] :
+      prod2 -> """Identifier :
                  |  [+Yield] `{` `}`
-                 |  [+Yield] `{` `}` #Identifier
+                 |  `{` `}` #this-is-id
+                 |""".stripMargin,
+      prod3 -> """Identifier[Yield, Await, In] :::
+                 |  [+Yield] `{` `}`
                  |""".stripMargin,
     )
 
-    testFor("Production.Kind")(
+    checkStringify("Production.Kind")(
       Production.Kind.Normal -> ":",
       Production.Kind.Lexical -> "::",
       Production.Kind.NumericString -> ":::",
     )
 
-    testFor("Grammar")(
+    checkStringify("Grammar")(
       Grammar(List(prod1), List(prod2)) ->
         s"""// Productions
-           |lhs[Yield, Await, In] :: one of
-           |  [+Yield] `{` `}`
-           |  [+Yield] `{` `}` #Identifier
+           |Identifier :: one of
+           |  `a`
+           |  `a`
            |
            |// Productions for Web
-           |lhs[Yield, Await, In] :
+           |Identifier :
            |  [+Yield] `{` `}`
-           |  [+Yield] `{` `}` #Identifier
+           |  `{` `}` #this-is-id
            |""".stripMargin,
     )
 
