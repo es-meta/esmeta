@@ -77,7 +77,7 @@ object Stringifier {
     given Rule[List[Symbol]] = iterableRule(sep = " ")
     condition.foreach(app >> _ >> " ")
     app >> symbols
-    id.foreach(app >> " " >> _)
+    id.foreach(app >> " #" >> _)
     app
   }
 

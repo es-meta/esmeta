@@ -67,35 +67,69 @@ class StringifierTinyTest extends SpecTest {
     )
 
     test("NtArg")(
-      // TODO
+      NtArg(NtArg.Kind.True, "Await") -> "+Await",
+      NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
+      NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
     )
 
     test("NtArg.Kind")(
-      // TODO
+      NtArg.Kind.True -> "+",
+      NtArg.Kind.False -> "~",
+      NtArg.Kind.Pass -> "?",
     )
 
     test("RhsCond")(
-      // TODO
+      RhsCond("Hello", true) -> "[+Hello]",
+      RhsCond("Bye", false) -> "[~Bye]",
     )
 
+    val rhsCond: RhsCond = RhsCond("Yield", true)
+    val rhs1: Rhs = Rhs(Some(rhsCond), symbols, None)
+    val rhs2: Rhs = Rhs(Some(rhsCond), symbols, Some("Identifier"))
+    val lhs = Lhs("lhs", List("Yield", "Await", "In"))
+    val prod_str1 = 
+    """lhs[Yield, Await, In] :: one of
+  [+Yield] `{` `}`
+  [+Yield] `{` `}` #Identifier
+"""
+    val prod_str2 = 
+    """lhs[Yield, Await, In] :
+  [+Yield] `{` `}`
+  [+Yield] `{` `}` #Identifier
+"""
+    val prod1 = Production(lhs, Production.Kind.Lexical, true, List(rhs1, rhs2))
+    val prod2 = Production(lhs, Production.Kind.Normal, false, List(rhs1, rhs2))
+
     test("Rhs")(
-      // TODO
+      rhs1 -> "[+Yield] `{` `}`",
+      rhs2 -> "[+Yield] `{` `}` #Identifier"
     )
 
     test("Lhs")(
-      // TODO
+      lhs -> "lhs[Yield, Await, In]"
     )
 
     test("Production")(
-      // TODO
+      prod1 -> prod_str1,
+      prod2 -> prod_str2
     )
 
     test("Production.Kind")(
-      // TODO
+      Production.Kind.Normal -> ":",
+      Production.Kind.Lexical -> "::",
+      Production.Kind.NumericString -> ":::"
     )
 
     test("Grammar")(
-      // TODO
+      Grammar(List(prod1, prod2), List(prod1)) ->
+( """########################################
+# Productions
+########################################
+""" + prod_str1 + "\n" + prod_str2 + "\n" + 
+"""########################################
+# Productions for Web
+########################################
+""" + prod_str1 )
     )
 
     // EXAMPLE test("Inst")(
