@@ -105,16 +105,12 @@ class StringifierTinyTest extends SpecTest {
 
     testFor("Grammar")(
       Grammar(List(prod1), List(prod2)) ->
-        s"""########################################
-           |# Productions
-           |########################################
+        s"""// Productions
            |lhs[Yield, Await, In] :: one of
            |  [+Yield] `{` `}`
            |  [+Yield] `{` `}` #Identifier
            |
-           |########################################
-           |# Productions for Web
-           |########################################
+           |// Productions for Web
            |lhs[Yield, Await, In] :
            |  [+Yield] `{` `}`
            |  [+Yield] `{` `}` #Identifier

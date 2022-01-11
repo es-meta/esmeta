@@ -27,23 +27,32 @@ object Stringifier {
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) => {
+    import Production.Kind.*
     val Spec(version, grammar, algorithms) = spec
-    version.map(app >> "- version: " >> _ >> LINE_SEP)
-    app :> "- grammar: " >> grammar
-    app :> "- algorithms: "
-    app.wrap("", "")(for (algo <- algorithms) app :> algo)
+    val Grammar(prods, prodsForWeb) = grammar
+    val prodsBy = prods.groupBy(_.kind)
+    version.map(app >> "* version: " >> _ >> LINE_SEP)
+    app >> "* grammar:"
+    app :> "  - productions: " >> prods.length
+    app :> "    - lexical: " >> prodsBy(Lexical).length
+    app :> "    - numeric string: " >> prodsBy(NumericString).length
+    app :> "    - syntactic: " >> prodsBy(Normal).length
+    app :> "  - extended productions for web: " >> grammar.prodsForWeb.length
+    app :> "* algorithms:"
+    app :> "  - incomplete: " >> "..." // TODO
+    app :> "  - complete: " >> "..." // TODO
+    app :> "  - total: " >> "..." // TODO
+    app :> "* algorithm steps:"
+    app :> "  - incompleted: " >> "..." // TODO
+    app :> "  - total: " >> "..." // TODO
   }
 
   // for grammars
   given grammarRule: Rule[Grammar] = (app, grammar) => {
     given Rule[List[Production]] = iterableRule(sep = LINE_SEP)
-    app >> "########################################"
-    app :> "# Productions"
-    app :> "########################################"
+    app >> "// Productions"
     app :> grammar.prods
-    app :> "########################################"
-    app :> "# Productions for Web"
-    app :> "########################################"
+    app :> "// Productions for Web"
     app :> grammar.prodsForWeb
   }
 
