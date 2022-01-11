@@ -1,0 +1,19 @@
+{
+  "Addr" : true,
+  "BOp" : true,
+  "COp" : true,
+  "Clo" : true,
+  "Cont" : true,
+  "Context" : true,
+  "Expr" : true,
+  "Heap" : true,
+  "Id" : true,
+  "Inst" : true,
+  "Obj" : true,
+  "Ref" : true,
+  "RefValue" : true,
+  "State" : true,
+  "Ty" : true,
+  "UOp" : true,
+  "Value" : true
+}

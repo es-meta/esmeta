@@ -94,6 +94,21 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     jpw.close()
   }
 
+  // test helper
+  def testFor[T](desc: String)(cases: (T, String)*): Unit =
+    check(
+      desc,
+      cases.foreach { case (input, expected) =>
+        val result = input.toString
+        if (result != expected) {
+          println(s"[FAILED] $desc")
+          println(s"- result: $result")
+          println(s"- expected: $expected")
+          assert(result == expected)
+        }
+      },
+    )
+
   // test name
   val name: String
 

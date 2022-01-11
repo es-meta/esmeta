@@ -24,10 +24,10 @@ class Appender(tab: String = "  ") {
     a(this >> LINE_SEP >> indentStr, x)
 
   /** wrap without brackets and one-level higher indentation */
-  def wrap(f: => Unit): Appender = wrap("", f, "")
+  def wrap(f: => Unit): Appender = wrap("{", "}")(f)
 
   /** wrap with open/close brackets and one-level higher indentation */
-  def wrap(open: String, f: => Unit, close: String): Appender =
+  def wrap(open: String, close: String)(f: => Unit): Appender =
     this >> open
     indent += 1; f; indent -= 1
     this :> close
@@ -61,7 +61,7 @@ object Appender {
     app >> right
 
   /** arrows for pairs */
-  def arrowRule[T, U](using
+  given arrowRule[T, U](using
     tRule: Rule[T],
     uRule: Rule[U],
   ): Rule[(T, U)] = (app, pair) =>
@@ -88,8 +88,8 @@ object Appender {
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)
 
   // basic values
-  given Rule[String] = (app, str) => { app.sb ++= str; app }
-  given Rule[Int] = _ >> _.toString
-  given Rule[Long] = _ >> _.toString
-  given Rule[Boolean] = _ >> _.toString
+  given stringRule: Rule[String] = (app, str) => { app.sb ++= str; app }
+  given intRule: Rule[Int] = _ >> _.toString
+  given longRule: Rule[Long] = _ >> _.toString
+  given booleanRule: Rule[Boolean] = _ >> _.toString
 }

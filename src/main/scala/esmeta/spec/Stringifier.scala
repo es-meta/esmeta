@@ -31,7 +31,7 @@ object Stringifier {
     version.map(app >> "- version: " >> _ >> LINE_SEP)
     app :> "- grammar: " >> grammar
     app :> "- algorithms: "
-    app.wrap(for (algo <- algorithms) app :> algo)
+    app.wrap("", "")(for (algo <- algorithms) app :> algo)
   }
 
   // for grammars
@@ -51,7 +51,7 @@ object Stringifier {
   given prodRule: Rule[Production] = (app, prod) => {
     val Production(lhs, kind, oneof, rhsList) = prod
     app >> lhs >> " " >> kind >> (if (oneof) " one of" else "")
-    app.wrap(for (rhs <- rhsList) app :> rhs)
+    app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
   }
 
   // for production left-hand-sides (LHSs)

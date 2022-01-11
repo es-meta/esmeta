@@ -10,15 +10,7 @@ case class Stringifier(detail: Boolean) {
   // ////////////////////////////////////////////////////////////////////////////
   // Syntax
   // ////////////////////////////////////////////////////////////////////////////
-  // default iterable
-  given [T](using tRule: Rule[T]): Rule[Iterable[T]] =
-    iterableRule[T]("(", ", ", ")")
-
-  // default pair
-  given [T, S](using
-    tRule: Rule[T],
-    sRule: Rule[S],
-  ): Rule[(T, S)] = arrowRule[T, S]
+  import Appender.arrowRule
 
   // elements
   given elemRule: Rule[IRElem] = (app, elem) =>
@@ -81,9 +73,11 @@ case class Stringifier(detail: Boolean) {
         app >> "clo " >> id >> " = (" >> params >> ")[" >> captured >> "] => " >> body
       case ICont(id, params, body) =>
         given Rule[Inst] = instDetailRule
+        given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
         app >> "cont " >> id >> " = " >> params >> " [=>] " >> body
       case IWithCont(id, params, inst) =>
         given Rule[Inst] = instDetailRule
+        given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
         app >> "withcont " >> id >> " " >> params >> " = " >> inst
 
   // instrctions without detail information
@@ -208,32 +202,31 @@ case class Stringifier(detail: Boolean) {
   // ////////////////////////////////////////////////////////////////////////////
   // states
   given stateRule: Rule[State] = (app, st) =>
-    app.wrap {
+    app.wrap("{", "}") {
       val State(_, context, ctxtStack, globals, heap, fnameOpt) = st
-      app :> "context: " >> context >> LINE_SEP
+      app :> "context: " >> context
       given Rule[Iterable[String]] =
         iterableRule[String]("[", ", ", "]")
-      app :> "context-stack: " >> ctxtStack.map(_.name) >> LINE_SEP
+      app :> "context-stack: " >> ctxtStack.map(_.name)
       app :> "globals: "
-      app.wrapIterable(globals, detail) >> LINE_SEP
-      app :> "heap: " >> heap >> LINE_SEP
-      app :> "filename: " >> fnameOpt.getOrElse("UNKNOWN") >> LINE_SEP
+      app.wrapIterable(globals, detail)
+      app :> "heap: " >> heap
+      app :> "filename: " >> fnameOpt.getOrElse("UNKNOWN")
     }
 
   // contexts
   given ctxtRule: Rule[Context] = (app, context) =>
-    app.wrap {
+    app.wrap("{", "}") {
       val Context(cursorOpt, retId, name, locals) = context
-      app :> "name: " >> name >> LINE_SEP
-      app :> "return: " >> retId >> LINE_SEP
+      app :> "name: " >> name
+      app :> "return: " >> retId
       app :> "cursor: "
       cursorOpt match {
         case None         => app >> "[EMPTY]"
         case Some(cursor) => app >> cursor
       }
-      app >> LINE_SEP
       app :> "local-vars: "
-      app.wrapIterable(locals) >> LINE_SEP
+      app.wrapIterable(locals)
     }
 
   // cursors
@@ -254,7 +247,7 @@ case class Stringifier(detail: Boolean) {
       case IRSymbol(desc) => app >> "(Symbol " >> desc >> ")"
       case map @ IRMap(ty, _, _) => {
         app >> "(TYPE = " >> ty >> ") "
-        app.wrapIterable(map.props.toList)
+        app.wrapIterable(map.props)
       }
       case IRList(values) => {
         given Rule[Iterable[Value]] =
@@ -263,6 +256,10 @@ case class Stringifier(detail: Boolean) {
       }
       case IRNotSupported(tyname, msg) =>
         app >> "(NotSupported \"" >> tyname >> "\" \"" >> msg >> "\")"
+
+  // values for IRMap
+  // TODO support detailed string with the creation time
+  given irMapValueRule: Rule[IRMapValue] = (app, value) => app >> value.value
 
   // values
   given valRule: Rule[Value] = (app, v) =>
@@ -293,17 +290,19 @@ case class Stringifier(detail: Boolean) {
         app >> ")"
 
   // closures
-  given cloRule: Rule[Clo] = (
-    app,
-    clo,
-  ) =>
-    given Rule[Map[Id, Value]] = mapRule[Id, Value]
+  given cloRule: Rule[Clo] = (app, clo) =>
+    given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
+    given ps: Rule[Iterable[(Id, Value)]] =
+      iterableRule[(Id, Value)]("[", ", ", "]")
     val Clo(_, params, locals, _) = clo
-    app >> clo.ctxtName >> ":closure" >> params >> locals.toMap >> " => ..." // XXX
+    // TODO handle detail option
+    app >> clo.ctxtName >> ":closure" >> params >> locals.toList >> " => ..."
 
   // continuations
   given contRule: Rule[Cont] = (app, cont) =>
+    given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
     val Cont(params, context, ctxtStack) = cont
+    // TODO handle detail option
     app >> context.name >> params >> " [=>] ..."
 
   // reference values

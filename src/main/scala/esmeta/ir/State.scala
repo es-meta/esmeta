@@ -62,15 +62,12 @@ case class Heap(
 ) extends IRElem
 
 /** IR Objects */
-enum Obj(ty: Ty) extends IRElem:
-  case IRSymbol(desc: Value) extends Obj(Ty("Symbol"))
-  // XXX
-  // case IRMap(var ty: Ty, props: MMap[Value, (Value, Long)], var size: Long)
-  //   extends Obj(ty)
-  case IRMap(var ty: Ty, props: MMap[Value, Value], var size: Long)
-    extends Obj(ty)
-  case IRList(var values: Vector[Value] = Vector()) extends Obj(Ty("List"))
-  case IRNotSupported(tyname: String, desc: String) extends Obj(Ty(tyname))
+enum Obj extends IRElem:
+  case IRSymbol(desc: Value)
+  case IRMap(var ty: Ty, props: MMap[Value, IRMapValue], var size: Long)
+  case IRList(var values: Vector[Value] = Vector())
+  case IRNotSupported(tyname: String, desc: String)
+case class IRMapValue(value: Value, creationTime: Long)
 
 /** IR Reference Value */
 enum RefValue extends IRElem:

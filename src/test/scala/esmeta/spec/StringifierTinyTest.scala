@@ -7,21 +7,6 @@ import Symbol.*
 class StringifierTinyTest extends SpecTest {
   val name: String = "specStringifierTest"
 
-  // test helper
-  def test[T <: SpecElem](desc: String)(cases: (T, String)*): Unit =
-    check(
-      desc,
-      cases.foreach { case (input, expected) =>
-        val result = input.toString
-        if (result != expected) {
-          println(s"[FAILED: Symbol]")
-          println(s" - result  : $result")
-          println(s" - expected: $expected")
-          assert(result == expected)
-        }
-      },
-    )
-
   // registration
   def init: Unit = {
     // pre-defined values
@@ -33,7 +18,7 @@ class StringifierTinyTest extends SpecTest {
     val nt: Nonterminal = Nonterminal("Identifier", Nil, false)
     val symbols = List(Terminal("{"), Terminal("}"))
 
-    test("Symbol")(
+    testFor("Symbol")(
       Terminal("{") -> "`{`",
       Nonterminal(
         "Identifier",
@@ -65,20 +50,19 @@ class StringifierTinyTest extends SpecTest {
       HexNonSurrogate -> "<HexNonSurrogate>",
       NonUnicodeModeDecimalEscape -> "<NonUnicodeModeDecimalEscape>",
     )
-
-    test("NtArg")(
+    testFor("NtArg")(
       NtArg(NtArg.Kind.True, "Await") -> "+Await",
       NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
       NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
     )
 
-    test("NtArg.Kind")(
+    testFor("NtArg.Kind")(
       NtArg.Kind.True -> "+",
       NtArg.Kind.False -> "~",
       NtArg.Kind.Pass -> "?",
     )
 
-    test("RhsCond")(
+    testFor("RhsCond")(
       RhsCond("Hello", true) -> "[+Hello]",
       RhsCond("Bye", false) -> "[~Bye]",
     )
@@ -100,27 +84,27 @@ class StringifierTinyTest extends SpecTest {
     val prod1 = Production(lhs, Production.Kind.Lexical, true, List(rhs1, rhs2))
     val prod2 = Production(lhs, Production.Kind.Normal, false, List(rhs1, rhs2))
 
-    test("Rhs")(
+    testFor("Rhs")(
       rhs1 -> "[+Yield] `{` `}`",
       rhs2 -> "[+Yield] `{` `}` #Identifier",
     )
 
-    test("Lhs")(
+    testFor("Lhs")(
       lhs -> "lhs[Yield, Await, In]",
     )
 
-    test("Production")(
+    testFor("Production")(
       prod1 -> prod_str1,
       prod2 -> prod_str2,
     )
 
-    test("Production.Kind")(
+    testFor("Production.Kind")(
       Production.Kind.Normal -> ":",
       Production.Kind.Lexical -> "::",
       Production.Kind.NumericString -> ":::",
     )
 
-    test("Grammar")(
+    testFor("Grammar")(
       Grammar(List(prod1, prod2), List(prod1)) ->
         ("""########################################
 # Productions
@@ -131,10 +115,6 @@ class StringifierTinyTest extends SpecTest {
 ########################################
 """ + prod_str1),
     )
-
-    // EXAMPLE test("Inst")(
-    //   IExpr(EINum(4)) -> "4i",
-    // )
   }
 
   init
