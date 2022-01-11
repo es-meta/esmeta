@@ -6,6 +6,7 @@ import scala.collection.mutable.{Map => MMap}
 
 /** IR Programs */
 case class Program(insts: List[Inst]) extends IRElem
+object Program extends Parser[Program]
 
 /** IR Instructions */
 enum Inst extends IRElem:
@@ -27,12 +28,15 @@ enum Inst extends IRElem:
   case ICont(id: Id, params: List[Id], body: Inst)
   case IWithCont(id: Id, params: List[Id], body: Inst)
   case ISeq(insts: List[Inst])
-import Inst.*
-type CondInst = IIf | IWhile
-type CallInst = IApp | IAccess
-type ArrowInst = IClo | ICont | IWithCont
-type NormalInst = IExpr | ILet | IAssign | IDelete | IAppend | IPrepend |
-  IReturn | IThrow | IAssert | IPrint
+object Insts extends Parser[List[Inst]]
+object Inst extends Parser[Inst] {
+  // specific categories of intsructions
+  type CondInst = IIf | IWhile
+  type CallInst = IApp | IAccess
+  type ArrowInst = IClo | ICont | IWithCont
+  type NormalInst = IExpr | ILet | IAssign | IDelete | IAppend | IPrepend |
+    IReturn | IThrow | IAssert | IPrint
+}
 
 /** IR Expressions */
 enum Expr extends IRElem:
@@ -65,21 +69,26 @@ enum Expr extends IRElem:
   case ECopy(obj: Expr)
   case EKeys(mobj: Expr, intSorted: Boolean)
   case ENotSupported(msg: String)
+object Expr extends Parser[Expr]
 
 /** IR References */
 enum Ref extends IRElem:
   case RefId(id: Id)
   case RefProp(ref: Ref, expr: Expr)
+object Ref extends Parser[Ref]
 
 /** IR Identifiers */
 case class Id(name: String) extends IRElem
+object Id extends Parser[Id]
 
 /** IR Types */
 case class Ty(name: String) extends IRElem
+object Ty extends Parser[Ty]
 
 /** IR Unary Operators */
 enum UOp extends IRElem:
   case ONeg, ONot, OBNot
+object UOp extends Parser[UOp]
 
 /** IR Binary Operators */
 enum BOp extends IRElem:
@@ -102,6 +111,7 @@ enum BOp extends IRElem:
   case OLShift
   case OSRShift
   case OURShift
+object BOp extends Parser[BOp]
 
 /** IR Convert Operators */
 enum COp extends IRElem:
@@ -111,3 +121,4 @@ enum COp extends IRElem:
   case CNumToInt
   case CNumToBigInt
   case CBigIntToNum
+object COp extends Parser[COp]

@@ -33,7 +33,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   protected var count: Int = 0
 
   // check result
-  def check[T](name: String, tester: => T): Unit = {
+  def check[T](name: String)(tester: => T): Unit = {
     count += 1
     test(s"[$tag] $name") {
       try {
@@ -96,18 +96,15 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 
   // test helper
   def testFor[T](desc: String)(cases: (T, String)*): Unit =
-    check(
-      desc,
-      cases.foreach { case (input, expected) =>
-        val result = input.toString
-        if (result != expected) {
-          println(s"[FAILED] $desc")
-          println(s"- result: $result")
-          println(s"- expected: $expected")
-          assert(result == expected)
-        }
-      },
-    )
+    check(desc)(cases.foreach { case (input, expected) =>
+      val result = input.toString
+      if (result != expected) {
+        println(s"[FAILED] $desc")
+        println(s"- result: $result")
+        println(s"- expected: $expected")
+        assert(result == expected)
+      }
+    })
 
   // test name
   val name: String

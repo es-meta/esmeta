@@ -10,12 +10,12 @@ class ParseTinyTest extends IRTest {
   // registration
   def init: Unit = {}
 
-  // TODO for (file <- walkTree(IR_TEST_DIR)) {
-  //   val filename = file.getName
-  //   if (irFilter(filename)) check(filename, {
-  //     val name = file.toString
-  //     irParseTestFile(name)
-  //   })
-  // }
+  for (file <- walkTree(IR_TEST_DIR)) {
+    val filename = file.getName
+    if (irFilter(filename)) check(filename) {
+      val name = file.toString
+      irParseTestFile(name)
+    }
+  }
   init
 }

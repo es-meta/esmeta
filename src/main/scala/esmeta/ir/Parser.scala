@@ -11,7 +11,7 @@ import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
 object Parser extends Parsers
 
 trait Parser[T] extends Parsers {
-  def fromFile(str: String)(implicit parser: Parser[T]): T =
+  def fromFile(str: String)(using parser: Parser[T]): T =
     fromFileWithParser(str, parser)
   def apply(str: String)(using parser: Parser[T]): T =
     parse[T](str)
@@ -38,7 +38,7 @@ trait Parsers extends JavaTokenParsers with RegexParsers {
   }
 
   // parse
-  def parse[T](str: String)(implicit parser: Parser[T]): T =
+  def parse[T](str: String)(using parser: Parser[T]): T =
     errHandle(parseAll(parser, str))
 
   // string literal
@@ -102,14 +102,7 @@ trait Parsers extends JavaTokenParsers with RegexParsers {
         } |
         (ref <~ "=") ~ expr ^^ { case r ~ e => IAssign(r, e) } |
         expr ^^ { case e => IExpr(e) }
-    )
-      ^^ {
-        // TODO case l ~ Some(k) ~ (i: AllocSite) =>
-        // i.line = l.map(_.toInt); i.setASite(k.toInt)
-        case l ~ _ ~ i =>
-          // i.line = l.map(_.toInt);
-          i
-      }
+    ) ^^ { case l ~ _ ~ i => i }
 
   // expressions
   given expr: Parser[Expr] = opt("(" ~> integer <~ ")") ~ (
@@ -167,10 +160,7 @@ trait Parsers extends JavaTokenParsers with RegexParsers {
       "(" ~> "map-keys" ~> expr <~ "[int-sorted]" ~ ")" ^^ { case e =>
         EKeys(e, true)
       }
-  ) ^^ {
-    // TODOcase Some(k) ~ (e: AllocSite) => e.setASite(k.toInt)
-    case _ ~ e => e
-  }
+  ) ^^ { case _ ~ e => e }
 
   // properties
   lazy val prop: Parser[(Expr, Expr)] =

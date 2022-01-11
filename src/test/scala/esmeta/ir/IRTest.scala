@@ -6,7 +6,7 @@ import esmeta.ir._
 trait IRTest extends ESMetaTest {
   def category: String = "ir"
 
-  // TODO eval IR codes
+  // TODO handle evaluation test
   // def irEval(st: State): State = Interp(st)
   // def irEval(str: String): State =
   //   Interp(State(InstCursor).moveTo(Program(str)))
@@ -16,12 +16,12 @@ trait IRTest extends ESMetaTest {
   // }
 
   // tests for IR parser
-  // def irParseTest(program: Program): Program = {
-  //   // val newProgram = Program(program.toString)
-  //   val newProgram = ???
-  //   assert(program == newProgram)
-  //   program
-  // }
-  // def irParseTest(str: String): Program = ??? // irParseTest(Program(str))
-  // def irParseTestFile(filename: String): Program = ???
+  def irParseTest(program: Program): Program = {
+    val newProgram = Program(program.toString)
+    assert(program == newProgram)
+    program
+  }
+  def irParseTest(str: String): Program = irParseTest(Program(str))
+  def irParseTestFile(filename: String): Program =
+    irParseTest(Program.fromFile(filename))
 }

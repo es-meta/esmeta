@@ -57,7 +57,7 @@ object InstCursor extends CursorGen[InstCursor] {
 
 /** IR Heaps */
 case class Heap(
-  map: MMap[Addr, Obj] = MMap(),
+  map: MMap[Value.Addr, Obj] = MMap(),
   var size: Int = 0,
 ) extends IRElem
 
@@ -67,6 +67,8 @@ enum Obj extends IRElem:
   case IRMap(var ty: Ty, props: MMap[Value, IRMapValue], var size: Long)
   case IRList(var values: Vector[Value] = Vector())
   case IRNotSupported(tyname: String, desc: String)
+
+/** values for IRMap structures */
 case class IRMapValue(value: Value, creationTime: Long)
 
 /** IR Reference Value */
@@ -75,7 +77,6 @@ enum RefValue extends IRElem:
   case RefValueProp(base: Value, prop: Value)
 
 /** IR Values */
-type Addr = Value.NamedAddr | Value.DynamicAddr
 enum Value extends IRElem:
   case Num(double: Double)
   case INum(long: Long)
@@ -89,28 +90,26 @@ enum Value extends IRElem:
   case Const(name: String)
   case NamedAddr(name: String)
   case DynamicAddr(long: Long)
-
-  // completions
   case CompValue(
     ty: Const,
     value: Value,
     targetOpt: Option[String],
   )
-
-  // closures
   case Clo(
     ctxtName: String,
     params: List[Id],
     locals: MMap[Id, Value],
     cursorOpt: Option[Cursor],
   )
-
-  // continuations
   case Cont(
     params: List[Id],
     context: Context,
     ctxtStack: List[Context],
   )
+object Value {
+  // addresses
+  type Addr = NamedAddr | DynamicAddr
+}
 
 // TODO AST values
 // case class ASTVal(ast: AST) extends Value

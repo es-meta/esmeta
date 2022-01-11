@@ -1,9 +1,9 @@
 package esmeta.ir
 
 import esmeta.DEBUG
-import esmeta.error._
-import esmeta.util.BaseUtils._
-import esmeta.util._
+import esmeta.error.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.*
 import scala.annotation.{tailrec, targetName}
 import scala.collection.mutable.{Map => MMap}
 
@@ -12,7 +12,7 @@ class Interp(
   val st: State,
   timeLimit: Option[Long],
 ) {
-  import Interp._
+  import Interp.*, Inst.*
 
   val cursorGen: CursorGen[_ <: Cursor] = st.cursorGen
 
@@ -76,8 +76,8 @@ class Interp(
 
       // text-based debugging
       if (DEBUG) cursor match {
-        case InstCursor(Inst.ISeq(_), _) =>
-        case _                           => ???
+        case InstCursor(ISeq(_), _) =>
+        case _                      => ???
         // println(s"[$iter] ${st.context.name}: ${cursor.toString()}")
       }
 
@@ -104,7 +104,7 @@ class Interp(
 
   // transition for instructions
   def interp(inst: Inst, rest: List[Inst]): Unit = inst match {
-    case inst: Inst.ISeq  => interp(inst, rest)
+    case inst: ISeq       => interp(inst, rest)
     case inst: CondInst   => interp(inst, rest)
     case inst: CallInst   => interp(inst)
     case inst: ArrowInst  => interp(inst)
@@ -112,7 +112,7 @@ class Interp(
   }
 
   // transition for sequence instructions
-  def interp(inst: Inst.ISeq, rest: List[Inst]): Unit = ???
+  def interp(inst: ISeq, rest: List[Inst]): Unit = ???
 
   // transition for conditional instructions
   @targetName("interpCondInst")
