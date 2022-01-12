@@ -6,12 +6,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
     - uses: actions/checkout@v2
-    - name: Testing
+    - name: Run test
       run: sbt test
   lint:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
     - uses: actions/checkout@v2
-    - name: Checking Format
+    - name: Check code format
       run: sbt scalafmtSbtCheck scalafmtCheck "Test / scalafmtCheck"
