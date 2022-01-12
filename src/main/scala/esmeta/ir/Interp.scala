@@ -9,6 +9,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.{DEBUG, TIMEOUT}
 import scala.annotation.{tailrec, targetName}
 import scala.collection.mutable.{Map => MMap}
+import scala.language.implicitConversions
 
 /** IR Interpreter */
 class Interp(
@@ -392,16 +393,15 @@ class Interp(
         case _ => error("invalid completion")
       }
     }
-    case EMap(ty, props) => ???
-    // TODO {
-    //  val addr = st.allocMap(ty)
-    //  for ((kexpr, vexpr) <- props) {
-    //    val k = interp(kexpr).escaped
-    //    val v = interp(vexpr)
-    //    st.update(addr, k, v)
-    //  }
-    //  addr
-    // }
+    case EMap(ty, props) => {
+      val addr = st.allocMap(ty)
+      for ((kexpr, vexpr) <- props) {
+        val k = interp(kexpr).escaped
+        val v = interp(vexpr)
+        st.update(addr, k, v)
+      }
+      addr
+    }
     case EList(exprs) => st.allocList(exprs.map(expr => interp(expr).escaped))
     case ESymbol(desc) =>
       interp(desc) match {
@@ -640,6 +640,7 @@ object Interp {
 
   // binary operators
   def interp(bop: BOp, left: Value, right: Value): Value =
+    given Conversion[Long, Double] = _.toDouble
     (bop, left, right) match {
       // double operations
       case (OPlus, Num(l), Num(r)) => Num(l + r)

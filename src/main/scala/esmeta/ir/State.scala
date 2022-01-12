@@ -1,8 +1,8 @@
 package esmeta.ir
 
 import scala.collection.mutable.{Map => MMap}
-import esmeta.util._
-import esmeta.util.BaseUtils._
+import esmeta.util.*
+import esmeta.util.BaseUtils.*
 
 /** IR States */
 case class State(

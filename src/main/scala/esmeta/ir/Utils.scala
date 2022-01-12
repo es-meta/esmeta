@@ -11,6 +11,13 @@ object Utils {
   // Syntax
   // ////////////////////////////////////////////////////////////////////////////
   // TODO Define Syntax extension
+  /** extension for ty */
+  extension (ty: Ty) {
+    // check whether it has SubMap
+    def hasSubMap: Boolean = {
+      (ty.name endsWith "Object") || (ty.name endsWith "EnvironmentRecord")
+    }
+  }
 
   // ////////////////////////////////////////////////////////////////////////////
   // States
@@ -52,8 +59,27 @@ object Utils {
         case v                              => v
       }
     // TODO PureValue issue
-    def apply(base: Value, prop: Value): Value = ???
-    def apply(str: String, prop: Value): Value = ???
+    def apply(base: Value, prop: Value): Value = base match {
+      case comp: CompValue =>
+        prop match {
+          case Str("Type")   => comp.ty
+          case Str("Value")  => comp.value
+          case Str("Target") => comp.target
+          case _             => st(comp.escaped, prop)
+        }
+      case addr: Addr => st.heap(addr, prop)
+      case Str(str)   => st(str, prop)
+      case v          => error(s"not a proper reference base: $v")
+    }
+
+    def apply(str: String, prop: Value): Value = prop match {
+      case Str("length") => INum(str.length)
+      case INum(k) =>
+        Str(k.toInt.toString)
+      case Num(k) => Str(k.toInt.toString)
+      case v      => error(s"wrong access of string reference: $str.$prop")
+    }
+
     def apply(addr: Addr): Obj = st.heap(addr)
 
     /** setters */
@@ -113,9 +139,8 @@ object Utils {
     // def copyObj(addr: Addr): Addr = st.heap.copyObj(addr)
     def keys(addr: Addr, intSorted: Boolean): Addr =
       st.heap.keys(addr, intSorted)
-    // TODO
-    // def allocMap(ty: Ty, map: Map[Value, Value] = Map()): Addr =
-    //  st.heap.allocMap(ty, map)
+    def allocMap(ty: Ty, map: Map[Value, Value] = Map()): Addr =
+      st.heap.allocMap(ty, map)
     def allocList(list: List[Value]): Addr = st.heap.allocList(list)
     def allocSymbol(desc: Value): Addr = st.heap.allocSymbol(desc)
     def setType(addr: Addr, ty: Ty): State = {
@@ -282,21 +307,20 @@ object Utils {
       }))
     }
 
-    // TODO
     /** map allocations */
-    // def allocMap(
-    //  ty: Ty,
-    //  m: Map[Value, Value] = Map(),
-    // ): Addr = ???
-    // {
-    //  val irMap = if (ty.name == "Record") IRMap(ty, MMap(), 0L) else IRMap(ty)
-    //  for ((k, v) <- m) irMap.update(k, v)
-    //  if (ty.hasSubMap) {
-    //    val subMap = IRMap(Ty("SubMap"))
-    //    irMap.update(Str("SubMap"), alloc(subMap))
-    //  }
-    //  alloc(irMap)
-    // }
+    def allocMap(
+      ty: Ty,
+      m: Map[Value, Value],
+    ): Addr = {
+      val irMap: IRMap =
+        if (ty.name == "Record") IRMap(ty, MMap(), 0L) else ??? // IRMap(ty)
+      for ((k, v) <- m) irMap.update(k, v)
+      if (ty.hasSubMap) {
+        val subMap = ??? // IRMap(Ty("SubMap"))
+        irMap.update(Str("SubMap"), alloc(subMap))
+      }
+      alloc(irMap)
+    }
 
     /** list allocations */
     def allocList(list: List[Value]): Addr = alloc(IRList(list.toVector))
@@ -449,14 +473,15 @@ object Utils {
       //  .sortBy(_._2)
       //  .map { case (s, _) => Str(s) }
     }
+    // XXX
     def apply(tyname: String)(pairs: Iterable[(Value, Value)]): IRMap = {
-      val irMap = ??? // TODO IRMap(Ty(tyname))
+      val irMap = ??? // IRMap(Ty(tyname))
       for ((prop, value) <- pairs) irMap.update(prop, value)
       irMap
     }
-    def apply(ty: Ty): IRMap = ???
-    // TODO Define ty methods
-    // IRMap(ty, ty.methods, 0L)
+    def apply(ty: Ty): IRMap =
+      val props: MMap[Value, IRMapValue] = MMap()
+      IRMap(ty, props, 0L)
   }
 
   /** extension for IRList */
@@ -549,5 +574,10 @@ object Utils {
       case IRList                   => Ty("List")
       case IRNotSupported(tyStr, _) => Ty(tyStr)
     }
+  }
+
+  /** extension for CompValue */
+  extension (comp: CompValue) {
+    def target: Value = comp.targetOpt.fold[Value](CONST_EMPTY)(Str(_))
   }
 }
