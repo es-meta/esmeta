@@ -94,7 +94,8 @@ object SystemUtils {
 
   /** read HTML */
   def readHtml(filename: String): org.jsoup.nodes.Document =
-    HtmlUtils.parseHtml(readFile(filename))
+    import HtmlUtils.*
+    readFile(filename).toHtml
 
   /** delete files */
   def deleteFile(filename: String): Unit = new File(filename).delete

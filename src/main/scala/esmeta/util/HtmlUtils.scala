@@ -9,56 +9,68 @@ import org.jsoup.select.*
 /** HTML utilities */
 object HtmlUtils {
 
-  /** revert entity name to character */
-  def unescapeHtml(str: String): String = StringEscapeUtils.unescapeHtml4(str)
+  /** extensions for strings */
+  extension (str: String) {
 
-  /** revert character to entity name */
-  def escapeHtml(str: String): String = StringEscapeUtils.escapeHtml4(str)
+    /** revert entity name to character */
+    def unescapeHtml: String = StringEscapeUtils.unescapeHtml4(str)
 
-  /** escape js file to pass it to shell */
-  def escapeJS(str: String): String = StringEscapeUtils.escapeXSI(str)
+    /** revert character to entity name */
+    def escapeHtml: String = StringEscapeUtils.escapeHtml4(str)
 
-  /** parse HTML string */
-  def parseHtml(content: String): Document =
-    val document = Jsoup.parse(content)
-    document.outputSettings.prettyPrint(false)
-    document
+    /** escape js file to pass it to shell */
+    def escapeJS: String = StringEscapeUtils.escapeXSI(str)
 
-  /** convert Elements to a list of Element */
-  def toList(elems: Elements): List[Element] =
-    elems.toArray(Array[Element]()).toList
+    /** parse HTML string */
+    def toHtml: Document =
+      val document = Jsoup.parse(str)
+      document.outputSettings.prettyPrint(false)
+      document
+  }
 
-  /** get Element array using queries */
-  def getElems(elem: Element, query: String): List[Element] =
-    toList(elem.select(query))
+  /** extensions for Elements */
+  extension (elems: Elements) {
 
-  /** get children of an element */
-  def getChildren(elem: Element): List[Element] = toList(elem.children)
+    /** convert Elements to a list of Element */
+    def toList: List[Element] =
+      elems.toArray(Array[Element]()).toList
+  }
 
-  /** get content of an element */
-  def getContent(elem: Element): String = unescapeHtml(elem.html.trim)
+  /** extensions for Element */
+  extension (elem: Element) {
 
-  /** get first sibling element */
-  def getFirstSiblingElem(elem: Element): Element = elem.siblingElements.get(0)
+    /** get Element array using queries */
+    def getElems(query: String): List[Element] =
+      elem.select(query).toList
 
-  /** get first sibling content */
-  def getFirstSiblingContent(elem: Element): String =
-    getContent(getFirstSiblingElem(elem))
+    /** get children of an element */
+    def getChildren: List[Element] = elem.children.toList
 
-  /** get previous sibling element */
-  def getPrevElem(elem: Element): Element = elem.previousElementSibling
+    /** get content of an element */
+    def getContent: String = elem.html.trim.unescapeHtml
 
-  /** get previous sibling content */
-  def getPrevContent(elem: Element): String = getContent(getPrevElem(elem))
+    /** get first sibling element */
+    def getFirstSiblingElem: Element = elem.siblingElements.get(0)
 
-  /** convert an element to a data map */
-  def toDataMap(elem: Element): Map[String, String] = {
-    var map = Map[String, String]()
-    var key = ""
-    for (child <- getChildren(elem)) child.tagName match {
-      case "dt" => key = child.text
-      case "dd" => map += key -> child.text
+    /** get first sibling content */
+    def getFirstSiblingContent: String =
+      elem.getFirstSiblingElem.getContent
+
+    /** get previous sibling element */
+    def getPrevElem: Element = elem.previousElementSibling
+
+    /** get previous sibling content */
+    def getPrevContent: String = elem.getPrevElem.getContent
+
+    /** convert an element to a data map */
+    def toDataMap: Map[String, String] = {
+      var map = Map[String, String]()
+      var key = ""
+      for (child <- elem.getChildren) child.tagName match {
+        case "dt" => key = child.text
+        case "dd" => map += key -> child.text
+      }
+      map
     }
-    map
   }
 }
