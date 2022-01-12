@@ -137,16 +137,25 @@ trait Parsers extends BasicParsers {
     }
 
   // algorithm parameters
-  lazy val params: Parser[List[Param]] =
-    opt(
-      "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) <~
-        opt("," ~ newline) ~ ")",
-    ) ^^ { _.getOrElse(Nil) }
+  lazy val params: Parser[List[Param]] = opt(
+    "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) ~ oldOptParams <~
+      opt("," ~ newline) ~ ")",
+  ) ^^ {
+    case None           => Nil
+    case Some(ps ~ ops) => ps ++ ops
+  }
+  // TODO remove this legacy parser later
+  lazy val oldOptParams: Parser[List[Param]] =
+    import Param.Kind.*
+    "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ { case p ~ psOpt =>
+      p :: psOpt.getOrElse(Nil)
+    } | opt(",") ~ "..." ~> param ^^ { case p =>
+      List(p.copy(kind = Variadic))
+    } | success(Nil)
   lazy val param: Parser[Param] =
     import Param.Kind.*
     opt("optional") ~ id ~ opt(":" ~> headParamType) ^^ {
       case opt ~ name ~ ty =>
-        // TODO consider variadic parameters
         val kind = if (opt.isDefined) Optional else Normal
         Param(name, kind, ty.getOrElse("unknown"))
     }

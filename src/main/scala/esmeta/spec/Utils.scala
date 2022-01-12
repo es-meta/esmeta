@@ -32,20 +32,29 @@ object Utils {
   extension (grammar: Grammar) {
 
     /** get the index mapping for grammars */
-    def getIdxMap(forWeb: Boolean = false): Map[String, (Int, Int)] = (for {
+    def idxMap(forWeb: Boolean = false): Map[String, (Int, Int)] = (for {
       prod <- if (forWeb) grammar.prodsForWeb else grammar.prods
-      pair <- prod.getIdxMap
+      pair <- prod.idxMap
     } yield pair).toMap
   }
 
   /** extensions for productions */
   extension (prod: Production) {
 
+    /** get name */
+    def name: String = prod.lhs.name
+
     /** get the index mapping for productions */
-    def getIdxMap: Map[String, (Int, Int)] = (for {
+    def idxMap: Map[String, (Int, Int)] = (for {
       (rhs, i) <- prod.rhsList.zipWithIndex
       (name, j) <- rhs.allNames.zipWithIndex
     } yield prod.lhs.name + ":" + name -> (i, j)).toMap
+
+    /** get non-terminals in RHSs */
+    def getNts: List[Nonterminal] = for {
+      rhs <- prod.rhsList
+      nt <- rhs.getNts
+    } yield nt
   }
 
   /** extensions for RHSs */
