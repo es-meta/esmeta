@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
-import esmeta.spec.Utils.*
+import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BasicParser
 import org.jsoup.nodes.*
@@ -14,7 +14,8 @@ object Parser extends Parsers {
   def parseSpec(content: String): Spec = {
     val document = parseHtml(content)
     val grammar = parseGrammar(document)
-    val algorithms = parseAlgorithms(document, getIdxMap(grammar))
+    val algorithms =
+      parseAlgorithms(document, grammar.getIdxMap(forWeb = false))
     Spec(
       version = None,
       grammar = grammar,
@@ -29,12 +30,12 @@ object Parser extends Parsers {
       content = unescapeHtml(elem.html.trim)
       prods = parseProductions(content)
       prod <- prods
-      inAnnex = isInAnnex(elem)
+      inAnnex = elem.isInAnnex
     } yield (prod, inAnnex)
-    val prods = sort(for ((prod, inAnnex) <- allProds if !inAnnex) yield prod)
-    val prodsForWeb = sort(for (
-      (prod, inAnnex) <- allProds if inAnnex
-    ) yield prod)
+    val prods =
+      (for ((prod, inAnnex) <- allProds if !inAnnex) yield prod).sorted
+    val prodsForWeb =
+      (for ((prod, inAnnex) <- allProds if inAnnex) yield prod).sorted
     Grammar(prods, prodsForWeb)
   }
 
@@ -336,10 +337,10 @@ object Parser extends Parsers {
       prod <- parse(prods, prevContent)
       lhsName = prod.lhs.name
       rhs <- prod.rhsList
-      rhsName <- allNames(rhs)
+      rhsName <- rhs.allNames
       syntax = lhsName + ":" + rhsName
       (idx, subIdx) = idxMap(syntax)
-      rhsParams = getRhsParams(rhs)
+      rhsParams = rhs.getRhsParams
     } yield generator(
       lhsName,
       idx,

@@ -2,79 +2,96 @@ package esmeta.spec
 
 import org.jsoup.nodes.*
 
+/** specification utilities */
 object Utils {
   import Symbol.*
 
-  /** get sorted productions */
-  def sort(prods: List[Production]): List[Production] =
-    prods.sortBy(prod => (prod.kind.ordinal, prod.lhs.name))
+  /** ordering of productions */
+  given Ordering[Production] =
+    Ordering.by(prod => (prod.kind.ordinal, prod.lhs.name))
 
-  /** walker for ancestors */
-  def walkAncestor[T](
-    elem: Element,
-    f: Element => T,
-    base: T,
-    join: (T, T) => T,
-  ): T =
-    val parent = elem.parent
-    if (parent == null) base
-    else join(f(parent), walkAncestor(parent, f, base, join))
+  /** extensions for Elements */
+  extension (elem: Element) {
 
-  /** checks whether an element is in appendix */
-  def isInAnnex(elem: Element): Boolean =
-    walkAncestor(elem, _.tagName == "emu-annex", false, _ || _)
+    /** walker for ancestors */
+    def walkAncestor[T](
+      f: Element => T,
+      base: T,
+      join: (T, T) => T,
+    ): T =
+      val parent = elem.parent
+      if (parent == null) base
+      else join(f(parent), parent.walkAncestor(f, base, join))
 
-  /** get the index mapping for grammars */
-  def getIdxMap(
-    grammar: Grammar,
-    forWeb: Boolean = false,
-  ): Map[String, (Int, Int)] = (for {
-    prod <- if (forWeb) grammar.prodsForWeb else grammar.prods
-    pair <- getIdxMap(prod)
-  } yield pair).toMap
-
-  /** get the index mapping for productions */
-  def getIdxMap(prod: Production): Map[String, (Int, Int)] = (for {
-    (rhs, i) <- prod.rhsList.zipWithIndex
-    (name, j) <- allNames(rhs).zipWithIndex
-  } yield prod.lhs.name + ":" + name -> (i, j)).toMap
-
-  /** get rhs all names */
-  def allNames(rhs: Rhs): List[String] =
-    rhs.symbols.foldLeft(List[String]("")) {
-      case (names, Terminal(term)) => names.map(_ + term)
-      case (names, Nonterminal(name, _, optional)) =>
-        names.flatMap(x => {
-          if (optional) List(x, x + name) else List(x + name)
-        })
-      case (names, ButNot(Nonterminal(base, _, _), cases)) =>
-        names.map(_ + base)
-      case (names, _) => names
-    }
-
-  /** get non-terminals in an RHS */
-  def getNTs(rhs: Rhs): List[Nonterminal] = rhs.symbols.flatMap(getNT)
-
-  /** get an non-terminal or nothing from a symbol */
-  def getNT(symbol: Symbol): Option[Nonterminal] = symbol match {
-    case (nt: Nonterminal) => Some(nt)
-    case ButNot(base, _)   => Some(base)
-    case _                 => None
+    /** checks whether an element is in appendix */
+    def isInAnnex: Boolean =
+      elem.walkAncestor(_.tagName == "emu-annex", false, _ || _)
   }
 
-  // get parameters from RHSs
-  def getRhsParams(rhs: Rhs): List[Param] = {
-    import Param.Kind.*
-    val names = getNTs(rhs).map(_.name)
-    val duplicated = names.filter(p => names.count(_ == p) > 1).toSet
-    var counter = Map[String, Int]()
-    val paramNames = names.map(name => {
-      if (duplicated contains name) {
-        val k = counter.getOrElse(name, 0)
-        counter += name -> (k + 1)
-        s"$name$k"
-      } else name
-    })
-    paramNames.map(Param(_, Normal, "unknown"))
+  /** extensions for grammars */
+  extension (grammar: Grammar) {
+
+    /** get the index mapping for grammars */
+    def getIdxMap(forWeb: Boolean = false): Map[String, (Int, Int)] = (for {
+      prod <- if (forWeb) grammar.prodsForWeb else grammar.prods
+      pair <- prod.getIdxMap
+    } yield pair).toMap
+  }
+
+  /** extensions for productions */
+  extension (prod: Production) {
+
+    /** get the index mapping for productions */
+    def getIdxMap: Map[String, (Int, Int)] = (for {
+      (rhs, i) <- prod.rhsList.zipWithIndex
+      (name, j) <- rhs.allNames.zipWithIndex
+    } yield prod.lhs.name + ":" + name -> (i, j)).toMap
+  }
+
+  /** extensions for RHSs */
+  extension (rhs: Rhs) {
+
+    /** get RHS all names */
+    def allNames: List[String] =
+      rhs.symbols.foldLeft(List[String]("")) {
+        case (names, Terminal(term)) => names.map(_ + term)
+        case (names, Nonterminal(name, _, optional)) =>
+          names.flatMap(x => {
+            if (optional) List(x, x + name) else List(x + name)
+          })
+        case (names, ButNot(Nonterminal(base, _, _), cases)) =>
+          names.map(_ + base)
+        case (names, _) => names
+      }
+
+    /** get non-terminals in an RHS */
+    def getNts: List[Nonterminal] = rhs.symbols.flatMap(_.getNt)
+
+    /** get parameters from RHSs */
+    def getRhsParams: List[Param] = {
+      import Param.Kind.*
+      val names = rhs.getNts.map(_.name)
+      val duplicated = names.filter(p => names.count(_ == p) > 1).toSet
+      var counter = Map[String, Int]()
+      val paramNames = names.map(name => {
+        if (duplicated contains name) {
+          val k = counter.getOrElse(name, 0)
+          counter += name -> (k + 1)
+          s"$name$k"
+        } else name
+      })
+      paramNames.map(Param(_, Normal, "unknown"))
+    }
+  }
+
+  /** extensions for symbols */
+  extension (symbol: Symbol) {
+
+    /** get an non-terminal or nothing from a symbol */
+    def getNt: Option[Nonterminal] = symbol match {
+      case (nt: Nonterminal) => Some(nt)
+      case ButNot(base, _)   => Some(base)
+      case _                 => None
+    }
   }
 }
