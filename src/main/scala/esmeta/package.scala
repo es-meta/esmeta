@@ -44,3 +44,6 @@ var LOG: Boolean = false
 
 /** test mode (turn it on only when executing tests) */
 var TEST_MODE: Boolean = false
+
+/** timeout */
+val TIMEOUT = 10

@@ -56,7 +56,7 @@ object Utils {
     def apply(str: String, prop: Value): Value = ???
     def apply(addr: Addr): Obj = st.heap(addr)
 
-    // setters
+    /** setters */
     def update(refV: RefValue, value: Value): State = refV match {
       case RefValueId(x) =>
         update(x, value); st
@@ -78,7 +78,7 @@ object Utils {
       st.heap.update(addr, prop, value); st
     }
 
-    // existence checks
+    /** existence checks */
     def exists(id: Id): Boolean = {
       val defined = st.globals.contains(id) || locals.contains(id)
       defined && directLookup(id) != Absent
@@ -88,7 +88,7 @@ object Utils {
       case RefValueProp(base, prop) => st(base.escaped, prop) != Absent
     }
 
-    // delete a property from a map
+    /** delete a property from a map */
     def delete(refV: RefValue): State = refV match {
       case RefValueId(x) =>
         error(s"cannot delete variable $x")
@@ -101,7 +101,7 @@ object Utils {
         }
     }
 
-    // object operators
+    /** object operators */
     def append(addr: Addr, value: Value): State = {
       st.heap.append(addr, value); st
     }
@@ -133,7 +133,7 @@ object Utils {
       case _          => value.toString
     }
 
-    // copied
+    /** copied */
     def copied: State = {
       val newContext = st.context.copied
       val newCtxtStack = st.ctxtStack.map(_.copied)
@@ -150,24 +150,24 @@ object Utils {
       )
     }
 
-    // move to the next cursor
+    /** move to the next cursor */
     def moveNext: Unit = st.context.moveNext
 
     // TODO Not impl. {AST, Node}
-    // // get AST of topmost evaluation
+    // /** get AST of topmost evaluation */
     // def currentAst: Option[AST] = (context :: ctxtStack)
     //  .flatMap(c => {
     //    if (c.isAstEvaluation) c.astOpt else None
     //  })
     //  .headOption
 
-    // // get current node
+    // /** get current node */
     // def currentNode: Option[Node] = context.cursorOpt.flatMap {
     //  case NodeCursor(n) => Some(n)
     //  case _             => None
     // }
 
-    // // get position of AST of topmost evaluation
+    // /** get position of AST of topmost evaluation */
     // // start line, end line, start index, end index
     // def getJsPos(): (Int, Int, Int, Int) =
     //  currentAst.fold((-1, -1, -1, -1))(ast => {
@@ -181,13 +181,13 @@ object Utils {
     def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
     def isBuiltin: Boolean = ???
     // algo.fold(false)(_.isBuiltin)
-    // move cursor
+    /** move cursor */
     def moveNext: Unit = {
       // prevCursorOpt = cursorOpt
       ctxt.cursorOpt = ctxt.cursorOpt.flatMap(_.next)
     }
     // TODO Not impl. algo
-    // // debugger info
+    // /** debugger info */
     // def getAlgoName: String = algo match {
     //  case Some(algo) => algo.name
     //  case None       => name
@@ -205,14 +205,14 @@ object Utils {
     //    (name, v.toString)
     //  },
     // )
-    // // check if AST evaluation
+    // /** check if AST evaluation */
     // def isAstEvaluation: Boolean =
     //  astOpt.nonEmpty && algo.fold(false)(_.head match {
     //    case s: SyntaxDirectedHead =>
     //      s.methodName == "Evaluation" || s.methodName == "NamedEvaluation"
     //    case _ => false
     //  })
-    // // check if JS call
+    // /** check if JS call */
     // def isJsCall = algo.fold(false)(_.name match {
     //  case "Call" | "Construct" => true
     //  case _                    => false
@@ -221,7 +221,8 @@ object Utils {
 
   /** extension for heap */
   extension (heap: Heap) {
-    // getters
+
+    /** getters */
     def apply(addr: Addr): Obj =
       heap.map.getOrElse(addr, error(s"unknown address: $addr"))
     def apply(addr: Addr, key: Value): Value = heap(addr) match {
@@ -234,7 +235,7 @@ object Utils {
       case IRNotSupported(_, msg) => throw NotSupported(msg)
     }
 
-    // setters
+    /** setters */
     def update(addr: Addr, prop: Value, value: Value): Heap =
       heap(addr) match {
         case (m: IRMap) =>
@@ -242,38 +243,38 @@ object Utils {
         case v => error(s"not a heap.map: $v")
       }
 
-    // delete
+    /** delete */
     def delete(addr: Addr, prop: Value): Heap = heap(addr) match {
       case (m: IRMap) =>
         m.delete(prop); heap
       case v => error(s"not a heap.map: $v")
     }
 
-    // appends
+    /** appends */
     def append(addr: Addr, value: Value): Heap = heap(addr) match {
       case (l: IRList) =>
         l.append(value); heap
       case v => error(s"not a list: $v")
     }
 
-    // prepends
+    /** prepends */
     def prepend(addr: Addr, value: Value): Heap = heap(addr) match {
       case (l: IRList) =>
         l.prepend(value); heap
       case v => error(s"not a list: $v")
     }
 
-    // pops
+    /** pops */
     def pop(addr: Addr, idx: Value): Value = heap(addr) match {
       case (l: IRList) => l.pop(idx)
       case v           => error(s"not a list: $v")
     }
 
     // TODO copy method of Obj type cannot be defined
-    // copy objects
+    /** copy objects */
     // def copyObj(addr: Addr): Addr = alloc(heap(addr).copied)
 
-    // keys of map
+    /** keys of map */
     def keys(addr: Addr, intSorted: Boolean): Addr = {
       alloc(IRList(heap(addr) match {
         case (m: IRMap) => m.keys(intSorted)
@@ -282,7 +283,7 @@ object Utils {
     }
 
     // TODO
-    // map allocations
+    /** map allocations */
     // def allocMap(
     //  ty: Ty,
     //  m: Map[Value, Value] = Map(),
@@ -297,13 +298,13 @@ object Utils {
     //  alloc(irMap)
     // }
 
-    // list allocations
+    /** list allocations */
     def allocList(list: List[Value]): Addr = alloc(IRList(list.toVector))
 
-    // symbol allocations
+    /** symbol allocations */
     def allocSymbol(desc: Value): Addr = alloc(IRSymbol(desc))
 
-    // allocation helper
+    /** allocation helper */
     private def alloc(obj: Obj): Addr = {
       val newAddr: Value.Addr = DynamicAddr(heap.size)
       heap.map += newAddr -> obj
@@ -311,7 +312,7 @@ object Utils {
       newAddr
     }
 
-    // property access helper
+    /** property access helper */
     private def getAddrValue(
       addr: Addr,
       propName: String,
@@ -330,7 +331,7 @@ object Utils {
       case _ => error(s"not an address: $addr")
     }
 
-    // set type of objects
+    /** set type of objects */
     def setType(addr: Addr, ty: Ty): Heap = heap(addr) match {
       case (irmap: IRMap) =>
         irmap.ty = ty; heap
@@ -372,13 +373,13 @@ object Utils {
     // TODO val in extension => def?
     def ty: Ty = Ty("Symbol")
 
-    // getters
+    /** getters */
     def apply(key: Value): Value = key match {
       case Str("Description") => irSym.desc
       case v                  => error(s"an invalid symbol field access: $v")
     }
 
-    // copy of object
+    /** copy of object */
     def copied: IRSymbol = IRSymbol(irSym.desc)
   }
 
@@ -453,7 +454,9 @@ object Utils {
       for ((prop, value) <- pairs) irMap.update(prop, value)
       irMap
     }
-    def apply(ty: Ty): IRMap = ??? // TODO IRMap(ty, ty.methods, 0L)
+    def apply(ty: Ty): IRMap = ???
+    // TODO Define ty methods
+    // IRMap(ty, ty.methods, 0L)
   }
 
   /** extension for IRList */
@@ -507,13 +510,11 @@ object Utils {
   extension (v: Value) {
     // escape completion
     def escaped: Value = v match {
-      // TODO need to be revised
-      // case NormalComp(value) => value
-      // case CompValue(_, _, _) =>
-      //  error(s"unchecked abrupt completion: $v")
-      // case pure: PureValue => pure
-      case CompValue(_, v, _) => v
-      case v: Value           => v
+      // TODO need to be revised(NormalComp)
+      case CompValue(CONST_NORMAL, value, None) => value
+      case CompValue(_, _, _) =>
+        error(s"unchecked abrupt completion: $v")
+      case pure: Value => pure
     }
 
     // check abrupt completion
@@ -537,6 +538,16 @@ object Utils {
       case comp: CompValue => comp
       // TODO erase pure
       case pure: Value => CompValue(ty, pure, None)
+    }
+  }
+
+  /** extension for obj */
+  extension (obj: Object) {
+    def ty: Ty = obj match {
+      case IRSymbol                 => Ty("Symbol")
+      case IRMap(ty, _, _)          => ty
+      case IRList                   => Ty("List")
+      case IRNotSupported(tyStr, _) => Ty(tyStr)
     }
   }
 }
