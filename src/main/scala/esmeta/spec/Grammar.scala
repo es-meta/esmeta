@@ -46,6 +46,9 @@ enum Symbol extends SpecElem:
   /** butnot symbols */
   case ButNot(base: Nonterminal, cases: List[Symbol])
 
+  /** but-only-if symbols */
+  case ButOnlyIf(base: Nonterminal, methodName: String, cond: String)
+
   /** lookahead symbols */
   case Lookahead(contains: Boolean, cases: List[List[Symbol]])
 
@@ -55,41 +58,11 @@ enum Symbol extends SpecElem:
   /** no-line-terminator symbols */
   case NoLineTerminator
 
-  /** unicode symbols */
-  case Unicode(code: String)
+  /** symbols for code point abbreviations */
+  case CodePointAbbr(abbr: String)
 
-  /** any unicode symbols */
-  case UnicodeAny
-
-  /** ID_Start unicode symbols */
-  case UnicodeIdStart
-
-  /** ID_Continue unicode symbols */
-  case UnicodeIdContinue
-
-  /** LeadSurrogate unicode symbols */
-  case UnicodeLeadSurrogate
-
-  /** TrailSurrogate unicode symbols */
-  case UnicodeTrailSurrogate
-
-  /** NotCodePoint symbols */
-  case NotCodePoint
-
-  /** CodePoint symbols */
-  case CodePoint
-
-  /** HexLeadSurrogate symbols */
-  case HexLeadSurrogate
-
-  /** HexTrailSurrogate symbols */
-  case HexTrailSurrogate
-
-  /** HexNonSurrogate symbols */
-  case HexNonSurrogate
-
-  /** NonUnicodeModeDecimalEscape symbols */
-  case NonUnicodeModeDecimalEscape
+  /** symbols for sets of unicode code points with a condition */
+  case UnicodeSet(cond: Option[String])
 object Symbol extends Parser[Symbol]
 
 /** nonterminal arguments */

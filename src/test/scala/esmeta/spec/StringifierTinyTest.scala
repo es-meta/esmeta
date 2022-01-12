@@ -23,35 +23,22 @@ class StringifierTinyTest extends SpecTest {
 
     checkStringify("Symbol")(
       Terminal("{") -> "`{`",
-      Nonterminal(
-        "Identifier",
-        ntArgs,
-        true,
-      ) -> "Identifier[+Await, ~Yield, ?For]?",
+      Nonterminal("Identifier", ntArgs, true) ->
+        "Identifier[+Await, ~Yield, ?For]?",
       Nonterminal("Identifier", Nil, false) -> "Identifier",
       ButNot(nt, List(nt)) -> "Identifier but not Identifier",
-      Lookahead(
-        true,
-        List(symbols, symbols),
-      ) -> "[lookahead < {`{` `}`, `{` `}`}]",
-      Lookahead(
-        false,
-        List(symbols, symbols),
-      ) -> "[lookahead <! {`{` `}`, `{` `}`}]",
+      ButOnlyIf(nt, "MV", "> 0x10FFFF") ->
+        "Identifier [> but only if MV of |Identifier|> 0x10FFFF]",
+      Lookahead(true, List(symbols, symbols)) ->
+        "[lookahead < {`{` `}`, `{` `}`}]",
+      Lookahead(false, List(symbols, symbols)) ->
+        "[lookahead <! {`{` `}`, `{` `}`}]",
       Empty -> "[empty]",
       NoLineTerminator -> "[no LineTerminator here]",
-      Unicode("LT") -> "<LT>",
-      UnicodeAny -> "<UnicodeAny>",
-      UnicodeIdStart -> "<UnicodeIdStart>",
-      UnicodeIdContinue -> "<UnicodeIdContinue>",
-      UnicodeLeadSurrogate -> "<UnicodeLeadSurrogate>",
-      UnicodeTrailSurrogate -> "<UnicodeTrailSurrogate>",
-      NotCodePoint -> "<NotCodePoint>",
-      CodePoint -> "<CodePoint>",
-      HexLeadSurrogate -> "<HexLeadSurrogate>",
-      HexTrailSurrogate -> "<HexTrailSurrogate>",
-      HexNonSurrogate -> "<HexNonSurrogate>",
-      NonUnicodeModeDecimalEscape -> "<NonUnicodeModeDecimalEscape>",
+      CodePointAbbr("LT") -> "<LT>",
+      UnicodeSet(None) -> "> any Unicode code point",
+      UnicodeSet(Some("with the Unicode property “ID_Start”")) ->
+        "> any Unicode code point with the Unicode property “ID_Start”",
     )
 
     checkStringify("NtArg")(

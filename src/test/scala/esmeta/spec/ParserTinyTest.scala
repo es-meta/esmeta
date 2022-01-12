@@ -27,6 +27,8 @@ class ParserTinyTest extends SpecTest {
         Nonterminal("Identifier", ntArgs, true),
       Symbol("Identifier") -> Nonterminal("Identifier", Nil, false),
       Symbol("Identifier but not Identifier") -> ButNot(nt, List(nt)),
+      Symbol("Identifier [> but only if MV of |Identifier|> 0x10FFFF]") ->
+        ButOnlyIf(nt, "MV", "> 0x10FFFF"),
       Symbol("[lookahead < {`{` `}`, `{` `}`}]") ->
         Lookahead(true, List(symbols, symbols)),
       Symbol("[lookahead <! {`{` `}`, `{` `}`}]") -> Lookahead(
@@ -35,20 +37,10 @@ class ParserTinyTest extends SpecTest {
       ),
       Symbol("[empty]") -> Empty,
       Symbol("[no LineTerminator here]") -> NoLineTerminator,
-      Symbol("<LT>") -> Unicode("LT"),
-      Symbol("code point ID_Start") -> UnicodeIdStart,
-      Symbol("code point ID_Continue") -> UnicodeIdContinue,
-      Symbol("code point 0xD800 to 0xDBFF") -> UnicodeLeadSurrogate,
-      Symbol("code point 0xDC00 to 0xDFFF") -> UnicodeTrailSurrogate,
-      Symbol("any code point") -> UnicodeAny,
-      Symbol("HexDigits > 0x10FFFF") -> NotCodePoint,
-      Symbol("HexDigits ≤ 0x10FFFF") -> CodePoint,
-      Symbol("Hex4Digits 0xD800 to 0xDBFF") -> HexLeadSurrogate,
-      Symbol("Hex4Digits 0xDC00 to 0xDFFF") -> HexTrailSurrogate,
-      Symbol("Hex4Digits not 0xD800 to 0xDFFF") -> HexNonSurrogate,
-      Symbol(
-        "DecimalEscape CapturingGroupNumber |DecimalEscape| ≤ _NcapturingParens",
-      ) -> NonUnicodeModeDecimalEscape,
+      Symbol("<LT>") -> CodePointAbbr("LT"),
+      Symbol("> any Unicode code point") -> UnicodeSet(None),
+      Symbol("> any Unicode code point with the Unicode property “ID_Start”") ->
+        UnicodeSet(Some("with the Unicode property “ID_Start”")),
     )
 
     checkEquals("NtArg")(

@@ -59,8 +59,10 @@ object Utils {
           names.flatMap(x => {
             if (optional) List(x, x + name) else List(x + name)
           })
-        case (names, ButNot(Nonterminal(base, _, _), cases)) =>
-          names.map(_ + base)
+        case (names, ButNot(base, _)) =>
+          names.map(_ + base.name)
+        case (names, ButOnlyIf(base, _, _)) =>
+          names.map(_ + base.name)
         case (names, _) => names
       }
 
@@ -89,9 +91,10 @@ object Utils {
 
     /** get an non-terminal or nothing from a symbol */
     def getNt: Option[Nonterminal] = symbol match {
-      case (nt: Nonterminal) => Some(nt)
-      case ButNot(base, _)   => Some(base)
-      case _                 => None
+      case (nt: Nonterminal)     => Some(nt)
+      case ButNot(base, _)       => Some(base)
+      case ButOnlyIf(base, _, _) => Some(base)
+      case _                     => None
     }
   }
 }

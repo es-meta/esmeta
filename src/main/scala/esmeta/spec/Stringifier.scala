@@ -103,29 +103,24 @@ object Stringifier {
     given t: Rule[List[Symbol]] = iterableRule(sep = " ")
     given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")
     symbol match {
-      case Terminal(term) => app >> s"`$term`"
+      case Terminal(term)      => app >> s"`$term`"
+      case ButNot(base, cases) => app >> base >> " but not " >> cases
+      case Empty               => app >> "[empty]"
+      case NoLineTerminator    => app >> "[no LineTerminator here]"
+      case CodePointAbbr(abbr) => app >> "<" >> abbr >> ">"
       case Nonterminal(name, args, opt) =>
         app >> name
         if (!args.isEmpty) app >> args
         if (opt) app >> "?" else app
-      case ButNot(base, cases) =>
-        app >> base >> " but not " >> cases
       case Lookahead(b, cases) =>
         app >> "[lookahead " >> (if (b) "<" else "<!") >> " " >> cases >> "]"
-      case Empty                       => app >> "[empty]"
-      case NoLineTerminator            => app >> "[no LineTerminator here]"
-      case Unicode(code)               => app >> "<" >> code >> ">"
-      case UnicodeAny                  => app >> "<UnicodeAny>"
-      case UnicodeIdStart              => app >> "<UnicodeIdStart>"
-      case UnicodeIdContinue           => app >> "<UnicodeIdContinue>"
-      case UnicodeLeadSurrogate        => app >> "<UnicodeLeadSurrogate>"
-      case UnicodeTrailSurrogate       => app >> "<UnicodeTrailSurrogate>"
-      case NotCodePoint                => app >> "<NotCodePoint>"
-      case CodePoint                   => app >> "<CodePoint>"
-      case HexLeadSurrogate            => app >> "<HexLeadSurrogate>"
-      case HexTrailSurrogate           => app >> "<HexTrailSurrogate>"
-      case HexNonSurrogate             => app >> "<HexNonSurrogate>"
-      case NonUnicodeModeDecimalEscape => app >> "<NonUnicodeModeDecimalEscape>"
+      case ButOnlyIf(base, name, cond) =>
+        app >> base >> " [> but only if " >> name >> " of "
+        app >> "|" >> base.name >> "|" >> cond >> "]"
+      case UnicodeSet(cond) =>
+        app >> "> any Unicode code point"
+        cond.map(app >> " " >> _)
+        app
     }
 
   // for condidtions for nonterminal arguments

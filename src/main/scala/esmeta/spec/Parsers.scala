@@ -52,7 +52,7 @@ trait Parsers extends BasicParsers {
 
   // grammar symbols
   given symbol: Parser[Symbol] =
-    term | butnot | lookahead | character | nt | empty | nlt
+    term | butnot | lookahead | butOnlyIf | nt | abbr | unicodeSet | empty | nlt
 
   // terminals
   lazy val term: Parser[Terminal] =
@@ -73,6 +73,14 @@ trait Parsers extends BasicParsers {
       case base ~ cases => ButNot(base, cases)
     }
 
+  // but-only-if symbols
+  // [> but only if MV of |HexDigits| > 0x10FFFF]
+  lazy val butOnlyIf: Parser[ButOnlyIf] =
+    nt ~ ("[> but only if" ~ opt("the") ~> word <~ "of |" ~ word ~ "|") ~
+      "[^\\]]+".r <~ "]" ^^ { case base ~ name ~ cond =>
+        ButOnlyIf(base, name, cond)
+      }
+
   // empty symbols
   lazy val empty: Parser[Empty.type] = "[empty]" ^^^ Empty
 
@@ -80,21 +88,13 @@ trait Parsers extends BasicParsers {
   lazy val nlt: Parser[NoLineTerminator.type] =
     "\\[no [\\|]?LineTerminator[\\|]? here\\]".r ^^^ NoLineTerminator
 
-  // character symbols
-  lazy val character: Parser[Symbol] = (
-    "<" ~> word <~ ">" ^^ { Unicode(_) } |
-      ".*code point.*ID_Start.*".r ^^^ UnicodeIdStart |
-      ".*code point.*ID_Continue.*".r ^^^ UnicodeIdContinue |
-      ".*code point.*0xD800 to 0xDBFF.*".r ^^^ UnicodeLeadSurrogate |
-      ".*code point.*0xDC00 to 0xDFFF.*".r ^^^ UnicodeTrailSurrogate |
-      ".*any.*code point.*".r ^^^ UnicodeAny |
-      ".*HexDigits.*> 0x10FFFF.*".r ^^^ NotCodePoint |
-      ".*HexDigits.*≤ 0x10FFFF.*".r ^^^ CodePoint |
-      ".*Hex4Digits.*0xD800 to 0xDBFF.*".r ^^^ HexLeadSurrogate |
-      ".*Hex4Digits.*0xDC00 to 0xDFFF.*".r ^^^ HexTrailSurrogate |
-      ".*Hex4Digits.*not.*0xD800 to 0xDFFF.*".r ^^^ HexNonSurrogate |
-      ".*DecimalEscape.*CapturingGroupNumber.*|DecimalEscape|.*≤.*_NcapturingParens.*".r ^^^ NonUnicodeModeDecimalEscape
-  )
+  // symbols for code point abbreviations
+  lazy val abbr: Parser[CodePointAbbr] =
+    "<" ~> word <~ ">" ^^ { CodePointAbbr(_) }
+
+  // symbols for sets of unicode code points with a condition
+  lazy val unicodeSet: Parser[UnicodeSet] =
+    ">" ~ "any Unicode code point" ~> opt(".+".r) ^^ { UnicodeSet(_) }
 
   // lookahead symbol
   lazy val lookahead: Parser[Lookahead] =
