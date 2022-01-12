@@ -84,8 +84,7 @@ class StringifierTinyTest extends SpecTest {
 
     checkStringify("Production")(
       prod1 -> """Identifier :: one of
-                 |  `a`
-                 |  `a`
+                 |  `a` `a`
                  |""".stripMargin,
       prod2 -> """Identifier :
                  |  [+Yield] `{` `}`
@@ -106,8 +105,7 @@ class StringifierTinyTest extends SpecTest {
       Grammar(List(prod1), List(prod2)) ->
         s"""// Productions
            |Identifier :: one of
-           |  `a`
-           |  `a`
+           |  `a` `a`
            |
            |// Productions for Web
            |Identifier :

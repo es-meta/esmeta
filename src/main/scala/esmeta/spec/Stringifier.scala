@@ -59,8 +59,15 @@ object Stringifier {
   // for productions
   given prodRule: Rule[Production] = (app, prod) => {
     val Production(lhs, kind, oneof, rhsList) = prod
-    app >> lhs >> " " >> kind >> (if (oneof) " one of" else "")
-    app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
+    app >> lhs >> " " >> kind
+    if (oneof) {
+      app.wrap(" one of", ""){
+        app :> rhsList(0)
+        for (rhs <- rhsList.drop(1)) app >> " " >> rhs
+      }
+    } else {
+      app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
+    }
   }
 
   // for production left-hand-sides (LHSs)
