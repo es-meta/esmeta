@@ -5,14 +5,15 @@ import java.io.*
 import java.nio.charset.Charset
 import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
 
-// IR parser
-trait BasicParser[T] extends BasicParsers {
-  def fromFile(str: String)(implicit parser: Parser[T]): T =
+/** basic parser */
+trait BasicParser[T] { this: BasicParsers =>
+  def fromFile(str: String)(using parser: Parser[T]): T =
     fromFileWithParser(str, parser)
-  def apply(str: String)(implicit parser: Parser[T]): T =
+  def apply(str: String)(using parser: Parser[T]): T =
     parse[T](str)
 }
 
+/** basic parsers */
 trait BasicParsers extends JavaTokenParsers with RegexParsers {
   // parse from file
   def fromFileWithParser[T](f: String, parser: Parser[T]): T = {
@@ -32,8 +33,10 @@ trait BasicParsers extends JavaTokenParsers with RegexParsers {
   }
 
   // parse
-  def parse[T](str: String)(implicit parser: Parser[T]): T =
+  def parseBy[T](parser: Parser[T])(str: String): T =
     errHandle(parseAll(parser, str))
+  def parse[T](str: String)(using parser: Parser[T]): T =
+    parseBy(parser)(str)
 
   // string literal
   lazy val string = ("\"[\u0000-\u000F]\"".r | stringLiteral) ^^ { case s =>

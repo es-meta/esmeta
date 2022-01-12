@@ -1,13 +1,13 @@
 package esmeta.spec
 
-import esmeta.lang
+import esmeta.lang.Step
 import Stringifier.*
 
 /** abstract algorithms */
 case class Algorithm(
   head: Head,
   id: String,
-  body: lang.Stmt,
+  body: Step,
   code: String,
 ) extends SpecElem
 

@@ -4,6 +4,7 @@ ThisBuild / version := "0.1.0"
 ThisBuild / scalaVersion := "3.1.0"
 ThisBuild / organization := "esmeta"
 ThisBuild / scalacOptions := Seq(
+  "-language:implicitConversions", // allow implicit conversions
   "-deprecation", // emit warning and location for usages of deprecated APIs
   "-explain", // explain errors in more detail
   "-explain-types", // explain type errors in more detail

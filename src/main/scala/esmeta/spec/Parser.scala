@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
-import esmeta.lang.Stmt
+import esmeta.lang.Step
 import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BasicParser
@@ -41,8 +41,7 @@ object Parser extends Parsers {
   }
 
   /** parses productions */
-  def parseProductions(content: String): List[Production] =
-    parse(prods, content)
+  def parseProductions(content: String): List[Production] = parse(content)
 
   /** parses algorithms */
   def parseAlgorithms(
@@ -62,7 +61,7 @@ object Parser extends Parsers {
     head <- parseHeads(elem, idxMap)
     id = elem.getId
     code = elem.html
-    body = Stmt.Block(Nil) // TODO parse code
+    body = Step(code)
   } yield Algorithm(head, id, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */
@@ -189,17 +188,13 @@ object Parser extends Parsers {
   // ///////////////////////////////////////////////////////////////////////////
   import Head.*
 
-  // parse with parsing rules
-  private def parse[T](rule: Parser[T], str: String): T =
-    parseAll(rule, str).get
-
   // get abstract operation heads
   private def parseAbsOpHead(
     elem: Element,
     isHostDefined: Boolean,
   ): List[AbstractOperationHead] =
     val headContent = elem.getFirstSiblingContent
-    val generator = parse(absOpHeadGen, headContent)
+    val generator = parseBy(absOpHeadGen)(headContent)
     List(generator(isHostDefined))
 
   // get numeric method heads
@@ -207,7 +202,7 @@ object Parser extends Parsers {
     elem: Element,
   ): List[NumericMethodHead] =
     val headContent = elem.getFirstSiblingContent
-    List(parse(numMethodHead, headContent))
+    List(parseBy(numMethodHead)(headContent))
 
   // get syntax-directed operation (SDO) heads
   private def parseSdoHead(
@@ -216,9 +211,9 @@ object Parser extends Parsers {
   ): List[SyntaxDirectedOperationHead] = {
     val headContent = elem.getFirstSiblingContent
     val prevContent = elem.getPrevContent
-    val generator = parse(sdoHeadGen, headContent)
+    val generator = parseBy(sdoHeadGen)(headContent)
     for {
-      prod <- parse(prods, prevContent)
+      prod <- parse[List[Production]](prevContent)
       lhsName = prod.lhs.name
       rhs <- prod.rhsList
       rhsName <- rhs.allNames
@@ -238,25 +233,23 @@ object Parser extends Parsers {
     elem: Element,
   ): List[ConcreteMethodHead] =
     val headContent = elem.getFirstSiblingContent
-    val generator =
-      parse(concMethodHeadGen, headContent)
+    val generator = parseBy(concMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
-    val receiverParam = parse(paramDesc, forData)
+    val receiverParam = parseBy(paramDesc)(forData)
     List(generator(receiverParam))
 
   // get internal method heads
   private def parseInMethodHead(elem: Element): List[InternalMethodHead] =
     val headContent = elem.getFirstSiblingContent
-    val generator =
-      parse(inMethodHeadGen, headContent)
+    val generator = parseBy(inMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
-    val receiverParam = parse(paramDesc, forData)
+    val receiverParam = parseBy(paramDesc)(forData)
     List(generator(receiverParam))
 
   // get built-in heads
   private def parseBuiltinHead(elem: Element): List[BuiltinHead] =
     val headContent = elem.getFirstSiblingContent
-    List(parse(builtinHead, headContent))
+    List(parseBy(builtinHead)(headContent))
 }

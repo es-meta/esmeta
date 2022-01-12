@@ -10,10 +10,10 @@ case class Stringifier(detail: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Stmt => stmtRule(app, elem)
+      case elem: Step => stepRule(app, elem)
       case _          => ???
     }
 
   // TODO statements
-  given stmtRule: Rule[Stmt] = (app, stmt) => ???
+  given stepRule: Rule[Step] = (app, step) => ???
 }

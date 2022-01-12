@@ -6,6 +6,9 @@ import Symbol.*, NtArg.Kind.*, Production.Kind.*, Head.*
 
 /** specification parsers */
 trait Parsers extends BasicParsers {
+  // skip only white spaces and comments
+  protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
+
   // production lists
   given prods: Parser[List[Production]] =
     rep1(rep(newline) ~> prod)
@@ -46,9 +49,6 @@ trait Parsers extends BasicParsers {
 
   // RHS ids
   lazy val rhsId: Parser[String] = "#" ~> "[-a-zA-Z0-9]+".r
-
-  // skip only white spaces and comments
-  protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
   // grammar symbols
   given symbol: Parser[Symbol] =
