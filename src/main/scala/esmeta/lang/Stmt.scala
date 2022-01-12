@@ -1,7 +1,8 @@
 package esmeta.lang
 
 /** TODO statements */
-trait Stmt
+enum Stmt extends LangElem:
+  case Block(stmts: List[Stmt])
 
 /** TODO references */
 trait Ref

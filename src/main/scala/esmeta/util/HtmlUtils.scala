@@ -72,5 +72,18 @@ object HtmlUtils {
       }
       map
     }
+
+    /** get id of the container */
+    def getId: String = {
+      if (elem.id != "") elem.id
+      else if (elem.parent == null) ""
+      else elem.parent.getId
+    }
+
+    /** get ids of all containers */
+    def getIds: List[String] = {
+      val ids = if (elem.parent == null) Nil else elem.parent.getIds
+      if (elem.id == "") ids else elem.id :: ids
+    }
   }
 }

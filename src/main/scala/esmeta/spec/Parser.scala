@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
+import esmeta.lang.Stmt
 import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BasicParser
@@ -59,7 +60,10 @@ object Parser extends Parsers {
     idxMap: Map[String, (Int, Int)],
   ): List[Algorithm] = for {
     head <- parseHeads(elem, idxMap)
-  } yield ???
+    id = elem.getId
+    code = elem.html
+    body = Stmt.Block(Nil) // TODO parse code
+  } yield Algorithm(head, id, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
@@ -178,9 +182,6 @@ object Parser extends Parsers {
       case "internal method"                 => parseInMethodHead(elem)
       case _                                 => parseBuiltinHead(elem)
     }
-
-    // XXX REMOVE
-    Nil
   }
 
   // ///////////////////////////////////////////////////////////////////////////

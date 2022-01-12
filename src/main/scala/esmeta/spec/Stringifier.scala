@@ -38,7 +38,7 @@ object Stringifier {
     app :> "    - numeric string: " >> prodsBy(NumericString).length
     app :> "    - syntactic: " >> prodsBy(Syntactic).length
     app :> "  - extended productions for web: " >> grammar.prodsForWeb.length
-    app :> "* algorithms:"
+    app :> "* algorithms: " >> algorithms.length
     app :> "  - incomplete: " >> "..." // TODO
     app :> "  - complete: " >> "..." // TODO
     app :> "  - total: " >> "..." // TODO
