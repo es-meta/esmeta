@@ -13,9 +13,3 @@ assert (= res 1)
 let obj = (new Record("x" -> 1, "y" -> 2))
 assert (! (= absent obj.x))
 assert (= absent obj["z"])
-
-// to number
-let x = "123"
-let y = "-1"
-assert (= (convert x str2num) 123)
-assert (= (convert y str2num) -1)

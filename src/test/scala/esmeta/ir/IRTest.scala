@@ -1,19 +1,20 @@
 package esmeta.ir
 
 import esmeta.ESMetaTest
-import esmeta.ir._
+import esmeta.ir.*
+import esmeta.ir.Utils.*
 
 trait IRTest extends ESMetaTest {
   def category: String = "ir"
 
   // TODO handle evaluation test
-  // def irEval(st: State): State = Interp(st)
-  // def irEval(str: String): State =
-  //   Interp(State(InstCursor).moveTo(Program(str)))
-  // def irEvalFile(filename: String): State = {
-  //   val program = Program.fromFile(filename)
-  //   Interp(State(InstCursor, fnameOpt = Some(filename)).moveTo(program))
-  // }
+  def irEval(st: State): State = Interp(st)
+  def irEval(str: String): State =
+    Interp(State(InstCursor).moveTo(Program(str)))
+  def irEvalFile(filename: String): State = {
+    val program = Program.fromFile(filename)
+    Interp(State(InstCursor, fnameOpt = Some(filename)).moveTo(program))
+  }
 
   // tests for IR parser
   def irParseTest(program: Program): Program = {
