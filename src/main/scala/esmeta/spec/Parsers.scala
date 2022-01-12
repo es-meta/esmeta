@@ -24,7 +24,7 @@ trait Parsers extends BasicParsers {
 
   // production kinds
   lazy val prodKind: Parser[Production.Kind] =
-    ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Normal
+    ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Syntactic
 
   // production left-hand-sides (LHSs)
   given lhs: Parser[Lhs] =

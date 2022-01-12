@@ -67,7 +67,7 @@ class StringifierTinyTest extends SpecTest {
     val prod1 =
       Production(lhs2, Production.Kind.Lexical, true, List(rhs3, rhs3))
     val prod2 =
-      Production(lhs2, Production.Kind.Normal, false, List(rhs1, rhs2))
+      Production(lhs2, Production.Kind.Syntactic, false, List(rhs1, rhs2))
     val prod3 =
       Production(lhs1, Production.Kind.NumericString, false, List(rhs1))
 
@@ -96,7 +96,7 @@ class StringifierTinyTest extends SpecTest {
     )
 
     checkStringify("Production.Kind")(
-      Production.Kind.Normal -> ":",
+      Production.Kind.Syntactic -> ":",
       Production.Kind.Lexical -> "::",
       Production.Kind.NumericString -> ":::",
     )

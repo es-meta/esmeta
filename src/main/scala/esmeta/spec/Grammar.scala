@@ -17,7 +17,7 @@ case class Production(
 ) extends SpecElem
 object Production extends Parser[Production]:
   enum Kind extends SpecElem:
-    case Normal, Lexical, NumericString
+    case Syntactic, Lexical, NumericString
 
 /** production left-hand-sides (LHSs) */
 case class Lhs(name: String, params: List[String]) extends SpecElem

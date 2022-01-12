@@ -36,7 +36,7 @@ object Stringifier {
     app :> "  - productions: " >> prods.length
     app :> "    - lexical: " >> prodsBy(Lexical).length
     app :> "    - numeric string: " >> prodsBy(NumericString).length
-    app :> "    - syntactic: " >> prodsBy(Normal).length
+    app :> "    - syntactic: " >> prodsBy(Syntactic).length
     app :> "  - extended productions for web: " >> grammar.prodsForWeb.length
     app :> "* algorithms:"
     app :> "  - incomplete: " >> "..." // TODO
@@ -61,7 +61,7 @@ object Stringifier {
     val Production(lhs, kind, oneof, rhsList) = prod
     app >> lhs >> " " >> kind
     if (oneof) {
-      app.wrap(" one of", ""){
+      app.wrap(" one of", "") {
         app :> rhsList(0)
         for (rhs <- rhsList.drop(1)) app >> " " >> rhs
       }
@@ -82,7 +82,7 @@ object Stringifier {
   given prodKindRule: Rule[Production.Kind] = (app, kind) => {
     import Production.Kind.*
     app >> (kind match {
-      case Normal        => ":"
+      case Syntactic     => ":"
       case Lexical       => "::"
       case NumericString => ":::"
     })
