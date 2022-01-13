@@ -10,9 +10,6 @@ class StringifierTinyTest extends IRTest {
 
   // registration
   def init: Unit = {
-    import Inst._, Expr._, Value._, Ref._, RefValue._, Obj._, UOp._, BOp._,
-    COp._
-
     val irMapElems = List(
       EBool(true) -> EStr("true"),
       ENull -> EStr("null"),
@@ -71,8 +68,8 @@ class StringifierTinyTest extends IRTest {
       EList(irList) -> sList,
       EPop(EList(irList), EINum(0)) -> s"(pop $sList 0i)",
       ERef(RefId(Id("x"))) -> "x",
-      EUOp(ONeg, EINum(4)) -> "(- 4i)",
-      EBOp(ODiv, ENum(3.0), ENum(7.0)) -> "(/ 3.0 7.0)",
+      EUOp(UOp.Neg, EINum(4)) -> "(- 4i)",
+      EBOp(BOp.Div, ENum(3.0), ENum(7.0)) -> "(/ 3.0 7.0)",
       ETypeOf(EBool(false)) -> "(typeof false)",
       EIsCompletion(EINum(5)) -> "(is-completion 5i)",
       EIsInstanceOf(EBool(false), "instanceof") ->
@@ -84,9 +81,9 @@ class StringifierTinyTest extends IRTest {
         -> "(parse-syntax \"code\" \"rule\")",
       EParseSyntax(EStr("code"), EStr("rule"), List(true, false))
         -> "(parse-syntax \"code\" \"rule\" true false)",
-      EConvert(ENull, CNumToBigInt, Nil) ->
+      EConvert(ENull, COp.NumToBigInt, Nil) ->
         "(convert null num2bigint)",
-      EConvert(EStr("4"), CStrToNum, irList) ->
+      EConvert(EStr("4"), COp.StrToNum, irList) ->
         "(convert \"4\" str2num null absent)",
       EContains(EList(irList), ENull) -> s"(contains $sList null)",
       EReturnIfAbrupt(ENum(3.0), true) -> "[? 3.0]",
@@ -104,38 +101,38 @@ class StringifierTinyTest extends IRTest {
     checkStringify("Ty")(Ty("T") -> "T")
     checkStringify("Id")(Id("x") -> "x")
     checkStringify("UOp")(
-      ONeg -> "-",
-      ONot -> "!",
-      OBNot -> "~",
+      UOp.Neg -> "-",
+      UOp.Not -> "!",
+      UOp.BNot -> "~",
     )
     checkStringify("BOp")(
-      OPlus -> "+",
-      OSub -> "-",
-      OMul -> "*",
-      OPow -> "**",
-      ODiv -> "/",
-      OUMod -> "%%",
-      OMod -> "%",
-      OEq -> "=",
-      OEqual -> "==",
-      OAnd -> "&&",
-      OOr -> "||",
-      OXor -> "^^",
-      OBAnd -> "&",
-      OBOr -> "|",
-      OBXOr -> "^",
-      OLShift -> "<<",
-      OLt -> "<",
-      OURShift -> ">>>",
-      OSRShift -> ">>",
+      BOp.Plus -> "+",
+      BOp.Sub -> "-",
+      BOp.Mul -> "*",
+      BOp.Pow -> "**",
+      BOp.Div -> "/",
+      BOp.UMod -> "%%",
+      BOp.Mod -> "%",
+      BOp.Eq -> "=",
+      BOp.Equal -> "==",
+      BOp.And -> "&&",
+      BOp.Or -> "||",
+      BOp.Xor -> "^^",
+      BOp.BAnd -> "&",
+      BOp.BOr -> "|",
+      BOp.BXOr -> "^",
+      BOp.LShift -> "<<",
+      BOp.Lt -> "<",
+      BOp.URShift -> ">>>",
+      BOp.SRShift -> ">>",
     )
     checkStringify("COp")(
-      CStrToNum -> "str2num",
-      CStrToBigInt -> "str2bigint",
-      CNumToStr -> "num2str",
-      CNumToInt -> "num2int",
-      CNumToBigInt -> "num2bigint",
-      CBigIntToNum -> "bigint2num",
+      COp.StrToNum -> "str2num",
+      COp.StrToBigInt -> "str2bigint",
+      COp.NumToStr -> "num2str",
+      COp.NumToInt -> "num2int",
+      COp.NumToBigInt -> "num2bigint",
+      COp.BigIntToNum -> "bigint2num",
     )
 
     // State

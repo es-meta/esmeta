@@ -4,7 +4,6 @@ import org.jsoup.nodes.*
 
 /** specification utilities */
 object Utils {
-  import Symbol.*
 
   /** ordering of productions */
   given Ordering[Production] =

@@ -4,7 +4,9 @@ import scala.collection.mutable.{Map => MMap}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
-/** IR States */
+// -----------------------------------------------------------------------------
+// IR States
+// -----------------------------------------------------------------------------
 case class State(
   var cursorGen: CursorGen[_ <: Cursor] = InstCursor,
   var context: Context = Context(),
@@ -14,7 +16,9 @@ case class State(
   var fnameOpt: Option[String] = None,
 ) extends IRElem
 
-/** IR Contexts */
+// -----------------------------------------------------------------------------
+// IR Contexts
+// -----------------------------------------------------------------------------
 case class Context(
   var cursorOpt: Option[Cursor] = None,
   val retId: Id = ID_RETURN,
@@ -26,7 +30,9 @@ case class Context(
   // TODO val viewOpt: Option[View] = None
 ) extends IRElem
 
-/** Evaluation cursors */
+// -----------------------------------------------------------------------------
+// Evaluation cursors
+// -----------------------------------------------------------------------------
 sealed trait Cursor extends IRElem {
   // next cursor
   def next: Option[Cursor] = this match {
@@ -55,61 +61,83 @@ object InstCursor extends CursorGen[InstCursor] {
   }
 }
 
-/** IR Heaps */
+// -----------------------------------------------------------------------------
+// IR Heaps
+// -----------------------------------------------------------------------------
 case class Heap(
-  map: MMap[Value.Addr, Obj] = MMap(),
+  map: MMap[Addr, Obj] = MMap(),
   var size: Int = 0,
 ) extends IRElem
 
-/** IR Objects */
-enum Obj extends IRElem:
-  case IRSymbol(desc: Value)
-  case IRMap(var ty: Ty, props: MMap[Value, IRMapValue], var size: Long)
-  case IRList(var values: Vector[Value] = Vector())
-  case IRNotSupported(tyname: String, desc: String)
+// -----------------------------------------------------------------------------
+// IR Objects
+// -----------------------------------------------------------------------------
+sealed trait Obj extends IRElem
+case class IRSymbol(desc: Value) extends Obj
+case class IRMap(var ty: Ty, props: MMap[Value, IRMapValue], var size: Long)
+  extends Obj
+case class IRList(var values: Vector[Value] = Vector()) extends Obj
+case class IRNotSupported(tyname: String, desc: String) extends Obj
 
 /** values for IRMap structures */
 case class IRMapValue(value: Value, creationTime: Long)
 
-/** IR Reference Value */
-enum RefValue extends IRElem:
-  case RefValueId(id: Id)
-  case RefValueProp(base: Value, prop: Value)
+// -----------------------------------------------------------------------------
+// IR Reference Value
+// -----------------------------------------------------------------------------
+sealed trait RefValue extends IRElem
+case class RefValueId(id: Id) extends RefValue
+case class RefValueProp(base: Value, prop: Value) extends RefValue
 
-/** IR Values */
-enum Value extends IRElem:
-  case Num(double: Double)
-  case INum(long: Long)
-  case BigINum(b: BigInt)
-  case Str(str: String)
-  case Bool(bool: Boolean)
-  case Undef
-  case Null
-  case Absent
-  // TODO case Func(algo: Algo)
-  case Const(name: String)
-  case NamedAddr(name: String)
-  case DynamicAddr(long: Long)
-  case CompValue(
-    ty: Const,
-    value: Value,
-    targetOpt: Option[String],
-  )
-  case Clo(
-    ctxtName: String,
-    params: List[Id],
-    locals: MMap[Id, Value],
-    cursorOpt: Option[Cursor],
-  )
-  case Cont(
-    params: List[Id],
-    context: Context,
-    ctxtStack: List[Context],
-  )
-object Value {
-  // addresses
-  type Addr = NamedAddr | DynamicAddr
-}
+// -----------------------------------------------------------------------------
+// IR Values
+// -----------------------------------------------------------------------------
+sealed trait Value extends IRElem
+
+/** completion values */
+case class CompValue(
+  ty: Const,
+  value: Value,
+  targetOpt: Option[String],
+) extends Value
+
+/** pure values (not completion values) */
+sealed trait PureValue extends Value
+// TODO case class Func(algo: Algo) extends PureValue
+
+/** constants */
+case class Const(name: String) extends PureValue
+
+/** addresses */
+sealed trait Addr extends PureValue
+case class NamedAddr(name: String) extends Addr
+case class DynamicAddr(long: Long) extends Addr
+
+/** closures */
+case class Clo(
+  ctxtName: String,
+  params: List[Id],
+  locals: MMap[Id, Value],
+  cursorOpt: Option[Cursor],
+) extends PureValue
+
+/** continuations */
+case class Cont(
+  params: List[Id],
+  context: Context,
+  ctxtStack: List[Context],
+) extends PureValue
+
+/** continuations */
+sealed trait SimpleValue extends PureValue
+case class Num(double: Double) extends SimpleValue
+case class INum(long: Long) extends SimpleValue
+case class BigINum(b: BigInt) extends SimpleValue
+case class Str(str: String) extends SimpleValue
+case class Bool(bool: Boolean) extends SimpleValue
+case object Undef extends SimpleValue
+case object Null extends SimpleValue
+case object Absent extends SimpleValue
 
 // TODO AST values
-// case class ASTVal(ast: AST) extends Value
+// case class ASTVal(ast: AST) extends PureValue

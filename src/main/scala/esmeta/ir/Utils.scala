@@ -6,7 +6,6 @@ import scala.collection.mutable.{Map => MMap}
 
 /** IR Utils */
 object Utils {
-  import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
   // ////////////////////////////////////////////////////////////////////////////
   // Syntax
   // ////////////////////////////////////////////////////////////////////////////
@@ -330,7 +329,7 @@ object Utils {
 
     /** allocation helper */
     private def alloc(obj: Obj): Addr = {
-      val newAddr: Value.Addr = DynamicAddr(heap.size)
+      val newAddr = DynamicAddr(heap.size)
       heap.map += newAddr -> obj
       heap.size += 1
       newAddr

@@ -1,124 +1,131 @@
 package esmeta.ir
 
-import esmeta.util.BaseUtils._
+import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
-/** IR Programs */
+// -----------------------------------------------------------------------------
+// IR Programs
+// -----------------------------------------------------------------------------
 case class Program(insts: List[Inst]) extends IRElem
 object Program extends Parser[Program]
 
-/** IR Instructions */
-enum Inst extends IRElem:
-  case IIf(cond: Expr, thenInst: Inst, elseInst: Inst)
-  case IWhile(cond: Expr, body: Inst)
-  case IApp(id: Id, fexpr: Expr, args: List[Expr])
-  case IAccess(id: Id, bexpr: Expr, expr: Expr, args: List[Expr])
-  case IExpr(expr: Expr)
-  case ILet(id: Id, expr: Expr)
-  case IAssign(ref: Ref, expr: Expr)
-  case IDelete(ref: Ref)
-  case IAppend(expr: Expr, list: Expr)
-  case IPrepend(expr: Expr, list: Expr)
-  case IReturn(expr: Expr)
-  case IThrow(name: String)
-  case IAssert(expr: Expr)
-  case IPrint(expr: Expr)
-  case IClo(id: Id, params: List[Id], captured: List[Id], body: Inst)
-  case ICont(id: Id, params: List[Id], body: Inst)
-  case IWithCont(id: Id, params: List[Id], body: Inst)
-  case ISeq(insts: List[Inst])
+// -----------------------------------------------------------------------------
+// IR Instruction
+// -----------------------------------------------------------------------------
+sealed trait Inst extends IRElem
 object Insts extends Parser[List[Inst]]
-object Inst extends Parser[Inst] {
-  // specific categories of intsructions
-  type CondInst = IIf | IWhile
-  type CallInst = IApp | IAccess
-  type ArrowInst = IClo | ICont | IWithCont
-  type NormalInst = IExpr | ILet | IAssign | IDelete | IAppend | IPrepend |
-    IReturn | IThrow | IAssert | IPrint
-}
+object Inst extends Parser[Inst]
 
-/** IR Expressions */
-enum Expr extends IRElem:
-  case ENum(n: Double)
-  case EINum(n: Long)
-  case EBigINum(b: BigInt)
-  case EStr(str: String)
-  case EBool(b: Boolean)
-  case EUndef
-  case ENull
-  case EAbsent
-  case EConst(name: String)
-  case EComp(ty: Expr, value: Expr, target: Expr)
-  case EMap(ty: Ty, props: List[(Expr, Expr)])
-  case EList(exprs: List[Expr])
-  case ESymbol(desc: Expr)
-  case EPop(list: Expr, idx: Expr)
-  case ERef(ref: Ref)
-  case EUOp(uop: UOp, expr: Expr)
-  case EBOp(bop: BOp, left: Expr, right: Expr)
-  case ETypeOf(expr: Expr)
-  case EIsCompletion(expr: Expr)
-  case EIsInstanceOf(base: Expr, name: String)
-  case EGetElems(base: Expr, name: String)
-  case EGetSyntax(base: Expr)
-  case EParseSyntax(code: Expr, rule: Expr, parserParams: List[Boolean])
-  case EConvert(source: Expr, target: COp, flags: List[Expr])
-  case EContains(list: Expr, elem: Expr)
-  case EReturnIfAbrupt(expr: Expr, check: Boolean)
-  case ECopy(obj: Expr)
-  case EKeys(mobj: Expr, intSorted: Boolean)
-  case ENotSupported(msg: String)
+/** normal instructions */
+sealed trait NormalInst extends Inst
+case class IExpr(expr: Expr) extends NormalInst
+case class ILet(id: Id, expr: Expr) extends NormalInst
+case class IAssign(ref: Ref, expr: Expr) extends NormalInst
+case class IDelete(ref: Ref) extends NormalInst
+case class IAppend(expr: Expr, list: Expr) extends NormalInst
+case class IPrepend(expr: Expr, list: Expr) extends NormalInst
+case class IReturn(expr: Expr) extends NormalInst
+case class IThrow(name: String) extends NormalInst
+case class IAssert(expr: Expr) extends NormalInst
+case class IPrint(expr: Expr) extends NormalInst
+
+/** conditional instructions */
+sealed trait CondInst extends Inst
+case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends CondInst
+case class IWhile(cond: Expr, body: Inst) extends CondInst
+
+/** call instructions */
+sealed trait CallInst extends Inst
+case class IApp(id: Id, fexpr: Expr, args: List[Expr]) extends CallInst
+case class IAccess(id: Id, bexpr: Expr, expr: Expr, args: List[Expr])
+  extends CallInst
+
+/** arrow instructions */
+sealed trait ArrowInst extends Inst
+case class IClo(id: Id, params: List[Id], captured: List[Id], body: Inst)
+  extends ArrowInst
+case class ICont(id: Id, params: List[Id], body: Inst) extends ArrowInst
+case class IWithCont(id: Id, params: List[Id], body: Inst) extends ArrowInst
+
+/** sequence instructions */
+case class ISeq(insts: List[Inst]) extends Inst
+
+// -----------------------------------------------------------------------------
+// IR Expressions
+// -----------------------------------------------------------------------------
+sealed trait Expr extends IRElem
 object Expr extends Parser[Expr]
 
-/** IR References */
-enum Ref extends IRElem:
-  case RefId(id: Id)
-  case RefProp(ref: Ref, expr: Expr)
+case class ENum(n: Double) extends Expr
+case class EINum(n: Long) extends Expr
+case class EBigINum(b: BigInt) extends Expr
+case class EStr(str: String) extends Expr
+case class EBool(b: Boolean) extends Expr
+case object EUndef extends Expr
+case object ENull extends Expr
+case object EAbsent extends Expr
+case class EConst(name: String) extends Expr
+case class EComp(ty: Expr, value: Expr, target: Expr) extends Expr
+case class EMap(ty: Ty, props: List[(Expr, Expr)]) extends Expr
+case class EList(exprs: List[Expr]) extends Expr
+case class ESymbol(desc: Expr) extends Expr
+case class EPop(list: Expr, idx: Expr) extends Expr
+case class ERef(ref: Ref) extends Expr
+case class EUOp(uop: UOp, expr: Expr) extends Expr
+case class EBOp(bop: BOp, left: Expr, right: Expr) extends Expr
+case class ETypeOf(expr: Expr) extends Expr
+case class EIsCompletion(expr: Expr) extends Expr
+case class EIsInstanceOf(base: Expr, name: String) extends Expr
+case class EGetElems(base: Expr, name: String) extends Expr
+case class EGetSyntax(base: Expr) extends Expr
+case class EParseSyntax(code: Expr, rule: Expr, parserParams: List[Boolean])
+  extends Expr
+case class EConvert(source: Expr, target: COp, flags: List[Expr]) extends Expr
+case class EContains(list: Expr, elem: Expr) extends Expr
+case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
+case class ECopy(obj: Expr) extends Expr
+case class EKeys(mobj: Expr, intSorted: Boolean) extends Expr
+case class ENotSupported(msg: String) extends Expr
+
+// -----------------------------------------------------------------------------
+// IR References
+// -----------------------------------------------------------------------------
+sealed trait Ref extends IRElem
 object Ref extends Parser[Ref]
 
-/** IR Identifiers */
+/** reference identifiers * */
+case class RefId(id: Id) extends Ref
+
+/** reference properties * */
+case class RefProp(ref: Ref, expr: Expr) extends Ref
+
+// -----------------------------------------------------------------------------
+// IR Identifiers
+// -----------------------------------------------------------------------------
 case class Id(name: String) extends IRElem
 object Id extends Parser[Id]
 
-/** IR Types */
+// -----------------------------------------------------------------------------
+// IR Types
+// -----------------------------------------------------------------------------
 case class Ty(name: String) extends IRElem
 object Ty extends Parser[Ty]
 
-/** IR Unary Operators */
+// -----------------------------------------------------------------------------
+// IR Unary Operators
+// -----------------------------------------------------------------------------
 enum UOp extends IRElem:
-  case ONeg, ONot, OBNot
+  case Neg, Not, BNot
 object UOp extends Parser[UOp]
 
 /** IR Binary Operators */
 enum BOp extends IRElem:
-  case OPlus
-  case OSub
-  case OMul
-  case OPow
-  case ODiv
-  case OUMod
-  case OMod
-  case OLt
-  case OEq
-  case OEqual
-  case OAnd
-  case OOr
-  case OXor
-  case OBAnd
-  case OBOr
-  case OBXOr
-  case OLShift
-  case OSRShift
-  case OURShift
+  case Plus, Sub, Mul, Pow, Div, UMod, Mod, Lt, Eq, Equal, And, Or, Xor, BAnd,
+  BOr, BXOr, LShift, SRShift, URShift
 object BOp extends Parser[BOp]
 
 /** IR Convert Operators */
 enum COp extends IRElem:
-  case CStrToNum
-  case CStrToBigInt
-  case CNumToStr
-  case CNumToInt
-  case CNumToBigInt
-  case CBigIntToNum
+  case StrToNum, StrToBigInt, NumToStr, NumToInt, NumToBigInt, BigIntToNum
 object COp extends Parser[COp]

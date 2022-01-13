@@ -1,8 +1,5 @@
 package esmeta.ir
 
-import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
-import Interp.*
-import Utils.*
 import esmeta.error.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -10,12 +7,14 @@ import esmeta.{DEBUG, TIMEOUT}
 import scala.annotation.{tailrec, targetName}
 import scala.collection.mutable.{Map => MMap}
 import scala.language.implicitConversions
+import esmeta.ir.Utils.*
 
 /** IR Interpreter */
 class Interp(
   val st: State,
   timeLimit: Option[Long] = Some(TIMEOUT),
 ) {
+  import Interp.*
 
   val cursorGen: CursorGen[_ <: Cursor] = st.cursorGen
 
@@ -64,7 +63,7 @@ class Interp(
       false
     case ReturnUndef =>
       // do return
-      doReturn(Value.Undef)
+      doReturn(Undef)
 
       // keep going
       true
@@ -419,9 +418,9 @@ class Interp(
       val x = interp(expr).escaped
       Interp.interp(uop, x)
     }
-    case EBOp(OAnd, left, right)       => shortCircuit(OAnd, left, right)
-    case EBOp(OOr, left, right)        => shortCircuit(OOr, left, right)
-    case EBOp(OEq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
+    case EBOp(BOp.And, left, right)       => shortCircuit(BOp.And, left, right)
+    case EBOp(BOp.Or, left, right)        => shortCircuit(BOp.Or, left, right)
+    case EBOp(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
     case EBOp(bop, left, right) => {
       val l = interp(left).escaped
       val r = interp(right).escaped
@@ -492,12 +491,13 @@ class Interp(
       }
     }
     case EConvert(source, target, flags) =>
+      import COp.*
       interp(source).escaped match {
         case Str(s) =>
           target match {
-            case CStrToNum => ???
+            case StrToNum => ???
             // Num(ESValueParser.str2num(s))
-            case CStrToBigInt => ???
+            case StrToBigInt => ???
             // ESValueParser.str2bigint(s)
             case _ => error(s"not convertable option: Str to $target")
           }
@@ -512,10 +512,10 @@ class Interp(
             case _ => 10
           }
           target match {
-            case CNumToStr => ???
+            case NumToStr => ???
             // Str(toStringHelper(n, radix))
-            case CNumToInt    => INum(n)
-            case CNumToBigInt => BigINum(BigInt(n))
+            case NumToInt    => INum(n)
+            case NumToBigInt => BigINum(BigInt(n))
             case _ => error(s"not convertable option: INum to $target")
           }
         }
@@ -530,20 +530,20 @@ class Interp(
             case _ => 10
           }
           target match {
-            case CNumToStr => ???
+            case NumToStr => ???
             // Str(toStringHelper(n, radix))
-            case CNumToInt =>
+            case NumToInt =>
               INum((math.signum(n) * math.floor(math.abs(n))).toLong)
-            case CNumToBigInt =>
+            case NumToBigInt =>
               BigINum(BigInt(new java.math.BigDecimal(n).toBigInteger))
             case _ => error(s"not convertable option: INum to $target")
           }
         }
         case BigINum(b) =>
           target match {
-            case CNumToBigInt => BigINum(b)
-            case CNumToStr    => Str(b.toString)
-            case CBigIntToNum => Num(b.toDouble)
+            case NumToBigInt => BigINum(b)
+            case NumToStr    => Str(b.toString)
+            case BigIntToNum => Num(b.toDouble)
             case _ => error(s"not convertable option: BigINum to $target")
           }
         case v => error(s"not an convertable value: $v")
@@ -601,10 +601,11 @@ class Interp(
 
   // short circuit evaluation
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value = {
+    import BOp.*
     val l = interp(left).escaped
     (bop, l) match {
-      case (OAnd, Bool(false)) => Bool(false)
-      case (OOr, Bool(true))   => Bool(true)
+      case (And, Bool(false)) => Bool(false)
+      case (Or, Bool(true))   => Bool(true)
       case _ => {
         val r = interp(right).escaped
         Interp.interp(bop, l, r)
@@ -626,134 +627,136 @@ object Interp {
 
   // unary operators
   def interp(uop: UOp, operand: Value): Value =
+    import UOp.*
     (uop, operand) match {
-      case (ONeg, Num(n))      => Num(-n)
-      case (ONeg, INum(n))     => INum(-n)
-      case (ONeg, BigINum(b))  => BigINum(-b)
-      case (ONot, Bool(b))     => Bool(!b)
-      case (OBNot, Num(n))     => INum(~(n.toInt))
-      case (OBNot, INum(n))    => INum(~n)
-      case (OBNot, BigINum(b)) => BigINum(~b)
+      case (Neg, Num(n))     => Num(-n)
+      case (Neg, INum(n))    => INum(-n)
+      case (Neg, BigINum(b)) => BigINum(-b)
+      case (Not, Bool(b))    => Bool(!b)
+      case (Not, Num(n))     => INum(~(n.toInt))
+      case (Not, INum(n))    => INum(~n)
+      case (Not, BigINum(b)) => BigINum(~b)
       case (_, value) =>
         error(s"wrong type of value for the operator $uop: $value")
     }
 
   // binary operators
   def interp(bop: BOp, left: Value, right: Value): Value =
+    import BOp.*
     given Conversion[Long, Double] = _.toDouble
     (bop, left, right) match {
       // double operations
-      case (OPlus, Num(l), Num(r)) => Num(l + r)
-      case (OSub, Num(l), Num(r))  => Num(l - r)
-      case (OMul, Num(l), Num(r))  => Num(l * r)
-      case (OPow, Num(l), Num(r))  => Num(math.pow(l, r))
-      case (ODiv, Num(l), Num(r))  => Num(l / r)
-      case (OMod, Num(l), Num(r))  => Num(modulo(l, r))
-      case (OUMod, Num(l), Num(r)) => Num(unsigned_modulo(l, r))
-      case (OLt, Num(l), Num(r))   => Bool(l < r)
+      case (Plus, Num(l), Num(r)) => Num(l + r)
+      case (Sub, Num(l), Num(r))  => Num(l - r)
+      case (Mul, Num(l), Num(r))  => Num(l * r)
+      case (Pow, Num(l), Num(r))  => Num(math.pow(l, r))
+      case (Div, Num(l), Num(r))  => Num(l / r)
+      case (Mod, Num(l), Num(r))  => Num(modulo(l, r))
+      case (UMod, Num(l), Num(r)) => Num(unsigned_modulo(l, r))
+      case (Lt, Num(l), Num(r))   => Bool(l < r)
 
       // double with long operations
-      case (OPlus, INum(l), Num(r)) => Num(l + r)
-      case (OSub, INum(l), Num(r))  => Num(l - r)
-      case (OMul, INum(l), Num(r))  => Num(l * r)
-      case (ODiv, INum(l), Num(r))  => Num(l / r)
-      case (OMod, INum(l), Num(r))  => Num(modulo(l, r))
-      case (OPow, INum(l), Num(r))  => Num(scala.math.pow(l, r))
-      case (OUMod, INum(l), Num(r)) => Num(unsigned_modulo(l, r))
-      case (OLt, INum(l), Num(r))   => Bool(l < r)
-      case (OPlus, Num(l), INum(r)) => Num(l + r)
-      case (OSub, Num(l), INum(r))  => Num(l - r)
-      case (OMul, Num(l), INum(r))  => Num(l * r)
-      case (ODiv, Num(l), INum(r))  => Num(l / r)
-      case (OMod, Num(l), INum(r))  => Num(modulo(l, r))
-      case (OPow, Num(l), INum(r))  => Num(math.pow(l, r))
-      case (OUMod, Num(l), INum(r)) => Num(unsigned_modulo(l, r))
-      case (OLt, Num(l), INum(r))   => Bool(l < r)
+      case (Plus, INum(l), Num(r)) => Num(l + r)
+      case (Sub, INum(l), Num(r))  => Num(l - r)
+      case (Mul, INum(l), Num(r))  => Num(l * r)
+      case (Div, INum(l), Num(r))  => Num(l / r)
+      case (Mod, INum(l), Num(r))  => Num(modulo(l, r))
+      case (Pow, INum(l), Num(r))  => Num(scala.math.pow(l, r))
+      case (UMod, INum(l), Num(r)) => Num(unsigned_modulo(l, r))
+      case (Lt, INum(l), Num(r))   => Bool(l < r)
+      case (Plus, Num(l), INum(r)) => Num(l + r)
+      case (Sub, Num(l), INum(r))  => Num(l - r)
+      case (Mul, Num(l), INum(r))  => Num(l * r)
+      case (Div, Num(l), INum(r))  => Num(l / r)
+      case (Mod, Num(l), INum(r))  => Num(modulo(l, r))
+      case (Pow, Num(l), INum(r))  => Num(math.pow(l, r))
+      case (UMod, Num(l), INum(r)) => Num(unsigned_modulo(l, r))
+      case (Lt, Num(l), INum(r))   => Bool(l < r)
 
       // string operations
-      case (OPlus, Str(l), Str(r)) => Str(l + r)
-      case (OPlus, Str(l), Num(r)) =>
+      case (Plus, Str(l), Str(r)) => Str(l + r)
+      case (Plus, Str(l), Num(r)) =>
         Str(l + Character.toChars(r.toInt).mkString(""))
-      case (OSub, Str(l), INum(r)) => Str(l.dropRight(r.toInt))
-      case (OLt, Str(l), Str(r))   => Bool(l < r)
+      case (Sub, Str(l), INum(r)) => Str(l.dropRight(r.toInt))
+      case (Lt, Str(l), Str(r))   => Bool(l < r)
 
       // long operations
-      case (OPlus, INum(l), INum(r))    => INum(l + r)
-      case (OSub, INum(l), INum(r))     => INum(l - r)
-      case (OMul, INum(l), INum(r))     => INum(l * r)
-      case (ODiv, INum(l), INum(r))     => Num(l / r)
-      case (OUMod, INum(l), INum(r))    => INum(unsigned_modulo(l, r).toLong)
-      case (OMod, INum(l), INum(r))     => INum(modulo(l, r).toLong)
-      case (OPow, INum(l), INum(r))     => number(math.pow(l, r))
-      case (OLt, INum(l), INum(r))      => Bool(l < r)
-      case (OBAnd, INum(l), INum(r))    => INum(l & r)
-      case (OBOr, INum(l), INum(r))     => INum(l | r)
-      case (OBXOr, INum(l), INum(r))    => INum(l ^ r)
-      case (OLShift, INum(l), INum(r))  => INum((l.toInt << r.toInt).toLong)
-      case (OSRShift, INum(l), INum(r)) => INum((l.toInt >> r.toInt).toLong)
-      case (OURShift, INum(l), INum(r)) => INum(((l >>> r) & 0xffffffff).toLong)
+      case (Plus, INum(l), INum(r))    => INum(l + r)
+      case (Sub, INum(l), INum(r))     => INum(l - r)
+      case (Mul, INum(l), INum(r))     => INum(l * r)
+      case (Div, INum(l), INum(r))     => Num(l / r)
+      case (Mod, INum(l), INum(r))     => INum(unsigned_modulo(l, r).toLong)
+      case (UMod, INum(l), INum(r))    => INum(modulo(l, r).toLong)
+      case (Pow, INum(l), INum(r))     => number(math.pow(l, r))
+      case (Lt, INum(l), INum(r))      => Bool(l < r)
+      case (BAnd, INum(l), INum(r))    => INum(l & r)
+      case (BOr, INum(l), INum(r))     => INum(l | r)
+      case (BXOr, INum(l), INum(r))    => INum(l ^ r)
+      case (LShift, INum(l), INum(r))  => INum((l.toInt << r.toInt).toLong)
+      case (SRShift, INum(l), INum(r)) => INum((l.toInt >> r.toInt).toLong)
+      case (URShift, INum(l), INum(r)) => INum(((l >>> r) & 0xffffffff).toLong)
 
       // logical operations
-      case (OAnd, Bool(l), Bool(r)) => Bool(l && r)
-      case (OOr, Bool(l), Bool(r))  => Bool(l || r)
-      case (OXor, Bool(l), Bool(r)) => Bool(l ^ r)
+      case (And, Bool(l), Bool(r)) => Bool(l && r)
+      case (Or, Bool(l), Bool(r))  => Bool(l || r)
+      case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
 
       // equality operations
-      case (OEq, INum(l), Num(r))     => Bool(!(r equals -0.0) && l == r)
-      case (OEq, Num(l), INum(r))     => Bool(!(l equals -0.0) && l == r)
-      case (OEq, Num(l), Num(r))      => Bool(l equals r)
-      case (OEq, Num(l), BigINum(r))  => Bool(l == r)
-      case (OEq, BigINum(l), Num(r))  => Bool(l == r)
-      case (OEq, INum(l), BigINum(r)) => Bool(l == r)
-      case (OEq, BigINum(l), INum(r)) => Bool(l == r)
-      case (OEq, l, r)                => Bool(l == r)
+      case (Eq, INum(l), Num(r))     => Bool(!(r equals -0.0) && l == r)
+      case (Eq, Num(l), INum(r))     => Bool(!(l equals -0.0) && l == r)
+      case (Eq, Num(l), Num(r))      => Bool(l equals r)
+      case (Eq, Num(l), BigINum(r))  => Bool(l == r)
+      case (Eq, BigINum(l), Num(r))  => Bool(l == r)
+      case (Eq, INum(l), BigINum(r)) => Bool(l == r)
+      case (Eq, BigINum(l), INum(r)) => Bool(l == r)
+      case (Eq, l, r)                => Bool(l == r)
 
       // double equality operations
-      case (OEqual, INum(l), Num(r)) => Bool(l == r)
-      case (OEqual, Num(l), INum(r)) => Bool(l == r)
-      case (OEqual, Num(l), Num(r))  => Bool(l == r)
-      case (OEqual, l, r)            => Bool(l == r)
+      case (Equal, INum(l), Num(r)) => Bool(l == r)
+      case (Equal, Num(l), INum(r)) => Bool(l == r)
+      case (Equal, Num(l), Num(r))  => Bool(l == r)
+      case (Equal, l, r)            => Bool(l == r)
 
       // double with big integers
-      case (OLt, BigINum(l), Num(r)) =>
+      case (Lt, BigINum(l), Num(r)) =>
         Bool(
           new java.math.BigDecimal(l.bigInteger)
             .compareTo(new java.math.BigDecimal(r)) < 0,
         )
-      case (OLt, BigINum(l), INum(r)) =>
+      case (Lt, BigINum(l), INum(r)) =>
         Bool(
           new java.math.BigDecimal(l.bigInteger)
             .compareTo(new java.math.BigDecimal(r)) < 0,
         )
-      case (OLt, Num(l), BigINum(r)) =>
+      case (Lt, Num(l), BigINum(r)) =>
         Bool(
           new java.math.BigDecimal(l)
             .compareTo(new java.math.BigDecimal(r.bigInteger)) < 0,
         )
-      case (OLt, INum(l), BigINum(r)) =>
+      case (Lt, INum(l), BigINum(r)) =>
         Bool(
           new java.math.BigDecimal(l)
             .compareTo(new java.math.BigDecimal(r.bigInteger)) < 0,
         )
 
       // big integers
-      case (OPlus, BigINum(l), BigINum(r))    => BigINum(l + r)
-      case (OLShift, BigINum(l), BigINum(r))  => BigINum(l << r.toInt)
-      case (OSRShift, BigINum(l), BigINum(r)) => BigINum(l >> r.toInt)
-      case (OSub, BigINum(l), BigINum(r))     => BigINum(l - r)
-      case (OSub, BigINum(l), INum(r))        => BigINum(l - r)
-      case (OMul, BigINum(l), BigINum(r))     => BigINum(l * r)
-      case (ODiv, BigINum(l), BigINum(r))     => BigINum(l / r)
-      case (OMod, BigINum(l), BigINum(r))     => BigINum(modulo(l, r))
-      case (OUMod, BigINum(l), BigINum(r))    => BigINum(unsigned_modulo(l, r))
-      case (OUMod, BigINum(l), INum(r))       => BigINum(unsigned_modulo(l, r))
-      case (OLt, BigINum(l), BigINum(r))      => Bool(l < r)
-      case (OBAnd, BigINum(l), BigINum(r))    => BigINum(l & r)
-      case (OBOr, BigINum(l), BigINum(r))     => BigINum(l | r)
-      case (OBXOr, BigINum(l), BigINum(r))    => BigINum(l ^ r)
-      case (OPow, BigINum(l), BigINum(r))     => BigINum(l.pow(r.toInt))
-      case (OPow, BigINum(l), INum(r))        => BigINum(l.pow(r.toInt))
-      case (OPow, BigINum(l), Num(r)) =>
+      case (Plus, BigINum(l), BigINum(r))    => BigINum(l + r)
+      case (LShift, BigINum(l), BigINum(r))  => BigINum(l << r.toInt)
+      case (SRShift, BigINum(l), BigINum(r)) => BigINum(l >> r.toInt)
+      case (Sub, BigINum(l), BigINum(r))     => BigINum(l - r)
+      case (Sub, BigINum(l), INum(r))        => BigINum(l - r)
+      case (Mul, BigINum(l), BigINum(r))     => BigINum(l * r)
+      case (Div, BigINum(l), BigINum(r))     => BigINum(l / r)
+      case (Mod, BigINum(l), BigINum(r))     => BigINum(modulo(l, r))
+      case (UMod, BigINum(l), BigINum(r))    => BigINum(unsigned_modulo(l, r))
+      case (UMod, BigINum(l), INum(r))       => BigINum(unsigned_modulo(l, r))
+      case (Lt, BigINum(l), BigINum(r))      => Bool(l < r)
+      case (And, BigINum(l), BigINum(r))     => BigINum(l & r)
+      case (Or, BigINum(l), BigINum(r))      => BigINum(l | r)
+      case (BXOr, BigINum(l), BigINum(r))    => BigINum(l ^ r)
+      case (Pow, BigINum(l), BigINum(r))     => BigINum(l.pow(r.toInt))
+      case (Pow, BigINum(l), INum(r))        => BigINum(l.pow(r.toInt))
+      case (Pow, BigINum(l), Num(r)) =>
         if (r.toInt < 0) Num(math.pow(l.toDouble, r))
         else BigINum(l.pow(r.toInt))
 

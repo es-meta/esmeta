@@ -4,7 +4,6 @@ import esmeta.LINE_SEP
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
 
 /** stringifier for IR */
 case class Stringifier(detail: Boolean) {
@@ -157,45 +156,48 @@ case class Stringifier(detail: Boolean) {
 
   // unary operators
   given uopRule: Rule[UOp] = (app, uop) =>
+    import UOp.*
     app >> (uop match {
-      case ONeg  => "-"
-      case ONot  => "!"
-      case OBNot => "~"
+      case Neg  => "-"
+      case Not  => "!"
+      case BNot => "~"
     })
 
   // binary operators
   given bopRule: Rule[BOp] = (app, bop) =>
+    import BOp.*
     app >> (bop match
-      case OPlus    => "+"
-      case OSub     => "-"
-      case OMul     => "*"
-      case OPow     => "**"
-      case ODiv     => "/"
-      case OUMod    => "%%"
-      case OMod     => "%"
-      case OEq      => "="
-      case OEqual   => "=="
-      case OAnd     => "&&"
-      case OOr      => "||"
-      case OXor     => "^^"
-      case OBAnd    => "&"
-      case OBOr     => "|"
-      case OBXOr    => "^"
-      case OLShift  => "<<"
-      case OLt      => "<"
-      case OURShift => ">>>"
-      case OSRShift => ">>"
+      case Plus    => "+"
+      case Sub     => "-"
+      case Mul     => "*"
+      case Pow     => "**"
+      case Div     => "/"
+      case UMod    => "%%"
+      case Mod     => "%"
+      case Eq      => "="
+      case Equal   => "=="
+      case And     => "&&"
+      case Or      => "||"
+      case Xor     => "^^"
+      case BAnd    => "&"
+      case BOr     => "|"
+      case BXOr    => "^"
+      case LShift  => "<<"
+      case Lt      => "<"
+      case URShift => ">>>"
+      case SRShift => ">>"
     )
 
   // convert operators
   given copRule: Rule[COp] = (app, cop) =>
+    import COp.*
     app >> (cop match
-      case CStrToNum    => "str2num"
-      case CStrToBigInt => "str2bigint"
-      case CNumToStr    => "num2str"
-      case CNumToInt    => "num2int"
-      case CNumToBigInt => "num2bigint"
-      case CBigIntToNum => "bigint2num"
+      case StrToNum    => "str2num"
+      case StrToBigInt => "str2bigint"
+      case NumToStr    => "num2str"
+      case NumToInt    => "num2int"
+      case NumToBigInt => "num2bigint"
+      case BigIntToNum => "bigint2num"
     )
 
   // ////////////////////////////////////////////////////////////////////////////

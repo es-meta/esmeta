@@ -2,8 +2,6 @@ package esmeta.lang
 
 import esmeta.util.BasicWalker
 
-import Block.*, Step.*
-
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {

@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.util.BaseUtils._
+import esmeta.util.BaseUtils.*
 
 /** specification elements */
 trait SpecElem {

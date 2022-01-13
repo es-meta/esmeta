@@ -2,8 +2,6 @@ package esmeta.spec
 
 import esmeta.util.BasicParsers
 
-import Symbol.*, NtArg.Kind.*, Production.Kind.*, Head.*
-
 /** specification parsers */
 trait Parsers extends BasicParsers {
   // skip only white spaces and comments
@@ -27,6 +25,7 @@ trait Parsers extends BasicParsers {
 
   // production kinds
   lazy val prodKind: Parser[Production.Kind] =
+    import Production.Kind.*
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Syntactic
 
   // production left-hand-sides (LHSs)
@@ -108,6 +107,7 @@ trait Parsers extends BasicParsers {
 
   // nonterminal arguments
   given ntArg: Parser[NtArg] =
+    import NtArg.Kind.*
     ("+" ^^^ True | "~" ^^^ False | "?" ^^^ Pass) ~ word ^^ {
       case kind ~ name => NtArg(kind, name)
     }

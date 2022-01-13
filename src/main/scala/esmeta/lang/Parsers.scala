@@ -3,8 +3,6 @@ package esmeta.lang
 import esmeta.util.IndentParsers
 import scala.util.matching.Regex
 
-import Step.*, Block.*
-
 /** language parsers */
 trait Parsers extends IndentParsers {
   // TODO algorithm blocks

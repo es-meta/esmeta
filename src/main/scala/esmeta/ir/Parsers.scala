@@ -2,8 +2,6 @@ package esmeta.ir
 
 import esmeta.util.BasicParsers
 
-import Inst.*, Expr.*, Ref.*, UOp.*, BOp.*, COp.*, Obj.*, RefValue.*, Value.*
-
 /** IR parsers */
 trait Parsers extends BasicParsers {
   // treat comments as white spaces
@@ -159,36 +157,39 @@ trait Parsers extends BasicParsers {
 
   // unary operators
   given uop: Parser[UOp] =
-    "-" ^^^ ONeg | "!" ^^^ ONot | "~" ^^^ OBNot
+    import UOp.*
+    "-" ^^^ Neg | "!" ^^^ Not | "~" ^^^ BNot
 
   // binary operators
   given bop: Parser[BOp] =
-    "+" ^^^ OPlus |
-      "-" ^^^ OSub |
-      "**" ^^^ OPow |
-      "*" ^^^ OMul |
-      "/" ^^^ ODiv |
-      "%%" ^^^ OUMod |
-      "%" ^^^ OMod |
-      "==" ^^^ OEqual |
-      "=" ^^^ OEq |
-      "&&" ^^^ OAnd |
-      "||" ^^^ OOr |
-      "^^" ^^^ OXor |
-      "&" ^^^ OBAnd |
-      "|" ^^^ OBOr |
-      "^" ^^^ OBXOr |
-      "<<" ^^^ OLShift |
-      "<" ^^^ OLt |
-      ">>>" ^^^ OURShift |
-      ">>" ^^^ OSRShift
+    import BOp.*
+    "+" ^^^ Plus |
+      "-" ^^^ Sub |
+      "**" ^^^ Pow |
+      "*" ^^^ Mul |
+      "/" ^^^ Div |
+      "%%" ^^^ UMod |
+      "%" ^^^ Mod |
+      "==" ^^^ Equal |
+      "=" ^^^ Eq |
+      "&&" ^^^ And |
+      "||" ^^^ Or |
+      "^^" ^^^ Xor |
+      "&" ^^^ BAnd |
+      "|" ^^^ BOr |
+      "^" ^^^ BXOr |
+      "<<" ^^^ LShift |
+      "<" ^^^ Lt |
+      ">>>" ^^^ URShift |
+      ">>" ^^^ SRShift
 
   // convert operators
   given cop: Parser[COp] =
-    "str2num" ^^^ CStrToNum |
-      "str2bigint" ^^^ CStrToBigInt |
-      "num2str" ^^^ CNumToStr |
-      "num2int" ^^^ CNumToInt |
-      "num2bigint" ^^^ CNumToBigInt |
-      "bigint2num" ^^^ CBigIntToNum
+    import COp.*
+    "str2num" ^^^ StrToNum |
+      "str2bigint" ^^^ StrToBigInt |
+      "num2str" ^^^ NumToStr |
+      "num2int" ^^^ NumToInt |
+      "num2bigint" ^^^ NumToBigInt |
+      "bigint2num" ^^^ BigIntToNum
 }

@@ -20,7 +20,6 @@ case class Stringifier(detail: Boolean) {
 
   // TODO blocks
   given blockRule: Rule[Block] = (app, block) =>
-    import Block.*
     app.wrap("", "")(block match {
       case Order(steps) =>
         steps.foreach(app :> "1. " >> _)
@@ -34,7 +33,6 @@ case class Stringifier(detail: Boolean) {
 
   // TODO steps
   given stepRule: Rule[Step] = (app, step) =>
-    import Step.*
     step match {
       case Yet(str, block) =>
         app >> str

@@ -2,8 +2,6 @@ package esmeta.lang
 
 import esmeta.util.BasicUnitWalker
 
-import Block.*, Step.*
-
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {

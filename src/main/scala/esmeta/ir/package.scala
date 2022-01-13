@@ -1,7 +1,6 @@
 package esmeta.ir
 
-import esmeta.util.BaseUtils._
-import Value._
+import esmeta.util.BaseUtils.*
 
 /** predefined constants */
 val CONST_EMPTY = Const("empty")

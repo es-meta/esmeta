@@ -3,14 +3,18 @@ package esmeta.lang
 /** programs for abstract algorithms */
 case class Program(block: Block) extends LangElem
 
-/** TODO algorithm blocks */
-enum Block extends LangElem:
-  case Order(steps: List[Step])
-  case Unorder(steps: List[Step])
-  case Figure(lines: List[String])
+// -----------------------------------------------------------------------------
+// algorithm blocks
+// -----------------------------------------------------------------------------
+sealed trait Block extends LangElem
 object Block extends Parser[Block]
+case class Order(steps: List[Step]) extends Block
+case class Unorder(steps: List[Step]) extends Block
+case class Figure(lines: List[String]) extends Block
 
-/** TODO algorithm steps */
-enum Step extends LangElem:
-  case Yet(str: String, block: Option[Block])
+// -----------------------------------------------------------------------------
+// TODO algorithm steps
+// -----------------------------------------------------------------------------
+sealed trait Step extends LangElem
 object Step extends Parser[Step]
+case class Yet(str: String, block: Option[Block]) extends Step

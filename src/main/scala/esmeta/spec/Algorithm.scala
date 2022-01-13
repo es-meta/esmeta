@@ -3,7 +3,9 @@ package esmeta.spec
 import esmeta.lang.Block
 import Stringifier.*
 
-/** abstract algorithms */
+// -----------------------------------------------------------------------------
+// abstract algorithms
+// -----------------------------------------------------------------------------
 case class Algorithm(
   head: Head,
   id: String,
@@ -11,50 +13,59 @@ case class Algorithm(
   code: String,
 ) extends SpecElem
 
-/** algorithm heads */
-enum Head extends SpecElem:
-  /** abstract operation (AO) heads */
-  case AbstractOperationHead(
-    name: String,
-    params: List[Param],
-    isHostDefined: Boolean,
-  )
+// -----------------------------------------------------------------------------
+// algorithm heads
+// -----------------------------------------------------------------------------
+sealed trait Head extends SpecElem
 
-  /** numeric method heads */
-  case NumericMethodHead(ty: String, name: String, params: List[Param])
+/** abstract operation (AO) heads */
+case class AbstractOperationHead(
+  name: String,
+  params: List[Param],
+  isHostDefined: Boolean,
+) extends Head
 
-  /** syntax-directed operation (SOD) heads */
-  case SyntaxDirectedOperationHead(
-    lhsName: String,
-    idx: Int,
-    subIdx: Int,
-    rhsParams: List[Param],
-    methodName: String,
-    isStatic: Boolean,
-    withParams: List[Param],
-  )
+/** numeric method heads */
+case class NumericMethodHead(
+  ty: String,
+  name: String,
+  params: List[Param],
+) extends Head
 
-  /** concrete method heads */
-  case ConcreteMethodHead(
-    methodName: String,
-    receiverParam: Param,
-    params: List[Param],
-  )
+/** syntax-directed operation (SOD) heads */
+case class SyntaxDirectedOperationHead(
+  lhsName: String,
+  idx: Int,
+  subIdx: Int,
+  rhsParams: List[Param],
+  methodName: String,
+  isStatic: Boolean,
+  withParams: List[Param],
+) extends Head
 
-  /** internal method heads */
-  case InternalMethodHead(
-    methodName: String,
-    receiverParam: Param,
-    params: List[Param],
-  )
+/** concrete method heads */
+case class ConcreteMethodHead(
+  methodName: String,
+  receiverParam: Param,
+  params: List[Param],
+) extends Head
 
-  /** buil-in heads */
-  case BuiltinHead(
-    ref: String, // TODO more precisely represent references
-    params: List[Param],
-  )
+/** internal method heads */
+case class InternalMethodHead(
+  methodName: String,
+  receiverParam: Param,
+  params: List[Param],
+) extends Head
 
-/** algorithm parameters */
+/** buil-in heads */
+case class BuiltinHead(
+  ref: String, // TODO more precisely represent references
+  params: List[Param],
+) extends Head
+
+// -----------------------------------------------------------------------------
+// algorithm parameters
+// -----------------------------------------------------------------------------
 case class Param(
   name: String,
   kind: Param.Kind,

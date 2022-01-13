@@ -2,13 +2,17 @@ package esmeta.spec
 
 import Stringifier.*
 
-/** grammars */
+// -----------------------------------------------------------------------------
+// grammars
+// -----------------------------------------------------------------------------
 case class Grammar(
   prods: List[Production],
   prodsForWeb: List[Production],
 ) extends SpecElem
 
-/** productions */
+// -----------------------------------------------------------------------------
+// productions
+// -----------------------------------------------------------------------------
 case class Production(
   lhs: Lhs,
   kind: Production.Kind,
@@ -19,11 +23,15 @@ object Production extends Parser[Production]:
   enum Kind extends SpecElem:
     case Syntactic, Lexical, NumericString
 
-/** production left-hand-sides (LHSs) */
+// -----------------------------------------------------------------------------
+// production left-hand-sides (LHSs)
+// -----------------------------------------------------------------------------
 case class Lhs(name: String, params: List[String]) extends SpecElem
 object Lhs extends Parser[Lhs]
 
-/** production alternative right-hand-sides (RHSs) */
+// -----------------------------------------------------------------------------
+// production alternative right-hand-sides (RHSs)
+// -----------------------------------------------------------------------------
 case class Rhs(
   condition: Option[RhsCond],
   symbols: List[Symbol],
@@ -31,41 +39,51 @@ case class Rhs(
 ) extends SpecElem
 object Rhs extends Parser[Rhs]
 
-/** condidtions for RHSs */
+// -----------------------------------------------------------------------------
+// condidtions for RHSs
+// -----------------------------------------------------------------------------
 case class RhsCond(name: String, pass: Boolean) extends SpecElem
 object RhsCond extends Parser[RhsCond]
 
-/** grammar symbols */
-enum Symbol extends SpecElem:
-  /** terminal symbols */
-  case Terminal(term: String)
-
-  /** nonterminal symbols */
-  case Nonterminal(name: String, args: List[NtArg], optional: Boolean)
-
-  /** butnot symbols */
-  case ButNot(base: Nonterminal, cases: List[Symbol])
-
-  /** but-only-if symbols */
-  case ButOnlyIf(base: Nonterminal, methodName: String, cond: String)
-
-  /** lookahead symbols */
-  case Lookahead(contains: Boolean, cases: List[List[Symbol]])
-
-  /** empty symbols */
-  case Empty
-
-  /** no-line-terminator symbols */
-  case NoLineTerminator
-
-  /** symbols for code point abbreviations */
-  case CodePointAbbr(abbr: String)
-
-  /** symbols for sets of unicode code points with a condition */
-  case UnicodeSet(cond: Option[String])
+// -----------------------------------------------------------------------------
+// grammar symbols
+// -----------------------------------------------------------------------------
+sealed trait Symbol extends SpecElem
 object Symbol extends Parser[Symbol]
 
-/** nonterminal arguments */
+/** terminal symbols */
+case class Terminal(term: String) extends Symbol
+
+/** nonterminal symbols */
+case class Nonterminal(name: String, args: List[NtArg], optional: Boolean)
+  extends Symbol
+
+/** butnot symbols */
+case class ButNot(base: Nonterminal, cases: List[Symbol]) extends Symbol
+
+/** but-only-if symbols */
+case class ButOnlyIf(base: Nonterminal, methodName: String, cond: String)
+  extends Symbol
+
+/** lookahead symbols */
+case class Lookahead(contains: Boolean, cases: List[List[Symbol]])
+  extends Symbol
+
+/** empty symbols */
+case object Empty extends Symbol
+
+/** no-line-terminator symbols */
+case object NoLineTerminator extends Symbol
+
+/** symbols for code point abbreviations */
+case class CodePointAbbr(abbr: String) extends Symbol
+
+/** symbols for sets of unicode code points with a condition */
+case class UnicodeSet(cond: Option[String]) extends Symbol
+
+// -----------------------------------------------------------------------------
+// nonterminal arguments
+// -----------------------------------------------------------------------------
 case class NtArg(kind: NtArg.Kind, name: String) extends SpecElem
 object NtArg extends Parser[NtArg]:
   enum Kind extends SpecElem:
