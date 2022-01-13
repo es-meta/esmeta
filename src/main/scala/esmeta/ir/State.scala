@@ -14,6 +14,7 @@ case class State(
   val globals: MMap[Id, Value] = MMap(),
   val heap: Heap = Heap(),
   var fnameOpt: Option[String] = None,
+  var result: Option[Value] = None,
 ) extends IRElem
 
 // -----------------------------------------------------------------------------
@@ -23,43 +24,27 @@ case class Context(
   var cursorOpt: Option[Cursor] = None,
   val retId: Id = ID_RETURN,
   val name: String = STR_TOP_LEVEL,
-  // TODO var prevCursorOpt: Option[Cursor] = None,
+  val locals: MMap[Id, Value] = MMap(),
   // TODO val astOpt: Option[AST] = None,
   // TODO val algo: Option[Algo] = None,
-  val locals: MMap[Id, Value] = MMap(),
-  // TODO val viewOpt: Option[View] = None
 ) extends IRElem
 
 // -----------------------------------------------------------------------------
 // Evaluation cursors
 // -----------------------------------------------------------------------------
-sealed trait Cursor extends IRElem {
-  // next cursor
-  def next: Option[Cursor] = this match {
-    case InstCursor(_, rest) => InstCursor.from(rest)
-  }
-  // get instruction of current cursor
-  def inst: Option[Inst] = this match {
-    case InstCursor(cur, _) => Some(cur)
-  }
-}
+sealed trait Cursor extends IRElem
+case class InstCursor(curr: Inst, rest: List[Inst]) extends Cursor
 
-// generator of evaluation cursors
-sealed trait CursorGen[T <: Cursor] extends IRElem {
+/** IR Cursor Generator */
+sealed trait CursorGen[T <: Cursor]:
   def apply(inst: Inst): Option[T]
-}
 
 // instruction cursors
-case class InstCursor(cur: Inst, rest: List[Inst]) extends Cursor
-object InstCursor extends CursorGen[InstCursor] {
-  def apply(
-    inst: Inst,
-  ): Option[InstCursor] = Some(InstCursor(inst, Nil))
-  def from(insts: List[Inst]): Option[InstCursor] = insts match {
+object InstCursor extends CursorGen[InstCursor]:
+  def apply(inst: Inst): Option[InstCursor] = Some(InstCursor(inst, Nil))
+  def from(insts: List[Inst]): Option[InstCursor] = insts match
     case cur :: rest => Some(InstCursor(cur, rest))
     case Nil         => None
-  }
-}
 
 // -----------------------------------------------------------------------------
 // IR Heaps
@@ -72,12 +57,12 @@ case class Heap(
 // -----------------------------------------------------------------------------
 // IR Objects
 // -----------------------------------------------------------------------------
-sealed trait Obj extends IRElem
-case class IRSymbol(desc: Value) extends Obj
-case class IRMap(var ty: Ty, props: MMap[Value, IRMapValue], var size: Long)
-  extends Obj
-case class IRList(var values: Vector[Value] = Vector()) extends Obj
-case class IRNotSupported(tyname: String, desc: String) extends Obj
+sealed trait Obj(var ty: Ty) extends IRElem
+case class IRSymbol(desc: PureValue) extends Obj(TY_SYMBOL)
+case class IRMap(t: Ty, props: MMap[PureValue, IRMapValue], var size: Long)
+  extends Obj(t)
+case class IRList(var values: Vector[PureValue] = Vector()) extends Obj(TY_LIST)
+case class IRNotSupported(tyname: String, desc: String) extends Obj(Ty(tyname))
 
 /** values for IRMap structures */
 case class IRMapValue(value: Value, creationTime: Long)
@@ -87,7 +72,7 @@ case class IRMapValue(value: Value, creationTime: Long)
 // -----------------------------------------------------------------------------
 sealed trait RefValue extends IRElem
 case class RefValueId(id: Id) extends RefValue
-case class RefValueProp(base: Value, prop: Value) extends RefValue
+case class RefValueProp(base: Value, prop: PureValue) extends RefValue
 
 // -----------------------------------------------------------------------------
 // IR Values
@@ -97,8 +82,8 @@ sealed trait Value extends IRElem
 /** completion values */
 case class CompValue(
   ty: Const,
-  value: Value,
-  targetOpt: Option[String],
+  value: PureValue,
+  target: Str | Const = CONST_EMPTY,
 ) extends Value
 
 /** pure values (not completion values) */

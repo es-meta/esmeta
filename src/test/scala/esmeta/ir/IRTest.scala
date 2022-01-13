@@ -10,10 +10,10 @@ trait IRTest extends ESMetaTest {
   // TODO handle evaluation test
   def irEval(st: State): State = Interp(st)
   def irEval(str: String): State =
-    Interp(State(InstCursor).moveTo(Program(str)))
+    Interp(State()).moveTo(Program(str))
   def irEvalFile(filename: String): State = {
     val program = Program.fromFile(filename)
-    Interp(State(InstCursor, fnameOpt = Some(filename)).moveTo(program))
+    Interp(State(fnameOpt = Some(filename)).moveTo(program))
   }
 
   // tests for IR parser

@@ -3,6 +3,7 @@ package esmeta.ir
 import esmeta.error.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import esmeta.{DEBUG, TIMEOUT}
 import scala.annotation.{tailrec, targetName}
 import scala.collection.mutable.{Map => MMap}
@@ -10,117 +11,45 @@ import scala.language.implicitConversions
 import esmeta.ir.Utils.*
 
 /** IR Interpreter */
-class Interp(
-  val st: State,
-  timeLimit: Option[Long] = Some(TIMEOUT),
-) {
+class Interp(val st: State) {
   import Interp.*
 
   val cursorGen: CursorGen[_ <: Cursor] = st.cursorGen
 
-  /** set start time of interpreter */
-  val startTime: Long = System.currentTimeMillis
-
-  /** the number of instructions */
-  def getIter: Int = iter
-  private var iter: Int = 0
-
-  /** maximum callstack size */
-  private var maxDepth: Int = 1
-  private def updateCallDepth() = {
-    val d = st.ctxtStack.size + 1
-    if (d > maxDepth) maxDepth = d
-  }
-
-  /** iteration period for check */
-  val CHECK_PERIOD = 10000
-
-  /** step target */
-  trait StepTarget {
-    override def toString: String = this match {
-      case Terminate        => "TERMINATED"
-      case ReturnUndef      => "RETURN"
-      case NextStep(cursor) => cursor.toString()
-    }
-  }
-  case object Terminate extends StepTarget
-  case object ReturnUndef extends StepTarget
-  case class NextStep(cursor: Cursor) extends StepTarget
-
-  /** get next step target */
-  def nextTarget: StepTarget = st.context.cursorOpt match {
-    case Some(cursor) => NextStep(cursor)
+  // step
+  final def step: Boolean = st.nextTarget match
     case None =>
-      st.ctxtStack match {
-        case Nil => Terminate
-        case _   => ReturnUndef
-      }
-  }
-
-  /** step */
-  final def step: Boolean = nextTarget match {
-    case Terminate =>
       false
-    case ReturnUndef =>
-      // do return
-      doReturn(Undef)
+    case Some(cursor) =>
+      // run single instruction
+      try
+        cursor match
+          case cursor @ InstCursor(inst, rest) =>
+            interp(inst, rest)
 
-      // keep going
+      // handle return instruction
+      catch case ReturnValue(value) => st.doReturn(value)
       true
-    case NextStep(cursor) => {
-      iter += 1
-
-      // check time limit
-      if (iter % CHECK_PERIOD == 0) timeLimit.map(limit => {
-        val duration = (System.currentTimeMillis - startTime) / 1000
-        if (duration > limit) ??? // interptimeout
-      })
-
-      // text-based debugging
-      if (DEBUG) cursor match {
-        case InstCursor(ISeq(_), _) =>
-        case _                      => ???
-        // println(s"[$iter] ${st.context.name}: ${cursor.toString()}")
-      }
-
-      // interp the current cursor
-      catchReturn(cursor match {
-        case cursor @ InstCursor(inst, rest) =>
-          interp(inst, rest)
-      })
-
-      // garbage collection
-      if (iter % 100000 == 0) ??? // GC(st)
-
-      // keep going
-      true
-    }
-  }
 
   // fixpoint
   @tailrec
-  final def fixpoint: State = step match {
-    case true  => fixpoint
-    case false => st
-  }
+  final def fixpoint: State = if step then fixpoint else st
 
   // transition for instructions
-  def interp(inst: Inst, rest: List[Inst]): Unit = inst match {
+  def interp(inst: Inst, rest: List[Inst]): Unit = inst match
     case inst: ISeq       => interp(inst, rest)
     case inst: CondInst   => interp(inst, rest)
     case inst: CallInst   => interp(inst)
     case inst: ArrowInst  => interp(inst)
     case inst: NormalInst => interp(inst)
-  }
 
   // transition for sequence instructions
   def interp(inst: ISeq, rest: List[Inst]): Unit =
     st.context.cursorOpt = InstCursor.from(inst.insts ++ rest)
 
   // transition for conditional instructions
-  @targetName("interpCondInst")
   def interp(inst: CondInst, rest: List[Inst]): Unit =
-    st.context.cursorOpt = inst match {
+    st.context.cursorOpt = inst match
       case IIf(cond, thenInst, elseInst) =>
         interp(cond).escaped match {
           case Bool(true)  => Some(InstCursor(thenInst, rest))
@@ -133,10 +62,8 @@ class Interp(
           case Bool(false) => InstCursor.from(rest)
           case v           => error(s"not a boolean: $v")
         }
-    }
 
   // transition for call instructions
-  @targetName("interpCallInst")
   def interp(inst: CallInst): Unit = {
     st.moveNext
     inst match {
@@ -192,51 +119,53 @@ class Interp(
           }
           case v => error(s"not a function: $fexpr -> $v")
         }
-      case IAccess(id, bexpr, expr, args) => {
-        var base = interp(bexpr)
-        var escapedBase = base.escaped
-        val prop = interp(expr).escaped
-        val vOpt = (escapedBase, prop) match {
-          // TODO case (ASTVal(Lexical(kind, str)), Str(name)) =>
-          //  Some(getLexicalValue(kind, name, str))
-          // case (ASTVal(ast), Str("parent")) =>
-          //  Some(ast.parent.map(ASTVal).getOrElse(Absent))
-          // case (ASTVal(ast), Str("children")) =>
-          //  Some(st.allocList(ast.children))
-          // case (ASTVal(ast), Str("kind")) => Some(Str(ast.kind))
-          // case (ASTVal(ast), Str(name)) =>
-          //  ast.semantics(name) match {
-          //    case Some((algo, asts)) => {
-          //      val head = algo.head
-          //      val body = algo.body
-          //      val vs = asts ++ args.map(interp)
-          //      val locals = getLocals(head.params, vs)
-          //      val cursor = cursorGen(body)
-          //      val context = Context(
-          //        Some(cursor),
-          //        None,
-          //        id,
-          //        head.name,
-          //        Some(ast),
-          //        Some(algo),
-          //        locals,
-          //      )
-          //      st.ctxtStack ::= st.context
-          //      st.context = context
+      // TODO consider remove iaccess
+      case inst: IAccess => ???
+      // case IAccess(id, bexpr, expr, args) => {
+      //   var base = interp(bexpr)
+      //   var escapedBase = base.escaped
+      //   val prop = interp(expr).escaped
+      //   val vOpt = (escapedBase, prop) match {
+      //     // TODO case (ASTVal(Lexical(kind, str)), Str(name)) =>
+      //     //  Some(getLexicalValue(kind, name, str))
+      //     // case (ASTVal(ast), Str("parent")) =>
+      //     //  Some(ast.parent.map(ASTVal).getOrElse(Absent))
+      //     // case (ASTVal(ast), Str("children")) =>
+      //     //  Some(st.allocList(ast.children))
+      //     // case (ASTVal(ast), Str("kind")) => Some(Str(ast.kind))
+      //     // case (ASTVal(ast), Str(name)) =>
+      //     //  ast.semantics(name) match {
+      //     //    case Some((algo, asts)) => {
+      //     //      val head = algo.head
+      //     //      val body = algo.body
+      //     //      val vs = asts ++ args.map(interp)
+      //     //      val locals = getLocals(head.params, vs)
+      //     //      val cursor = cursorGen(body)
+      //     //      val context = Context(
+      //     //        Some(cursor),
+      //     //        None,
+      //     //        id,
+      //     //        head.name,
+      //     //        Some(ast),
+      //     //        Some(algo),
+      //     //        locals,
+      //     //      )
+      //     //      st.ctxtStack ::= st.context
+      //     //      st.context = context
 
-          //      // use hooks
-          //      // if (useHook) notify(Event.Call)
-          //      None
-          //    }
-          //    case None =>
-          //      Some(ast.subs(name).getOrElse {
-          //        error(s"unexpected semantics: ${ast.name}.$name")
-          //      })
-          //  }
-          case _ => Some(st(base, prop))
-        }
-        vOpt.map(st.context.locals += id -> _)
-      }
+      //     //      // use hooks
+      //     //      // if (useHook) notify(Event.Call)
+      //     //      None
+      //     //    }
+      //     //    case None =>
+      //     //      Some(ast.subs(name).getOrElse {
+      //     //        error(s"unexpected semantics: ${ast.name}.$name")
+      //     //      })
+      //     //  }
+      //     case _ => Some(st(base, prop))
+      //   }
+      //   vOpt.map(st.context.locals += id -> _)
+      // }
     }
   }
 
@@ -307,7 +236,7 @@ class Interp(
         )
       }
       case IWithCont(id, params, body) => {
-        val State(_, context, ctxtStack, _, _, _) = st
+        val State(_, context, ctxtStack, _, _, _, _) = st
         st.context = context.copied
         st.context.cursorOpt = cursorGen(body)
         st.context.locals += id -> Cont(params, context, ctxtStack)
@@ -316,39 +245,8 @@ class Interp(
     }
   }
 
-  // catch return values
-  def catchReturn(f: => Unit): Unit =
-    try f
-    catch { case ReturnValue(value) => doReturn(value) }
-
   // return value
   private case class ReturnValue(value: Value) extends Throwable
-
-  // return helper
-  def doReturn(value: Value): Unit = {
-    if (DEBUG) println("<RETURN> " + st.getString(value))
-    st.ctxtStack match {
-      case Nil =>
-        st.context.locals += Id("RESULT") -> value.wrapCompletion
-        st.context.cursorOpt = None
-      case ctxt :: rest => {
-        // proper type handle
-        (value, setTypeMap.get(st.context.name)) match {
-          case (addr: Addr, Some(ty)) =>
-            st.setType(addr, ty)
-          case _ =>
-        }
-
-        // return wrapped values
-        ctxt.locals += st.context.retId -> value.wrapCompletion
-        st.context = ctxt
-        st.ctxtStack = rest
-
-        // use hooks
-        // if (useHook) notify(Event.Return)
-      }
-    }
-  }
 
   // expresssions
   def interp(expr: Expr): Value = expr match {
@@ -363,11 +261,11 @@ class Interp(
     case EConst(name) => Const(name)
     case EComp(ty, value, target) =>
       val y = interp(ty).escaped
-      val v = interp(value).escaped
+      val v: PureValue = interp(value).escaped
       val t = interp(target).escaped
       (y, t) match {
-        case (y: Const, Str(t))      => CompValue(y, v, Some(t))
-        case (y: Const, CONST_EMPTY) => CompValue(y, v, None)
+        case (y: Const, str: Str)    => CompValue(y, v, str)
+        case (y: Const, CONST_EMPTY) => CompValue(y, v)
         case _                       => error("invalid completion")
       }
     case EMap(Ty("Completion"), props) => {
@@ -381,13 +279,16 @@ class Interp(
         map.get(Str("Value")),
         map.get(Str("Target")),
       ) match {
-        case (Some(ty: Const), Some(value), Some(target)) => {
-          val targetOpt = target match {
-            case Str(target) => Some(target)
-            case CONST_EMPTY => None
-            case _           => error(s"invalid completion target: $target")
-          }
-          CompValue(ty, value, targetOpt)
+        case (Some(ty: Const), Some(value: PureValue), Some(target)) => {
+          CompValue(
+            ty,
+            value,
+            target match {
+              case str: Str    => str
+              case CONST_EMPTY => CONST_EMPTY
+              case _           => error(s"invalid completion target: $target")
+            },
+          )
         }
         case _ => error("invalid completion")
       }
@@ -395,7 +296,7 @@ class Interp(
     case EMap(ty, props) => {
       val addr = st.allocMap(ty)
       for ((kexpr, vexpr) <- props) {
-        val k = interp(kexpr).escaped
+        val k: PureValue = interp(kexpr).escaped
         val v = interp(vexpr)
         st.update(addr, k, v)
       }
@@ -445,8 +346,6 @@ class Interp(
         case Clo(_, _, _, _) => "Closure"
         case Cont(_, _, _)   => "Continuation"
         // case ASTVal(_)       => "AST"
-        // TODO Can escaped value be CompValue?
-        case CompValue(_, _, _) => ???
       })
     case EIsCompletion(expr) => Bool(interp(expr).isCompletion)
     case EIsInstanceOf(base, name) => {
@@ -582,24 +481,24 @@ class Interp(
   def returnIfAbrupt(value: Value, check: Boolean): Value =
     value match {
       // TODO need to be revised (NormalComp)
-      case CompValue(CONST_NORMAL, value, None) => value
+      case CompValue(CONST_NORMAL, value, CONST_EMPTY) => value
       case CompValue(_, _, _) =>
         if (check) throw ReturnValue(value)
         else error(s"unchecked abrupt completion: $value")
       case pure: Value => pure
     }
 
-  // references
+  /** transition for references */
   def interp(ref: Ref): RefValue = ref match {
     case RefId(id) => RefValueId(id)
     case RefProp(ref, expr) => {
       var base = st(interp(ref))
-      val p = interp(expr).escaped
+      val p: PureValue = interp(expr).escaped
       RefValueProp(base, p)
     }
   }
 
-  // short circuit evaluation
+  /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value = {
     import BOp.*
     val l = interp(left).escaped
@@ -614,21 +513,22 @@ class Interp(
   }
 }
 
-// interp object
+/** Interp object */
 object Interp {
+
+  /** run interp */
   def apply(
     st: State,
     timeLimit: Option[Long] = Some(TIMEOUT),
-  ): State = {
-    val interp = new Interp(st, timeLimit)
-    interp.fixpoint
+  ): State =
+    val interp = new Interp(st)
+    timeout(interp.fixpoint, timeLimit)
     st
-  }
 
-  // unary operators
+  /** transition for unary opeartors */
   def interp(uop: UOp, operand: Value): Value =
     import UOp.*
-    (uop, operand) match {
+    (uop, operand) match
       case (Neg, Num(n))     => Num(-n)
       case (Neg, INum(n))    => INum(-n)
       case (Neg, BigINum(b)) => BigINum(-b)
@@ -638,9 +538,8 @@ object Interp {
       case (Not, BigINum(b)) => BigINum(~b)
       case (_, value) =>
         error(s"wrong type of value for the operator $uop: $value")
-    }
 
-  // binary operators
+  /** transition for binary operators */
   def interp(bop: BOp, left: Value, right: Value): Value =
     import BOp.*
     given Conversion[Long, Double] = _.toDouble
@@ -762,10 +661,4 @@ object Interp {
 
       case (_, lval, rval) => error(s"wrong type: $lval $bop $rval")
     }
-
-  // type update algorithms
-  val setTypeMap: Map[String, Ty] = Map(
-    "OrdinaryFunctionCreate" -> Ty("ECMAScriptFunctionObject"),
-    "ArrayCreate" -> Ty("ArrayExoticObject"),
-  )
 }

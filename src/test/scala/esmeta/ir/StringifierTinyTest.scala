@@ -148,6 +148,7 @@ class StringifierTinyTest extends IRTest {
       |  globals: {}
       |  heap: (SIZE = 0): {}
       |  filename: UNKNOWN
+      |  result: absent
       |}""".stripMargin,
     )
     checkStringify("Context")(
