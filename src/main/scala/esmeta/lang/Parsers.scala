@@ -1,20 +1,27 @@
 package esmeta.lang
 
-import esmeta.util.BasicParsers
+import esmeta.util.IndentParsers
 import scala.util.matching.Regex
 
+import Step.*, Block.*
+
 /** language parsers */
-trait Parsers extends BasicParsers {
-  // skip only white spaces and comments
-  protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
-
-  private lazy val newlineWithIndent: Parser[Int] = "\n *".r ^^ { _.length - 1 }
-
-  given literal: Conversion[String, Parser[String]] = s => {
-    val slist = s.split(' ').toList
-    (slist.map(super.literal).reduce(_ ~ _ ^^ { case x ~ y => x + " " + y }))
-  }
+trait Parsers extends IndentParsers {
+  // TODO algorithm blocks
+  given block: Parser[Block] = indent ~> (
+    rep1(next ~ "1." ~> step) ^^ { Order(_) } |
+      rep1(next ~ "*" ~> step) ^^ { Unorder(_) } |
+      next ~> figureStr ^^ { Figure(_) }
+  ) <~ dedent
 
   // TODO algorithm steps
-  given step: Parser[Step] = rep(newlineWithIndent | ".+".r) ^^^ Step.Block(Nil)
+  given step: Parser[Step] = yet
+
+  lazy val figureStr: Parser[String] = "<figure>\n".r ~> repsep(
+    ".*".r.filter(_.trim != "</figure>"),
+    "\n",
+  ) <~ "\n *</figure>".r ^^ { _.mkString("\n") }
+
+  lazy val yet: Parser[Yet] =
+    ".+".r ~ opt(block) ^^ { case s ~ b => Yet(s, b) }
 }
