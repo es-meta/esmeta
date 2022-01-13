@@ -6,7 +6,9 @@ import java.nio.charset.Charset
 import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
 
 /** basic parser */
-trait BasicParser[T] { this: BasicParsers =>
+trait BasicParser[T, P <: BasicParsers] {
+  protected val parser: P
+  import parser.*
   def fromFile(str: String)(using parser: Parser[T]): T =
     fromFileWithParser(str, parser)
   def apply(str: String)(using parser: Parser[T]): T =

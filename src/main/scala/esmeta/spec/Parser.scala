@@ -8,7 +8,7 @@ import esmeta.util.BasicParser
 import org.jsoup.nodes.*
 
 /** specification parser */
-trait Parser[T] extends BasicParser[T] with Parsers
+trait Parser[T] extends BasicParser[T, Parsers] { val parser = Parser }
 object Parser extends Parsers {
 
   /** parses a specification */
