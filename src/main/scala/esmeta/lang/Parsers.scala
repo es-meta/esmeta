@@ -17,10 +17,10 @@ trait Parsers extends IndentParsers {
   // TODO algorithm steps
   given step: Parser[Step] = yet
 
-  lazy val figureStr: Parser[String] = "<figure>\n".r ~> repsep(
+  lazy val figureStr: Parser[List[String]] = "<figure>\n".r ~> repsep(
     ".*".r.filter(_.trim != "</figure>"),
     "\n",
-  ) <~ "\n *</figure>".r ^^ { _.mkString("\n") }
+  ) <~ "\n *</figure>".r
 
   lazy val yet: Parser[Yet] =
     ".+".r ~ opt(block) ^^ { case s ~ b => Yet(s, b) }
