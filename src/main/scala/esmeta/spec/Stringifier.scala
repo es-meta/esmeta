@@ -41,10 +41,9 @@ object Stringifier {
     app :> "* algorithms: " >> algorithms.length
     app :> "  - incomplete: " >> "..." // TODO
     app :> "  - complete: " >> "..." // TODO
-    app :> "  - total: " >> "..." // TODO
-    app :> "* algorithm steps:"
+    app :> "* algorithm steps:" >> "..." // TODO
     app :> "  - incompleted: " >> "..." // TODO
-    app :> "  - total: " >> "..." // TODO
+    app :> "  - complete: " >> "..." // TODO
   }
 
   // for grammars
