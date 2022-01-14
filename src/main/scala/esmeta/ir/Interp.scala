@@ -201,7 +201,7 @@ class Interp(val st: State) {
     case ECopy(obj) =>
       interp(obj).escaped match
         case addr: Addr => st.heap.copyObj(addr)
-        case v => error(s"not an address: $v")
+        case v          => error(s"not an address: $v")
     case EKeys(mobj, intSorted) =>
       interp(mobj).escaped match
         case addr: Addr => st.heap.keys(addr, intSorted)
@@ -306,7 +306,10 @@ class Interp(val st: State) {
         Interp.interp(bop, l, r)
 
   /** prepare initial local variables */
-  private def getLocals(params: List[Param], args: List[Value]): MMap[Id, Value] =
+  private def getLocals(
+    params: List[Param],
+    args: List[Value],
+  ): MMap[Id, Value] =
     val map = MMap[Id, Value]()
 
     @tailrec
