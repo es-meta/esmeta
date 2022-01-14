@@ -117,7 +117,64 @@ class StringifierTinyTest extends SpecTest {
     // /////////////////////////////////////////////////////////////////////////
     // Algorithm
     // /////////////////////////////////////////////////////////////////////////
-    // TODO
+    checkStringify("Algorithm head")(
+      AbstractOperationHead(
+        "StringIndexOf",
+        List(
+          Param("string", Param.Kind.Normal, "a String"),
+          Param("searchValue", Param.Kind.Normal, "a String"),
+          Param("fromIndex", Param.Kind.Normal, "a non-negative integer"),
+        ),
+        false,
+      ) -> "StringIndexOf(string, searchValue, fromIndex)",
+      NumericMethodHead(
+        "Number",
+        "unaryMinus",
+        List(
+          Param("x", Param.Kind.Normal, "a Number"),
+        ),
+      ) -> "Number::unaryMinus(x)",
+      SyntaxDirectedOperationHead(
+        "ForStatement",
+        0,
+        5,
+        List(
+          Param("Expression0", Param.Kind.Normal, ""),
+          Param("Expression1", Param.Kind.Normal, ""),
+          Param("Expression2", Param.Kind.Normal, ""),
+          Param("Statement", Param.Kind.Normal, ""),
+        ),
+        "VarDeclaredNames",
+        true,
+        List(Param("withParam", Param.Kind.Normal, "")),
+      ) -> "[SYNTAX] ForStatement[0,5].VarDeclaredNames[S](Expression0, Expression1, Expression2, Statement)(withParam)",
+      SyntaxDirectedOperationHead(
+        "AdditiveExpression",
+        1,
+        0,
+        List(
+          Param("AdditiveExpression", Param.Kind.Normal, ""),
+          Param("MultiplicativeExpression", Param.Kind.Normal, ""),
+        ),
+        "Evaluation",
+        false,
+        List(),
+      ) -> "[SYNTAX] AdditiveExpression[1,0].Evaluation[R](AdditiveExpression, MultiplicativeExpression)()",
+      ConcreteMethodHead(
+        "HasBinding",
+        Param("envRec", Param.Kind.Normal, "a declarative Environment Record"),
+        List(Param("N", Param.Kind.Normal, "a String")),
+      ) -> "[METHOD] HasBinding(envRec)(N)", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
+      InternalMethodHead(
+        "SetPrototypeOf",
+        Param("O", Param.Kind.Normal, "an ordinary object"),
+        List(Param("V", Param.Kind.Normal, "an Object or null")),
+      ) -> "[METHOD] SetPrototypeOf(O)(V)", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
+      BuiltinHead(
+        "Boolean",
+        List(Param("value", Param.Kind.Normal, "an argument")),
+      ) -> "[BUILTIN] Boolean(value)",
+    )
   }
 
   init

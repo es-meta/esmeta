@@ -32,7 +32,7 @@ case class NumericMethodHead(
   params: List[Param],
 ) extends Head
 
-/** syntax-directed operation (SOD) heads */
+/** syntax-directed operation (SDO) heads */
 case class SyntaxDirectedOperationHead(
   lhsName: String,
   idx: Int,

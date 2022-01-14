@@ -143,11 +143,40 @@ object Stringifier {
   given algoRule: Rule[Algorithm] = (app, algo) => ???
 
   // for algorithm heads
-  given headRule: Rule[Head] = (app, head) => ???
+  given headRule: Rule[Head] = (app, head) =>
+    given Rule[List[Param]] = iterableRule("(", ", ", ")")
+    head match {
+      case AbstractOperationHead(name, params, isHostDefined) =>
+        app >> name >> params
+      case NumericMethodHead(ty, name, params) =>
+        app >> ty >> "::" >> name >> params
+      case SyntaxDirectedOperationHead(
+            lhsName,
+            idx,
+            subIdx,
+            rhsParams,
+            methodName,
+            isStatic,
+            withParams,
+          ) =>
+        app >> "[SYNTAX] " >> lhsName >> "[" >> idx >> "," >> subIdx >> "]." >> methodName
+        if (isStatic) app >> "[" >> "S" >> "]"
+        else app >> "[" >> "R" >> "]"
+        app >> rhsParams
+        app >> withParams
 
-  // for algorithm parameters
-  given paramRule: Rule[Param] = (app, param) => ???
+      case ConcreteMethodHead(methodName, receiverParam, params) =>
+        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")" >> params
+      case InternalMethodHead(methodName, receiverParam, params) =>
+        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
+        app >> params
+      case BuiltinHead(ref, params) =>
+        app >> "[BUILTIN] " >> ref >> params
+    }
 
-  // for algorithm parameter kinds
+  // TODO: for algorithm parameters
+  given paramRule: Rule[Param] = (app, param) => app >> param.name
+
+  // TODO: for algorithm parameter kinds
   given paramKindRule: Rule[Param.Kind] = (app, param) => ???
 }
