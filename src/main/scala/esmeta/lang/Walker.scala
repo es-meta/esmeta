@@ -26,7 +26,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: Expression): Expression = expr match {
-    case _ => ???
+    case LengthExpression(expr)   => LengthExpression(walk(expr))
+    case IdentifierExpression(id) => IdentifierExpression(walk(id))
   }
 
   def walk(id: Identifier): Identifier = id match {

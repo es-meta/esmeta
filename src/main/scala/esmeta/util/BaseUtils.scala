@@ -135,7 +135,19 @@ object BaseUtils {
     aux()
   }
 
-  // stringify
+  /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
     rule(new Appender, t).toString
+
+  /** get a string for success ratio */
+  def ratioString[T](pass: Int, total: Int): String = {
+    val fail = total - pass
+    f"P/F/T = $pass/$fail/$total ${ratioSimpleString(pass, total)}"
+  }
+
+  /** get a simple string for success ratio */
+  def ratioSimpleString[T](pass: Int, total: Int): String = {
+    val percent = pass / total.toDouble * 100
+    f"($percent%.2f%%)"
+  }
 }

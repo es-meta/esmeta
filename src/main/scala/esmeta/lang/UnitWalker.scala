@@ -26,7 +26,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(expr: Expression): Unit = expr match {
-    case _ => ???
+    case LengthExpression(expr)   => walk(expr)
+    case IdentifierExpression(id) => walk(id)
   }
 
   def walk(id: Identifier): Unit = id match {

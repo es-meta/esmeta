@@ -2,6 +2,8 @@ package esmeta.spec
 
 import esmeta.LINE_SEP
 import esmeta.util.Appender
+import esmeta.util.BaseUtils.*
+import esmeta.spec.Utils.*
 
 /** stringifier for specifications */
 object Stringifier {
@@ -38,12 +40,20 @@ object Stringifier {
     app :> "    - numeric string: " >> prodsBy(NumericString).length
     app :> "    - syntactic: " >> prodsBy(Syntactic).length
     app :> "  - extended productions for web: " >> grammar.prodsForWeb.length
-    app :> "* algorithms: " >> algorithms.length
-    app :> "  - incomplete: " >> "..." // TODO
-    app :> "  - complete: " >> "..." // TODO
-    app :> "* algorithm steps:" >> "..." // TODO
-    app :> "  - incompleted: " >> "..." // TODO
-    app :> "  - complete: " >> "..." // TODO
+
+    val (algoPass, algoTotal) =
+      (spec.completeAlgorithms.length, algorithms.length)
+    val algoRatio = ratioSimpleString(algoPass, algoTotal)
+    app :> "* algorithms: " >> algoTotal >> " " >> algoRatio
+    app :> "  - complete: " >> algoPass
+    app :> "  - incomplete: " >> algoTotal - algoPass
+
+    val (stepPass, stepTotal) =
+      (spec.completeSteps.length, spec.allSteps.length)
+    val stepRatio = ratioSimpleString(stepPass, stepTotal)
+    app :> "* algorithm steps: " >> stepTotal >> " " >> stepRatio
+    app :> "  - complete: " >> stepPass
+    app :> "  - incompleted: " >> stepTotal - stepPass
   }
 
   // for grammars

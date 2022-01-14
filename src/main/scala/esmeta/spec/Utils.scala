@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.lang.{Step, YetStep, StepCollector}
 import org.jsoup.nodes.*
 
 /** specification utilities */
@@ -25,6 +26,52 @@ object Utils {
     /** checks whether an element is in appendix */
     def isInAnnex: Boolean =
       elem.walkAncestor(_.tagName == "emu-annex", false, _ || _)
+  }
+
+  // TODO optimize this by removing redundant computation
+  /** extensions for specifications */
+  extension (spec: Spec) {
+
+    /** get incomplete algorithms */
+    def incompleteAlgorithms: List[Algorithm] =
+      spec.algorithms.filter(!_.complete)
+
+    /** get complete algorithms */
+    def completeAlgorithms: List[Algorithm] =
+      spec.algorithms.filter(_.complete)
+
+    /** get all algorithm steps */
+    def allSteps: List[Step] = for {
+      algo <- spec.algorithms
+      step <- algo.steps
+    } yield step
+
+    /** get incomplete algorithm steps */
+    def incompleteSteps: List[Step] =
+      allSteps.filter(_.isInstanceOf[YetStep])
+
+    /** get complete algorithm steps */
+    def completeSteps: List[Step] =
+      allSteps.filter(!_.isInstanceOf[YetStep])
+  }
+
+  // TODO optimize this by removing redundant computation
+  /** extensions for algorithms */
+  extension (algo: Algorithm) {
+
+    /** check whether it is incomplete */
+    def complete: Boolean = incompleteSteps.isEmpty
+
+    /** get all steps */
+    def steps: List[Step] = StepCollector(algo.body)
+
+    /** get incomplete algorithm steps */
+    def incompleteSteps: List[Step] =
+      steps.filter(_.isInstanceOf[YetStep])
+
+    /** get complete algorithm steps */
+    def completeSteps: List[Step] =
+      steps.filter(!_.isInstanceOf[YetStep])
   }
 
   /** extensions for grammars */
