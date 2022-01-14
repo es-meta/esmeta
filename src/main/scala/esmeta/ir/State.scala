@@ -37,7 +37,7 @@ case class InstCursor(curr: Inst, rest: List[Inst]) extends Cursor
 sealed trait CursorGen[T <: Cursor]:
   def apply(inst: Inst): Option[T]
 
-// instruction cursors
+/** instruction cursors */
 object InstCursor extends CursorGen[InstCursor]:
   def apply(inst: Inst): Option[InstCursor] = Some(InstCursor(inst, Nil))
   def from(insts: List[Inst]): Option[InstCursor] = insts match

@@ -1,5 +1,7 @@
 package esmeta.util
 
+import scala.collection.mutable.{Map => MMap}
+
 /** the basic unit walker */
 trait BasicUnitWalker {
   def walkOpt[T](
@@ -17,4 +19,10 @@ trait BasicUnitWalker {
     kWalk: K => Unit,
     vWalk: V => Unit,
   ): Unit = map.foreach { case (k, v) => kWalk(k); vWalk(v) }
+
+  def walkMMap[K, V](
+    map: MMap[K, V],
+    kWalk: K => Unit,
+    vWalk: V => Unit,
+  ): Unit = map.foreach { case (k, v) => kWalk(k) -> vWalk(v) }
 }

@@ -168,20 +168,18 @@ object Utils {
     def apply(addr: Addr): Obj = st.heap(addr)
 
     /** setters */
-    def update(refV: RefValue, value: Value): State = refV match
-      case RefValueId(x) =>
-        update(x, value); st
+    def update(refV: RefValue, value: Value): Unit = refV match
+      case RefValueId(x) => update(x, value)
       case RefValueProp(base, prop) =>
         base.escaped match
-          case addr: Addr => update(addr, prop, value); st
+          case addr: Addr => update(addr, prop, value)
           case _          => error(s"illegal reference update: $refV = $value")
-    def update(x: Id, value: Value): State =
+    def update(x: Id, value: Value): Unit =
       if locals contains x then locals += x -> value
       else if st.globals contains x then st.globals += x -> value
       else error(s"illegal variable update: $x = $value")
-      st
-    def update(addr: Addr, prop: PureValue, value: Value): State =
-      st.heap.update(addr, prop, value); st
+    def update(addr: Addr, prop: PureValue, value: Value): Unit =
+      st.heap.update(addr, prop, value)
 
     /** existence checks */
     def exists(id: Id): Boolean =
@@ -192,11 +190,11 @@ object Utils {
       case RefValueProp(base, prop) => st(base.escaped, prop) != Absent
 
     /** delete a property from a map */
-    def delete(refV: RefValue): State = refV match
+    def delete(refV: RefValue): Unit = refV match
       case RefValueId(x) => error(s"cannot delete variable $x")
       case RefValueProp(base, prop) =>
         base.escaped match
-          case addr: Addr => st.heap.delete(addr, prop); st
+          case addr: Addr => st.heap.delete(addr, prop)
           case _          => error(s"illegal reference delete: delete $refV")
 
     /** get string for a given address */
@@ -231,7 +229,6 @@ object Utils {
         MMap.from(st.globals),
         st.heap.copied,
       )
-
   }
 
   // -----------------------------------------------------------------------------
@@ -282,22 +279,22 @@ object Utils {
       case IRNotSupported(_, msg) => throw NotSupported(msg)
 
     /** setters */
-    def update(addr: Addr, prop: PureValue, value: Value): Heap =
+    def update(addr: Addr, prop: PureValue, value: Value): Unit =
       heap(addr) match
-        case (m: IRMap) => m.update(prop, value); heap
+        case (m: IRMap) => m.update(prop, value)
         case v          => error(s"not a heap.map: $v")
 
     /** delete */
-    def delete(addr: Addr, prop: PureValue): Heap = heap(addr) match
-      case (m: IRMap) => m.delete(prop); heap
+    def delete(addr: Addr, prop: PureValue): Unit = heap(addr) match
+      case (m: IRMap) => m.delete(prop)
       case v          => error(s"not a heap.map: $v")
 
     /** object operators */
-    def append(addr: Addr, value: PureValue): Heap = heap(addr) match
-      case (l: IRList) => l.append(value); heap
+    def append(addr: Addr, value: PureValue): Unit = heap(addr) match
+      case (l: IRList) => l.append(value)
       case v           => error(s"not a list: $v")
-    def prepend(addr: Addr, value: PureValue): Heap = heap(addr) match
-      case (l: IRList) => l.prepend(value); heap
+    def prepend(addr: Addr, value: PureValue): Unit = heap(addr) match
+      case (l: IRList) => l.prepend(value)
       case v           => error(s"not a list: $v")
     def pop(addr: Addr, idx: PureValue): Value = heap(addr) match
       case (l: IRList) => l.pop(idx)
@@ -322,6 +319,13 @@ object Utils {
     def allocList(list: List[PureValue]): Addr = alloc(IRList(list.toVector))
     def allocSymbol(desc: PureValue): Addr = alloc(IRSymbol(desc))
 
+    /** allocation helper */
+    private def alloc(obj: Obj): Addr =
+      val newAddr = DynamicAddr(heap.size)
+      heap.map += newAddr -> obj
+      heap.size += 1
+      newAddr
+
     /** copied */
     def copied: Heap =
       Heap(
@@ -330,13 +334,6 @@ object Utils {
         }),
         heap.size,
       )
-
-    /** allocation helper */
-    private def alloc(obj: Obj): Addr =
-      val newAddr = DynamicAddr(heap.size)
-      heap.map += newAddr -> obj
-      heap.size += 1
-      newAddr
   }
 
   // -----------------------------------------------------------------------------
@@ -387,20 +384,19 @@ object Utils {
         case _                => Absent
 
     /** setters */
-    def findOrUpdate(prop: PureValue, value: Value): IRMap =
+    def findOrUpdate(prop: PureValue, value: Value): Unit =
       irMap.props.get(prop) match
-        case Some(_) => irMap
+        case Some(_) =>
         case _       => update(prop, value)
-    def update(prop: PureValue, value: Value): IRMap =
+    def update(prop: PureValue, value: Value): Unit =
       val creationTime = irMap.props
         .get(prop)
         .map { case IRMapValue(_, t) => t }
         .getOrElse({ irMap.size += 1; irMap.size })
       irMap.props += prop -> IRMapValue(value, creationTime)
-      irMap
 
     /** deletes */
-    def delete(prop: PureValue): IRMap = { irMap.props -= prop; irMap }
+    def delete(prop: PureValue): Unit = irMap.props -= prop
 
     /** object operators */
     def keys: Vector[PureValue] = irMap.props.map(_._1).toVector
@@ -429,10 +425,8 @@ object Utils {
       case v             => error(s"invalid key: $v")
 
     /** object operators */
-    def append(value: PureValue): irList.type =
-      irList.values :+= value; irList
-    def prepend(value: PureValue): irList.type =
-      irList.values +:= value; irList
+    def append(value: PureValue): Unit = irList.values :+= value
+    def prepend(value: PureValue): Unit = irList.values +:= value
     def pop(idx: PureValue): PureValue = idx match
       case INum(long) =>
         val k = long.toInt
