@@ -337,24 +337,6 @@ object Utils {
       heap.map += newAddr -> obj
       heap.size += 1
       newAddr
-
-    /** property access helper */
-    private def getAddrValue(
-      addr: Addr,
-      propName: String,
-    ): Addr = heap(addr, Str(propName)) match
-      case addr: Addr => addr
-      case v          => error(s"not an address: $v")
-    private def getPropValue(
-      addr: Value,
-      propName: String,
-    ): Value = addr match
-      case addr: Addr =>
-        val submap = getAddrValue(addr, "SubMap")
-        val prop = getAddrValue(submap, propName)
-        heap(prop, Str("Value"))
-      case _ => error(s"not an address: $addr")
-
   }
 
   // -----------------------------------------------------------------------------
