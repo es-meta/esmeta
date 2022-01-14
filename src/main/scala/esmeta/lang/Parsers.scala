@@ -5,21 +5,50 @@ import scala.util.matching.Regex
 
 /** language parsers */
 trait Parsers extends IndentParsers {
-  // TODO algorithm blocks
-  given block: Parser[Block] = indent ~> (
-    rep1(next ~ "1." ~> step) ^^ { Order(_) } |
+  type P[T] = PackratParser[T]
+
+  // ---------------------------------------------------------------------------
+  // algorithm blocks
+  // ---------------------------------------------------------------------------
+  given block: P[Block] = indent ~> (
+    rep1(next ~ "1." ~ upper ~> step) ^^ { Order(_) } |
       rep1(next ~ "*" ~> step) ^^ { Unorder(_) } |
       next ~> figureStr ^^ { Figure(_) }
   ) <~ dedent
 
-  // TODO algorithm steps
-  given step: Parser[Step] = yet
-
-  lazy val figureStr: Parser[List[String]] = "<figure>\n".r ~> repsep(
+  lazy val figureStr: P[List[String]] = "<figure>\n".r ~> repsep(
     ".*".r.filter(_.trim != "</figure>"),
     "\n",
   ) <~ "\n *</figure>".r
 
-  lazy val yet: Parser[Yet] =
-    ".+".r ~ opt(block) ^^ { case s ~ b => Yet(s, b) }
+  // ---------------------------------------------------------------------------
+  // algorithm steps
+  // ---------------------------------------------------------------------------
+  given step: P[Step] = (
+    letStep
+  ) <~ guard("\n|$".r) | yetStep
+
+  lazy val letStep: P[LetStep] =
+    ("let" ~> variable <~ "be") ~ expr <~ "." ^^ { case x ~ e => LetStep(x, e) }
+
+  lazy val yetStep: Parser[YetStep] =
+    ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
+
+  // ---------------------------------------------------------------------------
+  // algorithm expressions
+  // ---------------------------------------------------------------------------
+  given expr: P[Expression] = lengthExpr | idExpr
+
+  lazy val lengthExpr: P[LengthExpression] =
+    "the length of" ~> expr ^^ { LengthExpression(_) }
+  lazy val idExpr: P[IdentifierExpression] =
+    id ^^ { IdentifierExpression(_) }
+
+  // ---------------------------------------------------------------------------
+  // algorithm identifiers
+  // ---------------------------------------------------------------------------
+  given id: P[Identifier] = variable
+
+  lazy val variable: P[Variable] =
+    "_[^_]*_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
 }

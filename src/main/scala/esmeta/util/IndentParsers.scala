@@ -10,6 +10,7 @@ trait IndentParsers extends BasicParsers {
   /** readers for IndentParsers */
   class IndentReader[+T](underlying: Reader[T]) extends Reader[T] { outer =>
     private[IndentParsers] val indents: List[Int] = Nil
+    private[IndentParsers] val needUppercase: Boolean = false
     private[IndentParsers] val cache =
       mutable.HashMap.empty[(Parser[_], Position), MemoEntry[_]]
     private[IndentParsers] def getFromCache[T2](
@@ -45,10 +46,13 @@ trait IndentParsers extends BasicParsers {
     private[IndentParsers] def copy[T](
       underlying: Reader[T] = this.underlying,
       indents: List[Int] = this.indents,
+      needUppercase: Boolean = false,
     ): IndentReader[T] =
       val newIndents = indents
+      val newNeedUppercase = needUppercase
       new IndentReader(underlying) {
         override private[IndentParsers] val indents = newIndents
+        override private[IndentParsers] val needUppercase = newNeedUppercase
         override private[IndentParsers] val cache = outer.cache
         override private[IndentParsers] val recursionHeads =
           outer.recursionHeads
@@ -59,7 +63,7 @@ trait IndentParsers extends BasicParsers {
   /** treat only spaces as white spaces */
   override val whiteSpace = "( |\n *$)+".r
 
-  /** next symbol */
+  /** a next parser */
   val next: Parser[Unit] = new Parser[Unit] {
     val name = "next"
     def apply(in: Input) = in match {
@@ -79,7 +83,7 @@ trait IndentParsers extends BasicParsers {
     }
   }
 
-  /** indent symbols */
+  /** a indent parser */
   val indent: Parser[Unit] = new Parser[Unit] {
     val name = "indent"
     def apply(in: Input) = in match {
@@ -95,7 +99,7 @@ trait IndentParsers extends BasicParsers {
     }
   }
 
-  /** dedent symbols */
+  /** a dedent parser */
   val dedent: Parser[Unit] = new Parser[Unit] {
     val name = "dedent"
     def apply(in: Input) = in match {
@@ -108,6 +112,25 @@ trait IndentParsers extends BasicParsers {
           case (_, fail: NoSuccess) => fail
         }
       case in => Failure("not an IndentReader", in)
+    }
+  }
+
+  /** a parser that matches a literal string */
+  override implicit def literal(s: String): Parser[String] =
+    val superLiteral = super.literal
+    new Parser[String] {
+      def apply(in: Input) = superLiteral(in match {
+        case in: IndentReader[Char] if in.needUppercase && s.length > 0 =>
+          s"${s.head.toUpper}${s.substring(1)}"
+        case _ => s
+      })(in)
+    }
+
+  /** turn on needUppercase symbols */
+  val upper: Parser[Unit] = new Parser[Unit] {
+    def apply(in: Input) = in match {
+      case in: IndentReader[Char] => Success((), in.copy(needUppercase = true))
+      case in                     => Failure("not an IndentReader", in)
     }
   }
 

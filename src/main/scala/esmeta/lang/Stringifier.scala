@@ -10,15 +10,17 @@ case class Stringifier(detail: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Program => programRule(app, elem)
-      case elem: Block   => blockRule(app, elem)
-      case elem: Step    => stepRule(app, elem)
+      case elem: Program    => programRule(app, elem)
+      case elem: Block      => blockRule(app, elem)
+      case elem: Step       => stepRule(app, elem)
+      case elem: Expression => exprRule(app, elem)
+      case elem: Identifier => idRule(app, elem)
     }
 
-  // TODO programs
+  // programs
   given programRule: Rule[Program] = _ >> _.block
 
-  // TODO blocks
+  // blocks
   given blockRule: Rule[Block] = (app, block) =>
     app.wrap("", "")(block match {
       case Order(steps) =>
@@ -31,11 +33,27 @@ case class Stringifier(detail: Boolean) {
         app >> "</figure>"
     })
 
-  // TODO steps
+  // TODO handle needUppercase
+  // steps
   given stepRule: Rule[Step] = (app, step) =>
     step match {
-      case Yet(str, block) =>
+      case LetStep(x, expr) =>
+        app >> "Let " >> x >> " be " >> expr
+      case YetStep(str, block) =>
         app >> str
         block.fold(app)(app >> _)
+    }
+
+  // expressions
+  given exprRule: Rule[Expression] = (app, expr) =>
+    expr match {
+      case LengthExpression(expr)   => app >> "the length of " >> expr
+      case IdentifierExpression(id) => app >> id
+    }
+
+  // identifiers
+  given idRule: Rule[Identifier] = (app, id) =>
+    id match {
+      case Variable(name: String) => app >> s"_${name}_"
     }
 }

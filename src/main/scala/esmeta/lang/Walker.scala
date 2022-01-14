@@ -5,9 +5,11 @@ import esmeta.util.BasicWalker
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Program => walk(elem)
-    case elem: Block   => walk(elem)
-    case elem: Step    => walk(elem)
+    case elem: Program    => walk(elem)
+    case elem: Block      => walk(elem)
+    case elem: Step       => walk(elem)
+    case elem: Expression => walk(elem)
+    case elem: Identifier => walk(elem)
   }
 
   def walk(prog: Program): Program = Program(walk(prog.block))
@@ -19,6 +21,17 @@ trait Walker extends BasicWalker {
   }
 
   def walk(step: Step): Step = step match {
-    case Yet(str, block) => Yet(str, walkOpt(block, walk))
+    case LetStep(x, expr)    => LetStep(walk(x), walk(expr))
+    case YetStep(str, block) => YetStep(str, walkOpt(block, walk))
   }
+
+  def walk(expr: Expression): Expression = expr match {
+    case _ => ???
+  }
+
+  def walk(id: Identifier): Identifier = id match {
+    case x: Variable => walk(x)
+  }
+
+  def walk(x: Variable): Variable = Variable(x.name)
 }
