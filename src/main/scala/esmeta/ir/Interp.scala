@@ -78,7 +78,7 @@ class Interp(val st: State) {
               cursorOpt,
               id,
               ctxtName + ":closure",
-              locals,
+              newLocals,
             )
             st.ctxtStack ::= st.context
             st.context = context
