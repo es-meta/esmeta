@@ -38,14 +38,9 @@ case class IWhile(cond: Expr, body: Inst) extends CondInst
 /** call instructions */
 sealed trait CallInst extends Inst
 case class IApp(id: Id, fexpr: Expr, args: List[Expr]) extends CallInst
-case class IAccess(id: Id, bexpr: Expr, expr: Expr, args: List[Expr])
-  extends CallInst
 
 /** arrow instructions */
 sealed trait ArrowInst extends Inst
-case class IClo(id: Id, params: List[Id], captured: List[Id], body: Inst)
-  extends ArrowInst
-case class ICont(id: Id, params: List[Id], body: Inst) extends ArrowInst
 case class IWithCont(id: Id, params: List[Id], body: Inst) extends ArrowInst
 
 /** sequence instructions */
@@ -57,6 +52,7 @@ case class ISeq(insts: List[Inst]) extends Inst
 sealed trait Expr extends IRElem
 object Expr extends Parser[Expr]
 
+// pure value
 case class ENum(n: Double) extends Expr
 case class EINum(n: Long) extends Expr
 case class EBigINum(b: BigInt) extends Expr
@@ -66,27 +62,39 @@ case object EUndef extends Expr
 case object ENull extends Expr
 case object EAbsent extends Expr
 case class EConst(name: String) extends Expr
+case class EClo(params: List[Id], captured: List[Id], body: Inst) extends Expr
+case class ECont(params: List[Id], body: Inst) extends Expr
+
+// completion
 case class EComp(ty: Expr, value: Expr, target: Expr) extends Expr
+case class EIsCompletion(expr: Expr) extends Expr
+case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
+
+// IR objects
 case class EMap(ty: Ty, props: List[(Expr, Expr)]) extends Expr
 case class EList(exprs: List[Expr]) extends Expr
 case class ESymbol(desc: Expr) extends Expr
+case class ENotSupported(msg: String) extends Expr
 case class EPop(list: Expr, idx: Expr) extends Expr
+case class EContains(list: Expr, elem: Expr) extends Expr
+case class ECopy(obj: Expr) extends Expr
+case class EKeys(mobj: Expr, intSorted: Boolean) extends Expr
+case class EIsInstanceOf(base: Expr, name: String) extends Expr
+
+// etc
 case class ERef(ref: Ref) extends Expr
 case class EUOp(uop: UOp, expr: Expr) extends Expr
 case class EBOp(bop: BOp, left: Expr, right: Expr) extends Expr
-case class ETypeOf(expr: Expr) extends Expr
-case class EIsCompletion(expr: Expr) extends Expr
-case class EIsInstanceOf(base: Expr, name: String) extends Expr
-case class EGetElems(base: Expr, name: String) extends Expr
-case class EGetSyntax(base: Expr) extends Expr
-case class EParseSyntax(code: Expr, rule: Expr, parserParams: List[Boolean])
+case class EConvert(source: Expr, target: COp, radixOpt: Option[Expr])
   extends Expr
-case class EConvert(source: Expr, target: COp, flags: List[Expr]) extends Expr
-case class EContains(list: Expr, elem: Expr) extends Expr
-case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
-case class ECopy(obj: Expr) extends Expr
-case class EKeys(mobj: Expr, intSorted: Boolean) extends Expr
-case class ENotSupported(msg: String) extends Expr
+case class ETypeOf(expr: Expr) extends Expr
+
+/** TODO AST-related expressions */
+sealed trait ASTExpr extends Expr
+case class EGetElems(base: Expr, name: String) extends ASTExpr
+case class EGetSyntax(base: Expr) extends ASTExpr
+case class EParseSyntax(code: Expr, rule: Expr, parserParams: List[Boolean])
+  extends ASTExpr
 
 // -----------------------------------------------------------------------------
 // IR References
@@ -113,7 +121,7 @@ case class Ty(name: String) extends IRElem
 object Ty extends Parser[Ty]
 
 // -----------------------------------------------------------------------------
-// IR Unary Operators
+// IR Operators
 // -----------------------------------------------------------------------------
 enum UOp extends IRElem:
   case Neg, Not, BNot

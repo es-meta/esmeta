@@ -62,19 +62,6 @@ case class Stringifier(detail: Boolean) {
         app >> "app " >> id >> " = (" >> fexpr
         if (!args.isEmpty) app >> " " >> args
         app >> ")"
-      case iaccess @ IAccess(id, bexpr, expr, args) =>
-        given Rule[Iterable[Expr]] = iterableRule[Expr](sep = " ")
-        app >> "access " >> id >> " = (" >> bexpr >> " " >> expr
-        if (!args.isEmpty) app >> " " >> args
-        app >> ")"
-      case IClo(id, params, captured, body) =>
-        given Rule[Iterable[Id]] = iterableRule[Id](sep = ", ")
-        given Rule[Inst] = instDetailRule
-        app >> "clo " >> id >> " = (" >> params >> ")[" >> captured >> "] => " >> body
-      case ICont(id, params, body) =>
-        given Rule[Inst] = instDetailRule
-        given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
-        app >> "cont " >> id >> " = " >> params >> " [=>] " >> body
       case IWithCont(id, params, inst) =>
         given Rule[Inst] = instDetailRule
         given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
@@ -96,6 +83,14 @@ case class Stringifier(detail: Boolean) {
       case ENull        => app >> "null"
       case EAbsent      => app >> "absent"
       case EConst(name) => app >> "~" >> name >> "~"
+      case EClo(params, captured, body) =>
+        given Rule[Iterable[Id]] = iterableRule[Id](sep = ", ")
+        given Rule[Inst] = instDetailRule
+        app >> "(clo (" >> params >> ")[" >> captured >> "] => " >> body >> ")"
+      case ECont(params, body) =>
+        given Rule[Iterable[Id]] = iterableRule[Id]("(", ", ", ")")
+        given Rule[Inst] = instDetailRule
+        app >> "(cont " >> params >> " [=>] " >> body >> ")"
       case EComp(ty, value, target) =>
         app >> "(comp[" >> ty >> "] " >> value >> " => " >> target >> ")"
       case EMap(ty, props) =>

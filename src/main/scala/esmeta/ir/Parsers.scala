@@ -35,24 +35,6 @@ trait Parsers extends BasicParsers {
         ("app " ~> id <~ "=") ~ ("(" ~> expr) ~ (rep(expr) <~ ")") ^^ {
           case x ~ f ~ as => IApp(x, f, as)
         } |
-        ("access " ~> id <~ "=") ~ ("(" ~> expr) ~ expr ~ (rep(
-          expr,
-        ) <~ ")") ^^ { case x ~ e1 ~ e2 ~ e3 =>
-          IAccess(x, e1, e2, e3)
-        } |
-        ("clo " ~> id <~ "=") ~ ("(" ~> repsep(
-          id,
-          ",",
-        ) <~ ")") ~ ("[" ~> repsep(
-          id,
-          ",",
-        ) <~ "]") ~ ("=>" ~> inst) ^^ { case x ~ ps ~ cs ~ b =>
-          IClo(x, ps, cs, b)
-        } |
-        ("cont " ~> id <~ "=") ~ ("(" ~> repsep(
-          id,
-          ",",
-        ) <~ ")") ~ ("[=>]" ~> inst) ^^ { case x ~ ps ~ b => ICont(x, ps, b) } |
         ("withcont " ~> id) ~ ("(" ~> repsep(id, ",") <~ ")" <~ "=") ~ inst ^^ {
           case x ~ ps ~ b => IWithCont(x, ps, b)
         } |
@@ -76,6 +58,15 @@ trait Parsers extends BasicParsers {
       "null" ^^^ ENull |
       "absent" ^^^ EAbsent |
       "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) } |
+      ("(" ~ "clo") ~> ("(" ~> repsep(id, ",") <~ ")") ~
+      ("[" ~> repsep(id, ",") <~ "]") ~ ("=>" ~> inst) <~ ")" ^^ {
+        case ps ~ cs ~ b =>
+          EClo(ps, cs, b)
+      } |
+      ("(" ~ "cont") ~> ("(" ~> repsep(id, ",") <~ ")") ~
+      ("[=>]" ~> inst) <~ ")" ^^ { case ps ~ b =>
+        ECont(ps, b)
+      } |
       "???" ~> string ^^ { ENotSupported(_) } |
       "(" ~> (uop ~ expr) <~ ")" ^^ { case u ~ e => EUOp(u, e) } |
       "(" ~> (bop ~ expr ~ expr) <~ ")" ^^ { case b ~ l ~ r => EBOp(b, l, r) } |
@@ -103,7 +94,7 @@ trait Parsers extends BasicParsers {
       "(" ~> "parse-syntax" ~> expr ~ expr ~ rep(bool) <~ ")" ^^ {
         case e ~ r ~ ps => EParseSyntax(e, r, ps)
       } |
-      "(" ~> "convert" ~> expr ~ cop ~ rep(expr) <~ ")" ^^ { case e ~ r ~ l =>
+      "(" ~> "convert" ~> expr ~ cop ~ opt(expr) <~ ")" ^^ { case e ~ r ~ l =>
         EConvert(e, r, l)
       } |
       "(" ~> "contains" ~> expr ~ expr <~ ")" ^^ { case l ~ e =>

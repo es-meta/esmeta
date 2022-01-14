@@ -68,8 +68,8 @@ case class BuiltinHead(
 // -----------------------------------------------------------------------------
 case class Param(
   name: String,
-  kind: Param.Kind,
-  ty: String, // TODO more precisely represent parameter types
+  kind: Param.Kind = Param.Kind.Normal,
+  ty: String = "", // TODO more precisely represent parameter types
 ) extends SpecElem
 object Param:
   enum Kind extends SpecElem:

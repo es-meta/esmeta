@@ -41,14 +41,6 @@ class StringifierTinyTest extends IRTest {
       IPrint(EBool(false)) -> "print false",
       IApp(Id("x"), EStr("f"), irList) ->
         "app x = (\"f\" null absent)",
-      IAccess(Id("x"), EStr("b"), ENum(3.0), Nil) ->
-        "access x = (\"b\" 3.0)",
-      IAccess(Id("x"), EStr("b"), ENum(3.0), List(EStr("x"), ENull)) ->
-        "access x = (\"b\" 3.0 \"x\" null)",
-      IClo(Id("x"), idList, idList, IExpr(EINum(4))) ->
-        s"clo x = $sIdList[x, y] => 4i",
-      ICont(Id("x"), idList, IExpr(EINum(4))) ->
-        s"cont x = $sIdList [=>] 4i",
       IWithCont(Id("x"), idList, irReturn) ->
         s"withcont x $sIdList = $sReturn",
     )
@@ -64,6 +56,10 @@ class StringifierTinyTest extends IRTest {
       EUndef -> "undefined",
       ENull -> "null",
       EAbsent -> "absent",
+      EClo(idList, idList, IExpr(EINum(4))) ->
+        s"(clo $sIdList[x, y] => 4i)",
+      ECont(idList, IExpr(EINum(4))) ->
+        s"(cont $sIdList [=>] 4i)",
       EMap(Ty("T"), irMapElems) -> s"(new T$sMapElems)",
       EList(irList) -> sList,
       EPop(EList(irList), EINum(0)) -> s"(pop $sList 0i)",
@@ -81,10 +77,10 @@ class StringifierTinyTest extends IRTest {
         -> "(parse-syntax \"code\" \"rule\")",
       EParseSyntax(EStr("code"), EStr("rule"), List(true, false))
         -> "(parse-syntax \"code\" \"rule\" true false)",
-      EConvert(ENull, COp.NumToBigInt, Nil) ->
+      EConvert(ENull, COp.NumToBigInt, None) ->
         "(convert null num2bigint)",
-      EConvert(EStr("4"), COp.StrToNum, irList) ->
-        "(convert \"4\" str2num null absent)",
+      EConvert(EStr("4"), COp.StrToNum, Some(EAbsent)) ->
+        "(convert \"4\" str2num absent)",
       EContains(EList(irList), ENull) -> s"(contains $sList null)",
       EReturnIfAbrupt(ENum(3.0), true) -> "[? 3.0]",
       EReturnIfAbrupt(ENum(3.0), false) -> "[! 3.0]",
