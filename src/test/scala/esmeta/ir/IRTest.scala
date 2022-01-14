@@ -13,7 +13,7 @@ trait IRTest extends ESMetaTest {
     Interp(State()).moveTo(Program(str))
   def irEvalFile(filename: String): State = {
     val program = Program.fromFile(filename)
-    Interp(State(fnameOpt = Some(filename)).moveTo(program))
+    Interp(State().moveTo(program))
   }
 
   // tests for IR parser

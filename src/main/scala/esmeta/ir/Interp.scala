@@ -101,11 +101,11 @@ class Interp(val st: State) {
       case IDelete(ref)       => st.delete(interp(ref))
       case IAppend(expr, list) =>
         interp(list).escaped match
-          case (addr: Addr) => st.append(addr, interp(expr).escaped)
+          case (addr: Addr) => st.heap.append(addr, interp(expr).escaped)
           case v            => error(s"not an address: $v")
       case IPrepend(expr, list) =>
         interp(list).escaped match
-          case (addr: Addr) => st.prepend(addr, interp(expr).escaped)
+          case (addr: Addr) => st.heap.prepend(addr, interp(expr).escaped)
           case v            => error(s"not an address: $v")
       case IReturn(expr) => throw ReturnValue(interp(expr))
       case IThrow(name)  => ??? // TODO need error object modeling
@@ -120,7 +120,7 @@ class Interp(val st: State) {
     st.moveNext
     inst match
       case IWithCont(id, params, body) =>
-        val State(_, context, ctxtStack, _, _, _, _) = st
+        val State(_, context, ctxtStack, _, _) = st
         st.context = context.copied
         st.context.cursorOpt = cursorGen(body)
         st.context.locals += id -> Cont(params, context, ctxtStack)
@@ -173,22 +173,23 @@ class Interp(val st: State) {
 
     // IR objects
     case EMap(ty, props) =>
-      val addr = st.allocMap(ty)
+      val addr = st.heap.allocMap(ty)
       for ((kexpr, vexpr) <- props)
         val k: PureValue = interp(kexpr).escaped
         val v = interp(vexpr)
         st.update(addr, k, v)
       addr
-    case EList(exprs) => st.allocList(exprs.map(expr => interp(expr).escaped))
+    case EList(exprs) =>
+      st.heap.allocList(exprs.map(expr => interp(expr).escaped))
     case ESymbol(desc) =>
       interp(desc) match
-        case (str: Str) => st.allocSymbol(str)
-        case Undef      => st.allocSymbol(Undef)
+        case (str: Str) => st.heap.allocSymbol(str)
+        case Undef      => st.heap.allocSymbol(Undef)
         case v          => error(s"not a string: $v")
     case ENotSupported(msg) => throw NotSupported(msg)
     case EPop(list, idx) =>
       interp(list).escaped match
-        case (addr: Addr) => st.pop(addr, interp(idx).escaped)
+        case (addr: Addr) => st.heap.pop(addr, interp(idx).escaped)
         case v            => error(s"not an address: $v")
     case EContains(list, elem) =>
       interp(list).escaped match
@@ -204,7 +205,7 @@ class Interp(val st: State) {
         case v => error(s"not an address: $v")
     case EKeys(mobj, intSorted) =>
       interp(mobj).escaped match
-        case addr: Addr => st.keys(addr, intSorted)
+        case addr: Addr => st.heap.keys(addr, intSorted)
         case v          => error(s"not an address: $v")
     case EIsInstanceOf(base, name) =>
       val bv = interp(base)

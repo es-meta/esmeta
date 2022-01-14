@@ -201,7 +201,7 @@ case class Stringifier(detail: Boolean) {
   // states
   given stateRule: Rule[State] = (app, st) =>
     app.wrap("{", "}") {
-      val State(_, context, ctxtStack, globals, heap, fnameOpt, result) = st
+      val State(_, context, ctxtStack, globals, heap) = st
       app :> "context: " >> context
       given Rule[Iterable[String]] =
         iterableRule[String]("[", ", ", "]")
@@ -209,8 +209,6 @@ case class Stringifier(detail: Boolean) {
       app :> "globals: "
       app.wrapIterable(globals, detail)
       app :> "heap: " >> heap
-      app :> "filename: " >> fnameOpt.getOrElse("UNKNOWN")
-      app :> "result: " >> result.getOrElse(Absent)
     }
 
   // contexts

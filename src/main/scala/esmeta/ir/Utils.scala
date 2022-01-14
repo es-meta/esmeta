@@ -199,26 +199,6 @@ object Utils {
           case addr: Addr => st.heap.delete(addr, prop); st
           case _          => error(s"illegal reference delete: delete $refV")
 
-    /** object operators */
-    def append(addr: Addr, value: PureValue): State =
-      st.heap.append(addr, value); st
-    def prepend(addr: Addr, value: PureValue): State =
-      st.heap.prepend(addr, value); st
-    def pop(addr: Addr, idx: PureValue): Value = st.heap.pop(addr, idx)
-    def keys(addr: Addr, intSorted: Boolean): Addr =
-      st.heap.keys(addr, intSorted)
-
-    /** object allocations */
-    def allocMap(ty: Ty, map: Map[PureValue, Value] = Map()): Addr =
-      st.heap.allocMap(ty, map)
-    def allocList(list: List[PureValue]): Addr = st.heap.allocList(list)
-    def allocSymbol(desc: PureValue): Addr = st.heap.allocSymbol(desc)
-    // TODO copy method of Obj type cannot be defined
-    // def copyObj(addr: Addr): Addr = st.heap.copyObj(addr)
-    // TODO
-    // def setType(addr: Addr, ty: Ty): State =
-    //   st.heap.setType(addr, ty); st
-
     /** get string for a given address */
     def getString(value: Value): String = value match
       case comp: CompValue =>
@@ -229,45 +209,29 @@ object Utils {
       case addr: Addr => addr.toString + " -> " + st.heap(addr).toString
       case _          => value.toString
 
-    /** copied */
-    def copied: State =
-      val newContext = st.context.copied
-      val newCtxtStack = st.ctxtStack.map(_.copied)
-      val newGlobals = MMap.from(st.globals)
-      // TODO copy method of Obj type cannot be defined
-      val newHeap = ??? // st.heap.copied
-      State(
-        st.cursorGen,
-        newContext,
-        newCtxtStack,
-        newGlobals,
-        newHeap,
-        st.fnameOpt,
-      )
-
     /** Return helper */
     def doReturn(value: Value): Unit =
       st.ctxtStack match
         case Nil =>
-          st.result = Some(value.wrapCompletion)
+          // TODO save final result to somewhere
           st.context.cursorOpt = None
         case ctxt :: rest =>
-          // // TODO proper type handle
-          // // type update algorithms
-          // val setTypeMap: Map[String, Ty] = Map(
-          //   "OrdinaryFunctionCreate" -> Ty("ECMAScriptFunctionObject"),
-          //   "ArrayCreate" -> Ty("ArrayExoticObject"),
-          // )
-          // (value, setTypeMap.get(st.context.name)) match {
-          //   case (addr: Addr, Some(ty)) =>
-          //     st.setType(addr, ty)
-          //   case _ =>
-          // }
-
+          // TODO need type modeling
           // return wrapped values
           ctxt.locals += st.context.retId -> value.wrapCompletion
           st.context = ctxt
           st.ctxtStack = rest
+
+    /** copied */
+    def copied: State =
+      State(
+        st.cursorGen,
+        st.context.copied,
+        st.ctxtStack.map(_.copied),
+        MMap.from(st.globals),
+        st.heap.copied,
+      )
+
   }
 
   // -----------------------------------------------------------------------------
@@ -275,12 +239,14 @@ object Utils {
   // -----------------------------------------------------------------------------
   /** extension for context */
   extension (ctxt: Context) {
-    def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
+    // TODO handle absent value in builtin function
     def isBuiltin: Boolean = ???
-    // algo.fold(false)(_.isBuiltin)
+
+    /** copied */
+    def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
+
     /** move cursor */
     def moveNext: Unit =
-      // prevCursorOpt = cursorOpt
       ctxt.cursorOpt = ctxt.cursorOpt.flatMap(_.next)
   }
 
@@ -289,11 +255,12 @@ object Utils {
   // -----------------------------------------------------------------------------
   /** extension for cursor */
   extension (cursor: Cursor) {
-    // get next cursor
+
+    /** get next cursor */
     def next: Option[Cursor] = cursor match
       case InstCursor(_, rest) => InstCursor.from(rest)
 
-    // get current instruction from cursor
+    /** get current instruction from cursor */
     def curr: Option[Inst] = cursor match
       case InstCursor(curr, _) => Some(curr)
   }
@@ -308,10 +275,8 @@ object Utils {
     def apply(addr: Addr): Obj =
       heap.map.getOrElse(addr, error(s"unknown address: $addr"))
     def apply(addr: Addr, key: PureValue): Value = heap(addr) match
-      case (s: IRSymbol) => s(key)
-      // TODO JS
-      // case (IRMap(Ty(js.ALGORITHM), _, _))  => getAlgorithm(key)
-      // case (IRMap(Ty(js.INTRINSICS), _, _)) => getIntrinsics(key)
+      // TODO handle access to intrinsics, algorithms
+      case (s: IRSymbol)          => s(key)
       case (m: IRMap)             => m(key)
       case (l: IRList)            => l(key)
       case IRNotSupported(_, msg) => throw NotSupported(msg)
@@ -323,11 +288,9 @@ object Utils {
         case v          => error(s"not a heap.map: $v")
 
     /** delete */
-    def delete(addr: Addr, prop: PureValue): Heap = heap(addr) match {
-      case (m: IRMap) =>
-        m.delete(prop); heap
-      case v => error(s"not a heap.map: $v")
-    }
+    def delete(addr: Addr, prop: PureValue): Heap = heap(addr) match
+      case (m: IRMap) => m.delete(prop); heap
+      case v          => error(s"not a heap.map: $v")
 
     /** object operators */
     def append(addr: Addr, value: PureValue): Heap = heap(addr) match
@@ -345,25 +308,28 @@ object Utils {
         case (m: IRMap)               => m.sortedKeys
         case obj                      => error(s"not a heap.map: $obj")
       }))
-    // TODO copy
-    // def copyObj(addr: Addr): Addr = alloc(heap(addr).copied)
+    def copyObj(addr: Addr): Addr = alloc(heap(addr).copied)
 
     /** object allocations */
     def allocMap(
       ty: Ty,
-      m: Map[PureValue, Value],
+      m: Map[PureValue, Value] = Map(),
     ): Addr =
-      val irMap: IRMap =
-        if (ty.name == "Record") IRMap(ty, MMap(), 0L) else ??? // IRMap(ty)
-      for ((k: PureValue, v) <- m) irMap.update(k, v)
-      // TODO subMap
-      // if (ty.hasSubMap) {
-      //   val subMap = ??? // IRMap(Ty("SubMap"))
-      //   irMap.update(Str("SubMap"), alloc(subMap))
-      // }
+      // TODO create subMap if needed
+      val irMap = IRMap(ty)
+      for ((k, v) <- m) irMap.update(k, v)
       alloc(irMap)
     def allocList(list: List[PureValue]): Addr = alloc(IRList(list.toVector))
     def allocSymbol(desc: PureValue): Addr = alloc(IRSymbol(desc))
+
+    /** copied */
+    def copied: Heap =
+      Heap(
+        MMap.from(heap.map.toList.map { case (addr, obj) =>
+          addr -> obj.copied
+        }),
+        heap.size,
+      )
 
     /** allocation helper */
     private def alloc(obj: Obj): Addr =
@@ -389,40 +355,20 @@ object Utils {
         heap(prop, Str("Value"))
       case _ => error(s"not an address: $addr")
 
-    // TODO setType
-    // /** set type of objects */
-    // def setType(addr: Addr, ty: Ty): Heap = heap(addr) match
-    //   case (irmap: IRMap) => irmap.ty = ty; heap
-    //   case _              => error(s"invalid type update: $addr")
+  }
 
-    // TODO copy
-    // copied
-    // def copied: Heap = {
-    //  val newmap = MMap.from(heap.map.toList.map { case (addr, obj) =>
-    //    addr -> obj.copied
-    //  })
-    //  Heap(newmap, heap.size)
-    // }
+  // -----------------------------------------------------------------------------
+  // IR Object
+  // -----------------------------------------------------------------------------
+  /** extension for IR object */
+  extension (obj: Obj) {
 
-    // TODO JS
-    // // speical object access helper
-    // def getAlgorithm(key: Value): Value = key match {
-    //  case Str(str) => js.algoheap.map.get(str).map(Func).getOrElse(Absent)
-    //  case _        => error(s"invalid algorithm: $key")
-    // }
-    // def getIntrinsics(key: Value): Value = key match {
-    //  case Str(str) if js.intrinsicRegex.matches(str) =>
-    //    // resolve %A.B.C%
-    //    val js.intrinsicRegex(path) = str
-    //    path.split("\\.").toList match {
-    //      case base :: rest =>
-    //        val baseAddr = js.intrinsicToAddr(base)
-    //        rest.foldLeft(baseAddr: Value)(getPropValue)
-    //      case Nil =>
-    //        error(s"invalid intrinsics: $key")
-    //    }
-    //  case _ => error(s"invalid intrinsics: $key")
-    // }
+    /** copied */
+    def copied: Obj = obj match
+      case s: IRSymbol       => s.copied
+      case m: IRMap          => m.copied
+      case l: IRList         => l.copied
+      case n: IRNotSupported => n.copied
   }
 
   // -----------------------------------------------------------------------------
@@ -436,7 +382,7 @@ object Utils {
       case Str("Description") => irSym.desc
       case v                  => error(s"an invalid symbol field access: $v")
 
-    /** copy of object */
+    /** copied */
     def copied: IRSymbol = IRSymbol(irSym.desc)
   }
 
@@ -475,12 +421,14 @@ object Utils {
     def delete(prop: PureValue): IRMap = { irMap.props -= prop; irMap }
 
     /** object operators */
+    def keys: Vector[PureValue] = irMap.props.map(_._1).toVector
+    def sortedKeys: Vector[PureValue] = ??? // TODO sorted keys
+
+    /** copied */
     def copied: IRMap =
       val newProps = MMap[PureValue, IRMapValue]()
       newProps ++= irMap.props
       IRMap(irMap.ty, newProps, irMap.size)
-    def keys: Vector[PureValue] = irMap.props.map(_._1).toVector
-    def sortedKeys: Vector[PureValue] = ??? // TODO
   }
 
   // -----------------------------------------------------------------------------
@@ -513,6 +461,8 @@ object Utils {
           .slice(0, k) ++ irList.values.slice(k + 1, irList.values.length)
         v
       case v => error(s"not an integer index: $irList[$v]")
+
+    /** copied */
     def copied: IRList = IRList(irList.values)
   }
 
@@ -533,7 +483,6 @@ object Utils {
   extension (v: Value) {
     // escape completion
     def escaped: PureValue = v match
-      // TODO need to be revised(NormalComp)
       case CompValue(CONST_NORMAL, value, _) => value
       case CompValue(_, _, _) =>
         error(s"unchecked abrupt completion: $v")

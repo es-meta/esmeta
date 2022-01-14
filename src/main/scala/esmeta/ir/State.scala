@@ -13,8 +13,6 @@ case class State(
   var ctxtStack: List[Context] = Nil,
   val globals: MMap[Id, Value] = MMap(),
   val heap: Heap = Heap(),
-  var fnameOpt: Option[String] = None,
-  var result: Option[Value] = None,
 ) extends IRElem
 
 // -----------------------------------------------------------------------------
@@ -59,8 +57,11 @@ case class Heap(
 // -----------------------------------------------------------------------------
 sealed trait Obj(var ty: Ty) extends IRElem
 case class IRSymbol(desc: PureValue) extends Obj(TY_SYMBOL)
-case class IRMap(t: Ty, props: MMap[PureValue, IRMapValue], var size: Long)
-  extends Obj(t)
+case class IRMap(
+  t: Ty,
+  props: MMap[PureValue, IRMapValue] = MMap(),
+  var size: Long = 0L,
+) extends Obj(t)
 case class IRList(var values: Vector[PureValue] = Vector()) extends Obj(TY_LIST)
 case class IRNotSupported(tyname: String, desc: String) extends Obj(Ty(tyname))
 
@@ -88,7 +89,6 @@ case class CompValue(
 
 /** pure values (not completion values) */
 sealed trait PureValue extends Value
-// TODO case class Func(algo: Algo) extends PureValue
 
 /** constants */
 case class Const(name: String) extends PureValue
