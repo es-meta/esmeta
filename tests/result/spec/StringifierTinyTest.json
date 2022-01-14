@@ -1,4 +1,5 @@
 {
+  "Algorithm head" : true,
   "Grammar" : true,
   "Lhs" : true,
   "NtArg" : true,
