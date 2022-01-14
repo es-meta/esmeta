@@ -1,0 +1,9 @@
+// This test checks the semantic of while.
+let i = 0
+let x = 0
+while (< i 10) {
+  i = (+ i 1)
+  x = (+ x i)
+}
+x = (+ x 10)
+assert (= x 65)

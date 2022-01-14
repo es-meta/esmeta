@@ -1,0 +1,8 @@
+// This test checks the semantic of append.
+let list = (new [7, 8, 9])
+append 5 -> list
+assert (= list.length 4i)
+assert (= list[0i] 7)
+assert (= list[1i] 8)
+assert (= list[2i] 9)
+assert (= list[3i] 5)

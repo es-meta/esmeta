@@ -1,0 +1,4 @@
+// This test checks the semantic of assign.
+let a = 0
+a = 42
+assert (= a 42)

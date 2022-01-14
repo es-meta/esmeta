@@ -1,0 +1,9 @@
+//This test checks the semantic of withcont.
+let x = 0
+withcont k (x) = {
+  assert (= x 0)
+  let a = 10
+  app y = (k a)
+  assert false
+}
+assert (= x 10)
