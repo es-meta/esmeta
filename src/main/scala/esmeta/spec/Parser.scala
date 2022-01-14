@@ -88,9 +88,6 @@ object Parser extends Parsers {
     "sec-generatorfunction",
     "sec-asyncgeneratorfunction",
     "sec-async-function-constructor-arguments",
-    // TODO handle unusual html structure of HasCallInTailPosition
-    "sec-statement-rules",
-    "sec-expression-rules",
     // TODO handle default cases
     "sec-static-semantics-contains",
     "sec-static-semantics-allprivateidentifiersvalid",
@@ -99,17 +96,30 @@ object Parser extends Parsers {
 
   /** parses algorithm heads */
   def parseHeads(elem: Element, idxMap: Map[String, (Int, Int)]): List[Head] = {
-    if (IGNORE_ALGO_PARENT_IDS contains elem.parent.id) return Nil
-    if (elem.parent.tagName != "emu-clause") return Nil
+    var parent = elem.parent
+    if (
+      (parent.id endsWith "statement-rules") ||
+      (parent.id endsWith "expression-rules")
+    ) parent = parent.parent
 
-    elem.parent.attr("type") match {
-      case "abstract operation"              => parseAbsOpHead(elem, false)
-      case "host-defined abstract operation" => parseAbsOpHead(elem, true)
-      case "numeric method"                  => parseNumMethodHead(elem)
-      case "sdo"                             => parseSdoHead(elem, idxMap)
-      case "concrete method"                 => parseConcMethodHead(elem)
-      case "internal method"                 => parseInMethodHead(elem)
-      case _                                 => parseBuiltinHead(elem)
+    if (IGNORE_ALGO_PARENT_IDS contains parent.id) return Nil
+    if (parent.tagName != "emu-clause") return Nil
+
+    parent.attr("type") match {
+      case "abstract operation" =>
+        parseAbsOpHead(parent, elem, false)
+      case "host-defined abstract operation" =>
+        parseAbsOpHead(parent, elem, true)
+      case "numeric method" =>
+        parseNumMethodHead(parent, elem)
+      case "sdo" =>
+        parseSdoHead(parent, elem, idxMap)
+      case "concrete method" =>
+        parseConcMethodHead(parent, elem)
+      case "internal method" =>
+        parseInMethodHead(parent, elem)
+      case _ =>
+        parseBuiltinHead(parent, elem)
     }
   }
 
@@ -118,26 +128,29 @@ object Parser extends Parsers {
   // ///////////////////////////////////////////////////////////////////////////
   // get abstract operation heads
   private def parseAbsOpHead(
+    parent: Element,
     elem: Element,
     isHostDefined: Boolean,
   ): List[AbstractOperationHead] =
-    val headContent = elem.getFirstSiblingContent
+    val headContent = parent.getFirstChildContent
     val generator = parseBy(absOpHeadGen)(headContent)
     List(generator(isHostDefined))
 
   // get numeric method heads
   private def parseNumMethodHead(
+    parent: Element,
     elem: Element,
   ): List[NumericMethodHead] =
-    val headContent = elem.getFirstSiblingContent
+    val headContent = parent.getFirstChildContent
     List(parseBy(numMethodHead)(headContent))
 
   // get syntax-directed operation (SDO) heads
   private def parseSdoHead(
+    parent: Element,
     elem: Element,
     idxMap: Map[String, (Int, Int)],
   ): List[SyntaxDirectedOperationHead] = {
-    val headContent = elem.getFirstSiblingContent
+    val headContent = parent.getFirstChildContent
     val prevContent = elem.getPrevContent
     val generator = parseBy(sdoHeadGen)(headContent)
     for {
@@ -158,9 +171,10 @@ object Parser extends Parsers {
 
   // get concrete method heads
   private def parseConcMethodHead(
+    parent: Element,
     elem: Element,
   ): List[ConcreteMethodHead] =
-    val headContent = elem.getFirstSiblingContent
+    val headContent = parent.getFirstChildContent
     val generator = parseBy(concMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
@@ -168,8 +182,11 @@ object Parser extends Parsers {
     List(generator(receiverParam))
 
   // get internal method heads
-  private def parseInMethodHead(elem: Element): List[InternalMethodHead] =
-    val headContent = elem.getFirstSiblingContent
+  private def parseInMethodHead(
+    parent: Element,
+    elem: Element,
+  ): List[InternalMethodHead] =
+    val headContent = parent.getFirstChildContent
     val generator = parseBy(inMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
@@ -177,7 +194,10 @@ object Parser extends Parsers {
     List(generator(receiverParam))
 
   // get built-in heads
-  private def parseBuiltinHead(elem: Element): List[BuiltinHead] =
-    val headContent = elem.getFirstSiblingContent
+  private def parseBuiltinHead(
+    parent: Element,
+    elem: Element,
+  ): List[BuiltinHead] =
+    val headContent = parent.getFirstChildContent
     List(parseBy(builtinHead)(headContent))
 }

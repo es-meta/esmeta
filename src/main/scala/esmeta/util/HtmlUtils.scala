@@ -49,6 +49,12 @@ object HtmlUtils {
     /** get content of an element */
     def getContent: String = elem.html.trim.unescapeHtml
 
+    /** get first child element */
+    def getFirstChildElem: Element = elem.child(0)
+
+    /** get first child content */
+    def getFirstChildContent: String = elem.child(0).getContent
+
     /** get first sibling element */
     def getFirstSiblingElem: Element = elem.siblingElements.get(0)
 
