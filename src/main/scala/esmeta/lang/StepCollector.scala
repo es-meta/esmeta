@@ -7,7 +7,7 @@ object StepCollector {
   def apply(elem: LangElem): List[Step] =
     val collector = new Collector
     collector.walk(elem)
-    collector.steps
+    collector.steps.reverse
 
   // internal collector
   private class Collector extends UnitWalker {

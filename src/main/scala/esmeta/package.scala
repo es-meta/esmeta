@@ -8,6 +8,7 @@ val BASE_DIR = System.getenv("ESMETA_HOME")
 
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
+val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
 
 /** tests directory root */
 val TEST_DIR = s"$BASE_DIR/tests"

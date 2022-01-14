@@ -22,7 +22,7 @@ case class Stringifier(detail: Boolean) {
 
   // blocks
   given blockRule: Rule[Block] = (app, block) =>
-    app.wrap("", "")(block match {
+    if (detail) app.wrap("", "")(block match {
       case Order(steps) =>
         steps.foreach(app :> "1. " >> _)
       case Unorder(steps) =>
@@ -32,6 +32,7 @@ case class Stringifier(detail: Boolean) {
         app.wrap("", "")(lines.map(app :> _))
         app >> "</figure>"
     })
+    else app >> " [...]"
 
   // TODO handle needUppercase
   // steps
