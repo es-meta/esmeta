@@ -1,4 +1,3 @@
-// lists
 let list = (new [1, 2, 3])
 assert (= list.length 3i)
 assert (= list[0i] 1)

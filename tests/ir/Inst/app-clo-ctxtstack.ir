@@ -1,0 +1,3 @@
+let f = (clo () [] => return true)
+app y = (f)
+assert (= y true)

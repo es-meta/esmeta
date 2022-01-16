@@ -1,4 +1,3 @@
-// strings
 let x = "abc"
 let y = "def"
 assert (= (+ x y) "abcdef")

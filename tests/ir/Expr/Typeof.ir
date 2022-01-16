@@ -1,4 +1,3 @@
-// This test checks the semantic of typeof.
 assert (= (typeof 1) "Number")
 assert (= (typeof true) "Boolean")
 assert (= (typeof undefined) "Undefined")

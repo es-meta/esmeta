@@ -1,0 +1,3 @@
+let x = (cont () [=>] {})
+app y = (x)
+assert false

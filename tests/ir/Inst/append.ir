@@ -1,4 +1,3 @@
-// This test checks the semantic of append.
 let list = (new [7, 8, 9])
 append 5 -> list
 assert (= list.length 4i)

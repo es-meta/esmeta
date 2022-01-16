@@ -1,4 +1,3 @@
-// This test checks the semantic of assign.
 let obj = (new Record)
 let prop = "b"
 obj[prop] = 2

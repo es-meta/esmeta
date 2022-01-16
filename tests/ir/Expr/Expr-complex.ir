@@ -1,15 +1,12 @@
-// identifiers
 let x = 1
 let z = x
 assert (= z 1)
 
-// property reads
 let obj = (new Record("x" -> 1, "y" -> 2))
 let p = "x"
 let res = obj[p]
 assert (= res 1)
 
-// property existences
 let obj = (new Record("x" -> 1, "y" -> 2))
 assert (! (= absent obj.x))
 assert (= absent obj["z"])

@@ -1,4 +1,3 @@
-// floating points
 let x = 1.2
 let y = 2.0
 assert (= (- x) -1.2)
@@ -9,7 +8,6 @@ assert (= (/ x y) 0.6)
 assert (= (% y x) 0.8)
 assert (= (< x y) true)
 
-// integers
 x = 3i
 y = 5i
 assert (= (- x) -3i)
