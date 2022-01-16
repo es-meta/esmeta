@@ -1,4 +1,0 @@
-let a = 2
-let x = (cont (a) [=>] assert (= a 1))
-a = 1
-app y = (x a)

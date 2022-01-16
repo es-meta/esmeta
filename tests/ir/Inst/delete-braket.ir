@@ -1,4 +1,0 @@
-let obj = (new Record("x" -> 1, "y" -> 2))
-delete obj["x"]
-assert (= absent obj["x"])
-assert (! (= absent obj["y"]))

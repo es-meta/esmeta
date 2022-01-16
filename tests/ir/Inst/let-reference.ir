@@ -1,4 +1,0 @@
-let a = 3
-let b = a
-assert (= a 3)
-assert (= b 3)
