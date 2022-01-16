@@ -1,0 +1,7 @@
+let x = 0
+withcont k () = {
+  assert (= x 0)
+  app y = (k)
+  assert false
+}
+assert (= x 0)

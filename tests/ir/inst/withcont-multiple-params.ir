@@ -1,0 +1,15 @@
+let a = 4
+let b = 3
+let c = 2
+let d = 1
+let e = 0
+withcont x (a,b,c,d) = {
+  app y = (x 1 2 3 4)
+  assert false
+}
+
+assert (= a 1)
+assert (= b 2)
+assert (= c 3)
+assert (= d 4)
+assert (= e 0)

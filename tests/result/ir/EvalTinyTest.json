@@ -34,8 +34,6 @@
   "list4.ir" : true,
   "map-list1.ir" : true,
   "map-list2.ir" : true,
-  "map1.ir" : true,
-  "map2.ir" : true,
   "prepend-nested.ir" : true,
   "seq-empty.ir" : true,
   "seq-next.ir" : true,

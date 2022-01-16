@@ -1,0 +1,11 @@
+let x = 0
+let z = false
+let f = (clo () [x, z] => {
+  assert (= x 0)
+  assert (= z false)
+  return 42
+})
+app y = (f)
+assert (= x 0)
+assert (= z false)
+

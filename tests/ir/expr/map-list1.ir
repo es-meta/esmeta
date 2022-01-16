@@ -1,0 +1,5 @@
+let obj = (new Record("x" -> 1, "y" -> 2))
+let keys = (map-keys obj)
+assert (= keys.length 2)
+assert (contains keys "x")
+assert (contains keys "y")

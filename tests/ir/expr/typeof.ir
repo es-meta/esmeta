@@ -1,0 +1,7 @@
+assert (= (typeof 1) "Number")
+assert (= (typeof true) "Boolean")
+assert (= (typeof undefined) "Undefined")
+assert (= (typeof null) "Null")
+assert (= (typeof "Some String") "String")
+let obj = (new Record)
+assert (= (typeof obj) "Record")

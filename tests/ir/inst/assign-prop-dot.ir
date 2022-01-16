@@ -1,0 +1,6 @@
+let obj = (new Record("x" -> 1, "y" -> 2))
+obj.x = 3
+obj.z = 5
+assert (= obj.x 3)
+assert (= obj.y 2)
+assert (= obj.z 5)

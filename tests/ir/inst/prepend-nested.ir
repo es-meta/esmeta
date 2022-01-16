@@ -1,0 +1,9 @@
+let list = (new [7, 8, 9])
+prepend 70 -> list
+prepend list -> list
+assert (= list.length 5i)
+assert (= list[0i] list)
+assert (= list[1i] 70)
+assert (= list[2i] 7)
+assert (= list[3i] 8)
+assert (= list[4i] 9)

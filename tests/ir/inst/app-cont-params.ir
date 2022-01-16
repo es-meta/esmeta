@@ -1,0 +1,2 @@
+let x = (cont (a) [=>] assert (= a 3))
+app y = (x 3)
