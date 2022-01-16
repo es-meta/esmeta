@@ -1,0 +1,4 @@
+let f = (cont () [=>] return true)
+let g = (cont () [=>] return true)
+assert (= f f)
+assert (!(= f g))

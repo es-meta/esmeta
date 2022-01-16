@@ -1,0 +1,6 @@
+let a = (convert 0 num2str)
+let b = (convert 0i num2bigint)
+let c = (convert 0n bigint2num)
+assert (= a "0")
+assert (= b 0n)
+assert (= c 0)

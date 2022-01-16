@@ -1,0 +1,9 @@
+let a = 0
+let b = 0
+let c = 42
+let comp1 = (comp[~normal~] a => "empty")
+let comp2 = (comp[~normal~] b => "empty")
+let comp3 = (comp[~normal~] c => "empty")
+assert (= comp1 comp1)
+assert (= comp1 comp2)
+assert (!(= comp1 comp3))

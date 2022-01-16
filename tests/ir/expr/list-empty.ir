@@ -1,0 +1,4 @@
+let x = (new [])
+let y = (new [])
+assert (= x x)
+assert (! (= x y))

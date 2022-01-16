@@ -1,0 +1,6 @@
+let obj1 = (new Record("x" -> 1, "y" -> 2))
+let obj2 = (copy-obj obj1)
+
+assert (! (= obj1 obj2))
+assert (= obj2.x 1)
+assert (= obj2.y 2)

@@ -1,0 +1,10 @@
+let a = 0
+let b = 0
+let f = (clo (x) [a] => return true)
+let g = (clo (x) [b] => return true)
+let h = (clo (x) [a] => return false)
+let i = (clo (y) [a] => return true)
+assert (= f f)
+assert (!(= f g))
+assert (!(= f h))
+assert (!(= f i))

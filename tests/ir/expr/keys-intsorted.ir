@@ -1,0 +1,8 @@
+//let obj = (new Record("3" -> 0, "1" -> 42, "2" -> 2))
+//let key = (map-keys obj [int-sorted])
+//assert (contains key "1")
+//assert (contains key "2")
+//assert (contains key "3")
+//assert (= key[0i] "1")
+//assert (= key[1i] "2")
+//assert (= key[2i] "3")
