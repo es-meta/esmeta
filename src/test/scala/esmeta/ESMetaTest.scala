@@ -82,21 +82,22 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   ): Unit =
     check(desc)(cases.foreach { case (obj, string) =>
       // check parse
-      val parsed = parse(string)
+      val parsed = optional(parse(string))
       val stringified = obj.toString
-      if (parsed != obj) {
+      if (parsed != Some(obj)) {
         println(s"[FAILED] $desc")
-        println(s"- result: ${origToString(parsed)}")
+        val parsedStr = parsed.fold("<parsing failed>")(origToString)
+        println(s"- result: ${parsedStr}")
         println(s"- expected: ${origToString(obj)}")
-        assert(parsed == obj)
       }
       // check stringify
       if (stringified != string) {
         println(s"[FAILED] $desc")
         println(s"- result: $stringified")
         println(s"- expected: $string")
-        assert(stringified == string)
       }
+      assert(parsed == Some(obj))
+      assert(stringified == string)
     })
 
   // get score

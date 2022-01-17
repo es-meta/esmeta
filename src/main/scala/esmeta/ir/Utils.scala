@@ -66,14 +66,6 @@ object Utils {
     }
   }
 
-  /** equality between doubles */
-  def doubleEquals(left: Double, right: Double): Boolean = {
-    if (left.isNaN && right.isNaN) true
-    else if (isNegZero(left) && !isNegZero(right)) false
-    else if (!isNegZero(left) && isNegZero(right)) false
-    else left == right
-  }
-
   /** modulo operation */
   def modulo(l: Double, r: Double): Double = {
     l % r
@@ -103,9 +95,6 @@ object Utils {
     if (x.toLong == x) INum(x.toLong)
     else Num(x.toDouble)
   }
-
-  /** negative zero check */
-  def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity
 
   // -----------------------------------------------------------------------------
   // States

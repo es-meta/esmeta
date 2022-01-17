@@ -45,7 +45,9 @@ case class Stringifier(detail: Boolean) {
       case LetStep(x, expr) =>
         app >> "let " >> x >> " be " >> expr >> "."
       case IfStep(cond, thenStep, elseStep) =>
-        app >> "if " >> cond >> ", " >> thenStep
+        app >> "if " >> cond >> ", "
+        if (thenStep.isInstanceOf[BlockStep]) app >> "then"
+        app >> thenStep
       case ReturnStep(expr) =>
         app >> "return " >> expr >> "."
       case AssertStep(cond) =>
@@ -53,7 +55,8 @@ case class Stringifier(detail: Boolean) {
       case ForEachIntegerStep(x, start, cond, ascending, body) =>
         app >> "for each integer " >> x >> " starting with " >> start
         app >> " such that " >> cond >> ", in "
-        app >> (if (ascending) "ascending" else "descending") >> " order, do"
+        app >> (if (ascending) "ascending" else "descending") >> " order, "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case BlockStep(block) => app >> block
       case YetStep(str, block) =>
@@ -75,6 +78,7 @@ case class Stringifier(detail: Boolean) {
     }
 
   // calculation expressions
+  // TODO consider the appropriate parenthesis
   given calcExprRule: Rule[CalcExpression] = (app, expr) =>
     expr match {
       case IdentifierExpression(id) => app >> id
@@ -96,10 +100,10 @@ case class Stringifier(detail: Boolean) {
           app >> "*" >> (
             if (n.isPosInfinity) "+∞"
             else if (n.isNegInfinity) "-∞"
-            else if (n == 0) {
-              if ((1 / n).isPosInfinity) "+0" else "-0"
-            } else n.toString
-          ) >> "*<sub>ℤ</sub>"
+            else if (n == 0) if ((1 / n).isPosInfinity) "+0" else "-0"
+            else if (n.toInt == n) n.toInt.toString
+            else n.toString
+          ) >> "*<sub>𝔽</sub>"
       case BigIntLiteral(n) => app >> "*" >> n >> "*<sub>ℤ</sub>"
       case TrueLiteral      => app >> "*true*"
       case FalseLiteral     => app >> "*false*"

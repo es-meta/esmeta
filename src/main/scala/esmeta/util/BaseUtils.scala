@@ -150,4 +150,14 @@ object BaseUtils {
     val percent = pass / total.toDouble * 100
     f"($percent%.2f%%)"
   }
+
+  /** equality between doubles */
+  def doubleEquals(left: Double, right: Double): Boolean =
+    if (left.isNaN && right.isNaN) true
+    else if (isNegZero(left) && !isNegZero(right)) false
+    else if (!isNegZero(left) && isNegZero(right)) false
+    else left == right
+
+  /** negative zero check */
+  def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity
 }

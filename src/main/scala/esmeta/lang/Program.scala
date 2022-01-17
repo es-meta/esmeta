@@ -1,5 +1,7 @@
 package esmeta.lang
 
+import esmeta.util.DoubleEquals
+
 /** programs for abstract algorithms */
 case class Program(block: Block) extends LangElem
 
@@ -23,6 +25,7 @@ object Step extends Parser[Step]
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
 // if-then-else steps
+// TODO stringifer/parsers for `else`-steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
 
@@ -63,6 +66,9 @@ case class SubstringExpression(
   to: Expression,
 ) extends Expression
 
+// empty string expressions
+case object EmptyStringExpression extends Expression
+
 // calcualation expressions
 sealed trait CalcExpression extends Expression
 case class IdentifierExpression(id: Identifier) extends CalcExpression
@@ -74,8 +80,6 @@ case class BinaryExpression(
 object BinaryExpression:
   enum Op extends LangElem:
     case Add, Sub, Mul, Div, Mod
-
-case object EmptyStringExpression extends Expression
 
 // -----------------------------------------------------------------------------
 // algorithm literals
@@ -91,7 +95,7 @@ sealed trait MathValueLiteral extends NumericLiteral
 case object PositiveInfinityMathValueLiteral extends MathValueLiteral
 case object NegativeInfinityMathValueLiteral extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
-case class NumberLiteral(n: Double) extends NumericLiteral
+case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
 case class BigIntLiteral(n: BigInt) extends NumericLiteral
 
 // boolean literals

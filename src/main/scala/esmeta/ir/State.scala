@@ -3,6 +3,7 @@ package esmeta.ir
 import scala.collection.mutable.{Map => MMap}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.DoubleEquals
 
 // -----------------------------------------------------------------------------
 // IR States
@@ -115,9 +116,9 @@ case class Cont(
 
 /** continuations */
 sealed trait SimpleValue extends PureValue
-case class Num(double: Double) extends SimpleValue
-case class INum(long: Long) extends SimpleValue
-case class BigINum(b: BigInt) extends SimpleValue
+case class Num(n: Double) extends SimpleValue with DoubleEquals(n)
+case class INum(n: Long) extends SimpleValue
+case class BigINum(n: BigInt) extends SimpleValue
 case class Str(str: String) extends SimpleValue
 case class Bool(bool: Boolean) extends SimpleValue
 case object Undef extends SimpleValue

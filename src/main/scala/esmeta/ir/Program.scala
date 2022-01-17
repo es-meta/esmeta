@@ -1,6 +1,7 @@
 package esmeta.ir
 
 import esmeta.util.BaseUtils.*
+import esmeta.util.DoubleEquals
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
@@ -53,7 +54,7 @@ sealed trait Expr extends IRElem
 object Expr extends Parser[Expr]
 
 // pure value
-case class ENum(n: Double) extends Expr
+case class ENum(n: Double) extends Expr with DoubleEquals(n)
 case class EINum(n: Long) extends Expr
 case class EBigINum(b: BigInt) extends Expr
 case class EStr(str: String) extends Expr

@@ -51,7 +51,7 @@ trait Parsers extends IndentParsers {
       ("such that" ~> cond) ~
       (", in" ~> (
         "ascending" ^^^ true | "descending" ^^^ false
-      ) <~ "order, do") ~
+      ) <~ "order," ~ opt("do")) ~
       step ^^ { case x ~ start ~ cond ~ asc ~ body =>
         ForEachIntegerStep(x, start, cond, asc, body)
       }

@@ -69,8 +69,7 @@ class ParseAndStringifyTinyTest extends IRTest {
       ENum(3.0) -> "3.0",
       ENum(Double.PositiveInfinity) -> "Infinity",
       ENum(Double.NegativeInfinity) -> "-Infinity",
-      // TODO need to handle equality of NaN
-      // ENum(Double.NaN) -> "NaN",
+      ENum(Double.NaN) -> "NaN",
       EINum(4) -> "4i",
       EBigINum(1024) -> "1024n",
       EStr("hi") -> "\"hi\"",
@@ -204,6 +203,9 @@ class ParseAndStringifyTinyTest extends IRTest {
     )
     checkStringify("Value")(
       Num(3.0) -> "3.0",
+      Num(Double.NaN) -> "NaN",
+      Num(Double.PositiveInfinity) -> "Infinity",
+      Num(Double.NegativeInfinity) -> "-Infinity",
       INum(2) -> "2i",
       BigINum(BigInt("1920380182930189023")) -> "1920380182930189023n",
       Str("hello") -> """"hello"""",
