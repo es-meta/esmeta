@@ -45,6 +45,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     val forEachIntStepFalse =
       ForEachIntegerStep(x, idExpr, exprCond, false, letStep)
     val throwStep = ThrowStep("TypeError")
+    val performStep = PerformStep(invokeExpr)
 
     // blocks
     val orderedBlock = Order(
@@ -98,6 +99,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       forEachIntStepTrue -> "for each integer _x_ starting with _x_ such that _x_, in ascending order, let _x_ be _x_.",
       forEachIntStepFalse -> "for each integer _x_ starting with _x_ such that _x_, in descending order, let _x_ be _x_.",
       throwStep -> "throw a *TypeError* exception.",
+      performStep -> "perform ToObject(_x_ + _x_, -_x_).",
     )
 
     // -----------------------------------------------------------------------------

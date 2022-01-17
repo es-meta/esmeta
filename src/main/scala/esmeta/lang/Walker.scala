@@ -43,6 +43,7 @@ trait Walker extends BasicWalker {
         walk(body),
       )
     case ThrowStep(errorName) => ThrowStep(errorName)
+    case PerformStep(expr)    => PerformStep(walk(expr))
     case BlockStep(block)     => BlockStep(walk(block))
     case YetStep(str, block) =>
       YetStep(str, walkOpt(block, walk))

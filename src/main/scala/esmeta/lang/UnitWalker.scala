@@ -37,6 +37,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)
     case ThrowStep(errorName) =>
+    case PerformStep(expr)    => walk(expr)
     case BlockStep(block)     => walk(block)
     case YetStep(str, block) =>
       walkOpt(block, walk)
