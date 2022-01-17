@@ -11,8 +11,8 @@ trait Parsers extends IndentParsers {
   // algorithm blocks
   // ---------------------------------------------------------------------------
   given block: P[Block] = indent ~> (
-    rep1(next ~ "1." ~ upper ~> step) ^^ { Order(_) } |
-      rep1(next ~ "*" ~> step) ^^ { Unorder(_) } |
+    rep1(next ~ "1." ~ upper ~> step) ^^ { StepBlock(_) } |
+      rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
       next ~> figureStr ^^ { Figure(_) }
   ) <~ dedent
 
@@ -83,8 +83,7 @@ trait Parsers extends IndentParsers {
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
 
   // not yet supported steps
-  lazy val yetStep: P[YetStep] =
-    opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
+  lazy val yetStep: P[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
   lazy val end: Parser[String] =
@@ -111,45 +110,6 @@ trait Parsers extends IndentParsers {
     ("the substring of" ~> expr) ~
       ("from" ~> expr) ~
       ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
-
-  // algorithm invocation expressions
-  lazy val invokeExpr: P[InvokeExpression] =
-    invokeAOExpr |||
-      invokeSDOExpr
-
-  // abstract operation (AO) invocation expressions
-  lazy val invokeAOExpr: P[InvokeAbstractOperationExpression] =
-    "[A-Z][a-zA-Z0-9]*".r ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
-      case x ~ as =>
-        InvokeAbstractOperationExpression(x, as)
-    }
-
-  // syntax-directed operation (SDO) invocation expressions
-  lazy val invokeSDOExpr: P[InvokeSyntaxDirectedOperationExpression] =
-    (opt("the") ~> word) ~
-      ("of" ~> expr) ~
-      opt(
-        "using" ~> repsep(expr, sep("and")) <~
-          "as" ~ opt("the") ~ ("arguments" | "argument"),
-      ) ^^ { case x ~ b ~ as =>
-        InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
-      }
-
-  // return-if-abrupt expressions
-  lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ { case c ~ e =>
-      ReturnIfAbruptExpression(e, c)
-    }
-
-  // list expressions
-  lazy val listExpr: P[ListExpression] =
-    "a new empty List" ^^^ ListExpression(Nil) |||
-      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
-      "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
-
-  // nonterminal expressions
-  lazy val ntExpr: P[NonterminalExpression] =
-    opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalExpression(_) }
 
   // reference expressions
   lazy val refExpr: P[ReferenceExpression] =
@@ -197,6 +157,49 @@ trait Parsers extends IndentParsers {
       "*false*" ^^^ FalseLiteral |||
       "*undefined*" ^^^ UndefinedLiteral |||
       "*null*" ^^^ NullLiteral
+
+  // algorithm invocation expressions
+  lazy val invokeExpr: P[InvokeExpression] =
+    invokeAOExpr |||
+      invokeSDOExpr
+
+  // abstract operation (AO) invocation expressions
+  lazy val invokeAOExpr: P[InvokeAbstractOperationExpression] =
+    "[A-Z][a-zA-Z0-9]*".r ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+      case x ~ as =>
+        InvokeAbstractOperationExpression(x, as)
+    }
+
+  // syntax-directed operation (SDO) invocation expressions
+  lazy val invokeSDOExpr: P[InvokeSyntaxDirectedOperationExpression] =
+    (opt("the") ~> word) ~
+      ("of" ~> expr) ~
+      opt(
+        "using" ~> repsep(expr, sep("and")) <~
+          "as" ~ opt("the") ~ ("arguments" | "argument"),
+      ) ^^ { case x ~ b ~ as =>
+        InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
+      }
+
+  // return-if-abrupt expressions
+  lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =
+    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ { case c ~ e =>
+      ReturnIfAbruptExpression(e, c)
+    }
+
+  // list expressions
+  lazy val listExpr: P[ListExpression] =
+    "a new empty List" ^^^ ListExpression(Nil) |||
+      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
+      "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+
+  // nonterminal expressions
+  lazy val ntExpr: P[NonterminalExpression] =
+    opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalExpression(_) }
+
+  // not yet supported expressions
+  lazy val yetExpr: P[YetExpression] =
+    opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
 
   // ---------------------------------------------------------------------------
   // algorithm conditions

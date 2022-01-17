@@ -46,6 +46,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
     lazy val listExpr = ListExpression(List(refExpr, refExpr))
     lazy val ntExpr = NonterminalExpression("Identifier")
+    lazy val yetExpr = YetExpression("todo", Some(stepBlock))
 
     // conditions
     lazy val exprCond = ExpressionCondition(refExpr)
@@ -69,47 +70,32 @@ class ParseAndStringifyTinyTest extends LangTest {
       ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
     lazy val throwStep = ThrowStep("TypeError")
     lazy val performStep = PerformStep(invokeAOExpr)
+    lazy val yetStep = YetStep(yetExpr)
 
     // blocks
-    lazy val orderedBlock = Order(
-      List(
-        letStep,
-        letStep,
-        letStep,
-      ),
-    )
-    lazy val unOrderedBlock = Unorder(
-      List(
-        letStep,
-        letStep,
-        letStep,
-      ),
-    )
+    lazy val stepBlock = StepBlock(List(letStep, letStep, letStep))
+    lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
     lazy val figureBlock = Figure(List("a", "b", "c"))
 
-    // TODO handle upper case
-    // // -----------------------------------------------------------------------------
-    // // Block
-    // // -----------------------------------------------------------------------------
-    // checkString("Block", Block.apply)(
-    //   orderedBlock -> s"""
-    //   |  1. Let _x_ be _x_.
-    //   |  1. Let _x_ be _x_.
-    //   |  1. Let _x_ be _x_.
-    //   |""".stripMargin,
-    //   // unOrderedBlock -> s"""
-    //   // |  * $letStepStr
-    //   // |  * $letStepStr
-    //   // |  * $letStepStr
-    //   // |""".stripMargin,
-    //   // figureBlock -> s"""
-    //   // |  <figure>
-    //   // |a
-    //   // |b
-    //   // |c
-    //   // |  </figure>
-    //   // """,
-    // )
+    // -----------------------------------------------------------------------------
+    // Block
+    // -----------------------------------------------------------------------------
+    checkParseAndStringify("Block", Block.apply)(
+      stepBlock -> """
+      |  1. Let _x_ be _x_.
+      |  1. Let _x_ be _x_.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      exprBlock -> """
+      |  * _x_
+      |  * _x_
+      |  * _x_""".stripMargin,
+      figureBlock -> """
+      |  <figure>
+      |    a
+      |    b
+      |    c
+      |  </figure>""".stripMargin,
+    )
 
     // -----------------------------------------------------------------------------
     // Step
@@ -124,6 +110,10 @@ class ParseAndStringifyTinyTest extends LangTest {
       forEachIntStepFalse -> "for each integer _x_ starting with _x_ such that _x_, in descending order, let _x_ be _x_.",
       throwStep -> "throw a *TypeError* exception.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
+      yetStep -> """[YET] todo
+      |  1. Let _x_ be _x_.
+      |  1. Let _x_ be _x_.
+      |  1. Let _x_ be _x_.""".stripMargin,
     )
 
     // -----------------------------------------------------------------------------

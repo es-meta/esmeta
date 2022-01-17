@@ -20,9 +20,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(prog: Program): Unit = walk(prog.block)
 
   def walk(block: Block): Unit = block match {
-    case Order(steps)   => walkList(steps, walk)
-    case Unorder(steps) => walkList(steps, walk)
-    case Figure(lines)  =>
+    case StepBlock(steps) => walkList(steps, walk)
+    case ExprBlock(exprs) => walkList(exprs, walk)
+    case Figure(lines)    =>
   }
 
   def walk(step: Step): Unit = step match {
@@ -41,8 +41,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ThrowStep(errorName) =>
     case PerformStep(expr)    => walk(expr)
     case BlockStep(block)     => walk(block)
-    case YetStep(str, block) =>
-      walkOpt(block, walk)
+    case YetStep(expr)        => walk(expr)
   }
 
   def walk(expr: Expression): Unit = expr match {
@@ -59,7 +58,13 @@ trait UnitWalker extends BasicUnitWalker {
     case ListExpression(entries) =>
       walkList(entries, walk)
     case NonterminalExpression(name) =>
+    case yet: YetExpression =>
+      walk(yet)
   }
+
+  def walk(yet: YetExpression): Unit =
+    val YetExpression(str, block) = yet
+    walkOpt(block, walk)
 
   def walk(expr: CalcExpression): Unit = expr match {
     case ReferenceExpression(ref) =>

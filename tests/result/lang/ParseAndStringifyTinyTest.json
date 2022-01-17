@@ -1,4 +1,5 @@
 {
+  "Block" : true,
   "Condition" : true,
   "Expression" : true,
   "Reference" : true,

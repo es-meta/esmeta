@@ -27,49 +27,56 @@ case class Stringifier(detail: Boolean) {
 
   // blocks
   given blockRule: Rule[Block] = (app, block) =>
+    given Rule[Step] = stepWithUpperRule(true)
     if (detail) app.wrap("", "")(block match {
-      case Order(steps) =>
+      case StepBlock(steps) =>
         steps.foreach(app :> "1. " >> _)
-      case Unorder(steps) =>
-        steps.foreach(app :> "* " >> _)
+      case ExprBlock(exprs) =>
+        exprs.foreach(app :> "* " >> _)
       case Figure(lines) =>
         app :> "<figure>"
         app.wrap("", "")(lines.map(app :> _))
-        app >> "</figure>"
+        app :> "</figure>"
     })
     else app >> " [...]"
 
-  // TODO handle needUppercase
   // steps
-  given stepRule: Rule[Step] = (app, step) =>
+  given stepRule: Rule[Step] = stepWithUpperRule(false)
+  def stepWithUpperRule(upper: Boolean): Rule[Step] = (app, step) =>
+    given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
-        app >> "let " >> x >> " be " >> expr >> "."
+        app >> First("let ") >> x >> " be " >> expr >> "."
       case SetStep(x, expr) =>
-        app >> "set " >> x >> " to " >> expr >> "."
+        app >> First("set ") >> x >> " to " >> expr >> "."
       case IfStep(cond, thenStep, elseStep) =>
-        app >> "if " >> cond >> ", "
+        app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
       case ReturnStep(expr) =>
-        app >> "return " >> expr >> "."
+        app >> First("return ") >> expr >> "."
       case AssertStep(cond) =>
-        app >> "assert: " >> cond >> "."
+        app >> First("assert: ") >> cond >> "."
       case ForEachIntegerStep(x, start, cond, ascending, body) =>
-        app >> "for each integer " >> x >> " starting with " >> start
+        app >> First("for each integer ") >> x >> " starting with " >> start
         app >> " such that " >> cond >> ", in "
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ThrowStep(errorName) =>
-        app >> "throw a *" >> errorName >> "* exception."
+        app >> First("throw a *") >> errorName >> "* exception."
       case PerformStep(expr) =>
-        app >> "perform " >> expr >> "."
-      case BlockStep(block) => app >> block
-      case YetStep(str, block) =>
-        app >> "[YET] " >> str
-        block.fold(app)(app >> _)
+        app >> First("perform ") >> expr >> "."
+      case BlockStep(block) =>
+        app >> block
+      case YetStep(expr) =>
+        app >> expr
     }
+  private case class First(str: String)
+  private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
+    val First(str) = first
+    app >> (if (upper) str.head.toUpper else str.head) >> str.substring(1)
+  }
 
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
@@ -89,6 +96,9 @@ case class Stringifier(detail: Boolean) {
         app >> entries
       case NonterminalExpression(name) =>
         app >> "|" >> name >> "|"
+      case YetExpression(str, block) =>
+        app >> "[YET] " >> str
+        block.fold(app)(app >> _)
     }
 
   // calculation expressions

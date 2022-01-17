@@ -20,9 +20,9 @@ trait Walker extends BasicWalker {
   def walk(prog: Program): Program = Program(walk(prog.block))
 
   def walk(block: Block): Block = block match {
-    case Order(steps)   => Order(walkList(steps, walk))
-    case Unorder(steps) => Unorder(walkList(steps, walk))
-    case Figure(lines)  => Figure(lines)
+    case StepBlock(steps) => StepBlock(walkList(steps, walk))
+    case ExprBlock(exprs) => ExprBlock(walkList(exprs, walk))
+    case Figure(lines)    => Figure(lines)
   }
 
   def walk(step: Step): Step = step match {
@@ -47,8 +47,7 @@ trait Walker extends BasicWalker {
     case ThrowStep(errorName) => ThrowStep(errorName)
     case PerformStep(expr)    => PerformStep(walk(expr))
     case BlockStep(block)     => BlockStep(walk(block))
-    case YetStep(str, block) =>
-      YetStep(str, walkOpt(block, walk))
+    case YetStep(expr)        => YetStep(walk(expr))
   }
 
   def walk(expr: Expression): Expression = expr match {
@@ -66,7 +65,13 @@ trait Walker extends BasicWalker {
       ListExpression(walkList(entries, walk))
     case NonterminalExpression(name) =>
       NonterminalExpression(name)
+    case yet: YetExpression =>
+      walk(yet)
   }
+
+  def walk(yet: YetExpression): YetExpression =
+    val YetExpression(str, block) = yet
+    YetExpression(str, walkOpt(block, walk))
 
   def walk(expr: CalcExpression): CalcExpression = expr match {
     case ReferenceExpression(ref) =>

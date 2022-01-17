@@ -11,8 +11,8 @@ case class Program(block: Block) extends LangElem
 sealed trait Block extends LangElem
 object Block extends Parser[Block]
 
-case class Order(steps: List[Step]) extends Block
-case class Unorder(steps: List[Step]) extends Block
+case class StepBlock(steps: List[Step]) extends Block
+case class ExprBlock(exprs: List[Expression]) extends Block
 case class Figure(lines: List[String]) extends Block
 
 // -----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ case class PerformStep(expr: Expression) extends Step
 case class BlockStep(block: Block) extends Step
 
 // not yet supported steps
-case class YetStep(str: String, block: Option[Block]) extends Step
+case class YetStep(expr: YetExpression) extends Step
 
 // -----------------------------------------------------------------------------
 // algorithm expressions
@@ -157,6 +157,9 @@ case object FalseLiteral extends BooleanLiteral
 // other special literals
 case object UndefinedLiteral extends Literal
 case object NullLiteral extends Literal
+
+// not yet supported expressions
+case class YetExpression(str: String, block: Option[Block]) extends Expression
 
 // -----------------------------------------------------------------------------
 // algorithm conditions

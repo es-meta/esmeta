@@ -89,6 +89,7 @@ object Appender {
 
   // basic values
   given stringRule: Rule[String] = (app, str) => { app.sb ++= str; app }
+  given charRule: Rule[Char] = (app, ch) => { app.sb += ch; app }
   given intRule: Rule[Int] = _ >> _.toString
   given bigDecimalRule: Rule[BigDecimal] = _ >> _.toString
   given bigintRule: Rule[BigInt] = _ >> _.toString
