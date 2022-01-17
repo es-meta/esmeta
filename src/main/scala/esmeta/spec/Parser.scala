@@ -67,15 +67,11 @@ object Parser extends Parsers {
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
     // TODO filter algorithms for example or shorthands
-    // "sec-algorithm-conventions-syntax-directed-operations",
-    // "sec-implicit-completion-values",
-    // "sec-throw-an-exception",
-    // "sec-returnifabrupt",
-    // "sec-abstract-closure",
-    // "sec-ifabruptcloseiterator",
-    // "sec-ifabruptrejectpromise",
+    "sec-abstract-closure",
+    "sec-ifabruptcloseiterator",
+    "sec-ifabruptrejectpromise",
     // TODO handle Await
-    // "await",
+    "await",
     // TODO handle memory model
     "sec-weakref-execution",
     "sec-valid-chosen-reads",
@@ -83,15 +79,6 @@ object Parser extends Parsers {
     "sec-tear-free-aligned-reads",
     "sec-races",
     "sec-data-races",
-    // TODO handle unusual header text
-    // "sec-function-p1-p2-pn-body",
-    // "sec-generatorfunction",
-    // "sec-asyncgeneratorfunction",
-    // "sec-async-function-constructor-arguments",
-    // TODO handle default cases
-    // "sec-static-semantics-contains",
-    // "sec-static-semantics-allprivateidentifiersvalid",
-    // "sec-static-semantics-containsarguments",
   )
 
   /** parses algorithm heads */
@@ -203,25 +190,11 @@ object Parser extends Parsers {
     val receiverParam = parseBy(paramDesc)(forData)
     List(generator(receiverParam))
 
-  // for skipping shorthands
-  private val exampleDirectives: List[String] = List(
-    "of the form:", // ifabruptcloseiterator, ifabruptrejectpromise
-    "means the same thing as:", // ifabruptcloseiterator, ifabruptrejectpromise
-    "mean the same thing as:", // await
-    "Algorithm steps that say", // await
-  )
   // get built-in heads
   private def parseBuiltinHead(
     parent: Element,
     elem: Element,
   ): List[BuiltinHead] =
-    val prevContent = elem.getPrevContent
-    if (
-      !exampleDirectives.foldLeft(false) { (acc, directive) =>
-        acc || prevContent.endsWith(directive)
-      }
-    ) {
-      val headContent = parent.getFirstChildContent
-      List(parseBy(builtinHead)(headContent))
-    } else List()
+    val headContent = parent.getFirstChildContent
+    List(parseBy(builtinHead)(headContent))
 }

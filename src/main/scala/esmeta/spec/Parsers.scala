@@ -138,16 +138,13 @@ trait Parsers extends BasicParsers {
 
   // algorithm parameters
   lazy val params: Parser[List[Param]] =
-    import Param.Kind.Unusual
+    import Param.Kind.Ellipsis
     opt(
       "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) ~ oldOptParams <~
         opt("," ~ newline) ~ ")",
     ) ^^ {
-      case None => Nil
-      case Some(ps ~ ops) => {
-        if (ops.map(_.kind == Unusual).foldLeft(false)(_ || _)) Nil
-        else ps ++ ops
-      }
+      case None           => Nil
+      case Some(ps ~ ops) => ps ++ ops
     }
   // TODO remove this legacy parser later
   lazy val oldOptParams: Parser[List[Param]] =
@@ -163,7 +160,7 @@ trait Parsers extends BasicParsers {
       case opt ~ name ~ ty =>
         val kind = if (opt.isDefined) Optional else Normal
         Param(name, kind, ty.getOrElse("unknown"))
-    } | opt(",") ~ "…" ^^^ Param("", Unusual, "")
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, "")
   lazy val paramDesc: Parser[Param] =
     import Param.Kind.*
     headParamType ~ opt(id) ^^ { case ty ~ name =>

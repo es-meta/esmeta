@@ -73,4 +73,4 @@ case class Param(
 ) extends SpecElem
 object Param:
   enum Kind extends SpecElem:
-    case Normal, Optional, Variadic, Unusual
+    case Normal, Optional, Variadic, Ellipsis
