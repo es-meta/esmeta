@@ -20,7 +20,12 @@ class ParseAndStringifyTinyTest extends LangTest {
     val substrExpr = SubstringExpression(idExpr, idExpr, idExpr)
     val calcExpr =
       import BinaryExpression.Op.*
-      BinaryExpression(idExpr, Add, BinaryExpression(idExpr, Mul, idExpr))
+      import UnaryExpression.Op.*
+      BinaryExpression(
+        idExpr,
+        Add,
+        BinaryExpression(idExpr, Mul, UnaryExpression(Neg, idExpr)),
+      )
 
     // conditions
     val exprCond = ExpressionCondition(idExpr)
@@ -102,7 +107,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       EmptyStringExpression -> "the empty String",
-      calcExpr -> "_x_ + _x_ × _x_",
+      calcExpr -> "_x_ + _x_ × -_x_",
       StringLiteral("abc") -> "*\"abc\"*",
       PositiveInfinityMathValueLiteral -> "+∞",
       NegativeInfinityMathValueLiteral -> "-∞",
@@ -128,7 +133,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Condition", Condition.apply)(
       exprCond -> "_x_",
       binaryCondIs -> "_x_ is the length of _x_",
-      binaryCondLt -> "_x_ < _x_ + _x_ × _x_",
+      binaryCondLt -> "_x_ < _x_ + _x_ × -_x_",
       compCond -> "_x_ and _x_",
     )
 

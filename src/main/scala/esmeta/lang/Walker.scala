@@ -12,6 +12,7 @@ trait Walker extends BasicWalker {
     case elem: Condition            => walk(elem)
     case elem: Identifier           => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
+    case elem: UnaryExpression.Op   => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
     case elem: CompoundCondition.Op => walk(elem)
   }
@@ -62,11 +63,15 @@ trait Walker extends BasicWalker {
       IdentifierExpression(walk(id))
     case BinaryExpression(left, op, right) =>
       BinaryExpression(walk(left), walk(op), walk(right))
+    case UnaryExpression(op, expr) =>
+      UnaryExpression(walk(op), walk(expr))
     case lit: Literal =>
       walk(lit)
   }
 
   def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
+
+  def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
 
   def walk(lit: Literal): Literal = lit
 

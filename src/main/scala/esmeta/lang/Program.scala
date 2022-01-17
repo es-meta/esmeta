@@ -71,7 +71,11 @@ case object EmptyStringExpression extends Expression
 
 // calcualation expressions
 sealed trait CalcExpression extends Expression
+
+// identifier expressions
 case class IdentifierExpression(id: Identifier) extends CalcExpression
+
+// binary expressions
 case class BinaryExpression(
   left: CalcExpression,
   op: BinaryExpression.Op,
@@ -80,6 +84,15 @@ case class BinaryExpression(
 object BinaryExpression:
   enum Op extends LangElem:
     case Add, Sub, Mul, Div, Mod
+
+// unary expressions
+case class UnaryExpression(
+  op: UnaryExpression.Op,
+  expr: CalcExpression,
+) extends CalcExpression
+object UnaryExpression:
+  enum Op extends LangElem:
+    case Neg
 
 // -----------------------------------------------------------------------------
 // algorithm literals
@@ -125,7 +138,7 @@ case class BinaryCondition(
 object BinaryCondition:
   enum Op extends LangElem:
     case Is, NIs, Eq, NEq, LessThan, LessThanEqual, GreaterThan,
-    GreaterThanEqual
+    GreaterThanEqual, SameCodeUnits
 
 // compound conditions
 case class CompoundCondition(

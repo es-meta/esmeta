@@ -17,6 +17,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Condition            => condRule(app, elem)
       case elem: Identifier           => idRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
+      case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
       case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
       case elem: CompoundCondition.Op => compCondOpRule(app, elem)
     }
@@ -84,8 +85,28 @@ case class Stringifier(detail: Boolean) {
       case IdentifierExpression(id) => app >> id
       case BinaryExpression(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
+      case UnaryExpression(op, expr) =>
+        app >> op >> expr
       case lit: Literal => app >> lit
     }
+
+  // operators for binary expressions
+  given binExprOpRule: Rule[BinaryExpression.Op] = (app, op) =>
+    import BinaryExpression.Op.*
+    app >> (op match {
+      case Add => "+"
+      case Sub => "-"
+      case Mul => "×"
+      case Div => "/"
+      case Mod => "modulo"
+    })
+
+  // operators for unary expressions
+  given unExprOpRule: Rule[UnaryExpression.Op] = (app, op) =>
+    import UnaryExpression.Op.*
+    app >> (op match {
+      case Neg => "-"
+    })
 
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
@@ -122,17 +143,6 @@ case class Stringifier(detail: Boolean) {
         app >> left >> " " >> op >> " " >> right
     }
 
-  // operators for binary expressions
-  given binExprOpRule: Rule[BinaryExpression.Op] = (app, op) =>
-    import BinaryExpression.Op.*
-    app >> (op match {
-      case Add => "+"
-      case Sub => "-"
-      case Mul => "×"
-      case Div => "/"
-      case Mod => "modulo"
-    })
-
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>
     import BinaryCondition.Op.*
@@ -145,6 +155,7 @@ case class Stringifier(detail: Boolean) {
       case LessThanEqual    => "≤"
       case GreaterThan      => ">"
       case GreaterThanEqual => "≥"
+      case SameCodeUnits    => "is the same sequence of code units as"
     })
 
   // operators for compound conditions
