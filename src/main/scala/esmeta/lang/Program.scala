@@ -47,6 +47,9 @@ case class ForEachIntegerStep(
 // block steps
 case class BlockStep(block: Block) extends Step
 
+// throw steps
+case class ThrowStep(errorName: String) extends Step
+
 // not yet supported steps
 case class YetStep(str: String, block: Option[Block]) extends Step
 

@@ -59,6 +59,8 @@ case class Stringifier(detail: Boolean) {
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
+      case ThrowStep(errorName) =>
+        app >> "throw a *" >> errorName >> "* exception."
       case BlockStep(block) => app >> block
       case YetStep(str, block) =>
         app >> "[YET] " >> str

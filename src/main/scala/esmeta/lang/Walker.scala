@@ -42,7 +42,8 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case BlockStep(block) => BlockStep(walk(block))
+    case ThrowStep(errorName) => ThrowStep(errorName)
+    case BlockStep(block)     => BlockStep(walk(block))
     case YetStep(str, block) =>
       YetStep(str, walkOpt(block, walk))
   }

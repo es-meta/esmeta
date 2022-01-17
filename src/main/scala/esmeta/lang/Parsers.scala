@@ -30,6 +30,7 @@ trait Parsers extends IndentParsers {
       returnStep |
       assertStep |
       forEachIntStep |
+      throwStep |
       blockStep
   ) <~ guard(EOL) | yetStep
 
@@ -55,6 +56,9 @@ trait Parsers extends IndentParsers {
       step ^^ { case x ~ start ~ cond ~ asc ~ body =>
         ForEachIntegerStep(x, start, cond, asc, body)
       }
+
+  lazy val throwStep: P[ThrowStep] =
+    "throw a *" ~> word <~ "* exception" <~ end ^^ { ThrowStep(_) }
 
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
 
