@@ -84,10 +84,10 @@ object Parser extends Parsers {
     "sec-races",
     "sec-data-races",
     // TODO handle unusual header text
-    "sec-function-p1-p2-pn-body",
-    "sec-generatorfunction",
-    "sec-asyncgeneratorfunction",
-    "sec-async-function-constructor-arguments",
+    // "sec-function-p1-p2-pn-body",
+    // "sec-generatorfunction",
+    // "sec-asyncgeneratorfunction",
+    // "sec-async-function-constructor-arguments",
     // TODO handle default cases
     // "sec-static-semantics-contains",
     // "sec-static-semantics-allprivateidentifiersvalid",
