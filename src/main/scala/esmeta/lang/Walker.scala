@@ -58,6 +58,10 @@ trait Walker extends BasicWalker {
       SubstringExpression(walk(expr), walk(from), walk(to))
     case expr: CalcExpression =>
       walk(expr)
+    case invoke: InvokeExpression =>
+      walk(invoke)
+    case ReturnIfAbruptExpression(expr, check) =>
+      ReturnIfAbruptExpression(walk(expr), check)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
     case NonterminalExpression(name) =>
@@ -67,16 +71,23 @@ trait Walker extends BasicWalker {
   def walk(expr: CalcExpression): CalcExpression = expr match {
     case ReferenceExpression(ref) =>
       ReferenceExpression(walk(ref))
-    case InvokeExpression(name, args) =>
-      InvokeExpression(name, walkList(args, walk))
-    case ReturnIfAbruptExpression(expr, check) =>
-      ReturnIfAbruptExpression(walk(expr), check)
+    case lit: Literal =>
+      walk(lit)
     case BinaryExpression(left, op, right) =>
       BinaryExpression(walk(left), walk(op), walk(right))
     case UnaryExpression(op, expr) =>
       UnaryExpression(walk(op), walk(expr))
-    case lit: Literal =>
-      walk(lit)
+  }
+
+  def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
+    case InvokeAbstractOperationExpression(name, args) =>
+      InvokeAbstractOperationExpression(name, walkList(args, walk))
+    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+      InvokeSyntaxDirectedOperationExpression(
+        walk(base),
+        name,
+        walkList(args, walk),
+      )
   }
 
   def walk(op: BinaryExpression.Op): BinaryExpression.Op = op

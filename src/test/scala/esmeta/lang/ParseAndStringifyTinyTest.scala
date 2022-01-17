@@ -12,62 +12,80 @@ class ParseAndStringifyTinyTest extends LangTest {
     // pre-defined values
 
     // references
-    val x = Variable("x")
-    val field = Field(x, "Value")
+    lazy val x = Variable("x")
+    lazy val field = Field(x, "Value")
 
     // expressions
-    val refExpr = ReferenceExpression(x)
-    val lengthExpr = LengthExpression(refExpr)
-    val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
-    val addExpr = BinaryExpression(refExpr, BinaryExpression.Op.Add, refExpr)
-    val subExpr = BinaryExpression(refExpr, BinaryExpression.Op.Sub, refExpr)
-    val mulExpr = BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
-    val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
-    val invokeExpr = InvokeExpression("ToObject", List(addExpr, unExpr))
-    val riaCheckExpr = ReturnIfAbruptExpression(invokeExpr, true)
-    val riaNoCheckExpr = ReturnIfAbruptExpression(invokeExpr, false)
-    val listExpr = ListExpression(List(refExpr, refExpr))
-    val ntExpr = NonterminalExpression("Identifier")
+    lazy val refExpr = ReferenceExpression(x)
+    lazy val lengthExpr = LengthExpression(refExpr)
+    lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val addExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.Add, refExpr)
+    lazy val subExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.Sub, refExpr)
+    lazy val mulExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
+    lazy val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
+    lazy val invokeAOExpr =
+      InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
+    lazy val invokeSDOExprZero =
+      InvokeSyntaxDirectedOperationExpression(ntExpr, "StringValue", Nil)
+    lazy val invokeSDOExprSingle =
+      InvokeSyntaxDirectedOperationExpression(
+        ntExpr,
+        "StringValue",
+        List(ntExpr),
+      )
+    lazy val invokeSDOExprMulti =
+      InvokeSyntaxDirectedOperationExpression(
+        ntExpr,
+        "StringValue",
+        List(ntExpr, refExpr),
+      )
+    lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, true)
+    lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
+    lazy val listExpr = ListExpression(List(refExpr, refExpr))
+    lazy val ntExpr = NonterminalExpression("Identifier")
 
     // conditions
-    val exprCond = ExpressionCondition(refExpr)
-    val hasFieldCond = HasFieldCondition(refExpr, "Type")
-    val binaryCondIs =
+    lazy val exprCond = ExpressionCondition(refExpr)
+    lazy val hasFieldCond = HasFieldCondition(refExpr, "Type")
+    lazy val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
-    val binaryCondLt =
+    lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
-    val compCond =
+    lazy val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
 
     // steps
-    val letStep = LetStep(x, refExpr)
-    val setStep = SetStep(x, addExpr)
-    val ifStep = IfStep(binaryCondIs, letStep, None)
-    val returnStep = ReturnStep(refExpr)
-    val assertStep = AssertStep(compCond)
-    val forEachIntStepTrue =
+    lazy val letStep = LetStep(x, refExpr)
+    lazy val setStep = SetStep(x, addExpr)
+    lazy val ifStep = IfStep(binaryCondIs, letStep, None)
+    lazy val returnStep = ReturnStep(refExpr)
+    lazy val assertStep = AssertStep(compCond)
+    lazy val forEachIntStepTrue =
       ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
-    val forEachIntStepFalse =
+    lazy val forEachIntStepFalse =
       ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
-    val throwStep = ThrowStep("TypeError")
-    val performStep = PerformStep(invokeExpr)
+    lazy val throwStep = ThrowStep("TypeError")
+    lazy val performStep = PerformStep(invokeAOExpr)
 
     // blocks
-    val orderedBlock = Order(
+    lazy val orderedBlock = Order(
       List(
         letStep,
         letStep,
         letStep,
       ),
     )
-    val unOrderedBlock = Unorder(
+    lazy val unOrderedBlock = Unorder(
       List(
         letStep,
         letStep,
         letStep,
       ),
     )
-    val figureBlock = Figure(List("a", "b", "c"))
+    lazy val figureBlock = Figure(List("a", "b", "c"))
 
     // TODO handle upper case
     // // -----------------------------------------------------------------------------
@@ -119,12 +137,16 @@ class ParseAndStringifyTinyTest extends LangTest {
       subExpr -> "_x_ - _x_",
       mulExpr -> "_x_ × _x_",
       unExpr -> "-_x_",
-      invokeExpr -> "ToObject(_x_ + _x_, -_x_)",
+      invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",
+      invokeSDOExprZero -> "StringValue of |Identifier|",
+      invokeSDOExprSingle -> "StringValue of |Identifier| using |Identifier| as the argument",
+      invokeSDOExprMulti -> "StringValue of |Identifier| using |Identifier| and _x_ as the arguments",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
       ListExpression(Nil) -> "« »",
       listExpr -> "« _x_, _x_ »",
       ntExpr -> "|Identifier|",
+      ThisLiteral -> "*this* value",
       ConstLiteral("empty") -> "~empty~",
       StringLiteral("") -> "*\"\"*",
       StringLiteral("abc") -> "*\"abc\"*",

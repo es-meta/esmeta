@@ -47,14 +47,14 @@ case class ForEachIntegerStep(
   body: Step,
 ) extends Step
 
-// block steps
-case class BlockStep(block: Block) extends Step
-
 // throw steps
 case class ThrowStep(errorName: String) extends Step
 
 // perform steps
 case class PerformStep(expr: Expression) extends Step
+
+// block steps
+case class BlockStep(block: Block) extends Step
 
 // not yet supported steps
 case class YetStep(str: String, block: Option[Block]) extends Step
@@ -81,18 +81,6 @@ sealed trait CalcExpression extends Expression
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
 
-// algorithm invocation expressions
-case class InvokeExpression(
-  name: String,
-  args: List[CalcExpression],
-) extends CalcExpression
-
-// return if abrupt expressions
-case class ReturnIfAbruptExpression(
-  expr: CalcExpression,
-  check: Boolean,
-) extends CalcExpression
-
 // binary expressions
 case class BinaryExpression(
   left: CalcExpression,
@@ -112,6 +100,28 @@ object UnaryExpression:
   enum Op extends LangElem:
     case Neg
 
+// algorithm invocation expressions
+sealed trait InvokeExpression extends Expression
+
+// abstract operation (AO) invocation expressions
+case class InvokeAbstractOperationExpression(
+  name: String,
+  args: List[Expression],
+) extends InvokeExpression
+
+// syntax-directed operation (SDO) invocation expressions
+case class InvokeSyntaxDirectedOperationExpression(
+  base: Expression,
+  name: String,
+  args: List[Expression],
+) extends InvokeExpression
+
+// return-if-abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: Expression,
+  check: Boolean,
+) extends Expression
+
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
@@ -120,6 +130,9 @@ case class NonterminalExpression(name: String) extends Expression
 
 // literals
 sealed trait Literal extends CalcExpression
+
+// this literals
+case object ThisLiteral extends Literal
 
 // constant literals
 case class ConstLiteral(name: String) extends Literal

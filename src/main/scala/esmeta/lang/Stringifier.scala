@@ -80,6 +80,9 @@ case class Stringifier(detail: Boolean) {
         app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
       case expr: CalcExpression =>
         app >> expr
+      case expr: InvokeExpression => app >> expr
+      case ReturnIfAbruptExpression(expr, check) =>
+        app >> (if (check) "?" else "!") >> " " >> expr
       case ListExpression(Nil) => app >> "« »"
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
@@ -94,16 +97,27 @@ case class Stringifier(detail: Boolean) {
     expr match {
       case ReferenceExpression(ref) =>
         app >> ref
-      case InvokeExpression(name, args) =>
-        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args
-      case ReturnIfAbruptExpression(expr, check) =>
-        app >> (if (check) "?" else "!") >> " " >> expr
       case BinaryExpression(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
         app >> op >> expr
       case lit: Literal => app >> lit
+    }
+
+  // algorithm invocation expressions
+  given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
+    expr match {
+      case InvokeAbstractOperationExpression(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args
+      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+        app >> name >> " of " >> base
+        if (!args.isEmpty) {
+          app >> " using " >> args >> " as the argument"
+          if (args.length > 1) app >> "s"
+        }
+        app
     }
 
   // operators for binary expressions
@@ -127,8 +141,9 @@ case class Stringifier(detail: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
+      case ThisLiteral                      => app >> "*this* value"
       case ConstLiteral(name)               => app >> "~" >> name >> "~"
+      case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)       => app >> n
@@ -197,4 +212,19 @@ case class Stringifier(detail: Boolean) {
       case Variable(name: String) =>
         app >> s"_${name}_"
     }
+
+  /** list with named separator */
+  def listNamedSepRule[T](
+    left: String = "",
+    namedSep: String = "",
+    right: String = "",
+  )(using tRule: Rule[T]): Rule[List[T]] = (app, list) =>
+    val len = list.length
+    app >> left
+    for ((x, k) <- list.zipWithIndex) app >> (k match {
+      case 0                 => ""
+      case _ if k == len - 1 => (if (len > 2) ", " else " ") + namedSep + " "
+      case _                 => ", "
+    }) >> x
+    app >> right
 }
