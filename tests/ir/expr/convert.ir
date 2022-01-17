@@ -1,6 +1,11 @@
-let a = (convert 0 num2str)
-let b = (convert 0i num2bigint)
-let c = (convert 0n bigint2num)
-assert (= a "0")
-assert (= b 0n)
-assert (= c 0)
+assert (= (convert 0i num2str) "0")
+assert (= (convert 0i num2int) 0i)
+assert (= (convert 0i num2bigint) 0n)
+
+assert (= (convert 1.2 num2str) "1.2")
+assert (= (convert 1.2 num2int) 1i)
+assert (= (convert 1.2 num2bigint) 1n)
+
+assert (= (convert 10n num2str) "10")
+assert (= (convert 10n num2bigint) 10n)
+assert (= (convert 10n bigint2num) 10)

@@ -7,10 +7,10 @@ x = 3i
 assert (= (- x) -3i)
 assert (= (~ x) -4i)
 
-x = 1111111111n
-assert (= (- x) -1111111111n)
-assert (= (~ x) -1111111112n)
+x = 10n
+assert (= (- x) -10n)
+assert (= (~ x) -11n)
 
 
-let y = true
-assert (= (! y) false)
+assert (= (! true) false)
+assert (= (! false) true)

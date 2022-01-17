@@ -1,4 +1,5 @@
 {
+  "absent.ir" : true,
   "app-clo-captured.ir" : true,
   "app-clo-complex.ir" : true,
   "app-clo-ctxtstack.ir" : true,
@@ -19,6 +20,7 @@
   "bop-logical.ir" : true,
   "clo.ir" : true,
   "comp.ir" : true,
+  "const.ir" : true,
   "cont.ir" : true,
   "contains.ir" : true,
   "convert.ir" : true,
