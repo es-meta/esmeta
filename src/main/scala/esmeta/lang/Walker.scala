@@ -5,11 +5,15 @@ import esmeta.util.BasicWalker
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Program    => walk(elem)
-    case elem: Block      => walk(elem)
-    case elem: Step       => walk(elem)
-    case elem: Expression => walk(elem)
-    case elem: Identifier => walk(elem)
+    case elem: Program              => walk(elem)
+    case elem: Block                => walk(elem)
+    case elem: Step                 => walk(elem)
+    case elem: Expression           => walk(elem)
+    case elem: Condition            => walk(elem)
+    case elem: Identifier           => walk(elem)
+    case elem: BinaryExpression.Op  => walk(elem)
+    case elem: BinaryCondition.Op   => walk(elem)
+    case elem: CompoundCondition.Op => walk(elem)
   }
 
   def walk(prog: Program): Program = Program(walk(prog.block))
@@ -29,15 +33,40 @@ trait Walker extends BasicWalker {
       ReturnStep(walk(expr))
     case AssertStep(cond) =>
       AssertStep(walk(cond))
+    case ForEachIntegerStep(x, start, cond, ascending, body) =>
+      ForEachIntegerStep(
+        walk(x),
+        walk(start),
+        walk(cond),
+        ascending,
+        walk(body),
+      )
+    case BlockStep(block) => BlockStep(walk(block))
     case YetStep(str, block) =>
       YetStep(str, walkOpt(block, walk))
   }
 
   def walk(expr: Expression): Expression = expr match {
-    case LengthExpression(expr)   => LengthExpression(walk(expr))
-    case IdentifierExpression(id) => IdentifierExpression(walk(id))
-    case lit: Literal             => walk(lit)
+    case LengthExpression(expr) =>
+      LengthExpression(walk(expr))
+    case SubstringExpression(expr, from, to) =>
+      SubstringExpression(walk(expr), walk(from), walk(to))
+    case EmptyStringExpression =>
+      EmptyStringExpression
+    case expr: CalcExpression =>
+      walk(expr)
   }
+
+  def walk(expr: CalcExpression): CalcExpression = expr match {
+    case IdentifierExpression(id) =>
+      IdentifierExpression(walk(id))
+    case BinaryExpression(left, op, right) =>
+      BinaryExpression(walk(left), walk(op), walk(right))
+    case lit: Literal =>
+      walk(lit)
+  }
+
+  def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
 
   def walk(lit: Literal): Literal = lit
 
@@ -50,9 +79,9 @@ trait Walker extends BasicWalker {
       CompoundCondition(walk(left), walk(op), walk(right))
   }
 
-  def walk(op: BinaryOp): BinaryOp = op
+  def walk(op: BinaryCondition.Op): BinaryCondition.Op = op
 
-  def walk(op: CompoundOp): CompoundOp = op
+  def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
   def walk(id: Identifier): Identifier = id match {
     case x: Variable => walk(x)

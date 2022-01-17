@@ -10,12 +10,15 @@ case class Stringifier(detail: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Program    => programRule(app, elem)
-      case elem: Block      => blockRule(app, elem)
-      case elem: Step       => stepRule(app, elem)
-      case elem: Expression => exprRule(app, elem)
-      case elem: Condition  => condRule(app, elem)
-      case elem: Identifier => idRule(app, elem)
+      case elem: Program              => programRule(app, elem)
+      case elem: Block                => blockRule(app, elem)
+      case elem: Step                 => stepRule(app, elem)
+      case elem: Expression           => exprRule(app, elem)
+      case elem: Condition            => condRule(app, elem)
+      case elem: Identifier           => idRule(app, elem)
+      case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
+      case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
+      case elem: CompoundCondition.Op => compCondOpRule(app, elem)
     }
 
   // programs
@@ -47,6 +50,12 @@ case class Stringifier(detail: Boolean) {
         app >> "return " >> expr >> "."
       case AssertStep(cond) =>
         app >> "assert: " >> cond >> "."
+      case ForEachIntegerStep(x, start, cond, ascending, body) =>
+        app >> "for each integer " >> x >> " starting with " >> start
+        app >> " such that " >> cond >> ", in "
+        app >> (if (ascending) "ascending" else "descending") >> " order, do"
+        app >> body
+      case BlockStep(block) => app >> block
       case YetStep(str, block) =>
         app >> "[YET] " >> str
         block.fold(app)(app >> _)
@@ -55,15 +64,28 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
     expr match {
-      case LengthExpression(expr)   => app >> "the length of " >> expr
+      case LengthExpression(expr) =>
+        app >> "the length of " >> expr
+      case SubstringExpression(expr, from, to) =>
+        app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
+      case EmptyStringExpression =>
+        app >> "the empty String"
+      case expr: CalcExpression =>
+        app >> expr
+    }
+
+  // calculation expressions
+  given calcExprRule: Rule[CalcExpression] = (app, expr) =>
+    expr match {
       case IdentifierExpression(id) => app >> id
-      case lit: Literal             => app >> lit
+      case BinaryExpression(left, op, right) =>
+        app >> left >> " " >> op >> " " >> right
+      case lit: Literal => app >> lit
     }
 
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case EmptyStringLiteral               => app >> "the empty String"
       case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
@@ -96,9 +118,20 @@ case class Stringifier(detail: Boolean) {
         app >> left >> " " >> op >> " " >> right
     }
 
-  // binary operators
-  given binOpRule: Rule[BinaryOp] = (app, op) =>
-    import BinaryOp.*
+  // operators for binary expressions
+  given binExprOpRule: Rule[BinaryExpression.Op] = (app, op) =>
+    import BinaryExpression.Op.*
+    app >> (op match {
+      case Add => "+"
+      case Sub => "-"
+      case Mul => "×"
+      case Div => "/"
+      case Mod => "modulo"
+    })
+
+  // operators for binary conditions
+  given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>
+    import BinaryCondition.Op.*
     app >> (op match {
       case Is               => "is"
       case NIs              => "is not"
@@ -110,9 +143,9 @@ case class Stringifier(detail: Boolean) {
       case GreaterThanEqual => "≥"
     })
 
-  // compound operators
-  given compRule: Rule[CompoundOp] = (app, op) => {
-    import CompoundOp.*
+  // operators for compound conditions
+  given compCondOpRule: Rule[CompoundCondition.Op] = (app, op) => {
+    import CompoundCondition.Op.*
     app >> (op match {
       case And => "and"
       case Or  => "or"

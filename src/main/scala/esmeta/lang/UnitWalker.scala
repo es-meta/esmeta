@@ -5,11 +5,15 @@ import esmeta.util.BasicUnitWalker
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
-    case elem: Program    => walk(elem)
-    case elem: Block      => walk(elem)
-    case elem: Step       => walk(elem)
-    case elem: Expression => walk(elem)
-    case elem: Identifier => walk(elem)
+    case elem: Program              => walk(elem)
+    case elem: Block                => walk(elem)
+    case elem: Step                 => walk(elem)
+    case elem: Expression           => walk(elem)
+    case elem: Condition            => walk(elem)
+    case elem: Identifier           => walk(elem)
+    case elem: BinaryExpression.Op  => walk(elem)
+    case elem: BinaryCondition.Op   => walk(elem)
+    case elem: CompoundCondition.Op => walk(elem)
   }
 
   def walk(prog: Program): Unit = walk(prog.block)
@@ -29,15 +33,33 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case AssertStep(cond) =>
       walk(cond)
+    case ForEachIntegerStep(x, start, cond, ascending, body) =>
+      walk(x); walk(start); walk(cond); walk(body)
+    case BlockStep(block) => walk(block)
     case YetStep(str, block) =>
       walkOpt(block, walk)
   }
 
   def walk(expr: Expression): Unit = expr match {
-    case LengthExpression(expr)   => walk(expr)
-    case IdentifierExpression(id) => walk(id)
-    case lit: Literal             => walk(lit)
+    case LengthExpression(expr) =>
+      walk(expr)
+    case SubstringExpression(expr, from, to) =>
+      walk(expr); walk(from); walk(to)
+    case EmptyStringExpression =>
+    case expr: CalcExpression =>
+      walk(expr)
   }
+
+  def walk(expr: CalcExpression): Unit = expr match {
+    case IdentifierExpression(id) =>
+      walk(id)
+    case BinaryExpression(left, op, right) =>
+      walk(left); walk(op); walk(right)
+    case lit: Literal =>
+      walk(lit)
+  }
+
+  def walk(op: BinaryExpression.Op): Unit = {}
 
   def walk(lit: Literal): Unit = {}
 
@@ -50,9 +72,9 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
   }
 
-  def walk(op: BinaryOp): Unit = {}
+  def walk(op: BinaryCondition.Op): Unit = {}
 
-  def walk(op: CompoundOp): Unit = {}
+  def walk(op: CompoundCondition.Op): Unit = {}
 
   def walk(id: Identifier): Unit = id match {
     case x: Variable => walk(x)

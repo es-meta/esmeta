@@ -20,8 +20,9 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // conditions
     val exprCond = ExpressionCondition(idExpr)
-    val binaryCond = BinaryCondition(idExpr, BinaryOp.Is, lengthExpr)
-    val compCond = CompoundCondition(exprCond, CompoundOp.And, exprCond)
+    val binaryCond = BinaryCondition(idExpr, BinaryCondition.Op.Is, lengthExpr)
+    val compCond =
+      CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
 
     // steps
     val letStep = LetStep(x, idExpr)

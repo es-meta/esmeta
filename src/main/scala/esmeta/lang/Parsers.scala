@@ -28,7 +28,9 @@ trait Parsers extends IndentParsers {
     letStep |
       ifStep |
       returnStep |
-      assertStep,
+      assertStep |
+      forEachIntStep |
+      blockStep
   ) <~ guard(EOL) | yetStep
 
   lazy val letStep: P[LetStep] =
@@ -43,23 +45,61 @@ trait Parsers extends IndentParsers {
   lazy val assertStep: P[AssertStep] =
     "assert" ~ ":" ~> cond <~ "." ^^ { AssertStep(_) }
 
-  lazy val yetStep: Parser[YetStep] =
+  lazy val forEachIntStep: P[ForEachIntegerStep] =
+    ("for each" ~ "(non-negative )?integer".r ~> variable) ~
+      ("starting with" ~> expr) ~
+      ("such that" ~> cond) ~
+      (", in" ~> (
+        "ascending" ^^^ true | "descending" ^^^ false
+      ) <~ "order, do") ~
+      step ^^ { case x ~ start ~ cond ~ asc ~ body =>
+        ForEachIntegerStep(x, start, cond, asc, body)
+      }
+
+  lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
+
+  lazy val yetStep: P[YetStep] =
     opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
 
   // ---------------------------------------------------------------------------
   // algorithm expressions
   // ---------------------------------------------------------------------------
-  given expr: P[Expression] = lengthExpr | idExpr | literal
+  given expr: P[Expression] =
+    lengthExpr |||
+      substrExpr |||
+      emptyStringExpr |||
+      calcExpr
 
   lazy val lengthExpr: P[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) }
 
+  lazy val substrExpr: P[SubstringExpression] =
+    ("the substring of" ~> expr) ~
+      ("from" ~> expr) ~
+      ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+
+  lazy val calcExpr: P[CalcExpression] =
+    import BinaryExpression.Op.*
+    lazy val base = idExpr ||| literal
+    lazy val term: P[CalcExpression] = base ~ rep(
+      ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
+    ) ^^ { case l ~ rs =>
+      rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+    }
+    term ~ rep(
+      ("+" ^^^ Add ||| "-" ^^^ Sub) ~ term,
+    ) ^^ { case l ~ rs =>
+      rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+    }
+
   lazy val idExpr: P[IdentifierExpression] =
     id ^^ { IdentifierExpression(_) }
 
+  lazy val emptyStringExpr: P[EmptyStringExpression.type] =
+    "the empty String" ^^^ EmptyStringExpression
+
   lazy val literal: P[Literal] =
-    "the empty String" ^^^ EmptyStringLiteral |||
-      "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+    "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||
       number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
@@ -85,8 +125,8 @@ trait Parsers extends IndentParsers {
     expr ~ bop ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |
       expr ^^ { ExpressionCondition(_) }
 
-  lazy val bop: P[BinaryOp] =
-    import BinaryOp.*
+  lazy val bop: P[BinaryCondition.Op] =
+    import BinaryCondition.Op.*
     "is" ^^^ Is |||
       "is not" ^^^ NIs |||
       "=" ^^^ Eq |||
@@ -96,8 +136,8 @@ trait Parsers extends IndentParsers {
       ">" ^^^ GreaterThan |||
       "≥" ^^^ GreaterThanEqual
 
-  lazy val cop: P[CompoundOp] =
-    import CompoundOp.*
+  lazy val cop: P[CompoundCondition.Op] =
+    import CompoundCondition.Op.*
     "and" ^^^ And ||| "or" ^^^ Or
 
   // ---------------------------------------------------------------------------
