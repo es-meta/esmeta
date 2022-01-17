@@ -363,13 +363,13 @@ object Interp {
   def interp(uop: UOp, operand: Value): Value =
     import UOp.*
     (uop, operand) match
-      case (Neg, Num(n))     => Num(-n)
-      case (Neg, INum(n))    => INum(-n)
-      case (Neg, BigINum(b)) => BigINum(-b)
-      case (Not, Bool(b))    => Bool(!b)
-      case (Not, Num(n))     => INum(~(n.toInt))
-      case (Not, INum(n))    => INum(~n)
-      case (Not, BigINum(b)) => BigINum(~b)
+      case (Neg, Num(n))      => Num(-n)
+      case (Neg, INum(n))     => INum(-n)
+      case (Neg, BigINum(b))  => BigINum(-b)
+      case (Not, Bool(b))     => Bool(!b)
+      case (BNot, Num(n))     => INum(~(n.toInt))
+      case (BNot, INum(n))    => INum(~n)
+      case (BNot, BigINum(b)) => BigINum(~b)
       case (_, value) =>
         error(s"wrong type of value for the operator $uop: $value")
 
@@ -484,8 +484,8 @@ object Interp {
       case (UMod, BigINum(l), BigINum(r))    => BigINum(unsigned_modulo(l, r))
       case (UMod, BigINum(l), INum(r))       => BigINum(unsigned_modulo(l, r))
       case (Lt, BigINum(l), BigINum(r))      => Bool(l < r)
-      case (And, BigINum(l), BigINum(r))     => BigINum(l & r)
-      case (Or, BigINum(l), BigINum(r))      => BigINum(l | r)
+      case (BAnd, BigINum(l), BigINum(r))    => BigINum(l & r)
+      case (BOr, BigINum(l), BigINum(r))     => BigINum(l | r)
       case (BXOr, BigINum(l), BigINum(r))    => BigINum(l ^ r)
       case (Pow, BigINum(l), BigINum(r))     => BigINum(l.pow(r.toInt))
       case (Pow, BigINum(l), INum(r))        => BigINum(l.pow(r.toInt))
