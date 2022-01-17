@@ -51,12 +51,14 @@ trait BasicParsers extends JavaTokenParsers with RegexParsers {
   // any word
   lazy val word = "\\w+".r
 
-  // integer
-  lazy val int = "\\d+".r ^^ { _.toInt }
-
   // boolean
   lazy val bool = "true" ^^^ true | "false" ^^^ false
 
   // integers
   lazy val integer = "(0|-?[1-9]\\d*)".r
+
+  // numbers
+  lazy val number = "[+-]?(0|[1-9][0-9]*)(\\.[0-9]+)?".r
+  lazy val double = number ^^ { _.toDouble }
+  lazy val bigint = number ^^ { BigInt(_) }
 }

@@ -27,6 +27,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ReturnStep(expr) =>
       walk(expr)
+    case AssertStep(cond) =>
+      walk(cond)
     case YetStep(str, block) =>
       walkOpt(block, walk)
   }
@@ -37,18 +39,20 @@ trait UnitWalker extends BasicUnitWalker {
     case lit: Literal             => walk(lit)
   }
 
+  def walk(lit: Literal): Unit = {}
+
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>
       walk(expr)
-    case EqualCondition(left, op, right) =>
+    case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
-    case LogicalAndCondition(left, right) =>
-      walk(left); walk(right)
+    case CompoundCondition(left, op, right) =>
+      walk(left); walk(op); walk(right)
   }
 
-  def walk(op: EqualOp): Unit = {}
+  def walk(op: BinaryOp): Unit = {}
 
-  def walk(lit: Literal): Unit = {}
+  def walk(op: CompoundOp): Unit = {}
 
   def walk(id: Identifier): Unit = id match {
     case x: Variable => walk(x)

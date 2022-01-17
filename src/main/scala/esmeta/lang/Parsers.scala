@@ -27,7 +27,8 @@ trait Parsers extends IndentParsers {
   given step: P[Step] = (
     letStep |
       ifStep |
-      returnStep,
+      returnStep |
+      assertStep,
   ) <~ guard(EOL) | yetStep
 
   lazy val letStep: P[LetStep] =
@@ -39,8 +40,11 @@ trait Parsers extends IndentParsers {
   lazy val returnStep: P[ReturnStep] =
     "return" ~> expr <~ "." ^^ { ReturnStep(_) }
 
+  lazy val assertStep: P[AssertStep] =
+    "assert" ~ ":" ~> cond <~ "." ^^ { AssertStep(_) }
+
   lazy val yetStep: Parser[YetStep] =
-    ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
+    opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
 
   // ---------------------------------------------------------------------------
   // algorithm expressions
@@ -54,22 +58,35 @@ trait Parsers extends IndentParsers {
     id ^^ { IdentifierExpression(_) }
 
   lazy val literal: P[Literal] =
-    "the empty String" ^^^ EmptyString
+    "the empty String" ^^^ EmptyStringLiteral |||
+      "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+      "+∞" ^^^ PositiveInfinityMathValueLiteral |||
+      "-∞" ^^^ NegativeInfinityMathValueLiteral |||
+      number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
+      "*+∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.PositiveInfinity) |||
+      "*-∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.NegativeInfinity) |||
+      "*NaN*" ^^^ NumberLiteral(Double.NaN) |||
+      "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |||
+      "*" ~> bigint <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
+      "*true*" ^^^ TrueLiteral |||
+      "*false*" ^^^ FalseLiteral |||
+      "*undefined*" ^^^ UndefinedLiteral |||
+      "*null*" ^^^ NullLiteral
 
   // ---------------------------------------------------------------------------
   // algorithm conditions
   // ---------------------------------------------------------------------------
   given cond: P[Condition] =
-    baseCond ~ rep("and" ~> baseCond) ^^ { case l ~ rs =>
-      rs.foldLeft(l)(LogicalAndCondition(_, _))
+    baseCond ~ rep(cop ~ baseCond) ^^ { case l ~ rs =>
+      rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
     }
 
   lazy val baseCond: P[Condition] =
-    expr ~ eqOp ~ expr ^^ { case l ~ o ~ r => EqualCondition(l, o, r) } |
+    expr ~ bop ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |
       expr ^^ { ExpressionCondition(_) }
 
-  lazy val eqOp: P[EqualOp] =
-    import EqualOp.*
+  lazy val bop: P[BinaryOp] =
+    import BinaryOp.*
     "is" ^^^ Is |||
       "is not" ^^^ NIs |||
       "=" ^^^ Eq |||
@@ -78,6 +95,10 @@ trait Parsers extends IndentParsers {
       "≤" ^^^ LessThanEqual |||
       ">" ^^^ GreaterThan |||
       "≥" ^^^ GreaterThanEqual
+
+  lazy val cop: P[CompoundOp] =
+    import CompoundOp.*
+    "and" ^^^ And ||| "or" ^^^ Or
 
   // ---------------------------------------------------------------------------
   // algorithm identifiers

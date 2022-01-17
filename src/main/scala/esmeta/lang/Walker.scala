@@ -27,6 +27,8 @@ trait Walker extends BasicWalker {
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
     case ReturnStep(expr) =>
       ReturnStep(walk(expr))
+    case AssertStep(cond) =>
+      AssertStep(walk(cond))
     case YetStep(str, block) =>
       YetStep(str, walkOpt(block, walk))
   }
@@ -42,13 +44,15 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
-    case EqualCondition(left, op, right) =>
-      EqualCondition(walk(left), walk(op), walk(right))
-    case LogicalAndCondition(left, right) =>
-      LogicalAndCondition(walk(left), walk(right))
+    case BinaryCondition(left, op, right) =>
+      BinaryCondition(walk(left), walk(op), walk(right))
+    case CompoundCondition(left, op, right) =>
+      CompoundCondition(walk(left), walk(op), walk(right))
   }
 
-  def walk(op: EqualOp): EqualOp = op
+  def walk(op: BinaryOp): BinaryOp = op
+
+  def walk(op: CompoundOp): CompoundOp = op
 
   def walk(id: Identifier): Identifier = id match {
     case x: Variable => walk(x)

@@ -39,13 +39,15 @@ case class Stringifier(detail: Boolean) {
   given stepRule: Rule[Step] = (app, step) =>
     step match {
       case LetStep(x, expr) =>
-        app >> "jet " >> x >> " be " >> expr >> "."
+        app >> "let " >> x >> " be " >> expr >> "."
       case IfStep(cond, thenStep, elseStep) =>
         app >> "if " >> cond >> ", " >> thenStep
       case ReturnStep(expr) =>
         app >> "return " >> expr >> "."
+      case AssertStep(cond) =>
+        app >> "assert: " >> cond >> "."
       case YetStep(str, block) =>
-        app >> str
+        app >> "[YET] " >> str
         block.fold(app)(app >> _)
     }
 
@@ -54,7 +56,32 @@ case class Stringifier(detail: Boolean) {
     expr match {
       case LengthExpression(expr)   => app >> "the length of " >> expr
       case IdentifierExpression(id) => app >> id
-      case EmptyString              => app >> "the empty String"
+      case lit: Literal             => app >> lit
+    }
+
+  // literals
+  given litRule: Rule[Literal] = (app, lit) =>
+    lit match {
+      case EmptyStringLiteral               => app >> "the empty String"
+      case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
+      case PositiveInfinityMathValueLiteral => app >> "+∞"
+      case NegativeInfinityMathValueLiteral => app >> "-∞"
+      case DecimalMathValueLiteral(n)       => app >> n
+      case NumberLiteral(n) =>
+        if (n.isNaN) app >> "*NaN*"
+        else
+          app >> "*" >> (
+            if (n.isPosInfinity) "+∞"
+            else if (n.isNegInfinity) "-∞"
+            else if (n == 0) {
+              if ((1 / n).isPosInfinity) "+0" else "-0"
+            } else n.toString
+          ) >> "*<sub>ℤ</sub>"
+      case BigIntLiteral(n) => app >> "*" >> n >> "*<sub>ℤ</sub>"
+      case TrueLiteral      => app >> "*true*"
+      case FalseLiteral     => app >> "*false*"
+      case UndefinedLiteral => app >> "*undefined*"
+      case NullLiteral      => app >> "*null*"
     }
 
   // conditions
@@ -62,15 +89,15 @@ case class Stringifier(detail: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
-      case EqualCondition(left, op, right) =>
+      case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
-      case LogicalAndCondition(left, right) =>
-        app >> left >> " and " >> right
+      case CompoundCondition(left, op, right) =>
+        app >> left >> " " >> op >> " " >> right
     }
 
-  // equal operators
-  given eqOpRule: Rule[EqualOp] = (app, op) =>
-    import EqualOp.*
+  // binary operators
+  given binOpRule: Rule[BinaryOp] = (app, op) =>
+    import BinaryOp.*
     app >> (op match {
       case Is               => "is"
       case NIs              => "is not"
@@ -81,6 +108,15 @@ case class Stringifier(detail: Boolean) {
       case GreaterThan      => ">"
       case GreaterThanEqual => "≥"
     })
+
+  // compound operators
+  given compRule: Rule[CompoundOp] = (app, op) => {
+    import CompoundOp.*
+    app >> (op match {
+      case And => "and"
+      case Or  => "or"
+    })
+  }
 
   // identifiers
   given idRule: Rule[Identifier] = (app, id) =>
