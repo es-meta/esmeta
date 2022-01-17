@@ -72,10 +72,10 @@ object Parser extends Parsers {
     "sec-throw-an-exception",
     "sec-returnifabrupt",
     "sec-abstract-closure",
-    "sec-ifabruptcloseiterator",
-    "sec-ifabruptrejectpromise",
+    // "sec-ifabruptcloseiterator",
+    // "sec-ifabruptrejectpromise",
     // TODO handle Await
-    "await",
+    // "await",
     // TODO handle memory model
     "sec-weakref-execution",
     "sec-valid-chosen-reads",
@@ -202,11 +202,25 @@ object Parser extends Parsers {
     val receiverParam = parseBy(paramDesc)(forData)
     List(generator(receiverParam))
 
+  // for skipping shorthands
+  val exampleDirectives: List[String] = List(
+    "of the form:", // ifabruptcloseiterator, ifabruptrejectpromise
+    "means the same thing as:", // ifabruptcloseiterator, ifabruptrejectpromise
+    "mean the same thing as:", // await
+    "Algorithm steps that say", // await
+  )
   // get built-in heads
   private def parseBuiltinHead(
     parent: Element,
     elem: Element,
   ): List[BuiltinHead] =
-    val headContent = parent.getFirstChildContent
-    List(parseBy(builtinHead)(headContent))
+    val prevContent = elem.getPrevContent
+    if (
+      !exampleDirectives.foldLeft(false) { (acc, directive) =>
+        acc || prevContent.endsWith(directive)
+      }
+    ) {
+      val headContent = parent.getFirstChildContent
+      List(parseBy(builtinHead)(headContent))
+    } else println(elem); List()
 }
