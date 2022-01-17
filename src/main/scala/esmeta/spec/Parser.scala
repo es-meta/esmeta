@@ -3,7 +3,6 @@ package esmeta.spec
 import esmeta.LINE_SEP
 import esmeta.lang.Block
 import esmeta.spec.Utils.{given, *}
-import esmeta.util.BaseUtils.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BasicParser
 import org.jsoup.nodes.*
@@ -63,12 +62,7 @@ object Parser extends Parsers {
     id = elem.getId
     code = elem.html
     body = Block(code)
-  } yield {
-    val algo = Algorithm(head, id, body, code)
-    println(s"$code -> $body")
-    if (!algo.complete) error("!!!")
-    algo
-  }
+  } yield Algorithm(head, id, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
