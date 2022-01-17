@@ -18,21 +18,20 @@ class ParseAndStringifyTinyTest extends LangTest {
     val idExpr = IdentifierExpression(x)
     val lengthExpr = LengthExpression(idExpr)
     val substrExpr = SubstringExpression(idExpr, idExpr, idExpr)
-    val calcExpr =
-      import BinaryExpression.Op.*
-      import UnaryExpression.Op.*
-      BinaryExpression(
-        idExpr,
-        Add,
-        BinaryExpression(idExpr, Mul, UnaryExpression(Neg, idExpr)),
-      )
+    val addExpr = BinaryExpression(idExpr, BinaryExpression.Op.Add, idExpr)
+    val subExpr = BinaryExpression(idExpr, BinaryExpression.Op.Sub, idExpr)
+    val mulExpr = BinaryExpression(idExpr, BinaryExpression.Op.Mul, idExpr)
+    val unExpr = UnaryExpression(UnaryExpression.Op.Neg, idExpr)
+    val invokeExpr = InvokeExpression("ToObject", List(addExpr, unExpr))
+    val riaCheckExpr = ReturnIfAbruptExpression(invokeExpr, true)
+    val riaNoCheckExpr = ReturnIfAbruptExpression(invokeExpr, false)
 
     // conditions
     val exprCond = ExpressionCondition(idExpr)
     val binaryCondIs =
       BinaryCondition(idExpr, BinaryCondition.Op.Is, lengthExpr)
     val binaryCondLt =
-      BinaryCondition(idExpr, BinaryCondition.Op.LessThan, calcExpr)
+      BinaryCondition(idExpr, BinaryCondition.Op.LessThan, addExpr)
     val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
 
@@ -107,7 +106,13 @@ class ParseAndStringifyTinyTest extends LangTest {
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       EmptyStringExpression -> "the empty String",
-      calcExpr -> "_x_ + _x_ × -_x_",
+      addExpr -> "_x_ + _x_",
+      subExpr -> "_x_ - _x_",
+      mulExpr -> "_x_ × _x_",
+      unExpr -> "-_x_",
+      invokeExpr -> "ToObject(_x_ + _x_, -_x_)",
+      riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
+      riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
       StringLiteral("abc") -> "*\"abc\"*",
       PositiveInfinityMathValueLiteral -> "+∞",
       NegativeInfinityMathValueLiteral -> "-∞",
@@ -133,7 +138,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Condition", Condition.apply)(
       exprCond -> "_x_",
       binaryCondIs -> "_x_ is the length of _x_",
-      binaryCondLt -> "_x_ < _x_ + _x_ × -_x_",
+      binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",
     )
 

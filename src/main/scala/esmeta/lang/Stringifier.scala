@@ -82,7 +82,13 @@ case class Stringifier(detail: Boolean) {
   // TODO consider the appropriate parenthesis
   given calcExprRule: Rule[CalcExpression] = (app, expr) =>
     expr match {
-      case IdentifierExpression(id) => app >> id
+      case IdentifierExpression(id) =>
+        app >> id
+      case InvokeExpression(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args
+      case ReturnIfAbruptExpression(expr, check) =>
+        app >> (if (check) "?" else "!") >> " " >> expr
       case BinaryExpression(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>

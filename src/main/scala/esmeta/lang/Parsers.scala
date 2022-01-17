@@ -87,7 +87,11 @@ trait Parsers extends IndentParsers {
     import BinaryExpression.Op.*
     lazy val base: Parser[CalcExpression] = idExpr ||| literal ||| (
       ("-" | "the result of negating") ^^^ Neg
-    ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
+    ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) } ||| (
+      ("?" ^^^ true | "!" ^^^ false)
+    ) ~ calcExpr ^^ { case c ~ e => ReturnIfAbruptExpression(e, c) } ||| (
+      word ~ ("(" ~> repsep(calcExpr, ",") <~ ")")
+    ) ^^ { case x ~ as => InvokeExpression(x, as) }
     lazy val term: Parser[CalcExpression] = base ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
     ) ^^ { case l ~ rs =>

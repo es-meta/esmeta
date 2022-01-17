@@ -75,6 +75,18 @@ sealed trait CalcExpression extends Expression
 // identifier expressions
 case class IdentifierExpression(id: Identifier) extends CalcExpression
 
+// algorithm invocation expressions
+case class InvokeExpression(
+  name: String,
+  args: List[CalcExpression],
+) extends CalcExpression
+
+// return if abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: CalcExpression,
+  check: Boolean,
+) extends CalcExpression
+
 // binary expressions
 case class BinaryExpression(
   left: CalcExpression,

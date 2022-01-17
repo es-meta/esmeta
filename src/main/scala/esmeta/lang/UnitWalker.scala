@@ -54,6 +54,10 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(expr: CalcExpression): Unit = expr match {
     case IdentifierExpression(id) =>
       walk(id)
+    case InvokeExpression(name, args) =>
+      walkList(args, walk)
+    case ReturnIfAbruptExpression(expr, check) =>
+      walk(expr)
     case BinaryExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>

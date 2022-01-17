@@ -61,6 +61,10 @@ trait Walker extends BasicWalker {
   def walk(expr: CalcExpression): CalcExpression = expr match {
     case IdentifierExpression(id) =>
       IdentifierExpression(walk(id))
+    case InvokeExpression(name, args) =>
+      InvokeExpression(name, walkList(args, walk))
+    case ReturnIfAbruptExpression(expr, check) =>
+      ReturnIfAbruptExpression(walk(expr), check)
     case BinaryExpression(left, op, right) =>
       BinaryExpression(walk(left), walk(op), walk(right))
     case UnaryExpression(op, expr) =>
