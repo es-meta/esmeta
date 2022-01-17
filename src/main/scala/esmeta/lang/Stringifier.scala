@@ -78,10 +78,12 @@ case class Stringifier(detail: Boolean) {
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
         app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
-      case EmptyStringExpression =>
-        app >> "the empty String"
       case expr: CalcExpression =>
         app >> expr
+      case ListExpression(Nil) => app >> "« »"
+      case ListExpression(entries) =>
+        given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
+        app >> entries
     }
 
   // calculation expressions

@@ -56,10 +56,10 @@ trait Walker extends BasicWalker {
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
       SubstringExpression(walk(expr), walk(from), walk(to))
-    case EmptyStringExpression =>
-      EmptyStringExpression
     case expr: CalcExpression =>
       walk(expr)
+    case ListExpression(entries) =>
+      ListExpression(walkList(entries, walk))
   }
 
   def walk(expr: CalcExpression): CalcExpression = expr match {

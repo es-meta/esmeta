@@ -75,9 +75,6 @@ case class SubstringExpression(
   to: Expression,
 ) extends Expression
 
-// empty string expressions
-case object EmptyStringExpression extends Expression
-
 // calcualation expressions
 sealed trait CalcExpression extends Expression
 
@@ -89,6 +86,9 @@ case class InvokeExpression(
   name: String,
   args: List[CalcExpression],
 ) extends CalcExpression
+
+// list expressions
+case class ListExpression(entries: List[Expression]) extends Expression
 
 // return if abrupt expressions
 case class ReturnIfAbruptExpression(

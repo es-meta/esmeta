@@ -83,8 +83,8 @@ trait Parsers extends IndentParsers {
   given expr: P[Expression] =
     lengthExpr |||
       substrExpr |||
-      emptyStringExpr |||
-      calcExpr
+      calcExpr |||
+      listExpr
 
   lazy val lengthExpr: P[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) }
@@ -120,14 +120,16 @@ trait Parsers extends IndentParsers {
 
     calc
 
+  lazy val listExpr: P[ListExpression] =
+    "a new empty List" ^^^ ListExpression(Nil) |||
+      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) }
+
   lazy val refExpr: P[ReferenceExpression] =
     ref ^^ { ReferenceExpression(_) }
 
-  lazy val emptyStringExpr: P[EmptyStringExpression.type] =
-    "the empty String" ^^^ EmptyStringExpression
-
   lazy val literal: P[Literal] =
-    "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+    "the empty String" ^^^ StringLiteral("") |||
+      "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||

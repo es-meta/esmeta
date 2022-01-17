@@ -50,9 +50,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case SubstringExpression(expr, from, to) =>
       walk(expr); walk(from); walk(to)
-    case EmptyStringExpression =>
     case expr: CalcExpression =>
       walk(expr)
+    case ListExpression(entries) =>
+      walkList(entries, walk)
   }
 
   def walk(expr: CalcExpression): Unit = expr match {
