@@ -1,0 +1,11 @@
+{
+  "Algorithm head" : true,
+  "Grammar" : true,
+  "Lhs" : true,
+  "NtArg" : true,
+  "Production" : true,
+  "Production.Kind" : true,
+  "Rhs" : true,
+  "RhsCond" : true,
+  "Symbol" : true
+}

@@ -4,8 +4,8 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.*
 import Symbol.*
 
-class StringifierTinyTest extends SpecTest {
-  val name: String = "specStringifierTest"
+class ParseAndStringifyTinyTest extends SpecTest {
+  val name: String = "specParseAndStringifyTest"
 
   // registration
   def init: Unit = {
@@ -21,7 +21,8 @@ class StringifierTinyTest extends SpecTest {
     val nt: Nonterminal = Nonterminal("Identifier", Nil, false)
     val symbols = List(Terminal("{"), Terminal("}"))
 
-    checkStringify("Symbol")(
+    // symbol
+    checkParseAndStringify("Symbol", Symbol.apply)(
       Terminal("{") -> "`{`",
       Nonterminal("Identifier", ntArgs, true) ->
         "Identifier[+Await, ~Yield, ?For]?",
@@ -41,19 +42,15 @@ class StringifierTinyTest extends SpecTest {
         "> any Unicode code point with the Unicode property “ID_Start”",
     )
 
-    checkStringify("NtArg")(
+    // nonterminal arguments
+    checkParseAndStringify("NtArg", NtArg.apply)(
       NtArg(NtArg.Kind.True, "Await") -> "+Await",
       NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
       NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
     )
 
-    checkStringify("NtArg.Kind")(
-      NtArg.Kind.True -> "+",
-      NtArg.Kind.False -> "~",
-      NtArg.Kind.Pass -> "?",
-    )
-
-    checkStringify("RhsCond")(
+    // rhs conditions
+    checkParseAndStringify("RhsCond", RhsCond.apply)(
       RhsCond("Hello", true) -> "[+Hello]",
       RhsCond("Bye", false) -> "[~Bye]",
     )
@@ -71,18 +68,21 @@ class StringifierTinyTest extends SpecTest {
     val prod3 =
       Production(lhs1, Production.Kind.NumericString, false, List(rhs1))
 
-    checkStringify("Rhs")(
+    // rhs
+    checkParseAndStringify("Rhs", Rhs.apply)(
       rhs1 -> "[+Yield] `{` `}`",
       rhs2 -> "`{` `}` #this-is-id",
       rhs3 -> "`a`",
     )
 
-    checkStringify("Lhs")(
+    // lhs
+    checkParseAndStringify("Lhs", Lhs.apply)(
       lhs1 -> "Identifier[Yield, Await, In]",
       lhs2 -> "Identifier",
     )
 
-    checkStringify("Production")(
+    // production
+    checkParseAndStringify("Production", Production.apply)(
       prod1 -> """Identifier :: one of
                  |  `a` `a`""".stripMargin,
       prod2 -> """Identifier :
@@ -92,12 +92,14 @@ class StringifierTinyTest extends SpecTest {
                  |  [+Yield] `{` `}`""".stripMargin,
     )
 
+    // production kinds
     checkStringify("Production.Kind")(
       Production.Kind.Syntactic -> ":",
       Production.Kind.Lexical -> "::",
       Production.Kind.NumericString -> ":::",
     )
 
+    // grammar
     checkStringify("Grammar")(
       Grammar(List(prod1), List(prod2)) ->
         s"""// Productions

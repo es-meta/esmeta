@@ -52,21 +52,16 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   }
 
   // check stringify
-  def checkEquals[T](desc: String)(cases: (T, T)*): Unit =
-    check(desc)(cases.foreach { case (result, expected) =>
+  def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
+    check(desc)(cases.foreach { case (obj, expected) =>
+      val result = obj.toString
       if (result != expected) {
         println(s"[FAILED] $desc")
-        println(s"- result: $result")
         println(s"- expected: $expected")
+        println(s"- result: $result")
         assert(result == expected)
       }
     })
-
-  // check stringify
-  def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
-    checkEquals(desc)(cases.map { case (input, expected) =>
-      (input.toString, expected)
-    }*)
 
   // original toString of case class
   def origToString(x: Any): String = x match
@@ -90,16 +85,16 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
       val parsed = parse(string)
       val stringified = obj.toString
       if (parsed != obj) {
-        println(s"[PARSE FAILED] $desc")
+        println(s"[FAILED] $desc")
         println(s"- result: ${origToString(parsed)}")
         println(s"- expected: ${origToString(obj)}")
         assert(parsed == obj)
       }
       // check stringify
       if (stringified != string) {
-        println(s"[STRINGIFIED FAILED] $desc")
-        println(s"- result: '$stringified'")
-        println(s"- expected: '$string'")
+        println(s"[FAILED] $desc")
+        println(s"- result: $stringified")
+        println(s"- expected: $string")
         assert(stringified == string)
       }
     })
