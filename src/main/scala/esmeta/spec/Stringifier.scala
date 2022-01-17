@@ -58,9 +58,10 @@ object Stringifier {
 
   // for grammars
   given grammarRule: Rule[Grammar] = (app, grammar) => {
-    given Rule[List[Production]] = iterableRule(sep = LINE_SEP)
+    given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
     app >> "// Productions"
     app :> grammar.prods
+    app :> ""
     app :> "// Productions for Web"
     app :> grammar.prodsForWeb
   }

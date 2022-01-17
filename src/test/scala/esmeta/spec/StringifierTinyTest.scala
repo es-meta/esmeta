@@ -84,15 +84,12 @@ class StringifierTinyTest extends SpecTest {
 
     checkStringify("Production")(
       prod1 -> """Identifier :: one of
-                 |  `a` `a`
-                 |""".stripMargin,
+                 |  `a` `a`""".stripMargin,
       prod2 -> """Identifier :
                  |  [+Yield] `{` `}`
-                 |  `{` `}` #this-is-id
-                 |""".stripMargin,
+                 |  `{` `}` #this-is-id""".stripMargin,
       prod3 -> """Identifier[Yield, Await, In] :::
-                 |  [+Yield] `{` `}`
-                 |""".stripMargin,
+                 |  [+Yield] `{` `}`""".stripMargin,
     )
 
     checkStringify("Production.Kind")(
@@ -110,8 +107,7 @@ class StringifierTinyTest extends SpecTest {
            |// Productions for Web
            |Identifier :
            |  [+Yield] `{` `}`
-           |  `{` `}` #this-is-id
-           |""".stripMargin,
+           |  `{` `}` #this-is-id""".stripMargin,
     )
 
     // /////////////////////////////////////////////////////////////////////////

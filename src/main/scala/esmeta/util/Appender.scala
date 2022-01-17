@@ -30,7 +30,7 @@ class Appender(tab: String = "  ") {
   def wrap(open: String, close: String)(f: => Unit): Appender =
     this >> open
     indent += 1; f; indent -= 1
-    this :> close
+    if (close != "") this :> close else this
 
   /** wrap iterable with detail option */
   def wrapIterable[T](iter: Iterable[T], detail: Boolean = true)(using
@@ -90,6 +90,9 @@ object Appender {
   // basic values
   given stringRule: Rule[String] = (app, str) => { app.sb ++= str; app }
   given intRule: Rule[Int] = _ >> _.toString
+  given bigDecimalRule: Rule[BigDecimal] = _ >> _.toString
+  given bigintRule: Rule[BigInt] = _ >> _.toString
+  given doubleRule: Rule[Double] = _ >> _.toString
   given longRule: Rule[Long] = _ >> _.toString
   given booleanRule: Rule[Boolean] = _ >> _.toString
 }
