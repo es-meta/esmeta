@@ -58,6 +58,8 @@ case object NullLiteral extends Literal
 // algorithm conditions
 // -----------------------------------------------------------------------------
 sealed trait Condition extends LangElem
+object Condition extends Parser[Condition]
+
 case class ExpressionCondition(expr: Expression) extends Condition
 case class BinaryCondition(left: Expression, op: BinaryOp, right: Expression)
   extends Condition

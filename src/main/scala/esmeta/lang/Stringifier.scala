@@ -14,6 +14,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Block      => blockRule(app, elem)
       case elem: Step       => stepRule(app, elem)
       case elem: Expression => exprRule(app, elem)
+      case elem: Condition  => condRule(app, elem)
       case elem: Identifier => idRule(app, elem)
     }
 

@@ -7,6 +7,8 @@ import esmeta.util.BaseUtils._
 import esmeta.util.SystemUtils._
 import org.scalatest._
 import io.circe._, io.circe.syntax._, io.circe.parser._
+import esmeta.util.{BasicParser, BasicParsers}
+import scala.runtime.ScalaRunTime
 
 trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // results
@@ -65,6 +67,42 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     checkEquals(desc)(cases.map { case (input, expected) =>
       (input.toString, expected)
     }*)
+
+  // original toString of case class
+  def origToString(x: Any): String = x match
+    case p: Product =>
+      p.productPrefix + (for {
+        elem <- p.productIterator
+      } yield origToString(elem)).mkString("(", ",", ")")
+    case it: Iterable[_] =>
+      it.getClass.getName +
+        (for {
+          elem <- it
+        } yield origToString(elem)).mkString("(", ",", ")")
+    case _ => x.toString
+
+  // check parse and stringify
+  def checkParseAndStringify[T](desc: String, parse: (String) => T)(
+    cases: (T, String)*,
+  ): Unit =
+    check(desc)(cases.foreach { case (obj, string) =>
+      // check parse
+      val parsed = parse(string)
+      val stringified = obj.toString
+      if (parsed != obj) {
+        println(s"[PARSE FAILED] $desc")
+        println(s"- result: ${origToString(parsed)}")
+        println(s"- expected: ${origToString(obj)}")
+        assert(parsed == obj)
+      }
+      // check stringify
+      if (stringified != string) {
+        println(s"[STRINGIFIED FAILED] $desc")
+        println(s"- result: '$stringified'")
+        println(s"- expected: '$string'")
+        assert(stringified == string)
+      }
+    })
 
   // get score
   def getScore(res: Map[String, Result]): (Int, Int) = (
