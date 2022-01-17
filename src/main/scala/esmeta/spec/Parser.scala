@@ -203,7 +203,7 @@ object Parser extends Parsers {
     List(generator(receiverParam))
 
   // for skipping shorthands
-  val exampleDirectives: List[String] = List(
+  private val exampleDirectives: List[String] = List(
     "of the form:", // ifabruptcloseiterator, ifabruptrejectpromise
     "means the same thing as:", // ifabruptcloseiterator, ifabruptrejectpromise
     "mean the same thing as:", // await
@@ -222,5 +222,5 @@ object Parser extends Parsers {
     ) {
       val headContent = parent.getFirstChildContent
       List(parseBy(builtinHead)(headContent))
-    } else println(elem); List()
+    } else List()
 }
