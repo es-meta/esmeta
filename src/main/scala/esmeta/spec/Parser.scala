@@ -89,9 +89,9 @@ object Parser extends Parsers {
     "sec-asyncgeneratorfunction",
     "sec-async-function-constructor-arguments",
     // TODO handle default cases
-    "sec-static-semantics-contains",
-    "sec-static-semantics-allprivateidentifiersvalid",
-    "sec-static-semantics-containsarguments",
+    // "sec-static-semantics-contains",
+    // "sec-static-semantics-allprivateidentifiersvalid",
+    // "sec-static-semantics-containsarguments",
   )
 
   /** parses algorithm heads */
@@ -152,21 +152,30 @@ object Parser extends Parsers {
   ): List[SyntaxDirectedOperationHead] = {
     val headContent = parent.getFirstChildContent
     val prevContent = elem.getPrevContent
+    val defaultCaseStr =
+      "Every grammar production alternative in this specification which is not listed below implicitly has the following default definition of"
     val generator = parseBy(sdoHeadGen)(headContent)
-    for {
-      prod <- parse[List[Production]](prevContent)
-      lhsName = prod.lhs.name
-      rhs <- prod.rhsList
-      rhsName <- rhs.allNames
-      syntax = lhsName + ":" + rhsName
-      (idx, subIdx) = idxMap(syntax)
-      rhsParams = rhs.getRhsParams
-    } yield generator(
-      lhsName,
-      idx,
-      subIdx,
-      rhsParams,
-    )
+    // to hande "default" case algorithms
+    if (!prevContent.startsWith(defaultCaseStr)) {
+      // normal case
+      for {
+        prod <- parse[List[Production]](prevContent)
+        lhsName = prod.lhs.name
+        rhs <- prod.rhsList
+        rhsName <- rhs.allNames
+        syntax = lhsName + ":" + rhsName
+        (idx, subIdx) = idxMap(syntax)
+        rhsParams = rhs.getRhsParams
+      } yield generator(
+        lhsName,
+        idx,
+        subIdx,
+        rhsParams,
+      )
+    } else {
+      // special 'Default' case: assigned to special LHS named "Default")
+      List(generator("Default", 0, 0, Nil))
+    }
   }
 
   // get concrete method heads
