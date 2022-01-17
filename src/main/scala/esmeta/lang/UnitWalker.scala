@@ -21,14 +21,34 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(step: Step): Unit = step match {
-    case LetStep(x, expr)    => walk(x); walk(expr)
-    case YetStep(str, block) => walkOpt(block, walk)
+    case LetStep(x, expr) =>
+      walk(x); walk(expr)
+    case IfStep(cond, thenStep, elseStep) =>
+      walk(cond); walk(thenStep); walkOpt(elseStep, walk)
+    case ReturnStep(expr) =>
+      walk(expr)
+    case YetStep(str, block) =>
+      walkOpt(block, walk)
   }
 
   def walk(expr: Expression): Unit = expr match {
     case LengthExpression(expr)   => walk(expr)
     case IdentifierExpression(id) => walk(id)
+    case lit: Literal             => walk(lit)
   }
+
+  def walk(cond: Condition): Unit = cond match {
+    case ExpressionCondition(expr) =>
+      walk(expr)
+    case EqualCondition(left, op, right) =>
+      walk(left); walk(op); walk(right)
+    case LogicalAndCondition(left, right) =>
+      walk(left); walk(right)
+  }
+
+  def walk(op: EqualOp): Unit = {}
+
+  def walk(lit: Literal): Unit = {}
 
   def walk(id: Identifier): Unit = id match {
     case x: Variable => walk(x)

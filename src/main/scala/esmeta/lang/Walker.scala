@@ -21,14 +21,34 @@ trait Walker extends BasicWalker {
   }
 
   def walk(step: Step): Step = step match {
-    case LetStep(x, expr)    => LetStep(walk(x), walk(expr))
-    case YetStep(str, block) => YetStep(str, walkOpt(block, walk))
+    case LetStep(x, expr) =>
+      LetStep(walk(x), walk(expr))
+    case IfStep(cond, thenStep, elseStep) =>
+      IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
+    case ReturnStep(expr) =>
+      ReturnStep(walk(expr))
+    case YetStep(str, block) =>
+      YetStep(str, walkOpt(block, walk))
   }
 
   def walk(expr: Expression): Expression = expr match {
     case LengthExpression(expr)   => LengthExpression(walk(expr))
     case IdentifierExpression(id) => IdentifierExpression(walk(id))
+    case lit: Literal             => walk(lit)
   }
+
+  def walk(lit: Literal): Literal = lit
+
+  def walk(cond: Condition): Condition = cond match {
+    case ExpressionCondition(expr) =>
+      ExpressionCondition(walk(expr))
+    case EqualCondition(left, op, right) =>
+      EqualCondition(walk(left), walk(op), walk(right))
+    case LogicalAndCondition(left, right) =>
+      LogicalAndCondition(walk(left), walk(right))
+  }
+
+  def walk(op: EqualOp): EqualOp = op
 
   def walk(id: Identifier): Identifier = id match {
     case x: Variable => walk(x)

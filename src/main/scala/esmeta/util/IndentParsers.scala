@@ -60,6 +60,9 @@ trait IndentParsers extends BasicParsers {
       }
   }
 
+  /** end of line */
+  val EOL = "\n|$".r
+
   /** treat only spaces as white spaces */
   override val whiteSpace = "( |\n *$)+".r
 

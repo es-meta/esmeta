@@ -39,7 +39,11 @@ case class Stringifier(detail: Boolean) {
   given stepRule: Rule[Step] = (app, step) =>
     step match {
       case LetStep(x, expr) =>
-        app >> "Let " >> x >> " be " >> expr
+        app >> "jet " >> x >> " be " >> expr >> "."
+      case IfStep(cond, thenStep, elseStep) =>
+        app >> "if " >> cond >> ", " >> thenStep
+      case ReturnStep(expr) =>
+        app >> "return " >> expr >> "."
       case YetStep(str, block) =>
         app >> str
         block.fold(app)(app >> _)
@@ -50,7 +54,33 @@ case class Stringifier(detail: Boolean) {
     expr match {
       case LengthExpression(expr)   => app >> "the length of " >> expr
       case IdentifierExpression(id) => app >> id
+      case EmptyString              => app >> "the empty String"
     }
+
+  // conditions
+  given condRule: Rule[Condition] = (app, cond) =>
+    cond match {
+      case ExpressionCondition(expr) =>
+        app >> expr
+      case EqualCondition(left, op, right) =>
+        app >> left >> " " >> op >> " " >> right
+      case LogicalAndCondition(left, right) =>
+        app >> left >> " and " >> right
+    }
+
+  // equal operators
+  given eqOpRule: Rule[EqualOp] = (app, op) =>
+    import EqualOp.*
+    app >> (op match {
+      case Is               => "is"
+      case NIs              => "is not"
+      case Eq               => "="
+      case NEq              => "≠"
+      case LessThan         => "<"
+      case LessThanEqual    => "≤"
+      case GreaterThan      => ">"
+      case GreaterThanEqual => "≥"
+    })
 
   // identifiers
   given idRule: Rule[Identifier] = (app, id) =>

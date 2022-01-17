@@ -20,6 +20,9 @@ sealed trait Step extends LangElem
 object Step extends Parser[Step]
 
 case class LetStep(variable: Variable, expr: Expression) extends Step
+case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
+  extends Step
+case class ReturnStep(expr: Expression) extends Step
 case class YetStep(str: String, block: Option[Block]) extends Step
 
 // -----------------------------------------------------------------------------
@@ -30,6 +33,22 @@ object Expression extends Parser[Expression]
 
 case class LengthExpression(expr: Expression) extends Expression
 case class IdentifierExpression(id: Identifier) extends Expression
+
+sealed trait Literal extends Expression
+case object EmptyString extends Literal
+
+// -----------------------------------------------------------------------------
+// algorithm conditions
+// -----------------------------------------------------------------------------
+sealed trait Condition extends LangElem
+case class ExpressionCondition(expr: Expression) extends Condition
+case class EqualCondition(left: Expression, op: EqualOp, right: Expression)
+  extends Condition
+case class LogicalAndCondition(left: Condition, right: Condition)
+  extends Condition
+
+enum EqualOp:
+  case Is, NIs, Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
 
 // -----------------------------------------------------------------------------
 // algorithm identifiers

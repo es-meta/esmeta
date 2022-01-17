@@ -25,11 +25,19 @@ trait Parsers extends IndentParsers {
   // algorithm steps
   // ---------------------------------------------------------------------------
   given step: P[Step] = (
-    letStep
-  ) <~ guard("\n|$".r) | yetStep
+    letStep |
+      ifStep |
+      returnStep,
+  ) <~ guard(EOL) | yetStep
 
   lazy val letStep: P[LetStep] =
     ("let" ~> variable <~ "be") ~ expr <~ "." ^^ { case x ~ e => LetStep(x, e) }
+
+  lazy val ifStep: P[IfStep] =
+    ("if" ~> cond <~ ",") ~ step ^^ { case c ~ e => IfStep(c, e, None) }
+
+  lazy val returnStep: P[ReturnStep] =
+    "return" ~> expr <~ "." ^^ { ReturnStep(_) }
 
   lazy val yetStep: Parser[YetStep] =
     ".+".r ~ opt(block) ^^ { case s ~ b => YetStep(s, b) }
@@ -37,12 +45,39 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm expressions
   // ---------------------------------------------------------------------------
-  given expr: P[Expression] = lengthExpr | idExpr
+  given expr: P[Expression] = lengthExpr | idExpr | literal
 
   lazy val lengthExpr: P[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) }
+
   lazy val idExpr: P[IdentifierExpression] =
     id ^^ { IdentifierExpression(_) }
+
+  lazy val literal: P[Literal] =
+    "the empty String" ^^^ EmptyString
+
+  // ---------------------------------------------------------------------------
+  // algorithm conditions
+  // ---------------------------------------------------------------------------
+  given cond: P[Condition] =
+    baseCond ~ rep("and" ~> baseCond) ^^ { case l ~ rs =>
+      rs.foldLeft(l)(LogicalAndCondition(_, _))
+    }
+
+  lazy val baseCond: P[Condition] =
+    expr ~ eqOp ~ expr ^^ { case l ~ o ~ r => EqualCondition(l, o, r) } |
+      expr ^^ { ExpressionCondition(_) }
+
+  lazy val eqOp: P[EqualOp] =
+    import EqualOp.*
+    "is" ^^^ Is |||
+      "is not" ^^^ NIs |||
+      "=" ^^^ Eq |||
+      "≠" ^^^ NEq |||
+      "<" ^^^ LessThan |||
+      "≤" ^^^ LessThanEqual |||
+      ">" ^^^ GreaterThan |||
+      "≥" ^^^ GreaterThanEqual
 
   // ---------------------------------------------------------------------------
   // algorithm identifiers
