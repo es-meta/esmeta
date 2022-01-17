@@ -67,11 +67,11 @@ object Parser extends Parsers {
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
     // TODO filter algorithms for example or shorthands
-    "sec-algorithm-conventions-syntax-directed-operations",
-    "sec-implicit-completion-values",
-    "sec-throw-an-exception",
-    "sec-returnifabrupt",
-    "sec-abstract-closure",
+    // "sec-algorithm-conventions-syntax-directed-operations",
+    // "sec-implicit-completion-values",
+    // "sec-throw-an-exception",
+    // "sec-returnifabrupt",
+    // "sec-abstract-closure",
     // "sec-ifabruptcloseiterator",
     // "sec-ifabruptrejectpromise",
     // TODO handle Await
@@ -104,6 +104,7 @@ object Parser extends Parsers {
 
     if (IGNORE_ALGO_PARENT_IDS contains parent.id) return Nil
     if (parent.tagName != "emu-clause") return Nil
+    if (elem.isNotation) return Nil
 
     parent.attr("type") match {
       case "abstract operation" =>
