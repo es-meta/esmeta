@@ -10,7 +10,7 @@ trait Walker extends BasicWalker {
     case elem: Step                 => walk(elem)
     case elem: Expression           => walk(elem)
     case elem: Condition            => walk(elem)
-    case elem: Identifier           => walk(elem)
+    case elem: Reference            => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
@@ -63,8 +63,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: CalcExpression): CalcExpression = expr match {
-    case IdentifierExpression(id) =>
-      IdentifierExpression(walk(id))
+    case ReferenceExpression(ref) =>
+      ReferenceExpression(walk(ref))
     case InvokeExpression(name, args) =>
       InvokeExpression(name, walkList(args, walk))
     case ReturnIfAbruptExpression(expr, check) =>
@@ -96,8 +96,9 @@ trait Walker extends BasicWalker {
 
   def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
-  def walk(id: Identifier): Identifier = id match {
-    case x: Variable => walk(x)
+  def walk(ref: Reference): Reference = ref match {
+    case Field(base, name) => Field(walk(base), name)
+    case x: Variable       => walk(x)
   }
 
   def walk(x: Variable): Variable = Variable(x.name)

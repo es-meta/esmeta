@@ -1,6 +1,6 @@
 {
   "Condition" : true,
   "Expression" : true,
-  "Identifier" : true,
+  "Reference" : true,
   "Step" : true
 }

@@ -40,7 +40,7 @@ trait Parsers extends IndentParsers {
     ("let" ~> variable <~ "be") ~ expr <~ end ^^ { case x ~ e => LetStep(x, e) }
 
   lazy val setStep: P[SetStep] =
-    ("set" ~> variable <~ "to") ~ expr <~ end ^^ { case x ~ e => SetStep(x, e) }
+    ("set" ~> ref <~ "to") ~ expr <~ end ^^ { case r ~ e => SetStep(r, e) }
 
   lazy val ifStep: P[IfStep] =
     ("if" ~> cond <~ ",") ~ step ^^ { case c ~ e => IfStep(c, e, None) }
@@ -97,7 +97,7 @@ trait Parsers extends IndentParsers {
   lazy val calcExpr: P[CalcExpression] =
     import UnaryExpression.Op.*
     import BinaryExpression.Op.*
-    lazy val base: Parser[CalcExpression] = idExpr ||| literal ||| (
+    lazy val base: Parser[CalcExpression] = refExpr ||| literal ||| (
       ("-" | "the result of negating") ^^^ Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) } ||| (
       ("?" ^^^ true | "!" ^^^ false)
@@ -116,8 +116,8 @@ trait Parsers extends IndentParsers {
     }
     calc
 
-  lazy val idExpr: P[IdentifierExpression] =
-    id ^^ { IdentifierExpression(_) }
+  lazy val refExpr: P[ReferenceExpression] =
+    ref ^^ { ReferenceExpression(_) }
 
   lazy val emptyStringExpr: P[EmptyStringExpression.type] =
     "the empty String" ^^^ EmptyStringExpression
@@ -166,9 +166,12 @@ trait Parsers extends IndentParsers {
     "and" ^^^ And ||| "or" ^^^ Or
 
   // ---------------------------------------------------------------------------
-  // algorithm identifiers
+  // algorithm references
   // ---------------------------------------------------------------------------
-  given id: P[Identifier] = variable
+  given ref: P[Reference] =
+    variable ~ rep(".[[" ~> word <~ "]]") ^^ { case x ~ fs =>
+      fs.foldLeft[Reference](x)(Field(_, _))
+    }
 
   lazy val variable: P[Variable] =
     "_[^_]*_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }

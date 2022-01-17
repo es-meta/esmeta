@@ -10,7 +10,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Step                 => walk(elem)
     case elem: Expression           => walk(elem)
     case elem: Condition            => walk(elem)
-    case elem: Identifier           => walk(elem)
+    case elem: Reference            => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
@@ -56,8 +56,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(expr: CalcExpression): Unit = expr match {
-    case IdentifierExpression(id) =>
-      walk(id)
+    case ReferenceExpression(ref) =>
+      walk(ref)
     case InvokeExpression(name, args) =>
       walkList(args, walk)
     case ReturnIfAbruptExpression(expr, check) =>
@@ -89,8 +89,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(op: CompoundCondition.Op): Unit = {}
 
-  def walk(id: Identifier): Unit = id match {
-    case x: Variable => walk(x)
+  def walk(ref: Reference): Unit = ref match {
+    case Field(base, name) => walk(base)
+    case x: Variable       => walk(x)
   }
 
   def walk(x: Variable): Unit = {}

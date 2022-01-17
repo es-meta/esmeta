@@ -15,7 +15,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Step                 => stepRule(app, elem)
       case elem: Expression           => exprRule(app, elem)
       case elem: Condition            => condRule(app, elem)
-      case elem: Identifier           => idRule(app, elem)
+      case elem: Reference            => refRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
       case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
       case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
@@ -88,8 +88,8 @@ case class Stringifier(detail: Boolean) {
   // TODO consider the appropriate parenthesis
   given calcExprRule: Rule[CalcExpression] = (app, expr) =>
     expr match {
-      case IdentifierExpression(id) =>
-        app >> id
+      case ReferenceExpression(ref) =>
+        app >> ref
       case InvokeExpression(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args
@@ -179,9 +179,12 @@ case class Stringifier(detail: Boolean) {
     })
   }
 
-  // identifiers
-  given idRule: Rule[Identifier] = (app, id) =>
+  // references
+  given refRule: Rule[Reference] = (app, id) =>
     id match {
-      case Variable(name: String) => app >> s"_${name}_"
+      case Field(base, name) =>
+        app >> base >> ".[[" >> name >> "]]"
+      case Variable(name: String) =>
+        app >> s"_${name}_"
     }
 }

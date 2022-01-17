@@ -25,7 +25,7 @@ object Step extends Parser[Step]
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
 // set steps
-case class SetStep(ref: Identifier, expr: Expression) extends Step
+case class SetStep(ref: Reference, expr: Expression) extends Step
 
 // if-then-else steps
 // TODO stringifer/parsers for `else`-steps
@@ -81,8 +81,8 @@ case object EmptyStringExpression extends Expression
 // calcualation expressions
 sealed trait CalcExpression extends Expression
 
-// identifier expressions
-case class IdentifierExpression(id: Identifier) extends CalcExpression
+// reference expressions
+case class ReferenceExpression(ref: Reference) extends CalcExpression
 
 // algorithm invocation expressions
 case class InvokeExpression(
@@ -172,9 +172,10 @@ object CompoundCondition:
     case And, Or
 
 // -----------------------------------------------------------------------------
-// algorithm identifiers
+// algorithm references
 // -----------------------------------------------------------------------------
-sealed trait Identifier extends LangElem
-object Identifier extends Parser[Identifier]
+sealed trait Reference extends LangElem
+object Reference extends Parser[Reference]
 
-case class Variable(name: String) extends Identifier
+case class Field(base: Reference, name: String) extends Reference
+case class Variable(name: String) extends Reference

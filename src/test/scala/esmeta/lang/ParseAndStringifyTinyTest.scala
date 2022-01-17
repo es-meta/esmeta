@@ -11,40 +11,41 @@ class ParseAndStringifyTinyTest extends LangTest {
   def init: Unit = {
     // pre-defined values
 
-    // variables
+    // references
     val x = Variable("x")
+    val field = Field(x, "Value")
 
     // expressions
-    val idExpr = IdentifierExpression(x)
-    val lengthExpr = LengthExpression(idExpr)
-    val substrExpr = SubstringExpression(idExpr, idExpr, idExpr)
-    val addExpr = BinaryExpression(idExpr, BinaryExpression.Op.Add, idExpr)
-    val subExpr = BinaryExpression(idExpr, BinaryExpression.Op.Sub, idExpr)
-    val mulExpr = BinaryExpression(idExpr, BinaryExpression.Op.Mul, idExpr)
-    val unExpr = UnaryExpression(UnaryExpression.Op.Neg, idExpr)
+    val refExpr = ReferenceExpression(x)
+    val lengthExpr = LengthExpression(refExpr)
+    val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    val addExpr = BinaryExpression(refExpr, BinaryExpression.Op.Add, refExpr)
+    val subExpr = BinaryExpression(refExpr, BinaryExpression.Op.Sub, refExpr)
+    val mulExpr = BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
+    val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
     val invokeExpr = InvokeExpression("ToObject", List(addExpr, unExpr))
     val riaCheckExpr = ReturnIfAbruptExpression(invokeExpr, true)
     val riaNoCheckExpr = ReturnIfAbruptExpression(invokeExpr, false)
 
     // conditions
-    val exprCond = ExpressionCondition(idExpr)
+    val exprCond = ExpressionCondition(refExpr)
     val binaryCondIs =
-      BinaryCondition(idExpr, BinaryCondition.Op.Is, lengthExpr)
+      BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
     val binaryCondLt =
-      BinaryCondition(idExpr, BinaryCondition.Op.LessThan, addExpr)
+      BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
 
     // steps
-    val letStep = LetStep(x, idExpr)
+    val letStep = LetStep(x, refExpr)
     val setStep = SetStep(x, addExpr)
     val ifStep = IfStep(binaryCondIs, letStep, None)
-    val returnStep = ReturnStep(idExpr)
+    val returnStep = ReturnStep(refExpr)
     val assertStep = AssertStep(compCond)
     val forEachIntStepTrue =
-      ForEachIntegerStep(x, idExpr, exprCond, true, letStep)
+      ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
     val forEachIntStepFalse =
-      ForEachIntegerStep(x, idExpr, exprCond, false, letStep)
+      ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
     val throwStep = ThrowStep("TypeError")
     val performStep = PerformStep(invokeExpr)
 
@@ -108,7 +109,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // Expression
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Expression", Expression.apply)(
-      idExpr -> "_x_",
+      refExpr -> "_x_",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       EmptyStringExpression -> "the empty String",
@@ -149,10 +150,11 @@ class ParseAndStringifyTinyTest extends LangTest {
     )
 
     // -----------------------------------------------------------------------------
-    // Identifier
+    // Reference
     // -----------------------------------------------------------------------------
-    checkParseAndStringify("Identifier", Identifier.apply)(
+    checkParseAndStringify("Reference", Reference.apply)(
       x -> "_x_",
+      field -> "_x_.[[Value]]",
     )
   }
 
