@@ -24,6 +24,9 @@ object Step extends Parser[Step]
 // let steps
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
+// set steps
+case class SetStep(ref: Identifier, expr: Expression) extends Step
+
 // if-then-else steps
 // TODO stringifer/parsers for `else`-steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
@@ -52,9 +55,6 @@ case class ThrowStep(errorName: String) extends Step
 
 // perform steps
 case class PerformStep(expr: Expression) extends Step
-
-// set steps
-case class SetStep(ref: Identifier, expr: Expression) extends Step
 
 // not yet supported steps
 case class YetStep(str: String, block: Option[Block]) extends Step
