@@ -26,6 +26,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given step: P[Step] = (
     letStep |
+      setStep |
       ifStep |
       returnStep |
       assertStep |
@@ -37,6 +38,9 @@ trait Parsers extends IndentParsers {
 
   lazy val letStep: P[LetStep] =
     ("let" ~> variable <~ "be") ~ expr <~ end ^^ { case x ~ e => LetStep(x, e) }
+
+  lazy val setStep: P[SetStep] =
+    ("set" ~> variable <~ "to") ~ expr <~ end ^^ { case x ~ e => SetStep(x, e) }
 
   lazy val ifStep: P[IfStep] =
     ("if" ~> cond <~ ",") ~ step ^^ { case c ~ e => IfStep(c, e, None) }

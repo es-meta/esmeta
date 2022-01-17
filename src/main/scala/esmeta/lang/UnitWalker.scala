@@ -28,6 +28,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(step: Step): Unit = step match {
     case LetStep(x, expr) =>
       walk(x); walk(expr)
+    case SetStep(x, expr) =>
+      walk(x); walk(expr)
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ReturnStep(expr) =>

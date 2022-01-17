@@ -28,6 +28,8 @@ trait Walker extends BasicWalker {
   def walk(step: Step): Step = step match {
     case LetStep(x, expr) =>
       LetStep(walk(x), walk(expr))
+    case SetStep(x, expr) =>
+      SetStep(walk(x), walk(expr))
     case IfStep(cond, thenStep, elseStep) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
     case ReturnStep(expr) =>

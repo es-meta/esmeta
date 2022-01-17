@@ -45,6 +45,8 @@ case class Stringifier(detail: Boolean) {
     step match {
       case LetStep(x, expr) =>
         app >> "let " >> x >> " be " >> expr >> "."
+      case SetStep(x, expr) =>
+        app >> "set " >> x >> " to " >> expr >> "."
       case IfStep(cond, thenStep, elseStep) =>
         app >> "if " >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"

@@ -37,6 +37,7 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // steps
     val letStep = LetStep(x, idExpr)
+    val setStep = SetStep(x, addExpr)
     val ifStep = IfStep(binaryCondIs, letStep, None)
     val returnStep = ReturnStep(idExpr)
     val assertStep = AssertStep(compCond)
@@ -93,6 +94,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Step", Step.apply)(
       letStep -> "let _x_ be _x_.",
+      setStep -> "set _x_ to _x_ + _x_.",
       ifStep -> "if _x_ is the length of _x_, let _x_ be _x_.",
       returnStep -> "return _x_.",
       assertStep -> "assert: _x_ and _x_.",
