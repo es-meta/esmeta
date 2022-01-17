@@ -1,0 +1,62 @@
+let x = 1.2
+let y = 2.0
+let z = 59.0
+let ix = 3i
+let iy = 5i
+let iz = 1i
+let bx = 1n
+let by = 2n
+let sx = "a"
+let sy = "bc"
+
+assert (= (+ x y) 3.2)
+assert (= (- x y) -0.8)
+assert (= (* x y) 2.4)
+assert (= (** x y) 1.44)
+assert (= (/ x y) 0.6)
+assert (= (% y x) 0.8)
+assert (= (%% y x) 0.8)
+
+assert (= (+ ix y) 5.0)
+assert (= (- ix y) 1.0)
+assert (= (* ix y) 6.0)
+assert (= (** ix y) 9.0)
+assert (= (/ ix y) 1.5)
+assert (= (% iy x) 0.20000000000000018)
+assert (= (%% iy x) 0.20000000000000018)
+
+assert (= (+ x iy) 6.2)
+assert (= (- x iy) -3.8)
+assert (= (* x iy) 6.0)
+assert (= (** x iy) 2.4883199999999994)
+assert (= (/ x iy) 0.24)
+assert (= (% y ix) 2.0)
+assert (= (%% y ix) 2.0)
+
+assert (= (+ sx sy) "abc")
+assert (= (+ sx z) "a;")
+assert (= (- sy iz) "b")
+
+
+assert (= (+ ix iy) 8i)
+assert (= (- ix iy) -2i)
+assert (= (* ix iy) 15i)
+assert (= (** ix iy) 243i)
+assert (= (/ ix iy) 0i)
+assert (= (% iy ix) 2i)
+assert (= (%% iy ix) 2i)
+
+
+assert (= (+ bx by) 3n)
+assert (= (- bx by) -1n)
+assert (= (* bx by) 2n)
+assert (= (** bx by) 1n)
+assert (= (/ bx by) 0n)
+assert (= (% by bx) 0n)
+assert (= (%% by bx) 0n)
+
+assert (= (- bx iy) -4n)
+assert (= (%% bx iy) 1n)
+assert (= (** by iy) 32n)
+
+assert (= (** by y) 4n)

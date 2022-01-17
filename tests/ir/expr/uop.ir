@@ -1,0 +1,16 @@
+let x = 1.2
+
+assert (= (- x) -1.2)
+assert (= (~ x) -2)
+
+x = 3i
+assert (= (- x) -3i)
+assert (= (~ x) -4i)
+
+x = 1111111111n
+assert (= (- x) -1111111111n)
+assert (= (~ x) -1111111112n)
+
+
+let y = true
+assert (= (! y) false)

@@ -1,0 +1,48 @@
+let x = 1.2
+let y = 2.0
+let ix = 3i
+let iy = 5i
+let bx = 1n
+let by = 2n
+let sx = "a"
+let sy = "bc"
+
+assert (= (&& true true) true)
+assert (= (&& true false) false)
+assert (= (|| true false) true)
+assert (= (|| false false) false)
+assert (= (^^ true true) false)
+assert (= (^^ true false) true)
+assert (= (== true true) true)
+assert (= (== true false) false)
+
+assert (= (== x absent) false)
+
+assert (= (< x y) true)
+assert (= (== x x) true)
+
+assert (= (< ix y) false)
+assert (= (== ix y) false)
+
+assert (= (< x iy) true)
+assert (= (== x iy) false)
+
+assert (= (< iy ix) false)
+assert (= (== iy ix) false)
+
+assert (= (< sx sy) true)
+
+//assert (= (== y by) true)
+//assert (= (== by y) true)
+
+//assert (= (== 1i bx) true)
+assert (= (== by 1i) false)
+assert (= (< bx x) true)
+
+assert (= (< bx ix) true)
+
+assert (= (< x by) true)
+
+assert (= (< ix bx) false)
+
+assert (= (< bx by) true)
