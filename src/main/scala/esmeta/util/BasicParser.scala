@@ -60,5 +60,5 @@ trait BasicParsers extends JavaTokenParsers with RegexParsers {
   // numbers
   lazy val number = "[+-]?(0|[1-9][0-9]*)(\\.[0-9]+)?".r
   lazy val double = number ^^ { _.toDouble }
-  lazy val bigint = number ^^ { BigInt(_) }
+  lazy val bigint = integer ^^ { BigInt(_) }
 }

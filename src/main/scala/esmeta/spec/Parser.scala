@@ -60,7 +60,7 @@ object Parser extends Parsers {
   ): List[Algorithm] = for {
     head <- parseHeads(elem, idxMap)
     id = elem.getId
-    code = elem.html
+    code = elem.html.unescapeHtml
     body = Block(code)
   } yield Algorithm(head, id, body, code)
 
