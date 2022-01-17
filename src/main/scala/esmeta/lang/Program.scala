@@ -115,10 +115,11 @@ object UnaryExpression:
   enum Op extends LangElem:
     case Neg
 
-// -----------------------------------------------------------------------------
-// algorithm literals
-// -----------------------------------------------------------------------------
+// literals
 sealed trait Literal extends CalcExpression
+
+// constant literals
+case class ConstLiteral(name: String) extends Literal
 
 // string literals
 case class StringLiteral(s: String) extends Literal
@@ -149,6 +150,12 @@ object Condition extends Parser[Condition]
 
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
+
+// field includsion conditions
+case class HasFieldCondition(
+  expr: Expression,
+  fieldName: String,
+) extends Condition
 
 // binary conditions
 case class BinaryCondition(

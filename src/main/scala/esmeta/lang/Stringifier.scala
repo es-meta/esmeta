@@ -124,6 +124,7 @@ case class Stringifier(detail: Boolean) {
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
       case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
+      case ConstLiteral(name)               => app >> "~" >> name >> "~"
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)       => app >> n
@@ -149,6 +150,11 @@ case class Stringifier(detail: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
+      case HasFieldCondition(expr, fieldName) =>
+        // TODO use a/an based on the field name
+        app >> expr >> " has "
+        app >> "a"
+        app >> " [[" >> fieldName >> "]] internal slot"
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>

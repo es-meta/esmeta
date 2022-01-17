@@ -86,6 +86,8 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
+    case HasFieldCondition(expr, fieldName) =>
+      HasFieldCondition(walk(expr), fieldName)
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
     case CompoundCondition(left, op, right) =>

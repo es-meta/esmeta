@@ -29,6 +29,7 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // conditions
     val exprCond = ExpressionCondition(refExpr)
+    val hasFieldCond = HasFieldCondition(refExpr, "Type")
     val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
     val binaryCondLt =
@@ -120,6 +121,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       invokeExpr -> "ToObject(_x_ + _x_, -_x_)",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
+      ConstLiteral("empty") -> "~empty~",
       StringLiteral("abc") -> "*\"abc\"*",
       PositiveInfinityMathValueLiteral -> "+∞",
       NegativeInfinityMathValueLiteral -> "-∞",
@@ -144,6 +146,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Condition", Condition.apply)(
       exprCond -> "_x_",
+      hasFieldCond -> "_x_ has a [[Type]] internal slot",
       binaryCondIs -> "_x_ is the length of _x_",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",

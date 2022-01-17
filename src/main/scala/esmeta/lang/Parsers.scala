@@ -97,6 +97,7 @@ trait Parsers extends IndentParsers {
   lazy val calcExpr: P[CalcExpression] =
     import UnaryExpression.Op.*
     import BinaryExpression.Op.*
+
     lazy val base: Parser[CalcExpression] = refExpr ||| literal ||| (
       ("-" | "the result of negating") ^^^ Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) } ||| (
@@ -104,16 +105,19 @@ trait Parsers extends IndentParsers {
     ) ~ calcExpr ^^ { case c ~ e => ReturnIfAbruptExpression(e, c) } ||| (
       word ~ ("(" ~> repsep(calcExpr, ",") <~ ")")
     ) ^^ { case x ~ as => InvokeExpression(x, as) }
+
     lazy val term: Parser[CalcExpression] = base ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
     ) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
+
     lazy val calc: Parser[CalcExpression] = term ~ rep(
       ("+" ^^^ Add ||| "-" ^^^ Sub) ~ term,
     ) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
+
     calc
 
   lazy val refExpr: P[ReferenceExpression] =
@@ -124,6 +128,7 @@ trait Parsers extends IndentParsers {
 
   lazy val literal: P[Literal] =
     "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+      "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||
       number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
@@ -146,8 +151,22 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val baseCond: P[Condition] =
-    expr ~ binCondOp ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |
-      expr ^^ { ExpressionCondition(_) }
+    exprCond |||
+      hasFieldCond |||
+      binCond
+
+  lazy val exprCond: P[ExpressionCondition] =
+    expr ^^ { ExpressionCondition(_) }
+
+  lazy val hasFieldCond: P[HasFieldCondition] =
+    expr ~ ("has" ~ ("an" | "a") ~ "[[" ~> word <~ "]] internal slot") ^^ {
+      case e ~ f => HasFieldCondition(e, f)
+    }
+
+  lazy val binCond: P[BinaryCondition] =
+    expr ~ binCondOp ~ expr ^^ { case l ~ o ~ r =>
+      BinaryCondition(l, o, r)
+    }
 
   lazy val binCondOp: P[BinaryCondition.Op] =
     import BinaryCondition.Op.*
@@ -174,5 +193,5 @@ trait Parsers extends IndentParsers {
     }
 
   lazy val variable: P[Variable] =
-    "_[^_]*_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+    "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
 }

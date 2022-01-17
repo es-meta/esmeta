@@ -79,6 +79,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>
       walk(expr)
+    case HasFieldCondition(expr, fieldName) =>
+      walk(expr)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
     case CompoundCondition(left, op, right) =>
