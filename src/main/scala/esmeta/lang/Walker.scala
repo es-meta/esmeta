@@ -60,6 +60,8 @@ trait Walker extends BasicWalker {
       walk(expr)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
+    case NonterminalExpression(name) =>
+      NonterminalExpression(name)
   }
 
   def walk(expr: CalcExpression): CalcExpression = expr match {

@@ -24,9 +24,10 @@ class ParseAndStringifyTinyTest extends LangTest {
     val mulExpr = BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
     val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
     val invokeExpr = InvokeExpression("ToObject", List(addExpr, unExpr))
-    val listExpr = ListExpression(List(refExpr, refExpr))
     val riaCheckExpr = ReturnIfAbruptExpression(invokeExpr, true)
     val riaNoCheckExpr = ReturnIfAbruptExpression(invokeExpr, false)
+    val listExpr = ListExpression(List(refExpr, refExpr))
+    val ntExpr = NonterminalExpression("Identifier")
 
     // conditions
     val exprCond = ExpressionCondition(refExpr)
@@ -119,10 +120,11 @@ class ParseAndStringifyTinyTest extends LangTest {
       mulExpr -> "_x_ × _x_",
       unExpr -> "-_x_",
       invokeExpr -> "ToObject(_x_ + _x_, -_x_)",
-      ListExpression(Nil) -> "« »",
-      listExpr -> "« _x_, _x_ »",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
+      ListExpression(Nil) -> "« »",
+      listExpr -> "« _x_, _x_ »",
+      ntExpr -> "|Identifier|",
       ConstLiteral("empty") -> "~empty~",
       StringLiteral("") -> "*\"\"*",
       StringLiteral("abc") -> "*\"abc\"*",

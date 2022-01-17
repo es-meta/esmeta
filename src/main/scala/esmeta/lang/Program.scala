@@ -87,9 +87,6 @@ case class InvokeExpression(
   args: List[CalcExpression],
 ) extends CalcExpression
 
-// list expressions
-case class ListExpression(entries: List[Expression]) extends Expression
-
 // return if abrupt expressions
 case class ReturnIfAbruptExpression(
   expr: CalcExpression,
@@ -114,6 +111,12 @@ case class UnaryExpression(
 object UnaryExpression:
   enum Op extends LangElem:
     case Neg
+
+// list expressions
+case class ListExpression(entries: List[Expression]) extends Expression
+
+// nonterminal expressions
+case class NonterminalExpression(name: String) extends Expression
 
 // literals
 sealed trait Literal extends CalcExpression

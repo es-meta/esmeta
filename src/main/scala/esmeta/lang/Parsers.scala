@@ -43,7 +43,9 @@ trait Parsers extends IndentParsers {
     ("set" ~> ref <~ "to") ~ expr <~ end ^^ { case r ~ e => SetStep(r, e) }
 
   lazy val ifStep: P[IfStep] =
-    ("if" ~> cond <~ ",") ~ step ^^ { case c ~ e => IfStep(c, e, None) }
+    ("if" ~> cond <~ "," ~ opt("then")) ~ step ^^ { case c ~ e =>
+      IfStep(c, e, None)
+    }
 
   lazy val returnStep: P[ReturnStep] =
     "return" ~> expr <~ end ^^ { ReturnStep(_) }
@@ -84,7 +86,8 @@ trait Parsers extends IndentParsers {
     lengthExpr |||
       substrExpr |||
       calcExpr |||
-      listExpr
+      listExpr |||
+      ntExpr
 
   lazy val lengthExpr: P[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) }
@@ -122,14 +125,18 @@ trait Parsers extends IndentParsers {
 
   lazy val listExpr: P[ListExpression] =
     "a new empty List" ^^^ ListExpression(Nil) |||
-      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) }
+      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
+      "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+
+  lazy val ntExpr: P[NonterminalExpression] =
+    "|" ~> word <~ "|" ^^ { NonterminalExpression(_) }
 
   lazy val refExpr: P[ReferenceExpression] =
     ref ^^ { ReferenceExpression(_) }
 
   lazy val literal: P[Literal] =
     "the empty String" ^^^ StringLiteral("") |||
-      "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+      opt("the String") ~ "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||

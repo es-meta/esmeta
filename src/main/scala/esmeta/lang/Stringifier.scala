@@ -84,6 +84,8 @@ case class Stringifier(detail: Boolean) {
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
         app >> entries
+      case NonterminalExpression(name) =>
+        app >> "|" >> name >> "|"
     }
 
   // calculation expressions
