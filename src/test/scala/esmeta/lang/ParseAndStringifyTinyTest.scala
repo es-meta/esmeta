@@ -13,7 +13,18 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // references
     lazy val x = Variable("x")
-    lazy val field = Field(x, "Value")
+    lazy val fieldRef = FieldReference(x, field)
+    lazy val intrFieldRef = FieldReference(x, intrField)
+    lazy val propIntrFieldRef = FieldReference(x, propIntrField)
+
+    // fields
+    lazy val field = StringField("Value")
+    lazy val intrField = IntrinsicField(intr)
+    lazy val propIntrField = IntrinsicField(propIntr)
+
+    // intrinsics
+    lazy val intr = Intrinsic("Array", Nil)
+    lazy val propIntr = Intrinsic("Array", List("prototype", "toString"))
 
     // types
     lazy val ty = Type("Object")
@@ -21,15 +32,16 @@ class ParseAndStringifyTinyTest extends LangTest {
     // expressions
     lazy val refExpr = ReferenceExpression(x)
     lazy val recordNonameExpr =
-      RecordExpression(None, List("A" -> refExpr))
+      RecordExpression(None, List(field -> refExpr))
     lazy val recordEmptyExpr =
       RecordExpression(Some("Environment"), Nil)
     lazy val recordExpr =
-      RecordExpression(Some("Environment"), List("A" -> refExpr))
+      RecordExpression(Some("Environment"), List(field -> refExpr))
     lazy val typeCheckExpr = TypeCheckExpression(refExpr, ty, false)
     lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val intrExpr = IntrinsicExpression(intr)
     lazy val minExpr =
       MathOpExpression(MathOpExpression.Op.Min, List(refExpr))
     lazy val toNumberExpr =
@@ -61,11 +73,11 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
     lazy val listExpr = ListExpression(List(refExpr, refExpr))
     lazy val ntExpr = NonterminalExpression("Identifier")
-    lazy val yetExpr = YetExpression("todo", Some(stepBlock))
+    lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
     // conditions
     lazy val exprCond = ExpressionCondition(refExpr)
-    lazy val hasFieldCond = HasFieldCondition(refExpr, "Type")
+    lazy val hasFieldCond = HasFieldCondition(refExpr, field)
     lazy val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
     lazy val binaryCondLt =
@@ -86,7 +98,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
     lazy val throwStep = ThrowStep("TypeError")
     lazy val performStep = PerformStep(invokeAOExpr)
-    lazy val appendStep = AppendStep(refExpr, field)
+    lazy val appendStep = AppendStep(refExpr, fieldRef)
     lazy val repeatStep = RepeatStep(None, letStep)
     lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
@@ -195,7 +207,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       |  1. Let _x_ be _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
-      yetStep -> """[YET] todo
+      yetStep -> """[YET] Not yet supported:
       |  1. Let _x_ be _x_.
       |  1. [id="this-is-id"] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
@@ -206,13 +218,14 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Expression", Expression.apply)(
       refExpr -> "_x_",
-      recordNonameExpr -> "Record { [[A]]: _x_ }",
+      recordNonameExpr -> "Record { [[Value]]: _x_ }",
       recordEmptyExpr -> "Environment Record { }",
-      recordExpr -> "Environment Record { [[A]]: _x_ }",
+      recordExpr -> "Environment Record { [[Value]]: _x_ }",
       typeCheckExpr -> "Type(_x_) is Object",
       typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
+      intrExpr -> "%Array%",
       minExpr -> "min(_x_)",
       toNumberExpr -> "𝔽(_x_)",
       addExpr -> "_x_ + _x_",
@@ -255,7 +268,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Condition", Condition.apply)(
       exprCond -> "_x_",
-      hasFieldCond -> "_x_ has a [[Type]] internal slot",
+      hasFieldCond -> "_x_ has a [[Value]] internal slot",
       binaryCondIs -> "_x_ is the length of _x_",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",
@@ -266,7 +279,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Reference", Reference.apply)(
       x -> "_x_",
-      field -> "_x_.[[Value]]",
+      fieldRef -> "_x_.[[Value]]",
+      intrFieldRef -> "_x_.[[%Array%]]",
+      propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
     )
 
     // -----------------------------------------------------------------------------

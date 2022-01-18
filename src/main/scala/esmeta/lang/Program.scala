@@ -34,7 +34,6 @@ case class LetStep(variable: Variable, expr: Expression) extends Step
 case class SetStep(ref: Reference, expr: Expression) extends Step
 
 // if-then-else steps
-// TODO stringifer/parsers for `else`-steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
 
@@ -88,7 +87,7 @@ object Expression extends Parser[Expression]
 // record expressions
 case class RecordExpression(
   name: Option[String],
-  fields: List[(String, Expression)],
+  fields: List[(Field, Expression)],
 ) extends Expression
 
 // type check expressions
@@ -107,6 +106,9 @@ case class SubstringExpression(
   from: Expression,
   to: Expression,
 ) extends Expression
+
+// intrinsic expressions
+case class IntrinsicExpression(intr: Intrinsic) extends Expression
 
 // calcualation expressions
 sealed trait CalcExpression extends Expression
@@ -215,7 +217,7 @@ case class ExpressionCondition(expr: Expression) extends Condition
 // field inclusion conditions
 case class HasFieldCondition(
   expr: Expression,
-  fieldName: String,
+  field: Field,
 ) extends Condition
 
 // binary conditions
@@ -245,8 +247,19 @@ object CompoundCondition:
 sealed trait Reference extends LangElem
 object Reference extends Parser[Reference]
 
-case class Field(base: Reference, name: String) extends Reference
+// field references
+case class FieldReference(base: Reference, field: Field) extends Reference
+
+// variables
 case class Variable(name: String) extends Reference
+
+// fields
+sealed trait Field extends LangElem
+case class StringField(name: String) extends Field
+case class IntrinsicField(intrinsic: Intrinsic) extends Field
+
+// intrinsics
+case class Intrinsic(base: String, props: List[String]) extends LangElem
 
 // -----------------------------------------------------------------------------
 // algorithm types

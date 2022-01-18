@@ -125,6 +125,7 @@ trait Parsers extends IndentParsers {
       typeCheckExpr |||
       lengthExpr |||
       substrExpr |||
+      intrExpr |||
       calcExpr |||
       invokeExpr |||
       returnIfAbruptExpr |||
@@ -133,7 +134,7 @@ trait Parsers extends IndentParsers {
   // record expressions
   lazy val recordExpr: P[RecordExpression] =
     opt("the") ~> rep1(word) ~ ("{" ~> (
-      repsep(("[[" ~> word <~ "]]:") ~ expr, ","),
+      repsep((field <~ ":") ~ expr, ","),
     ) <~ "}") ^^ { case xs ~ fs =>
       var name = xs.mkString(" ")
       if (name endsWith "Record") name = name.dropRight("Record".length).trim
@@ -156,6 +157,9 @@ trait Parsers extends IndentParsers {
     ("the substring of" ~> expr) ~
       ("from" ~> expr) ~
       ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+
+  // intrinsic expressions
+  lazy val intrExpr: P[IntrinsicExpression] = intr ^^ { IntrinsicExpression(_) }
 
   // reference expressions
   lazy val refExpr: P[ReferenceExpression] =
@@ -279,8 +283,8 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
-    expr ~ ("has" ~ ("an" | "a") ~ "[[" ~> word <~ "]] internal slot") ^^ {
-      case e ~ f => HasFieldCondition(e, f)
+    expr ~ ("has" ~ ("an" | "a") ~> field <~ "internal slot") ^^ { case e ~ f =>
+      HasFieldCondition(e, f)
     }
 
   // binary conditions
@@ -302,12 +306,22 @@ trait Parsers extends IndentParsers {
   // algorithm references
   // ---------------------------------------------------------------------------
   given ref: P[Reference] =
-    variable ~ rep(".[[" ~> word <~ "]]") ^^ { case x ~ fs =>
-      fs.foldLeft[Reference](x)(Field(_, _))
+    variable ~ rep("." ~> field) ^^ { case x ~ fs =>
+      fs.foldLeft[Reference](x)(FieldReference(_, _))
     }
 
+  // variables
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+
+  // fields
+  lazy val field: P[Field] =
+    "[[" ~> (word ^^ { StringField(_) } | intr ^^ { IntrinsicField(_) }) <~ "]]"
+
+  // intrinsics
+  lazy val intr: P[Intrinsic] = "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+    case b ~ ps => Intrinsic(b, ps)
+  }
 
   // ---------------------------------------------------------------------------
   // algorithm types

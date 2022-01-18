@@ -18,6 +18,8 @@ case class Stringifier(detail: Boolean) {
       case elem: Condition            => condRule(app, elem)
       case elem: Reference            => refRule(app, elem)
       case elem: Type                 => typeRule(app, elem)
+      case elem: Field                => fieldRule(app, elem)
+      case elem: Intrinsic            => intrRule(app, elem)
       case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
       case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
@@ -110,10 +112,10 @@ case class Stringifier(detail: Boolean) {
       case RecordExpression(name, fields) =>
         name.map(app >> _ >> " ")
         app >> "Record "
-        given Rule[(String, Expression)] = { case (app, (name, expr)) =>
-          app >> "[[" >> name >> "]]: " >> expr
+        given Rule[(Field, Expression)] = { case (app, (field, expr)) =>
+          app >> field >> ": " >> expr
         }
-        given Rule[List[(String, Expression)]] = iterableRule("{ ", ", ", " }")
+        given Rule[List[(Field, Expression)]] = iterableRule("{ ", ", ", " }")
         if (fields.isEmpty) app >> "{ }"
         else app >> fields
       case TypeCheckExpression(expr, ty, neg) =>
@@ -123,6 +125,8 @@ case class Stringifier(detail: Boolean) {
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
         app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
+      case IntrinsicExpression(intr) =>
+        app >> intr
       case expr: CalcExpression =>
         app >> expr
       case expr: InvokeExpression => app >> expr
@@ -233,11 +237,11 @@ case class Stringifier(detail: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
-      case HasFieldCondition(expr, fieldName) =>
-        // TODO use a/an based on the field name
+      case HasFieldCondition(expr, field) =>
+        // TODO use a/an based on the fields
         app >> expr >> " has "
         app >> "a"
-        app >> " [[" >> fieldName >> "]] internal slot"
+        app >> " " >> field >> " internal slot"
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>
@@ -269,10 +273,10 @@ case class Stringifier(detail: Boolean) {
   }
 
   // references
-  given refRule: Rule[Reference] = (app, id) =>
-    id match {
-      case Field(base, name) =>
-        app >> base >> ".[[" >> name >> "]]"
+  given refRule: Rule[Reference] = (app, ref) =>
+    ref match {
+      case FieldReference(base, field) =>
+        app >> base >> "." >> field
       case Variable(name: String) =>
         app >> s"_${name}_"
     }
@@ -280,8 +284,24 @@ case class Stringifier(detail: Boolean) {
   // types
   given typeRule: Rule[Type] = (app, ty) => app >> ty.name
 
+  // fields
+  given fieldRule: Rule[Field] = (app, field) =>
+    app >> "[["
+    field match {
+      case StringField(name)         => app >> name
+      case IntrinsicField(intrinsic) => app >> intrinsic
+    }
+    app >> "]]"
+
+  // intrinsics
+  given intrRule: Rule[Intrinsic] = (app, intr) =>
+    val Intrinsic(base, props) = intr
+    app >> "%" >> base
+    props.map(app >> "." >> _)
+    app >> "%"
+
   // list with named separator
-  def listNamedSepRule[T](
+  private def listNamedSepRule[T](
     left: String = "",
     namedSep: String = "",
     right: String = "",

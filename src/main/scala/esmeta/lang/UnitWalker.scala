@@ -13,6 +13,8 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Condition            => walk(elem)
     case elem: Reference            => walk(elem)
     case elem: Type                 => walk(elem)
+    case elem: Field                => walk(elem)
+    case elem: Intrinsic            => walk(elem)
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
@@ -57,13 +59,15 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(expr: Expression): Unit = expr match {
     case RecordExpression(name, fields) =>
-      walkList(fields, { case (_, expr) => walk(expr) })
+      walkList(fields, { case (field, expr) => (walk(field), walk(expr)) })
     case TypeCheckExpression(expr, ty, neg) =>
       walk(expr); walk(ty)
     case LengthExpression(expr) =>
       walk(expr)
     case SubstringExpression(expr, from, to) =>
       walk(expr); walk(from); walk(to)
+    case IntrinsicExpression(intr) =>
+      walk(intr)
     case expr: CalcExpression =>
       walk(expr)
     case invoke: InvokeExpression =>
@@ -112,8 +116,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>
       walk(expr)
-    case HasFieldCondition(expr, fieldName) =>
-      walk(expr)
+    case HasFieldCondition(expr, field) =>
+      walk(expr); walk(field)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
     case CompoundCondition(left, op, right) =>
@@ -125,11 +129,18 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: CompoundCondition.Op): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
-    case Field(base, name) => walk(base)
-    case x: Variable       => walk(x)
+    case FieldReference(base, field) => walk(base); walk(field)
+    case x: Variable                 => walk(x)
   }
 
   def walk(x: Variable): Unit = {}
+
+  def walk(field: Field): Unit = field match {
+    case StringField(name)         =>
+    case IntrinsicField(intrinsic) => walk(intrinsic)
+  }
+
+  def walk(intr: Intrinsic): Unit = {}
 
   def walk(ty: Type): Unit = {}
 }

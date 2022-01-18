@@ -13,6 +13,8 @@ trait Walker extends BasicWalker {
     case elem: Condition            => walk(elem)
     case elem: Reference            => walk(elem)
     case elem: Type                 => walk(elem)
+    case elem: Field                => walk(elem)
+    case elem: Intrinsic            => walk(elem)
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
@@ -64,7 +66,7 @@ trait Walker extends BasicWalker {
   def walk(expr: Expression): Expression = expr match {
     case RecordExpression(name, fields) =>
       val newFields =
-        walkList(fields, { case (name, expr) => (name, walk(expr)) })
+        walkList(fields, { case (field, expr) => (walk(field), walk(expr)) })
       RecordExpression(name, newFields)
     case TypeCheckExpression(expr, ty, neg) =>
       TypeCheckExpression(walk(expr), walk(ty), neg)
@@ -72,6 +74,8 @@ trait Walker extends BasicWalker {
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
       SubstringExpression(walk(expr), walk(from), walk(to))
+    case IntrinsicExpression(intr) =>
+      IntrinsicExpression(walk(intr))
     case expr: CalcExpression =>
       walk(expr)
     case invoke: InvokeExpression =>
@@ -125,8 +129,8 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
-    case HasFieldCondition(expr, fieldName) =>
-      HasFieldCondition(walk(expr), fieldName)
+    case HasFieldCondition(expr, field) =>
+      HasFieldCondition(walk(expr), walk(field))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
     case CompoundCondition(left, op, right) =>
@@ -138,11 +142,18 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
   def walk(ref: Reference): Reference = ref match {
-    case Field(base, name) => Field(walk(base), name)
-    case x: Variable       => walk(x)
+    case FieldReference(base, field) => FieldReference(walk(base), walk(field))
+    case x: Variable                 => walk(x)
   }
 
   def walk(x: Variable): Variable = Variable(x.name)
+
+  def walk(field: Field): Field = field match {
+    case StringField(name)         => StringField(name)
+    case IntrinsicField(intrinsic) => IntrinsicField(walk(intrinsic))
+  }
+
+  def walk(intr: Intrinsic): Intrinsic = intr
 
   def walk(ty: Type): Type = Type(ty.name)
 }
