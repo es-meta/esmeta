@@ -10,7 +10,8 @@ object Utils {
       expr match {
         case BinaryExpression(_, Add | Sub, _)       => 0
         case BinaryExpression(_, Mul | Div | Mod, _) => 1
-        case _                                       => 2
+        case UnaryExpression(_, _)                   => 2
+        case _                                       => 3
       }
   }
 }

@@ -164,6 +164,12 @@ object MathOpExpression:
   enum Op extends LangElem:
     case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
 
+// exponentiation expressions
+case class ExponentiationExpression(
+  base: CalcExpression,
+  power: CalcExpression,
+) extends CalcExpression
+
 // binary expressions
 case class BinaryExpression(
   left: CalcExpression,

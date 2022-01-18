@@ -102,6 +102,8 @@ trait Walker extends BasicWalker {
       walk(lit)
     case MathOpExpression(op, args) =>
       MathOpExpression(walk(op), walkList(args, walk))
+    case ExponentiationExpression(base, power) =>
+      ExponentiationExpression(walk(base), walk(power))
     case BinaryExpression(left, op, right) =>
       BinaryExpression(walk(left), walk(op), walk(right))
     case UnaryExpression(op, expr) =>

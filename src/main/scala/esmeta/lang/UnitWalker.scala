@@ -93,6 +93,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(ref)
     case MathOpExpression(op, args) =>
       walk(op); walkList(args, walk)
+    case ExponentiationExpression(base, power) =>
+      walk(base); walk(power)
     case BinaryExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>

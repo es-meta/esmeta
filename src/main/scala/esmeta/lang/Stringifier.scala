@@ -166,6 +166,8 @@ case class Stringifier(detail: Boolean) {
       case MathOpExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
+      case ExponentiationExpression(base, power) =>
+        app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>

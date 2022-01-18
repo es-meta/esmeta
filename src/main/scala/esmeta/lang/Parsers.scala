@@ -187,13 +187,17 @@ trait Parsers extends IndentParsers {
 
     lazy val base: P[CalcExpression] =
       refExpr ||| literal ||| mathOpExpr ||| "(" ~> calc <~ ")" ||| (
-        ("-" | "the result of negating") ^^^ Neg
-      ) ~ base ^^ { case o ~ e =>
-        UnaryExpression(o, e)
-      }
+        base ~ ("<sup>" ~> calc <~ "</sup>")
+      ) ^^ { case b ~ e => ExponentiationExpression(b, e) }
 
-    lazy val term: P[CalcExpression] = base ~ rep(
-      ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
+    lazy val unary: P[CalcExpression] = base ||| (
+      ("-" | "the result of negating") ^^^ Neg
+    ) ~ base ^^ { case o ~ e =>
+      UnaryExpression(o, e)
+    }
+
+    lazy val term: P[CalcExpression] = unary ~ rep(
+      ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ unary,
     ) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
