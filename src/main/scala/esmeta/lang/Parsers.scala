@@ -65,7 +65,7 @@ trait Parsers extends IndentParsers {
 
   // return steps
   lazy val returnStep: P[ReturnStep] =
-    "return" ~> expr <~ end ^^ { ReturnStep(_) }
+    "return" ~> opt(expr) <~ end ^^ { ReturnStep(_) }
 
   // assertion steps
   lazy val assertStep: P[AssertStep] =

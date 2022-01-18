@@ -52,7 +52,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       IfStep(binaryCondLt, blockStep, Some(ifBlockStep))
     lazy val ifElseIfElseStep =
       IfStep(binaryCondLt, blockStep, Some(ifElseStep))
-    lazy val returnStep = ReturnStep(refExpr)
+    lazy val returnStep = ReturnStep(Some(refExpr))
+    lazy val returnStepNoExpr = ReturnStep(None)
     lazy val assertStep = AssertStep(compCond)
     lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, letStep)
     lazy val forEachStepNoType = ForEachStep(None, x, refExpr, letStep)
@@ -98,6 +99,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
       returnStep -> "return _x_.",
+      returnStepNoExpr -> "return.",
       assertStep -> "assert: _x_ and _x_.",
       forEachStep -> "for each Object _x_ of _x_, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",

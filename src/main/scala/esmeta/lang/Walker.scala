@@ -42,7 +42,7 @@ trait Walker extends BasicWalker {
     case IfStep(cond, thenStep, elseStep) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
     case ReturnStep(expr) =>
-      ReturnStep(walk(expr))
+      ReturnStep(walkOpt(expr, walk))
     case AssertStep(cond) =>
       AssertStep(walk(cond))
     case ForEachStep(ty, elem, expr, body) =>

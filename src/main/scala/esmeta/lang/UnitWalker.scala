@@ -42,7 +42,7 @@ trait UnitWalker extends BasicUnitWalker {
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ReturnStep(expr) =>
-      walk(expr)
+      walkOpt(expr, walk)
     case AssertStep(cond) =>
       walk(cond)
     case ForEachStep(ty, elem, expr, body) =>

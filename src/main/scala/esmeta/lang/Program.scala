@@ -38,7 +38,7 @@ case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
 
 // return steps
-case class ReturnStep(expr: Expression) extends Step
+case class ReturnStep(expr: Option[Expression]) extends Step
 
 // assertion steps
 case class AssertStep(cond: Condition) extends Step

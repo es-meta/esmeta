@@ -72,7 +72,9 @@ case class Stringifier(detail: Boolean) {
           case None                  => app
         }
       case ReturnStep(expr) =>
-        app >> First("return ") >> expr >> "."
+        app >> First("return")
+        expr.map(app >> " " >> _)
+        app >> "."
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
       case ForEachStep(ty, elem, expr, body) =>
