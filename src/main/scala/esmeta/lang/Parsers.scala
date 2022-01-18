@@ -90,7 +90,7 @@ trait Parsers extends IndentParsers {
 
   // append steps
   lazy val appendStep: P[AppendStep] =
-    "append" ~> expr ~
+    ("append" | "add") ~> expr ~
       ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
       ^^ { case e ~ r => AppendStep(e, r) }
 
