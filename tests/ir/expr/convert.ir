@@ -9,3 +9,6 @@ assert (= (convert 1.2 num2bigint) 1n)
 assert (= (convert 10n num2str) "10")
 assert (= (convert 10n num2bigint) 10n)
 assert (= (convert 10n bigint2num) 10)
+
+assert (= (convert 2.0 num2str 2i) "10")
+assert (= (convert 31i num2str 2i) "11111")
