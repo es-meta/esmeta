@@ -12,6 +12,8 @@ trait Walker extends BasicWalker {
     case elem: Expression           => walk(elem)
     case elem: Condition            => walk(elem)
     case elem: Reference            => walk(elem)
+    case elem: Type                 => walk(elem)
+    case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
@@ -86,11 +88,21 @@ trait Walker extends BasicWalker {
       ReferenceExpression(walk(ref))
     case lit: Literal =>
       walk(lit)
+    case MathOpExpression(op, args) =>
+      MathOpExpression(walk(op), walkList(args, walk))
     case BinaryExpression(left, op, right) =>
       BinaryExpression(walk(left), walk(op), walk(right))
     case UnaryExpression(op, expr) =>
       UnaryExpression(walk(op), walk(expr))
   }
+
+  def walk(op: MathOpExpression.Op): MathOpExpression.Op = op
+
+  def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
+
+  def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
+
+  def walk(lit: Literal): Literal = lit
 
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
@@ -102,12 +114,6 @@ trait Walker extends BasicWalker {
         walkList(args, walk),
       )
   }
-
-  def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
-
-  def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
-
-  def walk(lit: Literal): Literal = lit
 
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>

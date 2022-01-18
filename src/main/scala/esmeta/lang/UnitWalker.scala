@@ -7,10 +7,13 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
     case elem: Program              => walk(elem)
     case elem: Block                => walk(elem)
+    case elem: SubStep              => walk(elem)
     case elem: Step                 => walk(elem)
     case elem: Expression           => walk(elem)
     case elem: Condition            => walk(elem)
     case elem: Reference            => walk(elem)
+    case elem: Type                 => walk(elem)
+    case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
@@ -76,6 +79,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(expr: CalcExpression): Unit = expr match {
     case ReferenceExpression(ref) =>
       walk(ref)
+    case MathOpExpression(op, args) =>
+      walk(op); walkList(args, walk)
     case BinaryExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>
@@ -84,18 +89,20 @@ trait UnitWalker extends BasicUnitWalker {
       walk(lit)
   }
 
-  def walk(invoke: InvokeExpression): Unit = invoke match {
-    case InvokeAbstractOperationExpression(name, args) =>
-      walkList(args, walk)
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-      walk(base); walkList(args, walk)
-  }
+  def walk(op: MathOpExpression.Op): Unit = {}
 
   def walk(op: BinaryExpression.Op): Unit = {}
 
   def walk(op: UnaryExpression.Op): Unit = {}
 
   def walk(lit: Literal): Unit = {}
+
+  def walk(invoke: InvokeExpression): Unit = invoke match {
+    case InvokeAbstractOperationExpression(name, args) =>
+      walkList(args, walk)
+    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+      walk(base); walkList(args, walk)
+  }
 
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>

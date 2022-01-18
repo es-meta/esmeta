@@ -18,6 +18,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Condition            => condRule(app, elem)
       case elem: Reference            => refRule(app, elem)
       case elem: Type                 => typeRule(app, elem)
+      case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
       case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
       case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
@@ -126,6 +127,9 @@ case class Stringifier(detail: Boolean) {
     expr match {
       case ReferenceExpression(ref) =>
         app >> ref
+      case MathOpExpression(op, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> op >> args
       case BinaryExpression(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
@@ -133,21 +137,18 @@ case class Stringifier(detail: Boolean) {
       case lit: Literal => app >> lit
     }
 
-  // algorithm invocation expressions
-  given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
-    expr match {
-      case InvokeAbstractOperationExpression(name, args) =>
-        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
-        app >> name >> " of " >> base
-        if (!args.isEmpty) {
-          app >> " using " >> args >> " as the argument"
-          if (args.length > 1) app >> "s"
-        }
-        app
-    }
+  // operators for mathematical operation expressions
+  given mathOpExprOpRule: Rule[MathOpExpression.Op] = (app, op) =>
+    import MathOpExpression.Op.*
+    app >> (op match {
+      case Max      => "max"
+      case Min      => "min"
+      case Abs      => "abs"
+      case Floor    => "floor"
+      case ToBigInt => "ℤ"
+      case ToNumber => "𝔽"
+      case ToMath   => "ℝ"
+    })
 
   // operators for binary expressions
   given binExprOpRule: Rule[BinaryExpression.Op] = (app, op) =>
@@ -191,6 +192,22 @@ case class Stringifier(detail: Boolean) {
       case FalseLiteral     => app >> "*false*"
       case UndefinedLiteral => app >> "*undefined*"
       case NullLiteral      => app >> "*null*"
+    }
+
+  // algorithm invocation expressions
+  given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
+    expr match {
+      case InvokeAbstractOperationExpression(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args
+      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+        app >> name >> " of " >> base
+        if (!args.isEmpty) {
+          app >> " using " >> args >> " as the argument"
+          if (args.length > 1) app >> "s"
+        }
+        app
     }
 
   // conditions

@@ -94,6 +94,15 @@ sealed trait CalcExpression extends Expression
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
 
+// mathematical operation expressions
+case class MathOpExpression(
+  op: MathOpExpression.Op,
+  args: List[Expression],
+) extends CalcExpression
+object MathOpExpression:
+  enum Op extends LangElem:
+    case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
+
 // binary expressions
 case class BinaryExpression(
   left: CalcExpression,

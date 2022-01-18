@@ -137,14 +137,21 @@ trait Parsers extends IndentParsers {
     ref ^^ { ReferenceExpression(_) }
 
   // calculation expressions
-  lazy val calcExpr: P[CalcExpression] =
-    import UnaryExpression.Op.*
+  lazy val calcExpr: P[CalcExpression] = {
+    import MathOpExpression.Op.*
     import BinaryExpression.Op.*
+    import UnaryExpression.Op.*
 
     lazy val base: Parser[CalcExpression] =
       refExpr ||| literal ||| (
         ("-" | "the result of negating") ^^^ Neg
-      ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
+      ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) } ||| (
+        "max" ^^^ Max ||| "min" ^^^ Min |||
+          "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
+          "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
+      ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ { case o ~ as =>
+        MathOpExpression(o, as)
+      }
 
     lazy val term: Parser[CalcExpression] = base ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
@@ -159,6 +166,7 @@ trait Parsers extends IndentParsers {
     }
 
     calc
+  }
 
   // literals
   lazy val literal: P[Literal] =

@@ -24,6 +24,10 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val minExpr =
+      MathOpExpression(MathOpExpression.Op.Min, List(refExpr))
+    lazy val toNumberExpr =
+      MathOpExpression(MathOpExpression.Op.ToNumber, List(refExpr))
     lazy val addExpr =
       BinaryExpression(refExpr, BinaryExpression.Op.Add, refExpr)
     lazy val subExpr =
@@ -193,6 +197,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
+      minExpr -> "min(_x_)",
+      toNumberExpr -> "𝔽(_x_)",
       addExpr -> "_x_ + _x_",
       subExpr -> "_x_ - _x_",
       mulExpr -> "_x_ × _x_",
