@@ -1,10 +1,14 @@
 let const = ~[throw]~
 let obj = (new Record)
+let exoticObj = (new ExoticObject)
+let array = (new Array)
 let f = (clo () [] => {})
 let g = (cont () [=>] {})
 
 assert (= (typeof const) "Constant")
 assert (= (typeof obj) "Record")
+assert (= (typeof exoticObj) "Object")
+assert (= (typeof array) "Array")
 assert (= (typeof 1) "Number")
 assert (= (typeof 1i) "Number")
 assert (= (typeof 1n) "BigInt")

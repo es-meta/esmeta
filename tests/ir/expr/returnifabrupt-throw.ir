@@ -1,0 +1,10 @@
+//let f = (clo () [] => {
+//  throw true
+//  assert false
+//})
+//let g = (clo (f) [] => {
+//  app x = (f)
+//  [? x]
+//})
+//app y = (g f)
+//assert y

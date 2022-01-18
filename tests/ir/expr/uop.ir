@@ -11,6 +11,5 @@ x = 10n
 assert (= (- x) -10n)
 assert (= (~ x) -11n)
 
-
 assert (= (! true) false)
 assert (= (! false) true)

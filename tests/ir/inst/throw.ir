@@ -1,0 +1,6 @@
+//let f = (clo () [] => {
+//  throw true
+//  assert false
+//})
+//app y = (f)
+//assert(is-completion y)

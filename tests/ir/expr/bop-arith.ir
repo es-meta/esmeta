@@ -37,7 +37,6 @@ assert (= (+ sx sy) "abc")
 assert (= (+ sx z) "a;")
 assert (= (- sy iz) "b")
 
-
 assert (= (+ ix iy) 8i)
 assert (= (- ix iy) -2i)
 assert (= (* ix iy) 15i)
@@ -45,7 +44,6 @@ assert (= (** ix iy) 243i)
 assert (= (/ ix iy) 0i)
 assert (= (% iy ix) 2i)
 assert (= (%% iy ix) 2i)
-
 
 assert (= (+ bx by) 3n)
 assert (= (- bx by) -1n)

@@ -1,6 +1,0 @@
-let a = 0 
-let comp1 = (comp[~normal~] a => "empty")
-assert (= [? a] 0)
-assert (= [! a] 0)
-assert (= [? comp1] 0)
-assert (= [! comp1] 0)

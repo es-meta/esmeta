@@ -1,0 +1,8 @@
+let d1 = (new '"descStr")
+let d2 = (new '"descStr")
+let d3 = (new 'undefined)
+
+assert (= d1 d1)
+assert (! (= d1 d2))
+assert (! (= d1 d3))
+
