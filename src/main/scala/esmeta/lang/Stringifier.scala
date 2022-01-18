@@ -217,9 +217,11 @@ case class Stringifier(detail: Boolean) {
         app >> f"0x$hex%04x"
         name.map(app >> " (" >> _ >> ")")
         app
-      case CodeLiteral(code)        => app >> "`" >> code >> "`"
-      case NonterminalLiteral(name) => app >> "|" >> name >> "|"
-      case ConstLiteral(name)       => app >> "~" >> name >> "~"
+      case CodeLiteral(code) => app >> "`" >> code >> "`"
+      case NonterminalLiteral(ordinal, name) =>
+        ordinal.map(ordinal => app >> "the " >> ordinal.toOrdinal >> " ")
+        app >> "|" >> name >> "|"
+      case ConstLiteral(name) => app >> "~" >> name >> "~"
       case StringLiteral(str) =>
         val replaced = str
           .replace("\\", "\\\\")

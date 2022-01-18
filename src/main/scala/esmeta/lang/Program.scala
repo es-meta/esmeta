@@ -204,7 +204,10 @@ case class HexLiteral(hex: Int, name: Option[String]) extends Literal
 case class CodeLiteral(code: String) extends Literal
 
 // nonterminal literals
-case class NonterminalLiteral(name: String) extends Literal
+case class NonterminalLiteral(
+  ordinal: Option[Int],
+  name: String,
+) extends Literal
 
 // constant literals
 case class ConstLiteral(name: String) extends Literal

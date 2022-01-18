@@ -1,5 +1,6 @@
 package esmeta.lang
 
+import esmeta.lang.Utils.*
 import esmeta.util.IndentParsers
 import scala.util.matching.Regex
 
@@ -231,7 +232,7 @@ trait Parsers extends IndentParsers {
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
       hexLiteral |||
       "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
-      opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalLiteral(_) } |||
+      ntLiteral |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||
       strLiteral |||
@@ -254,6 +255,14 @@ trait Parsers extends IndentParsers {
       opt("(" ~> "[ A-Z]+".r <~ ")") ^^ { case n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x)
       }
+
+  // nonterminal literals
+  lazy val ntLiteral: P[NonterminalLiteral] =
+    opt("the") ~> opt(
+      word.map(_.toIntFromOrdinal).filter(_.isDefined),
+    ) ~ ("|" ~> word <~ "|") ^^ { case ord ~ x =>
+      NonterminalLiteral(ord.flatten, x)
+    }
 
   // string literals
   lazy val strLiteral: P[StringLiteral] =

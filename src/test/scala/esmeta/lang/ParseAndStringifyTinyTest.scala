@@ -234,7 +234,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val hex = HexLiteral(0x0024, None)
     lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
     lazy val code = CodeLiteral("|")
-    lazy val nt = NonterminalLiteral("Identifier")
+    lazy val nt = NonterminalLiteral(None, "Identifier")
+    lazy val firstNt = NonterminalLiteral(Some(1), "Identifier")
+    lazy val secondNt = NonterminalLiteral(Some(2), "Identifier")
     lazy val empty = ConstLiteral("empty")
     lazy val emptyStr = StringLiteral("")
     lazy val str = StringLiteral("abc")
@@ -256,6 +258,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
       nt -> "|Identifier|",
+      firstNt -> "the first |Identifier|",
+      secondNt -> "the second |Identifier|",
       empty -> "~empty~",
       emptyStr -> """*""*""",
       str -> """*"abc"*""",
