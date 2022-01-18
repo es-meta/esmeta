@@ -66,6 +66,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: Expression): Expression = expr match {
+    case StringConcatExpression(exprs) =>
+      StringConcatExpression(walkList(exprs, walk))
     case RecordExpression(ty, fields) =>
       val newFields = walkList(fields, { case (f, e) => (walk(f), walk(e)) })
       RecordExpression(walk(ty), newFields)

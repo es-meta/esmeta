@@ -60,6 +60,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(expr: Expression): Unit = expr match {
+    case StringConcatExpression(exprs) =>
+      walkList(exprs, walk)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
     case TypeCheckExpression(expr, ty, neg) =>

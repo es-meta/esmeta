@@ -117,7 +117,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       repeatStep -> "repeat, let _x_ be _x_.",
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
-      pushStep -> "push _x_ onto the execution context stack; _x_ is now the running execution context.",
+      pushStep -> ("push _x_ onto the execution context stack; " +
+        "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
@@ -127,6 +128,12 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm expressions
     // -------------------------------------------------------------------------
     lazy val refExpr = ReferenceExpression(x)
+    lazy val stringConcatExprOne =
+      StringConcatExpression(List(refExpr))
+    lazy val stringConcatExprTwo =
+      StringConcatExpression(List(refExpr, refExpr))
+    lazy val stringConcatExprThree =
+      StringConcatExpression(List(refExpr, refExpr, refExpr))
     lazy val recordEmptyExpr =
       RecordExpression(ty, Nil)
     lazy val recordExpr =
@@ -161,6 +168,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Expression", Expression)(
       refExpr -> "_x_",
+      stringConcatExprOne -> "the string-concatenation of _x_",
+      stringConcatExprTwo -> "the string-concatenation of _x_ and _x_",
+      stringConcatExprThree -> "the string-concatenation of _x_, _x_, and _x_",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       typeCheckExpr -> "Type(_x_) is Object",
@@ -170,10 +180,10 @@ class ParseAndStringifyTinyTest extends LangTest {
       intrExpr -> "%Array%",
       invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
-      invokeSDOExprSingle ->
-        "StringValue of |Identifier| using |Identifier| as the argument",
-      invokeSDOExprMulti ->
-        "StringValue of |Identifier| using |Identifier| and _x_ as the arguments",
+      invokeSDOExprSingle -> ("StringValue of |Identifier| " +
+        "using |Identifier| as the argument"),
+      invokeSDOExprMulti -> ("StringValue of |Identifier| " +
+        "using |Identifier| and _x_ as the arguments"),
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
       emptyListExpr -> "« »",

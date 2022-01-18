@@ -136,7 +136,8 @@ trait Parsers extends IndentParsers {
   // algorithm expressions
   // ---------------------------------------------------------------------------
   given expr: P[Expression] =
-    recordExpr |||
+    stringConcatExpr |||
+      recordExpr |||
       typeCheckExpr |||
       lengthExpr |||
       substrExpr |||
@@ -145,6 +146,12 @@ trait Parsers extends IndentParsers {
       invokeExpr |||
       returnIfAbruptExpr |||
       listExpr
+
+  // string concatenation expressions
+  lazy val stringConcatExpr: P[StringConcatExpression] =
+    "the string-concatenation of" ~> repsep(expr, sep("and")) ^^ {
+      StringConcatExpression(_)
+    }
 
   // record expressions
   lazy val recordExpr: P[RecordExpression] =

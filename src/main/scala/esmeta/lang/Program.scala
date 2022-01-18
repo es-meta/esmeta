@@ -90,6 +90,9 @@ case class YetStep(expr: YetExpression) extends Step
 sealed trait Expression extends LangElem
 object Expression extends Parser.From[Expression]
 
+// string concatenation expressions
+case class StringConcatExpression(exprs: List[Expression]) extends Expression
+
 // record expressions
 case class RecordExpression(
   ty: Type,

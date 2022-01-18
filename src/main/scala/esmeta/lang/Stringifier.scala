@@ -118,6 +118,9 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
     expr match {
+      case StringConcatExpression(exprs) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+        app >> "the string-concatenation of " >> exprs
       case RecordExpression(ty, fields) =>
         given Rule[(Field, Expression)] = { case (app, (field, expr)) =>
           app >> field >> ": " >> expr
