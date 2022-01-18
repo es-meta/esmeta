@@ -44,6 +44,8 @@ trait Parsers extends IndentParsers {
       performStep |
       appendStep |
       repeatStep |
+      pushStep |
+      noteStep |
       blockStep
   ) <~ guard(EOL) | yetStep
 
@@ -107,6 +109,17 @@ trait Parsers extends IndentParsers {
     ("repeat" ~ ",") ~> opt(("until" | "while") ~> cond <~ ",") ~ step ^^ {
       case c ~ s => RepeatStep(c, s)
     }
+
+  // push steps
+  lazy val pushStep: P[PushStep] =
+    "push" ~> ref <~
+      ("onto the execution context stack;" ~ ref ~ "is now the running execution context" ~ end) ^^ {
+        case r => PushStep(r)
+      }
+
+  // note steps
+  lazy val noteStep: P[NoteStep] =
+    ("NOTE" ~ ":") ~> ".*".r ^^ { str => NoteStep(str) }
 
   // block steps
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }

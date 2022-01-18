@@ -72,6 +72,12 @@ case class AppendStep(elem: Expression, ref: Reference) extends Step
 // repeat steps
 case class RepeatStep(cond: Option[Condition], body: Step) extends Step
 
+// push steps
+case class PushStep(context: Reference) extends Step
+
+// note steps
+case class NoteStep(note: String) extends Step
+
 // block steps
 case class BlockStep(block: Block) extends Step
 

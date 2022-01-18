@@ -59,6 +59,8 @@ trait Walker extends BasicWalker {
     case PerformStep(expr)      => PerformStep(walk(expr))
     case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
     case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
+    case PushStep(context)      => PushStep(walk(context))
+    case NoteStep(note)         => NoteStep(note)
     case BlockStep(block)       => BlockStep(walk(block))
     case YetStep(expr)          => YetStep(walk(expr))
   }

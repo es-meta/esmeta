@@ -64,6 +64,10 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val appendStep = AppendStep(refExpr, fieldRef)
     lazy val repeatStep = RepeatStep(None, letStep)
     lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
+    lazy val pushStep = PushStep(x)
+    lazy val noteStep = NoteStep(
+      "At this point, it must be a numeric operation.",
+    )
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -109,6 +113,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       repeatStep -> "repeat, let _x_ be _x_.",
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
+      pushStep -> "push _x_ onto the execution context stack; _x_ is now the running execution context.",
+      noteStep -> "NOTE: At this point, it must be a numeric operation.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
       yetStep -> """[YET] Not yet supported:
