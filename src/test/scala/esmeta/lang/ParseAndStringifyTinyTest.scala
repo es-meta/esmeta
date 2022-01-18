@@ -87,6 +87,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val throwStep = ThrowStep("TypeError")
     lazy val performStep = PerformStep(invokeAOExpr)
     lazy val appendStep = AppendStep(refExpr, field)
+    lazy val repeatStep = RepeatStep(None, letStep)
+    lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -188,6 +190,9 @@ class ParseAndStringifyTinyTest extends LangTest {
       throwStep -> "throw a *TypeError* exception.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
+      repeatStep -> "repeat, let _x_ be _x_.",
+      repeatCondStep -> """repeat, while _x_ and _x_,
+      |  1. Let _x_ be _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
       yetStep -> """[YET] todo

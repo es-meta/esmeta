@@ -53,11 +53,12 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case ThrowStep(errorName)  => ThrowStep(errorName)
-    case PerformStep(expr)     => PerformStep(walk(expr))
-    case AppendStep(expr, ref) => AppendStep(walk(expr), walk(ref))
-    case BlockStep(block)      => BlockStep(walk(block))
-    case YetStep(expr)         => YetStep(walk(expr))
+    case ThrowStep(errorName)   => ThrowStep(errorName)
+    case PerformStep(expr)      => PerformStep(walk(expr))
+    case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
+    case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
+    case BlockStep(block)       => BlockStep(walk(block))
+    case YetStep(expr)          => YetStep(walk(expr))
   }
 
   def walk(expr: Expression): Expression = expr match {

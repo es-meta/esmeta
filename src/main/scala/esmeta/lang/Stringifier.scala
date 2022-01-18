@@ -89,6 +89,10 @@ case class Stringifier(detail: Boolean) {
         app >> First("perform ") >> expr >> "."
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
+      case RepeatStep(cond, body) =>
+        app >> First("repeat, ")
+        for { c <- cond } app >> "while " >> c >> ","
+        app >> body
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>
