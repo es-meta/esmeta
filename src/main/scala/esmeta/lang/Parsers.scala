@@ -100,13 +100,20 @@ trait Parsers extends IndentParsers {
   // algorithm expressions
   // ---------------------------------------------------------------------------
   given expr: P[Expression] =
-    lengthExpr |||
+    typeCheckExpr |||
+      lengthExpr |||
       substrExpr |||
       calcExpr |||
       invokeExpr |||
       returnIfAbruptExpr |||
       listExpr |||
       ntExpr
+
+  // type check expressions
+  lazy val typeCheckExpr: P[TypeCheckExpression] =
+    ("Type(" ~> expr <~ ")") ~ ("is" ~> opt("not")) ~ ty ^^ { case e ~ n ~ t =>
+      TypeCheckExpression(e, t, n.isDefined)
+    }
 
   // `length of` expressions
   lazy val lengthExpr: P[LengthExpression] =
@@ -261,6 +268,11 @@ trait Parsers extends IndentParsers {
 
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+
+  // ---------------------------------------------------------------------------
+  // algorithm types
+  // ---------------------------------------------------------------------------
+  given ty: P[Type] = word ^^ { Type(_) }
 
   // ---------------------------------------------------------------------------
   // private helpers

@@ -15,8 +15,13 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val x = Variable("x")
     lazy val field = Field(x, "Value")
 
+    // types
+    lazy val ty = Type("Object")
+
     // expressions
     lazy val refExpr = ReferenceExpression(x)
+    lazy val typeCheckExpr = TypeCheckExpression(refExpr, ty, false)
+    lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
     lazy val addExpr =
@@ -182,6 +187,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Expression", Expression.apply)(
       refExpr -> "_x_",
+      typeCheckExpr -> "Type(_x_) is Object",
+      typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       addExpr -> "_x_ + _x_",
@@ -236,6 +243,13 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Reference", Reference.apply)(
       x -> "_x_",
       field -> "_x_.[[Value]]",
+    )
+
+    // -----------------------------------------------------------------------------
+    // Reference
+    // -----------------------------------------------------------------------------
+    checkParseAndStringify("Type", Type.apply)(
+      ty -> "Object",
     )
   }
 

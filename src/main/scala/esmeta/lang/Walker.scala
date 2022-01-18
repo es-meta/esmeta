@@ -56,6 +56,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: Expression): Expression = expr match {
+    case TypeCheckExpression(expr, ty, neg) =>
+      TypeCheckExpression(walk(expr), walk(ty), neg)
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
@@ -127,4 +129,6 @@ trait Walker extends BasicWalker {
   }
 
   def walk(x: Variable): Variable = Variable(x.name)
+
+  def walk(ty: Type): Type = Type(ty.name)
 }

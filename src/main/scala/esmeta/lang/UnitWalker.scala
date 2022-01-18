@@ -49,6 +49,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(expr: Expression): Unit = expr match {
+    case TypeCheckExpression(expr, ty, neg) =>
+      walk(expr); walk(ty)
     case LengthExpression(expr) =>
       walk(expr)
     case SubstringExpression(expr, from, to) =>
@@ -115,4 +117,6 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(x: Variable): Unit = {}
+
+  def walk(ty: Type): Unit = {}
 }

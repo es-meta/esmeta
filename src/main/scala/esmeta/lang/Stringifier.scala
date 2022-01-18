@@ -17,6 +17,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Expression           => exprRule(app, elem)
       case elem: Condition            => condRule(app, elem)
       case elem: Reference            => refRule(app, elem)
+      case elem: Type                 => typeRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
       case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
       case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
@@ -94,6 +95,9 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
     expr match {
+      case TypeCheckExpression(expr, ty, neg) =>
+        app >> "Type(" >> expr >> ") is "
+        app >> (if (neg) "not " else "") >> ty
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
@@ -236,7 +240,10 @@ case class Stringifier(detail: Boolean) {
         app >> s"_${name}_"
     }
 
-  /** list with named separator */
+  // types
+  given typeRule: Rule[Type] = (app, ty) => app >> ty.name
+
+  // list with named separator
   def listNamedSepRule[T](
     left: String = "",
     namedSep: String = "",

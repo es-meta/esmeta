@@ -3,5 +3,6 @@
   "Condition" : true,
   "Expression" : true,
   "Reference" : true,
-  "Step" : true
+  "Step" : true,
+  "Type" : true
 }

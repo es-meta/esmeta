@@ -68,6 +68,13 @@ case class YetStep(expr: YetExpression) extends Step
 sealed trait Expression extends LangElem
 object Expression extends Parser[Expression]
 
+// type check expressions
+case class TypeCheckExpression(
+  expr: Expression,
+  ty: Type,
+  negation: Boolean,
+) extends Expression
+
 // `length of` expressions
 case class LengthExpression(expr: Expression) extends Expression
 
@@ -173,7 +180,7 @@ object Condition extends Parser[Condition]
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
 
-// field includsion conditions
+// field inclusion conditions
 case class HasFieldCondition(
   expr: Expression,
   fieldName: String,
@@ -208,3 +215,10 @@ object Reference extends Parser[Reference]
 
 case class Field(base: Reference, name: String) extends Reference
 case class Variable(name: String) extends Reference
+
+// -----------------------------------------------------------------------------
+// algorithm types
+// -----------------------------------------------------------------------------
+// TODO more detailed instead of strings
+case class Type(name: String) extends LangElem
+object Type extends Parser[Type]
