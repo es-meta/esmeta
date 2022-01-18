@@ -219,6 +219,7 @@ trait Parsers extends IndentParsers {
   // literals
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
+      "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
       opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||

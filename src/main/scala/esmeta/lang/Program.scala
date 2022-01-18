@@ -144,9 +144,6 @@ case class ReturnIfAbruptExpression(
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
-// TODO code expressions
-// case class CodeExpression(code: String) extends Expression
-
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 
@@ -193,6 +190,9 @@ sealed trait Literal extends CalcExpression
 
 // this literals
 case object ThisLiteral extends Literal
+
+// code expressions
+case class CodeLiteral(code: String) extends Literal
 
 // nonterminal literals
 case class NonterminalLiteral(name: String) extends Literal

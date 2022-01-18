@@ -218,6 +218,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm literals
     // -------------------------------------------------------------------------
+    lazy val code = CodeLiteral("|")
     lazy val nt = NonterminalLiteral("Identifier")
     lazy val empty = ConstLiteral("empty")
     lazy val emptyStr = StringLiteral("")
@@ -236,6 +237,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Literal", Expression)(
       ThisLiteral -> "*this* value",
+      code -> "`|`",
       nt -> "|Identifier|",
       empty -> "~empty~",
       emptyStr -> """*""*""",

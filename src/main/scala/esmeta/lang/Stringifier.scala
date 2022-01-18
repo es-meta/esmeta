@@ -203,6 +203,7 @@ case class Stringifier(detail: Boolean) {
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
       case ThisLiteral              => app >> "*this* value"
+      case CodeLiteral(code)        => app >> "`" >> code >> "`"
       case NonterminalLiteral(name) => app >> "|" >> name >> "|"
       case ConstLiteral(name)       => app >> "~" >> name >> "~"
       case StringLiteral(str) =>
