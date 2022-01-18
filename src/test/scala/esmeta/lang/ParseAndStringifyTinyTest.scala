@@ -70,6 +70,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
     lazy val throwStep = ThrowStep("TypeError")
     lazy val performStep = PerformStep(invokeAOExpr)
+    lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
     // blocks
@@ -78,6 +79,42 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))
     lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
     lazy val figureBlock = Figure(List("a", "b", "c"))
+
+    // if-then-else blocks
+    lazy val ifBlock =
+      StepBlock(
+        List(SubStep(None, IfStep(binaryCondLt, blockStep, None))),
+      )
+    lazy val ifElseBlock =
+      StepBlock(
+        List(SubStep(None, IfStep(binaryCondLt, blockStep, Some(blockStep)))),
+      )
+    lazy val ifElseIfBlock =
+      StepBlock(
+        List(
+          SubStep(
+            None,
+            IfStep(
+              binaryCondLt,
+              blockStep,
+              Some(IfStep(binaryCondLt, blockStep, None)),
+            ),
+          ),
+        ),
+      )
+    lazy val ifElseIfElseBlock =
+      StepBlock(
+        List(
+          SubStep(
+            None,
+            IfStep(
+              binaryCondLt,
+              blockStep,
+              Some(IfStep(binaryCondLt, blockStep, Some(blockStep))),
+            ),
+          ),
+        ),
+      )
 
     // -----------------------------------------------------------------------------
     // Block
@@ -97,6 +134,26 @@ class ParseAndStringifyTinyTest extends LangTest {
       |    b
       |    c
       |  </figure>""".stripMargin,
+      ifBlock -> """
+      |  1. If _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.""".stripMargin,
+      ifElseBlock -> """
+      |  1. If _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else,
+      |    1. Let _x_ be _x_.""".stripMargin,
+      ifElseIfBlock -> """
+      |  1. If _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else if _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.""".stripMargin,
+      ifElseIfElseBlock -> """
+      |  1. If _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else if _x_ < _x_ + _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else,
+      |    1. Let _x_ be _x_.""".stripMargin,
     )
 
     // -----------------------------------------------------------------------------
@@ -112,6 +169,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       forEachIntStepFalse -> "for each integer _x_ starting with _x_ such that _x_, in descending order, let _x_ be _x_.",
       throwStep -> "throw a *TypeError* exception.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
+      blockStep -> """
+      |  1. Let _x_ be _x_.""".stripMargin,
       yetStep -> """[YET] todo
       |  1. Let _x_ be _x_.
       |  1. [id="this-is-id"] Let _x_ be _x_.

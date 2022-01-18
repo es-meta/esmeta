@@ -61,6 +61,11 @@ case class Stringifier(detail: Boolean) {
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
+        elseStep match {
+          case Some(ifStep: IfStep) => app :> "1. Else " >> ifStep
+          case Some(step)           => app :> "1. Else," >> step
+          case None                 => app
+        }
       case ReturnStep(expr) =>
         app >> First("return ") >> expr >> "."
       case AssertStep(cond) =>
