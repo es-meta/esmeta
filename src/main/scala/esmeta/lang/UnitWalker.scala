@@ -43,6 +43,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case AssertStep(cond) =>
       walk(cond)
+    case ForEachStep(elemType, elem, expr, body) =>
+      walk(elemType); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)
     case ThrowStep(errorName)  =>

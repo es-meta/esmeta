@@ -24,6 +24,9 @@ case class SubStep(idTag: Option[String], step: Step) extends LangElem
 sealed trait Step extends LangElem
 object Step extends Parser[Step]
 
+// XXX
+// rarely used step:
+
 // let steps
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
@@ -40,6 +43,14 @@ case class ReturnStep(expr: Expression) extends Step
 
 // assertion steps
 case class AssertStep(cond: Condition) extends Step
+
+// for-each steps
+case class ForEachStep(
+  elemType: Type,
+  elem: Reference,
+  expr: Expression,
+  body: Step,
+) extends Step
 
 // for-each steps for integers
 case class ForEachIntegerStep(

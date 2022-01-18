@@ -38,6 +38,7 @@ trait Parsers extends IndentParsers {
       ifStep |
       returnStep |
       assertStep |
+      forEachStep |
       forEachIntStep |
       throwStep |
       performStep |
@@ -68,6 +69,12 @@ trait Parsers extends IndentParsers {
   lazy val assertStep: P[AssertStep] =
     "assert" ~ ":" ~> cond <~ end ^^ { AssertStep(_) }
 
+  // for-each steps
+  lazy val forEachStep: P[ForEachStep] =
+    ("for each" ~> ty) ~ ref ~ ("of" ~> expr) ~ ("," ~ opt("do") ~> step) ^^ {
+      case t ~ r ~ e ~ s => ForEachStep(t, r, e, s)
+    }
+
   // for-each steps for integers
   lazy val forEachIntStep: P[ForEachIntegerStep] =
     ("for each" ~ "(non-negative )?integer".r ~> variable) ~
@@ -86,7 +93,7 @@ trait Parsers extends IndentParsers {
 
   // perform steps
   lazy val performStep: P[PerformStep] =
-    "perform" ~> expr <~ end ^^ { PerformStep(_) }
+    ("perform" | "call") ~> expr <~ end ^^ { PerformStep(_) }
 
   // append steps
   lazy val appendStep: P[AppendStep] =

@@ -79,6 +79,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val ifStep = IfStep(binaryCondIs, letStep, None)
     lazy val returnStep = ReturnStep(refExpr)
     lazy val assertStep = AssertStep(compCond)
+    lazy val forEachStep = ForEachStep(ty, x, refExpr, letStep)
     lazy val forEachIntStepTrue =
       ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
     lazy val forEachIntStepFalse =
@@ -181,6 +182,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       ifStep -> "if _x_ is the length of _x_, let _x_ be _x_.",
       returnStep -> "return _x_.",
       assertStep -> "assert: _x_ and _x_.",
+      forEachStep -> "for each Object _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> "for each integer _x_ starting with _x_ such that _x_, in ascending order, let _x_ be _x_.",
       forEachIntStepFalse -> "for each integer _x_ starting with _x_ such that _x_, in descending order, let _x_ be _x_.",
       throwStep -> "throw a *TypeError* exception.",

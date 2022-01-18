@@ -72,6 +72,11 @@ case class Stringifier(detail: Boolean) {
         app >> First("return ") >> expr >> "."
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
+      case ForEachStep(elemType, elem, expr, body) =>
+        app >> First("for each ") >> elemType >> " " >> elem >> " of " >> expr
+        if (body.isInstanceOf[BlockStep]) app >> ", do"
+        else app >> ", "
+        app >> body
       case ForEachIntegerStep(x, start, cond, ascending, body) =>
         app >> First("for each integer ") >> x >> " starting with " >> start
         app >> " such that " >> cond >> ", in "
