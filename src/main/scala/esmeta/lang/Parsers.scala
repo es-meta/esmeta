@@ -11,10 +11,17 @@ trait Parsers extends IndentParsers {
   // algorithm blocks
   // ---------------------------------------------------------------------------
   given block: P[Block] = indent ~> (
-    rep1(next ~ "1." ~ upper ~> step) ^^ { StepBlock(_) } |
+    rep1(next ~ "1." ~> subStep) ^^ { StepBlock(_) } |
       rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
       next ~> figureStr ^^ { Figure(_) }
   ) <~ dedent
+
+  // sub-steps
+  lazy val subStep: P[SubStep] =
+    opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") ~ (upper ~> step) ^^ {
+      case x ~ s =>
+        SubStep(x, s)
+    }
 
   // figure string
   lazy val figureStr: P[List[String]] = "<figure>\n".r ~> repsep(

@@ -13,6 +13,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Program              => programRule(app, elem)
       case elem: Block                => blockRule(app, elem)
       case elem: Step                 => stepRule(app, elem)
+      case elem: SubStep              => subStepRule(app, elem)
       case elem: Expression           => exprRule(app, elem)
       case elem: Condition            => condRule(app, elem)
       case elem: Reference            => refRule(app, elem)
@@ -39,6 +40,13 @@ case class Stringifier(detail: Boolean) {
         app :> "</figure>"
     })
     else app >> " [...]"
+
+  // sub-steps
+  given subStepRule: Rule[SubStep] = (app, subStep) =>
+    given Rule[Step] = stepWithUpperRule(true)
+    val SubStep(idTag, step) = subStep
+    idTag.map(app >> "[id=\"" >> _ >> "\"] ")
+    app >> step
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)

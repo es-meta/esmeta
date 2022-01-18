@@ -73,7 +73,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val yetStep = YetStep(yetExpr)
 
     // blocks
-    lazy val stepBlock = StepBlock(List(letStep, letStep, letStep))
+    lazy val subStep = SubStep(None, letStep)
+    lazy val subStepId = SubStep(Some("this-is-id"), letStep)
+    lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))
     lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
     lazy val figureBlock = Figure(List("a", "b", "c"))
 
@@ -83,7 +85,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Block", Block.apply)(
       stepBlock -> """
       |  1. Let _x_ be _x_.
-      |  1. Let _x_ be _x_.
+      |  1. [id="this-is-id"] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
       exprBlock -> """
       |  * _x_
@@ -112,7 +114,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       yetStep -> """[YET] todo
       |  1. Let _x_ be _x_.
-      |  1. Let _x_ be _x_.
+      |  1. [id="this-is-id"] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
     )
 

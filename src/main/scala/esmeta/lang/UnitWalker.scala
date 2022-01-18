@@ -25,6 +25,10 @@ trait UnitWalker extends BasicUnitWalker {
     case Figure(lines)    =>
   }
 
+  def walk(subStep: SubStep): Unit =
+    val SubStep(idTag, step) = subStep
+    walk(step)
+
   def walk(step: Step): Unit = step match {
     case LetStep(x, expr) =>
       walk(x); walk(expr)

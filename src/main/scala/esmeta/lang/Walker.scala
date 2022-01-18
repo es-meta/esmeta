@@ -7,6 +7,7 @@ trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
     case elem: Program              => walk(elem)
     case elem: Block                => walk(elem)
+    case elem: SubStep              => walk(elem)
     case elem: Step                 => walk(elem)
     case elem: Expression           => walk(elem)
     case elem: Condition            => walk(elem)
@@ -24,6 +25,10 @@ trait Walker extends BasicWalker {
     case ExprBlock(exprs) => ExprBlock(walkList(exprs, walk))
     case Figure(lines)    => Figure(lines)
   }
+
+  def walk(subStep: SubStep): SubStep =
+    val SubStep(idTag, step) = subStep
+    SubStep(idTag, walk(step))
 
   def walk(step: Step): Step = step match {
     case LetStep(x, expr) =>

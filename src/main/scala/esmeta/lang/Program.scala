@@ -11,9 +11,12 @@ case class Program(block: Block) extends LangElem
 sealed trait Block extends LangElem
 object Block extends Parser[Block]
 
-case class StepBlock(steps: List[Step]) extends Block
+case class StepBlock(steps: List[SubStep]) extends Block
 case class ExprBlock(exprs: List[Expression]) extends Block
 case class Figure(lines: List[String]) extends Block
+
+// sub-steps with optional id tags
+case class SubStep(idTag: Option[String], step: Step) extends LangElem
 
 // -----------------------------------------------------------------------------
 // algorithm steps
