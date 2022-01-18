@@ -45,8 +45,8 @@ case class AssertStep(cond: Condition) extends Step
 
 // for-each steps
 case class ForEachStep(
-  elemType: Type,
-  elem: Reference,
+  ty: Option[Type],
+  variable: Variable,
   expr: Expression,
   body: Step,
 ) extends Step
@@ -92,7 +92,7 @@ object Expression extends Parser.From[Expression]
 
 // record expressions
 case class RecordExpression(
-  name: Option[String],
+  ty: Type,
   fields: List[(Field, Expression)],
 ) extends Expression
 
@@ -226,6 +226,9 @@ object Condition extends Parser.From[Condition]
 
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
+
+// instance check conditions
+case class InstanceOfCondition(expr: Expression, ty: Type) extends Condition
 
 // field inclusion conditions
 case class HasFieldCondition(

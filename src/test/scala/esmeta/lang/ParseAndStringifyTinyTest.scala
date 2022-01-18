@@ -54,7 +54,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       IfStep(binaryCondLt, blockStep, Some(ifElseStep))
     lazy val returnStep = ReturnStep(refExpr)
     lazy val assertStep = AssertStep(compCond)
-    lazy val forEachStep = ForEachStep(ty, x, refExpr, letStep)
+    lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, letStep)
+    lazy val forEachStepNoType = ForEachStep(None, x, refExpr, letStep)
     lazy val forEachIntStepTrue =
       ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
     lazy val forEachIntStepFalse =
@@ -99,6 +100,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       returnStep -> "return _x_.",
       assertStep -> "assert: _x_ and _x_.",
       forEachStep -> "for each Object _x_ of _x_, let _x_ be _x_.",
+      forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> (
         "for each integer _x_ starting with _x_ such that _x_, " +
           "in ascending order, let _x_ be _x_."
@@ -123,12 +125,10 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm expressions
     // -------------------------------------------------------------------------
     lazy val refExpr = ReferenceExpression(x)
-    lazy val recordNonameExpr =
-      RecordExpression(None, List(field -> refExpr))
     lazy val recordEmptyExpr =
-      RecordExpression(Some("Environment"), Nil)
+      RecordExpression(ty, Nil)
     lazy val recordExpr =
-      RecordExpression(Some("Environment"), List(field -> refExpr))
+      RecordExpression(ty, List(field -> refExpr))
     lazy val typeCheckExpr = TypeCheckExpression(refExpr, ty, false)
     lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
     lazy val lengthExpr = LengthExpression(refExpr)
@@ -159,9 +159,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Expression", Expression)(
       refExpr -> "_x_",
-      recordNonameExpr -> "Record { [[Value]]: _x_ }",
-      recordEmptyExpr -> "Environment Record { }",
-      recordExpr -> "Environment Record { [[Value]]: _x_ }",
+      recordEmptyExpr -> "Object { }",
+      recordExpr -> "Object { [[Value]]: _x_ }",
       typeCheckExpr -> "Type(_x_) is Object",
       typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
@@ -247,6 +246,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm conditions
     // -------------------------------------------------------------------------
     lazy val exprCond = ExpressionCondition(refExpr)
+    lazy val instanceOfCond = InstanceOfCondition(refExpr, ty)
     lazy val hasFieldCond = HasFieldCondition(refExpr, field)
     lazy val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
@@ -256,6 +256,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
+      instanceOfCond -> "_x_ is a Object",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       binaryCondIs -> "_x_ is the length of _x_",
       binaryCondLt -> "_x_ < _x_ + _x_",

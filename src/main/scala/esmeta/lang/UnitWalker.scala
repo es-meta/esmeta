@@ -45,8 +45,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case AssertStep(cond) =>
       walk(cond)
-    case ForEachStep(elemType, elem, expr, body) =>
-      walk(elemType); walk(elem); walk(expr); walk(body)
+    case ForEachStep(ty, elem, expr, body) =>
+      walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)
     case ThrowStep(errorName)   =>
@@ -60,8 +60,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(expr: Expression): Unit = expr match {
-    case RecordExpression(name, fields) =>
-      walkList(fields, { case (field, expr) => (walk(field), walk(expr)) })
+    case RecordExpression(ty, fields) =>
+      walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
     case TypeCheckExpression(expr, ty, neg) =>
       walk(expr); walk(ty)
     case LengthExpression(expr) =>
@@ -117,6 +117,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>
       walk(expr)
+    case InstanceOfCondition(expr, ty) =>
+      walk(expr); walk(ty)
     case HasFieldCondition(expr, field) =>
       walk(expr); walk(field)
     case BinaryCondition(left, op, right) =>

@@ -41,6 +41,9 @@ trait BasicParsers extends JavaTokenParsers {
   // any word
   lazy val word = "\\w+".r
 
+  // camel case
+  lazy val camel = "[A-Z][a-zA-Z0-9]+".r
+
   // boolean
   lazy val bool = "true" ^^^ true | "false" ^^^ false
 

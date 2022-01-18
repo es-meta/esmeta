@@ -45,8 +45,8 @@ trait Walker extends BasicWalker {
       ReturnStep(walk(expr))
     case AssertStep(cond) =>
       AssertStep(walk(cond))
-    case ForEachStep(elemType, elem, expr, body) =>
-      ForEachStep(walk(elemType), walk(elem), walk(expr), walk(body))
+    case ForEachStep(ty, elem, expr, body) =>
+      ForEachStep(walkOpt(ty, walk), walk(elem), walk(expr), walk(body))
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       ForEachIntegerStep(
         walk(x),
@@ -66,10 +66,9 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: Expression): Expression = expr match {
-    case RecordExpression(name, fields) =>
-      val newFields =
-        walkList(fields, { case (field, expr) => (walk(field), walk(expr)) })
-      RecordExpression(name, newFields)
+    case RecordExpression(ty, fields) =>
+      val newFields = walkList(fields, { case (f, e) => (walk(f), walk(e)) })
+      RecordExpression(walk(ty), newFields)
     case TypeCheckExpression(expr, ty, neg) =>
       TypeCheckExpression(walk(expr), walk(ty), neg)
     case LengthExpression(expr) =>
@@ -129,6 +128,8 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
+    case InstanceOfCondition(expr, ty) =>
+      InstanceOfCondition(walk(expr), walk(ty))
     case HasFieldCondition(expr, field) =>
       HasFieldCondition(walk(expr), walk(field))
     case BinaryCondition(left, op, right) =>

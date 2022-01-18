@@ -73,9 +73,12 @@ trait Parsers extends IndentParsers {
 
   // for-each steps
   lazy val forEachStep: P[ForEachStep] =
-    ("for each" ~> ty) ~ ref ~ ("of" ~> expr) ~ ("," ~ opt("do") ~> step) ^^ {
-      case t ~ r ~ e ~ s => ForEachStep(t, r, e, s)
-    }
+    ("for each" ~ opt("element") ~> opt(ty)) ~
+      variable ~
+      ("of" ~> expr) ~
+      ("," ~ opt("do") ~> step) ^^ { case t ~ r ~ e ~ s =>
+        ForEachStep(t, r, e, s)
+      }
 
   // for-each steps for integers
   lazy val forEachIntStep: P[ForEachIntegerStep] =
@@ -145,13 +148,10 @@ trait Parsers extends IndentParsers {
 
   // record expressions
   lazy val recordExpr: P[RecordExpression] =
-    opt("the") ~> rep1(word) ~ ("{" ~> (
-      repsep((field <~ ":") ~ expr, ","),
-    ) <~ "}") ^^ { case xs ~ fs =>
-      var name = xs.mkString(" ")
-      if (name endsWith "Record") name = name.dropRight("Record".length).trim
-      val fields = fs.map { case f ~ e => f -> e }
-      RecordExpression(if (name.isEmpty) None else Some(name), fields)
+    opt("the") ~> ty ~ ("{" ~> repsep((field <~ ":") ~ expr, ",") <~ "}") ^^ {
+      case t ~ fs =>
+        val fields = fs.map { case f ~ e => f -> e }
+        RecordExpression(t, fields)
     }
 
   // type check expressions
@@ -283,12 +283,19 @@ trait Parsers extends IndentParsers {
   // base conditions
   lazy val baseCond: P[Condition] =
     exprCond |||
+      instanceOfCond |||
       hasFieldCond |||
       binCond
 
   // expression conditions
   lazy val exprCond: P[ExpressionCondition] =
     expr ^^ { ExpressionCondition(_) }
+
+  // instance check conditions
+  lazy val instanceOfCond: P[InstanceOfCondition] =
+    expr ~ ("is" ~ ("a" | "an") ~> ty) ^^ { case e ~ t =>
+      InstanceOfCondition(e, t)
+    }
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
@@ -339,7 +346,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm types
   // ---------------------------------------------------------------------------
-  given ty: P[Type] = word ^^ { Type(_) }
+  given ty: P[Type] = rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) }
 
   // ---------------------------------------------------------------------------
   // private helpers

@@ -75,10 +75,11 @@ case class Stringifier(detail: Boolean) {
         app >> First("return ") >> expr >> "."
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
-      case ForEachStep(elemType, elem, expr, body) =>
-        app >> First("for each ") >> elemType >> " " >> elem >> " of " >> expr
-        if (body.isInstanceOf[BlockStep]) app >> ", do"
-        else app >> ", "
+      case ForEachStep(ty, elem, expr, body) =>
+        app >> First("for each ")
+        ty.map(app >> _ >> " ")
+        app >> elem >> " of " >> expr >> ", "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ForEachIntegerStep(x, start, cond, ascending, body) =>
         app >> First("for each integer ") >> x >> " starting with " >> start
@@ -115,13 +116,12 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
     expr match {
-      case RecordExpression(name, fields) =>
-        name.map(app >> _ >> " ")
-        app >> "Record "
+      case RecordExpression(ty, fields) =>
         given Rule[(Field, Expression)] = { case (app, (field, expr)) =>
           app >> field >> ": " >> expr
         }
         given Rule[List[(Field, Expression)]] = iterableRule("{ ", ", ", " }")
+        app >> ty >> " "
         if (fields.isEmpty) app >> "{ }"
         else app >> fields
       case TypeCheckExpression(expr, ty, neg) =>
@@ -242,9 +242,14 @@ case class Stringifier(detail: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
+      case InstanceOfCondition(expr, ty) =>
+        app >> expr >> " is "
+        // TODO use a/an based on the types
+        app >> "a"
+        app >> " " >> ty
       case HasFieldCondition(expr, field) =>
-        // TODO use a/an based on the fields
         app >> expr >> " has "
+        // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"
       case BinaryCondition(left, op, right) =>
