@@ -3,20 +3,10 @@ package esmeta.util
 import esmeta.util.BaseUtils.*
 import java.io.*
 import java.nio.charset.Charset
-import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
-
-/** basic parser */
-trait BasicParser[T, P <: BasicParsers] {
-  protected val parser: P
-  import parser.*
-  def fromFile(str: String)(using parser: Parser[T]): T =
-    fromFileWithParser(str, parser)
-  def apply(str: String)(using parser: Parser[T]): T =
-    parse[T](str)
-}
+import scala.util.parsing.combinator.JavaTokenParsers
 
 /** basic parsers */
-trait BasicParsers extends JavaTokenParsers with RegexParsers {
+trait BasicParsers extends JavaTokenParsers {
   // parse from file
   def fromFileWithParser[T](f: String, parser: Parser[T]): T = {
     var fileName = new File(f).getCanonicalPath
@@ -61,4 +51,11 @@ trait BasicParsers extends JavaTokenParsers with RegexParsers {
   lazy val number = "[+-]?(0|[1-9][0-9]*)(\\.[0-9]+)?".r
   lazy val double = number ^^ { _.toDouble }
   lazy val bigint = integer ^^ { BigInt(_) }
+
+  trait From[T](using parser: Parser[T]) {
+    def fromFile(str: String): T =
+      fromFileWithParser(str, parser)
+    def from(str: String): T =
+      parseBy[T](parser)(str)
+  }
 }

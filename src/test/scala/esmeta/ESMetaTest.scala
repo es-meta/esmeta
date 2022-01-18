@@ -7,7 +7,7 @@ import esmeta.util.BaseUtils._
 import esmeta.util.SystemUtils._
 import org.scalatest._
 import io.circe._, io.circe.syntax._, io.circe.parser._
-import esmeta.util.{BasicParser, BasicParsers}
+import esmeta.util.BasicParsers
 import scala.runtime.ScalaRunTime
 
 trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
@@ -77,12 +77,12 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     case _ => x.toString
 
   // check parse and stringify
-  def checkParseAndStringify[T](desc: String, parse: (String) => T)(
+  def checkParseAndStringify[T](desc: String, parser: BasicParsers#From[T])(
     cases: (T, String)*,
   ): Unit =
     check(desc)(cases.foreach { case (obj, string) =>
       // check parse
-      val parsed = optional(parse(string))
+      val parsed = optional(parser.from(string))
       val stringified = obj.toString
       if (parsed != Some(obj)) {
         println(s"[FAILED] $desc")

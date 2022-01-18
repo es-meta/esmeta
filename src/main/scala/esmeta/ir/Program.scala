@@ -9,14 +9,14 @@ import scala.collection.mutable.{Map => MMap}
 // IR Programs
 // -----------------------------------------------------------------------------
 case class Program(insts: List[Inst]) extends IRElem
-object Program extends Parser[Program]
+object Program extends Parser.From[Program]
 
 // -----------------------------------------------------------------------------
 // IR Instruction
 // -----------------------------------------------------------------------------
 sealed trait Inst extends IRElem
-object Insts extends Parser[List[Inst]]
-object Inst extends Parser[Inst]
+object Insts extends Parser.From[List[Inst]]
+object Inst extends Parser.From[Inst]
 
 /** normal instructions */
 sealed trait NormalInst extends Inst
@@ -51,7 +51,7 @@ case class ISeq(insts: List[Inst]) extends Inst
 // IR Expressions
 // -----------------------------------------------------------------------------
 sealed trait Expr extends IRElem
-object Expr extends Parser[Expr]
+object Expr extends Parser.From[Expr]
 
 // pure value
 case class ENum(n: Double) extends Expr with DoubleEquals(n)
@@ -101,7 +101,7 @@ case class EParseSyntax(code: Expr, rule: Expr, parserParams: List[Boolean])
 // IR References
 // -----------------------------------------------------------------------------
 sealed trait Ref extends IRElem
-object Ref extends Parser[Ref]
+object Ref extends Parser.From[Ref]
 
 /** reference identifiers * */
 case class RefId(id: Id) extends Ref
@@ -113,28 +113,28 @@ case class RefProp(ref: Ref, expr: Expr) extends Ref
 // IR Identifiers
 // -----------------------------------------------------------------------------
 case class Id(name: String) extends IRElem
-object Id extends Parser[Id]
+object Id extends Parser.From[Id]
 
 // -----------------------------------------------------------------------------
 // IR Types
 // -----------------------------------------------------------------------------
 case class Ty(name: String) extends IRElem
-object Ty extends Parser[Ty]
+object Ty extends Parser.From[Ty]
 
 // -----------------------------------------------------------------------------
 // IR Operators
 // -----------------------------------------------------------------------------
 enum UOp extends IRElem:
   case Neg, Not, BNot
-object UOp extends Parser[UOp]
+object UOp extends Parser.From[UOp]
 
 /** IR Binary Operators */
 enum BOp extends IRElem:
   case Plus, Sub, Mul, Pow, Div, UMod, Mod, Lt, Eq, Equal, And, Or, Xor, BAnd,
   BOr, BXOr, LShift, SRShift, URShift
-object BOp extends Parser[BOp]
+object BOp extends Parser.From[BOp]
 
 /** IR Convert Operators */
 enum COp extends IRElem:
   case StrToNum, StrToBigInt, NumToStr, NumToInt, NumToBigInt, BigIntToNum
-object COp extends Parser[COp]
+object COp extends Parser.From[COp]

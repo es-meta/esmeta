@@ -19,7 +19,7 @@ case class Production(
   oneof: Boolean,
   rhsList: List[Rhs],
 ) extends SpecElem
-object Production extends Parser[Production]:
+object Production extends Parser.From[Production]:
   enum Kind extends SpecElem:
     case Syntactic, Lexical, NumericString
 
@@ -27,7 +27,7 @@ object Production extends Parser[Production]:
 // production left-hand-sides (LHSs)
 // -----------------------------------------------------------------------------
 case class Lhs(name: String, params: List[String]) extends SpecElem
-object Lhs extends Parser[Lhs]
+object Lhs extends Parser.From[Lhs]
 
 // -----------------------------------------------------------------------------
 // production alternative right-hand-sides (RHSs)
@@ -37,19 +37,19 @@ case class Rhs(
   symbols: List[Symbol],
   id: Option[String],
 ) extends SpecElem
-object Rhs extends Parser[Rhs]
+object Rhs extends Parser.From[Rhs]
 
 // -----------------------------------------------------------------------------
 // condidtions for RHSs
 // -----------------------------------------------------------------------------
 case class RhsCond(name: String, pass: Boolean) extends SpecElem
-object RhsCond extends Parser[RhsCond]
+object RhsCond extends Parser.From[RhsCond]
 
 // -----------------------------------------------------------------------------
 // grammar symbols
 // -----------------------------------------------------------------------------
 sealed trait Symbol extends SpecElem
-object Symbol extends Parser[Symbol]
+object Symbol extends Parser.From[Symbol]
 
 /** terminal symbols */
 case class Terminal(term: String) extends Symbol
@@ -85,6 +85,6 @@ case class UnicodeSet(cond: Option[String]) extends Symbol
 // nonterminal arguments
 // -----------------------------------------------------------------------------
 case class NtArg(kind: NtArg.Kind, name: String) extends SpecElem
-object NtArg extends Parser[NtArg]:
+object NtArg extends Parser.From[NtArg]:
   enum Kind extends SpecElem:
     case True, False, Pass

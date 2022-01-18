@@ -4,11 +4,9 @@ import esmeta.LINE_SEP
 import esmeta.lang.Block
 import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
-import esmeta.util.BasicParser
 import org.jsoup.nodes.*
 
 /** specification parser */
-trait Parser[T] extends BasicParser[T, Parsers] { val parser = Parser }
 object Parser extends Parsers {
 
   /** parses a specification */
@@ -61,7 +59,7 @@ object Parser extends Parsers {
     head <- parseHeads(elem, idxMap)
     id = elem.getId
     code = elem.html.unescapeHtml
-    body = Block(code)
+    body = Block.from(code)
   } yield Algorithm(head, id, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */

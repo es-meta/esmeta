@@ -40,7 +40,7 @@ class ParseAndStringifyTinyTest extends IRTest {
     // -----------------------------------------------------------------------------
     // Instruction
     // -----------------------------------------------------------------------------
-    checkParseAndStringify("Inst", Inst.apply)(
+    checkParseAndStringify("Inst", Inst)(
       IExpr(EINum(4)) -> "4i",
       ILet(Id("x"), EINum(4)) -> "let x = 4i",
       IAssign(RefId(Id("x")), ENum(3.0)) -> "x = 3.0",
@@ -65,7 +65,7 @@ class ParseAndStringifyTinyTest extends IRTest {
     // -----------------------------------------------------------------------------
     // Expression
     // -----------------------------------------------------------------------------
-    checkParseAndStringify("Expr", Expr.apply)(
+    checkParseAndStringify("Expr", Expr)(
       ENum(3.0) -> "3.0",
       ENum(Double.PositiveInfinity) -> "Infinity",
       ENum(Double.NegativeInfinity) -> "-Infinity",
@@ -114,19 +114,19 @@ class ParseAndStringifyTinyTest extends IRTest {
     // -----------------------------------------------------------------------------
     // Reference, Types, Operators
     // -----------------------------------------------------------------------------
-    checkParseAndStringify("Ref", Ref.apply)(
+    checkParseAndStringify("Ref", Ref)(
       RefId(Id("y")) -> "y",
       RefProp(RefId(Id("z")), EStr("w")) -> "z.w",
       RefProp(RefId(Id("x")), ENum(3.0)) -> "x[3.0]",
     )
-    checkParseAndStringify("Ty", Ty.apply)(Ty("T") -> "T")
-    checkParseAndStringify("Id", Id.apply)(Id("x") -> "x")
-    checkParseAndStringify("UOp", UOp.apply)(
+    checkParseAndStringify("Ty", Ty)(Ty("T") -> "T")
+    checkParseAndStringify("Id", Id)(Id("x") -> "x")
+    checkParseAndStringify("UOp", UOp)(
       UOp.Neg -> "-",
       UOp.Not -> "!",
       UOp.BNot -> "~",
     )
-    checkParseAndStringify("BOp", BOp.apply)(
+    checkParseAndStringify("BOp", BOp)(
       BOp.Plus -> "+",
       BOp.Sub -> "-",
       BOp.Mul -> "*",
@@ -147,7 +147,7 @@ class ParseAndStringifyTinyTest extends IRTest {
       BOp.URShift -> ">>>",
       BOp.SRShift -> ">>",
     )
-    checkParseAndStringify("COp", COp.apply)(
+    checkParseAndStringify("COp", COp)(
       COp.StrToNum -> "str2num",
       COp.StrToBigInt -> "str2bigint",
       COp.NumToStr -> "num2str",

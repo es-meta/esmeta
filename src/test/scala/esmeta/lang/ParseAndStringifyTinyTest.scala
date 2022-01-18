@@ -21,7 +21,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val figureBlock = Figure(List("a", "b", "c"))
 
     // tests
-    checkParseAndStringify("Block", Block.apply)(
+    checkParseAndStringify("Block", Block)(
       stepBlock -> """
       |  1. Let _x_ be _x_.
       |  1. [id="this-is-id"] Let _x_ be _x_.
@@ -72,7 +72,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val yetStep = YetStep(yetExpr)
 
     // tests
-    checkParseAndStringify("Step", Step.apply)(
+    checkParseAndStringify("Step", Step)(
       letStep -> "let _x_ be _x_.",
       setStep -> "set _x_ to _x_ + _x_.",
       ifStep -> "if _x_ is the length of _x_, let _x_ be _x_.",
@@ -161,7 +161,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
     // tests
-    checkParseAndStringify("Expression", Expression.apply)(
+    checkParseAndStringify("Expression", Expression)(
       refExpr -> "_x_",
       recordNonameExpr -> "Record { [[Value]]: _x_ }",
       recordEmptyExpr -> "Environment Record { }",
@@ -199,7 +199,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
 
     // tests
-    checkParseAndStringify("CalcExpression", Expression.apply)(
+    checkParseAndStringify("CalcExpression", Expression)(
       minExpr -> "min(_x_)",
       toNumberExpr -> "𝔽(_x_)",
       addExpr -> "_x_ + _x_",
@@ -225,7 +225,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val bigint = BigIntLiteral(BigInt("1000000000000000000000000"))
 
     // tests
-    checkParseAndStringify("Literal", Expression.apply)(
+    checkParseAndStringify("Literal", Expression)(
       ThisLiteral -> "*this* value",
       nt -> "|Identifier|",
       empty -> "~empty~",
@@ -258,7 +258,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     lazy val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
-    checkParseAndStringify("Condition", Condition.apply)(
+    checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       binaryCondIs -> "_x_ is the length of _x_",
@@ -275,7 +275,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val propIntrFieldRef = FieldReference(x, propIntrField)
 
     // tests
-    checkParseAndStringify("Reference", Reference.apply)(
+    checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
       fieldRef -> "_x_.[[Value]]",
       intrFieldRef -> "_x_.[[%Array%]]",
@@ -290,7 +290,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val propIntrField = IntrinsicField(propIntr)
 
     // tests
-    checkParseAndStringify("Field", Field.apply)(
+    checkParseAndStringify("Field", Field)(
       field -> "[[Value]]",
       intrField -> "[[%Array%]]",
       propIntrField -> "[[%Array.prototype.toString%]]",
@@ -303,7 +303,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val propIntr = Intrinsic("Array", List("prototype", "toString"))
 
     // tests
-    checkParseAndStringify("Intrinsic", Intrinsic.apply)(
+    checkParseAndStringify("Intrinsic", Intrinsic)(
       intr -> "%Array%",
       propIntr -> "%Array.prototype.toString%",
     )
@@ -314,7 +314,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val ty = Type("Object")
 
     // tests
-    checkParseAndStringify("Type", Type.apply)(
+    checkParseAndStringify("Type", Type)(
       ty -> "Object",
     )
   }

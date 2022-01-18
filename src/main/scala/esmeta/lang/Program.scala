@@ -9,7 +9,7 @@ case class Program(block: Block) extends LangElem
 // algorithm blocks
 // -----------------------------------------------------------------------------
 sealed trait Block extends LangElem
-object Block extends Parser[Block]
+object Block extends Parser.From[Block]
 
 case class StepBlock(steps: List[SubStep]) extends Block
 case class ExprBlock(exprs: List[Expression]) extends Block
@@ -22,7 +22,7 @@ case class SubStep(idTag: Option[String], step: Step) extends LangElem
 // algorithm steps
 // -----------------------------------------------------------------------------
 sealed trait Step extends LangElem
-object Step extends Parser[Step]
+object Step extends Parser.From[Step]
 
 // XXX
 // rarely used step:
@@ -88,7 +88,7 @@ case class YetStep(expr: YetExpression) extends Step
 // algorithm expressions
 // -----------------------------------------------------------------------------
 sealed trait Expression extends LangElem
-object Expression extends Parser[Expression]
+object Expression extends Parser.From[Expression]
 
 // record expressions
 case class RecordExpression(
@@ -222,7 +222,7 @@ case object NullLiteral extends Literal
 // algorithm conditions
 // -----------------------------------------------------------------------------
 sealed trait Condition extends LangElem
-object Condition extends Parser[Condition]
+object Condition extends Parser.From[Condition]
 
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
@@ -258,7 +258,7 @@ object CompoundCondition:
 // algorithm references
 // -----------------------------------------------------------------------------
 sealed trait Reference extends LangElem
-object Reference extends Parser[Reference]
+object Reference extends Parser.From[Reference]
 
 // field references
 case class FieldReference(base: Reference, field: Field) extends Reference
@@ -270,7 +270,7 @@ case class Variable(name: String) extends Reference
 // algorithm fields
 // -----------------------------------------------------------------------------
 sealed trait Field extends LangElem
-object Field extends Parser[Field]
+object Field extends Parser.From[Field]
 case class StringField(name: String) extends Field
 case class IntrinsicField(intrinsic: Intrinsic) extends Field
 
@@ -278,11 +278,11 @@ case class IntrinsicField(intrinsic: Intrinsic) extends Field
 // intrinsics
 // -----------------------------------------------------------------------------
 case class Intrinsic(base: String, props: List[String]) extends LangElem
-object Intrinsic extends Parser[Intrinsic]
+object Intrinsic extends Parser.From[Intrinsic]
 
 // -----------------------------------------------------------------------------
 // algorithm types
 // -----------------------------------------------------------------------------
 // TODO more detailed instead of strings
 case class Type(name: String) extends LangElem
-object Type extends Parser[Type]
+object Type extends Parser.From[Type]

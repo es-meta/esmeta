@@ -22,7 +22,7 @@ class ParseAndStringifyTinyTest extends SpecTest {
     val symbols = List(Terminal("{"), Terminal("}"))
 
     // symbol
-    checkParseAndStringify("Symbol", Symbol.apply)(
+    checkParseAndStringify("Symbol", Symbol)(
       Terminal("{") -> "`{`",
       Nonterminal("Identifier", ntArgs, true) ->
         "Identifier[+Await, ~Yield, ?For]?",
@@ -43,14 +43,14 @@ class ParseAndStringifyTinyTest extends SpecTest {
     )
 
     // nonterminal arguments
-    checkParseAndStringify("NtArg", NtArg.apply)(
+    checkParseAndStringify("NtArg", NtArg)(
       NtArg(NtArg.Kind.True, "Await") -> "+Await",
       NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
       NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
     )
 
     // rhs conditions
-    checkParseAndStringify("RhsCond", RhsCond.apply)(
+    checkParseAndStringify("RhsCond", RhsCond)(
       RhsCond("Hello", true) -> "[+Hello]",
       RhsCond("Bye", false) -> "[~Bye]",
     )
@@ -69,20 +69,20 @@ class ParseAndStringifyTinyTest extends SpecTest {
       Production(lhs1, Production.Kind.NumericString, false, List(rhs1))
 
     // rhs
-    checkParseAndStringify("Rhs", Rhs.apply)(
+    checkParseAndStringify("Rhs", Rhs)(
       rhs1 -> "[+Yield] `{` `}`",
       rhs2 -> "`{` `}` #this-is-id",
       rhs3 -> "`a`",
     )
 
     // lhs
-    checkParseAndStringify("Lhs", Lhs.apply)(
+    checkParseAndStringify("Lhs", Lhs)(
       lhs1 -> "Identifier[Yield, Await, In]",
       lhs2 -> "Identifier",
     )
 
     // production
-    checkParseAndStringify("Production", Production.apply)(
+    checkParseAndStringify("Production", Production)(
       prod1 -> """Identifier :: one of
                  |  `a` `a`""".stripMargin,
       prod2 -> """Identifier :
