@@ -230,6 +230,7 @@ trait Parsers extends IndentParsers {
   // literals
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
+      "NewTarget" ^^^ NewTargetLiteral |||
       hexLiteral |||
       "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
       ntLiteral |||

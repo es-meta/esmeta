@@ -254,6 +254,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Literal", Expression)(
       ThisLiteral -> "*this* value",
+      NewTargetLiteral -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",

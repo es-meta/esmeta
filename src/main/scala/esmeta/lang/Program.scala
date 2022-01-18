@@ -194,8 +194,11 @@ object UnaryExpression:
 // -----------------------------------------------------------------------------
 sealed trait Literal extends CalcExpression
 
-// this literals
+// `this` literals
 case object ThisLiteral extends Literal
+
+// NewTarget literals
+case object NewTargetLiteral extends Literal
 
 // code unit literals with hexadecimal numbers
 case class HexLiteral(hex: Int, name: Option[String]) extends Literal

@@ -212,7 +212,8 @@ case class Stringifier(detail: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case ThisLiteral => app >> "*this* value"
+      case ThisLiteral      => app >> "*this* value"
+      case NewTargetLiteral => app >> "NewTarget"
       case HexLiteral(hex, name) =>
         app >> f"0x$hex%04x"
         name.map(app >> " (" >> _ >> ")")
