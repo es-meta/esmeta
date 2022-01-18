@@ -11,16 +11,17 @@ trait Parsers extends IndentParsers {
   // algorithm blocks
   // ---------------------------------------------------------------------------
   given block: P[Block] = indent ~> (
-    rep1(next ~ "1." ~> subStep) ^^ { StepBlock(_) } |
+    rep1(subStep) ^^ { StepBlock(_) } |
       rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
       next ~> figureStr ^^ { Figure(_) }
   ) <~ dedent
 
   // sub-steps
-  lazy val subStep: P[SubStep] =
-    opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") ~ (upper ~> step) ^^ {
-      case x ~ s =>
-        SubStep(x, s)
+  lazy val subStepPrefix: Parser[Option[String]] =
+    next ~> "1." ~> opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") <~ upper
+  lazy val subStep: Parser[SubStep] =
+    subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ { case x ~ s =>
+      SubStep(x, s)
     }
 
   // figure string
@@ -32,7 +33,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  lazy val simpleStep: P[Step] = (
+  given step: P[Step] =
     letStep |
       setStep |
       returnStep |
@@ -42,15 +43,11 @@ trait Parsers extends IndentParsers {
       appendStep |
       repeatStep |
       pushStep |
-      noteStep
-  )
-  given step: P[Step] = (
-    simpleStep |
+      noteStep |
       ifStep |
       forEachStep |
       forEachIntStep |
       blockStep
-  ) <~ guard(EOL) | yetStep
 
   // let steps
   lazy val letStep: P[LetStep] =
@@ -62,19 +59,9 @@ trait Parsers extends IndentParsers {
 
   // if-then-else steps
   lazy val ifStep: P[IfStep] =
-    lazy val ifCond: P[Condition] = "if" ~> cond <~ "," ~ opt("then")
-    lazy val elseStr: P[Unit] =
-      ("Else" | "Otherwise" | "otherwise" | "else") ~ opt(",") ^^^ { () }
-    lazy val normalIfStep: P[IfStep] =
-      ifCond ~ step ~ opt(next ~ "1." ~ elseStr ~> step) ^^ { case c ~ t ~ e =>
-        IfStep(c, t, e)
-      }
-    lazy val singleLineIfStep: P[IfStep] =
-      ifCond ~ simpleStep ~ (elseStr ~> simpleStep) ^^ { case c ~ t ~ e =>
-        IfStep(c, t, Some(e))
-      }
-
-    singleLineIfStep | normalIfStep
+    ("if" ~> cond <~ "," ~ opt("then")) ~ step ~ opt(
+      opt(subStepPrefix) ~ ("else" | "otherwise") ~ opt(",") ~> step,
+    ) ^^ { case c ~ t ~ e => IfStep(c, t, e) }
 
   // return steps
   lazy val returnStep: P[ReturnStep] =
@@ -92,13 +79,13 @@ trait Parsers extends IndentParsers {
 
   // for-each steps for integers
   lazy val forEachIntStep: P[ForEachIntegerStep] =
+    lazy val ascending: Parser[Boolean] =
+      ("ascending" ^^^ true | "descending" ^^^ false)
     ("for each" ~ "(non-negative )?integer".r ~> variable) ~
       ("starting with" ~> expr) ~
       ("such that" ~> cond) ~
-      (", in" ~> (
-        "ascending" ^^^ true | "descending" ^^^ false
-      ) <~ "order," ~ opt("do")) ~
-      step ^^ { case x ~ start ~ cond ~ asc ~ body =>
+      (", in" ~> ascending <~ "order,") ~
+      (opt("do") ~> step) ^^ { case x ~ start ~ cond ~ asc ~ body =>
         ForEachIntegerStep(x, start, cond, asc, body)
       }
 
@@ -140,7 +127,7 @@ trait Parsers extends IndentParsers {
   lazy val yetStep: P[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val end: Parser[String] = "." | ";"
+  lazy val end: Parser[String] = "." <~ upper | ";"
 
   // ---------------------------------------------------------------------------
   // algorithm expressions
@@ -305,8 +292,8 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
-    expr ~ ("has" ~ ("an" | "a") ~> field <~ "internal slot") ^^ { case e ~ f =>
-      HasFieldCondition(e, f)
+    expr ~ ("has" ~ ("an" | "a") ~> field <~ "internal" ~ ("method" | "slot")) ^^ {
+      case e ~ f => HasFieldCondition(e, f)
     }
 
   // binary conditions

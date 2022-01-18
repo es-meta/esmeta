@@ -117,10 +117,6 @@ class ParseAndStringifyTinyTest extends LangTest {
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
-      yetStep -> """[YET] Not yet supported:
-      |  1. Let _x_ be _x_.
-      |  1. [id="this-is-id"] Let _x_ be _x_.
-      |  1. Let _x_ be _x_.""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
