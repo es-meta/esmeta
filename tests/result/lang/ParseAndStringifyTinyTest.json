@@ -1,7 +1,11 @@
 {
   "Block" : true,
+  "CalcExpression" : true,
   "Condition" : true,
   "Expression" : true,
+  "Field" : true,
+  "Intrinsic" : true,
+  "Literal" : true,
   "Reference" : true,
   "Step" : true,
   "Type" : true

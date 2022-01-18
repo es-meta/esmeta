@@ -129,8 +129,8 @@ trait Parsers extends IndentParsers {
       calcExpr |||
       invokeExpr |||
       returnIfAbruptExpr |||
-      listExpr |||
-      ntExpr
+      listExpr
+
   // record expressions
   lazy val recordExpr: P[RecordExpression] =
     opt("the") ~> rep1(word) ~ ("{" ~> (
@@ -200,6 +200,7 @@ trait Parsers extends IndentParsers {
   // literals
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
+      opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||
       opt("the String") ~ "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
@@ -252,10 +253,6 @@ trait Parsers extends IndentParsers {
     "a new empty List" ^^^ ListExpression(Nil) |||
       "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
       "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
-
-  // nonterminal expressions
-  lazy val ntExpr: P[NonterminalExpression] =
-    opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalExpression(_) }
 
   // not yet supported expressions
   lazy val yetExpr: P[YetExpression] =
@@ -314,12 +311,16 @@ trait Parsers extends IndentParsers {
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
 
-  // fields
-  lazy val field: P[Field] =
+  // ---------------------------------------------------------------------------
+  // algorithm fields
+  // ---------------------------------------------------------------------------
+  given field: P[Field] =
     "[[" ~> (word ^^ { StringField(_) } | intr ^^ { IntrinsicField(_) }) <~ "]]"
 
-  // intrinsics
-  lazy val intr: P[Intrinsic] = "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+  // ---------------------------------------------------------------------------
+  // algorithm intrinsics
+  // ---------------------------------------------------------------------------
+  given intr: P[Intrinsic] = "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
     case b ~ ps => Intrinsic(b, ps)
   }
 

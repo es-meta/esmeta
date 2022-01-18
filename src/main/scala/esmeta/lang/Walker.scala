@@ -84,8 +84,6 @@ trait Walker extends BasicWalker {
       ReturnIfAbruptExpression(walk(expr), check)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
-    case NonterminalExpression(name) =>
-      NonterminalExpression(name)
     case yet: YetExpression =>
       walk(yet)
   }

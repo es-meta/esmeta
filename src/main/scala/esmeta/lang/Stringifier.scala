@@ -136,8 +136,6 @@ case class Stringifier(detail: Boolean) {
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
         app >> entries
-      case NonterminalExpression(name) =>
-        app >> "|" >> name >> "|"
       case YetExpression(str, block) =>
         app >> "[YET] " >> str
         block.fold(app)(app >> _)
@@ -194,6 +192,7 @@ case class Stringifier(detail: Boolean) {
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
       case ThisLiteral                      => app >> "*this* value"
+      case NonterminalLiteral(name)         => app >> "|" >> name >> "|"
       case ConstLiteral(name)               => app >> "~" >> name >> "~"
       case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
       case PositiveInfinityMathValueLiteral => app >> "+∞"

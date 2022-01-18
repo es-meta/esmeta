@@ -110,7 +110,40 @@ case class SubstringExpression(
 // intrinsic expressions
 case class IntrinsicExpression(intr: Intrinsic) extends Expression
 
-// calcualation expressions
+// algorithm invocation expressions
+sealed trait InvokeExpression extends Expression
+
+// abstract operation (AO) invocation expressions
+case class InvokeAbstractOperationExpression(
+  name: String,
+  args: List[Expression],
+) extends InvokeExpression
+
+// syntax-directed operation (SDO) invocation expressions
+case class InvokeSyntaxDirectedOperationExpression(
+  base: Expression,
+  name: String,
+  args: List[Expression],
+) extends InvokeExpression
+
+// return-if-abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: Expression,
+  check: Boolean,
+) extends Expression
+
+// list expressions
+case class ListExpression(entries: List[Expression]) extends Expression
+
+// TODO code expressions
+// case class CodeExpression(code: String) extends Expression
+
+// not yet supported expressions
+case class YetExpression(str: String, block: Option[Block]) extends Expression
+
+// -----------------------------------------------------------------------------
+// algorithm calcualation expressions
+// -----------------------------------------------------------------------------
 sealed trait CalcExpression extends Expression
 
 // reference expressions
@@ -144,39 +177,16 @@ object UnaryExpression:
   enum Op extends LangElem:
     case Neg
 
-// algorithm invocation expressions
-sealed trait InvokeExpression extends Expression
-
-// abstract operation (AO) invocation expressions
-case class InvokeAbstractOperationExpression(
-  name: String,
-  args: List[Expression],
-) extends InvokeExpression
-
-// syntax-directed operation (SDO) invocation expressions
-case class InvokeSyntaxDirectedOperationExpression(
-  base: Expression,
-  name: String,
-  args: List[Expression],
-) extends InvokeExpression
-
-// return-if-abrupt expressions
-case class ReturnIfAbruptExpression(
-  expr: Expression,
-  check: Boolean,
-) extends Expression
-
-// list expressions
-case class ListExpression(entries: List[Expression]) extends Expression
-
-// nonterminal expressions
-case class NonterminalExpression(name: String) extends Expression
-
-// literals
+// -----------------------------------------------------------------------------
+// algorithm literals
+// -----------------------------------------------------------------------------
 sealed trait Literal extends CalcExpression
 
 // this literals
 case object ThisLiteral extends Literal
+
+// nonterminal literals
+case class NonterminalLiteral(name: String) extends Literal
 
 // constant literals
 case class ConstLiteral(name: String) extends Literal
@@ -201,9 +211,6 @@ case object FalseLiteral extends BooleanLiteral
 // other special literals
 case object UndefinedLiteral extends Literal
 case object NullLiteral extends Literal
-
-// not yet supported expressions
-case class YetExpression(str: String, block: Option[Block]) extends Expression
 
 // -----------------------------------------------------------------------------
 // algorithm conditions
@@ -253,13 +260,19 @@ case class FieldReference(base: Reference, field: Field) extends Reference
 // variables
 case class Variable(name: String) extends Reference
 
-// fields
+// -----------------------------------------------------------------------------
+// algorithm fields
+// -----------------------------------------------------------------------------
 sealed trait Field extends LangElem
+object Field extends Parser[Field]
 case class StringField(name: String) extends Field
 case class IntrinsicField(intrinsic: Intrinsic) extends Field
 
+// -----------------------------------------------------------------------------
 // intrinsics
+// -----------------------------------------------------------------------------
 case class Intrinsic(base: String, props: List[String]) extends LangElem
+object Intrinsic extends Parser[Intrinsic]
 
 // -----------------------------------------------------------------------------
 // algorithm types

@@ -76,7 +76,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case ListExpression(entries) =>
       walkList(entries, walk)
-    case NonterminalExpression(name) =>
     case yet: YetExpression =>
       walk(yet)
   }
