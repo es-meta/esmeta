@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.lang.Utils.*
 
 /** stringifier for language */
 case class Stringifier(detail: Boolean) {
@@ -139,8 +140,9 @@ case class Stringifier(detail: Boolean) {
       case IntrinsicExpression(intr) =>
         app >> intr
       case expr: CalcExpression =>
-        app >> expr
-      case expr: InvokeExpression => app >> expr
+        calcExprRule(app, expr)
+      case expr: InvokeExpression =>
+        invokeExprRule(app, expr)
       case ReturnIfAbruptExpression(expr, check) =>
         app >> (if (check) "?" else "!") >> " " >> expr
       case ListExpression(Nil) => app >> "« »"
@@ -153,8 +155,11 @@ case class Stringifier(detail: Boolean) {
     }
 
   // calculation expressions
-  // TODO consider the appropriate parenthesis
-  given calcExprRule: Rule[CalcExpression] = (app, expr) =>
+  given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
+
+  def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
+    given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
+    if (expr.level < level) app >> "("
     expr match {
       case ReferenceExpression(ref) =>
         app >> ref
@@ -165,8 +170,11 @@ case class Stringifier(detail: Boolean) {
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
         app >> op >> expr
-      case lit: Literal => app >> lit
+      case lit: Literal =>
+        litRule(app, lit)
     }
+    if (expr.level < level) app >> ")"
+    app
 
   // operators for mathematical operation expressions
   given mathOpExprOpRule: Rule[MathOpExpression.Op] = (app, op) =>

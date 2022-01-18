@@ -203,7 +203,12 @@ class ParseAndStringifyTinyTest extends LangTest {
       BinaryExpression(refExpr, BinaryExpression.Op.Sub, refExpr)
     lazy val mulExpr =
       BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
-    lazy val unExpr = UnaryExpression(UnaryExpression.Op.Neg, refExpr)
+    lazy val unExpr =
+      UnaryExpression(UnaryExpression.Op.Neg, refExpr)
+    lazy val parenAddExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.Mul, addExpr)
+    lazy val parenMulExpr =
+      UnaryExpression(UnaryExpression.Op.Neg, mulExpr)
 
     // tests
     checkParseAndStringify("CalcExpression", Expression)(
@@ -213,6 +218,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       subExpr -> "_x_ - _x_",
       mulExpr -> "_x_ × _x_",
       unExpr -> "-_x_",
+      parenAddExpr -> "_x_ × (_x_ + _x_)",
+      parenMulExpr -> "-(_x_ × _x_)",
     )
 
     // -------------------------------------------------------------------------

@@ -180,34 +180,25 @@ trait Parsers extends IndentParsers {
   // intrinsic expressions
   lazy val intrExpr: P[IntrinsicExpression] = intr ^^ { IntrinsicExpression(_) }
 
-  // reference expressions
-  lazy val refExpr: P[ReferenceExpression] =
-    ref ^^ { ReferenceExpression(_) }
-
   // calculation expressions
   lazy val calcExpr: P[CalcExpression] = {
-    import MathOpExpression.Op.*
     import BinaryExpression.Op.*
     import UnaryExpression.Op.*
 
-    lazy val base: Parser[CalcExpression] =
-      refExpr ||| literal ||| (
+    lazy val base: P[CalcExpression] =
+      refExpr ||| literal ||| mathOpExpr ||| "(" ~> calc <~ ")" ||| (
         ("-" | "the result of negating") ^^^ Neg
-      ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) } ||| (
-        "max" ^^^ Max ||| "min" ^^^ Min |||
-          "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
-          "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
-      ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ { case o ~ as =>
-        MathOpExpression(o, as)
+      ) ~ base ^^ { case o ~ e =>
+        UnaryExpression(o, e)
       }
 
-    lazy val term: Parser[CalcExpression] = base ~ rep(
+    lazy val term: P[CalcExpression] = base ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ base,
     ) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
 
-    lazy val calc: Parser[CalcExpression] = term ~ rep(
+    lazy val calc: P[CalcExpression] = term ~ rep(
       ("+" ^^^ Add ||| "-" ^^^ Sub) ~ term,
     ) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
@@ -215,6 +206,21 @@ trait Parsers extends IndentParsers {
 
     calc
   }
+
+  // reference expressions
+  lazy val refExpr: P[ReferenceExpression] =
+    ref ^^ { ReferenceExpression(_) }
+
+  // mathematical operation expressions
+  lazy val mathOpExpr: P[MathOpExpression] =
+    import MathOpExpression.Op.*
+    (
+      "max" ^^^ Max ||| "min" ^^^ Min |||
+        "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
+        "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
+    ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ { case o ~ as =>
+      MathOpExpression(o, as)
+    }
 
   // literals
   lazy val literal: P[Literal] =
