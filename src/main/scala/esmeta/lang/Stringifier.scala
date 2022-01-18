@@ -197,10 +197,14 @@ case class Stringifier(detail: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case ThisLiteral                      => app >> "*this* value"
-      case NonterminalLiteral(name)         => app >> "|" >> name >> "|"
-      case ConstLiteral(name)               => app >> "~" >> name >> "~"
-      case StringLiteral(str)               => app >> "*\"" >> str >> "\"*"
+      case ThisLiteral              => app >> "*this* value"
+      case NonterminalLiteral(name) => app >> "|" >> name >> "|"
+      case ConstLiteral(name)       => app >> "~" >> name >> "~"
+      case StringLiteral(str) =>
+        val replaced = str
+          .replace("\\", "\\\\")
+          .replace("*", "\\*")
+        app >> "*\"" >> replaced >> "\"*"
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)       => app >> n

@@ -215,7 +215,7 @@ trait Parsers extends IndentParsers {
       opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||
-      opt("the String") ~ "*" ~> string <~ "*" ^^ { StringLiteral(_) } |||
+      strLiteral |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||
       number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
@@ -228,6 +228,15 @@ trait Parsers extends IndentParsers {
       "*false*" ^^^ FalseLiteral |||
       "*undefined*" ^^^ UndefinedLiteral |||
       "*null*" ^^^ NullLiteral
+
+  lazy val strLiteral: P[StringLiteral] =
+    opt("the String") ~> """\*"[^"]*"\*""".r ^^ { case s =>
+      val str = s
+        .substring(2, s.length - 2)
+        .replace("\\*", "*")
+        .replace("\\\\", "\\")
+      StringLiteral(str)
+    }
 
   // algorithm invocation expressions
   lazy val invokeExpr: P[InvokeExpression] =

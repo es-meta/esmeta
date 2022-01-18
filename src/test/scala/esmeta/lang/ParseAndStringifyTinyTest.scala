@@ -210,6 +210,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val empty = ConstLiteral("empty")
     lazy val emptyStr = StringLiteral("")
     lazy val str = StringLiteral("abc")
+    lazy val strWithStar = StringLiteral("abc*")
+    lazy val strWithBasckSlash = StringLiteral("abc\\")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
     lazy val posZero = NumberLiteral(+0.0)
     lazy val negZero = NumberLiteral(-0.0)
@@ -224,8 +226,10 @@ class ParseAndStringifyTinyTest extends LangTest {
       ThisLiteral -> "*this* value",
       nt -> "|Identifier|",
       empty -> "~empty~",
-      emptyStr -> "*\"\"*",
-      str -> "*\"abc\"*",
+      emptyStr -> """*""*""",
+      str -> """*"abc"*""",
+      strWithStar -> """*"abc\*"*""",
+      strWithBasckSlash -> """*"abc\\"*""",
       PositiveInfinityMathValueLiteral -> "+∞",
       NegativeInfinityMathValueLiteral -> "-∞",
       mathVal -> "0.5",
