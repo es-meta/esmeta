@@ -32,20 +32,23 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  given step: P[Step] = (
+  lazy val simpleStep: P[Step] = (
     letStep |
       setStep |
-      ifStep |
       returnStep |
       assertStep |
-      forEachStep |
-      forEachIntStep |
       throwStep |
       performStep |
       appendStep |
       repeatStep |
       pushStep |
-      noteStep |
+      noteStep
+  )
+  given step: P[Step] = (
+    simpleStep |
+      ifStep |
+      forEachStep |
+      forEachIntStep |
       blockStep
   ) <~ guard(EOL) | yetStep
 
@@ -59,10 +62,19 @@ trait Parsers extends IndentParsers {
 
   // if-then-else steps
   lazy val ifStep: P[IfStep] =
-    ("if" ~> cond <~ "," ~ opt("then")) ~ step ~
-      opt(next ~ "1." ~ ("Else" | "Otherwise") ~ opt(",") ~> step) ^^ {
-        case c ~ t ~ e => IfStep(c, t, e)
+    lazy val ifCond: P[Condition] = "if" ~> cond <~ "," ~ opt("then")
+    lazy val elseStr: P[Unit] =
+      ("Else" | "Otherwise" | "otherwise" | "else") ~ opt(",") ^^^ { () }
+    lazy val normalIfStep: P[IfStep] =
+      ifCond ~ step ~ opt(next ~ "1." ~ elseStr ~> step) ^^ { case c ~ t ~ e =>
+        IfStep(c, t, e)
       }
+    lazy val singleLineIfStep: P[IfStep] =
+      ifCond ~ simpleStep ~ (elseStr ~> simpleStep) ^^ { case c ~ t ~ e =>
+        IfStep(c, t, Some(e))
+      }
+
+    singleLineIfStep | normalIfStep
 
   // return steps
   lazy val returnStep: P[ReturnStep] =
@@ -128,7 +140,7 @@ trait Parsers extends IndentParsers {
   lazy val yetStep: P[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val end: Parser[String] = "."
+  lazy val end: Parser[String] = "." | ";"
 
   // ---------------------------------------------------------------------------
   // algorithm expressions
