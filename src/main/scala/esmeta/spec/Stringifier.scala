@@ -23,6 +23,7 @@ object Stringifier {
       case elem: NtArg.Kind      => ntArgKindRule(app, elem)
       case elem: Algorithm       => algoRule(app, elem)
       case elem: Head            => headRule(app, elem)
+      case elem: SdoHeadTarget   => sdoHeadTargetRule(app, elem)
       case elem: Param           => paramRule(app, elem)
       case elem: Param.Kind      => paramKindRule(app, elem)
     }
@@ -162,20 +163,16 @@ object Stringifier {
       case NumericMethodHead(ty, name, params) =>
         app >> ty >> "::" >> name >> params
       case SyntaxDirectedOperationHead(
-            lhsName,
-            idx,
-            subIdx,
-            rhsParams,
+            target,
             methodName,
             isStatic,
             withParams,
           ) =>
-        app >> "[SYNTAX] " >> lhsName >> "[" >> idx >> "," >> subIdx >> "]." >> methodName
+        given Rule[Option[SdoHeadTarget]] = optionRule("<DEFAULT>")
+        app >> "[SYNTAX] " >> target >> "." >> methodName
         if (isStatic) app >> "[" >> "S" >> "]"
         else app >> "[" >> "R" >> "]"
-        app >> rhsParams
         app >> withParams
-
       case ConcreteMethodHead(methodName, receiverParam, params) =>
         app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")" >> params
       case InternalMethodHead(methodName, receiverParam, params) =>
@@ -184,6 +181,13 @@ object Stringifier {
       case BuiltinHead(ref, params) =>
         app >> "[BUILTIN] " >> ref >> params
     }
+
+  // for syntax-directed operation head targets
+  given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) => {
+    given Rule[List[Param]] = iterableRule("(", ", ", ")")
+    val SdoHeadTarget(lhsName, idx, subIdx, rhsParams) = target
+    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]" >> rhsParams
+  }
 
   // TODO: for algorithm parameters
   given paramRule: Rule[Param] = (app, param) => app >> param.name

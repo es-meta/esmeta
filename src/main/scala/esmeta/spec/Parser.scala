@@ -154,15 +154,16 @@ object Parser extends Parsers {
         syntax = lhsName + ":" + rhsName
         (idx, subIdx) = idxMap(syntax)
         rhsParams = rhs.getRhsParams
-      } yield generator(
-        lhsName,
-        idx,
-        subIdx,
-        rhsParams,
-      )
+        target = SyntaxDirectedOperationHead.Target(
+          lhsName,
+          idx,
+          subIdx,
+          rhsParams,
+        )
+      } yield generator(Some(target))
     } else {
       // special 'Default' case: assigned to special LHS named "Default")
-      List(generator("Default", 0, 0, Nil))
+      List(generator(None))
     }
   }
 

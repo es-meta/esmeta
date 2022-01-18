@@ -115,6 +115,7 @@ class ParseAndStringifyTinyTest extends SpecTest {
     // /////////////////////////////////////////////////////////////////////////
     // Algorithm
     // /////////////////////////////////////////////////////////////////////////
+    import SyntaxDirectedOperationHead.Target
     checkStringify("Algorithm head")(
       AbstractOperationHead(
         "StringIndexOf",
@@ -133,31 +134,45 @@ class ParseAndStringifyTinyTest extends SpecTest {
         ),
       ) -> "Number::unaryMinus(x)",
       SyntaxDirectedOperationHead(
-        "ForStatement",
-        0,
-        5,
-        List(
-          Param("Expression0", Param.Kind.Normal, ""),
-          Param("Expression1", Param.Kind.Normal, ""),
-          Param("Expression2", Param.Kind.Normal, ""),
-          Param("Statement", Param.Kind.Normal, ""),
+        None,
+        "VarDeclaredNames",
+        true,
+        List(Param("withParam", Param.Kind.Normal, "")),
+      ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam)",
+      SyntaxDirectedOperationHead(
+        Some(
+          Target(
+            "ForStatement",
+            0,
+            5,
+            List(
+              Param("Expression0", Param.Kind.Normal, ""),
+              Param("Expression1", Param.Kind.Normal, ""),
+              Param("Expression2", Param.Kind.Normal, ""),
+              Param("Statement", Param.Kind.Normal, ""),
+            ),
+          ),
         ),
         "VarDeclaredNames",
         true,
         List(Param("withParam", Param.Kind.Normal, "")),
-      ) -> "[SYNTAX] ForStatement[0,5].VarDeclaredNames[S](Expression0, Expression1, Expression2, Statement)(withParam)",
+      ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam)",
       SyntaxDirectedOperationHead(
-        "AdditiveExpression",
-        1,
-        0,
-        List(
-          Param("AdditiveExpression", Param.Kind.Normal, ""),
-          Param("MultiplicativeExpression", Param.Kind.Normal, ""),
+        Some(
+          Target(
+            "AdditiveExpression",
+            1,
+            0,
+            List(
+              Param("AdditiveExpression", Param.Kind.Normal, ""),
+              Param("MultiplicativeExpression", Param.Kind.Normal, ""),
+            ),
+          ),
         ),
         "Evaluation",
         false,
         List(),
-      ) -> "[SYNTAX] AdditiveExpression[1,0].Evaluation[R](AdditiveExpression, MultiplicativeExpression)()",
+      ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R]()",
       ConcreteMethodHead(
         "HasBinding",
         Param("envRec", Param.Kind.Normal, "a declarative Environment Record"),

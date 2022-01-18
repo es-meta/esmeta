@@ -34,14 +34,19 @@ case class NumericMethodHead(
 
 /** syntax-directed operation (SDO) heads */
 case class SyntaxDirectedOperationHead(
-  lhsName: String,
-  idx: Int,
-  subIdx: Int,
-  rhsParams: List[Param],
+  target: Option[SyntaxDirectedOperationHead.Target],
   methodName: String,
   isStatic: Boolean,
   withParams: List[Param],
 ) extends Head
+object SyntaxDirectedOperationHead:
+  case class Target(
+    lhsName: String,
+    idx: Int,
+    subIdx: Int,
+    rhsParams: List[Param],
+  ) extends SpecElem
+type SdoHeadTarget = SyntaxDirectedOperationHead.Target
 
 /** concrete method heads */
 case class ConcreteMethodHead(

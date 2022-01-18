@@ -47,6 +47,15 @@ object Appender {
   /** Rule * */
   type Rule[T] = (Appender, T) => Appender
 
+  /** optional with default string */
+  def optionRule[T](
+    defaultStr: String,
+  )(using tRule: Rule[T]): Rule[Option[T]] = (app, opt) =>
+    opt match {
+      case Some(x) => app >> x
+      case None    => app >> defaultStr
+    }
+
   /** iterable with separator */
   def iterableRule[T](
     left: String = "",

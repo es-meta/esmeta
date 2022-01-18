@@ -168,15 +168,13 @@ trait Parsers extends BasicParsers {
     }
 
   // syntax-directed operation (SDO) head generator
-  lazy val sdoHeadGen
-    : Parser[(String, Int, Int, List[Param]) => SyntaxDirectedOperationHead] =
+  lazy val sdoHeadGen: Parser[
+    Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
+  ] =
     semanticsKind ~ name ~ params ^^ { case isStatic ~ x ~ params =>
-      (lhsName: String, idx: Int, subIdx: Int, rhsParams: List[Param]) =>
+      targetOpt =>
         SyntaxDirectedOperationHead(
-          lhsName,
-          idx,
-          subIdx,
-          rhsParams,
+          targetOpt,
           x,
           isStatic,
           params,
