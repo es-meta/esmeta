@@ -42,10 +42,11 @@ trait UnitWalker extends BasicUnitWalker {
       walk(cond)
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)
-    case ThrowStep(errorName) =>
-    case PerformStep(expr)    => walk(expr)
-    case BlockStep(block)     => walk(block)
-    case YetStep(expr)        => walk(expr)
+    case ThrowStep(errorName)  =>
+    case PerformStep(expr)     => walk(expr)
+    case AppendStep(expr, ref) => walk(expr); walk(ref)
+    case BlockStep(block)      => walk(block)
+    case YetStep(expr)         => walk(expr)
   }
 
   def walk(expr: Expression): Unit = expr match {

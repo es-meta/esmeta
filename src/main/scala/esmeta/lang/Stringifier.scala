@@ -81,6 +81,8 @@ case class Stringifier(detail: Boolean) {
         app >> First("throw a *") >> errorName >> "* exception."
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
+      case AppendStep(expr, ref) =>
+        app >> First("append ") >> expr >> " to " >> ref >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>

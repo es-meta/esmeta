@@ -56,6 +56,9 @@ case class ThrowStep(errorName: String) extends Step
 // perform steps
 case class PerformStep(expr: Expression) extends Step
 
+// append steps
+case class AppendStep(elem: Expression, ref: Reference) extends Step
+
 // block steps
 case class BlockStep(block: Block) extends Step
 

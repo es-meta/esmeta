@@ -41,6 +41,7 @@ trait Parsers extends IndentParsers {
       forEachIntStep |
       throwStep |
       performStep |
+      appendStep |
       blockStep
   ) <~ guard(EOL) | yetStep
 
@@ -86,6 +87,12 @@ trait Parsers extends IndentParsers {
   // perform steps
   lazy val performStep: P[PerformStep] =
     "perform" ~> expr <~ end ^^ { PerformStep(_) }
+
+  // append steps
+  lazy val appendStep: P[AppendStep] =
+    "append" ~> expr ~
+      ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
+      ^^ { case e ~ r => AppendStep(e, r) }
 
   // block steps
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
