@@ -229,6 +229,7 @@ trait Parsers extends IndentParsers {
   // literals
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
+      hexLiteral |||
       "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
       opt("the") ~ "|" ~> word <~ "|" ^^ { NonterminalLiteral(_) } |||
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
@@ -247,6 +248,14 @@ trait Parsers extends IndentParsers {
       "*undefined*" ^^^ UndefinedLiteral |||
       "*null*" ^^^ NullLiteral
 
+  // code unit literals with hexadecimal numbers
+  lazy val hexLiteral: P[HexLiteral] =
+    (opt("the code unit") ~ "0x" ~> "[0-9A-F]+".r) ~
+      opt("(" ~> "[ A-Z]+".r <~ ")") ^^ { case n ~ x =>
+        HexLiteral(Integer.parseInt(n, 16), x)
+      }
+
+  // string literals
   lazy val strLiteral: P[StringLiteral] =
     opt("the String") ~> """\*"[^"]*"\*""".r ^^ { case s =>
       val str = s

@@ -231,6 +231,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm literals
     // -------------------------------------------------------------------------
+    lazy val hex = HexLiteral(0x0024, None)
+    lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
     lazy val code = CodeLiteral("|")
     lazy val nt = NonterminalLiteral("Identifier")
     lazy val empty = ConstLiteral("empty")
@@ -250,6 +252,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Literal", Expression)(
       ThisLiteral -> "*this* value",
+      hex -> "0x0024",
+      hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
       nt -> "|Identifier|",
       empty -> "~empty~",

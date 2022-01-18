@@ -197,7 +197,10 @@ sealed trait Literal extends CalcExpression
 // this literals
 case object ThisLiteral extends Literal
 
-// code expressions
+// code unit literals with hexadecimal numbers
+case class HexLiteral(hex: Int, name: Option[String]) extends Literal
+
+// code literals
 case class CodeLiteral(code: String) extends Literal
 
 // nonterminal literals
