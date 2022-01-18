@@ -20,6 +20,12 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // expressions
     lazy val refExpr = ReferenceExpression(x)
+    lazy val recordNonameExpr =
+      RecordExpression(None, List("A" -> refExpr))
+    lazy val recordEmptyExpr =
+      RecordExpression(Some("Environment"), Nil)
+    lazy val recordExpr =
+      RecordExpression(Some("Environment"), List("A" -> refExpr))
     lazy val typeCheckExpr = TypeCheckExpression(refExpr, ty, false)
     lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
     lazy val lengthExpr = LengthExpression(refExpr)
@@ -193,6 +199,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -----------------------------------------------------------------------------
     checkParseAndStringify("Expression", Expression.apply)(
       refExpr -> "_x_",
+      recordNonameExpr -> "Record { [[A]]: _x_ }",
+      recordEmptyExpr -> "Environment Record { }",
+      recordExpr -> "Environment Record { [[A]]: _x_ }",
       typeCheckExpr -> "Type(_x_) is Object",
       typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",

@@ -71,6 +71,12 @@ case class YetStep(expr: YetExpression) extends Step
 sealed trait Expression extends LangElem
 object Expression extends Parser[Expression]
 
+// record expressions
+case class RecordExpression(
+  name: Option[String],
+  fields: List[(String, Expression)],
+) extends Expression
+
 // type check expressions
 case class TypeCheckExpression(
   expr: Expression,

@@ -98,6 +98,15 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expression] = (app, expr) =>
     expr match {
+      case RecordExpression(name, fields) =>
+        name.map(app >> _ >> " ")
+        app >> "Record "
+        given Rule[(String, Expression)] = { case (app, (name, expr)) =>
+          app >> "[[" >> name >> "]]: " >> expr
+        }
+        given Rule[List[(String, Expression)]] = iterableRule("{ ", ", ", " }")
+        if (fields.isEmpty) app >> "{ }"
+        else app >> fields
       case TypeCheckExpression(expr, ty, neg) =>
         app >> "Type(" >> expr >> ") is "
         app >> (if (neg) "not " else "") >> ty

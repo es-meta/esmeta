@@ -107,7 +107,8 @@ trait Parsers extends IndentParsers {
   // algorithm expressions
   // ---------------------------------------------------------------------------
   given expr: P[Expression] =
-    typeCheckExpr |||
+    recordExpr |||
+      typeCheckExpr |||
       lengthExpr |||
       substrExpr |||
       calcExpr |||
@@ -115,6 +116,16 @@ trait Parsers extends IndentParsers {
       returnIfAbruptExpr |||
       listExpr |||
       ntExpr
+  // record expressions
+  lazy val recordExpr: P[RecordExpression] =
+    opt("the") ~> rep1(word) ~ ("{" ~> (
+      repsep(("[[" ~> word <~ "]]:") ~ expr, ","),
+    ) <~ "}") ^^ { case xs ~ fs =>
+      var name = xs.mkString(" ")
+      if (name endsWith "Record") name = name.dropRight("Record".length).trim
+      val fields = fs.map { case f ~ e => f -> e }
+      RecordExpression(if (name.isEmpty) None else Some(name), fields)
+    }
 
   // type check expressions
   lazy val typeCheckExpr: P[TypeCheckExpression] =

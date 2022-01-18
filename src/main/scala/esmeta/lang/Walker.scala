@@ -59,6 +59,10 @@ trait Walker extends BasicWalker {
   }
 
   def walk(expr: Expression): Expression = expr match {
+    case RecordExpression(name, fields) =>
+      val newFields =
+        walkList(fields, { case (name, expr) => (name, walk(expr)) })
+      RecordExpression(name, newFields)
     case TypeCheckExpression(expr, ty, neg) =>
       TypeCheckExpression(walk(expr), walk(ty), neg)
     case LengthExpression(expr) =>
