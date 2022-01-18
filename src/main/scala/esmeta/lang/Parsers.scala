@@ -86,8 +86,7 @@ trait Parsers extends IndentParsers {
   lazy val yetStep: P[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val end: Parser[String] =
-    "; that is, .*".r | "."
+  lazy val end: Parser[String] = "."
 
   // ---------------------------------------------------------------------------
   // algorithm expressions
@@ -172,14 +171,16 @@ trait Parsers extends IndentParsers {
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: P[InvokeSyntaxDirectedOperationExpression] =
-    (opt("the") ~> word) ~
-      ("of" ~> expr) ~
-      opt(
-        "using" ~> repsep(expr, sep("and")) <~
-          "as" ~ opt("the") ~ ("arguments" | "argument"),
-      ) ^^ { case x ~ b ~ as =>
-        InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
-      }
+    lazy val name = (opt("the") ~> word)
+    lazy val base = ("of" ~> expr)
+    lazy val args = repsep(expr, sep("and"))
+    lazy val argsPart = (
+      "using" ~> args <~ "as" ~ opt("the") ~ ("arguments" | "argument") |||
+        "with" ~ ("arguments" | "argument") ~> args
+    )
+    name ~ base ~ opt(argsPart) ^^ { case x ~ b ~ as =>
+      InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
+    }
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =
