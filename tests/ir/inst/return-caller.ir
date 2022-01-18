@@ -1,4 +1,7 @@
-let f = (clo () [] => return 42)
+let f = (clo () [] => {
+  return 42
+  assert false
+})
 app x = (f)
 assert (is-completion x)
 assert (= [? x] 42)
