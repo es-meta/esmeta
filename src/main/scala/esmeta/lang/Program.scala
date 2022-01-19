@@ -224,6 +224,9 @@ case class ConstLiteral(name: String) extends Literal
 // string literals
 case class StringLiteral(s: String) extends Literal
 
+// field literals
+case class FieldLiteral(field: Field) extends Literal
+
 // numeric literals
 sealed trait NumericLiteral extends Literal
 sealed trait MathValueLiteral extends NumericLiteral

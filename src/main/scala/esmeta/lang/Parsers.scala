@@ -253,6 +253,7 @@ trait Parsers extends IndentParsers {
       "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||
       strLiteral |||
+      field ^^ { FieldLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||
       number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||

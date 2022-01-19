@@ -237,6 +237,7 @@ case class Stringifier(detail: Boolean) {
           .replace("\\", "\\\\")
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
+      case FieldLiteral(field)              => app >> field
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)       => app >> n
