@@ -249,7 +249,7 @@ trait Parsers extends IndentParsers {
       hexLiteral |||
       "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
       ntLiteral |||
-      "~" ~> "[-+a-zA-Z]+".r <~ "~" ^^ { ConstLiteral(_) } |||
+      "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
       "the empty String" ^^^ StringLiteral("") |||
       strLiteral |||
       field ^^ { FieldLiteral(_) } |||
