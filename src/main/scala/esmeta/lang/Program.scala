@@ -93,6 +93,9 @@ object Expression extends Parser.From[Expression]
 // string concatenation expressions
 case class StringConcatExpression(exprs: List[Expression]) extends Expression
 
+// list concatenation expressions
+case class ListConcatExpression(exprs: List[Expression]) extends Expression
+
 // record expressions
 case class RecordExpression(
   ty: Type,
@@ -102,8 +105,8 @@ case class RecordExpression(
 // type check expressions
 case class TypeCheckExpression(
   expr: Expression,
-  ty: Type,
   negation: Boolean,
+  ty: Type,
 ) extends Expression
 
 // `length of` expressions
@@ -246,11 +249,16 @@ object Condition extends Parser.From[Condition]
 case class ExpressionCondition(expr: Expression) extends Condition
 
 // instance check conditions
-case class InstanceOfCondition(expr: Expression, ty: Type) extends Condition
+case class InstanceOfCondition(
+  expr: Expression,
+  negation: Boolean,
+  ty: Type,
+) extends Condition
 
 // field inclusion conditions
 case class HasFieldCondition(
   expr: Expression,
+  negation: Boolean,
   field: Field,
 ) extends Condition
 

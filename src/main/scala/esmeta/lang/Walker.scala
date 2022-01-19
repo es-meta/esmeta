@@ -68,11 +68,13 @@ trait Walker extends BasicWalker {
   def walk(expr: Expression): Expression = expr match {
     case StringConcatExpression(exprs) =>
       StringConcatExpression(walkList(exprs, walk))
+    case ListConcatExpression(exprs) =>
+      ListConcatExpression(walkList(exprs, walk))
     case RecordExpression(ty, fields) =>
       val newFields = walkList(fields, { case (f, e) => (walk(f), walk(e)) })
       RecordExpression(walk(ty), newFields)
-    case TypeCheckExpression(expr, ty, neg) =>
-      TypeCheckExpression(walk(expr), walk(ty), neg)
+    case TypeCheckExpression(expr, neg, ty) =>
+      TypeCheckExpression(walk(expr), neg, walk(ty))
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
@@ -132,10 +134,10 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
-    case InstanceOfCondition(expr, ty) =>
-      InstanceOfCondition(walk(expr), walk(ty))
-    case HasFieldCondition(expr, field) =>
-      HasFieldCondition(walk(expr), walk(field))
+    case InstanceOfCondition(expr, neg, ty) =>
+      InstanceOfCondition(walk(expr), neg, walk(ty))
+    case HasFieldCondition(expr, neg, field) =>
+      HasFieldCondition(walk(expr), neg, walk(field))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
     case CompoundCondition(left, op, right) =>

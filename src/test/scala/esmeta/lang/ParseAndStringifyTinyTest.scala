@@ -134,12 +134,18 @@ class ParseAndStringifyTinyTest extends LangTest {
       StringConcatExpression(List(refExpr, refExpr))
     lazy val stringConcatExprThree =
       StringConcatExpression(List(refExpr, refExpr, refExpr))
+    lazy val listConcatExprOne =
+      ListConcatExpression(List(refExpr))
+    lazy val listConcatExprTwo =
+      ListConcatExpression(List(refExpr, refExpr))
+    lazy val listConcatExprThree =
+      ListConcatExpression(List(refExpr, refExpr, refExpr))
     lazy val recordEmptyExpr =
       RecordExpression(ty, Nil)
     lazy val recordExpr =
       RecordExpression(ty, List(field -> refExpr))
-    lazy val typeCheckExpr = TypeCheckExpression(refExpr, ty, false)
-    lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, ty, true)
+    lazy val typeCheckExpr = TypeCheckExpression(refExpr, false, ty)
+    lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, true, ty)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
     lazy val intrExpr = IntrinsicExpression(intr)
@@ -171,6 +177,9 @@ class ParseAndStringifyTinyTest extends LangTest {
       stringConcatExprOne -> "the string-concatenation of _x_",
       stringConcatExprTwo -> "the string-concatenation of _x_ and _x_",
       stringConcatExprThree -> "the string-concatenation of _x_, _x_, and _x_",
+      listConcatExprOne -> "the list-concatenation of _x_",
+      listConcatExprTwo -> "the list-concatenation of _x_ and _x_",
+      listConcatExprThree -> "the list-concatenation of _x_, _x_, and _x_",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       typeCheckExpr -> "Type(_x_) is Object",
@@ -286,8 +295,10 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm conditions
     // -------------------------------------------------------------------------
     lazy val exprCond = ExpressionCondition(refExpr)
-    lazy val instanceOfCond = InstanceOfCondition(refExpr, ty)
-    lazy val hasFieldCond = HasFieldCondition(refExpr, field)
+    lazy val instanceOfCond = InstanceOfCondition(refExpr, false, ty)
+    lazy val notInstanceOfCond = InstanceOfCondition(refExpr, true, ty)
+    lazy val hasFieldCond = HasFieldCondition(refExpr, false, field)
+    lazy val noHasFieldCond = HasFieldCondition(refExpr, true, field)
     lazy val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
     lazy val binaryCondLt =
@@ -297,7 +308,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       instanceOfCond -> "_x_ is a Object",
+      notInstanceOfCond -> "_x_ is not a Object",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
+      noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
       binaryCondIs -> "_x_ is the length of _x_",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",

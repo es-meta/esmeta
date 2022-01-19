@@ -115,10 +115,10 @@ trait Parsers extends IndentParsers {
 
   // push steps
   lazy val pushStep: P[PushStep] =
-    "push" ~> ref <~
-      ("onto the execution context stack;" ~ ref ~ "is now the running execution context" ~ end) ^^ {
-        case r => PushStep(r)
-      }
+    "push" ~> ref <~ (
+      "onto the execution context stack;" ~ ref ~
+        "is now the running execution context" ~ end
+    ) ^^ { case r => PushStep(r) }
 
   // note steps
   lazy val noteStep: P[NoteStep] =
@@ -138,6 +138,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given expr: P[Expression] =
     stringConcatExpr |||
+      listConcatExpr |||
       recordExpr |||
       typeCheckExpr |||
       lengthExpr |||
@@ -154,6 +155,12 @@ trait Parsers extends IndentParsers {
       StringConcatExpression(_)
     }
 
+  // list concatenation expressions
+  lazy val listConcatExpr: P[ListConcatExpression] =
+    "the list-concatenation of" ~> repsep(expr, sep("and")) ^^ {
+      ListConcatExpression(_)
+    }
+
   // record expressions
   lazy val recordExpr: P[RecordExpression] =
     opt("the") ~> ty ~ ("{" ~> repsep((field <~ ":") ~ expr, ",") <~ "}") ^^ {
@@ -164,8 +171,8 @@ trait Parsers extends IndentParsers {
 
   // type check expressions
   lazy val typeCheckExpr: P[TypeCheckExpression] =
-    ("Type(" ~> expr <~ ")") ~ ("is" ~> opt("not")) ~ ty ^^ { case e ~ n ~ t =>
-      TypeCheckExpression(e, t, n.isDefined)
+    ("Type(" ~> expr <~ ")") ~ isNeg ~ ty ^^ { case e ~ n ~ t =>
+      TypeCheckExpression(e, n, t)
     }
 
   // `length of` expressions
@@ -339,15 +346,17 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: P[InstanceOfCondition] =
-    expr ~ ("is" ~ ("a" | "an") ~> ty) ^^ { case e ~ t =>
-      InstanceOfCondition(e, t)
+    expr ~ isNeg ~ (("a" | "an") ~> ty) ^^ { case e ~ n ~ t =>
+      InstanceOfCondition(e, n, t)
     }
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
-    expr ~ ("has" ~ ("an" | "a") ~> field <~ "internal" ~ ("method" | "slot")) ^^ {
-      case e ~ f => HasFieldCondition(e, f)
-    }
+    expr ~
+      ("has" ^^^ false ||| "does not have" ^^^ true) ~
+      (("an" | "a") ~> field <~ "internal" ~ ("method" | "slot")) ^^ {
+        case e ~ n ~ f => HasFieldCondition(e, n, f)
+      }
 
   // binary conditions
   lazy val binCond: P[BinaryCondition] =
@@ -401,4 +410,10 @@ trait Parsers extends IndentParsers {
   private def sep(s: Parser[Any]): Parser[Any] = (
     "," ||| "," ~ s ||| s
   )
+
+  // verbs
+  private val isNeg: Parser[Boolean] =
+    "is not" ^^^ true | "is" ^^^ false
+  private val hasNeg: Parser[Boolean] =
+    "does not have" ^^^ true | "has" ^^^ false
 }

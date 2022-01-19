@@ -62,9 +62,11 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>
       walkList(exprs, walk)
+    case ListConcatExpression(exprs) =>
+      walkList(exprs, walk)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
-    case TypeCheckExpression(expr, ty, neg) =>
+    case TypeCheckExpression(expr, neg, ty) =>
       walk(expr); walk(ty)
     case LengthExpression(expr) =>
       walk(expr)
@@ -121,9 +123,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(cond: Condition): Unit = cond match {
     case ExpressionCondition(expr) =>
       walk(expr)
-    case InstanceOfCondition(expr, ty) =>
+    case InstanceOfCondition(expr, neg, ty) =>
       walk(expr); walk(ty)
-    case HasFieldCondition(expr, field) =>
+    case HasFieldCondition(expr, neg, field) =>
       walk(expr); walk(field)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)

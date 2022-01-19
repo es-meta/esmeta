@@ -122,6 +122,9 @@ case class Stringifier(detail: Boolean) {
       case StringConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the string-concatenation of " >> exprs
+      case ListConcatExpression(exprs) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+        app >> "the list-concatenation of " >> exprs
       case RecordExpression(ty, fields) =>
         given Rule[(Field, Expression)] = { case (app, (field, expr)) =>
           app >> field >> ": " >> expr
@@ -130,9 +133,8 @@ case class Stringifier(detail: Boolean) {
         app >> ty >> " "
         if (fields.isEmpty) app >> "{ }"
         else app >> fields
-      case TypeCheckExpression(expr, ty, neg) =>
-        app >> "Type(" >> expr >> ") is "
-        app >> (if (neg) "not " else "") >> ty
+      case TypeCheckExpression(expr, neg, ty) =>
+        app >> "Type(" >> expr >> ")" >> isStr(neg) >> ty
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
@@ -269,13 +271,13 @@ case class Stringifier(detail: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
-      case InstanceOfCondition(expr, ty) =>
-        app >> expr >> " is "
+      case InstanceOfCondition(expr, neg, ty) =>
+        app >> expr >> isStr(neg)
         // TODO use a/an based on the types
         app >> "a"
         app >> " " >> ty
-      case HasFieldCondition(expr, field) =>
-        app >> expr >> " has "
+      case HasFieldCondition(expr, neg, field) =>
+        app >> expr >> hasStr(neg)
         // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"
@@ -337,6 +339,9 @@ case class Stringifier(detail: Boolean) {
     props.map(app >> "." >> _)
     app >> "%"
 
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
   // list with named separator
   private def listNamedSepRule[T](
     left: String = "",
@@ -351,4 +356,10 @@ case class Stringifier(detail: Boolean) {
       case _                 => ", "
     }) >> x
     app >> right
+
+  // verbs
+  private def isStr(neg: Boolean): String =
+    if (neg) " is not " else " is "
+  private def hasStr(neg: Boolean): String =
+    if (neg) " does not have " else " has "
 }
