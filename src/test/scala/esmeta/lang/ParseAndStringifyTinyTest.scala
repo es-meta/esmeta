@@ -70,8 +70,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val noteStep = NoteStep(
       "At this point, it must be a numeric operation.",
     )
-    lazy val suspendStep = SuspendStep(None)
-    lazy val suspendVarStep = SuspendStep(Some(x))
+    lazy val suspendStep = SuspendStep(x)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -122,8 +121,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       pushStep -> ("push _x_ onto the execution context stack; " +
         "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
-      suspendStep -> "suspend the currently running execution context.",
-      suspendVarStep -> "suspend _x_.",
+      suspendStep -> "suspend _x_.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )
@@ -270,7 +268,6 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Literal", Expression)(
       ThisLiteral -> "*this* value",
       NewTargetLiteral -> "NewTarget",
-      RunningExecutionContextLiteral -> "the running execution context",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
@@ -329,9 +326,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm references
     // -------------------------------------------------------------------------
     lazy val x = Variable("x")
-    lazy val fieldRef = FieldReference(x, field)
-    lazy val intrFieldRef = FieldReference(x, intrField)
-    lazy val propIntrFieldRef = FieldReference(x, propIntrField)
+    lazy val fieldRef = FieldReference(x, List(field))
+    lazy val intrFieldRef = FieldReference(x, List(intrField))
+    lazy val propIntrFieldRef = FieldReference(x, List(propIntrField))
 
     // tests
     checkParseAndStringify("Reference", Reference)(

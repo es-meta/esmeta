@@ -106,12 +106,7 @@ case class Stringifier(detail: Boolean) {
       case NoteStep(note) =>
         app >> "NOTE: " >> note
       case SuspendStep(context) =>
-        app >> First("suspend ")
-        context match {
-          case Some(c) => app >> c
-          case None    => app >> "the currently running execution context"
-        }
-        app >> "."
+        app >> First("suspend ") >> context >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>
@@ -223,8 +218,6 @@ case class Stringifier(detail: Boolean) {
     lit match {
       case ThisLiteral      => app >> "*this* value"
       case NewTargetLiteral => app >> "NewTarget"
-      case RunningExecutionContextLiteral =>
-        app >> "the running execution context"
       case HexLiteral(hex, name) =>
         app >> f"0x$hex%04x"
         name.map(app >> " (" >> _ >> ")")
@@ -325,10 +318,16 @@ case class Stringifier(detail: Boolean) {
   // references
   given refRule: Rule[Reference] = (app, ref) =>
     ref match {
-      case FieldReference(base, field) =>
-        app >> base >> "." >> field
+      case RunningExecutionContext =>
+        app >> "the running execution context"
       case Variable(name: String) =>
         app >> s"_${name}_"
+      case FieldReference(x, fields) =>
+        app >> x
+        fields.foreach(app >> "." >> _)
+        app
+      case ComponentReference(base, name) =>
+        app >> base >> "'s " >> name
     }
 
   // types

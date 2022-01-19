@@ -55,7 +55,7 @@ trait UnitWalker extends BasicUnitWalker {
     case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
     case PushStep(context)      => walk(context)
     case NoteStep(note)         =>
-    case SuspendStep(x)         => walkOpt(x, walk)
+    case SuspendStep(base)      => walk(base)
     case BlockStep(block)       => walk(block)
     case YetStep(expr)          => walk(expr)
   }
@@ -139,11 +139,12 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: CompoundCondition.Op): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
-    case FieldReference(base, field) => walk(base); walk(field)
-    case x: Variable                 => walk(x)
+    case FieldReference(x, fs)          => walk(x); walkList(fs, walk)
+    case ComponentReference(base, name) => walk(base)
+    case base: BaseReference            => walk(base)
   }
 
-  def walk(x: Variable): Unit = {}
+  def walk(base: BaseReference): Unit = {}
 
   def walk(field: Field): Unit = field match {
     case StringField(name)         =>

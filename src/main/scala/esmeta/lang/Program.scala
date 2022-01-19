@@ -79,7 +79,7 @@ case class PushStep(context: Reference) extends Step
 case class NoteStep(note: String) extends Step
 
 // suspend steps
-case class SuspendStep(context: Option[Variable]) extends Step
+case class SuspendStep(context: BaseReference) extends Step
 
 // block steps
 case class BlockStep(block: Block) extends Step
@@ -206,9 +206,6 @@ case object ThisLiteral extends Literal
 // NewTarget literals
 case object NewTargetLiteral extends Literal
 
-// the running execution context literals
-case object RunningExecutionContextLiteral extends Literal
-
 // code unit literals with hexadecimal numbers
 case class HexLiteral(hex: Int, name: Option[String]) extends Literal
 
@@ -301,11 +298,21 @@ object CompoundCondition:
 sealed trait Reference extends LangElem
 object Reference extends Parser.From[Reference]
 
-// field references
-case class FieldReference(base: Reference, field: Field) extends Reference
+// base references
+sealed trait BaseReference extends Reference
 
 // variables
-case class Variable(name: String) extends Reference
+case class Variable(name: String) extends BaseReference
+
+// the running execution context literals
+case object RunningExecutionContext extends BaseReference
+
+// field references
+case class FieldReference(base: Variable, fields: List[Field]) extends Reference
+
+// component references
+case class ComponentReference(base: BaseReference, name: String)
+  extends Reference
 
 // -----------------------------------------------------------------------------
 // algorithm fields

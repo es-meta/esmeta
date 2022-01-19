@@ -127,11 +127,10 @@ trait Parsers extends IndentParsers {
 
   // suspend steps
   lazy val suspendStep: P[SuspendStep] =
-    "suspend" ~> (
-      (variable <~ opt("and remove it from the execution context stack")) ^^ {
-        Some(_)
-      } | "the currently running execution context" ^^^ { None }
-    ) <~ end ^^ { SuspendStep(_) }
+    "suspend" ~> baseRef <~
+      (opt("and remove it from the execution context stack") ~ end) ^^ {
+        SuspendStep(_)
+      }
 
   // block steps
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
@@ -247,7 +246,6 @@ trait Parsers extends IndentParsers {
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
       "NewTarget" ^^^ NewTargetLiteral |||
-      "the running execution context" ^^^ RunningExecutionContextLiteral |||
       hexLiteral |||
       "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
       ntLiteral |||
@@ -389,13 +387,24 @@ trait Parsers extends IndentParsers {
   // algorithm references
   // ---------------------------------------------------------------------------
   given ref: P[Reference] =
-    variable ~ rep("." ~> field) ^^ { case x ~ fs =>
-      fs.foldLeft[Reference](x)(FieldReference(_, _))
-    }
+    baseRef |||
+      variable ~ rep1("." ~> field) ^^ { case x ~ fs =>
+        FieldReference(x, fs)
+      } |||
+      (baseRef <~ "'s") ~ word ^^ { case x ~ s => ComponentReference(x, s) }
+
+  // base references
+  lazy val baseRef: P[BaseReference] = variable ||| runningExecutionContext
 
   // variables
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+
+  // the running execution context
+  lazy val runningExecutionContext: P[RunningExecutionContext.type] =
+    "the" ~ opt("currently") ~ "running execution context" ^^^ {
+      RunningExecutionContext
+    }
 
   // ---------------------------------------------------------------------------
   // algorithm fields

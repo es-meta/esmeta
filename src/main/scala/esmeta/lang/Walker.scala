@@ -61,7 +61,7 @@ trait Walker extends BasicWalker {
     case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
     case PushStep(context)      => PushStep(walk(context))
     case NoteStep(note)         => NoteStep(note)
-    case SuspendStep(x)         => SuspendStep(walkOpt(x, walk))
+    case SuspendStep(base)      => SuspendStep(walk(base))
     case BlockStep(block)       => BlockStep(walk(block))
     case YetStep(expr)          => YetStep(walk(expr))
   }
@@ -150,8 +150,14 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
   def walk(ref: Reference): Reference = ref match {
-    case FieldReference(base, field) => FieldReference(walk(base), walk(field))
-    case x: Variable                 => walk(x)
+    case FieldReference(x, fs) => FieldReference(walk(x), walkList(fs, walk))
+    case ComponentReference(base, name) => ComponentReference(walk(base), name)
+    case base: BaseReference            => walk(base)
+  }
+
+  def walk(base: BaseReference): BaseReference = base match {
+    case x: Variable             => walk(x)
+    case RunningExecutionContext => RunningExecutionContext
   }
 
   def walk(x: Variable): Variable = Variable(x.name)
