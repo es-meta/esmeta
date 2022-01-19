@@ -256,6 +256,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val strWithStar = StringLiteral("abc*")
     lazy val strWithBasckSlash = StringLiteral("abc\\")
     lazy val fieldLit = FieldLiteral(field)
+    lazy val sym = SymbolLiteral("iterator")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
     lazy val posZero = NumberLiteral(+0.0)
     lazy val negZero = NumberLiteral(-0.0)
@@ -282,6 +283,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       strWithStar -> """*"abc\*"*""",
       strWithBasckSlash -> """*"abc\\"*""",
       fieldLit -> "[[Value]]",
+      sym -> "@@iterator",
       PositiveInfinityMathValueLiteral -> "+∞",
       NegativeInfinityMathValueLiteral -> "-∞",
       mathVal -> "0.5",

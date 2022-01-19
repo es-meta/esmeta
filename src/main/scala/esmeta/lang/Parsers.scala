@@ -255,6 +255,7 @@ trait Parsers extends IndentParsers {
       "the empty String" ^^^ StringLiteral("") |||
       strLiteral |||
       field ^^ { FieldLiteral(_) } |||
+      "@@" ~> word ^^ { SymbolLiteral(_) } |||
       "+∞" ^^^ PositiveInfinityMathValueLiteral |||
       "-∞" ^^^ NegativeInfinityMathValueLiteral |||
       number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||

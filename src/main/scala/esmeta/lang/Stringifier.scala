@@ -240,6 +240,7 @@ case class Stringifier(detail: Boolean) {
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
       case FieldLiteral(field)              => app >> field
+      case SymbolLiteral(sym)               => app >> "@@" >> sym
       case PositiveInfinityMathValueLiteral => app >> "+∞"
       case NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)       => app >> n

@@ -230,6 +230,9 @@ case class StringLiteral(s: String) extends Literal
 // field literals
 case class FieldLiteral(field: Field) extends Literal
 
+// symbol literals
+case class SymbolLiteral(sym: String) extends Literal
+
 // numeric literals
 sealed trait NumericLiteral extends Literal
 sealed trait MathValueLiteral extends NumericLiteral
