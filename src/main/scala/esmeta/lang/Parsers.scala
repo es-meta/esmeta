@@ -298,7 +298,7 @@ trait Parsers extends IndentParsers {
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: P[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9]*".r ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case x ~ as =>
         InvokeAbstractOperationExpression(x, as)
     }
