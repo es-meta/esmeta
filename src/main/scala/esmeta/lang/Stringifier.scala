@@ -223,6 +223,8 @@ case class Stringifier(detail: Boolean) {
     lit match {
       case ThisLiteral      => app >> "*this* value"
       case NewTargetLiteral => app >> "NewTarget"
+      case RunningExecutionContextLiteral =>
+        app >> "the running execution context"
       case HexLiteral(hex, name) =>
         app >> f"0x$hex%04x"
         name.map(app >> " (" >> _ >> ")")

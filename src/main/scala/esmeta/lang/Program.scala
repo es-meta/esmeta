@@ -206,6 +206,9 @@ case object ThisLiteral extends Literal
 // NewTarget literals
 case object NewTargetLiteral extends Literal
 
+// the running execution context literals
+case object RunningExecutionContextLiteral extends Literal
+
 // code unit literals with hexadecimal numbers
 case class HexLiteral(hex: Int, name: Option[String]) extends Literal
 
