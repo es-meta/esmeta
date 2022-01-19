@@ -345,6 +345,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
       RunningExecutionContext -> "the running execution context",
+      CurrentRealmRecord -> "the current Realm Record",
       fieldRef -> "_x_.[[Value]]",
       intrFieldRef -> "_x_.[[%Array%]]",
       propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",

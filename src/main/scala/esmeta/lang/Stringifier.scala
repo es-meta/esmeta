@@ -336,6 +336,8 @@ case class Stringifier(detail: Boolean) {
   // base references
   given baseRefRule: Rule[BaseReference] = (app, base) =>
     base match {
+      case CurrentRealmRecord =>
+        app >> "the current Realm Record"
       case RunningExecutionContext =>
         app >> "the running execution context"
       case Variable(name: String) =>

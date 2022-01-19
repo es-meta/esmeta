@@ -313,6 +313,9 @@ case class Variable(name: String) extends BaseReference
 // the running execution context literals
 case object RunningExecutionContext extends BaseReference
 
+// the current realm record
+case object CurrentRealmRecord extends BaseReference
+
 // field references
 case class FieldReference(x: Variable, fields: List[Field]) extends Reference
 

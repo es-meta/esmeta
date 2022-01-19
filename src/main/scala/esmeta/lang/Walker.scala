@@ -161,6 +161,7 @@ trait Walker extends BasicWalker {
   def walk(base: BaseReference): BaseReference = base match {
     case x: Variable             => walk(x)
     case RunningExecutionContext => RunningExecutionContext
+    case CurrentRealmRecord      => CurrentRealmRecord
   }
 
   def walk(x: Variable): Variable = Variable(x.name)
