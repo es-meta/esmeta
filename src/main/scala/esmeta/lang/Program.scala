@@ -308,11 +308,14 @@ case class Variable(name: String) extends BaseReference
 case object RunningExecutionContext extends BaseReference
 
 // field references
-case class FieldReference(base: Variable, fields: List[Field]) extends Reference
+case class FieldReference(x: Variable, fields: List[Field]) extends Reference
 
 // component references
 case class ComponentReference(base: BaseReference, name: String)
   extends Reference
+
+// index references
+case class IndexReference(x: Variable, index: Expression) extends Reference
 
 // -----------------------------------------------------------------------------
 // algorithm fields

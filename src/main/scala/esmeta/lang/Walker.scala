@@ -152,6 +152,7 @@ trait Walker extends BasicWalker {
   def walk(ref: Reference): Reference = ref match {
     case FieldReference(x, fs) => FieldReference(walk(x), walkList(fs, walk))
     case ComponentReference(base, name) => ComponentReference(walk(base), name)
+    case IndexReference(x, expr)        => IndexReference(walk(x), walk(expr))
     case base: BaseReference            => walk(base)
   }
 

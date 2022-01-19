@@ -318,16 +318,24 @@ case class Stringifier(detail: Boolean) {
   // references
   given refRule: Rule[Reference] = (app, ref) =>
     ref match {
-      case RunningExecutionContext =>
-        app >> "the running execution context"
-      case Variable(name: String) =>
-        app >> s"_${name}_"
       case FieldReference(x, fields) =>
         app >> x
         fields.foreach(app >> "." >> _)
         app
       case ComponentReference(base, name) =>
         app >> base >> "'s " >> name
+      case IndexReference(x, index) =>
+        app >> x >> "[" >> index >> "]"
+      case base: BaseReference => app >> base
+    }
+
+  // base references
+  given baseRefRule: Rule[BaseReference] = (app, base) =>
+    base match {
+      case RunningExecutionContext =>
+        app >> "the running execution context"
+      case Variable(name: String) =>
+        app >> s"_${name}_"
     }
 
   // types

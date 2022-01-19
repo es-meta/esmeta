@@ -391,20 +391,18 @@ trait Parsers extends IndentParsers {
       variable ~ rep1("." ~> field) ^^ { case x ~ fs =>
         FieldReference(x, fs)
       } |||
-      (baseRef <~ "'s") ~ word ^^ { case x ~ s => ComponentReference(x, s) }
+      (baseRef <~ "'s") ~ word ^^ { case x ~ s => ComponentReference(x, s) } |||
+      variable ~ ("[" ~> expr <~ "]") ^^ { case x ~ e => IndexReference(x, e) }
 
   // base references
-  lazy val baseRef: P[BaseReference] = variable ||| runningExecutionContext
+  lazy val baseRef: P[BaseReference] = variable |||
+    "the" ~ opt("currently") ~ "running execution context" ^^^ {
+      RunningExecutionContext
+    }
 
   // variables
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
-
-  // the running execution context
-  lazy val runningExecutionContext: P[RunningExecutionContext.type] =
-    "the" ~ opt("currently") ~ "running execution context" ^^^ {
-      RunningExecutionContext
-    }
 
   // ---------------------------------------------------------------------------
   // algorithm fields

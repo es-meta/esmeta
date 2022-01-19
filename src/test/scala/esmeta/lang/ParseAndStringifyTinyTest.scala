@@ -329,13 +329,18 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val fieldRef = FieldReference(x, List(field))
     lazy val intrFieldRef = FieldReference(x, List(intrField))
     lazy val propIntrFieldRef = FieldReference(x, List(propIntrField))
+    lazy val componentRef = ComponentReference(x, "Realm")
+    lazy val indexRef = IndexReference(x, refExpr)
 
     // tests
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
+      RunningExecutionContext -> "the running execution context",
       fieldRef -> "_x_.[[Value]]",
       intrFieldRef -> "_x_.[[%Array%]]",
       propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
+      componentRef -> "_x_'s Realm",
+      indexRef -> "_x_[_x_]",
     )
 
     // -------------------------------------------------------------------------

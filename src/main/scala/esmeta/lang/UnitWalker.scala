@@ -141,6 +141,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ref: Reference): Unit = ref match {
     case FieldReference(x, fs)          => walk(x); walkList(fs, walk)
     case ComponentReference(base, name) => walk(base)
+    case IndexReference(x, expr)        => walk(x); walk(expr)
     case base: BaseReference            => walk(base)
   }
 
