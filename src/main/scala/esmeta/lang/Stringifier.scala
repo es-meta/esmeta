@@ -262,7 +262,9 @@ case class Stringifier(detail: Boolean) {
         app >> name >> args
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
-        app >> name >> " of " >> base
+        // handle Evaluation
+        if (name == "Evaluation") app >> "the result of evaluating " >> base
+        else app >> name >> " of " >> base
         if (!args.isEmpty) {
           app >> " using " >> args >> " as the argument"
           if (args.length > 1) app >> "s"
