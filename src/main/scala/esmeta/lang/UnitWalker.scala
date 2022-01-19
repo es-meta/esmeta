@@ -118,6 +118,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(invoke: InvokeExpression): Unit = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
       walkList(args, walk)
+    case InvokeMethodExpression(ref, args) =>
+      walk(ref); walkList(args, walk)
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
       walk(base); walkList(args, walk)
   }

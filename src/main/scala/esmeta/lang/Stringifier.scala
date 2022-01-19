@@ -261,6 +261,9 @@ case class Stringifier(detail: Boolean) {
       case InvokeAbstractOperationExpression(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args
+      case InvokeMethodExpression(base, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> base >> args
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         // handle Evaluation

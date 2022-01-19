@@ -295,6 +295,7 @@ trait Parsers extends IndentParsers {
   // algorithm invocation expressions
   lazy val invokeExpr: P[InvokeExpression] =
     invokeAOExpr |||
+      invokeAMExpr |||
       invokeSDOExpr
 
   // abstract operation (AO) invocation expressions
@@ -303,6 +304,13 @@ trait Parsers extends IndentParsers {
       case x ~ as =>
         InvokeAbstractOperationExpression(x, as)
     }
+
+  // method invocation expressions
+  lazy val invokeAMExpr: P[InvokeMethodExpression] =
+    (opt("<[^>]+>".r) ~> propRef <~ opt("</emu-meta>")) ~ // handle emu-meta tags
+      ("(" ~> repsep(expr, ",") <~ ")") ^^ { case p ~ as =>
+        InvokeMethodExpression(p, as)
+      }
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: P[InvokeSyntaxDirectedOperationExpression] =

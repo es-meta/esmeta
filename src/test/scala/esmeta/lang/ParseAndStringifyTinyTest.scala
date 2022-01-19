@@ -153,6 +153,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val intrExpr = IntrinsicExpression(intr)
     lazy val invokeAOExpr =
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
+    lazy val invokeMethodExpr =
+      InvokeMethodExpression(fieldRef, List(addExpr, unExpr))
     lazy val invokeSDOExprZero =
       InvokeSyntaxDirectedOperationExpression(nt, "StringValue", Nil)
     lazy val invokeSDOExprSingle =
@@ -196,6 +198,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       intrExpr -> "%Array%",
       invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",
+      invokeMethodExpr -> "_x_.[[Value]](_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
       invokeSDOExprSingle -> ("StringValue of |Identifier| " +
         "using |Identifier| as the argument"),

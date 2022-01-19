@@ -125,6 +125,8 @@ trait Walker extends BasicWalker {
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
       InvokeAbstractOperationExpression(name, walkList(args, walk))
+    case InvokeMethodExpression(ref, args) =>
+      InvokeMethodExpression(walk(ref), walkList(args, walk))
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
       InvokeSyntaxDirectedOperationExpression(
         walk(base),
@@ -153,9 +155,13 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
   def walk(ref: Reference): Reference = ref match {
-    case x: Variable             => walk(x)
-    case RunningExecutionContext => RunningExecutionContext
-    case CurrentRealmRecord      => CurrentRealmRecord
+    case x: Variable                => walk(x)
+    case RunningExecutionContext    => RunningExecutionContext
+    case CurrentRealmRecord         => CurrentRealmRecord
+    case propRef: PropertyReference => walk(propRef)
+  }
+
+  def walk(propRef: PropertyReference): PropertyReference = propRef match {
     case PropertyReference(base, prop) =>
       PropertyReference(walk(base), walk(prop))
   }

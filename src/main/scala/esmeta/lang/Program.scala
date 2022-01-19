@@ -134,7 +134,11 @@ case class InvokeAbstractOperationExpression(
   args: List[Expression],
 ) extends InvokeExpression
 
-// TODO abstract method (AM) invocation expressions
+// method invocation expressions
+case class InvokeMethodExpression(
+  ref: PropertyReference,
+  args: List[Expression],
+) extends InvokeExpression
 
 // syntax-directed operation (SDO) invocation expressions
 case class InvokeSyntaxDirectedOperationExpression(
