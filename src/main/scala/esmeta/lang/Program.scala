@@ -271,6 +271,12 @@ case class HasFieldCondition(
   field: Field,
 ) extends Condition
 
+// abrupt completion check conditions
+case class AbruptCompletionCondition(
+  x: Variable,
+  negation: Boolean,
+) extends Condition
+
 // binary conditions
 case class BinaryCondition(
   left: Expression,

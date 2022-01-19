@@ -348,6 +348,7 @@ trait Parsers extends IndentParsers {
     exprCond |||
       instanceOfCond |||
       hasFieldCond |||
+      abruptCond |||
       binCond
 
   // expression conditions
@@ -367,6 +368,12 @@ trait Parsers extends IndentParsers {
       (("an" | "a") ~> field <~ "internal" ~ ("method" | "slot")) ^^ {
         case e ~ n ~ f => HasFieldCondition(e, n, f)
       }
+
+  // abrupt completion check conditions
+  lazy val abruptCond: P[AbruptCompletionCondition] =
+    variable ~ isNeg <~ "an abrupt completion" ^^ { case x ~ n =>
+      AbruptCompletionCondition(x, n)
+    }
 
   // binary conditions
   lazy val binCond: P[BinaryCondition] =

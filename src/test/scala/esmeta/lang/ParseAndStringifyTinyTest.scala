@@ -305,6 +305,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val notInstanceOfCond = InstanceOfCondition(refExpr, true, ty)
     lazy val hasFieldCond = HasFieldCondition(refExpr, false, field)
     lazy val noHasFieldCond = HasFieldCondition(refExpr, true, field)
+    lazy val abruptCond = AbruptCompletionCondition(x, false)
     lazy val binaryCondIs =
       BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
     lazy val binaryCondLt =
@@ -317,6 +318,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       notInstanceOfCond -> "_x_ is not a Object",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
+      abruptCond -> "_x_ is an abrupt completion",
       binaryCondIs -> "_x_ is the length of _x_",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",

@@ -128,6 +128,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(ty)
     case HasFieldCondition(expr, neg, field) =>
       walk(expr); walk(field)
+    case AbruptCompletionCondition(x, neg) =>
+      walk(x)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
     case CompoundCondition(left, op, right) =>

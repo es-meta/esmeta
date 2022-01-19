@@ -285,6 +285,8 @@ case class Stringifier(detail: Boolean) {
         // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"
+      case AbruptCompletionCondition(x, neg) =>
+        app >> x >> isStr(neg) >> "an abrupt completion"
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>
