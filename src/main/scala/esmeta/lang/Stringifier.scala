@@ -19,6 +19,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Condition            => condRule(app, elem)
       case elem: Reference            => refRule(app, elem)
       case elem: Type                 => typeRule(app, elem)
+      case elem: Property             => propRule(app, elem)
       case elem: Field                => fieldRule(app, elem)
       case elem: Intrinsic            => intrRule(app, elem)
       case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
@@ -322,30 +323,23 @@ case class Stringifier(detail: Boolean) {
   // references
   given refRule: Rule[Reference] = (app, ref) =>
     ref match {
-      case FieldReference(x, fields) =>
-        app >> x
-        fields.foreach(app >> "." >> _)
-        app
-      case ComponentReference(base, name) =>
-        app >> base >> "'s " >> name
-      case IndexReference(x, index) =>
-        app >> x >> "[" >> index >> "]"
-      case base: BaseReference => app >> base
-    }
-
-  // base references
-  given baseRefRule: Rule[BaseReference] = (app, base) =>
-    base match {
+      case Variable(name: String) =>
+        app >> s"_${name}_"
       case CurrentRealmRecord =>
         app >> "the current Realm Record"
       case RunningExecutionContext =>
         app >> "the running execution context"
-      case Variable(name: String) =>
-        app >> s"_${name}_"
+      case PropertyReference(base, prop) =>
+        app >> base >> prop
     }
 
-  // types
-  given typeRule: Rule[Type] = (app, ty) => app >> ty.name
+  // properties
+  given propRule: Rule[Property] = (app, prop) =>
+    prop match {
+      case FieldProperty(f)        => app >> "." >> f
+      case ComponentProperty(name) => app >> "." >> name
+      case IndexProperty(index)    => app >> "[" >> index >> "]"
+    }
 
   // fields
   given fieldRule: Rule[Field] = (app, field) =>
@@ -362,6 +356,9 @@ case class Stringifier(detail: Boolean) {
     app >> "%" >> base
     props.map(app >> "." >> _)
     app >> "%"
+
+  // types
+  given typeRule: Rule[Type] = (app, ty) => app >> ty.name
 
   // ---------------------------------------------------------------------------
   // private helpers

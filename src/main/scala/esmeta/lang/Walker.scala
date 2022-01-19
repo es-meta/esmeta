@@ -14,6 +14,7 @@ trait Walker extends BasicWalker {
     case elem: Reference            => walk(elem)
     case elem: Type                 => walk(elem)
     case elem: Field                => walk(elem)
+    case elem: Property             => walk(elem)
     case elem: Intrinsic            => walk(elem)
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
@@ -152,19 +153,20 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
 
   def walk(ref: Reference): Reference = ref match {
-    case FieldReference(x, fs) => FieldReference(walk(x), walkList(fs, walk))
-    case ComponentReference(base, name) => ComponentReference(walk(base), name)
-    case IndexReference(x, expr)        => IndexReference(walk(x), walk(expr))
-    case base: BaseReference            => walk(base)
-  }
-
-  def walk(base: BaseReference): BaseReference = base match {
     case x: Variable             => walk(x)
     case RunningExecutionContext => RunningExecutionContext
     case CurrentRealmRecord      => CurrentRealmRecord
+    case PropertyReference(base, prop) =>
+      PropertyReference(walk(base), walk(prop))
   }
 
   def walk(x: Variable): Variable = Variable(x.name)
+
+  def walk(prop: Property): Property = prop match {
+    case FieldProperty(f)        => FieldProperty(walk(f))
+    case IndexProperty(e)        => IndexProperty(walk(e))
+    case comp: ComponentProperty => comp
+  }
 
   def walk(field: Field): Field = field match {
     case StringField(name)         => StringField(name)

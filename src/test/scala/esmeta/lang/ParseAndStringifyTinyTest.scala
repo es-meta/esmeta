@@ -335,11 +335,12 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm references
     // -------------------------------------------------------------------------
     lazy val x = Variable("x")
-    lazy val fieldRef = FieldReference(x, List(field))
-    lazy val intrFieldRef = FieldReference(x, List(intrField))
-    lazy val propIntrFieldRef = FieldReference(x, List(propIntrField))
-    lazy val componentRef = ComponentReference(x, "Realm")
-    lazy val indexRef = IndexReference(x, refExpr)
+    lazy val fieldRef = PropertyReference(x, fieldProp)
+    lazy val intrFieldRef = PropertyReference(x, FieldProperty(intrField))
+    lazy val propIntrFieldRef =
+      PropertyReference(x, FieldProperty(propIntrField))
+    lazy val componentRef = PropertyReference(x, componentProp)
+    lazy val indexRef = PropertyReference(x, indexProp)
 
     // tests
     checkParseAndStringify("Reference", Reference)(
@@ -349,8 +350,22 @@ class ParseAndStringifyTinyTest extends LangTest {
       fieldRef -> "_x_.[[Value]]",
       intrFieldRef -> "_x_.[[%Array%]]",
       propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
-      componentRef -> "_x_'s Realm",
+      componentRef -> "_x_.Realm",
       indexRef -> "_x_[_x_]",
+    )
+
+    // -------------------------------------------------------------------------
+    // algorithm references
+    // -------------------------------------------------------------------------
+    lazy val fieldProp = FieldProperty(field)
+    lazy val componentProp = ComponentProperty("Realm")
+    lazy val indexProp = IndexProperty(refExpr)
+
+    // tests
+    checkParseAndStringify("Property", Property)(
+      fieldProp -> ".[[Value]]",
+      componentProp -> ".Realm",
+      indexProp -> "[_x_]",
     )
 
     // -------------------------------------------------------------------------

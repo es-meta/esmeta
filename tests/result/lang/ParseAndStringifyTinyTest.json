@@ -6,6 +6,7 @@
   "Field" : true,
   "Intrinsic" : true,
   "Literal" : true,
+  "Property" : true,
   "Reference" : true,
   "Step" : true,
   "Type" : true

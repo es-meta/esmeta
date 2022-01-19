@@ -405,16 +405,19 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm references
   // ---------------------------------------------------------------------------
-  given ref: P[Reference] =
-    baseRef |||
-      variable ~ rep1("." ~> field) ^^ { case x ~ fs =>
-        FieldReference(x, fs)
-      } |||
-      (baseRef <~ "'s") ~ word ^^ { case x ~ s => ComponentReference(x, s) } |||
-      variable ~ ("[" ~> expr <~ "]") ^^ { case x ~ e => IndexReference(x, e) }
+  given ref: P[Reference] = baseRef ||| propRef
+
+  // property references
+  lazy val propRef: P[PropertyReference] =
+    baseRef ~ rep1(prop) ^^ { case base ~ ps =>
+      val (p :: rest) = ps
+      rest.foldLeft[PropertyReference](PropertyReference(base, p))(
+        PropertyReference(_, _),
+      )
+    }
 
   // base references
-  lazy val baseRef: P[BaseReference] = variable |||
+  lazy val baseRef: P[Reference] = variable |||
     "the" ~ opt("currently") ~ "running execution context" ^^^ {
       RunningExecutionContext
     } |||
@@ -423,6 +426,14 @@ trait Parsers extends IndentParsers {
   // variables
   lazy val variable: P[Variable] =
     "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+
+  // ---------------------------------------------------------------------------
+  // algorithm properties
+  // ---------------------------------------------------------------------------
+  given prop: P[Property] =
+    ("." ~> field) ^^ { FieldProperty(_) } |||
+      (("'s" | ".") ~> word) ^^ { ComponentProperty(_) } |||
+      ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
 
   // ---------------------------------------------------------------------------
   // algorithm fields

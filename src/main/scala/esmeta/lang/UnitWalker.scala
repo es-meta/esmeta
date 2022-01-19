@@ -14,6 +14,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Reference            => walk(elem)
     case elem: Type                 => walk(elem)
     case elem: Field                => walk(elem)
+    case elem: Property             => walk(elem)
     case elem: Intrinsic            => walk(elem)
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
@@ -141,13 +142,15 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: CompoundCondition.Op): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
-    case FieldReference(x, fs)          => walk(x); walkList(fs, walk)
-    case ComponentReference(base, name) => walk(base)
-    case IndexReference(x, expr)        => walk(x); walk(expr)
-    case base: BaseReference            => walk(base)
+    case PropertyReference(base, prop) => walk(base); walk(prop)
+    case _                             =>
   }
 
-  def walk(base: BaseReference): Unit = {}
+  def walk(prop: Property): Unit = prop match {
+    case FieldProperty(f) => walk(f)
+    case IndexProperty(e) => walk(e)
+    case _                =>
+  }
 
   def walk(field: Field): Unit = field match {
     case StringField(name)         =>

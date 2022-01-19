@@ -79,7 +79,7 @@ case class PushStep(context: Reference) extends Step
 case class NoteStep(note: String) extends Step
 
 // suspend steps
-case class SuspendStep(context: BaseReference) extends Step
+case class SuspendStep(context: Reference) extends Step
 
 // block steps
 case class BlockStep(block: Block) extends Step
@@ -133,6 +133,8 @@ case class InvokeAbstractOperationExpression(
   name: String,
   args: List[Expression],
 ) extends InvokeExpression
+
+// TODO abstract method (AM) invocation expressions
 
 // syntax-directed operation (SDO) invocation expressions
 case class InvokeSyntaxDirectedOperationExpression(
@@ -304,27 +306,32 @@ object CompoundCondition:
 sealed trait Reference extends LangElem
 object Reference extends Parser.From[Reference]
 
-// base references
-sealed trait BaseReference extends Reference
-
 // variables
-case class Variable(name: String) extends BaseReference
+case class Variable(name: String) extends Reference
 
 // the running execution context literals
-case object RunningExecutionContext extends BaseReference
+case object RunningExecutionContext extends Reference
 
 // the current realm record
-case object CurrentRealmRecord extends BaseReference
+case object CurrentRealmRecord extends Reference
 
-// field references
-case class FieldReference(x: Variable, fields: List[Field]) extends Reference
+// references to property
+case class PropertyReference(base: Reference, prop: Property) extends Reference
 
-// component references
-case class ComponentReference(base: BaseReference, name: String)
-  extends Reference
+// -----------------------------------------------------------------------------
+// algorithm properties
+// -----------------------------------------------------------------------------
+sealed trait Property extends LangElem
+object Property extends Parser.From[Property]
 
-// index references
-case class IndexReference(x: Variable, index: Expression) extends Reference
+// field property
+case class FieldProperty(field: Field) extends Property
+
+// component property
+case class ComponentProperty(name: String) extends Property
+
+// index property
+case class IndexProperty(index: Expression) extends Property
 
 // -----------------------------------------------------------------------------
 // algorithm fields
