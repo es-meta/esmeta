@@ -307,7 +307,9 @@ trait Parsers extends IndentParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: P[InvokeMethodExpression] =
-    (opt("<[^>]+>".r) ~> propRef <~ opt("</emu-meta>")) ~ // handle emu-meta tags
+    (opt("<[^>]+>".r) ~> propRef <~ opt(
+      "</emu-meta>",
+    )) ~ // handle emu-meta tags
       ("(" ~> repsep(expr, ",") <~ ")") ^^ { case p ~ as =>
         InvokeMethodExpression(p, as)
       }
