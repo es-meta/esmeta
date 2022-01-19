@@ -105,6 +105,13 @@ case class Stringifier(detail: Boolean) {
         app >> " " >> context >> " is now the running execution context."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
+      case SuspendStep(context) =>
+        app >> First("suspend ")
+        context match {
+          case Some(c) => app >> c
+          case None    => app >> "the currently running execution context"
+        }
+        app >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>

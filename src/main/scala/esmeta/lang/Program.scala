@@ -78,6 +78,9 @@ case class PushStep(context: Reference) extends Step
 // note steps
 case class NoteStep(note: String) extends Step
 
+// suspend steps
+case class SuspendStep(context: Option[Variable]) extends Step
+
 // block steps
 case class BlockStep(block: Block) extends Step
 

@@ -70,6 +70,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val noteStep = NoteStep(
       "At this point, it must be a numeric operation.",
     )
+    lazy val suspendStep = SuspendStep(None)
+    lazy val suspendVarStep = SuspendStep(Some(x))
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -120,6 +122,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       pushStep -> ("push _x_ onto the execution context stack; " +
         "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
+      suspendStep -> "suspend the currently running execution context.",
+      suspendVarStep -> "suspend _x_.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )

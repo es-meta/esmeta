@@ -55,6 +55,7 @@ trait UnitWalker extends BasicUnitWalker {
     case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
     case PushStep(context)      => walk(context)
     case NoteStep(note)         =>
+    case SuspendStep(x)         => walkOpt(x, walk)
     case BlockStep(block)       => walk(block)
     case YetStep(expr)          => walk(expr)
   }

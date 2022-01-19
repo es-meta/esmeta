@@ -45,6 +45,7 @@ trait Parsers extends IndentParsers {
       repeatStep |
       pushStep |
       noteStep |
+      suspendStep |
       ifStep |
       forEachStep |
       forEachIntStep |
@@ -123,6 +124,14 @@ trait Parsers extends IndentParsers {
   // note steps
   lazy val noteStep: P[NoteStep] =
     ("NOTE" ~ ":") ~> ".*".r ^^ { str => NoteStep(str) }
+
+  // suspend steps
+  lazy val suspendStep: P[SuspendStep] =
+    "suspend" ~> (
+      (variable <~ opt("and remove it from the execution context stack")) ^^ {
+        Some(_)
+      } | "the currently running execution context" ^^^ { None }
+    ) <~ end ^^ { SuspendStep(_) }
 
   // block steps
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
