@@ -86,8 +86,15 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case ListExpression(entries) =>
       walkList(entries, walk)
+    case multi: MultilineExpression =>
+      walk(multi)
     case yet: YetExpression =>
       walk(yet)
+  }
+
+  def walk(multi: MultilineExpression): Unit = multi match {
+    case AbstractClosureExpression(params, captured, body) =>
+      walkList(params, walk); walkList(captured, walk); walk(body)
   }
 
   def walk(yet: YetExpression): Unit =

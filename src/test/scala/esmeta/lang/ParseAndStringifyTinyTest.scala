@@ -42,6 +42,8 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm steps
     // -------------------------------------------------------------------------
     lazy val letStep = LetStep(x, refExpr)
+    lazy val letStepMulti =
+      LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
     lazy val setStep = SetStep(x, addExpr)
     lazy val ifStep = IfStep(binaryCondIs, letStep, None)
     lazy val ifBlockStep =
@@ -77,6 +79,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Step", Step)(
       letStep -> "let _x_ be _x_.",
+      // TODO add letStepMulti
       setStep -> "set _x_ to _x_ + _x_.",
       ifStep -> "if _x_ is the length of _x_, let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """

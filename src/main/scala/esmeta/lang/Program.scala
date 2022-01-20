@@ -127,7 +127,9 @@ case class SourceTextExpression(
   expr: Expression,
 ) extends Expression
 
+// -----------------------------------------------------------------------------
 // algorithm invocation expressions
+// -----------------------------------------------------------------------------
 sealed trait InvokeExpression extends Expression
 
 // abstract operation (AO) invocation expressions
@@ -268,6 +270,18 @@ case object FalseLiteral extends BooleanLiteral
 // other special literals
 case object UndefinedLiteral extends Literal
 case object NullLiteral extends Literal
+
+// -----------------------------------------------------------------------------
+// algorithm expressions with multiline
+// -----------------------------------------------------------------------------
+sealed trait MultilineExpression extends Expression
+
+// abstract closure expressions
+case class AbstractClosureExpression(
+  params: List[Variable],
+  captured: List[Variable],
+  body: Step,
+) extends MultilineExpression
 
 // -----------------------------------------------------------------------------
 // algorithm conditions

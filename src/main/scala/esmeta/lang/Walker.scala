@@ -93,8 +93,18 @@ trait Walker extends BasicWalker {
       ReturnIfAbruptExpression(walk(expr), check)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
+    case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
+  }
+
+  def walk(multi: MultilineExpression): MultilineExpression = multi match {
+    case AbstractClosureExpression(params, captured, body) =>
+      AbstractClosureExpression(
+        walkList(params, walk),
+        walkList(captured, walk),
+        walk(body),
+      )
   }
 
   def walk(yet: YetExpression): YetExpression =

@@ -53,11 +53,11 @@ trait Parsers extends IndentParsers {
 
   // let steps
   lazy val letStep: P[LetStep] =
-    ("let" ~> variable <~ "be") ~ expr <~ end ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
   lazy val setStep: P[SetStep] =
-    ("set" ~> ref <~ "to") ~ expr <~ end ^^ { case r ~ e => SetStep(r, e) }
+    ("set" ~> ref <~ "to") ~ endWithExpr ^^ { case r ~ e => SetStep(r, e) }
 
   // if-then-else steps
   lazy val ifStep: P[IfStep] =
@@ -67,7 +67,8 @@ trait Parsers extends IndentParsers {
 
   // return steps
   lazy val returnStep: P[ReturnStep] =
-    "return" ~> opt(expr) <~ end ^^ { ReturnStep(_) }
+    "return" ~> end ^^^ { ReturnStep(None) } |
+      "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
 
   // assertion steps
   lazy val assertStep: P[AssertStep] =
@@ -143,6 +144,9 @@ trait Parsers extends IndentParsers {
   // end of step
   lazy val end: Parser[String] = "." <~ upper | ";"
 
+  // end with expression
+  lazy val endWithExpr: P[Expression] = expr <~ end | multilineExpr
+
   // ---------------------------------------------------------------------------
   // algorithm expressions
   // ---------------------------------------------------------------------------
@@ -159,6 +163,9 @@ trait Parsers extends IndentParsers {
       invokeExpr |||
       returnIfAbruptExpr |||
       listExpr
+
+  // multilineExpr
+  lazy val multilineExpr: P[MultilineExpression] = closureExpr
 
   // string concatenation expressions
   lazy val stringConcatExpr: P[StringConcatExpression] =
@@ -196,11 +203,25 @@ trait Parsers extends IndentParsers {
       ("from" ~> expr) ~
       ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
 
-  // `source text` expredssions
+  // `source text` expressions
   lazy val sourceTextExpr: P[SourceTextExpression] =
     ("the source text matched by" ~> expr) ^^ { case e =>
       SourceTextExpression(e)
     }
+
+  // abstract closure expressions
+  lazy val closureExpr: P[AbstractClosureExpression] =
+    lazy val params: P[List[Variable]] =
+      "no parameters" ^^^ { Nil } |||
+        "parameters" ~> ("(" ~> repsep(variable, ",") <~ ")")
+    lazy val captured: P[List[Variable]] =
+      "catpures nothing" ^^^ { Nil } |||
+        "captures" ~> repsep(variable, sep("and"))
+
+    "a new Abstract Closure with" ~> params ~ ("that" ~> captured) ~
+      ("and performs the following steps when called:" ~> blockStep) ^^ {
+        case ps ~ cs ~ body => AbstractClosureExpression(ps, cs, body)
+      }
 
   // intrinsic expressions
   lazy val intrExpr: P[IntrinsicExpression] = intr ^^ { IntrinsicExpression(_) }
@@ -332,12 +353,9 @@ trait Parsers extends IndentParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: P[InvokeMethodExpression] =
-    (opt("<[^>]+>".r) ~> propRef <~ opt(
-      "</emu-meta>",
-    )) ~ // handle emu-meta tags
-      ("(" ~> repsep(expr, ",") <~ ")") ^^ { case p ~ as =>
-        InvokeMethodExpression(p, as)
-      }
+    (opt("<[^>]+>".r) ~> propRef <~ opt("</emu-meta>")) ~ invokeArgs ^^ {
+      case p ~ as => InvokeMethodExpression(p, as)
+    }
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: P[InvokeSyntaxDirectedOperationExpression] =

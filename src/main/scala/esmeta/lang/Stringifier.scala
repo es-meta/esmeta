@@ -60,9 +60,11 @@ case class Stringifier(detail: Boolean) {
     given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
-        app >> First("let ") >> x >> " be " >> expr >> "."
+        given Rule[Expression] = endWithExprRule
+        app >> First("let ") >> x >> " be " >> expr
       case SetStep(x, expr) =>
-        app >> First("set ") >> x >> " to " >> expr >> "."
+        given Rule[Expression] = endWithExprRule
+        app >> First("set ") >> x >> " to " >> expr
       case IfStep(cond, thenStep, elseStep) =>
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
@@ -74,9 +76,12 @@ case class Stringifier(detail: Boolean) {
           case None                  => app
         }
       case ReturnStep(expr) =>
+        given Rule[Expression] = endWithExprRule
         app >> First("return")
-        expr.map(app >> " " >> _)
-        app >> "."
+        expr match {
+          case None    => app >> "."
+          case Some(e) => app >> " " >> e
+        }
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
       case ForEachStep(ty, elem, expr, body) =>
@@ -117,6 +122,12 @@ case class Stringifier(detail: Boolean) {
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
     app >> (if (upper) str.head.toUpper else str.head) >> str.substring(1)
+  }
+  private def endWithExprRule: Rule[Expression] = (app, expr) => {
+    expr match {
+      case multi: MultilineExpression => app >> expr
+      case _                          => app >> expr >> "."
+    }
   }
 
   // expressions
@@ -159,6 +170,22 @@ case class Stringifier(detail: Boolean) {
       case YetExpression(str, block) =>
         app >> "[YET] " >> str
         block.fold(app)(app >> _)
+      case multi: MultilineExpression => app >> multi
+    }
+
+  // multiline expressions
+  given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
+    expr match {
+      case AbstractClosureExpression(params, captured, body) =>
+        given Rule[List[Variable]] = listNamedSepRule(namedSep = "and")
+        app >> "a new Abstract Closure with"
+        if (params.isEmpty) app >> " no parameters "
+        else {
+          given Rule[List[Variable]] = iterableRule(sep = ", ")
+          app >> " parameters (" >> params >> ") "
+        }
+        app >> "that captures " >> captured
+        app >> " and performs the following stpes when called:" >> body
     }
 
   // calculation expressions
