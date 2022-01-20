@@ -312,15 +312,14 @@ trait Parsers extends IndentParsers {
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: P[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
-      case x ~ as =>
-        InvokeAbstractOperationExpression(x, as)
+    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ { case x ~ as =>
+      InvokeAbstractOperationExpression(x, as)
     }
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: P[InvokeNumericMethodExpression] =
-    ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
-      case t ~ op ~ as => InvokeNumericMethodExpression(t, op, as)
+    ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ { case t ~ op ~ as =>
+      InvokeNumericMethodExpression(t, op, as)
     }
 
   // abstract closure invocation expression

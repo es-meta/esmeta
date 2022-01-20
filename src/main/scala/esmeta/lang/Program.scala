@@ -127,7 +127,7 @@ case class IntrinsicExpression(intr: Intrinsic) extends Expression
 
 // `source text` expressions
 case class SourceTextExpression(
-  expr: Expression
+  expr: Expression,
 ) extends Expression
 
 // algorithm invocation expressions
@@ -143,13 +143,13 @@ case class InvokeAbstractOperationExpression(
 case class InvokeNumericMethodExpression(
   ty: Type,
   name: String,
-  args: List[Expression]
+  args: List[Expression],
 ) extends InvokeExpression
 
 // abstract closure invocation expression
 case class InvokeAbstractClosureExpression(
   ref: Variable,
-  args: List[Expression]
+  args: List[Expression],
 ) extends InvokeExpression
 
 // method invocation expressions
