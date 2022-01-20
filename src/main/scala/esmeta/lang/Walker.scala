@@ -125,6 +125,10 @@ trait Walker extends BasicWalker {
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
       InvokeAbstractOperationExpression(name, walkList(args, walk))
+    case InvokeNumericMethodExpression(ty, name, args) =>
+      InvokeNumericMethodExpression(walk(ty), name, walkList(args, walk))
+    case InvokeAbstractClosureExpression(x, args) =>
+      InvokeAbstractClosureExpression(walk(x), walkList(args, walk))
     case InvokeMethodExpression(ref, args) =>
       InvokeMethodExpression(walk(ref), walkList(args, walk))
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>

@@ -261,6 +261,12 @@ case class Stringifier(detail: Boolean) {
       case InvokeAbstractOperationExpression(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args
+      case InvokeNumericMethodExpression(ty, name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> ty >> "::" >> name >> args
+      case InvokeAbstractClosureExpression(x, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> x >> args
       case InvokeMethodExpression(base, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> base >> args

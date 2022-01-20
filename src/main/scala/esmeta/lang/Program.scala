@@ -134,6 +134,19 @@ case class InvokeAbstractOperationExpression(
   args: List[Expression],
 ) extends InvokeExpression
 
+// numeric method invocation expression
+case class InvokeNumericMethodExpression(
+  ty: Type,
+  name: String,
+  args: List[Expression]
+) extends InvokeExpression
+
+// abstract closure invocation expression
+case class InvokeAbstractClosureExpression(
+  ref: Variable,
+  args: List[Expression]
+) extends InvokeExpression
+
 // method invocation expressions
 case class InvokeMethodExpression(
   ref: PropertyReference,
