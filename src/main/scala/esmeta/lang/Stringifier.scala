@@ -308,6 +308,8 @@ case class Stringifier(detail: Boolean) {
         app >> x >> isStr(neg) >> "an abrupt completion"
       case ContainsCondition(expr, elem) =>
         app >> expr >> " contains " >> elem
+      case PresentCondition(expr, neg) =>
+        app >> expr >> isStr(neg) >> "present"
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>

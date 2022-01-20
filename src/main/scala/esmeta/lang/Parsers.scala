@@ -401,6 +401,7 @@ trait Parsers extends IndentParsers {
       hasFieldCond |||
       abruptCond |||
       containsCond |||
+      presentCond |||
       binCond
 
   // expression conditions
@@ -430,6 +431,10 @@ trait Parsers extends IndentParsers {
   // contains condition
   lazy val containsCond: P[ContainsCondition] =
     expr ~ ("contains" ~> expr) ^^ { case ls ~ e => ContainsCondition(ls, e) }
+
+  // present condition
+  lazy val presentCond: P[PresentCondition] =
+    expr ~ isNeg <~ "present" ^^ { case e ~ n => PresentCondition(e, n) }
 
   // binary conditions
   lazy val binCond: P[BinaryCondition] =

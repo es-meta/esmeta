@@ -24,9 +24,6 @@ case class SubStep(idTag: Option[String], step: Step) extends LangElem
 sealed trait Step extends LangElem
 object Step extends Parser.From[Step]
 
-// XXX
-// rarely used step:
-
 // let steps
 case class LetStep(variable: Variable, expr: Expression) extends Step
 
@@ -305,6 +302,12 @@ case class AbruptCompletionCondition(
 case class ContainsCondition(
   expr: Expression,
   elem: Expression,
+) extends Condition
+
+// present condition
+case class PresentCondition(
+  expr: Expression,
+  negation: Boolean,
 ) extends Condition
 
 // binary conditions
