@@ -142,6 +142,8 @@ case class Stringifier(detail: Boolean) {
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
         app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
+      case SourceTextExpression(expr) =>
+        app >> "the source text matched by " >> expr
       case IntrinsicExpression(intr) =>
         app >> intr
       case expr: CalcExpression =>

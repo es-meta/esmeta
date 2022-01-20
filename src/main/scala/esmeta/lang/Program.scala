@@ -125,6 +125,11 @@ case class SubstringExpression(
 // intrinsic expressions
 case class IntrinsicExpression(intr: Intrinsic) extends Expression
 
+// `source text` expressions
+case class SourceTextExpression(
+  expr: Expression
+) extends Expression
+
 // algorithm invocation expressions
 sealed trait InvokeExpression extends Expression
 

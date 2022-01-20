@@ -150,6 +150,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, true, ty)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val sourceTextExpr = SourceTextExpression(nt)
     lazy val intrExpr = IntrinsicExpression(intr)
     lazy val invokeAOExpr =
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
@@ -210,6 +211,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
+      sourceTextExpr -> "the source text matched by |Identifier|",
       intrExpr -> "%Array%",
       invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",
       invokeNumericExpr -> "Number::add(_x_, _x_)",

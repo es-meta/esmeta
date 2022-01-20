@@ -151,6 +151,7 @@ trait Parsers extends IndentParsers {
       typeCheckExpr |||
       lengthExpr |||
       substrExpr |||
+      sourceTextExpr |||
       intrExpr |||
       calcExpr |||
       invokeExpr |||
@@ -192,6 +193,12 @@ trait Parsers extends IndentParsers {
     ("the substring of" ~> expr) ~
       ("from" ~> expr) ~
       ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+
+  // `source text` expredssions
+  lazy val sourceTextExpr: P[SourceTextExpression] =
+    ("the source text matched by" ~> expr) ^^ { case e =>
+      SourceTextExpression(e)
+    }
 
   // intrinsic expressions
   lazy val intrExpr: P[IntrinsicExpression] = intr ^^ { IntrinsicExpression(_) }
