@@ -283,6 +283,12 @@ case class AbruptCompletionCondition(
   negation: Boolean,
 ) extends Condition
 
+// contains condition
+case class ContainsCondition(
+  expr: Expression,
+  elem: Expression,
+) extends Condition
+
 // binary conditions
 case class BinaryCondition(
   left: Expression,

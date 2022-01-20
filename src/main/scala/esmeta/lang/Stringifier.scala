@@ -293,6 +293,8 @@ case class Stringifier(detail: Boolean) {
         app >> " " >> field >> " internal slot"
       case AbruptCompletionCondition(x, neg) =>
         app >> x >> isStr(neg) >> "an abrupt completion"
+      case ContainsCondition(expr, elem) =>
+        app >> expr >> " contains " >> elem
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>
