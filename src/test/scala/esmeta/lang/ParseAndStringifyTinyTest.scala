@@ -175,6 +175,12 @@ class ParseAndStringifyTinyTest extends LangTest {
         "Evaluation",
         Nil,
       )
+    lazy val invokeSDOExprContains =
+      InvokeSyntaxDirectedOperationExpression(
+        nt,
+        "Contains",
+        List(refExpr),
+      )
     lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, true)
     lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
     lazy val emptyListExpr = ListExpression(Nil)
@@ -205,6 +211,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       invokeSDOExprMulti -> ("StringValue of |Identifier| " +
         "using |Identifier| and _x_ as the arguments"),
       invokeSDOExprEval -> "the result of evaluating |Identifier|",
+      invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
       emptyListExpr -> "« »",

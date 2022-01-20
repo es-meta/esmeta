@@ -337,7 +337,13 @@ trait Parsers extends IndentParsers {
         InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
       }
 
-    normalSDOExpr ||| evalSDOExpr
+    // Contains SDO
+    lazy val containsSDOExpr =
+      expr ~ ("Contains" ~> expr) ^^ { case b ~ arg =>
+        InvokeSyntaxDirectedOperationExpression(b, "Contains", List(arg))
+      }
+
+    normalSDOExpr ||| evalSDOExpr ||| containsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =

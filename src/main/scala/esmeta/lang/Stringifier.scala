@@ -268,10 +268,15 @@ case class Stringifier(detail: Boolean) {
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         // handle Evaluation
         if (name == "Evaluation") app >> "the result of evaluating " >> base
-        else app >> name >> " of " >> base
-        if (!args.isEmpty) {
-          app >> " using " >> args >> " as the argument"
-          if (args.length > 1) app >> "s"
+        // XXX handle Conatins, Contains always takes one argument
+        else if (name == "Contains") app >> base >> " Contains " >> args.head
+        // Otherwise
+        else {
+          app >> name >> " of " >> base
+          if (!args.isEmpty) {
+            app >> " using " >> args >> " as the argument"
+            if (args.length > 1) app >> "s"
+          }
         }
         app
     }
