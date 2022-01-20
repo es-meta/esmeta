@@ -164,7 +164,7 @@ case class InvokeSyntaxDirectedOperationExpression(
 
 // return-if-abrupt expressions
 case class ReturnIfAbruptExpression(
-  expr: Expression,
+  expr: InvokeExpression,
   check: Boolean,
 ) extends Expression
 

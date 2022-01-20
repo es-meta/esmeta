@@ -100,7 +100,9 @@ trait Parsers extends IndentParsers {
 
   // perform steps
   lazy val performStep: P[PerformStep] =
-    ("perform" | "call") ~> expr <~ end ^^ { PerformStep(_) }
+    opt("perform" | "call") ~> (invokeExpr | returnIfAbruptExpr) <~ end ^^ {
+      PerformStep(_)
+    }
 
   // append steps
   lazy val appendStep: P[AppendStep] =
@@ -370,7 +372,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ { case c ~ e =>
+    ("?" ^^^ true | "!" ^^^ false) ~ invokeExpr ^^ { case c ~ e =>
       ReturnIfAbruptExpression(e, c)
     }
 
