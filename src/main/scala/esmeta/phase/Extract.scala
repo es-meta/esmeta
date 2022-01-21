@@ -4,7 +4,9 @@ import esmeta.*
 import esmeta.spec.*
 import esmeta.spec.Utils.*
 import esmeta.util.*
+import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
+import java.util.IntSummaryStatistics
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
@@ -39,8 +41,37 @@ case object Extract extends Phase[Unit, Spec] {
         data = spec,
         filename = s"$EXTRACT_LOG_DIR/summary",
       )
-    }
 
+      // Statistics
+      if (config.stat) {
+        // TODO : too verbose
+        val filename = getFirstFilename(globalConfig, "extract")
+        val content = readFile(filename)
+        val docu = content.toHtml
+
+        for {
+          algo <- spec.algorithms
+        } {
+          SpecStats.addAlgo(docu)(
+            algo,
+            "#CompleteAlgos",
+            if algo.complete then 1 else 0,
+          )
+          SpecStats.addAlgo(docu)(
+            algo,
+            "#Steps",
+            algo.steps.length,
+          )
+        }
+        // XXX test for specstat
+        // val id = "sec-stringindexof"
+        // val query = s"emu-clause[id=${id}]:not([example])"
+        // val elem = docu.select(query).toList.last
+        // println("Stat")
+        // println(SpecStats.getCounter(elem, "#CompleteAlgos"))
+        // println(SpecStats.getCounter(elem, "#Steps"))
+      }
+    }
     spec
   }
   def defaultConfig: Config = Config()
@@ -55,9 +86,18 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "stat",
+      BoolOption(c => {
+        c.log = true
+        c.stat = true
+      }),
+      "turn on stat mode.",
+    ),
   )
   case class Config(
     var json: Option[String] = None,
     var log: Boolean = false,
+    var stat: Boolean = false,
   )
 }

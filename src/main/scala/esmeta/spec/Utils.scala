@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.lang.{Step, YetStep, StepCollector}
+import esmeta.util.HtmlUtils.*
 import org.jsoup.nodes.*
 
 /** specification utilities */
@@ -67,6 +68,17 @@ object Utils {
   // TODO optimize this by removing redundant computation
   /** extensions for algorithms */
   extension (algo: Algorithm) {
+
+    /** get element of algorithm */
+    def getElem(docu: Document): Option[Element] =
+      val id = algo.id
+      if id == "" then None
+      else {
+        val query = s"emu-clause[id=${id}]:not([example])"
+        val elems = docu.select(query).toList
+        // TODO : case when elems.length > 2 ?
+        if elems.length == 1 then Some(elems.last) else None
+      }
 
     /** check whether it is incomplete */
     def complete: Boolean = incompleteSteps.isEmpty
