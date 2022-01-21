@@ -154,7 +154,6 @@ trait Parsers extends IndentParsers {
     stringConcatExpr |||
       listConcatExpr |||
       recordExpr |||
-      typeCheckExpr |||
       lengthExpr |||
       substrExpr |||
       sourceTextExpr |||
@@ -185,12 +184,6 @@ trait Parsers extends IndentParsers {
       case t ~ fs =>
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
-    }
-
-  // type check expressions
-  lazy val typeCheckExpr: P[TypeCheckExpression] =
-    ("Type(" ~> expr <~ ")") ~ isNeg ~ ty ^^ { case e ~ n ~ t =>
-      TypeCheckExpression(e, n, t)
     }
 
   // `length of` expressions
@@ -295,7 +288,15 @@ trait Parsers extends IndentParsers {
       "*true*" ^^^ TrueLiteral |||
       "*false*" ^^^ FalseLiteral |||
       "*undefined*" ^^^ UndefinedLiteral |||
-      "*null*" ^^^ NullLiteral
+      "*null*" ^^^ NullLiteral |||
+      "Undefined" ^^^ UndefinedTypeLiteral |||
+      "Null" ^^^ NullTypeLiteral |||
+      "Boolean" ^^^ BooleanTypeLiteral |||
+      "String" ^^^ StringTypeLiteral |||
+      "Symbol" ^^^ SymbolTypeLiteral |||
+      "Number" ^^^ NumberTypeLiteral |||
+      "BigInt" ^^^ BigIntTypeLiteral |||
+      "Object" ^^^ ObjectTypeLiteral
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: P[HexLiteral] =

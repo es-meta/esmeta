@@ -102,13 +102,6 @@ case class RecordExpression(
   fields: List[(Field, Expression)],
 ) extends Expression
 
-// type check expressions
-case class TypeCheckExpression(
-  expr: Expression,
-  negation: Boolean,
-  ty: Type,
-) extends Expression
-
 // `length of` expressions
 case class LengthExpression(expr: Expression) extends Expression
 
@@ -270,6 +263,17 @@ case object FalseLiteral extends BooleanLiteral
 // other special literals
 case object UndefinedLiteral extends Literal
 case object NullLiteral extends Literal
+
+// ECMAScript type literals
+sealed trait ESTypeLiteral extends Literal
+case object UndefinedTypeLiteral extends ESTypeLiteral
+case object NullTypeLiteral extends ESTypeLiteral
+case object BooleanTypeLiteral extends ESTypeLiteral
+case object StringTypeLiteral extends ESTypeLiteral
+case object SymbolTypeLiteral extends ESTypeLiteral
+case object NumberTypeLiteral extends ESTypeLiteral
+case object BigIntTypeLiteral extends ESTypeLiteral
+case object ObjectTypeLiteral extends ESTypeLiteral
 
 // -----------------------------------------------------------------------------
 // algorithm expressions with multiline

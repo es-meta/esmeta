@@ -147,8 +147,6 @@ case class Stringifier(detail: Boolean) {
         app >> ty >> " "
         if (fields.isEmpty) app >> "{ }"
         else app >> fields
-      case TypeCheckExpression(expr, neg, ty) =>
-        app >> "Type(" >> expr >> ")" >> isStr(neg) >> ty
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
@@ -277,11 +275,19 @@ case class Stringifier(detail: Boolean) {
             else if (n.toInt == n) n.toInt.toString
             else n.toString
           ) >> "*<sub>𝔽</sub>"
-      case BigIntLiteral(n) => app >> "*" >> n >> "*<sub>ℤ</sub>"
-      case TrueLiteral      => app >> "*true*"
-      case FalseLiteral     => app >> "*false*"
-      case UndefinedLiteral => app >> "*undefined*"
-      case NullLiteral      => app >> "*null*"
+      case BigIntLiteral(n)     => app >> "*" >> n >> "*<sub>ℤ</sub>"
+      case TrueLiteral          => app >> "*true*"
+      case FalseLiteral         => app >> "*false*"
+      case UndefinedLiteral     => app >> "*undefined*"
+      case NullLiteral          => app >> "*null*"
+      case UndefinedTypeLiteral => app >> "Undefined"
+      case NullTypeLiteral      => app >> "Null"
+      case BooleanTypeLiteral   => app >> "Boolean"
+      case StringTypeLiteral    => app >> "String"
+      case SymbolTypeLiteral    => app >> "Symbol"
+      case NumberTypeLiteral    => app >> "Number"
+      case BigIntTypeLiteral    => app >> "BigInt"
+      case ObjectTypeLiteral    => app >> "Object"
     }
 
   // algorithm invocation expressions

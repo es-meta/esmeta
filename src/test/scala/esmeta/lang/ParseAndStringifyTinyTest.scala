@@ -149,8 +149,6 @@ class ParseAndStringifyTinyTest extends LangTest {
       RecordExpression(ty, Nil)
     lazy val recordExpr =
       RecordExpression(ty, List(field -> refExpr))
-    lazy val typeCheckExpr = TypeCheckExpression(refExpr, false, ty)
-    lazy val typeCheckNegExpr = TypeCheckExpression(refExpr, true, ty)
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
     lazy val sourceTextExpr = SourceTextExpression(nt)
@@ -210,8 +208,6 @@ class ParseAndStringifyTinyTest extends LangTest {
       listConcatExprThree -> "the list-concatenation of _x_, _x_, and _x_",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
-      typeCheckExpr -> "Type(_x_) is Object",
-      typeCheckNegExpr -> "Type(_x_) is not Object",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
       sourceTextExpr -> "the source text matched by |Identifier|",
@@ -327,6 +323,14 @@ class ParseAndStringifyTinyTest extends LangTest {
       FalseLiteral -> "*false*",
       UndefinedLiteral -> "*undefined*",
       NullLiteral -> "*null*",
+      UndefinedTypeLiteral -> "Undefined",
+      NullTypeLiteral -> "Null",
+      BooleanTypeLiteral -> "Boolean",
+      StringTypeLiteral -> "String",
+      SymbolTypeLiteral -> "Symbol",
+      NumberTypeLiteral -> "Number",
+      BigIntTypeLiteral -> "BigInt",
+      ObjectTypeLiteral -> "Object",
     )
 
     // -------------------------------------------------------------------------

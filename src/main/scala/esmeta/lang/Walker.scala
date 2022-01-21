@@ -75,8 +75,6 @@ trait Walker extends BasicWalker {
     case RecordExpression(ty, fields) =>
       val newFields = walkList(fields, { case (f, e) => (walk(f), walk(e)) })
       RecordExpression(walk(ty), newFields)
-    case TypeCheckExpression(expr, neg, ty) =>
-      TypeCheckExpression(walk(expr), neg, walk(ty))
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
