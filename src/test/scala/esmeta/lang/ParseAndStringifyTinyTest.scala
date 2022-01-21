@@ -360,6 +360,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     lazy val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
+    lazy val implyCond =
+      CompoundCondition(isCond, CompoundCondition.Op.Imply, isEitherCond)
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       instanceOfCond -> "_x_ is a Object",
@@ -374,6 +376,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       isPresentCond -> "_x_ is present",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",
+      implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
     )
 
     // -------------------------------------------------------------------------

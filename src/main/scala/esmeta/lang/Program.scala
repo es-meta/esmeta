@@ -346,7 +346,7 @@ case class CompoundCondition(
 ) extends Condition
 object CompoundCondition:
   enum Op extends LangElem:
-    case And, Or
+    case And, Or, Imply
 
 // -----------------------------------------------------------------------------
 // algorithm references

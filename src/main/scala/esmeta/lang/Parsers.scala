@@ -72,7 +72,7 @@ trait Parsers extends IndentParsers {
 
   // assertion steps
   lazy val assertStep: P[AssertStep] =
-    "assert" ~ ":" ~> cond <~ end ^^ { AssertStep(_) }
+    "assert" ~ ":" ~> (upper ~> cond) <~ end ^^ { AssertStep(_) }
 
   // for-each steps
   lazy val forEachStep: P[ForEachStep] =
@@ -422,8 +422,11 @@ trait Parsers extends IndentParsers {
   given cond: P[Condition] =
     import CompoundCondition.Op.*
     lazy val op: P[CompoundCondition.Op] = "and" ^^^ And ||| "or" ^^^ Or
+
     baseCond ~ rep(op ~ baseCond) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
+    } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ { case l ~ r =>
+      CompoundCondition(l, Imply, r)
     }
 
   // base conditions

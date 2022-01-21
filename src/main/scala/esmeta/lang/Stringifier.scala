@@ -367,7 +367,12 @@ case class Stringifier(detail: Boolean) {
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>
-        app >> left >> " " >> op >> " " >> right
+        op match {
+          case CompoundCondition.Op.Imply =>
+            // TODO handle upper case of `if`
+            app >> "If " >> left >> ", then " >> right
+          case _ => app >> left >> " " >> op >> " " >> right
+        }
     }
 
   // operators for binary conditions
@@ -389,8 +394,9 @@ case class Stringifier(detail: Boolean) {
   given compCondOpRule: Rule[CompoundCondition.Op] = (app, op) => {
     import CompoundCondition.Op.*
     app >> (op match {
-      case And => "and"
-      case Or  => "or"
+      case And   => "and"
+      case Or    => "or"
+      case Imply => "imply" // XXX not used
     })
   }
 
