@@ -450,10 +450,11 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
+    lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
     expr ~
       ("has" ^^^ false ||| "does not have" ^^^ true) ~
-      (("an" | "a") ~> field <~ "internal" ~ ("method" | "slot")) ^^ {
-        case e ~ n ~ f => HasFieldCondition(e, n, f)
+      (("an" | "a") ~> field <~ fieldStr) ^^ { case e ~ n ~ f =>
+        HasFieldCondition(e, n, f)
       }
 
   // abrupt completion check conditions
