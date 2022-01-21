@@ -156,6 +156,7 @@ trait Parsers extends IndentParsers {
       recordExpr |||
       lengthExpr |||
       substrExpr |||
+      numberOfExpr |||
       sourceTextExpr |||
       intrExpr |||
       calcExpr |||
@@ -188,13 +189,22 @@ trait Parsers extends IndentParsers {
 
   // `length of` expressions
   lazy val lengthExpr: P[LengthExpression] =
-    "the length of" ~> expr ^^ { LengthExpression(_) }
+    "the length of" ~> expr ^^ { LengthExpression(_) } |||
+      "the number of code" ~ ("units" | "unit elements") ~ "in" ~> expr ^^ {
+        LengthExpression(_)
+      }
 
   // `substring of` expressions
   lazy val substrExpr: P[SubstringExpression] =
     ("the substring of" ~> expr) ~
       ("from" ~> expr) ~
       ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+
+  // `the number of elements in` expressions
+  lazy val numberOfExpr: P[NumberOfExpression] =
+    ("the number of elements in" ~ opt("the List") ~> expr) ^^ {
+      NumberOfExpression(_)
+    }
 
   // `source text` expressions
   lazy val sourceTextExpr: P[SourceTextExpression] =

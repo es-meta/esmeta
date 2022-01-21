@@ -102,7 +102,7 @@ case class RecordExpression(
   fields: List[(Field, Expression)],
 ) extends Expression
 
-// `length of` expressions
+// `length of <string>` expressions
 case class LengthExpression(expr: Expression) extends Expression
 
 // `substring of` expressions
@@ -111,6 +111,9 @@ case class SubstringExpression(
   from: Expression,
   to: Expression,
 ) extends Expression
+
+// `the number of elements in <list>` expressions
+case class NumberOfExpression(expr: Expression) extends Expression
 
 // intrinsic expressions
 case class IntrinsicExpression(intr: Intrinsic) extends Expression

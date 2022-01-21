@@ -151,6 +151,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       RecordExpression(ty, List(field -> refExpr))
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val numberOfExpr = NumberOfExpression(refExpr)
     lazy val sourceTextExpr = SourceTextExpression(nt)
     lazy val intrExpr = IntrinsicExpression(intr)
     lazy val invokeAOExpr =
@@ -210,6 +211,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       recordExpr -> "Object { [[Value]]: _x_ }",
       lengthExpr -> "the length of _x_",
       substrExpr -> "the substring of _x_ from _x_ to _x_",
+      numberOfExpr -> "the number of elements in _x_",
       sourceTextExpr -> "the source text matched by |Identifier|",
       intrExpr -> "%Array%",
       invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",

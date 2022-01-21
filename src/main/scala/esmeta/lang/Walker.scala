@@ -79,6 +79,8 @@ trait Walker extends BasicWalker {
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
       SubstringExpression(walk(expr), walk(from), walk(to))
+    case NumberOfExpression(expr) =>
+      NumberOfExpression(walk(expr))
     case SourceTextExpression(expr) =>
       SourceTextExpression(walk(expr))
     case IntrinsicExpression(intr) =>
