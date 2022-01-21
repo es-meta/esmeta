@@ -487,7 +487,8 @@ trait Parsers extends IndentParsers {
     "the" ~ opt("currently") ~ "running execution context" ^^^ {
       RunningExecutionContext
     } |||
-    "the current Realm Record" ^^^ { CurrentRealmRecord }
+    "the current Realm Record" ^^^ { CurrentRealmRecord } |||
+    "the active function object" ^^^ { ActiveFunctionObject }
 
   // variables
   lazy val variable: P[Variable] =

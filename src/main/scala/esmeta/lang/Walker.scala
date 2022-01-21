@@ -172,9 +172,8 @@ trait Walker extends BasicWalker {
 
   def walk(ref: Reference): Reference = ref match {
     case x: Variable                => walk(x)
-    case RunningExecutionContext    => RunningExecutionContext
-    case CurrentRealmRecord         => CurrentRealmRecord
     case propRef: PropertyReference => walk(propRef)
+    case _                          => ref
   }
 
   def walk(propRef: PropertyReference): PropertyReference = propRef match {

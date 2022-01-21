@@ -358,6 +358,9 @@ case object RunningExecutionContext extends Reference
 // the current realm record
 case object CurrentRealmRecord extends Reference
 
+// the active function object
+case object ActiveFunctionObject extends Reference
+
 // references to property
 case class PropertyReference(base: Reference, prop: Property) extends Reference
 

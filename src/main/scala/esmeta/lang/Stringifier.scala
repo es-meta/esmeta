@@ -379,6 +379,8 @@ case class Stringifier(detail: Boolean) {
         app >> s"_${name}_"
       case CurrentRealmRecord =>
         app >> "the current Realm Record"
+      case ActiveFunctionObject =>
+        app >> "the active function object"
       case RunningExecutionContext =>
         app >> "the running execution context"
       case PropertyReference(base, prop) =>
