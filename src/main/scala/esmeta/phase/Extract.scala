@@ -6,7 +6,6 @@ import esmeta.spec.Utils.*
 import esmeta.util.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
-import java.util.IntSummaryStatistics
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
