@@ -499,7 +499,10 @@ trait Parsers extends IndentParsers {
         "is the same sequence of code units as" ^^^ SameCodeUnits |||
         "contains" ^^^ Contains |||
         "does not contain" ^^^ NContains
-    expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) }
+    expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |||
+      expr ~ (isNeg <~ "an element of") ~ expr ^^ { case l ~ n ~ r =>
+        BinaryCondition(r, if (n) NContains else Contains, l)
+      }
 
   // ---------------------------------------------------------------------------
   // algorithm references
