@@ -361,6 +361,7 @@ case class Stringifier(detail: Boolean) {
       case GreaterThanEqual => "≥"
       case SameCodeUnits    => "is the same sequence of code units as"
       case Contains         => "contains"
+      case NContains        => "does not contain"
     })
 
   // operators for compound conditions

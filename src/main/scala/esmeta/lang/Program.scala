@@ -331,7 +331,7 @@ case class BinaryCondition(
 object BinaryCondition:
   enum Op extends LangElem:
     case Is, NIs, Eq, NEq, LessThan, LessThanEqual, GreaterThan,
-    GreaterThanEqual, SameCodeUnits, Contains
+    GreaterThanEqual, SameCodeUnits, Contains, NContains
 
 // compound conditions
 case class CompoundCondition(

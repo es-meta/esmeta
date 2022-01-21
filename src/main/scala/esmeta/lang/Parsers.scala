@@ -465,7 +465,8 @@ trait Parsers extends IndentParsers {
         ">" ^^^ GreaterThan |||
         "≥" ^^^ GreaterThanEqual |||
         "is the same sequence of code units as" ^^^ SameCodeUnits |||
-        "contains" ^^^ Contains
+        "contains" ^^^ Contains |||
+        "does not contain" ^^^ NContains
     expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) }
 
   // ---------------------------------------------------------------------------
