@@ -481,6 +481,8 @@ trait Parsers extends IndentParsers {
       rest.foldLeft[PropertyReference](PropertyReference(base, p))(
         PropertyReference(_, _),
       )
+    } ||| ("the" ~> camel) ~ ("of" ~> variable) ^^ { case c ~ v =>
+      PropertyReference(v, ComponentProperty(c))
     }
 
   // base references
@@ -500,7 +502,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given prop: P[Property] =
     ("." ~> field) ^^ { FieldProperty(_) } |||
-      (("'s" | ".") ~> word) ^^ { ComponentProperty(_) } |||
+      (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
       ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
 
   // ---------------------------------------------------------------------------
