@@ -185,7 +185,7 @@ case class Stringifier(detail: Boolean) {
           app >> " parameters (" >> params >> ") "
         }
         app >> "that captures " >> captured
-        app >> " and performs the following stpes when called:" >> body
+        app >> " and performs the following steps when called:" >> body
     }
 
   // calculation expressions
