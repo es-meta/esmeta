@@ -158,8 +158,6 @@ trait Walker extends BasicWalker {
       HasFieldCondition(walk(expr), neg, walk(field))
     case AbruptCompletionCondition(x, neg) =>
       AbruptCompletionCondition(walk(x), neg)
-    case ContainsCondition(expr, elem) =>
-      ContainsCondition(walk(expr), walk(elem))
     case PresentCondition(expr, neg) =>
       PresentCondition(walk(expr), neg)
     case BinaryCondition(left, op, right) =>

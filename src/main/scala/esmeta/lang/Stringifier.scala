@@ -339,8 +339,6 @@ case class Stringifier(detail: Boolean) {
         app >> " " >> field >> " internal slot"
       case AbruptCompletionCondition(x, neg) =>
         app >> x >> isStr(neg) >> "an abrupt completion"
-      case ContainsCondition(expr, elem) =>
-        app >> expr >> " contains " >> elem
       case PresentCondition(expr, neg) =>
         app >> expr >> isStr(neg) >> "present"
       case BinaryCondition(left, op, right) =>
@@ -362,6 +360,7 @@ case class Stringifier(detail: Boolean) {
       case GreaterThan      => ">"
       case GreaterThanEqual => "≥"
       case SameCodeUnits    => "is the same sequence of code units as"
+      case Contains         => "contains"
     })
 
   // operators for compound conditions

@@ -316,12 +316,6 @@ case class AbruptCompletionCondition(
   negation: Boolean,
 ) extends Condition
 
-// contains condition
-case class ContainsCondition(
-  expr: Expression,
-  elem: Expression,
-) extends Condition
-
 // present condition
 case class PresentCondition(
   expr: Expression,
@@ -337,7 +331,7 @@ case class BinaryCondition(
 object BinaryCondition:
   enum Op extends LangElem:
     case Is, NIs, Eq, NEq, LessThan, LessThanEqual, GreaterThan,
-    GreaterThanEqual, SameCodeUnits
+    GreaterThanEqual, SameCodeUnits, Contains
 
 // compound conditions
 case class CompoundCondition(

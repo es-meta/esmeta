@@ -421,7 +421,6 @@ trait Parsers extends IndentParsers {
       instanceOfCond |||
       hasFieldCond |||
       abruptCond |||
-      containsCond |||
       presentCond |||
       binCond
 
@@ -449,10 +448,6 @@ trait Parsers extends IndentParsers {
       AbruptCompletionCondition(x, n)
     }
 
-  // contains condition
-  lazy val containsCond: P[ContainsCondition] =
-    expr ~ ("contains" ~> expr) ^^ { case ls ~ e => ContainsCondition(ls, e) }
-
   // present condition
   lazy val presentCond: P[PresentCondition] =
     expr ~ isNeg <~ "present" ^^ { case e ~ n => PresentCondition(e, n) }
@@ -469,7 +464,8 @@ trait Parsers extends IndentParsers {
         "≤" ^^^ LessThanEqual |||
         ">" ^^^ GreaterThan |||
         "≥" ^^^ GreaterThanEqual |||
-        "is the same sequence of code units as" ^^^ SameCodeUnits
+        "is the same sequence of code units as" ^^^ SameCodeUnits |||
+        "contains" ^^^ Contains
     expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) }
 
   // ---------------------------------------------------------------------------
