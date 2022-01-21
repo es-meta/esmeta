@@ -282,6 +282,7 @@ case class Stringifier(detail: Boolean) {
       case FalseLiteral         => app >> "*false*"
       case UndefinedLiteral     => app >> "*undefined*"
       case NullLiteral          => app >> "*null*"
+      case AbsentLiteral        => app >> "absent"
       case UndefinedTypeLiteral => app >> "Undefined"
       case NullTypeLiteral      => app >> "Null"
       case BooleanTypeLiteral   => app >> "Boolean"
@@ -341,8 +342,28 @@ case class Stringifier(detail: Boolean) {
         app >> " " >> field >> " internal slot"
       case AbruptCompletionCondition(x, neg) =>
         app >> x >> isStr(neg) >> "an abrupt completion"
-      case PresentCondition(expr, neg) =>
-        app >> expr >> isStr(neg) >> "present"
+      case IsAreCondition(ls, neg, rs) =>
+        val single = ls.length == 1
+        if (single) app >> ls.head
+        else {
+          given Rule[List[Expression]] = listNamedSepRule("both ", "and")
+          app >> ls
+        }
+        rs match {
+          case AbsentLiteral :: Nil => app >> isStr(!neg, single) >> "present"
+          case r :: Nil             => app >> isStr(neg, single) >> r
+          case _ =>
+            app >> isStr(false, single)
+            if (neg) {
+              given Rule[List[Expression]] =
+                listNamedSepRule(namedSep = "nor")
+              app >> "neither " >> rs
+            } else {
+              given Rule[List[Expression]] =
+                listNamedSepRule(namedSep = "or")
+              app >> "either " >> rs
+            }
+        }
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
       case CompoundCondition(left, op, right) =>
@@ -353,8 +374,6 @@ case class Stringifier(detail: Boolean) {
   given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>
     import BinaryCondition.Op.*
     app >> (op match {
-      case Is               => "is"
-      case NIs              => "is not"
       case Eq               => "="
       case NEq              => "≠"
       case LessThan         => "<"
@@ -436,8 +455,9 @@ case class Stringifier(detail: Boolean) {
     app >> right
 
   // verbs
-  private def isStr(neg: Boolean): String =
-    if (neg) " is not " else " is "
+  private def isStr(neg: Boolean, single: Boolean = true): String =
+    val res = if (single) " is " else " are "
+    if (neg) res + "not " else res
   private def hasStr(neg: Boolean): String =
     if (neg) " does not have " else " has "
 }

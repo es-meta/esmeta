@@ -299,6 +299,7 @@ trait Parsers extends IndentParsers {
       "*false*" ^^^ FalseLiteral |||
       "*undefined*" ^^^ UndefinedLiteral |||
       "*null*" ^^^ NullLiteral |||
+      "absent" ^^^ AbsentLiteral |||
       "Undefined" ^^^ UndefinedTypeLiteral |||
       "Null" ^^^ NullTypeLiteral |||
       "Boolean" ^^^ BooleanTypeLiteral |||
@@ -431,7 +432,7 @@ trait Parsers extends IndentParsers {
       instanceOfCond |||
       hasFieldCond |||
       abruptCond |||
-      presentCond |||
+      isAreCond |||
       binCond
 
   // expression conditions
@@ -458,17 +459,34 @@ trait Parsers extends IndentParsers {
       AbruptCompletionCondition(x, n)
     }
 
-  // present condition
-  lazy val presentCond: P[PresentCondition] =
-    expr ~ isNeg <~ "present" ^^ { case e ~ n => PresentCondition(e, n) }
+  // `A is/are B` condition
+  lazy val isAreCond: P[IsAreCondition] =
+    lazy val left: P[List[Expression]] =
+      (opt("both") ~> expr) ~ ("and" ~> expr) <~ guard("are") ^^ {
+        case e0 ~ e1 => List(e0, e1)
+      } ||| expr <~ guard("is") ^^ { List(_) }
+
+    lazy val are = "are" ~ opt("both")
+    lazy val neg: P[Boolean] =
+      isNeg | are ~ "not" ^^^ { true } | are ^^^ { false }
+
+    lazy val right: P[(Boolean, List[Expression])] =
+      (neg ~ expr ^^ { case n ~ e => (n, List(e)) } |||
+        (neg <~ "either") ~ repsep(expr, sep("or")) ^^ { case n ~ es =>
+          (n, es)
+        } |||
+        (neg <~ "neither") ~ repsep(expr, sep("nor")) ^^ { case n ~ es =>
+          (!n, es)
+        } |||
+        neg <~ "present" ^^ { case n => (!n, List(AbsentLiteral)) })
+
+    left ~ right ^^ { case l ~ (n, r) => IsAreCondition(l, n, r) }
 
   // binary conditions
   lazy val binCond: P[BinaryCondition] =
     import BinaryCondition.Op.*
     lazy val op: Parser[BinaryCondition.Op] =
-      "is" ^^^ Is |||
-        "is not" ^^^ NIs |||
-        "=" ^^^ Eq |||
+      "=" ^^^ Eq |||
         "≠" ^^^ NEq |||
         "<" ^^^ LessThan |||
         "≤" ^^^ LessThanEqual |||

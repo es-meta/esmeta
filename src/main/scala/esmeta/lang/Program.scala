@@ -266,6 +266,7 @@ case object FalseLiteral extends BooleanLiteral
 // other special literals
 case object UndefinedLiteral extends Literal
 case object NullLiteral extends Literal
+case object AbsentLiteral extends Literal
 
 // ECMAScript type literals
 sealed trait ESTypeLiteral extends Literal
@@ -319,10 +320,11 @@ case class AbruptCompletionCondition(
   negation: Boolean,
 ) extends Condition
 
-// present condition
-case class PresentCondition(
-  expr: Expression,
+// `A is/are B` conditions
+case class IsAreCondition(
+  left: List[Expression],
   negation: Boolean,
+  right: List[Expression],
 ) extends Condition
 
 // binary conditions
@@ -333,8 +335,8 @@ case class BinaryCondition(
 ) extends Condition
 object BinaryCondition:
   enum Op extends LangElem:
-    case Is, NIs, Eq, NEq, LessThan, LessThanEqual, GreaterThan,
-    GreaterThanEqual, SameCodeUnits, Contains, NContains
+    case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
+    SameCodeUnits, Contains, NContains
 
 // compound conditions
 case class CompoundCondition(

@@ -45,7 +45,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val letStepMulti =
       LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
     lazy val setStep = SetStep(x, addExpr)
-    lazy val ifStep = IfStep(binaryCondIs, letStep, None)
+    lazy val ifStep = IfStep(binaryCondLt, letStep, None)
     lazy val ifBlockStep =
       IfStep(binaryCondLt, blockStep, None)
     lazy val ifElseStep =
@@ -81,7 +81,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       letStep -> "let _x_ be _x_.",
       // TODO add letStepMulti
       setStep -> "set _x_ to _x_ + _x_.",
-      ifStep -> "if _x_ is the length of _x_, let _x_ be _x_.",
+      ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
       |  1. If _x_ < _x_ + _x_, then
       |    1. Let _x_ be _x_.""".stripMargin,
@@ -325,6 +325,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       FalseLiteral -> "*false*",
       UndefinedLiteral -> "*undefined*",
       NullLiteral -> "*null*",
+      AbsentLiteral -> "absent",
       UndefinedTypeLiteral -> "Undefined",
       NullTypeLiteral -> "Null",
       BooleanTypeLiteral -> "Boolean",
@@ -344,9 +345,15 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val hasFieldCond = HasFieldCondition(refExpr, false, field)
     lazy val noHasFieldCond = HasFieldCondition(refExpr, true, field)
     lazy val abruptCond = AbruptCompletionCondition(x, false)
-    lazy val presentCond = PresentCondition(refExpr, false)
-    lazy val binaryCondIs =
-      BinaryCondition(refExpr, BinaryCondition.Op.Is, lengthExpr)
+    lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
+    lazy val areCond =
+      IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral))
+    lazy val isEitherCond =
+      IsAreCondition(List(refExpr), false, List(TrueLiteral, FalseLiteral))
+    lazy val isNeitherCond =
+      IsAreCondition(List(refExpr), true, List(TrueLiteral, FalseLiteral))
+    lazy val isPresentCond =
+      IsAreCondition(List(refExpr), true, List(AbsentLiteral))
     lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     lazy val compCond =
@@ -358,8 +365,11 @@ class ParseAndStringifyTinyTest extends LangTest {
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
       abruptCond -> "_x_ is an abrupt completion",
-      presentCond -> "_x_ is present",
-      binaryCondIs -> "_x_ is the length of _x_",
+      isCond -> "_x_ is the length of _x_",
+      areCond -> "both _x_ and _x_ are not *true*",
+      isEitherCond -> "_x_ is either *true* or *false*",
+      isNeitherCond -> "_x_ is neither *true* nor *false*",
+      isPresentCond -> "_x_ is present",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",
     )
