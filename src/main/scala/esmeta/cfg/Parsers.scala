@@ -4,8 +4,17 @@ import esmeta.util.BasicParsers
 
 /** CFG parsers */
 trait Parsers extends BasicParsers {
-  // programs
-  given program: Parser[Program] = ???
+  // control flow graphs (CFGs)
+  given cfg: Parser[CFG] = ???
+
+  // functions
+  given func: Parser[Func] = ???
+
+  // function parameters
+  given param: Parser[Param] = ???
+
+  // nodes
+  given node: Parser[Node] = ???
 
   // instructions
   given inst: Parser[Inst] = ???
@@ -13,12 +22,21 @@ trait Parsers extends BasicParsers {
   // expressions
   given expr: Parser[Expr] = ???
 
-  // references
-  given ref: Parser[Ref] = ???
-
   // unary operators
   given uop: Parser[UOp] = ???
 
   // binary operators
   given bop: Parser[BOp] = ???
+
+  // conversion operators
+  given cop: Parser[COp] = ???
+
+  // references
+  given ref: Parser[Ref] = ???
+
+  // identifiers
+  val id: Parser[Id] = ???
+
+  // types
+  given ty: Parser[Type] = ???
 }
