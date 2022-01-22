@@ -68,7 +68,7 @@ case class Call(
   id: Int,
   loc: Loc,
   lhs: Id,
-  func: Expr,
+  fexpr: Expr,
   args: List[Expr],
 ) extends Node
 
@@ -90,12 +90,18 @@ case class IPrint(loc: Loc, expr: Expr) extends Inst
 // -----------------------------------------------------------------------------
 sealed trait Expr extends CFGElem
 object Expr extends Parser.From[Expr]
-
-// completion expressions
-sealed trait CompExpr extends Expr
-case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends CompExpr
-case class EIsCompletion(expr: Expr) extends CompExpr
-case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends CompExpr
+case class EComp(tyExpr: Expr, tgtExpr: Expr, valExpr: Expr) extends Expr
+case class EIsCompletion(expr: Expr) extends Expr
+case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
+case class EPop(list: Expr, front: Boolean) extends Expr
+case class EYet(msg: String) extends Expr
+case class EContains(list: Expr, elem: Expr) extends Expr
+case class ERef(ref: Ref) extends Expr
+case class EUnary(uop: UOp, expr: Expr) extends Expr
+case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
+case class EConvert(cop: COp, expr: Expr) extends Expr
+case class ETypeOf(base: Expr) extends Expr
+case class ETypeCheck(base: Expr, ty: Type) extends Expr
 
 // allocation expressions
 sealed trait AllocExpr extends Expr { val asite: Int }
@@ -106,23 +112,8 @@ case class ESymbol(desc: Expr, asite: Int) extends AllocExpr
 case class ECopy(obj: Expr, asite: Int) extends AllocExpr
 case class EKeys(map: Expr, intSorted: Boolean, asite: Int) extends AllocExpr
 
-// update expressions
-sealed trait UpdateExpr extends Expr
-case class EPop(list: Expr, front: Boolean) extends UpdateExpr
-
-// simple expressions
-sealed trait SimpleExpr extends Expr
-case class EYet(msg: String) extends SimpleExpr
-case class EContains(list: Expr, elem: Expr) extends SimpleExpr
-case class ERef(ref: Ref) extends SimpleExpr
-case class EUnary(uop: UOp, expr: Expr) extends SimpleExpr
-case class EBinary(bop: BOp, left: Expr, right: Expr) extends SimpleExpr
-case class EConvert(cop: COp, expr: Expr) extends SimpleExpr
-case class ETypeOf(base: Expr) extends SimpleExpr
-case class ETypeCheck(base: Expr, ty: Type) extends SimpleExpr
-
 // literals
-sealed trait Literal extends SimpleExpr
+sealed trait Literal extends Expr
 case class EMathVal(n: BigDecimal) extends Literal
 case class ENumber(n: Double) extends Literal with DoubleEquals(n)
 case class EBigInt(n: BigInt) extends Literal
@@ -132,7 +123,7 @@ case object EUndef extends Literal
 case object ENull extends Literal
 case object EAbsent extends Literal
 case class EConst(name: String) extends Literal
-case class EClo(func: Func, captured: List[Local]) extends Literal
+case class EClo(fid: Int, captured: List[Local]) extends Literal
 
 // -----------------------------------------------------------------------------
 // Operators
@@ -160,7 +151,7 @@ object COp extends Parser.From[COp]
 sealed trait Ref extends CFGElem
 object Ref extends Parser.From[Ref]
 
-case class PropRef(ref: Ref, expr: Expr) extends Ref
+case class Prop(ref: Ref, expr: Expr) extends Ref
 
 sealed trait Id extends Ref
 case class Global(name: String) extends Id

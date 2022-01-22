@@ -72,9 +72,9 @@ case class Stringifier(detail: Boolean) {
       case Branch(_, _, kind, cond, thenNode, elseNode) =>
         app >> " -> " >> kind >> "(" >> cond >> ")" >> thenNode.id
         app >> " else " >> elseNode.id
-      case Call(_, _, lhs, func, args) =>
+      case Call(_, _, lhs, fexpr, args) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
-        app >> " " >> lhs >> " = " >> func >> args
+        app >> " " >> lhs >> " = " >> fexpr >> args
     }
 
   // branch kinds
@@ -117,50 +117,14 @@ case class Stringifier(detail: Boolean) {
   // expressions
   given exprRule: Rule[Expr] = (app, expr) =>
     expr match {
-      case expr: CompExpr   => compExprRule(app, expr)
-      case expr: AllocExpr  => allocExprRule(app, expr)
-      case expr: UpdateExpr => updateExprRule(app, expr)
-      case expr: SimpleExpr => simpleExprRule(app, expr)
-    }
-
-  // completion expressions
-  given compExprRule: Rule[CompExpr] = (app, expr) =>
-    expr match {
-      case EComp(tyExpr, valExpr, tgtExpr) =>
-        app >> "(comp[" >> tyExpr >> " / " >> tgtExpr >> "] " >> valExpr >> ")"
+      case EComp(tyExpr, tgtExpr, valExpr) =>
+        app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
       case EIsCompletion(expr) =>
         app >> "(comp? " >> expr >> ")"
       case EReturnIfAbrupt(expr, check) =>
         app >> "[" >> (if (check) "?" else "!") >> " " >> expr >> "]"
-    }
-
-  // allocation expressions
-  given allocExprRule: Rule[AllocExpr] = (app, expr) =>
-    expr match {
-      case EMap(tname, props, asite) =>
-        given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
-        app >> "(new " >> tname >> props >> ")"
-      case EList(exprs, asite) =>
-        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
-        app >> "(new [" >> exprs >> "])"
-      case ESymbol(desc, asite) =>
-        app >> "(new '(" >> desc >> "))"
-      case ECopy(obj, asite) =>
-        app >> "(copy " >> obj >> ")"
-      case EKeys(map, intSorted, asite) =>
-        app >> "(keys" >> (if (intSorted) "[int] " else " ") >> map >> ")"
-    }
-
-  // update expressions
-  given updateExprRule: Rule[UpdateExpr] = (app, expr) =>
-    expr match {
       case EPop(list, front) =>
-        app >> "(pop-" >> (if (front) "front" else "back") >> list >> ")"
-    }
-
-  // simple expressions
-  given simpleExprRule: Rule[SimpleExpr] = (app, expr) =>
-    expr match {
+        app >> "(pop " >> (if (front) "<" else ">") >> " " >> list >> ")"
       case EYet(msg) =>
         app >> "(yet \"" >> normStr(msg) >> "\")"
       case EContains(list, elem) =>
@@ -175,26 +139,50 @@ case class Stringifier(detail: Boolean) {
         app >> "(" >> cop >> " " >> expr >> ")"
       case ETypeOf(base) =>
         app >> "(typeof " >> base >> ")"
-      case ETypeCheck(base, ty) =>
-        app >> ""
-      case expr: Literal => literalRule(app, expr)
+      case ETypeCheck(expr, ty) =>
+        app >> "(? " >> expr >> ": " >> ty >> ")"
+      case expr: AllocExpr =>
+        allocExprRule(app, expr)
+      case expr: Literal =>
+        literalRule(app, expr)
+    }
+
+  // allocation expressions
+  given allocExprRule: Rule[AllocExpr] = (app, expr) =>
+    expr match {
+      case EMap(tname, props, asite) =>
+        given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
+        app >> "(new " >> tname >> props >> ")[#" >> asite >> "]"
+      case EList(exprs, asite) =>
+        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
+        app >> "(new " >> exprs >> ")[#" >> asite >> "]"
+      case ESymbol(desc, asite) =>
+        app >> "(new '" >> desc >> ")[#" >> asite >> "]"
+      case ECopy(obj, asite) =>
+        app >> "(copy " >> obj >> ")[#" >> asite >> "]"
+      case EKeys(map, intSorted, asite) =>
+        app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
+        app >> map >> ")[#" >> asite >> "]"
     }
 
   // literals
   given literalRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case EMathVal(n)  => app >> n
-      case ENumber(n)   => app >> n >> "f"
-      case EBigInt(n)   => app >> n >> "n"
+      case EMathVal(n)                      => app >> n
+      case ENumber(Double.PositiveInfinity) => app >> "+INF"
+      case ENumber(Double.NegativeInfinity) => app >> "-INF"
+      case ENumber(n) if n.isNaN            => app >> "NaN"
+      case ENumber(n)                       => app >> n >> "f"
+      case EBigInt(n)                       => app >> n >> "n"
       case EStr(str)    => app >> "\"" >> normStr(str) >> "\""
       case EBool(b)     => app >> b
       case EUndef       => app >> "undefined"
       case ENull        => app >> "null"
       case EAbsent      => app >> "absent"
       case EConst(name) => app >> "~" >> name >> "~"
-      case EClo(func, captured) =>
+      case EClo(fid, captured) =>
         given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
-        app >> func.simpleString
+        app >> "clo[" >> fid >> "]"
         if (captured.isEmpty) app else app >> captured
     }
 
@@ -246,17 +234,18 @@ case class Stringifier(detail: Boolean) {
     }
 
   // references
+  lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refRule: Rule[Ref] = (app, ref) =>
     ref match {
-      case PropRef(ref, EStr(str)) => app >> ref >> str
-      case PropRef(ref, expr)      => app >> ref >> "[" >> expr >> "]"
-      case id: Id                  => idRule(app, id)
+      case Prop(ref, EStr(inlineProp(str))) => app >> ref >> "." >> str
+      case Prop(ref, expr)                  => app >> ref >> "[" >> expr >> "]"
+      case id: Id                           => idRule(app, id)
     }
 
   // identifiers
   given idRule: Rule[Id] = (app, id) =>
     id match {
-      case Global(name) => app >> "$" >> name
+      case Global(name) => app >> "@" >> name
       case Local(name)  => app >> name
       case Temp(id)     => app >> "%" >> id
     }

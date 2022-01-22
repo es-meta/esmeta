@@ -49,11 +49,13 @@ trait BasicParsers extends JavaTokenParsers {
 
   // integers
   lazy val integer = "(0|-?[1-9]\\d*)".r
+  lazy val int = integer ^^ { _.toInt }
 
   // numbers
   lazy val number = "[+-]?(0|[1-9][0-9]*)(\\.[0-9]+)?".r
   lazy val double = number ^^ { _.toDouble }
   lazy val bigint = integer ^^ { BigInt(_) }
+  lazy val decimal = number ^^ { BigDecimal(_) }
 
   trait From[T](using parser: Parser[T]) {
     def fromFile(str: String): T =
