@@ -36,6 +36,9 @@ object Utils {
           if (parent.id == "sec-notational-conventions") true
           else parent.isNotation
       }
+
+    /** get algos of the given elem */
+    def getAlgos(spec: Spec) = spec.algorithms.filter(_.id == elem.id)
   }
 
   // TODO optimize this by removing redundant computation

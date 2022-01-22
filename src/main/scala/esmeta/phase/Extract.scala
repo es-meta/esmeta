@@ -51,24 +51,31 @@ case object Extract extends Phase[Unit, Spec] {
         for {
           algo <- spec.algorithms
         } {
-          SpecStats.addAlgo(docu)(
-            algo,
-            "#CompleteAlgos",
-            if algo.complete then 1 else 0,
+          val targets = List(
+            ("Algo_Total", 1),
+            ("Step_Total", algo.steps.length),
+            ("Algo_Pass", if algo.complete then 1 else 0),
+            ("Step_Pass", algo.completeSteps.length),
           )
-          SpecStats.addAlgo(docu)(
-            algo,
-            "#Steps",
-            algo.steps.length,
-          )
+          SpecStats.addAlgo(docu)(algo, targets)
         }
-        // XXX test for specstat
-        // val id = "sec-stringindexof"
-        // val query = s"emu-clause[id=${id}]:not([example])"
-        // val elem = docu.select(query).toList.last
-        // println("Stat")
-        // println(SpecStats.getCounter(elem, "#CompleteAlgos"))
-        // println(SpecStats.getCounter(elem, "#Steps"))
+
+        // log Statistics
+        mkdir(s"$EXTRACT_LOG_DIR/stat")
+        val algoStr = SpecStats.getAllStr(spec, docu.body, "Algo")
+        val stepStr = SpecStats.getAllStr(spec, docu.body, "Step")
+
+        dumpFile(
+          name = "the summary of algorithms",
+          data = algoStr,
+          filename = s"$EXTRACT_LOG_DIR/stat/algo-summary",
+        )
+
+        dumpFile(
+          name = "the summary of algorithm steps",
+          data = stepStr,
+          filename = s"$EXTRACT_LOG_DIR/stat/step-summary",
+        )
       }
     }
     spec
