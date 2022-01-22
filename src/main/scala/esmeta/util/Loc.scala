@@ -1,4 +1,4 @@
 package esmeta.util
 
 /** source locations in algorithms */
-case class Loc(step: List[Int], line: String, start: Int, end: Int)
+case class Loc(line: Int, step: List[Int], start: Int, end: Int)

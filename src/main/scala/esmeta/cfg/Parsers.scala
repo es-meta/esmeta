@@ -1,23 +1,87 @@
 package esmeta.cfg
 
-import esmeta.util.BasicParsers
+import esmeta.util.{Loc, BasicParsers}
 
 /** CFG parsers */
 trait Parsers extends BasicParsers {
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] = x => ???
+  given cfg: Parser[CFG] = rep(func) ^^ { case fs => CFG(fs.toSet) }
 
   // functions
-  given func: Parser[Func] = x => ???
+  given func: Parser[Func] = (
+    getId("Func") ~ funcKind ~ ident ~ params ~
+      ("[" ~> int ~ ("->" ~> int) <~ "]") ~
+      nodes
+  ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ex) ~ ns =>
+    Func(i, k, n, ps, en, ex, ns.toSet)
+  }
+
+  // function kinds
+  given funcKind: Parser[Func.Kind] =
+    import Func.Kind.*
+    "[ABS-OP]" ^^^ AbsOp |
+      "[NUM]" ^^^ NumMeth |
+      "[SYNTAX]" ^^^ SynDirOp |
+      "[CONC]" ^^^ ConcMeth |
+      "[BUILTIN]" ^^^ BuiltinMeth |
+      "[CLO]" ^^^ Clo |
+      "[CONT]" ^^^ Cont
 
   // function parameters
-  given param: Parser[Param] = x => ???
+  lazy val params: Parser[List[Param]] = "(" ~> repsep(param, ",") <~ ")"
+  given param: Parser[Param] =
+    local ~ (":" ~> ty) ^^ { case x ~ t => Param(x, t) }
 
   // nodes
-  given node: Parser[Node] = x => ???
+  lazy val nodes: Parser[List[Node]] = "{" ~> rep(node) <~ "}"
+  given node: Parser[Node] =
+    getId("Entry") ~ ("->" ~> int) ^^ { case i ~ n =>
+      Entry(i, n)
+    } | getId("Exit") ^^ { case i =>
+      Exit(i)
+    } | getId("Block") ~ ("->" ~> int) ~ insts ^^ { case i ~ n ~ is =>
+      Block(i, is.toVector, n)
+    } | getId("Branch") ~ cond ~ ("->" ~> int) ~ ("else" ~> int) ^^ {
+      case i ~ (k ~ c ~ l) ~ t ~ e => Branch(i, k, c, l, t, e)
+    } | getId("Call") ~ id ~ ("=" ~> expr) ~ args ~ ("->" ~> int) ^^ {
+      case i ~ x ~ f ~ (as ~ l) ~ n => Call(i, x, f, as, l, n)
+    }
+
+  // conditions with locations
+  lazy val cond: Parser[Branch.Kind ~ Expr ~ Loc] =
+    branchKind ~ ("(" ~> expr <~ ")") ~ loc
+
+  // branch kinds
+  given branchKind: Parser[Branch.Kind] =
+    import Branch.Kind.*
+    "if" ^^^ If | "while" ^^^ While | "foreach" ^^^ Foreach
+
+  // arguments
+  lazy val args: Parser[List[Expr] ~ Loc] =
+    ("(" ~> repsep(expr, ",") <~ ")") ~ loc
 
   // instructions
-  given inst: Parser[Inst] = x => ???
+  lazy val insts: Parser[List[Inst]] = "{" ~> rep(inst) <~ "}"
+  given inst: Parser[Inst] =
+    "let" ~> local ~ ("=" ~> expr) ~ loc ^^ { case x ~ e ~ l =>
+      ILet(x, e, l)
+    } | "delete" ~> ref ~ loc ^^ { case r ~ l =>
+      IDelete(r, l)
+    } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ~ loc ^^ {
+      case x ~ f ~ y ~ l => if (f) IPush(x, y, f, l) else IPush(y, x, f, l)
+    } | "return" ~> expr ~ loc ^^ { case e ~ l =>
+      IReturn(e, l)
+    } | "assert" ~> expr ~ loc ^^ { case e ~ l =>
+      IAssert(e, l)
+    } | "print" ~> expr ~ loc ^^ { case e ~ l =>
+      IPrint(e, l)
+    } | ref ~ ("=" ~> expr) ~ loc ^^ { case r ~ e ~ l =>
+      IAssign(r, e, l)
+    }
+
+  lazy val loc: Parser[Loc] = (
+    "@" ~> int ~ ("(" ~> repsep(int, ".") <~ ")") ~ (":" ~> int) ~ ("-" ~> int)
+  ) ^^ { case l ~ ss ~ f ~ t => Loc(l, ss, f, t) }
 
   // expressions
   given expr: Parser[Expr] =
@@ -86,47 +150,6 @@ trait Parsers extends BasicParsers {
         case fid ~ as => EClo(fid, as.getOrElse(Nil))
       }
 
-  // "???" ~> string ^^ { ENotSupported(_) } |
-  // "(" ~> (uop ~ expr) <~ ")" ^^ { case u ~ e => EUOp(u, e) } |
-  // "(" ~> (bop ~ expr ~ expr) <~ ")" ^^ { case b ~ l ~ r => EBOp(b, l, r) } |
-  // "(" ~> ("typeof" ~> expr) <~ ")" ^^ { case e => ETypeOf(e) } |
-  // "(" ~> ("is-completion" ~> expr) <~ ")" ^^ { case e =>
-  //   EIsCompletion(e)
-  // } |
-  // ("(" ~ "comp" ~ "[" ~> expr <~ "]") ~ expr ~ ("=>" ~> expr <~ ")") ^^ {
-  //   case y ~ v ~ t => EComp(y, v, t)
-  // } |
-  // ("(" ~> "new" ~> ty) ~ ("(" ~> repsep(prop, ",") <~ ")" <~ ")") ^^ {
-  //   case t ~ props => EMap(t, props)
-  // } |
-  // ("(" ~> "new" ~> ty <~ ")") ^^ { case t => EMap(t, Nil) } |
-  // ("(" ~> "new" ~> "[" ~> repsep(expr, ",") <~ "]" <~ ")") ^^ { EList(_) } |
-  // ("(" ~> "new" ~> "'" ~> expr <~ ")") ^^ { ESymbol(_) } |
-  // ("(" ~> "pop" ~> expr ~ expr <~ ")") ^^ { case l ~ x => EPop(l, x) } |
-  // ("(" ~> "is-instance-of" ~> expr) ~ (ident <~ ")") ^^ { case e ~ x =>
-  //   EIsInstanceOf(e, x)
-  // } |
-  // ("(" ~> "get-elems" ~> expr) ~ (ident <~ ")") ^^ { case e ~ x =>
-  //   EGetElems(e, x)
-  // } |
-  // "(" ~> "get-syntax" ~> expr <~ ")" ^^ { case e => EGetSyntax(e) } |
-  // "(" ~> "parse-syntax" ~> expr ~ expr ~ rep(bool) <~ ")" ^^ {
-  //   case e ~ r ~ ps => EParseSyntax(e, r, ps)
-  // } |
-  // "(" ~> "convert" ~> expr ~ cop ~ opt(expr) <~ ")" ^^ { case e ~ r ~ l =>
-  //   EConvert(e, r, l)
-  // } |
-  // "(" ~> "contains" ~> expr ~ expr <~ ")" ^^ { case l ~ e =>
-  //   EContains(l, e)
-  // } |
-  // "[" ~> "?" ~> expr <~ "]" ^^ { case e => EReturnIfAbrupt(e, true) } |
-  // "[" ~> "!" ~> expr <~ "]" ^^ { case e => EReturnIfAbrupt(e, false) } |
-  // "(" ~> "copy-obj" ~> expr <~ ")" ^^ { case e => ECopy(e) } |
-  // "(" ~> "map-keys" ~> expr <~ ")" ^^ { case e => EKeys(e, false) } |
-  // "(" ~> "map-keys" ~> expr <~ "[int-sorted]" ~ ")" ^^ { case e =>
-  //   EKeys(e, true)
-  // }
-
   // unary operators
   given uop: Parser[UOp] =
     import UOp.*
@@ -179,4 +202,8 @@ trait Parsers extends BasicParsers {
 
   // TODO types
   given ty: Parser[Type] = ident ^^ { Type(_) }
+
+  // helper for id getter
+  private def getId(name: String): Parser[Int] =
+    (name ~ "[" ~> int <~ "]")
 }

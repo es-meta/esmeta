@@ -1,6 +1,7 @@
 package esmeta.cfg
 
 import esmeta.util.BaseUtils.*
+import esmeta.util.Loc
 import esmeta.cfg.*
 
 class ParseAndStringifyTinyTest extends CFGTest {
@@ -11,32 +12,112 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
+    lazy val cfg = CFG(Set(func))
     // tests
-    checkParseAndStringify("CFG", CFG)( /* TODO */ )
+    checkParseAndStringify("CFG", CFG)(
+      cfg -> """Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
+      |  Entry[0] -> 1
+      |  Block[1] -> 2 {
+      |    let x = ~empty~ @ 2(1.2.4):3-4
+      |    delete x.p @ 2(1.2.4):3-4
+      |    return x @ 2(1.2.4):3-4
+      |  }
+      |  Exit[2]
+      |}""".stripMargin,
+    )
 
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
+    lazy val func =
+      Func(7, Func.Kind.AbsOp, "Name", params, 0, 42, Set(entry, block, exit))
+
     // tests
-    checkParseAndStringify("Func", Func)( /* TODO */ )
+    checkParseAndStringify("Func", Func)(
+      func -> """Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
+      |  Entry[0] -> 1
+      |  Block[1] -> 2 {
+      |    let x = ~empty~ @ 2(1.2.4):3-4
+      |    delete x.p @ 2(1.2.4):3-4
+      |    return x @ 2(1.2.4):3-4
+      |  }
+      |  Exit[2]
+      |}""".stripMargin,
+    )
+    checkParseAndStringify("Func.Kind", Func.Kind)(
+      Func.Kind.AbsOp -> "[ABS-OP]",
+      Func.Kind.NumMeth -> "[NUM]",
+      Func.Kind.SynDirOp -> "[SYNTAX]",
+      Func.Kind.ConcMeth -> "[CONC]",
+      Func.Kind.BuiltinMeth -> "[BUILTIN]",
+      Func.Kind.Clo -> "[CLO]",
+      Func.Kind.Cont -> "[CONT]",
+    )
 
     // -------------------------------------------------------------------------
     // parameters
     // -------------------------------------------------------------------------
+    lazy val params = List(xParam, yParam)
+    lazy val xParam = Param(x, ty)
+    lazy val yParam = Param(y, ty)
+
     // tests
-    checkParseAndStringify("Param", Param)( /* TODO */ )
+    checkParseAndStringify("Param", Param)(
+      xParam -> "x: T",
+      yParam -> "y: T",
+    )
 
     // -------------------------------------------------------------------------
     // nodes
     // -------------------------------------------------------------------------
+    lazy val entry = Entry(0, 1)
+    lazy val exit = Exit(2)
+    lazy val block = Block(1, Vector(let, del, ret), 2)
+    lazy val branch = Branch(17, Branch.Kind.If, xExpr, loc, 18, 19)
+    lazy val call = Call(7, temp, xExpr, List(xExpr, yExpr), loc, 8)
+
     // tests
-    checkParseAndStringify("Node", Node)( /* TODO */ )
+    checkParseAndStringify("Node", Node)(
+      entry -> "Entry[0] -> 1",
+      exit -> "Exit[2]",
+      block -> """Block[1] -> 2 {
+     |  let x = ~empty~ @ 2(1.2.4):3-4
+     |  delete x.p @ 2(1.2.4):3-4
+     |  return x @ 2(1.2.4):3-4
+     |}""".stripMargin,
+      branch -> "Branch[17] if(x) @ 2(1.2.4):3-4 -> 18 else 19",
+      call -> "Call[7] %42 = x(x, y) @ 2(1.2.4):3-4 -> 8",
+    )
+    checkParseAndStringify("Branch.Kind", Branch.Kind)(
+      Branch.Kind.If -> "if",
+      Branch.Kind.While -> "while",
+      Branch.Kind.Foreach -> "foreach",
+    )
 
     // -------------------------------------------------------------------------
     // instructions
     // -------------------------------------------------------------------------
+    lazy val loc = Loc(2, List(1, 2, 4), 3, 4)
+    lazy val let = ILet(x, empty, loc)
+    lazy val del = IDelete(prop, loc)
+    lazy val pushFront = IPush(xExpr, yExpr, true, loc)
+    lazy val pushBack = IPush(xExpr, yExpr, false, loc)
+    lazy val ret = IReturn(xExpr, loc)
+    lazy val assert = IAssert(xExpr, loc)
+    lazy val print = IPrint(xExpr, loc)
+    lazy val assign = IAssign(prop, xExpr, loc)
+
     // tests
-    checkParseAndStringify("Inst", Inst)( /* TODO */ )
+    checkParseAndStringify("Inst", Inst)(
+      let -> "let x = ~empty~ @ 2(1.2.4):3-4",
+      del -> "delete x.p @ 2(1.2.4):3-4",
+      pushFront -> "push x > y @ 2(1.2.4):3-4",
+      pushBack -> "push y < x @ 2(1.2.4):3-4",
+      ret -> "return x @ 2(1.2.4):3-4",
+      assert -> "assert x @ 2(1.2.4):3-4",
+      print -> "print x @ 2(1.2.4):3-4",
+      assign -> "x.p = x @ 2(1.2.4):3-4",
+    )
 
     // -------------------------------------------------------------------------
     // expressions
@@ -50,6 +131,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val yet = EYet("NOT YET")
     lazy val contains = EContains(xExpr, xExpr)
     lazy val xExpr = ERef(x)
+    lazy val yExpr = ERef(y)
     lazy val unary = EUnary(UOp.Neg, xExpr)
     lazy val binary = EBinary(BOp.Plus, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
@@ -149,6 +231,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     lazy val global = Global("GLOBAL")
     lazy val x = Local("x")
+    lazy val y = Local("y")
     lazy val temp = Temp(42)
     lazy val prop = Prop(x, EStr("p"))
     lazy val propStr = Prop(x, EStr("!!"))

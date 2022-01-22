@@ -14,62 +14,65 @@ object CFG extends Parser.From[CFG]
 case class Func(
   id: Int,
   kind: Func.Kind,
+  name: String,
   params: List[Param],
-  entry: Entry,
-  exit: Exit,
+  entry: Int,
+  exit: Int,
   nodes: Set[Node],
 ) extends CFGElem
   with UId[Func]
 object Func extends Parser.From[Func]:
   enum Kind extends CFGElem:
     case AbsOp, NumMeth, SynDirOp, ConcMeth, BuiltinMeth, Clo, Cont
+  object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------
 // Function Parameters
 // -----------------------------------------------------------------------------
-case class Param(name: String, ty: Type) extends CFGElem
+case class Param(lhs: Local, ty: Type) extends CFGElem
 object Param extends Parser.From[Param]
 
 // -----------------------------------------------------------------------------
 // Nodes
 // -----------------------------------------------------------------------------
-sealed trait Node extends CFGElem with UId[Node] { val loc: Loc }
+sealed trait Node extends CFGElem with UId[Node]
 object Node extends Parser.From[Node]
 
 // entry nodes
-case class Entry(id: Int, loc: Loc, var next: Node) extends Node
+case class Entry(id: Int, var next: Int) extends Node
 
 // exit nodes
-case class Exit(id: Int, loc: Loc) extends Node
+case class Exit(id: Int) extends Node
 
 // block nodes
 case class Block(
   id: Int,
-  loc: Loc,
   var insts: Vector[Inst],
-  var next: Node,
+  var next: Int,
 ) extends Node
 
 // branch nodes
 case class Branch(
   id: Int,
-  loc: Loc,
   kind: Branch.Kind,
   cond: Expr,
-  var thenNode: Node,
-  var elseNode: Node,
+  loc: Loc,
+  var thenNode: Int,
+  var elseNode: Int,
 ) extends Node
 object Branch:
   enum Kind extends CFGElem:
     case If, While, Foreach
+  object Kind extends Parser.From[Kind]
 
 // call nodes
 case class Call(
   id: Int,
-  loc: Loc,
   lhs: Id,
   fexpr: Expr,
   args: List[Expr],
+  loc: Loc,
+  var next: Int,
 ) extends Node
 
 // -----------------------------------------------------------------------------
@@ -77,13 +80,13 @@ case class Call(
 // -----------------------------------------------------------------------------
 sealed trait Inst extends CFGElem { val loc: Loc }
 object Inst extends Parser.From[Inst]
-case class ILet(loc: Loc, lhs: Local, expr: Expr) extends Inst
-case class IAssign(loc: Loc, ref: Ref, expr: Expr) extends Inst
-case class IDelete(loc: Loc, ref: Ref) extends Inst
-case class IPush(loc: Loc, from: Expr, to: Expr, front: Boolean) extends Inst
-case class IReturn(loc: Loc, expr: Expr) extends Inst
-case class IAssert(loc: Loc, expr: Expr) extends Inst
-case class IPrint(loc: Loc, expr: Expr) extends Inst
+case class ILet(lhs: Local, expr: Expr, loc: Loc) extends Inst
+case class IAssign(ref: Ref, expr: Expr, loc: Loc) extends Inst
+case class IDelete(ref: Ref, loc: Loc) extends Inst
+case class IPush(from: Expr, to: Expr, front: Boolean, loc: Loc) extends Inst
+case class IReturn(expr: Expr, loc: Loc) extends Inst
+case class IAssert(expr: Expr, loc: Loc) extends Inst
+case class IPrint(expr: Expr, loc: Loc) extends Inst
 
 // -----------------------------------------------------------------------------
 // Expressions

@@ -1,9 +1,11 @@
 {
   "BOp" : true,
+  "Branch.Kind" : true,
   "CFG" : true,
   "COp" : true,
   "Expr" : true,
   "Func" : true,
+  "Func.Kind" : true,
   "Inst" : true,
   "Node" : true,
   "Param" : true,
