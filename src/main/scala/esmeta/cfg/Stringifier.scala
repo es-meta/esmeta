@@ -73,11 +73,11 @@ case class Stringifier(detail: Boolean) {
         app >> " -> " >> next >> " "
         app.wrap(for (inst <- insts) app :> inst)
       case Branch(_, kind, cond, loc, thenNode, elseNode) =>
-        app >> " " >> kind >> "(" >> cond >> ") @ " >> loc
+        app >> " " >> kind >> "(" >> cond >> ")" >> loc
         app >> " -> " >> thenNode >> " else " >> elseNode
       case Call(_, lhs, fexpr, args, loc, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
-        app >> " " >> lhs >> " = " >> fexpr >> args >> " @ " >> loc >> " -> " >> next
+        app >> " " >> lhs >> " = " >> fexpr >> args >> loc >> " -> " >> next
     }
 
   // branch kinds
@@ -109,13 +109,15 @@ case class Stringifier(detail: Boolean) {
       case IPrint(expr, _) =>
         app >> "print " >> expr
     }
-    app >> " @ " >> inst.loc
+    app >> inst.loc
 
   // locations
-  given locRule: Rule[Loc] = (app, loc) =>
-    val Loc(line, step, start, end) = loc
-    given Rule[Iterable[Int]] = iterableRule("(", ".", ")")
-    app >> line >> step >> ":" >> start >> "-" >> end
+  given locRule: Rule[Option[Loc]] = (app, loc) =>
+    loc.fold(app)(loc => {
+      val Loc(line, step, start, end) = loc
+      given Rule[Iterable[Int]] = iterableRule("(", ".", ")")
+      app >> " @ " >> line >> step >> ":" >> start >> "-" >> end
+    })
 
   // expressions
   given exprRule: Rule[Expr] = (app, expr) =>

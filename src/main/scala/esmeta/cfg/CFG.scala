@@ -56,7 +56,7 @@ case class Branch(
   id: Int,
   kind: Branch.Kind,
   cond: Expr,
-  loc: Loc,
+  loc: Option[Loc],
   var thenNode: Int,
   var elseNode: Int,
 ) extends Node
@@ -71,22 +71,23 @@ case class Call(
   lhs: Id,
   fexpr: Expr,
   args: List[Expr],
-  loc: Loc,
+  loc: Option[Loc],
   var next: Int,
 ) extends Node
 
 // -----------------------------------------------------------------------------
 // Instructions
 // -----------------------------------------------------------------------------
-sealed trait Inst extends CFGElem { val loc: Loc }
+sealed trait Inst extends CFGElem { val loc: Option[Loc] }
 object Inst extends Parser.From[Inst]
-case class ILet(lhs: Local, expr: Expr, loc: Loc) extends Inst
-case class IAssign(ref: Ref, expr: Expr, loc: Loc) extends Inst
-case class IDelete(ref: Ref, loc: Loc) extends Inst
-case class IPush(from: Expr, to: Expr, front: Boolean, loc: Loc) extends Inst
-case class IReturn(expr: Expr, loc: Loc) extends Inst
-case class IAssert(expr: Expr, loc: Loc) extends Inst
-case class IPrint(expr: Expr, loc: Loc) extends Inst
+case class ILet(lhs: Local, expr: Expr, loc: Option[Loc]) extends Inst
+case class IAssign(ref: Ref, expr: Expr, loc: Option[Loc]) extends Inst
+case class IDelete(ref: Ref, loc: Option[Loc]) extends Inst
+case class IPush(from: Expr, to: Expr, front: Boolean, loc: Option[Loc])
+  extends Inst
+case class IReturn(expr: Expr, loc: Option[Loc]) extends Inst
+case class IAssert(expr: Expr, loc: Option[Loc]) extends Inst
+case class IPrint(expr: Expr, loc: Option[Loc]) extends Inst
 
 // -----------------------------------------------------------------------------
 // Expressions

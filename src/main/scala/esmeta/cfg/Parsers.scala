@@ -48,7 +48,7 @@ trait Parsers extends BasicParsers {
     }
 
   // conditions with locations
-  lazy val cond: Parser[Branch.Kind ~ Expr ~ Loc] =
+  lazy val cond: Parser[Branch.Kind ~ Expr ~ Option[Loc]] =
     branchKind ~ ("(" ~> expr <~ ")") ~ loc
 
   // branch kinds
@@ -57,7 +57,7 @@ trait Parsers extends BasicParsers {
     "if" ^^^ If | "while" ^^^ While | "foreach" ^^^ Foreach
 
   // arguments
-  lazy val args: Parser[List[Expr] ~ Loc] =
+  lazy val args: Parser[List[Expr] ~ Option[Loc]] =
     ("(" ~> repsep(expr, ",") <~ ")") ~ loc
 
   // instructions
@@ -79,9 +79,14 @@ trait Parsers extends BasicParsers {
       IAssign(r, e, l)
     }
 
-  lazy val loc: Parser[Loc] = (
-    "@" ~> int ~ ("(" ~> repsep(int, ".") <~ ")") ~ (":" ~> int) ~ ("-" ~> int)
-  ) ^^ { case l ~ ss ~ f ~ t => Loc(l, ss, f, t) }
+  lazy val loc: Parser[Option[Loc]] = opt(
+    (
+      "@" ~> int ~ ("(" ~> repsep(
+        int,
+        ".",
+      ) <~ ")") ~ (":" ~> int) ~ ("-" ~> int)
+    ) ^^ { case l ~ ss ~ f ~ t => Loc(l, ss, f, t) },
+  )
 
   // expressions
   given expr: Parser[Expr] =
