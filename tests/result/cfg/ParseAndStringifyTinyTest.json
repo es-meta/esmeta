@@ -1,0 +1,13 @@
+{
+  "BOp" : true,
+  "CFG" : true,
+  "COp" : true,
+  "Expr" : true,
+  "Func" : true,
+  "Inst" : true,
+  "Node" : true,
+  "Param" : true,
+  "Ref" : true,
+  "Type" : true,
+  "UOp" : true
+}
