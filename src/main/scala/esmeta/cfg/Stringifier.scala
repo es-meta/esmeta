@@ -30,18 +30,22 @@ case class Stringifier(detail: Boolean) {
 
   // control-flow graphs (CFGs)
   given cfgRule: Rule[CFG] = (app, cfg) =>
-    given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP * 2)
+    val CFG(main, funcs, _) = cfg
+    given Rule[Iterable[(Func, Boolean)]] = iterableRule(sep = LINE_SEP * 2)
     given Ordering[Func] = Ordering.by(_.id)
-    app >> cfg.funcs.toList.sorted
+    app >> cfg.funcs.values.toList.sorted.map(f => (f, f.id == cfg.main))
 
   // functions
+  given funcWithMainRule: Rule[(Func, Boolean)] = (app, pair) =>
+    val (func, isMain) = pair
+    app >> (if (isMain) "@main " else "") >> func
   given funcRule: Rule[Func] = (app, func) =>
     val Func(_, kind, name, params, entry, exit, nodes) = func
     given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
     app >> func.simpleString >> " " >> kind >> " "
     app >> name >> params >> " [" >> entry >> " -> " >> exit >> "] "
     given Ordering[Node] = Ordering.by(_.id)
-    app.wrap(for (node <- nodes.toList.sorted) app :> node)
+    app.wrap(for (node <- nodes.values.toList.sorted) app :> node)
 
   // function kinds
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
@@ -148,8 +152,8 @@ case class Stringifier(detail: Boolean) {
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case expr: AllocExpr =>
         allocExprRule(app, expr)
-      case expr: Literal =>
-        literalRule(app, expr)
+      case lit: Literal =>
+        literalRule(app, lit)
     }
 
   // allocation expressions
@@ -232,9 +236,9 @@ case class Stringifier(detail: Boolean) {
       case ToBigInt => app >> "[bigint]"
       case ToNumber => app >> "[number]"
       case ToMath   => app >> "[math]"
-      case ToStr(radixOpt) =>
+      case ToStr(radix) =>
         app >> "[str"
-        radixOpt.map(app >> " " >> _)
+        radix.map(app >> " " >> _)
         app >> "]"
     }
 

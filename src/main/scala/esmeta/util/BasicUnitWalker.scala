@@ -9,10 +9,20 @@ trait BasicUnitWalker {
     tWalk: T => Unit,
   ): Unit = opt.foreach(tWalk)
 
+  def walkSet[T](
+    set: Set[T],
+    tWalk: T => T,
+  ): Unit = set.foreach(tWalk)
+
   def walkList[T](
     list: List[T],
     tWalk: T => Unit,
   ): Unit = list.foreach(tWalk)
+
+  def walkVector[T](
+    vec: Vector[T],
+    tWalk: T => Unit,
+  ): Unit = vec.foreach(tWalk)
 
   def walkMap[K, V](
     map: Map[K, V],
@@ -25,4 +35,8 @@ trait BasicUnitWalker {
     kWalk: K => Unit,
     vWalk: V => Unit,
   ): Unit = map.foreach { case (k, v) => kWalk(k) -> vWalk(v) }
+
+  def walk(str: String): Unit = {}
+  def walk(bool: Boolean): Unit = {}
+  def walk(int: Int): Unit = {}
 }

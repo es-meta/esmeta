@@ -5,7 +5,11 @@ import esmeta.util.{DoubleEquals, UId, Loc}
 // -----------------------------------------------------------------------------
 // Control-Flow Graphs (CFGs)
 // -----------------------------------------------------------------------------
-case class CFG(funcs: Set[Func]) extends CFGElem
+case class CFG(
+  main: Int,
+  funcs: Map[Int, Func],
+  nodes: Map[Int, Node],
+) extends CFGElem
 object CFG extends Parser.From[CFG]
 
 // -----------------------------------------------------------------------------
@@ -18,7 +22,7 @@ case class Func(
   params: List[Param],
   entry: Int,
   exit: Int,
-  nodes: Set[Node],
+  nodes: Map[Int, Node],
 ) extends CFGElem
   with UId[Func]
 object Func extends Parser.From[Func]:
@@ -146,7 +150,7 @@ object BOp extends Parser.From[BOp]
 // conversion operators
 enum COp extends CFGElem:
   case ToBigInt, ToNumber, ToMath
-  case ToStr(radixOpt: Option[Expr])
+  case ToStr(radix: Option[Expr])
 object COp extends Parser.From[COp]
 
 // -----------------------------------------------------------------------------

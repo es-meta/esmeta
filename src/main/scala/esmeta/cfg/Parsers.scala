@@ -5,7 +5,16 @@ import esmeta.util.{Loc, BasicParsers}
 /** CFG parsers */
 trait Parsers extends BasicParsers {
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] = rep(func) ^^ { case fs => CFG(fs.toSet) }
+  given cfg: Parser[CFG] = rep(funcWithMain) ^^ { case pairs =>
+    val (fs, mains) = pairs.unzip
+    val funcs = (for (func <- fs) yield func.id -> func).toMap
+    val nodes = (for {
+      func <- fs
+      (id, node) <- func.nodes
+    } yield id -> node).toMap
+    val main = pairs.collect { case (func, true) => func.id }.head
+    CFG(main, funcs, nodes)
+  }
 
   // functions
   given func: Parser[Func] = (
@@ -13,8 +22,12 @@ trait Parsers extends BasicParsers {
       ("[" ~> int ~ ("->" ~> int) <~ "]") ~
       nodes
   ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ex) ~ ns =>
-    Func(i, k, n, ps, en, ex, ns.toSet)
+    Func(i, k, n, ps, en, ex, ns.map(n => n.id -> n).toMap)
   }
+
+  // functions with main
+  lazy val funcWithMain: Parser[(Func, Boolean)] =
+    opt("@main") ~ func ^^ { case m ~ f => (f, m.isDefined) }
 
   // function kinds
   given funcKind: Parser[Func.Kind] =

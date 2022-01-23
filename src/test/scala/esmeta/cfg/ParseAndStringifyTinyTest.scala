@@ -12,10 +12,10 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
-    lazy val cfg = CFG(Set(func))
+    lazy val cfg = CFG(func.id, Map(func.id -> func), nodes)
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
+      cfg -> """@main Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
       |  Entry[0] -> 1
       |  Block[1] -> 2 {
       |    let x = ~empty~
@@ -29,8 +29,10 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
+    lazy val nodeList = List(entry, block, exit)
+    lazy val nodes = (for (node <- nodeList) yield node.id -> node).toMap
     lazy val func =
-      Func(7, Func.Kind.AbsOp, "Name", params, 0, 42, Set(entry, block, exit))
+      Func(7, Func.Kind.AbsOp, "Name", params, 0, 42, nodes)
 
     // tests
     checkParseAndStringify("Func", Func)(
