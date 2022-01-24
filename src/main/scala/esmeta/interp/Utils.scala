@@ -147,6 +147,81 @@ object Utils {
       case Number(k)     => Str(str(k.toInt).toString)
       case _             => throw WrongStringRef(str, prop)
     def apply(addr: Addr): Obj = st.heap(addr)
+
+    /** setters */
+    def define(x: Id, value: Value): st.type = x match
+      case x: Global => st.globals += x -> value; st
+      case x: Local => st.context.locals += x -> value; st
+    def update(refV: RefValue, value: Value): st.type = refV match {
+      case IdValue(x) => update(x, value); st
+      case PropValue(base, prop) =>
+        base.escaped match {
+          case addr: Addr => update(addr, prop, value); st
+          case _          => error(s"illegal reference update: $refV = $value")
+        }
+    }
+    def update(x: Id, value: Value): st.type =
+      if (exists(x)) x match
+        case x: Global => st.globals += x -> value
+        case x: Local  => st.context.locals += x -> value
+      else error(s"illegal variable update: $x = $value")
+      st
+    def update(addr: Addr, prop: PureValue, value: Value): st.type =
+      st.heap.update(addr, prop, value); st
+
+    /** existence checks */
+    def exists(x: Id): Boolean = (x match {
+      case x: Global => st.globals contains x
+      case x: Local  => st.context.locals contains x
+    }) && directLookup(x) != Absent
+    def exists(ref: RefValue): Boolean = ref match {
+      case IdValue(id)           => exists(id)
+      case PropValue(base, prop) => st(base.escaped, prop) != Absent
+    }
+
+    /** delete a property from a map */
+    def delete(refV: RefValue): st.type = refV match {
+      case IdValue(x) =>
+        error(s"cannot delete variable $x")
+      case PropValue(base, prop) =>
+        base.escaped match {
+          case addr: Addr =>
+            st.heap.delete(addr, prop); st
+          case _ =>
+            error(s"illegal reference delete: delete $refV")
+        }
+    }
+
+    /** object operators */
+    def append(addr: Addr, value: PureValue): st.type =
+      st.heap.append(addr, value); st
+    def prepend(addr: Addr, value: PureValue): st.type =
+      st.heap.prepend(addr, value); st
+    def pop(addr: Addr, front: Boolean): PureValue =
+      st.heap.pop(addr, front)
+    def copyObj(addr: Addr): Addr =
+      st.heap.copyObj(addr)
+    def keys(addr: Addr, intSorted: Boolean): Addr =
+      st.heap.keys(addr, intSorted)
+    def allocMap(tname: String, map: Map[PureValue, PureValue] = Map()): Addr =
+      st.heap.allocMap(tname, map)
+    def allocList(list: List[PureValue]): Addr =
+      st.heap.allocList(list)
+    def allocSymbol(desc: PureValue): Addr =
+      st.heap.allocSymbol(desc)
+    def setType(addr: Addr, tname: String): st.type =
+      st.heap.setType(addr, tname); st
+
+    /** get string for a given address */
+    def getString(value: Value): String = value match {
+      case comp: Comp =>
+        comp.toString + (comp.value match {
+          case addr: Addr => " -> " + st.heap(addr).toString
+          case _          => ""
+        })
+      case addr: Addr => addr.toString + " -> " + st.heap(addr).toString
+      case _          => value.toString
+    }
   }
 
   /** extensions for heaps */
@@ -162,6 +237,116 @@ object Utils {
       case (m: MapObj)    => m(key)
       case (l: ListObj)   => l(key)
       case YetObj(_, msg) => throw NotSupported(msg)
+
+    /** setters */
+    def update(addr: Addr, prop: PureValue, value: Value): heap.type =
+      heap(addr) match {
+        case (m: MapObj) => m.update(prop, value); heap
+        case v           => error(s"not a map: $v")
+      }
+
+    /** delete */
+    def delete(addr: Addr, prop: PureValue): heap.type = heap(addr) match {
+      case (m: MapObj) => m.delete(prop); heap
+      case v           => error(s"not a map: $v")
+    }
+
+    /** appends */
+    def append(addr: Addr, value: PureValue): heap.type = heap(addr) match {
+      case (l: ListObj) =>
+        l.append(value); heap
+      case v => error(s"not a list: $v")
+    }
+
+    /** prepends */
+    def prepend(addr: Addr, value: PureValue): heap.type = heap(addr) match {
+      case (l: ListObj) =>
+        l.prepend(value); heap
+      case v => error(s"not a list: $v")
+    }
+
+    /** pops */
+    def pop(addr: Addr, front: Boolean): PureValue = heap(addr) match {
+      case (l: ListObj) => l.pop(front)
+      case v            => error(s"not a list: $v")
+    }
+
+    /** copy objects */
+    def copyObj(addr: Addr): Addr = alloc(heap(addr).copied)
+
+    /** keys of map */
+    def keys(addr: Addr, intSorted: Boolean): Addr = {
+      alloc(ListObj(heap(addr) match {
+        case (m: MapObj) => m.keys(intSorted)
+        case obj         => error(s"not a map: $obj")
+      }))
+    }
+
+    /** map allocations */
+    def allocMap(
+      tname: String,
+      m: Map[PureValue, PureValue],
+    ): Addr = {
+      val irMap =
+        if (tname == "Record") MapObj(tname, MMap(), 0) else MapObj(tname)
+      for ((k, v) <- m) irMap.update(k, v)
+      if (hasSubMap(tname))
+        val subMap = MapObj("SubMap")
+        irMap.update(Str("SubMap"), alloc(subMap))
+      alloc(irMap)
+    }
+
+    private def hasSubMap(tname: String): Boolean =
+      (tname endsWith "Object") || (tname endsWith "EnvironmentRecord")
+
+    /** list allocations */
+    def allocList(list: List[PureValue]): Addr = alloc(ListObj(list.toVector))
+
+    /** symbol allocations */
+    def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))
+
+    // allocation helper
+    private def alloc(obj: Obj): Addr = {
+      val newAddr = DynamicAddr(heap.size)
+      heap.map += newAddr -> obj
+      heap.size += 1
+      newAddr
+    }
+
+    // property access helper
+    private def getAddrValue(
+      addr: Addr,
+      propName: String,
+    ): Addr = heap(addr, Str(propName)) match {
+      case addr: Addr => addr
+      case v          => error(s"not an address: $v")
+    }
+
+    // property value getter
+    private def getPropValue(
+      addr: Value,
+      propName: String,
+    ): Value = addr match {
+      case addr: Addr =>
+        val submap = getAddrValue(addr, "SubMap")
+        val prop = getAddrValue(submap, propName)
+        heap(prop, Str("Value"))
+      case _ => error(s"not an address: $addr")
+    }
+
+    /** set type of objects */
+    def setType(addr: Addr, tname: String): heap.type = heap(addr) match {
+      case (irMap: MapObj) =>
+        irMap.tname = tname; heap
+      case _ => error(s"invalid type update: $addr")
+    }
+
+    /** copied */
+    def copied: Heap =
+      val newMap = MMap.from(heap.map.toList.map {
+        case (addr, obj) => addr -> obj.copied
+      })
+      Heap(newMap, heap.size)
   }
 
   /** extensions for objects */
@@ -177,6 +362,9 @@ object Utils {
         else Absent
       case (ListObj(values), Str("length")) => Math(values.length)
       case _                                => throw InvalidObjProp(obj, prop)
+
+    /** copy of object */
+    def copied: Obj = ???
   }
 
   /** extensions for list objects */
@@ -189,15 +377,51 @@ object Utils {
     def prepend(value: PureValue): list.type = { list.values +:= value; list }
 
     // pops
-    def pop(idx: PureValue): PureValue = idx match {
-      case Math(decimal) =>
-        val vs = list.values
-        val k = decimal.toInt
-        if (k < 0 || k >= vs.length) throw OutOfRange(list, k)
-        val v = vs(k)
-        list.values = vs.slice(0, k) ++ vs.slice(k + 1, vs.length)
-        v
-      case v => throw NoInteger(v)
+    def pop(front: Boolean): PureValue =
+      val vs = list.values
+      if (vs.isEmpty) throw OutOfRange(list, 0)
+      val v = if (front) vs.head else vs.last
+      list.values = if (front) vs.drop(1) else vs.dropRight(1)
+      v
+  }
+
+  /** extensions for map objects */
+  extension (map: MapObj) {
+
+    /** setters */
+    def findOrUpdate(prop: PureValue, value: Value): map.type =
+      map.props.get(prop) match
+        case Some(_) => map
+        case _       => update(prop, value)
+
+    /** updates */
+    def update(prop: PureValue, value: Value): map.type =
+      val id = map.props
+        .get(prop)
+        .map(_.creationTime)
+        .getOrElse({ map.size += 1; map.size })
+      map.props += prop -> MapProp(value, id)
+      map
+
+    /** deletes */
+    def delete(prop: PureValue): map.type = { map.props -= prop; map }
+
+    /** keys of map */
+    def keys(intSorted: Boolean): Vector[PureValue] = {
+      if (!intSorted) {
+        if (map.tname == "SubMap")
+          map.props.toVector
+            .sortBy(_._2._2)
+            .map(_._1)
+        else map.props.toVector.map(_._1).sortBy(_.toString)
+      } else
+        (for {
+          (Str(s), _) <- map.props.toVector
+          d: Double = ??? // ESValueParser.str2num(s)
+          if toStringHelper(d) == s
+          i = d.toLong // should handle unsigned integer
+          if d == i
+        } yield (s, i)).sortBy(_._2).map { case (s, _) => Str(s) }
     }
   }
 

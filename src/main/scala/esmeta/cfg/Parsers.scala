@@ -99,6 +99,8 @@ trait Parsers extends BasicParsers {
       case e ~ l => IPrint(e, l)
     } | ref ~ ("=" ~> expr) ~ locOpt ^^ {
       case r ~ e ~ l => IAssign(r, e, l)
+    } | expr ~ locOpt ^^ {
+      case e ~ l => IExpr(e, l)
     }
 
   lazy val locOpt: Parser[Option[Loc]] = opt("@" ~> loc)

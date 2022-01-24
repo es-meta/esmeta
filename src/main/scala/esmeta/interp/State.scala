@@ -8,30 +8,32 @@ import esmeta.util.DoubleEquals
 // -----------------------------------------------------------------------------
 // States
 // -----------------------------------------------------------------------------
-case class State(
-  val cfg: CFG,
-  var context: Context,
-  var ctxtStack: List[Context] = Nil,
-  val globals: MMap[Global, Value] = MMap(),
-  val heap: Heap = Heap(),
-) extends InterpElem
+case class State(val cfg: CFG) extends InterpElem {
+  var context: Context = Context(cfg.funcMap(cfg.main))
+  var ctxtStack: List[Context] = Nil
+  val globals: MMap[Global, Value] = MMap()
+  val heap: Heap = Heap()
+}
 
 // -----------------------------------------------------------------------------
 // Contexts
 // -----------------------------------------------------------------------------
 case class Context(
-  var cur: Node,
-  val retId: Local = NAME_RESULT,
-  var retVal: Option[Value] = None,
-  val locals: MMap[Local, Value] = MMap(),
+  val func: Func,
+  val retId: Id = GLOBAL_RESULT,
   val ast: Option[AST] = None,
-) extends InterpElem
+) extends InterpElem {
+  var cur: Node = func.entry
+  def name: String = func.name
+  var retVal: Option[Value] = None
+  val locals: MMap[Local, Value] = MMap()
+}
 
 // -----------------------------------------------------------------------------
 // Heaps
 // -----------------------------------------------------------------------------
 case class Heap(
-  map: MMap[Addr, Obj] = MMap(),
+  val map: MMap[Addr, Obj] = MMap(),
   var size: Int = 0,
 ) extends InterpElem
 
@@ -40,8 +42,8 @@ case class Heap(
 // -----------------------------------------------------------------------------
 sealed trait Obj extends InterpElem
 case class MapObj(
-  tname: String,
-  props: MMap[PureValue, MapProp] = MMap(),
+  var tname: String,
+  val props: MMap[PureValue, MapProp] = MMap(),
   var size: Int = 0,
 ) extends Obj
 case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj
@@ -49,7 +51,7 @@ case class SymbolObj(desc: PureValue) extends Obj
 case class YetObj(tname: String, msg: String) extends Obj
 
 /** property values */
-case class MapProp(value: Value, creationTime: Long)
+case class MapProp(value: Value, creationTime: Int)
 
 // -----------------------------------------------------------------------------
 // Reference Value

@@ -92,6 +92,8 @@ trait Walker extends BasicWalker {
 
   // instructions
   def walk(inst: Inst): Inst = inst match {
+    case IExpr(expr, loc) =>
+      IExpr(walk(expr), walkOpt(loc, walk))
     case ILet(lhs, expr, loc) =>
       ILet(walk(lhs), walk(expr), walkOpt(loc, walk))
     case IAssign(ref, expr, loc) =>

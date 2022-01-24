@@ -86,6 +86,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   // instructions
   def walk(inst: Inst): Unit = inst match {
+    case IExpr(expr, loc) =>
+      walk(expr); walkOpt(loc, walk)
     case ILet(lhs, expr, loc) =>
       walk(lhs); walk(expr); walkOpt(loc, walk)
     case IAssign(ref, expr, loc) =>

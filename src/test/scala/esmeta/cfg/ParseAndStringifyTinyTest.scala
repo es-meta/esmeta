@@ -115,6 +115,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // instructions
     // -------------------------------------------------------------------------
     lazy val loc = Option(Loc(Pos(3, 2), Pos(4, 7), List(1, 2, 2)))
+    lazy val xExprInst = IExpr(xExpr, None)
     lazy val let = ILet(x, empty, loc)
     lazy val letNoLoc = ILet(x, empty, None)
     lazy val del = IDelete(prop, loc)
@@ -127,6 +128,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
 
     // tests
     checkParseAndStringify("Inst", Inst)(
+      xExprInst -> "x",
       let -> "let x = ~empty~ @ 3:2-4:7 (1.2.2)",
       letNoLoc -> "let x = ~empty~",
       del -> "delete x.p @ 3:2-4:7 (1.2.2)",

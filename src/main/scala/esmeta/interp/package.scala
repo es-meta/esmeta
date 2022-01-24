@@ -36,7 +36,7 @@ val CONST_FULFILL = Const("Fulfill")
 val CONST_REJECT = Const("Reject")
 
 /** predefined identifiers */
-val NAME_RESULT = Name("RESULT")
+val GLOBAL_RESULT = Global("RESULT")
 
 /** predefined string */
 val STR_TOP_LEVEL = "TOP_LEVEL"

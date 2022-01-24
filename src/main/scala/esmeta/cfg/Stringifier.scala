@@ -102,6 +102,8 @@ case class Stringifier(detail: Boolean) {
   // instructions
   given instRule: Rule[Inst] = (app, inst) =>
     inst match {
+      case IExpr(expr, _) =>
+        app >> expr
       case ILet(lhs, expr, _) =>
         app >> "let " >> lhs >> " = " >> expr
       case IAssign(ref, expr, _) =>

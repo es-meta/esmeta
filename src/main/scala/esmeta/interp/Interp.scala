@@ -1,11 +1,12 @@
 package esmeta.interp
 
-import esmeta.TIMEOUT
+import esmeta.{TIMEOUT, TEST_MODE}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.Utils.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.math.{BigInt => SBigInt}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
@@ -25,7 +26,7 @@ class Interp(
   /** step */
   def step: Boolean =
     try interp(st.context.cur)
-    catch case ReturnValue(value) => setReturn(value); true
+    catch case ReturnValue(value) => { setReturn(value); true }
 
   /** fixpoint */
   @tailrec
@@ -36,25 +37,23 @@ class Interp(
     var keep = true
     node match {
       case Entry(_, next) => moveTo(next)
-      case Exit(_)        =>
-        // TODO proper type handle
-        // (value, setTypeMap.get(st.context.name)) match {
-        //   case (addr: Addr, Some(ty)) =>
-        //     st.setType(addr, ty)
-        //   case _ =>
-        // }
-        val value = st.context.retVal.getOrElse(throw NoReturnValue)
-        st.ctxtStack match {
+      case Exit(_) =>
+        st.ctxtStack match
           case Nil =>
-            st.context.locals += NAME_RESULT -> value
+            st.context.retVal.map(st.globals += GLOBAL_RESULT -> _)
             keep = false
           case ctxt :: rest =>
-            ctxt.locals += st.context.retId -> value.wrapCompletion
+            val retId = st.context.retId
+            val value = st.context.retVal.getOrElse(throw NoReturnValue)
+            (value, setTypeMap.get(st.context.name)) match
+              case (addr: Addr, Some(tname)) =>
+                st.setType(addr, tname)
+              case _ =>
             st.context = ctxt
             st.ctxtStack = rest
-        }
+            st.define(retId, value.wrapCompletion)
       case Linear(_, insts, next) =>
-        for (inst <- insts) interp(inst); true
+        for (inst <- insts) interp(inst); moveTo(next)
       case Branch(_, _, cond, _, thenNode, elseNode) =>
         moveTo(interp(cond).escaped match {
           case Bool(true)  => thenNode
@@ -69,7 +68,27 @@ class Interp(
 
   /** transition for instructions */
   def interp(inst: Inst): Unit = inst match {
-    case _ => ???
+    case IExpr(expr, _)        => interp(expr)
+    case ILet(lhs, expr, _)    => st.context.locals += lhs -> interp(expr)
+    case IAssign(ref, expr, _) => st.update(interp(ref), interp(expr))
+    case IDelete(ref, _)       => st.delete(interp(ref))
+    case IPush(from, to, front, _) =>
+      interp(to).escaped match {
+        case (addr: Addr) =>
+          if (front) st.prepend(addr, interp(from).escaped)
+          else st.append(addr, interp(from).escaped)
+        case v => throw NoAddr(v)
+      }
+    case IReturn(expr, _) => throw ReturnValue(interp(expr))
+    case IAssert(expr, _) =>
+      interp(expr).escaped match {
+        case Bool(true) =>
+        case v          => error(s"assertion failure: $expr")
+      }
+    case IPrint(expr, _) => {
+      val v = interp(expr)
+      if (!TEST_MODE) println(st.getString(v))
+    }
   }
 
   /** transition for calls */
@@ -80,12 +99,146 @@ class Interp(
 
   /** transition for expresssions */
   def interp(expr: Expr): Value = expr match {
-    case _ => ???
+    case EComp(tyExpr, tgtExpr, valExpr) =>
+      val y = interp(tyExpr).escaped
+      val t = interp(tgtExpr).escaped
+      val v = interp(valExpr).escaped
+      (y, t) match
+        case (y: Const, Str(t))      => Comp(y, v, Some(t))
+        case (y: Const, CONST_EMPTY) => Comp(y, v, None)
+        case _                       => error("invalid completion")
+    case EIsCompletion(expr) =>
+      Bool(interp(expr).isCompletion)
+    case EReturnIfAbrupt(ERef(ref), check) =>
+      val refV = interp(ref)
+      val value = returnIfAbrupt(st(refV), check)
+      st.update(refV, value)
+      value
+    case EReturnIfAbrupt(expr, check) =>
+      returnIfAbrupt(interp(expr), check)
+    case EPop(list, front) =>
+      interp(list).escaped match
+        case (addr: Addr) => st.pop(addr, front)
+        case v            => throw NoAddr(v)
+    case EYet(msg) =>
+      throw NotSupported(msg)
+    case EContains(list, elem) =>
+      interp(list).escaped match
+        case addr: Addr =>
+          st(addr) match
+            case ListObj(vs) => Bool(vs contains interp(elem).escaped)
+            case obj         => error(s"not a list: $obj")
+        case v => throw NoAddr(v)
+    case ERef(ref) =>
+      st(interp(ref))
+    case EUnary(uop, expr) =>
+      val x = interp(expr).escaped
+      Interp.interp(uop, x)
+    case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
+    case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
+    case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
+    case EBinary(bop, left, right) =>
+      val l = interp(left).escaped
+      val r = interp(right).escaped
+      Interp.interp(bop, l, r)
+    case EConvert(cop, expr) =>
+      import COp.*
+      interp(expr).escaped match {
+        case Str(s) =>
+          cop match
+            case ToNumber => ??? // TODO Number(ESValueParser.str2num(s))
+            case ToBigInt => ??? // TODO ESValueParser.str2bigint(s)
+            case _        => error(s"not convertable option: Str to $cop")
+        case v =>
+          // TODO other cases
+          error(s"not an convertable value: $v")
+      }
+    case ETypeOf(base)                               => ???
+    case ETypeCheck(expr, ty)                        => ???
+    case EClo(fid, captured)                         => ???
+    case ECont(fid)                                  => ???
+    case AstExpr(name, args, rhsIdx, bits, children) => ???
+    case EMap("Completion", props, asite) =>
+      val map = (for {
+        (kexpr, vexpr) <- props
+        k = interp(kexpr).escaped
+        v = interp(vexpr).escaped
+      } yield k -> v).toMap
+      (
+        map.get(Str("Type")),
+        map.get(Str("Value")),
+        map.get(Str("Target")),
+      ) match
+        case (Some(ty: Const), Some(value), Some(target)) =>
+          val targetOpt = target match
+            case Str(target) => Some(target)
+            case CONST_EMPTY => None
+            case _           => error(s"invalid completion target: $target")
+          Comp(ty, value, targetOpt)
+        case _ => error("invalid completion")
+    case EMap(ty, props, asite) =>
+      val addr = st.allocMap(ty)
+      for ((kexpr, vexpr) <- props)
+        val k = interp(kexpr).escaped
+        val v = interp(vexpr)
+        st.update(addr, k, v)
+      addr
+    case EList(exprs, asite) =>
+      st.allocList(exprs.map(expr => interp(expr).escaped))
+    case ESymbol(desc, asite) =>
+      interp(desc) match
+        case (str: Str) => st.allocSymbol(str)
+        case Undef      => st.allocSymbol(Undef)
+        case v          => error(s"not a string: $v")
+    case ECopy(obj, asite) =>
+      interp(obj).escaped match
+        case addr: Addr => st.copyObj(addr)
+        case v          => error(s"not an address: $v")
+    case EKeys(map, intSorted, asite) =>
+      interp(map).escaped match
+        case addr: Addr => st.keys(addr, intSorted)
+        case v          => error(s"not an address: $v")
+    case EMathVal(n)           => Math(n)
+    case ENumber(n) if n.isNaN => Number(Double.NaN)
+    case ENumber(n)            => Number(n)
+    case EBigInt(n)            => BigInt(n)
+    case EStr(str)             => Str(str)
+    case EBool(b)              => Bool(b)
+    case EUndef                => Undef
+    case ENull                 => Null
+    case EAbsent               => Absent
+    case EConst(name)          => Const(name)
   }
+
+  /** short circuit evaluation */
+  def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =
+    val l = interp(left).escaped
+    (bop, l) match
+      case (BOp.And, Bool(false)) => Bool(false)
+      case (BOp.Or, Bool(true))   => Bool(true)
+      case _ =>
+        val r = interp(right).escaped
+        Interp.interp(bop, l, r)
+
+  /** helper for return-if-abrupt cases */
+  def returnIfAbrupt(value: Value, check: Boolean): Value = value match
+    case NormalComp(value) => value
+    case comp: Comp =>
+      if (check) throw ReturnValue(value)
+      else throw UncheckedAbrupt(comp)
+    case pure: PureValue => pure
+
+  /** transition for references */
+  def interp(ref: Ref): RefValue = ref match
+    case x: Id => IdValue(x)
+    case Prop(ref, expr) =>
+      var base = st(interp(ref))
+      val p = interp(expr).escaped
+      PropValue(base, p)
 
   /** move to a node */
   def moveTo(nid: Int): Unit =
-    cfg.nodeMap.getOrElse(nid, throw InvalidNodeId(nid))
+    st.context.cur = cfg.nodeMap.getOrElse(nid, throw InvalidNodeId(nid))
 
   /** set return value and move to the exit node */
   def setReturn(value: Value): Unit =
@@ -107,14 +260,14 @@ object Interp {
     st
 
   // type update algorithms
-  val setTypeMap: Map[String, Type] = Map(
-    "OrdinaryFunctionCreate" -> Type("ECMAScriptFunctionObject"),
-    "ArrayCreate" -> Type("ArrayExoticObject"),
+  val setTypeMap: Map[String, String] = Map(
+    "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
+    "ArrayCreate" -> "ArrayExoticObject",
   )
 
   // simple functions
   type SimpleFunc = PartialFunction[(State, List[Value]), Value]
-  def arityCheck(pair: (String, SimpleFunc)): (String, SimpleFunc) = {
+  def arityCheck(pair: (String, SimpleFunc)): (String, SimpleFunc) =
     val (name, f) = pair
     name -> {
       case (st, args) =>
@@ -122,7 +275,6 @@ object Interp {
           error(s"wrong arguments: $name(${args.mkString(", ")})")
         }
     }
-  }
   def mathBOp(op: (BigDecimal, BigDecimal) => BigDecimal): SimpleFunc =
     case (st, list @ _ :: _) =>
       val ds = list.map {
@@ -137,7 +289,8 @@ object Interp {
       case (st, List(addr: Addr)) =>
         st(addr) match
           case list @ ListObj(vs) =>
-            if (vs.isEmpty) Absent else list.pop(Math(0))
+            if (vs.isEmpty) Absent
+            else list.pop(front = true)
           case _ => error(s"non-list @ GetArgument: $addr")
     }),
     arityCheck("IsDuplicate" -> {

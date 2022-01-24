@@ -102,6 +102,7 @@ case class Call(
 // -----------------------------------------------------------------------------
 sealed trait Inst extends CFGElem { val loc: Option[Loc] }
 object Inst extends Parser.From[Inst]
+case class IExpr(expr: Expr, loc: Option[Loc]) extends Inst
 case class ILet(lhs: Name, expr: Expr, loc: Option[Loc]) extends Inst
 case class IAssign(ref: Ref, expr: Expr, loc: Option[Loc]) extends Inst
 case class IDelete(ref: Ref, loc: Option[Loc]) extends Inst
