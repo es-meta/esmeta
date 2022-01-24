@@ -15,6 +15,10 @@ case class CFG(
     func <- funcs
     node <- func.nodes
   } yield node.id -> node).toMap
+  lazy val funcOf: Map[Node, Func] = (for {
+    func <- funcs
+    node <- func.nodes
+  } yield node -> func).toMap
 }
 object CFG extends Parser.From[CFG]
 
@@ -124,6 +128,7 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
+case class EClo(fid: Int, captured: List[Local]) extends Expr
 
 // allocation expressions
 sealed trait AllocExpr extends Expr { val asite: Int }
@@ -138,14 +143,13 @@ case class EKeys(map: Expr, intSorted: Boolean, asite: Int) extends AllocExpr
 sealed trait Literal extends Expr
 case class EMathVal(n: BigDecimal) extends Literal
 case class ENumber(n: Double) extends Literal with DoubleEquals(n)
-case class EBigInt(n: BigInt) extends Literal
+case class EBigInt(n: scala.math.BigInt) extends Literal
 case class EStr(str: String) extends Literal
 case class EBool(b: Boolean) extends Literal
 case object EUndef extends Literal
 case object ENull extends Literal
 case object EAbsent extends Literal
 case class EConst(name: String) extends Literal
-case class EClo(fid: Int, captured: List[Local]) extends Literal
 
 // -----------------------------------------------------------------------------
 // Operators

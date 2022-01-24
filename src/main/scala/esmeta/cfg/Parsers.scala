@@ -128,6 +128,8 @@ trait Parsers extends BasicParsers {
       ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ { case e ~ t =>
       ETypeCheck(e, t)
+    } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(local, ",") <~ ")") ^^ {
+      case fid ~ as => EClo(fid, as.getOrElse(Nil))
     } | allocExpr | literal | ref ^^ { ERef(_) }
 
   // allocation expressions
@@ -166,10 +168,7 @@ trait Parsers extends BasicParsers {
       "undefined" ^^^ EUndef |
       "null" ^^^ ENull |
       "absent" ^^^ EAbsent |
-      "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) } |
-      ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(local, ",") <~ ")") ^^ {
-        case fid ~ as => EClo(fid, as.getOrElse(Nil))
-      }
+      "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) }
 
   // unary operators
   given uop: Parser[UOp] =

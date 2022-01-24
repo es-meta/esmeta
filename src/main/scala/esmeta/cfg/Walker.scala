@@ -137,6 +137,8 @@ trait Walker extends BasicWalker {
       ETypeOf(walk(base))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
+    case EClo(fid, captured) =>
+      EClo(walk(fid), walkList(captured, walk))
     case expr: AllocExpr => walk(expr)
     case lit: Literal    => walk(lit)
   }

@@ -152,6 +152,10 @@ case class Stringifier(detail: Boolean) {
         app >> "(typeof " >> base >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
+      case EClo(fid, captured) =>
+        given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
+        app >> "clo[" >> fid >> "]"
+        if (captured.isEmpty) app else app >> captured
       case expr: AllocExpr =>
         allocExprRule(app, expr)
       case lit: Literal =>
@@ -191,10 +195,6 @@ case class Stringifier(detail: Boolean) {
       case ENull        => app >> "null"
       case EAbsent      => app >> "absent"
       case EConst(name) => app >> "~" >> name >> "~"
-      case EClo(fid, captured) =>
-        given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
-        app >> "clo[" >> fid >> "]"
-        if (captured.isEmpty) app else app >> captured
     }
 
   // unary operators
