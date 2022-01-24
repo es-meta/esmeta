@@ -1,6 +1,6 @@
 package esmeta.lang
 
-import esmeta.util.DoubleEquals
+import esmeta.util.{DoubleEquals, Locational}
 
 /** programs for abstract algorithms */
 case class Program(block: Block) extends LangElem
@@ -8,7 +8,7 @@ case class Program(block: Block) extends LangElem
 // -----------------------------------------------------------------------------
 // algorithm blocks
 // -----------------------------------------------------------------------------
-sealed trait Block extends LangElem
+sealed trait Block extends LangElem with Locational
 object Block extends Parser.From[Block]
 
 case class StepBlock(steps: List[SubStep]) extends Block
@@ -21,7 +21,7 @@ case class SubStep(idTag: Option[String], step: Step) extends LangElem
 // -----------------------------------------------------------------------------
 // algorithm steps
 // -----------------------------------------------------------------------------
-sealed trait Step extends LangElem
+sealed trait Step extends LangElem with Locational
 object Step extends Parser.From[Step]
 
 // let steps
@@ -87,7 +87,7 @@ case class YetStep(expr: YetExpression) extends Step
 // -----------------------------------------------------------------------------
 // algorithm expressions
 // -----------------------------------------------------------------------------
-sealed trait Expression extends LangElem
+sealed trait Expression extends LangElem with Locational
 object Expression extends Parser.From[Expression]
 
 // string concatenation expressions
@@ -294,7 +294,7 @@ case class AbstractClosureExpression(
 // -----------------------------------------------------------------------------
 // algorithm conditions
 // -----------------------------------------------------------------------------
-sealed trait Condition extends LangElem
+sealed trait Condition extends LangElem with Locational
 object Condition extends Parser.From[Condition]
 
 // expression conditions
@@ -351,7 +351,7 @@ object CompoundCondition:
 // -----------------------------------------------------------------------------
 // algorithm references
 // -----------------------------------------------------------------------------
-sealed trait Reference extends LangElem
+sealed trait Reference extends LangElem with Locational
 object Reference extends Parser.From[Reference]
 
 // variables

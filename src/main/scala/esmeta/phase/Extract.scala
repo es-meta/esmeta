@@ -31,7 +31,10 @@ case object Extract extends Phase[Unit, Spec] {
       val yets = spec.incompleteSteps
       dumpFile(
         name = "not yet supported steps",
-        data = yets.map(_.toString(detail = false)).sorted.mkString("\n"),
+        data = yets
+          .map(_.toString(detail = false, location = false))
+          .sorted
+          .mkString("\n"),
         filename = s"$EXTRACT_LOG_DIR/yets",
       )
 

@@ -313,4 +313,24 @@ trait IndentParsers extends BasicParsers {
         oldRes
     }
   }
+
+  // ------------------------------------------------------------------------------
+  // locational parser
+  // ------------------------------------------------------------------------------
+  abstract class LocationalParser[+T] extends Parser[T]
+  def locationed[T <: Locational](p: => Parser[T]): LocationalParser[T] =
+    new LocationalParser {
+      def apply(in: Input) = {
+        p(in) match {
+          case s @ Success(res, rest) =>
+            new Success(res.setLoc(in.pos, rest.pos), rest) {
+              override val lastFailure: Option[Failure] = s.lastFailure
+            }
+          case ns: NoSuccess => ns
+        }
+      }
+    }
+
+  private given Conversion[Position, Pos] with
+    def apply(p: Position): Pos = Pos(p.line, p.column)
 }

@@ -7,7 +7,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.lang.Utils.*
 
 /** stringifier for language */
-case class Stringifier(detail: Boolean) {
+case class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
@@ -33,7 +33,7 @@ case class Stringifier(detail: Boolean) {
   given programRule: Rule[Program] = _ >> _.block
 
   // blocks
-  given blockRule: Rule[Block] = (app, block) =>
+  given blockRule: Rule[Block] = withLoc { (app, block) =>
     given Rule[Step] = stepWithUpperRule(true)
     if (detail) app.wrap("", "")(block match {
       case StepBlock(steps) =>
@@ -46,6 +46,7 @@ case class Stringifier(detail: Boolean) {
         app :> "</figure>"
     })
     else app >> " [...]"
+  }
 
   // sub-steps
   given subStepRule: Rule[SubStep] = (app, subStep) =>
@@ -56,7 +57,7 @@ case class Stringifier(detail: Boolean) {
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)
-  def stepWithUpperRule(upper: Boolean): Rule[Step] = (app, step) =>
+  def stepWithUpperRule(upper: Boolean): Rule[Step] = withLoc { (app, step) =>
     given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
@@ -118,6 +119,7 @@ case class Stringifier(detail: Boolean) {
       case YetStep(expr) =>
         app >> expr
     }
+  }
   private case class First(str: String)
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
@@ -131,7 +133,7 @@ case class Stringifier(detail: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expression] = (app, expr) =>
+  given exprRule: Rule[Expression] = withLoc { (app, expr) =>
     expr match {
       case StringConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
@@ -172,6 +174,7 @@ case class Stringifier(detail: Boolean) {
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
     }
+  }
 
   // multiline expressions
   given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
@@ -326,7 +329,7 @@ case class Stringifier(detail: Boolean) {
     }
 
   // conditions
-  given condRule: Rule[Condition] = (app, cond) =>
+  given condRule: Rule[Condition] = withLoc { (app, cond) =>
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
@@ -374,6 +377,7 @@ case class Stringifier(detail: Boolean) {
           case _ => app >> left >> " " >> op >> " " >> right
         }
     }
+  }
 
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>
@@ -401,7 +405,7 @@ case class Stringifier(detail: Boolean) {
   }
 
   // references
-  given refRule: Rule[Reference] = (app, ref) =>
+  given refRule: Rule[Reference] = withLoc { (app, ref) =>
     ref match {
       case Variable(name: String) =>
         app >> s"_${name}_"
@@ -414,6 +418,7 @@ case class Stringifier(detail: Boolean) {
       case PropertyReference(base, prop) =>
         app >> base >> prop
     }
+  }
 
   // properties
   given propRule: Rule[Property] = (app, prop) =>
@@ -459,6 +464,13 @@ case class Stringifier(detail: Boolean) {
       case _                 => ", "
     }) >> x
     app >> right
+
+  // append locations
+  private def withLoc[T <: Locational](rule: Rule[T]): Rule[T] = (app, elem) =>
+    given Rule[Option[Loc]] = (app, locOpt) =>
+      locOpt.fold(app)(app >> " @ " >> _.toString)
+    rule(app, elem)
+    if (location) app >> elem.loc else app
 
   // verbs
   private def isStr(neg: Boolean, single: Boolean = true): String =

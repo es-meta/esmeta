@@ -65,6 +65,7 @@ trait BasicParsers extends JavaTokenParsers {
       parseBy[T](parser)(str)
   }
 
+  // locations
   lazy val pos: Parser[Pos] = int ~ (":" ~> int) ^^ { case l ~ c => Pos(l, c) }
   lazy val loc: Parser[Loc] = {
     lazy val id = "#[-a-z0-9A-Z]*".r ^^ { case s => s.substring(1) }

@@ -11,11 +11,13 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm blocks
   // ---------------------------------------------------------------------------
-  given block: P[Block] = indent ~> (
-    rep1(subStep) ^^ { StepBlock(_) } |
-      rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
-      next ~> figureStr ^^ { Figure(_) }
-  ) <~ dedent
+  given block: P[Block] = locationed(
+    indent ~> (
+      rep1(subStep) ^^ { StepBlock(_) } |
+        rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
+        next ~> figureStr ^^ { Figure(_) }
+    ) <~ dedent,
+  )
 
   // sub-steps
   lazy val subStepPrefix: Parser[Option[String]] =
@@ -34,7 +36,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  given step: P[Step] =
+  given step: P[Step] = locationed(
     letStep |
       setStep |
       returnStep |
@@ -49,7 +51,8 @@ trait Parsers extends IndentParsers {
       ifStep |
       forEachStep |
       forEachIntStep |
-      blockStep
+      blockStep,
+  )
 
   // let steps
   lazy val letStep: P[LetStep] =
@@ -150,7 +153,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm expressions
   // ---------------------------------------------------------------------------
-  given expr: P[Expression] =
+  given expr: P[Expression] = locationed(
     stringConcatExpr |||
       listConcatExpr |||
       recordExpr |||
@@ -162,10 +165,11 @@ trait Parsers extends IndentParsers {
       calcExpr |||
       invokeExpr |||
       returnIfAbruptExpr |||
-      listExpr
+      listExpr,
+  )
 
   // multilineExpr
-  lazy val multilineExpr: P[MultilineExpression] = closureExpr
+  lazy val multilineExpr: P[MultilineExpression] = locationed(closureExpr)
 
   // string concatenation expressions
   lazy val stringConcatExpr: P[StringConcatExpression] =
@@ -423,20 +427,21 @@ trait Parsers extends IndentParsers {
     import CompoundCondition.Op.*
     lazy val op: P[CompoundCondition.Op] = "and" ^^^ And ||| "or" ^^^ Or
 
-    baseCond ~ rep(op ~ baseCond) ^^ { case l ~ rs =>
+    locationed(baseCond ~ rep(op ~ baseCond) ^^ { case l ~ rs =>
       rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
     } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ { case l ~ r =>
       CompoundCondition(l, Imply, r)
-    }
+    })
 
   // base conditions
-  lazy val baseCond: P[Condition] =
+  lazy val baseCond: P[Condition] = locationed(
     exprCond |||
       instanceOfCond |||
       hasFieldCond |||
       abruptCond |||
       isAreCond |||
-      binCond
+      binCond,
+  )
 
   // expression conditions
   lazy val exprCond: P[ExpressionCondition] =
@@ -507,7 +512,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm references
   // ---------------------------------------------------------------------------
-  given ref: P[Reference] = baseRef ||| propRef
+  given ref: P[Reference] = locationed(baseRef ||| propRef)
 
   // property references
   lazy val propRef: P[PropertyReference] =
@@ -530,7 +535,9 @@ trait Parsers extends IndentParsers {
 
   // variables
   lazy val variable: P[Variable] =
-    "_[^_]+_".r ^^ { case s => Variable(s.substring(1, s.length - 1)) }
+    locationed("_[^_]+_".r ^^ { case s =>
+      Variable(s.substring(1, s.length - 1))
+    })
 
   // ---------------------------------------------------------------------------
   // algorithm properties
