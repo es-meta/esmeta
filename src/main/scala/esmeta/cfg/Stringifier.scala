@@ -30,22 +30,26 @@ case class Stringifier(detail: Boolean) {
 
   // control-flow graphs (CFGs)
   given cfgRule: Rule[CFG] = (app, cfg) =>
-    val CFG(main, funcs, _) = cfg
+    val CFG(main, funcs) = cfg
     given Rule[Iterable[(Func, Boolean)]] = iterableRule(sep = LINE_SEP * 2)
     given Ordering[Func] = Ordering.by(_.id)
-    app >> cfg.funcs.values.toList.sorted.map(f => (f, f.id == cfg.main))
+    app >> cfg.funcs.sorted.map(f => (f, f.id == cfg.main))
 
   // functions
   given funcWithMainRule: Rule[(Func, Boolean)] = (app, pair) =>
     val (func, isMain) = pair
     app >> (if (isMain) "@main " else "") >> func
   given funcRule: Rule[Func] = (app, func) =>
-    val Func(_, kind, name, params, entry, exit, nodes) = func
+    val Func(_, kind, name, params, entry, nodes, exit) = func
     given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
     app >> func.id >> ": " >> kind
-    app >> name >> params >> " [" >> entry >> " -> " >> exit >> "] "
-    given Ordering[Node] = Ordering.by(_.id)
-    app.wrap(for (node <- nodes.values.toList.sorted) app :> node)
+    app >> name >> params >> " "
+    app.wrap {
+      given Ordering[Node] = Ordering.by(_.id)
+      app :> entry
+      for (node <- nodes.sorted) app :> node
+      app :> exit
+    }
 
   // function kinds
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
@@ -73,9 +77,9 @@ case class Stringifier(detail: Boolean) {
         app >> "<entry> -> " >> next
       case Exit(_) =>
         app >> "<exit>"
-      case Block(_, Vector(inst), next) =>
+      case Linear(_, Vector(inst), next) =>
         app >> inst >> " -> " >> next
-      case Block(_, insts, next) =>
+      case Linear(_, insts, next) =>
         app.wrap(for (inst <- insts) app :> inst) >> " -> " >> next
       case Branch(_, kind, cond, loc, thenNode, elseNode) =>
         app >> "<branch> " >> kind >> "(" >> cond >> ")" >> loc

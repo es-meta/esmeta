@@ -3,7 +3,7 @@ package esmeta.util
 import esmeta.error.WrongUId
 
 /** unique ids */
-trait UId[T <: UId[T]] { this: T =>
+trait UId {
   // unique ids
   val id: Int
 
@@ -12,7 +12,7 @@ trait UId[T <: UId[T]] { this: T =>
 
   // override equality comparison using unique ids
   override def equals(that: Any): Boolean = that match {
-    case that: UId[_] => (
+    case that: UId => (
       (this.getClass eq that.getClass) &&
       (this.id == that.id)
     )

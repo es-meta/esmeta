@@ -10,23 +10,20 @@ trait Parsers extends BasicParsers {
 
   // control flow graphs (CFGs)
   given cfg: Parser[CFG] = rep(funcWithMain) ^^ { case pairs =>
-    val (fs, mains) = pairs.unzip
-    val funcs = (for (func <- fs) yield func.id -> func).toMap
-    val nodes = (for {
-      func <- fs
-      (id, node) <- func.nodes
-    } yield id -> node).toMap
-    val main = pairs.collect { case (func, true) => func.id }.head
-    CFG(main, funcs, nodes)
+    var main = -1
+    // TODO check multiple main functions
+    val funcs = for ((func, isMain) <- pairs) yield {
+      if (isMain) main = func.id
+      func
+    }
+    CFG(main, funcs)
   }
 
   // functions
   given func: Parser[Func] = (
-    getId ~ funcKind ~ ident ~ params ~
-      ("[" ~> int ~ ("->" ~> int) <~ "]") ~
-      nodes
-  ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ex) ~ ns =>
-    Func(i, k, n, ps, en, ex, ns.map(n => n.id -> n).toMap)
+    getId ~ funcKind ~ ident ~ params ~ nodes
+  ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ns ~ ex) =>
+    Func(i, k, n, ps, en, ns, ex)
   }
 
   // functions with main
@@ -50,14 +47,22 @@ trait Parsers extends BasicParsers {
     local ~ (":" ~> ty) ^^ { case x ~ t => Param(x, t) }
 
   // nodes
-  lazy val nodes: Parser[List[Node]] = "{" ~> rep(node) <~ "}"
-  given node: Parser[Node] =
-    getId("entry") ~ ("->" ~> int) ^^ { case i ~ n =>
-      Entry(i, n)
-    } | getId("exit") ^^ { case i =>
-      Exit(i)
-    } | getId ~ insts ~ ("->" ~> int) ^^ { case i ~ is ~ n =>
-      Block(i, is.toVector, n)
+  lazy val nodes: Parser[Entry ~ List[Block] ~ Exit] =
+    "{" ~> entry ~ rep(block) ~ exit <~ "}"
+  given node: Parser[Node] = entry | exit | block
+
+  // entry nodes
+  lazy val entry: Parser[Entry] =
+    getId("entry") ~ ("->" ~> int) ^^ { case i ~ n => Entry(i, n) }
+
+  // exit nodes
+  lazy val exit: Parser[Exit] =
+    getId("exit") ^^ { case i => Exit(i) }
+
+  // block nodes
+  lazy val block: Parser[Block] =
+    getId ~ insts ~ ("->" ~> int) ^^ { case i ~ is ~ n =>
+      Linear(i, is.toVector, n)
     } | getId("branch") ~ cond ~ ("-t>" ~> int) ~ ("-f>" ~> int) ^^ {
       case i ~ (k ~ c ~ l) ~ t ~ e => Branch(i, k, c, l, t, e)
     } | getId("call") ~ id ~ ("=" ~> expr) ~ args ~ ("->" ~> int) ^^ {

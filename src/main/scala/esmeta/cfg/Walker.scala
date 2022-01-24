@@ -22,20 +22,20 @@ trait Walker extends BasicWalker {
 
   // control flow graphs (CFGs)
   def walk(cfg: CFG): CFG =
-    val CFG(main, funcs, nodes) = cfg
-    CFG(walk(main), walkMap(funcs, walk, walk), walkMap(nodes, walk, walk))
+    val CFG(main, funcs) = cfg
+    CFG(walk(main), walkList(funcs, walk))
 
   // functions
   def walk(func: Func): Func =
-    val Func(id, kind, name, params, entry, exit, nodes) = func
+    val Func(id, kind, name, params, entry, blocks, exit) = func
     Func(
       walk(id),
       walk(kind),
       walk(name),
       walkList(params, walk),
       walk(entry),
+      walkList(blocks, walk),
       walk(exit),
-      walkMap(nodes, walk, walk),
     )
 
   // function kinds
@@ -48,12 +48,25 @@ trait Walker extends BasicWalker {
 
   // nodes
   def walk(node: Node): Node = node match {
-    case Entry(id, next) =>
-      Entry(walk(id), walk(next))
-    case Exit(id) =>
-      Exit(walk(id))
-    case Block(id, insts, next) =>
-      Block(walk(id), walkVector(insts, walk), walk(next))
+    case node: Entry => walk(node)
+    case node: Exit  => walk(node)
+    case node: Block => walk(node)
+  }
+
+  // entry nodes
+  def walk(entry: Entry): Entry =
+    val Entry(id, next) = entry
+    Entry(walk(id), walk(next))
+
+  // exit nodes
+  def walk(exit: Exit): Exit =
+    val Exit(id) = exit
+    Exit(walk(id))
+
+  // block nodes
+  def walk(block: Block): Block = block match {
+    case Linear(id, insts, next) =>
+      Linear(walk(id), walkVector(insts, walk), walk(next))
     case Branch(id, kind, cond, loc, thenNode, elseNode) =>
       Branch(
         walk(id),

@@ -7,9 +7,15 @@ import esmeta.util.{DoubleEquals, UId, Loc}
 // -----------------------------------------------------------------------------
 case class CFG(
   main: Int,
-  funcs: Map[Int, Func],
-  nodes: Map[Int, Node],
-) extends CFGElem
+  funcs: List[Func],
+) extends CFGElem {
+  lazy val funcMap: Map[Int, Func] =
+    (for (func <- funcs) yield func.id -> func).toMap
+  lazy val nodeMap: Map[Int, Node] = (for {
+    func <- funcs
+    node <- func.nodes
+  } yield node.id -> node).toMap
+}
 object CFG extends Parser.From[CFG]
 
 // -----------------------------------------------------------------------------
@@ -20,11 +26,16 @@ case class Func(
   kind: Func.Kind,
   name: String,
   params: List[Param],
-  entry: Int,
-  exit: Int,
-  nodes: Map[Int, Node],
+  entry: Entry,
+  blocks: List[Block],
+  exit: Exit,
 ) extends CFGElem
-  with UId[Func]
+  with UId {
+  lazy val nodes: List[Node] =
+    entry :: exit :: blocks
+  lazy val nodeMap: Map[Int, Node] =
+    (for (node <- nodes) yield node.id -> node).toMap
+}
 object Func extends Parser.From[Func]:
   enum Kind extends CFGElem:
     case AbsOp, NumMeth, SynDirOp, ConcMeth, BuiltinMeth, Clo, Cont
@@ -39,7 +50,7 @@ object Param extends Parser.From[Param]
 // -----------------------------------------------------------------------------
 // Nodes
 // -----------------------------------------------------------------------------
-sealed trait Node extends CFGElem with UId[Node]
+sealed trait Node extends CFGElem with UId
 object Node extends Parser.From[Node]
 
 // entry nodes
@@ -49,11 +60,14 @@ case class Entry(id: Int, var next: Int) extends Node
 case class Exit(id: Int) extends Node
 
 // block nodes
-case class Block(
+sealed trait Block extends Node
+
+// lienar nodes
+case class Linear(
   id: Int,
   var insts: Vector[Inst],
   var next: Int,
-) extends Node
+) extends Block
 
 // branch nodes
 case class Branch(
@@ -63,7 +77,7 @@ case class Branch(
   loc: Option[Loc],
   var thenNode: Int,
   var elseNode: Int,
-) extends Node
+) extends Block
 object Branch:
   enum Kind extends CFGElem:
     case If, While, Foreach
@@ -77,7 +91,7 @@ case class Call(
   args: List[Expr],
   loc: Option[Loc],
   var next: Int,
-) extends Node
+) extends Block
 
 // -----------------------------------------------------------------------------
 // Instructions

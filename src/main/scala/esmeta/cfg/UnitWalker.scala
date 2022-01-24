@@ -22,19 +22,19 @@ trait UnitWalker extends BasicUnitWalker {
 
   // control flow graphs (CFGs)
   def walk(cfg: CFG): Unit =
-    val CFG(main, funcs, nodes) = cfg
-    walk(main); walkMap(funcs, walk, walk); walkMap(nodes, walk, walk)
+    val CFG(main, funcs) = cfg
+    walk(main); walkList(funcs, walk)
 
   // functions
   def walk(func: Func): Unit =
-    val Func(id, kind, name, params, entry, exit, nodes) = func
+    val Func(id, kind, name, params, entry, blocks, exit) = func
     walk(id)
     walk(kind)
     walk(name)
     walkList(params, walk)
     walk(entry)
+    walkList(blocks, walk)
     walk(exit)
-    walkMap(nodes, walk, walk)
 
   // function kinds
   def walk(kind: Func.Kind): Unit = {}
@@ -46,11 +46,24 @@ trait UnitWalker extends BasicUnitWalker {
 
   // nodes
   def walk(node: Node): Unit = node match {
-    case Entry(id, next) =>
-      walk(id); walk(next)
-    case Exit(id) =>
-      walk(id)
-    case Block(id, insts, next) =>
+    case node: Entry => walk(node)
+    case node: Exit  => walk(node)
+    case node: Block => walk(node)
+  }
+
+  // entry nodes
+  def walk(entry: Entry): Unit =
+    val Entry(id, next) = entry
+    walk(id); walk(next)
+
+  // exit nodes
+  def walk(exit: Exit): Unit =
+    val Exit(id) = exit
+    walk(id)
+
+  // block nodes
+  def walk(block: Block): Unit = block match {
+    case Linear(id, insts, next) =>
       walk(id); walkVector(insts, walk); walk(next)
     case Branch(id, kind, cond, loc, thenNode, elseNode) =>
       walk(id)

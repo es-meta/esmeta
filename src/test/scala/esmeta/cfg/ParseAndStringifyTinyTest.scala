@@ -23,10 +23,10 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
-    lazy val cfg = CFG(func.id, Map(func.id -> func), nodes)
+    lazy val cfg = CFG(func.id, List(func))
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """@main 7: f(x: T, y: T) [0 -> 42] {
+      cfg -> """@main 7: f(x: T, y: T) {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
@@ -40,14 +40,12 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    lazy val nodeList = List(entry, block, exit)
-    lazy val nodes = (for (node <- nodeList) yield node.id -> node).toMap
     lazy val func =
-      Func(7, Func.Kind.AbsOp, "f", params, 0, 42, nodes)
+      Func(7, Func.Kind.AbsOp, "f", params, entry, List(linear), exit)
 
     // tests
     checkParseAndStringify("Func", Func)(
-      func -> """7: f(x: T, y: T) [0 -> 42] {
+      func -> """7: f(x: T, y: T) {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
@@ -85,8 +83,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     lazy val entry = Entry(0, 1)
     lazy val exit = Exit(2)
-    lazy val blockSingle = Block(1, Vector(letNoLoc), 2)
-    lazy val block = Block(1, Vector(letNoLoc, del, ret), 2)
+    lazy val linearSingle = Linear(1, Vector(letNoLoc), 2)
+    lazy val linear = Linear(1, Vector(letNoLoc, del, ret), 2)
     lazy val branch = Branch(17, Branch.Kind.If, xExpr, loc, 18, 19)
     lazy val branchNoLoc = Branch(17, Branch.Kind.If, xExpr, None, 18, 19)
     lazy val call = Call(7, temp, xExpr, List(xExpr, yExpr), loc, 8)
@@ -96,8 +94,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
     checkParseAndStringify("Node", Node)(
       entry -> "0: <entry> -> 1",
       exit -> "2: <exit>",
-      blockSingle -> "1: let x = ~empty~ -> 2",
-      block -> """1: {
+      linearSingle -> "1: let x = ~empty~ -> 2",
+      linear -> """1: {
       |  let x = ~empty~
       |  delete x.p @ 3:2-4:7 (1.2.2)
       |  return x @ 3:2-4:7 (1.2.2)
