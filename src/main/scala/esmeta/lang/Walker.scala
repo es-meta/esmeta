@@ -155,7 +155,7 @@ trait Walker extends BasicWalker {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
     case InstanceOfCondition(expr, neg, ty) =>
-      InstanceOfCondition(walk(expr), neg, walk(ty))
+      InstanceOfCondition(walk(expr), neg, walkList(ty, walk))
     case HasFieldCondition(expr, neg, field) =>
       HasFieldCondition(walk(expr), neg, walk(field))
     case AbruptCompletionCondition(x, neg) =>

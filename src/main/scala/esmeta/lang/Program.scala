@@ -304,7 +304,7 @@ case class ExpressionCondition(expr: Expression) extends Condition
 case class InstanceOfCondition(
   expr: Expression,
   negation: Boolean,
-  ty: Type,
+  ty: List[Type],
 ) extends Condition
 
 // field inclusion conditions

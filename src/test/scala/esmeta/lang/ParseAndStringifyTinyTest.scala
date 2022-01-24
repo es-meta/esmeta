@@ -342,8 +342,12 @@ class ParseAndStringifyTinyTest extends LangTest {
     // algorithm conditions
     // -------------------------------------------------------------------------
     lazy val exprCond = ExpressionCondition(refExpr)
-    lazy val instanceOfCond = InstanceOfCondition(refExpr, false, ty)
-    lazy val notInstanceOfCond = InstanceOfCondition(refExpr, true, ty)
+    lazy val instanceOfCond = InstanceOfCondition(refExpr, false, List(ty))
+    lazy val notInstanceOfCond = InstanceOfCondition(refExpr, true, List(ty))
+    lazy val eitherInstanceOfCond =
+      InstanceOfCondition(refExpr, false, List(ty, ty, ty))
+    lazy val neitherInstanceOfCond =
+      InstanceOfCondition(refExpr, true, List(ty, ty))
     lazy val hasFieldCond = HasFieldCondition(refExpr, false, field)
     lazy val noHasFieldCond = HasFieldCondition(refExpr, true, field)
     lazy val abruptCond = AbruptCompletionCondition(x, false)
@@ -366,6 +370,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       exprCond -> "_x_",
       instanceOfCond -> "_x_ is a Object",
       notInstanceOfCond -> "_x_ is not a Object",
+      eitherInstanceOfCond -> "_x_ is either a Object, a Object, or a Object",
+      neitherInstanceOfCond -> "_x_ is neither a Object nor a Object",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
       abruptCond -> "_x_ is an abrupt completion",

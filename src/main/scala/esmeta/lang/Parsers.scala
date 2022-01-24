@@ -449,7 +449,7 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: P[InstanceOfCondition] =
-    expr ~ isNeg ~ (("a" | "an") ~> ty) ^^ { case e ~ n ~ t =>
+    expr ~ isEither((("an" | "a") ~> ty)) ^^ { case e ~ (n ~ t) =>
       InstanceOfCondition(e, n, t)
     }
 
@@ -479,17 +479,11 @@ trait Parsers extends IndentParsers {
     lazy val neg: P[Boolean] =
       isNeg | are ~ "not" ^^^ { true } | are ^^^ { false }
 
-    lazy val right: P[(Boolean, List[Expression])] =
-      (neg ~ expr ^^ { case n ~ e => (n, List(e)) } |||
-        (neg <~ "either") ~ repsep(expr, sep("or")) ^^ { case n ~ es =>
-          (n, es)
-        } |||
-        (neg <~ "neither") ~ repsep(expr, sep("nor")) ^^ { case n ~ es =>
-          (!n, es)
-        } |||
-        neg <~ "present" ^^ { case n => (!n, List(AbsentLiteral)) })
+    lazy val right: P[Boolean ~ List[Expression]] =
+      either(neg, expr) |||
+        neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral)) }
 
-    left ~ right ^^ { case l ~ (n, r) => IsAreCondition(l, n, r) }
+    left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 
   // binary conditions
   lazy val binCond: P[BinaryCondition] =
@@ -563,7 +557,8 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm types
   // ---------------------------------------------------------------------------
-  given ty: P[Type] = rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) }
+  given ty: P[Type] = rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
+    ("|" ~> word <~ "|") ^^ { case nt => Type(s"|$nt|") }
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -574,8 +569,19 @@ trait Parsers extends IndentParsers {
   )
 
   // verbs
-  private val isNeg: Parser[Boolean] =
-    "is not" ^^^ true | "is" ^^^ false
-  private val hasNeg: Parser[Boolean] =
-    "does not have" ^^^ true | "has" ^^^ false
+  private def either[T](
+    b: Parser[Boolean],
+    p: Parser[T],
+  ): Parser[Boolean ~ List[T]] =
+    ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
+      (b <~ "either") ~ repsep(p, sep("or")) |
+      b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
+  private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
+    either(isNeg, p)
+  private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
+    either(hasNeg, p)
+  private def isNeg: Parser[Boolean] =
+    "is not" ^^^ { true } | "is" ^^^ { false }
+  private def hasNeg: Parser[Boolean] =
+    "does not have" ^^^ { true } | "has" ^^^ { false }
 }

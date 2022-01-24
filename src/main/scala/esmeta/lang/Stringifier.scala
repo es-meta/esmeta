@@ -334,10 +334,21 @@ case class Stringifier(detail: Boolean, location: Boolean) {
       case ExpressionCondition(expr) =>
         app >> expr
       case InstanceOfCondition(expr, neg, ty) =>
-        app >> expr >> isStr(neg)
+        app >> expr
         // TODO use a/an based on the types
-        app >> "a"
-        app >> " " >> ty
+        given Rule[Type] = (app, ty) => app >> "a " >> ty.name
+        ty match {
+          case t :: Nil => app >> isStr(neg) >> t
+          case _ =>
+            app >> " is "
+            if (neg) {
+              given Rule[List[Type]] = listNamedSepRule(namedSep = "nor")
+              app >> "neither " >> ty
+            } else {
+              given Rule[List[Type]] = listNamedSepRule(namedSep = "or")
+              app >> "either " >> ty
+            }
+        }
       case HasFieldCondition(expr, neg, field) =>
         app >> expr >> hasStr(neg)
         // TODO use a/an based on the fields

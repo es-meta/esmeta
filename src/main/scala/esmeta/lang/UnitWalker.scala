@@ -141,7 +141,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ExpressionCondition(expr) =>
       walk(expr)
     case InstanceOfCondition(expr, neg, ty) =>
-      walk(expr); walk(ty)
+      walk(expr); walkList(ty, walk)
     case HasFieldCondition(expr, neg, field) =>
       walk(expr); walk(field)
     case AbruptCompletionCondition(x, neg) =>
