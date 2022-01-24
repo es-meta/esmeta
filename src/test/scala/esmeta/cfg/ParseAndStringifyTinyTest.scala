@@ -30,8 +30,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
-      |    delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
-      |    return x @ #sec-x[7]:3:2-4:7 (1.2.2)
+      |    delete x.p @ 3:2-4:7 (1.2.2)
+      |    return x @ 3:2-4:7 (1.2.2)
       |  } -> 2
       |  2: <exit>
       |}""".stripMargin,
@@ -51,8 +51,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
-      |    delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
-      |    return x @ #sec-x[7]:3:2-4:7 (1.2.2)
+      |    delete x.p @ 3:2-4:7 (1.2.2)
+      |    return x @ 3:2-4:7 (1.2.2)
       |  } -> 2
       |  2: <exit>
       |}""".stripMargin,
@@ -99,12 +99,12 @@ class ParseAndStringifyTinyTest extends CFGTest {
       blockSingle -> "1: let x = ~empty~ -> 2",
       block -> """1: {
       |  let x = ~empty~
-      |  delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
-      |  return x @ #sec-x[7]:3:2-4:7 (1.2.2)
+      |  delete x.p @ 3:2-4:7 (1.2.2)
+      |  return x @ 3:2-4:7 (1.2.2)
       |} -> 2""".stripMargin,
-      branch -> "17: <branch> if(x) @ #sec-x[7]:3:2-4:7 (1.2.2) -t> 18 -f> 19",
+      branch -> "17: <branch> if(x) @ 3:2-4:7 (1.2.2) -t> 18 -f> 19",
       branchNoLoc -> "17: <branch> if(x) -t> 18 -f> 19",
-      call -> "7: <call> %42 = x(x, y) @ #sec-x[7]:3:2-4:7 (1.2.2) -> 8",
+      call -> "7: <call> %42 = x(x, y) @ 3:2-4:7 (1.2.2) -> 8",
       callNoLoc -> "7: <call> %42 = x(x, y) -> 8",
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
@@ -116,7 +116,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // instructions
     // -------------------------------------------------------------------------
-    lazy val loc = Option(Loc("sec-x", 7, Pos(3, 2), Pos(4, 7), List(1, 2, 2)))
+    lazy val loc = Option(Loc(Pos(3, 2), Pos(4, 7), List(1, 2, 2)))
     lazy val let = ILet(x, empty, loc)
     lazy val letNoLoc = ILet(x, empty, None)
     lazy val del = IDelete(prop, loc)
@@ -129,15 +129,15 @@ class ParseAndStringifyTinyTest extends CFGTest {
 
     // tests
     checkParseAndStringify("Inst", Inst)(
-      let -> "let x = ~empty~ @ #sec-x[7]:3:2-4:7 (1.2.2)",
+      let -> "let x = ~empty~ @ 3:2-4:7 (1.2.2)",
       letNoLoc -> "let x = ~empty~",
-      del -> "delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      pushFront -> "push x > y @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      pushBack -> "push y < x @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      ret -> "return x @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      assert -> "assert x @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      print -> "print x @ #sec-x[7]:3:2-4:7 (1.2.2)",
-      assign -> "x.p = x @ #sec-x[7]:3:2-4:7 (1.2.2)",
+      del -> "delete x.p @ 3:2-4:7 (1.2.2)",
+      pushFront -> "push x > y @ 3:2-4:7 (1.2.2)",
+      pushBack -> "push y < x @ 3:2-4:7 (1.2.2)",
+      ret -> "return x @ 3:2-4:7 (1.2.2)",
+      assert -> "assert x @ 3:2-4:7 (1.2.2)",
+      print -> "print x @ 3:2-4:7 (1.2.2)",
+      assign -> "x.p = x @ 3:2-4:7 (1.2.2)",
     )
 
     // -------------------------------------------------------------------------
