@@ -27,6 +27,7 @@ val PACKAGE_NAME = "esmeta"
 
 /** tests directory */
 val IR_TEST_DIR = s"$TEST_DIR/ir"
+val CFG_TEST_DIR = s"$TEST_DIR/cfg"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Mutable Global Options

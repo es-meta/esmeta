@@ -1,14 +1,25 @@
 package esmeta.cfg
 
+import esmeta.CFG_TEST_DIR
+import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
-import esmeta.cfg.*
+import esmeta.util.SystemUtils._
 
 class ParseAndStringifyTinyTest extends CFGTest {
   val name: String = "cfgParseAndStringifyTest"
 
   // registration
   def init: Unit = {
+    // check parser and stringifier from files
+    for (file <- walkTree(CFG_TEST_DIR)) {
+      val filename = file.getName
+      if (cfgFilter(filename)) check(filename) {
+        val name = file.toString
+        cfgParseTestFile(name)
+      }
+    }
+
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------

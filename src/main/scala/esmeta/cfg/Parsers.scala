@@ -4,6 +4,10 @@ import esmeta.util.{Loc, BasicParsers}
 
 /** CFG parsers */
 trait Parsers extends BasicParsers {
+  // treat comments as white spaces
+  override protected val whiteSpace =
+    """(\s|/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*)+""".r
+
   // control flow graphs (CFGs)
   given cfg: Parser[CFG] = rep(funcWithMain) ^^ { case pairs =>
     val (fs, mains) = pairs.unzip

@@ -11,5 +11,6 @@
   "Param" : true,
   "Ref" : true,
   "Type" : true,
-  "UOp" : true
+  "UOp" : true,
+  "literal.cfg" : true
 }

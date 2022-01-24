@@ -35,6 +35,7 @@ object SystemUtils {
   /** extension filter */
   def extFilter(ext: String): String => Boolean = _.endsWith(s".$ext")
   lazy val irFilter = extFilter("ir")
+  lazy val cfgFilter = extFilter("cfg")
 
   /** print writer */
   def getPrintWriter(filename: String): PrintWriter =
