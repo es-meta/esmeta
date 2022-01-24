@@ -1,6 +1,7 @@
 package esmeta.util
 
 import esmeta.util.BaseUtils.*
+import esmeta.util.{Loc, Pos}
 import java.io.*
 import java.nio.charset.Charset
 import scala.util.parsing.combinator.JavaTokenParsers
@@ -62,5 +63,17 @@ trait BasicParsers extends JavaTokenParsers {
       fromFileWithParser(str, parser)
     def from(str: String): T =
       parseBy[T](parser)(str)
+  }
+
+  lazy val pos: Parser[Pos] = int ~ (":" ~> int) ^^ { case l ~ c => Pos(l, c) }
+  lazy val loc: Parser[Loc] = {
+    lazy val id = "#[-a-z0-9A-Z]*".r ^^ { case s => s.substring(1) }
+    lazy val idx = "[" ~> int <~ "]"
+    lazy val start = ":" ~> pos
+    lazy val end = "-" ~> pos
+    lazy val steps = "(" ~> repsep(int, ".") <~ ")"
+    id ~ idx ~ start ~ end ~ steps ^^ { case i ~ k ~ s ~ e ~ ss =>
+      Loc(i, k, s, e, ss)
+    }
   }
 }

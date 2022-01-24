@@ -1,4 +1,31 @@
 package esmeta.util
 
-/** source locations in algorithms */
-case class Loc(line: Int, step: List[Int], start: Int, end: Int)
+/** source locations in algorithms
+  *
+  * @example
+  *   #sec-x[7]:3:2-4:7 (1.2.2) for `Loc("sec-x", 7, Pos(3,2), Pos(4,7),
+  *   List(1,2,2,))`
+  */
+case class Loc(
+  var id: String,
+  var idx: Int,
+  var start: Pos,
+  var end: Pos,
+  var steps: List[Int],
+) {
+  // TODO short string for the same line (e.g. 3:2-4)
+  override def toString: String =
+    s"#$id[$idx]:$start-$end (${steps.mkString(".")})"
+}
+
+/** positions in algorithms
+  *
+  * @example
+  *   3:2 for `Pos(3,2)`
+  */
+case class Pos(
+  var line: Int,
+  var column: Int,
+) {
+  override def toString: String = s"$line:$column"
+}

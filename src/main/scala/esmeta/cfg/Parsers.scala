@@ -62,7 +62,7 @@ trait Parsers extends BasicParsers {
 
   // conditions with locations
   lazy val cond: Parser[Branch.Kind ~ Expr ~ Option[Loc]] =
-    branchKind ~ ("(" ~> expr <~ ")") ~ loc
+    branchKind ~ ("(" ~> expr <~ ")") ~ locOpt
 
   // branch kinds
   given branchKind: Parser[Branch.Kind] =
@@ -71,35 +71,28 @@ trait Parsers extends BasicParsers {
 
   // arguments
   lazy val args: Parser[List[Expr] ~ Option[Loc]] =
-    ("(" ~> repsep(expr, ",") <~ ")") ~ loc
+    ("(" ~> repsep(expr, ",") <~ ")") ~ locOpt
 
   // instructions
   lazy val insts: Parser[List[Inst]] = "{" ~> rep(inst) <~ "}"
   given inst: Parser[Inst] =
-    "let" ~> local ~ ("=" ~> expr) ~ loc ^^ { case x ~ e ~ l =>
+    "let" ~> local ~ ("=" ~> expr) ~ locOpt ^^ { case x ~ e ~ l =>
       ILet(x, e, l)
-    } | "delete" ~> ref ~ loc ^^ { case r ~ l =>
+    } | "delete" ~> ref ~ locOpt ^^ { case r ~ l =>
       IDelete(r, l)
-    } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ~ loc ^^ {
+    } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ~ locOpt ^^ {
       case x ~ f ~ y ~ l => if (f) IPush(x, y, f, l) else IPush(y, x, f, l)
-    } | "return" ~> expr ~ loc ^^ { case e ~ l =>
+    } | "return" ~> expr ~ locOpt ^^ { case e ~ l =>
       IReturn(e, l)
-    } | "assert" ~> expr ~ loc ^^ { case e ~ l =>
+    } | "assert" ~> expr ~ locOpt ^^ { case e ~ l =>
       IAssert(e, l)
-    } | "print" ~> expr ~ loc ^^ { case e ~ l =>
+    } | "print" ~> expr ~ locOpt ^^ { case e ~ l =>
       IPrint(e, l)
-    } | ref ~ ("=" ~> expr) ~ loc ^^ { case r ~ e ~ l =>
+    } | ref ~ ("=" ~> expr) ~ locOpt ^^ { case r ~ e ~ l =>
       IAssign(r, e, l)
     }
 
-  lazy val loc: Parser[Option[Loc]] = opt(
-    (
-      "@" ~> int ~ ("(" ~> repsep(
-        int,
-        ".",
-      ) <~ ")") ~ (":" ~> int) ~ ("-" ~> int)
-    ) ^^ { case l ~ ss ~ f ~ t => Loc(l, ss, f, t) },
-  )
+  lazy val locOpt: Parser[Option[Loc]] = opt("@" ~> loc)
 
   // expressions
   given expr: Parser[Expr] =
