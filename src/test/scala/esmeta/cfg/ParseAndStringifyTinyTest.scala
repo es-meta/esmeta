@@ -60,7 +60,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       Func.Kind.NumMeth -> "<NUM>:",
       Func.Kind.SynDirOp -> "<SYNTAX>:",
       Func.Kind.ConcMeth -> "<CONC>:",
-      Func.Kind.BuiltinMeth -> "<BUILTIN>:",
+      Func.Kind.Builtin -> "<BUILTIN>:",
       Func.Kind.Clo -> "<CLO>:",
       Func.Kind.Cont -> "<CONT>:",
     )
@@ -164,7 +164,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val astMultiple =
       AstExpr("Identifier", List(true, false), 1, 2, List(xExpr, yExpr))
     // allocation expressions
-    lazy val map = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent), 42)
+    lazy val rec = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent), 42)
     lazy val list = EList(List(EUndef, ENull, EAbsent), 42)
     lazy val symbol = ESymbol(ENull, 42)
     lazy val copy = ECopy(xExpr, 42)
@@ -199,7 +199,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       astSingle -> "|Identifier|[TF]<1, 2>(x)",
       astMultiple -> "|Identifier|[TF]<1, 2>(x, y)",
       // allocation expressions
-      map -> "(new T(undefined -> true, null -> absent))[#42]",
+      rec -> "(new T(undefined -> true, null -> absent))[#42]",
       list -> "(new [undefined, null, absent])[#42]",
       symbol -> "(new 'null)[#42]",
       copy -> "(copy x)[#42]",
@@ -265,8 +265,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // references
     // -------------------------------------------------------------------------
     lazy val global = Global("GLOBAL")
-    lazy val x = Local("x")
-    lazy val y = Local("y")
+    lazy val x = Name("x")
+    lazy val y = Name("y")
     lazy val temp = Temp(42)
     lazy val prop = Prop(x, EStr("p"))
     lazy val propStr = Prop(x, EStr("!!"))

@@ -42,13 +42,13 @@ case class Func(
 }
 object Func extends Parser.From[Func]:
   enum Kind extends CFGElem:
-    case AbsOp, NumMeth, SynDirOp, ConcMeth, BuiltinMeth, Clo, Cont
+    case AbsOp, NumMeth, SynDirOp, ConcMeth, Builtin, Clo, Cont
   object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------
 // Function Parameters
 // -----------------------------------------------------------------------------
-case class Param(lhs: Local, ty: Type) extends CFGElem
+case class Param(lhs: Name, ty: Type) extends CFGElem
 object Param extends Parser.From[Param]
 
 // -----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ case class Call(
 // -----------------------------------------------------------------------------
 sealed trait Inst extends CFGElem { val loc: Option[Loc] }
 object Inst extends Parser.From[Inst]
-case class ILet(lhs: Local, expr: Expr, loc: Option[Loc]) extends Inst
+case class ILet(lhs: Name, expr: Expr, loc: Option[Loc]) extends Inst
 case class IAssign(ref: Ref, expr: Expr, loc: Option[Loc]) extends Inst
 case class IDelete(ref: Ref, loc: Option[Loc]) extends Inst
 case class IPush(from: Expr, to: Expr, front: Boolean, loc: Option[Loc])
@@ -128,7 +128,7 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
-case class EClo(fid: Int, captured: List[Local]) extends Expr
+case class EClo(fid: Int, captured: List[Name]) extends Expr
 case class ECont(fid: Int) extends Expr
 
 // abstract syntax tree (AST) expressions
@@ -191,8 +191,10 @@ case class Prop(ref: Ref, expr: Expr) extends Ref
 
 sealed trait Id extends Ref
 case class Global(name: String) extends Id
-case class Local(name: String) extends Id
-case class Temp(id: Int) extends Id
+
+sealed trait Local extends Id
+case class Name(name: String) extends Local
+case class Temp(idx: Int) extends Local
 
 // -----------------------------------------------------------------------------
 // TODO Types

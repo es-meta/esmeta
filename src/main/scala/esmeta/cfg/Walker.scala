@@ -160,9 +160,10 @@ trait Walker extends BasicWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): AllocExpr = alloc match {
-    case EMap(tname, props, asite) =>
-      lazy val newProps = walkList(props, { case (p, e) => (walk(p), walk(e)) })
-      EMap(walk(tname), newProps, walk(asite))
+    case EMap(tname, fields, asite) =>
+      lazy val newFields =
+        walkList(fields, { case (p, e) => (walk(p), walk(e)) })
+      EMap(walk(tname), newFields, walk(asite))
     case EList(exprs, asite) =>
       EList(walkList(exprs, walk), walk(asite))
     case ESymbol(desc, asite) =>
@@ -197,12 +198,12 @@ trait Walker extends BasicWalker {
   // identifiers
   def walk(x: Id): Id = x match {
     case Global(x) => Global(walk(x))
-    case x: Local  => walk(x)
+    case x: Name   => walk(x)
     case Temp(k)   => Temp(walk(k))
   }
 
-  // local identifiers
-  def walk(x: Local): Local = Local(walk(x.name))
+  // named local identifiers
+  def walk(x: Name): Name = Name(walk(x.name))
 
   // TODO types
   def walk(ty: Type): Type = Type(walk(ty.name))

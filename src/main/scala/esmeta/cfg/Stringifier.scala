@@ -55,13 +55,13 @@ case class Stringifier(detail: Boolean) {
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
     import Func.Kind.*
     app >> (kind match {
-      case AbsOp       => ""
-      case NumMeth     => "<NUM>:"
-      case SynDirOp    => "<SYNTAX>:"
-      case ConcMeth    => "<CONC>:"
-      case BuiltinMeth => "<BUILTIN>:"
-      case Clo         => "<CLO>:"
-      case Cont        => "<CONT>:"
+      case AbsOp    => ""
+      case NumMeth  => "<NUM>:"
+      case SynDirOp => "<SYNTAX>:"
+      case ConcMeth => "<CONC>:"
+      case Builtin  => "<BUILTIN>:"
+      case Clo      => "<CLO>:"
+      case Cont     => "<CONT>:"
     })
 
   // function parameters
@@ -153,7 +153,7 @@ case class Stringifier(detail: Boolean) {
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EClo(fid, captured) =>
-        given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
+        given Rule[Iterable[Name]] = iterableRule("(", ", ", ")")
         app >> "clo[" >> fid >> "]"
         if (captured.isEmpty) app else app >> captured
       case ECont(fid) =>
@@ -182,9 +182,9 @@ case class Stringifier(detail: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case EMap(tname, props, asite) =>
+      case EMap(tname, fields, asite) =>
         given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
-        app >> "(new " >> tname >> props >> ")[#" >> asite >> "]"
+        app >> "(new " >> tname >> fields >> ")[#" >> asite >> "]"
       case EList(exprs, asite) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(new " >> exprs >> ")[#" >> asite >> "]"
@@ -274,7 +274,7 @@ case class Stringifier(detail: Boolean) {
   given idRule: Rule[Id] = (app, id) =>
     id match {
       case Global(name) => app >> "@" >> name
-      case Local(name)  => app >> name
+      case Name(name)   => app >> name
       case Temp(id)     => app >> "%" >> id
     }
 

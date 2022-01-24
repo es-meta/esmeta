@@ -35,7 +35,7 @@ trait Parsers extends BasicParsers {
     "<NUM>:" ^^^ NumMeth |
     "<SYNTAX>:" ^^^ SynDirOp |
     "<CONC>:" ^^^ ConcMeth |
-    "<BUILTIN>:" ^^^ BuiltinMeth |
+    "<BUILTIN>:" ^^^ Builtin |
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
     "" ^^^ AbsOp
@@ -43,7 +43,7 @@ trait Parsers extends BasicParsers {
   // function parameters
   lazy val params: Parser[List[Param]] = "(" ~> repsep(param, ",") <~ ")"
   given param: Parser[Param] =
-    local ~ (":" ~> ty) ^^ { case x ~ t => Param(x, t) }
+    name ~ (":" ~> ty) ^^ { case x ~ t => Param(x, t) }
 
   // nodes
   lazy val nodes: Parser[Entry ~ List[Block] ~ Exit] =
@@ -85,7 +85,7 @@ trait Parsers extends BasicParsers {
   lazy val insts: Parser[List[Inst]] =
     inst ^^ { List(_) } | "{" ~> rep(inst) <~ "}"
   given inst: Parser[Inst] =
-    "let" ~> local ~ ("=" ~> expr) ~ locOpt ^^ {
+    "let" ~> name ~ ("=" ~> expr) ~ locOpt ^^ {
       case x ~ e ~ l => ILet(x, e, l)
     } | "delete" ~> ref ~ locOpt ^^ {
       case r ~ l => IDelete(r, l)
@@ -127,7 +127,7 @@ trait Parsers extends BasicParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(local, ",") <~ ")") ^^ {
+    } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(name, ",") <~ ")") ^^ {
       case fid ~ as => EClo(fid, as.getOrElse(Nil))
     } | ("cont[" ~> int <~ "]") ^^ {
       case fid => ECont(fid)
@@ -145,8 +145,8 @@ trait Parsers extends BasicParsers {
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = (
-    ("(" ~ "new" ~> ident ~ opt(props) <~ ")") ~ asite ^^ {
-      case t ~ props ~ a => EMap(t, props.getOrElse(Nil), a)
+    ("(" ~ "new" ~> ident ~ opt(fields) <~ ")") ~ asite ^^ {
+      case t ~ fields ~ a => EMap(t, fields.getOrElse(Nil), a)
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ~ asite ^^ {
       case es ~ a => EList(es, a)
     } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ~ asite ^^ {
@@ -158,9 +158,9 @@ trait Parsers extends BasicParsers {
     }
   )
 
-  // properties
-  lazy val props: Parser[List[(Expr, Expr)]] = "(" ~> repsep(prop, ",") <~ ")"
-  lazy val prop: Parser[(Expr, Expr)] =
+  // fields
+  lazy val fields: Parser[List[(Expr, Expr)]] = "(" ~> repsep(field, ",") <~ ")"
+  lazy val field: Parser[(Expr, Expr)] =
     expr ~ ("->" ~> expr) ^^ { case k ~ v => k -> v }
 
   // allocation sites
@@ -226,10 +226,10 @@ trait Parsers extends BasicParsers {
   lazy val id: Parser[Id] =
     "@[A-Z]+".r ^^ { case s => Global(s.substring(1)) } |
     "%(0|[1-9][0-9]*)".r ^^ { case s => Temp(s.substring(1).toInt) } |
-    local
+    name
 
-  // local identifiers
-  lazy val local: Parser[Local] = "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ { Local(_) }
+  // named local identifiers
+  lazy val name: Parser[Name] = "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ { Name(_) }
 
   // TODO types
   given ty: Parser[Type] = ident ^^ { Type(_) }

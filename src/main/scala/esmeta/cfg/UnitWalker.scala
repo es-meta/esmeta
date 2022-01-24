@@ -152,9 +152,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): Unit = alloc match {
-    case EMap(tname, props, asite) =>
+    case EMap(tname, fields, asite) =>
       walk(tname)
-      walkList(props, { case (p, e) => (walk(p), walk(e)) })
+      walkList(fields, { case (p, e) => (walk(p), walk(e)) })
       walk(asite)
     case EList(exprs, asite) =>
       walkList(exprs, walk); walk(asite)
@@ -190,12 +190,12 @@ trait UnitWalker extends BasicUnitWalker {
   // identifiers
   def walk(x: Id): Unit = x match {
     case Global(x) => walk(x)
-    case x: Local  => walk(x)
+    case x: Name   => walk(x)
     case Temp(k)   => walk(k)
   }
 
-  // local identifiers
-  def walk(x: Local): Unit = walk(x.name)
+  // named local identifiers
+  def walk(x: Name): Unit = walk(x.name)
 
   // TODO types
   def walk(ty: Type): Unit = walk(ty.name)
