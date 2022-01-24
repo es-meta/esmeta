@@ -11,13 +11,11 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm blocks
   // ---------------------------------------------------------------------------
-  given block: P[Block] = locationed {
-    indent ~> (
+  given block: P[Block] = indent ~> (
       rep1(subStep) ^^ { StepBlock(_) } |
-      rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
-      next ~> figureStr ^^ { Figure(_) }
+        rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
+        next ~> figureStr ^^ { Figure(_) }
     ) <~ dedent
-  }
 
   // sub-steps
   lazy val subStepPrefix: Parser[Option[String]] =

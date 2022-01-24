@@ -8,7 +8,7 @@ case class Program(block: Block) extends LangElem
 // -----------------------------------------------------------------------------
 // algorithm blocks
 // -----------------------------------------------------------------------------
-sealed trait Block extends LangElem with Locational
+sealed trait Block extends LangElem
 object Block extends Parser.From[Block]
 
 case class StepBlock(steps: List[SubStep]) extends Block

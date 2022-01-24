@@ -33,7 +33,7 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   given programRule: Rule[Program] = _ >> _.block
 
   // blocks
-  given blockRule: Rule[Block] = withLoc { (app, block) =>
+  given blockRule: Rule[Block] = (app, block) =>
     given Rule[Step] = stepWithUpperRule(true)
     if (detail) app.wrap("", "")(block match {
       case StepBlock(steps) =>
@@ -46,7 +46,6 @@ case class Stringifier(detail: Boolean, location: Boolean) {
         app :> "</figure>"
     })
     else app >> " [...]"
-  }
 
   // sub-steps
   given subStepRule: Rule[SubStep] = (app, subStep) =>
