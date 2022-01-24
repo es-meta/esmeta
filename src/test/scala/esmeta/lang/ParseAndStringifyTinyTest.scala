@@ -111,11 +111,11 @@ class ParseAndStringifyTinyTest extends LangTest {
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> (
         "for each integer _x_ starting with _x_ such that _x_, " +
-          "in ascending order, let _x_ be _x_."
+        "in ascending order, let _x_ be _x_."
       ),
       forEachIntStepFalse -> (
         "for each integer _x_ starting with _x_ such that _x_, " +
-          "in descending order, let _x_ be _x_."
+        "in descending order, let _x_ be _x_."
       ),
       throwStep -> "throw a *TypeError* exception.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
@@ -124,7 +124,7 @@ class ParseAndStringifyTinyTest extends LangTest {
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
       pushStep -> ("push _x_ onto the execution context stack; " +
-        "_x_ is now the running execution context."),
+      "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
       blockStep -> """
@@ -222,9 +222,9 @@ class ParseAndStringifyTinyTest extends LangTest {
       invokeMethodExpr -> "_x_.[[Value]](_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
       invokeSDOExprSingle -> ("StringValue of |Identifier| " +
-        "using |Identifier| as the argument"),
+      "using |Identifier| as the argument"),
       invokeSDOExprMulti -> ("StringValue of |Identifier| " +
-        "using |Identifier| and _x_ as the arguments"),
+      "using |Identifier| and _x_ as the arguments"),
       invokeSDOExprEval -> "the result of evaluating |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",

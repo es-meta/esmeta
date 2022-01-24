@@ -25,21 +25,21 @@ class ParseAndStringifyTinyTest extends SpecTest {
     checkParseAndStringify("Symbol", Symbol)(
       Terminal("{") -> "`{`",
       Nonterminal("Identifier", ntArgs, true) ->
-        "Identifier[+Await, ~Yield, ?For]?",
+      "Identifier[+Await, ~Yield, ?For]?",
       Nonterminal("Identifier", Nil, false) -> "Identifier",
       ButNot(nt, List(nt)) -> "Identifier but not Identifier",
       ButOnlyIf(nt, "MV", "> 0x10FFFF") ->
-        "Identifier [> but only if MV of |Identifier|> 0x10FFFF]",
+      "Identifier [> but only if MV of |Identifier|> 0x10FFFF]",
       Lookahead(true, List(symbols, symbols)) ->
-        "[lookahead < {`{` `}`, `{` `}`}]",
+      "[lookahead < {`{` `}`, `{` `}`}]",
       Lookahead(false, List(symbols, symbols)) ->
-        "[lookahead <! {`{` `}`, `{` `}`}]",
+      "[lookahead <! {`{` `}`, `{` `}`}]",
       Empty -> "[empty]",
       NoLineTerminator -> "[no LineTerminator here]",
       CodePointAbbr("LT") -> "<LT>",
       UnicodeSet(None) -> "> any Unicode code point",
       UnicodeSet(Some("with the Unicode property “ID_Start”")) ->
-        "> any Unicode code point with the Unicode property “ID_Start”",
+      "> any Unicode code point with the Unicode property “ID_Start”",
     )
 
     // nonterminal arguments
@@ -102,7 +102,7 @@ class ParseAndStringifyTinyTest extends SpecTest {
     // grammar
     checkStringify("Grammar")(
       Grammar(List(prod1), List(prod2)) ->
-        s"""// Productions
+      s"""// Productions
            |Identifier :: one of
            |  `a` `a`
            |

@@ -35,19 +35,20 @@ class ArgParser(cmd: Command[_], globalConfig: GlobalConfig)
     prefix: String,
     options: List[PhaseOption[Config]],
   ): Unit = {
-    options.foreach { case (opt, kind, _) =>
-      val optName = prefix + (if (prefix == "") "" else ":") + opt
-      optNameSet(optName) match {
-        case true => throw OptAlreadyExistError(optName)
-        case false =>
-          optNameSet += optName
-          kind.argRegexList(optName).reverseIterator.foreach {
-            case (optRegex, argRegex, fun) =>
-              val cur: Parser[Unit] =
-                (optRegex) ~> (argRegex) ^^ { fun(config, _) }
-              ruleList ::= cur
-          }
-      }
+    options.foreach {
+      case (opt, kind, _) =>
+        val optName = prefix + (if (prefix == "") "" else ":") + opt
+        optNameSet(optName) match {
+          case true => throw OptAlreadyExistError(optName)
+          case false =>
+            optNameSet += optName
+            kind.argRegexList(optName).reverseIterator.foreach {
+              case (optRegex, argRegex, fun) =>
+                val cur: Parser[Unit] =
+                  (optRegex) ~> (argRegex) ^^ { fun(config, _) }
+                ruleList ::= cur
+            }
+        }
     }
   }
 

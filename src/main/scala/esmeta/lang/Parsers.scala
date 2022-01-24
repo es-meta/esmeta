@@ -11,20 +11,21 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm blocks
   // ---------------------------------------------------------------------------
-  given block: P[Block] = locationed(
+  given block: P[Block] = locationed {
     indent ~> (
       rep1(subStep) ^^ { StepBlock(_) } |
-        rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
-        next ~> figureStr ^^ { Figure(_) }
-    ) <~ dedent,
-  )
+      rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
+      next ~> figureStr ^^ { Figure(_) }
+    ) <~ dedent
+  }
 
   // sub-steps
   lazy val subStepPrefix: Parser[Option[String]] =
     next ~> "1." ~> opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") <~ upper
   lazy val subStep: Parser[SubStep] =
-    subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ { case x ~ s =>
-      SubStep(x, s)
+    subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
+      case x ~ s =>
+        SubStep(x, s)
     }
 
   // figure string
@@ -36,23 +37,23 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  given step: P[Step] = locationed(
+  given step: P[Step] = locationed {
     letStep |
-      setStep |
-      returnStep |
-      assertStep |
-      throwStep |
-      performStep |
-      appendStep |
-      repeatStep |
-      pushStep |
-      noteStep |
-      suspendStep |
-      ifStep |
-      forEachStep |
-      forEachIntStep |
-      blockStep,
-  )
+    setStep |
+    returnStep |
+    assertStep |
+    throwStep |
+    performStep |
+    appendStep |
+    repeatStep |
+    pushStep |
+    noteStep |
+    suspendStep |
+    ifStep |
+    forEachStep |
+    forEachIntStep |
+    blockStep
+  }
 
   // let steps
   lazy val letStep: P[LetStep] =
@@ -71,7 +72,7 @@ trait Parsers extends IndentParsers {
   // return steps
   lazy val returnStep: P[ReturnStep] =
     "return" ~> end ^^^ { ReturnStep(None) } |
-      "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
+    "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
 
   // assertion steps
   lazy val assertStep: P[AssertStep] =
@@ -80,23 +81,25 @@ trait Parsers extends IndentParsers {
   // for-each steps
   lazy val forEachStep: P[ForEachStep] =
     ("for each" ~ opt("element") ~> opt(ty)) ~
-      variable ~
-      ("of" ~> expr) ~
-      ("," ~ opt("do") ~> step) ^^ { case t ~ r ~ e ~ s =>
+    variable ~
+    ("of" ~> expr) ~
+    ("," ~ opt("do") ~> step) ^^ {
+      case t ~ r ~ e ~ s =>
         ForEachStep(t, r, e, s)
-      }
+    }
 
   // for-each steps for integers
   lazy val forEachIntStep: P[ForEachIntegerStep] =
     lazy val ascending: Parser[Boolean] =
       ("ascending" ^^^ true | "descending" ^^^ false)
     ("for each" ~ "(non-negative )?integer".r ~> variable) ~
-      ("starting with" ~> expr) ~
-      ("such that" ~> cond) ~
-      (", in" ~> ascending <~ "order,") ~
-      (opt("do") ~> step) ^^ { case x ~ start ~ cond ~ asc ~ body =>
+    ("starting with" ~> expr) ~
+    ("such that" ~> cond) ~
+    (", in" ~> ascending <~ "order,") ~
+    (opt("do") ~> step) ^^ {
+      case x ~ start ~ cond ~ asc ~ body =>
         ForEachIntegerStep(x, start, cond, asc, body)
-      }
+    }
 
   // throw steps
   lazy val throwStep: P[ThrowStep] =
@@ -111,8 +114,8 @@ trait Parsers extends IndentParsers {
   // append steps
   lazy val appendStep: P[AppendStep] =
     ("append" | "add") ~> expr ~
-      ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
-      ^^ { case e ~ r => AppendStep(e, r) }
+    ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
+    ^^ { case e ~ r => AppendStep(e, r) }
 
   // repeat steps
   lazy val repeatStep: P[RepeatStep] =
@@ -124,7 +127,7 @@ trait Parsers extends IndentParsers {
   lazy val pushStep: P[PushStep] =
     "push" ~> ref <~ (
       "onto the execution context stack;" ~ ref ~
-        "is now the running execution context" ~ end
+      "is now the running execution context" ~ end
     ) ^^ { case r => PushStep(r) }
 
   // note steps
@@ -134,9 +137,9 @@ trait Parsers extends IndentParsers {
   // suspend steps
   lazy val suspendStep: P[SuspendStep] =
     "suspend" ~> baseRef <~
-      (opt("and remove it from the execution context stack") ~ end) ^^ {
-        SuspendStep(_)
-      }
+    (opt("and remove it from the execution context stack") ~ end) ^^ {
+      SuspendStep(_)
+    }
 
   // block steps
   lazy val blockStep: P[BlockStep] = block ^^ { BlockStep(_) }
@@ -153,20 +156,20 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // algorithm expressions
   // ---------------------------------------------------------------------------
-  given expr: P[Expression] = locationed(
+  given expr: P[Expression] = locationed {
     stringConcatExpr |||
-      listConcatExpr |||
-      recordExpr |||
-      lengthExpr |||
-      substrExpr |||
-      numberOfExpr |||
-      sourceTextExpr |||
-      intrExpr |||
-      calcExpr |||
-      invokeExpr |||
-      returnIfAbruptExpr |||
-      listExpr,
-  )
+    listConcatExpr |||
+    recordExpr |||
+    lengthExpr |||
+    substrExpr |||
+    numberOfExpr |||
+    sourceTextExpr |||
+    intrExpr |||
+    calcExpr |||
+    invokeExpr |||
+    returnIfAbruptExpr |||
+    listExpr
+  }
 
   // multilineExpr
   lazy val multilineExpr: P[MultilineExpression] = locationed(closureExpr)
@@ -194,15 +197,15 @@ trait Parsers extends IndentParsers {
   // `length of` expressions
   lazy val lengthExpr: P[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) } |||
-      "the number of code" ~ ("units" | "unit elements") ~ "in" ~> expr ^^ {
-        LengthExpression(_)
-      }
+    "the number of code" ~ ("units" | "unit elements") ~ "in" ~> expr ^^ {
+      LengthExpression(_)
+    }
 
   // `substring of` expressions
   lazy val substrExpr: P[SubstringExpression] =
     ("the substring of" ~> expr) ~
-      ("from" ~> expr) ~
-      ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+    ("from" ~> expr) ~
+    ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: P[NumberOfExpression] =
@@ -212,23 +215,24 @@ trait Parsers extends IndentParsers {
 
   // `source text` expressions
   lazy val sourceTextExpr: P[SourceTextExpression] =
-    ("the source text matched by" ~> expr) ^^ { case e =>
-      SourceTextExpression(e)
+    ("the source text matched by" ~> expr) ^^ {
+      case e =>
+        SourceTextExpression(e)
     }
 
   // abstract closure expressions
   lazy val closureExpr: P[AbstractClosureExpression] =
     lazy val params: P[List[Variable]] =
       "no parameters" ^^^ { Nil } |||
-        "parameters" ~> ("(" ~> repsep(variable, ",") <~ ")")
+      "parameters" ~> ("(" ~> repsep(variable, ",") <~ ")")
     lazy val captured: P[List[Variable]] =
       "catpures nothing" ^^^ { Nil } |||
-        "captures" ~> repsep(variable, sep("and"))
+      "captures" ~> repsep(variable, sep("and"))
 
     "a new Abstract Closure with" ~> params ~ ("that" ~> captured) ~
-      ("and performs the following steps when called:" ~> blockStep) ^^ {
-        case ps ~ cs ~ body => AbstractClosureExpression(ps, cs, body)
-      }
+    ("and performs the following steps when called:" ~> blockStep) ^^ {
+      case ps ~ cs ~ body => AbstractClosureExpression(ps, cs, body)
+    }
 
   // intrinsic expressions
   lazy val intrExpr: P[IntrinsicExpression] = intr ^^ { IntrinsicExpression(_) }
@@ -245,20 +249,23 @@ trait Parsers extends IndentParsers {
 
     lazy val unary: P[CalcExpression] = base ||| (
       ("-" | "the result of negating") ^^^ Neg
-    ) ~ base ^^ { case o ~ e =>
-      UnaryExpression(o, e)
+    ) ~ base ^^ {
+      case o ~ e =>
+        UnaryExpression(o, e)
     }
 
     lazy val term: P[CalcExpression] = unary ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ unary,
-    ) ^^ { case l ~ rs =>
-      rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+    ) ^^ {
+      case l ~ rs =>
+        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
 
     lazy val calc: P[CalcExpression] = term ~ rep(
       ("+" ^^^ Add ||| "-" ^^^ Sub) ~ term,
-    ) ^^ { case l ~ rs =>
-      rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+    ) ^^ {
+      case l ~ rs =>
+        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
 
     calc
@@ -273,98 +280,105 @@ trait Parsers extends IndentParsers {
     import MathOpExpression.Op.*
     (
       "max" ^^^ Max ||| "min" ^^^ Min |||
-        "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
-        "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
-    ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ { case o ~ as =>
-      MathOpExpression(o, as)
+      "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
+      "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
+    ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+      case o ~ as =>
+        MathOpExpression(o, as)
     }
 
   // literals
   lazy val literal: P[Literal] =
     opt("the") ~> "*this* value" ^^^ ThisLiteral |||
-      "NewTarget" ^^^ NewTargetLiteral |||
-      hexLiteral |||
-      "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
-      ntLiteral |||
-      "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
-      "the empty String" ^^^ StringLiteral("") |||
-      strLiteral |||
-      field ^^ { FieldLiteral(_) } |||
-      "@@" ~> word ^^ { SymbolLiteral(_) } |||
-      "+∞" ^^^ PositiveInfinityMathValueLiteral |||
-      "-∞" ^^^ NegativeInfinityMathValueLiteral |||
-      number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
-      "*+∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.PositiveInfinity) |||
-      "*-∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.NegativeInfinity) |||
-      "*NaN*" ^^^ NumberLiteral(Double.NaN) |||
-      "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |||
-      "*" ~> bigint <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
-      "*true*" ^^^ TrueLiteral |||
-      "*false*" ^^^ FalseLiteral |||
-      "*undefined*" ^^^ UndefinedLiteral |||
-      "*null*" ^^^ NullLiteral |||
-      "absent" ^^^ AbsentLiteral |||
-      "Undefined" ^^^ UndefinedTypeLiteral |||
-      "Null" ^^^ NullTypeLiteral |||
-      "Boolean" ^^^ BooleanTypeLiteral |||
-      "String" ^^^ StringTypeLiteral |||
-      "Symbol" ^^^ SymbolTypeLiteral |||
-      "Number" ^^^ NumberTypeLiteral |||
-      "BigInt" ^^^ BigIntTypeLiteral |||
-      "Object" ^^^ ObjectTypeLiteral
+    "NewTarget" ^^^ NewTargetLiteral |||
+    hexLiteral |||
+    "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
+    ntLiteral |||
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
+    "the empty String" ^^^ StringLiteral("") |||
+    strLiteral |||
+    field ^^ { FieldLiteral(_) } |||
+    "@@" ~> word ^^ { SymbolLiteral(_) } |||
+    "+∞" ^^^ PositiveInfinityMathValueLiteral |||
+    "-∞" ^^^ NegativeInfinityMathValueLiteral |||
+    number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
+    "*+∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.PositiveInfinity) |||
+    "*-∞*<sub>𝔽</sub>" ^^^ NumberLiteral(Double.NegativeInfinity) |||
+    "*NaN*" ^^^ NumberLiteral(Double.NaN) |||
+    "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |||
+    "*" ~> bigint <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
+    "*true*" ^^^ TrueLiteral |||
+    "*false*" ^^^ FalseLiteral |||
+    "*undefined*" ^^^ UndefinedLiteral |||
+    "*null*" ^^^ NullLiteral |||
+    "absent" ^^^ AbsentLiteral |||
+    "Undefined" ^^^ UndefinedTypeLiteral |||
+    "Null" ^^^ NullTypeLiteral |||
+    "Boolean" ^^^ BooleanTypeLiteral |||
+    "String" ^^^ StringTypeLiteral |||
+    "Symbol" ^^^ SymbolTypeLiteral |||
+    "Number" ^^^ NumberTypeLiteral |||
+    "BigInt" ^^^ BigIntTypeLiteral |||
+    "Object" ^^^ ObjectTypeLiteral
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: P[HexLiteral] =
     (opt("the code unit") ~ "0x" ~> "[0-9A-F]+".r) ~
-      opt("(" ~> "[ A-Z]+".r <~ ")") ^^ { case n ~ x =>
+    opt("(" ~> "[ A-Z]+".r <~ ")") ^^ {
+      case n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x)
-      }
+    }
 
   // nonterminal literals
   lazy val ntLiteral: P[NonterminalLiteral] =
     opt("the") ~> opt(
       word.map(_.toIntFromOrdinal).filter(_.isDefined),
-    ) ~ ("|" ~> word <~ "|") ^^ { case ord ~ x =>
-      NonterminalLiteral(ord.flatten, x)
+    ) ~ ("|" ~> word <~ "|") ^^ {
+      case ord ~ x =>
+        NonterminalLiteral(ord.flatten, x)
     }
 
   // string literals
   lazy val strLiteral: P[StringLiteral] =
-    opt("the String") ~> """\*"[^"]*"\*""".r ^^ { case s =>
-      val str = s
-        .substring(2, s.length - 2)
-        .replace("\\*", "*")
-        .replace("\\\\", "\\")
-      StringLiteral(str)
+    opt("the String") ~> """\*"[^"]*"\*""".r ^^ {
+      case s =>
+        val str = s
+          .substring(2, s.length - 2)
+          .replace("\\*", "*")
+          .replace("\\\\", "\\")
+        StringLiteral(str)
     }
 
   // algorithm invocation expressions
   lazy val invokeExpr: P[InvokeExpression] =
     invokeAOExpr |||
-      invokeNumericExpr |||
-      invokeClosureExpr |||
-      invokeAMExpr |||
-      invokeSDOExpr
+    invokeNumericExpr |||
+    invokeClosureExpr |||
+    invokeAMExpr |||
+    invokeSDOExpr
 
   // arguments for invocation epxressions
   lazy val invokeArgs: P[List[Expression]] = ("(" ~> repsep(expr, ",") <~ ")")
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: P[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ { case x ~ as =>
-      InvokeAbstractOperationExpression(x, as)
+    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
+      case x ~ as =>
+        InvokeAbstractOperationExpression(x, as)
     }
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: P[InvokeNumericMethodExpression] =
-    ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ { case t ~ op ~ as =>
-      InvokeNumericMethodExpression(t, op, as)
+    ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
+      case t ~ op ~ as =>
+        InvokeNumericMethodExpression(t, op, as)
     }
 
   // abstract closure invocation expression
   lazy val invokeClosureExpr: P[InvokeAbstractClosureExpression] =
-    variable ~ invokeArgs ^^ { case v ~ as =>
-      InvokeAbstractClosureExpression(v, as)
+    variable ~ invokeArgs ^^ {
+      case v ~ as =>
+        InvokeAbstractClosureExpression(v, as)
     }
 
   // method invocation expressions
@@ -386,35 +400,39 @@ trait Parsers extends IndentParsers {
 
     // normal SDO
     lazy val normalSDOExpr =
-      name ~ base ~ opt(argsPart) ^^ { case x ~ b ~ as =>
-        InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
+      name ~ base ~ opt(argsPart) ^^ {
+        case x ~ b ~ as =>
+          InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
       }
 
     // Evalution SDO
     lazy val evalSDOExpr =
-      "the result of evaluating" ~> expr ^^ { case b =>
-        InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
+      "the result of evaluating" ~> expr ^^ {
+        case b =>
+          InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
       }
 
     // Contains SDO
     lazy val containsSDOExpr =
-      expr ~ ("Contains" ~> expr) ^^ { case b ~ arg =>
-        InvokeSyntaxDirectedOperationExpression(b, "Contains", List(arg))
+      expr ~ ("Contains" ~> expr) ^^ {
+        case b ~ arg =>
+          InvokeSyntaxDirectedOperationExpression(b, "Contains", List(arg))
       }
 
     normalSDOExpr ||| evalSDOExpr ||| containsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: P[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ invokeExpr ^^ { case c ~ e =>
-      ReturnIfAbruptExpression(e, c)
+    ("?" ^^^ true | "!" ^^^ false) ~ invokeExpr ^^ {
+      case c ~ e =>
+        ReturnIfAbruptExpression(e, c)
     }
 
   // list expressions
   lazy val listExpr: P[ListExpression] =
     "a new empty List" ^^^ ListExpression(Nil) |||
-      "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
-      "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
+    "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
 
   // not yet supported expressions
   lazy val yetExpr: P[YetExpression] =
@@ -426,22 +444,22 @@ trait Parsers extends IndentParsers {
   given cond: P[Condition] =
     import CompoundCondition.Op.*
     lazy val op: P[CompoundCondition.Op] = "and" ^^^ And ||| "or" ^^^ Or
-
-    locationed(baseCond ~ rep(op ~ baseCond) ^^ { case l ~ rs =>
-      rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
-    } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ { case l ~ r =>
-      CompoundCondition(l, Imply, r)
+    locationed(baseCond ~ rep(op ~ baseCond) ^^ {
+      case l ~ rs =>
+        rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
+    } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ {
+      case l ~ r => CompoundCondition(l, Imply, r)
     })
 
   // base conditions
-  lazy val baseCond: P[Condition] = locationed(
+  lazy val baseCond: P[Condition] = locationed {
     exprCond |||
-      instanceOfCond |||
-      hasFieldCond |||
-      abruptCond |||
-      isAreCond |||
-      binCond,
-  )
+    instanceOfCond |||
+    hasFieldCond |||
+    abruptCond |||
+    isAreCond |||
+    binCond
+  }
 
   // expression conditions
   lazy val exprCond: P[ExpressionCondition] =
@@ -449,23 +467,26 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: P[InstanceOfCondition] =
-    expr ~ isEither((("an" | "a") ~> ty)) ^^ { case e ~ (n ~ t) =>
-      InstanceOfCondition(e, n, t)
+    expr ~ isEither((("an" | "a") ~> ty)) ^^ {
+      case e ~ (n ~ t) =>
+        InstanceOfCondition(e, n, t)
     }
 
   // field includsion conditions
   lazy val hasFieldCond: P[HasFieldCondition] =
     lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
     expr ~
-      ("has" ^^^ false ||| "does not have" ^^^ true) ~
-      (("an" | "a") ~> field <~ fieldStr) ^^ { case e ~ n ~ f =>
+    ("has" ^^^ false ||| "does not have" ^^^ true) ~
+    (("an" | "a") ~> field <~ fieldStr) ^^ {
+      case e ~ n ~ f =>
         HasFieldCondition(e, n, f)
-      }
+    }
 
   // abrupt completion check conditions
   lazy val abruptCond: P[AbruptCompletionCondition] =
-    variable ~ isNeg <~ "an abrupt completion" ^^ { case x ~ n =>
-      AbruptCompletionCondition(x, n)
+    variable ~ isNeg <~ "an abrupt completion" ^^ {
+      case x ~ n =>
+        AbruptCompletionCondition(x, n)
     }
 
   // `A is/are B` condition
@@ -481,7 +502,7 @@ trait Parsers extends IndentParsers {
 
     lazy val right: P[Boolean ~ List[Expression]] =
       either(neg, expr) |||
-        neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral)) }
+      neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral)) }
 
     left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 
@@ -490,18 +511,19 @@ trait Parsers extends IndentParsers {
     import BinaryCondition.Op.*
     lazy val op: Parser[BinaryCondition.Op] =
       "=" ^^^ Eq |||
-        "≠" ^^^ NEq |||
-        "<" ^^^ LessThan |||
-        "≤" ^^^ LessThanEqual |||
-        ">" ^^^ GreaterThan |||
-        "≥" ^^^ GreaterThanEqual |||
-        "is the same sequence of code units as" ^^^ SameCodeUnits |||
-        "contains" ^^^ Contains |||
-        "does not contain" ^^^ NContains
+      "≠" ^^^ NEq |||
+      "<" ^^^ LessThan |||
+      "≤" ^^^ LessThanEqual |||
+      ">" ^^^ GreaterThan |||
+      "≥" ^^^ GreaterThanEqual |||
+      "is the same sequence of code units as" ^^^ SameCodeUnits |||
+      "contains" ^^^ Contains |||
+      "does not contain" ^^^ NContains
     expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |||
-      expr ~ (isNeg <~ "an element of") ~ expr ^^ { case l ~ n ~ r =>
+    expr ~ (isNeg <~ "an element of") ~ expr ^^ {
+      case l ~ n ~ r =>
         BinaryCondition(r, if (n) NContains else Contains, l)
-      }
+    }
 
   // ---------------------------------------------------------------------------
   // algorithm references
@@ -510,11 +532,12 @@ trait Parsers extends IndentParsers {
 
   // property references
   lazy val propRef: P[PropertyReference] =
-    baseRef ~ rep1(prop) ^^ { case base ~ ps =>
-      val (p :: rest) = ps
-      rest.foldLeft[PropertyReference](PropertyReference(base, p))(
-        PropertyReference(_, _),
-      )
+    baseRef ~ rep1(prop) ^^ {
+      case base ~ ps =>
+        val (p :: rest) = ps
+        rest.foldLeft[PropertyReference](PropertyReference(base, p))(
+          PropertyReference(_, _),
+        )
     } ||| ("the" ~> camel <~ opt("component")) ~ ("of" ~> variable) ^^ {
       case c ~ v => PropertyReference(v, ComponentProperty(c))
     }
@@ -529,8 +552,9 @@ trait Parsers extends IndentParsers {
 
   // variables
   lazy val variable: P[Variable] =
-    locationed("_[^_]+_".r ^^ { case s =>
-      Variable(s.substring(1, s.length - 1))
+    locationed("_[^_]+_".r ^^ {
+      case s =>
+        Variable(s.substring(1, s.length - 1))
     })
 
   // ---------------------------------------------------------------------------
@@ -538,8 +562,8 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given prop: P[Property] =
     ("." ~> field) ^^ { FieldProperty(_) } |||
-      (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
-      ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
+    (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
+    ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
 
   // ---------------------------------------------------------------------------
   // algorithm fields
@@ -574,8 +598,8 @@ trait Parsers extends IndentParsers {
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
-      (b <~ "either") ~ repsep(p, sep("or")) |
-      b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
+    (b <~ "either") ~ repsep(p, sep("or")) |
+    b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
   private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(isNeg, p)
   private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =

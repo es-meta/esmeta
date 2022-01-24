@@ -53,14 +53,15 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 
   // check stringify
   def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
-    check(desc)(cases.foreach { case (obj, expected) =>
-      val result = obj.toString
-      if (result != expected) {
-        println(s"[FAILED] $desc")
-        println(s"- expected: $expected")
-        println(s"- result: $result")
-        assert(result == expected)
-      }
+    check(desc)(cases.foreach {
+      case (obj, expected) =>
+        val result = obj.toString
+        if (result != expected) {
+          println(s"[FAILED] $desc")
+          println(s"- expected: $expected")
+          println(s"- result: $result")
+          assert(result == expected)
+        }
     })
 
   // original toString of case class
@@ -71,33 +72,34 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
       } yield origToString(elem)).mkString("(", ",", ")")
     case it: Iterable[_] =>
       it.getClass.getName +
-        (for {
-          elem <- it
-        } yield origToString(elem)).mkString("(", ",", ")")
+      (for {
+        elem <- it
+      } yield origToString(elem)).mkString("(", ",", ")")
     case _ => x.toString
 
   // check parse and stringify
   def checkParseAndStringify[T](desc: String, parser: BasicParsers#From[T])(
     cases: (T, String)*,
   ): Unit =
-    check(desc)(cases.foreach { case (obj, string) =>
-      // check parse
-      val parsed = optional(parser.from(string))
-      val stringified = obj.toString
-      if (parsed != Some(obj)) {
-        println(s"[FAILED] $desc")
-        val parsedStr = parsed.fold("<parsing failed>")(origToString)
-        println(s"- result: ${parsedStr}")
-        println(s"- expected: ${origToString(obj)}")
-      }
-      // check stringify
-      if (stringified != string) {
-        println(s"[FAILED] $desc")
-        println(s"- result: $stringified")
-        println(s"- expected: $string")
-      }
-      assert(parsed == Some(obj))
-      assert(stringified == string)
+    check(desc)(cases.foreach {
+      case (obj, string) =>
+        // check parse
+        val parsed = optional(parser.from(string))
+        val stringified = obj.toString
+        if (parsed != Some(obj)) {
+          println(s"[FAILED] $desc")
+          val parsedStr = parsed.fold("<parsing failed>")(origToString)
+          println(s"- result: ${parsedStr}")
+          println(s"- expected: ${origToString(obj)}")
+        }
+        // check stringify
+        if (stringified != string) {
+          println(s"[FAILED] $desc")
+          println(s"- result: $stringified")
+          println(s"- expected: $string")
+        }
+        assert(parsed == Some(obj))
+        assert(stringified == string)
     })
 
   // get score

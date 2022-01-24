@@ -142,8 +142,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
       case RecordExpression(ty, fields) =>
-        given Rule[(Field, Expression)] = { case (app, (field, expr)) =>
-          app >> field >> ": " >> expr
+        given Rule[(Field, Expression)] = {
+          case (app, (field, expr)) =>
+            app >> field >> ": " >> expr
         }
         given Rule[List[(Field, Expression)]] = iterableRule("{ ", ", ", " }")
         app >> ty >> " "

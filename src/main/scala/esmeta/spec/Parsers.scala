@@ -15,12 +15,12 @@ trait Parsers extends BasicParsers {
   given prod: Parser[Production] =
     lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
-        val rs =
-          for (r <- origRs; s <- r.symbols)
-            yield Rhs(None, List(s), None)
+        val rs = for {
+          r <- origRs
+          s <- r.symbols
+        } yield Rhs(None, List(s), None)
         Production(l, k, true, rs)
-      case l ~ k ~ None ~ rs =>
-        Production(l, k, false, rs)
+      case l ~ k ~ None ~ rs => Production(l, k, false, rs)
     }
 
   // production kinds
@@ -30,20 +30,23 @@ trait Parsers extends BasicParsers {
 
   // production left-hand-sides (LHSs)
   given lhs: Parser[Lhs] =
-    word ~ opt("[" ~> repsep(word, ",") <~ "]") ^^ { case name ~ params =>
-      Lhs(name, params.getOrElse(Nil))
+    word ~ opt("[" ~> repsep(word, ",") <~ "]") ^^ {
+      case name ~ params =>
+        Lhs(name, params.getOrElse(Nil))
     }
 
   // production alternative right-hand-sides (RHSs)
   given rhs: Parser[Rhs] =
-    opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ { case c ~ ss ~ i =>
-      Rhs(c, ss, i)
+    opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ {
+      case c ~ ss ~ i =>
+        Rhs(c, ss, i)
     }
 
   // RHS conditions
   given rhsCond: Parser[RhsCond] =
-    "[" ~> ("[+~]".r) ~ word <~ "]" ^^ { case str ~ name =>
-      RhsCond(name, str == "+")
+    "[" ~> ("[+~]".r) ~ word <~ "]" ^^ {
+      case str ~ name =>
+        RhsCond(name, str == "+")
     }
 
   // RHS ids
@@ -55,8 +58,9 @@ trait Parsers extends BasicParsers {
 
   // terminals
   lazy val term: Parser[Terminal] =
-    "`[^`]+`|```".r ^^ { case str =>
-      Terminal(str.substring(1, str.length - 1))
+    "`[^`]+`|```".r ^^ {
+      case str =>
+        Terminal(str.substring(1, str.length - 1))
     }
 
   // nonterminals
@@ -76,9 +80,9 @@ trait Parsers extends BasicParsers {
   // [> but only if MV of |HexDigits| > 0x10FFFF]
   lazy val butOnlyIf: Parser[ButOnlyIf] =
     nt ~ ("[> but only if" ~ opt("the") ~> word <~ "of |" ~ word ~ "|") ~
-      "[^\\]]+".r <~ "]" ^^ { case base ~ name ~ cond =>
-        ButOnlyIf(base, name, cond)
-      }
+    "[^\\]]+".r <~ "]" ^^ {
+      case base ~ name ~ cond => ButOnlyIf(base, name, cond)
+    }
 
   // empty symbols
   lazy val empty: Parser[Empty.type] = "[empty]" ^^^ Empty
@@ -97,8 +101,8 @@ trait Parsers extends BasicParsers {
 
   // lookahead symbol
   lazy val lookahead: Parser[Lookahead] =
-    "[lookahead " ~> containsSymbol ~ laList <~ "]" ^^ { case b ~ cases =>
-      Lookahead(b, cases)
+    "[lookahead " ~> containsSymbol ~ laList <~ "]" ^^ {
+      case b ~ cases => Lookahead(b, cases)
     }
   lazy val laList: Parser[List[List[Symbol]]] =
     opt("{") ~> repsep(rep(symbol), ",") <~ opt("}")
@@ -125,15 +129,16 @@ trait Parsers extends BasicParsers {
 
   // abstract opration (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] =
-    opt(semanticsKind) ~> name ~ params ^^ { case name ~ params =>
-      (isHostDefined: Boolean) =>
-        AbstractOperationHead(name, params, isHostDefined)
+    opt(semanticsKind) ~> name ~ params ^^ {
+      case name ~ params =>
+        (isHostDefined: Boolean) =>
+          AbstractOperationHead(name, params, isHostDefined)
     }
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] =
-    (name <~ "::") ~ name ~ params ^^ { case t ~ x ~ ps =>
-      NumericMethodHead(t, x, ps)
+    (name <~ "::") ~ name ~ params ^^ {
+      case t ~ x ~ ps => NumericMethodHead(t, x, ps)
     }
 
   // algorithm parameters
@@ -141,7 +146,7 @@ trait Parsers extends BasicParsers {
     import Param.Kind.Ellipsis
     opt(
       "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) ~ oldOptParams <~
-        opt("," ~ newline) ~ ")",
+      opt("," ~ newline) ~ ")",
     ) ^^ {
       case None           => Nil
       case Some(ps ~ ops) => ps ++ ops
@@ -149,10 +154,10 @@ trait Parsers extends BasicParsers {
   // TODO remove this legacy parser later
   lazy val oldOptParams: Parser[List[Param]] =
     import Param.Kind.*
-    "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ { case p ~ psOpt =>
-      p :: psOpt.getOrElse(Nil)
-    } | opt(",") ~ "..." ~> param ^^ { case p =>
-      List(p.copy(kind = Variadic))
+    "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ {
+      case p ~ psOpt => p :: psOpt.getOrElse(Nil)
+    } | opt(",") ~ "..." ~> param ^^ {
+      case p => List(p.copy(kind = Variadic))
     } | success(Nil)
   lazy val param: Parser[Param] =
     import Param.Kind.*
@@ -163,34 +168,33 @@ trait Parsers extends BasicParsers {
     } | opt(",") ~ "…" ^^^ Param("", Ellipsis, "")
   lazy val paramDesc: Parser[Param] =
     import Param.Kind.*
-    headParamType ~ opt(id) ^^ { case ty ~ name =>
-      Param(name.getOrElse("this"), Normal, ty)
+    headParamType ~ opt(id) ^^ {
+      case ty ~ name => Param(name.getOrElse("this"), Normal, ty)
     }
 
   // syntax-directed operation (SDO) head generator
   lazy val sdoHeadGen: Parser[
     Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
   ] =
-    semanticsKind ~ name ~ params ^^ { case isStatic ~ x ~ params =>
-      targetOpt =>
-        SyntaxDirectedOperationHead(
-          targetOpt,
-          x,
-          isStatic,
-          params,
-        )
+    semanticsKind ~ name ~ params ^^ {
+      case isStatic ~ x ~ params =>
+        targetOpt => SyntaxDirectedOperationHead(targetOpt, x, isStatic, params)
     }
 
   // concrete method head generator
   lazy val concMethodHeadGen: Parser[Param => ConcreteMethodHead] =
-    name ~ params ^^ { case name ~ params =>
-      (receiverParam: Param) => ConcreteMethodHead(name, receiverParam, params)
+    name ~ params ^^ {
+      case name ~ params =>
+        (receiverParam: Param) =>
+          ConcreteMethodHead(name, receiverParam, params)
     }
 
   // internal method head generator
   lazy val inMethodHeadGen: Parser[Param => InternalMethodHead] =
-    ("[[" ~> name <~ "]]") ~ params ^^ { case name ~ params =>
-      (receiverParam: Param) => InternalMethodHead(name, receiverParam, params)
+    ("[[" ~> name <~ "]]") ~ params ^^ {
+      case name ~ params =>
+        (receiverParam: Param) =>
+          InternalMethodHead(name, receiverParam, params)
     }
 
   // built-in heads

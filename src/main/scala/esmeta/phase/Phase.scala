@@ -49,8 +49,9 @@ trait Phase[Input, Output] {
     }
 
   /** get shape string of options */
-  def getOptShapes: List[String] = options.map { case (opt, kind, _) =>
-    s"-$name:${opt}${kind.postfix}"
+  def getOptShapes: List[String] = options.map {
+    case (opt, kind, _) =>
+      s"-$name:${opt}${kind.postfix}"
   }
 
   /** get description strings of options */

@@ -50,16 +50,16 @@ class ParseAndStringifyTinyTest extends IRTest {
       irReturn -> sReturn,
       IThrow("SyntaxError") -> "throw SyntaxError",
       IIf(EBool(true), irReturn, IExpr(ENum(3.0))) ->
-        s"if true $sReturn else 3.0",
+      s"if true $sReturn else 3.0",
       IWhile(EBool(false), irReturn) -> s"while false $sReturn",
       ISeq(List()) -> "{}",
       ISeq(List(irReturn, IExpr(ENull))) -> s"{\n  $sReturn\n  null\n}",
       IAssert(EBool(false)) -> "assert false",
       IPrint(EBool(false)) -> "print false",
       IApp(Id("x"), EStr("f"), irList) ->
-        "app x = (\"f\" null absent)",
+      "app x = (\"f\" null absent)",
       IWithCont(Id("x"), idList, irReturn) ->
-        s"withcont x $sIdList = $sReturn",
+      s"withcont x $sIdList = $sReturn",
     )
 
     // -----------------------------------------------------------------------------
@@ -78,9 +78,9 @@ class ParseAndStringifyTinyTest extends IRTest {
       ENull -> "null",
       EAbsent -> "absent",
       EClo(idList, idList, IExpr(EINum(4))) ->
-        s"(clo $sIdList[x, y] => 4i)",
+      s"(clo $sIdList[x, y] => 4i)",
       ECont(idList, IExpr(EINum(4))) ->
-        s"(cont $sIdList [=>] 4i)",
+      s"(cont $sIdList [=>] 4i)",
       EMap(Ty("T"), irMapElems) -> s"(new T$sMapElems)",
       EList(irList) -> sList,
       EPop(EList(irList), EINum(0)) -> s"(pop $sList 0i)",
@@ -90,18 +90,18 @@ class ParseAndStringifyTinyTest extends IRTest {
       ETypeOf(EBool(false)) -> "(typeof false)",
       EIsCompletion(EINum(5)) -> "(is-completion 5i)",
       EIsInstanceOf(EBool(false), "instanceof") ->
-        "(is-instance-of false instanceof)",
+      "(is-instance-of false instanceof)",
       EGetElems(EBool(false), "getelems") ->
-        "(get-elems false getelems)",
+      "(get-elems false getelems)",
       EGetSyntax(EAbsent) -> "(get-syntax absent)",
       EParseSyntax(EStr("code"), EStr("rule"), Nil)
-        -> "(parse-syntax \"code\" \"rule\")",
+      -> "(parse-syntax \"code\" \"rule\")",
       EParseSyntax(EStr("code"), EStr("rule"), List(true, false))
-        -> "(parse-syntax \"code\" \"rule\" true false)",
+      -> "(parse-syntax \"code\" \"rule\" true false)",
       EConvert(ENull, COp.NumToBigInt, None) ->
-        "(convert null num2bigint)",
+      "(convert null num2bigint)",
       EConvert(EStr("4"), COp.StrToNum, Some(EAbsent)) ->
-        "(convert \"4\" str2num absent)",
+      "(convert \"4\" str2num absent)",
       EContains(EList(irList), ENull) -> s"(contains $sList null)",
       EReturnIfAbrupt(ENum(3.0), true) -> "[? 3.0]",
       EReturnIfAbrupt(ENum(3.0), false) -> "[! 3.0]",
@@ -221,7 +221,7 @@ class ParseAndStringifyTinyTest extends IRTest {
     )
     checkStringify("Clo")(
       Clo("clo", idList, MMap[Id, Value](Id("z") -> Num(3.0)), None) ->
-        "clo:closure(x, y)[z -> 3.0] => ...",
+      "clo:closure(x, y)[z -> 3.0] => ...",
     )
     checkStringify("Cont")(
       Cont(idList, Context(), List()) -> "TOP_LEVEL(x, y) [=>] ...",

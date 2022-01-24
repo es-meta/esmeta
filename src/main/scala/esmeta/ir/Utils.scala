@@ -318,8 +318,9 @@ object Utils {
     /** copied */
     def copied: Heap =
       Heap(
-        MMap.from(heap.map.toList.map { case (addr, obj) =>
-          addr -> obj.copied
+        MMap.from(heap.map.toList.map {
+          case (addr, obj) =>
+            addr -> obj.copied
         }),
         heap.size,
       )
@@ -362,8 +363,9 @@ object Utils {
 
     /** get key, value pairs */
     def pairs: Map[Value, Value] =
-      irMap.props.foldLeft(Map[Value, Value]()) { case (m, (k, mv)) =>
-        m + (k -> mv.value)
+      irMap.props.foldLeft(Map[Value, Value]()) {
+        case (m, (k, mv)) =>
+          m + (k -> mv.value)
       }
 
     /** getters */
