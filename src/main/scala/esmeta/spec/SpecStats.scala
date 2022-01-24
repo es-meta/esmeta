@@ -49,12 +49,13 @@ object SpecStats {
     targets.foreach((cName, int) => addAlgo(docu)(algo, cName, int))
 
   /** get Yet steps in algorithms of given elem */
-  def getYetSteps(spec: Spec, elem: Element): String =
-    val algos: List[Algorithm] = elem.getAlgos(spec)
+  def getYetSteps(spec: Spec, elem: Element, indent: Int): String =
+    val algos = elem.getAlgos(spec)
+    val indentStr = "  " * indent
     algos
       .map(_.incompleteSteps)
       .flatten
-      .map(LINE_SEP + _.toString)
+      .map(LINE_SEP + indentStr + _.toString(false))
       .fold("")(_ + _)
 
   // log
@@ -73,16 +74,16 @@ object SpecStats {
     val total = getCounter(elem, cNameTotal)
     val pass = getCounter(elem, cNamePass)
     val fail = total - pass
-    val ratioStr = if total != 0 then ratioString(pass, total) else ""
+    val ratioStr = if total != 0 then " " + ratioString(pass, total) else ""
     val yetStepStr =
       if cKind == "Step" & fail != 0 & children.filter(
           _.tagName == "emu-alg",
         ) != Nil
-      then getYetSteps(spec, elem)
+      then getYetSteps(spec, elem, indent + 2)
       else ""
-    if elem.tagName == "body" then s"${indentStr}${ratioStr}"
+    if elem.tagName == "body" then s"${ratioString(pass, total)}"
     else if elem.tagName == "emu-clause" then
-      s"${LINE_SEP}${indentStr}-${idStr} : ${ratioStr}${yetStepStr}"
+      s"${LINE_SEP}${indentStr}- ${idStr} :${ratioStr}${yetStepStr}"
     else ""
 
   /** get descendant String */
