@@ -42,7 +42,7 @@ case class Stringifier(detail: Boolean) {
   given funcRule: Rule[Func] = (app, func) =>
     val Func(_, kind, name, params, entry, exit, nodes) = func
     given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
-    app >> func.simpleString >> " " >> kind >> " "
+    app >> func.id >> ": " >> kind
     app >> name >> params >> " [" >> entry >> " -> " >> exit >> "] "
     given Ordering[Node] = Ordering.by(_.id)
     app.wrap(for (node <- nodes.values.toList.sorted) app :> node)
@@ -51,13 +51,13 @@ case class Stringifier(detail: Boolean) {
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
     import Func.Kind.*
     app >> (kind match {
-      case AbsOp       => "[ABS-OP]"
-      case NumMeth     => "[NUM]"
-      case SynDirOp    => "[SYNTAX]"
-      case ConcMeth    => "[CONC]"
-      case BuiltinMeth => "[BUILTIN]"
-      case Clo         => "[CLO]"
-      case Cont        => "[CONT]"
+      case AbsOp       => ""
+      case NumMeth     => "<NUM>:"
+      case SynDirOp    => "<SYNTAX>:"
+      case ConcMeth    => "<CONC>:"
+      case BuiltinMeth => "<BUILTIN>:"
+      case Clo         => "<CLO>:"
+      case Cont        => "<CONT>:"
     })
 
   // function parameters
@@ -67,21 +67,22 @@ case class Stringifier(detail: Boolean) {
 
   // nodes
   given nodeRule: Rule[Node] = (app, node) =>
-    app >> node.simpleString
+    app >> node.id >> ": "
     node match {
       case Entry(_, next) =>
-        app >> " -> " >> next
+        app >> "<entry> -> " >> next
       case Exit(_) =>
-        app
+        app >> "<exit>"
+      case Block(_, Vector(inst), next) =>
+        app >> inst >> " -> " >> next
       case Block(_, insts, next) =>
-        app >> " -> " >> next >> " "
-        app.wrap(for (inst <- insts) app :> inst)
+        app.wrap(for (inst <- insts) app :> inst) >> " -> " >> next
       case Branch(_, kind, cond, loc, thenNode, elseNode) =>
-        app >> " " >> kind >> "(" >> cond >> ")" >> loc
-        app >> " -> " >> thenNode >> " else " >> elseNode
+        app >> "<branch> " >> kind >> "(" >> cond >> ")" >> loc
+        app >> " -t> " >> thenNode >> " -f> " >> elseNode
       case Call(_, lhs, fexpr, args, loc, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
-        app >> " " >> lhs >> " = "
+        app >> "<call> " >> lhs >> " = "
         app >> fexpr >> args >> loc >> " -> " >> next
     }
 

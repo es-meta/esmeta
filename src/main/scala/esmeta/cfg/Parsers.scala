@@ -18,7 +18,7 @@ trait Parsers extends BasicParsers {
 
   // functions
   given func: Parser[Func] = (
-    getId("Func") ~ funcKind ~ ident ~ params ~
+    getId ~ funcKind ~ ident ~ params ~
       ("[" ~> int ~ ("->" ~> int) <~ "]") ~
       nodes
   ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ex) ~ ns =>
@@ -32,13 +32,13 @@ trait Parsers extends BasicParsers {
   // function kinds
   given funcKind: Parser[Func.Kind] =
     import Func.Kind.*
-    "[ABS-OP]" ^^^ AbsOp |
-      "[NUM]" ^^^ NumMeth |
-      "[SYNTAX]" ^^^ SynDirOp |
-      "[CONC]" ^^^ ConcMeth |
-      "[BUILTIN]" ^^^ BuiltinMeth |
-      "[CLO]" ^^^ Clo |
-      "[CONT]" ^^^ Cont
+    "<NUM>:" ^^^ NumMeth |
+      "<SYNTAX>:" ^^^ SynDirOp |
+      "<CONC>:" ^^^ ConcMeth |
+      "<BUILTIN>:" ^^^ BuiltinMeth |
+      "<CLO>:" ^^^ Clo |
+      "<CONT>:" ^^^ Cont |
+      "" ^^^ AbsOp
 
   // function parameters
   lazy val params: Parser[List[Param]] = "(" ~> repsep(param, ",") <~ ")"
@@ -48,15 +48,15 @@ trait Parsers extends BasicParsers {
   // nodes
   lazy val nodes: Parser[List[Node]] = "{" ~> rep(node) <~ "}"
   given node: Parser[Node] =
-    getId("Entry") ~ ("->" ~> int) ^^ { case i ~ n =>
+    getId("entry") ~ ("->" ~> int) ^^ { case i ~ n =>
       Entry(i, n)
-    } | getId("Exit") ^^ { case i =>
+    } | getId("exit") ^^ { case i =>
       Exit(i)
-    } | getId("Block") ~ ("->" ~> int) ~ insts ^^ { case i ~ n ~ is =>
+    } | getId ~ insts ~ ("->" ~> int) ^^ { case i ~ is ~ n =>
       Block(i, is.toVector, n)
-    } | getId("Branch") ~ cond ~ ("->" ~> int) ~ ("else" ~> int) ^^ {
+    } | getId("branch") ~ cond ~ ("-t>" ~> int) ~ ("-f>" ~> int) ^^ {
       case i ~ (k ~ c ~ l) ~ t ~ e => Branch(i, k, c, l, t, e)
-    } | getId("Call") ~ id ~ ("=" ~> expr) ~ args ~ ("->" ~> int) ^^ {
+    } | getId("call") ~ id ~ ("=" ~> expr) ~ args ~ ("->" ~> int) ^^ {
       case i ~ x ~ f ~ (as ~ l) ~ n => Call(i, x, f, as, l, n)
     }
 
@@ -74,7 +74,8 @@ trait Parsers extends BasicParsers {
     ("(" ~> repsep(expr, ",") <~ ")") ~ locOpt
 
   // instructions
-  lazy val insts: Parser[List[Inst]] = "{" ~> rep(inst) <~ "}"
+  lazy val insts: Parser[List[Inst]] =
+    inst ^^ { List(_) } | "{" ~> rep(inst) <~ "}"
   given inst: Parser[Inst] =
     "let" ~> local ~ ("=" ~> expr) ~ locOpt ^^ { case x ~ e ~ l =>
       ILet(x, e, l)
@@ -215,6 +216,6 @@ trait Parsers extends BasicParsers {
   given ty: Parser[Type] = ident ^^ { Type(_) }
 
   // helper for id getter
-  private def getId(name: String): Parser[Int] =
-    (name ~ "[" ~> int <~ "]")
+  private def getId: Parser[Int] = int <~ ":"
+  private def getId(name: String): Parser[Int] = getId <~ "<" ~ name ~ ">"
 }

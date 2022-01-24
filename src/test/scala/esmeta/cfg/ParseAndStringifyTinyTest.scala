@@ -15,14 +15,14 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val cfg = CFG(func.id, Map(func.id -> func), nodes)
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """@main Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
-      |  Entry[0] -> 1
-      |  Block[1] -> 2 {
+      cfg -> """@main 7: f(x: T, y: T) [0 -> 42] {
+      |  0: <entry> -> 1
+      |  1: {
       |    let x = ~empty~
       |    delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
       |    return x @ #sec-x[7]:3:2-4:7 (1.2.2)
-      |  }
-      |  Exit[2]
+      |  } -> 2
+      |  2: <exit>
       |}""".stripMargin,
     )
 
@@ -32,28 +32,28 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val nodeList = List(entry, block, exit)
     lazy val nodes = (for (node <- nodeList) yield node.id -> node).toMap
     lazy val func =
-      Func(7, Func.Kind.AbsOp, "Name", params, 0, 42, nodes)
+      Func(7, Func.Kind.AbsOp, "f", params, 0, 42, nodes)
 
     // tests
     checkParseAndStringify("Func", Func)(
-      func -> """Func[7] [ABS-OP] Name(x: T, y: T) [0 -> 42] {
-      |  Entry[0] -> 1
-      |  Block[1] -> 2 {
+      func -> """7: f(x: T, y: T) [0 -> 42] {
+      |  0: <entry> -> 1
+      |  1: {
       |    let x = ~empty~
       |    delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
       |    return x @ #sec-x[7]:3:2-4:7 (1.2.2)
-      |  }
-      |  Exit[2]
+      |  } -> 2
+      |  2: <exit>
       |}""".stripMargin,
     )
     checkParseAndStringify("Func.Kind", Func.Kind)(
-      Func.Kind.AbsOp -> "[ABS-OP]",
-      Func.Kind.NumMeth -> "[NUM]",
-      Func.Kind.SynDirOp -> "[SYNTAX]",
-      Func.Kind.ConcMeth -> "[CONC]",
-      Func.Kind.BuiltinMeth -> "[BUILTIN]",
-      Func.Kind.Clo -> "[CLO]",
-      Func.Kind.Cont -> "[CONT]",
+      Func.Kind.AbsOp -> "",
+      Func.Kind.NumMeth -> "<NUM>:",
+      Func.Kind.SynDirOp -> "<SYNTAX>:",
+      Func.Kind.ConcMeth -> "<CONC>:",
+      Func.Kind.BuiltinMeth -> "<BUILTIN>:",
+      Func.Kind.Clo -> "<CLO>:",
+      Func.Kind.Cont -> "<CONT>:",
     )
 
     // -------------------------------------------------------------------------
@@ -74,6 +74,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     lazy val entry = Entry(0, 1)
     lazy val exit = Exit(2)
+    lazy val blockSingle = Block(1, Vector(letNoLoc), 2)
     lazy val block = Block(1, Vector(letNoLoc, del, ret), 2)
     lazy val branch = Branch(17, Branch.Kind.If, xExpr, loc, 18, 19)
     lazy val branchNoLoc = Branch(17, Branch.Kind.If, xExpr, None, 18, 19)
@@ -82,17 +83,18 @@ class ParseAndStringifyTinyTest extends CFGTest {
 
     // tests
     checkParseAndStringify("Node", Node)(
-      entry -> "Entry[0] -> 1",
-      exit -> "Exit[2]",
-      block -> """Block[1] -> 2 {
-     |  let x = ~empty~
-     |  delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
-     |  return x @ #sec-x[7]:3:2-4:7 (1.2.2)
-     |}""".stripMargin,
-      branch -> "Branch[17] if(x) @ #sec-x[7]:3:2-4:7 (1.2.2) -> 18 else 19",
-      branchNoLoc -> "Branch[17] if(x) -> 18 else 19",
-      call -> "Call[7] %42 = x(x, y) @ #sec-x[7]:3:2-4:7 (1.2.2) -> 8",
-      callNoLoc -> "Call[7] %42 = x(x, y) -> 8",
+      entry -> "0: <entry> -> 1",
+      exit -> "2: <exit>",
+      blockSingle -> "1: let x = ~empty~ -> 2",
+      block -> """1: {
+      |  let x = ~empty~
+      |  delete x.p @ #sec-x[7]:3:2-4:7 (1.2.2)
+      |  return x @ #sec-x[7]:3:2-4:7 (1.2.2)
+      |} -> 2""".stripMargin,
+      branch -> "17: <branch> if(x) @ #sec-x[7]:3:2-4:7 (1.2.2) -t> 18 -f> 19",
+      branchNoLoc -> "17: <branch> if(x) -t> 18 -f> 19",
+      call -> "7: <call> %42 = x(x, y) @ #sec-x[7]:3:2-4:7 (1.2.2) -> 8",
+      callNoLoc -> "7: <call> %42 = x(x, y) -> 8",
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
       Branch.Kind.If -> "if",
