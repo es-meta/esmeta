@@ -139,9 +139,40 @@ trait Walker extends BasicWalker {
       ETypeCheck(walk(expr), walk(ty))
     case EClo(fid, captured) =>
       EClo(walk(fid), walkList(captured, walk))
+    case expr: AstExpr   => walk(expr)
     case expr: AllocExpr => walk(expr)
     case lit: Literal    => walk(lit)
   }
+
+  // abstract syntax tree (AST) expressions
+  def walk(ast: AstExpr): AstExpr = {
+    val AstExpr(name, args, rhsIdx, bits, children) = ast
+    AstExpr(
+      walk(name),
+      walkList(args, walk),
+      walk(rhsIdx),
+      walk(bits),
+      walkList(children, walk),
+    )
+  }
+
+  // allocation expressions
+  def walk(alloc: AllocExpr): AllocExpr = alloc match {
+    case EMap(tname, props, asite) =>
+      lazy val newProps = walkList(props, { case (p, e) => (walk(p), walk(e)) })
+      EMap(walk(tname), newProps, walk(asite))
+    case EList(exprs, asite) =>
+      EList(walkList(exprs, walk), walk(asite))
+    case ESymbol(desc, asite) =>
+      ESymbol(walk(desc), walk(asite))
+    case ECopy(obj, asite) =>
+      ECopy(walk(obj), walk(asite))
+    case EKeys(map, intSorted, asite) =>
+      EKeys(walk(map), walk(intSorted), walk(asite))
+  }
+
+  // literals
+  def walk(lit: Literal): Literal = lit
 
   // unary operators
   def walk(uop: UOp): UOp = uop

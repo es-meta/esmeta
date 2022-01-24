@@ -130,7 +130,17 @@ trait Parsers extends BasicParsers {
       ETypeCheck(e, t)
     } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(local, ",") <~ ")") ^^ {
       case fid ~ as => EClo(fid, as.getOrElse(Nil))
-    } | allocExpr | literal | ref ^^ { ERef(_) }
+    } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
+
+  // abstract syntax tree (AST) expressions
+  lazy val astExpr: Parser[AstExpr] =
+    ("|" ~> word <~ "|") ~
+      (opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }) ~
+      ("<" ~> int ~ ("," ~> int) <~ ">") ~
+      (opt("(" ~> repsep(expr, ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
+        case n ~ as ~ (i ~ j) ~ es => AstExpr(n, as, i, j, es)
+      }
+  lazy val simpleBool: Parser[Boolean] = "T" ^^^ true | "F" ^^^ false
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = (

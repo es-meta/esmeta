@@ -156,12 +156,21 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
     lazy val typeCheck = ETypeCheck(xExpr, ty)
+    // AST expressions
+    lazy val ast = AstExpr("Identifier", Nil, 1, 2, Nil)
+    lazy val astArgs = AstExpr("Identifier", List(true, false), 1, 2, Nil)
+    lazy val astSingle =
+      AstExpr("Identifier", List(true, false), 1, 2, List(xExpr))
+    lazy val astMultiple =
+      AstExpr("Identifier", List(true, false), 1, 2, List(xExpr, yExpr))
+    // allocation expressions
     lazy val map = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent), 42)
     lazy val list = EList(List(EUndef, ENull, EAbsent), 42)
     lazy val symbol = ESymbol(ENull, 42)
     lazy val copy = ECopy(xExpr, 42)
     lazy val keys = EKeys(xExpr, false, 42)
     lazy val keysInt = EKeys(xExpr, true, 42)
+    // literals
     lazy val normal = EConst("normal")
     lazy val empty = EConst("empty")
     lazy val clo = EClo(42, Nil)
@@ -183,6 +192,11 @@ class ParseAndStringifyTinyTest extends CFGTest {
       convert -> "([bigint] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: T)",
+      // AST expressions
+      ast -> "|Identifier|<1, 2>",
+      astArgs -> "|Identifier|[TF]<1, 2>",
+      astSingle -> "|Identifier|[TF]<1, 2>(x)",
+      astMultiple -> "|Identifier|[TF]<1, 2>(x, y)",
       // allocation expressions
       map -> "(new T(undefined -> true, null -> absent))[#42]",
       list -> "(new [undefined, null, absent])[#42]",

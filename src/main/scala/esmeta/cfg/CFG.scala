@@ -130,6 +130,15 @@ case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
 case class EClo(fid: Int, captured: List[Local]) extends Expr
 
+// abstract syntax tree (AST) expressions
+case class AstExpr(
+  name: String,
+  args: List[Boolean],
+  rhsIdx: Int,
+  bits: Int,
+  children: List[Expr],
+) extends Expr
+
 // allocation expressions
 sealed trait AllocExpr extends Expr { val asite: Int }
 case class EMap(tname: String, props: List[(Expr, Expr)], asite: Int)

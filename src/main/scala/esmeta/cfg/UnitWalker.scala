@@ -133,9 +133,39 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(ty)
     case EClo(fid, captured) =>
       walk(fid); walkList(captured, walk)
+    case expr: AstExpr   => walk(expr)
     case expr: AllocExpr => walk(expr)
-    case lit: Literal    => walk(lit)
+    case expr: Literal   => walk(expr)
   }
+
+  // abstract syntax tree (AST) expressions
+  def walk(ast: AstExpr): Unit = {
+    val AstExpr(name, args, rhsIdx, bits, children) = ast
+    walk(name)
+    walkList(args, walk)
+    walk(rhsIdx)
+    walk(bits)
+    walkList(children, walk)
+  }
+
+  // allocation expressions
+  def walk(alloc: AllocExpr): Unit = alloc match {
+    case EMap(tname, props, asite) =>
+      walk(tname)
+      walkList(props, { case (p, e) => (walk(p), walk(e)) })
+      walk(asite)
+    case EList(exprs, asite) =>
+      walkList(exprs, walk); walk(asite)
+    case ESymbol(desc, asite) =>
+      walk(desc); walk(asite)
+    case ECopy(obj, asite) =>
+      walk(obj); walk(asite)
+    case EKeys(map, intSorted, asite) =>
+      walk(map); walk(intSorted); walk(asite)
+  }
+
+  // literals
+  def walk(lit: Literal): Unit = {}
 
   // unary operators
   def walk(uop: UOp): Unit = {}

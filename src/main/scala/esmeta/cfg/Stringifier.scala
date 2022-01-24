@@ -156,14 +156,29 @@ case class Stringifier(detail: Boolean) {
         given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
         app >> "clo[" >> fid >> "]"
         if (captured.isEmpty) app else app >> captured
+      case expr: AstExpr =>
+        astExprRule(app, expr)
       case expr: AllocExpr =>
         allocExprRule(app, expr)
-      case lit: Literal =>
-        literalRule(app, lit)
+      case expr: Literal =>
+        literalRule(app, expr)
     }
 
+  // abstract syntax tree (AST) expressions
+  lazy val astExprRule: Rule[AstExpr] = (app, ast) => {
+    val AstExpr(name, args, rhsIdx, bits, children) = ast
+    app >> "|" >> name >> "|"
+    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    given Rule[List[Boolean]] = iterableRule("[", "", "]")
+    if (!args.isEmpty) app >> args
+    app >> "<" >> rhsIdx >> ", " >> bits >> ">"
+    given el: Rule[List[Expr]] = iterableRule("(", ", ", ")")
+    if (!children.isEmpty) app >> children
+    app
+  }
+
   // allocation expressions
-  given allocExprRule: Rule[AllocExpr] = (app, expr) =>
+  lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
       case EMap(tname, props, asite) =>
         given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
@@ -181,7 +196,7 @@ case class Stringifier(detail: Boolean) {
     }
 
   // literals
-  given literalRule: Rule[Literal] = (app, lit) =>
+  lazy val literalRule: Rule[Literal] = (app, lit) =>
     lit match {
       case EMathVal(n)                      => app >> n
       case ENumber(Double.PositiveInfinity) => app >> "+INF"
