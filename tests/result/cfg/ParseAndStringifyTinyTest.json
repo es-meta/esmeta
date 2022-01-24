@@ -12,5 +12,9 @@
   "Ref" : true,
   "Type" : true,
   "UOp" : true,
-  "literal.cfg" : true
+  "bop-arith.cfg" : true,
+  "bop-bitwise.cfg" : true,
+  "bop-logical.cfg" : true,
+  "literal.cfg" : true,
+  "uop.cfg" : true
 }
