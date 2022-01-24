@@ -151,7 +151,7 @@ object Utils {
     /** setters */
     def define(x: Id, value: Value): st.type = x match
       case x: Global => st.globals += x -> value; st
-      case x: Local => st.context.locals += x -> value; st
+      case x: Local  => st.context.locals += x -> value; st
     def update(refV: RefValue, value: Value): st.type = refV match {
       case IdValue(x) => update(x, value); st
       case PropValue(base, prop) =>
