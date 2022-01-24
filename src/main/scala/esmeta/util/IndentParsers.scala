@@ -10,6 +10,7 @@ trait IndentParsers extends BasicParsers {
   /** readers for IndentParsers */
   class IndentReader[+T](underlying: Reader[T]) extends Reader[T] { outer =>
     private[IndentParsers] val indents: List[Int] = Nil
+    private[IndentParsers] val steps: List[Int] = Nil
     private[IndentParsers] val needUppercase: Boolean = false
     private[IndentParsers] val cache =
       mutable.HashMap.empty[(Parser[_], Position), MemoEntry[_]]
@@ -33,25 +34,29 @@ trait IndentParsers extends BasicParsers {
 
     // push a new indentation
     private[IndentParsers] def push(indent: Int): IndentReader[T] =
-      copy(indents = indent :: indents)
+      copy(indents = indent :: indents, steps = 1 :: steps)
 
     // pop an indentation
     private[IndentParsers] def pop: Option[(Int, IndentReader[T])] =
       indents match {
-        case Nil              => None
-        case indent :: remain => Some(indent, copy(indents = remain))
+        case Nil => None
+        case indent :: remain =>
+          Some(indent, copy(indents = remain, steps = steps.tail))
       }
 
     // copy with a new underlying and a new indentation stack
     private[IndentParsers] def copy[T](
       underlying: Reader[T] = this.underlying,
       indents: List[Int] = this.indents,
+      steps: List[Int] = this.steps,
       needUppercase: Boolean = false,
     ): IndentReader[T] =
       val newIndents = indents
+      val newSteps = steps
       val newNeedUppercase = needUppercase
       new IndentReader(underlying) {
         override private[IndentParsers] val indents = newIndents
+        override private[IndentParsers] val steps = newSteps
         override private[IndentParsers] val needUppercase = newNeedUppercase
         override private[IndentParsers] val cache = outer.cache
         override private[IndentParsers] val recursionHeads =
@@ -77,7 +82,16 @@ trait IndentParsers extends BasicParsers {
               case indent :: _ if expected != indent =>
                 Failure(s"expected $expected but $indent indentations", in)
               case _ =>
-                Success((), newIn.copy(indents = in.indents))
+                Success(
+                  (),
+                  newIn.copy(
+                    indents = in.indents,
+                    steps = in.steps match {
+                      case Nil       => Nil
+                      case s :: rest => (s + 1) :: rest
+                    },
+                  ),
+                )
             }
           case Success(_, newIn) => Failure("not an IndentReader", newIn)
           case fail: NoSuccess   => fail
@@ -320,14 +334,19 @@ trait IndentParsers extends BasicParsers {
   abstract class LocationalParser[+T] extends Parser[T]
   def locationed[T <: Locational](p: => Parser[T]): LocationalParser[T] =
     new LocationalParser {
-      def apply(in: Input) = {
-        p(in) match {
-          case s @ Success(res, rest) =>
-            new Success(res.setLoc(in.pos, rest.pos), rest) {
-              override val lastFailure: Option[Failure] = s.lastFailure
-            }
-          case ns: NoSuccess => ns
-        }
+      def apply(in: Input) = in match {
+        case in: IndentReader[Char] =>
+          p(in) match {
+            case s @ Success(res, rest) =>
+              new Success(
+                res.setLoc(in.pos, rest.pos, in.steps.reverse),
+                rest,
+              ) {
+                override val lastFailure: Option[Failure] = s.lastFailure
+              }
+            case ns: NoSuccess => ns
+          }
+        case in => Failure("not an IndentReader", in)
       }
     }
 
