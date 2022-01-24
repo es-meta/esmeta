@@ -129,6 +129,7 @@ case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
 case class EClo(fid: Int, captured: List[Local]) extends Expr
+case class ECont(fid: Int) extends Expr
 
 // abstract syntax tree (AST) expressions
 case class AstExpr(

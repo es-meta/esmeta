@@ -133,6 +133,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(ty)
     case EClo(fid, captured) =>
       walk(fid); walkList(captured, walk)
+    case ECont(fid) =>
+      walk(fid)
     case expr: AstExpr   => walk(expr)
     case expr: AllocExpr => walk(expr)
     case expr: Literal   => walk(expr)

@@ -156,6 +156,8 @@ case class Stringifier(detail: Boolean) {
         given Rule[Iterable[Local]] = iterableRule("(", ", ", ")")
         app >> "clo[" >> fid >> "]"
         if (captured.isEmpty) app else app >> captured
+      case ECont(fid) =>
+        app >> "cont[" >> fid >> "]"
       case expr: AstExpr =>
         astExprRule(app, expr)
       case expr: AllocExpr =>

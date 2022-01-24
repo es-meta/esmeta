@@ -130,6 +130,8 @@ trait Parsers extends BasicParsers {
       ETypeCheck(e, t)
     } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(local, ",") <~ ")") ^^ {
       case fid ~ as => EClo(fid, as.getOrElse(Nil))
+    } | ("cont[" ~> int <~ "]") ^^ { case fid =>
+      ECont(fid)
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
 
   // abstract syntax tree (AST) expressions
