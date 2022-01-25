@@ -186,7 +186,7 @@ case class MathOpExpression(
   args: List[Expression],
 ) extends CalcExpression
 object MathOpExpression:
-  enum Op extends Syntax:
+  enum Op extends LangElem:
     case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
 
 // exponentiation expressions
@@ -202,7 +202,7 @@ case class BinaryExpression(
   right: CalcExpression,
 ) extends CalcExpression
 object BinaryExpression:
-  enum Op extends Syntax:
+  enum Op extends LangElem:
     case Add, Sub, Mul, Div, Mod
 
 // unary expressions
@@ -211,7 +211,7 @@ case class UnaryExpression(
   expr: CalcExpression,
 ) extends CalcExpression
 object UnaryExpression:
-  enum Op extends Syntax:
+  enum Op extends LangElem:
     case Neg
 
 // -----------------------------------------------------------------------------
@@ -220,10 +220,10 @@ object UnaryExpression:
 sealed trait Literal extends CalcExpression
 
 // `this` literals
-case object ThisLiteral extends Literal
+case class ThisLiteral() extends Literal
 
 // NewTarget literals
-case object NewTargetLiteral extends Literal
+case class NewTargetLiteral() extends Literal
 
 // code unit literals with hexadecimal numbers
 case class HexLiteral(hex: Int, name: Option[String]) extends Literal
@@ -252,36 +252,32 @@ case class SymbolLiteral(sym: String) extends Literal
 // numeric literals
 sealed trait NumericLiteral extends Literal
 sealed trait MathValueLiteral extends NumericLiteral
-case object PositiveInfinityMathValueLiteral extends MathValueLiteral
-case object NegativeInfinityMathValueLiteral extends MathValueLiteral
+case class PositiveInfinityMathValueLiteral() extends MathValueLiteral
+case class NegativeInfinityMathValueLiteral() extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
-case class NumberLiteral(n: Double)
-  extends NumericLiteral
-  with DoubleEquals(n) {
-  if (n.isNaN) println("!!! created")
-}
+case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
 case class BigIntLiteral(n: BigInt) extends NumericLiteral
 
 // boolean literals
 sealed trait BooleanLiteral extends Literal
-case object TrueLiteral extends BooleanLiteral
-case object FalseLiteral extends BooleanLiteral
+case class TrueLiteral() extends BooleanLiteral
+case class FalseLiteral() extends BooleanLiteral
 
 // other special literals
-case object UndefinedLiteral extends Literal
-case object NullLiteral extends Literal
-case object AbsentLiteral extends Literal
+case class UndefinedLiteral() extends Literal
+case class NullLiteral() extends Literal
+case class AbsentLiteral() extends Literal
 
 // ECMAScript type literals
 sealed trait ESTypeLiteral extends Literal
-case object UndefinedTypeLiteral extends ESTypeLiteral
-case object NullTypeLiteral extends ESTypeLiteral
-case object BooleanTypeLiteral extends ESTypeLiteral
-case object StringTypeLiteral extends ESTypeLiteral
-case object SymbolTypeLiteral extends ESTypeLiteral
-case object NumberTypeLiteral extends ESTypeLiteral
-case object BigIntTypeLiteral extends ESTypeLiteral
-case object ObjectTypeLiteral extends ESTypeLiteral
+case class UndefinedTypeLiteral() extends ESTypeLiteral
+case class NullTypeLiteral() extends ESTypeLiteral
+case class BooleanTypeLiteral() extends ESTypeLiteral
+case class StringTypeLiteral() extends ESTypeLiteral
+case class SymbolTypeLiteral() extends ESTypeLiteral
+case class NumberTypeLiteral() extends ESTypeLiteral
+case class BigIntTypeLiteral() extends ESTypeLiteral
+case class ObjectTypeLiteral() extends ESTypeLiteral
 
 // -----------------------------------------------------------------------------
 // algorithm expressions with multiline
@@ -338,7 +334,7 @@ case class BinaryCondition(
   right: Expression,
 ) extends Condition
 object BinaryCondition:
-  enum Op extends Syntax:
+  enum Op extends LangElem:
     case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
     SameCodeUnits, Contains, NContains
 
@@ -349,7 +345,7 @@ case class CompoundCondition(
   right: Condition,
 ) extends Condition
 object CompoundCondition:
-  enum Op extends Syntax:
+  enum Op extends LangElem:
     case And, Or, Imply
 
 // -----------------------------------------------------------------------------
@@ -362,13 +358,13 @@ object Reference extends Parser.From[Reference]
 case class Variable(name: String) extends Reference
 
 // the running execution context literals
-case object RunningExecutionContext extends Reference
+case class RunningExecutionContext() extends Reference
 
 // the current realm record
-case object CurrentRealmRecord extends Reference
+case class CurrentRealmRecord() extends Reference
 
 // the active function object
-case object ActiveFunctionObject extends Reference
+case class ActiveFunctionObject() extends Reference
 
 // references to property
 case class PropertyReference(base: Reference, prop: Property) extends Reference

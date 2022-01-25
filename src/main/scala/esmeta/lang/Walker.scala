@@ -5,25 +5,25 @@ import esmeta.util.BasicWalker
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Syntax => walk(elem)
+    case elem: Syntax               => walk(elem)
+    case elem: MathOpExpression.Op  => walk(elem)
+    case elem: BinaryExpression.Op  => walk(elem)
+    case elem: UnaryExpression.Op   => walk(elem)
+    case elem: BinaryCondition.Op   => walk(elem)
+    case elem: CompoundCondition.Op => walk(elem)
   }
 
   def walk(syn: Syntax): Syntax = syn match {
-    case syn: Block                => walk(syn)
-    case syn: SubStep              => walk(syn)
-    case syn: Step                 => walk(syn)
-    case syn: Expression           => walk(syn)
-    case syn: Condition            => walk(syn)
-    case syn: Reference            => walk(syn)
-    case syn: Type                 => walk(syn)
-    case syn: Field                => walk(syn)
-    case syn: Property             => walk(syn)
-    case syn: Intrinsic            => walk(syn)
-    case syn: MathOpExpression.Op  => walk(syn)
-    case syn: BinaryExpression.Op  => walk(syn)
-    case syn: UnaryExpression.Op   => walk(syn)
-    case syn: BinaryCondition.Op   => walk(syn)
-    case syn: CompoundCondition.Op => walk(syn)
+    case syn: Block      => walk(syn)
+    case syn: SubStep    => walk(syn)
+    case syn: Step       => walk(syn)
+    case syn: Expression => walk(syn)
+    case syn: Condition  => walk(syn)
+    case syn: Reference  => walk(syn)
+    case syn: Type       => walk(syn)
+    case syn: Field      => walk(syn)
+    case syn: Property   => walk(syn)
+    case syn: Intrinsic  => walk(syn)
   }
 
   def walk(block: Block): Block = block match {

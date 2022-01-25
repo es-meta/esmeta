@@ -11,27 +11,27 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Syntax => syntaxRule(app, elem)
+      case elem: Syntax               => syntaxRule(app, elem)
+      case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
+      case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
+      case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
+      case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
+      case elem: CompoundCondition.Op => compCondOpRule(app, elem)
     }
 
   // syntax
   given syntaxRule: Rule[Syntax] = (app, syn) =>
     syn match {
-      case syn: Block                => blockRule(app, syn)
-      case syn: Step                 => stepRule(app, syn)
-      case syn: SubStep              => subStepRule(app, syn)
-      case syn: Expression           => exprRule(app, syn)
-      case syn: Condition            => condRule(app, syn)
-      case syn: Reference            => refRule(app, syn)
-      case syn: Type                 => typeRule(app, syn)
-      case syn: Property             => propRule(app, syn)
-      case syn: Field                => fieldRule(app, syn)
-      case syn: Intrinsic            => intrRule(app, syn)
-      case syn: MathOpExpression.Op  => mathOpExprOpRule(app, syn)
-      case syn: BinaryExpression.Op  => binExprOpRule(app, syn)
-      case syn: UnaryExpression.Op   => unExprOpRule(app, syn)
-      case syn: BinaryCondition.Op   => binCondOpRule(app, syn)
-      case syn: CompoundCondition.Op => compCondOpRule(app, syn)
+      case syn: Block      => blockRule(app, syn)
+      case syn: Step       => stepRule(app, syn)
+      case syn: SubStep    => subStepRule(app, syn)
+      case syn: Expression => exprRule(app, syn)
+      case syn: Condition  => condRule(app, syn)
+      case syn: Reference  => refRule(app, syn)
+      case syn: Type       => typeRule(app, syn)
+      case syn: Property   => propRule(app, syn)
+      case syn: Field      => fieldRule(app, syn)
+      case syn: Intrinsic  => intrRule(app, syn)
     }
 
   // blocks
@@ -251,8 +251,8 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case ThisLiteral      => app >> "*this* value"
-      case NewTargetLiteral => app >> "NewTarget"
+      case _: ThisLiteral      => app >> "*this* value"
+      case _: NewTargetLiteral => app >> "NewTarget"
       case HexLiteral(hex, name) =>
         app >> f"0x$hex%04x"
         name.map(app >> " (" >> _ >> ")")
@@ -267,11 +267,11 @@ case class Stringifier(detail: Boolean, location: Boolean) {
           .replace("\\", "\\\\")
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
-      case FieldLiteral(field)              => app >> field
-      case SymbolLiteral(sym)               => app >> "@@" >> sym
-      case PositiveInfinityMathValueLiteral => app >> "+∞"
-      case NegativeInfinityMathValueLiteral => app >> "-∞"
-      case DecimalMathValueLiteral(n)       => app >> n
+      case FieldLiteral(field)                 => app >> field
+      case SymbolLiteral(sym)                  => app >> "@@" >> sym
+      case _: PositiveInfinityMathValueLiteral => app >> "+∞"
+      case _: NegativeInfinityMathValueLiteral => app >> "-∞"
+      case DecimalMathValueLiteral(n)          => app >> n
       case NumberLiteral(n) =>
         if (n.isNaN) app >> "*NaN*"
         else
@@ -282,20 +282,20 @@ case class Stringifier(detail: Boolean, location: Boolean) {
             else if (n.toInt == n) n.toInt.toString
             else n.toString
           ) >> "*<sub>𝔽</sub>"
-      case BigIntLiteral(n)     => app >> "*" >> n >> "*<sub>ℤ</sub>"
-      case TrueLiteral          => app >> "*true*"
-      case FalseLiteral         => app >> "*false*"
-      case UndefinedLiteral     => app >> "*undefined*"
-      case NullLiteral          => app >> "*null*"
-      case AbsentLiteral        => app >> "absent"
-      case UndefinedTypeLiteral => app >> "Undefined"
-      case NullTypeLiteral      => app >> "Null"
-      case BooleanTypeLiteral   => app >> "Boolean"
-      case StringTypeLiteral    => app >> "String"
-      case SymbolTypeLiteral    => app >> "Symbol"
-      case NumberTypeLiteral    => app >> "Number"
-      case BigIntTypeLiteral    => app >> "BigInt"
-      case ObjectTypeLiteral    => app >> "Object"
+      case BigIntLiteral(n)        => app >> "*" >> n >> "*<sub>ℤ</sub>"
+      case _: TrueLiteral          => app >> "*true*"
+      case _: FalseLiteral         => app >> "*false*"
+      case _: UndefinedLiteral     => app >> "*undefined*"
+      case _: NullLiteral          => app >> "*null*"
+      case _: AbsentLiteral        => app >> "absent"
+      case _: UndefinedTypeLiteral => app >> "Undefined"
+      case _: NullTypeLiteral      => app >> "Null"
+      case _: BooleanTypeLiteral   => app >> "Boolean"
+      case _: StringTypeLiteral    => app >> "String"
+      case _: SymbolTypeLiteral    => app >> "Symbol"
+      case _: NumberTypeLiteral    => app >> "Number"
+      case _: BigIntTypeLiteral    => app >> "BigInt"
+      case _: ObjectTypeLiteral    => app >> "Object"
     }
 
   // algorithm invocation expressions
@@ -366,8 +366,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
           app >> ls
         }
         rs match {
-          case AbsentLiteral :: Nil => app >> isStr(!neg, single) >> "present"
-          case r :: Nil             => app >> isStr(neg, single) >> r
+          case (_: AbsentLiteral) :: Nil =>
+            app >> isStr(!neg, single) >> "present"
+          case r :: Nil => app >> isStr(neg, single) >> r
           case _ =>
             app >> isStr(false, single)
             if (neg) {
@@ -422,11 +423,11 @@ case class Stringifier(detail: Boolean, location: Boolean) {
     ref match {
       case Variable(name: String) =>
         app >> s"_${name}_"
-      case CurrentRealmRecord =>
+      case _: CurrentRealmRecord =>
         app >> "the current Realm Record"
-      case ActiveFunctionObject =>
+      case _: ActiveFunctionObject =>
         app >> "the active function object"
-      case RunningExecutionContext =>
+      case _: RunningExecutionContext =>
         app >> "the running execution context"
       case PropertyReference(base, prop) =>
         app >> base >> prop

@@ -298,8 +298,8 @@ class ParseAndStringifyTinyTest extends LangTest {
 
     // tests
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral -> "*this* value",
-      NewTargetLiteral -> "NewTarget",
+      ThisLiteral() -> "*this* value",
+      NewTargetLiteral() -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
@@ -313,8 +313,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       strWithBasckSlash -> """*"abc\\"*""",
       fieldLit -> "[[Value]]",
       sym -> "@@iterator",
-      PositiveInfinityMathValueLiteral -> "+∞",
-      NegativeInfinityMathValueLiteral -> "-∞",
+      PositiveInfinityMathValueLiteral() -> "+∞",
+      NegativeInfinityMathValueLiteral() -> "-∞",
       mathVal -> "0.5",
       posZero -> "*+0*<sub>𝔽</sub>",
       negZero -> "*-0*<sub>𝔽</sub>",
@@ -323,19 +323,19 @@ class ParseAndStringifyTinyTest extends LangTest {
       nan -> "*NaN*",
       number -> "*1*<sub>𝔽</sub>",
       bigint -> "*1000000000000000000000000*<sub>ℤ</sub>",
-      TrueLiteral -> "*true*",
-      FalseLiteral -> "*false*",
-      UndefinedLiteral -> "*undefined*",
-      NullLiteral -> "*null*",
-      AbsentLiteral -> "absent",
-      UndefinedTypeLiteral -> "Undefined",
-      NullTypeLiteral -> "Null",
-      BooleanTypeLiteral -> "Boolean",
-      StringTypeLiteral -> "String",
-      SymbolTypeLiteral -> "Symbol",
-      NumberTypeLiteral -> "Number",
-      BigIntTypeLiteral -> "BigInt",
-      ObjectTypeLiteral -> "Object",
+      TrueLiteral() -> "*true*",
+      FalseLiteral() -> "*false*",
+      UndefinedLiteral() -> "*undefined*",
+      NullLiteral() -> "*null*",
+      AbsentLiteral() -> "absent",
+      UndefinedTypeLiteral() -> "Undefined",
+      NullTypeLiteral() -> "Null",
+      BooleanTypeLiteral() -> "Boolean",
+      StringTypeLiteral() -> "String",
+      SymbolTypeLiteral() -> "Symbol",
+      NumberTypeLiteral() -> "Number",
+      BigIntTypeLiteral() -> "BigInt",
+      ObjectTypeLiteral() -> "Object",
     )
 
     // -------------------------------------------------------------------------
@@ -353,13 +353,13 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val abruptCond = AbruptCompletionCondition(x, false)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
-      IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral))
+      IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
     lazy val isEitherCond =
-      IsAreCondition(List(refExpr), false, List(TrueLiteral, FalseLiteral))
+      IsAreCondition(List(refExpr), false, List(TrueLiteral(), FalseLiteral()))
     lazy val isNeitherCond =
-      IsAreCondition(List(refExpr), true, List(TrueLiteral, FalseLiteral))
+      IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
     lazy val isPresentCond =
-      IsAreCondition(List(refExpr), true, List(AbsentLiteral))
+      IsAreCondition(List(refExpr), true, List(AbsentLiteral()))
     lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     lazy val compCond =
@@ -399,9 +399,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
-      RunningExecutionContext -> "the running execution context",
-      CurrentRealmRecord -> "the current Realm Record",
-      ActiveFunctionObject -> "the active function object",
+      RunningExecutionContext() -> "the running execution context",
+      CurrentRealmRecord() -> "the current Realm Record",
+      ActiveFunctionObject() -> "the active function object",
       fieldRef -> "_x_.[[Value]]",
       intrFieldRef -> "_x_.[[%Array%]]",
       propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
