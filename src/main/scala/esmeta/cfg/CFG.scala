@@ -42,7 +42,7 @@ case class Func(
 }
 object Func extends Parser.From[Func]:
   enum Kind extends CFGElem:
-    case AbsOp, NumMeth, SynDirOp, ConcMeth, Builtin, Clo, Cont
+    case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont
   object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------

@@ -56,13 +56,14 @@ case class Stringifier(detail: Boolean) {
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
     import Func.Kind.*
     app >> (kind match {
-      case AbsOp    => ""
-      case NumMeth  => "<NUM>:"
-      case SynDirOp => "<SYNTAX>:"
-      case ConcMeth => "<CONC>:"
-      case Builtin  => "<BUILTIN>:"
-      case Clo      => "<CLO>:"
-      case Cont     => "<CONT>:"
+      case AbsOp        => ""
+      case NumMeth      => "<NUM>:"
+      case SynDirOp     => "<SYNTAX>:"
+      case ConcMeth     => "<CONC>:"
+      case InternalMeth => "<INTERNAL>:"
+      case Builtin      => "<BUILTIN>:"
+      case Clo          => "<CLO>:"
+      case Cont         => "<CONT>:"
     })
 
   // function parameters

@@ -22,7 +22,7 @@ trait Parsers extends BasicParsers {
 
   // functions
   given func: Parser[Func] = (
-    getId ~ funcKind ~ ident ~ params ~ nodes
+    getId ~ funcKind ~ "[^( ]+".r ~ params ~ nodes
   ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ns ~ ex) => Func(i, k, n, ps, en, ns, ex) }
 
   // functions with main
@@ -35,6 +35,7 @@ trait Parsers extends BasicParsers {
     "<NUM>:" ^^^ NumMeth |
     "<SYNTAX>:" ^^^ SynDirOp |
     "<CONC>:" ^^^ ConcMeth |
+    "<INTERNAL>:" ^^^ InternalMeth |
     "<BUILTIN>:" ^^^ Builtin |
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |

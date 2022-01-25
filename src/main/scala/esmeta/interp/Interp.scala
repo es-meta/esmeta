@@ -10,7 +10,7 @@ import scala.math.{BigInt => SBigInt}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 
-/** IR Interpreter */
+/** CFG Interpreter */
 class Interp(
   val st: State,
   val timeLimit: Option[Long] = Some(TIMEOUT),

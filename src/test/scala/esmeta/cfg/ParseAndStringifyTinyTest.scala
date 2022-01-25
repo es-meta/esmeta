@@ -60,6 +60,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       Func.Kind.NumMeth -> "<NUM>:",
       Func.Kind.SynDirOp -> "<SYNTAX>:",
       Func.Kind.ConcMeth -> "<CONC>:",
+      Func.Kind.InternalMeth -> "<INTERNAL>:",
       Func.Kind.Builtin -> "<BUILTIN>:",
       Func.Kind.Clo -> "<CLO>:",
       Func.Kind.Cont -> "<CONT>:",
