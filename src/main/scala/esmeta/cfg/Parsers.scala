@@ -43,7 +43,12 @@ trait Parsers extends BasicParsers {
   // function parameters
   lazy val params: Parser[List[Param]] = "(" ~> repsep(param, ",") <~ ")"
   given param: Parser[Param] =
-    name ~ (":" ~> ty) ^^ { case x ~ t => Param(x, t) }
+    name ~ paramKind ~ (":" ~> ty) ^^ { case x ~ k ~ t => Param(x, k, t) }
+
+  // function parameter kinds
+  given paramKind: Parser[Param.Kind] =
+    import Param.Kind.*
+    "?" ^^^ Optional | "" ^^^ Normal
 
   // nodes
   lazy val nodes: Parser[Entry ~ List[Block] ~ Exit] =

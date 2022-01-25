@@ -10,7 +10,7 @@ import esmeta.util.DoubleEquals
 // -----------------------------------------------------------------------------
 case class State(val cfg: CFG) extends InterpElem {
   var context: Context = Context(cfg.funcMap(cfg.main))
-  var ctxtStack: List[Context] = Nil
+  var callStack: List[CallContext] = Nil
   val globals: MMap[Global, Value] = MMap()
   val heap: Heap = Heap()
 }
@@ -20,14 +20,17 @@ case class State(val cfg: CFG) extends InterpElem {
 // -----------------------------------------------------------------------------
 case class Context(
   val func: Func,
-  val retId: Id = GLOBAL_RESULT,
-  val ast: Option[AST] = None,
+  val locals: MMap[Local, Value] = MMap(),
 ) extends InterpElem {
   var cur: Node = func.entry
   def name: String = func.name
   var retVal: Option[Value] = None
-  val locals: MMap[Local, Value] = MMap()
 }
+
+// -----------------------------------------------------------------------------
+// Calling Contexts
+// -----------------------------------------------------------------------------
+case class CallContext(retId: Id, context: Context) extends InterpElem
 
 // -----------------------------------------------------------------------------
 // Heaps
@@ -87,7 +90,7 @@ case class Clo(fid: Int, captured: Map[Name, Value]) extends PureValue
 case class Cont(
   fid: Int,
   captured: Map[Name, Value],
-  ctxtStack: List[Context],
+  callStack: List[CallContext],
 ) extends PureValue
 
 /** AST values */

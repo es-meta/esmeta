@@ -38,19 +38,18 @@ class Interp(
     node match {
       case Entry(_, next) => moveTo(next)
       case Exit(_) =>
-        st.ctxtStack match
+        st.callStack match
           case Nil =>
             st.context.retVal.map(st.globals += GLOBAL_RESULT -> _)
             keep = false
-          case ctxt :: rest =>
-            val retId = st.context.retId
+          case CallContext(retId, ctxt) :: rest =>
             val value = st.context.retVal.getOrElse(throw NoReturnValue)
             (value, setTypeMap.get(st.context.name)) match
               case (addr: Addr, Some(tname)) =>
                 st.setType(addr, tname)
               case _ =>
             st.context = ctxt
-            st.ctxtStack = rest
+            st.callStack = rest
             st.define(retId, value.wrapCompletion)
       case Linear(_, insts, next) =>
         for (inst <- insts) interp(inst); moveTo(next)
@@ -58,7 +57,7 @@ class Interp(
         moveTo(interp(cond).escaped match {
           case Bool(true)  => thenNode
           case Bool(false) => elseNode
-          case v           => throw NoBoolean(v)
+          case v           => throw NoBoolean(cond, v)
         })
       case Call(_, lhs, fexpr, args, _, next) =>
         moveTo(next)
@@ -77,13 +76,13 @@ class Interp(
         case (addr: Addr) =>
           if (front) st.prepend(addr, interp(from).escaped)
           else st.append(addr, interp(from).escaped)
-        case v => throw NoAddr(v)
+        case v => throw NoAddr(to, v)
       }
     case IReturn(expr, _) => throw ReturnValue(interp(expr))
     case IAssert(expr, _) =>
       interp(expr).escaped match {
         case Bool(true) =>
-        case v          => error(s"assertion failure: $expr")
+        case v          => throw AssertionFail(expr)
       }
     case IPrint(expr, _) => {
       val v = interp(expr)
@@ -92,9 +91,29 @@ class Interp(
   }
 
   /** transition for calls */
-  def call(lhs: Ref, fexpr: Expr, args: List[Expr]): Unit = fexpr match {
-    case ERef(Global(name)) if simpleFuncs contains name => ???
-    case _                                               => ???
+  def call(lhs: Id, fexpr: Expr, args: List[Expr]): Unit = fexpr match {
+    case ERef(Global(name)) if simpleFuncs contains name =>
+      val vs =
+        if (name == "IsAbruptCompletion") args.map(interp)
+        else args.map(interp(_).escaped)
+      st.define(lhs, simpleFuncs(name)(st, vs))
+    case _ =>
+      interp(fexpr) match {
+        case Clo(fid, captured) =>
+          val func = cfg.funcMap(fid)
+          val vs = args.map(interp)
+          val newLocals = getLocals(func.params, vs) ++ captured
+          st.callStack ::= CallContext(lhs, st.context)
+          st.context = Context(func, newLocals)
+        case Cont(fid, captured, callStack) => {
+          val func = cfg.funcMap(fid)
+          val vs = args.map(interp)
+          val newLocals = getLocals(func.params, vs) ++ captured
+          st.callStack = callStack.map(_.copied)
+          st.context = Context(func, newLocals)
+        }
+        case v => throw NoFunc(fexpr, v)
+      }
   }
 
   /** transition for expresssions */
@@ -106,7 +125,8 @@ class Interp(
       (y, t) match
         case (y: Const, Str(t))      => Comp(y, v, Some(t))
         case (y: Const, CONST_EMPTY) => Comp(y, v, None)
-        case _                       => error("invalid completion")
+        case (y: Const, t)           => throw InvalidCompTarget(y)
+        case (y, t)                  => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
       Bool(interp(expr).isCompletion)
     case EReturnIfAbrupt(ERef(ref), check) =>
@@ -119,7 +139,7 @@ class Interp(
     case EPop(list, front) =>
       interp(list).escaped match
         case (addr: Addr) => st.pop(addr, front)
-        case v            => throw NoAddr(v)
+        case v            => throw NoAddr(list, v)
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>
@@ -127,8 +147,8 @@ class Interp(
         case addr: Addr =>
           st(addr) match
             case ListObj(vs) => Bool(vs contains interp(elem).escaped)
-            case obj         => error(s"not a list: $obj")
-        case v => throw NoAddr(v)
+            case obj         => throw NoList(list, obj)
+        case v => throw NoAddr(list, v)
     case ERef(ref) =>
       st(interp(ref))
     case EUnary(uop, expr) =>
@@ -143,15 +163,11 @@ class Interp(
       Interp.interp(bop, l, r)
     case EConvert(cop, expr) =>
       import COp.*
-      interp(expr).escaped match {
-        case Str(s) =>
-          cop match
-            case ToNumber => ??? // TODO Number(ESValueParser.str2num(s))
-            case ToBigInt => ??? // TODO ESValueParser.str2bigint(s)
-            case _        => error(s"not convertable option: Str to $cop")
-        case v =>
-          // TODO other cases
-          error(s"not an convertable value: $v")
+      (interp(expr).escaped, cop) match {
+        case (Str(s), ToNumber) => ??? // TODO Number(ESValueParser.str2num(s))
+        case (Str(s), ToBigInt) => ??? // TODO ESValueParser.str2bigint(s)
+        // TODO other cases
+        case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base)                               => ???
     case ETypeCheck(expr, ty)                        => ???
@@ -173,9 +189,9 @@ class Interp(
           val targetOpt = target match
             case Str(target) => Some(target)
             case CONST_EMPTY => None
-            case _           => error(s"invalid completion target: $target")
+            case v           => throw InvalidCompTarget(v)
           Comp(ty, value, targetOpt)
-        case _ => error("invalid completion")
+        case _ => throw InvalidComp
     case EMap(ty, props, asite) =>
       val addr = st.allocMap(ty)
       for ((kexpr, vexpr) <- props)
@@ -189,15 +205,15 @@ class Interp(
       interp(desc) match
         case (str: Str) => st.allocSymbol(str)
         case Undef      => st.allocSymbol(Undef)
-        case v          => error(s"not a string: $v")
+        case v          => throw NoString(desc, v)
     case ECopy(obj, asite) =>
       interp(obj).escaped match
         case addr: Addr => st.copyObj(addr)
-        case v          => error(s"not an address: $v")
+        case v          => throw NoAddr(obj, v)
     case EKeys(map, intSorted, asite) =>
       interp(map).escaped match
         case addr: Addr => st.keys(addr, intSorted)
-        case v          => error(s"not an address: $v")
+        case v          => throw NoAddr(map, v)
     case EMathVal(n)           => Math(n)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
     case ENumber(n)            => Number(n)
@@ -219,6 +235,29 @@ class Interp(
       case _ =>
         val r = interp(right).escaped
         Interp.interp(bop, l, r)
+
+  /** get initial local variables */
+  def getLocals(params: List[Param], args: List[Value]): MMap[Local, Value] = {
+    val map = MMap[Local, Value]()
+    @tailrec
+    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
+      case (Nil, Nil) =>
+      case (Param(lhs, kind, _) :: pl, Nil) =>
+        import Param.Kind.*
+        kind match
+          case Normal => throw RemainingParams(ps)
+          case Optional =>
+            map += lhs -> Absent
+            aux(pl, Nil)
+      case (Nil, args) =>
+        throw RemainingArgs(args)
+      case (param :: pl, arg :: al) =>
+        map += param.lhs -> arg
+        aux(pl, al)
+    }
+    aux(params, args)
+    map
+  }
 
   /** helper for return-if-abrupt cases */
   def returnIfAbrupt(value: Value, check: Boolean): Value = value match

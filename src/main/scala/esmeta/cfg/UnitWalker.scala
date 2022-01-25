@@ -9,6 +9,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Func        => walk(elem)
     case elem: Func.Kind   => walk(elem)
     case elem: Param       => walk(elem)
+    case elem: Param.Kind  => walk(elem)
     case elem: Node        => walk(elem)
     case elem: Branch.Kind => walk(elem)
     case elem: Inst        => walk(elem)
@@ -41,8 +42,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   // function parameters
   def walk(param: Param): Unit =
-    val Param(name, ty) = param
-    walk(name); walk(ty)
+    val Param(name, kind, ty) = param
+    walk(name); walk(kind); walk(ty)
+
+  // function parameter kinds
+  def walk(kind: Param.Kind): Unit = {}
 
   // nodes
   def walk(node: Node): Unit = node match {

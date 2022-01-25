@@ -17,6 +17,7 @@ case class Stringifier(detail: Boolean) {
       case elem: Func        => funcRule(app, elem)
       case elem: Func.Kind   => funcKindRule(app, elem)
       case elem: Param       => paramRule(app, elem)
+      case elem: Param.Kind  => paramKindRule(app, elem)
       case elem: Node        => nodeRule(app, elem)
       case elem: Branch.Kind => branchKindRule(app, elem)
       case elem: Inst        => instRule(app, elem)
@@ -66,8 +67,16 @@ case class Stringifier(detail: Boolean) {
 
   // function parameters
   given paramRule: Rule[Param] = (app, param) =>
-    val Param(name, ty) = param
-    app >> name >> ": " >> ty
+    val Param(name, kind, ty) = param
+    app >> name >> kind >> ": " >> ty
+
+  // function parameter kinds
+  given paramKindRule: Rule[Param.Kind] = (app, kind) =>
+    import Param.Kind.*
+    app >> (kind match {
+      case Normal   => ""
+      case Optional => "?"
+    })
 
   // nodes
   given nodeRule: Rule[Node] = (app, node) =>

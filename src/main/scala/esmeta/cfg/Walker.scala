@@ -9,6 +9,7 @@ trait Walker extends BasicWalker {
     case elem: Func        => walk(elem)
     case elem: Func.Kind   => walk(elem)
     case elem: Param       => walk(elem)
+    case elem: Param.Kind  => walk(elem)
     case elem: Node        => walk(elem)
     case elem: Branch.Kind => walk(elem)
     case elem: Inst        => walk(elem)
@@ -43,8 +44,11 @@ trait Walker extends BasicWalker {
 
   // function parameters
   def walk(param: Param): Param =
-    val Param(name, ty) = param
-    Param(walk(name), walk(ty))
+    val Param(name, kind, ty) = param
+    Param(walk(name), walk(kind), walk(ty))
+
+  // function parameter kinds
+  def walk(kind: Param.Kind): Param.Kind = kind
 
   // nodes
   def walk(node: Node): Node = node match {

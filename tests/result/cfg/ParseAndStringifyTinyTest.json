@@ -9,6 +9,7 @@
   "Inst" : true,
   "Node" : true,
   "Param" : true,
+  "Param.Kind" : true,
   "Ref" : true,
   "Type" : true,
   "UOp" : true,

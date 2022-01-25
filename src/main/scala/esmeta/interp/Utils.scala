@@ -112,9 +112,6 @@ object Utils {
     /** get the current function */
     def func: Func = st.cfg.funcOf(st.context.cur)
 
-    /** return id and its value */
-    def retId: Id = st.context.retId
-
     /** get local variable maps */
     def locals: MMap[Local, Value] = st.context.locals
 
@@ -222,6 +219,20 @@ object Utils {
       case addr: Addr => addr.toString + " -> " + st.heap(addr).toString
       case _          => value.toString
     }
+  }
+
+  /** extensions for calling contexts */
+  extension (callCtxt: CallContext) {
+
+    /** copy contexts */
+    def copied: CallContext = callCtxt.copy(context = callCtxt.context.copied)
+  }
+
+  /** extensions for contexts */
+  extension (ctxt: Context) {
+
+    /** copy contexts */
+    def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
   }
 
   /** extensions for heaps */

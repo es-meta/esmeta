@@ -26,7 +26,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val cfg = CFG(func.id, List(func))
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """@main 7: f(x: T, y: T) {
+      cfg -> """@main 7: f(x: T, y?: T) {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
@@ -45,7 +45,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
 
     // tests
     checkParseAndStringify("Func", Func)(
-      func -> """7: f(x: T, y: T) {
+      func -> """7: f(x: T, y?: T) {
       |  0: <entry> -> 1
       |  1: {
       |    let x = ~empty~
@@ -69,13 +69,17 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // parameters
     // -------------------------------------------------------------------------
     lazy val params = List(xParam, yParam)
-    lazy val xParam = Param(x, ty)
-    lazy val yParam = Param(y, ty)
+    lazy val xParam = Param(x, Param.Kind.Normal, ty)
+    lazy val yParam = Param(y, Param.Kind.Optional, ty)
 
     // tests
     checkParseAndStringify("Param", Param)(
       xParam -> "x: T",
-      yParam -> "y: T",
+      yParam -> "y?: T",
+    )
+    checkParseAndStringify("Param.Kind", Param.Kind)(
+      Param.Kind.Normal -> "",
+      Param.Kind.Optional -> "?",
     )
 
     // -------------------------------------------------------------------------
