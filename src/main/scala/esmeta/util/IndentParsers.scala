@@ -34,7 +34,7 @@ trait IndentParsers extends BasicParsers {
 
     // push a new indentation
     private[IndentParsers] def push(indent: Int): IndentReader[T] =
-      copy(indents = indent :: indents, steps = 1 :: steps)
+      copy(indents = indent :: indents, steps = 0 :: steps)
 
     // pop an indentation
     private[IndentParsers] def pop: Option[(Int, IndentReader[T])] =
@@ -331,7 +331,7 @@ trait IndentParsers extends BasicParsers {
   // ------------------------------------------------------------------------------
   // locational parser
   // ------------------------------------------------------------------------------
-  abstract class LocationalParser[+T] extends Parser[T]
+  abstract class LocationalParser[+T <: Locational] extends Parser[T]
   def locationed[T <: Locational](p: => Parser[T]): LocationalParser[T] =
     new LocationalParser {
       def apply(in: Input) =
@@ -359,6 +359,7 @@ trait IndentParsers extends BasicParsers {
       .copy(needUppercase = in.needUppercase)
   }
 
+  /** implicit conversion from scala parser's Position to util.Pos */
   private given Conversion[Position, Pos] with
     def apply(p: Position): Pos = Pos(p.line, p.column)
 }

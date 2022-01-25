@@ -11,26 +11,28 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Program              => programRule(app, elem)
-      case elem: Block                => blockRule(app, elem)
-      case elem: Step                 => stepRule(app, elem)
-      case elem: SubStep              => subStepRule(app, elem)
-      case elem: Expression           => exprRule(app, elem)
-      case elem: Condition            => condRule(app, elem)
-      case elem: Reference            => refRule(app, elem)
-      case elem: Type                 => typeRule(app, elem)
-      case elem: Property             => propRule(app, elem)
-      case elem: Field                => fieldRule(app, elem)
-      case elem: Intrinsic            => intrRule(app, elem)
-      case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
-      case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
-      case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
-      case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
-      case elem: CompoundCondition.Op => compCondOpRule(app, elem)
+      case elem: Syntax => syntaxRule(app, elem)
     }
 
-  // programs
-  given programRule: Rule[Program] = _ >> _.block
+  // syntax
+  given syntaxRule: Rule[Syntax] = (app, syn) =>
+    syn match {
+      case syn: Block                => blockRule(app, syn)
+      case syn: Step                 => stepRule(app, syn)
+      case syn: SubStep              => subStepRule(app, syn)
+      case syn: Expression           => exprRule(app, syn)
+      case syn: Condition            => condRule(app, syn)
+      case syn: Reference            => refRule(app, syn)
+      case syn: Type                 => typeRule(app, syn)
+      case syn: Property             => propRule(app, syn)
+      case syn: Field                => fieldRule(app, syn)
+      case syn: Intrinsic            => intrRule(app, syn)
+      case syn: MathOpExpression.Op  => mathOpExprOpRule(app, syn)
+      case syn: BinaryExpression.Op  => binExprOpRule(app, syn)
+      case syn: UnaryExpression.Op   => unExprOpRule(app, syn)
+      case syn: BinaryCondition.Op   => binCondOpRule(app, syn)
+      case syn: CompoundCondition.Op => compCondOpRule(app, syn)
+    }
 
   // blocks
   given blockRule: Rule[Block] = (app, block) =>

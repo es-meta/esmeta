@@ -2,13 +2,13 @@ package esmeta.lang
 
 import esmeta.util.{DoubleEquals, Locational}
 
-/** programs for abstract algorithms */
-case class Program(block: Block) extends LangElem
+/** syntax for abstract algorithms */
+trait Syntax extends LangElem with Locational
 
 // -----------------------------------------------------------------------------
 // algorithm blocks
 // -----------------------------------------------------------------------------
-sealed trait Block extends LangElem
+sealed trait Block extends Syntax
 object Block extends Parser.From[Block]
 
 case class StepBlock(steps: List[SubStep]) extends Block
@@ -16,12 +16,12 @@ case class ExprBlock(exprs: List[Expression]) extends Block
 case class Figure(lines: List[String]) extends Block
 
 // sub-steps with optional id tags
-case class SubStep(idTag: Option[String], step: Step) extends LangElem
+case class SubStep(idTag: Option[String], step: Step) extends Syntax
 
 // -----------------------------------------------------------------------------
 // algorithm steps
 // -----------------------------------------------------------------------------
-sealed trait Step extends LangElem with Locational
+sealed trait Step extends Syntax
 object Step extends Parser.From[Step]
 
 // let steps
@@ -87,7 +87,7 @@ case class YetStep(expr: YetExpression) extends Step
 // -----------------------------------------------------------------------------
 // algorithm expressions
 // -----------------------------------------------------------------------------
-sealed trait Expression extends LangElem with Locational
+sealed trait Expression extends Syntax
 object Expression extends Parser.From[Expression]
 
 // string concatenation expressions
@@ -186,7 +186,7 @@ case class MathOpExpression(
   args: List[Expression],
 ) extends CalcExpression
 object MathOpExpression:
-  enum Op extends LangElem:
+  enum Op extends Syntax:
     case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
 
 // exponentiation expressions
@@ -202,7 +202,7 @@ case class BinaryExpression(
   right: CalcExpression,
 ) extends CalcExpression
 object BinaryExpression:
-  enum Op extends LangElem:
+  enum Op extends Syntax:
     case Add, Sub, Mul, Div, Mod
 
 // unary expressions
@@ -211,7 +211,7 @@ case class UnaryExpression(
   expr: CalcExpression,
 ) extends CalcExpression
 object UnaryExpression:
-  enum Op extends LangElem:
+  enum Op extends Syntax:
     case Neg
 
 // -----------------------------------------------------------------------------
@@ -255,7 +255,11 @@ sealed trait MathValueLiteral extends NumericLiteral
 case object PositiveInfinityMathValueLiteral extends MathValueLiteral
 case object NegativeInfinityMathValueLiteral extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
-case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
+case class NumberLiteral(n: Double)
+  extends NumericLiteral
+  with DoubleEquals(n) {
+  if (n.isNaN) println("!!! created")
+}
 case class BigIntLiteral(n: BigInt) extends NumericLiteral
 
 // boolean literals
@@ -294,7 +298,7 @@ case class AbstractClosureExpression(
 // -----------------------------------------------------------------------------
 // algorithm conditions
 // -----------------------------------------------------------------------------
-sealed trait Condition extends LangElem with Locational
+sealed trait Condition extends Syntax
 object Condition extends Parser.From[Condition]
 
 // expression conditions
@@ -334,7 +338,7 @@ case class BinaryCondition(
   right: Expression,
 ) extends Condition
 object BinaryCondition:
-  enum Op extends LangElem:
+  enum Op extends Syntax:
     case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
     SameCodeUnits, Contains, NContains
 
@@ -345,13 +349,13 @@ case class CompoundCondition(
   right: Condition,
 ) extends Condition
 object CompoundCondition:
-  enum Op extends LangElem:
+  enum Op extends Syntax:
     case And, Or, Imply
 
 // -----------------------------------------------------------------------------
 // algorithm references
 // -----------------------------------------------------------------------------
-sealed trait Reference extends LangElem with Locational
+sealed trait Reference extends Syntax
 object Reference extends Parser.From[Reference]
 
 // variables
@@ -372,7 +376,7 @@ case class PropertyReference(base: Reference, prop: Property) extends Reference
 // -----------------------------------------------------------------------------
 // algorithm properties
 // -----------------------------------------------------------------------------
-sealed trait Property extends LangElem
+sealed trait Property extends Syntax
 object Property extends Parser.From[Property]
 
 // field property
@@ -387,7 +391,7 @@ case class IndexProperty(index: Expression) extends Property
 // -----------------------------------------------------------------------------
 // algorithm fields
 // -----------------------------------------------------------------------------
-sealed trait Field extends LangElem
+sealed trait Field extends Syntax
 object Field extends Parser.From[Field]
 case class StringField(name: String) extends Field
 case class IntrinsicField(intrinsic: Intrinsic) extends Field
@@ -395,12 +399,12 @@ case class IntrinsicField(intrinsic: Intrinsic) extends Field
 // -----------------------------------------------------------------------------
 // intrinsics
 // -----------------------------------------------------------------------------
-case class Intrinsic(base: String, props: List[String]) extends LangElem
+case class Intrinsic(base: String, props: List[String]) extends Syntax
 object Intrinsic extends Parser.From[Intrinsic]
 
 // -----------------------------------------------------------------------------
 // algorithm types
 // -----------------------------------------------------------------------------
 // TODO more detailed instead of strings
-case class Type(name: String) extends LangElem
+case class Type(name: String) extends Syntax
 object Type extends Parser.From[Type]
