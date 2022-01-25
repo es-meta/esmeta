@@ -334,21 +334,30 @@ trait IndentParsers extends BasicParsers {
   abstract class LocationalParser[+T] extends Parser[T]
   def locationed[T <: Locational](p: => Parser[T]): LocationalParser[T] =
     new LocationalParser {
-      def apply(in: Input) = in match {
-        case in: IndentReader[Char] =>
-          p(in) match {
-            case s @ Success(res, rest) =>
-              new Success(
-                res.setLoc(in.pos, rest.pos, in.steps.reverse),
-                rest,
-              ) {
-                override val lastFailure: Option[Failure] = s.lastFailure
-              }
-            case ns: NoSuccess => ns
-          }
-        case in => Failure("not an IndentReader", in)
-      }
+      def apply(in: Input) =
+        in match {
+          case in: IndentReader[Char] =>
+            val trimmed = trimInput(in) // handle whitespace
+            p(trimmed) match {
+              case s @ Success(res, rest) =>
+                new Success(
+                  res.setLoc(trimmed.pos, rest.pos, trimmed.steps.reverse),
+                  rest,
+                ) { override val lastFailure: Option[Failure] = s.lastFailure }
+              case ns: NoSuccess => ns
+            }
+          case in => Failure("not an IndentReader", in)
+        }
     }
+
+  // trim unused whitespace for position
+  private def trimInput[T](in: IndentReader[T]): IndentReader[T] = {
+    var spaceCnt = 0
+    while (in.source.charAt(in.offset + spaceCnt) == ' ') spaceCnt += 1
+    in.drop(spaceCnt)
+      .asInstanceOf[IndentReader[T]]
+      .copy(needUppercase = in.needUppercase)
+  }
 
   private given Conversion[Position, Pos] with
     def apply(p: Position): Pos = Pos(p.line, p.column)
