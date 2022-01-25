@@ -172,4 +172,14 @@ object SystemUtils {
   /** set timeout with duration */
   def timeout[T](f: => T, duration: Duration): T =
     Await.result(Future(f), duration)
+
+  /** concurrently execute a list of functions */
+  def concurrent[T](
+    fs: Iterable[() => T],
+    duration: Duration = Duration.Inf,
+  ): Iterable[T] =
+    Await.result(
+      Future.sequence(fs.map(f => Future(f()))),
+      duration,
+    )
 }

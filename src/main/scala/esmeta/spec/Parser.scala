@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.lang.Block
 import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
+import esmeta.util.SystemUtils.concurrent
 import org.jsoup.nodes.*
 
 /** specification parser */
@@ -45,11 +46,9 @@ object Parser extends Parsers {
   def parseAlgorithms(
     document: Document,
     idxMap: Map[String, (Int, Int)],
-  ): List[Algorithm] =
-    for {
-      elem <- document.getElems("emu-alg:not([example])")
-      algo <- parseAlgorithms(elem, idxMap)
-    } yield algo
+  ): List[Algorithm] = concurrent(for {
+    elem <- document.getElems("emu-alg:not([example])")
+  } yield () => parseAlgorithms(elem, idxMap)).toList.flatten
 
   /** parses an algorithm */
   def parseAlgorithms(
