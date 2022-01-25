@@ -353,7 +353,10 @@ trait IndentParsers extends BasicParsers {
   // trim unused whitespace for position
   private def trimInput[T](in: IndentReader[T]): IndentReader[T] = {
     var spaceCnt = 0
-    while (in.source.charAt(in.offset + spaceCnt) == ' ') spaceCnt += 1
+    while (
+      in.offset + spaceCnt < in.source.length &&
+      in.source.charAt(in.offset + spaceCnt) == ' '
+    ) spaceCnt += 1
     in.drop(spaceCnt)
       .asInstanceOf[IndentReader[T]]
       .copy(needUppercase = in.needUppercase)
