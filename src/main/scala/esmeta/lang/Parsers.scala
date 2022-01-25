@@ -593,8 +593,7 @@ trait Parsers extends IndentParsers {
   private implicit def parser2loc[T <: Locational](
     p: => Parser[T],
   ): PL[T] = {
-    lazy val q = p
-    lazy val packrat = parser2packrat(q)
+    val packrat = parser2packrat(p)
     locationed(packrat)
   }
 
