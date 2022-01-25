@@ -13,6 +13,10 @@ case class InvalidRefBase(v: Value)
   extends InterpError(s"not a proper reference base: $v")
 case class InvalidConversion(cop: COp, expr: Expr, v: Value)
   extends InterpError(s"invalid conversion to $cop: $expr, $v")
+case class InvalidArgs(name: String, as: List[Value])
+  extends InterpError(s"invalid arguments: ${as.mkString(", ")} @ name")
+
+// invalid completion values
 sealed abstract class InvalidComp(msg: Option[String])
   extends InterpError(s"invalid completion${msg.fold("")(": " + _)}")
 case object InvalidComp extends InvalidComp(None)
@@ -24,9 +28,9 @@ case object NoReturnValue extends InterpError(s"no return value")
 
 // arity mismatches
 case class RemainingParams(ps: List[Param])
-  extends InterpError(s"remaining parameters: ${ps.mkString("(", ", ", ")")}")
+  extends InterpError(s"remaining parameters: ${ps.mkString(", ")}")
 case class RemainingArgs(as: List[Value])
-  extends InterpError(s"remaining arguments: ${as.mkString("(", ", ", ")")}")
+  extends InterpError(s"remaining arguments: ${as.mkString(", ")}")
 
 // not a specific types
 case class NoBoolean(expr: Expr, v: Value)
@@ -39,6 +43,8 @@ case class NoAddr(expr: Expr, v: Value)
   extends InterpError(s"not an address: $expr -> $v")
 case class NoFunc(expr: Expr, v: Value)
   extends InterpError(s"not a function: $expr -> $v")
+case class NoAst(expr: Expr, v: Value)
+  extends InterpError(s"not an abstract syntax tree (AST): $expr -> $v")
 case class NoList(expr: Expr, obj: Obj)
   extends InterpError(s"not a list: $expr -> $obj")
 

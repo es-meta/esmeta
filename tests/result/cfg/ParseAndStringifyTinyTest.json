@@ -15,7 +15,9 @@
   "UOp" : true,
   "bop-arith.cfg" : true,
   "bop-bitwise.cfg" : true,
+  "bop-equal.cfg" : true,
   "bop-logical.cfg" : true,
-  "literal.cfg" : true,
+  "contains.cfg" : true,
+  "copy.cfg" : true,
   "uop.cfg" : true
 }

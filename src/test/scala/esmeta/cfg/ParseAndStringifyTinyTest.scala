@@ -163,12 +163,13 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val typeOf = ETypeOf(xExpr)
     lazy val typeCheck = ETypeCheck(xExpr, ty)
     // AST expressions
-    lazy val ast = AstExpr("Identifier", Nil, 1, 2, Nil)
-    lazy val astArgs = AstExpr("Identifier", List(true, false), 1, 2, Nil)
+    lazy val ast = ESyntactic("Identifier", Nil, 1, 2, Nil)
+    lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, 2, Nil)
     lazy val astSingle =
-      AstExpr("Identifier", List(true, false), 1, 2, List(xExpr))
+      ESyntactic("Identifier", List(true, false), 1, 2, List(xExpr))
     lazy val astMultiple =
-      AstExpr("Identifier", List(true, false), 1, 2, List(xExpr, yExpr))
+      ESyntactic("Identifier", List(true, false), 1, 2, List(xExpr, yExpr))
+    lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions
     lazy val rec = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent), 42)
     lazy val list = EList(List(EUndef, ENull, EAbsent), 42)
@@ -204,6 +205,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       astArgs -> "|Identifier|[TF]<1, 2>",
       astSingle -> "|Identifier|[TF]<1, 2>(x)",
       astMultiple -> "|Identifier|[TF]<1, 2>(x, y)",
+      lex -> "|Identifier|(x)",
       // allocation expressions
       rec -> "(new T(undefined -> true, null -> absent))[#42]",
       list -> "(new [undefined, null, absent])[#42]",

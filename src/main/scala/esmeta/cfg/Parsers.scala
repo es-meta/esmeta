@@ -146,7 +146,9 @@ trait Parsers extends BasicParsers {
     (opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }) ~
     ("<" ~> int ~ ("," ~> int) <~ ">") ~
     (opt("(" ~> repsep(expr, ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
-      case n ~ as ~ (i ~ j) ~ es => AstExpr(n, as, i, j, es)
+      case n ~ as ~ (i ~ j) ~ es => ESyntactic(n, as, i, j, es)
+    } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
+      case n ~ e => ELexical(n, e)
     }
   lazy val simpleBool: Parser[Boolean] = "T" ^^^ true | "F" ^^^ false
 

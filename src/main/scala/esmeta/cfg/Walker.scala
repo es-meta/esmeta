@@ -153,15 +153,17 @@ trait Walker extends BasicWalker {
   }
 
   // abstract syntax tree (AST) expressions
-  def walk(ast: AstExpr): AstExpr = {
-    val AstExpr(name, args, rhsIdx, bits, children) = ast
-    AstExpr(
-      walk(name),
-      walkList(args, walk),
-      walk(rhsIdx),
-      walk(bits),
-      walkList(children, walk),
-    )
+  def walk(ast: AstExpr): AstExpr = ast match {
+    case ESyntactic(name, args, rhsIdx, bits, children) =>
+      ESyntactic(
+        walk(name),
+        walkList(args, walk),
+        walk(rhsIdx),
+        walk(bits),
+        walkList(children, walk),
+      )
+    case ELexical(name, expr) =>
+      ELexical(walk(name), walk(expr))
   }
 
   // allocation expressions

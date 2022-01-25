@@ -94,13 +94,20 @@ case class Cont(
 ) extends PureValue
 
 /** AST values */
-case class AST(
+sealed trait Ast extends PureValue {
+  val name: String
+}
+case class Syntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
   bits: Int,
-  children: List[AST],
-) extends PureValue
+  children: List[Ast],
+) extends Ast
+case class Lexical(
+  name: String,
+  str: String,
+) extends Ast
 
 // -----------------------------------------------------------------------------
 // Literal Values

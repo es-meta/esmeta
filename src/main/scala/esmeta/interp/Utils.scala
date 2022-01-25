@@ -375,7 +375,10 @@ object Utils {
       case _                                => throw InvalidObjProp(obj, prop)
 
     /** copy of object */
-    def copied: Obj = ???
+    def copied: Obj = obj match {
+      case MapObj(tname, props, size) => MapObj(tname, MMap.from(props), size)
+      case _ => obj
+    }
   }
 
   /** extensions for list objects */

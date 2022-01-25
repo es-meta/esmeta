@@ -178,17 +178,20 @@ case class Stringifier(detail: Boolean) {
     }
 
   // abstract syntax tree (AST) expressions
-  lazy val astExprRule: Rule[AstExpr] = (app, ast) => {
-    val AstExpr(name, args, rhsIdx, bits, children) = ast
-    app >> "|" >> name >> "|"
-    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-    given Rule[List[Boolean]] = iterableRule("[", "", "]")
-    if (!args.isEmpty) app >> args
-    app >> "<" >> rhsIdx >> ", " >> bits >> ">"
-    given el: Rule[List[Expr]] = iterableRule("(", ", ", ")")
-    if (!children.isEmpty) app >> children
-    app
-  }
+  lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
+    ast match {
+      case ESyntactic(name, args, rhsIdx, bits, children) =>
+        app >> "|" >> name >> "|"
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule("[", "", "]")
+        if (!args.isEmpty) app >> args
+        app >> "<" >> rhsIdx >> ", " >> bits >> ">"
+        given el: Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        if (!children.isEmpty) app >> children
+        app
+      case ELexical(name, expr) =>
+        app >> "|" >> name >> "|(" >> expr >> ")"
+    }
 
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>

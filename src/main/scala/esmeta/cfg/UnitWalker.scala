@@ -147,13 +147,15 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   // abstract syntax tree (AST) expressions
-  def walk(ast: AstExpr): Unit = {
-    val AstExpr(name, args, rhsIdx, bits, children) = ast
-    walk(name)
-    walkList(args, walk)
-    walk(rhsIdx)
-    walk(bits)
-    walkList(children, walk)
+  def walk(ast: AstExpr): Unit = ast match {
+    case ESyntactic(name, args, rhsIdx, bits, children) =>
+      walk(name)
+      walkList(args, walk)
+      walk(rhsIdx)
+      walk(bits)
+      walkList(children, walk)
+    case ELexical(name, expr) =>
+      walk(name); walk(expr)
   }
 
   // allocation expressions

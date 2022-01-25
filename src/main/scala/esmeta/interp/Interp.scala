@@ -169,11 +169,27 @@ class Interp(
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
-    case ETypeOf(base)                               => ???
-    case ETypeCheck(expr, ty)                        => ???
-    case EClo(fid, captured)                         => ???
-    case ECont(fid)                                  => ???
-    case AstExpr(name, args, rhsIdx, bits, children) => ???
+    case ETypeOf(base)        => ??? // TODO discuss about the type
+    case ETypeCheck(expr, ty) => ??? // TODO discuss about the type
+    case EClo(fid, captured) =>
+      Clo(fid, Map.from(captured.map(x => x -> st(x))))
+    case ECont(fid) =>
+      val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
+      Cont(fid, Map.from(captured), st.callStack)
+    case ESyntactic(name, args, rhsIdx, bits, children) =>
+      val asts = children.map(child =>
+        interp(child) match {
+          case ast: Ast => ast
+          case v        => throw NoAst(child, v)
+        },
+      )
+      Syntactic(name, args, rhsIdx, bits, asts)
+    case ELexical(name, expr) =>
+      val str = interp(expr) match {
+        case Str(str) => str
+        case v        => throw NoString(expr, v)
+      }
+      Lexical(name, str)
     case EMap("Completion", props, asite) =>
       val map = (for {
         (kexpr, vexpr) <- props
@@ -310,19 +326,25 @@ object Interp {
     val (name, f) = pair
     name -> {
       case (st, args) =>
-        optional(f(st, args)).getOrElse {
-          error(s"wrong arguments: $name(${args.mkString(", ")})")
-        }
+        optional(f(st, args)).getOrElse(throw InvalidArgs(name, args))
     }
-  def mathBOp(op: (BigDecimal, BigDecimal) => BigDecimal): SimpleFunc =
-    case (st, list @ _ :: _) =>
-      val ds = list.map {
-        case x: Math => x.n
-        case _       => ???
-      }
-      Math(ds.reduce(op))
-  def mathUOp(op: BigDecimal => BigDecimal): SimpleFunc =
-    case (st, List(Math(n))) => Math(op(n))
+  def mathBOp(
+    name: String,
+    op: (BigDecimal, BigDecimal) => BigDecimal,
+  ): (String, SimpleFunc) =
+    name -> {
+      case (st, list @ _ :: _) =>
+        val ds = list.map {
+          case x: Math => x.n
+          case v       => throw InvalidArgs(name, List(v))
+        }
+        Math(ds.reduce(op))
+    }
+  def mathUOp(
+    name: String,
+    op: BigDecimal => BigDecimal,
+  ): (String, SimpleFunc) =
+    name -> { case (st, List(Math(n))) => Math(op(n)) }
   val simpleFuncs: Map[String, SimpleFunc] = Map(
     arityCheck("GetArgument" -> {
       case (st, List(addr: Addr)) =>
@@ -348,10 +370,10 @@ object Interp {
         ???
       case (st, List(v)) => Bool(false)
     }),
-    arityCheck("min" -> mathBOp(_ min _)),
-    arityCheck("max" -> mathBOp(_ max _)),
-    arityCheck("abs" -> mathUOp(_.abs)),
-    arityCheck("floor" -> mathUOp(_.toDouble.floor)),
+    arityCheck(mathBOp("min", _ min _)),
+    arityCheck(mathBOp("max", _ max _)),
+    arityCheck(mathUOp("abs", _.abs)),
+    arityCheck(mathUOp("floor", _.toDouble.floor)),
     arityCheck("fround" -> {
       case (st, List(Number(n))) => Number(n.toFloat.toDouble)
     }),
@@ -383,7 +405,6 @@ object Interp {
   /** transition for binary operators */
   def interp(bop: BOp, left: Value, right: Value): Value =
     import BOp.*
-    given Conversion[Long, Double] = _.toDouble
     (bop, left, right) match {
       // double operations
       case (Plus, Number(l), Number(r)) => Number(l + r)
@@ -453,12 +474,14 @@ object Interp {
       case (Eq, BigInt(l), Number(r)) => Bool(l == r)
       case (Eq, Math(l), BigInt(r))   => Bool(l == r)
       case (Eq, BigInt(l), Math(r))   => Bool(l == r)
+      case (Eq, l: Ast, r: Ast)       => Bool(l eq r)
       case (Eq, l, r)                 => Bool(l == r)
 
       // double equality operations
       case (Equal, Math(l), Number(r))   => Bool(l == r)
       case (Equal, Number(l), Math(r))   => Bool(l == r)
       case (Equal, Number(l), Number(r)) => Bool(l == r)
+      case (Equal, l: Ast, r: Ast)       => Bool(l eq r)
       case (Equal, l, r)                 => Bool(l == r)
 
       // double with big integers

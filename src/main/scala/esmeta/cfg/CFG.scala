@@ -136,13 +136,20 @@ case class EClo(fid: Int, captured: List[Name]) extends Expr
 case class ECont(fid: Int) extends Expr
 
 // abstract syntax tree (AST) expressions
-case class AstExpr(
+sealed trait AstExpr extends Expr {
+  val name: String
+}
+case class ESyntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
   bits: Int,
   children: List[Expr],
-) extends Expr
+) extends AstExpr
+case class ELexical(
+  name: String,
+  expr: Expr,
+) extends AstExpr
 
 // allocation expressions
 sealed trait AllocExpr extends Expr { val asite: Int }
