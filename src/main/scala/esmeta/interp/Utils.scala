@@ -377,7 +377,7 @@ object Utils {
     /** copy of object */
     def copied: Obj = obj match {
       case MapObj(tname, props, size) => MapObj(tname, MMap.from(props), size)
-      case _ => obj
+      case _                          => obj
     }
   }
 
