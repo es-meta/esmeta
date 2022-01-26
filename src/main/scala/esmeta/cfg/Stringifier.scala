@@ -5,11 +5,10 @@ import esmeta.cfg.Utils.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import scala.collection.mutable.ListBuffer
 
 /** stringifier for CFG */
-case class Stringifier(detail: Boolean) {
-  import Appender.given
-
+case class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[CFGElem] = (app, elem) =>
     elem match {
@@ -31,25 +30,20 @@ case class Stringifier(detail: Boolean) {
 
   // control-flow graphs (CFGs)
   given cfgRule: Rule[CFG] = (app, cfg) =>
-    val CFG(main, funcs) = cfg
-    given Rule[Iterable[(Func, Boolean)]] = iterableRule(sep = LINE_SEP * 2)
+    val CFG(_, funcs) = cfg
+    given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
     given Ordering[Func] = Ordering.by(_.id)
-    app >> cfg.funcs.sorted.map(f => (f, f.id == cfg.main))
+    app >> cfg.funcs.sorted
 
   // functions
-  given funcWithMainRule: Rule[(Func, Boolean)] = (app, pair) =>
-    val (func, isMain) = pair
-    app >> (if (isMain) "@main " else "") >> func
   given funcRule: Rule[Func] = (app, func) =>
-    val Func(_, kind, name, params, entry, nodes, exit) = func
+    val Func(id, main, kind, name, params, _) = func
     given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
-    app >> func.id >> ": " >> kind
+    app >> id >> ": " >> (if (main) "@main " else "") >> kind
     app >> name >> params >> " "
     app.wrap {
       given Ordering[Node] = Ordering.by(_.id)
-      app :> entry
-      for (node <- nodes.sorted) app :> node
-      app :> exit
+      for (node <- func.nodes.toList.sorted) app :> node
     }
 
   // function kinds
@@ -80,25 +74,22 @@ case class Stringifier(detail: Boolean) {
     })
 
   // nodes
-  given nodeRule: Rule[Node] = (app, node) =>
+  given nodeRule: Rule[Node] = withLoc { (app, node) =>
     app >> node.id >> ": "
-    node match {
-      case Entry(_, next) =>
-        app >> "<entry> -> " >> next
-      case Exit(_) =>
-        app >> "<exit>"
-      case Linear(_, Vector(inst), next) =>
-        app >> inst >> " -> " >> next
-      case Linear(_, insts, next) =>
-        app.wrap(for (inst <- insts) app :> inst) >> " -> " >> next
-      case Branch(_, kind, cond, loc, thenNode, elseNode) =>
-        app >> "<branch> " >> kind >> "(" >> cond >> ")" >> loc
-        app >> " -t> " >> thenNode >> " -f> " >> elseNode
-      case Call(_, lhs, fexpr, args, loc, next) =>
+    node match
+      case Block(_, insts, next) =>
+        app.wrap(for (inst <- insts) app :> inst)
+        next.map(x => app >> " -> " >> x.id)
+      case Call(_, lhs, fexpr, args, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
-        app >> "<call> " >> lhs >> " = "
-        app >> fexpr >> args >> loc >> " -> " >> next
-    }
+        app >> "call " >> lhs >> " = " >> fexpr >> args
+        next.map(x => app >> " -> " >> x.id)
+      case Branch(_, kind, cond, thenNode, elseNode) =>
+        app >> kind >> " " >> cond
+        thenNode.map(x => app >> " then " >> x.id)
+        elseNode.map(x => app >> " else " >> x.id)
+    app
+  }
 
   // branch kinds
   given branchKindRule: Rule[Branch.Kind] = (app, kind) =>
@@ -110,36 +101,31 @@ case class Stringifier(detail: Boolean) {
     })
 
   // instructions
-  given instRule: Rule[Inst] = (app, inst) =>
-    inst match {
-      case IExpr(expr, _) =>
+  given instRule: Rule[Inst] = withLoc { (app, inst) =>
+    inst match
+      case IExpr(expr) =>
         app >> expr
-      case ILet(lhs, expr, _) =>
+      case ILet(lhs, expr) =>
         app >> "let " >> lhs >> " = " >> expr
-      case IAssign(ref, expr, _) =>
+      case IAssign(ref, expr) =>
         app >> ref >> " = " >> expr
-      case IDelete(ref, _) =>
+      case IDelete(ref) =>
         app >> "delete " >> ref
-      case IPush(from, to, front, _) =>
+      case IPush(from, to, front) =>
         app >> "push "
         if (front) app >> from >> " > " >> to
         else app >> to >> " < " >> from
-      case IReturn(expr, _) =>
+      case IReturn(expr) =>
         app >> "return " >> expr
-      case IAssert(expr, _) =>
+      case IAssert(expr) =>
         app >> "assert " >> expr
-      case IPrint(expr, _) =>
+      case IPrint(expr) =>
         app >> "print " >> expr
-    }
-    app >> inst.loc
-
-  // locations
-  given locRule: Rule[Option[Loc]] = (app, loc) =>
-    loc.fold(app)(loc => app >> " @ " >> loc.toString)
+  }
 
   // expressions
-  given exprRule: Rule[Expr] = (app, expr) =>
-    expr match {
+  given exprRule: Rule[Expr] = withLoc { (app, expr) =>
+    expr match
       case EComp(tyExpr, tgtExpr, valExpr) =>
         app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
       case EIsCompletion(expr) =>
@@ -176,7 +162,7 @@ case class Stringifier(detail: Boolean) {
         allocExprRule(app, expr)
       case expr: Literal =>
         literalRule(app, expr)
-    }
+  }
 
   // abstract syntax tree (AST) expressions
   lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
@@ -295,4 +281,14 @@ case class Stringifier(detail: Boolean) {
 
   // types
   given tyRule: Rule[Type] = (app, ty) => app >> ty.name
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // append locations
+  private def withLoc[T <: Locational](rule: Rule[T]): Rule[T] = (app, elem) =>
+    given Rule[Option[Loc]] = (app, locOpt) =>
+      locOpt.fold(app)(app >> " @ " >> _.toString)
+    rule(app, elem)
+    if (location) app >> elem.loc else app
 }

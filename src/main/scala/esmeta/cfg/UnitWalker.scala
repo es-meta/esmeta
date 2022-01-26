@@ -22,20 +22,17 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   // control flow graphs (CFGs)
-  def walk(cfg: CFG): Unit =
-    val CFG(main, funcs) = cfg
-    walk(main); walkList(funcs, walk)
+  def walk(cfg: CFG): Unit = walkIterable(cfg.funcs, walk)
 
   // functions
   def walk(func: Func): Unit =
-    val Func(id, kind, name, params, entry, blocks, exit) = func
+    val Func(id, main, kind, name, params, _) = func
     walk(id)
+    walk(main)
     walk(kind)
     walk(name)
     walkList(params, walk)
-    walk(entry)
-    walkList(blocks, walk)
-    walk(exit)
+    walkSet(func.nodes, walk)
 
   // function kinds
   def walk(kind: Func.Kind): Unit = {}
@@ -50,39 +47,17 @@ trait UnitWalker extends BasicUnitWalker {
 
   // nodes
   def walk(node: Node): Unit = node match {
-    case node: Entry => walk(node)
-    case node: Exit  => walk(node)
-    case node: Block => walk(node)
-  }
-
-  // entry nodes
-  def walk(entry: Entry): Unit =
-    val Entry(id, next) = entry
-    walk(id); walk(next)
-
-  // exit nodes
-  def walk(exit: Exit): Unit =
-    val Exit(id) = exit
-    walk(id)
-
-  // block nodes
-  def walk(block: Block): Unit = block match {
-    case Linear(id, insts, next) =>
-      walk(id); walkVector(insts, walk); walk(next)
-    case Branch(id, kind, cond, loc, thenNode, elseNode) =>
-      walk(id)
-      walk(kind)
-      walk(cond)
-      walkOpt(loc, walk)
-      walk(thenNode)
-      walk(elseNode)
-    case Call(id, lhs, fexpr, args, loc, next) =>
+    case Block(id, insts, _) =>
+      walk(id); walkIterable(insts, walk)
+    case Call(id, lhs, fexpr, args, _) =>
       walk(id)
       walk(lhs)
       walk(fexpr)
       walkList(args, walk)
-      walkOpt(loc, walk)
-      walk(next)
+    case Branch(id, kind, cond, _, _) =>
+      walk(id)
+      walk(kind)
+      walk(cond)
   }
 
   // branch kinds
@@ -90,26 +65,15 @@ trait UnitWalker extends BasicUnitWalker {
 
   // instructions
   def walk(inst: Inst): Unit = inst match {
-    case IExpr(expr, loc) =>
-      walk(expr); walkOpt(loc, walk)
-    case ILet(lhs, expr, loc) =>
-      walk(lhs); walk(expr); walkOpt(loc, walk)
-    case IAssign(ref, expr, loc) =>
-      walk(ref); walk(expr); walkOpt(loc, walk)
-    case IDelete(ref, loc) =>
-      walk(ref); walkOpt(loc, walk)
-    case IPush(from, to, front, loc) =>
-      walk(from); walk(to); walk(front); walkOpt(loc, walk)
-    case IReturn(expr, loc) =>
-      walk(expr); walkOpt(loc, walk)
-    case IAssert(expr, loc) =>
-      walk(expr); walkOpt(loc, walk)
-    case IPrint(expr, loc) =>
-      walk(expr); walkOpt(loc, walk)
+    case IExpr(expr)            => walk(expr)
+    case ILet(lhs, expr)        => walk(lhs); walk(expr)
+    case IAssign(ref, expr)     => walk(ref); walk(expr)
+    case IDelete(ref)           => walk(ref)
+    case IPush(from, to, front) => walk(from); walk(to); walk(front)
+    case IReturn(expr)          => walk(expr)
+    case IAssert(expr)          => walk(expr)
+    case IPrint(expr)           => walk(expr)
   }
-
-  // locations
-  def walk(loc: Loc): Unit = {}
 
   // expressions
   def walk(expr: Expr): Unit = expr match {

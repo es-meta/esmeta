@@ -1,13 +1,15 @@
 package esmeta.cfg
 
-import esmeta.util.{DoubleEquals, UId, Loc}
+import esmeta.cfg.Utils.*
+import esmeta.util.{DoubleEquals, UId, Locational}
+import scala.collection.mutable.ListBuffer
 
 // -----------------------------------------------------------------------------
 // Control-Flow Graphs (CFGs)
 // -----------------------------------------------------------------------------
 case class CFG(
-  main: Int,
-  funcs: List[Func],
+  main: Func,
+  funcs: ListBuffer[Func],
 ) extends CFGElem {
   lazy val funcMap: Map[Int, Func] =
     (for (func <- funcs) yield func.id -> func).toMap
@@ -27,16 +29,14 @@ object CFG extends Parser.From[CFG]
 // -----------------------------------------------------------------------------
 case class Func(
   id: Int,
+  main: Boolean,
   kind: Func.Kind,
   name: String,
   params: List[Param],
-  entry: Entry,
-  blocks: List[Block],
-  exit: Exit,
+  entry: Option[Node],
 ) extends CFGElem
   with UId {
-  lazy val nodes: List[Node] =
-    entry :: exit :: blocks
+  lazy val nodes: Set[Node] = entry.fold(Set())(reachable)
   lazy val nodeMap: Map[Int, Node] =
     (for (node <- nodes) yield node.id -> node).toMap
 }
@@ -45,9 +45,7 @@ object Func extends Parser.From[Func]:
     case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont
   object Kind extends Parser.From[Kind]
 
-// -----------------------------------------------------------------------------
-// Function Parameters
-// -----------------------------------------------------------------------------
+/** function parameters */
 case class Param(lhs: Name, kind: Param.Kind, ty: Type) extends CFGElem
 object Param extends Parser.From[Param]:
   enum Kind extends CFGElem:
@@ -57,68 +55,56 @@ object Param extends Parser.From[Param]:
 // -----------------------------------------------------------------------------
 // Nodes
 // -----------------------------------------------------------------------------
-sealed trait Node extends CFGElem with UId
+sealed trait Node extends CFGElem with UId with Locational
 object Node extends Parser.From[Node]
 
-// entry nodes
-case class Entry(id: Int, var next: Int) extends Node
-
-// exit nodes
-case class Exit(id: Int) extends Node
-
-// block nodes
-sealed trait Block extends Node
-
-// lienar nodes
-case class Linear(
+/** block nodes */
+case class Block(
   id: Int,
-  var insts: Vector[Inst],
-  var next: Int,
-) extends Block
+  var insts: ListBuffer[Inst],
+  var next: Option[Node] = None,
+) extends Node
 
-// branch nodes
-case class Branch(
-  id: Int,
-  kind: Branch.Kind,
-  cond: Expr,
-  loc: Option[Loc],
-  var thenNode: Int,
-  var elseNode: Int,
-) extends Block
-object Branch:
-  enum Kind extends CFGElem:
-    case If, While, Foreach
-  object Kind extends Parser.From[Kind]
-
-// call nodes
+/** call nodes */
 case class Call(
   id: Int,
   lhs: Id,
   fexpr: Expr,
   args: List[Expr],
-  loc: Option[Loc],
-  var next: Int,
-) extends Block
+  var next: Option[Node] = None,
+) extends Node
+
+/** branch nodes */
+case class Branch(
+  id: Int,
+  kind: Branch.Kind,
+  cond: Expr,
+  var thenNode: Option[Node] = None,
+  var elseNode: Option[Node] = None,
+) extends Node
+object Branch:
+  enum Kind extends CFGElem:
+    case If, While, Foreach
+  object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------
 // Instructions
 // -----------------------------------------------------------------------------
-sealed trait Inst extends CFGElem { val loc: Option[Loc] }
+sealed trait Inst extends CFGElem with Locational
 object Inst extends Parser.From[Inst]
-case class IExpr(expr: Expr, loc: Option[Loc]) extends Inst
-case class ILet(lhs: Name, expr: Expr, loc: Option[Loc]) extends Inst
-case class IAssign(ref: Ref, expr: Expr, loc: Option[Loc]) extends Inst
-case class IDelete(ref: Ref, loc: Option[Loc]) extends Inst
-case class IPush(from: Expr, to: Expr, front: Boolean, loc: Option[Loc])
-  extends Inst
-case class IReturn(expr: Expr, loc: Option[Loc]) extends Inst
-case class IAssert(expr: Expr, loc: Option[Loc]) extends Inst
-case class IPrint(expr: Expr, loc: Option[Loc]) extends Inst
+case class IExpr(expr: Expr) extends Inst
+case class ILet(lhs: Name, expr: Expr) extends Inst
+case class IAssign(ref: Ref, expr: Expr) extends Inst
+case class IDelete(ref: Ref) extends Inst
+case class IPush(from: Expr, to: Expr, front: Boolean) extends Inst
+case class IReturn(expr: Expr) extends Inst
+case class IAssert(expr: Expr) extends Inst
+case class IPrint(expr: Expr) extends Inst
 
 // -----------------------------------------------------------------------------
 // Expressions
 // -----------------------------------------------------------------------------
-sealed trait Expr extends CFGElem
+sealed trait Expr extends CFGElem with Locational
 object Expr extends Parser.From[Expr]
 case class EComp(tyExpr: Expr, tgtExpr: Expr, valExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr

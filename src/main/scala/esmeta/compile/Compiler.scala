@@ -11,7 +11,7 @@ class Compiler(val spec: Spec) {
   private var revFuncs: List[Func] = Nil
 
   /** get the compiled CFG */
-  def cfg: CFG = CFG(main, revFuncs.reverse)
+  def cfg: CFG = ??? // CFG(main, revFuncs.reverse)
 
   /** get the most recently compiled function */
   def recentFunc: Func = revFuncs.head
@@ -19,14 +19,14 @@ class Compiler(val spec: Spec) {
   /** add an algorithm to a CFG as a function */
   def add(algo: Algorithm): Func = {
     val fid = nextFId
+    val main = ???
     val head = algo.head
     val kind = getKind(head)
     val name = getName(head)
     val params = getParams(head)
-    val entry: Entry = ???
-    val blocks: List[Block] = ???
-    val exit: Exit = ???
-    val func: Func = Func(fid, kind, name, params, entry, blocks, exit)
+    // TODO get CFG nodes
+    val entry: Option[Node] = ???
+    val func = Func(fid, main, kind, name, params, entry)
     revFuncs ::= func
     func
   }

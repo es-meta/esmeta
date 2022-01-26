@@ -110,7 +110,10 @@ object Utils {
   extension (st: State) {
 
     /** get the current function */
-    def func: Func = st.cfg.funcOf(st.context.cur)
+    def func: Func = st.context.cursor match {
+      case NodeCursor(node) => st.cfg.funcOf(node)
+      case ExitCursor(func) => func
+    }
 
     /** get local variable maps */
     def locals: MMap[Local, Value] = st.context.locals

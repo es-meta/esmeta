@@ -9,9 +9,14 @@ trait BasicUnitWalker {
     tWalk: T => Unit,
   ): Unit = opt.foreach(tWalk)
 
+  def walkIterable[T](
+    set: Iterable[T],
+    tWalk: T => Unit,
+  ): Unit = set.foreach(tWalk)
+
   def walkSet[T](
     set: Set[T],
-    tWalk: T => T,
+    tWalk: T => Unit,
   ): Unit = set.foreach(tWalk)
 
   def walkList[T](

@@ -1,6 +1,8 @@
 package esmeta.cfg
 
-import esmeta.util.{Loc, BasicParsers}
+import esmeta.util.{Locational, BasicParsers}
+import esmeta.util.BaseUtils.*
+import scala.collection.mutable.ListBuffer
 
 /** CFG parsers */
 trait Parsers extends BasicParsers {
@@ -9,25 +11,36 @@ trait Parsers extends BasicParsers {
     """(\s|/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*)+""".r
 
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] = rep(funcWithMain) ^^ {
-    case pairs =>
-      var main = -1
-      // TODO check multiple main functions
-      val funcs = for ((func, isMain) <- pairs) yield {
-        if (isMain) main = func.id
-        func
+  given cfg: Parser[CFG] = rep(func) ^^ {
+    case funcs =>
+      val main = funcs.filter(_.main) match {
+        case Nil        => error("no main function")
+        case List(main) => main
+        case _          => error("multiple main functions")
       }
-      CFG(main, funcs)
+      CFG(main, ListBuffer.from(funcs))
   }
 
   // functions
-  given func: Parser[Func] = (
-    getId ~ funcKind ~ "[^( ]+".r ~ params ~ nodes
-  ) ^^ { case i ~ k ~ n ~ ps ~ (en ~ ns ~ ex) => Func(i, k, n, ps, en, ns, ex) }
+  given func: Parser[Func] =
+    getId ~ main ~ funcKind ~ "(\\w|:)+".r ~ params ~
+    ("{" ~> rep(nodeLink) <~ "}") ^^ {
+      case id ~ main ~ kind ~ name ~ params ~ links =>
+        val nodes = links.map(_.node)
+        val nodeMap = nodes.map(node => node.id -> node).toMap
+        def get(idOpt: Option[Int]): Option[Node] =
+          idOpt.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
+        links.foreach {
+          case BlockLink(node, next) => node.next = get(next)
+          case CallLink(node, next)  => node.next = get(next)
+          case BranchLink(node, thenId, elseId) =>
+            node.thenNode = get(thenId); node.elseNode = get(elseId)
+        }
+        val entry = nodes.headOption
+        Func(id, main, kind, name, params, entry)
+    }
 
-  // functions with main
-  lazy val funcWithMain: Parser[(Func, Boolean)] =
-    opt("@main") ~ func ^^ { case m ~ f => (f, m.isDefined) }
+  lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
   // function kinds
   given funcKind: Parser[Func.Kind] =
@@ -51,65 +64,59 @@ trait Parsers extends BasicParsers {
     import Param.Kind.*
     "?" ^^^ Optional | "" ^^^ Normal
 
-  // nodes
-  lazy val nodes: Parser[Entry ~ List[Block] ~ Exit] =
-    "{" ~> entry ~ rep(block) ~ exit <~ "}"
-  given node: Parser[Node] = entry | exit | block
-
-  // entry nodes
-  lazy val entry: Parser[Entry] =
-    getId("entry") ~ ("->" ~> int) ^^ { case i ~ n => Entry(i, n) }
-
-  // exit nodes
-  lazy val exit: Parser[Exit] =
-    getId("exit") ^^ { case i => Exit(i) }
-
-  // block nodes
-  lazy val block: Parser[Block] =
-    getId ~ insts ~ ("->" ~> int) ^^ {
-      case i ~ is ~ n => Linear(i, is.toVector, n)
-    } | getId("branch") ~ cond ~ ("-t>" ~> int) ~ ("-f>" ~> int) ^^ {
-      case i ~ (k ~ c ~ l) ~ t ~ e => Branch(i, k, c, l, t, e)
-    } | getId("call") ~ id ~ ("=" ~> expr) ~ args ~ ("->" ~> int) ^^ {
-      case i ~ x ~ f ~ (as ~ l) ~ n => Call(i, x, f, as, l, n)
+  lazy val nodeLink: Parser[NodeLink] =
+    block ~ opt("->" ~> int) ^^ {
+      case block ~ next => BlockLink(block, next)
+    } | call ~ opt("->" ~> int) ^^ {
+      case call ~ next => CallLink(call, next)
+    } | branch ~ opt("then" ~> int) ~ opt("else" ~> int) ^^ {
+      case branch ~ thenId ~ elseId => BranchLink(branch, thenId, elseId)
     }
-
-  // conditions with locations
-  lazy val cond: Parser[Branch.Kind ~ Expr ~ Option[Loc]] =
-    branchKind ~ ("(" ~> expr <~ ")") ~ locOpt
+  given node: Parser[Node] = block | call | branch
+  lazy val block: Parser[Block] = withLoc {
+    getId ~ insts ^^ {
+      case id ~ insts => Block(id, ListBuffer.from(insts), None)
+    }
+  }
+  lazy val call: Parser[Call] = withLoc {
+    getId ~ ("call" ~> id <~ "=") ~
+    expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+      case id ~ lhs ~ fexpr ~ args => Call(id, lhs, fexpr, args, None)
+    }
+  }
+  lazy val branch: Parser[Branch] = withLoc {
+    getId ~ branchKind ~ expr ^^ {
+      case id ~ kind ~ cond => Branch(id, kind, cond, None, None)
+    }
+  }
 
   // branch kinds
   given branchKind: Parser[Branch.Kind] =
     import Branch.Kind.*
     "if" ^^^ If | "while" ^^^ While | "foreach" ^^^ Foreach
 
-  // arguments
-  lazy val args: Parser[List[Expr] ~ Option[Loc]] =
-    ("(" ~> repsep(expr, ",") <~ ")") ~ locOpt
-
   // instructions
-  lazy val insts: Parser[List[Inst]] =
-    inst ^^ { List(_) } | "{" ~> rep(inst) <~ "}"
-  given inst: Parser[Inst] =
-    "let" ~> name ~ ("=" ~> expr) ~ locOpt ^^ {
-      case x ~ e ~ l => ILet(x, e, l)
-    } | "delete" ~> ref ~ locOpt ^^ {
-      case r ~ l => IDelete(r, l)
-    } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ~ locOpt ^^ {
-      case x ~ f ~ y ~ l => if (f) IPush(x, y, f, l) else IPush(y, x, f, l)
-    } | "return" ~> expr ~ locOpt ^^ {
-      case e ~ l => IReturn(e, l)
-    } | "assert" ~> expr ~ locOpt ^^ {
-      case e ~ l => IAssert(e, l)
-    } | "print" ~> expr ~ locOpt ^^ {
-      case e ~ l => IPrint(e, l)
-    } | ref ~ ("=" ~> expr) ~ locOpt ^^ {
-      case r ~ e ~ l => IAssign(r, e, l)
-    } | expr ~ locOpt ^^ {
-      case e ~ l => IExpr(e, l)
+  lazy val insts: Parser[ListBuffer[Inst]] =
+    "{" ~> rep(inst) <~ "}" ^^ { ListBuffer.from(_) }
+  given inst: Parser[Inst] = withLoc {
+    "let" ~> name ~ ("=" ~> expr) ^^ {
+      case x ~ e => ILet(x, e)
+    } | "delete" ~> ref ^^ {
+      case r => IDelete(r)
+    } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
+      case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
+    } | "return" ~> expr ^^ {
+      case e => IReturn(e)
+    } | "assert" ~> expr ^^ {
+      case e => IAssert(e)
+    } | "print" ~> expr ^^ {
+      case e => IPrint(e)
+    } | ref ~ ("=" ~> expr) ^^ {
+      case r ~ e => IAssign(r, e)
+    } | expr ^^ {
+      case e => IExpr(e)
     }
-
-  lazy val locOpt: Parser[Option[Loc]] = opt("@" ~> loc)
+  }
 
   // expressions
   given expr: Parser[Expr] =
@@ -246,5 +253,15 @@ trait Parsers extends BasicParsers {
 
   // helper for id getter
   private def getId: Parser[Int] = int <~ ":"
-  private def getId(name: String): Parser[Int] = getId <~ "<" ~ name ~ ">"
+
+  // helper for locations
+  private def withLoc[T <: Locational](parser: Parser[T]): Parser[T] =
+    parser ~ opt("@" ~> loc) ^^ { case t ~ loc => t.loc = loc; t }
 }
+
+// node links
+sealed trait NodeLink { val node: Node }
+case class BlockLink(node: Block, nextId: Option[Int]) extends NodeLink
+case class CallLink(node: Call, nextId: Option[Int]) extends NodeLink
+case class BranchLink(node: Branch, thenId: Option[Int], elseId: Option[Int])
+  extends NodeLink

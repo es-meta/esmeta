@@ -25,66 +25,71 @@ class Interp(
 
   /** step */
   def step: Boolean =
-    try interp(st.context.cur)
+    try interp(st.context.cursor)
     catch case ReturnValue(value) => { setReturn(value); true }
 
   /** fixpoint */
   @tailrec
   final def fixpoint: State = if (step) fixpoint else st
 
+  /** transition for cursors */
+  def interp(cursor: Cursor): Boolean = cursor match {
+    case NodeCursor(node) => interp(node); true
+    case ExitCursor(func) =>
+      st.callStack match
+        case Nil =>
+          st.context.retVal.map(st.globals += GLOBAL_RESULT -> _)
+          false
+        case CallContext(retId, ctxt) :: rest =>
+          val value = st.context.retVal.getOrElse(throw NoReturnValue)
+          (value, setTypeMap.get(st.context.name)) match
+            case (addr: Addr, Some(tname)) =>
+              st.setType(addr, tname)
+            case _ =>
+          st.context = ctxt
+          st.callStack = rest
+          st.define(retId, value.wrapCompletion)
+          true
+  }
+
   /** transition for nodes */
-  def interp(node: Node): Boolean =
-    var keep = true
+  def interp(node: Node): Unit =
+    def moveTo(nodeOpt: Option[Node]): Unit = st.context.cursor =
+      nodeOpt.fold(ExitCursor(cfg.funcOf(node)))(NodeCursor(_))
     node match {
-      case Entry(_, next) => moveTo(next)
-      case Exit(_) =>
-        st.callStack match
-          case Nil =>
-            st.context.retVal.map(st.globals += GLOBAL_RESULT -> _)
-            keep = false
-          case CallContext(retId, ctxt) :: rest =>
-            val value = st.context.retVal.getOrElse(throw NoReturnValue)
-            (value, setTypeMap.get(st.context.name)) match
-              case (addr: Addr, Some(tname)) =>
-                st.setType(addr, tname)
-              case _ =>
-            st.context = ctxt
-            st.callStack = rest
-            st.define(retId, value.wrapCompletion)
-      case Linear(_, insts, next) =>
+      case Block(_, insts, next) =>
         for (inst <- insts) interp(inst); moveTo(next)
-      case Branch(_, _, cond, _, thenNode, elseNode) =>
+      case Branch(_, _, cond, thenNode, elseNode) =>
         moveTo(interp(cond).escaped match {
           case Bool(true)  => thenNode
           case Bool(false) => elseNode
           case v           => throw NoBoolean(cond, v)
         })
-      case Call(_, lhs, fexpr, args, _, next) =>
+      case Call(_, lhs, fexpr, args, next) =>
         moveTo(next)
         call(lhs, fexpr, args)
     }
-    keep
 
   /** transition for instructions */
   def interp(inst: Inst): Unit = inst match {
-    case IExpr(expr, _)        => interp(expr)
-    case ILet(lhs, expr, _)    => st.context.locals += lhs -> interp(expr)
-    case IAssign(ref, expr, _) => st.update(interp(ref), interp(expr))
-    case IDelete(ref, _)       => st.delete(interp(ref))
-    case IPush(from, to, front, _) =>
+    case IExpr(expr)        => interp(expr)
+    case ILet(lhs, expr)    => st.context.locals += lhs -> interp(expr)
+    case IAssign(ref, expr) => st.update(interp(ref), interp(expr))
+    case IDelete(ref)       => st.delete(interp(ref))
+    case IPush(from, to, front) =>
       interp(to).escaped match {
         case (addr: Addr) =>
           if (front) st.prepend(addr, interp(from).escaped)
           else st.append(addr, interp(from).escaped)
         case v => throw NoAddr(to, v)
       }
-    case IReturn(expr, _) => throw ReturnValue(interp(expr))
-    case IAssert(expr, _) =>
+    case IReturn(expr) => throw ReturnValue(interp(expr))
+    case IAssert(expr) =>
       interp(expr).escaped match {
         case Bool(true) =>
         case v          => throw AssertionFail(expr)
       }
-    case IPrint(expr, _) => {
+    case IPrint(expr) => {
       val v = interp(expr)
       if (!TEST_MODE) println(st.getString(v))
     }
@@ -291,14 +296,10 @@ class Interp(
       val p = interp(expr).escaped
       PropValue(base, p)
 
-  /** move to a node */
-  def moveTo(nid: Int): Unit =
-    st.context.cur = cfg.nodeMap.getOrElse(nid, throw InvalidNodeId(nid))
-
   /** set return value and move to the exit node */
   def setReturn(value: Value): Unit =
     st.context.retVal = Some(value)
-    st.context.cur = st.func.exit
+    st.context.cursor = ExitCursor(st.func)
 }
 
 /** Interp object */

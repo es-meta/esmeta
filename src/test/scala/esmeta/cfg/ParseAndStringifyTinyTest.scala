@@ -5,6 +5,7 @@ import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
+import scala.collection.mutable.ListBuffer
 
 class ParseAndStringifyTinyTest extends CFGTest {
   val name: String = "cfgParseAndStringifyTest"
@@ -23,36 +24,76 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
-    lazy val cfg = CFG(func.id, List(func))
+    lazy val cfg = CFG(mainFunc, ListBuffer(mainFunc, func))
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """@main 7: f(x: T, y?: T) {
-      |  0: <entry> -> 1
-      |  1: {
+      cfg -> """0: @main f(x: T, y?: T) {
+      |  0: {
       |    let x = ~empty~
-      |    delete x.p @ 3:2-4:7 (1.2.2)
-      |    return x @ 3:2-4:7 (1.2.2)
-      |  } -> 2
-      |  2: <exit>
+      |  } -> 1
+      |  1: if x then 2 else 3
+      |  2: {
+      |    let x = ~empty~
+      |    delete x.p
+      |    return x
+      |  }
+      |  3: call %42 = x(x, y)
+      |}
+      |1: f(x: T, y?: T) {
+      |  4: {
+      |    let x = ~empty~
+      |  } -> 5
+      |  5: if x then 6 else 7
+      |  6: {
+      |    let x = ~empty~
+      |    delete x.p
+      |    return x
+      |  }
+      |  7: call %42 = x(x, y)
       |}""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    lazy val func =
-      Func(7, Func.Kind.AbsOp, "f", params, entry, List(linear), exit)
+    def entry(start: Int) = {
+      val blockSingle = Block(start + 0, ListBuffer(let))
+      val branch = Branch(start + 1, Branch.Kind.If, xExpr)
+      val block = Block(start + 2, ListBuffer(let, del, ret))
+      val call = Call(start + 3, temp, xExpr, List(xExpr, yExpr))
+      blockSingle.next = Some(branch)
+      branch.thenNode = Some(block)
+      branch.elseNode = Some(call)
+      Some(blockSingle)
+    }
+    lazy val mainFunc = Func(0, true, Func.Kind.AbsOp, "f", params, entry(0))
+    lazy val func = Func(1, false, Func.Kind.AbsOp, "f", params, entry(4))
 
     // tests
     checkParseAndStringify("Func", Func)(
-      func -> """7: f(x: T, y?: T) {
-      |  0: <entry> -> 1
-      |  1: {
+      mainFunc -> """0: @main f(x: T, y?: T) {
+      |  0: {
       |    let x = ~empty~
-      |    delete x.p @ 3:2-4:7 (1.2.2)
-      |    return x @ 3:2-4:7 (1.2.2)
-      |  } -> 2
-      |  2: <exit>
+      |  } -> 1
+      |  1: if x then 2 else 3
+      |  2: {
+      |    let x = ~empty~
+      |    delete x.p
+      |    return x
+      |  }
+      |  3: call %42 = x(x, y)
+      |}""".stripMargin,
+      func -> """1: f(x: T, y?: T) {
+      |  4: {
+      |    let x = ~empty~
+      |  } -> 5
+      |  5: if x then 6 else 7
+      |  6: {
+      |    let x = ~empty~
+      |    delete x.p
+      |    return x
+      |  }
+      |  7: call %42 = x(x, y)
       |}""".stripMargin,
     )
     checkParseAndStringify("Func.Kind", Func.Kind)(
@@ -86,29 +127,19 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // nodes
     // -------------------------------------------------------------------------
-    lazy val entry = Entry(0, 1)
-    lazy val exit = Exit(2)
-    lazy val linearSingle = Linear(1, Vector(letNoLoc), 2)
-    lazy val linear = Linear(1, Vector(letNoLoc, del, ret), 2)
-    lazy val branch = Branch(17, Branch.Kind.If, xExpr, loc, 18, 19)
-    lazy val branchNoLoc = Branch(17, Branch.Kind.If, xExpr, None, 18, 19)
-    lazy val call = Call(7, temp, xExpr, List(xExpr, yExpr), loc, 8)
-    lazy val callNoLoc = Call(7, temp, xExpr, List(xExpr, yExpr), None, 8)
+    lazy val block = Block(0, ListBuffer(let, del, ret))
+    lazy val branch = Branch(1, Branch.Kind.If, xExpr)
+    lazy val call = Call(2, temp, xExpr, List(xExpr, yExpr))
 
     // tests
     checkParseAndStringify("Node", Node)(
-      entry -> "0: <entry> -> 1",
-      exit -> "2: <exit>",
-      linearSingle -> "1: let x = ~empty~ -> 2",
-      linear -> """1: {
+      block -> """0: {
       |  let x = ~empty~
-      |  delete x.p @ 3:2-4:7 (1.2.2)
-      |  return x @ 3:2-4:7 (1.2.2)
-      |} -> 2""".stripMargin,
-      branch -> "17: <branch> if(x) @ 3:2-4:7 (1.2.2) -t> 18 -f> 19",
-      branchNoLoc -> "17: <branch> if(x) -t> 18 -f> 19",
-      call -> "7: <call> %42 = x(x, y) @ 3:2-4:7 (1.2.2) -> 8",
-      callNoLoc -> "7: <call> %42 = x(x, y) -> 8",
+      |  delete x.p
+      |  return x
+      |}""".stripMargin,
+      branch -> "1: if x",
+      call -> "2: call %42 = x(x, y)",
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
       Branch.Kind.If -> "if",
@@ -119,30 +150,27 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // instructions
     // -------------------------------------------------------------------------
-    lazy val loc = Option(Loc(Pos(3, 2), Pos(4, 7), List(1, 2, 2)))
-    lazy val xExprInst = IExpr(xExpr, None)
-    lazy val let = ILet(x, empty, loc)
-    lazy val letNoLoc = ILet(x, empty, None)
-    lazy val del = IDelete(prop, loc)
-    lazy val pushFront = IPush(xExpr, yExpr, true, loc)
-    lazy val pushBack = IPush(xExpr, yExpr, false, loc)
-    lazy val ret = IReturn(xExpr, loc)
-    lazy val assert = IAssert(xExpr, loc)
-    lazy val print = IPrint(xExpr, loc)
-    lazy val assign = IAssign(prop, xExpr, loc)
+    lazy val xExprInst = IExpr(xExpr)
+    lazy val let = ILet(x, empty)
+    lazy val del = IDelete(prop)
+    lazy val pushFront = IPush(xExpr, yExpr, true)
+    lazy val pushBack = IPush(xExpr, yExpr, false)
+    lazy val ret = IReturn(xExpr)
+    lazy val assert = IAssert(xExpr)
+    lazy val print = IPrint(xExpr)
+    lazy val assign = IAssign(prop, xExpr)
 
     // tests
     checkParseAndStringify("Inst", Inst)(
       xExprInst -> "x",
-      let -> "let x = ~empty~ @ 3:2-4:7 (1.2.2)",
-      letNoLoc -> "let x = ~empty~",
-      del -> "delete x.p @ 3:2-4:7 (1.2.2)",
-      pushFront -> "push x > y @ 3:2-4:7 (1.2.2)",
-      pushBack -> "push y < x @ 3:2-4:7 (1.2.2)",
-      ret -> "return x @ 3:2-4:7 (1.2.2)",
-      assert -> "assert x @ 3:2-4:7 (1.2.2)",
-      print -> "print x @ 3:2-4:7 (1.2.2)",
-      assign -> "x.p = x @ 3:2-4:7 (1.2.2)",
+      let -> "let x = ~empty~",
+      del -> "delete x.p",
+      pushFront -> "push x > y",
+      pushBack -> "push y < x",
+      ret -> "return x",
+      assert -> "assert x",
+      print -> "print x",
+      assign -> "x.p = x",
     )
 
     // -------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import esmeta.util.DoubleEquals
 // States
 // -----------------------------------------------------------------------------
 case class State(val cfg: CFG) extends InterpElem {
-  var context: Context = Context(cfg.funcMap(cfg.main))
+  var context: Context = Context(cfg.main)
   var callStack: List[CallContext] = Nil
   val globals: MMap[Global, Value] = MMap()
   val heap: Heap = Heap()
@@ -22,10 +22,17 @@ case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
 ) extends InterpElem {
-  var cur: Node = func.entry
+  var cursor: Cursor = func.entry.fold(ExitCursor(func))(NodeCursor(_))
   def name: String = func.name
   var retVal: Option[Value] = None
 }
+
+// -----------------------------------------------------------------------------
+// Curosr
+// -----------------------------------------------------------------------------
+sealed trait Cursor extends InterpElem
+case class NodeCursor(node: Node) extends Cursor
+case class ExitCursor(func: Func) extends Cursor
 
 // -----------------------------------------------------------------------------
 // Calling Contexts
