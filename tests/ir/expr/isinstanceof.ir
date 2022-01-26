@@ -1,4 +1,0 @@
-let comp1 = (comp[~normal~] "string" => "empty")
-let comp2 = (comp[~throw~] "string" => "empty")
-assert (is-instance-of comp1 string)
-assert (!(is-instance-of comp2 string))

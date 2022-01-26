@@ -1,3 +1,0 @@
-let x = (new [1,2])
-assert (= x[0i] 1)
-assert (= x[1i] 2)

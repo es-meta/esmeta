@@ -1,4 +1,0 @@
-let x = 0
-let y = 42
-assert (= x x)
-assert (! (= x y))

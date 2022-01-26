@@ -1,4 +1,0 @@
-let a = 42
-let comp = (comp[~normal~] a => "empty")
-assert (!(is-completion a))
-assert (is-completion comp)

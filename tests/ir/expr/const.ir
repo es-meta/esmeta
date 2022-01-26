@@ -1,3 +1,0 @@
-assert (= ~[normal]~ ~[normal]~)
-assert (! (= ~[normal]~ ~[throw]~))
-

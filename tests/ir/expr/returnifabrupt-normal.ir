@@ -1,6 +1,0 @@
-let f = (clo () [] => {
-  return 0
-})
-app x = (f)
-assert (= [? x] 0)
-assert (= [! x] 0)
