@@ -84,7 +84,8 @@ case class Branch(
 ) extends Node
 object Branch:
   enum Kind extends CFGElem:
-    case If, Repeat, Foreach
+    case If
+    case Loop(str: String)
   object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------
@@ -118,6 +119,7 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
+// TODO fid -> func
 case class EClo(fid: Int, captured: List[Name]) extends Expr
 case class ECont(fid: Int) extends Expr
 

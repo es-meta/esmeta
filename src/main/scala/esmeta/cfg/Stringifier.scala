@@ -95,9 +95,8 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   given branchKindRule: Rule[Branch.Kind] = (app, kind) =>
     import Branch.Kind.*
     app >> (kind match {
-      case If      => "if"
-      case Repeat  => "repeat"
-      case Foreach => "foreach"
+      case If        => "if"
+      case Loop(str) => s"loop[$str]"
     })
 
   // instructions

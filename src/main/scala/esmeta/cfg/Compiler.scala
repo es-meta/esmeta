@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.spec.{Param => SParam, *}
-import esmeta.lang.{Block => LBlock, *}
+import esmeta.lang.{Block => LBlock, Type => LType, *}
 
 /** Compiler from metalangauge to CFG */
 class Compiler(val spec: Spec) {
@@ -82,14 +82,22 @@ class Compiler(val spec: Spec) {
   }
 
   // convert to references
-  private def toStrERef(base: Ref, props: String*): ERef =
+  private inline def toStrERef(base: Ref, props: String*): ERef =
     ERef(toStrRef(base, props*))
-  private def toStrRef(base: Ref, props: String*): Ref =
+  private inline def toStrRef(base: Ref, props: String*): Ref =
     toRef(base, props.map(EStr(_))*)
-  private def toERef(base: Ref, props: Expr*): ERef =
+  private inline def toERef(base: Ref, props: Expr*): ERef =
     ERef(toRef(base, props*))
-  private def toRef(base: Ref, props: Expr*): Ref =
+  private inline def toERef(fb: FB, base: Expr, props: Expr*): ERef =
+    ERef(toRef(fb, base, props*))
+  private inline def toRef(base: Ref, props: Expr*): Ref =
     props.foldLeft(base)(Prop(_, _))
+  private inline def toRef(fb: FB, base: Expr, props: Expr*): Ref =
+    toRef(getRef(fb, base), props*)
+  private inline def getRef(fb: FB, expr: Expr): Ref = expr match {
+    case ERef(ref) => ref
+    case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
+  }
 
   // compile algorithm steps
   private def compile(fb: FB, step: Step): Unit = step match {
@@ -109,34 +117,34 @@ class Compiler(val spec: Spec) {
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, x, expr, body) =>
-      val i = fb.newTId; val iExpr = ERef(i)
-      val length = fb.newTId; val lengthExpr = ERef(length)
-      val list = fb.newTId; val listExpr = ERef(list)
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (length, lengthExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
         IAssign(i, EMathVal(0)),
         IAssign(length, toStrERef(list, "length")),
       )
       fb.addBranch(
-        Branch.Kind.Foreach,
-        EBinary(BOp.Lt, iExpr, lengthExpr), {
+        Branch.Kind.Loop("foreach"),
+        lessThan(iExpr, lengthExpr), {
           fb.addInst(ILet(compile(x), toERef(list, iExpr)))
           compile(fb, body)
           fb.addInst(IAssign(i, EBinary(BOp.Plus, iExpr, EMathVal(1))))
         },
-        { /* do nothing */ },
+        loop = true,
       )
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
-      val i = compile(x); val iExpr = ERef(i)
+      val (i, iExpr) = compileWithExpr(x)
       fb.addInst(ILet(i, compile(fb, start)))
       fb.addBranch(
-        Branch.Kind.Foreach,
+        Branch.Kind.Loop("foreach-int"),
         compile(fb, cond), {
           compile(fb, body)
           val bop = if (ascending) BOp.Plus else BOp.Sub
           fb.addInst(IAssign(i, EBinary(bop, iExpr, EMathVal(1))))
         },
-        { /* do nothing */ },
+        loop = true,
       )
     case ThrowStep(errorName) =>
       val expr = EMap(
@@ -155,10 +163,10 @@ class Compiler(val spec: Spec) {
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case RepeatStep(cond, body) =>
       fb.addBranch(
-        Branch.Kind.Repeat,
+        Branch.Kind.Loop("repeat"),
         cond.fold(EBool(true))(compile(fb, _)),
         compile(fb, body),
-        { /* do nothing */ },
+        loop = true,
       )
     case PushCtxtStep(ref) =>
       fb.addInst(
@@ -176,6 +184,8 @@ class Compiler(val spec: Spec) {
 
   // compile local variable
   private def compile(x: Variable): Name = Name(x.name)
+  private def compileWithExpr(x: Variable): (Name, Expr) =
+    val n = Name(x.name); (n, ERef(n))
 
   // compile references
   private def compile(fb: FB, ref: Reference): Ref = ref match {
@@ -202,19 +212,43 @@ class Compiler(val spec: Spec) {
 
   // compile expressions
   private def compile(fb: FB, expr: Expression): Expr = expr match {
-    case ExprBlock(exprs)                                          => ???
-    case LetStep(variable, expr)                                   => ???
-    case SetStep(ref, expr)                                        => ???
-    case ReturnStep(expr)                                          => ???
-    case PerformStep(expr)                                         => ???
-    case AppendStep(elem, ref)                                     => ???
-    case YetStep(expr)                                             => ???
-    case StringConcatExpression(exprs)                             => ???
-    case ListConcatExpression(exprs)                               => ???
-    case RecordExpression(ty, fields)                              => ???
-    case LengthExpression(expr)                                    => ???
-    case SubstringExpression(expr, from, to)                       => ???
-    case NumberOfExpression(expr)                                  => ???
+    case StringConcatExpression(exprs) =>
+      val es = exprs.map(compile(fb, _))
+      es.reduce(EBinary(BOp.Plus, _, _))
+    case ListConcatExpression(exprs)  => ???
+    case RecordExpression(ty, fields) => ???
+    case LengthExpression(ReferenceExpression(ref)) =>
+      toStrERef(compile(fb, ref), "length")
+    case LengthExpression(expr) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(IAssign(x, compile(fb, expr)))
+      toStrERef(x, "length")
+    case SubstringExpression(expr, from, to) =>
+      val (substr, substrExpr) = fb.newTIdWithExpr
+      val (idx, idxExpr) = fb.newTIdWithExpr
+      lazy val e = compile(fb, expr)
+      lazy val f = compile(fb, from)
+      lazy val t = compile(fb, to)
+      fb.addInst(
+        IAssign(substr, EStr("")),
+        IAssign(idx, f),
+      )
+      fb.addBranch(
+        Branch.Kind.Loop("substr"),
+        lessThan(idxExpr, t),
+        fb.addInst(
+          IAssign(substr, add(substrExpr, toERef(fb, e, idxExpr))),
+          IAssign(idx, add(idxExpr, one)),
+        ),
+        loop = true,
+      )
+      substrExpr
+    case NumberOfExpression(ReferenceExpression(ref)) =>
+      toStrERef(compile(fb, ref), "length")
+    case NumberOfExpression(expr) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(IAssign(x, compile(fb, expr)))
+      toStrERef(x, "length")
     case IntrinsicExpression(Intrinsic(base, props))               => ???
     case SourceTextExpression(expr)                                => ???
     case InvokeAbstractOperationExpression(name, args)             => ???
@@ -222,39 +256,66 @@ class Compiler(val spec: Spec) {
     case InvokeAbstractClosureExpression(ref, args)                => ???
     case InvokeMethodExpression(ref, args)                         => ???
     case InvokeSyntaxDirectedOperationExpression(base, name, args) => ???
-    case ReturnIfAbruptExpression(expr, check)                     => ???
-    case ListExpression(entries)                                   => ???
-    case YetExpression(str, block)                                 => ???
-    case ReferenceExpression(ref)                                  => ???
-    case MathOpExpression(op, args)                                => ???
-    case ExponentiationExpression(base, power)                     => ???
-    case BinaryExpression(left, op, right)                         => ???
-    case UnaryExpression(op, expr)                                 => ???
-    case AbstractClosureExpression(params, captured, body)         => ???
+    case ReturnIfAbruptExpression(expr, check) =>
+      EReturnIfAbrupt(compile(fb, expr), check)
+    case ListExpression(entries) =>
+      EList(entries.map(compile(fb, _)), fb.newSite)
+    case yet: YetExpression =>
+      EYet(yet.toString(false, false))
+    case ReferenceExpression(ref) =>
+      ERef(compile(fb, ref))
+    case MathOpExpression(op, args) => ???
+    case ExponentiationExpression(base, power) =>
+      EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
+    case BinaryExpression(left, op, right) =>
+      EBinary(compile(op), compile(fb, left), compile(fb, right))
+    case UnaryExpression(op, expr) =>
+      EUnary(compile(op), compile(fb, expr))
+    case AbstractClosureExpression(params, captured, body) =>
+      val ps =
+        params.map(x => Param(compile(x), Param.Kind.Normal, Type("any")))
+      val newFb = builder.FuncBuilder(false, Func.Kind.Clo, fb.name, ps)
+      compile(newFb, body)
+      EClo(newFb.func.id, captured.map(compile))
     case lit: Literal => compile(lit)
   }
 
+  // compile binary operators
+  private def compile(op: BinaryExpression.Op): BOp = op match {
+    case BinaryExpression.Op.Add => BOp.Plus
+    case BinaryExpression.Op.Sub => BOp.Sub
+    case BinaryExpression.Op.Mul => BOp.Mul
+    case BinaryExpression.Op.Div => BOp.Div
+    case BinaryExpression.Op.Mod => BOp.Mod
+  }
+
+  // compile unary operators
+  private def compile(op: UnaryExpression.Op): UOp = op match {
+    case _ => ???
+  }
+
+  // compile literals
   private def compile(lit: Literal): Expr = lit match {
-    case ThisLiteral()                      => ???
-    case NewTargetLiteral()                 => ???
-    case HexLiteral(hex, name)              => ???
-    case CodeLiteral(code)                  => ???
-    case NonterminalLiteral(ordinal, name)  => ???
-    case ConstLiteral(name)                 => ???
-    case StringLiteral(s)                   => ???
+    case ThisLiteral()                      => ENAME_THIS
+    case NewTargetLiteral()                 => ENAME_NEW_TARGET
+    case HexLiteral(hex, name)              => EMathVal(hex)
+    case CodeLiteral(code)                  => EStr(code)
+    case NonterminalLiteral(ordinal, name)  => ??? // TODO field of *this*
+    case ConstLiteral(name)                 => EConst(name)
+    case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => ???
-    case SymbolLiteral(sym)                 => ???
-    case PositiveInfinityMathValueLiteral() => ???
-    case NegativeInfinityMathValueLiteral() => ???
-    case DecimalMathValueLiteral(n)         => ???
-    case NumberLiteral(n)                   => ???
-    case BigIntLiteral(n)                   => ???
-    case TrueLiteral()                      => ???
-    case FalseLiteral()                     => ???
-    case UndefinedLiteral()                 => ???
-    case NullLiteral()                      => ???
-    case AbsentLiteral()                    => ???
-    case UndefinedTypeLiteral()             => ???
+    case SymbolLiteral(sym)                 => ??? // TODO Refer Table 1
+    case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
+    case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
+    case DecimalMathValueLiteral(n)         => EMathVal(n)
+    case NumberLiteral(n)                   => ENumber(n)
+    case BigIntLiteral(n)                   => EBigInt(n)
+    case TrueLiteral()                      => EBool(true)
+    case FalseLiteral()                     => EBool(false)
+    case UndefinedLiteral()                 => EUndef
+    case NullLiteral()                      => ENull
+    case AbsentLiteral()                    => EAbsent
+    case UndefinedTypeLiteral()             => ??? // TODO type literals
     case NullTypeLiteral()                  => ???
     case BooleanTypeLiteral()               => ???
     case StringTypeLiteral()                => ???
@@ -266,23 +327,68 @@ class Compiler(val spec: Spec) {
 
   // compile branch conditions
   private def compile(fb: FB, cond: Condition): Expr = cond match {
-    case ExpressionCondition(expr)                => ???
+    case ExpressionCondition(expr) =>
+      compile(fb, expr)
     case InstanceOfCondition(expr, negation, ty)  => ???
     case HasFieldCondition(expr, negation, field) => ???
     case AbruptCompletionCondition(x, negation)   => ???
-    case IsAreCondition(left, negation, right)    => ???
-    case BinaryCondition(left, op, right)         => ???
-    case CompoundCondition(left, op, right)       => ???
+    case IsAreCondition(left, neg, right) =>
+      val es = for (lexpr <- left) yield {
+        val l = compile(fb, lexpr)
+        val e = right
+          .map(r => EBinary(BOp.Eq, l, compile(fb, r)))
+          .reduce(EBinary(BOp.Or, _, _))
+        if (neg) not(e) else e
+      }
+      es.reduce(EBinary(BOp.And, _, _))
+    case BinaryCondition(left, op, right) =>
+      import BinaryCondition.Op.*
+      lazy val l = compile(fb, left)
+      lazy val r = compile(fb, right)
+      op match {
+        case Eq               => EBinary(BOp.Equal, l, r)
+        case NEq              => not(EBinary(BOp.Equal, l, r))
+        case LessThan         => lessThan(l, r)
+        case LessThanEqual    => not(lessThan(r, l))
+        case GreaterThan      => lessThan(r, l)
+        case GreaterThanEqual => not(lessThan(l, r))
+        case SameCodeUnits    => EBinary(BOp.Eq, l, r)
+        case Contains         => EContains(l, r)
+        case NContains        => not(EContains(l, r))
+      }
+    case CompoundCondition(left, op, right) =>
+      EBinary(compile(op), compile(fb, left), compile(fb, right))
+  }
+
+  // compile compound condition operators
+  private def compile(op: CompoundCondition.Op): BOp = op match {
+    case CompoundCondition.Op.And   => BOp.And
+    case CompoundCondition.Op.Or    => BOp.Or
+    case CompoundCondition.Op.Imply => ???
   }
 
   // compile algorithm parameters
   private def compile(param: SParam): Param = {
-    val SParam(name, kind, ty) = param
-    ???
+    val SParam(name, skind, ty) = param
+    val kind = skind match {
+      case SParam.Kind.Normal   => Param.Kind.Normal
+      case SParam.Kind.Optional => Param.Kind.Optional
+      case _                    => ???
+    }
+    Param(Name(name), kind, Type(ty))
   }
 
   // compile intrinsics
   private def compile(intrinsic: Intrinsic): Expr = ???
+
+  // literal helpers
+  private val zero = EMathVal(0)
+  private val one = EMathVal(1)
+
+  // operation helpers
+  private inline def not(expr: Expr) = EUnary(UOp.Not, expr)
+  private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
+  private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
 }
 object Compiler {
 

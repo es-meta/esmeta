@@ -92,7 +92,8 @@ trait Parsers extends BasicParsers {
   // branch kinds
   given branchKind: Parser[Branch.Kind] =
     import Branch.Kind.*
-    "if" ^^^ If | "repeat" ^^^ Repeat | "foreach" ^^^ Foreach
+    "if" ^^^ If |
+    "loop[" ~> "[^\\]]+".r <~ "]" ^^ { Loop(_) }
 
   // instructions
   lazy val insts: Parser[ListBuffer[Inst]] =

@@ -49,3 +49,8 @@ case object CmdHelp extends Command("help", CmdBase >> Help) {
 case object CmdExtract extends Command("extract", CmdBase >> Extract) {
   def help = "extracts specification model from ECMA-262 (spec.html)."
 }
+
+/** `compile` command */
+case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
+  def help = "compiles specification to a control-flow graph"
+}

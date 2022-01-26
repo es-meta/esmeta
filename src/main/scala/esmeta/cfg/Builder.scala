@@ -12,10 +12,10 @@ class Builder {
 
   /** function builder */
   case class FuncBuilder(
-    main: Boolean,
-    kind: Func.Kind,
-    name: String,
-    params: List[Param],
+    val main: Boolean,
+    val kind: Func.Kind,
+    val name: String,
+    val params: List[Param],
   ) {
     // function id
     private val fid: Int = nextFId
@@ -24,7 +24,8 @@ class Builder {
     private var entry: Option[Node] = None
 
     // previous edges
-    private var prev: List[(Node, Boolean)] = Nil
+    private type Edge = (Node, Boolean)
+    private var prev: List[Edge] = Nil
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
@@ -32,6 +33,7 @@ class Builder {
 
     /** get next temporal identifier */
     def newTId: Temp = Temp(nextTId)
+    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
 
     /** get next allocation site */
     def newSite: Int = nextSite
@@ -47,14 +49,14 @@ class Builder {
       case List((block: Block, _)) => block.insts ++= insts
       case _ =>
         val block = Block(nextNId)
-        connect(block)
+        connect(prev, block)
         block.insts ++= insts
         prev = List((block, true))
 
     /** add call nodes */
     def addCall(lhs: Id, fexpr: Expr, args: List[Expr]): Unit =
       val call = Call(nextNId, lhs, fexpr, args)
-      connect(call)
+      connect(prev, call)
       prev = List((call, true))
 
     /** add branch nodes */
@@ -62,27 +64,24 @@ class Builder {
       kind: Branch.Kind,
       cond: Expr,
       thenF: => Unit,
-      elseF: => Unit,
+      elseF: => Unit = {},
+      loop: Boolean = false,
     ): Unit =
       val branch = Branch(nextNId, kind, cond)
-      connect(branch)
+      connect(prev, branch)
       val thenPrev = { prev = List((branch, true)); thenF; prev }
       val elsePrev = { prev = List((branch, false)); elseF; prev }
-      prev = thenPrev ++ elsePrev
-
+      prev = elsePrev ++ (if (loop) { connect(thenPrev, branch); Nil }
+                          else thenPrev)
     // connect previous edges to
-    private def connect[T <: Node](node: T): T =
+    private def connect(prev: List[Edge], node: Node): Unit =
+      if (prev.isEmpty) entry = Some(node)
       prev foreach {
         case (block: Block, _)       => block.next = Some(node)
         case (call: Call, _)         => call.next = Some(node)
         case (branch: Branch, true)  => branch.thenNode = Some(node)
         case (branch: Branch, false) => branch.elseNode = Some(node)
       }
-      prev = (node match {
-        case _: Branch => Nil
-        case _         => List((node, true))
-      })
-      node
   }
 
   // ---------------------------------------------------------------------------

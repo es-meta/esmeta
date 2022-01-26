@@ -52,6 +52,7 @@ object ESMeta {
   val commands: List[Command[_]] = List(
     CmdHelp,
     CmdExtract,
+    CmdCompile,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -61,6 +62,7 @@ object ESMeta {
   var phases: List[Phase[_, _]] = List(
     Help,
     Extract,
+    Compile,
   )
 
   /** global options */

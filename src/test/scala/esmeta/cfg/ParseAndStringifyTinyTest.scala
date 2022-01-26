@@ -143,8 +143,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
       Branch.Kind.If -> "if",
-      Branch.Kind.Repeat -> "repeat",
-      Branch.Kind.Foreach -> "foreach",
+      Branch.Kind.Loop("repeat") -> "loop[repeat]",
     )
 
     // -------------------------------------------------------------------------
