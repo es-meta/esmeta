@@ -19,6 +19,10 @@ trait BasicParsers extends JavaTokenParsers {
     result
   }
 
+  /** white spaces with comments */
+  lazy val whiteSpaceWithComment =
+    """(\s|/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*)+""".r
+
   // parse with error message
   def errHandle[T](result: ParseResult[T]): T = result match {
     case Success(result, _) => result

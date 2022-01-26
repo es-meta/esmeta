@@ -96,7 +96,7 @@ case class Stringifier(detail: Boolean, location: Boolean) {
     import Branch.Kind.*
     app >> (kind match {
       case If      => "if"
-      case While   => "while"
+      case Repeat  => "repeat"
       case Foreach => "foreach"
     })
 
@@ -126,7 +126,7 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   // expressions
   given exprRule: Rule[Expr] = withLoc { (app, expr) =>
     expr match
-      case EComp(tyExpr, tgtExpr, valExpr) =>
+      case EComp(tyExpr, valExpr, tgtExpr) =>
         app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
       case EIsCompletion(expr) =>
         app >> "(comp? " >> expr >> ")"

@@ -61,7 +61,7 @@ object Node extends Parser.From[Node]
 /** block nodes */
 case class Block(
   id: Int,
-  var insts: ListBuffer[Inst],
+  var insts: ListBuffer[Inst] = ListBuffer(),
   var next: Option[Node] = None,
 ) extends Node
 
@@ -84,7 +84,7 @@ case class Branch(
 ) extends Node
 object Branch:
   enum Kind extends CFGElem:
-    case If, While, Foreach
+    case If, Repeat, Foreach
   object Kind extends Parser.From[Kind]
 
 // -----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ case class IPrint(expr: Expr) extends Inst
 // -----------------------------------------------------------------------------
 sealed trait Expr extends CFGElem with Locational
 object Expr extends Parser.From[Expr]
-case class EComp(tyExpr: Expr, tgtExpr: Expr, valExpr: Expr) extends Expr
+case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr
 case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
 case class EPop(list: Expr, front: Boolean) extends Expr

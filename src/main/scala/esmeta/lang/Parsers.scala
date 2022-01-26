@@ -18,6 +18,10 @@ trait Parsers extends IndentParsers {
     next ~> figureStr ^^ { Figure(_) }
   ) <~ dedent
 
+  // step blocks
+  lazy val stepBlock: Parser[StepBlock] =
+    indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
+
   // sub-steps
   lazy val subStepPrefix: Parser[Option[String]] =
     next ~> "1." ~> opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") <~ upper
@@ -45,7 +49,7 @@ trait Parsers extends IndentParsers {
     performStep |
     appendStep |
     repeatStep |
-    pushStep |
+    pushCtxtStep |
     noteStep |
     suspendStep |
     ifStep |
@@ -121,12 +125,12 @@ trait Parsers extends IndentParsers {
       case c ~ s => RepeatStep(c, s)
     }
 
-  // push steps
-  lazy val pushStep: PL[PushStep] =
+  // push context steps
+  lazy val pushCtxtStep: PL[PushCtxtStep] =
     "push" ~> ref <~ (
       "onto the execution context stack;" ~ ref ~
       "is now the running execution context" ~ end
-    ) ^^ { case r => PushStep(r) }
+    ) ^^ { case r => PushCtxtStep(r) }
 
   // note steps
   lazy val noteStep: PL[NoteStep] =
@@ -140,7 +144,7 @@ trait Parsers extends IndentParsers {
     }
 
   // block steps
-  lazy val blockStep: PL[BlockStep] = block ^^ { BlockStep(_) }
+  lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
 
   // not yet supported steps
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }

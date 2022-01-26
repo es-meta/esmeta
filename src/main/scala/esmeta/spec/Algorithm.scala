@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.lang.Block
+import esmeta.lang.Step
 import Stringifier.*
 
 // -----------------------------------------------------------------------------
@@ -9,7 +9,7 @@ import Stringifier.*
 case class Algorithm(
   head: Head,
   id: String,
-  body: Block,
+  body: Step,
   code: String,
 ) extends SpecElem
 

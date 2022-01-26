@@ -7,8 +7,7 @@ import scala.collection.mutable.ListBuffer
 /** CFG parsers */
 trait Parsers extends BasicParsers {
   // treat comments as white spaces
-  override protected val whiteSpace =
-    """(\s|/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*)+""".r
+  override protected val whiteSpace = whiteSpaceWithComment
 
   // control flow graphs (CFGs)
   given cfg: Parser[CFG] = rep(func) ^^ {
@@ -93,7 +92,7 @@ trait Parsers extends BasicParsers {
   // branch kinds
   given branchKind: Parser[Branch.Kind] =
     import Branch.Kind.*
-    "if" ^^^ If | "while" ^^^ While | "foreach" ^^^ Foreach
+    "if" ^^^ If | "repeat" ^^^ Repeat | "foreach" ^^^ Foreach
 
   // instructions
   lazy val insts: Parser[ListBuffer[Inst]] =
@@ -121,7 +120,7 @@ trait Parsers extends BasicParsers {
   // expressions
   given expr: Parser[Expr] =
     "comp" ~> ("[" ~> expr ~ ("/" ~> expr) <~ "]") ~ ("(" ~> expr <~ ")") ^^ {
-      case ty ~ tgt ~ e => EComp(ty, tgt, e)
+      case ty ~ tgt ~ e => EComp(ty, e, tgt)
     } | "(" ~ "comp?" ~> expr <~ ")" ^^ {
       case e => EIsCompletion(e)
     } | "[" ~> ("?" ^^^ true | "!" ^^^ false) ~ expr <~ "]" ^^ {

@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.LINE_SEP
-import esmeta.lang.Block
+import esmeta.lang.Step
 import esmeta.spec.Utils.{given, *}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.concurrent
@@ -58,7 +58,7 @@ object Parser extends Parsers {
     head <- parseHeads(elem, idxMap)
     id = elem.getId
     code = elem.html.unescapeHtml
-    body = Block.from(code)
+    body = Step.from(code)
   } yield Algorithm(head, id, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */

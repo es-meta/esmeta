@@ -143,7 +143,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
       Branch.Kind.If -> "if",
-      Branch.Kind.While -> "while",
+      Branch.Kind.Repeat -> "repeat",
       Branch.Kind.Foreach -> "foreach",
     )
 
@@ -176,7 +176,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // expressions
     // -------------------------------------------------------------------------
-    lazy val comp = EComp(normal, empty, xExpr)
+    lazy val comp = EComp(normal, xExpr, empty)
     lazy val isComp = EIsCompletion(xExpr)
     lazy val riaCheck = EReturnIfAbrupt(xExpr, true)
     lazy val riaNoCheck = EReturnIfAbrupt(xExpr, false)

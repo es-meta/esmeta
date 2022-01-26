@@ -108,9 +108,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("repeat, ")
         for { c <- cond } app >> "while " >> c >> ","
         app >> body
-      case PushStep(context) =>
-        app >> First("push ") >> context >> " onto the execution context stack;"
-        app >> " " >> context >> " is now the running execution context."
+      case PushCtxtStep(ref) =>
+        app >> First("push ") >> ref >> " onto the execution context stack;"
+        app >> " " >> ref >> " is now the running execution context."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
       case SuspendStep(context) =>

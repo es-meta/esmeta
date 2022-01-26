@@ -27,10 +27,13 @@ trait Walker extends BasicWalker {
   }
 
   def walk(block: Block): Block = block match {
-    case StepBlock(steps) => StepBlock(walkList(steps, walk))
+    case block: StepBlock => walk(block)
     case ExprBlock(exprs) => ExprBlock(walkList(exprs, walk))
     case Figure(lines)    => Figure(lines)
   }
+
+  def walk(stepBlock: StepBlock): StepBlock =
+    StepBlock(walkList(stepBlock.steps, walk))
 
   def walk(subStep: SubStep): SubStep =
     val SubStep(idTag, step) = subStep
@@ -61,7 +64,7 @@ trait Walker extends BasicWalker {
     case PerformStep(expr)      => PerformStep(walk(expr))
     case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
     case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
-    case PushStep(context)      => PushStep(walk(context))
+    case PushCtxtStep(ref)      => PushCtxtStep(walk(ref))
     case NoteStep(note)         => NoteStep(note)
     case SuspendStep(base)      => SuspendStep(walk(base))
     case BlockStep(block)       => BlockStep(walk(block))
