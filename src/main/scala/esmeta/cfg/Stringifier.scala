@@ -149,12 +149,12 @@ case class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(typeof " >> base >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
-      case EClo(fid, captured) =>
-        given Rule[Iterable[Name]] = iterableRule("(", ", ", ")")
-        app >> "clo[" >> fid >> "]"
-        if (captured.isEmpty) app else app >> captured
-      case ECont(fid) =>
-        app >> "cont[" >> fid >> "]"
+      case EClo(fname, captured) =>
+        app >> "clo<" >> fname
+        for (x <- captured) app >> ", " >> x
+        app >> ">"
+      case ECont(fname) =>
+        app >> "cont<" >> fname >> ">"
       case expr: AstExpr =>
         astExprRule(app, expr)
       case expr: AllocExpr =>

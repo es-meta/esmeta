@@ -101,10 +101,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base)
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
-    case EClo(fid, captured) =>
-      walk(fid); walkList(captured, walk)
-    case ECont(fid) =>
-      walk(fid)
+    case EClo(fname, captured) =>
+      walk(fname); walkList(captured, walk)
+    case ECont(fname) =>
+      walk(fname)
     case expr: AstExpr   => walk(expr)
     case expr: AllocExpr => walk(expr)
     case expr: Literal   => walk(expr)

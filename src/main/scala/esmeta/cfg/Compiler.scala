@@ -249,9 +249,13 @@ class Compiler(val spec: Spec) {
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(IAssign(x, compile(fb, expr)))
       toStrERef(x, "length")
-    case IntrinsicExpression(Intrinsic(base, props))               => ???
-    case SourceTextExpression(expr)                                => ???
-    case InvokeAbstractOperationExpression(name, args)             => ???
+    case IntrinsicExpression(Intrinsic(base, props)) => ???
+    case SourceTextExpression(expr)                  => ???
+    case InvokeAbstractOperationExpression(name, args) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val f = EClo(name, Nil)
+      fb.addCall(x, f, args.map(compile(fb, _)))
+      xExpr
     case InvokeNumericMethodExpression(ty, name, args)             => ???
     case InvokeAbstractClosureExpression(ref, args)                => ???
     case InvokeMethodExpression(ref, args)                         => ???
@@ -264,7 +268,9 @@ class Compiler(val spec: Spec) {
       EYet(yet.toString(false, false))
     case ReferenceExpression(ref) =>
       ERef(compile(fb, ref))
-    case MathOpExpression(op, args) => ???
+    case MathOpExpression(op, args) =>
+      println((op, args))
+      ???
     case ExponentiationExpression(base, power) =>
       EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
     case BinaryExpression(left, op, right) =>
@@ -276,7 +282,7 @@ class Compiler(val spec: Spec) {
         params.map(x => Param(compile(x), Param.Kind.Normal, Type("any")))
       val newFb = builder.FuncBuilder(false, Func.Kind.Clo, fb.name, ps)
       compile(newFb, body)
-      EClo(newFb.func.id, captured.map(compile))
+      EClo(newFb.func.name, captured.map(compile))
     case lit: Literal => compile(lit)
   }
 

@@ -104,14 +104,12 @@ class Interp(
       st.define(lhs, simpleFuncs(name)(st, vs))
     case _ =>
       interp(fexpr) match {
-        case Clo(fid, captured) =>
-          val func = cfg.funcMap(fid)
+        case Clo(func, captured) =>
           val vs = args.map(interp)
           val newLocals = getLocals(func.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
-        case Cont(fid, captured, callStack) => {
-          val func = cfg.funcMap(fid)
+        case Cont(func, captured, callStack) => {
           val vs = args.map(interp)
           val newLocals = getLocals(func.params, vs) ++ captured
           st.callStack = callStack.map(_.copied)
@@ -176,11 +174,13 @@ class Interp(
       }
     case ETypeOf(base)        => ??? // TODO discuss about the type
     case ETypeCheck(expr, ty) => ??? // TODO discuss about the type
-    case EClo(fid, captured) =>
-      Clo(fid, Map.from(captured.map(x => x -> st(x))))
-    case ECont(fid) =>
+    case EClo(fname, captured) =>
+      val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
+      Clo(func, Map.from(captured.map(x => x -> st(x))))
+    case ECont(fname) =>
+      val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
-      Cont(fid, Map.from(captured), st.callStack)
+      Cont(func, Map.from(captured), st.callStack)
     case ESyntactic(name, args, rhsIdx, bits, children) =>
       val asts = children.map(child =>
         interp(child) match {

@@ -208,9 +208,9 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // literals
     lazy val normal = EConst("normal")
     lazy val empty = EConst("empty")
-    lazy val clo = EClo(42, Nil)
-    lazy val cloWithCaptured = EClo(42, List(x))
-    lazy val cont = ECont(42)
+    lazy val clo = EClo("f", Nil)
+    lazy val cloWithCaptured = EClo("f", List(x))
+    lazy val cont = ECont("g")
 
     // tests
     checkParseAndStringify("Expr", Expr)(
@@ -256,9 +256,9 @@ class ParseAndStringifyTinyTest extends CFGTest {
       EAbsent -> "absent",
       normal -> "~normal~",
       empty -> "~empty~",
-      clo -> "clo[42]",
-      cloWithCaptured -> "clo[42](x)",
-      cont -> "cont[42]",
+      clo -> "clo<f>",
+      cloWithCaptured -> "clo<f, x>",
+      cont -> "cont<g>",
     )
 
     // -------------------------------------------------------------------------

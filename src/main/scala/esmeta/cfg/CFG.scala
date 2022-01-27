@@ -13,6 +13,8 @@ case class CFG(
 ) extends CFGElem {
   lazy val funcMap: Map[Int, Func] =
     (for (func <- funcs) yield func.id -> func).toMap
+  lazy val fnameMap: Map[String, Func] =
+    (for (func <- funcs) yield func.name -> func).toMap
   lazy val nodeMap: Map[Int, Node] = (for {
     func <- funcs
     node <- func.nodes
@@ -119,9 +121,8 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
-// TODO fid -> func
-case class EClo(fid: Int, captured: List[Name]) extends Expr
-case class ECont(fid: Int) extends Expr
+case class EClo(fname: String, captured: List[Name]) extends Expr
+case class ECont(fname: String) extends Expr
 
 // abstract syntax tree (AST) expressions
 sealed trait AstExpr extends Expr {

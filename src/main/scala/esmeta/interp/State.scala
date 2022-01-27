@@ -91,11 +91,11 @@ case class NamedAddr(name: String) extends Addr
 case class DynamicAddr(long: Long) extends Addr
 
 /** closures */
-case class Clo(fid: Int, captured: Map[Name, Value]) extends PureValue
+case class Clo(func: Func, captured: Map[Name, Value]) extends PureValue
 
 /** continuations */
 case class Cont(
-  fid: Int,
+  func: Func,
   captured: Map[Name, Value],
   callStack: List[CallContext],
 ) extends PureValue

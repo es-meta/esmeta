@@ -142,11 +142,14 @@ trait Parsers extends BasicParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | ("clo[" ~> int <~ "]") ~ opt("(" ~> repsep(name, ",") <~ ")") ^^ {
-      case fid ~ as => EClo(fid, as.getOrElse(Nil))
-    } | ("cont[" ~> int <~ "]") ^^ {
-      case fid => ECont(fid)
+    } | "clo<" ~> fname ~ rep("," ~> name) <~ ">" ^^ {
+      case s ~ cs => EClo(s, cs)
+    } | ("cont<" ~> fname <~ ">") ^^ {
+      case s => ECont(s)
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
+
+  // function name
+  lazy val fname: Parser[String] = "[^<>, ]+".r
 
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =
