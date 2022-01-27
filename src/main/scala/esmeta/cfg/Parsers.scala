@@ -136,6 +136,8 @@ trait Parsers extends BasicParsers {
       case u ~ e => EUnary(u, e)
     } | "(" ~> bop ~ expr ~ expr <~ ")" ^^ {
       case b ~ l ~ r => EBinary(b, l, r)
+    } | "(" ~> vop ~ rep(expr) <~ ")" ^^ {
+      case v ~ es => EVariadic(v, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {
       case c ~ e => EConvert(c, e)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
@@ -204,7 +206,11 @@ trait Parsers extends BasicParsers {
   // unary operators
   given uop: Parser[UOp] =
     import UOp.*
-    "-" ^^^ Neg | "!" ^^^ Not | "~" ^^^ BNot
+    "abs" ^^^ Abs |
+    "floor" ^^^ Floor |
+    "-" ^^^ Neg |
+    "!" ^^^ Not |
+    "~" ^^^ BNot
 
   // binary operators
   given bop: Parser[BOp] =
@@ -227,7 +233,15 @@ trait Parsers extends BasicParsers {
     "<<" ^^^ LShift |
     "<" ^^^ Lt |
     ">>>" ^^^ URShift |
-    ">>" ^^^ SRShift
+    ">>" ^^^ SRShift |
+    "str+" ^^^ Concat |
+    "str<" ^^^ StrLt
+
+  // variadic operators
+  given vop: Parser[VOp] =
+    import VOp.*
+    "min" ^^^ Min |
+    "max" ^^^ Max
 
   // conversion operators
   given cop: Parser[COp] =

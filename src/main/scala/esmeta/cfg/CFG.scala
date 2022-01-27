@@ -118,6 +118,7 @@ case class EContains(list: Expr, elem: Expr) extends Expr
 case class ERef(ref: Ref) extends Expr
 case class EUnary(uop: UOp, expr: Expr) extends Expr
 case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
+case class EVariadic(vop: VOp, exprs: List[Expr]) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
@@ -166,14 +167,37 @@ case class EConst(name: String) extends Literal
 // -----------------------------------------------------------------------------
 // unary operators
 enum UOp extends CFGElem:
-  case Neg, Not, BNot
+  // mathematic values
+  case Abs, Floor
+  // numeric values
+  case Neg
+  // boolean
+  case Not
+  // bitwise
+  case BNot
 object UOp extends Parser.From[UOp]
 
 // binary operators
 enum BOp extends CFGElem:
-  case Plus, Sub, Mul, Pow, Div, UMod, Mod, Lt, Eq, Equal, And, Or, Xor, BAnd,
-  BOr, BXOr, LShift, SRShift, URShift
+  // equality (e.g. is, are)
+  case Eq
+  // numeric values
+  case Plus, Sub, Mul, Pow, Div, UMod, Mod, Lt, Equal
+  // bitwise
+  case BAnd, BOr, BXOr
+  // shift
+  case LShift, SRShift, URShift
+  // boolean
+  case And, Or, Xor
+  // string
+  case Concat, StrLt
 object BOp extends Parser.From[BOp]
+
+// variadic operators
+enum VOp extends CFGElem:
+  // mathematic values
+  case Min, Max
+object VOp extends Parser.From[VOp]
 
 // conversion operators
 enum COp extends CFGElem:

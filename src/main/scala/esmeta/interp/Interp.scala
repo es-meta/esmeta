@@ -164,6 +164,9 @@ class Interp(
       val l = interp(left).escaped
       val r = interp(right).escaped
       Interp.interp(bop, l, r)
+    case EVariadic(vop, exprs) =>
+      val vs = for (e <- exprs) yield interp(e).escaped
+      Interp.interp(vop, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (interp(expr).escaped, cop) match {
@@ -321,6 +324,7 @@ object Interp {
     "ArrayCreate" -> "ArrayExoticObject",
   )
 
+  // TODO REMOVE simple functions / handle them in compilation
   // simple functions
   type SimpleFunc = PartialFunction[(State, List[Value]), Value]
   def arityCheck(pair: (String, SimpleFunc)): (String, SimpleFunc) =
@@ -393,11 +397,16 @@ object Interp {
   def interp(uop: UOp, operand: Value): Value =
     import UOp.*
     (uop, operand) match
-      case (Neg, Number(n))  => Number(-n)
-      case (Neg, Math(n))    => Math(-n)
-      case (Neg, BigInt(b))  => BigInt(-b)
-      case (Not, Bool(b))    => Bool(!b)
-      case (BNot, Number(n)) => Math(~(n.toInt))
+      // mathematic values
+      case (Abs, Math(n))   => Math(n.abs)
+      case (Floor, Math(n)) => Math(n - (n % 1) - (if (n < 0) 1 else 0))
+      // numeric values
+      case (Neg, Number(n)) => Number(-n)
+      case (Neg, Math(n))   => Math(-n)
+      case (Neg, BigInt(b)) => BigInt(-b)
+      // boolean
+      case (Not, Bool(b)) => Bool(!b)
+      // bitwise
       case (BNot, Math(n))   => Math(~(n.toInt))
       case (BNot, BigInt(b)) => BigInt(~b)
       case (_, value) =>
@@ -417,32 +426,14 @@ object Interp {
       case (UMod, Number(l), Number(r)) => Number(l %% r)
       case (Lt, Number(l), Number(r))   => Bool(l < r)
 
-      // double with long operations
-      case (Plus, Math(l), Number(r)) => Number(l.toDouble + r)
-      case (Sub, Math(l), Number(r))  => Number(l.toDouble - r)
-      case (Mul, Math(l), Number(r))  => Number(l.toDouble * r)
-      case (Div, Math(l), Number(r))  => Number(l.toDouble / r)
-      case (Mod, Math(l), Number(r))  => Number(l.toDouble % r)
-      case (Pow, Math(l), Number(r))  => Number(scala.math.pow(l.toDouble, r))
-      case (UMod, Math(l), Number(r)) => Number(l.toDouble %% r)
-      case (Lt, Math(l), Number(r))   => Bool(l < r)
-      case (Plus, Number(l), Math(r)) => Number(l + r.toDouble)
-      case (Sub, Number(l), Math(r))  => Number(l - r.toDouble)
-      case (Mul, Number(l), Math(r))  => Number(l * r.toDouble)
-      case (Div, Number(l), Math(r))  => Number(l / r.toDouble)
-      case (Mod, Number(l), Math(r))  => Number(l % r.toDouble)
-      case (Pow, Number(l), Math(r))  => Number(math.pow(l, r.toDouble))
-      case (UMod, Number(l), Math(r)) => Number(l %% r.toDouble)
-      case (Lt, Number(l), Math(r))   => Bool(l < r)
-
       // string operations
-      case (Plus, Str(l), Str(r)) => Str(l + r)
-      case (Plus, Str(l), Number(r)) =>
-        Str(l + Character.toChars(r.toInt).mkString(""))
-      case (Sub, Str(l), Math(r)) => Str(l.dropRight(r.toInt))
-      case (Lt, Str(l), Str(r))   => Bool(l < r)
+      case (Concat, Str(l), Str(r)) => Str(l + r)
+      // case (Plus, Str(l), Number(r)) =>
+      //   Str(l + Character.toChars(r.toInt).mkString(""))
+      // case (Sub, Str(l), Math(r)) => Str(l.dropRight(r.toInt))
+      case (StrLt, Str(l), Str(r)) => Bool(l < r)
 
-      // long operations
+      // mathematical value operations
       case (Plus, Math(l), Math(r)) => Math(l + r)
       case (Sub, Math(l), Math(r))  => Math(l - r)
       case (Mul, Math(l), Math(r))  => Math(l * r)
@@ -451,7 +442,8 @@ object Interp {
       case (UMod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) =>
         Math(math.pow(l.toDouble, r.toDouble))
-      case (Lt, Math(l), Math(r))   => Bool(l < r)
+      case (Lt, Math(l), Math(r)) => Bool(l < r)
+      // TODO consider 2's complement 32-bit strings
       case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
       case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)
       case (BXOr, Math(l), Math(r)) => Math(l.toLong ^ r.toLong)
@@ -468,50 +460,47 @@ object Interp {
       case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
 
       // equality operations
-      case (Eq, Math(l), Number(r))   => Bool(!(r equals -0.0) && l == r)
-      case (Eq, Number(l), Math(r))   => Bool(!(l equals -0.0) && l == r)
       case (Eq, Number(l), Number(r)) => Bool(l equals r)
-      case (Eq, Number(l), BigInt(r)) => Bool(l == r)
-      case (Eq, BigInt(l), Number(r)) => Bool(l == r)
-      case (Eq, Math(l), BigInt(r))   => Bool(l == r)
-      case (Eq, BigInt(l), Math(r))   => Bool(l == r)
       case (Eq, l: Ast, r: Ast)       => Bool(l eq r)
       case (Eq, l, r)                 => Bool(l == r)
 
-      // double equality operations
-      case (Equal, Math(l), Number(r))   => Bool(l == r)
-      case (Equal, Number(l), Math(r))   => Bool(l == r)
+      // numeric equality operations
+      case (Equal, Math(l), Math(r))     => Bool(l == r)
       case (Equal, Number(l), Number(r)) => Bool(l == r)
-      case (Equal, l: Ast, r: Ast)       => Bool(l eq r)
-      case (Equal, l, r)                 => Bool(l == r)
-
-      // double with big integers
-      case (Lt, BigInt(l), Number(r)) => Bool(BigDecimal(l) < BigDecimal(r))
-      case (Lt, BigInt(l), Math(r))   => Bool(BigDecimal(l) < r)
-      case (Lt, Number(l), BigInt(r)) => Bool(BigDecimal(l) < BigDecimal(r))
-      case (Lt, Math(l), BigInt(r))   => Bool(l < BigDecimal(r))
+      case (Equal, BigInt(l), BigInt(r)) => Bool(l == r)
 
       // big integers
       case (Plus, BigInt(l), BigInt(r))    => BigInt(l + r)
       case (LShift, BigInt(l), BigInt(r))  => BigInt(l << r.toInt)
       case (SRShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
       case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
-      case (Sub, BigInt(l), Math(r))       => BigInt(l - r.toBigInt)
       case (Mul, BigInt(l), BigInt(r))     => BigInt(l * r)
       case (Div, BigInt(l), BigInt(r))     => BigInt(l / r)
       case (Mod, BigInt(l), BigInt(r))     => BigInt(l % r)
       case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
-      case (UMod, BigInt(l), Math(r))      => BigInt(l %% r.toBigInt)
       case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
       case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
       case (BOr, BigInt(l), BigInt(r))     => BigInt(l | r)
       case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
-      case (Pow, BigInt(l), Math(r))       => BigInt(l.pow(r.toInt))
-      case (Pow, BigInt(l), Number(r)) =>
-        if (r.toInt < 0) Number(math.pow(l.toDouble, r))
-        else BigInt(l.pow(r.toInt))
 
       case (_, lval, rval) => error(s"wrong type: $lval $bop $rval")
     }
+
+  /** transition for variadic operators */
+  def interp(vop: VOp, vs: List[Value]): Value =
+    import VOp.*
+    val ns = vs.map {
+      case Math(n) => n
+      case v       => error(s"wrong type: $v for $vop")
+    }
+    Math(ns match {
+      // mathematic values
+      case Nil => error(s"no arguments for: $vop")
+      case v :: rest =>
+        rest.foldLeft(v)(vop match
+          case Min => _ min _
+          case Max => _ max _,
+        )
+    })
 }

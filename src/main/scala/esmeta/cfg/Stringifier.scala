@@ -23,6 +23,7 @@ case class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Expr        => exprRule(app, elem)
       case elem: UOp         => uopRule(app, elem)
       case elem: BOp         => bopRule(app, elem)
+      case elem: VOp         => vopRule(app, elem)
       case elem: COp         => copRule(app, elem)
       case elem: Ref         => refRule(app, elem)
       case elem: Type        => tyRule(app, elem)
@@ -143,6 +144,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> uop >> " " >> expr >> ")"
       case EBinary(bop, left, right) =>
         app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+      case EVariadic(vop, exprs) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(" >> vop >> " " >> exprs >> ")"
       case EConvert(cop, expr) =>
         app >> "(" >> cop >> " " >> expr >> ")"
       case ETypeOf(base) =>
@@ -218,9 +222,11 @@ case class Stringifier(detail: Boolean, location: Boolean) {
   given uopRule: Rule[UOp] = (app, uop) =>
     import UOp.*
     app >> (uop match {
-      case Neg  => "-"
-      case Not  => "!"
-      case BNot => "~"
+      case Abs   => "abs"
+      case Floor => "floor"
+      case Neg   => "-"
+      case Not   => "!"
+      case BNot  => "~"
     })
 
   // binary operators
@@ -246,6 +252,16 @@ case class Stringifier(detail: Boolean, location: Boolean) {
       case Lt      => "<"
       case URShift => ">>>"
       case SRShift => ">>"
+      case Concat  => "str+"
+      case StrLt   => "str<"
+    )
+
+  // variadic operators
+  given vopRule: Rule[VOp] = (app, vop) =>
+    import VOp.*
+    app >> (vop match
+      case Min => "min"
+      case Max => "max"
     )
 
   // conversion operators
