@@ -149,6 +149,9 @@ trait UnitWalker extends BasicUnitWalker {
   // binary operators
   def walk(bop: BOp): Unit = {}
 
+  // variadic operators
+  def walk(vop: VOp): Unit = {}
+
   // conversion operators
   def walk(cop: COp): Unit = cop match {
     case COp.ToStr(radix) => walkOpt(radix, walk)
