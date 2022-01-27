@@ -1,8 +1,9 @@
 package esmeta.spec
 
-import esmeta.lang.{Step, YetStep, StepCollector}
+import esmeta.lang.{Step, YetStep, StepCollector, StatCounter}
 import esmeta.util.HtmlUtils.*
 import org.jsoup.nodes.*
+import scala.collection.mutable.{Map => MMap}
 
 /** specification utilities */
 object Utils {
@@ -66,6 +67,20 @@ object Utils {
     /** get complete algorithm steps */
     def completeSteps: List[Step] =
       allSteps.filter(!_.isInstanceOf[YetStep])
+
+    def stats: Array[Map[String, Int]] = {
+      val m =
+        Array(MMap[String, Int](), MMap[String, Int](), MMap[String, Int]())
+      for {
+        algo <- spec.algorithms
+        (stat, i) <- algo.stats.zipWithIndex
+        (name, count) <- stat
+      } {
+        val pCount = m(i).getOrElseUpdate(name, 0)
+        m(i) += name -> (pCount + count)
+      }
+      m.map(_.toMap)
+    }
   }
 
   // TODO optimize this by removing redundant computation
@@ -96,6 +111,9 @@ object Utils {
     /** get complete algorithm steps */
     def completeSteps: List[Step] =
       steps.filter(!_.isInstanceOf[YetStep])
+
+    /** get all stats */
+    def stats: Array[Map[String, Int]] = StatCounter(algo.body)
   }
 
   /** extensions for grammars */

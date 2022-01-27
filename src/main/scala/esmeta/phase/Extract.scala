@@ -65,19 +65,46 @@ case object Extract extends Phase[Unit, Spec] {
 
         // log Statistics
         mkdir(s"$EXTRACT_LOG_DIR/stat")
-        val algoStr = SpecStats.getAllStr(spec, docu.body, "Algo")
-        val stepStr = SpecStats.getAllStr(spec, docu.body, "Step")
 
+        val algoStr = SpecStats.getAllStr(spec, docu.body, "Algo")
         dumpFile(
           name = "the summary of algorithms",
           data = algoStr,
           filename = s"$EXTRACT_LOG_DIR/stat/algo-summary",
         )
 
+        val stepStr = SpecStats.getAllStr(spec, docu.body, "Step")
         dumpFile(
           name = "the summary of algorithm steps",
           data = stepStr,
           filename = s"$EXTRACT_LOG_DIR/stat/step-summary",
+        )
+
+        val stepStatStr = (for {
+          (name, count) <- spec.stats(0).toList.sortBy(_._2)
+        } yield f"$count%-5d $name").mkString(LINE_SEP)
+        dumpFile(
+          name = "the summary of spec step-stat",
+          data = stepStatStr,
+          filename = s"$EXTRACT_LOG_DIR/stat/step-stat-summary",
+        )
+
+        val exprStatStr = (for {
+          (name, count) <- spec.stats(1).toList.sortBy(_._2)
+        } yield f"$count%-5d $name").mkString(LINE_SEP)
+        dumpFile(
+          name = "the summary of spec expr-stat",
+          data = exprStatStr,
+          filename = s"$EXTRACT_LOG_DIR/stat/expr-stat-summary",
+        )
+
+        val condStatStr = (for {
+          (name, count) <- spec.stats(2).toList.sortBy(_._2)
+        } yield f"$count%-5d $name").mkString(LINE_SEP)
+        dumpFile(
+          name = "the summary of spec expr-stat",
+          data = condStatStr,
+          filename = s"$EXTRACT_LOG_DIR/stat/cond-stat-summary",
         )
       }
     }
