@@ -268,9 +268,7 @@ class Compiler(val spec: Spec) {
       EYet(yet.toString(false, false))
     case ReferenceExpression(ref) =>
       ERef(compile(fb, ref))
-    case MathOpExpression(op, args) =>
-      println((op, args))
-      ???
+    case MathOpExpression(op, args) => ???
     case ExponentiationExpression(base, power) =>
       EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
     case BinaryExpression(left, op, right) =>
