@@ -64,14 +64,14 @@ trait Parsers extends BasicParsers {
     "?" ^^^ Optional | "" ^^^ Normal
 
   lazy val nodeLink: Parser[NodeLink] =
-    block ~ opt("->" ~> int) ^^ {
-      case block ~ next => BlockLink(block, next)
-    } | call ~ opt("->" ~> int) ^^ {
+    call ~ opt("->" ~> int) ^^ {
       case call ~ next => CallLink(call, next)
     } | branch ~ opt("then" ~> int) ~ opt("else" ~> int) ^^ {
       case branch ~ thenId ~ elseId => BranchLink(branch, thenId, elseId)
+    } | block ~ opt("->" ~> int) ^^ {
+      case block ~ next => BlockLink(block, next)
     }
-  given node: Parser[Node] = block | call | branch
+  given node: Parser[Node] = call | branch | block
   lazy val block: Parser[Block] = withLoc {
     getId ~ insts ^^ {
       case id ~ insts => Block(id, ListBuffer.from(insts), None)
@@ -98,6 +98,7 @@ trait Parsers extends BasicParsers {
   // instructions
   lazy val insts: Parser[ListBuffer[Inst]] =
     "{" ~> rep(inst) <~ "}" ^^ { ListBuffer.from(_) }
+    | inst ^^ { ListBuffer(_) }
   given inst: Parser[Inst] = withLoc {
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)

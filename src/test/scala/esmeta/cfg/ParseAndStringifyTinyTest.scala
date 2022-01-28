@@ -28,9 +28,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // tests
     checkParseAndStringify("CFG", CFG)(
       cfg -> """0: @main f(x: T, y?: T) {
-      |  0: {
-      |    let x = ~empty~
-      |  } -> 1
+      |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
       |    let x = ~empty~
@@ -40,9 +38,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  3: call %42 = x(x, y)
       |}
       |1: f(x: T, y?: T) {
-      |  4: {
-      |    let x = ~empty~
-      |  } -> 5
+      |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
       |    let x = ~empty~
@@ -72,9 +68,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // tests
     checkParseAndStringify("Func", Func)(
       mainFunc -> """0: @main f(x: T, y?: T) {
-      |  0: {
-      |    let x = ~empty~
-      |  } -> 1
+      |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
       |    let x = ~empty~
@@ -84,9 +78,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  3: call %42 = x(x, y)
       |}""".stripMargin,
       func -> """1: f(x: T, y?: T) {
-      |  4: {
-      |    let x = ~empty~
-      |  } -> 5
+      |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
       |    let x = ~empty~
