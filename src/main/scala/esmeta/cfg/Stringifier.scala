@@ -81,7 +81,7 @@ case class Stringifier(detail: Boolean, location: Boolean) {
       case Block(_, insts, next) =>
         insts match
           case ListBuffer(inst) => app >> inst
-          case _ => app.wrap(for (inst <- insts) app :> inst)
+          case _                => app.wrap(for (inst <- insts) app :> inst)
         next.map(x => app >> " -> " >> x.id)
       case Call(_, lhs, fexpr, args, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
