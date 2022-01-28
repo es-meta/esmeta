@@ -48,7 +48,11 @@ object Func extends Parser.From[Func]:
   object Kind extends Parser.From[Kind]
 
 /** function parameters */
-case class Param(lhs: Name, kind: Param.Kind, ty: Type) extends CFGElem
+case class Param(
+  lhs: Name,
+  kind: Param.Kind = Param.Kind.Normal,
+  ty: Type = Type("Any"),
+) extends CFGElem
 object Param extends Parser.From[Param]:
   enum Kind extends CFGElem:
     case Normal, Optional

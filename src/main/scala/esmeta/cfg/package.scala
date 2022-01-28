@@ -45,6 +45,15 @@ val EGLOBAL_REALM = ERef(GLOBAL_REALM)
 
 /** predefined local variables */
 val NAME_THIS = Name("this")
-val ENAME_THIS = ERef(NAME_THIS)
+val NAME_ARGS_LIST = Name("argumentsList")
 val NAME_NEW_TARGET = Name("NewTarget")
+
+/** predefined globals identifier expressions */
+val ENAME_THIS = ERef(NAME_THIS)
+val ENAME_ARGS_LIST = ERef(NAME_ARGS_LIST)
 val ENAME_NEW_TARGET = ERef(NAME_NEW_TARGET)
+
+/** predefined parameters */
+val PARAM_THIS = Param(NAME_THIS)
+val PARAM_ARGS_LIST = Param(NAME_ARGS_LIST)
+val PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)

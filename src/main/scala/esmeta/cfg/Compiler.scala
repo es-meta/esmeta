@@ -74,10 +74,14 @@ class Compiler(val spec: Spec) {
         head.params.map(compile)
       case head: NumericMethodHead =>
         head.params.map(compile)
-      case head: SyntaxDirectedOperationHead => ???
-      case head: ConcreteMethodHead          => ???
-      case head: InternalMethodHead          => ???
-      case head: BuiltinHead                 => ???
+      case head: SyntaxDirectedOperationHead =>
+        PARAM_THIS :: head.withParams.map(compile)
+      case head: ConcreteMethodHead =>
+        compile(head.receiverParam) :: head.params.map(compile)
+      case head: InternalMethodHead =>
+        compile(head.receiverParam) :: head.params.map(compile)
+      case head: BuiltinHead =>
+        List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET)
     }
   }
 
