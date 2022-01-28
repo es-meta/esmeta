@@ -1,14 +1,15 @@
 package esmeta.spec
 
-import esmeta.lang.Step
 import Stringifier.*
+import esmeta.lang.Step
+import org.jsoup.nodes.*
 
 // -----------------------------------------------------------------------------
 // abstract algorithms
 // -----------------------------------------------------------------------------
 case class Algorithm(
   head: Head,
-  id: String,
+  elem: Element,
   body: Step,
   code: String,
 ) extends SpecElem

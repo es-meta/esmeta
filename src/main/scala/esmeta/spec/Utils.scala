@@ -2,6 +2,7 @@ package esmeta.spec
 
 import esmeta.lang.{Step, YetStep, StepCollector, StatCounter}
 import esmeta.util.HtmlUtils.*
+import esmeta.util.BaseUtils.{cached, time}
 import org.jsoup.nodes.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -39,7 +40,7 @@ object Utils {
       }
 
     /** get algos of the given elem */
-    def getAlgos(spec: Spec) = spec.algorithms.filter(_.id == elem.id)
+    def getAlgos(spec: Spec) = spec.algorithms.filter(_.elem.getId == elem.id)
   }
 
   // TODO optimize this by removing redundant computation
@@ -83,20 +84,8 @@ object Utils {
     }
   }
 
-  // TODO optimize this by removing redundant computation
   /** extensions for algorithms */
   extension (algo: Algorithm) {
-
-    /** get element of algorithm */
-    def getElem(docu: Document): Option[Element] =
-      val id = algo.id
-      if id == "" then None
-      else {
-        val query = s"emu-clause[id=${id}]:not([example])"
-        val elems = docu.select(query).toList
-        // TODO : case when elems.length > 2 ?
-        if elems.length == 1 then Some(elems.last) else None
-      }
 
     /** check whether it is incomplete */
     def complete: Boolean = incompleteSteps.isEmpty

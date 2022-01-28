@@ -56,7 +56,7 @@ object BaseUtils {
     println(setColor(color)(x))
 
   /** show duration time with loading message and only get data */
-  def showTime[T](msg: String, f: => T): T = time(f)._2
+  def showTime[T](msg: String, f: => T): T = time(msg, f)._2
 
   /** catch exceptions with Option[_] */
   def optional[T](f: => T): Option[T] = try Some(f)

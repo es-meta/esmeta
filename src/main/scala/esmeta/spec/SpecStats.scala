@@ -41,7 +41,7 @@ object SpecStats {
   /** add given interger to the 'cName' counters (of elem's ancestors of algo)
     */
   def addAlgo(docu: Document)(algo: Algorithm, cName: String, int: Int): Unit =
-    algo.getElem(docu).foreach(addAncestorCounter(_, cName, int))
+    addAncestorCounter(algo.elem, cName, int)
 
   def addAlgo(
     docu: Document,

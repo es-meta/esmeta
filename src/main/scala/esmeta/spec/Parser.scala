@@ -56,10 +56,9 @@ object Parser extends Parsers {
     idxMap: Map[String, (Int, Int)],
   ): List[Algorithm] = for {
     head <- parseHeads(elem, idxMap)
-    id = elem.getId
     code = elem.html.unescapeHtml
     body = Step.from(code)
-  } yield Algorithm(head, id, body, code)
+  } yield Algorithm(head, elem, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
