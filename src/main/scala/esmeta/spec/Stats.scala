@@ -95,7 +95,7 @@ class Stats(spec: Spec) {
     val stat = _elemMap.getOrElse(elem, Stat())
     val (pass, total) = stat.get(cKind)
     val fail = total - pass
-    val ratioStr = if total != 0 then ratioString(pass, total) else ""
+    val ratioStr = if total != 0 then s" ${ratioString(pass, total)}" else ""
 
     // get yet steps
     val yetStepStr =
@@ -117,7 +117,7 @@ class Stats(spec: Spec) {
     // final result
     if elem.tagName == "body" then s"${ratioString(pass, total)}"
     else if elem.tagName == "emu-clause" then
-      s"${newline(indent)}- ${elem.id}: ${ratioStr}${yetStepStr}"
+      s"${newline(indent)}- ${elem.id}:${ratioStr}${yetStepStr}"
     else ""
 
   /** get descendant String */
