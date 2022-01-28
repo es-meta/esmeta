@@ -5,27 +5,25 @@ import scala.annotation.targetName
 
 /** a kind counter for metalanguage */
 class KindCounter extends UnitWalker {
-  val stepMap: MMap[String, Int] = MMap()
-  val exprMap: MMap[String, Int] = MMap()
-  val condMap: MMap[String, Int] = MMap()
-  override def walk(step: Step): Unit = {
-    val name = step.getClass.getSimpleName
-    val count = stepMap.getOrElseUpdate(name, 0)
-    stepMap += name -> (count + 1)
+  type Counter = MMap[String, Int]
+
+  val stepMap: Counter = MMap()
+  val exprMap: Counter = MMap()
+  val condMap: Counter = MMap()
+
+  private def add(obj: LangElem, map: Counter): Unit =
+    val name = obj.getClass.getSimpleName
+    map += name -> (map.getOrElse(name, 0) + 1)
+
+  override def walk(step: Step): Unit =
+    add(step, stepMap)
     super.walk(step)
-  }
-  override def walk(expr: Expression): Unit = {
-    val name = expr.getClass.getSimpleName
-    val count = exprMap.getOrElseUpdate(name, 0)
-    exprMap += name -> (count + 1)
+  override def walk(expr: Expression): Unit =
+    add(expr, exprMap)
     super.walk(expr)
-  }
-  override def walk(cond: Condition): Unit = {
-    val name = cond.getClass.getSimpleName
-    val count = condMap.getOrElseUpdate(name, 0)
-    condMap += name -> (count + 1)
+  override def walk(cond: Condition): Unit =
+    add(cond, condMap)
     super.walk(cond)
-  }
 }
 object KindCounter {
   def apply(elem: LangElem): KindCounter =
