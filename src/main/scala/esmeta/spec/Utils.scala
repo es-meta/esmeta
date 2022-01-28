@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.lang.{Step, YetStep, StepCollector, KindCounter}
+import esmeta.lang.{Step, YetStep, StepCollector}
 import esmeta.{EXTRACT_LOG_DIR, LINE_SEP}
 import esmeta.util.BaseUtils.{cached, time}
 import esmeta.util.HtmlUtils.*
@@ -40,12 +40,8 @@ object Utils {
           if (parent.id == "sec-notational-conventions") true
           else parent.isNotation
       }
-
-    /** get algos of the given elem */
-    def getAlgos(spec: Spec) = spec.algorithms.filter(_.elem.id == elem.id)
   }
 
-  // TODO optimize this by removing redundant computation
   /** extensions for specifications */
   extension (spec: Spec) {
 
@@ -72,19 +68,7 @@ object Utils {
       allSteps.filter(!_.isInstanceOf[YetStep])
 
     /** get stats */
-    def stats: Stats = {
-      val s = new Stats(spec)
-      for { algo <- spec.algorithms } {
-        val algoStat = Stat(
-          if algo.complete then 1 else 0,
-          1,
-          algo.completeSteps.length,
-          algo.steps.length,
-        )
-        s.addAlgo(algo, algoStat)
-      }
-      s
-    }
+    def stats: Stats = new Stats(spec)
   }
 
   /** extensions for algorithms */
@@ -103,9 +87,6 @@ object Utils {
     /** get complete algorithm steps */
     def completeSteps: List[Step] =
       steps.filter(!_.isInstanceOf[YetStep])
-
-    /** get all stats */
-    def stats: KindCounter = KindCounter(algo.body)
   }
 
   /** extensions for grammars */

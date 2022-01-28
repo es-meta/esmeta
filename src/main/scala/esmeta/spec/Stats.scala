@@ -8,7 +8,7 @@ import esmeta.lang.KindCounter
 import org.jsoup.nodes.*
 import scala.collection.mutable.{Map => MMap}
 
-/** specification statistics */
+/** specification statistics to each element */
 case class Stat(
   algoPass: Int = 0,
   algoTotal: Int = 0,
@@ -29,11 +29,37 @@ case class Stat(
 /** specification statistics */
 class Stats(spec: Spec) {
 
-  /** private Stats */
+  /** maps from element to stat */
   private val _elemMap: MMap[Element, Stat] = MMap()
 
   /** counting # of kinds of steps, exprs, cond */
   private val _kindMap: MMap[Algorithm, KindCounter] = MMap()
+
+  /** initialize */
+  private def init: Unit = {
+    // iter algorithms in spec
+    for { algo <- spec.algorithms } {
+      // counter kinds in algorithm
+      _kindMap += algo -> KindCounter(algo.body)
+
+      // statisitics for algo
+      val algoStat = Stat(
+        if algo.complete then 1 else 0,
+        1,
+        algo.completeSteps.length,
+        algo.steps.length,
+      )
+
+      // walk ancestors
+      algo.elem.walkAncestor(
+        elem =>
+          _elemMap += (elem -> (_elemMap.getOrElse(elem, Stat()) + algoStat)),
+        (),
+        (a, b) => (),
+      )
+    }
+  }
+  init
 
   /** get total # of kinds of spec */
   def totalKind: (MMap[String, Int], MMap[String, Int], MMap[String, Int]) = {
@@ -46,9 +72,7 @@ class Stats(spec: Spec) {
         a += (name -> (a.getOrElse(name, 0) + count))
       }
 
-    for {
-      (algo, counter) <- _kindMap
-    } {
+    for { (algo, counter) <- _kindMap } {
       add(stepMap, counter.stepMap)
       add(exprMap, counter.exprMap)
       add(condMap, counter.condMap)
@@ -57,51 +81,43 @@ class Stats(spec: Spec) {
     (stepMap, exprMap, condMap)
   }
 
-  def addAlgo(algo: Algorithm, stat: Stat): Unit = {
-    _kindMap += (algo -> algo.stats)
-
-    algo.elem.walkAncestor(
-      elem => {
-        val elemStat = _elemMap.getOrElse(elem, Stat())
-        _elemMap += (elem -> (elemStat + stat))
-      },
-      (),
-      (a, b) => (),
-    )
-  }
-
-  /** get Yet steps in algorithms of given elem */
-  def getYetSteps(elem: Element, indent: Int): String =
-    val algos = elem.getAlgos(spec)
-    val indentStr = "  " * indent
-    algos
-      .map(_.incompleteSteps)
-      .flatten
-      .map(LINE_SEP + indentStr + _.toString(false))
-      .fold("")(_ + _)
-
-  // log
   /** get String */
   def getStr(
     elem: Element,
     cKind: String,
     indent: Int = 0,
   ): String =
+
+    // get new line string
+    def newline(indent: Int = 0): String = LINE_SEP + "  " * indent
+
+    // get ratio string
     val stat = _elemMap.getOrElse(elem, Stat())
     val (pass, total) = stat.get(cKind)
     val fail = total - pass
     val ratioStr = if total != 0 then ratioString(pass, total) else ""
 
+    // get yet steps
     val yetStepStr =
       if cKind == "Step" & fail != 0 & elem.children.toList.filter(
           _.tagName == "emu-alg",
         ) != Nil
-      then getYetSteps(elem, indent + 2)
+      then
+        // get algos in same emu-clause
+        val algos = spec.algorithms.filter(_.elem.getId == elem.id)
+
+        // get yet steps
+        algos
+          .map(_.incompleteSteps)
+          .flatten
+          .map(newline(indent + 2) + _.toString(false))
+          .fold("")(_ + _)
       else ""
 
+    // final result
     if elem.tagName == "body" then s"${ratioString(pass, total)}"
     else if elem.tagName == "emu-clause" then
-      s"${LINE_SEP}${"  " * indent}- ${elem.id}: ${ratioStr}${yetStepStr}"
+      s"${newline(indent)}- ${elem.id}: ${ratioStr}${yetStepStr}"
     else ""
 
   /** get descendant String */
@@ -113,7 +129,7 @@ class Stats(spec: Spec) {
   ): String =
     val baseStr = getStr(elem, cName, indent)
     val children = elem.children.toList
-    if children != Nil then
+    if !children.isEmpty then
       children.map(getAllStr(_, cName, indent + 1)).fold(baseStr)(_ + _)
     else baseStr
 }
