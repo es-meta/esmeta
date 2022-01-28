@@ -10,46 +10,48 @@ trait Parsers extends BasicParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] =
-    rep(func) ~ opt(rep1(nodeLink)) ^^ {
-      case defFuncs ~ nodeLinks =>
-        val funcs = ListBuffer.from(defFuncs)
-        nodeLinks.map(links =>
-          funcs += Func(
-            funcs.length,
-            true,
-            Func.Kind.AbsOp,
-            "__main__",
-            Nil,
-            links.map(_.node).headOption,
-          ),
+  given cfg: Parser[CFG] = rep(func) ~ entry ^^ {
+    case fs ~ entry =>
+      val funcs = ListBuffer.from(fs)
+      if (entry.isDefined)
+        funcs += Func(
+          funcs.length,
+          true,
+          Func.Kind.AbsOp,
+          MAIN_FUNC,
+          Nil,
+          entry,
         )
-        val main = funcs.filter(_.main) match {
-          case ListBuffer()     => error("no main function")
-          case ListBuffer(main) => main
-          case _                => error("multiple main functions")
-        }
-        CFG(main, ListBuffer.from(funcs))
-    }
+      val main = funcs.filter(_.main) match {
+        case ListBuffer(main) => main
+        case ListBuffer()     => error("no main function")
+        case _                => error("multiple main functions")
+      }
+      CFG(main, ListBuffer.from(funcs))
+  }
 
   // functions
   given func: Parser[Func] =
     getId ~ main ~ funcKind ~ "(\\w|:)+".r ~ params ~
-    ("{" ~> rep(nodeLink) <~ "}") ^^ {
-      case id ~ main ~ kind ~ name ~ params ~ links =>
-        val nodes = links.map(_.node)
-        val nodeMap = nodes.map(node => node.id -> node).toMap
-        def get(idOpt: Option[Int]): Option[Node] =
-          idOpt.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
-        links.foreach {
-          case BlockLink(node, next) => node.next = get(next)
-          case CallLink(node, next)  => node.next = get(next)
-          case BranchLink(node, thenId, elseId) =>
-            node.thenNode = get(thenId); node.elseNode = get(elseId)
-        }
-        val entry = nodes.headOption
+    ("{" ~> entry <~ "}") ^^ {
+      case id ~ main ~ kind ~ name ~ params ~ entry =>
         Func(id, main, kind, name, params, entry)
     }
+
+  lazy val entry: Parser[Option[Node]] = rep(nodeLink) ^^ {
+    case links =>
+      val nodes = links.map(_.node)
+      val nodeMap = nodes.map(node => node.id -> node).toMap
+      def get(idOpt: Option[Int]): Option[Node] =
+        idOpt.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
+      links.foreach {
+        case BlockLink(node, next) => node.next = get(next)
+        case CallLink(node, next)  => node.next = get(next)
+        case BranchLink(node, thenId, elseId) =>
+          node.thenNode = get(thenId); node.elseNode = get(elseId)
+      }
+      nodes.headOption
+  }
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 

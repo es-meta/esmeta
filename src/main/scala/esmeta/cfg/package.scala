@@ -1,5 +1,8 @@
 package esmeta.cfg
 
+/** predefined default main function name */
+lazy val MAIN_FUNC = "__main__"
+
 /** predefined constant expressions */
 val ECONST_EMPTY = EConst("empty")
 val ECONST_UNRESOLVABLE = EConst("unresolvable")
