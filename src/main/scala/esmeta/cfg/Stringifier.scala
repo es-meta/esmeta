@@ -79,9 +79,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
     app >> node.id >> ": "
     node match
       case Block(_, insts, next) =>
-        if (insts.size == 1)
-          app >> insts(0)
-        else app.wrap(for (inst <- insts) app :> inst)
+        insts match
+          case ListBuffer(inst) => app >> inst
+          case _ => app.wrap(for (inst <- insts) app :> inst)
         next.map(x => app >> " -> " >> x.id)
       case Call(_, lhs, fexpr, args, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
