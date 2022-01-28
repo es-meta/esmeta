@@ -20,6 +20,7 @@ object Parser extends Parsers {
       version = None,
       grammar = grammar,
       algorithms = algorithms,
+      document = document,
     )
   }
 

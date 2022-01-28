@@ -31,7 +31,7 @@ object Stringifier {
   // for specifications
   given specRule: Rule[Spec] = (app, spec) => {
     import Production.Kind.*
-    val Spec(version, grammar, algorithms) = spec
+    val Spec(version, grammar, algorithms, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
     version.map(app >> "* version: " >> _ >> LINE_SEP)

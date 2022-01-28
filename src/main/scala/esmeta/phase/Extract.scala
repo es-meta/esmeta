@@ -44,69 +44,8 @@ case object Extract extends Phase[Unit, Spec] {
         filename = s"$EXTRACT_LOG_DIR/summary",
       )
 
-      // Statistics
-      if (config.stat) {
-        // TODO : too verbose
-        val filename = getFirstFilename(globalConfig, "extract")
-        val content = readFile(filename)
-        val docu = content.toHtml
-
-        for {
-          algo <- spec.algorithms
-        } {
-          val targets = List(
-            ("Algo_Total", 1),
-            ("Step_Total", algo.steps.length),
-            ("Algo_Pass", if algo.complete then 1 else 0),
-            ("Step_Pass", algo.completeSteps.length),
-          )
-          SpecStats.addAlgo(docu)(algo, targets)
-        }
-
-        // log Statistics
-        mkdir(s"$EXTRACT_LOG_DIR/stat")
-
-        val algoStr = SpecStats.getAllStr(spec, docu.body, "Algo")
-        dumpFile(
-          name = "the summary of algorithms",
-          data = algoStr,
-          filename = s"$EXTRACT_LOG_DIR/stat/algo-summary",
-        )
-
-        val stepStr = SpecStats.getAllStr(spec, docu.body, "Step")
-        dumpFile(
-          name = "the summary of algorithm steps",
-          data = stepStr,
-          filename = s"$EXTRACT_LOG_DIR/stat/step-summary",
-        )
-
-        val stepStatStr = (for {
-          (name, count) <- spec.stats(0).toList.sortBy(_._2)
-        } yield f"$count%-5d $name").mkString(LINE_SEP)
-        dumpFile(
-          name = "the summary of spec step-stat",
-          data = stepStatStr,
-          filename = s"$EXTRACT_LOG_DIR/stat/step-stat-summary",
-        )
-
-        val exprStatStr = (for {
-          (name, count) <- spec.stats(1).toList.sortBy(_._2)
-        } yield f"$count%-5d $name").mkString(LINE_SEP)
-        dumpFile(
-          name = "the summary of spec expr-stat",
-          data = exprStatStr,
-          filename = s"$EXTRACT_LOG_DIR/stat/expr-stat-summary",
-        )
-
-        val condStatStr = (for {
-          (name, count) <- spec.stats(2).toList.sortBy(_._2)
-        } yield f"$count%-5d $name").mkString(LINE_SEP)
-        dumpFile(
-          name = "the summary of spec expr-stat",
-          data = condStatStr,
-          filename = s"$EXTRACT_LOG_DIR/stat/cond-stat-summary",
-        )
-      }
+      // dump statistics
+      if (config.stat) spec.stats.dump(s"$EXTRACT_LOG_DIR/stat")
     }
     spec
   }

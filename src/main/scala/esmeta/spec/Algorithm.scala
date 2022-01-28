@@ -2,7 +2,7 @@ package esmeta.spec
 
 import Stringifier.*
 import esmeta.lang.Step
-import org.jsoup.nodes.*
+import org.jsoup.nodes.Element
 
 // -----------------------------------------------------------------------------
 // abstract algorithms
