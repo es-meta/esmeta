@@ -10,15 +10,27 @@ trait Parsers extends BasicParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] = rep(func) ^^ {
-    case funcs =>
-      val main = funcs.filter(_.main) match {
-        case Nil        => error("no main function")
-        case List(main) => main
-        case _          => error("multiple main functions")
-      }
-      CFG(main, ListBuffer.from(funcs))
-  }
+  given cfg: Parser[CFG] =
+    rep(func) ~ opt(rep1(nodeLink)) ^^ {
+      case defFuncs ~ nodeLinks =>
+        val funcs = ListBuffer.from(defFuncs)
+        nodeLinks.map(links =>
+          funcs += Func(
+            funcs.length,
+            true,
+            Func.Kind.AbsOp,
+            "__main__",
+            Nil,
+            links.map(_.node).headOption,
+          ),
+        )
+        val main = funcs.filter(_.main) match {
+          case ListBuffer()     => error("no main function")
+          case ListBuffer(main) => main
+          case _                => error("multiple main functions")
+        }
+        CFG(main, ListBuffer.from(funcs))
+    }
 
   // functions
   given func: Parser[Func] =
