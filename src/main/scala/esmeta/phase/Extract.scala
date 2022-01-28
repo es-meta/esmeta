@@ -45,7 +45,7 @@ case object Extract extends Phase[Unit, Spec] {
       )
 
       // dump statistics
-      if (config.stat) spec.stats.dump(s"$EXTRACT_LOG_DIR/stat")
+      if (config.stat) spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
     }
     spec
   }

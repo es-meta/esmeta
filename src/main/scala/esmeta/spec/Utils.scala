@@ -191,7 +191,7 @@ object Utils {
   extension (stat: Stats) {
 
     /** dump */
-    def dump(baseDir: String): Unit = {
+    def dumpTo(baseDir: String): Unit = {
       // log Statistics
       mkdir(baseDir)
 
