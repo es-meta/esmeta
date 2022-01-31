@@ -159,8 +159,8 @@ trait Parsers extends BasicParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | "clo<" ~> fname ~ rep("," ~> name) <~ ">" ^^ {
-      case s ~ cs => EClo(s, cs)
+    } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
+      case s ~ cs => EClo(s, cs.getOrElse(Nil))
     } | ("cont<" ~> fname <~ ">") ^^ {
       case s => ECont(s)
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }

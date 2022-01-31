@@ -249,7 +249,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       normal -> "~normal~",
       empty -> "~empty~",
       clo -> "clo<f>",
-      cloWithCaptured -> "clo<f, x>",
+      cloWithCaptured -> "clo<f, [x]>",
       cont -> "cont<g>",
     )
 

@@ -8,7 +8,7 @@ import esmeta.util.BaseUtils.*
 import scala.collection.mutable.ListBuffer
 
 /** stringifier for CFG */
-case class Stringifier(detail: Boolean, location: Boolean) {
+class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[CFGElem] = (app, elem) =>
     elem match {
@@ -156,8 +156,9 @@ case class Stringifier(detail: Boolean, location: Boolean) {
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EClo(fname, captured) =>
+        given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
         app >> "clo<" >> fname
-        for (x <- captured) app >> ", " >> x
+        if (!captured.isEmpty) app >> ", " >> captured
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> fname >> ">"

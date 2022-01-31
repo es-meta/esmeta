@@ -7,7 +7,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.lang.Utils.*
 
 /** stringifier for language */
-case class Stringifier(detail: Boolean, location: Boolean) {
+class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {

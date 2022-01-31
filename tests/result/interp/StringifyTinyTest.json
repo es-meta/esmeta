@@ -1,0 +1,10 @@
+{
+  "CallContext" : true,
+  "Context" : true,
+  "Cursor" : true,
+  "Heap" : true,
+  "Object" : true,
+  "RefValue" : true,
+  "State" : true,
+  "Value" : true
+}

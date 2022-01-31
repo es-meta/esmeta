@@ -8,12 +8,14 @@ import esmeta.util.DoubleEquals
 // -----------------------------------------------------------------------------
 // States
 // -----------------------------------------------------------------------------
-case class State(val cfg: CFG) extends InterpElem {
-  var context: Context = Context(cfg.main)
-  var callStack: List[CallContext] = Nil
-  val globals: MMap[Global, Value] = MMap()
-  val heap: Heap = Heap()
-}
+case class State(
+  val cfg: CFG,
+  var context: Context,
+  var callStack: List[CallContext] = Nil,
+  val globals: MMap[Global, Value] = MMap(),
+  val heap: Heap = Heap(),
+) extends InterpElem
+object State { def apply(cfg: CFG): State = State(cfg, Context(cfg.main)) }
 
 // -----------------------------------------------------------------------------
 // Contexts
@@ -23,12 +25,11 @@ case class Context(
   val locals: MMap[Local, Value] = MMap(),
 ) extends InterpElem {
   var cursor: Cursor = func.entry.fold(ExitCursor(func))(NodeCursor(_))
-  def name: String = func.name
   var retVal: Option[Value] = None
 }
 
 // -----------------------------------------------------------------------------
-// Curosr
+// Cursor
 // -----------------------------------------------------------------------------
 sealed trait Cursor extends InterpElem
 case class NodeCursor(node: Node) extends Cursor
@@ -53,15 +54,16 @@ case class Heap(
 sealed trait Obj extends InterpElem
 case class MapObj(
   var tname: String,
-  val props: MMap[PureValue, MapProp] = MMap(),
+  val props: MMap[PureValue, MapObj.Prop] = MMap(),
   var size: Int = 0,
 ) extends Obj
 case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj
 case class SymbolObj(desc: PureValue) extends Obj
 case class YetObj(tname: String, msg: String) extends Obj
 
-/** property values */
-case class MapProp(value: Value, creationTime: Int)
+object MapObj:
+  /** property values */
+  case class Prop(value: Value, creationTime: Int)
 
 // -----------------------------------------------------------------------------
 // Reference Value
@@ -100,7 +102,7 @@ case class Cont(
   callStack: List[CallContext],
 ) extends PureValue
 
-/** AST values */
+/** abstract syntax tree (AST) values */
 sealed trait Ast extends PureValue {
   val name: String
 }

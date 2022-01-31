@@ -227,6 +227,9 @@ object Utils {
   /** extensions for calling contexts */
   extension (callCtxt: CallContext) {
 
+    /** function name * */
+    def name: String = callCtxt.context.func.name
+
     /** copy contexts */
     def copied: CallContext = callCtxt.copy(context = callCtxt.context.copied)
   }
@@ -236,6 +239,9 @@ object Utils {
 
     /** copy contexts */
     def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
+
+    /** name */
+    def name: String = ctxt.func.name
   }
 
   /** extensions for heaps */
@@ -417,11 +423,16 @@ object Utils {
         .get(prop)
         .map(_.creationTime)
         .getOrElse({ map.size += 1; map.size })
-      map.props += prop -> MapProp(value, id)
+      map.props += prop -> MapObj.Prop(value, id)
       map
 
     /** deletes */
     def delete(prop: PureValue): map.type = { map.props -= prop; map }
+
+    /** pairs of map */
+    def pairs: Map[PureValue, Value] = (map.props.map {
+      case (k, (MapObj.Prop(v, _))) => k -> v
+    }).toMap
 
     /** keys of map */
     def keys(intSorted: Boolean): Vector[PureValue] = {

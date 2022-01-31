@@ -97,7 +97,9 @@ class Interp(
 
   /** transition for calls */
   def call(lhs: Id, fexpr: Expr, args: List[Expr]): Unit = fexpr match {
+    // TODO remove
     case ERef(Global(name)) if simpleFuncs contains name =>
+      // TODO handle this in compiler
       val vs =
         if (name == "IsAbruptCompletion") args.map(interp)
         else args.map(interp(_).escaped)
