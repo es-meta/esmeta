@@ -6,7 +6,7 @@ import scala.util.matching.Regex
 
 /** language parsers */
 trait Parsers extends IndentParsers {
-  type P[T] = PackratParser[T]
+  type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
   // ---------------------------------------------------------------------------
