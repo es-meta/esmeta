@@ -120,7 +120,7 @@ trait Parsers extends BasicParsers {
     s.substring(1, s.length - 1)
   }
   lazy val name: Parser[String] = "[a-zA-Z0-9/]+".r
-  lazy val headParamType: Parser[String] = "([^_,]|, )+".r ^^ { _.dropRight(1) }
+  lazy val headParamType: Parser[String] = "([^_,]|, )+".r
   lazy val refName: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r
 
   // runtime/static semantics
