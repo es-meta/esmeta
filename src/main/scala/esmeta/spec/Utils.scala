@@ -69,6 +69,17 @@ object Utils {
 
     /** get stats */
     def stats: Stats = new Stats(spec)
+
+    /** get the production names used in algorithms */
+    def prodsForAlgos: Set[String] = (for {
+      algo <- spec.algorithms
+      head = algo.head
+      target <- algo.head match {
+        case SyntaxDirectedOperationHead(Some(target), _, _, _) => Some(target)
+        case _                                                  => None
+      }
+      name = target.lhsName
+    } yield name).toSet
   }
 
   /** extensions for algorithms */
@@ -91,6 +102,16 @@ object Utils {
 
   /** extensions for grammars */
   extension (grammar: Grammar) {
+
+    /** get the lexical production names reachable by syntactic productions */
+    def topLevelLexicals: Set[String] = (for {
+      prod <- grammar.prods
+      if prod.kind == Production.Kind.Syntactic
+      nt <- prod.getNts
+      name = nt.name
+      prodInRhs = grammar.nameMap(name)
+      if prodInRhs.kind == Production.Kind.Lexical
+    } yield name).toSet
 
     /** get the index mapping for grammars */
     def idxMap(forWeb: Boolean = false): Map[String, (Int, Int)] = (for {

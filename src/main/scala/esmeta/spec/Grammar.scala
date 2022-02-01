@@ -8,7 +8,10 @@ import Stringifier.*
 case class Grammar(
   prods: List[Production],
   prodsForWeb: List[Production],
-) extends SpecElem
+) extends SpecElem {
+  lazy val nameMap: Map[String, Production] =
+    (for (prod <- prods) yield prod.lhs.name -> prod).toMap
+}
 
 // -----------------------------------------------------------------------------
 // productions
