@@ -27,7 +27,7 @@ case class InvalidCompTarget(v: Value) extends InvalidComp(Some(s"(target) $v"))
 case object NoReturnValue extends InterpError(s"no return value")
 
 // arity mismatches
-case class RemainingParams(ps: List[Param])
+case class RemainingParams(ps: List[Func.Param])
   extends InterpError(s"remaining parameters: ${ps.mkString(", ")}")
 case class RemainingArgs(as: List[Value])
   extends InterpError(s"remaining arguments: ${as.mkString(", ")}")

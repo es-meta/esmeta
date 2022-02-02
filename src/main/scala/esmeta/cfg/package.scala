@@ -1,5 +1,23 @@
 package esmeta.cfg
 
+import esmeta.cfg.util.*
+import esmeta.util.BaseUtils.*
+
+/** CFG elements */
+trait CFGElem {
+  override def toString: String = toString(true, false)
+
+  /** stringify with options */
+  def toString(detail: Boolean = true, location: Boolean = false): String =
+    val stringifier = CFGElem.getStringifier(detail, location)
+    import stringifier.elemRule
+    stringify(this)
+}
+object CFGElem {
+  val getStringifier =
+    cached[(Boolean, Boolean), Stringifier] { new Stringifier(_, _) }
+}
+
 /** predefined default main function name */
 lazy val MAIN_FUNC = "__main__"
 
@@ -57,6 +75,6 @@ val ENAME_ARGS_LIST = ERef(NAME_ARGS_LIST)
 val ENAME_NEW_TARGET = ERef(NAME_NEW_TARGET)
 
 /** predefined parameters */
-val PARAM_THIS = Param(NAME_THIS)
-val PARAM_ARGS_LIST = Param(NAME_ARGS_LIST)
-val PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)
+val PARAM_THIS = Func.Param(NAME_THIS)
+val PARAM_ARGS_LIST = Func.Param(NAME_ARGS_LIST)
+val PARAM_NEW_TARGET = Func.Param(NAME_NEW_TARGET)

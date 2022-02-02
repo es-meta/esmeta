@@ -1,8 +1,12 @@
-package esmeta.cfg
+package esmeta.cfg.util
 
+import esmeta.cfg.*
 import esmeta.util.{Locational, BasicParsers}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.ListBuffer
+
+/** CFG parser */
+object Parser extends Parsers
 
 /** CFG parsers */
 trait Parsers extends BasicParsers {
@@ -68,14 +72,10 @@ trait Parsers extends BasicParsers {
     "" ^^^ AbsOp
 
   // function parameters
-  lazy val params: Parser[List[Param]] = "(" ~> repsep(param, ",") <~ ")"
-  given param: Parser[Param] =
-    name ~ paramKind ~ (":" ~> ty) ^^ { case x ~ k ~ t => Param(x, k, t) }
-
-  // function parameter kinds
-  given paramKind: Parser[Param.Kind] =
-    import Param.Kind.*
-    "?" ^^^ Optional | "" ^^^ Normal
+  lazy val params: Parser[List[Func.Param]] = "(" ~> repsep(param, ",") <~ ")"
+  given param: Parser[Func.Param] = name ~ opt("?") ~ (":" ~> ty) ^^ {
+    case x ~ o ~ t => Func.Param(x, o.isDefined, t)
+  }
 
   lazy val nodeLink: Parser[NodeLink] =
     call ~ opt("->" ~> int) ^^ {

@@ -1,6 +1,7 @@
-package esmeta.lang
+package esmeta.lang.util
 
 import esmeta.util.BasicUnitWalker
+import esmeta.lang.*
 
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {

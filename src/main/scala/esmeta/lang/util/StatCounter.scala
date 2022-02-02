@@ -1,5 +1,6 @@
-package esmeta.lang
+package esmeta.lang.util
 
+import esmeta.lang.*
 import scala.collection.mutable.{Map => MMap}
 import scala.annotation.targetName
 

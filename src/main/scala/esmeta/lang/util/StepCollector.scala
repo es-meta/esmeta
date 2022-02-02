@@ -1,4 +1,6 @@
-package esmeta.lang
+package esmeta.lang.util
+
+import esmeta.lang.*
 
 /** a collector for metalanguage */
 object StepCollector {

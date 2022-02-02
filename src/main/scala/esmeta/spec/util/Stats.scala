@@ -1,10 +1,10 @@
-package esmeta.spec
+package esmeta.spec.util
 
 import esmeta.LINE_SEP
-import esmeta.spec.Utils.*
+import esmeta.spec.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.KindCounter
+import esmeta.lang.util.KindCounter
 import org.jsoup.nodes.*
 import scala.collection.mutable.{Map => MMap}
 

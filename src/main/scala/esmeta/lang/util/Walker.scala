@@ -1,6 +1,7 @@
-package esmeta.lang
+package esmeta.lang.util
 
 import esmeta.util.BasicWalker
+import esmeta.lang.*
 
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {

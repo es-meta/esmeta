@@ -3,7 +3,7 @@ package esmeta.interp
 import esmeta.{TIMEOUT, TEST_MODE}
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.Utils.*
+import esmeta.interp.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.math.{BigInt => SBigInt}
@@ -263,18 +263,17 @@ class Interp(
         Interp.interp(bop, l, r)
 
   /** get initial local variables */
+  import Func.Param
   def getLocals(params: List[Param], args: List[Value]): MMap[Local, Value] = {
     val map = MMap[Local, Value]()
     @tailrec
     def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
       case (Nil, Nil) =>
-      case (Param(lhs, kind, _) :: pl, Nil) =>
-        import Param.Kind.*
-        kind match
-          case Normal => throw RemainingParams(ps)
-          case Optional =>
-            map += lhs -> Absent
-            aux(pl, Nil)
+      case (Param(lhs, optional, _) :: pl, Nil) =>
+        if (optional) {
+          map += lhs -> Absent
+          aux(pl, Nil)
+        } else RemainingParams(ps)
       case (Nil, args) =>
         throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>

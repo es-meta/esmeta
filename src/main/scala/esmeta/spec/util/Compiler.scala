@@ -1,7 +1,9 @@
-package esmeta.cfg
+package esmeta.spec.util
 
+import esmeta.cfg.util.Builder
+import esmeta.cfg.{Literal => CLiteral, Type => CType, *}
+import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
-import esmeta.lang.{Block => LBlock, Type => LType, *}
 
 /** Compiler from metalangauge to CFG */
 class Compiler(val spec: Spec) {
@@ -66,9 +68,7 @@ class Compiler(val spec: Spec) {
   }
 
   // get function parameters
-  private def getParams(head: Head): List[Param] = {
-    import Func.Kind.*
-    import Param.Kind.*
+  private def getParams(head: Head): List[Func.Param] = {
     head match {
       case head: AbstractOperationHead =>
         head.params.map(compile)
@@ -281,7 +281,7 @@ class Compiler(val spec: Spec) {
       EUnary(compile(op), compile(fb, expr))
     case AbstractClosureExpression(params, captured, body) =>
       val ps =
-        params.map(x => Param(compile(x), Param.Kind.Normal, Type("any")))
+        params.map(x => Func.Param(compile(x), false, CType("any")))
       val newFb = builder.FuncBuilder(false, Func.Kind.Clo, fb.name, ps)
       compile(newFb, body)
       EClo(newFb.func.name, captured.map(compile))
@@ -376,14 +376,10 @@ class Compiler(val spec: Spec) {
   }
 
   // compile algorithm parameters
-  private def compile(param: SParam): Param = {
+  private def compile(param: SParam): Func.Param = {
     val SParam(name, skind, ty) = param
-    val kind = skind match {
-      case SParam.Kind.Normal   => Param.Kind.Normal
-      case SParam.Kind.Optional => Param.Kind.Optional
-      case _                    => ???
-    }
-    Param(Name(name), kind, Type(ty))
+    val optional = skind == SParam.Kind.Optional
+    Func.Param(Name(name), optional, CType(ty))
   }
 
   // compile intrinsics

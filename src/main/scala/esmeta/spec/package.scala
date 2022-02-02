@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.spec.util.*
 import esmeta.util.BaseUtils.*
 
 /** specification elements */

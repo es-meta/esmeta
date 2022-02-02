@@ -1,7 +1,7 @@
-package esmeta.cfg
+package esmeta.cfg.util
 
 import esmeta.LINE_SEP
-import esmeta.cfg.Utils.*
+import esmeta.cfg.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -15,8 +15,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: CFG         => cfgRule(app, elem)
       case elem: Func        => funcRule(app, elem)
       case elem: Func.Kind   => funcKindRule(app, elem)
-      case elem: Param       => paramRule(app, elem)
-      case elem: Param.Kind  => paramKindRule(app, elem)
+      case elem: Func.Param  => paramRule(app, elem)
       case elem: Node        => nodeRule(app, elem)
       case elem: Branch.Kind => branchKindRule(app, elem)
       case elem: Inst        => instRule(app, elem)
@@ -39,7 +38,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // functions
   given funcRule: Rule[Func] = (app, func) =>
     val Func(id, main, kind, name, params, _) = func
-    given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
+    given Rule[Iterable[Func.Param]] = iterableRule("(", ", ", ")")
     app >> id >> ": " >> (if (main) "@main " else "") >> kind
     app >> name >> params >> " "
     app.wrap {
@@ -62,17 +61,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // function parameters
-  given paramRule: Rule[Param] = (app, param) =>
-    val Param(name, kind, ty) = param
-    app >> name >> kind >> ": " >> ty
-
-  // function parameter kinds
-  given paramKindRule: Rule[Param.Kind] = (app, kind) =>
-    import Param.Kind.*
-    app >> (kind match {
-      case Normal   => ""
-      case Optional => "?"
-    })
+  given paramRule: Rule[Func.Param] = (app, param) =>
+    val Func.Param(name, optional, ty) = param
+    app >> name >> (if (optional) "?" else "") >> ": " >> ty
 
   // nodes
   given nodeRule: Rule[Node] = withLoc { (app, node) =>

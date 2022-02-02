@@ -1,10 +1,10 @@
-package esmeta.lang
+package esmeta.lang.util
 
 import esmeta.LINE_SEP
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.Utils.*
+import esmeta.lang.*
 
 /** stringifier for language */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -298,7 +298,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: ObjectTypeLiteral    => app >> "Object"
     }
 
-  // algorithm invocation expressions
+  // metalanguage invocation expressions
   given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
     expr match {
       case InvokeAbstractOperationExpression(name, args) =>

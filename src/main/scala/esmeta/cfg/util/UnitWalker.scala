@@ -1,5 +1,6 @@
-package esmeta.cfg
+package esmeta.cfg.util
 
+import esmeta.cfg.*
 import esmeta.util.{BasicUnitWalker, Loc}
 
 /** a unit walker for CFG */
@@ -8,8 +9,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: CFG         => walk(elem)
     case elem: Func        => walk(elem)
     case elem: Func.Kind   => walk(elem)
-    case elem: Param       => walk(elem)
-    case elem: Param.Kind  => walk(elem)
+    case elem: Func.Param  => walk(elem)
     case elem: Node        => walk(elem)
     case elem: Branch.Kind => walk(elem)
     case elem: Inst        => walk(elem)
@@ -38,12 +38,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(kind: Func.Kind): Unit = {}
 
   // function parameters
-  def walk(param: Param): Unit =
-    val Param(name, kind, ty) = param
-    walk(name); walk(kind); walk(ty)
-
-  // function parameter kinds
-  def walk(kind: Param.Kind): Unit = {}
+  def walk(param: Func.Param): Unit =
+    val Func.Param(name, opt, ty) = param
+    walk(name); walk(opt); walk(ty)
 
   // nodes
   def walk(node: Node): Unit = node match {

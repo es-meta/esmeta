@@ -1,7 +1,7 @@
-package esmeta.cfg
+package esmeta.cfg.util
 
 import esmeta.util.BaseUtils.*
-import esmeta.cfg.Utils.*
+import esmeta.cfg.*
 import scala.collection.mutable.ListBuffer
 
 /** CFG builder */
@@ -15,7 +15,7 @@ class Builder {
     val main: Boolean,
     val kind: Func.Kind,
     val name: String,
-    val params: List[Param],
+    val params: List[Func.Param],
   ) {
     // function id
     private val fid: Int = nextFId

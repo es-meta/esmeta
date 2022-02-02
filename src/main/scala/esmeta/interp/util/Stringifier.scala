@@ -1,9 +1,9 @@
-package esmeta.interp
+package esmeta.interp.util
 
 import esmeta.LINE_SEP
 import esmeta.cfg.*
-import esmeta.cfg.Utils.*
-import esmeta.interp.Utils.*
+import esmeta.cfg.util.*
+import esmeta.interp.*
 import esmeta.util.*
 import esmeta.util.Appender.{given, *}
 import esmeta.util.BaseUtils.*

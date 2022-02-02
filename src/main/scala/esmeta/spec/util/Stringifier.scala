@@ -1,9 +1,9 @@
-package esmeta.spec
+package esmeta.spec.util
 
 import esmeta.LINE_SEP
 import esmeta.util.Appender
 import esmeta.util.BaseUtils.*
-import esmeta.spec.Utils.*
+import esmeta.spec.*
 
 /** stringifier for specifications */
 object Stringifier {

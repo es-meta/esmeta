@@ -1,16 +1,17 @@
-package esmeta.lang
+package esmeta.lang.util
 
-import esmeta.lang.Utils.*
+import esmeta.lang.*
 import esmeta.util.{IndentParsers, Locational}
 import scala.util.matching.Regex
 
-/** language parsers */
+/** language parser */
+object Parser extends Parsers
 trait Parsers extends IndentParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
   // ---------------------------------------------------------------------------
-  // algorithm blocks
+  // metalanguage blocks
   // ---------------------------------------------------------------------------
   given block: PL[Block] = indent ~> (
     rep1(subStep) ^^ { StepBlock(_) } |
@@ -38,7 +39,7 @@ trait Parsers extends IndentParsers {
   ) <~ "\n *</figure>".r
 
   // ---------------------------------------------------------------------------
-  // algorithm steps
+  // metalanguage steps
   // ---------------------------------------------------------------------------
   given step: PL[Step] =
     letStep |
@@ -156,7 +157,7 @@ trait Parsers extends IndentParsers {
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
 
   // ---------------------------------------------------------------------------
-  // algorithm expressions
+  // metalanguage expressions
   // ---------------------------------------------------------------------------
   given expr: PL[Expression] =
     stringConcatExpr |||
@@ -351,7 +352,7 @@ trait Parsers extends IndentParsers {
         StringLiteral(str)
     }
 
-  // algorithm invocation expressions
+  // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
     invokeAOExpr |||
     invokeNumericExpr |||
@@ -441,7 +442,7 @@ trait Parsers extends IndentParsers {
     opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
 
   // ---------------------------------------------------------------------------
-  // algorithm conditions
+  // metalanguage conditions
   // ---------------------------------------------------------------------------
   given cond: PL[Condition] =
     import CompoundCondition.Op.*
@@ -527,7 +528,7 @@ trait Parsers extends IndentParsers {
     }
 
   // ---------------------------------------------------------------------------
-  // algorithm references
+  // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = baseRef ||| propRef
 
@@ -557,7 +558,7 @@ trait Parsers extends IndentParsers {
   }
 
   // ---------------------------------------------------------------------------
-  // algorithm properties
+  // metalanguage properties
   // ---------------------------------------------------------------------------
   given prop: PL[Property] =
     ("." ~> field) ^^ { FieldProperty(_) } |||
@@ -565,20 +566,20 @@ trait Parsers extends IndentParsers {
     ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
 
   // ---------------------------------------------------------------------------
-  // algorithm fields
+  // metalanguage fields
   // ---------------------------------------------------------------------------
   given field: PL[Field] =
     "[[" ~> (word ^^ { StringField(_) } | intr ^^ { IntrinsicField(_) }) <~ "]]"
 
   // ---------------------------------------------------------------------------
-  // algorithm intrinsics
+  // metalanguage intrinsics
   // ---------------------------------------------------------------------------
   given intr: PL[Intrinsic] = "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
     case b ~ ps => Intrinsic(b, ps)
   }
 
   // ---------------------------------------------------------------------------
-  // algorithm types
+  // metalanguage types
   // ---------------------------------------------------------------------------
   given ty: PL[Type] =
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||

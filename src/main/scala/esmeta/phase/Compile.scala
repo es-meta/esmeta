@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.spec.*
+import esmeta.spec.util.*
 import esmeta.cfg.*
 
 /** `compile` phase */
@@ -12,7 +13,7 @@ case object Compile extends Phase[Spec, CFG] {
     spec: Spec,
     globalConfig: GlobalConfig,
     config: Config,
-  ): CFG = Compiler(spec)
+  ): CFG = spec.toCFG
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()

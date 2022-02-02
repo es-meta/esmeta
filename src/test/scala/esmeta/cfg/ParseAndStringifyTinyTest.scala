@@ -103,17 +103,13 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // parameters
     // -------------------------------------------------------------------------
     lazy val params = List(xParam, yParam)
-    lazy val xParam = Param(x, Param.Kind.Normal, ty)
-    lazy val yParam = Param(y, Param.Kind.Optional, ty)
+    lazy val xParam = Func.Param(x, false, ty)
+    lazy val yParam = Func.Param(y, true, ty)
 
     // tests
-    checkParseAndStringify("Param", Param)(
+    checkParseAndStringify("Func.Param", Func.Param)(
       xParam -> "x: T",
       yParam -> "y?: T",
-    )
-    checkParseAndStringify("Param.Kind", Param.Kind)(
-      Param.Kind.Normal -> "",
-      Param.Kind.Optional -> "?",
     )
 
     // -------------------------------------------------------------------------

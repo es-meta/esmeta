@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import Stringifier.*
+import esmeta.spec.util.*
 
 // -----------------------------------------------------------------------------
 // grammars
