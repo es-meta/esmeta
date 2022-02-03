@@ -10,6 +10,7 @@ import scala.concurrent.*
 import scala.concurrent.duration.*
 import scala.io.Source
 import scala.sys.process.*
+import scala.util.Try
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
 /** file utilities */
@@ -177,9 +178,10 @@ object SystemUtils {
   def concurrent[T](
     fs: Iterable[() => T],
     duration: Duration = Duration.Inf,
-  ): Iterable[T] =
-    Await.result(
-      Future.sequence(fs.map(f => Future(f()))),
+  ): Iterable[T] = Await
+    .result(
+      Future.sequence(fs.map(f => Future(Try(f())))),
       duration,
     )
+    .map(_.get)
 }
