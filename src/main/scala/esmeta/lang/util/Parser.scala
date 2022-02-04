@@ -6,9 +6,10 @@ import scala.util.matching.Regex
 
 /** language parser */
 object Parser extends Parsers
-trait Parsers extends IndentParsers {
+trait Parsers extends DivergedParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
+  type PLD[T <: Diverged with Locational] = DivergedParser[T]
 
   // ---------------------------------------------------------------------------
   // metalanguage blocks
@@ -197,9 +198,10 @@ trait Parsers extends IndentParsers {
     }
 
   // `length of` expressions
-  lazy val lengthExpr: PL[LengthExpression] =
+  lazy val lengthExpr: PLD[LengthExpression] =
     "the length of" ~> expr ^^ { LengthExpression(_) } |||
-    "the number of code" ~ ("units" | "unit elements") ~ "in" ~> expr ^^ {
+    "the number of code" ~
+    recordAppend()("units", "unit elements") ~ "in" ~> expr ^^ {
       LengthExpression(_)
     }
 
@@ -594,13 +596,18 @@ trait Parsers extends IndentParsers {
     def ^^![S](v: => S): Parser[S] = Parser { in => p(in).map(x => v) }
   }
 
-  // implicit conversion from parsers to packrat parsers
+  // implicit conversion from parsers to locational parsers
   private implicit def parser2loc[T <: Locational](
     p: => Parser[T],
   ): PL[T] = {
     val packrat = parser2packrat(p)
     locationed(packrat)
   }
+
+  // implicit conversion rom parsers to diverged parsers
+  private implicit def parser2diverged[T <: Diverged with Locational](
+    p: => Parser[T],
+  ): PLD[T] = record(parser2loc(p))
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (
