@@ -10,6 +10,8 @@ case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr
 case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
 case class EPop(list: Expr, front: Boolean) extends Expr
+case class EParse(code: Expr, rule: Expr) extends Expr
+case class EParseRule(name: String, params: List[Boolean]) extends Expr
 case class EYet(msg: String) extends Expr
 case class EContains(list: Expr, elem: Expr) extends Expr
 case class ERef(ref: Ref) extends Expr

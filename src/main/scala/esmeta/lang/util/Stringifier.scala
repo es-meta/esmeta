@@ -351,8 +351,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
               app >> "either " >> ty
             }
         }
-      case HasFieldCondition(expr, neg, field) =>
-        app >> expr >> hasStr(neg)
+      case HasFieldCondition(ref, neg, field) =>
+        app >> ref >> hasStr(neg)
         // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"

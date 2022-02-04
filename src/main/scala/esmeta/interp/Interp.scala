@@ -145,6 +145,12 @@ class Interp(
       interp(list).escaped match
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
+    case EParse(code, rule) => {
+      val v = interp(code).escaped
+      val r = interp(rule).escaped
+      ??? // TODO parse `code` with `rule`
+    }
+    case EParseRule(name, params) => ???
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>

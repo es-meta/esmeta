@@ -143,6 +143,10 @@ trait Parsers extends BasicParsers {
       case c ~ e => EReturnIfAbrupt(e, c)
     } | "(" ~ "pop" ~> ("<" ^^^ true | ">" ^^^ false) ~ expr <~ ")" ^^ {
       case f ~ e => EPop(e, f)
+    } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
+      case c ~ r => EParse(c, r)
+    } | "(" ~ "rule" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => EParseRule(x, ps)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
@@ -170,14 +174,15 @@ trait Parsers extends BasicParsers {
 
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =
-    ("|" ~> word <~ "|") ~
-    (opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }) ~
+    ("|" ~> word <~ "|") ~ parseParams ~
     ("<" ~> int ~ ("," ~> int) <~ ">") ~
     (opt("(" ~> repsep(expr, ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
       case n ~ as ~ (i ~ j) ~ es => ESyntactic(n, as, i, j, es)
     } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
       case n ~ e => ELexical(n, e)
     }
+  lazy val parseParams: Parser[List[Boolean]] =
+    opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }
   lazy val simpleBool: Parser[Boolean] = "T" ^^^ true | "F" ^^^ false
 
   // allocation expressions

@@ -161,13 +161,13 @@ trait Walker extends BasicWalker {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
     case InstanceOfCondition(expr, neg, ty) =>
-      InstanceOfCondition(walk(expr), neg, walkList(ty, walk))
-    case HasFieldCondition(expr, neg, field) =>
-      HasFieldCondition(walk(expr), neg, walk(field))
+      InstanceOfCondition(walk(expr), walk(neg), walkList(ty, walk))
+    case HasFieldCondition(ref, neg, field) =>
+      HasFieldCondition(walk(ref), walk(neg), walk(field))
     case AbruptCompletionCondition(x, neg) =>
-      AbruptCompletionCondition(walk(x), neg)
+      AbruptCompletionCondition(walk(x), walk(neg))
     case IsAreCondition(ls, neg, rs) =>
-      IsAreCondition(walkList(ls, walk), neg, walkList(rs, walk))
+      IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
     case CompoundCondition(left, op, right) =>

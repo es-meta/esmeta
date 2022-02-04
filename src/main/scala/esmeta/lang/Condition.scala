@@ -18,7 +18,7 @@ case class InstanceOfCondition(
 
 // field inclusion conditions
 case class HasFieldCondition(
-  expr: Expression,
+  ref: Reference,
   negation: Boolean,
   field: Field,
 ) extends Condition

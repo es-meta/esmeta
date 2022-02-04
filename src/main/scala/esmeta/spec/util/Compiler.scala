@@ -4,6 +4,7 @@ import esmeta.cfg.util.Builder
 import esmeta.cfg.{Literal => CLiteral, Type => CType, *}
 import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
+import esmeta.util.BaseUtils.*
 
 /** Compiler from metalangauge to CFG */
 class Compiler(val spec: Spec) {
@@ -134,7 +135,7 @@ class Compiler(val spec: Spec) {
         lessThan(iExpr, lengthExpr), {
           fb.addInst(ILet(compile(x), toERef(list, iExpr)))
           compile(fb, body)
-          fb.addInst(IAssign(i, EBinary(BOp.Plus, iExpr, EMathVal(1))))
+          fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
         },
         loop = true,
       )
@@ -145,16 +146,16 @@ class Compiler(val spec: Spec) {
         Branch.Kind.Loop("foreach-int"),
         compile(fb, cond), {
           compile(fb, body)
-          val bop = if (ascending) BOp.Plus else BOp.Sub
-          fb.addInst(IAssign(i, EBinary(bop, iExpr, EMathVal(1))))
+          val op = if (ascending) add(_, _) else sub(_, _)
+          fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
         },
         loop = true,
       )
-    case ThrowStep(errorName) =>
+    case ThrowStep(errName) =>
       val expr = EMap(
         "OrdinaryObject",
         List(
-          EStr("Prototype") -> compile(Intrinsic(errorName, List("prototype"))),
+          EStr("Prototype") -> compile(Intrinsic(errName, List("prototype"))),
           EStr("ErrorData") -> EUndef,
         ),
         fb.newSite,
@@ -197,9 +198,12 @@ class Compiler(val spec: Spec) {
     case RunningExecutionContext() => GLOBAL_CONTEXT
     case CurrentRealmRecord()      => GLOBAL_REALM
     case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
-    case PropertyReference(base, prop) =>
-      Prop(compile(fb, ref), compile(fb, prop))
+    case ref: PropertyReference    => compile(fb, ref)
   }
+
+  private def compile(fb: FB, ref: PropertyReference): Prop =
+    val PropertyReference(base, prop) = ref
+    Prop(compile(fb, base), compile(fb, prop))
 
   // compile properties
   private def compile(fb: FB, prop: Property): Expr = prop match {
@@ -218,9 +222,11 @@ class Compiler(val spec: Spec) {
   private def compile(fb: FB, expr: Expression): Expr = expr match {
     case StringConcatExpression(exprs) =>
       val es = exprs.map(compile(fb, _))
-      es.reduce(EBinary(BOp.Plus, _, _))
-    case ListConcatExpression(exprs)  => ???
-    case RecordExpression(ty, fields) => ???
+      es.reduce(add(_, _))
+    case ListConcatExpression(exprs) => ???
+    case RecordExpression(ty, fields) =>
+      val props = fields.map { case (f, e) => compile(f) -> compile(fb, e) }
+      EMap(ty.name, props, fb.newSite)
     case LengthExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
     case LengthExpression(expr) =>
@@ -253,16 +259,25 @@ class Compiler(val spec: Spec) {
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(IAssign(x, compile(fb, expr)))
       toStrERef(x, "length")
-    case IntrinsicExpression(Intrinsic(base, props)) => ???
-    case SourceTextExpression(expr)                  => ???
+    case IntrinsicExpression(intr)                            => compile(intr)
+    case SourceTextExpression(expr)                           => ???
+    case InvokeAbstractOperationExpression("ParseText", args) => ???
     case InvokeAbstractOperationExpression(name, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(name, Nil)
       fb.addCall(x, f, args.map(compile(fb, _)))
       xExpr
-    case InvokeNumericMethodExpression(ty, name, args)             => ???
-    case InvokeAbstractClosureExpression(ref, args)                => ???
-    case InvokeMethodExpression(ref, args)                         => ???
+    case InvokeNumericMethodExpression(ty, name, args) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val f = EClo(s"$ty::$name", Nil)
+      fb.addCall(x, f, args.map(compile(fb, _)))
+      xExpr
+    case InvokeAbstractClosureExpression(ref, args) => ???
+    case InvokeMethodExpression(ref, args) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val prop @ Prop(base, _) = compile(fb, ref)
+      fb.addCall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _)))
+      xExpr
     case InvokeSyntaxDirectedOperationExpression(base, name, args) => ???
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
@@ -272,7 +287,17 @@ class Compiler(val spec: Spec) {
       EYet(yet.toString(false, false))
     case ReferenceExpression(ref) =>
       ERef(compile(fb, ref))
-    case MathOpExpression(op, args) => ???
+    case MathOpExpression(op, args) =>
+      import MathOpExpression.Op.*
+      (op, args) match
+        case (Max, _)           => EVariadic(VOp.Max, args.map(compile(fb, _)))
+        case (Min, _)           => EVariadic(VOp.Min, args.map(compile(fb, _)))
+        case (Abs, List(arg))   => EUnary(UOp.Abs, compile(fb, arg))
+        case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
+        case (ToBigInt, List(arg)) => EConvert(COp.ToBigInt, compile(fb, arg))
+        case (ToNumber, List(arg)) => EConvert(COp.ToNumber, compile(fb, arg))
+        case (ToMath, List(arg))   => EConvert(COp.ToMath, compile(fb, arg))
+        case _                     => error(s"invalid math operation: $expr")
     case ExponentiationExpression(base, power) =>
       EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
     case BinaryExpression(left, op, right) =>
@@ -289,18 +314,16 @@ class Compiler(val spec: Spec) {
   }
 
   // compile binary operators
-  private def compile(op: BinaryExpression.Op): BOp = op match {
+  private def compile(op: BinaryExpression.Op): BOp = op match
     case BinaryExpression.Op.Add => BOp.Plus
     case BinaryExpression.Op.Sub => BOp.Sub
     case BinaryExpression.Op.Mul => BOp.Mul
     case BinaryExpression.Op.Div => BOp.Div
     case BinaryExpression.Op.Mod => BOp.Mod
-  }
 
   // compile unary operators
-  private def compile(op: UnaryExpression.Op): UOp = op match {
-    case _ => ???
-  }
+  private def compile(op: UnaryExpression.Op): UOp = op match
+    case UnaryExpression.Op.Neg => UOp.Neg
 
   // compile literals
   private def compile(lit: Literal): Expr = lit match {
@@ -312,7 +335,7 @@ class Compiler(val spec: Spec) {
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => ???
-    case SymbolLiteral(sym)                 => ??? // TODO Refer Table 1
+    case SymbolLiteral(sym)                 => toERef(GLOBAL_SYMBOL, EStr(sym))
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
     case DecimalMathValueLiteral(n)         => EMathVal(n)
@@ -323,32 +346,38 @@ class Compiler(val spec: Spec) {
     case UndefinedLiteral()                 => EUndef
     case NullLiteral()                      => ENull
     case AbsentLiteral()                    => EAbsent
-    case UndefinedTypeLiteral()             => ??? // TODO type literals
-    case NullTypeLiteral()                  => ???
-    case BooleanTypeLiteral()               => ???
-    case StringTypeLiteral()                => ???
-    case SymbolTypeLiteral()                => ???
-    case NumberTypeLiteral()                => ???
-    case BigIntTypeLiteral()                => ???
-    case ObjectTypeLiteral()                => ???
+    case UndefinedTypeLiteral()             => EGLOBAL_UNDEF_TYPE
+    case NullTypeLiteral()                  => EGLOBAL_NULL_TYPE
+    case BooleanTypeLiteral()               => EGLOBAL_BOOL_TYPE
+    case StringTypeLiteral()                => EGLOBAL_STRING_TYPE
+    case SymbolTypeLiteral()                => EGLOBAL_SYMBOL_TYPE
+    case NumberTypeLiteral()                => EGLOBAL_NUMBER_TYPE
+    case BigIntTypeLiteral()                => EGLOBAL_BIGINT_TYPE
+    case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
   }
 
   // compile branch conditions
   private def compile(fb: FB, cond: Condition): Expr = cond match {
     case ExpressionCondition(expr) =>
       compile(fb, expr)
-    case InstanceOfCondition(expr, negation, ty)  => ???
-    case HasFieldCondition(expr, negation, field) => ???
-    case AbruptCompletionCondition(x, negation)   => ???
+    case InstanceOfCondition(expr, neg, tys) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(IAssign(x, compile(fb, expr)))
+      val e = tys.map[Expr](t => ETypeCheck(xExpr, compile(t))).reduce(or(_, _))
+      if (neg) not(e) else e
+    case HasFieldCondition(ref, neg, field) =>
+      val e = exist(toERef(compile(fb, ref), compile(field)))
+      if (neg) not(e) else e
+    case AbruptCompletionCondition(x, negation) => ???
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
         val e = right
           .map(r => EBinary(BOp.Eq, l, compile(fb, r)))
-          .reduce(EBinary(BOp.Or, _, _))
+          .reduce(or(_, _))
         if (neg) not(e) else e
       }
-      es.reduce(EBinary(BOp.And, _, _))
+      es.reduce(and(_, _))
     case BinaryCondition(left, op, right) =>
       import BinaryCondition.Op.*
       lazy val l = compile(fb, left)
@@ -365,14 +394,12 @@ class Compiler(val spec: Spec) {
         case NContains        => not(EContains(l, r))
       }
     case CompoundCondition(left, op, right) =>
-      EBinary(compile(op), compile(fb, left), compile(fb, right))
-  }
-
-  // compile compound condition operators
-  private def compile(op: CompoundCondition.Op): BOp = op match {
-    case CompoundCondition.Op.And   => BOp.And
-    case CompoundCondition.Op.Or    => BOp.Or
-    case CompoundCondition.Op.Imply => ???
+      lazy val l = compile(fb, left)
+      lazy val r = compile(fb, right)
+      op match
+        case CompoundCondition.Op.And   => and(l, r)
+        case CompoundCondition.Op.Or    => or(l, r)
+        case CompoundCondition.Op.Imply => or(not(l), r)
   }
 
   // compile algorithm parameters
@@ -382,17 +409,25 @@ class Compiler(val spec: Spec) {
     Func.Param(Name(name), optional, CType(ty))
   }
 
+  // compile types
+  private def compile(ty: Type): CType = CType(ty.name)
+
   // compile intrinsics
-  private def compile(intrinsic: Intrinsic): Expr = ???
+  private def compile(intrinsic: Intrinsic): Expr =
+    toERef(GLOBAL_INTRINSIC, EStr(intrinsic.toString))
 
   // literal helpers
   private val zero = EMathVal(0)
   private val one = EMathVal(1)
 
   // operation helpers
+  private inline def exist(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
   private inline def not(expr: Expr) = EUnary(UOp.Not, expr)
   private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
+  private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
+  private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
+  private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
 }
 object Compiler {
 

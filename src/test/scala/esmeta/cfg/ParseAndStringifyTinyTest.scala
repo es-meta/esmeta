@@ -169,6 +169,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val riaNoCheck = EReturnIfAbrupt(xExpr, false)
     lazy val popFront = EPop(xExpr, true)
     lazy val popBack = EPop(xExpr, false)
+    lazy val parse = EParse(xExpr, rule)
+    lazy val rule = EParseRule("A", List(true, false))
     lazy val yet = EYet("NOT YET")
     lazy val contains = EContains(xExpr, xExpr)
     lazy val xExpr = ERef(x)
@@ -208,6 +210,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
       riaNoCheck -> "[! x]",
       popFront -> "(pop < x)",
       popBack -> "(pop > x)",
+      parse -> "(parse x (rule |A|[TF]))",
+      rule -> "(rule |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
       xExpr -> "x",

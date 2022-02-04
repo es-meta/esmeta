@@ -479,11 +479,11 @@ trait Parsers extends DivergedParsers {
   // field includsion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
     lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
-    expr ~
+    ref ~
     ("has" ^^! false ||| "does not have" ^^! true) ~
     (("an" | "a") ~> field <~ fieldStr) ^^ {
-      case e ~ n ~ f =>
-        HasFieldCondition(e, n, f)
+      case r ~ n ~ f =>
+        HasFieldCondition(r, n, f)
     }
 
   // abrupt completion check conditions

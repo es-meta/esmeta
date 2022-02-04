@@ -348,8 +348,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       InstanceOfCondition(refExpr, false, List(ty, ty, ty))
     lazy val neitherInstanceOfCond =
       InstanceOfCondition(refExpr, true, List(ty, ty))
-    lazy val hasFieldCond = HasFieldCondition(refExpr, false, field)
-    lazy val noHasFieldCond = HasFieldCondition(refExpr, true, field)
+    lazy val hasFieldCond = HasFieldCondition(x, false, field)
+    lazy val noHasFieldCond = HasFieldCondition(x, true, field)
     lazy val abruptCond = AbruptCompletionCondition(x, false)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =

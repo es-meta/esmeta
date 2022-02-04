@@ -82,6 +82,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(check)
     case EPop(list, front) =>
       walk(list); walk(front)
+    case EParse(code, rule) =>
+      walk(code); walk(rule)
+    case EParseRule(name, params) =>
+      walk(name); walkList(params, walk)
     case EYet(msg) =>
       walk(msg)
     case EContains(list, elem) =>
