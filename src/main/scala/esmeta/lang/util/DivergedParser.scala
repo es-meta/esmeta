@@ -25,13 +25,13 @@ trait DivergedParsers extends IndentParsers {
     def push = DataWithDiverged(d, Map() :: diverged)
     def pop = diverged match {
       case m :: rest => (m, DataWithDiverged(d, rest))
-      case _         => error("stack is empty")
+      case _         => error("diverge context is empty")
     }
 
     /** record kind to current diverge context */
     def record(key: String, kind: Int) = diverged match
       case m :: rest => DataWithDiverged(d, (m + (key -> kind)) :: rest)
-      case _         => this
+      case _         => error("diverge context is empty")
 
   /** default data */
   override val defaultData = DataWithDiverged()
@@ -106,7 +106,7 @@ trait DivergedParsers extends IndentParsers {
   def record[T <: Diverged](p: => Parser[T]): DivergedParser[T] =
     new DivergedParser[T] {
       def apply(in: Input) = handleReader(in) { in =>
-        (start ~> p ~ end ^^ { case o ~ m => o.setMap(m) })(in)
+        (start ~> p ~ end ^^ { case o ~ m => o.map = m; o })(in)
       }
     }
 }

@@ -200,47 +200,34 @@ extension (stat: Stats) {
     // log Statistics
     mkdir(baseDir)
 
-    val algoStr = stat.getAllStr("Algo")
     dumpFile(
       name = "the summary of algorithms",
-      data = algoStr,
+      data = stat.ElemStat.getAlgoString,
       filename = s"$baseDir/algo-summary",
     )
 
-    val stepStr = stat.getAllStr("Step")
     dumpFile(
       name = "the summary of algorithm steps",
-      data = stepStr,
+      data = stat.ElemStat.getStepString,
       filename = s"$baseDir/step-summary",
     )
 
-    val (stepMap, exprMap, condMap) = stat.totalKind
-
-    val stepStatStr = (for {
-      (name, count) <- stepMap.toList.sortBy(_._2)
-    } yield f"$count%-5d $name").mkString(LINE_SEP)
     dumpFile(
-      name = "the summary of spec step-stat",
-      data = stepStatStr,
-      filename = s"$baseDir/step-stat-summary",
+      name = "the kind summary of spec steps",
+      data = stat.KindStat.getStepString,
+      filename = s"$baseDir/step-kind-summary",
     )
 
-    val exprStatStr = (for {
-      (name, count) <- exprMap.toList.sortBy(_._2)
-    } yield f"$count%-5d $name").mkString(LINE_SEP)
     dumpFile(
-      name = "the summary of spec expr-stat",
-      data = exprStatStr,
-      filename = s"$baseDir/expr-stat-summary",
+      name = "the kind summary of spec exprs",
+      data = stat.KindStat.getExprString,
+      filename = s"$baseDir/expr-kind-summary",
     )
 
-    val condStatStr = (for {
-      (name, count) <- condMap.toList.sortBy(_._2)
-    } yield f"$count%-5d $name").mkString(LINE_SEP)
     dumpFile(
-      name = "the summary of spec expr-stat",
-      data = condStatStr,
-      filename = s"$baseDir/cond-stat-summary",
+      name = "the kind summary of spec conds",
+      data = stat.KindStat.getCondString,
+      filename = s"$baseDir/cond-kind-summary",
     )
   }
 

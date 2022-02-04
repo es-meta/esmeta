@@ -199,11 +199,13 @@ trait Parsers extends DivergedParsers {
 
   // `length of` expressions
   lazy val lengthExpr: PLD[LengthExpression] =
-    "the length of" ~> expr ^^ { LengthExpression(_) } |||
-    "the number of code" ~
-    recordAppend()("units", "unit elements") ~ "in" ~> expr ^^ {
-      LengthExpression(_)
-    }
+    recordAppend(Some("LengthExpression"))(
+      "the length of" ~> expr ^^ { LengthExpression(_) },
+      "the number of code" ~
+      recordAppend(Some("units"))("units", "unit elements") ~ "in" ~> expr ^^ {
+        LengthExpression(_)
+      },
+    )
 
   // `substring of` expressions
   lazy val substrExpr: PL[SubstringExpression] =

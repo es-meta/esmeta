@@ -4,132 +4,170 @@ import esmeta.LINE_SEP
 import esmeta.spec.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.util.KindCounter
+import esmeta.lang.util.KindCollector
 import org.jsoup.nodes.*
 import scala.collection.mutable.{Map => MMap}
-
-/** specification statistics to each element */
-case class Stat(
-  algoPass: Int = 0,
-  algoTotal: Int = 0,
-  stepPass: Int = 0,
-  stepTotal: Int = 0,
-) {
-  def +(other: Stat): Stat = {
-    val Stat(ap, at, sp, st) = other
-    Stat(ap + algoPass, at + algoTotal, sp + stepPass, st + stepTotal)
-  }
-
-  def get(ckind: String): (Int, Int) = ckind match
-    case "Algo" => (algoPass, algoTotal)
-    case "Step" => (stepPass, stepTotal)
-    case _      => ???
-}
 
 /** specification statistics */
 class Stats(spec: Spec) {
 
-  /** maps from element to stat */
-  private val _elemMap: MMap[Element, Stat] = MMap()
+  /** statistics for pass/total */
+  private case class PassStat(pass: Int = 0, total: Int = 0):
+    def +(other: PassStat): PassStat = PassStat(
+      pass + other.pass,
+      total + other.total,
+    )
+    def fail: Int = total - pass
+    override def toString =
+      if total != 0 then s"${ratioString(pass, total)}" else ""
+  private object PassStat:
+    def apply(b: Boolean): PassStat = PassStat(if (b) 1 else 0, 1)
 
-  /** counting # of kinds of steps, exprs, cond */
-  private val _kindMap: MMap[Algorithm, KindCounter] = MMap()
+  /** statistics for elements in spec */
+  object ElemStat {
 
-  /** initialize */
-  private def init: Unit = {
-    // iter algorithms in spec
-    for { algo <- spec.algorithms } {
-      // counter kinds in algorithm
-      _kindMap += algo -> KindCounter(algo.body)
-
-      // statisitics for algo
-      val algoStat = Stat(
-        if algo.complete then 1 else 0,
-        1,
-        algo.completeSteps.length,
-        algo.steps.length,
+    /** statistics for each elements */
+    private case class ElemStat(
+      algo: PassStat = PassStat(),
+      step: PassStat = PassStat(),
+    ) {
+      def +(other: ElemStat): ElemStat = ElemStat(
+        algo + other.algo,
+        step + other.step,
       )
+    }
 
-      // walk ancestors
+    /** maps from element to stat */
+    private val map: MMap[Element, ElemStat] = MMap()
+
+    /** add algorithm */
+    def +=(algo: Algorithm): Unit = {
+      val completed = algo.completeSteps.length
+      val total = algo.steps.length
+      val stat = ElemStat(
+        PassStat(completed == total),
+        PassStat(completed, total),
+      )
       algo.elem.walkAncestor(
         elem =>
-          _elemMap += (elem -> (_elemMap.getOrElse(elem, Stat()) + algoStat)),
+          val elemStat = map.getOrElse(elem, ElemStat())
+          map += (elem -> (elemStat + stat))
+        ,
         (),
         (a, b) => (),
       )
     }
+
+    /** get summary of element */
+    private def getElementString(
+      elem: Element,
+      pstat: ElemStat => PassStat,
+      yet: Boolean = false,
+      indent: Int = 0,
+    ): String = {
+
+      // get new line string
+      def newline(indent: Int = 0): String = LINE_SEP + "  " * indent
+
+      // get pass stat
+      val stat = pstat(map.getOrElse(elem, ElemStat()))
+
+      // get yet steps
+      val printYet = yet && stat.fail != 0 && !elem.children.toList
+        .filter(
+          _.tagName == "emu-alg",
+        )
+        .isEmpty
+      val yetStepStr =
+        if printYet then
+          // get algos in same emu-clause
+          val algos = spec.algorithms.filter(_.elem.getId == elem.id)
+
+          // get yet steps
+          algos
+            .map(_.incompleteSteps)
+            .flatten
+            .map(newline(indent + 2) + _.toString(false))
+            .fold("")(_ + _)
+        else ""
+
+      // final result
+      if elem.tagName == "body" then stat.toString
+      else if elem.tagName == "emu-clause" then
+        s"${newline(indent)}- ${elem.id}:${stat}${yetStepStr}"
+      else ""
+    }
+
+    /** getString */
+    def getAlgoString: String =
+      getString(spec.document.body, elem => elem.algo)
+    def getStepString: String =
+      getString(spec.document.body, elem => elem.step, true)
+    private def getString(
+      elem: Element,
+      pstat: ElemStat => PassStat,
+      yet: Boolean = false,
+      indent: Int = 0,
+    ): String =
+      val elemStr = getElementString(elem, pstat, yet, indent)
+      val children = elem.children.toList
+      if !children.isEmpty then
+        children
+          .map(getString(_, pstat, yet, indent + 1))
+          .fold(elemStr)(_ + _)
+      else elemStr
+
+  }
+
+  /** statistics for kinds in spec */
+  object KindStat {
+    import KindCollector.*
+
+    private val map: MMap[ClassName, KindData] = MMap()
+    def sortedList: List[(ClassName, KindData)] = map.toList.sortBy(_._2.count)
+
+    /** add algorithms */
+    def +=(algo: Algorithm): Unit = for {
+      (name, data) <- KindCollector(algo.body).map
+      totalData = map.getOrElseUpdate(name, KindData())
+    } totalData += data
+
+    /** getString */
+    def getStepString: String = getString(name => name.kind == Kind.Step)
+    def getExprString: String = getString(name => name.kind == Kind.Expr)
+    def getCondString: String = getString(name => name.kind == Kind.Cond)
+    private def getDivergedString(
+      diverged: MMap[String, MMap[Int, Int]],
+    ): String = {
+      // get new line string
+      def newline(indent: Int = 0): String = LINE_SEP + "  " * indent
+
+      // get string for kind counter
+      def getCounterString(counter: MMap[Int, Int]): String = {
+        val total = counter.map(_._2).sum
+        (for {
+          (kind, count) <- counter
+          ratio = ratioSimpleString(count, total)
+        } yield s"$kind -> $count/$total$ratio").mkString(", ")
+      }
+
+      (for {
+        (key, counter) <- diverged
+        counterStr = getCounterString(counter)
+      } yield newline(1) + s"- $key: $counterStr").mkString("")
+    }
+    private def getString(
+      filter: ClassName => Boolean,
+    ): String = (for {
+      (cname, data) <- sortedList if filter(cname)
+      divergedStr = getDivergedString(data.diverged)
+    } yield f"${cname.name}%-40s${data.count}$divergedStr").mkString(LINE_SEP)
+  }
+
+  /** initialize */
+  private def init: Unit = for { algo <- spec.algorithms } {
+    KindStat += algo; ElemStat += algo
   }
   init
 
-  /** get total # of kinds of spec */
-  def totalKind: (MMap[String, Int], MMap[String, Int], MMap[String, Int]) = {
-    val stepMap = MMap[String, Int]()
-    val exprMap = MMap[String, Int]()
-    val condMap = MMap[String, Int]()
-
-    def add(a: MMap[String, Int], b: MMap[String, Int]): Unit =
-      for { (name, count) <- b } {
-        a += (name -> (a.getOrElse(name, 0) + count))
-      }
-
-    for { (algo, counter) <- _kindMap } {
-      add(stepMap, counter.stepMap)
-      add(exprMap, counter.exprMap)
-      add(condMap, counter.condMap)
-    }
-
-    (stepMap, exprMap, condMap)
-  }
-
-  /** get String */
-  def getStr(
-    elem: Element,
-    cKind: String,
-    indent: Int = 0,
-  ): String =
-
-    // get new line string
-    def newline(indent: Int = 0): String = LINE_SEP + "  " * indent
-
-    // get ratio string
-    val stat = _elemMap.getOrElse(elem, Stat())
-    val (pass, total) = stat.get(cKind)
-    val fail = total - pass
-    val ratioStr = if total != 0 then s" ${ratioString(pass, total)}" else ""
-
-    // get yet steps
-    val yetStepStr =
-      if cKind == "Step" & fail != 0 & elem.children.toList.filter(
-          _.tagName == "emu-alg",
-        ) != Nil
-      then
-        // get algos in same emu-clause
-        val algos = spec.algorithms.filter(_.elem.getId == elem.id)
-
-        // get yet steps
-        algos
-          .map(_.incompleteSteps)
-          .flatten
-          .map(newline(indent + 2) + _.toString(false))
-          .fold("")(_ + _)
-      else ""
-
-    // final result
-    if elem.tagName == "body" then s"${ratioString(pass, total)}"
-    else if elem.tagName == "emu-clause" then
-      s"${newline(indent)}- ${elem.id}:${ratioStr}${yetStepStr}"
-    else ""
-
-  /** get descendant String */
-  def getAllStr(cName: String): String = getAllStr(spec.document.body, cName)
-  def getAllStr(
-    elem: Element,
-    cName: String,
-    indent: Int = 0,
-  ): String =
-    val baseStr = getStr(elem, cName, indent)
-    val children = elem.children.toList
-    if !children.isEmpty then
-      children.map(getAllStr(_, cName, indent + 1)).fold(baseStr)(_ + _)
-    else baseStr
 }
