@@ -224,6 +224,18 @@ class Compiler(val spec: Spec) {
       val es = exprs.map(compile(fb, _))
       es.reduce(add(_, _))
     case ListConcatExpression(exprs) => ???
+    case RecordExpression(Type("Completion Record"), fields) =>
+      val fmap = fields.toMap
+      val fs @ List(ty, v, tgt) =
+        List("Type", "Value", "Target").map(StringField(_))
+      val keys = fmap.keySet
+      if (keys != fs.toSet)
+        error(s"invalid completion keys: ${keys.mkString(", ")}")
+      EComp(
+        compile(fb, fmap(ty)),
+        compile(fb, fmap(v)),
+        compile(fb, fmap(tgt)),
+      )
     case RecordExpression(ty, fields) =>
       val props = fields.map { case (f, e) => compile(f) -> compile(fb, e) }
       EMap(ty.name, props, fb.newSite)
@@ -259,14 +271,16 @@ class Compiler(val spec: Spec) {
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(IAssign(x, compile(fb, expr)))
       toStrERef(x, "length")
-    case IntrinsicExpression(intr)                            => compile(intr)
-    case SourceTextExpression(expr)                           => ???
-    case InvokeAbstractOperationExpression("ParseText", args) => ???
+    case IntrinsicExpression(intr)  => compile(intr)
+    case SourceTextExpression(expr) => ???
     case InvokeAbstractOperationExpression(name, args) =>
-      val (x, xExpr) = fb.newTIdWithExpr
-      val f = EClo(name, Nil)
-      fb.addCall(x, f, args.map(compile(fb, _)))
-      xExpr
+      if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
+      else {
+        val (x, xExpr) = fb.newTIdWithExpr
+        val f = EClo(name, Nil)
+        fb.addCall(x, f, args.map(compile(fb, _)))
+        xExpr
+      }
     case InvokeNumericMethodExpression(ty, name, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(s"$ty::$name", Nil)
@@ -428,6 +442,27 @@ class Compiler(val spec: Spec) {
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
+
+  // simple operations
+  type SimpleOp = PartialFunction[List[Expr], Expr]
+  def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
+    val (name, f) = pair
+    name -> (args =>
+      optional(f(args)).getOrElse(
+        error(s"invalid arguments: $name(${args.mkString(", ")})"),
+      ),
+    )
+  }
+  val simpleOps: Map[String, SimpleOp] = Map(
+    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
+    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    // arityCheck("GetArgument" -> ???),
+    // arityCheck("IsDuplicate" -> ???),
+    // arityCheck("IsArrayIndex" -> ???),
+    // arityCheck("ThrowCompletion" -> ???),
+    // arityCheck("NormalCompletion" -> ???),
+    // arityCheck("IsAbruptCompletion" -> ???),
+  )
 }
 object Compiler {
 
