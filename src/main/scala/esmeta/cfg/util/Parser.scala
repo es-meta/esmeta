@@ -16,7 +16,8 @@ trait Parsers extends BasicParsers {
   // control flow graphs (CFGs)
   given cfg: Parser[CFG] = rep(func) ~ entry ^^ {
     case fs ~ entry =>
-      val funcs = ListBuffer.from(fs)
+      val fsWithIds = for ((f, id) <- fs.zipWithIndex) yield f.copy(id = id)
+      val funcs = ListBuffer.from(fsWithIds)
       if (entry.isDefined)
         funcs += Func(
           funcs.length,
@@ -36,10 +37,10 @@ trait Parsers extends BasicParsers {
 
   // functions
   given func: Parser[Func] =
-    getId ~ main ~ funcKind ~ "(\\w|:)+".r ~ params ~
+    opt(getId) ~ main ~ funcKind ~ "(\\w|:)+".r ~ params ~
     ("{" ~> entry <~ "}") ^^ {
       case id ~ main ~ kind ~ name ~ params ~ entry =>
-        Func(id, main, kind, name, params, entry)
+        Func(id.getOrElse(-1), main, kind, name, params, entry)
     }
 
   lazy val entry: Parser[Option[Node]] = rep(nodeLink) ^^ {
