@@ -114,6 +114,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "assert " >> expr
       case IPrint(expr) =>
         app >> "print " >> expr
+      case INop() =>
+        app >> "nop"
   }
 
   // expressions

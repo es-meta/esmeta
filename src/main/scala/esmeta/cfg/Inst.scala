@@ -14,3 +14,4 @@ case class IPush(from: Expr, to: Expr, front: Boolean) extends Inst
 case class IReturn(expr: Expr) extends Inst
 case class IAssert(expr: Expr) extends Inst
 case class IPrint(expr: Expr) extends Inst
+case class INop() extends Inst

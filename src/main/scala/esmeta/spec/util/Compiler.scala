@@ -178,9 +178,10 @@ class Compiler(val spec: Spec) {
         IAssign(GLOBAL_CONTEXT, ERef(compile(fb, ref))),
         IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, false),
       )
-    case NoteStep(note) => /* do nothing */
+    case NoteStep(note) =>
+      fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context) =>
-      ???
+      fb.addInst(INop()) // XXX add edge to lang element
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>

@@ -93,6 +93,7 @@ class Interp(
       val v = interp(expr)
       if (!TEST_MODE) println(st.getString(v))
     }
+    case INop() => /* do nothing */
   }
 
   /** transition for calls */

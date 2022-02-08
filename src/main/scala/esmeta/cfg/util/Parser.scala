@@ -127,6 +127,8 @@ trait Parsers extends BasicParsers {
       case e => IAssert(e)
     } | "print" ~> expr ^^ {
       case e => IPrint(e)
+    } | "nop" ^^ {
+      case _ => INop()
     } | ref ~ ("=" ~> expr) ^^ {
       case r ~ e => IAssign(r, e)
     } | expr ^^ {

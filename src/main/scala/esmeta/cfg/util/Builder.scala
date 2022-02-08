@@ -94,7 +94,7 @@ class Builder {
     case _                => error("multiple main functions")
   }
 
-  // internal lits of functions
+  // internal lists of functions
   private val funcs: ListBuffer[Func] = ListBuffer()
 
   // function id counter
