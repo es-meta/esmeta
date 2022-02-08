@@ -12,8 +12,8 @@ jobs:
 
     - name: Run test
       env:
-        ESMETA_HOME: ${{ env.workspace }}
-      run: echo "$ESMETA_HOME" && sbt test
+        ESMETA_HOME: ${{ github.workspace }}
+      run: echo "$ESMETA_HOME"
   lint:
     runs-on: ubuntu-latest
     steps:
