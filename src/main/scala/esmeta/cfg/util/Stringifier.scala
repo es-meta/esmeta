@@ -140,6 +140,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(yet \"" >> normStr(msg) >> "\")"
       case EContains(list, elem) =>
         app >> "(contains " >> list >> " " >> elem >> ")"
+      case EStrConcat(exprs) =>
+        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
+        app >> "(str-concat " >> exprs >> ")"
+      case ESubstring(expr, from, to) =>
+        app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
       case ERef(ref) =>
         app >> ref
       case EUnary(uop, expr) =>
@@ -195,6 +200,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EList(exprs, asite) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(new " >> exprs >> ")[#" >> asite >> "]"
+      case EListConcat(exprs, asite) =>
+        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
+        app >> "(list-concat " >> exprs >> ")[#" >> asite >> "]"
       case ESymbol(desc, asite) =>
         app >> "(new '" >> desc >> ")[#" >> asite >> "]"
       case ECopy(obj, asite) =>
@@ -255,8 +263,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Lt      => "<"
       case URShift => ">>>"
       case SRShift => ">>"
-      case Concat  => "str+"
-      case StrLt   => "str<"
     )
 
   // variadic operators

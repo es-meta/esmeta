@@ -66,7 +66,6 @@ trait Parsers extends BasicParsers {
     }
     fb.func
   }
-
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
   // function kinds
@@ -163,6 +162,10 @@ trait Parsers extends BasicParsers {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
       case l ~ e => EContains(l, e)
+    } | "(" ~ "str-concat" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")" ^^ {
+      case es => EStrConcat(es)
+    } | "(" ~ "substring" ~> expr ~ expr ~ expr <~ ")" ^^ {
+      case e ~ f ~ t => ESubstring(e, f, t)
     } | "(" ~> uop ~ expr <~ ")" ^^ {
       case u ~ e => EUnary(u, e)
     } | "(" ~> bop ~ expr ~ expr <~ ")" ^^ {
@@ -203,6 +206,11 @@ trait Parsers extends BasicParsers {
       case t ~ fields ~ a => EMap(t, fields.getOrElse(Nil), a)
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ~ asite ^^ {
       case es ~ a => EList(es, a)
+    } | ("(" ~ "list-concat" ~ "[" ~> repsep(
+      expr,
+      ",",
+    ) <~ "]" ~ ")") ~ asite ^^ {
+      case es ~ a => EListConcat(es, a)
     } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ~ asite ^^ {
       case e ~ a => ESymbol(e, a)
     } | ("(" ~ "copy" ~> expr <~ ")") ~ asite ^^ {
@@ -265,9 +273,9 @@ trait Parsers extends BasicParsers {
     "<<" ^^^ LShift |
     "<" ^^^ Lt |
     ">>>" ^^^ URShift |
-    ">>" ^^^ SRShift |
-    "str+" ^^^ Concat |
-    "str<" ^^^ StrLt
+    ">>" ^^^ SRShift
+  // "str+" ^^^ Concat |
+  // "str<" ^^^ StrLt
 
   // variadic operators
   given vop: Parser[VOp] =

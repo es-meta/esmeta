@@ -225,9 +225,9 @@ class Compiler(val spec: Spec) {
   // compile expressions
   private def compile(fb: FB, expr: Expression): Expr = expr match {
     case StringConcatExpression(exprs) =>
-      val es = exprs.map(compile(fb, _))
-      es.reduce(add(_, _))
-    case ListConcatExpression(exprs) => ???
+      EStrConcat(exprs.map(compile(fb, _)))
+    case ListConcatExpression(exprs) =>
+      EListConcat(exprs.map(compile(fb, _)), fb.newSite)
     case RecordExpression(Type("Completion Record"), fields) =>
       val fmap = fields.toMap
       val fs @ List(ty, v, tgt) =
@@ -250,25 +250,11 @@ class Compiler(val spec: Spec) {
       fb.addInst(IAssign(x, compile(fb, expr)))
       toStrERef(x, "length")
     case SubstringExpression(expr, from, to) =>
-      val (substr, substrExpr) = fb.newTIdWithExpr
-      val (idx, idxExpr) = fb.newTIdWithExpr
-      lazy val e = compile(fb, expr)
-      lazy val f = compile(fb, from)
-      lazy val t = compile(fb, to)
-      fb.addInst(
-        IAssign(substr, EStr("")),
-        IAssign(idx, f),
+      ESubstring(
+        compile(fb, expr),
+        compile(fb, from),
+        compile(fb, to),
       )
-      fb.addBranch(
-        Branch.Kind.Loop("substr"),
-        lessThan(idxExpr, t),
-        fb.addInst(
-          IAssign(substr, add(substrExpr, toERef(fb, e, idxExpr))),
-          IAssign(idx, add(idxExpr, one)),
-        ),
-        loop = true,
-      )
-      substrExpr
     case NumberOfExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
     case NumberOfExpression(expr) =>
@@ -389,11 +375,10 @@ class Compiler(val spec: Spec) {
       if (neg) e else not(e)
     case AbruptCompletionCondition(x, neg) =>
       val ref = toRef(compile(x))
-      val comp = ETypeCheck(ERef(ref), TYPE_COMPLETION)
       val abrupt = not(
         EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
       )
-      and(comp, abrupt)
+      and(EIsCompletion(ERef(ref)), abrupt)
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)

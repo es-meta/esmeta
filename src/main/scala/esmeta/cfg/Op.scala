@@ -29,8 +29,6 @@ enum BOp extends Op:
   case LShift, SRShift, URShift
   // boolean
   case And, Or, Xor
-  // string
-  case Concat, StrLt
 object BOp extends Parser.From[BOp]
 
 // variadic operators

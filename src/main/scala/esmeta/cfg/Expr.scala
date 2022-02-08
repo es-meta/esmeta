@@ -14,6 +14,8 @@ case class EParse(code: Expr, rule: Expr) extends Expr
 case class EParseRule(name: String, params: List[Boolean]) extends Expr
 case class EYet(msg: String) extends Expr
 case class EContains(list: Expr, elem: Expr) extends Expr
+case class EStrConcat(exprs: List[Expr]) extends Expr
+case class ESubstring(expr: Expr, from: Expr, to: Expr) extends Expr
 case class ERef(ref: Ref) extends Expr
 case class EUnary(uop: UOp, expr: Expr) extends Expr
 case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
@@ -45,6 +47,7 @@ sealed trait AllocExpr extends Expr { val asite: Int }
 case class EMap(tname: String, props: List[(Expr, Expr)], asite: Int)
   extends AllocExpr
 case class EList(exprs: List[Expr], asite: Int) extends AllocExpr
+case class EListConcat(exprs: List[Expr], asite: Int) extends AllocExpr
 case class ESymbol(desc: Expr, asite: Int) extends AllocExpr
 case class ECopy(obj: Expr, asite: Int) extends AllocExpr
 case class EKeys(map: Expr, intSorted: Boolean, asite: Int) extends AllocExpr

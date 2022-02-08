@@ -161,6 +161,8 @@ class Interp(
             case ListObj(vs) => Bool(vs contains interp(elem).escaped)
             case obj         => throw NoList(list, obj)
         case v => throw NoAddr(list, v)
+    case EStrConcat(exprs)          => ???
+    case ESubstring(expr, from, to) => ???
     case ERef(ref) =>
       st(interp(ref))
     case EUnary(uop, expr) =>
@@ -234,6 +236,7 @@ class Interp(
       addr
     case EList(exprs, asite) =>
       st.allocList(exprs.map(expr => interp(expr).escaped))
+    case EListConcat(exprs, asite) => ???
     case ESymbol(desc, asite) =>
       interp(desc) match
         case (str: Str) => st.allocSymbol(str)
@@ -434,12 +437,12 @@ object Interp {
       case (UMod, Number(l), Number(r)) => Number(l %% r)
       case (Lt, Number(l), Number(r))   => Bool(l < r)
 
-      // string operations
-      case (Concat, Str(l), Str(r)) => Str(l + r)
+      // XXX string operations
+      // case (Concat, Str(l), Str(r)) => Str(l + r)
       // case (Plus, Str(l), Number(r)) =>
       //   Str(l + Character.toChars(r.toInt).mkString(""))
       // case (Sub, Str(l), Math(r)) => Str(l.dropRight(r.toInt))
-      case (StrLt, Str(l), Str(r)) => Bool(l < r)
+      // case (StrLt, Str(l), Str(r)) => Bool(l < r)
 
       // mathematical value operations
       case (Plus, Math(l), Math(r)) => Math(l + r)
