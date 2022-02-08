@@ -3,7 +3,6 @@
   "CalcExpression" : true,
   "Condition" : true,
   "Expression" : true,
-  "Field" : true,
   "Intrinsic" : true,
   "Literal" : true,
   "Property" : true,

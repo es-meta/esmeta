@@ -30,7 +30,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case syn: Reference  => refRule(app, syn)
       case syn: Type       => typeRule(app, syn)
       case syn: Property   => propRule(app, syn)
-      case syn: Field      => fieldRule(app, syn)
       case syn: Intrinsic  => intrRule(app, syn)
     }
 
@@ -143,11 +142,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
       case RecordExpression(ty, fields) =>
-        given Rule[(Field, Expression)] = {
+        given Rule[(FieldLiteral, Expression)] = {
           case (app, (field, expr)) =>
             app >> field >> ": " >> expr
         }
-        given Rule[List[(Field, Expression)]] = iterableRule("{ ", ", ", " }")
+        given Rule[List[(FieldLiteral, Expression)]] =
+          iterableRule("{ ", ", ", " }")
         app >> ty >> " "
         if (fields.isEmpty) app >> "{ }"
         else app >> fields
@@ -267,7 +267,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           .replace("\\", "\\\\")
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
-      case FieldLiteral(field)                 => app >> field
+      case FieldLiteral(name)                  => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym)                  => app >> "@@" >> sym
       case _: PositiveInfinityMathValueLiteral => app >> "+∞"
       case _: NegativeInfinityMathValueLiteral => app >> "-∞"
@@ -437,19 +437,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // properties
   given propRule: Rule[Property] = (app, prop) =>
     prop match {
-      case FieldProperty(f)        => app >> "." >> f
+      case FieldProperty(f)        => app >> ".[[" >> f >> "]]"
       case ComponentProperty(name) => app >> "." >> name
       case IndexProperty(index)    => app >> "[" >> index >> "]"
+      case IntrinsicProperty(intr) => app >> ".[[" >> intr >> "]]"
     }
-
-  // fields
-  given fieldRule: Rule[Field] = (app, field) =>
-    app >> "[["
-    field match {
-      case StringField(name)         => app >> name
-      case IntrinsicField(intrinsic) => app >> intrinsic
-    }
-    app >> "]]"
 
   // intrinsics
   given intrRule: Rule[Intrinsic] = (app, intr) =>

@@ -20,7 +20,7 @@ case class InstanceOfCondition(
 case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
-  field: Field,
+  field: FieldLiteral,
 ) extends Condition
 
 // abrupt completion check conditions

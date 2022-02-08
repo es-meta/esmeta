@@ -28,7 +28,7 @@ sealed trait Property extends Syntax
 object Property extends Parser.From[Property]
 
 // field property
-case class FieldProperty(field: Field) extends Property
+case class FieldProperty(name: String) extends Property
 
 // component property
 case class ComponentProperty(name: String) extends Property
@@ -36,13 +36,8 @@ case class ComponentProperty(name: String) extends Property
 // index property
 case class IndexProperty(index: Expression) extends Property
 
-// -----------------------------------------------------------------------------
-// metalanguage fields
-// -----------------------------------------------------------------------------
-sealed trait Field extends Syntax
-object Field extends Parser.From[Field]
-case class StringField(name: String) extends Field
-case class IntrinsicField(intrinsic: Intrinsic) extends Field
+// intrinsic property
+case class IntrinsicProperty(intrinsic: Intrinsic) extends Property
 
 // -----------------------------------------------------------------------------
 // intrinsics

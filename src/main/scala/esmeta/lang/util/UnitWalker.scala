@@ -22,7 +22,6 @@ trait UnitWalker extends BasicUnitWalker {
     case syn: Condition  => walk(syn)
     case syn: Reference  => walk(syn)
     case syn: Type       => walk(syn)
-    case syn: Field      => walk(syn)
     case syn: Property   => walk(syn)
     case syn: Intrinsic  => walk(syn)
   }
@@ -169,14 +168,9 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(prop: Property): Unit = prop match {
-    case FieldProperty(f) => walk(f)
-    case IndexProperty(e) => walk(e)
-    case _                =>
-  }
-
-  def walk(field: Field): Unit = field match {
-    case StringField(name)         =>
-    case IntrinsicField(intrinsic) => walk(intrinsic)
+    case IndexProperty(e)        => walk(e)
+    case IntrinsicProperty(intr) => walk(intr)
+    case _                       =>
   }
 
   def walk(intr: Intrinsic): Unit = {}

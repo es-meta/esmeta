@@ -103,6 +103,16 @@ class Compiler(val spec: Spec) {
     case ERef(ref) => ref
     case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
   }
+  private inline def toIntrinsic(base: Ref, intr: Intrinsic): Prop =
+    intr.props.foldLeft(Prop(base, EStr(intr.base))) {
+      // XXX consider external property access (SubMap)
+      case (b, propName) => Prop(Prop(b, EStr("SubMap")), EStr(propName))
+    }
+  private inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
+    toERef(toIntrinsic(base, intr))
+  private inline def currentRealm: Ref = toStrRef(GLOBAL_CONTEXT, "Realm")
+  private inline def currentIntrinsics: Ref =
+    toStrRef(currentRealm, "Intrinsics")
 
   // compile algorithm steps
   private def compile(fb: FB, step: Step): Unit = step match {
@@ -152,10 +162,11 @@ class Compiler(val spec: Spec) {
         loop = true,
       )
     case ThrowStep(errName) =>
+      val proto = Intrinsic(errName, List("prototype"))
       val expr = EMap(
         "OrdinaryObject",
         List(
-          EStr("Prototype") -> compile(Intrinsic(errName, List("prototype"))),
+          EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
           EStr("ErrorData") -> EUndef,
         ),
         fb.newSite,
@@ -204,20 +215,12 @@ class Compiler(val spec: Spec) {
 
   private def compile(fb: FB, ref: PropertyReference): Prop =
     val PropertyReference(base, prop) = ref
-    Prop(compile(fb, base), compile(fb, prop))
-
-  // compile properties
-  private def compile(fb: FB, prop: Property): Expr = prop match {
-    case FieldProperty(field)    => compile(field)
-    case ComponentProperty(name) => EStr(name)
-    case IndexProperty(index)    => compile(fb, index)
-  }
-
-  // compile fields
-  private def compile(field: Field): Expr = field match {
-    case StringField(name)                      => EStr(name)
-    case IntrinsicField(Intrinsic(base, props)) => ???
-  }
+    val baseRef = compile(fb, base)
+    prop match
+      case FieldProperty(name)     => Prop(baseRef, EStr(name))
+      case ComponentProperty(name) => Prop(baseRef, EStr(name))
+      case IndexProperty(index)    => Prop(baseRef, compile(fb, index))
+      case IntrinsicProperty(intr) => toIntrinsic(baseRef, intr)
 
   // compile expressions
   private def compile(fb: FB, expr: Expression): Expr = expr match {
@@ -228,7 +231,7 @@ class Compiler(val spec: Spec) {
     case RecordExpression(Type("Completion Record"), fields) =>
       val fmap = fields.toMap
       val fs @ List(ty, v, tgt) =
-        List("Type", "Value", "Target").map(StringField(_))
+        List("Type", "Value", "Target").map(FieldLiteral(_))
       val keys = fmap.keySet
       if (keys != fs.toSet)
         error(s"invalid completion keys: ${keys.mkString(", ")}")
@@ -238,7 +241,7 @@ class Compiler(val spec: Spec) {
         compile(fb, fmap(tgt)),
       )
     case RecordExpression(ty, fields) =>
-      val props = fields.map { case (f, e) => compile(f) -> compile(fb, e) }
+      val props = fields.map { case (f, e) => EStr(f.name) -> compile(fb, e) }
       EMap(ty.name, props, fb.newSite)
     case LengthExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
@@ -272,7 +275,8 @@ class Compiler(val spec: Spec) {
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(IAssign(x, compile(fb, expr)))
       toStrERef(x, "length")
-    case IntrinsicExpression(intr)  => compile(intr)
+    case IntrinsicExpression(intr) =>
+      toEIntrinsic(currentIntrinsics, intr)
     case SourceTextExpression(expr) => ???
     case InvokeAbstractOperationExpression(name, args) =>
       if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
@@ -381,8 +385,8 @@ class Compiler(val spec: Spec) {
       val e = tys.map[Expr](t => ETypeCheck(xExpr, compile(t))).reduce(or(_, _))
       if (neg) not(e) else e
     case HasFieldCondition(ref, neg, field) =>
-      val e = exist(toERef(compile(fb, ref), compile(field)))
-      if (neg) not(e) else e
+      val e = isAbsent(toStrERef(compile(fb, ref), field.name))
+      if (neg) e else not(e)
     case AbruptCompletionCondition(x, negation) => ???
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
@@ -427,16 +431,12 @@ class Compiler(val spec: Spec) {
   // compile types
   private def compile(ty: Type): CType = CType(ty.name)
 
-  // compile intrinsics
-  private def compile(intrinsic: Intrinsic): Expr =
-    toERef(GLOBAL_INTRINSIC, EStr(intrinsic.toString))
-
   // literal helpers
   private val zero = EMathVal(0)
   private val one = EMathVal(1)
 
   // operation helpers
-  private inline def exist(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
+  private inline def isAbsent(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
   private inline def not(expr: Expr) = EUnary(UOp.Not, expr)
   private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)

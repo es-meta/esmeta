@@ -191,7 +191,8 @@ trait Parsers extends DivergedParsers {
 
   // record expressions
   lazy val recordExpr: PL[RecordExpression] =
-    opt("the") ~> ty ~ ("{" ~> repsep((field <~ ":") ~ expr, ",") <~ "}") ^^ {
+    opt("the") ~> ty ~
+    ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}") ^^ {
       case t ~ fs =>
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
@@ -304,7 +305,7 @@ trait Parsers extends DivergedParsers {
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
     "the empty String" ^^! StringLiteral("") |||
     strLiteral |||
-    field ^^ { FieldLiteral(_) } |||
+    fieldLiteral |||
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
     "-∞" ^^! NegativeInfinityMathValueLiteral() |||
@@ -327,6 +328,10 @@ trait Parsers extends DivergedParsers {
     "Number" ^^! NumberTypeLiteral() |||
     "BigInt" ^^! BigIntTypeLiteral() |||
     "Object" ^^! ObjectTypeLiteral()
+
+  // field literal
+  lazy val fieldLiteral: PL[FieldLiteral] =
+    "[[" ~> word <~ "]]" ^^ { FieldLiteral(_) }
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
@@ -483,9 +488,8 @@ trait Parsers extends DivergedParsers {
     lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
     ref ~
     ("has" ^^! false ||| "does not have" ^^! true) ~
-    (("an" | "a") ~> field <~ fieldStr) ^^ {
-      case r ~ n ~ f =>
-        HasFieldCondition(r, n, f)
+    (("an" | "a") ~> fieldLiteral <~ fieldStr) ^^ {
+      case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
 
   // abrupt completion check conditions
@@ -565,15 +569,10 @@ trait Parsers extends DivergedParsers {
   // metalanguage properties
   // ---------------------------------------------------------------------------
   given prop: PL[Property] =
-    ("." ~> field) ^^ { FieldProperty(_) } |||
+    ("." ~> "[[" ~> word <~ "]]") ^^ { FieldProperty(_) } |||
+    ("." ~ "[[" ~> intr <~ "]]") ^^ { IntrinsicProperty(_) } |||
     (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
     ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
-
-  // ---------------------------------------------------------------------------
-  // metalanguage fields
-  // ---------------------------------------------------------------------------
-  given field: PL[Field] =
-    "[[" ~> (word ^^ { StringField(_) } | intr ^^ { IntrinsicField(_) }) <~ "]]"
 
   // ---------------------------------------------------------------------------
   // metalanguage intrinsics

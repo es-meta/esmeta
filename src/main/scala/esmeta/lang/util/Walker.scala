@@ -22,7 +22,6 @@ trait Walker extends BasicWalker {
     case syn: Condition  => walk(syn)
     case syn: Reference  => walk(syn)
     case syn: Type       => walk(syn)
-    case syn: Field      => walk(syn)
     case syn: Property   => walk(syn)
     case syn: Intrinsic  => walk(syn)
   }
@@ -139,6 +138,7 @@ trait Walker extends BasicWalker {
   def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
 
   def walk(lit: Literal): Literal = lit
+  def walk(flit: FieldLiteral): FieldLiteral = flit
 
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
     case InvokeAbstractOperationExpression(name, args) =>
@@ -192,14 +192,10 @@ trait Walker extends BasicWalker {
   def walk(x: Variable): Variable = Variable(x.name)
 
   def walk(prop: Property): Property = prop match {
-    case FieldProperty(f)        => FieldProperty(walk(f))
+    case FieldProperty(n)        => FieldProperty(n)
     case IndexProperty(e)        => IndexProperty(walk(e))
-    case comp: ComponentProperty => comp
-  }
-
-  def walk(field: Field): Field = field match {
-    case StringField(name)         => StringField(name)
-    case IntrinsicField(intrinsic) => IntrinsicField(walk(intrinsic))
+    case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
+    case ComponentProperty(c)    => ComponentProperty(c)
   }
 
   def walk(intr: Intrinsic): Intrinsic = intr

@@ -16,7 +16,7 @@ case class ListConcatExpression(exprs: List[Expression]) extends Expression
 // record expressions
 case class RecordExpression(
   ty: Type,
-  fields: List[(Field, Expression)],
+  fields: List[(FieldLiteral, Expression)],
 ) extends Expression
 
 // `length of <string>` expressions
@@ -173,7 +173,7 @@ case class ConstLiteral(name: String) extends Literal
 case class StringLiteral(s: String) extends Literal
 
 // field literals
-case class FieldLiteral(field: Field) extends Literal
+case class FieldLiteral(name: String) extends Literal
 
 // symbol literals
 case class SymbolLiteral(sym: String) extends Literal

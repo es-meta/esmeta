@@ -150,7 +150,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val recordEmptyExpr =
       RecordExpression(ty, Nil)
     lazy val recordExpr =
-      RecordExpression(ty, List(field -> refExpr))
+      RecordExpression(ty, List(fieldLit -> refExpr))
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
     lazy val numberOfExpr = NumberOfExpression(refExpr)
@@ -285,7 +285,7 @@ class ParseAndStringifyTinyTest extends LangTest {
     lazy val str = StringLiteral("abc")
     lazy val strWithStar = StringLiteral("abc*")
     lazy val strWithBasckSlash = StringLiteral("abc\\")
-    lazy val fieldLit = FieldLiteral(field)
+    lazy val fieldLit = FieldLiteral("Value")
     lazy val sym = SymbolLiteral("iterator")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
     lazy val posZero = NumberLiteral(+0.0)
@@ -348,8 +348,8 @@ class ParseAndStringifyTinyTest extends LangTest {
       InstanceOfCondition(refExpr, false, List(ty, ty, ty))
     lazy val neitherInstanceOfCond =
       InstanceOfCondition(refExpr, true, List(ty, ty))
-    lazy val hasFieldCond = HasFieldCondition(x, false, field)
-    lazy val noHasFieldCond = HasFieldCondition(x, true, field)
+    lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
+    lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
     lazy val abruptCond = AbruptCompletionCondition(x, false)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
@@ -390,9 +390,9 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     lazy val x = Variable("x")
     lazy val fieldRef = PropertyReference(x, fieldProp)
-    lazy val intrFieldRef = PropertyReference(x, FieldProperty(intrField))
+    lazy val intrFieldRef = PropertyReference(x, intrProp)
     lazy val propIntrFieldRef =
-      PropertyReference(x, FieldProperty(propIntrField))
+      PropertyReference(x, propIntrProp)
     lazy val componentRef = PropertyReference(x, componentProp)
     lazy val indexRef = PropertyReference(x, indexProp)
 
@@ -412,29 +412,19 @@ class ParseAndStringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm references
     // -------------------------------------------------------------------------
-    lazy val fieldProp = FieldProperty(field)
+    lazy val fieldProp = FieldProperty("Value")
     lazy val componentProp = ComponentProperty("Realm")
     lazy val indexProp = IndexProperty(refExpr)
+    lazy val intrProp = IntrinsicProperty(intr)
+    lazy val propIntrProp = IntrinsicProperty(propIntr)
 
     // tests
     checkParseAndStringify("Property", Property)(
       fieldProp -> ".[[Value]]",
       componentProp -> ".Realm",
       indexProp -> "[_x_]",
-    )
-
-    // -------------------------------------------------------------------------
-    // algorithm fields
-    // -------------------------------------------------------------------------
-    lazy val field = StringField("Value")
-    lazy val intrField = IntrinsicField(intr)
-    lazy val propIntrField = IntrinsicField(propIntr)
-
-    // tests
-    checkParseAndStringify("Field", Field)(
-      field -> "[[Value]]",
-      intrField -> "[[%Array%]]",
-      propIntrField -> "[[%Array.prototype.toString%]]",
+      intrProp -> ".[[%Array%]]",
+      propIntrProp -> ".[[%Array.prototype.toString%]]",
     )
 
     // -------------------------------------------------------------------------
