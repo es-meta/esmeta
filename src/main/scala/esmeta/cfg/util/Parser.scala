@@ -14,19 +14,13 @@ trait Parsers extends BasicParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
   // control flow graphs (CFGs)
-  given cfg: Parser[CFG] = rep(func) ~ entry ^^ {
-    case fs ~ entry =>
-      val fsWithIds = for ((f, id) <- fs.zipWithIndex) yield f.copy(id = id)
-      val funcs = ListBuffer.from(fsWithIds)
-      if (entry.isDefined)
-        funcs += Func(
-          funcs.length,
-          true,
-          Func.Kind.AbsOp,
-          MAIN_FUNC,
-          Nil,
-          entry,
-        )
+  given cfg: Parser[CFG] = rep(funcGen) ~ rep(nodeLink) ^^ {
+    case gens ~ links =>
+      val builder = new Builder
+      val funcs = ListBuffer.from(gens.map(_(builder)))
+      if (!links.isEmpty)
+        val fb = builder.FuncBuilder(true, Func.Kind.AbsOp, MAIN_FUNC, Nil)
+        funcs += getFunc(fb, links)
       val main = funcs.filter(_.main) match {
         case ListBuffer(main) => main
         case ListBuffer()     => error("no main function")
@@ -36,26 +30,41 @@ trait Parsers extends BasicParsers {
   }
 
   // functions
-  given func: Parser[Func] =
-    opt(getId) ~ main ~ funcKind ~ "(\\w|:)+".r ~ params ~
-    ("{" ~> entry <~ "}") ^^ {
-      case id ~ main ~ kind ~ name ~ params ~ entry =>
-        Func(id.getOrElse(-1), main, kind, name, params, entry)
+  given func: Parser[Func] = funcGen ^^ { case gen => gen(new Builder) }
+
+  // function generators
+  lazy val funcGen: Parser[Builder => Func] =
+    opt(getId) ~> main ~ funcKind ~ "(\\w|:)+".r ~ params ~
+    ("{" ~> rep(nodeLink) <~ "}") ^^ {
+      case main ~ kind ~ name ~ params ~ links =>
+        builder => getFunc(builder.FuncBuilder(main, kind, name, params), links)
     }
 
-  lazy val entry: Parser[Option[Node]] = rep(nodeLink) ^^ {
-    case links =>
-      val nodes = links.map(_.node)
-      val nodeMap = nodes.map(node => node.id -> node).toMap
-      def get(idOpt: Option[Int]): Option[Node] =
-        idOpt.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
-      links.foreach {
-        case BlockLink(node, next) => node.next = get(next)
-        case CallLink(node, next)  => node.next = get(next)
-        case BranchLink(node, thenId, elseId) =>
-          node.thenNode = get(thenId); node.elseNode = get(elseId)
-      }
-      nodes.headOption
+  def getFunc(fb: Builder#FuncBuilder, links: List[NodeLink]): Func = {
+    val nodes = links.map(_.node)
+    val nodeMap = nodes.map(node => node.id -> node).toMap
+    def get(label: Option[Int]): Option[Node] =
+      label.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
+    links.foreach {
+      case BlockLink(node, next) =>
+        fb.addInsts(node.insts, Some(node.id.toString))
+      case CallLink(node, next) =>
+        fb.addCall(
+          node.lhs,
+          node.fexpr,
+          node.args,
+          Some(node.id.toString),
+        )
+      case BranchLink(node, thenId, elseId) =>
+        fb.addBranchWithLabel(
+          node.kind,
+          node.cond,
+          thenId.toString,
+          elseId.toString,
+          Some(node.id.toString),
+        )
+    }
+    fb.func
   }
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }

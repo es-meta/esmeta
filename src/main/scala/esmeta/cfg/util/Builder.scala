@@ -2,7 +2,7 @@ package esmeta.cfg.util
 
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
 class Builder {
@@ -26,6 +26,8 @@ class Builder {
     // previous edges
     private type Edge = (Node, Boolean)
     private var prev: List[Edge] = Nil
+    private var labelMap: MMap[String, List[Edge]] =
+      MMap().withDefaultValue(Nil)
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
@@ -45,18 +47,25 @@ class Builder {
       func
 
     /** add instructions */
-    def addInst(insts: Inst*): Unit = prev match
-      case List((block: Block, _)) => block.insts ++= insts
-      case _ =>
-        val block = Block(nextNId)
-        connect(prev, block)
-        block.insts ++= insts
-        prev = List((block, true))
+    def addInst(insts: Inst*): Unit = addInsts(insts)
+    def addInsts(insts: Iterable[Inst], label: Option[String] = None): Unit =
+      prev match
+        case List((block: Block, _)) => block.insts ++= insts
+        case _ =>
+          val block = Block(nextNId)
+          connect(prev, block, label)
+          block.insts ++= insts
+          prev = List((block, true))
 
     /** add call nodes */
-    def addCall(lhs: Id, fexpr: Expr, args: List[Expr]): Unit =
+    def addCall(
+      lhs: Id,
+      fexpr: Expr,
+      args: List[Expr],
+      label: Option[String] = None,
+    ): Unit =
       val call = Call(nextNId, lhs, fexpr, args)
-      connect(prev, call)
+      connect(prev, call, label)
       prev = List((call, true))
 
     /** add branch nodes */
@@ -66,15 +75,35 @@ class Builder {
       thenF: => Unit,
       elseF: => Unit = {},
       loop: Boolean = false,
+      label: Option[String] = None,
     ): Unit =
       val branch = Branch(nextNId, kind, cond)
-      connect(prev, branch)
+      connect(prev, branch, label)
       val thenPrev = { prev = List((branch, true)); thenF; prev }
       val elsePrev = { prev = List((branch, false)); elseF; prev }
       prev = elsePrev ++ (if (loop) { connect(thenPrev, branch); Nil }
                           else thenPrev)
+
+    /** add branch nodes with id */
+    def addBranchWithLabel(
+      kind: Branch.Kind,
+      cond: Expr,
+      thenId: String,
+      elseId: String,
+      label: Option[String] = None,
+    ): Unit =
+      val branch = Branch(nextNId, kind, cond)
+      connect(prev, branch, label)
+      labelMap(thenId) ::= ((branch, true))
+      labelMap(elseId) ::= ((branch, false))
+
     // connect previous edges to
-    private def connect(prev: List[Edge], node: Node): Unit =
+    private def connect(
+      directPrev: List[Edge],
+      node: Node,
+      label: Option[String] = None,
+    ): Unit =
+      val prev = directPrev ++ label.fold(Nil)(labelMap(_))
       if (prev.isEmpty) entry = Some(node)
       prev foreach {
         case (block: Block, _)       => block.next = Some(node)

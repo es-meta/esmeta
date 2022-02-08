@@ -24,7 +24,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
-    lazy val cfg = CFG(mainFunc, ListBuffer(mainFunc, func))
+    lazy val cfg = CFG(mainFunc, ListBuffer(mainFunc, func(1)))
     // tests
     checkParseAndStringify("CFG", CFG)(
       cfg -> """0: @main f(x: T, y?: T) {
@@ -63,7 +63,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
       Some(blockSingle)
     }
     lazy val mainFunc = Func(0, true, Func.Kind.AbsOp, "f", params, entry(0))
-    lazy val func = Func(1, false, Func.Kind.AbsOp, "f", params, entry(4))
+    def func(id: Int): Func =
+      Func(id, false, Func.Kind.AbsOp, "f", params, entry(4))
 
     // tests
     checkParseAndStringify("Func", Func)(
@@ -77,7 +78,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  }
       |  3: call %42 = x(x, y)
       |}""".stripMargin,
-      func -> """1: f(x: T, y?: T) {
+      func(0) -> """0: f(x: T, y?: T) {
       |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
