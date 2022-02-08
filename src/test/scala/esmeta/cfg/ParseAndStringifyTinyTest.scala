@@ -146,6 +146,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val assert = IAssert(xExpr)
     lazy val print = IPrint(xExpr)
     lazy val assign = IAssign(prop, xExpr)
+    lazy val nop = INop()
 
     // tests
     checkParseAndStringify("Inst", Inst)(
@@ -158,6 +159,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       assert -> "assert x",
       print -> "print x",
       assign -> "x.p = x",
+      nop -> "nop",
     )
 
     // -------------------------------------------------------------------------
