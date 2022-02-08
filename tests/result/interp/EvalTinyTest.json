@@ -33,6 +33,5 @@
   "typeof.cfg" : true,
   "unary.cfg" : true,
   "variadic.cfg" : true,
-  "vop.cfg" : true,
   "yet.cfg" : true
 }
