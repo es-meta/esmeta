@@ -160,10 +160,11 @@ extension (st: State) {
       }
   }
   def update(x: Id, value: Value): st.type =
-    if (exists(x)) x match
-      case x: Global => st.globals += x -> value
-      case x: Local  => st.context.locals += x -> value
-    else error(s"illegal variable update: $x = $value")
+    x match
+      case x: Global if exists(x) => st.globals += x -> value
+      case x: Name if exists(x)   => st.context.locals += x -> value
+      case x: Temp                => st.context.locals += x -> value
+      case _ => error(s"illegal variable update: $x = $value")
     st
   def update(addr: Addr, prop: PureValue, value: Value): st.type =
     st.heap.update(addr, prop, value); st

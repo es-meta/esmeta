@@ -47,20 +47,21 @@ trait Parsers extends BasicParsers {
       label.map(id => nodeMap.getOrElse(id, error(s"unknown node id: $id")))
     links.foreach {
       case BlockLink(node, next) =>
-        fb.addInsts(node.insts, Some(node.id.toString))
+        fb.addInsts(node.insts, next.map(_.toString), Some(node.id.toString))
       case CallLink(node, next) =>
         fb.addCall(
           node.lhs,
           node.fexpr,
           node.args,
+          next.map(_.toString),
           Some(node.id.toString),
         )
       case BranchLink(node, thenId, elseId) =>
         fb.addBranchWithLabel(
           node.kind,
           node.cond,
-          thenId.toString,
-          elseId.toString,
+          thenId.map(_.toString),
+          elseId.map(_.toString),
           Some(node.id.toString),
         )
     }

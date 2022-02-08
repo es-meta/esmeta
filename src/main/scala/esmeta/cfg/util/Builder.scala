@@ -26,8 +26,7 @@ class Builder {
     // previous edges
     private type Edge = (Node, Boolean)
     private var prev: List[Edge] = Nil
-    private var labelMap: MMap[String, List[Edge]] =
-      MMap().withDefaultValue(Nil)
+    private var labelMap = MMap[String, List[Edge]]().withDefaultValue(Nil)
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
@@ -46,27 +45,35 @@ class Builder {
       funcs += func
       func
 
+    def addEdge(next: Option[String], edge: Edge): Unit = next match
+      case Some(next) => prev = Nil; labelMap(next) ::= edge
+      case None       => prev = List(edge)
+
     /** add instructions */
     def addInst(insts: Inst*): Unit = addInsts(insts)
-    def addInsts(insts: Iterable[Inst], label: Option[String] = None): Unit =
-      prev match
-        case List((block: Block, _)) => block.insts ++= insts
-        case _ =>
-          val block = Block(nextNId)
-          connect(prev, block, label)
-          block.insts ++= insts
-          prev = List((block, true))
+    def addInsts(
+      insts: Iterable[Inst],
+      next: Option[String] = None,
+      label: Option[String] = None,
+    ): Unit = prev match
+      case List((block: Block, _)) => block.insts ++= insts
+      case _ =>
+        val block = Block(nextNId)
+        connect(prev, block, label)
+        block.insts ++= insts
+        addEdge(next, (block, true))
 
     /** add call nodes */
     def addCall(
       lhs: Id,
       fexpr: Expr,
       args: List[Expr],
+      next: Option[String] = None,
       label: Option[String] = None,
     ): Unit =
       val call = Call(nextNId, lhs, fexpr, args)
       connect(prev, call, label)
-      prev = List((call, true))
+      addEdge(next, (call, true))
 
     /** add branch nodes */
     def addBranch(
@@ -88,14 +95,14 @@ class Builder {
     def addBranchWithLabel(
       kind: Branch.Kind,
       cond: Expr,
-      thenId: String,
-      elseId: String,
+      thenId: Option[String],
+      elseId: Option[String],
       label: Option[String] = None,
     ): Unit =
       val branch = Branch(nextNId, kind, cond)
       connect(prev, branch, label)
-      labelMap(thenId) ::= ((branch, true))
-      labelMap(elseId) ::= ((branch, false))
+      thenId.map(labelMap(_) ::= (branch, true))
+      elseId.map(labelMap(_) ::= (branch, false))
 
     // connect previous edges to
     private def connect(
