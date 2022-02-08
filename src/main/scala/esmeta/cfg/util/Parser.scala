@@ -158,6 +158,8 @@ trait Parsers extends BasicParsers {
       case c ~ r => EParse(c, r)
     } | "(" ~ "rule" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
       case x ~ ps => EParseRule(x, ps)
+    } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
+      ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {

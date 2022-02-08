@@ -136,6 +136,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule("[", "", "]")
         app >> params >> ")"
+      case ESourceText(expr) =>
+        app >> "(source-text " >> expr >> ")"
       case EYet(msg) =>
         app >> "(yet \"" >> normStr(msg) >> "\")"
       case EContains(list, elem) =>

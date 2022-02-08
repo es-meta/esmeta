@@ -87,10 +87,16 @@ trait UnitWalker extends BasicUnitWalker {
       walk(code); walk(rule)
     case EParseRule(name, params) =>
       walk(name); walkList(params, walk)
+    case ESourceText(exor) =>
+      walk(expr)
     case EYet(msg) =>
       walk(msg)
     case EContains(list, elem) =>
       walk(list); walk(elem)
+    case EStrConcat(exprs) =>
+      walkList(exprs, walk)
+    case ESubstring(expr, from, to) =>
+      walk(expr); walk(from); walk(to)
     case ERef(ref) =>
       walk(ref)
     case EUnary(uop, expr) =>
@@ -133,6 +139,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(fields, { case (p, e) => (walk(p), walk(e)) })
       walk(asite)
     case EList(exprs, asite) =>
+      walkList(exprs, walk); walk(asite)
+    case EListConcat(exprs, asite) =>
       walkList(exprs, walk); walk(asite)
     case ESymbol(desc, asite) =>
       walk(desc); walk(asite)

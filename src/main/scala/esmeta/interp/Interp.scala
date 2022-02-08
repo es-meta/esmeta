@@ -152,6 +152,7 @@ class Interp(
       ??? // TODO parse `code` with `rule`
     }
     case EParseRule(name, params) => ???
+    case ESourceText(expr)        => ???
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>

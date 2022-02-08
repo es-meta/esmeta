@@ -263,7 +263,8 @@ class Compiler(val spec: Spec) {
       toStrERef(x, "length")
     case IntrinsicExpression(intr) =>
       toEIntrinsic(currentIntrinsics, intr)
-    case SourceTextExpression(expr) => ???
+    case SourceTextExpression(expr) =>
+      ESourceText(compile(fb, expr))
     case InvokeAbstractOperationExpression(name, args) =>
       if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
       else {
