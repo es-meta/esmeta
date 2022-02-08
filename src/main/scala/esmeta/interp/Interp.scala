@@ -123,7 +123,7 @@ class Interp(
 
   /** transition for expresssions */
   def interp(expr: Expr): Value = expr match {
-    case EComp(tyExpr, tgtExpr, valExpr) =>
+    case EComp(tyExpr, valExpr, tgtExpr) =>
       val y = interp(tyExpr).escaped
       val t = interp(tgtExpr).escaped
       val v = interp(valExpr).escaped
