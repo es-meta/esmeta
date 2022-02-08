@@ -241,7 +241,7 @@ class Compiler(val spec: Spec) {
         compile(fb, fmap(tgt)),
       )
     case RecordExpression(ty, fields) =>
-      val props = fields.map { case (f, e) => EStr(f.name) -> compile(fb, e) }
+      val props = fields.map { case (f, e) => compile(fb, f) -> compile(fb, e) }
       EMap(ty.name, props, fb.newSite)
     case LengthExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
@@ -353,7 +353,7 @@ class Compiler(val spec: Spec) {
     case NonterminalLiteral(ordinal, name)  => ??? // TODO field of *this*
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
-    case FieldLiteral(field)                => ???
+    case FieldLiteral(field)                => EStr(field)
     case SymbolLiteral(sym)                 => toERef(GLOBAL_SYMBOL, EStr(sym))
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
@@ -385,9 +385,15 @@ class Compiler(val spec: Spec) {
       val e = tys.map[Expr](t => ETypeCheck(xExpr, compile(t))).reduce(or(_, _))
       if (neg) not(e) else e
     case HasFieldCondition(ref, neg, field) =>
-      val e = isAbsent(toStrERef(compile(fb, ref), field.name))
+      val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
       if (neg) e else not(e)
-    case AbruptCompletionCondition(x, negation) => ???
+    case AbruptCompletionCondition(x, neg) =>
+      val ref = toRef(compile(x))
+      val comp = ETypeCheck(ERef(ref), TYPE_COMPLETION)
+      val abrupt = not(
+        EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
+      )
+      and(comp, abrupt)
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
