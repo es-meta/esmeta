@@ -48,6 +48,7 @@ lazy val root = project
 
     // set the main class for 'sbt run'
     Compile / mainClass := Some("esmeta.ESMeta"),
+    Compile / bloopMainClass := Some("esmeta.ESMeta"),
 
     // test setting
     Test / testOptions += Tests
