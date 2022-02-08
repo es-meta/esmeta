@@ -46,6 +46,9 @@ lazy val root = project
     // the build root (not per-project).
     retrieveManaged := true,
 
+    // set the main class for 'sbt run'
+    Compile / mainClass := Some("esmeta.ESMeta"),
+
     // test setting
     Test / testOptions += Tests
       .Argument("-fDG", baseDirectory.value + "/tests/detail"),
@@ -55,3 +58,14 @@ lazy val root = project
     assembly / test := {},
     assembly / assemblyOutputPath := file("bin/esmeta"),
   )
+
+// create the `.completion` file for autocompletion in shell
+lazy val genCompl = taskKey[Unit]("generate autocompletion file (.completion)")
+genCompl := (root / Compile / runMain).toTask(" esmeta.util.GenCompl").value
+
+// build with genCompl and assembly
+lazy val build = taskKey[Unit]("my test task")
+build := {
+  genCompl.value
+  (root / assembly / assembly).value
+}

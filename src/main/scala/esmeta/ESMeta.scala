@@ -8,7 +8,7 @@ import esmeta.util.*
 object ESMeta {
 
   /** the main entry point of ESMeta. */
-  @main def run(tokens: String*): Unit = try
+  def main(tokens: Array[String]): Unit = try
     tokens.toList match
       case str :: args =>
         cmdMap.get(str) match {

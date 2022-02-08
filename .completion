@@ -1,0 +1,51 @@
+# `complete` for zsh
+if type complete &>/dev/null; then
+  :
+else
+  autoload bashcompinit
+  bashcompinit
+fi
+
+# completion for esmeta
+_esmeta_completions() {
+  local cur prev opts lastc informats outformats datafiles
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  cmdList="help extract compile"
+  globalOpt="-silent -debug -log -time"
+  helpOpt=""
+  extractOpt="-extract:json -extract:log -extract:stat"
+  compileOpt=""
+  # completion for commands
+  case "${COMP_CWORD}" in
+    1)
+      COMPREPLY=($(compgen -W "${cmdList}" "${cur}"))
+      return 0
+      ;;
+  esac
+  cmd="${COMP_WORDS[1]}"
+  # completion for options
+  case "${cur}" in
+    -*)
+      case "${cmd}" in
+        help)
+          COMPREPLY=($(compgen -W "${globalOpt} ${helpOpt}"))
+          return 0
+          ;;
+        extract)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt}"))
+          return 0
+          ;;
+        compile)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt}"))
+          return 0
+          ;;
+      esac
+      return 0
+      ;;
+  esac
+  
+  COMPREPLY=( $(compgen -X '' -f "${cur}") )
+}
+# completion setting
+complete -o filenames -o bashdefault -F _esmeta_completions esmeta
