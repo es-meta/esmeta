@@ -278,13 +278,21 @@ class Compiler(val spec: Spec) {
       val f = EClo(s"$ty::$name", Nil)
       fb.addCall(x, f, args.map(compile(fb, _)))
       xExpr
-    case InvokeAbstractClosureExpression(ref, args) => ???
+    case InvokeAbstractClosureExpression(ref, args) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addCall(x, ERef(compile(fb, ref)), args.map(compile(fb, _)))
+      xExpr
     case InvokeMethodExpression(ref, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val prop @ Prop(base, _) = compile(fb, ref)
       fb.addCall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _)))
       xExpr
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) => ???
+    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val baseExpr = compile(fb, base)
+      val callRef = toERef(fb, baseExpr, EStr(name))
+      fb.addCall(x, callRef, baseExpr :: args.map(compile(fb, _)))
+      xExpr
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
     case ListExpression(entries) =>
@@ -333,11 +341,12 @@ class Compiler(val spec: Spec) {
 
   // compile literals
   private def compile(lit: Literal): Expr = lit match {
-    case ThisLiteral()                      => ENAME_THIS
-    case NewTargetLiteral()                 => ENAME_NEW_TARGET
-    case HexLiteral(hex, name)              => EMathVal(hex)
-    case CodeLiteral(code)                  => EStr(code)
-    case NonterminalLiteral(ordinal, name)  => ??? // TODO field of *this*
+    case ThisLiteral()         => ENAME_THIS
+    case NewTargetLiteral()    => ENAME_NEW_TARGET
+    case HexLiteral(hex, name) => EMathVal(hex)
+    case CodeLiteral(code)     => EStr(code)
+    case NonterminalLiteral(ordinal, name) =>
+      toERef(NAME_THIS, EStr(name + ordinal.fold("")(_.toString)))
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => EStr(field)
@@ -463,6 +472,12 @@ object Compiler {
   def apply(spec: Spec): CFG = {
     val compiler = new Compiler(spec)
     for (algo <- spec.algorithms) compiler.compile(algo)
+
+    // TODO
+    val fb = compiler.builder.FuncBuilder(true, Func.Kind.AbsOp, "RunJobs", Nil)
+    fb.addInst(IReturn(EUndef))
+    fb.func
+
     compiler.cfg
   }
 
