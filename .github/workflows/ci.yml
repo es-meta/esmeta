@@ -13,7 +13,7 @@ jobs:
     - name: Run test
       env:
         ESMETA_HOME: ${{ env.workspace }}
-      run: sbt test
+      run: echo "$ESMETA_HOME" && sbt test
   lint:
     runs-on: ubuntu-latest
     steps:
