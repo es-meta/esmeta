@@ -21,6 +21,7 @@ val SRC_DIR = s"$BASE_DIR/src/main/scala/esmeta"
 
 /** resource directory */
 val RESOURCE_DIR = s"$BASE_DIR/src/main/resources"
+val UNICODE_DIR = s"$RESOURCE_DIR/unicode"
 
 /** package name */
 val PACKAGE_NAME = "esmeta"

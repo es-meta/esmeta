@@ -2,6 +2,7 @@ package esmeta.interp
 
 import scala.collection.mutable.{Map => MMap}
 import esmeta.cfg.*
+import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals
 
@@ -103,20 +104,7 @@ case class Cont(
 ) extends PureValue
 
 /** abstract syntax tree (AST) values */
-sealed trait Ast extends PureValue {
-  val name: String
-}
-case class Syntactic(
-  name: String,
-  args: List[Boolean],
-  rhsIdx: Int,
-  bits: Int,
-  children: List[Ast],
-) extends Ast
-case class Lexical(
-  name: String,
-  str: String,
-) extends Ast
+case class AstValue(ast: Ast) extends PureValue
 
 // -----------------------------------------------------------------------------
 // Literal Values

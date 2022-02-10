@@ -4,6 +4,8 @@ import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.cfg.util.*
 import esmeta.interp.*
+import esmeta.js.*
+import esmeta.js.util.*
 import esmeta.util.*
 import esmeta.util.Appender.{given, *}
 import esmeta.util.BaseUtils.*
@@ -13,6 +15,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // load CFG Stringifier
   val cfgStringifier = CFGElem.getStringifier((detail, location))
   import cfgStringifier.{given, *}
+
+  // load JavaScript Stringifier
+  val jsStringifier = JsElem.getStringifier((detail, location))
+  import jsStringifier.{given, *}
 
   // elements
   given elemRule: Rule[InterpElem] = (app, elem) =>
@@ -99,7 +105,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case addr: Addr        => addrRule(app, addr)
       case clo: Clo          => cloRule(app, clo)
       case cont: Cont        => contRule(app, cont)
-      case ast: Ast          => astRule(app, ast)
+      case AstValue(ast)     => app >> ast
       case lit: LiteralValue => litRule(app, lit)
 
   // addresses
@@ -123,18 +129,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> "cont<" >> func.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
-
-  // abstract syntax tree (AST) values
-  given astRule: Rule[Ast] = (app, ast) =>
-    ast match
-      case Syntactic(name, args, rhsIdx, bits, _) =>
-        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-        given Rule[List[Boolean]] = iterableRule()
-        app >> "|" >> name >> "|"
-        if (!args.isEmpty) app >> "[" >> args >> "]"
-        app >> "<" >> rhsIdx >> ", " >> bits >> ">"
-      case Lexical(name, str) =>
-        app >> "|" >> name >> "|(" >> str >> ")"
 
   // literal values
   given litRule: Rule[LiteralValue] = (app, lit) =>

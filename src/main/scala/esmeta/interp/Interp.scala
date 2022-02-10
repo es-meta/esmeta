@@ -4,6 +4,7 @@ import esmeta.{TIMEOUT, TEST_MODE}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
+import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.math.{BigInt => SBigInt}
@@ -199,17 +200,17 @@ class Interp(
     case ESyntactic(name, args, rhsIdx, bits, children) =>
       val asts = children.map(child =>
         interp(child) match {
-          case ast: Ast => ast
-          case v        => throw NoAst(child, v)
+          case AstValue(ast) => ast
+          case v             => throw NoAst(child, v)
         },
       )
-      Syntactic(name, args, rhsIdx, bits, asts)
+      AstValue(Syntactic(name, args, rhsIdx, bits, asts))
     case ELexical(name, expr) =>
       val str = interp(expr) match {
         case Str(str) => str
         case v        => throw NoString(expr, v)
       }
-      Lexical(name, str)
+      AstValue(Lexical(name, str))
     case EMap("Completion", props, asite) =>
       val map = (for {
         (kexpr, vexpr) <- props
@@ -472,9 +473,9 @@ object Interp {
       case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
 
       // equality operations
-      case (Eq, Number(l), Number(r)) => Bool(l equals r)
-      case (Eq, l: Ast, r: Ast)       => Bool(l eq r)
-      case (Eq, l, r)                 => Bool(l == r)
+      case (Eq, Number(l), Number(r))     => Bool(l equals r)
+      case (Eq, AstValue(l), AstValue(r)) => Bool(l eq r)
+      case (Eq, l, r)                     => Bool(l == r)
 
       // numeric equality operations
       case (Equal, Math(l), Math(r))     => Bool(l == r)

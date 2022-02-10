@@ -6,7 +6,7 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.lang.*
 
-/** stringifier for language */
+/** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
