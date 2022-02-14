@@ -143,7 +143,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EContains(list, elem) =>
         app >> "(contains " >> list >> " " >> elem >> ")"
       case EStrConcat(exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
+        given Rule[Iterable[Expr]] = iterableRule(" ")
         app >> "(str-concat " >> exprs >> ")"
       case ESubstring(expr, from, to) =>
         app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
@@ -203,7 +203,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(new " >> exprs >> ")[#" >> asite >> "]"
       case EListConcat(exprs, asite) =>
-        given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
+        given Rule[Iterable[Expr]] = iterableRule(" ")
         app >> "(list-concat " >> exprs >> ")[#" >> asite >> "]"
       case ESymbol(desc, asite) =>
         app >> "(new '" >> desc >> ")[#" >> asite >> "]"

@@ -165,7 +165,7 @@ trait Parsers extends BasicParsers {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
       case l ~ e => EContains(l, e)
-    } | "(" ~ "str-concat" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")" ^^ {
+    } | "(" ~ "str-concat" ~> rep(expr) <~ ")" ^^ {
       case es => EStrConcat(es)
     } | "(" ~ "substring" ~> expr ~ expr ~ expr <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
@@ -209,10 +209,7 @@ trait Parsers extends BasicParsers {
       case t ~ fields ~ a => EMap(t, fields.getOrElse(Nil), a)
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ~ asite ^^ {
       case es ~ a => EList(es, a)
-    } | ("(" ~ "list-concat" ~ "[" ~> repsep(
-      expr,
-      ",",
-    ) <~ "]" ~ ")") ~ asite ^^ {
+    } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ~ asite ^^ {
       case es ~ a => EListConcat(es, a)
     } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ~ asite ^^ {
       case e ~ a => ESymbol(e, a)

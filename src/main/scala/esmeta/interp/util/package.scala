@@ -477,6 +477,21 @@ extension (v: Value) {
   def wrapCompletion(ty: Const): Comp = v match
     case comp: Comp      => comp
     case pure: PureValue => Comp(ty, pure, None)
+
+  /** type conversion */
+  def toStr(e: Expr): String = v match
+    case Str(s) => s
+    case _      => throw NoString(e, v)
+  def toInt(e: Expr): Int = v match
+    case Number(n) if n.isValidInt => n.toInt
+    case Math(n) if n.isValidInt   => n.toInt
+    case _                         => throw NoInteger(e, v)
+  def getList(e: Expr, st: State): ListObj = v match
+    case addr: Addr =>
+      st(addr) match
+        case l: ListObj => l
+        case obj        => throw NoList(e, obj)
+    case _ => throw NoAddr(e, v)
 }
 
 /** extensions for completion values */

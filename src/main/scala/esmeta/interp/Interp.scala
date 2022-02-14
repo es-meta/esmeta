@@ -157,14 +157,16 @@ class Interp(
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>
-      interp(list).escaped match
-        case addr: Addr =>
-          st(addr) match
-            case ListObj(vs) => Bool(vs contains interp(elem).escaped)
-            case obj         => throw NoList(list, obj)
-        case v => throw NoAddr(list, v)
-    case EStrConcat(exprs)          => ???
-    case ESubstring(expr, from, to) => ???
+      val l = interp(list).getList(list, st)
+      Bool(l.values contains interp(elem).escaped)
+    case EStrConcat(exprs) =>
+      val strs = exprs.map(e => interp(e).toStr(e))
+      Str(strs.mkString)
+    case ESubstring(expr, from, to) =>
+      val s = interp(expr).toStr(expr)
+      val f = interp(from).toInt(from)
+      val t = interp(to).toInt(to)
+      Str(s.substring(f, t))
     case ERef(ref) =>
       st(interp(ref))
     case EUnary(uop, expr) =>
@@ -238,7 +240,9 @@ class Interp(
       addr
     case EList(exprs, asite) =>
       st.allocList(exprs.map(expr => interp(expr).escaped))
-    case EListConcat(exprs, asite) => ???
+    case EListConcat(exprs, asite) =>
+      val ls = exprs.map(e => interp(e).getList(e, st).values).flatten
+      st.allocList(ls)
     case ESymbol(desc, asite) =>
       interp(desc) match
         case (str: Str) => st.allocSymbol(str)
