@@ -98,14 +98,17 @@ class Builder {
       thenId: Option[String],
       elseId: Option[String],
       label: Option[String] = None,
-    ): Unit =
+    ): Option[Branch] =
       val branch = Branch(nextNId, kind, cond)
       connect(prev, branch, label)
       thenId.map(labelMap(_) ::= (branch, true))
       elseId.map(labelMap(_) ::= (branch, false))
+      kind match
+        case Branch.Kind.Loop(_) => Some(branch)
+        case _                   => None
 
     // connect previous edges to
-    private def connect(
+    def connect(
       directPrev: List[Edge],
       node: Node,
       label: Option[String] = None,
