@@ -39,7 +39,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given funcRule: Rule[Func] = (app, func) =>
     val Func(id, main, kind, name, params, _) = func
     given Rule[Iterable[Func.Param]] = iterableRule("(", ", ", ")")
-    app >> id >> ": " >> (if (main) "@main " else "") >> kind
+    app >> id >> ": " >> (if (main) "@main " else "") >> "def " >> kind
     app >> name >> params >> " "
     app.wrap {
       given Ordering[Node] = Ordering.by(_.id)

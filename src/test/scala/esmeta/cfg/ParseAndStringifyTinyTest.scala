@@ -27,7 +27,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
     lazy val cfg = CFG(mainFunc, ListBuffer(mainFunc, func(1)))
     // tests
     checkParseAndStringify("CFG", CFG)(
-      cfg -> """0: @main f(x: T, y?: T) {
+      cfg -> """0: @main def f(x: T, y?: T) {
       |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
@@ -37,7 +37,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  }
       |  3: call %42 = x(x, y)
       |}
-      |1: f(x: T, y?: T) {
+      |1: def f(x: T, y?: T) {
       |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
@@ -68,7 +68,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
 
     // tests
     checkParseAndStringify("Func", Func)(
-      mainFunc -> """0: @main f(x: T, y?: T) {
+      mainFunc -> """0: @main def f(x: T, y?: T) {
       |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
@@ -78,7 +78,7 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  }
       |  3: call %42 = x(x, y)
       |}""".stripMargin,
-      func(0) -> """0: f(x: T, y?: T) {
+      func(0) -> """0: def f(x: T, y?: T) {
       |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {

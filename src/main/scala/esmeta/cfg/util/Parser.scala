@@ -34,7 +34,7 @@ trait Parsers extends BasicParsers {
 
   // function generators
   lazy val funcGen: Parser[Builder => Func] =
-    opt(getId) ~> main ~ funcKind ~ "(\\w|:)+".r ~ params ~
+    (opt(getId) ~> main <~ "def") ~ funcKind ~ "(\\w|:)+".r ~ params ~
     ("{" ~> rep(nodeLink) <~ "}") ^^ {
       case main ~ kind ~ name ~ params ~ links =>
         builder => getFunc(builder.FuncBuilder(main, kind, name, params), links)
