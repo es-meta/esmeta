@@ -386,6 +386,8 @@ extension (obj: Obj) {
   /** copy of object */
   def copied: Obj = obj match {
     case MapObj(tname, props, size) => MapObj(tname, MMap.from(props), size)
+    case ListObj(values)            => ListObj(Vector.from(values))
+    case SymbolObj(desc)            => SymbolObj(desc)
     case _                          => obj
   }
 }
