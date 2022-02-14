@@ -27,6 +27,7 @@ class Builder {
     private type Edge = (Node, Boolean)
     private var prev: List[Edge] = Nil
     private var labelMap = MMap[String, List[Edge]]().withDefaultValue(Nil)
+    private var loops: List[(Branch, Option[String])] = List()
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
@@ -41,6 +42,8 @@ class Builder {
 
     /** get function */
     lazy val func =
+      // XXX handle next of loop end
+      loops.foreach { case (branch, bid) => connect(Nil, branch, bid) }
       val func = Func(fid, main, kind, name, params, entry)
       funcs += func
       func
@@ -98,17 +101,19 @@ class Builder {
       thenId: Option[String],
       elseId: Option[String],
       label: Option[String] = None,
-    ): Option[Branch] =
+    ): Unit =
       val branch = Branch(nextNId, kind, cond)
       connect(prev, branch, label)
       thenId.map(labelMap(_) ::= (branch, true))
       elseId.map(labelMap(_) ::= (branch, false))
+
+      // XXX handle next of loop end
       kind match
-        case Branch.Kind.Loop(_) => Some(branch)
+        case Branch.Kind.Loop(_) => loops ::= (branch, label)
         case _                   => None
 
     // connect previous edges to
-    def connect(
+    private def connect(
       directPrev: List[Edge],
       node: Node,
       label: Option[String] = None,

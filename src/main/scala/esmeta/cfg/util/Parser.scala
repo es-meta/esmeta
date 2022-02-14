@@ -41,9 +41,6 @@ trait Parsers extends BasicParsers {
     }
 
   def getFunc(fb: Builder#FuncBuilder, links: List[NodeLink]): Func = {
-    // XXX handle loop nodes
-    var loopNodes: List[(Branch, String)] = List()
-
     links.foreach {
       case BlockLink(node, next) =>
         fb.addInsts(node.insts, next.map(_.toString), Some(node.id.toString))
@@ -56,19 +53,13 @@ trait Parsers extends BasicParsers {
           Some(node.id.toString),
         )
       case BranchLink(node, thenId, elseId) =>
-        val nid = node.id.toString
         fb.addBranchWithLabel(
           node.kind,
           node.cond,
           thenId.map(_.toString),
           elseId.map(_.toString),
-          Some(nid),
-        ).foreach(loop => loopNodes ::= (loop, nid))
-    }
-
-    // XXX handle loop nodes
-    loopNodes.foreach {
-      case (branch, bid) => fb.connect(Nil, branch, Some(bid))
+          Some(node.id.toString),
+        )
     }
     fb.func
   }
