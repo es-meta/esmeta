@@ -152,7 +152,7 @@ trait Parsers extends DivergedParsers {
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val end: Parser[String] = "." <~ upper | ";"
+  lazy val end: Parser[String] = opt("(" ~ "see.*\\)".r) ~> "." <~ upper | ";"
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
@@ -168,6 +168,7 @@ trait Parsers extends DivergedParsers {
     substrExpr |||
     numberOfExpr |||
     sourceTextExpr |||
+    coveredByExpr |||
     intrExpr |||
     calcExpr |||
     invokeExpr |||
@@ -225,6 +226,12 @@ trait Parsers extends DivergedParsers {
     ("the source text matched by" ~> expr) ^^ {
       case e =>
         SourceTextExpression(e)
+    }
+
+  // `covered by` expressions
+  lazy val coveredByExpr: PL[CoveredByExpression] =
+    "the" ~> expr ~ ("that is covered by" ~> expr) ^^ {
+      case r ~ c => CoveredByExpression(r, c)
     }
 
   // abstract closure expressions
@@ -533,6 +540,9 @@ trait Parsers extends DivergedParsers {
     expr ~ (isNeg <~ "an element of") ~ expr ^^ {
       case l ~ n ~ r =>
         BinaryCondition(r, if (n) NContains else Contains, l)
+    } |||
+    expr ~ (isNeg <~ "different from") ~ expr ^^ {
+      case l ~ n ~ r => BinaryCondition(l, if (n) NEq else Eq, r)
     }
 
   // ---------------------------------------------------------------------------

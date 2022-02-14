@@ -265,6 +265,8 @@ class Compiler(val spec: Spec) {
       toEIntrinsic(currentIntrinsics, intr)
     case SourceTextExpression(expr) =>
       ESourceText(compile(fb, expr))
+    case CoveredByExpression(code, rule) =>
+      EParse(compile(fb, code), compile(fb, rule))
     case InvokeAbstractOperationExpression(name, args) =>
       if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
       else {

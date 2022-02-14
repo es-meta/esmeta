@@ -40,6 +40,22 @@ case class SourceTextExpression(
   expr: Expression,
 ) extends Expression
 
+// covered-by expressions
+case class CoveredByExpression(code: Expression, rule: Expression)
+  extends Expression
+
+// return-if-abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: InvokeExpression,
+  check: Boolean,
+) extends Expression
+
+// list expressions
+case class ListExpression(entries: List[Expression]) extends Expression
+
+// not yet supported expressions
+case class YetExpression(str: String, block: Option[Block]) extends Expression
+
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions
 // -----------------------------------------------------------------------------
@@ -76,18 +92,6 @@ case class InvokeSyntaxDirectedOperationExpression(
   name: String,
   args: List[Expression],
 ) extends InvokeExpression
-
-// return-if-abrupt expressions
-case class ReturnIfAbruptExpression(
-  expr: InvokeExpression,
-  check: Boolean,
-) extends Expression
-
-// list expressions
-case class ListExpression(entries: List[Expression]) extends Expression
-
-// not yet supported expressions
-case class YetExpression(str: String, block: Option[Block]) extends Expression
 
 // -----------------------------------------------------------------------------
 // metalanguage calcualation expressions

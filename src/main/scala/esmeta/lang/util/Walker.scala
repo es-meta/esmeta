@@ -88,6 +88,8 @@ trait Walker extends BasicWalker {
       NumberOfExpression(walk(expr))
     case SourceTextExpression(expr) =>
       SourceTextExpression(walk(expr))
+    case CoveredByExpression(code, rule) =>
+      CoveredByExpression(walk(code), walk(rule))
     case IntrinsicExpression(intr) =>
       IntrinsicExpression(walk(intr))
     case expr: CalcExpression =>

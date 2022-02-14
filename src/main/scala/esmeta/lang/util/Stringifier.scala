@@ -159,6 +159,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the number of elements in " >> expr
       case SourceTextExpression(expr) =>
         app >> "the source text matched by " >> expr
+      case CoveredByExpression(code, rule) =>
+        app >> "the " >> rule >> " that is covered by " >> code
       case IntrinsicExpression(intr) =>
         app >> intr
       case expr: CalcExpression =>
