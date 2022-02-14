@@ -26,12 +26,13 @@ object Stringifier {
       case elem: SdoHeadTarget   => sdoHeadTargetRule(app, elem)
       case elem: Param           => paramRule(app, elem)
       case elem: Param.Kind      => paramKindRule(app, elem)
+      case elem: Table           => tableRule(app, elem)
     }
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) => {
     import Production.Kind.*
-    val Spec(version, grammar, algorithms, _) = spec
+    val Spec(version, grammar, algorithms, tables, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
     version.map(app >> "* version: " >> _ >> LINE_SEP)
@@ -55,6 +56,8 @@ object Stringifier {
     app :> "* algorithm steps: " >> stepTotal >> " " >> stepRatio
     app :> "  - complete: " >> stepPass
     app :> "  - incompleted: " >> stepTotal - stepPass
+
+    app :> "* tables: " >> tables.length
   }
 
   // for grammars
@@ -194,4 +197,7 @@ object Stringifier {
 
   // TODO: for algorithm parameter kinds
   given paramKindRule: Rule[Param.Kind] = (app, param) => ???
+
+  // TODO: for tables
+  given tableRule: Rule[Table] = (app, table) => ???
 }

@@ -17,10 +17,12 @@ object Parser extends Parsers {
     val grammar = parseGrammar(document)
     val idxMap = grammar.idxMap(forWeb = false)
     val algorithms = parseAlgorithms(document, idxMap)
+    val tables = parseTables(document)
     Spec(
       version = None,
       grammar = grammar,
       algorithms = algorithms,
+      tables = tables,
       document = document,
     )
   }
@@ -108,6 +110,17 @@ object Parser extends Parsers {
         parseBuiltinHead(parent, elem)
     }
   }
+
+  /** parses tables */
+  def parseTables(
+    document: Document,
+  ): List[Table] = for {
+    elem <- document.getElems("emu-table")
+    id = elem.getId
+    datas = (for {
+      row <- elem.getElems("tr")
+    } yield row.getChildren.map(_.text)).toList
+  } yield Table(id, datas.head, datas.tail)
 
   // ///////////////////////////////////////////////////////////////////////////
   // Private Helpers
