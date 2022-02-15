@@ -117,8 +117,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
     // nodes
     // -------------------------------------------------------------------------
     lazy val block = Block(0, ListBuffer(let, del, ret))
-    lazy val branch = Branch(1, Branch.Kind.If, xExpr)
-    lazy val call = Call(2, temp, xExpr, List(xExpr, yExpr))
+    lazy val branch = Branch(0, Branch.Kind.If, xExpr)
+    lazy val call = Call(0, temp, xExpr, List(xExpr, yExpr))
 
     // tests
     checkParseAndStringify("Node", Node)(
@@ -127,8 +127,8 @@ class ParseAndStringifyTinyTest extends CFGTest {
       |  delete x.p
       |  return x
       |}""".stripMargin,
-      branch -> "1: if x",
-      call -> "2: call %42 = x(x, y)",
+      branch -> "0: if x",
+      call -> "0: call %42 = x(x, y)",
     )
     checkParseAndStringify("Branch.Kind", Branch.Kind)(
       Branch.Kind.If -> "if",

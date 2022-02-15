@@ -42,23 +42,23 @@ trait Parsers extends BasicParsers {
 
   def getFunc(fb: Builder#FuncBuilder, links: List[NodeLink]): Func = {
     links.foreach {
-      case BlockLink(node, next) =>
-        fb.addInsts(node.insts, next.map(_.toString), Some(node.id.toString))
-      case CallLink(node, next) =>
+      case BlockLink(node, label, next) =>
+        fb.addInsts(node.insts, next, Some(label))
+      case CallLink(node, label, next) =>
         fb.addCall(
           node.lhs,
           node.fexpr,
           node.args,
-          next.map(_.toString),
-          Some(node.id.toString),
+          next,
+          Some(label),
         )
-      case BranchLink(node, thenId, elseId) =>
+      case BranchLink(node, label, thenLabel, elseLabel) =>
         fb.addBranchWithLabel(
           node.kind,
           node.cond,
-          thenId.map(_.toString),
-          elseId.map(_.toString),
-          Some(node.id.toString),
+          thenLabel,
+          elseLabel,
+          Some(label),
         )
     }
     fb.func
@@ -84,28 +84,31 @@ trait Parsers extends BasicParsers {
   }
 
   lazy val nodeLink: Parser[NodeLink] =
-    call ~ opt("->" ~> int) ^^ {
-      case call ~ next => CallLink(call, next)
-    } | branch ~ opt("then" ~> int) ~ opt("else" ~> int) ^^ {
-      case branch ~ thenId ~ elseId => BranchLink(branch, thenId, elseId)
-    } | block ~ opt("->" ~> int) ^^ {
-      case block ~ next => BlockLink(block, next)
+    guard(getLabel) ~ call ~ opt("->" ~> word) ^^ {
+      case label ~ call ~ next => CallLink(call, label, next)
+    } | guard(getLabel) ~ branch ~ opt("then" ~> word) ~ opt(
+      "else" ~> word,
+    ) ^^ {
+      case label ~ branch ~ thenLabel ~ elseLabel =>
+        BranchLink(branch, label, thenLabel, elseLabel)
+    } | guard(getLabel) ~ block ~ opt("->" ~> word) ^^ {
+      case label ~ block ~ next => BlockLink(block, label, next)
     }
   given node: Parser[Node] = call | branch | block
   lazy val block: Parser[Block] = withLoc {
-    getId ~ insts ^^ {
-      case id ~ insts => Block(id, ListBuffer.from(insts), None)
+    getLabel ~> insts ^^ {
+      case insts => Block(0, ListBuffer.from(insts), None)
     }
   }
   lazy val call: Parser[Call] = withLoc {
-    getId ~ ("call" ~> id <~ "=") ~
+    getLabel ~> ("call" ~> id <~ "=") ~
     expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
-      case id ~ lhs ~ fexpr ~ args => Call(id, lhs, fexpr, args, None)
+      case lhs ~ fexpr ~ args => Call(0, lhs, fexpr, args, None)
     }
   }
   lazy val branch: Parser[Branch] = withLoc {
-    getId ~ branchKind ~ expr ^^ {
-      case id ~ kind ~ cond => Branch(id, kind, cond, None, None)
+    getLabel ~> branchKind ~ expr ^^ {
+      case kind ~ cond => Branch(0, kind, cond, None, None)
     }
   }
 
@@ -306,6 +309,7 @@ trait Parsers extends BasicParsers {
 
   // helper for id getter
   private def getId: Parser[Int] = int <~ ":"
+  private def getLabel: Parser[String] = word <~ ":"
 
   // helper for locations
   private def withLoc[T <: Locational](parser: Parser[T]): Parser[T] =
@@ -313,8 +317,14 @@ trait Parsers extends BasicParsers {
 }
 
 // node links
-sealed trait NodeLink { val node: Node }
-case class BlockLink(node: Block, nextId: Option[Int]) extends NodeLink
-case class CallLink(node: Call, nextId: Option[Int]) extends NodeLink
-case class BranchLink(node: Branch, thenId: Option[Int], elseId: Option[Int])
+sealed trait NodeLink { val node: Node; val label: String }
+case class BlockLink(node: Block, label: String, nextLabel: Option[String])
   extends NodeLink
+case class CallLink(node: Call, label: String, nextLabel: Option[String])
+  extends NodeLink
+case class BranchLink(
+  node: Branch,
+  label: String,
+  thenLabel: Option[String],
+  elseLabel: Option[String],
+) extends NodeLink
