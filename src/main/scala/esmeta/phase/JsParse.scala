@@ -6,14 +6,18 @@ import esmeta.js.*
 import esmeta.js.util.*
 
 /** `parse` phase */
-case object JsParse extends Phase[Spec, Ast] {
+case object JsParse extends Phase[Unit, Ast] {
   val name = "js-parse"
   val help = "parses a JavaScript file."
   def apply(
-    spec: Spec,
+    unit: Unit,
     globalConfig: GlobalConfig,
     config: Config,
-  ): Ast = ???
+  ): Ast = {
+    val spec: Spec = ???
+    val ast: Ast = ???
+    ast
+  }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()

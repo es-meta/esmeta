@@ -1,0 +1,145 @@
+package esmeta.js.util
+
+import esmeta.js.*
+import esmeta.spec.*
+import esmeta.util.*
+import esmeta.util.BaseUtils.*
+import scala.util.parsing.input.Position
+import scala.util.matching.Regex
+
+/** JavaScript lexer */
+trait Lexer extends UnicodeParsers {
+  val grammar: Grammar
+
+  // do not skip white spaces
+  override def skipWhitespace = false
+
+  // lexer type
+  type Lexer = EPackratParser[String]
+
+  extension (parser: Parser[String]) {
+    // sequence
+    def %(that: => Parser[String]): Parser[String] =
+      parser ~ that ^^ { case x ~ y => x + y }
+
+    // sequence with Skip
+    def %%(that: => Parser[String]): Parser[String] = %(
+      if (that eq strNoLineTerminator) parser
+      else Skip ~> that,
+    )
+  }
+
+  // special lexers
+  lazy val WhiteSpace: Lexer = TAB | VT | FF | SP | NBSP | ZWNBSP | USP
+  lazy val LineTerminator: Lexer = LF | CR | LS | PS
+  lazy val LineTerminatorSequence: Lexer =
+    LF | CR <~ not(LF) | LS | PS | CR % LF
+  lazy val Comment =
+    """/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*""".r
+  lazy val empty = "".r
+  lazy val Skip =
+    rep(WhiteSpace | LineTerminator | Comment) ^^ { _.mkString }
+  lazy val strNoLineTerminator =
+    "" <~ guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
+
+  // lexers
+  val lexers: Map[(String, Int), Lexer] = (for {
+    prod <- grammar.prods
+    if prod.kind == Production.Kind.Lexical
+    name = prod.lhs.name
+    size = prod.lhs.params.length
+    argsBit <- 0 until 1 << size
+    args = toBools(size, argsBit)
+    argsSet = getArgs(prod.lhs.params, args)
+    lexer = getLexer(prod, argsSet)
+  } yield (name, argsBit) -> lexer).toMap
+
+  // internal data for packrat parsers
+  protected case class Data(
+    var rightmostFailedPos: Option[(Position, List[Elem])] = None,
+    var rightmostDoWhileClose: Option[Position] = None,
+  ) extends DataType { def next = this }
+  protected val defaultData = Data()
+
+  // get a lexer from a lexical production with an argument map
+  protected def getLexer(
+    prod: Production,
+    argsSet: Set[String],
+  ): Lexer = {
+    lazy val parser = prod.rhsList.map(getRhsParser(_, argsSet)).reduce(_ ||| _)
+    parser
+  }
+
+  protected val FAIL: Parser[Nothing] = failure("Lexer")
+
+  // get a parser for a right-hand side (RHS)
+  protected def getRhsParser(rhs: Rhs, argsSet: Set[String]): Parser[String] =
+    rhs.condition match {
+      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass => FAIL
+      case _ =>
+        rhs.symbols
+          .map(getSymbolParser(_, argsSet))
+          .reduce(_ % _)
+    }
+
+  // get a parser for a symbol
+  protected def getSymbolParser(
+    symbol: Symbol,
+    argsSet: Set[String],
+  ): Parser[String] = symbol match {
+    case Terminal(term) => term
+    case ButNot(base, cases) =>
+      val parser = getSymbolParser(base, argsSet)
+      val exclude = cases.map(getSymbolParser(_, argsSet)).reduce(_ ||| _)
+      parser.filter(parseAll(exclude, _).isEmpty)
+    case Empty => ""
+    case CodePointAbbr(abbr) =>
+      abbrCPs.getOrElse(
+        abbr,
+        error(s"unknown code point abbreviation: <$abbr>"),
+      )
+    case Nonterminal(name, args, optional) =>
+      val parser = lexers((name, toBit(toBools(argsSet, args))))
+      if (optional) opt(parser) ^^ { _.getOrElse("") }
+      else parser
+    case Lookahead(b, cases) =>
+      val parser = cases
+        .map(_.map(getSymbolParser(_, argsSet)).reduce(_ % _))
+        .reduce(_ ||| _)
+      "" <~ (if (b) guard else not)(parser)
+    case ButOnlyIf(base, name, cond)                              => ???
+    case UnicodeSet(None)                                         => Unicode
+    case UnicodeSet(Some("with the Unicode property “ID_Start”")) => IDStart
+    case UnicodeSet(Some("with the Unicode property “ID_Continue”")) =>
+      IDContinue
+    case UnicodeSet(cond) => ???
+    case _                => error(s"invalid symbol in lexer: $symbol")
+  }
+
+  // get a set of argument names from lists of parameters and arguments
+  protected def getArgs(
+    params: List[String],
+    args: List[Boolean],
+  ): Set[String] =
+    (params zip args).collect { case (p, true) => p }.toSet
+
+  // conversion boolean arguments to a bit representation
+  protected def toBit(args: List[Boolean]): Int =
+    args.foldLeft(0) { case (bit, arg) => (bit << 1) + (if (arg) 1 else 0) }
+
+  // conversion a bit representation to boolean arguments
+  protected def toBools(size: Int, argsBit: Int): List[Boolean] =
+    (for (k <- 0 until size) yield ((1 << k) & argsBit) > 0).toList
+
+  // conversion a list of nonterminal arguments to boolean arguments
+  protected def toBools(
+    argsSet: Set[String],
+    args: List[NtArg],
+  ): List[Boolean] =
+    import NtArg.Kind.*
+    args.map {
+      case NtArg(True, _)    => true
+      case NtArg(False, _)   => true
+      case NtArg(Pass, name) => argsSet contains name
+    }
+}
