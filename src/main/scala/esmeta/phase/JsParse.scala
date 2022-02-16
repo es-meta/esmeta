@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.spec.Spec
+import esmeta.spec.util.{Parser => SpecParser}
 import esmeta.js.*
 import esmeta.js.util.*
 
@@ -14,7 +15,7 @@ case object JsParse extends Phase[Unit, Ast] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Ast = {
-    val spec: Spec = ???
+    val spec: Spec = SpecParser.parseSpecWithVersion()
     val ast: Ast = ???
     ast
   }

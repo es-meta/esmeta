@@ -1,5 +1,6 @@
 package esmeta.spec.util
 
+import scala.io.Source
 import esmeta.LINE_SEP
 import esmeta.lang.Step
 import esmeta.spec.*
@@ -25,6 +26,13 @@ object Parser extends Parsers {
       tables = tables,
       document = document,
     )
+  }
+
+  /** parses a specification with versions */
+  def parseSpecWithVersion(version: String = "main"): Spec = {
+    val url =
+      s"https://raw.githubusercontent.com/tc39/ecma262/$version/spec.html"
+    parseSpec(Source.fromURL(url).mkString)
   }
 
   /** parses a grammar */

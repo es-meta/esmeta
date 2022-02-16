@@ -16,9 +16,11 @@ case object Extract extends Phase[Unit, Spec] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Spec = {
-    val spec = config.json match {
-      case Some(filename) => ???
-      case None =>
+    val spec = (config.json, config.version) match {
+      case (Some(json), _) => ???
+      case (_, Some(version)) =>
+        Parser.parseSpecWithVersion(version)
+      case _ =>
         val filename = getFirstFilename(globalConfig, "extract")
         val content = readFile(filename)
         Parser.parseSpec(content)
@@ -57,6 +59,11 @@ case object Extract extends Phase[Unit, Spec] {
       "load specification from JSON.",
     ),
     (
+      "version",
+      StrOption((c, s) => c.version = Some(s)),
+      "parse specification with versions.",
+    ),
+    (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
@@ -72,6 +79,7 @@ case object Extract extends Phase[Unit, Spec] {
   )
   case class Config(
     var json: Option[String] = None,
+    var version: Option[String] = None,
     var log: Boolean = false,
     var stat: Boolean = false,
   )
