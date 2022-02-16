@@ -12,8 +12,13 @@ import scala.util.matching.Regex
 
 /** JavaScript parser */
 case class Parser(val grammar: Grammar) extends LAParsers {
-  def lex(name: String, k: Int = 0): String => String =
+  def lexer(name: String, k: Int = 0): String => String =
     str => parseAll(lexers((name, k)), str).get
+  def parser(name: String, args: List[Boolean] = Nil): String => Ast =
+    str => parse(parsers(name)(args), str).get
+
+  // parsers
+  lazy val parsers: Map[String, ESParser[Ast]] = ???
 
   // terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
@@ -29,7 +34,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   }
 
   // automatic semicolon insertion
-  def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
+  private def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
     reader.data.rightmostFailedPos match {
       case Some((pos, rev)) =>
         val source = reader.source.toString
@@ -99,7 +104,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   }
 
   // terminal parsers
-  val t = cached[String, LAParser[String]] {
+  private val t = cached[String, LAParser[String]] {
     case t =>
       log(
         new LAParser(
@@ -113,7 +118,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         ),
       )(t)
   }
-  val doWhileCloseT: LAParser[String] = {
+  private val doWhileCloseT: LAParser[String] = {
     val p = t(")")
     new LAParser(
       follow =>
@@ -132,7 +137,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       p.first,
     )
   }
-  val nt = cached[(String, Lexer), LAParser[Lexical]] {
+  private val nt = cached[(String, Lexer), LAParser[Lexical]] {
     case (name, nt) =>
       log(
         new LAParser(
@@ -142,7 +147,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         ),
       )(name)
   }
-  def ntl = cached[Lexer, LAParser[Lexical]] {
+  private def ntl = cached[Lexer, LAParser[Lexical]] {
     case nt =>
       log(
         new LAParser(
@@ -178,11 +183,12 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   type ESParser[+T] = List[Boolean] => LAParser[T]
 
   // memoization of parametric rules
-  def memo[T](f: ESParser[T]): ESParser[T] = cached(args => memo(f(args)))
+  private def memo[T](f: ESParser[T]): ESParser[T] =
+    cached(args => memo(f(args)))
 
   // resolve left recursions
-  type FLAParser[T] = LAParser[T => T]
-  def resolveLR[T](f: LAParser[T], s: FLAParser[T]): LAParser[T] = {
+  private type FLAParser[T] = LAParser[T => T]
+  private def resolveLR[T](f: LAParser[T], s: FLAParser[T]): LAParser[T] = {
     lazy val p: FLAParser[T] = s ~ p ^^ {
       case b ~ f => (x: T) => f(b(x))
     } | MATCH ^^^ { (x: T) => x }
@@ -225,9 +231,6 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     res
   }
 
-  // script parsers
-  lazy val Script: ESParser[Ast] = ???
-
   // no LineTerminator parser
   lazy val NoLineTerminator: LAParser[String] = log(
     new LAParser(
@@ -236,11 +239,12 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     ),
   )("NoLineTerminator")
 
-  // parsers
-  lazy val parsers: Map[String, ESParser[Ast]] = ???
-
   // get fixed length arguments
-  def getArgsN(name: String, args: List[Boolean], n: Int): List[Boolean] = {
+  private def getArgsN(
+    name: String,
+    args: List[Boolean],
+    n: Int,
+  ): List[Boolean] = {
     if (args.length == n) args
     else throw WrongNumberOfParserParams(name, args)
   }
