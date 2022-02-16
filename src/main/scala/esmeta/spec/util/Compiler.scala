@@ -1,10 +1,12 @@
 package esmeta.spec.util
 
-import esmeta.cfg.util.Builder
+import esmeta.cfg.util.{Builder, Parser => CParser}
 import esmeta.cfg.{Literal => CLiteral, Type => CType, *}
 import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
+import esmeta.ES2022_DIR
 
 /** Compiler from metalangauge to CFG */
 class Compiler(val spec: Spec) {
@@ -24,6 +26,10 @@ class Compiler(val spec: Spec) {
     compile(fb, algo.body)
     fb.func
   }
+
+  /** add an manually created algorithm to a CFG as a funtion */
+  def manualFromFile(path: String): Func =
+    CParser.fromFileWithParser(path, CParser.funcGen)(builder)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -473,12 +479,13 @@ object Compiler {
   /** compile a specification to a CFG */
   def apply(spec: Spec): CFG = {
     val compiler = new Compiler(spec)
+
+    // compile algorithms from spec
     for (algo <- spec.algorithms) compiler.compile(algo)
 
-    // TODO
-    val fb = compiler.builder.FuncBuilder(true, Func.Kind.AbsOp, "RunJobs", Nil)
-    fb.addInst(IReturn(EUndef))
-    fb.func
+    // manually created AOs
+    for (file <- walkTree(ES2022_DIR) if cfgFilter(file.getName))
+      compiler.manualFromFile(file.toString)
 
     compiler.cfg
   }

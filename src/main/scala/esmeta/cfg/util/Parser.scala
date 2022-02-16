@@ -297,7 +297,7 @@ trait Parsers extends BasicParsers {
 
   // identifiers
   lazy val id: Parser[Id] =
-    "@[A-Z]+".r ^^ { case s => Global(s.substring(1)) } |
+    "@[A-Z_]+".r ^^ { case s => Global(s.substring(1)) } |
     "%(0|[1-9][0-9]*)".r ^^ { case s => Temp(s.substring(1).toInt) } |
     name
 

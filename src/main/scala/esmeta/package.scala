@@ -9,6 +9,7 @@ val BASE_DIR = System.getenv("ESMETA_HOME")
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
 val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
+val COMPILE_LOG_DIR = s"$LOG_DIR/compile"
 
 /** tests directory root */
 val TEST_DIR = s"$BASE_DIR/tests"
@@ -22,6 +23,7 @@ val SRC_DIR = s"$BASE_DIR/src/main/scala/esmeta"
 /** resource directory */
 val RESOURCE_DIR = s"$BASE_DIR/src/main/resources"
 val UNICODE_DIR = s"$RESOURCE_DIR/unicode"
+val ES2022_DIR = s"$RESOURCE_DIR/es2022"
 
 /** package name */
 val PACKAGE_NAME = "esmeta"
