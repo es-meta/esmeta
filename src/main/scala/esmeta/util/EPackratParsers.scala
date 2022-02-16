@@ -9,8 +9,10 @@ trait EPackratParsers extends Parsers {
   protected trait DataType { def next: Data }
   protected type Data <: DataType
   protected val defaultData: Data
-  class EPackratReader[+T](underlying: Reader[T]) extends Reader[T] { outer =>
-    val data = defaultData
+  class EPackratReader[+T <: Elem](underlying: Reader[T]) extends Reader[T] {
+    outer =>
+    val data: Data = defaultData
+    val rev: List[Elem] = Nil
     private[EPackratParsers] val cache =
       mutable.HashMap.empty[(Parser[_], Position), MemoEntry[_]]
     private[EPackratParsers] def getFromCache[T2](
@@ -27,14 +29,16 @@ trait EPackratParsers extends Parsers {
     override def source: java.lang.CharSequence = underlying.source
     override def offset: Int = underlying.offset
     def first: T = underlying.first
-    def rest: Reader[T] = copy(data.next, underlying.rest)
+    def rest: Reader[T] = copy(underlying.rest, data.next, first :: rev)
     def pos: Position = underlying.pos
     def atEnd: Boolean = underlying.atEnd
-    def copy[T](
-      newData: Data = this.data,
+    def copy[T <: Elem](
       underlying: Reader[T] = this.underlying,
+      newData: Data = this.data,
+      newRev: List[Elem] = this.rev,
     ): EPackratReader[T] = new EPackratReader(underlying) {
       override val data = newData
+      override val rev = newRev
       override private[EPackratParsers] val cache = outer.cache
       override private[EPackratParsers] val recursionHeads =
         outer.recursionHeads

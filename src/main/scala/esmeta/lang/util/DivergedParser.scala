@@ -43,7 +43,7 @@ trait DivergedParsers extends IndentParsers {
       val newData = in.data match
         case diverged: DataWithDiverged => diverged.push
         case data                       => data
-      Success((), in.copy(newData))
+      Success((), in.copy(newData = newData))
     }
   }
 
@@ -54,7 +54,7 @@ trait DivergedParsers extends IndentParsers {
       val (m, newData) = in.data match
         case diverged: DataWithDiverged => diverged.pop
         case data                       => (Map[String, Int](), data)
-      Success(m, in.copy(newData))
+      Success(m, in.copy(newData = newData))
     }
   }
 
@@ -68,7 +68,7 @@ trait DivergedParsers extends IndentParsers {
       case s @ Success(res, in: In) =>
         in.data match
           case diverged: DataWithDiverged =>
-            Success(res, in.copy(diverged.record(key, kind)))
+            Success(res, in.copy(newData = diverged.record(key, kind)))
           case _ => s
       case _ => result
 

@@ -18,6 +18,10 @@ trait Lexer extends UnicodeParsers {
   type Lexer = EPackratParser[String]
 
   extension (parser: Parser[String]) {
+    // lookahead symbols
+    def unary_- : Parser[String] = "" <~ not(parser)
+    def unary_+ : Parser[String] = "" <~ guard(parser)
+
     // sequence
     def %(that: => Parser[String]): Parser[String] =
       parser ~ that ^^ { case x ~ y => x + y }
@@ -55,7 +59,9 @@ trait Lexer extends UnicodeParsers {
   } yield (name, argsBit) -> lexer).toMap
 
   // internal data for packrat parsers
+  type ParseCase[+T]
   protected case class Data(
+    var cache: Map[ParseCase[Any], ParseResult[_]] = Map(),
     var rightmostFailedPos: Option[(Position, List[Elem])] = None,
     var rightmostDoWhileClose: Option[Position] = None,
   ) extends DataType { def next = this }

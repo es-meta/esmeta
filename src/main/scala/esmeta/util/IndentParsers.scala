@@ -35,7 +35,10 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
                 val newSteps = steps match
                   case Nil       => Nil
                   case s :: rest => (s + 1) :: rest
-                Success((), newIn.copy(data.copy(indents, newSteps, false)))
+                Success(
+                  (),
+                  newIn.copy(newData = data.copy(indents, newSteps, false)),
+                )
             }
           case Success(_, newIn) => Failure("not an EPackratReader", newIn)
           case fail: NoSuccess   => fail
@@ -82,7 +85,7 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
   val upper: Parser[Unit] = new Parser[Unit] {
     def apply(in: Input) = in match {
       case in: In =>
-        Success((), in.copy(in.data.copy(needUppercase = true)))
+        Success((), in.copy(newData = in.data.copy(needUppercase = true)))
       case in => Failure("not an EPackratReader", in)
     }
   }
@@ -122,7 +125,9 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
     val offset = in.offset
     val start = handleWhiteSpace(in.source, offset)
     val trimmed = in.drop(start - offset).asInstanceOf[In]
-    trimmed.copy(trimmed.data.copy(needUppercase = in.data.needUppercase))
+    trimmed.copy(newData =
+      trimmed.data.copy(needUppercase = in.data.needUppercase),
+    )
 
   /** implicit conversion from scala parser's Position to util.Pos */
   private given Conversion[Position, Pos] with
@@ -138,7 +143,7 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
   // push a new indentation
   private def push(in: In, indent: Int): In =
     val data @ Data(indents, steps, _) = in.data
-    in.copy(data.copy(indent :: indents, 0 :: steps, false))
+    in.copy(newData = data.copy(indent :: indents, 0 :: steps, false))
 
   // pop an indentation
   private def pop(in: In): Option[(Int, In)] =
@@ -146,7 +151,7 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
     indents match
       case Nil => None
       case indent :: remain =>
-        Some(indent, in.copy(data.copy(remain, steps.tail, false)))
+        Some(indent, in.copy(newData = data.copy(remain, steps.tail, false)))
 
   // packrat reader for characters
   protected type In = EPackratReader[Char]
