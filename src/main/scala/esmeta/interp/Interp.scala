@@ -1,6 +1,6 @@
 package esmeta.interp
 
-import esmeta.{TIMEOUT, TEST_MODE}
+import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
@@ -26,8 +26,15 @@ class Interp(
 
   /** step */
   def step: Boolean =
-    try interp(st.context.cursor)
-    catch case ReturnValue(value) => { setReturn(value); true }
+    try {
+      if (DEBUG) st.context.cursor match
+        case NodeCursor(node) =>
+          val func = cfg.funcOf(node)
+          println(s"[${func.kind}${func.name}] $node")
+        case ExitCursor(func) =>
+          println(s"[${func.kind}${func.name} Exited")
+      interp(st.context.cursor)
+    } catch case ReturnValue(value) => { setReturn(value); true }
 
   /** fixpoint */
   @tailrec

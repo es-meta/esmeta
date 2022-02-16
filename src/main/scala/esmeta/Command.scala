@@ -59,3 +59,8 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
 case object CmdJsParse extends Command("js-parse", CmdBase >> JsParse) {
   def help = "parses a JavaScript file"
 }
+
+/** `js-eval` command */
+case object CmdJsEval extends Command("js-eval", CmdCompile >> JsEval) {
+  def help = "evaluates a JavaScript file."
+}
