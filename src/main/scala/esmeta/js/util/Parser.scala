@@ -56,7 +56,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     case Some(cond) if !(argsSet contains cond.name) => MISMATCH
     case _ =>
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-      rhs.symbols.drop(1).foldLeft(base)(appendParser(_, _, argsSet)) ^^ {
+      rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs =>
           (base: Ast) => Syntactic(name, args, idx, Some(base) :: cs.reverse)
       }
@@ -72,18 +72,20 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     case Some(cond) if !(argsSet contains cond.name) => MISMATCH
     case _ =>
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-      rhs.symbols.foldLeft(base)(appendParser(_, _, argsSet)) ^^ {
+      rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs => Syntactic(name, args, idx, cs.reverse)
       }
   })(s"$name$idx")
 
   private def appendParser(
+    name: String,
     prev: LAParser[List[Option[Ast]]],
     symbol: Symbol,
     argsSet: Set[String],
   ): LAParser[List[Option[Ast]]] =
     symbol match {
-      case Terminal(term) => prev <~ t(term)
+      case Terminal("(") if name == "DoWhileStatement" => prev <~ doWhileCloseT
+      case Terminal(term)                              => prev <~ t(term)
       case Nonterminal(name, args, optional) =>
         lazy val parser =
           if (lexNames contains name) nt(name, lexers(name, 0))
