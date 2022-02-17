@@ -1,6 +1,6 @@
 [submodule "ecma262"]
 	path = ecma262
 	url = https://github.com/tc39/ecma262
-[submodule "test262"]
-	path = test262
+[submodule "tests/test262"]
+	path = tests/test262
 	url = git@github.com:tc39/test262.git
