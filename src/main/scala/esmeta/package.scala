@@ -15,6 +15,10 @@ val CFG_LOG_DIR = s"$LOG_DIR/cfg"
 /** tests directory root */
 val TEST_DIR = s"$BASE_DIR/tests"
 
+/** specification directory */
+val ECMA262_DIR = s"$BASE_DIR/ecma262"
+val SPEC_HTML = s"$ECMA262_DIR/spec.html"
+
 /** current directory root */
 val CUR_DIR = System.getProperty("user.dir")
 
@@ -31,6 +35,8 @@ val PACKAGE_NAME = "esmeta"
 
 /** tests directory */
 val IR_TEST_DIR = s"$TEST_DIR/ir"
+val TEST262_DIR = s"$TEST_DIR/test262"
+val TEST262_TEST_DIR = s"$TEST262_DIR/test"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Mutable Global Options
