@@ -8,8 +8,7 @@ case class Syntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  bits: Int,
-  children: List[Ast],
+  children: List[Option[Ast]],
 ) extends Ast
 
 // AST constructed by lexical productions

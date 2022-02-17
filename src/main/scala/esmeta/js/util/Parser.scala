@@ -18,7 +18,93 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     str => parse(parsers(name)(args), str).get
 
   // parsers
-  lazy val parsers: Map[String, ESParser[Ast]] = ???
+  lazy val parsers: Map[String, ESParser[Ast]] = (for {
+    prod <- grammar.prods
+    if prod.kind == Production.Kind.Syntactic
+    name = prod.lhs.name
+    parser = getParser(prod)
+  } yield name -> parser).toMap
+
+  private def getParser(prod: Production): ESParser[Ast] = memo(args => {
+    val Production(lhs, _, _, rhsList) = prod
+    val Lhs(name, params) = lhs
+    val argsSet = getArgs(params, args)
+
+    val lrs = rhsList.zipWithIndex
+      .filter { case (r, _) => isLR(name, r) }
+      .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
+
+    val nlrs = rhsList.zipWithIndex
+      .filter { case (r, _) => !isLR(name, r) }
+      .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
+
+    if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
+    else log(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
+  })
+
+  private def getSubParsers(
+    name: String,
+    args: List[Boolean],
+    argsSet: Set[String],
+    idx: Int,
+    rhs: Rhs,
+  ): FLAParser[Ast] = ???
+
+  private def getParsers(
+    name: String,
+    args: List[Boolean],
+    argsSet: Set[String],
+    idx: Int,
+    rhs: Rhs,
+  ): LAParser[Ast] = log(rhs.condition match {
+    case Some(cond) if !(argsSet contains cond.name) => MISMATCH
+    case _ =>
+      val base: LAParser[List[Option[Ast]]] = MATCH
+      rhs.symbols.foldLeft(base)(appendParser(_, _, argsSet)) ^^ {
+        Syntactic(name, args, idx, _)
+      }
+  })(s"$name$idx")
+
+  // lazy val CaseClauses: ESParser[CaseClauses] = memo(args => {
+  //   val List(pYield, pAwait, pReturn) = getArgsN("CaseClauses", args, 3)
+  //   log(resolveLR((
+  //     log(MATCH ~ CaseClause(List(pYield, pAwait, pReturn)) ^^ { case _ ~ x0 => CaseClauses0(x0, args, Span()) })("CaseClauses0")
+  //   ), (
+  //     log(MATCH ~ CaseClause(List(pYield, pAwait, pReturn)) ^^ { case _ ~ x0 => ((x: CaseClauses) => CaseClauses1(x, x0, args, Span())) })("CaseClauses1")
+  //   )))("CaseClauses")
+  // })
+
+  private def appendParser(
+    base: LAParser[List[Option[Ast]]],
+    symbol: Symbol,
+    argsSet: Set[String],
+  ): LAParser[List[Option[Ast]]] =
+    symbol match {
+      // case Terminal(term) => s"""($base <~ t(${getTokenParser(token)}))"""
+      // case Nonterminal(name, args, optional) =>
+      //   var parser = name
+      //   if (lexNames contains parser) parser = s"""nt("$parser", $parser)"""
+      //   else parser += getArgs(name, args)
+      //   if (optional) parser = s"""opt($parser)"""
+      //   s"""$base ~ $parser"""
+      // case ButNot(_, cases) =>
+      //   val parser = getTokenParser(token)
+      //   s"""$base ~ nt(\"\"\"$parser\"\"\", $parser)"""
+      // case Lookahead(contains, cases) =>
+      //   val parser = cases.map(c => s"""(${
+      //     c.map(token => {
+      //       val t = getTokenParser(token)
+      //       if (t.startsWith("\"") && t.endsWith("\"") && t(1).isLower) "(" + t + " <~ not(IDContinue))"
+      //       else t
+      //     }).mkString(" %% ")
+      //   })""").mkString(" | ")
+      //   val pre = if (contains) "+" else "-"
+      //   s"""($base <~ ${pre}ntl($parser))"""
+      // case EmptyToken => base + " ~ MATCH"
+      // case NoLineTerminatorToken => s"""($base <~ NoLineTerminator)"""
+      // case _ => base
+      case _ => ???
+    }
 
   // terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
@@ -247,5 +333,10 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   ): List[Boolean] = {
     if (args.length == n) args
     else throw WrongNumberOfParserParams(name, args)
+  }
+
+  private def isLR(name: String, rhs: Rhs): Boolean = rhs.symbols match {
+    case Nonterminal(`name`, _, _) :: _ => true
+    case _                              => false
   }
 }

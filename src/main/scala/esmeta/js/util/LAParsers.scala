@@ -104,8 +104,10 @@ trait LAParsers extends Lexer {
   }
 
   // always match
-  lazy val MATCH: LAParser[String] =
-    log(new LAParser(follow => "" <~ guard(follow.parser), emptyFirst))("MATCH")
+  lazy val MATCH: LAParser[List[Nothing]] =
+    log(new LAParser(follow => guard(follow.parser) ^^^ Nil, emptyFirst))(
+      "MATCH",
+    )
 
   // always mismatch
   lazy val MISMATCH: LAParser[Nothing] =

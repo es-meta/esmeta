@@ -35,8 +35,7 @@ case class ESyntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  bits: Int,
-  children: List[Expr],
+  children: List[Option[Expr]],
 ) extends AstExpr
 case class ELexical(
   name: String,

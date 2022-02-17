@@ -122,12 +122,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   // abstract syntax tree (AST) expressions
   def walk(ast: AstExpr): Unit = ast match {
-    case ESyntactic(name, args, rhsIdx, bits, children) =>
+    case ESyntactic(name, args, rhsIdx, children) =>
       walk(name)
       walkList(args, walk)
       walk(rhsIdx)
-      walk(bits)
-      walkList(children, walk)
+      walkList(children, walkOpt(_, walk))
     case ELexical(name, expr) =>
       walk(name); walk(expr)
   }

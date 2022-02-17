@@ -113,9 +113,9 @@ class StringifyTinyTest extends InterpTest {
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)
     lazy val contCaptured = Cont(func, Map(Name("x") -> Str("abc")), Nil)
-    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, 2, Nil))
+    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
     lazy val astArgs =
-      AstValue(Syntactic("Identifier", List(true, false), 1, 2, Nil))
+      AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(
       comp -> "comp[~throw~/to](42)",
@@ -126,8 +126,8 @@ class StringifyTinyTest extends InterpTest {
       cloCaptured -> """clo<f, [x -> "abc"]>""",
       cont -> "cont<f>",
       contCaptured -> """cont<f, [x -> "abc"]>""",
-      ast -> "|Identifier|<1, 2>",
-      astArgs -> "|Identifier|[TF]<1, 2>",
+      ast -> "|Identifier|<1>",
+      astArgs -> "|Identifier|[TF]<1>",
       lex -> "|Identifier|(x)",
       Math(3.2) -> "3.2",
       Number(3.2) -> "3.2f",

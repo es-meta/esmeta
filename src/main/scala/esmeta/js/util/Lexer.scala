@@ -47,7 +47,7 @@ trait Lexer extends UnicodeParsers {
     "" <~ guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
 
   // lexers
-  val lexers: Map[(String, Int), Lexer] = (for {
+  lazy val lexers: Map[(String, Int), Lexer] = (for {
     prod <- grammar.prods
     if prod.kind == Production.Kind.Lexical
     name = prod.lhs.name

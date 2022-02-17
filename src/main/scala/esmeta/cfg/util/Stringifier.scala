@@ -180,13 +180,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // abstract syntax tree (AST) expressions
   lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
     ast match {
-      case ESyntactic(name, args, rhsIdx, bits, children) =>
+      case ESyntactic(name, args, rhsIdx, children) =>
         app >> "|" >> name >> "|"
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule("[", "", "]")
         if (!args.isEmpty) app >> args
-        app >> "<" >> rhsIdx >> ", " >> bits >> ">"
-        given el: Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "<" >> rhsIdx >> ">"
+        given eo: Rule[Option[Expr]] = optionRule("")
+        given el: Rule[List[Option[Expr]]] = iterableRule("(", ", ", ")")
         if (!children.isEmpty) app >> children
         app
       case ELexical(name, expr) =>

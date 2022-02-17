@@ -199,14 +199,16 @@ class Interp(
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, Map.from(captured), st.callStack)
-    case ESyntactic(name, args, rhsIdx, bits, children) =>
-      val asts = children.map(child =>
-        interp(child) match {
-          case AstValue(ast) => ast
-          case v             => throw NoAst(child, v)
-        },
+    case ESyntactic(name, args, rhsIdx, children) =>
+      val asts = children.map(childOpt =>
+        childOpt.map(child =>
+          interp(child) match {
+            case AstValue(ast) => ast
+            case v             => throw NoAst(child, v)
+          },
+        ),
       )
-      AstValue(Syntactic(name, args, rhsIdx, bits, asts))
+      AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) =>
       val str = interp(expr) match {
         case Str(str) => str

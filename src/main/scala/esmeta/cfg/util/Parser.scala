@@ -192,9 +192,9 @@ trait Parsers extends BasicParsers {
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =
     ("|" ~> word <~ "|") ~ parseParams ~
-    ("<" ~> int ~ ("," ~> int) <~ ">") ~
-    (opt("(" ~> repsep(expr, ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
-      case n ~ as ~ (i ~ j) ~ es => ESyntactic(n, as, i, j, es)
+    ("<" ~> int <~ ">") ~
+    (opt("(" ~> repsep(opt(expr), ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
+      case n ~ as ~ i ~ es => ESyntactic(n, as, i, es)
     } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
       case n ~ e => ELexical(n, e)
     }
