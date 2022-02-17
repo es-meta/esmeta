@@ -1,0 +1,25 @@
+let globalEnv = REALM.GlobalEnv
+let varNames = globalEnv.VarNames
+let map = globalEnv.DeclarativeRecord.SubMap
+let f = REALM.GlobalObject.SubMap.f
+
+assert (contains varNames "f")
+assert (is-instance-of f.Value ECMAScriptFunctionObject)
+assert (= f.Writable true)
+assert (= f.Enumerable true)
+assert (= f.Configurable false)
+
+assert (! (contains varNames "x"))
+assert (is-instance-of map.x MutableBinding)
+assert map.x.initialized
+assert (= map.x.BoundValue 2)
+
+assert (! (contains varNames "y"))
+assert (is-instance-of map.y MutableBinding)
+assert map.y.initialized
+assert (= map.y.BoundValue 2)
+
+assert (! (contains varNames "z"))
+assert (is-instance-of map.z MutableBinding)
+assert map.z.initialized
+assert (= map.z.BoundValue 2)

@@ -1,0 +1,4 @@
+let map = REALM.GlobalObject.SubMap
+assert (= map.f.Value.SubMap.prototype.Value map.x.Value.Prototype) 
+assert (= map.a.Value true)
+assert (= map.b.Value true)

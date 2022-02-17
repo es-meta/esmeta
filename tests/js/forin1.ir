@@ -1,0 +1,1 @@
+assert (= REALM.GlobalObject.SubMap.sum.Value 6)

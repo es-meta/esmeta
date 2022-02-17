@@ -1,0 +1,3 @@
+let map = REALM.GlobalObject.SubMap
+assert (= map.x.Value false)
+assert (= map.y.Value true)

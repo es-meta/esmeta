@@ -1,0 +1,5 @@
+let map = REALM.GlobalObject.SubMap
+assert (= map.x0.Value 1)
+assert (= map.x1.Value "a")
+assert (= map.x2.Value 2)
+assert (= map.x3.Value 3)

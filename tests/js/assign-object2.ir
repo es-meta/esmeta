@@ -1,0 +1,7 @@
+assert (= REALM.GlobalObject.SubMap.x.Value.SubMap.y.Value 1)
+assert (= REALM.GlobalObject.SubMap.x.Value.SubMap.y.Writable true)
+assert (= REALM.GlobalObject.SubMap.x.Value.SubMap.y.Enumerable true)
+assert (= REALM.GlobalObject.SubMap.x.Value.SubMap.y.Configurable true)
+
+assert (= REALM.GlobalObject.SubMap.y.Value 1)
+assert (= REALM.GlobalObject.SubMap.z.Value undefined)

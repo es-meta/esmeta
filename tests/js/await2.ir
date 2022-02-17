@@ -1,0 +1,1 @@
+assert (= REALM.GlobalObject.SubMap.count.Value 2.0)

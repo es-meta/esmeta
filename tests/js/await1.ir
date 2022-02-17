@@ -1,0 +1,2 @@
+assert (= REALM.GlobalObject.SubMap.pi.Value 2.0)
+assert (= REALM.GlobalObject.SubMap.i.Value.PromiseResult 2.0)

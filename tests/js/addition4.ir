@@ -1,0 +1,1 @@
+assert (= REALM.GlobalObject.SubMap.x.Value "[object Object]1")

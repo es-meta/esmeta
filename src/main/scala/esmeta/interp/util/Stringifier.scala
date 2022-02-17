@@ -23,7 +23,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   import cfgStringifier.{given, *}
 
   // load JavaScript Stringifier
-  val jsStringifier = JsElem.getStringifier((false, location))
+  val jsStringifier = JsElem.getStringifier((false, location, None))
   import jsStringifier.{given, *}
 
   // elements

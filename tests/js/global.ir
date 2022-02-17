@@ -1,0 +1,14 @@
+assert (= GLOBAL.SubMap.Infinity.Value Infinity)
+assert (= GLOBAL.SubMap.Infinity.Writable false)
+assert (= GLOBAL.SubMap.Infinity.Enumerable false)
+assert (= GLOBAL.SubMap.Infinity.Configurable false)
+
+assert (= GLOBAL.SubMap.NaN.Value NaN)
+assert (= GLOBAL.SubMap.NaN.Writable false)
+assert (= GLOBAL.SubMap.NaN.Enumerable false)
+assert (= GLOBAL.SubMap.NaN.Configurable false)
+
+assert (= GLOBAL.SubMap.undefined.Value undefined)
+assert (= GLOBAL.SubMap.undefined.Writable false)
+assert (= GLOBAL.SubMap.undefined.Enumerable false)
+assert (= GLOBAL.SubMap.undefined.Configurable false)

@@ -1,0 +1,4 @@
+assert (= REALM.GlobalObject.SubMap.f.Value.SubMap.value.Value undefined)
+assert (= REALM.GlobalObject.SubMap.f.Value.SubMap.configurable.Value false)
+assert (= REALM.GlobalObject.SubMap.f.Value.SubMap.enumerable.Value false)
+assert (= REALM.GlobalObject.SubMap.f.Value.SubMap.writable.Value false)

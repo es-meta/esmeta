@@ -1,0 +1,22 @@
+let realm = REALM
+let varNames = realm.GlobalEnv.VarNames
+let map = realm.GlobalObject.SubMap
+assert (contains varNames "assert")
+assert (contains varNames "Test262Error")
+assert (contains varNames "$DONOTEVALUATE")
+assert (contains varNames "$ERROR")
+assert map.x0.Value
+assert map.x1.Value
+assert map.x2.Value
+assert map.x3.Value
+assert map.x4.Value
+assert map.x5.Value
+assert map.x6.Value
+assert map.x7.Value
+assert map.x8.Value
+assert map.x9.Value
+assert map.x10.Value
+assert map.x11.Value
+assert map.x12.Value
+assert map.x13.Value
+assert map.x14.Value

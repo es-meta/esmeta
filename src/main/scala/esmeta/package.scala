@@ -35,6 +35,7 @@ val PACKAGE_NAME = "esmeta"
 
 /** tests directory */
 val IR_TEST_DIR = s"$TEST_DIR/ir"
+val JS_TEST_DIR = s"$TEST_DIR/js"
 val TEST262_DIR = s"$TEST_DIR/test262"
 val TEST262_TEST_DIR = s"$TEST262_DIR/test"
 

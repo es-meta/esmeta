@@ -1,0 +1,2 @@
+let map = REALM.GlobalObject.SubMap
+assert (= map.x.Value "42")

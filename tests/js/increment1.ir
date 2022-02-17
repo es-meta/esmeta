@@ -1,0 +1,16 @@
+let varNames = REALM.GlobalEnv.VarNames
+let map = REALM.GlobalObject.SubMap
+let x = map.x
+let y = map.y
+
+assert (contains varNames "x")
+assert (= x.Value 2)
+assert (= x.Writable true)
+assert (= x.Enumerable true)
+assert (= x.Configurable false)
+
+assert (contains varNames "y")
+assert (= y.Value 43)
+assert (= y.Writable true)
+assert (= y.Enumerable true)
+assert (= y.Configurable false)

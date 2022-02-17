@@ -1,0 +1,11 @@
+var x = 1;
+x += 2; // 3
+var a = x;
+x *= 3; // 9
+var b = x;
+x -= 1; // 8
+var c = x;
+x **= 2; // 64
+var d = x;
+x /= 2; // 32
+var e = x;

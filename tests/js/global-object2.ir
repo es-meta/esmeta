@@ -1,0 +1,5 @@
+assert (contains REALM.GlobalEnv.VarNames "a")
+assert (contains REALM.GlobalEnv.VarNames "b")
+assert (contains REALM.GlobalEnv.VarNames "c")
+assert (= REALM.GlobalObject.SubMap.a.Value.SubMap.f.Value 1)
+assert (= REALM.GlobalObject.SubMap.c.Value.SubMap.o.Value 2)
