@@ -11,11 +11,12 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile"
+  cmdList="help extract compile js-parse"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
-  extractOpt="-extract:json -extract:log -extract:stat"
+  extractOpt="-extract:json -extract:version -extract:log -extract:stat"
   compileOpt=""
+  jsparseOpt=""
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -38,6 +39,10 @@ _esmeta_completions() {
           ;;
         compile)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt}"))
+          return 0
+          ;;
+        js-parse)
+          COMPREPLY=($(compgen -W "${globalOpt} ${jsparseOpt}"))
           return 0
           ;;
       esac
