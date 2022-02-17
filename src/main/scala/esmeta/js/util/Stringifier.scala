@@ -17,12 +17,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>
     ast match
-      case Syntactic(name, args, rhsIdx, _) =>
+      case Syntactic(name, args, rhsIdx, children) =>
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule()
         app >> "|" >> name >> "|"
         if (!args.isEmpty) app >> "[" >> args >> "]"
         app >> "<" >> rhsIdx >> ">"
+        given Rule[Option[Ast]] = optionRule("<none>")
+        if (detail) app.wrap("(", ")")(children.map(app :> _ >> ",")) else app
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
 }

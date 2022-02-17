@@ -12,6 +12,7 @@ import scala.util.matching.Regex
 
 /** JavaScript parser */
 case class Parser(val grammar: Grammar) extends LAParsers {
+
   def lexer(name: String, k: Int = 0): String => String =
     str => parseAll(lexers((name, k)), str).get
   def parser(name: String, args: List[Boolean] = Nil): String => Ast =
@@ -22,7 +23,10 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     prod <- grammar.prods
     if prod.kind == Production.Kind.Syntactic
     name = prod.lhs.name
-    parser = getParser(prod)
+    parser =
+      // TODO handle in a more general way for indirect left-recursion
+      if (name == "CoalesceExpressionHead") handleLR
+      else getParser(prod)
   } yield name -> parser).toMap
 
   private def getParser(prod: Production): ESParser[Ast] = memo(args => {
@@ -48,7 +52,15 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     argsSet: Set[String],
     idx: Int,
     rhs: Rhs,
-  ): FLAParser[Ast] = ???
+  ): FLAParser[Ast] = log(rhs.condition match {
+    case Some(cond) if !(argsSet contains cond.name) => MISMATCH
+    case _ =>
+      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+      rhs.symbols.drop(1).foldLeft(base)(appendParser(_, _, argsSet)) ^^ {
+        case cs =>
+          (base: Ast) => Syntactic(name, args, idx, Some(base) :: cs.reverse)
+      }
+  })(s"$name$idx")
 
   private def getParsers(
     name: String,
@@ -59,51 +71,44 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   ): LAParser[Ast] = log(rhs.condition match {
     case Some(cond) if !(argsSet contains cond.name) => MISMATCH
     case _ =>
-      val base: LAParser[List[Option[Ast]]] = MATCH
+      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(_, _, argsSet)) ^^ {
-        Syntactic(name, args, idx, _)
+        case cs => Syntactic(name, args, idx, cs.reverse)
       }
   })(s"$name$idx")
 
-  // lazy val CaseClauses: ESParser[CaseClauses] = memo(args => {
-  //   val List(pYield, pAwait, pReturn) = getArgsN("CaseClauses", args, 3)
-  //   log(resolveLR((
-  //     log(MATCH ~ CaseClause(List(pYield, pAwait, pReturn)) ^^ { case _ ~ x0 => CaseClauses0(x0, args, Span()) })("CaseClauses0")
-  //   ), (
-  //     log(MATCH ~ CaseClause(List(pYield, pAwait, pReturn)) ^^ { case _ ~ x0 => ((x: CaseClauses) => CaseClauses1(x, x0, args, Span())) })("CaseClauses1")
-  //   )))("CaseClauses")
-  // })
-
   private def appendParser(
-    base: LAParser[List[Option[Ast]]],
+    prev: LAParser[List[Option[Ast]]],
     symbol: Symbol,
     argsSet: Set[String],
   ): LAParser[List[Option[Ast]]] =
     symbol match {
-      // case Terminal(term) => s"""($base <~ t(${getTokenParser(token)}))"""
-      // case Nonterminal(name, args, optional) =>
-      //   var parser = name
-      //   if (lexNames contains parser) parser = s"""nt("$parser", $parser)"""
-      //   else parser += getArgs(name, args)
-      //   if (optional) parser = s"""opt($parser)"""
-      //   s"""$base ~ $parser"""
-      // case ButNot(_, cases) =>
-      //   val parser = getTokenParser(token)
-      //   s"""$base ~ nt(\"\"\"$parser\"\"\", $parser)"""
-      // case Lookahead(contains, cases) =>
-      //   val parser = cases.map(c => s"""(${
-      //     c.map(token => {
-      //       val t = getTokenParser(token)
-      //       if (t.startsWith("\"") && t.endsWith("\"") && t(1).isLower) "(" + t + " <~ not(IDContinue))"
-      //       else t
-      //     }).mkString(" %% ")
-      //   })""").mkString(" | ")
-      //   val pre = if (contains) "+" else "-"
-      //   s"""($base <~ ${pre}ntl($parser))"""
-      // case EmptyToken => base + " ~ MATCH"
-      // case NoLineTerminatorToken => s"""($base <~ NoLineTerminator)"""
-      // case _ => base
-      case _ => ???
+      case Terminal(term) => prev <~ t(term)
+      case Nonterminal(name, args, optional) =>
+        lazy val parser =
+          if (lexNames contains name) nt(name, lexers(name, 0))
+          else parsers(name)(toBools(argsSet, args))
+        if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
+        else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
+      case ButNot(base, cases) =>
+        lazy val parser = getSymbolParser(symbol, argsSet)
+        val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
+        prev ~ nt(name, parser) ^^ { case l ~ s => Some(s) :: l }
+      case ButOnlyIf(base, methodName, cond) => ???
+      case Lookahead(contains, cases) =>
+        val parser = cases
+          .map(
+            _.map(_ match {
+              case Terminal(term) => term <~ not(IDContinue)
+              case symbol         => getSymbolParser(symbol, argsSet)
+            }).reduce(_ %% _),
+          )
+          .reduce(_ | _)
+        prev <~ (if (contains) +ntl(parser) else -ntl(parser))
+      case Empty               => prev
+      case NoLineTerminator    => prev <~ noLineTerminator
+      case CodePointAbbr(abbr) => ???
+      case UnicodeSet(cond)    => ???
     }
 
   // terminal lexer
@@ -318,12 +323,12 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   }
 
   // no LineTerminator parser
-  lazy val NoLineTerminator: LAParser[String] = log(
+  lazy val noLineTerminator: LAParser[String] = log(
     new LAParser(
       follow => strNoLineTerminator,
       emptyFirst,
     ),
-  )("NoLineTerminator")
+  )("noLineTerminator")
 
   // get fixed length arguments
   private def getArgsN(
@@ -339,4 +344,34 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     case Nonterminal(`name`, _, _) :: _ => true
     case _                              => false
   }
+
+  private def handleLR: ESParser[Ast] = memo(args => {
+    log(
+      resolveLR(
+        log(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
+          case _ ~ x0 =>
+            Syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
+        })("CoalesceExpressionHead1"),
+        log(
+          (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
+            case _ ~ x0 => (
+              (x: Ast) =>
+                val expr = Syntactic(
+                  "CoalesceExpression",
+                  args,
+                  0,
+                  List(Some(x), Some(x0)),
+                )
+                Syntactic(
+                  "CoalesceExpressionHead",
+                  args,
+                  0,
+                  List(Some(expr)),
+                ),
+            )
+          },
+        )("CoalesceExpressionHead0"),
+      ),
+    )("CoalesceExpressionHead")
+  })
 }

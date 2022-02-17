@@ -6,6 +6,7 @@ import esmeta.spec.util.{Parser => SpecParser}
 import esmeta.js.*
 import esmeta.js.util.{Parser => JsParser}
 import esmeta.util.SystemUtils.*
+import esmeta.util.BaseUtils.*
 
 /** `parse` phase */
 case object JsParse extends Phase[Unit, Ast] {
@@ -16,7 +17,8 @@ case object JsParse extends Phase[Unit, Ast] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Ast = {
-    val spec = SpecParser.parseSpecWithVersion()
+    val (_, spec) =
+      time("extract specification model", SpecParser.parseSpecWithVersion())
     val filename = getFirstFilename(globalConfig, "extract")
     val content = readFile(filename)
     val parser = JsParser(spec.grammar).parser("Script")

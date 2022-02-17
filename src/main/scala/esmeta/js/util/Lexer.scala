@@ -58,6 +58,8 @@ trait Lexer extends UnicodeParsers {
     lexer = getLexer(prod, argsSet)
   } yield (name, argsBit) -> lexer).toMap
 
+  lazy val lexNames = lexers.keySet.map(_._1)
+
   // internal data for packrat parsers
   type ParseCase[+T]
   protected case class Data(
@@ -94,32 +96,32 @@ trait Lexer extends UnicodeParsers {
     argsSet: Set[String],
   ): Parser[String] = symbol match {
     case Terminal(term) => term
-    case ButNot(base, cases) =>
-      val parser = getSymbolParser(base, argsSet)
-      val exclude = cases.map(getSymbolParser(_, argsSet)).reduce(_ ||| _)
-      parser.filter(parseAll(exclude, _).isEmpty)
-    case Empty => ""
-    case CodePointAbbr(abbr) =>
-      abbrCPs.getOrElse(
-        abbr,
-        error(s"unknown code point abbreviation: <$abbr>"),
-      )
     case Nonterminal(name, args, optional) =>
       val parser = lexers((name, toBit(toBools(argsSet, args))))
       if (optional) opt(parser) ^^ { _.getOrElse("") }
       else parser
+    case ButNot(base, cases) =>
+      val parser = getSymbolParser(base, argsSet)
+      val exclude = cases.map(getSymbolParser(_, argsSet)).reduce(_ ||| _)
+      parser.filter(parseAll(exclude, _).isEmpty)
+    case ButOnlyIf(base, name, cond) => ???
     case Lookahead(b, cases) =>
       val parser = cases
         .map(_.map(getSymbolParser(_, argsSet)).reduce(_ % _))
         .reduce(_ ||| _)
       "" <~ (if (b) guard else not)(parser)
-    case ButOnlyIf(base, name, cond)                              => ???
+    case Empty            => ""
+    case NoLineTerminator => strNoLineTerminator
+    case CodePointAbbr(abbr) =>
+      abbrCPs.getOrElse(
+        abbr,
+        error(s"unknown code point abbreviation: <$abbr>"),
+      )
     case UnicodeSet(None)                                         => Unicode
     case UnicodeSet(Some("with the Unicode property “ID_Start”")) => IDStart
     case UnicodeSet(Some("with the Unicode property “ID_Continue”")) =>
       IDContinue
-    case UnicodeSet(cond) => ???
-    case _                => error(s"invalid symbol in lexer: $symbol")
+    case UnicodeSet(Some(cond)) => ???
   }
 
   // get a set of argument names from lists of parameters and arguments
