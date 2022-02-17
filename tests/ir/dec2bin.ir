@@ -1,0 +1,18 @@
+def dec2bin(n: int) {
+  let temp = 0
+  let i = 0
+  loop[repeat] (! (|| (= n 0) (= n 1))) then {
+    let q = (>> n 1)
+    let r = (% n 2)
+    n = q
+    temp = (+ temp (* r (** 10 i)))
+    i = (+ i 1)
+  }
+  temp = (+ temp (* n (** 10 i)))
+  return temp
+}
+
+@main def main() {
+  call b = clo<dec2bin>(35)
+  assert (= b 100011)
+}

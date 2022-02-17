@@ -1,0 +1,10 @@
+@main def main() {
+  let a = "a"
+  let b = "b"
+  let c = "c"
+
+  assert (= (str-concat) "")
+  assert (= (str-concat a) "a")
+  assert (= (str-concat a b) "ab")
+  assert (= (str-concat a b c) "abc")
+}

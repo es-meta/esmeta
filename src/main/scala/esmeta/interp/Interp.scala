@@ -1,15 +1,16 @@
 package esmeta.interp
 
-import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.math.{BigInt => SBigInt}
+import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
+import scala.math.{BigInt => SBigInt}
 
 /** CFG Interpreter */
 class Interp(
@@ -30,9 +31,9 @@ class Interp(
       if (DEBUG) st.context.cursor match
         case NodeCursor(node) =>
           val func = cfg.funcOf(node)
-          println(s"[${func.kind}${func.name}] $node")
+          println(s"[${func.head.kind}${func.head.name}] $node")
         case ExitCursor(func) =>
-          println(s"[${func.kind}${func.name} Exited")
+          println(s"[${func.head.kind}${func.head.name} Exited")
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 
@@ -78,8 +79,8 @@ class Interp(
         call(lhs, fexpr, args)
     }
 
-  /** transition for instructions */
-  def interp(inst: Inst): Unit = inst match {
+  /** transition for normal instructions */
+  def interp(inst: NormalInst): Unit = inst match {
     case IExpr(expr)        => interp(expr)
     case ILet(lhs, expr)    => st.context.locals += lhs -> interp(expr)
     case IAssign(ref, expr) => st.update(interp(ref), interp(expr))
@@ -117,12 +118,12 @@ class Interp(
       interp(fexpr) match {
         case Clo(func, captured) =>
           val vs = args.map(interp)
-          val newLocals = getLocals(func.params, vs) ++ captured
+          val newLocals = getLocals(func.head.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case Cont(func, captured, callStack) => {
           val vs = args.map(interp)
-          val newLocals = getLocals(func.params, vs) ++ captured
+          val newLocals = getLocals(func.head.params, vs) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
@@ -288,7 +289,7 @@ class Interp(
         Interp.interp(bop, l, r)
 
   /** get initial local variables */
-  import Func.Param
+  import IRFunc.Param
   def getLocals(params: List[Param], args: List[Value]): MMap[Local, Value] = {
     val map = MMap[Local, Value]()
     @tailrec

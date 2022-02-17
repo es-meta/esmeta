@@ -1,0 +1,43 @@
+@main def main() {
+  let nx = 1.2f
+  let ny = 2.0f
+  let x = 3
+  let y = 5
+  let bx = 1n
+  let by = 2n
+  let sx = "a"
+  let sy = "bc"
+
+  // booleans
+  assert (&& true true)
+  assert (! (&& true false))
+  assert (! (&& false true))
+  assert (! (&& false false))
+  assert (|| true true)
+  assert (|| true false)
+  assert (|| false true)
+  assert (! (|| false false))
+  assert (! (^^ true true))
+  assert (^^ true false)
+  assert (^^ false true)
+  assert (! (^^ false false))
+  assert (= true true)
+  assert (! (= true false))
+  assert (! (= true false))
+  assert (= false false)
+
+  // absent
+  assert (! (= nx absent))
+
+  // numbers
+  assert (< nx ny)
+  assert (! (= -0.0f +0.0f))
+  assert (== -0.0f +0.0f)
+  assert (== nx nx)
+  assert (= ny ny)
+  assert (! (== nx ny))
+
+  // math values
+  assert (! (< y x))
+  assert (! (== y x))
+}

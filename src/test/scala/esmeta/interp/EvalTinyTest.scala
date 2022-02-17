@@ -9,11 +9,10 @@ class EvalTinyTest extends InterpTest {
 
   // registration
   def init: Unit = {
-    for (file <- walkTree(CFG_TEST_DIR)) {
+    for (file <- walkTree(IR_TEST_DIR)) {
       val filename = file.getName
-      if (cfgFilter(filename)) check(filename) {
-        val cfgName = file.toString
-        interpFile(cfgName)
+      if (irFilter(filename)) check(filename) {
+        interpFile(file.toString)
       }
     }
   }

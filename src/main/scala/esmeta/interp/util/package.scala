@@ -1,6 +1,7 @@
 package esmeta.interp.util
 
 import esmeta.interp.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.cfg.*
 import esmeta.cfg.util.*
 import esmeta.error.*
@@ -228,7 +229,7 @@ extension (st: State) {
 extension (callCtxt: CallContext) {
 
   /** function name * */
-  def name: String = callCtxt.context.func.name
+  def name: String = callCtxt.context.func.head.name
 
   /** copy contexts */
   def copied: CallContext = callCtxt.copy(context = callCtxt.context.copied)
@@ -241,7 +242,7 @@ extension (ctxt: Context) {
   def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
 
   /** name */
-  def name: String = ctxt.func.name
+  def name: String = ctxt.func.head.name
 }
 
 /** extensions for heaps */

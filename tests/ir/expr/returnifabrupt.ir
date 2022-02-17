@@ -1,0 +1,14 @@
+def f() {
+  return 0
+}
+
+@main def main() {
+  // pure
+  let a = 0
+  assert (= [? a] 0)
+  assert (= [! a] 0)
+  // completion
+  call comp = clo<f>()
+  assert (= [? comp] 0)
+  assert (= [! comp] 0)
+}

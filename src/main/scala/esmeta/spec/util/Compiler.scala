@@ -1,7 +1,9 @@
 package esmeta.spec.util
 
-import esmeta.cfg.util.{Builder, Parser => CParser}
-import esmeta.cfg.{Literal => CLiteral, Type => CType, *}
+import esmeta.cfg.*
+import esmeta.cfg.util.Builder
+import esmeta.ir.{Type => IRType, Func => IRFunc, *}
+import esmeta.ir.util.{Parser => IRParser}
 import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
 import esmeta.util.BaseUtils.*
@@ -17,19 +19,17 @@ class Compiler(val spec: Spec) {
   /** add an algorithm to a CFG as a function */
   def compile(algo: Algorithm): Func = {
     val head = algo.head
-    val kind = getKind(head)
     val name = getName(head)
-    val main = name == "RunJobs"
-    val params = getParams(head)
-    val fb = builder.FuncBuilder(main, kind, name, params)
-    // TODO
-    compile(fb, algo.body)
-    fb.func
+    val funcHead = IRFunc.Head(
+      name == "RunJobs",
+      getKind(head),
+      name,
+      getParams(head),
+    )
+    val fb = builder.FuncBuilder(funcHead)
+    val body = compileWithContext(fb, algo.body)
+    fb.getFunc(body)
   }
-
-  /** add an manually created algorithm to a CFG as a funtion */
-  def manualFromFile(path: String): Func =
-    CParser.fromFileWithParser(path, CParser.funcGen)(builder)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -39,8 +39,8 @@ class Compiler(val spec: Spec) {
   private type FB = builder.FuncBuilder
 
   // get function kind
-  private def getKind(head: Head): Func.Kind = {
-    import Func.Kind.*
+  private def getKind(head: Head): IRFunc.Kind = {
+    import IRFunc.Kind.*
     head match {
       case head: AbstractOperationHead       => AbsOp
       case head: NumericMethodHead           => NumMeth
@@ -53,7 +53,7 @@ class Compiler(val spec: Spec) {
 
   // get function name
   private def getName(head: Head): String = {
-    import Func.Kind.*
+    import IRFunc.Kind.*
     head match {
       case head: AbstractOperationHead =>
         head.name
@@ -75,7 +75,7 @@ class Compiler(val spec: Spec) {
   }
 
   // get function parameters
-  private def getParams(head: Head): List[Func.Param] = {
+  private def getParams(head: Head): List[IRFunc.Param] = {
     head match {
       case head: AbstractOperationHead =>
         head.params.map(compile)
@@ -120,6 +120,12 @@ class Compiler(val spec: Spec) {
   private inline def currentIntrinsics: Ref =
     toStrRef(currentRealm, "Intrinsics")
 
+  // compile with new context and pop instructions
+  private def compileWithContext(fb: FB, step: Step): Inst =
+    compileWithContext(fb, compile(fb, step))
+  private def compileWithContext(fb: FB, f: => Unit): Inst =
+    fb.newContext; f; fb.popContext
+
   // compile algorithm steps
   private def compile(fb: FB, step: Step): Unit = step match {
     case LetStep(x, expr) =>
@@ -127,11 +133,12 @@ class Compiler(val spec: Spec) {
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case IfStep(cond, thenStep, elseStep) =>
-      fb.addBranch(
-        Branch.Kind.If,
-        compile(fb, cond),
-        compile(fb, thenStep),
-        elseStep.map(compile(fb, _)),
+      fb.addInst(
+        IIf(
+          compile(fb, cond),
+          compileWithContext(fb, thenStep),
+          elseStep.fold(ISeq(List()))(compileWithContext(fb, _)),
+        ),
       )
     case ReturnStep(expr) =>
       fb.addInst(IReturn(expr.fold(EUndef)(compile(fb, _))))
@@ -146,26 +153,34 @@ class Compiler(val spec: Spec) {
         IAssign(i, EMathVal(0)),
         IAssign(length, toStrERef(list, "length")),
       )
-      fb.addBranch(
-        Branch.Kind.Loop("foreach"),
-        lessThan(iExpr, lengthExpr), {
-          fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-          compile(fb, body)
-          fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
-        },
-        loop = true,
+      fb.addInst(
+        ILoop(
+          "foreach",
+          lessThan(iExpr, lengthExpr),
+          compileWithContext(
+            fb, {
+              fb.addInst(ILet(compile(x), toERef(list, iExpr)))
+              compile(fb, body)
+              fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+            },
+          ),
+        ),
       )
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       val (i, iExpr) = compileWithExpr(x)
       fb.addInst(ILet(i, compile(fb, start)))
-      fb.addBranch(
-        Branch.Kind.Loop("foreach-int"),
-        compile(fb, cond), {
-          compile(fb, body)
-          val op = if (ascending) add(_, _) else sub(_, _)
-          fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
-        },
-        loop = true,
+      fb.addInst(
+        ILoop(
+          "foreach-int",
+          compile(fb, cond),
+          compileWithContext(
+            fb, {
+              compile(fb, body)
+              val op = if (ascending) add(_, _) else sub(_, _)
+              fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
+            },
+          ),
+        ),
       )
     case ThrowStep(errName) =>
       val proto = Intrinsic(errName, List("prototype"))
@@ -184,17 +199,18 @@ class Compiler(val spec: Spec) {
     case AppendStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case RepeatStep(cond, body) =>
-      fb.addBranch(
-        Branch.Kind.Loop("repeat"),
-        cond.fold(EBool(true))(compile(fb, _)),
-        compile(fb, body),
-        loop = true,
+      fb.addInst(
+        ILoop(
+          "repeat",
+          cond.fold(EBool(true))(compile(fb, _)),
+          compileWithContext(fb, body),
+        ),
       )
     case PushCtxtStep(ref) =>
       fb.addInst(
         IAssign(GLOBAL_CONTEXT, ERef(compile(fb, ref))),
-        IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, false),
       )
+      fb.addInst(IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, false))
     case NoteStep(note) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context) =>
@@ -278,28 +294,28 @@ class Compiler(val spec: Spec) {
       else {
         val (x, xExpr) = fb.newTIdWithExpr
         val f = EClo(name, Nil)
-        fb.addCall(x, f, args.map(compile(fb, _)))
+        fb.addInst(ICall(x, f, args.map(compile(fb, _))))
         xExpr
       }
     case InvokeNumericMethodExpression(ty, name, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(s"$ty::$name", Nil)
-      fb.addCall(x, f, args.map(compile(fb, _)))
+      fb.addInst(ICall(x, f, args.map(compile(fb, _))))
       xExpr
     case InvokeAbstractClosureExpression(ref, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
-      fb.addCall(x, ERef(compile(fb, ref)), args.map(compile(fb, _)))
+      fb.addInst(ICall(x, ERef(compile(fb, ref)), args.map(compile(fb, _))))
       xExpr
     case InvokeMethodExpression(ref, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val prop @ Prop(base, _) = compile(fb, ref)
-      fb.addCall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _)))
+      fb.addInst(ICall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _))))
       xExpr
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val baseExpr = compile(fb, base)
       val callRef = toERef(fb, baseExpr, EStr(name))
-      fb.addCall(x, callRef, baseExpr :: args.map(compile(fb, _)))
+      fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
       xExpr
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
@@ -328,10 +344,11 @@ class Compiler(val spec: Spec) {
       EUnary(compile(op), compile(fb, expr))
     case AbstractClosureExpression(params, captured, body) =>
       val ps =
-        params.map(x => Func.Param(compile(x), false, CType("any")))
-      val newFb = builder.FuncBuilder(false, Func.Kind.Clo, fb.name, ps)
-      compile(newFb, body)
-      EClo(newFb.func.name, captured.map(compile))
+        params.map(x => IRFunc.Param(compile(x), false, IRType("any")))
+      val funcHead = IRFunc.Head(false, IRFunc.Kind.Clo, fb.head.name, ps)
+      val newFb = builder.FuncBuilder(funcHead)
+      val newFunc = newFb.getFunc(compileWithContext(newFb, body))
+      EClo(newFunc.head.name, captured.map(compile))
     case lit: Literal => compile(lit)
   }
 
@@ -431,14 +448,14 @@ class Compiler(val spec: Spec) {
   }
 
   // compile algorithm parameters
-  private def compile(param: SParam): Func.Param = {
+  private def compile(param: SParam): IRFunc.Param = {
     val SParam(name, skind, ty) = param
     val optional = skind == SParam.Kind.Optional
-    Func.Param(Name(name), optional, CType(ty))
+    IRFunc.Param(Name(name), optional, IRType(ty))
   }
 
   // compile types
-  private def compile(ty: Type): CType = CType(ty.name)
+  private def compile(ty: Type): IRType = IRType(ty.name)
 
   // literal helpers
   private val zero = EMathVal(0)
@@ -484,8 +501,10 @@ object Compiler {
     for (algo <- spec.algorithms) compiler.compile(algo)
 
     // manually created AOs
-    for (file <- walkTree(ES2022_DIR) if cfgFilter(file.getName))
-      compiler.manualFromFile(file.toString)
+    for (file <- walkTree(ES2022_DIR) if irFilter(file.getName)) {
+      val irFunc = IRFunc.fromFile(file.toString)
+      compiler.builder.translate(irFunc)
+    }
 
     compiler.cfg
   }

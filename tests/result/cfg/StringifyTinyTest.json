@@ -1,0 +1,6 @@
+{
+  "Branch.Kind" : true,
+  "CFG" : true,
+  "Func" : true,
+  "Node" : true
+}

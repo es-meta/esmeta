@@ -1,0 +1,6 @@
+// TODO implementaion is missing
+@main def main() {
+  //assert (= ([number] x) ???)
+  //assert (= ([bigint] x) ???)
+  //assert (= ([str] x) ???)
+}

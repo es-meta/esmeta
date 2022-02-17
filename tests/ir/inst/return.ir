@@ -1,0 +1,9 @@
+def g() {
+  return 42
+}
+
+@main def main() {
+  let clo = clo<g>
+  call x = clo()
+  assert (= x 42)
+}

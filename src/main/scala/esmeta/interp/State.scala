@@ -2,6 +2,7 @@ package esmeta.interp
 
 import scala.collection.mutable.{Map => MMap}
 import esmeta.cfg.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals

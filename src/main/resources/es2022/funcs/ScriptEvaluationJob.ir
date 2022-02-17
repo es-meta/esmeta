@@ -1,0 +1,6 @@
+def <CLO>:ScriptEvaluationJob() {
+  call %0 = clo<ParseScript>(@SOURCE_TEXT, @CONTEXT.Realm, @HOST_DEFINED)
+  call %1 = clo<ScriptEvaluation>(%0)
+  [? %1]
+  return undefined
+}

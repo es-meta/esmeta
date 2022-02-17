@@ -4,6 +4,8 @@ import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.cfg.util.*
 import esmeta.interp.*
+import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.util.*
 import esmeta.js.*
 import esmeta.js.util.*
 import esmeta.util.*
@@ -12,6 +14,10 @@ import esmeta.util.BaseUtils.*
 
 /** stringifier for Interp */
 class Stringifier(detail: Boolean, location: Boolean) {
+  // load IR Stringifier
+  val irStringifier = IRElem.getStringifier((detail, location))
+  import irStringifier.{given, *}
+
   // load CFG Stringifier
   val cfgStringifier = CFGElem.getStringifier((detail, location))
   import cfgStringifier.{given, *}
@@ -47,7 +53,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
     app.wrap {
-      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.func.name
+      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: "
       app.wrapIterable(ctxt.locals)
       ctxt.retVal.map(app :> "return: " >> _)
@@ -118,7 +124,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given cloRule: Rule[Clo] = (app, clo) =>
     val Clo(func, captured) = clo
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
-    app >> "clo<" >> func.name
+    app >> "clo<" >> func.head.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 
@@ -126,7 +132,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given contRule: Rule[Cont] = (app, cont) =>
     val Cont(func, captured, _) = cont
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
-    app >> "cont<" >> func.name
+    app >> "cont<" >> func.head.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 

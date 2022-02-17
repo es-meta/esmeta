@@ -2,7 +2,7 @@ package esmeta.interp
 
 import esmeta.interp.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.cfg.Global
+import esmeta.ir.Global
 
 /** interpreter elements */
 trait InterpElem {

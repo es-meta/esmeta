@@ -1,0 +1,10 @@
+@main def main() {
+  let sum = 0
+  let i = 0
+  loop["repeat"] (< i 11) then {
+    sum = (+ sum i)
+    i = (+ i 1)
+  }
+  assert (= i 11)
+  assert (= sum 55)
+}

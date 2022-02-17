@@ -1,0 +1,21 @@
+@main def main() {
+  let x = 3
+  let y = 5
+  let bx = 1n
+  let by = 2n
+
+  // math values
+  assert (= (& x y) 1)
+  assert (= (| x y) 7)
+  assert (= (^ x y) 6)
+  assert (= (<< x y) 96)
+  assert (= (>> 16 2) 4)
+  assert (= (>>> -1 60) 15)
+
+  // big integers
+  assert (= (& bx by) 0n)
+  assert (= (| bx by) 3n)
+  assert (= (^ bx by) 3n)
+  assert (= (<< bx by) 4n)
+  assert (= (>> 16n 2n) 4n)
+}

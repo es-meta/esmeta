@@ -2,6 +2,7 @@ package esmeta.cfg.util
 
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
+import esmeta.ir.{Func => IRFunc, *}
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
@@ -10,24 +11,69 @@ class Builder {
   /** get CFG */
   lazy val cfg: CFG = CFG(main, funcs)
 
-  /** function builder */
-  case class FuncBuilder(
-    val main: Boolean,
-    val kind: Func.Kind,
-    val name: String,
-    val params: List[Func.Param],
-  ) {
-    // function id
-    private val fid: Int = nextFId
-
+  /** translate IR function to cfg function */
+  def translate(irFunc: IRFunc): Func = {
+    val IRFunc(head, body) = irFunc
     // entry node
-    private var entry: Option[Node] = None
+    var entry: Option[Node] = None
 
     // previous edges
-    private type Edge = (Node, Boolean)
-    private var prev: List[Edge] = Nil
-    private var labelMap = MMap[String, List[Edge]]().withDefaultValue(Nil)
-    private var loops: List[(Branch, Option[String])] = List()
+    var prev: List[(Node, Boolean)] = Nil
+
+    // connect previous edges
+    def connect(to: Node): Unit = {
+      if (prev.isEmpty) entry = Some(to)
+      prev foreach {
+        case (block: Block, _)       => block.next = Some(to)
+        case (call: Call, _)         => call.next = Some(to)
+        case (branch: Branch, true)  => branch.thenNode = Some(to)
+        case (branch: Branch, false) => branch.elseNode = Some(to)
+      }
+    }
+
+    // aux
+    def aux(inst: Inst): Unit = inst match {
+      case normal: NormalInst =>
+        val block = prev match
+          case List((b: Block, _)) => b
+          case _                   => val b = Block(nextNId); connect(b); b
+        block.insts += normal
+        prev = List((block, true))
+      case ISeq(insts) => for { i <- insts } aux(i)
+      case IIf(cond, thenInst, elseInst) =>
+        val branch = Branch(nextNId, Branch.Kind.If, cond)
+        connect(branch)
+        val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
+        val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
+        prev = thenPrev ++ elsePrev
+      case ILoop(kind, cond, body) =>
+        val branch = Branch(nextNId, Branch.Kind.Loop(kind), cond)
+        connect(branch)
+        prev = List((branch, true)); aux(body); connect(branch)
+        prev = List((branch, false))
+      case ICall(lhs, fexpr, args) =>
+        val call = Call(nextNId, lhs, fexpr, args)
+        connect(call)
+        prev = List((call, true))
+    }
+    aux(body)
+
+    val func = Func(nextFId, head, entry)
+    funcs += func
+    func
+  }
+
+  /** function builder */
+  case class FuncBuilder(head: IRFunc.Head) {
+    // contexts
+    private var contexts: List[ListBuffer[Inst]] = List()
+    def newContext: Unit = contexts = ListBuffer() :: contexts
+    def popContext: Inst = contexts match
+      case current :: rest => contexts = rest; ISeq(current.toList)
+      case _               => ??? // error
+    def addInst(insts: Inst*): Unit = contexts match
+      case current :: rest => current ++= insts
+      case _               => ??? // error
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
@@ -40,99 +86,18 @@ class Builder {
     /** get next allocation site */
     def newSite: Int = nextSite
 
-    /** get function */
-    lazy val func =
-      // XXX handle next of loop end
-      loops.foreach { case (branch, bid) => connect(Nil, branch, bid) }
-      val func = Func(fid, main, kind, name, params, entry)
+    /** get cfg function */
+    def getFunc(body: Inst): Func =
+      val func = translate(IRFunc(head, body))
       funcs += func
       func
-
-    def addEdge(next: Option[String], edge: Edge): Unit = next match
-      case Some(next) => prev = Nil; labelMap(next) ::= edge
-      case None       => prev = List(edge)
-
-    /** add instructions */
-    def addInst(insts: Inst*): Unit = addInsts(insts)
-    def addInsts(
-      insts: Iterable[Inst],
-      next: Option[String] = None,
-      label: Option[String] = None,
-    ): Unit = prev match
-      case List((block: Block, _)) => block.insts ++= insts
-      case _ =>
-        val block = Block(nextNId)
-        connect(prev, block, label)
-        block.insts ++= insts
-        addEdge(next, (block, true))
-
-    /** add call nodes */
-    def addCall(
-      lhs: Id,
-      fexpr: Expr,
-      args: List[Expr],
-      next: Option[String] = None,
-      label: Option[String] = None,
-    ): Unit =
-      val call = Call(nextNId, lhs, fexpr, args)
-      connect(prev, call, label)
-      addEdge(next, (call, true))
-
-    /** add branch nodes */
-    def addBranch(
-      kind: Branch.Kind,
-      cond: Expr,
-      thenF: => Unit,
-      elseF: => Unit = {},
-      loop: Boolean = false,
-      label: Option[String] = None,
-    ): Unit =
-      val branch = Branch(nextNId, kind, cond)
-      connect(prev, branch, label)
-      val thenPrev = { prev = List((branch, true)); thenF; prev }
-      val elsePrev = { prev = List((branch, false)); elseF; prev }
-      prev = elsePrev ++ (if (loop) { connect(thenPrev, branch); Nil }
-                          else thenPrev)
-
-    /** add branch nodes with id */
-    def addBranchWithLabel(
-      kind: Branch.Kind,
-      cond: Expr,
-      thenId: Option[String],
-      elseId: Option[String],
-      label: Option[String] = None,
-    ): Unit =
-      val branch = Branch(nextNId, kind, cond)
-      connect(prev, branch, label)
-      thenId.map(labelMap(_) ::= (branch, true))
-      elseId.map(labelMap(_) ::= (branch, false))
-
-      // XXX handle next of loop end
-      kind match
-        case Branch.Kind.Loop(_) => loops ::= (branch, label)
-        case _                   => None
-
-    // connect previous edges to
-    private def connect(
-      directPrev: List[Edge],
-      node: Node,
-      label: Option[String] = None,
-    ): Unit =
-      val prev = directPrev ++ label.fold(Nil)(labelMap(_))
-      if (prev.isEmpty) entry = Some(node)
-      prev foreach {
-        case (block: Block, _)       => block.next = Some(node)
-        case (call: Call, _)         => call.next = Some(node)
-        case (branch: Branch, true)  => branch.thenNode = Some(node)
-        case (branch: Branch, false) => branch.elseNode = Some(node)
-      }
   }
 
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
   // get the main function
-  private def main: Func = funcs.filter(_.main) match {
+  private def main: Func = funcs.filter(_.head.main) match {
     case ListBuffer()     => error("no main function")
     case ListBuffer(main) => main
     case _                => error("multiple main functions")

@@ -1,0 +1,8 @@
+@main def main() {
+  let a = 3
+  let b = true
+  let c = a
+  assert (= a 3)
+  assert (= b true)
+  assert (= c 3)
+}

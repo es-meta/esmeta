@@ -28,7 +28,7 @@ case object Compile extends Phase[Spec, CFG] {
       mkdir(CFG_LOG_DIR)
       // dump dot format
       cfg.funcs.foreach(f => {
-        val name = s"${CFG_LOG_DIR}/${f.name}"
+        val name = s"${CFG_LOG_DIR}/${f.head.name}"
         dumpFile(f.toDot, s"$name.dot")
       })
 

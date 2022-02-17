@@ -1,0 +1,12 @@
+def gcd(a: int, b: int) {
+  if (= a 0) then %0 = b
+  else if (= b 0) then %0 = a
+  else if (< b a) then call %0 = clo<gcd>((- a b), b)
+  else call %0 = clo<gcd>(a, (- b a))
+  return %0
+}
+
+@main def main() {
+  call g = clo<gcd>(42, 224)
+  assert (= g 14)
+}

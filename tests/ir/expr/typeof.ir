@@ -1,0 +1,5 @@
+// TODO implementaion is missing
+@main def main() {
+  //let const = ~empty~
+  //assert (= (typeof const) "Constant")
+}

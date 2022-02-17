@@ -1,6 +1,7 @@
 package esmeta.interp
 
 import esmeta.cfg.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
@@ -108,7 +109,8 @@ class StringifyTinyTest extends InterpTest {
     lazy val comp = Comp(Const("throw"), Math(42), Some("to"))
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
-    lazy val func = Func(0, true, Func.Kind.AbsOp, "f", Nil, None)
+    lazy val func =
+      Func(0, IRFunc.Head(true, IRFunc.Kind.AbsOp, "f", Nil), None)
     lazy val clo = Clo(func, Map())
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)

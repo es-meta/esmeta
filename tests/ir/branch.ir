@@ -1,0 +1,5 @@
+@main def main() {
+  if (< 1 2) then assert true
+  else assert false
+  return 0
+}

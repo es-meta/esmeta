@@ -2,16 +2,17 @@ package esmeta.cfg
 
 import esmeta.cfg.util.*
 import esmeta.util.{UId, Locational}
+import esmeta.ir.*
 import scala.collection.mutable.ListBuffer
 
 // CFG nodes
 sealed trait Node extends CFGElem with UId with Locational
-object Node extends Parser.From[Node]
+object Node
 
 /** block nodes */
 case class Block(
   id: Int,
-  var insts: ListBuffer[Inst] = ListBuffer(),
+  var insts: ListBuffer[NormalInst] = ListBuffer(),
   var next: Option[Node] = None,
 ) extends Node
 
@@ -36,4 +37,3 @@ object Branch:
   enum Kind extends CFGElem:
     case If
     case Loop(str: String)
-  object Kind extends Parser.From[Kind]

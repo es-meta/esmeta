@@ -1,0 +1,20 @@
+def f() {
+  return 42
+}
+
+@main def main() {
+  // define reference
+  let i = 0
+  let str = "abc"
+  let list = (new [2, 1]) [#1]
+  call comp = clo<f>()
+  assert (= i 0)
+  assert (= list[0] 2)
+  assert (= list[1] 1)
+  assert (= str[0] "a")
+  assert (= str[1] "b")
+  assert (= str[2] "c")
+  assert (= comp.Type ~normal~)
+  assert (= comp.Value 42)
+  assert (= comp.Target ~empty~)
+}

@@ -1,0 +1,39 @@
+@main def main() {
+  let nx = 1.2f
+  let ny = 2.0f
+  let nz = 59.0f
+  let x = 3
+  let y = 5
+  let z = 1
+  let bx = 1n
+  let by = 2n
+  let sx = "a"
+  let sy = "bc"
+
+  // math values
+  assert (= (+ x y) 8)
+  assert (= (- x y) -2)
+  assert (= (* x y) 15)
+  assert (= (** x y) 243)
+  assert (= (/ x y) 0.6)
+  assert (= (% y x) 2)
+  assert (= (%% y x) 2)
+
+  // numbers
+  assert (= (+ nx ny) 3.2f)
+  assert (= (- nx ny) -0.8f)
+  assert (= (* nx ny) 2.4f)
+  assert (= (** nx ny) 1.44f)
+  assert (= (/ nx ny) 0.6f)
+  assert (= (% ny nx) 0.8f)
+  assert (= (%% ny nx) 0.8f)
+
+  // big integers
+  assert (= (+ bx by) 3n)
+  assert (= (- bx by) -1n)
+  assert (= (* bx by) 2n)
+  assert (= (** bx by) 1n)
+  assert (= (/ bx by) 0n)
+  assert (= (% by bx) 0n)
+  assert (= (%% by bx) 0n)
+}

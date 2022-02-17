@@ -1,0 +1,4 @@
+@main def main() {
+  let x = (new '"A")[#1]
+  let y = (new 'undefined)[#1]
+}

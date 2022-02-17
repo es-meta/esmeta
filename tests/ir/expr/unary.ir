@@ -1,0 +1,26 @@
+@main def main() {
+  let x = 1.2f
+
+  // mathematical values
+  assert (= (abs -3) 3)
+  assert (= (abs -3.23) 3.23)
+  assert (= (floor 2.34) 2)
+  assert (= (floor -2.34) -3)
+
+  // numbers
+  assert (= (- x) -1.2f)
+
+  // math values
+  x = 3
+  assert (= (- x) -3)
+  assert (= (~ x) -4)
+
+  // big integers
+  x = 10n
+  assert (= (- x) -10n)
+  assert (= (~ x) -11n)
+
+  // booleans
+  assert (= (! true) false)
+  assert (= (! false) true)
+}

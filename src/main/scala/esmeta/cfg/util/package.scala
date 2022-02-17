@@ -1,13 +1,14 @@
 package esmeta.cfg.util
 
 import esmeta.cfg.*
+import esmeta.ir.{Func => IRFunc}
 import scala.collection.mutable.Queue
 
 /** extensions for functions */
 extension (func: Func) {
 
   /** check whether it is builtin */
-  def isBuiltin: Boolean = func.kind == Func.Kind.Builtin
+  def isBuiltin: Boolean = func.head.kind == IRFunc.Kind.Builtin
 }
 
 /** get reachable nodes */
