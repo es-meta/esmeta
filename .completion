@@ -15,7 +15,7 @@ _esmeta_completions() {
   globalOpt="-silent -debug -log -time"
   helpOpt=""
   extractOpt="-extract:json -extract:version -extract:log -extract:stat"
-  compileOpt=""
+  compileOpt="-compile:dot -compile:pdf"
   jsparseOpt=""
   # completion for commands
   case "${COMP_CWORD}" in

@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.spec.*
 import esmeta.spec.util.*
+import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.cfg.*
 
@@ -23,9 +24,29 @@ case object Compile extends Phase[Spec, CFG] {
         filename = s"$COMPILE_LOG_DIR/${name.replace("/", "")}.cfg"
       } dumpFile(func, filename)
     }
+    if (config.dot) {
+      ??? // dump dot format
+      if (config.pdf) {
+        ??? // dump pdf format
+      }
+    }
     cfg
   }
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
+  val options: List[PhaseOption[Config]] = List(
+    (
+      "dot",
+      BoolOption(c => c.dot = true),
+      "dump the cfg in a dot format.",
+    ),
+    (
+      "pdf",
+      BoolOption(c => { c.dot = true; c.pdf = true }),
+      "dump the cfg in a dot and pdf format.",
+    ),
+  )
+  case class Config(
+    var dot: Boolean = false,
+    var pdf: Boolean = false,
+  )
 }
