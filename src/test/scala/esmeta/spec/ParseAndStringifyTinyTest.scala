@@ -42,13 +42,6 @@ class ParseAndStringifyTinyTest extends SpecTest {
       "> any Unicode code point with the Unicode property “ID_Start”",
     )
 
-    // nonterminal arguments
-    checkParseAndStringify("NtArg", NtArg)(
-      NtArg(NtArg.Kind.True, "Await") -> "+Await",
-      NtArg(NtArg.Kind.False, "Yield") -> "~Yield",
-      NtArg(NtArg.Kind.Pass, "Wait") -> "?Wait",
-    )
-
     // rhs conditions
     checkParseAndStringify("RhsCond", RhsCond)(
       RhsCond("Hello", true) -> "[+Hello]",

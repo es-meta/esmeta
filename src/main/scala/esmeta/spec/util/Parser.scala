@@ -18,6 +18,7 @@ object Parser extends Parsers {
     val grammar = parseGrammar(document)
     val idxMap = grammar.idxMap(forWeb = false)
     val algorithms = parseAlgorithms(document, idxMap)
+
     val tables = parseTables(document)
     Spec(
       version = None,
@@ -334,7 +335,7 @@ trait Parsers extends BasicParsers {
     ("!=" | "<!" | "∉") ^^^ false | ("==" | "<" | "∈") ^^^ true
 
   // nonterminal arguments
-  given ntArg: Parser[NtArg] =
+  lazy val ntArg: Parser[NtArg] =
     import NtArg.Kind.*
     ("+" ^^^ True | "~" ^^^ False | "?" ^^^ Pass) ~ word ^^ {
       case kind ~ name => NtArg(kind, name)

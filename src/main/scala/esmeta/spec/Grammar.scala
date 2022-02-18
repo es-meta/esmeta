@@ -88,6 +88,6 @@ case class UnicodeSet(cond: Option[String]) extends Symbol
 // nonterminal arguments
 // -----------------------------------------------------------------------------
 case class NtArg(kind: NtArg.Kind, name: String) extends SpecElem
-object NtArg extends Parser.From[NtArg]:
+object NtArg:
   enum Kind extends SpecElem:
     case True, False, Pass
