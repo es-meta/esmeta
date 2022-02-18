@@ -37,7 +37,7 @@ The `<path to ESMeta>` should be the absolute path of ESMeta repository.
 ### Installation of ESMeta using `sbt`
 
 ```bash
-$ cd esmeta && sbt build
+$ cd esmeta && git submodule init && git submodule update && sbt assembly
 ```
 
 ## Basic Commands
