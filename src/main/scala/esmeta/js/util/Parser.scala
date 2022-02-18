@@ -98,15 +98,16 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         prev ~ nt(name, parser) ^^ { case l ~ s => Some(s) :: l }
       case ButOnlyIf(base, methodName, cond) => ???
       case Lookahead(contains, cases) =>
-        val parser = cases
+        lazy val parser = cases
           .map(
             _.map(_ match {
-              case Terminal(term) => term <~ not(IDContinue)
-              case symbol         => getSymbolParser(symbol, argsSet)
+              case Terminal(t) if t.matches("[a-z]+") => t <~ not(IDContinue)
+              case symbol => getSymbolParser(symbol, argsSet)
             }).reduce(_ %% _),
           )
           .reduce(_ | _)
-        prev <~ (if (contains) +ntl(parser) else -ntl(parser))
+        lazy val lookahead = ntl(symbol.toString, parser)
+        prev <~ (if (contains) +lookahead else -lookahead)
       case Empty               => prev
       case NoLineTerminator    => prev <~ noLineTerminator
       case CodePointAbbr(abbr) => ???
@@ -240,14 +241,14 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         ),
       )(name)
   }
-  private def ntl = cached[Lexer, LAParser[Lexical]] {
-    case nt =>
+  private def ntl = cached[(String, Lexer), LAParser[Lexical]] {
+    case (name, nt) =>
       log(
         new LAParser(
           follow => (Skip ~> nt) ^^ { case s => Lexical("", s) },
           FirstTerms(),
         ),
-      )("")
+      )(name)
   }
 
   // parser that supports automatic semicolon insertions
@@ -260,8 +261,19 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         p(emptyFirst, reader) match {
           case (f: Failure) =>
             insertSemicolon(reader) match {
-              case Some(str) => Right(new CharSequenceReader(str))
-              case None      => Left(f)
+              case Some(str) =>
+                if (DEBUG && keepLog) {
+                  println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                  str
+                    .replace("\r\n", "\n")
+                    .split(Array('\n', '\r'))
+                    .zipWithIndex
+                    .foreach {
+                      case (x, i) => println(f"$i%4d: $x")
+                    }
+                }
+                Right(new CharSequenceReader(str))
+              case None => Left(f)
             }
           case r => Left(r)
         }

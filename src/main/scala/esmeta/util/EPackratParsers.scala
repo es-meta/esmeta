@@ -8,7 +8,7 @@ import scala.collection.mutable
 trait EPackratParsers extends Parsers {
   protected trait DataType { def next: Data }
   protected type Data <: DataType
-  protected val defaultData: Data
+  protected def defaultData: Data
   class EPackratReader[+T <: Elem](underlying: Reader[T]) extends Reader[T] {
     outer =>
     val data: Data = defaultData

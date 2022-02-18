@@ -34,9 +34,9 @@ trait Lexer extends UnicodeParsers {
   }
 
   // special lexers
-  lazy val WhiteSpace: Lexer = TAB | VT | FF | SP | NBSP | ZWNBSP | USP
-  lazy val LineTerminator: Lexer = LF | CR | LS | PS
-  lazy val LineTerminatorSequence: Lexer =
+  lazy val WhiteSpace = TAB | VT | FF | SP | NBSP | ZWNBSP | USP
+  lazy val LineTerminator = LF | CR | LS | PS
+  lazy val LineTerminatorSequence =
     LF | CR <~ not(LF) | LS | PS | CR % LF
   lazy val Comment =
     """/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*""".r
@@ -67,7 +67,7 @@ trait Lexer extends UnicodeParsers {
     var rightmostFailedPos: Option[(Position, List[Elem])] = None,
     var rightmostDoWhileClose: Option[Position] = None,
   ) extends DataType { def next = this }
-  protected val defaultData = Data()
+  protected def defaultData = Data()
 
   // get a lexer from a lexical production with an argument map
   protected def getLexer(
@@ -104,7 +104,8 @@ trait Lexer extends UnicodeParsers {
       val parser = getSymbolParser(base, argsSet)
       val exclude = cases.map(getSymbolParser(_, argsSet)).reduce(_ ||| _)
       parser.filter(parseAll(exclude, _).isEmpty)
-    case ButOnlyIf(base, name, cond) => ???
+    case ButOnlyIf(base, name, cond) =>
+      getSymbolParser(base, argsSet) // TODO more precise
     case Lookahead(b, cases) =>
       val parser = cases
         .map(_.map(getSymbolParser(_, argsSet)).reduce(_ % _))
