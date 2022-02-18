@@ -1,4 +1,0 @@
-{
-  "[YET] Let _realmRec_ be a new Realm Record.": "0: let realmRec = (new RealmRecord())[#0]",
-  "[YET] Let _intrinsics_ be a new Record.": "0: let intrinsics = (new Record())[#0]"
-}

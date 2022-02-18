@@ -7,16 +7,16 @@ import esmeta.spec.{Param => SParam, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
-import esmeta.ES2022_DIR
+import esmeta.MANUALS_DIR
 
 /** Compiler from metalangauge to IR */
 class Compiler(val spec: Spec) {
 
   /** compiled specification */
   def result: Program = {
-    // manually created AOs
+    // load manually created AOs
     val manuals: ListBuffer[Func] = ListBuffer()
-    for (file <- walkTree(ES2022_DIR) if irFilter(file.getName))
+    for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
       manuals += Func.fromFile(file.toString)
 
     // compile algorithms in spec
@@ -29,6 +29,9 @@ class Compiler(val spec: Spec) {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  private val manualRules: Map[String, Inst] = (for {
+    (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
+  } yield yet -> Inst.from(inst)).toMap
 
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
@@ -265,7 +268,11 @@ class Compiler(val spec: Spec) {
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
-      fb.addInst(IExpr(EYet(yet.toString(false, false))))
+      val yetStr = yet.toString(true, false)
+      fb.addInst(
+        if (manualRules contains yetStr) manualRules(yetStr)
+        else IExpr(EYet(yetStr)),
+      )
   }
 
   // compile local variable
