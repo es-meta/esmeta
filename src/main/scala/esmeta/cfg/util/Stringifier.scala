@@ -33,7 +33,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // functions
   given funcRule: Rule[Func] = (app, func) =>
-    app >> func.id >> ": " >> func.head >> " "
+    val IRFunc(main, kind, name, params, _, _) = func.ir
+    given Rule[Iterable[IRFunc.Param]] = iterableRule("(", ", ", ")")
+    app >> func.id >> ": "
+    app >> (if (main) "@main " else "") >> "def " >> kind
+    app >> name >> params >> " "
     app.wrap {
       given Ordering[Node] = Ordering.by(_.id)
       for (node <- func.nodes.toList.sorted) app :> node

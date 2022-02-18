@@ -1,21 +1,21 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.cfg.CFG
+import esmeta.spec.Spec
 import esmeta.interp.*
 import esmeta.js.*
 import esmeta.js.util.*
 
-/** `parse` phase */
-case object JsEval extends Phase[CFG, State] {
+/** `js-eval` phase */
+case object JsEval extends Phase[Spec, State] {
   val name = "js-eval"
   val help = "evaluates a JavaScript file."
   def apply(
-    cfg: CFG,
+    spec: Spec,
     globalConfig: GlobalConfig,
     config: Config,
   ): State = {
-    val st = State(cfg)
+    val st = State(spec.program.cfg)
     new Interp(st).fixpoint
     st
   }

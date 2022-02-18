@@ -3,7 +3,6 @@
   "COp" : true,
   "Expr" : true,
   "Func" : true,
-  "Func.Head" : true,
   "Func.Kind" : true,
   "Func.Param" : true,
   "Inst" : true,

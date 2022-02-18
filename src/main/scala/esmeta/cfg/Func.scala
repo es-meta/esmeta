@@ -8,17 +8,18 @@ import esmeta.util.Appender
 // CFG functions
 case class Func(
   id: Int,
-  head: IRFunc.Head,
+  ir: IRFunc,
   entry: Option[Node],
 ) extends CFGElem
   with UId { func =>
   lazy val nodes: Set[Node] = entry.fold(Set())(reachable)
   lazy val nodeMap: Map[Int, Node] =
     (for (node <- nodes) yield node.id -> node).toMap
+
   lazy val toDot: String = (new DotPrinter {
     def getId(func: Func): String = s"cluster${func.id}"
     def getId(node: Node): String = s"node${node.id}"
-    def getName(func: Func): String = func.head.name
+    def getName(func: Func): String = func.ir.name
     def getColor(node: Node): String = REACH
     def getColor(from: Node, to: Node): String = REACH
     def getBgColor(node: Node): String = NORMAL

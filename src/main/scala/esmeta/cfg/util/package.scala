@@ -8,7 +8,7 @@ import scala.collection.mutable.Queue
 extension (func: Func) {
 
   /** check whether it is builtin */
-  def isBuiltin: Boolean = func.head.kind == IRFunc.Kind.Builtin
+  def isBuiltin: Boolean = func.ir.kind == IRFunc.Kind.Builtin
 }
 
 /** get reachable nodes */

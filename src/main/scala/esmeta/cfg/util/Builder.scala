@@ -6,14 +6,19 @@ import esmeta.ir.{Func => IRFunc, *}
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
-class Builder {
+class Builder(program: Program) {
 
   /** get CFG */
-  lazy val cfg: CFG = CFG(main, funcs)
+  lazy val result: CFG = {
+    for { f <- program.funcs } translate(f)
+    CFG(main, funcs)
+  }
 
   /** translate IR function to cfg function */
-  def translate(irFunc: IRFunc): Func = {
-    val IRFunc(head, body) = irFunc
+  private def translate(irFunc: IRFunc): Unit = {
+    // body
+    val body = irFunc.body
+
     // entry node
     var entry: Option[Node] = None
 
@@ -58,46 +63,15 @@ class Builder {
     }
     aux(body)
 
-    val func = Func(nextFId, head, entry)
+    val func = Func(nextFId, irFunc, entry)
     funcs += func
-    func
-  }
-
-  /** function builder */
-  case class FuncBuilder(head: IRFunc.Head) {
-    // contexts
-    private var contexts: List[ListBuffer[Inst]] = List()
-    def newContext: Unit = contexts = ListBuffer() :: contexts
-    def popContext: Inst = contexts match
-      case current :: rest => contexts = rest; ISeq(current.toList)
-      case _               => ??? // error
-    def addInst(insts: Inst*): Unit = contexts match
-      case current :: rest => current ++= insts
-      case _               => ??? // error
-
-    // temporal identifier id counter
-    private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
-    private var tidCount: Int = 0
-
-    /** get next temporal identifier */
-    def newTId: Temp = Temp(nextTId)
-    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
-
-    /** get next allocation site */
-    def newSite: Int = nextSite
-
-    /** get cfg function */
-    def getFunc(body: Inst): Func =
-      val func = translate(IRFunc(head, body))
-      funcs += func
-      func
   }
 
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
   // get the main function
-  private def main: Func = funcs.filter(_.head.main) match {
+  private def main: Func = funcs.filter(_.ir.main) match {
     case ListBuffer()     => error("no main function")
     case ListBuffer(main) => main
     case _                => error("multiple main functions")
@@ -113,8 +87,4 @@ class Builder {
   // node id counter
   private var nidCount: Int = 0
   private def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
-
-  // allocation site counter
-  private var siteCount: Int = 0
-  private def nextSite: Int = { val site = siteCount; siteCount += 1; site }
 }

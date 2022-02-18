@@ -1,46 +1,84 @@
 package esmeta.spec.util
 
-import esmeta.cfg.*
-import esmeta.cfg.util.Builder
-import esmeta.ir.{Type => IRType, Func => IRFunc, *}
+import esmeta.ir.{Type => IRType, *}
 import esmeta.ir.util.{Parser => IRParser}
 import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.collection.mutable.ListBuffer
 import esmeta.ES2022_DIR
 
-/** Compiler from metalangauge to CFG */
+/** Compiler from metalangauge to IR */
 class Compiler(val spec: Spec) {
 
-  /** get the compiled CFG */
-  lazy val cfg: CFG = builder.cfg
+  /** compiled specification */
+  def result: Program = {
+    // manually created AOs
+    val manuals: ListBuffer[Func] = ListBuffer()
+    for (file <- walkTree(ES2022_DIR) if irFilter(file.getName))
+      manuals += Func.fromFile(file.toString)
 
-  /** add an algorithm to a CFG as a function */
-  def compile(algo: Algorithm): Func = {
-    val head = algo.head
-    val name = getName(head)
-    val funcHead = IRFunc.Head(
-      name == "RunJobs",
-      getKind(head),
-      name,
-      getParams(head),
-    )
-    val fb = builder.FuncBuilder(funcHead)
-    val body = compileWithContext(fb, algo.body)
-    fb.getFunc(body)
+    // compile algorithms in spec
+    for (algo <- spec.algorithms) compile(algo)
+
+    // result
+    Program((funcs ++ manuals).toList)
   }
 
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  // CFG builder
-  private val builder = new Builder
-  private type FB = builder.FuncBuilder
+
+  // compiled algorithms
+  private val funcs: ListBuffer[Func] = ListBuffer()
+
+  // allocation site counter
+  private var siteCount: Int = 0
+  private def nextSite: Int = { val site = siteCount; siteCount += 1; site }
+
+  // function builder
+  private case class FuncBuilder(
+    kind: Func.Kind,
+    name: String,
+    params: List[Func.Param],
+    body: Step,
+    algo: Algorithm,
+  ) {
+    // contexts
+    private var contexts: List[ListBuffer[Inst]] = List()
+    def newContext: Unit = contexts = ListBuffer() :: contexts
+    def popContext: Inst = contexts match
+      case current :: rest => contexts = rest; ISeq(current.toList)
+      case _               => ??? // error
+    def addInst(insts: Inst*): Unit = contexts match
+      case current :: rest => current ++= insts
+      case _               => ??? // error
+
+    // temporal identifier id counter
+    private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
+    private var tidCount: Int = 0
+
+    /** get next temporal identifier */
+    def newTId: Temp = Temp(nextTId)
+    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
+
+    /** get next allocation site */
+    def newSite: Int = nextSite
+
+    /** get a compiled algoirhtm */
+    lazy val result: Func = {
+      val inst = compileWithContext(this, body)
+      val func = Func(false, kind, name, params, inst, Some(algo))
+      funcs += func
+      func
+    }
+  }
+  private type FB = FuncBuilder
 
   // get function kind
-  private def getKind(head: Head): IRFunc.Kind = {
-    import IRFunc.Kind.*
+  private def getKind(head: Head): Func.Kind = {
+    import Func.Kind.*
     head match {
       case head: AbstractOperationHead       => AbsOp
       case head: NumericMethodHead           => NumMeth
@@ -53,7 +91,7 @@ class Compiler(val spec: Spec) {
 
   // get function name
   private def getName(head: Head): String = {
-    import IRFunc.Kind.*
+    import Func.Kind.*
     head match {
       case head: AbstractOperationHead =>
         head.name
@@ -75,7 +113,7 @@ class Compiler(val spec: Spec) {
   }
 
   // get function parameters
-  private def getParams(head: Head): List[IRFunc.Param] = {
+  private def getParams(head: Head): List[Func.Param] = {
     head match {
       case head: AbstractOperationHead =>
         head.params.map(compile)
@@ -125,6 +163,15 @@ class Compiler(val spec: Spec) {
     compileWithContext(fb, compile(fb, step))
   private def compileWithContext(fb: FB, f: => Unit): Inst =
     fb.newContext; f; fb.popContext
+
+  /** compile an algorithm to an IR function */
+  private def compile(algo: Algorithm): Func = FuncBuilder(
+    getKind(algo.head),
+    getName(algo.head),
+    getParams(algo.head),
+    algo.body,
+    algo,
+  ).result
 
   // compile algorithm steps
   private def compile(fb: FB, step: Step): Unit = step match {
@@ -344,11 +391,11 @@ class Compiler(val spec: Spec) {
       EUnary(compile(op), compile(fb, expr))
     case AbstractClosureExpression(params, captured, body) =>
       val ps =
-        params.map(x => IRFunc.Param(compile(x), false, IRType("any")))
-      val funcHead = IRFunc.Head(false, IRFunc.Kind.Clo, fb.head.name, ps)
-      val newFb = builder.FuncBuilder(funcHead)
-      val newFunc = newFb.getFunc(compileWithContext(newFb, body))
-      EClo(newFunc.head.name, captured.map(compile))
+        params.map(x => Func.Param(compile(x), false, IRType("any")))
+      val cloName = s"${fb.name}:clo"
+      val newFb = FuncBuilder(Func.Kind.Clo, cloName, ps, body, fb.algo)
+      newFb.result
+      EClo(cloName, captured.map(compile))
     case lit: Literal => compile(lit)
   }
 
@@ -448,10 +495,10 @@ class Compiler(val spec: Spec) {
   }
 
   // compile algorithm parameters
-  private def compile(param: SParam): IRFunc.Param = {
+  private def compile(param: SParam): Func.Param = {
     val SParam(name, skind, ty) = param
     val optional = skind == SParam.Kind.Optional
-    IRFunc.Param(Name(name), optional, IRType(ty))
+    Func.Param(Name(name), optional, IRType(ty))
   }
 
   // compile types
@@ -490,28 +537,4 @@ class Compiler(val spec: Spec) {
     // arityCheck("NormalCompletion" -> ???),
     // arityCheck("IsAbruptCompletion" -> ???),
   )
-}
-object Compiler {
-
-  /** compile a specification to a CFG */
-  def apply(spec: Spec): CFG = {
-    val compiler = new Compiler(spec)
-
-    // compile algorithms from spec
-    for (algo <- spec.algorithms) compiler.compile(algo)
-
-    // manually created AOs
-    for (file <- walkTree(ES2022_DIR) if irFilter(file.getName)) {
-      val irFunc = IRFunc.fromFile(file.toString)
-      compiler.builder.translate(irFunc)
-    }
-
-    compiler.cfg
-  }
-
-  /** compile an algorithm to a function */
-  def apply(spec: Spec, algo: Algorithm): Func = {
-    val compiler = new Compiler(spec)
-    compiler.compile(algo)
-  }
 }

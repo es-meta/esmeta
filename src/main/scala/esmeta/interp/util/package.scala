@@ -229,7 +229,7 @@ extension (st: State) {
 extension (callCtxt: CallContext) {
 
   /** function name * */
-  def name: String = callCtxt.context.func.head.name
+  def name: String = callCtxt.context.func.ir.name
 
   /** copy contexts */
   def copied: CallContext = callCtxt.copy(context = callCtxt.context.copied)
@@ -242,7 +242,7 @@ extension (ctxt: Context) {
   def copied: Context = ctxt.copy(locals = MMap.from(ctxt.locals))
 
   /** name */
-  def name: String = ctxt.func.head.name
+  def name: String = ctxt.func.ir.name
 }
 
 /** extensions for heaps */

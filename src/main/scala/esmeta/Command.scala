@@ -55,12 +55,17 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
   def help = "compiles specification to a control-flow graph"
 }
 
+/** `build-cfg` command */
+case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
+  def help = "builds a CFG from compiled specification"
+}
+
 /** `js-parse` command */
 case object CmdJsParse extends Command("js-parse", CmdBase >> JsParse) {
   def help = "parses a JavaScript file"
 }
 
 /** `js-eval` command */
-case object CmdJsEval extends Command("js-eval", CmdCompile >> JsEval) {
+case object CmdJsEval extends Command("js-eval", CmdBuildCFG >> JsEval) {
   def help = "evaluates a JavaScript file."
 }

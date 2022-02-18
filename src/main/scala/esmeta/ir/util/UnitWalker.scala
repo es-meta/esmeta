@@ -6,10 +6,10 @@ import esmeta.util.{BasicUnitWalker, Loc}
 /** a unit walker for CFG */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: IRElem): Unit = elem match {
+    case elem: Program    => walk(elem)
     case elem: Func       => walk(elem)
     case elem: Func.Kind  => walk(elem)
     case elem: Func.Param => walk(elem)
-    case elem: Func.Head  => walk(elem)
     case elem: Inst       => walk(elem)
     case elem: Expr       => walk(elem)
     case elem: UOp        => walk(elem)
@@ -19,15 +19,14 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Type       => walk(elem)
   }
 
+  // programs
+  def walk(program: Program): Unit = walkList(program.funcs, walk)
+
   // functions
   def walk(func: Func): Unit =
-    walk(func.head)
-    walk(func.body)
-
-  // function heads
-  def walk(head: Func.Head): Unit =
-    val Func.Head(main, kind, name, ps) = head
+    val Func(main, kind, name, ps, body, _) = func
     walk(main); walk(kind); walk(name); walkList(ps, walk)
+    walk(func.body)
 
   // function kinds
   def walk(kind: Func.Kind): Unit = {}

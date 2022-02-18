@@ -110,7 +110,7 @@ class StringifyTinyTest extends InterpTest {
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
     lazy val func =
-      Func(0, IRFunc.Head(true, IRFunc.Kind.AbsOp, "f", Nil), None)
+      Func(0, IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, INop()), None)
     lazy val clo = Clo(func, Map())
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)

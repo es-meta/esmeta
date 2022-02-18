@@ -24,8 +24,9 @@ class ParseAndStringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    lazy val mainFunc = Func(mainFuncHead, seq)
-    lazy val func = Func(funcHead, seq)
+    lazy val mainFunc = Func(true, Func.Kind.AbsOp, "f", params, seq)
+    lazy val func = Func(false, Func.Kind.AbsOp, "f", params, seq)
+
     // tests
     checkParseAndStringify("Func", Func)(
       mainFunc -> """@main def f(x: T, y?: T) {
@@ -65,19 +66,6 @@ class ParseAndStringifyTinyTest extends IRTest {
     checkParseAndStringify("Func.Param", Func.Param)(
       xParam -> "x: T",
       yParam -> "y?: T",
-    )
-
-    // -------------------------------------------------------------------------
-    // function heads
-    // -------------------------------------------------------------------------
-    lazy val mainFuncHead =
-      Func.Head(true, Func.Kind.AbsOp, "f", params)
-    lazy val funcHead =
-      Func.Head(false, Func.Kind.AbsOp, "f", params)
-
-    checkParseAndStringify("Func.Head", Func.Head)(
-      mainFuncHead -> "@main def f(x: T, y?: T)",
-      funcHead -> "def f(x: T, y?: T)",
     )
 
     // -------------------------------------------------------------------------

@@ -31,9 +31,9 @@ class Interp(
       if (DEBUG) st.context.cursor match
         case NodeCursor(node) =>
           val func = cfg.funcOf(node)
-          println(s"[${func.head.kind}${func.head.name}] $node")
+          println(s"[${func.ir.kind}${func.ir.name}] $node")
         case ExitCursor(func) =>
-          println(s"[${func.head.kind}${func.head.name} Exited")
+          println(s"[${func.ir.kind}${func.ir.name} Exited")
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 
@@ -118,12 +118,12 @@ class Interp(
       interp(fexpr) match {
         case Clo(func, captured) =>
           val vs = args.map(interp)
-          val newLocals = getLocals(func.head.params, vs) ++ captured
+          val newLocals = getLocals(func.ir.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case Cont(func, captured, callStack) => {
           val vs = args.map(interp)
-          val newLocals = getLocals(func.head.params, vs) ++ captured
+          val newLocals = getLocals(func.ir.params, vs) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }

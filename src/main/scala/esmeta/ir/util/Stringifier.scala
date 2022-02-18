@@ -12,10 +12,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[IRElem] = (app, elem) =>
     elem match {
+      case elem: Program    => programRule(app, elem)
       case elem: Func       => funcRule(app, elem)
       case elem: Func.Kind  => funcKindRule(app, elem)
       case elem: Func.Param => paramRule(app, elem)
-      case elem: Func.Head  => funcHeadRule(app, elem)
       case elem: Inst       => instRule(app, elem)
       case elem: Expr       => exprRule(app, elem)
       case elem: UOp        => uopRule(app, elem)
@@ -26,9 +26,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Type       => tyRule(app, elem)
     }
 
+  // programs
+  given programRule: Rule[Program] = (app, program) =>
+    given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
+    app >> program.funcs
+
   // functions
   given funcRule: Rule[Func] = (app, func) =>
-    app >> func.head >> " " >> func.body
+    val Func(main, kind, name, params, body, _) = func
+    given Rule[Iterable[Func.Param]] = iterableRule("(", ", ", ")")
+    app >> (if (main) "@main " else "") >> "def " >> kind
+    app >> name >> params >> " " >> body
 
   // function kinds
   given funcKindRule: Rule[Func.Kind] = (app, kind) =>
@@ -48,13 +56,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given paramRule: Rule[Func.Param] = (app, param) =>
     val Func.Param(name, optional, ty) = param
     app >> name >> (if (optional) "?" else "") >> ": " >> ty
-
-  // function heads
-  given funcHeadRule: Rule[Func.Head] = (app, head) =>
-    val Func.Head(main, kind, name, params) = head
-    given Rule[Iterable[Func.Param]] = iterableRule("(", ", ", ")")
-    app >> (if (main) "@main " else "") >> "def " >> kind
-    app >> name >> params
 
   // instructions
   given instRule: Rule[Inst] = withLoc { (app, inst) =>

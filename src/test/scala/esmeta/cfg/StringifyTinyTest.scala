@@ -55,9 +55,9 @@ class StringifyTinyTest extends CFGTest {
       Some(blockSingle)
     }
     lazy val mainFunc =
-      Func(0, IRFunc.Head(true, IRFunc.Kind.AbsOp, "f", params), entry(0))
+      Func(0, irMainFunc, entry(0))
     def func(id: Int): Func =
-      Func(id, IRFunc.Head(false, IRFunc.Kind.AbsOp, "f", params), entry(4))
+      Func(id, irFunc, entry(4))
 
     // tests
     checkStringify("Func")(
@@ -107,6 +107,9 @@ class StringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // IR elements
     // -------------------------------------------------------------------------
+    lazy val irMainFunc = IRFunc(true, IRFunc.Kind.AbsOp, "f", params, seq)
+    lazy val irFunc = IRFunc(false, IRFunc.Kind.AbsOp, "f", params, seq)
+    lazy val seq = ISeq(List(let, del, ret))
     lazy val params = List(xParam, yParam)
     lazy val xParam = IRFunc.Param(x, false, ty)
     lazy val yParam = IRFunc.Param(y, true, ty)

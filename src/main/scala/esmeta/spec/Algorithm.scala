@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.ir.Func
 import esmeta.lang.Step
 import esmeta.spec.util.*
 import org.jsoup.nodes.Element

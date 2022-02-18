@@ -1,6 +1,5 @@
 package esmeta.spec.util
 
-import esmeta.cfg.CFG
 import esmeta.spec.*
 import esmeta.lang.{Step, YetStep}
 import esmeta.lang.util.StepCollector
@@ -45,9 +44,6 @@ extension (elem: Element) {
 /** extensions for specifications */
 extension (spec: Spec) {
 
-  /** compile to a control-flow graph (CFG) */
-  def toCFG: CFG = Compiler(spec)
-
   /** get incomplete algorithms */
   def incompleteAlgorithms: List[Algorithm] =
     spec.algorithms.filter(!_.complete)
@@ -83,6 +79,16 @@ extension (spec: Spec) {
     }
     name = target.lhsName
   } yield name).toSet
+
+  /** dump program of specs */
+  def dumpProgram(baseDir: String): Unit = {
+    mkdir(baseDir)
+    for {
+      func <- spec.program.funcs
+      name = func.name
+      filename = s"$baseDir/${name.replace("/", "")}.ir"
+    } dumpFile(func, filename)
+  }
 }
 
 /** extensions for algorithms */

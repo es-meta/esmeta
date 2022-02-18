@@ -124,7 +124,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given cloRule: Rule[Clo] = (app, clo) =>
     val Clo(func, captured) = clo
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
-    app >> "clo<" >> func.head.name
+    app >> "clo<" >> func.ir.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 
@@ -132,7 +132,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given contRule: Rule[Cont] = (app, cont) =>
     val Cont(func, captured, _) = cont
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
-    app >> "cont<" >> func.head.name
+    app >> "cont<" >> func.ir.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 

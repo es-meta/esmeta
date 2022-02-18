@@ -12,9 +12,14 @@ object Parser extends Parsers
 trait Parsers extends BasicParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
+  // programs
+  given program: Parser[Program] = rep(func) ^^ { Program(_) }
+
   // functions
   given func: Parser[Func] =
-    funcHead ~ inst ^^ { case h ~ i => Func(h, i) }
+    (main <~ "def") ~ funcKind ~ "(\\w|:)+".r ~ params ~ inst ^^ {
+      case m ~ k ~ n ~ ps ~ b => Func(m, k, n, ps, b)
+    }
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
@@ -35,12 +40,6 @@ trait Parsers extends BasicParsers {
   given param: Parser[Func.Param] = name ~ opt("?") ~ (":" ~> ty) ^^ {
     case x ~ o ~ t => Func.Param(x, o.isDefined, t)
   }
-
-  // function heads
-  given funcHead: Parser[Func.Head] =
-    (main <~ "def") ~ funcKind ~ "(\\w|:)+".r ~ params ^^ {
-      case m ~ k ~ n ~ ps => Func.Head(m, k, n, ps)
-    }
 
   // instructions
   given inst: Parser[Inst] = withLoc {
