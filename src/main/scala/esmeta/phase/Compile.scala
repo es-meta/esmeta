@@ -1,6 +1,7 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.util.*
 import esmeta.spec.*
 import esmeta.spec.util.*
 import esmeta.util.*
