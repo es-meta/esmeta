@@ -1,0 +1,24 @@
+def filter(list: List, f: Function) {
+  let clist = (copy list)[#1]
+  if (= clist.length 0) then %0 = clist
+  else {
+    let hd = (pop < clist)
+    call fhd = f(hd)
+    call ftl = clo<filter>(clist, f)
+    if fhd then push hd > ftl else {}
+    %0 = ftl
+  }
+  return %0
+}
+
+def even(i: int) {
+  let r = (% i 2)
+  return (= r 0)
+}
+
+@main def main() {
+  let list = (new [1, 2, 3, 4, 5])[#1]
+  call evenlist = clo<filter>(list, clo<even>)
+  assert (= evenlist[0] 2)
+  assert (= evenlist[1] 4)
+}

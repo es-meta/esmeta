@@ -60,6 +60,11 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   def help = "builds a CFG from compiled specification"
 }
 
+/** `ir-eval` command */
+case object CmdIREval extends Command("ir-eval", CmdBase >> IREval) {
+  val help = "evaluates an IR file."
+}
+
 /** `js-parse` command */
 case object CmdJSParse extends Command("js-parse", CmdBase >> JSParse) {
   def help = "parses a JavaScript file"

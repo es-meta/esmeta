@@ -20,4 +20,3 @@ def is_odd(n: int) {
   assert (= g true)
   assert (= h false)
 }
-

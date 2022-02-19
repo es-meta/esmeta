@@ -54,6 +54,7 @@ object ESMeta {
     CmdExtract,
     CmdCompile,
     CmdBuildCFG,
+    CmdIREval,
     CmdJSParse,
     CmdJSEval,
   )
@@ -67,6 +68,7 @@ object ESMeta {
     Extract,
     Compile,
     BuildCFG,
+    IREval,
     JSParse,
     JSEval,
   )

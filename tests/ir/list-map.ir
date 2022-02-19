@@ -1,0 +1,26 @@
+def map(list: List, f: Function) {
+  let clist = (copy list)[#1]
+  if (= clist.length 0) then %0 = clist
+  else {
+    let hd = (pop < clist)
+    call fhd = f(hd)
+    call ftl = clo<map>(clist, f)
+    push fhd > ftl
+    %0 = ftl
+  }
+  return %0
+}
+
+def double(i: int) {
+  return (* i 2)
+}
+
+@main def main() {
+  let list = (new [1, 2, 3, 4, 5])[#1]
+  call doublelist = clo<map>(list, clo<double>)
+  assert (= doublelist[0] 2)
+  assert (= doublelist[1] 4)
+  assert (= doublelist[2] 6)
+  assert (= doublelist[3] 8)
+  assert (= doublelist[4] 10)
+}
