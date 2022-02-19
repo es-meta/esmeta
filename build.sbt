@@ -28,11 +28,13 @@ lazy val largeTest = taskKey[Unit]("Launch large tests (may hours)")
 
 // spec
 lazy val specTest = taskKey[Unit]("Launch spec tests")
-lazy val specStringifyTest = taskKey[Unit]("Launch stringify tests for spec (tiny)")
+lazy val specStringifyTest =
+  taskKey[Unit]("Launch stringify tests for spec (tiny)")
 
 // lang
 lazy val langTest = taskKey[Unit]("Launch lang tests")
-lazy val langStringifyTest = taskKey[Unit]("Launch stringify tests for lang (tiny)")
+lazy val langStringifyTest =
+  taskKey[Unit]("Launch stringify tests for lang (tiny)")
 
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
@@ -40,7 +42,8 @@ lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
 
 // interp
 lazy val interpTest = taskKey[Unit]("Launch interp tests")
-lazy val interpStringifyTest = taskKey[Unit]("Launch stringify tests for interp (tiny)")
+lazy val interpStringifyTest =
+  taskKey[Unit]("Launch stringify tests for interp (tiny)")
 lazy val interpEvalTest = taskKey[Unit]("Launch eval tests for interp (tiny)")
 
 // js
@@ -87,10 +90,14 @@ lazy val root = project
 
     /** tasks for tests */
     // basic tests
-    test := (Test / testOnly).toTask(List(
-      "*TinyTest",
-      "*SmallTest",
-    ).mkString(" ", " ", "")).value,
+    test := (Test / testOnly)
+      .toTask(
+        List(
+          "*TinyTest",
+          "*SmallTest",
+        ).mkString(" ", " ", ""),
+      )
+      .value,
     // size
     tinyTest := (Test / testOnly).toTask(" *TinyTest").value,
     smallTest := (Test / testOnly).toTask(" *SmallTest").value,
@@ -98,16 +105,22 @@ lazy val root = project
     largeTest := (Test / testOnly).toTask(" *LargeTest").value,
     // spec
     specTest := (Test / testOnly).toTask(" *.spec.*Test").value,
-    specStringifyTest := (Test / testOnly).toTask(" *.spec.Stringify*Test").value,
+    specStringifyTest := (Test / testOnly)
+      .toTask(" *.spec.Stringify*Test")
+      .value,
     // lang
     langTest := (Test / testOnly).toTask(" *.lang.*Test").value,
-    langStringifyTest := (Test / testOnly).toTask(" *.lang.Stringify*Test").value,
+    langStringifyTest := (Test / testOnly)
+      .toTask(" *.lang.Stringify*Test")
+      .value,
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
     // interp
     interpTest := (Test / testOnly).toTask(" *.interp.*Test").value,
-    interpStringifyTest := (Test / testOnly).toTask(" *.interp.Stringify*Test").value,
+    interpStringifyTest := (Test / testOnly)
+      .toTask(" *.interp.Stringify*Test")
+      .value,
     interpEvalTest := (Test / testOnly).toTask(" *.interp.Eval*Test").value,
     // js
     jsTest := (Test / testOnly).toTask(" *.js.*Test").value,
