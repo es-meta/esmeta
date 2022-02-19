@@ -17,8 +17,7 @@ case object IREval extends Phase[Unit, State] {
     config: Config,
   ): State = {
     val filename = getFirstFilename(globalConfig, "extract")
-    val content = readFile(filename)
-    val program = Program.from(content)
+    val program = Program.fromFile(filename)
     val st = State(program.cfg)
     new Interp(st).fixpoint
     st
