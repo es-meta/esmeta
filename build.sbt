@@ -20,6 +20,33 @@ ThisBuild / javacOptions ++= Seq(
 // automatic reload build.sbt
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+// size
+lazy val tinyTest = taskKey[Unit]("Launch tiny tests (maybe milliseconds)")
+lazy val smallTest = taskKey[Unit]("Launch small tests (maybe seconds)")
+lazy val middleTest = taskKey[Unit]("Launch middle tests (maybe minutes)")
+lazy val largeTest = taskKey[Unit]("Launch large tests (may hours)")
+
+// spec
+lazy val specTest = taskKey[Unit]("Launch spec tests")
+lazy val specStringifyTest = taskKey[Unit]("Launch stringify tests for spec (tiny)")
+
+// lang
+lazy val langTest = taskKey[Unit]("Launch lang tests")
+lazy val langStringifyTest = taskKey[Unit]("Launch stringify tests for lang (tiny)")
+
+// ir
+lazy val irTest = taskKey[Unit]("Launch ir tests")
+lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
+
+// interp
+lazy val interpTest = taskKey[Unit]("Launch interp tests")
+lazy val interpStringifyTest = taskKey[Unit]("Launch stringify tests for interp (tiny)")
+lazy val interpEvalTest = taskKey[Unit]("Launch eval tests for interp (tiny)")
+
+// js
+lazy val jsTest = taskKey[Unit]("Launch js tests")
+lazy val jsParseTest = taskKey[Unit]("Launch parse tests for js (small)")
+
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
   Some(defaultUniversalScript(shebang = false))
@@ -57,6 +84,34 @@ lazy val root = project
     // assembly setting
     assembly / test := {},
     assembly / assemblyOutputPath := file("bin/esmeta"),
+
+    /** tasks for tests */
+    // basic tests
+    test := (Test / testOnly).toTask(List(
+      "*TinyTest",
+      "*SmallTest",
+    ).mkString(" ", " ", "")).value,
+    // size
+    tinyTest := (Test / testOnly).toTask(" *TinyTest").value,
+    smallTest := (Test / testOnly).toTask(" *SmallTest").value,
+    middleTest := (Test / testOnly).toTask(" *MiddleTest").value,
+    largeTest := (Test / testOnly).toTask(" *LargeTest").value,
+    // spec
+    specTest := (Test / testOnly).toTask(" *.spec.*Test").value,
+    specStringifyTest := (Test / testOnly).toTask(" *.spec.Stringify*Test").value,
+    // lang
+    langTest := (Test / testOnly).toTask(" *.lang.*Test").value,
+    langStringifyTest := (Test / testOnly).toTask(" *.lang.Stringify*Test").value,
+    // ir
+    irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
+    irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
+    // interp
+    interpTest := (Test / testOnly).toTask(" *.interp.*Test").value,
+    interpStringifyTest := (Test / testOnly).toTask(" *.interp.Stringify*Test").value,
+    interpEvalTest := (Test / testOnly).toTask(" *.interp.Eval*Test").value,
+    // js
+    jsTest := (Test / testOnly).toTask(" *.js.*Test").value,
+    jsParseTest := (Test / testOnly).toTask(" *.js.parse*Test").value,
   )
 
 // create the `.completion` file for autocompletion in shell

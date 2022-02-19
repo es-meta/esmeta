@@ -4,8 +4,8 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.*
 import Symbol.*
 
-class ParseAndStringifyTinyTest extends SpecTest {
-  val name: String = "specParseAndStringifyTest"
+class StringifyTinyTest extends SpecTest {
+  val name: String = "specStringifyTest"
 
   // registration
   def init: Unit = {

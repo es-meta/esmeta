@@ -5,7 +5,7 @@ import esmeta.spec.Spec
 import esmeta.js.util.*
 import esmeta.util.SystemUtils.*
 
-trait JsTest extends ESMetaTest {
+trait JSTest extends ESMetaTest {
   def category: String = "js"
 
   // tests for js parser

@@ -7,8 +7,8 @@ import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
 import scala.collection.mutable.ListBuffer
 
-class ParseAndStringifyTinyTest extends IRTest {
-  val name: String = "cfgParseAndStringifyTest"
+class StringifyTinyTest extends IRTest {
+  val name: String = "cfgStringifyTest"
 
   // registration
   def init: Unit = {

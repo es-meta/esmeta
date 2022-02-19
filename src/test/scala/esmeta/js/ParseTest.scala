@@ -3,7 +3,7 @@ package esmeta.js
 import esmeta.JS_TEST_DIR
 import esmeta.util.SystemUtils.*
 
-class ParseTest extends JsTest {
+class ParseSmallTest extends JSTest {
   val name: String = "jsParseTest"
 
   // registration

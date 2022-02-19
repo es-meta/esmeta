@@ -4,8 +4,8 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.*
 import esmeta.lang.*
 
-class ParseAndStringifyTinyTest extends LangTest {
-  val name: String = "langParseAndStringifyTest"
+class StringifyTinyTest extends LangTest {
+  val name: String = "langStringifyTest"
 
   // registration
   def init: Unit = {
