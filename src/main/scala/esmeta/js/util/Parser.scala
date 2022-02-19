@@ -6,6 +6,7 @@ import esmeta.js.*
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import scala.util.parsing.combinator.*
 import scala.util.parsing.input.*
 import scala.util.matching.Regex
@@ -13,10 +14,21 @@ import scala.util.matching.Regex
 /** JavaScript parser */
 case class Parser(val grammar: Grammar) extends LAParsers {
 
-  def lexer(name: String, k: Int = 0): String => String =
-    str => parseAll(lexers((name, k)), str).get
-  def parser(name: String, args: List[Boolean] = Nil): String => Ast =
-    str => parse(parsers(name)(args), str).get
+  /** get a parser using its name with boolean arguments
+    *
+    * @param name
+    *   a parser name
+    * @param args
+    *   boolean arguments
+    */
+  def apply(name: String, args: List[Boolean] = Nil): LAFrom[Ast] =
+    given LAParser[Ast] = parsers(name)(args)
+    new LAFrom
+
+  class LAFrom[T](using parser: LAParser[T]) {
+    def fromFile(str: String): T = parse(parser, fileReader(str)).get
+    def from(str: String): T = parse(parser, str).get
+  }
 
   // parsers
   lazy val parsers: Map[String, ESParser[Ast]] = (for {
@@ -29,6 +41,11 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       else getParser(prod)
   } yield name -> parser).toMap
 
+  // ////////////////////////////////////////////////////////////////////////////
+  // private helpers
+  // ////////////////////////////////////////////////////////////////////////////
+
+  // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args => {
     val Production(lhs, _, _, rhsList) = prod
     val Lhs(name, params) = lhs
@@ -46,6 +63,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     else log(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
   })
 
+  // get a sub parser for direct left-recursive cases
   private def getSubParsers(
     name: String,
     args: List[Boolean],
@@ -62,6 +80,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       }
   })(s"$name$idx")
 
+  // get parsers
   private def getParsers(
     name: String,
     args: List[Boolean],
@@ -77,6 +96,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       }
   })(s"$name$idx")
 
+  // append a parser
   private def appendParser(
     name: String,
     prev: LAParser[List[Option[Ast]]],
@@ -114,7 +134,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       case UnicodeSet(cond)    => ???
     }
 
-  // terminal lexer
+  // a terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
     case (parser, Production(lhs, _, _, rhsList)) =>
       rhsList.foldLeft(parser) {
@@ -354,11 +374,14 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     else throw WrongNumberOfParserParams(name, args)
   }
 
+  // check whether it is a left-recursive production
   private def isLR(name: String, rhs: Rhs): Boolean = rhs.symbols match {
     case Nonterminal(`name`, _, _) :: _ => true
     case _                              => false
   }
 
+  // TODO more general rule
+  // handle indirect left-recursive case
   private def handleLR: ESParser[Ast] = memo(args => {
     log(
       resolveLR(

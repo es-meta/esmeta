@@ -8,15 +8,17 @@ import esmeta.util.SystemUtils.*
 trait JSTest extends ESMetaTest {
   def category: String = "js"
 
+  def spec = ESMetaTest.spec
+  def grammar = spec.grammar
+
   // tests for js parser
-  lazy val parser = Parser(ESMetaTest.spec.grammar).parser("Script")
-  def jsParseTest(ast: Ast): Ast = {
-    val newAst = parser(ast.toString(grammar = Some(ESMetaTest.spec.grammar)))
+  lazy val parser = Parser(grammar)("Script")
+  def jsParseTest(ast: Ast): Ast =
+    val newAst = parser.from(ast.toString(grammar = Some(grammar)))
     assert(ast == newAst)
     ast
-  }
-  def jsParseTest(str: String): Ast = jsParseTest(parser(str))
+  def jsParseTest(str: String): Ast =
+    jsParseTest(parser.from(str))
   def jsParseTestFile(filename: String): Ast =
-    val content = readFile(filename)
-    jsParseTest(content)
+    jsParseTest(parser.fromFile(filename))
 }

@@ -20,9 +20,7 @@ case object JSParse extends Phase[Unit, Ast] {
     val (_, spec) =
       time("extract specification model", SpecParser.parseSpecWithVersion())
     val filename = getFirstFilename(globalConfig, "extract")
-    val content = readFile(filename)
-    val parser = JSParser(spec.grammar).parser("Script")
-    parser(content)
+    JSParser(spec.grammar)("Script").fromFile(filename)
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
