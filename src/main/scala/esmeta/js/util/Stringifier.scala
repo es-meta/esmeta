@@ -14,7 +14,7 @@ class Stringifier(
   grammar: Option[Grammar],
 ) {
   // elements
-  given elemRule: Rule[JsElem] = (app, elem) =>
+  given elemRule: Rule[JSElem] = (app, elem) =>
     elem match {
       case elem: Ast => astRule(app, elem)
     }

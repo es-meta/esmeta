@@ -61,11 +61,11 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 }
 
 /** `js-parse` command */
-case object CmdJsParse extends Command("js-parse", CmdBase >> JsParse) {
+case object CmdJSParse extends Command("js-parse", CmdBase >> JSParse) {
   def help = "parses a JavaScript file"
 }
 
 /** `js-eval` command */
-case object CmdJsEval extends Command("js-eval", CmdBuildCFG >> JsEval) {
+case object CmdJSEval extends Command("js-eval", CmdBuildCFG >> JSEval) {
   def help = "evaluates a JavaScript file."
 }

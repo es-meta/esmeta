@@ -7,7 +7,7 @@ import esmeta.js.*
 import esmeta.js.util.*
 
 /** `js-eval` phase */
-case object JsEval extends Phase[Spec, State] {
+case object JSEval extends Phase[Spec, State] {
   val name = "js-eval"
   val help = "evaluates a JavaScript file."
   def apply(

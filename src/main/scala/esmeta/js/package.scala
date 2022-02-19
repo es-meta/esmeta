@@ -5,7 +5,7 @@ import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 
 /** JavaScript elements */
-trait JsElem {
+trait JSElem {
   override def toString: String = toString()
 
   /** stringify with options */
@@ -14,12 +14,12 @@ trait JsElem {
     location: Boolean = false,
     grammar: Option[Grammar] = None,
   ): String = {
-    val stringifier = JsElem.getStringifier(detail, location, grammar)
+    val stringifier = JSElem.getStringifier(detail, location, grammar)
     import stringifier.elemRule
     stringify(this)
   }
 }
-object JsElem {
+object JSElem {
   val getStringifier =
     cached[(Boolean, Boolean, Option[Grammar]), Stringifier] {
       new Stringifier(_, _, _)

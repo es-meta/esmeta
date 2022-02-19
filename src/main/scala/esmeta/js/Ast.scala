@@ -1,7 +1,7 @@
 package esmeta.js
 
 /** abstract syntax tree (AST) values */
-sealed trait Ast extends JsElem { val name: String }
+sealed trait Ast extends JSElem { val name: String }
 
 // AST constructed by syntatic productions
 case class Syntactic(
