@@ -51,7 +51,8 @@ lazy val jsTest = taskKey[Unit]("Launch js tests")
 lazy val jsParseTest = taskKey[Unit]("Launch parse tests for js (small)")
 
 // test262
-lazy val test262ParseTest = taskKey[Unit]("Launch parse tests for Test262 (large)")
+lazy val test262ParseTest =
+  taskKey[Unit]("Launch parse tests for Test262 (large)")
 
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
