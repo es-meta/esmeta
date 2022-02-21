@@ -3,6 +3,7 @@ package esmeta.interp
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
+import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 
@@ -87,7 +88,7 @@ class StringifyTinyTest extends InterpTest {
     // -------------------------------------------------------------------------
     // Objects
     // -------------------------------------------------------------------------
-    lazy val map = MapObj("A")
+    lazy val map = MapObj("A", MMap(), 0)
     lazy val singleMap =
       MapObj("A", MMap(Str("p") -> MapObj.Prop(Str("p"), 0)), 1)
     lazy val list = ListObj(Vector(Math(42), Str("x")))

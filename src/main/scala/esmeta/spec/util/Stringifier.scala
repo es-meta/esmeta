@@ -57,7 +57,7 @@ object Stringifier {
     app :> "  - complete: " >> stepPass
     app :> "  - incompleted: " >> stepTotal - stepPass
 
-    app :> "* tables: " >> tables.length
+    app :> "* tables: " >> tables.size
   }
 
   // for grammars

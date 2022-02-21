@@ -5,6 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
+import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
@@ -16,6 +17,7 @@ import scala.math.{BigInt => SBigInt}
 class Interp(
   val st: State,
   val timeLimit: Option[Long] = Some(TIMEOUT),
+  val typeModel: Option[TypeModel] = None, // TODO refactoring
 ) {
   import Interp.*
 
@@ -24,6 +26,10 @@ class Interp(
 
   /** control flow graphs */
   def cfg: CFG = st.cfg
+
+  /** type model */
+  // TODO refactoring
+  private given Option[TypeModel] = typeModel
 
   /** step */
   def step: Boolean =
@@ -198,7 +204,16 @@ class Interp(
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
-    case ETypeOf(base)        => ??? // TODO discuss about the type
+    case ETypeOf(base) =>
+      // TODO discuss about the type
+      Str(interp(base).escaped match
+        case str: Str => "String"
+        case addr: Addr =>
+          st(addr) match
+            case map: MapObj => "Object"
+            case _           => ???
+        case _ => ???,
+      )
     case ETypeCheck(expr, ty) => ??? // TODO discuss about the type
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))

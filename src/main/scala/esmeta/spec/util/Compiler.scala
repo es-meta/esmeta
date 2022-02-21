@@ -151,10 +151,10 @@ class Compiler(val spec: Spec) {
     case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
   }
   private inline def toIntrinsic(base: Ref, intr: Intrinsic): Prop =
-    intr.props.foldLeft(Prop(base, EStr(intr.base))) {
-      // XXX consider external property access (SubMap)
-      case (b, propName) => Prop(Prop(b, EStr("SubMap")), EStr(propName))
-    }
+    // XXX consider external property access (SubMap)
+    val intrBase = Prop(base, EStr(intr.base))
+    val path = intr.props.flatMap(p => List("SubMap", p, "Value").map(EStr(_)))
+    path.foldLeft(intrBase) { case (b, p) => Prop(b, p) }
   private inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
     toERef(toIntrinsic(base, intr))
   private inline def currentRealm: Ref = toStrRef(GLOBAL_CONTEXT, "Realm")

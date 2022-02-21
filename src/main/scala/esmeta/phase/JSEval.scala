@@ -5,6 +5,7 @@ import esmeta.spec.Spec
 import esmeta.interp.*
 import esmeta.js.*
 import esmeta.js.util.*
+import esmeta.js.builtin.*
 
 /** `js-eval` phase */
 case object JSEval extends Phase[Spec, State] {
@@ -15,8 +16,9 @@ case object JSEval extends Phase[Spec, State] {
     globalConfig: GlobalConfig,
     config: Config,
   ): State = {
-    val st = State(spec.program.cfg)
-    new Interp(st).fixpoint
+    val (st, typeModel) = Initialize(spec, "") // XXX get source text
+    println(st)
+    new Interp(st, typeModel = Some(typeModel)).fixpoint
     st
   }
   def defaultConfig: Config = Config()

@@ -18,8 +18,8 @@ object Parser extends Parsers {
     val grammar = parseGrammar(document)
     val idxMap = grammar.idxMap(forWeb = false)
     val algorithms = parseAlgorithms(document, idxMap)
-
     val tables = parseTables(document)
+
     Spec(
       version = None,
       grammar = grammar,
@@ -130,13 +130,13 @@ object Parser extends Parsers {
   /** parses tables */
   def parseTables(
     document: Document,
-  ): List[Table] = for {
+  ): Map[String, Table] = (for {
     elem <- document.getElems("emu-table")
     id = elem.getId
     datas = (for {
       row <- elem.getElems("tr")
     } yield row.getChildren.map(_.text)).toList
-  } yield Table(id, datas.head, datas.tail)
+  } yield id -> Table(id, datas.head, datas.tail)).toMap
 
   // ///////////////////////////////////////////////////////////////////////////
   // Private Helpers
@@ -345,8 +345,20 @@ trait Parsers extends BasicParsers {
     s.substring(1, s.length - 1)
   }
   lazy val name: Parser[String] = "[a-zA-Z0-9/]+".r
-  lazy val headParamType: Parser[String] = "([^_,]|, )+".r
-  lazy val refName: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r
+  // TODO handle type more precisely such as:
+  // - ~normal~, ~generator~, ~async~, or ~asyncGenerator~
+  // - an ECMAScript language value, but not *undefined* or *null*
+  // - a possibly empty List, each of whose elements is a String or *undefined*
+  // ...
+  lazy val headParamType: Parser[String] = "([^_,]|, )+".r ^^ {
+    case ty =>
+      val trimmed =
+        (if (ty startsWith "a ") ty.drop(2)
+         else if (ty startsWith "an ") ty.drop(3)
+         else ty).replace("-", "").trim
+      trimmed.split(" ").map(_.capitalize).mkString
+  }
+  lazy val refName: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r ^^ { _.trim }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

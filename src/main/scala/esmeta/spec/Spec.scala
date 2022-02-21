@@ -8,7 +8,7 @@ case class Spec(
   version: Option[String],
   grammar: Grammar,
   algorithms: List[Algorithm],
-  tables: List[Table],
+  tables: Map[String, Table],
   document: Document,
 ) extends SpecElem {
   lazy val program = new Compiler(this).result

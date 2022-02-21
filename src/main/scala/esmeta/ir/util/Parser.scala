@@ -17,7 +17,7 @@ trait Parsers extends BasicParsers {
 
   // functions
   given func: Parser[Func] =
-    (main <~ "def") ~ funcKind ~ "(\\w|:)+".r ~ params ~ inst ^^ {
+    (main <~ "def") ~ funcKind ~ "[\\w|:\\.]+".r ~ params ~ inst ^^ {
       case m ~ k ~ n ~ ps ~ b => Func(m, k, n, ps, b)
     }
 

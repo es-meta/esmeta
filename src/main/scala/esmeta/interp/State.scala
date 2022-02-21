@@ -4,6 +4,7 @@ import scala.collection.mutable.{Map => MMap}
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
+import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals
 
@@ -55,9 +56,9 @@ case class Heap(
 // -----------------------------------------------------------------------------
 sealed trait Obj extends InterpElem
 case class MapObj(
-  var tname: String,
-  val props: MMap[PureValue, MapObj.Prop] = MMap(),
-  var size: Int = 0,
+  var ty: String, // TODO handle type
+  val props: MMap[PureValue, MapObj.Prop],
+  var size: Int,
 ) extends Obj
 case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj
 case class SymbolObj(desc: PureValue) extends Obj
@@ -66,6 +67,24 @@ case class YetObj(tname: String, msg: String) extends Obj
 object MapObj:
   /** property values */
   case class Prop(value: Value, creationTime: Int)
+
+  /** apply with type model */
+  def apply(tname: String)(props: (PureValue, Value)*)(using
+    typeModel: Option[TypeModel],
+  ): MapObj =
+    val obj = MapObj(tname)
+    for { ((k, v), idx) <- props.zipWithIndex }
+      obj.props += k -> Prop(v, idx + obj.size)
+    obj.size += props.size
+    obj
+
+  def apply(tname: String)(using typeModel: Option[TypeModel]): MapObj =
+    // get methods from type model
+    val methods = typeModel.fold(Map())(_.getMethods(tname))
+    val obj = MapObj(tname, MMap(), methods.size)
+    for { ((name, clo), idx) <- methods.zipWithIndex }
+      obj.props += Str(name) -> Prop(clo, idx)
+    obj
 
 // -----------------------------------------------------------------------------
 // Reference Value

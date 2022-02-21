@@ -44,7 +44,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       app :> "context: " >> st.context
       given Rule[List[String]] = iterableRule("[", ", ", "]")
       app :> "call-stack: "
-      app.wrapIterable("[", "]")(st.globals)
+      app.wrapIterable("[", "]")(st.callStack)
       app :> "globals: "
       app.wrapIterable(st.globals)
       app :> "heap: " >> st.heap

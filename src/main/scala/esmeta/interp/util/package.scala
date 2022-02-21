@@ -2,6 +2,7 @@ package esmeta.interp.util
 
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.builtin.TypeModel
 import esmeta.cfg.*
 import esmeta.cfg.util.*
 import esmeta.error.*
@@ -204,7 +205,9 @@ extension (st: State) {
     st.heap.copyObj(addr)
   def keys(addr: Addr, intSorted: Boolean): Addr =
     st.heap.keys(addr, intSorted)
-  def allocMap(tname: String, map: Map[PureValue, PureValue] = Map()): Addr =
+  def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
+    typeModel: Option[TypeModel],
+  ): Addr =
     st.heap.allocMap(tname, map)
   def allocList(list: List[PureValue]): Addr =
     st.heap.allocList(list)
@@ -253,8 +256,6 @@ extension (heap: Heap) {
     heap.map.getOrElse(addr, throw UnknownAddr(addr))
   def apply(addr: Addr, key: PureValue): Value = heap(addr) match
     case (s: SymbolObj) => s(key)
-    // TODO case (MapObj(ALGORITHM, _, _))  => getAlgorithm(key)
-    // TODO case (MapObj(INTRINSICS, _, _)) => getIntrinsics(key)
     case (m: MapObj)    => m(key)
     case (l: ListObj)   => l(key)
     case YetObj(_, msg) => throw NotSupported(msg)
@@ -307,7 +308,7 @@ extension (heap: Heap) {
   def allocMap(
     tname: String,
     m: Map[PureValue, PureValue],
-  ): Addr = {
+  )(using typeModel: Option[TypeModel]): Addr = {
     val irMap =
       if (tname == "Record") MapObj(tname, MMap(), 0) else MapObj(tname)
     for ((k, v) <- m) irMap.update(k, v)
@@ -358,7 +359,7 @@ extension (heap: Heap) {
   /** set type of objects */
   def setType(addr: Addr, tname: String): heap.type = heap(addr) match {
     case (irMap: MapObj) =>
-      irMap.tname = tname; heap
+      irMap.ty = tname; heap
     case _ => error(s"invalid type update: $addr")
   }
 
@@ -440,7 +441,7 @@ extension (map: MapObj) {
   /** keys of map */
   def keys(intSorted: Boolean): Vector[PureValue] = {
     if (!intSorted) {
-      if (map.tname == "SubMap")
+      if (map.ty == "SubMap")
         map.props.toVector
           .sortBy(_._2._2)
           .map(_._1)
