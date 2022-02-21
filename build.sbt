@@ -3,6 +3,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 ThisBuild / version := "0.1.0"
 ThisBuild / scalaVersion := "3.1.0"
 ThisBuild / organization := "esmeta"
+ThisBuild / useSuperShell := false
 ThisBuild / scalacOptions := Seq(
   "-language:implicitConversions", // allow implicit conversions
   "-deprecation", // emit warning and location for usages of deprecated APIs
@@ -49,6 +50,9 @@ lazy val interpEvalTest = taskKey[Unit]("Launch eval tests for interp (tiny)")
 // js
 lazy val jsTest = taskKey[Unit]("Launch js tests")
 lazy val jsParseTest = taskKey[Unit]("Launch parse tests for js (small)")
+
+// test262
+lazy val test262ParseTest = taskKey[Unit]("Launch parse tests for Test262 (large)")
 
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
@@ -125,6 +129,8 @@ lazy val root = project
     // js
     jsTest := (Test / testOnly).toTask(" *.js.*Test").value,
     jsParseTest := (Test / testOnly).toTask(" *.js.parse*Test").value,
+    // test262
+    test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
   )
 
 // create the `.completion` file for autocompletion in shell

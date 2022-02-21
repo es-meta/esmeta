@@ -9,6 +9,7 @@ trait EPackratParsers extends Parsers {
   protected trait DataType { def next: Data }
   protected type Data <: DataType
   protected def defaultData: Data
+
   class EPackratReader[+T <: Elem](underlying: Reader[T]) extends Reader[T] {
     outer =>
     val data: Data = defaultData
@@ -30,8 +31,17 @@ trait EPackratParsers extends Parsers {
     override def offset: Int = underlying.offset
     def first: T = underlying.first
     def rest: Reader[T] = copy(underlying.rest, data.next, first :: rev)
-    def pos: Position = underlying.pos
+    def pos: EPos = EPos(underlying.pos, false)
     def atEnd: Boolean = underlying.atEnd
+    def matchEmpty: Reader[T] = new EPackratReader(underlying) {
+      override val data = outer.data
+      override val rev = outer.rev
+      override private[EPackratParsers] val cache = outer.cache
+      override def pos: EPos = outer.pos.copy(emptyMatched = true)
+      override private[EPackratParsers] val recursionHeads =
+        outer.recursionHeads
+      lrStack = outer.lrStack
+    }
     def copy[T <: Elem](
       underlying: Reader[T] = this.underlying,
       newData: Data = this.data,
@@ -45,6 +55,63 @@ trait EPackratParsers extends Parsers {
       lrStack = outer.lrStack
     }
   }
+
+  // extended position for left-recursion with empty string
+  case class EPos(underlying: Position, emptyMatched: Boolean)
+    extends Position {
+    def line = underlying.line
+    def column = underlying.column
+    protected def lineContents =
+      underlying.longString.substring(
+        0,
+        underlying.longString.length - column - 1,
+      )
+    override def <(that: Position): Boolean = {
+      this.line < that.line ||
+      this.line == that.line && this.column < that.column ||
+      this.line == that.line && this.column == that.column &&
+      that.isInstanceOf[EPos] && !this.emptyMatched && that
+        .asInstanceOf[EPos]
+        .emptyMatched
+    }
+  }
+
+  // empty symbol
+  object EMPTY extends EPackratParser[String] {
+    def apply(in: Input): ParseResult[String] =
+      Success("", in.asInstanceOf[EPackratReader[Elem]].matchEmpty)
+  }
+
+  // memoization for Packrat parsing
+  def memo[T](p: super.Parser[T]): EPackratParser[T] = new EPackratParser[T] {
+    def apply(in: Input) =
+      val inMem = in.asInstanceOf[EPackratReader[Elem]]
+      val m = recall(p, inMem)
+      m match
+        case None =>
+          val base = LR(Failure("Base Failure", in), p, None)
+          inMem.lrStack = base :: inMem.lrStack
+          inMem.updateCacheAndGet(p, MemoEntry(Left(base)))
+          val tempRes = p(in)
+          inMem.lrStack = inMem.lrStack.tail
+          base.head match
+            case None =>
+              inMem.updateCacheAndGet(p, MemoEntry(Right(tempRes)))
+              tempRes
+            case s @ Some(_) =>
+              base.seed = tempRes
+              val res = lrAnswer(p, inMem, base)
+              res
+        case Some(mEntry) =>
+          mEntry match
+            case MemoEntry(Left(recDetect)) =>
+              setupLR(p, inMem, recDetect)
+              recDetect match
+                case LR(seed, _, _) => seed.asInstanceOf[ParseResult[T]]
+            case MemoEntry(Right(res: ParseResult[_])) =>
+              res.asInstanceOf[ParseResult[T]]
+  }
+
   override def phrase[T](p: Parser[T]): EPackratParser[T] = {
     val q = super.phrase(p)
     new EPackratParser[T] {
@@ -54,6 +121,10 @@ trait EPackratParsers extends Parsers {
       }
     }
   }
+
+  // ////////////////////////////////////////////////////////////////////////////
+  // private helpers
+  // ////////////////////////////////////////////////////////////////////////////
   private def getPosFromResult(r: ParseResult[_]): Position = r.next.pos
   private case class MemoEntry[+T](var r: Either[LR, ParseResult[_]]) {
     def getResult: ParseResult[T] = r match {
@@ -119,34 +190,6 @@ trait EPackratParsers extends Parsers {
           case e @ Error(_, _)   => e
           case s @ Success(_, _) => grow(p, in, head)
     case _ => throw new Exception("lrAnswer with no head !!")
-  def memo[T](p: super.Parser[T]): EPackratParser[T] = new EPackratParser[T] {
-    def apply(in: Input) =
-      val inMem = in.asInstanceOf[EPackratReader[Elem]]
-      val m = recall(p, inMem)
-      m match
-        case None =>
-          val base = LR(Failure("Base Failure", in), p, None)
-          inMem.lrStack = base :: inMem.lrStack
-          inMem.updateCacheAndGet(p, MemoEntry(Left(base)))
-          val tempRes = p(in)
-          inMem.lrStack = inMem.lrStack.tail
-          base.head match
-            case None =>
-              inMem.updateCacheAndGet(p, MemoEntry(Right(tempRes)))
-              tempRes
-            case s @ Some(_) =>
-              base.seed = tempRes
-              val res = lrAnswer(p, inMem, base)
-              res
-        case Some(mEntry) =>
-          mEntry match
-            case MemoEntry(Left(recDetect)) =>
-              setupLR(p, inMem, recDetect)
-              recDetect match
-                case LR(seed, _, _) => seed.asInstanceOf[ParseResult[T]]
-            case MemoEntry(Right(res: ParseResult[_])) =>
-              res.asInstanceOf[ParseResult[T]]
-  }
   private def grow[T](
     p: super.Parser[T],
     rest: EPackratReader[Elem],

@@ -17,7 +17,7 @@ class StringifyTinyTest extends IRTest {
       val filename = file.getName
       if (irFilter(filename)) check(filename) {
         val name = file.toString
-        irParseTestFile(name)
+        IRTest.parseFileTest(name)
       }
     }
 

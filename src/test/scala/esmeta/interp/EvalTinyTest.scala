@@ -9,10 +9,11 @@ class EvalTinyTest extends InterpTest {
 
   // registration
   def init: Unit = {
+    // check interpretation tests for IR files
     for (file <- walkTree(IR_TEST_DIR)) {
       val filename = file.getName
       if (irFilter(filename)) check(filename) {
-        interpFile(file.toString)
+        InterpTest.interpFile(file.toString)
       }
     }
   }

@@ -13,7 +13,7 @@ class ParseSmallTest extends JSTest {
       val filename = file.getName
       if (jsFilter(filename)) check(filename) {
         val name = file.toString
-        jsParseTestFile(name)
+        JSTest.parseFileTest(name)
       }
     }
   }

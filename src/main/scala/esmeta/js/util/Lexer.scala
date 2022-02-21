@@ -94,7 +94,7 @@ trait Lexer extends UnicodeParsers {
   protected def getSymbolParser(
     symbol: Symbol,
     argsSet: Set[String],
-  ): Parser[String] = symbol match {
+  ): Parser[String] = symbol match
     case Terminal(term) => term
     case Nonterminal(name, args, optional) =>
       val parser = lexers((name, toBit(toBools(argsSet, args))))
@@ -111,7 +111,7 @@ trait Lexer extends UnicodeParsers {
         .map(_.map(getSymbolParser(_, argsSet)).reduce(_ % _))
         .reduce(_ ||| _)
       "" <~ (if (b) guard else not)(parser)
-    case Empty            => ""
+    case Empty            => EMPTY
     case NoLineTerminator => strNoLineTerminator
     case CodePointAbbr(abbr) =>
       abbrCPs.getOrElse(
@@ -123,7 +123,6 @@ trait Lexer extends UnicodeParsers {
     case UnicodeSet(Some("with the Unicode property “ID_Continue”")) =>
       IDContinue
     case UnicodeSet(Some(cond)) => ???
-  }
 
   // get a set of argument names from lists of parameters and arguments
   protected def getArgs(

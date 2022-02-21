@@ -30,3 +30,6 @@ bin/
 
 ## vscode
 .vscode
+
+## test results for Test262
+tests/result/test262
