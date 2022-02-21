@@ -3,7 +3,6 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 ThisBuild / version := "0.1.0"
 ThisBuild / scalaVersion := "3.1.0"
 ThisBuild / organization := "esmeta"
-ThisBuild / useSuperShell := false
 ThisBuild / scalacOptions := Seq(
   "-language:implicitConversions", // allow implicit conversions
   "-deprecation", // emit warning and location for usages of deprecated APIs

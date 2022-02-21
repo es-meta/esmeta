@@ -51,5 +51,5 @@ case class ProgressBar[T](msg: String, seq: Iterable[T]) {
   }
 
   // progress bar character
-  val BAR = "░"
+  val BAR = "#"
 }
