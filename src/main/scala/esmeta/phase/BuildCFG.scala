@@ -22,7 +22,7 @@ case object BuildCFG extends Phase[Spec, Spec] {
       mkdir(CFG_LOG_DIR)
       // dump dot format
       cfg.funcs.foreach(f => {
-        val name = s"${CFG_LOG_DIR}/${f.ir.name}"
+        val name = s"${CFG_LOG_DIR}/${f.ir.name.replace("/", "")}"
         dumpFile(f.toDot, s"$name.dot")
       })
 

@@ -51,6 +51,7 @@ trait DotPrinter {
     def add(nodeOpt: Option[Node]): Unit = nodeOpt.map { node =>
       if (!visited.contains(node)) { queue.enqueue(node); visited += node }
     }
+    drawEntry(node, app)
     while (!queue.isEmpty) {
       val curr = queue.dequeue
       drawNode(curr, app)
@@ -60,6 +61,28 @@ trait DotPrinter {
         case branch: Branch => add(branch.thenNode); add(branch.elseNode)
       }
     }
+  }
+
+  def drawEntry(entry: Node, app: Appender): Unit = {
+    val id = getId(entry)
+    val nodeColor = getColor(entry)
+    val edgeColor = getColor(entry, entry)
+    val bgColor = getBgColor(entry)
+    app :> s"""dot_entry_name [shape=none, label=<<font color=$nodeColor>Entry</font>>]""" >> LINE_SEP
+    app :> s"""dot_entry_name -> dot_entry [arrowhead=none, color=$nodeColor, style=dashed]""" >> LINE_SEP
+    app :> s"""dot_entry [shape=circle label=" " color=$nodeColor fillcolor=$bgColor style=filled]""" >> LINE_SEP
+    app :> s"""dot_entry -> $id [color=$edgeColor]""" >> LINE_SEP
+  }
+
+  def drawExit(node: Node, app: Appender): Unit = {
+    val id = getId(node)
+    val nodeColor = getColor(node)
+    val edgeColor = getColor(node, node)
+    val bgColor = getBgColor(node)
+    app :> s"""${id}_exit_name [shape=none, label=<<font color=$nodeColor>Exit</font>>]""" >> LINE_SEP
+    app :> s"""${id}_exit_name -> ${id}_exit [arrowhead=none, color=$nodeColor, style=dashed]""" >> LINE_SEP
+    app :> s"""${id}_exit [shape=circle label=" " color=$nodeColor fillcolor=$bgColor style=filled]""" >> LINE_SEP
+    app :> s"""$id -> ${id}_exit [color=$edgeColor]""" >> LINE_SEP
   }
 
   def drawNode(node: Node, app: Appender): Unit = {
@@ -73,8 +96,10 @@ trait DotPrinter {
         app :> s"""$id [shape=box label=<<font color=$nodeColor>${norm(
           insts,
         )}</font>> color=$nodeColor fillcolor=$bgColor style=filled]""" >> LINE_SEP
-        nextOpt.map { next =>
-          drawEdge(id, getId(next), getColor(node, next), None, app),
+        nextOpt match {
+          case Some(next) =>
+            drawEdge(id, getId(next), getColor(node, next), None, app)
+          case None => drawExit(node, app)
         }
       }
       case Call(_, lhs, fexpr, args, nextOpt) => {
@@ -83,9 +108,10 @@ trait DotPrinter {
         app :> s"""$id [shape=cds label=<<font color=$nodeColor>${norm(
           simpleString,
         )})</font>> color=$nodeColor fillcolor=$bgColor style=filled]""" >> LINE_SEP
-
-        nextOpt.map { next =>
-          drawEdge(id, getId(next), getColor(node, next), None, app),
+        nextOpt match {
+          case Some(next) =>
+            drawEdge(id, getId(next), getColor(node, next), None, app)
+          case None => drawExit(node, app)
         }
       }
       case Branch(_, kind, cond, thenOpt, elseOpt) => {
@@ -93,7 +119,6 @@ trait DotPrinter {
         app :> s"""$id [shape=diamond label=<<font color=$nodeColor>${norm(
           cond,
         )}</font>> color=$nodeColor fillcolor=$bgColor style=filled]""" >> LINE_SEP
-
         thenOpt.map { thn =>
           drawEdge(id, getId(thn), getColor(node, thn), Some("true"), app),
         }
