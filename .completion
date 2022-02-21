@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg ir-eval js-parse js-eval"
+  cmdList="help extract compile build-cfg ir-eval js-parse js-eval filter-test262"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
   extractOpt="-extract:json -extract:version -extract:log -extract:stat"
@@ -20,6 +20,7 @@ _esmeta_completions() {
   irevalOpt=""
   jsparseOpt=""
   jsevalOpt=""
+  filtertest262Opt=""
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -58,6 +59,10 @@ _esmeta_completions() {
           ;;
         js-eval)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${jsevalOpt}"))
+          return 0
+          ;;
+        filter-test262)
+          COMPREPLY=($(compgen -W "${globalOpt} ${filtertest262Opt}"))
           return 0
           ;;
       esac

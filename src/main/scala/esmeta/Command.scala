@@ -74,3 +74,9 @@ case object CmdJSParse extends Command("js-parse", CmdBase >> JSParse) {
 case object CmdJSEval extends Command("js-eval", CmdBuildCFG >> JSEval) {
   def help = "evaluates a JavaScript file."
 }
+
+/** filter-test262 commmand */
+case object CmdFilterTest262
+  extends Command("filter-test262", CmdBase >> FilterTest262) {
+  def help = "extracts and filters out metadata of Test262 tests."
+}
