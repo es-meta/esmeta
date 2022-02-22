@@ -5,6 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
+import esmeta.js.util.{Parser => JSParser}
 import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -18,6 +19,7 @@ class Interp(
   val st: State,
   val timeLimit: Option[Long] = Some(TIMEOUT),
   val typeModel: Option[TypeModel] = None, // TODO refactoring
+  val parser: Option[JSParser] = None, // TODO refactoring
 ) {
   import Interp.*
 

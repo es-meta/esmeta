@@ -77,6 +77,10 @@ object SystemUtils {
   def getFirstFilename(globalConfig: GlobalConfig, msg: String): String =
     globalConfig.args.headOption.getOrElse(throw NoFileError(msg))
 
+  /** get second filename */
+  def getSecondFilename(globalConfig: GlobalConfig, msg: String): String =
+    globalConfig.args.tail.headOption.getOrElse(throw NoFileError(msg))
+
   /** read file */
   def readFile(filename: String): String =
     val source = Source.fromFile(filename, ENC)

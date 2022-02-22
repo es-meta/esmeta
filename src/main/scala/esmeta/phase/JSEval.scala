@@ -3,8 +3,9 @@ package esmeta.phase
 import esmeta.*
 import esmeta.spec.Spec
 import esmeta.interp.*
+import esmeta.util.SystemUtils.*
 import esmeta.js.*
-import esmeta.js.util.*
+import esmeta.js.util.Parser
 import esmeta.js.builtin.*
 
 /** `js-eval` phase */
@@ -16,8 +17,11 @@ case object JSEval extends Phase[Spec, State] {
     globalConfig: GlobalConfig,
     config: Config,
   ): State = {
-    val (st, typeModel) = Initialize(spec, "") // XXX get source text
-    println(st)
+    // get source text
+    val filename = getSecondFilename(globalConfig, "js-eval")
+    // TODO refactoring to mechanized spec
+    val (st, typeModel) = Initialize(spec, readFile(filename))
+    val parser = Parser(spec.grammar)
     new Interp(st, typeModel = Some(typeModel)).fixpoint
     st
   }
