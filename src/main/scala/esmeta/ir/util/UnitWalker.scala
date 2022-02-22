@@ -1,9 +1,9 @@
 package esmeta.ir.util
 
 import esmeta.ir.*
-import esmeta.util.{BasicUnitWalker, Loc}
+import esmeta.util.BasicUnitWalker
 
-/** a unit walker for CFG */
+/** a unit walker for IR */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: IRElem): Unit = elem match {
     case elem: Program    => walk(elem)

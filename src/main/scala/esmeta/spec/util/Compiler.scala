@@ -30,27 +30,6 @@ class Compiler(val spec: Spec) {
     program
   }
 
-  // simple operations
-  type SimpleOp = PartialFunction[List[Expr], Expr]
-  def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
-    val (name, f) = pair
-    name -> (args =>
-      optional(f(args)).getOrElse(
-        error(s"invalid arguments: $name(${args.mkString(", ")})"),
-      ),
-    )
-  }
-  val simpleOps: Map[String, SimpleOp] = Map(
-    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
-    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
-    // arityCheck("GetArgument" -> ???),
-    // arityCheck("IsDuplicate" -> ???),
-    // arityCheck("IsArrayIndex" -> ???),
-    // arityCheck("ThrowCompletion" -> ???),
-    // arityCheck("NormalCompletion" -> ???),
-    // arityCheck("IsAbruptCompletion" -> ???),
-  )
-
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
@@ -570,6 +549,27 @@ class Compiler(val spec: Spec) {
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
+
+  // simple operations
+  private type SimpleOp = PartialFunction[List[Expr], Expr]
+  private def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
+    val (name, f) = pair
+    name -> (args =>
+      optional(f(args)).getOrElse(
+        error(s"invalid arguments: $name(${args.mkString(", ")})"),
+      ),
+    )
+  }
+  private val simpleOps: Map[String, SimpleOp] = Map(
+    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
+    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    // arityCheck("GetArgument" -> ???),
+    // arityCheck("IsDuplicate" -> ???),
+    // arityCheck("IsArrayIndex" -> ???),
+    // arityCheck("ThrowCompletion" -> ???),
+    // arityCheck("NormalCompletion" -> ???),
+    // arityCheck("IsAbruptCompletion" -> ???),
+  )
 }
 object Compiler {
   def apply(spec: Spec): Program = new Compiler(spec).result
