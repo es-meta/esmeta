@@ -1,9 +1,25 @@
 package esmeta.js
 
-/** abstract syntax tree (AST) values */
-sealed trait Ast extends JSElem { val name: String }
+import esmeta.js.util.*
 
-// AST constructed by syntatic productions
+/** abstract syntax tree (AST) values */
+sealed trait Ast extends JSElem {
+
+  /** production names */
+  val name: String
+
+  /** flatten statements */
+  // TODO refactoring
+  def flattenStmt: List[Ast] = this match
+    case Syntactic("Script", _, 0, List(Some(body))) =>
+      body match
+        case Syntactic("ScriptBody", _, 0, List(Some(stlist))) =>
+          flattenStmtList(stlist)
+        case _ => Nil
+    case _ => Nil
+}
+
+/** ASTs constructed by syntatic productions */
 case class Syntactic(
   name: String,
   args: List[Boolean],
@@ -11,7 +27,7 @@ case class Syntactic(
   children: List[Option[Ast]],
 ) extends Ast
 
-// AST constructed by lexical productions
+/** ASTs constructed by lexical productions */
 case class Lexical(
   name: String,
   str: String,

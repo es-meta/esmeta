@@ -1,7 +1,7 @@
 package esmeta.test262.util
 
 import esmeta.*
-import esmeta.test262.*
+import esmeta.test262.{*, given}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
