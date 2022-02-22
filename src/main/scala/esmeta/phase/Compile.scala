@@ -17,7 +17,7 @@ case object Compile extends Phase[Spec, Program] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Program = {
-    val program = Compiler(spec)
+    val program = spec.toIR
     if (LOG) program.dumpTo(COMPILE_LOG_DIR)
     program
   }

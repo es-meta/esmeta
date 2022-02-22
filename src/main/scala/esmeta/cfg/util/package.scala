@@ -8,8 +8,14 @@ import scala.collection.mutable.Queue
 
 /** extensions for control-flow graphs (CFGs) */
 extension (cfg: CFG) {
+
+  /** get a type model */
   def typeModel: TypeModel = spec.typeModel
+
+  /** get the corresponding specification */
   def spec: Spec = cfg.program.spec
+
+  /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
 }
 

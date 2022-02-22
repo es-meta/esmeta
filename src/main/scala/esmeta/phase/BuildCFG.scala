@@ -3,8 +3,8 @@ package esmeta.phase
 import esmeta.*
 import esmeta.spec.Spec
 import esmeta.cfg.CFG
-import esmeta.cfg.util.Builder
 import esmeta.ir.Program
+import esmeta.ir.util.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
@@ -24,7 +24,7 @@ case object BuildCFG extends Phase[Program, CFG] {
       .replace("<", "")
       .replace(">", "")
       .replace("`", "")
-    val cfg = Builder(program)
+    val cfg = program.toCFG
 
     if (config.dot) {
       mkdir(CFG_LOG_DIR)

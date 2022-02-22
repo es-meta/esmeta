@@ -1,6 +1,9 @@
 package esmeta.spec.util
 
 import esmeta.spec.*
+import esmeta.cfg.CFG
+import esmeta.cfg.util.Builder
+import esmeta.ir.{Program => IRProgram}
 import esmeta.lang.{Step, YetStep}
 import esmeta.lang.util.StepCollector
 import esmeta.{EXTRACT_LOG_DIR, LINE_SEP}
@@ -43,6 +46,12 @@ extension (elem: Element) {
 
 /** extensions for specifications */
 extension (spec: Spec) {
+
+  /** convert to an IR program */
+  def toIR: IRProgram = Compiler(spec)
+
+  /** convert to a control-flow graph (CFG) */
+  def toCFG: CFG = Builder(Compiler(spec))
 
   /** get incomplete algorithms */
   def incompleteAlgorithms: List[Algorithm] =

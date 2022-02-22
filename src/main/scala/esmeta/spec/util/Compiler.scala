@@ -37,13 +37,6 @@ class Compiler(val spec: Spec) {
     (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
   } yield yet -> Inst.from(inst)).toMap
 
-  // get the main function
-  private def main: Func = funcs.filter(_.main) match {
-    case ListBuffer()     => error("no main function")
-    case ListBuffer(main) => main
-    case _                => error("multiple main functions")
-  }
-
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
 

@@ -19,7 +19,7 @@ case object IREval extends Phase[Unit, State] {
   ): State = {
     val filename = getFirstFilename(globalConfig, "extract")
     val program = Program.fromFile(filename)
-    val cfg = Builder(program)
+    val cfg = program.toCFG
     val st = State(cfg)
     new Interp(st).fixpoint
     st
