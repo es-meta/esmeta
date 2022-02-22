@@ -2,7 +2,6 @@ package esmeta.interp.util
 
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.builtin.TypeModel
 import esmeta.cfg.*
 import esmeta.cfg.util.*
 import esmeta.error.*
@@ -206,9 +205,9 @@ extension (st: State) {
   def keys(addr: Addr, intSorted: Boolean): Addr =
     st.heap.keys(addr, intSorted)
   def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
+    cfg: CFG,
     typeModel: Option[TypeModel],
-  ): Addr =
-    st.heap.allocMap(tname, map)
+  ): Addr = st.heap.allocMap(tname, map)
   def allocList(list: List[PureValue]): Addr =
     st.heap.allocList(list)
   def allocSymbol(desc: PureValue): Addr =
@@ -308,7 +307,10 @@ extension (heap: Heap) {
   def allocMap(
     tname: String,
     m: Map[PureValue, PureValue],
-  )(using typeModel: Option[TypeModel]): Addr = {
+  )(using
+    cfg: CFG,
+    typeModel: Option[TypeModel],
+  ): Addr = {
     val irMap =
       if (tname == "Record") MapObj(tname, MMap(), 0) else MapObj(tname)
     for ((k, v) <- m) irMap.update(k, v)

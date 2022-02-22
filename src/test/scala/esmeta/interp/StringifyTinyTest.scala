@@ -3,7 +3,6 @@ package esmeta.interp
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
-import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 

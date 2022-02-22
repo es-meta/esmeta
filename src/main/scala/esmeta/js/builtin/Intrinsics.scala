@@ -1,5 +1,7 @@
 package esmeta.js.builtin
 
+import esmeta.cfg.CFG
+import esmeta.ir.TypeModel
 import esmeta.interp.*
 import esmeta.spec.*
 
@@ -11,6 +13,7 @@ case class Intrinsics(spec: Spec) {
   private val F = false
   private val U = Undef
   private def cfg = spec.program.cfg
+  given CFG = cfg
 
   /** type model */
   // TODO refactoring

@@ -3,6 +3,7 @@ package esmeta.js.builtin
 import esmeta.interp.*
 import esmeta.spec.*
 import esmeta.cfg.CFG
+import esmeta.ir.TypeModel
 import scala.collection.mutable.{Map => MMap}
 
 /** predefined constants */
@@ -62,7 +63,10 @@ def descAddr(name: String, key: String): NamedAddr = NamedAddr(
 def getSubmapObjects(
   name: String,
   nmap: List[(String, Property)],
-)(using Option[TypeModel]): Map[Addr, Obj] = {
+)(using
+  cfg: CFG,
+  typeModel: Option[TypeModel],
+): Map[Addr, Obj] = {
   var map = Map[Addr, Obj]()
   map += submapAddr(name) -> MapObj(SUBMAP)(nmap.map {
     case (k, _) => // handle symbol
@@ -77,7 +81,10 @@ def getSubmapObjects(
 extension (prop: Property) {
 
   /** convert to ir map object */
-  def toObject(using Option[TypeModel]): MapObj = prop match
+  def toObject(using
+    cfg: CFG,
+    typeModel: Option[TypeModel],
+  ): MapObj = prop match
     case DataProperty(v, w, e, c) =>
       MapObj("PropertyDescriptor")(
         Str("Value") -> v,

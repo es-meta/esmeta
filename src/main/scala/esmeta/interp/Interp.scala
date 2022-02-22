@@ -6,7 +6,6 @@ import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser}
-import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{TIMEOUT, TEST_MODE, LOG}
@@ -31,6 +30,7 @@ class Interp(
 
   /** type model */
   // TODO refactoring
+  private given CFG = cfg
   private given Option[TypeModel] = typeModel
 
   /** step */
