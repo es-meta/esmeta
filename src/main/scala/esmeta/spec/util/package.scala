@@ -170,20 +170,9 @@ extension (rhs: Rhs) {
   def getNts: List[Nonterminal] = rhs.symbols.flatMap(_.getNt)
 
   /** get parameters from RHSs */
-  def getRhsParams: List[Param] = {
-    import Param.Kind.*
-    val names = rhs.getNts.map(_.name)
-    val duplicated = names.filter(p => names.count(_ == p) > 1).toSet
-    var counter = Map[String, Int]()
-    val paramNames = names.map(name => {
-      if (duplicated contains name) {
-        val k = counter.getOrElse(name, 0)
-        counter += name -> (k + 1)
-        s"$name$k"
-      } else name
-    })
-    paramNames.map(Param(_, Normal, "unknown"))
-  }
+  // TODO give more precise type
+  def getRhsParams: List[Param] =
+    rhs.getNts.map(nt => Param(nt.name, Param.Kind.Normal, "Unknown"))
 }
 
 /** extensions for symbols */

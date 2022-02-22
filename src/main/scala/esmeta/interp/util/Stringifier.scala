@@ -112,6 +112,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case clo: Clo          => cloRule(app, clo)
       case cont: Cont        => contRule(app, cont)
       case AstValue(ast)     => app >> ast
+      case gr: Grammar       => grammarRule(app, gr)
       case lit: LiteralValue => litRule(app, lit)
 
   // addresses
@@ -134,6 +135,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
     app >> "cont<" >> func.ir.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
+    app >> ">"
+
+  // grammar
+  given grammarRule: Rule[Grammar] = (app, gr) =>
+    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    given Rule[List[Boolean]] = iterableRule()
+    app >> "grammar<" >> gr.name
+    if (!gr.params.isEmpty) app >> "[" >> gr.params >> "]"
     app >> ">"
 
   // literal values

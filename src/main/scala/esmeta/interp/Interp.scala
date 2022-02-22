@@ -168,8 +168,8 @@ class Interp(
       val r = interp(rule).escaped
       ??? // TODO parse `code` with `rule`
     }
-    case EParseRule(name, params) => ???
-    case ESourceText(expr)        => ???
+    case EGrammar(name, params) => Grammar(name, params)
+    case ESourceText(expr)      => ???
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>

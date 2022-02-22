@@ -403,7 +403,7 @@ class Compiler(val spec: Spec) {
       val newFb = FuncBuilder(Func.Kind.Clo, cloName, ps, body, fb.algo)
       newFb.result
       EClo(cloName, captured.map(compile))
-    case lit: Literal => compile(lit)
+    case lit: Literal => compile(fb, lit)
   }
 
   // compile binary operators
@@ -419,13 +419,28 @@ class Compiler(val spec: Spec) {
     case UnaryExpression.Op.Neg => UOp.Neg
 
   // compile literals
-  private def compile(lit: Literal): Expr = lit match {
+  private def compile(fb: FB, lit: Literal): Expr = lit match {
     case ThisLiteral()         => ENAME_THIS
     case NewTargetLiteral()    => ENAME_NEW_TARGET
     case HexLiteral(hex, name) => EMathVal(hex)
     case CodeLiteral(code)     => EStr(code)
     case NonterminalLiteral(ordinal, name) =>
-      toERef(NAME_THIS, EStr(name + ordinal.fold("")(_.toString)))
+      fb.algo.head match
+        case SyntaxDirectedOperationHead(Some(target), method, _, _) =>
+          val rhsNames = target.rhsParams.map(_.name)
+          // check if it is used as reference
+          // TODO ClassTail[0,3].Contains
+          if (rhsNames contains name) {
+            var (idx, ord) = (0, 0)
+            val targetOrd = ordinal.getOrElse(1)
+            rhsNames.foreach {
+              case nt =>
+                if (nt == name && ord < targetOrd) ord += 1
+                if (ord < targetOrd) idx += 1
+            }
+            toERef(NAME_THIS, EMathVal(idx))
+          } else EGrammar(name, Nil) // TODO grammar params
+        case _ => EGrammar(name, Nil) // TODO grammar params
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => EStr(field)

@@ -126,6 +126,9 @@ case class Cont(
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue
 
+/** grammars */
+case class Grammar(name: String, params: List[Boolean]) extends PureValue
+
 // -----------------------------------------------------------------------------
 // Literal Values
 // -----------------------------------------------------------------------------
