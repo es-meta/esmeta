@@ -64,8 +64,15 @@ trait Parsers extends DivergedParsers {
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
+  // TODO remove componentRef
   lazy val setStep: PL[SetStep] =
-    ("set" ~> ref <~ "to") ~ endWithExpr ^^ { case r ~ e => SetStep(r, e) }
+    ("set" ~> (componentRef | ref) <~ "to") ~ endWithExpr ^^ {
+      case r ~ e => SetStep(r, e)
+    }
+  lazy val componentRef: PL[Reference] =
+    ("the" ~> camel <~ opt("component")) ~ ("of" ~> variable) ^^ {
+      case c ~ v => PropertyReference(v, ComponentProperty(c))
+    }
 
   // if-then-else steps
   lazy val ifStep: PL[IfStep] =
@@ -557,8 +564,6 @@ trait Parsers extends DivergedParsers {
       rest.foldLeft[PropertyReference](PropertyReference(base, p))(
         PropertyReference(_, _),
       )
-  } ||| ("the" ~> camel <~ opt("component")) ~ ("of" ~> variable) ^^ {
-    case c ~ v => PropertyReference(v, ComponentProperty(c))
   }
 
   // base references
