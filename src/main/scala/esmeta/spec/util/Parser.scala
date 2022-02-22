@@ -13,35 +13,37 @@ import org.jsoup.nodes.*
 object Parser extends Parsers {
 
   /** parses a specification */
-  def parseSpec(content: String): Spec = {
+  def parseSpec(
+    content: String,
+    version: Option[(String, String)] = None,
+    versionHash: Option[String] = None,
+  ): Spec =
     val document = content.toHtml
     val grammar = parseGrammar(document)
     val idxMap = grammar.idxMap
     val algorithms = parseAlgorithms(document, idxMap)
     val tables = parseTables(document)
-
     Spec(
-      version = None,
+      version = version,
       grammar = grammar,
       algorithms = algorithms,
       tables = tables,
       document = document,
     )
-  }
 
   /** parses a specification with versions */
-  def parseSpecWithVersion(version: String = "main"): Spec = {
+  def parseSpecWithVersion(version: String = "main"): Spec =
     val cur = currentVersion(ECMA262_DIR)
+    val hash = getVersion(version, ECMA262_DIR)
     val src =
-      if (cur == version) readFile(SPEC_HTML)
+      if (cur == hash) readFile(SPEC_HTML)
       else {
-        changeVersion(version, ECMA262_DIR)
+        changeVersion(hash, ECMA262_DIR)
         val src = readFile(SPEC_HTML)
         changeVersion(cur, ECMA262_DIR)
         src
       }
-    parseSpec(src)
-  }
+    parseSpec(src, Some(version, hash))
 
   /** parses a grammar */
   def parseGrammar(document: Document): Grammar = {

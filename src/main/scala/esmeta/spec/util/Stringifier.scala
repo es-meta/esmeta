@@ -35,7 +35,12 @@ object Stringifier {
     val Spec(version, grammar, algorithms, tables, typeModel, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
-    version.map(app >> "* version: " >> _ >> LINE_SEP)
+    version.map {
+      case (name, hash) =>
+        app >> "* version: " >> hash
+        if (name != hash) app >> " (" >> name >> ")"
+        app >> LINE_SEP
+    }
     app >> "* grammar:"
     app :> "  - productions: " >> prods.length
     app :> "    - lexical: " >> prodsBy(Lexical).length

@@ -164,9 +164,13 @@ object SystemUtils {
   def changeVersion(target: String, dir: String = CUR_DIR): Unit =
     executeCmd(s"git checkout $target", dir)
 
-  /** get git current version */
+  /** get git commit hash */
+  def getVersion(target: String, dir: String = CUR_DIR): String =
+    executeCmd(s"git rev-parse $target", dir).trim
+
+  /** get git commit hash for the current version */
   def currentVersion(dir: String = CUR_DIR): String =
-    executeCmd(s"git rev-parse HEAD", dir).trim
+    getVersion("HEAD", dir)
 
   /** set timeout with optinal limitation */
   def timeout[T](f: => T, limit: Option[Long]): T =

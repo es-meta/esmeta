@@ -16,15 +16,10 @@ case object Extract extends Phase[Unit, Spec] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Spec = {
-    val spec = (config.json, config.version) match {
-      case (Some(json), _) => ???
-      case (_, Some(version)) =>
-        Parser.parseSpecWithVersion(version)
-      case _ =>
-        val filename = getFirstFilename(globalConfig, name)
-        val content = readFile(filename)
-        Parser.parseSpec(content)
-    }
+    val spec = (config.json, config.version) match
+      case (Some(json), _) => ??? // TODO
+      case (_, version) =>
+        Parser.parseSpecWithVersion(version.getOrElse("main"))
 
     // logging mode
     if (config.log) {

@@ -8,7 +8,7 @@ import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
-  version: Option[String] = None,
+  version: Option[(String, String)] = None,
   grammar: Grammar = Grammar(),
   algorithms: List[Algorithm] = Nil,
   tables: Map[String, Table] = Map(),
