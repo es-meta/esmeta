@@ -1,23 +1,18 @@
 package esmeta.js.builtin
 
 import esmeta.cfg.CFG
-import esmeta.ir.TypeModel
 import esmeta.interp.*
 import esmeta.spec.*
 
 /** model for global object */
-case class GlobalObject(spec: Spec) {
+case class GlobalObject(cfg: CFG) {
 
   /** shortcuts */
   private val T = true
   private val F = false
   private val U = Undef
-  private def cfg = spec.program.cfg
+  private val spec = cfg.program.spec
   given CFG = cfg
-
-  /** type model */
-  // TODO refactoring
-  private given Option[TypeModel] = Some(TypeModel(spec))
 
   /** get global object */
   def obj: MapObj = MapObj("Object")(Str(SUBMAP) -> submapAddr(GLOBAL_OBJECT))

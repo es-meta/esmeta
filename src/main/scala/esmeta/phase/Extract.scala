@@ -21,7 +21,7 @@ case object Extract extends Phase[Unit, Spec] {
       case (_, Some(version)) =>
         Parser.parseSpecWithVersion(version)
       case _ =>
-        val filename = getFirstFilename(globalConfig, "extract")
+        val filename = getFirstFilename(globalConfig, name)
         val content = readFile(filename)
         Parser.parseSpec(content)
     }

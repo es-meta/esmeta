@@ -205,8 +205,7 @@ extension (st: State) {
   def keys(addr: Addr, intSorted: Boolean): Addr =
     st.heap.keys(addr, intSorted)
   def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
-    cfg: CFG,
-    typeModel: Option[TypeModel],
+    CFG,
   ): Addr = st.heap.allocMap(tname, map)
   def allocList(list: List[PureValue]): Addr =
     st.heap.allocList(list)
@@ -307,10 +306,7 @@ extension (heap: Heap) {
   def allocMap(
     tname: String,
     m: Map[PureValue, PureValue],
-  )(using
-    cfg: CFG,
-    typeModel: Option[TypeModel],
-  ): Addr = {
+  )(using CFG): Addr = {
     val irMap =
       if (tname == "Record") MapObj(tname, MMap(), 0) else MapObj(tname)
     for ((k, v) <- m) irMap.update(k, v)

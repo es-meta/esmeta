@@ -79,16 +79,6 @@ extension (spec: Spec) {
     }
     name = target.lhsName
   } yield name).toSet
-
-  /** dump program of specs */
-  def dumpProgram(baseDir: String): Unit = {
-    mkdir(baseDir)
-    for {
-      func <- spec.program.funcs
-      name = func.name
-      filename = s"$baseDir/${name.replace("/", "")}.ir"
-    } dumpFile(func, filename)
-  }
 }
 
 /** extensions for algorithms */
@@ -185,45 +175,4 @@ extension (symbol: Symbol) {
     case ButOnlyIf(base, _, _) => Some(base)
     case _                     => None
   }
-}
-
-/** extensions for stats */
-extension (stat: Stats) {
-
-  /** dump */
-  def dumpTo(baseDir: String): Unit = {
-    // log Statistics
-    mkdir(baseDir)
-
-    dumpFile(
-      name = "the summary of algorithms",
-      data = stat.ElemStat.getAlgoString,
-      filename = s"$baseDir/algo-summary",
-    )
-
-    dumpFile(
-      name = "the summary of algorithm steps",
-      data = stat.ElemStat.getStepString,
-      filename = s"$baseDir/step-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec steps",
-      data = stat.KindStat.getStepString,
-      filename = s"$baseDir/step-kind-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec exprs",
-      data = stat.KindStat.getExprString,
-      filename = s"$baseDir/expr-kind-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec conds",
-      data = stat.KindStat.getCondString,
-      filename = s"$baseDir/cond-kind-summary",
-    )
-  }
-
 }

@@ -6,8 +6,8 @@ import esmeta.spec.util.*
 // grammars
 // -----------------------------------------------------------------------------
 case class Grammar(
-  prods: List[Production],
-  prodsForWeb: List[Production],
+  prods: List[Production] = Nil,
+  prodsForWeb: List[Production] = Nil,
 ) extends SpecElem {
   lazy val nameMap: Map[String, Production] =
     (for (prod <- prods) yield prod.lhs.name -> prod).toMap

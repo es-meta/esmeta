@@ -1,15 +1,18 @@
 package esmeta.ir
 
-import esmeta.cfg.CFG
-import esmeta.cfg.util.Builder
 import esmeta.ir.util.Parser
 import esmeta.spec.Spec
+import esmeta.util.BaseUtils.*
 
 /** IR programs */
 case class Program(
-  funcs: List[Func], // compiled functions from abstract algorithms
-  spec: Option[Spec] = None, // an optional backward edge to specification
+  funcs: List[Func] = Nil,
 ) extends IRElem {
-  lazy val cfg: CFG = new Builder(this).result // XXX refactor and remove
+  // backward edge to a specification
+  var spec: Spec = Spec()
+
+  // the main function
+  lazy val main: Func = getUnique(funcs, _.main, "main function")
 }
-object Program extends Parser.From[Program] // TODO update
+
+object Program extends Parser.From[Program]

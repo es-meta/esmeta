@@ -13,5 +13,5 @@ object InterpTest {
   def interp(st: State): State =
     new Interp(st).fixpoint
   def interpFile(filename: String): State =
-    interp(State(Program.fromFile(filename).cfg))
+    interp(State(Builder(Program.fromFile(filename))))
 }

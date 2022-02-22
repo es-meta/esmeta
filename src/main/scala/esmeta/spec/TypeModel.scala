@@ -1,9 +1,7 @@
-package esmeta.ir
-
-import esmeta.spec.Spec
+package esmeta.spec
 
 /** type modeling */
-case class TypeModel(infos: Map[String, TypeInfo]) {
+case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
 
   /** get method map */
   def apply(tname: String): Map[String, String] = infos.get(tname) match {
@@ -23,9 +21,8 @@ case class TypeModel(infos: Map[String, TypeInfo]) {
 }
 object TypeModel {
   // TODO extract type model from spec
-  def apply(spec: Spec): TypeModel = {
-    val cfg = spec.program.cfg
-    val infos: Map[String, TypeInfo] = Map(
+  lazy val js: TypeModel = TypeModel(
+    Map(
       "Object" -> TypeInfo(
         parent = None,
         methods = Map(
@@ -242,9 +239,8 @@ object TypeModel {
           "GlobalEnvironmentRecord.CreateGlobalFunctionBinding",
         ),
       ),
-    )
-    TypeModel(infos)
-  }
+    ),
+  )
 }
 
 /** type information */

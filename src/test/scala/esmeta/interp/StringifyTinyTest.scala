@@ -14,7 +14,7 @@ class StringifyTinyTest extends InterpTest {
     // -------------------------------------------------------------------------
     // States
     // -------------------------------------------------------------------------
-    lazy val st = State(CFG(func, ListBuffer(func)), ctxt)
+    lazy val st = State(CFG(List(func)), ctxt)
     checkStringify("State")(
       st -> """{
       |  context: {

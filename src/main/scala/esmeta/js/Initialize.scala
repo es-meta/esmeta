@@ -1,5 +1,6 @@
 package esmeta.js
 
+import esmeta.cfg.CFG
 import esmeta.ir.*
 import esmeta.interp.*
 import esmeta.spec.*
@@ -7,17 +8,12 @@ import esmeta.js.builtin.*
 import scala.collection.mutable.{Map => MMap}
 
 object Initialize {
-  def apply(spec: Spec, sourceText: String): (State, TypeModel) = {
-    val cfg = spec.program.cfg
-    val typeModel = TypeModel(spec)
-    val st = State(
-      cfg,
-      Context(cfg.main),
-      globals = initGlobal(sourceText),
-      heap = initHeap(spec),
-    )
-    (st, typeModel)
-  }
+  def apply(cfg: CFG, sourceText: String): State = State(
+    cfg,
+    Context(cfg.main),
+    globals = initGlobal(sourceText),
+    heap = initHeap(cfg),
+  )
 
   // initial globals
   private def initGlobal(sourceText: String): MMap[Global, Value] = MMap(
@@ -40,9 +36,9 @@ object Initialize {
   ).map { case (k, v) => Global(k) -> v }
 
   // initial heaps
-  private def initHeap(spec: Spec): Heap = {
-    val intr = Intrinsics(spec)
-    val glob = GlobalObject(spec)
+  private def initHeap(cfg: CFG): Heap = {
+    val intr = Intrinsics(cfg)
+    val glob = GlobalObject(cfg)
 
     val map: MMap[Addr, Obj] = MMap(
       NamedAddr(INTRINSICS) -> intr.obj,

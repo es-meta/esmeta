@@ -2,7 +2,16 @@ package esmeta.cfg.util
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc}
+import esmeta.ir.util.*
+import esmeta.spec.{Spec, TypeModel, Grammar}
 import scala.collection.mutable.Queue
+
+/** extensions for control-flow graphs (CFGs) */
+extension (cfg: CFG) {
+  def typeModel: TypeModel = spec.typeModel
+  def spec: Spec = cfg.program.spec
+  def grammar: Grammar = spec.grammar
+}
 
 /** extensions for functions */
 extension (func: Func) {

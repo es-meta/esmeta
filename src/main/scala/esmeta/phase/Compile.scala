@@ -1,23 +1,25 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.ir.Program
+import esmeta.ir.util.*
 import esmeta.util.*
 import esmeta.spec.*
 import esmeta.spec.util.*
 import esmeta.util.*
 
 /** `compile` phase */
-case object Compile extends Phase[Spec, Spec] {
+case object Compile extends Phase[Spec, Program] {
   val name = "compile"
-  val help = "compiles specification to a IR functions"
+  val help = "compiles a specification to an IR program."
   def apply(
     spec: Spec,
     globalConfig: GlobalConfig,
     config: Config,
-  ): Spec = {
-    spec.program // compile
-    if (LOG) spec.dumpProgram(COMPILE_LOG_DIR)
-    spec
+  ): Program = {
+    val program = Compiler(spec)
+    if (LOG) program.dumpTo(COMPILE_LOG_DIR)
+    program
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

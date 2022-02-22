@@ -16,9 +16,8 @@ import scala.math.{BigInt => SBigInt}
 /** CFG Interpreter */
 class Interp(
   val st: State,
-  val timeLimit: Option[Long] = Some(TIMEOUT),
-  val typeModel: Option[TypeModel] = None, // TODO refactoring
   val jsParser: Option[JSParser] = None, // TODO refactoring
+  val timeLimit: Option[Long] = Some(TIMEOUT),
 ) {
   import Interp.*
 
@@ -26,12 +25,7 @@ class Interp(
   private case class ReturnValue(value: Value) extends Throwable
 
   /** control flow graphs */
-  def cfg: CFG = st.cfg
-
-  /** type model */
-  // TODO refactoring
-  private given CFG = cfg
-  private given Option[TypeModel] = typeModel
+  private given cfg: CFG = st.cfg
 
   /** step */
   def step: Boolean =

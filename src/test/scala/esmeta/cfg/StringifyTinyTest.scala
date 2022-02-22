@@ -16,7 +16,7 @@ class StringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     // control flow graphs (CFGs)
     // -------------------------------------------------------------------------
-    lazy val cfg = CFG(mainFunc, ListBuffer(mainFunc, func(1)))
+    lazy val cfg = CFG(List(mainFunc, func(1)))
     // tests
     checkStringify("CFG")(
       cfg -> """0: @main def f(x: T, y?: T) {

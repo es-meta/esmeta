@@ -2,6 +2,7 @@ package esmeta.interp
 
 import scala.collection.mutable.{Map => MMap}
 import esmeta.cfg.*
+import esmeta.cfg.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.util.BaseUtils.*
@@ -69,23 +70,17 @@ object MapObj {
   case class Prop(value: Value, creationTime: Int)
 
   /** apply with type model */
-  def apply(tname: String)(props: (PureValue, Value)*)(using
-    cfg: CFG,
-    typeModel: Option[TypeModel],
-  ): MapObj =
+  def apply(tname: String)(props: (PureValue, Value)*)(using CFG): MapObj =
     val obj: MapObj = MapObj(tname)
     for { ((k, v), idx) <- props.zipWithIndex }
       obj.props += k -> Prop(v, idx + obj.size)
     obj.size += props.size
     obj
 
-  def apply(tname: String)(using
-    cfg: CFG,
-    typeModel: Option[TypeModel],
-  ): MapObj =
+  def apply(tname: String)(using cfg: CFG): MapObj =
     // TODO do not explicitly store methods in object but use a type model when
     // accessing methods
-    val methods = typeModel.fold(Map())(_.apply(tname))
+    val methods = cfg.typeModel(tname)
     val obj = MapObj(tname, MMap(), methods.size)
     for { ((name, fname), idx) <- methods.zipWithIndex }
       obj.props += Str(name) -> Prop(Clo(cfg.fnameMap(fname), Map()), idx)

@@ -52,12 +52,12 @@ case object CmdExtract extends Command("extract", CmdBase >> Extract) {
 
 /** `compile` command */
 case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
-  def help = "compiles specification to a control-flow graph"
+  def help = "compiles a specification to an IR program."
 }
 
 /** `build-cfg` command */
 case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
-  def help = "builds a CFG from compiled specification"
+  def help = "builds a control-flow graph (CFG) from an IR program."
 }
 
 /** `ir-eval` command */
@@ -66,8 +66,8 @@ case object CmdIREval extends Command("ir-eval", CmdBase >> IREval) {
 }
 
 /** `js-parse` command */
-case object CmdJSParse extends Command("js-parse", CmdBase >> JSParse) {
-  def help = "parses a JavaScript file"
+case object CmdJSParse extends Command("js-parse", CmdBuildCFG >> JSParse) {
+  def help = "parses a JavaScript file."
 }
 
 /** `js-eval` command */

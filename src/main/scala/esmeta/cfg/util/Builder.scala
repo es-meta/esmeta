@@ -9,12 +9,16 @@ import scala.collection.mutable.{ListBuffer, Map => MMap}
 class Builder(program: Program) {
 
   /** get CFG */
-  lazy val result: CFG = {
+  lazy val result: CFG =
     for { f <- program.funcs } translate(f)
-    CFG(main, funcs)
-  }
+    val cfg = CFG(funcs.toList)
+    cfg.program = program
+    cfg
 
-  /** translate IR function to cfg function */
+  // ---------------------------------------------------------------------------
+  // Private Helpers
+  // ---------------------------------------------------------------------------
+  // translate IR function to cfg function
   private def translate(irFunc: IRFunc): Unit = {
     // body
     val body = irFunc.body
@@ -67,16 +71,6 @@ class Builder(program: Program) {
     funcs += func
   }
 
-  // ---------------------------------------------------------------------------
-  // Private Helpers
-  // ---------------------------------------------------------------------------
-  // get the main function
-  private def main: Func = funcs.filter(_.ir.main) match {
-    case ListBuffer()     => error("no main function")
-    case ListBuffer(main) => main
-    case _                => error("multiple main functions")
-  }
-
   // internal lists of functions
   private val funcs: ListBuffer[Func] = ListBuffer()
 
@@ -87,4 +81,7 @@ class Builder(program: Program) {
   // node id counter
   private var nidCount: Int = 0
   private def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
+}
+object Builder {
+  def apply(program: Program): CFG = new Builder(program).result
 }

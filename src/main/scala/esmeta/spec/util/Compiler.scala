@@ -14,17 +14,42 @@ class Compiler(val spec: Spec) {
 
   /** compiled specification */
   def result: Program = {
-    // load manually created AOs
-    val manuals: ListBuffer[Func] = ListBuffer()
-    for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
-      manuals += Func.fromFile(file.toString)
-
     // compile algorithms in spec
     for (algo <- spec.algorithms) compile(algo)
 
+    // load manually created AOs
+    for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
+      funcs += Func.fromFile(file.toString)
+
     // result
-    Program((funcs ++ manuals).toList)
+    val program = Program(funcs.toList)
+
+    // connect backward edge to a given specification
+    program.spec = spec
+
+    program
   }
+
+  // simple operations
+  type SimpleOp = PartialFunction[List[Expr], Expr]
+  def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
+    val (name, f) = pair
+    name -> (args =>
+      optional(f(args)).getOrElse(
+        error(s"invalid arguments: $name(${args.mkString(", ")})"),
+      ),
+    )
+  }
+  val simpleOps: Map[String, SimpleOp] = Map(
+    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
+    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    // arityCheck("GetArgument" -> ???),
+    // arityCheck("IsDuplicate" -> ???),
+    // arityCheck("IsArrayIndex" -> ???),
+    // arityCheck("ThrowCompletion" -> ???),
+    // arityCheck("NormalCompletion" -> ???),
+    // arityCheck("IsAbruptCompletion" -> ???),
+  )
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -32,6 +57,13 @@ class Compiler(val spec: Spec) {
   private val manualRules: Map[String, Inst] = (for {
     (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
   } yield yet -> Inst.from(inst)).toMap
+
+  // get the main function
+  private def main: Func = funcs.filter(_.main) match {
+    case ListBuffer()     => error("no main function")
+    case ListBuffer(main) => main
+    case _                => error("multiple main functions")
+  }
 
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
@@ -538,25 +570,7 @@ class Compiler(val spec: Spec) {
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
-
-  // simple operations
-  type SimpleOp = PartialFunction[List[Expr], Expr]
-  def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
-    val (name, f) = pair
-    name -> (args =>
-      optional(f(args)).getOrElse(
-        error(s"invalid arguments: $name(${args.mkString(", ")})"),
-      ),
-    )
-  }
-  val simpleOps: Map[String, SimpleOp] = Map(
-    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
-    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
-    // arityCheck("GetArgument" -> ???),
-    // arityCheck("IsDuplicate" -> ???),
-    // arityCheck("IsArrayIndex" -> ???),
-    // arityCheck("ThrowCompletion" -> ???),
-    // arityCheck("NormalCompletion" -> ???),
-    // arityCheck("IsAbruptCompletion" -> ???),
-  )
+}
+object Compiler {
+  def apply(spec: Spec): Program = new Compiler(spec).result
 }

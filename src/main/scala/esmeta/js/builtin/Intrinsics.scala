@@ -1,23 +1,19 @@
 package esmeta.js.builtin
 
 import esmeta.cfg.CFG
-import esmeta.ir.TypeModel
 import esmeta.interp.*
 import esmeta.spec.*
+import esmeta.util.BaseUtils.*
 
 /** model for intrinsics */
-case class Intrinsics(spec: Spec) {
+case class Intrinsics(cfg: CFG) {
 
   /** shortcuts */
   private val T = true
   private val F = false
   private val U = Undef
-  private def cfg = spec.program.cfg
+  private val spec = cfg.program.spec
   given CFG = cfg
-
-  /** type model */
-  // TODO refactoring
-  private given Option[TypeModel] = Some(TypeModel(spec))
 
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {

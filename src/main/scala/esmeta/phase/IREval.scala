@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.spec.Spec
 import esmeta.interp.*
+import esmeta.cfg.util.Builder
 import esmeta.ir.*
 import esmeta.ir.util.*
 import esmeta.util.SystemUtils.*
@@ -18,7 +19,8 @@ case object IREval extends Phase[Unit, State] {
   ): State = {
     val filename = getFirstFilename(globalConfig, "extract")
     val program = Program.fromFile(filename)
-    val st = State(program.cfg)
+    val cfg = Builder(program)
+    val st = State(cfg)
     new Interp(st).fixpoint
     st
   }

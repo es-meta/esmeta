@@ -160,4 +160,14 @@ object BaseUtils {
 
   /** negative zero check */
   def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity
+
+  /** get a unique value from an iterable structure */
+  def getUnique[T](
+    iter: Iterable[T],
+    f: T => Boolean,
+    name: String = "element",
+  ): T = iter.filter(f).toList match
+    case List(elem) => elem
+    case Nil        => error(s"no $name")
+    case _          => error(s"multiple ${name}s")
 }

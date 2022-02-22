@@ -4,25 +4,27 @@ import esmeta.*
 import esmeta.spec.Spec
 import esmeta.cfg.CFG
 import esmeta.cfg.util.Builder
+import esmeta.ir.Program
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
 /** `build-cfg` phase */
-case object BuildCFG extends Phase[Spec, Spec] {
+case object BuildCFG extends Phase[Program, CFG] {
   val name = "build-cfg"
-  val help = "builds a CFG from compiled specification"
+  val help = "builds a control-flow graph (CFG) from an IR program."
   def apply(
-    spec: Spec,
+    program: Program,
     globalConfig: GlobalConfig,
     config: Config,
-  ): Spec = {
+  ): CFG = {
+    // TODO refactor
     def norm(name: String) = name
       .replace("/", "")
       .replace(" ", "")
       .replace("<", "")
       .replace(">", "")
       .replace("`", "")
-    val cfg = spec.program.cfg
+    val cfg = Builder(program)
 
     if (config.dot) {
       mkdir(CFG_LOG_DIR)
@@ -50,7 +52,7 @@ case object BuildCFG extends Phase[Spec, Spec] {
       }
     }
 
-    spec
+    cfg
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
