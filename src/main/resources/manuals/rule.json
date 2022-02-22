@@ -20,5 +20,7 @@
   "[YET] Create any host-defined global object properties on _globalObj_.": "nop",
   "[YET] If the execution context stack is empty, return *null*.": "if (= @EXECUTION_STACK.length 0) then return null else {}",
   "[YET] Let _ec_ be the topmost execution context on the execution context stack whose ScriptOrModule component is not *null*.": "{ let ec = absent let idx = @EXECUTION_STACK.length loop[repeat] (&& (< 0 idx) (= ec absent)) then { idx = (- idx 1) if (! (= @EXECUTION_STACK[idx].ScriptOrModule null) ) then ec = @EXECUTION_STACK[idx] else {}} }",
-  "[YET] If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) then return null else return ec.ScriptOrModule"
+  "[YET] If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) then return null else return ec.ScriptOrModule",
+  "[YET] If _body_ is a List of errors, return _body_.": "nop",
+  "[YET] Let _scriptContext_ be a new ECMAScript code execution context.": "let scriptContext = (new ExecutionContext())[#0]"
 }

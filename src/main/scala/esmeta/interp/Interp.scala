@@ -9,7 +9,7 @@ import esmeta.js.util.{Parser => JSParser}
 import esmeta.js.builtin.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
+import esmeta.{TIMEOUT, TEST_MODE, LOG}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -19,7 +19,7 @@ class Interp(
   val st: State,
   val timeLimit: Option[Long] = Some(TIMEOUT),
   val typeModel: Option[TypeModel] = None, // TODO refactoring
-  val parser: Option[JSParser] = None, // TODO refactoring
+  val jsParser: Option[JSParser] = None, // TODO refactoring
 ) {
   import Interp.*
 
@@ -36,7 +36,7 @@ class Interp(
   /** step */
   def step: Boolean =
     try {
-      if (DEBUG) st.context.cursor match
+      if (LOG) st.context.cursor match
         case NodeCursor(node) =>
           val func = cfg.funcOf(node)
           println(s"[${func.ir.kind}${func.ir.name}] $node")
@@ -166,7 +166,10 @@ class Interp(
     case EParse(code, rule) => {
       val v = interp(code).escaped
       val r = interp(rule).escaped
-      ??? // TODO parse `code` with `rule`
+      (v, r) match
+        case (Str(str), Grammar(name, params)) =>
+          AstValue((jsParser.get)(name, params).from(str))
+        case _ => ???
     }
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr)      => ???
