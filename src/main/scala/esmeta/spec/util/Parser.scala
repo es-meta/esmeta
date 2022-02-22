@@ -3,7 +3,7 @@ package esmeta.spec.util
 import scala.io.Source
 import esmeta.*
 import esmeta.lang.Step
-import esmeta.spec.*
+import esmeta.spec.{*, given}
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
@@ -16,7 +16,7 @@ object Parser extends Parsers {
   def parseSpec(content: String): Spec = {
     val document = content.toHtml
     val grammar = parseGrammar(document)
-    val idxMap = grammar.idxMap(forWeb = false)
+    val idxMap = grammar.idxMap
     val algorithms = parseAlgorithms(document, idxMap)
     val tables = parseTables(document)
 
@@ -180,7 +180,7 @@ object Parser extends Parsers {
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
         (idx, subIdx) = idxMap(syntax)
-        rhsParams = rhs.getRhsParams
+        rhsParams = rhs.params
         target = SyntaxDirectedOperationHead.Target(
           lhsName,
           idx,
