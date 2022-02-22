@@ -62,7 +62,7 @@ def descAddr(name: String, key: String): NamedAddr = NamedAddr(
 def getSubmapObjects(
   name: String,
   nmap: List[(String, Property)],
-): Map[Addr, Obj] = {
+)(using Option[TypeModel]): Map[Addr, Obj] = {
   var map = Map[Addr, Obj]()
   map += submapAddr(name) -> MapObj(SUBMAP)(nmap.map {
     case (k, _) => // handle symbol
@@ -71,4 +71,26 @@ def getSubmapObjects(
   }: _*)
   map ++= nmap.map { case (k, prop) => descAddr(name, k) -> prop.toObject }
   map
+}
+
+/** extensions for Property */
+extension (prop: Property) {
+
+  /** convert to ir map object */
+  def toObject(using Option[TypeModel]): MapObj = prop match
+    case DataProperty(v, w, e, c) =>
+      MapObj("PropertyDescriptor")(
+        Str("Value") -> v,
+        Str("Writable") -> Bool(w),
+        Str("Enumerable") -> Bool(e),
+        Str("Configurable") -> Bool(c),
+      )
+    case AccessorProperty(g, s, e, c) =>
+      MapObj("PropertyDescriptor")(
+        Str("Get") -> g,
+        Str("Set") -> s,
+        Str("Enumerable") -> Bool(e),
+        Str("Configurable") -> Bool(c),
+      )
+
 }

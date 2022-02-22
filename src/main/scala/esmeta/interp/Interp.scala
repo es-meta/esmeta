@@ -39,7 +39,7 @@ class Interp(
           val func = cfg.funcOf(node)
           println(s"[${func.ir.kind}${func.ir.name}] $node")
         case ExitCursor(func) =>
-          println(s"[${func.ir.kind}${func.ir.name} Exited")
+          println(s"[${func.ir.kind}${func.ir.name}] Exited")
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 

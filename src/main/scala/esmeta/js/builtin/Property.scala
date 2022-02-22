@@ -4,11 +4,7 @@ import esmeta.interp.*
 import scala.collection.mutable.{Map => MMap}
 
 // properties
-sealed trait Property:
-  def toObject: MapObj
-
-// TODO
-given Option[TypeModel] = None
+sealed trait Property
 
 // data properties
 case class DataProperty(
@@ -16,13 +12,7 @@ case class DataProperty(
   writable: Boolean,
   enumerable: Boolean,
   configurable: Boolean,
-) extends Property:
-  def toObject: MapObj = MapObj("PropertyDescriptor")(
-    Str("Value") -> value,
-    Str("Writable") -> Bool(writable),
-    Str("Enumerable") -> Bool(enumerable),
-    Str("Configurable") -> Bool(configurable),
-  )
+) extends Property
 
 // accessor properties
 case class AccessorProperty(
@@ -30,10 +20,4 @@ case class AccessorProperty(
   set: NamedAddr,
   enumerable: Boolean,
   configurable: Boolean,
-) extends Property:
-  def toObject: MapObj = MapObj("PropertyDescriptor")(
-    Str("Get") -> get,
-    Str("Set") -> set,
-    Str("Enumerable") -> Bool(enumerable),
-    Str("Configurable") -> Bool(configurable),
-  )
+) extends Property
