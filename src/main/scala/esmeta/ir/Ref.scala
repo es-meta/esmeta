@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.ir.util.*
 
-// CFG references
+// IR references
 sealed trait Ref extends IRElem
 object Ref extends Parser.From[Ref]
 

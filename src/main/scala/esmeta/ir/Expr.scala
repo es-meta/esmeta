@@ -3,7 +3,7 @@ package esmeta.ir
 import esmeta.ir.util.*
 import esmeta.util.{DoubleEquals, Locational}
 
-// CFG expressions
+// IR expressions
 sealed trait Expr extends IRElem with Locational
 object Expr extends Parser.From[Expr]
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr

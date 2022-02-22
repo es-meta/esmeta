@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.ir.util.*
 
-// CFG operators
+// IR operators
 sealed trait Op extends IRElem
 
 // unary operators

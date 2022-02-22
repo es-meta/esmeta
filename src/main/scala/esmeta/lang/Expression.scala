@@ -96,7 +96,16 @@ case class InvokeSyntaxDirectedOperationExpression(
 // -----------------------------------------------------------------------------
 // metalanguage calcualation expressions
 // -----------------------------------------------------------------------------
-sealed trait CalcExpression extends Expression
+sealed trait CalcExpression extends Expression {
+  import BinaryExpression.Op.*
+
+  /** level of calcualation expressions */
+  def level: Int = this match
+    case BinaryExpression(_, Add | Sub, _)       => 0
+    case BinaryExpression(_, Mul | Div | Mod, _) => 1
+    case UnaryExpression(_, _)                   => 2
+    case _                                       => 3
+}
 
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
