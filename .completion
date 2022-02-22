@@ -54,7 +54,7 @@ _esmeta_completions() {
           return 0
           ;;
         js-parse)
-          COMPREPLY=($(compgen -W "${globalOpt} ${jsparseOpt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${jsparseOpt}"))
           return 0
           ;;
         js-eval)
