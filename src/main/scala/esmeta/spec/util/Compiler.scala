@@ -435,13 +435,8 @@ class Compiler(val spec: Spec) {
           // check if it is used as reference
           // TODO ClassTail[0,3].Contains
           if (rhsNames contains name) {
-            var (idx, ord) = (0, 0)
-            val targetOrd = ordinal.getOrElse(1)
-            rhsNames.foreach {
-              case nt =>
-                if (nt == name && ord < targetOrd) ord += 1
-                if (ord < targetOrd) idx += 1
-            }
+            val xs = rhsNames.zipWithIndex.filter(_._1 == name)
+            val idx = xs(ordinal.getOrElse(1) - 1)._2
             toERef(NAME_THIS, EMathVal(idx))
           } else EGrammar(name, Nil) // TODO grammar params
         case _ => EGrammar(name, Nil) // TODO grammar params
