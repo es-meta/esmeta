@@ -16,8 +16,19 @@ sealed trait Ast extends JSElem {
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
 
   /** production chains */
-  def chains: List[Ast]
+  lazy val chains: List[Ast] = this match
+    case lex: Lexical => List(this)
+    case syn: Syntactic =>
+      syn.children.flatten match
+        case child :: Nil => this :: child.chains
+        case _            => List(this)
 
+  /** children */
+  def getChildren: List[Option[Ast]] = this match
+    case lex: Lexical   => List()
+    case syn: Syntactic => syn.children
+
+  // TODO tweak equality for fast caching
   // /** equality */
   // override def hashCode: Int = super.hashCode
   // override def equals(any: Any): Boolean = any match
@@ -41,19 +52,10 @@ case class Syntactic(
   args: List[Boolean],
   rhsIdx: Int,
   children: List[Option[Ast]],
-) extends Ast {
-
-  /** chain productions */
-  override lazy val chains: List[Ast] =
-    children.flatten match
-      case child :: Nil => this :: child.chains
-      case _            => List(this)
-}
+) extends Ast
 
 /** ASTs constructed by lexical productions */
 case class Lexical(
   name: String,
   str: String,
-) extends Ast {
-  override def chains: List[Ast] = List(this)
-}
+) extends Ast
