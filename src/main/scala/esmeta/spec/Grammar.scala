@@ -1,6 +1,8 @@
 package esmeta.spec
 
 import esmeta.spec.util.*
+import esmeta.js.*
+import esmeta.util.BaseUtils.cached
 
 /** ECMAScript grammars */
 case class Grammar(
@@ -30,4 +32,18 @@ case class Grammar(
     prod <- if (forWeb) prodsForWeb else prods
     pair <- prod.idxMap
   } yield pair).toMap
+
+  /** get sub index of parsed Ast */
+  def getSubIdx = cached[Ast, Int] {
+    case lex: Lexical => 0
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
+  }
 }

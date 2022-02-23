@@ -1,6 +1,7 @@
 package esmeta.error
 
 import esmeta.interp.*
+import esmeta.js.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.cfg.*
 
@@ -10,6 +11,8 @@ sealed abstract class InterpError(msg: String)
 case class InvalidNodeId(nid: Int) extends InterpError(s"invalid node id: $nid")
 case class InvalidObjProp(obj: Obj, prop: PureValue)
   extends InterpError(s"invalid object property: $prop for $obj")
+case class InvalidAstProp(ast: Ast, prop: PureValue)
+  extends InterpError(s"invalid ast property: $prop for ${ast.name}")
 case class InvalidRefBase(v: Value)
   extends InterpError(s"not a proper reference base: $v")
 case class InvalidConversion(cop: COp, expr: Expr, v: Value)

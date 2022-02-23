@@ -2,6 +2,7 @@ package esmeta.cfg
 
 import esmeta.cfg.util.*
 import esmeta.ir.Program
+import esmeta.js.Ast
 import esmeta.spec.{Spec, TypeModel, Grammar}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.ListBuffer
@@ -45,4 +46,16 @@ case class CFG(
 
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
+
+  /** get syntax-directed operation(SDO) */
+  def getSDO = cached[(Ast, String), Option[Func]] {
+    case (ast, operation) =>
+      ast.chains.foldLeft[Option[Func]](None) {
+        case (None, ast0) =>
+          val subIdx = grammar.getSubIdx(ast0)
+          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
+          fnameMap.get(fname)
+        case (res: Some[_], _) => res
+      }
+  }
 }

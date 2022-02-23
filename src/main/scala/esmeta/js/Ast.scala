@@ -1,12 +1,28 @@
 package esmeta.js
 
 import esmeta.js.util.*
+import esmeta.spec.*
+import scala.annotation.tailrec
 
 /** abstract syntax tree (AST) values */
 sealed trait Ast extends JSElem {
 
   /** production names */
   val name: String
+
+  /** idx of production */
+  def idx: Int = this match
+    case lex: Lexical               => 0
+    case Syntactic(_, _, rhsIdx, _) => rhsIdx
+
+  /** production chains */
+  def chains: List[Ast]
+
+  /** equality */
+  override def hashCode: Int = super.hashCode
+  override def equals(any: Any): Boolean = any match
+    case that: Ast => this eq that
+    case _         => false
 
   /** flatten statements */
   // TODO refactoring
@@ -25,10 +41,19 @@ case class Syntactic(
   args: List[Boolean],
   rhsIdx: Int,
   children: List[Option[Ast]],
-) extends Ast
+) extends Ast {
+
+  /** chain productions */
+  override lazy val chains: List[Ast] =
+    children.flatten match
+      case child :: Nil => this :: child.chains
+      case _            => List(this)
+}
 
 /** ASTs constructed by lexical productions */
 case class Lexical(
   name: String,
   str: String,
-) extends Ast
+) extends Ast {
+  override def chains: List[Ast] = List(this)
+}

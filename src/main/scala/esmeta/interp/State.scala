@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -44,9 +45,17 @@ case class State(
         case Str("Value")  => comp.value
         case Str("Target") => comp.targetValue
         case _             => apply(comp.escaped, prop)
-    case addr: Addr => heap(addr, prop)
-    case Str(str)   => apply(str, prop)
-    case v          => throw InvalidRefBase(v)
+    case addr: Addr    => heap(addr, prop)
+    case AstValue(ast) => apply(ast, prop)
+    case Str(str)      => apply(str, prop)
+    case v             => throw InvalidRefBase(v)
+  def apply(ast: Ast, prop: PureValue): PureValue =
+    val propStr = prop match
+      case Str(str) => str
+      case _        => throw InvalidAstProp(ast, prop)
+    cfg.getSDO((ast, propStr)) match
+      case Some(sdo) => Clo(sdo, Map())
+      case None      => throw InvalidAstProp(ast, prop)
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(str.length)
     case Math(k)       => Str(str(k.toInt).toString)
