@@ -1,5 +1,5 @@
 def foldleft(init: int, list: List, f: Function) {
-  if (= list.length 0) then %0 = init
+  if (= list.length 0) %0 = init
   else {
     let hd = (pop < list)
     call newinit = f(init, hd)

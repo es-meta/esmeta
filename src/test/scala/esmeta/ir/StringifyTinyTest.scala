@@ -113,12 +113,12 @@ class StringifyTinyTest extends IRTest {
       |  return x
       |}""".stripMargin,
       emptySeq -> "{}",
-      ifInst -> """if x then {
+      ifInst -> """if x {
       |  let x = ~empty~
       |  delete x.p
       |  return x
       |} else {}""".stripMargin,
-      loopInst -> """loop[repeat] x then {
+      loopInst -> """loop[repeat] x {
       |  let x = ~empty~
       |  delete x.p
       |  return x

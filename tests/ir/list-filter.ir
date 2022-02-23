@@ -1,11 +1,11 @@
 def filter(list: List, f: Function) {
   let clist = (copy list)[#1]
-  if (= clist.length 0) then %0 = clist
+  if (= clist.length 0) %0 = clist
   else {
     let hd = (pop < clist)
     call fhd = f(hd)
     call ftl = clo<filter>(clist, f)
-    if fhd then push hd > ftl else {}
+    if fhd push hd > ftl else {}
     %0 = ftl
   }
   return %0

@@ -1,5 +1,5 @@
 def fibo(n: int) {
-  if (< n 2) then %0 = n
+  if (< n 2) %0 = n
   else {
     let n1 = (- n 1)
     let n2 = (- n 2)

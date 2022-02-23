@@ -59,9 +59,9 @@ trait Parsers extends BasicParsers {
       case _ => INop()
     } | "{" ~> rep(inst) <~ "}" ^^ {
       ISeq(_)
-    } | ("if " ~> expr) ~ ("then" ~> inst) ~ ("else" ~> inst) ^^ {
+    } | ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
       case c ~ t ~ e => IIf(c, t, e)
-    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ ("then" ~> inst) ^^ {
+    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
       case k ~ c ~ b => ILoop(k, c, b)
     } | ("call " ~> id <~ "=") ~ expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case lhs ~ f ~ as => ICall(lhs, f, as)

@@ -1,10 +1,10 @@
 def sudomergesort(list: List) {
   let length = list.length
   let sortedlist = (copy list)[#1]
-  if (= length 2) then {
+  if (= length 2) {
     let fst = (pop < sortedlist)
     let snd = (pop < sortedlist)
-    if (< snd fst) then {
+    if (< snd fst) {
       push sortedlist < snd
       push sortedlist < fst
     } else {
@@ -15,7 +15,7 @@ def sudomergesort(list: List) {
     let left = (new [])[#1]
     let right = sortedlist
     let i = (>> length 1)
-    loop[repeat] (< 0 i) then {
+    loop[repeat] (< 0 i) {
       i = (- i 1)
       %0 = (pop < right)
       push left < %0

@@ -84,10 +84,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (insts.isEmpty) app >> "{}"
         else app.wrap(for { i <- insts } app :> i)
       case IIf(cond, thenInst, elseInst) =>
-        app >> "if " >> cond >> " then " >> thenInst
+        app >> "if " >> cond >> " " >> thenInst
         app >> " else " >> elseInst
       case ILoop(kind, cond, body) =>
-        app >> "loop[" >> kind >> "] " >> cond >> " then " >> body
+        app >> "loop[" >> kind >> "] " >> cond >> " " >> body
       case ICall(lhs, fexpr, args) =>
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "call " >> lhs >> " = " >> fexpr >> args
