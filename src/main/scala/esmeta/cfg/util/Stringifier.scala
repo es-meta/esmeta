@@ -3,7 +3,6 @@ package esmeta.cfg.util
 import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.ir.util.{Stringifier => IRStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*

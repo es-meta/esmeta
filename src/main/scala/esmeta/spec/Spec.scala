@@ -2,7 +2,6 @@ package esmeta.spec
 
 import esmeta.*
 import esmeta.lang.*
-import esmeta.ir.util.*
 import esmeta.spec.util.*
 import org.jsoup.nodes.Document
 

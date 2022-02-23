@@ -1,16 +1,10 @@
 package esmeta.interp.util
 
-import esmeta.LINE_SEP
 import esmeta.cfg.*
-import esmeta.cfg.util.*
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.ir.util.*
 import esmeta.js.*
-import esmeta.js.util.*
-import esmeta.util.*
 import esmeta.util.Appender.{given, *}
-import esmeta.util.BaseUtils.*
 
 /** stringifier for Interp */
 class Stringifier(detail: Boolean, location: Boolean) {

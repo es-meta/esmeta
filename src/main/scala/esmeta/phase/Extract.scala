@@ -4,7 +4,6 @@ import esmeta.*
 import esmeta.spec.*
 import esmeta.spec.util.*
 import esmeta.util.*
-import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `extract` phase */

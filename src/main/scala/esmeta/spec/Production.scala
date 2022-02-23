@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.spec.util.*
+import esmeta.spec.util.Parser
 
 /** productions for ECMAScript grammars */
 case class Production(

@@ -3,8 +3,6 @@ package esmeta.phase
 import esmeta.*
 import esmeta.test262.*
 import esmeta.test262.util.*
-import esmeta.util.*
-import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `filter-test262` phase */

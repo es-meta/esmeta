@@ -1,11 +1,8 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.spec.Spec
 import esmeta.interp.*
-import esmeta.cfg.util.Builder
 import esmeta.ir.*
-import esmeta.ir.util.*
 import esmeta.util.SystemUtils.*
 
 /** `ir-eval` phase */

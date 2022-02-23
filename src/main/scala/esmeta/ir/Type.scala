@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.ir.util.*
+import esmeta.ir.util.Parser
 
 // TODO ir types
 case class Type(name: String) extends IRElem

@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.ir.util.*
+import esmeta.ir.util.Parser
 import esmeta.util.{DoubleEquals, Locational}
 
 // IR expressions

@@ -1,17 +1,6 @@
 package esmeta.spec.util
 
-import esmeta.spec.*
-import esmeta.cfg.CFG
-import esmeta.cfg.util.Builder
-import esmeta.ir.{Program => IRProgram}
-import esmeta.lang.{Step, YetStep}
-import esmeta.lang.util.StepCollector
-import esmeta.{EXTRACT_LOG_DIR, LINE_SEP}
-import esmeta.util.BaseUtils.{cached, time}
-import esmeta.util.HtmlUtils.*
-import esmeta.util.SystemUtils.*
-import org.jsoup.nodes.*
-import scala.collection.mutable.{Map => MMap}
+import org.jsoup.nodes.Element
 
 /** extensions for Elements */
 extension (elem: Element) {

@@ -5,7 +5,6 @@ import esmeta.cfg.CFG
 import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser}
 import esmeta.util.SystemUtils.*
-import esmeta.util.BaseUtils.*
 
 /** `parse` phase */
 case object JSParse extends Phase[CFG, Ast] {
@@ -15,11 +14,10 @@ case object JSParse extends Phase[CFG, Ast] {
     cfg: CFG,
     globalConfig: GlobalConfig,
     config: Config,
-  ): Ast = {
+  ): Ast =
     val spec = cfg.program.spec
     val filename = getFirstFilename(globalConfig, name)
     JSParser(spec.grammar)("Script").fromFile(filename)
-  }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()

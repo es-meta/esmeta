@@ -1,10 +1,8 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.spec.Spec
 import esmeta.cfg.CFG
 import esmeta.ir.Program
-import esmeta.ir.util.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 

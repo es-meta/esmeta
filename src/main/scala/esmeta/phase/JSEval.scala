@@ -2,12 +2,10 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.cfg.util.*
 import esmeta.interp.*
 import esmeta.util.SystemUtils.*
 import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser}
-import esmeta.js.builtin.*
 
 /** `js-eval` phase */
 case object JSEval extends Phase[CFG, State] {

@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.ir.util.*
+import esmeta.ir.util.Parser
 import esmeta.util.UId
 import esmeta.spec.Algorithm
 
