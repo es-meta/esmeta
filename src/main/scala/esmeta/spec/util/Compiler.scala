@@ -230,7 +230,7 @@ class Compiler(val spec: Spec) {
       fb.addInst(
         ILoop(
           "foreach",
-          lessThan (EMathVal(0), iExpr),
+          lessThan(EMathVal(0), iExpr),
           compileWithContext(
             fb, {
               fb.addInst(IAssign(i, sub(iExpr, EMathVal(1))))
