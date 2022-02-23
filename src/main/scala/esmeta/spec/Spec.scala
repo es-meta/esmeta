@@ -12,7 +12,7 @@ case class Spec(
   grammar: Grammar = Grammar(),
   algorithms: List[Algorithm] = Nil,
   tables: Map[String, Table] = Map(),
-  typeModel: TypeModel = TypeModel(),
+  typeModel: TypeModel = TypeModel.js,
   document: Document = new Document(""),
 ) extends SpecElem {
 
