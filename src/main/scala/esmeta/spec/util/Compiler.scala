@@ -370,11 +370,16 @@ class Compiler(val spec: Spec) {
       fb.addInst(ICall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _))))
       xExpr
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-      val (x, xExpr) = fb.newTIdWithExpr
       val baseExpr = compile(fb, base)
       val callRef = toERef(fb, baseExpr, EStr(name))
-      fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
-      xExpr
+      base match
+        case NonterminalLiteral(_, ntName)
+            if spec.grammar.topLevelLexicals.contains(ntName) =>
+          callRef
+        case _ =>
+          val (x, xExpr) = fb.newTIdWithExpr
+          fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
+          xExpr
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
     case ListExpression(entries) =>

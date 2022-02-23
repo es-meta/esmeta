@@ -50,16 +50,25 @@ case class State(
     case Str(str)      => apply(str, prop)
     case v             => throw InvalidRefBase(v)
   def apply(ast: Ast, prop: PureValue): PureValue =
-    prop match
-      case Str(propStr) => // access to SDO
-        cfg.getSDO((ast, propStr)) match
-          case Some(sdo) => Clo(sdo, Map())
-          case None      => throw InvalidAstProp(ast, prop)
-      case Math(n) if n.isValidInt => // access to child
-        ast.getChildren(n.toInt) match
-          case Some(child) => AstValue(child)
-          case None        => Absent
-      case _ => throw InvalidAstProp(ast, prop)
+    ast match
+      case syn: Syntactic =>
+        prop match
+          // access to SDO
+          case Str(propStr) if ast.isInstanceOf[Syntactic] =>
+            cfg.getSDO((ast, propStr)) match
+              case Some(sdo) => Clo(sdo, Map())
+              case None      => throw InvalidAstProp(ast, prop)
+          // access to child
+          case Math(n) if n.isValidInt =>
+            ast.getChildren(n.toInt) match
+              case Some(child) => AstValue(child)
+              case None        => Absent
+          case _ => throw InvalidAstProp(ast, prop)
+      case lex: Lexical =>
+        prop match
+          // get string value of lexical
+          case Str("StringValue") => Str(lex.str)
+          case _                  => throw InvalidAstProp(ast, prop)
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(str.length)
     case Math(k)       => Str(str(k.toInt).toString)
