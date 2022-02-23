@@ -1,13 +1,12 @@
 package esmeta.spec.util
 
+import esmeta.MANUALS_DIR
 import esmeta.ir.{Type => IRType, *}
-import esmeta.ir.util.{Parser => IRParser}
 import esmeta.lang.*
 import esmeta.spec.{Param => SParam, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
-import esmeta.MANUALS_DIR
 
 /** Compiler from metalangauge to IR */
 class Compiler(val spec: Spec) {
@@ -40,7 +39,6 @@ class Compiler(val spec: Spec) {
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
 
-  // TODO refactoring
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -49,31 +47,41 @@ class Compiler(val spec: Spec) {
     body: Step,
     algo: Algorithm,
   ) {
-    // contexts
-    private var contexts: List[ListBuffer[Inst]] = List()
-    def newContext: Unit = contexts = ListBuffer() :: contexts
-    def popContext: Inst = contexts match
-      case current :: rest => contexts = rest; ISeq(current.toList)
-      case _               => ??? // error
-    def addInst(insts: Inst*): Unit = contexts match
+    // get an IR function as the result of compilation of an algorithm
+    lazy val result: Func =
+      val inst = compileWithScope(this, body)
+      val func = Func(false, kind, name, params, inst, Some(algo))
+      funcs += func
+      func
+
+    // create a new scope with a given procedure
+    def newScope(f: => Unit): Inst = { pushScope; f; popScope }
+
+    // add instructions to the current scope
+    def addInst(insts: Inst*): Unit = scopes match
       case current :: rest => current ++= insts
-      case _               => ??? // error
+      case _               => error("no current scope")
+
+    // get next temporal identifier
+    def newTId: Temp = Temp(nextTId)
+
+    // get next temporal identifier with expressions
+    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
+
+    // push a scope to the scope stack
+    private def pushScope: Unit = scopes = ListBuffer() :: scopes
+
+    // pop a scope from the scope stack and produces an instruction
+    private def popScope: Inst = scopes match
+      case current :: rest => scopes = rest; ISeq(current.toList)
+      case _               => error("no current scope")
+
+    // scope stacks
+    private var scopes: List[ListBuffer[Inst]] = Nil
 
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
     private var tidCount: Int = 0
-
-    /** get next temporal identifier */
-    def newTId: Temp = Temp(nextTId)
-    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
-
-    /** get a compiled algoirhtm */
-    lazy val result: Func = {
-      val inst = compileWithContext(this, body)
-      val func = Func(false, kind, name, params, inst, Some(algo))
-      funcs += func
-      func
-    }
   }
   private type FB = FuncBuilder
 
@@ -159,13 +167,11 @@ class Compiler(val spec: Spec) {
   private inline def currentIntrinsics: Ref =
     toStrRef(currentRealm, "Intrinsics")
 
-  // compile with new context and pop instructions
-  private def compileWithContext(fb: FB, step: Step): Inst =
-    compileWithContext(fb, compile(fb, step))
-  private def compileWithContext(fb: FB, f: => Unit): Inst =
-    fb.newContext; f; fb.popContext
+  // compile with a new scope and convert it into an instruction
+  private def compileWithScope(fb: FB, step: Step): Inst =
+    fb.newScope(compile(fb, step))
 
-  /** compile an algorithm to an IR function */
+  // compile an algorithm to an IR function
   private def compile(algo: Algorithm): Func = FuncBuilder(
     getKind(algo.head),
     getName(algo.head),
@@ -184,8 +190,8 @@ class Compiler(val spec: Spec) {
       fb.addInst(
         IIf(
           compile(fb, cond),
-          compileWithContext(fb, thenStep),
-          elseStep.fold(ISeq(List()))(compileWithContext(fb, _)),
+          compileWithScope(fb, thenStep),
+          elseStep.fold(ISeq(List()))(compileWithScope(fb, _)),
         ),
       )
     case ReturnStep(expr) =>
@@ -205,13 +211,11 @@ class Compiler(val spec: Spec) {
         ILoop(
           "foreach",
           lessThan(iExpr, lengthExpr),
-          compileWithContext(
-            fb, {
-              fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-              compile(fb, body)
-              fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
-            },
-          ),
+          fb.newScope {
+            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
+            compile(fb, body)
+            fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+          },
         ),
       )
     case ForEachStep(ty, x, expr, false, body) =>
@@ -225,13 +229,11 @@ class Compiler(val spec: Spec) {
         ILoop(
           "foreach",
           lessThan(EMathVal(0), iExpr),
-          compileWithContext(
-            fb, {
-              fb.addInst(IAssign(i, sub(iExpr, EMathVal(1))))
-              fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-              compile(fb, body)
-            },
-          ),
+          fb.newScope {
+            fb.addInst(IAssign(i, sub(iExpr, EMathVal(1))))
+            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
+            compile(fb, body)
+          },
         ),
       )
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
@@ -241,13 +243,11 @@ class Compiler(val spec: Spec) {
         ILoop(
           "foreach-int",
           compile(fb, cond),
-          compileWithContext(
-            fb, {
-              compile(fb, body)
-              val op = if (ascending) add(_, _) else sub(_, _)
-              fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
-            },
-          ),
+          fb.newScope {
+            compile(fb, body)
+            val op = if (ascending) add(_, _) else sub(_, _)
+            fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
+          },
         ),
       )
     case ThrowStep(errName) =>
@@ -270,7 +270,7 @@ class Compiler(val spec: Spec) {
         ILoop(
           "repeat",
           cond.fold(EBool(true))(compile(fb, _)),
-          compileWithContext(fb, body),
+          compileWithScope(fb, body),
         ),
       )
     case PushCtxtStep(ref) =>
