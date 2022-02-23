@@ -287,8 +287,10 @@ class Compiler(val spec: Spec) {
       fb.addInst(IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, false))
     case NoteStep(note) =>
       fb.addInst(INop()) // XXX add edge to lang element
-    case SuspendStep(context) =>
+    case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
+    case SuspendStep(context, true) =>
+      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, false)))
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
@@ -576,6 +578,7 @@ class Compiler(val spec: Spec) {
   private val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    arityCheck("Completion" -> { case List(expr) => expr }), // TODO needed?
     // arityCheck("GetArgument" -> ???),
     // arityCheck("IsDuplicate" -> ???),
     // arityCheck("IsArrayIndex" -> ???),

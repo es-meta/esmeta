@@ -59,7 +59,7 @@ case class PushCtxtStep(ref: Reference) extends Step
 case class NoteStep(note: String) extends Step
 
 // suspend steps
-case class SuspendStep(context: Reference) extends Step
+case class SuspendStep(context: Reference, remove: Boolean) extends Step
 
 // block steps
 case class BlockStep(block: StepBlock) extends Step

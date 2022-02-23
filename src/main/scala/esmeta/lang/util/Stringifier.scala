@@ -113,8 +113,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " " >> ref >> " is now the running execution context."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
-      case SuspendStep(context) =>
-        app >> First("suspend ") >> context >> "."
+      case SuspendStep(context, remove) =>
+        app >> First("suspend ") >> context
+        if (remove) app >> " and remove it from the execution context stack"
+        app >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>

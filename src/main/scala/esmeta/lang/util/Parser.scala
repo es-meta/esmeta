@@ -147,9 +147,10 @@ trait Parsers extends DivergedParsers {
 
   // suspend steps
   lazy val suspendStep: PL[SuspendStep] =
-    "suspend" ~> baseRef <~
-    (opt("and remove it from the execution context stack") ~ end) ^^ {
-      SuspendStep(_)
+    lazy val remove: Parser[Boolean] =
+      opt("and remove it from the execution context stack") ^^ { _.isDefined }
+    "suspend" ~> baseRef ~ (remove <~ end) ^^ {
+      case base ~ r => SuspendStep(base, r)
     }
 
   // block steps

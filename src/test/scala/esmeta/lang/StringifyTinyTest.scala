@@ -74,7 +74,8 @@ class StringifyTinyTest extends LangTest {
     lazy val noteStep = NoteStep(
       "At this point, it must be a numeric operation.",
     )
-    lazy val suspendStep = SuspendStep(x)
+    lazy val suspendStep = SuspendStep(x, false)
+    lazy val suspendAndRemoveStep = SuspendStep(x, true)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -130,6 +131,7 @@ class StringifyTinyTest extends LangTest {
       "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
+      suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )
