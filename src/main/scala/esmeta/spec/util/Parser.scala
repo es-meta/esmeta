@@ -102,15 +102,22 @@ object Parser extends Parsers {
   /** parses algorithm heads */
   def parseHeads(elem: Element, idxMap: Map[String, (Int, Int)]): List[Head] = {
     var parent = elem.parent
+    // TODO more general rules
     if (
       (parent.id endsWith "statement-rules") ||
       (parent.id endsWith "expression-rules")
     ) parent = parent.parent
 
+    // checks whether it is an algorithm that should be ignored
     if (IGNORE_ALGO_PARENT_IDS contains parent.id) return Nil
+
+    // checks whether it is a valid algorithm heaad
     if (parent.tagName != "emu-clause") return Nil
+
+    // checks whether an element is of Chapter 5. Notational Conventions
     if (elem.isNotation) return Nil
 
+    // consider algorithm head types using `type` attributes
     parent.attr("type") match {
       case "abstract operation" =>
         parseAbsOpHead(parent, elem, false)
@@ -125,7 +132,7 @@ object Parser extends Parsers {
       case "internal method" =>
         parseInMethodHead(parent, elem)
       case _ =>
-        parseBuiltinHead(parent, elem)
+        parseUnusualHead(parent, elem)
     }
   }
 
@@ -227,6 +234,17 @@ object Parser extends Parsers {
   ): List[BuiltinHead] =
     val headContent = parent.getFirstChildContent
     List(parseBy(builtinHead)(headContent))
+
+  // handle unusual heads
+  lazy val thisValuePattern =
+    "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
+  private def parseUnusualHead(
+    parent: Element,
+    elem: Element,
+  ): List[Head] = elem.getPrevText match
+    case thisValuePattern(name, param) =>
+      List(AbstractOperationHead(name, List(Param(param)), false))
+    case _ => parseBuiltinHead(parent, elem)
 }
 
 /** specification parsers */

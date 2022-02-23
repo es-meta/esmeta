@@ -49,6 +49,9 @@ object HtmlUtils {
     /** get content of an element */
     def getContent: String = elem.html.trim.unescapeHtml
 
+    /** get content of an element */
+    def getText: String = elem.text.trim.unescapeHtml
+
     /** get first child element */
     def getFirstChildElem: Element = elem.child(0)
 
@@ -67,6 +70,9 @@ object HtmlUtils {
 
     /** get previous sibling content */
     def getPrevContent: String = elem.getPrevElem.getContent
+
+    /** get previous sibling text */
+    def getPrevText: String = elem.getPrevElem.getText
 
     /** convert an element to a data map */
     def toDataMap: Map[String, String] = {
