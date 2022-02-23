@@ -1,5 +1,6 @@
 package esmeta.js
 
+import esmeta.ir.Type
 import esmeta.js.util.*
 import esmeta.spec.*
 import scala.annotation.tailrec
@@ -27,6 +28,16 @@ sealed trait Ast extends JSElem {
   def getChildren: List[Option[Ast]] = this match
     case lex: Lexical   => List()
     case syn: Syntactic => syn.children
+
+  /** type of */
+  // TODO type
+  def typeCheck(ty: Type): Boolean = {
+    val tname = ty.name
+    if (tname.startsWith("|") && tname.endsWith("|")) {
+      val ntName = tname.substring(1, tname.length - 1)
+      ntName == name // TODO handle child instance
+    } else ???
+  }
 
   // TODO tweak equality for fast caching
   // /** equality */

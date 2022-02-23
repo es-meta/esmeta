@@ -409,7 +409,7 @@ trait Parsers extends DivergedParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
-    (opt("<[^>]+>".r) ~> propRef <~ opt("</emu-meta>")) ~ invokeArgs ^^ {
+    (opt(tagStart) ~> propRef <~ opt(tagEnd)) ~ invokeArgs ^^ {
       case p ~ as => InvokeMethodExpression(p, as)
     }
 
@@ -493,8 +493,11 @@ trait Parsers extends DivergedParsers {
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
     expr ~ isEither((("an" | "a") ~> ty)) ^^ {
-      case e ~ (n ~ t) =>
-        InstanceOfCondition(e, n, t)
+      case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
+    } |
+    // handle If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
+    expr ~ isNeg ~ (tagStart ~ word ~ ":" ~> word <~ tagEnd) ^^ {
+      case e ~ n ~ nt => InstanceOfCondition(e, n, List(Type(s"|$nt|")))
     }
 
   // field includsion conditions
@@ -624,6 +627,10 @@ trait Parsers extends DivergedParsers {
   private implicit def parser2diverged[T <: Diverged with Locational](
     p: => Parser[T],
   ): PLD[T] = record(parser2loc(p))
+
+  // html tags
+  private lazy val tagStart: Parser[String] = "<[^>]+>".r
+  private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (

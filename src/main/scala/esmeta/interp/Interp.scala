@@ -213,7 +213,12 @@ class Interp(
             case _           => ???
         case _ => ???,
       )
-    case ETypeCheck(expr, ty) => ??? // TODO discuss about the type
+    case ETypeCheck(expr, ty) =>
+      // TODO discuss about the type
+      Bool(interp(expr).escaped match
+        case AstValue(ast) => ast.typeCheck(ty)
+        case _             => ???,
+      )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
       Clo(func, Map.from(captured.map(x => x -> st(x))))
