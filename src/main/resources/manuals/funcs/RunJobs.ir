@@ -1,7 +1,7 @@
 @main def RunJobs() {
   call %0 = clo<InitializeHostDefinedRealm>()
   call %1 = clo<HostEnqueuePromiseJob>(clo<ScriptEvaluationJob>, @CONTEXT.Realm)
-  loop[repeat] (! (= @JOB_QUEUE.length 0)) then {
+  loop[repeat] (! (= @JOB_QUEUE.length 0)) {
     // clean the execution context
     @CONTEXT = null
     (pop < @EXECUTION_STACK)
