@@ -172,23 +172,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case EMap(tname, fields, asite) =>
+      case EMap(tname, fields) =>
         given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
-        app >> "(new " >> tname >> fields >> ")[#" >> asite >> "]"
-      case EList(exprs, asite) =>
+        app >> "(new " >> tname >> fields >> ")"
+      case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
-        app >> "(new " >> exprs >> ")[#" >> asite >> "]"
-      case EListConcat(exprs, asite) =>
+        app >> "(new " >> exprs >> ")"
+      case EListConcat(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(list-concat " >> exprs >> ")[#" >> asite >> "]"
-      case ESymbol(desc, asite) =>
-        app >> "(new '" >> desc >> ")[#" >> asite >> "]"
-      case ECopy(obj, asite) =>
-        app >> "(copy " >> obj >> ")[#" >> asite >> "]"
-      case EKeys(map, intSorted, asite) =>
+        app >> "(list-concat " >> exprs >> ")"
+      case ESymbol(desc) =>
+        app >> "(new '" >> desc >> ")"
+      case ECopy(obj) =>
+        app >> "(copy " >> obj >> ")"
+      case EKeys(map, intSorted) =>
         app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
-        app >> map >> ")[#" >> asite >> "]"
+        app >> map >> ")"
     }
+    if (expr.asite == -1) app
+    else app >> "[#" >> expr.asite >> "]"
 
   // literals
   lazy val literalExprRule: Rule[LiteralExpr] = (app, lit) =>

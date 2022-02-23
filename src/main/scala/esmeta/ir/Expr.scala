@@ -43,14 +43,13 @@ case class ELexical(
 ) extends AstExpr
 
 // allocation expressions
-sealed trait AllocExpr extends Expr { val asite: Int }
-case class EMap(tname: String, props: List[(Expr, Expr)], asite: Int)
-  extends AllocExpr
-case class EList(exprs: List[Expr], asite: Int) extends AllocExpr
-case class EListConcat(exprs: List[Expr], asite: Int) extends AllocExpr
-case class ESymbol(desc: Expr, asite: Int) extends AllocExpr
-case class ECopy(obj: Expr, asite: Int) extends AllocExpr
-case class EKeys(map: Expr, intSorted: Boolean, asite: Int) extends AllocExpr
+sealed trait AllocExpr extends Expr { var asite: Int = -1 }
+case class EMap(tname: String, props: List[(Expr, Expr)]) extends AllocExpr
+case class EList(exprs: List[Expr]) extends AllocExpr
+case class EListConcat(exprs: List[Expr]) extends AllocExpr
+case class ESymbol(desc: Expr) extends AllocExpr
+case class ECopy(obj: Expr) extends AllocExpr
+case class EKeys(map: Expr, intSorted: Boolean) extends AllocExpr
 
 // literals
 sealed trait LiteralExpr extends Expr

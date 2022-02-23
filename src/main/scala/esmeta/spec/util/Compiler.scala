@@ -40,10 +40,7 @@ class Compiler(val spec: Spec) {
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
 
-  // allocation site counter
-  private var siteCount: Int = 0
-  private def nextSite: Int = { val site = siteCount; siteCount += 1; site }
-
+  // TODO refactoring
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -69,9 +66,6 @@ class Compiler(val spec: Spec) {
     /** get next temporal identifier */
     def newTId: Temp = Temp(nextTId)
     def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
-
-    /** get next allocation site */
-    def newSite: Int = nextSite
 
     /** get a compiled algoirhtm */
     lazy val result: Func = {
@@ -264,7 +258,6 @@ class Compiler(val spec: Spec) {
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
           EStr("ErrorData") -> EUndef,
         ),
-        fb.newSite,
       )
       val comp = EComp(ECONST_THROW, expr, ECONST_EMPTY)
       fb.addInst(IReturn(comp))
@@ -329,7 +322,7 @@ class Compiler(val spec: Spec) {
     case StringConcatExpression(exprs) =>
       EStrConcat(exprs.map(compile(fb, _)))
     case ListConcatExpression(exprs) =>
-      EListConcat(exprs.map(compile(fb, _)), fb.newSite)
+      EListConcat(exprs.map(compile(fb, _)))
     case RecordExpression(Type("Completion Record"), fields) =>
       val fmap = fields.toMap
       val fs @ List(ty, v, tgt) =
@@ -344,7 +337,7 @@ class Compiler(val spec: Spec) {
       )
     case RecordExpression(ty, fields) =>
       val props = fields.map { case (f, e) => compile(fb, f) -> compile(fb, e) }
-      EMap(ty.name, props, fb.newSite)
+      EMap(ty.name, props)
     case LengthExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
     case LengthExpression(expr) =>
@@ -405,7 +398,7 @@ class Compiler(val spec: Spec) {
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
     case ListExpression(entries) =>
-      EList(entries.map(compile(fb, _)), fb.newSite)
+      EList(entries.map(compile(fb, _)))
     case yet: YetExpression =>
       EYet(yet.toString(false, false))
     case ReferenceExpression(ref) =>

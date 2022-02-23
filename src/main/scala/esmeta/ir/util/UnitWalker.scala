@@ -67,7 +67,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(code); walk(rule)
     case EGrammar(name, params) =>
       walk(name); walkList(params, walk)
-    case ESourceText(exor) =>
+    case ESourceText(expr) =>
       walk(expr)
     case EYet(msg) =>
       walk(msg)
@@ -113,20 +113,19 @@ trait UnitWalker extends BasicUnitWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): Unit = alloc match {
-    case EMap(tname, fields, asite) =>
+    case EMap(tname, fields) =>
       walk(tname)
       walkList(fields, { case (p, e) => (walk(p), walk(e)) })
-      walk(asite)
-    case EList(exprs, asite) =>
-      walkList(exprs, walk); walk(asite)
-    case EListConcat(exprs, asite) =>
-      walkList(exprs, walk); walk(asite)
-    case ESymbol(desc, asite) =>
-      walk(desc); walk(asite)
-    case ECopy(obj, asite) =>
-      walk(obj); walk(asite)
-    case EKeys(map, intSorted, asite) =>
-      walk(map); walk(intSorted); walk(asite)
+    case EList(exprs) =>
+      walkList(exprs, walk)
+    case EListConcat(exprs) =>
+      walkList(exprs, walk)
+    case ESymbol(desc) =>
+      walk(desc)
+    case ECopy(obj) =>
+      walk(obj)
+    case EKeys(map, intSorted) =>
+      walk(map); walk(intSorted)
   }
 
   // literals

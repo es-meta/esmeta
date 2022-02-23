@@ -131,20 +131,20 @@ trait Parsers extends BasicParsers {
   lazy val simpleBool: Parser[Boolean] = "T" ^^^ true | "F" ^^^ false
 
   // allocation expressions
-  lazy val allocExpr: Parser[AllocExpr] = (
-    ("(" ~ "new" ~> ident ~ opt(fields) <~ ")") ~ asite ^^ {
-      case t ~ fields ~ a => EMap(t, fields.getOrElse(Nil), a)
-    } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ~ asite ^^ {
-      case es ~ a => EList(es, a)
-    } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ~ asite ^^ {
-      case es ~ a => EListConcat(es, a)
-    } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ~ asite ^^ {
-      case e ~ a => ESymbol(e, a)
-    } | ("(" ~ "copy" ~> expr <~ ")") ~ asite ^^ {
-      case e ~ a => ECopy(e, a)
-    } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ~ asite ^^ {
-      case i ~ e ~ a => EKeys(e, i.isDefined, a)
-    }
+  lazy val allocExpr: Parser[AllocExpr] = asite(
+    ("(" ~ "new" ~> ident ~ opt(fields) <~ ")") ^^ {
+      case t ~ fields => EMap(t, fields.getOrElse(Nil))
+    } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
+      case es => EList(es)
+    } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
+      case es => EListConcat(es)
+    } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ^^ {
+      case e => ESymbol(e)
+    } | ("(" ~ "copy" ~> expr <~ ")") ^^ {
+      case e => ECopy(e)
+    } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {
+      case i ~ e => EKeys(e, i.isDefined)
+    },
   )
 
   // fields
@@ -153,7 +153,10 @@ trait Parsers extends BasicParsers {
     expr ~ ("->" ~> expr) ^^ { case k ~ v => k -> v }
 
   // allocation sites
-  lazy val asite: Parser[Int] = "[#" ~> int <~ "]"
+  def asite(parser: Parser[AllocExpr]): Parser[AllocExpr] =
+    parser ~ opt("[#" ~> int <~ "]") ^^ {
+      case e ~ k => e.asite = k.getOrElse(-1); e
+    }
 
   // literals
   lazy val literal: Parser[LiteralExpr] =

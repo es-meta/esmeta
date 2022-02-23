@@ -120,22 +120,21 @@ trait Walker extends BasicWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): AllocExpr = alloc match
-    case EMap(tname, fields, asite) =>
+    case EMap(tname, fields) =>
       EMap(
         walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
-        walk(asite),
       )
-    case EList(exprs, asite) =>
-      EList(walkList(exprs, walk), walk(asite))
-    case EListConcat(exprs, asite) =>
-      EListConcat(walkList(exprs, walk), walk(asite))
-    case ESymbol(desc, asite) =>
-      ESymbol(walk(desc), walk(asite))
-    case ECopy(obj, asite) =>
-      ECopy(walk(obj), walk(asite))
-    case EKeys(map, intSorted, asite) =>
-      EKeys(walk(map), walk(intSorted), walk(asite))
+    case EList(exprs) =>
+      EList(walkList(exprs, walk))
+    case EListConcat(exprs) =>
+      EListConcat(walkList(exprs, walk))
+    case ESymbol(desc) =>
+      ESymbol(walk(desc))
+    case ECopy(obj) =>
+      ECopy(walk(obj))
+    case EKeys(map, intSorted) =>
+      EKeys(walk(map), walk(intSorted))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit

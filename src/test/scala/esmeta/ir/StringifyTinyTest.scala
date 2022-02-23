@@ -165,12 +165,19 @@ class StringifyTinyTest extends IRTest {
     )
     lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions
-    lazy val rec = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent), 42)
-    lazy val list = EList(List(EUndef, ENull, EAbsent), 42)
-    lazy val symbol = ESymbol(ENull, 42)
-    lazy val copy = ECopy(xExpr, 42)
-    lazy val keys = EKeys(xExpr, false, 42)
-    lazy val keysInt = EKeys(xExpr, true, 42)
+    lazy val rec = EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent))
+    lazy val list = EList(List(EUndef, ENull, EAbsent))
+    lazy val symbol = ESymbol(ENull)
+    lazy val copy = ECopy(xExpr)
+    lazy val keys = EKeys(xExpr, false)
+    lazy val keysInt = EKeys(xExpr, true)
+    def assignASite(e: AllocExpr, k: Int): AllocExpr = { e.asite = k; e }
+    lazy val recASite = assignASite(rec.copy(), 3)
+    lazy val listASite = assignASite(list.copy(), 1)
+    lazy val symbolASite = assignASite(symbol.copy(), 7)
+    lazy val copyASite = assignASite(copy.copy(), 42)
+    lazy val keysASite = assignASite(keys.copy(), 5)
+    lazy val keysIntASite = assignASite(keysInt.copy(), 6)
     // literals
     lazy val normal = EConst("normal")
     lazy val empty = EConst("empty")
@@ -204,12 +211,19 @@ class StringifyTinyTest extends IRTest {
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
       // allocation expressions
-      rec -> "(new T(undefined -> true, null -> absent))[#42]",
-      list -> "(new [undefined, null, absent])[#42]",
-      symbol -> "(new 'null)[#42]",
-      copy -> "(copy x)[#42]",
-      keys -> "(keys x)[#42]",
-      keysInt -> "(keys-int x)[#42]",
+      rec -> "(new T(undefined -> true, null -> absent))",
+      list -> "(new [undefined, null, absent])",
+      symbol -> "(new 'null)",
+      copy -> "(copy x)",
+      keys -> "(keys x)",
+      keysInt -> "(keys-int x)",
+      // allocation expressions with allocation sites
+      recASite -> "(new T(undefined -> true, null -> absent))[#3]",
+      listASite -> "(new [undefined, null, absent])[#1]",
+      symbolASite -> "(new 'null)[#7]",
+      copyASite -> "(copy x)[#42]",
+      keysASite -> "(keys x)[#5]",
+      keysIntASite -> "(keys-int x)[#6]",
       // literals
       EMathVal(4) -> "4",
       ENumber(3.0) -> "3.0f",

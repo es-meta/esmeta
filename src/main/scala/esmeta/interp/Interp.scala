@@ -242,7 +242,7 @@ class Interp(
         case v        => throw NoString(expr, v)
       }
       AstValue(Lexical(name, str))
-    case EMap("Completion", props, asite) =>
+    case EMap("Completion", props) =>
       val map = (for {
         (kexpr, vexpr) <- props
         k = interp(kexpr).escaped
@@ -260,28 +260,28 @@ class Interp(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value, targetOpt)
         case _ => throw InvalidComp
-    case EMap(ty, props, asite) =>
+    case EMap(ty, props) =>
       val addr = st.allocMap(ty)
       for ((kexpr, vexpr) <- props)
         val k = interp(kexpr).escaped
         val v = interp(vexpr)
         st.update(addr, k, v)
       addr
-    case EList(exprs, asite) =>
+    case EList(exprs) =>
       st.allocList(exprs.map(expr => interp(expr).escaped))
-    case EListConcat(exprs, asite) =>
+    case EListConcat(exprs) =>
       val ls = exprs.map(e => interp(e).getList(e, st).values).flatten
       st.allocList(ls)
-    case ESymbol(desc, asite) =>
+    case ESymbol(desc) =>
       interp(desc) match
         case (str: Str) => st.allocSymbol(str)
         case Undef      => st.allocSymbol(Undef)
         case v          => throw NoString(desc, v)
-    case ECopy(obj, asite) =>
+    case ECopy(obj) =>
       interp(obj).escaped match
         case addr: Addr => st.copyObj(addr)
         case v          => throw NoAddr(obj, v)
-    case EKeys(map, intSorted, asite) =>
+    case EKeys(map, intSorted) =>
       interp(map).escaped match
         case addr: Addr => st.keys(addr, intSorted)
         case v          => throw NoAddr(map, v)
