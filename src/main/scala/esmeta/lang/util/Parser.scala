@@ -91,12 +91,12 @@ trait Parsers extends DivergedParsers {
 
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
-    ("for each" ~ opt("element") ~> opt(ty)) ~
-    variable ~
-    ("of" ~> expr) ~
-    ("," ~ opt("do") ~> step) ^^ {
-      case t ~ r ~ e ~ s =>
-        ForEachStep(t, r, e, s)
+    lazy val ascending: Parser[Boolean] =
+      opt("in reverse List order,") ^^ { !_.isDefined }
+    ("for each" ~ opt("element") ~> opt(ty)) ~ variable ~
+    ("of" ~> expr) ~ ("," ~> ascending) ~ (opt("do") ~> step) ^^ {
+      case t ~ r ~ e ~ a ~ s =>
+        ForEachStep(t, r, e, a, s)
     }
 
   // for-each steps for integers

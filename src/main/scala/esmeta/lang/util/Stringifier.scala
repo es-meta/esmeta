@@ -85,10 +85,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
-      case ForEachStep(ty, elem, expr, body) =>
+      case ForEachStep(ty, elem, expr, ascending, body) =>
         app >> First("for each ")
         ty.map(app >> _ >> " ")
         app >> elem >> " of " >> expr >> ", "
+        if (!ascending) app >> "in reverse List order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ForEachIntegerStep(x, start, cond, ascending, body) =>

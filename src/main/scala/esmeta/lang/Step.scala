@@ -27,6 +27,7 @@ case class ForEachStep(
   ty: Option[Type],
   variable: Variable,
   expr: Expression,
+  ascending: Boolean,
   body: Step,
 ) extends Step
 

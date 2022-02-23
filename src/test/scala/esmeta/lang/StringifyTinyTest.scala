@@ -57,8 +57,10 @@ class StringifyTinyTest extends LangTest {
     lazy val returnStep = ReturnStep(Some(refExpr))
     lazy val returnStepNoExpr = ReturnStep(None)
     lazy val assertStep = AssertStep(compCond)
-    lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, letStep)
-    lazy val forEachStepNoType = ForEachStep(None, x, refExpr, letStep)
+    lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, true, letStep)
+    lazy val forEachReverseStep =
+      ForEachStep(Some(ty), x, refExpr, false, letStep)
+    lazy val forEachStepNoType = ForEachStep(None, x, refExpr, true, letStep)
     lazy val forEachIntStepTrue =
       ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
     lazy val forEachIntStepFalse =
@@ -108,6 +110,7 @@ class StringifyTinyTest extends LangTest {
       returnStepNoExpr -> "return.",
       assertStep -> "assert: _x_ and _x_.",
       forEachStep -> "for each Object _x_ of _x_, let _x_ be _x_.",
+      forEachReverseStep -> "for each Object _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> (
         "for each integer _x_ starting with _x_ such that _x_, " +

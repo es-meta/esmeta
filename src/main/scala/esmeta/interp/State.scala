@@ -56,8 +56,9 @@ case class State(
           // access to SDO
           case Str(propStr) if ast.isInstanceOf[Syntactic] =>
             cfg.getSDO((ast, propStr)) match
-              case Some(sdo) => Clo(sdo, Map())
-              case None      => throw InvalidAstProp(ast, prop)
+              case Some((ast0, sdo)) =>
+                Clo(sdo, Map(NAME_THIS -> AstValue(ast0)))
+              case None => throw InvalidAstProp(ast, prop)
           // access to child
           case Math(n) if n.isValidInt =>
             ast.getChildren(n.toInt) match

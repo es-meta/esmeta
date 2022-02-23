@@ -48,13 +48,13 @@ case class CFG(
   def grammar: Grammar = spec.grammar
 
   /** get syntax-directed operation(SDO) */
-  def getSDO = cached[(Ast, String), Option[Func]] {
+  def getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
     case (ast, operation) =>
-      ast.chains.foldLeft[Option[Func]](None) {
+      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
         case (None, ast0) =>
           val subIdx = grammar.getSubIdx(ast0)
           val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname)
+          fnameMap.get(fname).map((ast0, _))
         case (res: Some[_], _) => res
       }
   }

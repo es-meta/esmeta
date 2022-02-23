@@ -198,7 +198,7 @@ class Compiler(val spec: Spec) {
       fb.addInst(IReturn(expr.fold(EUndef)(compile(fb, _))))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
-    case ForEachStep(ty, x, expr, body) =>
+    case ForEachStep(ty, x, expr, true, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (length, lengthExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
@@ -216,6 +216,26 @@ class Compiler(val spec: Spec) {
               fb.addInst(ILet(compile(x), toERef(list, iExpr)))
               compile(fb, body)
               fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+            },
+          ),
+        ),
+      )
+    case ForEachStep(ty, x, expr, false, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(list, compile(fb, expr)),
+        IAssign(i, toStrERef(list, "length")),
+      )
+      fb.addInst(
+        ILoop(
+          "foreach",
+          lessThan (EMathVal(0), iExpr),
+          compileWithContext(
+            fb, {
+              fb.addInst(IAssign(i, sub(iExpr, EMathVal(1))))
+              fb.addInst(ILet(compile(x), toERef(list, iExpr)))
+              compile(fb, body)
             },
           ),
         ),

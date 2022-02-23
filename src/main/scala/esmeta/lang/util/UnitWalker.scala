@@ -50,7 +50,7 @@ trait UnitWalker extends BasicUnitWalker {
       walkOpt(expr, walk)
     case AssertStep(cond) =>
       walk(cond)
-    case ForEachStep(ty, elem, expr, body) =>
+    case ForEachStep(ty, elem, expr, ascending, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)

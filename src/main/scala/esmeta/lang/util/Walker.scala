@@ -50,8 +50,14 @@ trait Walker extends BasicWalker {
       ReturnStep(walkOpt(expr, walk))
     case AssertStep(cond) =>
       AssertStep(walk(cond))
-    case ForEachStep(ty, elem, expr, body) =>
-      ForEachStep(walkOpt(ty, walk), walk(elem), walk(expr), walk(body))
+    case ForEachStep(ty, elem, expr, ascending, body) =>
+      ForEachStep(
+        walkOpt(ty, walk),
+        walk(elem),
+        walk(expr),
+        ascending,
+        walk(body),
+      )
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       ForEachIntegerStep(
         walk(x),
