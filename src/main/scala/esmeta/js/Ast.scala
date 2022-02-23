@@ -18,11 +18,11 @@ sealed trait Ast extends JSElem {
   /** production chains */
   def chains: List[Ast]
 
-  /** equality */
-  override def hashCode: Int = super.hashCode
-  override def equals(any: Any): Boolean = any match
-    case that: Ast => this eq that
-    case _         => false
+  // /** equality */
+  // override def hashCode: Int = super.hashCode
+  // override def equals(any: Any): Boolean = any match
+  //   case that: Ast => this eq that
+  //   case _         => false
 
   /** flatten statements */
   // TODO refactoring
