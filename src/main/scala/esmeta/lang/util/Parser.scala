@@ -494,7 +494,7 @@ trait Parsers extends DivergedParsers {
   lazy val instanceOfCond: PL[InstanceOfCondition] =
     expr ~ isEither((("an" | "a") ~> ty)) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
-    } |
+    } |||
     // handle If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
     expr ~ isNeg ~ (tagStart ~ word ~ ":" ~> word <~ tagEnd) ^^ {
       case e ~ n ~ nt => InstanceOfCondition(e, n, List(Type(s"|$nt|")))
@@ -643,7 +643,10 @@ trait Parsers extends DivergedParsers {
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
-    (b <~ "either") ~ repsep(p, sep("or")) |
+    (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
+      case b ~ p0 ~ p1 => new ~(b, List(p0, p1))
+    } |
+    (b <~ opt("either")) ~ repsep(p, ", or" | ",") |
     b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
   private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(isNeg, p)
