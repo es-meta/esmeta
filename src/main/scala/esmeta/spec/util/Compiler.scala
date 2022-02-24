@@ -194,11 +194,15 @@ class Compiler(val spec: Spec) {
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case IfStep(cond, thenStep, elseStep) =>
-      compileShortCircuit(
-        fb,
-        cond,
-        compileWithScope(fb, thenStep),
-        elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+      val (x, xExpr) = fb.newTIdWithExpr
+      // TODO optimize for simple compound conditions
+      compileShortCircuit(fb, x, cond)
+      fb.addInst(
+        IIf(
+          xExpr,
+          compileWithScope(fb, thenStep),
+          elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+        ),
       )
     case ReturnStep(expr) =>
       fb.addInst(IReturn(expr.fold(EUndef)(compile(fb, _))))
@@ -557,37 +561,24 @@ class Compiler(val spec: Spec) {
   // handle short circuiting
   private def compileShortCircuit(
     fb: FB,
+    x: Ref,
     cond: Condition,
-    tInst: => Inst,
-    fInst: => Inst,
   ): Unit =
+    val xExpr = toERef(x)
     import CompoundCondition.Op.*
     cond match
       // TODO optimize for simple compound conditions
       case CompoundCondition(left, And, right) =>
         fb.addInst(
-          IIf(
-            compile(fb, left),
-            fb.newScope(compileShortCircuit(fb, right, tInst, fInst)),
-            fInst,
-          ),
+          IAssign(x, compile(fb, left)),
+          IIf(xExpr, fb.newScope(compileShortCircuit(fb, x, right)), emptyInst),
         )
       case CompoundCondition(left, Or, right) =>
         fb.addInst(
-          IIf(
-            compile(fb, left),
-            tInst,
-            fb.newScope(compileShortCircuit(fb, right, tInst, fInst)),
-          ),
+          IAssign(x, compile(fb, left)),
+          IIf(xExpr, emptyInst, fb.newScope(compileShortCircuit(fb, x, right))),
         )
-      case _ =>
-        fb.addInst(
-          IIf(
-            compile(fb, cond),
-            tInst,
-            fInst,
-          ),
-        )
+      case _ => fb.addInst(IAssign(x, compile(fb, cond)))
 
   // instruction helpers
   private inline def emptyInst = ISeq(List())
