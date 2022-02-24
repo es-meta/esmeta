@@ -232,6 +232,11 @@ class Interp(
       // TODO discuss about the type
       Bool(interp(expr).escaped match
         case _: Number     => ty.name == "Number"
+        case _: BigInt     => ty.name == "BigInt"
+        case _: Str        => ty.name == "String"
+        case _: Bool       => ty.name == "Boolean"
+        case Undef         => ty.name == "Undefined"
+        case Null          => ty.name == "Null"
         case AstValue(ast) => ast.typeCheck(ty)
         case addr: Addr =>
           st(addr) match

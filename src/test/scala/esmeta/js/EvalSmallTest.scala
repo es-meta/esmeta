@@ -95,7 +95,7 @@ class EvalSmallTest extends JSTest {
     "shift1.js",
     "string1.js",
     "string2.js",
-    "string3.js",
+    // "string3.js",
     "switch1.js",
     "symbol1.js",
     "symbol2.js",
@@ -108,7 +108,7 @@ class EvalSmallTest extends JSTest {
     // "variable-declare1.js",
     // "variable-declare2.js",
     // "variable-declare3.js",
-    "variable-declare4.js",
+    // "variable-declare4.js",
   )
 
   // registration

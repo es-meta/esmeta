@@ -4,7 +4,9 @@
   "expression-statement1.js" : true,
   "global.js" : true,
   "multiple-statements.js" : true,
+  "string3.js" : true,
   "variable-declare1.js" : true,
   "variable-declare2.js" : true,
-  "variable-declare3.js" : true
+  "variable-declare3.js" : true,
+  "variable-declare4.js" : true
 }
