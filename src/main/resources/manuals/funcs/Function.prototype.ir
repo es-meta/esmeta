@@ -1,3 +1,0 @@
-def <BUILTIN>:Function.prototype(this: Any, argumentsList: Any, NewTarget: Any) {
-  return undefined
-}

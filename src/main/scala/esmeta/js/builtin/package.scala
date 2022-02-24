@@ -9,6 +9,7 @@ import scala.collection.mutable.{Map => MMap}
 val INTRINSICS = "INTRINSICS"
 val GLOBAL = "GLOBAL"
 val CONTEXT = "CONTEXT"
+val REALM = "REALM"
 val EXECUTION_STACK = "EXECUTION_STACK"
 val HOST_DEFINED = "HOST_DEFINED"
 val JOB_QUEUE = "JOB_QUEUE"

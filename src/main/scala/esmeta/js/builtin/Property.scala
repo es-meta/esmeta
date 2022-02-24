@@ -36,8 +36,8 @@ case class DataProperty(
 
 // accessor properties
 case class AccessorProperty(
-  get: NamedAddr,
-  set: NamedAddr,
+  get: PureValue,
+  set: PureValue,
   enumerable: Boolean,
   configurable: Boolean,
 ) extends Property
