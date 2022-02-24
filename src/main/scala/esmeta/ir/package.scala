@@ -56,6 +56,7 @@ val ECONST_REJECT = EConst("Reject")
 
 /** predefined globals identifiers */
 val GLOBAL_CONTEXT = Global("CONTEXT")
+val GLOBAL_REALM = Global("REALM")
 val GLOBAL_EXECUTION_STACK = Global("EXECUTION_STACK")
 val GLOBAL_SYMBOL = Global("SYMBOL")
 val GLOBAL_UNDEF_TYPE = Global("Undefined")

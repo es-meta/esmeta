@@ -29,6 +29,7 @@ object Initialize {
     HOST_DEFINED -> Undef,
     INTRINSICS -> NamedAddr(INTRINSICS),
     GLOBAL -> NamedAddr(GLOBAL),
+    REALM -> NamedAddr(REALM),
     JOB_QUEUE -> NamedAddr(JOB_QUEUE),
     SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
     UNDEF_TYPE -> Str("Undefined"),
@@ -43,12 +44,14 @@ object Initialize {
 
   // initial heaps
   private def initHeap(cfg: CFG): Heap = {
+    given CFG = cfg
     val intr = Intrinsics(cfg)
     val glob = GlobalObject(cfg)
 
     val map: MMap[Addr, Obj] = MMap(
       NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
+      NamedAddr(REALM) -> MapObj("RealmRecord"),
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
