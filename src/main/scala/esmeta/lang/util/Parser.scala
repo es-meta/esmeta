@@ -537,7 +537,9 @@ trait Parsers extends DivergedParsers {
       either(neg, expr) |||
       neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral())) } |||
       // SameValue
-      (neg <~ "different from") ~ expr ^^ { case n ~ e => new ~(n, List(e)) }
+      (neg <~ "different from") ~ expr ^^ { case n ~ e => new ~(!n, List(e)) } |||
+      // SameValueNonNumeric
+      (neg <~ "the same as") ~ expr ^^ { case n ~ e => new ~(n, List(e)) }
 
     left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 
