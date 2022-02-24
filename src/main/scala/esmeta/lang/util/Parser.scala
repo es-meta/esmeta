@@ -45,10 +45,10 @@ trait Parsers extends DivergedParsers {
   given step: PL[Step] =
     letStep |
     setStep |
+    performStep |
     returnStep |
     assertStep |
     throwStep |
-    performStep |
     appendStep |
     repeatStep |
     pushCtxtStep |

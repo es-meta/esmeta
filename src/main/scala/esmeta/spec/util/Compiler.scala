@@ -619,7 +619,11 @@ class Compiler(val spec: Spec) {
   private val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
-    arityCheck("Completion" -> { case List(expr) => expr }), // TODO needed?
+    // TODO Completion AO is needed?
+    arityCheck("Completion" -> { case List(expr) => expr }),
+    arityCheck("ReturnIfAbrupt" -> {
+      case List(expr) => EReturnIfAbrupt(expr, true)
+    }),
     // arityCheck("GetArgument" -> ???),
     // arityCheck("IsDuplicate" -> ???),
     // arityCheck("IsArrayIndex" -> ???),
