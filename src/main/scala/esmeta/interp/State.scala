@@ -5,7 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
-import esmeta.js.util.{Parser => JSParser}
+import esmeta.js.util.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -71,11 +71,42 @@ case class State(
               case Some(child) => AstValue(child)
               case None        => Absent
           case _ => throw InvalidAstProp(ast, prop)
-      case lex: Lexical =>
-        prop match
-          // get string value of lexical
-          case Str("StringValue") => Str(lex.str)
-          case _                  => throw InvalidAstProp(ast, prop)
+      case Lexical(name, str) =>
+        val propStr = prop match
+          case Str(s) => s
+          case _      => throw InvalidAstProp(ast, prop)
+        (name, propStr) match {
+          case (
+                "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+                "StringValue",
+              ) =>
+            Str(str)
+          // TODO handle numeric seperator in ESValueParser
+          case ("NumericLiteral", "MV" | "NumericValue") =>
+            ESValueParser.parseNumber(str.replaceAll("_", ""))
+          case ("StringLiteral", "SV" | "StringValue") =>
+            Str(ESValueParser.parseString(str))
+          case ("NoSubstitutionTemplate", "TV") =>
+            Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
+          case ("TemplateHead", "TV") =>
+            Str(ESValueParser.parseTVTemplateHead(str))
+          case ("TemplateMiddle", "TV") =>
+            Str(ESValueParser.parseTVTemplateMiddle(str))
+          case ("TemplateTail", "TV") =>
+            Str(ESValueParser.parseTVTemplateTail(str))
+          case ("NoSubstitutionTemplate", "TRV") =>
+            Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
+          case ("TemplateHead", "TRV") =>
+            Str(ESValueParser.parseTRVTemplateHead(str))
+          case ("TemplateMiddle", "TRV") =>
+            Str(ESValueParser.parseTRVTemplateMiddle(str))
+          case ("TemplateTail", "TRV") =>
+            Str(ESValueParser.parseTRVTemplateTail(str))
+          case (_, "Contains") => Bool(false)
+          case ("RegularExpressionLiteral", name) =>
+            throw NotSupported(s"RegularExpressionLiteral.$propStr")
+          case _ => error(s"invalid Lexical access: $name.$propStr")
+        }
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(str.length)
     case Math(k)       => Str(str(k.toInt).toString)

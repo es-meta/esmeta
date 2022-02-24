@@ -8,3 +8,6 @@ case class TooManySemicolonInsertion(max: Int)
 
 case class WrongNumberOfParserParams(name: String, list: List[Boolean])
   extends ParseError(s"wrong number of parameters for $name: $list")
+
+case class ESValueParserFailed(str: String)
+  extends ParseError(s"ESValueParser failed: $str")

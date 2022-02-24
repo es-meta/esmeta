@@ -160,7 +160,8 @@ trait Parsers extends DivergedParsers {
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val end: Parser[String] = opt("(" ~ "see.*\\)".r) ~> "." <~ upper | ";"
+  lazy val ignore = "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd
+  lazy val end: Parser[String] = opt(ignore) ~> "." <~ upper | ";"
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
@@ -311,7 +312,8 @@ trait Parsers extends DivergedParsers {
     }
 
   // literals
-  lazy val literal: PL[Literal] =
+  // GetIdentifierReference uses 'the value'
+  lazy val literal: PL[Literal] = opt("the value") ~> (
     opt("the") ~> "*this* value" ^^! ThisLiteral() |||
     "NewTarget" ^^! NewTargetLiteral() |||
     hexLiteral |||
@@ -343,6 +345,7 @@ trait Parsers extends DivergedParsers {
     "Number" ^^! NumberTypeLiteral() |||
     "BigInt" ^^! BigIntTypeLiteral() |||
     "Object" ^^! ObjectTypeLiteral()
+  )
 
   // field literal
   lazy val fieldLiteral: PL[FieldLiteral] =
