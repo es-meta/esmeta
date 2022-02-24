@@ -1,8 +1,8 @@
 package esmeta.cfg
 
+import esmeta.*
 import esmeta.cfg.util.*
 import esmeta.ir.Program
-import esmeta.js.Ast
 import esmeta.spec.{Spec, TypeModel, Grammar}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.ListBuffer
@@ -13,10 +13,13 @@ case class CFG(
 ) extends CFGElem {
 
   /** backward edge to a program */
-  var program: Program = Program()
+  var program: ir.Program = ir.Program()
 
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.ir.main, "main function")
+
+  /** JavaScript parser */
+  lazy val jsParser: js.util.Parser = program.jsParser
 
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =
@@ -48,9 +51,10 @@ case class CFG(
   def grammar: Grammar = spec.grammar
 
   /** get syntax-directed operation(SDO) */
-  def getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+  // TODO refactor
+  def getSDO = cached[(js.Ast, String), Option[(js.Ast, Func)]] {
     case (ast, operation) =>
-      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
+      ast.chains.foldLeft[Option[(js.Ast, Func)]](None) {
         case (None, ast0) =>
           val subIdx = grammar.getSubIdx(ast0)
           val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"

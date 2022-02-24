@@ -77,10 +77,6 @@ object SystemUtils {
   def getFirstFilename(globalConfig: GlobalConfig, msg: String): String =
     globalConfig.args.headOption.getOrElse(throw NoFileError(msg))
 
-  /** get second filename */
-  def getSecondFilename(globalConfig: GlobalConfig, msg: String): String =
-    globalConfig.args.tail.headOption.getOrElse(throw NoFileError(msg))
-
   /** read file */
   def readFile(filename: String): String =
     val source = Source.fromFile(filename, ENC)
@@ -174,10 +170,11 @@ object SystemUtils {
 
   /** set timeout with optinal limitation */
   def timeout[T](f: => T, limit: Option[Long]): T =
-    timeout(f, limit.fold[Duration](Duration.Inf)(_.seconds))
+    limit.fold(f)(l => timeout(f, l.second))
 
   /** set timeout with limitation */
-  def timeout[T](f: => T, limit: Long): T = timeout(f, limit.seconds)
+  def timeout[T](f: => T, limit: Long): T =
+    timeout(f, limit.seconds)
 
   /** set timeout with duration */
   def timeout[T](f: => T, duration: Duration): T =

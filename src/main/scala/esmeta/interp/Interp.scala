@@ -16,10 +16,11 @@ import scala.math.{BigInt => SBigInt}
 /** CFG Interpreter */
 class Interp(
   val st: State,
-  val jsParser: Option[JSParser] = None, // TODO refactoring
-  val timeLimit: Option[Long] = Some(TIMEOUT),
 ) {
   import Interp.*
+
+  /** JavaScript parser */
+  lazy val jsParser: JSParser = cfg.jsParser
 
   /** special class for handle return */
   private case class ReturnValue(value: Value) extends Throwable
@@ -157,14 +158,17 @@ class Interp(
       interp(list).escaped match
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
-    case EParse(code, rule) => {
+    case EParse(code, rule) =>
       val v = interp(code).escaped
       val r = interp(rule).escaped
-      (v, r) match
-        case (Str(str), Grammar(name, params)) =>
-          AstValue((jsParser.get)(name, params).from(str))
-        case _ => ???
-    }
+      (v, r, st.sourceText, st.cachedAst) match
+        // optimize the initial parsing using the given cached AST
+        case (Str(x), Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
+          AstValue(ast)
+        case (Str(str), Grammar(name, params), _, _) =>
+          AstValue(jsParser(name, params).from(str))
+        case (_, _: Grammar, _, _) => throw NoString(code, v)
+        case _                     => throw NoGrammar(rule, r)
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr)      => ???
     case EYet(msg) =>
@@ -356,7 +360,6 @@ object Interp {
 
   /** run interp */
   def apply(
-    cfg: CFG,
     st: State,
     timeLimit: Option[Long] = Some(TIMEOUT),
   ): State =

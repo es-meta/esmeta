@@ -13,14 +13,12 @@ case object IREval extends Phase[Unit, State] {
     unit: Unit,
     globalConfig: GlobalConfig,
     config: Config,
-  ): State = {
-    val filename = getFirstFilename(globalConfig, "extract")
+  ): State =
+    val filename = getFirstFilename(globalConfig, this.name)
     val program = Program.fromFile(filename)
     val cfg = program.toCFG
     val st = State(cfg)
-    new Interp(st).fixpoint
-    st
-  }
+    Interp(st)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()

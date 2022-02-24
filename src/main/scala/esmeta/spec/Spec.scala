@@ -21,6 +21,9 @@ case class Spec(
   /** convert to a control-flow graph (CFG) */
   lazy val toCFG: cfg.CFG = toIR.toCFG
 
+  /** JavaScript parser */
+  lazy val jsParser: js.util.Parser = js.util.Parser(grammar)
+
   /** get incomplete algorithms */
   lazy val incompleteAlgorithms: List[Algorithm] =
     algorithms.filter(!_.complete)

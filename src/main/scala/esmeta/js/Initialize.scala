@@ -10,7 +10,9 @@ import scala.collection.mutable.{Map => MMap}
 object Initialize {
   def apply(cfg: CFG, sourceText: String): State = State(
     cfg,
-    Context(cfg.main),
+    context = Context(cfg.main),
+    sourceText = Some(sourceText),
+    cachedAst = Some(cfg.jsParser("Script", Nil).from(sourceText)),
     globals = initGlobal(sourceText),
     heap = initHeap(cfg),
   )

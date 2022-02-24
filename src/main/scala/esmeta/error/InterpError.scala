@@ -49,6 +49,8 @@ case class NoFunc(expr: Expr, v: Value)
   extends InterpError(s"not a function: $expr -> $v")
 case class NoAst(expr: Expr, v: Value)
   extends InterpError(s"not an abstract syntax tree (AST): $expr -> $v")
+case class NoGrammar(expr: Expr, v: Value)
+  extends InterpError(s"not a grammar symbol: $expr -> $v")
 case class NoList(expr: Expr, obj: Obj)
   extends InterpError(s"not a list: $expr -> $obj")
 

@@ -5,6 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
+import esmeta.js.util.{Parser => JSParser}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -12,10 +13,15 @@ import scala.collection.mutable.{Map => MMap}
 case class State(
   val cfg: CFG,
   var context: Context,
+  val sourceText: Option[String] = None,
+  val cachedAst: Option[Ast] = None,
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
 ) extends InterpElem {
+
+  /** JavaScript parser */
+  lazy val jsParser: JSParser = cfg.jsParser
 
   /** get the current function */
   def func: Func = context.cursor match

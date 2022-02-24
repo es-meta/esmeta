@@ -1,10 +1,8 @@
 package esmeta.ir
 
-import esmeta.cfg.CFG
-import esmeta.cfg.util.Builder
+import esmeta.*
 import esmeta.ir.util.Parser
-import esmeta.spec.Spec
-import esmeta.spec.TypeModel
+import esmeta.spec.{Spec, TypeModel}
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 
@@ -19,7 +17,10 @@ case class Program(
   lazy val main: Func = getUnique(funcs, _.main, "main function")
 
   /** convert to a control-flow graph (CFG) */
-  lazy val toCFG: CFG = Builder(this)
+  lazy val toCFG: cfg.CFG = cfg.util.Builder(this)
+
+  /** JavaScript parser */
+  lazy val jsParser: js.util.Parser = spec.jsParser
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel
