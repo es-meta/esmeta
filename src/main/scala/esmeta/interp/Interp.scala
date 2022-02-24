@@ -290,7 +290,7 @@ class Interp(
     case EList(exprs) =>
       st.allocList(exprs.map(expr => interp(expr).escaped))
     case EListConcat(exprs) =>
-      val ls = exprs.map(e => interp(e).getList(e, st).values).flatten
+      val ls = exprs.map(e => interp(e).escaped.getList(e, st).values).flatten
       st.allocList(ls)
     case ESymbol(desc) =>
       interp(desc) match

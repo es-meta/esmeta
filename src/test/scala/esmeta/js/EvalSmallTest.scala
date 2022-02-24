@@ -79,7 +79,7 @@ class EvalSmallTest extends JSTest {
     "increment2.js",
     "instanceof1.js",
     "instanceof2.js",
-    "multiple-statements.js",
+    // "multiple-statements.js",
     "number1.js",
     "number2.js",
     "number3.js",
@@ -106,7 +106,7 @@ class EvalSmallTest extends JSTest {
     "try2.js",
     "typeof1.js",
     // "variable-declare1.js",
-    "variable-declare2.js",
+    // "variable-declare2.js",
     "variable-declare3.js",
     "variable-declare4.js",
   )
