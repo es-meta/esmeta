@@ -32,5 +32,6 @@
   "[YET] Set _D_.[[Value]] to the value of _X_'s [[Value]] attribute.": "D.Value = X.Value",
   "[YET] Set _D_.[[Writable]] to the value of _X_'s [[Writable]] attribute.": "D.Writable = X.Writable",
   "[YET] Set _D_.[[Enumerable]] to the value of _X_'s [[Enumerable]] attribute.": "D.Enumerable = X.Enumerable",
-  "[YET] Set _D_.[[Configurable]] to the value of _X_'s [[Configurable]] attribute.": "D.Configurable = X.Configurable"
+  "[YET] Set _D_.[[Configurable]] to the value of _X_'s [[Configurable]] attribute.": "D.Configurable = X.Configurable",
+  "[YET] If _Desc_ does not have any fields, return *true*.": "{ let descKeys = (keys Desc) if (= descKeys.length 0) return true else {} }"
 }

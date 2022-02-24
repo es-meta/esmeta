@@ -485,19 +485,13 @@ trait Parsers extends DivergedParsers {
     hasFieldCond |||
     abruptCond |||
     isAreCond |||
-    binCond
+    binCond |||
+    specialCond
 
   // expression conditions
-  lazy val exprCond: PL[ExpressionCondition] =
-    expr ^^ { ExpressionCondition(_) } |||
-    // OrdinaryGetOwnProperty
-    expr ~ ("is" ~> (
-      "a data property" ^^! { "IsDataDescriptor" } |
-      "an accessor property" ^^! { "IsAccessorDescriptor" }
-    )) ^^ {
-      case e ~ opName =>
-        ExpressionCondition(InvokeAbstractOperationExpression(opName, List(e)))
-    }
+  lazy val exprCond: PL[ExpressionCondition] = expr ^^ {
+    ExpressionCondition(_)
+  }
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
@@ -562,6 +556,22 @@ trait Parsers extends DivergedParsers {
     } |||
     expr ~ (isNeg <~ "different from") ~ expr ^^ {
       case l ~ n ~ r => BinaryCondition(l, if (n) NEq else Eq, r)
+    }
+
+  // rarely used conditions
+  lazy val specialCond: PL[Condition] =
+    // OrdinaryGetOwnProperty
+    expr ~ ("is" ~> (
+      "a data property" ^^^ { getIsDataCond } |
+      "an accessor property" ^^^ { getIsAccessorCond }
+    )) ^^ { case e ~ getCond => getCond(e) } |||
+    // ValidateAndApplyPropertyDescriptor
+    ref <~ "is a fully populated Property Descriptor" ^^ {
+      case r =>
+        val dpFields = hasFieldsCond(r, "Value", "Writable")
+        val apFields = hasFieldsCond(r, "Get", "Set")
+        val fields = hasFieldsCond(r, "Enumerable", "Configurable")
+        andCond(fields, orCond(dpFields, apFields))
     }
 
   // ---------------------------------------------------------------------------
@@ -665,4 +675,26 @@ trait Parsers extends DivergedParsers {
     "is not" ^^! { true } | "is" ^^! { false }
   private def hasNeg: Parser[Boolean] =
     "does not have" ^^! { true } | "has" ^^! { false }
+
+  // helper for creating expressions, conditions
+  private def getInvokeExpr(op: String)(es: Expression*): InvokeExpression =
+    InvokeAbstractOperationExpression(op, es.toList)
+  private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
+  private def getIsDataCond(e: Expression) = getExprCond(
+    getInvokeExpr("IsDataDescriptor")(e),
+  )
+  private def getIsAccessorCond(e: Expression) = getExprCond(
+    getInvokeExpr("IsAccessorDescriptor")(e),
+  )
+  private def compoundCond(
+    op: CompoundCondition.Op,
+    cs: Condition*,
+  ): Condition =
+    cs.reduce { case (l, r) => CompoundCondition(l, op, r) }
+  private def andCond(cs: Condition*): Condition =
+    compoundCond(CompoundCondition.Op.And, cs: _*)
+  private def orCond(cs: Condition*): Condition =
+    compoundCond(CompoundCondition.Op.Or, cs: _*)
+  private def hasFieldsCond(r: Reference, fs: String*): Condition =
+    andCond(fs.map(f => HasFieldCondition(r, false, FieldLiteral(f))): _*)
 }
