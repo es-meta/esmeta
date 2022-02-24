@@ -18,7 +18,7 @@ case object JSEval extends Phase[CFG, State] {
     val filename = getFirstFilename(globalConfig, this.name)
     val content = readFile(filename)
     val st = Initialize(cfg, content)
-    Interp(st)
+    Interp(st, timeLimit = None)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()

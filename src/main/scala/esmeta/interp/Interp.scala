@@ -16,6 +16,7 @@ import scala.math.{BigInt => SBigInt}
 /** CFG Interpreter */
 class Interp(
   val st: State,
+  val checkAfter: List[NormalInst],
 ) {
   import Interp.*
 
@@ -50,7 +51,9 @@ class Interp(
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
-          st.context.retVal.map(st.globals += GLOBAL_RESULT -> _)
+          st.context.retVal
+            .map(v => st.globals += GLOBAL_RESULT -> v.wrapCompletion)
+          for (assert <- checkAfter) interp(assert)
           false
         case CallContext(retId, ctxt) :: rest =>
           val value = st.context.retVal.getOrElse(throw NoReturnValue)
@@ -361,11 +364,9 @@ object Interp {
   /** run interp */
   def apply(
     st: State,
+    checkAfter: List[NormalInst] = Nil,
     timeLimit: Option[Long] = Some(TIMEOUT),
-  ): State =
-    val interp = new Interp(st)
-    timeout(interp.fixpoint, timeLimit)
-    st
+  ): State = timeout(new Interp(st, checkAfter).fixpoint, timeLimit)
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

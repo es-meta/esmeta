@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 
 /** predefined constants */
 val INTRINSICS = "INTRINSICS"
-val GLOBAL_OBJECT = "GLOBAL_OBJECT"
+val GLOBAL = "GLOBAL"
 val CONTEXT = "CONTEXT"
 val EXECUTION_STACK = "EXECUTION_STACK"
 val HOST_DEFINED = "HOST_DEFINED"

@@ -43,6 +43,19 @@ trait Parsers extends BasicParsers {
 
   // instructions
   given inst: Parser[Inst] = withLoc {
+    "{" ~> rep(inst) <~ "}" ^^ {
+      ISeq(_)
+    } | ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
+      case c ~ t ~ e => IIf(c, t, e)
+    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
+      case k ~ c ~ b => ILoop(k, c, b)
+    } | ("call " ~> id <~ "=") ~ expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+      case lhs ~ f ~ as => ICall(lhs, f, as)
+    } | normalInst
+  }
+
+  given normalInsts: Parser[List[NormalInst]] = rep(normalInst)
+  lazy val normalInst: Parser[NormalInst] =
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)
     } | "delete" ~> ref ^^ {
@@ -57,20 +70,11 @@ trait Parsers extends BasicParsers {
       case e => IPrint(e)
     } | "nop" ^^ {
       case _ => INop()
-    } | "{" ~> rep(inst) <~ "}" ^^ {
-      ISeq(_)
-    } | ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
-      case c ~ t ~ e => IIf(c, t, e)
-    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
-      case k ~ c ~ b => ILoop(k, c, b)
-    } | ("call " ~> id <~ "=") ~ expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
-      case lhs ~ f ~ as => ICall(lhs, f, as)
     } | ref ~ ("=" ~> expr) ^^ {
       case r ~ e => IAssign(r, e)
     } | expr ^^ {
       case e => IExpr(e)
     }
-  }
 
   // expressions
   given expr: Parser[Expr] =

@@ -8,11 +8,15 @@ import esmeta.js.builtin.*
 import scala.collection.mutable.{Map => MMap}
 
 object Initialize {
-  def apply(cfg: CFG, sourceText: String): State = State(
+  def apply(
+    cfg: CFG,
+    sourceText: String,
+    cachedAst: Option[Ast] = None,
+  ): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
-    cachedAst = Some(cfg.jsParser("Script", Nil).from(sourceText)),
+    cachedAst = cachedAst,
     globals = initGlobal(sourceText),
     heap = initHeap(cfg),
   )
@@ -24,7 +28,7 @@ object Initialize {
     EXECUTION_STACK -> NamedAddr(EXECUTION_STACK),
     HOST_DEFINED -> Undef,
     INTRINSICS -> NamedAddr(INTRINSICS),
-    GLOBAL_OBJECT -> NamedAddr(GLOBAL_OBJECT),
+    GLOBAL -> NamedAddr(GLOBAL),
     JOB_QUEUE -> NamedAddr(JOB_QUEUE),
     SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
     UNDEF_TYPE -> Str("Undefined"),
@@ -44,7 +48,7 @@ object Initialize {
 
     val map: MMap[Addr, Obj] = MMap(
       NamedAddr(INTRINSICS) -> intr.obj,
-      NamedAddr(GLOBAL_OBJECT) -> glob.obj,
+      NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),

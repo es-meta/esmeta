@@ -19,6 +19,9 @@ case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
 
+// helper for list of normal instructions
+object NormalInsts extends Parser.From[List[NormalInst]]
+
 // special instructions
 case class ISeq(insts: List[Inst]) extends Inst
 case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends Inst

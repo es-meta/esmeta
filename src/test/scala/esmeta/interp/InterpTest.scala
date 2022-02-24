@@ -10,8 +10,7 @@ trait InterpTest extends ESMetaTest {
 }
 object InterpTest {
   // handle interp test
-  def interp(st: State): State =
-    new Interp(st).fixpoint
+  def interp(st: State): State = Interp(st)
   def interpFile(filename: String): State =
     interp(State(Builder(Program.fromFile(filename))))
 }
