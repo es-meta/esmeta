@@ -168,7 +168,7 @@ object SystemUtils {
   def currentVersion(dir: String = CUR_DIR): String =
     getVersion("HEAD", dir)
 
-  /** set timeout with optinal limitation */
+  /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Long]): T =
     limit.fold(f)(l => timeout(f, l.second))
 
@@ -178,7 +178,7 @@ object SystemUtils {
 
   /** set timeout with duration */
   def timeout[T](f: => T, duration: Duration): T =
-    Await.result(Future(f), duration)
+    Await.result(Future(Try(f)), duration).get
 
   /** concurrently execute a list of functions */
   def concurrent[T](

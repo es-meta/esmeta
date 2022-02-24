@@ -106,7 +106,7 @@ class Interp(
       }
     case IPrint(expr) => {
       val v = interp(expr)
-      if (!TEST_MODE) println(st.getString(v))
+      println(st.getString(v))
     }
     case INop() => /* do nothing */
   }

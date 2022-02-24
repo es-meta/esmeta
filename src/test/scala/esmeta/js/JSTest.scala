@@ -30,7 +30,7 @@ object JSTest {
     checkAfter: List[NormalInst] = Nil,
     cachedAst: Option[Ast] = None,
   ): State =
-    Interp(Initialize(cfg, str, cachedAst))
+    Interp(Initialize(cfg, str, cachedAst), checkAfter)
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,

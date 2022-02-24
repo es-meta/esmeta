@@ -1,4 +1,4 @@
-let x = GLOBAL.SubMap.Object.Value
+let x = @GLOBAL.SubMap.Object.Value
 assert (! (= absent x.SubMap.assign))
 assert (! (= absent x.SubMap.create))
 assert (! (= absent x.SubMap.defineProperties))
