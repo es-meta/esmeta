@@ -1,0 +1,18 @@
+def ToNumber(argument: Unknown) {
+  if (= (typeof argument) @Undefined) return NaN
+  else if (= (typeof argument) @Null) return 0.0f
+  else if (= (typeof argument) @Boolean) if argument return 1.0f else return 0.0f
+  else if (= (typeof argument) @Number) return argument
+  else if (= (typeof argument) @String) {
+    call %0 = clo<StringToNumber>(argument)
+    return [! %0]
+  }
+  else if (= (typeof argument) @Symbol) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  else if (= (typeof argument) @BigInt) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  else {
+    call %1 = clo<ToPrimitive>(argument, ~number~)
+    let primValue = [? %1]
+    call %2 = clo<ToNumber>(primValue)
+    return [? %2]
+  }
+}
