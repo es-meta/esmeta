@@ -489,7 +489,15 @@ trait Parsers extends DivergedParsers {
 
   // expression conditions
   lazy val exprCond: PL[ExpressionCondition] =
-    expr ^^ { ExpressionCondition(_) }
+    expr ^^ { ExpressionCondition(_) } |||
+    // OrdinaryGetOwnProperty
+    expr ~ ("is" ~> (
+      "a data property" ^^! { "IsDataDescriptor" } |
+      "an accessor property" ^^! { "IsAccessorDescriptor" }
+    )) ^^ {
+      case e ~ opName =>
+        ExpressionCondition(InvokeAbstractOperationExpression(opName, List(e)))
+    }
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =

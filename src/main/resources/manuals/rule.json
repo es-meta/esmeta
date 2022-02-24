@@ -26,5 +26,11 @@
   "[YET] Let _scriptContext_ be a new ECMAScript code execution context.": "let scriptContext = (new ExecutionContext())",
   "[YET] If _envRec_ has a binding for the name that is the value of _N_, return *true*.": "if (! (= envRec.SubMap[N] absent)) return true else {}",
   "[YET] Assert: The execution context stack is not empty.": "assert (! (= @EXECUTION_STACK.length 0))",
-  "[YET] Resume the context that is now on the top of the execution context stack as the running execution context.": "@CONTEXT = @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)]"
+  "[YET] Resume the context that is now on the top of the execution context stack as the running execution context.": "@CONTEXT = @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)]",
+  "[YET] Let _D_ be a newly created Property Descriptor with no fields.": "let D = (new PropertyDescriptor())",
+  "[YET] Let _X_ be _O_'s own property whose key is _P_.": "let X = O.SubMap[P]",
+  "[YET] Set _D_.[[Value]] to the value of _X_'s [[Value]] attribute.": "D.Value = X.Value",
+  "[YET] Set _D_.[[Writable]] to the value of _X_'s [[Writable]] attribute.": "D.Writable = X.Writable",
+  "[YET] Set _D_.[[Enumerable]] to the value of _X_'s [[Enumerable]] attribute.": "D.Enumerable = X.Enumerable",
+  "[YET] Set _D_.[[Configurable]] to the value of _X_'s [[Configurable]] attribute.": "D.Configurable = X.Configurable"
 }
