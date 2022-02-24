@@ -262,7 +262,7 @@ class Compiler(val spec: Spec) {
     case ThrowStep(errName) =>
       val proto = Intrinsic(errName, List("prototype"))
       val expr = EMap(
-        "OrdinaryObject",
+        IRType("OrdinaryObject"),
         List(
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
           EStr("ErrorData") -> EUndef,
@@ -346,7 +346,7 @@ class Compiler(val spec: Spec) {
       )
     case RecordExpression(ty, fields) =>
       val props = fields.map { case (f, e) => compile(fb, f) -> compile(fb, e) }
-      EMap(ty.name, props)
+      EMap(compile(ty), props)
     case LengthExpression(ReferenceExpression(ref)) =>
       toStrERef(compile(fb, ref), "length")
     case LengthExpression(expr) =>

@@ -231,12 +231,13 @@ class Interp(
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
       Bool(interp(expr).escaped match
+        case _: Number     => ty.name == "Number"
         case AstValue(ast) => ast.typeCheck(ty)
         case addr: Addr =>
           st(addr) match
             case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO
             case _         => ???
-        case _ => ???,
+        case v => ???,
       )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
@@ -261,7 +262,7 @@ class Interp(
         case v        => throw NoString(expr, v)
       }
       AstValue(Lexical(name, str))
-    case EMap("Completion", props) =>
+    case EMap(Type("Completion"), props) =>
       val map = (for {
         (kexpr, vexpr) <- props
         k = interp(kexpr).escaped

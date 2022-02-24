@@ -136,7 +136,7 @@ trait Parsers extends BasicParsers {
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
-    ("(" ~ "new" ~> ident ~ opt(fields) <~ ")") ^^ {
+    ("(" ~ "new" ~> ty ~ opt(fields) <~ ")") ^^ {
       case t ~ fields => EMap(t, fields.getOrElse(Nil))
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
