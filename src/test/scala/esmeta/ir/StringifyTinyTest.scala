@@ -165,7 +165,8 @@ class StringifyTinyTest extends IRTest {
     )
     lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions
-    lazy val rec = EMap(Type("T"), List(EUndef -> EBool(true), ENull -> EAbsent))
+    lazy val rec =
+      EMap(Type("T"), List(EUndef -> EBool(true), ENull -> EAbsent))
     lazy val list = EList(List(EUndef, ENull, EAbsent))
     lazy val symbol = ESymbol(ENull)
     lazy val copy = ECopy(xExpr)
