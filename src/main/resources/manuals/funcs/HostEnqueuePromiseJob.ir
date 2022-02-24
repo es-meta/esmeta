@@ -1,6 +1,6 @@
 def HostEnqueuePromiseJob(job: unknown, realm: unknown) {
   call %0 = clo<GetActiveScriptOrModule>()
-  let newJob = (new PendingJob("Job" -> job, "Realm" -> realm, "ScriptOrModule" -> %0))[#0]
+  let newJob = (new PendingJob("Job" -> job, "Realm" -> realm, "ScriptOrModule" -> %0))
   push @JOB_QUEUE < newJob
   return undefined
 }

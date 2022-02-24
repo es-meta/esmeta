@@ -12,7 +12,7 @@
 
     // initialize the execution context
     // TODO SubMap of ExecutionContext
-    @CONTEXT = (new ExecutionContext())[#0]
+    @CONTEXT = (new ExecutionContext())
     @CONTEXT.Function = null
     @CONTEXT.Realm = jobRecord.Realm
     @CONTEXT.ScriptOrModule = jobRecord.ScriptOrModule
