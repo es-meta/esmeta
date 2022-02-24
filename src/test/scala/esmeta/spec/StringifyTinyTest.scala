@@ -9,9 +9,9 @@ class StringifyTinyTest extends SpecTest {
 
   // registration
   def init: Unit = {
-    // /////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
     // Grammar
-    // /////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
     // pre-defined values
     val ntArgs = List(
       NtArg(NtArg.Kind.True, "Await"),
@@ -105,12 +105,25 @@ class StringifyTinyTest extends SpecTest {
            |  `{` `}` #this-is-id""".stripMargin,
     )
 
-    // /////////////////////////////////////////////////////////////////////////
-    // Algorithm
-    // /////////////////////////////////////////////////////////////////////////
-    import SyntaxDirectedOperationHead.Target
+    // -------------------------------------------------------------------------
+    // BuiltinHead Reference
+    // -------------------------------------------------------------------------
     import BuiltinHead.Ref.*
-    checkStringify("Algorithm head")(
+    checkStringify("BuiltinHead.Reference")(
+      IntrinsicBase("A") -> "%A%",
+      NormalBase("A") -> "A",
+      NormalAccess(NormalBase("A"), "B") -> "A.B",
+      Getter(NormalAccess(NormalBase("A"), "B")) -> "get:A.B",
+      Setter(NormalAccess(NormalBase("A"), "B")) -> "set:A.B",
+      SymbolAccess(NormalBase("A"), "B") -> "A[@@B]",
+      YetRef("A B C") -> "yet:ABC",
+    )
+
+    // -------------------------------------------------------------------------
+    // Algorithm Head
+    // -------------------------------------------------------------------------
+    import SyntaxDirectedOperationHead.Target
+    checkStringify("Head")(
       AbstractOperationHead(
         "StringIndexOf",
         List(

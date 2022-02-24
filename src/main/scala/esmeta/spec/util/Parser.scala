@@ -379,25 +379,22 @@ trait Parsers extends BasicParsers {
       trimmed.split(" ").map(_.capitalize).mkString
   }
 
-  lazy val ref: Parser[BuiltinHead.Ref] = {
+  lazy val ref: Parser[BuiltinHead.Ref] =
     import BuiltinHead.Ref
     import BuiltinHead.Ref.*
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
     lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r ^^ { _.trim }
+    lazy val pre: Parser[Ref => Ref] =
+      "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
     lazy val base: Parser[Ref] =
       "%" ~> name <~ "%" ^^ { IntrinsicBase(_) } |
-      "get " ~> ref ^^ { Getter(_) } |
-      "set " ~> ref ^^ { Setter(_) } |
       name ^^ { NormalBase(_) }
-
     lazy val access: Parser[Ref => Ref] =
       "." ~> name ^^ { case n => NormalAccess(_, n) } |
       "[" ~> "@@" ~> name <~ "]" ^^ { case s => SymbolAccess(_, s) }
-
-    base ~ rep(access) <~ guard("(") ^^ {
-      case b ~ as => as.foldLeft(b) { case (b, a) => a(b) }
-    } | yet ^^ { Yet(_) }
-  }
+    pre ~ base ~ rep(access) <~ (guard("(") | not(".".r)) ^^ {
+      case p ~ b ~ as => p(as.foldLeft(b) { case (b, a) => a(b) })
+    } | yet ^^ { YetRef(_) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

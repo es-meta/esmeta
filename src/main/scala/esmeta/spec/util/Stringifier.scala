@@ -193,26 +193,23 @@ object Stringifier {
         app >> "[BUILTIN] " >> ref >> params
     }
 
-  given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) => {
+  given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) =>
     import BuiltinHead.Ref.*
-    ref match {
+    ref match
       case IntrinsicBase(name)      => app >> "%" >> name >> "%"
       case NormalBase(name)         => app >> name
       case NormalAccess(base, name) => app >> base >> "." >> name
-      case Getter(base)             => app >> "get " >> base
-      case Setter(base)             => app >> "set " >> base
+      case Getter(base)             => app >> "get:" >> base
+      case Setter(base)             => app >> "set:" >> base
       case SymbolAccess(base, symbol) =>
-        app >> base >> " [ @@" >> symbol >> " ]"
-      case Yet(name) => app >> name
-    }
-  }
+        app >> base >> "[@@" >> symbol >> "]"
+      case YetRef(name) => app >> "yet:" >> name.replace(" ", "")
 
   // for syntax-directed operation head targets
-  given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) => {
+  given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
     val SdoHeadTarget(lhsName, idx, subIdx, rhsParams) = target
     app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]" >> rhsParams
-  }
 
   // TODO: for algorithm parameters
   given paramRule: Rule[Param] = (app, param) => app >> param.name

@@ -52,8 +52,8 @@ case class Intrinsics(cfg: CFG) {
   }
 
   // get closures
-  private def getClo(name: String): Clo =
-    Clo(cfg.fnameMap(name), Map())
+  private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
+  private def intrClo(name: String): Clo = clo(intrName(name))
 
   // https://tc39.es/ecma262/#sec-ecmascript-standard-built-in-objects
   //
@@ -91,8 +91,8 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> getClo("Function"),
-        "Construct" -> getClo("BuiltinFunctionObject.Construct"),
+        "Code" -> intrClo("Function"),
+        "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -105,7 +105,7 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
-        "Code" -> getClo("Function.prototype"),
+        "Code" -> clo("Function.prototype"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, T),
@@ -124,8 +124,8 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> getClo("Object"),
-        "Construct" -> getClo("BuiltinFunctionObject.Construct"),
+        "Code" -> intrClo("Object"),
+        "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),

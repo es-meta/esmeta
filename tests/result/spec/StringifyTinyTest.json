@@ -1,6 +1,7 @@
 {
-  "Algorithm head" : true,
+  "BuiltinHead.Reference" : true,
   "Grammar" : true,
+  "Head" : true,
   "Lhs" : true,
   "Production" : true,
   "Production.Kind" : true,

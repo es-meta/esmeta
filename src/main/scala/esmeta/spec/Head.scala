@@ -60,4 +60,4 @@ object BuiltinHead:
     case Getter(base: Ref)
     case Setter(base: Ref)
     case SymbolAccess(base: Ref, symbol: String)
-    case Yet(name: String)
+    case YetRef(name: String)

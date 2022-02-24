@@ -50,10 +50,7 @@ class Compiler(val spec: Spec) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
       val inst = compileWithScope(this, body)
-      val fixedName = (name, kind) match // TODO Set is duplicated
-        case ("Set", Func.Kind.Builtin) => "BuiltinSet"
-        case _                          => name
-      val func = Func(false, kind, fixedName, params, inst, Some(algo))
+      val func = Func(false, kind, name, params, inst, Some(algo))
       funcs += func
       func
 
@@ -127,7 +124,7 @@ class Compiler(val spec: Spec) {
       case head: InternalMethodHead =>
         s"${head.receiverParam.ty}.${head.methodName}"
       case head: BuiltinHead =>
-        s"${head.ref}"
+        s"INTRINSICS.${head.ref}"
     }
   }
 
