@@ -46,6 +46,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
         case e @ NotSupported(msg) =>
           resMap += name -> Yet(msg)
         case e: Throwable =>
+          println(e)
           resMap += name -> Fail
           throw e
       }
