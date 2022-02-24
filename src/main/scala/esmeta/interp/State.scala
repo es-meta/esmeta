@@ -97,19 +97,19 @@ case class State(
   }
   def update(x: Id, value: Value): this.type =
     x match
-      case x: Global if exists(x) => globals += x -> value
-      case x: Name if exists(x)   => context.locals += x -> value
-      case x: Temp                => context.locals += x -> value
+      case x: Global if hasBinding(x) => globals += x -> value
+      case x: Name if hasBinding(x)   => context.locals += x -> value
+      case x: Temp                    => context.locals += x -> value
       case _ => error(s"illegal variable update: $x = $value")
     this
   def update(addr: Addr, prop: PureValue, value: Value): this.type =
     heap.update(addr, prop, value); this
 
   /** existence checks */
-  def exists(x: Id): Boolean = (x match {
+  private def hasBinding(x: Id): Boolean = x match
     case x: Global => globals contains x
     case x: Local  => context.locals contains x
-  }) && directLookup(x) != Absent
+  def exists(x: Id): Boolean = hasBinding(x) && directLookup(x) != Absent
   def exists(ref: RefValue): Boolean = ref match {
     case IdValue(id)           => exists(id)
     case PropValue(base, prop) => apply(base.escaped, prop) != Absent

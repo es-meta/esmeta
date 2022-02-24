@@ -29,6 +29,9 @@ class Interp(
   /** control flow graphs */
   private given cfg: CFG = st.cfg
 
+  /** type model */
+  private val typeModel = cfg.typeModel
+
   /** step */
   def step: Boolean =
     try {
@@ -221,15 +224,19 @@ class Interp(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
-            case map: MapObj => "Object" // TODO
-            case _           => ???
+            case m: MapObj if m.ty endsWith "Object" => "Object" // TODO
+            case _                                   => ???
         case v => ???,
       )
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
       Bool(interp(expr).escaped match
         case AstValue(ast) => ast.typeCheck(ty)
-        case _             => ???,
+        case addr: Addr =>
+          st(addr) match
+            case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO
+            case _         => ???
+        case _ => ???,
       )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))

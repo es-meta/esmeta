@@ -553,7 +553,9 @@ class Compiler(val spec: Spec) {
   }
 
   // compile types
-  private def compile(ty: Type): IRType = IRType(ty.name)
+  // TODO handle type properly
+  private def compile(ty: Type): IRType =
+    IRType(ty.name.replace(" ", ""))
 
   // handle short circuiting
   private def compileShortCircuit(

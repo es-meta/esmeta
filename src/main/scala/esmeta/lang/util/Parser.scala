@@ -471,7 +471,7 @@ trait Parsers extends DivergedParsers {
   given cond: PL[Condition] =
     import CompoundCondition.Op.*
     lazy val op: P[CompoundCondition.Op] = "and" ^^! And ||| "or" ^^! Or
-    baseCond ~ rep(op ~ baseCond) ^^ {
+    baseCond ~ rep(op ~ (opt("if") ~> baseCond)) ^^ {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
     } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ {
@@ -571,6 +571,10 @@ trait Parsers extends DivergedParsers {
         val apFields = hasFieldsCond(r, "Get", "Set")
         val fields = hasFieldsCond(r, "Enumerable", "Configurable")
         andCond(fields, orCond(dpFields, apFields))
+    } |||
+    // ResolveBinding
+    "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
+      getExprCond(TrueLiteral())
     }
 
   // ---------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 package esmeta.spec
 
+import scala.annotation.tailrec
+
 /** type modeling */
 case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
 
@@ -18,6 +20,16 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
       .get(method)
       .orElse(info.parent.fold(None)(apply(_, method))),
   } yield fname
+
+  /** check subtype relation */
+  def subType(t0: String, t1: String): Boolean =
+    @tailrec
+    def aux(tname: String, parents: List[String]): List[String] =
+      infos.get(tname) match
+        case Some(TypeInfo(Some(parent), _)) =>
+          aux(parent, parent :: parents)
+        case _ => parents
+    aux(t0, List(t0)).contains(t1)
 }
 object TypeModel {
   // TODO extract type model from spec
