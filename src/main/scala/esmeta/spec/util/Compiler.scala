@@ -197,12 +197,11 @@ class Compiler(val spec: Spec) {
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case IfStep(cond, thenStep, elseStep) =>
-      fb.addInst(
-        IIf(
-          compile(fb, cond),
-          compileWithScope(fb, thenStep),
-          elseStep.fold(ISeq(List()))(compileWithScope(fb, _)),
-        ),
+      compileShortCircuit(
+        fb,
+        cond,
+        compileWithScope(fb, thenStep),
+        elseStep.fold(emptyInst)(compileWithScope(fb, _)),
       )
     case ReturnStep(expr) =>
       fb.addInst(IReturn(expr.fold(EUndef)(compile(fb, _))))
@@ -400,6 +399,7 @@ class Compiler(val spec: Spec) {
       base match
         case NonterminalLiteral(_, ntName)
             if spec.grammar.topLevelLexicals.contains(ntName) =>
+          // check if it is lexical
           callRef
         case _ =>
           val (x, xExpr) = fb.newTIdWithExpr
@@ -554,6 +554,44 @@ class Compiler(val spec: Spec) {
 
   // compile types
   private def compile(ty: Type): IRType = IRType(ty.name)
+
+  // handle short circuiting
+  private def compileShortCircuit(
+    fb: FB,
+    cond: Condition,
+    tInst: => Inst,
+    fInst: => Inst,
+  ): Unit =
+    import CompoundCondition.Op.*
+    cond match
+      // TODO optimize for simple compound conditions
+      case CompoundCondition(left, And, right) =>
+        fb.addInst(
+          IIf(
+            compile(fb, left),
+            fb.newScope(compileShortCircuit(fb, right, tInst, fInst)),
+            fInst,
+          ),
+        )
+      case CompoundCondition(left, Or, right) =>
+        fb.addInst(
+          IIf(
+            compile(fb, left),
+            tInst,
+            fb.newScope(compileShortCircuit(fb, right, tInst, fInst)),
+          ),
+        )
+      case _ =>
+        fb.addInst(
+          IIf(
+            compile(fb, cond),
+            tInst,
+            fInst,
+          ),
+        )
+
+  // instruction helpers
+  private inline def emptyInst = ISeq(List())
 
   // literal helpers
   private val zero = EMathVal(0)

@@ -532,7 +532,9 @@ trait Parsers extends DivergedParsers {
 
     lazy val right: P[Boolean ~ List[Expression]] =
       either(neg, expr) |||
-      neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral())) }
+      neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral())) } |||
+      // SameValue
+      (neg <~ "different from") ~ expr ^^ { case n ~ e => new ~(n, List(e)) }
 
     left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 
@@ -553,9 +555,6 @@ trait Parsers extends DivergedParsers {
     expr ~ (isNeg <~ "an element of") ~ expr ^^ {
       case l ~ n ~ r =>
         BinaryCondition(r, if (n) NContains else Contains, l)
-    } |||
-    expr ~ (isNeg <~ "different from") ~ expr ^^ {
-      case l ~ n ~ r => BinaryCondition(l, if (n) NEq else Eq, r)
     }
 
   // rarely used conditions

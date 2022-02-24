@@ -213,12 +213,17 @@ class Interp(
     case ETypeOf(base) =>
       // TODO discuss about the type
       Str(interp(base).escaped match
-        case str: Str => "String"
+        case n: Number => "Number"
+        case b: BigInt => "BigInt"
+        case s: Str    => "String"
+        case b: Bool   => "Boolean"
+        case Undef     => "Undefined"
+        case Null      => "Null"
         case addr: Addr =>
           st(addr) match
-            case map: MapObj => "Object"
+            case map: MapObj => "Object" // TODO
             case _           => ???
-        case _ => ???,
+        case v => ???,
       )
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
