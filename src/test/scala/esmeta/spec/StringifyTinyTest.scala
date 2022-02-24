@@ -109,6 +109,7 @@ class StringifyTinyTest extends SpecTest {
     // Algorithm
     // /////////////////////////////////////////////////////////////////////////
     import SyntaxDirectedOperationHead.Target
+    import BuiltinHead.Ref.*
     checkStringify("Algorithm head")(
       AbstractOperationHead(
         "StringIndexOf",
@@ -177,7 +178,7 @@ class StringifyTinyTest extends SpecTest {
         List(Param("V", Param.Kind.Normal, "an Object or null")),
       ) -> "[METHOD] SetPrototypeOf(O)(V)", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
-        "Boolean",
+        NormalBase("Boolean"),
         List(Param("value", Param.Kind.Normal, "an argument")),
       ) -> "[BUILTIN] Boolean(value)",
     )

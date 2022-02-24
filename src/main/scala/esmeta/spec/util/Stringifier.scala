@@ -24,6 +24,7 @@ object Stringifier {
       case elem: Algorithm       => algoRule(app, elem)
       case elem: Head            => headRule(app, elem)
       case elem: SdoHeadTarget   => sdoHeadTargetRule(app, elem)
+      case elem: BuiltinHead.Ref => builtinHeadRefRule(app, elem)
       case elem: Param           => paramRule(app, elem)
       case elem: Param.Kind      => paramKindRule(app, elem)
       case elem: Table           => tableRule(app, elem)
@@ -191,6 +192,20 @@ object Stringifier {
       case BuiltinHead(ref, params) =>
         app >> "[BUILTIN] " >> ref >> params
     }
+
+  given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) => {
+    import BuiltinHead.Ref.*
+    ref match {
+      case IntrinsicBase(name)      => app >> "%" >> name >> "%"
+      case NormalBase(name)         => app >> name
+      case NormalAccess(base, name) => app >> base >> "." >> name
+      case Getter(base)             => app >> "get " >> base
+      case Setter(base)             => app >> "set " >> base
+      case SymbolAccess(base, symbol) =>
+        app >> base >> " [ @@" >> symbol >> " ]"
+      case Yet(name) => app >> name
+    }
+  }
 
   // for syntax-directed operation head targets
   given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) => {

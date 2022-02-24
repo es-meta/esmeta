@@ -378,7 +378,26 @@ trait Parsers extends BasicParsers {
          else ty).replace("-", "").trim
       trimmed.split(" ").map(_.capitalize).mkString
   }
-  lazy val refName: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r ^^ { _.trim }
+
+  lazy val ref: Parser[BuiltinHead.Ref] = {
+    import BuiltinHead.Ref
+    import BuiltinHead.Ref.*
+    lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
+    lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r ^^ { _.trim }
+    lazy val base: Parser[Ref] =
+      "%" ~> name <~ "%" ^^ { IntrinsicBase(_) } |
+      "get " ~> ref ^^ { Getter(_) } |
+      "set " ~> ref ^^ { Setter(_) } |
+      name ^^ { NormalBase(_) }
+
+    lazy val access: Parser[Ref => Ref] =
+      "." ~> name ^^ { case n => NormalAccess(_, n) } |
+      "[" ~> "@@" ~> name <~ "]" ^^ { case s => SymbolAccess(_, s) }
+
+    base ~ rep(access) <~ guard("(") ^^ {
+      case b ~ as => as.foldLeft(b) { case (b, a) => a(b) }
+    } | yet ^^ { Yet(_) }
+  }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =
@@ -456,5 +475,5 @@ trait Parsers extends BasicParsers {
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] =
-    refName ~ params ^^ { case name ~ params => BuiltinHead(name, params) }
+    ref ~ params ^^ { case name ~ params => BuiltinHead(name, params) }
 }

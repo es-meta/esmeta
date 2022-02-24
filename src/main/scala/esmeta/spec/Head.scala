@@ -49,6 +49,15 @@ case class InternalMethodHead(
 
 /** buil-in heads */
 case class BuiltinHead(
-  ref: String, // TODO more precisely represent references
+  ref: BuiltinHead.Ref,
   params: List[Param],
 ) extends Head
+object BuiltinHead:
+  enum Ref extends SpecElem:
+    case IntrinsicBase(name: String)
+    case NormalBase(name: String)
+    case NormalAccess(base: Ref, name: String)
+    case Getter(base: Ref)
+    case Setter(base: Ref)
+    case SymbolAccess(base: Ref, symbol: String)
+    case Yet(name: String)
