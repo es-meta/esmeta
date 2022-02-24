@@ -20,5 +20,5 @@ case class Context(
   def copied: Context = copy(locals = MMap.from(locals))
 
   /** name */
-  def name: String = func.ir.name
+  def name: String = func.irFunc.name
 }

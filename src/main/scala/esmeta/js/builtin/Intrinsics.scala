@@ -55,9 +55,6 @@ case class Intrinsics(cfg: CFG) {
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
   private def intrClo(name: String): Clo = clo(intrName(name))
 
-  // address for the current realm
-  val realmAddr = NamedAddr(REALM)
-
   // https://tc39.es/ecma262/#sec-ecmascript-standard-built-in-objects
   //
   // Unless specified otherwise, the [[Extensible]] internal slot of a built-in object initially has the value true

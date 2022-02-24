@@ -16,7 +16,7 @@ case class CFG(
   var program: ir.Program = ir.Program()
 
   /** the main function */
-  lazy val main: Func = getUnique(funcs, _.ir.main, "main function")
+  lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
 
   /** JavaScript parser */
   lazy val jsParser: js.util.Parser = program.jsParser
@@ -27,7 +27,7 @@ case class CFG(
 
   /** mapping from function names to functions */
   lazy val fnameMap: Map[String, Func] =
-    (for (func <- funcs) yield func.ir.name -> func).toMap
+    (for (func <- funcs) yield func.irFunc.name -> func).toMap
 
   /** mapping from nid to nodes */
   lazy val nodeMap: Map[Int, Node] = (for {

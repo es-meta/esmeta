@@ -8,7 +8,7 @@ import esmeta.ir.{Func => IRFunc, *}
 case class CallContext(retId: Id, context: Context) extends InterpElem {
 
   /** function name * */
-  def name: String = context.func.ir.name
+  def name: String = context.func.irFunc.name
 
   /** copy contexts */
   def copied: CallContext = copy(context = context.copied)

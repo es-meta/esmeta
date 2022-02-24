@@ -33,6 +33,9 @@ val OBJECT_TYPE = "Object"
   */
 val WELL_KNOWN_INTRINSICS = "table-well-known-intrinsic-objects"
 
+// address for the current realm
+val realmAddr = NamedAddr(REALM)
+
 /** intrinsics name */
 def intrName(name: String): String = s"$INTRINSICS.$name"
 

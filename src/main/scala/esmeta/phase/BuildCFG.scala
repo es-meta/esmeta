@@ -29,7 +29,7 @@ case object BuildCFG extends Phase[Program, CFG] {
       // dump dot format
       cfg.funcs.foreach(f => {
         val name =
-          s"${CFG_LOG_DIR}/${norm(f.ir.name)}"
+          s"${CFG_LOG_DIR}/${norm(f.irFunc.name)}"
         dumpFile(f.toDot, s"$name.dot")
       })
       // check wheter dot is available
@@ -37,7 +37,7 @@ case object BuildCFG extends Phase[Program, CFG] {
         if (isNormalExit("dot -V")) {
           cfg.funcs.foreach(f => {
             val name =
-              s"${CFG_LOG_DIR}/${norm(f.ir.name)}"
+              s"${CFG_LOG_DIR}/${norm(f.irFunc.name)}"
             try executeCmd(s"dot -Tpdf $name.dot -o $name.pdf")
             catch {
               case ex: Exception =>

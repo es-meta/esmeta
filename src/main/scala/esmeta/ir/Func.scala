@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.ir.util.Parser
 import esmeta.util.UId
-import esmeta.spec.Algorithm
+import esmeta.spec.{Algorithm, Head}
 
 /** IR functions */
 case class Func(
@@ -12,7 +12,11 @@ case class Func(
   params: List[Func.Param],
   body: Inst,
   algo: Option[Algorithm] = None,
-) extends IRElem
+) extends IRElem {
+
+  /** algorithm heads */
+  lazy val head: Option[Head] = algo.map(_.head)
+}
 object Func extends Parser.From[Func] {
 
   /** function kinds */

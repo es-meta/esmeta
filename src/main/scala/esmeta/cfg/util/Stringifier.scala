@@ -32,7 +32,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // functions
   given funcRule: Rule[Func] = (app, func) =>
-    val IRFunc(main, kind, name, params, _, _) = func.ir
+    val IRFunc(main, kind, name, params, _, _) = func.irFunc
     given Rule[Iterable[IRFunc.Param]] = iterableRule("(", ", ", ")")
     app >> func.id >> ": "
     app >> (if (main) "@main " else "") >> "def " >> kind
