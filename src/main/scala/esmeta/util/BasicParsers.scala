@@ -14,7 +14,7 @@ trait BasicParsers extends JavaTokenParsers {
     val fs = new FileInputStream(new File(f))
     val sr = new InputStreamReader(fs, Charset.forName("UTF-8"))
     val in = new BufferedReader(sr)
-    val result = errHandle(parseAll(parser, in))
+    val result = errHandle(parser, parseAll(parser, in))
     in.close; sr.close; fs.close
     result
   }
@@ -24,14 +24,13 @@ trait BasicParsers extends JavaTokenParsers {
     """(\s|/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*)+""".r
 
   // parse with error message
-  def errHandle[T](result: ParseResult[T]): T = result match {
+  def errHandle[T](parser: Parser[T], result: ParseResult[T]): T = result match
     case Success(result, _) => result
-    case err                => error(s"[Parser] $err")
-  }
+    case err                => error(s"[$parser] $err")
 
   // parse
   def parseBy[T](parser: Parser[T])(str: String): T =
-    errHandle(parseAll(parser, str))
+    errHandle(parser, parseAll(parser, str))
   def parse[T](str: String)(using parser: Parser[T]): T =
     parseBy(parser)(str)
 

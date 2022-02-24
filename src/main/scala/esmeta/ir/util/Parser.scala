@@ -13,18 +13,21 @@ trait Parsers extends BasicParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
   // programs
-  given program: Parser[Program] = rep(func) ^^ { Program(_) }
+  given program: Parser[Program] = {
+    rep(func) ^^ { Program(_) }
+  }.named("ir.Program")
 
   // functions
-  given func: Parser[Func] =
+  given func: Parser[Func] = {
     (main <~ "def") ~ funcKind ~ "[\\w|:\\.]+".r ~ params ~ inst ^^ {
       case m ~ k ~ n ~ ps ~ b => Func(m, k, n, ps, b)
     }
+  }.named("ir.Func")
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
   // function kinds
-  given funcKind: Parser[Func.Kind] =
+  given funcKind: Parser[Func.Kind] = {
     import Func.Kind.*
     "<NUM>:" ^^^ NumMeth |
     "<SYNTAX>:" ^^^ SynDirOp |
@@ -34,12 +37,15 @@ trait Parsers extends BasicParsers {
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
     "" ^^^ AbsOp
+  }.named("ir.Func.Kind")
 
   // function parameters
   lazy val params: Parser[List[Func.Param]] = "(" ~> repsep(param, ",") <~ ")"
-  given param: Parser[Func.Param] = name ~ opt("?") ~ (":" ~> ty) ^^ {
-    case x ~ o ~ t => Func.Param(x, o.isDefined, t)
-  }
+  given param: Parser[Func.Param] = {
+    name ~ opt("?") ~ (":" ~> ty) ^^ {
+      case x ~ o ~ t => Func.Param(x, o.isDefined, t)
+    }
+  }.named("ir.Func.Param")
 
   // instructions
   given inst: Parser[Inst] = withLoc {
@@ -52,9 +58,10 @@ trait Parsers extends BasicParsers {
     } | ("call " ~> id <~ "=") ~ expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case lhs ~ f ~ as => ICall(lhs, f, as)
     } | normalInst
-  }
+  }.named("ir.Inst")
 
-  given normalInsts: Parser[List[NormalInst]] = rep(normalInst)
+  given normalInsts: Parser[List[NormalInst]] =
+    rep(normalInst).named("List[ir.NormalInst]")
   lazy val normalInst: Parser[NormalInst] =
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)
@@ -77,7 +84,7 @@ trait Parsers extends BasicParsers {
     }
 
   // expressions
-  given expr: Parser[Expr] =
+  given expr: Parser[Expr] = {
     "comp" ~> ("[" ~> expr ~ ("/" ~> expr) <~ "]") ~ ("(" ~> expr <~ ")") ^^ {
       case ty ~ tgt ~ e => EComp(ty, e, tgt)
     } | "(" ~ "comp?" ~> expr <~ ")" ^^ {
@@ -117,6 +124,7 @@ trait Parsers extends BasicParsers {
     } | ("cont<" ~> fname <~ ">") ^^ {
       case s => ECont(s)
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
+  }.named("ir.Expr")
 
   // function name
   lazy val fname: Parser[String] = "[^<>, ]+".r
@@ -178,16 +186,17 @@ trait Parsers extends BasicParsers {
     "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) }
 
   // unary operators
-  given uop: Parser[UOp] =
+  given uop: Parser[UOp] = {
     import UOp.*
     "abs" ^^^ Abs |
     "floor" ^^^ Floor |
     "-" ^^^ Neg |
     "!" ^^^ Not |
     "~" ^^^ BNot
+  }.named("ir.UOp")
 
   // binary operators
-  given bop: Parser[BOp] =
+  given bop: Parser[BOp] = {
     import BOp.*
     "+" ^^^ Plus |
     "-" ^^^ Sub |
@@ -208,27 +217,31 @@ trait Parsers extends BasicParsers {
     "<" ^^^ Lt |
     ">>>" ^^^ URShift |
     ">>" ^^^ SRShift
-  // "str+" ^^^ Concat |
-  // "str<" ^^^ StrLt
+    // TODO "str+" ^^^ Concat |
+    // TODO "str<" ^^^ StrLt
+  }.named("ir.BOp")
 
   // variadic operators
-  given vop: Parser[VOp] =
+  given vop: Parser[VOp] = {
     import VOp.*
     "min" ^^^ Min |
     "max" ^^^ Max
+  }.named("ir.VOp")
 
   // conversion operators
-  given cop: Parser[COp] =
+  given cop: Parser[COp] = {
     import COp.*
     "[bigint]" ^^^ ToBigInt |
     "[number]" ^^^ ToNumber |
     "[math]" ^^^ ToMath |
     "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) }
+  }.named("ir.COp")
 
   // references
-  given ref: Parser[Ref] =
+  given ref: Parser[Ref] = {
     val prop = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
     id ~ rep(prop) ^^ { case x ~ es => es.foldLeft[Ref](x)(Prop(_, _)) }
+  }.named("ir.Ref")
 
   // identifiers
   lazy val id: Parser[Id] =
@@ -240,7 +253,9 @@ trait Parsers extends BasicParsers {
   lazy val name: Parser[Name] = "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ { Name(_) }
 
   // TODO types
-  given ty: Parser[Type] = ident ^^ { Type(_) }
+  given ty: Parser[Type] = {
+    ident ^^ { Type(_) }
+  }.named("ir.Type")
 
   // helper for locations
   private def withLoc[T <: Locational](parser: Parser[T]): Parser[T] =

@@ -253,11 +253,12 @@ trait Parsers extends BasicParsers {
   protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
   // production lists
-  given prods: Parser[List[Production]] =
+  given prods: Parser[List[Production]] = {
     rep1(rep(newline) ~> prod)
+  }.named("List[spec.Production]")
 
   // productions
-  given prod: Parser[Production] =
+  given prod: Parser[Production] = {
     lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
         val rs = for {
@@ -267,6 +268,7 @@ trait Parsers extends BasicParsers {
         Production(l, k, true, rs)
       case l ~ k ~ None ~ rs => Production(l, k, false, rs)
     }
+  }.named("spec.Production")
 
   // production kinds
   lazy val prodKind: Parser[Production.Kind] =
@@ -274,32 +276,36 @@ trait Parsers extends BasicParsers {
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Syntactic
 
   // production left-hand-sides (LHSs)
-  given lhs: Parser[Lhs] =
+  given lhs: Parser[Lhs] = {
     word ~ opt("[" ~> repsep(word, ",") <~ "]") ^^ {
       case name ~ params =>
         Lhs(name, params.getOrElse(Nil))
     }
+  }.named("spec.Lhs")
 
   // production alternative right-hand-sides (RHSs)
-  given rhs: Parser[Rhs] =
+  given rhs: Parser[Rhs] = {
     opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ {
       case c ~ ss ~ i =>
         Rhs(c, ss, i)
     }
+  }.named("spec.Rhs")
 
   // RHS conditions
-  given rhsCond: Parser[RhsCond] =
+  given rhsCond: Parser[RhsCond] = {
     "[" ~> ("[+~]".r) ~ word <~ "]" ^^ {
       case str ~ name =>
         RhsCond(name, str == "+")
     }
+  }.named("spec.RhsCond")
 
   // RHS ids
   lazy val rhsId: Parser[String] = "#" ~> "[-a-zA-Z0-9]+".r
 
   // grammar symbols
-  given symbol: Parser[Symbol] =
+  given symbol: Parser[Symbol] = {
     term | butnot | lookahead | butOnlyIf | nt | abbr | unicodeSet | empty | nlt
+  }.named("spec.Symbol")
 
   // terminals
   lazy val term: Parser[Terminal] =

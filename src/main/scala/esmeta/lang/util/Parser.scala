@@ -14,11 +14,13 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage blocks
   // ---------------------------------------------------------------------------
-  given block: PL[Block] = indent ~> (
-    rep1(subStep) ^^ { StepBlock(_) } |
-    rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
-    next ~> figureStr ^^ { Figure(_) }
-  ) <~ dedent
+  given block: PL[Block] = {
+    indent ~> (
+      rep1(subStep) ^^ { StepBlock(_) } |
+      rep1(next ~ "*" ~> (expr <~ guard(EOL) | yetExpr)) ^^ { ExprBlock(_) } |
+      next ~> figureStr ^^ { Figure(_) }
+    ) <~ dedent
+  }.named("lang.Block")
 
   // step blocks
   lazy val stepBlock: Parser[StepBlock] =
@@ -42,7 +44,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage steps
   // ---------------------------------------------------------------------------
-  given step: PL[Step] =
+  given step: PL[Step] = {
     letStep |
     setStep |
     performStep |
@@ -58,6 +60,7 @@ trait Parsers extends DivergedParsers {
     forEachStep |
     forEachIntStep |
     blockStep
+  }.named("lang.Step")
 
   // let steps
   lazy val letStep: PL[LetStep] =
@@ -169,7 +172,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage expressions
   // ---------------------------------------------------------------------------
-  given expr: PL[Expression] =
+  given expr: PL[Expression] = {
     stringConcatExpr |||
     listConcatExpr |||
     recordExpr |||
@@ -183,6 +186,7 @@ trait Parsers extends DivergedParsers {
     invokeExpr |||
     returnIfAbruptExpr |||
     listExpr
+  }.named("lang.Expression")
 
   // multilineExpr
   lazy val multilineExpr: PL[MultilineExpression] = closureExpr
@@ -471,7 +475,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage conditions
   // ---------------------------------------------------------------------------
-  given cond: PL[Condition] =
+  given cond: PL[Condition] = {
     import CompoundCondition.Op.*
     lazy val op: P[CompoundCondition.Op] = "and" ^^! And ||| "or" ^^! Or
     baseCond ~ rep(op ~ (opt("if") ~> baseCond)) ^^ {
@@ -480,6 +484,7 @@ trait Parsers extends DivergedParsers {
     } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ {
       case l ~ r => CompoundCondition(l, Imply, r)
     }
+  }.named("lang.Condition")
 
   // base conditions
   lazy val baseCond: PL[Condition] =
@@ -587,7 +592,9 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage references
   // ---------------------------------------------------------------------------
-  given ref: PL[Reference] = baseRef ||| propRef
+  given ref: PL[Reference] = {
+    baseRef ||| propRef
+  }.named("lang.Reference")
 
   // property references
   lazy val propRef: PL[PropertyReference] = baseRef ~ rep1(prop) ^^ {
@@ -615,25 +622,29 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   // metalanguage properties
   // ---------------------------------------------------------------------------
-  given prop: PL[Property] =
+  given prop: PL[Property] = {
     ("." ~> "[[" ~> word <~ "]]") ^^ { FieldProperty(_) } |||
     ("." ~ "[[" ~> intr <~ "]]") ^^ { IntrinsicProperty(_) } |||
     (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
     ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
+  }.named("lang.Property")
 
   // ---------------------------------------------------------------------------
   // metalanguage intrinsics
   // ---------------------------------------------------------------------------
-  given intr: PL[Intrinsic] = "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
-    case b ~ ps => Intrinsic(b, ps)
-  }
+  given intr: PL[Intrinsic] = {
+    "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+      case b ~ ps => Intrinsic(b, ps)
+    }
+  }.named("lang.Intrinsic")
 
   // ---------------------------------------------------------------------------
   // metalanguage types
   // ---------------------------------------------------------------------------
-  given ty: PL[Type] =
+  given ty: PL[Type] = {
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
     ("|" ~> word <~ "|") ^^ { case nt => Type(s"|$nt|") }
+  }.named("lang.Type")
 
   // ---------------------------------------------------------------------------
   // private helpers
