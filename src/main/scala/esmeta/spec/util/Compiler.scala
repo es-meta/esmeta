@@ -50,7 +50,10 @@ class Compiler(val spec: Spec) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
       val inst = compileWithScope(this, body)
-      val func = Func(false, kind, name, params, inst, Some(algo))
+      val fixedName = (name, kind) match // TODO Set is duplicated
+        case ("Set", Func.Kind.Builtin) => "BuiltinSet"
+        case _                          => name
+      val func = Func(false, kind, fixedName, params, inst, Some(algo))
       funcs += func
       func
 
@@ -68,6 +71,9 @@ class Compiler(val spec: Spec) {
     // get next temporal identifier with expressions
     def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
 
+    // get next closure name
+    def nextClosureName: String = s"$name:clo${nextCId}"
+
     // push a scope to the scope stack
     private def pushScope: Unit = scopes = ListBuffer() :: scopes
 
@@ -82,6 +88,10 @@ class Compiler(val spec: Spec) {
     // temporal identifier id counter
     private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
     private var tidCount: Int = 0
+
+    // closure id counter
+    private def nextCId: Int = { val cid = cidCount; cidCount += 1; cid }
+    private var cidCount: Int = 0
   }
   private type FB = FuncBuilder
 
@@ -423,7 +433,7 @@ class Compiler(val spec: Spec) {
     case AbstractClosureExpression(params, captured, body) =>
       val ps =
         params.map(x => Func.Param(compile(x), false, IRType("any")))
-      val cloName = s"${fb.name}:clo"
+      val cloName = fb.nextClosureName
       val newFb = FuncBuilder(Func.Kind.Clo, cloName, ps, body, fb.algo)
       newFb.result
       EClo(cloName, captured.map(compile))
