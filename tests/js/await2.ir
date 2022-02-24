@@ -1,1 +1,1 @@
-assert (= @CONTEXT.Realm.GlobalObject.SubMap.count.Value 2.0)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.count.Value 2.0f)

@@ -5,5 +5,6 @@
   "global.js" : true,
   "multiple-statements.js" : true,
   "variable-declare1.js" : true,
-  "variable-declare2.js" : true
+  "variable-declare2.js" : true,
+  "variable-declare3.js" : true
 }
