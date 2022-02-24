@@ -1,4 +1,5 @@
 {
   "empty-statement.js" : true,
-  "global.js" : true
+  "global.js" : true,
+  "variable-declare1.js" : true
 }
