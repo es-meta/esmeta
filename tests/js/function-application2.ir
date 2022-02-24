@@ -1,7 +1,7 @@
-let globalEnv = REALM.GlobalEnv
+let globalEnv = @CONTEXT.Realm.GlobalEnv
 let varNames = globalEnv.VarNames
 let map = globalEnv.DeclarativeRecord.SubMap
-let f = REALM.GlobalObject.SubMap.f
+let f = @CONTEXT.Realm.GlobalObject.SubMap.f
 
 assert (contains varNames "f")
 assert (is-instance-of f.Value ECMAScriptFunctionObject)

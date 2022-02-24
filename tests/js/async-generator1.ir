@@ -1,1 +1,1 @@
-assert (= REALM.GlobalObject.SubMap.callCount.Value 1.0)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.callCount.Value 1.0)

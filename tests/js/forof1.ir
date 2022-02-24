@@ -1,1 +1,1 @@
-assert (= REALM.GlobalObject.SubMap.sum.Value 6)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.sum.Value 6)

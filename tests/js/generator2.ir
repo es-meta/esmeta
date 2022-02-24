@@ -1,2 +1,2 @@
-assert (= REALM.GlobalObject.SubMap.a.Value 1)
-assert (= REALM.GlobalObject.SubMap.b.Value 2)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.a.Value 1)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.b.Value 2)
