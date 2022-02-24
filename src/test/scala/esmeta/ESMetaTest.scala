@@ -157,5 +157,5 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 }
 object ESMetaTest {
   // extract specifications
-  lazy val spec = SpecParser.parseSpecWithVersion("main")
+  lazy val spec = SpecParser.parseSpecWithVersion(None)
 }

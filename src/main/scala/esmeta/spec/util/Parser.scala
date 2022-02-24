@@ -15,8 +15,7 @@ object Parser extends Parsers {
   /** parses a specification */
   def parseSpec(
     content: String,
-    version: Option[(String, String)] = None,
-    versionHash: Option[String] = None,
+    version: Option[Spec.Version] = None,
   ): Spec =
     val document = content.toHtml
     val grammar = parseGrammar(document)
@@ -32,18 +31,18 @@ object Parser extends Parsers {
     )
 
   /** parses a specification with versions */
-  def parseSpecWithVersion(version: String = "main"): Spec =
+  def parseSpecWithVersion(nameOpt: Option[String]): Spec =
     val cur = currentVersion(ECMA262_DIR)
-    val hash = getVersion(version, ECMA262_DIR)
-    val src =
-      if (cur == hash) readFile(SPEC_HTML)
-      else {
+    val (src, name, hash) = nameOpt match
+      case Some(name) =>
+        val hash = getVersion(name, ECMA262_DIR)
         changeVersion(hash, ECMA262_DIR)
         val src = readFile(SPEC_HTML)
         changeVersion(cur, ECMA262_DIR)
-        src
-      }
-    parseSpec(src, Some(version, hash))
+        (src, name, hash)
+      case None =>
+        (readFile(SPEC_HTML), cur, cur)
+    parseSpec(src, Some(Spec.Version(cur, cur)))
 
   /** parses a grammar */
   def parseGrammar(document: Document): Grammar = {

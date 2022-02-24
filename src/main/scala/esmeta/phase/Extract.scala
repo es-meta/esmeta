@@ -18,7 +18,7 @@ case object Extract extends Phase[Unit, Spec] {
     val spec = (config.json, config.version) match
       case (Some(json), _) => ??? // TODO
       case (_, version) =>
-        Parser.parseSpecWithVersion(version.getOrElse("main"))
+        Parser.parseSpecWithVersion(version)
 
     // logging mode
     if (config.log) {

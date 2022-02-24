@@ -7,7 +7,7 @@ import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
-  version: Option[(String, String)] = None,
+  version: Option[Spec.Version] = None,
   grammar: Grammar = Grammar(),
   algorithms: List[Algorithm] = Nil,
   tables: Map[String, Table] = Map(),
@@ -49,3 +49,5 @@ case class Spec(
   /** get stats */
   lazy val stats: Stats = new Stats(this)
 }
+object Spec:
+  case class Version(name: String, hash: String)
