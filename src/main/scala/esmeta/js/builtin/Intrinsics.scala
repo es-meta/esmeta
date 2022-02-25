@@ -39,13 +39,13 @@ case class Intrinsics(cfg: CFG) {
 
       // base object
       map += intrAddr(name) -> MapObj(typeName)(
-        (SUBMAP -> submapAddr(name) :: imap).map {
+        (SUBMAP -> submapAddr(intrName(name)) :: imap).map {
           case (k, v) => Str(k) -> v
         }: _*,
       )
 
       // submap object
-      map ++= getSubmapObjects(name, nmap)
+      map ++= getSubmapObjects(intrName(name), nmap)
 
       map
     }
