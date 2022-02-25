@@ -172,16 +172,18 @@ class Interp(
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val v = interp(code).escaped
+      val str = interp(code).escaped match
+        case Str(s)        => s
+        case AstValue(ast) => ast.toString(grammar = Some(grammar))
+        case v             => throw InvalidParseSource(code, v)
       val r = interp(rule).escaped
-      (v, r, st.sourceText, st.cachedAst) match
+      (str, r, st.sourceText, st.cachedAst) match
         // optimize the initial parsing using the given cached AST
-        case (Str(x), Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
+        case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
           AstValue(ast)
-        case (Str(str), Grammar(name, params), _, _) =>
-          AstValue(jsParser(name, params).from(str))
-        case (_, _: Grammar, _, _) => throw NoString(code, v)
-        case _                     => throw NoGrammar(rule, r)
+        case (x, Grammar(name, params), _, _) =>
+          AstValue(jsParser(name, params).from(x))
+        case _ => throw NoGrammar(rule, r)
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
       val ast = interp(expr).escaped.toAst(expr)

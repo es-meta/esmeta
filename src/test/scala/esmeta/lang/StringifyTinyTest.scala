@@ -414,6 +414,7 @@ class StringifyTinyTest extends LangTest {
       PropertyReference(x, propIntrProp)
     lazy val componentRef = PropertyReference(x, componentProp)
     lazy val indexRef = PropertyReference(x, indexProp)
+    lazy val ntRef = PropertyReference(x, NonterminalProperty("Arguments"))
 
     // tests
     checkParseAndStringify("Reference", Reference)(
@@ -426,6 +427,7 @@ class StringifyTinyTest extends LangTest {
       propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
       componentRef -> "_x_.Realm",
       indexRef -> "_x_[_x_]",
+      ntRef -> "the |Arguments| of _x_",
     )
 
     // -------------------------------------------------------------------------

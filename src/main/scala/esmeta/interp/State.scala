@@ -57,14 +57,19 @@ case class State(
     case v             => throw InvalidRefBase(v)
   def apply(ast: Ast, prop: PureValue): PureValue =
     ast match
-      case syn: Syntactic =>
+      case Syntactic(name, _, rhsIdx, children) =>
         prop match
           // access to SDO
           case Str(propStr) if ast.isInstanceOf[Syntactic] =>
             cfg.getSDO((ast, propStr)) match
               case Some((ast0, sdo)) =>
                 Clo(sdo, Map(NAME_THIS -> AstValue(ast0)))
-              case None => throw InvalidAstProp(ast, prop)
+              case None =>
+                // access to child
+                val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+                rhs.getNtIndex(propStr).flatMap(children(_)) match
+                  case Some(child) => AstValue(child)
+                  case _           => throw InvalidAstProp(ast, prop)
           // access to child
           case Math(n) if n.isValidInt =>
             ast.getChildren(n.toInt) match

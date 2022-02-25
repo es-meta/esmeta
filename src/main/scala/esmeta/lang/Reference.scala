@@ -39,6 +39,9 @@ case class IndexProperty(index: Expression) extends Property
 // intrinsic property
 case class IntrinsicProperty(intrinsic: Intrinsic) extends Property
 
+// nonterminal property
+case class NonterminalProperty(name: String) extends Property
+
 // -----------------------------------------------------------------------------
 // intrinsics
 // -----------------------------------------------------------------------------

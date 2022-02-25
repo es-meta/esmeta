@@ -213,6 +213,7 @@ trait Walker extends BasicWalker {
     case IndexProperty(e)        => IndexProperty(walk(e))
     case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
     case ComponentProperty(c)    => ComponentProperty(c)
+    case NonterminalProperty(n)  => NonterminalProperty(n)
   }
 
   def walk(intr: Intrinsic): Intrinsic = intr

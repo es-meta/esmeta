@@ -388,11 +388,10 @@ trait Parsers extends DivergedParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the") ~> opt(
+    opt("the" | "this") ~> opt(
       word.map(_.toIntFromOrdinal).filter(_.isDefined),
-    ) ~ ("|" ~> word <~ "|") ^^ {
-      case ord ~ x =>
-        NonterminalLiteral(ord.flatten, x)
+    ) ~ nt ^^ {
+      case ord ~ x => NonterminalLiteral(ord.flatten, x)
     }
 
   // string literals
@@ -631,7 +630,10 @@ trait Parsers extends DivergedParsers {
       rest.foldLeft[PropertyReference](PropertyReference(base, p))(
         PropertyReference(_, _),
       )
-  }
+  } |||
+    ("the" ~> nt <~ "of") ~ baseRef ^^ {
+      case nt ~ base => PropertyReference(base, NonterminalProperty(nt))
+    }
 
   // base references
   lazy val baseRef: PL[Reference] =
@@ -672,7 +674,7 @@ trait Parsers extends DivergedParsers {
   given ty: PL[Type] = {
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
     "ECMAScript function object" ^^! { Type("ECMAScriptFunctionObject") } |||
-    ("|" ~> word <~ "|") ^^ { case nt => Type(s"|$nt|") }
+    nt ^^ { Type(_) }
   }.named("lang.Type")
 
   // ---------------------------------------------------------------------------
@@ -700,6 +702,9 @@ trait Parsers extends DivergedParsers {
   // html tags
   private lazy val tagStart: Parser[String] = "<[^>]+>".r
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
+
+  // nonterminals
+  private lazy val nt: Parser[String] = "|" ~> word <~ "|"
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (

@@ -348,10 +348,11 @@ class Compiler(val spec: Spec) {
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)     => Prop(baseRef, EStr(name))
-      case ComponentProperty(name) => Prop(baseRef, EStr(name))
-      case IndexProperty(index)    => Prop(baseRef, compile(fb, index))
-      case IntrinsicProperty(intr) => toIntrinsic(baseRef, intr)
+      case FieldProperty(name)       => Prop(baseRef, EStr(name))
+      case ComponentProperty(name)   => Prop(baseRef, EStr(name))
+      case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
+      case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
+      case NonterminalProperty(name) => Prop(baseRef, EStr(name))
 
   // compile expressions
   private def compile(fb: FB, expr: Expression): Expr = expr match {

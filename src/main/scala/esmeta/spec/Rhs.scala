@@ -27,6 +27,13 @@ case class Rhs(
   /** get non-terminals in an RHS */
   def nts: List[Nonterminal] = symbols.flatMap(_.getNt)
 
+  /** get index of non-terminal */
+  def getNtIndex(ntName: String): Option[Int] =
+    val filtered = nts.zipWithIndex.filter { case (nt, _) => nt.name == ntName }
+    filtered match
+      case (_, idx) :: rest => Some(idx)
+      case _                => None
+
   /** get parameters from RHSs */
   // TODO give more precise type
   def params: List[Param] =
