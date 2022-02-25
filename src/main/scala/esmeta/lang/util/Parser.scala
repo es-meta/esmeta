@@ -244,7 +244,7 @@ trait Parsers extends DivergedParsers {
   // `covered by` expressions
   lazy val coveredByExpr: PL[CoveredByExpression] =
     "the" ~> expr ~ ("that is covered by" ~> expr) ^^ {
-      case r ~ c => CoveredByExpression(r, c)
+      case r ~ c => CoveredByExpression(c, r)
     }
 
   // abstract closure expressions
