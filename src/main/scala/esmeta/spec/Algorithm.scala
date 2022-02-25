@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.lang.*
+import esmeta.lang.{Step, YetStep}
 import esmeta.lang.util.*
 import esmeta.spec.util.*
 import org.jsoup.nodes.Element
@@ -15,6 +15,9 @@ case class Algorithm(
 
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
+
+  /** return types */
+  lazy val retTy: Type = head.retTy
 
   /** get all steps */
   lazy val steps: List[Step] = StepCollector(body)

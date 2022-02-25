@@ -47,19 +47,20 @@ class Compiler(val spec: Spec) {
     kind: Func.Kind,
     name: String,
     params: List[Func.Param],
+    retTy: IRType,
     body: Step,
     algo: Algorithm,
   ) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
       val inst = compileWithScope(this, body)
-      val func = Func(false, kind, name, params, inst, Some(algo))
+      val func = Func(false, kind, name, params, retTy, inst, Some(algo))
       funcs += func
       func
 
     // production context
     var ntList: List[(String, Expr, Int)] = algo.head match
-      case SyntaxDirectedOperationHead(Some(target), _, _, _) =>
+      case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
         target.rhsParams.zipWithIndex.map {
           case (param, idx) => (param.name, ENAME_THIS, idx)
         }
@@ -194,6 +195,7 @@ class Compiler(val spec: Spec) {
     getKind(algo.head),
     getName(algo.head),
     getParams(algo.head),
+    compile(algo.retTy),
     algo.body,
     algo,
   ).result
@@ -456,7 +458,8 @@ class Compiler(val spec: Spec) {
       val ps =
         params.map(x => Func.Param(compile(x), false, IRType("any")))
       val cloName = fb.nextClosureName
-      val newFb = FuncBuilder(Func.Kind.Clo, cloName, ps, body, fb.algo)
+      val newFb =
+        FuncBuilder(Func.Kind.Clo, cloName, ps, AnyType, body, fb.algo)
       newFb.result
       EClo(cloName, captured.map(compile))
     case lit: Literal => compile(fb, lit)
@@ -591,7 +594,8 @@ class Compiler(val spec: Spec) {
   // compile types
   // TODO handle type properly
   private def compile(ty: Type): IRType =
-    IRType(ty.name.replace(" ", "").replace("|", ""))
+    if (ty == UnknownType) AnyType
+    else IRType(ty.name.replace(" ", "").replace("|", ""))
 
   // handle short circuiting
   private def compileShortCircuit(

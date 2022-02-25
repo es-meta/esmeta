@@ -24,17 +24,17 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    lazy val mainFunc = Func(true, Func.Kind.AbsOp, "f", params, seq)
-    lazy val func = Func(false, Func.Kind.AbsOp, "f", params, seq)
+    lazy val mainFunc = Func(true, Func.Kind.AbsOp, "f", params, ty, seq)
+    lazy val func = Func(false, Func.Kind.AbsOp, "f", params, ty, seq)
 
     // tests
     checkParseAndStringify("Func", Func)(
-      mainFunc -> """@main def f(x: T, y?: T) {
+      mainFunc -> """@main def f(x: T, y?: T): T {
       |  let x = ~empty~
       |  delete x.p
       |  return x
       |}""".stripMargin,
-      func -> """def f(x: T, y?: T) {
+      func -> """def f(x: T, y?: T): T {
       |  let x = ~empty~
       |  delete x.p
       |  return x

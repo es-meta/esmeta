@@ -172,28 +172,30 @@ object Stringifier {
   given headRule: Rule[Head] = (app, head) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
     head match {
-      case AbstractOperationHead(name, params, isHostDefined) =>
-        app >> name >> params
-      case NumericMethodHead(ty, name, params) =>
-        app >> ty >> "::" >> name >> params
+      case AbstractOperationHead(isHostDefined, name, params, rty) =>
+        app >> name >> params >> ": " >> rty
+      case NumericMethodHead(ty, name, params, rty) =>
+        app >> ty >> "::" >> name >> params >> ": " >> rty
       case SyntaxDirectedOperationHead(
             target,
             methodName,
             isStatic,
             withParams,
+            rty,
           ) =>
         given Rule[Option[SdoHeadTarget]] = optionRule("<DEFAULT>")
         app >> "[SYNTAX] " >> target >> "." >> methodName
         if (isStatic) app >> "[" >> "S" >> "]"
         else app >> "[" >> "R" >> "]"
-        app >> withParams
-      case ConcreteMethodHead(methodName, receiverParam, params) =>
-        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")" >> params
-      case InternalMethodHead(methodName, receiverParam, params) =>
+        app >> withParams >> ": " >> rty
+      case ConcreteMethodHead(methodName, receiverParam, params, rty) =>
         app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
-        app >> params
-      case BuiltinHead(ref, params) =>
-        app >> "[BUILTIN] " >> ref >> params
+        app >> params >> ": " >> rty
+      case InternalMethodHead(methodName, receiverParam, params, rty) =>
+        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
+        app >> params >> ": " >> rty
+      case BuiltinHead(ref, params, rty) =>
+        app >> "[BUILTIN] " >> ref >> params >> ": " >> rty
     }
 
   given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) =>

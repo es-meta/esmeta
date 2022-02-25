@@ -19,8 +19,8 @@ trait Parsers extends BasicParsers {
 
   // functions
   given func: Parser[Func] = {
-    (main <~ "def") ~ funcKind ~ "[\\w|:\\.]+".r ~ params ~ inst ^^ {
-      case m ~ k ~ n ~ ps ~ b => Func(m, k, n, ps, b)
+    (main <~ "def") ~ funcKind ~ "[\\w|:\\.]+".r ~ params ~ retTy ~ inst ^^ {
+      case m ~ k ~ n ~ ps ~ rty ~ b => Func(m, k, n, ps, rty, b)
     }
   }.named("ir.Func")
 
@@ -46,6 +46,9 @@ trait Parsers extends BasicParsers {
       case x ~ o ~ t => Func.Param(x, o.isDefined, t)
     }
   }.named("ir.Func.Param")
+
+  // return types
+  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(AnyType) }
 
   // instructions
   given inst: Parser[Inst] = withLoc {

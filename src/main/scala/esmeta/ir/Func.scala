@@ -10,6 +10,7 @@ case class Func(
   kind: Func.Kind,
   name: String,
   params: List[Func.Param],
+  retTy: Type,
   body: Inst,
   algo: Option[Algorithm] = None,
 ) extends IRElem {

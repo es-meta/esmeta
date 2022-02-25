@@ -24,9 +24,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   // functions
   def walk(func: Func): Unit =
-    val Func(main, kind, name, ps, body, _) = func
-    walk(main); walk(kind); walk(name); walkList(ps, walk)
-    walk(func.body)
+    val Func(main, kind, name, ps, rty, body, _) = func
+    walk(main); walk(kind); walk(name);
+    walkList(ps, walk); walk(rty); walk(func.body)
 
   // function kinds
   def walk(kind: Func.Kind): Unit = {}

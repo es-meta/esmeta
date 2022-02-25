@@ -134,27 +134,30 @@ class StringifyTinyTest extends SpecTest {
     import SyntaxDirectedOperationHead.Target
     checkStringify("Head")(
       AbstractOperationHead(
+        false,
         "StringIndexOf",
         List(
           Param("string", Param.Kind.Normal, Type("a String")),
           Param("searchValue", Param.Kind.Normal, Type("a String")),
           Param("fromIndex", Param.Kind.Normal, Type("a non-negative integer")),
         ),
-        false,
-      ) -> "StringIndexOf(string, searchValue, fromIndex)",
+        UnknownType,
+      ) -> "StringIndexOf(string, searchValue, fromIndex): unknown",
       NumericMethodHead(
         Type("Number"),
         "unaryMinus",
         List(
           Param("x", Param.Kind.Normal, Type("a Number")),
         ),
-      ) -> "Number::unaryMinus(x)",
+        UnknownType,
+      ) -> "Number::unaryMinus(x): unknown",
       SyntaxDirectedOperationHead(
         None,
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-      ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam)",
+        UnknownType,
+      ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
           Target(
@@ -172,7 +175,8 @@ class StringifyTinyTest extends SpecTest {
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-      ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam)",
+        UnknownType,
+      ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
           Target(
@@ -188,7 +192,8 @@ class StringifyTinyTest extends SpecTest {
         "Evaluation",
         false,
         List(),
-      ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R]()",
+        UnknownType,
+      ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R](): unknown",
       ConcreteMethodHead(
         "HasBinding",
         Param(
@@ -197,16 +202,19 @@ class StringifyTinyTest extends SpecTest {
           Type("a declarative Environment Record"),
         ),
         List(Param("N", Param.Kind.Normal, Type("a String"))),
-      ) -> "[METHOD] HasBinding(envRec)(N)", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
+        UnknownType,
+      ) -> "[METHOD] HasBinding(envRec)(N): unknown", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
       InternalMethodHead(
         "SetPrototypeOf",
         Param("O", Param.Kind.Normal, Type("an ordinary object")),
         List(Param("V", Param.Kind.Normal, Type("an Object or null"))),
-      ) -> "[METHOD] SetPrototypeOf(O)(V)", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
+        UnknownType,
+      ) -> "[METHOD] SetPrototypeOf(O)(V): unknown", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
         NormalBase("Boolean"),
         List(Param("value", Param.Kind.Normal, Type("an argument"))),
-      ) -> "[BUILTIN] Boolean(value)",
+        UnknownType,
+      ) -> "[BUILTIN] Boolean(value): unknown",
     )
   }
 

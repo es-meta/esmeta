@@ -242,7 +242,7 @@ object Parser extends Parsers {
     elem: Element,
   ): List[Head] = elem.getPrevText match
     case thisValuePattern(name, param) =>
-      List(AbstractOperationHead(name, List(Param(param)), false))
+      List(AbstractOperationHead(false, name, List(Param(param)), UnknownType))
     case _ => parseBuiltinHead(parent, elem)
 }
 
@@ -381,6 +381,8 @@ trait Parsers extends BasicParsers {
   // ...
   given ty: Parser[Type] = "([^_,:]|, )+".r ^^ { Type(_) }
 
+  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(UnknownType) }
+
   lazy val ref: Parser[BuiltinHead.Ref] =
     import BuiltinHead.Ref
     import BuiltinHead.Ref.*
@@ -404,16 +406,14 @@ trait Parsers extends BasicParsers {
 
   // abstract opration (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] =
-    opt(semanticsKind) ~> name ~ params ^^ {
-      case name ~ params =>
-        (isHostDefined: Boolean) =>
-          AbstractOperationHead(name, params, isHostDefined)
+    opt(semanticsKind) ~> name ~ params ~ retTy ^^ {
+      case name ~ params ~ rty => AbstractOperationHead(_, name, params, rty)
     }
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] =
-    (ty <~ "::") ~ name ~ params ^^ {
-      case t ~ x ~ ps => NumericMethodHead(t, x, ps)
+    (ty <~ "::") ~ name ~ params ~ retTy ^^ {
+      case t ~ x ~ ps ~ rty => NumericMethodHead(t, x, ps, rty)
     }
 
   // algorithm parameters
@@ -454,28 +454,28 @@ trait Parsers extends BasicParsers {
   lazy val sdoHeadGen: Parser[
     Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
   ] =
-    semanticsKind ~ name ~ params ^^ {
-      case isStatic ~ x ~ params =>
-        targetOpt => SyntaxDirectedOperationHead(targetOpt, x, isStatic, params)
+    semanticsKind ~ name ~ params ~ retTy ^^ {
+      case isStatic ~ x ~ params ~ rty =>
+        SyntaxDirectedOperationHead(_, x, isStatic, params, rty)
     }
 
   // concrete method head generator
   lazy val concMethodHeadGen: Parser[Param => ConcreteMethodHead] =
-    name ~ params ^^ {
-      case name ~ params =>
-        (receiverParam: Param) =>
-          ConcreteMethodHead(name, receiverParam, params)
+    name ~ params ~ retTy ^^ {
+      case name ~ params ~ rty =>
+        ConcreteMethodHead(name, _, params, rty)
     }
 
   // internal method head generator
   lazy val inMethodHeadGen: Parser[Param => InternalMethodHead] =
-    ("[[" ~> name <~ "]]") ~ params ^^ {
-      case name ~ params =>
-        (receiverParam: Param) =>
-          InternalMethodHead(name, receiverParam, params)
+    ("[[" ~> name <~ "]]") ~ params ~ retTy ^^ {
+      case name ~ params ~ rty =>
+        InternalMethodHead(name, _, params, rty)
     }
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] =
-    ref ~ params ^^ { case name ~ params => BuiltinHead(name, params) }
+    ref ~ params ~ retTy ^^ {
+      case name ~ params ~ rty => BuiltinHead(name, params, rty)
+    }
 }
