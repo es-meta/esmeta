@@ -85,7 +85,7 @@ case class Intrinsics(cfg: CFG) {
   // .accessor = AccessorProperty { ... }
 
   // intrinsics
-  private lazy val intrinsics: Map[String, Struct] = Map(
+  private lazy val intrinsics: Map[String, Struct] = errors ++ Map(
     // TODO "print" -> Struct(
     //   typeName = "BuiltinFunctionObject",
     //   imap = List(
@@ -965,4 +965,53 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(),
     ),
   )
+
+  private def errList: List[String] = List(
+    "EvalError",
+    "RangeError",
+    "ReferenceError",
+    "SyntaxError",
+    "TypeError",
+    "URIError",
+  )
+
+  private def errors: Map[String, Struct] = (for {
+    name <- errList
+    (name, struct) <- getErrorMap(name)
+  } yield name -> struct).toMap
+
+  private def getErrorMap(errName: String): Map[String, Struct] =
+    Map(
+      s"$errName" -> Struct(
+        typeName = "BuiltinFunctionObject",
+        imap = List(
+          "Extensible" -> Bool(true),
+          "Prototype" -> intrAddr("Error"),
+          "Code" -> intrClo(errName),
+          "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        ),
+        nmap = List(
+          "name" -> DataProperty(Str(errName), F, F, T),
+          "prototype" -> DataProperty(
+            intrAddr(s"$errName.prototype"),
+            F,
+            F,
+            F,
+          ),
+        ),
+      ),
+      s"$errName.prototype" -> Struct(
+        typeName = "OrdinaryObject",
+        imap = List(
+          "Extensible" -> Bool(true),
+          "Prototype" -> intrAddr("Error.prototype"),
+        ),
+        nmap = List(
+          "constructor" -> DataProperty(intrAddr(errName), T, F, T),
+          "message" -> DataProperty(Str(""), T, F, T),
+          "name" -> DataProperty(Str(errName), T, F, T),
+        ),
+      ),
+    )
+
 }

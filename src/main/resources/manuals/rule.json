@@ -37,5 +37,8 @@
   "[YET] If _x_ and _y_ are both *true* or both *false*, return *true*; otherwise, return *false*.": "if (|| (&& (= x true) (= y true)) (&& (= x false) (= y false))) return true else return false",
   "[YET] For each field of _Desc_, set the corresponding attribute of the property named _P_ of object _O_ to the value of the field.": "{ let fields = (keys Desc) let idx = 0 loop[repeat] (< idx fields.length) { let f = fields[idx] O.SubMap[P][f] = Desc[f] idx = (+ idx 1) } }",
   "[YET] Assert: _envRec_ does not already have a binding for _N_.": "assert (= envRec.SubMap[N] absent)",
-  "[YET] Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.SubMap[N] = (new MutableBinding(\"initialized\" -> false))  if (= D true) envRec.SubMap[N].maybeDeleted = true else {} }"
+  "[YET] Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.SubMap[N] = (new MutableBinding(\"initialized\" -> false))  if (= D true) envRec.SubMap[N].maybeDeleted = true else {} }",
+  "[YET] Assert: _envRec_ has a binding for _N_.": "assert (! (= envRec.SubMap[N] absent))",
+  "[YET] If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.SubMap[N].initialized) return comp[~throw~/~empty~]((new OrdinaryObject(\"Prototype\" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, \"ErrorData\" -> undefined))) else {}",
+  "[YET] Return the value currently bound to _N_ in _envRec_.": "return envRec.SubMap[N].BoundValue"
 }
