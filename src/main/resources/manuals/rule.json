@@ -52,5 +52,10 @@
   "[YET] Assert: _calleeContext_ is now the running execution context.": "assert (= calleeContext @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)])",
   "[YET] Let _localEnv_ be the LexicalEnvironment of _calleeContext_.": "let localEnv = calleeContext.LexicalEnvironment",
   "[YET] Assert: _localEnv_ is a function Environment Record.": "assert (? localEnv: FunctionEnvironmentRecord)",
-  "[YET] Assert: The next step never returns an abrupt completion because _localEnv_.[[ThisBindingStatus]] is not ~initialized~.": "assert true"
+  "[YET] Assert: The next step never returns an abrupt completion because _localEnv_.[[ThisBindingStatus]] is not ~initialized~.": "assert true",
+  "[YET] Let _env_ be the LexicalEnvironment of _calleeContext_.": "let env = calleeContext.LexicalEnvironment",
+  "[YET] Let _calleeEnv_ be the LexicalEnvironment of _calleeContext_.": "let calleeEnv = calleeContext.LexicalEnvironment",
+  "[YET] Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.": "let instantiatedVarNames = (copy parameterBindings)",
+  "[YET] Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
+  "[YET] If _parameterNames_ has any duplicate entries, let _hasDuplicates_ be *true*. Otherwise, let _hasDuplicates_ be *false*.": "call hasDuplicates = @IsDuplicate(parameterNames)"
 }

@@ -191,7 +191,7 @@ class Interp(
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>
-      val l = interp(list).getList(list, st)
+      val l = interp(list).escaped.getList(list, st)
       Bool(l.values contains interp(elem).escaped)
     case EStrConcat(exprs) =>
       val strs = exprs.map(e => interp(e).toStr(e))

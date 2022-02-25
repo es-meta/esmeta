@@ -670,8 +670,6 @@ class Compiler(val spec: Spec) {
     arityCheck("ReturnIfAbrupt" -> {
       case List(expr) => EReturnIfAbrupt(expr, true)
     }),
-    // arityCheck("GetArgument" -> ???),
-    // arityCheck("IsDuplicate" -> ???),
     // arityCheck("IsArrayIndex" -> ???),
     // arityCheck("ThrowCompletion" -> ???),
     // arityCheck("NormalCompletion" -> ???),
