@@ -366,23 +366,20 @@ trait Parsers extends BasicParsers {
       case kind ~ name => NtArg(kind, name)
     }
 
+  // identifiers
   lazy val id: Parser[String] = "_[^_]+_".r ^^ { s =>
     s.substring(1, s.length - 1)
   }
+
+  // names
   lazy val name: Parser[String] = "[a-zA-Z0-9/]+".r
+
   // TODO handle type more precisely such as:
   // - ~normal~, ~generator~, ~async~, or ~asyncGenerator~
   // - an ECMAScript language value, but not *undefined* or *null*
   // - a possibly empty List, each of whose elements is a String or *undefined*
   // ...
-  lazy val headParamType: Parser[String] = "([^_,]|, )+".r ^^ {
-    case ty =>
-      val trimmed =
-        (if (ty startsWith "a ") ty.drop(2)
-         else if (ty startsWith "an ") ty.drop(3)
-         else ty).replace("-", "").trim
-      trimmed.split(" ").map(_.capitalize).mkString
-  }
+  given ty: Parser[Type] = "([^_,:]|, )+".r ^^ { Type(_) }
 
   lazy val ref: Parser[BuiltinHead.Ref] =
     import BuiltinHead.Ref
@@ -415,11 +412,20 @@ trait Parsers extends BasicParsers {
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] =
-    (name <~ "::") ~ name ~ params ^^ {
+    (ty <~ "::") ~ name ~ params ^^ {
       case t ~ x ~ ps => NumericMethodHead(t, x, ps)
     }
 
   // algorithm parameters
+  lazy val param: Parser[Param] =
+    import Param.Kind.*
+    opt("optional") ~ id ~ opt(":" ~> ty) ^^ {
+      case opt ~ name ~ ty =>
+        val kind = if (opt.isDefined) Optional else Normal
+        Param(name, kind, ty.getOrElse(UnknownType))
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, UnknownType)
+
+  // multiple algorithm parameters
   lazy val params: Parser[List[Param]] =
     import Param.Kind.Ellipsis
     opt(
@@ -429,6 +435,7 @@ trait Parsers extends BasicParsers {
       case None           => Nil
       case Some(ps ~ ops) => ps ++ ops
     }
+
   // TODO remove this legacy parser later
   lazy val oldOptParams: Parser[List[Param]] =
     import Param.Kind.*
@@ -437,16 +444,9 @@ trait Parsers extends BasicParsers {
     } | opt(",") ~ "..." ~> param ^^ {
       case p => List(p.copy(kind = Variadic))
     } | success(Nil)
-  lazy val param: Parser[Param] =
-    import Param.Kind.*
-    opt("optional") ~ id ~ opt(":" ~> headParamType) ^^ {
-      case opt ~ name ~ ty =>
-        val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, ty.getOrElse("unknown"))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, "")
   lazy val paramDesc: Parser[Param] =
     import Param.Kind.*
-    headParamType ~ opt(id) ^^ {
+    ty ~ opt(id) ^^ {
       case ty ~ name => Param(name.getOrElse("this"), Normal, ty)
     }
 

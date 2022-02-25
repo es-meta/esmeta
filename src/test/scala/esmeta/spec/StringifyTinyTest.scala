@@ -127,24 +127,24 @@ class StringifyTinyTest extends SpecTest {
       AbstractOperationHead(
         "StringIndexOf",
         List(
-          Param("string", Param.Kind.Normal, "a String"),
-          Param("searchValue", Param.Kind.Normal, "a String"),
-          Param("fromIndex", Param.Kind.Normal, "a non-negative integer"),
+          Param("string", Param.Kind.Normal, Type("a String")),
+          Param("searchValue", Param.Kind.Normal, Type("a String")),
+          Param("fromIndex", Param.Kind.Normal, Type("a non-negative integer")),
         ),
         false,
       ) -> "StringIndexOf(string, searchValue, fromIndex)",
       NumericMethodHead(
-        "Number",
+        Type("Number"),
         "unaryMinus",
         List(
-          Param("x", Param.Kind.Normal, "a Number"),
+          Param("x", Param.Kind.Normal, Type("a Number")),
         ),
       ) -> "Number::unaryMinus(x)",
       SyntaxDirectedOperationHead(
         None,
         "VarDeclaredNames",
         true,
-        List(Param("withParam", Param.Kind.Normal, "")),
+        List(Param("withParam")),
       ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam)",
       SyntaxDirectedOperationHead(
         Some(
@@ -153,16 +153,16 @@ class StringifyTinyTest extends SpecTest {
             0,
             5,
             List(
-              Param("Expression0", Param.Kind.Normal, ""),
-              Param("Expression1", Param.Kind.Normal, ""),
-              Param("Expression2", Param.Kind.Normal, ""),
-              Param("Statement", Param.Kind.Normal, ""),
+              Param("Expression0"),
+              Param("Expression1"),
+              Param("Expression2"),
+              Param("Statement"),
             ),
           ),
         ),
         "VarDeclaredNames",
         true,
-        List(Param("withParam", Param.Kind.Normal, "")),
+        List(Param("withParam")),
       ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam)",
       SyntaxDirectedOperationHead(
         Some(
@@ -171,8 +171,8 @@ class StringifyTinyTest extends SpecTest {
             1,
             0,
             List(
-              Param("AdditiveExpression", Param.Kind.Normal, ""),
-              Param("MultiplicativeExpression", Param.Kind.Normal, ""),
+              Param("AdditiveExpression"),
+              Param("MultiplicativeExpression"),
             ),
           ),
         ),
@@ -182,17 +182,21 @@ class StringifyTinyTest extends SpecTest {
       ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R]()",
       ConcreteMethodHead(
         "HasBinding",
-        Param("envRec", Param.Kind.Normal, "a declarative Environment Record"),
-        List(Param("N", Param.Kind.Normal, "a String")),
+        Param(
+          "envRec",
+          Param.Kind.Normal,
+          Type("a declarative Environment Record"),
+        ),
+        List(Param("N", Param.Kind.Normal, Type("a String"))),
       ) -> "[METHOD] HasBinding(envRec)(N)", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
       InternalMethodHead(
         "SetPrototypeOf",
-        Param("O", Param.Kind.Normal, "an ordinary object"),
-        List(Param("V", Param.Kind.Normal, "an Object or null")),
+        Param("O", Param.Kind.Normal, Type("an ordinary object")),
+        List(Param("V", Param.Kind.Normal, Type("an Object or null"))),
       ) -> "[METHOD] SetPrototypeOf(O)(V)", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
         NormalBase("Boolean"),
-        List(Param("value", Param.Kind.Normal, "an argument")),
+        List(Param("value", Param.Kind.Normal, Type("an argument"))),
       ) -> "[BUILTIN] Boolean(value)",
     )
   }

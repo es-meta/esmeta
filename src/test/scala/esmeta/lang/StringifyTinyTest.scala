@@ -1,7 +1,7 @@
 package esmeta.lang
 
 import esmeta.util.BaseUtils.*
-import esmeta.spec.*
+import esmeta.spec.{Type => SType, *}
 import esmeta.lang.*
 
 class StringifyTinyTest extends LangTest {

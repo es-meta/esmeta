@@ -12,7 +12,7 @@ case class AbstractOperationHead(
 
 /** numeric method heads */
 case class NumericMethodHead(
-  ty: String,
+  ty: Type,
   name: String,
   params: List[Param],
 ) extends Head

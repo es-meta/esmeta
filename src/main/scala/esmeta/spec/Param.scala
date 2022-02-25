@@ -4,7 +4,7 @@ package esmeta.spec
 case class Param(
   name: String,
   kind: Param.Kind = Param.Kind.Normal,
-  ty: String = "", // TODO more precisely represent parameter types
+  ty: Type = UnknownType,
 ) extends SpecElem
 object Param:
   enum Kind extends SpecElem:

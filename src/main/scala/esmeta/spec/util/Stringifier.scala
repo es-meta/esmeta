@@ -28,6 +28,7 @@ object Stringifier {
       case elem: Param           => paramRule(app, elem)
       case elem: Param.Kind      => paramKindRule(app, elem)
       case elem: Table           => tableRule(app, elem)
+      case elem: Type            => tyRule(app, elem)
     }
 
   // for specifications
@@ -217,6 +218,9 @@ object Stringifier {
 
   // TODO: for algorithm parameter kinds
   given paramKindRule: Rule[Param.Kind] = (app, param) => ???
+
+  // TODO: for types
+  given tyRule: Rule[Type] = (app, ty) => app >> ty.name
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???

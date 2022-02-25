@@ -3,7 +3,7 @@ package esmeta.spec.util
 import esmeta.MANUALS_DIR
 import esmeta.ir.{Type => IRType, *}
 import esmeta.lang.*
-import esmeta.spec.{Param => SParam, *}
+import esmeta.spec.{Param => SParam, Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
@@ -123,7 +123,7 @@ class Compiler(val spec: Spec) {
       case head: AbstractOperationHead =>
         head.name
       case head: NumericMethodHead =>
-        s"${head.ty}::${head.name}"
+        s"${compile(head.ty)}::${head.name}"
       case head: SyntaxDirectedOperationHead =>
         val Target = SyntaxDirectedOperationHead.Target
         val pre = head.target.fold("<DEFAULT>") {
@@ -131,9 +131,9 @@ class Compiler(val spec: Spec) {
         }
         s"$pre.${head.methodName}"
       case head: ConcreteMethodHead =>
-        s"${head.receiverParam.ty}.${head.methodName}"
+        s"${compile(head.receiverParam.ty)}.${head.methodName}"
       case head: InternalMethodHead =>
-        s"${head.receiverParam.ty}.${head.methodName}"
+        s"${compile(head.receiverParam.ty)}.${head.methodName}"
       case head: BuiltinHead =>
         s"INTRINSICS.${head.ref}"
     }
@@ -314,6 +314,16 @@ class Compiler(val spec: Spec) {
         else IExpr(EYet(yetStr)),
       )
   }
+
+  // compile types
+  // TODO refactor
+  private def compile(ty: SType): IRType =
+    val tname = ty.name
+    val trimmed =
+      (if (tname startsWith "a ") tname.drop(2)
+       else if (tname startsWith "an ") tname.drop(3)
+       else tname).replace("-", "").trim
+    IRType(trimmed.split(" ").map(_.capitalize).mkString)
 
   // compile local variable
   private def compile(x: Variable): Name = Name(x.name)
@@ -567,9 +577,15 @@ class Compiler(val spec: Spec) {
 
   // compile algorithm parameters
   private def compile(param: SParam): Func.Param = {
-    val SParam(name, skind, ty) = param
+    val SParam(name, skind, SType(tname)) = param
     val optional = skind == SParam.Kind.Optional
-    Func.Param(Name(name), optional, IRType(ty))
+    // TODO refactor
+    val trimmed =
+      (if (tname startsWith "a ") tname.drop(2)
+       else if (tname startsWith "an ") tname.drop(3)
+       else tname).replace("-", "").trim
+    val irType = IRType(trimmed.split(" ").map(_.capitalize).mkString)
+    Func.Param(Name(name), optional, irType)
   }
 
   // compile types
