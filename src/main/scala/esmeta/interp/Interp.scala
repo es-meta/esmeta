@@ -226,8 +226,8 @@ class Interp(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj if m.ty endsWith "Object" => "Object" // TODO
-            case _                                   => ???
+            case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
+            case _                                              => ???
         case v => ???,
       )
     case ETypeCheck(expr, ty) =>
