@@ -65,10 +65,7 @@ trait Parsers extends DivergedParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~
-    // GlobalDeclarationInstantiation
-    (opt("the sole element of") ~>
-    endWithExpr) ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
   // TODO remove componentRef
@@ -190,7 +187,8 @@ trait Parsers extends DivergedParsers {
     invokeExpr |||
     returnIfAbruptExpr |||
     listExpr |||
-    xrefExpression
+    xrefExpr |||
+    soleExpr
   }.named("lang.Expression")
 
   // multilineExpr
@@ -306,7 +304,7 @@ trait Parsers extends DivergedParsers {
 
   // emu-xref expressions
   // TODO cleanup spec.html
-  lazy val xrefExpression: PL[XRefExpression] =
+  lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpression.Op.*
     lazy val xrefOp: P[XRefExpression.Op] =
       ("specified in" | "described in" | "the definition specified in" | "the algorithm steps defined in") ^^! {
@@ -321,9 +319,12 @@ trait Parsers extends DivergedParsers {
       case op ~ id => XRefExpression(op, id)
     }
 
+  // the sole element expressions
+  lazy val soleExpr: PL[SoleElementExpression] =
+    "the sole element of" ~> expr ^^ { SoleElementExpression(_) }
+
   // reference expressions
-  lazy val refExpr: PL[ReferenceExpression] =
-    ref ^^ { ReferenceExpression(_) }
+  lazy val refExpr: PL[ReferenceExpression] = ref ^^ { ReferenceExpression(_) }
 
   // mathematical operation expressions
   lazy val mathOpExpr: PL[MathOpExpression] =
@@ -670,6 +671,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   given ty: PL[Type] = {
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
+    "ECMAScript function object" ^^! { Type("ECMAScriptFunctionObject") } |||
     ("|" ~> word <~ "|") ^^ { case nt => Type(s"|$nt|") }
   }.named("lang.Type")
 

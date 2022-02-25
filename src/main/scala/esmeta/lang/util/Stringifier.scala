@@ -179,6 +179,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
         app >> entries
+      case SoleElementExpression(expr) =>
+        app >> "the sole element of " >> expr
       case YetExpression(str, block) =>
         app >> "[YET] " >> str
         block.fold(app)(app >> _)

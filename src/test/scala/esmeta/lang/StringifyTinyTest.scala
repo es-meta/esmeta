@@ -209,6 +209,7 @@ class StringifyTinyTest extends LangTest {
       XRefExpression(XRefExpression.Op.InternalSlots, "sec-x")
     lazy val xrefLenExpr =
       XRefExpression(XRefExpression.Op.ParamLength, "sec-x")
+    lazy val soleExpr = SoleElementExpression(listExpr)
     lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
     // tests
@@ -246,6 +247,7 @@ class StringifyTinyTest extends LangTest {
       xrefAlgoExpr -> "the definition specified in <emu-xref href=\"#sec-x\"></emu-xref>",
       xrefSlotsExpr -> "the internal slots listed in <emu-xref href=\"#sec-x\"></emu-xref>",
       xrefLenExpr -> "the number of non-optional parameters of the function definition in <emu-xref href=\"#sec-x\"></emu-xref>",
+      soleExpr -> "the sole element of « _x_, _x_ »",
     )
 
     // -------------------------------------------------------------------------

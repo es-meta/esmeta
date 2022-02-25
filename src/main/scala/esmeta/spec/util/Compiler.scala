@@ -475,6 +475,8 @@ class Compiler(val spec: Spec) {
         row <- spec.tables(id).rows
         slot = row.head if slot.startsWith("[[") && slot.endsWith("]]")
       } yield EStr(slot.substring(2, slot.length - 2)))
+    case SoleElementExpression(list) =>
+      toERef(fb, compile(fb, list), EMathVal(0))
     case lit: Literal => compile(fb, lit)
   }
 

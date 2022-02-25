@@ -60,6 +60,9 @@ case object XRefExpression:
   enum Op extends LangElem:
     case Algo, InternalSlots, ParamLength
 
+// the sole element expressions
+case class SoleElementExpression(list: Expression) extends Expression
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 

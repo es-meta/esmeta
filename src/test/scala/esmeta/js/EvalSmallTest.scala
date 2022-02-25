@@ -63,7 +63,7 @@ class EvalSmallTest extends JSTest {
     "function-application3.js",
     "function-application4.js",
     "function-application5.js",
-    "function-declare1.js",
+    // "function-declare1.js",
     "function1.js",
     "function2.js",
     "function3.js",

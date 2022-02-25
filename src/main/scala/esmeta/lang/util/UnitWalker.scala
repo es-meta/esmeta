@@ -95,6 +95,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(entries, walk)
     case XRefExpression(kind, id) =>
       walk(kind);
+    case SoleElementExpression(expr) =>
+      walk(expr)
     case multi: MultilineExpression =>
       walk(multi)
     case yet: YetExpression =>

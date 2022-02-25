@@ -42,7 +42,9 @@ class Interp(
         case NodeCursor(node) =>
           val func = cfg.funcOf(node)
           val irFunc = func.irFunc
-          println(s"[${irFunc.kind}${irFunc.name}] $node")
+          println(
+            s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = true)}",
+          )
         case ExitCursor(func) =>
           val irFunc = func.irFunc
           println(s"[${irFunc.kind}${irFunc.name}] Exited")
@@ -215,10 +217,11 @@ class Interp(
     case EConvert(cop, expr) =>
       import COp.*
       (interp(expr).escaped, cop) match {
+        case (Math(n), ToNumber) => Number(n.toDouble)
+        // TODO other cases
         case (Str(s), ToNumber) => ??? // TODO Number(ESValueParser.str2num(s))
         case (Str(s), ToBigInt) => ??? // TODO ESValueParser.str2bigint(s)
-        // TODO other cases
-        case (v, cop) => throw InvalidConversion(cop, expr, v)
+        case (v, cop)           => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>
       // TODO discuss about the type
@@ -232,7 +235,7 @@ class Interp(
         case addr: Addr =>
           st(addr) match
             case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
-            case _                                              => ???
+            case v                                              => ???
         case v => ???,
       )
     case ETypeCheck(expr, ty) =>

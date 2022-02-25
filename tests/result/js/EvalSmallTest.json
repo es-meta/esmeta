@@ -2,6 +2,7 @@
   "assign-object.js" : true,
   "empty-statement.js" : true,
   "expression-statement1.js" : true,
+  "function-declare1.js" : true,
   "global.js" : true,
   "multiple-statements.js" : true,
   "string3.js" : true,

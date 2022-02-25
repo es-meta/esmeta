@@ -42,7 +42,7 @@ sealed trait Value extends InterpElem {
     case _                         => throw NoInteger(e, this)
   def toAst(e: Expr): Ast = this match
     case AstValue(ast) => ast
-    case v => throw NoAst(e, v)
+    case v             => throw NoAst(e, v)
   def getList(e: Expr, st: State): ListObj = this match
     case addr: Addr =>
       st(addr) match

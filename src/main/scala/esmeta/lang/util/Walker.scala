@@ -109,6 +109,8 @@ trait Walker extends BasicWalker {
       ListExpression(walkList(entries, walk))
     case XRefExpression(kind, id) =>
       XRefExpression(walk(kind), id)
+    case SoleElementExpression(expr) =>
+      SoleElementExpression(walk(expr))
     case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
