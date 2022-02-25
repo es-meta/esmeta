@@ -12,6 +12,7 @@ object Stringifier {
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match {
       case elem: Spec            => specRule(app, elem)
+      case elem: Spec.Version    => versionRule(app, elem)
       case elem: Grammar         => grammarRule(app, elem)
       case elem: Production      => prodRule(app, elem)
       case elem: Lhs             => lhsRule(app, elem)

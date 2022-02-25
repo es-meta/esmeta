@@ -50,4 +50,4 @@ case class Spec(
   lazy val stats: Stats = new Stats(this)
 }
 object Spec:
-  case class Version(name: String, hash: String)
+  case class Version(name: String, hash: String) extends SpecElem
