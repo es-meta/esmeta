@@ -239,7 +239,7 @@ class Interp(
         case _: Bool       => ty.name == "Boolean"
         case Undef         => ty.name == "Undefined"
         case Null          => ty.name == "Null"
-        case AstValue(ast) => ast.typeCheck(ty)
+        case AstValue(ast) => ast.types contains ty.name
         case addr: Addr =>
           st(addr) match
             case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO

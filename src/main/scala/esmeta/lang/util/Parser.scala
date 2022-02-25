@@ -7,6 +7,7 @@ import scala.util.matching.Regex
 /** language parser */
 object Parser extends Parsers
 trait Parsers extends DivergedParsers {
+
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
   type PLD[T <: Diverged with Locational] = DivergedParser[T]
@@ -492,6 +493,7 @@ trait Parsers extends DivergedParsers {
     instanceOfCond |||
     hasFieldCond |||
     abruptCond |||
+    productionCond |||
     isAreCond |||
     binCond |||
     specialCond
@@ -505,10 +507,6 @@ trait Parsers extends DivergedParsers {
   lazy val instanceOfCond: PL[InstanceOfCondition] =
     expr ~ isEither((("an" | "a") ~> ty)) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
-    } |||
-    // handle If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
-    expr ~ isNeg ~ (tagStart ~ word ~ ":" ~> word <~ tagEnd) ^^ {
-      case e ~ n ~ nt => InstanceOfCondition(e, n, List(Type(s"|$nt|")))
     }
 
   // field includsion conditions
@@ -520,6 +518,14 @@ trait Parsers extends DivergedParsers {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
 
+  // production conditions
+  // handle If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
+  lazy val productionCond: PL[ProductionCondition] =
+    (expr <~ "is") ~ (tagStart ~> word <~ ":") ~ (word <~ tagEnd) ^^ {
+      case nt ~ l ~ r => ProductionCondition(nt, l, r)
+    }
+
+  // TODO remove
   // abrupt completion check conditions
   lazy val abruptCond: PL[AbruptCompletionCondition] =
     variable ~ isNeg <~ "an abrupt completion" ^^ {

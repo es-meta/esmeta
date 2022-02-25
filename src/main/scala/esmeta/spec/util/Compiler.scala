@@ -39,6 +39,9 @@ class Compiler(val spec: Spec) {
   // compiled algorithms
   private val funcs: ListBuffer[Func] = ListBuffer()
 
+  // grammar
+  private def grammar: Grammar = spec.grammar
+
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -53,6 +56,14 @@ class Compiler(val spec: Spec) {
       val func = Func(false, kind, name, params, inst, Some(algo))
       funcs += func
       func
+
+    // production context
+    var ntList: List[(String, Expr, Int)] = algo.head match
+      case SyntaxDirectedOperationHead(Some(target), _, _, _) =>
+        target.rhsParams.zipWithIndex.map {
+          case (param, idx) => (param.name, ENAME_THIS, idx)
+        }
+      case _ => List()
 
     // create a new scope with a given procedure
     def newScope(f: => Unit): Inst = { pushScope; f; popScope }
@@ -460,17 +471,13 @@ class Compiler(val spec: Spec) {
     case HexLiteral(hex, name) => EMathVal(hex)
     case CodeLiteral(code)     => EStr(code)
     case NonterminalLiteral(ordinal, name) =>
-      fb.algo.head match
-        case SyntaxDirectedOperationHead(Some(target), method, _, _) =>
-          val rhsNames = target.rhsParams.map(_.name)
-          // check if it is used as reference
-          // TODO ClassTail[0,3].Contains
-          if (rhsNames contains name) {
-            val xs = rhsNames.zipWithIndex.filter(_._1 == name)
-            val idx = xs(ordinal.getOrElse(1) - 1)._2
-            toERef(NAME_THIS, EMathVal(idx))
-          } else EGrammar(name, Nil) // TODO grammar params
-        case _ => EGrammar(name, Nil) // TODO grammar params
+      val ntNames = fb.ntList.map(_._1)
+      // TODO ClassTail[0,3].Contains
+      if (ntNames contains name) {
+        val xs = fb.ntList.filter(_._1 == name)
+        val (_, base, idx) = xs(ordinal.getOrElse(1) - 1)
+        toERef(fb, base, EMathVal(idx))
+      } else EGrammar(name, Nil) // TODO grammar params
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => EStr(field)
@@ -513,6 +520,18 @@ class Compiler(val spec: Spec) {
         EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
       )
       and(EIsCompletion(ERef(ref)), abrupt)
+    case ProductionCondition(nt, lhsName, rhsName) =>
+      // XXX handle production properly
+      val base = compile(fb, nt)
+      val prod = grammar.nameMap(lhsName)
+      val rhsList = prod.rhsList.zipWithIndex.filter {
+        case (rhs, _) => rhs.allNames contains rhsName
+      }
+      rhsList match
+        case (rhs, idx) :: Nil =>
+          fb.ntList ++= List((rhsName, base, 0)) // XXX
+          ETypeCheck(base, IRType(lhsName + idx))
+        case _ => ???
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
@@ -556,7 +575,7 @@ class Compiler(val spec: Spec) {
   // compile types
   // TODO handle type properly
   private def compile(ty: Type): IRType =
-    IRType(ty.name.replace(" ", ""))
+    IRType(ty.name.replace(" ", "").replace("|", ""))
 
   // handle short circuiting
   private def compileShortCircuit(

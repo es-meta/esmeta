@@ -29,14 +29,12 @@ sealed trait Ast extends JSElem {
     case lex: Lexical   => List()
     case syn: Syntactic => syn.children
 
-  /** type of */
-  // TODO type
-  def typeCheck(ty: Type): Boolean =
-    val tname = ty.name
-    if (tname.startsWith("|") && tname.endsWith("|")) {
-      val ntName = tname.substring(1, tname.length - 1)
-      ntName == name // TODO handle child instance
-    } else ???
+  /** types */
+  lazy val types: Set[String] =
+    Set(name, s"$name$idx") union (this match
+      case Syntactic(_, _, _, List(Some(child))) => child.types
+      case _                                     => Set()
+    )
 
   // TODO tweak equality for fast caching
   // /** equality */

@@ -363,6 +363,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " " >> field >> " internal slot"
       case AbruptCompletionCondition(x, neg) =>
         app >> x >> isStr(neg) >> "an abrupt completion"
+      case ProductionCondition(nt, lhs, rhs) =>
+        app >> nt >> " is " >> "<emu-grammar>"
+        app >> lhs >> " : " >> rhs
+        app >> "</emu-grammar>"
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head

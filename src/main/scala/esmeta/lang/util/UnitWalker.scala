@@ -152,6 +152,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(ref); walk(neg); walk(field)
     case AbruptCompletionCondition(x, neg) =>
       walk(x); walk(neg)
+    case ProductionCondition(nt, lhs, rhs) =>
+      walk(nt);
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>

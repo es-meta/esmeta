@@ -29,6 +29,14 @@ case class AbruptCompletionCondition(
   negation: Boolean,
 ) extends Condition
 
+// production condition such as
+// `|Declartion| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
+case class ProductionCondition(
+  ntLiteral: Expression,
+  lhsName: String,
+  rhsName: String,
+) extends Condition
+
 // `A is/are B` conditions
 case class IsAreCondition(
   left: List[Expression],
