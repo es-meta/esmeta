@@ -1,4 +1,4 @@
-def ToNumber(argument: Unknown) {
+def ToNumber(argument: Any) {
   if (= (typeof argument) @Undefined) return NaN
   else if (= (typeof argument) @Null) return 0.0f
   else if (= (typeof argument) @Boolean) if argument return 1.0f else return 0.0f

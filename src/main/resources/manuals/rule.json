@@ -45,5 +45,12 @@
   "[YET] If the source text matched by _Body_ is strict mode code, let _Strict_ be *true*; else let _Strict_ be *false*.": "if true let Strict = true else let Strict = false",
   "[YET] Assert: _F_ is an extensible object that does not have a *\"length\"* own property.": "assert (&& F.Extensible (= F.SubMap.length absent))",
   "[YET] Assert: _F_ is an extensible object that does not have a *\"name\"* own property.": "assert (&& F.Extensible (= F.SubMap.name absent))",
-  "[YET] Assert: _F_ is an extensible object that does not have a *\"prototype\"* own property.": "assert (&& F.Extensible (= F.SubMap.prototype absent))"
+  "[YET] Assert: _F_ is an extensible object that does not have a *\"prototype\"* own property.": "assert (&& F.Extensible (= F.SubMap.prototype absent))",
+  "[YET] Let _calleeContext_ be a new ECMAScript code execution context.": "let calleeContext = (new ExecutionContext())",
+  "[YET] Let _env_ be a new function Environment Record containing no bindings.": "let env = (new FunctionEnvironmentRecord)",
+  "[YET] If _callerContext_ is not already suspended, suspend _callerContext_.": "if false nop else {}",
+  "[YET] Assert: _calleeContext_ is now the running execution context.": "assert (= calleeContext @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)])",
+  "[YET] Let _localEnv_ be the LexicalEnvironment of _calleeContext_.": "let localEnv = calleeContext.LexicalEnvironment",
+  "[YET] Assert: _localEnv_ is a function Environment Record.": "assert (? localEnv: FunctionEnvironmentRecord)",
+  "[YET] Assert: The next step never returns an abrupt completion because _localEnv_.[[ThisBindingStatus]] is not ~initialized~.": "assert true"
 }

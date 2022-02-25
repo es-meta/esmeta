@@ -131,7 +131,7 @@ class Interp(
         else args.map(interp(_).escaped)
       st.define(lhs, simpleFuncs(name)(st, vs))
     case _ =>
-      interp(fexpr) match {
+      interp(fexpr).escaped match {
         case Clo(func, captured) =>
           val vs = args.map(interp)
           val newLocals = getLocals(func.irFunc.params, vs) ++ captured

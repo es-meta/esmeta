@@ -445,7 +445,11 @@ trait Parsers extends DivergedParsers {
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
-    lazy val name = (opt("the result of performing" | "the") ~> word)
+    // TODO change this
+    lazy val excludedName = "LexicalEnvironment" // OrdinaryCallBindThis
+    lazy val name = (opt("the result of performing" | "the") ~ guard(
+      not(excludedName),
+    ) ~> word)
     lazy val base = ("of" ~> expr)
     lazy val args = repsep(expr, sep("and"))
     lazy val argsPart = (
