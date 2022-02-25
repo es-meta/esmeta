@@ -83,12 +83,6 @@ object Parser extends Parsers {
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
-    // TODO filter algorithms for example or shorthands
-    "sec-abstract-closure",
-    "sec-ifabruptcloseiterator",
-    "sec-ifabruptrejectpromise",
-    // TODO handle Await
-    "await",
     // TODO handle memory model
     "sec-weakref-execution",
     "sec-valid-chosen-reads",
@@ -237,13 +231,17 @@ object Parser extends Parsers {
   // handle unusual heads
   lazy val thisValuePattern =
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
+  lazy val aliasPattern =
+    "means? the same thing as:".r
   private def parseUnusualHead(
     parent: Element,
     elem: Element,
   ): List[Head] = elem.getPrevText match
     case thisValuePattern(name, param) =>
       List(AbstractOperationHead(false, name, List(Param(param)), UnknownType))
-    case _ => parseBuiltinHead(parent, elem)
+    case aliasPattern()              => parseAbsOpHead(parent, elem, false)
+    case _ if parent.hasAttr("aoid") => Nil
+    case _                           => parseBuiltinHead(parent, elem)
 }
 
 /** specification parsers */
