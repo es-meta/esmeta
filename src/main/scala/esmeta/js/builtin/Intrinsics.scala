@@ -12,7 +12,7 @@ case class Intrinsics(cfg: CFG) {
   private val T = true
   private val F = false
   private val U = Undef
-  private val spec = cfg.program.spec
+  private def spec = cfg.program.spec
   given CFG = cfg
 
   /** get map for heap */

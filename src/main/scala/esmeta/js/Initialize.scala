@@ -37,6 +37,7 @@ class Initialize(
     HOST_DEFINED -> Undef,
     INTRINSICS -> NamedAddr(INTRINSICS),
     GLOBAL -> NamedAddr(GLOBAL),
+    SYMBOL -> NamedAddr(SYMBOL),
     REALM -> NamedAddr(REALM),
     JOB_QUEUE -> NamedAddr(JOB_QUEUE),
     SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
@@ -55,15 +56,20 @@ class Initialize(
     given CFG = cfg
     val intr = Intrinsics(cfg)
     val glob = GlobalObject(cfg)
+    val sym = Symbols(cfg)
 
     val map: MMap[Addr, Obj] = MMap(
       NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
+      NamedAddr(SYMBOL) -> sym.obj,
       NamedAddr(REALM) -> MapObj("RealmRecord"),
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
     )
+
+    // add symbols
+    map ++= sym.map
 
     // add intrinsics
     map ++= intr.map

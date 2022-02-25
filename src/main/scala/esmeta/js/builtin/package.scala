@@ -8,6 +8,7 @@ import scala.collection.mutable.{Map => MMap}
 /** predefined constants */
 val INTRINSICS = "INTRINSICS"
 val GLOBAL = "GLOBAL"
+val SYMBOL = "SYMBOL"
 val CONTEXT = "CONTEXT"
 val REALM = "REALM"
 val EXECUTION_STACK = "EXECUTION_STACK"
@@ -17,7 +18,6 @@ val PRIMITIVE = "PRIMITIVE"
 val SOURCE_TEXT = "SOURCE_TEXT"
 val SYMBOL_REGISTRY = "SYMBOL_REGISTRY"
 val SUBMAP = "SubMap"
-val SYMBOL = "SYMBOL"
 val DESCRIPTOR = "DESCRIPTOR"
 val UNDEF_TYPE = "Undefined"
 val NULL_TYPE = "Null"
@@ -32,6 +32,10 @@ val OBJECT_TYPE = "Object"
   * (table-6)[https://tc39.es/ecma262/#table-well-known-intrinsic-objects]
   */
 val WELL_KNOWN_INTRINSICS = "table-well-known-intrinsic-objects"
+
+/** table id for (table-1)[https://tc39.es/ecma262/#sec-well-known-symbols]
+  */
+val WELL_KNOWN_SYMBOLS = "table-well-known-symbols"
 
 // address for the current realm
 val realmAddr = NamedAddr(REALM)
