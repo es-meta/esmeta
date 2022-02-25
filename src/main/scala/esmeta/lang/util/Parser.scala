@@ -65,7 +65,10 @@ trait Parsers extends DivergedParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~
+    // GlobalDeclarationInstantiation
+    (opt("the sole element of") ~>
+    endWithExpr) ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
   // TODO remove componentRef

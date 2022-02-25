@@ -58,12 +58,15 @@ class Compiler(val spec: Spec) {
       funcs += func
       func
 
-    // production context
-    var ntList: List[(String, Expr, Int)] = algo.head match
-      case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
-        target.rhsParams.zipWithIndex.map {
-          case (param, idx) => (param.name, ENAME_THIS, idx)
+    // bindings for nonterminals
+    var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
+      case SyntaxDirectedOperationHead(Some(target), _, _, _) =>
+        val rhsNames = target.rhsParams.map(_.name)
+        val rhsBindings = rhsNames.zipWithIndex.map {
+          case (name, idx) => (name, ENAME_THIS, Some(idx))
         }
+        if (rhsNames contains target.lhsName) rhsBindings
+        else (target.lhsName, ENAME_THIS, None) :: rhsBindings
       case _ => List()
 
     // create a new scope with a given procedure
@@ -421,9 +424,9 @@ class Compiler(val spec: Spec) {
       val baseExpr = compile(fb, base)
       val callRef = toERef(fb, baseExpr, EStr(name))
       base match
+        // check if it is lexical, and change to property access
         case NonterminalLiteral(_, ntName)
             if spec.grammar.topLevelLexicals.contains(ntName) =>
-          // check if it is lexical
           callRef
         case _ =>
           val (x, xExpr) = fb.newTIdWithExpr
@@ -484,12 +487,13 @@ class Compiler(val spec: Spec) {
     case HexLiteral(hex, name) => EMathVal(hex)
     case CodeLiteral(code)     => EStr(code)
     case NonterminalLiteral(ordinal, name) =>
-      val ntNames = fb.ntList.map(_._1)
+      val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
-        val xs = fb.ntList.filter(_._1 == name)
-        val (_, base, idx) = xs(ordinal.getOrElse(1) - 1)
-        toERef(fb, base, EMathVal(idx))
+        val xs = fb.ntBindings.filter(_._1 == name)
+        xs(ordinal.getOrElse(1) - 1) match
+          case (_, base, None)      => base
+          case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
       } else EGrammar(name, Nil) // TODO grammar params
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
@@ -542,7 +546,7 @@ class Compiler(val spec: Spec) {
       }
       rhsList match
         case (rhs, idx) :: Nil =>
-          fb.ntList ++= List((rhsName, base, 0)) // XXX
+          fb.ntBindings ++= List((rhsName, base, Some(0))) // XXX
           ETypeCheck(base, IRType(lhsName + idx))
         case _ => ???
     case IsAreCondition(left, neg, right) =>

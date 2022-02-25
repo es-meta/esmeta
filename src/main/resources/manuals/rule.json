@@ -40,5 +40,6 @@
   "[YET] Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.SubMap[N] = (new MutableBinding(\"initialized\" -> false))  if (= D true) envRec.SubMap[N].maybeDeleted = true else {} }",
   "[YET] Assert: _envRec_ has a binding for _N_.": "assert (! (= envRec.SubMap[N] absent))",
   "[YET] If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.SubMap[N].initialized) return comp[~throw~/~empty~]((new OrdinaryObject(\"Prototype\" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, \"ErrorData\" -> undefined))) else {}",
-  "[YET] Return the value currently bound to _N_ in _envRec_.": "return envRec.SubMap[N].BoundValue"
+  "[YET] Return the value currently bound to _N_ in _envRec_.": "return envRec.SubMap[N].BoundValue",
+  "[YET] Insert _d_ as the first element of _functionsToInitialize_.": "push d > functionsToInitialize"
 }
