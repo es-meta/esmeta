@@ -1,0 +1,10 @@
+def <CONC>:DeclarativeEnvironmentRecord.CreateImmutableBinding(envRec: DeclarativeEnvironmentRecord, N: String, S: Boolean): Unknown {
+  // Assert: envRec does not already have a binding for N.
+  assert (= envRec.SubMap[N] absent)
+
+  // Create an immutable binding in _envRec_ for _N_ and record that it is uninitialized. If _S_ is *true*, record that the newly created binding is a strict binding
+  envRec.SubMap[N] = (new ImmutableBinding("initialized" -> false, "strict" -> S))
+
+  call %0 = clo<NormalCompletion>(~empty~)
+  return %0
+}

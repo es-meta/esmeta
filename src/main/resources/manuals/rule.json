@@ -57,5 +57,6 @@
   "[YET] Let _calleeEnv_ be the LexicalEnvironment of _calleeContext_.": "let calleeEnv = calleeContext.LexicalEnvironment",
   "[YET] Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.": "let instantiatedVarNames = (copy parameterBindings)",
   "[YET] Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
-  "[YET] If _parameterNames_ has any duplicate entries, let _hasDuplicates_ be *true*. Otherwise, let _hasDuplicates_ be *false*.": "call hasDuplicates = @IsDuplicate(parameterNames)"
+  "[YET] If _parameterNames_ has any duplicate entries, let _hasDuplicates_ be *true*. Otherwise, let _hasDuplicates_ be *false*.": "call hasDuplicates = @IsDuplicate(parameterNames)",
+  "[YET] Let _calleeContext_ be a new execution context.": "let calleeContext = (new ExecutionContext())"
 }

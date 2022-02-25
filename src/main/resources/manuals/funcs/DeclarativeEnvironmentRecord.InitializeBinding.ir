@@ -1,0 +1,13 @@
+def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(envRec: DeclarativeEnvironmentRecord, N: String, V: ECMAScriptLanguageValue): Unknown {
+  // Assert: _envRec_ must have an uninitialized binding for _N_.
+  assert (= envRec.SubMap[N].initialized false)
+
+  // Set the bound value for _N_ in _envRec_ to _V_.
+  envRec.SubMap[N].BoundValue = V
+
+  // <emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized
+  envRec.SubMap[N].initialized = true
+  call %0 = clo<NormalCompletion>(~empty~)
+  return %0
+}
+
