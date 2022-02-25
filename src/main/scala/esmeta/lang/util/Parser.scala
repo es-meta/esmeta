@@ -499,7 +499,8 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   given cond: PL[Condition] = {
     import CompoundCondition.Op.*
-    lazy val op: P[CompoundCondition.Op] = "and" ^^! And ||| "or" ^^! Or
+    lazy val op: P[CompoundCondition.Op] =
+      sep("and") ^^! And ||| sep("or") ^^! Or
     baseCond ~ rep(op ~ (opt("if") ~> baseCond)) ^^ {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
