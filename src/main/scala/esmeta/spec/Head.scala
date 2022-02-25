@@ -1,7 +1,16 @@
 package esmeta.spec
 
 /** algorithm heads */
-sealed trait Head extends SpecElem { val retTy: Type }
+sealed trait Head extends SpecElem {
+  val retTy: Type
+  def originalParams: List[Param] = this match
+    case abs: AbstractOperationHead       => abs.params
+    case numeric: NumericMethodHead       => numeric.params
+    case sdo: SyntaxDirectedOperationHead => sdo.withParams
+    case con: ConcreteMethodHead          => con.params
+    case int: InternalMethodHead          => int.params
+    case builtin: BuiltinHead             => builtin.params
+}
 
 /** abstract operation (AO) heads */
 case class AbstractOperationHead(

@@ -204,6 +204,11 @@ class StringifyTinyTest extends LangTest {
     lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
     lazy val emptyListExpr = ListExpression(Nil)
     lazy val listExpr = ListExpression(List(refExpr, refExpr))
+    lazy val xrefAlgoExpr = XRefExpression(XRefExpression.Op.Algo, "sec-x")
+    lazy val xrefSlotsExpr =
+      XRefExpression(XRefExpression.Op.InternalSlots, "sec-x")
+    lazy val xrefLenExpr =
+      XRefExpression(XRefExpression.Op.ParamLength, "sec-x")
     lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
     // tests
@@ -238,6 +243,9 @@ class StringifyTinyTest extends LangTest {
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
       emptyListExpr -> "« »",
       listExpr -> "« _x_, _x_ »",
+      xrefAlgoExpr -> "the definition specified in <emu-xref href=\"#sec-x\"></emu-xref>",
+      xrefSlotsExpr -> "the internal slots listed in <emu-xref href=\"#sec-x\"></emu-xref>",
+      xrefLenExpr -> "the number of non-optional parameters of the function definition in <emu-xref href=\"#sec-x\"></emu-xref>",
     )
 
     // -------------------------------------------------------------------------

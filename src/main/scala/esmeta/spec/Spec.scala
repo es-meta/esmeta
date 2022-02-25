@@ -1,8 +1,10 @@
 package esmeta.spec
 
-import esmeta.*
+import esmeta.{error => ESMetaError, *}
 import esmeta.lang.*
 import esmeta.spec.util.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.HtmlUtils.*
 import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
@@ -48,6 +50,12 @@ case class Spec(
 
   /** get stats */
   lazy val stats: Stats = new Stats(this)
+
+  /** get an algorithm by id attribute */
+  def getAlgoById(id: String): Algorithm =
+    algorithms.filter(_.elem.getId == id) match
+      case algo :: Nil => algo
+      case _           => error(s"no algorithms found for $id")
 }
 object Spec:
   case class Version(name: String, hash: String) extends SpecElem

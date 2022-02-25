@@ -73,7 +73,7 @@ trait Parsers extends DivergedParsers {
   // set steps
   // TODO remove componentRef
   lazy val setStep: PL[SetStep] =
-    ("set" ~> (componentRef | ref) <~ "to") ~ endWithExpr ^^ {
+    ("set" ~> (componentRef | ref) <~ ("as" | "to")) ~ endWithExpr ^^ {
       case r ~ e => SetStep(r, e)
     }
   lazy val componentRef: PL[Reference] =
@@ -189,7 +189,8 @@ trait Parsers extends DivergedParsers {
     calcExpr |||
     invokeExpr |||
     returnIfAbruptExpr |||
-    listExpr
+    listExpr |||
+    xrefExpression
   }.named("lang.Expression")
 
   // multilineExpr
@@ -302,6 +303,23 @@ trait Parsers extends DivergedParsers {
 
     calc
   }
+
+  // emu-xref expressions
+  // TODO cleanup spec.html
+  lazy val xrefExpression: PL[XRefExpression] =
+    import XRefExpression.Op.*
+    lazy val xrefOp: P[XRefExpression.Op] =
+      ("specified in" | "described in" | "the definition specified in" | "the algorithm steps defined in") ^^! {
+        Algo
+      } |
+      "the internal slots listed in" ^^! { InternalSlots } |
+      "the number of non-optional parameters of the function definition in" ^^! {
+        ParamLength
+      }
+
+    xrefOp ~ ("<emu-xref href=\"#" ~> "[a-z-.]+".r <~ "\"[a-z ]*>".r ~ tagEnd) ^^ {
+      case op ~ id => XRefExpression(op, id)
+    }
 
   // reference expressions
   lazy val refExpr: PL[ReferenceExpression] =

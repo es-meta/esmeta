@@ -60,7 +60,7 @@ class Compiler(val spec: Spec) {
 
     // bindings for nonterminals
     var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
-      case SyntaxDirectedOperationHead(Some(target), _, _, _) =>
+      case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
         val rhsNames = target.rhsParams.map(_.name)
         val rhsBindings = rhsNames.zipWithIndex.map {
           case (name, idx) => (name, ENAME_THIS, Some(idx))
@@ -465,6 +465,16 @@ class Compiler(val spec: Spec) {
         FuncBuilder(Func.Kind.Clo, cloName, ps, AnyType, body, fb.algo)
       newFb.result
       EClo(cloName, captured.map(compile))
+    case XRefExpression(XRefExpression.Op.Algo, id) =>
+      EClo(getName(spec.getAlgoById(id).head), Nil)
+    case XRefExpression(XRefExpression.Op.ParamLength, id) =>
+      ENumber(spec.getAlgoById(id).head.originalParams.length)
+    case XRefExpression(XRefExpression.Op.InternalSlots, id) =>
+      // TODO properly handle table column
+      EList(for {
+        row <- spec.tables(id).rows
+        slot = row.head if slot.startsWith("[[") && slot.endsWith("]]")
+      } yield EStr(slot.substring(2, slot.length - 2)))
     case lit: Literal => compile(fb, lit)
   }
 

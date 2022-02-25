@@ -10,6 +10,7 @@ trait Walker extends BasicWalker {
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
+    case elem: XRefExpression.Op    => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
     case elem: CompoundCondition.Op => walk(elem)
   }
@@ -106,6 +107,8 @@ trait Walker extends BasicWalker {
       ReturnIfAbruptExpression(walk(expr), check)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
+    case XRefExpression(kind, id) =>
+      XRefExpression(walk(kind), id)
     case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
@@ -144,6 +147,8 @@ trait Walker extends BasicWalker {
   def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
 
   def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
+
+  def walk(op: XRefExpression.Op): XRefExpression.Op = op
 
   def walk(lit: Literal): Literal = lit
   def walk(flit: FieldLiteral): FieldLiteral = flit

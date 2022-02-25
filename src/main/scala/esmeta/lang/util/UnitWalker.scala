@@ -10,6 +10,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: MathOpExpression.Op  => walk(elem)
     case elem: BinaryExpression.Op  => walk(elem)
     case elem: UnaryExpression.Op   => walk(elem)
+    case elem: XRefExpression.Op    => walk(elem)
     case elem: BinaryCondition.Op   => walk(elem)
     case elem: CompoundCondition.Op => walk(elem)
   }
@@ -92,6 +93,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case ListExpression(entries) =>
       walkList(entries, walk)
+    case XRefExpression(kind, id) =>
+      walk(kind);
     case multi: MultilineExpression =>
       walk(multi)
     case yet: YetExpression =>
@@ -127,6 +130,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: BinaryExpression.Op): Unit = {}
 
   def walk(op: UnaryExpression.Op): Unit = {}
+
+  def walk(op: XRefExpression.Op): Unit = {}
 
   def walk(lit: Literal): Unit = {}
 

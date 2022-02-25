@@ -30,7 +30,10 @@ class Interp(
   private given cfg: CFG = st.cfg
 
   /** type model */
-  private val typeModel = cfg.typeModel
+  private def typeModel = cfg.typeModel
+
+  /** grammar */
+  private def grammar = cfg.grammar
 
   /** step */
   def step: Boolean =
@@ -178,7 +181,9 @@ class Interp(
         case (_, _: Grammar, _, _) => throw NoString(code, v)
         case _                     => throw NoGrammar(rule, r)
     case EGrammar(name, params) => Grammar(name, params)
-    case ESourceText(expr)      => ???
+    case ESourceText(expr) =>
+      val ast = interp(expr).escaped.toAst(expr)
+      Str(ast.toString(grammar = Some(grammar)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>

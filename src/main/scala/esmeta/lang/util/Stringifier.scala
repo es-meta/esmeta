@@ -15,6 +15,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
       case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
       case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
+      case elem: XRefExpression.Op    => xrefExprOpRule(app, elem)
       case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
       case elem: CompoundCondition.Op => compCondOpRule(app, elem)
     }
@@ -166,6 +167,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the " >> rule >> " that is covered by " >> code
       case IntrinsicExpression(intr) =>
         app >> intr
+      case XRefExpression(kind, id) =>
+        app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case expr: InvokeExpression =>
@@ -251,6 +254,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
     import UnaryExpression.Op.*
     app >> (op match {
       case Neg => "-"
+    })
+
+  // operators for emu-xref expressions
+  given xrefExprOpRule: Rule[XRefExpression.Op] = (app, op) =>
+    import XRefExpression.Op.*
+    app >> (op match {
+      case Algo          => "the definition specified in"
+      case InternalSlots => "the internal slots listed in"
+      case ParamLength =>
+        "the number of non-optional parameters of the function definition in"
     })
 
   // literals

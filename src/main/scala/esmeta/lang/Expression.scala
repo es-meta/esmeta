@@ -53,6 +53,13 @@ case class ReturnIfAbruptExpression(
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
+// emu-xref expressions
+case class XRefExpression(kind: XRefExpression.Op, id: String)
+  extends Expression
+case object XRefExpression:
+  enum Op extends LangElem:
+    case Algo, InternalSlots, ParamLength
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 
