@@ -59,6 +59,8 @@ case class State(
     ast match
       case Syntactic(name, _, rhsIdx, children) =>
         prop match
+          // access to parent
+          case Str("parent") => ast.parent.map(AstValue(_)).getOrElse(Absent)
           // access to SDO
           case Str(propStr) if ast.isInstanceOf[Syntactic] =>
             cfg.getSDO((ast, propStr)) match
@@ -81,6 +83,9 @@ case class State(
           case Str(s) => s
           case _      => throw InvalidAstProp(ast, prop)
         (name, propStr) match {
+          // access to parent
+          case (_, "parent") => ast.parent.map(AstValue(_)).getOrElse(Absent)
+          // access to SDO
           case (
                 "IdentifierName \\ (ReservedWord)" | "IdentifierName",
                 "StringValue",

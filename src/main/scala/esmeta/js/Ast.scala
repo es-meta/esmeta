@@ -11,6 +11,9 @@ sealed trait Ast extends JSElem {
   /** production names */
   val name: String
 
+  /** parent */
+  var parent: Option[Ast] = None
+
   /** idx of production */
   def idx: Int = this match
     case lex: Lexical               => 0

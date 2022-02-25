@@ -45,6 +45,19 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   // private helpers
   // ////////////////////////////////////////////////////////////////////////////
 
+  // create syntactic object
+  def syntactic(
+    name: String,
+    args: List[Boolean],
+    idx: Int,
+    children: List[Option[Ast]],
+  ): Syntactic =
+    val syn = Syntactic(name, args, idx, children)
+    // set parent edge
+    for { childOpt <- children }
+      childOpt.foreach(_.parent = Some(syn))
+    syn
+
   // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args => {
     val Production(lhs, _, _, rhsList) = prod
@@ -76,7 +89,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs =>
-          (base: Ast) => Syntactic(name, args, idx, Some(base) :: cs.reverse)
+          (base: Ast) => syntactic(name, args, idx, Some(base) :: cs.reverse)
       }
   })(s"$name$idx")
 
@@ -92,7 +105,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     case _ =>
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-        case cs => Syntactic(name, args, idx, cs.reverse)
+        case cs => syntactic(name, args, idx, cs.reverse)
       }
   })(s"$name$idx")
 
@@ -387,19 +400,19 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       resolveLR(
         log(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
           case _ ~ x0 =>
-            Syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
+            syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
         })("CoalesceExpressionHead1"),
         log(
           (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 => (
               (x: Ast) =>
-                val expr = Syntactic(
+                val expr = syntactic(
                   "CoalesceExpression",
                   args,
                   0,
                   List(Some(x), Some(x0)),
                 )
-                Syntactic(
+                syntactic(
                   "CoalesceExpressionHead",
                   args,
                   0,
