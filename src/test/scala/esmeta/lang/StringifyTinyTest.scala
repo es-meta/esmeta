@@ -84,6 +84,8 @@ class StringifyTinyTest extends LangTest {
       ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))
     lazy val resumeParamStep =
       ResumeEvaluationStep(x, None, Some(x), List(subStep))
+    lazy val returnToResumeStep =
+      ReturnToResumeStep(x, refExpr)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -155,6 +157,9 @@ class StringifyTinyTest extends LangTest {
       toBlockStep(resumeParamStep) -> """
       |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
       |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(returnToResumeStep) -> """
+      |  1. Return _x_.
+      |  1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )

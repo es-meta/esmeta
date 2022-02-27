@@ -52,6 +52,7 @@ trait Parsers extends DivergedParsers {
     setEvalStateStep |
     setStep |
     performStep |
+    returnToResumedStep |
     returnStep |
     assertStep |
     throwStep |
@@ -182,6 +183,13 @@ trait Parsers extends DivergedParsers {
     context ~ arg ~ param ~ rep1(subStep) ^^ {
       case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
     }
+
+  // return to resumed steps
+  lazy val returnToResumedStep: PL[ReturnToResumeStep] =
+    val arg: P[Expression] = "return" ~> endWithExpr
+    val context: P[Variable] =
+      next ~ "1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of" ~> variable <~ "."
+    arg ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
 
   // block steps
   lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }

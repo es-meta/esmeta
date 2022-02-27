@@ -83,6 +83,8 @@ trait Walker extends BasicWalker {
         walkOpt(pOpt, walk),
         walkList(steps, walk),
       )
+    case ReturnToResumeStep(base, arg) =>
+      ReturnToResumeStep(walk(base), walk(arg))
     case BlockStep(block) => BlockStep(walk(block))
     case YetStep(expr)    => YetStep(walk(expr))
   }

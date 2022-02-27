@@ -76,6 +76,12 @@ case class ResumeEvaluationStep(
   steps: List[SubStep],
 ) extends Step
 
+// return to the resumed step
+case class ReturnToResumeStep(
+  context: Reference,
+  argument: Expression,
+) extends Step
+
 // block steps
 case class BlockStep(block: StepBlock) extends Step
 

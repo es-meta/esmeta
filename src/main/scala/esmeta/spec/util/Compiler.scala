@@ -349,8 +349,13 @@ class Compiler(val spec: Spec) {
           IAssign(returnCont, emptyList),
           emptyInst,
         ),
-        IPush(ECont(contName), eReturnCont, false),
+        IPush(ECont(contName), eReturnCont, true),
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
+      )
+    case ReturnToResumeStep(context, arg) =>
+      val eReturnCont = toStrERef(compile(fb, context), "ReturnCont")
+      fb.addInst(
+        ICall(fb.newTId, EPop(eReturnCont, true), List(compile(fb, arg))),
       )
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
