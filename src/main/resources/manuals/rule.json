@@ -55,5 +55,8 @@
   "[YET] Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.": "let instantiatedVarNames = (copy parameterBindings)",
   "[YET] Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
   "[YET] If _parameterNames_ has any duplicate entries, let _hasDuplicates_ be *true*. Otherwise, let _hasDuplicates_ be *false*.": "call hasDuplicates = @IsDuplicate(parameterNames)",
-  "[YET] Let _calleeContext_ be a new execution context.": "let calleeContext = (new ExecutionContext())"
+  "[YET] Let _calleeContext_ be a new execution context.": "let calleeContext = (new ExecutionContext())",
+  "[YET] Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.": "{ (pop > @EXECUTION_STACK) @CONTEXT = callerContext }",
+  "[YET] Perform any necessary implementation-defined initialization of _calleeContext_.": "nop",
+  "[YET] Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)"
 }

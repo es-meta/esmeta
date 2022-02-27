@@ -54,7 +54,8 @@ class Compiler(val spec: Spec) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
       val inst = compileWithScope(this, body)
-      val func = Func(false, kind, name, params, retTy, inst, Some(algo))
+      val patched = patchPrefix(inst)
+      val func = Func(false, kind, name, params, retTy, patched, Some(algo))
       funcs += func
       func
 
@@ -85,6 +86,19 @@ class Compiler(val spec: Spec) {
 
     // get closure name
     def nextCloName: String = s"$name:clo${nextCId}"
+
+    // handle prefix for compiled instruction
+    private def patchPrefix(body: Inst): Inst =
+      algo.head match
+        case BuiltinHead(_, ps, _) =>
+          // add bindings for original arguments
+          val bs = ps.map(p =>
+            ICall(Name(p.name), EGLOBAL_GET_ARGUMENT, List(ENAME_ARGS_LIST)),
+          )
+          body match
+            case ISeq(is) => ISeq(bs ++ is)
+            case _        => ISeq(bs ++ List(body))
+        case _ => body
 
     // push a scope to the scope stack
     private def pushScope: Unit = scopes = ListBuffer() :: scopes
