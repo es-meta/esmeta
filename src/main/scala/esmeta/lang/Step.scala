@@ -63,9 +63,17 @@ case class SuspendStep(context: Reference, remove: Boolean) extends Step
 
 // set the code evaluation state steps
 case class SetEvaluationStateStep(
-  ref: Reference,
+  context: Reference,
   param: Option[Variable], // TODO handle type
   body: Step,
+) extends Step
+
+// resume the suspended evaluation steps
+case class ResumeEvaluationStep(
+  context: Reference,
+  argument: Option[Expression],
+  param: Option[Variable], // TODO handle type
+  steps: List[SubStep],
 ) extends Step
 
 // block steps

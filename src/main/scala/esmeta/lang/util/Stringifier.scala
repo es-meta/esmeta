@@ -125,6 +125,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case None    => app >> "for that execution context "
           case Some(p) => app >> "with a " >> p >> " "
         app >> "the following steps will be performed:" >> step
+      case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
+        given Rule[Step] = stepWithUpperRule(true)
+        app >> """<emu-meta effects="user-code">Resume the suspended evaluation of """ >> context
+        app >> "</emu-meta>"
+        for { arg <- argOpt }
+          app >> " using " >> arg >> " as the result of the operation that suspended it"
+        app >> "."
+        for { param <- paramOpt }
+        app >> " Let " >> param >> " be the value returned by the resumed computation."
+        for { step <- body } app :> "1. " >> step // TODO
+        app
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>

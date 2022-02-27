@@ -63,6 +63,7 @@ trait Parsers extends DivergedParsers {
     ifStep |
     forEachStep |
     forEachIntStep |
+    resumeStep |
     blockStep
   }.named("lang.Step")
 
@@ -164,6 +165,22 @@ trait Parsers extends DivergedParsers {
     ("such that when evaluation is resumed" ~> param) ~
     ("the following steps will be performed:" ~> step) ^^ {
       case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
+    }
+
+  // resume the suspended evaluation steps
+  lazy val resumeStep: PL[ResumeEvaluationStep] =
+    lazy val context: P[Variable] =
+      tagStart ~ "Resume the suspended evaluation of" ~> variable <~ tagEnd
+    lazy val arg: P[Option[Expression]] =
+      "using" ~> expr <~ "as the result of the operation that suspended it." ^^ {
+        Some(_)
+      } | "." ^^^ { None }
+    lazy val param: P[Option[Variable]] =
+      "Let" ~> variable <~ "be the" ~ ("value" | "completion record") ~ "returned by the resumed computation." <~ guard(
+        "\n",
+      ) ^^ { Some(_) } | guard("\n") ^^^ { None }
+    context ~ arg ~ param ~ rep1(subStep) ^^ {
+      case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
     }
 
   // block steps
@@ -545,9 +562,10 @@ trait Parsers extends DivergedParsers {
   // field includsion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
     lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
-    ref ~
+    // GeneratorValidate
+    (ref <~ opt("also")) ~
     ("has" ^^! false ||| "does not have" ^^! true) ~
-    (("an" | "a") ~> fieldLiteral <~ fieldStr) ^^ {
+    (("an" | "a") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
 
@@ -558,7 +576,6 @@ trait Parsers extends DivergedParsers {
       case nt ~ l ~ r => ProductionCondition(nt, l, r)
     }
 
-  // TODO remove
   // abrupt completion check conditions
   lazy val abruptCond: PL[AbruptCompletionCondition] =
     variable ~ isNeg <~ "an abrupt completion" ^^ {
@@ -584,8 +601,10 @@ trait Parsers extends DivergedParsers {
       (neg <~ "different from") ~ expr ^^ {
         case n ~ e => new ~(!n, List(e))
       } |||
-      // SameValueNonNumeric
-      (neg <~ "the same as") ~ expr ^^ { case n ~ e => new ~(n, List(e)) }
+      // SameValueNonNumeric, GeneratorValidate
+      (neg <~ "the same" ~ opt("value") ~ "as") ~ expr ^^ {
+        case n ~ e => new ~(n, List(e))
+      }
 
     left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 

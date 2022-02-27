@@ -76,6 +76,13 @@ trait Walker extends BasicWalker {
     case SuspendStep(base, r)   => SuspendStep(walk(base), r)
     case SetEvaluationStateStep(base, p, body) =>
       SetEvaluationStateStep(walk(base), walkOpt(p, walk), walk(body))
+    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
+      ResumeEvaluationStep(
+        walk(b),
+        walkOpt(aOpt, walk),
+        walkOpt(pOpt, walk),
+        walkList(steps, walk),
+      )
     case BlockStep(block) => BlockStep(walk(block))
     case YetStep(expr)    => YetStep(walk(expr))
   }

@@ -324,14 +324,34 @@ class Compiler(val spec: Spec) {
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, false)))
-    case SetEvaluationStateStep(context, pOpt, body) =>
-      val codeState = Prop(compile(fb, context), EStr("ResumeCont"))
+    case SetEvaluationStateStep(context, paramOpt, body) =>
+      val codeState = toStrRef(compile(fb, context), "ResumeCont")
       val contName = fb.nextCloName
-      val ps = pOpt.map(p => Func.Param(Name(p.name))).toList
+      val ps = toParams(paramOpt)
       val newFb =
         FuncBuilder(Func.Kind.Clo, contName, ps, AnyType, body, fb.algo)
       newFb.result
       fb.addInst(IAssign(codeState, ECont(contName)))
+    case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
+      val ctxt = compile(fb, context)
+      val returnCont = toStrRef(ctxt, "ReturnCont")
+      val (eResumeCont, eReturnCont) =
+        (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
+      val contName = fb.nextCloName
+      val ps = toParams(paramOpt)
+      val bodyStep = BlockStep(StepBlock(steps))
+      val newFb =
+        FuncBuilder(Func.Kind.Clo, contName, ps, AnyType, bodyStep, fb.algo)
+      newFb.result
+      fb.addInst(
+        IIf(
+          isAbsent(eReturnCont),
+          IAssign(returnCont, emptyList),
+          emptyInst,
+        ),
+        IPush(ECont(contName), eReturnCont, false),
+        ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
+      )
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
@@ -659,7 +679,12 @@ class Compiler(val spec: Spec) {
       case _ => fb.addInst(IAssign(x, compile(fb, cond)))
 
   // instruction helpers
+  private inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =
+    paramOpt.map(param => Func.Param(Name(param.name))).toList
   private inline def emptyInst = ISeq(List())
+
+  // expression helpers
+  private inline def emptyList = EList(List())
 
   // literal helpers
   private val zero = EMathVal(0)

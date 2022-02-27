@@ -66,7 +66,10 @@ class Interp(
           for (assert <- checkAfter) interp(assert)
           false
         case CallContext(retId, ctxt) :: rest =>
-          val value = st.context.retVal.getOrElse(throw NoReturnValue)
+          // XXX RequireInternalSlot has no explicit return step
+          // It is fixed in the recent specification
+          val value = st.context.retVal.getOrElse(Undef)
+          // val value = st.context.retVal.getOrElse(throw NoReturnValue)
           (value, setTypeMap.get(st.context.name)) match
             case (addr: Addr, Some(tname)) =>
               st.setType(addr, tname)
@@ -139,7 +142,8 @@ class Interp(
           st.context = Context(func, newLocals)
         case Cont(func, captured, callStack) => {
           val vs = args.map(interp)
-          val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+          val newLocals =
+            getLocals(func.irFunc.params, vs, cont = true) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
@@ -347,7 +351,11 @@ class Interp(
 
   /** get initial local variables */
   import IRFunc.Param
-  def getLocals(params: List[Param], args: List[Value]): MMap[Local, Value] = {
+  def getLocals(
+    params: List[Param],
+    args: List[Value],
+    cont: Boolean = false,
+  ): MMap[Local, Value] = {
     val map = MMap[Local, Value]()
     @tailrec
     def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
@@ -358,7 +366,8 @@ class Interp(
           aux(pl, Nil)
         } else RemainingParams(ps)
       case (Nil, args) =>
-        throw RemainingArgs(args)
+        // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+        if (!cont) throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
         aux(pl, al)
