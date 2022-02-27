@@ -65,5 +65,6 @@
   "[YET] Remove _genContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "{ (pop > @EXECUTION_STACK) @CONTEXT = @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)] }",
   "[YET] Assert: If we return here, the generator either threw an exception or performed either an implicit or explicit return.": "assert true",
   "[YET] Once a generator enters the ~completed~ state it never leaves it and its associated execution context is never resumed. Any execution state associated with _generator_ can be discarded at this point.": "nop",
-  "[YET] Assert: When we return here, _genContext_ has already been removed from the execution context stack and _methodContext_ is the currently running execution context.": "assert (= methodContext @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)])"
+  "[YET] Assert: When we return here, _genContext_ has already been removed from the execution context stack and _methodContext_ is the currently running execution context.": "assert (= methodContext @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)])",
+  "[YET] Assert: If _result_ is not an abrupt completion, then Type(_result_) is an ECMAScript language type.": "assert true"
 }
