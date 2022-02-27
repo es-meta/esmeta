@@ -248,13 +248,15 @@ class Interp(
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
       Bool(interp(expr).escaped match
-        case _: Number     => ty.name == "Number"
-        case _: BigInt     => ty.name == "BigInt"
-        case _: Str        => ty.name == "String"
-        case _: Bool       => ty.name == "Boolean"
-        case Undef         => ty.name == "Undefined"
-        case Null          => ty.name == "Null"
-        case AstValue(ast) => ast.types contains ty.name
+        case _: Number => ty.name == "Number"
+        case _: BigInt => ty.name == "BigInt"
+        case _: Str    => ty.name == "String"
+        case _: Bool   => ty.name == "Boolean"
+        case Undef     => ty.name == "Undefined"
+        case Null      => ty.name == "Null"
+        case AstValue(ast) =>
+          ty.name == "ParseNode" || (ast.types contains ty.name)
+        case _: Clo => ty.name == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
             case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO

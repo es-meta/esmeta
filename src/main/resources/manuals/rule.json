@@ -58,5 +58,11 @@
   "[YET] Let _calleeContext_ be a new execution context.": "let calleeContext = (new ExecutionContext())",
   "[YET] Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.": "{ (pop > @EXECUTION_STACK) @CONTEXT = callerContext }",
   "[YET] Perform any necessary implementation-defined initialization of _calleeContext_.": "nop",
-  "[YET] Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)"
+  "[YET] Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)",
+  "[YET] Assert: _generatorBody_ is an Abstract Closure with no parameters.": "assert (? generatorBody: AbstractClosure)",
+  "[YET] Assert: _genContext_ is the execution context of a generator.": "assert (? genContext: ExecutionContext)",
+  "[YET] If _genContext_ does not have a Generator component, return ~non-generator~.": "if (= genContext.Generator absent) return ~non-generator~ else {}",
+  "[YET] Remove _genContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "{ (pop > @EXECUTION_STACK) @CONTEXT = @EXECUTION_STACK[(- @EXECUTION_STACK.length 1)] }",
+  "[YET] Assert: If we return here, the generator either threw an exception or performed either an implicit or explicit return.": "assert true",
+  "[YET] Once a generator enters the ~completed~ state it never leaves it and its associated execution context is never resumed. Any execution state associated with _generator_ can be discarded at this point.": "nop"
 }

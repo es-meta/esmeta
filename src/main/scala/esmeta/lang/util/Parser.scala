@@ -655,8 +655,8 @@ trait Parsers extends DivergedParsers {
   }.named("lang.Reference")
 
   // property references
-  lazy val propRef: PL[PropertyReference] =
-    opt("the value of") ~> baseRef ~ rep1(prop) ^^ {
+  lazy val propRef: PL[PropertyReference] = opt("the value of") ~> {
+    baseRef ~ rep1(prop) ^^ {
       case base ~ ps =>
         val (p :: rest) = ps
         rest.foldLeft[PropertyReference](PropertyReference(base, p))(
@@ -665,6 +665,7 @@ trait Parsers extends DivergedParsers {
     } ||| prop ~ baseRef ^^ {
       case p ~ base => PropertyReference(base, p)
     }
+  }
 
   // base references
   lazy val baseRef: PL[Reference] =
