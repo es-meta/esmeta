@@ -17,7 +17,11 @@ case class Context(
   var retVal: Option[Value] = None
 
   /** copy contexts */
-  def copied: Context = copy(locals = MMap.from(locals))
+  def copied: Context = {
+    val newContext = copy(locals = MMap.from(locals))
+    newContext.cursor = cursor
+    newContext
+  }
 
   /** name */
   def name: String = func.irFunc.name
