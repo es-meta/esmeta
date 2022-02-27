@@ -62,8 +62,10 @@ trait UnitWalker extends BasicUnitWalker {
     case PushCtxtStep(ref)      => walk(ref)
     case NoteStep(note)         =>
     case SuspendStep(base, _)   => walk(base)
-    case BlockStep(block)       => walk(block)
-    case YetStep(expr)          => walk(expr)
+    case SetEvaluationStateStep(base, p, body) =>
+      walk(base); walkOpt(p, walk); walk(step)
+    case BlockStep(block) => walk(block)
+    case YetStep(expr)    => walk(expr)
   }
 
   def walk(expr: Expression): Unit = expr match {

@@ -83,8 +83,8 @@ class Compiler(val spec: Spec) {
     // get next temporal identifier with expressions
     def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
 
-    // get next closure name
-    def nextClosureName: String = s"$name:clo${nextCId}"
+    // get closure name
+    def nextCloName: String = s"$name:clo${nextCId}"
 
     // push a scope to the scope stack
     private def pushScope: Unit = scopes = ListBuffer() :: scopes
@@ -310,6 +310,14 @@ class Compiler(val spec: Spec) {
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, false)))
+    case SetEvaluationStateStep(context, pOpt, body) =>
+      val codeState = Prop(compile(fb, context), EStr("ResumeCont"))
+      val contName = fb.nextCloName
+      val ps = pOpt.map(p => Func.Param(Name(p.name))).toList
+      val newFb =
+        FuncBuilder(Func.Kind.Clo, contName, ps, AnyType, body, fb.algo)
+      newFb.result
+      fb.addInst(IAssign(codeState, ECont(contName)))
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
@@ -461,7 +469,7 @@ class Compiler(val spec: Spec) {
     case AbstractClosureExpression(params, captured, body) =>
       val ps =
         params.map(x => Func.Param(compile(x), false, IRType("any")))
-      val cloName = fb.nextClosureName
+      val cloName = fb.nextCloName
       val newFb =
         FuncBuilder(Func.Kind.Clo, cloName, ps, AnyType, body, fb.algo)
       newFb.result

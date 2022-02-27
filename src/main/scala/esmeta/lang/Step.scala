@@ -61,6 +61,13 @@ case class NoteStep(note: String) extends Step
 // suspend steps
 case class SuspendStep(context: Reference, remove: Boolean) extends Step
 
+// set the code evaluation state steps
+case class SetEvaluationStateStep(
+  ref: Reference,
+  param: Option[Variable], // TODO handle type
+  body: Step,
+) extends Step
+
 // block steps
 case class BlockStep(block: StepBlock) extends Step
 

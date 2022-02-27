@@ -76,6 +76,9 @@ class StringifyTinyTest extends LangTest {
     )
     lazy val suspendStep = SuspendStep(x, false)
     lazy val suspendAndRemoveStep = SuspendStep(x, true)
+    lazy val setEvalStateStep = SetEvaluationStateStep(x, None, blockStep)
+    lazy val setEvalStateParamStep =
+      SetEvaluationStateStep(x, Some(x), blockStep)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 
@@ -132,6 +135,12 @@ class StringifyTinyTest extends LangTest {
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
       suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
+      toBlockStep(setEvalStateStep) -> """
+      |  1. Set the code evaluation state of _x_ such that when evaluation is resumed for that execution context the following steps will be performed:
+      |    1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(setEvalStateParamStep) -> """
+      |  1. Set the code evaluation state of _x_ such that when evaluation is resumed with a _x_ the following steps will be performed:
+      |    1. Let _x_ be _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )

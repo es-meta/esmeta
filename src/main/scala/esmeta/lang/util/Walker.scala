@@ -74,8 +74,10 @@ trait Walker extends BasicWalker {
     case PushCtxtStep(ref)      => PushCtxtStep(walk(ref))
     case NoteStep(note)         => NoteStep(note)
     case SuspendStep(base, r)   => SuspendStep(walk(base), r)
-    case BlockStep(block)       => BlockStep(walk(block))
-    case YetStep(expr)          => YetStep(walk(expr))
+    case SetEvaluationStateStep(base, p, body) =>
+      SetEvaluationStateStep(walk(base), walkOpt(p, walk), walk(body))
+    case BlockStep(block) => BlockStep(walk(block))
+    case YetStep(expr)    => YetStep(walk(expr))
   }
 
   def walk(expr: Expression): Expression = expr match {

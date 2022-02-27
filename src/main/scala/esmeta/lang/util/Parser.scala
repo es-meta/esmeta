@@ -29,11 +29,13 @@ trait Parsers extends DivergedParsers {
 
   // sub-steps
   lazy val subStepPrefix: Parser[Option[String]] =
-    next ~> "1." ~> opt("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") <~ upper
+    val directive =
+      ("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") |
+      ("[fence-effects=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]")
+    next ~> "1." ~> opt(directive) <~ upper
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
-      case x ~ s =>
-        SubStep(x, s)
+      case x ~ s => SubStep(x, s)
     }
 
   // figure string
@@ -47,6 +49,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
     letStep |
+    setEvalStateStep |
     setStep |
     performStep |
     returnStep |
@@ -68,14 +71,9 @@ trait Parsers extends DivergedParsers {
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
-  // TODO remove componentRef
   lazy val setStep: PL[SetStep] =
-    ("set" ~> (componentRef | ref) <~ ("as" | "to")) ~ endWithExpr ^^ {
+    ("set" ~> ref <~ ("as" | "to")) ~ endWithExpr ^^ {
       case r ~ e => SetStep(r, e)
-    }
-  lazy val componentRef: PL[Reference] =
-    ("the" ~> camel <~ opt("component")) ~ ("of" ~> variable) ^^ {
-      case c ~ v => PropertyReference(v, ComponentProperty(c))
     }
 
   // if-then-else steps
@@ -155,6 +153,17 @@ trait Parsers extends DivergedParsers {
       opt("and remove it from the execution context stack") ^^ { _.isDefined }
     "suspend" ~> baseRef ~ (remove <~ end) ^^ {
       case base ~ r => SuspendStep(base, r)
+    }
+
+  // set the code evaluation state steps
+  lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
+    lazy val param: P[Option[Variable]] =
+      "for that execution context" ^^^ { None } |
+      "with a" ~ opt(ty) ~> variable ^^ { Some(_) } // TODO handle type
+    ("set the code evaluation state of" ~> variable) ~
+    ("such that when evaluation is resumed" ~> param) ~
+    ("the following steps will be performed:" ~> step) ^^ {
+      case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
     }
 
   // block steps
@@ -445,11 +454,8 @@ trait Parsers extends DivergedParsers {
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
-    // TODO change this
-    lazy val excludedName =
-      "LexicalEnvironment" // OrdinaryCallBindThis, FunctionDeclarationInstantiation
     lazy val name = (opt("the result of performing" | "the") ~ guard(
-      not(excludedName),
+      not(component),
     ) ~> word)
     lazy val base = ("of" ~> expr)
     lazy val args = repsep(expr, sep("and"))
@@ -630,15 +636,15 @@ trait Parsers extends DivergedParsers {
   }.named("lang.Reference")
 
   // property references
-  lazy val propRef: PL[PropertyReference] = baseRef ~ rep1(prop) ^^ {
-    case base ~ ps =>
-      val (p :: rest) = ps
-      rest.foldLeft[PropertyReference](PropertyReference(base, p))(
-        PropertyReference(_, _),
-      )
-  } |||
-    ("the" ~> nt <~ "of") ~ baseRef ^^ {
-      case nt ~ base => PropertyReference(base, NonterminalProperty(nt))
+  lazy val propRef: PL[PropertyReference] =
+    opt("the value of") ~> baseRef ~ rep1(prop) ^^ {
+      case base ~ ps =>
+        val (p :: rest) = ps
+        rest.foldLeft[PropertyReference](PropertyReference(base, p))(
+          PropertyReference(_, _),
+        )
+    } ||| prop ~ baseRef ^^ {
+      case p ~ base => PropertyReference(base, p)
     }
 
   // base references
@@ -662,8 +668,23 @@ trait Parsers extends DivergedParsers {
     ("." ~> "[[" ~> word <~ "]]") ^^ { FieldProperty(_) } |||
     ("." ~ "[[" ~> intr <~ "]]") ^^ { IntrinsicProperty(_) } |||
     (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
+    ("the" ~> component <~ opt("component") ~ "of") ^^ {
+      ComponentProperty(_)
+    } |||
+    ("the" ~> nt <~ "of") ^^ { NonterminalProperty(_) } |||
     ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
   }.named("lang.Property")
+
+  // TODO extract component name from spec.html
+  lazy val component: Parser[String] =
+    "LexicalEnvironment" |
+    "Function" |
+    "Generator" |
+    "PrivateEnvironment" |
+    "Realm" |
+    "ScriptOrModule" |
+    "VariableEnvironment" |
+    "value"
 
   // ---------------------------------------------------------------------------
   // metalanguage intrinsics
