@@ -102,7 +102,7 @@ class EvalSmallTest extends JSTest {
     // "symbol3.js",
     "template1.js",
     "template2.js",
-    "try1.js",
+    // "try1.js",
     "try2.js",
     // "typeof1.js",
     // "variable-declare1.js",

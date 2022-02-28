@@ -608,7 +608,7 @@ class Compiler(val spec: Spec) {
       val cond = op match {
         case Abrupt =>
           val tv = toERef(fb, x, EStr("Type"))
-          and(EIsCompletion(x), is(tv, ECONST_NORMAL))
+          and(EIsCompletion(x), not(is(tv, ECONST_NORMAL)))
         case Finite =>
           not(or(is(x, posInf), is(x, negInf)))
         case Duplicated =>

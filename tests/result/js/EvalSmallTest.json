@@ -1,7 +1,7 @@
 {
   "abstract-equality2.js" : true,
   "abstract-equality3.js" : true,
-  "abstract-equality4.js" : false,
+  "abstract-equality4.js" : true,
   "abstract-equality5.js" : true,
   "addition1.js" : true,
   "addition2.js" : true,
@@ -38,6 +38,7 @@
   "symbol1.js" : true,
   "symbol2.js" : true,
   "symbol3.js" : true,
+  "try1.js" : true,
   "typeof1.js" : true,
   "variable-declare1.js" : true,
   "variable-declare2.js" : true,
