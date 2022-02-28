@@ -34,6 +34,7 @@
   "semicolon-insertion3.js" : true,
   "string1.js" : true,
   "string3.js" : true,
+  "symbol1.js" : true,
   "typeof1.js" : true,
   "variable-declare1.js" : true,
   "variable-declare2.js" : true,

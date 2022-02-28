@@ -261,6 +261,7 @@ class Interp(
         case addr: Addr =>
           st(addr) match
             case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO
+            case m: SymbolObj => ty.name == "Symbol"
             case _         => ???
         case v => ???,
       )
