@@ -17,7 +17,7 @@ class EvalSmallTest extends JSTest {
     // "addition1.js",
     // "addition2.js",
     // "addition3.js",
-    "addition4.js",
+    // "addition4.js",
     // "addition5.js",
     "addition6.js",
     // "arguments1.js",

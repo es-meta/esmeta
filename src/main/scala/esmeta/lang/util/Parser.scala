@@ -752,7 +752,7 @@ trait Parsers extends DivergedParsers {
   // ---------------------------------------------------------------------------
   given ty: PL[Type] = {
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
-    "ECMAScript function object" ^^! { Type("ECMAScriptFunctionObject") } |||
+    "[a-zA-Z ]+ object".r ^^ { Type(_) } |||
     "\\w+ Environment Record".r ^^ { Type(_) } |||
     opt("ECMAScript code") ~ "execution context" ^^! {
       Type("ExecutionContext")
