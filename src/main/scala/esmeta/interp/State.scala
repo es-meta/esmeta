@@ -82,40 +82,44 @@ case class State(
         val propStr = prop match
           case Str(s) => s
           case _      => throw InvalidAstProp(ast, prop)
-        (name, propStr) match {
-          // access to parent
-          case (_, "parent") => ast.parent.map(AstValue(_)).getOrElse(Absent)
+        // access to parent
+        if (propStr == "parent") ast.parent.map(AstValue(_)).getOrElse(Absent)
+        else {
           // access to SDO
-          case (
-                "IdentifierName \\ (ReservedWord)" | "IdentifierName",
-                "StringValue",
-              ) =>
-            Str(str)
-          // TODO handle numeric seperator in ESValueParser
-          case ("NumericLiteral", "MV" | "NumericValue") =>
-            ESValueParser.parseNumber(str.replaceAll("_", ""))
-          case ("StringLiteral", "SV" | "StringValue") =>
-            Str(ESValueParser.parseString(str))
-          case ("NoSubstitutionTemplate", "TV") =>
-            Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
-          case ("TemplateHead", "TV") =>
-            Str(ESValueParser.parseTVTemplateHead(str))
-          case ("TemplateMiddle", "TV") =>
-            Str(ESValueParser.parseTVTemplateMiddle(str))
-          case ("TemplateTail", "TV") =>
-            Str(ESValueParser.parseTVTemplateTail(str))
-          case ("NoSubstitutionTemplate", "TRV") =>
-            Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
-          case ("TemplateHead", "TRV") =>
-            Str(ESValueParser.parseTRVTemplateHead(str))
-          case ("TemplateMiddle", "TRV") =>
-            Str(ESValueParser.parseTRVTemplateMiddle(str))
-          case ("TemplateTail", "TRV") =>
-            Str(ESValueParser.parseTRVTemplateTail(str))
-          case (_, "Contains") => Bool(false)
-          case ("RegularExpressionLiteral", name) =>
-            throw NotSupported(s"RegularExpressionLiteral.$propStr")
-          case _ => error(s"invalid Lexical access: $name.$propStr")
+          // TODO
+          val result = (name, propStr) match {
+            case (
+                  "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+                  "StringValue",
+                ) =>
+              Str(str)
+            // TODO handle numeric seperator in ESValueParser
+            case ("NumericLiteral", "MV" | "NumericValue") =>
+              ESValueParser.parseNumber(str.replaceAll("_", ""))
+            case ("StringLiteral", "SV" | "StringValue") =>
+              Str(ESValueParser.parseString(str))
+            case ("NoSubstitutionTemplate", "TV") =>
+              Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
+            case ("TemplateHead", "TV") =>
+              Str(ESValueParser.parseTVTemplateHead(str))
+            case ("TemplateMiddle", "TV") =>
+              Str(ESValueParser.parseTVTemplateMiddle(str))
+            case ("TemplateTail", "TV") =>
+              Str(ESValueParser.parseTVTemplateTail(str))
+            case ("NoSubstitutionTemplate", "TRV") =>
+              Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
+            case ("TemplateHead", "TRV") =>
+              Str(ESValueParser.parseTRVTemplateHead(str))
+            case ("TemplateMiddle", "TRV") =>
+              Str(ESValueParser.parseTRVTemplateMiddle(str))
+            case ("TemplateTail", "TRV") =>
+              Str(ESValueParser.parseTRVTemplateTail(str))
+            case (_, "Contains") => Bool(false)
+            case ("RegularExpressionLiteral", name) =>
+              throw NotSupported(s"RegularExpressionLiteral.$propStr")
+            case _ => error(s"invalid Lexical access: $name.$propStr")
+          }
+          Clo(cfg.fnameMap("LexicalSDO"), Map(Name("result") -> result))
         }
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(str.length)

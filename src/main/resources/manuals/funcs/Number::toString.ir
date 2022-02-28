@@ -1,0 +1,3 @@
+def <NUM>:Number::toString(x: Number): Unknown {
+  return ([str] x)
+}

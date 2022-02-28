@@ -473,15 +473,9 @@ class Compiler(val spec: Spec) {
     case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
       val baseExpr = compile(fb, base)
       val callRef = toERef(fb, baseExpr, EStr(name))
-      base match
-        // check if it is lexical, and change to property access
-        case NonterminalLiteral(_, ntName)
-            if spec.grammar.topLevelLexicals.contains(ntName) =>
-          callRef
-        case _ =>
-          val (x, xExpr) = fb.newTIdWithExpr
-          fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
-          xExpr
+      val (x, xExpr) = fb.newTIdWithExpr
+      fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
+      xExpr
     case ReturnIfAbruptExpression(expr, check) =>
       EReturnIfAbrupt(compile(fb, expr), check)
     case ListExpression(entries) =>

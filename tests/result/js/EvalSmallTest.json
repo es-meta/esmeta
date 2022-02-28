@@ -1,5 +1,7 @@
 {
   "abstract-equality3.js" : true,
+  "arguments1.js" : true,
+  "array1.js" : true,
   "assign-object.js" : true,
   "empty-statement.js" : true,
   "equality1.js" : true,
@@ -11,7 +13,10 @@
   "global-object.js" : true,
   "global.js" : true,
   "if-statement1.js" : true,
+  "instanceof1.js" : true,
   "multiple-statements.js" : true,
+  "number1.js" : true,
+  "read-property1.js" : true,
   "semicolon-insertion2.js" : true,
   "semicolon-insertion3.js" : true,
   "string3.js" : true,

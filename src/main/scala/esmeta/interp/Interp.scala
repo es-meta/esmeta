@@ -221,6 +221,9 @@ class Interp(
         case (Str(s), ToNumber)  => Number(ESValueParser.str2Number(s))
         case (Str(s), ToBigInt)  => ESValueParser.str2bigint(s)
         case (Number(d), ToMath) => Math(d)
+        case (Number(d), ToStr(radixOpt)) =>
+          val radix = radixOpt.fold(10)(e => interp(e).escaped.toInt(e))
+          Str(toStringHelper(d, radix))
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
@@ -238,7 +241,9 @@ class Interp(
             case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
             case _: SymbolObj                                   => "Symbol"
             case v                                              => ???
-        case v => ???,
+        case v =>
+          println(v)
+          ???,
       )
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
