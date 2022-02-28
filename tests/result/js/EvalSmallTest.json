@@ -1,6 +1,7 @@
 {
   "abstract-equality2.js" : true,
   "abstract-equality3.js" : true,
+  "abstract-equality5.js" : true,
   "addition1.js" : true,
   "addition2.js" : true,
   "addition3.js" : true,
