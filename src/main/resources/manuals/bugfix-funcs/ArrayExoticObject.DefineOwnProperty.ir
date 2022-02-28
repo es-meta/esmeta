@@ -5,7 +5,7 @@ def <INTERNAL>:ArrayExoticObject.DefineOwnProperty(A: ArrayExoticObject, P: Prop
   } else {
     if (array-index P) {
       call %1 = clo<OrdinaryGetOwnProperty>(A, "length")
-      let oldLenDesc = [! %1]
+      let oldLenDesc = [! %1] // BUG
       call %2 = clo<IsDataDescriptor>(oldLenDesc)
       assert (= [! %2] true)
       assert (= oldLenDesc.Configurable false)

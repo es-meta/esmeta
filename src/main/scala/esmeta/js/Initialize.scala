@@ -97,7 +97,8 @@ class Initialize(
           case YetObj(tyname, desc) => None
           case _                    => Some(INTRINSICS, name, Str(name), name)
       case NormalAccess(base, name) =>
-        Some(s"$INTRINSICS.$base", name, Str(name), name)
+        val normalized = base.toString.replace("%", "")
+        Some(s"$INTRINSICS.$normalized", name, Str(name), name)
       case SymbolAccess(base, name) =>
         val addr = NamedAddr(s"$INTRINSICS.Symbol.$name")
         Some(

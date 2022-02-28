@@ -24,7 +24,7 @@ class EvalSmallTest extends JSTest {
     // "arguments2.js",
     // "array1.js",
     // "array2.js",
-    "array3.js",
+    // "array3.js",
     "array4.js",
     "array5.js",
     "array6.js",
