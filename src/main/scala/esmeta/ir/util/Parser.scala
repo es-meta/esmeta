@@ -122,6 +122,8 @@ trait Parsers extends BasicParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
+    } | "(" ~ "duplicated" ~> expr <~ ")" ^^ {
+      case e => EDuplicated(e)
     } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
     } | ("cont<" ~> fname <~ ">") ^^ {

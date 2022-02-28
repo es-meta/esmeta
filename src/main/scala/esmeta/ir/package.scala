@@ -67,7 +67,6 @@ val GLOBAL_SYMBOL_TYPE = Global("Symbol")
 val GLOBAL_NUMBER_TYPE = Global("Number")
 val GLOBAL_BIGINT_TYPE = Global("BigInt")
 val GLOBAL_OBJECT_TYPE = Global("Object")
-val GLOBAL_GET_ARGUMENT = Global("GetArgument")
 
 /** predefined globals identifier expressions */
 val EGLOBAL_CONTEXT = ERef(GLOBAL_CONTEXT)
@@ -81,7 +80,6 @@ val EGLOBAL_SYMBOL_TYPE = ERef(GLOBAL_SYMBOL_TYPE)
 val EGLOBAL_NUMBER_TYPE = ERef(GLOBAL_NUMBER_TYPE)
 val EGLOBAL_BIGINT_TYPE = ERef(GLOBAL_BIGINT_TYPE)
 val EGLOBAL_OBJECT_TYPE = ERef(GLOBAL_OBJECT_TYPE)
-val EGLOBAL_GET_ARGUMENT = ERef(GLOBAL_GET_ARGUMENT)
 
 /** predefined local variables */
 val NAME_THIS = Name("this")

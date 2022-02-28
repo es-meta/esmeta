@@ -125,30 +125,24 @@ class Interp(
   }
 
   /** transition for calls */
-  def call(lhs: Id, fexpr: Expr, args: List[Expr]): Unit = fexpr match {
-    // TODO remove
-    case ERef(Global(name)) if simpleFuncs contains name =>
-      // TODO handle this in compiler
-      val vs =
-        if (name == "IsAbruptCompletion") args.map(interp)
-        else args.map(interp(_).escaped)
-      st.define(lhs, simpleFuncs(name)(st, vs))
-    case _ =>
-      interp(fexpr).escaped match {
-        case Clo(func, captured) =>
-          val vs = args.map(interp)
-          val newLocals = getLocals(func.irFunc.params, vs) ++ captured
-          st.callStack ::= CallContext(lhs, st.context)
-          st.context = Context(func, newLocals)
-        case Cont(func, captured, callStack) => {
-          val vs = args.map(interp)
-          val newLocals =
-            getLocals(func.irFunc.params, vs, cont = true) ++ captured
-          st.callStack = callStack.map(_.copied)
-          st.context = Context(func, newLocals)
-        }
-        case v => throw NoFunc(fexpr, v)
-      }
+  def call(
+    lhs: Id,
+    fexpr: Expr,
+    args: List[Expr],
+  ): Unit = interp(fexpr).escaped match {
+    case Clo(func, captured) =>
+      val vs = args.map(interp)
+      val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+      st.callStack ::= CallContext(lhs, st.context)
+      st.context = Context(func, newLocals)
+    case Cont(func, captured, callStack) => {
+      val vs = args.map(interp)
+      val newLocals =
+        getLocals(func.irFunc.params, vs, cont = true) ++ captured
+      st.callStack = callStack.map(_.copied)
+      st.context = Context(func, newLocals)
+    }
+    case v => throw NoFunc(fexpr, v)
   }
 
   /** transition for expresssions */
@@ -330,6 +324,9 @@ class Interp(
       interp(map).escaped match
         case addr: Addr => st.keys(addr, intSorted)
         case v          => throw NoAddr(map, v)
+    case EDuplicated(expr) =>
+      val vs = interp(expr).escaped.getList(expr, st).values
+      Bool(vs.toSet.size != vs.length)
     case EMathVal(n)           => Math(n)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
     case ENumber(n)            => Number(n)
@@ -415,75 +412,6 @@ object Interp {
   val setTypeMap: Map[String, String] = Map(
     "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
     "ArrayCreate" -> "ArrayExoticObject",
-  )
-
-  // TODO REMOVE simple functions / handle them in compilation
-  // simple functions
-  type SimpleFunc = PartialFunction[(State, List[Value]), Value]
-  def arityCheck(pair: (String, SimpleFunc)): (String, SimpleFunc) =
-    val (name, f) = pair
-    name -> {
-      case (st, args) =>
-        optional(f(st, args)).getOrElse(throw InvalidArgs(name, args))
-    }
-  def mathBOp(
-    name: String,
-    op: (BigDecimal, BigDecimal) => BigDecimal,
-  ): (String, SimpleFunc) =
-    name -> {
-      case (st, list @ _ :: _) =>
-        val ds = list.map {
-          case x: Math => x.n
-          case v       => throw InvalidArgs(name, List(v))
-        }
-        Math(ds.reduce(op))
-    }
-  def mathUOp(
-    name: String,
-    op: BigDecimal => BigDecimal,
-  ): (String, SimpleFunc) =
-    name -> { case (st, List(Math(n))) => Math(op(n)) }
-  val simpleFuncs: Map[String, SimpleFunc] = Map(
-    arityCheck("GetArgument" -> {
-      case (st, List(addr: Addr)) =>
-        st(addr) match
-          case list @ ListObj(vs) =>
-            if (vs.isEmpty) Absent
-            else list.pop(front = true)
-          case _ => error(s"non-list @ GetArgument: $addr")
-    }),
-    arityCheck("IsDuplicate" -> {
-      case (st, List(addr: Addr)) =>
-        st(addr) match
-          case ListObj(vs) => Bool(vs.toSet.size != vs.length)
-          case _           => error(s"non-list @ IsDuplicate: $addr")
-    }),
-    arityCheck("IsArrayIndex" -> {
-      case (st, List(Str(s))) =>
-        // val d = ESValueParser.str2num(s)
-        // val ds = toStringHelper(d)
-        // val UPPER = (1L << 32) - 1
-        // val l = d.toLong
-        // Bool(ds == s && 0 <= l && d == l && l < UPPER)
-        ???
-      case (st, List(v)) => Bool(false)
-    }),
-    arityCheck(mathBOp("min", _ min _)),
-    arityCheck(mathBOp("max", _ max _)),
-    arityCheck(mathUOp("abs", _.abs)),
-    arityCheck(mathUOp("floor", _.toDouble.floor)),
-    arityCheck("fround" -> {
-      case (st, List(Number(n))) => Number(n.toFloat.toDouble)
-    }),
-    arityCheck("ThrowCompletion" -> {
-      case (st, List(value)) => value.wrapCompletion(CONST_THROW)
-    }),
-    arityCheck("NormalCompletion" -> {
-      case (st, List(value)) => value.wrapCompletion
-    }),
-    arityCheck("IsAbruptCompletion" -> {
-      case (st, List(value)) => Bool(value.isAbruptCompletion)
-    }),
   )
 
   /** transition for unary opeartors */

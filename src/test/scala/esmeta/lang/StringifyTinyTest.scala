@@ -396,8 +396,10 @@ class StringifyTinyTest extends LangTest {
     lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
     lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
     lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
-    lazy val finiteCond = FiniteCondition(x, false)
-    lazy val abruptCond = AbruptCompletionCondition(x, false)
+    lazy val finiteCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Finite)
+    lazy val abruptCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Abrupt)
+    lazy val dupCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Duplicated)
+    lazy val presentCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Present)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
       IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
@@ -405,8 +407,6 @@ class StringifyTinyTest extends LangTest {
       IsAreCondition(List(refExpr), false, List(TrueLiteral(), FalseLiteral()))
     lazy val isNeitherCond =
       IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
-    lazy val isPresentCond =
-      IsAreCondition(List(refExpr), true, List(AbsentLiteral()))
     lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
     lazy val compCond =
@@ -424,11 +424,12 @@ class StringifyTinyTest extends LangTest {
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
       abruptCond -> "_x_ is an abrupt completion",
+      dupCond -> "_x_ is duplicate entries",
+      presentCond -> "_x_ is present",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
-      isPresentCond -> "_x_ is present",
       binaryCondLt -> "_x_ < _x_ + _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",

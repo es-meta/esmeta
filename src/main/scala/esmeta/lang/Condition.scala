@@ -23,12 +23,6 @@ case class HasFieldCondition(
   field: Expression,
 ) extends Condition
 
-// abrupt completion check conditions
-case class AbruptCompletionCondition(
-  x: Variable,
-  negation: Boolean,
-) extends Condition
-
 // production condition such as
 // `|Declartion| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
 case class ProductionCondition(
@@ -37,11 +31,15 @@ case class ProductionCondition(
   rhsName: String,
 ) extends Condition
 
-// finite condition
-case class FiniteCondition(
-  ref: Reference,
+// predicate condition
+case class PredicateCondition(
+  expr: Expression,
   negation: Boolean,
+  op: PredicateCondition.Op,
 ) extends Condition
+object PredicateCondition:
+  enum Op extends LangElem:
+    case Abrupt, Finite, Duplicated, Present
 
 // `A is/are B` conditions
 case class IsAreCondition(

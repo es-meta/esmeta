@@ -11,13 +11,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Syntax               => syntaxRule(app, elem)
-      case elem: MathOpExpression.Op  => mathOpExprOpRule(app, elem)
-      case elem: BinaryExpression.Op  => binExprOpRule(app, elem)
-      case elem: UnaryExpression.Op   => unExprOpRule(app, elem)
-      case elem: XRefExpression.Op    => xrefExprOpRule(app, elem)
-      case elem: BinaryCondition.Op   => binCondOpRule(app, elem)
-      case elem: CompoundCondition.Op => compCondOpRule(app, elem)
+      case elem: Syntax                => syntaxRule(app, elem)
+      case elem: PredicateCondition.Op => predCondOpRule(app, elem)
+      case elem: MathOpExpression.Op   => mathOpExprOpRule(app, elem)
+      case elem: BinaryExpression.Op   => binExprOpRule(app, elem)
+      case elem: UnaryExpression.Op    => unExprOpRule(app, elem)
+      case elem: XRefExpression.Op     => xrefExprOpRule(app, elem)
+      case elem: BinaryCondition.Op    => binCondOpRule(app, elem)
+      case elem: CompoundCondition.Op  => compCondOpRule(app, elem)
     }
 
   // syntax
@@ -399,14 +400,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"
-      case AbruptCompletionCondition(x, neg) =>
-        app >> x >> isStr(neg) >> "an abrupt completion"
       case ProductionCondition(nt, lhs, rhs) =>
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs
         app >> "</emu-grammar>"
-      case FiniteCondition(x, neg) =>
-        app >> x >> isStr(neg) >> "finite"
+      case PredicateCondition(x, neg, op) =>
+        // TODO is/has
+        app >> x >> isStr(neg) >> op
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head
@@ -415,8 +415,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
           app >> ls
         }
         rs match {
-          case (_: AbsentLiteral) :: Nil =>
-            app >> isStr(!neg, single) >> "present"
           case r :: Nil => app >> isStr(neg, single) >> r
           case _ =>
             app >> isStr(false, single)
@@ -441,6 +439,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
     }
   }
+
+  // operators for predicate conditions
+  given predCondOpRule: Rule[PredicateCondition.Op] = (app, op) =>
+    import PredicateCondition.Op.*
+    app >> (op match {
+      case Finite     => "finite"
+      case Abrupt     => "an abrupt completion"
+      case Duplicated => "duplicate entries"
+      case Present    => "present"
+    })
 
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>

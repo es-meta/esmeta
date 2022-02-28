@@ -550,9 +550,8 @@ trait Parsers extends DivergedParsers {
     exprCond |||
     instanceOfCond |||
     hasFieldCond |||
-    abruptCond |||
     productionCond |||
-    finiteCond |||
+    predCond |||
     isAreCond |||
     binCond |||
     specialCond
@@ -585,17 +584,19 @@ trait Parsers extends DivergedParsers {
       case nt ~ l ~ r => ProductionCondition(nt, l, r)
     }
 
-  // finite conditions
-  lazy val finiteCond: PL[FiniteCondition] =
-    variable ~ isNeg <~ "finite" ^^ {
-      case x ~ n => FiniteCondition(x, n)
-    }
+  // predicate conditions
+  lazy val predCond: PL[PredicateCondition] =
+    import PredicateCondition.Op.*
+    lazy val op: Parser[PredicateCondition.Op] =
+      "finite" ^^^ { Finite } |
+      "an abrupt completion" ^^^ { Abrupt } |
+      "duplicate entries" ^^^ { Duplicated } |
+      "present" ^^^ { Present }
+    lazy val neg: Parser[Boolean] =
+      isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })
 
-  // abrupt completion check conditions
-  lazy val abruptCond: PL[AbruptCompletionCondition] =
-    variable ~ isNeg <~ "an abrupt completion" ^^ {
-      case x ~ n =>
-        AbruptCompletionCondition(x, n)
+    expr ~ neg ~ op ^^ {
+      case r ~ n ~ o => PredicateCondition(r, n, o)
     }
 
   // `A is/are B` condition
@@ -611,7 +612,6 @@ trait Parsers extends DivergedParsers {
 
     lazy val right: P[Boolean ~ List[Expression]] =
       either(neg, expr) |||
-      neg <~ "present" ^^ { case n => new ~(!n, List(AbsentLiteral())) } |||
       // SameValue
       (neg <~ "different from") ~ expr ^^ {
         case n ~ e => new ~(!n, List(e))

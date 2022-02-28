@@ -93,9 +93,15 @@ class Compiler(val spec: Spec) {
       algo.head match
         case BuiltinHead(_, ps, _) =>
           // add bindings for original arguments
-          val bs = ps.map(p =>
-            ICall(Name(p.name), EGLOBAL_GET_ARGUMENT, List(ENAME_ARGS_LIST)),
-          )
+          val argsLen = toStrERef(NAME_ARGS_LIST, "length")
+          val bs =
+            ps.map(p =>
+              IIf(
+                lessThan(zero, argsLen),
+                ILet(Name(p.name), EPop(ENAME_ARGS_LIST, true)),
+                ILet(Name(p.name), EAbsent),
+              ),
+            )
           body match
             case ISeq(is) => ISeq(bs ++ is)
             case _        => ISeq(bs ++ List(body))
@@ -597,12 +603,6 @@ class Compiler(val spec: Spec) {
     case HasFieldCondition(ref, neg, field) =>
       val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
       if (neg) e else not(e)
-    case AbruptCompletionCondition(x, neg) =>
-      val ref = toRef(compile(x))
-      val abrupt = not(
-        EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
-      )
-      and(EIsCompletion(ERef(ref)), abrupt)
     case ProductionCondition(nt, lhsName, rhsName) =>
       val base = compile(fb, nt)
       val prod = grammar.nameMap(lhsName)
@@ -614,9 +614,33 @@ class Compiler(val spec: Spec) {
           fb.ntBindings ++= List((rhsName, base, Some(0))) // XXX
           ETypeCheck(base, IRType(lhsName + idx))
         case _ => error("invalid production condition")
-    case FiniteCondition(ref, neg) =>
-      val x = toERef(compile(fb, ref))
-      not(or(is(x, posInf), is(x, negInf)))
+    case PredicateCondition(expr, neg, op) =>
+      import PredicateCondition.Op.*
+      val x = compile(fb, expr)
+      op match {
+        case Abrupt =>
+          val tv = toERef(fb, x, EStr("Type"))
+          val cond = and(EIsCompletion(x), is(tv, ECONST_NORMAL))
+          if (neg) not(cond) else cond
+        case Finite =>
+          val negCond = or(is(x, posInf), is(x, negInf))
+          if (neg) negCond else not(negCond)
+        case Duplicated =>
+          val cond = EDuplicated(x)
+          if (neg) not(cond) else cond
+        case Present =>
+          val cond = isAbsent(x)
+          if (neg) cond else not(cond)
+      }
+    // case FiniteCondition(ref, neg) =>
+    //   val x = toERef(compile(fb, ref))
+    //   not(or(is(x, posInf), is(x, negInf)))
+    // case AbruptCompletionCondition(x, neg) =>
+    //   val ref = toRef(compile(x))
+    //   val abrupt = not(
+    //     EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
+    //   )
+    //   and(EIsCompletion(ERef(ref)), abrupt)
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
@@ -740,11 +764,29 @@ class Compiler(val spec: Spec) {
   private val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
-    // TODO Completion AO is needed?
     arityCheck("Completion" -> { case List(expr) => expr }),
     arityCheck("ReturnIfAbrupt" -> {
       case List(expr) => EReturnIfAbrupt(expr, true)
     }),
+    // arityCheck("IsDuplicate" -> {
+    //   case (st, List(addr: Addr)) =>
+    //     st(addr) match
+    //       case ListObj(vs) => Bool(vs.toSet.size != vs.length)
+    //       case _           => error(s"non-list @ IsDuplicate: $addr")
+    // }),
+    // arityCheck("IsArrayIndex" -> {
+    //   case (st, List(Str(s))) =>
+    //     // val d = ESValueParser.str2num(s)
+    //     // val ds = toStringHelper(d)
+    //     // val UPPER = (1L << 32) - 1
+    //     // val l = d.toLong
+    //     // Bool(ds == s && 0 <= l && d == l && l < UPPER)
+    //     ???
+    //   case (st, List(v)) => Bool(false)
+    // }),
+    // arityCheck("fround" -> {
+    //   case (st, List(Number(n))) => Number(n.toFloat.toDouble)
+    // }),
     // arityCheck("IsArrayIndex" -> ???),
     // arityCheck("ThrowCompletion" -> ???),
     // arityCheck("NormalCompletion" -> ???),

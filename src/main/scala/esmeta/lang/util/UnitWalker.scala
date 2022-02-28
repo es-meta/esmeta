@@ -6,13 +6,14 @@ import esmeta.lang.*
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
-    case elem: Syntax               => walk(elem)
-    case elem: MathOpExpression.Op  => walk(elem)
-    case elem: BinaryExpression.Op  => walk(elem)
-    case elem: UnaryExpression.Op   => walk(elem)
-    case elem: XRefExpression.Op    => walk(elem)
-    case elem: BinaryCondition.Op   => walk(elem)
-    case elem: CompoundCondition.Op => walk(elem)
+    case elem: Syntax                => walk(elem)
+    case elem: PredicateCondition.Op => walk(elem)
+    case elem: MathOpExpression.Op   => walk(elem)
+    case elem: BinaryExpression.Op   => walk(elem)
+    case elem: UnaryExpression.Op    => walk(elem)
+    case elem: XRefExpression.Op     => walk(elem)
+    case elem: BinaryCondition.Op    => walk(elem)
+    case elem: CompoundCondition.Op  => walk(elem)
   }
 
   def walk(syn: Syntax): Unit = syn match {
@@ -163,12 +164,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(neg); walkList(ty, walk)
     case HasFieldCondition(ref, neg, field) =>
       walk(ref); walk(neg); walk(field)
-    case AbruptCompletionCondition(x, neg) =>
-      walk(x); walk(neg)
     case ProductionCondition(nt, lhs, rhs) =>
       walk(nt);
-    case FiniteCondition(x, neg) =>
-      walk(x);
+    case PredicateCondition(expr, neg, op) =>
+      walk(expr); walk(neg); walk(op)
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
@@ -180,6 +179,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: BinaryCondition.Op): Unit = {}
 
   def walk(op: CompoundCondition.Op): Unit = {}
+
+  def walk(op: PredicateCondition.Op): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
     case PropertyReference(base, prop) => walk(base); walk(prop)

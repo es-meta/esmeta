@@ -6,13 +6,14 @@ import esmeta.lang.*
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Syntax               => walk(elem)
-    case elem: MathOpExpression.Op  => walk(elem)
-    case elem: BinaryExpression.Op  => walk(elem)
-    case elem: UnaryExpression.Op   => walk(elem)
-    case elem: XRefExpression.Op    => walk(elem)
-    case elem: BinaryCondition.Op   => walk(elem)
-    case elem: CompoundCondition.Op => walk(elem)
+    case elem: Syntax                => walk(elem)
+    case elem: PredicateCondition.Op => walk(elem)
+    case elem: MathOpExpression.Op   => walk(elem)
+    case elem: BinaryExpression.Op   => walk(elem)
+    case elem: UnaryExpression.Op    => walk(elem)
+    case elem: XRefExpression.Op     => walk(elem)
+    case elem: BinaryCondition.Op    => walk(elem)
+    case elem: CompoundCondition.Op  => walk(elem)
   }
 
   def walk(syn: Syntax): Syntax = syn match {
@@ -190,12 +191,10 @@ trait Walker extends BasicWalker {
       InstanceOfCondition(walk(expr), walk(neg), walkList(ty, walk))
     case HasFieldCondition(ref, neg, field) =>
       HasFieldCondition(walk(ref), walk(neg), walk(field))
-    case AbruptCompletionCondition(x, neg) =>
-      AbruptCompletionCondition(walk(x), walk(neg))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
-    case FiniteCondition(x, neg) =>
-      FiniteCondition(walk(x), neg)
+    case PredicateCondition(expr, neg, op) =>
+      PredicateCondition(walk(expr), neg, walk(op))
     case IsAreCondition(ls, neg, rs) =>
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
@@ -203,6 +202,8 @@ trait Walker extends BasicWalker {
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }
+
+  def walk(op: PredicateCondition.Op): PredicateCondition.Op = op
 
   def walk(op: BinaryCondition.Op): BinaryCondition.Op = op
 

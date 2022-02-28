@@ -95,6 +95,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(fname); walkList(captured, walk)
     case ECont(fname) =>
       walk(fname)
+    case EDuplicated(expr) =>
+      walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)
     case expr: LiteralExpr => walk(expr)
