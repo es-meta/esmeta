@@ -379,16 +379,6 @@ class Compiler(val spec: Spec) {
       )
   }
 
-  // compile types
-  // TODO refactor
-  private def compile(ty: SType): IRType =
-    val tname = ty.name
-    val trimmed =
-      (if (tname startsWith "a ") tname.drop(2)
-       else if (tname startsWith "an ") tname.drop(3)
-       else tname).replace("-", "").trim
-    IRType(trimmed.split(" ").map(_.capitalize).mkString)
-
   // compile local variable
   private def compile(x: Variable): Name = Name(x.name)
   private def compileWithExpr(x: Variable): (Name, Expr) =
@@ -627,6 +617,9 @@ class Compiler(val spec: Spec) {
           EDuplicated(x)
         case Present =>
           not(isAbsent(x))
+        case Empty =>
+          val lv = toERef(fb, x, EStr("length"))
+          is(lv, zero)
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
@@ -662,24 +655,27 @@ class Compiler(val spec: Spec) {
         case CompoundCondition.Op.Imply => or(not(l), r)
   }
 
+  // normalize type string
+  // TODO refactor
+  private def normalizeTy(tname: String): String =
+    val trimmed = (if (tname startsWith "a ") tname.drop(2)
+                   else if (tname startsWith "an ") tname.drop(3)
+                   else tname).replace("-", "").replace("|", "").trim
+    trimmed.split(" ").map(_.capitalize).mkString
+
+  // compile types
+  private def compile(ty: SType): IRType = IRType(normalizeTy(ty.name))
+
   // compile algorithm parameters
   private def compile(param: SParam): Func.Param = {
-    val SParam(name, skind, SType(tname)) = param
+    val SParam(name, skind, stype) = param
     val optional = skind == SParam.Kind.Optional
-    // TODO refactor
-    val trimmed =
-      (if (tname startsWith "a ") tname.drop(2)
-       else if (tname startsWith "an ") tname.drop(3)
-       else tname).replace("-", "").trim
-    val irType = IRType(trimmed.split(" ").map(_.capitalize).mkString)
-    Func.Param(Name(name), optional, irType)
+    Func.Param(Name(name), optional, compile(stype))
   }
 
   // compile types
-  // TODO handle type properly
   private def compile(ty: Type): IRType =
-    if (ty == UnknownType) AnyType
-    else IRType(ty.name.replace(" ", "").replace("|", ""))
+    if (ty == UnknownType) AnyType else IRType(normalizeTy(ty.name))
 
   // handle short circuiting
   private def compileShortCircuit(

@@ -396,10 +396,16 @@ class StringifyTinyTest extends LangTest {
     lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
     lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
     lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
-    lazy val finiteCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Finite)
-    lazy val abruptCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Abrupt)
-    lazy val dupCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Duplicated)
-    lazy val presentCond = PredicateCondition(refExpr, false, PredicateCondition.Op.Present)
+    lazy val finiteCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Finite)
+    lazy val abruptCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Abrupt)
+    lazy val dupCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Duplicated)
+    lazy val presentCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Present)
+    lazy val emptyCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Empty)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
       IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
@@ -426,6 +432,7 @@ class StringifyTinyTest extends LangTest {
       abruptCond -> "_x_ is an abrupt completion",
       dupCond -> "_x_ is duplicate entries",
       presentCond -> "_x_ is present",
+      emptyCond -> "_x_ is empty",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",
       isEitherCond -> "_x_ is either *true* or *false*",

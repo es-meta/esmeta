@@ -448,6 +448,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Abrupt     => "an abrupt completion"
       case Duplicated => "duplicate entries"
       case Present    => "present"
+      case Empty      => "empty"
     })
 
   // operators for binary conditions

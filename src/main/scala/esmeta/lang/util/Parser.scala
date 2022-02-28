@@ -247,7 +247,10 @@ trait Parsers extends DivergedParsers {
       case t ~ fs =>
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
-    }
+    } |||
+    opt("an" | "a") ~ "new" ~ guard(not("Realm")) ~> ty <~ opt(
+      "containing no bindings",
+    ) ^^ { case t => RecordExpression(t, List()) }
 
   // `length of` expressions
   lazy val lengthExpr: PLD[LengthExpression] =
@@ -591,7 +594,8 @@ trait Parsers extends DivergedParsers {
       "finite" ^^^ { Finite } |
       "an abrupt completion" ^^^ { Abrupt } |
       "duplicate entries" ^^^ { Duplicated } |
-      "present" ^^^ { Present }
+      "present" ^^^ { Present } |
+      "empty" ^^^ { Empty }
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })
 
@@ -643,6 +647,7 @@ trait Parsers extends DivergedParsers {
     }
 
   // rarely used conditions
+  // TODO move this to predicate
   lazy val specialCond: PL[Condition] =
     // OrdinaryGetOwnProperty
     expr ~ ("is" ~> (
@@ -741,6 +746,10 @@ trait Parsers extends DivergedParsers {
   given ty: PL[Type] = {
     rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
     "ECMAScript function object" ^^! { Type("ECMAScriptFunctionObject") } |||
+    "\\w+ Environment Record".r ^^ { Type(_) } |||
+    opt("ECMAScript code") ~ "execution context" ^^! {
+      Type("ExecutionContext")
+    } |||
     nt ^^ { Type(_) }
   }.named("lang.Type")
 

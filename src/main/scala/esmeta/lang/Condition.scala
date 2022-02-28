@@ -39,7 +39,7 @@ case class PredicateCondition(
 ) extends Condition
 object PredicateCondition:
   enum Op extends LangElem:
-    case Abrupt, Finite, Duplicated, Present
+    case Abrupt, Finite, Duplicated, Present, Empty
 
 // `A is/are B` conditions
 case class IsAreCondition(
