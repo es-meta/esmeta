@@ -53,10 +53,10 @@ def submapName(name: String): String = s"$name.$SUBMAP"
 def submapAddr(name: String): NamedAddr = NamedAddr(submapName(name))
 
 /** symbol name */
-def symbolName(name: String): String = s"$SYMBOL.$name"
+def symbolName(name: String): String = s"Symbol.$name"
 
 /** symbol address */
-def symbolAddr(name: String): NamedAddr = NamedAddr(symbolName(name))
+def symbolAddr(name: String): NamedAddr = intrAddr(symbolName(name))
 
 /** descriptor name */
 def descName(name: String, key: String): String = s"$DESCRIPTOR.$name.$key"

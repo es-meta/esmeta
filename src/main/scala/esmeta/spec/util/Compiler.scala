@@ -63,7 +63,8 @@ class Compiler(val spec: Spec) {
     // bindings for nonterminals
     var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
       case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
-        val rhsNames = target.rhsParams.map(_.name)
+        val rhs = grammar.nameMap(target.lhsName).rhsList(target.idx)
+        val rhsNames = rhs.nts.map(_.name)
         val rhsBindings = rhsNames.zipWithIndex.map {
           case (name, idx) => (name, ENAME_THIS, Some(idx))
         }

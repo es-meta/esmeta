@@ -21,5 +21,5 @@ case class Symbols(cfg: CFG) {
   /** get map for heap */
   def map: Map[Addr, Obj] = (for { symKey <- symbols } yield symbolAddr(
     symKey,
-  ) -> SymbolObj(Str(symKey))).toMap
+  ) -> SymbolObj(Str(symbolName(symKey)))).toMap
 }
