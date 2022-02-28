@@ -92,17 +92,20 @@ class Compiler(val spec: Spec) {
     // handle prefix for compiled instruction
     private def patchPrefix(body: Inst): Inst =
       algo.head match
-        case BuiltinHead(_, ps, _) =>
+        case BuiltinHead(_, ps, _)
+            if !ps.exists(_.kind == SParam.Kind.Ellipsis) =>
           // add bindings for original arguments
           val argsLen = toStrERef(NAME_ARGS_LIST, "length")
-          val bs =
-            ps.map(p =>
+          val bs = ps.map {
+            case SParam(name, SParam.Kind.Variadic, _) =>
+              ILet(Name(name), ENAME_ARGS_LIST)
+            case SParam(name, _, _) =>
               IIf(
                 lessThan(zero, argsLen),
-                ILet(Name(p.name), EPop(ENAME_ARGS_LIST, true)),
-                ILet(Name(p.name), EAbsent),
-              ),
-            )
+                ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
+                ILet(Name(name), EAbsent),
+              )
+          }
           body match
             case ISeq(is) => ISeq(bs ++ is)
             case _        => ISeq(bs ++ List(body))

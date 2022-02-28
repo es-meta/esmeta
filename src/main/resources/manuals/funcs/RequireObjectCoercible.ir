@@ -1,0 +1,15 @@
+def RequireObjectCoercible(argument: Any) {
+  if (= (typeof argument) @Undefined) {
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  } else {}
+  if (= (typeof argument) @Null) {
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  } else {}
+  if (= (typeof argument) @Boolean) return argument else {}
+  if (= (typeof argument) @Number) return argument else {}
+  if (= (typeof argument) @String) return argument else {}
+  if (= (typeof argument) @Symbol) return argument else {}
+  if (= (typeof argument) @BigInt) return argument else {}
+  if (= (typeof argument) @Object) return argument else {}
+  assert false
+}
