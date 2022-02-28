@@ -260,9 +260,9 @@ class Interp(
         case _: Clo => ty.name == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj => typeModel.subType(m.ty, ty.name) // TODO
+            case m: MapObj    => typeModel.subType(m.ty, ty.name) // TODO
             case m: SymbolObj => ty.name == "Symbol"
-            case _         => ???
+            case _            => ???
         case v => ???,
       )
     case EClo(fname, captured) =>
