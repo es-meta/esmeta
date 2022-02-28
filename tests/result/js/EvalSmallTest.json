@@ -1,4 +1,5 @@
 {
+  "abstract-equality2.js" : true,
   "abstract-equality3.js" : true,
   "addition1.js" : true,
   "addition2.js" : true,
@@ -22,9 +23,11 @@
   "global.js" : true,
   "if-statement1.js" : true,
   "increment1.js" : true,
+  "increment2.js" : true,
   "instanceof1.js" : true,
   "multiple-statements.js" : true,
   "number1.js" : true,
+  "number4.js" : true,
   "read-property1.js" : true,
   "semicolon-insertion2.js" : true,
   "semicolon-insertion3.js" : true,

@@ -198,7 +198,8 @@ trait Parsers extends DivergedParsers {
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val ignore = "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd
+  lazy val ignore =
+    "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd | "; that is[^.]*".r
   lazy val end: Parser[String] = opt(ignore) ~> "." <~ upper | ";"
 
   // end with expression
@@ -592,15 +593,15 @@ trait Parsers extends DivergedParsers {
     import PredicateCondition.Op.*
     lazy val op: Parser[PredicateCondition.Op] =
       "finite" ^^^ { Finite } |
-        "an abrupt completion" ^^^ { Abrupt } |
-        "duplicate entries" ^^^ { Duplicated } |
-        "present" ^^^ { Present } |
-        "empty" ^^^ { Empty } |
-        "strict mode code" ^^^ { StrictMode } |
-        "an array index" ^^^ { ArrayIndex } |
-        "a non-negative integral Number" ^^^ { NonNegative } |
-        "the token `false`" ^^^ { FalseToken } |
-        "the token `true`" ^^^ { TrueToken }
+      "an abrupt completion" ^^^ { Abrupt } |
+      "duplicate entries" ^^^ { Duplicated } |
+      "present" ^^^ { Present } |
+      "empty" ^^^ { Empty } |
+      "strict mode code" ^^^ { StrictMode } |
+      "an array index" ^^^ { ArrayIndex } |
+      "a non-negative integral Number" ^^^ { NonNegative } |
+      "the token `false`" ^^^ { FalseToken } |
+      "the token `true`" ^^^ { TrueToken }
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })

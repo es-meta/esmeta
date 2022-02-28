@@ -617,8 +617,8 @@ class Compiler(val spec: Spec) {
         case StrictMode  => T // XXX assume strict mode
         case ArrayIndex  => EIsArrayIndex(x)
         case NonNegative => not(lessThan(x, zero))
-        case FalseToken => is(ESourceText(x), EStr("false"))
-        case TrueToken => is(ESourceText(x), EStr("true"))
+        case FalseToken  => is(ESourceText(x), EStr("false"))
+        case TrueToken   => is(ESourceText(x), EStr("true"))
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
