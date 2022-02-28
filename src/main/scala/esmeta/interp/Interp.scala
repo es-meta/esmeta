@@ -327,6 +327,13 @@ class Interp(
     case EDuplicated(expr) =>
       val vs = interp(expr).escaped.getList(expr, st).values
       Bool(vs.toSet.size != vs.length)
+    case EIsArrayIndex(expr) =>
+      val s = interp(expr).escaped.toStr(expr)
+      val d = ESValueParser.str2Number(s)
+      val ds = toStringHelper(d)
+      val UPPER = (1L << 32) - 1
+      val l = d.toLong
+      Bool(ds == s && 0 <= l && d == l && l < UPPER)
     case EMathVal(n)           => Math(n)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
     case ENumber(n)            => Number(n)

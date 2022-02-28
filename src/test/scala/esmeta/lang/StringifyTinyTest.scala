@@ -406,6 +406,10 @@ class StringifyTinyTest extends LangTest {
       PredicateCondition(refExpr, false, PredicateCondition.Op.Present)
     lazy val emptyCond =
       PredicateCondition(refExpr, false, PredicateCondition.Op.Empty)
+    lazy val strictCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.StrictMode)
+    lazy val arrayIndexCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.ArrayIndex)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
       IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
@@ -433,6 +437,8 @@ class StringifyTinyTest extends LangTest {
       dupCond -> "_x_ is duplicate entries",
       presentCond -> "_x_ is present",
       emptyCond -> "_x_ is empty",
+      strictCond -> "_x_ is strict mode code",
+      arrayIndexCond -> "_x_ is an array index",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",
       isEitherCond -> "_x_ is either *true* or *false*",

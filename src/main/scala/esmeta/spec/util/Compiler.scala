@@ -620,6 +620,8 @@ class Compiler(val spec: Spec) {
         case Empty =>
           val lv = toERef(fb, x, EStr("length"))
           is(lv, zero)
+        case StrictMode => T // XXX assume strict mode
+        case ArrayIndex => EIsArrayIndex(x)
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
@@ -724,10 +726,13 @@ class Compiler(val spec: Spec) {
   private val one = EMathVal(1)
   private val posInf = ENumber(Double.PositiveInfinity)
   private val negInf = ENumber(Double.NegativeInfinity)
+  private val T = EBool(true)
+  private val F = EBool(false)
 
   // operation helpers
   private inline def isAbsent(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
   private def not(expr: Expr) = expr match
+    case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
     case _                     => EUnary(UOp.Not, expr)
   private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)

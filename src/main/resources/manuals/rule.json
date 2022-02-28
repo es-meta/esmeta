@@ -36,7 +36,6 @@
   "[YET] If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.SubMap[N].initialized) return comp[~throw~/~empty~]((new OrdinaryObject(\"Prototype\" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, \"ErrorData\" -> undefined))) else {}",
   "[YET] Return the value currently bound to _N_ in _envRec_.": "return envRec.SubMap[N].BoundValue",
   "[YET] Insert _d_ as the first element of _functionsToInitialize_.": "push d > functionsToInitialize",
-  "[YET] If the source text matched by _Body_ is strict mode code, let _Strict_ be *true*; else let _Strict_ be *false*.": "if true let Strict = true else let Strict = false",
   "[YET] Assert: _F_ is an extensible object that does not have a *\"length\"* own property.": "assert (&& F.Extensible (= F.SubMap.length absent))",
   "[YET] Assert: _F_ is an extensible object that does not have a *\"name\"* own property.": "assert (&& F.Extensible (= F.SubMap.name absent))",
   "[YET] Assert: _F_ is an extensible object that does not have a *\"prototype\"* own property.": "assert (&& F.Extensible (= F.SubMap.prototype absent))",

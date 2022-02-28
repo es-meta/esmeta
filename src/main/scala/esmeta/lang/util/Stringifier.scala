@@ -449,6 +449,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Duplicated => "duplicate entries"
       case Present    => "present"
       case Empty      => "empty"
+      case StrictMode => "strict mode code"
+      case ArrayIndex => "an array index"
     })
 
   // operators for binary conditions

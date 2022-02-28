@@ -595,7 +595,10 @@ trait Parsers extends DivergedParsers {
       "an abrupt completion" ^^^ { Abrupt } |
       "duplicate entries" ^^^ { Duplicated } |
       "present" ^^^ { Present } |
-      "empty" ^^^ { Empty }
+      "empty" ^^^ { Empty } |
+      "strict mode code" ^^^ { StrictMode } |
+      "an array index" ^^^ { ArrayIndex }
+
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })
 
