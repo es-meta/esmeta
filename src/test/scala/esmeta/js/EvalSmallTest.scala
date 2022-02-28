@@ -99,7 +99,7 @@ class EvalSmallTest extends JSTest {
     "switch1.js",
     // "symbol1.js",
     // "symbol2.js",
-    "symbol3.js",
+    // "symbol3.js",
     "template1.js",
     "template2.js",
     "try1.js",

@@ -62,5 +62,6 @@
   "[YET] Remove the own property with name _P_ from _O_.": "delete O.SubMap[P]",
   "[YET] Return a String according to <emu-xref href=\"#table-typeof-operator-results\"></emu-xref>.": "{ let t = (typeof val) if (= t @Undefined) return \"undefined\" else if (= t @Null) return \"object\" else if (= t @Boolean) return \"boolean\" else if (= t @Number) return \"number\" else if (= t @String) return \"string\" else if (= t @Symbol) return \"symbol\" else if (= t @BigInt) return \"bigint\" else if (= t @Object) if (= val.Call absent) return \"object\" else return \"function\" else assert false }",
   "[YET] If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
-  "[YET] Let _desc_ be _sym_'s [[Description]] value.": "let desc = sym.Description"
+  "[YET] Let _desc_ be _sym_'s [[Description]] value.": "let desc = sym.Description",
+  "[YET] Return a new unique Symbol value whose [[Description]] value is _descString_.": "return (new 'descString)"
 }
