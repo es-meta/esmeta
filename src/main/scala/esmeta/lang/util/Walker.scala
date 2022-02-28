@@ -194,6 +194,8 @@ trait Walker extends BasicWalker {
       AbruptCompletionCondition(walk(x), walk(neg))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
+    case FiniteCondition(x, neg) =>
+      FiniteCondition(walk(x), neg)
     case IsAreCondition(ls, neg, rs) =>
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>

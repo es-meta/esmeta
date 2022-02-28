@@ -405,6 +405,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs
         app >> "</emu-grammar>"
+      case FiniteCondition(x, neg) =>
+        app >> x >> isStr(neg) >> "finite"
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head

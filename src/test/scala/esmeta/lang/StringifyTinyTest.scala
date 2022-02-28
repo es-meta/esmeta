@@ -396,6 +396,7 @@ class StringifyTinyTest extends LangTest {
     lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
     lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
     lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
+    lazy val finiteCond = FiniteCondition(x, false)
     lazy val abruptCond = AbruptCompletionCondition(x, false)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
@@ -421,6 +422,7 @@ class StringifyTinyTest extends LangTest {
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
+      finiteCond -> "_x_ is finite",
       abruptCond -> "_x_ is an abrupt completion",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",

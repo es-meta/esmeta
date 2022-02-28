@@ -167,6 +167,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walk(neg)
     case ProductionCondition(nt, lhs, rhs) =>
       walk(nt);
+    case FiniteCondition(x, neg) =>
+      walk(x);
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>

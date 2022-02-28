@@ -37,6 +37,12 @@ case class ProductionCondition(
   rhsName: String,
 ) extends Condition
 
+// finite condition
+case class FiniteCondition(
+  ref: Reference,
+  negation: Boolean,
+) extends Condition
+
 // `A is/are B` conditions
 case class IsAreCondition(
   left: List[Expression],

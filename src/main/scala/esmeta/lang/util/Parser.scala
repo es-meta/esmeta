@@ -459,7 +459,7 @@ trait Parsers extends DivergedParsers {
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
-    ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
+    guard(not("Return")) ~> ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
       case t ~ op ~ as =>
         InvokeNumericMethodExpression(t, op, as)
     }
@@ -552,6 +552,7 @@ trait Parsers extends DivergedParsers {
     hasFieldCond |||
     abruptCond |||
     productionCond |||
+    finiteCond |||
     isAreCond |||
     binCond |||
     specialCond
@@ -578,10 +579,16 @@ trait Parsers extends DivergedParsers {
     }
 
   // production conditions
-  // handle If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
+  // Ex: If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
   lazy val productionCond: PL[ProductionCondition] =
     (expr <~ "is") ~ (tagStart ~> word <~ ":") ~ (word <~ tagEnd) ^^ {
       case nt ~ l ~ r => ProductionCondition(nt, l, r)
+    }
+
+  // finite conditions
+  lazy val finiteCond: PL[FiniteCondition] =
+    variable ~ isNeg <~ "finite" ^^ {
+      case x ~ n => FiniteCondition(x, n)
     }
 
   // abrupt completion check conditions
@@ -641,7 +648,7 @@ trait Parsers extends DivergedParsers {
     expr ~ ("is" ~> (
       "a data property" ^^^ { getIsDataCond } |
       "an accessor property" ^^^ { getIsAccessorCond }
-    )) ^^ { case e ~ getCond => getCond(e) } |||
+    )) ^^ { case e ~ getCond => getCond(e) } |
     // ValidateAndApplyPropertyDescriptor
     ref <~ "is a fully populated Property Descriptor" ^^ {
       case r =>
@@ -649,7 +656,7 @@ trait Parsers extends DivergedParsers {
         val apFields = hasFieldsCond(r, "Get", "Set")
         val fields = hasFieldsCond(r, "Enumerable", "Configurable")
         andCond(fields, orCond(dpFields, apFields))
-    } |||
+    } |
     // ResolveBinding
     "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
       getExprCond(TrueLiteral())
@@ -659,7 +666,7 @@ trait Parsers extends DivergedParsers {
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {
-    baseRef ||| propRef
+    baseRef ||| propRef ||| specialRef
   }.named("lang.Reference")
 
   // property references
@@ -688,6 +695,11 @@ trait Parsers extends DivergedParsers {
   lazy val variable: PL[Variable] = "_[^_]+_".r ^^ {
     case s => Variable(s.substring(1, s.length - 1))
   }
+
+  // special reference
+  lazy val specialRef: P[Reference] =
+    // IsLessThan
+    "the" ~> variable <~ "flag"
 
   // ---------------------------------------------------------------------------
   // metalanguage properties

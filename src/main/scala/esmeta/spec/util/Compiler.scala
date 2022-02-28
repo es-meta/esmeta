@@ -598,7 +598,6 @@ class Compiler(val spec: Spec) {
       )
       and(EIsCompletion(ERef(ref)), abrupt)
     case ProductionCondition(nt, lhsName, rhsName) =>
-      // XXX handle production properly
       val base = compile(fb, nt)
       val prod = grammar.nameMap(lhsName)
       val rhsList = prod.rhsList.zipWithIndex.filter {
@@ -608,7 +607,10 @@ class Compiler(val spec: Spec) {
         case (rhs, idx) :: Nil =>
           fb.ntBindings ++= List((rhsName, base, Some(0))) // XXX
           ETypeCheck(base, IRType(lhsName + idx))
-        case _ => ???
+        case _ => error("invalid production condition")
+    case FiniteCondition(ref, neg) =>
+      val x = toERef(compile(fb, ref))
+      not(or(is(x, posInf), is(x, negInf)))
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
@@ -694,6 +696,8 @@ class Compiler(val spec: Spec) {
   // literal helpers
   private val zero = EMathVal(0)
   private val one = EMathVal(1)
+  private val posInf = ENumber(Double.PositiveInfinity)
+  private val negInf = ENumber(Double.NegativeInfinity)
 
   // operation helpers
   private inline def isAbsent(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
@@ -703,6 +707,7 @@ class Compiler(val spec: Spec) {
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
+  private inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
 
   // simple operations
   private type SimpleOp = PartialFunction[List[Expr], Expr]
