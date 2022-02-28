@@ -149,7 +149,7 @@ object Parser extends Parsers {
     elem: Element,
     isHostDefined: Boolean,
   ): List[AbstractOperationHead] =
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     val generator = parseBy(absOpHeadGen)(headContent)
     List(generator(isHostDefined))
 
@@ -158,7 +158,7 @@ object Parser extends Parsers {
     parent: Element,
     elem: Element,
   ): List[NumericMethodHead] =
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     List(parseBy(numMethodHead)(headContent))
 
   // get syntax-directed operation (SDO) heads
@@ -167,7 +167,7 @@ object Parser extends Parsers {
     elem: Element,
     idxMap: Map[String, (Int, Int)],
   ): List[SyntaxDirectedOperationHead] = {
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     val prevContent = elem.getPrevContent
     val defaultCaseStr =
       "Every grammar production alternative in this specification which is not listed below implicitly has the following default definition of"
@@ -201,7 +201,7 @@ object Parser extends Parsers {
     parent: Element,
     elem: Element,
   ): List[ConcreteMethodHead] =
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     val generator = parseBy(concMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
@@ -213,7 +213,7 @@ object Parser extends Parsers {
     parent: Element,
     elem: Element,
   ): List[InternalMethodHead] =
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     val generator = parseBy(inMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
@@ -225,7 +225,7 @@ object Parser extends Parsers {
     parent: Element,
     elem: Element,
   ): List[BuiltinHead] =
-    val headContent = parent.getFirstChildContent
+    val headContent = getHeadContent(parent)
     List(parseBy(builtinHead)(headContent))
 
   // handle unusual heads
@@ -242,6 +242,12 @@ object Parser extends Parsers {
     case aliasPattern()              => parseAbsOpHead(parent, elem, false)
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => parseBuiltinHead(parent, elem)
+
+  // get head contents from parent elements
+  private def getHeadContent(parent: Element): String =
+    val headContent = parent.getFirstChildContent
+    if (parent.id == "await") "Await (_value_)"
+    else headContent
 }
 
 /** specification parsers */
