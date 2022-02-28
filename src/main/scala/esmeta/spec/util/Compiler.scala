@@ -3,6 +3,7 @@ package esmeta.spec.util
 import esmeta.MANUALS_DIR
 import esmeta.ir.{Type => IRType, *}
 import esmeta.lang.*
+import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.{Param => SParam, Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -224,12 +225,17 @@ class Compiler(val spec: Spec) {
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case IfStep(cond, thenStep, elseStep) =>
-      val (x, xExpr) = fb.newTIdWithExpr
-      // TODO optimize for simple compound conditions
-      compileShortCircuit(fb, x, cond)
+      import CompoundCondition.Op.*
+      // apply shortcircuit for invoke expression
+      val condExpr = cond match
+        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
+          val (x, xExpr) = fb.newTIdWithExpr
+          compileShortCircuit(fb, x, cond)
+          xExpr
+        case _ => compile(fb, cond)
       fb.addInst(
         IIf(
-          xExpr,
+          condExpr,
           compileWithScope(fb, thenStep),
           elseStep.fold(emptyInst)(compileWithScope(fb, _)),
         ),
@@ -672,7 +678,6 @@ class Compiler(val spec: Spec) {
     val xExpr = toERef(x)
     import CompoundCondition.Op.*
     cond match
-      // TODO optimize for simple compound conditions
       case CompoundCondition(left, And, right) =>
         fb.addInst(
           IAssign(x, compile(fb, left)),
@@ -684,6 +689,19 @@ class Compiler(val spec: Spec) {
           IIf(xExpr, emptyInst, fb.newScope(compileShortCircuit(fb, x, right))),
         )
       case _ => fb.addInst(IAssign(x, compile(fb, cond)))
+
+  // check if condition contains invoke expression
+  private def hasInvokeExpr(cond: Condition): Boolean = {
+    var found = false
+    val walker = new LangUnitWalker {
+      override def walk(invoke: InvokeExpression): Unit = invoke match
+        case InvokeAbstractOperationExpression(name, _)
+            if simpleOps contains name =>
+        case _ => found = true
+    }
+    walker.walk(cond)
+    found
+  }
 
   // instruction helpers
   private inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =
