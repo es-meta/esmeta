@@ -37,9 +37,15 @@ case class Intrinsics(cfg: CFG) {
       val (name, Struct(typeName, imap, nmap)) = pair
       var map = Map[Addr, Obj]()
 
+      // additional internal property
+      val additionals =
+        if (typeName == "BuiltinFunctionObject")
+          List("Realm" -> realmAddr, SUBMAP -> submapAddr(intrName(name)))
+        else List(SUBMAP -> submapAddr(intrName(name)))
+
       // base object
       map += intrAddr(name) -> MapObj(typeName)(
-        (SUBMAP -> submapAddr(intrName(name)) :: imap).map {
+        (additionals ++ imap).map {
           case (k, v) => Str(k) -> v
         }: _*,
       )
