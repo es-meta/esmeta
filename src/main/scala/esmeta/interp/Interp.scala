@@ -185,7 +185,8 @@ class Interp(
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
       val ast = interp(expr).escaped.toAst(expr)
-      Str(ast.toString(grammar = Some(grammar)))
+      // XXX fix last space in js stringifier
+      Str(ast.toString(grammar = Some(grammar)).trim)
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>
