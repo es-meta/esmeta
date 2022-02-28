@@ -621,11 +621,15 @@ trait Parsers extends DivergedParsers {
         case n ~ e => new ~(!n, List(e))
       } |||
       // SameValueNonNumeric, GeneratorValidate
-      (neg <~ "the same" ~ opt("value") ~ "as") ~ expr ^^ {
+      (neg <~ "the same" ~ opt(opt(ty) ~ "value") ~ "as") ~ expr ^^ {
         case n ~ e => new ~(n, List(e))
       }
 
-    left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
+    left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) } |||
+    // SameValueNonNumeric
+    expr ~ ("and" ~> expr) ~ neg <~ "the same" ~ opt(ty) ~ "value" ^^ {
+      case l ~ r ~ n => IsAreCondition(List(l), n, List(r))
+    }
 
   // binary conditions
   lazy val binCond: PL[BinaryCondition] =
