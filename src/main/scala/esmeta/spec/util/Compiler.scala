@@ -617,30 +617,18 @@ class Compiler(val spec: Spec) {
     case PredicateCondition(expr, neg, op) =>
       import PredicateCondition.Op.*
       val x = compile(fb, expr)
-      op match {
+      val cond = op match {
         case Abrupt =>
           val tv = toERef(fb, x, EStr("Type"))
-          val cond = and(EIsCompletion(x), is(tv, ECONST_NORMAL))
-          if (neg) not(cond) else cond
+          and(EIsCompletion(x), is(tv, ECONST_NORMAL))
         case Finite =>
-          val negCond = or(is(x, posInf), is(x, negInf))
-          if (neg) negCond else not(negCond)
+          not(or(is(x, posInf), is(x, negInf)))
         case Duplicated =>
-          val cond = EDuplicated(x)
-          if (neg) not(cond) else cond
+          EDuplicated(x)
         case Present =>
-          val cond = isAbsent(x)
-          if (neg) cond else not(cond)
+          not(isAbsent(x))
       }
-    // case FiniteCondition(ref, neg) =>
-    //   val x = toERef(compile(fb, ref))
-    //   not(or(is(x, posInf), is(x, negInf)))
-    // case AbruptCompletionCondition(x, neg) =>
-    //   val ref = toRef(compile(x))
-    //   val abrupt = not(
-    //     EBinary(BOp.Eq, toERef(ref, EStr("Type")), ECONST_NORMAL),
-    //   )
-    //   and(EIsCompletion(ERef(ref)), abrupt)
+      if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
         val l = compile(fb, lexpr)
@@ -743,7 +731,9 @@ class Compiler(val spec: Spec) {
 
   // operation helpers
   private inline def isAbsent(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
-  private inline def not(expr: Expr) = EUnary(UOp.Not, expr)
+  private def not(expr: Expr) = expr match
+    case EUnary(UOp.Not, expr) => expr
+    case _                     => EUnary(UOp.Not, expr)
   private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
