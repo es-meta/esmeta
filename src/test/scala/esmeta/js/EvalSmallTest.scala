@@ -12,7 +12,7 @@ class EvalSmallTest extends JSTest {
   val IGNORE_FILES: List[String] = List(
     // "abstract-equality2.js",
     // "abstract-equality3.js",
-    "abstract-equality4.js",
+    // "abstract-equality4.js",
     // "abstract-equality5.js",
     // "addition1.js",
     // "addition2.js",
