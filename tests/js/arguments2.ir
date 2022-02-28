@@ -1,2 +1,2 @@
 let map = @CONTEXT.Realm.GlobalObject.SubMap
-assert (= map.x.Value 2)
+assert (= map.x.Value 2.0f)

@@ -1,2 +1,2 @@
 let map = @CONTEXT.Realm.GlobalObject.SubMap
-assert (= map.sum.Value 55)
+assert (= map.sum.Value 55.0f)

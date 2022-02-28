@@ -69,5 +69,6 @@
   "[YET] Assert: If _result_ is not an abrupt completion, then Type(_result_) is an ECMAScript language type.": "assert true",
   "[YET] If _x_ is the same Number value as _y_, return *true*.": "if (= x y) return true else {}",
   "[YET] If _x_ and _y_ are the same Number value, return *false*.": "if (= x y) return true else {}",
-  "[YET] Assert: _x_ and _y_ are finite and non-zero.": "assert true"
+  "[YET] Assert: _x_ and _y_ are finite and non-zero.": "assert true",
+  "[YET] Let _env_ be a new declarative Environment Record containing no bindings.": "let env = (new DeclarativeEnvironmentRecord())"
 }
