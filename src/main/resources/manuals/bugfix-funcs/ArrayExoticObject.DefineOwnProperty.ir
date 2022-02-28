@@ -1,0 +1,35 @@
+def <INTERNAL>:ArrayExoticObject.DefineOwnProperty(A: ArrayExoticObject, P: PropertyKey, Desc: PropertyDescriptor): Unknown {
+  if (= P "length") {
+    call %0 = clo<ArraySetLength>(A, Desc)
+    return [? %0]
+  } else {
+    if (array-index P) {
+      call %1 = clo<OrdinaryGetOwnProperty>(A, "length")
+      let oldLenDesc = [! %1]
+      call %2 = clo<IsDataDescriptor>(oldLenDesc)
+      assert (= [! %2] true)
+      assert (= oldLenDesc.Configurable false)
+      let oldLen = oldLenDesc.Value
+      assert (! (< oldLen 0.0f))
+      call %3 = clo<ToUint32>(P)
+      let index = [! %3]
+      if (&& (! (< index oldLen)) (= oldLenDesc.Writable false)) {
+        return false
+      } else {}
+      call %4 = clo<OrdinaryDefineOwnProperty>(A, P, Desc)
+      let succeeded = [! %4]
+      if (= succeeded false) {
+        return false
+      } else {}
+      if (! (< index oldLen)) {
+        oldLenDesc.Value = (+ index 1.0f)
+        call %5 = clo<OrdinaryDefineOwnProperty>(A, "length", oldLenDesc)
+        succeeded = %5
+        assert (= succeeded true)
+      } else {}
+      return true
+    } else {}
+  }
+  call %6 = clo<OrdinaryDefineOwnProperty>(A, P, Desc)
+  return %6
+}

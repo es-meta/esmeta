@@ -620,7 +620,7 @@ class Compiler(val spec: Spec) {
           is(lv, zero)
         case StrictMode  => T // XXX assume strict mode
         case ArrayIndex  => EIsArrayIndex(x)
-        case NonNegative => not(lessThan(x, zero))
+        case NonNegative => not(lessThan(x, ENumber(0.0f)))
         case FalseToken  => is(ESourceText(x), EStr("false"))
         case TrueToken   => is(ESourceText(x), EStr("true"))
       }
