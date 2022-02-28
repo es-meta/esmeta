@@ -705,7 +705,9 @@ trait Parsers extends DivergedParsers {
       RunningExecutionContext()
     } |||
     "the current Realm Record" ^^! { CurrentRealmRecord() } |||
-    "the active function object" ^^! { ActiveFunctionObject() }
+    ("the active function object" | "the active function") ^^! {
+      ActiveFunctionObject()
+    }
 
   // variables
   lazy val variable: PL[Variable] = "_[^_]+_".r ^^ {
@@ -803,11 +805,12 @@ trait Parsers extends DivergedParsers {
     b: Parser[Boolean],
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
+    lazy val compoundGuard = guard(not("is" | ">"))
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))
     } |
-    (b <~ opt("either")) ~ repsep(p, ", or" | ",") |
+    (b <~ opt("either")) ~ repsep(p <~ compoundGuard, sep("or")) |
     b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
   private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(isNeg, p)
