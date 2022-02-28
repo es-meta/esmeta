@@ -1,6 +1,8 @@
 {
+  "abstract-equality3.js" : true,
   "assign-object.js" : true,
   "empty-statement.js" : true,
+  "equality1.js" : true,
   "expression-statement1.js" : true,
   "function-application1.js" : true,
   "function-application2.js" : true,

@@ -5,7 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
-import esmeta.js.util.{Parser => JSParser}
+import esmeta.js.util.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{TIMEOUT, TEST_MODE, LOG}
@@ -225,8 +225,8 @@ class Interp(
       (interp(expr).escaped, cop) match {
         case (Math(n), ToNumber) => Number(n.toDouble)
         // TODO other cases
-        case (Str(s), ToNumber) => ??? // TODO Number(ESValueParser.str2num(s))
-        case (Str(s), ToBigInt) => ??? // TODO ESValueParser.str2bigint(s)
+        case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
+        case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (v, cop)           => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>

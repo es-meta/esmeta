@@ -4,8 +4,10 @@ def ToNumber(argument: Any) {
   if (= (typeof argument) @Boolean) if argument return 1.0f else return 0.0f else{}
   if (= (typeof argument) @Number) return argument else {}
   if (= (typeof argument) @String) {
-    call %0 = clo<StringToNumber>(argument)
-    return [! %0]
+    // TODO handle CodePointAt
+    // call %0 = clo<StringToNumber>(argument)
+    // return [! %0]
+    return ([number] argument)
   } else {}
   if (= (typeof argument) @Symbol) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))

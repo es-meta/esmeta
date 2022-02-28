@@ -11,7 +11,7 @@ class EvalSmallTest extends JSTest {
   // TODO remove
   val IGNORE_FILES: List[String] = List(
     "abstract-equality2.js",
-    "abstract-equality3.js",
+    // "abstract-equality3.js",
     "abstract-equality4.js",
     "abstract-equality5.js",
     "addition1.js",
@@ -52,7 +52,7 @@ class EvalSmallTest extends JSTest {
     "constructor1.js",
     "delete1.js",
     // "empty-statement.js",
-    "equality1.js",
+    // "equality1.js",
     // "expression-statement1.js",
     "for1.js",
     "for2.js",
