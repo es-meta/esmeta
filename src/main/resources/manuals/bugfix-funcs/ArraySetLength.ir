@@ -10,7 +10,7 @@ def ArraySetLength(A: Array, Desc: PropertyDescriptor): Unknown {
   let numberLen = [? %2]
   call %3 = clo<SameValueZero>(newLen, numberLen)
   if (= %3 false) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.RangeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%RangeError.prototype%"], "ErrorData" -> undefined)))
   } else {}
   newLenDesc.Value = newLen
   call %4 = clo<OrdinaryGetOwnProperty>(A, "length")

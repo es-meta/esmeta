@@ -1,27 +1,27 @@
 def ToObject(argument: Any) {
   if (= (typeof argument) @Undefined) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}
   if (= (typeof argument) @Null) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}
   if (= (typeof argument) @Boolean) {
-    return (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.Boolean.SubMap.prototype.Value, "BooleanData" -> argument, "Extensible" -> true))
+    return (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%Boolean.prototype%"], "BooleanData" -> argument, "Extensible" -> true))
   } else {}
   if (= (typeof argument) @Number) {
-    return (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.Number.SubMap.prototype.Value, "NumberData" -> argument, "Extensible" -> true))
+    return (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%Number.prototype%"], "NumberData" -> argument, "Extensible" -> true))
   } else {}
   if (= (typeof argument) @String) {
-    let obj = (new StringExoticObject("Prototype" -> @CONTEXT.Realm.Intrinsics.String.SubMap.prototype.Value, "StringData" -> argument, "Extensible" -> true))
+    let obj = (new StringExoticObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%String.prototype%"], "StringData" -> argument, "Extensible" -> true))
     obj.SubMap.length = (new DataProperty("Value" -> argument.length, "Writable" -> false, "Enumerable" -> false, "Configurable" -> false))
     return obj
   } else {}
   if (= (typeof argument) @Symbol) {
-    let obj = (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.Symbol.SubMap.prototype.Value, "SymbolData" -> argument, "Extensible" -> true))
+    let obj = (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%Symbol.prototype%"], "SymbolData" -> argument, "Extensible" -> true))
     return obj
   } else {}
   if (= (typeof argument) @BigInt) {
-    let obj = (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.BigInt.SubMap.prototype.Value, "BigIntData" -> argument, "Extensible" -> true))
+    let obj = (new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%BigInt.prototype%"], "BigIntData" -> argument, "Extensible" -> true))
     return obj
   } else {}
   if (= (typeof argument) @Object) return argument else {}

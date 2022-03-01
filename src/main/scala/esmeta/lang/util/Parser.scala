@@ -737,14 +737,20 @@ trait Parsers extends DivergedParsers {
   // special reference
   lazy val specialRef: P[Reference] =
     // IsLessThan
-    "the" ~> variable <~ "flag"
+    "the" ~> variable <~ "flag" |
+    // GetPrototypeFromConstructor
+    (variable <~ "'s intrinsic object named") ~ variable ^^ {
+      case realm ~ v =>
+        val intrBase = PropertyReference(realm, FieldProperty("Intrinsic"))
+        PropertyReference(intrBase, IndexProperty(ReferenceExpression(v)))
+    }
 
   // ---------------------------------------------------------------------------
   // metalanguage properties
   // ---------------------------------------------------------------------------
   given prop: PL[Property] = {
     ("." ~> "[[" ~> word <~ "]]") ^^ { FieldProperty(_) } |||
-    ("." ~ "[[" ~> intr <~ "]]") ^^ { IntrinsicProperty(_) } |||
+    ("." ~ "[[" ~> intr <~ "]]") ^^ { i => IntrinsicProperty(i) } |||
     (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
     ("the" ~> component <~ opt("component") ~ "of") ^^ {
       ComponentProperty(_)

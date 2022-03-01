@@ -10,10 +10,10 @@ def ToNumber(argument: Any) {
     return ([number] argument)
   } else {}
   if (= (typeof argument) @Symbol) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}
   if (= (typeof argument) @BigInt) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}
   if (= (typeof argument) @Object) {
     call %1 = clo<ToPrimitive>(argument, ~number~)

@@ -23,10 +23,7 @@ case class Intrinsics(cfg: CFG) {
   }
 
   /** get intrinsic record */
-  def obj: MapObj = MapObj("Record")((for {
-    row <- spec.tables(WELL_KNOWN_INTRINSICS).rows
-    intrKey <- row.headOption.map(_.trim.replace("%", ""))
-  } yield Str(intrKey) -> intrAddr(intrKey)): _*)
+  def obj: MapObj = MapObj("Record")
 
   /** extensions for builtin model structure */
   // TODO refactoring

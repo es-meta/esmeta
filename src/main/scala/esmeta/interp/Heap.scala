@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.builtin.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -17,10 +18,11 @@ case class Heap(
   def apply(addr: Addr): Obj =
     map.getOrElse(addr, throw UnknownAddr(addr))
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
-    case (s: SymbolObj) => s(key)
-    case (m: MapObj)    => m(key)
-    case (l: ListObj)   => l(key)
-    case YetObj(_, msg) => throw NotSupported(msg)
+    case _ if addr == NamedAddr(INTRINSICS) => getIntrinsincs(key)
+    case (s: SymbolObj)                     => s(key)
+    case (m: MapObj)                        => m(key)
+    case (l: ListObj)                       => l(key)
+    case YetObj(_, msg)                     => throw NotSupported(msg)
 
   /** setters */
   def update(addr: Addr, prop: PureValue, value: Value): this.type =
@@ -124,6 +126,16 @@ case class Heap(
       irMap.ty = tname; this
     case _ => error(s"invalid type update: $addr")
   }
+
+  /** special getter for intrinsics */
+  def getIntrinsincs(key: PureValue): Value =
+    val keyStr = key match
+      case Str(s) if s.startsWith("%") && s.endsWith("%") =>
+        s.substring(1, s.length - 1)
+      case v => error(s"invalid intrinsics key1: $key")
+    keyStr.split("\\.").toList match
+      case base :: rest => rest.foldLeft(intrAddr(base))(getPropValue)
+      case _            => error(s"invalid intrinsics key2: $key")
 
   /** copied */
   def copied: Heap =
