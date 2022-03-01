@@ -262,8 +262,11 @@ trait Parsers extends DivergedParsers {
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
     } |||
-    opt("an" | "a") ~ "new" ~ guard(not("Realm")) ~> ty <~ opt(
-      "containing no bindings",
+    opt("an" | "a") ~ ("newly created" | "new") ~
+    guard(not("Realm")) ~> ty <~ opt(
+      "containing no bindings" |
+      "with no fields" |
+      "that initially has no fields",
     ) ^^ { case t => RecordExpression(t, List()) }
 
   // `length of` expressions
@@ -749,6 +752,10 @@ trait Parsers extends DivergedParsers {
       case realm ~ v =>
         val intrBase = PropertyReference(realm, FieldProperty("Intrinsic"))
         PropertyReference(intrBase, IndexProperty(ReferenceExpression(v)))
+    } |
+    // OrdinaryGetOwnProperty
+    ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute") ^^ {
+      case v ~ a => PropertyReference(v, FieldProperty(a))
     }
 
   // ---------------------------------------------------------------------------
