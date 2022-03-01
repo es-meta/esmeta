@@ -42,6 +42,7 @@
   "read-property1.js" : true,
   "semicolon-insertion2.js" : true,
   "semicolon-insertion3.js" : true,
+  "shift1.js" : true,
   "string1.js" : true,
   "string3.js" : true,
   "switch1.js" : true,

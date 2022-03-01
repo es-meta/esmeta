@@ -92,7 +92,7 @@ class EvalSmallTest extends JSTest {
     // "semicolon-insertion2.js",
     // "semicolon-insertion3.js",
     "set1.js",
-    "shift1.js",
+    // "shift1.js",
     // "string1.js",
     "string2.js",
     // "string3.js",

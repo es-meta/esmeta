@@ -439,7 +439,8 @@ object Interp {
     import UOp.*
     (uop, operand) match
       // mathematic values
-      case (Abs, Math(n))   => Math(n.abs)
+      case (Abs, Math(n))                    => Math(n.abs)
+      case (Floor, Math(n)) if n.isValidLong => Math(n)
       case (Floor, Math(n)) => Math(n - (n % 1) - (if (n < 0) 1 else 0))
       // numeric values
       case (Neg, Number(n)) => Number(-n)
@@ -493,7 +494,7 @@ object Interp {
       case (SRShift, Math(l), Math(r)) =>
         Math((l.toInt >> r.toInt).toLong)
       case (URShift, Math(l), Math(r)) =>
-        Math((l.toLong >>> r.toLong) & 0xffffffff)
+        Math((l.toLong << 32) >>> (32 + (r.toLong % 32)))
 
       // logical operations
       case (And, Bool(l), Bool(r)) => Bool(l && r)
