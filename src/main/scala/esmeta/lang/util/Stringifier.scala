@@ -100,6 +100,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
+      case ForEachArrayIndexStep(key, array, start, ascending, body) =>
+        app >> First("for each own property key ") >> key >> " of " >> array
+        app >> " that is an array index, whose numeric value is greater than or equal to "
+        app >> start >> ", " >> "in descending numeric index order, "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
+        app >> body
       case ThrowStep(errorName) =>
         app >> First("throw a *") >> errorName >> "* exception."
       case PerformStep(expr) =>
@@ -197,8 +203,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         calcExprRule(app, expr)
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
-      case ReturnIfAbruptExpression(expr, check) =>
-        app >> (if (check) "?" else "!") >> " " >> expr
       case ListExpression(Nil) => app >> "« »"
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
@@ -234,6 +238,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
+      case ReturnIfAbruptExpression(expr, check) =>
+        app >> (if (check) "?" else "!") >> " " >> expr
       case ReferenceExpression(ref) =>
         app >> ref
       case MathOpExpression(op, args) =>

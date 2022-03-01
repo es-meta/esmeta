@@ -56,6 +56,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, start, cond, ascending, body) =>
       walk(x); walk(start); walk(cond); walk(body)
+    case ForEachArrayIndexStep(key, array, start, ascending, body) =>
+      walk(key); walk(array); walk(start); walk(body)
     case ThrowStep(errorName)   =>
     case PerformStep(expr)      => walk(expr)
     case AppendStep(expr, ref)  => walk(expr); walk(ref)
@@ -96,8 +98,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ReturnIfAbruptExpression(expr, check) =>
-      walk(expr)
     case ListExpression(entries) =>
       walkList(entries, walk)
     case XRefExpression(kind, id) =>
@@ -120,6 +120,8 @@ trait UnitWalker extends BasicUnitWalker {
     walkOpt(block, walk)
 
   def walk(expr: CalcExpression): Unit = expr match {
+    case ReturnIfAbruptExpression(expr, check) =>
+      walk(expr)
     case ReferenceExpression(ref) =>
       walk(ref)
     case MathOpExpression(op, args) =>

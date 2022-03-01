@@ -62,6 +62,7 @@ trait Parsers extends DivergedParsers {
     noteStep |
     suspendStep |
     ifStep |
+    forEachArrayIndexStep |
     forEachStep |
     forEachIntStep |
     resumeStep |
@@ -114,6 +115,17 @@ trait Parsers extends DivergedParsers {
     (opt("do") ~> step) ^^ {
       case x ~ start ~ cond ~ asc ~ body =>
         ForEachIntegerStep(x, start, cond, asc, body)
+    }
+
+  // for-each steps for array index property
+  lazy val forEachArrayIndexStep: PL[ForEachArrayIndexStep] =
+    lazy val ascending: Parser[Boolean] =
+      opt("in descending numeric index order,") ^^ { !_.isDefined }
+    ("for each own property key" ~> variable) ~
+    ("of" ~> variable <~ "that is an array index,") ~
+    ("whose numeric value is greater than or equal to" ~> expr <~ ",") ~
+    ascending ~ (opt("do") ~> step) ^^ {
+      case k ~ x ~ s ~ a ~ b => ForEachArrayIndexStep(k, x, s, a, b)
     }
 
   // throw steps
@@ -313,7 +325,7 @@ trait Parsers extends DivergedParsers {
     import UnaryExpression.Op.*
 
     lazy val base: PL[CalcExpression] =
-      refExpr ||| literal ||| mathOpExpr ||| "(" ~> calc <~ ")" ||| (
+      refExpr ||| literal ||| mathOpExpr ||| returnIfAbruptExpr ||| "(" ~> calc <~ ")" ||| (
         base ~ ("<sup>" ~> calc <~ "</sup>")
       ) ^^ { case b ~ e => ExponentiationExpression(b, e) }
 

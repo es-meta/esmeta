@@ -68,6 +68,14 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
+    case ForEachArrayIndexStep(key, array, start, ascending, body) =>
+      ForEachArrayIndexStep(
+        walk(key),
+        walk(array),
+        walk(start),
+        ascending,
+        walk(body),
+      )
     case ThrowStep(errorName)   => ThrowStep(errorName)
     case PerformStep(expr)      => PerformStep(walk(expr))
     case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
@@ -115,8 +123,6 @@ trait Walker extends BasicWalker {
       walk(expr)
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ReturnIfAbruptExpression(expr, check) =>
-      ReturnIfAbruptExpression(walk(expr), check)
     case ListExpression(entries) =>
       ListExpression(walkList(entries, walk))
     case XRefExpression(kind, id) =>
@@ -142,6 +148,8 @@ trait Walker extends BasicWalker {
     YetExpression(str, walkOpt(block, walk))
 
   def walk(expr: CalcExpression): CalcExpression = expr match {
+    case ReturnIfAbruptExpression(expr, check) =>
+      ReturnIfAbruptExpression(walk(expr), check)
     case ReferenceExpression(ref) =>
       ReferenceExpression(walk(ref))
     case lit: Literal =>

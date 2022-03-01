@@ -1,0 +1,67 @@
+def ArraySetLength(A: Array, Desc: PropertyDescriptor): Unknown {
+  if (= Desc.Value absent) {
+    call %0 = clo<OrdinaryDefineOwnProperty>(A, "length", Desc)
+    return %0
+  } else {}
+  let newLenDesc = (copy Desc)
+  call %1 = clo<ToUint32>(Desc.Value)
+  let newLen = [? %1]
+  call %2 = clo<ToNumber>(Desc.Value)
+  let numberLen = [? %2]
+  call %3 = clo<SameValueZero>(newLen, numberLen)
+  if (= %3 false) {
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.RangeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  } else {}
+  newLenDesc.Value = newLen
+  call %4 = clo<OrdinaryGetOwnProperty>(A, "length")
+  let oldLenDesc = [! %4] // BUG
+  call %5 = clo<IsDataDescriptor>(oldLenDesc)
+  assert (= [! %5] true)
+  assert (= oldLenDesc.Configurable false)
+  let oldLen = oldLenDesc.Value
+  if (! (< newLen oldLen)) {
+    call %6 = clo<OrdinaryDefineOwnProperty>(A, "length", newLenDesc)
+    return %6
+  } else {}
+  if (= oldLenDesc.Writable false) {
+    return false
+  } else {}
+  if (|| (= newLenDesc.Writable absent) (= newLenDesc.Writable true)) {
+    let newWritable = true
+  } else {
+    nop
+    let newWritable = false
+    newLenDesc.Writable = true
+  }
+  call %7 = clo<OrdinaryDefineOwnProperty>(A, "length", newLenDesc)
+  let succeeded = [! %7]
+  if (= succeeded false) {
+    return false
+  } else {}
+  %9 = (keys-int A.SubMap)
+  %8 = %9.length
+  loop[foreach-array] (< 0 %8) {
+    %8 = (- %8 1)
+    let P = %9[%8]
+    if (&& (array-index P) (! (< ([number] P) newLen))) {
+      call %10 = A.Delete(A, P)
+      let deleteSucceeded = [! %10]
+      if (= deleteSucceeded false) {
+        call %11 = clo<ToUint32>(P)
+        newLenDesc.Value = (+ [! %11] 1.0f)
+        if (= newWritable false) {
+          newLenDesc.Writable = false
+        } else {}
+        call %12 = clo<OrdinaryDefineOwnProperty>(A, "length", newLenDesc)
+        [! %12]
+        return false
+      } else {}
+    } else {}
+  }
+  if (= newWritable false) {
+    call %13 = clo<OrdinaryDefineOwnProperty>(A, "length", (new PropertyDescriptor("Writable" -> false)))
+    succeeded = [! %13]
+    assert (= succeeded true)
+  } else {}
+  return true
+}

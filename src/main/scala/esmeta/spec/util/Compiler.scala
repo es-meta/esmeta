@@ -284,9 +284,9 @@ class Compiler(val spec: Spec) {
       fb.addInst(
         ILoop(
           "foreach",
-          lessThan(EMathVal(0), iExpr),
+          lessThan(zero, iExpr),
           fb.newScope {
-            fb.addInst(IAssign(i, sub(iExpr, EMathVal(1))))
+            fb.addInst(IAssign(i, sub(iExpr, one)))
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
           },
@@ -303,6 +303,33 @@ class Compiler(val spec: Spec) {
             compile(fb, body)
             val op = if (ascending) add(_, _) else sub(_, _)
             fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
+          },
+        ),
+      )
+    case ForEachArrayIndexStep(x, array, start, ascending, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      val (key, keyExpr) = compileWithExpr(x)
+      fb.addInst(
+        IAssign(list, EKeys(toStrERef(compile(fb, array), "SubMap"), true)),
+        IAssign(i, toStrERef(list, "length")),
+        ILoop(
+          "foreach-array",
+          lessThan(zero, iExpr),
+          fb.newScope {
+            val cond = and(
+              EIsArrayIndex(keyExpr),
+              not(lessThan(EConvert(COp.ToNumber, keyExpr), compile(fb, start))),
+            )
+            fb.addInst(IAssign(i, sub(iExpr, one)))
+            fb.addInst(ILet(key, toERef(list, iExpr)))
+            fb.addInst(
+              IIf(
+                cond,
+                compileWithScope(fb, body),
+                emptyInst,
+              ),
+            )
           },
         ),
       )

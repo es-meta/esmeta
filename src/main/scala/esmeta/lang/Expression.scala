@@ -48,7 +48,7 @@ case class CoveredByExpression(code: Expression, rule: Expression)
 case class ReturnIfAbruptExpression(
   expr: InvokeExpression,
   check: Boolean,
-) extends Expression
+) extends CalcExpression
 
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression

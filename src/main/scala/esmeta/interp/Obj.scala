@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.util.ESValueParser
 import scala.collection.mutable.{Map => MMap}
 
 // Objects
@@ -69,7 +70,7 @@ case class MapObj(
     } else
       (for {
         (Str(s), _) <- props.toVector
-        d: Double = ??? // ESValueParser.str2num(s)
+        d = ESValueParser.str2Number(s)
         if toStringHelper(d) == s
         i = d.toLong // should handle unsigned integer
         if d == i
