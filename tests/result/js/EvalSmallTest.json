@@ -43,6 +43,7 @@
   "instanceof2.js" : true,
   "multiple-statements.js" : true,
   "number1.js" : true,
+  "number2.js" : true,
   "number3.js" : true,
   "number4.js" : true,
   "read-property1.js" : true,
