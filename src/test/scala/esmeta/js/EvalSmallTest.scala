@@ -10,7 +10,7 @@ class EvalSmallTest extends JSTest {
 
   // TODO remove
   val IGNORE_FILES: List[String] = List(
-    "array5.js",
+    // "array5.js",
     "array6.js",
     "assign-object3.js",
     "assign-object4.js",
