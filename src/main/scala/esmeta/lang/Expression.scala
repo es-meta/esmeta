@@ -44,6 +44,12 @@ case class SourceTextExpression(
 case class CoveredByExpression(code: Expression, rule: Expression)
   extends Expression
 
+// get children ast expressions
+case class GetChildrenExpression(
+  nonterminal: Expression,
+  expr: Expression,
+) extends Expression
+
 // return-if-abrupt expressions
 case class ReturnIfAbruptExpression(
   expr: InvokeExpression,

@@ -28,9 +28,14 @@ sealed trait Ast extends JSElem {
         case _            => List(this)
 
   /** children */
-  def getChildren: List[Option[Ast]] = this match
-    case lex: Lexical   => List()
-    case syn: Syntactic => syn.children
+  def getChildren(kind: String): List[Ast] = this match
+    case lex: Lexical => List()
+    case Syntactic(k, _, _, children) =>
+      val founded = (for {
+        child <- children.flatten
+        found <- child.getChildren(kind)
+      } yield found).toList
+      if (k == kind) this :: founded else founded
 
   /** types */
   lazy val types: Set[String] =

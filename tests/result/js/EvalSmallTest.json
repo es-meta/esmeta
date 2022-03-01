@@ -43,6 +43,7 @@
   "semicolon-insertion3.js" : true,
   "string1.js" : true,
   "string3.js" : true,
+  "switch1.js" : true,
   "symbol1.js" : true,
   "symbol2.js" : true,
   "symbol3.js" : true,

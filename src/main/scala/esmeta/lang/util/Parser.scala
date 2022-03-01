@@ -229,6 +229,7 @@ trait Parsers extends DivergedParsers {
     numberOfExpr |||
     sourceTextExpr |||
     coveredByExpr |||
+    getChildrenExpr |||
     intrExpr |||
     calcExpr |||
     invokeExpr |||
@@ -298,6 +299,13 @@ trait Parsers extends DivergedParsers {
   lazy val coveredByExpr: PL[CoveredByExpression] =
     "the" ~> expr ~ ("that is covered by" ~> expr) ^^ {
       case r ~ c => CoveredByExpression(c, r)
+    }
+
+  // get children ast expressions
+  lazy val getChildrenExpr: PL[GetChildrenExpression] =
+    ("the List of" ~> expr <~ "items") ~
+    ("in" ~> expr <~ "," ~ "in source text order") ^^ {
+      case t ~ e => GetChildrenExpression(t, e)
     }
 
   // abstract closure expressions
@@ -515,7 +523,7 @@ trait Parsers extends DivergedParsers {
 
     // Evalution SDO
     lazy val evalSDOExpr =
-      "the result of evaluating" ~> expr ^^ {
+      "the result of evaluating" ~ opt(ty <~ guard(expr)) ~> expr ^^ {
         case b =>
           InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
       }

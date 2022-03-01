@@ -187,6 +187,12 @@ class Interp(
       val ast = interp(expr).escaped.toAst(expr)
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
+    case EGetChildren(kind, ast) =>
+      val k = interp(kind).escaped match
+        case Grammar(name, _) => name
+        case v                => throw NoGrammar(kind, v)
+      val a = interp(ast).escaped.toAst(ast)
+      st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>

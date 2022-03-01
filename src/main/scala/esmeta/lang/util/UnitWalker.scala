@@ -92,6 +92,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case CoveredByExpression(from, to) =>
       walk(from); walk(to)
+    case GetChildrenExpression(nt, expr) =>
+      walk(nt); walk(expr)
     case IntrinsicExpression(intr) =>
       walk(intr)
     case expr: CalcExpression =>

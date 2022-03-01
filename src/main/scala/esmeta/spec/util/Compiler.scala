@@ -479,6 +479,8 @@ class Compiler(val spec: Spec) {
       ESourceText(compile(fb, expr))
     case CoveredByExpression(code, rule) =>
       EParse(compile(fb, code), compile(fb, rule))
+    case GetChildrenExpression(nt, expr) =>
+      EGetChildren(compile(fb, nt), compile(fb, expr))
     case InvokeAbstractOperationExpression(name, args) =>
       if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
       else {

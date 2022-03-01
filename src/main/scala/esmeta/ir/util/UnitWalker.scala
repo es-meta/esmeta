@@ -130,6 +130,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(obj)
     case EKeys(map, intSorted) =>
       walk(map); walk(intSorted)
+    case EGetChildren(kind, ast) =>
+      walk(kind); walk(ast)
   }
 
   // literals

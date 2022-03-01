@@ -1,0 +1,47 @@
+def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnvironmentRecord, N: String, V: ECMAScriptLanguageValue, S: Boolean): Unknown {
+  let binding = envRec.SubMap[N]
+
+  // 1. [id="step-setmutablebinding-missing-binding"] If _envRec_ does not have a binding for _N_, then
+  if (= binding absent) {
+    // 1. If _S_ is *true*, throw a *ReferenceError* exception.
+    if (= S true) {
+      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.ReferenceError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    } else {}
+
+    // 1. Perform _envRec_.CreateMutableBinding(_N_, *true*).
+    call %0 = envRec.CreateMutableBinding(envRec, N, true)
+
+    // 1. Perform _envRec_.InitializeBinding(_N_, _V_).
+    call %1 = envRec.InitializeBinding(envRec, N, V)
+
+    // 1. Return NormalCompletion(~empty~).
+    call %2 = clo<NormalCompletion>(~empty~)
+    return %2
+  } else {}
+
+  // 1. If the binding for _N_ in _envRec_ is a strict binding, set _S_ to *true*.
+  if (= binding.strict true) S = true else {}
+
+  // 1. If the binding for _N_ in _envRec_ has not yet been initialized, throw a *ReferenceError* exception.
+  if (! binding.initialized) {
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.ReferenceError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+  } 
+  // 1. Else if the binding for _N_ in _envRec_ is a mutable binding, change its bound value to _V_.
+  else if (? binding: MutableBinding) {
+    binding.BoundValue = V
+  } 
+  // 1. Else,
+  else {
+    // 1. Assert: This is an attempt to change the value of an immutable binding.
+    assert (? binding: ImmutableBinding)
+
+    // 1. If _S_ is *true*, throw a *TypeError* exception.
+    if (= S true) {
+      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics.TypeError.SubMap.prototype.Value, "ErrorData" -> undefined)))
+    } else {}
+  }
+
+  // 1. Return NormalCompletion(~empty~).
+  call %3 = clo<NormalCompletion>(~empty~)
+  return %3
+}

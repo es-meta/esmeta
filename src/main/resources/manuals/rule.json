@@ -66,5 +66,6 @@
   "[YET] Return a new unique Symbol value whose [[Description]] value is _descString_.": "return (new 'descString)",
   "[YET] Let _int_ be the mathematical value whose sign is the sign of _number_ and whose magnitude is floor(abs(ℝ(_number_))).": "let int = (floor ([math] number))",
   "[YET] Let _newLenDesc_ be a copy of _Desc_.": "let newLenDesc = (copy Desc)",
-  "[YET] Assert: _Receiver_ does not currently have a property _P_.": "assert (= Receiver.SubMap[P] absent)"
+  "[YET] Assert: _Receiver_ does not currently have a property _P_.": "assert (= Receiver.SubMap[P] absent)",
+  "[YET] Assert: _C_ is an instance of the production <emu-grammar>CaseClause : `case` Expression `:` StatementList?</emu-grammar>.": "assert true"
 }

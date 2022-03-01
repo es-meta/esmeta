@@ -75,7 +75,7 @@ trait Walker extends BasicWalker {
       EParse(walk(code), walk(rule))
     case EGrammar(name, params) =>
       EGrammar(walk(name), walkList(params, walk))
-    case ESourceText(exor) =>
+    case ESourceText(expr) =>
       ESourceText(walk(expr))
     case EYet(msg) =>
       EYet(walk(msg))
@@ -140,6 +140,8 @@ trait Walker extends BasicWalker {
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>
       EKeys(walk(map), walk(intSorted))
+    case EGetChildren(kind, ast) =>
+      EGetChildren(walk(kind), walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit

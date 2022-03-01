@@ -74,7 +74,7 @@ case class State(
                   case _           => throw InvalidAstProp(ast, prop)
           // access to child
           case Math(n) if n.isValidInt =>
-            ast.getChildren(n.toInt) match
+            children(n.toInt) match
               case Some(child) => AstValue(child)
               case None        => Absent
           case _ => throw InvalidAstProp(ast, prop)

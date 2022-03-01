@@ -195,6 +195,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the source text matched by " >> expr
       case CoveredByExpression(code, rule) =>
         app >> "the " >> rule >> " that is covered by " >> code
+      case GetChildrenExpression(nt, expr) =>
+        app >> "the List of " >> nt >> " items in " >> expr >> ", in source text order"
       case IntrinsicExpression(intr) =>
         app >> intr
       case XRefExpression(kind, id) =>
