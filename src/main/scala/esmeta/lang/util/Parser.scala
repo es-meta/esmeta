@@ -497,7 +497,8 @@ trait Parsers extends DivergedParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
-    (opt(tagStart) ~> propRef <~ opt(tagEnd)) ~ invokeArgs ^^ {
+    // handle emu-meta tag
+    (opt(tagStart) ~> propRef <~ opt(tagEnd)) ~ (invokeArgs <~ opt(tagEnd)) ^^ {
       case p ~ as => InvokeMethodExpression(p, as)
     }
 
