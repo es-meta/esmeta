@@ -382,7 +382,8 @@ trait Parsers extends DivergedParsers {
 
   // the sole element expressions
   lazy val soleExpr: PL[SoleElementExpression] =
-    "the sole element of" ~> expr ^^ { SoleElementExpression(_) }
+    ("the sole element of" | "the string that is the only element of")
+    ~> expr ^^ { SoleElementExpression(_) }
 
   // reference expressions
   lazy val refExpr: PL[ReferenceExpression] = ref ^^ { ReferenceExpression(_) }
