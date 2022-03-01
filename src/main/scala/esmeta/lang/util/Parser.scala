@@ -398,7 +398,7 @@ trait Parsers extends DivergedParsers {
 
   // literals
   // GetIdentifierReference uses 'the value'
-  lazy val literal: PL[Literal] = opt("the value") ~> (
+  lazy val literal: PL[Literal] = opt("the" ~ opt(ty) ~ "value") ~> (
     opt("the") ~> "*this* value" ^^! ThisLiteral() |||
     "NewTarget" ^^! NewTargetLiteral() |||
     hexLiteral |||
@@ -697,6 +697,11 @@ trait Parsers extends DivergedParsers {
     // ResolveBinding
     "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
       getExprCond(TrueLiteral())
+    } |
+    // PropertyDefinition[2,0].PropertyDefinitionEvaluation
+    "this |PropertyDefinition| is contained within a |Script| that is being evaluated for JSON.parse" ~
+    ignore ~ guard(",") ^^! {
+      getExprCond(FalseLiteral())
     }
 
   // ---------------------------------------------------------------------------
