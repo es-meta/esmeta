@@ -37,6 +37,8 @@
   "function-application4.js" : true,
   "function-application5.js" : true,
   "function-declare1.js" : true,
+  "function3.js" : true,
+  "generator1.js" : true,
   "generator2.js" : true,
   "global-object.js" : true,
   "global-object2.js" : true,
