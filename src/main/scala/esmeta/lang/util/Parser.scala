@@ -174,9 +174,17 @@ trait Parsers extends DivergedParsers {
     lazy val param: P[Option[Variable]] =
       "for that execution context" ^^^ { None } |
       "with a" ~ opt(ty) ~> variable ^^ { Some(_) } // TODO handle type
+    lazy val body: P[Step] =
+      ("the following steps will be performed:" ~> step) |
+      // Await
+      (", the following steps of the algorithm" ~
+      "that invoked Await will be performed," ~
+      "with" ~> variable <~ "available" ~ end) ^^ {
+        case x => ReturnStep(Some(ReferenceExpression(x)))
+      }
+
     ("set the code evaluation state of" ~> variable) ~
-    ("such that when evaluation is resumed" ~> param) ~
-    ("the following steps will be performed:" ~> step) ^^ {
+    ("such that when evaluation is resumed" ~> param) ~ body ^^ {
       case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
     }
 
@@ -198,10 +206,9 @@ trait Parsers extends DivergedParsers {
 
   // return to resumed steps
   lazy val returnToResumedStep: PL[ReturnToResumeStep] =
-    val arg: P[Expression] = "return" ~> endWithExpr
     val context: P[Variable] =
       next ~ "1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of" ~> variable <~ "."
-    arg ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
+    returnStep ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
 
   // block steps
   lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }

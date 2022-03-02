@@ -88,7 +88,7 @@ case class ResumeEvaluationStep(
 // return to the resumed step
 case class ReturnToResumeStep(
   context: Reference,
-  argument: Expression,
+  returnStep: ReturnStep,
 ) extends Step
 
 // block steps

@@ -143,9 +143,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " Let " >> param >> " be the value returned by the resumed computation."
         for { step <- body } app :> "1. " >> step // TODO
         app
-      case ReturnToResumeStep(context, arg) =>
-        given Rule[Expression] = endWithExprRule
-        app >> First("return ") >> arg
+      case ReturnToResumeStep(context, retStep) =>
+        given Rule[Step] = stepWithUpperRule(true)
+        app >> retStep
         app :> "1. NOTE: This returns to the evaluation of the operation "
         app >> "that had most previously resumed evaluation of " >> context >> "."
       case BlockStep(block) =>

@@ -25,6 +25,7 @@
   "assign-object6.js" : true,
   "assignment1.js" : true,
   "async1.js" : true,
+  "await1.js" : true,
   "boolean1.js" : true,
   "boolean2.js" : true,
   "boolean3.js" : true,

@@ -87,7 +87,7 @@ class StringifyTinyTest extends LangTest {
     lazy val resumeParamStep =
       ResumeEvaluationStep(x, None, Some(x), List(subStep))
     lazy val returnToResumeStep =
-      ReturnToResumeStep(x, refExpr)
+      ReturnToResumeStep(x, returnStep)
     lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
     lazy val yetStep = YetStep(yetExpr)
 

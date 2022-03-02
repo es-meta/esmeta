@@ -82,5 +82,6 @@
   "[YET] Remove _asyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "{ (pop < @EXECUTION_STACK) @CONTEXT = @EXECUTION_STACK[0] }",
   "[YET] Assert: _F_ has a [[Promise]] internal slot whose value is an Object.": "assert (&& (! (= F.Promise absent)) (? F.Promise: Object))",
   "[YET] Assert: When we return here, _asyncContext_ has already been removed from the execution context stack and _runningContext_ is the currently running execution context.": "assert (&& (= runningContext @CONTEXT) (! (= asyncContext @EXECUTION_STACK[0])))",
-  "[YET] Assert: _result_ is a normal completion with a value of *undefined*. The possible sources of completion values are Await or, if the async function doesn't await anything, step <emu-xref href=\"#step-asyncblockstart-return-undefined\"></emu-xref> above.": "(= result comp[~normal~/~empty~](undefined))"
+  "[YET] Assert: _result_ is a normal completion with a value of *undefined*. The possible sources of completion values are Await or, if the async function doesn't await anything, step <emu-xref href=\"#step-asyncblockstart-return-undefined\"></emu-xref> above.": "(= result comp[~normal~/~empty~](undefined))",
+  "[YET] Assert: When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.": "assert (&& (= prevContext @CONTEXT) (! (= asyncContext @EXECUTION_STACK[0])))"
 }

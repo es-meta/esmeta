@@ -69,8 +69,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base); walkOpt(p, walk); walk(body)
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
-    case ReturnToResumeStep(base, arg) =>
-      walk(base); walk(arg)
+    case ReturnToResumeStep(base, retStep) =>
+      walk(base); walk(retStep)
     case BlockStep(block) => walk(block)
     case YetStep(expr)    => walk(expr)
   }
