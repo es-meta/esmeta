@@ -88,5 +88,9 @@
   "[YET] Let _next_ be the first element of _queue_.": "let next = queue[0]",
   "[YET] Remove the first element from _queue_.": "(pop < queue)",
   "[YET] Assert: When we return here, _genContext_ has already been removed from the execution context stack and _callerContext_ is the currently running execution context.": "assert (&& (= callerContext @CONTEXT) (! (= genContext @EXECUTION_STACK[0])))",
-  "[YET] Assert: _lhs_ binds a single name.": "assert true"
+  "[YET] Assert: _lhs_ binds a single name.": "assert true",
+  "[YET] Append the pair (a two element List) consisting of _nextKey_ and _desc_ to the end of _descriptors_.": "push descriptors < (new [nextKey, desc])",
+  "[YET] Let _P_ be the first element of _pair_.": "let P = pair[0]",
+  "[YET] Let _desc_ be the second element of _pair_.": "let desc = pair[1]",
+  "[YET] Assert: _obj_ is an extensible ordinary object with no own properties.": "assert true"
 }

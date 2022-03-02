@@ -18,7 +18,6 @@ class EvalSmallTest extends JSTest {
     "delete1.js",
     "forin1.js",
     "global-eval.js",
-    "object2.js",
   )
 
   // registration

@@ -66,6 +66,7 @@
   "number3.js" : true,
   "number4.js" : true,
   "object1.js" : true,
+  "object2.js" : true,
   "promise1.js" : true,
   "read-property1.js" : true,
   "semicolon-insertion1.js" : true,

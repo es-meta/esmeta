@@ -1,0 +1,26 @@
+def OrdinaryOwnPropertyKeys(O: Object): Unknown {
+  let keys = (new [])
+  %0 = 0
+  %1 = (keys-int O.SubMap)
+  loop[repeat] (< %0 %1.length) {
+    let P = %9[%8]
+    if (array-index P) push keys < P else {}
+    %0 = (+ %0 1)
+  }
+
+  %2 = (keys O.SubMap)
+  %3 = 0
+  loop[repeat] (< %3 %2.length) {
+    let P = %2[%3]
+    if (&& (= (typeof P) @String) (! (array-index P))) push keys < P else {}
+    %3 = (+ %3 1)
+  }
+  
+  %4 = 0
+  loop[repeat] (< %4 %2.length) {
+    let P = %2[%4]
+    if (= (typeof P) @Symbol) push keys < P else {}
+    %4 = (+ %4 1)
+  }
+  return keys
+}
