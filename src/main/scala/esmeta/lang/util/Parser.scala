@@ -694,7 +694,7 @@ trait Parsers extends DivergedParsers {
     }
 
   // rarely used conditions
-  // TODO move this to predicate
+  // TODO clean-up
   lazy val specialCond: PL[Condition] =
     // OrdinaryGetOwnProperty
     expr ~ ("is" ~> (
@@ -717,6 +717,14 @@ trait Parsers extends DivergedParsers {
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for JSON.parse" ~
     ignore ~ guard(",") ^^! {
       getExprCond(FalseLiteral())
+    } |
+    // CreatePerIterationEnvironment
+    expr <~ "has any elements" ^^ {
+      case r => PredicateCondition(r, false, PredicateCondition.Op.Empty)
+    } |
+    // ForBodyEvaluation
+    expr ~ isNeg <~ "~[empty]~" ^^ {
+      case e ~ n => PredicateCondition(e, !n, PredicateCondition.Op.Present)
     }
 
   // ---------------------------------------------------------------------------
