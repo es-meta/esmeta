@@ -87,5 +87,6 @@
   "[YET] Assert: If we return here, the async generator either threw an exception or performed either an implicit or explicit return.": "assert true",
   "[YET] Let _next_ be the first element of _queue_.": "let next = queue[0]",
   "[YET] Remove the first element from _queue_.": "(pop < queue)",
-  "[YET] Assert: When we return here, _genContext_ has already been removed from the execution context stack and _callerContext_ is the currently running execution context.": "assert (&& (= callerContext @CONTEXT) (! (= genContext @EXECUTION_STACK[0])))"
+  "[YET] Assert: When we return here, _genContext_ has already been removed from the execution context stack and _callerContext_ is the currently running execution context.": "assert (&& (= callerContext @CONTEXT) (! (= genContext @EXECUTION_STACK[0])))",
+  "[YET] Assert: _lhs_ binds a single name.": "assert true"
 }

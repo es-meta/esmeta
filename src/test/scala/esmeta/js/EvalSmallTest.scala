@@ -17,7 +17,6 @@ class EvalSmallTest extends JSTest {
     "complement1.js",
     "delete1.js",
     "forin1.js",
-    "forof1.js",
     "global-eval.js",
     "object2.js",
   )

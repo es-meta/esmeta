@@ -220,7 +220,8 @@ trait Parsers extends DivergedParsers {
   lazy val note = "NOTE:" ~> ".*".r
   lazy val ignore =
     "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd | "; that is[^.]*".r
-  lazy val end: Parser[String] = opt(ignore) ~> "." <~ opt(note) ~ upper | ";"
+  lazy val end: Parser[String] =
+    opt(ignore) ~> "." <~ opt(note | ("(" ~ ".*\\)".r)) ~ upper | ";"
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
