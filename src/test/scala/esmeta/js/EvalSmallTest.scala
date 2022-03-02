@@ -14,7 +14,6 @@ class EvalSmallTest extends JSTest {
     "class-decl2.js",
     "compare1.js",
     "complement1.js",
-    "delete1.js",
     "global-eval.js",
   )
 

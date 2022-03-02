@@ -35,6 +35,7 @@
   "boolean3.js" : true,
   "boolean4.js" : true,
   "constructor1.js" : true,
+  "delete1.js" : true,
   "empty-statement.js" : true,
   "equality1.js" : true,
   "expression-statement1.js" : true,

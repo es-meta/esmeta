@@ -72,6 +72,8 @@ trait Parsers extends BasicParsers {
       case r => IDelete(r)
     } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
       case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
+    } | "remove-elem" ~> expr ~ expr ^^ {
+      case l ~ e => IRemoveElem(l, e)
     } | "return" ~> expr ^^ {
       case e => IReturn(e)
     } | "assert" ~> expr ^^ {

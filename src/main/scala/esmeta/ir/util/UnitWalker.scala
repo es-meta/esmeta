@@ -38,19 +38,20 @@ trait UnitWalker extends BasicUnitWalker {
 
   // instructions
   def walk(inst: Inst): Unit = inst match {
-    case IExpr(expr)            => walk(expr)
-    case ILet(lhs, expr)        => walk(lhs); walk(expr)
-    case IAssign(ref, expr)     => walk(ref); walk(expr)
-    case IDelete(ref)           => walk(ref)
-    case IPush(from, to, front) => walk(from); walk(to); walk(front)
-    case IReturn(expr)          => walk(expr)
-    case IAssert(expr)          => walk(expr)
-    case IPrint(expr)           => walk(expr)
-    case INop()                 =>
-    case ISeq(insts)            => walkList(insts, walk)
-    case IIf(c, t, e)           => walk(c); walk(t); walk(e)
-    case ILoop(k, c, b)         => walk(c); walk(b)
-    case ICall(l, f, as)        => walk(l); walk(f); walkList(as, walk)
+    case IExpr(expr)             => walk(expr)
+    case ILet(lhs, expr)         => walk(lhs); walk(expr)
+    case IAssign(ref, expr)      => walk(ref); walk(expr)
+    case IDelete(ref)            => walk(ref)
+    case IPush(from, to, front)  => walk(from); walk(to); walk(front)
+    case IRemoveElem(list, elem) => walk(list); walk(elem)
+    case IReturn(expr)           => walk(expr)
+    case IAssert(expr)           => walk(expr)
+    case IPrint(expr)            => walk(expr)
+    case INop()                  =>
+    case ISeq(insts)             => walkList(insts, walk)
+    case IIf(c, t, e)            => walk(c); walk(t); walk(e)
+    case ILoop(k, c, b)          => walk(c); walk(b)
+    case ICall(l, f, as)         => walk(l); walk(f); walkList(as, walk)
   }
 
   // expressions

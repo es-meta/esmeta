@@ -111,6 +111,10 @@ class Interp(
           else st.append(addr, interp(from).escaped)
         case v => throw NoAddr(to, v)
       }
+    case IRemoveElem(list, elem) =>
+      interp(list).escaped match
+        case (addr: Addr) => st.remove(addr, interp(elem).escaped)
+        case v            => throw NoAddr(list, v)
     case IReturn(expr) => throw ReturnValue(interp(expr))
     case IAssert(expr) =>
       interp(expr).escaped match {

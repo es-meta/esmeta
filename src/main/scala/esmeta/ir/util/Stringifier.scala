@@ -72,6 +72,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "push "
         if (front) app >> from >> " > " >> to
         else app >> to >> " < " >> from
+      case IRemoveElem(list, elem) =>
+        app >> "remove-elem " >> list >> " " >> elem
       case IReturn(expr) =>
         app >> "return " >> expr
       case IAssert(expr) =>
