@@ -628,7 +628,7 @@ trait Parsers extends DivergedParsers {
     lazy val op: Parser[PredicateCondition.Op] =
       "finite" ^^^ { Finite } |
       "an abrupt completion" ^^^ { Abrupt } |
-      "a normal completion" ^^^ { Normal } |
+      ("a normal completion" | "never an abrupt completion") ^^^ { Normal } |
       "duplicate entries" ^^^ { Duplicated } |
       "present" ^^^ { Present } |
       "empty" ^^^ { Empty } |

@@ -136,7 +136,8 @@ class Interp(
       st.callStack ::= CallContext(lhs, st.context)
       st.context = Context(func, newLocals)
     case Cont(func, captured, callStack) => {
-      val vs = args.map(interp)
+      // wrap completion for return to resumed context
+      val vs = args.map(interp).map(_.wrapCompletion)
       val newLocals =
         getLocals(func.irFunc.params, vs, cont = true) ++ captured
       st.callStack = callStack.map(_.copied)
