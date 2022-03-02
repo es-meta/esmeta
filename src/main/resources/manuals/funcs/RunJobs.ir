@@ -4,7 +4,7 @@
   loop[repeat] (! (= @JOB_QUEUE.length 0)) {
     // clean the execution context
     @CONTEXT = null
-    (pop < @EXECUTION_STACK)
+    (pop > @EXECUTION_STACK)
     assert (= @EXECUTION_STACK.length 0)
     
     // get a next job
@@ -16,7 +16,7 @@
     @CONTEXT.Function = null
     @CONTEXT.Realm = jobRecord.Realm
     @CONTEXT.ScriptOrModule = jobRecord.ScriptOrModule
-    push @EXECUTION_STACK < @CONTEXT
+    push @CONTEXT > @EXECUTION_STACK
     call result = jobRecord.Job()
     [? result]
   }

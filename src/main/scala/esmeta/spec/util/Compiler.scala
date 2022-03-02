@@ -358,13 +358,13 @@ class Compiler(val spec: Spec) {
       fb.addInst(
         IAssign(GLOBAL_CONTEXT, ERef(compile(fb, ref))),
       )
-      fb.addInst(IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, false))
+      fb.addInst(IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, true))
     case NoteStep(note) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, false)))
+      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val codeState = toStrRef(compile(fb, context), "ResumeCont")
       val contName = fb.nextCloName
