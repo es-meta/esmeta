@@ -96,5 +96,6 @@
   "[YET] Return an Iterator object (<emu-xref href=\"#sec-iterator-interface\"></emu-xref>) whose `next` method iterates over all the String-valued keys of enumerable properties of _O_. The iterator object is never directly accessible to ECMAScript code. The mechanics and order of enumerating the properties is not specified but must conform to the rules specified below.": "{ call %0 = clo<CreateForInIterator>(O) return %0 }",
   "[YET] Assert: _O_ has all of the internal slots of a For-In Iterator Instance (<emu-xref href=\"#sec-properties-of-for-in-iterator-instances\"></emu-xref>).": "assert true",
   "[YET] Let _r_ be the first element of _remaining_.": "let r = remaining[0]",
-  "[YET] Remove the first element from _remaining_.": "(pop < remaining)"
+  "[YET] Remove the first element from _remaining_.": "(pop < remaining)",
+  "[YET] Assert: _O_ is an Object that has a [[SyncIteratorRecord]] internal slot.": "assert (&& (? O: Object) (! (= O.SyncIteratorRecord absent)))"
 }
