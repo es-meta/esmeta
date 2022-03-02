@@ -221,7 +221,9 @@ trait Parsers extends DivergedParsers {
   lazy val ignore =
     "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd | "; that is[^.]*".r
   lazy val end: Parser[String] =
-    opt(ignore) ~> "." <~ opt(note | ("(" ~ ".*\\)".r) | "This may be.*".r) ~ upper | ";"
+    opt(ignore) ~> "." <~ opt(
+      note | ("(" ~ ".*\\)".r) | "This may be.*".r,
+    ) ~ upper | ";"
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
@@ -323,10 +325,10 @@ trait Parsers extends DivergedParsers {
   // abstract closure expressions
   lazy val closureExpr: PL[AbstractClosureExpression] =
     lazy val params: P[List[Variable]] =
-      "no parameters" ^^! { Nil } |||
+      "no parameters" ^^! { Nil } |
       "parameters" ~> ("(" ~> repsep(variable, ",") <~ ")")
     lazy val captured: P[List[Variable]] =
-      "catpures nothing" ^^! { Nil } |||
+      "captures nothing" ^^! { Nil } |
       "captures" ~> repsep(variable, sep("and"))
 
     "a new" ~ opt(
