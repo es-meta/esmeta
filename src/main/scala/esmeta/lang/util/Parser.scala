@@ -865,7 +865,7 @@ trait Parsers extends DivergedParsers {
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
 
   // nonterminals
-  private lazy val nt: Parser[String] = "|" ~> word <~ "|"
+  private lazy val nt: Parser[String] = "|" ~> word <~ opt("?") ~ "|"
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (
