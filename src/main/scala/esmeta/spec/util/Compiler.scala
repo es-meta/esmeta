@@ -18,11 +18,16 @@ class Compiler(val spec: Spec) {
     for (algo <- spec.algorithms) compile(algo)
 
     // load manually created AOs
+    val manualFuncs: ListBuffer[Func] = ListBuffer()
     for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
-      funcs += Func.fromFile(file.toString)
+      manualFuncs += Func.fromFile(file.toString)
+
+    // filter manual functions
+    val manualNames = manualFuncs.map(_.name)
+    val filtered = funcs.filter(f => !manualNames.contains(f.name))
 
     // result
-    val program = Program(funcs.toList)
+    val program = Program(filtered.appendAll(manualFuncs).toList)
 
     // connect backward edge to a given specification
     program.spec = spec
