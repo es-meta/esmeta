@@ -638,7 +638,7 @@ class Compiler(val spec: Spec) {
   private def compile(fb: FB, lit: Literal): Expr = lit match {
     case ThisLiteral()         => ENAME_THIS
     case NewTargetLiteral()    => ENAME_NEW_TARGET
-    case HexLiteral(hex, name) => EMathVal(hex)
+    case HexLiteral(hex, _) => EStr(hex.toChar.toString) // XXX code unit
     case CodeLiteral(code)     => EStr(code)
     case NonterminalLiteral(ordinal, name) =>
       val ntNames = fb.ntBindings.map(_._1)
