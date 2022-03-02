@@ -455,6 +455,7 @@ object Interp {
       case (Not, Bool(b)) => Bool(!b)
       // bitwise
       case (BNot, Math(n))   => Math(~(n.toInt))
+      case (BNot, Number(n)) => Number(~(n.toInt))
       case (BNot, BigInt(b)) => BigInt(~b)
       case (_, value) =>
         error(s"wrong type of value for the operator $uop: $value")

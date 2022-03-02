@@ -98,5 +98,6 @@
   "[YET] Let _r_ be the first element of _remaining_.": "let r = remaining[0]",
   "[YET] Remove the first element from _remaining_.": "(pop < remaining)",
   "[YET] Assert: _O_ is an Object that has a [[SyncIteratorRecord]] internal slot.": "assert (&& (? O: Object) (! (= O.SyncIteratorRecord absent)))",
-  "[YET] If _N_ is an element of _varNames_, remove that element from the _varNames_.": "remove-elem varNames N"
+  "[YET] If _N_ is an element of _varNames_, remove that element from the _varNames_.": "remove-elem varNames N",
+  "[YET] Return the result of applying bitwise complement to _oldValue_. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "return (~ oldValue)"
 }
