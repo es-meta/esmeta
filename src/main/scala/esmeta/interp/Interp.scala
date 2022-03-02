@@ -200,7 +200,7 @@ class Interp(
       val l = interp(list).escaped.getList(list, st)
       Bool(l.values contains interp(elem).escaped)
     case EStrConcat(exprs) =>
-      val strs = exprs.map(e => interp(e).toStr(e))
+      val strs = exprs.map(e => interp(e).escaped.toStr(e))
       Str(strs.mkString)
     case ESubstring(expr, from, to) =>
       val s = interp(expr).toStr(expr)
