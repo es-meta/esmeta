@@ -21,7 +21,6 @@ class EvalSmallTest extends JSTest {
     "for2.js",
     "forin1.js",
     "forof1.js",
-    "function2.js",
     "global-eval.js",
     "object2.js",
     "template1.js",
