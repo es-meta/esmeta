@@ -159,7 +159,7 @@ trait Parsers extends DivergedParsers {
 
   // note steps
   lazy val noteStep: PL[NoteStep] =
-    ("NOTE" ~ ":") ~> ".*".r ^^ { str => NoteStep(str) }
+    note ^^ { str => NoteStep(str) }
 
   // suspend steps
   lazy val suspendStep: PL[SuspendStep] =
@@ -217,9 +217,10 @@ trait Parsers extends DivergedParsers {
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
+  lazy val note = "NOTE:" ~> ".*".r
   lazy val ignore =
     "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd | "; that is[^.]*".r
-  lazy val end: Parser[String] = opt(ignore) ~> "." <~ upper | ";"
+  lazy val end: Parser[String] = opt(ignore) ~> "." <~ opt(note) ~ upper | ";"
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
