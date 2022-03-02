@@ -43,6 +43,11 @@ class Compiler(val spec: Spec) {
   // grammar
   private def grammar: Grammar = spec.grammar
 
+  // list of algorithm names which need to replace return step return to resumed step
+  // since they have no note step for that return
+  private val fixReturnAOs =
+    List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
+
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -51,6 +56,7 @@ class Compiler(val spec: Spec) {
     retTy: IRType,
     body: Step,
     algo: Algorithm,
+    returnContext: Option[Ref] = None,
   ) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
@@ -79,6 +85,12 @@ class Compiler(val spec: Spec) {
     def addInst(insts: Inst*): Unit = scopes match
       case current :: rest => current ++= insts
       case _               => error("no current scope")
+
+    // add return to resume instruction
+    def addReturnToResume(context: Ref, value: Expr): Unit =
+      addInst(
+        ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
+      )
 
     // get next temporal identifier
     def newTId: Temp = Temp(nextTId)
@@ -249,7 +261,10 @@ class Compiler(val spec: Spec) {
         ),
       )
     case ReturnStep(expr) =>
-      fb.addInst(IReturn(expr.fold(EUndef)(compile(fb, _))))
+      val e = expr.fold(EUndef)(compile(fb, _))
+      fb.returnContext match
+        case None          => fb.addInst(IReturn(e))
+        case Some(context) => fb.addReturnToResume(context, e)
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, x, expr, true, body) =>
@@ -366,13 +381,20 @@ class Compiler(val spec: Spec) {
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case SetEvaluationStateStep(context, paramOpt, body) =>
-      val codeState = toStrRef(compile(fb, context), "ResumeCont")
+      val ctxt = compile(fb, context)
       val contName = fb.nextCloName
-      val ps = toParams(paramOpt)
       val newFb =
-        FuncBuilder(Func.Kind.Clo, contName, ps, AnyType, body, fb.algo)
+        FuncBuilder(
+          Func.Kind.Clo,
+          contName,
+          toParams(paramOpt),
+          AnyType,
+          body,
+          fb.algo,
+          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+        )
       newFb.result
-      fb.addInst(IAssign(codeState, ECont(contName)))
+      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
       val returnCont = toStrRef(ctxt, "ReturnCont")
@@ -394,10 +416,7 @@ class Compiler(val spec: Spec) {
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
       )
     case ReturnToResumeStep(context, arg) =>
-      val eReturnCont = toStrERef(compile(fb, context), "ReturnCont")
-      fb.addInst(
-        ICall(fb.newTId, EPop(eReturnCont, true), List(compile(fb, arg))),
-      )
+      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>

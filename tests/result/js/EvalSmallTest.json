@@ -57,6 +57,7 @@
   "semicolon-insertion1.js" : true,
   "semicolon-insertion2.js" : true,
   "semicolon-insertion3.js" : true,
+  "set1.js" : true,
   "shift1.js" : true,
   "string1.js" : true,
   "string2.js" : true,

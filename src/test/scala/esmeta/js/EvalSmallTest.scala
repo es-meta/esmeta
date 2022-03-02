@@ -33,7 +33,7 @@ class EvalSmallTest extends JSTest {
     "global-eval.js",
     "object2.js",
     "promise1.js",
-    "set1.js",
+    // "set1.js",
     "template1.js",
     "template2.js",
   )

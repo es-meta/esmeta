@@ -11,7 +11,7 @@ def <INTERNAL>:BuiltinFunctionObject.Construct(F: BuiltinFunctionObject, argumen
   push @CONTEXT > @EXECUTION_STACK
   call result = F.Code(undefined, argumentsList, newTarget) // uninitialized == undefined ?
   {
-    (pop > @EXECUTION_STACK)
+    (pop < @EXECUTION_STACK)
     @CONTEXT = callerContext
   }
   return result

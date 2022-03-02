@@ -757,7 +757,9 @@ trait Parsers extends DivergedParsers {
     // OrdinaryGetOwnProperty
     ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute") ^^ {
       case v ~ a => PropertyReference(v, FieldProperty(a))
-    }
+    } |
+    // Set.prototype.add
+    ("the List that is" ~> propRef)
 
   // ---------------------------------------------------------------------------
   // metalanguage properties
