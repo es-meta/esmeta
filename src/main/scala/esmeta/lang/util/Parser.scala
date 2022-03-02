@@ -632,7 +632,7 @@ trait Parsers extends DivergedParsers {
       ("a normal completion" | "never an abrupt completion") ^^^ { Normal } |
       "duplicate entries" ^^^ { Duplicated } |
       "present" ^^^ { Present } |
-      "empty" ^^^ { Empty } |
+      ("empty" | "an empty List") ^^^ { Empty } |
       "strict mode code" ^^^ { StrictMode } |
       "an array index" ^^^ { ArrayIndex } |
       "a non-negative integral Number" ^^^ { NonNegative } |
@@ -720,7 +720,7 @@ trait Parsers extends DivergedParsers {
     } |
     // CreatePerIterationEnvironment
     expr <~ "has any elements" ^^ {
-      case r => PredicateCondition(r, false, PredicateCondition.Op.Empty)
+      case r => PredicateCondition(r, true, PredicateCondition.Op.Empty)
     } |
     // ForBodyEvaluation
     expr ~ isNeg <~ "~[empty]~" ^^ {

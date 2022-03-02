@@ -38,6 +38,7 @@
   "equality1.js" : true,
   "expression-statement1.js" : true,
   "for1.js" : true,
+  "for2.js" : true,
   "function-application1.js" : true,
   "function-application2.js" : true,
   "function-application3.js" : true,
