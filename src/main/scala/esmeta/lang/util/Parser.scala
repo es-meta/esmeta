@@ -726,6 +726,16 @@ trait Parsers extends DivergedParsers {
     // ForBodyEvaluation
     expr ~ isNeg <~ "~[empty]~" ^^ {
       case e ~ n => PredicateCondition(e, !n, PredicateCondition.Op.Present)
+    } |
+    // %ForInIteratorPrototype%.next
+    ("there does not exist an element" ~ variable ~ "of" ~> variable) ~
+    ("such that SameValue(" ~> variable <~ "," ~ variable ~ ") is *true*") ^^ {
+      case list ~ elem =>
+        BinaryCondition(
+          getRefExpr(list),
+          BinaryCondition.Op.NContains,
+          getRefExpr(elem),
+        )
     }
 
   // ---------------------------------------------------------------------------
@@ -772,7 +782,7 @@ trait Parsers extends DivergedParsers {
     (variable <~ "'s intrinsic object named") ~ variable ^^ {
       case realm ~ v =>
         val intrBase = PropertyReference(realm, FieldProperty("Intrinsic"))
-        PropertyReference(intrBase, IndexProperty(ReferenceExpression(v)))
+        PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
     } |
     // OrdinaryGetOwnProperty
     ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute") ^^ {
@@ -884,6 +894,7 @@ trait Parsers extends DivergedParsers {
     "does not have" ^^! { true } | "has" ^^! { false }
 
   // helper for creating expressions, conditions
+  private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
   private def getInvokeExpr(op: String)(es: Expression*): InvokeExpression =
     InvokeAbstractOperationExpression(op, es.toList)
   private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
