@@ -233,13 +233,19 @@ object Parser extends Parsers {
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
   lazy val aliasPattern =
     "means? the same thing as:".r
+  lazy val anonBuiltinPattern =
+    "When a ([A-Za-z.` ]+) is called with argument _(\\w+)_,.*".r
   private def parseUnusualHead(
     parent: Element,
     elem: Element,
   ): List[Head] = elem.getPrevText match
     case thisValuePattern(name, param) =>
       List(AbstractOperationHead(false, name, List(Param(param)), UnknownType))
-    case aliasPattern()              => parseAbsOpHead(parent, elem, false)
+    case aliasPattern() => parseAbsOpHead(parent, elem, false)
+    case anonBuiltinPattern(name, param) =>
+      val rname = name.trim.split(" ").map(_.capitalize).mkString
+      val ref = BuiltinHead.Ref.YetRef(rname)
+      List(BuiltinHead(ref, List(Param(param)), UnknownType))
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => parseBuiltinHead(parent, elem)
 

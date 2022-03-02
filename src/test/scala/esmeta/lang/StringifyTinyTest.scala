@@ -407,6 +407,8 @@ class StringifyTinyTest extends LangTest {
       PredicateCondition(refExpr, false, PredicateCondition.Op.Finite)
     lazy val abruptCond =
       PredicateCondition(refExpr, false, PredicateCondition.Op.Abrupt)
+    lazy val normalCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.Normal)
     lazy val dupCond =
       PredicateCondition(refExpr, false, PredicateCondition.Op.Duplicated)
     lazy val presentCond =
@@ -443,6 +445,7 @@ class StringifyTinyTest extends LangTest {
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
       abruptCond -> "_x_ is an abrupt completion",
+      normalCond -> "_x_ is a normal completion",
       dupCond -> "_x_ is duplicate entries",
       presentCond -> "_x_ is present",
       emptyCond -> "_x_ is empty",

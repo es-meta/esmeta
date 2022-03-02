@@ -43,10 +43,31 @@ class Compiler(val spec: Spec) {
   // grammar
   private def grammar: Grammar = spec.grammar
 
-  // list of algorithm names which need to replace return step return to resumed step
+  // list of function names which need to replace return step return to resumed step
   // since they have no note step for that return
   private val fixReturnAOs =
     List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
+
+  // list of function names which need to replace head to built-in
+  // when creating closure (ex: Await)
+  private val fixClosurePrefixAOs: List[scala.util.matching.Regex] =
+    List(
+      "Await".r,
+      "MakeArg.*".r, // MakeArgGetter, MakeArgSetter
+      "ClassTail\\[\\d,\\d\\]\\.ClassDefinitionEvaluation".r,
+      "ExecuteAsyncModule".r,
+      "FinishDynamicImport".r,
+      "INTRINSICS\\.Object\\.fromEntries".r,
+      "AsyncFromSyncIteratorContinuation".r,
+      // CreateResolvingFunctions
+      "NewPromiseCapability".r,
+      // PerformPromiseAll
+      // PerformPromiseAllSettled
+      // PerformPromiseAny
+      "INTRINSICS.Promise.prototype.finally".r,
+      "AsyncGeneratorAwaitReturn".r,
+      "INTRINSICS.Proxy.revocable".r,
+    )
 
   // function builder
   private case class FuncBuilder(
@@ -57,12 +78,11 @@ class Compiler(val spec: Spec) {
     body: Step,
     algo: Algorithm,
     returnContext: Option[Ref] = None,
+    prefix: Option[Inst] = None,
   ) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
-      val inst = compileWithScope(this, body)
-      val patched = patchPrefix(inst)
-      val func = Func(false, kind, name, params, retTy, patched, Some(algo))
+      val func = Func(false, kind, name, params, retTy, getBodyInst, Some(algo))
       funcs += func
       func
 
@@ -101,27 +121,13 @@ class Compiler(val spec: Spec) {
     // get closure name
     def nextCloName: String = s"$name:clo${nextCId}"
 
-    // handle prefix for compiled instruction
-    private def patchPrefix(body: Inst): Inst =
-      algo.head match
-        case BuiltinHead(_, ps, _)
-            if !ps.exists(_.kind == SParam.Kind.Ellipsis) =>
-          // add bindings for original arguments
-          val argsLen = toStrERef(NAME_ARGS_LIST, "length")
-          val bs = ps.map {
-            case SParam(name, SParam.Kind.Variadic, _) =>
-              ILet(Name(name), ENAME_ARGS_LIST)
-            case SParam(name, _, _) =>
-              IIf(
-                lessThan(zero, argsLen),
-                ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
-                ILet(Name(name), EAbsent),
-              )
-          }
-          body match
-            case ISeq(is) => ISeq(bs ++ is)
-            case _        => ISeq(bs ++ List(body))
-        case _ => body
+    // get body instruction
+    private def getBodyInst: Inst =
+      (prefix, compileWithScope(this, body)) match
+        case (None, i)                  => i
+        case (Some(ISeq(ps)), ISeq(bs)) => ISeq(ps ++ bs)
+        case (Some(p), ISeq(bs))        => ISeq(p :: bs)
+        case (Some(p), b)               => ISeq(List(p, b))
 
     // push a scope to the scope stack
     private def pushScope: Unit = scopes = ListBuffer() :: scopes
@@ -198,6 +204,24 @@ class Compiler(val spec: Spec) {
     }
   }
 
+  // get prefix instructions for builtin functions
+  private def getBuiltinPrefix(ps: List[SParam]): Option[Inst] =
+    if (ps.exists(_.kind == SParam.Kind.Ellipsis)) None
+    else {
+      // add bindings for original arguments
+      val argsLen = toStrERef(NAME_ARGS_LIST, "length")
+      Some(ISeq(ps.map {
+        case SParam(name, SParam.Kind.Variadic, _) =>
+          ILet(Name(name), ENAME_ARGS_LIST)
+        case SParam(name, _, _) =>
+          IIf(
+            lessThan(zero, argsLen),
+            ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
+            ILet(Name(name), EAbsent),
+          )
+      }))
+    }
+
   // convert to references
   private inline def toStrERef(base: Ref, props: String*): ERef =
     ERef(toStrRef(base, props*))
@@ -229,14 +253,20 @@ class Compiler(val spec: Spec) {
     fb.newScope(compile(fb, step))
 
   // compile an algorithm to an IR function
-  private def compile(algo: Algorithm): Func = FuncBuilder(
-    getKind(algo.head),
-    getName(algo.head),
-    getParams(algo.head),
-    compile(algo.retTy),
-    algo.body,
-    algo,
-  ).result
+  private def compile(algo: Algorithm): Func =
+    // TODO consider refactor
+    val prefix = algo.head match
+      case head: BuiltinHead => getBuiltinPrefix(head.params)
+      case _                 => None
+    FuncBuilder(
+      getKind(algo.head),
+      getName(algo.head),
+      getParams(algo.head),
+      compile(algo.retTy),
+      algo.body,
+      algo,
+      prefix = prefix,
+    ).result
 
   // compile algorithm steps
   private def compile(fb: FB, step: Step): Unit = step match {
@@ -552,17 +582,29 @@ class Compiler(val spec: Spec) {
     case UnaryExpression(op, expr) =>
       EUnary(compile(op), compile(fb, expr))
     case AbstractClosureExpression(params, captured, body) =>
-      val ps =
-        params.map(x => Func.Param(compile(x), false, IRType("any")))
-      val cloName = fb.nextCloName
-      val newFb =
-        FuncBuilder(Func.Kind.Clo, cloName, ps, AnyType, body, fb.algo)
+      val algoName = getName(fb.algo.head)
+      val (ck, cn, ps, pre) =
+        if (fixClosurePrefixAOs.exists(_.matches(algoName)))
+          (
+            Func.Kind.Builtin,
+            s"INTRINSICS.${fb.nextCloName}",
+            List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
+            getBuiltinPrefix(params.map(x => SParam(x.name))),
+          )
+        else
+          (
+            Func.Kind.Clo,
+            fb.nextCloName,
+            params.map(x => Func.Param(compile(x), false, IRType("any"))),
+            None,
+          )
+      val newFb = FuncBuilder(ck, cn, ps, AnyType, body, fb.algo, prefix = pre)
       newFb.result
-      EClo(cloName, captured.map(compile))
+      EClo(cn, captured.map(compile))
     case XRefExpression(XRefExpression.Op.Algo, id) =>
       EClo(getName(spec.getAlgoById(id).head), Nil)
     case XRefExpression(XRefExpression.Op.ParamLength, id) =>
-      ENumber(spec.getAlgoById(id).head.originalParams.length)
+      EMathVal(spec.getAlgoById(id).head.originalParams.length)
     case XRefExpression(XRefExpression.Op.InternalSlots, id) =>
       // TODO properly handle table column
       EList(for {
@@ -655,6 +697,9 @@ class Compiler(val spec: Spec) {
         case Abrupt =>
           val tv = toERef(fb, x, EStr("Type"))
           and(EIsCompletion(x), not(is(tv, ECONST_NORMAL)))
+        case Normal =>
+          val tv = toERef(fb, x, EStr("Type"))
+          and(EIsCompletion(x), is(tv, ECONST_NORMAL))
         case Finite =>
           not(or(is(x, posInf), is(x, negInf)))
         case Duplicated =>

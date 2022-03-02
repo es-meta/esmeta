@@ -73,5 +73,14 @@
   "[YET] Assert: _base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "assert (! (|| (= base 0.0f) (= base -0.0f)))",
   "[YET] Assert: _exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "assert (! (|| (= exponent 0.0f) (= exponent -0.0f)))",
   "[YET] If _base_ < *+0*<sub>𝔽</sub> and _exponent_ is not an integral Number, return *NaN*.": "if (|| (< base +0.0f) (! (? exponent: Number))) return NaN else {}",
-  "[YET] Return an implementation-approximated Number value representing the result of raising ℝ(_base_) to the ℝ(_exponent_) power.": "return (** base exponent)"
+  "[YET] Return an implementation-approximated Number value representing the result of raising ℝ(_base_) to the ℝ(_exponent_) power.": "return (** base exponent)",
+  "[YET] Let _internalSlotsList_ be a List containing the names of all the internal slots that <emu-xref href=\"#sec-built-in-function-objects\"></emu-xref> requires for the built-in function object that is about to be created.": "let internalSlotsList = (new [\"Prototype\", \"Extensible\", \"Realm\", \"InitialName\"])",
+  "[YET] Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
+  "[YET] Let _func_ be a new built-in function object that, when called, performs the action described by _behaviour_ using the provided arguments as the values of the corresponding parameters specified by _behaviour_. The new function object has internal slots whose names are the elements of _internalSlotsList_, and an [[InitialName]] internal slot.": "{ let func = (new BuiltinFunctionObject()) func.Code = behaviour }",
+  "[YET] Let _asyncContext_ be a copy of _runningContext_.": "let asyncContext = (copy runningContext)",
+  "[YET] Assert: If we return here, the async function either threw an exception or performed an implicit or explicit return; all awaiting is done.": "assert true",
+  "[YET] Remove _asyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "{ (pop < @EXECUTION_STACK) @CONTEXT = @EXECUTION_STACK[0] }",
+  "[YET] Assert: _F_ has a [[Promise]] internal slot whose value is an Object.": "assert (&& (! (= F.Promise absent)) (? F.Promise: Object))",
+  "[YET] Assert: When we return here, _asyncContext_ has already been removed from the execution context stack and _runningContext_ is the currently running execution context.": "assert (&& (= runningContext @CONTEXT) (! (= asyncContext @EXECUTION_STACK[0])))",
+  "[YET] Assert: _result_ is a normal completion with a value of *undefined*. The possible sources of completion values are Await or, if the async function doesn't await anything, step <emu-xref href=\"#step-asyncblockstart-return-undefined\"></emu-xref> above.": "(= result comp[~normal~/~empty~](undefined))"
 }

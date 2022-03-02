@@ -320,7 +320,9 @@ trait Parsers extends DivergedParsers {
       "catpures nothing" ^^! { Nil } |||
       "captures" ~> repsep(variable, sep("and"))
 
-    "a new Abstract Closure with" ~> params ~ ("that" ~> captured) ~
+    "a new" ~ opt(
+      "Job",
+    ) ~ "Abstract Closure with" ~> params ~ ("that" ~> captured) ~
     ("and performs the following steps when called:" ~> blockStep) ^^ {
       case ps ~ cs ~ body => AbstractClosureExpression(ps, cs, body)
     }
@@ -619,6 +621,7 @@ trait Parsers extends DivergedParsers {
     lazy val op: Parser[PredicateCondition.Op] =
       "finite" ^^^ { Finite } |
       "an abrupt completion" ^^^ { Abrupt } |
+      "a normal completion" ^^^ { Normal } |
       "duplicate entries" ^^^ { Duplicated } |
       "present" ^^^ { Present } |
       "empty" ^^^ { Empty } |
