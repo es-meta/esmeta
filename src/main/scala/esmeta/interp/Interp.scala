@@ -362,6 +362,7 @@ class Interp(
     case ENull                 => Null
     case EAbsent               => Absent
     case EConst(name)          => Const(name)
+    case ECodeUnit(c)          => CodeUnit(c)
   }
 
   /** short circuit evaluation */

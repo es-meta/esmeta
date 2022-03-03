@@ -151,6 +151,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Null        => app >> "null"
       case Absent      => app >> "absent"
       case Const(name) => app >> "~" >> name >> "~"
+      case CodeUnit(c) => app >> c.toInt >> "cu"
 
   // reference value
   lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r

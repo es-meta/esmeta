@@ -143,6 +143,7 @@ class StringifyTinyTest extends InterpTest {
       Null -> "null",
       Absent -> "absent",
       Const("empty") -> "~empty~",
+      CodeUnit(97) -> "97cu",
     )
     // -------------------------------------------------------------------------
     // Reference Values

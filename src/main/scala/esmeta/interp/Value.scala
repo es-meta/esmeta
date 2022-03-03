@@ -106,3 +106,4 @@ case object Undef extends LiteralValue
 case object Null extends LiteralValue
 case object Absent extends LiteralValue
 case class Const(name: String) extends LiteralValue
+case class CodeUnit(c: Char) extends LiteralValue

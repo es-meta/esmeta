@@ -65,3 +65,4 @@ case object EUndef extends LiteralExpr
 case object ENull extends LiteralExpr
 case object EAbsent extends LiteralExpr
 case class EConst(name: String) extends LiteralExpr
+case class ECodeUnit(c: Char) extends esmeta.ir.LiteralExpr

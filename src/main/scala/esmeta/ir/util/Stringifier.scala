@@ -215,6 +215,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ENull        => app >> "null"
       case EAbsent      => app >> "absent"
       case EConst(name) => app >> "~" >> name >> "~"
+      case ECodeUnit(c) => app >> c.toInt >> "cu"
     }
 
   // unary operators

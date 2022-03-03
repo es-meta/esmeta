@@ -185,6 +185,7 @@ trait Parsers extends BasicParsers {
   lazy val literal: Parser[LiteralExpr] =
     bigint <~ "n" ^^ { EBigInt(_) } |
     double <~ "f" ^^ { ENumber(_) } |
+    codeUnit <~ "cu" ^^ { ECodeUnit(_) } |
     ("+INF" | "INF") ^^^ ENumber(Double.PositiveInfinity) |
     "-INF" ^^^ ENumber(Double.NegativeInfinity) |
     "NaN" ^^^ ENumber(Double.NaN) |
@@ -228,8 +229,6 @@ trait Parsers extends BasicParsers {
     "<" ^^^ Lt |
     ">>>" ^^^ URShift |
     ">>" ^^^ SRShift
-    // TODO "str+" ^^^ Concat |
-    // TODO "str<" ^^^ StrLt
   }.named("ir.BOp")
 
   // variadic operators

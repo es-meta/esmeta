@@ -60,6 +60,7 @@ trait BasicParsers extends JavaTokenParsers {
   lazy val number = "[+-]?(0|[1-9][0-9]*)(\\.[0-9]+)?".r
   lazy val double = number ^^ { _.toDouble }
   lazy val bigint = integer ^^ { BigInt(_) }
+  lazy val codeUnit = integer ^^ { _.toInt.toChar }
   lazy val decimal = number ^^ { BigDecimal(_) }
 
   trait From[T](using parser: Parser[T]) {
