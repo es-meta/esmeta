@@ -457,10 +457,10 @@ class Compiler(val spec: Spec) {
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
-      fb.addInst(
-        if (manualRules contains yetStr) manualRules(yetStr)
-        else IExpr(EYet(yetStr)),
-      )
+      manualRules.get(yetStr) match
+        case Some(ISeq(is)) => for { i <- is } fb.addInst(i)
+        case Some(i)        => fb.addInst(i)
+        case None           => fb.addInst(IExpr(EYet(yetStr)))
   }
 
   // compile local variable
