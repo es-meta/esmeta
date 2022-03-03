@@ -34,6 +34,7 @@
   "boolean2.js" : true,
   "boolean3.js" : true,
   "boolean4.js" : true,
+  "compare1.js" : true,
   "complement1.js" : true,
   "constructor1.js" : true,
   "delete1.js" : true,

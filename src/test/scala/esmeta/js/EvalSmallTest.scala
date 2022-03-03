@@ -12,7 +12,6 @@ class EvalSmallTest extends JSTest {
   val IGNORE_FILES: List[String] = List(
     "class-decl1.js",
     "class-decl2.js",
-    "compare1.js",
     "global-eval.js",
   )
 
