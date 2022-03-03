@@ -33,16 +33,20 @@ sealed trait Value extends InterpElem {
     case pure: PureValue => Comp(ty, pure, None)
 
   /** type conversion */
-  def toStr(e: Expr): String = this match
-    case Str(s) => s
-    case _      => throw NoString(e, this)
-  def toInt(e: Expr): Int = this match
+  def asStr: String = this match
+    case Str(s)      => s
+    case CodeUnit(c) => c.toString
+    case _           => throw NotStringType(this)
+  def asInt: Int = this match
     case Number(n) if n.isValidInt => n.toInt
     case Math(n) if n.isValidInt   => n.toInt
-    case _                         => throw NoInteger(e, this)
-  def toAst(e: Expr): Ast = this match
+    case _                         => throw NotIntType(this)
+  def asAst: Ast = this match
     case AstValue(ast) => ast
-    case v             => throw NoAst(e, v)
+    case v             => throw NotAstType(this)
+  def asMath: BigDecimal = this match
+    case Math(n) => n
+    case v       => throw NotDecimalType(this)
   def getList(e: Expr, st: State): ListObj = this match
     case addr: Addr =>
       st(addr) match

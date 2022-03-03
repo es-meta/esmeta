@@ -108,8 +108,6 @@ trait Parsers extends BasicParsers {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
       case l ~ e => EContains(l, e)
-    } | "(" ~ "str-concat" ~> rep(expr) <~ ")" ^^ {
-      case es => EStrConcat(es)
     } | "(" ~ "substring" ~> expr ~ expr ~ expr <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
     } | "(" ~> uop ~ expr <~ ")" ^^ {
@@ -235,7 +233,8 @@ trait Parsers extends BasicParsers {
   given vop: Parser[VOp] = {
     import VOp.*
     "min" ^^^ Min |
-    "max" ^^^ Max
+    "max" ^^^ Max |
+    "concat" ^^^ Concat
   }.named("ir.VOp")
 
   // conversion operators

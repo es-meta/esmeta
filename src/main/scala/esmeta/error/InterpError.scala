@@ -56,6 +56,18 @@ case class NoGrammar(expr: Expr, v: Value)
 case class NoList(expr: Expr, obj: Obj)
   extends InterpError(s"not a list: $expr -> $obj")
 
+// type conversion fails
+sealed abstract class InvalidTypeConversion(msg: Option[String])
+  extends InterpError(s"invalid type conversion${msg.fold("")(": " + _)}")
+case class NotStringType(v: Value)
+  extends InvalidTypeConversion(Some(s"$v is not string"))
+case class NotAstType(v: Value)
+  extends InvalidTypeConversion(Some(s"$v is not ast"))
+case class NotIntType(v: Value)
+  extends InvalidTypeConversion(Some(s"$v is not integer"))
+case class NotDecimalType(v: Value)
+  extends InvalidTypeConversion(Some(s"$v is not decimal number"))
+
 // undefined values
 case class UnknownId(x: Id) extends InterpError(s"unknown variable: $x")
 case class UnknownAddr(addr: Addr)

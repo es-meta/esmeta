@@ -490,7 +490,7 @@ class Compiler(val spec: Spec) {
   // compile expressions
   private def compile(fb: FB, expr: Expression): Expr = expr match {
     case StringConcatExpression(exprs) =>
-      EStrConcat(exprs.map(compile(fb, _)))
+      EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
     case ListConcatExpression(exprs) =>
       EListConcat(exprs.map(compile(fb, _)))
     case RecordExpression(Type("Completion Record"), fields) =>
@@ -638,7 +638,7 @@ class Compiler(val spec: Spec) {
   private def compile(fb: FB, lit: Literal): Expr = lit match {
     case ThisLiteral()      => ENAME_THIS
     case NewTargetLiteral() => ENAME_NEW_TARGET
-    case HexLiteral(hex, _) => EStr(hex.toChar.toString) // XXX code unit
+    case HexLiteral(hex, _) => ECodeUnit(hex.toChar)
     case CodeLiteral(code)  => EStr(code)
     case NonterminalLiteral(ordinal, name) =>
       val ntNames = fb.ntBindings.map(_._1)

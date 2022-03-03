@@ -74,8 +74,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(msg)
     case EContains(list, elem) =>
       walk(list); walk(elem)
-    case EStrConcat(exprs) =>
-      walkList(exprs, walk)
     case ESubstring(expr, from, to) =>
       walk(expr); walk(from); walk(to)
     case ERef(ref) =>

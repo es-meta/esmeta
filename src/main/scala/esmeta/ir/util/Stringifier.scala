@@ -119,9 +119,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(yet \"" >> normStr(msg) >> "\")"
       case EContains(list, elem) =>
         app >> "(contains " >> list >> " " >> elem >> ")"
-      case EStrConcat(exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(str-concat " >> exprs >> ")"
       case ESubstring(expr, from, to) =>
         app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
       case ERef(ref) =>
@@ -258,8 +255,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given vopRule: Rule[VOp] = (app, vop) =>
     import VOp.*
     app >> (vop match
-      case Min => "min"
-      case Max => "max"
+      case Min    => "min"
+      case Max    => "max"
+      case Concat => "concat"
     )
 
   // conversion operators

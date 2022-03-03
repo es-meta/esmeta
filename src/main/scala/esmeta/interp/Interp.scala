@@ -189,27 +189,24 @@ class Interp(
         case _ => throw NoGrammar(rule, r)
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
-      val ast = interp(expr).escaped.toAst(expr)
+      val ast = interp(expr).escaped.asAst
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kind, ast) =>
       val k = interp(kind).escaped match
         case Grammar(name, _) => name
         case v                => throw NoGrammar(kind, v)
-      val a = interp(ast).escaped.toAst(ast)
+      val a = interp(ast).escaped.asAst
       st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem) =>
       val l = interp(list).escaped.getList(list, st)
       Bool(l.values contains interp(elem).escaped)
-    case EStrConcat(exprs) =>
-      val strs = exprs.map(e => interp(e).escaped.toStr(e))
-      Str(strs.mkString)
     case ESubstring(expr, from, to) =>
-      val s = interp(expr).toStr(expr)
-      val f = interp(from).toInt(from)
-      val t = interp(to).toInt(to)
+      val s = interp(expr).escaped.asStr
+      val f = interp(from).escaped.asInt
+      val t = interp(to).escaped.asInt
       Str(s.substring(f, t))
     case ERef(ref) =>
       st(interp(ref))
@@ -234,7 +231,7 @@ class Interp(
         case (Str(s), ToBigInt)  => ESValueParser.str2bigint(s)
         case (Number(d), ToMath) => Math(d)
         case (Number(d), ToStr(radixOpt)) =>
-          val radix = radixOpt.fold(10)(e => interp(e).escaped.toInt(e))
+          val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
           Str(toStringHelper(d, radix))
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
@@ -253,9 +250,7 @@ class Interp(
             case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
             case _: SymbolObj                                   => "Symbol"
             case v                                              => ???
-        case v =>
-          println(v)
-          ???,
+        case v => ???,
       )
     case ETypeCheck(expr, ty) =>
       // TODO discuss about the type
@@ -294,10 +289,7 @@ class Interp(
       )
       AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) =>
-      val str = interp(expr) match {
-        case Str(str) => str
-        case v        => throw NoString(expr, v)
-      }
+      val str = interp(expr).escaped.asStr
       AstValue(Lexical(name, str))
     case EMap(Type("Completion"), props) =>
       val map = (for {
@@ -346,7 +338,7 @@ class Interp(
       val vs = interp(expr).escaped.getList(expr, st).values
       Bool(vs.toSet.size != vs.length)
     case EIsArrayIndex(expr) =>
-      val s = interp(expr).escaped.toStr(expr)
+      val s = interp(expr).escaped.asStr
       val d = ESValueParser.str2Number(s)
       val ds = toStringHelper(d)
       val UPPER = (1L << 32) - 1
@@ -537,19 +529,19 @@ object Interp {
     }
 
   /** transition for variadic operators */
-  def interp(vop: VOp, vs: List[Value]): Value =
+  def interp(vop: VOp, vs: List[PureValue]): PureValue =
     import VOp.*
-    val ns = vs.map {
-      case Math(n) => n
-      case v       => error(s"wrong type: $v for $vop")
-    }
-    Math(ns match {
-      // mathematic values
-      case Nil => error(s"no arguments for: $vop")
-      case v :: rest =>
-        rest.foldLeft(v)(vop match
-          case Min => _ min _
-          case Max => _ max _,
-        )
-    })
+    if (vs.isEmpty) error(s"no arguments for: $vop")
+    vop match
+      case Min    => vopInterp(_.asMath, _ min _, Math(_), vs)
+      case Max    => vopInterp(_.asMath, _ max _, Math(_), vs)
+      case Concat => vopInterp(_.asStr, _ + _, Str(_), vs)
+
+  /** helpers for make transition for variadic operators */
+  private def vopInterp[T](
+    f: PureValue => T,
+    op: (T, T) => T,
+    g: T => PureValue,
+    vs: List[PureValue],
+  ) = g(vs.map(f).reduce(op))
 }

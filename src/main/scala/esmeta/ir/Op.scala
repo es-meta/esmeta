@@ -35,6 +35,8 @@ object BOp extends Parser.From[BOp]
 enum VOp extends Op:
   // mathematic values
   case Min, Max
+  // string
+  case Concat
 object VOp extends Parser.From[VOp]
 
 // conversion operators

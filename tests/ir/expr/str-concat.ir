@@ -2,9 +2,10 @@
   let a = "a"
   let b = "b"
   let c = "c"
+  let d = 100cu
 
-  assert (= (str-concat) "")
-  assert (= (str-concat a) "a")
-  assert (= (str-concat a b) "ab")
-  assert (= (str-concat a b c) "abc")
+  assert (= (concat a) "a")
+  assert (= (concat a b) "ab")
+  assert (= (concat a b c) "abc")
+  assert (= (concat a b c d) "abcd")
 }

@@ -82,8 +82,6 @@ trait Walker extends BasicWalker {
       EYet(walk(msg))
     case EContains(list, elem) =>
       EContains(walk(list), walk(elem))
-    case EStrConcat(exprs) =>
-      EStrConcat(walkList(exprs, walk))
     case ESubstring(expr, from, to) =>
       ESubstring(walk(expr), walk(from), walk(to))
     case ERef(ref) =>
