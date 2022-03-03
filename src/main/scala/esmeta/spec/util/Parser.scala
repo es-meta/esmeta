@@ -486,6 +486,6 @@ trait Parsers extends BasicParsers {
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] =
     ref ~ params ~ retTy ^^ {
-      case name ~ params ~ rty => BuiltinHead(name, params, rty)
+      case r ~ params ~ rty => BuiltinHead(r, params, rty)
     }
 }

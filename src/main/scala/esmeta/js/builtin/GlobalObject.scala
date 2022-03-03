@@ -33,6 +33,6 @@ case class GlobalObject(cfg: CFG) {
       globKey = globCell.replace("`", "")
     } { nmap ::= globKey -> DataProperty(intrAddr(intrKey), T, F, T) }
 
-    getSubmapObjects(GLOBAL, nmap)
+    getSubmapObjects(GLOBAL, GLOBAL, nmap)
   }
 }

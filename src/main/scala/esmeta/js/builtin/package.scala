@@ -68,13 +68,14 @@ def descAddr(name: String, key: String): NamedAddr =
 /** get submap */
 def getSubmapObjects(
   name: String,
+  descBase: String,
   nmap: List[(String, Property)],
 )(using CFG): Map[Addr, Obj] =
   var map = Map[Addr, Obj]()
   map += submapAddr(name) -> MapObj(SUBMAP)(nmap.map {
     case (k, _) => // handle symbol
       val key = if k startsWith "@@" then symbolAddr(k.drop(2)) else Str(k)
-      key -> descAddr(name, k)
+      key -> descAddr(descBase, k)
   }: _*)
-  map ++= nmap.map { case (k, prop) => descAddr(name, k) -> prop.toObject }
+  map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }
   map

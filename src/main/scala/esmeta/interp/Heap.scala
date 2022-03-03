@@ -137,7 +137,8 @@ case class Heap(
   def getIntrinsincs(key: PureValue): Value =
     val keyStr = key match
       case Str(s) if s.startsWith("%") && s.endsWith("%") =>
-        s.substring(1, s.length - 1)
+        if (s.endsWith("IteratorPrototype%")) s // handle iterator prorotype
+        else s.substring(1, s.length - 1)
       case v => error(s"invalid intrinsics key1: $key")
     keyStr.split("\\.").toList match
       case base :: rest => rest.foldLeft(intrAddr(base))(getPropValue)

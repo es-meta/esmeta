@@ -35,6 +35,7 @@ case class Intrinsics(cfg: CFG) {
       var map = Map[Addr, Obj]()
 
       // additional internal property
+      // TODO remove
       val additionals =
         if (typeName == "BuiltinFunctionObject")
           List("Realm" -> realmAddr, SUBMAP -> submapAddr(intrName(name)))
@@ -48,7 +49,7 @@ case class Intrinsics(cfg: CFG) {
       )
 
       // submap object
-      map ++= getSubmapObjects(intrName(name), nmap)
+      map ++= getSubmapObjects(intrName(name), name, nmap)
 
       map
     }
@@ -103,14 +104,14 @@ case class Intrinsics(cfg: CFG) {
     "Object" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Object"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Object"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
-        "name" -> DataProperty(Str("Object"), F, F, T),
+        // "name" -> DataProperty(Str("Object"), F, F, T),
         "prototype" -> DataProperty(intrAddr("Object.prototype"), F, F, F),
       ),
     ),
@@ -127,14 +128,14 @@ case class Intrinsics(cfg: CFG) {
     "Function" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Function"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Function"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
-        "name" -> DataProperty(Str("Function"), F, F, T),
+        // "name" -> DataProperty(Str("Function"), F, F, T),
         "prototype" -> DataProperty(intrAddr("Function.prototype"), F, F, F),
       ),
     ),
@@ -149,18 +150,18 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(0.0), F, F, T),
         "name" -> DataProperty(Str(""), F, F, T),
         "constructor" -> DataProperty(intrAddr("Function"), T, F, T),
-        // TODO "caller" -> AccessorProperty(
-        //   intrAddr("%ThrowTypeError%"),
-        //   intrAddr("%ThrowTypeError%"),
-        //   F,
-        //   T,
-        // ),
-        // TODO "arguments" -> AccessorProperty(
-        //   intrAddr("%ThrowTypeError%"),
-        //   intrAddr("%ThrowTypeError%"),
-        //   F,
-        //   T,
-        // ),
+        "caller" -> AccessorProperty(
+          intrAddr("%ThrowTypeError%"),
+          intrAddr("%ThrowTypeError%"),
+          F,
+          T,
+        ),
+        "arguments" -> AccessorProperty(
+          intrAddr("%ThrowTypeError%"),
+          intrAddr("%ThrowTypeError%"),
+          F,
+          T,
+        ),
         "@@hasInstance" -> DataProperty(
           intrAddr("Function.prototype[@@hasInstance]"),
           F,
@@ -169,24 +170,24 @@ case class Intrinsics(cfg: CFG) {
         ),
       ),
     ),
-    "Function.prototype[@@hasInstance]" -> Struct(
-      typeName = "BuiltinFunctionObject",
-      imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Function.prototype[@@hasInstance]"),
-      ),
-      nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "name" -> DataProperty(Str("[Symbol.hasInstance]"), F, F, T),
-      ),
-    ),
+    // "Function.prototype[@@hasInstance]" -> Struct(
+    //   typeName = "BuiltinFunctionObject",
+    //   imap = List(
+    //     "Extensible" -> Bool(true),
+    //     "Prototype" -> intrAddr("Function.prototype"),
+    //     "Code" -> intrClo("Function.prototype[@@hasInstance]"),
+    //   ),
+    //   nmap = List(
+    //     "length" -> DataProperty(Number(1.0), F, F, T),
+    //     "name" -> DataProperty(Str("[Symbol.hasInstance]"), F, F, T),
+    //   ),
+    // ),
     "%ThrowTypeError%" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Extensible" -> Bool(false),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("%ThrowTypeError%"),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("%ThrowTypeError%"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, F),
@@ -196,13 +197,13 @@ case class Intrinsics(cfg: CFG) {
     "Boolean" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Boolean"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Boolean"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        // "length" -> DataProperty(Number(1.0), F, F, T),
         "prototype" -> DataProperty(intrAddr("Boolean.prototype"), F, F, F),
       ),
     ),
@@ -220,9 +221,9 @@ case class Intrinsics(cfg: CFG) {
     "Symbol" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Symbol"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Symbol"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
@@ -276,18 +277,18 @@ case class Intrinsics(cfg: CFG) {
         ),
       ),
     ),
-    "Symbol.prototype[@@toPrimitive]" -> Struct(
-      typeName = "BuiltinFunctionObject",
-      imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Symbol.prototype[@@toPrimitive]"),
-      ),
-      nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "name" -> DataProperty(Str("[Symbol.toPrimitive]"), F, F, T),
-      ),
-    ),
+    // "Symbol.prototype[@@toPrimitive]" -> Struct(
+    //   typeName = "BuiltinFunctionObject",
+    //   imap = List(
+    //     "Extensible" -> Bool(true),
+    //     "Prototype" -> intrAddr("Function.prototype"),
+    //     "Code" -> intrClo("Symbol.prototype[@@toPrimitive]"),
+    //   ),
+    //   nmap = List(
+    //     "length" -> DataProperty(Number(1.0), F, F, T),
+    //     "name" -> DataProperty(Str("[Symbol.toPrimitive]"), F, F, T),
+    //   ),
+    // ),
     "Symbol.prototype.description" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
@@ -303,9 +304,9 @@ case class Intrinsics(cfg: CFG) {
     "Error" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Error"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Error"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
@@ -327,9 +328,9 @@ case class Intrinsics(cfg: CFG) {
     "Number" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Number"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Number"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
@@ -371,15 +372,15 @@ case class Intrinsics(cfg: CFG) {
     "BigInt" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("BigInt"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("BigInt"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("BigInt.prototype"), F, F, F),
-        "asIntN" -> DataProperty(intrAddr("BigInt.asIntN"), T, F, T),
-        "asUintN" -> DataProperty(intrAddr("BigInt.asUintN"), T, F, T),
+        // "asIntN" -> DataProperty(intrAddr("BigInt.asIntN"), T, F, T),
+        // "asUintN" -> DataProperty(intrAddr("BigInt.asUintN"), T, F, T),
       ),
     ),
     "BigInt.prototype" -> Struct(
@@ -396,9 +397,9 @@ case class Intrinsics(cfg: CFG) {
     "String" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("String"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("String"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
@@ -417,11 +418,11 @@ case class Intrinsics(cfg: CFG) {
         "constructor" -> DataProperty(intrAddr("String"), T, F, T),
       ),
     ),
-    "StringIteratorPrototype" -> Struct(
+    "%StringIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("String Iterator"), F, F, T),
@@ -430,9 +431,9 @@ case class Intrinsics(cfg: CFG) {
     "Array" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("Array"),
+        // "Extensible" -> Bool(true),
+        // "Prototype" -> intrAddr("Function.prototype"),
+        // "Code" -> intrClo("Array"),
         "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
@@ -500,11 +501,11 @@ case class Intrinsics(cfg: CFG) {
         "values" -> DataProperty(Bool(true), T, T, T),
       ),
     ),
-    "ArrayIteratorPrototype" -> Struct(
+    "%ArrayIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Array Iterator"), F, F, T),
@@ -565,11 +566,11 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(0.0), F, F, T),
       ),
     ),
-    "MapIteratorPrototype" -> Struct(
+    "%MapIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Map Iterator"), F, F, T),
@@ -626,11 +627,11 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(0.0), F, F, T),
       ),
     ),
-    "SetIteratorPrototype" -> Struct(
+    "%SetIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Set Iterator"), F, F, T),
@@ -682,7 +683,7 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("WeakSet"), F, F, T),
       ),
     ),
-    "IteratorPrototype" -> Struct(
+    "%IteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -690,7 +691,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(),
     ),
-    "AsyncIteratorPrototype" -> Struct(
+    "%AsyncIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -698,11 +699,11 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(),
     ),
-    "AsyncFromSyncIteratorPrototype" -> Struct(
+    "%AsyncFromSyncIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("AsyncIteratorPrototype"),
+        "Prototype" -> intrAddr("%AsyncIteratorPrototype%"),
       ),
       nmap = List(),
     ),
@@ -743,7 +744,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(
         "constructor" -> DataProperty(
@@ -802,7 +803,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("AsyncIteratorPrototype"),
+        "Prototype" -> intrAddr("%AsyncIteratorPrototype%"),
       ),
       nmap = List(
         "constructor" -> DataProperty(
@@ -965,12 +966,18 @@ case class Intrinsics(cfg: CFG) {
         "name" -> DataProperty(Str("AggregateError"), T, F, T),
       ),
     ),
-    "ForInIteratorPrototype" -> Struct(
+    "%ForInIteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("%IteratorPrototype%"),
       ),
       nmap = List(),
+    ),
+    "eval" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      imap = List(
+        "Code" -> intrClo("eval"),
+      ),
     ),
   )
 
