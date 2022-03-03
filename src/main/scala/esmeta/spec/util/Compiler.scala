@@ -472,7 +472,7 @@ class Compiler(val spec: Spec) {
   private def compile(fb: FB, ref: Reference): Ref = ref match {
     case x: Variable               => compile(x)
     case RunningExecutionContext() => GLOBAL_CONTEXT
-    case CurrentRealmRecord()      => toStrRef(GLOBAL_CONTEXT, "Realm")
+    case CurrentRealmRecord()      => currentRealm
     case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
     case ref: PropertyReference    => compile(fb, ref)
   }

@@ -226,10 +226,10 @@ class Interp(
     case EConvert(cop, expr) =>
       import COp.*
       (interp(expr).escaped, cop) match {
-        case (Math(n), ToNumber) => Number(n.toDouble)
-        case (Str(s), ToNumber)  => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt)  => ESValueParser.str2bigint(s)
-        case (Number(d), ToMath) => Math(d)
+        case (Math(n), ToNumber)   => Number(n.toDouble)
+        case (Str(s), ToNumber)    => Number(ESValueParser.str2Number(s))
+        case (Str(s), ToBigInt)    => ESValueParser.str2bigint(s)
+        case (Number(d), ToMath)   => Math(d)
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
