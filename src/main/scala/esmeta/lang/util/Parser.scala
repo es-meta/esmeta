@@ -463,10 +463,8 @@ trait Parsers extends DivergedParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the" | "this") ~> opt(
-      word.map(_.toIntFromOrdinal).filter(_.isDefined),
-    ) ~ nt ^^ {
-      case ord ~ x => NonterminalLiteral(ord.flatten, x)
+    opt("the" | "this") ~> opt(ordinal) ~ nt ^^ {
+      case ord ~ x => NonterminalLiteral(ord, x)
     }
 
   // string literals
@@ -791,7 +789,12 @@ trait Parsers extends DivergedParsers {
       case v ~ a => PropertyReference(v, FieldProperty(a))
     } |
     // Set.prototype.add
-    ("the List that is" ~> propRef)
+    ("the List that is" ~> propRef) |
+    // AsyncGeneratorCompleteStep
+    ("the" ~> ordinal <~ "element") ~ ("of" ~> variable) ^^ {
+      case o ~ x =>
+        PropertyReference(x, IndexProperty(DecimalMathValueLiteral(o - 1)))
+    }
 
   // ---------------------------------------------------------------------------
   // metalanguage properties
@@ -868,6 +871,10 @@ trait Parsers extends DivergedParsers {
 
   // nonterminals
   private lazy val nt: Parser[String] = "|" ~> word <~ opt("?") ~ "|"
+
+  // ordinal
+  private lazy val ordinal: Parser[Int] =
+    word.map(_.toIntFromOrdinal).filter(_.isDefined).map(_.get)
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (
