@@ -73,7 +73,7 @@
   "[YET] Assert: _base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "assert (! (|| (= base 0.0f) (= base -0.0f)))",
   "[YET] Assert: _exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "assert (! (|| (= exponent 0.0f) (= exponent -0.0f)))",
   "[YET] If _base_ < *+0*<sub>𝔽</sub> and _exponent_ is not an integral Number, return *NaN*.": "if (|| (< base +0.0f) (! (? exponent: Number))) return NaN else {}",
-  "[YET] Return an implementation-approximated Number value representing the result of raising ℝ(_base_) to the ℝ(_exponent_) power.": "return (** base exponent)",
+  "[YET] Return an implementation-approximated Number value representing the result of raising ℝ(_base_) to the ℝ(_exponent_) power.": "return ([number] (** ([math] base) ([math] exponent)))",
   "[YET] Let _internalSlotsList_ be a List containing the names of all the internal slots that <emu-xref href=\"#sec-built-in-function-objects\"></emu-xref> requires for the built-in function object that is about to be created.": "let internalSlotsList = (new [\"Prototype\", \"Extensible\", \"Realm\", \"InitialName\"])",
   "[YET] Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
   "[YET] Let _func_ be a new built-in function object that, when called, performs the action described by _behaviour_ using the provided arguments as the values of the corresponding parameters specified by _behaviour_. The new function object has internal slots whose names are the elements of _internalSlotsList_, and an [[InitialName]] internal slot.": "{ let func = (new BuiltinFunctionObject()) func.Code = behaviour }",
