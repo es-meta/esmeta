@@ -35,6 +35,7 @@
   "boolean3.js" : true,
   "boolean4.js" : true,
   "class-decl1.js" : true,
+  "class-decl2.js" : true,
   "compare1.js" : true,
   "complement1.js" : true,
   "constructor1.js" : true,

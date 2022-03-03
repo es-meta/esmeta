@@ -260,6 +260,7 @@ class Interp(
         case _: BigInt => ty.name == "BigInt"
         case _: Str    => ty.name == "String"
         case _: Bool   => ty.name == "Boolean"
+        case _: Const  => ty.name == "Constant"
         case Undef     => ty.name == "Undefined"
         case Null      => ty.name == "Null"
         case AstValue(ast) =>

@@ -98,5 +98,6 @@
   "[YET] Return the result of applying bitwise complement to _oldValue_. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "return (~ oldValue)",
   "[YET] Let _k_ be the smallest non-negative integer such that the code unit at index _k_ within _px_ is different from the code unit at index _k_ within _py_. (There must be such a _k_, for neither String is a prefix of the other.)": "{ let k = 0 loop[repeat] (= px[k] py[k]) k = (+ k 1) }",
   "[YET] Let _m_ be the integer that is the numeric value of the code unit at index _k_ within _px_.": "let m = ([math] px[k])",
-  "[YET] Let _n_ be the integer that is the numeric value of the code unit at index _k_ within _py_.": "let n = ([math] py[k])"
+  "[YET] Let _n_ be the integer that is the numeric value of the code unit at index _k_ within _py_.": "let n = ([math] py[k])",
+  "[YET] Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = argumentsList"
 }
