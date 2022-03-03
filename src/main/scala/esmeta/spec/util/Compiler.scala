@@ -720,6 +720,19 @@ class Compiler(val spec: Spec) {
         case NonNegative => not(lessThan(x, ENumber(0.0f)))
         case FalseToken  => is(ESourceText(x), EStr("false"))
         case TrueToken   => is(ESourceText(x), EStr("true"))
+        case DataProperty =>
+          val (b, bExpr) = fb.newTIdWithExpr
+          fb.addInst(ICall(b, dataPropClo, List(x)))
+          bExpr
+        case AccessorProperty =>
+          val (b, bExpr) = fb.newTIdWithExpr
+          fb.addInst(ICall(b, accessorPropClo, List(x)))
+          bExpr
+        case FullyPopulated =>
+          val dataFields =
+            List("Value", "Writable", "Enumerable", "Configurable")
+          val accessorFields = List("Get", "Set", "Enumerable", "Configurable")
+          or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
@@ -818,6 +831,8 @@ class Compiler(val spec: Spec) {
 
   // expression helpers
   private inline def emptyList = EList(List())
+  private inline def dataPropClo = EClo("IsDataDescriptor", Nil)
+  private inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   // literal helpers
   private val zero = EMathVal(0)
@@ -839,6 +854,13 @@ class Compiler(val spec: Spec) {
   private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
   private inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
+  private inline def hasFields(
+    fb: FuncBuilder,
+    base: Expr,
+    fs: List[String],
+  ): Expr =
+    val conds = fs.map(f => isAbsent(toERef(fb, base, EStr(f))))
+    not(conds.reduce { case (a, b) => or(a, b) })
 
   // simple operations
   private type SimpleOp = PartialFunction[List[Expr], Expr]
@@ -857,29 +879,6 @@ class Compiler(val spec: Spec) {
     arityCheck("ReturnIfAbrupt" -> {
       case List(expr) => EReturnIfAbrupt(expr, true)
     }),
-    // arityCheck("IsDuplicate" -> {
-    //   case (st, List(addr: Addr)) =>
-    //     st(addr) match
-    //       case ListObj(vs) => Bool(vs.toSet.size != vs.length)
-    //       case _           => error(s"non-list @ IsDuplicate: $addr")
-    // }),
-    // arityCheck("IsArrayIndex" -> {
-    //   case (st, List(Str(s))) =>
-    //     // val d = ESValueParser.str2num(s)
-    //     // val ds = toStringHelper(d)
-    //     // val UPPER = (1L << 32) - 1
-    //     // val l = d.toLong
-    //     // Bool(ds == s && 0 <= l && d == l && l < UPPER)
-    //     ???
-    //   case (st, List(v)) => Bool(false)
-    // }),
-    // arityCheck("fround" -> {
-    //   case (st, List(Number(n))) => Number(n.toFloat.toDouble)
-    // }),
-    // arityCheck("IsArrayIndex" -> ???),
-    // arityCheck("ThrowCompletion" -> ???),
-    // arityCheck("NormalCompletion" -> ???),
-    // arityCheck("IsAbruptCompletion" -> ???),
   )
 }
 object Compiler {

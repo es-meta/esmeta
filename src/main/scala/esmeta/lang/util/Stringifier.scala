@@ -452,17 +452,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given predCondOpRule: Rule[PredicateCondition.Op] = (app, op) =>
     import PredicateCondition.Op.*
     app >> (op match {
-      case Finite      => "finite"
-      case Abrupt      => "an abrupt completion"
-      case Normal      => "a normal completion"
-      case Duplicated  => "duplicate entries"
-      case Present     => "present"
-      case Empty       => "empty"
-      case StrictMode  => "strict mode code"
-      case ArrayIndex  => "an array index"
-      case NonNegative => "a non-negative integral Number"
-      case FalseToken  => "the token `false`"
-      case TrueToken   => "the token `true`"
+      case Finite           => "finite"
+      case Abrupt           => "an abrupt completion"
+      case Normal           => "a normal completion"
+      case Duplicated       => "duplicate entries"
+      case Present          => "present"
+      case Empty            => "empty"
+      case StrictMode       => "strict mode code"
+      case ArrayIndex       => "an array index"
+      case NonNegative      => "a non-negative integral Number"
+      case FalseToken       => "the token `false`"
+      case TrueToken        => "the token `true`"
+      case DataProperty     => "a data property"
+      case AccessorProperty => "an accessor property"
+      case FullyPopulated   => "a fully populated Property Descriptor"
     })
 
   // operators for binary conditions

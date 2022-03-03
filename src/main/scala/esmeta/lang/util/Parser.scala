@@ -638,7 +638,10 @@ trait Parsers extends DivergedParsers {
       "an array index" ^^^ { ArrayIndex } |
       "a non-negative integral Number" ^^^ { NonNegative } |
       "the token `false`" ^^^ { FalseToken } |
-      "the token `true`" ^^^ { TrueToken }
+      "the token `true`" ^^^ { TrueToken } |
+      "a data property" ^^^ { DataProperty } |
+      "an accessor property" ^^^ { AccessorProperty } |
+      "a fully populated Property Descriptor" ^^^ { FullyPopulated }
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })
@@ -697,19 +700,6 @@ trait Parsers extends DivergedParsers {
   // rarely used conditions
   // TODO clean-up
   lazy val specialCond: PL[Condition] =
-    // OrdinaryGetOwnProperty
-    expr ~ ("is" ~> (
-      "a data property" ^^^ { getIsDataCond } |
-      "an accessor property" ^^^ { getIsAccessorCond }
-    )) ^^ { case e ~ getCond => getCond(e) } |
-    // ValidateAndApplyPropertyDescriptor
-    ref <~ "is a fully populated Property Descriptor" ^^ {
-      case r =>
-        val dpFields = hasFieldsCond(r, "Value", "Writable")
-        val apFields = hasFieldsCond(r, "Get", "Set")
-        val fields = hasFieldsCond(r, "Enumerable", "Configurable")
-        andCond(fields, orCond(dpFields, apFields))
-    } |
     // ResolveBinding
     "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
       getExprCond(TrueLiteral())
@@ -904,24 +894,5 @@ trait Parsers extends DivergedParsers {
 
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
-  private def getInvokeExpr(op: String)(es: Expression*): InvokeExpression =
-    InvokeAbstractOperationExpression(op, es.toList)
   private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
-  private def getIsDataCond(e: Expression) = getExprCond(
-    getInvokeExpr("IsDataDescriptor")(e),
-  )
-  private def getIsAccessorCond(e: Expression) = getExprCond(
-    getInvokeExpr("IsAccessorDescriptor")(e),
-  )
-  private def compoundCond(
-    op: CompoundCondition.Op,
-    cs: Condition*,
-  ): Condition =
-    cs.reduce { case (l, r) => CompoundCondition(l, op, r) }
-  private def andCond(cs: Condition*): Condition =
-    compoundCond(CompoundCondition.Op.And, cs: _*)
-  private def orCond(cs: Condition*): Condition =
-    compoundCond(CompoundCondition.Op.Or, cs: _*)
-  private def hasFieldsCond(r: Reference, fs: String*): Condition =
-    andCond(fs.map(f => HasFieldCondition(r, false, FieldLiteral(f))): _*)
 }
