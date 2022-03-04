@@ -308,7 +308,7 @@ class Compiler(val spec: Spec) {
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
-        IAssign(i, EMathVal(0)),
+        IAssign(i, zero),
         IAssign(length, toStrERef(list, "length")),
       )
       fb.addInst(
@@ -381,6 +381,26 @@ class Compiler(val spec: Spec) {
           },
         ),
       )
+    case ForEachParseNodeStep(x, expr, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      val (length, lengthExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(list, toERef(fb, compile(fb, expr), EStr("children"))),
+        IAssign(i, zero),
+        IAssign(length, toStrERef(list, "length")),
+      )
+      fb.addInst(
+        ILoop(
+          "foreach-node",
+          lessThan(iExpr, lengthExpr),
+          fb.newScope {
+            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
+            compile(fb, body)
+            fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+          },
+        ),
+      )
     case ThrowStep(errName) =>
       val proto = Intrinsic(errName, List("prototype"))
       val expr = EMap(
@@ -394,6 +414,8 @@ class Compiler(val spec: Spec) {
       fb.addInst(IReturn(comp))
     case PerformStep(expr) =>
       fb.addInst(IExpr(compile(fb, expr)))
+    case PerformBlockStep(StepBlock(steps)) =>
+      for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case RepeatStep(cond, body) =>
@@ -733,6 +755,8 @@ class Compiler(val spec: Spec) {
             List("Value", "Writable", "Enumerable", "Configurable")
           val accessorFields = List("Get", "Set", "Enumerable", "Configurable")
           or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
+        case Nonterminal =>
+          ETypeCheck(x, IRType("Nonterminal"))
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>

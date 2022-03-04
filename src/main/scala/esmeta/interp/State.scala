@@ -61,11 +61,26 @@ case class State(
         prop match
           // access to parent
           case Str("parent") => ast.parent.map(AstValue(_)).getOrElse(Absent)
+          // TODO refactor
+          // access to children
+          case Str("children") => allocList(children.flatten.map(AstValue(_)))
           // access to SDO
           case Str(propStr) if ast.isInstanceOf[Syntactic] =>
             cfg.getSDO((ast, propStr)) match
               case Some((ast0, sdo)) =>
                 Clo(sdo, Map(NAME_THIS -> AstValue(ast0)))
+              // TODO refactor
+              case None if propStr == "Contains" =>
+                Clo(
+                  cfg.fnameMap("<DEFAULT>.Contains"),
+                  Map(NAME_THIS -> AstValue(ast)),
+                )
+              // TODO refactor
+              case None if propStr == "AllPrivateIdentifiersValid" =>
+                Clo(
+                  cfg.fnameMap("<DEFAULT>.AllPrivateIdentifiersValid"),
+                  Map(NAME_THIS -> AstValue(ast)),
+                )
               case None =>
                 // access to child
                 val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)

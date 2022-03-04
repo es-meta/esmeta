@@ -52,6 +52,7 @@ trait Parsers extends DivergedParsers {
     setEvalStateStep |
     setStep |
     performStep |
+    performBlockstep |
     returnToResumedStep |
     returnStep |
     assertStep |
@@ -65,6 +66,7 @@ trait Parsers extends DivergedParsers {
     forEachArrayIndexStep |
     forEachStep |
     forEachIntStep |
+    forEachParseNodeStep |
     resumeStep |
     blockStep
   }.named("lang.Step")
@@ -128,6 +130,13 @@ trait Parsers extends DivergedParsers {
       case k ~ x ~ s ~ a ~ b => ForEachArrayIndexStep(k, x, s, a, b)
     }
 
+  // for-each steps for parse node
+  lazy val forEachParseNodeStep: PL[ForEachParseNodeStep] =
+    ("for each child node" ~> variable) ~
+    ("of" ~> expr <~ ",") ~ ("do" ~> step) ^^ {
+      case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
+    }
+
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
     "throw a *" ~> word <~ "* exception" <~ end ^^ { ThrowStep(_) }
@@ -136,6 +145,12 @@ trait Parsers extends DivergedParsers {
   lazy val performStep: PL[PerformStep] =
     opt("perform" | "call") ~> (invokeExpr | returnIfAbruptExpr) <~ end ^^ {
       PerformStep(_)
+    }
+
+  // peform block steps
+  lazy val performBlockstep: PL[PerformBlockStep] =
+    "perform the following substeps in an implementation-defined order" ~ ".*".r ~> stepBlock ^^ {
+      PerformBlockStep(_)
     }
 
   // append steps
@@ -416,7 +431,7 @@ trait Parsers extends DivergedParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(ty) ~ "value") ~> (
-    opt("the") ~> "*this* value" ^^! ThisLiteral() |||
+    (opt("the") ~> "*this* value" | "this Parse Node") ^^! ThisLiteral() |||
     "NewTarget" ^^! NewTargetLiteral() |||
     hexLiteral |||
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
@@ -641,7 +656,8 @@ trait Parsers extends DivergedParsers {
       "the token `true`" ^^^ { TrueToken } |
       "a data property" ^^^ { DataProperty } |
       "an accessor property" ^^^ { AccessorProperty } |
-      "a fully populated Property Descriptor" ^^^ { FullyPopulated }
+      "a fully populated Property Descriptor" ^^^ { FullyPopulated } |
+      "an instance of a nonterminal" ^^^ { Nonterminal }
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ { false } | "no" ^^^ { true })
@@ -703,6 +719,10 @@ trait Parsers extends DivergedParsers {
     // ResolveBinding
     "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
       getExprCond(TrueLiteral())
+    } |
+    // Script.IsStrict
+    "the Directive Prologue of |ScriptBody| contains a Use Strict Directive" ^^! {
+      getExprCond(TrueLiteral()) // assume strict
     } |
     // PropertyDefinition[2,0].PropertyDefinitionEvaluation
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for JSON.parse" ~

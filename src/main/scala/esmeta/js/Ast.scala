@@ -40,8 +40,8 @@ sealed trait Ast extends JSElem {
   /** types */
   lazy val types: Set[String] =
     Set(name, s"$name$idx") union (this match
-      case Syntactic(_, _, _, List(Some(child))) => child.types
-      case _                                     => Set()
+      case Syntactic(_, _, _, List(Some(child))) => child.types + "Nonterminal"
+      case _                                     => Set("Terminal")
     )
 
   // TODO tweak equality for fast caching

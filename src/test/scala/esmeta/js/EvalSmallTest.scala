@@ -8,15 +8,10 @@ class EvalSmallTest extends JSTest {
   import JSTest.*
   val name: String = "jsEvalTest"
 
-  // TODO remove
-  val IGNORE_FILES: List[String] = List(
-    "global-eval.js",
-  )
-
   // registration
   def init: Unit = for (file <- walkTree(JS_TEST_DIR)) {
     val filename = file.getName
-    if (jsFilter(filename) && !IGNORE_FILES.contains(filename))
+    if (jsFilter(filename))
       check(filename) {
         val jsName = file.toString
         val irName = js2ir(jsName)

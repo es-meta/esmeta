@@ -1,0 +1,14 @@
+def StringToCodePoints(string: String): Unknown {
+  return string
+  // IGNORE original algo
+  // let codePoints = (new [])
+  // let size = string.length
+  // let position = 0
+  // loop[repeat] (< position size) {
+  //   call %0 = clo<CodePointAt>(string, position)
+  //   let cp = [! %0]
+  //   push codePoints < cp.CodePoint
+  //   position = (+ position cp.CodeUnitCount)
+  // }
+  // return codePoints
+}

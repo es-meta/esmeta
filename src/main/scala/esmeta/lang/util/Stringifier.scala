@@ -106,10 +106,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> start >> ", " >> "in descending numeric index order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
+      case ForEachParseNodeStep(x, expr, body) =>
+        app >> First("for each child node ") >> x
+        app >> " of " >> expr >> ", do" >> body
       case ThrowStep(errorName) =>
         app >> First("throw a *") >> errorName >> "* exception."
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
+      case PerformBlockStep(block) =>
+        app >> First("perform ")
+        app >> "the following substeps in an implementation-defined order:"
+        app >> block
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case RepeatStep(cond, body) =>
@@ -466,6 +473,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case DataProperty     => "a data property"
       case AccessorProperty => "an accessor property"
       case FullyPopulated   => "a fully populated Property Descriptor"
+      case Nonterminal      => "an instance of a nonterminal"
     })
 
   // operators for binary conditions

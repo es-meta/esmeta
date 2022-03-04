@@ -49,11 +49,21 @@ case class ForEachArrayIndexStep(
   body: Step,
 ) extends Step
 
+// for-each steps for parse node
+case class ForEachParseNodeStep(
+  variable: Variable,
+  expr: Expression,
+  body: Step,
+) extends Step
+
 // throw steps
 case class ThrowStep(errorName: String) extends Step
 
 // perform steps
 case class PerformStep(expr: Expression) extends Step
+
+// perform block steps
+case class PerformBlockStep(step: StepBlock) extends Step
 
 // append steps
 case class AppendStep(elem: Expression, ref: Reference) extends Step

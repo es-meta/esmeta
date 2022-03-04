@@ -76,13 +76,20 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case ThrowStep(errorName)   => ThrowStep(errorName)
-    case PerformStep(expr)      => PerformStep(walk(expr))
-    case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
-    case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
-    case PushCtxtStep(ref)      => PushCtxtStep(walk(ref))
-    case NoteStep(note)         => NoteStep(note)
-    case SuspendStep(base, r)   => SuspendStep(walk(base), r)
+    case ForEachParseNodeStep(x, expr, body) =>
+      ForEachParseNodeStep(
+        walk(x),
+        walk(expr),
+        walk(body),
+      )
+    case ThrowStep(errorName)    => ThrowStep(errorName)
+    case PerformStep(expr)       => PerformStep(walk(expr))
+    case PerformBlockStep(block) => PerformBlockStep(walk(block))
+    case AppendStep(expr, ref)   => AppendStep(walk(expr), walk(ref))
+    case RepeatStep(cond, body)  => RepeatStep(walkOpt(cond, walk), walk(body))
+    case PushCtxtStep(ref)       => PushCtxtStep(walk(ref))
+    case NoteStep(note)          => NoteStep(note)
+    case SuspendStep(base, r)    => SuspendStep(walk(base), r)
     case SetEvaluationStateStep(base, p, body) =>
       SetEvaluationStateStep(walk(base), walkOpt(p, walk), walk(body))
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>

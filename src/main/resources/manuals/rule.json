@@ -99,5 +99,12 @@
   "[YET] Let _k_ be the smallest non-negative integer such that the code unit at index _k_ within _px_ is different from the code unit at index _k_ within _py_. (There must be such a _k_, for neither String is a prefix of the other.)": "{ let k = 0 loop[repeat] (= px[k] py[k]) k = (+ k 1) }",
   "[YET] Let _m_ be the integer that is the numeric value of the code unit at index _k_ within _px_.": "let m = ([math] px[k])",
   "[YET] Let _n_ be the integer that is the numeric value of the code unit at index _k_ within _py_.": "let n = ([math] py[k])",
-  "[YET] Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = argumentsList"
+  "[YET] Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = argumentsList",
+  "[YET] Assert: The execution context stack has at least two elements.": "assert (< 1 @EXECUTION_STACK.length)",
+  "[YET] Let _callerContext_ be the second to top element of the execution context stack.": "let callerContext = @EXECUTION_STACK[1]",
+  "[YET] Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.": "assert true",
+  "[YET] If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
+  "[YET] Assert: The following loop will terminate.": "assert true",
+  "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true",
+  "[YET] If _script_ is a List of errors, throw a *SyntaxError* exception.": "nop"
 }

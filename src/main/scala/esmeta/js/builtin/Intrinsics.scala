@@ -973,12 +973,6 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(),
     ),
-    "eval" -> Struct(
-      typeName = "BuiltinFunctionObject",
-      imap = List(
-        "Code" -> intrClo("eval"),
-      ),
-    ),
   )
 
   private def errList: List[String] = List(
