@@ -1,5 +1,3 @@
--Xms16g
--Xmx32g
--Xss1g
--Xmn512m
+-Xms1g
+-Xmx3g
 -Dfile.encoding=utf8

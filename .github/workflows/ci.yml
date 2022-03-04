@@ -15,7 +15,6 @@ jobs:
     - name: Run test
       env:
         ESMETA_HOME: ${{ github.workspace }}
-        JVM_OPTS: -Xms16g -Xmx32g -Xss1g -Xmn512m -Dfile.encoding=utf8
       run: sbt test
   lint:
     runs-on: ubuntu-latest
