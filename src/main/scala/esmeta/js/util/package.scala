@@ -28,3 +28,10 @@ def flattenStmtList(
   case Syntactic("StatementList", _, 1, List(Some(x0), Some(x1))) =>
     flattenStmtList(x0, x1 :: list)
   case _ => Nil
+def flattenStmt(s: Ast): List[Ast] = s match
+  case Syntactic("Script", _, 0, List(Some(body))) =>
+    body match
+      case Syntactic("ScriptBody", _, 0, List(Some(stmtList))) =>
+        flattenStmtList(stmtList)
+      case _ => Nil
+  case _ => Nil

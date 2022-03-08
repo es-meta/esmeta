@@ -26,8 +26,8 @@ class ParseLargeTest extends Test262Test {
     mkdir(logDir)
     dumpFile(spec.version, s"$logDir/ecma262-version")
     dumpFile(currentVersion(BASE_DIR), s"$logDir/esmeta-version")
-    summary.fails.setPath(s"$logDir/eval-fail.log")
-    summary.passes.setPath(s"$logDir/eval-pass.log")
+    summary.fails.setPath(s"$logDir/parse-fail.log")
+    summary.passes.setPath(s"$logDir/parse-pass.log")
     for (config <- progress) {
       val name = config.name
       val jsName = s"$TEST262_TEST_DIR/$name"
