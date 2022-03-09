@@ -35,6 +35,9 @@ class Interp(
   /** grammar */
   private def grammar = cfg.grammar
 
+  /** itereration count */
+  private var iter = 0
+
   /** step */
   def step: Boolean =
     try {
@@ -48,6 +51,11 @@ class Interp(
         case ExitCursor(func) =>
           val irFunc = func.irFunc
           println(s"[${irFunc.kind}${irFunc.name}] Exited")
+
+      // garbage collection
+      iter += 1
+      if (iter % 100000 == 0) GC(st)
+
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 
