@@ -1,0 +1,5 @@
+def <BUILTIN>:INTRINSICS.print(this: Any, argumentsList: Any, NewTarget: Any): Unknown {
+  if (< 0 argumentsList.length) let x = (pop < argumentsList) else let x = absent
+  print x
+  return undefined
+}

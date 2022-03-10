@@ -90,17 +90,17 @@ case class Intrinsics(cfg: CFG) {
 
   // intrinsics
   private lazy val intrinsics: Map[String, Struct] = errors ++ Map(
-    // TODO "print" -> Struct(
-    //   typeName = "BuiltinFunctionObject",
-    //   imap = List(
-    //     "Extensible" -> Bool(true),
-    //     "Prototype" -> intrAddr("Function.prototype"),
-    //     "Code" -> intrClo("HostPrint"),
-    //   ),
-    //   nmap = List(
-    //     "length" -> DataProperty(Number(0.0), F, F, T),
-    //   ),
-    // ),
+    "print" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Function.prototype"),
+        "Code" -> intrClo("print"),
+      ),
+      nmap = List(
+        "length" -> DataProperty(Number(0.0), F, F, T),
+      ),
+    ),
     "Object" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
