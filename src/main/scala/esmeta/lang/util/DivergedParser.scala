@@ -5,6 +5,7 @@ import esmeta.util.BaseUtils.error
 import esmeta.util.IndentParsers
 
 /** parsers for record diverged case with indentation parsers */
+// TODO handle cached result
 trait DivergedParsers extends IndentParsers {
 
   /** extended data for recording divergence */

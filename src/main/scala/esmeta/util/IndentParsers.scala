@@ -133,6 +133,14 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
   private given Conversion[Position, Pos] with
     def apply(p: Position): Pos = Pos(p.line, p.column)
 
+  /** implicit conversion from parsers to locational parsers */
+  implicit def parser2loc[T <: Locational](
+    p: => Parser[T],
+  ): LocationalParser[T] = {
+    val packrat = parser2packrat(p)
+    locationed(packrat)
+  }
+
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------

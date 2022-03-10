@@ -6,11 +6,10 @@ import scala.util.matching.Regex
 
 /** language parser */
 object Parser extends Parsers
-trait Parsers extends DivergedParsers {
+trait Parsers extends IndentParsers {
 
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
-  type PLD[T <: Diverged with Locational] = DivergedParser[T]
 
   // ---------------------------------------------------------------------------
   // metalanguage blocks
@@ -296,14 +295,12 @@ trait Parsers extends DivergedParsers {
     ) ^^ { case t => RecordExpression(t, List()) }
 
   // `length of` expressions
-  lazy val lengthExpr: PLD[LengthExpression] =
-    recordAppend(Some("LengthExpression"))(
-      "the length of" ~> expr ^^ { LengthExpression(_) },
-      "the number of code" ~
-      recordAppend(Some("units"))("units", "unit elements") ~ "in" ~> expr ^^ {
-        LengthExpression(_)
-      },
-    )
+  lazy val lengthExpr: PL[LengthExpression] =
+    "the length of" ~> expr ^^ { LengthExpression(_) } |
+    "the number of code" ~
+    ("units" | "unit elements") ~ "in" ~> expr ^^ {
+      LengthExpression(_)
+    }
 
   // `substring of` expressions
   lazy val substrExpr: PL[SubstringExpression] =
@@ -534,9 +531,10 @@ trait Parsers extends DivergedParsers {
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
-    lazy val name = (opt("the result of performing" | "the") ~ guard(
-      not(component),
-    ) ~> word)
+    lazy val name =
+      (opt("the result of performing" | "the result of" | "the") ~ guard(
+        not(component),
+      ) ~> camel)
     lazy val base = ("of" ~> expr)
     lazy val args = repsep(expr, sep("and"))
     lazy val argsPart = (
@@ -566,7 +564,7 @@ trait Parsers extends DivergedParsers {
           InvokeSyntaxDirectedOperationExpression(b, "Contains", List(arg))
       }
 
-    normalSDOExpr ||| evalSDOExpr ||| containsSDOExpr
+    normalSDOExpr | evalSDOExpr | containsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
@@ -861,19 +859,6 @@ trait Parsers extends DivergedParsers {
   extension [T](p: Parser[T]) {
     def ^^![S](v: => S): Parser[S] = Parser { in => p(in).map(x => v) }
   }
-
-  // implicit conversion from parsers to locational parsers
-  private implicit def parser2loc[T <: Locational](
-    p: => Parser[T],
-  ): PL[T] = {
-    val packrat = parser2packrat(p)
-    locationed(packrat)
-  }
-
-  // implicit conversion rom parsers to diverged parsers
-  private implicit def parser2diverged[T <: Diverged with Locational](
-    p: => Parser[T],
-  ): PLD[T] = record(parser2loc(p))
 
   // html tags
   private lazy val tagStart: Parser[String] = "<[^>]+>".r
