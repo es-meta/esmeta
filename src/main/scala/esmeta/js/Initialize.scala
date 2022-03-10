@@ -1,11 +1,13 @@
 package esmeta.js
 
 import esmeta.cfg.CFG
-import esmeta.ir.*
 import esmeta.interp.*
-import esmeta.spec.*
+import esmeta.ir.*
 import esmeta.js.builtin.*
+import esmeta.spec.*
+import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
+import esmeta.test262.*
 
 class Initialize(
   cfg: CFG,
@@ -198,4 +200,13 @@ object Initialize {
     sourceText: String,
     cachedAst: Option[Ast] = None,
   ): State = new Initialize(cfg, sourceText, cachedAst).result
+
+  /** initialize from file */
+  def fromFile(cfg: CFG, filename: String, test262: Boolean = false): State =
+    if (!test262) apply(cfg, readFile(filename))
+    else {
+      val test262 = Test262(cfg.spec)
+      val (sourceText, ast) = test262.loadTestFromFile(filename)
+      apply(cfg, sourceText, Some(ast))
+    }
 }

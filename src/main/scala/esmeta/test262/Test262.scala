@@ -37,4 +37,29 @@ case class Test262(spec: Spec) {
     x <- getInclude("assert.js")
     y <- getInclude("sta.js")
   } yield x ++ y
+
+  // load test262 file with harnesses
+  def loadTestFromFile(filename: String): (String, Ast) = {
+    val meta = MetaData(filename)
+
+    // load harness
+    val includeStmts = meta.includes.foldLeft(basicStmts) {
+      case (li, s) =>
+        for {
+          x <- li
+          y <- getInclude(s)
+        } yield x ++ y
+    } match {
+      case Right(l)  => l
+      case Left(msg) => throw NotSupported(msg)
+    }
+
+    // parse test and merge with harnesses
+    val stmts = includeStmts ++ flattenStmt(parseFile(filename))
+    val merged = mergeStmt(stmts)
+
+    // result
+    val sourceText = merged.toString(grammar = Some(spec.grammar)).trim
+    (sourceText, merged)
+  }
 }

@@ -38,24 +38,8 @@ class EvalLargeTest extends Test262Test {
       val NormalConfig(name, includes) = config
       val jsName = s"$TEST262_TEST_DIR/$name"
       getError {
-        // parse test262 including harness
-        val includeStmts = includes.foldLeft(basicStmts) {
-          case (li, s) =>
-            for {
-              x <- li
-              y <- getInclude(s)
-            } yield x ++ y
-        } match {
-          case Right(l)  => l
-          case Left(msg) => throw NotSupported(msg)
-        }
-        val parsed = timeout(parseFile(jsName), PARSE_TIMEOUT)
-        val stmts = includeStmts ++ flattenStmt(parsed)
-        val merged = mergeStmt(stmts)
-        val sourceText = merged.toString(grammar = Some(spec.grammar)).trim
-
-        // run interpreter
-        JSTest.evalTest(sourceText, cachedAst = Some(merged))
+        val (sourceText, ast) = loadTestFromFile(jsName) // load test
+        JSTest.evalTest(sourceText, cachedAst = Some(ast)) // run interpreter
         summary.passes += name
       }.foreach {
         case NotSupported(msg)   => summary.yets += s"$name: $msg"
