@@ -450,7 +450,7 @@ trait Parsers extends BasicParsers {
   lazy val oldOptParams: Parser[List[Param]] =
     import Param.Kind.*
     "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ {
-      case p ~ psOpt => p :: psOpt.getOrElse(Nil)
+      case p ~ psOpt => p.copy(kind = Optional) :: psOpt.getOrElse(Nil)
     } | opt(",") ~ "..." ~> param ^^ {
       case p => List(p.copy(kind = Variadic))
     } | success(Nil)

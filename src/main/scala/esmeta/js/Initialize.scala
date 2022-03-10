@@ -90,11 +90,27 @@ class Initialize(
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
   private def intrClo(name: String): Clo = clo(intrName(name))
 
-  // add member functions of intrinsics
   import BuiltinHead.Ref.*
+
+  // get data from builtin head
+  private def getBuiltinData(
+    ref: BuiltinHead.Ref,
+  ): Option[(String, String, PureValue, String, Boolean)] = ref match
+    case NormalAccess(base, name) =>
+      Some((base.toString(), name, Str(name), name, true))
+    case SymbolAccess(base, name) =>
+      Some((base.toString(), name, symbolAddr(name), s"[Symbol.$name]", true))
+    case Getter(ref) =>
+      getBuiltinData(ref) match
+        case Some((base, prop, propV, propName, _)) =>
+          Some((base, prop, propV, s"get $propName", false))
+        case _ => None
+    case _ => None // TODO setter
+
+  // add member functions of intrinsics
   private def createBuiltinFunction(
     name: String,
-    head: BuiltinHead,
+    defaultLength: Int,
     defaultName: String,
     map: MMap[Addr, Obj],
   ): Unit = {
@@ -115,7 +131,6 @@ class Initialize(
     val lengthMapObj = map.get(lengthAddr) match
       case Some(m: MapObj) => m
       case _               => MapObj("PropertyDescriptor")
-    val defaultLength = head.params.count(_.kind == Param.Kind.Normal)
 
     map += baseAddr -> baseObj
       .findOrUpdate(Str("Extensible"), Bool(true))
@@ -151,48 +166,46 @@ class Initialize(
           case b: IntrinsicBase => Some((b.toString, head))
           case _                => None
       case _ => None
-  } createBuiltinFunction(name, head, name, map)
+  } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
     func <- cfg.funcs
     head <- func.head match
       case Some(head: BuiltinHead) => Some(head)
       case _                       => None
-    (base, prop, propV, propName) <- head.ref match
-      case NormalAccess(base, name) =>
-        Some(base.toString(), name, Str(name), name)
-      case SymbolAccess(base, name) =>
-        Some(
-          base.toString(),
-          name,
-          symbolAddr(name),
-          s"[Symbol.$name]",
-        )
-      case _ => None // TODO getter & setter
+    (base, prop, propV, defaultName, isData) <- getBuiltinData(head.ref)
     baseMapObj <- map.get(submapAddr(intrName(base))) match
       case Some(m: MapObj) => Some(m)
       case _               => None
-    name <- propV match
-      case Str(_)       => Some(s"$base.$prop")
-      case NamedAddr(_) => Some(s"$base[@@$prop]")
-      case _            => None
+    name = head.ref.toString
     desc = descAddr(base, prop)
   } {
     baseMapObj.update(propV, desc)
-    map.getOrElse(
-      desc,
-      map += desc -> MapObj("PropertyDescriptor")(
-        Str("Value") -> intrAddr(name),
-        Str("Writable") -> Bool(true),
-        Str("Enumerable") -> Bool(false),
-        Str("Configurable") -> Bool(true),
-      ),
-    )
-    createBuiltinFunction(name, head, propName, map)
+    if (isData) // data property
+      map.getOrElse(
+        desc,
+        map += desc -> MapObj("PropertyDescriptor")(
+          Str("Value") -> intrAddr(name),
+          Str("Writable") -> Bool(true),
+          Str("Enumerable") -> Bool(false),
+          Str("Configurable") -> Bool(true),
+        ),
+      )
+    else // accessor property
+      map.getOrElse(
+        desc,
+        map += desc -> MapObj("PropertyDescriptor")(
+          Str("Get") -> intrAddr(name),
+          Str("Set") -> Undef, // TODO handle setter
+          Str("Enumerable") -> Bool(false),
+          Str("Configurable") -> Bool(true),
+        ),
+      )
+    createBuiltinFunction(name, getLength(head), defaultName, map)
   }
 
   // get length value from built-in head parameters
-  private def getLength(params: List[Param]): Int =
-    params.count(_.kind == Param.Kind.Normal)
+  private def getLength(head: BuiltinHead): Int =
+    head.params.count(_.kind == Param.Kind.Normal)
 }
 object Initialize {
   def apply(
