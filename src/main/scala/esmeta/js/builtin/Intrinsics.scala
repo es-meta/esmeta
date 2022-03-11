@@ -632,6 +632,61 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("WeakSet"), F, F, T),
       ),
     ),
+    "ArrayBuffer" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      imap = List(
+        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+      ),
+      nmap = List(
+        "prototype" -> DataProperty(intrAddr("ArrayBuffer.prototype"), F, F, F),
+      ),
+    ),
+    "ArrayBuffer.prototype" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Object.prototype"),
+      ),
+      nmap = List(
+        "constructor" -> DataProperty(intrAddr("ArrayBuffer"), T, F, T),
+        "@@toStringTag" -> DataProperty(Str("ArrayBuffer"), F, F, T),
+      ),
+    ),
+    "JSON" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Object.prototype"),
+      ),
+      nmap = List(
+        "@@toStringTag" -> DataProperty(Str("JSON"), F, F, T),
+      ),
+    ),
+    "JSON.parse" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      nmap = List(
+        "length" -> DataProperty(Number(2.0), F, F, T),
+      ),
+    ),
+    "JSON.stringify" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      nmap = List(
+        "length" -> DataProperty(Number(3.0), F, F, T),
+      ),
+    ),
+    "Map.prototype" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Object.prototype"),
+      ),
+      nmap = List(
+        "constructor" -> DataProperty(intrAddr("Map"), T, F, T),
+        "@@iterator" ->
+        DataProperty(intrAddr("Map.prototype.entries"), T, F, T),
+        "@@toStringTag" -> DataProperty(Str("Map"), F, F, T),
+      ),
+    ),
     "%IteratorPrototype%" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
