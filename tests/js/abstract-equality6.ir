@@ -1,0 +1,5 @@
+assert (contains @CONTEXT.Realm.GlobalEnv.VarNames "x")
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.x.Value true)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.x.Writable true)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.x.Enumerable true)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.x.Configurable false)

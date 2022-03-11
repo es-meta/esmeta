@@ -239,6 +239,7 @@ class Interp(
         case (Str(s), ToBigInt)    => ESValueParser.str2bigint(s)
         case (Number(d), ToMath)   => Math(d)
         case (CodeUnit(c), ToMath) => Math(c.toInt)
+        case (BigInt(n), ToMath)   => Math(BigDecimal(n))
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
           Str(toStringHelper(d, radix))
