@@ -3,7 +3,7 @@ def OrdinaryOwnPropertyKeys(O: Object): Unknown {
   %0 = 0
   %1 = (keys-int O.SubMap)
   loop[repeat] (< %0 %1.length) {
-    let P = %9[%8]
+    let P = %1[%0]
     if (array-index P) push keys < P else {}
     %0 = (+ %0 1)
   }
