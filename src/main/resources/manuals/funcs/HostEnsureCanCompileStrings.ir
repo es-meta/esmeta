@@ -1,4 +1,4 @@
-def HostEnsureCanCompileStrings(callerRealm: Any, calleeRealm: Any) {
+def HostEnsureCanCompileStrings(callerRealm: Any, calleeRealm: Any): Any {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0
 }

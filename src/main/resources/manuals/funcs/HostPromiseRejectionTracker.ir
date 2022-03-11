@@ -1,0 +1,3 @@
+def HostPromiseRejectionTracker(promise: Any, operation: Any): Any {
+  return ~unused~
+}
