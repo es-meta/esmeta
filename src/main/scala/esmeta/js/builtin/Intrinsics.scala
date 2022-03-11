@@ -776,6 +776,19 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("AsyncFunction"), F, F, T),
       ),
     ),
+    "Reflect" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Object.prototype"),
+      ),
+    ),
+    "Proxy" -> Struct(
+      typeName = "BuiltinFunctionObject",
+      imap = List(
+        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+      ),
+    ),
     "AggregateError" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
