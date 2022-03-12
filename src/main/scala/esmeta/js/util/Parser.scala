@@ -84,7 +84,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     idx: Int,
     rhs: Rhs,
   ): FLAParser[Ast] = log(rhs.condition match {
-    case Some(cond) if !(argsSet contains cond.name) => MISMATCH
+    case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
+      MISMATCH
     case _ =>
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
@@ -101,7 +102,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     idx: Int,
     rhs: Rhs,
   ): LAParser[Ast] = log(rhs.condition match {
-    case Some(cond) if !(argsSet contains cond.name) => MISMATCH
+    case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
+      MISMATCH
     case _ =>
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
