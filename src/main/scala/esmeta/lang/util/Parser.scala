@@ -592,7 +592,11 @@ trait Parsers extends IndentParsers {
       sep("and") ^^! And ||| sep("or") ^^! Or
     baseCond ~ rep(op ~ (opt("if") ~> baseCond)) ^^ {
       case l ~ rs =>
-        rs.foldLeft(l) { case (l, op ~ r) => CompoundCondition(l, op, r) }
+        rs.foldLeft(l) {
+          case (CompoundCondition(l0, op0, r0), op ~ r) =>
+            CompoundCondition(l0, op0, CompoundCondition(r0, op, r))
+          case (l, op ~ r) => CompoundCondition(l, op, r)
+        }
     } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ {
       case l ~ r => CompoundCondition(l, Imply, r)
     }
