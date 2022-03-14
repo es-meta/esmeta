@@ -680,7 +680,12 @@ trait Parsers extends IndentParsers {
     lazy val left: P[List[Expression]] =
       (opt("both") ~> expr) ~ ("and" ~> expr) <~ guard("are") ^^ {
         case e0 ~ e1 => List(e0, e1)
-      } ||| expr <~ guard("is") ^^ { List(_) }
+      } |
+      // IsLessThan
+      (expr <~ "or") ~ (expr <~ guard("is")) ^^ {
+        case e0 ~ e1 => List(e0, e1)
+      } |
+      expr <~ guard("is") ^^ { List(_) }
 
     lazy val are = "are" ~ opt("both")
     lazy val neg: P[Boolean] =
