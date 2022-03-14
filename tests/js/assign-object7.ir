@@ -1,0 +1,1 @@
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.obj.Value.SubMap.break.Value 42.0f)

@@ -107,7 +107,7 @@ case class State(
                   "IdentifierName \\ (ReservedWord)" | "IdentifierName",
                   "StringValue",
                 ) =>
-              Str(str)
+              Str(ESValueParser.parseIdentifier(str))
             // TODO handle numeric seperator in ESValueParser
             case ("NumericLiteral", "MV" | "NumericValue") =>
               ESValueParser.parseNumber(str.replaceAll("_", ""))
