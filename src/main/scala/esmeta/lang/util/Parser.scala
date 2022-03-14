@@ -569,14 +569,13 @@ trait Parsers extends IndentParsers {
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
     ("?" ^^! true | "!" ^^! false) ~ invokeExpr ^^ {
-      case c ~ e =>
-        ReturnIfAbruptExpression(e, c)
+      case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 
   // list expressions
   lazy val listExpr: PL[ListExpression] =
-    "a new empty List" ^^! ListExpression(Nil) |||
-    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |||
+    "a new empty List" ^^! ListExpression(Nil) |
+    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
 
   // not yet supported expressions
@@ -588,18 +587,26 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given cond: PL[Condition] = {
     import CompoundCondition.Op.*
-    lazy val op: P[CompoundCondition.Op] =
-      sep("and") ^^! And ||| sep("or") ^^! Or
-    baseCond ~ rep(op ~ (opt("if") ~> baseCond)) ^^ {
-      case l ~ rs =>
-        rs.foldLeft(l) {
-          case (CompoundCondition(l0, op0, r0), op ~ r) =>
-            CompoundCondition(l0, op0, CompoundCondition(r0, op, r))
-          case (l, op ~ r) => CompoundCondition(l, op, r)
-        }
-    } ||| ("If" ~> baseCond) ~ (", then" ~> baseCond) ^^ {
-      case l ~ r => CompoundCondition(l, Imply, r)
-    }
+
+    // get compound condition from base and operation
+    def compound(
+      base: P[Condition],
+      op: Parser[CompoundCondition.Op],
+    ): Parser[Condition] =
+      rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) ^^ {
+        case ls ~ op ~ r =>
+          ls.foldRight(r) {
+            case (l, r) => CompoundCondition(l, op, r)
+          }
+      }
+
+    lazy val simpleAnd: P[Condition] = compound(baseCond, "and" ^^! And)
+    lazy val simpleOr: P[Condition] = compound(baseCond, "or" ^^! Or)
+    lazy val simpleImply: P[Condition] =
+      "If" ~> compound(baseCond, "then" ^^! Imply)
+    lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^! Or)
+
+    baseCond ||| simpleAnd ||| simpleOr ||| simpleImply ||| compOr
   }.named("lang.Condition")
 
   // base conditions

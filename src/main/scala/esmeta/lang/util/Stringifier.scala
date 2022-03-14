@@ -497,7 +497,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (op match {
       case And   => "and"
       case Or    => "or"
-      case Imply => "imply" // XXX not used
+      case Imply => "then" // XXX not used
     })
   }
 
