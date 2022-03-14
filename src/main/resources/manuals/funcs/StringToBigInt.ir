@@ -1,0 +1,4 @@
+def StringToBigInt(str: String): Unknown {
+  // IGNORE original algo
+  return ([bigint] str)
+}
