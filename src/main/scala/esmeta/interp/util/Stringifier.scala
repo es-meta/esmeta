@@ -133,11 +133,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // grammar
   given grammarRule: Rule[Grammar] = (app, gr) =>
-    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-    given Rule[List[Boolean]] = iterableRule()
-    app >> "grammar<" >> gr.name
-    if (!gr.params.isEmpty) app >> "[" >> gr.params >> "]"
-    app >> ">"
+    app >> "grammar<" >> gr.name >> ">"
 
   // literal values
   given litRule: Rule[LiteralValue] = (app, lit) =>

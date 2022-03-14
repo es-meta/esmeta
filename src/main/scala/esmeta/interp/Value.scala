@@ -96,7 +96,7 @@ case class Cont(
 case class AstValue(ast: Ast) extends PureValue
 
 /** grammars */
-case class Grammar(name: String, params: List[Boolean]) extends PureValue
+case class Grammar(name: String) extends PureValue
 
 /** literal values */
 sealed trait LiteralValue extends PureValue

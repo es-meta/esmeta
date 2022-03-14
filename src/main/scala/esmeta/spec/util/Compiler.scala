@@ -670,7 +670,7 @@ class Compiler(val spec: Spec) {
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
-      } else EGrammar(name, Nil) // TODO grammar params
+      } else EGrammar(name)
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => EStr(field)

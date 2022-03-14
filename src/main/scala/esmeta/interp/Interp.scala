@@ -183,26 +183,28 @@ class Interp(
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val str = interp(code).escaped match
-        case Str(s)        => s
-        case AstValue(ast) => ast.toString(grammar = Some(grammar))
-        case v             => throw InvalidParseSource(code, v)
+      val (str, args) = interp(code).escaped match
+        case Str(s) => (s, List())
+        case AstValue(syn: Syntactic) =>
+          (syn.toString(grammar = Some(grammar)), syn.args)
+        case AstValue(lex: Lexical) => (lex.str, List())
+        case v                      => throw InvalidParseSource(code, v)
       val r = interp(rule).escaped
       (str, r, st.sourceText, st.cachedAst) match
         // optimize the initial parsing using the given cached AST
-        case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
+        case (x, Grammar("Script"), Some(y), Some(ast)) if x == y =>
           AstValue(ast)
-        case (x, Grammar(name, params), _, _) =>
-          AstValue(jsParser(name, params).from(x))
+        case (x, Grammar(name), _, _) =>
+          AstValue(jsParser(name, args).from(x))
         case _ => throw NoGrammar(rule, r)
-    case EGrammar(name, params) => Grammar(name, params)
+    case EGrammar(name) => Grammar(name)
     case ESourceText(expr) =>
       val ast = interp(expr).escaped.asAst
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kind, ast) =>
       val k = interp(kind).escaped match
-        case Grammar(name, _) => name
+        case Grammar(name) => name
         case v                => throw NoGrammar(kind, v)
       val a = interp(ast).escaped.asAst
       st.allocList(a.getChildren(k).map(AstValue(_)))

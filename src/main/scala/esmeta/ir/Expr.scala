@@ -11,7 +11,7 @@ case class EIsCompletion(expr: Expr) extends Expr
 case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr
 case class EPop(list: Expr, front: Boolean) extends Expr
 case class EParse(code: Expr, rule: Expr) extends Expr
-case class EGrammar(name: String, params: List[Boolean]) extends Expr
+case class EGrammar(name: String) extends Expr
 case class ESourceText(expr: Expr) extends Expr
 case class EYet(msg: String) extends Expr
 case class EContains(list: Expr, elem: Expr) extends Expr
