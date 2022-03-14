@@ -18,42 +18,32 @@ case class Intrinsics(cfg: CFG) {
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {
     var _map = Map[Addr, Obj]()
-    intrinsics.foreach(_map ++= _.toMap)
+
+    // add intrinsic objects
+    intrinsics.foreach {
+      case (name, Struct(typeName, imap, nmap))
+          if !(yets contains name.split("\\.").head) =>
+        // base object
+        _map += intrAddr(name) -> MapObj(typeName)(
+          (SUBMAP -> submapAddr(intrName(name)) :: imap).map {
+            case (k, v) => Str(k) -> v
+          }: _*,
+        )
+
+        // submap object
+        _map ++= getSubmapObjects(intrName(name), name, nmap)
+      case _ =>
+    }
+
+    // not yet objects
+    yets.foreach { name => _map += (intrAddr(name) -> YetObj(name, name)) }
+
+    // result
     _map
   }
 
   /** get intrinsic record */
   def obj: MapObj = MapObj("Record")
-
-  /** extensions for builtin model structure */
-  // TODO refactoring
-  extension (pair: (String, Struct)) {
-
-    /** convert builtin model structure to heap objects */
-    def toMap: Map[Addr, Obj] = {
-      val (name, Struct(typeName, imap, nmap)) = pair
-      var map = Map[Addr, Obj]()
-
-      // additional internal property
-      // TODO remove
-      val additionals =
-        if (typeName == "BuiltinFunctionObject")
-          List("Realm" -> realmAddr, SUBMAP -> submapAddr(intrName(name)))
-        else List(SUBMAP -> submapAddr(intrName(name)))
-
-      // base object
-      map += intrAddr(name) -> MapObj(typeName)(
-        (additionals ++ imap).map {
-          case (k, v) => Str(k) -> v
-        }: _*,
-      )
-
-      // submap object
-      map ++= getSubmapObjects(intrName(name), name, nmap)
-
-      map
-    }
-  }
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
@@ -426,11 +416,11 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(1.0), F, F, T),
       ),
     ),
-    "%StringIteratorPrototype%" -> Struct(
+    "StringIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("String Iterator"), F, F, T),
@@ -518,11 +508,11 @@ case class Intrinsics(cfg: CFG) {
         "values" -> DataProperty(Bool(true), T, T, T),
       ),
     ),
-    "%ArrayIteratorPrototype%" -> Struct(
+    "ArrayIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Array Iterator"), F, F, T),
@@ -550,11 +540,11 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("Map"), F, F, T),
       ),
     ),
-    "%MapIteratorPrototype%" -> Struct(
+    "MapIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Map Iterator"), F, F, T),
@@ -582,11 +572,11 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("Set"), F, F, T),
       ),
     ),
-    "%SetIteratorPrototype%" -> Struct(
+    "SetIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
         "@@toStringTag" -> DataProperty(Str("Set Iterator"), F, F, T),
@@ -687,31 +677,31 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("Map"), F, F, T),
       ),
     ),
-    "%IteratorPrototype%" -> Struct(
+    "IteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
       ),
     ),
-    "%ForInIteratorPrototype%" -> Struct(
+    "ForInIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
     ),
-    "%AsyncIteratorPrototype%" -> Struct(
+    "AsyncIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
       ),
     ),
-    "%AsyncFromSyncIteratorPrototype%" -> Struct(
+    "AsyncFromSyncIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%AsyncIteratorPrototype%"),
+        "Prototype" -> intrAddr("AsyncIteratorPrototype"),
       ),
     ),
     "Promise" -> Struct(
@@ -787,7 +777,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%IteratorPrototype%"),
+        "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
         "constructor" ->
@@ -799,7 +789,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("%AsyncIteratorPrototype%"),
+        "Prototype" -> intrAddr("AsyncIteratorPrototype"),
       ),
       nmap = List(
         "constructor" ->
@@ -872,14 +862,14 @@ case class Intrinsics(cfg: CFG) {
         "name" -> DataProperty(Str("AggregateError"), T, F, T),
       ),
     ),
-    "%ThrowTypeError%" -> Struct(
+    "ThrowTypeError" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Extensible" -> Bool(false),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, F),
-        "name" -> DataProperty(Str("%ThrowTypeError%"), F, F, F),
+        "name" -> DataProperty(Str("ThrowTypeError"), F, F, F),
       ),
     ),
   )

@@ -76,3 +76,6 @@ object BuiltinHead:
     case Setter(base: Ref)
     case SymbolAccess(base: Ref, symbol: String)
     case YetRef(name: String)
+  extension (ref: Ref) {
+    def normalized: String = ref.toString.replace("%", "")
+  }

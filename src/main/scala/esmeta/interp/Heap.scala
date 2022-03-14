@@ -16,7 +16,9 @@ case class Heap(
 
   /** getters */
   def apply(addr: Addr): Obj =
-    map.getOrElse(addr, throw UnknownAddr(addr))
+    map.getOrElse(addr, throw UnknownAddr(addr)) match
+      case YetObj(_, msg) => throw NotSupported(msg)
+      case obj            => obj
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => getIntrinsincs(key)
     case (s: SymbolObj)                     => s(key)
@@ -39,16 +41,14 @@ case class Heap(
 
   /** appends */
   def append(addr: Addr, value: PureValue): this.type = apply(addr) match {
-    case (l: ListObj) =>
-      l.append(value); this
-    case v => error(s"not a list: $v")
+    case (l: ListObj) => l.append(value); this
+    case v            => error(s"not a list: $v")
   }
 
   /** prepends */
   def prepend(addr: Addr, value: PureValue): this.type = apply(addr) match {
-    case (l: ListObj) =>
-      l.prepend(value); this
-    case v => error(s"not a list: $v")
+    case (l: ListObj) => l.prepend(value); this
+    case v            => error(s"not a list: $v")
   }
 
   /** pops */
@@ -137,8 +137,7 @@ case class Heap(
   def getIntrinsincs(key: PureValue): Value =
     val keyStr = key match
       case Str(s) if s.startsWith("%") && s.endsWith("%") =>
-        if (s.endsWith("IteratorPrototype%")) s // handle iterator prorotype
-        else s.substring(1, s.length - 1)
+        s.substring(1, s.length - 1)
       case v => error(s"invalid intrinsics key1: $key")
     keyStr.split("\\.").toList match
       case base :: rest => rest.foldLeft(intrAddr(base))(getPropValue)

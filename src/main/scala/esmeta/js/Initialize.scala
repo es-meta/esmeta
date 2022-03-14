@@ -96,10 +96,10 @@ class Initialize(
   private def getBuiltinData(
     ref: BuiltinHead.Ref,
   ): Option[(String, String, PureValue, String, Boolean)] = ref match
-    case NormalAccess(base, name) =>
-      Some((base.toString(), name, Str(name), name, true))
-    case SymbolAccess(base, name) =>
-      Some((base.toString(), name, symbolAddr(name), s"[Symbol.$name]", true))
+    case NormalAccess(base, name) if !(yets contains base.normalized) =>
+      Some((base.normalized, name, Str(name), name, true))
+    case SymbolAccess(base, name) if !(yets contains base.normalized) =>
+      Some((base.normalized, name, symbolAddr(name), s"[Symbol.$name]", true))
     case Getter(ref) =>
       getBuiltinData(ref) match
         case Some((base, prop, propV, propName, _)) =>
@@ -162,9 +162,9 @@ class Initialize(
     (name, head) <- func.head match
       case Some(head: BuiltinHead) =>
         head.ref match
-          case b: NormalBase    => Some((b.toString, head))
-          case b: IntrinsicBase => Some((b.toString, head))
-          case _                => None
+          case NormalBase(b) if !(yets contains b)    => Some((b, head))
+          case IntrinsicBase(b) if !(yets contains b) => Some((b, head))
+          case _                                      => None
       case _ => None
   } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
@@ -176,7 +176,7 @@ class Initialize(
     baseMapObj <- map.get(submapAddr(intrName(base))) match
       case Some(m: MapObj) => Some(m)
       case _               => None
-    name = head.ref.toString
+    name = head.ref.normalized
     desc = descAddr(base, prop)
   } {
     baseMapObj.update(propV, desc)

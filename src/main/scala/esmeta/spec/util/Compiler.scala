@@ -187,7 +187,7 @@ class Compiler(val spec: Spec) {
       case head: InternalMethodHead =>
         s"${compile(head.receiverParam.ty)}.${head.methodName}"
       case head: BuiltinHead =>
-        s"INTRINSICS.${head.ref}"
+        s"INTRINSICS.${head.ref.normalized}"
     }
   }
 

@@ -28,6 +28,40 @@ val NUMBER_TYPE = "Number"
 val BIGINT_TYPE = "BigInt"
 val OBJECT_TYPE = "Object"
 
+/** not yet supported objects */
+val yets: Set[String] = Set(
+  // 21. Numbers and Dates
+  "Math",
+  "Date",
+  // 22. Text Processing
+  "RegExp",
+  // 23. Indexed Collections
+  "TypedArray",
+  "Int8Array",
+  "Uint8Array",
+  "Uint8ClampedArray",
+  "Int16Array",
+  "Uint16Array",
+  "BigInt64Array",
+  "BigUint64Array",
+  "Float32Array",
+  "Float64Array",
+  // 25. Structured Data
+  "ArrayBuffer",
+  "SharedArrayBuffer",
+  "DataView",
+  "Atomics",
+  "JSON",
+  // 26. Managing Memory
+  "WeakRef",
+  "FinalizationRegistry",
+  // 28. Reflection
+  "Reflect",
+  "Proxy",
+  // test262
+  "$262",
+)
+
 /** table id for
   * (table-6)[https://tc39.es/ecma262/#table-well-known-intrinsic-objects]
   */
