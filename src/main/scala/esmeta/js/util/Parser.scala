@@ -276,7 +276,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         ),
       )(name)
   }
-  private def ntl = cached[(String, Lexer), LAParser[Lexical]] {
+  private val ntl = cached[(String, Lexer), LAParser[Lexical]] {
     case (name, nt) =>
       log(
         new LAParser(

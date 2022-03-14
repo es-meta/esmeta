@@ -28,7 +28,7 @@ trait Lexer extends UnicodeParsers {
 
     // sequence with Skip
     def %%(that: => Parser[String]): Parser[String] = %(
-      if (that eq strNoLineTerminator) parser
+      if (that eq strNoLineTerminator) that
       else Skip ~> that,
     )
   }
