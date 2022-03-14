@@ -34,7 +34,7 @@ case class Grammar(
   } yield pair).toMap
 
   /** get sub index of parsed Ast */
-  def getSubIdx = cached[Ast, Int] {
+  val getSubIdx = cached[Ast, Int] {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
       val rhs = nameMap(name).rhsList(rhsIdx)

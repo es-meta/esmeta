@@ -52,7 +52,7 @@ case class CFG(
 
   /** get syntax-directed operation(SDO) */
   // TODO refactor
-  def getSDO = cached[(js.Ast, String), Option[(js.Ast, Func)]] {
+  val getSDO = cached[(js.Ast, String), Option[(js.Ast, Func)]] {
     case (ast, operation) =>
       ast.chains.foldLeft[Option[(js.Ast, Func)]](None) {
         case (None, ast0) =>
