@@ -1,0 +1,2 @@
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.a.Value undefined)
+assert (= @CONTEXT.Realm.GlobalObject.SubMap.b.Value 42.0f)
