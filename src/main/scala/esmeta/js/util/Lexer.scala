@@ -147,7 +147,7 @@ trait Lexer extends UnicodeParsers {
     import NtArg.Kind.*
     args.map {
       case NtArg(True, _)    => true
-      case NtArg(False, _)   => true
+      case NtArg(False, _)   => false
       case NtArg(Pass, name) => argsSet contains name
     }
 }
