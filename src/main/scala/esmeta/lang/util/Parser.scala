@@ -805,7 +805,7 @@ trait Parsers extends IndentParsers {
     // GetPrototypeFromConstructor
     (variable <~ "'s intrinsic object named") ~ variable ^^ {
       case realm ~ v =>
-        val intrBase = PropertyReference(realm, FieldProperty("Intrinsic"))
+        val intrBase = PropertyReference(realm, FieldProperty("Intrinsics"))
         PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
     } |
     // OrdinaryGetOwnProperty
