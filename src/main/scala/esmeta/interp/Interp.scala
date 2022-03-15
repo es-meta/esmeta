@@ -205,7 +205,7 @@ class Interp(
     case EGetChildren(kind, ast) =>
       val k = interp(kind).escaped match
         case Grammar(name) => name
-        case v                => throw NoGrammar(kind, v)
+        case v             => throw NoGrammar(kind, v)
       val a = interp(ast).escaped.asAst
       st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>
@@ -266,24 +266,25 @@ class Interp(
     case ETypeCheck(expr, ty) =>
       val v = interp(expr)
       if (v.isAbruptCompletion) Bool(false)
-      else Bool(v.escaped match
-        case _: Number => ty.name == "Number"
-        case _: BigInt => ty.name == "BigInt"
-        case _: Str    => ty.name == "String"
-        case _: Bool   => ty.name == "Boolean"
-        case _: Const  => ty.name == "Constant"
-        case Undef     => ty.name == "Undefined"
-        case Null      => ty.name == "Null"
-        case AstValue(ast) =>
-          ty.name == "ParseNode" || (ast.types contains ty.name)
-        case _: Clo => ty.name == "AbstractClosure"
-        case addr: Addr =>
-          st(addr) match
-            case m: MapObj    => typeModel.subType(m.ty, ty.name) // TODO
-            case m: SymbolObj => ty.name == "Symbol"
-            case _            => ???
-        case v => ???,
-      )
+      else
+        Bool(v.escaped match
+          case _: Number => ty.name == "Number"
+          case _: BigInt => ty.name == "BigInt"
+          case _: Str    => ty.name == "String"
+          case _: Bool   => ty.name == "Boolean"
+          case _: Const  => ty.name == "Constant"
+          case Undef     => ty.name == "Undefined"
+          case Null      => ty.name == "Null"
+          case AstValue(ast) =>
+            ty.name == "ParseNode" || (ast.types contains ty.name)
+          case _: Clo => ty.name == "AbstractClosure"
+          case addr: Addr =>
+            st(addr) match
+              case m: MapObj    => typeModel.subType(m.ty, ty.name) // TODO
+              case m: SymbolObj => ty.name == "Symbol"
+              case _            => ???
+          case v => ???,
+        )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
       Clo(func, Map.from(captured.map(x => x -> st(x))))
