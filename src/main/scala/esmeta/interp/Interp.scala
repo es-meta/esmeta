@@ -495,7 +495,9 @@ object Interp {
       case (Sub, Math(l), Math(r))  => Math(l - r)
       case (Mul, Math(l), Math(r))  => Math(l * r)
       case (Div, Math(l), Math(r))  => Math(l / r)
-      case (Mod, Math(l), Math(r))  => Math(l % r)
+      case (Mod, Math(l), Math(r)) =>
+        val m = l % r
+        Math(if (m * r) < 0 then r + m else m)
       case (UMod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) =>
         Math(math.pow(l.toDouble, r.toDouble))
