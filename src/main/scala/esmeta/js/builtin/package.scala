@@ -42,6 +42,8 @@ val yets: Set[String] = Set(
   "Uint8ClampedArray",
   "Int16Array",
   "Uint16Array",
+  "Int32Array",
+  "Uint32Array",
   "BigInt64Array",
   "BigUint64Array",
   "Float32Array",

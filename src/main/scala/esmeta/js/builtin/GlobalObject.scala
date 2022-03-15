@@ -25,6 +25,8 @@ case class GlobalObject(cfg: CFG) {
       "Infinity" -> DataProperty(Number(Double.PositiveInfinity), F, F, F),
       "NaN" -> DataProperty(Number(Double.NaN), F, F, F),
       "undefined" -> DataProperty(Undef, F, F, F),
+      // test262
+      "$262" -> DataProperty(intrAddr("$262"), T, F, T),
     )
     for {
       row <- spec.tables(WELL_KNOWN_INTRINSICS).rows
