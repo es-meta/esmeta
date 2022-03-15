@@ -249,7 +249,6 @@ class Interp(
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>
-      // TODO discuss about the type
       Str(interp(base).escaped match
         case n: Number => "Number"
         case b: BigInt => "BigInt"
@@ -265,8 +264,9 @@ class Interp(
         case v => ???,
       )
     case ETypeCheck(expr, ty) =>
-      // TODO discuss about the type
-      Bool(interp(expr).escaped match
+      val v = interp(expr)
+      if (v.isAbruptCompletion) Bool(false)
+      else Bool(v.escaped match
         case _: Number => ty.name == "Number"
         case _: BigInt => ty.name == "BigInt"
         case _: Str    => ty.name == "String"
