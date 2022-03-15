@@ -3,6 +3,8 @@ package esmeta.spec
 /** algorithm heads */
 sealed trait Head extends SpecElem {
   val retTy: Type
+
+  /** get original parameters */
   def originalParams: List[Param] = this match
     case abs: AbstractOperationHead       => abs.params
     case numeric: NumericMethodHead       => numeric.params
@@ -10,6 +12,36 @@ sealed trait Head extends SpecElem {
     case con: ConcreteMethodHead          => con.params
     case int: InternalMethodHead          => int.params
     case builtin: BuiltinHead             => builtin.params
+
+  /** get function parameters */
+  def funcParams: List[Param] = this match
+    case head: AbstractOperationHead       => head.params
+    case head: NumericMethodHead           => head.params
+    case head: SyntaxDirectedOperationHead => Param("this") :: head.withParams
+    case head: ConcreteMethodHead          => head.receiverParam :: head.params
+    case head: InternalMethodHead          => head.receiverParam :: head.params
+    case head: BuiltinHead =>
+      List(Param("this"), Param("argumentsList"), Param("NewTarget"))
+
+  /** get function name */
+  def fname: String = this match
+    case head: AbstractOperationHead =>
+      head.name
+    case head: NumericMethodHead =>
+      s"${head.ty.normalizedName}::${head.name}"
+    case head: SyntaxDirectedOperationHead =>
+      val Target = SyntaxDirectedOperationHead.Target
+      val pre = head.target.fold("<DEFAULT>") {
+        case Target(lhsName, idx, subIdx, _) => s"$lhsName[$idx,$subIdx]"
+      }
+      s"$pre.${head.methodName}"
+    case head: ConcreteMethodHead =>
+      s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
+    case head: InternalMethodHead =>
+      s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
+    case head: BuiltinHead =>
+      s"INTRINSICS.${head.ref.normalized}"
+
 }
 
 /** abstract operation (AO) heads */

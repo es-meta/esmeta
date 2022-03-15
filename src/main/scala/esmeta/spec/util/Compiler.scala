@@ -2,6 +2,7 @@ package esmeta.spec.util
 
 import esmeta.MANUALS_DIR
 import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.{Param => SParam, Type => SType, *}
@@ -14,20 +15,20 @@ class Compiler(val spec: Spec) {
 
   /** compiled specification */
   def result: Program = {
-    // compile algorithms in spec
-    for (algo <- spec.algorithms) compile(algo)
-
     // load manually created AOs
-    val manualFuncs: ListBuffer[Func] = ListBuffer()
     for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
-      manualFuncs += Func.fromFile(file.toString)
+      funcs += Func.fromFile(file.toString)
+    val manualNames = funcs.map(_.name)
 
-    // filter manual functions
-    val manualNames = manualFuncs.map(_.name)
-    val filtered = funcs.filter(f => !manualNames.contains(f.name))
+    // compile algorithms in spec
+    for {
+      algo <- spec.algorithms
+      name = algo.head.fname
+      if !(shorthands.contains(name) || manualNames.contains(name))
+    } compile(algo)
 
     // result
-    val program = Program(filtered.appendAll(manualFuncs).toList)
+    val program = Program(funcs.toList)
 
     // connect backward edge to a given specification
     program.spec = spec
@@ -74,6 +75,13 @@ class Compiler(val spec: Spec) {
       "INTRINSICS.Proxy.revocable".r,
     )
 
+  // list of shorthands
+  // NOTE: https://github.com/tc39/ecma262/issues/2384
+  private val shorthands = List(
+    "IfAbruptCloseIterator",
+    "IfAbruptRejectPromise",
+  )
+
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -108,8 +116,12 @@ class Compiler(val spec: Spec) {
 
     // add instructions to the current scope
     def addInst(insts: Inst*): Unit = scopes match
-      case current :: rest => current ++= insts
-      case _               => error("no current scope")
+      case current :: rest =>
+        current ++= insts.flatMap {
+          case ISeq(is) => is
+          case i        => List(i)
+        }
+      case _ => error("no current scope")
 
     // add return to resume instruction
     def addReturnToResume(context: Ref, value: Expr): Unit =
@@ -168,47 +180,6 @@ class Compiler(val spec: Spec) {
     }
   }
 
-  // get function name
-  private def getName(head: Head): String = {
-    import Func.Kind.*
-    head match {
-      case head: AbstractOperationHead =>
-        head.name
-      case head: NumericMethodHead =>
-        s"${compile(head.ty)}::${head.name}"
-      case head: SyntaxDirectedOperationHead =>
-        val Target = SyntaxDirectedOperationHead.Target
-        val pre = head.target.fold("<DEFAULT>") {
-          case Target(lhsName, idx, subIdx, _) => s"$lhsName[$idx,$subIdx]"
-        }
-        s"$pre.${head.methodName}"
-      case head: ConcreteMethodHead =>
-        s"${compile(head.receiverParam.ty)}.${head.methodName}"
-      case head: InternalMethodHead =>
-        s"${compile(head.receiverParam.ty)}.${head.methodName}"
-      case head: BuiltinHead =>
-        s"INTRINSICS.${head.ref.normalized}"
-    }
-  }
-
-  // get function parameters
-  private def getParams(head: Head): List[Func.Param] = {
-    head match {
-      case head: AbstractOperationHead =>
-        head.params.map(compile)
-      case head: NumericMethodHead =>
-        head.params.map(compile)
-      case head: SyntaxDirectedOperationHead =>
-        PARAM_THIS :: head.withParams.map(compile)
-      case head: ConcreteMethodHead =>
-        compile(head.receiverParam) :: head.params.map(compile)
-      case head: InternalMethodHead =>
-        compile(head.receiverParam) :: head.params.map(compile)
-      case head: BuiltinHead =>
-        List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET)
-    }
-  }
-
   // get prefix instructions for builtin functions
   private def getBuiltinPrefix(ps: List[SParam]): Option[Inst] =
     if (ps.exists(_.kind == SParam.Kind.Ellipsis)) None
@@ -257,16 +228,33 @@ class Compiler(val spec: Spec) {
   private def compileWithScope(fb: FB, step: Step): Inst =
     fb.newScope(compile(fb, step))
 
+  // compile shorthands
+  // NOTE: arguments for shorthands are named local identifiers
+  private def compileShorthand(fb: FB, fname: String, args: List[Expr]): Expr =
+    val algo = spec.fnameMap(fname)
+    val names = args.map {
+      case ERef(name: Name) => name
+      case e                => error(s"invalid arguments for shorthands: $e")
+    }
+    val nameMap = (algo.head.funcParams.map(p => Name(p.name)) zip names).toMap
+    val walker = new IRWalker {
+      override def walk(x: Name) = nameMap.get(x) match
+        case Some(x0) => x0
+        case None     => x
+    }
+    fb.addInst(walker.walk(compileWithScope(fb, algo.body)))
+    EUndef // unused expression
+
   // compile an algorithm to an IR function
+  // TODO consider refactor
   private def compile(algo: Algorithm): Func =
-    // TODO consider refactor
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(head.params)
       case _                 => None
     FuncBuilder(
       getKind(algo.head),
-      getName(algo.head),
-      getParams(algo.head),
+      algo.head.fname,
+      algo.head.funcParams.map(compile),
       compile(algo.retTy),
       algo.body,
       algo,
@@ -413,7 +401,9 @@ class Compiler(val spec: Spec) {
       val comp = EComp(ECONST_THROW, expr, ECONST_EMPTY)
       fb.addInst(IReturn(comp))
     case PerformStep(expr) =>
-      fb.addInst(IExpr(compile(fb, expr)))
+      compile(fb, expr) match
+        case era: EReturnIfAbrupt => fb.addInst(IExpr(era))
+        case _                    =>
     case PerformBlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
@@ -480,9 +470,8 @@ class Compiler(val spec: Spec) {
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
       manualRules.get(yetStr) match
-        case Some(ISeq(is)) => for { i <- is } fb.addInst(i)
-        case Some(i)        => fb.addInst(i)
-        case None           => fb.addInst(IExpr(EYet(yetStr)))
+        case Some(i) => fb.addInst(i)
+        case None    => fb.addInst(IExpr(EYet(yetStr)))
   }
 
   // compile local variable
@@ -557,13 +546,14 @@ class Compiler(val spec: Spec) {
     case GetChildrenExpression(nt, expr) =>
       EGetChildren(compile(fb, nt), compile(fb, expr))
     case InvokeAbstractOperationExpression(name, args) =>
-      if (simpleOps contains name) simpleOps(name)(args.map(compile(fb, _)))
-      else {
+      val as = args.map(compile(fb, _))
+      if simpleOps contains name then simpleOps(name)(as)
+      else if shorthands contains name then compileShorthand(fb, name, as)
+      else
         val (x, xExpr) = fb.newTIdWithExpr
         val f = EClo(name, Nil)
-        fb.addInst(ICall(x, f, args.map(compile(fb, _))))
+        fb.addInst(ICall(x, f, as))
         xExpr
-      }
     case InvokeNumericMethodExpression(ty, name, args) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val f = EClo(s"$ty::$name", Nil)
@@ -610,7 +600,7 @@ class Compiler(val spec: Spec) {
     case UnaryExpression(op, expr) =>
       EUnary(compile(op), compile(fb, expr))
     case AbstractClosureExpression(params, captured, body) =>
-      val algoName = getName(fb.algo.head)
+      val algoName = fb.algo.head.fname
       val (ck, cn, ps, pre) =
         if (fixClosurePrefixAOs.exists(_.matches(algoName)))
           (
@@ -630,7 +620,7 @@ class Compiler(val spec: Spec) {
       newFb.result
       EClo(cn, captured.map(compile))
     case XRefExpression(XRefExpression.Op.Algo, id) =>
-      EClo(getName(spec.getAlgoById(id).head), Nil)
+      EClo(spec.getAlgoById(id).head.fname, Nil)
     case XRefExpression(XRefExpression.Op.ParamLength, id) =>
       EMathVal(spec.getAlgoById(id).head.originalParams.length)
     case XRefExpression(XRefExpression.Op.InternalSlots, id) =>
@@ -792,17 +782,6 @@ class Compiler(val spec: Spec) {
         case CompoundCondition.Op.Imply => or(not(l), r)
   }
 
-  // normalize type string
-  // TODO refactor
-  private def normalizeTy(tname: String): String =
-    val trimmed = (if (tname startsWith "a ") tname.drop(2)
-                   else if (tname startsWith "an ") tname.drop(3)
-                   else tname).replace("-", "").replace("|", "").trim
-    trimmed.split(" ").map(_.capitalize).mkString
-
-  // compile types
-  private def compile(ty: SType): IRType = IRType(normalizeTy(ty.name))
-
   // compile algorithm parameters
   private def compile(param: SParam): Func.Param = {
     val SParam(name, skind, stype) = param
@@ -811,8 +790,9 @@ class Compiler(val spec: Spec) {
   }
 
   // compile types
+  private def compile(ty: SType): IRType = compile(ty.toLang)
   private def compile(ty: Type): IRType =
-    if (ty == UnknownType) AnyType else IRType(normalizeTy(ty.name))
+    if (ty == UnknownType) AnyType else IRType(ty.normalized.name)
 
   // handle short circuiting
   private def compileShortCircuit(

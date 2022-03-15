@@ -48,6 +48,10 @@ case class Spec(
   lazy val completeSteps: List[Step] =
     allSteps.filter(!_.isInstanceOf[YetStep])
 
+  /** mapping from algorithms names to algorithms */
+  lazy val fnameMap: Map[String, Algorithm] =
+    (for (algo <- algorithms) yield algo.head.fname -> algo).toMap
+
   /** get stats */
   lazy val stats: Stats = new Stats(this)
 
