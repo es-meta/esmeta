@@ -137,7 +137,7 @@ case class State(
           Clo(cfg.fnameMap("LexicalSDO"), Map(Name("result") -> result))
         }
   def apply(str: String, prop: PureValue): PureValue = prop match
-    case Str("length") => Math(str.length)
+    case Str("length") => Math(BigDecimal.exact(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, prop)

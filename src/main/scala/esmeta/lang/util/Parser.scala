@@ -440,7 +440,7 @@ trait Parsers extends IndentParsers {
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
     "-∞" ^^! NegativeInfinityMathValueLiteral() |||
-    number ^^ { case s => DecimalMathValueLiteral(BigDecimal(s)) } |||
+    number ^^ { case s => DecimalMathValueLiteral(BigDecimal.exact(s)) } |||
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |||
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |||
     "*NaN*" ^^! { NumberLiteral(Double.NaN) } |||

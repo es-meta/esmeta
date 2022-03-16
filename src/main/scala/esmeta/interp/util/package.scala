@@ -24,23 +24,25 @@ def toStringHelper(m: Double, radix: Int = 10): String = {
   else if (m < 0) "-" + toStringHelper(-m, radix)
   else if (m.isPosInfinity) "Infinity"
   else {
-    var s = BigDecimal(m)
+    var s = BigDecimal.exact(m)
     var n = 0
-    while (s % radix == BigDecimal(0) || s % 1 != BigDecimal(0)) {
-      if (s % radix == BigDecimal(0)) { s /= radix; n += 1 }
+    while (s % radix == BigDecimal.exact(0) || s % 1 != BigDecimal.exact(0)) {
+      if (s % radix == BigDecimal.exact(0)) { s /= radix; n += 1 }
       else { s *= radix; n -= 1 }
     }
     while (
-      (((s - (s % radix)) / radix) * BigDecimal(radix).pow(
-        n + 1,
-      )).toDouble == m
+      (((s - (s % radix)) / radix) * BigDecimal
+        .exact(radix)
+        .pow(
+          n + 1,
+        )).toDouble == m
     ) {
       s = (s - (s % radix)) / radix
       n = n + 1
     }
     var sLong = s.toLong
     var k = 0
-    while (s >= BigDecimal(1)) { s /= radix; k += 1 }
+    while (s >= BigDecimal.exact(1)) { s /= radix; k += 1 }
     n += k
     if (k <= n && n <= 21) {
       getStr(sLong, radix) + ("0" * (n - k))
@@ -63,8 +65,8 @@ def toStringHelper(m: Double, radix: Int = 10): String = {
 extension (n: Numeric) {
   def toMath: Math = n match {
     case math: Math     => math
-    case Number(double) => Math(double)
-    case BigInt(bigint) => Math(BigDecimal(bigint))
+    case Number(double) => Math(BigDecimal.exact(double))
+    case BigInt(bigint) => Math(BigDecimal.exact(bigint))
   }
 }
 

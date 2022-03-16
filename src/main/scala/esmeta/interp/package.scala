@@ -57,3 +57,7 @@ val GLOBAL_RESULT = Global("RESULT")
 
 /** predefined string */
 val STR_TOP_LEVEL = "TOP_LEVEL"
+
+/** predefined values */
+val POS_INF = Number(Double.PositiveInfinity)
+val NEG_INF = Number(Double.NegativeInfinity)

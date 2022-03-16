@@ -239,9 +239,11 @@ class Interp(
         case (Math(n), ToNumber)   => Number(n.toDouble)
         case (Str(s), ToNumber)    => Number(ESValueParser.str2Number(s))
         case (Str(s), ToBigInt)    => ESValueParser.str2bigint(s)
-        case (Number(d), ToMath)   => Math(d)
-        case (CodeUnit(c), ToMath) => Math(c.toInt)
-        case (BigInt(n), ToMath)   => Math(BigDecimal(n))
+        case (POS_INF, ToMath)     => POS_INF
+        case (NEG_INF, ToMath)     => NEG_INF
+        case (Number(d), ToMath)   => Math(BigDecimal.exact(d))
+        case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
+        case (BigInt(n), ToMath)   => Math(BigDecimal.exact(n))
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
           Str(toStringHelper(d, radix))
@@ -501,7 +503,6 @@ object Interp {
       case (UMod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) =>
         Math(math.pow(l.toDouble, r.toDouble))
-      case (Lt, Math(l), Math(r)) => Bool(l < r)
       // TODO consider 2's complement 32-bit strings
       case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
       case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)
@@ -512,6 +513,13 @@ object Interp {
         Math((l.toInt >> r.toInt).toLong)
       case (URShift, Math(l), Math(r)) =>
         Math((l.toLong << 32) >>> (32 + (r.toLong % 32)))
+      case (Lt, Math(l), Math(r)) => Bool(l < r)
+
+      // extended mathematical value operations
+      case (Lt, POS_INF, Math(r)) => Bool(false)
+      case (Lt, Math(r), POS_INF) => Bool(true)
+      case (Lt, NEG_INF, Math(r)) => Bool(true)
+      case (Lt, Math(r), NEG_INF) => Bool(false)
 
       // logical operations
       case (And, Bool(l), Bool(r)) => Bool(l && r)
@@ -551,8 +559,21 @@ object Interp {
     import VOp.*
     if (vs.isEmpty) error(s"no arguments for: $vop")
     vop match
-      case Min    => vopInterp(_.asMath, _ min _, Math(_), vs)
-      case Max    => vopInterp(_.asMath, _ max _, Math(_), vs)
+      case Min =>
+        if (vs.contains(NEG_INF)) NEG_INF
+        else {
+          val filtered = vs.filter(_ != POS_INF)
+          if (filtered.isEmpty) POS_INF
+          else vopInterp(_.asMath, _ min _, Math(_), filtered)
+        }
+      case Max =>
+        if (vs.contains(POS_INF)) POS_INF
+        else {
+          val filtered = vs.filter(_ != NEG_INF)
+          if (filtered.isEmpty) NEG_INF
+          else vopInterp(_.asMath, _ min _, Math(_), filtered)
+        }
+        vopInterp(_.asMath, _ max _, Math(_), vs)
       case Concat => vopInterp(_.asStr, _ + _, Str(_), vs)
 
   /** helpers for make transition for variadic operators */

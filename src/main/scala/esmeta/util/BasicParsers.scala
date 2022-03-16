@@ -61,7 +61,7 @@ trait BasicParsers extends JavaTokenParsers {
   lazy val double = number ^^ { _.toDouble }
   lazy val bigint = integer ^^ { BigInt(_) }
   lazy val codeUnit = integer ^^ { _.toInt.toChar }
-  lazy val decimal = number ^^ { BigDecimal(_) }
+  lazy val decimal = number ^^ { BigDecimal.exact(_) }
 
   trait From[T](using parser: Parser[T]) {
     def fromFile(str: String): T =

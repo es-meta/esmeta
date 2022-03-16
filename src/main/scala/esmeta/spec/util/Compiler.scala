@@ -313,7 +313,7 @@ class Compiler(val spec: Spec) {
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
-            fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+            fb.addInst(IAssign(i, add(iExpr, one)))
           },
         ),
       )
@@ -345,7 +345,7 @@ class Compiler(val spec: Spec) {
           fb.newScope {
             compile(fb, body)
             val op = if (ascending) add(_, _) else sub(_, _)
-            fb.addInst(IAssign(i, op(iExpr, EMathVal(1))))
+            fb.addInst(IAssign(i, op(iExpr, one)))
           },
         ),
       )
@@ -392,7 +392,7 @@ class Compiler(val spec: Spec) {
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
-            fb.addInst(IAssign(i, add(iExpr, EMathVal(1))))
+            fb.addInst(IAssign(i, add(iExpr, one)))
           },
         ),
       )
@@ -637,7 +637,7 @@ class Compiler(val spec: Spec) {
         slot = row.head if slot.startsWith("[[") && slot.endsWith("]]")
       } yield EStr(slot.substring(2, slot.length - 2)))
     case SoleElementExpression(list) =>
-      toERef(fb, compile(fb, list), EMathVal(0))
+      toERef(fb, compile(fb, list), zero)
     case lit: Literal => compile(fb, lit)
   }
 
@@ -846,8 +846,8 @@ class Compiler(val spec: Spec) {
   private inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   // literal helpers
-  private val zero = EMathVal(0)
-  private val one = EMathVal(1)
+  private val zero = EMathVal(BigDecimal.exact(0))
+  private val one = EMathVal(BigDecimal.exact(1))
   private val posInf = ENumber(Double.PositiveInfinity)
   private val negInf = ENumber(Double.NegativeInfinity)
   private val T = EBool(true)
