@@ -29,8 +29,9 @@ case class Heap(
   /** setters */
   def update(addr: Addr, prop: PureValue, value: Value): this.type =
     apply(addr) match {
-      case (m: MapObj) => m.update(prop, value); this
-      case v           => error(s"not a map: $v")
+      case (m: MapObj)  => m.update(prop, value); this
+      case (l: ListObj) => l.update(prop, value); this
+      case v            => error(s"not a map: $v")
     }
 
   /** delete */
