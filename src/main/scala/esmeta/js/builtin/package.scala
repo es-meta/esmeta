@@ -5,6 +5,11 @@ import esmeta.spec.*
 import esmeta.cfg.CFG
 import scala.collection.mutable.{Map => MMap}
 
+/** predefined shortcuts */
+val T = true
+val F = false
+val U = Undef
+
 /** predefined constants */
 val INTRINSICS = "INTRINSICS"
 val GLOBAL = "GLOBAL"
@@ -95,7 +100,9 @@ def symbolName(name: String): String = s"Symbol.$name"
 def symbolAddr(name: String): NamedAddr = intrAddr(symbolName(name))
 
 /** descriptor name */
-def descName(name: String, key: String): String = s"$DESCRIPTOR.$name.$key"
+def descName(name: String, key: String): String =
+  if (key startsWith "@@") s"$DESCRIPTOR.$name[$key]"
+  else s"$DESCRIPTOR.$name.$key"
 
 /** descriptor address */
 def descAddr(name: String, key: String): NamedAddr =

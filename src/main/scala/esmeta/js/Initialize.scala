@@ -5,6 +5,7 @@ import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js.builtin.*
 import esmeta.spec.*
+import esmeta.spec.util.{Parser => SpecParser}
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 import esmeta.test262.*
@@ -93,19 +94,24 @@ class Initialize(
   import BuiltinHead.Ref.*
 
   // get data from builtin head
-  private def getBuiltinData(
-    ref: BuiltinHead.Ref,
-  ): Option[(String, String, PureValue, String, Boolean)] = ref match
-    case NormalAccess(base, name) if !(yets contains base.normalized) =>
-      Some((base.normalized, name, Str(name), name, true))
-    case SymbolAccess(base, name) if !(yets contains base.normalized) =>
-      Some((base.normalized, name, symbolAddr(name), s"[Symbol.$name]", true))
-    case Getter(ref) =>
-      getBuiltinData(ref) match
-        case Some((base, prop, propV, propName, _)) =>
-          Some((base, prop, propV, s"get $propName", false))
-        case _ => None
-    case _ => None // TODO setter
+  extension (str: String) {
+    def getData: Option[(String, String, PureValue, String, Boolean)] =
+      SpecParser.parseBuiltinRef(str).getData
+  }
+  extension (ref: BuiltinHead.Ref) {
+    def getData: Option[(String, String, PureValue, String, Boolean)] =
+      ref match
+        case NormalAccess(b, n) if !(yets contains b.toString) =>
+          Some((b.toString, n, Str(n), n, true))
+        case SymbolAccess(b, n) if !(yets contains b.toString) =>
+          Some((b.toString, s"@@$n", symbolAddr(n), s"[Symbol.$n]", true))
+        case Getter(ref) =>
+          ref.getData match
+            case Some((base, prop, propV, propName, _)) =>
+              Some((base, prop, propV, s"get $propName", false))
+            case _ => None
+        case _ => None // TODO setter
+  }
 
   // add member functions of intrinsics
   private def createBuiltinFunction(
@@ -162,50 +168,37 @@ class Initialize(
     (name, head) <- func.head match
       case Some(head: BuiltinHead) =>
         head.ref match
-          case NormalBase(b) if !(yets contains b)    => Some((b, head))
-          case IntrinsicBase(b) if !(yets contains b) => Some((b, head))
-          case _                                      => None
+          case Base(b) if !(yets contains b) => Some((b, head))
+          case _                             => None
       case _ => None
   } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
-    func <- cfg.funcs
-    head <- func.head match
-      case Some(head: BuiltinHead) => Some(head)
-      case _                       => None
-    (base, prop, propV, defaultName, isData) <- getBuiltinData(head.ref)
+    func <- cfg.funcs if func.irFunc.kind == Func.Kind.Builtin
+    fname = func.name.stripPrefix("INTRINSICS.")
+    (base, prop, propV, defaultName, isData) <- fname.getData
     baseMapObj <- map.get(submapAddr(intrName(base))) match
       case Some(m: MapObj) => Some(m)
       case _               => None
-    name = head.ref.normalized
-    desc = descAddr(base, prop)
   } {
+    val desc = descAddr(base, prop)
+    val defaultLength = func.head.fold(0)(getLength(_))
     baseMapObj.update(propV, desc)
     if (isData) // data property
       map.getOrElse(
         desc,
-        map += desc -> MapObj("PropertyDescriptor")(
-          Str("Value") -> intrAddr(name),
-          Str("Writable") -> Bool(true),
-          Str("Enumerable") -> Bool(false),
-          Str("Configurable") -> Bool(true),
-        ),
+        map += desc -> DataProperty(intrAddr(fname), T, F, T).toObject,
       )
     else // accessor property
       map.getOrElse(
         desc,
-        map += desc -> MapObj("PropertyDescriptor")(
-          Str("Get") -> intrAddr(name),
-          Str("Set") -> Undef, // TODO handle setter
-          Str("Enumerable") -> Bool(false),
-          Str("Configurable") -> Bool(true),
-        ),
+        map += desc -> AccessorProperty(intrAddr(fname), U, F, T).toObject,
       )
-    createBuiltinFunction(name, getLength(head), defaultName, map)
+    createBuiltinFunction(fname, defaultLength, defaultName, map)
   }
 
   // get length value from built-in head parameters
-  private def getLength(head: BuiltinHead): Int =
-    head.params.count(_.kind == Param.Kind.Normal)
+  private def getLength(head: Head): Int =
+    head.originalParams.count(_.kind == Param.Kind.Normal)
 }
 object Initialize {
   def apply(

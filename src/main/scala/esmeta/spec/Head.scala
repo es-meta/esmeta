@@ -40,7 +40,7 @@ sealed trait Head extends SpecElem {
     case head: InternalMethodHead =>
       s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
     case head: BuiltinHead =>
-      s"INTRINSICS.${head.ref.normalized}"
+      s"INTRINSICS.${head.ref}"
 
 }
 
@@ -93,7 +93,7 @@ case class InternalMethodHead(
   retTy: Type,
 ) extends Head
 
-/** buil-in heads */
+/** built-in heads */
 case class BuiltinHead(
   ref: BuiltinHead.Ref,
   params: List[Param],
@@ -101,13 +101,9 @@ case class BuiltinHead(
 ) extends Head
 object BuiltinHead:
   enum Ref extends SpecElem:
-    case IntrinsicBase(name: String)
-    case NormalBase(name: String)
+    case Base(name: String)
     case NormalAccess(base: Ref, name: String)
     case Getter(base: Ref)
     case Setter(base: Ref)
     case SymbolAccess(base: Ref, symbol: String)
     case YetRef(name: String)
-  extension (ref: Ref) {
-    def normalized: String = ref.toString.replace("%", "")
-  }

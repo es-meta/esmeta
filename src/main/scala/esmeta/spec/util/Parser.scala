@@ -228,6 +228,10 @@ object Parser extends Parsers {
     val headContent = getHeadContent(parent)
     List(parseBy(builtinHead)(headContent))
 
+  // parse built-in head reference
+  def parseBuiltinRef(str: String): BuiltinHead.Ref =
+    parseBy(ref)(str)
+
   // handle unusual heads
   lazy val thisValuePattern =
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
@@ -397,12 +401,11 @@ trait Parsers extends BasicParsers {
     import BuiltinHead.Ref
     import BuiltinHead.Ref.*
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
-    lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@ ]+".r ^^ { _.trim }
+    lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@: ]+".r ^^ { _.trim }
     lazy val pre: Parser[Ref => Ref] =
       "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
     lazy val base: Parser[Ref] =
-      "%" ~> name <~ "%" ^^ { IntrinsicBase(_) } |
-      name ^^ { NormalBase(_) }
+      opt("%") ~> name <~ opt("%") ^^ { Base(_) }
     lazy val access: Parser[Ref => Ref] =
       "." ~> name ^^ { case n => NormalAccess(_, n) } |
       "[" ~> "@@" ~> name <~ "]" ^^ { case s => SymbolAccess(_, s) }

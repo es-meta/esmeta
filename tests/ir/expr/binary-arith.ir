@@ -17,6 +17,8 @@
   assert (= (** x y) 243)
   assert (= (/ x y) 0.6)
   assert (= (% y x) 2)
+  assert (= (% -31 32) 1)
+  assert (= (% 31 -32) -1)
   assert (= (%% y x) 2)
 
   // numbers

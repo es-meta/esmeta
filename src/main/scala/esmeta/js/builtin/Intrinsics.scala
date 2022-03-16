@@ -9,9 +9,6 @@ import esmeta.util.BaseUtils.*
 case class Intrinsics(cfg: CFG) {
 
   /** shortcuts */
-  private val T = true
-  private val F = false
-  private val U = Undef
   private def spec = cfg.program.spec
   given CFG = cfg
 
@@ -173,6 +170,8 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Symbol"), T, F, T),
+        "@@toPrimitive" ->
+        DataProperty(intrAddr("Symbol.prototype[@@toPrimitive]"), F, F, T),
         "@@toStringTag" -> DataProperty(Str("Symbol"), F, F, T),
       ),
     ),

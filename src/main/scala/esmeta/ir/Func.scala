@@ -22,7 +22,8 @@ object Func extends Parser.From[Func] {
 
   /** function kinds */
   enum Kind extends IRElem:
-    case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont
+    case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
+    BuiltinClo
   object Kind extends Parser.From[Kind]
 
   /** function parameters */

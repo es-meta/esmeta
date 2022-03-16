@@ -119,12 +119,11 @@ class StringifyTinyTest extends SpecTest {
     // -------------------------------------------------------------------------
     import BuiltinHead.Ref.*
     checkStringify("BuiltinHead.Reference")(
-      IntrinsicBase("A") -> "%A%",
-      NormalBase("A") -> "A",
-      NormalAccess(NormalBase("A"), "B") -> "A.B",
-      Getter(NormalAccess(NormalBase("A"), "B")) -> "get:A.B",
-      Setter(NormalAccess(NormalBase("A"), "B")) -> "set:A.B",
-      SymbolAccess(NormalBase("A"), "B") -> "A[@@B]",
+      Base("A") -> "A",
+      NormalAccess(Base("A"), "B") -> "A.B",
+      Getter(NormalAccess(Base("A"), "B")) -> "get A.B",
+      Setter(NormalAccess(Base("A"), "B")) -> "set A.B",
+      SymbolAccess(Base("A"), "B") -> "A[@@B]",
       YetRef("A B C") -> "yet:ABC",
     )
 
@@ -211,7 +210,7 @@ class StringifyTinyTest extends SpecTest {
         UnknownType,
       ) -> "[METHOD] SetPrototypeOf(O)(V): unknown", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
-        NormalBase("Boolean"),
+        Base("Boolean"),
         List(Param("value", Param.Kind.Normal, Type("an argument"))),
         UnknownType,
       ) -> "[BUILTIN] Boolean(value): unknown",

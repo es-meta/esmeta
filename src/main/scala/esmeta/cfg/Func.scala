@@ -25,7 +25,11 @@ case class Func(
   lazy val head: Option[Head] = irFunc.head
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean = irFunc.kind == IRFunc.Kind.Builtin
+  lazy val isBuiltin: Boolean =
+    irFunc.kind == IRFunc.Kind.Builtin || irFunc.kind == IRFunc.Kind.BuiltinClo
+
+  /** function name */
+  def name: String = irFunc.name
 
   /** conversion to a DOT format */
   def toDot: String = new DotPrinter {

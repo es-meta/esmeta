@@ -201,11 +201,10 @@ object Stringifier {
   given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) =>
     import BuiltinHead.Ref.*
     ref match
-      case IntrinsicBase(name)      => app >> "%" >> name >> "%"
-      case NormalBase(name)         => app >> name
+      case Base(name)               => app >> name
       case NormalAccess(base, name) => app >> base >> "." >> name
-      case Getter(base)             => app >> "get:" >> base
-      case Setter(base)             => app >> "set:" >> base
+      case Getter(base)             => app >> "get " >> base
+      case Setter(base)             => app >> "set " >> base
       case SymbolAccess(base, symbol) =>
         app >> base >> "[@@" >> symbol >> "]"
       case YetRef(name) => app >> "yet:" >> name.replace(" ", "")

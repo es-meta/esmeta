@@ -24,7 +24,7 @@ class Compiler(val spec: Spec) {
     for {
       algo <- spec.algorithms
       name = algo.head.fname
-      if !(shorthands.contains(name) || manualNames.contains(name))
+      if !(excluded.contains(name) || manualNames.contains(name))
     } compile(algo)
 
     // result
@@ -82,6 +82,10 @@ class Compiler(val spec: Spec) {
     "IfAbruptRejectPromise",
   )
 
+  // list of not-compiled function names
+  private val excluded =
+    "INTRINSICS.Array.prototype[@@unscopables]" :: shorthands
+
   // function builder
   private case class FuncBuilder(
     kind: Func.Kind,
@@ -137,6 +141,9 @@ class Compiler(val spec: Spec) {
 
     // get closure name
     def nextCloName: String = s"$name:clo${nextCId}"
+
+    // get continuation name
+    def nextContName: String = s"$name:cont${nextCId}"
 
     // get body instruction
     private def getBodyInst: Inst =
@@ -429,10 +436,10 @@ class Compiler(val spec: Spec) {
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
-      val contName = fb.nextCloName
+      val contName = fb.nextContName
       val newFb =
         FuncBuilder(
-          Func.Kind.Clo,
+          Func.Kind.Cont,
           contName,
           toParams(paramOpt),
           AnyType,
@@ -447,11 +454,11 @@ class Compiler(val spec: Spec) {
       val returnCont = toStrRef(ctxt, "ReturnCont")
       val (eResumeCont, eReturnCont) =
         (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
-      val contName = fb.nextCloName
+      val contName = fb.nextContName
       val ps = toParams(paramOpt)
       val bodyStep = BlockStep(StepBlock(steps))
       val newFb =
-        FuncBuilder(Func.Kind.Clo, contName, ps, AnyType, bodyStep, fb.algo)
+        FuncBuilder(Func.Kind.Cont, contName, ps, AnyType, bodyStep, fb.algo)
       newFb.result
       fb.addInst(
         IIf(
@@ -604,8 +611,8 @@ class Compiler(val spec: Spec) {
       val (ck, cn, ps, pre) =
         if (fixClosurePrefixAOs.exists(_.matches(algoName)))
           (
-            Func.Kind.Builtin,
-            s"INTRINSICS.${fb.nextCloName}",
+            Func.Kind.BuiltinClo,
+            fb.nextCloName,
             List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
             getBuiltinPrefix(params.map(x => SParam(x.name))),
           )

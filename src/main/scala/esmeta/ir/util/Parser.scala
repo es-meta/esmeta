@@ -36,6 +36,7 @@ trait Parsers extends BasicParsers {
     "<BUILTIN>:" ^^^ Builtin |
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
+    "<BUILTIN-CLO>:" ^^^ BuiltinClo |
     "" ^^^ AbsOp
   }.named("ir.Func.Kind")
 
