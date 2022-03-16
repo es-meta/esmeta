@@ -17,7 +17,6 @@
   "[YET] If the execution context stack is empty, return *null*.": "if (= @EXECUTION_STACK.length 0) return null else {}",
   "[YET] Let _ec_ be the topmost execution context on the execution context stack whose ScriptOrModule component is not *null*.": "{ let ec = absent let idx = 0 loop[repeat] (&& (< idx @EXECUTION_STACK.length) (= ec absent)) { if (! (= @EXECUTION_STACK[idx].ScriptOrModule null) ) ec = @EXECUTION_STACK[idx] else {} idx = (+ idx 1) } }",
   "[YET] If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) return null else return ec.ScriptOrModule",
-  "[YET] If _script_ is a List of errors, return _script_.": "nop",
   "[YET] If _envRec_ has a binding for the name that is the value of _N_, return *true*.": "if (! (= envRec.SubMap[N] absent)) return true else {}",
   "[YET] Assert: The execution context stack is not empty.": "assert (! (= @EXECUTION_STACK.length 0))",
   "[YET] Resume the context that is now on the top of the execution context stack as the running execution context.": "@CONTEXT = @EXECUTION_STACK[0]",
@@ -106,6 +105,5 @@
   "[YET] Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.": "assert true",
   "[YET] If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
   "[YET] Assert: The following loop will terminate.": "assert true",
-  "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true",
-  "[YET] If _script_ is a List of errors, throw a *SyntaxError* exception.": "nop"
+  "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true"
 }

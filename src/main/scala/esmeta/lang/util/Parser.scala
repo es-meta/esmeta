@@ -435,7 +435,7 @@ trait Parsers extends IndentParsers {
     ntLiteral |||
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
     "the empty String" ^^! StringLiteral("") |||
-    strLiteral |||
+    strLiteral <~ opt("\\([^)]*\\)".r) ||| // CreateDynamicFunction
     fieldLiteral |||
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
@@ -867,6 +867,7 @@ trait Parsers extends IndentParsers {
     opt("ECMAScript code") ~ "execution context" ^^! {
       Type("ExecutionContext")
     } |||
+    "List of" ~ word ^^! { Type("List") } |||
     nt ^^ { Type(_) }
   }.named("lang.Type")
 
@@ -884,7 +885,7 @@ trait Parsers extends IndentParsers {
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
 
   // nonterminals
-  private lazy val nt: Parser[String] = "|" ~> word <~ opt("?") ~ "|"
+  private lazy val nt: Parser[String] = "|" ~> word <~ "|"
 
   // ordinal
   private lazy val ordinal: Parser[Int] =
