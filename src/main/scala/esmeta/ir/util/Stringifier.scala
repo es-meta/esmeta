@@ -109,8 +109,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(pop " >> (if (front) "<" else ">") >> " " >> list >> ")"
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
-      case EGrammar(name) =>
-        app >> "(grammar |" >> name >> "|" >> ")"
+      case EGrammar(name, params) =>
+        app >> "(grammar |" >> name >> "|"
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule("[", "", "]")
+        app >> params >> ")"
       case ESourceText(expr) =>
         app >> "(source-text " >> expr >> ")"
       case EYet(msg) =>

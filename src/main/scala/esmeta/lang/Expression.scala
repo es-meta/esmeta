@@ -193,6 +193,7 @@ case class CodeLiteral(code: String) extends Literal
 case class NonterminalLiteral(
   ordinal: Option[Int],
   name: String,
+  flags: List[String],
 ) extends Literal
 
 // constant literals

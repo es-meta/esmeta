@@ -329,9 +329,10 @@ class StringifyTinyTest extends LangTest {
     lazy val hex = HexLiteral(0x0024, None)
     lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
     lazy val code = CodeLiteral("|")
-    lazy val nt = NonterminalLiteral(None, "Identifier")
-    lazy val firstNt = NonterminalLiteral(Some(1), "Identifier")
-    lazy val secondNt = NonterminalLiteral(Some(2), "Identifier")
+    lazy val nt = NonterminalLiteral(None, "Identifier", List())
+    lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", List())
+    lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", List())
+    lazy val ntFlags = NonterminalLiteral(None, "A", List("~Yield", "+Await"))
     lazy val empty = ConstLiteral("empty")
     lazy val emptyStr = StringLiteral("")
     lazy val str = StringLiteral("abc")
@@ -358,6 +359,7 @@ class StringifyTinyTest extends LangTest {
       nt -> "|Identifier|",
       firstNt -> "the first |Identifier|",
       secondNt -> "the second |Identifier|",
+      ntFlags -> "|A[~Yield, +Await]|",
       empty -> "~empty~",
       emptyStr -> """*""*""",
       str -> """*"abc"*""",

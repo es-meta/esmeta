@@ -100,6 +100,7 @@
   "[YET] Let _m_ be the integer that is the numeric value of the code unit at index _k_ within _px_.": "let m = ([math] px[k])",
   "[YET] Let _n_ be the integer that is the numeric value of the code unit at index _k_ within _py_.": "let n = ([math] py[k])",
   "[YET] Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = argumentsList",
+  "[YET] Let _args_ be the _argumentsList_ that was passed to this function by [[Call]] or [[Construct]].": "let args = argumentsList",
   "[YET] Assert: The execution context stack has at least two elements.": "assert (< 1 @EXECUTION_STACK.length)",
   "[YET] Let _callerContext_ be the second to top element of the execution context stack.": "let callerContext = @EXECUTION_STACK[1]",
   "[YET] Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.": "assert true",

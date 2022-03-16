@@ -192,20 +192,20 @@ class Interp(
       val r = interp(rule).escaped
       (str, r, st.sourceText, st.cachedAst) match
         // optimize the initial parsing using the given cached AST
-        case (x, Grammar("Script"), Some(y), Some(ast)) if x == y =>
+        case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
           AstValue(ast)
-        case (x, Grammar(name), _, _) =>
-          AstValue(jsParser(name, args).from(x))
+        case (x, Grammar(name, params), _, _) =>
+          AstValue(jsParser(name, if (params.isEmpty) args else params).from(x))
         case _ => throw NoGrammar(rule, r)
-    case EGrammar(name) => Grammar(name)
+    case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
       val ast = interp(expr).escaped.asAst
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kind, ast) =>
       val k = interp(kind).escaped match
-        case Grammar(name) => name
-        case v             => throw NoGrammar(kind, v)
+        case Grammar(name, _) => name
+        case v                => throw NoGrammar(kind, v)
       val a = interp(ast).escaped.asAst
       st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>

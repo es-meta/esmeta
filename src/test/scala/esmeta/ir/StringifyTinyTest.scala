@@ -136,7 +136,7 @@ class StringifyTinyTest extends IRTest {
     lazy val popFront = EPop(xExpr, true)
     lazy val popBack = EPop(xExpr, false)
     lazy val parse = EParse(xExpr, egrammar)
-    lazy val egrammar = EGrammar("A")
+    lazy val egrammar = EGrammar("A", List(true, false))
     lazy val yet = EYet("NOT YET")
     lazy val contains = EContains(xExpr, xExpr)
     lazy val xExpr = ERef(x)
@@ -194,8 +194,8 @@ class StringifyTinyTest extends IRTest {
       riaNoCheck -> "[! x]",
       popFront -> "(pop < x)",
       popBack -> "(pop > x)",
-      parse -> "(parse x (grammar |A|))",
-      egrammar -> "(grammar |A|)",
+      parse -> "(parse x (grammar |A|[TF]))",
+      egrammar -> "(grammar |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
       xExpr -> "x",

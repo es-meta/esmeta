@@ -317,9 +317,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         name.map(app >> " (" >> _ >> ")")
         app
       case CodeLiteral(code) => app >> "`" >> code >> "`"
-      case NonterminalLiteral(ordinal, name) =>
+      case NonterminalLiteral(ordinal, name, flags) =>
+        given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
         ordinal.map(ordinal => app >> "the " >> ordinal.toOrdinal >> " ")
-        app >> "|" >> name >> "|"
+        app >> "|" >> name
+        if (!flags.isEmpty) app >> flags
+        app >> "|"
       case ConstLiteral(name) => app >> "~" >> name >> "~"
       case StringLiteral(str) =>
         val replaced = str

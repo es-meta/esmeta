@@ -475,8 +475,11 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the" | "this") ~> opt(ordinal) ~ nt ^^ {
-      case ord ~ x => NonterminalLiteral(ord, x)
+    lazy val flags: P[List[String]] =
+      "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ List()
+    opt("the grammar symbol" | "the" | "this") ~> opt(ordinal) ~
+    ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
+      case ord ~ x ~ fs => NonterminalLiteral(ord, x, fs)
     }
 
   // string literals

@@ -659,7 +659,7 @@ class Compiler(val spec: Spec) {
     case NewTargetLiteral() => ENAME_NEW_TARGET
     case HexLiteral(hex, _) => ECodeUnit(hex.toChar)
     case CodeLiteral(code)  => EStr(code)
-    case NonterminalLiteral(ordinal, name) =>
+    case NonterminalLiteral(ordinal, name, flags) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
@@ -667,7 +667,7 @@ class Compiler(val spec: Spec) {
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
-      } else EGrammar(name)
+      } else EGrammar(name, flags.map(_ startsWith "+"))
     case ConstLiteral(name)                 => EConst(name)
     case StringLiteral(s)                   => EStr(s)
     case FieldLiteral(field)                => EStr(field)
