@@ -751,6 +751,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Prototype" -> intrAddr("Function"),
+        "Construct" -> clo("BuiltinFunctionObject.Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -900,6 +901,7 @@ case class Intrinsics(cfg: CFG) {
           "Construct" -> clo("BuiltinFunctionObject.Construct"),
         ),
         nmap = List(
+          "length" -> DataProperty(Number(1.0), F, F, T),
           "name" -> DataProperty(Str(errName), F, F, T),
           "prototype" -> DataProperty(
             intrAddr(s"$errName.prototype"),

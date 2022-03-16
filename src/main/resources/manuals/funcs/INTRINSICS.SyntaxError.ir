@@ -7,7 +7,7 @@ def <BUILTIN>:INTRINSICS.SyntaxError(this: Any, argumentsList: Any, NewTarget: A
   } else {
     let newTarget = NewTarget
   }
-  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%SyntaxError.prototype%", (new []))
+  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%SyntaxError.prototype%", (new ["ErrorData"]))
   let O = [? %1]
   %2 = (! (= message undefined))
   if %2 {
