@@ -517,6 +517,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the active function object"
       case _: RunningExecutionContext =>
         app >> "the running execution context"
+      case _: SecondExecutionContext =>
+        app >> "the second to top element of the execution context stack"
       case PropertyReference(base, nt: NonterminalProperty) =>
         app >> nt >> " " >> base
       case PropertyReference(base, prop) =>

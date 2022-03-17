@@ -12,6 +12,9 @@ case class Variable(name: String) extends Reference
 // the running execution context literals
 case class RunningExecutionContext() extends Reference
 
+// the second execution context
+case class SecondExecutionContext() extends Reference
+
 // the current realm record
 case class CurrentRealmRecord() extends Reference
 

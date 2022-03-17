@@ -479,6 +479,7 @@ class StringifyTinyTest extends LangTest {
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
       RunningExecutionContext() -> "the running execution context",
+      SecondExecutionContext() -> "the second to top element of the execution context stack",
       CurrentRealmRecord() -> "the current Realm Record",
       ActiveFunctionObject() -> "the active function object",
       fieldRef -> "_x_.[[Value]]",

@@ -514,9 +514,10 @@ trait Parsers extends IndentParsers {
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
-      case x ~ as =>
-        InvokeAbstractOperationExpression(x, as)
+    opt(tagStart) ~> "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs <~ opt(
+      tagEnd,
+    ) ^^ {
+      case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
 
   // numeric method invocation expression
@@ -782,6 +783,10 @@ trait Parsers extends IndentParsers {
           BinaryCondition.Op.NContains,
           getRefExpr(elem),
         )
+    } |
+    // CallExpression[0,0].Evaluation
+    expr <~ "has no elements" ^^ {
+      case r => PredicateCondition(r, false, PredicateCondition.Op.Empty)
     }
 
   // ---------------------------------------------------------------------------
@@ -806,13 +811,16 @@ trait Parsers extends IndentParsers {
 
   // base references
   lazy val baseRef: PL[Reference] =
-    variable |||
+    variable |
     "the" ~ opt("currently") ~ "running execution context" ^^! {
       RunningExecutionContext()
-    } |||
-    "the current Realm Record" ^^! { CurrentRealmRecord() } |||
+    } |
+    "the current Realm Record" ^^! { CurrentRealmRecord() } |
     ("the active function object" | "the active function") ^^! {
       ActiveFunctionObject()
+    } |
+    "the second to top element of the execution context stack" ^^! {
+      SecondExecutionContext()
     }
 
   // variables
@@ -840,6 +848,10 @@ trait Parsers extends IndentParsers {
     ("the" ~> ordinal <~ "element") ~ ("of" ~> variable) ^^ {
       case o ~ x =>
         PropertyReference(x, IndexProperty(DecimalMathValueLiteral(o - 1)))
+    } |
+    // SetFunctionName, SymbolDescriptiveString
+    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value" ^^ {
+      case b ~ f => PropertyReference(b, FieldProperty(f))
     }
 
   // ---------------------------------------------------------------------------
