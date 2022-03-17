@@ -190,13 +190,19 @@ class Interp(
         case AstValue(lex: Lexical) => (lex.str, List())
         case v                      => throw InvalidParseSource(code, v)
       val r = interp(rule).escaped
-      (str, r, st.sourceText, st.cachedAst) match
-        // optimize the initial parsing using the given cached AST
-        case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
-          AstValue(ast)
-        case (x, Grammar(name, params), _, _) =>
-          AstValue(jsParser(name, if (params.isEmpty) args else params).from(x))
-        case _ => throw NoGrammar(rule, r)
+      try {
+        (str, r, st.sourceText, st.cachedAst) match
+          // optimize the initial parsing using the given cached AST
+          case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
+            AstValue(ast)
+          case (x, Grammar(name, params), _, _) =>
+            AstValue(
+              jsParser(name, if (params.isEmpty) args else params).from(x),
+            )
+          case _ => throw NoGrammar(rule, r)
+      } catch {
+        case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
+      }
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
       val ast = interp(expr).escaped.asAst
@@ -261,6 +267,7 @@ class Interp(
         case addr: Addr =>
           st(addr) match
             case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
+            case _: ListObj                                     => "List"
             case _: SymbolObj                                   => "Symbol"
             case v                                              => ???
         case v => ???,
@@ -282,8 +289,9 @@ class Interp(
           case _: Clo => ty.name == "AbstractClosure"
           case addr: Addr =>
             st(addr) match
-              case m: MapObj    => typeModel.subType(m.ty, ty.name) // TODO
-              case m: SymbolObj => ty.name == "Symbol"
+              case m: MapObj    => typeModel.subType(m.ty, ty.name)
+              case _: ListObj   => ty.name == "List"
+              case _: SymbolObj => ty.name == "Symbol"
               case _            => ???
           case v => ???,
         )
