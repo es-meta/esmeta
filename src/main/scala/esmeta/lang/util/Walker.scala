@@ -82,7 +82,7 @@ trait Walker extends BasicWalker {
         walk(expr),
         walk(body),
       )
-    case ThrowStep(errorName)    => ThrowStep(errorName)
+    case ThrowStep(expr)         => ThrowStep(walk(expr))
     case PerformStep(expr)       => PerformStep(walk(expr))
     case PerformBlockStep(block) => PerformBlockStep(walk(block))
     case AppendStep(expr, ref)   => AppendStep(walk(expr), walk(ref))

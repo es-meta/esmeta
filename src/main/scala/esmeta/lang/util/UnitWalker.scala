@@ -60,7 +60,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(key); walk(array); walk(start); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
-    case ThrowStep(errorName)    =>
+    case ThrowStep(expr)         => walk(expr)
     case PerformStep(expr)       => walk(expr)
     case PerformBlockStep(block) => walk(block)
     case AppendStep(expr, ref)   => walk(expr); walk(ref)

@@ -396,16 +396,8 @@ class Compiler(val spec: Spec) {
           },
         ),
       )
-    case ThrowStep(errName) =>
-      val proto = Intrinsic(errName, List("prototype"))
-      val expr = EMap(
-        IRType("OrdinaryObject"),
-        List(
-          EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
-          EStr("ErrorData") -> EUndef,
-        ),
-      )
-      val comp = EComp(ECONST_THROW, expr, ECONST_EMPTY)
+    case ThrowStep(expr) =>
+      val comp = EComp(ECONST_THROW, compile(fb, expr), ECONST_EMPTY)
       fb.addInst(IReturn(comp))
     case PerformStep(expr) =>
       compile(fb, expr) match
@@ -677,6 +669,15 @@ class Compiler(val spec: Spec) {
       // XXX need to handle arguments, children?
       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
       ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+    case ErrorObjectLiteral(name) =>
+      val proto = Intrinsic(name, List("prototype"))
+      EMap(
+        IRType("OrdinaryObject"),
+        List(
+          EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
+          EStr("ErrorData") -> EUndef,
+        ),
+      )
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
     case DecimalMathValueLiteral(n)         => EMathVal(n)

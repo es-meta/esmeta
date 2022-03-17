@@ -109,8 +109,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
-      case ThrowStep(errorName) =>
-        app >> First("throw a *") >> errorName >> "* exception."
+      case ThrowStep(expr) =>
+        app >> First("throw ") >> expr >> "."
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
       case PerformBlockStep(block) =>
@@ -333,6 +333,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SymbolLiteral(sym) => app >> "@@" >> sym
       case ProductionLiteral(lhs, rhs) =>
         app >> "<emu-grammar>" >> lhs >> " : " >> rhs >> "</emu-grammar>"
+      case ErrorObjectLiteral(name) =>
+        app >> "a newly created *" >> name >> "* object"
       case _: PositiveInfinityMathValueLiteral => app >> "+∞"
       case _: NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)          => app >> n

@@ -67,7 +67,7 @@ class StringifyTinyTest extends LangTest {
       ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
     lazy val forEachArrayIndexStep =
       ForEachArrayIndexStep(x, x, refExpr, false, blockStep)
-    lazy val throwStep = ThrowStep("TypeError")
+    lazy val throwStep = ThrowStep(errObj)
     lazy val performStep = PerformStep(invokeAOExpr)
     lazy val appendStep = AppendStep(refExpr, fieldRef)
     lazy val repeatStep = RepeatStep(None, letStep)
@@ -136,7 +136,7 @@ class StringifyTinyTest extends LangTest {
       toBlockStep(forEachArrayIndexStep) -> """
       |  1. For each own property key _x_ of _x_ that is an array index, whose numeric value is greater than or equal to _x_, in descending numeric index order, do
       |    1. Let _x_ be _x_.""".stripMargin,
-      throwStep -> "throw a *TypeError* exception.",
+      throwStep -> "throw a newly created *TypeError* object.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
       repeatStep -> "repeat, let _x_ be _x_.",
@@ -340,6 +340,7 @@ class StringifyTinyTest extends LangTest {
     lazy val strWithBasckSlash = StringLiteral("abc\\")
     lazy val fieldLit = FieldLiteral("Value")
     lazy val sym = SymbolLiteral("iterator")
+    lazy val errObj = ErrorObjectLiteral("TypeError")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
     lazy val posZero = NumberLiteral(+0.0)
     lazy val negZero = NumberLiteral(-0.0)
@@ -367,6 +368,7 @@ class StringifyTinyTest extends LangTest {
       strWithBasckSlash -> """*"abc\\"*""",
       fieldLit -> "[[Value]]",
       sym -> "@@iterator",
+      errObj -> "a newly created *TypeError* object",
       PositiveInfinityMathValueLiteral() -> "+∞",
       NegativeInfinityMathValueLiteral() -> "-∞",
       mathVal -> "0.5",

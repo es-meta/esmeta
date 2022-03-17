@@ -138,7 +138,7 @@ trait Parsers extends IndentParsers {
 
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
-    "throw a *" ~> word <~ "* exception" <~ end ^^ { ThrowStep(_) }
+    "throw" ~> expr <~ end ^^ { ThrowStep(_) }
 
   // perform steps
   lazy val performStep: PL[PerformStep] =
@@ -438,6 +438,7 @@ trait Parsers extends IndentParsers {
     "the empty String" ^^! StringLiteral("") |||
     strLiteral |||
     fieldLiteral |||
+    errObjLiteral |||
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
     "-∞" ^^! NegativeInfinityMathValueLiteral() |||
@@ -500,6 +501,11 @@ trait Parsers extends IndentParsers {
     (tagStart ~> word <~ ":") ~ ("[\\[\\]A-Za-z]+".r <~ tagEnd) ^^ {
       case l ~ r => ProductionLiteral(l, r)
     }
+
+  // error object literals
+  lazy val errObjLiteral: PL[ErrorObjectLiteral] =
+    lazy val errorName = "*" ~> word <~ "*" ^^ { ErrorObjectLiteral(_) }
+    "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
 
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
