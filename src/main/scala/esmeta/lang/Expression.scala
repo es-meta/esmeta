@@ -205,6 +205,10 @@ case class StringLiteral(s: String) extends Literal
 // field literals
 case class FieldLiteral(name: String) extends Literal
 
+// production literals
+// XXX need to be generalized?
+case class ProductionLiteral(lhs: String, rhs: String) extends Literal
+
 // symbol literals
 case class SymbolLiteral(sym: String) extends Literal
 

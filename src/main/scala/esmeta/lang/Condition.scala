@@ -25,6 +25,7 @@ case class HasFieldCondition(
 
 // production condition such as
 // `|Declartion| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
+// XXX use production literal?
 case class ProductionCondition(
   ntLiteral: Expression,
   lhsName: String,

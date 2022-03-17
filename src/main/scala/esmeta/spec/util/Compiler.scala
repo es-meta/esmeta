@@ -668,10 +668,14 @@ class Compiler(val spec: Spec) {
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
       } else EGrammar(name, flags.map(_ startsWith "+"))
-    case ConstLiteral(name)                 => EConst(name)
-    case StringLiteral(s)                   => EStr(s)
-    case FieldLiteral(field)                => EStr(field)
-    case SymbolLiteral(sym)                 => toERef(GLOBAL_SYMBOL, EStr(sym))
+    case ConstLiteral(name)                  => EConst(name)
+    case StringLiteral(s)                    => EStr(s)
+    case FieldLiteral(field)                 => EStr(field)
+    case SymbolLiteral(sym)                  => toERef(GLOBAL_SYMBOL, EStr(sym))
+    case ProductionLiteral(lhsName, rhsName) =>
+      // XXX need to handle arguments, children?
+      val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
+      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
     case DecimalMathValueLiteral(n)         => EMathVal(n)
@@ -704,17 +708,12 @@ class Compiler(val spec: Spec) {
     case HasFieldCondition(ref, neg, field) =>
       val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
       if (neg) e else not(e)
+    // XXX need to be generalized?
     case ProductionCondition(nt, lhsName, rhsName) =>
       val base = compile(fb, nt)
-      val prod = grammar.nameMap(lhsName)
-      val rhsList = prod.rhsList.zipWithIndex.filter {
-        case (rhs, _) => rhs.allNames contains rhsName
-      }
-      rhsList match
-        case (rhs, idx) :: Nil =>
-          fb.ntBindings ++= List((rhsName, base, Some(0))) // XXX
-          ETypeCheck(base, IRType(lhsName + idx))
-        case _ => error("invalid production condition")
+      val (_, rhsIdx) = getProductionData(lhsName, rhsName)
+      fb.ntBindings ++= List((rhsName, base, Some(0)))
+      ETypeCheck(base, IRType(lhsName + rhsIdx))
     case PredicateCondition(expr, neg, op) =>
       import PredicateCondition.Op.*
       val x = compile(fb, expr)
@@ -834,6 +833,17 @@ class Compiler(val spec: Spec) {
     walker.walk(cond)
     found
   }
+
+  // production helpers
+  private def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+    val prod = grammar.nameMap(lhsName)
+    val rhsList = prod.rhsList.zipWithIndex.filter {
+      case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
+      case (rhs, _)                         => rhs.allNames contains rhsName
+    }
+    rhsList match
+      case (rhs, idx) :: Nil => (prod.lhs, idx)
+      case _                 => error("invalid production")
 
   // instruction helpers
   private inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =

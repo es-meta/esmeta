@@ -261,7 +261,8 @@ trait Parsers extends IndentParsers {
     returnIfAbruptExpr |||
     listExpr |||
     xrefExpr |||
-    soleExpr
+    soleExpr |||
+    specialExpr
   }.named("lang.Expression")
 
   // multilineExpr
@@ -435,7 +436,7 @@ trait Parsers extends IndentParsers {
     ntLiteral |||
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
     "the empty String" ^^! StringLiteral("") |||
-    strLiteral <~ opt("\\([^)]*\\)".r) ||| // CreateDynamicFunction
+    strLiteral |||
     fieldLiteral |||
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
@@ -491,6 +492,13 @@ trait Parsers extends IndentParsers {
           .replace("\\*", "*")
           .replace("\\\\", "\\")
         StringLiteral(str)
+    }
+
+  // production literals
+  // XXX need to be generalized?
+  private lazy val prodLiteral: PL[ProductionLiteral] =
+    (tagStart ~> word <~ ":") ~ ("[\\[\\]A-Za-z]+".r <~ tagEnd) ^^ {
+      case l ~ r => ProductionLiteral(l, r)
     }
 
   // metalanguage invocation expressions
@@ -581,6 +589,17 @@ trait Parsers extends IndentParsers {
     "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
 
+  // rarely used expressions
+  lazy val specialExpr: PL[Expression] =
+    // ClassStaticBlockDefinitionEvaluation
+    "the empty sequence of Unicode code points" ^^! StringLiteral("") |
+    // Array.prototype.join
+    "the single-element String" ~> strLiteral |
+    // CreateDynamicFunction
+    strLiteral <~ "\\([^)]*\\)".r |
+    // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
+    "an instance of the production" ~> prodLiteral
+
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
     opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
@@ -647,8 +666,8 @@ trait Parsers extends IndentParsers {
   // production conditions
   // Ex: If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
   lazy val productionCond: PL[ProductionCondition] =
-    (expr <~ "is") ~ (tagStart ~> word <~ ":") ~ (word <~ tagEnd) ^^ {
-      case nt ~ l ~ r => ProductionCondition(nt, l, r)
+    (expr <~ "is") ~ prodLiteral ^^ {
+      case nt ~ prod => ProductionCondition(nt, prod.lhs, prod.rhs) // TODO
     }
 
   // predicate conditions

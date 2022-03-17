@@ -329,8 +329,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           .replace("\\", "\\\\")
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
-      case FieldLiteral(name)                  => app >> "[[" >> name >> "]]"
-      case SymbolLiteral(sym)                  => app >> "@@" >> sym
+      case FieldLiteral(name) => app >> "[[" >> name >> "]]"
+      case SymbolLiteral(sym) => app >> "@@" >> sym
+      case ProductionLiteral(lhs, rhs) =>
+        app >> "<emu-grammar>" >> lhs >> " : " >> rhs >> "</emu-grammar>"
       case _: PositiveInfinityMathValueLiteral => app >> "+∞"
       case _: NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)          => app >> n
