@@ -481,6 +481,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case AccessorProperty => "an accessor property"
       case FullyPopulated   => "a fully populated Property Descriptor"
       case Nonterminal      => "an instance of a nonterminal"
+      case IntegralNumber   => "an integral Number"
     })
 
   // operators for binary conditions

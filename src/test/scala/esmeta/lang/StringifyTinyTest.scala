@@ -425,6 +425,8 @@ class StringifyTinyTest extends LangTest {
       PredicateCondition(refExpr, false, PredicateCondition.Op.ArrayIndex)
     lazy val nonNegativeCond =
       PredicateCondition(refExpr, false, PredicateCondition.Op.NonNegative)
+    lazy val integralCond =
+      PredicateCondition(refExpr, false, PredicateCondition.Op.IntegralNumber)
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
       IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
@@ -456,6 +458,7 @@ class StringifyTinyTest extends LangTest {
       strictCond -> "_x_ is strict mode code",
       arrayIndexCond -> "_x_ is an array index",
       nonNegativeCond -> "_x_ is a non-negative integral Number",
+      integralCond -> "_x_ is an integral Number",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",
       isEitherCond -> "_x_ is either *true* or *false*",

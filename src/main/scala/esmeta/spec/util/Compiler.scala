@@ -737,7 +737,7 @@ class Compiler(val spec: Spec) {
           is(lv, zero)
         case StrictMode  => T // XXX assume strict mode
         case ArrayIndex  => EIsArrayIndex(x)
-        case NonNegative => not(lessThan(x, ENumber(0.0f)))
+        case NonNegative => and(not(lessThan(x, ENumber(0.0f))), isIntegral(x))
         case FalseToken  => is(ESourceText(x), EStr("false"))
         case TrueToken   => is(ESourceText(x), EStr("true"))
         case DataProperty =>
@@ -755,6 +755,7 @@ class Compiler(val spec: Spec) {
           or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
         case Nonterminal =>
           ETypeCheck(x, IRType("Nonterminal"))
+        case IntegralNumber => isIntegral(x)
       }
       if (neg) not(cond) else cond
     case IsAreCondition(left, neg, right) =>
@@ -866,11 +867,15 @@ class Compiler(val spec: Spec) {
   private val F = EBool(false)
 
   // operation helpers
-  private inline def isAbsent(expr: Expr) = EBinary(BOp.Eq, expr, EAbsent)
+  private inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
+  private inline def isIntegral(x: Expr) =
+    val m = EConvert(COp.ToMath, x)
+    and(ETypeCheck(x, IRType("Number")), is(m, floor(m)))
   private def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
     case _                     => EUnary(UOp.Not, expr)
+  private inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
   private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
   private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
