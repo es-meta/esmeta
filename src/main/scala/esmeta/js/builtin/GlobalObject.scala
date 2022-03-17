@@ -20,8 +20,8 @@ case class GlobalObject(cfg: CFG) {
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {
     var nmap = List(
+      // NOTE: globalThis is added in SetDefaultGlobalBindings
       "print" -> DataProperty(intrAddr("print"), T, F, T),
-      // TODO "globalThis" -> DataProperty(NamedAddr("GLOBAL"), T, F, T),
       "Infinity" -> DataProperty(Number(Double.PositiveInfinity), F, F, F),
       "NaN" -> DataProperty(Number(Double.NaN), F, F, F),
       "undefined" -> DataProperty(Undef, F, F, F),
