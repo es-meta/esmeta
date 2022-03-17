@@ -138,7 +138,7 @@ trait Parsers extends IndentParsers {
 
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
-    "throw" ~> expr <~ end ^^ { ThrowStep(_) }
+    "throw" ~> errObjLiteral <~ end ^^ { ThrowStep(_) }
 
   // perform steps
   lazy val performStep: PL[PerformStep] =
