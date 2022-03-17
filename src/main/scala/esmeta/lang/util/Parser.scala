@@ -704,32 +704,12 @@ trait Parsers extends IndentParsers {
       (opt("both") ~> expr) ~ ("and" ~> expr) <~ guard("are") ^^ {
         case e0 ~ e1 => List(e0, e1)
       } |
-      // IsLessThan
-      (expr <~ "or") ~ (expr <~ guard("is")) ^^ {
-        case e0 ~ e1 => List(e0, e1)
-      } |
       expr <~ guard("is") ^^ { List(_) }
 
-    lazy val are = "are" ~ opt("both")
-    lazy val neg: P[Boolean] =
-      isNeg | are ~ "not" ^^! { true } | are ^^! { false }
+    lazy val neg: P[Boolean] = isNeg | areNeg
+    lazy val right: P[Boolean ~ List[Expression]] = either(neg, expr)
 
-    lazy val right: P[Boolean ~ List[Expression]] =
-      either(neg, expr) |||
-      // SameValue
-      (neg <~ "different from") ~ expr ^^ {
-        case n ~ e => new ~(!n, List(e))
-      } |||
-      // SameValueNonNumeric, GeneratorValidate
-      (neg <~ "the same" ~ opt(opt(ty) ~ "value") ~ "as") ~ expr ^^ {
-        case n ~ e => new ~(n, List(e))
-      }
-
-    left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) } |||
-    // SameValueNonNumeric
-    expr ~ ("and" ~> expr) ~ neg <~ "the same" ~ opt(ty) ~ "value" ^^ {
-      case l ~ r ~ n => IsAreCondition(List(l), n, List(r))
-    }
+    left ~ right ^^ { case l ~ (n ~ r) => IsAreCondition(l, n, r) }
 
   // binary conditions
   lazy val binCond: PL[BinaryCondition] =
@@ -787,6 +767,18 @@ trait Parsers extends IndentParsers {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements" ^^ {
       case r => PredicateCondition(r, false, PredicateCondition.Op.Empty)
+    } |
+    // ArraySpeciesCreate, SameValueNonNumeric
+    expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(ty) ~ opt("value") ^^ {
+      case l ~ r ~ n => IsAreCondition(List(l), n, List(r))
+    } |
+    // SameValueNonNumeric, GeneratorValidate
+    expr ~ (isNeg <~ ("the same" ~ opt(ty) ~ opt("value") ~ "as")) ~ expr ^^ {
+      case l ~ n ~ r => IsAreCondition(List(l), n, List(r))
+    } |
+    // SameValue
+    expr ~ (isNeg <~ "different from" ^^ { !_ }) ~ expr ^^ {
+      case l ~ n ~ r => IsAreCondition(List(l), n, List(r))
     }
 
   // ---------------------------------------------------------------------------
@@ -944,9 +936,13 @@ trait Parsers extends IndentParsers {
   private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(hasNeg, p)
   private def isNeg: Parser[Boolean] =
-    "is not" ^^! { true } | "is" ^^! { false }
+    "is not" ^^! { true } | "is" ^^^ { false }
+  private def areNeg: Parser[Boolean] =
+    ("are both not" | "are not") ^^^ { true } | ("are both" | "are") ^^^ {
+      false
+    }
   private def hasNeg: Parser[Boolean] =
-    "does not have" ^^! { true } | "has" ^^! { false }
+    "does not have" ^^^ { true } | "has" ^^^ { false }
 
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
