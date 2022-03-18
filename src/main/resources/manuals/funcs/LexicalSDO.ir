@@ -1,4 +1,0 @@
-def LexicalSDO(this: Any): Any {
-  // TODO remove this
-  return result
-}

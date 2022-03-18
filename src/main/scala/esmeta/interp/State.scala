@@ -57,91 +57,78 @@ case class State(
     case v             => throw InvalidRefBase(v)
   def apply(ast: Ast, prop: PureValue): PureValue =
     ast match
-      case Syntactic(name, _, rhsIdx, children) =>
+      case syn: Syntactic =>
         prop match
-          // access to parent
-          case Str("parent") => ast.parent.map(AstValue(_)).getOrElse(Absent)
-          // TODO refactor
-          // access to children
-          case Str("children") => allocList(children.flatten.map(AstValue(_)))
-          // access to SDO
-          case Str(propStr) if ast.isInstanceOf[Syntactic] =>
-            cfg.getSDO((ast, propStr)) match
-              case Some((ast0, sdo)) =>
-                Clo(sdo, Map(NAME_THIS -> AstValue(ast0)))
-              // TODO refactor
-              case None if propStr == "Contains" =>
-                Clo(
-                  cfg.fnameMap("<DEFAULT>.Contains"),
-                  Map(NAME_THIS -> AstValue(ast)),
-                )
-              // TODO refactor
-              case None if propStr == "AllPrivateIdentifiersValid" =>
-                Clo(
-                  cfg.fnameMap("<DEFAULT>.AllPrivateIdentifiersValid"),
-                  Map(NAME_THIS -> AstValue(ast)),
-                )
-              case None =>
-                // access to child
-                val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-                rhs.getNtIndex(propStr).flatMap(children(_)) match
-                  case Some(child) => AstValue(child)
-                  case _           => throw InvalidAstProp(ast, prop)
-          // access to child
+          case Str("parent") =>
+            syn.parent.map(AstValue(_)).getOrElse(Absent)
+          case Str("children") =>
+            allocList(syn.children.flatten.map(AstValue(_)))
+          case Str(propStr) =>
+            apply(syn, propStr)
           case Math(n) if n.isValidInt =>
-            children(n.toInt) match
+            syn.children(n.toInt) match
               case Some(child) => AstValue(child)
               case None        => Absent
           case _ => throw InvalidAstProp(ast, prop)
-      case Lexical(name, str) =>
-        val propStr = prop match
-          case Str(s) => s
-          case _      => throw InvalidAstProp(ast, prop)
-        // access to parent
+      case lex: Lexical =>
+        val propStr = prop.asStr
         if (propStr == "parent") ast.parent.map(AstValue(_)).getOrElse(Absent)
-        else {
-          // access to SDO
-          // TODO
-          val result = (name, propStr) match {
-            case (
-                  "IdentifierName \\ (ReservedWord)" | "IdentifierName",
-                  "StringValue",
-                ) =>
-              Str(ESValueParser.parseIdentifier(str))
-            // TODO handle numeric seperator in ESValueParser
-            case ("NumericLiteral", "MV" | "NumericValue") =>
-              ESValueParser.parseNumber(str.replaceAll("_", ""))
-            case ("StringLiteral", "SV" | "StringValue") =>
-              Str(ESValueParser.parseString(str))
-            case ("NoSubstitutionTemplate", "TV") =>
-              Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
-            case ("TemplateHead", "TV") =>
-              Str(ESValueParser.parseTVTemplateHead(str))
-            case ("TemplateMiddle", "TV") =>
-              Str(ESValueParser.parseTVTemplateMiddle(str))
-            case ("TemplateTail", "TV") =>
-              Str(ESValueParser.parseTVTemplateTail(str))
-            case ("NoSubstitutionTemplate", "TRV") =>
-              Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
-            case ("TemplateHead", "TRV") =>
-              Str(ESValueParser.parseTRVTemplateHead(str))
-            case ("TemplateMiddle", "TRV") =>
-              Str(ESValueParser.parseTRVTemplateMiddle(str))
-            case ("TemplateTail", "TRV") =>
-              Str(ESValueParser.parseTRVTemplateTail(str))
-            case (_, "Contains") => Bool(false)
-            case ("RegularExpressionLiteral", name) =>
-              throw NotSupported(s"RegularExpressionLiteral.$propStr")
-            case _ => error(s"invalid Lexical access: $name.$propStr")
-          }
-          Clo(cfg.fnameMap("LexicalSDO"), Map(Name("result") -> result))
-        }
+        else throw LexicalCalled(apply(lex, propStr))
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(BigDecimal.exact(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, prop)
   def apply(addr: Addr): Obj = heap(addr)
+
+  /** syntactic SDO */
+  case class SyntacticCalled(ast: Ast, sdo: Func) extends Throwable
+  def apply(syn: Syntactic, propStr: String): PureValue =
+    cfg.getSDO((syn, propStr)) match
+      case Some((ast0, sdo)) => throw SyntacticCalled(ast0, sdo)
+      case None => // XXX access to child -> handle this in compiler?
+        val Syntactic(name, _, rhsIdx, children) = syn
+        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+        rhs.getNtIndex(propStr).flatMap(children(_)) match
+          case Some(child) => AstValue(child)
+          case _           => throw InvalidAstProp(syn, Str(propStr))
+
+  /** lexical SDO */
+  case class LexicalCalled(value: PureValue) extends Throwable
+  def apply(lex: Lexical, sdoName: String): PureValue =
+    val Lexical(name, str) = lex
+    (name, sdoName) match {
+      case (
+            "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+            "StringValue",
+          ) =>
+        Str(ESValueParser.parseIdentifier(str))
+      // TODO handle numeric seperator in ESValueParser
+      case ("NumericLiteral", "MV" | "NumericValue") =>
+        ESValueParser.parseNumber(str.replaceAll("_", ""))
+      case ("StringLiteral", "SV" | "StringValue") =>
+        Str(ESValueParser.parseString(str))
+      case ("NoSubstitutionTemplate", "TV") =>
+        Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
+      case ("TemplateHead", "TV") =>
+        Str(ESValueParser.parseTVTemplateHead(str))
+      case ("TemplateMiddle", "TV") =>
+        Str(ESValueParser.parseTVTemplateMiddle(str))
+      case ("TemplateTail", "TV") =>
+        Str(ESValueParser.parseTVTemplateTail(str))
+      case ("NoSubstitutionTemplate", "TRV") =>
+        Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
+      case ("TemplateHead", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateHead(str))
+      case ("TemplateMiddle", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateMiddle(str))
+      case ("TemplateTail", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateTail(str))
+      case (_, "Contains") => Bool(false)
+      case ("RegularExpressionLiteral", name) =>
+        throw NotSupported(s"RegularExpressionLiteral.$sdoName")
+      case _ => error(s"invalid Lexical access: $name.$sdoName")
+    }
 
   /** setters */
   def define(x: Id, value: Value): this.type = x match

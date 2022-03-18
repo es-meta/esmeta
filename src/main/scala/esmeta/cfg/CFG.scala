@@ -50,15 +50,24 @@ case class CFG(
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
 
+  /** sdo with default case */
+  private val defaultCases = List(
+    "Contains",
+    "AllPrivateIdentifiersValid",
+  )
+
   /** get syntax-directed operation(SDO) */
-  // TODO refactor
   val getSDO = cached[(js.Ast, String), Option[(js.Ast, Func)]] {
     case (ast, operation) =>
       ast.chains.foldLeft[Option[(js.Ast, Func)]](None) {
         case (None, ast0) =>
           val subIdx = grammar.getSubIdx(ast0)
           val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname).map((ast0, _))
+          fnameMap.get(fname) match
+            case Some(sdo) => Some(ast0, sdo)
+            case None if defaultCases contains operation =>
+              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
+            case _ => None
         case (res: Some[_], _) => res
       }
   }

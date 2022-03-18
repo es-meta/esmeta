@@ -141,21 +141,32 @@ class Interp(
     lhs: Id,
     fexpr: Expr,
     args: List[Expr],
-  ): Unit = interp(fexpr).escaped match {
-    case Clo(func, captured) =>
-      val vs = args.map(interp)
-      val newLocals = getLocals(func.irFunc.params, vs) ++ captured
-      st.callStack ::= CallContext(lhs, st.context)
-      st.context = Context(func, newLocals)
-    case Cont(func, captured, callStack) => {
-      // wrap completion for return to resumed context
-      val vs = args.map(interp).map(_.wrapCompletion)
-      val newLocals =
-        getLocals(func.irFunc.params, vs, cont = true) ++ captured
-      st.callStack = callStack.map(_.copied)
-      st.context = Context(func, newLocals)
+  ): Unit = try {
+    interp(fexpr).escaped match {
+      case Clo(func, captured) =>
+        val vs = args.map(interp)
+        val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+        st.callStack ::= CallContext(lhs, st.context)
+        st.context = Context(func, newLocals)
+      case Cont(func, captured, callStack) => {
+        // wrap completion for return to resumed context
+        val vs = args.map(interp).map(_.wrapCompletion)
+        val newLocals =
+          getLocals(func.irFunc.params, vs, cont = true) ++ captured
+        st.callStack = callStack.map(_.copied)
+        st.context = Context(func, newLocals)
+      }
+      case v => throw NoFunc(fexpr, v)
     }
-    case v => throw NoFunc(fexpr, v)
+  } catch {
+    case st.SyntacticCalled(ast, sdo) =>
+      val vs = args.map(interp) match
+        case h :: tail => AstValue(ast) :: tail // fix this param
+        case _         => error("invalid SDO call")
+      st.callStack ::= CallContext(lhs, st.context)
+      st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
+    case st.LexicalCalled(v) =>
+      st.define(lhs, v.wrapCompletion)
   }
 
   /** transition for expresssions */
@@ -189,9 +200,8 @@ class Interp(
           (syn.toString(grammar = Some(grammar)), syn.args)
         case AstValue(lex: Lexical) => (lex.str, List())
         case v                      => throw InvalidParseSource(code, v)
-      val r = interp(rule).escaped
       try {
-        (str, r, st.sourceText, st.cachedAst) match
+        (str, interp(rule).escaped, st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
           case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
             AstValue(ast)
@@ -199,7 +209,7 @@ class Interp(
             AstValue(
               jsParser(name, if (params.isEmpty) args else params).from(x),
             )
-          case _ => throw NoGrammar(rule, r)
+          case (_, r, _, _) => throw NoGrammar(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
