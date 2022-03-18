@@ -253,6 +253,7 @@ class Interp(
       import COp.*
       (interp(expr).escaped, cop) match {
         case (Math(n), ToNumber)   => Number(n.toDouble)
+        case (Math(n), ToBigInt)   => BigInt(n.toBigInt)
         case (Str(s), ToNumber)    => Number(ESValueParser.str2Number(s))
         case (Str(s), ToBigInt)    => ESValueParser.str2bigint(s)
         case (POS_INF, ToMath)     => POS_INF
@@ -502,13 +503,6 @@ object Interp {
       case (Mod, Number(l), Number(r))  => Number(l % r)
       case (UMod, Number(l), Number(r)) => Number(l %% r)
       case (Lt, Number(l), Number(r))   => Bool(l < r)
-
-      // XXX string operations
-      // case (Concat, Str(l), Str(r)) => Str(l + r)
-      // case (Plus, Str(l), Number(r)) =>
-      //   Str(l + Character.toChars(r.toInt).mkString(""))
-      // case (Sub, Str(l), Math(r)) => Str(l.dropRight(r.toInt))
-      // case (StrLt, Str(l), Str(r)) => Bool(l < r)
 
       // mathematical value operations
       case (Plus, Math(l), Math(r)) => Math(l + r)

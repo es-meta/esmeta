@@ -104,5 +104,6 @@
   "[YET] Assert: If _direct_ is *false*, then _strictCaller_ is also *false*.": "assert true",
   "[YET] If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
   "[YET] Assert: The following loop will terminate.": "assert true",
-  "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true"
+  "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true",
+  "[YET] Return the BigInt value that represents the negation of ℝ(_x_).": "return ([bigint] (- ([math] x)))"
 }
