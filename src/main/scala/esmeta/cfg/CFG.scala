@@ -51,6 +51,7 @@ case class CFG(
   def grammar: Grammar = spec.grammar
 
   /** sdo with default case */
+  // TODO automate
   private val defaultCases = List(
     "Contains",
     "AllPrivateIdentifiersValid",
