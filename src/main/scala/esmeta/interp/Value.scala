@@ -58,7 +58,7 @@ sealed trait Value extends InterpElem {
 /** completion values */
 case class Comp(
   ty: Const,
-  value: PureValue,
+  var value: PureValue, // XXX YieldExpression[2,0].Evaluation
   target: Option[String],
 ) extends Value {
   def targetValue: PureValue = target.fold[PureValue](CONST_EMPTY)(Str(_))

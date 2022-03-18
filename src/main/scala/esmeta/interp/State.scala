@@ -168,10 +168,13 @@ case class State(
   def update(refV: RefValue, value: Value): this.type = refV match {
     case IdValue(x) => update(x, value); this
     case PropValue(base, prop) =>
-      base.escaped match {
-        case addr: Addr => update(addr, prop, value); this
-        case _          => error(s"illegal reference update: $refV = $value")
-      }
+      base match
+        case comp: Comp if comp.isAbruptCompletion && prop.asStr == "Value" =>
+          comp.value = value.escaped; this
+        case v =>
+          v.escaped match
+            case addr: Addr => update(addr, prop, value); this
+            case _ => error(s"illegal reference update: $refV = $value")
   }
   def update(x: Id, value: Value): this.type =
     x match
