@@ -12,6 +12,9 @@ import esmeta.util.BasicParsers
 import scala.runtime.ScalaRunTime
 
 trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
+  // set test mode
+  TEST_MODE = true
+
   // results
   trait Result
   case object Pass extends Result

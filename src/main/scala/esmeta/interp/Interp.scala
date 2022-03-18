@@ -129,10 +129,9 @@ class Interp(
         case Bool(true) =>
         case v          => throw AssertionFail(expr)
       }
-    case IPrint(expr) => {
+    case IPrint(expr) =>
       val v = interp(expr)
-      println(st.getString(v))
-    }
+      if (!TEST_MODE) println(st.getString(v))
     case INop() => /* do nothing */
   }
 
