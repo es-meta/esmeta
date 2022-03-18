@@ -786,6 +786,15 @@ trait Parsers extends IndentParsers {
     // SameValue
     expr ~ (isNeg <~ "different from" ^^ { !_ }) ~ expr ^^ {
       case l ~ n ~ r => IsAreCondition(List(l), n, List(r))
+    } |
+    // IsLessThan
+    (variable <~ "or") ~ variable ~ isNeg ~ literal ^^ {
+      case v0 ~ v1 ~ n ~ e =>
+        CompoundCondition(
+          IsAreCondition(List(getRefExpr(v0)), n, List(e)),
+          CompoundCondition.Op.Or,
+          IsAreCondition(List(getRefExpr(v1)), n, List(e)),
+        )
     }
 
   // ---------------------------------------------------------------------------
@@ -945,9 +954,8 @@ trait Parsers extends IndentParsers {
   private def isNeg: Parser[Boolean] =
     "is not" ^^! { true } | "is" ^^^ { false }
   private def areNeg: Parser[Boolean] =
-    ("are both not" | "are not") ^^^ { true } | ("are both" | "are") ^^^ {
-      false
-    }
+    ("are both not" | "are not") ^^^ { true } |
+    ("are both" | "are") ^^^ { false }
   private def hasNeg: Parser[Boolean] =
     "does not have" ^^^ { true } | "has" ^^^ { false }
 
