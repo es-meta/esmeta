@@ -298,6 +298,7 @@ object TestFilter {
     "built-ins/Object/entries/tamper-with-global-object",
     "built-ins/Object/values/tamper-with-global-object",
     "language/statements/variable/12.2.1-17-s",
+    "language/literals/numeric/7.8.3-3gs",
   )
 
   /** manually filtered out tests for EarlyErorr */

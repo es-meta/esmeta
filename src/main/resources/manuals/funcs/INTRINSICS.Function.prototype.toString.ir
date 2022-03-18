@@ -9,7 +9,7 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(this: Any, argumentsList: A
 
   // 1. If _func_ is a <emu-xref href=\"#sec-built-in-function-objects\">built-in function object</emu-xref>, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|. Additionally, if _func_ has an [[InitialName]] internal slot and _func_.[[InitialName]] is a String, the portion of the returned String that would be matched by |NativeFunctionAccessor?| |PropertyName| must be the value of _func_.[[InitialName]].
   if (? func: BuiltinFunctionObject) {
-    return (+ (+ "function " func.InitialName) "() { [native code] }")
+    return (concat "function " func.InitialName "() { [native code] }")
   } else {}
 
   // 1. If Type(_func_) is Object and IsCallable(_func_) is *true*, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|.
