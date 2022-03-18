@@ -255,11 +255,7 @@ class Interp(
         case (Math(n), ToNumber) => Number(n.toDouble)
         case (Math(n), ToBigInt) => BigInt(n.toBigInt)
         case (Str(s), ToNumber)  => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt) =>
-          ESValueParser.str2bigint(s) match
-            case b: BigInt            => b
-            case Number(d) if d.isNaN => Undef
-            case v                    => throw InvalidConversion(cop, expr, v)
+        case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (POS_INF, ToMath) => POS_INF
         case (NEG_INF, ToMath) => NEG_INF
         case (Number(d), ToMath) => Math(BigDecimal.exact(d))

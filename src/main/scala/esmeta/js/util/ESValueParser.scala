@@ -44,7 +44,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
   def str2bigint(str: String): LiteralValue =
     parseAll(BigIntMV.StringNumericLiteralForBigInt, str) match {
       case Success(b, _) => BigIntV(b)
-      case _             => Number(Double.NaN)
+      case _             => Undef
     }
   private def get[T](name: String, rule: Parser[T], str: String): T =
     parseAll(rule, str) match {
