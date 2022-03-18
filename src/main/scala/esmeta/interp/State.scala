@@ -84,7 +84,7 @@ case class State(
   /** syntactic SDO */
   case class SyntacticCalled(ast: Ast, sdo: Func) extends Throwable
   def apply(syn: Syntactic, propStr: String): PureValue =
-    cfg.getSDO((syn, propStr)) match
+    getSDO((syn, propStr)) match
       case Some((ast0, sdo)) => throw SyntacticCalled(ast0, sdo)
       case None => // XXX access to child -> handle this in compiler?
         val Syntactic(name, _, rhsIdx, children) = syn
@@ -92,6 +92,37 @@ case class State(
         rhs.getNtIndex(propStr).flatMap(children(_)) match
           case Some(child) => AstValue(child)
           case _           => throw InvalidAstProp(syn, Str(propStr))
+
+  /** get syntax-directed operation(SDO) */
+  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+    case (ast, operation) =>
+      val fnameMap = cfg.fnameMap
+      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
+        case (None, ast0) =>
+          val subIdx = getSubIdx(ast0)
+          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
+          fnameMap.get(fname) match
+            case Some(sdo) => Some(ast0, sdo)
+            case None if State.defaultCases contains operation =>
+              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
+            case _ => None
+        case (res: Some[_], _) => res
+      }
+  }
+
+  /** get sub index of parsed Ast */
+  private val getSubIdx = cached[Ast, Int] {
+    case lex: Lexical => 0
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
+  }
 
   /** lexical SDO */
   case class LexicalCalled(value: PureValue) extends Throwable
@@ -213,4 +244,11 @@ object State {
 
   /** initialize states with a CFG */
   def apply(cfg: CFG): State = State(cfg, Context(cfg.main))
+
+  /** sdo with default case */
+  // TODO automate
+  private val defaultCases = List(
+    "Contains",
+    "AllPrivateIdentifiersValid",
+  )
 }
