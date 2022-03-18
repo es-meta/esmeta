@@ -251,15 +251,15 @@ class Interp(
     case EConvert(cop, expr) =>
       import COp.*
       (interp(expr).escaped, cop) match {
-        case (Math(n), ToNumber) => Number(n.toDouble)
-        case (Math(n), ToBigInt) => BigInt(n.toBigInt)
-        case (Str(s), ToNumber)  => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt)  => ESValueParser.str2bigint(s)
-        case (POS_INF, ToMath) | (POS_INF, ToNumber) => POS_INF
-        case (NEG_INF, ToMath) | (NEG_INF, ToNumber) => NEG_INF
-        case (Number(d), ToMath)   => Math(BigDecimal.exact(d))
-        case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
-        case (BigInt(n), ToMath)   => Math(BigDecimal.exact(n))
+        case (Math(n), ToNumber)          => Number(n.toDouble)
+        case (Math(n), ToBigInt)          => BigInt(n.toBigInt)
+        case (Str(s), ToNumber)           => Number(ESValueParser.str2Number(s))
+        case (Str(s), ToBigInt)           => ESValueParser.str2bigint(s)
+        case (POS_INF, ToMath | ToNumber) => POS_INF
+        case (NEG_INF, ToMath | ToNumber) => NEG_INF
+        case (Number(d), ToMath)          => Math(BigDecimal.exact(d))
+        case (CodeUnit(c), ToMath)        => Math(BigDecimal.exact(c.toInt))
+        case (BigInt(n), ToMath)          => Math(BigDecimal.exact(n))
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
           Str(toStringHelper(d, radix))
@@ -501,7 +501,9 @@ object Interp {
       case (Div, Number(l), Number(r))  => Number(l / r)
       case (Mod, Number(l), Number(r))  => Number(l % r)
       case (UMod, Number(l), Number(r)) => Number(l %% r)
-      case (Lt, Number(l), Number(r))   => Bool(l < r)
+      case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
+        Bool(true)
+      case (Lt, Number(l), Number(r)) => Bool(l < r)
 
       // mathematical value operations
       case (Plus, Math(l), Math(r)) => Math(l + r)
