@@ -3,7 +3,7 @@ def <BUILTIN>:INTRINSICS.ReferenceError(this: Any, argumentsList: Any, NewTarget
   if (< 0 argumentsList.length) let options = (pop < argumentsList) else let options = absent
   %0 = (= NewTarget undefined)
   if %0 {
-    let newTarget = @CONTEXT.Function
+    let newTarget = @EXECUTION_STACK[0].Function
   } else {
     let newTarget = NewTarget
   }

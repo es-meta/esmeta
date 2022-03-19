@@ -1,9 +1,8 @@
 @main def RunJobs() {
   call %0 = clo<InitializeHostDefinedRealm>()
-  call %1 = clo<HostEnqueuePromiseJob>(clo<ScriptEvaluationJob>, @CONTEXT.Realm)
+  call %1 = clo<HostEnqueuePromiseJob>(clo<ScriptEvaluationJob>, @EXECUTION_STACK[0].Realm)
   loop[repeat] (! (= @JOB_QUEUE.length 0)) {
     // clean the execution context
-    @CONTEXT = null
     (pop > @EXECUTION_STACK)
     assert (= @EXECUTION_STACK.length 0)
     
@@ -11,12 +10,11 @@
     let jobRecord = (pop < @JOB_QUEUE)
 
     // initialize the execution context
-    // TODO SubMap of ExecutionContext
-    @CONTEXT = (new ExecutionContext())
-    @CONTEXT.Function = null
-    @CONTEXT.Realm = jobRecord.Realm
-    @CONTEXT.ScriptOrModule = jobRecord.ScriptOrModule
-    push @CONTEXT > @EXECUTION_STACK
+    let context = (new ExecutionContext())
+    context.Function = null
+    context.Realm = jobRecord.Realm
+    context.ScriptOrModule = jobRecord.ScriptOrModule
+    push context > @EXECUTION_STACK
     call result = jobRecord.Job()
     [? result]
   }

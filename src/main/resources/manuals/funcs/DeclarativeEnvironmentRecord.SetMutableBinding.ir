@@ -5,7 +5,7 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnv
   if (= binding absent) {
     // 1. If _S_ is *true*, throw a *ReferenceError* exception.
     if (= S true) {
-      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%ReferenceError.prototype%"], "ErrorData" -> undefined)))
+      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%ReferenceError.prototype%"], "ErrorData" -> undefined)))
     } else {}
 
     // 1. Perform _envRec_.CreateMutableBinding(_N_, *true*).
@@ -24,7 +24,7 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnv
 
   // 1. If the binding for _N_ in _envRec_ has not yet been initialized, throw a *ReferenceError* exception.
   if (! binding.initialized) {
-    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%ReferenceError.prototype%"], "ErrorData" -> undefined)))
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%ReferenceError.prototype%"], "ErrorData" -> undefined)))
   } 
   // 1. Else if the binding for _N_ in _envRec_ is a mutable binding, change its bound value to _V_.
   else if (? binding: MutableBinding) {
@@ -37,7 +37,7 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnv
 
     // 1. If _S_ is *true*, throw a *TypeError* exception.
     if (= S true) {
-      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @CONTEXT.Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
+      return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
     } else {}
   }
 

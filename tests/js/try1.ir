@@ -1,4 +1,4 @@
-let realm = @CONTEXT.Realm
+let realm = @REALM
 let varNames = realm.GlobalEnv.VarNames
 let map = realm.GlobalObject.SubMap
 assert (contains varNames "x")

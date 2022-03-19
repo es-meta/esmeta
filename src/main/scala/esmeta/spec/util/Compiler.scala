@@ -416,10 +416,7 @@ class Compiler(val spec: Spec) {
         ),
       )
     case PushCtxtStep(ref) =>
-      fb.addInst(
-        IAssign(GLOBAL_CONTEXT, ERef(compile(fb, ref))),
-      )
-      fb.addInst(IPush(EGLOBAL_CONTEXT, EGLOBAL_EXECUTION_STACK, true))
+      fb.addInst(IPush(ERef(compile(fb, ref)), EGLOBAL_EXECUTION_STACK, true))
     case NoteStep(note) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, false) =>

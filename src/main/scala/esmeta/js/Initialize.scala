@@ -34,7 +34,6 @@ class Initialize(
 
   // initial globals
   private lazy val initGlobal: MMap[Global, Value] = MMap(
-    CONTEXT -> Null,
     SOURCE_TEXT -> Str(sourceText),
     EXECUTION_STACK -> NamedAddr(EXECUTION_STACK),
     HOST_DEFINED -> Undef,

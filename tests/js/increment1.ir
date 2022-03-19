@@ -1,5 +1,5 @@
-let varNames = @CONTEXT.Realm.GlobalEnv.VarNames
-let map = @CONTEXT.Realm.GlobalObject.SubMap
+let varNames = @REALM.GlobalEnv.VarNames
+let map = @REALM.GlobalObject.SubMap
 let x = map.x
 let y = map.y
 

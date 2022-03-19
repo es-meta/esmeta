@@ -1,2 +1,2 @@
-assert (= @CONTEXT.Realm.GlobalObject.SubMap.pi.Value 2.0f)
-assert (= @CONTEXT.Realm.GlobalObject.SubMap.i.Value.PromiseResult 2.0f)
+assert (= @REALM.GlobalObject.SubMap.pi.Value 2.0f)
+assert (= @REALM.GlobalObject.SubMap.i.Value.PromiseResult 2.0f)

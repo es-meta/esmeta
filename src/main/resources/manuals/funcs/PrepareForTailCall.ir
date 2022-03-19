@@ -3,7 +3,6 @@ def PrepareForTailCall(): Unknown {
   assert true
 
   // 1. Discard all resources associated with the current execution context
-  @CONTEXT = null
-  @EXECUTION_STACK[0] = null
+  @EXECUTION_STACK[0] = @EXECUTION_STACK[1]
 }
 

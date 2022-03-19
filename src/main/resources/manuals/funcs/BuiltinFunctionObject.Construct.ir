@@ -1,18 +1,14 @@
 def <INTERNAL>:BuiltinFunctionObject.Construct(F: BuiltinFunctionObject, argumentsList: ListOfECMAScriptLanguageValues, newTarget: Constructor): Unknown {
-  let callerContext = @CONTEXT
-  if false nop else {}
+  let callerContext = @EXECUTION_STACK[0]
+  nop
   let calleeContext = (new ExecutionContext())
   calleeContext.Function = F
   let calleeRealm = F.Realm
   calleeContext.Realm = calleeRealm
   calleeContext.ScriptOrModule = null
   nop
-  @CONTEXT = calleeContext
-  push @CONTEXT > @EXECUTION_STACK
+  push calleeContext > @EXECUTION_STACK
   call result = F.Code(undefined, argumentsList, newTarget) // uninitialized == undefined ?
-  {
-    (pop < @EXECUTION_STACK)
-    @CONTEXT = callerContext
-  }
+  remove-elem @EXECUTION_STACK calleeContext
   return result
 }

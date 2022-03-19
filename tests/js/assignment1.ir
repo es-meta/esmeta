@@ -1,4 +1,4 @@
-let map = @CONTEXT.Realm.GlobalObject.SubMap
+let map = @REALM.GlobalObject.SubMap
 assert (= map.a.Value 3.0f)
 assert (= map.b.Value 9.0f)
 assert (= map.c.Value 8.0f)

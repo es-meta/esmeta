@@ -1,4 +1,4 @@
-let map = @CONTEXT.Realm.GlobalObject.SubMap
+let map = @REALM.GlobalObject.SubMap
 assert (= map.a.Value "undefined")
 assert (= map.b.Value "object")
 assert (= map.c.Value "boolean")

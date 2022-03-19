@@ -1,2 +1,2 @@
-let map = @CONTEXT.Realm.GlobalObject.SubMap
+let map = @REALM.GlobalObject.SubMap
 assert (= map.x.Value "true!!")
