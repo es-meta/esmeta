@@ -428,6 +428,8 @@ object TestFilter {
     "language/statements/try/tco-catch-finally",
     "language/statements/try/tco-finally",
     "language/statements/while/tco-body",
+    "language/expressions/coalesce/tco-pos-null",
+    "language/expressions/coalesce/tco-pos-undefined",
     "language/types/number/8.5.1",
   )
 
