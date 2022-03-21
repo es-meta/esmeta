@@ -19,7 +19,7 @@ _esmeta_completions() {
   buildcfgOpt="-build-cfg:dot -build-cfg:pdf"
   irevalOpt=""
   jsparseOpt=""
-  jsevalOpt=""
+  jsevalOpt="-js-eval:test262"
   filtertest262Opt=""
   # completion for commands
   case "${COMP_CWORD}" in
