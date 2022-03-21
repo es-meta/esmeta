@@ -20,6 +20,9 @@ ThisBuild / javacOptions ++= Seq(
 // automatic reload build.sbt
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+// basic
+lazy val basicTest = taskKey[Unit]("Launch basic tests")
+
 // size
 lazy val tinyTest = taskKey[Unit]("Launch tiny tests (maybe milliseconds)")
 lazy val smallTest = taskKey[Unit]("Launch small tests (maybe seconds)")
@@ -97,15 +100,15 @@ lazy val root = project
 
     /** tasks for tests */
     // basic tests
-    test := (Test / testOnly)
+    basicTest := (Test / testOnly)
       .toTask(
         List(
           "*TinyTest",
           "*SmallTest",
         ).mkString(" ", " ", ""),
       )
-      .dependsOn(format)
       .value,
+    test := basicTest.dependsOn(format).value,
     // size
     tinyTest := (Test / testOnly).toTask(" *TinyTest").value,
     smallTest := (Test / testOnly).toTask(" *SmallTest").value,
