@@ -27,7 +27,6 @@ case class ProgressBar[T](msg: String, seq: Iterable[T]) {
   // foreach function
   def foreach(f: T => Unit): Unit = {
     var gcount = 0
-    var prev = 0
     val start = System.currentTimeMillis
     def updateTime: Unit = summary.timeMillis = System.currentTimeMillis - start
     def show: Future[Unit] = Future {
@@ -38,8 +37,7 @@ case class ProgressBar[T](msg: String, seq: Iterable[T]) {
       updateTime
       val msg =
         f"[$progress] $percent%2.2f%% ($count%,d/$size%,d)$postfix (${summary.timeMillis}%,d ms ~= ${summary.timeHours}%.1f hours)"
-      print("\b" * prev + msg)
-      prev = msg.length
+      print("\r" + msg)
       if (count != size) { Thread.sleep(term); show }
       else println
     }
