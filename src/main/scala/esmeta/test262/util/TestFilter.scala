@@ -353,7 +353,7 @@ object TestFilter {
     "language/statements/with/12.10.1-7-s",
     "built-ins/AsyncGeneratorFunction/instance-await-expr-in-param",
     "built-ins/AsyncGeneratorFunction/instance-yield-expr-in-param",
-    "built-ins/GeneratorFunction/instance-yield-expr-in-param"
+    "built-ins/GeneratorFunction/instance-yield-expr-in-param",
   )
 
   /** manually filtered out tests for in-progress features */
