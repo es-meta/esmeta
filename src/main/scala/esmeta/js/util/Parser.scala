@@ -128,9 +128,9 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
         else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
       case ButNot(base, cases) =>
-        lazy val parser = getSymbolParser(symbol, argsSet)
         val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
-        prev ~ nt(name, parser) ^^ { case l ~ s => Some(s) :: l }
+        lazy val parser = nt(name, getSymbolParser(symbol, argsSet))
+        prev ~ parser ^^ { case l ~ s => Some(s) :: l }
       case ButOnlyIf(base, methodName, cond) => ???
       case Lookahead(contains, cases) =>
         lazy val parser = cases
