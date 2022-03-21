@@ -48,7 +48,7 @@ class EvalLargeTest extends Test262Test {
       }
     }
     summary.close
-    dumpFile(summary, s"$logDir/parse-summary")
+    dumpFile(summary, s"$logDir/eval-summary")
     if (summary.fail > 0) fail(s"${summary.fail} tests are failed.")
   }
   init
