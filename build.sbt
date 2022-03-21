@@ -104,6 +104,7 @@ lazy val root = project
           "*SmallTest",
         ).mkString(" ", " ", ""),
       )
+      .dependsOn(format)
       .value,
     // size
     tinyTest := (Test / testOnly).toTask(" *TinyTest").value,
@@ -143,8 +144,15 @@ lazy val genCompl = taskKey[Unit]("generate autocompletion file (.completion)")
 genCompl := (root / Compile / runMain).toTask(" esmeta.util.GenCompl").value
 
 // build with genCompl and assembly
-lazy val build = taskKey[Unit]("my test task")
+lazy val build = taskKey[Unit]("build with genCompl and assembly")
 build := {
   genCompl.value
   (root / assembly / assembly).value
+}
+
+// format all files
+lazy val format = taskKey[Unit]("format all files")
+format := {
+  (Compile / scalafmtAll).value
+  (Compile / scalafmtSbt).value
 }
