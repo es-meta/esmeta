@@ -51,20 +51,20 @@ class Builder(program: Program) {
         block.insts += normal
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
-      case IIf(cond, thenInst, elseInst) =>
+      case inst @ IIf(cond, thenInst, elseInst) =>
         val branch = Branch(nextNId, Branch.Kind.If, cond)
-        connect(branch)
+        connect(branch.setInst(inst))
         val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
         val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
         prev = thenPrev ++ elsePrev
-      case ILoop(kind, cond, body) =>
+      case inst @ ILoop(kind, cond, body) =>
         val branch = Branch(nextNId, Branch.Kind.Loop(kind), cond)
-        connect(branch)
+        connect(branch.setInst(inst))
         prev = List((branch, true)); aux(body); connect(branch)
         prev = List((branch, false))
-      case ICall(lhs, fexpr, args) =>
+      case inst @ ICall(lhs, fexpr, args) =>
         val call = Call(nextNId, lhs, fexpr, args)
-        connect(call)
+        connect(call.setInst(inst))
         prev = List((call, true))
     }
     aux(body)

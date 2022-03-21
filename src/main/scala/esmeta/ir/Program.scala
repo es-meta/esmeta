@@ -32,7 +32,7 @@ case class Program(
       func <- funcs
       name = func.name
       filename = s"$baseDir/${name.replace("/", "")}.ir"
-    } dumpFile(func, filename)
+    } dumpFile(func.toString(location = true), filename)
 }
 
 object Program extends Parser.From[Program]

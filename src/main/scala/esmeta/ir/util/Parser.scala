@@ -1,8 +1,9 @@
 package esmeta.ir.util
 
 import esmeta.ir.*
-import esmeta.util.{Locational, BasicParsers}
+import esmeta.lang.Syntax
 import esmeta.util.BaseUtils.*
+import esmeta.util.{Locational, BasicParsers}
 import scala.collection.mutable.ListBuffer
 
 /** IR parser */
@@ -268,6 +269,10 @@ trait Parsers extends BasicParsers {
   }.named("ir.Type")
 
   // helper for locations
-  private def withLoc[T <: Locational](parser: Parser[T]): Parser[T] =
-    parser ~ opt("@" ~> loc) ^^ { case t ~ loc => t.loc = loc; t }
+  private def withLoc(parser: Parser[Inst]): Parser[Inst] =
+    parser ~ opt("@" ~> loc) ^^ {
+      case i ~ l =>
+        i.langOpt = Some(new Syntax { loc = l })
+        i
+    }
 }

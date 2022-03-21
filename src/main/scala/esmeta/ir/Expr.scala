@@ -1,10 +1,10 @@
 package esmeta.ir
 
 import esmeta.ir.util.Parser
-import esmeta.util.{DoubleEquals, Locational}
+import esmeta.util.DoubleEquals
 
 // IR expressions
-sealed trait Expr extends IRElem with Locational
+sealed trait Expr extends IRElem
 object Expr extends Parser.From[Expr]
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr

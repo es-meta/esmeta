@@ -43,7 +43,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // nodes
-  given nodeRule: Rule[Node] = withLoc { (app, node) =>
+  given nodeRule: Rule[Node] = (app, node) =>
     app >> node.id >> ": "
     node match
       case Block(_, insts, next) =>
@@ -51,6 +51,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case ListBuffer(inst) => app >> inst
           case _                => app.wrap(for (inst <- insts) app :> inst)
         next.map(x => app >> " -> " >> x.id)
+      case other: NodeWithInst => app >> other
+    app
+
+  // nodes withs instruction backward edge
+  // TODO handle location option
+  given nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
+    node match
       case Call(_, lhs, fexpr, args, next) =>
         given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
         app >> "call " >> lhs >> " = " >> fexpr >> args
@@ -60,7 +67,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         thenNode.map(x => app >> " then " >> x.id)
         elseNode.map(x => app >> " else " >> x.id)
     app
-  }
 
   // branch kinds
   given branchKindRule: Rule[Branch.Kind] = (app, kind) =>
@@ -69,14 +75,4 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case If        => "if"
       case Loop(str) => s"loop[$str]"
     })
-
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // append locations
-  private def withLoc[T <: Locational](rule: Rule[T]): Rule[T] = (app, elem) =>
-    given Rule[Option[Loc]] = (app, locOpt) =>
-      locOpt.fold(app)(app >> " @ " >> _.toString)
-    rule(app, elem)
-    if (location) app >> elem.loc else app
 }

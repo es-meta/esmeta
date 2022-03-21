@@ -6,7 +6,7 @@ import esmeta.ir.*
 import scala.collection.mutable.{Queue, ListBuffer}
 
 // CFG nodes
-sealed trait Node extends CFGElem with UId with Locational {
+sealed trait Node extends CFGElem with UId {
 
   /** get reachable nodes */
   def reachable: Set[Node] =
@@ -32,6 +32,12 @@ case class Block(
   var next: Option[Node] = None,
 ) extends Node
 
+/** nodes with backward edge to inst */
+sealed trait NodeWithInst extends Node {
+  var inst: Option[Inst] = None
+  def setInst(i: Inst): this.type = { this.inst = Some(i); this }
+}
+
 /** call nodes */
 case class Call(
   id: Int,
@@ -39,7 +45,7 @@ case class Call(
   fexpr: Expr,
   args: List[Expr],
   var next: Option[Node] = None,
-) extends Node
+) extends NodeWithInst
 
 /** branch nodes */
 case class Branch(
@@ -48,7 +54,7 @@ case class Branch(
   cond: Expr,
   var thenNode: Option[Node] = None,
   var elseNode: Option[Node] = None,
-) extends Node
+) extends NodeWithInst
 object Branch:
   enum Kind extends CFGElem:
     case If

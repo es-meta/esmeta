@@ -1,10 +1,15 @@
 package esmeta.ir
 
 import esmeta.ir.util.Parser
-import esmeta.util.Locational
+import esmeta.lang.Syntax
 
 // IR instructions
-sealed trait Inst extends IRElem with Locational
+sealed trait Inst extends IRElem:
+  var langOpt: Option[Syntax] = None
+  def setLang(lang: Syntax): this.type = setLangOpt(Some(lang))
+  def setLangOpt(langOpt: Option[Syntax]): this.type = {
+    this.langOpt = langOpt; this
+  }
 object Inst extends Parser.From[Inst]
 
 // normal instructions

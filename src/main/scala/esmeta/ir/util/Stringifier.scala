@@ -2,6 +2,7 @@ package esmeta.ir.util
 
 import esmeta.LINE_SEP
 import esmeta.ir.*
+import esmeta.lang.Syntax
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -97,7 +98,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expr] = withLoc { (app, expr) =>
+  given exprRule: Rule[Expr] = (app, expr) =>
     expr match
       case EComp(tyExpr, valExpr, tgtExpr) =>
         app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
@@ -154,7 +155,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         allocExprRule(app, expr)
       case expr: LiteralExpr =>
         literalExprRule(app, expr)
-  }
 
   // abstract syntax tree (AST) expressions
   lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
@@ -298,9 +298,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // private helpers
   // ---------------------------------------------------------------------------
   // append locations
-  private def withLoc[T <: Locational](rule: Rule[T]): Rule[T] = (app, elem) =>
-    given Rule[Option[Loc]] = (app, locOpt) =>
-      locOpt.fold(app)(app >> " @ " >> _.toString)
+  private def withLoc(rule: Rule[Inst]): Rule[Inst] = (app, elem) =>
+    given Rule[Option[Syntax]] = (app, langOpt) =>
+      for {
+        lang <- langOpt
+        loc <- lang.loc
+      } app >> " @ " >> loc.toString
+      app
     rule(app, elem)
-    if (location) app >> elem.loc else app
+    if (location) app >> elem.langOpt else app
 }
