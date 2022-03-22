@@ -89,9 +89,10 @@ class Interp(
   }
 
   /** transition for nodes */
+  def move(node: Node)(nextOpt: Option[Node]): Unit = st.context.cursor =
+    nextOpt.fold(ExitCursor(cfg.funcOf(node)))(NodeCursor(_))
   def interp(node: Node): Unit =
-    def moveTo(nodeOpt: Option[Node]): Unit = st.context.cursor =
-      nodeOpt.fold(ExitCursor(cfg.funcOf(node)))(NodeCursor(_))
+    val moveTo = move(node)
     node match {
       case Block(_, insts, next) =>
         for (inst <- insts) interp(inst); moveTo(next)
