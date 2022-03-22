@@ -8,7 +8,7 @@ import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, TEST_MODE, LOG}
+import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -41,21 +41,14 @@ class Interp(
   /** step */
   def step: Boolean =
     try {
-      if (LOG) st.context.cursor match
-        case NodeCursor(node) =>
-          val func = cfg.funcOf(node)
-          val irFunc = func.irFunc
-          println(
-            s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = true)}",
-          )
-        case ExitCursor(func) =>
-          val irFunc = func.irFunc
-          println(s"[${irFunc.kind}${irFunc.name}] Exited")
+      // text-based debugging
+      if (DEBUG) println(st.getCursorString)
 
       // garbage collection
       iter += 1
       if (iter % 100000 == 0) GC(st)
 
+      // interp cursor
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 

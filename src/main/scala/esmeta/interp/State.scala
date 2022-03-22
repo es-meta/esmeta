@@ -232,6 +232,15 @@ case class State(
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
 
+  /** get string for a current cursor */
+  def getCursorString: String = context.cursor match
+    case NodeCursor(node) =>
+      val irFunc = cfg.funcOf(node).irFunc
+      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = true)}"
+    case ExitCursor(func) =>
+      val irFunc = func.irFunc
+      s"[${irFunc.kind}${irFunc.name}] Exited"
+
   /** get string for a given address */
   def getString(value: Value): String = value match {
     case comp: Comp =>
