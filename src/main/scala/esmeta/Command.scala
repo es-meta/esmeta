@@ -75,6 +75,11 @@ case object CmdJSEval extends Command("js-eval", CmdBuildCFG >> JSEval) {
   def help = "evaluates a JavaScript file."
 }
 
+/** `web` command */
+case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
+  def help = "starts a web server for interactive execution."
+}
+
 /** filter-test262 commmand */
 case object CmdFilterTest262
   extends Command("filter-test262", CmdBase >> FilterTest262) {

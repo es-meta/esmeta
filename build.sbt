@@ -10,7 +10,6 @@ ThisBuild / scalacOptions := Seq(
   "-explain-types", // explain type errors in more detail
   "-feature", // emit warning and location for usages of features that should be imported explicitly
   "-unchecked", // enable additional warnings where generated code depends on assumptions
-  "-Xmigration", // warn about constructs whose behavior may have changed since version
 )
 ThisBuild / javacOptions ++= Seq(
   "-encoding",
@@ -64,6 +63,10 @@ lazy val test262EvalTest =
 ThisBuild / assemblyPrependShellScript :=
   Some(defaultUniversalScript(shebang = false))
 
+// Akka
+val AkkaVersion = "2.6.19"
+val AkkaHttpVersion = "10.2.8"
+
 // project root
 lazy val root = project
   .in(file("."))
@@ -76,9 +79,18 @@ lazy val root = project
       "io.circe" %% "circe-generic" % "0.14.1",
       "io.circe" %% "circe-parser" % "0.14.1",
       "org.scalatest" %% "scalatest" % "3.2.11" % Test,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.1",
       "org.apache.commons" % "commons-text" % "1.9",
       "org.jsoup" % "jsoup" % "1.14.3",
+      ("org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2")
+        .cross(CrossVersion.for3Use2_13),
+      ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
+        .cross(CrossVersion.for3Use2_13),
+      ("com.typesafe.akka" %% "akka-stream" % AkkaVersion)
+        .cross(CrossVersion.for3Use2_13),
+      ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion)
+        .cross(CrossVersion.for3Use2_13),
+      ("ch.megard" %% "akka-http-cors" % "1.1.2")
+        .cross(CrossVersion.for3Use2_13), // cors
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is

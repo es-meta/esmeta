@@ -132,7 +132,7 @@ class Compiler(val spec: Spec) {
         case ISeq(is) => is
         case i        => List(i)
       }
-      .map(_.setLangOpt(langs.headOption))
+      .map(backEdgeWalker(this).walk(_))
 
     // add return to resume instruction
     def addReturnToResume(context: Ref, value: Expr): Unit =
@@ -450,9 +450,8 @@ class Compiler(val spec: Spec) {
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
-      manualRules.get(yetStr) match
-        case Some(i) => fb.addInst(i)
-        case None    => fb.addInst(IExpr(EYet(yetStr)))
+      val inst = manualRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      fb.addInst(backEdgeWalker(fb, force = true).walk(inst))
   })
 
   // compile local variable
@@ -802,17 +801,13 @@ class Compiler(val spec: Spec) {
       case e                => error(s"invalid arguments for shorthands: $e")
     }
     val nameMap = (algo.head.funcParams.map(p => Name(p.name)) zip names).toMap
-    val walker = new IRWalker {
+    val renameWalker = new IRWalker {
       override def walk(x: Name) = nameMap.get(x) match
         case Some(x0) => x0
         case None     => x
-
-      // adjust backward edge from ir to lang
-      override def walk(i: Inst) = {
-        i.setLangOpt(fb.langs.headOption); super.walk(i)
-      }
     }
-    fb.addInst(walker.walk(compileWithScope(fb, algo.body)))
+    val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
+    fb.addInst(backEdgeWalker(fb, force = true).walk(renamed))
     EUndef // NOTE: unused expression
 
   // handle short circuiting
@@ -860,6 +855,13 @@ class Compiler(val spec: Spec) {
     rhsList match
       case (rhs, idx) :: Nil => (prod.lhs, idx)
       case _                 => error("invalid production")
+
+  // walker for adjusting backward edge from ir to lang
+  private def backEdgeWalker(fb: FB, force: Boolean = false) = new IRWalker {
+    override def walk(i: Inst) =
+      if (force || i.langOpt.isEmpty) i.setLangOpt(fb.langs.headOption)
+      super.walk(i)
+  }
 
   // instruction helpers
   private inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =

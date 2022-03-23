@@ -77,26 +77,25 @@ class Interp(
             case _ =>
           st.context = ctxt
           st.callStack = rest
-          st.define(retId, value.wrapCompletion)
+          setCallResult(retId, value)
           true
   }
 
   /** transition for nodes */
-  def move(node: Node)(nextOpt: Option[Node]): Unit = st.context.cursor =
-    nextOpt.fold(ExitCursor(cfg.funcOf(node)))(NodeCursor(_))
   def interp(node: Node): Unit =
-    val moveTo = move(node)
     node match {
       case Block(_, insts, next) =>
-        for (inst <- insts) interp(inst); moveTo(next)
+        for (inst <- insts) interp(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
-        moveTo(interp(cond).escaped match {
-          case Bool(true)  => thenNode
-          case Bool(false) => elseNode
-          case v           => throw NoBoolean(cond, v)
-        })
+        st.context.cursor = Cursor(
+          interp(cond).escaped match {
+            case Bool(true)  => thenNode
+            case Bool(false) => elseNode
+            case v           => throw NoBoolean(cond, v)
+          },
+          st.func,
+        )
       case Call(_, lhs, fexpr, args, next) =>
-        moveTo(next)
         call(lhs, fexpr, args)
     }
 
@@ -159,7 +158,7 @@ class Interp(
       st.callStack ::= CallContext(lhs, st.context)
       st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
     case st.LexicalCalled(v) =>
-      st.define(lhs, v.wrapCompletion)
+      setCallResult(lhs, v)
   }
 
   /** transition for expresssions */
@@ -444,6 +443,11 @@ class Interp(
   def setReturn(value: Value): Unit =
     st.context.retVal = Some(value)
     st.context.cursor = ExitCursor(st.func)
+
+  /** define call result to state and move to next */
+  def setCallResult(id: Id, value: Value): Unit =
+    st.define(id, value.wrapCompletion)
+    st.context.moveNext
 }
 
 /** Interp object */

@@ -1,7 +1,8 @@
 package esmeta.interp
 
-import esmeta.cfg.Func
+import esmeta.cfg.{Func, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.util.BaseUtils.error
 import scala.collection.mutable.{Map => MMap}
 
 /** IR contexts */
@@ -11,7 +12,13 @@ case class Context(
 ) extends InterpElem {
 
   /** current cursor in this context */
-  var cursor: Cursor = func.entry.fold(ExitCursor(func))(NodeCursor(_))
+  var cursor: Cursor = Cursor(func.entry, func)
+
+  /** move cursor to next */
+  def moveNext: Unit = cursor match
+    case NodeCursor(block: Block) => cursor = Cursor(block.next, func)
+    case NodeCursor(call: Call)   => cursor = Cursor(call.next, func)
+    case _                        => error("cursor can't move to next")
 
   /** return variable */
   var retVal: Option[Value] = None
