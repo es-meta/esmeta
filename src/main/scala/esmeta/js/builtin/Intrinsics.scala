@@ -93,6 +93,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
+        "name" -> DataProperty(Str("Function"), F, F, T),
         "prototype" -> DataProperty(intrAddr("Function.prototype"), F, F, F),
       ),
     ),
