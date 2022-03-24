@@ -3,31 +3,43 @@ package esmeta.web.routes
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
-import io.circe.*, io.circe.syntax.*, io.circe.parser.*,
-io.circe.generic.semiauto.*
-import esmeta.ir.*
-import esmeta.web
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import esmeta.web.*
 
 /** breakpoint router */
 object BreakpointRoute {
   // root router
   def apply(): Route = pathEnd {
     concat(
-      // TODO add breakpoint
+      // add breakpoint
+      // TODO add steps
       post {
-        entity(???) { bp =>
-          complete(HttpEntity(ContentTypes.`application/json`, "null"))
+        entity(as[String]) { raw =>
+          decode[(Int, Boolean)](raw) match
+            case Left(err) => ??? // TODO handle error
+            case Right((fid, enabled)) =>
+              println((fid, enabled))
+              debugger.addBreak(fid, enabled)
+              complete(HttpEntity(ContentTypes.`application/json`, "null"))
         }
       },
-      // TODO delete breakpoint
+      // remove breakpoint
       delete {
-        entity(as[String]) { opt =>
+        entity(as[String]) { raw =>
+          decode[Int](raw) match
+            case Right(idx)              => debugger.rmBreak(idx)
+            case Left(_) if raw == "all" => debugger.rmBreakAll
+            case Left(err)               => ??? // TODO handle error
           complete(HttpEntity(ContentTypes.`application/json`, "null"))
         }
       },
-      // TODO toggle breakpoint
+      // toggle breakpoint
       put {
-        entity(as[String]) { opt =>
+        entity(as[String]) { raw =>
+          decode[Int](raw) match
+            case Right(idx)              => debugger.toggleBreak(idx)
+            case Left(_) if raw == "all" => debugger.toggleBreakAll
+            case _                       => ??? // TODO handle error
           complete(HttpEntity(ContentTypes.`application/json`, "null"))
         }
       },

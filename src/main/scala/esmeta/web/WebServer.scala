@@ -27,7 +27,7 @@ class WebServer(cfg: CFG, port: Int) {
     // root router
     val rootRoute = cors(settings) {
       concat(
-        pathPrefix("spec")(SpecRoute()), // spec route
+        pathPrefix("spec")(SpecRoute(cfg)), // spec route
         pathPrefix("exec")(ExecRoute(cfg)), // exec route
         pathPrefix("breakpoint")(BreakpointRoute()), // breakpoint route
         pathPrefix("state")(StateRoute()), // state route

@@ -8,7 +8,7 @@ import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, TEST_MODE, DEBUG}
+import esmeta.{TIMEOUT, TEST_MODE, LOG}
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -42,7 +42,7 @@ class Interp(
   def step: Boolean =
     try {
       // text-based debugging
-      if (DEBUG) println(st.getCursorString)
+      if (LOG) println(st.getCursorString)
 
       // garbage collection
       iter += 1

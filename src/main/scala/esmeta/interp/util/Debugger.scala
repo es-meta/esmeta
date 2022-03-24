@@ -1,6 +1,6 @@
 package esmeta.interp.util
 
-import esmeta.DEBUG
+import esmeta.LOG
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -11,11 +11,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /** debugger extension of ir interpreter */
-class Debugger(
-  st: State,
-  val breakpoints: ListBuffer[Breakpoint] = ListBuffer(),
-) extends Interp(st, Nil) {
-  // DEBUG = true
+class Debugger(st: State) extends Interp(st, Nil) {
+  LOG = true
 
   // ------------------------------------------------------------------------------
   // shortcuts
@@ -53,9 +50,9 @@ class Debugger(
   override def call(lhs: Id, fexpr: Expr, args: List[Expr]): Unit = {
     super.call(lhs, fexpr, args); triggerBreaks
   }
-  override def interp(inst: NormalInst): Unit = {
-    triggerBreaks; super.interp(inst)
-  }
+  // override def interp(inst: NormalInst): Unit = {
+  //   triggerBreaks; super.interp(inst)
+  // }
 
   // ------------------------------------------------------------------------------
   // execution control
@@ -102,18 +99,47 @@ class Debugger(
   // breakpoints
   // ------------------------------------------------------------------------------
 
+  /** breakpoints used in debugger */
+  trait Breakpoint {
+    var enabled: Boolean
+    private var trigger = false
+    def needTrigger: Boolean = {
+      if (trigger) { trigger = false; true }
+      else false
+    }
+    protected def on: Unit = trigger = true
+    def check(st: State): Unit
+    def toggle() = { enabled = !enabled }
+  }
+
+  /** breakpoints by spec steps */
+  case class SpecStepBreakpoint(
+    fid: Int,
+    // TODO add steps
+    var enabled: Boolean = true,
+  ) extends Breakpoint {
+    override def check(st: State): Unit =
+      if (enabled && st.func.id == fid) this.on
+  }
+
+  // breakpoints
+  private val breakpoints: ListBuffer[Breakpoint] = ListBuffer()
+
   // trigger breakpoints
   private def triggerBreaks: Unit = for (b <- breakpoints) b.check(st)
 
-  // remove breakpoints
-  final def rmBreak(opt: String) = opt match
-    case "all" => breakpoints.clear
-    case idx   => breakpoints.remove(idx.toInt)
+  // add breakpoints for spec steps
+  // TODO add steps
+  final def addBreak(fid: Int, enabled: Boolean = true): Unit =
+    breakpoints += SpecStepBreakpoint(fid, enabled)
+
+  // remove breakpoint
+  final def rmBreakAll: Unit = breakpoints.clear
+  final def rmBreak(idx: Int): Unit = breakpoints.remove(idx.toInt)
 
   // toggle breakpoints
-  final def toggleBreak(opt: String) = opt match
-    case "all" => for { bp <- breakpoints } bp.toggle()
-    case idx   => breakpoints(idx.toInt).toggle()
+  final def toggleBreakAll: Unit = for { bp <- breakpoints } bp.toggle()
+  final def toggleBreak(idx: Int): Unit = breakpoints(idx).toggle()
 
   // check if current step is in break
   private def isBreaked: Boolean = breakpoints.foldLeft(false) {

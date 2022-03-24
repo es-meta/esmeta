@@ -21,10 +21,13 @@ object ExecRoute {
   def apply(cfg: CFG): Route = {
     post {
       concat(
-        // TODO initialize debugger with breakpoints and JS source text
         path("run") {
-          entity(as[String]) { sourceText =>
-            initDebugger(cfg, sourceText)
+          entity(as[String]) { raw =>
+            decode[(String, List[(Int, Boolean)])](raw) match
+              case Left(err) => ??? // TODO handle error
+              case Right((sourceText, bpData)) =>
+                initDebugger(cfg, sourceText)
+                for { (fid, enabled) <- bpData } debugger.addBreak(fid, enabled)
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
@@ -46,6 +49,12 @@ object ExecRoute {
             HttpEntity(ContentTypes.`application/json`, debugger.specStepOut),
           )
         },
+        // spec continue
+        path("specContinue") {
+          complete(
+            HttpEntity(ContentTypes.`application/json`, debugger.continue),
+          )
+        },
         // TODO js steps
         // path("jsStep") {
         //   complete(HttpEntity(ContentTypes.`application/json`, ""))
@@ -56,12 +65,6 @@ object ExecRoute {
         // path("jsStepOut") {
         //   complete(HttpEntity(ContentTypes.`application/json`, ""))
         // },
-        // continue
-        path("continue") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.continue),
-          )
-        },
       )
     }
   }

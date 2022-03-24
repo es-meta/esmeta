@@ -11,7 +11,21 @@ import esmeta.web.*
 object SpecRoute {
 
   /** root router */
-  def apply(): Route = concat(
+  def apply(cfg: CFG): Route = concat(
+    path("func") {
+      get {
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            cfg.fnameMap
+              .map { case (name, f) => (f.id, name) }
+              .toList
+              .asJson
+              .noSpaces,
+          ),
+        ),
+      }
+    },
     path("func" / IntNumber) { fid =>
       get {
         complete(
