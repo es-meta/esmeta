@@ -284,17 +284,15 @@ class Compiler(val spec: Spec) {
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, x, expr, true, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
-      val (length, lengthExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
         IAssign(i, zero),
-        IAssign(length, toStrERef(list, "length")),
       )
       fb.addInst(
         ILoop(
           "foreach",
-          lessThan(iExpr, lengthExpr),
+          lessThan(iExpr, toStrERef(list, "length")),
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
