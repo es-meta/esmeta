@@ -714,7 +714,9 @@ class Compiler(val spec: Spec) {
             val tv = toERef(fb, x, EStr("Type"))
             and(EIsCompletion(x), is(tv, ECONST_NORMAL))
           case Finite =>
-            not(or(is(x, posInf), is(x, negInf)))
+            not(
+              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
+            )
           case Duplicated =>
             EDuplicated(x)
           case Present =>
