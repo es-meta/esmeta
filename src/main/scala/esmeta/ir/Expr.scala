@@ -22,7 +22,7 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EVariadic(vop: VOp, exprs: List[Expr]) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
-case class ETypeCheck(base: Expr, ty: Type) extends Expr
+case class ETypeCheck(base: Expr, tyExpr: Expr) extends Expr
 case class EDuplicated(list: Expr) extends Expr
 case class EIsArrayIndex(expr: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr

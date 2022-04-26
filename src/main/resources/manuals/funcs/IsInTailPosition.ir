@@ -7,7 +7,7 @@ def IsInTailPosition(call: Any) {
   %0 = false
   %1 = call
   loop[repeat] (&& (! %0) (! (= %1 absent))) {
-    %0 = (|| (|| (|| %0 (? %1: FunctionBody)) (? %1: ConciseBody)) (? %1: AsyncConciseBody))
+    %0 = (|| (|| (|| %0 (? %1: "FunctionBody")) (? %1: "ConciseBody")) (? %1: "AsyncConciseBody"))
     if (! %0) %1 = %1.parent else {}
   }
   if (! %0) return false else {}
@@ -18,13 +18,13 @@ def IsInTailPosition(call: Any) {
   // If _body_ is the |FunctionBody| of an |AsyncGeneratorBody|, return *false*.
   %2 = body.parent
   if (! (= %2 absent)) {
-    if (&& (? body: FunctionBody) (? %2: GeneratorBody)) return false else {}
-    if (&& (? body: FunctionBody) (? %2: AsyncFunctionBody)) return false else {}
-    if (&& (? body: FunctionBody) (? %2: AsyncGeneratorBody)) return false else {}
+    if (&& (? body: "FunctionBody") (? %2: "GeneratorBody")) return false else {}
+    if (&& (? body: "FunctionBody") (? %2: "AsyncFunctionBody")) return false else {}
+    if (&& (? body: "FunctionBody") (? %2: "AsyncGeneratorBody")) return false else {}
   } else {}
 
   // If body is an |AsyncConciseBody|, return false.
-  if (? body: AsyncConciseBody) return false else {}
+  if (? body: "AsyncConciseBody") return false else {}
 
   // Return the result of HasCallInTailPosition of _body_ with argument _call_.
   call %3 = body.HasCallInTailPosition(body, call)

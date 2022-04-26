@@ -275,26 +275,30 @@ class Interp(
             case v                                              => ???
         case v => ???,
       )
-    case ETypeCheck(expr, ty) =>
+    case ETypeCheck(expr, tyExpr) =>
       val v = interp(expr)
+      val tyName = interp(tyExpr).escaped match
+        case Str(s)        => s
+        case Grammar(s, _) => s
+        case v             => throw InvalidTypeExpr(expr, v)
       if (v.isAbruptCompletion) Bool(false)
       else
         Bool(v.escaped match
-          case _: Number => ty.name == "Number"
-          case _: BigInt => ty.name == "BigInt"
-          case _: Str    => ty.name == "String"
-          case _: Bool   => ty.name == "Boolean"
-          case _: Const  => ty.name == "Constant"
-          case Undef     => ty.name == "Undefined"
-          case Null      => ty.name == "Null"
+          case _: Number => tyName == "Number"
+          case _: BigInt => tyName == "BigInt"
+          case _: Str    => tyName == "String"
+          case _: Bool   => tyName == "Boolean"
+          case _: Const  => tyName == "Constant"
+          case Undef     => tyName == "Undefined"
+          case Null      => tyName == "Null"
           case AstValue(ast) =>
-            ty.name == "ParseNode" || (ast.types contains ty.name)
-          case _: Clo => ty.name == "AbstractClosure"
+            tyName == "ParseNode" || (ast.types contains tyName)
+          case _: Clo => tyName == "AbstractClosure"
           case addr: Addr =>
             st(addr) match
-              case m: MapObj    => typeModel.subType(m.ty, ty.name)
-              case _: ListObj   => ty.name == "List"
-              case _: SymbolObj => ty.name == "Symbol"
+              case m: MapObj    => typeModel.subType(m.ty, tyName)
+              case _: ListObj   => tyName == "List"
+              case _: SymbolObj => tyName == "Symbol"
               case _            => ???
           case v => ???,
         )

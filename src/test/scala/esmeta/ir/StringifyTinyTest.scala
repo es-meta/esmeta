@@ -145,7 +145,7 @@ class StringifyTinyTest extends IRTest {
     lazy val binary = EBinary(BOp.Plus, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
-    lazy val typeCheck = ETypeCheck(xExpr, ty)
+    lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.name))
     // AST expressions
     lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
     lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
@@ -203,7 +203,7 @@ class StringifyTinyTest extends IRTest {
       binary -> "(+ x x)",
       convert -> "([bigint] x)",
       typeOf -> "(typeof x)",
-      typeCheck -> "(? x: T)",
+      typeCheck -> "(? x: \"T\")",
       // AST expressions
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",

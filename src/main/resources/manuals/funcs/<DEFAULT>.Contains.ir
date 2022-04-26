@@ -1,4 +1,0 @@
-def <SYNTAX>:<DEFAULT>.Contains(this: Any, symbol: Unknown): Unknown {
-  %0 = (get-children symbol this)
-  return (! (= %0.length 0))
-}

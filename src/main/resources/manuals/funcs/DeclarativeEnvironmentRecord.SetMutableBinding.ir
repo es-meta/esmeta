@@ -27,13 +27,13 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnv
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%ReferenceError.prototype%"], "ErrorData" -> undefined)))
   } 
   // 1. Else if the binding for _N_ in _envRec_ is a mutable binding, change its bound value to _V_.
-  else if (? binding: MutableBinding) {
+  else if (? binding: "MutableBinding") {
     binding.BoundValue = V
   } 
   // 1. Else,
   else {
     // 1. Assert: This is an attempt to change the value of an immutable binding.
-    assert (? binding: ImmutableBinding)
+    assert (? binding: "ImmutableBinding")
 
     // 1. If _S_ is *true*, throw a *TypeError* exception.
     if (= S true) {

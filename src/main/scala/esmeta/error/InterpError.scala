@@ -21,6 +21,8 @@ case class InvalidArgs(name: String, as: List[Value])
   extends InterpError(s"invalid arguments: ${as.mkString(", ")} @ name")
 case class InvalidParseSource(expr: Expr, v: Value)
   extends InterpError(s"not a proper source for parse: $expr -> $v")
+case class InvalidTypeExpr(expr: Expr, v: Value)
+  extends InterpError(s"not a proper type expression: $expr -> $v")
 
 // invalid completion values
 sealed abstract class InvalidComp(msg: Option[String])

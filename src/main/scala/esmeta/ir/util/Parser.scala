@@ -122,7 +122,7 @@ trait Parsers extends BasicParsers {
       case c ~ e => EConvert(c, e)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
       case e => ETypeOf(e)
-    } | "(" ~ "?" ~> expr ~ (":" ~> ty) <~ ")" ^^ {
+    } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
     } | "(" ~ "duplicated" ~> expr <~ ")" ^^ {
       case e => EDuplicated(e)

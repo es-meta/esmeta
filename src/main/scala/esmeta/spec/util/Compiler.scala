@@ -691,7 +691,9 @@ class Compiler(val spec: Spec) {
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(IAssign(x, compile(fb, expr)))
         val e =
-          tys.map[Expr](t => ETypeCheck(xExpr, compile(t))).reduce(or(_, _))
+          tys
+            .map[Expr](t => ETypeCheck(xExpr, EStr(compile(t).name)))
+            .reduce(or(_, _))
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
         val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
@@ -701,7 +703,7 @@ class Compiler(val spec: Spec) {
         val base = compile(fb, nt)
         val (_, rhsIdx) = getProductionData(lhsName, rhsName)
         fb.ntBindings ++= List((rhsName, base, Some(0)))
-        ETypeCheck(base, IRType(lhsName + rhsIdx))
+        ETypeCheck(base, EStr(lhsName + rhsIdx))
       case PredicateCondition(expr, neg, op) =>
         import PredicateCondition.Op.*
         val x = compile(fb, expr)
@@ -744,7 +746,7 @@ class Compiler(val spec: Spec) {
               List("Get", "Set", "Enumerable", "Configurable")
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
-            ETypeCheck(x, IRType("Nonterminal"))
+            ETypeCheck(x, EStr("Nonterminal"))
           case IntegralNumber => isIntegral(x)
         }
         if (neg) not(cond) else cond
@@ -886,7 +888,7 @@ class Compiler(val spec: Spec) {
   private inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
   private inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
-    and(ETypeCheck(x, IRType("Number")), is(m, floor(m)))
+    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
   private def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
