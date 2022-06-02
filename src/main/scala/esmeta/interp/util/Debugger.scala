@@ -22,37 +22,27 @@ class Debugger(st: State) extends Interp(st, Nil) {
   private inline def func = cursor.func
   private inline def irFunc = func.irFunc
   private inline def algoOpt: Option[Algorithm] = irFunc.algo
-  private inline def instOpt: Option[Inst] = cursor.instOpt(instIdx)
-  private inline def langOpt: Option[Syntax] = cursor.langOpt(instIdx)
-  private inline def locOpt: Option[Loc] = cursor.locOpt(instIdx)
 
   // ------------------------------------------------------------------------------
   // overrides interpreter
   // ------------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
-  private var instIdx: Option[Int] = None
   override def step: Boolean = (super.step, cursor) match
-    case (_, _: ExitCursor) => super.step
-    case (res, _)           => res
-  override def interp(node: Node): Unit = node match
-    case block @ Block(_, insts, next) =>
-      val idx = instIdx.getOrElse(0)
-      interp(insts(idx))
-      if (idx + 1 == insts.length) { instIdx = None; st.context.moveNext }
-      else instIdx = Some(idx + 1)
-    case _ =>
-      super.interp(node)
-  override def setReturn(value: Value): Unit = {
-    instIdx = None; super.setReturn(value)
+    // TODO handle call instruction
+    case (_, _: ExitCursor) if !st.callStack.isEmpty => {
+      val res = step; triggerBreaks; res
+    }
+    case (res, _) => res
+  override def interp(node: Node): Unit = {
+    node match
+      case block @ Block(_, insts, next) =>
+        interp(insts(cursor.idx))
+        cursor.idx += 1
+        if (cursor.idx == insts.length) st.context.moveNext
+      case _ =>
+        super.interp(node)
+    triggerBreaks // trigger breakpoints
   }
-
-  // trigger breakpoints for every call and instruction transition
-  override def call(lhs: Id, fexpr: Expr, args: List[Expr]): Unit = {
-    super.call(lhs, fexpr, args); triggerBreaks
-  }
-  // override def interp(inst: NormalInst): Unit = {
-  //   triggerBreaks; super.interp(inst)
-  // }
 
   // ------------------------------------------------------------------------------
   // execution control
@@ -63,6 +53,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
     case Breaked, Terminated, Succeed
 
   // step until given predicate
+  // TODO handle yet
   @tailrec
   final def stepUntil(pred: => Boolean): StepResult =
     if (!isBreaked) {
@@ -72,22 +63,29 @@ class Debugger(st: State) extends Interp(st, Nil) {
       else StepResult.Terminated
     } else StepResult.Breaked
 
+  private def getInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+
   // spec step
-  final def specStep =
-    val (prevName, prevLoc) = (irFunc.name, locOpt)
-    stepUntil { prevName == irFunc.name && prevLoc == locOpt }
+  final def specStep = {
+    val (prevLoc, _) = getInfo
+    stepUntil { prevLoc == getInfo._1 }
+  }
 
   // spec step over
   final def specStepOver =
-    val prev = st.callStack.size
-    stepUntil { prev != st.callStack.size }
+    val (prevLoc, prevStackSize) = getInfo
+    stepUntil {
+      val (loc, stackSize) = getInfo
+      (prevLoc == loc) || (prevStackSize < stackSize)
+    }
 
   // spec step out
   final def specStepOut =
-    val prev = st.callStack.size
-    stepUntil { prev <= st.callStack.size }
+    val (_, prevStackSize) = getInfo
+    stepUntil { prevStackSize <= getInfo._2 }
 
   // TODO js steps from ast span info
+  // private def getJsInfo = ???
   // final def jsStep = ???
   // final def jsStepOver = ???
   // final def jsStepOut = ???
@@ -113,13 +111,26 @@ class Debugger(st: State) extends Interp(st, Nil) {
   }
 
   /** breakpoints by spec steps */
-  case class SpecStepBreakpoint(
+  case class SpecBreakpoint(
     fid: Int,
-    // TODO add steps
+    steps: List[Int],
     var enabled: Boolean = true,
   ) extends Breakpoint {
     override def check(st: State): Unit =
-      if (enabled && st.func.id == fid) this.on
+      if (enabled) {
+        val currStepsOpt = st.context.cursor.stepsOpt
+        if (st.func.id == fid && currStepsOpt == Some(steps))
+          if (st.context.prevCursorOpt.fold(true)(_.stepsOpt != currStepsOpt))
+            this.on
+      }
+  }
+
+  // TODO breakpoints by JavaScript code line */
+  case class JsBreakpoint(
+    line: Int,
+    var enabled: Boolean = true,
+  ) extends Breakpoint {
+    override def check(st: State): Unit = ???
   }
 
   // breakpoints
@@ -128,10 +139,15 @@ class Debugger(st: State) extends Interp(st, Nil) {
   // trigger breakpoints
   private def triggerBreaks: Unit = for (b <- breakpoints) b.check(st)
 
-  // add breakpoints for spec steps
-  // TODO add steps
-  final def addBreak(fid: Int, enabled: Boolean = true): Unit =
-    breakpoints += SpecStepBreakpoint(fid, enabled)
+  // add breakpoints from serialized data
+  final def addBreak(
+    data: (Boolean, Int, List[Int], Boolean),
+  ): Unit =
+    val (isJsBreak, num, steps, enabled) = data
+    val bp =
+      if (isJsBreak) JsBreakpoint(num, enabled)
+      else SpecBreakpoint(num, steps, enabled)
+    breakpoints += bp
 
   // remove breakpoint
   final def rmBreakAll: Unit = breakpoints.clear
@@ -159,19 +175,20 @@ class Debugger(st: State) extends Interp(st, Nil) {
       case ExitCursor(func) => func
 
     /** get ir instruction of current cursor */
-    def instOpt(idx: Option[Int] = None): Option[Inst] = cursor match
+    def instOpt: Option[Inst] = cursor match
       case NodeCursor(node) =>
         node match
-          case Block(_, insts, _) => Some(insts(idx.getOrElse(0)))
+          case Block(_, insts, _) => Some(insts(cursor.idx))
           case node: NodeWithInst => node.inst
       case _: ExitCursor => None
 
     /** get syntax object of current cursor */
-    def langOpt(idx: Option[Int] = None) =
-      cursor.instOpt(idx).fold(None)(_.langOpt)
+    def langOpt = cursor.instOpt.fold(None)(_.langOpt)
 
     /** get location in spec of current cursor */
-    def locOpt(idx: Option[Int] = None) = cursor.langOpt(idx).fold(None)(_.loc)
+    def stepsOpt: Option[List[Int]] = cursor.langOpt match
+      case Some(lang) if lang.loc.isDefined => Some(lang.loc.get.steps)
+      case _                                => None
   }
 
   /** heap information */
@@ -184,7 +201,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
     def ctxtInfo(c: Context) = (
       c.func.id,
       c.name,
-      c.cursor.locOpt(instIdx).map(_.steps).getOrElse(List()),
+      c.cursor.stepsOpt.getOrElse(List()),
       c.locals.collect {
         case (Name(name), v) => (name, v.toString)
       }.toList,

@@ -15,11 +15,11 @@ object BreakpointRoute {
       // TODO add steps
       post {
         entity(as[String]) { raw =>
-          decode[(Int, Boolean)](raw) match
+          decode[(Boolean, Int, List[Int], Boolean)](raw) match
             case Left(err) => ??? // TODO handle error
-            case Right((fid, enabled)) =>
-              println((fid, enabled))
-              debugger.addBreak(fid, enabled)
+            case Right(data) =>
+              println(data)
+              debugger.addBreak(data)
               complete(HttpEntity(ContentTypes.`application/json`, "null"))
         }
       },

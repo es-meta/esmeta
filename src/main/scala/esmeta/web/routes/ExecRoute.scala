@@ -23,11 +23,13 @@ object ExecRoute {
       concat(
         path("run") {
           entity(as[String]) { raw =>
-            decode[(String, List[(Int, Boolean)])](raw) match
+            decode[(String, List[(Boolean, Int, List[Int], Boolean)])](
+              raw,
+            ) match
               case Left(err) => ??? // TODO handle error
-              case Right((sourceText, bpData)) =>
+              case Right((sourceText, bpDatas)) =>
                 initDebugger(cfg, sourceText)
-                for { (fid, enabled) <- bpData } debugger.addBreak(fid, enabled)
+                for { data <- bpDatas } debugger.addBreak(data)
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
