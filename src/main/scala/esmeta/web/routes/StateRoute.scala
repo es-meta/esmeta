@@ -20,6 +20,16 @@ object StateRoute {
         )
       }
     },
+    path("context" / IntNumber) { cid =>
+      get {
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            debugger.ctxtInfo(cid).asJson.noSpaces,
+          ),
+        )
+      }
+    },
     path("callStack") {
       get {
         val info =

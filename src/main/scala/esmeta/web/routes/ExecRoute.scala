@@ -11,8 +11,6 @@ import esmeta.interp.util.Debugger
 
 // exec router
 object ExecRoute {
-  // TODO parameters for `/exec/run`
-  // case class RunParams(breakpoints: List[Breakpoint], compressed: String)
 
   /** conversion for HTTP response */
   given Conversion[Debugger#StepResult, String] = _.ordinal.toString

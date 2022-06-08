@@ -7,6 +7,9 @@ import esmeta.util.{Appender, HtmlUtils}
 import scala.collection.mutable.Queue
 
 trait DotPrinter {
+  // exit
+  val isExit: Boolean
+
   // helpers
   def getId(func: Func): String
   def getId(node: Node): String
@@ -69,7 +72,8 @@ trait DotPrinter {
     val entryId = s"${funcId}_entry"
     val nodeColor = getColor(node)
     val edgeColor = getColor(node, node)
-    val bgColor = getBgColor(node)
+    // val bgColor = getBgColor(node)
+    val bgColor = NORMAL
     drawNamingNode(entryId, nodeColor, "Entry", app)
     drawNamingEdge(entryId, nodeColor, app)
     drawNode(entryId, "circle", nodeColor, bgColor, None, app)
@@ -81,7 +85,7 @@ trait DotPrinter {
     val exitId = s"${funcId}_exit"
     val nodeColor = getColor(node)
     val edgeColor = getColor(node, node)
-    val bgColor = getBgColor(node)
+    val bgColor = if (isExit) CURRENT else NORMAL
     drawNamingNode(exitId, nodeColor, "Exit", app)
     drawNamingEdge(exitId, nodeColor, app)
     drawNode(exitId, "circle", nodeColor, bgColor, None, app)
@@ -137,7 +141,7 @@ trait DotPrinter {
   ): Unit = {
     labelOpt match {
       case Some(label) =>
-        app :> s"""$dotId [shape=$shape, label=<<font color=$color>$label</font>> color=$color fillcolor=$bgColor]"""
+        app :> s"""$dotId [shape=$shape, label=<<font color=$color>$label</font>> color=$color fillcolor=$bgColor, style=filled]"""
       case None =>
         app :> s"""$dotId [shape=$shape label=" " color=$color fillcolor=$bgColor style=filled]"""
     }

@@ -32,13 +32,15 @@ case class Func(
   def name: String = irFunc.name
 
   /** conversion to a DOT format */
-  def toDot: String = new DotPrinter {
+  def toDot(nid: Int = -1, _isExit: Boolean = false): String = new DotPrinter {
+    val isExit: Boolean = _isExit
     def getId(func: Func): String = s"cluster${func.id}"
     def getId(node: Node): String = s"node${node.id}"
     def getName(func: Func): String = func.irFunc.name
     def getColor(node: Node): String = REACH
     def getColor(from: Node, to: Node): String = REACH
-    def getBgColor(node: Node): String = NORMAL
+    def getBgColor(node: Node): String =
+      if (node.id == nid) CURRENT else NORMAL
     def apply(app: Appender): Unit = addFunc(func, app)
   }.toString
 }

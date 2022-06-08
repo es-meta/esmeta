@@ -26,15 +26,5 @@ object SpecRoute {
         ),
       }
     },
-    path("func" / IntNumber) { fid =>
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            debugger.funcInfo(fid).asJson.noSpaces,
-          ),
-        )
-      }
-    },
   ),
 }

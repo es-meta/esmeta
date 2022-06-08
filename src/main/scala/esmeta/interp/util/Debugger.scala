@@ -35,7 +35,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
     case (res, _) => res
   override def interp(node: Node): Unit = {
     node match
-      case block @ Block(_, insts, next) =>
+      case block @ Block(_, insts, next) if cursor.stepsOpt.isDefined =>
         interp(insts(cursor.idx))
         cursor.idx += 1
         if (cursor.idx == insts.length) st.context.moveNext
@@ -68,7 +68,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
   // spec step
   final def specStep = {
     val (prevLoc, _) = getInfo
-    stepUntil { prevLoc == getInfo._1 }
+    stepUntil { prevLoc._2.isDefined && prevLoc == getInfo._1 }
   }
 
   // spec step over
@@ -76,7 +76,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
     val (prevLoc, prevStackSize) = getInfo
     stepUntil {
       val (loc, stackSize) = getInfo
-      (prevLoc == loc) || (prevStackSize < stackSize)
+      (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
     }
 
   // spec step out
@@ -198,7 +198,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
 
   /** call stack information */
   def callStackInfo =
-    def ctxtInfo(c: Context) = (
+    def getInfo(c: Context) = (
       c.func.id,
       c.name,
       c.cursor.stepsOpt.getOrElse(List()),
@@ -206,22 +206,29 @@ class Debugger(st: State) extends Interp(st, Nil) {
         case (Name(name), v) => (name, v.toString)
       }.toList,
     )
-    (st.context :: st.callStack.map(_.context)).map(ctxtInfo(_))
+    (st.context :: st.callStack.map(_.context)).map(getInfo(_))
 
-  /** func information */
-  def funcInfo(fid: Int) =
+  /** context information */
+  def ctxtInfo(cid: Int) =
     def paramInfo(p: IRFunc.Param) = (
       p.lhs.name,
       p.optional,
       p.ty.name,
     )
-    val irFunc = cfg.funcMap(fid).irFunc
+
+    val ctxt = (st.context :: st.callStack.map(_.context))(cid)
+    val (nid, isExit) = ctxt.cursor match
+      case NodeCursor(n) => (n.id, false)
+      case _: ExitCursor => (-1, true)
+    val func = ctxt.func
+    val irFunc = func.irFunc
     val code = irFunc.algo.map(_.code).getOrElse("")
     (
+      func.id,
       irFunc.kind.ordinal,
       irFunc.name,
       irFunc.params.map(paramInfo(_)),
-      irFunc.body.toString,
+      func.toDot(nid, isExit),
       code,
     )
 }
