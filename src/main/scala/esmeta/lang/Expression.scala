@@ -52,7 +52,7 @@ case class GetChildrenExpression(
 
 // return-if-abrupt expressions
 case class ReturnIfAbruptExpression(
-  expr: InvokeExpression,
+  expr: Expression,
   check: Boolean,
 ) extends CalcExpression
 

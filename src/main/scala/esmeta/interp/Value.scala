@@ -10,12 +10,6 @@ import esmeta.util.DoubleEquals
 /** IR values */
 sealed trait Value extends InterpElem {
 
-  /** escape completion */
-  def escaped: PureValue = this match
-    case NormalComp(value) => value
-    case comp: Comp        => throw UncheckedAbrupt(comp)
-    case pure: PureValue   => pure
-
   /** check abrupt completion */
   def isCompletion: Boolean = this match
     case comp: Comp => true
@@ -31,6 +25,13 @@ sealed trait Value extends InterpElem {
   def wrapCompletion(ty: Const): Comp = this match
     case comp: Comp      => comp
     case pure: PureValue => Comp(ty, pure, None)
+
+  /** convert value to pure value see:
+    * https://github.com/es-meta/esmeta/issues/66
+    */
+  def toPureValue: PureValue = this match
+    case comp: Comp      => throw UncheckedAbrupt(comp)
+    case pure: PureValue => pure
 
   /** type conversion */
   def asStr: String = this match

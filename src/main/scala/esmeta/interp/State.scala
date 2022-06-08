@@ -50,7 +50,7 @@ case class State(
         case Str("Type")   => comp.ty
         case Str("Value")  => comp.value
         case Str("Target") => comp.targetValue
-        case _             => apply(comp.escaped, prop)
+        case _             => throw InvalidCompProp(comp, prop)
     case addr: Addr    => heap(addr, prop)
     case AstValue(ast) => apply(ast, prop)
     case Str(str)      => apply(str, prop)
@@ -171,12 +171,11 @@ case class State(
     case IdValue(x) => update(x, value); this
     case PropValue(base, prop) =>
       base match
+        // XXX see https://github.com/es-meta/esmeta/issues/65
         case comp: Comp if comp.isAbruptCompletion && prop.asStr == "Value" =>
-          comp.value = value.escaped; this
-        case v =>
-          v.escaped match
-            case addr: Addr => update(addr, prop, value); this
-            case _ => error(s"illegal reference update: $refV = $value")
+          comp.value = value.toPureValue; this
+        case addr: Addr => update(addr, prop, value); this
+        case _          => error(s"illegal reference update: $refV = $value")
   }
   def update(x: Id, value: Value): this.type =
     x match
@@ -195,7 +194,7 @@ case class State(
   def exists(x: Id): Boolean = hasBinding(x) && directLookup(x) != Absent
   def exists(ref: RefValue): Boolean = ref match {
     case IdValue(id)           => exists(id)
-    case PropValue(base, prop) => apply(base.escaped, prop) != Absent
+    case PropValue(base, prop) => apply(base, prop) != Absent
   }
 
   /** delete a property from a map */
@@ -203,7 +202,7 @@ case class State(
     case IdValue(x) =>
       error(s"cannot delete variable $x")
     case PropValue(base, prop) =>
-      base.escaped match {
+      base match {
         case addr: Addr =>
           heap.delete(addr, prop); this
         case _ =>

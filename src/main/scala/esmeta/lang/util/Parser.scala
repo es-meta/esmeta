@@ -589,7 +589,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
-    ("?" ^^! true | "!" ^^! false) ~ invokeExpr ^^ {
+    ("?" ^^! true | "!" ^^! false) ~ expr ^^ {
       case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 

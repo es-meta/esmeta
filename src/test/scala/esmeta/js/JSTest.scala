@@ -47,8 +47,8 @@ object JSTest {
 
   // tests for JS interpreter
   def checkExit(st: State): st.type = st(GLOBAL_RESULT) match
-    case comp: Comp => assert(comp.ty == CONST_NORMAL); st
-    case v          => fail(s"return not a completion: $v")
+    case Undef => st
+    case v     => fail(s"return not undefined: $v")
   def evalTest(
     str: String,
     checkAfter: List[NormalInst] = Nil,

@@ -50,7 +50,7 @@ class Injector(
       if (this.st.context.name == "MakeBasicObject") {
         val contexts = (this.st.context :: this.st.callStack.map(_.context))
           .filter(c => c.func.isSDO || c.func.isBuiltin)
-        (value.escaped, contexts) match
+        (value, contexts) match
           case (addr: Addr, ctxt :: _) => addrNameMap += (addr -> ctxt.name)
           case _                       => /* do nothing */
       }
@@ -66,8 +66,8 @@ class Injector(
       Right(st(GLOBAL_RESULT))
     } catch { case e => Left(e) }
   private lazy val isNormal: Boolean = interpResult match
-    case Right(NormalComp(_)) => true
-    case _                    => false
+    case Right(_: PureValue) => true
+    case _                   => false
 
   // ////////////////////////////////////////////////////////
   // Helper Functions
@@ -173,7 +173,7 @@ class Injector(
         newSt.context = Context(f, MMap(Name("O") -> addr))
         newSt.callStack = Nil
         Interp(newSt)
-        val propsAddr = newSt(GLOBAL_RESULT).escaped
+        val propsAddr = newSt(GLOBAL_RESULT).toPureValue
         val len = newSt(propsAddr, Str("length")).asMath.toInt
         val array = (0 until len)
           .map(k => newSt(propsAddr, Math(k)))
@@ -207,7 +207,7 @@ class Injector(
             val2str(p).map(propStr => {
               for {
                 field <- fields
-                value <- props.get(Str(field)).map(_.value.escaped)
+                value <- props.get(Str(field)).map(_.value.toPureValue)
               } value match {
                 case c: LiteralValue =>
                   set += s"${field.toLowerCase}: ${lv2str(c)}"
@@ -267,8 +267,7 @@ class Injector(
   }
 
   // get values
-  def getValue(str: String): Value =
-    getValue(Expr.from(str)).escaped
+  def getValue(str: String): Value = getValue(Expr.from(str))
   def getValue(expr: Expr): Value =
     (new Interp(st.copied, Nil)).interp(expr)
   def getValue(refV: RefValue): Value = st(refV)
@@ -276,8 +275,8 @@ class Injector(
     getValue(PropValue(addr, Str(prop)))
 
   // access properties
-  private def access(base: Value, props: Value*): Value =
-    props.foldLeft(base) { case (base, p) => st(base, p.escaped) }
+  private def access(base: Value, props: PureValue*): Value =
+    props.foldLeft(base) { case (base, p) => st(base, p) }
 
   // get created variables
   private lazy val globalMap = "@REALM.GlobalObject.SubMap"
@@ -298,7 +297,7 @@ class Injector(
   // get keys
   private def getStrKeys(value: Value): Set[String] =
     getKeys(value).collect { case Str(p) => p }
-  private def getKeys(value: Value): Set[Value] = value match
+  private def getKeys(value: Value): Set[PureValue] = value match
     case addr: Addr =>
       st(addr) match
         case m: MapObj => m.props.keySet.toSet

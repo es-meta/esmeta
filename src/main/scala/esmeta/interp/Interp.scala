@@ -62,15 +62,11 @@ class Interp(
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
-          st.context.retVal
-            .map(v => st.globals += GLOBAL_RESULT -> v.wrapCompletion)
+          st.context.retVal.map(v => st.globals += GLOBAL_RESULT -> v)
           for (assert <- checkAfter) interp(assert)
           false
         case CallContext(retId, ctxt) :: rest =>
-          // XXX RequireInternalSlot has no explicit return step
-          // It is fixed in the recent specification
-          val value = st.context.retVal.getOrElse(Undef)
-          // val value = st.context.retVal.getOrElse(throw NoReturnValue)
+          val value = st.context.retVal.getOrElse(throw NoReturnValue)
           (value, setTypeMap.get(st.context.name)) match
             case (addr: Addr, Some(tname)) =>
               st.setType(addr, tname)
@@ -88,7 +84,7 @@ class Interp(
         for (inst <- insts) interp(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
         st.context.cursor = Cursor(
-          interp(cond).escaped match {
+          interp(cond) match {
             case Bool(true)  => thenNode
             case Bool(false) => elseNode
             case v           => throw NoBoolean(cond, v)
@@ -106,20 +102,20 @@ class Interp(
     case IAssign(ref, expr) => st.update(interp(ref), interp(expr))
     case IDelete(ref)       => st.delete(interp(ref))
     case IPush(from, to, front) =>
-      interp(to).escaped match {
+      interp(to) match {
         case (addr: Addr) =>
-          if (front) st.prepend(addr, interp(from).escaped)
-          else st.append(addr, interp(from).escaped)
+          if (front) st.prepend(addr, interp(from).toPureValue)
+          else st.append(addr, interp(from).toPureValue)
         case v => throw NoAddr(to, v)
       }
     case IRemoveElem(list, elem) =>
-      interp(list).escaped match
-        case (addr: Addr) => st.remove(addr, interp(elem).escaped)
+      interp(list) match
+        case (addr: Addr) => st.remove(addr, interp(elem).toPureValue)
         case v            => throw NoAddr(list, v)
     case IReturn(expr)    => throw ReturnValue(interp(expr))
     case IAssert(_: EYet) => /* skip not yet compiled assertions */
     case IAssert(expr) =>
-      interp(expr).escaped match {
+      interp(expr) match {
         case Bool(true) =>
         case v          => throw AssertionFail(expr)
       }
@@ -135,15 +131,14 @@ class Interp(
     fexpr: Expr,
     args: List[Expr],
   ): Unit = try {
-    interp(fexpr).escaped match {
+    interp(fexpr) match {
       case Clo(func, captured) =>
         val vs = args.map(interp)
         val newLocals = getLocals(func.irFunc.params, vs) ++ captured
         st.callStack ::= CallContext(lhs, st.context)
         st.context = Context(func, newLocals)
       case Cont(func, captured, callStack) => {
-        // wrap completion for return to resumed context
-        val vs = args.map(interp).map(_.wrapCompletion)
+        val vs = args.map(interp)
         val newLocals =
           getLocals(func.irFunc.params, vs, cont = true) ++ captured
         st.callStack = callStack.map(_.copied)
@@ -165,9 +160,9 @@ class Interp(
   /** transition for expresssions */
   def interp(expr: Expr): Value = expr match {
     case EComp(tyExpr, valExpr, tgtExpr) =>
-      val y = interp(tyExpr).escaped
-      val t = interp(tgtExpr).escaped
-      val v = interp(valExpr).escaped
+      val y = interp(tyExpr)
+      val t = interp(tgtExpr)
+      val v = interp(valExpr).toPureValue
       (y, t) match
         case (y: Const, Str(t))      => Comp(y, v, Some(t))
         case (y: Const, CONST_EMPTY) => Comp(y, v, None)
@@ -183,18 +178,18 @@ class Interp(
     case EReturnIfAbrupt(expr, check) =>
       returnIfAbrupt(interp(expr), check)
     case EPop(list, front) =>
-      interp(list).escaped match
+      interp(list) match
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val (str, args, locOpt) = interp(code).escaped match
+      val (str, args, locOpt) = interp(code) match
         case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
           (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, interp(rule).escaped, st.sourceText, st.cachedAst) match
+        (str, interp(rule), st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
           case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
             AstValue(ast)
@@ -211,47 +206,47 @@ class Interp(
       }
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
-      val ast = interp(expr).escaped.asAst
+      val ast = interp(expr).asAst
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kind, ast) =>
-      val k = interp(kind).escaped match
+      val k = interp(kind) match
         case Grammar(name, _) => name
         case v                => throw NoGrammar(kind, v)
-      val a = interp(ast).escaped.asAst
+      val a = interp(ast).asAst
       st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>
-      val l = interp(list).escaped.getList(list, st)
-      val e = interp(elem).escaped
+      val l = interp(list).getList(list, st)
+      val e = interp(elem)
       Bool(field match {
         case Some((_, f)) => l.values.exists(x => st(PropValue(x, Str(f))) == e)
         case None         => l.values.contains(e)
       })
     case ESubstring(expr, from, to) =>
-      val s = interp(expr).escaped.asStr
-      val f = interp(from).escaped.asInt
-      val t = interp(to).escaped.asInt
+      val s = interp(expr).asStr
+      val f = interp(from).asInt
+      val t = interp(to).asInt
       Str(s.substring(f, t))
     case ERef(ref) =>
       st(interp(ref))
     case EUnary(uop, expr) =>
-      val x = interp(expr).escaped
+      val x = interp(expr)
       Interp.interp(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
     case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
     case EBinary(bop, left, right) =>
-      val l = interp(left).escaped
-      val r = interp(right).escaped
+      val l = interp(left)
+      val r = interp(right)
       Interp.interp(bop, l, r)
     case EVariadic(vop, exprs) =>
-      val vs = for (e <- exprs) yield interp(e).escaped
+      val vs = for (e <- exprs) yield interp(e).toPureValue
       Interp.interp(vop, vs)
     case EConvert(cop, expr) =>
       import COp.*
-      (interp(expr).escaped, cop) match {
+      (interp(expr), cop) match {
         case (Math(n), ToNumber)          => Number(n.toDouble)
         case (Math(n), ToBigInt)          => BigInt(n.toBigInt)
         case (Str(s), ToNumber)           => Number(ESValueParser.str2Number(s))
@@ -262,13 +257,13 @@ class Interp(
         case (CodeUnit(c), ToMath)        => Math(BigDecimal.exact(c.toInt))
         case (BigInt(n), ToMath)          => Math(BigDecimal.exact(n))
         case (Number(d), ToStr(radixOpt)) =>
-          val radix = radixOpt.fold(10)(e => interp(e).escaped.asInt)
+          val radix = radixOpt.fold(10)(e => interp(e).asInt)
           Str(toStringHelper(d, radix))
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>
-      Str(interp(base).escaped match
+      Str(interp(base) match
         case n: Number => "Number"
         case b: BigInt => "BigInt"
         case s: Str    => "String"
@@ -285,13 +280,13 @@ class Interp(
       )
     case ETypeCheck(expr, tyExpr) =>
       val v = interp(expr)
-      val tyName = interp(tyExpr).escaped match
+      val tyName = interp(tyExpr) match
         case Str(s)        => s
         case Grammar(s, _) => s
         case v             => throw InvalidTypeExpr(expr, v)
       if (v.isAbruptCompletion) Bool(false)
       else
-        Bool(v.escaped match
+        Bool(v match
           case _: Number => tyName == "Number"
           case _: BigInt => tyName == "BigInt"
           case _: Str    => tyName == "String"
@@ -308,7 +303,9 @@ class Interp(
               case _: ListObj   => tyName == "List"
               case _: SymbolObj => tyName == "Symbol"
               case _            => ???
-          case v => ???,
+          case v =>
+            println(v)
+            ???,
         )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
@@ -328,13 +325,13 @@ class Interp(
       )
       AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) =>
-      val str = interp(expr).escaped.asStr
+      val str = interp(expr).asStr
       AstValue(Lexical(name, str))
     case EMap(Type("Completion"), props) =>
       val map = (for {
         (kexpr, vexpr) <- props
-        k = interp(kexpr).escaped
-        v = interp(vexpr).escaped
+        k = interp(kexpr)
+        v = interp(vexpr)
       } yield k -> v).toMap
       (
         map.get(Str("Type")),
@@ -346,19 +343,19 @@ class Interp(
             case Str(target) => Some(target)
             case CONST_EMPTY => None
             case v           => throw InvalidCompTarget(v)
-          Comp(ty, value, targetOpt)
+          Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
     case EMap(ty, props) =>
       val addr = st.allocMap(ty)
       for ((kexpr, vexpr) <- props)
-        val k = interp(kexpr).escaped
+        val k = interp(kexpr).toPureValue
         val v = interp(vexpr)
         st.update(addr, k, v)
       addr
     case EList(exprs) =>
-      st.allocList(exprs.map(expr => interp(expr).escaped))
+      st.allocList(exprs.map(expr => interp(expr).toPureValue))
     case EListConcat(exprs) =>
-      val ls = exprs.map(e => interp(e).escaped.getList(e, st).values).flatten
+      val ls = exprs.map(e => interp(e).getList(e, st).values).flatten
       st.allocList(ls)
     case ESymbol(desc) =>
       interp(desc) match
@@ -366,18 +363,18 @@ class Interp(
         case Undef      => st.allocSymbol(Undef)
         case v          => throw NoString(desc, v)
     case ECopy(obj) =>
-      interp(obj).escaped match
+      interp(obj) match
         case addr: Addr => st.copyObj(addr)
         case v          => throw NoAddr(obj, v)
     case EKeys(map, intSorted) =>
-      interp(map).escaped match
+      interp(map) match
         case addr: Addr => st.keys(addr, intSorted)
         case v          => throw NoAddr(map, v)
     case EDuplicated(expr) =>
-      val vs = interp(expr).escaped.getList(expr, st).values
+      val vs = interp(expr).getList(expr, st).values
       Bool(vs.toSet.size != vs.length)
     case EIsArrayIndex(expr) =>
-      interp(expr).escaped match
+      interp(expr) match
         case Str(s) =>
           val d = ESValueParser.str2Number(s)
           val ds = toStringHelper(d)
@@ -400,12 +397,12 @@ class Interp(
 
   /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =
-    val l = interp(left).escaped
+    val l = interp(left)
     (bop, l) match
       case (BOp.And, Bool(false)) => Bool(false)
       case (BOp.Or, Bool(true))   => Bool(true)
       case _ =>
-        val r = interp(right).escaped
+        val r = interp(right)
         Interp.interp(bop, l, r)
 
   /** get initial local variables */
@@ -448,17 +445,24 @@ class Interp(
     case x: Id => IdValue(x)
     case Prop(ref, expr) =>
       var base = st(interp(ref))
-      val p = interp(expr).escaped
-      PropValue(base, p)
+      val p = interp(expr)
+      PropValue(base, p.toPureValue)
 
   /** set return value and move to the exit node */
   def setReturn(value: Value): Unit =
-    st.context.retVal = Some(value)
+    st.context.retVal = Some(
+      // wrap completion by conditions specified in
+      // [5.2.3.5 Implicit Normal Completion]
+      // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+      if (st.context.func.isReturnComp && !value.isCompletion)
+        value.wrapCompletion
+      else value,
+    )
     st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */
   def setCallResult(id: Id, value: Value): Unit =
-    st.define(id, value.wrapCompletion)
+    st.define(id, value)
     st.context.moveNext
 }
 

@@ -1,4 +1,4 @@
-def f() {
+def f(): Completion {
   return 42
 }
 

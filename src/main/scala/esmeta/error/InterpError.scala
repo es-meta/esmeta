@@ -9,6 +9,8 @@ sealed abstract class InterpError(msg: String)
   extends ESMetaError(s"[Interp Error] $msg")
 // invalid cases
 case class InvalidNodeId(nid: Int) extends InterpError(s"invalid node id: $nid")
+case class InvalidCompProp(comp: Comp, prop: PureValue)
+  extends InterpError(s"invalid completion property: $prop for $comp")
 case class InvalidObjProp(obj: Obj, prop: PureValue)
   extends InterpError(s"invalid object property: $prop for $obj")
 case class InvalidAstProp(ast: Ast, prop: PureValue)

@@ -107,7 +107,7 @@ case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj {
   /** updates a value */
   def update(prop: PureValue, value: Value): this.type =
     val idx = prop.asInt
-    values = values.updated(idx, value.escaped)
+    values = values.updated(idx, value.toPureValue)
     this
 
   /** appends a value */
