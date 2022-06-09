@@ -101,7 +101,8 @@ class Debugger(st: State) extends Interp(st, Nil) {
     val (prevLoc, _) = getJsInfo
     stepUntil {
       val (loc, _) = getJsInfo
-      (loc._1 != loc._2 || loc._1 == prevLoc._1)
+      println((prevLoc, loc))
+      (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1)
     }
 
   // js step over
@@ -109,13 +110,16 @@ class Debugger(st: State) extends Interp(st, Nil) {
     val (prevLoc, prevStackSize) = getJsInfo
     stepUntil {
       val (loc, stackSize) = getJsInfo
-      (loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize)
+      (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize)
     }
 
   // js step out
   final def jsStepOut =
     val (_, prevStackSize) = getJsInfo
-    stepUntil { prevStackSize <= getJsInfo._2 }
+    stepUntil {
+      val (loc, stackSize) = getJsInfo
+      loc._1 == -1 || prevStackSize <= stackSize
+    }
 
   // continue
   final def continue: StepResult = stepUntil { true }

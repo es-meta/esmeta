@@ -12,7 +12,8 @@ trait Lexer extends UnicodeParsers {
   val grammar: Grammar
 
   // do not skip white spaces
-  override def skipWhitespace = false
+  protected var _skipWhitespace = false
+  override def skipWhitespace = _skipWhitespace
 
   // lexer type
   type Lexer = EPackratParser[String]

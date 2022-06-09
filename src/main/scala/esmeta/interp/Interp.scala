@@ -186,11 +186,11 @@ class Interp(
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val (str, args) = interp(code).escaped match
-        case Str(s) => (s, List())
+      val (str, args, locOpt) = interp(code).escaped match
+        case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args)
-        case AstValue(lex: Lexical) => (lex.str, List())
+          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
+        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
         (str, interp(rule).escaped, st.sourceText, st.cachedAst) match
@@ -198,9 +198,12 @@ class Interp(
           case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
             AstValue(ast)
           case (x, Grammar(name, params), _, _) =>
-            AstValue(
-              jsParser(name, if (params.isEmpty) args else params).from(x),
-            )
+            val ast =
+              jsParser(name, if (params.isEmpty) args else params).from(x)
+            // TODO handle span of re-parsed ast
+            ast.clearLoc
+            ast.setChildLoc(locOpt)
+            AstValue(ast)
           case (_, r, _, _) => throw NoGrammar(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors

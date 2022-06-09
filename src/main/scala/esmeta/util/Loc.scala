@@ -3,8 +3,10 @@ package esmeta.util
 /** A trait for objects that have a location in spec.html */
 trait Locational {
   var loc: Option[Loc] = None
-  def setLoc(start: Pos, end: Pos, steps: List[Int]): this.type = {
-    if (loc.isEmpty) loc = Some(Loc(start, end, steps))
+  def setLoc(start: Pos, end: Pos, steps: List[Int]): this.type =
+    setLoc(Some(Loc(start, end, steps)))
+  def setLoc(locOpt: Option[Loc]): this.type = {
+    if (loc.isEmpty) loc = locOpt
     this
   }
 }
