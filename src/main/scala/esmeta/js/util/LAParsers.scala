@@ -2,6 +2,7 @@ package esmeta.js.util
 
 import esmeta.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.Locational
 import scala.util.parsing.input.*
 
 trait LAParsers extends Lexer {
@@ -136,6 +137,12 @@ trait LAParsers extends Lexer {
             res
         }
       },
+    p.first,
+  )
+
+  // location
+  def locationed[T <: Locational](p: LAParser[T]): LAParser[T] = new LAParser(
+    follow => locationed(p.parser(follow)),
     p.first,
   )
 

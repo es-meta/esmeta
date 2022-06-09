@@ -3,10 +3,11 @@ package esmeta.js
 import esmeta.ir.Type
 import esmeta.js.util.*
 import esmeta.spec.*
+import esmeta.util.*
 import scala.annotation.tailrec
 
 /** abstract syntax tree (AST) values */
-sealed trait Ast extends JSElem {
+sealed trait Ast extends JSElem with Locational {
 
   /** production names */
   val name: String
@@ -43,13 +44,6 @@ sealed trait Ast extends JSElem {
       case Syntactic(_, _, _, List(Some(child))) => child.types + "Nonterminal"
       case _                                     => Set("Terminal")
     )
-
-  // TODO tweak equality for fast caching
-  // /** equality */
-  // override def hashCode: Int = super.hashCode
-  // override def equals(any: Any): Boolean = any match
-  //   case that: Ast => this eq that
-  //   case _         => false
 
   /** flatten statements */
   // TODO refactoring

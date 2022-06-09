@@ -72,8 +72,8 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       .filter { case (r, _) => !isLR(name, r) }
       .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-    if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
-    else log(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _)))(name)
+    if (lrs.isEmpty) log(locationed(nlrs.reduce(_ | _)))(name)
+    else log(locationed(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _))))(name)
   })
 
   // get a sub parser for direct left-recursive cases
@@ -108,7 +108,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs => syntactic(name, args, idx, cs.reverse)
-      }
+      },
   })(s"$name$idx")
 
   // append a parser
@@ -269,19 +269,23 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   private val nt = cached[(String, Lexer), LAParser[Lexical]] {
     case (name, nt) =>
       log(
-        new LAParser(
-          follow =>
-            (Skip ~> nt <~ +follow.parser) ^^ { case s => Lexical(name, s) },
-          FirstTerms() + (name -> nt),
+        locationed(
+          new LAParser(
+            follow =>
+              (Skip ~> nt <~ +follow.parser) ^^ { case s => Lexical(name, s) },
+            FirstTerms() + (name -> nt),
+          ),
         ),
       )(name)
   }
   private val ntl = cached[(String, Lexer), LAParser[Lexical]] {
     case (name, nt) =>
       log(
-        new LAParser(
-          follow => (Skip ~> nt) ^^ { case s => Lexical("", s) },
-          FirstTerms(),
+        locationed(
+          new LAParser(
+            follow => (Skip ~> nt) ^^ { case s => Lexical("", s) },
+            FirstTerms(),
+          ),
         ),
       )(name)
   }

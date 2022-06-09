@@ -71,9 +71,37 @@ trait BasicParsers extends JavaTokenParsers {
   }
 
   // locations
-  lazy val pos: Parser[Pos] = int ~ (":" ~> int) ^^ { case l ~ c => Pos(l, c) }
+  lazy val pos: Parser[Pos] = int ~ (":" ~> int) ~ ("(" ~> int <~ ")") ^^ {
+    case l ~ c ~ o => Pos(l, c, o)
+  }
   lazy val loc: Parser[Loc] = {
     lazy val steps = "(" ~> repsep(int, ".") <~ ")"
     pos ~ ("-" ~> pos) ~ steps ^^ { case s ~ e ~ ss => Loc(s, e, ss) }
   }
+
+  // //////////////////////////////////////////////////////////////////////////////
+  // Source Location
+  // //////////////////////////////////////////////////////////////////////////////
+  def locationed[T <: Locational](p: => Parser[T]): Parser[T] =
+    new Parser[T] {
+      def apply(in: Input) =
+        val trimmed = trimInput(in)
+        p(trimmed) match
+          case s @ Success(res, rest) =>
+            new Success(
+              res.setLoc(trimmed, rest, List()),
+              rest,
+            )
+          case ns: NoSuccess => ns
+    }
+
+  // trim unused whitespace for position
+  protected def trimInput[T](in: Input): Input =
+    val offset = in.offset
+    val start = handleWhiteSpace(in.source, offset)
+    in.drop(start - offset)
+
+  /** implicit conversion from scala parser's Input to util.Pos */
+  protected given Conversion[Input, Pos] with
+    def apply(in: Input): Pos = Pos(in.pos.line, in.pos.column, in.offset)
 }

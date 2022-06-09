@@ -32,6 +32,7 @@ case class Loc(
 case class Pos(
   var line: Int,
   var column: Int,
+  var offset: Int,
 ) {
-  override def toString: String = s"$line:$column"
+  override def toString: String = s"$line:$column($offset)"
 }

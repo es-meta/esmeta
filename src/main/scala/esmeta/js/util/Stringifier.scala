@@ -25,6 +25,10 @@ class Stringifier(
       case Some(grammar) => grammarAstRule(app, (grammar, ast))
       case None          => basicAstRule(app, ast)
 
+  // span information
+  given locRule: Rule[Loc] = (app, loc) =>
+    app >> "{" >> loc.start.toString >> "-" >> loc.end.toString >> "}"
+
   lazy val grammarAstRule: Rule[(Grammar, Ast)] = (app, pair) =>
     val (grammar, origAst) = pair
     val nameMap = grammar.nameMap
@@ -50,8 +54,10 @@ class Stringifier(
         app >> "|" >> name >> "|"
         if (!args.isEmpty) app >> "[" >> args >> "]"
         app >> "<" >> rhsIdx >> ">"
+        if (detail && ast.loc.isDefined) app >> ast.loc.get
         given Rule[Option[Ast]] = optionRule("<none>")
         if (detail) app.wrap("(", ")")(children.map(app :> _ >> ",")) else app
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
+        if (detail && ast.loc.isDefined) app >> ast.loc.get else app
 }
