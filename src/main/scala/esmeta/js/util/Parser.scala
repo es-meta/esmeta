@@ -57,24 +57,36 @@ case class Parser(val grammar: Grammar) extends LAParsers {
     for { childOpt <- children }
       childOpt.foreach(_.parent = Some(syn))
     syn
+  def withLoc(
+    syn: Syntactic,
+    astStart: Ast,
+    astEnd: Ast,
+  ): Syntactic =
+    (astStart.loc.map(_.start), astEnd.loc.map(_.end)) match
+      case (Some(ls), Some(le)) => syn.setLoc(ls, le, List())
+      case _                    =>
+    syn
 
   // get a parser
-  private def getParser(prod: Production): ESParser[Ast] = memo(args => {
-    val Production(lhs, _, _, rhsList) = prod
-    val Lhs(name, params) = lhs
-    val argsSet = getArgs(params, args)
+  private def getParser(prod: Production): ESParser[Ast] = memo(args =>
+    locationed {
+      val Production(lhs, _, _, rhsList) = prod
+      val Lhs(name, params) = lhs
+      val argsSet = getArgs(params, args)
 
-    val lrs = rhsList.zipWithIndex
-      .filter { case (r, _) => isLR(name, r) }
-      .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
+      val lrs = rhsList.zipWithIndex
+        .filter { case (r, _) => isLR(name, r) }
+        .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
 
-    val nlrs = rhsList.zipWithIndex
-      .filter { case (r, _) => !isLR(name, r) }
-      .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
+      val nlrs = rhsList.zipWithIndex
+        .filter { case (r, _) => !isLR(name, r) }
+        .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-    if (lrs.isEmpty) log(locationed(nlrs.reduce(_ | _)))(name)
-    else log(locationed(resolveLR(nlrs.reduce(_ | _), lrs.reduce(_ | _))))(name)
-  })
+      if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
+      else
+        log(resolveLR(locationed(nlrs.reduce(_ | _)), lrs.reduce(_ | _)))(name)
+    },
+  )
 
   // get a sub parser for direct left-recursive cases
   private def getSubParsers(
@@ -90,7 +102,13 @@ case class Parser(val grammar: Grammar) extends LAParsers {
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs =>
-          (base: Ast) => syntactic(name, args, idx, Some(base) :: cs.reverse)
+          (base: Ast) =>
+            val children = Some(base) :: cs.reverse
+            withLoc(
+              syntactic(name, args, idx, children),
+              base,
+              cs.flatten.headOption.getOrElse(base),
+            )
       }
   })(s"$name$idx")
 
@@ -332,7 +350,10 @@ case class Parser(val grammar: Grammar) extends LAParsers {
 
   // resolve left recursions
   private type FLAParser[T] = LAParser[T => T]
-  private def resolveLR[T](f: LAParser[T], s: FLAParser[T]): LAParser[T] = {
+  private def resolveLR[T <: Ast](
+    f: LAParser[T],
+    s: FLAParser[T],
+  ): LAParser[T] = {
     lazy val p: FLAParser[T] = s ~ p ^^ {
       case b ~ f => (x: T) => f(b(x))
     } | MATCH ^^^ { (x: T) => x }
@@ -403,30 +424,40 @@ case class Parser(val grammar: Grammar) extends LAParsers {
   // handle indirect left-recursive case
   private def handleLR: ESParser[Ast] = memo(args => {
     log(
-      resolveLR(
-        log(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
-          case _ ~ x0 =>
-            syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
-        })("CoalesceExpressionHead1"),
-        log(
-          (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
-            case _ ~ x0 => (
-              (x: Ast) =>
-                val expr = syntactic(
-                  "CoalesceExpression",
-                  args,
-                  0,
-                  List(Some(x), Some(x0)),
-                )
-                syntactic(
-                  "CoalesceExpressionHead",
-                  args,
-                  0,
-                  List(Some(expr)),
-                ),
-            )
-          },
-        )("CoalesceExpressionHead0"),
+      locationed(
+        resolveLR(
+          log(locationed(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
+            case _ ~ x0 =>
+              syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
+          }))("CoalesceExpressionHead1"),
+          log(
+            (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
+              case _ ~ x0 => (
+                (x: Ast) =>
+                  val expr = withLoc(
+                    syntactic(
+                      "CoalesceExpression",
+                      args,
+                      0,
+                      List(Some(x), Some(x0)),
+                    ),
+                    x,
+                    x0,
+                  )
+                  withLoc(
+                    syntactic(
+                      "CoalesceExpressionHead",
+                      args,
+                      0,
+                      List(Some(expr)),
+                    ),
+                    expr,
+                    expr,
+                  ),
+              )
+            },
+          )("CoalesceExpressionHead0"),
+        ),
       ),
     )("CoalesceExpressionHead")
   })
