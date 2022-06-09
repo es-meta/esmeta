@@ -1,10 +1,9 @@
 package esmeta.cfg
 
-import esmeta.ir.{Type, Name, Func => IRFunc}
 import esmeta.cfg.util.*
+import esmeta.ir.{Type, Name, Func => IRFunc}
 import esmeta.spec.Head
-import esmeta.util.UId
-import esmeta.util.Appender
+import esmeta.util.{Appender, UId}
 
 /** CFG functions */
 case class Func(

@@ -4,8 +4,9 @@ import esmeta.LOG
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.Ast
 import esmeta.lang.Syntax
-import esmeta.spec.Algorithm
+import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.util.Loc
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -63,32 +64,58 @@ class Debugger(st: State) extends Interp(st, Nil) {
       else StepResult.Terminated
     } else StepResult.Breaked
 
-  private def getInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+  private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
 
   // spec step
   final def specStep = {
-    val (prevLoc, _) = getInfo
-    stepUntil { prevLoc._2.isDefined && prevLoc == getInfo._1 }
+    val (prevLoc, _) = getIrInfo
+    stepUntil { prevLoc._2.isDefined && prevLoc == getIrInfo._1 }
   }
 
   // spec step over
   final def specStepOver =
-    val (prevLoc, prevStackSize) = getInfo
+    val (prevLoc, prevStackSize) = getIrInfo
     stepUntil {
-      val (loc, stackSize) = getInfo
+      val (loc, stackSize) = getIrInfo
       (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
     }
 
   // spec step out
   final def specStepOut =
-    val (_, prevStackSize) = getInfo
-    stepUntil { prevStackSize <= getInfo._2 }
+    val (_, prevStackSize) = getIrInfo
+    stepUntil { prevStackSize <= getIrInfo._2 }
 
-  // TODO js steps from ast span info
-  // private def getJsInfo = ???
-  // final def jsStep = ???
-  // final def jsStepOver = ???
-  // final def jsStepOut = ???
+  // js steps from ast span info
+  private def getJsInfo =
+    val ctxts = st.context :: st.callStack.map(_.context)
+    val callStackSize = ctxts.count(_.isJsCall)
+    val (ls, le) = ctxts.flatMap(_.astOpt) match
+      case curr :: _ if curr.loc.isDefined =>
+        val loc = curr.loc.get
+        (loc.start.line, loc.end.line)
+      case _ => (-1, -1)
+    ((ls, le), callStackSize)
+
+  // js step
+  final def jsStep =
+    val (prevLoc, _) = getJsInfo
+    stepUntil {
+      val (loc, _) = getJsInfo
+      (loc._1 != loc._2 || loc._1 == prevLoc._1)
+    }
+
+  // js step over
+  final def jsStepOver =
+    val (prevLoc, prevStackSize) = getJsInfo
+    stepUntil {
+      val (loc, stackSize) = getJsInfo
+      (loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize)
+    }
+
+  // js step out
+  final def jsStepOut =
+    val (_, prevStackSize) = getJsInfo
+    stepUntil { prevStackSize <= getJsInfo._2 }
 
   // continue
   final def continue: StepResult = stepUntil { true }
@@ -191,6 +218,27 @@ class Debugger(st: State) extends Interp(st, Nil) {
       case _                                => None
   }
 
+  /** extension for context */
+  extension (ctxt: Context) {
+
+    /** ast of current context */
+    def astOpt: Option[Ast] =
+      if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THIS).asAst)
+      else None
+
+    /** check if js call */
+    def isJsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
+  }
+
+  /** extension for func */
+  extension (func: Func) {
+
+    /** check wheter it is runtime SDO */
+    def isRuntimeSDO: Boolean = func.irFunc.head match
+      case Some(SyntaxDirectedOperationHead(_, _, false, _, _)) => true
+      case _                                                    => false
+  }
+
   /** heap information */
   def heapInfo = st.heap.map.map {
     case (addr, obj) => (addr.toString, obj.toString)
@@ -216,7 +264,13 @@ class Debugger(st: State) extends Interp(st, Nil) {
       p.ty.name,
     )
 
-    val ctxt = (st.context :: st.callStack.map(_.context))(cid)
+    val ctxts = (st.context :: st.callStack.map(_.context)).drop(cid)
+    val (os, oe) = ctxts.flatMap(_.astOpt) match
+      case curr :: _ if curr.loc.isDefined =>
+        val loc = curr.loc.get
+        (loc.start.offset, loc.end.offset)
+      case _ => (-1, -1)
+    val ctxt = ctxts.head
     val (nid, isExit) = ctxt.cursor match
       case NodeCursor(n) => (n.id, false)
       case _: ExitCursor => (-1, true)
@@ -230,5 +284,6 @@ class Debugger(st: State) extends Interp(st, Nil) {
       irFunc.params.map(paramInfo(_)),
       func.toDot(nid, isExit),
       code,
+      (os, oe),
     )
 }
