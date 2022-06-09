@@ -101,7 +101,6 @@ class Debugger(st: State) extends Interp(st, Nil) {
     val (prevLoc, _) = getJsInfo
     stepUntil {
       val (loc, _) = getJsInfo
-      println((prevLoc, loc))
       (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1)
     }
 
