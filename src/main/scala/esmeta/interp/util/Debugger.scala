@@ -39,7 +39,10 @@ class Debugger(st: State) extends Interp(st, Nil) {
       case block @ Block(_, insts, next) if cursor.stepsOpt.isDefined =>
         interp(insts(cursor.idx))
         cursor.idx += 1
-        if (cursor.idx == insts.length) st.context.moveNext
+        if (cursor.idx == insts.length) {
+          cursor.idx -= 1
+          st.context.moveNext
+        }
       case _ =>
         super.interp(node)
     triggerBreaks // trigger breakpoints
@@ -149,6 +152,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
     override def check(st: State): Unit =
       if (enabled) {
         val currStepsOpt = st.context.cursor.stepsOpt
+
         if (st.func.id == fid && currStepsOpt == Some(steps))
           if (st.context.prevCursorOpt.fold(true)(_.stepsOpt != currStepsOpt))
             this.on
@@ -208,7 +212,8 @@ class Debugger(st: State) extends Interp(st, Nil) {
     def instOpt: Option[Inst] = cursor match
       case NodeCursor(node) =>
         node match
-          case Block(_, insts, _) => Some(insts(cursor.idx))
+          case Block(_, insts, _) =>
+            Some(insts(cursor.idx))
           case node: NodeWithInst => node.inst
       case _: ExitCursor => None
 

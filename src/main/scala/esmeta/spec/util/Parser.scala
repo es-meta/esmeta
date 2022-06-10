@@ -67,9 +67,21 @@ object Parser extends Parsers {
   def parseAlgorithms(
     document: Document,
     idxMap: Map[String, (Int, Int)],
-  ): List[Algorithm] = concurrent(for {
-    elem <- document.getElems("emu-alg:not([example])")
-  } yield () => parseAlgorithms(elem, idxMap)).toList.flatten
+  ): List[Algorithm] =
+    // XXX load manually created algorithms
+    var manualJobs = for {
+      file <- walkTree(MANUALS_DIR) if algoFilter(file.getName)
+      content = readFile(file.toString)
+      document = content.toHtml
+      elem <- document.getElems("emu-alg:not([example])")
+    } yield () => parseAlgorithms(elem, idxMap)
+
+    // extract algorithms in spec
+    val extractedJobs = for {
+      elem <- document.getElems("emu-alg:not([example])")
+    } yield () => parseAlgorithms(elem, idxMap)
+
+    concurrent(manualJobs ++ extractedJobs).toList.flatten
 
   /** parses an algorithm */
   def parseAlgorithms(

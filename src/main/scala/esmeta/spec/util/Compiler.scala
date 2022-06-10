@@ -99,7 +99,15 @@ class Compiler(val spec: Spec) {
   ) {
     // get an IR function as the result of compilation of an algorithm
     lazy val result: Func =
-      val func = Func(false, kind, name, params, retTy, getBodyInst, Some(algo))
+      val func = Func(
+        name == "RunJobs",
+        kind,
+        name,
+        params,
+        retTy,
+        getBodyInst,
+        Some(algo),
+      )
       funcs += func
       func
 

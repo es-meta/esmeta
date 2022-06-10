@@ -1,0 +1,26 @@
+<emu-clause id="sec-runjobs" type="abstract operation">
+  <h1>RunJobs ()</h1>
+  <dl class="header"></dl>
+  <emu-alg>
+    1. Perform ? InitializeHostDefinedRealm().
+    1. Let _scriptEvaluationJob_ be a new Abstract Closure with no parameters that captures nothing and performs the following steps when called:
+      1. Let _sourceText_ be the source code of a script.
+      1. Let _script_ be ParseScript(_sourceText_, the current Realm Record, *undefined*).
+      1. Perform ? ScriptEvaluation(_script_).
+      1. Return *undefined*.
+    1. Perform HostEnqueuePromiseJob(_scriptEvaluationJob_, the current Realm Record).
+    1. Repeat,
+      1. Suspend the running execution context and remove it from the execution context stack.
+      1. Assert: The execution context stack is empty.
+      1. Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.
+      1. If all Job Queues are empty, the result is implementation-defined.
+      1. Let _nextPending_ be the PendingJob record at the front of _nextQueue_. Remove that record from _nextQueue_.
+      1. Let _newContext_ be a new execution context.
+      1. Set _newContext_'s Function to *null*.
+      1. Set _newContext_'s Realm to _nextPending_.[[Realm]].
+      1. Set _newContext_'s ScriptOrModule to _nextPending_.[[ScriptOrModule]].
+      1. Push _newContext_ onto the execution context stack; _newContext_ is now the running execution context.
+      1. Let _job_ be _nextPending_.[[Job]].
+      1. Perform ? _job_().
+  </emu-alg>
+<emu-clause>

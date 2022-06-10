@@ -107,5 +107,10 @@
   "[YET] Assert: _status_ is not an abrupt completion because of validation preceding step <emu-xref href=\"#step-evaldeclarationinstantiation-post-validation\"></emu-xref>.": "assert true",
   "[YET] Return the BigInt value that represents the negation of ℝ(_x_).": "return ([bigint] (- ([math] x)))",
   "[YET] If _child_ is an instance of _symbol_, return *true*.": "if (? child: symbol) return true else {}",
-  "[YET] Let _contained_ be the result of _child_ Contains _symbol_.": "{ call result = child.Contains(child, symbol) let contained = result }"
+  "[YET] Let _contained_ be the result of _child_ Contains _symbol_.": "{ call result = child.Contains(child, symbol) let contained = result }",
+  "[YET] Let _sourceText_ be the source code of a script.": "let sourceText = @SOURCE_TEXT",
+  "[YET] Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.": "let nextQueue = @JOB_QUEUE",
+  "[YET] If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return undefined else {}",
+  "[YET] Let _nextPending_ be the PendingJob record at the front of _nextQueue_. Remove that record from _nextQueue_.": "let nextPending = (pop < @JOB_QUEUE)",
+  "[YET] Assert: The execution context stack is empty.": "assert (= @EXECUTION_STACK.length 0)"
 }
