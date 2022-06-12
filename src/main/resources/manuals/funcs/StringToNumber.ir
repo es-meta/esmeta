@@ -1,0 +1,4 @@
+def StringToNumber(str: String): Unknown {
+  // IGNORE original algo
+  return ([number] str)
+}

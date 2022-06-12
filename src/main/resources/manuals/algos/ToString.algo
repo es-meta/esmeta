@@ -1,0 +1,23 @@
+<emu-clause id="sec-tostring" type="abstract operation">
+  <h1>
+    ToString (
+      _argument_: an ECMAScript language value,
+    )
+  </h1>
+  <dl class="header"></dl>
+  <emu-alg>
+    1. If Type(_argument_) is Undefined, return *"undefined"*.
+    1. Else if Type(_argument_) is Null, return *"null"*.
+    1. Else if Type(_argument_) is Boolean, then
+      1. If _argument_ is *true*, return *"true"*.
+      1. Else, return *"false"*.
+    1. Else if Type(_argument_) is Number, return ! Number::toString(_argument_).
+    1. Else if Type(_argument_) is String, return _argument_.
+    1. Else if Type(_argument_) is Symbol, throw a *TypeError* exception.
+    1. Else if Type(_argument_) is BigInt, return ! BigInt::toString(_argument_).
+    1. Else,
+      1. Assert: Type(_argument_) is Object.
+      1. Let _primValue_ be ? ToPrimitive(_argument_, ~number~).
+      1. Return ? ToString(_primValue_).
+  </emu-alg>
+<emu-clause>

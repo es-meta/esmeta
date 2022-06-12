@@ -1,0 +1,23 @@
+<emu-clause id="sec-tonumbers" type="abstract operation">
+  <h1>
+    ToNumber (
+      _argument_: an ECMAScript language value,
+    )
+  </h1>
+  <dl class="header"></dl>
+  <emu-alg>
+    1. If Type(_argument_) is Undefined, return *NaN*.
+    1. Else if Type(_argument_) is Null, return *+0*<sub>𝔽</sub>.
+    1. Else if Type(_argument_) is Boolean, then
+      1. If _argument_ is *true*, return *1*<sub>𝔽</sub>.
+      1. Else, return *+0*<sub>𝔽</sub>.
+    1. Else if Type(_argument_) is Number, return _argument_.
+    1. Else if Type(_argument_) is String, return ! StringToNumber(_argument_).
+    1. Else if Type(_argument_) is Symbol, throw a *TypeError* exception.
+    1. Else if Type(_argument_) is BigInt, throw a *TypeError* exception.
+    1. Else,
+      1. Assert: Type(_argument_) is Object.
+      1. Let _primValue_ be ? ToPrimitive(_argument_, ~number~).
+      1. Return ? ToNumber(_primValue_).
+  </emu-alg>
+<emu-clause>
