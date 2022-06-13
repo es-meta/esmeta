@@ -16,10 +16,10 @@ Details of the ESMeta are available in our papers:
 
 ## PLDI 2022 Tutorial
 
-Filling the gap between the JavaScript language specification and tools using the JISET family
+**Title**: Filling the gap between the JavaScript language specification and tools using the JISET family
 
-- [Session 1](https://drive.google.com/file/d/17f6r35mCL0X_opndo2amruoDS-O9YNGg/view?usp=sharing)
-- [Session 2](https://drive.google.com/file/d/10h3MCcKPgxJ9X54GVRb9wVJBQpC_Oj_2/view?usp=sharing)
+- [Session 1](https://drive.google.com/file/d/17f6r35mCL0X_opndo2amruoDS-O9YNGg/view?usp=sharing) by Jihyeok Park
+- [Session 2](https://drive.google.com/file/d/10h3MCcKPgxJ9X54GVRb9wVJBQpC_Oj_2/view?usp=sharing) by Seungmin An
 
 --------------------------------------------------------------------------------
 
