@@ -69,6 +69,7 @@ with the following commands:
 - `js-eval` evaluates a JavaScript file.
 - `filter-test262` extracts and filters out metadata of
   [Test262](https://github.com/tc39/test262) tests.
+- `web` starts a web server for interactive execution.
 
 and global options:
 - `-silent` does not show final results.
@@ -88,18 +89,32 @@ in [JEST](https://github.com/kaist-plrg/jest).
 We will import the type analyzer for ECMA-262 we developed
 [JSTAR](https://github.com/kaist-plrg/jstar).
 
-### ECMAScript Debugger
+### ECMAScript Double Debugger
 
-**ECMAScript Debugger** extends the JavaScript interpreter in ESMeta to help
-you understand how a JavaScript Program runs according to ECMA-262.  Currently,
-it is in an **alpha stage** and supports only basic features such as:
+**ECMAScript Double Debugger** extends the JavaScript interpreter in ESMeta to
+help you understand how a JavaScript Program runs according to ECMA-262.
+Currently, it is in an **alpha stage** and supports only basic features such as:
 
 - Step-by-step execution of ECMAScript
 - Breakpoints by abstract algorithm names in ECMAScript
 - Visualization of states like a call stack, an environment, and a heap of ECMAScript
 - Line-by-line execution of JavaScript
 
-**A short [introduction video](https://youtu.be/syfZ3v6JNg8) is available.**
+You can start it with the following instructions:
+```bash
+# turn on server of the double debugger
+$ esmeta web
+
+# install the client-side application using NPM
+$ git clone https://github.com/es-meta/esmeta-debugger-client.git
+$ cd esmeta-debugger-client
+$ npm i
+
+# turn on the client-side application
+$ npm start
+```
+
+**A short [introduction video](https://youtu.be/syfZ3v6JNg8) is also available.**
 
 <img width="1150" alt="debugger" src="https://user-images.githubusercontent.com/7039121/151577359-7d6a90af-7940-4904-912e-dd9113b8ba2f.png">
 
