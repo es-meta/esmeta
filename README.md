@@ -11,6 +11,7 @@ Details of the ESMeta are available in our papers:
 - [ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript
   Engines](https://doi.org/10.1109/ICSE43902.2021.00015) [[old repo](https://github.com/kaist-plrg/jest)]
 - [ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781) [[old repo](https://github.com/kaist-plrg/jstar)]
+- [ESEC/FSE 2022] Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis [[old repo](https://github.com/kaist-plrg/jsaver)]
 
 --------------------------------------------------------------------------------
 
@@ -88,6 +89,10 @@ in [JEST](https://github.com/kaist-plrg/jest).
 ### Type Analyzer for ECMA-262
 We will import the type analyzer for ECMA-262 we developed
 [JSTAR](https://github.com/kaist-plrg/jstar).
+
+### Meta-Level Static Analyzer for ECMAScript
+We will import the meta-level static analyzer for ECMAScript we developed
+[JSAVER](https://github.com/kaist-plrg/jsaver).
 
 ### ECMAScript Double Debugger
 
