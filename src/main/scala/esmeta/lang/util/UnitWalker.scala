@@ -179,6 +179,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
+    case ContainsWhoseCondition(list, ty, fieldName, expr) =>
+      walk(list); walk(ty); walk(expr)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
   }

@@ -436,6 +436,8 @@ class StringifyTinyTest extends LangTest {
       IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
     lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
+    lazy val containsWhoseCond =
+      ContainsWhoseCondition(refExpr, ty, "Value", refExpr)
     lazy val compCond =
       CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
     lazy val implyCond =
@@ -464,6 +466,7 @@ class StringifyTinyTest extends LangTest {
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
       binaryCondLt -> "_x_ < _x_ + _x_",
+      containsWhoseCond -> "_x_ contains a Object whose [[Value]] is _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
     )

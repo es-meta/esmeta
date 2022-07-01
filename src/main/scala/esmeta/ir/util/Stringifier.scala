@@ -119,8 +119,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(source-text " >> expr >> ")"
       case EYet(msg) =>
         app >> "(yet \"" >> normStr(msg) >> "\")"
-      case EContains(list, elem) =>
-        app >> "(contains " >> list >> " " >> elem >> ")"
+      case EContains(list, elem, field) =>
+        app >> "(contains " >> list >> " " >> elem
+        field.map { case (t, f) => app >> ": " >> t >> " " >> f }
+        app >> ")"
       case ESubstring(expr, from, to) =>
         app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
       case ERef(ref) =>

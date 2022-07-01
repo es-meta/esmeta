@@ -452,6 +452,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
+      case ContainsWhoseCondition(list, ty, fieldName, expr) =>
+        app >> list >> " contains a " >> ty
+        app >> " whose [[" >> fieldName >> "]] is " >> expr
       case CompoundCondition(left, op, right) =>
         op match {
           case CompoundCondition.Op.Imply =>

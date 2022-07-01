@@ -62,6 +62,14 @@ object BinaryCondition:
     case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
     SameCodeUnits, Contains, NContains
 
+// `contains ... whose` conditions
+case class ContainsWhoseCondition(
+  list: Expression,
+  ty: Type,
+  fieldName: String,
+  expr: Expression,
+) extends Condition
+
 // compound conditions
 case class CompoundCondition(
   left: Condition,

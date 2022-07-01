@@ -108,8 +108,10 @@ trait Parsers extends BasicParsers {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
       case msg => EYet(msg)
-    } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
-      case l ~ e => EContains(l, e)
+    } | "(" ~ "contains" ~> expr ~ expr ~ opt(
+      ":" ~> pair(ty ~ word),
+    ) <~ ")" ^^ {
+      case l ~ e ~ f => EContains(l, e, f)
     } | "(" ~ "substring" ~> expr ~ expr ~ expr <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
     } | "(" ~> uop ~ expr <~ ")" ^^ {
@@ -275,4 +277,8 @@ trait Parsers extends BasicParsers {
         i.langOpt = Some(new Syntax { loc = l })
         i
     }
+
+  // helper for pairs
+  private def pair[A, B](parser: Parser[A ~ B]): Parser[(A, B)] =
+    parser ^^ { case a ~ b => (a, b) }
 }

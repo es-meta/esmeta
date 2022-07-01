@@ -112,5 +112,7 @@
   "[YET] Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.": "let nextQueue = @JOB_QUEUE",
   "[YET] If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return undefined else {}",
   "[YET] Let _nextPending_ be the PendingJob record at the front of _nextQueue_. Remove that record from _nextQueue_.": "let nextPending = (pop < @JOB_QUEUE)",
-  "[YET] Assert: The execution context stack is empty.": "assert (= @EXECUTION_STACK.length 0)"
+  "[YET] Assert: The execution context stack is empty.": "assert (= @EXECUTION_STACK.length 0)",
+  "[YET] Let _name_ be a new Private Name whose [[Description]] value is _dn_.": "let name = (new PrivateName(\"Description\" -> dn))",
+  "[YET] Let _privateName_ be the Private Name in _names_ whose [[Description]] is _privateIdentifier_.": "{ let idx = 0 loop[repeat] (< idx names.length) { let elem = names[idx] if (= elem.Description privateIdentifier) let privateName = elem else {} idx = (+ idx 1) } }"
 }

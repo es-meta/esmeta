@@ -93,7 +93,10 @@ trait Parsers extends IndentParsers {
 
   // assertion steps
   lazy val assertStep: PL[AssertStep] =
-    "assert" ~ ":" ~> (upper ~> cond) <~ end ^^ { AssertStep(_) }
+    "assert" ~ ":" ~> (
+      (upper ~> cond <~ end) |
+      ".+\\.".r ^^ { case s => ExpressionCondition(YetExpression(s, None)) }
+    ) ^^ { AssertStep(_) }
 
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
@@ -647,6 +650,7 @@ trait Parsers extends IndentParsers {
     predCond |||
     isAreCond |||
     binCond |||
+    containsWhoseCond |||
     specialCond
 
   // expression conditions
@@ -735,6 +739,15 @@ trait Parsers extends IndentParsers {
     expr ~ (isNeg <~ (opt("currently") ~> "an element of")) ~ expr ^^ {
       case l ~ n ~ r =>
         BinaryCondition(r, if (n) NContains else Contains, l)
+    }
+
+  // contains-whose conditions
+  lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
+    expr ~
+    ("contains" ~ opt("an" | "a") ~> ty) ~
+    ("whose" ~ "[[" ~> word <~ "]]") ~
+    ("is" ~> expr) ^^ {
+      case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
     }
 
   // rarely used conditions

@@ -216,6 +216,8 @@ trait Walker extends BasicWalker {
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
+    case ContainsWhoseCondition(list, ty, fieldName, expr) =>
+      ContainsWhoseCondition(walk(list), walk(ty), fieldName, walk(expr))
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }

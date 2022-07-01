@@ -14,7 +14,8 @@ case class EParse(code: Expr, rule: Expr) extends Expr
 case class EGrammar(name: String, params: List[Boolean]) extends Expr
 case class ESourceText(expr: Expr) extends Expr
 case class EYet(msg: String) extends Expr
-case class EContains(list: Expr, elem: Expr) extends Expr
+case class EContains(list: Expr, expr: Expr, field: Option[(Type, String)])
+  extends Expr
 case class ESubstring(expr: Expr, from: Expr, to: Expr) extends Expr
 case class ERef(ref: Ref) extends Expr
 case class EUnary(uop: UOp, expr: Expr) extends Expr

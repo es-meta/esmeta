@@ -116,7 +116,8 @@ class Interp(
       interp(list).escaped match
         case (addr: Addr) => st.remove(addr, interp(elem).escaped)
         case v            => throw NoAddr(list, v)
-    case IReturn(expr) => throw ReturnValue(interp(expr))
+    case IReturn(expr)    => throw ReturnValue(interp(expr))
+    case IAssert(_: EYet) => /* skip not yet compiled assertions */
     case IAssert(expr) =>
       interp(expr).escaped match {
         case Bool(true) =>
@@ -221,9 +222,13 @@ class Interp(
       st.allocList(a.getChildren(k).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
-    case EContains(list, elem) =>
+    case EContains(list, elem, field) =>
       val l = interp(list).escaped.getList(list, st)
-      Bool(l.values contains interp(elem).escaped)
+      val e = interp(elem).escaped
+      Bool(field match {
+        case Some((_, f)) => l.values.exists(x => st(PropValue(x, Str(f))) == e)
+        case None         => l.values.contains(e)
+      })
     case ESubstring(expr, from, to) =>
       val s = interp(expr).escaped.asStr
       val f = interp(from).escaped.asInt

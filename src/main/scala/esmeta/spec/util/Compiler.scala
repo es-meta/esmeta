@@ -779,9 +779,15 @@ class Compiler(val spec: Spec) {
           case GreaterThan      => lessThan(r, l)
           case GreaterThanEqual => not(lessThan(l, r))
           case SameCodeUnits    => EBinary(BOp.Eq, l, r)
-          case Contains         => EContains(l, r)
-          case NContains        => not(EContains(l, r))
+          case Contains         => EContains(l, r, None)
+          case NContains        => not(EContains(l, r, None))
         }
+      case ContainsWhoseCondition(list, ty, fieldName, expr) =>
+        EContains(
+          compile(fb, list),
+          compile(fb, expr),
+          Some((compile(ty), fieldName)),
+        )
       case CompoundCondition(left, op, right) =>
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)
