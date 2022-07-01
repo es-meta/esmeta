@@ -134,6 +134,8 @@ case class State(
             "StringValue",
           ) =>
         Str(ESValueParser.parseIdentifier(str))
+      case ("PrivateIdentifier", "StringValue") =>
+        Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
       // TODO handle numeric seperator in ESValueParser
       case ("NumericLiteral", "MV" | "NumericValue") =>
         ESValueParser.parseNumber(str.replaceAll("_", ""))
