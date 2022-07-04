@@ -18,7 +18,11 @@ case object Web extends Phase[CFG, Unit] {
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
-    ("web", NumOption((c, i) => c.port = i), "web server port (default: 8080)."),
+    (
+      "port",
+      NumOption((c, i) => c.port = i),
+      "web server port (default: 8080).",
+    ),
   )
   case class Config(var port: Int = 8080)
 }

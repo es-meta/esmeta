@@ -88,5 +88,6 @@ case object CmdFilterTest262
 
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
-  def help = "injects assertions to check the final state of given program."
+  def help =
+    "injects assertions to check the final state of a given JavaScript program."
 }

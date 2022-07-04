@@ -7,7 +7,7 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, LOG, LINE_SEP}
+import esmeta.{TIMEOUT, LOG, LINE_SEP, RESOURCE_DIR}
 import scala.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap}
 
@@ -30,6 +30,7 @@ class Injector(
   }
 
   // string
+  // XXX use pared ast?
   private lazy val scriptStr = st.sourceText.get
 
   // logging
@@ -317,5 +318,10 @@ class Injector(
 object Injector {
 
   /** run an interpreter and inject code for checking final states */
-  def apply(st: State): String = new Injector(st).result
+  def apply(st: State, assertions: Boolean = false): String = {
+    val injected = new Injector(st).result
+    if (assertions)
+      readFile(s"$RESOURCE_DIR/assertions.js") + LINE_SEP + injected
+    else injected
+  }
 }
