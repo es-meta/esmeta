@@ -86,11 +86,18 @@ case class Heap(
     if (hasSubMap(tname))
       val subMap = MapObj("SubMap")
       irMap.update(Str("SubMap"), alloc(subMap))
+    if (isObject(tname))
+      val privateElems = ListObj()
+      irMap.update(Str("PrivateElements"), alloc(privateElems))
     alloc(irMap)
   }
 
+  private def isObject(tname: String): Boolean =
+    tname endsWith "Object"
+  private def isEnvRec(tname: String): Boolean =
+    tname endsWith "EnvironmentRecord"
   private def hasSubMap(tname: String): Boolean =
-    (tname endsWith "Object") || (tname endsWith "EnvironmentRecord")
+    isObject(tname) || isEnvRec(tname)
 
   /** list allocations */
   def allocList(list: List[PureValue]): Addr = alloc(ListObj(list.toVector))
