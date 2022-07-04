@@ -29,12 +29,14 @@ class Debugger(st: State) extends Interp(st, Nil) {
   // ------------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
   override def step: Boolean = (super.step, cursor) match
-    // TODO handle call instruction
-    case (_, _: ExitCursor) if !st.callStack.isEmpty => {
-      val res = step; triggerBreaks; res
-    }
+    case (_, _: ExitCursor) if !st.callStack.isEmpty =>
+      saveBpCounts; // save counter
+      val res = step;
+      triggerBreaks; // trigger breakpoints
+      res
     case (res, _) => res
   override def interp(node: Node): Unit = {
+    saveBpCounts; // save counter
     node match
       case block @ Block(_, insts, next) if cursor.stepsOpt.isDefined =>
         interp(insts(cursor.idx))
@@ -92,11 +94,7 @@ class Debugger(st: State) extends Interp(st, Nil) {
   private def getJsInfo =
     val ctxts = st.context :: st.callStack.map(_.context)
     val callStackSize = ctxts.count(_.isJsCall)
-    val (ls, le) = ctxts.flatMap(_.astOpt) match
-      case curr :: _ if curr.loc.isDefined =>
-        val loc = curr.loc.get
-        (loc.start.line, loc.end.line)
-      case _ => (-1, -1)
+    val (ls, le) = ctxts.flatMap(_.jsLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), callStackSize)
 
   // js step
@@ -133,14 +131,19 @@ class Debugger(st: State) extends Interp(st, Nil) {
   /** breakpoints used in debugger */
   trait Breakpoint {
     var enabled: Boolean
+    private var prevCount = 0
     private var trigger = false
     def needTrigger: Boolean = {
       if (trigger) { trigger = false; true }
       else false
     }
     protected def on: Unit = trigger = true
-    def check(st: State): Unit
+    protected def count: Int
+    def saveCount: Unit = prevCount = count
+    def check: Unit = if (enabled && prevCount < count) this.on
     def toggle() = { enabled = !enabled }
+    protected def getContexts: List[Context] =
+      st.context :: st.callStack.map(_.context)
   }
 
   /** breakpoints by spec steps */
@@ -149,29 +152,48 @@ class Debugger(st: State) extends Interp(st, Nil) {
     steps: List[Int],
     var enabled: Boolean = true,
   ) extends Breakpoint {
-    override def check(st: State): Unit =
-      if (enabled) {
-        val currStepsOpt = st.context.cursor.stepsOpt
-
-        if (st.func.id == fid && currStepsOpt == Some(steps))
-          if (st.context.prevCursorOpt.fold(true)(_.stepsOpt != currStepsOpt))
-            this.on
-      }
+    override protected def count: Int =
+      getContexts.count(ctxt =>
+        ctxt.func.id == fid && ctxt.cursor.stepsOpt == Some(steps),
+      )
   }
 
-  // TODO breakpoints by JavaScript code line */
+  /** breakpoints by JavaScript code line */
   case class JsBreakpoint(
     line: Int,
     var enabled: Boolean = true,
   ) extends Breakpoint {
-    override def check(st: State): Unit = ???
+    @tailrec
+    private def isParent(ast: Ast, target: Ast): Boolean = ast.parent match
+      case Some(parent) =>
+        if (parent eq target) true
+        else isParent(parent, target)
+      case None => false
+
+    // count the number of breakpoint target ast
+    override protected def count: Int =
+      val astList = getContexts.flatMap { ctxt =>
+        ctxt.astOpt match
+          case Some(ast) if ast.loc.isDefined =>
+            val loc = ast.loc.get
+            val (ls, le) = (loc.start.line, loc.end.line)
+            if (ls != -1 && ls == le && ls == line) Some(ast)
+            else None
+          case _ => None
+      }
+      astList.filter(ast => astList.exists(isParent(_, ast))).length
   }
 
   // breakpoints
   private val breakpoints: ListBuffer[Breakpoint] = ListBuffer()
 
   // trigger breakpoints
-  private def triggerBreaks: Unit = for (b <- breakpoints) b.check(st)
+  private def triggerBreaks: Unit =
+    for (b <- breakpoints) b.check
+
+  // save counter for each breakpoint
+  private def saveBpCounts: Unit =
+    for (b <- breakpoints) b.saveCount
 
   // add breakpoints from serialized data
   final def addBreak(
@@ -236,6 +258,15 @@ class Debugger(st: State) extends Interp(st, Nil) {
 
     /** check if js call */
     def isJsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
+
+    /** location of JavaScript code */
+    def jsLocOpt: Option[(Int, Int)] = astOpt match
+      case Some(ast) =>
+        Some(ast.loc match
+          case Some(loc) => (loc.start.line, loc.end.line)
+          case None      => (-1, -1),
+        )
+      case None => None
   }
 
   /** extension for func */
