@@ -85,3 +85,8 @@ case object CmdFilterTest262
   extends Command("filter-test262", CmdBase >> FilterTest262) {
   def help = "extracts and filters out metadata of Test262 tests."
 }
+
+/** `inject` command */
+case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
+  def help = "injects assertions to check the final state of given program."
+}
