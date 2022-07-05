@@ -1,0 +1,20 @@
+def <CONT>:AsyncBlockStart:cont0(): Any {
+  call %0 = asyncBody.Evaluation(asyncBody)
+  let result = %0
+  assert (yet "[YET] If we return here, the async function either threw an exception or performed an implicit or explicit return; all awaiting is done.")
+  (pop < @EXECUTION_STACK)
+  if (= result.Type ~normal~) {
+    call %1 = clo<Call>(promiseCapability.Resolve, undefined, (new [undefined]))
+    [! %1]
+  } else {
+    if (= result.Type ~return~) {
+      call %2 = clo<Call>(promiseCapability.Resolve, undefined, (new [result.Value]))
+      [! %2]
+    } else {
+      assert (= result.Type ~throw~)
+      call %3 = clo<Call>(promiseCapability.Reject, undefined, (new [result.Value]))
+      [! %3]
+    }
+  }
+  call %4 = (pop < asyncContext.ReturnCont)(comp[~normal~/~empty~](~unused~)) // BUG
+}
