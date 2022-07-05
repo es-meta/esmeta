@@ -134,7 +134,9 @@ class Interp(
         st.callStack ::= CallContext(lhs, st.context)
         st.context = Context(func, newLocals)
       case Cont(func, captured, callStack) => {
-        val vs = args.map(interp)
+        val needWrapped = st.context.func.isReturnComp
+        val vs =
+          args.map(interp).map(v => if (needWrapped) v.wrapCompletion else v)
         val newLocals =
           getLocals(func.irFunc.params, vs, cont = true) ++ captured
         st.callStack = callStack.map(_.copied)
@@ -454,9 +456,7 @@ class Interp(
       // wrap completion by conditions specified in
       // [5.2.3.5 Implicit Normal Completion]
       // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-      if (st.context.func.isReturnComp && !value.isCompletion)
-        value.wrapCompletion
-      else value,
+      if (st.context.func.isReturnComp) value.wrapCompletion else value,
     )
     st.context.cursor = ExitCursor(st.func)
 
