@@ -19,7 +19,7 @@ def <CONT>:GeneratorStart:cont0(): Any {
       let resultValue = result.Value
     } else {
       assert (= result.Type ~throw~)
-      call %3 = (pop < genContext.ReturnCont)([? result])
+      call %3 = (pop < genContext.ReturnCont)(result) // BUG
     }
   }
   call %4 = clo<CreateIterResultObject>(resultValue, true)
