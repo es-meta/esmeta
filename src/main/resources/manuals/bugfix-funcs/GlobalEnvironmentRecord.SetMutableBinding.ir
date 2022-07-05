@@ -1,0 +1,11 @@
+def <CONC>:GlobalEnvironmentRecord.SetMutableBinding(envRec: GlobalEnvironmentRecord, N: String, V: ECMAScriptLanguageValue, S: Boolean): EitherANormalCompletionOrAnAbruptCompletion {
+  let DclRec = envRec.DeclarativeRecord
+  call %0 = DclRec.HasBinding(DclRec, N)
+  if (= [! %0] true) {
+    call %1 = DclRec.SetMutableBinding(DclRec, N, V, S)
+    return [? %1] // BUG
+  } else {}
+  let ObjRec = envRec.ObjectRecord
+  call %2 = ObjRec.SetMutableBinding(ObjRec, N, V, S)
+  return [? %2]
+}

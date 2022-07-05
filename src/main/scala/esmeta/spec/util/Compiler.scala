@@ -424,7 +424,7 @@ class Compiler(val spec: Spec) {
           Func.Kind.Cont,
           contName,
           toParams(paramOpt),
-          AnyType,
+          fb.retTy,
           body,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
@@ -440,7 +440,7 @@ class Compiler(val spec: Spec) {
       val ps = toParams(paramOpt)
       val bodyStep = BlockStep(StepBlock(steps))
       val newFb =
-        FuncBuilder(Func.Kind.Cont, contName, ps, AnyType, bodyStep, fb.algo)
+        FuncBuilder(Func.Kind.Cont, contName, ps, fb.retTy, bodyStep, fb.algo)
       newFb.result
       fb.addInst(
         IIf(

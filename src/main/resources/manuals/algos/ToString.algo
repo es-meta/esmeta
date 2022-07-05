@@ -2,7 +2,7 @@
   <h1>
     ToString (
       _argument_: an ECMAScript language value,
-    )
+    ): either a normal completion containing an ECMAScript language value or an abrupt completion
   </h1>
   <dl class="header"></dl>
   <emu-alg>
@@ -17,7 +17,7 @@
     1. Else if Type(_argument_) is BigInt, return ! BigInt::toString(_argument_).
     1. Else,
       1. Assert: Type(_argument_) is Object.
-      1. Let _primValue_ be ? ToPrimitive(_argument_, ~number~).
+      1. Let _primValue_ be ? ToPrimitive(_argument_, ~string~).
       1. Return ? ToString(_primValue_).
   </emu-alg>
 <emu-clause>
