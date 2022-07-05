@@ -77,11 +77,11 @@ object Parser extends Parsers {
     } yield () => parseAlgorithms(elem, idxMap)
 
     // extract algorithms in spec
-    val extractedJobs = for {
+    val jobs = for {
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => parseAlgorithms(elem, idxMap)
 
-    concurrent(manualJobs ++ extractedJobs).toList.flatten
+    concurrent(manualJobs ++ jobs).toList.flatten
 
   /** parses an algorithm */
   def parseAlgorithms(
@@ -118,9 +118,6 @@ object Parser extends Parsers {
 
     // checks whether it is a valid algorithm heaad
     if (parent.tagName != "emu-clause") return Nil
-
-    // checks whether an element is of Chapter 5. Notational Conventions
-    if (elem.isNotation) return Nil
 
     // consider algorithm head types using `type` attributes
     parent.attr("type") match {
@@ -267,9 +264,7 @@ object Parser extends Parsers {
 
   // get head contents from parent elements
   private def getHeadContent(parent: Element): String =
-    val headContent = parent.getFirstChildContent
-    if (parent.id == "await") "Await (_value_)"
-    else headContent
+    parent.getFirstChildContent
 }
 
 /** specification parsers */

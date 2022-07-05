@@ -15,17 +15,8 @@ class Compiler(val spec: Spec) {
 
   /** compiled specification */
   def result: Program = {
-    // load manually created AOs
-    for (file <- walkTree(MANUALS_DIR) if irFilter(file.getName))
-      funcs += Func.fromFile(file.toString)
-    val manualNames = funcs.map(_.name)
-
     // compile algorithms in spec
-    for {
-      algo <- spec.algorithms
-      name = algo.head.fname
-      if !(excluded.contains(name) || manualNames.contains(name))
-    } compile(algo)
+    for { algo <- spec.algorithms } compile(algo)
 
     // result
     val program = Program(funcs.toList)
@@ -39,12 +30,20 @@ class Compiler(val spec: Spec) {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  // compiled algorithms
+  private val funcs: ListBuffer[Func] = ListBuffer()
+
+  // load manually created AOs
+  private val manualAlgoNames = (for {
+    file <- walkTree(MANUALS_DIR) if irFilter(file.getName)
+    func = Func.fromFile(file.toString)
+    _ = funcs += func
+  } yield func.name).toList
+
+  // load manual compile rules
   private val manualRules: Map[String, Inst] = (for {
     (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
   } yield yet -> Inst.from(inst)).toMap
-
-  // compiled algorithms
-  private val funcs: ListBuffer[Func] = ListBuffer()
 
   // grammar
   private def grammar: Grammar = spec.grammar
@@ -82,9 +81,9 @@ class Compiler(val spec: Spec) {
     "IfAbruptRejectPromise",
   )
 
-  // list of not-compiled function names
+  // list of function names not to compile
   private val excluded =
-    "INTRINSICS.Array.prototype[@@unscopables]" :: shorthands
+    "INTRINSICS.Array.prototype[@@unscopables]" :: shorthands :: manualAlgoNames
 
   // function builder
   private case class FuncBuilder(
@@ -98,18 +97,21 @@ class Compiler(val spec: Spec) {
     prefix: Option[Inst] = None,
   ) {
     // get an IR function as the result of compilation of an algorithm
-    lazy val result: Func =
-      val func = Func(
-        name == "RunJobs",
-        kind,
-        name,
-        params,
-        retTy,
-        getBodyInst,
-        Some(algo),
-      )
-      funcs += func
-      func
+    lazy val result: Option[Func] =
+      if (excluded contains name) None
+      else {
+        val func = Func(
+          name == "RunJobs",
+          kind,
+          name,
+          params,
+          retTy,
+          getBodyInst,
+          Some(algo),
+        )
+        funcs += func
+        Some(func)
+      }
 
     // bindings for nonterminals
     var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
@@ -247,7 +249,7 @@ class Compiler(val spec: Spec) {
 
   // compile an algorithm to an IR function
   // TODO consider refactor
-  private def compile(algo: Algorithm): Func =
+  private def compile(algo: Algorithm): Unit =
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(head.params)
       case _                 => None
@@ -719,6 +721,9 @@ class Compiler(val spec: Spec) {
           case Abrupt =>
             val tv = toERef(fb, x, EStr("Type"))
             and(EIsCompletion(x), not(is(tv, ECONST_NORMAL)))
+          case NeverAbrupt =>
+            val tv = toERef(fb, x, EStr("Type"))
+            or(not(EIsCompletion(x)), is(tv, ECONST_NORMAL))
           case Normal =>
             val tv = toERef(fb, x, EStr("Type"))
             and(EIsCompletion(x), is(tv, ECONST_NORMAL))
@@ -935,7 +940,6 @@ class Compiler(val spec: Spec) {
   private val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
-    arityCheck("Completion" -> { case List(expr) => expr }),
     arityCheck("ReturnIfAbrupt" -> {
       case List(expr) => EReturnIfAbrupt(expr, true)
     }),

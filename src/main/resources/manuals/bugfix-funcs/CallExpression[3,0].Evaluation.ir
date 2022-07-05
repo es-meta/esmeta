@@ -1,0 +1,11 @@
+def <SYNTAX>:CallExpression[3,0].Evaluation(this: Unknown): Unknown {
+  call %0 = this[0].Evaluation(this[0])
+  let ref = [? %0] // BUG
+  call %1 = clo<GetValue>(ref)
+  let func = [? %1]
+  let thisCall = this[0]
+  call %2 = clo<IsInTailPosition>(thisCall)
+  let tailCall = %2
+  call %3 = clo<EvaluateCall>(func, ref, this[1], tailCall)
+  return [? %3]
+}

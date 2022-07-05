@@ -32,10 +32,9 @@ case class Func(
 
   /** check wheter it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
-    case IRFunc.Kind.AbsOp if irFunc.retTy.isCompletion              => true
     case IRFunc.Kind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
     case IRFunc.Kind.Builtin | IRFunc.Kind.BuiltinClo                => true
-    case _                                                           => false
+    case _ => irFunc.retTy.isCompletion
 
   /** function name */
   def name: String = irFunc.name

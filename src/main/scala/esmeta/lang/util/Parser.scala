@@ -214,7 +214,7 @@ trait Parsers extends IndentParsers {
         Some(_)
       } | "." ^^^ { None }
     lazy val param: P[Option[Variable]] =
-      "Let" ~> variable <~ "be the" ~ ("value" | "completion record") ~ "returned by the resumed computation." <~ guard(
+      "Let" ~> variable <~ "be the" ~ ("value" | "Completion Record") ~ "returned by the resumed computation." <~ guard(
         "\n",
       ) ^^ { Some(_) } | guard("\n") ^^^ { None }
     context ~ arg ~ param ~ rep1(subStep) ^^ {
@@ -687,7 +687,8 @@ trait Parsers extends IndentParsers {
     lazy val op: Parser[PredicateCondition.Op] =
       "finite" ^^^ { Finite } |
       "an abrupt completion" ^^^ { Abrupt } |
-      ("a normal completion" | "never an abrupt completion") ^^^ { Normal } |
+      "a normal completion" ^^^ { Normal } |
+      "never an abrupt completion" ^^^ { NeverAbrupt } |
       "duplicate entries" ^^^ { Duplicated } |
       "present" ^^^ { Present } |
       ("empty" | "an empty List") ^^^ { Empty } |

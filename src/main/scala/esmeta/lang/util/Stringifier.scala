@@ -471,6 +471,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (op match {
       case Finite           => "finite"
       case Abrupt           => "an abrupt completion"
+      case NeverAbrupt      => "never an abrupt completion"
       case Normal           => "a normal completion"
       case Duplicated       => "duplicate entries"
       case Present          => "present"

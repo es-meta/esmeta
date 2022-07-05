@@ -4,5 +4,8 @@ def PrepareForTailCall(): Unknown {
 
   // 1. Discard all resources associated with the current execution context
   @EXECUTION_STACK[0] = @EXECUTION_STACK[1]
+
+  // 1. Return ~unused~.
+  return ~unused~
 }
 

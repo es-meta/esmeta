@@ -1,0 +1,29 @@
+<emu-clause id="await" aoid="Await" type="abstract operation">
+  <h1>Await ( _value_ )</h1>
+  <dl class="header"></dl>
+  <emu-alg>
+    1. Let _asyncContext_ be the running execution context.
+    1. Let _promise_ be ? PromiseResolve(%Promise%, _value_).
+    1. Let _fulfilledClosure_ be a new Abstract Closure with parameters (_value_) that captures _asyncContext_ and performs the following steps when called:
+      1. Let _prevContext_ be the running execution context.
+      1. Suspend _prevContext_.
+      1. Push _asyncContext_ onto the execution context stack; _asyncContext_ is now the running execution context.
+      1. <emu-meta effects="user-code">Resume the suspended evaluation of _asyncContext_</emu-meta> using NormalCompletion(_value_) as the result of the operation that suspended it.
+      1. Assert: When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.
+      1. Return *undefined*.
+    1. Let _onFulfilled_ be CreateBuiltinFunction(_fulfilledClosure_, 1, *""*, &laquo; &raquo;).
+    1. Let _rejectedClosure_ be a new Abstract Closure with parameters (_reason_) that captures _asyncContext_ and performs the following steps when called:
+      1. Let _prevContext_ be the running execution context.
+      1. Suspend _prevContext_.
+      1. Push _asyncContext_ onto the execution context stack; _asyncContext_ is now the running execution context.
+      1. <emu-meta effects="user-code">Resume the suspended evaluation of _asyncContext_</emu-meta> using ThrowCompletion(_reason_) as the result of the operation that suspended it.
+      1. Assert: When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.
+      1. Return *undefined*.
+    1. Let _onRejected_ be CreateBuiltinFunction(_rejectedClosure_, 1, *""*, &laquo; &raquo;).
+    1. Perform PerformPromiseThen(_promise_, _onFulfilled_, _onRejected_).
+    1. Remove _asyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.
+    1. Set the code evaluation state of _asyncContext_ such that when evaluation is resumed with a Completion Record _completion_, the following steps of the algorithm that invoked Await will be performed, with _completion_ available.
+    1. Return NormalCompletion(~unused~).
+    1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of _asyncContext_.
+  </emu-alg>
+</emu-clause>

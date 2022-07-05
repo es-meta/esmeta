@@ -67,10 +67,6 @@ class Interp(
           false
         case CallContext(retId, ctxt) :: rest =>
           val value = st.context.retVal.getOrElse(throw NoReturnValue)
-          (value, setTypeMap.get(st.context.name)) match
-            case (addr: Addr, Some(tname)) =>
-              st.setType(addr, tname)
-            case _ =>
           st.context = ctxt
           st.callStack = rest
           setCallResult(retId, value)
@@ -121,7 +117,8 @@ class Interp(
       }
     case IPrint(expr) =>
       val v = interp(expr)
-      if (!TEST_MODE) println(st.getString(v))
+      // if (!TEST_MODE) println(st.getString(v))
+      println(st.getString(v))
     case INop() => /* do nothing */
   }
 
@@ -284,29 +281,28 @@ class Interp(
         case Str(s)        => s
         case Grammar(s, _) => s
         case v             => throw InvalidTypeExpr(expr, v)
-      if (v.isAbruptCompletion) Bool(false)
-      else
-        Bool(v match
-          case _: Number => tyName == "Number"
-          case _: BigInt => tyName == "BigInt"
-          case _: Str    => tyName == "String"
-          case _: Bool   => tyName == "Boolean"
-          case _: Const  => tyName == "Constant"
-          case Undef     => tyName == "Undefined"
-          case Null      => tyName == "Null"
-          case AstValue(ast) =>
-            tyName == "ParseNode" || (ast.types contains tyName)
-          case _: Clo => tyName == "AbstractClosure"
-          case addr: Addr =>
-            st(addr) match
-              case m: MapObj    => typeModel.subType(m.ty, tyName)
-              case _: ListObj   => tyName == "List"
-              case _: SymbolObj => tyName == "Symbol"
-              case _            => ???
-          case v =>
-            println(v)
-            ???,
-        )
+      Bool(v match
+        case _: Number => tyName == "Number"
+        case _: BigInt => tyName == "BigInt"
+        case _: Str    => tyName == "String"
+        case _: Bool   => tyName == "Boolean"
+        case _: Const  => tyName == "Constant"
+        case _: Comp   => tyName == "CompletionRecord"
+        case Undef     => tyName == "Undefined"
+        case Null      => tyName == "Null"
+        case AstValue(ast) =>
+          tyName == "ParseNode" || (ast.types contains tyName)
+        case _: Clo => tyName == "AbstractClosure"
+        case addr: Addr =>
+          st(addr) match
+            case m: MapObj    => typeModel.subType(m.ty, tyName)
+            case _: ListObj   => tyName == "List"
+            case _: SymbolObj => tyName == "Symbol"
+            case _            => ???
+        case v =>
+          println(v)
+          ???,
+      )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
       Clo(func, Map.from(captured.map(x => x -> st(x))))
@@ -450,6 +446,11 @@ class Interp(
 
   /** set return value and move to the exit node */
   def setReturn(value: Value): Unit =
+    // set type map
+    (value, setTypeMap.get(st.context.name)) match
+      case (addr: Addr, Some(tname))             => st.setType(addr, tname)
+      case (NormalComp(addr: Addr), Some(tname)) => st.setType(addr, tname)
+      case _                                     => /* do nothing */
     st.context.retVal = Some(
       // wrap completion by conditions specified in
       // [5.2.3.5 Implicit Normal Completion]
