@@ -42,9 +42,11 @@ case class Test262(spec: Spec) {
   // load test262 file with harnesses
   def loadTestFromFile(filename: String): (String, Ast) = {
     val meta = MetaData(filename)
-
+    loadTest(parseFile(filename), meta.includes)
+  }
+  def loadTest(ast: Ast, includes: List[String]): (String, Ast) = {
     // load harness
-    val includeStmts = meta.includes.foldLeft(basicStmts) {
+    val includeStmts = includes.foldLeft(basicStmts) {
       case (li, s) =>
         for {
           x <- li
@@ -56,7 +58,7 @@ case class Test262(spec: Spec) {
     }
 
     // parse test and merge with harnesses
-    val stmts = includeStmts ++ flattenStmt(parseFile(filename))
+    val stmts = includeStmts ++ flattenStmt(ast)
     val merged = mergeStmt(stmts)
 
     // result

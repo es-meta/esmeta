@@ -2,6 +2,7 @@ package esmeta.interp
 
 import esmeta.cfg.{Func, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.js.Ast
 import esmeta.util.BaseUtils.error
 import scala.collection.mutable.{Map => MMap}
 
@@ -32,4 +33,9 @@ case class Context(
 
   /** name */
   def name: String = func.irFunc.name
+
+  /** ast of current context */
+  def astOpt: Option[Ast] =
+    if (func.isSDO) Some(locals(NAME_THIS).asAst)
+    else None
 }
