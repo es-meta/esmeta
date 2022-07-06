@@ -1,6 +1,6 @@
 package esmeta.js.util
 
-import esmeta.{LINE_SEP, TIMEOUT}
+import esmeta.{LINE_SEP, TIMEOUT, TEST262_TEST_DIR}
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.*
@@ -9,25 +9,29 @@ import esmeta.test262.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
+import io.circe.*, io.circe.syntax.*
 
 /** coverage measurement of cfg */
 case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
 
   /** data structures for coverage */
-  private lazy val programs: ArrayBuffer[String] = ArrayBuffer()
-  private lazy val programSize: MMap[Int, Int] = MMap()
+  private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
   private lazy val nodeMap: MMap[Int, Int] = MMap()
 
   /** update coverage for a given JavaScript program */
-  def run(path: String, fromTest262: Boolean = true): State = {
+  def run(path: String): State = {
     // parse
+    val fromTest262 = path startsWith TEST262_TEST_DIR
     val script = cfg.jsParser("Script").fromFile(path)
     val scriptStr = script.toString(grammar = Some(cfg.grammar))
 
     // update program infos
     val pid = programs.size
-    programSize += (pid -> scriptStr.length)
-    programs += path
+    val programSize = scriptStr.length
+    val programName =
+      (if (fromTest262) path.substring(TEST262_TEST_DIR.length + 1)
+       else path.split("/").reverse.head)
+    programs += ((programName, programSize))
 
     // handle test262
     var markedAst = script.nodeSet
@@ -64,8 +68,7 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
     // update coverage
     for { nid <- touched } {
       nodeMap.get(nid) match
-        case Some(pid0)
-            if programSize(pid0) <= programSize(pid) => /* do nothing */
+        case Some(pid0) if programs(pid0)._2 <= programSize => /* do nothing */
         case _ => nodeMap += (nid -> pid)
     }
     finalSt
@@ -93,11 +96,18 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
   /** dump results */
   def dumpTo(baseDir: String): Unit =
     mkdir(baseDir)
-    dumpFile(this.toString, s"$baseDir/summary")
+    val covData = for {
+      nid <- cfg.nodeMap.keySet.toList.sorted
+    } yield nodeMap.get(nid).map(programs(_)._1)
+    val sizeData = (for {
+      pid <- nodeMap.values.toSet
+      (name, size) = programs(pid)
+    } yield name -> size).toList
     dumpJson(
-      for {
-        nid <- cfg.nodeMap.keySet.toList.sorted
-      } yield nodeMap.get(nid).map(programs(_)),
+      JsonObject(
+        "coverage" -> covData.asJson,
+        "size" -> sizeData.asJson,
+      ),
       s"$baseDir/coverage.json",
       noSpace = true,
     )
@@ -107,8 +117,9 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
   override def toString: String = {
     val (nCovered, nTotal) = nodeCov
     val (bCovered, bTotal) = branchCov
-    f"- node coverage: $nCovered%,d/$nTotal%,d (${percent(nCovered, nTotal)}%2.2f%%)" + LINE_SEP +
-    f"- branch coverage: $bCovered%,d/$bTotal%,d (${percent(bCovered, bTotal)}%2.2f%%)"
+    "coverage:" + LINE_SEP +
+    f"- node: $nCovered%,d/$nTotal%,d (${percent(nCovered, nTotal)}%2.2f%%)" + LINE_SEP +
+    f"- branch: $bCovered%,d/$bTotal%,d (${percent(bCovered, bTotal)}%2.2f%%)"
   }
 
   // ********************************************************************************
