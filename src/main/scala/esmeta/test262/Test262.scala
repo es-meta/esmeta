@@ -31,6 +31,7 @@ case class Test262(spec: Spec) {
 
   // test262 test configuration
   lazy val config = TestFilter.configSummary
+  lazy val manualConfig = TestFilter.manualSummary
 
   // basic statements
   lazy val basicStmts = for {

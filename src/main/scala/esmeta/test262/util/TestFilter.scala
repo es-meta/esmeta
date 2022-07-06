@@ -30,9 +30,13 @@ object TestFilter {
     )
     .summary
 
-  // TODO
-  // lazy val test262ManualconfigSummary =
-  //   readJson[Test262ConfigSummary](s"$TEST_DIR/test262.json")
+  /** manually selected Test262 tests */
+  lazy val manualSummary = readFile(s"$TEST_DIR/test262-list")
+    .split(LINE_SEP)
+    .toList
+    .map(x => MetaData(s"$TEST262_TEST_DIR/$x"))
+    .sorted
+    .summary
 
   /** all Test262 tests */
   lazy val allTests = walkTree(test262Dir).toList
@@ -239,6 +243,38 @@ object TestFilter {
     // Missing checks in Proxy internal methods
     // https://github.com/tc39/ecma262/pull/666
     "proxy-missing-checks",
+    // Class Fields
+    // https://github.com/tc39/proposal-class-fields
+    "class-fields-public",
+    "class-fields-private",
+    // Class Static Fields & Methods
+    // https://github.com/tc39/proposal-static-class-features/
+    "class-static-fields-public",
+    "class-static-fields-private",
+    "class-static-methods-private",
+    // Class Private methods and getter/setters
+    // https://github.com/tc39/proposal-private-methods
+    "class-methods-private",
+    // Top Level Await
+    // https://github.com/tc39/proposal-top-level-await
+    "top-level-await",
+    // Item Method
+    // https://github.com/tc39/proposal-item-method
+    "Array.prototype.at",
+    "String.prototype.at",
+    "TypedArray.prototype.at",
+    // Object.hasOwn
+    // https://github.com/tc39/proposal-accessible-object-hasownproperty
+    "Object.hasOwn",
+    // Class static initialization blocks
+    // https://github.com/tc39/proposal-class-static-block
+    "class-static-block",
+    // Ergonomic brand checks for Private Fields
+    // https://github.com/tc39/proposal-private-fields-in-in
+    "class-fields-private-in",
+    // Error cause
+    // https://github.com/tc39/proposal-error-cause
+    "error-cause",
   )
 
   /** manually filtered out non-strict mode tests */
@@ -442,100 +478,5 @@ object TestFilter {
   )
 
   /** manually filtered out not yet supported tests */
-  lazy val TODOs = List(
-    "built-ins/Array/prototype/sort/stability-2048-elements",
-    "built-ins/Array/prototype/toString/non-callable-join-string-tag",
-    "built-ins/BigInt/asIntN/arithmetic",
-    "built-ins/BigInt/asUintN/arithmetic",
-    "built-ins/GeneratorPrototype/next/property-descriptor",
-    "built-ins/NativeErrors/AggregateError/message-method-prop-cast",
-    "built-ins/Number/bigint-conversion",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T1",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T2",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T3",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T4",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T5",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T6",
-    "built-ins/RegExp/prototype/exec/S15.10.6.2_A3_T7",
-    "built-ins/ShadowRealm/prototype/importValue/import-value_FIXTURE",
-    "built-ins/ShadowRealm/prototype/importValue/import-value_syntax_error_FIXTURE",
-    "built-ins/String/fromCodePoint/return-string-value",
-    "built-ins/String/prototype/localeCompare/S15.5.4.9_A1_T1",
-    "built-ins/String/prototype/localeCompare/S15.5.4.9_A1_T2",
-    "built-ins/ThrowTypeError/name",
-    "language/asi/S7.9_A3",
-    "language/asi/S7.9_A9_T1",
-    "language/asi/S7.9_A9_T2",
-    "language/asi/S7.9_A9_T5",
-    "language/asi/S7.9_A9_T9",
-    "language/asi/do-while-same-line",
-    "language/block-scope/leave/x-before-continue",
-    "language/eval-code/direct/parse-failure-6",
-    "language/eval-code/direct/strict-caller-function-context",
-    "language/eval-code/indirect/parse-failure-6",
-    "language/expressions/assignment/target-member-computed-reference-null",
-    "language/expressions/assignment/target-member-computed-reference-undefined",
-    "language/expressions/assignment/target-member-identifier-reference-null",
-    "language/expressions/assignment/target-member-identifier-reference-undefined",
-    "language/expressions/assignment/target-super-computed-reference-null",
-    "language/expressions/assignment/target-super-identifier-reference-null",
-    "language/expressions/async-generator/expression-yield-newline",
-    "language/expressions/class/class-name-ident-await-escaped",
-    "language/expressions/does-not-equals/bigint-and-boolean",
-    "language/expressions/does-not-equals/bigint-and-number",
-    "language/expressions/does-not-equals/bigint-and-number-extremes",
-    "language/expressions/equals/bigint-and-boolean",
-    "language/expressions/equals/bigint-and-number",
-    "language/expressions/equals/bigint-and-number-extremes",
-    "language/expressions/generators/yield-newline",
-    "language/expressions/left-shift/bigint",
-    "language/expressions/left-shift/bigint-non-primitive",
-    "language/expressions/left-shift/bigint-toprimitive",
-    "language/expressions/left-shift/bigint-wrapped-values",
-    "language/expressions/object/method-definition/yield-newline",
-    "language/expressions/optional-chaining/iteration-statement-do",
-    "language/expressions/right-shift/bigint",
-    "language/expressions/tagged-template/invalid-escape-sequences",
-    "language/literals/regexp/7.8.5-1",
-    "language/literals/regexp/S7.8.5_A1.3_T2",
-    "language/literals/regexp/S7.8.5_A1.3_T4",
-    "language/literals/regexp/S7.8.5_A1.5_T2",
-    "language/literals/regexp/S7.8.5_A1.5_T4",
-    "language/literals/regexp/S7.8.5_A2.3_T2",
-    "language/literals/regexp/S7.8.5_A2.3_T4",
-    "language/statements/async-generator/yield-star-return-missing-value-is-awaited",
-    "language/statements/break/S12.8_A3",
-    "language/statements/break/S12.8_A4_T1",
-    "language/statements/break/S12.8_A4_T2",
-    "language/statements/break/S12.8_A4_T3",
-    "language/statements/break/line-terminators",
-    "language/statements/class/class-name-ident-await-escaped",
-    "language/statements/class/definition/methods-gen-yield-newline",
-    "language/statements/do-while/S12.6.1_A1",
-    "language/statements/do-while/S12.6.1_A10",
-    "language/statements/do-while/S12.6.1_A11",
-    "language/statements/do-while/S12.6.1_A14_T1",
-    "language/statements/do-while/S12.6.1_A14_T2",
-    "language/statements/do-while/S12.6.1_A2",
-    "language/statements/do-while/S12.6.1_A4_T1",
-    "language/statements/do-while/S12.6.1_A4_T2",
-    "language/statements/do-while/S12.6.1_A4_T3",
-    "language/statements/do-while/S12.6.1_A4_T4",
-    "language/statements/do-while/S12.6.1_A4_T5",
-    "language/statements/do-while/S12.6.1_A9",
-    "language/statements/for-of/generator-close-via-continue",
-    "language/statements/for-of/iterator-close-via-continue",
-    "language/statements/function/S13.2.1_A1_T1",
-    "language/statements/generators/yield-newline",
-    "language/statements/labeled/value-await-non-module-escaped",
-    "language/statements/return/line-terminators",
-    "language/statements/try/S12.14_A9_T1",
-    "language/statements/try/S12.14_A9_T2",
-    "language/statements/try/S12.14_A9_T3",
-    "language/statements/try/S12.14_A9_T4",
-    "language/statements/try/S12.14_A9_T5",
-    "language/statements/variable/S12.2_A12",
-    "language/types/string/S8.4_A6.1",
-    "language/types/string/S8.4_A6.2",
-  )
+  lazy val TODOs = List()
 }
