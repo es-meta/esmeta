@@ -270,10 +270,12 @@ class Interp(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj if typeModel.subType(m.ty, "Object") => "Object"
-            case _: ListObj                                     => "List"
-            case _: SymbolObj                                   => "Symbol"
-            case v                                              => ???
+            case m: MapObj =>
+              if (typeModel.subType(m.ty, "Object")) "Object"
+              else m.ty
+            case _: ListObj   => "List"
+            case _: SymbolObj => "Symbol"
+            case v            => ???
         case v => ???,
       )
     case ETypeCheck(expr, tyExpr) =>

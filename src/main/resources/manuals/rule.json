@@ -97,6 +97,10 @@
   "[YET] Assert: The execution context stack is empty.": "assert (= @EXECUTION_STACK.length 0)",
   "[YET] Let _name_ be a new Private Name whose [[Description]] value is _dn_.": "let name = (new PrivateName(\"Description\" -> dn))",
   "[YET] Let _privateName_ be the Private Name in _names_ whose [[Description]] is _privateIdentifier_.": "{ let idx = 0 loop[repeat] (< idx names.length) { let elem = names[idx] if (= elem.Description privateIdentifier) let privateName = elem else {} idx = (+ idx 1) } }",
+  "[YET] Let _name_ be that Private Name.": "{ let idx = 0 loop[repeat] (< idx names.length) { let elem = names[idx] if (= elem.Description identifier) let name = elem else {} idx = (+ idx 1) } }",
+  "[YET] Let _entry_ be that PrivateElement.": "{ let elems = O.PrivateElements let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem.Key P) let entry = elem else {} idx = (+ idx 1) } }",
+  "[YET] Let _existing_ be that PrivateElement.": "{ let elems = container let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem.Key element.Key) let existing = elem else {} idx = (+ idx 1) } }",
+  "[YET] Replace _existing_ in _container_ with _combined_.": "{ let elems = container let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem existing) elems[idx] = combined else {} idx = (+ idx 1)} }",
   "[YET] Assert: _O_ is an ordinary, extensible object with no non-configurable properties.": "assert (&& (? O: \"OrdinaryObject\") O.Extensible)",
   "[YET] Assert: _homeObject_ is an ordinary, extensible object with no non-configurable properties.": "assert (&& (? homeObject: \"OrdinaryObject\") homeObject.Extensible)"
 }
