@@ -66,6 +66,8 @@ val yets: Set[String] = Set(
   "Proxy",
   // test262
   "$262",
+  // ShadowRealm
+  "ShadowRealm",
 )
 
 /** table id for

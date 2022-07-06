@@ -279,5 +279,6 @@ object State {
   private val defaultCases = List(
     "Contains",
     "AllPrivateIdentifiersValid",
+    "ContainsArguments",
   )
 }
