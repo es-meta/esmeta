@@ -358,6 +358,7 @@ object TestFilter {
     "language/eval-code/direct/super-prop-dot-no-home",
     "language/eval-code/direct/super-prop-expr-no-home",
     "language/eval-code/direct/super-prop-expr-no-home-no-eval",
+    "language/eval-code/direct/strict-caller-function-context",
     "language/eval-code/indirect/new.target",
     "language/eval-code/indirect/parse-failure-3",
     "language/eval-code/indirect/parse-failure-4",
@@ -551,9 +552,9 @@ object TestFilter {
 
   /** manually filtered out non test files */
   lazy val manualNonTest = List(
-    "tests/test262/test/built-ins/ShadowRealm/prototype/importValue/import-value_FIXTURE",
-    "tests/test262/test/built-ins/ShadowRealm/prototype/importValue/import-value_syntax_error_FIXTURE",
-    "tests/test262/test/built-ins/ShadowRealm/prototype/importValue/import-value_throws_FIXTURE",
+    "built-ins/ShadowRealm/prototype/importValue/import-value_FIXTURE",
+    "built-ins/ShadowRealm/prototype/importValue/import-value_syntax_error_FIXTURE",
+    "built-ins/ShadowRealm/prototype/importValue/import-value_throws_FIXTURE",
   )
 
   /** manually filtered out long tests */

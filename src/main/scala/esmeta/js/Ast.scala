@@ -41,8 +41,12 @@ sealed trait Ast extends JSElem with Locational {
   /** types */
   lazy val types: Set[String] =
     Set(name, s"$name$idx") union (this match
-      case Syntactic(_, _, _, List(Some(child))) => child.types + "Nonterminal"
-      case _                                     => Set("Terminal")
+      case Syntactic(_, _, _, cs) =>
+        (cs match
+          case List(Some(child)) => child.types
+          case _                 => Set()
+        ) + "Nonterminal"
+      case _: Lexical => Set("Terminal")
     )
 
   /** flatten statements */

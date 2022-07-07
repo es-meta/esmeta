@@ -1,0 +1,15 @@
+def <CLO>:INTRINSICS.String.prototype[@@iterator]:clo0(): Any {
+  let position = 0
+  let len = s.length
+  loop[repeat] (< position len) {
+    call %0 = clo<CodePointAt>(s, position)
+    let cp = %0
+    let nextIndex = (+ position cp.CodeUnitCount)
+    let resultString = (substring s position nextIndex)
+    position = nextIndex
+    call %1 = clo<CreateIterResultObject>(resultString, false)
+    call %2 = clo<GeneratorYield>(%1)
+    [? %2]
+  }
+  return comp[~normal~/~empty~](undefined) // BUG
+}

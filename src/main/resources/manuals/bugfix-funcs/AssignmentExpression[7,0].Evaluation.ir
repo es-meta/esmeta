@@ -1,0 +1,29 @@
+def <SYNTAX>:AssignmentExpression[7,0].Evaluation(this: Unknown): Unknown {
+  call %0 = this[0].Evaluation(this[0])
+  let lref = [? %0] // BUG
+  call %1 = clo<GetValue>(lref)
+  let lval = [? %1]
+  call %2 = clo<ToBoolean>(lval)
+  let lbool = %2
+  if (= lbool true) {
+    return lval
+  } else {}
+  call %4 = clo<IsAnonymousFunctionDefinition>(this[1])
+  %3 = (= %4 true)
+  if %3 {
+    call %5 = this[0].IsIdentifierRef(this[0])
+    %3 = (= %5 true)
+  } else {}
+  if %3 {
+    call %6 = this[1].NamedEvaluation(this[1], lref.ReferencedName)
+    let rval = [? %6]
+  } else {
+    call %7 = this[1].Evaluation(this[1])
+    let rref = %7
+    call %8 = clo<GetValue>(rref)
+    let rval = [? %8]
+  }
+  call %9 = clo<PutValue>(lref, rval)
+  [? %9]
+  return rval
+}

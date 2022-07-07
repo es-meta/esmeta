@@ -905,7 +905,7 @@ trait Parsers extends IndentParsers {
   // metalanguage intrinsics
   // ---------------------------------------------------------------------------
   given intr: PL[Intrinsic] = {
-    "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+    opt("the intrinsic function") ~ "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
       case b ~ ps => Intrinsic(b, ps)
     }
   }.named("lang.Intrinsic")

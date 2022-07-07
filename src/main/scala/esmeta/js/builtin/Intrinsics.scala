@@ -784,6 +784,7 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" ->
         DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, T),
+        "next" -> DataProperty(intrAddr("Generator.prototype.next"), T, F, T),
         "@@toStringTag" -> DataProperty(Str("Generator"), F, F, T),
       ),
     ),
@@ -871,7 +872,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, F),
-        "name" -> DataProperty(Str("ThrowTypeError"), F, F, F),
+        "name" -> DataProperty(Str(""), F, F, F),
       ),
     ),
   )
