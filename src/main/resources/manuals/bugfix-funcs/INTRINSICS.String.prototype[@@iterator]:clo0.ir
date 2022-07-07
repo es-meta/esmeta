@@ -11,5 +11,5 @@ def <CLO>:INTRINSICS.String.prototype[@@iterator]:clo0(): Any {
     call %2 = clo<GeneratorYield>(%1)
     [? %2]
   }
-  return comp[~normal~/~empty~](undefined) // BUG
+  return comp[~normal~/~empty~](undefined) // BUG (reported in #2815)
 }

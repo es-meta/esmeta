@@ -3,7 +3,7 @@ def <SYNTAX>:CallExpression[0,0].Evaluation(this: Unknown): Unknown {
   let memberExpr = expr.MemberExpression
   let arguments = expr.Arguments
   call %0 = memberExpr.Evaluation(memberExpr)
-  let ref = [? %0] // BUG
+  let ref = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(ref)
   let func = [? %1]
   %3 = ref

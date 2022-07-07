@@ -1,6 +1,6 @@
 def <SYNTAX>:UnaryExpression[3,0].Evaluation(this: Unknown): Unknown {
   call %0 = this[0].Evaluation(this[0])
-  let val = [? %0] // BUG
+  let val = [? %0] // BUG (fixed in #2744)
   %1 = val
   if (? %1: "ReferenceRecord") {
     call %2 = clo<IsUnresolvableReference>(val)

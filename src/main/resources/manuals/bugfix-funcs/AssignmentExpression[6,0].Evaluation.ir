@@ -1,6 +1,6 @@
 def <SYNTAX>:AssignmentExpression[6,0].Evaluation(this: Unknown): Unknown {
   call %0 = this[0].Evaluation(this[0])
-  let lref = [? %0] // BUG
+  let lref = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(lref)
   let lval = [? %1]
   call %2 = clo<ToBoolean>(lval)

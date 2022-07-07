@@ -1,6 +1,6 @@
 def <SYNTAX>:CallExpression[3,0].Evaluation(this: Unknown): Unknown {
   call %0 = this[0].Evaluation(this[0])
-  let ref = [? %0] // BUG
+  let ref = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(ref)
   let func = [? %1]
   let thisCall = this[0]

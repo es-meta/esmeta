@@ -1,0 +1,34 @@
+def <BUILTIN>:INTRINSICS.AsyncGenerator.prototype.return(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
+  if (< 0 argumentsList.length) let value = (pop < argumentsList) else let value = absent
+  let generator = this
+  call %0 = clo<NewPromiseCapability>(@EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"])
+  let promiseCapability = [! %0]
+  call %1 = clo<AsyncGeneratorValidate>(generator, ~empty~)
+  call %2 = clo<Completion>(%1)
+  let result = %2
+  if (&& (comp? result) (! (= result.Type ~normal~))) {
+    call %3 = clo<Call>(promiseCapability.Reject, undefined, (new [result.Value]))
+    [? %3]
+    return promiseCapability.Promise
+  } else {
+    %4 = result
+    if (? %4: "CompletionRecord") {
+      result = result.Value
+    } else {}
+  }
+  let completion = comp[~return~/~empty~](value)
+  call %5 = clo<AsyncGeneratorEnqueue>(generator, completion, promiseCapability)
+  let state = generator.AsyncGeneratorState
+  if (|| (= state ~suspendedStart~) (= state ~completed~)) {
+    generator.AsyncGeneratorState = ~awaiting-return~
+    call %6 = clo<AsyncGeneratorAwaitReturn>(generator)
+    [? %6] // BUG
+  } else {
+    if (= state ~suspendedYield~) {
+      call %7 = clo<AsyncGeneratorResume>(generator, completion)
+    } else {
+      assert (|| (= state ~executing~) (= state ~awaiting-return~))
+    }
+  }
+  return promiseCapability.Promise
+}

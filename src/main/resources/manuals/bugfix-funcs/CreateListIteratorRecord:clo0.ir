@@ -8,5 +8,5 @@ def <CLO>:CreateListIteratorRecord:clo0(): Any {
     [? %3]
     %0 = (+ %0 1)
   }
-  return comp[~normal~/~empty~](undefined) // BUG
+  return comp[~normal~/~empty~](undefined) // BUG (reported in #2815)
 }

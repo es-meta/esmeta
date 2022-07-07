@@ -3,7 +3,7 @@ def <CONC>:GlobalEnvironmentRecord.SetMutableBinding(envRec: GlobalEnvironmentRe
   call %0 = DclRec.HasBinding(DclRec, N)
   if (= [! %0] true) {
     call %1 = DclRec.SetMutableBinding(DclRec, N, V, S)
-    return [? %1] // BUG
+    return [? %1] // BUG (fixed in #2767)
   } else {}
   let ObjRec = envRec.ObjectRecord
   call %2 = ObjRec.SetMutableBinding(ObjRec, N, V, S)

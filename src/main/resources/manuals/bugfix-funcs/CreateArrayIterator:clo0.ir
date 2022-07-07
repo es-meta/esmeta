@@ -12,7 +12,7 @@ def <CLO>:CreateArrayIterator:clo0(): Any {
       let len = [? %1]
     }
     if (! (< index len)) {
-      return comp[~normal~/~empty~](undefined) // BUG
+      return comp[~normal~/~empty~](undefined) // BUG (reported in #2815)
     } else {}
     if (= kind ~key~) {
       call %2 = clo<CreateIterResultObject>(([number] index), false)
