@@ -19,20 +19,20 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     get("SV.StringLiteral", SV.StringLiteral, str)
   def parseNumber(str: String): LiteralValue =
     get("NumericValue.NumericLiteral", NumericValue.NumericLiteral, str)
-  def parseTVNoSubstitutionTemplate(str: String): String =
-    get("TV.NoSubstitutionTemplate", TV.NoSubstitutionTemplate, str)
+  def parseTVNoSubstitutionTemplate(str: String): LiteralValue =
+    tv(get("TV.NoSubstitutionTemplate", TV.NoSubstitutionTemplate, str))
   def parseTRVNoSubstitutionTemplate(str: String): String =
     getOrElse("TRV.NoSubstitutionTemplate", TRV.NoSubstitutionTemplate, str, "")
-  def parseTVTemplateHead(str: String): String =
-    get("TV.TemplateHead", TV.TemplateHead, str)
+  def parseTVTemplateHead(str: String): LiteralValue =
+    tv(get("TV.TemplateHead", TV.TemplateHead, str))
   def parseTRVTemplateHead(str: String): String =
     get("TRV.TemplateHead", TRV.TemplateHead, str)
-  def parseTVTemplateMiddle(str: String): String =
-    get("TV.TemplateMiddle", TV.TemplateMiddle, str)
+  def parseTVTemplateMiddle(str: String): LiteralValue =
+    tv(get("TV.TemplateMiddle", TV.TemplateMiddle, str))
   def parseTRVTemplateMiddle(str: String): String =
     get("TRV.TemplateMiddle", TRV.TemplateMiddle, str)
-  def parseTVTemplateTail(str: String): String =
-    get("TV.TemplateTail", TV.TemplateTail, str)
+  def parseTVTemplateTail(str: String): LiteralValue =
+    tv(get("TV.TemplateTail", TV.TemplateTail, str))
   def parseTRVTemplateTail(str: String): String =
     get("TRV.TemplateTail", TRV.TemplateTail, str)
   def str2Number(str: String): Double =
@@ -60,6 +60,9 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     case Success(res, _) => res
     case _               => default
   }
+  private def tv(str: => String): LiteralValue =
+    try { Str(str) }
+    catch { case TV.ReturnUndef => Undef }
 
   // String Value
   object SV {
@@ -285,6 +288,8 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
 
   // Template Value
   object TV {
+    // handle NotEscapeSequence
+    case object ReturnUndef extends Throwable
     lazy val NoSubstitutionTemplate: S = (
       // The TV of NoSubstitutionTemplate::`` is the empty code unit sequence.
       "``" ^^^ "" |||
@@ -318,7 +323,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
         "\\" ~> SV.EscapeSequence |||
         // The TV of TemplateCharacter::\NotEscapeSequence is undefined.
         "\\" ~> Predef.NotEscapeSequence ^^^ {
-          throw ESValueParserFailed("")
+          throw ReturnUndef
         } |||
         // The TV of TemplateCharacter::LineContinuation is the TV of LineContinuation.
         TV.LineContinuation |||

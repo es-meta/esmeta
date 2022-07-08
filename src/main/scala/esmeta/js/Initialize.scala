@@ -192,7 +192,8 @@ class Initialize(
         desc,
         map += desc -> AccessorProperty(intrAddr(fname), U, F, T).toObject,
       )
-    createBuiltinFunction(fname, defaultLength, defaultName, map)
+    if (yetFuncs contains fname) map += (intrAddr(fname) -> YetObj("", fname))
+    else createBuiltinFunction(fname, defaultLength, defaultName, map)
   }
 
   // get length value from built-in head parameters

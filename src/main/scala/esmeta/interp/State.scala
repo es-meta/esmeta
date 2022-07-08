@@ -142,13 +142,13 @@ case class State(
       case ("StringLiteral", "SV" | "StringValue") =>
         Str(ESValueParser.parseString(str))
       case ("NoSubstitutionTemplate", "TV") =>
-        Str(ESValueParser.parseTVNoSubstitutionTemplate(str))
+        ESValueParser.parseTVNoSubstitutionTemplate(str)
       case ("TemplateHead", "TV") =>
-        Str(ESValueParser.parseTVTemplateHead(str))
+        ESValueParser.parseTVTemplateHead(str)
       case ("TemplateMiddle", "TV") =>
-        Str(ESValueParser.parseTVTemplateMiddle(str))
+        ESValueParser.parseTVTemplateMiddle(str)
       case ("TemplateTail", "TV") =>
-        Str(ESValueParser.parseTVTemplateTail(str))
+        ESValueParser.parseTVTemplateTail(str)
       case ("NoSubstitutionTemplate", "TRV") =>
         Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
       case ("TemplateHead", "TRV") =>

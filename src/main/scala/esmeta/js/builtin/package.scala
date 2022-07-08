@@ -70,6 +70,15 @@ val yets: Set[String] = Set(
   "ShadowRealm",
 )
 
+/** not yet supported functions */
+val yetFuncs: Set[String] = Set(
+  "String.prototype.localeCompare",
+  "String.prototype.toLocaleLowerCase",
+  "Number.prototype.toLocaleString",
+  "String.prototype.toUpperCase",
+  "String.prototype.toLocaleUpperCase",
+)
+
 /** table id for
   * (table-6)[https://tc39.es/ecma262/#table-well-known-intrinsic-objects]
   */

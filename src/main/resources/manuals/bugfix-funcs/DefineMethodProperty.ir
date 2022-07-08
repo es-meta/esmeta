@@ -6,7 +6,7 @@ def DefineMethodProperty(homeObject: Object, key: PropertyKeyOrPrivateName, clos
   } else {
     let desc = (new PropertyDescriptor("Value" -> closure, "Writable" -> true, "Enumerable" -> enumerable, "Configurable" -> true))
     call %1 = clo<DefinePropertyOrThrow>(homeObject, key, desc)
-    [! %1] // BUG (REPORTED in #2814)
+    [? %1] // BUG (REPORTED in #2814)
     return ~unused~
   }
 }

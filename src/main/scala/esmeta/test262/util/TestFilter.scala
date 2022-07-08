@@ -78,6 +78,7 @@ object TestFilter {
       !m.locales.isEmpty,
     ),
     "non tests" -> (m => manualNonTest.contains(removedExt(m.name))),
+    "wrong tests" -> (m => wrongTest.contains(removedExt(m.name))),
   )
 
   /** test262 directory */
@@ -609,6 +610,7 @@ object TestFilter {
     "language/expressions/coalesce/tco-pos-null",
     "language/expressions/coalesce/tco-pos-undefined",
     "language/types/number/8.5.1",
+    "language/statements/function/S13.2.1_A1_T1",
   )
 
   /** manually filtered out very long tests */
@@ -616,6 +618,14 @@ object TestFilter {
     "built-ins/Array/length/S15.4.5.2_A3_T4",
   )
 
+  /** manually filtered out wrong test262 tests */
+  lazy val wrongTest = List(
+    "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
+    "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise",
+  )
+
   /** manually filtered out not yet supported tests */
-  lazy val TODOs = List()
+  lazy val TODOs = List(
+    "language/expressions/multiplication/S11.5.1_A4_T7", // math precision error
+  )
 }

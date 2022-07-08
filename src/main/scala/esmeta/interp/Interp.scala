@@ -225,8 +225,9 @@ class Interp(
     case ESubstring(expr, from, to) =>
       val s = interp(expr).asStr
       val f = interp(from).asInt
-      val t = interp(to).asInt
-      Str(s.substring(f, t))
+      interp(to) match
+        case Math(n) if s.length < n => Str(s.substring(f))
+        case v                       => Str(s.substring(f, v.asInt))
     case ERef(ref) =>
       st(interp(ref))
     case EUnary(uop, expr) =>

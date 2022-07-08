@@ -1,3 +1,0 @@
-def <BUILTIN>:INTRINSICS.String.prototype.localeCompare(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
-  (yet "[YET] String.prototype.localeCompare")
-}
