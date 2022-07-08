@@ -173,7 +173,10 @@ class Injector(
         newSt.context = Context(f, MMap(Name("O") -> addr))
         newSt.callStack = Nil
         Interp(newSt)
-        val propsAddr = newSt(GLOBAL_RESULT).toPureValue
+        val propsAddr = newSt(GLOBAL_RESULT) match
+          case Comp(_, addr: Addr, _) => addr
+          case addr: Addr             => addr
+          case v                      => error("not an address: $v")
         val len = newSt(propsAddr, Str("length")).asMath.toInt
         val array = (0 until len)
           .map(k => newSt(propsAddr, Math(k)))
@@ -254,7 +257,7 @@ class Injector(
   private def injectTag(result: Either[Throwable, Value]): Unit = {
     log("injecting tag...")
     val tag = result match
-      case Right(NormalComp(_)) => "Normal:"
+      case Right(Undef) => "Normal:"
       // chekc error object
       case Right(comp @ Comp(CONST_THROW, addr: DynamicAddr, _)) =>
         getValue(addr, "Prototype") match
