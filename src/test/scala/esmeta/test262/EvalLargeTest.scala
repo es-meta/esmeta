@@ -29,10 +29,6 @@ class EvalLargeTest extends Test262Test {
   // registration
   def init: Unit = check(name) {
     mkdir(logDir)
-    dumpFile(
-      config.normal.map(_.name).mkString(LINE_SEP),
-      s"$logDir/test262-list",
-    )
     dumpFile(spec.version, s"$logDir/ecma262-version")
     dumpFile(currentVersion(BASE_DIR), s"$logDir/esmeta-version")
     summary.timeouts.setPath(s"$logDir/eval-timeout.log")

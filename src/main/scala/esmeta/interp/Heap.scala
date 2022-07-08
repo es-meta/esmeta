@@ -147,9 +147,7 @@ case class Heap(
       case Str(s) if s.startsWith("%") && s.endsWith("%") =>
         s.substring(1, s.length - 1)
       case v => error(s"invalid intrinsics key1: $key")
-    keyStr.split("\\.").toList match
-      case base :: rest => rest.foldLeft(intrAddr(base))(getPropValue)
-      case _            => error(s"invalid intrinsics key2: $key")
+    intrAddr(keyStr)
 
   /** copied */
   def copied: Heap =

@@ -745,7 +745,12 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("GeneratorFunction"), F, F, T),
-        "prototype" -> DataProperty(intrAddr("Generator.prototype"), F, F, T),
+        "prototype" -> DataProperty(
+          intrAddr("GeneratorFunction.prototype.prototype"),
+          F,
+          F,
+          T,
+        ),
         "@@toStringTag" -> DataProperty(Str("GeneratorFunction"), F, F, T),
       ),
     ),
@@ -771,11 +776,17 @@ case class Intrinsics(cfg: CFG) {
         "constructor" ->
         DataProperty(intrAddr("AsyncGeneratorFunction"), F, F, T),
         "prototype" ->
-        DataProperty(intrAddr("AsyncGenerator.prototype"), F, F, T),
+        DataProperty(
+          intrAddr("AsyncGeneratorFunction.prototype.prototype"),
+          F,
+          F,
+          T,
+        ),
         "@@toStringTag" -> DataProperty(Str("AsyncGeneratorFunction"), F, F, T),
       ),
     ),
-    "Generator.prototype" -> Struct(
+    // Generator.protoype == GeneratorFunction.prototype.prototype
+    "GeneratorFunction.prototype.prototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -784,11 +795,18 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" ->
         DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, T),
-        "next" -> DataProperty(intrAddr("Generator.prototype.next"), T, F, T),
+        // XXX need to be documented
+        "next" -> DataProperty(
+          intrAddr("GeneratorFunction.prototype.prototype.next"),
+          T,
+          F,
+          T,
+        ),
         "@@toStringTag" -> DataProperty(Str("Generator"), F, F, T),
       ),
     ),
-    "AsyncGenerator.prototype" -> Struct(
+    // AsyncGenerator.prototype == AsyncGeneratorFunction.prototype.prototype
+    "AsyncGeneratorFunction.prototype.prototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),

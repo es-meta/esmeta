@@ -40,8 +40,20 @@ sealed trait Head extends SpecElem {
     case head: InternalMethodHead =>
       s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
     case head: BuiltinHead =>
-      s"INTRINSICS.${head.ref}"
-
+      val str = head.ref.toString
+      val patched =
+        if (str startsWith "Generator.prototype")
+          str.replace(
+            "Generator.prototype",
+            "GeneratorFunction.prototype.prototype",
+          )
+        else if (str startsWith "AsyncGenerator.prototype")
+          str.replace(
+            "AsyncGenerator.prototype",
+            "AsyncGeneratorFunction.prototype.prototype",
+          )
+        else str
+      s"INTRINSICS.$patched"
 }
 
 /** abstract operation (AO) heads */
