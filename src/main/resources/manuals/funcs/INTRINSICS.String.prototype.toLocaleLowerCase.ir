@@ -1,0 +1,3 @@
+def <BUILTIN>:INTRINSICS.String.prototype.toLocaleLowerCase(this: Any, argumentsList: Any, NewTarget: Any): Unknown {
+  (yet "[YET] String.prototype.toLocaleLowerCase")
+}
