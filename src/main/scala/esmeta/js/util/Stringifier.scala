@@ -1,6 +1,5 @@
 package esmeta.js.util
 
-import esmeta.LINE_SEP
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.Appender.*
