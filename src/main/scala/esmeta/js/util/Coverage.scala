@@ -19,10 +19,11 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
   private lazy val nodeMap: MMap[Int, Int] = MMap()
 
   /** update coverage for a given JavaScript program */
+  private lazy val scriptParser = cfg.jsParser("Script")
   def run(path: String): State = {
     // parse
     val fromTest262 = path startsWith TEST262_TEST_DIR
-    val script = cfg.jsParser("Script").fromFile(path)
+    val script = scriptParser.fromFile(path)
     val scriptStr = script.toString(grammar = Some(cfg.grammar))
 
     // update program infos
