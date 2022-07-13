@@ -23,3 +23,6 @@ object AnalyzerElem {
       new Stringifier(_, _, _)
     }
 }
+
+/** exploded */
+def exploded(msg: String): Nothing = ???
