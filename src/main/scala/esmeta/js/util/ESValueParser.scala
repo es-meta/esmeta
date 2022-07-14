@@ -17,21 +17,21 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     get("SV.IdentifierName", SV.IdentifierName, str)
   def parseString(str: String): String =
     get("SV.StringLiteral", SV.StringLiteral, str)
-  def parseNumber(str: String): LiteralValue =
+  def parseNumber(str: String): SimpleValue =
     get("NumericValue.NumericLiteral", NumericValue.NumericLiteral, str)
-  def parseTVNoSubstitutionTemplate(str: String): LiteralValue =
+  def parseTVNoSubstitutionTemplate(str: String): SimpleValue =
     tv(get("TV.NoSubstitutionTemplate", TV.NoSubstitutionTemplate, str))
   def parseTRVNoSubstitutionTemplate(str: String): String =
     getOrElse("TRV.NoSubstitutionTemplate", TRV.NoSubstitutionTemplate, str, "")
-  def parseTVTemplateHead(str: String): LiteralValue =
+  def parseTVTemplateHead(str: String): SimpleValue =
     tv(get("TV.TemplateHead", TV.TemplateHead, str))
   def parseTRVTemplateHead(str: String): String =
     get("TRV.TemplateHead", TRV.TemplateHead, str)
-  def parseTVTemplateMiddle(str: String): LiteralValue =
+  def parseTVTemplateMiddle(str: String): SimpleValue =
     tv(get("TV.TemplateMiddle", TV.TemplateMiddle, str))
   def parseTRVTemplateMiddle(str: String): String =
     get("TRV.TemplateMiddle", TRV.TemplateMiddle, str)
-  def parseTVTemplateTail(str: String): LiteralValue =
+  def parseTVTemplateTail(str: String): SimpleValue =
     tv(get("TV.TemplateTail", TV.TemplateTail, str))
   def parseTRVTemplateTail(str: String): String =
     get("TRV.TemplateTail", TRV.TemplateTail, str)
@@ -41,7 +41,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       case Success(n, _)                             => n.toDouble
       case _                                         => Double.NaN
     }
-  def str2bigint(str: String): LiteralValue =
+  def str2bigint(str: String): SimpleValue =
     parseAll(BigIntMV.StringNumericLiteralForBigInt, str) match {
       case Success(b, _) => BigIntV(b)
       case _             => Undef
@@ -60,7 +60,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     case Success(res, _) => res
     case _               => default
   }
-  private def tv(str: => String): LiteralValue =
+  private def tv(str: => String): SimpleValue =
     try { Str(str) }
     catch { case TV.ReturnUndef => Undef }
 
@@ -496,7 +496,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
 
   // types
   type S = Parser[String]
-  type V = Parser[LiteralValue]
+  type V = Parser[SimpleValue]
 
   // predefined parsers
   object Predef {

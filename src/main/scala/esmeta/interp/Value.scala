@@ -99,16 +99,22 @@ case class AstValue(ast: Ast) extends PureValue
 /** grammars */
 case class Grammar(name: String, params: List[Boolean]) extends PureValue
 
-/** literal values */
-sealed trait LiteralValue extends PureValue
-sealed trait Numeric extends LiteralValue
-case class Math(n: BigDecimal) extends Numeric
+/** math values */
+case class Math(n: BigDecimal) extends PureValue
+
+/** constants */
+case class Const(name: String) extends PureValue
+
+/** code units */
+case class CodeUnit(c: Char) extends PureValue
+
+/** simple js values */
+sealed trait SimpleValue extends PureValue
+sealed trait Numeric extends SimpleValue
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
 case class BigInt(n: scala.math.BigInt) extends Numeric
-case class Str(str: String) extends LiteralValue
-case class Bool(bool: Boolean) extends LiteralValue
-case object Undef extends LiteralValue
-case object Null extends LiteralValue
-case object Absent extends LiteralValue
-case class Const(name: String) extends LiteralValue
-case class CodeUnit(c: Char) extends LiteralValue
+case class Str(str: String) extends SimpleValue
+case class Bool(bool: Boolean) extends SimpleValue
+case object Undef extends SimpleValue
+case object Null extends SimpleValue
+case object Absent extends SimpleValue

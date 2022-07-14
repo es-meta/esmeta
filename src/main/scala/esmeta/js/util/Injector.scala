@@ -85,8 +85,8 @@ class Injector(
     log("handling varaible...")
     getValue(s"""$globalMap["$x"].Value""") match
       case Absent => /* do nothing(handle global accessor property) */
-      case lv: LiteralValue =>
-        append(s"$$assert.sameValue($x, ${lv2str(lv)});")
+      case sv: SimpleValue =>
+        append(s"$$assert.sameValue($x, ${sv2str(sv)});")
       case addr: Addr => handleObject(addr, x)
       case _          => /* do nothing */
   }
@@ -95,9 +95,9 @@ class Injector(
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
     log("handling let...")
     getValue(s"""$lexRecord["$x"].BoundValue""") match
-      case lv: LiteralValue => append(s"$$assert.sameValue($x, ${lv2str(lv)});")
-      case addr: Addr       => handleObject(addr, x)
-      case _                => /* do nothing */
+      case sv: SimpleValue => append(s"$$assert.sameValue($x, ${sv2str(sv)});")
+      case addr: Addr      => handleObject(addr, x)
+      case _               => /* do nothing */
   }
 
   // handle addresses
@@ -212,8 +212,8 @@ class Injector(
                 field <- fields
                 value <- props.get(Str(field)).map(_.value.toPureValue)
               } value match {
-                case c: LiteralValue =>
-                  set += s"${field.toLowerCase}: ${lv2str(c)}"
+                case sv: SimpleValue =>
+                  set += s"${field.toLowerCase}: ${sv2str(sv)}"
                 case addr: Addr =>
                   field match {
                     case "Value" => handleObject(addr, s"$path[$propStr]")
@@ -309,10 +309,10 @@ class Injector(
 
   // conversion to JS codes
   private def val2str(value: Value): Option[String] = value match
-    case lv: LiteralValue => Some(lv.toString)
-    case addr: Addr       => addrToName(addr)
-    case x                => None
-  private def lv2str(lv: LiteralValue): String = lv match
+    case sv: SimpleValue => Some(sv.toString)
+    case addr: Addr      => addrToName(addr)
+    case x               => None
+  private def sv2str(sv: SimpleValue): String = sv match
     case Number(n) => n.toString
     case v         => v.toString
 }

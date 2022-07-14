@@ -62,15 +62,18 @@ trait UnitWalker extends BasicUnitWalker {
     case Clo(_, captured) => walkMap(captured, walk, walk)
     case Cont(_, captured, callStack) =>
       walkMap(captured, walk, walk); walkList(callStack, walk)
-    case _: AstValue       =>
-    case _: Grammar        =>
-    case lit: LiteralValue => walk(lit)
+    case _: AstValue     =>
+    case _: Grammar      =>
+    case _: Math         =>
+    case _: Const        =>
+    case _: CodeUnit     =>
+    case sv: SimpleValue => walk(sv)
 
   // address
   def walk(addr: Addr): Unit = {}
 
-  // literal value
-  def walk(lit: LiteralValue): Unit = {}
+  // simple value
+  def walk(sv: SimpleValue): Unit = {}
 
   // reference value
   def walk(rv: RefValue): Unit = rv match

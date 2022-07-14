@@ -1,16 +1,18 @@
 package esmeta.analyzer.util
 
 import esmeta.analyzer.*
+import esmeta.analyzer.domain.*
 import esmeta.cfg.*
+import esmeta.interp.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** stringifier for analyzer */
 class Stringifier(
-  detail: Boolean = false,
-  location: Boolean = false,
-  asite: Boolean = false, // XXX
+  detail: Boolean,
+  location: Boolean,
+  asite: Boolean,
 ) {
   private val cfgStringifier = CFGElem.getStringifier(detail, location)
   import cfgStringifier.given
@@ -20,6 +22,7 @@ class Stringifier(
     elem match
       case view: View       => viewRule(app, view)
       case cp: ControlPoint => cpRule(app, cp)
+      case av: AValue       => avRule(app, av)
 
   // view
   given viewRule: Rule[View] = (app, view) => {
@@ -49,4 +52,32 @@ class Stringifier(
       case NodePoint(node, view) => app >> view >> ":" >> node.simpleString
       case ReturnPoint(func, view) =>
         app >> view >> ":RET:" >> func.name >> s"[${func.id}]"
+
+  // values for analysis
+  given avRule: Rule[AValue] = (app, av) =>
+    av match
+      case AComp(AConst("noraml"), v, _) =>
+        app >> "N(" >> v >> ")"
+      case AComp(ty, value, target) =>
+        app >> "comp[" >> ty >> "/" >> target >> "]"
+        app >> "(" >> value >> ")"
+      case NamedLoc(name)     => app >> "#" >> name
+      case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
+      case SubMapLoc(baseLoc) => app >> baseLoc >> ":SubMap"
+      case AClo(_, func) =>
+        app >> "clo<" >> func.irFunc.name >> ">"
+      case ACont(_, target) =>
+        app >> "cont<" >> target >> ">"
+      case AAst(ast) =>
+        app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
+      case AGrammar(name, params) =>
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule()
+        app >> "grammar<" >> name
+        if (!params.isEmpty) app >> "[" >> params >> "]"
+        app >> ">"
+      case AMath(n)     => app >> n
+      case AConst(name) => app >> "~" >> name >> "~"
+      case ACodeUnit(c) => app >> c.toInt >> "cu"
+      case ASimple(sv)  => app >> sv.toString
 }

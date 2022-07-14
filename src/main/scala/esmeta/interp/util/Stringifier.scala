@@ -102,12 +102,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // pure values (not completion values)
   given pureValueRule: Rule[PureValue] = (app, value) =>
     value match
-      case addr: Addr        => addrRule(app, addr)
-      case clo: Clo          => cloRule(app, clo)
-      case cont: Cont        => contRule(app, cont)
-      case AstValue(ast)     => app >> ast
-      case gr: Grammar       => grammarRule(app, gr)
-      case lit: LiteralValue => litRule(app, lit)
+      case addr: Addr      => addrRule(app, addr)
+      case clo: Clo        => cloRule(app, clo)
+      case cont: Cont      => contRule(app, cont)
+      case AstValue(ast)   => app >> ast
+      case gr: Grammar     => grammarRule(app, gr)
+      case m: Math         => mathRule(app, m)
+      case c: Const        => constRule(app, c)
+      case cu: CodeUnit    => cuRule(app, cu)
+      case sv: SimpleValue => svRule(app, sv)
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
@@ -139,19 +142,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!gr.params.isEmpty) app >> "[" >> gr.params >> "]"
     app >> ">"
 
-  // literal values
-  given litRule: Rule[LiteralValue] = (app, lit) =>
-    lit match
-      case Math(n)     => app >> n
-      case Number(n)   => app >> n >> "f"
-      case BigInt(n)   => app >> n >> "n"
-      case Str(str)    => app >> "\"" >> str >> "\""
-      case Bool(bool)  => app >> bool
-      case Undef       => app >> "undefined"
-      case Null        => app >> "null"
-      case Absent      => app >> "absent"
-      case Const(name) => app >> "~" >> name >> "~"
-      case CodeUnit(c) => app >> c.toInt >> "cu"
+  // math
+  given mathRule: Rule[Math] = (app, math) => app >> math.n
+
+  // constant
+  given constRule: Rule[Const] = (app, c) => app >> "~" >> c.name >> "~"
+
+  // code unit
+  given cuRule: Rule[CodeUnit] = (app, cu) => app >> cu.c.toInt >> "cu"
+
+  // simple values
+  given svRule: Rule[SimpleValue] = (app, sv) =>
+    sv match
+      case Number(n)  => app >> n >> "f"
+      case BigInt(n)  => app >> n >> "n"
+      case Str(str)   => app >> "\"" >> str >> "\""
+      case Bool(bool) => app >> bool
+      case Undef      => app >> "undefined"
+      case Null       => app >> "null"
+      case Absent     => app >> "absent"
 
   // reference value
   lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
