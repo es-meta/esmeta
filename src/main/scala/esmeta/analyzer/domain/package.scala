@@ -12,8 +12,13 @@ lazy val AT = AbsBool(Bool(true))
 lazy val AF = AbsBool(Bool(false))
 
 // ////////////////////////////////////////////////////////////////////////////
-// Abstract Domains
+// Abstract Domains for Values
 // ////////////////////////////////////////////////////////////////////////////
+
+// states
+
+lazy val AbsObj = BasicObjDomain
+type AbsObj = AbsObj.Elem
 
 // values
 lazy val AbsValue = BasicValueDomain

@@ -33,7 +33,7 @@ class Initialize(
   given CFG = cfg
 
   // initial globals
-  private lazy val initGlobal: MMap[Global, Value] = MMap(
+  lazy val initGlobal: MMap[Global, Value] = MMap(
     SOURCE_TEXT -> Str(sourceText),
     EXECUTION_STACK -> NamedAddr(EXECUTION_STACK),
     HOST_DEFINED -> Undef,
@@ -54,7 +54,7 @@ class Initialize(
   ).map { case (k, v) => Global(k) -> v }
 
   // initial heaps
-  private lazy val initHeap: Heap = {
+  lazy val initHeap: Heap = {
     given CFG = cfg
     val intr = Intrinsics(cfg)
     val glob = GlobalObject(cfg)

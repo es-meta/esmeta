@@ -20,7 +20,7 @@ case class Heap(
       case YetObj(_, msg) => throw NotSupported(msg)
       case obj            => obj
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
-    case _ if addr == NamedAddr(INTRINSICS) => getIntrinsincs(key)
+    case _ if addr == NamedAddr(INTRINSICS) => getIntrinsics(key)
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
@@ -142,7 +142,7 @@ case class Heap(
   }
 
   /** special getter for intrinsics */
-  def getIntrinsincs(key: PureValue): Value =
+  def getIntrinsics(key: PureValue): Value =
     val keyStr = key match
       case Str(s) if s.startsWith("%") && s.endsWith("%") =>
         s.substring(1, s.length - 1)

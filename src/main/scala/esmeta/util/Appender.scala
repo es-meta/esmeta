@@ -51,6 +51,10 @@ object Appender {
   /** Rule * */
   type Rule[T] = (Appender, T) => Appender
 
+  /** subtype rule */
+  given subtypeRule[S, T <: S](using sRule: Rule[S]): Rule[T] =
+    (app, tElem) => sRule(app, tElem)
+
   /** optional with default string */
   def optionRule[T](
     defaultStr: String,
@@ -82,7 +86,7 @@ object Appender {
     app >> t >> " -> " >> u
 
   /** map appender */
-  def mapRule[K, V](using
+  given mapRule[K, V](using
     kRule: Rule[K],
     vRule: Rule[V],
   ): Rule[Map[K, V]] = (app, map) =>

@@ -28,7 +28,7 @@ class StringifyTinyTest extends AnalyzerTest {
     // -------------------------------------------------------------------------
     // Control Points
     // -------------------------------------------------------------------------
-    lazy val np = NodePoint(block, tyView)
+    lazy val np = NodePoint(mainFunc, block, tyView)
     lazy val rp = ReturnPoint(mainFunc, irView)
 
     checkStringify("ControlPoint")(

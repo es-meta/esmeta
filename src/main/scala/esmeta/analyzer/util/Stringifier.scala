@@ -4,6 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.interp.*
+import esmeta.ir.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -17,12 +18,16 @@ class Stringifier(
   private val cfgStringifier = CFGElem.getStringifier(detail, location)
   import cfgStringifier.given
 
+  private val irStringifier = IRElem.getStringifier(detail, location)
+  import irStringifier.given
+
   // elements
   given elemRule: Rule[AnalyzerElem] = (app, elem) =>
     elem match
-      case view: View       => viewRule(app, view)
-      case cp: ControlPoint => cpRule(app, cp)
-      case av: AValue       => avRule(app, av)
+      case view: View        => viewRule(app, view)
+      case cp: ControlPoint  => cpRule(app, cp)
+      case av: AValue        => avRule(app, av)
+      case aref: AbsRefValue => refRule(app, aref)
 
   // view
   given viewRule: Rule[View] = (app, view) => {
@@ -49,7 +54,7 @@ class Stringifier(
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
     cp match
-      case NodePoint(node, view) => app >> view >> ":" >> node.simpleString
+      case NodePoint(_, node, view) => app >> view >> ":" >> node.simpleString
       case ReturnPoint(func, view) =>
         app >> view >> ":RET:" >> func.name >> s"[${func.id}]"
 
@@ -80,4 +85,10 @@ class Stringifier(
       case AConst(name) => app >> "~" >> name >> "~"
       case ACodeUnit(c) => app >> c.toInt >> "cu"
       case ASimple(sv)  => app >> sv.toString
+
+  // abstract reference values
+  given refRule: Rule[AbsRefValue] = (app, ref) =>
+    ref match
+      case AbsRefId(id)           => app >> id
+      case AbsRefProp(base, prop) => app >> base >> "[" >> prop >> "]"
 }
