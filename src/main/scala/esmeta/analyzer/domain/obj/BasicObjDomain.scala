@@ -332,6 +332,10 @@ object BasicObjDomain extends Domain {
     def prepend(value: AbsValue, weak: Boolean): Elem =
       modifyList(value +: _, _ ⊔ value, weak)
 
+    // remove
+    def remove(value: AbsValue, weak: Boolean): Elem =
+      modifyList(_.filter(v => v != value), _ ⊔ value, weak)
+
     // pops
     def pop(idx: AbsValue, weak: Boolean): (AbsValue, Elem) = this match
       case l: ListElem =>

@@ -12,10 +12,12 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
 
 /** basic abstract states */
-case class BasicState(cfg: CFG) extends Domain { StateD =>
-  // basic heap domain
-  val AbsHeap = BasicHeapDomain(cfg)
+case class BasicStateDomain(
+  AbsHeap: BasicHeapDomain,
+  baseGlobals: Map[Global, Value],
+) extends Domain { AbsState =>
   type AbsHeap = AbsHeap.Elem
+  type AbsState = Elem
 
   // bottom element
   val Bot = Elem(false, Map(), Map(), AbsHeap.Bot)
@@ -25,9 +27,8 @@ case class BasicState(cfg: CFG) extends Domain { StateD =>
 
   // base globals
   lazy val base: Map[Id, AbsValue] = (for {
-    (x, v) <- new js.Initialize(cfg, "", None).initGlobal.toList
-    av = AbsValue(v)
-  } yield x -> av).toMap
+    (x, v) <- baseGlobals.toList
+  } yield x -> AbsValue(v)).toMap
 
   // monad helper
   val monad: StateMonad[Elem] = new StateMonad[Elem]
@@ -296,6 +297,8 @@ case class BasicState(cfg: CFG) extends Domain { StateD =>
       bottomCheck(loc, value) { copy(heap = heap.append(loc, value)) }
     def prepend(loc: AbsLoc, value: AbsValue): Elem =
       bottomCheck(loc, value) { copy(heap = heap.prepend(loc, value)) }
+    def remove(loc: AbsLoc, value: AbsValue): Elem =
+      bottomCheck(loc, value) { copy(heap = heap.remove(loc, value)) }
     def pop(loc: AbsLoc, idx: AbsValue): (AbsValue, Elem) = {
       var v: AbsValue = AbsValue.Bot
       val st: Elem = bottomCheck(loc, idx) {
@@ -336,7 +339,7 @@ case class BasicState(cfg: CFG) extends Domain { StateD =>
     def toString(detail: Boolean): String = {
       val app = new Appender
       given Rule[Elem] =
-        if (detail) StateD.rule else StateD.shortRule
+        if (detail) AbsState.rule else AbsState.shortRule
       app >> this
       app.toString
     }

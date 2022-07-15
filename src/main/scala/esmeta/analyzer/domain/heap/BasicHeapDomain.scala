@@ -9,18 +9,18 @@ import esmeta.util.Appender.*
 import esmeta.cfg.CFG
 
 /** basic abstract heaps */
-case class BasicHeapDomain(cfg: CFG) extends Domain {
+case class BasicHeapDomain(
+  cfg: CFG,
+  baseHeap: Heap,
+) extends Domain {
   given CFG = cfg
 
   // bottom element
   val Bot = Elem(Map(), Set())
 
-  // initial conrete heap
-  lazy val initHeap: Heap = new js.Initialize(cfg, "", None).initHeap
-
   // base mapping from locations to abstract objects
   lazy val base: Map[Loc, AbsObj] = (for {
-    (addr, obj) <- initHeap.map
+    (addr, obj) <- baseHeap.map
     loc = Loc.from(addr)
     aobj = AbsObj(obj)
   } yield loc -> aobj).toMap
@@ -135,7 +135,7 @@ case class BasicHeapDomain(cfg: CFG) extends Domain {
     def apply(loc: Loc, prop: AbsValue): AbsValue = loc match
       case NamedLoc(js.builtin.INTRINSICS) =>
         prop.str
-          .map(str => AbsValue(initHeap.getIntrinsics(str)))
+          .map(str => AbsValue(baseHeap.getIntrinsics(str)))
           .foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
       case _ => this(loc)(prop)
 
@@ -164,6 +164,10 @@ case class BasicHeapDomain(cfg: CFG) extends Domain {
         newObj
       })
       (v, h)
+
+    // remove
+    def remove(loc: AbsLoc, value: AbsValue): Elem =
+      applyEach(loc)(_.remove(value, _))
 
     // copy objects
     def copyObj(
