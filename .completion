@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg ir-eval js-parse js-eval filter-test262 web"
+  cmdList="help extract compile build-cfg ir-eval js-parse js-eval inject filter-test262 web"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
   extractOpt="-extract:json -extract:version -extract:log -extract:stat"
@@ -20,8 +20,9 @@ _esmeta_completions() {
   irevalOpt=""
   jsparseOpt=""
   jsevalOpt="-js-eval:test262"
+  injectOpt="-inject:assertions -inject:dump"
   filtertest262Opt=""
-  webOpt="-web:web"
+  webOpt="-web:port"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -60,6 +61,10 @@ _esmeta_completions() {
           ;;
         js-eval)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${jsevalOpt}"))
+          return 0
+          ;;
+        inject)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${injectOpt}"))
           return 0
           ;;
         filter-test262)
