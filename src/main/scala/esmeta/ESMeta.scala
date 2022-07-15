@@ -54,11 +54,10 @@ object ESMeta {
     CmdExtract,
     CmdCompile,
     CmdBuildCFG,
-    CmdIREval,
-    CmdJSParse,
-    CmdJSEval,
+    CmdParse,
+    CmdEval,
+    CmdTest262Test,
     CmdInject,
-    CmdFilterTest262,
     CmdWeb,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -71,11 +70,10 @@ object ESMeta {
     Extract,
     Compile,
     BuildCFG,
-    IREval,
-    JSParse,
-    JSEval,
+    Parse,
+    Eval,
+    Test262Test,
     Inject,
-    FilterTest262,
     Web,
   )
 

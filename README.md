@@ -65,11 +65,8 @@ with the following commands:
 - `extract` extracts specification model from ECMA-262 (`ecma262/spec.html`).
 - `compile` compiles a specification to an IR program.
 - `build-cfg` builds a control-flow graph (CFG) from an IR program.
-- `ir-eval` evaluates an IR file.
-- `js-parse` parses a JavaScript file.
-- `js-eval` evaluates a JavaScript file.
-- `filter-test262` extracts and filters out metadata of
-  [Test262](https://github.com/tc39/test262) tests.
+- `parse` parses a JavaScript file.
+- `eval` evaluates a JavaScript file.
 - `web` starts a web server for interactive execution.
 
 and global options:
@@ -123,8 +120,7 @@ $ npm start
 
 <img width="1150" alt="debugger" src="https://user-images.githubusercontent.com/7039121/151577359-7d6a90af-7940-4904-912e-dd9113b8ba2f.png">
 
-We will import the ECMAScript Debugger from
-[JISET](https://github.com/kaist-plrg/jiset) and enhance it with the following features:
+We will enhance it with the following features:
 - Add more debugger features:
   - Show a JavaScript state by refining an ECMAScript state.
   - Record timestamps during execution for resume & suspend steps (especially for Generator).

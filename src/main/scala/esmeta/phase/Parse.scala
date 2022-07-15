@@ -7,8 +7,8 @@ import esmeta.js.util.{Parser => JSParser}
 import esmeta.util.SystemUtils.*
 
 /** `parse` phase */
-case object JSParse extends Phase[CFG, Ast] {
-  val name = "js-parse"
+case object Parse extends Phase[CFG, Ast] {
+  val name = "parse"
   val help = "parses a JavaScript file."
   def apply(
     cfg: CFG,

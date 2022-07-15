@@ -158,9 +158,9 @@ lazy val root = project
 lazy val genCompl = taskKey[Unit]("generate autocompletion file (.completion)")
 genCompl := (root / Compile / runMain).toTask(" esmeta.util.GenCompl").value
 
-// build with genCompl and assembly
-lazy val build = taskKey[Unit]("build with genCompl and assembly")
-build := {
+// build for release with genCompl and assembly
+lazy val release = taskKey[Unit]("release with genCompl and assembly")
+release := {
   genCompl.value
   (root / assembly / assembly).value
 }

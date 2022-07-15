@@ -11,17 +11,16 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg ir-eval js-parse js-eval inject filter-test262 web"
+  cmdList="help extract compile build-cfg parse eval test262test inject web"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
   extractOpt="-extract:json -extract:version -extract:log -extract:stat"
   compileOpt=""
   buildcfgOpt="-build-cfg:dot -build-cfg:pdf"
-  irevalOpt=""
-  jsparseOpt=""
-  jsevalOpt="-js-eval:test262"
+  parseOpt=""
+  evalOpt=""
+  test262testOpt=""
   injectOpt="-inject:assertions -inject:dump"
-  filtertest262Opt=""
   webOpt="-web:port"
   # completion for commands
   case "${COMP_CWORD}" in
@@ -51,24 +50,20 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt}"))
           return 0
           ;;
-        ir-eval)
-          COMPREPLY=($(compgen -W "${globalOpt} ${irevalOpt}"))
+        parse)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${parseOpt}"))
           return 0
           ;;
-        js-parse)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${jsparseOpt}"))
+        eval)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${evalOpt}"))
           return 0
           ;;
-        js-eval)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${jsevalOpt}"))
+        test262test)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${test262testOpt}"))
           return 0
           ;;
         inject)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${injectOpt}"))
-          return 0
-          ;;
-        filter-test262)
-          COMPREPLY=($(compgen -W "${globalOpt} ${filtertest262Opt}"))
           return 0
           ;;
         web)

@@ -60,34 +60,32 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   def help = "builds a control-flow graph (CFG) from an IR program."
 }
 
-/** `ir-eval` command */
-case object CmdIREval extends Command("ir-eval", CmdBase >> IREval) {
-  val help = "evaluates an IR file."
-}
-
-/** `js-parse` command */
-case object CmdJSParse extends Command("js-parse", CmdBuildCFG >> JSParse) {
+/** `parse` command */
+case object CmdParse extends Command("parse", CmdBuildCFG >> Parse) {
   def help = "parses a JavaScript file."
 }
 
-/** `js-eval` command */
-case object CmdJSEval extends Command("js-eval", CmdBuildCFG >> JSEval) {
+/** `eval` command */
+case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
   def help = "evaluates a JavaScript file."
 }
 
-/** `web` command */
-case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
-  def help = "starts a web server for interactive execution."
-}
-
-/** filter-test262 commmand */
-case object CmdFilterTest262
-  extends Command("filter-test262", CmdBase >> FilterTest262) {
-  def help = "extracts and filters out metadata of Test262 tests."
+/** `test262test` command */
+case object CmdTest262Test
+  extends Command("test262test", CmdBuildCFG >> Test262Test) {
+  def help = "test a Test262 program with harness files."
+  override def showResult(msg: Option[String]): Unit = msg match
+    case None      => println(s"PASS")
+    case Some(msg) => println(s"FAIL - $msg")
 }
 
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   def help =
     "injects assertions to check the final state of a given JavaScript program."
+}
+
+/** `web` command */
+case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
+  def help = "starts a web server for interactive execution."
 }
