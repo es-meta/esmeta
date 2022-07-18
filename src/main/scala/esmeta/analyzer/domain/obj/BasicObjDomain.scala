@@ -337,28 +337,19 @@ object BasicObjDomain extends Domain {
       modifyList(_.filter(v => v != value), _ ⊔ value, weak)
 
     // pops
-    def pop(idx: AbsValue, weak: Boolean): (AbsValue, Elem) = this match
+    def pop(weak: Boolean, front: Boolean): (AbsValue, Elem) = this match
       case l: ListElem =>
-        idx.math.getSingle match {
-          case FlatBot => (AbsValue.Bot, Bot)
-          case FlatElem(AMath(math)) => {
-            val k = math.toInt
-            var v: AbsValue = AbsValue.Bot
-            val newObj = modifyList(
-              vs => {
-                if (0 <= k && k < vs.length) {
-                  v = vs(k); vs.slice(0, k) ++ vs.slice(k + 1, vs.length)
-                } else {
-                  v = AbsValue.absent; vs
-                }
-              },
-              mv => { v = mv; mv },
-              weak,
-            )
-            (v, newObj)
-          }
-          case FlatTop => (l.mergedValue, MergedList(l.mergedValue))
-        }
+        var v: AbsValue = AbsValue.Bot
+        val newObj =
+          modifyList(
+            vs => {
+              v = if (front) vs.head else vs.last
+              if (front) vs.drop(1) else vs.dropRight(1)
+            },
+            mv => { v = mv; mv },
+            weak,
+          )
+        (v, newObj)
       case _ => (AbsValue.Bot, Bot)
 
     // helper for map structures

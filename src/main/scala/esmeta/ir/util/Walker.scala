@@ -172,9 +172,11 @@ trait Walker extends BasicWalker {
 
   // identifiers
   def walk(x: Id): Id = x match
-    case Global(x) => Global(walk(x))
-    case x: Name   => walk(x)
-    case Temp(k)   => Temp(walk(k))
+    case Global(x)    => Global(walk(x))
+    case local: Local => walk(local)
+  def walk(x: Local): Local = x match
+    case x: Name => walk(x)
+    case Temp(k) => Temp(walk(k))
 
   // named local identifiers
   def walk(x: Name): Name = Name(walk(x.name))

@@ -41,7 +41,7 @@ sealed trait NodeWithInst extends Node {
 /** call nodes */
 case class Call(
   id: Int,
-  lhs: Id,
+  lhs: Local,
   fexpr: Expr,
   args: List[Expr],
   var next: Option[Node] = None,
@@ -54,7 +54,11 @@ case class Branch(
   cond: Expr,
   var thenNode: Option[Node] = None,
   var elseNode: Option[Node] = None,
-) extends NodeWithInst
+) extends NodeWithInst {
+  def isLoop: Boolean = kind match
+    case Branch.Kind.If => false
+    case _              => true
+}
 object Branch:
   enum Kind extends CFGElem:
     case If

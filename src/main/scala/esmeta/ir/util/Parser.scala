@@ -60,7 +60,10 @@ trait Parsers extends BasicParsers {
       case c ~ t ~ e => IIf(c, t, e)
     } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
       case k ~ c ~ b => ILoop(k, c, b)
-    } | ("call " ~> id <~ "=") ~ expr ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+    } | ("call " ~> local <~ "=") ~ expr ~ ("(" ~> repsep(
+      expr,
+      ",",
+    ) <~ ")") ^^ {
       case lhs ~ f ~ as => ICall(lhs, f, as)
     } | normalInst
   }.named("ir.Inst")
@@ -259,6 +262,8 @@ trait Parsers extends BasicParsers {
   // identifiers
   lazy val id: Parser[Id] =
     "@[A-Za-z_]+".r ^^ { case s => Global(s.substring(1)) } |
+    local
+  lazy val local: Parser[Local] =
     "%(0|[1-9][0-9]*)".r ^^ { case s => Temp(s.substring(1).toInt) } |
     name
 

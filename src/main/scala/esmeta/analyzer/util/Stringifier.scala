@@ -69,9 +69,9 @@ class Stringifier(
       case NamedLoc(name)     => app >> "#" >> name
       case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
       case SubMapLoc(baseLoc) => app >> baseLoc >> ":SubMap"
-      case AClo(_, func) =>
+      case AClo(func, _) =>
         app >> "clo<" >> func.irFunc.name >> ">"
-      case ACont(_, target) =>
+      case ACont(target, _) =>
         app >> "cont<" >> target >> ">"
       case AAst(ast) =>
         app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"

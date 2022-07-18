@@ -58,14 +58,14 @@ case class SubMapLoc(baseLoc: BaseLoc) extends Loc
 
 /** closures */
 case class AClo(
-  captured: Map[Name, AbsValue],
   func: Func,
+  captured: Map[Name, AbsValue],
 ) extends AValue
 
 /** continuations */
 case class ACont(
-  captured: Map[Name, AbsValue],
   target: NodePoint[Node],
+  captured: Map[Name, AbsValue],
 ) extends AValue
 
 /** AST values */

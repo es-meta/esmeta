@@ -156,10 +156,10 @@ case class BasicHeapDomain(
       applyEach(loc)(_.prepend(value, _))
 
     // pops
-    def pop(loc: AbsLoc, idx: AbsValue): (AbsValue, Elem) =
+    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) =
       var v: AbsValue = AbsValue.Bot
       val h: Elem = applyEach(loc)((obj, weak) => {
-        val (newV, newObj) = obj.pop(idx, weak)
+        val (newV, newObj) = obj.pop(weak, front)
         v ⊔= newV
         newObj
       })

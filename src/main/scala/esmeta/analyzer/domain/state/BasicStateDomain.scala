@@ -54,8 +54,8 @@ case class BasicStateDomain(
   // constructors
   def apply(
     reachable: Boolean = true,
-    locals: Map[Id, AbsValue] = Map(),
-    globals: Map[Id, AbsValue] = Map(),
+    locals: Map[Local, AbsValue] = Map(),
+    globals: Map[Global, AbsValue] = Map(),
     heap: AbsHeap = AbsHeap.Bot,
   ): Elem = Elem(reachable, locals, globals, heap)
 
@@ -72,8 +72,8 @@ case class BasicStateDomain(
   // elements
   case class Elem(
     reachable: Boolean,
-    locals: Map[Id, AbsValue],
-    globals: Map[Id, AbsValue],
+    locals: Map[Local, AbsValue],
+    globals: Map[Global, AbsValue],
     heap: AbsHeap,
   ) extends ElemTrait {
     // partial order
@@ -188,22 +188,23 @@ case class BasicStateDomain(
       .garbageCollected
 
     // handle returns (this: return states / to: caller states)
-    def doReturn(to: Elem, defs: (Id, AbsValue)*): Elem = doReturn(to, defs)
-    def doReturn(to: Elem, defs: Iterable[(Id, AbsValue)]): Elem = Elem(
+    def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = doReturn(to, defs)
+    def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
       locals = to.locals ++ defs,
       globals = globals,
       heap = heap.doReturn(to.heap),
     ).garbageCollected
-    def doProcEnd(to: Elem, defs: (Id, AbsValue)*): Elem = doProcEnd(to, defs)
-    def doProcEnd(to: Elem, defs: Iterable[(Id, AbsValue)]): Elem = Elem(
+    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem =
+      doProcEnd(to, defs)
+    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
       locals = to.locals ++ defs,
       globals = globals,
       heap = heap.doProcEnd(to.heap),
     ).garbageCollected
 
-    // garbage collection
+    // TODO garbage collection
     def garbageCollected: Elem = this
     // if (USE_GC) {
     //   val unreachLocs = (heap.map.keySet -- reachableLocs).filter(!_.isNamed)
@@ -219,18 +220,20 @@ case class BasicStateDomain(
     }
 
     // lookup variable directly
-    def directLookup(x: Id): AbsValue = lookupLocal(x) ⊔ lookupGlobal(x)
+    def directLookup(x: Id): AbsValue = x match
+      case x: Local  => lookupLocal(x)
+      case x: Global => lookupGlobal(x)
 
     // getters
-    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match {
+    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match
       case AbsRefId(x)            => this(x, cp)
       case AbsRefProp(base, prop) => this(base, prop)
-    }
     def apply(x: Id, cp: ControlPoint): AbsValue = {
       val v = directLookup(x)
       if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
       else v
     }
+    // TODO handle Ast property access
     def apply(base: AbsValue, prop: AbsValue): AbsValue = {
       val compValue = base.comp(prop)
       val locValue = heap(base.loc, prop)
@@ -250,13 +253,13 @@ case class BasicStateDomain(
     def apply(loc: Loc): AbsObj = heap(loc)
 
     // lookup local variables
-    def lookupLocal(x: Id): AbsValue = this match {
+    def lookupLocal(x: Local): AbsValue = this match {
       case Elem(_, locals, _, _) =>
         locals.getOrElse(x, AbsValue.Bot)
     }
 
     // lookup global variables
-    def lookupGlobal(x: Id): AbsValue = this match {
+    def lookupGlobal(x: Global): AbsValue = this match {
       case Elem(_, _, globals, _) =>
         globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
     }
@@ -269,8 +272,14 @@ case class BasicStateDomain(
     }
     def update(x: Id, value: AbsValue): Elem =
       bottomCheck(value) {
-        if (locals contains x) copy(locals = locals + (x -> value))
-        else copy(globals = globals + (x -> value))
+        x match
+          case x: Global if globals contains x =>
+            copy(globals = globals + (x -> value))
+          case x: Name if locals contains x =>
+            copy(locals = locals + (x -> value))
+          case x: Temp =>
+            copy(locals = locals + (x -> value))
+          case _ => AbsState.Bot
       }
     def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem =
       bottomCheck(aloc, prop, value) {
@@ -278,19 +287,17 @@ case class BasicStateDomain(
       }
 
     // existence checks
-    def exists(ref: AbsRefValue): AbsBool = ref match {
-      case AbsRefId(id)           => directLookup(id).isAbsent
-      case AbsRefProp(base, prop) => this(base.escaped, prop).isAbsent
-    }
+    def exists(ref: AbsRefValue): AbsBool = ref match
+      case AbsRefId(id)           => !directLookup(id).isAbsent
+      case AbsRefProp(base, prop) => !this(base.escaped, prop).isAbsent
 
     // delete a property from a map
-    def delete(refV: AbsRefValue): Elem = refV match {
+    def delete(refV: AbsRefValue): Elem = refV match
       case AbsRefId(x) => error(s"cannot delete variable $x")
       case AbsRefProp(base, prop) =>
         bottomCheck(base, prop) {
           copy(heap = heap.delete(base.escaped.loc, prop))
         }
-    }
 
     // object operators
     def append(loc: AbsLoc, value: AbsValue): Elem =
@@ -299,10 +306,10 @@ case class BasicStateDomain(
       bottomCheck(loc, value) { copy(heap = heap.prepend(loc, value)) }
     def remove(loc: AbsLoc, value: AbsValue): Elem =
       bottomCheck(loc, value) { copy(heap = heap.remove(loc, value)) }
-    def pop(loc: AbsLoc, idx: AbsValue): (AbsValue, Elem) = {
+    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = {
       var v: AbsValue = AbsValue.Bot
-      val st: Elem = bottomCheck(loc, idx) {
-        val (newV, newH) = heap.pop(loc, idx)
+      val st: Elem = bottomCheck(loc) {
+        val (newV, newH) = heap.pop(loc, front)
         v ⊔= newV
         copy(heap = newH)
       }
@@ -328,11 +335,11 @@ case class BasicStateDomain(
       heap.contains(loc, value)
 
     // define global variables
-    def defineGlobal(pairs: (Id, AbsValue)*): Elem =
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem =
       bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
 
     // define local variables
-    def defineLocal(pairs: (Id, AbsValue)*): Elem =
+    def defineLocal(pairs: (Local, AbsValue)*): Elem =
       bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
 
     // conversion to string

@@ -27,6 +27,7 @@ object BasicValueDomain extends Domain {
   def apply(bigint: BigInt): Elem = Bot.copy(simple = AbsSimple(bigint))
   def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
+  def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
   lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
   lazy val bigint: Elem = Bot.copy(simple = AbsSimple.bigint)
   lazy val str: Elem = Bot.copy(simple = AbsSimple.str)
@@ -215,11 +216,11 @@ object BasicValueDomain extends Domain {
         locs ++= target.reachableLocs
       }
       for {
-        AClo(captured, _) <- clo
+        AClo(_, captured) <- clo
         (_, value) <- captured
       } locs ++= value.reachableLocs
       for {
-        ACont(captured, _) <- cont
+        ACont(_, captured) <- cont
         (_, value) <- captured
       } locs ++= value.reachableLocs
       locs
@@ -269,8 +270,8 @@ object BasicValueDomain extends Domain {
     // check absents
     def isAbsent: AbsBool =
       var b: AbsBool = AbsBool.Bot
-      if (!absent.isBottom) b ⊔= AF
-      if (!removeAbsent.isBottom) b ⊔= AT
+      if (!absent.isBottom) b ⊔= AT
+      if (!removeAbsent.isBottom) b ⊔= AF
       b
   }
 }

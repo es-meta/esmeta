@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 case class AbsSemantics(
   AbsRet: BasicRetDomain,
 )(
-  cfg: CFG,
+  val cfg: CFG,
   var npMap: Map[NodePoint[Node], AbsRet.AbsState.Elem] = Map(),
   var rpMap: Map[ReturnPoint, AbsRet.Elem] = Map(),
   var callInfo: Map[NodePoint[Call], AbsRet.AbsState.Elem] = Map(),
@@ -91,14 +91,13 @@ case class AbsSemantics(
   def apply(rp: ReturnPoint): AbsRet = rpMap.getOrElse(rp, AbsRet.Bot)
 
   // update internal map
-  def +=(pair: (NodePoint[Node], AbsState)): Boolean = {
+  def +=(pair: (NodePoint[Node], AbsState)): Unit = {
     val (np, newSt) = pair
     val oldSt = this(np)
     if (!(newSt ⊑ oldSt)) {
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
-      true
-    } else false
+    }
   }
 
   // handle calls

@@ -11,27 +11,27 @@ import esmeta.util.Appender.*
 object BasicCloDomain extends Domain {
   case object Bot extends Elem
   case class CloElem(
-    captured: Map[Name, AbsValue],
     func: Func,
+    captured: Map[Name, AbsValue],
   ) extends Elem
 
   // constructors
   def apply(clo: AClo): Elem = CloElem(
-    clo.captured,
     clo.func,
+    clo.captured,
   )
   def apply(
-    captured: Map[Name, AbsValue],
     func: Func,
-  ): Elem = CloElem(captured, func)
+    captured: Map[Name, AbsValue],
+  ): Elem = CloElem(func, captured)
 
   // appender
   given rule: Rule[Elem] = (app, elem) =>
     elem match
       case Bot =>
         app >> "⊥"
-      case CloElem(captured, func) =>
-        app >> AClo(captured, func).toString
+      case CloElem(func, captured) =>
+        app >> AClo(func, captured).toString
 
   // elements
   sealed trait Elem extends Iterable[AClo] with ElemTrait {
@@ -55,10 +55,10 @@ object BasicCloDomain extends Domain {
             l.captured.keySet == r.captured.keySet
           ) =>
         CloElem(
+          l.func,
           l.captured.keySet
             .map(x => x -> (l.captured(x) ⊔ r.captured(x)))
             .toMap,
-          l.func,
         )
       case _ => exploded(s"join of closures.")
 
@@ -71,23 +71,23 @@ object BasicCloDomain extends Domain {
             l.captured.keySet == r.captured.keySet
           ) =>
         CloElem(
+          l.func,
           l.captured.keySet
             .map(x => x -> (l.captured(x) ⊓ r.captured(x)))
             .toMap,
-          l.func,
         )
       case _ => exploded(s"meet of closures.")
 
     // get single value
     def getSingle: Flat[AClo] = this match
       case Bot => FlatBot
-      case CloElem(captured, func) =>
-        FlatElem(AClo(captured, func))
+      case CloElem(func, captured) =>
+        FlatElem(AClo(func, captured))
 
     // iterators
     final def iterator: Iterator[AClo] = (this match {
       case Bot                     => None
-      case CloElem(captured, func) => Some(AClo(captured, func))
+      case CloElem(func, captured) => Some(AClo(func, captured))
     }).iterator
   }
 }

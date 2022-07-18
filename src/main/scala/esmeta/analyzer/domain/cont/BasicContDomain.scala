@@ -11,27 +11,27 @@ import esmeta.util.Appender.*
 object BasicContDomain extends Domain {
   case object Bot extends Elem
   case class ContElem(
-    captured: Map[Name, AbsValue],
     target: NodePoint[Node],
+    captured: Map[Name, AbsValue],
   ) extends Elem
 
   // constructors
   def apply(cont: ACont): Elem = ContElem(
-    cont.captured,
     cont.target,
+    cont.captured,
   )
   def apply(
-    captured: Map[Name, AbsValue],
     target: NodePoint[Node],
-  ): Elem = ContElem(captured, target)
+    captured: Map[Name, AbsValue],
+  ): Elem = ContElem(target, captured)
 
   // appender
   given rule: Rule[Elem] = (app, elem) =>
     elem match
       case Bot =>
         app >> "⊥"
-      case ContElem(captured, target) =>
-        app >> ACont(captured, target).toString
+      case ContElem(target, captured) =>
+        app >> ACont(target, captured).toString
 
   // elements
   sealed trait Elem extends Iterable[ACont] with ElemTrait {
@@ -55,10 +55,10 @@ object BasicContDomain extends Domain {
             l.captured.keySet == r.captured.keySet
           ) =>
         ContElem(
+          l.target,
           l.captured.keySet
             .map(x => x -> (l.captured(x) ⊔ r.captured(x)))
             .toMap,
-          l.target,
         )
       case _ => exploded(s"join of continuations.")
 
@@ -71,23 +71,23 @@ object BasicContDomain extends Domain {
             l.captured.keySet == r.captured.keySet
           ) =>
         ContElem(
+          l.target,
           l.captured.keySet
             .map(x => x -> (l.captured(x) ⊓ r.captured(x)))
             .toMap,
-          l.target,
         )
       case _ => exploded(s"meet of continuations.")
 
     // get single value
     def getSingle: Flat[ACont] = this match
       case Bot => FlatBot
-      case ContElem(captured, target) =>
-        FlatElem(ACont(captured, target))
+      case ContElem(target, captured) =>
+        FlatElem(ACont(target, captured))
 
     // iterators
     final def iterator: Iterator[ACont] = (this match {
       case Bot                        => None
-      case ContElem(captured, target) => Some(ACont(captured, target))
+      case ContElem(target, captured) => Some(ACont(target, captured))
     }).iterator
   }
 }

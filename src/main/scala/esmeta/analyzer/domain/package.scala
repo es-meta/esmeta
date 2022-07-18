@@ -66,10 +66,10 @@ type AbsNum = AbsNum.Elem
 lazy val AbsBigInt = FlatDomain[BigInt]("bigint")
 type AbsBigInt = AbsBigInt.Elem
 
-lazy val AbsStr = FlatDomain[Str]("str")
+lazy val AbsStr = SetDomain[Str]("str")
 type AbsStr = AbsStr.Elem
 
-lazy val AbsBool = FlatDomain[Bool]("bool", Some(Set(T, F)))
+lazy val AbsBool = FlatBoolDomain
 type AbsBool = AbsBool.Elem
 
 lazy val AbsUndef = SimpleDomain(Undef)

@@ -32,4 +32,4 @@ object NormalInsts extends Parser.From[List[NormalInst]]
 case class ISeq(insts: List[Inst]) extends Inst
 case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends Inst
 case class ILoop(kind: String, cond: Expr, body: Inst) extends Inst
-case class ICall(lhs: Id, fexpr: Expr, args: List[Expr]) extends Inst
+case class ICall(lhs: Local, fexpr: Expr, args: List[Expr]) extends Inst
