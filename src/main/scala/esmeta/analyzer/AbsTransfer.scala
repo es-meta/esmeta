@@ -46,7 +46,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           case (nextSt, inst) => transfer(inst)(nextSt)
         }
         next.foreach(to => sem += getNextNp(np, to) -> newSt)
-      // TODO handle Ast property access
+      // TODO handle SDO
       case call @ Call(_, lhs, fexpr, args, next) =>
         (for {
           fv <- transfer(fexpr)
@@ -54,7 +54,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           st <- get
         } yield {
           for (AClo(func, captured) <- fv.clo) {
-            val newLocals = getLocals(func.irFunc.params, as)
+            val newLocals = getLocals(func.irFunc.params, as) ++ captured
             val newSt = st.copy(locals = newLocals)
             sem.doCall(call, view, st, func, newSt)
           }

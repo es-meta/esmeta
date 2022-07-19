@@ -233,10 +233,27 @@ case class BasicStateDomain(
       if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
       else v
     }
-    // TODO handle Ast property access
     def apply(base: AbsValue, prop: AbsValue): AbsValue = {
       val compValue = base.comp(prop)
       val locValue = heap(base.loc, prop)
+      val astValue = (base.ast.getSingle, prop.getSingle) match {
+        case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
+        case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
+          ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
+        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(ASimple(simple))) =>
+          simple match
+            case Math(n) if n.isValidInt =>
+              syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
+            case Str(propStr) =>
+              val js.Syntactic(name, _, rhsIdx, children) = syn
+              val rhs = AbsHeap.cfg.grammar.nameMap(name).rhsList(rhsIdx)
+              rhs.getNtIndex(propStr).flatMap(children(_)) match
+                case Some(child) => AbsValue(child)
+                case _           => AbsValue.Bot
+            case _ => AbsValue.Bot
+        case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
+        case _                                => exploded("ast property access")
+      }
       val strValue = (base.str.getSingle, prop.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(Str(str)), FlatElem(AMath(k))) =>
@@ -248,7 +265,7 @@ case class BasicStateDomain(
             case _             => AbsValue.Bot
         case _ => AbsValue.str
       }
-      compValue ⊔ locValue ⊔ strValue
+      compValue ⊔ locValue ⊔ strValue ⊔ astValue
     }
     def apply(loc: Loc): AbsObj = heap(loc)
 
