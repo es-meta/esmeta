@@ -47,40 +47,34 @@ case class AbsSemantics(
   // iteration period for check
   val CHECK_PERIOD = 10000
 
-  //   // fixpiont computation
-  //   @tailrec
-  //   final def fixpoint: AbsSemantics = worklist.next match {
-  //     case Some(cp) => {
-  //       iter += 1
+  // fixpiont computation
+  @tailrec
+  final def fixpoint: AbsSemantics = worklist.next match {
+    case Some(cp) => {
+      iter += 1
 
-  //       // check time limit
-  //       if (iter % CHECK_PERIOD == 0) timeLimit.map(limit => {
-  //         val duration = (System.currentTimeMillis - startTime) / 1000
-  //         if (duration > limit) throw AnalysisImprecise("timeout")
-  //       })
+      // check time limit
+      if (iter % CHECK_PERIOD == 0) timeLimit.map(limit => {
+        val duration = (System.currentTimeMillis - startTime) / 1000
+        if (duration > limit) throw AnalysisImprecise("timeout")
+      })
 
-  //       // text-based debugging
-  //       if (DEBUG) println(s"${cp.func.name}:$cp")
+      // text-based debugging
+      if (DEBUG) println(s"${cp.func.name}:$cp")
 
-  //       // run REPL
-  //       if (USE_REPL) repl(transfer, cp)
+      // abstract transfer for the current control point
+      transfer(cp)
 
-  //       // abstract transfer for the current control point
-  //       else transfer(cp)
+      // TODO check soundness using concrete execution
+      // checkWithInterp.map(_.runAndCheck)
 
-  //       // check soundness using concrete execution
-  //       // checkWithInterp.map(_.runAndCheck)
-
-  //       // keep going
-  //       fixpoint
-  //     }
-  //     case None =>
-  //       // finialize REPL
-  //       if (USE_REPL) repl.finished
-
-  //       // final result
-  //       this
-  //   }
+      // keep going
+      fixpoint
+    }
+    case None =>
+      // final result
+      this
+  }
 
   // get return edges
   def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
@@ -94,7 +88,7 @@ case class AbsSemantics(
   def +=(pair: (NodePoint[Node], AbsState)): Unit = {
     val (np, newSt) = pair
     val oldSt = this(np)
-    if (!(newSt ⊑ oldSt)) {
+    if (!newSt.isBottom && !(newSt ⊑ oldSt)) {
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
     }

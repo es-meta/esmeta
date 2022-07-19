@@ -121,109 +121,51 @@ class Interp(
   }
 
   /** transition for calls */
-  def interp(call: CallInst): Unit =
-    call match {
-      case ICall(lhs, fexpr, args) =>
-        interp(fexpr) match
-          case Clo(func, captured) =>
-            val vs = args.map(interp)
-            val newLocals = getLocals(func.irFunc.params, vs) ++ captured
-            st.callStack ::= CallContext(lhs, st.context)
-            st.context = Context(func, newLocals)
-          case Cont(func, captured, callStack) => {
-            val needWrapped = st.context.func.isReturnComp
-            val vs =
-              args
-                .map(interp)
-                .map(v => if (needWrapped) v.wrapCompletion else v)
-            val newLocals =
-              getLocals(func.irFunc.params, vs, cont = true) ++ captured
-            st.callStack = callStack.map(_.copied)
-            st.context = Context(func, newLocals)
-          }
-          case v => throw NoFunc(fexpr, v)
-      case IMethodCall(lhs, base, method, args) =>
-        val bv = st(interp(base))
-        // TODO do not explicitly store methods in object but use a type model when
-        // accessing methods
-        st(bv, Str(method)) match
-          case Clo(func, _) =>
-            val vs = args.map(interp)
-            val newLocals = getLocals(func.irFunc.params, bv :: vs)
-            st.callStack ::= CallContext(lhs, st.context)
-            st.context = Context(func, newLocals)
-          case v => throw NoFunc(call.fexpr, v)
-      case ISdoCall(lhs, base, method, args) =>
-        interp(base).asAst match
-          case syn: Syntactic =>
-            getSDO((syn, method)) match
-              case Some((ast0, sdo)) =>
-                val vs = args.map(interp)
-                val newLocals =
-                  getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
-                st.callStack ::= CallContext(lhs, st.context)
-                st.context = Context(sdo, newLocals)
-              case None => throw InvalidAstProp(syn, Str(method))
-          case lex: Lexical =>
-            setCallResult(lhs, Interp.interp(lex, method))
-    }
-
-  /** sdo with default case */
-  val defaultCases = List(
-    "Contains",
-    "AllPrivateIdentifiersValid",
-    "ContainsArguments",
-  )
-
-  /** get syntax-directed operation(SDO) */
-  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
-    case (ast, operation) =>
-      val fnameMap = cfg.fnameMap
-      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
-        case (None, ast0) =>
-          val subIdx = getSubIdx(ast0)
-          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname) match
-            case Some(sdo) => Some(ast0, sdo)
-            case None if defaultCases contains operation =>
-              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-            case _ => None
-        case (res: Some[_], _) => res
-      }
+  def interp(call: CallInst): Unit = call match {
+    case ICall(lhs, fexpr, args) =>
+      interp(fexpr) match
+        case Clo(func, captured) =>
+          val vs = args.map(interp)
+          val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+          st.callStack ::= CallContext(lhs, st.context)
+          st.context = Context(func, newLocals)
+        case Cont(func, captured, callStack) => {
+          val needWrapped = st.context.func.isReturnComp
+          val vs =
+            args
+              .map(interp)
+              .map(v => if (needWrapped) v.wrapCompletion else v)
+          val newLocals =
+            getLocals(func.irFunc.params, vs, cont = true) ++ captured
+          st.callStack = callStack.map(_.copied)
+          st.context = Context(func, newLocals)
+        }
+        case v => throw NoFunc(fexpr, v)
+    case IMethodCall(lhs, base, method, args) =>
+      val bv = st(interp(base))
+      // TODO do not explicitly store methods in object but use a type model when
+      // accessing methods
+      st(bv, Str(method)) match
+        case Clo(func, _) =>
+          val vs = args.map(interp)
+          val newLocals = getLocals(func.irFunc.params, bv :: vs)
+          st.callStack ::= CallContext(lhs, st.context)
+          st.context = Context(func, newLocals)
+        case v => throw NoFunc(call.fexpr, v)
+    case ISdoCall(lhs, base, method, args) =>
+      interp(base).asAst match
+        case syn: Syntactic =>
+          getSDO((syn, method)) match
+            case Some((ast0, sdo)) =>
+              val vs = args.map(interp)
+              val newLocals =
+                getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
+              st.callStack ::= CallContext(lhs, st.context)
+              st.context = Context(sdo, newLocals)
+            case None => throw InvalidAstProp(syn, Str(method))
+        case lex: Lexical =>
+          setCallResult(lhs, Interp.interp(lex, method))
   }
-
-  /** get sub index of parsed Ast */
-  private val getSubIdx = cached[Ast, Int] {
-    case lex: Lexical => 0
-    case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      val optionals = (for {
-        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
-      } yield !child.isEmpty)
-      optionals.reverse.zipWithIndex.foldLeft(0) {
-        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-        case (acc, _)           => acc
-      }
-  }
-
-  // val (fv, receiver) = st.getMethod(interp(ast), method)
-  // fv match
-  //   case Clo(func, _) =>
-  //     val vs = args.map(interp)
-  //     val newLocals = getLocals(func.irFunc.params, receiver :: vs)
-  //     st.callStack ::= CallContext(lhs, st.context)
-  //     st.context = Context(func, newLocals)
-  //   case v => throw NoFunc(call.fexpr, v)
-  // } catch {
-  //   case st.SyntacticCalled(ast, sdo) =>
-  //     val vs = args.map(interp) match
-  //       case h :: tail => AstValue(ast) :: tail // fix this param
-  //       case _         => error("invalid SDO call")
-  //     st.callStack ::= CallContext(lhs, st.context)
-  //     st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
-  //   case st.LexicalCalled(v) =>
-  //     setCallResult(lhs, v)
-  // }
 
   /** transition for expresssions */
   def interp(expr: Expr): Value = expr match {
@@ -543,6 +485,44 @@ class Interp(
   def setCallResult(id: Id, value: Value): Unit =
     st.define(id, value)
     st.context.moveNext
+
+  /** sdo with default case */
+  val defaultCases = List(
+    "Contains",
+    "AllPrivateIdentifiersValid",
+    "ContainsArguments",
+  )
+
+  /** get syntax-directed operation(SDO) */
+  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+    case (ast, operation) =>
+      val fnameMap = cfg.fnameMap
+      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
+        case (None, ast0) =>
+          val subIdx = getSubIdx(ast0)
+          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
+          fnameMap.get(fname) match
+            case Some(sdo) => Some(ast0, sdo)
+            case None if defaultCases contains operation =>
+              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
+            case _ => None
+        case (res: Some[_], _) => res
+      }
+  }
+
+  /** get sub index of parsed Ast */
+  private val getSubIdx = cached[Ast, Int] {
+    case lex: Lexical => 0
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
+  }
 }
 
 /** Interp object */
