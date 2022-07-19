@@ -47,25 +47,25 @@ case class AbsTransfer(sem: AbsSemantics) {
         }
         next.foreach(to => sem += getNextNp(np, to) -> newSt)
       // TODO handle SDO
-      case call @ Call(_, lhs, fexpr, args, next) =>
-        (for {
-          fv <- transfer(fexpr)
-          as <- join(args.map(transfer))
-          st <- get
-        } yield {
-          for (AClo(func, captured) <- fv.clo) {
-            val newLocals = getLocals(func.irFunc.params, as) ++ captured
-            val newSt = st.copy(locals = newLocals)
-            sem.doCall(call, view, st, func, newSt)
-          }
-          for (ACont(target, captured) <- fv.cont) {
-            val as0 =
-              as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
-            val newLocals =
-              getLocals(target.func.irFunc.params, as0, cont = true) ++ captured
-            sem += target -> st.copy(locals = newLocals)
-          }
-        })(st)
+      case call: Call => ???
+      // (for {
+      //   fv <- transfer(fexpr)
+      //   as <- join(args.map(transfer))
+      //   st <- get
+      // } yield {
+      //   for (AClo(func, captured) <- fv.clo) {
+      //     val newLocals = getLocals(func.irFunc.params, as) ++ captured
+      //     val newSt = st.copy(locals = newLocals)
+      //     sem.doCall(call, view, st, func, newSt)
+      //   }
+      //   for (ACont(target, captured) <- fv.cont) {
+      //     val as0 =
+      //       as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
+      //     val newLocals =
+      //       getLocals(target.func.irFunc.params, as0, cont = true) ++ captured
+      //     sem += target -> st.copy(locals = newLocals)
+      //   }
+      // })(st)
       case br @ Branch(_, kind, cond, thenNode, elseNode) =>
         (for {
           v <- transfer(cond)

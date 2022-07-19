@@ -76,7 +76,7 @@ class Interp(
   /** transition for nodes */
   def interp(node: Node): Unit =
     node match {
-      case Block(_, insts, next) =>
+      case Block(_, insts, _) =>
         for (inst <- insts) interp(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
         st.context.cursor = Cursor(
@@ -87,8 +87,7 @@ class Interp(
           },
           st.func,
         )
-      case Call(_, lhs, fexpr, args, next) =>
-        call(lhs, fexpr, args)
+      case Call(_, call, _) => interp(call)
     }
 
   /** transition for normal instructions */
@@ -122,38 +121,109 @@ class Interp(
   }
 
   /** transition for calls */
-  def call(
-    lhs: Id,
-    fexpr: Expr,
-    args: List[Expr],
-  ): Unit = try {
-    interp(fexpr) match {
-      case Clo(func, captured) =>
-        val vs = args.map(interp)
-        val newLocals = getLocals(func.irFunc.params, vs) ++ captured
-        st.callStack ::= CallContext(lhs, st.context)
-        st.context = Context(func, newLocals)
-      case Cont(func, captured, callStack) => {
-        val needWrapped = st.context.func.isReturnComp
-        val vs =
-          args.map(interp).map(v => if (needWrapped) v.wrapCompletion else v)
-        val newLocals =
-          getLocals(func.irFunc.params, vs, cont = true) ++ captured
-        st.callStack = callStack.map(_.copied)
-        st.context = Context(func, newLocals)
-      }
-      case v => throw NoFunc(fexpr, v)
+  def interp(call: CallInst): Unit =
+    call match {
+      case ICall(lhs, fexpr, args) =>
+        interp(fexpr) match
+          case Clo(func, captured) =>
+            val vs = args.map(interp)
+            val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+            st.callStack ::= CallContext(lhs, st.context)
+            st.context = Context(func, newLocals)
+          case Cont(func, captured, callStack) => {
+            val needWrapped = st.context.func.isReturnComp
+            val vs =
+              args
+                .map(interp)
+                .map(v => if (needWrapped) v.wrapCompletion else v)
+            val newLocals =
+              getLocals(func.irFunc.params, vs, cont = true) ++ captured
+            st.callStack = callStack.map(_.copied)
+            st.context = Context(func, newLocals)
+          }
+          case v => throw NoFunc(fexpr, v)
+      case IMethodCall(lhs, base, method, args) =>
+        val bv = st(interp(base))
+        // TODO do not explicitly store methods in object but use a type model when
+        // accessing methods
+        st(bv, Str(method)) match
+          case Clo(func, _) =>
+            val vs = args.map(interp)
+            val newLocals = getLocals(func.irFunc.params, bv :: vs)
+            st.callStack ::= CallContext(lhs, st.context)
+            st.context = Context(func, newLocals)
+          case v => throw NoFunc(call.fexpr, v)
+      case ISdoCall(lhs, base, method, args) =>
+        interp(base).asAst match
+          case syn: Syntactic =>
+            getSDO((syn, method)) match
+              case Some((ast0, sdo)) =>
+                val vs = args.map(interp)
+                val newLocals =
+                  getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
+                st.callStack ::= CallContext(lhs, st.context)
+                st.context = Context(sdo, newLocals)
+              case None => throw InvalidAstProp(syn, Str(method))
+          case lex: Lexical =>
+            setCallResult(lhs, Interp.interp(lex, method))
     }
-  } catch {
-    case st.SyntacticCalled(ast, sdo) =>
-      val vs = args.map(interp) match
-        case h :: tail => AstValue(ast) :: tail // fix this param
-        case _         => error("invalid SDO call")
-      st.callStack ::= CallContext(lhs, st.context)
-      st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
-    case st.LexicalCalled(v) =>
-      setCallResult(lhs, v)
+
+  /** sdo with default case */
+  val defaultCases = List(
+    "Contains",
+    "AllPrivateIdentifiersValid",
+    "ContainsArguments",
+  )
+
+  /** get syntax-directed operation(SDO) */
+  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+    case (ast, operation) =>
+      val fnameMap = cfg.fnameMap
+      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
+        case (None, ast0) =>
+          val subIdx = getSubIdx(ast0)
+          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
+          fnameMap.get(fname) match
+            case Some(sdo) => Some(ast0, sdo)
+            case None if defaultCases contains operation =>
+              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
+            case _ => None
+        case (res: Some[_], _) => res
+      }
   }
+
+  /** get sub index of parsed Ast */
+  private val getSubIdx = cached[Ast, Int] {
+    case lex: Lexical => 0
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
+  }
+
+  // val (fv, receiver) = st.getMethod(interp(ast), method)
+  // fv match
+  //   case Clo(func, _) =>
+  //     val vs = args.map(interp)
+  //     val newLocals = getLocals(func.irFunc.params, receiver :: vs)
+  //     st.callStack ::= CallContext(lhs, st.context)
+  //     st.context = Context(func, newLocals)
+  //   case v => throw NoFunc(call.fexpr, v)
+  // } catch {
+  //   case st.SyntacticCalled(ast, sdo) =>
+  //     val vs = args.map(interp) match
+  //       case h :: tail => AstValue(ast) :: tail // fix this param
+  //       case _         => error("invalid SDO call")
+  //     st.callStack ::= CallContext(lhs, st.context)
+  //     st.context = Context(sdo, getLocals(sdo.irFunc.params, vs))
+  //   case st.LexicalCalled(v) =>
+  //     setCallResult(lhs, v)
+  // }
 
   /** transition for expresssions */
   def interp(expr: Expr): Value = expr match {
@@ -490,6 +560,46 @@ object Interp {
     "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
     "ArrayCreate" -> "ArrayExoticObject",
   )
+
+  /** transition for lexical SDO */
+  def interp(lex: Lexical, sdoName: String): PureValue = {
+    val Lexical(name, str) = lex
+    (name, sdoName) match {
+      case (
+            "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+            "StringValue",
+          ) =>
+        Str(ESValueParser.parseIdentifier(str))
+      case ("PrivateIdentifier", "StringValue") =>
+        Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
+      // TODO handle numeric seperator in ESValueParser
+      case ("NumericLiteral", "MV" | "NumericValue") =>
+        ESValueParser.parseNumber(str.replaceAll("_", ""))
+      case ("StringLiteral", "SV" | "StringValue") =>
+        Str(ESValueParser.parseString(str))
+      case ("NoSubstitutionTemplate", "TV") =>
+        ESValueParser.parseTVNoSubstitutionTemplate(str)
+      case ("TemplateHead", "TV") =>
+        ESValueParser.parseTVTemplateHead(str)
+      case ("TemplateMiddle", "TV") =>
+        ESValueParser.parseTVTemplateMiddle(str)
+      case ("TemplateTail", "TV") =>
+        ESValueParser.parseTVTemplateTail(str)
+      case ("NoSubstitutionTemplate", "TRV") =>
+        Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
+      case ("TemplateHead", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateHead(str))
+      case ("TemplateMiddle", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateMiddle(str))
+      case ("TemplateTail", "TRV") =>
+        Str(ESValueParser.parseTRVTemplateTail(str))
+      case (_, "Contains") => Bool(false)
+      case ("RegularExpressionLiteral", name) =>
+        throw NotSupported(s"RegularExpressionLiteral.$sdoName")
+      case _ =>
+        throw InvalidAstProp(lex, Str(sdoName))
+    }
+  }
 
   /** transition for unary opeartors */
   def interp(uop: UOp, operand: Value): Value =

@@ -1,7 +1,7 @@
 def <CONT>:GeneratorStart:cont0(): Any {
   %0 = generatorBody
   if (? %0: "ParseNode") {
-    call %1 = generatorBody.Evaluation(generatorBody)
+    sdo-call %1 = generatorBody->Evaluation()
     let result = %1
   } else {
     assert (yet "[YET] _generatorBody_ is an Abstract Closure with no parameters.")

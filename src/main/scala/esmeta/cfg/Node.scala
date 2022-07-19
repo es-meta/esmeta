@@ -33,6 +33,7 @@ case class Block(
 ) extends Node
 
 /** nodes with backward edge to inst */
+// TODO refactor
 sealed trait NodeWithInst extends Node {
   var inst: Option[Inst] = None
   def setInst(i: Inst): this.type = { this.inst = Some(i); this }
@@ -41,11 +42,12 @@ sealed trait NodeWithInst extends Node {
 /** call nodes */
 case class Call(
   id: Int,
-  lhs: Local,
-  fexpr: Expr,
-  args: List[Expr],
+  callInst: CallInst,
   var next: Option[Node] = None,
-) extends NodeWithInst
+) extends NodeWithInst {
+  override val inst: Option[Inst] = Some(callInst)
+  def lhs: Local = callInst.lhs
+}
 
 /** branch nodes */
 case class Branch(

@@ -1,11 +1,11 @@
 def <SYNTAX>:OptionalExpression[0,0].Evaluation(this: Unknown): Unknown {
-  call %0 = this[0].Evaluation(this[0])
+  sdo-call %0 = this[0]->Evaluation()
   let baseReference = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(baseReference)
   let baseValue = [? %1]
   if (|| (= baseValue undefined) (= baseValue null)) {
     return undefined
   } else {}
-  call %2 = this[1].ChainEvaluation(this[1], baseValue, baseReference)
+  sdo-call %2 = this[1]->ChainEvaluation(baseValue, baseReference)
   return [? %2]
 }

@@ -62,9 +62,9 @@ class Builder(program: Program) {
         connect(branch.setInst(inst))
         prev = List((branch, true)); aux(body); connect(branch)
         prev = List((branch, false))
-      case inst @ ICall(lhs, fexpr, args) =>
-        val call = Call(nextNId, lhs, fexpr, args)
-        connect(call.setInst(inst))
+      case callInst: CallInst =>
+        val call = Call(nextNId, callInst)
+        connect(call)
         prev = List((call, true))
     }
     aux(body)

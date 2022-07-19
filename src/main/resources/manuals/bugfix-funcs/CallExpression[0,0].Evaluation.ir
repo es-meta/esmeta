@@ -2,7 +2,7 @@ def <SYNTAX>:CallExpression[0,0].Evaluation(this: Unknown): Unknown {
   let expr = (parse this[0] (grammar |CallMemberExpression|[]))
   let memberExpr = expr.MemberExpression
   let arguments = expr.Arguments
-  call %0 = memberExpr.Evaluation(memberExpr)
+  sdo-call %0 = memberExpr->Evaluation()
   let ref = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(ref)
   let func = [? %1]
@@ -18,7 +18,7 @@ def <SYNTAX>:CallExpression[0,0].Evaluation(this: Unknown): Unknown {
   if %2 {
     call %5 = clo<SameValue>(func, @EXECUTION_STACK[0].Realm.Intrinsics["%eval%"])
     if (= %5 true) {
-      call %6 = arguments.ArgumentListEvaluation(arguments)
+      sdo-call %6 = arguments->ArgumentListEvaluation()
       let argList = [? %6]
       if (= argList.length 0) {
         return undefined

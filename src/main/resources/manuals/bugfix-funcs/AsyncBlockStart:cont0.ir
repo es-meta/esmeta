@@ -1,5 +1,5 @@
 def <CONT>:AsyncBlockStart:cont0(): Any {
-  call %0 = asyncBody.Evaluation(asyncBody)
+  sdo-call %0 = asyncBody->Evaluation()
   let result = %0
   assert (yet "[YET] If we return here, the async function either threw an exception or performed an implicit or explicit return; all awaiting is done.")
   (pop < @EXECUTION_STACK)

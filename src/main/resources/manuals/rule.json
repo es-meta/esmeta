@@ -89,7 +89,7 @@
   "[YET] If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
   "[YET] Return the BigInt value that represents the negation of ℝ(_x_).": "return ([bigint] (- ([math] x)))",
   "[YET] If _child_ is an instance of _symbol_, return *true*.": "if (? child: symbol) return true else {}",
-  "[YET] Let _contained_ be the result of _child_ Contains _symbol_.": "{ call result = child.Contains(child, symbol) let contained = result }",
+  "[YET] Let _contained_ be the result of _child_ Contains _symbol_.": "{ sdo-call result = child->Contains(symbol) let contained = result }",
   "[YET] Let _sourceText_ be the source code of a script.": "let sourceText = @SOURCE_TEXT",
   "[YET] Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.": "let nextQueue = @JOB_QUEUE",
   "[YET] If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return undefined else {}",

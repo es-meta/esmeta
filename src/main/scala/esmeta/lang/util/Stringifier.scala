@@ -389,8 +389,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else {
           app >> name >> " of " >> base
           if (!args.isEmpty) {
-            app >> " using " >> args >> " as the argument"
-            if (args.length > 1) app >> "s"
+            app >> " with argument" >> (if (args.length > 1) "s " else " ")
+            app >> args
           }
         }
         app

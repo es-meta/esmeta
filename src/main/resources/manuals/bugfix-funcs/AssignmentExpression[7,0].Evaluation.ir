@@ -1,5 +1,5 @@
 def <SYNTAX>:AssignmentExpression[7,0].Evaluation(this: Unknown): Unknown {
-  call %0 = this[0].Evaluation(this[0])
+  sdo-call %0 = this[0]->Evaluation()
   let lref = [? %0] // BUG (fixed in #2744)
   call %1 = clo<GetValue>(lref)
   let lval = [? %1]
@@ -11,14 +11,14 @@ def <SYNTAX>:AssignmentExpression[7,0].Evaluation(this: Unknown): Unknown {
   call %4 = clo<IsAnonymousFunctionDefinition>(this[1])
   %3 = (= %4 true)
   if %3 {
-    call %5 = this[0].IsIdentifierRef(this[0])
+    sdo-call %5 = this[0]->IsIdentifierRef()
     %3 = (= %5 true)
   } else {}
   if %3 {
-    call %6 = this[1].NamedEvaluation(this[1], lref.ReferencedName)
+    sdo-call %6 = this[1]->NamedEvaluation(lref.ReferencedName)
     let rval = [? %6]
   } else {
-    call %7 = this[1].Evaluation(this[1])
+    sdo-call %7 = this[1]->Evaluation()
     let rref = %7
     call %8 = clo<GetValue>(rref)
     let rval = [? %8]

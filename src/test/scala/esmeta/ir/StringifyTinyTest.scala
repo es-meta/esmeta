@@ -94,6 +94,8 @@ class StringifyTinyTest extends IRTest {
       seq,
     )
     lazy val call = ICall(temp, xExpr, List(xExpr, yExpr))
+    lazy val methodCall = IMethodCall(temp, x, "Get", List(xExpr, yExpr))
+    lazy val sdoCall = ISdoCall(temp, xExpr, "Evaluation", List(xExpr, yExpr))
 
     // tests
     checkParseAndStringify("Inst", Inst)(
@@ -124,6 +126,8 @@ class StringifyTinyTest extends IRTest {
       |  return x
       |}""".stripMargin,
       call -> "call %42 = x(x, y)",
+      methodCall -> "method-call %42 = x->Get(x, y)",
+      sdoCall -> "sdo-call %42 = x->Evaluation(x, y)",
     )
 
     // -------------------------------------------------------------------------

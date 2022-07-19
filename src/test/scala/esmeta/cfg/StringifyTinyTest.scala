@@ -48,7 +48,7 @@ class StringifyTinyTest extends CFGTest {
       val blockSingle = Block(start + 0, ListBuffer(let))
       val branch = Branch(start + 1, Branch.Kind.If, xExpr)
       val block = Block(start + 2, ListBuffer(let, del, ret))
-      val call = Call(start + 3, temp, xExpr, List(xExpr, yExpr))
+      val call = Call(start + 3, ICall(temp, xExpr, List(xExpr, yExpr)))
       blockSingle.next = Some(branch)
       branch.thenNode = Some(block)
       branch.elseNode = Some(call)
@@ -87,7 +87,7 @@ class StringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     lazy val block = Block(0, ListBuffer(let, del, ret))
     lazy val branch = Branch(0, Branch.Kind.If, xExpr)
-    lazy val call = Call(0, temp, xExpr, List(xExpr, yExpr))
+    lazy val call = Call(0, callInst)
 
     // tests
     checkStringify("Node")(
@@ -116,6 +116,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val let = ILet(x, empty)
     lazy val del = IDelete(prop)
     lazy val ret = IReturn(xExpr)
+    lazy val callInst = ICall(temp, xExpr, List(xExpr, yExpr))
     lazy val xExpr = ERef(x)
     lazy val yExpr = ERef(y)
     lazy val empty = EConst("empty")

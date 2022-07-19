@@ -9,10 +9,10 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(envRec: DeclarativeEnv
     } else {}
 
     // 1. Perform _envRec_.CreateMutableBinding(_N_, *true*).
-    call %0 = envRec.CreateMutableBinding(envRec, N, true)
+    method-call %0 = envRec->CreateMutableBinding(N, true)
 
     // 1. Perform _envRec_.InitializeBinding(_N_, _V_).
-    call %1 = envRec.InitializeBinding(envRec, N, V)
+    method-call %1 = envRec->InitializeBinding(N, V)
 
     // 1. Return NormalCompletion(~empty~).
     call %2 = clo<NormalCompletion>(~empty~)

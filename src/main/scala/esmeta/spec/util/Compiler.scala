@@ -557,14 +557,15 @@ class Compiler(val spec: Spec) {
         xExpr
       case InvokeMethodExpression(ref, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
-        val prop @ Prop(base, _) = compile(fb, ref)
-        fb.addInst(ICall(x, ERef(prop), ERef(base) :: args.map(compile(fb, _))))
+        // NOTE: there is no method call via dynamic property access
+        val Prop(base, EStr(method)) = compile(fb, ref)
+        fb.addInst(IMethodCall(x, base, method, args.map(compile(fb, _))))
         xExpr
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+        // XXX BUG in Static Semancis: CharacterValue
         val baseExpr = compile(fb, base)
-        val callRef = toERef(fb, baseExpr, EStr(name))
         val (x, xExpr) = fb.newTIdWithExpr
-        fb.addInst(ICall(x, callRef, baseExpr :: args.map(compile(fb, _))))
+        fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
         EReturnIfAbrupt(compile(fb, expr), check)

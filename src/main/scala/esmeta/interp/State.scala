@@ -56,110 +56,23 @@ case class State(
     case Str(str)      => apply(str, prop)
     case v             => throw InvalidRefBase(v)
   def apply(ast: Ast, prop: PureValue): PureValue =
-    ast match
-      case syn: Syntactic =>
-        prop match
-          case Str("parent") =>
-            syn.parent.map(AstValue(_)).getOrElse(Absent)
-          case Str(propStr) =>
-            apply(syn, propStr)
-          case Math(n) if n.isValidInt =>
-            syn.children(n.toInt) match
-              case Some(child) => AstValue(child)
-              case None        => Absent
-          case _ => throw InvalidAstProp(ast, prop)
-      case lex: Lexical =>
-        val propStr = prop.asStr
-        if (propStr == "parent") ast.parent.map(AstValue(_)).getOrElse(Absent)
-        else throw LexicalCalled(apply(lex, propStr))
+    (ast, prop) match
+      case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
+      case (syn: Syntactic, Str(propStr)) =>
+        val Syntactic(name, _, rhsIdx, children) = syn
+        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+        rhs.getNtIndex(propStr).flatMap(children(_)) match
+          case Some(child) => AstValue(child)
+          case _           => throw InvalidAstProp(syn, Str(propStr))
+      case (syn: Syntactic, Math(n)) if n.isValidInt =>
+        syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
+      case _ => throw InvalidAstProp(ast, prop)
   def apply(str: String, prop: PureValue): PureValue = prop match
     case Str("length") => Math(BigDecimal.exact(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, prop)
   def apply(addr: Addr): Obj = heap(addr)
-
-  /** syntactic SDO */
-  case class SyntacticCalled(ast: Ast, sdo: Func) extends Throwable
-  def apply(syn: Syntactic, propStr: String): PureValue =
-    getSDO((syn, propStr)) match
-      case Some((ast0, sdo)) => throw SyntacticCalled(ast0, sdo)
-      case None => // XXX access to child -> handle this in compiler?
-        val Syntactic(name, _, rhsIdx, children) = syn
-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        rhs.getNtIndex(propStr).flatMap(children(_)) match
-          case Some(child) => AstValue(child)
-          case _           => throw InvalidAstProp(syn, Str(propStr))
-
-  /** get syntax-directed operation(SDO) */
-  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
-    case (ast, operation) =>
-      val fnameMap = cfg.fnameMap
-      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
-        case (None, ast0) =>
-          val subIdx = getSubIdx(ast0)
-          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname) match
-            case Some(sdo) => Some(ast0, sdo)
-            case None if State.defaultCases contains operation =>
-              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-            case _ => None
-        case (res: Some[_], _) => res
-      }
-  }
-
-  /** get sub index of parsed Ast */
-  private val getSubIdx = cached[Ast, Int] {
-    case lex: Lexical => 0
-    case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      val optionals = (for {
-        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
-      } yield !child.isEmpty)
-      optionals.reverse.zipWithIndex.foldLeft(0) {
-        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-        case (acc, _)           => acc
-      }
-  }
-
-  /** lexical SDO */
-  case class LexicalCalled(value: PureValue) extends Throwable
-  def apply(lex: Lexical, sdoName: String): PureValue =
-    val Lexical(name, str) = lex
-    (name, sdoName) match {
-      case (
-            "IdentifierName \\ (ReservedWord)" | "IdentifierName",
-            "StringValue",
-          ) =>
-        Str(ESValueParser.parseIdentifier(str))
-      case ("PrivateIdentifier", "StringValue") =>
-        Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
-      // TODO handle numeric seperator in ESValueParser
-      case ("NumericLiteral", "MV" | "NumericValue") =>
-        ESValueParser.parseNumber(str.replaceAll("_", ""))
-      case ("StringLiteral", "SV" | "StringValue") =>
-        Str(ESValueParser.parseString(str))
-      case ("NoSubstitutionTemplate", "TV") =>
-        ESValueParser.parseTVNoSubstitutionTemplate(str)
-      case ("TemplateHead", "TV") =>
-        ESValueParser.parseTVTemplateHead(str)
-      case ("TemplateMiddle", "TV") =>
-        ESValueParser.parseTVTemplateMiddle(str)
-      case ("TemplateTail", "TV") =>
-        ESValueParser.parseTVTemplateTail(str)
-      case ("NoSubstitutionTemplate", "TRV") =>
-        Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
-      case ("TemplateHead", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateHead(str))
-      case ("TemplateMiddle", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateMiddle(str))
-      case ("TemplateTail", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateTail(str))
-      case (_, "Contains") => Bool(false)
-      case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(s"RegularExpressionLiteral.$sdoName")
-      case _ => error(s"invalid Lexical access: $name.$sdoName")
-    }
 
   /** setters */
   def define(x: Id, value: Value): this.type = x match
@@ -272,11 +185,4 @@ object State {
   /** initialize states with a CFG */
   def apply(cfg: CFG): State = State(cfg, Context(cfg.main))
 
-  /** sdo with default case */
-  // TODO automate
-  private val defaultCases = List(
-    "Contains",
-    "AllPrivateIdentifiersValid",
-    "ContainsArguments",
-  )
 }

@@ -58,9 +58,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // TODO handle location option
   given nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
     node match
-      case Call(_, lhs, fexpr, args, next) =>
-        given Rule[Iterable[Expr]] = iterableRule[Expr]("(", ", ", ")")
-        app >> "call " >> lhs >> " = " >> fexpr >> args
+      case Call(_, callInst, next) =>
+        app >> callInst
         next.map(x => app >> " -> " >> x.id)
       case Branch(_, kind, cond, thenNode, elseNode) =>
         app >> kind >> " " >> cond

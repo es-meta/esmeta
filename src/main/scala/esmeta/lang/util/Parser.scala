@@ -557,12 +557,8 @@ trait Parsers extends IndentParsers {
         not(component),
       ) ~> camel)
     lazy val base = ("of" ~> expr)
-    lazy val args = repsep(expr, sep("and"))
-    lazy val argsPart = (
-      ("using" | "with" | "passing") ~> args <~
-        "as" ~ opt("the") ~ ("arguments" | "argument") |||
-        "with" ~ ("arguments" | "argument") ~> args
-    )
+    lazy val argsPart =
+      "with" ~ ("arguments" | "argument") ~> repsep(expr, sep("and"))
 
     // normal SDO
     lazy val normalSDOExpr =

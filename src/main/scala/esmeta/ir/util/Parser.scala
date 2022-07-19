@@ -60,13 +60,18 @@ trait Parsers extends BasicParsers {
       case c ~ t ~ e => IIf(c, t, e)
     } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
       case k ~ c ~ b => ILoop(k, c, b)
-    } | ("call " ~> local <~ "=") ~ expr ~ ("(" ~> repsep(
-      expr,
-      ",",
-    ) <~ ")") ^^ {
-      case lhs ~ f ~ as => ICall(lhs, f, as)
-    } | normalInst
+    } | callInst | normalInst
   }.named("ir.Inst")
+
+  lazy val callInst: Parser[CallInst] =
+    lazy val args: Parser[List[Expr]] = ("(" ~> repsep(expr, ",") <~ ")")
+    ("call" ~> local <~ "=") ~ expr ~ args ^^ {
+      case lhs ~ f ~ as => ICall(lhs, f, as)
+    } | ("method-call" ~> local <~ "=") ~ ref ~ ("->" ~> word) ~ args ^^ {
+      case lhs ~ b ~ m ~ as => IMethodCall(lhs, b, m, as)
+    } | ("sdo-call" ~> local <~ "=") ~ expr ~ ("->" ~> word) ~ args ^^ {
+      case lhs ~ a ~ m ~ as => ISdoCall(lhs, a, m, as)
+    }
 
   given normalInsts: Parser[List[NormalInst]] =
     rep(normalInst).named("List[ir.NormalInst]")

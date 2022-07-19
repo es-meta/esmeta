@@ -27,6 +27,6 @@ def IsInTailPosition(call: Any) {
   if (? body: "AsyncConciseBody") return false else {}
 
   // Return the result of HasCallInTailPosition of _body_ with argument _call_.
-  call %3 = body.HasCallInTailPosition(body, call)
+  sdo-call %3 = body->HasCallInTailPosition(call)
   return %3
 }

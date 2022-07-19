@@ -95,6 +95,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ICall(lhs, fexpr, args) =>
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "call " >> lhs >> " = " >> fexpr >> args
+      case IMethodCall(lhs, base, method, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "method-call " >> lhs >> " = "
+        app >> base >> "->" >> method >> args
+      case ISdoCall(lhs, ast, method, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "sdo-call " >> lhs >> " = "
+        app >> ast >> "->" >> method >> args
   }
 
   // expressions

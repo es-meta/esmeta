@@ -270,9 +270,9 @@ class StringifyTinyTest extends LangTest {
       invokeMethodExpr -> "_x_.[[Value]](_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
       invokeSDOExprSingle -> ("StringValue of |Identifier| " +
-      "using |Identifier| as the argument"),
+      "with argument |Identifier|"),
       invokeSDOExprMulti -> ("StringValue of |Identifier| " +
-      "using |Identifier| and _x_ as the arguments"),
+      "with arguments |Identifier| and _x_"),
       invokeSDOExprEval -> "the result of evaluating |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",

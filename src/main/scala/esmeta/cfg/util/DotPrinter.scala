@@ -2,7 +2,7 @@ package esmeta.cfg.util
 
 import esmeta.*
 import esmeta.cfg.*
-import esmeta.ir.IRElem
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.{Appender, HtmlUtils}
 import scala.collection.mutable.Queue
 
@@ -108,9 +108,14 @@ trait DotPrinter {
             drawEdge(id.toString, s"${funcId}_exit", edgeColor, None, app)
         }
       }
-      case Call(_, lhs, fexpr, args, nextOpt) => {
-        val simpleString =
-          s"${norm(lhs)} = ${norm(fexpr)}(${args.map(norm(_)).mkString(", ")})"
+      case Call(_, callInst, nextOpt) => {
+        val simpleString = callInst match
+          case ICall(lhs, fexpr, args) =>
+            s"${norm(lhs)} = ${norm(fexpr)}(${args.map(norm(_)).mkString(", ")})"
+          case IMethodCall(lhs, base, method, args) =>
+            s"${norm(lhs)} = ${norm(base)}->${norm(method)}(${args.map(norm(_)).mkString(", ")})"
+          case ISdoCall(lhs, ast, method, args) =>
+            s"${norm(lhs)} = ${norm(ast)}->$method}(${args.map(norm(_)).mkString(", ")})"
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString), app)
         nextOpt match {
           case Some(next) =>
