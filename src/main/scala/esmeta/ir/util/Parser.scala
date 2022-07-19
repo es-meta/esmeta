@@ -170,7 +170,7 @@ trait Parsers extends BasicParsers {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {
       case i ~ e => EKeys(e, i.isDefined)
-    } | "(" ~ "get-children" ~> expr ~ expr <~ ")" ^^ {
+    } | "(" ~ "get-children" ~> opt(expr) ~ expr <~ ")" ^^ {
       case k ~ a => EGetChildren(k, a)
     },
   )

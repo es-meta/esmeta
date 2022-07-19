@@ -207,12 +207,18 @@ class Interp(
       val ast = interp(expr).asAst
       // XXX fix last space in js stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
-    case EGetChildren(kind, ast) =>
-      val k = interp(kind) match
-        case Grammar(name, _) => name
-        case v                => throw NoGrammar(kind, v)
+    case EGetChildren(kindOpt, ast) =>
+      val kOpt = kindOpt.map(kind =>
+        interp(kind) match
+          case Grammar(name, _) => name
+          case v                => throw NoGrammar(kind, v),
+      )
       val a = interp(ast).asAst
-      st.allocList(a.getChildren(k).map(AstValue(_)))
+      (a, kOpt) match
+        case (_, Some(k)) => st.allocList(a.getChildren(k).map(AstValue(_)))
+        case (syn: Syntactic, None) =>
+          st.allocList(syn.children.flatten.map(AstValue(_)))
+        case _ => error(s"no children for lexical node")
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>

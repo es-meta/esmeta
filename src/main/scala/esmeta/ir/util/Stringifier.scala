@@ -194,8 +194,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EKeys(map, intSorted) =>
         app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
         app >> map >> ")"
-      case EGetChildren(kind, ast) =>
-        app >> "(get-children " >> kind >> " " >> ast >> ")"
+      case EGetChildren(kindOpt, ast) =>
+        app >> "(get-children "
+        kindOpt.foreach(kind => app >> kind >> " ")
+        app >> ast >> ")"
     }
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"

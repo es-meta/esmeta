@@ -275,16 +275,23 @@ case class AbsTransfer(sem: AbsSemantics) {
             ),
           )
         } yield AbsValue(str = s)
-      case e @ EGetChildren(kind, ast) =>
+      case e @ EGetChildren(kindOpt, ast) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
-          k <- transfer(kind)
+          kOpt <- id(st => {
+            kindOpt match
+              case Some(kind) => transfer(kind).map(Some(_))(st)
+              case None       => (None, st)
+          })
           a <- transfer(ast)
-          _ <- (k.getSingle, a.getSingle) match
-            case (FlatBot, _) | (_, FlatBot) => put(AbsState.Bot)
-            case (FlatTop, _) | (FlatTop, _) => exploded("EGetChildren")
-            case (FlatElem(AGrammar(name, _)), FlatElem(AAst(ast))) =>
+          _ <- (kOpt.map(_.getSingle), a.getSingle) match
+            case (Some(FlatBot), _) | (_, FlatBot) => put(AbsState.Bot)
+            case (Some(FlatTop), _) | (_, FlatTop) => exploded("EGetChildren")
+            case (Some(FlatElem(AGrammar(name, _))), FlatElem(AAst(ast))) =>
               val vs = ast.getChildren(name).map(AbsValue(_))
+              modify(_.allocList(vs)(loc))
+            case (None, FlatElem(AAst(syn: Syntactic))) =>
+              val vs = syn.children.flatten.map(AbsValue(_))
               modify(_.allocList(vs)(loc))
             case _ => put(AbsState.Bot)
         } yield AbsValue(loc)

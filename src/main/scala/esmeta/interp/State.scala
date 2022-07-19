@@ -61,8 +61,6 @@ case class State(
         prop match
           case Str("parent") =>
             syn.parent.map(AstValue(_)).getOrElse(Absent)
-          case Str("children") =>
-            allocList(syn.children.flatten.map(AstValue(_)))
           case Str(propStr) =>
             apply(syn, propStr)
           case Math(n) if n.isValidInt =>

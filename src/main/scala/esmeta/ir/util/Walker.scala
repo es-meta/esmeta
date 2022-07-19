@@ -146,7 +146,7 @@ trait Walker extends BasicWalker {
     case EKeys(map, intSorted) =>
       EKeys(walk(map), walk(intSorted))
     case EGetChildren(kind, ast) =>
-      EGetChildren(walk(kind), walk(ast))
+      EGetChildren(walkOpt(kind, walk), walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit
