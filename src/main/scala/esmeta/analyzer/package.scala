@@ -29,6 +29,7 @@ object AnalyzerElem {
 def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
 // options
+var USE_REPL: Boolean = false
 var USE_GC: Boolean = false
 var INF_SENS: Boolean = false
 var ANALYZE_TIMEOUT: Long = 20

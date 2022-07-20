@@ -119,6 +119,7 @@ object BasicValueDomain extends Domain {
       if (!comp.isBottom) strs :+= comp.toString
       if (!clo.isBottom) strs :+= clo.toString
       if (!cont.isBottom) strs :+= cont.toString
+      if (!loc.isBottom) strs :+= loc.toString
       if (!ast.isBottom) strs :+= ast.toString
       if (!grammar.isBottom) strs :+= grammar.toString
       if (!codeunit.isBottom) strs :+= codeunit.toString

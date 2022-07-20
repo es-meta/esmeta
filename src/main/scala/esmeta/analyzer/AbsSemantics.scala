@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.*
 import esmeta.analyzer.domain.*
+import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.AnalysisImprecise
 import esmeta.js.Ast
@@ -27,6 +28,9 @@ case class AbsSemantics(
   val AbsState: AbsRet.AbsState.type = AbsRet.AbsState
   type AbsState = AbsState.Elem
   type AbsRet = AbsRet.Elem
+
+  // repl
+  val repl = REPL(this)
 
   // a worklist of control points
   val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
@@ -64,8 +68,11 @@ case class AbsSemantics(
       // text-based debugging
       if (DEBUG) println(s"${cp.func.name}:$cp")
 
+      // run REPL
+      if (USE_REPL) repl(transfer, cp)
+
       // abstract transfer for the current control point
-      transfer(cp)
+      else transfer(cp)
 
       // TODO check soundness using concrete execution
       // checkWithInterp.map(_.runAndCheck)
@@ -74,6 +81,9 @@ case class AbsSemantics(
       fixpoint
     }
     case None =>
+      // finalize REPL
+      if (USE_REPL) repl.finished
+
       // final result
       this
   }
@@ -90,6 +100,7 @@ case class AbsSemantics(
   def +=(pair: (NodePoint[Node], AbsState)): Unit = {
     val (np, newSt) = pair
     val oldSt = this(np)
+    if (!oldSt.isBottom && USE_REPL) repl.merged = true
     if (!newSt.isBottom && !(newSt ⊑ oldSt)) {
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
@@ -182,7 +193,7 @@ case class AbsSemantics(
     val retRp = ReturnPoint(func, getEntryView(view))
     if (!newRet.value.isBottom) {
       val oldRet = this(retRp)
-      // if (!oldRet.isBottom && USE_REPL) repl.merged = true
+      if (!oldRet.isBottom && USE_REPL) repl.merged = true
       if (newRet !⊑ oldRet) {
         rpMap += retRp -> (oldRet ⊔ newRet)
         worklist += retRp
@@ -258,7 +269,6 @@ object AbsSemantics {
     cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast],
-    timeLimit: Option[Long],
   ): AbsSemantics = {
     val (initCp, retDomain) = Initialize(cfg, sourceText)
     AbsSemantics(retDomain)(
@@ -266,7 +276,6 @@ object AbsSemantics {
       npMap = Map(initCp -> retDomain.AbsState.Empty),
       sourceText = sourceText,
       cachedAst = cachedAst,
-      timeLimit = timeLimit,
     )
   }
 }

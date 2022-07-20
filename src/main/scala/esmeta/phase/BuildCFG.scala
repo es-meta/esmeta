@@ -15,39 +15,16 @@ case object BuildCFG extends Phase[Program, CFG] {
     globalConfig: GlobalConfig,
     config: Config,
   ): CFG = {
-    // TODO refactor
-    def norm(name: String) = name
-      .replace("/", "")
-      .replace(" ", "")
-      .replace("<", "")
-      .replace(">", "")
-      .replace("`", "")
+    // build cfg
     val cfg = program.toCFG
 
+    // print dot
     if (config.dot) {
-      mkdir(CFG_LOG_DIR)
-      // dump dot format
-      cfg.funcs.foreach(f => {
-        val name =
-          s"${CFG_LOG_DIR}/${norm(f.irFunc.name)}"
-        dumpFile(f.toDot, s"$name.dot")
-      })
-      // check wheter dot is available
-      if (config.pdf) {
-        if (isNormalExit("dot -V")) {
-          cfg.funcs.foreach(f => {
-            val name =
-              s"${CFG_LOG_DIR}/${norm(f.irFunc.name)}"
-            try executeCmd(s"dot -Tpdf $name.dot -o $name.pdf")
-            catch {
-              case ex: Exception =>
-                println(
-                  s"[ERROR] $name: exception occured while converting to pdf",
-                )
-            }
-          })
-        } else println("Dot is not installed!")
+      if (config.pdf && !isNormalExit("dot -V")) {
+        println("Dot is not installed!")
+        config.pdf = false
       }
+      for { f <- cfg.funcs } f.dumpDot(CFG_LOG_DIR, pdf = config.pdf)
     }
 
     cfg

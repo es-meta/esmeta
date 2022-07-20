@@ -91,3 +91,9 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   def help =
     "injects assertions to check the final state of a given JavaScript program."
 }
+
+/** `js-analyze` command */
+case object CmdJSAnalyze
+  extends Command("js-analyze", CmdBuildCFG >> JSAnalyze) {
+  def help = "analyzes a JavaScript file."
+}

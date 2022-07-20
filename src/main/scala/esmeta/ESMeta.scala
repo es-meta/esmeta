@@ -60,6 +60,7 @@ object ESMeta {
     CmdInject,
     CmdFilterTest262,
     CmdWeb,
+    CmdJSAnalyze,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -77,6 +78,7 @@ object ESMeta {
     Inject,
     FilterTest262,
     Web,
+    JSAnalyze,
   )
 
   /** global options */

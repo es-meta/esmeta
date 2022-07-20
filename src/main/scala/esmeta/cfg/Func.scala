@@ -3,6 +3,7 @@ package esmeta.cfg
 import esmeta.cfg.util.*
 import esmeta.ir.{Type, Name, Func => IRFunc}
 import esmeta.spec.Head
+import esmeta.util.SystemUtils.*
 import esmeta.util.{Appender, UId}
 
 /** CFG functions */
@@ -51,4 +52,35 @@ case class Func(
       if (node.id == nid) CURRENT else NORMAL
     def apply(app: Appender): Unit = addFunc(func, app)
   }.toString
+
+  /** dump dot */
+  def dumpDot(
+    baseDir: String,
+    filenameOpt: Option[String] = None,
+    pdf: Boolean = true,
+  ): Unit = {
+    mkdir(baseDir)
+
+    // normalize
+    val filename = filenameOpt
+      .getOrElse(name)
+      .replace("/", "")
+      .replace(" ", "")
+      .replace("<", "")
+      .replace(">", "")
+      .replace("`", "")
+    val path = s"$baseDir/$filename"
+    val (dotPath, pdfPath) = (path + ".dot", path + ".pdf")
+    // dump dot format
+    dumpFile(toDot(), dotPath)
+    if (pdf)
+      try executeCmd(s"dot -Tpdf $dotPath -o $pdfPath")
+      catch {
+        case e: Throwable =>
+          e.printStackTrace
+          println(
+            s"[ERROR] $name: exception occured while converting to pdf",
+          )
+      }
+  }
 }
