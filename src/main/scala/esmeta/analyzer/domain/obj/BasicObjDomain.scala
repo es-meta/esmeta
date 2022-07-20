@@ -203,8 +203,9 @@ object BasicObjDomain extends Domain {
             val idx = math.toInt
             if (0 <= idx && idx < values.length) values(idx)
             else AbsValue.absent
-          case ASimple(Str("length")) => AbsValue(values.length)
-          case _                      => AbsValue.Bot
+          case ASimple(Str("length")) =>
+            AbsValue(BigDecimal.exact((values.length)))
+          case _ => AbsValue.Bot
         }
       case NotSupportedElem(_, desc) => AbsValue.Bot
 

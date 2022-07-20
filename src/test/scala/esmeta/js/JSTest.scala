@@ -1,10 +1,12 @@
 package esmeta.js
 
 import esmeta.ESMetaTest
-import esmeta.spec.Spec
+import esmeta.analyzer.AbsSemantics
+import esmeta.analyzer.domain.*
 import esmeta.interp.*
 import esmeta.ir.NormalInst
 import esmeta.js.util.*
+import esmeta.spec.Spec
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*
 
@@ -37,6 +39,17 @@ object JSTest {
     cachedAst: Option[Ast] = None,
   ): State = eval(readFile(filename), checkAfter, cachedAst)
 
+  // analyze JS codes
+  def analyzeFile(filename: String): AbsSemantics = {
+    val str = readFile(filename)
+    analyze(str, Some(parse(str)))
+  }
+  def analyze(
+    str: String,
+    cachedAst: Option[Ast] = None,
+  ): AbsSemantics =
+    AbsSemantics(cfg, str, cachedAst, None).fixpoint
+
   // tests for JS parser
   def parseTest(ast: Ast): Ast =
     val newAst = parser.from(ast.toString(grammar = Some(grammar)))
@@ -59,4 +72,13 @@ object JSTest {
     checkAfter: List[NormalInst] = Nil,
     cachedAst: Option[Ast] = None,
   ): State = checkExit(evalFile(filename, checkAfter, cachedAst))
+
+  // tests for JS analyzer
+  def checkExit(absSem: AbsSemantics): AbsSemantics =
+    assert(absSem.finalResult.value.getSingle == FlatElem(ASimple(Undef)))
+    absSem
+  def analyzeTest(str: String): AbsSemantics =
+    checkExit(analyze(str))
+  def analyzeTestFile(filename: String): AbsSemantics =
+    checkExit(analyzeFile(filename))
 }

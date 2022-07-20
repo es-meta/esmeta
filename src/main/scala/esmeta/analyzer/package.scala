@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.analyzer.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.error.AnalysisImprecise
 
 /** analyzer elements */
 trait AnalyzerElem {
@@ -25,7 +26,7 @@ object AnalyzerElem {
 }
 
 /** exploded */
-def exploded(msg: String): Nothing = ???
+def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
 // options
 var USE_GC: Boolean = false

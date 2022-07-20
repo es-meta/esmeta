@@ -15,12 +15,14 @@ case class AbsSemantics(
   AbsRet: BasicRetDomain,
 )(
   val cfg: CFG,
+  val sourceText: String,
+  val cachedAst: Option[Ast] = None,
   var npMap: Map[NodePoint[Node], AbsRet.AbsState.Elem] = Map(),
   var rpMap: Map[ReturnPoint, AbsRet.Elem] = Map(),
   var callInfo: Map[NodePoint[Call], AbsRet.AbsState.Elem] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
-  var timeLimit: Option[Long] = None,
+  timeLimit: Option[Long] = Some(ANALYZE_TIMEOUT),
 ) {
   val AbsState: AbsRet.AbsState.type = AbsRet.AbsState
   type AbsState = AbsState.Elem
@@ -255,12 +257,15 @@ object AbsSemantics {
   def apply(
     cfg: CFG,
     sourceText: String,
+    cachedAst: Option[Ast],
     timeLimit: Option[Long],
   ): AbsSemantics = {
     val (initCp, retDomain) = Initialize(cfg, sourceText)
     AbsSemantics(retDomain)(
       cfg = cfg,
       npMap = Map(initCp -> retDomain.AbsState.Empty),
+      sourceText = sourceText,
+      cachedAst = cachedAst,
       timeLimit = timeLimit,
     )
   }

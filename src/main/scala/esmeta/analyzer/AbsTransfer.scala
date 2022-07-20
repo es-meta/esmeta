@@ -345,7 +345,11 @@ case class AbsTransfer(sem: AbsSemantics) {
             (str, args) <- codes
             parseArgs = if (params.isEmpty) args else params
           } newV ⊔= AbsValue(
-            AAst(sem.cfg.jsParser(name, parseArgs).from(str)),
+            (name, sem.cachedAst) match {
+              case ("Script", Some(cached)) if str == sem.sourceText =>
+                cached
+              case _ => sem.cfg.jsParser(name, parseArgs).from(str),
+            },
           )
 
           // result
@@ -705,6 +709,9 @@ case class AbsTransfer(sem: AbsSemantics) {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(ASimple(l)), FlatElem(ASimple(r))) =>
           optional(AbsValue(Interp.interp(bop, l, r))).getOrElse(AbsValue.Bot)
+        case (FlatElem(AMath(l)), FlatElem(AMath(r))) =>
+          optional(AbsValue(Interp.interp(bop, Math(l), Math(r))))
+            .getOrElse(AbsValue.Bot)
         case (FlatElem(lloc: Loc), FlatElem(rloc: Loc))
             if bop == Eq || bop == Equal =>
           if (lloc == rloc) {
@@ -722,9 +729,11 @@ case class AbsTransfer(sem: AbsSemantics) {
             case Eq     => AbsValue(bool = left =^= right)
             case Equal  => exploded(s"bop: ($bop $left $right)")
             case LShift => exploded(s"bop: ($bop $left $right)")
-            case Lt     => exploded(s"bop: ($bop $left $right)")
-            case Mod    => exploded(s"bop: ($bop $left $right)")
-            case Mul    => exploded(s"bop: ($bop $left $right)")
+            case Lt     =>
+              // println(cp.func)
+              exploded(s"bop: ($bop $left $right)")
+            case Mod => exploded(s"bop: ($bop $left $right)")
+            case Mul => exploded(s"bop: ($bop $left $right)")
             // TODO
             // AbsValue(
             //   num = (

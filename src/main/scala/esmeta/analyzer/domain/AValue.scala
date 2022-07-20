@@ -19,10 +19,17 @@ object AValue {
         apply(value),
         targetOpt.fold[AValue](AConst("empty"))(str => ASimple(Str(str))),
       )
-    case addr: Addr      => Loc.from(addr)
-    case AstValue(ast)   => AAst(ast)
-    case sv: SimpleValue => ASimple(sv)
-    case _               => error(s"impossible to convert to AValue: $value")
+    case addr: Addr    => Loc.from(addr)
+    case AstValue(ast) => AAst(ast)
+    case Clo(func, captured) =>
+      val newCaptured = captured.map { case (x, v) => x -> AbsValue(v) }.toMap
+      AClo(func, newCaptured)
+    case Math(n)           => AMath(n)
+    case Const(c)          => AConst(c)
+    case CodeUnit(cu)      => ACodeUnit(cu)
+    case Grammar(name, ps) => AGrammar(name, ps)
+    case sv: SimpleValue   => ASimple(sv)
+    case _                 => error(s"impossible to convert to AValue: $value")
 }
 
 /** completions values */
