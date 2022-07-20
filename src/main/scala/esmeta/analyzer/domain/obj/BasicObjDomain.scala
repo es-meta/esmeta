@@ -83,7 +83,7 @@ object BasicObjDomain extends Domain {
         if (map.isEmpty) app >> "{}"
         else
           app.wrap {
-            for ((k, v) <- map) app :> s"$k -> " >> v >> LINE_SEP
+            for ((k, v) <- map) app :> s"$k -> " >> v
           }
       case OrderedMap(tname, map, props) =>
         app >> s"$tname "
@@ -91,7 +91,7 @@ object BasicObjDomain extends Domain {
         else
           app.wrap {
             for ((k, i) <- props.zipWithIndex) {
-              app :> s"[$i] $k -> " >> map(k) >> LINE_SEP
+              app :> s"[$i] $k -> " >> map(k)
             }
           }
       case MergedList(value) =>

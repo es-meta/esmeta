@@ -48,7 +48,7 @@ object JSTest {
     str: String,
     cachedAst: Option[Ast] = None,
   ): AbsSemantics =
-    AbsSemantics(cfg, str, cachedAst, None).fixpoint
+    AbsSemantics(cfg, str, cachedAst).fixpoint
 
   // tests for JS parser
   def parseTest(ast: Ast): Ast =

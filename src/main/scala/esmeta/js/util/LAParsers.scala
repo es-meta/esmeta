@@ -145,9 +145,8 @@ trait LAParsers extends Lexer {
   override def locationed[T <: Locational](p: => Parser[T]): Parser[T] =
     new Parser[T] {
       def apply(in: Input) =
-        _skipWhitespace = true
+        // TODO handle white space
         val trimmed = trimInput(in)
-        _skipWhitespace = false
         p(in) match
           case s @ Success(res, rest) =>
             new Success(

@@ -115,7 +115,7 @@ trait DotPrinter {
           case IMethodCall(lhs, base, method, args) =>
             s"${norm(lhs)} = ${norm(base)}-&gt;${norm(method)}(${args.map(norm(_)).mkString(", ")})"
           case ISdoCall(lhs, ast, method, args) =>
-            s"${norm(lhs)} = ${norm(ast)}-&gt;$method}(${args.map(norm(_)).mkString(", ")})"
+            s"${norm(lhs)} = ${norm(ast)}-&gt;$method(${args.map(norm(_)).mkString(", ")})"
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString), app)
         nextOpt match {
           case Some(next) =>

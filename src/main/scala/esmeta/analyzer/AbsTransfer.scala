@@ -37,7 +37,9 @@ case class AbsTransfer(sem: AbsSemantics) {
     node match {
       case Block(_, insts, next) =>
         val newSt = insts.foldLeft(st) {
-          case (nextSt, inst) => transfer(inst)(nextSt)
+          case (nextSt, inst) =>
+            if (!nextSt.isBottom) transfer(inst)(nextSt)
+            else nextSt
         }
         next.foreach(to => sem += getNextNp(np, to) -> newSt)
       case call: Call =>
@@ -309,7 +311,9 @@ case class AbsTransfer(sem: AbsSemantics) {
           rv <- transfer(ref)
           v <- transfer(rv)
           newV <- returnIfAbrupt(v, check)
-          _ <- modify(_.update(rv, newV))
+          _ <-
+            if (!newV.isBottom) modify(_.update(rv, newV))
+            else put(AbsState.Bot)
         } yield newV
       case EReturnIfAbrupt(expr, check) =>
         for {
@@ -397,7 +401,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       case ESubstring(expr, from, to) =>
         for {
           v <- transfer(expr)
-          f <- transfer(expr)
+          f <- transfer(from)
           t <- transfer(to)
         } yield (v.getSingle, f.getSingle, t.getSingle) match
           case (FlatBot, _, _) | (_, FlatBot, _) | (_, _, FlatBot) =>
@@ -560,9 +564,33 @@ case class AbsTransfer(sem: AbsSemantics) {
           func = sem.cfg.fnameMap(fname)
           target = NodePoint(func, func.entry.get, cp.view)
           captured = st.locals.collect { case (x: Name, av) => x -> av }
+          // return edges for resumed evaluation
+          currRp = ReturnPoint(cp.func, cp.view)
+          contRp = ReturnPoint(func, cp.view)
+          _ = sem.retEdges += (contRp -> sem.retEdges.getOrElse(currRp, Set()))
         } yield AbsValue(ACont(target, captured))
-      case ESyntactic(name, args, rhsIdx, children) => ??? // TODO
-      case ELexical(name, expr)                     => ??? // TODO
+      case ESyntactic(name, args, rhsIdx, children) =>
+        for {
+          cs <- join(children.map {
+            case Some(child) => transfer(child).map(Some(_))
+            case None        => pure(None)
+          })
+        } yield {
+          val cs0 = cs.map(cOpt => cOpt.map(_.ast))
+          if (cs.exists(cOpt => cOpt.fold(false)(_.isBottom))) AbsValue.Bot
+          else {
+            val cs1 = cs0
+              .map(cOpt =>
+                cOpt.map(_.getSingle match {
+                  case FlatTop               => exploded("ESyntactic")
+                  case FlatElem(AAst(child)) => child
+                  case FlatBot               => ??? // impossible
+                }),
+              )
+            AbsValue(Syntactic(name, args, rhsIdx, cs1))
+          }
+        }
+      case ELexical(name, expr) => ??? // TODO
       case e @ EMap(ty, props) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
@@ -685,10 +713,14 @@ case class AbsTransfer(sem: AbsSemantics) {
       operand: AbsValue,
     ): AbsValue =
       import UOp.*
-      operand.simple.getSingle match
+      operand.getSingle match
         case FlatBot => AbsValue.Bot
         case FlatElem(ASimple(x)) =>
           optional(AbsValue(Interp.interp(uop, x))).getOrElse(AbsValue.Bot)
+        case FlatElem(AMath(x)) =>
+          optional(AbsValue(Interp.interp(uop, Math(x))))
+            .getOrElse(AbsValue.Bot)
+        case FlatElem(_) => AbsValue.Bot
         case FlatTop =>
           uop match
             case Neg   => exploded(s"uop: ($uop $operand)")
@@ -786,6 +818,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       def asStr(av: AbsValue): Option[String] = av.getSingle match
         case FlatTop                   => exploded("vop transfer")
         case FlatElem(ASimple(Str(s))) => Some(s)
+        case FlatElem(ACodeUnit(cu))   => Some(cu.toString)
         case _                         => None
 
       // transfer body

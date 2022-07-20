@@ -240,17 +240,18 @@ case class BasicStateDomain(
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
           ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(ASimple(simple))) =>
-          simple match
-            case Math(n) if n.isValidInt =>
-              syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
-            case Str(propStr) =>
-              val js.Syntactic(name, _, rhsIdx, children) = syn
-              val rhs = AbsHeap.cfg.grammar.nameMap(name).rhsList(rhsIdx)
-              rhs.getNtIndex(propStr).flatMap(children(_)) match
-                case Some(child) => AbsValue(child)
-                case _           => AbsValue.Bot
-            case _ => AbsValue.Bot
+        case (
+              FlatElem(AAst(syn: js.Syntactic)),
+              FlatElem(ASimple(Str(propStr))),
+            ) =>
+          val js.Syntactic(name, _, rhsIdx, children) = syn
+          val rhs = AbsHeap.cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          rhs.getNtIndex(propStr).flatMap(children(_)) match
+            case Some(child) => AbsValue(child)
+            case _           => AbsValue.Bot
+        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(AMath(n)))
+            if n.isValidInt =>
+          syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
         case _                                => exploded("ast property access")
       }
