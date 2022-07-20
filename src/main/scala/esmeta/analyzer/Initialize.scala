@@ -9,7 +9,6 @@ object Initialize {
   def apply(
     cfg: CFG,
     sourceText: String,
-    script: Ast,
   ): (NodePoint[Node], BasicRetDomain) = {
     // initial control point
     val initCp = {
@@ -19,13 +18,14 @@ object Initialize {
     }
 
     // concrete state initializer
-    val initializer = new js.Initialize(cfg, sourceText, Some(script))
+    val initializer = new js.Initialize(cfg, sourceText, None)
 
     // initial abstract domain
     val AbsHeap = BasicHeapDomain(cfg, initializer.initHeap)
     val AbsState = BasicStateDomain(AbsHeap, initializer.initGlobal.toMap)
     val AbsRet = BasicRetDomain(AbsState)
 
+    // result
     (initCp, AbsRet)
   }
 }

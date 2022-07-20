@@ -22,12 +22,6 @@ case class AbsTransfer(sem: AbsSemantics) {
   // loading monads
   import AbsState.monad._
 
-// // loading operators in abstract domains
-//   import AbsStr._
-//
-// // math value to numeric
-//   import NumericConverter._
-//
   /** transfer function for control points */
   def apply(cp: ControlPoint): Unit = cp match
     case (np: NodePoint[_]) => this(np)
@@ -121,7 +115,10 @@ case class AbsTransfer(sem: AbsSemantics) {
 
       val newSt = st.doReturn(
         callerSt,
-        call.lhs -> value.wrapCompletion, // TODO
+        // wrap completion by conditions specified in
+        // [5.2.3.5 Implicit Normal Completion]
+        // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+        call.lhs -> (if (rp.func.isReturnComp) value.wrapCompletion else value),
       )
 
       sem += nextNp -> newSt
@@ -727,7 +724,8 @@ case class AbsTransfer(sem: AbsSemantics) {
             case LShift => exploded(s"bop: ($bop $left $right)")
             case Lt     => exploded(s"bop: ($bop $left $right)")
             case Mod    => exploded(s"bop: ($bop $left $right)")
-            case Mul    => ??? // TODO
+            case Mul    => exploded(s"bop: ($bop $left $right)")
+            // TODO
             // AbsValue(
             //   num = (
             //     (left.num mul right.num) ⊔
@@ -737,11 +735,14 @@ case class AbsTransfer(sem: AbsSemantics) {
             //   int = left.int mul right.int,
             //   bigint = left.bigint mul right.bigint,
             // )
-            case And => ??? // TODO
+            case And => exploded(s"bop: ($bop $left $right)")
+            // TODO
             // AbsValue(bool = left.bool && right.bool)
-            case Or => ??? // TODO
+            case Or => exploded(s"bop: ($bop $left $right)")
+            // TODO
             // AbsValue(bool = left.bool || right.bool)
-            case Plus => ??? // TODO
+            case Plus => exploded(s"bop: ($bop $left $right)")
+            // TODO
             // AbsValue(
             //   str = (
             //     (left.str plus right.str) ⊔

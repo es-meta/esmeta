@@ -10,7 +10,7 @@ import esmeta.util.BaseUtils.*
 import scala.Console.*
 import scala.annotation.tailrec
 
-// abstract semantics
+/** abstract semantics */
 case class AbsSemantics(
   AbsRet: BasicRetDomain,
 )(
@@ -20,7 +20,7 @@ case class AbsSemantics(
   var callInfo: Map[NodePoint[Call], AbsRet.AbsState.Elem] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
-  timeLimit: Option[Long] = None,
+  var timeLimit: Option[Long] = None,
 ) {
   val AbsState: AbsRet.AbsState.type = AbsRet.AbsState
   type AbsState = AbsState.Elem
@@ -250,20 +250,18 @@ case class AbsSemantics(
     } yield np
   }
 }
-// object AbsSemantics {
-//   // constructors
-//   def apply(
-//     cfg: CFG,
-//     sourceText: String,
-//     script: Ast,
-//     timeLimit: Option[Long],
-//   ) = {
-//     val (initCp, retDomain) = Initialize(cfg, sourceText, script)
-//     val initSt = retDomain.AbsState.Empty
-//     // AbsSemantics(
-//     //   cfg = cfg,
-//     //   npMap = Map(initCp -> initSt),
-//     //   timeLimit = timeLimit,
-//     // )
-//   }
-// }
+object AbsSemantics {
+  // constructors
+  def apply(
+    cfg: CFG,
+    sourceText: String,
+    timeLimit: Option[Long],
+  ): AbsSemantics = {
+    val (initCp, retDomain) = Initialize(cfg, sourceText)
+    AbsSemantics(retDomain)(
+      cfg = cfg,
+      npMap = Map(initCp -> retDomain.AbsState.Empty),
+      timeLimit = timeLimit,
+    )
+  }
+}
