@@ -11,7 +11,7 @@ class AnalyzeSmallTest extends JSTest {
   def init: Unit = for (file <- walkTree(JS_TEST_DIR)) {
     val filename = file.getName
     if (jsFilter(filename))
-      check(filename) { analyzeTestFile(file.toString) }
+      check(filename) { analyzeTestFile(file.toString, 1) }
   }
   init
 }

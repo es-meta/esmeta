@@ -24,6 +24,7 @@ case class AbsSemantics(
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   timeLimit: Option[Long] = Some(ANALYZE_TIMEOUT),
+  execLevel: Int = 0,
 ) {
   val AbsState: AbsRet.AbsState.type = AbsRet.AbsState
   type AbsState = AbsState.Elem
@@ -38,6 +39,12 @@ case class AbsSemantics(
   // the number of iterations
   def getIter: Int = iter
   private var iter: Int = 0
+
+  // concrete execution
+  val checkWithInterp: Option[CheckWithInterp] =
+    if (execLevel >= 1)
+      Some(CheckWithInterp(this, sourceText, cachedAst, execLevel))
+    else None
 
   // get abstract return values and states of RunJobs
   val runJobs = cfg.fnameMap("RunJobs")
@@ -74,8 +81,8 @@ case class AbsSemantics(
       // abstract transfer for the current control point
       else transfer(cp)
 
-      // TODO check soundness using concrete execution
-      // checkWithInterp.map(_.runAndCheck)
+      // check soundness using concrete execution
+      checkWithInterp.map(_.runAndCheck)
 
       // keep going
       fixpoint
@@ -269,6 +276,7 @@ object AbsSemantics {
     cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast],
+    execLevel: Int,
   ): AbsSemantics = {
     val (initCp, retDomain) = Initialize(cfg, sourceText)
     AbsSemantics(retDomain)(
@@ -276,6 +284,7 @@ object AbsSemantics {
       npMap = Map(initCp -> retDomain.AbsState.Empty),
       sourceText = sourceText,
       cachedAst = cachedAst,
+      execLevel = execLevel,
     )
   }
 }
