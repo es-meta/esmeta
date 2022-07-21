@@ -8,6 +8,9 @@ import scala.collection.mutable.{Queue, ListBuffer}
 // CFG nodes
 sealed trait Node extends CFGElem with UId {
 
+  /** marker for loop predecessor for loop sensitivity */
+  var isLoopPred: Boolean = false
+
   /** get reachable nodes */
   def reachable: Set[Node] =
     var visited = Set[Node](this)

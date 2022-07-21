@@ -62,7 +62,7 @@
   "generator1.js" : true,
   "generator2.js" : true,
   "generator3.js" : true,
-  "global-eval.js" : false,
+  "global-eval.js" : true,
   "global-object.js" : true,
   "global-object2.js" : true,
   "global.js" : true,

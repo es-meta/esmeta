@@ -32,13 +32,15 @@ class Builder(program: Program) {
     var prev: List[(Node, Boolean)] = Nil
 
     // connect previous edges
-    def connect(to: Node): Unit = {
+    def connect(to: Node, isLoopPred: Boolean = false): Unit = {
       if (prev.isEmpty) entry = Some(to)
-      prev foreach {
-        case (block: Block, _)       => block.next = Some(to)
-        case (call: Call, _)         => call.next = Some(to)
-        case (branch: Branch, true)  => branch.thenNode = Some(to)
-        case (branch: Branch, false) => branch.elseNode = Some(to)
+      for { (node, tf) <- prev } {
+        node.isLoopPred = isLoopPred
+        (node, tf) match
+          case (block: Block, _)       => block.next = Some(to)
+          case (call: Call, _)         => call.next = Some(to)
+          case (branch: Branch, true)  => branch.thenNode = Some(to)
+          case (branch: Branch, false) => branch.elseNode = Some(to)
       }
     }
 
@@ -59,7 +61,7 @@ class Builder(program: Program) {
         prev = thenPrev ++ elsePrev
       case inst @ ILoop(kind, cond, body) =>
         val branch = Branch(nextNId, Branch.Kind.Loop(kind), cond)
-        connect(branch.setInst(inst))
+        connect(branch.setInst(inst), isLoopPred = true)
         prev = List((branch, true)); aux(body); connect(branch)
         prev = List((branch, false))
       case callInst: CallInst =>

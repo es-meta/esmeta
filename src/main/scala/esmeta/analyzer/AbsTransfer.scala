@@ -76,11 +76,8 @@ case class AbsTransfer(sem: AbsSemantics) {
     val fromView = if (loopOut) sem.loopExit(view) else view
     val toView = to match
       case br: Branch if br.isLoop =>
-        fromView.loops match
-          // XXX check correctness
-          case LoopCtxt(loop, k) :: rest if br.id == loop.id =>
-            sem.loopNext(view)
-          case _ => sem.loopEnter(view, br)
+        if (from.isLoopPred) sem.loopEnter(view, br)
+        else sem.loopNext(view)
       case _ => fromView
 
     // next node point
