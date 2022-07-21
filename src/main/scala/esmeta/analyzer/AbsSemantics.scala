@@ -126,11 +126,7 @@ case class AbsSemantics(
     val callerNp = NodePoint(cfg.funcOf(call), call, callerView)
     this.callInfo += callerNp -> callerSt
 
-    // val isJsCall = func.name match {
-    //   case "Call" | "Construct" => true
-    //   case _                    => false
-    // }
-    val calleeView = viewCall(callerView, call, astOpt)
+    val calleeView = viewCall(callerView, call)
     val np = NodePoint(func, func.entry.get, calleeView)
     this += np -> st.doCall
 
@@ -152,47 +148,14 @@ case class AbsSemantics(
   def viewCall(
     callerView: View,
     call: Call,
-    // isJsCall: Boolean,
-    astOpt: Option[Ast],
   ): View = {
-    val View(_, calls, _, _) = callerView
+    val View(calls, _, _) = callerView
     val view = callerView.copy(
       calls = handleSens(call :: calls, IR_CALL_DEPTH),
       intraLoopDepth = 0,
     )
     view
-    // viewJsSens(view, isJsCall, astOpt)
   }
-
-  //   // JavaScript sensitivities
-  //   def viewJsSens(
-  //     view: View,
-  //     isJsCall: Boolean,
-  //     astOpt: Option[AST],
-  //   ): View = {
-  //     val View(jsViewOpt, calls, loops, _) = view
-  //     val (jsCalls, jsLoops) = (view.jsCalls, view.jsLoops)
-  //     astOpt match {
-  //       // flow sensitivity
-  //       case Some(ast) =>
-  //         val newJsLoops = handleSens(loops ++ jsLoops, LOOP_DEPTH)
-  //         View(Some(JSView(ast, jsCalls, newJsLoops)), Nil, Nil, 0)
-
-  //       // call-site sensitivity
-  //       case _ if isJsCall =>
-  //         view.copy(jsViewOpt = jsViewOpt.map {
-  //           case JSView(ast, calls, loops) =>
-  //             JSView(
-  //               ast,
-  //               handleSens(ast :: calls, JS_CALL_DEPTH),
-  //               loops,
-  //             )
-  //         })
-
-  //       // non-JS part
-  //       case _ => view
-  //     }
-  //   }
 
   // update return points
   def doReturn(rp: ReturnPoint, newRet: AbsRet): Unit = {

@@ -5,7 +5,6 @@ import esmeta.ir.Type
 
 /** view abstraction for analysis sensitivities */
 case class View(
-  tys: List[Type] = Nil,
   calls: List[Call] = Nil,
   loops: List[LoopCtxt] = Nil,
   intraLoopDepth: Int = 0,

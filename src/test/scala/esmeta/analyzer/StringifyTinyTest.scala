@@ -13,27 +13,25 @@ class StringifyTinyTest extends AnalyzerTest {
     // Views
     // -------------------------------------------------------------------------
     lazy val insensView = View()
-    lazy val tyView = View(tys = List(ty, ty))
     lazy val loopCtxt = LoopCtxt(branch, 3)
     lazy val irView = View(
       calls = List(call, call, call),
       loops = List(loopCtxt, loopCtxt),
     )
     checkStringify("View")(
-      insensView -> "[call: ][loop: ][type: ]",
-      tyView -> "[call: ][loop: ][type: T, T]",
-      irView -> "[call: 0, 0, 0][loop: 0(3), 0(3)][type: ]",
+      insensView -> "[call: ][loop: ]",
+      irView -> "[call: 0, 0, 0][loop: 0(3), 0(3)]",
     )
 
     // -------------------------------------------------------------------------
     // Control Points
     // -------------------------------------------------------------------------
-    lazy val np = NodePoint(mainFunc, block, tyView)
+    lazy val np = NodePoint(mainFunc, block, irView)
     lazy val rp = ReturnPoint(mainFunc, irView)
 
     checkStringify("ControlPoint")(
-      np -> "[call: ][loop: ][type: T, T]:Block[0]",
-      rp -> "[call: 0, 0, 0][loop: 0(3), 0(3)][type: ]:RET:f[0]",
+      np -> "[call: 0, 0, 0][loop: 0(3), 0(3)]:Block[0]",
+      rp -> "[call: 0, 0, 0][loop: 0(3), 0(3)]:RET:f[0]",
     )
 
     // -------------------------------------------------------------------------

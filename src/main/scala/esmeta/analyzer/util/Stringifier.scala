@@ -46,9 +46,6 @@ class Stringifier(
 
     // ir contexts
     ctxtStr(view.calls.map(_.id.toString), view.loops)
-
-    // types
-    app >> view.tys.map(_.name).mkString("[type: ", ", ", "]")
   }
 
   // control points
