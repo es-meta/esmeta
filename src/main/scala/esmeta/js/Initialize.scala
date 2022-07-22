@@ -10,19 +10,15 @@ import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 import esmeta.test262.*
 
-class Initialize(
-  cfg: CFG,
-  sourceText: String,
-  cachedAst: Option[Ast],
-) {
+class Initialize(cfg: CFG) {
 
   /** the result state of initialization */
-  lazy val result: State = State(
+  def getResult(sourceText: String, cachedAst: Option[Ast]): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
     cachedAst = cachedAst,
-    globals = initGlobal,
+    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
     heap = initHeap,
   )
 
@@ -33,8 +29,7 @@ class Initialize(
   given CFG = cfg
 
   // initial globals
-  lazy val initGlobal: MMap[Global, Value] = MMap(
-    SOURCE_TEXT -> Str(sourceText),
+  lazy val initGlobal: Map[Global, Value] = Map(
     EXECUTION_STACK -> NamedAddr(EXECUTION_STACK),
     HOST_DEFINED -> Undef,
     INTRINSICS -> NamedAddr(INTRINSICS),
@@ -55,7 +50,6 @@ class Initialize(
 
   // initial heaps
   lazy val initHeap: Heap = {
-    given CFG = cfg
     val intr = Intrinsics(cfg)
     val glob = GlobalObject(cfg)
     val sym = Symbols(cfg)
@@ -205,7 +199,7 @@ object Initialize {
     cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast] = None,
-  ): State = new Initialize(cfg, sourceText, cachedAst).result
+  ): State = new Initialize(cfg).getResult(sourceText, cachedAst)
 
   /** initialize from file */
   def fromFile(cfg: CFG, filename: String, test262: Boolean = false): State =

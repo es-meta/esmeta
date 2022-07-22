@@ -9,11 +9,11 @@ import esmeta.util.Appender.*
 import esmeta.cfg.CFG
 
 /** basic abstract heaps */
-case class BasicHeapDomain(
-  cfg: CFG,
-  baseHeap: Heap,
-) extends Domain {
+object BasicHeapDomain extends Domain {
   given CFG = cfg
+
+  // base heap
+  lazy val baseHeap: Heap = new js.Initialize(cfg).initHeap
 
   // bottom element
   val Bot = Elem(Map(), Set())

@@ -46,7 +46,7 @@ case class CheckWithInterp(
   }
 
   // check soundness of abstract state
-  def checkSt(cp: ControlPoint, absSt: sem.AbsState, f: Func): Unit =
+  def checkSt(cp: ControlPoint, absSt: AbsState, f: Func): Unit =
     if (execLevel >= 2) {
       // singletone check
       if (!absSt.isSingle)
@@ -65,10 +65,10 @@ case class CheckWithInterp(
   }
   def check(
     np: ControlPoint,
-    absSt: sem.AbsState,
+    absSt: AbsState,
     st: State,
   ): Boolean = {
-    val sem.AbsState(reachable, absLocals, absGlobals, absHeap) = absSt
+    val AbsState(reachable, absLocals, absGlobals, absHeap) = absSt
     val State(_, context, _, _, _, globals, heap) = st
     val locals = context.locals
     var visited = Set[Loc]()
@@ -172,7 +172,7 @@ object CheckWithInterp {
     cachedAst: Option[js.Ast],
     execLevel: Int,
   ): CheckWithInterp = {
-    val initSt = js.Initialize(sem.cfg, sourceText, cachedAst)
+    val initSt = js.Initialize(cfg, sourceText, cachedAst)
     val interp = new Interp(initSt, Nil)
     CheckWithInterp(sem, interp, execLevel)
   }

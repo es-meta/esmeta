@@ -14,9 +14,13 @@ trait JSTest extends ESMetaTest {
   def category: String = "js"
 }
 object JSTest {
-  lazy val spec = ESMetaTest.spec
-  lazy val grammar = spec.grammar
-  lazy val cfg = spec.toCFG
+  val spec = ESMetaTest.spec
+  val grammar = spec.grammar
+  val cfg = {
+    val res = spec.toCFG
+    _cfgOpt = Some(res) // initialize global cfg for abstract domain
+    res
+  }
 
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")
@@ -49,7 +53,7 @@ object JSTest {
     cachedAst: Option[Ast] = None,
     execLevel: Int = 0,
   ): AbsSemantics =
-    AbsSemantics(cfg, str, cachedAst, execLevel).fixpoint
+    AbsSemantics(str, cachedAst, execLevel).fixpoint
 
   // tests for JS parser
   def parseTest(ast: Ast): Ast =

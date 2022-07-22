@@ -12,12 +12,9 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
 
 /** basic abstract states */
-case class BasicStateDomain(
-  AbsHeap: BasicHeapDomain,
-  baseGlobals: Map[Global, Value],
-) extends Domain { AbsState =>
-  type AbsHeap = AbsHeap.Elem
-  type AbsState = Elem
+object BasicStateDomain extends Domain {
+  // base globals
+  lazy val baseGlobals: Map[Global, Value] = new js.Initialize(cfg).initGlobal
 
   // bottom element
   val Bot = Elem(false, Map(), Map(), AbsHeap.Bot)
@@ -245,7 +242,7 @@ case class BasicStateDomain(
               FlatElem(ASimple(Str(propStr))),
             ) =>
           val js.Syntactic(name, _, rhsIdx, children) = syn
-          val rhs = AbsHeap.cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
           rhs.getNtIndex(propStr).flatMap(children(_)) match
             case Some(child) => AbsValue(child)
             case _           => AbsValue.Bot

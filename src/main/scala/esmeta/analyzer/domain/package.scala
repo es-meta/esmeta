@@ -1,6 +1,8 @@
 package esmeta.analyzer.domain
 
+import esmeta.cfg.CFG
 import esmeta.interp.*
+import esmeta.js
 
 // ////////////////////////////////////////////////////////////////////////////
 // shortcuts
@@ -18,7 +20,19 @@ lazy val AVF = AbsValue(bool = AF)
 // Abstract Domains for Values
 // ////////////////////////////////////////////////////////////////////////////
 
+// global cfg for domain
+var _cfgOpt: Option[CFG] = None
+lazy val cfg: CFG = _cfgOpt.get // global cfg must be initialized
+
 // states
+lazy val AbsRet = BasicRetDomain
+type AbsRet = AbsRet.Elem
+
+lazy val AbsState = BasicStateDomain
+type AbsState = AbsState.Elem
+
+lazy val AbsHeap = BasicHeapDomain
+type AbsHeap = AbsHeap.Elem
 
 lazy val AbsObj = BasicObjDomain
 type AbsObj = AbsObj.Elem

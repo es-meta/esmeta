@@ -2,6 +2,7 @@ package esmeta.analyzer.util
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
+import esmeta.analyzer.domain
 import esmeta.analyzer.util.command.*
 import esmeta.cfg.*
 import esmeta.error.ESMetaError
@@ -20,7 +21,7 @@ import scala.util.matching.Regex
 
 // REPL for static analysis
 case class REPL(sem: AbsSemantics) {
-  def cfg = sem.cfg
+  def cfg = domain.cfg
 
   // completer
   private val completer: TreeCompleter =

@@ -14,11 +14,6 @@ import scala.annotation.tailrec
 
 /** abstract transfer function */
 case class AbsTransfer(sem: AbsSemantics) {
-  type AbsRet = sem.AbsRet.Elem
-  type AbsState = sem.AbsState.Elem
-  val AbsState: sem.AbsState.type = sem.AbsState
-  val AbsRet: sem.AbsRet.type = sem.AbsRet
-
   // loading monads
   import AbsState.monad._
 
@@ -141,7 +136,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   /** get syntax-directed operation(SDO) */
   private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
     case (ast, operation) =>
-      val fnameMap = sem.cfg.fnameMap
+      val fnameMap = cfg.fnameMap
       ast.chains.foldLeft[Option[(Ast, Func)]](None) {
         case (None, ast0) =>
           val subIdx = getSubIdx(ast0)
@@ -159,7 +154,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   private val getSubIdx = cached[Ast, Int] {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = sem.cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
       val optionals = (for {
         (opt, child) <- rhs.nts.map(_.optional) zip children if opt
       } yield !child.isEmpty)
@@ -333,7 +328,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           var codes: Set[(String, List[Boolean])] = Set()
           for (Str(s) <- c.str) codes += (s, List())
           for (AAst(ast) <- c.ast) {
-            val code = ast.toString(grammar = Some(sem.cfg.grammar))
+            val code = ast.toString(grammar = Some(cfg.grammar))
             val args = ast match
               case syn: Syntactic => syn.args
               case _              => List()
@@ -349,7 +344,7 @@ case class AbsTransfer(sem: AbsSemantics) {
             (name, sem.cachedAst) match {
               case ("Script", Some(cached)) if str == sem.sourceText =>
                 cached
-              case _ => sem.cfg.jsParser(name, parseArgs).from(str),
+              case _ => cfg.jsParser(name, parseArgs).from(str),
             },
           )
 
@@ -362,7 +357,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(expr)
           s = AbsStr(
             v.ast.toList.map(x =>
-              Str(x.ast.toString(grammar = Some(sem.cfg.grammar)).trim),
+              Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
             ),
           )
         } yield AbsValue(str = s)
@@ -501,7 +496,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           if (!v.nullv.isBottom) set += "Null"
           if (!v.loc.isBottom) for (loc <- v.loc) {
             val tname = st(loc).getTy match
-              case tname if sem.cfg.typeModel.subType(tname, "Object") =>
+              case tname if cfg.typeModel.subType(tname, "Object") =>
                 "Object"
               case tname => tname
             set += tname
@@ -543,7 +538,7 @@ case class AbsTransfer(sem: AbsSemantics) {
             val tname0 = st(loc).getTy
             bv ⊔= AbsBool(
               Bool(
-                tname0 == tname || sem.cfg.typeModel.subType(tname0, tname),
+                tname0 == tname || cfg.typeModel.subType(tname0, tname),
               ),
             )
           }
@@ -552,13 +547,13 @@ case class AbsTransfer(sem: AbsSemantics) {
       case EClo(fname, cap) =>
         for {
           st <- get
-          func = sem.cfg.fnameMap(fname)
+          func = cfg.fnameMap(fname)
           captured = cap.map(x => x -> st.lookupLocal(x)).toMap
         } yield AbsValue(AClo(func, captured))
       case ECont(fname) =>
         for {
           st <- get
-          func = sem.cfg.fnameMap(fname)
+          func = cfg.fnameMap(fname)
           target = NodePoint(func, func.entry.get, cp.view)
           captured = st.locals.collect { case (x: Name, av) => x -> av }
           // return edges for resumed evaluation

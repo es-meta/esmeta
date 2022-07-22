@@ -5,10 +5,7 @@ import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 // basic abstract return values and states
-case class BasicRetDomain(
-  val AbsState: BasicStateDomain,
-) extends Domain {
-  type AbsState = AbsState.Elem
+object BasicRetDomain extends Domain {
 
   // bottom element
   val Bot = Elem(

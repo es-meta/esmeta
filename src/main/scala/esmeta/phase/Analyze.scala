@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.analyzer.*
+import esmeta.analyzer.domain
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
@@ -16,7 +17,8 @@ case object JSAnalyze extends Phase[CFG, AbsSemantics] {
     config: Config,
   ): AbsSemantics = {
     val filename = getFirstFilename(globalConfig, this.name)
-    AbsSemantics(cfg, readFile(filename), None, config.execLevel).fixpoint
+    domain._cfgOpt = Some(cfg) // initalize global CFG
+    AbsSemantics(readFile(filename), None, config.execLevel).fixpoint
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

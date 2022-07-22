@@ -1,6 +1,7 @@
 package esmeta.analyzer.util.command
 
 import esmeta.analyzer.*
+import esmeta.analyzer.domain
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import scala.Console.*
@@ -17,7 +18,7 @@ case object CmdMove
   // get node points of given nid
   def getNps(repl: REPL, nid: Int): Array[NodePoint[Node]] = {
     val sem = repl.sem
-    val node = sem.cfg.nodeMap(nid)
+    val node = domain.cfg.nodeMap(nid)
     sem.npMap.keys.toArray.filter(_.node.id == node.id)
   }
 

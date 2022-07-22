@@ -1,6 +1,6 @@
 package esmeta.analyzer
 
-import esmeta.*
+import esmeta.DEBUG
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
@@ -13,23 +13,16 @@ import scala.annotation.tailrec
 
 /** abstract semantics */
 case class AbsSemantics(
-  AbsRet: BasicRetDomain,
-)(
-  val cfg: CFG,
   val sourceText: String,
   val cachedAst: Option[Ast] = None,
-  var npMap: Map[NodePoint[Node], AbsRet.AbsState.Elem] = Map(),
+  var npMap: Map[NodePoint[Node], AbsState] = Map(),
   var rpMap: Map[ReturnPoint, AbsRet.Elem] = Map(),
-  var callInfo: Map[NodePoint[Call], AbsRet.AbsState.Elem] = Map(),
+  var callInfo: Map[NodePoint[Call], AbsState] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   timeLimit: Option[Long] = Some(ANALYZE_TIMEOUT),
   execLevel: Int = 0,
 ) {
-  val AbsState: AbsRet.AbsState.type = AbsRet.AbsState
-  type AbsState = AbsState.Elem
-  type AbsRet = AbsRet.Elem
-
   // repl
   val repl = REPL(this)
 
@@ -236,18 +229,13 @@ case class AbsSemantics(
 object AbsSemantics {
   // constructors
   def apply(
-    cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast],
     execLevel: Int,
-  ): AbsSemantics = {
-    val (initCp, retDomain) = Initialize(cfg, sourceText)
-    AbsSemantics(retDomain)(
-      cfg = cfg,
-      npMap = Map(initCp -> retDomain.AbsState.Empty),
-      sourceText = sourceText,
-      cachedAst = cachedAst,
-      execLevel = execLevel,
-    )
-  }
+  ): AbsSemantics = AbsSemantics(
+    npMap = Initialize(sourceText),
+    sourceText = sourceText,
+    cachedAst = cachedAst,
+    execLevel = execLevel,
+  )
 }
