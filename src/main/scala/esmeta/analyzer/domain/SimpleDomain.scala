@@ -35,6 +35,11 @@ trait SimpleDomain[A] extends Domain {
       case (Bot, _) | (_, Top) => this
       case (_, Bot) | (Top, _) => that
 
+    // minus operator
+    def -(that: Elem): Elem = that match
+      case Bot => this
+      case Top => Bot
+
     // get single value
     def getSingle: Flat[value.type] = this match
       case Bot => FlatBot

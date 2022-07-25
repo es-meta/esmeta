@@ -51,10 +51,15 @@ case class AbsTransfer(sem: AbsSemantics) {
           b = v.bool
           newSt <- get
         } yield {
+          // TODO prune
           if (AT ⊑ b)
-            thenNode.foreach(to => sem += getNextNp(np, to) -> newSt)
+            thenNode.foreach(to =>
+              sem += getNextNp(np, to) -> prune(cond, true)(newSt),
+            )
           if (AF ⊑ b)
-            elseNode.foreach(to => sem += getNextNp(np, to, br.isLoop) -> newSt)
+            elseNode.foreach(to =>
+              sem += getNextNp(np, to, br.isLoop) -> prune(cond, false)(newSt),
+            )
         })(st)
     }
   }
@@ -164,13 +169,69 @@ case class AbsTransfer(sem: AbsSemantics) {
       }
   }
 
-  // internal transfer function with a specific view
-  private class Helper(val cp: ControlPoint) {
+  /** internal prune function */
+  private trait PruneHelper { this: Helper =>
+
+    /** prune condition */
+    def prune(cond: Expr, positive: Boolean): Updater = cond match {
+      case EUnary(UOp.Not, e) => prune(e, !positive)
+      case EBinary(BOp.Eq, ERef(ref), target) =>
+        for {
+          rv <- transfer(ref)
+          v <- transfer(rv)
+          targetV <- transfer(target)
+          newV = if (positive) v ⊓ targetV else v - targetV
+          _ <- modify(_.update(rv, newV))
+        } yield ()
+      case EBinary(BOp.Eq, ETypeOf(ERef(ref)), tyRef: ERef) =>
+        for {
+          rv <- transfer(ref)
+          tv <- transfer(tyRef)
+          _ <- modify(pruneType(rv, tv, positive))
+        } yield ()
+      case EBinary(BOp.Or, l, r) =>
+        st =>
+          val lst = prune(l, positive)(st)
+          val rst = prune(r, positive)(st)
+          if (positive) lst ⊔ rst else lst ⊓ rst
+      case EBinary(BOp.And, l, r) =>
+        st =>
+          val lst = prune(l, positive)(st)
+          val rst = prune(r, positive)(st)
+          if (positive) lst ⊓ rst else lst ⊔ rst
+      case _ => st => st
+    }
+
+    /** prune type */
+    def pruneType(l: AbsRefValue, r: AbsValue, positive: Boolean): Updater =
+      for {
+        lv <- transfer(l)
+        st <- get
+        tyV = {
+          var newV = AbsValue.Bot
+          for (Str(tyStr) <- r.str) {
+            if (tyStr == "Number") newV ⊔= AbsValue(num = AbsNum.Top)
+            if (tyStr == "BigInt") newV ⊔= AbsValue(bigint = AbsBigInt.Top)
+            if (tyStr == "String") newV ⊔= AbsValue(str = AbsStr.Top)
+            if (tyStr == "Boolean") newV ⊔= AbsValue(bool = AbsBool.Top)
+            if (tyStr == "Undefined") newV ⊔= AbsValue(undef = AbsUndef.Top)
+            if (tyStr == "Null") newV ⊔= AbsValue(nullv = AbsNull.Top)
+            // TODO symbol, object
+          }
+          newV
+        }
+        updatedV = if (positive) lv ⊓ tyV else lv - tyV
+        _ <- modify(_.update(l, updatedV))
+      } yield ()
+  }
+
+  /** internal transfer function with a specific view */
+  private class Helper(val cp: ControlPoint) extends PruneHelper {
     lazy val func = cp.func
     lazy val view = cp.view
     lazy val rp = ReturnPoint(func, view)
 
-    // transfer function for normal instructions
+    /** transfer function for normal instructions */
     def transfer(inst: NormalInst): Updater = inst match {
       case IExpr(expr) =>
         for {
@@ -771,9 +832,7 @@ case class AbsTransfer(sem: AbsSemantics) {
             case And => exploded(s"bop: ($bop $left $right)")
             // TODO
             // AbsValue(bool = left.bool && right.bool)
-            case Or => exploded(s"bop: ($bop $left $right)")
-            // TODO
-            // AbsValue(bool = left.bool || right.bool)
+            case Or   => AbsValue(bool = left.bool || right.bool)
             case Plus => exploded(s"bop: ($bop $left $right)")
             // TODO
             // AbsValue(

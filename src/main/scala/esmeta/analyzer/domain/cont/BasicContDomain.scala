@@ -78,6 +78,12 @@ object BasicContDomain extends Domain {
         )
       case _ => exploded(s"meet of continuations.")
 
+    // minus operator
+    def -(that: Elem): Elem = (this, that) match
+      case (Bot, _)                   => Bot
+      case (_, Bot)                   => this
+      case (l: ContElem, r: ContElem) => ???
+
     // get single value
     def getSingle: Flat[ACont] = this match
       case Bot => FlatBot

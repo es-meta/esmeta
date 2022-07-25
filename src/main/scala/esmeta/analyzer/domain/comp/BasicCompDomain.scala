@@ -17,6 +17,8 @@ object BasicCompDomain extends Domain {
       Result(this.value ⊔ that.value, this.target ⊔ that.target)
     def ⊓(that: Result): Result =
       Result(this.value ⊓ that.value, this.target ⊓ that.target)
+    def -(that: Result): Result =
+      Result(this.value - that.value, this.target - that.target)
   }
   object Result {
     val Bot = Result(AbsValue.Bot, AbsValue.Bot)
@@ -74,6 +76,18 @@ object BasicCompDomain extends Domain {
             ty -> this.resultOf(ty) ⊓ that.resultOf(ty)
           })
           .filter(!_._2.isBottom)
+        Elem(newPairs.toMap)
+
+    // minus operator
+    def -(that: Elem): Elem = (this, that) match
+      case _ if this ⊑ that            => Bot
+      case _ if (this ⊓ that).isBottom => this
+      case (Elem(lmap), Elem(rmap)) =>
+        val newPairs = for {
+          (ty, lres) <- lmap
+          rres = that.resultOf(ty)
+          newRes = lres - rres if !newRes.isBottom
+        } yield ty -> newRes
         Elem(newPairs.toMap)
 
     // normal completions

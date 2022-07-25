@@ -167,7 +167,7 @@ object BasicObjDomain extends Domain {
       }
       case (l: MapElem, r: MapElem) =>
         MergedMap(
-          tname = l.tname,
+          tname = l.tname, // XXX
           prop = l.mergedProp ⊔ r.mergedProp,
           value = l.mergedValue ⊔ r.mergedValue,
         )
@@ -177,6 +177,67 @@ object BasicObjDomain extends Domain {
         } else MergedList(l.mergedValue ⊔ r.mergedValue)
       case (l: ListElem, r: ListElem) =>
         MergedList(l.mergedValue ⊔ r.mergedValue)
+      case (NotSupportedElem(lty, ld), NotSupportedElem(rty, rd))
+          if lty == rty && ld == rd =>
+        this
+      case _ =>
+        exploded(s"cannot merge: ${this.getTy} with ${that.getTy}")
+    }
+
+    // meet operator
+    def ⊓(that: Elem): Elem = (this, that) match {
+      case (Bot, _) | (_, Bot)                    => Bot
+      case _ if this ⊑ that                       => this
+      case _ if that ⊑ this                       => that
+      case (SymbolElem(ldesc), SymbolElem(rdesc)) => SymbolElem(ldesc ⊓ rdesc)
+      case (l: PropMapElem, KeyWiseMap(rty, rmap)) if l.tname == rty => {
+        val newMap = for {
+          (key, lv) <- l.map
+          newV = lv ⊓ that(key) if !newV.isBottom
+        } yield key -> newV
+        if (newMap.isEmpty) Bot else KeyWiseMap(rty, newMap.toMap)
+      }
+      case (KeyWiseMap(lty, _), r: PropMapElem) if lty == r.tname => that ⊓ this
+      case (OrderedMap(lty, lmap, lprops), OrderedMap(rty, rmap, rprops))
+          if lty == rty => {
+        val newMap = (for {
+          (key, lv) <- lmap
+          newV = lv ⊓ that(key) if !newV.isBottom
+        } yield key -> newV).toMap
+        if (newMap.isEmpty) Bot
+        else if (lprops == rprops) OrderedMap(lty, newMap, lprops)
+        else KeyWiseMap(lty, newMap)
+      }
+      case (l: MapElem, r: MapElem) =>
+        if (l.tname == r.tname)
+          val mergedProp = l.mergedProp ⊓ r.mergedProp
+          val mergedV = l.mergedValue ⊓ r.mergedValue
+          if (mergedProp.isBottom || mergedV.isBottom) Bot
+          else
+            MergedMap(
+              tname = l.tname,
+              prop = mergedProp,
+              value = mergedV,
+            )
+        else Bot
+      case (l @ KeyWiseList(lvs), r @ KeyWiseList(rvs)) =>
+        if (lvs.length == rvs.length) {
+          var bot = false
+          val newVs = for {
+            (lv, rv) <- lvs zip rvs
+            newV = lv ⊓ rv
+            _ = bot |= newV.isBottom
+          } yield newV
+          if (bot) Bot else KeyWiseList(newVs)
+        } else {
+          val mergedV = l.mergedValue ⊓ r.mergedValue
+          if (mergedV.isBottom) Bot
+          else MergedList(mergedV)
+        }
+      case (l: ListElem, r: ListElem) =>
+        val mergedV = l.mergedValue ⊓ r.mergedValue
+        if (mergedV.isBottom) Bot
+        else MergedList(mergedV)
       case (NotSupportedElem(lty, ld), NotSupportedElem(rty, rd))
           if lty == rty && ld == rd =>
         this

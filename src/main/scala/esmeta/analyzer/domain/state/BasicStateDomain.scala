@@ -118,6 +118,30 @@ object BasicStateDomain extends Domain {
       }
     }
 
+    // meet operator
+    def ⊓(that: Elem): Elem = (this, that) match {
+      case _ if this.isBottom || that.isBottom => Bot
+      case (
+            Elem(_, llocals, lglobals, lheap),
+            Elem(_, rlocals, rglobals, rheap),
+          ) => {
+        val newLocals = (for {
+          x <- (llocals.keySet intersect rlocals.keySet).toList
+          v = this.lookupLocal(x) ⊓ that.lookupLocal(x)
+          if !v.isBottom
+        } yield x -> v).toMap
+        val newGlobals = (for {
+          x <- (lglobals.keySet intersect rglobals.keySet).toList
+          v = this.lookupGlobal(x) ⊓ that.lookupGlobal(x)
+          if !v.isBottom
+        } yield x -> v).toMap
+        val newHeap = lheap ⊓ rheap
+        val isBottom =
+          newLocals.isEmpty || newGlobals.isEmpty || newHeap.isBottom
+        Elem(!isBottom, newLocals, newGlobals, newHeap)
+      }
+    }
+
     // singleton checks
     def isSingle: Boolean = (
       reachable &&

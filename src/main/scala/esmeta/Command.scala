@@ -97,3 +97,9 @@ case object CmdJSAnalyze
   extends Command("js-analyze", CmdBuildCFG >> JSAnalyze) {
   def help = "analyzes a JavaScript file."
 }
+
+/** `type-analyze` command */
+case object CmdTypeAnalyze
+  extends Command("type-analyze", CmdBuildCFG >> TypeAnalyze) {
+  def help = "performs a type analysis of ECMA-262"
+}

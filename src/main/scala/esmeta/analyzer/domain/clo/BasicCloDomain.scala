@@ -78,6 +78,12 @@ object BasicCloDomain extends Domain {
         )
       case _ => exploded(s"meet of closures.")
 
+    // minus operator
+    def -(that: Elem): Elem = (this, that) match
+      case (Bot, _)                 => Bot
+      case (_, Bot)                 => this
+      case (l: CloElem, r: CloElem) => ???
+
     // get single value
     def getSingle: Flat[AClo] = this match
       case Bot => FlatBot

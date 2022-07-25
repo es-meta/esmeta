@@ -25,6 +25,7 @@ object FlatBoolDomain extends FlatDomain[Bool] with BoolDomain {
     } yield Bool(l && r))
 
     def ⊓(that: Elem): Elem = elem ⊓ that
+    def -(that: Elem): Elem = elem - that
     def getSingle: Flat[Bool] = elem.getSingle
   }
 }

@@ -59,6 +59,13 @@ trait SetDomain[A] extends Domain {
       case (_, Top)                 => this
       case (Base(lset), Base(rset)) => Base(lset intersect rset)
 
+    // minus operator
+    def -(that: Elem): Elem = (this, that) match
+      case (Bot, _) | (_, Top) => Bot
+      case (_, Bot)            => this
+      case (Top, _: Base)      => Top
+      case (Base(l), Base(r))  => if (l subsetOf r) Bot else Base(l -- r)
+
     // get single value
     def getSingle: Flat[A] = this match
       case Base(set) =>

@@ -29,6 +29,9 @@ object TypeBoolDomain extends BoolDomain {
     def ⊓(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Bot) => Bot
       case _                   => Top
+    def -(that: Elem): Elem = that match
+      case Bot => elem
+      case Top => Bot
     def getSingle: Flat[Bool] = elem match
       case Bot => FlatBot
       case Top => FlatTop

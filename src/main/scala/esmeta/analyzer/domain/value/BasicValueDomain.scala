@@ -195,6 +195,20 @@ object BasicValueDomain extends Domain {
       this.simple ⊓ that.simple,
     )
 
+    // minus operator
+    def -(that: Elem): Elem = Elem(
+      this.comp - that.comp,
+      this.clo - that.clo,
+      this.cont - that.cont,
+      this.loc - that.loc,
+      this.ast - that.ast,
+      this.grammar - that.grammar,
+      this.codeunit - that.codeunit,
+      this.const - that.const,
+      this.math - that.math,
+      this.simple - that.simple,
+    )
+
     // get single value
     def getSingle: Flat[AValue] = (
       this.comp.getSingle ⊔

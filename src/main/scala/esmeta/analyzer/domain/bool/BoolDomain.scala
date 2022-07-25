@@ -16,6 +16,7 @@ trait BoolDomain extends Domain {
     def ||(that: Elem): Elem
     def &&(that: Elem): Elem
     def ⊓(that: Elem): Elem
+    def -(that: Elem): Elem
     def getSingle: Flat[Bool]
   }
 }

@@ -58,6 +58,13 @@ trait FlatDomain[A] extends Domain {
       case (_, Bot) | (Top, _) => that
       case (Base(l), Base(r))  => if (l == r) this else Bot
 
+    // minus operator
+    def -(that: Elem): Elem = (this, that) match
+      case (Bot, _) | (_, Top) => Bot
+      case (_, Bot)            => this
+      case (Top, _: Base)      => Top
+      case (Base(l), Base(r))  => if (l == r) Bot else this
+
     // get single value
     def getSingle: Flat[A] = this match
       case Bot        => FlatBot

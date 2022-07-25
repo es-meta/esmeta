@@ -8,15 +8,16 @@ import esmeta.error.AnalysisImprecise
 import esmeta.js.Ast
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.ir.Name
 import scala.Console.*
 import scala.annotation.tailrec
 
 /** abstract semantics */
 case class AbsSemantics(
-  val sourceText: String,
+  val sourceText: String = "",
   val cachedAst: Option[Ast] = None,
   var npMap: Map[NodePoint[Node], AbsState] = Map(),
-  var rpMap: Map[ReturnPoint, AbsRet.Elem] = Map(),
+  var rpMap: Map[ReturnPoint, AbsRet] = Map(),
   var callInfo: Map[NodePoint[Call], AbsState] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
@@ -238,4 +239,20 @@ object AbsSemantics {
     cachedAst = cachedAst,
     execLevel = execLevel,
   )
+
+  // XXX
+  def typeAnalysisTest(): AbsSemantics = {
+    val initCp = {
+      val toBoolean = cfg.fnameMap("ToBoolean")
+      val entry = toBoolean.entry.get
+      NodePoint(toBoolean, entry, View())
+    }
+    AbsSemantics(
+      npMap = Map(
+        initCp -> AbsState.Empty.defineLocal(
+          Name("argument") -> AbsValue(str = AbsStr.Top),
+        ),
+      ),
+    )
+  }
 }

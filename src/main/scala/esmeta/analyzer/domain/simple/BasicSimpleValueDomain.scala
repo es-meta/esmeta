@@ -133,6 +133,17 @@ object BasicSimpleValueDomain extends Domain {
       this.absent ⊓ that.absent,
     )
 
+    // minus operator
+    def -(that: Elem): Elem = Elem(
+      this.num - that.num,
+      this.bigint - that.bigint,
+      this.str - that.str,
+      this.bool - that.bool,
+      this.undef - that.undef,
+      this.nullv - that.nullv,
+      this.absent - that.absent,
+    )
+
     // get single value
     def getSingle: Flat[ASimple] = (
       this.num.getSingle ⊔

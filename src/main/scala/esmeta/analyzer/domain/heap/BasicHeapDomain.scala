@@ -91,6 +91,21 @@ object BasicHeapDomain extends Domain {
           merged = l.merged ++ r.merged,
         )
 
+    // meet operator
+    def ⊓(that: Elem): Elem = (this, that) match
+      case _ if this.isBottom || that.isBottom => Bot
+      case (Elem(lmap, lmerged), relem @ Elem(rmap, rmerged)) =>
+        val newMap = for {
+          (loc, lobj) <- lmap
+          newObj = lobj ⊓ relem(loc) if !newObj.isBottom
+        } yield loc -> newObj
+        if (newMap.isEmpty) Bot
+        else
+          Elem(
+            map = newMap.toMap,
+            merged = lmerged intersect rmerged,
+          )
+
     // singleton checks
     def isSingle: Boolean = map.forall {
       case (loc, obj) => isSingle(loc) && obj.isSingle
