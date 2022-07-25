@@ -83,7 +83,8 @@ type AbsBigInt = AbsBigInt.Elem
 lazy val AbsStr = SetDomain[Str]("str")
 type AbsStr = AbsStr.Elem
 
-lazy val AbsBool = FlatBoolDomain
+var ABS_BOOL = FlatBoolDomain
+lazy val AbsBool: BoolDomain = ABS_BOOL
 type AbsBool = AbsBool.Elem
 
 lazy val AbsUndef = SimpleDomain(Undef)

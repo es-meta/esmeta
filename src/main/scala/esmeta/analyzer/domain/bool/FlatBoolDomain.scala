@@ -2,10 +2,12 @@ package esmeta.analyzer.domain
 
 import esmeta.interp.Bool
 
-object FlatBoolDomain extends FlatDomain[Bool] {
+/** flat domain for boolean */
+object FlatBoolDomain extends FlatDomain[Bool] with BoolDomain {
   val topName = "bool"
   val totalOpt = Some(Set(T, F))
 
+  // interfaces
   extension (elem: Elem) {
     def unary_! : Elem = elem match
       case Bot           => Bot
@@ -21,5 +23,8 @@ object FlatBoolDomain extends FlatDomain[Bool] {
       Bool(l) <- elem
       Bool(r) <- that
     } yield Bool(l && r))
+
+    def ⊓(that: Elem): Elem = elem ⊓ that
+    def getSingle: Flat[Bool] = elem.getSingle
   }
 }

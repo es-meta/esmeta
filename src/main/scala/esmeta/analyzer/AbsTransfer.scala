@@ -51,9 +51,9 @@ case class AbsTransfer(sem: AbsSemantics) {
           b = v.bool
           newSt <- get
         } yield {
-          if (b contains T)
+          if (AT ⊑ b)
             thenNode.foreach(to => sem += getNextNp(np, to) -> newSt)
-          if (b contains F)
+          if (AF ⊑ b)
             elseNode.foreach(to => sem += getNextNp(np, to, br.isLoop) -> newSt)
         })(st)
     }
