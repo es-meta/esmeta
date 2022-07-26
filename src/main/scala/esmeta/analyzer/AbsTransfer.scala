@@ -175,14 +175,15 @@ case class AbsTransfer(sem: AbsSemantics) {
     /** prune condition */
     def prune(cond: Expr, positive: Boolean): Updater = cond match {
       case EUnary(UOp.Not, e) => prune(e, !positive)
-      case EBinary(BOp.Eq, ERef(ref), target) =>
-        for {
-          rv <- transfer(ref)
-          v <- transfer(rv)
-          targetV <- transfer(target)
-          newV = if (positive) v ⊓ targetV else v - targetV
-          _ <- modify(_.update(rv, newV))
-        } yield ()
+      // TODO debugging
+      // case EBinary(BOp.Eq, ERef(ref), target) =>
+      //   for {
+      //     rv <- transfer(ref)
+      //     v <- transfer(rv)
+      //     targetV <- transfer(target)
+      //     newV = if (positive) v ⊓ targetV else v - targetV
+      //     _ <- modify(_.update(rv, newV))
+      //   } yield ()
       case EBinary(BOp.Eq, ETypeOf(ERef(ref)), tyRef: ERef) =>
         for {
           rv <- transfer(ref)
@@ -220,7 +221,9 @@ case class AbsTransfer(sem: AbsSemantics) {
           }
           newV
         }
-        updatedV = if (positive) lv ⊓ tyV else lv - tyV
+        // TODO fix loc
+        updatedV =
+          if (positive) (lv ⊓ tyV) ⊔ AbsValue(loc = lv.loc) else lv - tyV
         _ <- modify(_.update(l, updatedV))
       } yield ()
   }
@@ -291,7 +294,7 @@ case class AbsTransfer(sem: AbsSemantics) {
         } yield {
           for (AClo(func, captured) <- fv.clo) {
             val newLocals = getLocals(func.irFunc.params, as) ++ captured
-            val newSt = st.copy(locals = newLocals)
+            val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt)
           }
           for (ACont(target, captured) <- fv.cont) {
@@ -299,7 +302,7 @@ case class AbsTransfer(sem: AbsSemantics) {
               as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
             val newLocals =
               getLocals(target.func.irFunc.params, as0, cont = true) ++ captured
-            sem += target -> st.copy(locals = newLocals)
+            sem += target -> st.copied(locals = newLocals)
           }
           AbsValue.Bot
         }
@@ -315,7 +318,7 @@ case class AbsTransfer(sem: AbsSemantics) {
         } yield {
           for (AClo(func, _) <- fv.clo) {
             val newLocals = getLocals(func.irFunc.params, bv :: as)
-            val newSt = st.copy(locals = newLocals)
+            val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt)
           }
           AbsValue.Bot
@@ -333,7 +336,7 @@ case class AbsTransfer(sem: AbsSemantics) {
                 case Some((ast0, sdo)) =>
                   val newLocals =
                     getLocals(sdo.irFunc.params, AbsValue(ast0) :: as)
-                  val newSt = st.copy(locals = newLocals)
+                  val newSt = st.copied(locals = newLocals)
                   sem.doCall(call, view, st, sdo, newSt)
                 case None => error("invalid sdo")
             case FlatElem(AAst(lex: Lexical)) =>
@@ -906,7 +909,7 @@ case class AbsTransfer(sem: AbsSemantics) {
     // return specific value
     def doReturn(v: AbsValue): Result[Unit] = for {
       st <- get
-      ret = AbsRet(v, st.copy(locals = Map()))
+      ret = AbsRet(v, st.copied(locals = Map()))
       _ = sem.doReturn(rp, ret)
     } yield ()
 

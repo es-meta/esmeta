@@ -34,11 +34,11 @@ case class AbsSemantics(
   def getIter: Int = iter
   private var iter: Int = 0
 
-  // concrete execution
-  val checkWithInterp: Option[CheckWithInterp] =
-    if (execLevel >= 1)
-      Some(CheckWithInterp(this, sourceText, cachedAst, execLevel))
-    else None
+  // // concrete execution
+  // val checkWithInterp: Option[CheckWithInterp] =
+  //   if (execLevel >= 1)
+  //     Some(CheckWithInterp(this, sourceText, cachedAst, execLevel))
+  //   else None
 
   // get abstract return values and states of RunJobs
   val runJobs = cfg.fnameMap("RunJobs")
@@ -76,7 +76,7 @@ case class AbsSemantics(
       else transfer(cp)
 
       // check soundness using concrete execution
-      checkWithInterp.map(_.runAndCheck)
+      // checkWithInterp.map(_.runAndCheck)
 
       // keep going
       fixpoint

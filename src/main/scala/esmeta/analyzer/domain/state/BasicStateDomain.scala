@@ -10,25 +10,10 @@ import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
+import scala.annotation.targetName // TODO remove this
 
 /** basic abstract states */
-object BasicStateDomain extends Domain {
-  // base globals
-  lazy val baseGlobals: Map[Global, Value] = new js.Initialize(cfg).initGlobal
-
-  // bottom element
-  val Bot = Elem(false, Map(), Map(), AbsHeap.Bot)
-
-  // empty state
-  lazy val Empty = Elem(true, Map(), Map(), AbsHeap.Bot)
-
-  // base globals
-  lazy val base: Map[Id, AbsValue] = (for {
-    (x, v) <- baseGlobals.toList
-  } yield x -> AbsValue(v)).toMap
-
-  // monad helper
-  val monad: StateMonad[Elem] = new StateMonad[Elem]
+object BasicStateDomain extends StateDomain {
 
   // appender
   def mkRule(detail: Boolean): Rule[Elem] = (app, elem) => {
@@ -50,21 +35,16 @@ object BasicStateDomain extends Domain {
 
   // constructors
   def apply(
-    reachable: Boolean = true,
-    locals: Map[Local, AbsValue] = Map(),
-    globals: Map[Global, AbsValue] = Map(),
-    heap: AbsHeap = AbsHeap.Bot,
+    reachable: Boolean,
+    locals: Map[Local, AbsValue],
+    globals: Map[Global, AbsValue],
+  ): Elem = apply(reachable, locals, globals, AbsHeap.Bot)
+  def apply(
+    reachable: Boolean,
+    locals: Map[Local, AbsValue],
+    globals: Map[Global, AbsValue],
+    heap: AbsHeap,
   ): Elem = Elem(reachable, locals, globals, heap)
-
-  // extractors
-  def unapply(elem: Elem) = Some(
-    (
-      elem.reachable,
-      elem.locals,
-      elem.globals,
-      elem.heap,
-    ),
-  )
 
   // elements
   case class Elem(
@@ -72,83 +52,132 @@ object BasicStateDomain extends Domain {
     locals: Map[Local, AbsValue],
     globals: Map[Global, AbsValue],
     heap: AbsHeap,
-  ) extends ElemTrait {
+  ) extends StateElemTrait {
     // partial order
-    override def isBottom = !this.reachable
-
-    // partial order
-    def ⊑(that: Elem): Boolean = (this, that) match {
-      case _ if this.isBottom => true
-      case _ if that.isBottom => false
-      case (
-            Elem(_, llocals, lglobals, lheap),
-            Elem(_, rlocals, rglobals, rheap),
-          ) => {
-        val localsB = (llocals.keySet ++ rlocals.keySet).forall(x => {
-          this.lookupLocal(x) ⊑ that.lookupLocal(x)
-        })
-        val globalsB = (lglobals.keySet ++ rglobals.keySet).forall(x => {
-          this.lookupGlobal(x) ⊑ that.lookupGlobal(x)
-        })
-        val heapB = lheap ⊑ rheap
-        localsB && globalsB && heapB
-      }
-    }
+    override def ⊑(that: Elem): Boolean =
+      super.⊑(that) && this.heap ⊑ that.heap
 
     // join operator
-    def ⊔(that: Elem): Elem = (this, that) match {
-      case _ if this.isBottom => that
-      case _ if that.isBottom => this
-      case (
-            Elem(_, llocals, lglobals, lheap),
-            Elem(_, rlocals, rglobals, rheap),
-          ) => {
-        val newLocals = (for {
-          x <- (llocals.keySet ++ rlocals.keySet).toList
-          v = this.lookupLocal(x) ⊔ that.lookupLocal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newGlobals = (for {
-          x <- (lglobals.keySet ++ rglobals.keySet).toList
-          v = this.lookupGlobal(x) ⊔ that.lookupGlobal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newHeap = lheap ⊔ rheap
-        Elem(true, newLocals, newGlobals, newHeap)
-      }
-    }
+    override def ⊔(that: Elem): Elem =
+      super.⊔(that).copy(heap = this.heap ⊔ that.heap)
 
     // meet operator
-    def ⊓(that: Elem): Elem = (this, that) match {
-      case _ if this.isBottom || that.isBottom => Bot
-      case (
-            Elem(_, llocals, lglobals, lheap),
-            Elem(_, rlocals, rglobals, rheap),
-          ) => {
-        val newLocals = (for {
-          x <- (llocals.keySet intersect rlocals.keySet).toList
-          v = this.lookupLocal(x) ⊓ that.lookupLocal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newGlobals = (for {
-          x <- (lglobals.keySet intersect rglobals.keySet).toList
-          v = this.lookupGlobal(x) ⊓ that.lookupGlobal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newHeap = lheap ⊓ rheap
-        val isBottom =
-          newLocals.isEmpty || newGlobals.isEmpty || newHeap.isBottom
-        Elem(!isBottom, newLocals, newGlobals, newHeap)
-      }
+    override def ⊓(that: Elem): Elem = {
+      val newHeap = this.heap ⊓ that.heap
+      val baseSt = super.⊓(that)
+      if (newHeap.isBottom || baseSt.isBottom) Bot
+      else baseSt.copy(heap = newHeap)
     }
 
+    // getters
+    @targetName("apply_loc")
+    def apply(loc: AbsLoc, prop: AbsValue): AbsValue = heap(loc, prop)
+    @targetName("apply_ast")
+    def apply(ast: AbsAst, prop: AbsValue): AbsValue =
+      (ast.getSingle, prop.getSingle) match {
+        case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
+        case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
+          ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
+        case (
+              FlatElem(AAst(syn: js.Syntactic)),
+              FlatElem(ASimple(Str(propStr))),
+            ) =>
+          val js.Syntactic(name, _, rhsIdx, children) = syn
+          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          rhs.getNtIndex(propStr).flatMap(children(_)) match
+            case Some(child) => AbsValue(child)
+            case _           => AbsValue.Bot
+        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(AMath(n)))
+            if n.isValidInt =>
+          syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
+        case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
+        case _                                => exploded("ast property access")
+      }
+    @targetName("apply_str")
+    def apply(str: AbsStr, prop: AbsValue): AbsValue =
+      (str.getSingle, prop.getSingle) match {
+        case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
+        case (FlatElem(Str(str)), FlatElem(AMath(k))) =>
+          AbsValue(CodeUnit(str(k.toInt)))
+        case (FlatElem(Str(str)), FlatElem(ASimple(simple))) =>
+          simple match
+            case Str("length") => AbsValue(Math(BigDecimal.exact(str.length)))
+            case Number(k)     => AbsValue(CodeUnit(str(k.toInt)))
+            case _             => AbsValue.Bot
+        case _ => AbsValue.codeunit ⊔ AbsValue.math
+      }
+    def apply(loc: Loc): AbsObj = heap(loc)
+
+    // setters
+    def update(x: Id, value: AbsValue): Elem =
+      bottomCheck(value) {
+        x match
+          case x: Global if globals contains x =>
+            copy(globals = globals + (x -> value))
+          case x: Name if locals contains x =>
+            copy(locals = locals + (x -> value))
+          case x: Temp =>
+            copy(locals = locals + (x -> value))
+          case _ => Bot
+      }
+    def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem =
+      bottomCheck(aloc, prop, value) {
+        copy(heap = heap.update(aloc, prop, value))
+      }
+
+    // delete a property from a map
+    def delete(refV: AbsRefValue): Elem = refV match
+      case AbsRefId(x) => error(s"cannot delete variable $x")
+      case AbsRefProp(base, prop) =>
+        bottomCheck(base, prop) {
+          copy(heap = heap.delete(base.escaped.loc, prop))
+        }
+
+    // object operators
+    def append(loc: AbsLoc, value: AbsValue): Elem =
+      bottomCheck(loc, value) { copy(heap = heap.append(loc, value)) }
+    def prepend(loc: AbsLoc, value: AbsValue): Elem =
+      bottomCheck(loc, value) { copy(heap = heap.prepend(loc, value)) }
+    def remove(loc: AbsLoc, value: AbsValue): Elem =
+      bottomCheck(loc, value) { copy(heap = heap.remove(loc, value)) }
+    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = {
+      var v: AbsValue = AbsValue.Bot
+      val st: Elem = bottomCheck(loc) {
+        val (newV, newH) = heap.pop(loc, front)
+        v ⊔= newV
+        copy(heap = newH)
+      }
+      (v, st)
+    }
+    def copyObj(from: AbsLoc)(to: AllocSite): Elem =
+      bottomCheck(from) { copy(heap = heap.copyObj(from)(to)) }
+    def keys(loc: AbsLoc, intSorted: Boolean)(to: AllocSite): Elem =
+      bottomCheck(loc) { copy(heap = heap.keys(loc, intSorted)(to)) }
+    def allocMap(tname: String, pairs: List[(AbsValue, AbsValue)])(
+      to: AllocSite,
+    ): Elem =
+      bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
+        copy(heap = heap.allocMap(tname, pairs)(to))
+      }
+    def allocList(list: List[AbsValue])(to: AllocSite): Elem =
+      bottomCheck(list) { copy(heap = heap.allocList(list)(to)) }
+    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem =
+      bottomCheck(desc) { copy(heap = heap.allocSymbol(desc)(to)) }
+    def setType(loc: AbsLoc, tname: String): Elem =
+      bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
+    def contains(loc: AbsLoc, value: AbsValue): AbsBool =
+      heap.contains(loc, value)
+
+    // define global variables
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem =
+      bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
+
+    // define local variables
+    def defineLocal(pairs: (Local, AbsValue)*): Elem =
+      bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
+
     // singleton checks
-    def isSingle: Boolean = (
-      reachable &&
-        locals.forall(_._2.isSingle) &&
-        globals.forall(_._2.isSingle) &&
-        heap.isSingle
-    )
+    override def isSingle: Boolean = super.isSingle && heap.isSingle
 
     // singleton location checks
     def isSingle(loc: Loc): Boolean = heap.isSingle(loc)
@@ -240,152 +269,16 @@ object BasicStateDomain extends Domain {
       heap.reachableLocs(locs)
     }
 
-    // lookup variable directly
-    def directLookup(x: Id): AbsValue = x match
-      case x: Local  => lookupLocal(x)
-      case x: Global => lookupGlobal(x)
-
-    // getters
-    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match
-      case AbsRefId(x)            => this(x, cp)
-      case AbsRefProp(base, prop) => this(base, prop)
-    def apply(x: Id, cp: ControlPoint): AbsValue = {
-      val v = directLookup(x)
-      if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
-      else v
-    }
-    def apply(base: AbsValue, prop: AbsValue): AbsValue = {
-      val compValue = base.comp(prop)
-      val locValue = heap(base.loc, prop)
-      val astValue = (base.ast.getSingle, prop.getSingle) match {
-        case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
-        case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
-          ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (
-              FlatElem(AAst(syn: js.Syntactic)),
-              FlatElem(ASimple(Str(propStr))),
-            ) =>
-          val js.Syntactic(name, _, rhsIdx, children) = syn
-          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-          rhs.getNtIndex(propStr).flatMap(children(_)) match
-            case Some(child) => AbsValue(child)
-            case _           => AbsValue.Bot
-        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(AMath(n)))
-            if n.isValidInt =>
-          syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
-        case _                                => exploded("ast property access")
-      }
-      val strValue = (base.str.getSingle, prop.getSingle) match {
-        case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
-        case (FlatElem(Str(str)), FlatElem(AMath(k))) =>
-          AbsValue(CodeUnit(str(k.toInt)))
-        case (FlatElem(Str(str)), FlatElem(ASimple(simple))) =>
-          simple match
-            case Str("length") => AbsValue(Math(BigDecimal.exact(str.length)))
-            case Number(k)     => AbsValue(CodeUnit(str(k.toInt)))
-            case _             => AbsValue.Bot
-        case _ => AbsValue.str
-      }
-      compValue ⊔ locValue ⊔ strValue ⊔ astValue
-    }
-    def apply(loc: Loc): AbsObj = heap(loc)
-
-    // lookup local variables
-    def lookupLocal(x: Local): AbsValue = this match {
-      case Elem(_, locals, _, _) =>
-        locals.getOrElse(x, AbsValue.Bot)
-    }
-
-    // lookup global variables
-    def lookupGlobal(x: Global): AbsValue = this match {
-      case Elem(_, _, globals, _) =>
-        globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
-    }
-
-    // setters
-    def update(refV: AbsRefValue, value: AbsValue): Elem = refV match {
-      case AbsRefId(x) => update(x, value)
-      case AbsRefProp(base, prop) =>
-        update(base.escaped.loc, prop, value)
-    }
-    def update(x: Id, value: AbsValue): Elem =
-      bottomCheck(value) {
-        x match
-          case x: Global if globals contains x =>
-            copy(globals = globals + (x -> value))
-          case x: Name if locals contains x =>
-            copy(locals = locals + (x -> value))
-          case x: Temp =>
-            copy(locals = locals + (x -> value))
-          case _ => AbsState.Bot
-      }
-    def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem =
-      bottomCheck(aloc, prop, value) {
-        copy(heap = heap.update(aloc, prop, value))
-      }
-
-    // existence checks
-    def exists(ref: AbsRefValue): AbsBool = ref match
-      case AbsRefId(id)           => !directLookup(id).isAbsent
-      case AbsRefProp(base, prop) => !this(base.escaped, prop).isAbsent
-
-    // delete a property from a map
-    def delete(refV: AbsRefValue): Elem = refV match
-      case AbsRefId(x) => error(s"cannot delete variable $x")
-      case AbsRefProp(base, prop) =>
-        bottomCheck(base, prop) {
-          copy(heap = heap.delete(base.escaped.loc, prop))
-        }
-
-    // object operators
-    def append(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.append(loc, value)) }
-    def prepend(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.prepend(loc, value)) }
-    def remove(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.remove(loc, value)) }
-    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = {
-      var v: AbsValue = AbsValue.Bot
-      val st: Elem = bottomCheck(loc) {
-        val (newV, newH) = heap.pop(loc, front)
-        v ⊔= newV
-        copy(heap = newH)
-      }
-      (v, st)
-    }
-    def copyObj(from: AbsLoc)(to: AllocSite): Elem =
-      bottomCheck(from) { copy(heap = heap.copyObj(from)(to)) }
-    def keys(loc: AbsLoc, intSorted: Boolean)(to: AllocSite): Elem =
-      bottomCheck(loc) { copy(heap = heap.keys(loc, intSorted)(to)) }
-    def allocMap(tname: String, pairs: List[(AbsValue, AbsValue)])(
-      to: AllocSite,
-    ): Elem =
-      bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
-        copy(heap = heap.allocMap(tname, pairs)(to))
-      }
-    def allocList(list: List[AbsValue])(to: AllocSite): Elem =
-      bottomCheck(list) { copy(heap = heap.allocList(list)(to)) }
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem =
-      bottomCheck(desc) { copy(heap = heap.allocSymbol(desc)(to)) }
-    def setType(loc: AbsLoc, tname: String): Elem =
-      bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
-    def contains(loc: AbsLoc, value: AbsValue): AbsBool =
-      heap.contains(loc, value)
-
-    // define global variables
-    def defineGlobal(pairs: (Global, AbsValue)*): Elem =
-      bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
-
-    // define local variables
-    def defineLocal(pairs: (Local, AbsValue)*): Elem =
-      bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
+    // copy
+    def copied(
+      locals: Map[Local, AbsValue] = Map(),
+    ): Elem = copy(locals = locals)
 
     // conversion to string
     def toString(detail: Boolean): String = {
       val app = new Appender
       given Rule[Elem] =
-        if (detail) AbsState.rule else AbsState.shortRule
+        if (detail) BasicStateDomain.rule else BasicStateDomain.shortRule
       app >> this
       app.toString
     }
@@ -400,16 +293,6 @@ object BasicStateDomain extends Domain {
         app :> s"$loc -> " >> obj >> LINE_SEP
       })
       app.toString
-    }
-
-    // check bottom elements in abstract semantics
-    private def bottomCheck(vs: Domain#ElemTrait*)(f: => Elem): Elem =
-      bottomCheck(vs)(f)
-    private def bottomCheck(
-      vs: Iterable[Domain#ElemTrait],
-    )(f: => Elem): Elem = {
-      if (this.isBottom || vs.exists(_.isBottom)) Bot
-      else f
     }
   }
 }

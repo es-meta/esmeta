@@ -28,6 +28,8 @@ object BasicValueDomain extends Domain {
   def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
   def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
+  lazy val codeunit: Elem = Bot.copy(codeunit = AbsCodeUnit.Top)
+  lazy val math: Elem = Bot.copy(math = AbsMath.Top)
   lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
   lazy val bigint: Elem = Bot.copy(simple = AbsSimple.bigint)
   lazy val str: Elem = Bot.copy(simple = AbsSimple.str)

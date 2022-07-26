@@ -28,7 +28,8 @@ lazy val cfg: CFG = _cfgOpt.get // global cfg must be initialized
 lazy val AbsRet = BasicRetDomain
 type AbsRet = AbsRet.Elem
 
-lazy val AbsState = BasicStateDomain
+var ABS_STATE: StateDomain = BasicStateDomain
+lazy val AbsState = ABS_STATE
 type AbsState = AbsState.Elem
 
 lazy val AbsHeap = BasicHeapDomain
