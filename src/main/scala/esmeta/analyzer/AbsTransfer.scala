@@ -48,15 +48,13 @@ case class AbsTransfer(sem: AbsSemantics) {
       case br @ Branch(_, kind, cond, thenNode, elseNode) =>
         (for {
           v <- transfer(cond)
-          b = v.bool
           newSt <- get
         } yield {
-          // TODO prune
-          if (AT ⊑ b)
+          if (AVT ⊑ v)
             thenNode.foreach(to =>
               sem += getNextNp(np, to) -> prune(cond, true)(newSt),
             )
-          if (AF ⊑ b)
+          if (AVF ⊑ v)
             elseNode.foreach(to =>
               sem += getNextNp(np, to, br.isLoop) -> prune(cond, false)(newSt),
             )
@@ -208,23 +206,8 @@ case class AbsTransfer(sem: AbsSemantics) {
       for {
         lv <- transfer(l)
         st <- get
-        tyV = {
-          var newV = AbsValue.Bot
-          for (Str(tyStr) <- r.str) {
-            if (tyStr == "Number") newV ⊔= AbsValue(num = AbsNum.Top)
-            if (tyStr == "BigInt") newV ⊔= AbsValue(bigint = AbsBigInt.Top)
-            if (tyStr == "String") newV ⊔= AbsValue(str = AbsStr.Top)
-            if (tyStr == "Boolean") newV ⊔= AbsValue(bool = AbsBool.Top)
-            if (tyStr == "Undefined") newV ⊔= AbsValue(undef = AbsUndef.Top)
-            if (tyStr == "Null") newV ⊔= AbsValue(nullv = AbsNull.Top)
-            // TODO symbol, object
-          }
-          newV
-        }
-        // TODO fix loc
-        updatedV =
-          if (positive) (lv ⊓ tyV) ⊔ AbsValue(loc = lv.loc) else lv - tyV
-        _ <- modify(_.update(l, updatedV))
+        prunedV = lv.pruneType(r, positive)
+        _ <- modify(_.update(l, prunedV))
       } yield ()
   }
 
@@ -292,12 +275,12 @@ case class AbsTransfer(sem: AbsSemantics) {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          for (AClo(func, captured) <- fv.clo) {
+          for (AClo(func, captured) <- fv.getClo) {
             val newLocals = getLocals(func.irFunc.params, as) ++ captured
             val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt)
           }
-          for (ACont(target, captured) <- fv.cont) {
+          for (ACont(target, captured) <- fv.getCont) {
             val as0 =
               as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
             val newLocals =
@@ -316,7 +299,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          for (AClo(func, _) <- fv.clo) {
+          for (AClo(func, _) <- fv.getClo) {
             val newLocals = getLocals(func.irFunc.params, bv :: as)
             val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt)
@@ -351,13 +334,10 @@ case class AbsTransfer(sem: AbsSemantics) {
     def transfer(expr: Expr): Result[AbsValue] = expr match {
       case EComp(ty, value, target) =>
         for {
-          y <- transfer(ty)
+          tyV <- transfer(ty)
           v <- transfer(value)
-          origT <- transfer(target)
-          t = AbsValue(str = origT.str, const = origT.const)
-        } yield AbsValue(comp = AbsComp((for {
-          AConst(name) <- y.const.toList
-        } yield name -> AbsComp.Result(v, t)).toMap))
+          targetV <- transfer(target)
+        } yield AbsValue.mkCompletion(tyV, v, targetV)
       case EIsCompletion(expr) =>
         for {
           v <- transfer(expr)
@@ -385,46 +365,10 @@ case class AbsTransfer(sem: AbsSemantics) {
         for {
           c <- transfer(code)
           r <- transfer(rule)
-        } yield {
-          var newV: AbsValue = AbsValue.Bot
-
-          // codes
-          var codes: Set[(String, List[Boolean])] = Set()
-          for (Str(s) <- c.str) codes += (s, List())
-          for (AAst(ast) <- c.ast) {
-            val code = ast.toString(grammar = Some(cfg.grammar))
-            val args = ast match
-              case syn: Syntactic => syn.args
-              case _              => List()
-            codes += (code, args)
-          }
-
-          // parse
-          for {
-            AGrammar(name, params) <- r.grammar
-            (str, args) <- codes
-            parseArgs = if (params.isEmpty) args else params
-          } newV ⊔= AbsValue(
-            (name, sem.cachedAst) match {
-              case ("Script", Some(cached)) if str == sem.sourceText =>
-                cached
-              case _ => cfg.jsParser(name, parseArgs).from(str),
-            },
-          )
-
-          // result
-          newV
-        }
+        } yield c.parse(r)
       case EGrammar(name, params) => AbsValue(Grammar(name, params))
       case ESourceText(expr) =>
-        for {
-          v <- transfer(expr)
-          s = AbsStr(
-            v.ast.toList.map(x =>
-              Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
-            ),
-          )
-        } yield AbsValue(str = s)
+        for { v <- transfer(expr) } yield v.sourceText
       case e @ EGetChildren(kindOpt, ast) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
@@ -509,64 +453,12 @@ case class AbsTransfer(sem: AbsSemantics) {
             case ToStr(Some(radix)) => transfer(radix)
             case ToStr(None)        => pure(AbsValue(Math(10)))
             case _                  => pure(AbsValue.Bot)
-        } yield {
-          var newV: AbsValue = AbsValue.Bot
-          for (Str(s) <- v.str) newV ⊔= (cop match
-            case ToNumber => AbsValue(Number(ESValueParser.str2Number(s)))
-            case ToBigInt => AbsValue(ESValueParser.str2bigint(s))
-            case _        => AbsValue.Bot
-          )
-          for (AMath(n) <- v.math) newV ⊔= (cop match
-            case ToNumber => AbsValue(Number(n.toDouble))
-            case ToBigInt => AbsValue(BigInt(n.toBigInt))
-            case _        => AbsValue.Bot
-          )
-          for (BigInt(b) <- v.bigint) newV ⊔= (cop match
-            case ToMath => AbsValue(Math(BigDecimal.exact(b)))
-            case _      => AbsValue.Bot
-          )
-          for (ACodeUnit(cu) <- v.codeunit) newV ⊔= (cop match
-            case ToMath => AbsValue(Math(BigDecimal.exact(cu.toInt)))
-            case _      => AbsValue.Bot
-          )
-          for (Number(d) <- v.num)
-            newV ⊔= (cop match
-              case ToNumber | ToMath if d.isInfinity => AbsValue(d)
-              case ToMath => AbsValue(Math(BigDecimal.exact(d)))
-              case _: ToStr =>
-                var newV0 = AbsValue.Bot
-                for (AMath(n) <- r.math if n.isValidInt) {
-                  newV0 ⊔= AbsValue(toStringHelper(d, n.toInt))
-                }
-                for (Number(n) <- r.num if n.isValidInt) {
-                  newV0 ⊔= AbsValue(toStringHelper(d, n.toInt))
-                }
-                newV0
-              case _ => AbsValue.Bot
-            )
-          newV
-        }
+        } yield v.convert(cop, r)
       case ETypeOf(base) =>
         for {
           v <- transfer(base)
           st <- get
-        } yield {
-          var set = Set[String]()
-          if (!v.num.isBottom) set += "Number"
-          if (!v.bigint.isBottom) set += "BigInt"
-          if (!v.str.isBottom) set += "String"
-          if (!v.bool.isBottom) set += "Boolean"
-          if (!v.undef.isBottom) set += "Undefined"
-          if (!v.nullv.isBottom) set += "Null"
-          if (!v.loc.isBottom) for (loc <- v.loc) {
-            val tname = st(loc).getTy match
-              case tname if cfg.typeModel.subType(tname, "Object") =>
-                "Object"
-              case tname => tname
-            set += tname
-          }
-          AbsValue(str = AbsStr(set.map(Str.apply)))
-        }
+        } yield v.typeOf(st)
       case ETypeCheck(expr, tyExpr) =>
         for {
           v <- transfer(expr)
@@ -576,38 +468,7 @@ case class AbsTransfer(sem: AbsSemantics) {
             case FlatElem(ASimple(Str(s))) => pure(s)
             case FlatElem(AGrammar(n, _))  => pure(n)
             case _                         => exploded("ETypeCheck")
-        } yield {
-          var bv: AbsBool = AbsBool.Bot
-          if (!v.num.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
-          if (!v.bigint.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
-          if (!v.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
-          if (!v.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
-          if (!v.const.isBottom)
-            bv ⊔= AbsBool(Bool(tname == "Constant"))
-          if (!v.comp.isBottom)
-            bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
-          if (!v.undef.isBottom)
-            bv ⊔= AbsBool(Bool(tname == "Undefined"))
-          if (!v.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
-          if (!v.clo.isBottom)
-            bv ⊔= AbsBool(Bool(tname == "AbstractClosure"))
-          v.ast.getSingle match
-            case FlatBot => /* do nothing */
-            case FlatTop => bv = AB
-            case FlatElem(AAst(ast)) =>
-              bv ⊔= AbsBool(
-                Bool(tname == "ParseNode" || (ast.types contains tname)),
-              )
-          for (loc <- v.loc) {
-            val tname0 = st(loc).getTy
-            bv ⊔= AbsBool(
-              Bool(
-                tname0 == tname || cfg.typeModel.subType(tname0, tname),
-              ),
-            )
-          }
-          AbsValue(bool = bv)
-        }
+        } yield v.typeCheck(tname, st)
       case EClo(fname, cap) =>
         for {
           st <- get
@@ -632,18 +493,16 @@ case class AbsTransfer(sem: AbsSemantics) {
             case None        => pure(None)
           })
         } yield {
-          val cs0 = cs.map(cOpt => cOpt.map(_.ast))
           if (cs.exists(cOpt => cOpt.fold(false)(_.isBottom))) AbsValue.Bot
           else {
-            val cs1 = cs0
-              .map(cOpt =>
-                cOpt.map(_.getSingle match {
-                  case FlatTop               => exploded("ESyntactic")
-                  case FlatElem(AAst(child)) => child
-                  case FlatBot               => ??? // impossible
-                }),
-              )
-            AbsValue(Syntactic(name, args, rhsIdx, cs1))
+            val cs0 = cs.map(cOpt =>
+              cOpt.map(_.getSingle match {
+                case FlatElem(AAst(child)) => child
+                case FlatBot               => ??? // impossible
+                case _                     => exploded("ESyntactic")
+              }),
+            )
+            AbsValue(Syntactic(name, args, rhsIdx, cs0))
           }
         }
       case ELexical(name, expr) => ??? // TODO
@@ -686,10 +545,10 @@ case class AbsTransfer(sem: AbsSemantics) {
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(desc)
-          _ <- modify(
-            _.allocSymbol(AbsValue(str = v.str, undef = v.undef))(loc),
+          lv <- id(
+            _.allocSymbol(v.getDescValue)(loc),
           )
-        } yield AbsValue(loc)
+        } yield lv
       case e @ ECopy(obj) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
@@ -779,11 +638,11 @@ case class AbsTransfer(sem: AbsSemantics) {
         case FlatElem(_) => AbsValue.Bot
         case FlatTop =>
           uop match
-            case Neg   => exploded(s"uop: ($uop $operand)")
-            case Not   => AbsValue(bool = !operand.bool)
-            case BNot  => exploded(s"uop: ($uop $operand)")
-            case Abs   => exploded(s"uop: ($uop $operand)")
-            case Floor => exploded(s"uop: ($uop $operand)")
+            case Neg   => -operand
+            case Not   => !operand
+            case BNot  => ~operand
+            case Abs   => operand.abs
+            case Floor => operand.floor
 
     /** transfer function for binary operators */
     def transfer(
@@ -810,53 +669,25 @@ case class AbsTransfer(sem: AbsSemantics) {
           AbsValue(l == r)
         case _ =>
           bop match {
-            case BAnd   => exploded(s"bop: ($bop $left $right)")
-            case BOr    => exploded(s"bop: ($bop $left $right)")
-            case BXOr   => exploded(s"bop: ($bop $left $right)")
-            case Div    => exploded(s"bop: ($bop $left $right)")
-            case Eq     => AbsValue(bool = left =^= right)
-            case Equal  => exploded(s"bop: ($bop $left $right)")
-            case LShift => exploded(s"bop: ($bop $left $right)")
-            case Lt     =>
-              // println(cp.func)
-              exploded(s"bop: ($bop $left $right)")
-            case Mod => exploded(s"bop: ($bop $left $right)")
-            case Mul => exploded(s"bop: ($bop $left $right)")
-            // TODO
-            // AbsValue(
-            //   num = (
-            //     (left.num mul right.num) ⊔
-            //       (right.num mulInt left.int) ⊔
-            //       (left.num mulInt right.int)
-            //   ),
-            //   int = left.int mul right.int,
-            //   bigint = left.bigint mul right.bigint,
-            // )
-            case And => exploded(s"bop: ($bop $left $right)")
-            // TODO
-            // AbsValue(bool = left.bool && right.bool)
-            case Or   => AbsValue(bool = left.bool || right.bool)
-            case Plus => exploded(s"bop: ($bop $left $right)")
-            // TODO
-            // AbsValue(
-            //   str = (
-            //     (left.str plus right.str) ⊔
-            //       (left.str plusNum right.num)
-            //   ),
-            //   num = (
-            //     (left.num plus right.num) ⊔
-            //       (right.num plusInt left.int) ⊔
-            //       (left.num plusInt right.int)
-            //   ),
-            //   int = left.int plus right.int,
-            //   bigint = left.bigint plus right.bigint,
-            // )
-            case Pow     => exploded(s"bop: ($bop $left $right)")
-            case SRShift => exploded(s"bop: ($bop $left $right)")
-            case Sub     => exploded(s"bop: ($bop $left $right)")
-            case UMod    => exploded(s"bop: ($bop $left $right)")
-            case URShift => exploded(s"bop: ($bop $left $right)")
-            case Xor     => exploded(s"bop: ($bop $left $right)")
+            case BAnd    => left & right
+            case BOr     => left | right
+            case BXOr    => left ^ right
+            case Eq      => left =^= right
+            case Equal   => left ==^== right
+            case Lt      => left < right
+            case And     => left && right
+            case Or      => left || right
+            case Xor     => left ^^ right
+            case Plus    => left + right
+            case Sub     => left sub right
+            case Div     => left / right
+            case Mul     => left * right
+            case Mod     => left % right
+            case UMod    => left %% right
+            case Pow     => left ** right
+            case LShift  => left << right
+            case SRShift => left >> right
+            case URShift => left >>> right
           }
       }
 
@@ -918,12 +749,10 @@ case class AbsTransfer(sem: AbsSemantics) {
       value: AbsValue,
       check: Boolean,
     ): Result[AbsValue] = {
-      val comp = value.comp
       val checkReturn: Result[Unit] =
-        if (check) doReturn(AbsValue(comp = comp.removeNormal))
+        if (check) doReturn(value.abruptCompletion)
         else ()
-      val newValue = comp.normal.value ⊔ value.pure
-      for (_ <- checkReturn) yield newValue
+      for (_ <- checkReturn) yield value.unwrapCompletion
     }
 
     // short circuit evaluation
@@ -933,9 +762,9 @@ case class AbsTransfer(sem: AbsSemantics) {
       right: Expr,
     ): Result[AbsValue] = for {
       l <- transfer(left)
-      v <- (bop, l.bool.getSingle) match {
-        case (BOp.And, FlatElem(Bool(false))) => pure(AVF)
-        case (BOp.Or, FlatElem(Bool(true)))   => pure(AVT)
+      v <- (bop, l.getSingle) match {
+        case (BOp.And, FlatElem(ASimple(Bool(false)))) => pure(AVF)
+        case (BOp.Or, FlatElem(ASimple(Bool(true))))   => pure(AVT)
         case _ =>
           for {
             r <- transfer(right)

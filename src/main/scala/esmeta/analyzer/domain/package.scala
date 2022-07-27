@@ -15,6 +15,9 @@ lazy val AF = AbsBool(Bool(false))
 lazy val AVB = AbsValue(bool = AB)
 lazy val AVT = AbsValue(bool = AT)
 lazy val AVF = AbsValue(bool = AF)
+lazy val AV_TYPE = AbsValue("Type")
+lazy val AV_VALUE = AbsValue("Value")
+lazy val AV_TARGET = AbsValue("Target")
 
 // ////////////////////////////////////////////////////////////////////////////
 // Abstract Domains for Values
@@ -28,7 +31,6 @@ lazy val cfg: CFG = _cfgOpt.get // global cfg must be initialized
 lazy val AbsRet = BasicRetDomain
 type AbsRet = AbsRet.Elem
 
-var ABS_STATE: StateDomain = BasicStateDomain
 lazy val AbsState = ABS_STATE
 type AbsState = AbsState.Elem
 
@@ -39,7 +41,7 @@ lazy val AbsObj = BasicObjDomain
 type AbsObj = AbsObj.Elem
 
 // values
-lazy val AbsValue = BasicValueDomain
+lazy val AbsValue = ABS_VALUE
 type AbsValue = AbsValue.Elem
 
 lazy val AbsComp = BasicCompDomain
@@ -96,3 +98,7 @@ type AbsNull = AbsNull.Elem
 
 lazy val AbsAbsent = SimpleDomain(Absent)
 type AbsAbsent = AbsAbsent.Elem
+
+// parametric domains
+var ABS_STATE: StateDomain = BasicStateDomain
+var ABS_VALUE: ValueDomain = BasicValueDomain

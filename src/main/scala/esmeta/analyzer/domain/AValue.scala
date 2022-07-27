@@ -12,11 +12,11 @@ sealed trait AValue extends AnalyzerElem
 object AValue {
 
   /** from original concrete values */
-  def apply(value: Value): AValue = value match
+  def from(value: Value): AValue = value match
     case Comp(ty, value, targetOpt) =>
       AComp(
         AConst(ty.name),
-        apply(value),
+        from(value),
         targetOpt.fold[AValue](AConst("empty"))(str => ASimple(Str(str))),
       )
     case addr: Addr    => Loc.from(addr)
@@ -30,6 +30,20 @@ object AValue {
     case Grammar(name, ps) => AGrammar(name, ps)
     case sv: SimpleValue   => ASimple(sv)
     case _                 => error(s"impossible to convert to AValue: $value")
+
+  /** from singleton types */
+  def from(ty: SingleT): AValue = ty match
+    case CodeUnitT(cu)         => ACodeUnit(cu)
+    case ConstT(c)             => AConst(c)
+    case MathSingleT(n)        => AMath(n)
+    case NumberSingleT(n)      => ASimple(Number(n))
+    case BigIntSingleT(bigint) => ASimple(BigInt(bigint))
+    case StrSingleT(str)       => ASimple(Str(str))
+    case BoolSingleT(bool)     => ASimple(Bool(bool))
+    case UndefT                => ASimple(Undef)
+    case NullT                 => ASimple(Null)
+    case AbsentT               => ASimple(Absent)
+    case NilT                  => ???
 }
 
 /** completions values */

@@ -1,12 +1,15 @@
 package esmeta.analyzer.domain
 
 import esmeta.interp.*
-import esmeta.js.Ast
+import esmeta.ir.COp
+import esmeta.js.*
+import esmeta.js.util.ESValueParser
+import esmeta.interp.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic abstract values */
-object BasicValueDomain extends Domain {
+object BasicValueDomain extends ValueDomain {
   val Bot = Elem(
     comp = AbsComp.Bot,
     clo = AbsClo.Bot,
@@ -37,7 +40,7 @@ object BasicValueDomain extends Domain {
   lazy val undef: Elem = Bot.copy(simple = AbsSimple.undef)
   lazy val nullv: Elem = Bot.copy(simple = AbsSimple.nullv)
   lazy val absent: Elem = Bot.copy(simple = AbsSimple.absent)
-  def apply(value: Value): Elem = this(AValue(value))
+  def apply(value: Value): Elem = this(AValue.from(value))
   def apply(value: AValue): Elem = value match
     case (comp: AComp)       => Bot.copy(comp = AbsComp(comp))
     case (clo: AClo)         => Bot.copy(clo = AbsClo(clo))
@@ -83,6 +86,15 @@ object BasicValueDomain extends Domain {
       math,
       simple ⊔ newSimple,
     )
+  }
+
+  /** make completion */
+  // TODO remove unsafe type casting
+  def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = {
+    val t = AbsValue(str = target.str, const = target.const)
+    apply(comp = AbsComp((for {
+      AConst(name) <- ty.const.toList
+    } yield name -> AbsComp.Result(value.asInstanceOf[AbsValue], t)).toMap))
   }
 
   // extractors
@@ -144,7 +156,7 @@ object BasicValueDomain extends Domain {
     const: AbsConst,
     math: AbsMath,
     simple: AbsSimple,
-  ) extends ElemTrait {
+  ) extends ValueElemTrait {
     // getters
     def num: AbsNum = simple.num
     def bigint: AbsBigInt = simple.bigint
@@ -153,7 +165,11 @@ object BasicValueDomain extends Domain {
     def undef: AbsUndef = simple.undef
     def nullv: AbsNull = simple.nullv
     def absent: AbsAbsent = simple.absent
-    def pure: AbsValue = copy(comp = AbsComp.Bot)
+    def pure: Elem = copy(comp = AbsComp.Bot)
+    def getKeyValue: Elem = apply(loc = loc, str = str)
+    def getDescValue: Elem = apply(str = str, undef = undef)
+    def getClo: List[AClo] = clo.toList
+    def getCont: List[ACont] = cont.toList
 
     // partial order
     def ⊑(that: Elem): Boolean = (
@@ -225,7 +241,7 @@ object BasicValueDomain extends Domain {
         this.simple.getSingle
     )
 
-    // get reachable locations
+    /** get reachable locations */
     def reachableLocs: Set[Loc] = {
       var locs = loc.toSet
       for ((_, AbsComp.Result(value, target)) <- comp.map) {
@@ -243,52 +259,240 @@ object BasicValueDomain extends Domain {
       locs
     }
 
-    // remove absent values
+    /** remove absent values */
     def removeAbsent: Elem = copy(simple = simple.removeAbsent)
-
-    // escape completion
-    def escaped: Elem = comp.normal.value ⊔ copy(comp = AbsComp.Bot)
-
-    // only values usable as keys
-    def keyValue: AbsValue = AbsValue(loc = loc, str = str)
-
-    // singleton checks
-    def isSingle: Boolean = getSingle match
-      case FlatElem(_) => true
-      case _           => false
-
-    // check completion
-    def isCompletion: AbsBool =
-      var b: AbsBool = AbsBool.Bot
-      if (!comp.isBottom) b ⊔= AT
-      if (!pure.isBottom) b ⊔= AF
-      b
-
-    // abstract equality
-    def =^=(that: AbsValue): AbsBool = (this.getSingle, that.getSingle) match
-      case (FlatBot, _) | (_, FlatBot) => AbsBool.Bot
-      case (FlatElem(l), FlatElem(r))  => AbsBool(Bool(l == r))
-      case _                           => if ((this ⊓ that).isBottom) AF else AB
-
-    // check abrupt completion
-    def isAbruptCompletion: AbsBool =
-      var b: AbsBool = AbsBool.Bot
-      if (!comp.removeNormal.isBottom) b ⊔= AT
-      if (!comp.normal.isBottom || !pure.isBottom) b ⊔= AF
-      b
-
-    // wrap completion
-    def wrapCompletion: Elem = wrapCompletion("normal")
-    def wrapCompletion(ty: String): Elem = AbsValue(comp = {
-      if (pure.isBottom) comp
-      else comp ⊔ AbsComp(ty -> AbsComp.Result(pure, AbsValue(CONST_EMPTY)))
-    })
-
-    // check absents
     def isAbsent: AbsBool =
       var b: AbsBool = AbsBool.Bot
       if (!absent.isBottom) b ⊔= AT
       if (!removeAbsent.isBottom) b ⊔= AF
       b
+
+    /** bitwise operations */
+    def &(that: Elem): Elem = ???
+    def |(that: Elem): Elem = ???
+    def ^(that: Elem): Elem = ???
+
+    /** comparison operations */
+    def =^=(that: Elem): Elem =
+      apply(bool = (this.getSingle, that.getSingle) match
+        case (FlatBot, _) | (_, FlatBot) => AbsBool.Bot
+        case (FlatElem(l), FlatElem(r))  => AbsBool(Bool(l == r))
+        case _ => if ((this ⊓ that).isBottom) AF else AB,
+      )
+    def ==^==(that: Elem): Elem = ???
+    def <(that: Elem): Elem = ???
+
+    /** logical operations */
+    def &&(that: Elem): Elem = ???
+    def ||(that: Elem): Elem = ???
+    def ^^(that: Elem): Elem = ???
+
+    /** numeric operations */
+    def +(that: Elem): Elem = ???
+    // TODO
+    // AbsValue(
+    //   str = (
+    //     (left.str plus right.str) ⊔
+    //       (left.str plusNum right.num)
+    //   ),
+    //   num = (
+    //     (left.num plus right.num) ⊔
+    //       (right.num plusInt left.int) ⊔
+    //       (left.num plusInt right.int)
+    //   ),
+    //   int = left.int plus right.int,
+    //   bigint = left.bigint plus right.bigint,
+    // )
+    def sub(that: Elem): Elem = ???
+    def /(that: Elem): Elem = ???
+    def *(that: Elem): Elem = ???
+    // TODO
+    // AbsValue(
+    //   num = (
+    //     (left.num mul right.num) ⊔
+    //       (right.num mulInt left.int) ⊔
+    //       (left.num mulInt right.int)
+    //   ),
+    //   int = left.int mul right.int,
+    //   bigint = left.bigint mul right.bigint,
+    // )
+    def %(that: Elem): Elem = ???
+    def %%(that: Elem): Elem = ???
+    def **(that: Elem): Elem = ???
+    def <<(that: Elem): Elem = ???
+    def >>>(that: Elem): Elem = ???
+    def >>(that: Elem): Elem = ???
+
+    /** unary operations */
+    def unary_- : Elem = ???
+    def unary_! : Elem = ???
+    // TODO AbsValue(bool = !operand.bool)
+    def unary_~ : Elem = ???
+    def abs: Elem = ???
+    def floor: Elem = ???
+
+    /** type operations */
+    def typeOf(st: AbsState): Elem = {
+      var set = Set[String]()
+      if (!this.num.isBottom) set += "Number"
+      if (!this.bigint.isBottom) set += "BigInt"
+      if (!this.str.isBottom) set += "String"
+      if (!this.bool.isBottom) set += "Boolean"
+      if (!this.undef.isBottom) set += "Undefined"
+      if (!this.nullv.isBottom) set += "Null"
+      if (!this.loc.isBottom) for (loc <- this.loc) {
+        val tname = st(loc).getTy match
+          case tname if cfg.typeModel.subType(tname, "Object") =>
+            "Object"
+          case tname => tname
+        set += tname
+      }
+      apply(str = AbsStr(set.map(Str.apply)))
+    }
+    def typeCheck(tname: String, st: AbsState): Elem = {
+      var bv: AbsBool = AbsBool.Bot
+      if (!this.num.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
+      if (!this.bigint.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
+      if (!this.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
+      if (!this.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
+      if (!this.const.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "Constant"))
+      if (!this.comp.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
+      if (!this.undef.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "Undefined"))
+      if (!this.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
+      if (!this.clo.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "AbstractClosure"))
+      this.ast.getSingle match
+        case FlatBot => /* do nothing */
+        case FlatTop => bv = AB
+        case FlatElem(AAst(ast)) =>
+          bv ⊔= AbsBool(
+            Bool(tname == "ParseNode" || (ast.types contains tname)),
+          )
+      for (loc <- this.loc) {
+        val tname0 = st(loc).getTy
+        bv ⊔= AbsBool(
+          Bool(
+            tname0 == tname || cfg.typeModel.subType(tname0, tname),
+          ),
+        )
+      }
+      apply(bool = bv)
+    }
+
+    /** helper functions for abstract transfer */
+    def convert(cop: COp, radix: Elem): Elem = {
+      import COp.*
+      var newV = Bot
+      for (Str(s) <- this.str) newV ⊔= (cop match
+        case ToNumber => apply(Number(ESValueParser.str2Number(s)))
+        case ToBigInt => apply(ESValueParser.str2bigint(s))
+        case _        => Bot
+      )
+      for (AMath(n) <- this.math) newV ⊔= (cop match
+        case ToNumber => apply(Number(n.toDouble))
+        case ToBigInt => apply(BigInt(n.toBigInt))
+        case _        => Bot
+      )
+      for (BigInt(b) <- this.bigint) newV ⊔= (cop match
+        case ToMath => apply(Math(BigDecimal.exact(b)))
+        case _      => Bot
+      )
+      for (ACodeUnit(cu) <- this.codeunit) newV ⊔= (cop match
+        case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
+        case _      => Bot
+      )
+      for (Number(d) <- this.num)
+        newV ⊔= (cop match
+          case ToNumber | ToMath if d.isInfinity => apply(d)
+          case ToMath => apply(Math(BigDecimal.exact(d)))
+          case _: ToStr =>
+            var newV0 = Bot
+            for (AMath(n) <- radix.math if n.isValidInt) {
+              newV0 ⊔= apply(toStringHelper(d, n.toInt))
+            }
+            for (Number(n) <- radix.num if n.isValidInt) {
+              newV0 ⊔= apply(toStringHelper(d, n.toInt))
+            }
+            newV0
+          case _ => Bot
+        )
+      newV
+    }
+    def sourceText: Elem = apply(str =
+      AbsStr(
+        this.ast.toList.map(x =>
+          Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
+        ),
+      ),
+    )
+    def parse(rule: Elem): Elem = {
+      var newV: Elem = Bot
+
+      // codes
+      var codes: Set[(String, List[Boolean])] = Set()
+      for (Str(s) <- this.str) codes += (s, List())
+      for (AAst(ast) <- this.ast) {
+        val code = ast.toString(grammar = Some(cfg.grammar))
+        val args = ast match
+          case syn: Syntactic => syn.args
+          case _              => List()
+        codes += (code, args)
+      }
+
+      // parse
+      for {
+        AGrammar(name, params) <- rule.grammar
+        (str, args) <- codes
+        parseArgs = if (params.isEmpty) args else params
+      } newV ⊔= apply(cfg.jsParser(name, parseArgs).from(str))
+
+      // result
+      newV
+    }
+
+    /** prune abstract values */
+    def pruneType(r: Elem, positive: Boolean): Elem = this
+    // TODO
+    // tyV = {
+    //   var newV = AbsValue.Bot
+    //   for (Str(tyStr) <- r.str) {
+    //     if (tyStr == "Number") newV ⊔= AbsValue(num = AbsNum.Top)
+    //     if (tyStr == "BigInt") newV ⊔= AbsValue(bigint = AbsBigInt.Top)
+    //     if (tyStr == "String") newV ⊔= AbsValue(str = AbsStr.Top)
+    //     if (tyStr == "Boolean") newV ⊔= AbsValue(bool = AbsBool.Top)
+    //     if (tyStr == "Undefined") newV ⊔= AbsValue(undef = AbsUndef.Top)
+    //     if (tyStr == "Null") newV ⊔= AbsValue(nullv = AbsNull.Top)
+    //     // TODO symbol, object
+    //   }
+    //   newV
+    // }
+    // // TODO fix loc
+    // updatedV =
+    //   if (positive) (lv ⊓ tyV) ⊔ AbsValue(loc = lv.loc) else lv - tyV
+
+    /** completion helpers */
+    // TODO remove unsafe type casting
+    def wrapCompletion: Elem = wrapCompletion("normal")
+    def wrapCompletion(ty: String): Elem = apply(comp = {
+      if (pure.isBottom) comp
+      else
+        comp ⊔ AbsComp(
+          ty -> AbsComp.Result(
+            pure.asInstanceOf[AbsValue],
+            AbsValue(CONST_EMPTY),
+          ),
+        )
+    })
+    def unwrapCompletion: Elem =
+      comp.normal.value.asInstanceOf[Elem] ⊔ this.pure
+    def isCompletion: AbsBool =
+      var b: AbsBool = AbsBool.Bot
+      if (!comp.isBottom) b ⊔= AT
+      if (!pure.isBottom) b ⊔= AF
+      b
+    def abruptCompletion: Elem = apply(comp = comp.removeNormal)
   }
 }

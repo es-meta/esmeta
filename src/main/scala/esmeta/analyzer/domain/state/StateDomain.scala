@@ -123,19 +123,14 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
       val v = directLookup(x)
       if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
       else v
-    def apply(base: AbsValue, prop: AbsValue): AbsValue =
-      val compValue = apply(base.comp, prop)
-      val locValue = apply(base.loc, prop)
-      val astValue = apply(base.ast, prop)
-      val strValue = apply(base.str, prop)
-      compValue ⊔ locValue ⊔ astValue ⊔ strValue
-    def apply(comp: AbsComp, prop: AbsValue): AbsValue = comp(prop)
-    @targetName("apply_loc")
-    def apply(loc: AbsLoc, prop: AbsValue): AbsValue
-    @targetName("apply_ast")
-    def apply(ast: AbsAst, prop: AbsValue): AbsValue
-    @targetName("apply_str")
-    def apply(str: AbsStr, prop: AbsValue): AbsValue
+    def apply(base: AbsValue, prop: AbsValue): AbsValue
+    // def apply(comp: AbsComp, prop: AbsValue): AbsValue = comp(prop)
+    // @targetName("apply_loc")
+    // def apply(loc: AbsLoc, prop: AbsValue): AbsValue
+    // @targetName("apply_ast")
+    // def apply(ast: AbsAst, prop: AbsValue): AbsValue
+    // @targetName("apply_str")
+    // def apply(str: AbsStr, prop: AbsValue): AbsValue
     def apply(loc: Loc): AbsObj
 
     // lookup variables
@@ -150,7 +145,7 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
     // existence checks
     def exists(ref: AbsRefValue): AbsBool = ref match
       case AbsRefId(id)           => !directLookup(id).isAbsent
-      case AbsRefProp(base, prop) => !this(base.escaped, prop).isAbsent
+      case AbsRefProp(base, prop) => !this(base, prop).isAbsent
 
     // define global variables
     def defineGlobal(pairs: (Global, AbsValue)*): Elem
@@ -158,11 +153,10 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
 
     // setters
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
-      case AbsRefId(x) => update(x, value)
-      case AbsRefProp(base, prop) =>
-        update(base.escaped.loc, prop, value)
+      case AbsRefId(x)            => update(x, value)
+      case AbsRefProp(base, prop) => update(base, prop, value)
     def update(x: Id, value: AbsValue): Elem
-    def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
 
     // object operators
     def delete(refV: AbsRefValue): Elem
@@ -176,7 +170,7 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
       to: AllocSite,
     ): Elem
     def allocList(list: List[AbsValue])(to: AllocSite): Elem
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem
+    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem)
     def setType(loc: AbsLoc, tname: String): Elem
     def contains(loc: AbsLoc, value: AbsValue): AbsBool
 
@@ -219,9 +213,18 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
       bottomCheck(vs)(f)
     protected def bottomCheck(
       vs: Iterable[Domain#ElemTrait],
-    )(f: => Elem): Elem = {
+    )(f: => Elem): Elem =
       if (this.isBottom || vs.exists(_.isBottom)) Bot
       else f
-    }
+    protected def bottomCheck[T](vs: Domain#ElemTrait*)(
+      default: T,
+      f: => (T, Elem),
+    ): (T, Elem) =
+      bottomCheck(vs)(default, f)
+    protected def bottomCheck[T](
+      vs: Iterable[Domain#ElemTrait],
+    )(default: T, f: => (T, Elem)): (T, Elem) =
+      if (this.isBottom || vs.exists(_.isBottom)) (default, Bot)
+      else f
   }
 }

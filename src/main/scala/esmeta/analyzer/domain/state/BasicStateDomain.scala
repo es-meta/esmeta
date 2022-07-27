@@ -14,7 +14,6 @@ import scala.annotation.targetName // TODO remove this
 
 /** basic abstract states */
 object BasicStateDomain extends StateDomain {
-
   // appender
   def mkRule(detail: Boolean): Rule[Elem] = (app, elem) => {
     val irStringifier = IRElem.getStringifier(true, false)
@@ -70,8 +69,14 @@ object BasicStateDomain extends StateDomain {
     }
 
     // getters
-    @targetName("apply_loc")
-    def apply(loc: AbsLoc, prop: AbsValue): AbsValue = heap(loc, prop)
+    // TODO remove unsafe typecast
+    def apply(base: AbsValue, prop: AbsValue): AbsValue =
+      val b = base.asInstanceOf[BasicValueDomain.Elem]
+      val compValue = b.comp(prop)
+      val locValue = heap(b.loc, prop)
+      val astValue = apply(b.ast, prop)
+      val strValue = apply(b.str, prop)
+      compValue ⊔ locValue ⊔ astValue ⊔ strValue
     @targetName("apply_ast")
     def apply(ast: AbsAst, prop: AbsValue): AbsValue =
       (ast.getSingle, prop.getSingle) match {
@@ -120,9 +125,9 @@ object BasicStateDomain extends StateDomain {
             copy(locals = locals + (x -> value))
           case _ => Bot
       }
-    def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem =
+    def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem =
       bottomCheck(aloc, prop, value) {
-        copy(heap = heap.update(aloc, prop, value))
+        copy(heap = heap.update(aloc.loc, prop, value))
       }
 
     // delete a property from a map
@@ -130,7 +135,7 @@ object BasicStateDomain extends StateDomain {
       case AbsRefId(x) => error(s"cannot delete variable $x")
       case AbsRefProp(base, prop) =>
         bottomCheck(base, prop) {
-          copy(heap = heap.delete(base.escaped.loc, prop))
+          copy(heap = heap.delete(base.loc, prop))
         }
 
     // object operators
@@ -161,8 +166,13 @@ object BasicStateDomain extends StateDomain {
       }
     def allocList(list: List[AbsValue])(to: AllocSite): Elem =
       bottomCheck(list) { copy(heap = heap.allocList(list)(to)) }
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem =
-      bottomCheck(desc) { copy(heap = heap.allocSymbol(desc)(to)) }
+    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem) =
+      val locV = AbsValue(to)
+      bottomCheck(desc)(
+        locV, {
+          (locV, copy(heap = heap.allocSymbol(desc)(to)))
+        },
+      )
     def setType(loc: AbsLoc, tname: String): Elem =
       bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
     def contains(loc: AbsLoc, value: AbsValue): AbsBool =

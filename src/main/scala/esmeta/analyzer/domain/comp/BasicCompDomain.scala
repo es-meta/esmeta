@@ -119,16 +119,12 @@ object BasicCompDomain extends Domain {
 
     // lookup
     def apply(value: AbsValue): AbsValue =
-      val str = value.str
       var newV = AbsValue.Bot
       val Result(v, t) = mergedResult
-      if (str contains Str("Type"))
-        newV ⊔= AbsValue.Bot
-          .copy(const = AbsConst(map.keySet.map(AConst.apply)))
-      if (str contains Str("Value"))
-        newV ⊔= v
-      if (str contains Str("Target"))
-        newV ⊔= t
+      if (AV_TYPE ⊑ value)
+        newV ⊔= AbsValue(const = AbsConst(map.keySet.map(AConst.apply)))
+      if (AV_VALUE ⊑ value) newV ⊔= v
+      if (AV_TARGET ⊑ value) newV ⊔= t
       newV
   }
 }

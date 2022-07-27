@@ -42,12 +42,7 @@ object TypeStateDomain extends StateDomain {
   ) extends StateElemTrait {
 
     // getters
-    @targetName("apply_loc")
-    def apply(loc: AbsLoc, prop: AbsValue): AbsValue = ???
-    @targetName("apply_ast")
-    def apply(ast: AbsAst, prop: AbsValue): AbsValue = ???
-    @targetName("apply_str")
-    def apply(str: AbsStr, prop: AbsValue): AbsValue = ???
+    def apply(base: AbsValue, prop: AbsValue): AbsValue = ???
     def apply(loc: Loc): AbsObj = ???
 
     // define global variables
@@ -60,7 +55,7 @@ object TypeStateDomain extends StateDomain {
 
     // setters
     def update(x: Id, value: AbsValue): Elem = ???
-    def update(aloc: AbsLoc, prop: AbsValue, value: AbsValue): Elem = ???
+    def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
 
     // object operators
     def delete(refV: AbsRefValue): Elem = ???
@@ -74,7 +69,7 @@ object TypeStateDomain extends StateDomain {
       to: AllocSite,
     ): Elem = ???
     def allocList(list: List[AbsValue])(to: AllocSite): Elem = ???
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem = ???
+    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem) = ???
     def setType(loc: AbsLoc, tname: String): Elem = ???
     def contains(loc: AbsLoc, value: AbsValue): AbsBool = ???
 

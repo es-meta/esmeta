@@ -63,9 +63,9 @@ object BasicObjDomain extends Domain {
       OrderedMap(
         tname = tname,
         map = (props.toList.map {
-          case (k, propV) => AValue(k) -> AbsValue(propV.value)
+          case (k, propV) => AValue.from(k) -> AbsValue(propV.value)
         }).toMap,
-        props = m.keys(intSorted = false).map(AValue.apply),
+        props = m.keys(intSorted = false).map(AValue.from),
       )
     case ListObj(values)     => KeyWiseList(values.map(AbsValue(_)))
     case YetObj(tname, desc) => NotSupportedElem(tname, desc)
@@ -371,7 +371,7 @@ object BasicObjDomain extends Domain {
       case map @ MergedMap("SubMap", _, _) =>
         jsMergedF(map)
       case map @ OrderedMap("SubMap", _, _) =>
-        prop.keyValue.getSingle match
+        prop.getKeyValue.getSingle match
           case FlatBot                => this
           case FlatElem(key) if !weak => jsF(key)(map)
           case _                      => jsMergedF(map)
@@ -379,7 +379,7 @@ object BasicObjDomain extends Domain {
       case map @ MergedMap(ty, _, _) =>
         mergedF(map)
       case map @ OrderedMap(ty, _, _) =>
-        prop.keyValue.getSingle match
+        prop.getKeyValue.getSingle match
           case FlatBot                => this
           case FlatElem(key) if !weak => f(key)(map)
           case _                      => mergedF(map)

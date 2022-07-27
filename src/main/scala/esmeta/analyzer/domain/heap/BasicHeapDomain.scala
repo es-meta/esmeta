@@ -149,9 +149,15 @@ object BasicHeapDomain extends Domain {
       loc.map(this(_, prop)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
     def apply(loc: Loc, prop: AbsValue): AbsValue = loc match
       case NamedLoc(js.builtin.INTRINSICS) =>
-        prop.str
-          .map(str => AbsValue(baseHeap.getIntrinsics(str)))
-          .foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
+        prop.getSingle match
+          case FlatBot => AbsValue.Bot
+          case FlatElem(ASimple(str)) =>
+            AbsValue(baseHeap.getIntrinsics(str))
+          case FlatElem(_) => AbsValue.Bot
+          case FlatTop     => ???
+      // prop.str
+      //   .map(AbsValue(baseHeap.getIntrinsics(_)))
+      //   .foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
       case _ => this(loc)(prop)
 
     // setters

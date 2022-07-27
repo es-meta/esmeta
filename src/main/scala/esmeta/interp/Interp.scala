@@ -456,7 +456,7 @@ class Interp(
     case comp: Comp =>
       if (check) throw ReturnValue(value)
       else throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure
+    case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
   def interp(ref: Ref): RefValue = ref match
