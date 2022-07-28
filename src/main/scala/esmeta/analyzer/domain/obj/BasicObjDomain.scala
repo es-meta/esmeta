@@ -454,15 +454,15 @@ object BasicObjDomain extends Domain {
       case _ => error("cannot set type of non-map abstract objects.")
 
     // check contains
-    def contains(value: AbsValue): AbsBool = (this, value.getSingle) match
-      case (Bot, _) | (_, FlatBot) => AbsBool.Bot
+    def contains(value: AbsValue): AbsValue = (this, value.getSingle) match
+      case (Bot, _) | (_, FlatBot) => AbsValue.Bot
       case (KeyWiseList(values), FlatElem(_)) =>
-        if (values contains value) AT
-        else if (values.forall(v => (v ⊓ value).isBottom)) AF
-        else AB
+        if (values contains value) AVT
+        else if (values.forall(v => (v ⊓ value).isBottom)) AVF
+        else AVB
       case (MergedList(mergedValue), _) =>
-        if ((mergedValue ⊓ value).isBottom) AF
-        else AB
-      case _ => AbsBool.Bot
+        if ((mergedValue ⊓ value).isBottom) AVF
+        else AVB
+      case _ => AbsValue.Bot
   }
 }

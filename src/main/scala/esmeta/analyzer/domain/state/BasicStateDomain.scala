@@ -14,7 +14,19 @@ import scala.annotation.targetName // TODO remove this
 
 /** basic abstract states */
 object BasicStateDomain extends StateDomain {
-  // appender
+
+  /** bottom element */
+  val Bot: Elem = Elem(false, Map(), Map(), AbsHeap.Bot)
+
+  /** empty element */
+  val Empty: Elem = Elem(true, Map(), Map(), AbsHeap.Bot)
+
+  /** base globals */
+  lazy val baseGlobals: Map[Id, AbsValue] = (for {
+    (x, v) <- new js.Initialize(cfg).initGlobal.toList
+  } yield x -> AbsValue(v)).toMap
+
+  /** appender */
   def mkRule(detail: Boolean): Rule[Elem] = (app, elem) => {
     val irStringifier = IRElem.getStringifier(true, false)
     import irStringifier.given
@@ -32,43 +44,58 @@ object BasicStateDomain extends StateDomain {
   given rule: Rule[Elem] = mkRule(true)
   val shortRule: Rule[Elem] = mkRule(false)
 
-  // constructors
-  def apply(
-    reachable: Boolean,
-    locals: Map[Local, AbsValue],
-    globals: Map[Global, AbsValue],
-  ): Elem = apply(reachable, locals, globals, AbsHeap.Bot)
-  def apply(
-    reachable: Boolean,
-    locals: Map[Local, AbsValue],
-    globals: Map[Global, AbsValue],
-    heap: AbsHeap,
-  ): Elem = Elem(reachable, locals, globals, heap)
-
-  // elements
+  /** elements */
   case class Elem(
     reachable: Boolean,
     locals: Map[Local, AbsValue],
     globals: Map[Global, AbsValue],
     heap: AbsHeap,
   ) extends StateElemTrait {
-    // partial order
+
+    /** partial order */
     override def ⊑(that: Elem): Boolean =
-      super.⊑(that) && this.heap ⊑ that.heap
+      val globalsB = (this.globals.keySet ++ that.globals.keySet).forall(x => {
+        this.lookupGlobal(x) ⊑ that.lookupGlobal(x)
+      })
+      super.⊑(that) && globalsB && this.heap ⊑ that.heap
 
-    // join operator
-    override def ⊔(that: Elem): Elem =
-      super.⊔(that).copy(heap = this.heap ⊔ that.heap)
+    /** join operator */
+    def ⊔(that: Elem): Elem = (this, that) match
+      case _ if this.isBottom => that
+      case _ if that.isBottom => this
+      case (l, r) => {
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = this.lookupLocal(x) ⊔ that.lookupLocal(x)
+        } yield x -> v).toMap
+        val newGlobals = (for {
+          x <- (l.globals.keySet ++ r.globals.keySet).toList
+          v = this.lookupGlobal(x) ⊔ that.lookupGlobal(x)
+        } yield x -> v).toMap
+        val newHeap = this.heap ⊔ that.heap
+        Elem(true, newLocals, newGlobals, newHeap)
+      }
 
-    // meet operator
-    override def ⊓(that: Elem): Elem = {
-      val newHeap = this.heap ⊓ that.heap
-      val baseSt = super.⊓(that)
-      if (newHeap.isBottom || baseSt.isBottom) Bot
-      else baseSt.copy(heap = newHeap)
-    }
+    /** meet operator */
+    def ⊓(that: Elem): Elem = (this, that) match
+      case _ if this.isBottom || that.isBottom => Bot
+      case (l, r) =>
+        var isBottom = false
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = this.lookupLocal(x) ⊓ that.lookupLocal(x)
+          _ = isBottom |= v.isBottom
+        } yield x -> v).toMap
+        val newGlobals = (for {
+          x <- (l.globals.keySet ++ r.globals.keySet).toList
+          v = this.lookupGlobal(x) ⊓ that.lookupGlobal(x)
+          _ = isBottom |= v.isBottom
+        } yield x -> v).toMap
+        val newHeap = this.heap ⊓ that.heap
+        if (newHeap.isBottom || isBottom) Bot
+        else Elem(true, newLocals, newGlobals, newHeap)
 
-    // getters
+    /** getters * */
     // TODO remove unsafe typecast
     def apply(base: AbsValue, prop: AbsValue): AbsValue =
       val b = base.asInstanceOf[BasicValueDomain.Elem]
@@ -112,6 +139,8 @@ object BasicStateDomain extends StateDomain {
         case _ => AbsValue.codeunit ⊔ AbsValue.math
       }
     def apply(loc: Loc): AbsObj = heap(loc)
+    def lookupGlobal(x: Global): AbsValue =
+      this.globals.getOrElse(x, baseGlobals.getOrElse(x, AbsValue.Bot))
 
     // setters
     def update(x: Id, value: AbsValue): Elem =
@@ -175,8 +204,13 @@ object BasicStateDomain extends StateDomain {
       )
     def setType(loc: AbsLoc, tname: String): Elem =
       bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
-    def contains(loc: AbsLoc, value: AbsValue): AbsBool =
-      heap.contains(loc, value)
+    def contains(
+      list: AbsValue,
+      value: AbsValue,
+      field: Option[(Type, String)],
+    ): AbsValue = field match
+      case Some(_) => ??? // TODO
+      case None    => heap.contains(list.loc, value)
 
     // define global variables
     def defineGlobal(pairs: (Global, AbsValue)*): Elem =
@@ -187,7 +221,8 @@ object BasicStateDomain extends StateDomain {
       bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
 
     // singleton checks
-    override def isSingle: Boolean = super.isSingle && heap.isSingle
+    override def isSingle: Boolean =
+      super.isSingle && globals.forall(_._2.isSingle) && heap.isSingle
 
     // singleton location checks
     def isSingle(loc: Loc): Boolean = heap.isSingle(loc)

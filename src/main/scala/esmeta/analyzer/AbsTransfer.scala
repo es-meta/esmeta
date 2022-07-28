@@ -341,7 +341,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       case EIsCompletion(expr) =>
         for {
           v <- transfer(expr)
-        } yield AbsValue(bool = v.isCompletion)
+        } yield v.isCompletion
       case EReturnIfAbrupt(ERef(ref), check) =>
         for {
           rv <- transfer(ref)
@@ -395,9 +395,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           l <- transfer(list)
           v <- transfer(elem)
           st <- get
-        } yield field match
-          case Some((_, f)) => ??? // TODO
-          case None         => AbsValue(bool = st.contains(l.loc, v))
+        } yield st.contains(l, v, field)
       case ESubstring(expr, from, to) =>
         for {
           v <- transfer(expr)
@@ -434,7 +432,7 @@ case class AbsTransfer(sem: AbsSemantics) {
         for {
           rv <- transfer(ref)
           b <- get(_.exists(rv))
-        } yield AbsValue(bool = !b)
+        } yield !b
       case EBinary(bop, left, right) =>
         for {
           lv <- transfer(left)
@@ -562,24 +560,10 @@ case class AbsTransfer(sem: AbsSemantics) {
           _ <- modify(_.keys(v.loc, intSorted)(loc))
         } yield AbsValue(loc)
       case EDuplicated(expr) =>
-        import AbsObj.*
         for {
           v <- transfer(expr)
           st <- get
-        } yield AbsValue(bool = v.loc.foldLeft(AbsBool.Bot: AbsBool) {
-          case (avb, loc) =>
-            avb ⊔ (st(loc) match {
-              case _: MergedList => AT
-              case KeyWiseList(vs) if vs.forall(_.isSingle) =>
-                val values = vs.map(_.getSingle).flatMap {
-                  case FlatElem(v) => Some(v)
-                  case _           => None
-                }
-                AbsBool(Bool(values.toSet.size != values.size))
-              case _: KeyWiseList => AT
-              case _              => AbsBool.Bot
-            })
-        })
+        } yield v.duplicated(st)
       case EIsArrayIndex(expr) =>
         for {
           v <- transfer(expr)

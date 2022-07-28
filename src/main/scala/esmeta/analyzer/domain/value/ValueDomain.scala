@@ -26,30 +26,9 @@ trait ValueDomain extends Domain {
   lazy val undef: Elem
   lazy val nullv: Elem
   lazy val absent: Elem
-  def apply(value: Value): Elem
+  def apply(value: Value): Elem = this(AValue.from(value))
   def apply(value: AValue): Elem
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem
-
-  /** constructors */
-  def apply(
-    comp: AbsComp = AbsComp.Bot,
-    clo: AbsClo = AbsClo.Bot,
-    cont: AbsCont = AbsCont.Bot,
-    loc: AbsLoc = AbsLoc.Bot,
-    ast: AbsAst = AbsAst.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
-    codeunit: AbsCodeUnit = AbsCodeUnit.Bot,
-    const: AbsConst = AbsConst.Bot,
-    math: AbsMath = AbsMath.Bot,
-    simple: AbsSimple = AbsSimple.Bot,
-    num: AbsNum = AbsNum.Bot,
-    bigint: AbsBigInt = AbsBigInt.Bot,
-    str: AbsStr = AbsStr.Bot,
-    bool: AbsBool = AbsBool.Bot,
-    undef: AbsUndef = AbsUndef.Bot,
-    nullv: AbsNull = AbsNull.Bot,
-    absent: AbsAbsent = AbsAbsent.Bot,
-  ): Elem
 
   /** elements */
   type Elem <: ValueElemTrait
@@ -110,6 +89,7 @@ trait ValueDomain extends Domain {
     def convert(cop: COp, radix: Elem): Elem
     def sourceText: Elem
     def parse(rule: Elem): Elem
+    def duplicated(st: AbsState): Elem
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem
@@ -126,11 +106,11 @@ trait ValueDomain extends Domain {
     /** completion helpers */
     def wrapCompletion: Elem
     def unwrapCompletion: Elem // TODO warning
-    def isCompletion: AbsBool
+    def isCompletion: Elem
     def abruptCompletion: Elem
 
     /** absent helpers */
     def removeAbsent: Elem
-    def isAbsent: AbsBool
+    def isAbsent: Elem
   }
 }

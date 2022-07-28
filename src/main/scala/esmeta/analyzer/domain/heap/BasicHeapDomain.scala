@@ -253,8 +253,8 @@ object BasicHeapDomain extends Domain {
       applyEach(loc)((obj, _) => obj.setType(tname))
 
     // check contains
-    def contains(loc: AbsLoc, value: AbsValue): AbsBool =
-      loc.toList.foldLeft(AbsBool.Bot: AbsBool) {
+    def contains(loc: AbsLoc, value: AbsValue): AbsValue =
+      loc.toList.foldLeft(AbsValue.Bot: AbsValue) {
         case (bool, loc) => bool ⊔ (this(loc) contains value)
       }
 

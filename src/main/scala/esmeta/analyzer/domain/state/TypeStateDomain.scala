@@ -6,6 +6,7 @@ import esmeta.cfg.CFG
 import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js
+import esmeta.js.builtin.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
@@ -15,7 +16,35 @@ import scala.annotation.targetName // TODO remove this
 /** abstract states for type analysis */
 object TypeStateDomain extends StateDomain {
 
-  // appender
+  /** bottom element */
+  val Bot: Elem = Elem(false, Map())
+
+  /** empty element */
+  val Empty: Elem = Elem(true, Map())
+
+  /** base globals */
+  // TODO global modeling
+  lazy val baseGlobals: Map[Id, AbsValue] = Map(
+    // TODO
+    // EXECUTION_STACK -> Elem(ListT(NameT("ExecutionContext"))),
+    // HOST_DEFINED -> AbsValue.undef,
+    // INTRINSICS -> NamedAddr(INTRINSICS),
+    // GLOBAL -> NamedAddr(GLOBAL),
+    // SYMBOL -> NamedAddr(SYMBOL),
+    // REALM -> NamedAddr(REALM),
+    // JOB_QUEUE -> NamedAddr(JOB_QUEUE),
+    // SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
+    UNDEF_TYPE -> AbsValue("Undefined"),
+    NULL_TYPE -> AbsValue("Null"),
+    BOOL_TYPE -> AbsValue("Boolean"),
+    STRING_TYPE -> AbsValue("String"),
+    SYMBOL_TYPE -> AbsValue("Symbol"),
+    NUMBER_TYPE -> AbsValue("Number"),
+    BIGINT_TYPE -> AbsValue("BigInt"),
+    OBJECT_TYPE -> AbsValue("Object"),
+  ).map { case (k, v) => Global(k) -> v }
+
+  /** appender */
   given rule: Rule[Elem] = (app, elem) => {
     val irStringifier = IRElem.getStringifier(true, false)
     import irStringifier.given
@@ -23,41 +52,59 @@ object TypeStateDomain extends StateDomain {
     else
       app.wrap {
         app :> "locals: " >> elem.locals >> LINE_SEP
-        app :> "globals: " >> elem.globals >> LINE_SEP
       }
   }
 
-  // constructors
-  def apply(
-    reachable: Boolean,
-    locals: Map[Local, AbsValue],
-    globals: Map[Global, AbsValue],
-  ): Elem = Elem(reachable, locals, globals)
-
-  // elements
+  /** elements */
   case class Elem(
     reachable: Boolean,
     locals: Map[Local, AbsValue],
-    globals: Map[Global, AbsValue],
   ) extends StateElemTrait {
 
-    // getters
+    /** join operator */
+    def ⊔(that: Elem): Elem = (this, that) match
+      case _ if this.isBottom => that
+      case _ if that.isBottom => this
+      case (l, r) =>
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = this.lookupLocal(x) ⊔ that.lookupLocal(x)
+        } yield x -> v).toMap
+        Elem(true, newLocals)
+
+    /** meet operator */
+    def ⊓(that: Elem): Elem = (this, that) match
+      case _ if this.isBottom || that.isBottom => Bot
+      case (l, r) =>
+        var isBottom = false
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = this.lookupLocal(x) ⊓ that.lookupLocal(x)
+          _ = isBottom |= v.isBottom
+        } yield x -> v).toMap
+        if (isBottom) Bot
+        else Elem(true, newLocals)
+
+    /** getters */
     def apply(base: AbsValue, prop: AbsValue): AbsValue = ???
     def apply(loc: Loc): AbsObj = ???
+    def lookupGlobal(x: Global): AbsValue =
+      baseGlobals.getOrElse(x, AbsValue.Bot)
 
-    // define global variables
-    def defineGlobal(pairs: (Global, AbsValue)*): Elem =
-      bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
+    /** define global variables */
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem = ???
 
-    // define local variables
+    /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
       bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
 
-    // setters
-    def update(x: Id, value: AbsValue): Elem = ???
+    /** setters */
+    def update(x: Id, value: AbsValue): Elem = x match
+      case x: Local  => defineLocal(x -> value)
+      case Global(x) => ???
     def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
 
-    // object operators
+    /** object operators */
     def delete(refV: AbsRefValue): Elem = ???
     def append(loc: AbsLoc, value: AbsValue): Elem = ???
     def prepend(loc: AbsLoc, value: AbsValue): Elem = ???
@@ -71,7 +118,11 @@ object TypeStateDomain extends StateDomain {
     def allocList(list: List[AbsValue])(to: AllocSite): Elem = ???
     def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem) = ???
     def setType(loc: AbsLoc, tname: String): Elem = ???
-    def contains(loc: AbsLoc, value: AbsValue): AbsBool = ???
+    def contains(
+      list: AbsValue,
+      value: AbsValue,
+      field: Option[(Type, String)],
+    ): AbsValue = ???
 
     // singleton location checks
     def isSingle(loc: Loc): Boolean = ???
@@ -91,7 +142,7 @@ object TypeStateDomain extends StateDomain {
     def garbageCollected: Elem = ???
 
     // get reachable locations
-    def reachableLocs: Set[Loc] = ???
+    def reachableLocs: Set[Loc] = Set() // XXX not used
 
     // copy
     def copied(

@@ -13,109 +13,43 @@ import esmeta.util.StateMonad
 import scala.annotation.targetName // TODO remove this
 
 /** abstract states */
-trait StateDomain extends Domain { stateDomain: StateDomain =>
-  // bottom element
-  val Bot: Elem = stateDomain(false, Map(), Map())
+trait StateDomain extends Domain {
 
-  // empty state
-  val Empty: Elem = stateDomain(true, Map(), Map())
+  /** bottom element */
+  val Bot: Elem
 
-  // monad helper
+  /** empty state */
+  val Empty: Elem
+
+  /** base globals */
+  lazy val baseGlobals: Map[Id, AbsValue]
+
+  /** monad helper */
   val monad: StateMonad[Elem] = new StateMonad[Elem]
 
-  // base globals
-  lazy val baseGlobals: Map[Global, Value] = new js.Initialize(cfg).initGlobal
-  lazy val base: Map[Id, AbsValue] = (for {
-    (x, v) <- baseGlobals.toList
-  } yield x -> AbsValue(v)).toMap
-
-  // constructors
-  def apply(
-    reachable: Boolean,
-    locals: Map[Local, AbsValue],
-    globals: Map[Global, AbsValue],
-  ): Elem
-
-  // extractors
-  def unapply(elem: Elem) = Some(
-    (
-      elem.reachable,
-      elem.locals,
-      elem.globals,
-    ),
-  )
-
-  // elements
+  /** elements */
   type Elem <: StateElemTrait
   trait StateElemTrait extends super.ElemTrait { this: Elem =>
     val reachable: Boolean
     val locals: Map[Local, AbsValue]
-    val globals: Map[Global, AbsValue]
 
     // partial order
     override def isBottom = !this.reachable
-    def ⊑(that: Elem): Boolean = (this, that) match {
+    def ⊑(that: Elem): Boolean = (this, that) match
       case _ if this.isBottom => true
       case _ if that.isBottom => false
-      case (
-            stateDomain(_, llocals, lglobals),
-            stateDomain(_, rlocals, rglobals),
-          ) => {
-        val localsB = (llocals.keySet ++ rlocals.keySet).forall(x => {
+      case (l, r) =>
+        (l.locals.keySet ++ r.locals.keySet).forall(x => {
           this.lookupLocal(x) ⊑ that.lookupLocal(x)
         })
-        val globalsB = (lglobals.keySet ++ rglobals.keySet).forall(x => {
-          this.lookupGlobal(x) ⊑ that.lookupGlobal(x)
-        })
-        localsB && globalsB
-      }
-    }
 
-    // join operator
-    def ⊔(that: Elem): Elem = (this, that) match {
-      case _ if this.isBottom => that
-      case _ if that.isBottom => this
-      case (
-            stateDomain(_, llocals, lglobals),
-            stateDomain(_, rlocals, rglobals),
-          ) => {
-        val newLocals = (for {
-          x <- (llocals.keySet ++ rlocals.keySet).toList
-          v = this.lookupLocal(x) ⊔ that.lookupLocal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newGlobals = (for {
-          x <- (lglobals.keySet ++ rglobals.keySet).toList
-          v = this.lookupGlobal(x) ⊔ that.lookupGlobal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        stateDomain(true, newLocals, newGlobals)
-      }
-    }
+    /** join operator */
+    def ⊔(that: Elem): Elem
 
-    // meet operator
-    def ⊓(that: Elem): Elem = (this, that) match {
-      case _ if this.isBottom || that.isBottom => Bot
-      case (
-            stateDomain(_, llocals, lglobals),
-            stateDomain(_, rlocals, rglobals),
-          ) => {
-        val newLocals = (for {
-          x <- (llocals.keySet intersect rlocals.keySet).toList
-          v = this.lookupLocal(x) ⊓ that.lookupLocal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val newGlobals = (for {
-          x <- (lglobals.keySet intersect rglobals.keySet).toList
-          v = this.lookupGlobal(x) ⊓ that.lookupGlobal(x)
-          if !v.isBottom
-        } yield x -> v).toMap
-        val isBottom = newLocals.isEmpty || newGlobals.isEmpty
-        stateDomain(!isBottom, newLocals, newGlobals)
-      }
-    }
+    /** meet operator */
+    def ⊓(that: Elem): Elem
 
-    // getters
+    /** getters */
     def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match
       case AbsRefId(x)            => this(x, cp)
       case AbsRefProp(base, prop) => this(base, prop)
@@ -139,11 +73,10 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
       case x: Global => lookupGlobal(x)
     def lookupLocal(x: Local): AbsValue =
       this.locals.getOrElse(x, AbsValue.Bot)
-    def lookupGlobal(x: Global): AbsValue =
-      this.globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
+    def lookupGlobal(x: Global): AbsValue
 
     // existence checks
-    def exists(ref: AbsRefValue): AbsBool = ref match
+    def exists(ref: AbsRefValue): AbsValue = ref match
       case AbsRefId(id)           => !directLookup(id).isAbsent
       case AbsRefProp(base, prop) => !this(base, prop).isAbsent
 
@@ -172,7 +105,11 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
     def allocList(list: List[AbsValue])(to: AllocSite): Elem
     def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem)
     def setType(loc: AbsLoc, tname: String): Elem
-    def contains(loc: AbsLoc, value: AbsValue): AbsBool
+    def contains(
+      list: AbsValue,
+      value: AbsValue,
+      field: Option[(Type, String)],
+    ): AbsValue
 
     // find merged parts
     def findMerged: Unit
@@ -192,9 +129,7 @@ trait StateDomain extends Domain { stateDomain: StateDomain =>
     def reachableLocs: Set[Loc]
 
     // singleton checks
-    def isSingle: Boolean = reachable &&
-      locals.forall(_._2.isSingle) &&
-      globals.forall(_._2.isSingle)
+    def isSingle: Boolean = reachable && locals.forall(_._2.isSingle)
     def isSingle(loc: Loc): Boolean
 
     // copy

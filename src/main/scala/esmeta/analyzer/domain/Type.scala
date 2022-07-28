@@ -1,12 +1,14 @@
 package esmeta.analyzer.domain
 
+import esmeta.analyzer.AnalyzerElem
+import esmeta.interp.*
 import esmeta.ir.Expr
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals
 import scala.annotation.tailrec
 
 /** types */
-sealed trait Type {
+sealed trait Type extends AnalyzerElem {
   import Type.*
 
   /** get ancestor types */
@@ -62,6 +64,24 @@ sealed trait Type {
 
   /** get base types */
   def bases: Set[Type] = baseMap.getOrElse(this, Set(this))
+
+  /** get type names */
+  def typeNameSet: Set[String] = for {
+    x <- bases
+    y <- x.typeName
+  } yield y
+
+  /* get name of base types */
+  def typeName: Option[String] = this match
+    case NameT(name) if cfg.typeModel.subType(name, "Object") => Some("Object")
+    case SymbolT                                              => Some("Symbol")
+    case NumberT | NumberSingleT(_)                           => Some("Number")
+    case BigIntT | BigIntSingleT(_)                           => Some("BigInt")
+    case StrT | StrSingleT(_)                                 => Some("String")
+    case BoolT | BoolSingleT(_)                               => Some("Boolean")
+    case UndefT => Some("Undefined")
+    case NullT  => Some("Null")
+    case _      => None
 
   /** wrap completion */
   def wrapCompletion: Type = this match
@@ -137,25 +157,28 @@ case class AstT(name: String) extends PureType
 /** grammar types */
 case class GrammarT(name: String) extends PureType
 
-/** constant types */
-case class ConstT(name: String) extends PureType with SingleT
-
 /** code unit types */
-case class CodeUnitT(c: Char) extends PureType with SingleT
+case object CodeUnitT extends PureType
+
+/** math types */
+case object MathT extends PureType
+
+/** singleton types */
+sealed trait SingleT extends PureType
+// case class MathSingleT(n: BigDecimal) extends SingleT
+// case class CodeUnitSingleT(c: Char) extends PureType with SingleT
+case class ConstT(name: String) extends PureType with SingleT
 
 /** primitive types */
 case object PrimT extends PureType
 case object ArithT extends PureType
 case object NumericT extends PureType
-case object MathT extends PureType
 case object NumberT extends PureType
 case object BigIntT extends PureType
 case object StrT extends PureType
 case object BoolT extends PureType
 
-/** singleton type */
-sealed trait SingleT extends PureType
-case class MathSingleT(n: BigDecimal) extends SingleT
+/** singleton primitive types */
 case class NumberSingleT(n: Double) extends SingleT with DoubleEquals(n)
 case class BigIntSingleT(bigint: scala.math.BigInt) extends SingleT
 case class StrSingleT(str: String) extends SingleT
@@ -166,7 +189,8 @@ case object AbsentT extends SingleT
 
 /** modeling */
 object Type {
-  // type aliases
+
+  /** type aliases */
   val typeAlias: List[(Type, Set[Type])] = List(
     BoolT -> Set[Type](BoolSingleT(true), BoolSingleT(false)),
     NumericT -> Set[Type](NumberT, BigIntT),
@@ -182,6 +206,28 @@ object Type {
     })
     map
   }
+
+  /** conversion to type */
+  def from(av: AValue): Type = av match
+    case AComp(AConst("normal"), v, _) => NormalT(fromPure(v))
+    case _: AComp                      => AbruptT
+    case _                             => fromPure(av)
+  def fromPure(av: AValue): PureType = av match
+    case clo: AClo          => ??? // TODO
+    case cont: ACont        => ??? // TODO
+    case AAst(ast)          => AstT(ast.name)
+    case AGrammar(name, _)  => GrammarT(name)
+    case ACodeUnit(_)       => CodeUnitT
+    case AConst(name)       => ConstT(name)
+    case AMath(_)           => MathT
+    case ASimple(Number(n)) => NumberSingleT(n)
+    case ASimple(BigInt(n)) => BigIntSingleT(n)
+    case ASimple(Str(n))    => StrSingleT(n)
+    case ASimple(Bool(n))   => BoolSingleT(n)
+    case ASimple(Undef)     => UndefT
+    case ASimple(Null)      => NullT
+    case ASimple(Absent)    => AbsentT
+    case _ => error(s"impossible to convert to pure type ($av)")
 
   // abstraction
   // val abs: Type => AbsType = cached(AbsType(_))

@@ -18,6 +18,8 @@ case object TypeAnalyze extends Phase[CFG, AbsSemantics] {
   ): AbsSemantics = {
     domain._cfgOpt = Some(cfg) // initalize global CFG
     // AbsSemantics(readFile(filename), None, config.execLevel).fixpoint
+    domain.ABS_STATE = domain.TypeStateDomain
+    domain.ABS_VALUE = domain.TypeDomain
     AbsSemantics.typeAnalysisTest().fixpoint
   }
   def defaultConfig: Config = Config()

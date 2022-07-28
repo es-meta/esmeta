@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.interp.*
-import esmeta.ir.*
+import esmeta.ir.IRElem
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -28,6 +28,7 @@ class Stringifier(
       case cp: ControlPoint  => cpRule(app, cp)
       case av: AValue        => avRule(app, av)
       case aref: AbsRefValue => refRule(app, aref)
+      case ty: Type          => typeRule(app, ty)
 
   // view
   given viewRule: Rule[View] = (app, view) => {
@@ -88,4 +89,44 @@ class Stringifier(
     ref match
       case AbsRefId(id)           => app >> id
       case AbsRefProp(base, prop) => app >> base >> "[" >> prop >> "]"
+
+  // type
+  given typeRule: Rule[Type] = (app, ty) =>
+    ty match {
+      case NameT(name) => app >> s"$name"
+      // TODO
+      // case RecordT(props) =>
+      //   app >> props
+      //     .map {
+      //       case (p, t) => s"$p -> $t"
+      //     }
+      //     .mkString("{ ", ", ", " }")
+      // case CloT(fid)        => app >> s"λ[$fid]"
+      case AstT(name)       => app >> s"☊($name)"
+      case ConstT(name)     => app >> s"~$name~"
+      case MathT            => app >> "math"
+      case CodeUnitT        => app >> "cu"
+      case GrammarT(name)   => app >> s"grammar<$name>"
+      case ESValueT         => app >> "ESValue"
+      case PrimT            => app >> "prim"
+      case ArithT           => app >> "arith"
+      case NumericT         => app >> "numeric"
+      case NumberT          => app >> "num"
+      case BigIntT          => app >> "bigint"
+      case StrT             => app >> "str"
+      case BoolT            => app >> "bool"
+      case NilT             => app >> "[]"
+      case ListT(elem)      => app >> s"[$elem]"
+      case MapT(elem)       => app >> s"{ _ |-> $elem }"
+      case SymbolT          => app >> "symbol"
+      case NormalT(t)       => app >> s"Normal($t)"
+      case AbruptT          => app >> "Abrupt"
+      case NumberSingleT(n) => app >> s"$n"
+      case BigIntSingleT(b) => app >> s"${b}n"
+      case StrSingleT(str)  => app >> "\"" + str + "\""
+      case BoolSingleT(b)   => app >> s"$b"
+      case UndefT           => app >> "undef"
+      case NullT            => app >> "null"
+      case AbsentT          => app >> "?"
+    }
 }

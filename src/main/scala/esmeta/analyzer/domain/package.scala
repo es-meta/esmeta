@@ -12,9 +12,9 @@ lazy val F = Bool(false)
 lazy val AB = AbsBool.Top
 lazy val AT = AbsBool(Bool(true))
 lazy val AF = AbsBool(Bool(false))
-lazy val AVB = AbsValue(bool = AB)
-lazy val AVT = AbsValue(bool = AT)
-lazy val AVF = AbsValue(bool = AF)
+lazy val AVT = AbsValue(true)
+lazy val AVF = AbsValue(false)
+lazy val AVB = AVT ⊔ AVF
 lazy val AV_TYPE = AbsValue("Type")
 lazy val AV_VALUE = AbsValue("Value")
 lazy val AV_TARGET = AbsValue("Target")

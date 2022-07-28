@@ -14,51 +14,43 @@ object TypeDomain extends ValueDomain {
   val Bot = Elem(Set())
 
   /** abstraction functions */
-  def apply(ast: Ast): Elem = ???
-  def apply(num: Number): Elem = ???
-  def apply(num: Double): Elem = ???
-  def apply(bigint: BigInt): Elem = ???
-  def apply(str: String): Elem = ???
-  def apply(bool: Boolean): Elem = ???
-  def apply(d: BigDecimal): Elem = ???
-  lazy val codeunit: Elem = ???
-  lazy val math: Elem = ???
-  lazy val num: Elem = ???
-  lazy val bigint: Elem = ???
-  lazy val str: Elem = ???
-  lazy val bool: Elem = ???
-  lazy val undef: Elem = ???
-  lazy val nullv: Elem = ???
-  lazy val absent: Elem = ???
-  def apply(value: Value): Elem = ???
-  def apply(value: AValue): Elem = ???
+  def apply(ast: Ast): Elem = Elem(AstT(ast.name))
+  def apply(num: Number): Elem = Elem(NumberSingleT(num.n))
+  def apply(num: Double): Elem = Elem(NumberSingleT(num))
+  def apply(bigint: BigInt): Elem = Elem(BigIntSingleT(bigint.n))
+  def apply(str: String): Elem = Elem(StrSingleT(str))
+  def apply(bool: Boolean): Elem = Elem(BoolSingleT(bool))
+  def apply(d: BigDecimal): Elem = math
+  lazy val codeunit: Elem = Elem(CodeUnitT)
+  lazy val math: Elem = Elem(MathT)
+  lazy val num: Elem = Elem(NumberT)
+  lazy val bigint: Elem = Elem(BigIntT)
+  lazy val str: Elem = Elem(StrT)
+  lazy val bool: Elem = Elem(BoolT)
+  lazy val undef: Elem = Elem(UndefT)
+  lazy val nullv: Elem = Elem(NullT)
+  lazy val absent: Elem = Elem(AbsentT)
+  lazy val abruptComp: Elem = Elem(AbruptT)
+  lazy val AVF = Elem(BoolSingleT(false))
+  lazy val AVT = Elem(BoolSingleT(true))
 
   /** constructors */
-  def apply(
-    comp: AbsComp = AbsComp.Bot,
-    clo: AbsClo = AbsClo.Bot,
-    cont: AbsCont = AbsCont.Bot,
-    loc: AbsLoc = AbsLoc.Bot,
-    ast: AbsAst = AbsAst.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
-    codeunit: AbsCodeUnit = AbsCodeUnit.Bot,
-    const: AbsConst = AbsConst.Bot,
-    math: AbsMath = AbsMath.Bot,
-    simple: AbsSimple = AbsSimple.Bot,
-    num: AbsNum = AbsNum.Bot,
-    bigint: AbsBigInt = AbsBigInt.Bot,
-    str: AbsStr = AbsStr.Bot,
-    bool: AbsBool = AbsBool.Bot,
-    undef: AbsUndef = AbsUndef.Bot,
-    nullv: AbsNull = AbsNull.Bot,
-    absent: AbsAbsent = AbsAbsent.Bot,
-  ): Elem = ???
+  def apply(value: AValue): Elem = Elem(Type.from(value))
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = ???
 
   /** appender */
-  given rule: Rule[Elem] = ???
+  given rule: Rule[Elem] = (app, elem) =>
+    given tyRule: Rule[Type] = (app, ty) => app >> ty.toString
+    given setRule: Rule[Iterable[Type]] = iterableRule("(", " | ", ")")
+    elem.set.size match
+      case 0 => app >> "⊥"
+      case 1 => app >> elem.set.head
+      case _ => app >> elem.set
 
   /** elements */
+  object Elem:
+    def apply(tys: Type*): Elem = apply(tys)
+    def apply(tys: Iterable[Type]): Elem = Elem(tys.toSet).norm
   case class Elem(set: Set[Type]) extends ValueElemTrait {
 
     /** getters */
@@ -102,12 +94,11 @@ object TypeDomain extends ValueDomain {
 
     /** comparison operations */
     def =^=(that: Elem): Elem =
-      apply(bool = (this.set.toList, that.set.toList) match
-        case (Nil, Nil)                           => AbsBool.Bot
-        case (List(l: SingleT), List(r: SingleT)) => AbsBool(Bool(l == r))
-        case _ if (this ⊓ that).isBottom          => AF
-        case _                                    => AB,
-      )
+      (this.set.toList, that.set.toList) match
+        case (Nil, Nil)                           => Bot
+        case (List(l: SingleT), List(r: SingleT)) => apply(l == r)
+        case _ if (this ⊓ that).isBottom          => AVF
+        case _                                    => bool
     def ==^==(that: Elem): Elem = ???
     def <(that: Elem): Elem = ???
 
@@ -131,22 +122,39 @@ object TypeDomain extends ValueDomain {
     /** unary operations */
     def unary_- : Elem = ???
     def unary_! : Elem = ???
-    // TODO AbsValue(bool = !operand.bool)
     def unary_~ : Elem = ???
     def abs: Elem = ???
     def floor: Elem = ???
 
     /** type operations */
-    def typeOf(st: AbsState): Elem = ???
+    def typeOf(st: AbsState): Elem = Elem(for {
+      t <- set
+      y <- t.typeNameSet
+    } yield StrSingleT(y))
     def typeCheck(tname: String, st: AbsState): Elem = ???
 
     /** helper functions for abstract transfer */
     def convert(cop: COp, radix: Elem): Elem = ???
     def sourceText: Elem = ???
     def parse(rule: Elem): Elem = ???
+    def duplicated(st: AbsState): Elem = ???
 
     /** prune abstract values */
-    def pruneType(r: Elem, positive: Boolean): Elem = ???
+    def pruneType(r: Elem, positive: Boolean): Elem =
+      r.set.headOption match
+        case Some(StrSingleT(tname)) if r.set.size == 1 =>
+          val ty = tname match
+            case "Object"    => NameT("Object")
+            case "Symbol"    => SymbolT
+            case "Number"    => NumberT
+            case "BigInt"    => BigIntT
+            case "String"    => StrT
+            case "Boolean"   => BoolT
+            case "Undefined" => UndefT
+            case "Null"      => NullT
+            case _           => ???
+          if (positive) this ⊓ Elem(ty) else this - ty
+        case _ => ???
 
     /** singleton */
     def getSingle: Flat[AValue] = this.set.headOption match
@@ -160,12 +168,12 @@ object TypeDomain extends ValueDomain {
     /** completion helpers */
     def wrapCompletion: Elem = Elem(set.map(_.wrapCompletion)).norm
     def unwrapCompletion: Elem = ???
-    def isCompletion: AbsBool = ???
+    def isCompletion: Elem = ???
     def abruptCompletion: Elem = ???
 
     /** absent helpers */
     def removeAbsent: Elem = this - AbsentT
-    def isAbsent: AbsBool = ???
+    def isAbsent: Elem = ???
 
     /** normalize types */
     private def norm: Elem = {

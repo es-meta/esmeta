@@ -40,7 +40,6 @@ object BasicValueDomain extends ValueDomain {
   lazy val undef: Elem = Bot.copy(simple = AbsSimple.undef)
   lazy val nullv: Elem = Bot.copy(simple = AbsSimple.nullv)
   lazy val absent: Elem = Bot.copy(simple = AbsSimple.absent)
-  def apply(value: Value): Elem = this(AValue.from(value))
   def apply(value: AValue): Elem = value match
     case (comp: AComp)       => Bot.copy(comp = AbsComp(comp))
     case (clo: AClo)         => Bot.copy(clo = AbsClo(clo))
@@ -88,13 +87,16 @@ object BasicValueDomain extends ValueDomain {
     )
   }
 
-  /** make completion */
   // TODO remove unsafe type casting
+  given Conversion[AbsValue, Elem] = _.asInstanceOf[Elem]
+  given Conversion[Elem, AbsValue] = _.asInstanceOf[AbsValue]
+
+  /** make completion */
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = {
-    val t = AbsValue(str = target.str, const = target.const)
+    val t = apply(str = target.str, const = target.const)
     apply(comp = AbsComp((for {
       AConst(name) <- ty.const.toList
-    } yield name -> AbsComp.Result(value.asInstanceOf[AbsValue], t)).toMap))
+    } yield name -> AbsComp.Result(value, t)).toMap))
   }
 
   // extractors
@@ -259,14 +261,6 @@ object BasicValueDomain extends ValueDomain {
       locs
     }
 
-    /** remove absent values */
-    def removeAbsent: Elem = copy(simple = simple.removeAbsent)
-    def isAbsent: AbsBool =
-      var b: AbsBool = AbsBool.Bot
-      if (!absent.isBottom) b ⊔= AT
-      if (!removeAbsent.isBottom) b ⊔= AF
-      b
-
     /** bitwise operations */
     def &(that: Elem): Elem = ???
     def |(that: Elem): Elem = ???
@@ -325,8 +319,7 @@ object BasicValueDomain extends ValueDomain {
 
     /** unary operations */
     def unary_- : Elem = ???
-    def unary_! : Elem = ???
-    // TODO AbsValue(bool = !operand.bool)
+    def unary_! : Elem = apply(bool = !this.bool)
     def unary_~ : Elem = ???
     def abs: Elem = ???
     def floor: Elem = ???
@@ -452,6 +445,21 @@ object BasicValueDomain extends ValueDomain {
       // result
       newV
     }
+    def duplicated(st: AbsState): Elem =
+      apply(bool = this.loc.foldLeft(AbsBool.Bot: AbsBool) {
+        case (avb, loc) =>
+          avb ⊔ (st(loc) match {
+            case _: AbsObj.MergedList => AT
+            case AbsObj.KeyWiseList(vs) if vs.forall(_.isSingle) =>
+              val values = vs.map(_.getSingle).flatMap {
+                case FlatElem(v) => Some(v)
+                case _           => None
+              }
+              AbsBool(Bool(values.toSet.size != values.size))
+            case _: AbsObj.KeyWiseList => AT
+            case _                     => AbsBool.Bot
+          })
+      })
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem = this
@@ -474,25 +482,25 @@ object BasicValueDomain extends ValueDomain {
     //   if (positive) (lv ⊓ tyV) ⊔ AbsValue(loc = lv.loc) else lv - tyV
 
     /** completion helpers */
-    // TODO remove unsafe type casting
     def wrapCompletion: Elem = wrapCompletion("normal")
     def wrapCompletion(ty: String): Elem = apply(comp = {
       if (pure.isBottom) comp
-      else
-        comp ⊔ AbsComp(
-          ty -> AbsComp.Result(
-            pure.asInstanceOf[AbsValue],
-            AbsValue(CONST_EMPTY),
-          ),
-        )
+      else comp ⊔ AbsComp(ty -> AbsComp.Result(pure, AbsValue(CONST_EMPTY)))
     })
-    def unwrapCompletion: Elem =
-      comp.normal.value.asInstanceOf[Elem] ⊔ this.pure
-    def isCompletion: AbsBool =
+    def unwrapCompletion: Elem = comp.normal.value ⊔ this.pure
+    def isCompletion: Elem =
       var b: AbsBool = AbsBool.Bot
       if (!comp.isBottom) b ⊔= AT
       if (!pure.isBottom) b ⊔= AF
-      b
+      apply(bool = b)
     def abruptCompletion: Elem = apply(comp = comp.removeNormal)
+
+    /** absent helpers */
+    def removeAbsent: Elem = copy(simple = simple.removeAbsent)
+    def isAbsent: Elem =
+      var b: AbsBool = AbsBool.Bot
+      if (!absent.isBottom) b ⊔= AT
+      if (!removeAbsent.isBottom) b ⊔= AF
+      apply(bool = b)
   }
 }

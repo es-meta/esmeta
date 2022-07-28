@@ -240,7 +240,7 @@ object AbsSemantics {
     execLevel = execLevel,
   )
 
-  // XXX
+  // TODO remove
   def typeAnalysisTest(): AbsSemantics = {
     val initCp = {
       val toBoolean = cfg.fnameMap("ToBoolean")
@@ -250,7 +250,7 @@ object AbsSemantics {
     AbsSemantics(
       npMap = Map(
         initCp -> AbsState.Empty.defineLocal(
-          Name("argument") -> AbsValue(str = AbsStr.Top),
+          Name("argument") -> AbsValue.str,
         ),
       ),
     )
