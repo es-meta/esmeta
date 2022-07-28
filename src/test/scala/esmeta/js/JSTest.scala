@@ -46,14 +46,12 @@ object JSTest {
   // analyze JS codes
   def analyzeFile(filename: String, execLevel: Int): AbsSemantics = {
     val str = readFile(filename)
-    analyze(str, Some(parse(str)), execLevel)
+    analyze(str, execLevel)
   }
   def analyze(
     str: String,
-    cachedAst: Option[Ast] = None,
     execLevel: Int = 0,
-  ): AbsSemantics =
-    AbsSemantics(str, cachedAst, execLevel).fixpoint
+  ): AbsSemantics = AbsSemantics(str, execLevel).fixpoint
 
   // tests for JS parser
   def parseTest(ast: Ast): Ast =

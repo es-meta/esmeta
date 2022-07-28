@@ -16,11 +16,14 @@ case object TypeAnalyze extends Phase[CFG, AbsSemantics] {
     globalConfig: GlobalConfig,
     config: Config,
   ): AbsSemantics = {
-    domain._cfgOpt = Some(cfg) // initalize global CFG
-    // AbsSemantics(readFile(filename), None, config.execLevel).fixpoint
+    // initalize
+    domain._cfgOpt = Some(cfg)
     domain.ABS_STATE = domain.TypeStateDomain
     domain.ABS_VALUE = domain.TypeDomain
-    AbsSemantics.typeAnalysisTest().fixpoint
+    val npMap = Initialize.initType
+
+    // perform type analysis
+    AbsSemantics(npMap, 0).fixpoint
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

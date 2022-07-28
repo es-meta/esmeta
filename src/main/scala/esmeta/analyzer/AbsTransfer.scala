@@ -14,8 +14,9 @@ import scala.annotation.tailrec
 
 /** abstract transfer function */
 case class AbsTransfer(sem: AbsSemantics) {
-  // loading monads
-  import AbsState.monad._
+
+  /** loading monads */
+  import AbsState.monad.*
 
   /** transfer function for control points */
   def apply(cp: ControlPoint): Unit = cp match

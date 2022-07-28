@@ -16,9 +16,13 @@ case object JSAnalyze extends Phase[CFG, AbsSemantics] {
     globalConfig: GlobalConfig,
     config: Config,
   ): AbsSemantics = {
+    // initialize
+    domain._cfgOpt = Some(cfg)
     val filename = getFirstFilename(globalConfig, this.name)
-    domain._cfgOpt = Some(cfg) // initalize global CFG
-    AbsSemantics(readFile(filename), None, config.execLevel).fixpoint
+    val npMap = Initialize.initJs(readFile(filename))
+
+    // perform js analysis
+    AbsSemantics(npMap, config.execLevel).fixpoint
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

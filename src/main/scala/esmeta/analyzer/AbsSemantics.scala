@@ -14,8 +14,6 @@ import scala.annotation.tailrec
 
 /** abstract semantics */
 case class AbsSemantics(
-  val sourceText: String = "",
-  val cachedAst: Option[Ast] = None,
   var npMap: Map[NodePoint[Node], AbsState] = Map(),
   var rpMap: Map[ReturnPoint, AbsRet] = Map(),
   var callInfo: Map[NodePoint[Call], AbsState] = Map(),
@@ -24,13 +22,14 @@ case class AbsSemantics(
   timeLimit: Option[Long] = Some(ANALYZE_TIMEOUT),
   execLevel: Int = 0,
 ) {
-  // repl
+
+  /** repl */
   val repl = REPL(this)
 
-  // a worklist of control points
+  /** a worklist of control points */
   val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
 
-  // the number of iterations
+  /** the number of iterations */
   def getIter: Int = iter
   private var iter: Int = 0
 
@@ -40,21 +39,21 @@ case class AbsSemantics(
   //     Some(CheckWithInterp(this, sourceText, cachedAst, execLevel))
   //   else None
 
-  // get abstract return values and states of RunJobs
+  /** get abstract return values and states of RunJobs */
   val runJobs = cfg.fnameMap("RunJobs")
   val runJobsRp = ReturnPoint(runJobs, View())
   def finalResult: AbsRet = this(runJobsRp)
 
-  // abstract transfer function
+  /** abstract transfer function */
   val transfer: AbsTransfer = AbsTransfer(this)
 
-  // set start time of analyzer
+  /** set start time of analyzer */
   val startTime: Long = System.currentTimeMillis
 
-  // iteration period for check
+  /** iteration period for check */
   val CHECK_PERIOD = 10000
 
-  // fixpiont computation
+  /** fixpiont computation */
   @tailrec
   final def fixpoint: AbsSemantics = worklist.next match {
     case Some(cp) => {
@@ -89,15 +88,15 @@ case class AbsSemantics(
       this
   }
 
-  // get return edges
+  /** get return edges */
   def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
     retEdges.getOrElse(rp, Set())
 
-  // lookup
+  /** lookup */
   def apply(np: NodePoint[Node]): AbsState = npMap.getOrElse(np, AbsState.Bot)
   def apply(rp: ReturnPoint): AbsRet = rpMap.getOrElse(rp, AbsRet.Bot)
 
-  // update internal map
+  /** update internal map */
   def +=(pair: (NodePoint[Node], AbsState)): Unit = {
     val (np, newSt) = pair
     val oldSt = this(np)
@@ -108,7 +107,7 @@ case class AbsSemantics(
     }
   }
 
-  // handle calls
+  /** handle calls */
   def doCall(
     call: Call,
     callerView: View,
@@ -132,13 +131,13 @@ case class AbsSemantics(
     if (!retT.isBottom) worklist += rp
   }
 
-  // handle sensiticity
+  /** handle sensiticity */
   def handleSens[T](l: List[T], bound: Int): List[T] =
     if (INF_SENS) l else l.take(bound)
   def handleSens(n: Int, bound: Int): Int =
     if (INF_SENS) n else n min bound
 
-  // call transition
+  /** call transition */
   def viewCall(
     callerView: View,
     call: Call,
@@ -151,7 +150,7 @@ case class AbsSemantics(
     view
   }
 
-  // update return points
+  /** update return points */
   def doReturn(rp: ReturnPoint, newRet: AbsRet): Unit = {
     val ReturnPoint(func, view) = rp
     val retRp = ReturnPoint(func, getEntryView(view))
@@ -165,7 +164,7 @@ case class AbsSemantics(
     }
   }
 
-  // loop transition
+  /** loop transition */
   def loopNext(view: View): View = view.loops match
     case LoopCtxt(loop, k) :: rest =>
       view.copy(loops = LoopCtxt(loop, handleSens(k + 1, LOOP_ITER)) :: rest)
@@ -188,19 +187,19 @@ case class AbsSemantics(
       case 1 => views.head
       case _ => exploded("loop is too merged.")
 
-  // get entry views of loops
+  /** get entry views of loops */
   @tailrec
   final def getEntryView(view: View): View = {
     if (view.intraLoopDepth == 0) view
     else getEntryView(loopExit(view))
   }
 
-  // get abstract state of control points
+  /** get abstract state of control points */
   def getState(cp: ControlPoint): AbsState = cp match
     case np: NodePoint[_] => this(np)
     case rp: ReturnPoint  => this(rp).state
 
-  // get string for result of control points
+  /** get string for result of control points */
   def getString(
     cp: ControlPoint,
     color: String,
@@ -216,7 +215,7 @@ case class AbsSemantics(
     s"$k -> $v"
   }
 
-  // check reachability based on call contexts
+  /** check reachability based on call contexts */
   def reachable(np: NodePoint[Node]): Boolean =
     !getNps(np).forall(this(_).isBottom)
   def getNps(givenNp: NodePoint[Node]): Set[NodePoint[Node]] = {
@@ -228,31 +227,20 @@ case class AbsSemantics(
   }
 }
 object AbsSemantics {
-  // constructors
+
+  /** constructors */
   def apply(
     sourceText: String,
-    cachedAst: Option[Ast],
     execLevel: Int,
   ): AbsSemantics = AbsSemantics(
-    npMap = Initialize(sourceText),
-    sourceText = sourceText,
-    cachedAst = cachedAst,
+    npMap = Initialize.initJs(sourceText),
     execLevel = execLevel,
   )
-
-  // TODO remove
-  def typeAnalysisTest(): AbsSemantics = {
-    val initCp = {
-      val toBoolean = cfg.fnameMap("ToBoolean")
-      val entry = toBoolean.entry.get
-      NodePoint(toBoolean, entry, View())
-    }
-    AbsSemantics(
-      npMap = Map(
-        initCp -> AbsState.Empty.defineLocal(
-          Name("argument") -> AbsValue.str,
-        ),
-      ),
-    )
-  }
+  def apply(
+    initNpMap: Map[NodePoint[Node], AbsState],
+    execLevel: Int,
+  ): AbsSemantics = AbsSemantics(
+    npMap = initNpMap,
+    execLevel = execLevel,
+  )
 }
