@@ -1,10 +1,12 @@
 package esmeta.analyzer.domain
 
+import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.COp
 import esmeta.js.Ast
 import esmeta.util.Appender
 import esmeta.util.Appender.*
+import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** abstract values for type analysis */
@@ -36,6 +38,7 @@ object TypeDomain extends ValueDomain {
 
   /** constructors */
   def apply(value: AValue): Elem = Elem(Type.from(value))
+  def apply(tys: Type*): Elem = Elem(tys.toSet)
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = ???
 
   /** appender */
@@ -46,6 +49,29 @@ object TypeDomain extends ValueDomain {
       case 0 => app >> "⊥"
       case 1 => app >> elem.set.head
       case _ => app >> elem.set
+
+  /** sdo access helper */
+  private lazy val allSdoCache: ((String, String)) => List[(Func, Elem)] =
+    cached[(String, String), List[(Func, Elem)]] {
+      case (name, method) =>
+        for {
+          (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
+          subIdx <- (0 until rhs.countSubs)
+          pair <- sdoCache((name, idx, subIdx, method))
+        } yield pair
+    }
+  private lazy val sdoCache =
+    cached[(String, Int, Int, String), List[(Func, Elem)]] {
+      case (name, idx, subIdx, method) =>
+        cfg.fnameMap.get(s"$name[$idx,$subIdx].$method") match
+          case Some(f) => List((f, apply(SyntacticT(name, idx, subIdx))))
+          case None    =>
+            // handle chain production
+            val rhs = cfg.grammar.nameMap(name).rhsList(idx)
+            rhs.getNts(subIdx) match
+              case List(Some(chain)) => allSdoCache((chain, method))
+              case _ => ??? // TODO warning missing chain production
+    }
 
   /** elements */
   object Elem:
@@ -59,6 +85,17 @@ object TypeDomain extends ValueDomain {
     def getDescValue: Elem = ???
     def getClo: List[AClo] = ???
     def getCont: List[ACont] = ???
+    def getTypes: Set[Type] = set
+
+    // TODO handle lexical SDO
+    def getSDO(method: String): List[(Func, Elem)] = for {
+      ty <- set.toList
+      pair <- ty match
+        case AstT(name) => allSdoCache((name, method))
+        case SyntacticT(name, idx, subIdx) =>
+          sdoCache((name, idx, subIdx, method))
+        case _ => List()
+    } yield pair
 
     /** partial order */
     override def isBottom: Boolean = set.isEmpty

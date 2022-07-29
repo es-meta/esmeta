@@ -15,6 +15,11 @@ import scala.annotation.targetName // TODO remove this
 /** basic abstract states */
 object BasicStateDomain extends StateDomain {
 
+  // TODO remove unsafe type casting
+  given Conversion[AbsValue, BasicValueDomain.Elem] =
+    _.asInstanceOf[BasicValueDomain.Elem]
+  given Conversion[BasicValueDomain.Elem, AbsValue] = _.asInstanceOf[AbsValue]
+
   /** bottom element */
   val Bot: Elem = Elem(false, Map(), Map(), AbsHeap.Bot)
 
@@ -96,16 +101,13 @@ object BasicStateDomain extends StateDomain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters * */
-    // TODO remove unsafe typecast
     def apply(base: AbsValue, prop: AbsValue): AbsValue =
-      val b = base.asInstanceOf[BasicValueDomain.Elem]
-      val compValue = b.comp(prop)
-      val locValue = heap(b.loc, prop)
-      val astValue = apply(b.ast, prop)
-      val strValue = apply(b.str, prop)
+      val compValue = base.comp(prop)
+      val locValue = heap(base.loc, prop)
+      val astValue = lookupAst(base.ast, prop)
+      val strValue = lookupStr(base.str, prop)
       compValue ⊔ locValue ⊔ astValue ⊔ strValue
-    @targetName("apply_ast")
-    def apply(ast: AbsAst, prop: AbsValue): AbsValue =
+    private def lookupAst(ast: AbsAst, prop: AbsValue): AbsValue =
       (ast.getSingle, prop.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
@@ -125,8 +127,7 @@ object BasicStateDomain extends StateDomain {
         case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
         case _                                => exploded("ast property access")
       }
-    @targetName("apply_str")
-    def apply(str: AbsStr, prop: AbsValue): AbsValue =
+    def lookupStr(str: AbsStr, prop: AbsValue): AbsValue =
       (str.getSingle, prop.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(Str(str)), FlatElem(AMath(k))) =>

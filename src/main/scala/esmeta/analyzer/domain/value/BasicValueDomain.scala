@@ -1,15 +1,21 @@
 package esmeta.analyzer.domain
 
+import esmeta.cfg.Func
 import esmeta.interp.*
+import esmeta.interp.util.*
 import esmeta.ir.COp
 import esmeta.js.*
 import esmeta.js.util.ESValueParser
-import esmeta.interp.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic abstract values */
 object BasicValueDomain extends ValueDomain {
+  // TODO remove unsafe type casting
+  given Conversion[AbsValue, Elem] = _.asInstanceOf[Elem]
+  given Conversion[Elem, AbsValue] = _.asInstanceOf[AbsValue]
+
+  /** bottom element */
   val Bot = Elem(
     comp = AbsComp.Bot,
     clo = AbsClo.Bot,
@@ -23,7 +29,7 @@ object BasicValueDomain extends ValueDomain {
     simple = AbsSimple.Bot,
   )
 
-  // abstraction functions
+  /** abstraction functions */
   def apply(ast: Ast): Elem = Bot.copy(ast = AbsAst(AAst(ast)))
   def apply(num: Number): Elem = Bot.copy(simple = AbsSimple(num))
   def apply(num: Double): Elem = Bot.copy(simple = AbsSimple(num))
@@ -51,8 +57,9 @@ object BasicValueDomain extends ValueDomain {
     case (const: AConst)     => Bot.copy(const = AbsConst(const))
     case (math: AMath)       => Bot.copy(math = AbsMath(math))
     case (simple: ASimple)   => Bot.copy(simple = AbsSimple(simple))
+  def apply(tys: Type*): Elem = ??? // TODO
 
-  // constructors
+  /** constructors */
   def apply(
     comp: AbsComp = AbsComp.Bot,
     clo: AbsClo = AbsClo.Bot,
@@ -87,10 +94,6 @@ object BasicValueDomain extends ValueDomain {
     )
   }
 
-  // TODO remove unsafe type casting
-  given Conversion[AbsValue, Elem] = _.asInstanceOf[Elem]
-  given Conversion[Elem, AbsValue] = _.asInstanceOf[AbsValue]
-
   /** make completion */
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = {
     val t = apply(str = target.str, const = target.const)
@@ -99,7 +102,7 @@ object BasicValueDomain extends ValueDomain {
     } yield name -> AbsComp.Result(value, t)).toMap))
   }
 
-  // extractors
+  /** extractors */
   def unapply(elem: Elem) = Some(
     (
       elem.comp,
@@ -115,7 +118,7 @@ object BasicValueDomain extends ValueDomain {
     ),
   )
 
-  // appender
+  /** appender */
   given rule: Rule[Elem] = (app, elem) => {
     if (elem.isBottom) app >> "⊥"
     else {
@@ -146,7 +149,7 @@ object BasicValueDomain extends ValueDomain {
     }
   }
 
-  // elements
+  /** elements */
   case class Elem(
     comp: AbsComp,
     clo: AbsClo,
@@ -159,7 +162,8 @@ object BasicValueDomain extends ValueDomain {
     math: AbsMath,
     simple: AbsSimple,
   ) extends ValueElemTrait {
-    // getters
+
+    /** getters */
     def num: AbsNum = simple.num
     def bigint: AbsBigInt = simple.bigint
     def str: AbsStr = simple.str
@@ -172,8 +176,10 @@ object BasicValueDomain extends ValueDomain {
     def getDescValue: Elem = apply(str = str, undef = undef)
     def getClo: List[AClo] = clo.toList
     def getCont: List[ACont] = cont.toList
+    def getSDO(method: String): List[(Func, Elem)] = ??? // TODO
+    def getTypes: Set[Type] = ??? // TODO
 
-    // partial order
+    /** partial order */
     def ⊑(that: Elem): Boolean = (
       this.comp ⊑ that.comp &&
         this.clo ⊑ that.clo &&
@@ -187,7 +193,7 @@ object BasicValueDomain extends ValueDomain {
         this.simple ⊑ that.simple
     )
 
-    // join operator
+    /** join operator */
     def ⊔(that: Elem): Elem = Elem(
       this.comp ⊔ that.comp,
       this.clo ⊔ that.clo,
@@ -201,7 +207,7 @@ object BasicValueDomain extends ValueDomain {
       this.simple ⊔ that.simple,
     )
 
-    // meet operator
+    /** meet operator */
     def ⊓(that: Elem): Elem = Elem(
       this.comp ⊓ that.comp,
       this.clo ⊓ that.clo,
@@ -215,7 +221,7 @@ object BasicValueDomain extends ValueDomain {
       this.simple ⊓ that.simple,
     )
 
-    // minus operator
+    /** minus operator */
     def -(that: Elem): Elem = Elem(
       this.comp - that.comp,
       this.clo - that.clo,
@@ -229,7 +235,7 @@ object BasicValueDomain extends ValueDomain {
       this.simple - that.simple,
     )
 
-    // get single value
+    /** get single value */
     def getSingle: Flat[AValue] = (
       this.comp.getSingle ⊔
         this.clo.getSingle ⊔

@@ -8,7 +8,7 @@ import esmeta.util.Appender.*
 object BasicCompDomain extends Domain {
 
   // TODO refactoring
-  /** value domain should be basic value domain */
+  // value domain should be basic value domain */
   lazy val AbsValue = BasicValueDomain
   type AbsValue = AbsValue.Elem
 

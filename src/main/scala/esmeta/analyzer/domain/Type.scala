@@ -28,6 +28,7 @@ sealed trait Type extends AnalyzerElem {
     //     case Some(Info(_, Some(parent), _)) => NameT(parent)
     //     case _                              => error("no parent")
     //   }
+    case MathSingleT(_)   => MathT
     case PrimT            => ESValueT
     case ArithT           => PrimT
     case NumericT         => ArithT
@@ -87,6 +88,12 @@ sealed trait Type extends AnalyzerElem {
   def wrapCompletion: Type = this match
     case t: PureType => NormalT(t)
     case _           => this
+
+  /** upcast */
+  def upcast: Type = this match
+    case NormalT(t)  => NormalT(t.upcast)
+    case p: PureType => p.upcast
+    case _           => this
 }
 
 /** completion types */
@@ -96,16 +103,17 @@ case object AbruptT extends CompType
 
 /** pure types */
 sealed trait PureType extends Type {
-  // // upcast
-  // override def upcast: PureType = this match {
-  //   case ListT(t)  => ListT(t.upcast)
-  //   case MapT(t)   => MapT(t.upcast)
-  //   case Num(_)    => NumberT
-  //   case BigInt(_) => BigIntT
-  //   case Str(_)    => StrT
-  //   case Bool(_)   => BoolT
-  //   case _         => this
-  // }
+
+  /** upcast */
+  override def upcast: PureType = this match
+    case ListT(t)         => ListT(t.upcast)
+    case MapT(t)          => MapT(t.upcast)
+    case MathSingleT(_)   => MathT
+    case NumberSingleT(_) => NumberT
+    case BigIntSingleT(_) => BigIntT
+    case StrSingleT(_)    => StrT
+    case BoolSingleT(_)   => BoolT
+    case _                => this
 }
 
 /** ECMAScript value types */
@@ -152,7 +160,9 @@ case object SymbolT extends PureType
 /** continuation types */
 
 /** AST types */
-case class AstT(name: String) extends PureType
+sealed trait AstTBase extends PureType { val name: String }
+case class AstT(name: String) extends AstTBase
+case class SyntacticT(name: String, idx: Int, subIdx: Int) extends AstTBase
 
 /** grammar types */
 case class GrammarT(name: String) extends PureType
@@ -168,6 +178,7 @@ sealed trait SingleT extends PureType
 // case class MathSingleT(n: BigDecimal) extends SingleT
 // case class CodeUnitSingleT(c: Char) extends PureType with SingleT
 case class ConstT(name: String) extends PureType with SingleT
+case class MathSingleT(n: BigDecimal) extends PureType with SingleT
 
 /** primitive types */
 case object PrimT extends PureType
@@ -219,7 +230,7 @@ object Type {
     case AGrammar(name, _)  => GrammarT(name)
     case ACodeUnit(_)       => CodeUnitT
     case AConst(name)       => ConstT(name)
-    case AMath(_)           => MathT
+    case AMath(n)           => MathSingleT(n)
     case ASimple(Number(n)) => NumberSingleT(n)
     case ASimple(BigInt(n)) => BigIntSingleT(n)
     case ASimple(Str(n))    => StrSingleT(n)

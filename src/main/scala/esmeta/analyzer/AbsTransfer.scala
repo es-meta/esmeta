@@ -279,7 +279,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           for (AClo(func, captured) <- fv.getClo) {
             val newLocals = getLocals(func.irFunc.params, as) ++ captured
             val newSt = st.copied(locals = newLocals)
-            sem.doCall(call, view, st, func, newSt)
+            sem.doCall(call, view, st, func, newSt, as)
           }
           for (ACont(target, captured) <- fv.getCont) {
             val as0 =
@@ -303,7 +303,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           for (AClo(func, _) <- fv.getClo) {
             val newLocals = getLocals(func.irFunc.params, bv :: as)
             val newSt = st.copied(locals = newLocals)
-            sem.doCall(call, view, st, func, newSt)
+            sem.doCall(call, view, st, func, newSt, as)
           }
           AbsValue.Bot
         }
@@ -321,12 +321,19 @@ case class AbsTransfer(sem: AbsSemantics) {
                   val newLocals =
                     getLocals(sdo.irFunc.params, AbsValue(ast0) :: as)
                   val newSt = st.copied(locals = newLocals)
-                  sem.doCall(call, view, st, sdo, newSt)
+                  sem.doCall(call, view, st, sdo, newSt, as)
                 case None => error("invalid sdo")
             case FlatElem(AAst(lex: Lexical)) =>
               newV = AbsValue(Interp.interp(lex, method))
-            case FlatTop => exploded("sdo call")
-            case _       => /* do nothing */
+            case FlatTop =>
+              for { (sdo, ast) <- bv.getSDO(method) } {
+                println((sdo.name, ast))
+                val newLocals =
+                  getLocals(sdo.irFunc.params, ast :: as)
+                val newSt = st.copied(locals = newLocals)
+                sem.doCall(call, view, st, sdo, newSt, as)
+              }
+            case _ => /* do nothing */
           newV
         }
     }

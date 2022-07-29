@@ -4,7 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.cfg.CFG
 import esmeta.interp.*
-import esmeta.ir.*
+import esmeta.ir.{Id, Local, Global, IRElem, Type => IrType}
 import esmeta.js
 import esmeta.js.builtin.*
 import esmeta.util.Appender
@@ -15,6 +15,10 @@ import scala.annotation.targetName // TODO remove this
 
 /** abstract states for type analysis */
 object TypeStateDomain extends StateDomain {
+
+  // TODO remove unsafe type casting
+  given Conversion[AbsValue, TypeDomain.Elem] = _.asInstanceOf[TypeDomain.Elem]
+  given Conversion[TypeDomain.Elem, AbsValue] = _.asInstanceOf[AbsValue]
 
   /** bottom element */
   val Bot: Elem = Elem(false, Map())
@@ -86,7 +90,45 @@ object TypeStateDomain extends StateDomain {
         else Elem(true, newLocals)
 
     /** getters */
-    def apply(base: AbsValue, prop: AbsValue): AbsValue = ???
+    def apply(base: AbsValue, prop: AbsValue): AbsValue =
+      val vset = for {
+        ty <- base.set
+        p <- prop.set
+        v <- ty match
+          case comp: CompType  => lookupComp(comp, p)
+          case ast: AstTBase   => lookupAst(ast, p)
+          case StrT            => lookupStr(StrT, p)
+          case str: StrSingleT => lookupStr(str, p)
+          case _               => ??? // TODO
+      } yield v
+      AbsValue(vset.toList: _*)
+    def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
+    def lookupAst(ast: AstTBase, prop: Type): Set[Type] = {
+      var tySet: Set[Type] = Set()
+      prop match
+        // access to child
+        case MathSingleT(n) if n.isValidInt =>
+          val propIdx = n.toInt
+          def addNts(nts: List[Option[String]]): Unit =
+            if (propIdx >= nts.size) ??? // TODO warning
+            else
+              tySet += nts(propIdx)
+                .map(ntName => AstT(ntName))
+                .getOrElse(AbsentT)
+          ast match
+            case AstT(name) =>
+              for {
+                rhs <- cfg.grammar.nameMap(name).rhsList
+                subIdx <- (0 until rhs.countSubs)
+              } addNts(rhs.getNts(subIdx))
+            case SyntacticT(name, idx, subIdx) =>
+              val rhs = cfg.grammar.nameMap(name).rhsList(idx)
+              addNts(rhs.getNts(subIdx))
+        case _ => ??? // TODO
+      tySet
+    }
+    def lookupStr(str: StrT.type, prop: Type): Set[Type] = ???
+    def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
     def apply(loc: Loc): AbsObj = ???
     def lookupGlobal(x: Global): AbsValue =
       baseGlobals.getOrElse(x, AbsValue.Bot)
@@ -121,42 +163,42 @@ object TypeStateDomain extends StateDomain {
     def contains(
       list: AbsValue,
       value: AbsValue,
-      field: Option[(Type, String)],
+      field: Option[(IrType, String)],
     ): AbsValue = ???
 
-    // singleton location checks
+    /** singleton location checks */
     def isSingle(loc: Loc): Boolean = ???
 
-    // find merged parts
+    /** find merged parts */
     def findMerged: Unit = ???
 
-    // handle calls
-    def doCall: Elem = ???
+    /** handle calls */
+    def doCall: Elem = this
     def doProcStart(fixed: Set[Loc]): Elem = ???
 
-    // handle returns (this: return states / to: caller states)
+    /** handle returns (this: return states / to: caller states) */
     def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = ???
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = ???
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
     def garbageCollected: Elem = ???
 
-    // get reachable locations
+    /** get reachable locations */
     def reachableLocs: Set[Loc] = Set() // XXX not used
 
-    // copy
+    /** copy */
     def copied(
       locals: Map[Local, AbsValue] = Map(),
     ): Elem = copy(locals = locals)
 
-    // conversion to string
+    /** conversion to string */
     def toString(detail: Boolean = false): String = {
       val app = new Appender
       app >> this
       app.toString
     }
 
-    // get string wth detailed shapes of locations
+    /** get string wth detailed shapes of locations */
     def getString(value: AbsValue): String = ???
   }
 }

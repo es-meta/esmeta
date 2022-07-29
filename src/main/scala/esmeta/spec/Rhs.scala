@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.spec.util.*
+import esmeta.util.BaseUtils.cached
 
 /** alternatives or right-hand-sides (RHSs) of productions */
 case class Rhs(
@@ -25,7 +26,20 @@ case class Rhs(
     }
 
   /** get non-terminals in an RHS */
-  def nts: List[Nonterminal] = symbols.flatMap(_.getNt)
+  lazy val nts: List[Nonterminal] = symbols.flatMap(_.getNt)
+  lazy val getNts = cached[Int, List[Option[String]]] { subIdx =>
+    var flags = subIdx.toBinaryString.map(_ == '1')
+    nts.map(nt =>
+      if (nt.optional) {
+        val present = flags.head
+        flags = flags.tail
+        if (present) Some(nt.name) else None
+      } else Some(nt.name),
+    )
+  }
+
+  /** count sub production */
+  lazy val countSubs: Int = scala.math.pow(2, nts.count(_.optional)).toInt
 
   /** check if empty */
   def isEmpty: Boolean = symbols match

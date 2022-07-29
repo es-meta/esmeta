@@ -20,7 +20,9 @@ case object TypeAnalyze extends Phase[CFG, AbsSemantics] {
     domain._cfgOpt = Some(cfg)
     domain.ABS_STATE = domain.TypeStateDomain
     domain.ABS_VALUE = domain.TypeDomain
-    val npMap = Initialize.initType
+    IR_SENS = false
+    TYPE_SENS = true
+    val npMap = Initialize.initType(cfg)
 
     // perform type analysis
     AbsSemantics(npMap, 0).fixpoint

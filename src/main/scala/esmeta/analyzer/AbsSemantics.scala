@@ -114,40 +114,55 @@ case class AbsSemantics(
     callerSt: AbsState,
     func: Func,
     st: AbsState,
-    astOpt: Option[Ast] = None,
+    args: List[AbsValue],
   ): Unit = {
     val callerNp = NodePoint(cfg.funcOf(call), call, callerView)
     this.callInfo += callerNp -> callerSt
 
-    val calleeView = viewCall(callerView, call)
-    val np = NodePoint(func, func.entry.get, calleeView)
-    this += np -> st.doCall
+    for { calleeView <- getCalleeViews(callerView, call, args) } {
+      val np = NodePoint(func, func.entry.get, calleeView)
+      this += np -> st.doCall
 
-    val rp = ReturnPoint(func, calleeView)
-    val set = retEdges.getOrElse(rp, Set())
-    retEdges += rp -> (set + callerNp)
+      val rp = ReturnPoint(func, calleeView)
+      val set = retEdges.getOrElse(rp, Set())
+      retEdges += rp -> (set + callerNp)
 
-    val retT = this(rp)
-    if (!retT.isBottom) worklist += rp
+      val retT = this(rp)
+      if (!retT.isBottom) worklist += rp
+    }
   }
 
-  /** handle sensiticity */
+  /** handle sensitivity */
   def handleSens[T](l: List[T], bound: Int): List[T] =
-    if (INF_SENS) l else l.take(bound)
+    if (IR_SENS) if (INF_SENS) l else l.take(bound)
+    else Nil
   def handleSens(n: Int, bound: Int): Int =
-    if (INF_SENS) n else n min bound
+    if (IR_SENS) if (INF_SENS) n else n min bound
+    else 0
 
   /** call transition */
-  def viewCall(
+  def getCalleeViews(
     callerView: View,
     call: Call,
-  ): View = {
-    val View(calls, _, _) = callerView
-    val view = callerView.copy(
-      calls = handleSens(call :: calls, IR_CALL_DEPTH),
+    args: List[AbsValue],
+  ): List[View] = {
+    // handle ir callsite sensitivity
+    val baseView = callerView.copy(
+      calls = handleSens(call :: callerView.calls, IR_CALL_DEPTH),
       intraLoopDepth = 0,
     )
-    view
+
+    // handle type sensitivity
+    if (TYPE_SENS) {
+      val tysList = args.foldRight(List(List[Type]())) {
+        case (argV, tysList) =>
+          for {
+            tys <- tysList
+            ty <- argV.getTypes
+          } yield ty.upcast :: tys
+      }
+      tysList.map(tys => baseView.copy(tys = tys))
+    } else List(baseView)
   }
 
   /** update return points */

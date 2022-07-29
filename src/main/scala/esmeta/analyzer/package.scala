@@ -28,16 +28,18 @@ object AnalyzerElem {
 /** exploded */
 def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
-// options
+/** options */
 var USE_REPL: Boolean = false
 var USE_GC: Boolean = false
 var INF_SENS: Boolean = true
+var IR_SENS: Boolean = true
+var TYPE_SENS: Boolean = false
 var ANALYZE_TIMEOUT: Long = 20
 
-// (i, j) for loop sensitivity
+/** (i, j) for loop sensitivity */
 var LOOP_ITER: Int = 100
 var LOOP_DEPTH: Int = 20
 
-// k for call-site sensitivity
+/** k for call-site sensitivity */
 var JS_CALL_DEPTH: Int = 20
 var IR_CALL_DEPTH: Int = 50

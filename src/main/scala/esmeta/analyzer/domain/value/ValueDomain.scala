@@ -1,5 +1,6 @@
 package esmeta.analyzer.domain
 
+import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.COp
 import esmeta.js.Ast
@@ -28,6 +29,7 @@ trait ValueDomain extends Domain {
   lazy val absent: Elem
   def apply(value: Value): Elem = this(AValue.from(value))
   def apply(value: AValue): Elem
+  def apply(tys: Type*): Elem
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem
 
   /** elements */
@@ -40,6 +42,8 @@ trait ValueDomain extends Domain {
     def getDescValue: Elem
     def getClo: List[AClo]
     def getCont: List[ACont]
+    def getSDO(method: String): List[(Func, Elem)]
+    def getTypes: Set[Type]
 
     /** meet operator */
     def ⊓(that: Elem): Elem
