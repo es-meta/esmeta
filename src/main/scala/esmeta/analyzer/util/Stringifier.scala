@@ -21,7 +21,7 @@ class Stringifier(
   private val irStringifier = IRElem.getStringifier(detail, location)
   import irStringifier.given
 
-  // elements
+  /** elements */
   given elemRule: Rule[AnalyzerElem] = (app, elem) =>
     elem match
       case view: View        => viewRule(app, view)
@@ -30,7 +30,7 @@ class Stringifier(
       case aref: AbsRefValue => refRule(app, aref)
       case ty: Type          => typeRule(app, ty)
 
-  // view
+  /** view */
   given viewRule: Rule[View] = (app, view) => {
     def ctxtStr(
       calls: List[String],
@@ -46,7 +46,13 @@ class Stringifier(
     }
 
     // ir contexts
-    ctxtStr(view.calls.map(_.id.toString), view.loops)
+    if (IR_SENS) ctxtStr(view.calls.map(_.id.toString), view.loops)
+    // type contexts
+    if (TYPE_SENS) {
+      given Rule[Iterable[Type]] = iterableRule("[", ", ", "]")
+      app >> view.tys
+    }
+    app
   }
 
   // control points
@@ -101,7 +107,7 @@ class Stringifier(
       //       case (p, t) => s"$p -> $t"
       //     }
       //     .mkString("{ ", ", ", " }")
-      // case CloT(fid)        => app >> s"λ[$fid]"
+      case CloT(func)                    => app >> s"λ[${func.name}]"
       case AstT(name)                    => app >> s"☊($name)"
       case SyntacticT(name, idx, subIdx) => app >> s"☊($name)[$idx,$subIdx]"
       case ConstT(name)                  => app >> s"~$name~"

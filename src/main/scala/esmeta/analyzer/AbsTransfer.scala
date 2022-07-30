@@ -276,7 +276,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          for (AClo(func, captured) <- fv.getClo) {
+          for ((func, captured) <- fv.getClos) {
             val newLocals = getLocals(func.irFunc.params, as) ++ captured
             val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt, as)
@@ -300,7 +300,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          for (AClo(func, _) <- fv.getClo) {
+          for ((func, _) <- fv.getClos) {
             val newLocals = getLocals(func.irFunc.params, bv :: as)
             val newSt = st.copied(locals = newLocals)
             sem.doCall(call, view, st, func, newSt, as)
@@ -324,15 +324,18 @@ case class AbsTransfer(sem: AbsSemantics) {
                   sem.doCall(call, view, st, sdo, newSt, as)
                 case None => error("invalid sdo")
             case FlatElem(AAst(lex: Lexical)) =>
-              newV = AbsValue(Interp.interp(lex, method))
+              newV ⊔= AbsValue(Interp.interp(lex, method))
             case FlatTop =>
+              // syntactic sdo
               for { (sdo, ast) <- bv.getSDO(method) } {
-                println((sdo.name, ast))
                 val newLocals =
                   getLocals(sdo.irFunc.params, ast :: as)
                 val newSt = st.copied(locals = newLocals)
-                sem.doCall(call, view, st, sdo, newSt, as)
+                sem.doCall(call, view, st, sdo, newSt, ast :: as)
               }
+
+              // lexical sdo
+              newV ⊔= bv.getLexical(method)
             case _ => /* do nothing */
           newV
         }

@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.cfg.Func
 import esmeta.interp.*
-import esmeta.ir.COp
+import esmeta.ir.{COp, Name}
 import esmeta.js.Ast
 import esmeta.util.Appender
 import esmeta.util.Appender.*
@@ -83,17 +83,46 @@ object TypeDomain extends ValueDomain {
     def loc: AbsLoc = ???
     def getKeyValue: Elem = ??? // XXX not used
     def getDescValue: Elem = ???
-    def getClo: List[AClo] = ???
-    def getCont: List[ACont] = ???
+    def getClos: List[(Func, Map[Name, Elem])] = for {
+      CloT(func) <- set.toList // TODO captured
+    } yield (func, Map())
+    def getCont: List[ACont] = List() // TODO
     def getTypes: Set[Type] = set
 
-    // TODO handle lexical SDO
+    /** get lexical result */
+    def getLexical(method: String): Elem = Elem(for {
+      (ast: AstTBase) <- set if cfg.grammar.lexicalNames contains ast.name
+      ty <- (ast.name, method) match {
+        case (
+              "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+              "StringValue",
+            ) =>
+          Set(StrT)
+        case ("PrivateIdentifier", "StringValue")      => Set(StrT)
+        case ("NumericLiteral", "MV" | "NumericValue") => Set(NumberT, BigIntT)
+        case ("StringLiteral", "SV" | "StringValue")   => Set(StrT)
+        case ("NoSubstitutionTemplate", "TV")          => Set(StrT, UndefT)
+        case ("TemplateHead", "TV")                    => Set(StrT, UndefT)
+        case ("TemplateMiddle", "TV")                  => Set(StrT, UndefT)
+        case ("TemplateTail", "TV")                    => Set(StrT, UndefT)
+        case ("NoSubstitutionTemplate", "TRV")         => Set(StrT)
+        case ("TemplateHead", "TRV")                   => Set(StrT)
+        case ("TemplateMiddle", "TRV")                 => Set(StrT)
+        case ("TemplateTail", "TRV")                   => Set(StrT)
+        case (_, "Contains") => Set(BoolSingleT(false))
+        case _               => ??? // TODO
+      }
+    } yield ty)
+
+    /** get syntactic SDO */
     def getSDO(method: String): List[(Func, Elem)] = for {
       ty <- set.toList
       pair <- ty match
-        case AstT(name) => allSdoCache((name, method))
-        case SyntacticT(name, idx, subIdx) =>
-          sdoCache((name, idx, subIdx, method))
+        case ast: AstTBase if !(cfg.grammar.lexicalNames contains ast.name) =>
+          ast match
+            case AstT(name) => allSdoCache((name, method))
+            case SyntacticT(name, idx, subIdx) =>
+              sdoCache((name, idx, subIdx, method))
         case _ => List()
     } yield pair
 
@@ -172,8 +201,9 @@ object TypeDomain extends ValueDomain {
 
     /** helper functions for abstract transfer */
     def convert(cop: COp, radix: Elem): Elem = ???
-    def sourceText: Elem = ???
-    def parse(rule: Elem): Elem = ???
+    def sourceText: Elem = str
+    def parse(rule: Elem): Elem =
+      Elem(for { GrammarT(name) <- rule.set } yield AstT(name))
     def duplicated(st: AbsState): Elem = ???
 
     /** prune abstract values */

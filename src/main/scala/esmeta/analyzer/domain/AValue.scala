@@ -34,6 +34,7 @@ object AValue {
   /** from singleton types */
   def from(ty: SingleT): AValue = ty match
     case ConstT(c)             => AConst(c)
+    case MathSingleT(n)        => AMath(n)
     case NumberSingleT(n)      => ASimple(Number(n))
     case BigIntSingleT(bigint) => ASimple(BigInt(bigint))
     case StrSingleT(str)       => ASimple(Str(str))

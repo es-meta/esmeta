@@ -29,8 +29,8 @@ object TypeStateDomain extends StateDomain {
   /** base globals */
   // TODO global modeling
   lazy val baseGlobals: Map[Id, AbsValue] = Map(
+    EXECUTION_STACK -> AbsValue(ListT(NameT("ExecutionContext"))),
     // TODO
-    // EXECUTION_STACK -> Elem(ListT(NameT("ExecutionContext"))),
     // HOST_DEFINED -> AbsValue.undef,
     // INTRINSICS -> NamedAddr(INTRINSICS),
     // GLOBAL -> NamedAddr(GLOBAL),
@@ -99,6 +99,8 @@ object TypeStateDomain extends StateDomain {
           case ast: AstTBase   => lookupAst(ast, p)
           case StrT            => lookupStr(StrT, p)
           case str: StrSingleT => lookupStr(str, p)
+          case list: ListT     => lookupList(list, p)
+          case obj: NameT      => lookupNamedRec(obj, p)
           case _               => ??? // TODO
       } yield v
       AbsValue(vset.toList: _*)
@@ -124,11 +126,32 @@ object TypeStateDomain extends StateDomain {
             case SyntacticT(name, idx, subIdx) =>
               val rhs = cfg.grammar.nameMap(name).rhsList(idx)
               addNts(rhs.getNts(subIdx))
-        case _ => ??? // TODO
+        // access to parent
+        case StrSingleT("parent") => ??? // TODO
+        // access to child
+        case StrSingleT(str) =>
+          for {
+            rhs <- cfg.grammar.nameMap(ast.name).rhsList
+            nt <- rhs.nts if nt.name == str
+          } tySet += AstT(nt.name)
+        case _ => ??? // TODO warning invalid access
       tySet
     }
     def lookupStr(str: StrT.type, prop: Type): Set[Type] = ???
     def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
+    def lookupList(list: ListT, prop: Type): Set[Type] =
+      var tySet: Set[Type] = Set()
+      prop match
+        // length
+        case StrSingleT("length") => tySet += MathT
+        // element
+        case MathT | (_: MathSingleT) =>
+          tySet += list.elem
+        case _ => ??? // TODO warning invalid access
+      tySet
+    def lookupNamedRec(obj: NameT, prop: Type): Set[Type] =
+      // TODO
+      ???
     def apply(loc: Loc): AbsObj = ???
     def lookupGlobal(x: Global): AbsValue =
       baseGlobals.getOrElse(x, AbsValue.Bot)

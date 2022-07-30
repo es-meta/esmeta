@@ -1,6 +1,7 @@
 package esmeta.analyzer.domain
 
 import esmeta.analyzer.AnalyzerElem
+import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.Expr
 import esmeta.util.BaseUtils.*
@@ -154,9 +155,9 @@ case class MapT(elem: PureType) extends PureType
 /** symbol types */
 case object SymbolT extends PureType
 
-// TODO
 /** closure types */
-// case class CloT(fid: Int, captured: Map[Name, AbsValue]) extends PureType with SingleT
+case class CloT(func: Func) extends PureType with SingleT
+
 /** continuation types */
 
 /** AST types */
@@ -224,7 +225,7 @@ object Type {
     case _: AComp                      => AbruptT
     case _                             => fromPure(av)
   def fromPure(av: AValue): PureType = av match
-    case clo: AClo          => ??? // TODO
+    case AClo(func, _)      => CloT(func) // XXX captured?
     case cont: ACont        => ??? // TODO
     case AAst(ast)          => AstT(ast.name)
     case AGrammar(name, _)  => GrammarT(name)

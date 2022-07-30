@@ -3,7 +3,7 @@ package esmeta.analyzer.domain
 import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.interp.util.*
-import esmeta.ir.COp
+import esmeta.ir.{COp, Name}
 import esmeta.js.*
 import esmeta.js.util.ESValueParser
 import esmeta.util.Appender
@@ -174,9 +174,16 @@ object BasicValueDomain extends ValueDomain {
     def pure: Elem = copy(comp = AbsComp.Bot)
     def getKeyValue: Elem = apply(loc = loc, str = str)
     def getDescValue: Elem = apply(str = str, undef = undef)
-    def getClo: List[AClo] = clo.toList
+    def getClos: List[(Func, Map[Name, Elem])] =
+      clo.toList.map { c =>
+        // TODO remove unsafe type casting
+        val captured =
+          (for { (k, v) <- c.captured } yield k -> v.asInstanceOf[Elem]).toMap
+        (c.func, captured)
+      }
     def getCont: List[ACont] = cont.toList
     def getSDO(method: String): List[(Func, Elem)] = ??? // TODO
+    def getLexical(method: String): Elem = ??? // TODO
     def getTypes: Set[Type] = ??? // TODO
 
     /** partial order */

@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.cfg.Func
 import esmeta.interp.*
-import esmeta.ir.COp
+import esmeta.ir.{COp, Name}
 import esmeta.js.Ast
 import esmeta.util.Appender
 import esmeta.util.Appender.*
@@ -40,9 +40,10 @@ trait ValueDomain extends Domain {
     def loc: AbsLoc
     def getKeyValue: Elem
     def getDescValue: Elem
-    def getClo: List[AClo]
+    def getClos: List[(Func, Map[Name, Elem])]
     def getCont: List[ACont]
     def getSDO(method: String): List[(Func, Elem)]
+    def getLexical(method: String): Elem
     def getTypes: Set[Type]
 
     /** meet operator */
