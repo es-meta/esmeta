@@ -87,7 +87,8 @@ object TypeDomain extends ValueDomain {
       CloT(func) <- set.toList // TODO captured
     } yield (func, Map())
     def getCont: List[ACont] = List() // TODO
-    def getTypes: Set[Type] = set
+    def getTypedArguments: List[(Elem, Type)] =
+      set.toList.map(ty => (Elem(ty), ty)) // XXX upcasting?
 
     /** get lexical result */
     def getLexical(method: String): Elem = Elem(for {
@@ -109,8 +110,11 @@ object TypeDomain extends ValueDomain {
         case ("TemplateHead", "TRV")                   => Set(StrT)
         case ("TemplateMiddle", "TRV")                 => Set(StrT)
         case ("TemplateTail", "TRV")                   => Set(StrT)
+        case ("RegularExpressionLiteral", "BodyText" | "FlagText") => Set(StrT)
         case (_, "Contains") => Set(BoolSingleT(false))
-        case _               => ??? // TODO
+        case _ =>
+          println((ast.name, method))
+          ??? // TODO
       }
     } yield ty)
 
@@ -240,7 +244,12 @@ object TypeDomain extends ValueDomain {
 
     /** absent helpers */
     def removeAbsent: Elem = this - AbsentT
-    def isAbsent: Elem = ???
+    def isAbsent: Elem =
+      if (set contains AbsentT) {
+        if (set.size > 1) bool
+        else AVT
+      } else if (set.isEmpty) Bot
+      else AVF
 
     /** normalize types */
     private def norm: Elem = {

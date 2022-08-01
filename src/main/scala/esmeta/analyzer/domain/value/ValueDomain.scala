@@ -44,7 +44,7 @@ trait ValueDomain extends Domain {
     def getCont: List[ACont]
     def getSDO(method: String): List[(Func, Elem)]
     def getLexical(method: String): Elem
-    def getTypes: Set[Type]
+    def getTypedArguments: List[(Elem, Type)]
 
     /** meet operator */
     def ⊓(that: Elem): Elem

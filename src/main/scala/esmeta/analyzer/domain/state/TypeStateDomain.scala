@@ -150,8 +150,10 @@ object TypeStateDomain extends StateDomain {
         case _ => ??? // TODO warning invalid access
       tySet
     def lookupNamedRec(obj: NameT, prop: Type): Set[Type] =
-      // TODO
-      ???
+      prop match
+        case StrSingleT(propStr) =>
+          cfg.typeModel.getProp(obj.name, propStr)
+        case _ => ??? // TODO
     def apply(loc: Loc): AbsObj = ???
     def lookupGlobal(x: Global): AbsValue =
       baseGlobals.getOrElse(x, AbsValue.Bot)

@@ -4,6 +4,7 @@ import esmeta.analyzer.AnalyzerElem
 import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.Expr
+import esmeta.spec.TypeInfo
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals
 import scala.annotation.tailrec
@@ -21,14 +22,12 @@ sealed trait Type extends AnalyzerElem {
     case NormalT(t) =>
       t.parent match
         case Some(parent: PureType) => NormalT(parent)
-        case _                      => error("no parent")
-    // TODO type model
-    // case NameT("Object") => ESValueT
-    // case NameT(name) =>
-    //   infoMap.get(name) match {
-    //     case Some(Info(_, Some(parent), _)) => NameT(parent)
-    //     case _                              => error("no parent")
-    //   }
+        case _                      => TopT
+    case NameT("Object") => ESValueT
+    case NameT(name) =>
+      cfg.typeModel.infos.get(name) match
+        case Some(TypeInfo(Some(parent), _, _)) => NameT(parent)
+        case _                                  => TopT
     case MathSingleT(_)   => MathT
     case PrimT            => ESValueT
     case ArithT           => PrimT
@@ -44,7 +43,8 @@ sealed trait Type extends AnalyzerElem {
     case BoolSingleT(b)   => BoolT
     case UndefT           => PrimT
     case NullT            => PrimT
-    case _                => error("no parent")
+    case TopT             => error("no parent")
+    case _                => TopT
   })
 
   /** check sub typing */
@@ -74,16 +74,17 @@ sealed trait Type extends AnalyzerElem {
   } yield y
 
   /* get name of base types */
-  def typeName: Option[String] = this match
-    case NameT(name) if cfg.typeModel.subType(name, "Object") => Some("Object")
-    case SymbolT                                              => Some("Symbol")
-    case NumberT | NumberSingleT(_)                           => Some("Number")
-    case BigIntT | BigIntSingleT(_)                           => Some("BigInt")
-    case StrT | StrSingleT(_)                                 => Some("String")
-    case BoolT | BoolSingleT(_)                               => Some("Boolean")
-    case UndefT => Some("Undefined")
-    case NullT  => Some("Null")
-    case _      => None
+  def typeName: Option[String] = optional(this match
+    case NameT(name) if cfg.typeModel.subType(name, "Object") => "Object"
+    case SymbolT                                              => "Symbol"
+    case NumberT | NumberSingleT(_)                           => "Number"
+    case BigIntT | BigIntSingleT(_)                           => "BigInt"
+    case StrT | StrSingleT(_)                                 => "String"
+    case BoolT | BoolSingleT(_)                               => "Boolean"
+    case UndefT                                               => "Undefined"
+    case NullT                                                => "Null"
+    case _ => error("no type name"),
+  )
 
   /** wrap completion */
   def wrapCompletion: Type = this match
@@ -96,6 +97,9 @@ sealed trait Type extends AnalyzerElem {
     case p: PureType => p.upcast
     case _           => this
 }
+
+/** top type */
+case object TopT extends Type
 
 /** completion types */
 sealed trait CompType extends Type
@@ -121,11 +125,7 @@ sealed trait PureType extends Type {
 case object ESValueT extends PureType
 
 /** norminal types */
-case class NameT(name: String) extends PureType {
-  // // lookup properties
-  // def apply(prop: String): AbsType =
-  //   Type.propMap.getOrElse(name, Map()).getOrElse(prop, Absent)
-}
+case class NameT(name: String) extends PureType
 
 /** TODO record types */
 // case class RecordT(props: Map[String, AbsType]) extends PureType
@@ -158,7 +158,7 @@ case object SymbolT extends PureType
 /** closure types */
 case class CloT(func: Func) extends PureType with SingleT
 
-/** continuation types */
+/** TODO continuation types */
 
 /** AST types */
 sealed trait AstTBase extends PureType { val name: String }
@@ -244,31 +244,6 @@ object Type {
   // abstraction
   // val abs: Type => AbsType = cached(AbsType(_))
 
-  // // ////////////////////////////////////////////////////////////////////////////
-  // // Type Information
-  // // ////////////////////////////////////////////////////////////////////////////
-  // case class Info(
-  //   name: String,
-  //   parent: Option[String],
-  //   lazyProps: () => Map[String, AbsType],
-  // ) { lazy val props: Map[String, AbsType] = lazyProps() }
-
-  // // constructors
-  // def I(name: String, parent: String, props: => Map[String, AbsType]): Info =
-  //   Info(name, Some(parent), () => props)
-  // def I(name: String, props: => Map[String, AbsType]): Info =
-  //   Info(name, None, () => props)
-
-  // // property map
-  // type PropMap = Map[String, AbsType]
-
-  // // get type information
-  // lazy val infos: List[Info] = TypeModel.infos
-
-  // // type info map
-  // lazy val infoMap: Map[String, Info] =
-  //   infos.map(info => info.name -> info).toMap
-
   // // direct subtypes
   // lazy val subTypes: Map[String, Set[String]] = {
   //   var children = Map[String, Set[String]]()
@@ -296,10 +271,6 @@ object Type {
   //   infos.collect { case Info(name, None, _) => aux(name) }
   //   descs
   // }
-
-  // // property map
-  // lazy val propMap: Map[String, PropMap] =
-  //   infos.map(info => info.name -> getPropMap(info.name)).toMap
 
   // // ////////////////////////////////////////////////////////////////////////////
   // // Private Helper Functions

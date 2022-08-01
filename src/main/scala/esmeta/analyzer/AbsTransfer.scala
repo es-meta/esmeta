@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.DEBUG
 import esmeta.analyzer.domain.*
+import esmeta.analyzer.util.getLocals
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.*
@@ -269,77 +270,69 @@ case class AbsTransfer(sem: AbsSemantics) {
     }
 
     /** transfer function for call instructions */
-    def transfer(call: Call): Result[AbsValue] = call.callInst match {
-      case ICall(_, fexpr, args) =>
-        for {
-          fv <- transfer(fexpr)
-          as <- join(args.map(transfer))
-          st <- get
-        } yield {
-          for ((func, captured) <- fv.getClos) {
-            val newLocals = getLocals(func.irFunc.params, as) ++ captured
-            val newSt = st.copied(locals = newLocals)
-            sem.doCall(call, view, st, func, newSt, as)
-          }
-          for (ACont(target, captured) <- fv.getCont) {
-            val as0 =
-              as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
-            val newLocals =
-              getLocals(target.func.irFunc.params, as0, cont = true) ++ captured
-            sem += target -> st.copied(locals = newLocals)
-          }
-          AbsValue.Bot
-        }
-      case IMethodCall(_, base, method, args) =>
-        for {
-          rv <- transfer(base)
-          bv <- transfer(rv)
-          // TODO do not explicitly store methods in object but use a type model when
-          // accessing methods
-          fv <- get(_(bv, AbsValue(method)))
-          as <- join(args.map(transfer))
-          st <- get
-        } yield {
-          for ((func, _) <- fv.getClos) {
-            val newLocals = getLocals(func.irFunc.params, bv :: as)
-            val newSt = st.copied(locals = newLocals)
-            sem.doCall(call, view, st, func, newSt, as)
-          }
-          AbsValue.Bot
-        }
-      case ISdoCall(_, base, method, args) =>
-        for {
-          bv <- transfer(base)
-          as <- join(args.map(transfer))
-          st <- get
-        } yield {
-          var newV: AbsValue = AbsValue.Bot
-          bv.getSingle match
-            case FlatElem(AAst(syn: Syntactic)) =>
-              getSDO((syn, method)) match
-                case Some((ast0, sdo)) =>
-                  val newLocals =
-                    getLocals(sdo.irFunc.params, AbsValue(ast0) :: as)
-                  val newSt = st.copied(locals = newLocals)
-                  sem.doCall(call, view, st, sdo, newSt, as)
-                case None => error("invalid sdo")
-            case FlatElem(AAst(lex: Lexical)) =>
-              newV ⊔= AbsValue(Interp.interp(lex, method))
-            case FlatTop =>
-              // syntactic sdo
-              for { (sdo, ast) <- bv.getSDO(method) } {
-                val newLocals =
-                  getLocals(sdo.irFunc.params, ast :: as)
-                val newSt = st.copied(locals = newLocals)
-                sem.doCall(call, view, st, sdo, newSt, ast :: as)
-              }
+    def transfer(call: Call): Result[AbsValue] =
+      val callerNp = NodePoint(func, call, view)
+      call.callInst match {
+        case ICall(_, fexpr, args) =>
+          for {
+            fv <- transfer(fexpr)
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            // closure call
+            for ((func, captured) <- fv.getClos)
+              sem.doCall(callerNp, st, func, as, captured)
 
-              // lexical sdo
-              newV ⊔= bv.getLexical(method)
-            case _ => /* do nothing */
-          newV
-        }
-    }
+            // continuation call
+            for (ACont(target, captured) <- fv.getCont) {
+              val as0 =
+                as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
+              val newLocals =
+                getLocals(target.func, as0, cont = true) ++ captured
+              sem += target -> st.copied(locals = newLocals)
+            }
+            AbsValue.Bot
+          }
+        case IMethodCall(_, base, method, args) =>
+          for {
+            rv <- transfer(base)
+            bv <- transfer(rv)
+            // TODO do not explicitly store methods in object but use a type model when
+            // accessing methods
+            fv <- get(_(bv, AbsValue(method)))
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            for ((func, _) <- fv.getClos)
+              sem.doCall(callerNp, st, func, bv :: as)
+            AbsValue.Bot
+          }
+        case ISdoCall(_, base, method, args) =>
+          for {
+            bv <- transfer(base)
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            var newV: AbsValue = AbsValue.Bot
+            bv.getSingle match
+              case FlatElem(AAst(syn: Syntactic)) =>
+                getSDO((syn, method)) match
+                  case Some((ast0, sdo)) =>
+                    sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
+                  case None => error("invalid sdo")
+              case FlatElem(AAst(lex: Lexical)) =>
+                newV ⊔= AbsValue(Interp.interp(lex, method))
+              case FlatTop =>
+                // syntactic sdo
+                for { (sdo, ast) <- bv.getSDO(method) }
+                  sem.doCall(callerNp, st, sdo, ast :: as)
+
+                // lexical sdo
+                newV ⊔= bv.getLexical(method)
+              case _ => /* do nothing */
+            newV
+          }
+      }
 
     /** transfer function for expressions */
     def transfer(expr: Expr): Result[AbsValue] = expr match {
@@ -767,33 +760,5 @@ case class AbsTransfer(sem: AbsSemantics) {
           } yield v
       }
     } yield v
-
-    // get initial local variables
-    import IRFunc.Param
-    def getLocals(
-      params: List[Param],
-      args: List[AbsValue],
-      cont: Boolean = false,
-    ): Map[Local, AbsValue] = {
-      var map = Map[Local, AbsValue]()
-
-      @tailrec
-      def aux(ps: List[Param], as: List[AbsValue]): Unit = (ps, as) match {
-        case (Nil, Nil) =>
-        case (Param(lhs, optional, _) :: pl, Nil) =>
-          if (optional) {
-            map += lhs -> AbsValue(Absent)
-            aux(pl, Nil)
-          } else throw AnalysisRemainingParams(ps)
-        case (Nil, args) =>
-          // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-          if (!cont) throw AnalysisRemainingArgs(args)
-        case (param :: pl, arg :: al) =>
-          map += param.lhs -> arg
-          aux(pl, al)
-      }
-      aux(params, args)
-      map
-    }
   }
 }

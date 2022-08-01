@@ -99,6 +99,7 @@ class Stringifier(
   // type
   given typeRule: Rule[Type] = (app, ty) =>
     ty match {
+      case TopT        => app >> "⊤"
       case NameT(name) => app >> s"$name"
       // TODO
       // case RecordT(props) =>

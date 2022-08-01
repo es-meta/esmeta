@@ -1,40 +1,92 @@
 package esmeta.spec
 
 import scala.annotation.tailrec
+import esmeta.analyzer.domain.* // TODO refactoring
 
 /** type modeling */
 case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
+  // TODO optimize
 
   /** get method map */
-  def apply(tname: String): Map[String, String] = infos.get(tname) match {
+  def getMethod(tname: String): Map[String, String] = infos.get(tname) match {
     case Some(info) =>
-      val parentMethods = info.parent.map(apply).getOrElse(Map())
+      val parentMethods = info.parent.map(getMethod).getOrElse(Map())
       parentMethods ++ info.methods
     case None => Map()
   }
 
   /** get a method */
-  def apply(tname: String, method: String): Option[String] = for {
+  def getMethod(tname: String, method: String): Option[String] = for {
     info <- infos.get(tname)
     fname <- info.methods
       .get(method)
-      .orElse(info.parent.fold(None)(apply(_, method))),
+      .orElse(info.parent.fold(None)(getMethod(_, method))),
   } yield fname
+
+  /** get a property-types map */
+  def getPropMap(tname: String): Map[String, Set[Type]] =
+    infos.get(tname) match {
+      case Some(info) =>
+        val parentPropMap = info.parent.map(getPropMap).getOrElse(Map())
+        parentPropMap ++ info.props
+      case None => Map()
+    }
+
+  /** get types of property */
+  def getProp(tname: String, p: String): Set[Type] =
+    if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
+      Set(NameT("Object"))
+    else getPropMap(tname).getOrElse(p, ???)
 
   /** check subtype relation */
   def subType(t0: String, t1: String): Boolean =
     @tailrec
     def aux(tname: String, parents: List[String]): List[String] =
       infos.get(tname) match
-        case Some(TypeInfo(Some(parent), _)) =>
+        case Some(TypeInfo(Some(parent), _, _)) =>
           aux(parent, parent :: parents)
         case _ => parents
     aux(t0, List(t0)).contains(t1)
 }
 object TypeModel {
+
+  /** conversion for type */
+  given Conversion[Type, Set[Type]] = Set(_)
+
   // TODO extract type model from spec
   lazy val js: TypeModel = TypeModel(
     Map(
+      // realm record
+      "RealmRecord" -> TypeInfo(
+        props = Map(
+          "Intrinsics" -> NameT("IntrinsicsRecord"),
+          "GlobalObject" -> Set(UndefT, NameT("OrdinaryObject")),
+          "GlobalEnv" -> NameT("GlobalEnvironmentRecord"),
+          "TemplateMap" -> ListT(NameT("TemplatePair")),
+          "HostDefined" -> UndefT,
+        ),
+      ),
+      "TemplatePair" -> TypeInfo(
+        props = Map(
+          "Site" -> AstT("TemplateLiteral"),
+          "Array" -> NameT("Object"),
+        ),
+      ),
+
+      // execution contexts
+      "ExecutionContext" -> TypeInfo(
+        props = Map(
+          "Function" -> Set(NameT("FunctionObject"), NullT),
+          "Realm" -> NameT("RealmRecord"),
+          "ScriptOrModule" -> Set(NameT("ScriptRecord"), NameT("ModuleRecord")),
+          "LexicalEnvironment" -> NameT("EnvironmentRecord"),
+          "VariableEnvironment" -> NameT("EnvironmentRecord"),
+          "PrivateEnvironment" -> Set(NameT("PrivateEnvironmentRecord"), NullT),
+          "Generator" -> NameT("Object"),
+        ),
+      ),
+
+      // objects
       "Object" -> TypeInfo(
         parent = None,
         methods = Map(
@@ -148,6 +200,7 @@ object TypeModel {
       "BigIntObject" -> TypeInfo(parent = Some("OrdinaryObject")),
       "NumberObject" -> TypeInfo(parent = Some("OrdinaryObject")),
       "SymbolObject" -> TypeInfo(parent = Some("OrdinaryObject")),
+
       // special instances
       "ForInIteratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
       "AsynFromSyncIteratorInstance" -> TypeInfo(parent =
@@ -156,6 +209,7 @@ object TypeModel {
       "PromiseInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
       "GeneratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
       "AsyncGeneratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
+
       // environment records
       "LexicalEnvironment" -> TypeInfo(),
       "EnvironmentRecord" -> TypeInfo(parent = Some("LexicalEnvironment")),
@@ -259,4 +313,5 @@ object TypeModel {
 case class TypeInfo(
   parent: Option[String] = None,
   methods: Map[String, String] = Map(),
+  props: Map[String, Set[Type]] = Map(),
 )

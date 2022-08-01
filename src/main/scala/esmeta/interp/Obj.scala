@@ -94,7 +94,7 @@ object MapObj {
   def apply(tname: String)(using cfg: CFG): MapObj =
     // TODO do not explicitly store methods in object but use a type model when
     // accessing methods
-    val methods = cfg.typeModel(tname)
+    val methods = cfg.typeModel.getMethod(tname)
     val obj = MapObj(tname, MMap(), methods.size)
     for { ((name, fname), idx) <- methods.zipWithIndex }
       obj.props += Str(name) -> Prop(Clo(cfg.fnameMap(fname), Map()), idx)

@@ -5,10 +5,10 @@ import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.AnalysisImprecise
+import esmeta.ir.{Name, Local}
 import esmeta.js.Ast
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.ir.Name
 import scala.Console.*
 import scala.annotation.tailrec
 
@@ -109,26 +109,27 @@ case class AbsSemantics(
 
   /** handle calls */
   def doCall(
-    call: Call,
-    callerView: View,
+    callerNp: NodePoint[Call],
     callerSt: AbsState,
-    func: Func,
-    st: AbsState,
+    calleeFunc: Func,
     args: List[AbsValue],
+    captured: Map[Name, AbsValue] = Map(),
   ): Unit = {
-    val callerNp = NodePoint(cfg.funcOf(call), call, callerView)
     this.callInfo += callerNp -> callerSt
 
-    for { calleeView <- getCalleeViews(callerView, call, args) } {
-      val np = NodePoint(func, func.entry.get, calleeView)
-      this += np -> st.doCall
+    getCalleeEntries(callerNp, callerSt, calleeFunc, args, captured).foreach {
+      case (calleeNp, calleeSt) =>
+        // add callee to worklist
+        this += calleeNp -> calleeSt.doCall
 
-      val rp = ReturnPoint(func, calleeView)
-      val set = retEdges.getOrElse(rp, Set())
-      retEdges += rp -> (set + callerNp)
+        // add return edges from callee to caller
+        val rp = ReturnPoint(calleeFunc, calleeNp.view)
+        val set = retEdges.getOrElse(rp, Set())
+        retEdges += rp -> (set + callerNp)
 
-      val retT = this(rp)
-      if (!retT.isBottom) worklist += rp
+        // propagate callee analysis result
+        val retT = this(rp)
+        if (!retT.isBottom) worklist += rp
     }
   }
 
@@ -141,28 +142,43 @@ case class AbsSemantics(
     else 0
 
   /** call transition */
-  def getCalleeViews(
-    callerView: View,
-    call: Call,
+  def getCalleeEntries(
+    callerNp: NodePoint[Call],
+    callerSt: AbsState,
+    calleeFunc: Func,
     args: List[AbsValue],
-  ): List[View] = {
+    captured: Map[Name, AbsValue],
+  ): List[(NodePoint[_], AbsState)] = {
     // handle ir callsite sensitivity
+    val NodePoint(callerFunc, callSite, callerView) = callerNp
     val baseView = callerView.copy(
-      calls = handleSens(call :: callerView.calls, IR_CALL_DEPTH),
+      calls = handleSens(callSite :: callerView.calls, IR_CALL_DEPTH),
       intraLoopDepth = 0,
     )
 
-    // handle type sensitivity
-    if (TYPE_SENS) {
-      val tysList = args.foldRight(List(List[Type]())) {
-        case (argV, tysList) =>
+    // get typed arguments
+    val typedArgsList =
+      args.map(_.getTypedArguments).foldRight(List(List[(AbsValue, Type)]())) {
+        case (typedArgList, argsList) =>
           for {
-            tys <- tysList
-            ty <- argV.getTypes
-          } yield ty.upcast :: tys
+            curr <- argsList
+            (v, ty) <- typedArgList
+          } yield (v, ty) :: curr
       }
-      tysList.map(tys => baseView.copy(tys = tys))
-    } else List(baseView)
+
+    // get callee entry state for each arguments list
+    for {
+      typedArgs <- typedArgsList
+      (currArgs, currTys) = typedArgs.unzip
+      calleeSt = callerSt.copied(locals =
+        getLocals(calleeFunc, currArgs) ++ captured,
+      )
+      // handle type sensitivity
+      calleeView =
+        if (TYPE_SENS) baseView.copy(tys = currTys)
+        else baseView
+      calleeNp = NodePoint(calleeFunc, calleeFunc.entry.get, calleeView)
+    } yield (calleeNp, calleeSt)
   }
 
   /** update return points */
@@ -204,10 +220,9 @@ case class AbsSemantics(
 
   /** get entry views of loops */
   @tailrec
-  final def getEntryView(view: View): View = {
+  final def getEntryView(view: View): View =
     if (view.intraLoopDepth == 0) view
     else getEntryView(loopExit(view))
-  }
 
   /** get abstract state of control points */
   def getState(cp: ControlPoint): AbsState = cp match

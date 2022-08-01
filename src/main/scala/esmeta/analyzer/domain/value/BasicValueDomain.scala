@@ -184,7 +184,7 @@ object BasicValueDomain extends ValueDomain {
     def getCont: List[ACont] = cont.toList
     def getSDO(method: String): List[(Func, Elem)] = ??? // TODO
     def getLexical(method: String): Elem = ??? // TODO
-    def getTypes: Set[Type] = ??? // TODO
+    def getTypedArguments: List[(Elem, Type)] = List((this, TopT))
 
     /** partial order */
     def ⊑(that: Elem): Boolean = (
