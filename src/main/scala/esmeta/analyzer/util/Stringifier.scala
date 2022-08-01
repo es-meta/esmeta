@@ -108,7 +108,7 @@ class Stringifier(
       //       case (p, t) => s"$p -> $t"
       //     }
       //     .mkString("{ ", ", ", " }")
-      case CloT(func)                    => app >> s"λ[${func.name}]"
+      case CloT(fname)                   => app >> s"λ[$fname]"
       case AstT(name)                    => app >> s"☊($name)"
       case SyntacticT(name, idx, subIdx) => app >> s"☊($name)[$idx,$subIdx]"
       case ConstT(name)                  => app >> s"~$name~"

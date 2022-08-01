@@ -290,7 +290,7 @@ class Interp(
         case addr: Addr =>
           st(addr) match
             case m: MapObj =>
-              if (typeModel.subType(m.ty, "Object")) "Object"
+              if (typeModel.isSubType(m.ty, "Object")) "Object"
               else m.ty
             case _: ListObj   => "List"
             case _: SymbolObj => "Symbol"
@@ -317,7 +317,7 @@ class Interp(
         case _: Clo => tyName == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj    => typeModel.subType(m.ty, tyName)
+            case m: MapObj    => typeModel.isSubType(m.ty, tyName)
             case _: ListObj   => tyName == "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???

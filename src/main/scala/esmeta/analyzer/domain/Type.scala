@@ -75,14 +75,14 @@ sealed trait Type extends AnalyzerElem {
 
   /* get name of base types */
   def typeName: Option[String] = optional(this match
-    case NameT(name) if cfg.typeModel.subType(name, "Object") => "Object"
-    case SymbolT                                              => "Symbol"
-    case NumberT | NumberSingleT(_)                           => "Number"
-    case BigIntT | BigIntSingleT(_)                           => "BigInt"
-    case StrT | StrSingleT(_)                                 => "String"
-    case BoolT | BoolSingleT(_)                               => "Boolean"
-    case UndefT                                               => "Undefined"
-    case NullT                                                => "Null"
+    case NameT(name) if cfg.typeModel.isSubType(name, "Object") => "Object"
+    case SymbolT                                                => "Symbol"
+    case NumberT | NumberSingleT(_)                             => "Number"
+    case BigIntT | BigIntSingleT(_)                             => "BigInt"
+    case StrT | StrSingleT(_)                                   => "String"
+    case BoolT | BoolSingleT(_)                                 => "Boolean"
+    case UndefT                                                 => "Undefined"
+    case NullT                                                  => "Null"
     case _ => error("no type name"),
   )
 
@@ -190,7 +190,7 @@ case class MapT(elem: PureType) extends PureType
 case object SymbolT extends PureType
 
 /** closure types */
-case class CloT(func: Func) extends PureType with SingleT
+case class CloT(fname: String) extends PureType with SingleT
 
 /** TODO continuation types */
 
@@ -259,7 +259,7 @@ object Type {
     case _: AComp                      => AbruptT
     case _                             => fromPure(av)
   def fromPure(av: AValue): PureType = av match
-    case AClo(func, _)      => CloT(func) // XXX captured?
+    case AClo(func, _)      => CloT(func.name) // XXX captured?
     case cont: ACont        => ??? // TODO
     case AAst(ast)          => AstT(ast.name)
     case AGrammar(name, _)  => GrammarT(name)

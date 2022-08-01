@@ -305,7 +305,7 @@ case class AbsTransfer(sem: AbsSemantics) {
             st <- get
           } yield {
             for ((func, _) <- fv.getClos)
-              sem.doCall(callerNp, st, func, bv :: as)
+              sem.doCall(callerNp, st, func, bv.refineThis(func) :: as)
             AbsValue.Bot
           }
         case ISdoCall(_, base, method, args) =>

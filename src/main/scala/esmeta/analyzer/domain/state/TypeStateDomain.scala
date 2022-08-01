@@ -29,14 +29,14 @@ object TypeStateDomain extends StateDomain {
   // TODO global modeling
   lazy val baseGlobals: Map[Id, AbsValue] = Map(
     EXECUTION_STACK -> AbsValue(ListT(NameT("ExecutionContext"))),
+    HOST_DEFINED -> AbsValue.undef,
+    SYMBOL_REGISTRY -> AbsValue(ListT(NameT("GlobalSymbolRegistryRecord"))),
     // TODO
-    // HOST_DEFINED -> AbsValue.undef,
     // INTRINSICS -> NamedAddr(INTRINSICS),
     // GLOBAL -> NamedAddr(GLOBAL),
     // SYMBOL -> NamedAddr(SYMBOL),
     // REALM -> NamedAddr(REALM),
     // JOB_QUEUE -> NamedAddr(JOB_QUEUE),
-    // SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
     UNDEF_TYPE -> AbsValue("Undefined"),
     NULL_TYPE -> AbsValue("Null"),
     BOOL_TYPE -> AbsValue("Boolean"),
@@ -103,8 +103,8 @@ object TypeStateDomain extends StateDomain {
           case _               => ??? // TODO
       } yield v
       AbsValue(vset.toList: _*)
-    def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
-    def lookupAst(ast: AstTBase, prop: Type): Set[Type] = {
+    private def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
+    private def lookupAst(ast: AstTBase, prop: Type): Set[Type] = {
       var tySet: Set[Type] = Set()
       prop match
         // access to child
@@ -136,19 +136,18 @@ object TypeStateDomain extends StateDomain {
         case _ => ??? // TODO warning invalid access
       tySet
     }
-    def lookupStr(str: StrT.type, prop: Type): Set[Type] = ???
-    def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
-    def lookupList(list: ListT, prop: Type): Set[Type] =
+    private def lookupStr(str: StrT.type, prop: Type): Set[Type] = ???
+    private def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
+    private def lookupList(list: ListT, prop: Type): Set[Type] =
       var tySet: Set[Type] = Set()
       prop match
         // length
         case StrSingleT("length") => tySet += MathT
         // element
-        case MathT | (_: MathSingleT) =>
-          tySet += list.elem
-        case _ => ??? // TODO warning invalid access
+        case MathT | (_: MathSingleT) => tySet += list.elem
+        case _                        => ??? // TODO warning invalid access
       tySet
-    def lookupNamedRec(obj: NameT, prop: Type): Set[Type] =
+    private def lookupNamedRec(obj: NameT, prop: Type): Set[Type] =
       prop match
         case StrSingleT(propStr) =>
           cfg.typeModel.getProp(obj.name, propStr)

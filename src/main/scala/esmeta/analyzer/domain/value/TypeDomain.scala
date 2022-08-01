@@ -83,8 +83,8 @@ object TypeDomain extends ValueDomain {
     def loc: AbsLoc = ???
     def getKeyValue: Elem = ??? // XXX not used
     def getClos: List[(Func, Map[Name, Elem])] = for {
-      CloT(func) <- set.toList // TODO captured
-    } yield (func, Map())
+      CloT(fname) <- set.toList // TODO captured
+    } yield (cfg.fnameMap(fname), Map())
     def getCont: List[ACont] = List() // TODO
     def getTypedArguments: List[(Elem, Type)] =
       set.toList.map(ty => (Elem(ty), ty)) // XXX upcasting?
@@ -157,6 +157,7 @@ object TypeDomain extends ValueDomain {
     } yield t).norm
 
     /** bitwise operations */
+    // TODO
     def &(that: Elem): Elem = ???
     def |(that: Elem): Elem = ???
     def ^(that: Elem): Elem = ???
@@ -189,6 +190,7 @@ object TypeDomain extends ValueDomain {
     }
 
     /** numeric operations */
+    // TODO
     def +(that: Elem): Elem = ???
     def sub(that: Elem): Elem = ???
     def /(that: Elem): Elem = ???
@@ -201,6 +203,7 @@ object TypeDomain extends ValueDomain {
     def >>(that: Elem): Elem = ???
 
     /** unary operations */
+    // TODO
     def unary_- : Elem = ???
     def unary_! : Elem =
       assertBool
@@ -217,14 +220,14 @@ object TypeDomain extends ValueDomain {
       t <- set
       y <- t.typeNameSet
     } yield StrSingleT(y))
-    def typeCheck(tname: String, st: AbsState): Elem = ???
+    def typeCheck(tname: String, st: AbsState): Elem = ??? // TODO
 
     /** helper functions for abstract transfer */
-    def convert(cop: COp, radix: Elem): Elem = ???
+    def convert(cop: COp, radix: Elem): Elem = ??? // TODO
     def sourceText: Elem = str
     def parse(rule: Elem): Elem =
       Elem(for { GrammarT(name) <- rule.set } yield AstT(name))
-    def duplicated(st: AbsState): Elem = ???
+    def duplicated(st: AbsState): Elem = ??? // TODO
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem =
@@ -239,9 +242,9 @@ object TypeDomain extends ValueDomain {
             case "Boolean"   => BoolT
             case "Undefined" => UndefT
             case "Null"      => NullT
-            case _           => ???
+            case _           => ??? // TODO
           if (positive) this ⊓ Elem(ty) else this - ty
-        case _ => ???
+        case _ => ??? // TODO
 
     /** singleton */
     def getSingle: Flat[AValue] = this.set.headOption match
@@ -279,6 +282,11 @@ object TypeDomain extends ValueDomain {
         else AVT
       } else if (set.isEmpty) Bot
       else AVF
+
+    /** refine receiver object */
+    def refineThis(func: Func): Elem =
+      if (func.isMethod) Elem(NameT(func.name.split("\\.").head))
+      else this
 
     /** upcasting */
     def upcast: Elem = Elem(set.map(_.upcast)).norm

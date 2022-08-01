@@ -28,8 +28,12 @@ case class Func(
   lazy val isBuiltin: Boolean =
     irFunc.kind == IRFunc.Kind.Builtin || irFunc.kind == IRFunc.Kind.BuiltinClo
 
-  /** check wheter it is SDO */
+  /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == IRFunc.Kind.SynDirOp
+
+  /** check whether it is method operation */
+  lazy val isMethod: Boolean =
+    irFunc.kind == IRFunc.Kind.ConcMeth || irFunc.kind == IRFunc.Kind.InternalMeth
 
   /** check wheter it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match

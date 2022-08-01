@@ -5,9 +5,9 @@ import esmeta.analyzer.domain.* // TODO refactoring
 
 /** type modeling */
 case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
-  // TODO optimize
 
   /** get method map */
+  // TODO optimize
   def getMethod(tname: String): Map[String, String] = infos.get(tname) match {
     case Some(info) =>
       val parentMethods = info.parent.map(getMethod).getOrElse(Map())
@@ -15,59 +15,181 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
     case None => Map()
   }
 
-  /** get a method */
-  def getMethod(tname: String, method: String): Option[String] = for {
-    info <- infos.get(tname)
-    fname <- info.methods
-      .get(method)
-      .orElse(info.parent.fold(None)(getMethod(_, method))),
-  } yield fname
+  /** direct subtypes */
+  private lazy val directSubTypes: Map[String, Set[String]] = {
+    var children = Map[String, Set[String]]()
+    for {
+      (name, info) <- infos
+      parent <- info.parent
+      set = children.getOrElse(parent, Set())
+    } children += parent -> (set + name)
+    children
+  }
 
-  /** get a property-types map */
-  def getPropMap(tname: String): Map[String, Set[Type]] =
-    infos.get(tname) match {
-      case Some(info) =>
-        val parentPropMap = info.parent.map(getPropMap).getOrElse(Map())
-        parentPropMap ++ info.props
-      case None => Map()
+  /** subtypes */
+  private lazy val subTypes: Map[String, Set[String]] = {
+    var descs = Map[String, Set[String]]()
+    def aux(name: String): Set[String] = descs.get(name) match {
+      case Some(set) => set
+      case None =>
+        val set = (for {
+          sub <- directSubTypes.getOrElse(name, Set())
+          elem <- aux(sub)
+        } yield elem) + name
+        descs += name -> set
+        set
     }
+    infos.collect { case (name, TypeInfo(None, _, _)) => aux(name) }
+    descs
+  }
+  def isSubType(t0: String, t1: String): Boolean = subTypes(t1) contains t0
+
+  /** property map alias */
+  type PropMap = Map[String, Set[Type]]
 
   /** get types of property */
   def getProp(tname: String, p: String): Set[Type] =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       Set(NameT("Object"))
-    else getPropMap(tname).getOrElse(p, ???)
+    else propMap(tname).getOrElse(p, ???)
 
-  /** check subtype relation */
-  def subType(t0: String, t1: String): Boolean =
-    @tailrec
-    def aux(tname: String, parents: List[String]): List[String] =
-      infos.get(tname) match
-        case Some(TypeInfo(Some(parent), _, _)) =>
-          aux(parent, parent :: parents)
-        case _ => parents
-    aux(t0, List(t0)).contains(t1)
+  /** property type */
+  private lazy val propMap: Map[String, PropMap] = (for {
+    name <- infos.keySet
+  } yield name -> getPropMap(name)).toMap
+
+  /** get property map */
+  private def getPropMap(name: String): PropMap =
+    val upper = getUpperPropMap(name)
+    val lower = getLowerPropMap(name)
+    lower.foldLeft(upper) {
+      case (map, (k, t)) =>
+        val newT = t ++ map.getOrElse(k, Set())
+        map + (k -> newT)
+    }
+
+  /** get property map from ancestors */
+  private def getUpperPropMap(name: String): PropMap = infos.get(name) match
+    case Some(info) =>
+      val parentProps = info.parent.map(getUpperPropMap).getOrElse(Map())
+      val props = info.props
+      weakMerge(parentProps, props)
+    case None => Map()
+
+  /** get property map of name */
+  private def getSamePropMap(name: String): PropMap =
+    infos.get(name).map(_.props).getOrElse(Map())
+
+  /** get property map from ancestors */
+  private def getLowerPropMap(name: String): PropMap =
+    directSubTypes.get(name) match
+      case Some(children) =>
+        children
+          .map(child => {
+            val lower = getLowerPropMap(child)
+            val props = getSamePropMap(child)
+            weakMerge(lower, props)
+          })
+          .reduce(parallelWeakMerge)
+      case None => getSamePropMap(name)
+
+  /** weak merge */
+  private def weakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
+    val keys = lmap.keySet ++ rmap.keySet
+    keys.toList
+      .map(k => {
+        val lt = lmap.getOrElse(k, Set())
+        val rt = rmap.getOrElse(k, Set())
+        k -> (lt ++ rt)
+      })
+      .toMap
+  }
+
+  /** parallel weak merge */
+  private def parallelWeakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
+    val keys = lmap.keySet ++ rmap.keySet
+    keys.toList
+      .map(k => {
+        val lt = lmap.getOrElse(k, Set(AbsentT))
+        val rt = rmap.getOrElse(k, Set(AbsentT))
+        k -> (lt ++ rt)
+      })
+      .toMap
+  }
+
 }
 object TypeModel {
 
   /** conversion for type */
   given Conversion[Type, Set[Type]] = Set(_)
 
+  /** alias */
+  val EMPTY = ConstT("empty")
+  val UNRESOLVABLE = ConstT("unresolvable")
+  val LEXICAL = ConstT("lexical")
+  val INITIALIZED = ConstT("initialized")
+  val UNINITIALIZED = ConstT("uninitialized")
+  val FIELD = ConstT("field")
+  val METHOD = ConstT("method")
+  val ACCESSOR = ConstT("accessor")
+  val BASE = ConstT("base")
+  val DERIVED = ConstT("derived")
+  val STRICT = ConstT("strict")
+  val GLOBAL = ConstT("global")
+  val UNLINKED = ConstT("unlinked")
+  val LINKING = ConstT("linking")
+  val LINKED = ConstT("linked")
+  val EVALUATING = ConstT("evaluating")
+  val EVALUATING_ASYNC = ConstT("evaluating-async")
+  val EVALUATED = ConstT("evaluated")
+  val NUMBER = ConstT("Number")
+  val BIGINT = ConstT("BigInt")
+  val NAMESPACE_OBJ = ConstT("namespace-object")
+  val ALL = ConstT("all")
+  val ALL_BUT_DEFAULT = ConstT("all-but-default")
+  val NORMAL = ConstT("normal")
+  val BREAK = ConstT("break")
+  val CONTINUE = ConstT("continue")
+  val RETURN = ConstT("return")
+  val THROW = ConstT("throw")
+  val SUSPENDED_START = ConstT("suspendedStart")
+  val SUSPENDED_YIELD = ConstT("suspendedYield")
+  val EXECUTING = ConstT("executing")
+  val AWAITING_RETURN = ConstT("awaitingDASHreturn")
+  val COMPLETED = ConstT("completed")
+  val PENDING = ConstT("pending")
+  val FULFILLED = ConstT("fulfilled")
+  val REJECTED = ConstT("rejected")
+  val FULFILL = ConstT("Fulfill")
+  val REJECT = ConstT("Reject")
+
   // TODO extract type model from spec
   lazy val js: TypeModel = TypeModel(
     Map(
+      // property descriptor
+      "PropertyDescriptor" -> TypeInfo(
+        fields = Map(
+          "Value" -> Set(ESValueT, AbsentT),
+          "Writable" -> Set(BoolT, AbsentT),
+          "Get" -> Set(NameT("FunctionObject"), UndefT, AbsentT),
+          "Set" -> Set(NameT("FunctionObject"), UndefT, AbsentT),
+          "Enumerable" -> Set(BoolT, AbsentT),
+          "Configurable" -> Set(BoolT, AbsentT),
+        ),
+      ),
+
       // realm record
       "RealmRecord" -> TypeInfo(
-        props = Map(
+        fields = Map(
           "Intrinsics" -> NameT("IntrinsicsRecord"),
-          "GlobalObject" -> Set(UndefT, NameT("OrdinaryObject")),
+          "GlobalObject" -> Set(UndefT, NameT("Object")),
           "GlobalEnv" -> NameT("GlobalEnvironmentRecord"),
           "TemplateMap" -> ListT(NameT("TemplatePair")),
           "HostDefined" -> UndefT,
         ),
       ),
       "TemplatePair" -> TypeInfo(
-        props = Map(
+        fields = Map(
           "Site" -> AstT("TemplateLiteral"),
           "Array" -> NameT("Object"),
         ),
@@ -75,7 +197,7 @@ object TypeModel {
 
       // execution contexts
       "ExecutionContext" -> TypeInfo(
-        props = Map(
+        fields = Map(
           "Function" -> Set(NameT("FunctionObject"), NullT),
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" -> Set(NameT("ScriptRecord"), NameT("ModuleRecord")),
@@ -83,6 +205,54 @@ object TypeModel {
           "VariableEnvironment" -> NameT("EnvironmentRecord"),
           "PrivateEnvironment" -> Set(NameT("PrivateEnvironmentRecord"), NullT),
           "Generator" -> NameT("Object"),
+        ),
+      ),
+
+      // reference record
+      "ReferenceRecord" -> TypeInfo(
+        fields = Map(
+          "Base" -> Set(ESValueT, NameT("EnvironmentRecord"), UNRESOLVABLE),
+          "ReferencedName" -> Set(StrT, SymbolT, NameT("PrivateName")),
+          "Strict" -> BoolT,
+          "ThisValue" -> Set(ESValueT, EMPTY),
+        ),
+      ),
+
+      // private name
+      "PrivateName" -> TypeInfo(
+        fields = Map("Description" -> StrT),
+      ),
+
+      // private element
+      "PrivateElement" -> TypeInfo(
+        fields = Map(
+          "Key" -> NameT("PrivateName"),
+          "Kind" -> Set(FIELD, METHOD, ACCESSOR),
+          "Value" -> Set(AbsentT, ESValueT),
+          "Get" -> Set(NameT("FunctionObject"), UndefT, AbsentT),
+          "Set" -> Set(NameT("FunctionObject"), UndefT, AbsentT),
+        ),
+      ),
+
+      // class field definition record
+      "ClassFieldDefinitionRecord" -> TypeInfo(
+        fields = Map(
+          "Name" -> Set(NameT("PrivateName"), StrT, SymbolT),
+          "Initializer" -> Set(NameT("FunctionObject"), EMPTY),
+        ),
+      ),
+
+      // class static block definition record
+      "ClassStaticBlockDefinitionRecord" -> TypeInfo(
+        fields = Map("BodyFunction" -> NameT("FunctionObject")),
+      ),
+
+      // iterator record
+      "IteratorRecord" -> TypeInfo(
+        fields = Map(
+          "Iterator" -> NameT("OrdinaryObject"),
+          "NextMethod" -> NameT("FunctionObject"),
+          "Done" -> BoolT,
         ),
       ),
 
@@ -115,11 +285,31 @@ object TypeModel {
           "Call" -> "ECMAScriptFunctionObject.Call",
           "Construct" -> "ECMAScriptFunctionObject.Construct",
         ),
+        fields = Map(
+          "Environment" -> NameT("EnvironmentRecord"),
+          "PrivateEnvironment" -> Set(NameT("PrivateEnvironmentRecord"), NullT),
+          "FormalParameters" ->
+          Set(AstT("FormalParameters"), AstT("ArrowParameters")),
+          "ECMAScriptCode" -> AstT("FunctionBody"),
+          "ConstructorKind" -> Set(BASE, DERIVED),
+          "Realm" -> NameT("RealmRecord"),
+          "ScriptOrModule" -> Set(NameT("ScriptRecord"), NameT("ModuleRecord")),
+          "ThisMode" -> Set(LEXICAL, STRICT, GLOBAL),
+          "Strict" -> BoolT,
+          "HomeObject" -> NameT("Object"),
+          "SourceText" -> StrT,
+          "Fields" -> ListT(NameT("ClassFieldDefinitionRecord")),
+          "PrivateMethods" -> ListT(NameT("PrivateElement")),
+          "ClassFieldInitializerName" ->
+          Set(StrT, SymbolT, NameT("PrivateName"), EMPTY),
+          "IsClassConstructor" -> BoolT,
+        ),
       ),
       "BuiltinFunctionObject" -> TypeInfo(
         parent = Some("FunctionObject"),
         methods = Map(
           "Call" -> "BuiltinFunctionObject.Call",
+          // XXX "Construct" -> "BuiltinFunctionObject.Construct",
         ),
       ),
       "BoundFunctionExoticObject" -> TypeInfo(
@@ -127,6 +317,11 @@ object TypeModel {
         methods = Map(
           "Call" -> "BoundFunctionExoticObject.Call",
           "Construct" -> "BoundFunctionExoticObject.Construct",
+        ),
+        fields = Map(
+          "BoundTargetFunction" -> NameT("FunctionObject"),
+          "BoundThis" -> ESValueT,
+          "BoundArguments" -> ListT(ESValueT),
         ),
       ),
       "ArrayExoticObject" -> TypeInfo(
@@ -143,6 +338,7 @@ object TypeModel {
           "StringExoticObject.DefineOwnProperty",
           "OwnPropertyKeys" -> "StringExoticObject.OwnPropertyKeys",
         ),
+        fields = Map("StringData" -> StrT),
       ),
       "ArgumentsExoticObject" -> TypeInfo(
         parent = Some("Object"),
@@ -153,6 +349,9 @@ object TypeModel {
           "Get" -> "ArgumentsExoticObject.Get",
           "Set" -> "ArgumentsExoticObject.Set",
           "Delete" -> "ArgumentsExoticObject.Delete",
+        ),
+        fields = Map(
+          "ParameterMap" -> Set(NameT("OrdinaryObject"), NullT),
         ),
       ),
       "IntegerIndexedExoticObject" -> TypeInfo(
@@ -168,6 +367,33 @@ object TypeModel {
           "Delete" -> "IntegerIndexedExoticObject.Delete",
           "OwnPropertyKeys" ->
           "IntegerIndexedExoticObject.OwnPropertyKeys",
+        ),
+        fields = Map(
+          "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
+          "ArrayLength" -> MathT,
+          "ByteOffset" -> MathT,
+          "ContentType" -> Set(NUMBER, BIGINT),
+          "TypedArrayName" -> StrT,
+        ),
+      ),
+      "ModuleNamespaceExoticObject" -> TypeInfo(
+        parent = Some("Object"),
+        methods = Map(
+          "GetPrototypeOf" -> "ModuleNamespaceExoticObject.GetPrototypeOf",
+          "SetPrototypeOf" -> "ModuleNamespaceExoticObject.SetPrototypeOf",
+          "IsExtensible" -> "ModuleNamespaceExoticObject.IsExtensible",
+          "PreventExtensions" -> "ModuleNamespaceExoticObject.PreventExtensions",
+          "GetOwnProperty" -> "ModuleNamespaceExoticObject.GetOwnProperty",
+          "DefineOwnProperty" -> "ModuleNamespaceExoticObject.DefineOwnProperty",
+          "HasProperty" -> "ModuleNamespaceExoticObject.HasProperty",
+          "Get" -> "ModuleNamespaceExoticObject.Get",
+          "Set" -> "ModuleNamespaceExoticObject.Set",
+          "Delete" -> "ModuleNamespaceExoticObject.Delete",
+          "OwnPropertyKeys" -> "ModuleNamespaceExoticObject.OwnPropertyKeys",
+        ),
+        fields = Map(
+          "Module" -> NameT("ModuleRecord"),
+          "Exports" -> ListT(StrT),
         ),
       ),
       "ImmutablePrototypeExoticObject" -> TypeInfo(
@@ -194,6 +420,10 @@ object TypeModel {
           "Call" -> "ProxyExoticObject.Call",
           "Construct" -> "ProxyExoticObject.Construct",
         ),
+        fields = Map(
+          "ProxyHandler" -> Set(NameT("Object"), NullT),
+          "ProxyTarget" -> Set(NameT("Object"), NullT),
+        ),
       ),
       "ArrayBufferObject" -> TypeInfo(parent = Some("Object")),
       "BooleanObject" -> TypeInfo(parent = Some("OrdinaryObject")),
@@ -202,17 +432,103 @@ object TypeModel {
       "SymbolObject" -> TypeInfo(parent = Some("OrdinaryObject")),
 
       // special instances
-      "ForInIteratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "AsynFromSyncIteratorInstance" -> TypeInfo(parent =
-        Some("OrdinaryObject"),
+      "ForInIteratorInstance" -> TypeInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "Object" -> NameT("Object"),
+          "ObjectWasVisited" -> BoolT,
+          "VisitedKeys" -> ListT(StrT),
+          "RemainingKeys" -> ListT(StrT),
+        ),
       ),
-      "PromiseInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "GeneratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "AsyncGeneratorInstance" -> TypeInfo(parent = Some("OrdinaryObject")),
+      "AsyncFromSyncIteratorInstance" -> TypeInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "SyncIteratorRecord" -> NameT("IteratorRecord"),
+        ),
+      ),
+      "PromiseCapabilityRecord" -> TypeInfo(
+        fields = Map(
+          "Promise" -> NameT("Object"),
+          "Resovle" -> NameT("FunctionObject"),
+          "Reject" -> NameT("FunctionObject"),
+        ),
+      ),
+      "PromiseReactionRecord" -> TypeInfo(
+        fields = Map(
+          "Capability" -> Set(NameT("PromiseCapabilityRecord"), UndefT),
+          "Type" -> Set(FULFILL, REJECT),
+          "Handler" -> Set(NameT("JobCallbackRecord"), EMPTY),
+        ),
+      ),
+      "PromiseInstance" -> TypeInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "PromiseState" -> Set(PENDING, FULFILLED, REJECTED),
+          "PromiseResult" -> ESValueT,
+          "PromiseFulfillReactions" -> ListT(NameT("PromiseReactionRecord")),
+          "PromiseRejectReactions" -> ListT(NameT("PromiseReactionRecord")),
+          "PromiseIsHandled" -> BoolT,
+        ),
+      ),
+      "GeneratorInstance" -> TypeInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "GeneratorState" -> Set(
+            UndefT,
+            SUSPENDED_START,
+            SUSPENDED_YIELD,
+            EXECUTING,
+            COMPLETED,
+          ),
+          "GeneratorContext" -> NameT("ExecutionContext"),
+          "GeneratorBrand" -> Set(StrT, EMPTY),
+        ),
+      ),
+      "AsyncGeneratorInstance" -> TypeInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "AsyncGeneratorState" -> Set(
+            UndefT,
+            SUSPENDED_START,
+            SUSPENDED_YIELD,
+            EXECUTING,
+            AWAITING_RETURN,
+            COMPLETED,
+          ),
+          "AsyncGeneratorContext" -> NameT("ExecutionContext"),
+          "AsyncGeneratorQueue" -> ListT(NameT("AsyncGeneratorRequestRecord")),
+          "GeneratorBrand" -> Set(StrT, EMPTY),
+        ),
+      ),
+      "AsyncGeneratorRequestRecord" -> TypeInfo(
+        fields = Map(
+          // TODO "Completion" -> Set(NormalT(_), AbruptT),
+          "Capability" -> NameT("PromiseCapabilityRecord"),
+        ),
+      ),
 
       // environment records
-      "LexicalEnvironment" -> TypeInfo(),
-      "EnvironmentRecord" -> TypeInfo(parent = Some("LexicalEnvironment")),
+      "EnvironmentRecord" -> TypeInfo(
+        fields = Map(
+          "OuterEnv" -> Set(NullT, NameT("EnvironmentRecord")),
+          // TODO
+          // "SubMap" -> MapT(NameT("MutableBinding"), NameT("ImmutableBinding")),
+        ),
+      ),
+      "MutableBinding" -> TypeInfo(
+        fields = Map(
+          "BoundValue" -> ESValueT,
+          "initialized" -> BoolT,
+        ),
+      ),
+      "ImmutableBinding" -> TypeInfo(
+        fields = Map(
+          "BoundValue" -> ESValueT,
+          "initialized" -> BoolT,
+          "strict" -> BoolT,
+        ),
+      ),
       "DeclarativeEnvironmentRecord" -> TypeInfo(
         parent = Some("EnvironmentRecord"),
         methods = Map(
@@ -237,6 +553,38 @@ object TypeModel {
           "DeclarativeEnvironmentRecord.WithBaseObject",
         ),
       ),
+      "FunctionEnvironmentRecord" -> TypeInfo(
+        parent = Some("DeclarativeEnvironmentRecord"),
+        methods = Map(
+          "BindThisValue" -> "FunctionEnvironmentRecord.BindThisValue",
+          "HasThisBinding" ->
+          "FunctionEnvironmentRecord.HasThisBinding",
+          "HasSuperBinding" ->
+          "FunctionEnvironmentRecord.HasSuperBinding",
+          "GetThisBinding" ->
+          "FunctionEnvironmentRecord.GetThisBinding",
+          "GetSuperBase" -> "FunctionEnvironmentRecord.GetSuperBase",
+        ),
+        fields = Map(
+          "ThisValue" -> ESValueT,
+          "ThisBindingStatus" -> Set(LEXICAL, INITIALIZED, UNINITIALIZED),
+          "FunctionObject" -> NameT("FunctionObject"),
+          "NewTarget" -> Set(NameT("Object"), UndefT),
+        ),
+      ),
+      "ModuleEnvironmentRecord" -> TypeInfo(
+        parent = Some("DeclarativeEnvironmentRecord"),
+        methods = Map(
+          "GetBindingValue" -> "ModuleEnvironmentRecord.GetBindingValue",
+          "DeleteBinding" ->
+          "ModuleEnvironmentRecord.DeleteBinding",
+          "HasThisBinding" ->
+          "ModuleEnvironmentRecord.HasThisBinding",
+          "GetThisBinding" ->
+          "ModuleEnvironmentRecord.GetThisBinding",
+          "CreateImportBinding" -> "ModuleEnvironmentRecord.CreateImportBinding",
+        ),
+      ),
       "ObjectEnvironmentRecord" -> TypeInfo(
         parent = Some("EnvironmentRecord"),
         methods = Map(
@@ -255,18 +603,9 @@ object TypeModel {
           "ObjectEnvironmentRecord.HasSuperBinding",
           "WithBaseObject" -> "ObjectEnvironmentRecord.WithBaseObject",
         ),
-      ),
-      "FunctionEnvironmentRecord" -> TypeInfo(
-        parent = Some("DeclarativeEnvironmentRecord"),
-        methods = Map(
-          "BindThisValue" -> "FunctionEnvironmentRecord.BindThisValue",
-          "HasThisBinding" ->
-          "FunctionEnvironmentRecord.HasThisBinding",
-          "HasSuperBinding" ->
-          "FunctionEnvironmentRecord.HasSuperBinding",
-          "GetThisBinding" ->
-          "FunctionEnvironmentRecord.GetThisBinding",
-          "GetSuperBase" -> "FunctionEnvironmentRecord.GetSuperBase",
+        fields = Map(
+          "IsWithEnvironment" -> BoolT,
+          "BindingObject" -> NameT("Object"),
         ),
       ),
       "GlobalEnvironmentRecord" -> TypeInfo(
@@ -304,6 +643,136 @@ object TypeModel {
           "CreateGlobalFunctionBinding" ->
           "GlobalEnvironmentRecord.CreateGlobalFunctionBinding",
         ),
+        fields = Map(
+          "OuterEnv" -> NullT,
+          "ObjectRecord" -> NameT("ObjectEnvironmentRecord"),
+          "GlobalThisValue" -> NameT("Object"),
+          "DeclarativeRecord" -> NameT("DeclarativeEnvironmentRecord"),
+          "VarNames" -> ListT(StrT),
+        ),
+      ),
+
+      // private environment record
+      "PrivateEnvironmentRecord" -> TypeInfo(
+        fields = Map(
+          "OuterPrivateEnvironment" -> Set(
+            NameT("PrivateEnvironmentRecord"),
+            NullT,
+          ),
+          "Names" -> ListT(NameT("PrivateName")),
+        ),
+      ),
+
+      // job callback record
+      "JobCallbackRecord" -> TypeInfo(
+        fields = Map(
+          "Callback" -> NameT("FunctionObject"),
+          "HostDefined" -> UndefT,
+        ),
+      ),
+
+      // agent record
+      "AgentRecord" -> TypeInfo(
+        fields = Map(
+          "LittleEndian" -> BoolT,
+          "CanBlock" -> BoolT,
+          "Signifier" -> NameT("AgentSignifier"),
+          "IsLockFree1" -> BoolT,
+          "IsLockFree2" -> BoolT,
+          "IsLockFree8" -> BoolT,
+          "CandidateExecution" -> NameT("CandidateExecutionRecord"),
+          "KeptAlive" -> ListT(NameT("Object")),
+        ),
+      ),
+
+      // script record
+      "ScriptRecord" -> TypeInfo(
+        fields = Map(
+          "Realm" -> Set(NameT("RealmRecord"), UndefT),
+          "ECMAScriptCode" -> AstT("Script"),
+          "HostDefined" -> EMPTY,
+        ),
+      ),
+
+      // module record
+      "ModuleRecord" -> TypeInfo(
+        fields = Map(
+          "Realm" -> NameT("RealmRecord"),
+          "Environment" -> Set(NameT("ModuleEnvironmentRecord"), EMPTY),
+          "Namespace" -> Set(NameT("ModuleNamespaceExoticObject"), EMPTY),
+          "HostDefined" -> UndefT,
+        ),
+      ),
+      "CyclicModuleRecord" -> TypeInfo(
+        parent = Some("ModuleRecord"),
+        methods = Map(
+          "Link" -> "CyclicModuleRecord.Link",
+          "Evaluate" -> "CyclicModuleRecord.Evaluate",
+        ),
+        fields = Map(
+          "Status" ->
+          Set(
+            UNLINKED,
+            LINKING,
+            LINKED,
+            EVALUATING,
+            EVALUATING_ASYNC,
+            EVALUATED,
+          ),
+          "EvaluationError" -> Set(AbruptT, EMPTY),
+          "DFSIndex" -> Set(MathT, EMPTY),
+          "DFSAncestorIndex" -> Set(MathT, EMPTY),
+          "RequestedModules" -> ListT(StrT),
+          "CycleRoot" -> Set(NameT("CyclicModuleRecord"), EMPTY),
+          "HasTLA" -> BoolT,
+          "AsyncEvaluation" -> BoolT,
+          "TopLevelCapability" -> Set(NameT("PromiseCapabilityRecord"), EMPTY),
+          "AsyncParentModules" -> ListT(NameT("CyclicModuleRecord")),
+          "PendingAsyncDependencies" -> Set(MathT, EMPTY),
+        ),
+      ),
+      "SourceTextModuleRecord" -> TypeInfo(
+        parent = Some("CyclicModuleRecord"),
+        fields = Map(
+          "ECMAScriptCode" -> AstT("Module"),
+          "Context" -> NameT("ExecutionContext"),
+          "ImportMeta" -> Set(NameT("Object"), EMPTY),
+          "ImportEntries" -> ListT(NameT("ImportEntryRecord")),
+          "LocalExportEntries" -> ListT(NameT("ExportEntryRecord")),
+          "IndirectExportEntries" -> ListT(NameT("ExportEntryRecord")),
+          "StarExportEntries" -> ListT(NameT("ExportEntryRecord")),
+        ),
+      ),
+      "ImportEntryRecord" -> TypeInfo(
+        fields = Map(
+          "ModuleRequest" -> StrT,
+          "ImportName" -> Set(StrT, NAMESPACE_OBJ),
+          "LocalName" -> StrT,
+        ),
+      ),
+      "ExportEntryRecord" -> TypeInfo(
+        fields = Map(
+          "ExportName" -> Set(StrT, NullT),
+          "ModuleRequest" -> Set(StrT, NullT),
+          "ImportName" -> Set(StrT, NullT, ALL, ALL_BUT_DEFAULT),
+          "LocalName" -> Set(StrT, NullT),
+        ),
+      ),
+
+      // symbol registry
+      "GlobalSymbolRegistryRecord" -> TypeInfo(
+        fields = Map(
+          "Key" -> StrT,
+          "Symbol" -> SymbolT,
+        ),
+      ),
+
+      // match record
+      "MatchRecord" -> TypeInfo(
+        fields = Map(
+          "StartIndex" -> MathT,
+          "EndIndex" -> MathT,
+        ),
       ),
     ),
   )
@@ -313,5 +782,15 @@ object TypeModel {
 case class TypeInfo(
   parent: Option[String] = None,
   methods: Map[String, String] = Map(),
-  props: Map[String, Set[Type]] = Map(),
-)
+  fields: Map[String, Set[Type]] = Map(),
+) {
+  lazy val props: Map[String, Set[Type]] =
+    val keys = methods.keySet ++ fields.keySet
+    (for {
+      k <- keys
+      fs = fields.getOrElse(k, Set())
+      tys = methods.get(k) match
+        case None         => fs
+        case Some(method) => fs + CloT(method)
+    } yield k -> tys).toMap
+}

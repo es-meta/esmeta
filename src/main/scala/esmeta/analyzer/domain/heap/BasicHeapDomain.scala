@@ -155,9 +155,6 @@ object BasicHeapDomain extends Domain {
             AbsValue(baseHeap.getIntrinsics(str))
           case FlatElem(_) => AbsValue.Bot
           case FlatTop     => ???
-      // prop.str
-      //   .map(AbsValue(baseHeap.getIntrinsics(_)))
-      //   .foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
       case _ => this(loc)(prop)
 
     // setters

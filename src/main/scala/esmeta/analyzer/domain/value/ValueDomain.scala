@@ -116,5 +116,8 @@ trait ValueDomain extends Domain {
     /** absent helpers */
     def removeAbsent: Elem
     def isAbsent: Elem
+
+    /** refine receiver object */
+    def refineThis(func: Func): Elem
   }
 }

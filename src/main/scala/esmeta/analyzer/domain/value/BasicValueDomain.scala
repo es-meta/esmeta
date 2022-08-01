@@ -347,7 +347,7 @@ object BasicValueDomain extends ValueDomain {
       if (!this.nullv.isBottom) set += "Null"
       if (!this.loc.isBottom) for (loc <- this.loc) {
         val tname = st(loc).getTy match
-          case tname if cfg.typeModel.subType(tname, "Object") =>
+          case tname if cfg.typeModel.isSubType(tname, "Object") =>
             "Object"
           case tname => tname
         set += tname
@@ -380,7 +380,7 @@ object BasicValueDomain extends ValueDomain {
         val tname0 = st(loc).getTy
         bv ⊔= AbsBool(
           Bool(
-            tname0 == tname || cfg.typeModel.subType(tname0, tname),
+            tname0 == tname || cfg.typeModel.isSubType(tname0, tname),
           ),
         )
       }
@@ -514,5 +514,8 @@ object BasicValueDomain extends ValueDomain {
       if (!absent.isBottom) b ⊔= AT
       if (!removeAbsent.isBottom) b ⊔= AF
       apply(bool = b)
+
+    /** refine receiver object */
+    def refineThis(func: Func): Elem = this
   }
 }

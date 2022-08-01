@@ -126,7 +126,7 @@ object BasicStateDomain extends StateDomain {
         case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot
         case _                                => exploded("ast property access")
       }
-    def lookupStr(str: AbsStr, prop: AbsValue): AbsValue =
+    private def lookupStr(str: AbsStr, prop: AbsValue): AbsValue =
       (str.getSingle, prop.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(Str(str)), FlatElem(AMath(k))) =>
