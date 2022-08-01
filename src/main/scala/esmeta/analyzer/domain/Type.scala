@@ -96,6 +96,40 @@ sealed trait Type extends AnalyzerElem {
     case NormalT(t)  => NormalT(t.upcast)
     case p: PureType => p.upcast
     case _           => this
+
+  /** to pure type */
+  def toPureType: PureType = this match
+    case p: PureType => p
+    case _           => error(s"not pure type: $this")
+
+  /** various type conditions */
+  def isNumeric = this match
+    case NumberT | NumberSingleT(_) => true
+    case MathT | MathSingleT(_)     => true
+    case BigIntT | BigIntSingleT(_) => true
+    case _                          => false
+  def isStr = this match
+    case StrT | StrSingleT(_) => true
+    case _                    => false
+  def isBool = this match
+    case BoolT | BoolSingleT(_) => true
+    case _                      => false
+  def isUndef = this == UndefT
+  def isMath = this match
+    case MathT | MathSingleT(_) => true
+    case _                      => false
+  def isNumber = this match
+    case NumberT | NumberSingleT(_) => true
+    case _                          => false
+  def isBigInt = this match
+    case BigIntT | BigIntSingleT(_) => true
+    case _                          => false
+  def isCompletion = this match
+    case NormalT(_) | AbruptT => true
+    case _                    => false
+  def isPure = this match
+    case p: PureType => true
+    case _           => false
 }
 
 /** top type */

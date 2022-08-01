@@ -173,7 +173,6 @@ object BasicValueDomain extends ValueDomain {
     def absent: AbsAbsent = simple.absent
     def pure: Elem = copy(comp = AbsComp.Bot)
     def getKeyValue: Elem = apply(loc = loc, str = str)
-    def getDescValue: Elem = apply(str = str, undef = undef)
     def getClos: List[(Func, Map[Name, Elem])] =
       clo.toList.map { c =>
         // TODO remove unsafe type casting

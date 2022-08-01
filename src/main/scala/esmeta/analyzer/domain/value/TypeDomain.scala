@@ -82,7 +82,6 @@ object TypeDomain extends ValueDomain {
     /** getters */
     def loc: AbsLoc = ???
     def getKeyValue: Elem = ??? // XXX not used
-    def getDescValue: Elem = ???
     def getClos: List[(Func, Map[Name, Elem])] = for {
       CloT(func) <- set.toList // TODO captured
     } yield (func, Map())
@@ -170,12 +169,24 @@ object TypeDomain extends ValueDomain {
         case _ if (this ⊓ that).isBottom          => AVF
         case _                                    => bool
     def ==^==(that: Elem): Elem = ???
-    def <(that: Elem): Elem = ???
+    def <(that: Elem): Elem =
+      if (this.isBottom || that.isBottom) Bot
+      else {
+        this.assertNumeric
+        that.assertNumeric
+        if (this.set.exists(_.isMath)) that.assertMath
+        if (this.set.exists(_.isNumber)) that.assertNumber
+        if (this.set.exists(_.isBigInt)) that.assertBigInt
+        bool
+      }
 
     /** logical operations */
-    def &&(that: Elem): Elem = ???
-    def ||(that: Elem): Elem = ???
-    def ^^(that: Elem): Elem = ???
+    def &&(that: Elem): Elem = this logicalOps that
+    def ||(that: Elem): Elem = this logicalOps that
+    def ^^(that: Elem): Elem = this logicalOps that
+    private def logicalOps(that: Elem) = {
+      this.assertBool; that.assertBool; bool
+    }
 
     /** numeric operations */
     def +(that: Elem): Elem = ???
@@ -191,7 +202,12 @@ object TypeDomain extends ValueDomain {
 
     /** unary operations */
     def unary_- : Elem = ???
-    def unary_! : Elem = ???
+    def unary_! : Elem =
+      assertBool
+      if (set contains BoolT) bool
+      else if (AVF ⊑ this) AVT
+      else if (AVT ⊑ this) AVF
+      else Bot
     def unary_~ : Elem = ???
     def abs: Elem = ???
     def floor: Elem = ???
@@ -238,9 +254,22 @@ object TypeDomain extends ValueDomain {
 
     /** completion helpers */
     def wrapCompletion: Elem = Elem(set.map(_.wrapCompletion)).norm
-    def unwrapCompletion: Elem = ???
-    def isCompletion: Elem = ???
-    def abruptCompletion: Elem = ???
+    def unwrapCompletion: Elem = Elem(for {
+      ty <- set
+      pureTy <- ty match
+        case NormalT(p)  => Some(p)
+        case AbruptT     => None
+        case p: PureType => Some(p)
+        case TopT        => ??? // TODO
+    } yield pureTy).norm
+    def isCompletion: Elem =
+      if (this.set.isEmpty) Bot
+      else if (this.set.forall(_.isCompletion)) AVT
+      else if (this.set.forall(_.isPure)) AVF
+      else bool
+    def abruptCompletion: Elem =
+      if (this.set contains AbruptT) Elem(AbruptT)
+      else Bot
 
     /** absent helpers */
     def removeAbsent: Elem = this - AbsentT
@@ -250,6 +279,9 @@ object TypeDomain extends ValueDomain {
         else AVT
       } else if (set.isEmpty) Bot
       else AVF
+
+    /** upcasting */
+    def upcast: Elem = Elem(set.map(_.upcast)).norm
 
     /** normalize types */
     private def norm: Elem = {
@@ -285,6 +317,16 @@ object TypeDomain extends ValueDomain {
       Elem(set)
     }
 
+    /** various assertions */
+    def assert(f: Type => Boolean, msg: String = "") =
+      if (!set.forall(f)) ??? // TODO warning
+    def assertBool: Unit = assert(_.isBool)
+    def assertStr: Unit = assert(_.isStr)
+    def assertUndef: Unit = assert(_.isUndef)
+    def assertNumeric: Unit = assert(_.isNumeric)
+    def assertMath: Unit = assert(_.isMath)
+    def assertNumber: Unit = assert(_.isBigInt)
+    def assertBigInt: Unit = assert(_.isNumber)
   }
 
 }

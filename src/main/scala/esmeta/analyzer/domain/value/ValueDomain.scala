@@ -39,7 +39,6 @@ trait ValueDomain extends Domain {
     /** getters */
     def loc: AbsLoc
     def getKeyValue: Elem
-    def getDescValue: Elem
     def getClos: List[(Func, Map[Name, Elem])]
     def getCont: List[ACont]
     def getSDO(method: String): List[(Func, Elem)]

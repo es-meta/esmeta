@@ -128,7 +128,7 @@ class Stringifier(
       case ListT(elem)                   => app >> s"[$elem]"
       case MapT(elem)                    => app >> s"{ _ |-> $elem }"
       case SymbolT                       => app >> "symbol"
-      case NormalT(t)                    => app >> s"Normal($t)"
+      case NormalT(t)                    => app >> s"N($t)"
       case AbruptT                       => app >> "Abrupt"
       case NumberSingleT(n)              => app >> n >> "f"
       case BigIntSingleT(b)              => app >> b >> "n"

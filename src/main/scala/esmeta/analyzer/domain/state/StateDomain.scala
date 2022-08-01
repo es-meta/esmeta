@@ -97,14 +97,16 @@ trait StateDomain extends Domain {
     def prepend(loc: AbsLoc, value: AbsValue): Elem
     def remove(loc: AbsLoc, value: AbsValue): Elem
     def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem)
-    def copyObj(from: AbsLoc)(to: AllocSite): Elem
-    def keys(loc: AbsLoc, intSorted: Boolean)(to: AllocSite): Elem
-    def allocMap(tname: String, pairs: List[(AbsValue, AbsValue)])(
-      to: AllocSite,
-    ): Elem
-    def allocList(list: List[AbsValue])(to: AllocSite): Elem
-    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem)
+    def copyObj(from: AbsLoc, to: AllocSite): Elem
+    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem
     def setType(loc: AbsLoc, tname: String): Elem
+    def allocMap(
+      tname: String,
+      pairs: List[(AbsValue, AbsValue)],
+      to: AllocSite,
+    ): (AbsValue, Elem)
+    def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem)
+    def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem)
     def contains(
       list: AbsValue,
       value: AbsValue,
@@ -119,7 +121,7 @@ trait StateDomain extends Domain {
     def doProcStart(fixed: Set[Loc]): Elem
 
     // handle returns (this: return states / to: caller states)
-    def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem
+    def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = doReturn(to, defs)
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
@@ -151,14 +153,12 @@ trait StateDomain extends Domain {
     )(f: => Elem): Elem =
       if (this.isBottom || vs.exists(_.isBottom)) Bot
       else f
-    protected def bottomCheck[T](vs: Domain#ElemTrait*)(
-      default: T,
+    protected def bottomCheck[T <: ValueDomain#Elem](vs: Domain#ElemTrait*)(
       f: => (T, Elem),
-    ): (T, Elem) =
-      bottomCheck(vs)(default, f)
-    protected def bottomCheck[T](
+    )(using default: T): (T, Elem) = bottomCheck(vs)(f)
+    protected def bottomCheck[T <: ValueDomain#Elem](
       vs: Iterable[Domain#ElemTrait],
-    )(default: T, f: => (T, Elem)): (T, Elem) =
+    )(f: => (T, Elem))(using default: T): (T, Elem) =
       if (this.isBottom || vs.exists(_.isBottom)) (default, Bot)
       else f
   }

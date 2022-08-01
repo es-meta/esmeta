@@ -10,7 +10,6 @@ import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
-import scala.annotation.targetName // TODO remove this
 
 /** basic abstract states */
 object BasicStateDomain extends StateDomain {
@@ -168,6 +167,9 @@ object BasicStateDomain extends StateDomain {
           copy(heap = heap.delete(base.loc, prop))
         }
 
+    // default value for bottom check
+    given bottomValue: AbsValue = AbsValue.Bot
+
     // object operators
     def append(loc: AbsLoc, value: AbsValue): Elem =
       bottomCheck(loc, value) { copy(heap = heap.append(loc, value)) }
@@ -184,25 +186,28 @@ object BasicStateDomain extends StateDomain {
       }
       (v, st)
     }
-    def copyObj(from: AbsLoc)(to: AllocSite): Elem =
+    def copyObj(from: AbsLoc, to: AllocSite): Elem =
       bottomCheck(from) { copy(heap = heap.copyObj(from)(to)) }
-    def keys(loc: AbsLoc, intSorted: Boolean)(to: AllocSite): Elem =
+    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem =
       bottomCheck(loc) { copy(heap = heap.keys(loc, intSorted)(to)) }
-    def allocMap(tname: String, pairs: List[(AbsValue, AbsValue)])(
+    def allocMap(
+      tname: String,
+      pairs: List[(AbsValue, AbsValue)],
       to: AllocSite,
-    ): Elem =
-      bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
-        copy(heap = heap.allocMap(tname, pairs)(to))
-      }
-    def allocList(list: List[AbsValue])(to: AllocSite): Elem =
-      bottomCheck(list) { copy(heap = heap.allocList(list)(to)) }
-    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem) =
+    ): (AbsValue, Elem) =
       val locV = AbsValue(to)
-      bottomCheck(desc)(
-        locV, {
-          (locV, copy(heap = heap.allocSymbol(desc)(to)))
-        },
-      )
+      bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
+        (locV, copy(heap = heap.allocMap(tname, pairs)(to)))
+      }
+    def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+      val locV = AbsValue(to)
+      bottomCheck(list) { (locV, copy(heap = heap.allocList(list)(to))) }
+    def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) =
+      val locV = AbsValue(to)
+      val descV = BasicValueDomain(str = desc.str, undef = desc.undef)
+      bottomCheck(descV) {
+        (locV, copy(heap = heap.allocSymbol(descV)(to)))
+      }
     def setType(loc: AbsLoc, tname: String): Elem =
       bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
     def contains(
@@ -284,7 +289,6 @@ object BasicStateDomain extends StateDomain {
       .garbageCollected
 
     // handle returns (this: return states / to: caller states)
-    def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = doReturn(to, defs)
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
       locals = to.locals ++ defs,

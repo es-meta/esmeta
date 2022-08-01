@@ -171,20 +171,44 @@ object TypeStateDomain extends StateDomain {
       case Global(x) => ???
     def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
 
+    /** default value for bottom check */
+    given bottomValue: AbsValue = AbsValue.Bot
+
     /** object operators */
     def delete(refV: AbsRefValue): Elem = ???
     def append(loc: AbsLoc, value: AbsValue): Elem = ???
     def prepend(loc: AbsLoc, value: AbsValue): Elem = ???
     def remove(loc: AbsLoc, value: AbsValue): Elem = ???
     def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = ???
-    def copyObj(from: AbsLoc)(to: AllocSite): Elem = ???
-    def keys(loc: AbsLoc, intSorted: Boolean)(to: AllocSite): Elem = ???
-    def allocMap(tname: String, pairs: List[(AbsValue, AbsValue)])(
-      to: AllocSite,
-    ): Elem = ???
-    def allocList(list: List[AbsValue])(to: AllocSite): Elem = ???
-    def allocSymbol(desc: AbsValue)(to: AllocSite): (AbsValue, Elem) = ???
+    def copyObj(from: AbsLoc, to: AllocSite): Elem = ???
+    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem = ???
     def setType(loc: AbsLoc, tname: String): Elem = ???
+    def allocMap(
+      tname: String,
+      pairs: List[(AbsValue, AbsValue)],
+      to: AllocSite,
+    ): (AbsValue, Elem) =
+      bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
+        (???, this)
+      }
+    def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+      bottomCheck(list) {
+        val elemTy =
+          list.map(_.removeAbsent.upcast).foldLeft(AbsValue.Bot: AbsValue) {
+            case (merged, elem) => merged ⊔ elem
+          }
+        val listTy = elemTy.set.size match
+          case 0 => NilT
+          case 1 => ListT(elemTy.set.head.toPureType)
+          case _ => ??? // TODO
+        (AbsValue(listTy), this)
+      }
+    def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) =
+      bottomCheck(desc) {
+        // check desc is string or undefined
+        desc.assert(ty => ty.isStr || ty.isUndef)
+        (AbsValue(SymbolT), this)
+      }
     def contains(
       list: AbsValue,
       value: AbsValue,
@@ -202,8 +226,10 @@ object TypeStateDomain extends StateDomain {
     def doProcStart(fixed: Set[Loc]): Elem = ???
 
     /** handle returns (this: return states / to: caller states) */
-    def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = ???
-    def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
+    def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
+      reachable = true,
+      locals = to.locals ++ defs,
+    )
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = ???
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
     def garbageCollected: Elem = ???

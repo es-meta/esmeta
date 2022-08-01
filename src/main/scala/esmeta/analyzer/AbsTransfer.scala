@@ -87,6 +87,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   def apply(rp: ReturnPoint): Unit = {
     var ret @ AbsRet(value, st) = sem(rp)
 
+    // TODO handle state domain for type analysis
     // proper type handle
     Interp.setTypeMap
       .get(rp.func.name)
@@ -374,7 +375,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       case ESourceText(expr) =>
         for { v <- transfer(expr) } yield v.sourceText
       case e @ EGetChildren(kindOpt, ast) =>
-        val loc: AllocSite = AllocSite(e.asite, cp.view)
+        val loc = AllocSite(e.asite, cp.view)
         for {
           kOpt <- id(st => {
             kindOpt match
@@ -382,17 +383,19 @@ case class AbsTransfer(sem: AbsSemantics) {
               case None       => (None, st)
           })
           a <- transfer(ast)
-          _ <- (kOpt.map(_.getSingle), a.getSingle) match
-            case (Some(FlatBot), _) | (_, FlatBot) => put(AbsState.Bot)
+          lv <- (kOpt.map(_.getSingle), a.getSingle) match
+            case (Some(FlatBot), _) | (_, FlatBot) =>
+              id(st => (AbsValue.Bot, AbsState.Bot))
             case (Some(FlatTop), _) | (_, FlatTop) => exploded("EGetChildren")
             case (Some(FlatElem(AGrammar(name, _))), FlatElem(AAst(ast))) =>
               val vs = ast.getChildren(name).map(AbsValue(_))
-              modify(_.allocList(vs)(loc))
+              id(_.allocList(vs, loc))
             case (None, FlatElem(AAst(syn: Syntactic))) =>
               val vs = syn.children.flatten.map(AbsValue(_))
-              modify(_.allocList(vs)(loc))
-            case _ => put(AbsState.Bot)
-        } yield AbsValue(loc)
+              id(_.allocList(vs, loc))
+            case _ =>
+              id(st => (AbsValue.Bot, AbsState.Bot))
+        } yield lv
       case EYet(_) => AbsValue.Bot
       case EContains(list, elem, field) =>
         for {
@@ -518,14 +521,14 @@ case class AbsTransfer(sem: AbsSemantics) {
                 v <- transfer(vexpr)
               } yield (k, v)
           })
-          _ <- modify(_.allocMap(ty.name, pairs)(loc))
-        } yield AbsValue(loc)
+          lv <- id(_.allocMap(ty.name, pairs, loc))
+        } yield lv
       case e @ EList(exprs) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
           vs <- join(exprs.map(transfer))
-          _ <- modify(_.allocList(vs)(loc))
-        } yield AbsValue(loc)
+          lv <- id(_.allocList(vs, loc))
+        } yield lv
       case e @ EListConcat(exprs) =>
         import AbsObj.*
         val loc: AllocSite = AllocSite(e.asite, cp.view)
@@ -541,27 +544,25 @@ case class AbsTransfer(sem: AbsSemantics) {
                     case _               => ???
                 case _ => ???
           }
-          _ <- modify(_.allocList(vs)(loc))
-        } yield AbsValue(loc)
+          lv <- id(_.allocList(vs, loc))
+        } yield lv
       case e @ ESymbol(desc) =>
-        val loc: AllocSite = AllocSite(e.asite, cp.view)
+        val loc = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(desc)
-          lv <- id(
-            _.allocSymbol(v.getDescValue)(loc),
-          )
+          lv <- id(_.allocSymbol(v, loc))
         } yield lv
       case e @ ECopy(obj) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(obj)
-          _ <- modify(_.copyObj(v.loc)(loc))
+          _ <- modify(_.copyObj(v.loc, loc))
         } yield AbsValue(loc)
       case e @ EKeys(map, intSorted) =>
         val loc: AllocSite = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(map)
-          _ <- modify(_.keys(v.loc, intSorted)(loc))
+          _ <- modify(_.keys(v.loc, intSorted, loc))
         } yield AbsValue(loc)
       case EDuplicated(expr) =>
         for {
