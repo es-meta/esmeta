@@ -11,7 +11,6 @@ import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
-import scala.annotation.targetName // TODO remove this
 
 /** abstract states for type analysis */
 object TypeStateDomain extends StateDomain {

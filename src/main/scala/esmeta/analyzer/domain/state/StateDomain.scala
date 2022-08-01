@@ -10,7 +10,6 @@ import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
-import scala.annotation.targetName // TODO remove this
 
 /** abstract states */
 trait StateDomain extends Domain {
@@ -58,14 +57,7 @@ trait StateDomain extends Domain {
       if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
       else v
     def apply(base: AbsValue, prop: AbsValue): AbsValue
-    // def apply(comp: AbsComp, prop: AbsValue): AbsValue = comp(prop)
-    // @targetName("apply_loc")
-    // def apply(loc: AbsLoc, prop: AbsValue): AbsValue
-    // @targetName("apply_ast")
-    // def apply(ast: AbsAst, prop: AbsValue): AbsValue
-    // @targetName("apply_str")
-    // def apply(str: AbsStr, prop: AbsValue): AbsValue
-    def apply(loc: Loc): AbsObj
+    def apply(loc: Loc): AbsObj // TODO remove
 
     // lookup variables
     def directLookup(x: Id): AbsValue = x match
