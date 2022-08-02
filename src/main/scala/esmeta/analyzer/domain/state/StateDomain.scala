@@ -59,7 +59,7 @@ trait StateDomain extends Domain {
     def apply(base: AbsValue, prop: AbsValue): AbsValue
     def apply(loc: Loc): AbsObj // TODO remove
 
-    // lookup variables
+    /** lookup variables */
     def directLookup(x: Id): AbsValue = x match
       case x: Local  => lookupLocal(x)
       case x: Global => lookupGlobal(x)
@@ -67,31 +67,34 @@ trait StateDomain extends Domain {
       this.locals.getOrElse(x, AbsValue.Bot)
     def lookupGlobal(x: Global): AbsValue
 
-    // existence checks
+    /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
       case AbsRefId(id)           => !directLookup(id).isAbsent
       case AbsRefProp(base, prop) => !this(base, prop).isAbsent
 
-    // define global variables
+    /** define global variables */
     def defineGlobal(pairs: (Global, AbsValue)*): Elem
     def defineLocal(pairs: (Local, AbsValue)*): Elem
 
-    // setters
+    /** setters */
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
       case AbsRefId(x)            => update(x, value)
       case AbsRefProp(base, prop) => update(base, prop, value)
     def update(x: Id, value: AbsValue): Elem
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
 
-    // object operators
+    /** object operators */
     def delete(refV: AbsRefValue): Elem
     def append(loc: AbsLoc, value: AbsValue): Elem
     def prepend(loc: AbsLoc, value: AbsValue): Elem
     def remove(loc: AbsLoc, value: AbsValue): Elem
     def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem)
-    def copyObj(from: AbsLoc, to: AllocSite): Elem
-    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem
-    def setType(loc: AbsLoc, tname: String): Elem
+
+    def setType(loc: AbsValue, tname: String): (AbsValue, Elem)
+    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem)
+    def keys(loc: AbsValue, intSorted: Boolean, to: AllocSite): (AbsValue, Elem)
+    def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem)
+
     def allocMap(
       tname: String,
       pairs: List[(AbsValue, AbsValue)],
@@ -105,39 +108,39 @@ trait StateDomain extends Domain {
       field: Option[(Type, String)],
     ): AbsValue
 
-    // find merged parts
+    /** find merged parts */
     def findMerged: Unit
 
-    // handle calls
+    /** handle calls */
     def doCall: Elem
     def doProcStart(fixed: Set[Loc]): Elem
 
-    // handle returns (this: return states / to: caller states)
+    /** handle returns (this: return states / to: caller states) */
     def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem = doReturn(to, defs)
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
     def garbageCollected: Elem
 
-    // get reachable locations
+    /** get reachable locations */
     def reachableLocs: Set[Loc]
 
-    // singleton checks
+    /** singleton checks */
     def isSingle: Boolean = reachable && locals.forall(_._2.isSingle)
     def isSingle(loc: Loc): Boolean
 
-    // copy
+    /** copy */
     def copied(
       locals: Map[Local, AbsValue] = Map(),
     ): Elem
 
-    // conversion to string
+    /** conversion to string */
     def toString(detail: Boolean): String
 
-    // get string with detailed shape of locations
+    /** get string with detailed shape of locations */
     def getString(value: AbsValue): String
 
-    // check bottom elements in abstract semantics
+    /** check bottom elements in abstract semantics */
     protected def bottomCheck(vs: Domain#ElemTrait*)(f: => Elem): Elem =
       bottomCheck(vs)(f)
     protected def bottomCheck(

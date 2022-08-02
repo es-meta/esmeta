@@ -132,8 +132,10 @@ sealed trait Type extends AnalyzerElem {
     case _                      => false
   def isUndef = this == UndefT
   def isMath = this match
-    case MathT | MathSingleT(_) => true
-    case _                      => false
+    case MathT | MathSingleT(_) | NumberSingleT(Double.PositiveInfinity) |
+        NumberSingleT(Double.NegativeInfinity) =>
+      true
+    case _ => false
   def isNumber = this match
     case NumberT | NumberSingleT(_) => true
     case _                          => false

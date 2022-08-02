@@ -170,34 +170,22 @@ object TypeDomain extends ValueDomain {
         case _ if (this ⊓ that).isBottom          => AVF
         case _                                    => bool
     def ==^==(that: Elem): Elem = ???
-    def <(that: Elem): Elem =
-      if (this.isBottom || that.isBottom) Bot
-      else {
-        this.assertNumeric
-        that.assertNumeric
-        if (this.set.exists(_.isMath)) that.assertMath
-        if (this.set.exists(_.isNumber)) that.assertNumber
-        if (this.set.exists(_.isBigInt)) that.assertBigInt
-        bool
-      }
+    def <(that: Elem): Elem = boolNumericOps(that)
 
     /** logical operations */
     def &&(that: Elem): Elem = this logicalOps that
     def ||(that: Elem): Elem = this logicalOps that
     def ^^(that: Elem): Elem = this logicalOps that
-    private def logicalOps(that: Elem) = {
-      this.assertBool; that.assertBool; bool
-    }
 
     /** numeric operations */
+    def +(that: Elem): Elem = numericOps(that)
+    def sub(that: Elem): Elem = numericOps(that)
+    def /(that: Elem): Elem = numericOps(that)
+    def *(that: Elem): Elem = numericOps(that)
+    def %(that: Elem): Elem = numericOps(that)
+    def %%(that: Elem): Elem = numericOps(that)
+    def **(that: Elem): Elem = numericOps(that)
     // TODO
-    def +(that: Elem): Elem = ???
-    def sub(that: Elem): Elem = ???
-    def /(that: Elem): Elem = ???
-    def *(that: Elem): Elem = ???
-    def %(that: Elem): Elem = ???
-    def %%(that: Elem): Elem = ???
-    def **(that: Elem): Elem = ???
     def <<(that: Elem): Elem = ???
     def >>>(that: Elem): Elem = ???
     def >>(that: Elem): Elem = ???
@@ -363,6 +351,33 @@ object TypeDomain extends ValueDomain {
     def assertMath: Unit = assert(_.isMath)
     def assertNumber: Unit = assert(_.isBigInt)
     def assertBigInt: Unit = assert(_.isNumber)
+
+    /** operation helpers */
+    private def logicalOps(that: Elem) = {
+      this.assertBool; that.assertBool; bool
+    }
+    private def mkNumericOps(
+      mathCase: Elem,
+      numberCase: Elem,
+      bigIntCase: Elem,
+    )(that: Elem) = {
+      if (this.isBottom || that.isBottom) Bot
+      else {
+        this.assertNumeric
+        that.assertNumeric
+        var result: Elem = Bot
+        if (this.set.exists(_.isMath)) { that.assertMath; result ⊔= mathCase }
+        if (this.set.exists(_.isNumber)) {
+          that.assertNumber; result ⊔= numberCase
+        }
+        if (this.set.exists(_.isBigInt)) {
+          that.assertBigInt; result ⊔= bigIntCase
+        }
+        result
+      }
+    }
+    private lazy val boolNumericOps = mkNumericOps(bool, bool, bool)
+    private lazy val numericOps = mkNumericOps(math, num, bigint)
   }
 
 }

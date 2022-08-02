@@ -83,16 +83,19 @@ case class AbsTransfer(sem: AbsSemantics) {
     // next node point
     NodePoint(func, to, toView)
 
-  // transfer function for return points
+  /** transfer function for return points */
   def apply(rp: ReturnPoint): Unit = {
     var ret @ AbsRet(value, st) = sem(rp)
 
-    // TODO handle state domain for type analysis
     // proper type handle
     Interp.setTypeMap
       .get(rp.func.name)
       .map(ty => {
-        if (!value.loc.isBottom) st = st.setType(value.loc, ty)
+        if (!value.isBottom) {
+          val (newV, newSt) = st.setType(value, ty)
+          value = newV
+          st = newSt
+        }
       })
 
     // debugging message
@@ -565,21 +568,10 @@ case class AbsTransfer(sem: AbsSemantics) {
           lv <- id(_.allocList(vs, loc))
         } yield lv
       case e @ EListConcat(exprs) =>
-        import AbsObj.*
-        val loc: AllocSite = AllocSite(e.asite, cp.view)
+        val loc = AllocSite(e.asite, cp.view)
         for {
           ls <- join(exprs.map(transfer))
-          st <- get
-          vs = ls.foldLeft(List[AbsValue]()) {
-            case (acc, l) =>
-              l.getSingle match
-                case FlatElem(loc: Loc) =>
-                  st(loc) match
-                    case KeyWiseList(vs) => acc ++ vs
-                    case _               => ???
-                case _ => ???
-          }
-          lv <- id(_.allocList(vs, loc))
+          lv <- id(_.listConcat(ls, loc))
         } yield lv
       case e @ ESymbol(desc) =>
         val loc = AllocSite(e.asite, cp.view)
@@ -588,17 +580,17 @@ case class AbsTransfer(sem: AbsSemantics) {
           lv <- id(_.allocSymbol(v, loc))
         } yield lv
       case e @ ECopy(obj) =>
-        val loc: AllocSite = AllocSite(e.asite, cp.view)
+        val loc = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(obj)
-          _ <- modify(_.copyObj(v.loc, loc))
-        } yield AbsValue(loc)
+          lv <- id(_.copyObj(v, loc))
+        } yield lv
       case e @ EKeys(map, intSorted) =>
-        val loc: AllocSite = AllocSite(e.asite, cp.view)
+        val loc = AllocSite(e.asite, cp.view)
         for {
           v <- transfer(map)
-          _ <- modify(_.keys(v.loc, intSorted, loc))
-        } yield AbsValue(loc)
+          lv <- id(_.keys(v, intSorted, loc))
+        } yield lv
       case EDuplicated(expr) =>
         for {
           v <- transfer(expr)

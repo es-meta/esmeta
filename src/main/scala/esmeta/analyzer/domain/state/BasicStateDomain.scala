@@ -186,10 +186,36 @@ object BasicStateDomain extends StateDomain {
       }
       (v, st)
     }
-    def copyObj(from: AbsLoc, to: AllocSite): Elem =
-      bottomCheck(from) { copy(heap = heap.copyObj(from)(to)) }
-    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem =
-      bottomCheck(loc) { copy(heap = heap.keys(loc, intSorted)(to)) }
+
+    def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
+      bottomCheck(v.loc) { (v, copy(heap = heap.setType(v.loc, tname))) }
+    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) =
+      val locV = AbsValue(to)
+      bottomCheck(from.loc) { (locV, copy(heap = heap.copyObj(from.loc)(to))) }
+    def keys(
+      v: AbsValue,
+      intSorted: Boolean,
+      to: AllocSite,
+    ): (AbsValue, Elem) =
+      val locV = AbsValue(to)
+      bottomCheck(v.loc) {
+        (locV, copy(heap = heap.keys(v.loc, intSorted)(to)))
+      }
+    def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+      import AbsObj.*
+      bottomCheck(ls) {
+        val newList = ls.foldLeft(List[AbsValue]()) {
+          case (acc, l) =>
+            l.getSingle match
+              case FlatElem(loc: Loc) =>
+                this(loc) match
+                  case KeyWiseList(vs) => acc ++ vs
+                  case _               => ??? // TODO
+              case _ => ??? // TODO
+        }
+        allocList(newList, to)
+      }
+
     def allocMap(
       tname: String,
       pairs: List[(AbsValue, AbsValue)],
@@ -208,8 +234,6 @@ object BasicStateDomain extends StateDomain {
       bottomCheck(descV) {
         (locV, copy(heap = heap.allocSymbol(descV)(to)))
       }
-    def setType(loc: AbsLoc, tname: String): Elem =
-      bottomCheck(loc) { copy(heap = heap.setType(loc, tname)) }
     def contains(
       list: AbsValue,
       value: AbsValue,

@@ -272,6 +272,10 @@ object TypeModel {
           "Delete" -> "OrdinaryObject.Delete",
           "OwnPropertyKeys" -> "OrdinaryObject.OwnPropertyKeys",
         ),
+        fields = Map(
+          "Extensible" -> BoolT,
+          "Prototype" -> Set(NameT("Object"), NullT),
+        ),
       ),
       "OrdinaryObject" -> TypeInfo(
         parent = Some("Object"),
@@ -512,22 +516,19 @@ object TypeModel {
       "EnvironmentRecord" -> TypeInfo(
         fields = Map(
           "OuterEnv" -> Set(NullT, NameT("EnvironmentRecord")),
-          // TODO
-          // "SubMap" -> MapT(NameT("MutableBinding"), NameT("ImmutableBinding")),
+          "SubMap" -> MapT(NameT("Binding")),
         ),
       ),
-      "MutableBinding" -> TypeInfo(
+      "Binding" -> TypeInfo(
         fields = Map(
           "BoundValue" -> ESValueT,
           "initialized" -> BoolT,
         ),
       ),
+      "MutableBinding" -> TypeInfo(parent = Some("Binding")),
       "ImmutableBinding" -> TypeInfo(
-        fields = Map(
-          "BoundValue" -> ESValueT,
-          "initialized" -> BoolT,
-          "strict" -> BoolT,
-        ),
+        parent = Some("Binding"),
+        fields = Map("strict" -> BoolT),
       ),
       "DeclarativeEnvironmentRecord" -> TypeInfo(
         parent = Some("EnvironmentRecord"),

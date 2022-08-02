@@ -100,6 +100,7 @@ object TypeStateDomain extends StateDomain {
           case str: StrSingleT => lookupStr(str, p)
           case list: ListT     => lookupList(list, p)
           case obj: NameT      => lookupNamedRec(obj, p)
+          case MapT(elemTy)    => Set(elemTy, AbsentT)
           case _               => ??? // TODO
       } yield v
       AbsValue(vset.toList: _*)
@@ -185,9 +186,52 @@ object TypeStateDomain extends StateDomain {
     def prepend(loc: AbsLoc, value: AbsValue): Elem = ???
     def remove(loc: AbsLoc, value: AbsValue): Elem = ???
     def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = ???
-    def copyObj(from: AbsLoc, to: AllocSite): Elem = ???
-    def keys(loc: AbsLoc, intSorted: Boolean, to: AllocSite): Elem = ???
-    def setType(loc: AbsLoc, tname: String): Elem = ???
+
+    def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
+      bottomCheck(v) {
+        // assert object
+        v.assert {
+          case NameT(_) => true
+          case _        => false
+        }
+        (AbsValue(NameT(tname)), this)
+      }
+    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) =
+      bottomCheck(from) {
+        // assert object
+        from.assert {
+          case NilT | ListT(_) | MapT(_) | SymbolT | NameT(_) => true
+          case _                                              => false
+        }
+        (from, this)
+      }
+    def keys(
+      v: AbsValue,
+      intSorted: Boolean,
+      to: AllocSite,
+    ): (AbsValue, Elem) =
+      bottomCheck(v) {
+        var tySet: Set[Type] = Set()
+        for { ty <- v.set } ty match
+          case NameT(_) => tySet += ListT(StrT)
+          case MapT(_)  => tySet += ListT(StrT) // XXX check soundness
+          case _        => ??? // TODO warning non map type
+        (AbsValue(tySet.toList: _*), this)
+      }
+    def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+      bottomCheck(ls) {
+        var tySet: Set[Type] = Set()
+        for {
+          l <- ls
+          ty <- l.set
+        } ty match {
+          case ListT(elemTy) => tySet += elemTy
+          case NilT          => /* do nothing */
+          case _             => ??? // TODO warning non list type
+        }
+        (AbsValue(tySet.toList: _*), this)
+      }
+
     def allocMap(
       tname: String,
       pairs: List[(AbsValue, AbsValue)],
