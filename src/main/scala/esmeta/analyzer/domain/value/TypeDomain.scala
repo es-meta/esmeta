@@ -1,5 +1,6 @@
 package esmeta.analyzer.domain
 
+import esmeta.analyzer.util.*
 import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.{COp, Name}
@@ -39,7 +40,16 @@ object TypeDomain extends ValueDomain {
   /** constructors */
   def apply(value: AValue): Elem = Elem(Type.from(value))
   def apply(tys: Type*): Elem = Elem(tys.toSet)
-  def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem = ???
+  def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem =
+    var set: Set[Type] = Set()
+    for { t <- ty.set } t match
+      case ConstT("normal") =>
+        for { v <- value.set } v match
+          case p: PureType => set += NormalT(p)
+          case _           => warning(s"invalid completion value: $v")
+      case ConstT("break" | "continue" | "return" | "throw") => set += AbruptT
+      case _ => warning(s"invalid completion type: $t")
+    Elem(set)
 
   /** appender */
   given rule: Rule[Elem] = (app, elem) =>
@@ -70,7 +80,11 @@ object TypeDomain extends ValueDomain {
             val rhs = cfg.grammar.nameMap(name).rhsList(idx)
             rhs.getNts(subIdx) match
               case List(Some(chain)) => allSdoCache((chain, method))
-              case _ => ??? // TODO warning missing chain production
+              case _ =>
+                warning(
+                  s"unknown syntax-directed operation: $name[$idx,$subIdx].$method",
+                )
+                List()
     }
 
   /** elements */

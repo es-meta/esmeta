@@ -252,6 +252,9 @@ case class AbsTransfer(sem: AbsSemantics) {
     lazy val view = cp.view
     lazy val rp = ReturnPoint(func, view)
 
+    // record current control point for alarm
+    CURRENT_CP = Some(cp)
+
     /** transfer function for normal instructions */
     def transfer(inst: NormalInst): Updater = inst match {
       case IExpr(expr) =>
@@ -302,7 +305,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           _ <- modify(prune(expr, true))
           _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
           _ = if (AVF ⊑ v)
-            warning(cp, s"assertion may be failed") // TODO warning
+            warning(s"assertion may be failed") // TODO warning
         } yield ()
       case IPrint(expr) => st => st
       case INop()       => st => st

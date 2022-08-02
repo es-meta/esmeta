@@ -2,6 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
+import esmeta.analyzer.util.*
 import esmeta.cfg.CFG
 import esmeta.interp.*
 import esmeta.ir.{Id, Local, Global, IRElem, Type => IrType}
@@ -101,7 +102,9 @@ object TypeStateDomain extends StateDomain {
           case list: ListT     => lookupList(list, p)
           case obj: NameT      => lookupNamedRec(obj, p)
           case MapT(elemTy)    => Set(elemTy, AbsentT)
-          case _               => ??? // TODO
+          case _ =>
+            println((ty, p))
+            ??? // TODO
       } yield v
       AbsValue(vset.toList: _*)
     private def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
@@ -174,7 +177,9 @@ object TypeStateDomain extends StateDomain {
         this
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
       val origV = apply(base, prop)
-      if (value !⊑ origV) ??? // TODO warning
+      if (value !⊑ origV)
+        // TODO handle ArrayCreate
+        warning(s"invalid property update: $base[$prop] = $value")
       this
 
     /** default value for bottom check */

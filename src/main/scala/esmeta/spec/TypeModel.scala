@@ -645,7 +645,7 @@ object TypeModel {
           "GlobalEnvironmentRecord.CreateGlobalFunctionBinding",
         ),
         fields = Map(
-          "OuterEnv" -> NullT,
+          // XXX "OuterEnv" -> NullT,
           "ObjectRecord" -> NameT("ObjectEnvironmentRecord"),
           "GlobalThisValue" -> NameT("Object"),
           "DeclarativeRecord" -> NameT("DeclarativeEnvironmentRecord"),

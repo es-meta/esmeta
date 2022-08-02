@@ -41,7 +41,7 @@ def getLocals(
 
 /** alarm */
 // TODO
-def warning(
-  cp: ControlPoint,
-  msg: String,
-): Unit = printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
+var CURRENT_CP: Option[ControlPoint] = None
+def warning(msg: String): Unit =
+  val cp = CURRENT_CP.get
+  printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
