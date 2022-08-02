@@ -5,9 +5,10 @@ import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.{COp, Name}
 import esmeta.js.Ast
-import esmeta.util.Appender
+import esmeta.util.QueueWorklist
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import scala.collection.mutable.{Map => MMap, Set => MSet}
 import scala.annotation.tailrec
 
 /** abstract values for type analysis */
@@ -61,31 +62,131 @@ object TypeDomain extends ValueDomain {
       case _ => app >> elem.set
 
   /** sdo access helper */
-  private lazy val allSdoCache: ((String, String)) => List[(Func, Elem)] =
+  private lazy val astSdoCache: ((String, String)) => List[(Func, Elem)] =
     cached[(String, String), List[(Func, Elem)]] {
       case (name, method) =>
-        for {
-          (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
-          subIdx <- (0 until rhs.countSubs)
-          pair <- sdoCache((name, idx, subIdx, method))
-        } yield pair
+        val result = (for {
+          (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set()) if hint == method
+        } yield (cfg.funcMap(fid), Elem(thisTy))).toList
+        if (result.isEmpty) {
+          if (defaultSdos contains method) {
+            val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+            for {
+              (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
+              subIdx <- (0 until rhs.countSubs)
+            } yield (defaultFunc, Elem(SyntacticT(name, idx, subIdx)))
+          } else {
+            warning(s"unknown syntax-directed operation: $name.$method")
+            List()
+          }
+        } else result
     }
-  private lazy val sdoCache =
+  private lazy val synSdoCache =
     cached[(String, Int, Int, String), List[(Func, Elem)]] {
       case (name, idx, subIdx, method) =>
-        cfg.fnameMap.get(s"$name[$idx,$subIdx].$method") match
-          case Some(f) => List((f, apply(SyntacticT(name, idx, subIdx))))
-          case None    =>
-            // handle chain production
-            val rhs = cfg.grammar.nameMap(name).rhsList(idx)
-            rhs.getNts(subIdx) match
-              case List(Some(chain)) => allSdoCache((chain, method))
-              case _ =>
-                warning(
-                  s"unknown syntax-directed operation: $name[$idx,$subIdx].$method",
-                )
-                List()
+        val result = (for {
+          (fid, thisTy, hint) <- sdoMap.getOrElse(s"$name[$idx,$subIdx]", Set())
+          if hint == method
+        } yield (cfg.funcMap(fid), Elem(thisTy))).toList
+        if (result.isEmpty) {
+          if (defaultSdos contains method) {
+            val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+            List((defaultFunc, Elem(SyntacticT(name, idx, subIdx))))
+          } else {
+            warning(s"unknown syntax-directed operation: $name.$method")
+            List()
+          }
+        } else result
     }
+
+  /** sdo with default case */
+  val defaultSdos = List(
+    "Contains",
+    "AllPrivateIdentifiersValid",
+    "ContainsArguments",
+  )
+
+  private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
+  private lazy val sdoMap = {
+    val edges: MMap[String, MSet[String]] = MMap()
+    for {
+      prod <- cfg.grammar.prods
+      name = prod.name if !(cfg.grammar.lexicalNames contains name)
+      (rhs, idx) <- prod.rhsList.zipWithIndex
+      subIdx <- (0 until rhs.countSubs)
+    } {
+      val syntacticName = s"$name[$idx,$subIdx]"
+      edges += (syntacticName -> MSet(name))
+      rhs.getNts(subIdx) match
+        case List(Some(chain)) =>
+          if (edges contains chain) edges(chain) += syntacticName
+          else edges(chain) = MSet(syntacticName)
+        case _ =>
+    }
+    val worklist = new QueueWorklist[String](List())
+    val infos: MMap[String, MSet[(Int, Type, String)]] = MMap()
+    var defaultInfos: MMap[String, MSet[(Int, Type, String)]] = MMap()
+    for {
+      func <- cfg.funcs if func.isSDO
+      isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
+      sdoPattern(name, idxStr, subIdxStr, method) = func.name
+      (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
+      key = s"$name[$idx,$subIdx]"
+    } {
+      val newInfo = (func.id, SyntacticT(name, idx, subIdx), method)
+      val isDefaultSdo = defaultSdos contains method
+
+      // update target info
+      val targetInfos = if (isDefaultSdo) defaultInfos else infos
+      if (targetInfos contains key) targetInfos(key) += newInfo
+      else targetInfos(key) = MSet(newInfo)
+      if (targetInfos contains name) targetInfos(name) += newInfo
+      else targetInfos(name) = MSet(newInfo)
+
+      // propagate chain production
+      if (!isDefaultSdo) worklist += name
+    }
+
+    // record original infos
+    val origInfos = (for { (k, set) <- infos } yield k -> set.toSet).toMap
+
+    // propagate chain productions
+    @tailrec
+    def aux(): Unit = worklist.next match
+      case Some(key) =>
+        val childInfo = infos.getOrElse(key, MSet())
+        for {
+          next <- edges.getOrElse(key, MSet())
+          info = infos.getOrElse(next, MSet())
+          oldInfoSize = info.size
+
+          newInfo =
+            // A[i,j] -> A
+            if (key endsWith "]") info ++ childInfo
+            // A.method -> B[i,j].method
+            // only if B[i,j].method not exists (chain production)
+            else {
+              val origInfo = origInfos.getOrElse(next, Set())
+              info ++ (for {
+                triple <- childInfo
+                if !(origInfo.exists(_._3 == triple._3))
+              } yield triple)
+            }
+
+          _ = infos(next) = newInfo
+          if newInfo.size > oldInfoSize
+        } worklist += next
+        aux()
+      case None => /* do nothing */
+    aux()
+
+    (for {
+      key <- infos.keySet ++ defaultInfos.keySet
+      info = infos.getOrElse(key, MSet())
+      defaultInfo = defaultInfos.getOrElse(key, MSet())
+      finalInfo = (info ++ defaultInfo).toSet
+    } yield key -> finalInfo).toMap
+  }
 
   /** elements */
   object Elem:
@@ -137,9 +238,9 @@ object TypeDomain extends ValueDomain {
       pair <- ty match
         case ast: AstTBase if !(cfg.grammar.lexicalNames contains ast.name) =>
           ast match
-            case AstT(name) => allSdoCache((name, method))
+            case AstT(name) => astSdoCache((name, method))
             case SyntacticT(name, idx, subIdx) =>
-              sdoCache((name, idx, subIdx, method))
+              synSdoCache((name, idx, subIdx, method))
         case _ => List()
     } yield pair
 
@@ -233,7 +334,26 @@ object TypeDomain extends ValueDomain {
       else bool
 
     /** helper functions for abstract transfer */
-    def convert(cop: COp, radix: Elem): Elem = ??? // TODO
+    def convert(cop: COp, radix: Elem): Elem =
+      import COp.*
+      var tySet: Set[Type] = Set()
+      for { ty <- set } (ty, cop) match
+        case (StrT | StrSingleT(_), ToNumber) =>
+          tySet += NumberT
+        case (StrT | StrSingleT(_), ToBigInt) =>
+          tySet ++= Set(BigIntT, UndefT)
+        case (_, ToNumber) if ty.isMath =>
+          tySet += NumberT
+        case (_, ToBigInt) if ty.isMath =>
+          tySet += BigIntT
+        case (_, ToMath) if ty.isNumber || ty.isBigInt =>
+          tySet += MathT
+        case (CodeUnitT, ToMath) =>
+          tySet += MathT
+        case (_, _: ToStr) if ty.isNumber =>
+          tySet += StrT
+        case (ty, cop) => warning(s"invalid conversion $cop to $ty")
+      Elem(tySet)
     def sourceText: Elem = str
     def parse(rule: Elem): Elem =
       Elem(for { GrammarT(name) <- rule.set } yield AstT(name))

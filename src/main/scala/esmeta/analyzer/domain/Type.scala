@@ -303,6 +303,7 @@ object Type {
         }.toSet
         name -> subs
     }).toMap
+  // TODO properly handle recursive grammar
   lazy val astChildMap: Map[String, Set[String]] = {
     var descs = Map[String, Set[String]]()
     def aux(name: String): Set[String] = descs.get(name) match {
@@ -318,5 +319,4 @@ object Type {
     cfg.grammar.prods.foreach(prod => aux(prod.name))
     descs
   }
-
 }

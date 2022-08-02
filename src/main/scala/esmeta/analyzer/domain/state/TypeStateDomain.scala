@@ -140,7 +140,10 @@ object TypeStateDomain extends StateDomain {
         case _ => ??? // TODO warning invalid access
       tySet
     }
-    private def lookupStr(str: StrT.type, prop: Type): Set[Type] = ???
+    private def lookupStr(str: StrT.type, prop: Type): Set[Type] = prop match
+      case StrSingleT("length")   => Set(MathT)
+      case MathT | MathSingleT(_) => Set(CodeUnitT)
+      case _                      => ??? // TODO warning invalid access
     private def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
     private def lookupList(list: ListT, prop: Type): Set[Type] =
       var tySet: Set[Type] = Set()

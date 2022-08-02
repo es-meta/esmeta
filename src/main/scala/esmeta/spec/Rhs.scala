@@ -28,7 +28,9 @@ case class Rhs(
   /** get non-terminals in an RHS */
   lazy val nts: List[Nonterminal] = symbols.flatMap(_.getNt)
   lazy val getNts = cached[Int, List[Option[String]]] { subIdx =>
-    var flags = subIdx.toBinaryString.map(_ == '1')
+    val binStr = subIdx.toBinaryString
+    val optCount = nts.count(_.optional)
+    var flags = (("0" * (optCount - binStr.length)) + binStr).map(_ == '1')
     nts.map(nt =>
       if (nt.optional) {
         val present = flags.head
