@@ -4,7 +4,7 @@ import esmeta.analyzer.AnalyzerElem
 import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.ir.Expr
-import esmeta.spec.TypeInfo
+import esmeta.spec.{Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.DoubleEquals
 import scala.annotation.tailrec
@@ -73,7 +73,7 @@ sealed trait Type extends AnalyzerElem {
     y <- x.typeName
   } yield y
 
-  /* get name of base types */
+  /** get name of base types */
   def typeName: Option[String] = optional(this match
     case NameT(name) if cfg.typeModel.isSubType(name, "Object") => "Object"
     case SymbolT                                                => "Symbol"
@@ -85,6 +85,22 @@ sealed trait Type extends AnalyzerElem {
     case NullT                                                  => "Null"
     case _ => error("no type name"),
   )
+
+  /** instance name */
+  def instanceNameSet: Set[String] = this match
+    // case CloT(_)              => Set("AbstractClosure")
+    // case AbruptT | NormalT(_) => Set("CompletionRecord")
+    // case ConstT(_)            => Set("Constant")
+    case NameT(name) =>
+      cfg.typeModel.subTypes.getOrElse(name, Set(name)) ++
+      ancestors.collect { case NameT(name) => name }
+    case ast: AstTBase =>
+      val astName = ast.name
+      var set: Set[String] = Set("ParseNode")
+      if (!cfg.grammar.lexicalNames.contains(astName)) set += "Nonterminal"
+      set ++= astChildMap.getOrElse(astName, Set(astName))
+      set
+    case _ => Set("")
 
   /** wrap completion */
   def wrapCompletion: Type = this match
@@ -275,97 +291,30 @@ object Type {
     case ASimple(Absent)    => AbsentT
     case _ => error(s"impossible to convert to pure type ($av)")
 
-  // abstraction
-  // val abs: Type => AbsType = cached(AbsType(_))
+  /** ast type check helper */
+  lazy val astDirectChildMap: Map[String, Set[String]] =
+    (cfg.grammar.prods.map {
+      case Production(lhs, _, _, rhsList) =>
+        val name = lhs.name
+        val subs = rhsList.collect {
+          case Rhs(_, List(Nonterminal(name, _, _)), _) => name
+        }.toSet
+        name -> subs
+    }).toMap
+  lazy val astChildMap: Map[String, Set[String]] = {
+    var descs = Map[String, Set[String]]()
+    def aux(name: String): Set[String] = descs.get(name) match {
+      case Some(set) => set
+      case None =>
+        val set = (for {
+          sub <- astDirectChildMap.getOrElse(name, Set())
+          elem <- aux(sub)
+        } yield elem) + name
+        descs += name -> set
+        set
+    }
+    cfg.grammar.prods.foreach(prod => aux(prod.name))
+    descs
+  }
 
-  // // direct subtypes
-  // lazy val subTypes: Map[String, Set[String]] = {
-  //   var children = Map[String, Set[String]]()
-  //   for {
-  //     info <- infos
-  //     parent <- info.parent
-  //     set = children.getOrElse(parent, Set())
-  //   } children += parent -> (set + info.name)
-  //   children
-  // }
-
-  // // recursive subtypes
-  // lazy val recSubTypes: Map[String, Set[String]] = {
-  //   var descs = Map[String, Set[String]]()
-  //   def aux(name: String): Set[String] = descs.get(name) match {
-  //     case Some(set) => set
-  //     case None =>
-  //       val set = (for {
-  //         sub <- subTypes.getOrElse(name, Set())
-  //         elem <- aux(sub)
-  //       } yield elem) + name
-  //       descs += name -> set
-  //       set
-  //   }
-  //   infos.collect { case Info(name, None, _) => aux(name) }
-  //   descs
-  // }
-
-  // // ////////////////////////////////////////////////////////////////////////////
-  // // Private Helper Functions
-  // // ////////////////////////////////////////////////////////////////////////////
-  // // get property map
-  // private def getPropMap(name: String): PropMap = {
-  //   val upper = getUpperPropMap(name)
-  //   val lower = getLowerPropMap(name)
-  //   lower.foldLeft(upper) {
-  //     case (map, (k, t)) =>
-  //       val newT = t ⊔ map.getOrElse(k, AbsType.Bot)
-  //       map + (k -> newT)
-  //   }
-  // }
-
-  // // get property map from ancestors
-  // private def getUpperPropMap(name: String): PropMap = infoMap.get(name) match {
-  //   case Some(info) =>
-  //     val parentProps = info.parent.map(getUpperPropMap).getOrElse(Map())
-  //     val props = info.props
-  //     weakMerge(parentProps, props)
-  //   case None => Map()
-  // }
-
-  // // get property map of name
-  // private def getSamePropMap(name: String): PropMap =
-  //   infoMap.get(name).map(_.props).getOrElse(Map())
-
-  // // get property map from ancestors
-  // private def getLowerPropMap(name: String): PropMap =
-  //   subTypes.get(name) match {
-  //     case Some(children) =>
-  //       children
-  //         .map(child => {
-  //           val lower = getLowerPropMap(child)
-  //           val props = getSamePropMap(child)
-  //           weakMerge(lower, props)
-  //         })
-  //         .reduce(parallelWeakMerge)
-  //     case None => getSamePropMap(name)
-  //   }
-
-  // // weak merge
-  // private def weakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
-  //   val keys = lmap.keySet ++ rmap.keySet
-  //   keys.toList
-  //     .map(k => {
-  //       val lt = lmap.getOrElse(k, AbsType.Bot)
-  //       val rt = rmap.getOrElse(k, AbsType.Bot)
-  //       k -> (lt ⊔ rt)
-  //     })
-  //     .toMap
-  // }
-
-  // // parallel weak merge
-  // private def parallelWeakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
-  //   val keys = lmap.keySet ++ rmap.keySet
-  //   keys.toList
-  //     .map(k => {
-  //       k -> (lmap.getOrElse(k, Absent.abs) ⊔ rmap.getOrElse(k, Absent.abs))
-  //     })
-  //     .toMap
-  // }
 }

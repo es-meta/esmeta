@@ -2,7 +2,7 @@ package esmeta.analyzer
 
 import esmeta.DEBUG
 import esmeta.analyzer.domain.*
-import esmeta.analyzer.util.getLocals
+import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interp.*
@@ -185,7 +185,17 @@ case class AbsTransfer(sem: AbsSemantics) {
       //     newV = if (positive) v ⊓ targetV else v - targetV
       //     _ <- modify(_.update(rv, newV))
       //   } yield ()
-      case EBinary(BOp.Eq, ETypeOf(ERef(ref)), tyRef: ERef) =>
+      case ETypeCheck(ERef(ref: Local), tyExpr) =>
+        for {
+          rv <- transfer(ref)
+          tv <- transfer(tyExpr)
+          tname <- tv.getSingle match
+            case FlatElem(ASimple(Str(s))) => pure(s)
+            case FlatElem(AGrammar(n, _))  => pure(n)
+            case _                         => exploded("ETypeCheck")
+          _ <- modify(pruneTypeCheck(rv, tname, positive))
+        } yield ()
+      case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
         for {
           rv <- transfer(ref)
           tv <- transfer(tyRef)
@@ -210,6 +220,19 @@ case class AbsTransfer(sem: AbsSemantics) {
         lv <- transfer(l)
         st <- get
         prunedV = lv.pruneType(r, positive)
+        _ <- modify(_.update(l, prunedV))
+      } yield ()
+
+    /** prune type check */
+    def pruneTypeCheck(
+      l: AbsRefValue,
+      tname: String,
+      positive: Boolean,
+    ): Updater =
+      for {
+        lv <- transfer(l)
+        st <- get
+        prunedV = lv.pruneTypeCheck(tname, positive)
         _ <- modify(_.update(l, prunedV))
       } yield ()
   }
@@ -262,9 +285,15 @@ case class AbsTransfer(sem: AbsSemantics) {
           _ <- doReturn(v)
           _ <- put(AbsState.Bot)
         } yield ()
+      case IAssert(expr: EYet) =>
+        st => st /* skip not yet compiled assertions */
       case IAssert(expr) =>
         for {
           v <- transfer(expr)
+          _ <- modify(prune(expr, true))
+          _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
+          _ = if (AVF ⊑ v)
+            warning(cp, s"assertion may be failed") // TODO warning
         } yield ()
       case IPrint(expr) => st => st
       case INop()       => st => st

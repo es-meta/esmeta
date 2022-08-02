@@ -97,6 +97,7 @@ trait ValueDomain extends Domain {
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem
+    def pruneTypeCheck(tname: String, positive: Boolean): Elem
 
     /** singleton */
     def getSingle: Flat[AValue]

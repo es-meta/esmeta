@@ -475,23 +475,7 @@ object BasicValueDomain extends ValueDomain {
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem = this
-    // TODO
-    // tyV = {
-    //   var newV = AbsValue.Bot
-    //   for (Str(tyStr) <- r.str) {
-    //     if (tyStr == "Number") newV ⊔= AbsValue(num = AbsNum.Top)
-    //     if (tyStr == "BigInt") newV ⊔= AbsValue(bigint = AbsBigInt.Top)
-    //     if (tyStr == "String") newV ⊔= AbsValue(str = AbsStr.Top)
-    //     if (tyStr == "Boolean") newV ⊔= AbsValue(bool = AbsBool.Top)
-    //     if (tyStr == "Undefined") newV ⊔= AbsValue(undef = AbsUndef.Top)
-    //     if (tyStr == "Null") newV ⊔= AbsValue(nullv = AbsNull.Top)
-    //     // TODO symbol, object
-    //   }
-    //   newV
-    // }
-    // // TODO fix loc
-    // updatedV =
-    //   if (positive) (lv ⊓ tyV) ⊔ AbsValue(loc = lv.loc) else lv - tyV
+    def pruneTypeCheck(tname: String, positive: Boolean): Elem = this
 
     /** completion helpers */
     def wrapCompletion: Elem = wrapCompletion("normal")

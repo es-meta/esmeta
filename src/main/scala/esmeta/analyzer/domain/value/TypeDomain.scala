@@ -219,8 +219,16 @@ object TypeDomain extends ValueDomain {
     def typeOf(st: AbsState): Elem = Elem(for {
       t <- set
       y <- t.typeNameSet
-    } yield StrSingleT(y))
-    def typeCheck(tname: String, st: AbsState): Elem = ??? // TODO
+    } yield StrSingleT(y)).norm
+    def typeCheck(tname: String, st: AbsState): Elem =
+      val names = for {
+        ty <- set
+        name <- ty.instanceNameSet
+      } yield name
+      if (names.isEmpty) Bot
+      else if (names == Set(tname)) AVT
+      else if (!names.contains(tname)) AVF
+      else bool
 
     /** helper functions for abstract transfer */
     def convert(cop: COp, radix: Elem): Elem = ??? // TODO
@@ -245,6 +253,18 @@ object TypeDomain extends ValueDomain {
             case _           => ??? // TODO
           if (positive) this ⊓ Elem(ty) else this - ty
         case _ => ??? // TODO
+    def pruneTypeCheck(tname: String, positive: Boolean): Elem =
+      val nameT = NameT(tname)
+      val astT = AstT(tname)
+      val isAst = Type.astChildMap.keySet contains tname
+      val prevAstT = Elem(
+        Type.astChildMap.getOrElse(tname, Set()).map(AstT(_): Type),
+      )
+      (positive, isAst) match
+        case (false, false) => this - nameT
+        case (false, true)  => (this - astT) ⊔ (prevAstT - astT)
+        case (true, false)  => this ⊓ Elem(nameT)
+        case (true, true)   => prevAstT ⊓ Elem(astT)
 
     /** singleton */
     def getSingle: Flat[AValue] = this.set.headOption match

@@ -27,7 +27,7 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   }
 
   /** subtypes */
-  private lazy val subTypes: Map[String, Set[String]] = {
+  lazy val subTypes: Map[String, Set[String]] = {
     var descs = Map[String, Set[String]]()
     def aux(name: String): Set[String] = descs.get(name) match {
       case Some(set) => set

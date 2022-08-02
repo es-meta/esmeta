@@ -1,10 +1,13 @@
 package esmeta.analyzer.util
 
+import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.error.*
 import esmeta.interp.*
 import esmeta.ir.{Name, Func => IRFunc, Local}
+import esmeta.util.BaseUtils.*
+import scala.Console.RED
 import scala.annotation.tailrec
 
 /** get local variables */
@@ -35,3 +38,10 @@ def getLocals(
   aux(params, args)
   map
 }
+
+/** alarm */
+// TODO
+def warning(
+  cp: ControlPoint,
+  msg: String,
+): Unit = printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
