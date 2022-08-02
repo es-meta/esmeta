@@ -265,6 +265,8 @@ object TypeDomain extends ValueDomain {
         case (false, true)  => (this - astT) ⊔ (prevAstT - astT)
         case (true, false)  => this ⊓ Elem(nameT)
         case (true, true)   => prevAstT ⊓ Elem(astT)
+    def pruneValue(r: Elem, positive: Boolean): Elem =
+      if (positive) this ⊓ r else this - r
 
     /** singleton */
     def getSingle: Flat[AValue] = this.set.headOption match
@@ -331,6 +333,12 @@ object TypeDomain extends ValueDomain {
 
       // remove redundant types
       set = set.filter(!_.strictAncestors.exists(this.set contains _))
+
+      // merge singleton math
+      if (set.count(_.isMath) > 1) {
+        set = set.filter(!_.isMath)
+        set += MathT
+      }
 
       // merge aliases
       @tailrec

@@ -476,6 +476,7 @@ object BasicValueDomain extends ValueDomain {
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem = this
     def pruneTypeCheck(tname: String, positive: Boolean): Elem = this
+    def pruneValue(r: Elem, positive: Boolean): Elem = this
 
     /** completion helpers */
     def wrapCompletion: Elem = wrapCompletion("normal")

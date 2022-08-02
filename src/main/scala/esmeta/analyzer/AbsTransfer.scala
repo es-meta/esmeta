@@ -176,15 +176,12 @@ case class AbsTransfer(sem: AbsSemantics) {
     /** prune condition */
     def prune(cond: Expr, positive: Boolean): Updater = cond match {
       case EUnary(UOp.Not, e) => prune(e, !positive)
-      // TODO debugging
-      // case EBinary(BOp.Eq, ERef(ref), target) =>
-      //   for {
-      //     rv <- transfer(ref)
-      //     v <- transfer(rv)
-      //     targetV <- transfer(target)
-      //     newV = if (positive) v ⊓ targetV else v - targetV
-      //     _ <- modify(_.update(rv, newV))
-      //   } yield ()
+      case EBinary(BOp.Eq, ERef(ref: Local), target) =>
+        for {
+          rv <- transfer(ref)
+          tv <- transfer(target)
+          _ <- modify(pruneValue(rv, tv, positive))
+        } yield ()
       case ETypeCheck(ERef(ref: Local), tyExpr) =>
         for {
           rv <- transfer(ref)
@@ -213,6 +210,15 @@ case class AbsTransfer(sem: AbsSemantics) {
           if (positive) lst ⊓ rst else lst ⊔ rst
       case _ => st => st
     }
+
+    /** prune value */
+    def pruneValue(l: AbsRefValue, r: AbsValue, positive: Boolean): Updater =
+      for {
+        lv <- transfer(l)
+        st <- get
+        prunedV = lv.pruneValue(r, positive)
+        _ <- modify(_.update(l, prunedV))
+      } yield ()
 
     /** prune type */
     def pruneType(l: AbsRefValue, r: AbsValue, positive: Boolean): Updater =
