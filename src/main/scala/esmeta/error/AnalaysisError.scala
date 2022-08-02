@@ -6,6 +6,10 @@ import esmeta.analyzer.domain.*
 sealed abstract class AnalysisError(msg: String)
   extends ESMetaError(s"[Analysis Error] $msg")
 
+// not supported
+case class NotSupportedOperation(obj: Any, method: String)
+  extends AnalysisError(s"${obj.getClass.getName}.$method is not supported")
+
 // imprecise
 case class AnalysisImprecise(msg: String) extends AnalysisError(msg)
 

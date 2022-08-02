@@ -81,7 +81,7 @@ object TypeDomain extends ValueDomain {
 
     /** getters */
     def loc: AbsLoc = ???
-    def getKeyValue: Elem = ??? // XXX not used
+    def getKeyValue: Elem = notSupported(this, "getKeyValue")
     def getClos: List[(Func, Map[Name, Elem])] = for {
       CloT(fname) <- set.toList // TODO captured
     } yield (cfg.fnameMap(fname), Map())
@@ -273,7 +273,7 @@ object TypeDomain extends ValueDomain {
       case _                                       => FlatTop
 
     /** get reachable locations */
-    def reachableLocs: Set[Loc] = Set() // XXX not used
+    def reachableLocs: Set[Loc] = Set()
 
     /** completion helpers */
     def wrapCompletion: Elem = Elem(set.map(_.wrapCompletion)).norm

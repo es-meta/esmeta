@@ -151,13 +151,15 @@ object TypeStateDomain extends StateDomain {
       prop match
         case StrSingleT(propStr) =>
           cfg.typeModel.getProp(obj.name, propStr)
-        case _ => ??? // TODO
+        case StrT => Set(TopT) // XXX warning imprecision
+        case _    => ??? // TODO
     def apply(loc: Loc): AbsObj = ???
     def lookupGlobal(x: Global): AbsValue =
       baseGlobals.getOrElse(x, AbsValue.Bot)
 
     /** define global variables */
-    def defineGlobal(pairs: (Global, AbsValue)*): Elem = ???
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem =
+      notSupported(this, "defineGlobal")
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
@@ -165,9 +167,14 @@ object TypeStateDomain extends StateDomain {
 
     /** setters */
     def update(x: Id, value: AbsValue): Elem = x match
-      case x: Local  => defineLocal(x -> value)
-      case Global(x) => ???
-    def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
+      case x: Local => defineLocal(x -> value)
+      case x: Global =>
+        if (value !⊑ baseGlobals(x)) ??? // TODO warning
+        this
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
+      val origV = apply(base, prop)
+      if (value !⊑ origV) ??? // TODO warning
+      this
 
     /** default value for bottom check */
     given bottomValue: AbsValue = AbsValue.Bot
@@ -187,7 +194,12 @@ object TypeStateDomain extends StateDomain {
       to: AllocSite,
     ): (AbsValue, Elem) =
       bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
-        (???, this)
+        val mapTy =
+          if (cfg.typeModel.infos contains tname) {
+            // TODO property check
+            NameT(tname)
+          } else ??? // TODO
+        (AbsValue(mapTy), this)
       }
     def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
       bottomCheck(list) {
@@ -233,7 +245,7 @@ object TypeStateDomain extends StateDomain {
     def garbageCollected: Elem = ???
 
     /** get reachable locations */
-    def reachableLocs: Set[Loc] = Set() // XXX not used
+    def reachableLocs: Set[Loc] = Set()
 
     /** copy */
     def copied(
