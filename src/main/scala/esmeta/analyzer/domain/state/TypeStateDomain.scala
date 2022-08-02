@@ -223,7 +223,29 @@ object TypeStateDomain extends StateDomain {
       list: AbsValue,
       value: AbsValue,
       field: Option[(IrType, String)],
-    ): AbsValue = ???
+    ): AbsValue =
+      bottomCheck(list, value) {
+        var set: Set[Boolean] = Set()
+        for { listTy <- list.set } listTy match
+          case ListT(elemTy) =>
+            field match
+              case Some(_, f) =>
+                val origV = apply(AbsValue(elemTy), AbsValue(f))
+                if ((value ⊓ origV).isBottom) set += false
+                else set = Set(true, false)
+              case _ =>
+                if ((value ⊓ AbsValue(elemTy)).isBottom) set += false
+                else set = Set(true, false)
+          case NilT => set += false
+          case _    => ??? // TODO warning non list
+        (
+          if (set.isEmpty) AbsValue.Bot
+          else if (set.size > 1) AbsValue.bool
+          else if (set contains true) AVT
+          else AVF,
+          this,
+        )
+      }._1
 
     /** singleton location checks */
     def isSingle(loc: Loc): Boolean = ???
