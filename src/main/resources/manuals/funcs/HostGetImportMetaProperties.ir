@@ -1,0 +1,3 @@
+def HostGetImportMetaProperties(moduleRecord: Unknown): Unknown {
+  return (new [])
+}
