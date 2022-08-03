@@ -281,15 +281,13 @@ case class AbsTransfer(sem: AbsSemantics) {
         for {
           l <- transfer(list)
           v <- transfer(expr)
-          _ <- modify((st) =>
-            if (front) st.prepend(l.loc, v) else st.append(l.loc, v),
-          )
+          _ <- modify(_.push(l, v, front))
         } yield ()
       case IRemoveElem(list, elem) =>
         for {
           l <- transfer(list)
           v <- transfer(elem)
-          _ <- modify(_.remove(l.loc, v))
+          _ <- modify(_.remove(l, v))
         } yield ()
       case IReturn(expr) =>
         for {
@@ -405,7 +403,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       case EPop(list, front) =>
         for {
           v <- transfer(list)
-          pv <- id(_.pop(v.loc, front))
+          pv <- id(_.pop(v, front))
         } yield pv
       case EParse(code, rule) =>
         for {
@@ -449,20 +447,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(expr)
           f <- transfer(from)
           t <- transfer(to)
-        } yield (v.getSingle, f.getSingle, t.getSingle) match
-          case (FlatBot, _, _) | (_, FlatBot, _) | (_, _, FlatBot) =>
-            AbsValue.Bot
-          case (FlatTop, _, _) | (_, FlatTop, _) | (_, _, FlatTop) =>
-            exploded("ESubstring")
-          case (
-                FlatElem(ASimple(Str(s))),
-                FlatElem(AMath(f)),
-                FlatElem(AMath(t)),
-              ) if f.isValidInt =>
-            if (s.length < t) AbsValue(s.substring(f.toInt))
-            else if (t.isValidInt) AbsValue(s.substring(f.toInt, t.toInt))
-            else AbsValue.Bot
-          case _ => AbsValue.Bot
+        } yield v.substring(f, t)
       case ERef(ref) =>
         for {
           rv <- transfer(ref)
@@ -602,16 +587,7 @@ case class AbsTransfer(sem: AbsSemantics) {
       case EIsArrayIndex(expr) =>
         for {
           v <- transfer(expr)
-        } yield v.getSingle match
-          case FlatBot => AbsValue.Bot
-          case FlatElem(ASimple(Str(s))) =>
-            val d = ESValueParser.str2Number(s)
-            val ds = toStringHelper(d)
-            val UPPER = (1L << 32) - 1
-            val l = d.toLong
-            AbsValue(ds == s && 0 <= l && d == l && l < UPPER)
-          case FlatElem(_) => AVF
-          case FlatTop     => exploded("EIsArrayIndex")
+        } yield v.isArrayIndex
       case EMathVal(n)           => AbsValue(Math(n))
       case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
       case ENumber(n)            => AbsValue(n)

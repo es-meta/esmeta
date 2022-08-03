@@ -213,11 +213,40 @@ object TypeStateDomain extends StateDomain {
     given bottomValue: AbsValue = AbsValue.Bot
 
     /** object operators */
-    def delete(refV: AbsRefValue): Elem = ???
-    def append(loc: AbsLoc, value: AbsValue): Elem = ???
-    def prepend(loc: AbsLoc, value: AbsValue): Elem = ???
-    def remove(loc: AbsLoc, value: AbsValue): Elem = ???
-    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = ???
+    def delete(refV: AbsRefValue): Elem = this
+    def push(list: AbsValue, elem: AbsValue, front: Boolean): Elem =
+      bottomCheck(list, elem) {
+        for { listTy <- list.set } listTy match
+          case NilT => /* do nothing */
+          case ListT(elemTy) =>
+            if (elem !⊑ AbsValue(elemTy))
+              warning(s"invalid element type for push: $listTy <- $elem")
+          case _ => warning(s"invalid type for push: $listTy")
+        this
+      }
+    def remove(list: AbsValue, elem: AbsValue): Elem =
+      bottomCheck(list, elem) {
+        for { listTy <- list.set } listTy match
+          case NilT => /* do nothing */
+          case ListT(elemTy) =>
+            if (elem !⊑ AbsValue(elemTy))
+              warning(s"invalid element type for remove: $listTy <- $elem")
+          case _ => warning(s"invalid type for remove: $listTy")
+        this
+      }
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
+      bottomCheck(list) {
+        var elemTyOpt: Option[Type] = None
+        for { listTy <- list.set } listTy match
+          case ListT(elemTy) =>
+            elemTyOpt match
+              case None      => elemTyOpt = Some(elemTy)
+              case Some(ty0) => elemTyOpt = Some(elemTy.lca(ty0))
+          case _ => warning(s"invalid type for pop: $listTy")
+        elemTyOpt match
+          case None         => (AbsValue.Bot, Bot)
+          case Some(elemTy) => (AbsValue(elemTy), this)
+      }
 
     def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
       bottomCheck(v) { v.assertNamedRec; (AbsValue(NameT(tname)), this) }
@@ -263,7 +292,10 @@ object TypeStateDomain extends StateDomain {
           if (cfg.typeModel.infos contains tname) {
             // TODO property check
             NameT(tname)
-          } else ??? // TODO
+          } else {
+            println(("!!!", tname))
+            ??? // TODO
+          }
         (AbsValue(mapTy), this)
       }
     def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) =

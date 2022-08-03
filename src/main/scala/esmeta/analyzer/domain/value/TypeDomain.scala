@@ -209,7 +209,6 @@ object TypeDomain extends ValueDomain {
   case class Elem(set: Set[Type]) extends ValueElemTrait {
 
     /** getters */
-    def loc: AbsLoc = ???
     def getKeyValue: Elem = notSupported(this, "getKeyValue")
     def getClos: List[(Func, Map[Name, Elem])] = for {
       CloT(fname) <- set.toList // TODO captured
@@ -298,7 +297,7 @@ object TypeDomain extends ValueDomain {
         case (List(l: SingleT), List(r: SingleT)) => apply(l == r)
         case _ if (this ⊓ that).isBottom          => AVF
         case _                                    => bool
-    def ==^==(that: Elem): Elem = ???
+    def ==^==(that: Elem): Elem = boolNumericOps(that)
     def <(that: Elem): Elem = boolNumericOps(that)
 
     /** logical operations */
@@ -367,10 +366,14 @@ object TypeDomain extends ValueDomain {
           tySet += StrT
         case (ty, cop) => warning(s"invalid conversion $cop to $ty")
       Elem(tySet)
-    def sourceText: Elem = str
+    def sourceText: Elem = { this.assertAst; str }
     def parse(rule: Elem): Elem =
       Elem(for { GrammarT(name) <- rule.set } yield AstT(name))
-    def duplicated(st: AbsState): Elem = ??? // TODO
+    def duplicated(st: AbsState): Elem = { this.assertList; bool }
+    def substring(from: Elem, to: Elem): Elem = {
+      this.assertStr; from.assertMath; to.assertMath; str
+    }
+    def isArrayIndex: Elem = bool
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem =
@@ -452,19 +455,18 @@ object TypeDomain extends ValueDomain {
     private def norm: Elem = {
       var set = this.set
 
-      // TODO
-      // // merge record
-      // var record: Option[RecordT] = None
-      // set.foreach {
-      //   case r @ RecordT(props) =>
-      //     set -= r
-      //     record = record match {
-      //       case Some(l) => Some(l ⊔ r)
-      //       case None    => Some(r)
-      //     }
-      //   case _ =>
-      // }
-      // record.map(set += _)
+      // merge record
+      var record: Option[RecordT] = None
+      set.foreach {
+        case r @ RecordT(props) =>
+          set -= r
+          record = record match {
+            case Some(l) => Some(l ⊔ r)
+            case None    => Some(r)
+          }
+        case _ =>
+      }
+      record.map(set += _)
 
       // remove redundant types
       set = set.filter(!_.strictAncestors.exists(this.set contains _))
@@ -503,6 +505,8 @@ object TypeDomain extends ValueDomain {
     def assertNamedRec: Unit =
       assert(_.isNamedObj, s"$this may not be named record")
     def assertObj: Unit = assert(_.isObj, s"$this may not be object")
+    def assertAst: Unit = assert(_.isAst, s"$this may not be Ast")
+    def assertList: Unit = assert(_.isList, s"$this may not be list")
 
     /** operation helpers */
     private def logicalOps(that: Elem) = {

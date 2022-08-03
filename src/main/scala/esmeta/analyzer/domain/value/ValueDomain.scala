@@ -52,7 +52,6 @@ trait ValueDomain extends Domain {
   trait ValueElemTrait extends ElemTrait { this: Elem =>
 
     /** getters */
-    def loc: AbsLoc
     def getKeyValue: Elem
     def getClos: List[(Func, Map[Name, Elem])]
     def getCont: List[ACont]
@@ -109,6 +108,8 @@ trait ValueDomain extends Domain {
     def sourceText: Elem
     def parse(rule: Elem): Elem
     def duplicated(st: AbsState): Elem
+    def substring(from: Elem, to: Elem): Elem
+    def isArrayIndex: Elem
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem

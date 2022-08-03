@@ -1,15 +1,14 @@
 def <SYNTAX>:UnaryExpression[3,0].Evaluation(this: Unknown): Unknown {
   sdo-call %0 = this[0]->Evaluation()
   let val = [? %0] // BUG (fixed in #2744)
-  %1 = val
-  if (? %1: "ReferenceRecord") {
-    call %2 = clo<IsUnresolvableReference>(val)
-    if (= %2 true) {
+  if (? val: "ReferenceRecord") {
+    call %1 = clo<IsUnresolvableReference>(val)
+    if (= %1 true) {
       return "undefined"
     } else {}
   } else {}
-  call %3 = clo<GetValue>(val)
-  val = [? %3]
+  call %2 = clo<GetValue>(val)
+  val = [? %2]
   nop
   let t = (typeof val)
   if (= t @Undefined) return "undefined" else if (= t @Null) return "object" else if (= t @Boolean) return "boolean" else if (= t @Number) return "number" else if (= t @String) return "string" else if (= t @Symbol) return "symbol" else if (= t @BigInt) return "bigint" else if (= t @Object) if (= val.Call absent) return "object" else return "function" else assert false

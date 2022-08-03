@@ -143,7 +143,7 @@ object BasicStateDomain extends StateDomain {
     def lookupGlobal(x: Global): AbsValue =
       this.globals.getOrElse(x, baseGlobals.getOrElse(x, AbsValue.Bot))
 
-    // setters
+    /** setters */
     def update(x: Id, value: AbsValue): Elem =
       bottomCheck(value) {
         x match
@@ -160,7 +160,7 @@ object BasicStateDomain extends StateDomain {
         copy(heap = heap.update(aloc.loc, prop, value))
       }
 
-    // delete a property from a map
+    /** delete a property from a map */
     def delete(refV: AbsRefValue): Elem = refV match
       case AbsRefId(x) => error(s"cannot delete variable $x")
       case AbsRefProp(base, prop) =>
@@ -168,25 +168,25 @@ object BasicStateDomain extends StateDomain {
           copy(heap = heap.delete(base.loc, prop))
         }
 
-    // default value for bottom check
+    /** default value for bottom check */
     given bottomValue: AbsValue = AbsValue.Bot
 
-    // object operators
-    def append(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.append(loc, value)) }
-    def prepend(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.prepend(loc, value)) }
-    def remove(loc: AbsLoc, value: AbsValue): Elem =
-      bottomCheck(loc, value) { copy(heap = heap.remove(loc, value)) }
-    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = {
+    /** object operators */
+    def push(list: AbsValue, elem: AbsValue, front: Boolean): Elem =
+      bottomCheck(list, elem) {
+        if (front) copy(heap = heap.prepend(list.loc, elem))
+        else copy(heap = heap.append(list.loc, elem))
+      }
+    def remove(list: AbsValue, elem: AbsValue): Elem =
+      bottomCheck(list, elem) { copy(heap = heap.remove(list.loc, elem)) }
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
       var v: AbsValue = AbsValue.Bot
-      val st: Elem = bottomCheck(loc) {
-        val (newV, newH) = heap.pop(loc, front)
+      val st: Elem = bottomCheck(list.loc) {
+        val (newV, newH) = heap.pop(list.loc, front)
         v ⊔= newV
         copy(heap = newH)
       }
       (v, st)
-    }
 
     def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
       bottomCheck(v.loc) { (v, copy(heap = heap.setType(v.loc, tname))) }
@@ -243,22 +243,22 @@ object BasicStateDomain extends StateDomain {
       case Some(_) => ??? // TODO
       case None    => heap.contains(list.loc, value)
 
-    // define global variables
+    /** define global variables */
     def defineGlobal(pairs: (Global, AbsValue)*): Elem =
       bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
 
-    // define local variables
+    /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
       bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
 
-    // singleton checks
+    /** singleton checks */
     override def isSingle: Boolean =
       super.isSingle && globals.forall(_._2.isSingle) && heap.isSingle
 
-    // singleton location checks
+    /** singleton location checks */
     def isSingle(loc: Loc): Boolean = heap.isSingle(loc)
 
-    // find merged parts
+    /** find merged parts */
     def findMerged: Unit = {
       // visited locations
       var visited = Set[Loc]()
@@ -305,7 +305,7 @@ object BasicStateDomain extends StateDomain {
       for (loc <- heap.map.keys if !loc.isNamed) auxLoc(loc, s"<unreachable>")
     }
 
-    // handle calls
+    /** handle calls */
     def doCall: Elem = this
       .copy(heap = heap.doCall)
       .garbageCollected
@@ -313,7 +313,7 @@ object BasicStateDomain extends StateDomain {
       .copy(heap = heap.doProcStart(fixed))
       .garbageCollected
 
-    // handle returns (this: return states / to: caller states)
+    /** handle returns (this: return states / to: caller states) */
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
       locals = to.locals ++ defs,
@@ -336,7 +336,7 @@ object BasicStateDomain extends StateDomain {
     //   copy(heap = heap.removeLocs(unreachLocs))
     // } else this
 
-    // get reachable locations
+    /** get reachable locations */
     def reachableLocs: Set[Loc] = {
       var locs = Set[Loc]()
       for ((_, v) <- locals) locs ++= v.reachableLocs
@@ -344,12 +344,12 @@ object BasicStateDomain extends StateDomain {
       heap.reachableLocs(locs)
     }
 
-    // copy
+    /** copy */
     def copied(
       locals: Map[Local, AbsValue] = Map(),
     ): Elem = copy(locals = locals)
 
-    // conversion to string
+    /** conversion to string */
     def toString(detail: Boolean): String = {
       val app = new Appender
       given Rule[Elem] =
@@ -358,7 +358,7 @@ object BasicStateDomain extends StateDomain {
       app.toString
     }
 
-    // get string wth detailed shapes of locations
+    /** get string wth detailed shapes of locations */
     def getString(value: AbsValue): String = {
       val app = new Appender
       app >> value.toString

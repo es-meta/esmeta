@@ -1,9 +1,11 @@
 package esmeta.spec
 
 import scala.annotation.tailrec
-import esmeta.analyzer.domain.* // TODO refactoring
+import esmeta.analyzer.domain.*
+import esmeta.analyzer.util.warning
 
 /** type modeling */
+// TODO consider refactoring
 case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
 
   /** get method map */
@@ -54,8 +56,8 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
     else
       propMap(tname).getOrElse(
         p, {
-          println(("!!!", tname, p))
-          ???
+          warning(s"unknown property access: $tname.$p")
+          Set(AbsentT)
         },
       )
 
@@ -584,8 +586,6 @@ object TypeModel {
         parent = Some("DeclarativeEnvironmentRecord"),
         methods = Map(
           "GetBindingValue" -> "ModuleEnvironmentRecord.GetBindingValue",
-          "DeleteBinding" ->
-          "ModuleEnvironmentRecord.DeleteBinding",
           "HasThisBinding" ->
           "ModuleEnvironmentRecord.HasThisBinding",
           "GetThisBinding" ->

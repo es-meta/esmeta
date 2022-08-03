@@ -13,7 +13,7 @@ def ToObject(argument: Any) {
   } else {}
   if (= (typeof argument) @String) {
     let obj = (new StringExoticObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"], "StringData" -> argument, "Extensible" -> true))
-    obj.SubMap.length = (new DataProperty("Value" -> ([number] argument.length), "Writable" -> false, "Enumerable" -> false, "Configurable" -> false))
+    obj.SubMap.length = (new PropertyDescriptor("Value" -> ([number] argument.length), "Writable" -> false, "Enumerable" -> false, "Configurable" -> false))
     return obj
   } else {}
   if (= (typeof argument) @Symbol) {

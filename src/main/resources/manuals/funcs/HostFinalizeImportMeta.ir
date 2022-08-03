@@ -1,0 +1,3 @@
+def HostFinalizeImportMeta(importMeta: Unknown, moduleRecord: Unknown): Unknown {
+  return ~unused~
+}

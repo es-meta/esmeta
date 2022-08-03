@@ -85,10 +85,10 @@ trait StateDomain extends Domain {
 
     /** object operators */
     def delete(refV: AbsRefValue): Elem
-    def append(loc: AbsLoc, value: AbsValue): Elem
-    def prepend(loc: AbsLoc, value: AbsValue): Elem
-    def remove(loc: AbsLoc, value: AbsValue): Elem
-    def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem)
+
+    def push(list: AbsValue, elem: AbsValue, front: Boolean): Elem
+    def remove(list: AbsValue, elem: AbsValue): Elem
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem)
 
     def setType(loc: AbsValue, tname: String): (AbsValue, Elem)
     def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem)

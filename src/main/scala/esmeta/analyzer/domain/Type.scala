@@ -171,6 +171,12 @@ sealed trait Type extends AnalyzerElem {
   def isPure = this match
     case p: PureType => true
     case _           => false
+  def isAst = this match
+    case _: AstTBase | AstTopT => true
+    case _                     => false
+  def isList = this match
+    case NilT | ListT(_) => true
+    case _               => false
 }
 
 /** top type */

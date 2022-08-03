@@ -509,6 +509,31 @@ object BasicValueDomain extends ValueDomain {
             case _                     => AbsBool.Bot
           })
       })
+    def substring(from: Elem, to: Elem): Elem =
+      (this.getSingle, from.getSingle, to.getSingle) match
+        case (FlatBot, _, _) | (_, FlatBot, _) | (_, _, FlatBot) =>
+          AbsValue.Bot
+        case (FlatTop, _, _) | (_, FlatTop, _) | (_, _, FlatTop) =>
+          exploded("ESubstring")
+        case (
+              FlatElem(ASimple(Str(s))),
+              FlatElem(AMath(f)),
+              FlatElem(AMath(t)),
+            ) if f.isValidInt =>
+          if (s.length < t) apply(s.substring(f.toInt))
+          else if (t.isValidInt) apply(s.substring(f.toInt, t.toInt))
+          else Bot
+        case _ => Bot
+    def isArrayIndex: Elem = this.getSingle match
+      case FlatBot => Bot
+      case FlatElem(ASimple(Str(s))) =>
+        val d = ESValueParser.str2Number(s)
+        val ds = toStringHelper(d)
+        val UPPER = (1L << 32) - 1
+        val l = d.toLong
+        apply(ds == s && 0 <= l && d == l && l < UPPER)
+      case FlatElem(_) => AVF
+      case FlatTop     => exploded("EIsArrayIndex")
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem = this
