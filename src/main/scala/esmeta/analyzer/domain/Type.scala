@@ -48,6 +48,7 @@ sealed trait Type extends AnalyzerElem {
     case SyntacticT(name, _, _) => AstT(name)
     case AstT(_)                => AstTopT
     case TopT                   => error("no parent")
+    case CloT(_)                => CloTopT
     case _                      => TopT
   })
 
@@ -235,6 +236,7 @@ case class MapT(elem: PureType) extends PureType
 case object SymbolT extends PureType
 
 /** closure types */
+case object CloTopT extends PureType
 case class CloT(fname: String) extends PureType
 
 /** continuation types */

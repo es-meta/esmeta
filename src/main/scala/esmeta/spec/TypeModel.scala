@@ -208,7 +208,8 @@ object TypeModel {
         fields = Map(
           "Function" -> Set(NameT("FunctionObject"), NullT),
           "Realm" -> NameT("RealmRecord"),
-          "ScriptOrModule" -> Set(NameT("ScriptRecord"), NameT("ModuleRecord")),
+          "ScriptOrModule" ->
+          Set(NameT("ScriptRecord"), NameT("ModuleRecord"), NullT),
           "LexicalEnvironment" -> NameT("EnvironmentRecord"),
           "VariableEnvironment" -> NameT("EnvironmentRecord"),
           "PrivateEnvironment" -> Set(NameT("PrivateEnvironmentRecord"), NullT),
@@ -323,6 +324,11 @@ object TypeModel {
         methods = Map(
           "Call" -> "BuiltinFunctionObject.Call",
           // XXX "Construct" -> "BuiltinFunctionObject.Construct",
+        ),
+        fields = Map(
+          "Code" -> CloTopT,
+          "Realm" -> NameT("RealmRecord"),
+          "InitialName" -> Set(NullT, StrT),
         ),
       ),
       "BoundFunctionExoticObject" -> TypeInfo(
@@ -479,8 +485,8 @@ object TypeModel {
         fields = Map(
           "PromiseState" -> Set(PENDING, FULFILLED, REJECTED),
           "PromiseResult" -> ESValueT,
-          "PromiseFulfillReactions" -> ListT(NameT("PromiseReactionRecord")),
-          "PromiseRejectReactions" -> ListT(NameT("PromiseReactionRecord")),
+          "PromiseFulfillReactions" -> ListT(NameT("PromiseReaction")),
+          "PromiseRejectReactions" -> ListT(NameT("PromiseReaction")),
           "PromiseIsHandled" -> BoolT,
         ),
       ),

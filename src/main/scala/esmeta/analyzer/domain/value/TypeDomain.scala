@@ -479,6 +479,9 @@ object TypeDomain extends ValueDomain {
         set += MathT
       }
 
+      // merge list
+      if (set.count(_.isList) > 1) set -= NilT
+
       // merge aliases
       @tailrec
       def aux(pairs: List[(Type, Set[Type])]): Unit = pairs match {

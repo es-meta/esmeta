@@ -104,6 +104,7 @@ class Stringifier(
       case RecordT(props) =>
         given Rule[Iterable[Type]] = iterableRule("(", " | ", ")")
         app >> props
+      case CloTopT                       => app >> s"λ"
       case CloT(fname)                   => app >> s"λ[$fname]"
       case ContT(target)                 => app >> s"cont<$target>"
       case AstTopT                       => app >> "☊"
