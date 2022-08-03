@@ -213,9 +213,11 @@ object TypeDomain extends ValueDomain {
     def getClos: List[(Func, Map[Name, Elem])] = for {
       CloT(fname) <- set.toList // TODO captured
     } yield (cfg.fnameMap(fname), Map())
-    def getCont: List[ACont] = List() // TODO
+    def getConts: List[ACont] = for {
+      ContT(target) <- set.toList
+    } yield ACont(target, Map()) // TODO captured
     def getTypedArguments: List[(Elem, Type)] =
-      set.toList.map(ty => (Elem(ty), ty)) // XXX upcasting?
+      set.toList.map(ty => (Elem(ty.upcast), ty.upcast))
 
     /** get lexical result */
     def getLexical(method: String): Elem = Elem(for {
@@ -423,7 +425,7 @@ object TypeDomain extends ValueDomain {
         case NormalT(p)  => Some(p)
         case AbruptT     => None
         case p: PureType => Some(p)
-        case TopT        => ??? // TODO
+        case TopT        => Some(TopT) // TODO
     } yield pureTy).norm
     def isCompletion: Elem =
       if (this.set.isEmpty) Bot

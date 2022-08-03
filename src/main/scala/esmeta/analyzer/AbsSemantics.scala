@@ -19,7 +19,7 @@ case class AbsSemantics(
   var callInfo: Map[NodePoint[Call], AbsState] = Map(),
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
-  timeLimit: Option[Long] = Some(ANALYZE_TIMEOUT),
+  timeLimit: Option[Long] = None,
   execLevel: Int = 0,
 ) {
 

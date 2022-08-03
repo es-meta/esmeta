@@ -1,7 +1,7 @@
 package esmeta.analyzer.domain
 
-import esmeta.analyzer.AnalyzerElem
-import esmeta.cfg.Func
+import esmeta.analyzer.{AnalyzerElem, NodePoint}
+import esmeta.cfg.{Func, Node}
 import esmeta.interp.*
 import esmeta.ir.Expr
 import esmeta.spec.{Type => SType, *}
@@ -235,9 +235,10 @@ case class MapT(elem: PureType) extends PureType
 case object SymbolT extends PureType
 
 /** closure types */
-case class CloT(fname: String) extends PureType with SingleT
+case class CloT(fname: String) extends PureType
 
-/** TODO continuation types */
+/** continuation types */
+case class ContT(target: NodePoint[Node]) extends PureType
 
 /** AST types */
 case object AstTopT extends PureType
@@ -246,7 +247,7 @@ case class AstT(name: String) extends AstTBase
 case class SyntacticT(name: String, idx: Int, subIdx: Int) extends AstTBase
 
 /** grammar types */
-case class GrammarT(name: String) extends PureType
+case class GrammarT(name: String) extends PureType with SingleT
 
 /** code unit types */
 case object CodeUnitT extends PureType
@@ -305,8 +306,8 @@ object Type {
     case _: AComp                      => AbruptT
     case _                             => fromPure(av)
   def fromPure(av: AValue): PureType = av match
-    case AClo(func, _)      => CloT(func.name) // XXX captured?
-    case cont: ACont        => ??? // TODO
+    case AClo(func, _)      => CloT(func.name) // TODO captured
+    case ACont(target, _)   => ContT(target) // TODO captured
     case AAst(ast)          => AstT(ast.name)
     case AGrammar(name, _)  => GrammarT(name)
     case ACodeUnit(_)       => CodeUnitT

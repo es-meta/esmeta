@@ -54,7 +54,7 @@ trait ValueDomain extends Domain {
     /** getters */
     def getKeyValue: Elem
     def getClos: List[(Func, Map[Name, Elem])]
-    def getCont: List[ACont]
+    def getConts: List[ACont]
     def getSDO(method: String): List[(Func, Elem)]
     def getLexical(method: String): Elem
     def getTypedArguments: List[(Elem, Type)]

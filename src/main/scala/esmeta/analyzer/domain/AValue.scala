@@ -43,6 +43,7 @@ object AValue {
     case NullT                 => ASimple(Null)
     case AbsentT               => ASimple(Absent)
     case NilT                  => ???
+    case GrammarT(s)           => AGrammar(s, Nil)
 }
 
 /** completions values */

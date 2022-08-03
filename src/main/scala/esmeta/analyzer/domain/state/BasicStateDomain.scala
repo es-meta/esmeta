@@ -7,6 +7,7 @@ import esmeta.cfg.CFG
 import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js
+import esmeta.js.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
@@ -216,6 +217,21 @@ object BasicStateDomain extends StateDomain {
         }
         allocList(newList, to)
       }
+    def getChildren(
+      ast: AbsValue,
+      kindOpt: Option[AbsValue],
+      to: AllocSite,
+    ): (AbsValue, Elem) =
+      (kindOpt.map(_.getSingle), ast.getSingle) match
+        case (Some(FlatBot), _) | (_, FlatBot) => (AbsValue.Bot, Bot)
+        case (Some(FlatTop), _) | (_, FlatTop) => exploded("EGetChildren")
+        case (Some(FlatElem(AGrammar(name, _))), FlatElem(AAst(ast))) =>
+          val vs = ast.getChildren(name).map(AbsValue(_))
+          allocList(vs, to)
+        case (None, FlatElem(AAst(syn: Syntactic))) =>
+          val vs = syn.children.flatten.map(AbsValue(_))
+          allocList(vs, to)
+        case _ => (AbsValue.Bot, Bot)
 
     def allocMap(
       tname: String,

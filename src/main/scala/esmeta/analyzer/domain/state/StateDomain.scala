@@ -94,6 +94,11 @@ trait StateDomain extends Domain {
     def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem)
     def keys(loc: AbsValue, intSorted: Boolean, to: AllocSite): (AbsValue, Elem)
     def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem)
+    def getChildren(
+      ast: AbsValue,
+      kindOpt: Option[AbsValue],
+      to: AllocSite,
+    ): (AbsValue, Elem)
 
     def allocMap(
       tname: String,

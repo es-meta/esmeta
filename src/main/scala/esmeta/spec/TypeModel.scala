@@ -467,7 +467,7 @@ object TypeModel {
           "Reject" -> NameT("FunctionObject"),
         ),
       ),
-      "PromiseReactionRecord" -> TypeInfo(
+      "PromiseReaction" -> TypeInfo(
         fields = Map(
           "Capability" -> Set(NameT("PromiseCapabilityRecord"), UndefT),
           "Type" -> Set(FULFILL, REJECT),

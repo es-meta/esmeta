@@ -324,7 +324,7 @@ case class AbsTransfer(sem: AbsSemantics) {
               sem.doCall(callerNp, st, func, as, captured)
 
             // continuation call
-            for (ACont(target, captured) <- fv.getCont) {
+            for (ACont(target, captured) <- fv.getConts) {
               val as0 =
                 as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
               val newLocals =
@@ -422,18 +422,7 @@ case class AbsTransfer(sem: AbsSemantics) {
               case None       => (None, st)
           })
           a <- transfer(ast)
-          lv <- (kOpt.map(_.getSingle), a.getSingle) match
-            case (Some(FlatBot), _) | (_, FlatBot) =>
-              id(st => (AbsValue.Bot, AbsState.Bot))
-            case (Some(FlatTop), _) | (_, FlatTop) => exploded("EGetChildren")
-            case (Some(FlatElem(AGrammar(name, _))), FlatElem(AAst(ast))) =>
-              val vs = ast.getChildren(name).map(AbsValue(_))
-              id(_.allocList(vs, loc))
-            case (None, FlatElem(AAst(syn: Syntactic))) =>
-              val vs = syn.children.flatten.map(AbsValue(_))
-              id(_.allocList(vs, loc))
-            case _ =>
-              id(st => (AbsValue.Bot, AbsState.Bot))
+          lv <- id(_.getChildren(a, kOpt, loc))
         } yield lv
       case EYet(_) => AbsValue.Bot
       case EContains(list, elem, field) =>

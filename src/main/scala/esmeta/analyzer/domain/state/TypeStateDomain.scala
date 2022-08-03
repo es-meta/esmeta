@@ -8,6 +8,7 @@ import esmeta.interp.*
 import esmeta.ir.{Id, Local, Global, IRElem, Type => IrType}
 import esmeta.js
 import esmeta.js.builtin.*
+import esmeta.spec.TypeModel
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
@@ -109,7 +110,20 @@ object TypeStateDomain extends StateDomain {
             Set()
       } yield v
       AbsValue(vset.toList: _*)
-    private def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
+    private def lookupComp(comp: CompType, prop: Type): Set[Type] =
+      import TypeModel.*
+      // TODO optimize
+      (comp, prop) match
+        case (NormalT(t), StrSingleT("Value"))  => Set(t)
+        case (NormalT(_), StrSingleT("Type"))   => Set(NORMAL)
+        case (NormalT(_), StrSingleT("Target")) => Set(EMPTY)
+        case (AbruptT, StrSingleT("Value"))     => Set(ESValueT, EMPTY)
+        case (AbruptT, StrSingleT("Type")) =>
+          Set(BREAK, CONTINUE, RETURN, THROW)
+        case (AbruptT, StrSingleT("Target")) => Set(StrT, EMPTY)
+        case _ =>
+          warning(s"invalid completion property access: $comp[$prop]")
+          Set()
     private def lookupAst(prop: Type): Set[Type] =
       prop match
         // access to child
@@ -281,6 +295,15 @@ object TypeStateDomain extends StateDomain {
         }
         (AbsValue(elemTyOpt.map(ListT(_)).getOrElse(NilT)), this)
       }
+    def getChildren(
+      ast: AbsValue,
+      kindOpt: Option[AbsValue],
+      to: AllocSite,
+    ): (AbsValue, Elem) =
+      bottomCheck(ast) {
+        ast.assertAst
+        (AbsValue(ListT(AstTopT)), this) // XXX check soundness
+      }
 
     def allocMap(
       tname: String,
@@ -292,6 +315,13 @@ object TypeStateDomain extends StateDomain {
           if (cfg.typeModel.infos contains tname) {
             // TODO property check
             NameT(tname)
+          } else if (tname == "Record") {
+            RecordT(
+              (for { (k, v) <- pairs } yield k.getSingle match
+                  case FlatElem(ASimple(Str(key))) => key -> v.set
+                  case _                           => ???, // TODO
+              ).toMap,
+            )
           } else {
             println(("!!!", tname))
             ??? // TODO

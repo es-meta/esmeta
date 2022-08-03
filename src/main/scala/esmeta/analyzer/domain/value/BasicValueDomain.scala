@@ -217,7 +217,7 @@ object BasicValueDomain extends ValueDomain {
           (for { (k, v) <- c.captured } yield k -> v.asInstanceOf[Elem]).toMap
         (c.func, captured)
       }
-    def getCont: List[ACont] = cont.toList
+    def getConts: List[ACont] = cont.toList
     def getSDO(method: String): List[(Func, Elem)] = ??? // TODO
     def getLexical(method: String): Elem = ??? // TODO
     def getTypedArguments: List[(Elem, Type)] = List((this, TopT))
