@@ -96,6 +96,7 @@ object TypeStateDomain extends StateDomain {
         p <- prop.set
         v <- ty match
           case comp: CompType  => lookupComp(comp, p)
+          case AstTopT         => lookupAst(p)
           case ast: AstTBase   => lookupAst(ast, p)
           case StrT            => lookupStr(p)
           case str: StrSingleT => lookupStr(str, p)
@@ -109,6 +110,15 @@ object TypeStateDomain extends StateDomain {
       } yield v
       AbsValue(vset.toList: _*)
     private def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
+    private def lookupAst(prop: Type): Set[Type] =
+      prop match
+        // access to child
+        case MathSingleT(n) if n.isValidInt => Set(AstTopT)
+        // access to parent
+        case StrSingleT(_) => Set(AstTopT)
+        case _ =>
+          warning(s"invalid ast property access: ${AstTopT}[$prop]")
+          Set()
     private def lookupAst(ast: AstTBase, prop: Type): Set[Type] = {
       var tySet: Set[Type] = Set()
       prop match

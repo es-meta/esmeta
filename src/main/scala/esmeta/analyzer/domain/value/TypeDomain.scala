@@ -320,17 +320,16 @@ object TypeDomain extends ValueDomain {
     def >>(that: Elem): Elem = ???
 
     /** unary operations */
-    // TODO
-    def unary_- : Elem = ???
+    def unary_- : Elem = numericUnaryOp
+    def unary_~ : Elem = numericUnaryOp
     def unary_! : Elem =
       assertBool
-      if (set contains BoolT) bool
-      else if (AVF ⊑ this) AVT
-      else if (AVT ⊑ this) AVF
-      else Bot
-    def unary_~ : Elem = ???
-    def abs: Elem = ???
-    def floor: Elem = ???
+      if (this.isBottom) Bot
+      else if (AVF == this) AVT
+      else if (AVT == this) AVF
+      else bool
+    def abs: Elem = { this.assertMath; this }
+    def floor: Elem = { this.assertMath; this }
 
     /** type operations */
     def typeOf(st: AbsState): Elem = Elem(for {
@@ -527,6 +526,17 @@ object TypeDomain extends ValueDomain {
           that.assertBigInt; result ⊔= bigIntCase
         }
         result
+      }
+    }
+    private def numericUnaryOp: Elem = {
+      if (isBottom) Bot
+      else {
+        this.assertNumeric
+        var tySet: Set[Type] = Set()
+        if (this.set.exists(_.isMath)) tySet += MathT
+        if (this.set.exists(_.isNumber)) tySet += NumberT
+        if (this.set.exists(_.isBigInt)) tySet += BigIntT
+        Elem(tySet)
       }
     }
     private lazy val boolNumericOps = mkNumericOps(bool, bool, bool)
