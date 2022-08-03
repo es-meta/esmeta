@@ -180,6 +180,7 @@ object TypeDomain extends ValueDomain {
       case None => /* do nothing */
     aux()
 
+    // merge default infos
     (for {
       key <- infos.keySet ++ defaultInfos.keySet
       info = infos.getOrElse(key, MSet())

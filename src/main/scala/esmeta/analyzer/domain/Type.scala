@@ -16,6 +16,8 @@ sealed trait Type extends AnalyzerElem {
   /** get ancestor types */
   def ancestors: Set[Type] = parent.map(_.ancestors).getOrElse(Set()) + this
   def strictAncestors: Set[Type] = parent.map(_.ancestors).getOrElse(Set())
+  def ancestorList: List[Type] =
+    this :: parent.map(_.ancestorList).getOrElse(List())
 
   /** get parent types */
   def parent: Option[Type] = optional(this match {
@@ -55,6 +57,19 @@ sealed trait Type extends AnalyzerElem {
       parent match
         case Some(parent) => parent < that
         case None         => false
+
+  /** lowest common ancestor */
+  def lca(that: Type): Type =
+    @tailrec
+    def aux(l0: List[Type], l1: List[Type]): Type = (l0, l1) match
+      case (_, Nil) | (Nil, _) => error("lowest common ancestor")
+      case (h0 :: t0, h1 :: t1) =>
+        if (h0 == h1) h0
+        else if (t1 contains h0) h0
+        else if (t0 contains h1) h1
+        else aux(t0, t1)
+
+    aux(ancestorList, that.ancestorList)
 
   /** remove types */
   def -(that: Type): Set[Type] =
@@ -199,7 +214,7 @@ case class NameT(name: String) extends PureType
 
 /** list types */
 case object NilT extends PureType with SingleT
-case class ListT(elem: PureType) extends PureType
+case class ListT(elem: Type) extends PureType
 
 /** sub mapping types */
 case class MapT(elem: PureType) extends PureType

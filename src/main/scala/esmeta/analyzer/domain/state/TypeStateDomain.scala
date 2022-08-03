@@ -223,21 +223,24 @@ object TypeStateDomain extends StateDomain {
         for { ty <- v.set } ty match
           case NameT(_) => tySet += ListT(StrT)
           case MapT(_)  => tySet += ListT(StrT) // XXX check soundness
-          case _        => ??? // TODO warning non map type
+          case _        => warning(s"invalid type for keys: $ty")
         (AbsValue(tySet.toList: _*), this)
       }
     def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
       bottomCheck(ls) {
-        var tySet: Set[Type] = Set()
+        var elemTyOpt: Option[Type] = None
         for {
           l <- ls
           ty <- l.set
         } ty match {
-          case ListT(elemTy) => tySet += elemTy
-          case NilT          => /* do nothing */
-          case _             => ??? // TODO warning non list type
+          case ListT(elemTy) =>
+            elemTyOpt match
+              case None      => elemTyOpt = Some(elemTy)
+              case Some(ty0) => elemTyOpt = Some(elemTy.lca(ty0))
+          case NilT => /* do nothing */
+          case _    => warning(s"invalid type for list concat: $ty")
         }
-        (AbsValue(tySet.toList: _*), this)
+        (AbsValue(elemTyOpt.map(ListT(_)).getOrElse(NilT)), this)
       }
 
     def allocMap(
@@ -300,23 +303,26 @@ object TypeStateDomain extends StateDomain {
       }._1
 
     /** singleton location checks */
-    def isSingle(loc: Loc): Boolean = ???
+    def isSingle(loc: Loc): Boolean = notSupported(this, "isSingle")
 
     /** find merged parts */
-    def findMerged: Unit = ???
+    def findMerged: Unit = notSupported(this, "findMerged")
 
     /** handle calls */
     def doCall: Elem = this
-    def doProcStart(fixed: Set[Loc]): Elem = ???
+    def doProcStart(fixed: Set[Loc]): Elem = notSupported(this, "doProcStart")
 
     /** handle returns (this: return states / to: caller states) */
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
       locals = to.locals ++ defs,
     )
-    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = ???
-    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
-    def garbageCollected: Elem = ???
+    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem =
+      notSupported(this, "doProcEnd")
+    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem =
+      notSupported(this, "doProcEnd")
+    def garbageCollected: Elem =
+      notSupported(this, "garbageCollected")
 
     /** get reachable locations */
     def reachableLocs: Set[Loc] = Set()
@@ -334,6 +340,6 @@ object TypeStateDomain extends StateDomain {
     }
 
     /** get string wth detailed shapes of locations */
-    def getString(value: AbsValue): String = ???
+    def getString(value: AbsValue): String = value.toString
   }
 }
