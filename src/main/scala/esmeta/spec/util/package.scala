@@ -18,4 +18,12 @@ extension (elem: Element) {
   /** checks whether an element is in appendix */
   def isInAnnex: Boolean =
     elem.walkAncestor(_.tagName == "emu-annex", false, _ || _)
+
+  /** checks whether an element is in regeular expression section */
+  def isInRegexp: Boolean =
+    elem.walkAncestor(
+      _.id == "sec-regexp-regular-expression-objects",
+      false,
+      _ || _,
+    )
 }

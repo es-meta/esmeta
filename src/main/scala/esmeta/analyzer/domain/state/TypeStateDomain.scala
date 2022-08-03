@@ -172,7 +172,8 @@ object TypeStateDomain extends StateDomain {
       case _ =>
         warning(s"invalid string property access: ${StrT}[$prop]")
         Set()
-    private def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
+    private def lookupStr(str: StrSingleT, prop: Type): Set[Type] =
+      lookupStr(prop) // XXX more precise?
     private def lookupList(list: ListT, prop: Type): Set[Type] =
       var tySet: Set[Type] = Set()
       prop match

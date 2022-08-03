@@ -78,7 +78,11 @@ case class REPL(sem: AbsSemantics) {
     case Some(targetIter) =>
       if (iter < targetIter) true
       else { jumpTo = None; false }
-    case _ => continue && !isBreak(cp)
+    case _ =>
+      continue && !isBreak(cp) && {
+        if (REPL_STOP) { REPL_STOP = false; false }
+        else true
+      }
   }
 
   // run REPL
@@ -126,7 +130,7 @@ case class REPL(sem: AbsSemantics) {
   private var origCp: Option[ControlPoint] = None
 
   // current control point
-  private var curCp: Option[ControlPoint] = None
+  var curCp: Option[ControlPoint] = None
 
   // set current control point
   def setCp(cpOpt: Option[ControlPoint]) = {

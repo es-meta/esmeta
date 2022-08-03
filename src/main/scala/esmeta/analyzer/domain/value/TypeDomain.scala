@@ -228,6 +228,11 @@ object TypeDomain extends ValueDomain {
               "StringValue",
             ) =>
           Set(StrT)
+        case (
+              "IdentifierName \\ (ReservedWord)" | "IdentifierName",
+              "IdentifierCodePoints",
+            ) =>
+          Set(StrT)
         case ("PrivateIdentifier", "StringValue")      => Set(StrT)
         case ("NumericLiteral", "MV" | "NumericValue") => Set(NumberT, BigIntT)
         case ("StringLiteral", "SV" | "StringValue")   => Set(StrT)
@@ -242,8 +247,8 @@ object TypeDomain extends ValueDomain {
         case ("RegularExpressionLiteral", "BodyText" | "FlagText") => Set(StrT)
         case (_, "Contains") => Set(BoolSingleT(false))
         case _ =>
-          println((ast.name, method))
-          ??? // TODO
+          warning(s"unknown lexical sdo: ${ast.name}.$method")
+          Set()
       }
     } yield ty)
 

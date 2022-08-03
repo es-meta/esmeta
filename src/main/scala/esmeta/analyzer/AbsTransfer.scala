@@ -91,9 +91,9 @@ case class AbsTransfer(sem: AbsSemantics) {
     Interp.setTypeMap
       .get(rp.func.name)
       .map(ty => {
-        if (!value.isBottom) {
-          val (newV, newSt) = st.setType(value, ty)
-          value = newV
+        if (!value.unwrapCompletion.isBottom) {
+          val (newV, newSt) = st.setType(value.unwrapCompletion, ty)
+          value = newV ⊔ value.abruptCompletion
           st = newSt
         }
       })

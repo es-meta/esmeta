@@ -26,7 +26,7 @@ case class Grammar(
 
   /** get lexical names */
   lazy val lexicalNames: Set[String] = (for {
-    prod <- prods if prod.kind == Production.Kind.Lexical
+    prod <- prods if prod.kind != Production.Kind.Syntactic
   } yield prod.name).toSet
 
   /** the index mapping for grammars */

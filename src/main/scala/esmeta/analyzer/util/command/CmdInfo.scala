@@ -11,7 +11,8 @@ case object CmdInfo
     "Show abstract state of node",
   ) {
   // options
-  val options @ List(ret, block, detail) = List("ret", "block", "detail")
+  val options @ List(ret, block, detail, callsite) =
+    List("ret", "block", "detail", "callsite")
 
   // run command
   def apply(
@@ -19,8 +20,8 @@ case object CmdInfo
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = args match {
-    case opt :: target :: _ if options contains opt.substring(1) =>
-      showInfo(repl, opt.substring(1), target)
+    case opt :: optArgs if options contains opt.substring(1) =>
+      showInfo(repl, opt.substring(1), optArgs)
     case _ =>
       cpOpt match {
         case Some(cp) =>
@@ -28,20 +29,24 @@ case object CmdInfo
           println(repl.cpInfo(cp, detail))
           println
         case None =>
-          showInfo(repl, ret, "RunJobs")
+          showInfo(repl, ret, List("RunJobs"))
       }
   }
 
   // show information
-  def showInfo(repl: REPL, opt: String, target: String): Unit = {
+  def showInfo(repl: REPL, opt: String, optArgs: List[String]): Unit = {
     val sem = repl.sem
-    val info = opt match {
-      case `ret` =>
+    val info = (opt, optArgs) match {
+      case (`ret`, target :: _) =>
         val fname = target
         sem.rpMap.keySet.filter(_.func.name == fname)
-      case `block` if optional(target.toInt) != None =>
+      case (`block`, target :: _) if optional(target.toInt) != None =>
         val uid = target.toInt
         sem.npMap.keySet.filter(_.node.id == uid)
+      case (`callsite`, _) =>
+        val cp = repl.curCp.get
+        val rp = ReturnPoint(cp.func, cp.view)
+        sem.retEdges(rp)
       case _ =>
         println("Inappropriate argument")
         Set()

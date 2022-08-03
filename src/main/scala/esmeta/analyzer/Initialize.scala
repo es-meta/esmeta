@@ -4,6 +4,7 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.Ast
+import esmeta.spec.util.*
 import esmeta.js.builtin.SOURCE_TEXT
 
 /** abstract semantics initializer */
@@ -27,23 +28,26 @@ object Initialize {
   /** initialize type analysis */
   private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.\w+""".r
 
-  var counter = 0
+  // var counter = 0
 
   def initType(cfg: CFG): Map[NodePoint[Node], AbsState] = (for {
     f <- cfg.funcs
+    isDefaultSdo = f.name.startsWith("<DEFAULT>") if !isDefaultSdo
+    if f.irFunc.algo.fold(true)(!_.elem.isInRegexp) // filter regular expression
     (np, st) <- f.irFunc.kind match
 
-      case _ if counter >= 1 => None
+      // case _ if counter >= 1 => None
 
       case IRFunc.Kind.SynDirOp if f.irFunc.params.length == 1 =>
         val sdoPattern(name, idx, subIdx) = f.name
-        val thisTy = SyntacticT(name, idx.toInt, subIdx.toInt)
-        val np = NodePoint(f, f.entry.get, View(tys = List(thisTy)))
-        val st = AbsState.Empty.defineLocal(THIS -> AbsValue(thisTy))
-
-        counter += 1
-
-        Some(np, st)
+        // filter lexical sdo
+        if (cfg.grammar.lexicalNames contains name) None
+        else {
+          val thisTy = SyntacticT(name, idx.toInt, subIdx.toInt)
+          val np = NodePoint(f, f.entry.get, View(tys = List(thisTy)))
+          val st = AbsState.Empty.defineLocal(THIS -> AbsValue(thisTy))
+          Some(np, st)
+        }
       case IRFunc.Kind.Builtin =>
         val np = NodePoint(f, f.entry.get, View())
         val st = AbsState.Empty
@@ -53,7 +57,7 @@ object Initialize {
             NEW_TARGET -> NEW_TARGET_TYPE,
           )
 
-        counter += 1
+        // counter += 1
 
         Some(np, st)
       case _ => None

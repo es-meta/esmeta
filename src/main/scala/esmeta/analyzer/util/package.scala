@@ -40,11 +40,14 @@ def getLocals(
 }
 
 /** alarm */
-// TODO
+// TODO refactor
 var CURRENT_CP: Option[ControlPoint] = None
 def warning(msg: String): Unit =
   val cp = CURRENT_CP.get
   printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
+
+/** for debugging */
+var REPL_STOP = false
 
 /** exploded */
 def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)

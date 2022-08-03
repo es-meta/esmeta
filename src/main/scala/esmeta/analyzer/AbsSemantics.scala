@@ -255,6 +255,12 @@ case class AbsSemantics(
       if givenNp.node == np.node && entryView == getEntryView(np.view)
     } yield np
   }
+
+  /** string */
+  override def toString: String = {
+    val funcs = npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
+    s"${funcs.size} functions are analyzed in $iter iterations."
+  }
 }
 object AbsSemantics {
 
