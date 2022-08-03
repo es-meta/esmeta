@@ -30,23 +30,25 @@ sealed trait Type extends AnalyzerElem {
       cfg.typeModel.infos.get(name) match
         case Some(TypeInfo(Some(parent), _, _)) => NameT(parent)
         case _                                  => TopT
-    case MathSingleT(_)   => MathT
-    case PrimT            => ESValueT
-    case ArithT           => PrimT
-    case NumericT         => ArithT
-    case NumberT          => NumericT
-    case BigIntT          => NumericT
-    case StrT             => ArithT
-    case BoolT            => PrimT
-    case SymbolT          => PrimT
-    case NumberSingleT(n) => NumberT
-    case BigIntSingleT(b) => BigIntT
-    case StrSingleT(str)  => StrT
-    case BoolSingleT(b)   => BoolT
-    case UndefT           => PrimT
-    case NullT            => PrimT
-    case TopT             => error("no parent")
-    case _                => TopT
+    case MathSingleT(_)         => MathT
+    case PrimT                  => ESValueT
+    case ArithT                 => PrimT
+    case NumericT               => ArithT
+    case NumberT                => NumericT
+    case BigIntT                => NumericT
+    case StrT                   => ArithT
+    case BoolT                  => PrimT
+    case SymbolT                => PrimT
+    case NumberSingleT(n)       => NumberT
+    case BigIntSingleT(b)       => BigIntT
+    case StrSingleT(str)        => StrT
+    case BoolSingleT(b)         => BoolT
+    case UndefT                 => PrimT
+    case NullT                  => PrimT
+    case SyntacticT(name, _, _) => AstT(name)
+    case AstT(_)                => AstTopT
+    case TopT                   => error("no parent")
+    case _                      => TopT
   })
 
   /** check sub typing */
@@ -68,7 +70,6 @@ sealed trait Type extends AnalyzerElem {
         else if (t1 contains h0) h0
         else if (t0 contains h1) h1
         else aux(t0, t1)
-
     aux(ancestorList, that.ancestorList)
 
   /** remove types */
@@ -109,6 +110,7 @@ sealed trait Type extends AnalyzerElem {
     case NameT(name) =>
       cfg.typeModel.subTypes.getOrElse(name, Set(name)) ++
       ancestors.collect { case NameT(name) => name }
+    case AstTopT => astChildMap.keySet ++ Set("ParseNode", "Nonterminal")
     case ast: AstTBase =>
       val astName = ast.name
       var set: Set[String] = Set("ParseNode")
@@ -194,23 +196,21 @@ case object ESValueT extends PureType
 /** norminal types */
 case class NameT(name: String) extends PureType
 
-/** TODO record types */
-// case class RecordT(props: Map[String, AbsType]) extends PureType
-// // record types
-// case class RecordT(props: Map[String, AbsType]) extends PureType {
-//   // lookup properties
-//   def apply(prop: String): AbsType = props.getOrElse(prop, Absent)
-//
-//   // merge record types
-//   def ⊔(that: RecordT): RecordT = {
-//     val keys = this.props.keySet ++ that.props.keySet
-//     RecordT(keys.toList.map(k => k -> (this(k) ⊔ that(k))).toMap)
-//   }
-// }
-// object RecordT {
-//   // constructor
-//   def apply(pairs: (String, AbsType)*): RecordT = RecordT(pairs.toMap)
-// }
+/** record types */
+case class RecordT(props: Map[String, Set[Type]]) extends PureType {
+
+  /** lookup properties */
+  def apply(prop: String): Set[Type] = props.getOrElse(prop, Set(AbsentT))
+
+  /** merge record types */
+  def ⊔(that: RecordT): RecordT = {
+    val keys = this.props.keySet ++ that.props.keySet
+    RecordT(keys.toList.map(k => k -> (this(k) union that(k))).toMap)
+  }
+}
+object RecordT {
+  def apply(pairs: (String, Set[Type])*): RecordT = RecordT(pairs.toMap)
+}
 
 /** list types */
 case object NilT extends PureType with SingleT
@@ -228,6 +228,7 @@ case class CloT(fname: String) extends PureType with SingleT
 /** TODO continuation types */
 
 /** AST types */
+case object AstTopT extends PureType
 sealed trait AstTBase extends PureType { val name: String }
 case class AstT(name: String) extends AstTBase
 case class SyntacticT(name: String, idx: Int, subIdx: Int) extends AstTBase
@@ -318,7 +319,6 @@ object Type {
         }.toSet
         name -> subs
     }).toMap
-  // TODO properly handle recursive grammar
   lazy val astChildMap: Map[String, Set[String]] = {
     var descs = Map[String, Set[String]]()
     def aux(name: String): Set[String] = descs.get(name) match {

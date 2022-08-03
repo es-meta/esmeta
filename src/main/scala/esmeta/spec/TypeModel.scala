@@ -51,7 +51,13 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   def getProp(tname: String, p: String): Set[Type] =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       Set(NameT("Object"))
-    else propMap(tname).getOrElse(p, ???)
+    else
+      propMap(tname).getOrElse(
+        p, {
+          println(("!!!", tname, p))
+          ???
+        },
+      )
 
   /** property type */
   private lazy val propMap: Map[String, PropMap] = (for {
@@ -275,6 +281,7 @@ object TypeModel {
         fields = Map(
           "Extensible" -> BoolT,
           "Prototype" -> Set(NameT("Object"), NullT),
+          "SubMap" -> MapT(NameT("PropertyDescriptor")),
         ),
       ),
       "OrdinaryObject" -> TypeInfo(

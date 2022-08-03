@@ -97,14 +97,15 @@ object TypeStateDomain extends StateDomain {
         v <- ty match
           case comp: CompType  => lookupComp(comp, p)
           case ast: AstTBase   => lookupAst(ast, p)
-          case StrT            => lookupStr(StrT, p)
+          case StrT            => lookupStr(p)
           case str: StrSingleT => lookupStr(str, p)
           case list: ListT     => lookupList(list, p)
+          case NilT            => lookupList(p)
           case obj: NameT      => lookupNamedRec(obj, p)
           case MapT(elemTy)    => Set(elemTy, AbsentT)
           case _ =>
-            println((ty, p))
-            ??? // TODO
+            warning(s"invalid property access: $ty[$p]")
+            Set()
       } yield v
       AbsValue(vset.toList: _*)
     private def lookupComp(comp: CompType, prop: Type): Set[Type] = ???
@@ -115,7 +116,8 @@ object TypeStateDomain extends StateDomain {
         case MathSingleT(n) if n.isValidInt =>
           val propIdx = n.toInt
           def addNts(nts: List[Option[String]]): Unit =
-            if (propIdx >= nts.size) ??? // TODO warning
+            if (propIdx >= nts.size)
+              warning(s"invalid ast property access: $ast[$propIdx]")
             else
               tySet += nts(propIdx)
                 .map(ntName => AstT(ntName))
@@ -130,20 +132,22 @@ object TypeStateDomain extends StateDomain {
               val rhs = cfg.grammar.nameMap(name).rhsList(idx)
               addNts(rhs.getNts(subIdx))
         // access to parent
-        case StrSingleT("parent") => ??? // TODO
+        case StrSingleT("parent") => tySet += AstTopT
         // access to child
         case StrSingleT(str) =>
           for {
             rhs <- cfg.grammar.nameMap(ast.name).rhsList
             nt <- rhs.nts if nt.name == str
           } tySet += AstT(nt.name)
-        case _ => ??? // TODO warning invalid access
+        case _ => warning(s"invalid ast property access: $ast[$prop]")
       tySet
     }
-    private def lookupStr(str: StrT.type, prop: Type): Set[Type] = prop match
+    private def lookupStr(prop: Type): Set[Type] = prop match
       case StrSingleT("length")   => Set(MathT)
       case MathT | MathSingleT(_) => Set(CodeUnitT)
-      case _                      => ??? // TODO warning invalid access
+      case _ =>
+        warning(s"invalid string property access: ${StrT}[$prop]")
+        Set()
     private def lookupStr(str: StrSingleT, prop: Type): Set[Type] = ???
     private def lookupList(list: ListT, prop: Type): Set[Type] =
       var tySet: Set[Type] = Set()
@@ -152,15 +156,24 @@ object TypeStateDomain extends StateDomain {
         case StrSingleT("length") => tySet += MathT
         // element
         case MathT | (_: MathSingleT) => tySet += list.elem
-        case _                        => ??? // TODO warning invalid access
+        case _ => warning(s"invalid list property access: $list[$prop]")
       tySet
+    private def lookupList(prop: Type): Set[Type] =
+      prop match
+        // length
+        case StrSingleT("length") => Set(MathSingleT(0))
+        case _ =>
+          warning(s"invalid list property access: ${NilT}[$prop]")
+          Set()
     private def lookupNamedRec(obj: NameT, prop: Type): Set[Type] =
       prop match
         case StrSingleT(propStr) =>
           cfg.typeModel.getProp(obj.name, propStr)
         case StrT => Set(TopT) // XXX warning imprecision
-        case _    => ??? // TODO
-    def apply(loc: Loc): AbsObj = ???
+        case _ =>
+          warning(s"invalid record property access: ${obj.name}[$prop]")
+          Set()
+    def apply(loc: Loc): AbsObj = notSupported(this, "apply")
     def lookupGlobal(x: Global): AbsValue =
       baseGlobals.getOrElse(x, AbsValue.Bot)
 
@@ -176,12 +189,13 @@ object TypeStateDomain extends StateDomain {
     def update(x: Id, value: AbsValue): Elem = x match
       case x: Local => defineLocal(x -> value)
       case x: Global =>
-        if (value !⊑ baseGlobals(x)) ??? // TODO warning
+        if (value !⊑ baseGlobals(x))
+          warning(s"invalid global variable update: $x = $value")
         this
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
       val origV = apply(base, prop)
       if (value !⊑ origV)
-        // TODO handle ArrayCreate
+        // XXX handle ArrayCreate, ...
         warning(s"invalid property update: $base[$prop] = $value")
       this
 
@@ -262,10 +276,9 @@ object TypeStateDomain extends StateDomain {
           list.map(_.removeAbsent.upcast).foldLeft(AbsValue.Bot: AbsValue) {
             case (merged, elem) => merged ⊔ elem
           }
-        val listTy = elemTy.set.size match
-          case 0 => NilT
-          case 1 => ListT(elemTy.set.head.toPureType)
-          case _ => ??? // TODO
+        val listTy = elemTy.set.headOption match
+          case None     => NilT
+          case Some(ty) => ListT(elemTy.set.tail.foldLeft(ty)(_ lca _))
         (AbsValue(listTy), this)
       }
     def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) =
@@ -292,7 +305,7 @@ object TypeStateDomain extends StateDomain {
                 if ((value ⊓ AbsValue(elemTy)).isBottom) set += false
                 else set = Set(true, false)
           case NilT => set += false
-          case _    => ??? // TODO warning non list
+          case _    => warning(s"invalid type for contains check: $listTy")
         (
           if (set.isEmpty) AbsValue.Bot
           else if (set.size > 1) AbsValue.bool

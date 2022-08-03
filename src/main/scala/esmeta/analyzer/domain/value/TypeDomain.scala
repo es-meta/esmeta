@@ -484,8 +484,8 @@ object TypeDomain extends ValueDomain {
     def assertUndef: Unit = assert(_.isUndef)
     def assertNumeric: Unit = assert(_.isNumeric)
     def assertMath: Unit = assert(_.isMath)
-    def assertNumber: Unit = assert(_.isBigInt)
-    def assertBigInt: Unit = assert(_.isNumber)
+    def assertNumber: Unit = assert(_.isNumber)
+    def assertBigInt: Unit = assert(_.isBigInt)
 
     /** operation helpers */
     private def logicalOps(that: Elem) = {

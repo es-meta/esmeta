@@ -101,14 +101,11 @@ class Stringifier(
     ty match {
       case TopT        => app >> "⊤"
       case NameT(name) => app >> s"$name"
-      // TODO
-      // case RecordT(props) =>
-      //   app >> props
-      //     .map {
-      //       case (p, t) => s"$p -> $t"
-      //     }
-      //     .mkString("{ ", ", ", " }")
+      case RecordT(props) =>
+        given Rule[Iterable[Type]] = iterableRule("(", " | ", ")")
+        app >> props
       case CloT(fname)                   => app >> s"λ[$fname]"
+      case AstTopT                       => app >> "☊"
       case AstT(name)                    => app >> s"☊($name)"
       case SyntacticT(name, idx, subIdx) => app >> s"☊($name)[$idx,$subIdx]"
       case ConstT(name)                  => app >> s"~$name~"
