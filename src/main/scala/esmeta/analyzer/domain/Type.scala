@@ -135,15 +135,15 @@ sealed trait Type extends AnalyzerElem {
     case p: PureType => p
     case _           => error(s"not pure type: $this")
 
-  /** various type conditions */
+  /** various conditions for type */
   def isNumeric = this match
     case NumberT | NumberSingleT(_) => true
     case MathT | MathSingleT(_)     => true
     case BigIntT | BigIntSingleT(_) => true
     case _                          => false
   def isStr = this match
-    case StrT | StrSingleT(_) => true
-    case _                    => false
+    case StrT | StrSingleT(_) | CodeUnitT => true
+    case _                                => false
   def isBool = this match
     case BoolT | BoolSingleT(_) => true
     case _                      => false
@@ -162,6 +162,12 @@ sealed trait Type extends AnalyzerElem {
   def isCompletion = this match
     case NormalT(_) | AbruptT => true
     case _                    => false
+  def isObj = this match
+    case NilT | ListT(_) | MapT(_) | SymbolT | NameT(_) => true
+    case _                                              => false
+  def isNamedObj = this match
+    case NameT(_) => true
+    case _        => false
   def isPure = this match
     case p: PureType => true
     case _           => false

@@ -2,7 +2,6 @@ package esmeta.analyzer
 
 import esmeta.analyzer.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.error.AnalysisImprecise
 
 /** analyzer elements */
 trait AnalyzerElem {
@@ -24,9 +23,6 @@ object AnalyzerElem {
       new Stringifier(_, _, _)
     }
 }
-
-/** exploded */
-def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
 /** options */
 var USE_REPL: Boolean = false

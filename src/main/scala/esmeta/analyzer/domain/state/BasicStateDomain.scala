@@ -2,6 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
+import esmeta.analyzer.util.*
 import esmeta.cfg.CFG
 import esmeta.interp.*
 import esmeta.ir.*

@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.util.Appender
 import esmeta.util.Appender.*
-import esmeta.analyzer.exploded
+import esmeta.analyzer.util.exploded
 
 /** flat domain */
 trait FlatDomain[A] extends Domain {

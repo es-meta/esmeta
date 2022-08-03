@@ -210,23 +210,9 @@ object TypeStateDomain extends StateDomain {
     def pop(loc: AbsLoc, front: Boolean): (AbsValue, Elem) = ???
 
     def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
-      bottomCheck(v) {
-        // assert object
-        v.assert {
-          case NameT(_) => true
-          case _        => false
-        }
-        (AbsValue(NameT(tname)), this)
-      }
+      bottomCheck(v) { v.assertNamedRec; (AbsValue(NameT(tname)), this) }
     def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) =
-      bottomCheck(from) {
-        // assert object
-        from.assert {
-          case NilT | ListT(_) | MapT(_) | SymbolT | NameT(_) => true
-          case _                                              => false
-        }
-        (from, this)
-      }
+      bottomCheck(from) { from.assertObj; (from, this) }
     def keys(
       v: AbsValue,
       intSorted: Boolean,
@@ -284,7 +270,10 @@ object TypeStateDomain extends StateDomain {
     def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) =
       bottomCheck(desc) {
         // check desc is string or undefined
-        desc.assert(ty => ty.isStr || ty.isUndef)
+        desc.assert(
+          ty => ty.isStr || ty.isUndef,
+          s"$desc may not be string or undefined",
+        )
         (AbsValue(SymbolT), this)
       }
     def contains(

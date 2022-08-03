@@ -712,49 +712,7 @@ case class AbsTransfer(sem: AbsSemantics) {
 
     /** transfer for variadic operators */
     def transfer(vop: VOp, vs: List[AbsValue]): AbsValue =
-      import VOp.*
-
-      // helpers
-      def asMath(av: AbsValue): Option[BigDecimal] = av.getSingle match
-        case FlatTop            => exploded("vop transfer")
-        case FlatElem(AMath(n)) => Some(n)
-        case _                  => None
-      def asStr(av: AbsValue): Option[String] = av.getSingle match
-        case FlatTop                   => exploded("vop transfer")
-        case FlatElem(ASimple(Str(s))) => Some(s)
-        case FlatElem(ACodeUnit(cu))   => Some(cu.toString)
-        case _                         => None
-
-      // transfer body
-      if (vs.exists(_.isBottom)) AbsValue.Bot
-      vop match
-        case Min =>
-          val set = scala.collection.mutable.Set[AbsValue]()
-          if (vs.exists(AbsValue(NEG_INF) ⊑ _)) set += AbsValue(NEG_INF)
-          val filtered = vs.filter((v) => !(AbsValue(POS_INF) ⊑ v))
-          if (filtered.isEmpty) set += AbsValue(POS_INF)
-          set += vopInterp(asMath, _ min _, AbsValue.apply, filtered)
-          set.foldLeft(AbsValue.Bot)(_ ⊔ _)
-        case Max =>
-          val set = scala.collection.mutable.Set[AbsValue]()
-          if (vs.exists(AbsValue(POS_INF) ⊑ _)) set += AbsValue(POS_INF)
-          val filtered = vs.filter((v) => !(AbsValue(NEG_INF) ⊑ v))
-          if (filtered.isEmpty) set += AbsValue(NEG_INF)
-          set += vopInterp(asMath, _ min _, AbsValue.apply, filtered)
-          set.foldLeft(AbsValue.Bot)(_ ⊔ _)
-        case Concat => vopInterp[String](asStr, _ + _, AbsValue.apply, vs)
-
-    /** helpers for make transition for variadic operators */
-    private def vopInterp[T](
-      f: AbsValue => Option[T],
-      op: (T, T) => T,
-      g: T => AbsValue,
-      vs: List[AbsValue],
-    ): AbsValue = {
-      val vst = vs.map(f).flatten
-      if (vst.size != vs.size) AbsValue.Bot
-      else g(vst.reduce(op))
-    }
+      AbsValue.vopTransfer(vop, vs)
 
     // return specific value
     def doReturn(v: AbsValue): Result[Unit] = for {

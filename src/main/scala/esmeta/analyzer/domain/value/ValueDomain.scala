@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.cfg.Func
 import esmeta.interp.*
-import esmeta.ir.{COp, Name}
+import esmeta.ir.{COp, Name, VOp}
 import esmeta.js.Ast
 import esmeta.util.Appender
 import esmeta.util.Appender.*
@@ -31,6 +31,21 @@ trait ValueDomain extends Domain {
   def apply(value: AValue): Elem
   def apply(tys: Type*): Elem
   def mkCompletion(ty: Elem, value: Elem, target: Elem): Elem
+
+  /** transfer for variadic operation */
+  def vopTransfer(vop: VOp, vs: List[Elem]): Elem
+
+  /** helpers for make transition for variadic operators */
+  protected def doVopTransfer[T](
+    f: Elem => Option[T],
+    op: (T, T) => T,
+    g: T => Elem,
+    vs: List[Elem],
+  ): Elem = {
+    val vst = vs.map(f).flatten
+    if (vst.size != vs.size) Bot
+    else g(vst.reduce(op))
+  }
 
   /** elements */
   type Elem <: ValueElemTrait

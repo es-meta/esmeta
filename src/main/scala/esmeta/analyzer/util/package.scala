@@ -45,3 +45,6 @@ var CURRENT_CP: Option[ControlPoint] = None
 def warning(msg: String): Unit =
   val cp = CURRENT_CP.get
   printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
+
+/** exploded */
+def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)

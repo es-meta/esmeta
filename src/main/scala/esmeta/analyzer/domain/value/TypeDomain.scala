@@ -3,7 +3,7 @@ package esmeta.analyzer.domain
 import esmeta.analyzer.util.*
 import esmeta.cfg.Func
 import esmeta.interp.*
-import esmeta.ir.{COp, Name}
+import esmeta.ir.{COp, Name, VOp}
 import esmeta.js.Ast
 import esmeta.util.QueueWorklist
 import esmeta.util.Appender.*
@@ -188,6 +188,19 @@ object TypeDomain extends ValueDomain {
       finalInfo = (info ++ defaultInfo).toSet
     } yield key -> finalInfo).toMap
   }
+
+  /** transfer for variadic operation */
+  def vopTransfer(vop: VOp, vs: List[Elem]): Elem =
+    import VOp.*
+    if (vs.exists(_.isBottom)) Bot
+    else
+      vop match
+        case Min | Max =>
+          vs.foreach(_.assertMath)
+          math
+        case Concat =>
+          vs.foreach(_.assertStr)
+          str
 
   /** elements */
   object Elem:
@@ -477,15 +490,20 @@ object TypeDomain extends ValueDomain {
     }
 
     /** various assertions */
-    def assert(f: Type => Boolean, msg: String = "") =
-      if (!set.forall(f)) ??? // TODO warning
-    def assertBool: Unit = assert(_.isBool)
-    def assertStr: Unit = assert(_.isStr)
-    def assertUndef: Unit = assert(_.isUndef)
-    def assertNumeric: Unit = assert(_.isNumeric)
-    def assertMath: Unit = assert(_.isMath)
-    def assertNumber: Unit = assert(_.isNumber)
-    def assertBigInt: Unit = assert(_.isBigInt)
+    def assert(f: Type => Boolean, msg: String) =
+      if (!set.forall(f)) warning(msg)
+    def assertBool: Unit = assert(_.isBool, s"$this may not be boolean")
+    def assertStr: Unit = assert(_.isStr, s"$this may not be string")
+    def assertUndef: Unit = assert(_.isUndef, s"$this may not be string")
+    def assertNumeric: Unit =
+      assert(_.isNumeric, s"$this may not be numeric value")
+    def assertMath: Unit =
+      assert(_.isMath, s"$this may not be mathematical value")
+    def assertNumber: Unit = assert(_.isNumber, s"$this may not be number")
+    def assertBigInt: Unit = assert(_.isBigInt, s"$this may not be bigint")
+    def assertNamedRec: Unit =
+      assert(_.isNamedObj, s"$this may not be named record")
+    def assertObj: Unit = assert(_.isObj, s"$this may not be object")
 
     /** operation helpers */
     private def logicalOps(that: Elem) = {

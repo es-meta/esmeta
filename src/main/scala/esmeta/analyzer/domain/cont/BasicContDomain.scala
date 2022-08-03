@@ -1,6 +1,7 @@
 package esmeta.analyzer.domain
 
 import esmeta.analyzer.*
+import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.Name

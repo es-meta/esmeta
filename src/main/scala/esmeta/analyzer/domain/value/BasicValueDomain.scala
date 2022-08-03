@@ -1,9 +1,10 @@
 package esmeta.analyzer.domain
 
+import esmeta.analyzer.util.*
 import esmeta.cfg.Func
 import esmeta.interp.*
 import esmeta.interp.util.*
-import esmeta.ir.{COp, Name}
+import esmeta.ir.{COp, Name, VOp}
 import esmeta.js.*
 import esmeta.js.util.ESValueParser
 import esmeta.util.Appender
@@ -147,6 +148,42 @@ object BasicValueDomain extends ValueDomain {
       if (!simple.isBottom) strs :+= simple.toString
       app >> strs.mkString(", ")
     }
+  }
+
+  /** transfer for variadic operation */
+  def vopTransfer(vop: VOp, vs: List[Elem]): Elem = {
+    import VOp.*
+
+    // helpers
+    def asMath(av: Elem): Option[BigDecimal] = av.getSingle match
+      case FlatTop            => exploded("vop transfer")
+      case FlatElem(AMath(n)) => Some(n)
+      case _                  => None
+    def asStr(av: Elem): Option[String] = av.getSingle match
+      case FlatTop                   => exploded("vop transfer")
+      case FlatElem(ASimple(Str(s))) => Some(s)
+      case FlatElem(ACodeUnit(cu))   => Some(cu.toString)
+      case _                         => None
+
+    // transfer body
+    if (vs.exists(_.isBottom)) Bot
+    else
+      vop match
+        case Min =>
+          val set = scala.collection.mutable.Set[Elem]()
+          if (vs.exists(apply(NEG_INF) ⊑ _)) set += apply(NEG_INF)
+          val filtered = vs.filter((v) => !(apply(POS_INF) ⊑ v))
+          if (filtered.isEmpty) set += apply(POS_INF)
+          set += doVopTransfer(asMath, _ min _, apply, filtered)
+          set.foldLeft(Bot)(_ ⊔ _)
+        case Max =>
+          val set = scala.collection.mutable.Set[Elem]()
+          if (vs.exists(apply(POS_INF) ⊑ _)) set += apply(POS_INF)
+          val filtered = vs.filter((v) => !(apply(NEG_INF) ⊑ v))
+          if (filtered.isEmpty) set += apply(NEG_INF)
+          set += doVopTransfer(asMath, _ min _, apply, filtered)
+          set.foldLeft(Bot)(_ ⊔ _)
+        case Concat => doVopTransfer[String](asStr, _ + _, apply, vs)
   }
 
   /** elements */
