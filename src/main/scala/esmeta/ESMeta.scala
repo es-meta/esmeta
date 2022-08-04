@@ -12,9 +12,8 @@ object ESMeta {
     tokens.toList match
       case str :: args =>
         cmdMap.get(str) match {
-          case Some(CmdHelp) => println(ESMeta.help)
-          case Some(cmd)     => cmd(args)
-          case None          => throw NoCmdError(str)
+          case Some(cmd) => cmd(args)
+          case None      => throw NoCmdError(str)
         }
       case Nil => throw NoInputError
   catch
@@ -90,37 +89,6 @@ object ESMeta {
     ("log", BoolOption(c => LOG = true), "turn on the logging mode."),
     ("time", BoolOption(c => TIME = true), "display the duration time."),
   )
-
-  /* left align with a fixed width */
-  private val WIDTH = 20
-  private def align(str: String): String = s"%-${WIDTH}s".format(str)
-
-  /** show help message */
-  val help: String =
-    val app = new Appender
-    app >> "* command list:"
-    app :> "    Each command consists of following phases."
-    app :> "    format: {command} {phase} [>> {phase}]*"
-    app :> ""
-    for (cmd <- commands)
-      app :> "    " >> align(cmd.name) >> cmd.help
-      app :> "    " >> align("") >> "(" >> cmd.pList.toString >> ")"
-    app :> ""
-    app :> "* phase list:"
-    app :> "    Each phase has following options."
-    app :> "    format: {phase} [-{phase}:{option}[={input}]]*"
-    app :> ""
-    for (phase <- phases)
-      app :> "    " >> align(phase.name) >> phase.help
-      app :> ""
-      for ((name, desc) <- phase.getOptDescs)
-        app :> "    " >> align("") >> "If " >> name >> " is given, " >> desc
-      app :> ""
-    app :> "* global option:"
-    app :> ""
-    for ((opt, kind, desc) <- options)
-      app :> "    If -" >> opt >> kind.postfix >> " is given, " >> desc
-    app.toString
 }
 
 /** global configuration */

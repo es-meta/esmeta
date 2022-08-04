@@ -15,10 +15,7 @@ case object Extract extends Phase[Unit, Spec] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Spec = {
-    val spec = (config.json, config.version) match
-      case (Some(json), _) => ??? // TODO
-      case (_, version) =>
-        Parser.parseSpecWithVersion(version)
+    val spec = Parser.parseSpecWithVersion(config.version)
 
     // var tys: Set[String] = Set()
     // for { algo <- spec.algorithms } {
@@ -48,17 +45,12 @@ case object Extract extends Phase[Unit, Spec] {
       )
 
       // dump statistics
-      if (config.stat) spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
+      spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
     }
     spec
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
-    (
-      "json",
-      StrOption((c, s) => c.json = Some(s)),
-      "load specification from JSON.",
-    ),
     (
       "version",
       StrOption((c, s) => c.version = Some(s)),
@@ -67,21 +59,14 @@ case object Extract extends Phase[Unit, Spec] {
     (
       "log",
       BoolOption(c => c.log = true),
-      "turn on logging mode.",
-    ),
-    (
-      "stat",
-      BoolOption(c => {
-        c.log = true
-        c.stat = true
-      }),
-      "turn on stat mode.",
+      """turn on logging mode and create additional files:
+        |  - `logs/extract/yets` - not yet supported steps
+        |  - `summary` - the summary of extracted specification
+        |  - `stat` - the statistics of extracted specification""".stripMargin,
     ),
   )
   case class Config(
-    var json: Option[String] = None,
     var version: Option[String] = None,
     var log: Boolean = false,
-    var stat: Boolean = false,
   )
 }

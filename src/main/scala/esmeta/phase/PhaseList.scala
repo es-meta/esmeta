@@ -18,6 +18,9 @@ sealed trait PhaseList[Result] {
   /** a list of phase names */
   val names: Vector[String]
 
+  /** a list of phases without specific IO types */
+  def phases: Vector[Phase[_, _]]
+
   /** get runner of a phase list */
   def getRunner(parser: ArgParser): GlobalConfig => Result
 }
@@ -25,6 +28,7 @@ sealed trait PhaseList[Result] {
 /** empty phase list */
 case object PhaseNil extends PhaseList[Unit] {
   val names: Vector[String] = Vector()
+  def phases: Vector[Phase[_, _]] = Vector()
   def getRunner(parser: ArgParser): GlobalConfig => Unit = x => {}
 }
 
@@ -40,6 +44,7 @@ case class PhaseCons[P, R](
   phase: Phase[P, R],
 ) extends PhaseList[R] {
   val names: Vector[String] = plist.names :+ phase.name
+  def phases: Vector[Phase[_, _]] = plist.phases :+ phase
   def getRunner(
     parser: ArgParser,
   ): GlobalConfig => R =

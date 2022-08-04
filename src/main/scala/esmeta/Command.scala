@@ -31,6 +31,9 @@ sealed abstract class Command[Result](
     parser(args)
     ESMeta(this, runner(_), globalConfig)
 
+  /** a list of phases without specific IO types */
+  def phases: Vector[Phase[_, _]] = pList.phases
+
   /** append a phase to create a new phase list */
   def >>[R](phase: Phase[Result, R]): PhaseList[R] = pList >> phase
 }
