@@ -302,9 +302,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(expr)
           _ <- modify(prune(expr, true))
           _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
-          _ = if (AVF ⊑ v)
-            warning(s"assertion may be failed") // TODO warning
-        } yield ()
+        } yield sem.assertions += cp -> v
       case IPrint(expr) => st => st
       case INop()       => st => st
     }
@@ -490,11 +488,16 @@ case class AbsTransfer(sem: AbsSemantics) {
             case _                         => exploded("ETypeCheck")
         } yield v.typeCheck(tname, st)
       case EClo(fname, cap) =>
-        for {
-          st <- get
-          func = cfg.fnameMap(fname)
-          captured = cap.map(x => x -> st.lookupLocal(x)).toMap
-        } yield AbsValue(AClo(func, captured))
+        cfg.fnameMap.get(fname) match {
+          case Some(f) =>
+            for {
+              st <- get
+              captured = cap.map(x => x -> st.lookupLocal(x)).toMap
+            } yield AbsValue(AClo(f, captured))
+          case None =>
+            warning(s"unknown function: $fname")
+            for { _ <- put(AbsState.Bot) } yield AbsValue.Bot
+        }
       case ECont(fname) =>
         for {
           st <- get
@@ -602,7 +605,7 @@ case class AbsTransfer(sem: AbsSemantics) {
 
     /** transfer function for reference values */
     def transfer(rv: AbsRefValue): Result[AbsValue] = for {
-      v <- get(_(rv, cp))
+      v <- get(_(rv, cp, true))
     } yield v
 
     /** transfer function for unary operators */

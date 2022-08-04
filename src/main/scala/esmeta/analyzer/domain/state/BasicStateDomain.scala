@@ -102,7 +102,7 @@ object BasicStateDomain extends StateDomain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters * */
-    def apply(base: AbsValue, prop: AbsValue): AbsValue =
+    def apply(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue =
       val compValue = base.comp(prop)
       val locValue = heap(base.loc, prop)
       val astValue = lookupAst(base.ast, prop)

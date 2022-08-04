@@ -23,6 +23,12 @@ case class AbsSemantics(
   execLevel: Int = 0,
 ) {
 
+  /** assertions */
+  var assertions: Map[ControlPoint, AbsValue] = Map()
+  def checkAssertion: Unit = for { (cp, v) <- assertions } {
+    if (AVT !⊑ v) warning("assertion failed", cp)
+  }
+
   /** repl */
   val repl = REPL(this)
 
@@ -83,6 +89,9 @@ case class AbsSemantics(
     case None =>
       // finalize REPL
       if (USE_REPL) repl.finished
+
+      // checker
+      checkAssertion
 
       // final result
       this

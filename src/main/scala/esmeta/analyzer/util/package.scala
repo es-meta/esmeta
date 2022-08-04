@@ -1,5 +1,6 @@
 package esmeta.analyzer.util
 
+import esmeta.ANALYZE_LOG_DIR
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
@@ -7,6 +8,7 @@ import esmeta.error.*
 import esmeta.interp.*
 import esmeta.ir.{Name, Func => IRFunc, Local}
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 import scala.Console.RED
 import scala.annotation.tailrec
 
@@ -42,9 +44,18 @@ def getLocals(
 /** alarm */
 // TODO refactor
 var CURRENT_CP: Option[ControlPoint] = None
-def warning(msg: String): Unit =
-  val cp = CURRENT_CP.get
-  printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
+val nfWarning = getPrintWriter(s"$ANALYZE_LOG_DIR/warnings")
+def warning(msg: String): Unit = warning(msg, CURRENT_CP.get)
+def warning(msg: String, cp: ControlPoint): Unit =
+  val str = s"[$cp @ ${cp.func.name}]: $msg"
+  printlnColor(RED)(str)
+  nfWarning.println(str)
+  nfWarning.flush
+// val nfAlarm = getPrintWriter(s"$ANALYZE_LOG_DIR/alarms")
+// def alarm(msg: String): Unit =
+//   printlnColor(RED)(msg)
+//   nfAlarm.println(msg)
+//   nfAlarm.flush
 
 /** for debugging */
 var REPL_STOP = false

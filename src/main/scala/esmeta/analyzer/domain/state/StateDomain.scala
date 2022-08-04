@@ -49,14 +49,18 @@ trait StateDomain extends Domain {
     def ⊓(that: Elem): Elem
 
     /** getters */
-    def apply(rv: AbsRefValue, cp: ControlPoint): AbsValue = rv match
-      case AbsRefId(x)            => this(x, cp)
-      case AbsRefProp(base, prop) => this(base, prop)
-    def apply(x: Id, cp: ControlPoint): AbsValue =
+    def apply(
+      rv: AbsRefValue,
+      cp: ControlPoint,
+      check: Boolean,
+    ): AbsValue = rv match
+      case AbsRefId(x)            => this(x, cp, check)
+      case AbsRefProp(base, prop) => this(base, prop, check)
+    def apply(x: Id, cp: ControlPoint, check: Boolean): AbsValue =
       val v = directLookup(x)
       if (cp.isBuiltin && AbsValue.absent ⊑ v) v.removeAbsent ⊔ AbsValue.undef
       else v
-    def apply(base: AbsValue, prop: AbsValue): AbsValue
+    def apply(base: AbsValue, prop: AbsValue, check: Boolean = true): AbsValue
     def apply(loc: Loc): AbsObj // TODO remove
 
     /** lookup variables */
@@ -70,7 +74,7 @@ trait StateDomain extends Domain {
     /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
       case AbsRefId(id)           => !directLookup(id).isAbsent
-      case AbsRefProp(base, prop) => !this(base, prop).isAbsent
+      case AbsRefProp(base, prop) => !this(base, prop, check = false).isAbsent
 
     /** define global variables */
     def defineGlobal(pairs: (Global, AbsValue)*): Elem

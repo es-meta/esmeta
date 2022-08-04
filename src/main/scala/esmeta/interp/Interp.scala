@@ -539,6 +539,7 @@ object Interp {
   val setTypeMap: Map[String, String] = Map(
     "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
     "ArrayCreate" -> "ArrayExoticObject",
+    "OrdinaryObjectCreate" -> "OrdinaryObject",
   )
 
   /** transition for lexical SDO */

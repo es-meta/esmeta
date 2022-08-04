@@ -268,7 +268,10 @@ object TypeDomain extends ValueDomain {
     override def isBottom: Boolean = set.isEmpty
     def ⊑(that: Elem): Boolean = (
       (this.set subsetOf that.set) ||
-        this.set.forall(_.ancestors.exists(that.set contains _))
+        this.set.forall {
+          case NilT => that.set.exists(_.isList)
+          case ty   => ty.ancestors.exists(that.set contains _)
+        }
     )
 
     /** join operator */

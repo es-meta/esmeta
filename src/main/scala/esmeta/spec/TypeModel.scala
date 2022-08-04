@@ -50,13 +50,13 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   type PropMap = Map[String, Set[Type]]
 
   /** get types of property */
-  def getProp(tname: String, p: String): Set[Type] =
+  def getProp(tname: String, p: String, check: Boolean): Set[Type] =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       Set(NameT("Object"))
     else
       propMap(tname).getOrElse(
         p, {
-          warning(s"unknown property access: $tname.$p")
+          if (check) warning(s"unknown property access: $tname.$p")
           Set(AbsentT)
         },
       )
@@ -152,7 +152,6 @@ object TypeModel {
   val EVALUATED = ConstT("evaluated")
   val NUMBER = ConstT("Number")
   val BIGINT = ConstT("BigInt")
-  val NAMESPACE_OBJ = ConstT("namespace-object")
   val ALL = ConstT("all")
   val ALL_BUT_DEFAULT = ConstT("all-but-default")
   val NORMAL = ConstT("normal")
@@ -170,6 +169,8 @@ object TypeModel {
   val REJECTED = ConstT("rejected")
   val FULFILL = ConstT("Fulfill")
   val REJECT = ConstT("Reject")
+  val NAMESPACE_OBJ = ConstT("namespace-object")
+  val NAMESPACE = ConstT("NAMESPACE")
 
   // TODO extract type model from spec
   lazy val js: TypeModel = TypeModel(
@@ -289,6 +290,9 @@ object TypeModel {
       ),
       "OrdinaryObject" -> TypeInfo(
         parent = Some("Object"),
+        fields = Map(
+          "ParameterMap" -> UndefT,
+        ),
       ),
       "FunctionObject" -> TypeInfo(
         parent = Some("OrdinaryObject"),
@@ -302,15 +306,18 @@ object TypeModel {
         fields = Map(
           "Environment" -> NameT("EnvironmentRecord"),
           "PrivateEnvironment" -> Set(NameT("PrivateEnvironmentRecord"), NullT),
-          "FormalParameters" ->
-          Set(AstT("FormalParameters"), AstT("ArrowParameters")),
-          "ECMAScriptCode" -> AstT("FunctionBody"),
+          "FormalParameters" -> AstTopT,
+          "ECMAScriptCode" -> AstTopT,
           "ConstructorKind" -> Set(BASE, DERIVED),
           "Realm" -> NameT("RealmRecord"),
-          "ScriptOrModule" -> Set(NameT("ScriptRecord"), NameT("ModuleRecord")),
+          "ScriptOrModule" -> Set(
+            NameT("ScriptRecord"),
+            NameT("ModuleRecord"),
+            NullT,
+          ),
           "ThisMode" -> Set(LEXICAL, STRICT, GLOBAL),
           "Strict" -> BoolT,
-          "HomeObject" -> NameT("Object"),
+          "HomeObject" -> Set(NameT("Object"), UndefT),
           "SourceText" -> StrT,
           "Fields" -> ListT(NameT("ClassFieldDefinitionRecord")),
           "PrivateMethods" -> ListT(NameT("PrivateElement")),
@@ -747,6 +754,12 @@ object TypeModel {
       ),
       "SourceTextModuleRecord" -> TypeInfo(
         parent = Some("CyclicModuleRecord"),
+        methods = Map(
+          "GetExportedNames" -> "SourceTextModuleRecord.GetExportedNames",
+          "ResolveExport" -> "SourceTextModuleRecord.ResolveExport",
+          "InitializeEnvironment" -> "SourceTextModuleRecord.InitializeEnvironment",
+          "ExecuteModule" -> "SourceTextModuleRecord.ExecuteModule",
+        ),
         fields = Map(
           "ECMAScriptCode" -> AstT("Module"),
           "Context" -> NameT("ExecutionContext"),
@@ -772,6 +785,12 @@ object TypeModel {
           "LocalName" -> Set(StrT, NullT),
         ),
       ),
+      "ResolvedBindingRecord" -> TypeInfo(
+        fields = Map(
+          "Module" -> NameT("ModuleRecord"),
+          "BindingName" -> Set(StrT, NAMESPACE),
+        ),
+      ),
 
       // symbol registry
       "GlobalSymbolRegistryRecord" -> TypeInfo(
@@ -786,6 +805,16 @@ object TypeModel {
         fields = Map(
           "StartIndex" -> MathT,
           "EndIndex" -> MathT,
+        ),
+      ),
+
+      // pending job
+      "PendingJob" -> TypeInfo(
+        fields = Map(
+          "Job" -> CloTopT,
+          "Realm" -> NameT("RealmRecord"),
+          "ScriptOrModule" ->
+          Set(NameT("ScriptRecord"), NameT("ModuleRecord"), NullT),
         ),
       ),
     ),
