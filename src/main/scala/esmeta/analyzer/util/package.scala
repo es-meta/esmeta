@@ -44,18 +44,10 @@ def getLocals(
 /** alarm */
 // TODO refactor
 var CURRENT_CP: Option[ControlPoint] = None
-val nfWarning = getPrintWriter(s"$ANALYZE_LOG_DIR/warnings")
 def warning(msg: String): Unit = warning(msg, CURRENT_CP.get)
 def warning(msg: String, cp: ControlPoint): Unit =
   val str = s"[$cp @ ${cp.func.name}]: $msg"
   printlnColor(RED)(str)
-  nfWarning.println(str)
-  nfWarning.flush
-// val nfAlarm = getPrintWriter(s"$ANALYZE_LOG_DIR/alarms")
-// def alarm(msg: String): Unit =
-//   printlnColor(RED)(msg)
-//   nfAlarm.println(msg)
-//   nfAlarm.flush
 
 /** for debugging */
 var REPL_STOP = false
