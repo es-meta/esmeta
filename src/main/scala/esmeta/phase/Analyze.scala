@@ -22,7 +22,7 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
     val npMap = Initialize.initJs(readFile(filename))
 
     // perform a meta-level static analysis
-    AbsSemantics(npMap, config.execLevel).fixpoint
+    AbsSemantics(npMap).fixpoint
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -31,14 +31,6 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
       BoolOption(c => USE_REPL = true),
       "use a REPL for meta-level static analysis.",
     ),
-    (
-      "exec-level",
-      NumOption((c, k) => {
-        if (k < 0 || k > 2) println(s"Invalid execution level: $k")
-        c.execLevel = k
-      }),
-      "use concrete execution to check soundness.",
-    ),
   )
-  case class Config(var execLevel: Int = 0)
+  case class Config()
 }

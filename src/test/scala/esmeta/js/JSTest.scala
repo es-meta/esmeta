@@ -44,14 +44,11 @@ object JSTest {
   ): State = eval(readFile(filename), checkAfter, cachedAst)
 
   // analyze JS codes
-  def analyzeFile(filename: String, execLevel: Int): AbsSemantics = {
+  def analyzeFile(filename: String): AbsSemantics = {
     val str = readFile(filename)
-    analyze(str, execLevel)
+    analyze(str)
   }
-  def analyze(
-    str: String,
-    execLevel: Int = 0,
-  ): AbsSemantics = AbsSemantics(str, execLevel).fixpoint
+  def analyze(str: String): AbsSemantics = AbsSemantics(str).fixpoint
 
   // tests for JS parser
   def parseTest(ast: Ast): Ast =
@@ -80,8 +77,7 @@ object JSTest {
   def checkExit(absSem: AbsSemantics): AbsSemantics =
     assert(absSem.finalResult.value.getSingle == FlatElem(ASimple(Undef)))
     absSem
-  def analyzeTest(str: String, execLevel: Int): AbsSemantics =
-    checkExit(analyze(str, execLevel = execLevel))
-  def analyzeTestFile(filename: String, execLevel: Int): AbsSemantics =
-    checkExit(analyzeFile(filename, execLevel))
+  def analyzeTest(str: String): AbsSemantics = checkExit(analyze(str))
+  def analyzeTestFile(filename: String): AbsSemantics =
+    checkExit(analyzeFile(filename))
 }

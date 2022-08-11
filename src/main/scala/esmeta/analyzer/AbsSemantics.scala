@@ -20,13 +20,12 @@ case class AbsSemantics(
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   timeLimit: Option[Long] = None,
-  execLevel: Int = 0,
 ) {
 
   /** assertions */
   var assertions: Map[ControlPoint, AbsValue] = Map()
   def checkAssertion: Unit = for { (cp, v) <- assertions } {
-    if (AVT !⊑ v) warning("assertion failed", cp)
+    if (AVF == v) warning("assertion failed", cp)
   }
 
   /** repl */
@@ -38,12 +37,6 @@ case class AbsSemantics(
   /** the number of iterations */
   def getIter: Int = iter
   private var iter: Int = 0
-
-  // // concrete execution
-  // val checkWithInterp: Option[CheckWithInterp] =
-  //   if (execLevel >= 1)
-  //     Some(CheckWithInterp(this, sourceText, cachedAst, execLevel))
-  //   else None
 
   /** get abstract return values and states of RunJobs */
   val runJobs = cfg.fnameMap("RunJobs")
@@ -274,18 +267,8 @@ case class AbsSemantics(
 object AbsSemantics {
 
   /** constructors */
-  def apply(
-    sourceText: String,
-    execLevel: Int,
-  ): AbsSemantics = AbsSemantics(
-    npMap = Initialize.initJs(sourceText),
-    execLevel = execLevel,
-  )
-  def apply(
-    initNpMap: Map[NodePoint[Node], AbsState],
-    execLevel: Int,
-  ): AbsSemantics = AbsSemantics(
-    npMap = initNpMap,
-    execLevel = execLevel,
-  )
+  def apply(sourceText: String): AbsSemantics =
+    AbsSemantics(npMap = Initialize.initJs(sourceText))
+  def apply(initNpMap: Map[NodePoint[Node], AbsState]): AbsSemantics =
+    AbsSemantics(npMap = initNpMap)
 }

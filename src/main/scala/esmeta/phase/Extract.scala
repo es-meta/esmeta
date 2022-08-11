@@ -17,13 +17,6 @@ case object Extract extends Phase[Unit, Spec] {
   ): Spec = {
     val spec = Parser.parseSpecWithVersion(config.version)
 
-    // var tys: Set[String] = Set()
-    // for { algo <- spec.algorithms } {
-    //   tys += algo.retTy.name
-    // }
-    // for { t <- tys } println(t)
-    // println(tys.size)
-
     // logging mode
     if (config.log) {
       mkdir(EXTRACT_LOG_DIR)

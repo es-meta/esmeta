@@ -25,14 +25,14 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     val npMap = Initialize.initType(cfg)
 
     // perform type analysis
-    AbsSemantics(npMap, 0).fixpoint
+    AbsSemantics(npMap).fixpoint
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
       "repl",
       BoolOption(c => USE_REPL = true),
-      "use a REPL for meta-level static analysis.",
+      "use a REPL for type analysis of ECMA-262.",
     ),
   )
   case class Config()

@@ -11,17 +11,19 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg parse eval test262test inject web"
+  cmdList="help extract compile build-cfg typecheck parse eval test262test web inject analyze"
   globalOpt="-silent -debug -log -time"
   helpOpt=""
-  extractOpt="-extract:json -extract:version -extract:log -extract:stat"
+  extractOpt="-extract:version -extract:log"
   compileOpt=""
   buildcfgOpt="-build-cfg:dot -build-cfg:pdf"
+  typecheckOpt="-typecheck:repl"
   parseOpt=""
   evalOpt=""
   test262testOpt=""
-  injectOpt="-inject:assertions -inject:dump"
   webOpt="-web:port"
+  injectOpt="-inject:assertions -inject:dump"
+  analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -50,8 +52,12 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt}"))
           return 0
           ;;
+        typecheck)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${typecheckOpt}"))
+          return 0
+          ;;
         parse)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${parseOpt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${parseOpt}"))
           return 0
           ;;
         eval)
@@ -62,12 +68,16 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${test262testOpt}"))
           return 0
           ;;
+        web)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${webOpt}"))
+          return 0
+          ;;
         inject)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${injectOpt}"))
           return 0
           ;;
-        web)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${webOpt}"))
+        analyze)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${analyzeOpt}"))
           return 0
           ;;
       esac
