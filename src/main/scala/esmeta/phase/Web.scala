@@ -9,7 +9,7 @@ import esmeta.web.WebServer
 /** `web` phase */
 case object Web extends Phase[CFG, Unit] {
   val name = "web"
-  val help = "starts a web server for interactive execution."
+  val help = "starts a web server for a JavaScript double debugger."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,

@@ -12,8 +12,7 @@ import esmeta.test262.*
 /** `inject` phase */
 case object Inject extends Phase[CFG, String] {
   val name = "inject"
-  val help =
-    "injects assertions to check the final state of a given JavaScript program."
+  val help = "injects assertions to check the final state of a JavaScript file."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,

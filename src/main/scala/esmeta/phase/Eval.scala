@@ -6,11 +6,10 @@ import esmeta.interp.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.js.*
-import esmeta.test262.*
 
-/** `js-eval` phase */
-case object JSEval extends Phase[CFG, State] {
-  val name = "js-eval"
+/** `eval` phase */
+case object Eval extends Phase[CFG, State] {
+  val name = "eval"
   val help = "evaluates a JavaScript file."
   def apply(
     cfg: CFG,
@@ -18,17 +17,11 @@ case object JSEval extends Phase[CFG, State] {
     config: Config,
   ): State =
     val filename = getFirstFilename(globalConfig, this.name)
-    val st = Initialize.fromFile(cfg, filename, config.test262)
-    Interp(st, timeLimit = None)
+    val initSt = Initialize.fromFile(cfg, filename)
+    val st = Interp(initSt, timeLimit = None)
+    st
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
-    (
-      "test262",
-      BoolOption(c => c.test262 = true),
-      "prepend test262 harness files based on metadata.",
-    ),
   )
-  case class Config(
-    var test262: Boolean = false,
-  )
+  case class Config()
 }

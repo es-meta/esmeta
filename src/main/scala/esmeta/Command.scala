@@ -40,69 +40,80 @@ sealed abstract class Command[Result](
 
 /** base command */
 case object CmdBase extends Command("", PhaseNil) {
-  def help = "does nothing."
+  val help = "does nothing."
 }
 
 /** `help` command */
 case object CmdHelp extends Command("help", CmdBase >> Help) {
-  def help = "shows help messages."
+  val help = "shows help messages."
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Mechanized Specification Extraction
+////////////////////////////////////////////////////////////////////////////////
 /** `extract` command */
 case object CmdExtract extends Command("extract", CmdBase >> Extract) {
-  def help = "extracts specification model from ECMA-262 (spec.html)."
+  val help = "extracts specification model from ECMA-262 (spec.html)."
 }
 
 /** `compile` command */
 case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
-  def help = "compiles a specification to an IR program."
+  val help = "compiles a specification to an IR program."
 }
 
 /** `build-cfg` command */
 case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
-  def help = "builds a control-flow graph (CFG) from an IR program."
+  val help = "builds a control-flow graph (CFG) from an IR program."
 }
 
-/** `ir-eval` command */
-case object CmdIREval extends Command("ir-eval", CmdBase >> IREval) {
-  val help = "evaluates an IR file."
+////////////////////////////////////////////////////////////////////////////////
+// Analysis of ECMA-262
+////////////////////////////////////////////////////////////////////////////////
+/** `typecheck` command */
+case object CmdTypeCheck
+  extends Command("typecheck", CmdBuildCFG >> TypeCheck) {
+  val help = "performs a type analysis of ECMA-262"
 }
 
-/** `js-parse` command */
-case object CmdJSParse extends Command("js-parse", CmdBuildCFG >> JSParse) {
-  def help = "parses a JavaScript file."
+////////////////////////////////////////////////////////////////////////////////
+// JavaScript Interpreter
+////////////////////////////////////////////////////////////////////////////////
+/** `parse` command */
+case object CmdParse extends Command("parse", CmdExtract >> Parse) {
+  val help = "parses a JavaScript file."
 }
 
-/** `js-eval` command */
-case object CmdJSEval extends Command("js-eval", CmdBuildCFG >> JSEval) {
-  def help = "evaluates a JavaScript file."
+/** `eval` command */
+case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
+  val help = "evaluates a JavaScript file."
+}
+
+/** `test262test` command */
+case object CmdTest262Test
+  extends Command("test262test", CmdBuildCFG >> Test262Test) {
+  val help = "test a Test262 program with harness files."
+  override def showResult(msg: Option[String]): Unit = msg match
+    case None      => println(s"PASS")
+    case Some(msg) => println(s"FAIL - $msg")
 }
 
 /** `web` command */
 case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
-  def help = "starts a web server for interactive execution."
+  val help = "starts a web server for a JavaScript double debugger."
 }
 
-/** filter-test262 commmand */
-case object CmdFilterTest262
-  extends Command("filter-test262", CmdBase >> FilterTest262) {
-  def help = "extracts and filters out metadata of Test262 tests."
-}
-
+////////////////////////////////////////////////////////////////////////////////
+// JavaScript Transformer
+////////////////////////////////////////////////////////////////////////////////
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
-  def help =
-    "injects assertions to check the final state of a given JavaScript program."
+  val help = "injects assertions to check the final state of a JavaScript file."
 }
 
-/** `js-analyze` command */
-case object CmdJSAnalyze
-  extends Command("js-analyze", CmdBuildCFG >> JSAnalyze) {
-  def help = "analyzes a JavaScript file."
-}
-
-/** `type-analyze` command */
-case object CmdTypeAnalyze
-  extends Command("type-analyze", CmdBuildCFG >> TypeAnalyze) {
-  def help = "performs a type analysis of ECMA-262"
+////////////////////////////////////////////////////////////////////////////////
+// JavaScript Static Analysis (Meta-Level Static Analysis)
+////////////////////////////////////////////////////////////////////////////////
+/** `analyze` command */
+case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
+  val help = "analyzes a JavaScript file using meta-level static analysis."
 }

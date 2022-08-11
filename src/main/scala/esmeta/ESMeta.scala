@@ -50,17 +50,21 @@ object ESMeta {
   /** commands */
   val commands: List[Command[_]] = List(
     CmdHelp,
+    // Mechanized Specification Extraction
     CmdExtract,
     CmdCompile,
     CmdBuildCFG,
-    CmdIREval,
-    CmdJSParse,
-    CmdJSEval,
-    CmdInject,
-    CmdFilterTest262,
+    // Analysis of ECMA-262
+    CmdTypeCheck,
+    // Interpreter & Double Debugger for JavaScript
+    CmdParse,
+    CmdEval,
+    CmdTest262Test,
     CmdWeb,
-    CmdJSAnalyze,
-    CmdTypeAnalyze,
+    // JavaScript Transformer
+    CmdInject,
+    // JavaScript Static Analysis (Meta-Level Static Analysis)
+    CmdAnalyze,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -69,17 +73,21 @@ object ESMeta {
   /** phases */
   var phases: List[Phase[_, _]] = List(
     Help,
+    // Mechanized Specification Extraction
     Extract,
     Compile,
     BuildCFG,
-    IREval,
-    JSParse,
-    JSEval,
-    Inject,
-    FilterTest262,
+    // Analysis of ECMA-262
+    TypeCheck,
+    // JavaScript Interpreter
+    Parse,
+    Eval,
+    Test262Test,
     Web,
-    JSAnalyze,
-    TypeAnalyze,
+    // JavaScript Transformer
+    Inject,
+    // JavaScript Static Analysis (Meta-Level Static Analysis)
+    Analyze,
   )
 
   /** global options */
