@@ -72,7 +72,7 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 /** `typecheck` command */
 case object CmdTypeCheck
   extends Command("typecheck", CmdBuildCFG >> TypeCheck) {
-  val help = "performs a type analysis of ECMA-262"
+  val help = "performs a type analysis of ECMA-262."
 }
 
 ////////////////////////////////////////////////////////////////////////////////
