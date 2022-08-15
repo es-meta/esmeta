@@ -79,9 +79,9 @@ trait BasicParsers extends JavaTokenParsers {
     pos ~ ("-" ~> pos) ~ steps ^^ { case s ~ e ~ ss => Loc(s, e, ss) }
   }
 
-  // //////////////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
   // Source Location
-  // //////////////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
   def locationed[T <: Locational](p: => Parser[T]): Parser[T] =
     new Parser[T] {
       def apply(in: Input) =
@@ -95,7 +95,7 @@ trait BasicParsers extends JavaTokenParsers {
           case ns: NoSuccess => ns
     }
 
-  // trim unused whitespace for position
+  /** trim unused whitespace for position */
   protected def trimInput[T](in: Input): Input =
     val offset = in.offset
     val start = handleWhiteSpace(in.source, offset)

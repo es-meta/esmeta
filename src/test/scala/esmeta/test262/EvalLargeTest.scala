@@ -42,7 +42,7 @@ class EvalLargeTest extends Test262Test {
   def init: Unit = check(name) {
     mkdir(logDir)
     dumpFile(spec.version, s"$logDir/ecma262-version")
-    dumpFile(currentVersion(BASE_DIR), s"$logDir/esmeta-version")
+    dumpFile(Git.currentVersion(BASE_DIR), s"$logDir/esmeta-version")
     summary.timeouts.setPath(s"$logDir/eval-timeout.log")
     summary.yets.setPath(s"$logDir/eval-yet.log")
     summary.fails.setPath(s"$logDir/eval-fail.log")

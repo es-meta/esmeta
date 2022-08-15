@@ -4,7 +4,7 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.Ast
-import esmeta.spec.util.*
+import esmeta.spec.*
 import esmeta.js.builtin.SOURCE_TEXT
 
 /** abstract semantics initializer */
@@ -33,7 +33,9 @@ object Initialize {
   def initType(cfg: CFG): Map[NodePoint[Node], AbsState] = (for {
     f <- cfg.funcs
     isDefaultSdo = f.name.startsWith("<DEFAULT>") if !isDefaultSdo
-    if f.irFunc.algo.fold(true)(!_.elem.isInRegexp) // filter regular expression
+    // filter regular expression
+    // TODO refactoring
+    if f.irFunc.algo.fold(true)(!_.elem.isInRegexp)
     (np, st) <- f.irFunc.kind match
 
       // case _ if counter >= 1 => None

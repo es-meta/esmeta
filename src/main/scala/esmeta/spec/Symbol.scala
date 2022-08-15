@@ -22,7 +22,9 @@ case class Nonterminal(name: String, args: List[NtArg], optional: Boolean)
   extends Symbol
 object Nonterminal:
   case class Arg(kind: Arg.Kind, name: String) extends SpecElem
-  object Arg { enum Kind extends SpecElem { case True, False, Pass } }
+  object Arg extends Parser.From[Arg]:
+    enum Kind extends SpecElem { case True, False, Pass }
+    object Kind extends Parser.From[Kind]
 
 /** helpers for nonterminal arguments */
 type NtArg = Nonterminal.Arg

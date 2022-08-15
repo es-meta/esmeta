@@ -1,14 +1,14 @@
 package esmeta
 
-import java.io.*
 import esmeta.error.NotSupported
-import esmeta.spec.util.{Parser => SpecParser}
+import esmeta.extractor.Extractor
 import esmeta.phase.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.SystemUtils.*
-import org.scalatest.*
-import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import esmeta.util.BasicParsers
+import esmeta.util.SystemUtils.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import java.io.*
+import org.scalatest.*
 import scala.runtime.ScalaRunTime
 
 trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
@@ -160,6 +160,6 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 }
 object ESMetaTest {
   // extract specifications
-  lazy val specOpt = optional(SpecParser.parseSpecWithVersion(None))
+  lazy val specOpt = optional(Extractor())
   def spec = ESMetaTest.specOpt.getOrElse(error("invalid spec"))
 }

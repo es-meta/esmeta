@@ -5,7 +5,6 @@ import esmeta.interp.*
 import esmeta.ir.*
 import esmeta.js.builtin.*
 import esmeta.spec.*
-import esmeta.spec.util.{Parser => SpecParser}
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 import esmeta.test262.*
@@ -89,7 +88,7 @@ class Initialize(cfg: CFG) {
   // get data from builtin head
   extension (str: String) {
     def getData: Option[(String, String, PureValue, String, Boolean)] =
-      SpecParser.parseBuiltinRef(str).getData
+      BuiltinHead.Ref.from(str).getData
   }
   extension (ref: BuiltinHead.Ref) {
     def getData: Option[(String, String, PureValue, String, Boolean)] =

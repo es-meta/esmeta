@@ -1,8 +1,8 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.extractor.Extractor
 import esmeta.spec.*
-import esmeta.spec.util.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
@@ -15,7 +15,7 @@ case object Extract extends Phase[Unit, Spec] {
     globalConfig: GlobalConfig,
     config: Config,
   ): Spec = {
-    val spec = Parser.parseSpecWithVersion(config.version)
+    val spec = Extractor(config.target)
 
     // logging mode
     if (config.log) {
@@ -44,9 +44,9 @@ case object Extract extends Phase[Unit, Spec] {
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "version",
-      StrOption((c, s) => c.version = Some(s)),
-      "parse specification with versions.",
+      "target",
+      StrOption((c, s) => c.target = Some(s)),
+      "set the target git version of ECMA-262.",
     ),
     (
       "log",
@@ -55,7 +55,7 @@ case object Extract extends Phase[Unit, Spec] {
     ),
   )
   case class Config(
-    var version: Option[String] = None,
+    var target: Option[String] = None,
     var log: Boolean = false,
   )
 }

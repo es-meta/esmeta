@@ -3,18 +3,19 @@ package esmeta.spec
 import esmeta.{error => ESMetaError, *}
 import esmeta.lang.*
 import esmeta.spec.util.*
+import esmeta.util.Git
 import esmeta.util.BaseUtils.*
 import esmeta.util.HtmlUtils.*
 import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
-  version: Option[Spec.Version] = None,
-  grammar: Grammar = Grammar(),
-  algorithms: List[Algorithm] = Nil,
-  tables: Map[String, Table] = Map(),
-  typeModel: TypeModel = TypeModel.js,
-  document: Document = new Document(""),
+  version: Option[Git.Version] = None, // git version
+  grammar: Grammar = Grammar(), // lexical/syntactic grammar productions
+  algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
+  tables: Map[String, Table] = Map(), // tables
+  typeModel: TypeModel = TypeModel(), // type models
+  document: Document = new Document(""), // HTML Document element
 ) extends SpecElem {
 
   /** convert to an IR program */
@@ -61,5 +62,3 @@ case class Spec(
       case algo :: Nil => algo
       case _           => error(s"no algorithms found for $id")
 }
-object Spec:
-  case class Version(name: String, hash: String) extends SpecElem

@@ -1,5 +1,7 @@
 package esmeta.spec
 
+import esmeta.spec.util.Parser
+
 /** algorithm heads */
 sealed trait Head extends SpecElem {
   val retTy: Type
@@ -119,3 +121,4 @@ object BuiltinHead:
     case Setter(base: Ref)
     case SymbolAccess(base: Ref, symbol: String)
     case YetRef(name: String)
+  object Ref extends Parser.From[Ref]

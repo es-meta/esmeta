@@ -29,7 +29,7 @@ class ParseLargeTest extends Test262Test {
   def init: Unit = check(name) {
     mkdir(logDir)
     dumpFile(spec.version, s"$logDir/ecma262-version")
-    dumpFile(currentVersion(BASE_DIR), s"$logDir/esmeta-version")
+    dumpFile(Git.currentVersion(BASE_DIR), s"$logDir/esmeta-version")
     summary.fails.setPath(s"$logDir/parse-fail.log")
     summary.passes.setPath(s"$logDir/parse-pass.log")
     for (config <- progress)

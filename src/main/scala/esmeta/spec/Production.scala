@@ -28,6 +28,7 @@ case class Production(
 object Production extends Parser.From[Production]:
   enum Kind extends SpecElem:
     case Syntactic, Lexical, NumericString
+  object Kind extends Parser.From[Kind]
 
 /** ordering of productions */
 given Ordering[Production] =

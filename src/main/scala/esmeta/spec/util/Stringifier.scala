@@ -12,7 +12,6 @@ object Stringifier {
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match {
       case elem: Spec            => specRule(app, elem)
-      case elem: Spec.Version    => versionRule(app, elem)
       case elem: Grammar         => grammarRule(app, elem)
       case elem: Production      => prodRule(app, elem)
       case elem: Lhs             => lhsRule(app, elem)
@@ -38,7 +37,7 @@ object Stringifier {
     val Spec(version, grammar, algorithms, tables, typeModel, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
-    version.map(app >> "- version: " >> _ >> LINE_SEP)
+    version.map(app >> "- version: " >> _.toString >> LINE_SEP)
     app >> "- grammar:"
     app :> "  - productions: " >> prods.length
     app :> "    - lexical: " >> prodsBy(Lexical).length
@@ -64,12 +63,6 @@ object Stringifier {
 
     app :> "- type model: " >> typeModel.infos.size
   }
-
-  // for versions of specifications
-  given versionRule: Rule[Spec.Version] = (app, version) =>
-    val Spec.Version(name, hash) = version
-    app >> hash
-    if (name != hash) app >> " (" >> name >> ")" else app
 
   // for grammars
   given grammarRule: Rule[Grammar] = (app, grammar) => {

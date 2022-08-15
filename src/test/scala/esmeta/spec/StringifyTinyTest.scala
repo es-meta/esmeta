@@ -10,15 +10,6 @@ class StringifyTinyTest extends SpecTest {
   // registration
   def init: Unit = {
     // -------------------------------------------------------------------------
-    // Spec Version
-    // -------------------------------------------------------------------------
-    lazy val version = Spec.Version("1fc323b", "1fc323b")
-    lazy val namedVersion = Spec.Version("main", "1fc323b")
-    checkStringify("Spec.Version")(
-      version -> "1fc323b",
-      namedVersion -> "1fc323b (main)",
-    )
-    // -------------------------------------------------------------------------
     // Grammar
     // -------------------------------------------------------------------------
     // pre-defined values

@@ -168,18 +168,6 @@ object SystemUtils {
     var process = Process(Seq("sh", "-c", cmd), directory)
     process.!!
 
-  /** change git version */
-  def changeVersion(target: String, dir: String = CUR_DIR): Unit =
-    executeCmd(s"git checkout $target", dir)
-
-  /** get git commit hash */
-  def getVersion(target: String, dir: String = CUR_DIR): String =
-    executeCmd(s"git rev-parse $target", dir).trim
-
-  /** get git commit hash for the current version */
-  def currentVersion(dir: String = CUR_DIR): String =
-    getVersion("HEAD", dir)
-
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Long]): T =
     limit.fold(f)(l => timeout(f, l.second))

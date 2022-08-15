@@ -7,6 +7,5 @@
   "Production.Kind" : true,
   "Rhs" : true,
   "RhsCond" : true,
-  "Spec.Version" : true,
   "Symbol" : true
 }
