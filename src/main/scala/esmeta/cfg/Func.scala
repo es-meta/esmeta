@@ -44,6 +44,8 @@ case class Func(
 
   /** function name */
   def name: String = irFunc.name
+
+  /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
 
   /** conversion to a DOT format */

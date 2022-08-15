@@ -33,7 +33,7 @@ case class Program(
       name = "IR functions",
       ts = ProgressBar("Dump IR functions", funcs),
       dirname = dirname,
-      getPath = func => s"$dirname/${func.name.replace("/", "")}.ir",
+      getPath = func => s"$dirname/${func.normalizedName}.ir",
     )
 }
 

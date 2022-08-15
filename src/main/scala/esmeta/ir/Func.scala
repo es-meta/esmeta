@@ -17,6 +17,9 @@ case class Func(
 
   /** algorithm heads */
   lazy val head: Option[Head] = algo.map(_.head)
+
+  /** normalized function name */
+  def normalizedName: String = name.replace("/", "").replace("`", "")
 }
 object Func extends Parser.From[Func] {
 
