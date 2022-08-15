@@ -2,6 +2,7 @@ package esmeta.lang.util
 
 import esmeta.lang.*
 import esmeta.util.{IndentParsers, Locational}
+import esmeta.util.BaseUtils.*
 import scala.util.matching.Regex
 
 /** language parser */

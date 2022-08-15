@@ -52,10 +52,7 @@ case object Extract extends Phase[Unit, Spec] {
     (
       "log",
       BoolOption(c => c.log = true),
-      """turn on logging mode and create additional files:
-        |  - `logs/extract/yets` - not yet supported steps
-        |  - `summary` - the summary of extracted specification
-        |  - `stat` - the statistics of extracted specification""".stripMargin,
+      "turn on logging mode",
     ),
   )
   case class Config(

@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.ir.Program
 import esmeta.spec.Spec
+import esmeta.util.*
 
 /** `compile` phase */
 case object Compile extends Phase[Spec, Program] {
@@ -12,11 +13,23 @@ case object Compile extends Phase[Spec, Program] {
     spec: Spec,
     globalConfig: GlobalConfig,
     config: Config,
-  ): Program =
+  ): Program = {
     val program = spec.toIR
-    if (LOG) program.dumpTo(COMPILE_LOG_DIR)
+
+    // logging mode
+    if (config.log) program.dumpTo(COMPILE_LOG_DIR)
+
     program
+  }
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
+  val options: List[PhaseOption[Config]] = List(
+    (
+      "log",
+      BoolOption(c => c.log = true),
+      "turn on logging mode",
+    ),
+  )
+  case class Config(
+    var log: Boolean = false,
+  )
 }

@@ -20,8 +20,16 @@ class EvalLargeTest extends Test262Test {
   val PARSE_TIMEOUT = 100 // second
 
   // progress bar
-  lazy val progress = ProgressBar("test262 eval test", config.normal)
-  // lazy val progress = ProgressBar("test262 eval test", manualConfig.normal)
+  lazy val progress = ProgressBar(
+    msg = "Run Test262 eval test",
+    iterable = config.normal,
+    getName = (config, _) => config.name,
+    errorHandler = (e, summary, name) =>
+      e match
+        case NotSupported(msg)   => summary.yets += s"$name: $msg"
+        case _: TimeoutException => summary.timeouts += name
+        case _: Throwable        => summary.fails += name,
+  )
 
   // coverage
   val COVERAGE_MODE = true
@@ -39,22 +47,13 @@ class EvalLargeTest extends Test262Test {
     summary.yets.setPath(s"$logDir/eval-yet.log")
     summary.fails.setPath(s"$logDir/eval-fail.log")
     summary.passes.setPath(s"$logDir/eval-pass.log")
-    for (config <- progress) {
+    for (config <- progress)
       val NormalConfig(name, includes) = config
       val jsName = s"$TEST262_TEST_DIR/$name"
-      getError {
-        if (COVERAGE_MODE) JSTest.checkExit(cov.run(jsName))
-        else {
-          val (sourceText, ast) = loadTestFromFile(jsName) // load test
-          JSTest.evalTest(sourceText, cachedAst = Some(ast)) // run interpreter
-        }
-        summary.passes += name
-      }.foreach {
-        case NotSupported(msg)   => summary.yets += s"$name: $msg"
-        case _: TimeoutException => summary.timeouts += name
-        case _: Throwable        => summary.fails += name
-      }
-    }
+      if (COVERAGE_MODE) JSTest.checkExit(cov.run(jsName))
+      else
+        val (sourceText, ast) = loadTestFromFile(jsName) // load test
+        JSTest.evalTest(sourceText, cachedAst = Some(ast)) // run interpreter
     summary.close
     val summaryStr =
       if (COVERAGE_MODE) summary.toString + LINE_SEP + cov.toString

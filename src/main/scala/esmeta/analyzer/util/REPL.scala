@@ -51,7 +51,7 @@ case class REPL(sem: AbsSemantics) {
 
   // handle when the static analysis is finished
   def finished: Unit = {
-    printlnColor(CYAN)(s"* Static analysis finished. (# iter: $iter)")
+    printlnColor(CYAN)(s"- Static analysis finished. (# iter: $iter)")
     setCp(None)
     continue = false
     runDirect
@@ -95,10 +95,10 @@ case class REPL(sem: AbsSemantics) {
     transfer(cp)
   } catch {
     case e: ESMetaError =>
-      printlnColor(RED)(s"* # iter: $iter")
+      printlnColor(RED)(s"- # iter: $iter")
       throw e
     case e: Throwable =>
-      printlnColor(RED)(s"* unexpectedly terminated (# iter: $iter).")
+      printlnColor(RED)(s"- unexpectedly terminated (# iter: $iter).")
       showStatus(cp)
       throw e
   }

@@ -4,6 +4,7 @@ import esmeta.cfg.util.*
 import esmeta.ir.{Type, Name, Func => IRFunc}
 import esmeta.spec.Head
 import esmeta.util.SystemUtils.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.{Appender, UId}
 
 /** CFG functions */
@@ -43,8 +44,10 @@ case class Func(
 
   /** function name */
   def name: String = irFunc.name
+  def normalizedName: String = name.replace("/", "").replace("`", "")
 
   /** conversion to a DOT format */
+  def dot: String = toDot()
   def toDot(nid: Int = -1, _isExit: Boolean = false): String = new DotPrinter {
     val isExit: Boolean = _isExit
     def getId(func: Func): String = s"cluster${func.id}"
@@ -57,34 +60,19 @@ case class Func(
     def apply(app: Appender): Unit = addFunc(func, app)
   }.toString
 
-  /** dump dot */
+  /** dump in a DOT format */
   def dumpDot(
-    baseDir: String,
-    filenameOpt: Option[String] = None,
-    pdf: Boolean = true,
-  ): Unit = {
-    mkdir(baseDir)
+    dotPath: String,
+    pdfPathOpt: Option[String] = None,
+  ): Unit =
+    // dump DOT format
+    dumpFile(dot, dotPath)
 
-    // normalize
-    val filename = filenameOpt
-      .getOrElse(name)
-      .replace("/", "")
-      .replace(" ", "")
-      .replace("<", "")
-      .replace(">", "")
-      .replace("`", "")
-    val path = s"$baseDir/$filename"
-    val (dotPath, pdfPath) = (path + ".dot", path + ".pdf")
-    // dump dot format
-    dumpFile(toDot(), dotPath)
-    if (pdf)
-      try executeCmd(s"dot -Tpdf $dotPath -o $pdfPath")
-      catch {
-        case e: Throwable =>
-          e.printStackTrace
-          println(
-            s"[ERROR] $name: exception occured while converting to pdf",
-          )
-      }
-  }
+    // dump PDF format
+    for {
+      pdfPath <- pdfPathOpt
+      e <- getError(executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath""""))
+    } error(s"""[DOT] [$name]: exception occured while converting to pdf:
+               |
+               |$e""".stripMargin)
 }

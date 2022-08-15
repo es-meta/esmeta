@@ -23,10 +23,10 @@ case object Help extends Phase[Unit, String]:
     val app = new Appender
     app >> "The command `" >> cmd.name >> "` " >> cmd.help
     app :> ""
-    app :> "* Usage:"
+    app :> "- Usage:"
     app :> "    esmeta " >> cmd.name >> " {option}* {filename}?"
     app :> ""
-    app :> "* phase list: " >> s"(${cmd.pList})"
+    app :> "- phase list: " >> s"(${cmd.pList})"
     app :> "    Each phase has following options."
     app :> "    format: {phase} [-{phase}:{option}[={input}]]*"
     for (phase <- cmd.phases)
@@ -41,10 +41,10 @@ case object Help extends Phase[Unit, String]:
   /* help message string */
   lazy val helpMessage =
     val app = new Appender
-    app >> "* Usage:"
+    app >> "- Usage:"
     app :> "    esmeta {command} {option}* {filename}?"
     app :> ""
-    app >> "* command list:"
+    app >> "- command list:"
     app :> "    Each command consists of following phases."
     app :> "    format: {command} {phase} [>> {phase}]*"
     app :> ""
@@ -53,7 +53,7 @@ case object Help extends Phase[Unit, String]:
       body(app, cmd.help)
       body(app, s"(${cmd.pList})", true)
       app :> ""
-    app :> "* phase list:"
+    app :> "- phase list:"
     app :> "    Each phase has following options."
     app :> "    format: {phase} [-{phase}:{option}[={input}]]*"
     app :> ""
@@ -64,7 +64,7 @@ case object Help extends Phase[Unit, String]:
       for ((name, desc) <- phase.getOptDescs)
         body(app, s"If $name is given, $desc", true)
       app :> ""
-    app :> "* global option:"
+    app :> "- global option:"
     app :> ""
     for ((opt, kind, desc) <- ESMeta.options)
       app :> "    If -" >> opt >> kind.postfix >> " is given, " >> desc

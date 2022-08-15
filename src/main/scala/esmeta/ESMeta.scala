@@ -22,7 +22,7 @@ object ESMeta {
       Console.err.println(ex.getMessage)
     // Unexpected: print the stack trace.
     case ex: Throwable =>
-      Console.err.println("* Unexpected error occurred.")
+      Console.err.println("- Unexpected error occurred.")
       Console.err.println(ex.toString)
       Console.err.println(ex.getStackTrace.mkString(LINE_SEP))
 

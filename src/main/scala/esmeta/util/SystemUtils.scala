@@ -50,10 +50,21 @@ object SystemUtils {
     nf.print(data)
     nf.close()
 
-  /** dump given data to a file and show message */
+  /** dump given data collection into a directory and show message */
+  def dumpDir[T](
+    name: String,
+    ts: Iterable[T],
+    dirname: String,
+    getPath: T => String,
+  ): Unit =
+    mkdir(dirname)
+    for (t <- ts) dumpFile(t, getPath(t))
+    println(s"- Dumped $name into $dirname.")
+
+  /** dump given data into a file and show message */
   def dumpFile(name: String, data: Any, filename: String): Unit =
-    val res = dumpFile(data, filename)
-    println(s"dumped $name to $filename.")
+    dumpFile(data, filename)
+    println(s"- Dumped $name into $filename.")
 
   /** dump given data in a JSON format */
   def dumpJson[T](
@@ -72,7 +83,7 @@ object SystemUtils {
     noSpace: Boolean,
   )(using encoder: Encoder[T]): Unit =
     dumpJson(data, filename, noSpace)
-    println(s"dumped $name to $filename in a JSON format.")
+    println(s"- Dumped $name into $filename in a JSON format.")
 
   /** get first filename */
   def getFirstFilename(globalConfig: GlobalConfig, msg: String): String =

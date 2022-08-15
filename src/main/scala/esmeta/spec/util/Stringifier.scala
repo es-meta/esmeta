@@ -38,8 +38,8 @@ object Stringifier {
     val Spec(version, grammar, algorithms, tables, typeModel, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
-    version.map(app >> "* version: " >> _ >> LINE_SEP)
-    app >> "* grammar:"
+    version.map(app >> "- version: " >> _ >> LINE_SEP)
+    app >> "- grammar:"
     app :> "  - productions: " >> prods.length
     app :> "    - lexical: " >> prodsBy(Lexical).length
     app :> "    - numeric string: " >> prodsBy(NumericString).length
@@ -49,20 +49,20 @@ object Stringifier {
     val (algoPass, algoTotal) =
       (spec.completeAlgorithms.length, algorithms.length)
     val algoRatio = ratioSimpleString(algoPass, algoTotal)
-    app :> "* algorithms: " >> algoTotal >> " " >> algoRatio
+    app :> "- algorithms: " >> algoTotal >> " " >> algoRatio
     app :> "  - complete: " >> algoPass
     app :> "  - incomplete: " >> algoTotal - algoPass
 
     val (stepPass, stepTotal) =
       (spec.completeSteps.length, spec.allSteps.length)
     val stepRatio = ratioSimpleString(stepPass, stepTotal)
-    app :> "* algorithm steps: " >> stepTotal >> " " >> stepRatio
+    app :> "- algorithm steps: " >> stepTotal >> " " >> stepRatio
     app :> "  - complete: " >> stepPass
     app :> "  - incompleted: " >> stepTotal - stepPass
 
-    app :> "* tables: " >> tables.size
+    app :> "- tables: " >> tables.size
 
-    app :> "* type model: " >> typeModel.infos.size
+    app :> "- type model: " >> typeModel.infos.size
   }
 
   // for versions of specifications

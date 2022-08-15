@@ -5,7 +5,8 @@ import esmeta.cfg.util.*
 import esmeta.ir.Program
 import esmeta.spec.{Spec, TypeModel, Grammar}
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.ListBuffer
+import esmeta.util.ProgressBar
+import esmeta.util.SystemUtils.*
 
 /** control-flow graphs (CFGs) */
 case class CFG(
@@ -49,4 +50,32 @@ case class CFG(
 
   /** get the corresponding grammar */
   def grammar: Grammar = spec.grammar
+
+  /** dump CFG */
+  def dumpTo(baseDir: String): Unit =
+    val dirname = s"$baseDir/func"
+    dumpDir(
+      name = "CFG functions",
+      ts = ProgressBar("Dump CFG functions", funcs),
+      dirname = dirname,
+      getPath = func => s"$dirname/${func.normalizedName}.cfg",
+    )
+
+  /** dump in a DOT format */
+  def dumpDot(
+    baseDir: String,
+    pdf: Boolean = true,
+  ): Unit =
+    mkdir(baseDir)
+    val format = if (pdf) "DOT/PDF formats" else "a DOT format"
+    val progress = ProgressBar(
+      msg = s"Dump CFG functions in $format",
+      iterable = funcs,
+      getName = (x, _) => x.name,
+    )
+    for (func <- progress)
+      val path = s"$baseDir/${func.normalizedName}"
+      val dotPath = s"$path.dot"
+      val pdfPath = if (pdf) Some(s"$path.pdf") else None
+      func.dumpDot(dotPath, pdfPath)
 }
