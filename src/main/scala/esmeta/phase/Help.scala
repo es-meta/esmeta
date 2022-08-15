@@ -90,7 +90,8 @@ case object Help extends Phase[Unit, String]:
       for ((w, j) <- l.split(' ').zipWithIndex)
         if (width + w.length + 1 > MAX_WIDTH)
           header(app)
-          width = 0
+          app >> pre
+          width = INDENT
         else if (j != 0) app >> " "
         app >> w
         width += w.length + 1
