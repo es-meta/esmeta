@@ -70,9 +70,9 @@ class Injector(
     case Right(_: PureValue) => true
     case _                   => false
 
-  // ////////////////////////////////////////////////////////
+  // --------------------------------------------------------------------------
   // Helper Functions
-  // ////////////////////////////////////////////////////////
+  // --------------------------------------------------------------------------
   // add line
   private var sb = new StringBuilder
   private def append(str: String, comment: Boolean = false): Unit = {

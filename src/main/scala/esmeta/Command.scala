@@ -48,9 +48,9 @@ case object CmdHelp extends Command("help", CmdBase >> Help) {
   val help = "shows help messages."
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 // Mechanized Specification Extraction
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 /** `extract` command */
 case object CmdExtract extends Command("extract", CmdBase >> Extract) {
   val help = "extracts specification model from ECMA-262 (spec.html)."
@@ -66,18 +66,18 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   val help = "builds a control-flow graph (CFG) from an IR program."
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 // Analysis of ECMA-262
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 /** `typecheck` command */
 case object CmdTypeCheck
   extends Command("typecheck", CmdBuildCFG >> TypeCheck) {
   val help = "performs a type analysis of ECMA-262."
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 // JavaScript Interpreter
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 /** `parse` command */
 case object CmdParse extends Command("parse", CmdExtract >> Parse) {
   val help = "parses a JavaScript file."
@@ -102,17 +102,17 @@ case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
   val help = "starts a web server for a JavaScript double debugger."
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 // JavaScript Transformer
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   val help = "injects assertions to check the final state of a JavaScript file."
 }
 
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 // JavaScript Static Analysis (Meta-Level Static Analysis)
-////////////////////////////////////////////////////////////////////////////////
+// -----------------------------------------------------------------------------
 /** `analyze` command */
 case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
   val help = "analyzes a JavaScript file using meta-level static analysis."

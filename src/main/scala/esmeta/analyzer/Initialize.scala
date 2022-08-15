@@ -72,19 +72,4 @@ object Initialize {
   lazy val ES_VALUE_TYPE = AbsValue(ESValueT)
   lazy val LIST_ES_VALUE_TYPE = AbsValue(ListT(ESValueT))
   lazy val NEW_TARGET_TYPE = AbsValue(NameT("Object"), UndefT)
-
-  // // TODO remove
-  // def typeAnalysisTest(): AbsSemantics = {
-  //   val initCp = {
-  //     val toBoolean = cfg.fnameMap("ToBoolean")
-  //     val entry = toBoolean.entry.get
-  //     NodePoint(toBoolean, entry, View())
-  //   }
-  //   AbsSemantics(
-  //     npMap = Map(
-  //       initCp -> AbsState.Empty.defineLocal(
-  //         Name("argument") -> AbsValue.undef,
-  //       ),
-  //     ),
-  //   )
 }

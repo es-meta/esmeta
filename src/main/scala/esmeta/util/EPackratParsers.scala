@@ -122,9 +122,9 @@ trait EPackratParsers extends Parsers {
     }
   }
 
-  // ////////////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
   // private helpers
-  // ////////////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
   private def getPosFromResult(r: ParseResult[_]): Position = r.next.pos
   private case class MemoEntry[+T](var r: Either[LR, ParseResult[_]]) {
     def getResult: ParseResult[T] = r match {
