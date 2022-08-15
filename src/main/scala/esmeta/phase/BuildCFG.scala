@@ -39,7 +39,7 @@ case object BuildCFG extends Phase[Program, CFG] {
     (
       "log",
       BoolOption(c => c.log = true),
-      "turn on logging mode",
+      "turn on logging mode.",
     ),
     (
       "dot",

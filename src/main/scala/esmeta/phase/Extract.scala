@@ -37,7 +37,6 @@ case object Extract extends Phase[Unit, Spec] {
         filename = s"$EXTRACT_LOG_DIR/summary",
       )
 
-      // dump statistics
       spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
     }
     spec
@@ -52,7 +51,7 @@ case object Extract extends Phase[Unit, Spec] {
     (
       "log",
       BoolOption(c => c.log = true),
-      "turn on logging mode",
+      "turn on logging mode.",
     ),
   )
   case class Config(

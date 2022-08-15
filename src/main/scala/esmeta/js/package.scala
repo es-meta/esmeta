@@ -25,3 +25,6 @@ object JSElem {
       new Stringifier(_, _, _)
     }
 }
+
+/** timeout */
+val TIMEOUT = 10

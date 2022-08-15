@@ -21,7 +21,7 @@ case object Test262Test extends Phase[CFG, Option[String]] {
     // TODO support directory
     val filename = getFirstFilename(globalConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename, test262 = true)
-    val st = Interp(initSt, timeLimit = None)
+    val st = Interp(initSt)
 
     // check final state
     st(GLOBAL_RESULT) match

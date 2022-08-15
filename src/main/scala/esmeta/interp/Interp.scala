@@ -8,7 +8,7 @@ import esmeta.js.*
 import esmeta.js.util.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, TEST_MODE, LOG}
+import esmeta.TEST_MODE
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -17,6 +17,7 @@ import scala.math.{BigInt => SBigInt}
 class Interp(
   val st: State,
   val checkAfter: List[NormalInst],
+  val log: Boolean,
 ) {
   import Interp.*
 
@@ -42,7 +43,7 @@ class Interp(
   def step: Boolean =
     try {
       // text-based debugging
-      if (LOG) println(st.getCursorString)
+      if (log) println(st.getCursorString)
 
       // garbage collection
       iter += 1
@@ -532,8 +533,9 @@ object Interp {
   def apply(
     st: State,
     checkAfter: List[NormalInst] = Nil,
-    timeLimit: Option[Long] = Some(TIMEOUT),
-  ): State = timeout(new Interp(st, checkAfter).fixpoint, timeLimit)
+    log: Boolean = false,
+    timeLimit: Option[Long] = None,
+  ): State = timeout(new Interp(st, checkAfter, log).fixpoint, timeLimit)
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

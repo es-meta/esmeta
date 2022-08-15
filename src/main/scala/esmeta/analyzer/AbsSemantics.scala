@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.DEBUG
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
@@ -20,6 +19,7 @@ case class AbsSemantics(
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   var loopOut: Map[View, Set[View]] = Map(),
   timeLimit: Option[Long] = None,
+  debug: Boolean = false,
 ) {
 
   /** assertions */
@@ -65,7 +65,7 @@ case class AbsSemantics(
       })
 
       // text-based debugging
-      if (DEBUG) println(s"${cp.func.name}:$cp")
+      if (debug) println(s"${cp.func.name}:$cp")
 
       // run REPL
       if (USE_REPL) repl(transfer, cp)
@@ -267,8 +267,7 @@ case class AbsSemantics(
 object AbsSemantics {
 
   /** constructors */
-  def apply(sourceText: String): AbsSemantics =
-    AbsSemantics(npMap = Initialize.initJs(sourceText))
-  def apply(initNpMap: Map[NodePoint[Node], AbsState]): AbsSemantics =
-    AbsSemantics(npMap = initNpMap)
+  def apply(sourceText: String): AbsSemantics = AbsSemantics(
+    npMap = Initialize.initJs(sourceText),
+  )
 }

@@ -1,11 +1,13 @@
 package esmeta.js.util
 
-import esmeta.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Locational
 import scala.util.parsing.input.*
 
 trait LAParsers extends Lexer {
+  // debugging mode
+  val debug: Boolean
+
   // failed parser
   val failed: Parser[Nothing] = failure("")
 
@@ -163,16 +165,17 @@ trait LAParsers extends Lexer {
   // logging
   var keepLog: Boolean = true
   def log[T](p: LAParser[T])(name: String): LAParser[T] = {
-    if (DEBUG)
+    if (debug)
       new LAParser(
         follow =>
           Parser { rawIn =>
             val in = rawIn.asInstanceOf[EPackratReader[Char]]
-            val stopMsg = (
-              s"trying $name with $follow at [${in.pos}] \n\n" +
-                s"${in.pos.longString}\n"
-            )
-            if (keepLog) stop(stopMsg) match {
+            val stopMsg =
+              s"""trying $name with $follow at [${in.pos}]
+                 |
+                 |${in.pos.longString}
+                 |""".stripMargin
+            if (keepLog) stop(stopMsg) match
               case "q" =>
                 keepLog = false
                 p(follow, in)
@@ -186,7 +189,6 @@ trait LAParsers extends Lexer {
                 val r = p(follow, in)
                 println(name + " --> " + r)
                 r
-            }
             else p(follow, in)
           },
         p.first,

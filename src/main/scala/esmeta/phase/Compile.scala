@@ -26,7 +26,7 @@ case object Compile extends Phase[Spec, Program] {
     (
       "log",
       BoolOption(c => c.log = true),
-      "turn on logging mode",
+      "turn on logging mode.",
     ),
   )
   case class Config(

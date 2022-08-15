@@ -20,24 +20,30 @@ case object Inject extends Phase[CFG, String] {
   ): String =
     val filename = getFirstFilename(globalConfig, this.name)
     val st = Initialize.fromFile(cfg, filename, test262 = false)
-    val injected = Injector(st, assertions = config.assertions)
-    for { path <- config.dumpOpt } dumpFile(injected, path)
+    val injected = Injector(st, config.defs)
+    // dump the assertion-injected JS program
+    for (filename <- config.out)
+      dumpFile(
+        name = "an assertion-injected JavaScript program",
+        data = injected,
+        filename = filename,
+      )
     injected
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "assertions",
-      BoolOption(c => c.assertions = true),
-      "prepend helpers of assertions.",
+      "defs",
+      BoolOption(c => c.defs = true),
+      "prepend definitions of helpers for assertions.",
     ),
     (
-      "dump",
-      StrOption((c, s) => c.dumpOpt = Some(s)),
-      "dump an injected JavaScript program to a given path.",
+      "out",
+      StrOption((c, s) => c.out = Some(s)),
+      "dump an assertion-injected JavaScript program to a given path.",
     ),
   )
   case class Config(
-    var assertions: Boolean = false,
-    var dumpOpt: Option[String] = None,
+    var defs: Boolean = false,
+    var out: Option[String] = None,
   )
 }

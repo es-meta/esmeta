@@ -1,6 +1,6 @@
 package esmeta.js.util
 
-import esmeta.{LINE_SEP, TIMEOUT, TEST262_TEST_DIR}
+import esmeta.{LINE_SEP, TEST262_TEST_DIR}
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.*
@@ -42,28 +42,29 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
 
     // run interp and record touched
     val touched: MSet[Int] = MSet()
-    val interp = new Interp(Initialize(cfg, sourceText, Some(ast)), Nil) {
-      // check if current state need to be recorded
-      private def needRecord: Boolean =
-        val contexts = st.context :: st.callStack.map(_.context)
-        val astOpt = contexts.flatMap(_.astOpt).headOption
-        astOpt.fold(false)(markedAst contains _)
+    val interp =
+      new Interp(Initialize(cfg, sourceText, Some(ast)), Nil, false) {
+        // check if current state need to be recorded
+        private def needRecord: Boolean =
+          val contexts = st.context :: st.callStack.map(_.context)
+          val astOpt = contexts.flatMap(_.astOpt).headOption
+          astOpt.fold(false)(markedAst contains _)
 
-      // override interp for node
-      override def interp(node: Node): Unit =
-        // record touched
-        if (needRecord) touched += node.id
-        super.interp(node)
+        // override interp for node
+        override def interp(node: Node): Unit =
+          // record touched
+          if (needRecord) touched += node.id
+          super.interp(node)
 
-      // handle dynamically created ast
-      override def interp(expr: Expr): Value =
-        val v = super.interp(expr)
-        (expr, v) match
-          case (_: EParse, AstValue(ast)) if needRecord =>
-            markedAst ++= ast.nodeSet
-          case _ => /* do nothing */
-        v
-    }
+        // handle dynamically created ast
+        override def interp(expr: Expr): Value =
+          val v = super.interp(expr)
+          (expr, v) match
+            case (_: EParse, AstValue(ast)) if needRecord =>
+              markedAst ++= ast.nodeSet
+            case _ => /* do nothing */
+          v
+      }
     val finalSt = timeout(interp.fixpoint, timeLimit)
 
     // update coverage

@@ -1,6 +1,5 @@
 package esmeta.js.util
 
-import esmeta.*
 import esmeta.error.*
 import esmeta.js.*
 import esmeta.spec.*
@@ -12,7 +11,10 @@ import scala.util.parsing.input.*
 import scala.util.matching.Regex
 
 /** JavaScript parser */
-case class Parser(val grammar: Grammar) extends LAParsers {
+case class Parser(
+  val grammar: Grammar,
+  val debug: Boolean = false,
+) extends LAParsers {
 
   /** get a parser using its name with boolean arguments
     *
@@ -191,7 +193,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
         val revStr = rev.mkString
 
         // Interactive debugging for semicolon insertion
-        if (DEBUG && keepLog) {
+        if (debug && keepLog) {
           lines.zipWithIndex.foreach {
             case (x, i) => println(f"$i%4d: $x")
           }
@@ -319,7 +321,7 @@ case class Parser(val grammar: Grammar) extends LAParsers {
           case (f: Failure) =>
             insertSemicolon(reader) match {
               case Some(str) =>
-                if (DEBUG && keepLog) {
+                if (debug && keepLog) {
                   println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                   str
                     .replace("\r\n", "\n")

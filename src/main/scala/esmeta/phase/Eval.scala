@@ -18,10 +18,17 @@ case object Eval extends Phase[CFG, State] {
   ): State =
     val filename = getFirstFilename(globalConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename)
-    val st = Interp(initSt, timeLimit = None)
+    val st = Interp(initSt, log = config.log)
     st
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "log",
+      BoolOption(c => c.log = true),
+      "turn on logging mode.",
+    ),
   )
-  case class Config()
+  case class Config(
+    var log: Boolean = false,
+  )
 }

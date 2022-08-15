@@ -1,6 +1,5 @@
 package esmeta.interp.util
 
-import esmeta.LOG
 import esmeta.cfg.*
 import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -12,9 +11,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /** debugger extension of ir interpreter */
-class Debugger(st: State) extends Interp(st, Nil) {
-  LOG = true
-
+class Debugger(st: State) extends Interp(st, Nil, true) {
   // ------------------------------------------------------------------------------
   // shortcuts
   // ------------------------------------------------------------------------------

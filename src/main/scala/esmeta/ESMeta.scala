@@ -93,8 +93,7 @@ object ESMeta {
   /** global options */
   val options: List[PhaseOption[GlobalConfig]] = List(
     ("silent", BoolOption(c => SILENT = true), "do not show final results."),
-    ("debug", BoolOption(c => DEBUG = true), "turn on the debug mode."),
-    ("log", BoolOption(c => LOG = true), "turn on the logging mode."),
+    ("debug", BoolOption(c => DEBUG = true), "turn on the debugging mode."),
     ("time", BoolOption(c => TIME = true), "display the duration time."),
   )
 }

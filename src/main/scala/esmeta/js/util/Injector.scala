@@ -7,13 +7,14 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{TIMEOUT, LOG, LINE_SEP, RESOURCE_DIR}
+import esmeta.{LINE_SEP, RESOURCE_DIR}
 import scala.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap}
 
 class Injector(
   st: State,
-  timeLimit: Option[Long] = Some(TIMEOUT),
+  timeLimit: Option[Long],
+  log: Boolean = false,
 ) {
   // injected script
   lazy val result: String = {
@@ -34,8 +35,8 @@ class Injector(
   private lazy val scriptStr = st.sourceText.get
 
   // logging
-  private def log(any: Any): Unit = if (LOG) println(any)
-  private def warning: Unit = if (LOG) {
+  private def log(any: Any): Unit = if (log) println(any)
+  private def warning: Unit = if (log) {
     val trace = (new Throwable).getStackTrace
     val line = trace(1).getLineNumber
     println(s"[Warning] $scriptStr @ $line")
@@ -43,7 +44,7 @@ class Injector(
 
   // run interp
   private var addrNameMap: Map[Addr, String] = Map()
-  private val interp = new Interp(st, Nil) {
+  private val interp = new Interp(st, Nil, false) {
     // hook return for addr name map
     override def setReturn(value: Value): Unit = {
       super.setReturn(value)
@@ -272,7 +273,7 @@ class Injector(
   // get values
   def getValue(str: String): Value = getValue(Expr.from(str))
   def getValue(expr: Expr): Value =
-    (new Interp(st.copied, Nil)).interp(expr)
+    (new Interp(st.copied, Nil, false)).interp(expr)
   def getValue(refV: RefValue): Value = st(refV)
   def getValue(addr: Addr, prop: String): Value =
     getValue(PropValue(addr, Str(prop)))
@@ -320,10 +321,14 @@ class Injector(
 object Injector {
 
   /** run an interpreter and inject code for checking final states */
-  def apply(st: State, assertions: Boolean = false): String = {
-    val injected = new Injector(st).result
-    if (assertions)
-      readFile(s"$RESOURCE_DIR/assertions.js") + LINE_SEP + injected
+  def apply(
+    st: State,
+    defs: Boolean = false,
+    timeLimit: Option[Long] = Some(TIMEOUT),
+    log: Boolean = false,
+  ): String = {
+    val injected = new Injector(st, timeLimit, log).result
+    if (defs) readFile(s"$RESOURCE_DIR/assertions.js") + LINE_SEP + injected
     else injected
   }
 }
