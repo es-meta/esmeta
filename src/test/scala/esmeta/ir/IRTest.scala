@@ -2,8 +2,10 @@ package esmeta.ir
 
 import esmeta.ESMetaTest
 import esmeta.LINE_SEP
-import esmeta.cfg.CFG
+import esmeta.cfgbuilder.*
+import esmeta.interpreter.*
 import esmeta.ir.util.Parsers
+import esmeta.state.*
 
 /** IR tests */
 trait IRTest extends ESMetaTest {
@@ -18,4 +20,9 @@ object IRTest {
   }
   def parseFileTest(filename: String): Program =
     parseTest(Program.fromFile(filename))
+
+  // handle interpreter test
+  def interp(st: State): State = Interpreter(st)
+  def interpFile(filename: String): State =
+    interp(State(CFGBuilder(Program.fromFile(filename))))
 }

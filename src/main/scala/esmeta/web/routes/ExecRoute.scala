@@ -7,7 +7,7 @@ import io.circe.*, io.circe.syntax.*, io.circe.parser.*,
 io.circe.generic.semiauto.*
 import esmeta.web.*
 import esmeta.cfg.CFG
-import esmeta.interp.util.Debugger
+import esmeta.interpreter.Debugger
 
 // exec router
 object ExecRoute {

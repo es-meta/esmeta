@@ -1,7 +1,7 @@
 package esmeta.js.builtin
 
 import esmeta.cfg.CFG
-import esmeta.interp.*
+import esmeta.state.*
 import scala.collection.mutable.{Map => MMap}
 
 // properties

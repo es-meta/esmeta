@@ -1,11 +1,11 @@
-package esmeta.interp
+package esmeta.interpreter
 
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.parser.{Parser => JSParser, ESValueParser}
+import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
@@ -13,13 +13,13 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
-/** CFG Interpreter */
-class Interp(
+/** IR interpreter with a CFG */
+class Interpreter(
   val st: State,
   val checkAfter: List[NormalInst],
   val log: Boolean,
 ) {
-  import Interp.*
+  import Interpreter.*
 
   /** JavaScript parser */
   lazy val jsParser: JSParser = cfg.jsParser
@@ -165,7 +165,7 @@ class Interp(
               st.context = Context(sdo, newLocals)
             case None => throw InvalidAstProp(syn, Str(method))
         case lex: Lexical =>
-          setCallResult(lhs, Interp.interp(lex, method))
+          setCallResult(lhs, Interpreter.interp(lex, method))
   }
 
   /** transition for expresssions */
@@ -251,17 +251,17 @@ class Interp(
       st(interp(ref))
     case EUnary(uop, expr) =>
       val x = interp(expr)
-      Interp.interp(uop, x)
+      Interpreter.interp(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
     case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
     case EBinary(bop, left, right) =>
       val l = interp(left)
       val r = interp(right)
-      Interp.interp(bop, l, r)
+      Interpreter.interp(bop, l, r)
     case EVariadic(vop, exprs) =>
       val vs = for (e <- exprs) yield interp(e).toPureValue
-      Interp.interp(vop, vs)
+      Interpreter.interp(vop, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (interp(expr), cop) match {
@@ -422,7 +422,7 @@ class Interp(
       case (BOp.Or, Bool(true))   => Bool(true)
       case _ =>
         val r = interp(right)
-        Interp.interp(bop, l, r)
+        Interpreter.interp(bop, l, r)
 
   /** get initial local variables */
   import IRFunc.Param
@@ -526,8 +526,8 @@ class Interp(
   }
 }
 
-/** Interp object */
-object Interp {
+/** helper of IR interpreter */
+object Interpreter {
 
   /** run interp */
   def apply(
@@ -535,7 +535,7 @@ object Interp {
     checkAfter: List[NormalInst] = Nil,
     log: Boolean = false,
     timeLimit: Option[Long] = None,
-  ): State = timeout(new Interp(st, checkAfter, log).fixpoint, timeLimit)
+  ): State = timeout(new Interpreter(st, checkAfter, log).fixpoint, timeLimit)
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

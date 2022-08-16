@@ -1,7 +1,7 @@
 package esmeta.js.builtin
 
 import esmeta.cfg.CFG
-import esmeta.interp.*
+import esmeta.state.*
 
 /** model for symbols */
 case class Symbols(cfg: CFG) {

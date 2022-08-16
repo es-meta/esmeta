@@ -1,17 +1,17 @@
-package esmeta.interp.util
+package esmeta.interpreter
 
 import esmeta.cfg.*
-import esmeta.interp.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.Ast
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
+import esmeta.state.*
 import esmeta.util.Loc
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
-/** debugger extension of ir interpreter */
-class Debugger(st: State) extends Interp(st, Nil, true) {
+/** debugger extension of IR interpreter */
+class Debugger(st: State) extends Interpreter(st, Nil, true) {
   // ------------------------------------------------------------------------------
   // shortcuts
   // ------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ class Debugger(st: State) extends Interp(st, Nil, true) {
   private inline def algoOpt: Option[Algorithm] = irFunc.algo
 
   // ------------------------------------------------------------------------------
-  // overrides interpreter
+  // overrides IR interpreter
   // ------------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
   override def step: Boolean = (super.step, cursor) match

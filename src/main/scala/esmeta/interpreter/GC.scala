@@ -1,6 +1,7 @@
-package esmeta.interp.util
+package esmeta.interpreter
 
-import esmeta.interp.*
+import esmeta.state.*
+import esmeta.state.util.*
 
 // Garbage Collector
 object GC {

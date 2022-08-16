@@ -1,8 +1,7 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.parser.{Parser => JSParser, ESValueParser}
@@ -18,7 +17,7 @@ case class State(
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
-) extends InterpElem {
+) extends StateElem {
 
   /** JavaScript parser */
   lazy val jsParser: JSParser = cfg.jsParser

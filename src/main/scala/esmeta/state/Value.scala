@@ -1,4 +1,4 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.Func
 import esmeta.error.*
@@ -8,7 +8,7 @@ import scala.collection.mutable.{Map => MMap}
 import esmeta.util.DoubleEquals
 
 /** IR values */
-sealed trait Value extends InterpElem {
+sealed trait Value extends StateElem {
 
   /** check abrupt completion */
   def isCompletion: Boolean = this match
@@ -108,11 +108,19 @@ case class Const(name: String) extends PureValue
 /** code units */
 case class CodeUnit(c: Char) extends PureValue
 
-/** simple js values */
+/** simple values */
 sealed trait SimpleValue extends PureValue
-sealed trait Numeric extends SimpleValue
+
+/** numeric values */
+sealed trait Numeric extends SimpleValue:
+  def toMath: Math = this match
+    case math: Math     => math
+    case Number(double) => Math(BigDecimal.exact(double))
+    case BigInt(bigint) => Math(BigDecimal.exact(bigint))
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
 case class BigInt(n: scala.math.BigInt) extends Numeric
+
+/** non-numeric simple values */
 case class Str(str: String) extends SimpleValue
 case class Bool(bool: Boolean) extends SimpleValue
 case object Undef extends SimpleValue

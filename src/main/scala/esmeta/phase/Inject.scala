@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.js.*

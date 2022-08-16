@@ -5,7 +5,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.error.*
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.{Name, Func => IRFunc, Local}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*

@@ -2,7 +2,8 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.interp.*
+import esmeta.interpreter.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -21,7 +22,7 @@ case object Test262Test extends Phase[CFG, Option[String]] {
     // TODO support directory
     val filename = getFirstFilename(globalConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename, test262 = true)
-    val st = Interp(initSt)
+    val st = Interpreter(initSt)
 
     // check final state
     st(GLOBAL_RESULT) match

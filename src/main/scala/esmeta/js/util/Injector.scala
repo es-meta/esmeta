@@ -2,8 +2,9 @@ package esmeta.js.util
 
 import esmeta.js.*
 import esmeta.ir.*
-import esmeta.interp.*
+import esmeta.interpreter.*
 import esmeta.spec.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -42,9 +43,9 @@ class Injector(
     println(s"[Warning] $scriptStr @ $line")
   }
 
-  // run interp
+  // run interpreter
   private var addrNameMap: Map[Addr, String] = Map()
-  private val interp = new Interp(st, Nil, false) {
+  private val interpreter = new Interpreter(st, Nil, false) {
     // hook return for addr name map
     override def setReturn(value: Value): Unit = {
       super.setReturn(value)
@@ -63,7 +64,7 @@ class Injector(
   } yield addr -> name).toMap
   private lazy val interpResult: Either[Throwable, Value] =
     try {
-      timeout(interp.fixpoint, timeLimit)
+      timeout(interpreter.fixpoint, timeLimit)
       Right(st(GLOBAL_RESULT))
     } catch { case e => Left(e) }
   private lazy val isNormal: Boolean = interpResult match
@@ -173,7 +174,7 @@ class Injector(
       case Clo(f, _) =>
         newSt.context = Context(f, MMap(Name("O") -> addr))
         newSt.callStack = Nil
-        Interp(newSt)
+        Interpreter(newSt)
         val propsAddr = newSt(GLOBAL_RESULT) match
           case Comp(_, addr: Addr, _) => addr
           case addr: Addr             => addr
@@ -273,7 +274,7 @@ class Injector(
   // get values
   def getValue(str: String): Value = getValue(Expr.from(str))
   def getValue(expr: Expr): Value =
-    (new Interp(st.copied, Nil, false)).interp(expr)
+    (new Interpreter(st.copied, Nil, false)).interp(expr)
   def getValue(refV: RefValue): Value = st(refV)
   def getValue(addr: Addr, prop: String): Value =
     getValue(PropValue(addr, Str(prop)))

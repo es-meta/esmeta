@@ -1,9 +1,9 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.*
 
 /** IR cursors */
-sealed trait Cursor extends InterpElem {
+sealed trait Cursor extends StateElem {
   var idx: Int = 0 // idx for block node (used in debugger)
 }
 case class NodeCursor(node: Node) extends Cursor

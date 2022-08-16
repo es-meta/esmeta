@@ -1,8 +1,7 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.builtin.*
 import esmeta.util.BaseUtils.*
@@ -12,7 +11,7 @@ import scala.collection.mutable.{Map => MMap}
 case class Heap(
   val map: MMap[Addr, Obj] = MMap(),
   var size: Int = 0,
-) extends InterpElem {
+) extends StateElem {
 
   /** getters */
   def apply(addr: Addr): Obj =

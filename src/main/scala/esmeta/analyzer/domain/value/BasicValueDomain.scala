@@ -2,8 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.analyzer.util.*
 import esmeta.cfg.Func
-import esmeta.interp.*
-import esmeta.interp.util.*
+import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.js.*
 import esmeta.parser.ESValueParser

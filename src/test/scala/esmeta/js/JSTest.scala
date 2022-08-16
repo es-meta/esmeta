@@ -3,11 +3,12 @@ package esmeta.js
 import esmeta.ESMetaTest
 import esmeta.analyzer.{AbsSemantics, YET_THROW}
 import esmeta.analyzer.domain.*
-import esmeta.interp.*
+import esmeta.interpreter.*
 import esmeta.ir.NormalInst
 import esmeta.js.util.*
 import esmeta.parser.Parser
 import esmeta.spec.Spec
+import esmeta.state.*
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*
 
@@ -38,7 +39,7 @@ object JSTest {
     checkAfter: List[NormalInst] = Nil,
     cachedAst: Option[Ast] = None,
   ): State =
-    Interp(Initialize(cfg, str, cachedAst), checkAfter)
+    Interpreter(Initialize(cfg, str, cachedAst), checkAfter)
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,

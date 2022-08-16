@@ -1,7 +1,7 @@
 package esmeta.js
 
 import esmeta.cfg.CFG
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.*
 import esmeta.js.builtin.*
 import esmeta.spec.*

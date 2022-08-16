@@ -1,6 +1,6 @@
 package esmeta.js.builtin
 
-import esmeta.interp.*
+import esmeta.state.*
 
 /** builtin model structure */
 case class Struct(

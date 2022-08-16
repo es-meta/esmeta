@@ -1,14 +1,13 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.ESValueParser
 import scala.collection.mutable.{Map => MMap}
 
 // Objects
-sealed trait Obj extends InterpElem {
+sealed trait Obj extends StateElem {
 
   /** getters */
   def apply(prop: PureValue): Value = (this, prop) match

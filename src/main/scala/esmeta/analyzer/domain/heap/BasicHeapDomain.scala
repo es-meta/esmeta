@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.js
 import esmeta.util.Appender
 import esmeta.util.Appender.*

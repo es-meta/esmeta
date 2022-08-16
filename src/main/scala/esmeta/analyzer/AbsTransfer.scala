@@ -5,11 +5,11 @@ import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interp.*
-import esmeta.interp.util.*
+import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.parser.ESValueParser
+import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
@@ -88,7 +88,7 @@ case class AbsTransfer(sem: AbsSemantics) {
     var ret @ AbsRet(value, st) = sem(rp)
 
     // proper type handle
-    Interp.setTypeMap
+    Interpreter.setTypeMap
       .get(rp.func.name)
       .map(ty => {
         if (!value.unwrapCompletion.isBottom) {
@@ -359,7 +359,7 @@ case class AbsTransfer(sem: AbsSemantics) {
                     sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
                   case None => error("invalid sdo")
               case FlatElem(AAst(lex: Lexical)) =>
-                newV ⊔= AbsValue(Interp.interp(lex, method))
+                newV ⊔= AbsValue(Interpreter.interp(lex, method))
               case FlatTop =>
                 // syntactic sdo
                 for { (sdo, ast) <- bv.getSDO(method) }
@@ -620,9 +620,9 @@ case class AbsTransfer(sem: AbsSemantics) {
       operand.getSingle match
         case FlatBot => AbsValue.Bot
         case FlatElem(ASimple(x)) =>
-          optional(AbsValue(Interp.interp(uop, x))).getOrElse(AbsValue.Bot)
+          optional(AbsValue(Interpreter.interp(uop, x))).getOrElse(AbsValue.Bot)
         case FlatElem(AMath(x)) =>
-          optional(AbsValue(Interp.interp(uop, Math(x))))
+          optional(AbsValue(Interpreter.interp(uop, Math(x))))
             .getOrElse(AbsValue.Bot)
         case FlatElem(_) => AbsValue.Bot
         case FlatTop =>
@@ -644,9 +644,10 @@ case class AbsTransfer(sem: AbsSemantics) {
       (left.getSingle, right.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(ASimple(l)), FlatElem(ASimple(r))) =>
-          optional(AbsValue(Interp.interp(bop, l, r))).getOrElse(AbsValue.Bot)
+          optional(AbsValue(Interpreter.interp(bop, l, r)))
+            .getOrElse(AbsValue.Bot)
         case (FlatElem(AMath(l)), FlatElem(AMath(r))) =>
-          optional(AbsValue(Interp.interp(bop, Math(l), Math(r))))
+          optional(AbsValue(Interpreter.interp(bop, Math(l), Math(r))))
             .getOrElse(AbsValue.Bot)
         case (FlatElem(lloc: Loc), FlatElem(rloc: Loc))
             if bop == Eq || bop == Equal =>

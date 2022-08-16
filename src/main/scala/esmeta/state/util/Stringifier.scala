@@ -1,12 +1,12 @@
-package esmeta.interp.util
+package esmeta.state.util
 
 import esmeta.cfg.*
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.util.Appender.{given, *}
 
-/** stringifier for Interp */
+/** stringifier for state elements */
 class Stringifier(detail: Boolean, location: Boolean) {
   // load IR Stringifier
   val irStringifier = IRElem.getStringifier((detail, location))
@@ -21,7 +21,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   import jsStringifier.{given, *}
 
   // elements
-  given elemRule: Rule[InterpElem] = (app, elem) =>
+  given elemRule: Rule[StateElem] = (app, elem) =>
     elem match
       case elem: State       => stRule(app, elem)
       case elem: Context     => ctxtRule(app, elem)

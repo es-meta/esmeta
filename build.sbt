@@ -41,12 +41,12 @@ lazy val langStringifyTest =
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
+lazy val irEvalTest = taskKey[Unit]("Launch eval tests for ir (tiny)")
 
-// interp
-lazy val interpTest = taskKey[Unit]("Launch interp tests")
-lazy val interpStringifyTest =
-  taskKey[Unit]("Launch stringify tests for interp (tiny)")
-lazy val interpEvalTest = taskKey[Unit]("Launch eval tests for interp (tiny)")
+// state
+lazy val stateTest = taskKey[Unit]("Launch state tests")
+lazy val stateStringifyTest =
+  taskKey[Unit]("Launch stringify tests for state (tiny)")
 
 // js
 lazy val jsTest = taskKey[Unit]("Launch js tests")
@@ -141,12 +141,12 @@ lazy val root = project
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
-    // interp
-    interpTest := (Test / testOnly).toTask(" *.interp.*Test").value,
-    interpStringifyTest := (Test / testOnly)
-      .toTask(" *.interp.Stringify*Test")
+    irEvalTest := (Test / testOnly).toTask(" *.ir.Eval*Test").value,
+    // state
+    stateTest := (Test / testOnly).toTask(" *.state.*Test").value,
+    stateStringifyTest := (Test / testOnly)
+      .toTask(" *.state.Stringify*Test")
       .value,
-    interpEvalTest := (Test / testOnly).toTask(" *.interp.Eval*Test").value,
     // js
     jsTest := (Test / testOnly).toTask(" *.js.*Test").value,
     jsEvalTest := (Test / testOnly).toTask(" *.js.Eval*Test").value,

@@ -3,7 +3,7 @@ package esmeta.analyzer.util
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.IRElem
 import esmeta.util.*
 import esmeta.util.Appender.*

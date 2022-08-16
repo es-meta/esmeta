@@ -2,7 +2,7 @@ package esmeta.analyzer.domain
 
 import esmeta.analyzer.{AnalyzerElem, NodePoint}
 import esmeta.cfg.{Func, Node}
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.Expr
 import esmeta.spec.{Type => SType, *}
 import esmeta.util.BaseUtils.*

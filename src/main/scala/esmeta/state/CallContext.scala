@@ -1,11 +1,10 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.*
-import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 
 /** IR calling contexts */
-case class CallContext(retId: Id, context: Context) extends InterpElem {
+case class CallContext(retId: Id, context: Context) extends StateElem {
 
   /** function name * */
   def name: String = context.func.irFunc.name

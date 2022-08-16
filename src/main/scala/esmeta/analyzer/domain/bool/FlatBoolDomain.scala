@@ -1,6 +1,6 @@
 package esmeta.analyzer.domain
 
-import esmeta.interp.Bool
+import esmeta.state.Bool
 
 /** flat domain for boolean */
 object FlatBoolDomain extends FlatDomain[Bool] with BoolDomain {

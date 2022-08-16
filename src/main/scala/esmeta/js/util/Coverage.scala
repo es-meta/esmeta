@@ -2,10 +2,11 @@ package esmeta.js.util
 
 import esmeta.{LINE_SEP, TEST262_TEST_DIR}
 import esmeta.cfg.*
-import esmeta.interp.*
+import esmeta.interpreter.*
 import esmeta.ir.*
 import esmeta.js.*
 import esmeta.test262.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
@@ -42,8 +43,8 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
 
     // run interp and record touched
     val touched: MSet[Int] = MSet()
-    val interp =
-      new Interp(Initialize(cfg, sourceText, Some(ast)), Nil, false) {
+    val interpreter =
+      new Interpreter(Initialize(cfg, sourceText, Some(ast)), Nil, false) {
         // check if current state need to be recorded
         private def needRecord: Boolean =
           val contexts = st.context :: st.callStack.map(_.context)
@@ -65,7 +66,7 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
             case _ => /* do nothing */
           v
       }
-    val finalSt = timeout(interp.fixpoint, timeLimit)
+    val finalSt = timeout(interpreter.fixpoint, timeLimit)
 
     // update coverage
     for { nid <- touched } {

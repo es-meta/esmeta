@@ -1,13 +1,13 @@
-package esmeta.interp.util
+package esmeta.state.util
 
-import esmeta.interp.*
+import esmeta.state.*
 import esmeta.ir.*
 import esmeta.util.BasicUnitWalker
 
 /** unit walker for state */
 trait UnitWalker extends BasicUnitWalker {
   // all cases
-  def walk(elem: InterpElem): Unit = elem match
+  def walk(elem: StateElem): Unit = elem match
     case elem: State       => walk(elem)
     case elem: Context     => walk(elem)
     case elem: Cursor      => walk(elem)

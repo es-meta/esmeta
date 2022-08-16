@@ -1,4 +1,4 @@
-package esmeta.interp
+package esmeta.state
 
 import esmeta.cfg.{Func, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
@@ -10,7 +10,7 @@ import scala.collection.mutable.{Map => MMap}
 case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
-) extends InterpElem {
+) extends StateElem {
 
   /** current cursor in this context */
   var cursor: Cursor = Cursor(func.entry, func)

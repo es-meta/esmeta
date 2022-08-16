@@ -3,8 +3,7 @@ package esmeta.analyzer.domain
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.analyzer.util.*
-import esmeta.interp.*
-import esmeta.interp.util.*
+import esmeta.state.*
 import esmeta.parser.ESValueParser
 import esmeta.util.Appender
 import esmeta.util.Appender.*

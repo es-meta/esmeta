@@ -1,6 +1,6 @@
 package esmeta.analyzer.domain
 
-import esmeta.interp.Bool
+import esmeta.state.Bool
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 
