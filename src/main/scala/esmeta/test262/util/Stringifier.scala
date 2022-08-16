@@ -5,7 +5,7 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.test262.*
 
-/*k stringifier for JavaScript */
+/*k stringifier for ECMAScript */
 class Stringifier(
   detail: Boolean,
 ) {

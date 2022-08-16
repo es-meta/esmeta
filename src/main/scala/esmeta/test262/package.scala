@@ -3,7 +3,7 @@ package esmeta.test262
 import esmeta.test262.util.*
 import esmeta.util.BaseUtils.*
 
-/** JavaScript elements */
+/** Test262 elements */
 trait Test262Elem {
   override def toString: String = toString()
 

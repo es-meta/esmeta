@@ -4,7 +4,7 @@ import esmeta.analyzer.util.*
 import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.parser.ESValueParser
 import esmeta.util.Appender
 import esmeta.util.Appender.*
@@ -488,7 +488,7 @@ object BasicValueDomain extends ValueDomain {
         AGrammar(name, params) <- rule.grammar
         (str, args) <- codes
         parseArgs = if (params.isEmpty) args else params
-      } newV ⊔= apply(cfg.jsParser(name, parseArgs).from(str))
+      } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
 
       // result
       newV

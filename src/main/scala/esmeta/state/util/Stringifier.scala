@@ -3,7 +3,7 @@ package esmeta.state.util
 import esmeta.cfg.*
 import esmeta.state.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.util.Appender.{given, *}
 
 /** stringifier for state elements */
@@ -16,9 +16,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   val cfgStringifier = CFGElem.getStringifier((detail, location))
   import cfgStringifier.{given, *}
 
-  // load JavaScript Stringifier
-  val jsStringifier = JSElem.getStringifier((false, location, None))
-  import jsStringifier.{given, *}
+  // load ECMAScript Stringifier
+  val esStringifier = ESElem.getStringifier((false, location, None))
+  import esStringifier.{given, *}
 
   // elements
   given elemRule: Rule[StateElem] = (app, elem) =>

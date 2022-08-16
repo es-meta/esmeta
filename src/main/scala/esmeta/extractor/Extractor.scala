@@ -26,7 +26,7 @@ object Extractor extends SpecParsers {
       grammar = grammar,
       algorithms = algorithms,
       tables = tables,
-      typeModel = TypeModel.js, // TODO automatic extraction
+      typeModel = TypeModel.es, // TODO automatic extraction
       document = document,
     )
 

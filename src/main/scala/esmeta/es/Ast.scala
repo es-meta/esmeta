@@ -1,13 +1,13 @@
-package esmeta.js
+package esmeta.es
 
 import esmeta.ir.Type
-import esmeta.js.util.*
+import esmeta.es.util.*
 import esmeta.spec.*
 import esmeta.util.*
 import scala.annotation.tailrec
 
 /** abstract syntax tree (AST) values */
-sealed trait Ast extends JSElem with Locational {
+sealed trait Ast extends ESElem with Locational {
 
   /** production names */
   val name: String

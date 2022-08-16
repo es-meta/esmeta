@@ -361,20 +361,20 @@ object BasicObjDomain extends Domain {
     type MapUpdater = MapElem => MapElem
     private def modifyMap(
       prop: AbsValue,
-      jsF: AValue => MapUpdater,
-      jsMergedF: MapUpdater,
+      esF: AValue => MapUpdater,
+      esMergedF: MapUpdater,
       f: AValue => MapUpdater,
       mergedF: MapUpdater,
       weak: Boolean,
     ): Elem = this match {
-      // for JavaScript
+      // for ECMAScript
       case map @ MergedMap("SubMap", _, _) =>
-        jsMergedF(map)
+        esMergedF(map)
       case map @ OrderedMap("SubMap", _, _) =>
         prop.getKeyValue.getSingle match
           case FlatBot                => this
-          case FlatElem(key) if !weak => jsF(key)(map)
-          case _                      => jsMergedF(map)
+          case FlatElem(key) if !weak => esF(key)(map)
+          case _                      => esMergedF(map)
       // for IR
       case map @ MergedMap(ty, _, _) =>
         mergedF(map)

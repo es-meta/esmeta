@@ -1,19 +1,19 @@
-package esmeta.js.util
+package esmeta.es.util
 
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.js.*
+import esmeta.es.*
 
-/** stringifier for JavaScript */
+/** stringifier for ECMAScript */
 class Stringifier(
   detail: Boolean,
   location: Boolean,
   grammar: Option[Grammar],
 ) {
   // elements
-  given elemRule: Rule[JSElem] = (app, elem) =>
+  given elemRule: Rule[ESElem] = (app, elem) =>
     elem match {
       case elem: Ast => astRule(app, elem)
     }

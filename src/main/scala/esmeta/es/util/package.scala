@@ -1,6 +1,6 @@
-package esmeta.js.util
+package esmeta.es.util
 
-import esmeta.js.*
+import esmeta.es.*
 
 /** merge statements to script */
 // TODO refactoring

@@ -2,9 +2,9 @@ package esmeta.test262
 
 import esmeta.*
 import esmeta.error.NotSupported
-import esmeta.js.*
-import esmeta.js.util.*
-import esmeta.parser.{Parser => JSParser}
+import esmeta.es.*
+import esmeta.es.util.*
+import esmeta.parser.{Parser => ESParser}
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -26,8 +26,8 @@ case class Test262(spec: Spec) {
     },
   )
 
-  // parse JavaScript file
-  lazy val parser = JSParser(spec.grammar)("Script")
+  // parse ECMAScript file
+  lazy val parser = ESParser(spec.grammar)("Script")
   def parseFile(filename: String): Ast = parser.fromFile(filename)
 
   // test262 test configuration

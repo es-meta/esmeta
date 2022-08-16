@@ -6,8 +6,7 @@ import esmeta.analyzer.util.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ir.{Id, Local, Global, IRElem, Type => IrType}
-import esmeta.js
-import esmeta.js.builtin.*
+import esmeta.es.builtin.*
 import esmeta.spec.TypeModel
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}

@@ -55,20 +55,20 @@ object ExecRoute {
             HttpEntity(ContentTypes.`application/json`, debugger.continue),
           )
         },
-        // js steps
-        path("jsStep") {
-          complete(HttpEntity(ContentTypes.`application/json`, debugger.jsStep))
+        // ECMAScript steps
+        path("esStep") {
+          complete(HttpEntity(ContentTypes.`application/json`, debugger.esStep))
         },
-        // js step-over
-        path("jsStepOver") {
+        // ECMAScript step-over
+        path("esStepOver") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.jsStepOver),
+            HttpEntity(ContentTypes.`application/json`, debugger.esStepOver),
           )
         },
-        // js step-out
-        path("jsStepOut") {
+        //  step-out
+        path("esStepOut") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.jsStepOut),
+            HttpEntity(ContentTypes.`application/json`, debugger.esStepOut),
           )
         },
       )

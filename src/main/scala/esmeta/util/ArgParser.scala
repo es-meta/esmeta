@@ -69,7 +69,7 @@ class ArgParser(cmd: Command[_], globalConfig: GlobalConfig)
         jsonArgs ::= s"-$prefix$opt=${num.asNumber.get}"
       case (opt, str) if str.isString && !str.asString.get.isEmpty =>
         jsonArgs ::= s"-$prefix$opt=${str.asString.get}"
-      case (opt, jsValue) => NoSupportError(jsValue.toString)
+      case (opt, esValue) => NoSupportError(esValue.toString)
     }
 
     // setting options using a JSON file.

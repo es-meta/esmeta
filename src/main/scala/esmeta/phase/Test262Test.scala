@@ -7,7 +7,7 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.test262.*
 
 /** `test262test` phase */

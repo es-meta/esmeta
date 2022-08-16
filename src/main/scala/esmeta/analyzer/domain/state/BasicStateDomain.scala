@@ -6,8 +6,8 @@ import esmeta.analyzer.util.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ir.*
-import esmeta.js
-import esmeta.js.*
+import esmeta.es
+import esmeta.es.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
@@ -29,7 +29,7 @@ object BasicStateDomain extends StateDomain {
 
   /** base globals */
   lazy val baseGlobals: Map[Id, AbsValue] = (for {
-    (x, v) <- new js.Initialize(cfg).initGlobal.toList
+    (x, v) <- new es.Initialize(cfg).initGlobal.toList
   } yield x -> AbsValue(v)).toMap
 
   /** appender */
@@ -114,15 +114,15 @@ object BasicStateDomain extends StateDomain {
         case (FlatElem(AAst(ast)), FlatElem(ASimple(Str("parent")))) =>
           ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (
-              FlatElem(AAst(syn: js.Syntactic)),
+              FlatElem(AAst(syn: es.Syntactic)),
               FlatElem(ASimple(Str(propStr))),
             ) =>
-          val js.Syntactic(name, _, rhsIdx, children) = syn
+          val es.Syntactic(name, _, rhsIdx, children) = syn
           val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
           rhs.getNtIndex(propStr).flatMap(children(_)) match
             case Some(child) => AbsValue(child)
             case _           => AbsValue.Bot
-        case (FlatElem(AAst(syn: js.Syntactic)), FlatElem(AMath(n)))
+        case (FlatElem(AAst(syn: es.Syntactic)), FlatElem(AMath(n)))
             if n.isValidInt =>
           syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (_: FlatElem[_], _: FlatElem[_]) => AbsValue.Bot

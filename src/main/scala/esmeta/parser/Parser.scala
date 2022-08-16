@@ -1,7 +1,7 @@
 package esmeta.parser
 
 import esmeta.error.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -10,7 +10,7 @@ import scala.util.parsing.combinator.*
 import scala.util.parsing.input.*
 import scala.util.matching.Regex
 
-/** JavaScript parser */
+/** ECMAScript parser */
 case class Parser(
   val grammar: Grammar,
   val debug: Boolean = false,

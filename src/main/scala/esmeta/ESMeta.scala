@@ -56,14 +56,14 @@ object ESMeta {
     CmdBuildCFG,
     // Analysis of ECMA-262
     CmdTypeCheck,
-    // Interpreter & Double Debugger for JavaScript
+    // Interpreter & Double Debugger for ECMAScript
     CmdParse,
     CmdEval,
     CmdTest262Test,
     CmdWeb,
-    // JavaScript Transformer
+    // ECMAScript Transformer
     CmdInject,
-    // JavaScript Static Analysis (Meta-Level Static Analysis)
+    // ECMAScript Static Analysis (Meta-Level Static Analysis)
     CmdAnalyze,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -79,14 +79,14 @@ object ESMeta {
     BuildCFG,
     // Analysis of ECMA-262
     TypeCheck,
-    // JavaScript Interpreter
+    // Interpreter & Double Debugger for ECMAScript
     Parse,
     Eval,
     Test262Test,
     Web,
-    // JavaScript Transformer
+    // ECMAScript Transformer
     Inject,
-    // JavaScript Static Analysis (Meta-Level Static Analysis)
+    // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
   )
 

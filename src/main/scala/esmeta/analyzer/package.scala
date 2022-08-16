@@ -38,5 +38,5 @@ var LOOP_ITER: Int = 100
 var LOOP_DEPTH: Int = 20
 
 /** k for call-site sensitivity */
-var JS_CALL_DEPTH: Int = 20
+var ES_CALL_DEPTH: Int = 20
 var IR_CALL_DEPTH: Int = 50

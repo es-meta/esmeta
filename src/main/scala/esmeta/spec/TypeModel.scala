@@ -173,7 +173,7 @@ object TypeModel {
   val NAMESPACE = ConstT("NAMESPACE")
 
   // TODO extract type model from spec
-  lazy val js: TypeModel = TypeModel(
+  lazy val es: TypeModel = TypeModel(
     Map(
       // property descriptor
       "PropertyDescriptor" -> TypeInfo(

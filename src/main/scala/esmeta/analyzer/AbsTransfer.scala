@@ -7,7 +7,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.util.BaseUtils.*

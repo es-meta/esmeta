@@ -19,8 +19,8 @@ case class CFG(
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
 
-  /** JavaScript parser */
-  lazy val jsParser: parser.Parser = program.jsParser
+  /** an ECMAScript parser */
+  lazy val esParser: parser.Parser = program.esParser
 
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =

@@ -2,7 +2,7 @@ package esmeta.interpreter
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.Ast
+import esmeta.es.Ast
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.state.*
@@ -87,34 +87,34 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
     val (_, prevStackSize) = getIrInfo
     stepUntil { prevStackSize <= getIrInfo._2 }
 
-  // js steps from ast span info
-  private def getJsInfo =
+  // es steps from ast span info
+  private def getEsInfo =
     val ctxts = st.context :: st.callStack.map(_.context)
-    val callStackSize = ctxts.count(_.isJsCall)
-    val (ls, le) = ctxts.flatMap(_.jsLocOpt).headOption.getOrElse((-1, -1))
+    val callStackSize = ctxts.count(_.isEsCall)
+    val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), callStackSize)
 
-  // js step
-  final def jsStep =
-    val (prevLoc, _) = getJsInfo
+  // es step
+  final def esStep =
+    val (prevLoc, _) = getEsInfo
     stepUntil {
-      val (loc, _) = getJsInfo
+      val (loc, _) = getEsInfo
       (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1)
     }
 
-  // js step over
-  final def jsStepOver =
-    val (prevLoc, prevStackSize) = getJsInfo
+  // es step over
+  final def esStepOver =
+    val (prevLoc, prevStackSize) = getEsInfo
     stepUntil {
-      val (loc, stackSize) = getJsInfo
+      val (loc, stackSize) = getEsInfo
       (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize)
     }
 
-  // js step out
-  final def jsStepOut =
-    val (_, prevStackSize) = getJsInfo
+  // es step out
+  final def esStepOut =
+    val (_, prevStackSize) = getEsInfo
     stepUntil {
-      val (loc, stackSize) = getJsInfo
+      val (loc, stackSize) = getEsInfo
       loc._1 == -1 || prevStackSize <= stackSize
     }
 
@@ -155,8 +155,8 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
       )
   }
 
-  /** breakpoints by JavaScript code line */
-  case class JsBreakpoint(
+  /** breakpoints by ECMAScript code line */
+  case class EsBreakpoint(
     line: Int,
     var enabled: Boolean = true,
   ) extends Breakpoint {
@@ -196,9 +196,9 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
   final def addBreak(
     data: (Boolean, Int, List[Int], Boolean),
   ): Unit =
-    val (isJsBreak, num, steps, enabled) = data
+    val (isEsBreak, num, steps, enabled) = data
     val bp =
-      if (isJsBreak) JsBreakpoint(num, enabled)
+      if (isEsBreak) EsBreakpoint(num, enabled)
       else SpecBreakpoint(num, steps, enabled)
     breakpoints += bp
 
@@ -253,11 +253,11 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
       if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THIS).asAst)
       else None
 
-    /** check if js call */
-    def isJsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
+    /** check if es call */
+    def isEsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
 
-    /** location of JavaScript code */
-    def jsLocOpt: Option[(Int, Int)] = astOpt match
+    /** location of ECMAScript code */
+    def esLocOpt: Option[(Int, Int)] = astOpt match
       case Some(ast) =>
         Some(ast.loc match
           case Some(loc) => (loc.start.line, loc.end.line)

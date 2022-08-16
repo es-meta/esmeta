@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.injector.Injector
 import esmeta.interpreter.Interpreter
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.state.*
 import esmeta.test262.*
 import esmeta.util.*
@@ -13,7 +13,7 @@ import esmeta.util.SystemUtils.*
 /** `inject` phase */
 case object Inject extends Phase[CFG, String] {
   val name = "inject"
-  val help = "injects assertions to check the final state of a JavaScript file."
+  val help = "injects assertions to check final state of an ECMAScript file."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,
@@ -22,10 +22,10 @@ case object Inject extends Phase[CFG, String] {
     val filename = getFirstFilename(globalConfig, this.name)
     val injected = Injector.fromFile(cfg, filename, config.defs, config.log)
 
-    // dump the assertion-injected JS program
+    // dump the assertion-injected ECMAScript program
     for (filename <- config.out)
       dumpFile(
-        name = "an assertion-injected JavaScript program",
+        name = "an assertion-injected ECMAScript program",
         data = injected,
         filename = filename,
       )
@@ -41,7 +41,7 @@ case object Inject extends Phase[CFG, String] {
     (
       "out",
       StrOption((c, s) => c.out = Some(s)),
-      "dump an assertion-injected JavaScript program to a given path.",
+      "dump an assertion-injected ECMAScript program to a given path.",
     ),
     (
       "log",

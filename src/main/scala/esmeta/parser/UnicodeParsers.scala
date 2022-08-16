@@ -1,13 +1,13 @@
 package esmeta.parser
 
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.util.parsing.input.Position
 import scala.util.matching.Regex
 
-/** JavaScript special unicodes */
+/** ECMAScript special unicodes */
 trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val ZWNJ = "\u200C".r
   val ZWJ = "\u200D".r

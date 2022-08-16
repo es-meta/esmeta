@@ -2,7 +2,6 @@ package esmeta.analyzer.domain
 
 import esmeta.cfg.CFG
 import esmeta.state.*
-import esmeta.js
 import esmeta.error.NotSupportedOperation
 
 // -----------------------------------------------------------------------------

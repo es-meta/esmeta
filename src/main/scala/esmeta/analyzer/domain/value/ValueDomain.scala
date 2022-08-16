@@ -3,7 +3,7 @@ package esmeta.analyzer.domain
 import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
-import esmeta.js.Ast
+import esmeta.es.Ast
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 

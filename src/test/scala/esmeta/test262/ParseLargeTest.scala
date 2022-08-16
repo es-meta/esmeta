@@ -1,7 +1,7 @@
 package esmeta.test262
 
 import esmeta.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -34,8 +34,8 @@ class ParseLargeTest extends Test262Test {
     summary.passes.setPath(s"$logDir/parse-pass.log")
     for (config <- progress)
       val name = config.name
-      val jsName = s"$TEST262_TEST_DIR/$name"
-      timeout(JSTest.parseTest(parseFile(jsName)), PARSE_TIMEOUT)
+      val esName = s"$TEST262_TEST_DIR/$name"
+      timeout(ESTest.parseTest(parseFile(esName)), PARSE_TIMEOUT)
     summary.close
     dumpFile(summary, s"$logDir/parse-summary")
     if (summary.fail > 0) fail(s"${summary.fail} tests are failed.")

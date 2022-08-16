@@ -6,7 +6,7 @@ import esmeta.analyzer.domain
 import esmeta.analyzer.util.command.*
 import esmeta.cfg.*
 import esmeta.error.ESMetaError
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import org.jline.builtins.Completers.TreeCompleter
 import org.jline.builtins.Completers.TreeCompleter.{Node => CNode, node}
@@ -146,7 +146,7 @@ case class REPL(sem: AbsSemantics) {
   // jump point
   var jumpTo: Option[Int] = None
 
-  // jump to the next JS entry
+  // jump to the next ECMAScript entry
   var nextEntry: Boolean = false
 
   // jump to when the analysis result is merged

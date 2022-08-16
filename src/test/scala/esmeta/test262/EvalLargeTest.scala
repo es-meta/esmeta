@@ -2,8 +2,8 @@ package esmeta.test262
 
 import esmeta.*
 import esmeta.error.*
-import esmeta.js.*
-import esmeta.js.util.*
+import esmeta.es.*
+import esmeta.es.util.*
 import esmeta.test262.NormalConfig
 import esmeta.test262.util.*
 import esmeta.util.*
@@ -33,7 +33,7 @@ class EvalLargeTest extends Test262Test {
 
   // coverage
   val COVERAGE_MODE = true
-  lazy val cov = Coverage(JSTest.cfg)
+  lazy val cov = Coverage(ESTest.cfg)
 
   // summary
   lazy val summary = progress.summary
@@ -50,10 +50,10 @@ class EvalLargeTest extends Test262Test {
     for (config <- progress)
       val NormalConfig(name, includes) = config
       val jsName = s"$TEST262_TEST_DIR/$name"
-      if (COVERAGE_MODE) JSTest.checkExit(cov.run(jsName))
+      if (COVERAGE_MODE) ESTest.checkExit(cov.run(jsName))
       else
         val (sourceText, ast) = loadTestFromFile(jsName) // load test
-        JSTest.evalTest(sourceText, cachedAst = Some(ast)) // run interpreter
+        ESTest.evalTest(sourceText, cachedAst = Some(ast)) // run interpreter
     summary.close
     val summaryStr =
       if (COVERAGE_MODE) summary.toString + LINE_SEP + cov.toString

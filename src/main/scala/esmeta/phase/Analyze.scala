@@ -10,7 +10,7 @@ import esmeta.util.SystemUtils.*
 /** `analyze` phase */
 case object Analyze extends Phase[CFG, AbsSemantics] {
   val name = "analyze"
-  val help = "analyzes a JavaScript file using meta-level static analysis."
+  val help = "analyzes an ECMAScript file using meta-level static analysis."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,
@@ -20,7 +20,7 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
     domain._cfgOpt = Some(cfg)
     YET_THROW = true
     val filename = getFirstFilename(globalConfig, this.name)
-    val npMap = Initialize.initJs(readFile(filename))
+    val npMap = Initialize.initEs(readFile(filename))
 
     // perform a meta-level static analysis
     AbsSemantics(npMap).fixpoint

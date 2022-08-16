@@ -3,7 +3,7 @@ package esmeta.state
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.builtin.*
+import esmeta.es.builtin.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 

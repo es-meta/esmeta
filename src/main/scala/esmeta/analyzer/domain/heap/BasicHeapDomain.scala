@@ -3,7 +3,7 @@ package esmeta.analyzer.domain
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.state.*
-import esmeta.js
+import esmeta.es
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.cfg.CFG
@@ -13,7 +13,7 @@ object BasicHeapDomain extends Domain {
   given CFG = cfg
 
   // base heap
-  lazy val baseHeap: Heap = new js.Initialize(cfg).initHeap
+  lazy val baseHeap: Heap = new es.Initialize(cfg).initHeap
 
   // bottom element
   val Bot = Elem(Map(), Set())
@@ -148,7 +148,7 @@ object BasicHeapDomain extends Domain {
     def apply(loc: AbsLoc, prop: AbsValue): AbsValue =
       loc.map(this(_, prop)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
     def apply(loc: Loc, prop: AbsValue): AbsValue = loc match
-      case NamedLoc(js.builtin.INTRINSICS) =>
+      case NamedLoc(es.builtin.INTRINSICS) =>
         prop.getSingle match
           case FlatBot => AbsValue.Bot
           case FlatElem(ASimple(str)) =>

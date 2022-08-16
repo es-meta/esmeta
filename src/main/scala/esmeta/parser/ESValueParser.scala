@@ -1,6 +1,6 @@
 package esmeta.parser
 
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.state.{BigInt => BigIntV, *}
 import esmeta.error.*
 import scala.util.matching.Regex

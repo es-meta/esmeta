@@ -1,10 +1,10 @@
-package esmeta.js.util
+package esmeta.es.util
 
 import esmeta.{LINE_SEP, TEST262_TEST_DIR}
 import esmeta.cfg.*
 import esmeta.interpreter.*
 import esmeta.ir.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.test262.*
 import esmeta.state.*
 import esmeta.util.*
@@ -19,8 +19,8 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
   private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
   private lazy val nodeMap: MMap[Int, Int] = MMap()
 
-  /** update coverage for a given JavaScript program */
-  private lazy val scriptParser = cfg.jsParser("Script")
+  /** update coverage for a given ECMAScript program */
+  private lazy val scriptParser = cfg.esParser("Script")
   def run(path: String): State = {
     // parse
     val fromTest262 = path startsWith TEST262_TEST_DIR

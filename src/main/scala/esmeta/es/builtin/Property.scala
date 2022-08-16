@@ -1,4 +1,4 @@
-package esmeta.js.builtin
+package esmeta.es.builtin
 
 import esmeta.cfg.CFG
 import esmeta.state.*

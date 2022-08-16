@@ -21,8 +21,8 @@ case class Program(
   /** convert to a control-flow graph (CFG) */
   lazy val toCFG: cfg.CFG = cfgbuilder.CFGBuilder(this)
 
-  /** JavaScript parser */
-  lazy val jsParser: parser.Parser = spec.jsParser
+  /** ECMAScript parser */
+  lazy val esParser: parser.Parser = spec.esParser
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel

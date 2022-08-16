@@ -1,8 +1,8 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.js.*
-import esmeta.parser.{Parser => JSParser}
+import esmeta.es.*
+import esmeta.parser.{Parser => ESParser}
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -10,14 +10,14 @@ import esmeta.util.SystemUtils.*
 /** `parse` phase */
 case object Parse extends Phase[Spec, Ast] {
   val name = "parse"
-  val help = "parses a JavaScript file."
+  val help = "parses an ECMAScript file."
   def apply(
     spec: Spec,
     globalConfig: GlobalConfig,
     config: Config,
   ): Ast =
     val filename = getFirstFilename(globalConfig, name)
-    JSParser(spec.grammar, config.debug)("Script").fromFile(filename)
+    ESParser(spec.grammar, config.debug)("Script").fromFile(filename)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

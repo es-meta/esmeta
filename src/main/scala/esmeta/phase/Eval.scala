@@ -6,12 +6,12 @@ import esmeta.interpreter.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.js.*
+import esmeta.es.*
 
 /** `eval` phase */
 case object Eval extends Phase[CFG, State] {
   val name = "eval"
-  val help = "evaluates a JavaScript file."
+  val help = "evaluates an ECMAScript file."
   def apply(
     cfg: CFG,
     globalConfig: GlobalConfig,

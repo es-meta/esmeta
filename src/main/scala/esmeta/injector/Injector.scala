@@ -4,7 +4,7 @@ import esmeta.INJECT_LOG_DIR
 import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -285,7 +285,7 @@ private class Injector(
         case _ => warning("[[SubMap]] is not a map object: $path"); Set()
     case _ => warning("[[SubMap]] is not an address: $path"); Set()
 
-  // conversion to JS code
+  // conversion to ECMAScript code
   private def val2str(value: Value): Option[String] = value match
     case sv: SimpleValue => Some(sv.toString)
     case addr: Addr      => addrToName(addr)

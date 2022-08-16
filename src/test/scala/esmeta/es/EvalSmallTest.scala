@@ -1,15 +1,15 @@
-package esmeta.js
+package esmeta.es
 
-import esmeta.JS_TEST_DIR
+import esmeta.ES_TEST_DIR
 import esmeta.ir.NormalInsts
 import esmeta.util.SystemUtils.*
 
-class EvalSmallTest extends JSTest {
-  import JSTest.*
-  val name: String = "jsEvalTest"
+class EvalSmallTest extends ESTest {
+  import ESTest.*
+  val name: String = "esEvalTest"
 
   // registration
-  def init: Unit = for (file <- walkTree(JS_TEST_DIR)) {
+  def init: Unit = for (file <- walkTree(ES_TEST_DIR)) {
     val filename = file.getName
     if (jsFilter(filename))
       check(filename) {

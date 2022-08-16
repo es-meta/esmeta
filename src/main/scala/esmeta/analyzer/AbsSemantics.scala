@@ -5,7 +5,7 @@ import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.AnalysisImprecise
 import esmeta.ir.{Name, Local}
-import esmeta.js.Ast
+import esmeta.es.Ast
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.Console.*
@@ -268,6 +268,6 @@ object AbsSemantics {
 
   /** constructors */
   def apply(sourceText: String): AbsSemantics = AbsSemantics(
-    npMap = Initialize.initJs(sourceText),
+    npMap = Initialize.initEs(sourceText),
   )
 }

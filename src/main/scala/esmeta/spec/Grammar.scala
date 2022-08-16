@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.spec.util.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.util.BaseUtils.cached
 
 /** ECMAScript grammars */

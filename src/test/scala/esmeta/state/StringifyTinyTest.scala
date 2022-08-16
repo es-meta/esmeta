@@ -2,7 +2,7 @@ package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 

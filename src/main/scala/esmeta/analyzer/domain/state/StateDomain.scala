@@ -5,7 +5,6 @@ import esmeta.analyzer.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ir.*
-import esmeta.js
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*

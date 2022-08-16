@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.state.*
 import esmeta.ir.Name
-import esmeta.js.Ast
+import esmeta.es.Ast
 import esmeta.util.BaseUtils.*
 
 /** values for analysis */

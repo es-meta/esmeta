@@ -1,11 +1,11 @@
-package esmeta.js
+package esmeta.es
 
-import esmeta.js.util.*
+import esmeta.es.util.*
 import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 
-/** JavaScript elements */
-trait JSElem {
+/** ECMAScript elements */
+trait ESElem {
   override def toString: String = toString()
 
   /** stringify with options */
@@ -14,12 +14,12 @@ trait JSElem {
     location: Boolean = false,
     grammar: Option[Grammar] = None,
   ): String = {
-    val stringifier = JSElem.getStringifier(detail, location, grammar)
+    val stringifier = ESElem.getStringifier(detail, location, grammar)
     import stringifier.elemRule
     stringify(this)
   }
 }
-object JSElem {
+object ESElem {
   val getStringifier =
     cached[(Boolean, Boolean, Option[Grammar]), Stringifier] {
       Stringifier(_, _, _)

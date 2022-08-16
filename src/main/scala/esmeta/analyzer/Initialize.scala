@@ -3,15 +3,15 @@ package esmeta.analyzer
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.Ast
+import esmeta.es.Ast
 import esmeta.spec.*
-import esmeta.js.builtin.SOURCE_TEXT
+import esmeta.es.builtin.SOURCE_TEXT
 
 /** abstract semantics initializer */
 object Initialize {
 
-  /** initialize JavaScript analysis */
-  def initJs(sourceText: String): Map[NodePoint[Node], AbsState] = {
+  /** initialize ECMAScript analysis */
+  def initEs(sourceText: String): Map[NodePoint[Node], AbsState] = {
     // initial control point
     val initCp = {
       val runJobs = cfg.fnameMap("RunJobs")

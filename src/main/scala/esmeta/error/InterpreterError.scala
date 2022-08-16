@@ -1,7 +1,7 @@
 package esmeta.error
 
 import esmeta.interpreter.*
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.cfg.*
 import esmeta.state.*

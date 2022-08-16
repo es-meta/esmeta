@@ -4,8 +4,8 @@ import esmeta.EVAL_LOG_DIR
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.*
-import esmeta.parser.{Parser => JSParser, ESValueParser}
+import esmeta.es.*
+import esmeta.parser.{Parser => ESParser, ESValueParser}
 import esmeta.state.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
@@ -31,8 +31,8 @@ class Interpreter(
       println("[Interpreter] Logging finished")
     st
 
-  /** JavaScript parser */
-  lazy val jsParser: JSParser = cfg.jsParser
+  /** ECMAScript parser */
+  lazy val esParser: ESParser = cfg.esParser
 
   /** control flow graphs */
   private given cfg: CFG = st.cfg
@@ -216,7 +216,7 @@ class Interpreter(
             AstValue(ast)
           case (x, Grammar(name, params), _, _) =>
             val ast =
-              jsParser(name, if (params.isEmpty) args else params).from(x)
+              esParser(name, if (params.isEmpty) args else params).from(x)
             // TODO handle span of re-parsed ast
             ast.clearLoc
             ast.setChildLoc(locOpt)
@@ -228,7 +228,7 @@ class Interpreter(
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
       val ast = interp(expr).asAst
-      // XXX fix last space in js stringifier
+      // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kindOpt, ast) =>
       val kOpt = kindOpt.map(kind =>

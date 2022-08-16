@@ -18,8 +18,8 @@ object HtmlUtils {
     /** revert character to entity name */
     def escapeHtml: String = StringEscapeUtils.escapeHtml4(str)
 
-    /** escape js file to pass it to shell */
-    def escapeJS: String = StringEscapeUtils.escapeXSI(str)
+    /** escape ECMAScript file to pass it to shell */
+    def escapeES: String = StringEscapeUtils.escapeXSI(str)
 
     /** parse HTML string */
     def toHtml: Document =

@@ -76,16 +76,16 @@ case object CmdTypeCheck
 }
 
 // -----------------------------------------------------------------------------
-// JavaScript Interpreter
+// ECMAScript (i.e., JavaScript) Interpreter
 // -----------------------------------------------------------------------------
 /** `parse` command */
 case object CmdParse extends Command("parse", CmdExtract >> Parse) {
-  val help = "parses a JavaScript file."
+  val help = "parses an ECMAScript file."
 }
 
 /** `eval` command */
 case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
-  val help = "evaluates a JavaScript file."
+  val help = "evaluates an ECMAScript file."
 }
 
 /** `test262test` command */
@@ -99,21 +99,21 @@ case object CmdTest262Test
 
 /** `web` command */
 case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
-  val help = "starts a web server for a JavaScript double debugger."
+  val help = "starts a web server for an ECMAScript double debugger."
 }
 
 // -----------------------------------------------------------------------------
-// JavaScript Transformer
+// ECMAScript (i.e., JavaScript) Transformer
 // -----------------------------------------------------------------------------
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
-  val help = "injects assertions to check the final state of a JavaScript file."
+  val help = "injects assertions to check final state of an ECMAScript file."
 }
 
 // -----------------------------------------------------------------------------
-// JavaScript Static Analysis (Meta-Level Static Analysis)
+// ECMAScript (i.e., JavaScript) Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
 /** `analyze` command */
 case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
-  val help = "analyzes a JavaScript file using meta-level static analysis."
+  val help = "analyzes an ECMAScript file using meta-level static analysis."
 }

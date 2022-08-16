@@ -1,21 +1,21 @@
-package esmeta.js
+package esmeta.es
 
 import esmeta.ESMetaTest
 import esmeta.analyzer.{AbsSemantics, YET_THROW}
 import esmeta.analyzer.domain.*
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
-import esmeta.js.util.*
+import esmeta.es.util.*
 import esmeta.parser.Parser
 import esmeta.spec.Spec
 import esmeta.state.*
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*
 
-trait JSTest extends ESMetaTest {
-  def category: String = "js"
+trait ESTest extends ESMetaTest {
+  def category: String = "es"
 }
-object JSTest {
+object ESTest {
   val spec = ESMetaTest.spec
   val grammar = spec.grammar
   val cfg = {
@@ -28,12 +28,12 @@ object JSTest {
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")
 
-  // parse JS codes
+  // parse ES codes
   lazy val parser = Parser(grammar)("Script")
   def parse(str: String): Ast = parser.from(str)
   def parseFile(filename: String): Ast = parser.fromFile(filename)
 
-  // eval JS codes
+  // eval ES codes
   def eval(
     str: String,
     checkAfter: List[NormalInst] = Nil,
@@ -46,14 +46,14 @@ object JSTest {
     cachedAst: Option[Ast] = None,
   ): State = eval(readFile(filename), checkAfter, cachedAst)
 
-  // analyze JS codes
+  // analyze ES codes
   def analyzeFile(filename: String): AbsSemantics = {
     val str = readFile(filename)
     analyze(str)
   }
   def analyze(str: String): AbsSemantics = AbsSemantics(str).fixpoint
 
-  // tests for JS parser
+  // tests for ES parser
   def parseTest(ast: Ast): Ast =
     val newAst = parser.from(ast.toString(grammar = Some(grammar)))
     assert(ast == newAst)
@@ -61,7 +61,7 @@ object JSTest {
   def parseTest(str: String): Ast = parseTest(parse(str))
   def parseFileTest(filename: String): Ast = parseTest(parseFile(filename))
 
-  // tests for JS interpreter
+  // tests for ES interpreter
   def checkExit(st: State): st.type = st(GLOBAL_RESULT) match
     case Undef => st
     case v     => fail(s"return not undefined: $v")
@@ -76,7 +76,7 @@ object JSTest {
     cachedAst: Option[Ast] = None,
   ): State = checkExit(evalFile(filename, checkAfter, cachedAst))
 
-  // tests for JS analyzer
+  // tests for ES analyzer
   def checkExit(absSem: AbsSemantics): AbsSemantics =
     assert(absSem.finalResult.value.getSingle == FlatElem(ASimple(Undef)))
     absSem

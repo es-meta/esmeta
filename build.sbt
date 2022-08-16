@@ -48,11 +48,11 @@ lazy val stateTest = taskKey[Unit]("Launch state tests")
 lazy val stateStringifyTest =
   taskKey[Unit]("Launch stringify tests for state (tiny)")
 
-// js
-lazy val jsTest = taskKey[Unit]("Launch js tests")
-lazy val jsEvalTest = taskKey[Unit]("Launch eval tests for js (small)")
-lazy val jsParseTest = taskKey[Unit]("Launch parse tests for js (small)")
-lazy val jsAnalyzeTest = taskKey[Unit]("Launch analyze tests for js (small)")
+// es
+lazy val esTest = taskKey[Unit]("Launch es tests")
+lazy val esEvalTest = taskKey[Unit]("Launch eval tests for es (small)")
+lazy val esParseTest = taskKey[Unit]("Launch parse tests for es (small)")
+lazy val esAnalyzeTest = taskKey[Unit]("Launch analyze tests for es (small)")
 
 // test262
 lazy val test262ParseTest =
@@ -147,11 +147,11 @@ lazy val root = project
     stateStringifyTest := (Test / testOnly)
       .toTask(" *.state.Stringify*Test")
       .value,
-    // js
-    jsTest := (Test / testOnly).toTask(" *.js.*Test").value,
-    jsEvalTest := (Test / testOnly).toTask(" *.js.Eval*Test").value,
-    jsParseTest := (Test / testOnly).toTask(" *.js.Parse*Test").value,
-    jsAnalyzeTest := (Test / testOnly).toTask(" *.js.Analyze*Test").value,
+    // es
+    esTest := (Test / testOnly).toTask(" *.es.*Test").value,
+    esEvalTest := (Test / testOnly).toTask(" *.es.Eval*Test").value,
+    esParseTest := (Test / testOnly).toTask(" *.es.Parse*Test").value,
+    esAnalyzeTest := (Test / testOnly).toTask(" *.es.Analyze*Test").value,
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
     test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,

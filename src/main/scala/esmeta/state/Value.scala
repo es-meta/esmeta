@@ -3,7 +3,7 @@ package esmeta.state
 import esmeta.cfg.Func
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.js.*
+import esmeta.es.*
 import scala.collection.mutable.{Map => MMap}
 import esmeta.util.DoubleEquals
 

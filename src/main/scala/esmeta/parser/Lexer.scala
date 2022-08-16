@@ -1,13 +1,13 @@
 package esmeta.parser
 
-import esmeta.js.*
+import esmeta.es.*
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.util.parsing.input.Position
 import scala.util.matching.Regex
 
-/** JavaScript lexer */
+/** ECMAScript lexer */
 trait Lexer extends UnicodeParsers {
   val grammar: Grammar
 
