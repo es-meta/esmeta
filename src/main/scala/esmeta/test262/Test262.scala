@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.error.NotSupported
 import esmeta.es.*
 import esmeta.es.util.*
-import esmeta.parser.{Parser => ESParser}
+import esmeta.parser.ESParser
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -27,8 +27,8 @@ case class Test262(spec: Spec) {
   )
 
   // parse ECMAScript file
-  lazy val parser = ESParser(spec.grammar)("Script")
-  def parseFile(filename: String): Ast = parser.fromFile(filename)
+  lazy val scriptParser = spec.scriptParser
+  def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
 
   // test262 test configuration
   lazy val config = TestFilter.configSummary

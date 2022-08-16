@@ -2,6 +2,7 @@ package esmeta.spec
 
 import esmeta.compiler.Compiler
 import esmeta.lang.*
+import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
@@ -26,7 +27,8 @@ case class Spec(
   lazy val toCFG: cfg.CFG = toIR.toCFG
 
   /** ECMAScript parser */
-  lazy val esParser: parser.Parser = parser.Parser(grammar)
+  lazy val esParser: ESParser = ESParser(grammar)
+  lazy val scriptParser: AstFrom = esParser("Script")
 
   /** get incomplete algorithms */
   lazy val incompleteAlgorithms: List[Algorithm] =

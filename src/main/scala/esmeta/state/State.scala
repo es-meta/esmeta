@@ -4,7 +4,6 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
-import esmeta.parser.{Parser => ESParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -18,9 +17,6 @@ case class State(
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
 ) extends StateElem {
-
-  /** ECMAScript parser */
-  lazy val esParser: ESParser = cfg.esParser
 
   /** get the current function */
   def func: Func = context.cursor match

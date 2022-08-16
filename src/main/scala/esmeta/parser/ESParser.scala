@@ -11,7 +11,7 @@ import scala.util.parsing.input.*
 import scala.util.matching.Regex
 
 /** ECMAScript parser */
-case class Parser(
+case class ESParser(
   val grammar: Grammar,
   val debug: Boolean = false,
 ) extends LAParsers {
@@ -23,14 +23,12 @@ case class Parser(
     * @param args
     *   boolean arguments
     */
-  def apply(name: String, args: List[Boolean] = Nil): LAFrom[Ast] =
-    given LAParser[Ast] = parsers(name)(args)
-    LAFrom()
-
-  class LAFrom[T](using parser: LAParser[T]) {
-    def fromFile(str: String): T = parse(parser, fileReader(str)).get
-    def from(str: String): T = parse(parser, str).get
-  }
+  def apply(name: String, args: List[Boolean] = Nil): AstFrom =
+    val parser = parsers(name)(args)
+    new AstFrom {
+      def fromFile(str: String): Ast = parse(parser, fileReader(str)).get
+      def from(str: String): Ast = parse(parser, str).get
+    }
 
   // parsers
   lazy val parsers: Map[String, ESParser[Ast]] = (for {

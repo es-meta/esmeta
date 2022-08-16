@@ -5,7 +5,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
-import esmeta.parser.{Parser => ESParser, ESValueParser}
+import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*

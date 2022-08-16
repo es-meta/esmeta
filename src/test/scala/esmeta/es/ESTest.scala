@@ -6,7 +6,7 @@ import esmeta.analyzer.domain.*
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
 import esmeta.es.util.*
-import esmeta.parser.Parser
+import esmeta.parser.AstFrom
 import esmeta.spec.Spec
 import esmeta.state.*
 import esmeta.util.SystemUtils.*
@@ -29,9 +29,9 @@ object ESTest {
   lazy val js2ir = changeExt("js", "ir")
 
   // parse ES codes
-  lazy val parser = Parser(grammar)("Script")
-  def parse(str: String): Ast = parser.from(str)
-  def parseFile(filename: String): Ast = parser.fromFile(filename)
+  lazy val scriptParser: AstFrom = spec.scriptParser
+  def parse(str: String): Ast = scriptParser.from(str)
+  def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
 
   // eval ES codes
   def eval(
@@ -55,7 +55,7 @@ object ESTest {
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =
-    val newAst = parser.from(ast.toString(grammar = Some(grammar)))
+    val newAst = parse(ast.toString(grammar = Some(grammar)))
     assert(ast == newAst)
     ast
   def parseTest(str: String): Ast = parseTest(parse(str))

@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.es.*
-import esmeta.parser.{Parser => ESParser}
+import esmeta.parser.ESParser
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*

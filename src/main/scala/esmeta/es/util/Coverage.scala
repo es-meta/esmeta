@@ -20,7 +20,7 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
   private lazy val nodeMap: MMap[Int, Int] = MMap()
 
   /** update coverage for a given ECMAScript program */
-  private lazy val scriptParser = cfg.esParser("Script")
+  private lazy val scriptParser = cfg.scriptParser
   def run(path: String): State = {
     // parse
     val fromTest262 = path startsWith TEST262_TEST_DIR

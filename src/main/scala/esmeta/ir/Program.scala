@@ -2,6 +2,7 @@ package esmeta.ir
 
 import esmeta.*
 import esmeta.ir.util.Parser
+import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, TypeModel}
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
@@ -22,7 +23,8 @@ case class Program(
   lazy val toCFG: cfg.CFG = cfgbuilder.CFGBuilder(this)
 
   /** ECMAScript parser */
-  lazy val esParser: parser.Parser = spec.esParser
+  lazy val esParser: ESParser = spec.esParser
+  lazy val scriptParser: AstFrom = esParser("Script")
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel
