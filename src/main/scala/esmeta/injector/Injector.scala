@@ -1,6 +1,6 @@
 package esmeta.injector
 
-import esmeta.INJECTOR_LOG_DIR
+import esmeta.INJECT_LOG_DIR
 import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
@@ -56,7 +56,9 @@ private class Injector(
       handleVariable // inject assertions from variables
       handleLet // inject assertions from lexical variables
       if (isAsync) endAsync
-    if (log) pw.close
+    if (log)
+      pw.close
+      println("[Injector] Logging finished")
     app.toString
 
   // ---------------------------------------------------------------------------
@@ -73,7 +75,9 @@ private class Injector(
 
   // logging
   private lazy val pw: PrintWriter =
-    mkdir(INJECTOR_LOG_DIR); getPrintWriter(s"$INJECTOR_LOG_DIR/log")
+    println(s"[Injector] Logging into $INJECT_LOG_DIR...")
+    mkdir(INJECT_LOG_DIR)
+    getPrintWriter(s"$INJECT_LOG_DIR/log")
   private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 

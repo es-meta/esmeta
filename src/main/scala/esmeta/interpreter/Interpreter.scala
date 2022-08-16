@@ -1,5 +1,6 @@
 package esmeta.interpreter
 
+import esmeta.EVAL_LOG_DIR
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -9,6 +10,7 @@ import esmeta.state.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
+import java.io.PrintWriter
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -22,7 +24,12 @@ class Interpreter(
   import Interpreter.*
 
   /** final state */
-  lazy val result: State = { while (step) {}; st }
+  lazy val result: State =
+    while (step) {}
+    if (log)
+      pw.close
+      println("[Interpreter] Logging finished")
+    st
 
   /** JavaScript parser */
   lazy val jsParser: JSParser = cfg.jsParser
@@ -42,11 +49,19 @@ class Interpreter(
   /** itereration count */
   private var iter = 0
 
+  /** logging */
+  private lazy val pw: PrintWriter =
+    println(s"[Interpreter] Logging into $EVAL_LOG_DIR...")
+    mkdir(EVAL_LOG_DIR)
+    getPrintWriter(s"$EVAL_LOG_DIR/log")
+
   /** step */
   def step: Boolean =
     try {
-      // text-based debugging
-      if (log) println(st.getCursorString)
+      // text-based logging
+      if (log)
+        pw.println(st.getCursorString)
+        pw.flush
 
       // garbage collection
       iter += 1
@@ -320,9 +335,7 @@ class Interpreter(
             case _: ListObj   => tyName == "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???
-        case v =>
-          println(v)
-          ???,
+        case v => ???,
       )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
