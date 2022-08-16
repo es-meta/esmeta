@@ -1,4 +1,4 @@
-package esmeta.spec.util
+package esmeta.compiler
 
 import esmeta.MANUALS_DIR
 import esmeta.ir.{Type => IRType, *}
@@ -10,52 +10,46 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{ListBuffer, Stack}
 
-/** Compiler from metalangauge to IR */
-class Compiler(val spec: Spec) {
+/** compiler from metalangauge to IR */
+object Compiler:
+  def apply(spec: Spec): Program = new Compiler(spec).result
+
+/** private helper for compilation */
+private class Compiler(spec: Spec) {
 
   /** compiled specification */
-  def result: Program = {
-    // compile algorithms in spec
-    for { algo <- spec.algorithms } compile(algo)
+  lazy val result: Program =
+    for (algo <- spec.algorithms) compile(algo)
+    Program(funcs.toList, spec)
 
-    // result
-    val program = Program(funcs.toList)
-
-    // connect backward edge to a given specification
-    program.spec = spec
-
-    program
-  }
-
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // compiled algorithms
-  private val funcs: ListBuffer[Func] = ListBuffer()
-
-  // load manually created AOs
-  private val manualAlgoNames = (for {
+  /** load manually created AOs */
+  val manualAlgos = (for {
     file <- walkTree(MANUALS_DIR) if irFilter(file.getName)
     func = Func.fromFile(file.toString)
-    _ = funcs += func
-  } yield func.name).toList
+  } yield func).toList
+  val manualAlgoNames = manualAlgos.map(_.name).toSet
 
-  // load manual compile rules
-  private val manualRules: Map[String, Inst] = (for {
+  /** compiled algorithms */
+  val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
+
+  /** load manual compile rules */
+  val manualRules: Map[String, Inst] = (for {
     (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
   } yield yet -> Inst.from(inst)).toMap
 
-  // grammar
-  private def grammar: Grammar = spec.grammar
+  /** grammar */
+  def grammar: Grammar = spec.grammar
 
-  // list of function names which need to replace return step return to resumed step
-  // since they have no note step for that return
-  private val fixReturnAOs =
+  /** list of function names which need to replace return step return to resumed
+    * step since they have no note step for that return
+    */
+  val fixReturnAOs =
     List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
 
-  // list of function names which need to replace head to built-in
-  // when creating closure (ex: Await)
-  private val fixClosurePrefixAOs: List[scala.util.matching.Regex] =
+  /** list of function names which need to replace head to built-in when
+    * creating closure (ex: Await)
+    */
+  val fixClosurePrefixAOs: List[scala.util.matching.Regex] =
     List(
       "Await".r,
       "MakeArg.*".r, // MakeArgGetter, MakeArgSetter
@@ -74,120 +68,23 @@ class Compiler(val spec: Spec) {
       "INTRINSICS.Proxy.revocable".r,
     )
 
-  // list of shorthands
-  // NOTE: https://github.com/tc39/ecma262/issues/2384
-  private val shorthands = List(
+  /* set of shorthands
+   *
+   * NOTE: https://github.com/tc39/ecma262/issues/2384
+   */
+  val shorthands = Set(
     "IfAbruptCloseIterator",
     "IfAbruptRejectPromise",
   )
 
-  // list of function names not to compile
-  private val excluded =
-    "INTRINSICS.Array.prototype[@@unscopables]" :: shorthands :: manualAlgoNames
+  /* set of function names not to compile */
+  // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
+  val excluded = manualAlgoNames ++ shorthands ++ Set(
+    "INTRINSICS.Array.prototype[@@unscopables]",
+  )
 
-  // function builder
-  private case class FuncBuilder(
-    kind: Func.Kind,
-    name: String,
-    params: List[Func.Param],
-    retTy: IRType,
-    body: Step,
-    algo: Algorithm,
-    returnContext: Option[Ref] = None,
-    prefix: Option[Inst] = None,
-  ) {
-    // get an IR function as the result of compilation of an algorithm
-    lazy val result: Option[Func] =
-      if (excluded contains name) None
-      else {
-        val func = Func(
-          name == "RunJobs",
-          kind,
-          name,
-          params,
-          retTy,
-          getBodyInst,
-          Some(algo),
-        )
-        funcs += func
-        Some(func)
-      }
-
-    // bindings for nonterminals
-    var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
-      case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
-        val rhs = grammar.nameMap(target.lhsName).rhsList(target.idx)
-        val rhsNames = rhs.nts.map(_.name)
-        val rhsBindings = rhsNames.zipWithIndex.map {
-          case (name, idx) => (name, ENAME_THIS, Some(idx))
-        }
-        if (rhsNames contains target.lhsName) rhsBindings
-        else (target.lhsName, ENAME_THIS, None) :: rhsBindings
-      case _ => List()
-
-    // create a new scope with a given procedure
-    def newScope(f: => Unit): Inst = {
-      scopes.push(ListBuffer()); f; ISeq(scopes.pop.toList)
-    }
-
-    // set backward egde from ir to lang
-    def withLang[T](lang: Syntax)(f: => T): T = {
-      langs.push(lang); val result = f; langs.pop
-      result
-    }
-
-    // add instructions to the current scope
-    def addInst(insts: Inst*): Unit = scopes.head ++= insts
-      .flatMap {
-        case ISeq(is) => is
-        case i        => List(i)
-      }
-      .map(backEdgeWalker(this).walk(_))
-
-    // add return to resume instruction
-    def addReturnToResume(context: Ref, value: Expr): Unit =
-      addInst(
-        ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
-      )
-
-    // get next temporal identifier
-    def newTId: Temp = Temp(nextTId)
-
-    // get next temporal identifier with expressions
-    def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
-
-    // get closure name
-    def nextCloName: String = s"$name:clo${nextCId}"
-
-    // get continuation name
-    def nextContName: String = s"$name:cont${nextCId}"
-
-    // get body instruction
-    private def getBodyInst: Inst =
-      (prefix, compileWithScope(this, body)) match
-        case (None, i)                  => i
-        case (Some(ISeq(ps)), ISeq(bs)) => ISeq(ps ++ bs)
-        case (Some(p), ISeq(bs))        => ISeq(p :: bs)
-        case (Some(p), b)               => ISeq(List(p, b))
-
-    // scope stacks
-    private var scopes: Stack[ListBuffer[Inst]] = Stack()
-
-    // lang stacks
-    val langs: Stack[Syntax] = Stack()
-
-    // temporal identifier id counter
-    private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
-    private var tidCount: Int = 0
-
-    // closure id counter
-    private def nextCId: Int = { val cid = cidCount; cidCount += 1; cid }
-    private var cidCount: Int = 0
-  }
-  private type FB = FuncBuilder
-
-  // get function kind
-  private def getKind(head: Head): Func.Kind = {
+  /* get function kind */
+  def getKind(head: Head): Func.Kind = {
     import Func.Kind.*
     head match {
       case head: AbstractOperationHead       => AbsOp
@@ -199,13 +96,13 @@ class Compiler(val spec: Spec) {
     }
   }
 
-  // get prefix instructions for builtin functions
-  private def getBuiltinPrefix(ps: List[SParam]): Option[Inst] =
-    if (ps.exists(_.kind == SParam.Kind.Ellipsis)) None
+  /** get prefix instructions for builtin functions */
+  def getBuiltinPrefix(ps: List[SParam]): List[Inst] =
+    if (ps.exists(_.kind == SParam.Kind.Ellipsis)) Nil
     else {
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
-      Some(ISeq(ps.map {
+      ps.map {
         case SParam(name, SParam.Kind.Variadic, _) =>
           ILet(Name(name), ENAME_ARGS_LIST)
         case SParam(name, _, _) =>
@@ -214,57 +111,50 @@ class Compiler(val spec: Spec) {
             ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
             ILet(Name(name), EAbsent),
           )
-      }))
+      }
     }
 
-  // convert to references
-  private inline def toStrERef(base: Ref, props: String*): ERef =
-    ERef(toStrRef(base, props*))
-  private inline def toStrRef(base: Ref, props: String*): Ref =
-    toRef(base, props.map(EStr(_))*)
-  private inline def toERef(base: Ref, props: Expr*): ERef =
-    ERef(toRef(base, props*))
-  private inline def toERef(fb: FB, base: Expr, props: Expr*): ERef =
-    ERef(toRef(fb, base, props*))
-  private inline def toRef(base: Ref, props: Expr*): Ref =
-    props.foldLeft(base)(Prop(_, _))
-  private inline def toRef(fb: FB, base: Expr, props: Expr*): Ref =
-    toRef(getRef(fb, base), props*)
-  private inline def getRef(fb: FB, expr: Expr): Ref = expr match {
-    case ERef(ref) => ref
-    case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
-  }
-  private inline def toIntrinsic(base: Ref, intr: Intrinsic): Prop =
-    // convert intr to string for exceptional case in GetPrototypeFromConstructor
-    Prop(base, EStr(intr.toString))
-  private inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
-    toERef(toIntrinsic(base, intr))
-  private inline def currentRealm: Ref = toStrRef(GLOBAL_CONTEXT, "Realm")
-  private inline def currentIntrinsics: Ref =
-    toStrRef(currentRealm, "Intrinsics")
-
-  // compile with a new scope and convert it into an instruction
-  private def compileWithScope(fb: FB, step: Step): Inst =
+  /** compile with a new scope and convert it into an instruction */
+  def compileWithScope(fb: FuncBuilder, step: Step): Inst =
     fb.newScope(compile(fb, step))
 
-  // compile an algorithm to an IR function
+  /** get body instruction */
+  def addFunc(
+    fb: FuncBuilder,
+    body: Step,
+    prefix: List[Inst] = Nil,
+  ): Unit =
+    if (!excluded.contains(fb.name))
+      val inst = compileWithScope(fb, body)
+      funcs += fb.getFunc(prefix match
+        case Nil => inst
+        case _   => ISeq(prefix ++ inst.toList),
+      )
+
+  /** compile an algorithm to an IR function */
   // TODO consider refactor
-  private def compile(algo: Algorithm): Unit =
+  def compile(algo: Algorithm): Unit =
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(head.params)
-      case _                 => None
-    FuncBuilder(
-      getKind(algo.head),
-      algo.head.fname,
-      algo.head.funcParams.map(compile),
-      compile(algo.retTy),
-      algo.body,
-      algo,
+      case _                 => Nil
+    addFunc(
+      fb = FuncBuilder(
+        spec,
+        getKind(algo.head),
+        algo.head.fname,
+        algo.head.funcParams.map(compile),
+        compile(algo.retTy),
+        algo,
+      ),
+      body = algo.body,
       prefix = prefix,
-    ).result
+    )
 
-  // compile algorithm steps
-  private def compile(fb: FB, step: Step): Unit = fb.withLang(step)(step match {
+  /** compile algorithm steps */
+  def compile(
+    fb: FuncBuilder,
+    step: Step,
+  ): Unit = fb.withLang(step)(step match {
     case LetStep(x, expr) =>
       fb.addInst(ILet(compile(x), compile(fb, expr)))
     case SetStep(ref, expr) =>
@@ -355,7 +245,9 @@ class Compiler(val spec: Spec) {
           fb.newScope {
             val cond = and(
               EIsArrayIndex(keyExpr),
-              not(lessThan(EConvert(COp.ToNumber, keyExpr), compile(fb, start))),
+              not(
+                lessThan(EConvert(COp.ToNumber, keyExpr), compile(fb, start)),
+              ),
             )
             fb.addInst(IAssign(i, sub(iExpr, one)))
             fb.addInst(ILet(key, toERef(list, iExpr)))
@@ -419,17 +311,18 @@ class Compiler(val spec: Spec) {
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
-      val newFb =
-        FuncBuilder(
+      addFunc(
+        fb = FuncBuilder(
+          spec,
           Func.Kind.Cont,
           contName,
           toParams(paramOpt),
           fb.retTy,
-          body,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
-        )
-      newFb.result
+        ),
+        body = body,
+      )
       fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
@@ -439,9 +332,17 @@ class Compiler(val spec: Spec) {
       val contName = fb.nextContName
       val ps = toParams(paramOpt)
       val bodyStep = BlockStep(StepBlock(steps))
-      val newFb =
-        FuncBuilder(Func.Kind.Cont, contName, ps, fb.retTy, bodyStep, fb.algo)
-      newFb.result
+      addFunc(
+        fb = FuncBuilder(
+          spec,
+          Func.Kind.Cont,
+          contName,
+          ps,
+          fb.retTy,
+          fb.algo,
+        ),
+        body = bodyStep,
+      )
       fb.addInst(
         IIf(
           isAbsent(eReturnCont),
@@ -459,16 +360,16 @@ class Compiler(val spec: Spec) {
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
       val inst = manualRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
-      fb.addInst(backEdgeWalker(fb, force = true).walk(inst))
+      fb.addInst(BackEdgeWalker(fb, force = true).walk(inst))
   })
 
-  // compile local variable
-  private def compile(x: Variable): Name = Name(x.name)
-  private def compileWithExpr(x: Variable): (Name, Expr) =
+  /** compile local variable */
+  def compile(x: Variable): Name = Name(x.name)
+  def compileWithExpr(x: Variable): (Name, Expr) =
     val n = Name(x.name); (n, ERef(n))
 
-  // compile references
-  private def compile(fb: FB, ref: Reference): Ref = ref match {
+  /** compile references */
+  def compile(fb: FuncBuilder, ref: Reference): Ref = ref match {
     case x: Variable               => compile(x)
     case RunningExecutionContext() => GLOBAL_CONTEXT
     case SecondExecutionContext()  => toRef(GLOBAL_EXECUTION_STACK, EMathVal(1))
@@ -477,7 +378,7 @@ class Compiler(val spec: Spec) {
     case ref: PropertyReference    => compile(fb, ref)
   }
 
-  private def compile(fb: FB, ref: PropertyReference): Prop =
+  def compile(fb: FuncBuilder, ref: PropertyReference): Prop =
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
@@ -487,8 +388,8 @@ class Compiler(val spec: Spec) {
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Prop(baseRef, EStr(name))
 
-  // compile expressions
-  private def compile(fb: FB, expr: Expression): Expr =
+  /** compile expressions */
+  def compile(fb: FuncBuilder, expr: Expression): Expr =
     fb.withLang(expr)(expr match {
       case StringConcatExpression(exprs) =>
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
@@ -594,7 +495,7 @@ class Compiler(val spec: Spec) {
         EUnary(compile(op), compile(fb, expr))
       case AbstractClosureExpression(params, captured, body) =>
         val algoName = fb.algo.head.fname
-        val (ck, cn, ps, pre) =
+        val (ck, cn, ps, prefix) =
           if (fixClosurePrefixAOs.exists(_.matches(algoName)))
             (
               Func.Kind.BuiltinClo,
@@ -607,11 +508,20 @@ class Compiler(val spec: Spec) {
               Func.Kind.Clo,
               fb.nextCloName,
               params.map(x => Func.Param(compile(x), false, IRType("any"))),
-              None,
+              Nil,
             )
-        val newFb =
-          FuncBuilder(ck, cn, ps, AnyType, body, fb.algo, prefix = pre)
-        newFb.result
+        addFunc(
+          fb = FuncBuilder(
+            spec,
+            ck,
+            cn,
+            ps,
+            AnyType,
+            fb.algo,
+          ),
+          body = body,
+          prefix = prefix,
+        )
         EClo(cn, captured.map(compile))
       case XRefExpression(XRefExpression.Op.Algo, id) =>
         EClo(spec.getAlgoById(id).head.fname, Nil)
@@ -628,20 +538,20 @@ class Compiler(val spec: Spec) {
       case lit: Literal => compile(fb, lit)
     })
 
-  // compile binary operators
-  private def compile(op: BinaryExpression.Op): BOp = op match
+  /** compile binary operators */
+  def compile(op: BinaryExpression.Op): BOp = op match
     case BinaryExpression.Op.Add => BOp.Plus
     case BinaryExpression.Op.Sub => BOp.Sub
     case BinaryExpression.Op.Mul => BOp.Mul
     case BinaryExpression.Op.Div => BOp.Div
     case BinaryExpression.Op.Mod => BOp.Mod
 
-  // compile unary operators
-  private def compile(op: UnaryExpression.Op): UOp = op match
+  /** compile unary operators */
+  def compile(op: UnaryExpression.Op): UOp = op match
     case UnaryExpression.Op.Neg => UOp.Neg
 
-  // compile literals
-  private def compile(fb: FB, lit: Literal): Expr = lit match {
+  /** compile literals */
+  def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
     case ThisLiteral()      => ENAME_THIS
     case NewTargetLiteral() => ENAME_NEW_TARGET
     case HexLiteral(hex, name) =>
@@ -693,8 +603,8 @@ class Compiler(val spec: Spec) {
     case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
   }
 
-  // compile branch conditions
-  private def compile(fb: FB, cond: Condition): Expr =
+  /** compile branch conditions */
+  def compile(fb: FuncBuilder, cond: Condition): Expr =
     fb.withLang(cond)(cond match {
       case ExpressionCondition(expr) =>
         compile(fb, expr)
@@ -804,21 +714,25 @@ class Compiler(val spec: Spec) {
           case CompoundCondition.Op.Imply => or(not(l), r)
     })
 
-  // compile algorithm parameters
-  private def compile(param: SParam): Func.Param = {
+  /** compile algorithm parameters */
+  def compile(param: SParam): Func.Param = {
     val SParam(name, skind, stype) = param
     val optional = skind == SParam.Kind.Optional
     Func.Param(Name(name), optional, compile(stype))
   }
 
-  // compile types
-  private def compile(ty: SType): IRType = compile(ty.toLang)
-  private def compile(ty: Type): IRType =
+  /** compile types */
+  def compile(ty: SType): IRType = compile(ty.toLang)
+  def compile(ty: Type): IRType =
     if (ty == UnknownType) AnyType else IRType(ty.normalized.name)
 
-  // compile shorthands
+  /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers
-  private def compileShorthand(fb: FB, fname: String, args: List[Expr]): Expr =
+  def compileShorthand(
+    fb: FuncBuilder,
+    fname: String,
+    args: List[Expr],
+  ): Expr =
     val algo = spec.fnameMap(fname)
     val names = args.map {
       case ERef(name: Name) => name
@@ -831,12 +745,12 @@ class Compiler(val spec: Spec) {
         case None     => x
     }
     val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
-    fb.addInst(backEdgeWalker(fb, force = true).walk(renamed))
+    fb.addInst(BackEdgeWalker(fb, force = true).walk(renamed))
     EUndef // NOTE: unused expression
 
-  // handle short circuiting
-  private def compileShortCircuit(
-    fb: FB,
+  /** handle short circuiting */
+  def compileShortCircuit(
+    fb: FuncBuilder,
     x: Ref,
     cond: Condition,
   ): Unit = fb.withLang(cond) {
@@ -856,8 +770,8 @@ class Compiler(val spec: Spec) {
       case _ => fb.addInst(IAssign(x, compile(fb, cond)))
   }
 
-  // check if condition contains invoke expression
-  private def hasInvokeExpr(cond: Condition): Boolean = {
+  /** check if condition contains invoke expression */
+  def hasInvokeExpr(cond: Condition): Boolean = {
     var found = false
     val walker = new LangUnitWalker {
       override def walk(invoke: InvokeExpression): Unit = invoke match
@@ -869,8 +783,8 @@ class Compiler(val spec: Spec) {
     found
   }
 
-  // production helpers
-  private def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+  /** production helpers */
+  def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
     val prod = grammar.nameMap(lhsName)
     val rhsList = prod.rhsList.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
@@ -880,48 +794,41 @@ class Compiler(val spec: Spec) {
       case (rhs, idx) :: Nil => (prod.lhs, idx)
       case _                 => error("invalid production")
 
-  // walker for adjusting backward edge from ir to lang
-  private def backEdgeWalker(fb: FB, force: Boolean = false) = new IRWalker {
-    override def walk(i: Inst) =
-      if (force || i.langOpt.isEmpty) i.setLangOpt(fb.langs.headOption)
-      super.walk(i)
-  }
-
-  // instruction helpers
-  private inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =
+  /** instruction helpers */
+  inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =
     paramOpt.map(param => Func.Param(Name(param.name))).toList
-  private inline def emptyInst = ISeq(List())
+  inline def emptyInst = ISeq(List())
 
-  // expression helpers
-  private inline def emptyList = EList(List())
-  private inline def dataPropClo = EClo("IsDataDescriptor", Nil)
-  private inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
+  /** expression helpers */
+  inline def emptyList = EList(List())
+  inline def dataPropClo = EClo("IsDataDescriptor", Nil)
+  inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
-  // literal helpers
-  private val zero = EMathVal(BigDecimal.exact(0))
-  private val one = EMathVal(BigDecimal.exact(1))
-  private val posInf = ENumber(Double.PositiveInfinity)
-  private val negInf = ENumber(Double.NegativeInfinity)
-  private val T = EBool(true)
-  private val F = EBool(false)
+  /** literal helpers */
+  val zero = EMathVal(BigDecimal.exact(0))
+  val one = EMathVal(BigDecimal.exact(1))
+  val posInf = ENumber(Double.PositiveInfinity)
+  val negInf = ENumber(Double.NegativeInfinity)
+  val T = EBool(true)
+  val F = EBool(false)
 
-  // operation helpers
-  private inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
-  private inline def isIntegral(x: Expr) =
+  /** operation helpers */
+  inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
+  inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
     and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
-  private def not(expr: Expr) = expr match
+  def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
     case _                     => EUnary(UOp.Not, expr)
-  private inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
-  private inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
-  private inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
-  private inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
-  private inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
-  private inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
-  private inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
-  private inline def hasFields(
+  inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
+  inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
+  inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
+  inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
+  inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
+  inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
+  inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
+  inline def hasFields(
     fb: FuncBuilder,
     base: Expr,
     fs: List[String],
@@ -929,9 +836,9 @@ class Compiler(val spec: Spec) {
     val conds = fs.map(f => isAbsent(toERef(fb, base, EStr(f))))
     not(conds.reduce { case (a, b) => or(a, b) })
 
-  // simple operations
-  private type SimpleOp = PartialFunction[List[Expr], Expr]
-  private def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
+  /** simple operations */
+  type SimpleOp = PartialFunction[List[Expr], Expr]
+  def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
     val (name, f) = pair
     name -> (args =>
       optional(f(args)).getOrElse(
@@ -939,14 +846,11 @@ class Compiler(val spec: Spec) {
       ),
     )
   }
-  private val simpleOps: Map[String, SimpleOp] = Map(
+  val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
     arityCheck("ReturnIfAbrupt" -> {
       case List(expr) => EReturnIfAbrupt(expr, true)
     }),
   )
-}
-object Compiler {
-  def apply(spec: Spec): Program = new Compiler(spec).result
 }

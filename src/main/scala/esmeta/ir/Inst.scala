@@ -5,11 +5,16 @@ import esmeta.lang.Syntax
 
 // IR instructions
 sealed trait Inst extends IRElem:
+  // backward edge to metalangauge
   var langOpt: Option[Syntax] = None
   def setLang(lang: Syntax): this.type = setLangOpt(Some(lang))
-  def setLangOpt(langOpt: Option[Syntax]): this.type = {
+  def setLangOpt(langOpt: Option[Syntax]): this.type =
     this.langOpt = langOpt; this
-  }
+
+  // conversion to instruction lists
+  def toList: List[Inst] = this match
+    case ISeq(is) => is
+    case i        => List(i)
 object Inst extends Parser.From[Inst]
 
 // normal instructions
@@ -24,7 +29,6 @@ case class IReturn(expr: Expr) extends NormalInst
 case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
-// helper for list of normal instructions
 object NormalInsts extends Parser.From[List[NormalInst]]
 
 // call instructions

@@ -20,9 +20,7 @@ trait Walker extends BasicWalker {
 
   // programs
   def walk(program: Program): Program =
-    val newProgram = Program(walkList(program.funcs, walk))
-    newProgram.spec = program.spec
-    newProgram
+    Program(walkList(program.funcs, walk), program.spec)
 
   // functions
   def walk(func: Func): Func =

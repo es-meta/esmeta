@@ -1,11 +1,12 @@
 package esmeta.spec
 
-import esmeta.{error => ESMetaError, *}
+import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.spec.util.*
-import esmeta.util.Git
 import esmeta.util.BaseUtils.*
+import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
+import esmeta.{error => ESMetaError, *}
 import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */

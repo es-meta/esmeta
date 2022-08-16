@@ -9,12 +9,13 @@ import esmeta.util.SystemUtils.*
 
 /** IR programs */
 case class Program(
-  funcs: List[Func] = Nil,
+  funcs: List[Func] = Nil, // IR functions
 ) extends IRElem {
-  // backward edge to a specification
+
+  /** backward edge to a specification */
   var spec: Spec = Spec()
 
-  // the main function
+  /** the main function */
   lazy val main: Func = getUnique(funcs, _.main, "main function")
 
   /** convert to a control-flow graph (CFG) */
@@ -36,5 +37,9 @@ case class Program(
       getPath = func => s"$dirname/${func.normalizedName}.ir",
     )
 }
-
-object Program extends Parser.From[Program]
+object Program extends Parser.From[Program] {
+  def apply(funcs: List[Func], spec: Spec): Program =
+    val program = Program(funcs)
+    program.spec = spec
+    program
+}
