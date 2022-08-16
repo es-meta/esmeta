@@ -34,9 +34,6 @@ class Interpreter(
   /** JavaScript parser */
   lazy val jsParser: JSParser = cfg.jsParser
 
-  /** special class for handle return */
-  private case class ReturnValue(value: Value) extends Throwable
-
   /** control flow graphs */
   private given cfg: CFG = st.cfg
 
