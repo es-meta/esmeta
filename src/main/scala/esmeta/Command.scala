@@ -26,7 +26,7 @@ sealed abstract class Command[Result](
   /** run command with command-line arguments */
   def apply(args: List[String]): Result =
     val globalConfig = GlobalConfig(this)
-    val parser = new ArgParser(this, globalConfig)
+    val parser = ArgParser(this, globalConfig)
     val runner = pList.getRunner(parser)
     parser(args)
     ESMeta(this, runner(_), globalConfig)

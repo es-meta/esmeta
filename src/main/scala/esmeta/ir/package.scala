@@ -15,7 +15,7 @@ trait IRElem {
 }
 object IRElem {
   val getStringifier =
-    cached[(Boolean, Boolean), Stringifier] { new Stringifier(_, _) }
+    cached[(Boolean, Boolean), Stringifier] { Stringifier(_, _) }
 }
 
 /** predefined constant expressions */

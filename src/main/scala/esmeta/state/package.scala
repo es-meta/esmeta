@@ -16,7 +16,7 @@ trait StateElem {
 }
 object StateElem {
   val getStringifier =
-    cached[(Boolean, Boolean), Stringifier] { new Stringifier(_, _) }
+    cached[(Boolean, Boolean), Stringifier] { Stringifier(_, _) }
 }
 
 /** predefined constants */

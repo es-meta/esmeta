@@ -17,5 +17,5 @@ trait Test262Elem {
   }
 }
 object Test262Elem {
-  val getStringifier = cached[Boolean, Stringifier] { new Stringifier(_) }
+  val getStringifier = cached[Boolean, Stringifier] { Stringifier(_) }
 }

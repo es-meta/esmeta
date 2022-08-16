@@ -5,19 +5,19 @@ import esmeta.LINE_SEP
 
 class Summary {
   // not yet supported
-  val yets: SummaryElem = new SummaryElem
+  val yets: SummaryElem = SummaryElem()
   def yet: Int = yets.size
 
   // timeout
-  val timeouts: SummaryElem = new SummaryElem
+  val timeouts: SummaryElem = SummaryElem()
   def timeout: Int = timeouts.size
 
   // fail
-  val fails: SummaryElem = new SummaryElem
+  val fails: SummaryElem = SummaryElem()
   def fail: Int = fails.size
 
   // pass
-  val passes: SummaryElem = new SummaryElem
+  val passes: SummaryElem = SummaryElem()
   def pass: Int = passes.size
 
   // close all print writers
@@ -62,7 +62,7 @@ class Summary {
 
   // conversion to string
   override def toString: String =
-    val app = new Appender
+    val app = Appender()
     app >> f"time: $timeMillis%,d ms ($timeHours%.1f hours)" >> LINE_SEP
     app >> f"total: $total%,d" >> LINE_SEP
     if (yet > 0) app >> f"- yet: $yet%,d" >> LINE_SEP

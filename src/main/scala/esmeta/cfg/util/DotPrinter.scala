@@ -27,7 +27,7 @@ trait DotPrinter {
 
   // conversion to string
   override def toString: String = {
-    val app = new Appender
+    val app = Appender()
     (app >> "digraph ").wrap {
       this(app)
     }
@@ -36,7 +36,7 @@ trait DotPrinter {
 
   // functions
   def addFunc(func: Func, app: Appender): Unit = {
-    val appEdge = new Appender
+    val appEdge = Appender()
     val id = getId(func)
     val name = getName(func)
     (app :> s"subgraph $id ").wrap {

@@ -16,7 +16,7 @@ case class Spec(
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   tables: Map[String, Table] = Map(), // tables
   typeModel: TypeModel = TypeModel(), // type models
-  document: Document = new Document(""), // HTML Document element
+  document: Document = Document(""), // HTML Document element
 ) extends SpecElem {
 
   /** convert to an IR program */

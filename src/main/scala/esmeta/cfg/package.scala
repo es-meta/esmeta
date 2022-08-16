@@ -15,5 +15,5 @@ trait CFGElem {
 }
 object CFGElem {
   val getStringifier =
-    cached[(Boolean, Boolean), Stringifier] { new Stringifier(_, _) }
+    cached[(Boolean, Boolean), Stringifier] { Stringifier(_, _) }
 }

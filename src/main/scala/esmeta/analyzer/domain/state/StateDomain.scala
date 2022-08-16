@@ -24,7 +24,7 @@ trait StateDomain extends Domain {
   lazy val baseGlobals: Map[Id, AbsValue]
 
   /** monad helper */
-  val monad: StateMonad[Elem] = new StateMonad[Elem]
+  val monad: StateMonad[Elem] = StateMonad[Elem]()
 
   /** elements */
   type Elem <: StateElemTrait

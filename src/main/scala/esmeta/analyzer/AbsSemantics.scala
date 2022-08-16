@@ -32,7 +32,7 @@ case class AbsSemantics(
   val repl = REPL(this)
 
   /** a worklist of control points */
-  val worklist: Worklist[ControlPoint] = new QueueWorklist(npMap.keySet)
+  val worklist: Worklist[ControlPoint] = QueueWorklist(npMap.keySet)
 
   /** the number of iterations */
   def getIter: Int = iter

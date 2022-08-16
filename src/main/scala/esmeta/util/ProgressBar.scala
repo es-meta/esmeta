@@ -15,7 +15,7 @@ case class ProgressBar[T](
     summary.fails += name,
 ) extends Iterable[T] {
   // summary
-  val summary = new Summary
+  val summary = Summary()
 
   // postfix for summary
   def postfix =

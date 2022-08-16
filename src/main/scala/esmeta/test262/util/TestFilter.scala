@@ -82,7 +82,7 @@ object TestFilter {
   )
 
   /** test262 directory */
-  lazy val test262Dir = new File(s"$TEST_DIR/test262/test")
+  lazy val test262Dir = File(s"$TEST_DIR/test262/test")
 
   /** language features in Test262
     * @url

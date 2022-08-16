@@ -715,5 +715,5 @@ object Interpreter {
 
   /** helper of InterpreterError */
   // TODO remove after refactoring of error
-  def error(msg: String): Nothing = throw new InterpreterError(msg)
+  def error(msg: String): Nothing = throw InterpreterError(msg)
 }

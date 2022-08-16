@@ -440,7 +440,7 @@ object TypeStateDomain extends StateDomain {
 
     /** conversion to string */
     def toString(detail: Boolean = false): String = {
-      val app = new Appender
+      val app = Appender()
       app >> this
       app.toString
     }

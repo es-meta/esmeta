@@ -10,10 +10,10 @@ import scala.util.parsing.combinator.JavaTokenParsers
 trait BasicParsers extends JavaTokenParsers {
   // parse from file
   def fromFileWithParser[T](f: String, parser: Parser[T]): T = {
-    var fileName = new File(f).getCanonicalPath
-    val fs = new FileInputStream(new File(f))
-    val sr = new InputStreamReader(fs, Charset.forName("UTF-8"))
-    val in = new BufferedReader(sr)
+    var fileName = File(f).getCanonicalPath
+    val fs = FileInputStream(File(f))
+    val sr = InputStreamReader(fs, Charset.forName("UTF-8"))
+    val in = BufferedReader(sr)
     val result = errHandle(parser, parseAll(parser, in))
     in.close; sr.close; fs.close
     result
@@ -88,7 +88,7 @@ trait BasicParsers extends JavaTokenParsers {
         val trimmed = trimInput(in)
         p(trimmed) match
           case s @ Success(res, rest) =>
-            new Success(
+            Success(
               res.setLoc(trimmed, rest, List()),
               rest,
             )

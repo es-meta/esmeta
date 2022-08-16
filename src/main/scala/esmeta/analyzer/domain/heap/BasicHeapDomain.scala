@@ -257,7 +257,7 @@ object BasicHeapDomain extends Domain {
 
     // conversion to string
     def toString(detail: Boolean): String =
-      val app = new Appender
+      val app = Appender()
       given heapRule: Rule[Elem] =
         if (detail) rule else shortRule
       app >> this

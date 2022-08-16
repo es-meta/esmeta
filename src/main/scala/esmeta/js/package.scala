@@ -22,7 +22,7 @@ trait JSElem {
 object JSElem {
   val getStringifier =
     cached[(Boolean, Boolean, Option[Grammar]), Stringifier] {
-      new Stringifier(_, _, _)
+      Stringifier(_, _, _)
     }
 }
 

@@ -367,7 +367,7 @@ object BasicStateDomain extends StateDomain {
 
     /** conversion to string */
     def toString(detail: Boolean): String = {
-      val app = new Appender
+      val app = Appender()
       given Rule[Elem] =
         if (detail) BasicStateDomain.rule else BasicStateDomain.shortRule
       app >> this
@@ -376,7 +376,7 @@ object BasicStateDomain extends StateDomain {
 
     /** get string wth detailed shapes of locations */
     def getString(value: AbsValue): String = {
-      val app = new Appender
+      val app = Appender()
       app >> value.toString
       val locs = value.reachableLocs
       if (!locs.isEmpty) (app >> " @ ").wrap(for (loc <- locs) {

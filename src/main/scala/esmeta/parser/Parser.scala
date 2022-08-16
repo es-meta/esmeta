@@ -25,7 +25,7 @@ case class Parser(
     */
   def apply(name: String, args: List[Boolean] = Nil): LAFrom[Ast] =
     given LAParser[Ast] = parsers(name)(args)
-    new LAFrom
+    LAFrom()
 
   class LAFrom[T](using parser: LAParser[T]) {
     def fromFile(str: String): T = parse(parser, fileReader(str)).get
@@ -255,7 +255,7 @@ case class Parser(
   private val t = cached[String, LAParser[String]] {
     case t =>
       log(
-        new LAParser(
+        LAParser(
           follow => {
             Skip ~> {
               if (t.matches("[a-z]+")) t <~ not(IDContinue)
@@ -268,7 +268,7 @@ case class Parser(
   }
   private val doWhileCloseT: LAParser[String] = {
     val p = t(")")
-    new LAParser(
+    LAParser(
       follow =>
         Parser { rawIn =>
           val in = rawIn.asInstanceOf[EPackratReader[Char]]
@@ -289,7 +289,7 @@ case class Parser(
     case (name, nt) =>
       log(
         locationed(
-          new LAParser(
+          LAParser(
             follow =>
               (Skip ~> nt <~ +follow.parser) ^^ { case s => Lexical(name, s) },
             FirstTerms() + (name -> nt),
@@ -301,7 +301,7 @@ case class Parser(
     case (name, nt) =>
       log(
         locationed(
-          new LAParser(
+          LAParser(
             follow => (Skip ~> nt) ^^ { case s => Lexical("", s) },
             FirstTerms(),
           ),
@@ -315,7 +315,7 @@ case class Parser(
     val init: Either[ParseResult[T], Reader[Char]] = Right(in)
     (0 until MAX_ADDITION).foldLeft(init) {
       case (Right(in), _) =>
-        val reader = new EPackratReader(in)
+        val reader = EPackratReader(in)
         p(emptyFirst, reader) match {
           case (f: Failure) =>
             insertSemicolon(reader) match {
@@ -330,7 +330,7 @@ case class Parser(
                       case (x, i) => println(f"$i%4d: $x")
                     }
                 }
-                Right(new CharSequenceReader(str))
+                Right(CharSequenceReader(str))
               case None => Left(f)
             }
           case r => Left(r)
@@ -399,7 +399,7 @@ case class Parser(
 
   // no LineTerminator parser
   lazy val noLineTerminator: LAParser[String] = log(
-    new LAParser(
+    LAParser(
       follow => strNoLineTerminator,
       emptyFirst,
     ),

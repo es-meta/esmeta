@@ -20,7 +20,7 @@ trait AnalyzerElem {
 object AnalyzerElem {
   val getStringifier =
     cached[(Boolean, Boolean, Boolean), Stringifier] {
-      new Stringifier(_, _, _)
+      Stringifier(_, _, _)
     }
 }
 

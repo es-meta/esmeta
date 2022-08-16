@@ -114,7 +114,7 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
           val trimmed = trimInput(in)
           p(trimmed) match
             case s @ Success(res, rest) =>
-              new Success(
+              Success(
                 res.setLoc(trimmed, rest, trimmed.data.steps.reverse),
                 rest,
               )

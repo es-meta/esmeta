@@ -20,10 +20,11 @@ case object CmdEntry
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = notYetCmd
+  // TODO
   // cpOpt.map(cp => {
   //   var paths = Map[ControlPoint, Path]()
   //   var visited = Set[ControlPoint]()
-  //   val worklist = new QueueWorklist[Path](List(Nil))
+  //   val worklist = QueueWorklist[Path](List(Nil))
 
   //   @tailrec
   //   def aux: Unit = worklist.next match {

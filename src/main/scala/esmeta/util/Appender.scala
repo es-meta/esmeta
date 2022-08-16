@@ -9,7 +9,7 @@ import esmeta.LINE_SEP
   */
 class Appender(tab: String = "  ") {
   import Appender.*
-  private val sb: StringBuilder = new StringBuilder
+  private val sb: StringBuilder = StringBuilder()
   override def toString: String = sb.toString
 
   /** current indentation * */

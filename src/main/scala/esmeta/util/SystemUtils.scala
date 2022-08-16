@@ -23,7 +23,7 @@ object SystemUtils {
     Source.fromFile(filename, ENC).bufferedReader
 
   /** file trees with filename */
-  def walkTree(filename: String): Iterable[File] = walkTree(new File(filename))
+  def walkTree(filename: String): Iterable[File] = walkTree(File(filename))
 
   /** file trees with files */
   def walkTree(file: File): Iterable[File] =
@@ -42,7 +42,7 @@ object SystemUtils {
 
   /** print writer */
   def getPrintWriter(filename: String): PrintWriter =
-    new PrintWriter(new File(filename))
+    PrintWriter(File(filename))
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String): Unit =
@@ -113,7 +113,7 @@ object SystemUtils {
     readFile(filename).toHtml
 
   /** delete files */
-  def deleteFile(filename: String): Unit = new File(filename).delete
+  def deleteFile(filename: String): Unit = File(filename).delete
 
   /** change extension */
   def changeExt(from: String, to: String): String => String =
@@ -129,17 +129,17 @@ object SystemUtils {
 
   /** renamed filename */
   def renameFile(from: String, to: String): Unit =
-    new File(from).renameTo(new File(to))
+    File(from).renameTo(File(to))
 
   /** copy file */
   def copyFile(from: String, to: String): Unit = Files.copy(
-    new File(from).toPath,
-    new File(to).toPath,
+    File(from).toPath,
+    File(to).toPath,
     StandardCopyOption.REPLACE_EXISTING,
   )
 
   /** create directories */
-  def mkdir(name: String): Unit = new File(name).mkdirs
+  def mkdir(name: String): Unit = File(name).mkdirs
 
   /** clean directories */
   def cleanDir(name: String) = for (file <- walkTree(name)) file.delete
@@ -152,11 +152,11 @@ object SystemUtils {
         case null               =>
       }
       f.delete()
-    deleteRecursively(new File(name))
+    deleteRecursively(File(name))
   }
 
   /** file existence check */
-  def exists(name: String): Boolean = new File(name).exists
+  def exists(name: String): Boolean = File(name).exists
 
   /** check whether a shell command is normally terminated */
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined
@@ -164,7 +164,7 @@ object SystemUtils {
   /** execute shell command with given dir, default to CUR_DIR */
   def executeCmd(cmdStr: String, dir: String = CUR_DIR): String =
     var cmd = s"$cmdStr 2> /dev/null"
-    var directory = new File(dir)
+    var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
     process.!!
 

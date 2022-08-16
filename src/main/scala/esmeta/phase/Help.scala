@@ -20,7 +20,7 @@ case object Help extends Phase[Unit, String]:
         case None      => helpMessage
 
   def cmdHelp(cmd: Command[_]): String =
-    val app = new Appender
+    val app = Appender()
     app >> "The command `" >> cmd.name >> "` " >> cmd.help
     app :> ""
     app :> "- Usage:"
@@ -40,7 +40,7 @@ case object Help extends Phase[Unit, String]:
 
   /* help message string */
   lazy val helpMessage =
-    val app = new Appender
+    val app = Appender()
     app >> "- Usage:"
     app :> "    esmeta {command} {option}* {filename}?"
     app :> ""

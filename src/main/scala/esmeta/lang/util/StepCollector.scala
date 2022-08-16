@@ -7,7 +7,7 @@ object StepCollector {
 
   /** get yet steps from a metalanguage element */
   def apply(elem: LangElem): List[Step] =
-    val collector = new Collector
+    val collector = Collector()
     collector.walk(elem)
     collector.steps.reverse
 

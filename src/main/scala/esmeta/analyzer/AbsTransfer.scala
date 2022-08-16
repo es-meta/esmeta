@@ -28,7 +28,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   def apply[T <: Node](np: NodePoint[T]): Unit = {
     val st = sem(np)
     val NodePoint(func, node, view) = np
-    val helper = new Helper(np)
+    val helper = Helper(np)
 
     import helper._
     node match {
@@ -131,7 +131,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   // transfer function for expressions
   def apply(cp: ControlPoint, expr: Expr): AbsValue = {
     val st = sem.getState(cp)
-    val helper = new Helper(cp)
+    val helper = Helper(cp)
     helper.transfer(expr)(st)._1
   }
 

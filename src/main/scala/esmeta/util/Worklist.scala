@@ -17,7 +17,7 @@ trait Worklist[T] {
 
 // stack-based worklist
 class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
-  private var stack = new Stack[T]()
+  private var stack = Stack[T]()
   private var set = Set[T]()
   init.foreach(this += _)
   def all = set

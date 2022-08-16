@@ -123,7 +123,7 @@ object TypeDomain extends ValueDomain {
           else edges(chain) = MSet(syntacticName)
         case _ =>
     }
-    val worklist = new QueueWorklist[String](List())
+    val worklist = QueueWorklist[String](List())
     val infos: MMap[String, MSet[(Int, Type, String)]] = MMap()
     var defaultInfos: MMap[String, MSet[(Int, Type, String)]] = MMap()
     for {

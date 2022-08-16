@@ -189,7 +189,7 @@ trait EPackratParsers extends Parsers {
           case f @ Failure(_, _) => f
           case e @ Error(_, _)   => e
           case s @ Success(_, _) => grow(p, in, head)
-    case _ => throw new Exception("lrAnswer with no head !!")
+    case _ => throw Exception("lrAnswer with no head !!")
   private def grow[T](
     p: super.Parser[T],
     rest: EPackratReader[Elem],
@@ -198,7 +198,7 @@ trait EPackratParsers extends Parsers {
     rest.recursionHeads.put(rest.pos, head)
     val oldRes: ParseResult[T] = rest.getFromCache(p).get match
       case MemoEntry(Right(x)) => x.asInstanceOf[ParseResult[T]]
-      case _                   => throw new Exception("impossible match")
+      case _                   => throw Exception("impossible match")
     head.evalSet = head.involvedSet
     val tempRes = p(rest)
     tempRes match
@@ -211,7 +211,7 @@ trait EPackratParsers extends Parsers {
           rest.getFromCache(p).get match
             case MemoEntry(Right(x: ParseResult[_])) =>
               x.asInstanceOf[ParseResult[T]]
-            case _ => throw new Exception("impossible match")
+            case _ => throw Exception("impossible match")
       case f =>
         rest.recursionHeads -= rest.pos
         oldRes

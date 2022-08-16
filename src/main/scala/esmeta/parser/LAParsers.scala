@@ -59,17 +59,17 @@ trait LAParsers extends Lexer {
     val parser: FirstTerms => Parser[T],
     val first: FirstTerms,
   ) {
-    def ~[U](that: => LAParser[U]): LAParser[~[T, U]] = new LAParser(
+    def ~[U](that: => LAParser[U]): LAParser[~[T, U]] = LAParser(
       follow => this.parser(that.first ~ follow) ~ that.parser(follow),
       this.first ~ that.first,
     )
 
-    def ~>[U](that: => LAParser[U]): LAParser[U] = new LAParser(
+    def ~>[U](that: => LAParser[U]): LAParser[U] = LAParser(
       follow => this.parser(that.first ~ follow) ~> that.parser(follow),
       this.first ~ that.first,
     )
 
-    def <~[U](that: => LAParser[U]): LAParser[T] = new LAParser(
+    def <~[U](that: => LAParser[U]): LAParser[T] = LAParser(
       follow => this.parser(that.first ~ follow) <~ that.parser(follow),
       this.first ~ that.first,
     )
@@ -77,17 +77,17 @@ trait LAParsers extends Lexer {
     def |[U >: T](that: LAParser[U]): LAParser[U] =
       if (that eq MISMATCH) this
       else
-        new LAParser(
+        LAParser(
           follow => this.parser(follow) | that.parser(follow),
           this.first + that.first,
         )
 
-    def ^^[U](f: T => U): LAParser[U] = new LAParser(
+    def ^^[U](f: T => U): LAParser[U] = LAParser(
       follow => this.parser(follow) ^^ f,
       this.first,
     )
 
-    def ^^^[U](v: => U): LAParser[U] = new LAParser(
+    def ^^^[U](v: => U): LAParser[U] = LAParser(
       follow => this.parser(follow) ^^^ v,
       this.first,
     )
@@ -95,12 +95,12 @@ trait LAParsers extends Lexer {
     def apply(follow: FirstTerms, in: EPackratReader[Char]): ParseResult[T] =
       parser(follow)(in)
 
-    def unary_- : LAParser[Unit] = new LAParser(
+    def unary_- : LAParser[Unit] = LAParser(
       follow => not(parser(follow)),
       emptyFirst,
     )
 
-    def unary_+ : LAParser[T] = new LAParser(
+    def unary_+ : LAParser[T] = LAParser(
       follow => guard(parser(follow)),
       emptyFirst,
     )
@@ -108,11 +108,11 @@ trait LAParsers extends Lexer {
 
   // always match
   lazy val MATCH: LAParser[String] =
-    log(new LAParser(follow => "" <~ guard(follow.parser), emptyFirst))("MATCH")
+    log(LAParser(follow => "" <~ guard(follow.parser), emptyFirst))("MATCH")
 
   // always mismatch
   lazy val MISMATCH: LAParser[Nothing] =
-    log(new LAParser(follow => failed, noFirst))("MISMATCH")
+    log(LAParser(follow => failed, noFirst))("MISMATCH")
 
   // optional parsers
   def opt[T](p: => LAParser[T]): LAParser[Option[T]] = p ^^ {

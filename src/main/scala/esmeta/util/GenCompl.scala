@@ -21,7 +21,7 @@ object GenCompl {
 
   // get content
   def content: String = {
-    val app = new Appender
+    val app = Appender()
     app >> """# `complete` for zsh
     |if type complete &>/dev/null; then
     |  :

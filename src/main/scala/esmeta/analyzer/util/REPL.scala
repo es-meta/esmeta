@@ -25,7 +25,7 @@ case class REPL(sem: AbsSemantics) {
 
   // completer
   private val completer: TreeCompleter =
-    new TreeCompleter(Command.commands.map(optionNode(_)): _*)
+    TreeCompleter(Command.commands.map(optionNode(_)): _*)
   private def optionNode(cmd: Command) =
     node(cmd.name :: cmd.options.map(argNode(_)): _*)
   private def argNode(opt: String) =

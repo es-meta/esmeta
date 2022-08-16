@@ -49,7 +49,7 @@ object BasicRetDomain extends Domain {
 
     // conversion to string
     def toString(detail: Boolean): String = {
-      val app = new Appender
+      val app = Appender()
       // if (detail) {
       //   app >> this >> LINE_SEP
       //   app >> "globals: "

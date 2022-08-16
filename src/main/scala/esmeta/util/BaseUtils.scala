@@ -26,7 +26,7 @@ object BaseUtils {
   }
 
   /** throw a simple error */
-  def error(msg: String): Nothing = throw new ESMetaError(msg)
+  def error(msg: String): Nothing = throw ESMetaError(msg)
 
   /** show a warning message */
   def warn(msg: String): Unit = Console.err.println(s"[WARNING] $msg")
@@ -72,8 +72,8 @@ object BaseUtils {
     "[ ]+".r.findFirstIn(str).fold(-1)(_.length)
 
   /** date format string */
-  def dateStr: String = (new SimpleDateFormat("yyMMdd_HH_mm")
-    .format(new Date()))
+  def dateStr: String = (SimpleDateFormat("yyMMdd_HH_mm")
+    .format(Date()))
     .toString
 
   /** get fail/warn/pass message */
@@ -112,7 +112,7 @@ object BaseUtils {
     .replace("\n", "\\n")
     .replace("\b", "\\b")
 
-  private def rand = new Random
+  private def rand = Random()
 
   /** randomly choose an element in a list */
   def choose[T](seq: Seq[T]): T = seq(rand.nextInt(seq.length))
@@ -137,7 +137,7 @@ object BaseUtils {
 
   /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
-    rule(new Appender, t).toString
+    rule(Appender(), t).toString
 
   /** get a string for success ratio */
   def ratioString(pass: Int, total: Int): String = {
