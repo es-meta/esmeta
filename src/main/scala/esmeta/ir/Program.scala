@@ -22,7 +22,7 @@ case class Program(
   lazy val toCFG: cfg.CFG = cfgbuilder.CFGBuilder(this)
 
   /** JavaScript parser */
-  lazy val jsParser: js.util.Parser = spec.jsParser
+  lazy val jsParser: parser.Parser = spec.jsParser
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel

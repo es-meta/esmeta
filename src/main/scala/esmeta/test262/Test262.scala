@@ -3,7 +3,8 @@ package esmeta.test262
 import esmeta.*
 import esmeta.error.NotSupported
 import esmeta.js.*
-import esmeta.js.util.{Parser => JSParser, *}
+import esmeta.js.util.*
+import esmeta.parser.{Parser => JSParser}
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*

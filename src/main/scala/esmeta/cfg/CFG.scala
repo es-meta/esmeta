@@ -20,7 +20,7 @@ case class CFG(
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
 
   /** JavaScript parser */
-  lazy val jsParser: js.util.Parser = program.jsParser
+  lazy val jsParser: parser.Parser = program.jsParser
 
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =

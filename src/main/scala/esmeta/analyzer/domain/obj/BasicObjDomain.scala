@@ -5,7 +5,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.util.*
 import esmeta.interp.*
 import esmeta.interp.util.*
-import esmeta.js.util.ESValueParser
+import esmeta.parser.ESValueParser
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.error

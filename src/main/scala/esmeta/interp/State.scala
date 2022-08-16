@@ -5,7 +5,7 @@ import esmeta.error.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
-import esmeta.js.util.{Parser => JSParser, ESValueParser}
+import esmeta.parser.{Parser => JSParser, ESValueParser}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 

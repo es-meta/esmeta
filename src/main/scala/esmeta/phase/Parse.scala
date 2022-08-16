@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.js.*
-import esmeta.js.util.{Parser => JSParser}
+import esmeta.parser.{Parser => JSParser}
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*

@@ -6,7 +6,7 @@ import esmeta.interp.*
 import esmeta.interp.util.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.js.*
-import esmeta.js.util.ESValueParser
+import esmeta.parser.ESValueParser
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 

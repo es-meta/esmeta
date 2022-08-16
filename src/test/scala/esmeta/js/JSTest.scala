@@ -6,6 +6,7 @@ import esmeta.analyzer.domain.*
 import esmeta.interp.*
 import esmeta.ir.NormalInst
 import esmeta.js.util.*
+import esmeta.parser.Parser
 import esmeta.spec.Spec
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*

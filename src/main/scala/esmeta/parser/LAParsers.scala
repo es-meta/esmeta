@@ -1,4 +1,4 @@
-package esmeta.js.util
+package esmeta.parser
 
 import esmeta.util.BaseUtils.*
 import esmeta.util.Locational

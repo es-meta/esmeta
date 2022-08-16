@@ -1,4 +1,4 @@
-package esmeta.js.util
+package esmeta.parser
 
 import esmeta.*
 import esmeta.util.SystemUtils.*

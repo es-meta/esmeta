@@ -9,7 +9,7 @@ import esmeta.interp.*
 import esmeta.interp.util.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
-import esmeta.js.util.ESValueParser
+import esmeta.parser.ESValueParser
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
