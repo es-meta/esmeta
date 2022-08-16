@@ -6,8 +6,14 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.cfg.*
 import esmeta.state.*
 
-sealed abstract class InterpreterError(msg: String)
-  extends ESMetaError(s"[Interpreter Error] $msg")
+// TODO change to abstract class after refactoring of error in interp
+sealed class InterpreterError(msg: String)
+  extends ESMetaError(msg, "InterpreterError")
+
+// error with CFG components
+case class InterpreterErrorAt(error: InterpreterError, cursor: Cursor)
+  extends InterpreterError(s"${error.errMsg} @ $cursor")
+
 // invalid cases
 case class InvalidNodeId(nid: Int)
   extends InterpreterError(s"invalid node id: $nid")
@@ -84,9 +90,6 @@ case class WrongStringRef(str: String, prop: PureValue)
 // missing cases
 case class UncheckedAbrupt(comp: Comp)
   extends InterpreterError(s"unchecked abrupt completion: $comp")
-
-// not supported cases
-case class NotSupported(msg: String) extends InterpreterError(s"[YET] $msg")
 
 // assertion failed
 case class AssertionFail(expr: Expr)

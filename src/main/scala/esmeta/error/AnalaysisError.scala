@@ -4,7 +4,7 @@ import esmeta.ir.Func
 import esmeta.analyzer.domain.*
 
 sealed abstract class AnalysisError(msg: String)
-  extends ESMetaError(s"[Analysis Error] $msg")
+  extends ESMetaError(msg, s"AnalysisError")
 
 // not supported
 case class NotSupportedOperation(obj: Any, method: String)

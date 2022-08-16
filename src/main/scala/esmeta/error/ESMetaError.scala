@@ -1,3 +1,6 @@
 package esmeta.error
 
-class ESMetaError(msg: String) extends Error(s"[ESMetaError] $msg")
+class ESMetaError(
+  val errMsg: String,
+  val tag: String = "ESMetaError",
+) extends Error(s"[$tag] $errMsg")

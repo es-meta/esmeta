@@ -1,6 +1,7 @@
 package esmeta.error
 
-sealed abstract class ConfigError(msg: String) extends ESMetaError(msg)
+sealed abstract class ConfigError(msg: String)
+  extends ESMetaError(msg, "ConfigError")
 
 case class OptAlreadyExistError(name: String)
   extends ConfigError(s"The option '$name' already exists in the option list.")

@@ -22,7 +22,7 @@ _esmeta_completions() {
   evalOpt="-eval:log"
   test262testOpt=""
   webOpt="-web:port"
-  injectOpt="-inject:defs -inject:out"
+  injectOpt="-inject:defs -inject:out -inject:log"
   analyzeOpt="-analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in

@@ -2,7 +2,8 @@ package esmeta.error
 
 import esmeta.Command
 
-sealed abstract class ArgParseError(msg: String) extends ESMetaError(msg)
+sealed abstract class ArgParseError(msg: String)
+  extends ESMetaError(msg, "ArgParseError")
 
 case class ExtraArgError(name: String)
   extends ArgParseError(s"The option '$name' does not need an argument.")

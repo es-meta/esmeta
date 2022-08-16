@@ -6,7 +6,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.js.*
 import esmeta.parser.{Parser => JSParser, ESValueParser}
 import esmeta.state.*
-import esmeta.util.BaseUtils.*
+import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
 import scala.annotation.tailrec
@@ -16,8 +16,8 @@ import scala.math.{BigInt => SBigInt}
 /** IR interpreter with a CFG */
 class Interpreter(
   val st: State,
-  val checkAfter: List[NormalInst],
-  val log: Boolean,
+  val checkAfter: List[NormalInst] = Nil,
+  val log: Boolean = false,
 ) {
   import Interpreter.*
 
@@ -57,7 +57,7 @@ class Interpreter(
     } catch case ReturnValue(value) => { setReturn(value); true }
 
   /** transition for cursors */
-  def interp(cursor: Cursor): Boolean = cursor match {
+  def interp(cursor: Cursor): Boolean = cursor match
     case NodeCursor(node) => interp(node); true
     case ExitCursor(func) =>
       st.callStack match
@@ -71,7 +71,6 @@ class Interpreter(
           st.callStack = rest
           setCallResult(retId, value)
           true
-  }
 
   /** transition for nodes */
   def interp(node: Node): Unit =
@@ -143,8 +142,8 @@ class Interpreter(
         case v => throw NoFunc(fexpr, v)
     case IMethodCall(lhs, base, method, args) =>
       val bv = st(interp(base))
-      // TODO do not explicitly store methods in object but use a type model when
-      // accessing methods
+      // TODO do not explicitly store methods in object but use a type model
+      // when accessing methods
       st(bv, Str(method)) match
         case Clo(func, _) =>
           val vs = args.map(interp)
@@ -534,7 +533,9 @@ object Interpreter {
     checkAfter: List[NormalInst] = Nil,
     log: Boolean = false,
     timeLimit: Option[Long] = None,
-  ): State = timeout(new Interpreter(st, checkAfter, log).result, timeLimit)
+  ): State =
+    val interp = new Interpreter(st, checkAfter, log)
+    timeout(interp.result, timeLimit)
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
@@ -711,4 +712,8 @@ object Interpreter {
     g: T => PureValue,
     vs: List[PureValue],
   ) = g(vs.map(f).reduce(op))
+
+  /** helper of InterpreterError */
+  // TODO remove after refactoring of error
+  def error(msg: String): Nothing = throw new InterpreterError(msg)
 }
