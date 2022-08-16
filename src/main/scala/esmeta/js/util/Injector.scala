@@ -64,7 +64,7 @@ class Injector(
   } yield addr -> name).toMap
   private lazy val interpResult: Either[Throwable, Value] =
     try {
-      timeout(interpreter.fixpoint, timeLimit)
+      timeout(interpreter.result, timeLimit)
       Right(st(GLOBAL_RESULT))
     } catch { case e => Left(e) }
   private lazy val isNormal: Boolean = interpResult match

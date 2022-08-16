@@ -21,6 +21,9 @@ class Interpreter(
 ) {
   import Interpreter.*
 
+  /** final state */
+  lazy val result: State = { while (step) {}; st }
+
   /** JavaScript parser */
   lazy val jsParser: JSParser = cfg.jsParser
 
@@ -52,10 +55,6 @@ class Interpreter(
       // interp cursor
       interp(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
-
-  /** fixpoint */
-  @tailrec
-  final def fixpoint: State = if (step) fixpoint else st
 
   /** transition for cursors */
   def interp(cursor: Cursor): Boolean = cursor match {
@@ -535,7 +534,7 @@ object Interpreter {
     checkAfter: List[NormalInst] = Nil,
     log: Boolean = false,
     timeLimit: Option[Long] = None,
-  ): State = timeout(new Interpreter(st, checkAfter, log).fixpoint, timeLimit)
+  ): State = timeout(new Interpreter(st, checkAfter, log).result, timeLimit)
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

@@ -66,7 +66,7 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
             case _ => /* do nothing */
           v
       }
-    val finalSt = timeout(interpreter.fixpoint, timeLimit)
+    val finalSt = timeout(interpreter.result, timeLimit)
 
     // update coverage
     for { nid <- touched } {
