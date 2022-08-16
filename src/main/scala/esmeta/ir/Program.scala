@@ -19,7 +19,7 @@ case class Program(
   lazy val main: Func = getUnique(funcs, _.main, "main function")
 
   /** convert to a control-flow graph (CFG) */
-  lazy val toCFG: cfg.CFG = cfg.util.Builder(this)
+  lazy val toCFG: cfg.CFG = cfgbuilder.CFGBuilder(this)
 
   /** JavaScript parser */
   lazy val jsParser: js.util.Parser = spec.jsParser

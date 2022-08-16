@@ -3,7 +3,6 @@ package esmeta.ir
 import esmeta.ESMetaTest
 import esmeta.LINE_SEP
 import esmeta.cfg.CFG
-import esmeta.cfg.util.Builder
 import esmeta.ir.util.Parsers
 
 /** IR tests */

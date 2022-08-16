@@ -4,9 +4,6 @@ import esmeta.ir.*
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 
-// shortname of FuncBuilder
-type FB = FuncBuilder
-
 // conversion to references
 inline def toStrERef(base: Ref, props: String*): ERef =
   ERef(toStrRef(base, props*))

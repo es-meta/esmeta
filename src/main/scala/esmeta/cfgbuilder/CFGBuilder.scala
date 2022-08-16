@@ -1,4 +1,4 @@
-package esmeta.cfg.util
+package esmeta.cfgbuilder
 
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
@@ -7,7 +7,11 @@ import esmeta.ir.util.AllocSiteSetter
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
-class Builder(program: Program) {
+object CFGBuilder:
+  def apply(program: Program): CFG = new CFGBuilder(program).result
+
+/** private helper for CFG builder */
+private class CFGBuilder(program: Program) {
 
   /** get CFG */
   lazy val result: CFG =
@@ -17,11 +21,8 @@ class Builder(program: Program) {
     cfg.program = program
     cfg
 
-  // ---------------------------------------------------------------------------
-  // Private Helpers
-  // ---------------------------------------------------------------------------
   // translate IR function to cfg function
-  private def translate(irFunc: IRFunc): Unit = {
+  def translate(irFunc: IRFunc): Unit = {
     // body
     val body = irFunc.body
 
@@ -76,19 +77,16 @@ class Builder(program: Program) {
   }
 
   // internal lists of functions
-  private val funcs: ListBuffer[Func] = ListBuffer()
+  val funcs: ListBuffer[Func] = ListBuffer()
 
   // function id counter
-  private var fidCount: Int = 0
-  private def nextFId: Int = { val fid = fidCount; fidCount += 1; fid }
+  var fidCount: Int = 0
+  def nextFId: Int = { val fid = fidCount; fidCount += 1; fid }
 
   // node id counter
-  private var nidCount: Int = 0
-  private def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
+  var nidCount: Int = 0
+  def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
 
   // allocation site setter
-  private val asiteSetter: AllocSiteSetter = new AllocSiteSetter
-}
-object Builder {
-  def apply(program: Program): CFG = new Builder(program).result
+  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
 }
