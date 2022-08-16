@@ -18,6 +18,7 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
   ): AbsSemantics = {
     // initialize
     domain._cfgOpt = Some(cfg)
+    YET_THROW = true
     val filename = getFirstFilename(globalConfig, this.name)
     val npMap = Initialize.initJs(readFile(filename))
 

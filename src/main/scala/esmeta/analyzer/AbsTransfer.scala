@@ -422,7 +422,9 @@ case class AbsTransfer(sem: AbsSemantics) {
           a <- transfer(ast)
           lv <- id(_.getChildren(a, kOpt, loc))
         } yield lv
-      case EYet(_) => AbsValue.Bot
+      case EYet(msg) =>
+        if (YET_THROW) throw NotSupported(msg)
+        else AbsValue.Bot
       case EContains(list, elem, field) =>
         for {
           l <- transfer(list)

@@ -1,7 +1,7 @@
 package esmeta.js
 
 import esmeta.ESMetaTest
-import esmeta.analyzer.AbsSemantics
+import esmeta.analyzer.{AbsSemantics, YET_THROW}
 import esmeta.analyzer.domain.*
 import esmeta.interp.*
 import esmeta.ir.NormalInst
@@ -18,6 +18,7 @@ object JSTest {
   val grammar = spec.grammar
   val cfg = {
     val res = spec.toCFG
+    YET_THROW = true
     _cfgOpt = Some(res) // initialize global cfg for abstract domain
     res
   }
