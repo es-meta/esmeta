@@ -59,8 +59,10 @@ case class ProgressBar[T](
         summary.passes += name
       }.map(errorHandler(_, summary, name))
       gcount += 1
-
     updateTime
+
+    // close all print writers
+    summary.close
 
     Thread.sleep(term)
   }
