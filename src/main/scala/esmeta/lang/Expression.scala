@@ -149,7 +149,7 @@ case class BinaryExpression(
 ) extends CalcExpression
 object BinaryExpression:
   enum Op extends LangElem:
-    case Add, Sub, Mul, Div, Mod, And, Or, Xor
+    case Add, Sub, Mul, Div, Mod, BAnd, BOr, BXor
 
 // unary expressions
 case class UnaryExpression(

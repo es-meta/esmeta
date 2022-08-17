@@ -244,6 +244,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
+    import BinaryExpression.Op.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
@@ -256,8 +257,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> op >> args
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
-      case BinaryExpression(left, op, right) =>
-        app >> left >> " " >> op >> " " >> right
+      case BinaryExpression(left, op, right) => op match {
+        case BAnd | BXor | BOr => app >> "the result of applying the " >> op >> " to " >> left >> " and " >> right
+        case _ => app >> left >> " " >> op >> " " >> right
+      }        
       case UnaryExpression(op, expr) =>
         app >> op >> expr
       case lit: Literal =>
@@ -288,6 +291,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Mul => "×"
       case Div => "/"
       case Mod => "modulo"
+      case BAnd => "bitwise AND operation"
+      case BXor => "the bitwise exclusive OR (XOR)"
+      case BOr => "bitwise inclusive OR"
     })
 
   // operators for unary expressions

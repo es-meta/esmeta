@@ -396,8 +396,8 @@ trait Parsers extends IndentParsers {
 
     lazy val binary: PL[CalcExpression] =
       "the result of applying the" ~> (
-        "bitwise AND" ^^! And ||| "bitwise inclusive OR" ^^! Or
-        ||| "bitwise exclusive OR (XOR)" ^^! Xor
+        "bitwise AND" ^^! BAnd ||| "bitwise inclusive OR" ^^! BOr
+        ||| "bitwise exclusive OR (XOR)" ^^! BXor
       ) ~ ("operation to" ~> term) ~ ("and" ~> term) ^^ {
         case op ~ l ~ r =>
           BinaryExpression(l, op, r)

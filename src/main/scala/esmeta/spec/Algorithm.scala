@@ -13,6 +13,10 @@ case class Algorithm(
   code: String,
 ) extends SpecElem {
 
+  if(head.fname == "NumberBitwiseOp"){
+    println(body)
+  }
+
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
