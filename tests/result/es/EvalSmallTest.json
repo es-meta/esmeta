@@ -73,7 +73,7 @@
   "increment2.js" : true,
   "instanceof1.js" : true,
   "instanceof2.js" : true,
-  "map-iter.js" : "[YET] For each Record { [[Key]], [[Value]] } _p_ of _entries_, do\n  1. If _p_.[[Key]] is not ~empty~ and SameValueZero(_p_.[[Key]], _key_) is *true*, then\n    1. Set _p_.[[Value]] to _value_.\n    1. Return _M_.",
+  "map-iter.js" : true,
   "multiple-statements.js" : true,
   "number1.js" : true,
   "number2.js" : true,
