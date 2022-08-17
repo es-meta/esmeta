@@ -73,7 +73,9 @@ trait Parsers extends IndentParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ opt(
+      "the" ~> ty <~ "that is the value of",
+    ) ~ endWithExpr ^^ { case x ~ _ ~ e => LetStep(x, e) }
 
   // set steps
   lazy val setStep: PL[SetStep] =
