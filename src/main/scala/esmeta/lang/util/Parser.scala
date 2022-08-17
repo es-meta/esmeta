@@ -84,10 +84,15 @@ trait Parsers extends IndentParsers {
     }
 
   // if-then-else steps
-  lazy val ifStep: PL[IfStep] =
-    ("if" ~> cond <~ "," ~ opt("then")) ~ step ~ opt(
-      opt(subStepPrefix) ~ ("else" | "otherwise") ~ opt(",") ~> step,
-    ) ^^ { case c ~ t ~ e => IfStep(c, t, e) }
+  lazy val ifStep: PL[IfStep] = {
+    ("if" ~> cond <~ "," ~ opt("then")) ~
+    (step | yetStep) ~
+    opt(
+      opt(subStepPrefix) ~
+      ("else" | "otherwise") ~ opt(",") ~>
+      (step | yetStep),
+    )
+  } ^^ { case c ~ t ~ e => IfStep(c, t, e) }
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
