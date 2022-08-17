@@ -5,7 +5,7 @@ import esmeta.util.{IndentParsers, Locational}
 import esmeta.util.BaseUtils.*
 import scala.util.matching.Regex
 
-/** language parser */
+/** metalanguage parser */
 object Parser extends Parsers
 trait Parsers extends IndentParsers {
 
@@ -52,7 +52,7 @@ trait Parsers extends IndentParsers {
     setEvalStateStep |
     setStep |
     performStep |
-    performBlockstep |
+    performBlockStep |
     returnToResumedStep |
     returnStep |
     assertStep |
@@ -153,10 +153,10 @@ trait Parsers extends IndentParsers {
     }
 
   // peform block steps
-  lazy val performBlockstep: PL[PerformBlockStep] =
-    "perform the following substeps in an implementation-defined order" ~ ".*".r ~> stepBlock ^^ {
-      PerformBlockStep(_)
-    }
+  lazy val performBlockStep: PL[PerformBlockStep] =
+    "perform the following substeps" ~
+    "in an implementation-defined order" ~
+    ".*".r ~> stepBlock ^^ { PerformBlockStep(_) }
 
   // append steps
   lazy val appendStep: PL[AppendStep] =
@@ -213,21 +213,27 @@ trait Parsers extends IndentParsers {
     lazy val context: P[Variable] =
       tagStart ~ "Resume the suspended evaluation of" ~> variable <~ tagEnd
     lazy val arg: P[Option[Expression]] =
-      "using" ~> expr <~ "as the result of the operation that suspended it." ^^ {
-        Some(_)
-      } | "." ^^^ { None }
+      "using" ~> expr <~ "as the result of" ~
+      "the operation that suspended it." ^^ { Some(_) } |
+      "." ^^^ { None }
     lazy val param: P[Option[Variable]] =
-      "Let" ~> variable <~ "be the" ~ ("value" | "Completion Record") ~ "returned by the resumed computation." <~ guard(
-        "\n",
-      ) ^^ { Some(_) } | guard("\n") ^^^ { None }
+      "Let" ~> variable <~ (
+        "be the" ~
+        ("value" | "Completion Record") ~
+        "returned by the resumed computation." ~
+        guard("\n")
+      ) ^^ { Some(_) } |
+      guard("\n") ^^^ { None }
     context ~ arg ~ param ~ rep1(subStep) ^^ {
       case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
     }
 
   // return to resumed steps
   lazy val returnToResumedStep: PL[ReturnToResumeStep] =
-    val context: P[Variable] =
-      next ~ "1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of" ~> variable <~ "."
+    val context: P[Variable] = {
+      next ~ "1. NOTE: This returns to the evaluation of the operation" ~
+      "that had most previously resumed evaluation of"
+    } ~> variable <~ "."
     returnStep ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
 
   // block steps
@@ -239,7 +245,9 @@ trait Parsers extends IndentParsers {
   // end of step
   lazy val note = "NOTE:" ~> ".*".r
   lazy val ignore =
-    "(" ~ "see.*\\)".r | "as defined in" ~ tagStart ~ tagEnd | "; that is[^.]*".r
+    "(" ~ "see.*\\)".r |
+    "as defined in" ~ tagStart ~ tagEnd |
+    "; that is[^.]*".r
   lazy val end: Parser[String] =
     opt(ignore) ~> "." <~ opt(
       note | ("(" ~ ".*\\)".r) | "This may be.*".r,
@@ -368,15 +376,18 @@ trait Parsers extends IndentParsers {
     import UnaryExpression.Op.*
 
     lazy val base: PL[CalcExpression] =
-      refExpr ||| literal ||| mathOpExpr ||| returnIfAbruptExpr ||| "(" ~> calc <~ ")" ||| (
-        base ~ ("<sup>" ~> calc <~ "</sup>")
-      ) ^^ { case b ~ e => ExponentiationExpression(b, e) }
+      refExpr |||
+      literal |||
+      mathOpExpr |||
+      returnIfAbruptExpr |||
+      "(" ~> calc <~ ")" |||
+      (base ~ ("<sup>" ~> calc <~ "</sup>")) ^^ {
+        case b ~ e => ExponentiationExpression(b, e)
+      }
 
     lazy val unary: PL[CalcExpression] = base ||| (
       ("-" | "the result of negating") ^^! Neg
-    ) ~ base ^^ {
-      case o ~ e => UnaryExpression(o, e)
-    }
+    ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
       ("×" ^^! Mul ||| "/" ^^! Div ||| "modulo" ^^! Mod) ~ unary,
@@ -399,18 +410,20 @@ trait Parsers extends IndentParsers {
   // TODO cleanup spec.html
   lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpression.Op.*
-    lazy val xrefOp: P[XRefExpression.Op] =
-      ("specified in" | "described in" | "the definition specified in" | "the algorithm steps defined in") ^^! {
-        Algo
-      } |
-      "the internal slots listed in" ^^! { InternalSlots } |
-      "the number of non-optional parameters of the function definition in" ^^! {
-        ParamLength
-      }
-
-    xrefOp ~ ("<emu-xref href=\"#" ~> "[a-z-.]+".r <~ "\"[a-z ]*>".r ~ tagEnd) ^^ {
-      case op ~ id => XRefExpression(op, id)
-    }
+    lazy val xrefOp: P[XRefExpression.Op] = {
+      "specified in" |
+      "described in" |
+      "the definition specified in" |
+      "the algorithm steps defined in"
+    } ^^! Algo | {
+      "the internal slots listed in"
+    } ^^! InternalSlots | {
+      "the number of non-optional parameters of" ~
+      "the function definition in"
+    } ^^! ParamLength
+    xrefOp ~ (
+      "<emu-xref href=\"#" ~> "[a-z-.]+".r <~ "\"[a-z ]*>".r ~ tagEnd
+    ) ^^ { case op ~ id => XRefExpression(op, id) }
 
   // the sole element expressions
   lazy val soleExpr: PL[SoleElementExpression] =
@@ -752,63 +765,60 @@ trait Parsers extends IndentParsers {
 
   // rarely used conditions
   // TODO clean-up
-  lazy val specialCond: PL[Condition] =
+  lazy val specialCond: PL[Condition] = {
     // ResolveBinding
-    "the source text matched by the syntactic production that is being evaluated is contained in strict mode code" ^^! {
-      getExprCond(TrueLiteral())
-    } |
-    // Script.IsStrict
-    "the Directive Prologue of |ScriptBody| contains a Use Strict Directive" ^^! {
-      getExprCond(TrueLiteral()) // assume strict
-    } |
+    "the source text matched by the syntactic production" ~
+    "that is being evaluated is contained in strict mode code"
+  } ^^! getExprCond(TrueLiteral()) | {
+    // Script.IsStrict (assume strict)
+    "the Directive Prologue of |ScriptBody| contains a Use Strict Directive"
+  } ^^! getExprCond(TrueLiteral()) | {
     // PropertyDefinition[2,0].PropertyDefinitionEvaluation
-    "this |PropertyDefinition| is contained within a |Script| that is being evaluated for JSON.parse" ~
-    ignore ~ guard(",") ^^! {
-      getExprCond(FalseLiteral())
-    } |
+    "this |PropertyDefinition| is contained within" ~
+    "a |Script| that is being evaluated for JSON.parse" ~
+    ignore ~ guard(",")
+  } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
-    expr <~ "has any elements" ^^ {
-      case r => PredicateCondition(r, true, PredicateCondition.Op.Empty)
-    } |
+    expr <~ "has any elements"
+  } ^^ { PredicateCondition(_, true, PredicateCondition.Op.Empty) } | {
     // ForBodyEvaluation
-    expr ~ isNeg <~ "~[empty]~" ^^ {
-      case e ~ n => PredicateCondition(e, !n, PredicateCondition.Op.Present)
-    } |
+    expr ~ isNeg <~ "~[empty]~"
+  } ^^ {
+    case e ~ n => PredicateCondition(e, !n, PredicateCondition.Op.Present)
+  } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~ variable ~ "of" ~> variable) ~
-    ("such that SameValue(" ~> variable <~ "," ~ variable ~ ") is *true*") ^^ {
-      case list ~ elem =>
-        BinaryCondition(
-          getRefExpr(list),
-          BinaryCondition.Op.NContains,
-          getRefExpr(elem),
-        )
-    } |
+    ("such that SameValue(" ~> variable <~ "," ~ variable ~ ") is *true*")
+  } ^^ {
+    case list ~ elem =>
+      BinaryCondition(
+        getRefExpr(list),
+        BinaryCondition.Op.NContains,
+        getRefExpr(elem),
+      )
+  } | {
     // CallExpression[0,0].Evaluation
-    expr <~ "has no elements" ^^ {
-      case r => PredicateCondition(r, false, PredicateCondition.Op.Empty)
-    } |
+    expr <~ "has no elements"
+  } ^^ { PredicateCondition(_, false, PredicateCondition.Op.Empty) } | {
     // ArraySpeciesCreate, SameValueNonNumeric
-    expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(ty) ~ opt("value") ^^ {
-      case l ~ r ~ n => IsAreCondition(List(l), n, List(r))
-    } |
+    expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(ty) ~ opt("value")
+  } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {
     // SameValueNonNumeric, GeneratorValidate
-    expr ~ (isNeg <~ ("the same" ~ opt(ty) ~ opt("value") ~ "as")) ~ expr ^^ {
-      case l ~ n ~ r => IsAreCondition(List(l), n, List(r))
-    } |
+    expr ~ (isNeg <~ ("the same" ~ opt(ty) ~ opt("value") ~ "as")) ~ expr
+  } ^^ { case l ~ n ~ r => IsAreCondition(List(l), n, List(r)) } | {
     // SameValue
-    expr ~ (isNeg <~ "different from" ^^ { !_ }) ~ expr ^^ {
-      case l ~ n ~ r => IsAreCondition(List(l), n, List(r))
-    } |
+    expr ~ (isNeg <~ "different from" ^^ { !_ }) ~ expr
+  } ^^ { case l ~ n ~ r => IsAreCondition(List(l), n, List(r)) } | {
     // IsLessThan
-    (variable <~ "or") ~ variable ~ isNeg ~ literal ^^ {
-      case v0 ~ v1 ~ n ~ e =>
-        CompoundCondition(
-          IsAreCondition(List(getRefExpr(v0)), n, List(e)),
-          CompoundCondition.Op.Or,
-          IsAreCondition(List(getRefExpr(v1)), n, List(e)),
-        )
-    }
+    (variable <~ "or") ~ variable ~ isNeg ~ literal
+  } ^^ {
+    case v0 ~ v1 ~ n ~ e =>
+      CompoundCondition(
+        IsAreCondition(List(getRefExpr(v0)), n, List(e)),
+        CompoundCondition.Op.Or,
+        IsAreCondition(List(getRefExpr(v1)), n, List(e)),
+      )
+  }
 
   // ---------------------------------------------------------------------------
   // metalanguage references
@@ -850,30 +860,32 @@ trait Parsers extends IndentParsers {
   }
 
   // special reference
-  lazy val specialRef: P[Reference] =
+  lazy val specialRef: P[Reference] = {
     // IsLessThan
-    "the" ~> variable <~ "flag" |
+    "the" ~> variable <~ "flag"
+  } | {
     // GetPrototypeFromConstructor
-    (variable <~ "'s intrinsic object named") ~ variable ^^ {
-      case realm ~ v =>
-        val intrBase = PropertyReference(realm, FieldProperty("Intrinsics"))
-        PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
-    } |
+    (variable <~ "'s intrinsic object named") ~ variable
+  } ^^ {
+    case realm ~ v =>
+      val intrBase = PropertyReference(realm, FieldProperty("Intrinsics"))
+      PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
+  } | {
     // OrdinaryGetOwnProperty
-    ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute") ^^ {
-      case v ~ a => PropertyReference(v, FieldProperty(a))
-    } |
+    ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
+  } ^^ { case v ~ a => PropertyReference(v, FieldProperty(a)) } | {
     // Set.prototype.add
-    ("the List that is" ~> propRef) |
+    ("the List that is" ~> propRef)
+  } | {
     // AsyncGeneratorCompleteStep
-    ("the" ~> ordinal <~ "element") ~ ("of" ~> variable) ^^ {
-      case o ~ x =>
-        PropertyReference(x, IndexProperty(DecimalMathValueLiteral(o - 1)))
-    } |
+    ("the" ~> ordinal <~ "element") ~ ("of" ~> variable)
+  } ^^ {
+    case o ~ x =>
+      PropertyReference(x, IndexProperty(DecimalMathValueLiteral(o - 1)))
+  } | {
     // SetFunctionName, SymbolDescriptiveString
-    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value" ^^ {
-      case b ~ f => PropertyReference(b, FieldProperty(f))
-    }
+    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
+  } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) }
 
   // ---------------------------------------------------------------------------
   // metalanguage properties
