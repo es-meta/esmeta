@@ -18,7 +18,6 @@ import scala.math.{BigInt => SBigInt}
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
   val st: State,
-  val checkAfter: List[NormalInst] = Nil,
   val log: Boolean = false,
   val timeLimit: Option[Int] = None,
 ) {
@@ -62,7 +61,6 @@ class Interpreter(
       st.callStack match
         case Nil =>
           st.context.retVal.map(v => st.globals += GLOBAL_RESULT -> v)
-          for (assert <- checkAfter) eval(assert)
           false
         case CallContext(retId, ctxt) :: rest =>
           val value = st.context.retVal.getOrElse(throw NoReturnValue)
@@ -546,10 +544,9 @@ class Interpreter(
 object Interpreter {
   def apply(
     st: State,
-    checkAfter: List[NormalInst] = Nil,
     log: Boolean = false,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, checkAfter, log, timeLimit).result
+  ): State = new Interpreter(st, log, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

@@ -35,13 +35,23 @@ object ESTest {
   def parse(str: String): Ast = scriptParser.from(str)
   def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
 
+  // interpreter with additional assertion checks
+  class CheckAfter(
+    st: State,
+    checkAfter: List[NormalInst],
+  ) extends Interpreter(st):
+    override lazy val result: State =
+      while (step) {}
+      for (assert <- checkAfter) super.eval(assert)
+      st
+
   // eval ES codes
   def eval(
     str: String,
     checkAfter: List[NormalInst] = Nil,
     cachedAst: Option[Ast] = None,
   ): State =
-    Interpreter(Initialize(cfg, str, cachedAst), checkAfter)
+    new CheckAfter(Initialize(cfg, str, cachedAst), checkAfter).result
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
