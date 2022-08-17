@@ -4,6 +4,7 @@ import esmeta.*
 import esmeta.ir.Program
 import esmeta.spec.Spec
 import esmeta.util.*
+import esmeta.util.SystemUtils.*
 
 /** `compile` phase */
 case object Compile extends Phase[Spec, Program] {
@@ -17,7 +18,16 @@ case object Compile extends Phase[Spec, Program] {
     val program = spec.toIR
 
     // logging mode
-    if (config.log) program.dumpTo(COMPILE_LOG_DIR)
+    if (config.log)
+      program.dumpTo(COMPILE_LOG_DIR)
+      dumpFile(
+        name = "yet expressions",
+        data = program.yets
+          .map(_.toString(detail = false, location = false))
+          .sorted
+          .mkString(LINE_SEP),
+        filename = s"$COMPILE_LOG_DIR/yets",
+      )
 
     program
   }

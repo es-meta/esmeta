@@ -27,7 +27,7 @@ case object Extract extends Phase[Unit, Spec] {
         data = yets
           .map(_.toString(detail = false, location = false))
           .sorted
-          .mkString("\n"),
+          .mkString(LINE_SEP),
         filename = s"$EXTRACT_LOG_DIR/yets",
       )
 

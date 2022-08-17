@@ -1,7 +1,7 @@
 package esmeta.ir
 
 import esmeta.*
-import esmeta.ir.util.Parser
+import esmeta.ir.util.{Parser, YetCollector}
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, TypeModel}
 import esmeta.util.BaseUtils.*
@@ -25,6 +25,9 @@ case class Program(
   /** ECMAScript parser */
   lazy val esParser: ESParser = spec.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
+
+  /** get list of all yet expressions */
+  lazy val yets: List[EYet] = YetCollector(this)
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel
