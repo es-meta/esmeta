@@ -25,6 +25,3 @@ object ESElem {
       Stringifier(_, _, _)
     }
 }
-
-/** timeout */
-val TIMEOUT = 10

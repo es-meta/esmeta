@@ -1,8 +1,9 @@
-package esmeta.interpreter
+package esmeta.web
 
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.Ast
+import esmeta.ir.{Func => IRFunc, *}
+import esmeta.interpreter.Interpreter
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.state.*
@@ -11,19 +12,19 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /** debugger extension of IR interpreter */
-class Debugger(st: State) extends Interpreter(st, Nil, true) {
-  // ------------------------------------------------------------------------------
+class Debugger(st: State) extends Interpreter(st, log = true) {
+  // ---------------------------------------------------------------------------
   // shortcuts
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   private inline def cfg = st.cfg
   private inline def cursor = st.context.cursor
   private inline def func = cursor.func
   private inline def irFunc = func.irFunc
   private inline def algoOpt: Option[Algorithm] = irFunc.algo
 
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // overrides IR interpreter
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
   override def step: Boolean = (super.step, cursor) match
     case (_, _: ExitCursor) if !st.callStack.isEmpty =>
@@ -32,24 +33,24 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
       triggerBreaks; // trigger breakpoints
       res
     case (res, _) => res
-  override def interp(node: Node): Unit = {
+  override def eval(node: Node): Unit = {
     saveBpCounts; // save counter
     node match
       case block @ Block(_, insts, next) if cursor.stepsOpt.isDefined =>
-        interp(insts(cursor.idx))
+        eval(insts(cursor.idx))
         cursor.idx += 1
         if (cursor.idx == insts.length) {
           cursor.idx -= 1
           st.context.moveNext
         }
       case _ =>
-        super.interp(node)
+        super.eval(node)
     triggerBreaks // trigger breakpoints
   }
 
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // execution control
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   /** step result */
   enum StepResult:
@@ -121,9 +122,9 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
   // continue
   final def continue: StepResult = stepUntil { true }
 
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // breakpoints
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   /** breakpoints used in debugger */
   trait Breakpoint {
@@ -215,9 +216,9 @@ class Debugger(st: State) extends Interpreter(st, Nil, true) {
     case (acc, bp) => bp.needTrigger || acc
   }
 
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // debugger info
-  // ------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   /** extension for cursor */
   extension (cursor: Cursor) {

@@ -260,7 +260,7 @@ private class Injector(
   // get values
   private def getValue(str: String): Value = getValue(Expr.from(str))
   private def getValue(expr: Expr): Value =
-    (new Interpreter(exitSt.copied, Nil, false)).interp(expr)
+    (new Interpreter(exitSt.copied)).eval(expr)
   private def getValue(refV: RefValue): Value = exitSt(refV)
   private def getValue(addr: Addr, prop: String): Value =
     getValue(PropValue(addr, Str(prop)))

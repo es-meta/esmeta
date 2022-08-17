@@ -3,11 +3,10 @@ package esmeta.web.routes
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
-import io.circe.*, io.circe.syntax.*, io.circe.parser.*,
-io.circe.generic.semiauto.*
-import esmeta.web.*
 import esmeta.cfg.CFG
-import esmeta.interpreter.Debugger
+import esmeta.web.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import io.circe.generic.semiauto.*
 
 // exec router
 object ExecRoute {

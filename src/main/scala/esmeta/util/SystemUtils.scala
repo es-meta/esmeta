@@ -169,11 +169,11 @@ object SystemUtils {
     process.!!
 
   /** set timeout with optional limitation */
-  def timeout[T](f: => T, limit: Option[Long]): T =
+  def timeout[T](f: => T, limit: Option[Int]): T =
     limit.fold(f)(l => timeout(f, l.second))
 
   /** set timeout with limitation */
-  def timeout[T](f: => T, limit: Long): T =
+  def timeout[T](f: => T, limit: Int): T =
     timeout(f, limit.seconds)
 
   /** set timeout with duration */

@@ -4,9 +4,9 @@ import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.interpreter.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
+import esmeta.interpreter.Interpreter
+import esmeta.ir.{Func => _, *}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
@@ -355,7 +355,7 @@ case class AbsTransfer(sem: AbsSemantics) {
                     sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
                   case None => error("invalid sdo")
               case FlatElem(AAst(lex: Lexical)) =>
-                newV ⊔= AbsValue(Interpreter.interp(lex, method))
+                newV ⊔= AbsValue(Interpreter.eval(lex, method))
               case FlatTop =>
                 // syntactic sdo
                 for { (sdo, ast) <- bv.getSDO(method) }
@@ -616,9 +616,9 @@ case class AbsTransfer(sem: AbsSemantics) {
       operand.getSingle match
         case FlatBot => AbsValue.Bot
         case FlatElem(ASimple(x)) =>
-          optional(AbsValue(Interpreter.interp(uop, x))).getOrElse(AbsValue.Bot)
+          optional(AbsValue(Interpreter.eval(uop, x))).getOrElse(AbsValue.Bot)
         case FlatElem(AMath(x)) =>
-          optional(AbsValue(Interpreter.interp(uop, Math(x))))
+          optional(AbsValue(Interpreter.eval(uop, Math(x))))
             .getOrElse(AbsValue.Bot)
         case FlatElem(_) => AbsValue.Bot
         case FlatTop =>
@@ -640,10 +640,10 @@ case class AbsTransfer(sem: AbsSemantics) {
       (left.getSingle, right.getSingle) match {
         case (FlatBot, _) | (_, FlatBot) => AbsValue.Bot
         case (FlatElem(ASimple(l)), FlatElem(ASimple(r))) =>
-          optional(AbsValue(Interpreter.interp(bop, l, r)))
+          optional(AbsValue(Interpreter.eval(bop, l, r)))
             .getOrElse(AbsValue.Bot)
         case (FlatElem(AMath(l)), FlatElem(AMath(r))) =>
-          optional(AbsValue(Interpreter.interp(bop, Math(l), Math(r))))
+          optional(AbsValue(Interpreter.eval(bop, Math(l), Math(r))))
             .getOrElse(AbsValue.Bot)
         case (FlatElem(lloc: Loc), FlatElem(rloc: Loc))
             if bop == Eq || bop == Equal =>

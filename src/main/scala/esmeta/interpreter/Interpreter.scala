@@ -15,42 +15,29 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
-/** IR interpreter with a CFG */
+/** extensible helper of IR interpreter with a CFG */
 class Interpreter(
   val st: State,
   val checkAfter: List[NormalInst] = Nil,
   val log: Boolean = false,
+  val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
 
   /** final state */
-  lazy val result: State =
-    while (step) {}
-    if (log)
-      pw.close
-      println("[Interpreter] Logging finished")
-    st
+  lazy val result: State = timeout(
+    {
+      while (step) {}
+      if (log)
+        pw.close
+        println("[Interpreter] Logging finished")
+      st
+    },
+    timeLimit,
+  )
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
-
-  /** control flow graphs */
-  private given cfg: CFG = st.cfg
-
-  /** type model */
-  private def typeModel = cfg.typeModel
-
-  /** grammar */
-  private def grammar = cfg.grammar
-
-  /** itereration count */
-  private var iter = 0
-
-  /** logging */
-  private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $EVAL_LOG_DIR...")
-    mkdir(EVAL_LOG_DIR)
-    getPrintWriter(s"$EVAL_LOG_DIR/log")
 
   /** step */
   def step: Boolean =
@@ -64,18 +51,18 @@ class Interpreter(
       iter += 1
       if (iter % 100000 == 0) GC(st)
 
-      // interp cursor
-      interp(st.context.cursor)
+      // cursor
+      eval(st.context.cursor)
     } catch case ReturnValue(value) => { setReturn(value); true }
 
   /** transition for cursors */
-  def interp(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(node) => interp(node); true
+  def eval(cursor: Cursor): Boolean = cursor match
+    case NodeCursor(node) => eval(node); true
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
           st.context.retVal.map(v => st.globals += GLOBAL_RESULT -> v)
-          for (assert <- checkAfter) interp(assert)
+          for (assert <- checkAfter) eval(assert)
           false
         case CallContext(retId, ctxt) :: rest =>
           val value = st.context.retVal.getOrElse(throw NoReturnValue)
@@ -85,58 +72,58 @@ class Interpreter(
           true
 
   /** transition for nodes */
-  def interp(node: Node): Unit =
+  def eval(node: Node): Unit =
     node match {
       case Block(_, insts, _) =>
-        for (inst <- insts) interp(inst); st.context.moveNext
+        for (inst <- insts) eval(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
         st.context.cursor = Cursor(
-          interp(cond) match {
+          eval(cond) match {
             case Bool(true)  => thenNode
             case Bool(false) => elseNode
             case v           => throw NoBoolean(cond, v)
           },
           st.func,
         )
-      case Call(_, call, _) => interp(call)
+      case Call(_, call, _) => eval(call)
     }
 
   /** transition for normal instructions */
-  def interp(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)        => interp(expr)
-    case ILet(lhs, expr)    => st.context.locals += lhs -> interp(expr)
-    case IAssign(ref, expr) => st.update(interp(ref), interp(expr))
-    case IDelete(ref)       => st.delete(interp(ref))
+  def eval(inst: NormalInst): Unit = inst match {
+    case IExpr(expr)        => eval(expr)
+    case ILet(lhs, expr)    => st.context.locals += lhs -> eval(expr)
+    case IAssign(ref, expr) => st.update(eval(ref), eval(expr))
+    case IDelete(ref)       => st.delete(eval(ref))
     case IPush(from, to, front) =>
-      interp(to) match {
+      eval(to) match {
         case (addr: Addr) =>
-          if (front) st.prepend(addr, interp(from).toPureValue)
-          else st.append(addr, interp(from).toPureValue)
+          if (front) st.prepend(addr, eval(from).toPureValue)
+          else st.append(addr, eval(from).toPureValue)
         case v => throw NoAddr(to, v)
       }
     case IRemoveElem(list, elem) =>
-      interp(list) match
-        case (addr: Addr) => st.remove(addr, interp(elem).toPureValue)
+      eval(list) match
+        case (addr: Addr) => st.remove(addr, eval(elem).toPureValue)
         case v            => throw NoAddr(list, v)
-    case IReturn(expr)    => throw ReturnValue(interp(expr))
+    case IReturn(expr)    => throw ReturnValue(eval(expr))
     case IAssert(_: EYet) => /* skip not yet compiled assertions */
     case IAssert(expr) =>
-      interp(expr) match {
+      eval(expr) match {
         case Bool(true) =>
         case v          => throw AssertionFail(expr)
       }
     case IPrint(expr) =>
-      val v = interp(expr)
+      val v = eval(expr)
       if (!TEST_MODE) println(st.getString(v))
     case INop() => /* do nothing */
   }
 
   /** transition for calls */
-  def interp(call: CallInst): Unit = call match {
+  def eval(call: CallInst): Unit = call match {
     case ICall(lhs, fexpr, args) =>
-      interp(fexpr) match
+      eval(fexpr) match
         case Clo(func, captured) =>
-          val vs = args.map(interp)
+          val vs = args.map(eval)
           val newLocals = getLocals(func.irFunc.params, vs) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
@@ -144,7 +131,7 @@ class Interpreter(
           val needWrapped = st.context.func.isReturnComp
           val vs =
             args
-              .map(interp)
+              .map(eval)
               .map(v => if (needWrapped) v.wrapCompletion else v)
           val newLocals =
             getLocals(func.irFunc.params, vs, cont = true) ++ captured
@@ -153,64 +140,64 @@ class Interpreter(
         }
         case v => throw NoFunc(fexpr, v)
     case IMethodCall(lhs, base, method, args) =>
-      val bv = st(interp(base))
+      val bv = st(eval(base))
       // TODO do not explicitly store methods in object but use a type model
       // when accessing methods
       st(bv, Str(method)) match
         case Clo(func, _) =>
-          val vs = args.map(interp)
+          val vs = args.map(eval)
           val newLocals = getLocals(func.irFunc.params, bv :: vs)
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case v => throw NoFunc(call.fexpr, v)
     case ISdoCall(lhs, base, method, args) =>
-      interp(base).asAst match
+      eval(base).asAst match
         case syn: Syntactic =>
           getSDO((syn, method)) match
             case Some((ast0, sdo)) =>
-              val vs = args.map(interp)
+              val vs = args.map(eval)
               val newLocals =
                 getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
               st.callStack ::= CallContext(lhs, st.context)
               st.context = Context(sdo, newLocals)
             case None => throw InvalidAstProp(syn, Str(method))
         case lex: Lexical =>
-          setCallResult(lhs, Interpreter.interp(lex, method))
+          setCallResult(lhs, Interpreter.eval(lex, method))
   }
 
   /** transition for expresssions */
-  def interp(expr: Expr): Value = expr match {
+  def eval(expr: Expr): Value = expr match {
     case EComp(tyExpr, valExpr, tgtExpr) =>
-      val y = interp(tyExpr)
-      val t = interp(tgtExpr)
-      val v = interp(valExpr).toPureValue
+      val y = eval(tyExpr)
+      val t = eval(tgtExpr)
+      val v = eval(valExpr).toPureValue
       (y, t) match
         case (y: Const, Str(t))      => Comp(y, v, Some(t))
         case (y: Const, CONST_EMPTY) => Comp(y, v, None)
         case (y: Const, t)           => throw InvalidCompTarget(y)
         case (y, t)                  => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
-      Bool(interp(expr).isCompletion)
+      Bool(eval(expr).isCompletion)
     case EReturnIfAbrupt(ERef(ref), check) =>
-      val refV = interp(ref)
+      val refV = eval(ref)
       val value = returnIfAbrupt(st(refV), check)
       st.update(refV, value)
       value
     case EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(interp(expr), check)
+      returnIfAbrupt(eval(expr), check)
     case EPop(list, front) =>
-      interp(list) match
+      eval(list) match
         case (addr: Addr) => st.pop(addr, front)
         case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
-      val (str, args, locOpt) = interp(code) match
+      val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
         case AstValue(syn: Syntactic) =>
           (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, interp(rule), st.sourceText, st.cachedAst) match
+        (str, eval(rule), st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
           case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
             AstValue(ast)
@@ -227,16 +214,16 @@ class Interpreter(
       }
     case EGrammar(name, params) => Grammar(name, params)
     case ESourceText(expr) =>
-      val ast = interp(expr).asAst
+      val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EGetChildren(kindOpt, ast) =>
       val kOpt = kindOpt.map(kind =>
-        interp(kind) match
+        eval(kind) match
           case Grammar(name, _) => name
           case v                => throw NoGrammar(kind, v),
       )
-      val a = interp(ast).asAst
+      val a = eval(ast).asAst
       (a, kOpt) match
         case (_, Some(k)) => st.allocList(a.getChildren(k).map(AstValue(_)))
         case (syn: Syntactic, None) =>
@@ -245,36 +232,36 @@ class Interpreter(
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>
-      val l = interp(list).getList(list, st)
-      val e = interp(elem)
+      val l = eval(list).getList(list, st)
+      val e = eval(elem)
       Bool(field match {
         case Some((_, f)) => l.values.exists(x => st(PropValue(x, Str(f))) == e)
         case None         => l.values.contains(e)
       })
     case ESubstring(expr, from, to) =>
-      val s = interp(expr).asStr
-      val f = interp(from).asInt
-      interp(to) match
+      val s = eval(expr).asStr
+      val f = eval(from).asInt
+      eval(to) match
         case Math(n) if s.length < n => Str(s.substring(f))
         case v                       => Str(s.substring(f, v.asInt))
     case ERef(ref) =>
-      st(interp(ref))
+      st(eval(ref))
     case EUnary(uop, expr) =>
-      val x = interp(expr)
-      Interpreter.interp(uop, x)
+      val x = eval(expr)
+      Interpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
-    case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(interp(ref)))
+    case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(eval(ref)))
     case EBinary(bop, left, right) =>
-      val l = interp(left)
-      val r = interp(right)
-      Interpreter.interp(bop, l, r)
+      val l = eval(left)
+      val r = eval(right)
+      Interpreter.eval(bop, l, r)
     case EVariadic(vop, exprs) =>
-      val vs = for (e <- exprs) yield interp(e).toPureValue
-      Interpreter.interp(vop, vs)
+      val vs = for (e <- exprs) yield eval(e).toPureValue
+      Interpreter.eval(vop, vs)
     case EConvert(cop, expr) =>
       import COp.*
-      (interp(expr), cop) match {
+      (eval(expr), cop) match {
         case (Math(n), ToNumber)          => Number(n.toDouble)
         case (Math(n), ToBigInt)          => BigInt(n.toBigInt)
         case (Str(s), ToNumber)           => Number(ESValueParser.str2Number(s))
@@ -285,13 +272,13 @@ class Interpreter(
         case (CodeUnit(c), ToMath)        => Math(BigDecimal.exact(c.toInt))
         case (BigInt(n), ToMath)          => Math(BigDecimal.exact(n))
         case (Number(d), ToStr(radixOpt)) =>
-          val radix = radixOpt.fold(10)(e => interp(e).asInt)
+          val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>
-      Str(interp(base) match
+      Str(eval(base) match
         case n: Number => "Number"
         case b: BigInt => "BigInt"
         case s: Str    => "String"
@@ -309,8 +296,8 @@ class Interpreter(
         case v => ???,
       )
     case ETypeCheck(expr, tyExpr) =>
-      val v = interp(expr)
-      val tyName = interp(tyExpr) match
+      val v = eval(expr)
+      val tyName = eval(tyExpr) match
         case Str(s)        => s
         case Grammar(s, _) => s
         case v             => throw InvalidTypeExpr(expr, v)
@@ -344,7 +331,7 @@ class Interpreter(
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(childOpt =>
         childOpt.map(child =>
-          interp(child) match {
+          eval(child) match {
             case AstValue(ast) => ast
             case v             => throw NoAst(child, v)
           },
@@ -352,13 +339,13 @@ class Interpreter(
       )
       AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) =>
-      val str = interp(expr).asStr
+      val str = eval(expr).asStr
       AstValue(Lexical(name, str))
     case EMap(Type("Completion"), props) =>
       val map = (for {
         (kexpr, vexpr) <- props
-        k = interp(kexpr)
-        v = interp(vexpr)
+        k = eval(kexpr)
+        v = eval(vexpr)
       } yield k -> v).toMap
       (
         map.get(Str("Type")),
@@ -375,33 +362,33 @@ class Interpreter(
     case EMap(ty, props) =>
       val addr = st.allocMap(ty)
       for ((kexpr, vexpr) <- props)
-        val k = interp(kexpr).toPureValue
-        val v = interp(vexpr)
+        val k = eval(kexpr).toPureValue
+        val v = eval(vexpr)
         st.update(addr, k, v)
       addr
     case EList(exprs) =>
-      st.allocList(exprs.map(expr => interp(expr).toPureValue))
+      st.allocList(exprs.map(expr => eval(expr).toPureValue))
     case EListConcat(exprs) =>
-      val ls = exprs.map(e => interp(e).getList(e, st).values).flatten
+      val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
       st.allocList(ls)
     case ESymbol(desc) =>
-      interp(desc) match
+      eval(desc) match
         case (str: Str) => st.allocSymbol(str)
         case Undef      => st.allocSymbol(Undef)
         case v          => throw NoString(desc, v)
     case ECopy(obj) =>
-      interp(obj) match
+      eval(obj) match
         case addr: Addr => st.copyObj(addr)
         case v          => throw NoAddr(obj, v)
     case EKeys(map, intSorted) =>
-      interp(map) match
+      eval(map) match
         case addr: Addr => st.keys(addr, intSorted)
         case v          => throw NoAddr(map, v)
     case EDuplicated(expr) =>
-      val vs = interp(expr).getList(expr, st).values
+      val vs = eval(expr).getList(expr, st).values
       Bool(vs.toSet.size != vs.length)
     case EIsArrayIndex(expr) =>
-      interp(expr) match
+      eval(expr) match
         case Str(s) =>
           val d = ESValueParser.str2Number(s)
           val ds = toStringHelper(d)
@@ -424,13 +411,13 @@ class Interpreter(
 
   /** short circuit evaluation */
   def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =
-    val l = interp(left)
+    val l = eval(left)
     (bop, l) match
       case (BOp.And, Bool(false)) => Bool(false)
       case (BOp.Or, Bool(true))   => Bool(true)
       case _ =>
-        val r = interp(right)
-        Interpreter.interp(bop, l, r)
+        val r = eval(right)
+        Interpreter.eval(bop, l, r)
 
   /** get initial local variables */
   import IRFunc.Param
@@ -468,11 +455,11 @@ class Interpreter(
     case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
-  def interp(ref: Ref): RefValue = ref match
+  def eval(ref: Ref): RefValue = ref match
     case x: Id => IdValue(x)
     case Prop(ref, expr) =>
-      var base = st(interp(ref))
-      val p = interp(expr)
+      var base = st(eval(ref))
+      val p = eval(expr)
       PropValue(base, p.toPureValue)
 
   /** set return value and move to the exit node */
@@ -501,6 +488,27 @@ class Interpreter(
     "AllPrivateIdentifiersValid",
     "ContainsArguments",
   )
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  /** control flow graphs */
+  private given cfg: CFG = st.cfg
+
+  /** type model */
+  private def typeModel = cfg.typeModel
+
+  /** grammar */
+  private def grammar = cfg.grammar
+
+  /** itereration count */
+  private var iter = 0
+
+  /** logging */
+  private lazy val pw: PrintWriter =
+    println(s"[Interpreter] Logging into $EVAL_LOG_DIR...")
+    mkdir(EVAL_LOG_DIR)
+    getPrintWriter(s"$EVAL_LOG_DIR/log")
 
   /** get syntax-directed operation(SDO) */
   private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
@@ -534,18 +542,14 @@ class Interpreter(
   }
 }
 
-/** helper of IR interpreter */
+/** IR interpreter with a CFG */
 object Interpreter {
-
-  /** run interp */
   def apply(
     st: State,
     checkAfter: List[NormalInst] = Nil,
     log: Boolean = false,
-    timeLimit: Option[Long] = None,
-  ): State =
-    val interp = new Interpreter(st, checkAfter, log)
-    timeout(interp.result, timeLimit)
+    timeLimit: Option[Int] = None,
+  ): State = new Interpreter(st, checkAfter, log, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
@@ -555,7 +559,7 @@ object Interpreter {
   )
 
   /** transition for lexical SDO */
-  def interp(lex: Lexical, sdoName: String): PureValue = {
+  def eval(lex: Lexical, sdoName: String): PureValue = {
     val Lexical(name, str) = lex
     (name, sdoName) match {
       case (
@@ -595,7 +599,7 @@ object Interpreter {
   }
 
   /** transition for unary opeartors */
-  def interp(uop: UOp, operand: Value): Value =
+  def eval(uop: UOp, operand: Value): Value =
     import UOp.*
     (uop, operand) match
       // mathematic values
@@ -616,7 +620,7 @@ object Interpreter {
         error(s"wrong type of value for the operator $uop: $value")
 
   /** transition for binary operators */
-  def interp(bop: BOp, left: Value, right: Value): Value =
+  def eval(bop: BOp, left: Value, right: Value): Value =
     import BOp.*
     (bop, left, right) match {
       // double operations
@@ -694,7 +698,7 @@ object Interpreter {
     }
 
   /** transition for variadic operators */
-  def interp(vop: VOp, vs: List[PureValue]): PureValue =
+  def eval(vop: VOp, vs: List[PureValue]): PureValue =
     import VOp.*
     if (vs.isEmpty) error(s"no arguments for: $vop")
     vop match
@@ -703,20 +707,20 @@ object Interpreter {
         else {
           val filtered = vs.filter(_ != POS_INF)
           if (filtered.isEmpty) POS_INF
-          else vopInterp(_.asMath, _ min _, Math(_), filtered)
+          else vopEval(_.asMath, _ min _, Math(_), filtered)
         }
       case Max =>
         if (vs.contains(POS_INF)) POS_INF
         else {
           val filtered = vs.filter(_ != NEG_INF)
           if (filtered.isEmpty) NEG_INF
-          else vopInterp(_.asMath, _ min _, Math(_), filtered)
+          else vopEval(_.asMath, _ min _, Math(_), filtered)
         }
-        vopInterp(_.asMath, _ max _, Math(_), vs)
-      case Concat => vopInterp(_.asStr, _ + _, Str(_), vs)
+        vopEval(_.asMath, _ max _, Math(_), vs)
+      case Concat => vopEval(_.asStr, _ + _, Str(_), vs)
 
   /** helpers for make transition for variadic operators */
-  private def vopInterp[T](
+  private def vopEval[T](
     f: PureValue => T,
     op: (T, T) => T,
     g: T => PureValue,

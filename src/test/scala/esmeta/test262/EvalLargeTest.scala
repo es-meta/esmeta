@@ -31,9 +31,11 @@ class EvalLargeTest extends Test262Test {
         case _: Throwable        => summary.fails += name,
   )
 
-  // coverage
+  // coverage mode
   val COVERAGE_MODE = true
-  lazy val cov = Coverage(ESTest.cfg)
+
+  // coverage with 10 seconds time limit
+  lazy val cov = Coverage(ESTest.cfg, timeLimit = Some(10))
 
   // summary
   lazy val summary = progress.summary

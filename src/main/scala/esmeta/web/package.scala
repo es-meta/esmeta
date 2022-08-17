@@ -1,6 +1,5 @@
 package esmeta.web
 
-import esmeta.interpreter.Debugger
 import esmeta.cfg.CFG
 import esmeta.es.Initialize
 

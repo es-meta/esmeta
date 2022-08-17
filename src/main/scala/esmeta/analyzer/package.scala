@@ -31,7 +31,6 @@ var INF_SENS: Boolean = true
 var YET_THROW: Boolean = false
 var IR_SENS: Boolean = true
 var TYPE_SENS: Boolean = false
-var ANALYZE_TIMEOUT: Long = 20
 
 /** (i, j) for loop sensitivity */
 var LOOP_ITER: Int = 100

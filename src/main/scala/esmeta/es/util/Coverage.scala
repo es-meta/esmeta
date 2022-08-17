@@ -13,7 +13,7 @@ import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
 import io.circe.*, io.circe.syntax.*
 
 /** coverage measurement of cfg */
-case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
+case class Coverage(cfg: CFG, timeLimit: Option[Int]) {
 
   /** data structures for coverage */
   private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
@@ -41,32 +41,33 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
       if (fromTest262) test262.loadTest(script, MetaData(path).includes)
       else (scriptStr, script)
 
-    // run interp and record touched
+    // run interpreter and record touched
     val touched: MSet[Int] = MSet()
-    val interpreter =
-      new Interpreter(Initialize(cfg, sourceText, Some(ast)), Nil, false) {
-        // check if current state need to be recorded
-        private def needRecord: Boolean =
-          val contexts = st.context :: st.callStack.map(_.context)
-          val astOpt = contexts.flatMap(_.astOpt).headOption
-          astOpt.fold(false)(markedAst contains _)
+    val finalSt = new Interpreter(
+      Initialize(cfg, sourceText, Some(ast)),
+      timeLimit = timeLimit,
+    ) {
+      // check if current state need to be recorded
+      private def needRecord: Boolean =
+        val contexts = st.context :: st.callStack.map(_.context)
+        val astOpt = contexts.flatMap(_.astOpt).headOption
+        astOpt.fold(false)(markedAst contains _)
 
-        // override interp for node
-        override def interp(node: Node): Unit =
-          // record touched
-          if (needRecord) touched += node.id
-          super.interp(node)
+      // override eval for node
+      override def eval(node: Node): Unit =
+        // record touched
+        if (needRecord) touched += node.id
+        super.eval(node)
 
-        // handle dynamically created ast
-        override def interp(expr: Expr): Value =
-          val v = super.interp(expr)
-          (expr, v) match
-            case (_: EParse, AstValue(ast)) if needRecord =>
-              markedAst ++= ast.nodeSet
-            case _ => /* do nothing */
-          v
-      }
-    val finalSt = timeout(interpreter.result, timeLimit)
+      // handle dynamically created ast
+      override def eval(expr: Expr): Value =
+        val v = super.eval(expr)
+        (expr, v) match
+          case (_: EParse, AstValue(ast)) if needRecord =>
+            markedAst ++= ast.nodeSet
+          case _ => /* do nothing */
+        v
+    }.result
 
     // update coverage
     for { nid <- touched } {
@@ -74,6 +75,7 @@ case class Coverage(cfg: CFG, timeLimit: Option[Long] = Some(TIMEOUT)) {
         case Some(pid0) if programs(pid0)._2 <= programSize => /* do nothing */
         case _ => nodeMap += (nid -> pid)
     }
+
     finalSt
   }
 
