@@ -39,8 +39,8 @@ object Injector:
   /** assertion definitions */
   lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
 
-/** private helper of assertion injector */
-private class Injector(
+/** extensible helper of assertion injector */
+class Injector(
   extractor: ExitStateExtractor,
   defs: Boolean,
   log: Boolean,
@@ -61,18 +61,29 @@ private class Injector(
       println("[Injector] Logging finished")
     app.toString
 
+  /** initial state */
+  lazy val initSt: State = extractor.initSt
+
+  /** exit state */
+  lazy val exitSt: State = extractor.result
+
+  /** original script */
+  lazy val original = initSt.sourceText.get
+
+  /** exit status tag */
+  lazy val exitTag: ExitTag = ExitTag(exitSt)
+
+  /** normal termination */
+  lazy val normalExit: Boolean = exitTag == NormalTag
+
+  /** check whether it uses asynchronous features */
+  // TODO more precise detection
+  lazy val isAsync: Boolean =
+    original.contains("async") || original.contains("Promise")
+
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  // initial state
-  private lazy val initSt: State = extractor.initSt
-
-  // exit state
-  private lazy val exitSt: State = extractor.result
-
-  // original script
-  private lazy val original = initSt.sourceText.get
-
   // logging
   private lazy val pw: PrintWriter =
     println(s"[Injector] Logging into $INJECT_LOG_DIR...")
@@ -84,16 +95,7 @@ private class Injector(
   // appender
   private val app: Appender = new Appender
 
-  // exit status tag
-  private lazy val exitTag: ExitTag = ExitTag(exitSt)
-
-  // normal termination
-  private lazy val normalExit: Boolean = exitTag == NormalTag
-
   // handle async
-  // TODO more precise detection
-  private lazy val isAsync: Boolean =
-    original.contains("async") || original.contains("Promise")
   private def startAsync: Unit =
     log("handling async..."); app :> "$delay(() => {"
   private def endAsync: Unit =

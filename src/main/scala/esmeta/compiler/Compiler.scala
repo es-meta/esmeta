@@ -8,14 +8,14 @@ import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.{Param => SParam, Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{ListBuffer, Stack}
+import scala.collection.mutable.ListBuffer
 
 /** compiler from metalangauge to IR */
 object Compiler:
   def apply(spec: Spec): Program = new Compiler(spec).result
 
-/** private helper for compilation */
-private class Compiler(spec: Spec) {
+/** extensible helper of compiler from metalangauge to IR */
+class Compiler(spec: Spec) {
 
   /** compiled specification */
   lazy val result: Program =

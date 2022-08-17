@@ -9,32 +9,23 @@ import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
 
-/** specification extractor for ECMA-262 */
-object Extractor extends SpecParsers {
-
+/** specification extractor from ECMA-262 */
+object Extractor:
   /** extracts a specification */
   def apply(
     document: Document,
     version: Option[Git.Version] = None,
-  ): Spec =
-    val grammar = extractGrammar(document)
-    val idxMap = grammar.idxMap
-    val algorithms = extractAlgorithms(document, idxMap)
-    val tables = extractTables(document)
-    Spec(
-      version = version,
-      grammar = grammar,
-      algorithms = algorithms,
-      tables = tables,
-      typeModel = TypeModel.es, // TODO automatic extraction
-      document = document,
-    )
+  ): Spec = new Extractor(document, version).result
 
-  /** extracts a specification with target versions */
+  /** extracts a specification with the current version of ECMA-262 */
   def apply(): Spec =
     apply(readFile(SPEC_HTML).toHtml, Some(Git.currentVersion(ECMA262_DIR)))
+
+  /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String]): Spec =
     targetOpt.fold(apply())(apply)
+
+  /** extracts a specification with a target version of ECMA-262 */
   def apply(target: String): Spec =
     val cur = Git.currentVersion(ECMA262_DIR)
     val version = Git.getVersion(target, ECMA262_DIR)
@@ -43,12 +34,40 @@ object Extractor extends SpecParsers {
     Git.changeVersion(cur, ECMA262_DIR)
     apply(document, Some(version))
 
+/** extensible helper of specification extractor from ECMA-262 */
+class Extractor(
+  document: Document,
+  version: Option[Git.Version] = None,
+) extends SpecParsers {
+
+  /** final result */
+  lazy val result = Spec(
+    version = version,
+    grammar = grammar,
+    algorithms = algorithms,
+    tables = tables,
+    typeModel = TypeModel.es, // TODO automatic extraction
+    document = document,
+  )
+
+  /** ECMAScript grammar */
+  lazy val grammar = extractGrammar
+
+  /** index map for ECMAScript grammar */
+  lazy val idxMap = grammar.idxMap
+
+  /** abstract algorithms in ECMA-262 */
+  lazy val algorithms = extractAlgorithms
+
+  /** tables in ECMA-262 */
+  lazy val tables = extractTables
+
   /** extracts a grammar */
-  def extractGrammar(document: Document): Grammar = {
+  def extractGrammar: Grammar = {
     val allProds = for {
       elem <- document.getElems("emu-grammar[type=definition]:not([example])")
       content = elem.html.trim.unescapeHtml
-      prods = extractProductions(content)
+      prods = parse[List[Production]](content)
       prod <- prods
       inAnnex = elem.isInAnnex
     } yield (prod, inAnnex)
@@ -59,35 +78,26 @@ object Extractor extends SpecParsers {
     Grammar(prods, prodsForWeb)
   }
 
-  /** extracts productions */
-  def extractProductions(content: String): List[Production] = parse(content)
-
   /** extracts algorithms */
-  def extractAlgorithms(
-    document: Document,
-    idxMap: Map[String, (Int, Int)],
-  ): List[Algorithm] =
+  def extractAlgorithms: List[Algorithm] =
     // XXX load manually created algorithms
     var manualJobs = for {
       file <- walkTree(MANUALS_DIR) if algoFilter(file.getName)
       content = readFile(file.toString)
       document = content.toHtml
       elem <- document.getElems("emu-alg:not([example])")
-    } yield () => extractAlgorithm(elem, idxMap)
+    } yield () => extractAlgorithm(elem)
 
     // extract algorithms in spec
     val jobs = for {
       elem <- document.getElems("emu-alg:not([example])")
-    } yield () => extractAlgorithm(elem, idxMap)
+    } yield () => extractAlgorithm(elem)
 
     concurrent(manualJobs ++ jobs).toList.flatten
 
   /** extracts an algorithm */
-  def extractAlgorithm(
-    elem: Element,
-    idxMap: Map[String, (Int, Int)],
-  ): List[Algorithm] = for {
-    head <- extractHeads(elem, idxMap)
+  def extractAlgorithm(elem: Element): List[Algorithm] = for {
+    head <- extractHeads(elem)
     code = elem.html.unescapeHtml
     body = Step.from(code)
   } yield Algorithm(head, elem, body, code)
@@ -104,10 +114,7 @@ object Extractor extends SpecParsers {
   )
 
   /** extracts algorithm heads */
-  def extractHeads(
-    elem: Element,
-    idxMap: Map[String, (Int, Int)],
-  ): List[Head] = {
+  def extractHeads(elem: Element): List[Head] = {
     var parent = elem.parent
     // TODO more general rules
     if (
@@ -130,7 +137,7 @@ object Extractor extends SpecParsers {
       case "numeric method" =>
         extractNumMethodHead(parent, elem)
       case "sdo" =>
-        extractSdoHead(parent, elem, idxMap)
+        extractSdoHead(parent, elem)
       case "concrete method" =>
         extractConcMethodHead(parent, elem)
       case "internal method" =>
@@ -141,9 +148,7 @@ object Extractor extends SpecParsers {
   }
 
   /** extracts tables */
-  def extractTables(
-    document: Document,
-  ): Map[String, Table] = (for {
+  def extractTables: Map[String, Table] = (for {
     elem <- document.getElems("emu-table")
     id = elem.getId
     datas = (for {
@@ -152,7 +157,7 @@ object Extractor extends SpecParsers {
   } yield id -> Table(id, datas.head, datas.tail)).toMap
 
   // ---------------------------------------------------------------------------
-  // Private Helpers
+  // private helpers
   // ---------------------------------------------------------------------------
   // get abstract operation heads
   private def extractAbsOpHead(
@@ -176,12 +181,12 @@ object Extractor extends SpecParsers {
   private def extractSdoHead(
     parent: Element,
     elem: Element,
-    idxMap: Map[String, (Int, Int)],
   ): List[SyntaxDirectedOperationHead] = {
     val headContent = getHeadContent(parent)
     val prevContent = elem.getPrevContent
     val defaultCaseStr =
-      "Every grammar production alternative in this specification which is not listed below implicitly has the following default definition of"
+      "Every grammar production alternative in this specification which is " +
+      "not listed below implicitly has the following default definition of"
     val generator = parseBy(sdoHeadGen)(headContent)
     // to hande "default" case algorithms
     if (!prevContent.startsWith(defaultCaseStr)) {
