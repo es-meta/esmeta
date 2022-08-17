@@ -1,0 +1,28 @@
+def <CLO>:CreateMapIterator:clo0(): Any {
+  let entries = map.MapData
+  let index = 0
+  let numEntries = entries.length
+  loop[repeat] (< index numEntries) {
+    let e = entries[index]
+    index = (+ index 1)
+    if (! (= e.Key ~empty~)) {
+      if (= kind ~key~) {
+        let result = e.Key
+      } else {
+        if (= kind ~value~) {
+          let result = e.Value
+        } else {
+          assert (= kind ~key+value~)
+          call %0 = clo<CreateArrayFromList>((new [e.Key, e.Value]))
+          let result = %0
+        }
+      }
+      call %1 = clo<CreateIterResultObject>(result, false)
+      call %2 = clo<GeneratorYield>(%1)
+      [? %2]
+      nop
+      numEntries = entries.length
+    } else {}
+  }
+  return comp[~normal~/~empty~](undefined) // BUG (reported in #2861)
+}

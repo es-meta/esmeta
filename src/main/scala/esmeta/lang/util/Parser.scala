@@ -73,7 +73,9 @@ trait Parsers extends IndentParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ opt(
+      "the" ~> ty <~ "that is the value of",
+    ) ~ endWithExpr ^^ { case x ~ _ ~ e => LetStep(x, e) }
 
   // set steps
   lazy val setStep: PL[SetStep] =
@@ -315,7 +317,7 @@ trait Parsers extends IndentParsers {
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =
-    ("the number of elements in" ~ opt("the List") ~> expr) ^^ {
+    ("the number of elements" ~ ("in" | "of") ~ opt("the List") ~> expr) ^^ {
       NumberOfExpression(_)
     }
 
@@ -918,7 +920,8 @@ trait Parsers extends IndentParsers {
       Type("ExecutionContext")
     } |||
     "List of" ~ word ^^! { Type("List") } |||
-    nt ^^ { Type(_) }
+    nt ^^ { Type(_) } |||
+    "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! { Type("Record") }
   }.named("lang.Type")
 
   // ---------------------------------------------------------------------------
