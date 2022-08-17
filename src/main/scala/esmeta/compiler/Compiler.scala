@@ -566,6 +566,9 @@ class Compiler(
     case BinaryExpression.Op.Mul => BOp.Mul
     case BinaryExpression.Op.Div => BOp.Div
     case BinaryExpression.Op.Mod => BOp.Mod
+    case BinaryExpression.Op.And => BOp.BAnd
+    case BinaryExpression.Op.Or  => BOp.BOr
+    case BinaryExpression.Op.Xor => BOp.BXOr
 
   /** compile unary operators */
   def compile(op: UnaryExpression.Op): UOp = op match

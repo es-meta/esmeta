@@ -394,7 +394,16 @@ trait Parsers extends IndentParsers {
       ("-" | "the result of negating") ^^! Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
-    lazy val term: PL[CalcExpression] = unary ~ rep(
+    lazy val binary: PL[CalcExpression] =
+      "the result of applying the" ~> (
+        "bitwise AND" ^^! And ||| "bitwise inclusive OR" ^^! Or
+        ||| "bitwise exclusive OR (XOR)" ^^! Xor
+      ) ~ ("operation to" ~> term) ~ ("and" ~> term) ^^ {
+        case op ~ l ~ r =>
+          BinaryExpression(l, op, r)
+      }
+
+    lazy val term: PL[CalcExpression] = (unary ||| binary) ~ rep(
       ("×" ^^! Mul ||| "/" ^^! Div ||| "modulo" ^^! Mod) ~ unary,
     ) ^^ {
       case l ~ rs =>
@@ -407,7 +416,6 @@ trait Parsers extends IndentParsers {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
-
     calc
   }
 
@@ -448,7 +456,14 @@ trait Parsers extends IndentParsers {
     ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case o ~ as =>
         MathOpExpression(o, as)
-    }
+    } |||
+    (
+      ("the Number value for the integer represented by the 32-bit two's complement bit string" ^^! ToNumber)
+      ~ expr ^^ {
+        case o ~ as =>
+          MathOpExpression(o, List(as))
+      }
+    )
 
   // literals
   // GetIdentifierReference uses 'the value'
@@ -625,7 +640,9 @@ trait Parsers extends IndentParsers {
     // CreateDynamicFunction
     strLiteral <~ "\\([^)]*\\)".r |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
-    "an instance of the production" ~> prodLiteral
+    "an instance of the production" ~> prodLiteral |
+    // NumberBitwiseOp
+    "the 32-bit two's complement bit string representing" ~> mathOpExpr
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
