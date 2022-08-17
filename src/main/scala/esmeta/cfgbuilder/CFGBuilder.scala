@@ -10,10 +10,10 @@ import scala.collection.mutable.{ListBuffer, Map => MMap}
 object CFGBuilder:
   def apply(program: Program): CFG = new CFGBuilder(program).result
 
-/** private helper for CFG builder */
-private class CFGBuilder(program: Program) {
+/** extensible helper of CFG builder */
+class CFGBuilder(program: Program) {
 
-  /** get CFG */
+  /** final result */
   lazy val result: CFG =
     asiteSetter.walk(program)
     for { f <- program.funcs } translate(f)
@@ -21,7 +21,7 @@ private class CFGBuilder(program: Program) {
     cfg.program = program
     cfg
 
-  // translate IR function to cfg function
+  /** translate IR function to cfg function */
   def translate(irFunc: IRFunc): Unit = {
     // body
     val body = irFunc.body
@@ -76,17 +76,20 @@ private class CFGBuilder(program: Program) {
     funcs += func
   }
 
+  /** allocation site setter */
+  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
+
+  // ---------------------------------------------------------------------------
+  // protected helpers
+  // ---------------------------------------------------------------------------
   // internal lists of functions
-  val funcs: ListBuffer[Func] = ListBuffer()
+  protected val funcs: ListBuffer[Func] = ListBuffer()
 
   // function id counter
-  var fidCount: Int = 0
-  def nextFId: Int = { val fid = fidCount; fidCount += 1; fid }
+  private var fidCount: Int = 0
+  protected def nextFId: Int = { val fid = fidCount; fidCount += 1; fid }
 
   // node id counter
-  var nidCount: Int = 0
-  def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
-
-  // allocation site setter
-  val asiteSetter: AllocSiteSetter = new AllocSiteSetter
+  private var nidCount: Int = 0
+  protected def nextNId: Int = { val nid = nidCount; nidCount += 1; nid }
 }
