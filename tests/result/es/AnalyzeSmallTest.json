@@ -31,7 +31,7 @@
   "await1.js" : true,
   "await2.js" : true,
   "bind1.js" : true,
-  "bitwise.js" : "[YET] Let _lbits_ be the 32-bit two's complement bit string representing ℝ(_lnum_).",
+  "bitwise.js" : "Let _lbits_ be the 32-bit two's complement bit string representing ℝ(_lnum_).",
   "block1.js" : true,
   "boolean1.js" : true,
   "boolean2.js" : true,

@@ -219,7 +219,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SoleElementExpression(expr) =>
         app >> "the sole element of " >> expr
       case YetExpression(str, block) =>
-        app >> "[YET] " >> str
+        app >> str
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
     }
