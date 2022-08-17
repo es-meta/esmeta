@@ -394,7 +394,7 @@ trait Parsers extends IndentParsers {
       ("-" | "the result of negating") ^^! Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
-    lazy val binary: PL[CalcExpression] =
+    lazy val bitwiseBinary: PL[CalcExpression] =
       "the result of applying the" ~> (
         "bitwise AND" ^^! BAnd ||| "bitwise inclusive OR" ^^! BOr
         ||| "bitwise exclusive OR (XOR)" ^^! BXor
@@ -403,7 +403,7 @@ trait Parsers extends IndentParsers {
           BinaryExpression(l, op, r)
       }
 
-    lazy val term: PL[CalcExpression] = (unary ||| binary) ~ rep(
+    lazy val term: PL[CalcExpression] = (unary ||| bitwiseBinary) ~ rep(
       ("×" ^^! Mul ||| "/" ^^! Div ||| "modulo" ^^! Mod) ~ unary,
     ) ^^ {
       case l ~ rs =>

@@ -308,6 +308,12 @@ class StringifyTinyTest extends LangTest {
       UnaryExpression(UnaryExpression.Op.Neg, mulExpr)
     lazy val parenUnExpr =
       ExponentiationExpression(unExpr, refExpr)
+    lazy val bAndExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.BAnd, refExpr)
+    lazy val bXorExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.BXor, refExpr)
+    lazy val bOrExpr =
+      BinaryExpression(refExpr, BinaryExpression.Op.BOr, refExpr)
 
     // tests
     checkParseAndStringify("CalcExpression", Expression)(
@@ -321,6 +327,9 @@ class StringifyTinyTest extends LangTest {
       parenAddExpr -> "_x_ × (_x_ + _x_)",
       parenMulExpr -> "-(_x_ × _x_)",
       parenUnExpr -> "(-_x_)<sup>_x_</sup>",
+      bAndExpr -> "the result of applying the bitwise AND operation to _x_ and _x_",
+      bXorExpr -> "the result of applying the bitwise exclusive OR (XOR) operation to _x_ and _x_",
+      bOrExpr -> "the result of applying the bitwise inclusive OR operation to _x_ and _x_"
     )
 
     // -------------------------------------------------------------------------

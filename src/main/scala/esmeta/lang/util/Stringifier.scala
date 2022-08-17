@@ -292,8 +292,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Div => "/"
       case Mod => "modulo"
       case BAnd => "bitwise AND operation"
-      case BXor => "the bitwise exclusive OR (XOR)"
-      case BOr => "bitwise inclusive OR"
+      case BXor => "bitwise exclusive OR (XOR) operation"
+      case BOr => "bitwise inclusive OR operation"
     })
 
   // operators for unary expressions
