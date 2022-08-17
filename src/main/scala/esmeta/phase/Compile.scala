@@ -27,10 +27,10 @@ case object Compile extends Phase[Spec, Program] {
       // yet expressions
       dumpFile(
         name = "yet expressions",
-        data = program.yets
-          .map(_.toString(detail = false, location = false))
-          .sorted
-          .mkString(LINE_SEP),
+        data = (for {
+          (yet, funcOpt) <- program.yets
+          str = yet.toString + funcOpt.fold("")(" @ " + _.name)
+        } yield str).sorted.mkString(LINE_SEP),
         filename = s"$COMPILE_LOG_DIR/yets",
       )
 

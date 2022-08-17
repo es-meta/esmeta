@@ -24,7 +24,7 @@ case class Program(
   lazy val scriptParser: AstFrom = esParser("Script")
 
   /** get list of all yet expressions */
-  lazy val yets: List[EYet] = YetCollector(this)
+  lazy val yets: List[(EYet, Option[Func])] = YetCollector(this)
 
   /** get a type model */
   def typeModel: TypeModel = spec.typeModel
