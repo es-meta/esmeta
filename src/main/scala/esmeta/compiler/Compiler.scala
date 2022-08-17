@@ -12,10 +12,16 @@ import scala.collection.mutable.ListBuffer
 
 /** compiler from metalangauge to IR */
 object Compiler:
-  def apply(spec: Spec): Program = new Compiler(spec).result
+  def apply(
+    spec: Spec,
+    log: Boolean = false,
+  ): Program = new Compiler(spec).result
 
 /** extensible helper of compiler from metalangauge to IR */
-class Compiler(spec: Spec) {
+class Compiler(
+  spec: Spec,
+  log: Boolean = false,
+) {
 
   /** compiled specification */
   lazy val result: Program =
@@ -33,9 +39,21 @@ class Compiler(spec: Spec) {
   val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
 
   /** load manual compile rules */
-  val manualRules: Map[String, Inst] = (for {
-    (yet, inst) <- readJson[Map[String, String]](s"$MANUALS_DIR/rule.json")
-  } yield yet -> Inst.from(inst)).toMap
+  val manualRules: Map[String, Map[String, String]] =
+    readJson[Map[String, Map[String, String]]](s"$MANUALS_DIR/rule.json")
+
+  /** load manual compile rules for expressions */
+  val exprRules: Map[String, Expr] = for {
+    (yet, str) <- manualRules.getOrElse("expr", Map())
+  } yield yet -> Expr.from(str)
+
+  /** load manual compile rules for instructions */
+  val instRules: Map[String, Inst] = for {
+    (yet, str) <- manualRules.getOrElse("inst", Map())
+  } yield yet -> Inst.from(str)
+
+  /** get unused manual compile rules */
+  var unusedRules: Set[String] = exprRules.keySet ++ instRules.keySet
 
   /** grammar */
   def grammar: Grammar = spec.grammar
@@ -359,7 +377,8 @@ class Compiler(spec: Spec) {
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
-      val inst = manualRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      val inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      unusedRules -= yetStr
       fb.addInst(BackEdgeWalker(fb, force = true).walk(inst))
   })
 
@@ -473,7 +492,9 @@ class Compiler(spec: Spec) {
       case ListExpression(entries) =>
         EList(entries.map(compile(fb, _)))
       case yet: YetExpression =>
-        EYet(yet.toString(false, false))
+        val yetStr = yet.toString(true, false)
+        unusedRules -= yetStr
+        exprRules.get(yetStr).getOrElse(EYet(yetStr))
       case ReferenceExpression(ref) =>
         ERef(compile(fb, ref))
       case MathOpExpression(op, args) =>

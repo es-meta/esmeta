@@ -3,6 +3,8 @@ package esmeta.es
 import esmeta.ESMetaTest
 import esmeta.analyzer.{AbsSemantics, YET_THROW}
 import esmeta.analyzer.domain.*
+import esmeta.compiler.Compiler
+import esmeta.cfgbuilder.CFGBuilder
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
 import esmeta.es.util.*
@@ -18,12 +20,12 @@ trait ESTest extends ESMetaTest {
 object ESTest {
   val spec = ESMetaTest.spec
   val grammar = spec.grammar
-  val cfg = {
-    val res = spec.toCFG
+  val cfg =
+    val program = Compiler(spec)
+    val cfg = CFGBuilder(program)
     YET_THROW = true
-    _cfgOpt = Some(res) // initialize global cfg for abstract domain
-    res
-  }
+    _cfgOpt = Some(cfg) // initialize global cfg for abstract domain
+    cfg
 
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")

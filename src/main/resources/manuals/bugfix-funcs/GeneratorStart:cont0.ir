@@ -4,7 +4,7 @@ def <CONT>:GeneratorStart:cont0(): Any {
     sdo-call %1 = generatorBody->Evaluation()
     let result = %1
   } else {
-    assert (yet "[YET] _generatorBody_ is an Abstract Closure with no parameters.")
+    assert (? generatorBody: "AbstractClosure")
     call %2 = generatorBody()
     let result = %2
   }

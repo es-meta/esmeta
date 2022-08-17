@@ -1,5 +1,5 @@
 def DefineMethodProperty(homeObject: Object, key: PropertyKeyOrPrivateName, closure: FunctionObject, enumerable: Boolean): Unknown {
-  assert (yet "[YET] _homeObject_ is an ordinary, extensible object with no non-configurable properties.")
+  assert (&& (? homeObject: "OrdinaryObject") homeObject.Extensible)
   %0 = key
   if (? %0: "PrivateName") {
     return (new PrivateElement("Key" -> key, "Kind" -> ~method~, "Value" -> closure))

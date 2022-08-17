@@ -20,12 +20,6 @@ case class Spec(
   document: Document = Document(""), // HTML Document element
 ) extends SpecElem {
 
-  /** convert to an IR program */
-  lazy val toIR: ir.Program = Compiler(this)
-
-  /** convert to a control-flow graph (CFG) */
-  lazy val toCFG: cfg.CFG = toIR.toCFG
-
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
   lazy val scriptParser: AstFrom = esParser("Script")

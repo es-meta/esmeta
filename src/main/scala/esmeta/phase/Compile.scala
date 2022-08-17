@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.ir.Program
+import esmeta.compiler.Compiler
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -15,11 +16,15 @@ case object Compile extends Phase[Spec, Program] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Program = {
-    val program = spec.toIR
+    val compiler = new Compiler(spec, config.log)
+    val program = compiler.result
 
     // logging mode
     if (config.log)
+      // results
       program.dumpTo(COMPILE_LOG_DIR)
+
+      // yet expressions
       dumpFile(
         name = "yet expressions",
         data = program.yets
@@ -27,6 +32,16 @@ case object Compile extends Phase[Spec, Program] {
           .sorted
           .mkString(LINE_SEP),
         filename = s"$COMPILE_LOG_DIR/yets",
+      )
+
+      // unused manual rules
+      dumpFile(
+        name = "unused manual rules",
+        data = compiler.unusedRules.toList
+          .map(_.toString)
+          .sorted
+          .mkString(LINE_SEP),
+        filename = s"$COMPILE_LOG_DIR/unused-rules",
       )
 
     program

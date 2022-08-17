@@ -2,10 +2,11 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.cfgbuilder.CFGBuilder
 import esmeta.ir.Program
 import esmeta.util.*
-import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 
 /** `build-cfg` phase */
 case object BuildCFG extends Phase[Program, CFG] {
@@ -17,7 +18,8 @@ case object BuildCFG extends Phase[Program, CFG] {
     config: Config,
   ): CFG = {
     // build cfg
-    val cfg = program.toCFG
+    val builder = new CFGBuilder(program, config.log)
+    val cfg = builder.result
 
     // logging mode
     if (config.log) cfg.dumpTo(CFG_LOG_DIR)

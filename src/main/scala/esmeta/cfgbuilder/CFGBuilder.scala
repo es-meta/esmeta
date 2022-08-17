@@ -8,10 +8,16 @@ import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
 object CFGBuilder:
-  def apply(program: Program): CFG = new CFGBuilder(program).result
+  def apply(
+    program: Program,
+    log: Boolean = false,
+  ): CFG = new CFGBuilder(program).result
 
 /** extensible helper of CFG builder */
-class CFGBuilder(program: Program) {
+class CFGBuilder(
+  program: Program,
+  log: Boolean = false,
+) {
 
   /** final result */
   lazy val result: CFG =
