@@ -5,9 +5,9 @@ import scala.collection.mutable.ListBuffer
 
 /** yet expression collector */
 object YetCollector:
-  def apply(program: Program): List[EYet] =
+  def apply(elem: IRElem): List[EYet] =
     val collector = new YetCollector
-    collector.walk(program)
+    collector.walk(elem)
     collector.yets.toList
 class YetCollector extends UnitWalker:
   var yets: ListBuffer[EYet] = ListBuffer()
