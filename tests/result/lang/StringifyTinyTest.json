@@ -1,4 +1,5 @@
 {
+  "BitwiseExpression" : true,
   "Block" : true,
   "CalcExpression" : true,
   "Condition" : true,

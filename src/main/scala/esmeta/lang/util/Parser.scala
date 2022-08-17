@@ -276,6 +276,7 @@ trait Parsers extends IndentParsers {
     getChildrenExpr |||
     intrExpr |||
     calcExpr |||
+    bitwiseExpr |||
     invokeExpr |||
     returnIfAbruptExpr |||
     listExpr |||
@@ -394,16 +395,7 @@ trait Parsers extends IndentParsers {
       ("-" | "the result of negating") ^^! Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
-    lazy val bitwiseBinary: PL[CalcExpression] =
-      "the result of applying the" ~> (
-        "bitwise AND" ^^! BAnd ||| "bitwise inclusive OR" ^^! BOr
-        ||| "bitwise exclusive OR (XOR)" ^^! BXor
-      ) ~ ("operation to" ~> term) ~ ("and" ~> term) ^^ {
-        case op ~ l ~ r =>
-          BinaryExpression(l, op, r)
-      }
-
-    lazy val term: PL[CalcExpression] = (unary ||| bitwiseBinary) ~ rep(
+    lazy val term: PL[CalcExpression] = unary ~ rep(
       ("×" ^^! Mul ||| "/" ^^! Div ||| "modulo" ^^! Mod) ~ unary,
     ) ^^ {
       case l ~ rs =>
@@ -545,6 +537,17 @@ trait Parsers extends IndentParsers {
   lazy val errObjLiteral: PL[ErrorObjectLiteral] =
     lazy val errorName = "*" ~> word <~ "*" ^^ { ErrorObjectLiteral(_) }
     "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
+
+  // bitwise expressions
+  lazy val bitwiseExpr: PL[BitwiseExpression] =
+    import BitwiseExpression.Op.*
+    "the result of applying the" ~> (
+      "bitwise AND" ^^! BAnd ||| "bitwise inclusive OR" ^^! BOr
+      ||| "bitwise exclusive OR (XOR)" ^^! BXOr
+    ) ~ ("operation to" ~> expr) ~ ("and" ~> expr) ^^ {
+      case op ~ l ~ r =>
+        BitwiseExpression(l, op, r)
+    }
 
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =

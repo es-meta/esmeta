@@ -149,7 +149,7 @@ case class BinaryExpression(
 ) extends CalcExpression
 object BinaryExpression:
   enum Op extends LangElem:
-    case Add, Sub, Mul, Div, Mod, BAnd, BOr, BXor
+    case Add, Sub, Mul, Div, Mod
 
 // unary expressions
 case class UnaryExpression(
@@ -159,6 +159,17 @@ case class UnaryExpression(
 object UnaryExpression:
   enum Op extends LangElem:
     case Neg
+
+// bitwise expressions
+case class BitwiseExpression(
+  left: Expression,
+  op: BitwiseExpression.Op,
+  right: Expression,
+) extends Expression
+
+object BitwiseExpression:
+  enum Op extends LangElem:
+    case BAnd, BOr, BXOr
 
 // -----------------------------------------------------------------------------
 // metalanguage expressions with multiline

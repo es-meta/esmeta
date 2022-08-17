@@ -514,6 +514,8 @@ class Compiler(
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
+      case BitwiseExpression(left, op, right) =>
+        EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
         val algoName = fb.algo.head.fname
         val (ck, cn, ps, prefix) =
@@ -566,9 +568,6 @@ class Compiler(
     case BinaryExpression.Op.Mul => BOp.Mul
     case BinaryExpression.Op.Div => BOp.Div
     case BinaryExpression.Op.Mod => BOp.Mod
-    case BinaryExpression.Op.BAnd => BOp.BAnd
-    case BinaryExpression.Op.BOr  => BOp.BOr
-    case BinaryExpression.Op.BXor => BOp.BXOr
 
   /** compile unary operators */
   def compile(op: UnaryExpression.Op): UOp = op match
@@ -625,6 +624,13 @@ class Compiler(
     case NumberTypeLiteral()                => EGLOBAL_NUMBER_TYPE
     case BigIntTypeLiteral()                => EGLOBAL_BIGINT_TYPE
     case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
+  }
+
+  /** compile bitwise operations */
+  def compile(op: BitwiseExpression.Op): BOp = op match {
+    case BitwiseExpression.Op.BAnd => BOp.BAnd
+    case BitwiseExpression.Op.BOr  => BOp.BOr
+    case BitwiseExpression.Op.BXOr => BOp.BXOr
   }
 
   /** compile branch conditions */
