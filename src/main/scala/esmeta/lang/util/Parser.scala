@@ -918,7 +918,8 @@ trait Parsers extends IndentParsers {
       Type("ExecutionContext")
     } |||
     "List of" ~ word ^^! { Type("List") } |||
-    nt ^^ { Type(_) }
+    nt ^^ { Type(_) } |||
+    "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! { Type("Record") }
   }.named("lang.Type")
 
   // ---------------------------------------------------------------------------
