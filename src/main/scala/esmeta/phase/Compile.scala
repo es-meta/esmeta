@@ -11,7 +11,7 @@ case object Compile extends Phase[Spec, Program] {
   val help = "compiles a specification to an IR program."
   def apply(
     spec: Spec,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): Program = {
     val program = spec.toIR

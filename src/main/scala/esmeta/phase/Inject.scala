@@ -16,10 +16,10 @@ case object Inject extends Phase[CFG, String] {
   val help = "injects assertions to check final state of an ECMAScript file."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): String =
-    val filename = getFirstFilename(globalConfig, this.name)
+    val filename = getFirstFilename(cmdConfig, this.name)
     val injected = Injector.fromFile(cfg, filename, config.defs, config.log)
 
     // dump the assertion-injected ECMAScript program

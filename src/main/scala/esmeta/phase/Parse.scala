@@ -13,10 +13,10 @@ case object Parse extends Phase[Spec, Ast] {
   val help = "parses an ECMAScript file."
   def apply(
     spec: Spec,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): Ast =
-    val filename = getFirstFilename(globalConfig, name)
+    val filename = getFirstFilename(cmdConfig, name)
     ESParser(spec.grammar, config.debug)("Script").fromFile(filename)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

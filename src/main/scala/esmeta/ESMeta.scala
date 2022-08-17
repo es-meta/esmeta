@@ -17,20 +17,19 @@ object ESMeta {
         }
       case Nil => throw NoInputError
   catch
-    // ESMetaError: print the error message.
-    case ex: ESMetaError if !DEBUG =>
+    // ESMetaError: print only the error message.
+    case ex: ESMetaError =>
       Console.err.println(ex.getMessage)
     // Unexpected: print the stack trace.
-    case ex: Throwable =>
-      Console.err.println("- Unexpected error occurred.")
-      Console.err.println(ex.toString)
-      Console.err.println(ex.getStackTrace.mkString(LINE_SEP))
+    case e: Throwable =>
+      Console.err.println(s"[ESMeta v$VERSION] Unexpected error occurred:")
+      throw e
 
   /** execute ESMeta with a runner */
   def apply[Result](
     command: Command[Result],
-    runner: GlobalConfig => Result,
-    config: GlobalConfig,
+    runner: CommandConfig => Result,
+    config: CommandConfig,
   ): Result =
     // set the start time.
     val startTime = System.currentTimeMillis
@@ -39,9 +38,9 @@ object ESMeta {
     // duration
     val duration = System.currentTimeMillis - startTime
     // display the result.
-    if (!SILENT) command.showResult(result)
+    if (!config.silent) command.showResult(result)
     // display the time.
-    if (TIME)
+    if (config.time)
       val name = config.command.name
       println(s"The command '$name' took $duration ms.")
     // return result
@@ -90,16 +89,17 @@ object ESMeta {
     Analyze,
   )
 
-  /** global options */
-  val options: List[PhaseOption[GlobalConfig]] = List(
-    ("silent", BoolOption(c => SILENT = true), "do not show final results."),
-    ("debug", BoolOption(c => DEBUG = true), "turn on the debugging mode."),
-    ("time", BoolOption(c => TIME = true), "display the duration time."),
+  /** command options */
+  val options: List[PhaseOption[CommandConfig]] = List(
+    ("silent", BoolOption(c => c.silent = true), "do not show final results."),
+    ("time", BoolOption(c => c.time = true), "display the duration time."),
   )
 }
 
-/** global configuration */
-case class GlobalConfig(
+/** command configuration */
+case class CommandConfig(
   var command: Command[_],
   var args: List[String] = Nil,
+  var silent: Boolean = false,
+  var time: Boolean = false,
 )

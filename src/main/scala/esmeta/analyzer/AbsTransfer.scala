@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.DEBUG
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
@@ -97,9 +96,6 @@ case class AbsTransfer(sem: AbsSemantics) {
           st = newSt
         }
       })
-
-    // debugging message
-    if (DEBUG) println(s"<RETURN> $ret")
 
     // return wrapped values
     for {

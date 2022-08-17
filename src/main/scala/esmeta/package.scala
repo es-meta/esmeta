@@ -6,6 +6,9 @@ val LINE_SEP = System.getProperty("line.separator")
 /** base project directory root */
 val BASE_DIR = System.getenv("ESMETA_HOME")
 
+/** base project directory root */
+val VERSION = "0.1.0"
+
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
 val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
@@ -45,14 +48,5 @@ val TEST262_TEST_DIR = s"$TEST262_DIR/test"
 // -----------------------------------------------------------------------------
 // Mutable Global Options
 // -----------------------------------------------------------------------------
-/** debugging mode */
-var DEBUG: Boolean = false
-
-/** silent mode */
-var SILENT: Boolean = false
-
-/** show duration time */
-var TIME: Boolean = false
-
 /** test mode (turn it on only when executing tests) */
 var TEST_MODE: Boolean = false

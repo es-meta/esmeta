@@ -1,6 +1,6 @@
 package esmeta.phase
 
-import esmeta.GlobalConfig
+import esmeta.CommandConfig
 import esmeta.util.ArgParser
 
 /** phase lists
@@ -22,14 +22,14 @@ sealed trait PhaseList[Result] {
   def phases: Vector[Phase[_, _]]
 
   /** get runner of a phase list */
-  def getRunner(parser: ArgParser): GlobalConfig => Result
+  def getRunner(parser: ArgParser): CommandConfig => Result
 }
 
 /** empty phase list */
 case object PhaseNil extends PhaseList[Unit] {
   val names: Vector[String] = Vector()
   def phases: Vector[Phase[_, _]] = Vector()
-  def getRunner(parser: ArgParser): GlobalConfig => Unit = x => {}
+  def getRunner(parser: ArgParser): CommandConfig => Unit = x => {}
 }
 
 /** a list construction
@@ -47,8 +47,8 @@ case class PhaseCons[P, R](
   def phases: Vector[Phase[_, _]] = plist.phases :+ phase
   def getRunner(
     parser: ArgParser,
-  ): GlobalConfig => R =
+  ): CommandConfig => R =
     val plistRunner = plist.getRunner(parser)
     val phaseRunner = phase.getRunner(parser)
-    globalConfig => phaseRunner(plistRunner(globalConfig), globalConfig)
+    cmdConfig => phaseRunner(plistRunner(cmdConfig), cmdConfig)
 }

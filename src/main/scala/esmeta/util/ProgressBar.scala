@@ -18,9 +18,10 @@ case class ProgressBar[T](
   val summary = Summary()
 
   // postfix for summary
-  def postfix =
+  def postfix = (
     if (summary.total == summary.pass) ""
     else s" - ${summary.simpleString}"
+  ) + s" [${summary.timeString}]"
 
   // bar length
   val BAR_LEN = 40
@@ -44,12 +45,12 @@ case class ProgressBar[T](
       val progress = (BAR * len) + (" " * (BAR_LEN - len))
       updateTime
       val msg =
-        f"[$progress] $percent%2.2f%% ($count%,d/$size%,d)$postfix [${summary.timeString}]"
+        f"[$progress] $percent%2.2f%% ($count%,d/$size%,d)$postfix"
       print("\r" + msg)
       if (count != size) { Thread.sleep(term); show }
       else println
     }
-    println(msg + "...")
+    println(s"- $msg...")
 
     val future = show
     for ((x, idx) <- iterable.zipWithIndex)

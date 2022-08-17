@@ -14,10 +14,10 @@ case object Eval extends Phase[CFG, State] {
   val help = "evaluates an ECMAScript file."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): State =
-    val filename = getFirstFilename(globalConfig, this.name)
+    val filename = getFirstFilename(cmdConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename)
     val st = Interpreter(initSt, log = config.log)
     st

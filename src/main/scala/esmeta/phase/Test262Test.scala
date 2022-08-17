@@ -16,11 +16,11 @@ case object Test262Test extends Phase[CFG, Option[String]] {
   val help = "test a Test262 program with harness files."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): Option[String] = try {
     // TODO support directory
-    val filename = getFirstFilename(globalConfig, this.name)
+    val filename = getFirstFilename(cmdConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename, test262 = true)
     val st = Interpreter(initSt)
 

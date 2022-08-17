@@ -12,7 +12,7 @@ case object Web extends Phase[CFG, Unit] {
   val help = "starts a web server for an ECMAScript double debugger."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): Unit = WebServer(cfg, config.port).run
 

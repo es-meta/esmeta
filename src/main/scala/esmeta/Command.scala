@@ -25,11 +25,11 @@ sealed abstract class Command[Result](
 
   /** run command with command-line arguments */
   def apply(args: List[String]): Result =
-    val globalConfig = GlobalConfig(this)
-    val parser = ArgParser(this, globalConfig)
+    val cmdConfig = CommandConfig(this)
+    val parser = ArgParser(this, cmdConfig)
     val runner = pList.getRunner(parser)
     parser(args)
-    ESMeta(this, runner(_), globalConfig)
+    ESMeta(this, runner(_), cmdConfig)
 
   /** a list of phases without specific IO types */
   def phases: Vector[Phase[_, _]] = pList.phases

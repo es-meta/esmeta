@@ -13,7 +13,7 @@ case object BuildCFG extends Phase[Program, CFG] {
   val help = "builds a control-flow graph (CFG) from an IR program."
   def apply(
     program: Program,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): CFG = {
     // build cfg

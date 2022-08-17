@@ -12,7 +12,7 @@ case object Extract extends Phase[Unit, Spec] {
   val help = "extracts specification model from ECMA-262 (spec.html)."
   def apply(
     unit: Unit,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): Spec = {
     val spec = Extractor(config.target)

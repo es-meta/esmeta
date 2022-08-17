@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.{LINE_SEP, Command}
 import esmeta.util.*
-import esmeta.{ESMeta, GlobalConfig}
+import esmeta.{ESMeta, CommandConfig}
 
 /** `help` phase */
 case object Help extends Phase[Unit, String]:
@@ -10,9 +10,9 @@ case object Help extends Phase[Unit, String]:
   val help = "shows help messages."
   def apply(
     unit: Unit,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
-  ): String = globalConfig.args.headOption match
+  ): String = cmdConfig.args.headOption match
     case None => helpMessage
     case Some(name) =>
       ESMeta.cmdMap.get(name) match

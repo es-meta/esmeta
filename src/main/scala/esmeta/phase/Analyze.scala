@@ -13,13 +13,13 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
   val help = "analyzes an ECMAScript file using meta-level static analysis."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): AbsSemantics = {
     // initialize
     domain._cfgOpt = Some(cfg)
     YET_THROW = true
-    val filename = getFirstFilename(globalConfig, this.name)
+    val filename = getFirstFilename(cmdConfig, this.name)
     val npMap = Initialize.initEs(readFile(filename))
 
     // perform a meta-level static analysis

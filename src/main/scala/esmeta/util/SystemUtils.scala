@@ -86,8 +86,8 @@ object SystemUtils {
     println(s"- Dumped $name into $filename in a JSON format.")
 
   /** get first filename */
-  def getFirstFilename(globalConfig: GlobalConfig, msg: String): String =
-    globalConfig.args.headOption.getOrElse(throw NoFileError(msg))
+  def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =
+    cmdConfig.args.headOption.getOrElse(throw NoFileError(msg))
 
   /** read file */
   def readFile(filename: String): String =

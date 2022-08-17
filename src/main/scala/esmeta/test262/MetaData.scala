@@ -1,6 +1,6 @@
 package esmeta.test262
 
-import esmeta.{DEBUG, TEST262_TEST_DIR}
+import esmeta.TEST262_TEST_DIR
 import esmeta.test262.util.*
 import scala.io.Source
 
@@ -138,8 +138,7 @@ extension (data: List[MetaData]) {
             if (f(meta)) (l, count + 1)
             else (meta :: l, count)
         }
-        if (DEBUG)
-          println(f"[DEBUG] - $desc%-30s: $removed%,5d tests are removed")
+        println(f"[DEBUG] $desc%-30s: $removed%,5d tests are removed")
         filtered.reverse
     }
 

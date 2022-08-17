@@ -13,7 +13,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   val help = "performs a type analysis of ECMA-262."
   def apply(
     cfg: CFG,
-    globalConfig: GlobalConfig,
+    cmdConfig: CommandConfig,
     config: Config,
   ): AbsSemantics = {
     // initalize

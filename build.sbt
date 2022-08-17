@@ -1,16 +1,26 @@
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
+// ESMeta version
+// NOTE: please update VERSION together in top-level package.scala
 ThisBuild / version := "0.1.0"
+
+// Scala version
 ThisBuild / scalaVersion := "3.1.0"
+
+// ESMeta organization
 ThisBuild / organization := "esmeta"
+
+// Scala options
 ThisBuild / scalacOptions := Seq(
   "-language:implicitConversions", // allow implicit conversions
   "-deprecation", // emit warning and location for usages of deprecated APIs
   "-explain", // explain errors in more detail
   "-explain-types", // explain type errors in more detail
-  "-feature", // emit warning and location for usages of features that should be imported explicitly
-  "-unchecked", // enable additional warnings where generated code depends on assumptions
+  "-feature", // emit warning for features that should be imported explicitly
+  "-unchecked", // enable warnings where generated code depends on assumptions
 )
+
+// Java options
 ThisBuild / javacOptions ++= Seq(
   "-encoding",
   "UTF-8",
