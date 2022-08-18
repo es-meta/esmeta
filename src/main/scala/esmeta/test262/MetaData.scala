@@ -138,13 +138,16 @@ extension (data: List[MetaData]) {
             if (f(meta)) (l, count + 1)
             else (meta :: l, count)
         }
-        println(f"[DEBUG] $desc%-30s: $removed%,5d tests are removed")
+        println(f"[Test262] $desc%-30s: $removed%,5d tests are removed")
         filtered.reverse
     }
 
   /** get the summary */
   def summary: ConfigSummary = {
     val (normalL, errorL) = data.partition(_.negative.isEmpty)
+    println(f"- total: ${normalL.length + errorL.length}%,d available tests")
+    println(f"  - normal: ${normalL.length}%,d tests")
+    println(f"  - error: ${errorL.length}%,d tests")
     ConfigSummary(
       data,
       normalL.map {
