@@ -1,6 +1,5 @@
 package esmeta.es.util
 
-import esmeta.{LINE_SEP, TEST262_TEST_DIR}
 import esmeta.cfg.*
 import esmeta.interpreter.*
 import esmeta.ir.*

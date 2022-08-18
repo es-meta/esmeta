@@ -145,7 +145,7 @@ extension (data: List[MetaData]) {
             else (meta :: l, count)
         }
         if (removed > 0)
-          println(f"[Test262] $desc%-30s: $removed%,5d tests are removed")
+          println(f"- $desc%-30s: $removed%,5d tests are removed")
         filtered.reverse
     }
 
