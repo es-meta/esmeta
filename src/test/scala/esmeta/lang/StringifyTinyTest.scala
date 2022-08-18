@@ -70,6 +70,7 @@ class StringifyTinyTest extends LangTest {
     lazy val throwStep = ThrowStep(errObj)
     lazy val performStep = PerformStep(invokeAOExpr)
     lazy val appendStep = AppendStep(refExpr, fieldRef)
+    lazy val prependStep = PrependStep(refExpr, fieldRef)
     lazy val repeatStep = RepeatStep(None, letStep)
     lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
     lazy val pushCtxtStep = PushCtxtStep(x)
@@ -139,6 +140,7 @@ class StringifyTinyTest extends LangTest {
       throwStep -> "throw a newly created *TypeError* object.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
+      prependStep -> "prepend _x_ to _x_.[[Value]].",
       repeatStep -> "repeat, let _x_ be _x_.",
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,

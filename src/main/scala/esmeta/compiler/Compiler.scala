@@ -310,6 +310,8 @@ class Compiler(
       for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case PrependStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
     case RepeatStep(cond, body) =>
       fb.addInst(
         ILoop(

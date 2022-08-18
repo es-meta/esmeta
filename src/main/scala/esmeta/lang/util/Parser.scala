@@ -58,6 +58,7 @@ trait Parsers extends IndentParsers {
     assertStep |
     throwStep |
     appendStep |
+    prependStep |
     repeatStep |
     pushCtxtStep |
     noteStep |
@@ -168,6 +169,11 @@ trait Parsers extends IndentParsers {
     ("append" | "add") ~> expr ~
     ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
     ^^ { case e ~ r => AppendStep(e, r) }
+
+  // prepend steps
+  lazy val prependStep: PL[PrependStep] =
+    "prepend" ~> expr ~ ("to" ~> ref) <~ end
+    ^^ { case e ~ r => PrependStep(e, r) }
 
   // repeat steps
   lazy val repeatStep: PL[RepeatStep] =
