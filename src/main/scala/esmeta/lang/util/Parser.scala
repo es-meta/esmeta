@@ -660,6 +660,9 @@ trait Parsers extends IndentParsers {
     } |
     ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
+    } |
+    ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Sub, r)
     }
   }
 
