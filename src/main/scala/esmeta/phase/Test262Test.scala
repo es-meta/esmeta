@@ -24,6 +24,9 @@ case object Test262Test extends Phase[CFG, Summary] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Summary =
+    // set test mode
+    TEST_MODE = true
+
     // get specification
     val spec = cfg.spec
 
