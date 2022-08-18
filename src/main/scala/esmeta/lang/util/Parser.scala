@@ -629,7 +629,6 @@ trait Parsers extends IndentParsers {
 
   // expressions including calculation represented by words
   lazy val inWordsExpr: PL[Expression] = {
-
     ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
     } |
@@ -642,7 +641,6 @@ trait Parsers extends IndentParsers {
     (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
       case l ~ r => ExponentiationExpression(l, r)
     }
-
   }
 
   // rarely used expressions
