@@ -34,14 +34,6 @@ case class TestFilter(tests: List[MetaData]) {
     )
     .summary
 
-  /** configuration summary for manually selected tests */
-  lazy val manualSummary = readFile(s"$TEST_DIR/test262-list")
-    .split(LINE_SEP)
-    .toList
-    .map(x => MetaData(s"$TEST262_TEST_DIR/$x"))
-    .sorted
-    .summary
-
   /** target Test262 tests */
   lazy val targetTests = getTests(features = languageFeatures)
 

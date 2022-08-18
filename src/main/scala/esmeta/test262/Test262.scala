@@ -32,9 +32,6 @@ case class Test262(
   /** configuration summary for applicable tests */
   lazy val config: ConfigSummary = allTestFilter.summary
 
-  /** configuration summary for manually selected tests */
-  lazy val manualConfig: ConfigSummary = allTestFilter.manualSummary
-
   /** basic harness files */
   lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
 

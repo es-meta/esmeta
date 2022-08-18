@@ -1,10 +1,9 @@
 package esmeta.util
 
-import esmeta.CUR_DIR
 import esmeta.util.SystemUtils.*
 
 /** git helpers */
-abstract class Git(path: String = CUR_DIR) {
+abstract class Git(path: String) {
 
   /** git versions */
   case class Version(name: String, hash: String) {

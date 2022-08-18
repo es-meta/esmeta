@@ -1,6 +1,6 @@
 package esmeta.test262
 
-import esmeta.TEST262_TEST_DIR
+import esmeta.CUR_DIR
 import esmeta.test262.util.*
 import esmeta.util.SystemUtils.*
 import scala.io.Source
@@ -24,8 +24,8 @@ object MetaData {
 
   def apply(filename: String): MetaData = {
     val relName =
-      if (!filename.startsWith(TEST262_TEST_DIR)) filename
-      else filename.drop(TEST262_TEST_DIR.length + 1)
+      if (filename.startsWith(CUR_DIR)) filename.drop(CUR_DIR.length + 1)
+      else filename
     val source = Source.fromFile(filename)
     val lines =
       try source.getLines.toList
