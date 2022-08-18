@@ -17,6 +17,7 @@ val CFG_LOG_DIR = s"$LOG_DIR/cfg"
 val ANALYZE_LOG_DIR = s"$LOG_DIR/analyze"
 val INJECT_LOG_DIR = s"$LOG_DIR/inject"
 val EVAL_LOG_DIR = s"$LOG_DIR/eval"
+val TEST262TEST_LOG_DIR = s"$LOG_DIR/test262"
 
 /** tests directory root */
 val TEST_DIR = s"$BASE_DIR/tests"

@@ -4,7 +4,6 @@ import esmeta.*
 import esmeta.lang.Step
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
-import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -14,30 +13,25 @@ object Extractor:
   /** extracts a specification */
   def apply(
     document: Document,
-    version: Option[Git.Version] = None,
+    version: Option[Spec.Version] = None,
   ): Spec = new Extractor(document, version).result
-
-  /** extracts a specification with the current version of ECMA-262 */
-  def apply(): Spec =
-    apply(readFile(SPEC_HTML).toHtml, Some(Git.currentVersion(ECMA262_DIR)))
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String]): Spec =
-    targetOpt.fold(apply())(apply)
+    val (version, document) =
+      Spec.getVersionWith(targetOpt)(readFile(SPEC_HTML).toHtml)
+    apply(document, Some(version))
 
   /** extracts a specification with a target version of ECMA-262 */
-  def apply(target: String): Spec =
-    val cur = Git.currentVersion(ECMA262_DIR)
-    val version = Git.getVersion(target, ECMA262_DIR)
-    Git.changeVersion(version, ECMA262_DIR)
-    val document = readFile(SPEC_HTML).toHtml
-    Git.changeVersion(cur, ECMA262_DIR)
-    apply(document, Some(version))
+  def apply(target: String): Spec = apply(Some(target))
+
+  /** extracts a specification with the current version of ECMA-262 */
+  def apply(): Spec = apply(None)
 
 /** extensible helper of specification extractor from ECMA-262 */
 class Extractor(
   document: Document,
-  version: Option[Git.Version] = None,
+  version: Option[Spec.Version] = None,
 ) extends SpecParsers {
 
   /** final result */

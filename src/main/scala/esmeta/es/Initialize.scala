@@ -7,7 +7,6 @@ import esmeta.es.builtin.*
 import esmeta.spec.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
-import esmeta.test262.*
 
 class Initialize(cfg: CFG) {
 
@@ -201,11 +200,6 @@ object Initialize {
   ): State = new Initialize(cfg).getResult(sourceText, cachedAst)
 
   /** initialize from file */
-  def fromFile(cfg: CFG, filename: String, test262: Boolean = false): State =
-    if (!test262) apply(cfg, readFile(filename))
-    else {
-      val test262 = Test262(cfg.spec)
-      val (sourceText, ast) = test262.loadTestFromFile(filename)
-      apply(cfg, sourceText, Some(ast))
-    }
+  def fromFile(cfg: CFG, filename: String): State =
+    apply(cfg, readFile(filename))
 }

@@ -1,5 +1,7 @@
 package esmeta
 
+import esmeta.cfgbuilder.CFGBuilder
+import esmeta.compiler.Compiler
 import esmeta.error.NotSupported
 import esmeta.extractor.Extractor
 import esmeta.phase.*
@@ -161,5 +163,8 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 object ESMetaTest {
   // extract specifications
   lazy val specOpt = optional(Extractor())
-  def spec = ESMetaTest.specOpt.getOrElse(error("invalid spec"))
+  lazy val spec = ESMetaTest.specOpt.getOrElse(error("invalid spec"))
+  lazy val grammar = spec.grammar
+  lazy val program = Compiler(spec)
+  lazy val cfg = CFGBuilder(program)
 }

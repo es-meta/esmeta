@@ -69,14 +69,14 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 // -----------------------------------------------------------------------------
 // Analysis of ECMA-262
 // -----------------------------------------------------------------------------
-/** `typecheck` command */
+/** `type-check` command */
 case object CmdTypeCheck
-  extends Command("typecheck", CmdBuildCFG >> TypeCheck) {
+  extends Command("type-check", CmdBuildCFG >> TypeCheck) {
   val help = "performs a type analysis of ECMA-262."
 }
 
 // -----------------------------------------------------------------------------
-// ECMAScript (i.e., JavaScript) Interpreter
+// Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------
 /** `parse` command */
 case object CmdParse extends Command("parse", CmdExtract >> Parse) {
@@ -88,22 +88,22 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
   val help = "evaluates an ECMAScript file."
 }
 
-/** `test262test` command */
-case object CmdTest262Test
-  extends Command("test262test", CmdBuildCFG >> Test262Test) {
-  val help = "test a Test262 program with harness files."
-  override def showResult(msg: Option[String]): Unit = msg match
-    case None      => println(s"PASS")
-    case Some(msg) => println(s"FAIL - $msg")
-}
-
 /** `web` command */
 case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
   val help = "starts a web server for an ECMAScript double debugger."
 }
 
 // -----------------------------------------------------------------------------
-// ECMAScript (i.e., JavaScript) Transformer
+// Tester for Test262 (ECMAScript Test Suite)
+// -----------------------------------------------------------------------------
+/** `test262-test` command */
+case object CmdTest262Test
+  extends Command("test262-test", CmdBuildCFG >> Test262Test) {
+  val help = "test Test262 tests with harness files (default: tests/test262)."
+}
+
+// -----------------------------------------------------------------------------
+// ECMAScript Transformer
 // -----------------------------------------------------------------------------
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
@@ -111,7 +111,7 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
 }
 
 // -----------------------------------------------------------------------------
-// ECMAScript (i.e., JavaScript) Static Analysis (Meta-Level Static Analysis)
+// ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
 /** `analyze` command */
 case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {

@@ -46,7 +46,7 @@ case object Extract extends Phase[Unit, Spec] {
     (
       "target",
       StrOption((c, s) => c.target = Some(s)),
-      "set the target git version of ECMA-262.",
+      "set the target git version of ECMA-262 (default: current version).",
     ),
     (
       "log",

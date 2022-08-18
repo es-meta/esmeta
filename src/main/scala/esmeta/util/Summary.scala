@@ -43,7 +43,7 @@ class Summary {
   def total: Int = yet + timeout + fail + pass
 
   // supported total cases
-  def supported: Int = fail + pass
+  def supported: Int = timeout + fail + pass
 
   // pass rate
   def passRate: Double = pass.toDouble / supported
@@ -61,20 +61,28 @@ class Summary {
     f"$namesStr = $countsStr ($passPercent%2.2f%%)"
 
   // conversion to string
-  override def toString: String =
-    val app = Appender()
-    app >> f"time: $timeMillis%,d ms ($timeHours%.1f hours)" >> LINE_SEP
-    app >> f"total: $total%,d" >> LINE_SEP
-    if (yet > 0) app >> f"- yet: $yet%,d" >> LINE_SEP
-    app >> f"- fail: $fail%,d" >> LINE_SEP
-    app >> f"- pass: $pass%,d" >> LINE_SEP
-    app >> f"pass-rate: $pass%,d/$supported%,d ($passPercent%2.2f%%)"
-    app.toString
+  override def toString: String = total match
+    case 0 => "[Summary] no targets."
+    case 1 =>
+      if (yet == 1) "YET"
+      else if (timeout == 1) "TIMEOUT"
+      else if (fail == 1) "FAIL"
+      else "PASS"
+    case _ =>
+      val app = Appender()
+      app >> f"- time: $timeMillis%,d ms [$timeString]" >> LINE_SEP
+      app >> f"- total: $total%,d" >> LINE_SEP
+      if (yet > 0) app >> f"  - yet: $yet%,d" >> LINE_SEP
+      if (timeout > 0) app >> f"  - timeout: $timeout%,d" >> LINE_SEP
+      if (fail > 0) app >> f"  - fail: $fail%,d" >> LINE_SEP
+      if (pass > 0) app >> f"  - pass: $pass%,d" >> LINE_SEP
+      app >> f"- pass-rate: $pass%,d/$supported%,d ($passPercent%2.2f%%)"
+      app.toString
 }
 
 class SummaryElem {
-  // vector
-  private var vector: Vector[String] = Vector()
+  // elements
+  var elements: Vector[String] = Vector()
 
   // print writer
   var nfOpt: Option[PrintWriter] = None
@@ -84,12 +92,12 @@ class SummaryElem {
   def close: Unit = nfOpt.map(_.close())
 
   // size
-  def size: Int = vector.size
+  def size: Int = elements.size
 
   // add data
   def +=(data: String): Unit =
     for (nf <- nfOpt)
       nf.println(data)
       nf.flush()
-    vector :+= data
+    elements :+= data
 }

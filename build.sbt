@@ -67,8 +67,6 @@ lazy val esAnalyzeTest = taskKey[Unit]("Launch analyze tests for es (small)")
 // test262
 lazy val test262ParseTest =
   taskKey[Unit]("Launch parse tests for Test262 (large)")
-lazy val test262EvalTest =
-  taskKey[Unit]("Launch eval tests for Test262 (large)")
 
 // assembly setting
 ThisBuild / assemblyPrependShellScript :=
@@ -164,7 +162,6 @@ lazy val root = project
     esAnalyzeTest := (Test / testOnly).toTask(" *.es.Analyze*Test").value,
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
-    test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
   )
 
 // create the `.completion` file for autocompletion in shell

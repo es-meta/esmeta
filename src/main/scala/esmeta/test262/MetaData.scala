@@ -2,6 +2,7 @@ package esmeta.test262
 
 import esmeta.TEST262_TEST_DIR
 import esmeta.test262.util.*
+import esmeta.util.SystemUtils.*
 import scala.io.Source
 
 /** metadata tests in Test262 */
@@ -16,6 +17,11 @@ case class MetaData(
 ) extends Test262Elem
 
 object MetaData {
+  def fromDir(dirname: String): List[MetaData] = walkTree(dirname).toList
+    .filter(f => jsFilter(f.getName))
+    .map(x => MetaData(x.toString))
+    .sorted
+
   def apply(filename: String): MetaData = {
     val relName =
       if (!filename.startsWith(TEST262_TEST_DIR)) filename
@@ -138,26 +144,26 @@ extension (data: List[MetaData]) {
             if (f(meta)) (l, count + 1)
             else (meta :: l, count)
         }
-        println(f"[Test262] $desc%-30s: $removed%,5d tests are removed")
+        if (removed > 0)
+          println(f"[Test262] $desc%-30s: $removed%,5d tests are removed")
         filtered.reverse
     }
 
   /** get the summary */
-  def summary: ConfigSummary = {
+  def summary: ConfigSummary =
     val (normalL, errorL) = data.partition(_.negative.isEmpty)
-    println(f"- total: ${normalL.length + errorL.length}%,d available tests")
-    println(f"  - normal: ${normalL.length}%,d tests")
-    println(f"  - error: ${errorL.length}%,d tests")
+    val n = normalL.length
+    val e = errorL.length
+    val t = n + e
+    if (t > 1)
+      println(s"----------------------------------------")
+      println(f"- total: $t%,d available tests")
+      println(f"  - normal: $n%,d tests")
+      println(f"  - error: $e%,d tests")
+      println(s"----------------------------------------")
     ConfigSummary(
       data,
-      normalL.map {
-        case MetaData(name, _, _, i, _, _, _) =>
-          NormalConfig(name, i)
-      },
-      errorL.collect {
-        case MetaData(name, n, _, i, _, _, _) =>
-          ErrorConfig(name, n.get, i)
-      },
+      normalL.map(d => NormalConfig(d.name, d.includes)),
+      errorL.map(d => ErrorConfig(d.name, d.negative.get, d.includes)),
     )
-  }
 }

@@ -33,6 +33,8 @@ case class InvalidParseSource(expr: Expr, v: Value)
   extends InterpreterError(s"not a proper source for parse: $expr -> $v")
 case class InvalidTypeExpr(expr: Expr, v: Value)
   extends InterpreterError(s"not a proper type expression: $expr -> $v")
+case class InvalidExit(value: Value)
+  extends InterpreterError(s"return not undefined: $value")
 
 // invalid completion values
 sealed abstract class InvalidComp(msg: Option[String])

@@ -29,13 +29,13 @@ class ParseLargeTest extends Test262Test {
   def init: Unit = check(name) {
     mkdir(logDir)
     dumpFile(spec.version, s"$logDir/ecma262-version")
-    dumpFile(Git.currentVersion(BASE_DIR), s"$logDir/esmeta-version")
+    dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
     summary.fails.setPath(s"$logDir/parse-fail.log")
     summary.passes.setPath(s"$logDir/parse-pass.log")
     for (config <- progress)
       val name = config.name
-      val esName = s"$TEST262_TEST_DIR/$name"
-      timeout(ESTest.parseTest(parseFile(esName)), PARSE_TIMEOUT)
+      val filename = s"$TEST262_TEST_DIR/$name"
+      timeout(ESTest.parseTest(ESTest.parseFile(filename)), PARSE_TIMEOUT)
     summary.close
     dumpFile(summary, s"$logDir/parse-summary")
     if (summary.fail > 0) fail(s"${summary.fail} tests are failed.")

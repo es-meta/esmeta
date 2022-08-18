@@ -13,7 +13,11 @@ import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
 import io.circe.*, io.circe.syntax.*
 
 /** coverage measurement of cfg */
-case class Coverage(cfg: CFG, timeLimit: Option[Int]) {
+case class Coverage(
+  cfg: CFG,
+  test262: Option[Test262] = None,
+  timeLimit: Option[Int] = None,
+) {
 
   /** data structures for coverage */
   private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
@@ -22,29 +26,28 @@ case class Coverage(cfg: CFG, timeLimit: Option[Int]) {
   /** update coverage for a given ECMAScript program */
   private lazy val scriptParser = cfg.scriptParser
   def run(path: String): State = {
-    // parse
-    val fromTest262 = path startsWith TEST262_TEST_DIR
-    val script = scriptParser.fromFile(path)
-    val scriptStr = script.toString(grammar = Some(cfg.grammar))
+    // script AST
+    val script = test262 match
+      case Some(test262) => test262.loadTest(path)
+      case None          => scriptParser.fromFile(path)
 
-    // update program infos
+    // program name
+    val programName = test262 match
+      case Some(test262) => path
+      case None          => path.split("/").reverse.head
+
+    // program infos
     val pid = programs.size
-    val programSize = scriptStr.length
-    val programName =
-      (if (fromTest262) path.substring(TEST262_TEST_DIR.length + 1)
-       else path.split("/").reverse.head)
+    val code = script.toString(grammar = Some(cfg.grammar)).trim
+    val programSize = code.length
     programs += ((programName, programSize))
 
-    // handle test262
     var markedAst = script.nodeSet
-    val (sourceText, ast) =
-      if (fromTest262) test262.loadTest(script, MetaData(path).includes)
-      else (scriptStr, script)
 
     // run interpreter and record touched
     val touched: MSet[Int] = MSet()
     val finalSt = new Interpreter(
-      Initialize(cfg, sourceText, Some(ast)),
+      Initialize(cfg, code, Some(script)),
       timeLimit = timeLimit,
     ) {
       // check if current state need to be recorded
@@ -122,16 +125,12 @@ case class Coverage(cfg: CFG, timeLimit: Option[Int]) {
   override def toString: String = {
     val (nCovered, nTotal) = nodeCov
     val (bCovered, bTotal) = branchCov
-    "coverage:" + LINE_SEP +
-    f"- node: $nCovered%,d/$nTotal%,d (${percent(nCovered, nTotal)}%2.2f%%)" + LINE_SEP +
-    f"- branch: $bCovered%,d/$bTotal%,d (${percent(bCovered, bTotal)}%2.2f%%)"
+    val nPercent = percent(nCovered, nTotal)
+    val bPercent = percent(bCovered, bTotal)
+    f"""- coverage:
+       |  - node: $nCovered%,d/$nTotal%,d ($nPercent%2.2f%%)
+       |  - branch: $bCovered%,d/$bTotal%,d ($bPercent%2.2f%%)""".stripMargin
   }
-
-  // ********************************************************************************
-  // * helpers
-  // ********************************************************************************
-  /** test262 helper */
-  private lazy val test262 = Test262(cfg.spec)
 
   /** extension for AST */
   extension (ast: Ast) {
@@ -148,5 +147,4 @@ case class Coverage(cfg: CFG, timeLimit: Option[Int]) {
         case _ => /* do nothing */
       nodes
   }
-
 }

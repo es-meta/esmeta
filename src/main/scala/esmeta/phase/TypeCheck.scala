@@ -7,9 +7,9 @@ import esmeta.analyzer.domain
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
-/** `typecheck` phase */
+/** `type-check` phase */
 case object TypeCheck extends Phase[CFG, AbsSemantics] {
-  val name = "typecheck"
+  val name = "type-check"
   val help = "performs a type analysis of ECMA-262."
   def apply(
     cfg: CFG,

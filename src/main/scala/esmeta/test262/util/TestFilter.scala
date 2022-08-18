@@ -1,36 +1,40 @@
 package esmeta.test262.util
 
 import esmeta.*
-import esmeta.test262.{*, given}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.test262.{*, given}
 import io.circe.*, io.circe.syntax.*
 import java.io.*
 
-/** test filter for Test262 */
-object TestFilter {
-  lazy val configSummary = getTests(languageFeatures)
+/** Test262 test filter */
+case class TestFilter(tests: List[MetaData]) {
+
+  /** configuration summary for applicable tests */
+  lazy val summary = targetTests
     .remove(
       "longTest" -> (m => longTest.contains(removedExt(m.name))),
       "veryLongTest" -> (m => veryLongTest.contains(removedExt(m.name))),
-      "TODO" -> (m => TODOs.contains(removedExt(m.name))),
+      "yet" -> (m => yets.contains(removedExt(m.name))),
     )
     .summary
 
-  lazy val longConfigSummary = getTests(languageFeatures)
+  /** configuration summary for long tests */
+  lazy val longSummary = targetTests
     .remove(
       "non longTest" -> (m => !longTest.contains(removedExt(m.name))),
     )
     .summary
 
-  lazy val veryLongConfigSummary = getTests(languageFeatures)
+  /** configuration summary for very long tests */
+  lazy val veryLongSummary = targetTests
     .remove(
       "non veryLongTest" -> (m => !veryLongTest.contains(removedExt(m.name))),
     )
     .summary
 
-  /** manually selected Test262 tests */
+  /** configuration summary for manually selected tests */
   lazy val manualSummary = readFile(s"$TEST_DIR/test262-list")
     .split(LINE_SEP)
     .toList
@@ -38,14 +42,11 @@ object TestFilter {
     .sorted
     .summary
 
-  /** all Test262 tests */
-  lazy val allTests = walkTree(test262Dir).toList
-    .filter(f => jsFilter(f.getName))
-    .map(x => MetaData(x.toString))
-    .sorted
+  /** target Test262 tests */
+  lazy val targetTests = getTests(features = languageFeatures)
 
   /** a getter of tests for given language features */
-  def getTests(features: List[String]): List[MetaData] = allTests.remove(
+  def getTests(features: List[String] = Nil): List[MetaData] = tests.remove(
     "harness" -> (_.name.startsWith("harness")),
     "internationalisation" -> (_.name.startsWith("intl")),
     "annex" -> (m =>
@@ -80,9 +81,6 @@ object TestFilter {
     "non tests" -> (m => manualNonTest.contains(removedExt(m.name))),
     "wrong tests" -> (m => wrongTest.contains(removedExt(m.name))),
   )
-
-  /** test262 directory */
-  lazy val test262Dir = File(s"$TEST_DIR/test262/test")
 
   /** language features in Test262
     * @url
@@ -625,7 +623,11 @@ object TestFilter {
   )
 
   /** manually filtered out not yet supported tests */
-  lazy val TODOs = List(
+  lazy val yets = List(
     "language/expressions/multiplication/S11.5.1_A4_T7", // math precision error
   )
 }
+
+/** helper of Test262 test filter */
+object TestFilter:
+  def fromDir(dirname: String): TestFilter = apply(MetaData.fromDir(dirname))

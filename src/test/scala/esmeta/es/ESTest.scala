@@ -1,13 +1,13 @@
 package esmeta.es
 
 import esmeta.ESMetaTest
-import esmeta.analyzer.{AbsSemantics, YET_THROW}
+import esmeta.analyzer.AbsSemantics
 import esmeta.analyzer.domain.*
-import esmeta.compiler.Compiler
 import esmeta.cfgbuilder.CFGBuilder
+import esmeta.compiler.Compiler
+import esmeta.es.util.*
 import esmeta.interpreter.*
 import esmeta.ir.NormalInst
-import esmeta.es.util.*
 import esmeta.parser.AstFrom
 import esmeta.spec.Spec
 import esmeta.state.*
@@ -18,14 +18,7 @@ trait ESTest extends ESMetaTest {
   def category: String = "es"
 }
 object ESTest {
-  val spec = ESMetaTest.spec
-  val grammar = spec.grammar
-  val cfg =
-    val program = Compiler(spec)
-    val cfg = CFGBuilder(program)
-    YET_THROW = true
-    _cfgOpt = Some(cfg) // initialize global cfg for abstract domain
-    cfg
+  import ESMetaTest.*
 
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")

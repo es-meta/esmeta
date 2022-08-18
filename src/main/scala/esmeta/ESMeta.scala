@@ -5,7 +5,7 @@ import esmeta.phase.*
 import esmeta.util.*
 
 /** ESMeta top-level object */
-object ESMeta {
+object ESMeta extends Git() {
 
   /** the main entry point of ESMeta. */
   def main(tokens: Array[String]): Unit = try
@@ -18,8 +18,8 @@ object ESMeta {
       case Nil => throw NoInputError
   catch
     // ESMetaError: print only the error message.
-    case ex: ESMetaError =>
-      Console.err.println(ex.getMessage)
+    case e: ESMetaError =>
+      Console.err.println(e.getMessage)
     // Unexpected: print the stack trace.
     case e: Throwable =>
       Console.err.println(s"[ESMeta v$VERSION] Unexpected error occurred:")
@@ -58,8 +58,9 @@ object ESMeta {
     // Interpreter & Double Debugger for ECMAScript
     CmdParse,
     CmdEval,
-    CmdTest262Test,
     CmdWeb,
+    // Tester for Test262 (ECMAScript Test Suite)
+    CmdTest262Test,
     // ECMAScript Transformer
     CmdInject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
@@ -81,8 +82,9 @@ object ESMeta {
     // Interpreter & Double Debugger for ECMAScript
     Parse,
     Eval,
-    Test262Test,
     Web,
+    // Tester for Test262 (ECMAScript Test Suite)
+    Test262Test,
     // ECMAScript Transformer
     Inject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)

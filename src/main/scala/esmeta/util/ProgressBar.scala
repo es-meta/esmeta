@@ -1,6 +1,6 @@
 package esmeta.util
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import esmeta.LINE_SEP
@@ -13,6 +13,7 @@ case class ProgressBar[T](
   getName: (T, Int) => String = (_: T, idx) => s"${idx.toOrdinal} element",
   errorHandler: (Throwable, Summary, String) => Unit = (_, summary, name) =>
     summary.fails += name,
+  verbose: Boolean = true,
 ) extends Iterable[T] {
   // summary
   val summary = Summary()
@@ -42,17 +43,19 @@ case class ProgressBar[T](
       val count = gcount
       val percent = count.toDouble / size * 100
       val len = count * BAR_LEN / size
-      val progress = (BAR * len) + (" " * (BAR_LEN - len))
+      val bars = (BAR * len) + (" " * (BAR_LEN - len))
       updateTime
       val msg =
-        f"[$progress] $percent%2.2f%% ($count%,d/$size%,d)$postfix"
+        f"[$bars] $percent%2.2f%% ($count%,d/$size%,d)$postfix"
       print("\r" + msg)
       if (count != size) { Thread.sleep(term); show }
       else println
     }
-    println(s"- $msg...")
 
-    val future = show
+    if (verbose)
+      println(s"- $msg...")
+      show
+
     for ((x, idx) <- iterable.zipWithIndex)
       val name = getName(x, idx)
       getError {
@@ -60,12 +63,13 @@ case class ProgressBar[T](
         summary.passes += name
       }.map(errorHandler(_, summary, name))
       gcount += 1
+
     updateTime
 
     // close all print writers
     summary.close
 
-    Thread.sleep(term)
+    if (verbose) Thread.sleep(term)
   }
 
   // progress bar character

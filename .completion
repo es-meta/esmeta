@@ -11,17 +11,17 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg typecheck parse eval test262test web inject analyze"
+  cmdList="help extract compile build-cfg type-check parse eval web test262-test inject analyze"
   globalOpt="-silent -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log"
   compileOpt="-compile:log"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
-  typecheckOpt="-typecheck:repl"
+  typecheckOpt="-type-check:repl"
   parseOpt="-parse:debug"
   evalOpt="-eval:timeout -eval:log"
-  test262testOpt="-test262test:timeout -test262test:log"
   webOpt="-web:port"
+  test262testOpt="-test262-test:target -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:log"
   injectOpt="-inject:defs -inject:out -inject:log"
   analyzeOpt="-analyze:repl"
   # completion for commands
@@ -52,7 +52,7 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt}"))
           return 0
           ;;
-        typecheck)
+        type-check)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${typecheckOpt}"))
           return 0
           ;;
@@ -64,12 +64,12 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${evalOpt}"))
           return 0
           ;;
-        test262test)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${test262testOpt}"))
-          return 0
-          ;;
         web)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${webOpt}"))
+          return 0
+          ;;
+        test262-test)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${test262testOpt}"))
           return 0
           ;;
         inject)

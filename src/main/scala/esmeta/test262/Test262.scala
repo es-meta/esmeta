@@ -5,65 +5,57 @@ import esmeta.error.NotSupported
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.parser.ESParser
+import esmeta.spec.Spec
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.spec.Spec
 
-case class Test262(spec: Spec) {
-  // parsing result
-  type ParseResult = Either[String, List[Ast]]
+/** data in Test262 */
+case class Test262(
+  version: Test262.Version,
+  spec: Spec,
+) {
 
-  // cache for parsing results for necessary harness files
-  lazy val getInclude = cached[String, ParseResult](name =>
-    try {
-      val filename = s"$TEST262_DIR/harness/$name"
-      val script = parseFile(filename)
-      Right(script.flattenStmt)
-    } catch {
-      case NotSupported(msg) => Left(msg)
-    },
+  /** cache for parsing results for necessary harness files */
+  lazy val getHarness = cached(name =>
+    val filename = s"$TEST262_DIR/harness/$name"
+    () => parseFile(filename).flattenStmt,
   )
 
-  // parse ECMAScript file
-  lazy val scriptParser = spec.scriptParser
-  def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
+  /** all Test262 tests */
+  lazy val allTests: List[MetaData] = MetaData.fromDir(TEST262_TEST_DIR)
 
-  // test262 test configuration
-  lazy val config = TestFilter.configSummary
-  lazy val manualConfig = TestFilter.manualSummary
+  /** test262 test configuration */
+  lazy val allTestFilter: TestFilter = TestFilter(allTests)
 
-  // basic statements
-  lazy val basicStmts = for {
-    x <- getInclude("assert.js")
-    y <- getInclude("sta.js")
-  } yield x ++ y
+  /** configuration summary for applicable tests */
+  lazy val config: ConfigSummary = allTestFilter.summary
 
-  // load test262 file with harnesses
-  def loadTestFromFile(filename: String): (String, Ast) = {
-    val meta = MetaData(filename)
-    loadTest(parseFile(filename), meta.includes)
-  }
-  def loadTest(ast: Ast, includes: List[String]): (String, Ast) = {
+  /** configuration summary for manually selected tests */
+  lazy val manualConfig: ConfigSummary = allTestFilter.manualSummary
+
+  /** basic harness files */
+  lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
+
+  /** load test262 */
+  def loadTest(filename: String): Ast =
+    loadTest(filename, MetaData(filename).includes)
+
+  /** load test262 with harness files */
+  def loadTest(filename: String, includes: List[String]): Ast =
     // load harness
-    val includeStmts = includes.foldLeft(basicStmts) {
-      case (li, s) =>
-        for {
-          x <- li
-          y <- getInclude(s)
-        } yield x ++ y
-    } match {
-      case Right(l)  => l
-      case Left(msg) => throw NotSupported(msg)
-    }
+    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_)())
 
-    // parse test and merge with harnesses
-    val stmts = includeStmts ++ flattenStmt(ast)
-    val merged = mergeStmt(stmts)
+    // merge with harnesses
+    val stmts = flattenStmt(parseFile(filename))
+    mergeStmt(harnessStmts ++ stmts)
 
-    // result
-    val sourceText = merged.toString(grammar = Some(spec.grammar)).trim
-    (sourceText, merged)
-  }
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // parse ECMAScript file
+  private lazy val scriptParser = spec.scriptParser
+  private def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
 }
+object Test262 extends Git(TEST262_DIR)

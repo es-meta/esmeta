@@ -12,7 +12,7 @@ import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
-  version: Option[Git.Version] = None, // git version
+  version: Option[Spec.Version] = None, // git version
   grammar: Grammar = Grammar(), // lexical/syntactic grammar productions
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   tables: Map[String, Table] = Map(), // tables
@@ -59,3 +59,4 @@ case class Spec(
       case algo :: Nil => algo
       case _           => error(s"no algorithms found for $id")
 }
+object Spec extends Git(ECMA262_DIR)

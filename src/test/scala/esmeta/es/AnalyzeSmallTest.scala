@@ -1,10 +1,16 @@
 package esmeta.es
 
-import esmeta.ES_TEST_DIR
+import esmeta.{ESMetaTest, ES_TEST_DIR}
+import esmeta.analyzer.YET_THROW
+import esmeta.analyzer.domain.*
 import esmeta.util.SystemUtils.*
 
 class AnalyzeSmallTest extends ESTest {
   import ESTest.*
+
+  YET_THROW = true
+  _cfgOpt = Some(ESMetaTest.cfg) // initialize global cfg for abstract domain
+
   val name: String = "esAnalyzeTest"
 
   // registration

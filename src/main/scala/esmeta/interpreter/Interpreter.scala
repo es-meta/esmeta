@@ -19,6 +19,7 @@ import scala.math.{BigInt => SBigInt}
 class Interpreter(
   val st: State,
   val log: Boolean = false,
+  val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
@@ -504,9 +505,9 @@ class Interpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $EVAL_LOG_DIR...")
-    mkdir(EVAL_LOG_DIR)
-    getPrintWriter(s"$EVAL_LOG_DIR/log")
+    println(s"[Interpreter] Logging into $logDir...")
+    mkdir(logDir)
+    getPrintWriter(s"$logDir/log")
 
   /** get syntax-directed operation(SDO) */
   private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
@@ -545,8 +546,9 @@ object Interpreter {
   def apply(
     st: State,
     log: Boolean = false,
+    logDir: String = EVAL_LOG_DIR,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, timeLimit).result
+  ): State = new Interpreter(st, log, logDir, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
