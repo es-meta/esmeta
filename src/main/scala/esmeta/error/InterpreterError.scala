@@ -35,8 +35,8 @@ case class InvalidTypeExpr(expr: Expr, v: Value)
   extends InterpreterError(s"not a proper type expression: $expr -> $v")
 case class InvalidExit(value: Value)
   extends InterpreterError(s"return not undefined: $value")
-case class InvalidASTChildren(a: Ast)
-  extends InterpreterError(s"no children for lexical node: $a")
+case class InvalidASTChildren(ast: Ast)
+  extends InterpreterError(s"no children for lexical node: ${ast.name}")
 
 // invalid operands for an operator
 case class InvalidUnaryOp(uop: UOp, v: Value)
