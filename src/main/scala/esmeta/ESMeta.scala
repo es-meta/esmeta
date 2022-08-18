@@ -33,6 +33,9 @@ object ESMeta extends Git(BASE_DIR) {
   ): Result =
     // silent for help command
     if (command == CmdHelp) config.silent = true
+    // target existence check
+    if (command.needTarget && config.targets.isEmpty)
+      throw NoTargetError(command)
     // set the start time.
     val startTime = System.currentTimeMillis
     // execute the command.
@@ -108,7 +111,7 @@ object ESMeta extends Git(BASE_DIR) {
 /** command configuration */
 case class CommandConfig(
   var command: Command[_],
-  var args: List[String] = Nil,
+  var targets: List[String] = Nil,
   var silent: Boolean = false,
   var time: Boolean = false,
 )

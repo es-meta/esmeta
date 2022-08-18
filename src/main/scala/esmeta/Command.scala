@@ -26,8 +26,11 @@ sealed abstract class Command[Result](
   /** show the final result */
   def showResult(res: Result): Unit = println(res)
 
-  /** need target files */
+  /** target name */
   def targetName: String = ""
+
+  /** need target */
+  def needTarget: Boolean = targetName != ""
 
   /** run command with command-line arguments */
   def apply(args: List[String]): Result =
@@ -57,7 +60,8 @@ case object CmdHelp extends Command("help", CmdBase >> Help) {
     "esmeta help                  // show help message.",
     "esmeta help extract          // show help message of `extract` command.",
   )
-  override val targetName = "<command>?"
+  override val targetName = "[<command>]"
+  override val needTarget = false
 }
 
 // -----------------------------------------------------------------------------
@@ -115,7 +119,7 @@ case object CmdParse extends Command("parse", CmdExtract >> Parse) {
     "esmeta eval a.js -extract:target=es2022  # parse with es2022 spec.",
     "esmeta eval a.js -parse:debug            # parse in the debugging mode.",
   )
-  override val targetName = "<js>*"
+  override val targetName = "<js>+"
 }
 
 /** `eval` command */
@@ -126,7 +130,7 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
     "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
   )
-  override val targetName = "<js>*"
+  override val targetName = "<js>+"
 }
 
 /** `web` command */
@@ -149,7 +153,7 @@ case object CmdTest262Test
     "esmeta test262-test tests/test262/test/built-ins/Map/map.js   # file",
     "esmeta test262-test tests/test262/test/language/expressions   # directory",
   )
-  override val targetName = "<js|dir>*"
+  override val targetName = "<js|dir>+"
 }
 
 // -----------------------------------------------------------------------------
@@ -162,7 +166,7 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
     "esmeta inject a.js                               # inject assertions.",
     "esmeta inject a.js -inject:defs -inject:out=b.js # dump with definitions.",
   )
-  override val targetName = "<js>*"
+  override val targetName = "<js>+"
 }
 
 // -----------------------------------------------------------------------------
@@ -176,5 +180,5 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
     "esmeta analyze a.js -extract:target=es2022  # analyze with es2022 spec.",
     "esmeta analyze a.js -analyze:repl           # analyze in a REPL mode.",
   )
-  override val targetName = "<js>*"
+  override val targetName = "<js>+"
 }

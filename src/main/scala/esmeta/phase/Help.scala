@@ -12,7 +12,7 @@ case object Help extends Phase[Unit, Unit]:
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit = println(cmdConfig.args.headOption match
+  ): Unit = println(cmdConfig.targets.headOption match
     case None => helpMessage
     case Some(name) =>
       ESMeta.cmdMap.get(name) match

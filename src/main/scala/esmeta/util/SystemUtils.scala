@@ -87,7 +87,7 @@ object SystemUtils {
 
   /** get first filename */
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =
-    cmdConfig.args.headOption.getOrElse(throw NoFileError(msg))
+    cmdConfig.targets.headOption.getOrElse(throw NoFileError(msg))
 
   /** read file */
   def readFile(filename: String): String =

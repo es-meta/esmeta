@@ -111,7 +111,7 @@ class ArgParser(cmd: Command[_], cmdConfig: CommandConfig)
 
     // a filename list
     lazy val fileName: Parser[Unit] = str ^^ { s =>
-      cmdConfig.args = s :: cmdConfig.args
+      cmdConfig.targets = s :: cmdConfig.targets
     }
 
     // Generate a parser.
@@ -124,6 +124,6 @@ class ArgParser(cmd: Command[_], cmdConfig: CommandConfig)
       jsonArgs.foreach(parse(parser, _).get)
       jsonArgs = Nil
 
-    cmdConfig.args = cmdConfig.args.reverse
+    cmdConfig.targets = cmdConfig.targets.reverse
   }
 }

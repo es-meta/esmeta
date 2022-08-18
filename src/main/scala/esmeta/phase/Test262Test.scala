@@ -33,7 +33,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     // get metadata list
     if (config.log) println("- Extracting metadata of Test262 tests...")
     val dataList: List[MetaData] = (for {
-      path <- cmdConfig.args match
+      path <- cmdConfig.targets match
         case Nil   => List(TEST262_TEST_DIR)
         case paths => paths
       data <- MetaData.fromDir(path)
