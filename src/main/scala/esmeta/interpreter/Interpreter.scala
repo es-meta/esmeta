@@ -272,6 +272,9 @@ class Interpreter(
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
+        case (BigInt(n), ToBigInt) => BigInt(n)
+        case (Math(n), ToMath)     => Math(n)
+        case (Number(d), ToNumber) => Number(d)
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
