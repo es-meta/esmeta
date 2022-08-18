@@ -227,7 +227,7 @@ class Interpreter(
         case (_, Some(k)) => st.allocList(a.getChildren(k).map(AstValue(_)))
         case (syn: Syntactic, None) =>
           st.allocList(syn.children.flatten.map(AstValue(_)))
-        case _ => error(s"no children for lexical node")
+        case _ => throw InvalidASTChildren(a)
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>
@@ -321,10 +321,10 @@ class Interpreter(
         case v => ???,
       )
     case EClo(fname, captured) =>
-      val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
+      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       Clo(func, Map.from(captured.map(x => x -> st(x))))
     case ECont(fname) =>
-      val func = cfg.fnameMap.getOrElse(fname, error("invalid function name"))
+      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, Map.from(captured), st.callStack)
     case ESyntactic(name, args, rhsIdx, children) =>
@@ -597,7 +597,7 @@ object Interpreter {
     }
   }
 
-  /** transition for unary opeartors */
+  /** transition for unary operators */
   def eval(uop: UOp, operand: Value): Value =
     import UOp.*
     (uop, operand) match
@@ -615,8 +615,7 @@ object Interpreter {
       case (BNot, Math(n))   => Math(~(n.toInt))
       case (BNot, Number(n)) => Number(~(n.toInt))
       case (BNot, BigInt(b)) => BigInt(~b)
-      case (_, value) =>
-        error(s"wrong type of value for the operator $uop: $value")
+      case (_, value)        => throw InvalidUnaryOp(uop, value)
 
   /** transition for binary operators */
   def eval(bop: BOp, left: Value, right: Value): Value =
@@ -693,13 +692,13 @@ object Interpreter {
       case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
 
-      case (_, lval, rval) => error(s"wrong type: $lval $bop $rval")
+      case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
 
   /** transition for variadic operators */
   def eval(vop: VOp, vs: List[PureValue]): PureValue =
     import VOp.*
-    if (vs.isEmpty) error(s"no arguments for: $vop")
+    if (vs.isEmpty) throw InvalidVariadicOp(vop)
     vop match
       case Min =>
         if (vs.contains(NEG_INF)) NEG_INF
@@ -725,8 +724,4 @@ object Interpreter {
     g: T => PureValue,
     vs: List[PureValue],
   ) = g(vs.map(f).reduce(op))
-
-  /** helper of InterpreterError */
-  // TODO remove after refactoring of error
-  def error(msg: String): Nothing = throw InterpreterError(msg)
 }
