@@ -14,23 +14,23 @@ case class TestFilter(tests: List[MetaData]) {
   /** configuration summary for applicable tests */
   lazy val summary = targetTests
     .remove(
-      "longTest" -> (m => longTest.contains(removedExt(m.name))),
-      "veryLongTest" -> (m => veryLongTest.contains(removedExt(m.name))),
-      "yet" -> (m => yets.contains(removedExt(m.name))),
+      "longTest" -> (m => longTest.contains(removedExt(m.relName))),
+      "veryLongTest" -> (m => veryLongTest.contains(removedExt(m.relName))),
+      "yet" -> (m => yets.contains(removedExt(m.relName))),
     )
     .summary
 
   /** configuration summary for long tests */
   lazy val longSummary = targetTests
     .remove(
-      "non longTest" -> (m => !longTest.contains(removedExt(m.name))),
+      "non longTest" -> (m => !longTest.contains(removedExt(m.relName))),
     )
     .summary
 
   /** configuration summary for very long tests */
   lazy val veryLongSummary = targetTests
     .remove(
-      "non veryLongTest" -> (m => !veryLongTest.contains(removedExt(m.name))),
+      "non veryLongTest" -> (m => !veryLongTest.contains(removedExt(m.relName))),
     )
     .summary
 
@@ -39,39 +39,39 @@ case class TestFilter(tests: List[MetaData]) {
 
   /** a getter of tests for given language features */
   def getTests(features: List[String] = Nil): List[MetaData] = tests.remove(
-    "harness" -> (_.name.startsWith("harness")),
-    "internationalisation" -> (_.name.startsWith("intl")),
+    "harness" -> (_.relName.startsWith("harness")),
+    "internationalisation" -> (_.relName.startsWith("intl")),
     "annex" -> (m =>
-      m.name.startsWith("annex") ||
-      m.name.contains("__proto__"),
+      m.relName.startsWith("annex") ||
+      m.relName.contains("__proto__"),
     ),
     "in-progress features" -> (m =>
       !m.features.forall(features.contains(_)) ||
-      manualInprogress.map(_._1).contains(removedExt(m.name)),
+      manualInprogress.map(_._1).contains(removedExt(m.relName)),
     ),
     "non-strict" -> (m =>
       m.flags.contains("noStrict") ||
       m.flags.contains("raw") ||
-      manualNonstrict.contains(removedExt(m.name)),
+      manualNonstrict.contains(removedExt(m.relName)),
     ),
     "module" -> (m =>
       m.flags.contains("module") ||
-      m.name.startsWith("language/module-code/") ||
-      m.name.startsWith("language/import/") ||
-      m.name.startsWith("language/expressions/dynamic-import/") ||
-      m.name.startsWith("language/expressions/import.meta/"),
+      m.relName.startsWith("language/module-code/") ||
+      m.relName.startsWith("language/import/") ||
+      m.relName.startsWith("language/expressions/dynamic-import/") ||
+      m.relName.startsWith("language/expressions/import.meta/"),
     ),
     "early errors" -> (m =>
       !m.negative.isEmpty ||
-      manualEarlyError.contains(removedExt(m.name)),
+      manualEarlyError.contains(removedExt(m.relName)),
     ),
     "inessential built-in objects" -> (m =>
       m.flags.contains("CanBlockIsFalse") ||
       m.flags.contains("CanBlockIsTrue") ||
       !m.locales.isEmpty,
     ),
-    "non tests" -> (m => manualNonTest.contains(removedExt(m.name))),
-    "wrong tests" -> (m => wrongTest.contains(removedExt(m.name))),
+    "non tests" -> (m => manualNonTest.contains(removedExt(m.relName))),
+    "wrong tests" -> (m => wrongTest.contains(removedExt(m.relName))),
   )
 
   /** language features in Test262

@@ -1,13 +1,14 @@
 package esmeta.test262
 
-import esmeta.CUR_DIR
+import esmeta.TEST262_TEST_DIR
 import esmeta.test262.util.*
 import esmeta.util.SystemUtils.*
 import scala.io.Source
 
 /** metadata tests in Test262 */
 case class MetaData(
-  name: String,
+  relName: String,
+  path: String,
   negative: Option[String],
   flags: List[String],
   includes: List[String],
@@ -22,11 +23,13 @@ object MetaData {
     .map(x => MetaData(x.toString))
     .sorted
 
-  def apply(filename: String): MetaData = {
+  def apply(path: String): MetaData = {
+    val absPath = getAbsPath(path)
     val relName =
-      if (filename.startsWith(CUR_DIR)) filename.drop(CUR_DIR.length + 1)
-      else filename
-    val source = Source.fromFile(filename)
+      if (absPath.startsWith(TEST262_TEST_DIR))
+        absPath.drop(TEST262_TEST_DIR.length + 1)
+      else ""
+    val source = Source.fromFile(path)
     val lines =
       try source.getLines.toList
       finally source.close()
@@ -119,6 +122,7 @@ object MetaData {
       if (flags contains "async") includes :+ "doneprintHandle.js" else includes
     MetaData(
       relName,
+      path,
       negative,
       flags,
       newIncludes,
@@ -130,7 +134,7 @@ object MetaData {
 }
 
 /** ordering of metadata */
-given Ordering[MetaData] = Ordering.by(_.name)
+given Ordering[MetaData] = Ordering.by(_.path)
 
 /** extensions for list of metadata */
 extension (data: List[MetaData]) {
@@ -163,7 +167,7 @@ extension (data: List[MetaData]) {
       println(s"----------------------------------------")
     ConfigSummary(
       data,
-      normalL.map(d => NormalConfig(d.name, d.includes)),
-      errorL.map(d => ErrorConfig(d.name, d.negative.get, d.includes)),
+      normalL.map(d => NormalConfig(d.path, d.includes)),
+      errorL.map(d => ErrorConfig(d.path, d.negative.get, d.includes)),
     )
 }

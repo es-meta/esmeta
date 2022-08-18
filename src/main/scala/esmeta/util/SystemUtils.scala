@@ -127,6 +127,10 @@ object SystemUtils {
   def getExt(filename: String): String =
     filename.split('.').last
 
+  /** get absolute path */
+  def getAbsPath(filename: String): String =
+    File(filename).getAbsolutePath
+
   /** renamed filename */
   def renameFile(from: String, to: String): Unit =
     File(from).renameTo(File(to))

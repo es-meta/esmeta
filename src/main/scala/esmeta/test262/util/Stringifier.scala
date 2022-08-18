@@ -20,11 +20,11 @@ class Stringifier(
 
   // metadata tests in Test262
   given dataRule: Rule[MetaData] = (app, data) =>
-    val MetaData(name, neg, flags, includes, locales, features, es5) = data
+    val MetaData(_, path, neg, flags, includes, locales, features, es5) = data
     given Rule[Option[String]] = optionRule("-")
     given Rule[List[String]] =
       (app, list) => app.wrap("[", "]")(list.map(app :> _))
-    app >> name >> " : "
+    app >> path >> " : "
     app.wrap {
       if (!neg.isEmpty) app :> "- negative: " >> neg
       if (!flags.isEmpty) app :> "- flags: " >> flags
