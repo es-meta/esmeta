@@ -241,12 +241,15 @@ Await:clo1
 Await:clo1:cont0
 Await:cont2
 AwaitExpression[0,0].Evaluation
+BigInt::add
 BigInt::bitwiseAND
 BigInt::bitwiseNOT
 BigInt::bitwiseOR
 BigInt::bitwiseXOR
+BigInt::divide
 BigInt::equal
 BigInt::lessThan
+BigInt::multiply
 BigInt::sameValue
 BigInt::sameValueZero
 BigInt::signedRightShift

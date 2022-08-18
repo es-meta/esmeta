@@ -292,6 +292,7 @@ trait Parsers extends IndentParsers {
     xrefExpr |||
     soleExpr |||
     bigintExpr |||
+    inWordsExpr |||
     specialExpr
   }.named("lang.Expression")
 
@@ -651,6 +652,17 @@ trait Parsers extends IndentParsers {
         MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
     }
 
+  // expressions including calculation represented by words
+  lazy val inWordsExpr: PL[Expression] = {
+
+    ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
+    } |
+    ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
+    }
+  }
+
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
     // ClassStaticBlockDefinitionEvaluation
@@ -662,7 +674,11 @@ trait Parsers extends IndentParsers {
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of the production" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> mathOpExpr
+    "the 32-bit two's complement bit string representing" ~> mathOpExpr |
+    // rounding towards 0
+    expr <~ "rounded towards 0 to the next integer value" ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
