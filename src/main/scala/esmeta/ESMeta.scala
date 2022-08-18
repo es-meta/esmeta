@@ -15,7 +15,7 @@ object ESMeta extends Git(BASE_DIR) {
           case Some(cmd) => cmd(args)
           case None      => throw NoCmdError(str)
         }
-      case Nil => throw NoInputError
+      case Nil => println(welcome)
   catch
     // ESMetaError: print only the error message.
     case e: ESMetaError =>
@@ -45,6 +45,11 @@ object ESMeta extends Git(BASE_DIR) {
       println(s"The command '$name' took $duration ms.")
     // return result
     result
+
+  /** welcome message */
+  val welcome: String =
+    s"""Welcome to ESMeta v$VERSION - ECMAScript Metalanguage.
+       |Please type `esmeta help` to see the help message.""".stripMargin
 
   /** commands */
   val commands: List[Command[_]] = List(

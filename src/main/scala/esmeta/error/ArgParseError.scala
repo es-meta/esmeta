@@ -25,8 +25,6 @@ case class NoCmdError(str: String)
 case class NoPhaseError(str: String)
   extends ArgParseError(s"Phase '$str' does not exist.")
 
-case object NoInputError extends ArgParseError("Please input a command.")
-
 case class NoSupportError(str: String)
   extends ArgParseError(
     s"[NoSupportError]: we do not support '$str' as an option type",
