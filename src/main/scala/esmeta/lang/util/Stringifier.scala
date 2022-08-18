@@ -119,6 +119,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> block
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
+      case PrependStep(expr, ref) =>
+        app >> First("prepend ") >> expr >> " to " >> ref >> "."
       case RepeatStep(cond, body) =>
         app >> First("repeat, ")
         for { c <- cond } app >> "while " >> c >> ","
