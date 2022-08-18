@@ -160,13 +160,14 @@ object UnaryExpression:
   enum Op extends LangElem:
     case Neg
 
+// -----------------------------------------------------------------------------
 // bitwise expressions
+// -----------------------------------------------------------------------------
 case class BitwiseExpression(
   left: Expression,
   op: BitwiseExpression.Op,
   right: Expression,
 ) extends Expression
-
 object BitwiseExpression:
   enum Op extends LangElem:
     case BAnd, BOr, BXOr

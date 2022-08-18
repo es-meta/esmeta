@@ -130,6 +130,8 @@ trait Walker extends BasicWalker {
       IntrinsicExpression(walk(intr))
     case expr: CalcExpression =>
       walk(expr)
+    case BitwiseExpression(left, op, right) =>
+      BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>
       walk(invoke)
     case ListExpression(entries) =>
@@ -178,6 +180,8 @@ trait Walker extends BasicWalker {
   def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
 
   def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
+
+  def walk(op: BitwiseExpression.Op): BitwiseExpression.Op = op
 
   def walk(op: XRefExpression.Op): XRefExpression.Op = op
 
