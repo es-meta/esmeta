@@ -692,7 +692,7 @@ object Interpreter {
       case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
 
-      case (_, lval, rval) => throw new InvalidBinaryOp(bop, lval, rval)
+      case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
 
   /** transition for variadic operators */
