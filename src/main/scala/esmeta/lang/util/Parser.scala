@@ -663,7 +663,11 @@ trait Parsers extends IndentParsers {
     } |
     ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Sub, r)
+    } |
+    (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
+      case l ~ r => ExponentiationExpression(l, r)
     }
+
   }
 
   // rarely used expressions
