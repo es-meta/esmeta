@@ -394,7 +394,7 @@ trait Parsers extends IndentParsers {
       }
 
     lazy val unary: PL[CalcExpression] = base ||| (
-      ("-" | "the result of negating") ^^! Neg
+      ("-" | "the result of negating" | "Negation of") ^^! Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
@@ -413,6 +413,9 @@ trait Parsers extends IndentParsers {
       ("the sum of" ~> term) ~ ("and" ~> term) ^^ {
         case l ~ r => BinaryExpression(l, Add, r)
       }
+       | ("the product of" ~> term) ~ ("and" ~> term) ^^ {
+      case l ~ r => BinaryExpression(l, Mul, r)
+    }
 
     calc
   }
