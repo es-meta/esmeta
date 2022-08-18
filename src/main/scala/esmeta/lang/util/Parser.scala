@@ -98,7 +98,7 @@ trait Parsers extends IndentParsers {
   // return steps
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> end ^^! { ReturnStep(None) } |
-    "return" ~> opt("the" ~ ty ~ "value that represents") ~> endWithExpr ^^ {
+    "return" ~> endWithExpr ^^ {
       case e => ReturnStep(Some(e))
     }
 
@@ -291,6 +291,7 @@ trait Parsers extends IndentParsers {
     listExpr |||
     xrefExpr |||
     soleExpr |||
+    bigintExpr |||
     specialExpr
   }.named("lang.Expression")
 
@@ -642,6 +643,13 @@ trait Parsers extends IndentParsers {
     "a new empty List" ^^! ListExpression(Nil) |
     "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+
+  // bigint expressions
+  lazy val bigintExpr: PL[Expression] =
+    "the BigInt value that represents" ~> expr ^^ {
+      case e =>
+        MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
