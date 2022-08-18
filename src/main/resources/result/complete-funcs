@@ -583,6 +583,7 @@ CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
 CyclicModuleRecord.Link
 DecimalBigIntegerLiteral[0,0].NumericValue
+DecimalBigIntegerLiteral[1,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
 Declaration[1,0].DeclarationPart
 Declaration[2,0].DeclarationPart
@@ -1150,6 +1151,7 @@ INTRINSICS.Atomics.load
 INTRINSICS.Atomics.store
 INTRINSICS.BigInt
 INTRINSICS.BigInt.asIntN
+INTRINSICS.BigInt.asUintN
 INTRINSICS.BigInt.prototype.valueOf
 INTRINSICS.Boolean
 INTRINSICS.Boolean.prototype.toString
@@ -1788,8 +1790,10 @@ Number::toString
 Number::unaryMinus
 Number::unsignedRightShift
 NumberBitwiseOp
+NumberToBigInt
 NumericLiteral[0,0].NumericValue
 NumericLiteral[2,0].NumericValue
+NumericLiteral[3,0].NumericValue
 NumericLiteral[4,0].NumericValue
 ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 ObjectAssignmentPattern[1,0].DestructuringAssignmentEvaluation

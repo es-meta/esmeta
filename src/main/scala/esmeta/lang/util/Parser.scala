@@ -97,8 +97,10 @@ trait Parsers extends IndentParsers {
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
-    "return" ~> end ^^! ReturnStep(None) |
-    "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
+    "return" ~> end ^^! { ReturnStep(None) } |
+    "return" ~> opt("the" ~ ty ~ "value that represents") ~> endWithExpr ^^ {
+      case e => ReturnStep(Some(e))
+    }
 
   // assertion steps
   lazy val assertStep: PL[AssertStep] =
@@ -415,6 +417,7 @@ trait Parsers extends IndentParsers {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
+
     calc
   }
 
