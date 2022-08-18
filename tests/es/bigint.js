@@ -5,3 +5,4 @@ var div_p1 = 4n / 3n;
 var div_n1 = 4n / -3n;
 var div_z = 4n / 5n;
 var mul = x * y;
+var sub = x - y;
