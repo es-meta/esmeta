@@ -1,3 +1,7 @@
 assert (= @REALM.GlobalObject.SubMap.x.Value 4n)
 assert (= @REALM.GlobalObject.SubMap.y.Value 2n)
 assert (= @REALM.GlobalObject.SubMap.sum.Value 6n)
+assert (= @REALM.GlobalObject.SubMap.div_p2.Value 2n)
+assert (= @REALM.GlobalObject.SubMap.div_p1.Value 1n)
+assert (= @REALM.GlobalObject.SubMap.div_n1.Value -1n)
+assert (= @REALM.GlobalObject.SubMap.div_z.Value 0n)
