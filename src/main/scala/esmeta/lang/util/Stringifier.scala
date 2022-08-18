@@ -246,7 +246,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
-    import BinaryExpression.Op.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {

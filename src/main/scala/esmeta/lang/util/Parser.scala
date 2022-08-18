@@ -448,14 +448,7 @@ trait Parsers extends IndentParsers {
     ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case o ~ as =>
         MathOpExpression(o, as)
-    } |||
-    (
-      ("the Number value for the integer represented by the 32-bit two's complement bit string" ^^! ToNumber)
-      ~ expr ^^ {
-        case o ~ as =>
-          MathOpExpression(o, List(as))
-      }
-    )
+    }
 
   // literals
   // GetIdentifierReference uses 'the value'
@@ -541,13 +534,13 @@ trait Parsers extends IndentParsers {
   // bitwise expressions
   lazy val bitwiseExpr: PL[BitwiseExpression] =
     import BitwiseExpression.Op.*
-    "the result of applying the" ~> (
-      "bitwise AND" ^^! BAnd ||| "bitwise inclusive OR" ^^! BOr
-      ||| "bitwise exclusive OR (XOR)" ^^! BXOr
-    ) ~ ("operation to" ~> expr) ~ ("and" ~> expr) ^^ {
-      case op ~ l ~ r =>
-        BitwiseExpression(l, op, r)
-    }
+    val op: Parser[BitwiseExpression.Op] =
+      "bitwise AND" ^^! BAnd |||
+      "bitwise inclusive OR" ^^! BOr |||
+      "bitwise exclusive OR (XOR)" ^^! BXOr
+    ("the result of applying the" ~> op) ~
+    ("operation to" ~> expr) ~
+    ("and" ~> expr) ^^ { case op ~ l ~ r => BitwiseExpression(l, op, r) }
 
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
