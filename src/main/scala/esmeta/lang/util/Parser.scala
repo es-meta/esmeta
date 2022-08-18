@@ -284,6 +284,7 @@ trait Parsers extends IndentParsers {
     xrefExpr |||
     soleExpr |||
     bigintExpr |||
+    inWordsExpr |||
     specialExpr
   }.named("lang.Expression")
 
@@ -394,7 +395,7 @@ trait Parsers extends IndentParsers {
       }
 
     lazy val unary: PL[CalcExpression] = base ||| (
-      ("-" | "the result of negating" | "Negation of") ^^! Neg
+      ("-" | "the result of negating" | "the negation of") ^^! Neg
     ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
@@ -409,12 +410,6 @@ trait Parsers extends IndentParsers {
     ) ^^ {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
-    } |
-      ("the sum of" ~> term) ~ ("and" ~> term) ^^ {
-        case l ~ r => BinaryExpression(l, Add, r)
-      }
-       | ("the product of" ~> term) ~ ("and" ~> term) ^^ {
-      case l ~ r => BinaryExpression(l, Mul, r)
     }
 
     calc
@@ -632,6 +627,17 @@ trait Parsers extends IndentParsers {
         MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
     }
 
+  // expressions including calculation represented by words
+  lazy val inWordsExpr: PL[Expression] = {
+
+    ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
+    } |
+    ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
+    }
+  }
+
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
     // ClassStaticBlockDefinitionEvaluation
@@ -641,7 +647,11 @@ trait Parsers extends IndentParsers {
     // CreateDynamicFunction
     strLiteral <~ "\\([^)]*\\)".r |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
-    "an instance of the production" ~> prodLiteral
+    "an instance of the production" ~> prodLiteral |
+    // rounding towards 0
+    expr <~ "rounded towards 0 to the next integer value" ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =

@@ -30,6 +30,7 @@
   "async1.js" : true,
   "await1.js" : true,
   "await2.js" : true,
+  "bigint.js" : false,
   "bind1.js" : true,
   "bitwise.js" : "Let _lbits_ be the 32-bit two's complement bit string representing ℝ(_lnum_).",
   "block1.js" : true,
