@@ -514,6 +514,8 @@ class Compiler(
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
+      case BitwiseExpression(left, op, right) =>
+        EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
         val algoName = fb.algo.head.fname
         val (ck, cn, ps, prefix) =
@@ -622,6 +624,13 @@ class Compiler(
     case NumberTypeLiteral()                => EGLOBAL_NUMBER_TYPE
     case BigIntTypeLiteral()                => EGLOBAL_BIGINT_TYPE
     case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
+  }
+
+  /** compile bitwise operations */
+  def compile(op: BitwiseExpression.Op): BOp = op match {
+    case BitwiseExpression.Op.BAnd => BOp.BAnd
+    case BitwiseExpression.Op.BOr  => BOp.BOr
+    case BitwiseExpression.Op.BXOr => BOp.BXOr
   }
 
   /** compile branch conditions */

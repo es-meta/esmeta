@@ -395,6 +395,23 @@ class StringifyTinyTest extends LangTest {
     )
 
     // -------------------------------------------------------------------------
+    // algorithm bitwise expressions
+    // -------------------------------------------------------------------------
+    lazy val bAndExpr =
+      BitwiseExpression(refExpr, BitwiseExpression.Op.BAnd, refExpr)
+    lazy val bXorExpr =
+      BitwiseExpression(refExpr, BitwiseExpression.Op.BXOr, refExpr)
+    lazy val bOrExpr =
+      BitwiseExpression(refExpr, BitwiseExpression.Op.BOr, refExpr)
+
+    // tests
+    checkParseAndStringify("BitwiseExpression", Expression)(
+      bAndExpr -> "the result of applying the bitwise AND operation to _x_ and _x_",
+      bXorExpr -> "the result of applying the bitwise exclusive OR (XOR) operation to _x_ and _x_",
+      bOrExpr -> "the result of applying the bitwise inclusive OR operation to _x_ and _x_",
+    )
+
+    // -------------------------------------------------------------------------
     // algorithm conditions
     // -------------------------------------------------------------------------
     lazy val exprCond = ExpressionCondition(refExpr)

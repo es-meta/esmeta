@@ -101,6 +101,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(intr)
     case expr: CalcExpression =>
       walk(expr)
+    case BitwiseExpression(left, op, right) =>
+      walk(left); walk(op); walk(right)
     case invoke: InvokeExpression =>
       walk(invoke)
     case ListExpression(entries) =>
@@ -146,6 +148,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: BinaryExpression.Op): Unit = {}
 
   def walk(op: UnaryExpression.Op): Unit = {}
+
+  def walk(op: BitwiseExpression.Op): Unit = {}
 
   def walk(op: XRefExpression.Op): Unit = {}
 

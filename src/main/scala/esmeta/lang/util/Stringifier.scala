@@ -210,6 +210,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
       case expr: CalcExpression =>
         calcExprRule(app, expr)
+      case BitwiseExpression(left, op, right) =>
+        app >> "the result of applying the " >> op >> " to " >> left >> " and " >> right
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
       case ListExpression(Nil) => app >> "« »"
@@ -363,6 +365,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: BigIntTypeLiteral    => app >> "BigInt"
       case _: ObjectTypeLiteral    => app >> "Object"
     }
+
+  // operators for bitwise expressions
+  given bitExprOpRule: Rule[BitwiseExpression.Op] = (app, op) =>
+    import BitwiseExpression.Op.*
+    app >> (op match {
+      case BAnd => "bitwise AND operation"
+      case BXOr => "bitwise exclusive OR (XOR) operation"
+      case BOr  => "bitwise inclusive OR operation"
+    })
 
   // metalanguage invocation expressions
   given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>

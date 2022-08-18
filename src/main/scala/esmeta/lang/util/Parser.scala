@@ -276,6 +276,7 @@ trait Parsers extends IndentParsers {
     getChildrenExpr |||
     intrExpr |||
     calcExpr |||
+    bitwiseExpr |||
     invokeExpr |||
     returnIfAbruptExpr |||
     listExpr |||
@@ -407,7 +408,6 @@ trait Parsers extends IndentParsers {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
-
     calc
   }
 
@@ -531,6 +531,17 @@ trait Parsers extends IndentParsers {
     lazy val errorName = "*" ~> word <~ "*" ^^ { ErrorObjectLiteral(_) }
     "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
 
+  // bitwise expressions
+  lazy val bitwiseExpr: PL[BitwiseExpression] =
+    import BitwiseExpression.Op.*
+    val op: Parser[BitwiseExpression.Op] =
+      "bitwise AND" ^^! BAnd |||
+      "bitwise inclusive OR" ^^! BOr |||
+      "bitwise exclusive OR (XOR)" ^^! BXOr
+    ("the result of applying the" ~> op) ~
+    ("operation to" ~> expr) ~
+    ("and" ~> expr) ^^ { case op ~ l ~ r => BitwiseExpression(l, op, r) }
+
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
     invokeAOExpr |||
@@ -625,7 +636,9 @@ trait Parsers extends IndentParsers {
     // CreateDynamicFunction
     strLiteral <~ "\\([^)]*\\)".r |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
-    "an instance of the production" ~> prodLiteral
+    "an instance of the production" ~> prodLiteral |
+    // NumberBitwiseOp
+    "the 32-bit two's complement bit string representing" ~> mathOpExpr
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
