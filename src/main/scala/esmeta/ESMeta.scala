@@ -31,6 +31,8 @@ object ESMeta extends Git(BASE_DIR) {
     runner: CommandConfig => Result,
     config: CommandConfig,
   ): Result =
+    // silent for help command
+    if (command == CmdHelp) config.silent = true
     // set the start time.
     val startTime = System.currentTimeMillis
     // execute the command.
@@ -48,7 +50,7 @@ object ESMeta extends Git(BASE_DIR) {
 
   /** welcome message */
   val welcome: String =
-    s"""Welcome to ESMeta v$VERSION - ECMAScript Metalanguage.
+    s"""Welcome to ESMeta v$VERSION - ECMAScript Specification Metalanguage.
        |Please type `esmeta help` to see the help message.""".stripMargin
 
   /** commands */

@@ -1,74 +1,80 @@
 package esmeta.phase
 
-import esmeta.{LINE_SEP, Command}
+import esmeta.{LINE_SEP, Command, VERSION}
 import esmeta.util.*
 import esmeta.{ESMeta, CommandConfig}
 
 /** `help` phase */
-case object Help extends Phase[Unit, String]:
+case object Help extends Phase[Unit, Unit]:
   val name = "help"
   val help = "shows help messages."
   def apply(
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): String = cmdConfig.args.headOption match
+  ): Unit = println(cmdConfig.args.headOption match
     case None => helpMessage
     case Some(name) =>
       ESMeta.cmdMap.get(name) match
         case Some(cmd) => cmdHelp(cmd)
-        case None      => helpMessage
+        case None      => helpMessage,
+  )
 
   def cmdHelp(cmd: Command[_]): String =
     val app = Appender()
     app >> "The command `" >> cmd.name >> "` " >> cmd.help
     app :> ""
-    app :> "- Usage:"
-    app :> "    esmeta " >> cmd.name >> " {option}* {filename}?"
+    app :> "Usage: esmeta " >> cmd.name >> " <option>*"
+    if (cmd.targetName != "") app >> " " >> cmd.targetName
     app :> ""
-    app :> "- phase list: " >> s"(${cmd.pList})"
-    app :> "    Each phase has following options."
-    app :> "    format: {phase} [-{phase}:{option}[={input}]]*"
-    for (phase <- cmd.phases)
-      app :> ""
-      header(app, phase.name)
-      body(app, phase.help)
-      app :> ""
-      for ((name, desc) <- phase.getOptDescs)
-        body(app, s"If $name is given, $desc", true)
+    app :> "examples:"
+    for (example <- cmd.examples) { app :> "  $ " >> example }
+    app :> ""
+    addPhase(app, cmd.phases)
+    addGlobalOption(app)
     app.toString
 
   /* help message string */
   lazy val helpMessage =
     val app = Appender()
-    app >> "- Usage:"
-    app :> "    esmeta {command} {option}* {filename}?"
+    app >> "ESMeta v" >> VERSION >> " - ECMAScript Specification Metalanguage"
     app :> ""
-    app >> "- command list:"
+    app :> "Usage: esmeta <command> <option>* <filename>*"
+    app :> ""
+    app :> "If you want to see the detailed usage of each command,"
+    app :> "please type `esmeta help <command>`."
+    app :> ""
+    app :> "- command list:"
     app :> "    Each command consists of following phases."
-    app :> "    format: {command} {phase} [>> {phase}]*"
+    app :> "    format: <command> <phase> [>> {phase}]*"
     app :> ""
     for (cmd <- ESMeta.commands)
       header(app, cmd.name)
       body(app, cmd.help)
       body(app, s"(${cmd.pList})", true)
       app :> ""
+
+    addPhase(app, ESMeta.phases)
+    addGlobalOption(app)
+    app.toString
+
+  def addPhase(app: Appender, phases: Iterable[Phase[_, _]]): Unit =
     app :> "- phase list:"
     app :> "    Each phase has following options."
-    app :> "    format: {phase} [-{phase}:{option}[={input}]]*"
+    app :> "    format: <phase> [-<phase>:<option>[=<input>]]*"
     app :> ""
-    for (phase <- ESMeta.phases)
+    for (phase <- phases)
       header(app, phase.name)
       body(app, phase.help)
       app :> ""
       for ((name, desc) <- phase.getOptDescs)
         body(app, s"If $name is given, $desc", true)
       app :> ""
+
+  def addGlobalOption(app: Appender): Unit =
     app :> "- global option:"
-    app :> ""
     for ((opt, kind, desc) <- ESMeta.options)
       app :> "    If -" >> opt >> kind.postfix >> " is given, " >> desc
-    app.toString
 
   /* constants */
   private val INDENT = 4
