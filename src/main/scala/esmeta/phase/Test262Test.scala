@@ -47,13 +47,12 @@ case object Test262Test extends Phase[CFG, Summary] {
       msg = "Run Test262 tests",
       iterable = TestFilter(dataList).summary.normal,
       getName = (config, _) => config.name,
-      errorHandler = (e, summary, name) => {
+      errorHandler = (e, summary, name) =>
         if (multiple) e match
           case NotSupported(msg)   => summary.yets += s"$name - $msg"
           case _: TimeoutException => summary.timeouts += name
           case e: Throwable => summary.fails += s"$name - ${e.getMessage}"
-        else throw e
-      },
+        else throw e,
       verbose = config.progress,
     )
 

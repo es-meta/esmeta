@@ -20,6 +20,8 @@ class ParseLargeTest extends Test262Test {
     msg = "Run Test262 parse test",
     iterable = config.normal,
     getName = (config, _) => config.name,
+    errorHandler =
+      (e, summary, name) => summary.fails += s"$name - ${e.getMessage}",
   )
 
   // summary
@@ -33,8 +35,7 @@ class ParseLargeTest extends Test262Test {
     summary.fails.setPath(s"$logDir/parse-fail.log")
     summary.passes.setPath(s"$logDir/parse-pass.log")
     for (config <- progress)
-      val name = config.name
-      val filename = s"$TEST262_TEST_DIR/$name"
+      val filename = config.name
       timeout(ESTest.parseTest(ESTest.parseFile(filename)), PARSE_TIMEOUT)
     summary.close
     dumpFile(summary, s"$logDir/parse-summary")
