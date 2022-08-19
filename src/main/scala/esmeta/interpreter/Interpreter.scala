@@ -699,22 +699,23 @@ object Interpreter {
 
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
-  
+
   /** transition for ternary operators */
   def eval(top: TOp, left: Value, mid: Value, right: Value): Value =
     import TOp.*
     (top, left, mid, right) match {
       // mathematical value operations
       case (Clamp, Math(l), Math(m), Math(r)) =>
-        if(l < m) Math(m)
-        else if(l > r) Math(r)
+        if (l < m) Math(m)
+        else if (l > r) Math(r)
         else Math(l)
 
       // extended mathematical value operations
       case (Clamp, POS_INF, Math(m), Math(r)) => Math(r)
       case (Clamp, NEG_INF, Math(m), Math(r)) => Math(m)
 
-      case (_, lval, mval, rval) => throw InvalidTernaryOp(top, lval, mval, rval)
+      case (_, lval, mval, rval) =>
+        throw InvalidTernaryOp(top, lval, mval, rval)
     }
 
   /** transition for variadic operators */

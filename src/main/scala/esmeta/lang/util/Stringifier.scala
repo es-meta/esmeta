@@ -212,6 +212,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
       case expr: CalcExpression =>
         calcExprRule(app, expr)
+      case ClampExpression(target, lower, upper) =>
+        app >> "the result of clamping " >> target >> " between " >> lower >> " and " >> upper
       case BitwiseExpression(left, op, right) =>
         app >> "the result of applying the " >> op >> " to " >> left >> " and " >> right
       case expr: InvokeExpression =>

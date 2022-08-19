@@ -516,6 +516,13 @@ class Compiler(
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
+      case ClampExpression(target, lower, upper) =>
+        ETernary(
+          TOp.Clamp,
+          compile(fb, target),
+          compile(fb, lower),
+          compile(fb, upper),
+        )
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>

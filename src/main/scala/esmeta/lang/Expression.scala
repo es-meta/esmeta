@@ -161,6 +161,15 @@ object UnaryExpression:
     case Neg
 
 // -----------------------------------------------------------------------------
+// clamp expressions
+// -----------------------------------------------------------------------------
+case class ClampExpression(
+  target: Expression,
+  lower: Expression,
+  upper: Expression,
+) extends Expression
+
+// -----------------------------------------------------------------------------
 // bitwise expressions
 // -----------------------------------------------------------------------------
 case class BitwiseExpression(

@@ -398,6 +398,16 @@ class StringifyTinyTest extends LangTest {
     )
 
     // -------------------------------------------------------------------------
+    // algorithm clamp expressions
+    // -------------------------------------------------------------------------
+    lazy val clampExpr =
+      ClampExpression(refExpr, refExpr, refExpr)
+
+    checkParseAndStringify("ClampExpression", Expression)(
+      clampExpr -> "the result of clamping _x_ between _x_ and _x_",
+    )
+
+    // -------------------------------------------------------------------------
     // algorithm bitwise expressions
     // -------------------------------------------------------------------------
     lazy val bAndExpr =

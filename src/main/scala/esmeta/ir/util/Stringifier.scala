@@ -270,9 +270,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given topRule: Rule[TOp] = (app, top) =>
     import TOp.*
     app >> (top match
-      case Clamp  => "Clamp"
+      case Clamp => "Clamp"
     )
-  
+
   // variadic operators
   given vopRule: Rule[VOp] = (app, vop) =>
     import VOp.*

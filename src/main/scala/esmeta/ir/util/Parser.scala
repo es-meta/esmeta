@@ -241,7 +241,7 @@ trait Parsers extends BasicParsers {
     ">>" ^^^ SRShift
   }.named("ir.BOp")
 
-  //ternary operators
+  // ternary operators
   given top: Parser[TOp] = {
     import TOp.*
     "clamp" ^^^ Clamp
