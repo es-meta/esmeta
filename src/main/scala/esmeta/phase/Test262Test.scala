@@ -42,9 +42,9 @@ case object Test262Test extends Phase[CFG, Summary] {
     // multiple targets
     val multiple = dataList.length > 1
 
-    // get all applicable tests
+    // get all applicable tests with progress bar
     val tests = ProgressBar[NormalConfig](
-      msg = "Run Test262 tests",
+      msg = "Run Test262 eval tests",
       iterable = TestFilter(dataList).summary.normal,
       getName = (config, _) => config.name,
       errorHandler = (e, summary, name) =>
@@ -71,17 +71,16 @@ case object Test262Test extends Phase[CFG, Summary] {
     )
 
     // logging mode
-    val logDir = s"$TEST262TEST_LOG_DIR/$dateStr"
+    val logDir = s"$TEST262TEST_LOG_DIR/eval-$dateStr"
     if (config.log && multiple)
       println(s"- Logging to $logDir...")
       mkdir(logDir)
-      val ecma262Version = spec.version.fold("<none>")(_.toString)
-      dumpFile(ecma262Version, s"$logDir/ecma262-version")
+      dumpFile(spec.versionString, s"$logDir/ecma262-version")
       dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-      summary.timeouts.setPath(s"$logDir/eval-timeout.log")
-      summary.yets.setPath(s"$logDir/eval-yet.log")
-      summary.fails.setPath(s"$logDir/eval-fail.log")
-      summary.passes.setPath(s"$logDir/eval-pass.log")
+      summary.timeouts.setPath(s"$logDir/timeout.log")
+      summary.yets.setPath(s"$logDir/yet.log")
+      summary.fails.setPath(s"$logDir/fail.log")
+      summary.passes.setPath(s"$logDir/pass.log")
 
     // run tests
     for (test <- tests)
@@ -106,7 +105,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       val summaryStr =
         if (config.coverage) s"$summary$LINE_SEP$cov"
         else s"$summary"
-      dumpFile("Test262 test summary", summaryStr, s"$logDir/eval-summary")
+      dumpFile("Test262 test summary", summaryStr, s"$logDir/summary")
 
     // dump coverage
     if (config.coverage) cov.dumpTo(logDir)

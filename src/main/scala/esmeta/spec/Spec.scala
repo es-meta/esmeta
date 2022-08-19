@@ -58,5 +58,8 @@ case class Spec(
     algorithms.filter(_.elem.getId == id) match
       case algo :: Nil => algo
       case _           => error(s"no algorithms found for $id")
+
+  /** ECMAScript version string */
+  lazy val versionString: String = version.fold("<none>")(_.toString)
 }
 object Spec extends Git(ECMA262_DIR)

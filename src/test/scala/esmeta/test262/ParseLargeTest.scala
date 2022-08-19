@@ -10,36 +10,39 @@ import esmeta.util.SystemUtils.*
 class ParseLargeTest extends Test262Test {
   val name: String = "test262ParseTest"
 
-  import Test262Test.test262.*
+  val test262 = Test262Test.test262
 
-  // parser timeout
-  val PARSE_TIMEOUT = 100 // second
+  // time limit
+  private val timeLimit = Some(100) // seconds
 
-  // progress bar
-  lazy val progress = ProgressBar(
+  // get all applicable tests with progress bar
+  lazy val tests = ProgressBar(
     msg = "Run Test262 parse test",
-    iterable = config.normal,
+    iterable = test262.config.normal,
     getName = (config, _) => config.name,
     errorHandler =
       (e, summary, name) => summary.fails += s"$name - ${e.getMessage}",
   )
 
-  // summary
-  lazy val summary = progress.summary
+  // test progress summary
+  lazy val summary = tests.summary
 
   // registration
   def init: Unit = check(name) {
     mkdir(logDir)
-    dumpFile(spec.version, s"$logDir/ecma262-version")
+    dumpFile(spec.versionString, s"$logDir/ecma262-version")
     dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-    summary.fails.setPath(s"$logDir/parse-fail.log")
-    summary.passes.setPath(s"$logDir/parse-pass.log")
-    for (config <- progress)
-      val filename = config.name
-      timeout(ESTest.parseTest(ESTest.parseFile(filename)), PARSE_TIMEOUT)
+    summary.timeouts.setPath(s"$logDir/timeout.log")
+    summary.yets.setPath(s"$logDir/yet.log")
+    summary.fails.setPath(s"$logDir/fail.log")
+    summary.passes.setPath(s"$logDir/pass.log")
+    for (test <- tests)
+      val NormalConfig(filename, _) = test
+      timeout(ESTest.parseTest(ESTest.parseFile(filename)), timeLimit)
     summary.close
-    dumpFile(summary, s"$logDir/parse-summary")
-    if (summary.fail > 0) fail(s"${summary.fail} tests are failed.")
+    dumpFile(summary, s"$logDir/summary")
+    val f = summary.fail
+    if (f > 0) fail(s"$f tests are failed (See `$logDir/fail.log`).")
   }
   init
 }

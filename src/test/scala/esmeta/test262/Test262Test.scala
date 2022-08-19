@@ -11,7 +11,7 @@ trait Test262Test extends ESMetaTest {
   def category: String = "test262"
 
   // predefined data
-  lazy val logDir = s"$LOG_DIR/test262_$dateStr"
+  lazy val logDir = s"$TEST262TEST_LOG_DIR/parse-$dateStr"
   def spec = ESMetaTest.spec
 }
 object Test262Test {

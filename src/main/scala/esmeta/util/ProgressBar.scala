@@ -13,6 +13,7 @@ case class ProgressBar[T](
   getName: (T, Int) => String = (_: T, idx) => s"${idx.toOrdinal} element",
   errorHandler: (Throwable, Summary, String) => Unit = (_, summary, name) =>
     summary.fails += name,
+  timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
 ) extends Iterable[T] {
   // summary
