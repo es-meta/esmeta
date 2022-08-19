@@ -139,6 +139,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> uop >> " " >> expr >> ")"
       case EBinary(bop, left, right) =>
         app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+      case ETernary(top, left, mid, right) =>
+        app >> "(" >> top >> " " >> left >> " " >> mid >> " " >> right >> ")"
       case EVariadic(vop, exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(" >> vop >> " " >> exprs >> ")"
@@ -264,6 +266,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SRShift => ">>"
     )
 
+  // ternary operators
+  given topRule: Rule[TOp] = (app, top) =>
+    import TOp.*
+    app >> (top match
+      case Clamp  => "Clamp"
+    )
+  
   // variadic operators
   given vopRule: Rule[VOp] = (app, vop) =>
     import VOp.*

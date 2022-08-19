@@ -31,6 +31,10 @@ enum BOp extends Op:
   case And, Or, Xor
 object BOp extends Parser.From[BOp]
 
+// ternary operators
+enum TOp extends Op:
+  case Clamp
+
 // variadic operators
 enum VOp extends Op:
   // mathematic values

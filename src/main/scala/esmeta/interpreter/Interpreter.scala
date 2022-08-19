@@ -255,6 +255,11 @@ class Interpreter(
       val l = eval(left)
       val r = eval(right)
       Interpreter.eval(bop, l, r)
+    case ETernary(top, left, mid, right) =>
+      val l = eval(left)
+      val m = eval(mid)
+      val r = eval(right)
+      Interpreter.eval(top, l, m, r)
     case EVariadic(vop, exprs) =>
       val vs = for (e <- exprs) yield eval(e).toPureValue
       Interpreter.eval(vop, vs)
@@ -693,6 +698,23 @@ object Interpreter {
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
 
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
+    }
+  
+  /** transition for ternary operators */
+  def eval(top: TOp, left: Value, mid: Value, right: Value): Value =
+    import TOp.*
+    (top, left, mid, right) match {
+      // mathematical value operations
+      case (Clamp, Math(l), Math(m), Math(r)) =>
+        if(l < m) Math(m)
+        else if(l > r) Math(r)
+        else Math(l)
+
+      // extended mathematical value operations
+      case (Clamp, POS_INF, Math(m), Math(r)) => Math(r)
+      case (Clamp, NEG_INF, Math(m), Math(r)) => Math(m)
+
+      case (_, lval, mval, rval) => throw InvalidTernaryOp(top, lval, mval, rval)
     }
 
   /** transition for variadic operators */

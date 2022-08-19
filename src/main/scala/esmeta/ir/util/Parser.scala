@@ -241,6 +241,12 @@ trait Parsers extends BasicParsers {
     ">>" ^^^ SRShift
   }.named("ir.BOp")
 
+  //ternary operators
+  given top: Parser[TOp] = {
+    import TOp.*
+    "clamp" ^^^ Clamp
+  }.named("ir.TOp")
+
   // variadic operators
   given vop: Parser[VOp] = {
     import VOp.*
