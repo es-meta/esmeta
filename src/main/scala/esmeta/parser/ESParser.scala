@@ -26,8 +26,12 @@ case class ESParser(
   def apply(name: String, args: List[Boolean] = Nil): AstFrom =
     val parser = parsers(name)(args)
     new AstFrom {
-      def fromFile(str: String): Ast = parse(parser, fileReader(str)).get
-      def from(str: String): Ast = parse(parser, str).get
+      def fromFile(str: String): Ast =
+        if (debug) println(debugWelcome)
+        parse(parser, fileReader(str)).get
+      def from(str: String): Ast =
+        if (debug) println(debugWelcome)
+        parse(parser, str).get
     }
 
   // parsers
@@ -44,6 +48,13 @@ case class ESParser(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  // debugger welcome message
+  val debugWelcome: String =
+    """Please type command:
+      |  - "s" or "skip" to the skip the current target
+      |  - "q" or "quit" to quit the debugging mode
+      |  - other commands to perform one step""".stripMargin
+  //
   // create syntactic object
   private def syntactic(
     name: String,
@@ -94,22 +105,28 @@ case class ESParser(
     argsSet: Set[String],
     idx: Int,
     rhs: Rhs,
-  ): FLAParser[Ast] = log(rhs.condition match {
-    case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
-      MISMATCH
-    case _ =>
-      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-      rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-        case cs =>
-          (base: Ast) =>
-            val children = Some(base) :: cs.reverse
-            withLoc(
-              syntactic(name, args, idx, children),
-              base,
-              cs.flatten.headOption.getOrElse(base),
-            )
-      }
-  })(s"$name$idx")
+  ): FLAParser[Ast] =
+    val pre: String = s"$name[$idx]: $name "
+    val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
+    log(rhs.condition match {
+      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
+        MISMATCH
+      case _ =>
+        val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+        rhs.symbols
+          .drop(1)
+          .foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+          case cs =>
+            (base: Ast) =>
+              val children = Some(base) :: cs.reverse
+              withLoc(
+                syntactic(name, args, idx, children),
+                base,
+                cs.flatten.headOption.getOrElse(base),
+              )
+        }
+    })(s"""$pre${rhs.symbols.drop(1)}
+          |$cursor""".stripMargin)
 
   // get parsers
   private def getParsers(
@@ -118,15 +135,19 @@ case class ESParser(
     argsSet: Set[String],
     idx: Int,
     rhs: Rhs,
-  ): LAParser[Ast] = log(rhs.condition match {
-    case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
-      MISMATCH
-    case _ =>
-      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-      rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-        case cs => syntactic(name, args, idx, cs.reverse)
-      },
-  })(s"$name$idx")
+  ): LAParser[Ast] =
+    val pre: String = s"$name[$idx]: "
+    val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
+    log(rhs.condition match {
+      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
+        MISMATCH
+      case _ =>
+        val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+        rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+          case cs => syntactic(name, args, idx, cs.reverse)
+        },
+    })(s"""$pre$rhs
+          |$cursor""".stripMargin)
 
   // append a parser
   private def appendParser(

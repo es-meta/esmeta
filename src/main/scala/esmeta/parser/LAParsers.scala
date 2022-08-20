@@ -42,10 +42,11 @@ trait LAParsers extends Lexer {
         rawIn.asInstanceOf[EPackratReader[Char]],
       )
     }
-    override def toString: String =
-      (ts.map("\"" + _ + "\"") ++ nts.map(_._1) ++ (if (possibleEmpty) List("ε")
-                                                    else Nil))
-        .mkString("[", ", ", "]")
+    override def toString: String = {
+      ts.map("\"" + _ + "\"") ++
+      nts.map(_._1) ++
+      (if (possibleEmpty) List("ε") else Nil)
+    }.mkString("[", ", ", "]")
   }
 
   // empty first terms
@@ -164,41 +165,42 @@ trait LAParsers extends Lexer {
 
   // logging
   var keepLog: Boolean = true
-  def log[T](p: LAParser[T])(name: String): LAParser[T] = {
-    if (debug)
-      new LAParser(
-        follow =>
-          Parser { rawIn =>
-            val in = rawIn.asInstanceOf[EPackratReader[Char]]
-            val stopMsg =
-              s"""trying $name with $follow at [${in.pos}]
-                 |
-                 |${in.pos.longString}
-                 |""".stripMargin
-            if (keepLog) stop(stopMsg) match
-              case "q" =>
-                keepLog = false
-                p(follow, in)
-              case "j" =>
-                keepLog = false
-                val r = p(follow, in)
-                println(name + " --> " + r)
-                keepLog = true
-                r
-              case _ =>
-                val r = p(follow, in)
-                println(name + " --> " + r)
-                r
-            else p(follow, in)
-          },
-        p.first,
-      )
-    else p
-  }
+  def log[T](p: LAParser[T])(name: String): LAParser[T] = if (debug) {
+    new LAParser(
+      follow =>
+        Parser { rawIn =>
+          val in = rawIn.asInstanceOf[EPackratReader[Char]]
+          val stopMsg =
+            s"""----------------------------------------
+               |trying $name
+               |with $follow at [${in.pos}]
+               |
+               |${in.pos.longString}
+               | 
+               |parser> """.stripMargin
+          if (keepLog) stop(stopMsg) match
+            case "j" | "jump" =>
+              keepLog = false
+              val r = p(follow, in)
+              println(name + " --> " + r)
+              keepLog = true
+              r
+            case "q" | "quit" =>
+              keepLog = false
+              p(follow, in)
+            case _ =>
+              val r = p(follow, in)
+              println(name + " --> " + r)
+              r
+          else p(follow, in)
+        },
+      p.first,
+    )
+  } else p
 
   // stop message
   protected def stop(msg: String): String = {
-    println(msg)
+    print(msg)
     val res = scala.io.StdIn.readLine
     res
   }
