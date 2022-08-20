@@ -31,6 +31,15 @@ case object Extract extends Phase[Unit, Spec] {
         filename = s"$EXTRACT_LOG_DIR/yets",
       )
 
+      dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/gramamr")
+      // TODO dump algorithms
+      // dumpDir(
+      //   name = "algorithms",
+      //   iterable = spec.algorithms,
+      //   dirname = s"$EXTRACT_LOG_DIR/algos",
+      //   getName = algo => s"${algo.normalizedName}.algo",
+      // )
+
       dumpFile(
         name = "the summary of extracted specification",
         data = spec,

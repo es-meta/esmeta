@@ -16,6 +16,12 @@ case class Algorithm(
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
+  /** algorithm name */
+  lazy val name: String = head.fname
+
+  /** normalized algorithm name */
+  lazy val normalizedName: String = name.replace("/", "").replace("`", "")
+
   /** return types */
   lazy val retTy: Type = head.retTy
 

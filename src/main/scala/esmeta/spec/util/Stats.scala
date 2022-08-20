@@ -12,41 +12,15 @@ import scala.collection.mutable.{Map => MMap}
 /** specification statistics */
 class Stats(spec: Spec) {
 
-  /** dump */
-  def dumpTo(baseDir: String): Unit = {
-    // log Statistics
+  /** dump statistics */
+  def dumpTo(baseDir: String): Unit =
     mkdir(baseDir)
-
-    dumpFile(
-      name = "the summary of algorithms",
-      data = ElemStat.getAlgoString,
-      filename = s"$baseDir/algo-summary",
-    )
-
-    dumpFile(
-      name = "the summary of algorithm steps",
-      data = ElemStat.getStepString,
-      filename = s"$baseDir/step-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec steps",
-      data = KindStat.getStepString,
-      filename = s"$baseDir/step-kind-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec exprs",
-      data = KindStat.getExprString,
-      filename = s"$baseDir/expr-kind-summary",
-    )
-
-    dumpFile(
-      name = "the kind summary of spec conds",
-      data = KindStat.getCondString,
-      filename = s"$baseDir/cond-kind-summary",
-    )
-  }
+    println(s"- Dumped statistics info. into $baseDir")
+    dumpFile(ElemStat.getAlgoString, s"$baseDir/algo-summary")
+    dumpFile(ElemStat.getStepString, s"$baseDir/step-summary")
+    dumpFile(KindStat.getStepString, s"$baseDir/step-kind-summary")
+    dumpFile(KindStat.getExprString, s"$baseDir/expr-kind-summary")
+    dumpFile(KindStat.getCondString, s"$baseDir/cond-kind-summary")
 
   /** statistics for pass/total */
   private case class PassStat(pass: Int = 0, total: Int = 0):

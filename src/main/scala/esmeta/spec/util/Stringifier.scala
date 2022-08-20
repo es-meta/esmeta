@@ -151,7 +151,7 @@ object Stringifier {
     })
 
   // for algorithms
-  given algoRule: Rule[Algorithm] = (app, algo) => ???
+  given algoRule: Rule[Algorithm] = (app, algo) => ??? // TODO
 
   // for algorithm heads
   given headRule: Rule[Head] = (app, head) =>

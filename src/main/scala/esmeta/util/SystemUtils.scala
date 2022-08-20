@@ -53,12 +53,12 @@ object SystemUtils {
   /** dump given data collection into a directory and show message */
   def dumpDir[T](
     name: String,
-    ts: Iterable[T],
+    iterable: Iterable[T],
     dirname: String,
-    getPath: T => String,
+    getName: T => String,
   ): Unit =
     mkdir(dirname)
-    for (t <- ts) dumpFile(t, getPath(t))
+    for (data <- iterable) dumpFile(data, s"$dirname/${getName(data)}")
     println(s"- Dumped $name into $dirname.")
 
   /** dump given data into a file and show message */

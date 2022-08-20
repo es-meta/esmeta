@@ -43,9 +43,9 @@ case class Program(
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "IR functions",
-      ts = ProgressBar("Dump IR functions", funcs),
+      iterable = ProgressBar("Dump IR functions", funcs),
       dirname = dirname,
-      getPath = func => s"$dirname/${func.normalizedName}.ir",
+      getName = func => s"${func.normalizedName}.ir",
     )
 }
 object Program extends Parser.From[Program] {
