@@ -15,7 +15,7 @@ class ValiditySmallTest extends CompilerTest {
     val cur = ESMetaTest.program.completeFuncs.map(_.name).toSet
     val prev = optional(readFile(path).split(LINE_SEP).toSet).getOrElse(cur)
     check("complete IR functions") { assert(prev subsetOf cur) }
-    dumpFile(cur.toList.sorted.mkString(LINE_SEP), path)
+    if (prev != cur) dumpFile(cur.toList.sorted.mkString(LINE_SEP), path)
   }
 
   init

@@ -20,7 +20,7 @@ class ValiditySmallTest extends ExtractorTest {
     check("steps") { assert(prev.steps.complete <= cur.steps.complete) }
     check("tables") { assert(prev.tables == cur.tables) }
     check("type model") { assert(prev.typeModel == cur.typeModel) }
-    dumpFile(cur, path)
+    if (cur != prev) dumpFile(cur, path)
   }
 
   init
