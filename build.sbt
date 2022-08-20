@@ -63,6 +63,16 @@ lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
 lazy val irEvalTest = taskKey[Unit]("Launch eval tests for ir (tiny)")
 
+// cfgBuilder
+lazy val cfgBuilderTest = taskKey[Unit]("Launch CFG builder tests")
+lazy val cfgBuilderValidityTest =
+  taskKey[Unit]("Launch validity tests for CFG builder (small)")
+
+// cfg
+lazy val cfgTest = taskKey[Unit]("Launch cfg tests")
+lazy val cfgStringifyTest =
+  taskKey[Unit]("Launch stringify tests for cfg (tiny)")
+
 // state
 lazy val stateTest = taskKey[Unit]("Launch state tests")
 lazy val stateStringifyTest =
@@ -153,11 +163,6 @@ lazy val root = project
     extractorValidityTest := (Test / testOnly)
       .toTask(" *.extractor.Validity*Test")
       .value,
-    // compiler
-    compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
-    compilerValidityTest := (Test / testOnly)
-      .toTask(" *.compiler.Validity*Test")
-      .value,
     // spec
     specTest := (Test / testOnly).toTask(" *.spec.*Test").value,
     specStringifyTest := (Test / testOnly)
@@ -168,10 +173,23 @@ lazy val root = project
     langStringifyTest := (Test / testOnly)
       .toTask(" *.lang.Stringify*Test")
       .value,
+    // compiler
+    compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
+    compilerValidityTest := (Test / testOnly)
+      .toTask(" *.compiler.Validity*Test")
+      .value,
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
     irEvalTest := (Test / testOnly).toTask(" *.ir.Eval*Test").value,
+    // cfgBuilder
+    cfgBuilderTest := (Test / testOnly).toTask(" *.cfgBuilder.*Test").value,
+    cfgBuilderValidityTest := (Test / testOnly)
+      .toTask(" *.cfgBuilder.Validity*Test")
+      .value,
+    // cfg
+    cfgTest := (Test / testOnly).toTask(" *.cfg.*Test").value,
+    cfgStringifyTest := (Test / testOnly).toTask(" *.cfg.Stringify*Test").value,
     // state
     stateTest := (Test / testOnly).toTask(" *.state.*Test").value,
     stateStringifyTest := (Test / testOnly)

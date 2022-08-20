@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.cfgbuilder.CFGBuilder
+import esmeta.cfgBuilder.CFGBuilder
 import esmeta.ir.Program
 import esmeta.util.*
 import esmeta.util.BaseUtils.*

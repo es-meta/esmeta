@@ -1,6 +1,6 @@
 package esmeta
 
-import esmeta.cfgbuilder.CFGBuilder
+import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.error.NotSupported
 import esmeta.extractor.Extractor

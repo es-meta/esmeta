@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.ESMetaTest
 import esmeta.LINE_SEP
-import esmeta.cfgbuilder.*
+import esmeta.cfgBuilder.*
 import esmeta.interpreter.*
 import esmeta.ir.util.Parsers
 import esmeta.state.*

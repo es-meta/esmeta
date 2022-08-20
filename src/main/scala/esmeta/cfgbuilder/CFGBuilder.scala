@@ -1,4 +1,4 @@
-package esmeta.cfgbuilder
+package esmeta.cfgBuilder
 
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.*

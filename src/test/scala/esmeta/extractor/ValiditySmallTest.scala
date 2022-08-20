@@ -11,8 +11,9 @@ class ValiditySmallTest extends ExtractorTest {
 
   // registration
   def init: Unit = {
+    lazy val cur = ESMetaTest.spec.summary
+    check("extraction") { cur }
     val path = s"$RESULT_DIR/spec-summary"
-    val cur = ESMetaTest.spec.summary
     val prev = optional(Summary.fromFile(path)).getOrElse(cur)
     check("git version") { assert(prev.version == cur.version) }
     check("grammar") { assert(prev.grammar == cur.grammar) }

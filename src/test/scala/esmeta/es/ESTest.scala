@@ -3,7 +3,7 @@ package esmeta.es
 import esmeta.ESMetaTest
 import esmeta.analyzer.AbsSemantics
 import esmeta.analyzer.domain.*
-import esmeta.cfgbuilder.CFGBuilder
+import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.es.util.*
 import esmeta.interpreter.*

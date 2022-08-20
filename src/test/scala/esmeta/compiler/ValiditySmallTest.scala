@@ -11,8 +11,9 @@ class ValiditySmallTest extends CompilerTest {
 
   // registration
   def init: Unit = {
+    lazy val cur = ESMetaTest.program.completeFuncs.map(_.name).toSet
+    check("compilation") { cur }
     val path = s"$RESULT_DIR/complete-funcs"
-    val cur = ESMetaTest.program.completeFuncs.map(_.name).toSet
     val prev = optional(readFile(path).split(LINE_SEP).toSet).getOrElse(cur)
     check("complete IR functions") { assert(prev subsetOf cur) }
     if (prev != cur) dumpFile(cur.toList.sorted.mkString(LINE_SEP), path)
