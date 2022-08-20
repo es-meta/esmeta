@@ -6,6 +6,7 @@ import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 
+/** stringify test */
 class StringifyTinyTest extends StateTest {
   val name: String = "stateStringifyTest"
 

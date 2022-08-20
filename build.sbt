@@ -61,7 +61,6 @@ lazy val compilerValidityTest =
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
-lazy val irEvalTest = taskKey[Unit]("Launch eval tests for ir (tiny)")
 
 // cfgBuilder
 lazy val cfgBuilderTest = taskKey[Unit]("Launch CFG builder tests")
@@ -72,6 +71,11 @@ lazy val cfgBuilderValidityTest =
 lazy val cfgTest = taskKey[Unit]("Launch cfg tests")
 lazy val cfgStringifyTest =
   taskKey[Unit]("Launch stringify tests for cfg (tiny)")
+
+// interpreter
+lazy val interpreterTest = taskKey[Unit]("Launch interpreter tests")
+lazy val interpreterEvalTest =
+  taskKey[Unit]("Launch eval tests for interpreter (tiny)")
 
 // state
 lazy val stateTest = taskKey[Unit]("Launch state tests")
@@ -181,7 +185,6 @@ lazy val root = project
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
-    irEvalTest := (Test / testOnly).toTask(" *.ir.Eval*Test").value,
     // cfgBuilder
     cfgBuilderTest := (Test / testOnly).toTask(" *.cfgBuilder.*Test").value,
     cfgBuilderValidityTest := (Test / testOnly)
@@ -190,6 +193,11 @@ lazy val root = project
     // cfg
     cfgTest := (Test / testOnly).toTask(" *.cfg.*Test").value,
     cfgStringifyTest := (Test / testOnly).toTask(" *.cfg.Stringify*Test").value,
+    // interpreter
+    interpreterTest := (Test / testOnly).toTask(" *.interpreter.*Test").value,
+    interpreterEvalTest := (Test / testOnly)
+      .toTask(" *.interpreter.Eval*Test")
+      .value,
     // state
     stateTest := (Test / testOnly).toTask(" *.state.*Test").value,
     stateStringifyTest := (Test / testOnly)
