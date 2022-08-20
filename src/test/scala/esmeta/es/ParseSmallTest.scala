@@ -3,6 +3,7 @@ package esmeta.es
 import esmeta.ES_TEST_DIR
 import esmeta.util.SystemUtils.*
 
+/** ECMAScript parse test */
 class ParseSmallTest extends ESTest {
   val name: String = "esParseTest"
 

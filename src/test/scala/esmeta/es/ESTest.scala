@@ -14,6 +14,7 @@ import esmeta.state.*
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*
 
+/** ECMAScript test */
 trait ESTest extends ESMetaTest {
   def category: String = "es"
 }

@@ -4,6 +4,7 @@ import esmeta.ES_TEST_DIR
 import esmeta.ir.NormalInsts
 import esmeta.util.SystemUtils.*
 
+/** ECMAScript eval test */
 class EvalSmallTest extends ESTest {
   import ESTest.*
   val name: String = "esEvalTest"
