@@ -83,10 +83,12 @@ lazy val stateStringifyTest =
   taskKey[Unit]("Launch stringify tests for state (tiny)")
 
 // es
-lazy val esTest = taskKey[Unit]("Launch es tests")
-lazy val esEvalTest = taskKey[Unit]("Launch eval tests for es (small)")
-lazy val esParseTest = taskKey[Unit]("Launch parse tests for es (small)")
-lazy val esAnalyzeTest = taskKey[Unit]("Launch analyze tests for es (small)")
+lazy val esTest = taskKey[Unit]("Launch ECMAScript tests")
+lazy val esEvalTest = taskKey[Unit]("Launch eval tests for ECMAScript (small)")
+lazy val esParseTest =
+  taskKey[Unit]("Launch parse tests for ECMAScript (small)")
+lazy val esAnalyzeTest =
+  taskKey[Unit]("Launch analyze tests for ECMAScript (small)")
 
 // test262
 lazy val test262ParseTest =
