@@ -1,4 +1,4 @@
-package esmeta.cfgbuilder
+package esmeta.cfgBuilder
 
 import esmeta.ESMetaTest
 
