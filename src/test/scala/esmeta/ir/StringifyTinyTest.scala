@@ -7,6 +7,7 @@ import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
 import scala.collection.mutable.ListBuffer
 
+/** stringify test */
 class StringifyTinyTest extends IRTest {
   val name: String = "irStringifyTest"
 

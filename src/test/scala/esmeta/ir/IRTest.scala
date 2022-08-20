@@ -7,7 +7,7 @@ import esmeta.interpreter.*
 import esmeta.ir.util.Parsers
 import esmeta.state.*
 
-/** IR tests */
+/** test for IR */
 trait IRTest extends ESMetaTest {
   def category: String = "ir"
 }

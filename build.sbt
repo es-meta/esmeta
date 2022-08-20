@@ -53,6 +53,11 @@ lazy val langTest = taskKey[Unit]("Launch lang tests")
 lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
 
+// compiler
+lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
+lazy val compilerValidityTest =
+  taskKey[Unit]("Launch validity tests for compiler (small)")
+
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
@@ -147,6 +152,11 @@ lazy val root = project
     extractorTest := (Test / testOnly).toTask(" *.extractor.*Test").value,
     extractorValidityTest := (Test / testOnly)
       .toTask(" *.extractor.Validity*Test")
+      .value,
+    // compiler
+    compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
+    compilerValidityTest := (Test / testOnly)
+      .toTask(" *.compiler.Validity*Test")
       .value,
     // spec
     specTest := (Test / testOnly).toTask(" *.spec.*Test").value,

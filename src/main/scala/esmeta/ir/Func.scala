@@ -1,6 +1,6 @@
 package esmeta.ir
 
-import esmeta.ir.util.Parser
+import esmeta.ir.util.{Parser, YetCollector}
 import esmeta.util.UId
 import esmeta.spec.{Algorithm, Head}
 
@@ -14,6 +14,10 @@ case class Func(
   body: Inst,
   algo: Option[Algorithm] = None,
 ) extends IRElem {
+
+  /** algorithm heads */
+  lazy val yets: List[EYet] = YetCollector(this)
+  lazy val complete: Boolean = yets.isEmpty
 
   /** algorithm heads */
   lazy val head: Option[Head] = algo.map(_.head)
