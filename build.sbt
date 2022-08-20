@@ -38,6 +38,11 @@ lazy val smallTest = taskKey[Unit]("Launch small tests (maybe seconds)")
 lazy val middleTest = taskKey[Unit]("Launch middle tests (maybe minutes)")
 lazy val largeTest = taskKey[Unit]("Launch large tests (may hours)")
 
+// extractor
+lazy val extractorTest = taskKey[Unit]("Launch extractor tests")
+lazy val extractorValidityTest =
+  taskKey[Unit]("Launch validity tests for extractor (small)")
+
 // spec
 lazy val specTest = taskKey[Unit]("Launch spec tests")
 lazy val specStringifyTest =
@@ -138,6 +143,11 @@ lazy val root = project
     smallTest := (Test / testOnly).toTask(" *SmallTest").value,
     middleTest := (Test / testOnly).toTask(" *MiddleTest").value,
     largeTest := (Test / testOnly).toTask(" *LargeTest").value,
+    // extractor
+    extractorTest := (Test / testOnly).toTask(" *.extractor.*Test").value,
+    extractorValidityTest := (Test / testOnly)
+      .toTask(" *.extractor.Validity*Test")
+      .value,
     // spec
     specTest := (Test / testOnly).toTask(" *.spec.*Test").value,
     specStringifyTest := (Test / testOnly)

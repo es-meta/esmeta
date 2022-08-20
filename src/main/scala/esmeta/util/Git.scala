@@ -3,12 +3,20 @@ package esmeta.util
 import esmeta.util.SystemUtils.*
 
 /** git helpers */
-abstract class Git(path: String) {
+abstract class Git(path: String) { self =>
 
   /** git versions */
   case class Version(name: String, hash: String) {
+    def git: Git = self
     override def toString: String = s"$name ($hash)"
+    override def equals(that: Any): Boolean = that match
+      case that: Version => this.git == that.git && this.hash == that.hash
+      case _             => false
   }
+  object Version:
+    val pattern = "(.+) \\((.+)\\)".r
+    def apply(string: String): Version = string match
+      case pattern(name, hash) => Version(name, hash)
 
   /** change git version */
   def changeVersion(version: Version): Unit =

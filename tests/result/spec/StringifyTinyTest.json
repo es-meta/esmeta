@@ -7,5 +7,6 @@
   "Production.Kind" : true,
   "Rhs" : true,
   "RhsCond" : true,
+  "Summary" : true,
   "Symbol" : true
 }

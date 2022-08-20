@@ -1,0 +1,8 @@
+{
+  "algorithms" : true,
+  "git version" : true,
+  "grammar" : true,
+  "steps" : true,
+  "tables" : true,
+  "type model" : true
+}

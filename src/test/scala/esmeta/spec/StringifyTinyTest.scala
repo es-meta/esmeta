@@ -4,11 +4,40 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.*
 import Symbol.*
 
+/** stringify test */
 class StringifyTinyTest extends SpecTest {
   val name: String = "specStringifyTest"
 
   // registration
   def init: Unit = {
+    // -------------------------------------------------------------------------
+    // Summary
+    // -------------------------------------------------------------------------
+    checkParseAndStringify("Summary", Summary)(
+      Summary(
+        Some(Spec.Version("main", "2j3foijwo2")),
+        Summary.GrammarElem(145, 16, 195, 28),
+        Summary.AlgorithmElem(2236, 387),
+        Summary.StepElem(18271, 785),
+        89,
+        58,
+      ) ->
+      s"""- version: main (2j3foijwo2)
+         |- grammar:
+         |  - productions: 356
+         |    - lexical: 145
+         |    - numeric string: 16
+         |    - syntactic: 195
+         |  - extended productions for web: 28
+         |- algorithms: 2623 (85.25%)
+         |  - complete: 2236
+         |  - incomplete: 387
+         |- algorithm steps: 19056 (95.88%)
+         |  - complete: 18271
+         |  - incomplete: 785
+         |- tables: 89
+         |- type model: 58""".stripMargin,
+    )
     // -------------------------------------------------------------------------
     // Grammar
     // -------------------------------------------------------------------------
@@ -93,16 +122,16 @@ class StringifyTinyTest extends SpecTest {
     )
 
     // grammar
-    checkStringify("Grammar")(
+    checkParseAndStringify("Grammar", Grammar)(
       Grammar(List(prod1), List(prod2)) ->
-      s"""// Productions
-           |Identifier :: one of
-           |  `a` `a`
-           |
-           |// Productions for Web
-           |Identifier :
-           |  [+Yield] `{` `}`
-           |  `{` `}` #this-is-id""".stripMargin,
+      s"""<Productions>
+         |Identifier :: one of
+         |  `a` `a`
+         |
+         |<Productions for Web>
+         |Identifier :
+         |  [+Yield] `{` `}`
+         |  `{` `}` #this-is-id""".stripMargin,
     )
 
     // -------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+- version: tags/es2022-candidate-2022-03^0 (d711ba960cd12b7658d6bb26d7556e690290190c)
+- grammar:
+  - productions: 356
+    - lexical: 145
+    - numeric string: 16
+    - syntactic: 195
+  - extended productions for web: 28
+- algorithms: 2623 (85.25%)
+  - complete: 2236
+  - incomplete: 387
+- algorithm steps: 19056 (95.88%)
+  - complete: 18271
+  - incomplete: 785
+- tables: 89
+- type model: 58

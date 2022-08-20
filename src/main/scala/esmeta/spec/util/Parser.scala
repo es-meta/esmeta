@@ -4,10 +4,13 @@ import scala.io.Source
 import esmeta.*
 import esmeta.lang.Step
 import esmeta.spec.{*, given}
+import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
+import esmeta.spec.Summary.AlgorithmElem
+import akka.http.scaladsl.model.headers.LinkParams.`type`
 
 /** specification parsers */
 object Parser extends Parsers
@@ -16,8 +19,50 @@ trait Parsers extends BasicParsers {
   protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
   // ---------------------------------------------------------------------------
+  // Summary
+  // ---------------------------------------------------------------------------
+  given summary: Parser[Summary] = {
+    import Summary.*
+    val version = opt("- version:" ~> ".*".r) ^^ {
+      case vOpt => vOpt.flatMap(v => optional(Spec.Version(v)))
+    }
+    val empty = rep(newline)
+    val grammar = {
+      (empty ~ "- grammar:") ~>
+      (empty ~ "- productions:" ~ ".*".r) ~>
+      (empty ~ "- lexical:" ~> int) ~
+      (empty ~ "- numeric string:" ~> int) ~
+      (empty ~ "- syntactic:" ~> int) ~
+      (empty ~ "- extended productions for web:" ~> int)
+    } ^^ { case l ~ n ~ s ~ w => GrammarElem(l, n, s, w) }
+    val algo = {
+      (empty ~ "- algorithms:" ~ ".*".r) ~>
+      (empty ~ "- complete:" ~> int) ~
+      (empty ~ "- incomplete:" ~> int)
+    } ^^ { case c ~ i => AlgorithmElem(c, i) }
+    val step = {
+      (empty ~ "- algorithm steps:" ~ ".*".r) ~>
+      (empty ~ "- complete:" ~> int) ~
+      (empty ~ "- incomplete:" ~> int)
+    } ^^ { case c ~ i => StepElem(c, i) }
+    val tables = empty ~ "- tables:" ~> int
+    val typeModel = empty ~ "- type model:" ~> int <~ empty
+    version ~ grammar ~ algo ~ step ~ tables ~ typeModel ^^ {
+      case v ~ g ~ a ~ s ~ t ~ m => Summary(v, g, a, s, t, m)
+    }
+  }.named("spec.Summary")
+
+  // ---------------------------------------------------------------------------
   // Grammar
   // ---------------------------------------------------------------------------
+  /** grammar */
+  given grammarRule: Parser[Grammar] = {
+    (rep(newline) ~ "<Productions>" ~> prods) ~
+    (rep(newline) ~ "<Productions for Web>" ~> prods) ^^ {
+      case p ~ w => Grammar(p, w)
+    }
+  }.named("spec.Grammar")
+
   /** production lists */
   given prods: Parser[List[Production]] = {
     rep1(rep(newline) ~> prod)

@@ -53,6 +53,9 @@ case class Spec(
   /** get stats */
   lazy val stats: Stats = new Stats(this)
 
+  /** get summary */
+  lazy val summary: Summary = Summary(this)
+
   /** get an algorithm by id attribute */
   def getAlgoById(id: String): Algorithm =
     algorithms.filter(_.elem.getId == id) match

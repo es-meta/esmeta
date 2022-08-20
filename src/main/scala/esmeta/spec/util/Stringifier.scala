@@ -12,6 +12,7 @@ object Stringifier {
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match {
       case elem: Spec            => specRule(app, elem)
+      case elem: Summary         => summaryRule(app, elem)
       case elem: Grammar         => grammarRule(app, elem)
       case elem: Production      => prodRule(app, elem)
       case elem: Lhs             => lhsRule(app, elem)
@@ -32,45 +33,36 @@ object Stringifier {
     }
 
   // for specifications
-  given specRule: Rule[Spec] = (app, spec) => {
+  given specRule: Rule[Spec] = (app, spec) => app >> spec.summary
+
+  // for specification summaries
+  given summaryRule: Rule[Summary] = (app, summary) => {
     import Production.Kind.*
-    val Spec(version, grammar, algorithms, tables, typeModel, _) = spec
-    val Grammar(prods, prodsForWeb) = grammar
-    val prodsBy = prods.groupBy(_.kind)
+    val Summary(version, grammar, algo, step, tables, typeModel) = summary
     version.map(app >> "- version: " >> _.toString >> LINE_SEP)
     app >> "- grammar:"
-    app :> "  - productions: " >> prods.length
-    app :> "    - lexical: " >> prodsBy(Lexical).length
-    app :> "    - numeric string: " >> prodsBy(NumericString).length
-    app :> "    - syntactic: " >> prodsBy(Syntactic).length
-    app :> "  - extended productions for web: " >> grammar.prodsForWeb.length
-
-    val (algoPass, algoTotal) =
-      (spec.completeAlgorithms.length, algorithms.length)
-    val algoRatio = ratioSimpleString(algoPass, algoTotal)
-    app :> "- algorithms: " >> algoTotal >> " " >> algoRatio
-    app :> "  - complete: " >> algoPass
-    app :> "  - incomplete: " >> algoTotal - algoPass
-
-    val (stepPass, stepTotal) =
-      (spec.completeSteps.length, spec.allSteps.length)
-    val stepRatio = ratioSimpleString(stepPass, stepTotal)
-    app :> "- algorithm steps: " >> stepTotal >> " " >> stepRatio
-    app :> "  - complete: " >> stepPass
-    app :> "  - incompleted: " >> stepTotal - stepPass
-
-    app :> "- tables: " >> tables.size
-
-    app :> "- type model: " >> typeModel.infos.size
+    app :> "  - productions: " >> grammar.productions
+    app :> "    - lexical: " >> grammar.lexical
+    app :> "    - numeric string: " >> grammar.numeric
+    app :> "    - syntactic: " >> grammar.syntactic
+    app :> "  - extended productions for web: " >> grammar.web
+    app :> "- algorithms: " >> algo.total >> " " >> algo.ratioString
+    app :> "  - complete: " >> algo.complete
+    app :> "  - incomplete: " >> algo.incomplete
+    app :> "- algorithm steps: " >> step.total >> " " >> step.ratioString
+    app :> "  - complete: " >> step.complete
+    app :> "  - incomplete: " >> step.incomplete
+    app :> "- tables: " >> tables
+    app :> "- type model: " >> typeModel
   }
 
   // for grammars
   given grammarRule: Rule[Grammar] = (app, grammar) => {
     given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
-    app >> "// Productions"
+    app >> "<Productions>"
     app :> grammar.prods
     app :> ""
-    app :> "// Productions for Web"
+    app :> "<Productions for Web>"
     app :> grammar.prodsForWeb
   }
 
