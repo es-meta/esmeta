@@ -15,5 +15,5 @@ trait Test262Test extends ESMetaTest {
   def spec = ESMetaTest.spec
 }
 object Test262Test {
-  lazy val test262 = Test262(Test262.currentVersion, ESMetaTest.spec)
+  lazy val test262 = Test262(Test262.currentVersion, ESMetaTest.cfg)
 }

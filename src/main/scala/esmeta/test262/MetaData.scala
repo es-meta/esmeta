@@ -17,19 +17,29 @@ case class MetaData(
   es5: Boolean,
 ) extends Test262Elem
 
+/** helpers of metadata tests in Test262 */
 object MetaData {
+
+  /** metadata generation from multiple paths */
+  def fromDirs(paths: List[String]): List[MetaData] = (for {
+    path <- paths
+    data <- MetaData.fromDir(path)
+  } yield data).sorted
+
+  /** metadata generation from multiple a directory */
   def fromDir(dirname: String): List[MetaData] = walkTree(dirname).toList
     .filter(f => jsFilter(f.getName))
     .map(x => MetaData(x.toString))
     .sorted
 
-  def apply(path: String): MetaData = {
-    val absPath = getAbsPath(path)
+  /** metadata generation form a single file */
+  def apply(filename: String): MetaData = {
+    val absPath = getAbsPath(filename)
     val relName =
       if (absPath.startsWith(TEST262_TEST_DIR))
         absPath.drop(TEST262_TEST_DIR.length + 1)
       else ""
-    val source = Source.fromFile(path)
+    val source = Source.fromFile(filename)
     val lines =
       try source.getLines.toList
       finally source.close()
@@ -122,7 +132,7 @@ object MetaData {
       if (flags contains "async") includes :+ "doneprintHandle.js" else includes
     MetaData(
       relName,
-      path,
+      filename,
       negative,
       flags,
       newIncludes,

@@ -11,3 +11,6 @@ case class WrongNumberOfParserParams(name: String, list: List[Boolean])
 
 case class ESValueParserFailed(str: String)
   extends ParseError(s"ESValueParser failed: $str")
+
+case object UnexpectedParseResult
+  extends ParseError(s"unexpected parsing result")

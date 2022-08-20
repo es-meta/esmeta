@@ -1,17 +1,19 @@
 package esmeta.test262
 
-class ParseLargeTest extends Test262Test {
-  val name: String = "test262ParseTest"
+class EvalLargeTest extends Test262Test {
+  val name: String = "test262EvalTest"
 
   // registration
   def init: Unit = check(name) {
-    val summary = Test262Test.test262.parseTest(
+    val summary = Test262Test.test262.evalTest(
       log = true,
       useProgress = true,
-      timeLimit = Some(100),
+      useCoverage = true,
+      timeLimit = Some(10),
     )
     val f = summary.fail
     if (f > 0) fail(s"$f tests are failed (See `$logDir/fail.log`).")
   }
+
   init
 }

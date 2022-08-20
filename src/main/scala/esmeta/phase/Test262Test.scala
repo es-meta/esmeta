@@ -27,90 +27,18 @@ case object Test262Test extends Phase[CFG, Summary] {
     // set test mode
     TEST_MODE = true
 
-    // get specification
-    val spec = cfg.spec
-
-    // get metadata list
-    if (config.log) println("- Extracting metadata of Test262 tests...")
-    val dataList: List[MetaData] = (for {
-      path <- cmdConfig.targets match
-        case Nil   => List(TEST262_TEST_DIR)
-        case paths => paths
-      data <- MetaData.fromDir(path)
-    } yield data).sorted
-
-    // multiple targets
-    val multiple = dataList.length > 1
-
-    // get all applicable tests with progress bar
-    val tests = ProgressBar[NormalConfig](
-      msg = "Run Test262 eval tests",
-      iterable = TestFilter(dataList).summary.normal,
-      getName = (config, _) => config.name,
-      errorHandler = (e, summary, name) =>
-        if (multiple) e match
-          case NotSupported(msg)   => summary.yets += s"$name - $msg"
-          case _: TimeoutException => summary.timeouts += name
-          case e: Throwable => summary.fails += s"$name - ${e.getMessage}"
-        else throw e,
-      verbose = config.progress,
-    )
-
-    // test progress summary
-    val summary = tests.summary
-
     // get target version of Test262
     val version = Test262.getVersion(config.target)
-    val test262 = Test262(version, spec)
+    val test262 = Test262(version, cfg)
 
-    // coverage with time limit
-    lazy val cov = Coverage(
-      cfg = cfg,
-      test262 = Some(test262),
-      timeLimit = config.timeLimit,
+    // run test262 eval test
+    test262.evalTest(
+      cmdConfig.targets,
+      config.log,
+      config.progress,
+      config.coverage,
+      config.timeLimit,
     )
-
-    // logging mode
-    val logDir = s"$TEST262TEST_LOG_DIR/eval-$dateStr"
-    if (config.log && multiple)
-      println(s"- Logging to $logDir...")
-      mkdir(logDir)
-      dumpFile(spec.versionString, s"$logDir/ecma262-version")
-      dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-      summary.timeouts.setPath(s"$logDir/timeout.log")
-      summary.yets.setPath(s"$logDir/yet.log")
-      summary.fails.setPath(s"$logDir/fail.log")
-      summary.passes.setPath(s"$logDir/pass.log")
-
-    // run tests
-    for (test <- tests)
-      val NormalConfig(filename, includes) = test
-      val st = if (!config.coverage) {
-        val script = test262.loadTest(filename)
-        val code = script.toString(grammar = Some(cfg.grammar)).trim
-        val st = Initialize(cfg, code, Some(script))
-        Interpreter(
-          st = st,
-          log = !multiple && config.log,
-          logDir = TEST262TEST_LOG_DIR,
-          timeLimit = config.timeLimit,
-        )
-      } else cov.run(filename)
-      val returnValue = st(GLOBAL_RESULT)
-      if (returnValue != Undef) throw InvalidExit(returnValue)
-
-    // run tests
-    if (config.log && multiple)
-      summary.close
-      val summaryStr =
-        if (config.coverage) s"$summary$LINE_SEP$cov"
-        else s"$summary"
-      dumpFile("Test262 test summary", summaryStr, s"$logDir/summary")
-
-    // dump coverage
-    if (config.coverage) cov.dumpTo(logDir)
-
-    summary
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
