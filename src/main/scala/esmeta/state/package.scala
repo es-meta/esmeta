@@ -115,3 +115,10 @@ def toStringHelper(m: Double, radix: Int = 10): String = {
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// types
+// -----------------------------------------------------------------------------
+type Undef = Undef.type
+type Null = Null.type
+type Absent = Absent.type
