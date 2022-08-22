@@ -5,7 +5,10 @@ import esmeta.ai.domain.*
 import esmeta.state.Bool
 
 /** abstract boolean domain */
-trait Domain extends domain.Domain[Bool] {
+trait Domain
+  extends domain.Domain[Bool]
+  with Prunable[Bool]
+  with Meetable[Bool] {
 
   /** top element */
   val Top: Elem

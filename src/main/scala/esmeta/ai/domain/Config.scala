@@ -2,7 +2,6 @@ package esmeta.ai.domain
 
 import esmeta.cfg.*
 import esmeta.state.*
-import esmeta.ai.domain.util.*
 
 class Config(
   cfg: CFG,

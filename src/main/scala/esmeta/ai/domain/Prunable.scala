@@ -1,8 +1,6 @@
-package esmeta.ai.domain.util
+package esmeta.ai.domain
 
-import esmeta.ai.domain.*
-
-/** domain */
+/** prunable domain */
 trait Prunable[A] { this: Domain[A] =>
 
   /** domain element interfaces */

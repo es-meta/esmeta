@@ -1,6 +1,4 @@
-package esmeta.ai.domain.util
-
-import esmeta.ai.domain.*
+package esmeta.ai.domain
 
 /** flat lattice */
 sealed trait Flat[+A] {

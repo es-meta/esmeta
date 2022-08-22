@@ -1,7 +1,6 @@
-package esmeta.ai.domain.util
+package esmeta.ai.domain
 
 import esmeta.ai.*
-import esmeta.ai.domain.*
 
 /** bounded set lattice */
 sealed trait BSet[+A] {

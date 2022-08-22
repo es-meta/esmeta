@@ -1,7 +1,6 @@
 package esmeta.ai.domain
 
 import esmeta.ai.*
-import esmeta.ai.domain.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 
@@ -10,7 +9,8 @@ trait FlatDomain[A](
   val topName: String, // name of top element
   val totalOpt: BSet[A], // total elements
 ) extends Domain[A]
-  with Prunable[A] {
+  with Prunable[A]
+  with Meetable[A] {
 
   /** elements */
   sealed trait Elem extends Iterable[A] {

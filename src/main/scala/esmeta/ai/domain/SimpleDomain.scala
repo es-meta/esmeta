@@ -2,14 +2,14 @@ package esmeta.ai.domain
 
 import esmeta.util.Appender
 import esmeta.util.Appender.*
-import esmeta.ai.domain.util.*
 
 /** simple domain */
 trait SimpleDomain[A](
   val topName: String, // name of top element
   val totalOpt: BSet[A], // total elements
 ) extends Domain[A]
-  with Prunable[A] {
+  with Prunable[A]
+  with Meetable[A] {
 
   /** elements */
   trait Elem

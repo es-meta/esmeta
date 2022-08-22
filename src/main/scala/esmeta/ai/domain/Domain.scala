@@ -2,7 +2,6 @@ package esmeta.ai.domain
 
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.ai.domain.util.*
 
 /** domain */
 trait Domain[A] {

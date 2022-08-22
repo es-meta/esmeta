@@ -3,7 +3,6 @@ package esmeta.ai.domain
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.ai.exploded
-import esmeta.ai.domain.util.*
 
 /** set domain */
 trait SetDomain[A](
@@ -11,7 +10,8 @@ trait SetDomain[A](
   val maxSizeOpt: Option[Int], // max size of set
   val totalOpt: BSet[A], // total elements
 ) extends Domain[A]
-  with Prunable[A] {
+  with Prunable[A]
+  with Meetable[A] {
 
   /** elements */
   sealed trait Elem extends Iterable[A] {
