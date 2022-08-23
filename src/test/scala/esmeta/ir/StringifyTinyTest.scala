@@ -214,7 +214,7 @@ class StringifyTinyTest extends IRTest {
       unary -> "(- x)",
       binary -> "(+ x x)",
       clamp -> "(clamp x x x)",
-      convert -> "([bigint] x)",
+      convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: \"T\")",
       // AST expressions
@@ -288,7 +288,7 @@ class StringifyTinyTest extends IRTest {
       BOp.SRShift -> ">>",
     )
     checkParseAndStringify("COp", COp)(
-      COp.ToBigInt -> "[bigint]",
+      COp.ToBigInt -> "[bigInt]",
       COp.ToNumber -> "[number]",
       COp.ToStr(None) -> "[str]",
       COp.ToStr(Some(xExpr)) -> "[str x]",
