@@ -282,6 +282,7 @@ trait Parsers extends IndentParsers {
     getChildrenExpr |||
     intrExpr |||
     calcExpr |||
+    clampExpr |||
     bitwiseExpr |||
     invokeExpr |||
     returnIfAbruptExpr |||
@@ -536,6 +537,12 @@ trait Parsers extends IndentParsers {
   lazy val errObjLiteral: PL[ErrorObjectLiteral] =
     lazy val errorName = "*" ~> word <~ "*" ^^ { ErrorObjectLiteral(_) }
     "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
+
+  // clamping expression
+  lazy val clampExpr: PL[ClampExpression] =
+    "the result of clamping" ~> expr ~ ("between" ~> expr) ~ ("and" ~> expr) ^^ {
+      case t ~ l ~ u => ClampExpression(t, l, u)
+    }
 
   // bitwise expressions
   lazy val bitwiseExpr: PL[BitwiseExpression] =

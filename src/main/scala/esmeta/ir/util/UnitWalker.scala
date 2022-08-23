@@ -86,6 +86,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(uop); walk(expr)
     case EBinary(bop, left, right) =>
       walk(bop); walk(left); walk(right)
+    case EClamp(target, lower, upper) =>
+      walk(target); walk(lower); walk(upper)
     case EVariadic(vop, exprs) =>
       walk(vop); walkList(exprs, walk)
     case EConvert(cop, expr) =>

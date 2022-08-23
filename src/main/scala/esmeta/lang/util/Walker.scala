@@ -131,6 +131,8 @@ trait Walker extends BasicWalker {
       IntrinsicExpression(walk(intr))
     case expr: CalcExpression =>
       walk(expr)
+    case ClampExpression(target, lower, upper) =>
+      walk(target); walk(lower); walk(upper)
     case BitwiseExpression(left, op, right) =>
       BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>

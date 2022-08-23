@@ -457,6 +457,8 @@ case class AbsTransfer(sem: AbsSemantics) {
           rv <- transfer(right)
           v <- get(transfer(_, bop, lv, rv))
         } yield v
+      case EClamp(target, lower, upper) => // TODO
+        throw NotSupported("EClamp is not supported expression")
       case EVariadic(vop, exprs) =>
         for {
           vs <- join(exprs.map(transfer))

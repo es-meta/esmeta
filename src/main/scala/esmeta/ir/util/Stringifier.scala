@@ -139,6 +139,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> uop >> " " >> expr >> ")"
       case EBinary(bop, left, right) =>
         app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+      case EClamp(target, lower, upper) =>
+        app >> "(clamp " >> target >> " " >> lower >> " " >> upper >> ")"
       case EVariadic(vop, exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(" >> vop >> " " >> exprs >> ")"

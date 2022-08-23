@@ -98,6 +98,8 @@ trait Walker extends BasicWalker {
       EUnary(walk(uop), walk(expr))
     case EBinary(bop, left, right) =>
       EBinary(walk(bop), walk(left), walk(right))
+    case EClamp(target, lower, upper) =>
+      EClamp(walk(target), walk(lower), walk(upper))
     case EVariadic(vop, exprs) =>
       EVariadic(walk(vop), walkList(exprs, walk))
     case EConvert(cop, expr) =>

@@ -126,6 +126,8 @@ trait Parsers extends BasicParsers {
       case u ~ e => EUnary(u, e)
     } | "(" ~> bop ~ expr ~ expr <~ ")" ^^ {
       case b ~ l ~ r => EBinary(b, l, r)
+    } | "(clamp" ~> expr ~ expr ~ expr <~ ")" ^^ {
+      case t ~ l ~ u => EClamp(t, l, u)
     } | "(" ~> vop ~ rep(expr) <~ ")" ^^ {
       case v ~ es => EVariadic(v, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {
