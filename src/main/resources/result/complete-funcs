@@ -1125,6 +1125,7 @@ INTRINSICS.Array.prototype.slice
 INTRINSICS.Array.prototype.some
 INTRINSICS.Array.prototype.sort
 INTRINSICS.Array.prototype.sort:clo0
+INTRINSICS.Array.prototype.splice
 INTRINSICS.Array.prototype.toString
 INTRINSICS.Array.prototype.unshift
 INTRINSICS.Array.prototype.values
@@ -1318,6 +1319,10 @@ INTRINSICS.String.prototype.at
 INTRINSICS.String.prototype.charAt
 INTRINSICS.String.prototype.codePointAt
 INTRINSICS.String.prototype.concat
+INTRINSICS.String.prototype.endsWith
+INTRINSICS.String.prototype.includes
+INTRINSICS.String.prototype.indexOf
+INTRINSICS.String.prototype.lastIndexOf
 INTRINSICS.String.prototype.localeCompare
 INTRINSICS.String.prototype.match
 INTRINSICS.String.prototype.matchAll
@@ -1325,6 +1330,8 @@ INTRINSICS.String.prototype.padEnd
 INTRINSICS.String.prototype.padStart
 INTRINSICS.String.prototype.search
 INTRINSICS.String.prototype.slice
+INTRINSICS.String.prototype.startsWith
+INTRINSICS.String.prototype.substring
 INTRINSICS.String.prototype.toString
 INTRINSICS.String.prototype.trim
 INTRINSICS.String.prototype.trimEnd
