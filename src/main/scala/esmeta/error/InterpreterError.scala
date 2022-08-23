@@ -43,9 +43,9 @@ case class InvalidUnaryOp(uop: UOp, v: Value)
   extends InterpreterError(s"wrong type for the operator $uop: $v")
 case class InvalidBinaryOp(bop: BOp, lv: Value, rv: Value)
   extends InterpreterError(s"wrong type for the operator $bop: $lv and $rv")
-case class InvalidTernaryOp(top: TOp, lv: Value, mv: Value, rv: Value)
+case class InvalidClampOp(tv: Value, lv: Value, uv: Value)
   extends InterpreterError(
-    s"wrong type for the operator $top: $lv, $mv, and $rv",
+    s"wrong type for the Clamp operator: $tv, $lv, and $uv",
   )
 case class InvalidVariadicOp(vop: VOp)
   extends InterpreterError(s"no arguments for the operator $vop")

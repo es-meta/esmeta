@@ -517,8 +517,7 @@ class Compiler(
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
       case ClampExpression(target, lower, upper) =>
-        ETernary(
-          TOp.Clamp,
+        EClamp(
           compile(fb, target),
           compile(fb, lower),
           compile(fb, upper),

@@ -149,6 +149,7 @@ class StringifyTinyTest extends IRTest {
     lazy val yExpr = ERef(y)
     lazy val unary = EUnary(UOp.Neg, xExpr)
     lazy val binary = EBinary(BOp.Plus, xExpr, xExpr)
+    lazy val clamp = EClamp(xExpr, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
     lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.name))
@@ -208,6 +209,7 @@ class StringifyTinyTest extends IRTest {
       xExpr -> "x",
       unary -> "(- x)",
       binary -> "(+ x x)",
+      clamp -> "(clamp x x x)",
       convert -> "([bigint] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: \"T\")",
