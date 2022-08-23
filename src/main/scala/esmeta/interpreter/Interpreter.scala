@@ -288,7 +288,7 @@ class Interpreter(
         case (Math(n), ToMath)   => Math(n)
         // string
         case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
+        case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
         case (Number(d), ToMath) => Math(BigDecimal.exact(d))

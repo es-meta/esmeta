@@ -1,13 +1,12 @@
 package esmeta.ai.domain
 
 import esmeta.ai.*
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** flat domain */
 trait FlatDomain[A](
   val topName: String, // name of top element
-  val totalOpt: BSet[A], // total elements
+  val totalOpt: BSet[A] = Inf, // total elements
 ) extends Domain[A]
   with Prunable[A]
   with Meetable[A] {
@@ -73,7 +72,7 @@ trait FlatDomain[A](
       case (Base(l), Base(r))  => if (l == r) elem else Bot
 
     /** prune operator */
-    def prune(that: Elem): Elem = (elem, that) match
+    def -(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => Bot
       case (_, Bot)            => elem
       case (Top, _: Base)      => Top
@@ -98,12 +97,3 @@ trait FlatDomain[A](
       case Bot        => Zero
   }
 }
-object FlatDomain:
-  def apply[A](
-    topName: String,
-    totalOpt: BSet[A] = Inf,
-  ): Domain[A] = new Domain[A] with FlatDomain[A](topName, totalOpt)
-  def apply[A](
-    topName: String,
-    iter: A*,
-  ): Domain[A] = new Domain[A] with FlatDomain[A](topName, Fin(iter.toSet))

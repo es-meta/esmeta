@@ -1,7 +1,6 @@
 package esmeta.analyzer.domain
 
 import esmeta.state.Bool
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** type domain for boolean */

@@ -162,7 +162,7 @@ case class TestFilter(tests: List[MetaData]) {
     // "__proto__",
     // "__getter__",
     // "__setter__",
-    // BigInt: https://github.com/tc39/proposal-bigint
+    // BigInt: https://github.com/tc39/proposal-bigInt
     "BigInt",
     // Align detached buffer semantics with web reality
     // https://github.com/tc39/ecma262/pull/2164

@@ -481,7 +481,7 @@ trait Parsers extends IndentParsers {
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |||
     "*NaN*" ^^! NumberLiteral(Double.NaN) |||
     "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |||
-    "*" ~> bigint <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
+    "*" ~> bigInt <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
     "*true*" ^^! TrueLiteral() |||
     "*false*" ^^! FalseLiteral() |||
     "*undefined*" ^^! UndefinedLiteral() |||

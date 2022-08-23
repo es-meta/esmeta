@@ -5,7 +5,6 @@ import esmeta.ai.*
 // import esmeta.cfg.CFG
 import esmeta.state.*
 // import esmeta.ir.*
-// import esmeta.util.Appender
 // import esmeta.util.Appender.{*, given}
 // import esmeta.util.BaseUtils.*
 // import esmeta.util.StateMonad
@@ -14,7 +13,7 @@ import esmeta.state.*
 trait Domain extends domain.Domain[State] {
 
   /** empty state */
-  val Empty: Elem
+  def Empty: Elem
 
   // /** base globals */
   // lazy val baseGlobals: Map[Id, AbsValue]

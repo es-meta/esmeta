@@ -87,7 +87,7 @@ type AbsSimple = AbsSimple.Elem
 lazy val AbsNum = FlatDomain[Number]("number")
 type AbsNum = AbsNum.Elem
 
-lazy val AbsBigInt = FlatDomain[BigInt]("bigint")
+lazy val AbsBigInt = FlatDomain[BigInt]("bigInt")
 type AbsBigInt = AbsBigInt.Elem
 
 lazy val AbsStr = SetDomain[Str]("str")

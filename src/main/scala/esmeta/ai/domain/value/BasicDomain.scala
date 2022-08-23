@@ -10,13 +10,30 @@ import esmeta.state.*
 // import esmeta.parser.ESValueParser
 import esmeta.util.Appender.*
 
-/** TODO basic abstract values */
+/** TODO basic domain for values */
 case class BasicDomain(config: Config) extends value.Domain {
   import config.*
 
   // // TODO remove unsafe type casting
   // given Conversion[AbsValue, Elem] = _.asInstanceOf[Elem]
   // given Conversion[Elem, AbsValue] = _.asInstanceOf[AbsValue]
+
+  /** TODO elements */
+  case class Elem(
+    // comp: AbsComp,
+    // clo: AbsClo,
+    // cont: AbsCont,
+    // loc: AbsLoc,
+    // ast: AbsAst,
+    // grammar: AbsGrammar,
+    // codeunit: AbsCodeUnit,
+    // const: AbsConst,
+    // math: AbsMath,
+    // simple: AbsSimple,
+  )
+
+  /** top element */
+  lazy val Top: Elem = exploded("top abstract value")
 
   /** bottom element */
   val Bot: Elem = ???
@@ -40,14 +57,14 @@ case class BasicDomain(config: Config) extends value.Domain {
   // def apply(ast: Ast): Elem = Bot.copy(ast = AbsAst(AAst(ast)))
   // def apply(num: Number): Elem = Bot.copy(simple = AbsSimple(num))
   // def apply(num: Double): Elem = Bot.copy(simple = AbsSimple(num))
-  // def apply(bigint: BigInt): Elem = Bot.copy(simple = AbsSimple(bigint))
+  // def apply(bigInt: BigInt): Elem = Bot.copy(simple = AbsSimple(bigInt))
   // def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   // def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
   // def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
   // lazy val codeunit: Elem = Bot.copy(codeunit = AbsCodeUnit.Top)
   // lazy val math: Elem = Bot.copy(math = AbsMath.Top)
   // lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
-  // lazy val bigint: Elem = Bot.copy(simple = AbsSimple.bigint)
+  // lazy val bigInt: Elem = Bot.copy(simple = AbsSimple.bigInt)
   // lazy val str: Elem = Bot.copy(simple = AbsSimple.str)
   // lazy val bool: Elem = Bot.copy(simple = AbsSimple.bool)
   // lazy val undef: Elem = Bot.copy(simple = AbsSimple.undef)
@@ -79,14 +96,14 @@ case class BasicDomain(config: Config) extends value.Domain {
   //   math: AbsMath = AbsMath.Bot,
   //   simple: AbsSimple = AbsSimple.Bot,
   //   num: AbsNum = AbsNum.Bot,
-  //   bigint: AbsBigInt = AbsBigInt.Bot,
+  //   bigInt: AbsBigInt = AbsBigInt.Bot,
   //   str: AbsStr = AbsStr.Bot,
   //   bool: AbsBool = AbsBool.Bot,
   //   undef: AbsUndef = AbsUndef.Bot,
   //   nullv: AbsNull = AbsNull.Bot,
   //   absent: AbsAbsent = AbsAbsent.Bot,
   // ): Elem = {
-  //   val newSimple = AbsSimple(num, bigint, str, bool, undef, nullv, absent)
+  //   val newSimple = AbsSimple(num, bigInt, str, bool, undef, nullv, absent)
   //   Elem(
   //     comp,
   //     clo,
@@ -192,25 +209,11 @@ case class BasicDomain(config: Config) extends value.Domain {
   //       case Concat => doVopTransfer[String](asStr, _ + _, apply, vs)
   // }
 
-  /** TODO elements */
-  case class Elem(
-    // comp: AbsComp,
-    // clo: AbsClo,
-    // cont: AbsCont,
-    // loc: AbsLoc,
-    // ast: AbsAst,
-    // grammar: AbsGrammar,
-    // codeunit: AbsCodeUnit,
-    // const: AbsConst,
-    // math: AbsMath,
-    // simple: AbsSimple,
-  )
-
   /** element interfaces */
   extension (elem: Elem) {
     // /** getters */
     // def num: AbsNum = simple.num
-    // def bigint: AbsBigInt = simple.bigint
+    // def bigInt: AbsBigInt = simple.bigInt
     // def str: AbsStr = simple.str
     // def bool: AbsBool = simple.bool
     // def undef: AbsUndef = simple.undef
@@ -258,8 +261,8 @@ case class BasicDomain(config: Config) extends value.Domain {
     //   elem.simple ⊔ that.simple,
     // )
 
-    // /** meet operator */
-    // def ⊓(that: Elem): Elem = Elem(
+    /** meet operator */
+    def ⊓(that: Elem): Elem = ??? // Elem(
     //   elem.comp ⊓ that.comp,
     //   elem.clo ⊓ that.clo,
     //   elem.cont ⊓ that.cont,
@@ -272,8 +275,8 @@ case class BasicDomain(config: Config) extends value.Domain {
     //   elem.simple ⊓ that.simple,
     // )
 
-    // /** minus operator */
-    // def -(that: Elem): Elem = Elem(
+    /** prune operator */
+    def -(that: Elem): Elem = ??? // Elem(
     //   elem.comp - that.comp,
     //   elem.clo - that.clo,
     //   elem.cont - that.cont,
@@ -352,7 +355,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     // //       (left.num plusInt right.int)
     // //   ),
     // //   int = left.int plus right.int,
-    // //   bigint = left.bigint plus right.bigint,
+    // //   bigInt = left.bigInt plus right.bigInt,
     // // )
     // def sub(that: Elem): Elem = ???
     // def /(that: Elem): Elem = ???
@@ -365,7 +368,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     // //       (left.num mulInt right.int)
     // //   ),
     // //   int = left.int mul right.int,
-    // //   bigint = left.bigint mul right.bigint,
+    // //   bigInt = left.bigInt mul right.bigInt,
     // // )
     // def %(that: Elem): Elem = ???
     // def %%(that: Elem): Elem = ???
@@ -385,7 +388,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     // def typeOf(st: AbsState): Elem = {
     //   var set = Set[String]()
     //   if (!elem.num.isBottom) set += "Number"
-    //   if (!elem.bigint.isBottom) set += "BigInt"
+    //   if (!elem.bigInt.isBottom) set += "BigInt"
     //   if (!elem.str.isBottom) set += "String"
     //   if (!elem.bool.isBottom) set += "Boolean"
     //   if (!elem.undef.isBottom) set += "Undefined"
@@ -402,7 +405,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     // def typeCheck(tname: String, st: AbsState): Elem = {
     //   var bv: AbsBool = AbsBool.Bot
     //   if (!elem.num.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
-    //   if (!elem.bigint.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
+    //   if (!elem.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
     //   if (!elem.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
     //   if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
     //   if (!elem.const.isBottom)
@@ -438,7 +441,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     //   var newV = Bot
     //   for (Str(s) <- elem.str) newV ⊔= (cop match
     //     case ToNumber => apply(Number(ESValueParser.str2Number(s)))
-    //     case ToBigInt => apply(ESValueParser.str2bigint(s))
+    //     case ToBigInt => apply(ESValueParser.str2bigInt(s))
     //     case _        => Bot
     //   )
     //   for (AMath(n) <- elem.math) newV ⊔= (cop match
@@ -446,7 +449,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     //     case ToBigInt => apply(BigInt(n.toBigInt))
     //     case _        => Bot
     //   )
-    //   for (BigInt(b) <- elem.bigint) newV ⊔= (cop match
+    //   for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
     //     case ToMath => apply(Math(BigDecimal.exact(b)))
     //     case _      => Bot
     //   )

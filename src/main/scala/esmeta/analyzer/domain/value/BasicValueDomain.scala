@@ -6,7 +6,6 @@ import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.es.*
 import esmeta.parser.ESValueParser
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic abstract values */
@@ -33,14 +32,14 @@ object BasicValueDomain extends ValueDomain {
   def apply(ast: Ast): Elem = Bot.copy(ast = AbsAst(AAst(ast)))
   def apply(num: Number): Elem = Bot.copy(simple = AbsSimple(num))
   def apply(num: Double): Elem = Bot.copy(simple = AbsSimple(num))
-  def apply(bigint: BigInt): Elem = Bot.copy(simple = AbsSimple(bigint))
+  def apply(bigInt: BigInt): Elem = Bot.copy(simple = AbsSimple(bigInt))
   def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
   def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
   lazy val codeunit: Elem = Bot.copy(codeunit = AbsCodeUnit.Top)
   lazy val math: Elem = Bot.copy(math = AbsMath.Top)
   lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
-  lazy val bigint: Elem = Bot.copy(simple = AbsSimple.bigint)
+  lazy val bigInt: Elem = Bot.copy(simple = AbsSimple.bigInt)
   lazy val str: Elem = Bot.copy(simple = AbsSimple.str)
   lazy val bool: Elem = Bot.copy(simple = AbsSimple.bool)
   lazy val undef: Elem = Bot.copy(simple = AbsSimple.undef)
@@ -72,14 +71,14 @@ object BasicValueDomain extends ValueDomain {
     math: AbsMath = AbsMath.Bot,
     simple: AbsSimple = AbsSimple.Bot,
     num: AbsNum = AbsNum.Bot,
-    bigint: AbsBigInt = AbsBigInt.Bot,
+    bigInt: AbsBigInt = AbsBigInt.Bot,
     str: AbsStr = AbsStr.Bot,
     bool: AbsBool = AbsBool.Bot,
     undef: AbsUndef = AbsUndef.Bot,
     nullv: AbsNull = AbsNull.Bot,
     absent: AbsAbsent = AbsAbsent.Bot,
   ): Elem = {
-    val newSimple = AbsSimple(num, bigint, str, bool, undef, nullv, absent)
+    val newSimple = AbsSimple(num, bigInt, str, bool, undef, nullv, absent)
     Elem(
       comp,
       clo,
@@ -201,7 +200,7 @@ object BasicValueDomain extends ValueDomain {
 
     /** getters */
     def num: AbsNum = simple.num
-    def bigint: AbsBigInt = simple.bigint
+    def bigInt: AbsBigInt = simple.bigInt
     def str: AbsStr = simple.str
     def bool: AbsBool = simple.bool
     def undef: AbsUndef = simple.undef
@@ -343,7 +342,7 @@ object BasicValueDomain extends ValueDomain {
     //       (left.num plusInt right.int)
     //   ),
     //   int = left.int plus right.int,
-    //   bigint = left.bigint plus right.bigint,
+    //   bigInt = left.bigInt plus right.bigInt,
     // )
     def sub(that: Elem): Elem = ???
     def /(that: Elem): Elem = ???
@@ -356,7 +355,7 @@ object BasicValueDomain extends ValueDomain {
     //       (left.num mulInt right.int)
     //   ),
     //   int = left.int mul right.int,
-    //   bigint = left.bigint mul right.bigint,
+    //   bigInt = left.bigInt mul right.bigInt,
     // )
     def %(that: Elem): Elem = ???
     def %%(that: Elem): Elem = ???
@@ -376,7 +375,7 @@ object BasicValueDomain extends ValueDomain {
     def typeOf(st: AbsState): Elem = {
       var set = Set[String]()
       if (!this.num.isBottom) set += "Number"
-      if (!this.bigint.isBottom) set += "BigInt"
+      if (!this.bigInt.isBottom) set += "BigInt"
       if (!this.str.isBottom) set += "String"
       if (!this.bool.isBottom) set += "Boolean"
       if (!this.undef.isBottom) set += "Undefined"
@@ -393,7 +392,7 @@ object BasicValueDomain extends ValueDomain {
     def typeCheck(tname: String, st: AbsState): Elem = {
       var bv: AbsBool = AbsBool.Bot
       if (!this.num.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
-      if (!this.bigint.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
+      if (!this.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
       if (!this.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
       if (!this.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
       if (!this.const.isBottom)
@@ -444,7 +443,7 @@ object BasicValueDomain extends ValueDomain {
       )
       for (Str(s) <- this.str) newV ⊔= (cop match
         case ToNumber => apply(Number(ESValueParser.str2Number(s)))
-        case ToBigInt => apply(ESValueParser.str2bigint(s))
+        case ToBigInt => apply(ESValueParser.str2bigInt(s))
         case _: ToStr => apply(Str(s))
         case _        => Bot
       )
@@ -455,7 +454,7 @@ object BasicValueDomain extends ValueDomain {
         case ToNumber => apply(Number(d))
         case ToBigInt => apply(BigInt(BigDecimal.exact(d).toBigInt))
       )
-      for (BigInt(b) <- this.bigint) newV ⊔= (cop match
+      for (BigInt(b) <- this.bigInt) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(b)))
         case _: ToStr =>
           radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(Str(b.toString(n))))

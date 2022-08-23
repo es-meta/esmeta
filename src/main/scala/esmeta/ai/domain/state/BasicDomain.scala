@@ -8,12 +8,11 @@ import esmeta.state.*
 import esmeta.ir.*
 // import esmeta.es
 // import esmeta.es.*
-import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 // import esmeta.util.BaseUtils.*
 // import esmeta.util.StateMonad
 
-/** TODO basic abstract states */
+/** TODO basic domain for states */
 case class BasicDomain(config: Config) extends state.Domain {
   import config.*
 
@@ -21,6 +20,9 @@ case class BasicDomain(config: Config) extends state.Domain {
   // given Conversion[AbsValue, BasicValueDomain.Elem] =
   //   _.asInstanceOf[BasicValueDomain.Elem]
   // given Conversion[BasicValueDomain.Elem, AbsValue] = _.asInstanceOf[AbsValue]
+
+  /** top element */
+  lazy val Top: Elem = exploded("top abstract state")
 
   /** bottom element */
   val Bot: Elem = Elem(false, Map(), Map()) // TODO , AbsHeap.Bot)

@@ -6,8 +6,11 @@ import esmeta.util.BaseUtils.*
 /** domain */
 trait Domain[A] {
 
+  /** top element */
+  def Top: Elem
+
   /** bottom element */
-  val Bot: Elem
+  def Bot: Elem
 
   /** element */
   type Elem

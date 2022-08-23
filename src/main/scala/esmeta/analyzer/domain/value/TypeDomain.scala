@@ -21,14 +21,14 @@ object TypeDomain extends ValueDomain {
   def apply(ast: Ast): Elem = Elem(AstT(ast.name))
   def apply(num: Number): Elem = Elem(NumberSingleT(num.n))
   def apply(num: Double): Elem = Elem(NumberSingleT(num))
-  def apply(bigint: BigInt): Elem = Elem(BigIntSingleT(bigint.n))
+  def apply(bigInt: BigInt): Elem = Elem(BigIntSingleT(bigInt.n))
   def apply(str: String): Elem = Elem(StrSingleT(str))
   def apply(bool: Boolean): Elem = Elem(BoolSingleT(bool))
   def apply(d: BigDecimal): Elem = math
   lazy val codeunit: Elem = Elem(CodeUnitT)
   lazy val math: Elem = Elem(MathT)
   lazy val num: Elem = Elem(NumberT)
-  lazy val bigint: Elem = Elem(BigIntT)
+  lazy val bigInt: Elem = Elem(BigIntT)
   lazy val str: Elem = Elem(StrT)
   lazy val bool: Elem = Elem(BoolT)
   lazy val undef: Elem = Elem(UndefT)
@@ -514,7 +514,7 @@ object TypeDomain extends ValueDomain {
     def assertMath: Unit =
       assert(_.isMath, s"$this may not be mathematical value")
     def assertNumber: Unit = assert(_.isNumber, s"$this may not be number")
-    def assertBigInt: Unit = assert(_.isBigInt, s"$this may not be bigint")
+    def assertBigInt: Unit = assert(_.isBigInt, s"$this may not be bigInt")
     def assertNamedRec: Unit =
       assert(_.isNamedObj, s"$this may not be named record")
     def assertObj: Unit = assert(_.isObj, s"$this may not be object")
@@ -557,7 +557,7 @@ object TypeDomain extends ValueDomain {
       }
     }
     private lazy val boolNumericOps = mkNumericOps(bool, bool, bool)
-    private lazy val numericOps = mkNumericOps(math, num, bigint)
+    private lazy val numericOps = mkNumericOps(math, num, bigInt)
   }
 
 }

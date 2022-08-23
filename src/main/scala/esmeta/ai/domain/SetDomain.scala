@@ -1,14 +1,13 @@
 package esmeta.ai.domain
 
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.ai.exploded
 
 /** set domain */
 trait SetDomain[A](
   val topName: String, // name of top element
-  val maxSizeOpt: Option[Int], // max size of set
-  val totalOpt: BSet[A], // total elements
+  val maxSizeOpt: Option[Int] = None, // max size of set
+  val totalOpt: BSet[A] = Inf, // total elements
 ) extends Domain[A]
   with Prunable[A]
   with Meetable[A] {
@@ -26,9 +25,15 @@ trait SetDomain[A](
             exploded(s"impossible to concretize the top value of $topName.")
     }).iterator
   }
-  val Bot = Base(Set())
+
+  /** top element */
   object Top extends Elem
+
+  /** finite elements */
   case class Base(set: Set[A]) extends Elem
+
+  /** bottom element */
+  val Bot = Base(Set())
 
   /** abstraction functions */
   def alpha(elems: Iterable[A]): Elem =
@@ -69,7 +74,7 @@ trait SetDomain[A](
       case (Base(lset), Base(rset)) => Base(lset intersect rset)
 
     /** prune operator */
-    def prune(that: Elem): Elem = (elem, that) match
+    def -(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => Bot
       case (_, Bot)            => elem
       case (Top, _: Base)      => Top
@@ -95,15 +100,3 @@ trait SetDomain[A](
       case Base(set) => set contains target
   }
 }
-object SetDomain:
-  def apply[A](
-    topName: String,
-    maxSizeOpt: Option[Int] = None,
-    totalOpt: BSet[A] = Inf,
-  ): Domain[A] = new Domain[A] with SetDomain[A](topName, maxSizeOpt, totalOpt)
-  def apply[A](
-    topName: String,
-    maxSize: Int,
-    iter: A*,
-  ): Domain[A] = new Domain[A]
-    with SetDomain[A](topName, Some(maxSize), Fin(iter.toSet))

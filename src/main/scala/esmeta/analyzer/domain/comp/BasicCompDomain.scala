@@ -1,7 +1,6 @@
 package esmeta.analyzer.domain
 
 import esmeta.state.*
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 // basic abstract completions

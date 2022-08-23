@@ -276,7 +276,7 @@ case object BoolT extends PureType
 
 /** singleton primitive types */
 case class NumberSingleT(n: Double) extends SingleT with DoubleEquals(n)
-case class BigIntSingleT(bigint: scala.math.BigInt) extends SingleT
+case class BigIntSingleT(bigInt: scala.math.BigInt) extends SingleT
 case class StrSingleT(str: String) extends SingleT
 case class BoolSingleT(bool: Boolean) extends SingleT
 case object UndefT extends SingleT

@@ -109,7 +109,7 @@ object Appender {
   given charRule: Rule[Char] = (app, ch) => { app.sb += ch; app }
   given intRule: Rule[Int] = _ >> _.toString
   given bigDecimalRule: Rule[BigDecimal] = _ >> _.toString
-  given bigintRule: Rule[BigInt] = _ >> _.toString
+  given bigIntRule: Rule[BigInt] = _ >> _.toString
   given doubleRule: Rule[Double] = _ >> _.toString
   given longRule: Rule[Long] = _ >> _.toString
   given booleanRule: Rule[Boolean] = _ >> _.toString

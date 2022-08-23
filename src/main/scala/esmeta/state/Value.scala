@@ -75,7 +75,7 @@ object NormalComp {
   }
 }
 
-/** pure values (not completion values) */
+/** pure values (values except completion records) */
 sealed trait PureValue extends Value
 
 /** addresses */
@@ -96,7 +96,7 @@ case class Cont(
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue
 
-/** grammars */
+/** grammar goal symbols */
 case class Grammar(name: String, params: List[Boolean]) extends PureValue
 
 /** math values */
@@ -116,7 +116,7 @@ sealed trait Numeric extends SimpleValue:
   def toMath: Math = this match
     case math: Math     => math
     case Number(double) => Math(BigDecimal.exact(double))
-    case BigInt(bigint) => Math(BigDecimal.exact(bigint))
+    case BigInt(bigInt) => Math(BigDecimal.exact(bigInt))
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
 case class BigInt(n: scala.math.BigInt) extends Numeric
 

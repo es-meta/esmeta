@@ -10,9 +10,6 @@ trait Domain
   with Prunable[Bool]
   with Meetable[Bool] {
 
-  /** top element */
-  val Top: Elem
-
   /** boolean element interfaces */
   extension (elem: Elem) {
 
@@ -29,6 +26,6 @@ trait Domain
     def ⊓(that: Elem): Elem
 
     /** meet operator */
-    def prune(that: Elem): Elem
+    def -(that: Elem): Elem
   }
 }

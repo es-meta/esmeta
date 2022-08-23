@@ -7,6 +7,6 @@ trait Prunable[A] { this: Domain[A] =>
   extension (elem: Elem) {
 
     /** prune operator */
-    def prune(that: Elem): Elem
+    def -(that: Elem): Elem
   }
 }

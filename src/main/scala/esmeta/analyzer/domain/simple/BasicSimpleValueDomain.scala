@@ -1,14 +1,13 @@
 package esmeta.analyzer.domain
 
 import esmeta.state.*
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic abstract domain for simple value */
 object BasicSimpleValueDomain extends Domain {
   val Bot = Elem(
     num = AbsNum.Bot,
-    bigint = AbsBigInt.Bot,
+    bigInt = AbsBigInt.Bot,
     str = AbsStr.Bot,
     bool = AbsBool.Bot,
     undef = AbsUndef.Bot,
@@ -17,7 +16,7 @@ object BasicSimpleValueDomain extends Domain {
   )
   lazy val Top = Elem(
     num = AbsNum.Top,
-    bigint = AbsBigInt.Top,
+    bigInt = AbsBigInt.Top,
     str = AbsStr.Top,
     bool = AbsBool.Top,
     undef = AbsUndef.Top,
@@ -28,13 +27,13 @@ object BasicSimpleValueDomain extends Domain {
   // abstraction functions
   def apply(num: Number): Elem = Bot.copy(num = AbsNum(num))
   def apply(num: Double): Elem = Bot.copy(num = AbsNum(Number(num)))
-  def apply(bigint: BigInt): Elem = Bot.copy(bigint = AbsBigInt(bigint))
-  def apply(bigint: scala.math.BigInt): Elem =
-    Bot.copy(bigint = AbsBigInt(BigInt(bigint)))
+  def apply(bigInt: BigInt): Elem = Bot.copy(bigInt = AbsBigInt(bigInt))
+  def apply(bigInt: scala.math.BigInt): Elem =
+    Bot.copy(bigInt = AbsBigInt(BigInt(bigInt)))
   def apply(str: String): Elem = Bot.copy(str = AbsStr(Str(str)))
   def apply(bool: Boolean): Elem = Bot.copy(bool = AbsBool(Bool(bool)))
   lazy val num: Elem = Bot.copy(num = AbsNum.Top)
-  lazy val bigint: Elem = Bot.copy(bigint = AbsBigInt.Top)
+  lazy val bigInt: Elem = Bot.copy(bigInt = AbsBigInt.Top)
   lazy val str: Elem = Bot.copy(str = AbsStr.Top)
   lazy val bool: Elem = Bot.copy(bool = AbsBool.Top)
   lazy val undef: Elem = Bot.copy(undef = AbsUndef.Top)
@@ -42,7 +41,7 @@ object BasicSimpleValueDomain extends Domain {
   lazy val absent: Elem = Bot.copy(absent = AbsAbsent.Top)
   def apply(simple: ASimple): Elem = simple.value match
     case num: Number    => this(num)
-    case BigInt(bigint) => this(bigint)
+    case BigInt(bigInt) => this(bigInt)
     case Str(str)       => this(str)
     case Bool(bool)     => this(bool)
     case Undef          => this.undef
@@ -52,19 +51,19 @@ object BasicSimpleValueDomain extends Domain {
   // constructors
   def apply(
     num: AbsNum = AbsNum.Bot,
-    bigint: AbsBigInt = AbsBigInt.Bot,
+    bigInt: AbsBigInt = AbsBigInt.Bot,
     str: AbsStr = AbsStr.Bot,
     bool: AbsBool = AbsBool.Bot,
     undef: AbsUndef = AbsUndef.Bot,
     nullv: AbsNull = AbsNull.Bot,
     absent: AbsAbsent = AbsAbsent.Bot,
-  ): Elem = Elem(num, bigint, str, bool, undef, nullv, absent)
+  ): Elem = Elem(num, bigInt, str, bool, undef, nullv, absent)
 
   // extractors
   def unapply(elem: Elem) = Some(
     (
       elem.num,
-      elem.bigint,
+      elem.bigInt,
       elem.str,
       elem.bool,
       elem.undef,
@@ -77,10 +76,10 @@ object BasicSimpleValueDomain extends Domain {
   given rule: Rule[Elem] = (app, elem) => {
     if (elem.isBottom) app >> "⊥"
     else {
-      val Elem(num, bigint, str, bool, undef, nullv, absent) = elem
+      val Elem(num, bigInt, str, bool, undef, nullv, absent) = elem
       var strs = Vector[String]()
       if (!num.isBottom) strs :+= num.toString
-      if (!bigint.isBottom) strs :+= bigint.toString
+      if (!bigInt.isBottom) strs :+= bigInt.toString
       if (!str.isBottom) strs :+= str.toString
       if (!bool.isBottom) strs :+= bool.toString
       if (!undef.isBottom) strs :+= undef.toString
@@ -93,7 +92,7 @@ object BasicSimpleValueDomain extends Domain {
   // elements
   case class Elem(
     num: AbsNum,
-    bigint: AbsBigInt,
+    bigInt: AbsBigInt,
     str: AbsStr,
     bool: AbsBool,
     undef: AbsUndef,
@@ -103,7 +102,7 @@ object BasicSimpleValueDomain extends Domain {
     // partial order
     def ⊑(that: Elem): Boolean = (
       this.num ⊑ that.num &&
-        this.bigint ⊑ that.bigint &&
+        this.bigInt ⊑ that.bigInt &&
         this.str ⊑ that.str &&
         this.bool ⊑ that.bool &&
         this.undef ⊑ that.undef &&
@@ -114,7 +113,7 @@ object BasicSimpleValueDomain extends Domain {
     // join operator
     def ⊔(that: Elem): Elem = Elem(
       this.num ⊔ that.num,
-      this.bigint ⊔ that.bigint,
+      this.bigInt ⊔ that.bigInt,
       this.str ⊔ that.str,
       this.bool ⊔ that.bool,
       this.undef ⊔ that.undef,
@@ -125,7 +124,7 @@ object BasicSimpleValueDomain extends Domain {
     // meet operator
     def ⊓(that: Elem): Elem = Elem(
       this.num ⊓ that.num,
-      this.bigint ⊓ that.bigint,
+      this.bigInt ⊓ that.bigInt,
       this.str ⊓ that.str,
       this.bool ⊓ that.bool,
       this.undef ⊓ that.undef,
@@ -136,7 +135,7 @@ object BasicSimpleValueDomain extends Domain {
     // minus operator
     def -(that: Elem): Elem = Elem(
       this.num - that.num,
-      this.bigint - that.bigint,
+      this.bigInt - that.bigInt,
       this.str - that.str,
       this.bool - that.bool,
       this.undef - that.undef,
@@ -147,7 +146,7 @@ object BasicSimpleValueDomain extends Domain {
     // get single value
     def getSingle: Flat[ASimple] = (
       this.num.getSingle ⊔
-        this.bigint.getSingle ⊔
+        this.bigInt.getSingle ⊔
         this.str.getSingle ⊔
         this.bool.getSingle ⊔
         this.undef.getSingle ⊔

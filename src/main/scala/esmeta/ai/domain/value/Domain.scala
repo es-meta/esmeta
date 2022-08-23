@@ -6,23 +6,25 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 // import esmeta.ir.{COp, Name, VOp}
 // import esmeta.es.Ast
-// import esmeta.util.Appender
-// import esmeta.util.Appender.*
+// import esmeta.util.Appender import esmeta.util.Appender.*
 
 /** TODO abstract valude domain */
-trait Domain extends domain.Domain[Value] {
+trait Domain
+  extends domain.Domain[Value]
+  with Prunable[Value]
+  with Meetable[Value] {
   // /** abstraction functions */
   // def apply(ast: Ast): Elem
   // def apply(num: Number): Elem
   // def apply(num: Double): Elem
-  // def apply(bigint: BigInt): Elem
+  // def apply(bigInt: BigInt): Elem
   // def apply(str: String): Elem
   // def apply(bool: Boolean): Elem
   // def apply(d: BigDecimal): Elem
   // lazy val codeunit: Elem
   // lazy val math: Elem
   // lazy val num: Elem
-  // lazy val bigint: Elem
+  // lazy val bigInt: Elem
   // lazy val str: Elem
   // lazy val bool: Elem
   // lazy val undef: Elem

@@ -195,7 +195,7 @@ trait Parsers extends BasicParsers {
 
   // literals
   lazy val literal: Parser[LiteralExpr] =
-    bigint <~ "n" ^^ { EBigInt(_) } |
+    bigInt <~ "n" ^^ { EBigInt(_) } |
     double <~ "f" ^^ { ENumber(_) } |
     codeUnit <~ "cu" ^^ { ECodeUnit(_) } |
     ("+INF" | "INF") ^^^ ENumber(Double.PositiveInfinity) |
@@ -254,7 +254,7 @@ trait Parsers extends BasicParsers {
   // conversion operators
   given cop: Parser[COp] = {
     import COp.*
-    "[bigint]" ^^^ ToBigInt |
+    "[bigInt]" ^^^ ToBigInt |
     "[number]" ^^^ ToNumber |
     "[math]" ^^^ ToMath |
     "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) }

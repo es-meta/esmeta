@@ -5,7 +5,6 @@ import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.state.*
 import esmeta.ir.Name
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic abstract continuations */

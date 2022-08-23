@@ -1,12 +1,11 @@
 package esmeta.ai.domain
 
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** simple domain */
 trait SimpleDomain[A](
   val topName: String, // name of top element
-  val totalOpt: BSet[A], // total elements
+  val totalOpt: BSet[A] = Inf, // total elements
 ) extends Domain[A]
   with Prunable[A]
   with Meetable[A] {
@@ -48,7 +47,7 @@ trait SimpleDomain[A](
       case (_, Bot) | (Top, _) => that
 
     /** prune operator */
-    def prune(that: Elem): Elem = that match
+    def -(that: Elem): Elem = that match
       case Bot => elem
       case Top => Bot
 
@@ -66,12 +65,3 @@ trait SimpleDomain[A](
           case _                         => Many
   }
 }
-object SimpleDomain:
-  def apply[A](
-    topName: String,
-    totalOpt: BSet[A] = Inf,
-  ): Domain[A] = new SimpleDomain[A](topName, totalOpt) {}
-  def apply[A](
-    topName: String,
-    iter: A*,
-  ): Domain[A] = new SimpleDomain[A](topName, Fin(iter.toSet)) {}

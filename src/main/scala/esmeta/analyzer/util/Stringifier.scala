@@ -120,7 +120,7 @@ class Stringifier(
       case ArithT                        => app >> "arith"
       case NumericT                      => app >> "numeric"
       case NumberT                       => app >> "num"
-      case BigIntT                       => app >> "bigint"
+      case BigIntT                       => app >> "bigInt"
       case StrT                          => app >> "str"
       case BoolT                         => app >> "bool"
       case NilT                          => app >> "[]"

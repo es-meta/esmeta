@@ -36,7 +36,7 @@ object AValue {
     case ConstT(c)             => AConst(c)
     case MathSingleT(n)        => AMath(n)
     case NumberSingleT(n)      => ASimple(Number(n))
-    case BigIntSingleT(bigint) => ASimple(BigInt(bigint))
+    case BigIntSingleT(bigInt) => ASimple(BigInt(bigInt))
     case StrSingleT(str)       => ASimple(Str(str))
     case BoolSingleT(bool)     => ASimple(Bool(bool))
     case UndefT                => ASimple(Undef)

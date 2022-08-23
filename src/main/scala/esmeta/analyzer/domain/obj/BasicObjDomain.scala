@@ -5,7 +5,6 @@ import esmeta.analyzer.*
 import esmeta.analyzer.util.*
 import esmeta.state.*
 import esmeta.parser.ESValueParser
-import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.error
 
