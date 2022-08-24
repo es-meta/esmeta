@@ -8,12 +8,6 @@ import esmeta.util.Appender.*
 /** abstract domain for simple values */
 trait Domain extends domain.Domain[SimpleValue] {
 
-  /** domain configuration */
-  val config: Config
-
-  /** load domain configuration */
-  import config.*
-
   /** element constructors with Scala values */
   def apply(num: Double): Elem = alpha(Number(num))
   def apply(str: String): Elem = alpha(Str(str))
@@ -59,5 +53,14 @@ trait Domain extends domain.Domain[SimpleValue] {
 
     /** remove absent values */
     def removeAbsent: Elem = elem - absentTop
+
+    /** getters */
+    def number: AbsNumber
+    def bigInt: AbsBigInt
+    def str: AbsStr
+    def bool: AbsBool
+    def undef: AbsUndef
+    def nullv: AbsNull
+    def absent: AbsAbsent
   }
 }

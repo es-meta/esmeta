@@ -4,28 +4,27 @@ import esmeta.ai.*
 import esmeta.util.Appender.*
 
 /** option domain */
-class OptionDomain[A, D <: Domain[A]](
-  val config: Config,
-  val AbsA: D,
-) extends Domain[Option[A]] {
-  import config._
-  type AbsA = AbsA.Elem
+class OptionDomain[V, D <: Domain[V] with Singleton](val AbsV: D)
+  extends Domain[Option[V]] {
+
+  /** astract V type domain */
+  type AbsV = AbsV.Elem
 
   /** elements */
-  case class Elem(value: AbsA, absent: AbsAbsent)
+  case class Elem(value: AbsV, absent: AbsAbsent)
 
   /** top element */
-  val Top: Elem = Elem(AbsA.Top, AbsAbsent.Top)
+  val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)
 
   /** bottom element */
-  val Bot: Elem = Elem(AbsA.Bot, AbsAbsent.Bot)
+  val Bot: Elem = Elem(AbsV.Bot, AbsAbsent.Bot)
 
   /** empty element */
-  val Empty: Elem = Elem(AbsA.Bot, AbsAbsent.Top)
+  val Empty: Elem = Elem(AbsV.Bot, AbsAbsent.Top)
 
   /** abstraction functions */
-  def alpha(xs: Iterable[Option[A]]): Elem = Elem(
-    AbsA(xs.collect { case Some(x) => x }),
+  def alpha(xs: Iterable[Option[V]]): Elem = Elem(
+    AbsV(xs.collect { case Some(x) => x }),
     if (xs.exists(_ == None)) AbsAbsent.Top else AbsAbsent.Bot,
   )
 
@@ -60,13 +59,19 @@ class OptionDomain[A, D <: Domain[A]](
     )
 
     /** concretization function */
-    override def gamma: BSet[Option[A]] =
+    override def gamma: BSet[Option[V]] =
       elem.value.gamma.map(Some(_)) ⊔
       (if (elem.absent.isTop) Fin(None) else Fin())
 
     /** get single value */
-    override def getSingle: Flat[Option[A]] =
+    override def getSingle: Flat[Option[V]] =
       elem.value.getSingle.map(Some(_)) ⊔
       (if (elem.absent.isTop) One(None) else Zero)
+
+    /** fold operator */
+    def fold(
+      domain: Domain[_] with Singleton,
+    )(default: domain.Elem)(f: AbsV => domain.Elem): domain.Elem =
+      f(elem.value) ⊔ (if (elem.absent.isTop) default else domain.Bot)
   }
 }

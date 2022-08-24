@@ -1,5 +1,6 @@
 package esmeta.ai.domain
 
+import esmeta.ai.*
 import esmeta.util.Appender.*
 
 /** simple domain */
@@ -9,7 +10,18 @@ trait SimpleDomain[A](
 ) extends Domain[A] {
 
   /** elements */
-  trait Elem
+  sealed trait Elem extends Iterable[A] {
+
+    /** iterators */
+    final def iterator: Iterator[A] = (this match {
+      case Bot => Nil
+      case Top =>
+        totalOpt match
+          case Fin(set) => set
+          case Inf =>
+            exploded(s"impossible to concretize the top value of $topName.")
+    }).iterator
+  }
 
   /** top element */
   object Top extends Elem

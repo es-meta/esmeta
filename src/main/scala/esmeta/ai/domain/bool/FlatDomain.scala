@@ -5,7 +5,7 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 
 /** flat domain for boolean values */
-class FlatDomain(val config: Config)
+object FlatDomain
   extends bool.Domain
   with domain.FlatDomain[Bool]("bool", Fin(T, F)) {
 

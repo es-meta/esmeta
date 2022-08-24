@@ -1,13 +1,11 @@
 package esmeta.ai.domain
 
+import esmeta.ai.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** domain */
 trait Domain[A] {
-
-  /** concrete element type * */
-  type Concrete = A
 
   /** top element */
   def Top: Elem
@@ -17,6 +15,13 @@ trait Domain[A] {
 
   /** element */
   type Elem
+
+  /** conversion to iterable object */
+  given Conversion[Elem, Iterable[A]] = elem =>
+    new Iterable[A]:
+      final def iterator: Iterator[A] = elem.gamma match
+        case Inf      => exploded(s"impossible to iterate infinte values")
+        case Fin(set) => set.iterator
 
   /** abstraction functions */
   def alpha(elems: Iterable[A]): Elem
@@ -28,7 +33,7 @@ trait Domain[A] {
   given rule: Rule[Elem]
 
   /** optional domain */
-  def optional(config: Config): Domain[Option[A]] = OptionDomain(config, this)
+  lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
 
   /** domain element interfaces */
   extension (elem: Elem) {

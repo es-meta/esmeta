@@ -60,6 +60,7 @@ case class MapObj(
   }).toMap
 
   /** keys of map */
+  def keys: Vector[PureValue] = keys(intSorted = false)
   def keys(intSorted: Boolean): Vector[PureValue] = {
     if (!intSorted) {
       if (ty == "SubMap")

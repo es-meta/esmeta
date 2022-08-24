@@ -6,8 +6,7 @@ import esmeta.state.*
 import esmeta.util.Appender.*
 
 /** basic domain for simple values */
-class BasicDomain(val config: Config) extends simpleValue.Domain {
-  import config.*
+object BasicDomain extends simpleValue.Domain {
 
   /** elements */
   case class Elem(
@@ -161,5 +160,14 @@ class BasicDomain(val config: Config) extends simpleValue.Domain {
       elem.undef.getSingle ⊔
       elem.nullv.getSingle ⊔
       elem.absent.getSingle
+
+    /** getters */
+    def number: AbsNumber = elem.number
+    def bigInt: AbsBigInt = elem.bigInt
+    def str: AbsStr = elem.str
+    def bool: AbsBool = elem.bool
+    def undef: AbsUndef = elem.undef
+    def nullv: AbsNull = elem.nullv
+    def absent: AbsAbsent = elem.absent
   }
 }

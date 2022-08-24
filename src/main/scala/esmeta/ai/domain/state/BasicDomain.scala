@@ -13,9 +13,7 @@ import esmeta.util.Appender.{*, given}
 // import esmeta.util.StateMonad
 
 /** TODO basic domain for states */
-class BasicDomain(val config: Config) extends state.Domain {
-  import config.*
-
+object BasicDomain extends state.Domain {
   // // TODO remove unsafe type casting
   // given Conversion[AbsValue, BasicValueDomain.Elem] =
   //   _.asInstanceOf[BasicValueDomain.Elem]
@@ -30,13 +28,13 @@ class BasicDomain(val config: Config) extends state.Domain {
   /** empty element */
   val Empty: Elem = Elem(true, Map(), Map()) // TODO , AbsHeap.Bot)
 
-  // /** base globals */
-  // lazy val baseGlobals: Map[Id, AbsValue] = (for {
+  /** base globals */
+  lazy val baseGlobals: Map[Id, AbsValue] = ??? // (for {
   //   (x, v) <- new es.Initialize(cfg).initGlobal.toList
   // } yield x -> AbsValue(v)).toMap
 
   /** abstraction functions */
-  def alpha(iter: Iterable[State]): Elem = ???
+  def alpha(xs: Iterable[State]): Elem = ???
 
   // /** appender */
   // def mkRule(detail: Boolean): Rule[Elem] = (app, elem) => {
@@ -114,7 +112,7 @@ class BasicDomain(val config: Config) extends state.Domain {
     //     else Elem(true, newLocals, newGlobals, newHeap)
 
     // /** getters * */
-    // def apply(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue =
+    def apply(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue = ???
     //   val compValue = base.comp(prop)
     //   val locValue = heap(base.loc, prop)
     //   val astValue = lookupAst(base.ast, prop)
@@ -152,12 +150,12 @@ class BasicDomain(val config: Config) extends state.Domain {
     //         case _             => AbsValue.Bot
     //     case _ => AbsValue.codeUnit ⊔ AbsValue.math
     //   }
-    // def apply(loc: Loc): AbsObj = heap(loc)
-    // def lookupGlobal(x: Global): AbsValue =
+    def apply(part: Part): AbsObj = ??? // heap(loc)
+    def lookupGlobal(x: Global): AbsValue = ???
     //   elem.globals.getOrElse(x, baseGlobals.getOrElse(x, AbsValue.Bot))
 
-    // /** setters */
-    // def update(x: Id, value: AbsValue): Elem =
+    /** setters */
+    def update(x: Id, value: AbsValue): Elem = ???
     //   bottomCheck(value) {
     //     x match
     //       case x: Global if globals contains x =>
@@ -168,13 +166,13 @@ class BasicDomain(val config: Config) extends state.Domain {
     //         copy(locals = locals + (x -> value))
     //       case _ => Bot
     //   }
-    // def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem =
+    def update(aloc: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
     //   bottomCheck(aloc, prop, value) {
     //     copy(heap = heap.update(aloc.loc, prop, value))
     //   }
 
-    // /** delete a property from a map */
-    // def delete(refV: AbsRefValue): Elem = refV match
+    /** delete a property from a map */
+    def delete(refV: AbsRefValue): Elem = ??? // refV match
     //   case AbsRefId(x) => error(s"cannot delete variable $x")
     //   case AbsRefProp(base, prop) =>
     //     bottomCheck(base, prop) {
@@ -184,15 +182,15 @@ class BasicDomain(val config: Config) extends state.Domain {
     // /** default value for bottom check */
     // given bottomValue: AbsValue = AbsValue.Bot
 
-    // /** object operators */
-    // def push(list: AbsValue, elem: AbsValue, front: Boolean): Elem =
+    /** object operators */
+    def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = ???
     //   bottomCheck(list, elem) {
     //     if (front) copy(heap = heap.prepend(list.loc, elem))
     //     else copy(heap = heap.append(list.loc, elem))
     //   }
-    // def remove(list: AbsValue, elem: AbsValue): Elem =
+    def remove(list: AbsValue, value: AbsValue): Elem = ???
     //   bottomCheck(list, elem) { copy(heap = heap.remove(list.loc, elem)) }
-    // def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
     //   var v: AbsValue = AbsValue.Bot
     //   val st: Elem = bottomCheck(list.loc) {
     //     val (newV, newH) = heap.pop(list.loc, front)
@@ -201,21 +199,21 @@ class BasicDomain(val config: Config) extends state.Domain {
     //   }
     //   (v, st)
 
-    // def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
+    def setType(v: AbsValue, tname: String): (AbsValue, Elem) = ???
     //   bottomCheck(v.loc) { (v, copy(heap = heap.setType(v.loc, tname))) }
-    // def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) =
+    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) = ???
     //   val locV = AbsValue(to)
     //   bottomCheck(from.loc) { (locV, copy(heap = heap.copyObj(from.loc)(to))) }
-    // def keys(
-    //   v: AbsValue,
-    //   intSorted: Boolean,
-    //   to: AllocSite,
-    // ): (AbsValue, Elem) =
+    def keys(
+      v: AbsValue,
+      intSorted: Boolean,
+      to: AllocSite,
+    ): (AbsValue, Elem) = ???
     //   val locV = AbsValue(to)
     //   bottomCheck(v.loc) {
     //     (locV, copy(heap = heap.keys(v.loc, intSorted)(to)))
     //   }
-    // def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+    def listConcat(ls: List[AbsValue], to: AllocSite): (AbsValue, Elem) = ???
     //   import AbsObj.*
     //   bottomCheck(ls) {
     //     val newList = ls.foldLeft(List[AbsValue]()) {
@@ -229,11 +227,11 @@ class BasicDomain(val config: Config) extends state.Domain {
     //     }
     //     allocList(newList, to)
     //   }
-    // def getChildren(
-    //   ast: AbsValue,
-    //   kindOpt: Option[AbsValue],
-    //   to: AllocSite,
-    // ): (AbsValue, Elem) =
+    def getChildren(
+      ast: AbsValue,
+      kindOpt: Option[AbsValue],
+      to: AllocSite,
+    ): (AbsValue, Elem) = ???
     //   (kindOpt.map(_.getSingle), ast.getSingle) match
     //     case (Some(FlatBot), _) | (_, FlatBot) => (AbsValue.Bot, Bot)
     //     case (Some(FlatTop), _) | (_, FlatTop) => exploded("EGetChildren")
@@ -245,51 +243,51 @@ class BasicDomain(val config: Config) extends state.Domain {
     //       allocList(vs, to)
     //     case _ => (AbsValue.Bot, Bot)
 
-    // def allocMap(
-    //   tname: String,
-    //   pairs: List[(AbsValue, AbsValue)],
-    //   to: AllocSite,
-    // ): (AbsValue, Elem) =
+    def allocMap(
+      tname: String,
+      pairs: List[(AbsValue, AbsValue)],
+      to: AllocSite,
+    ): (AbsValue, Elem) = ???
     //   val locV = AbsValue(to)
     //   bottomCheck(pairs.flatMap { case (k, v) => List(k, v) }) {
     //     (locV, copy(heap = heap.allocMap(tname, pairs)(to)))
     //   }
-    // def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) =
+    def allocList(list: List[AbsValue], to: AllocSite): (AbsValue, Elem) = ???
     //   val locV = AbsValue(to)
     //   bottomCheck(list) { (locV, copy(heap = heap.allocList(list)(to))) }
-    // def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) =
+    def allocSymbol(desc: AbsValue, to: AllocSite): (AbsValue, Elem) = ???
     //   val locV = AbsValue(to)
     //   val descV = BasicValueDomain(str = desc.str, undef = desc.undef)
     //   bottomCheck(descV) {
     //     (locV, copy(heap = heap.allocSymbol(descV)(to)))
     //   }
-    // def contains(
-    //   list: AbsValue,
-    //   value: AbsValue,
-    //   field: Option[(Type, String)],
-    // ): AbsValue = field match
+    def contains(
+      list: AbsValue,
+      value: AbsValue,
+      field: Option[(Type, String)],
+    ): AbsValue = ??? // field match
     //   case Some(_) => ??? // TODO
     //   case None    => heap.contains(list.loc, value)
 
-    // /** define global variables */
-    // def defineGlobal(pairs: (Global, AbsValue)*): Elem =
+    /** define global variables */
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem = ???
     //   bottomCheck(pairs.unzip._2) { copy(globals = globals ++ pairs) }
 
-    // /** define local variables */
-    // def defineLocal(pairs: (Local, AbsValue)*): Elem =
+    /** define local variables */
+    def defineLocal(pairs: (Local, AbsValue)*): Elem = ???
     //   bottomCheck(pairs.unzip._2) { copy(locals = locals ++ pairs) }
 
-    // /** singleton checks */
-    // override def isSingle: Boolean =
+    /** singleton checks */
+    override def isSingle: Boolean = ???
     //   super.isSingle && globals.forall(_._2.isSingle) && heap.isSingle
 
-    // /** singleton location checks */
-    // def isSingle(loc: Loc): Boolean = heap.isSingle(loc)
+    /** singleton location checks */
+    def isSingle(part: Part): Boolean = ??? // heap.isSingle(loc)
 
-    // /** find merged parts */
-    // def findMerged: Unit = {
+    /** find merged parts */
+    def findMerged: Unit = ??? // {
     //   // visited locations
-    //   var visited = Set[Loc]()
+    //   var visited = Set[Part]()
 
     //   // auxiliary functions
     //   def auxValue(
@@ -301,7 +299,7 @@ class BasicDomain(val config: Config) extends state.Domain {
     //       if (locPath == "") println(s"$path is merged: $value")
     //       else println(s"$path ($locPath) is merged: $value")
     //     }
-    //     for (loc <- value.reachableLocs) auxLoc(loc, path)
+    //     for (loc <- value.reachableParts) auxLoc(loc, path)
     //   }
     //   def auxLoc(loc: Loc, path: String): Unit = if (
     //     (
@@ -333,52 +331,54 @@ class BasicDomain(val config: Config) extends state.Domain {
     //   for (loc <- heap.map.keys if !loc.isNamed) auxLoc(loc, s"<unreachable>")
     // }
 
-    // /** handle calls */
-    // def doCall: Elem = elem
+    /** handle calls */
+    def doCall: Elem = ??? // elem
     //   .copy(heap = heap.doCall)
     //   .garbageCollected
-    // def doProcStart(fixed: Set[Loc]): Elem = elem
+    def doProcStart(fixed: Set[Part]): Elem = ??? // elem
     //   .copy(heap = heap.doProcStart(fixed))
     //   .garbageCollected
 
-    // /** handle returns (elem: return states / to: caller states) */
-    // def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
+    /** handle returns (elem: return states / to: caller states) */
+    def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem =
+      ??? // Elem(
     //   reachable = true,
     //   locals = to.locals ++ defs,
     //   globals = globals,
     //   heap = heap.doReturn(to.heap),
     // ).garbageCollected
-    // def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem =
-    //   doProcEnd(to, defs)
-    // def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
+    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem =
+      doProcEnd(to, defs)
+    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem =
+      ??? // Elem(
     //   reachable = true,
     //   locals = to.locals ++ defs,
     //   globals = globals,
     //   heap = heap.doProcEnd(to.heap),
     // ).garbageCollected
 
-    // // TODO garbage collection
-    // def garbageCollected: Elem = elem
+    // TODO garbage collection
+    def garbageCollected: Elem = ??? // elem
     // // if (USE_GC) {
-    // //   val unreachLocs = (heap.map.keySet -- reachableLocs).filter(!_.isNamed)
+    // //   val unreachLocs = (heap.map.keySet -- reachableParts).filter(!_.isNamed)
     // //   copy(heap = heap.removeLocs(unreachLocs))
     // // } else elem
 
-    // /** get reachable locations */
-    // def reachableLocs: Set[Loc] = {
-    //   var locs = Set[Loc]()
-    //   for ((_, v) <- locals) locs ++= v.reachableLocs
-    //   for ((_, v) <- globals) locs ++= v.reachableLocs
-    //   heap.reachableLocs(locs)
+    /** get reachable locations */
+    def reachableParts: Set[Part] = ??? // {
+    //   var locs = Set[Part]()
+    //   for ((_, v) <- locals) locs ++= v.reachableParts
+    //   for ((_, v) <- globals) locs ++= v.reachableParts
+    //   heap.reachableParts(locs)
     // }
 
-    // /** copy */
-    // def copied(
-    //   locals: Map[Local, AbsValue] = Map(),
-    // ): Elem = copy(locals = locals)
+    /** copy */
+    def copied(
+      locals: Map[Local, AbsValue] = Map(),
+    ): Elem = elem.copy(locals = locals)
 
-    // /** conversion to string */
-    // def toString(detail: Boolean): String = {
+    /** conversion to string */
+    def toString(detail: Boolean): String = ??? // {
     //   val app = Appender()
     //   given Rule[Elem] =
     //     if (detail) BasicStateDomain.rule else BasicStateDomain.shortRule
@@ -386,16 +386,22 @@ class BasicDomain(val config: Config) extends state.Domain {
     //   app.toString
     // }
 
-    // /** get string wth detailed shapes of locations */
-    // def getString(value: AbsValue): String = {
+    /** get string wth detailed shapes of locations */
+    def getString(value: AbsValue): String = ??? // {
     //   val app = Appender()
     //   app >> value.toString
-    //   val locs = value.reachableLocs
+    //   val locs = value.reachableParts
     //   if (!locs.isEmpty) (app >> " @ ").wrap(for (loc <- locs) {
     //     val obj = heap(loc)
     //     app :> s"$loc -> " >> obj >> LINE_SEP
     //   })
     //   app.toString
     // }
+
+    /** getters */
+    def reachable: Boolean = ???
+    def locals: Map[Local, AbsValue] = ???
+    def globals: Map[Global, AbsValue] = ???
+    // def heap: AbsHeap = ???
   }
 }
