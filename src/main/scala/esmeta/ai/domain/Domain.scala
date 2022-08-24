@@ -6,6 +6,9 @@ import esmeta.util.BaseUtils.*
 /** domain */
 trait Domain[A] {
 
+  /** concrete element type * */
+  type Concrete = A
+
   /** top element */
   def Top: Elem
 
@@ -24,17 +27,29 @@ trait Domain[A] {
   /** appender */
   given rule: Rule[Elem]
 
+  /** optional domain */
+  def optional(config: Config): Domain[Option[A]] = OptionDomain(config, this)
+
   /** domain element interfaces */
   extension (elem: Elem) {
 
     /** partial order */
     def ⊑(that: Elem): Boolean
 
+    /** not partial order */
+    def !⊑(that: Elem): Boolean = !(elem ⊑ that)
+
     /** join operator */
     def ⊔(that: Elem): Elem
 
-    /** not partial order */
-    def !⊑(that: Elem): Boolean = !(elem ⊑ that)
+    /** meet operator */
+    def ⊓(that: Elem): Elem = Top
+
+    /** prune operator */
+    def -(that: Elem): Elem = elem
+
+    /** top check */
+    def isTop: Boolean = elem == Top
 
     /** bottom check */
     def isBottom: Boolean = elem == Bot

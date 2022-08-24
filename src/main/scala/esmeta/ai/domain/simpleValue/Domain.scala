@@ -6,10 +6,7 @@ import esmeta.state.*
 import esmeta.util.Appender.*
 
 /** abstract domain for simple values */
-trait Domain
-  extends domain.Domain[SimpleValue]
-  with Prunable[SimpleValue]
-  with Meetable[SimpleValue] {
+trait Domain extends domain.Domain[SimpleValue] {
 
   /** domain configuration */
   val config: Config
@@ -23,14 +20,14 @@ trait Domain
   def apply(bigInt: scala.math.BigInt): Elem = alpha(BigInt(bigInt))
   def apply(bool: Boolean): Elem = alpha(Bool(bool))
 
-  /** predefined number top */
-  val numberTop: Elem
-  val bigIntTop: Elem
-  val strTop: Elem
-  val boolTop: Elem
-  val undefTop: Elem
-  val nullTop: Elem
-  val absentTop: Elem
+  /** predefined top values */
+  def numberTop: Elem
+  def bigIntTop: Elem
+  def strTop: Elem
+  def boolTop: Elem
+  def undefTop: Elem
+  def nullTop: Elem
+  def absentTop: Elem
 
   /** constructors */
   def apply(

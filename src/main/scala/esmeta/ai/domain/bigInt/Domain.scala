@@ -5,7 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 
 /** abstract bigInt domain */
-trait Domain
-  extends domain.Domain[BigInt]
-  with Prunable[BigInt]
-  with Meetable[BigInt]
+trait Domain extends domain.Domain[BigInt]

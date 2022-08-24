@@ -11,6 +11,7 @@ class Config(
   // objFactory: ObjFactory,
   valueFactory: ValueFactory = value.BasicDomain(_),
   // compFactory: CompFactory,
+  pureValueFactory: PureValueFactory = pureValue.BasicDomain(_),
   cloFactory: CloFactory = _ => new CloDomain with FlatDomain[Clo]("clo"),
   contFactory: ContFactory = _ => new ContDomain with FlatDomain[Cont]("cont"),
   addrFactory: AddrFactory = _ => addr.Domain(addr.AllocSitePartition),
@@ -18,6 +19,7 @@ class Config(
     new AstValueDomain with FlatDomain[AstValue]("astValue"),
   grammarFactory: GrammarFactory = _ =>
     new GrammarDomain with FlatDomain[Grammar]("grammar"),
+  mathFactory: MathFactory = _ => new MathDomain with FlatDomain[Math]("math"),
   codeUnitFactory: CodeUnitFactory = _ =>
     new CodeUnitDomain with FlatDomain[CodeUnit]("codeUnit"),
   constFactory: ConstFactory = _ =>
@@ -53,42 +55,44 @@ class Config(
   // ---------------------------------------------------------------------------
   // abstract domains
   // ---------------------------------------------------------------------------
-  final lazy val AbsState: StateDomain = stateFactory(this)
-  final lazy val AbsValue: ValueDomain = valueFactory(this)
-  // final lazy val AbsRet: RetDomain = retFactory(this)
-  // final lazy val AbsHeap: HeapDomain = heapFactory(this)
-  // final lazy val AbsObj: ObjDomain = objFactory(this)
-  // final lazy val AbsComp: CompDomain = compFactory(this)
-  final lazy val AbsClo: CloDomain = cloFactory(this)
-  final lazy val AbsCont: ContDomain = contFactory(this)
-  final lazy val AbsAddr: AddrDomain = addrFactory(this)
-  final lazy val AbsAstValue: AstValueDomain = astValueFactory(this)
-  final lazy val AbsGrammar: GrammarDomain = grammarFactory(this)
-  final lazy val AbsCodeUnit: CodeUnitDomain = codeUnitFactory(this)
-  final lazy val AbsConst: ConstDomain = constFactory(this)
-  final lazy val AbsSimpleValue: SimpleValueDomain = simpleValueFactory(this)
-  final lazy val AbsNumber: NumberDomain = numberFactory(this)
-  final lazy val AbsBigInt: BigIntDomain = bigIntFactory(this)
-  final lazy val AbsStr: StrDomain = strFactory(this)
-  final lazy val AbsBool: BoolDomain = boolFactory(this)
-  final lazy val AbsUndef: UndefDomain = undefFactory(this)
-  final lazy val AbsNull: NullDomain = nullFactory(this)
-  final lazy val AbsAbsent: AbsentDomain = absentFactory(this)
+  final lazy val AbsState = stateFactory(this)
+  // final lazy val AbsRet = retFactory(this)
+  // final lazy val AbsHeap = heapFactory(this)
+  // final lazy val AbsObj = objFactory(this)
+  final lazy val AbsValue = valueFactory(this)
+  // final lazy val AbsComp = compFactory(this)
+  final lazy val AbsPureValue = pureValueFactory(this)
+  final lazy val AbsClo = cloFactory(this)
+  final lazy val AbsCont = contFactory(this)
+  final lazy val AbsAddr = addrFactory(this)
+  final lazy val AbsAstValue = astValueFactory(this)
+  final lazy val AbsGrammar = grammarFactory(this)
+  final lazy val AbsMath = mathFactory(this)
+  final lazy val AbsCodeUnit = codeUnitFactory(this)
+  final lazy val AbsConst = constFactory(this)
+  final lazy val AbsSimpleValue = simpleValueFactory(this)
+  final lazy val AbsNumber = numberFactory(this)
+  final lazy val AbsBigInt = bigIntFactory(this)
+  final lazy val AbsStr = strFactory(this)
+  final lazy val AbsBool = boolFactory(this)
+  final lazy val AbsUndef = undefFactory(this)
+  final lazy val AbsNull = nullFactory(this)
+  final lazy val AbsAbsent = absentFactory(this)
+  final lazy val AbsOptAbsent = AbsAbsent.optional(this)
 
-  // ---------------------------------------------------------------------------
-  // element types
-  // ---------------------------------------------------------------------------
-  // type AbsRet = AbsRet.Elem
   type AbsState = AbsState.Elem
+  // type AbsRet = AbsRet.Elem
   // type AbsHeap = AbsHeap.Elem
   // type AbsObj = AbsObj.Elem
   type AbsValue = AbsValue.Elem
   // type AbsComp = AbsComp.Elem
+  type AbsPureValue = AbsPureValue.Elem
   type AbsClo = AbsClo.Elem
   type AbsCont = AbsCont.Elem
   type AbsAddr = AbsAddr.Elem
   type AbsAstValue = AbsAstValue.Elem
   type AbsGrammar = AbsGrammar.Elem
+  type AbsMath = AbsMath.Elem
   type AbsCodeUnit = AbsCodeUnit.Elem
   type AbsConst = AbsConst.Elem
   type AbsSimpleValue = AbsSimpleValue.Elem
@@ -99,4 +103,54 @@ class Config(
   type AbsUndef = AbsUndef.Elem
   type AbsNull = AbsNull.Elem
   type AbsAbsent = AbsAbsent.Elem
+
+  // ---------------------------------------------------------------------------
+  // abstract domains
+  // ---------------------------------------------------------------------------
+  final lazy val AbsOptState = AbsState.optional(this)
+  // final lazy val AbsOptRet = AbsRet.optional(this)
+  // final lazy val AbsOptHeap = AbsHeap.optional(this)
+  // final lazy val AbsOptObj = AbsObj.optional(this)
+  final lazy val AbsOptValue = AbsValue.optional(this)
+  // final lazy val AbsOptComp = AbsComp.optional(this)
+  final lazy val AbsOptPureValue = AbsPureValue.optional(this)
+  final lazy val AbsOptClo = AbsClo.optional(this)
+  final lazy val AbsOptCont = AbsCont.optional(this)
+  final lazy val AbsOptAddr = AbsAddr.optional(this)
+  final lazy val AbsOptAstValue = AbsAstValue.optional(this)
+  final lazy val AbsOptGrammar = AbsGrammar.optional(this)
+  final lazy val AbsOptMath = AbsMath.optional(this)
+  final lazy val AbsOptCodeUnit = AbsCodeUnit.optional(this)
+  final lazy val AbsOptConst = AbsConst.optional(this)
+  final lazy val AbsOptSimpleValue = AbsSimpleValue.optional(this)
+  final lazy val AbsOptNumber = AbsNumber.optional(this)
+  final lazy val AbsOptBigInt = AbsBigInt.optional(this)
+  final lazy val AbsOptStr = AbsStr.optional(this)
+  final lazy val AbsOptBool = AbsBool.optional(this)
+  final lazy val AbsOptUndef = AbsUndef.optional(this)
+  final lazy val AbsOptNull = AbsNull.optional(this)
+
+  type AbsOptState = AbsOptState.Elem
+  // type AbsOptRet = AbsOptRet.Elem
+  // type AbsOptHeap = AbsOptHeap.Elem
+  // type AbsOptObj = AbsOptObj.Elem
+  type AbsOptValue = AbsOptValue.Elem
+  // type AbsOptComp = AbsOptComp.Elem
+  type AbsOptPureValue = AbsOptPureValue.Elem
+  type AbsOptClo = AbsOptClo.Elem
+  type AbsOptCont = AbsOptCont.Elem
+  type AbsOptAddr = AbsOptAddr.Elem
+  type AbsOptAstValue = AbsOptAstValue.Elem
+  type AbsOptGrammar = AbsOptGrammar.Elem
+  type AbsOptMath = AbsOptMath.Elem
+  type AbsOptCodeUnit = AbsOptCodeUnit.Elem
+  type AbsOptConst = AbsOptConst.Elem
+  type AbsOptSimpleValue = AbsOptSimpleValue.Elem
+  type AbsOptNumber = AbsOptNumber.Elem
+  type AbsOptBigInt = AbsOptBigInt.Elem
+  type AbsOptStr = AbsOptStr.Elem
+  type AbsOptBool = AbsOptBool.Elem
+  type AbsOptUndef = AbsOptUndef.Elem
+  type AbsOptNull = AbsOptNull.Elem
+  type AbsOptAbsent = AbsOptAbsent.Elem
 }

@@ -5,7 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.AstValue
 
 /** abstract AST domain */
-trait Domain
-  extends domain.Domain[AstValue]
-  with Prunable[AstValue]
-  with Meetable[AstValue]
+trait Domain extends domain.Domain[AstValue]

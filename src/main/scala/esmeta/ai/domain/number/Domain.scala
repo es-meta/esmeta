@@ -5,7 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 
 /** abstract number domain */
-trait Domain
-  extends domain.Domain[Number]
-  with Prunable[Number]
-  with Meetable[Number]
+trait Domain extends domain.Domain[Number]

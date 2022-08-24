@@ -17,7 +17,7 @@ trait ValueDomain extends Domain {
   def apply(str: String): Elem
   def apply(bool: Boolean): Elem
   def apply(d: BigDecimal): Elem
-  lazy val codeunit: Elem
+  lazy val codeUnit: Elem
   lazy val math: Elem
   lazy val num: Elem
   lazy val bigInt: Elem

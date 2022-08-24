@@ -11,7 +11,7 @@ import esmeta.state.*
 import esmeta.util.Appender.*
 
 /** TODO basic domain for values */
-case class BasicDomain(config: Config) extends value.Domain {
+class BasicDomain(val config: Config) extends value.Domain {
   import config.*
 
   // // TODO remove unsafe type casting
@@ -26,7 +26,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     // loc: AbsLoc,
     // ast: AbsAst,
     // grammar: AbsGrammar,
-    // codeunit: AbsCodeUnit,
+    // codeUnit: AbsCodeUnit,
     // const: AbsConst,
     // math: AbsMath,
     // simple: AbsSimple,
@@ -44,7 +44,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //   loc = AbsLoc.Bot,
   //   ast = AbsAst.Bot,
   //   grammar = AbsGrammar.Bot,
-  //   codeunit = AbsCodeUnit.Bot,
+  //   codeUnit = AbsCodeUnit.Bot,
   //   const = AbsConst.Bot,
   //   math = AbsMath.Bot,
   //   simple = AbsSimple.Bot,
@@ -61,7 +61,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   // def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   // def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
   // def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
-  // lazy val codeunit: Elem = Bot.copy(codeunit = AbsCodeUnit.Top)
+  // lazy val codeUnit: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
   // lazy val math: Elem = Bot.copy(math = AbsMath.Top)
   // lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
   // lazy val bigInt: Elem = Bot.copy(simple = AbsSimple.bigInt)
@@ -77,7 +77,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //   case (loc: Loc)          => Bot.copy(loc = AbsLoc(loc))
   //   case (ast: AAst)         => Bot.copy(ast = AbsAst(ast))
   //   case (grammar: AGrammar) => Bot.copy(grammar = AbsGrammar(grammar))
-  //   case (cu: ACodeUnit)     => Bot.copy(codeunit = AbsCodeUnit(cu))
+  //   case (cu: ACodeUnit)     => Bot.copy(codeUnit = AbsCodeUnit(cu))
   //   case (const: AConst)     => Bot.copy(const = AbsConst(const))
   //   case (math: AMath)       => Bot.copy(math = AbsMath(math))
   //   case (simple: ASimple)   => Bot.copy(simple = AbsSimple(simple))
@@ -91,7 +91,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //   loc: AbsLoc = AbsLoc.Bot,
   //   ast: AbsAst = AbsAst.Bot,
   //   grammar: AbsGrammar = AbsGrammar.Bot,
-  //   codeunit: AbsCodeUnit = AbsCodeUnit.Bot,
+  //   codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
   //   const: AbsConst = AbsConst.Bot,
   //   math: AbsMath = AbsMath.Bot,
   //   simple: AbsSimple = AbsSimple.Bot,
@@ -111,7 +111,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //     loc,
   //     ast,
   //     grammar,
-  //     codeunit,
+  //     codeUnit,
   //     const,
   //     math,
   //     simple ⊔ newSimple,
@@ -135,7 +135,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //     elem.loc,
   //     elem.ast,
   //     elem.grammar,
-  //     elem.codeunit,
+  //     elem.codeUnit,
   //     elem.const,
   //     elem.math,
   //     elem.simple,
@@ -153,7 +153,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //       loc,
   //       ast,
   //       grammar,
-  //       codeunit,
+  //       codeUnit,
   //       const,
   //       math,
   //       simple,
@@ -165,7 +165,7 @@ case class BasicDomain(config: Config) extends value.Domain {
   //     if (!loc.isBottom) strs :+= loc.toString
   //     if (!ast.isBottom) strs :+= ast.toString
   //     if (!grammar.isBottom) strs :+= grammar.toString
-  //     if (!codeunit.isBottom) strs :+= codeunit.toString
+  //     if (!codeUnit.isBottom) strs :+= codeUnit.toString
   //     if (!const.isBottom) strs :+= const.toString
   //     if (!math.isBottom) strs :+= math.toString
   //     if (!simple.isBottom) strs :+= simple.toString
@@ -241,7 +241,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     //     elem.loc ⊑ that.loc &&
     //     elem.ast ⊑ that.ast &&
     //     elem.grammar ⊑ that.grammar &&
-    //     elem.codeunit ⊑ that.codeunit &&
+    //     elem.codeUnit ⊑ that.codeUnit &&
     //     elem.const ⊑ that.const &&
     //     elem.math ⊑ that.math &&
     //     elem.simple ⊑ that.simple
@@ -255,35 +255,35 @@ case class BasicDomain(config: Config) extends value.Domain {
     //   elem.loc ⊔ that.loc,
     //   elem.ast ⊔ that.ast,
     //   elem.grammar ⊔ that.grammar,
-    //   elem.codeunit ⊔ that.codeunit,
+    //   elem.codeUnit ⊔ that.codeUnit,
     //   elem.const ⊔ that.const,
     //   elem.math ⊔ that.math,
     //   elem.simple ⊔ that.simple,
     // )
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = ??? // Elem(
+    override def ⊓(that: Elem): Elem = ??? // Elem(
     //   elem.comp ⊓ that.comp,
     //   elem.clo ⊓ that.clo,
     //   elem.cont ⊓ that.cont,
     //   elem.loc ⊓ that.loc,
     //   elem.ast ⊓ that.ast,
     //   elem.grammar ⊓ that.grammar,
-    //   elem.codeunit ⊓ that.codeunit,
+    //   elem.codeUnit ⊓ that.codeUnit,
     //   elem.const ⊓ that.const,
     //   elem.math ⊓ that.math,
     //   elem.simple ⊓ that.simple,
     // )
 
     /** prune operator */
-    def -(that: Elem): Elem = ??? // Elem(
+    override def -(that: Elem): Elem = ??? // Elem(
     //   elem.comp - that.comp,
     //   elem.clo - that.clo,
     //   elem.cont - that.cont,
     //   elem.loc - that.loc,
     //   elem.ast - that.ast,
     //   elem.grammar - that.grammar,
-    //   elem.codeunit - that.codeunit,
+    //   elem.codeUnit - that.codeUnit,
     //   elem.const - that.const,
     //   elem.math - that.math,
     //   elem.simple - that.simple,
@@ -297,7 +297,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     //     elem.loc.getSingle ⊔
     //     elem.ast.getSingle ⊔
     //     elem.grammar.getSingle ⊔
-    //     elem.codeunit.getSingle ⊔
+    //     elem.codeUnit.getSingle ⊔
     //     elem.const.getSingle ⊔
     //     elem.math.getSingle ⊔
     //     elem.simple.getSingle
@@ -453,7 +453,7 @@ case class BasicDomain(config: Config) extends value.Domain {
     //     case ToMath => apply(Math(BigDecimal.exact(b)))
     //     case _      => Bot
     //   )
-    //   for (ACodeUnit(cu) <- elem.codeunit) newV ⊔= (cop match
+    //   for (ACodeUnit(cu) <- elem.codeUnit) newV ⊔= (cop match
     //     case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
     //     case _      => Bot
     //   )

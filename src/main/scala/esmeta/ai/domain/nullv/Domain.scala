@@ -5,4 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 
 /** abstract null domain */
-trait Domain extends domain.Domain[Null] with Prunable[Null] with Meetable[Null]
+trait Domain extends domain.Domain[Null]

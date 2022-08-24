@@ -25,7 +25,7 @@ object TypeDomain extends ValueDomain {
   def apply(str: String): Elem = Elem(StrSingleT(str))
   def apply(bool: Boolean): Elem = Elem(BoolSingleT(bool))
   def apply(d: BigDecimal): Elem = math
-  lazy val codeunit: Elem = Elem(CodeUnitT)
+  lazy val codeUnit: Elem = Elem(CodeUnitT)
   lazy val math: Elem = Elem(MathT)
   lazy val num: Elem = Elem(NumberT)
   lazy val bigInt: Elem = Elem(BigIntT)

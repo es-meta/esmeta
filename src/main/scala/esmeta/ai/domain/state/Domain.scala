@@ -25,7 +25,7 @@ trait Domain extends domain.Domain[State] {
   extension (elem: Elem) {
 
     /** meet operator */
-    def ⊓(that: Elem): Elem
+    override def ⊓(that: Elem): Elem
 
     // /** getters */
     // def apply(

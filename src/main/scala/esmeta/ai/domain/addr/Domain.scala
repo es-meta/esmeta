@@ -8,10 +8,7 @@ import esmeta.util.Appender.*
 import java.util.ResourceBundle.Control
 
 /** abstract address domain */
-case class Domain(val Part: Partition)
-  extends domain.Domain[Addr]
-  with Prunable[Addr]
-  with Meetable[Addr] {
+case class Domain(val Part: Partition) extends domain.Domain[Addr] {
 
   /** address partition elements */
   type Part = Part.Elem
@@ -55,10 +52,10 @@ case class Domain(val Part: Partition)
     def ⊔(that: Elem): Elem = Elem(elem.part ⊔ that.part)
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = Elem(elem.part ⊓ that.part)
+    override def ⊓(that: Elem): Elem = Elem(elem.part ⊓ that.part)
 
     /** prune operator */
-    def -(that: Elem): Elem = Elem(elem.part - that.part)
+    override def -(that: Elem): Elem = Elem(elem.part - that.part)
 
     /** contains check */
     def contains(target: Part): Boolean = elem.part contains target

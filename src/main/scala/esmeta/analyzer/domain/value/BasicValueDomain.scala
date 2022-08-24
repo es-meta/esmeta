@@ -22,7 +22,7 @@ object BasicValueDomain extends ValueDomain {
     loc = AbsLoc.Bot,
     ast = AbsAst.Bot,
     grammar = AbsGrammar.Bot,
-    codeunit = AbsCodeUnit.Bot,
+    codeUnit = AbsCodeUnit.Bot,
     const = AbsConst.Bot,
     math = AbsMath.Bot,
     simple = AbsSimple.Bot,
@@ -36,7 +36,7 @@ object BasicValueDomain extends ValueDomain {
   def apply(str: String): Elem = Bot.copy(simple = AbsSimple(str))
   def apply(bool: Boolean): Elem = Bot.copy(simple = AbsSimple(bool))
   def apply(d: BigDecimal): Elem = Bot.copy(math = AbsMath(AMath(d)))
-  lazy val codeunit: Elem = Bot.copy(codeunit = AbsCodeUnit.Top)
+  lazy val codeUnit: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
   lazy val math: Elem = Bot.copy(math = AbsMath.Top)
   lazy val num: Elem = Bot.copy(simple = AbsSimple.num)
   lazy val bigInt: Elem = Bot.copy(simple = AbsSimple.bigInt)
@@ -52,7 +52,7 @@ object BasicValueDomain extends ValueDomain {
     case (loc: Loc)          => Bot.copy(loc = AbsLoc(loc))
     case (ast: AAst)         => Bot.copy(ast = AbsAst(ast))
     case (grammar: AGrammar) => Bot.copy(grammar = AbsGrammar(grammar))
-    case (cu: ACodeUnit)     => Bot.copy(codeunit = AbsCodeUnit(cu))
+    case (cu: ACodeUnit)     => Bot.copy(codeUnit = AbsCodeUnit(cu))
     case (const: AConst)     => Bot.copy(const = AbsConst(const))
     case (math: AMath)       => Bot.copy(math = AbsMath(math))
     case (simple: ASimple)   => Bot.copy(simple = AbsSimple(simple))
@@ -66,7 +66,7 @@ object BasicValueDomain extends ValueDomain {
     loc: AbsLoc = AbsLoc.Bot,
     ast: AbsAst = AbsAst.Bot,
     grammar: AbsGrammar = AbsGrammar.Bot,
-    codeunit: AbsCodeUnit = AbsCodeUnit.Bot,
+    codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
     simple: AbsSimple = AbsSimple.Bot,
@@ -86,7 +86,7 @@ object BasicValueDomain extends ValueDomain {
       loc,
       ast,
       grammar,
-      codeunit,
+      codeUnit,
       const,
       math,
       simple ⊔ newSimple,
@@ -110,7 +110,7 @@ object BasicValueDomain extends ValueDomain {
       elem.loc,
       elem.ast,
       elem.grammar,
-      elem.codeunit,
+      elem.codeUnit,
       elem.const,
       elem.math,
       elem.simple,
@@ -128,7 +128,7 @@ object BasicValueDomain extends ValueDomain {
         loc,
         ast,
         grammar,
-        codeunit,
+        codeUnit,
         const,
         math,
         simple,
@@ -140,7 +140,7 @@ object BasicValueDomain extends ValueDomain {
       if (!loc.isBottom) strs :+= loc.toString
       if (!ast.isBottom) strs :+= ast.toString
       if (!grammar.isBottom) strs :+= grammar.toString
-      if (!codeunit.isBottom) strs :+= codeunit.toString
+      if (!codeUnit.isBottom) strs :+= codeUnit.toString
       if (!const.isBottom) strs :+= const.toString
       if (!math.isBottom) strs :+= math.toString
       if (!simple.isBottom) strs :+= simple.toString
@@ -192,7 +192,7 @@ object BasicValueDomain extends ValueDomain {
     loc: AbsLoc,
     ast: AbsAst,
     grammar: AbsGrammar,
-    codeunit: AbsCodeUnit,
+    codeUnit: AbsCodeUnit,
     const: AbsConst,
     math: AbsMath,
     simple: AbsSimple,
@@ -228,7 +228,7 @@ object BasicValueDomain extends ValueDomain {
         this.loc ⊑ that.loc &&
         this.ast ⊑ that.ast &&
         this.grammar ⊑ that.grammar &&
-        this.codeunit ⊑ that.codeunit &&
+        this.codeUnit ⊑ that.codeUnit &&
         this.const ⊑ that.const &&
         this.math ⊑ that.math &&
         this.simple ⊑ that.simple
@@ -242,7 +242,7 @@ object BasicValueDomain extends ValueDomain {
       this.loc ⊔ that.loc,
       this.ast ⊔ that.ast,
       this.grammar ⊔ that.grammar,
-      this.codeunit ⊔ that.codeunit,
+      this.codeUnit ⊔ that.codeUnit,
       this.const ⊔ that.const,
       this.math ⊔ that.math,
       this.simple ⊔ that.simple,
@@ -256,7 +256,7 @@ object BasicValueDomain extends ValueDomain {
       this.loc ⊓ that.loc,
       this.ast ⊓ that.ast,
       this.grammar ⊓ that.grammar,
-      this.codeunit ⊓ that.codeunit,
+      this.codeUnit ⊓ that.codeUnit,
       this.const ⊓ that.const,
       this.math ⊓ that.math,
       this.simple ⊓ that.simple,
@@ -270,7 +270,7 @@ object BasicValueDomain extends ValueDomain {
       this.loc - that.loc,
       this.ast - that.ast,
       this.grammar - that.grammar,
-      this.codeunit - that.codeunit,
+      this.codeUnit - that.codeUnit,
       this.const - that.const,
       this.math - that.math,
       this.simple - that.simple,
@@ -284,7 +284,7 @@ object BasicValueDomain extends ValueDomain {
         this.loc.getSingle ⊔
         this.ast.getSingle ⊔
         this.grammar.getSingle ⊔
-        this.codeunit.getSingle ⊔
+        this.codeUnit.getSingle ⊔
         this.const.getSingle ⊔
         this.math.getSingle ⊔
         this.simple.getSingle
@@ -431,7 +431,7 @@ object BasicValueDomain extends ValueDomain {
     def convert(cop: COp, radix: Elem): Elem = {
       import COp.*
       var newV = Bot
-      for (ACodeUnit(cu) <- this.codeunit) newV ⊔= (cop match
+      for (ACodeUnit(cu) <- this.codeUnit) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
         case _      => Bot
       )

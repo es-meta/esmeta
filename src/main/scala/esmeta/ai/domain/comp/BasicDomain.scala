@@ -6,7 +6,7 @@ import esmeta.state.*
 import esmeta.util.Appender.*
 
 /** basic domain for completion records */
-case class BasicDomain(config: Config) extends comp.Domain {
+class BasicDomain(val config: Config) extends comp.Domain {
   import config.*
 
   /** elements */
@@ -19,7 +19,7 @@ case class BasicDomain(config: Config) extends comp.Domain {
   val Bot = Elem()
 
   /** results in completion records */
-  case class Result(value: AbsValue, target: AbsValue) {
+  case class Result(value: AbsPureValue, target: AbsOptStr) {
     def isBottom = value.isBottom && target.isBottom
     def ⊑(that: Result): Boolean =
       this.value ⊑ that.value && this.target ⊑ that.target
@@ -30,12 +30,14 @@ case class BasicDomain(config: Config) extends comp.Domain {
     def -(that: Result): Result =
       Result(this.value - that.value, this.target - that.target)
   }
-  object Result { val Bot = Result(AbsValue.Bot, AbsValue.Bot) }
+  object Result { val Bot = Result(AbsPureValue.Bot, AbsOptStr.Bot) }
 
   /** abstraction functions */
-  def alpha(iter: Iterable[Comp]): Elem = ???
-  //   val AComp(ty, value, target) = comp
-  //   Elem(Map(ty.name -> Result(AbsValue(value), AbsValue(target))))
+  def alpha(xs: Iterable[Comp]): Elem = ??? // (for {
+  //   ty <- xs.map(_.ty.name)
+  //   values = xs .filter(_.ty.name == ty) .map(_.value)
+  //   targets = xs .filter(_.ty.name == ty) .map(_.target)
+  // } yield ty -> Result(AbsPureValue(value), AbsOptStr(target))).toMap
 
   /** appender */
   given rule: Rule[Elem] = ??? // (app, elem) => {
@@ -74,7 +76,7 @@ case class BasicDomain(config: Config) extends comp.Domain {
     //     Elem(newMap)
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = ??? // (this, that) match
+    override def ⊓(that: Elem): Elem = ??? // (this, that) match
     //   case _ if this.isBottom || that.isBottom => Bot
     //   case (Elem(lmap), Elem(rmap)) =>
     //     val newPairs = (lmap.keySet ++ rmap.keySet).toList
@@ -85,7 +87,7 @@ case class BasicDomain(config: Config) extends comp.Domain {
     //     Elem(newPairs.toMap)
 
     /** prune operator */
-    def -(that: Elem): Elem = ??? // (this, that) match
+    override def -(that: Elem): Elem = ??? // (this, that) match
     //   case _ if this ⊑ that            => Bot
     //   case _ if (this ⊓ that).isBottom => this
     //   case (Elem(lmap), Elem(rmap)) =>
@@ -104,7 +106,7 @@ case class BasicDomain(config: Config) extends comp.Domain {
 
     // // result of each completion type
     // def resultOf(ty: String): Result =
-    //   map.getOrElse(ty, Result(AbsValue.Bot, AbsValue.Bot))
+    //   map.getOrElse(ty, Result(AbsPureValue.Bot, AbsPureValue.Bot))
 
     // // get single value
     // def getSingle: Flat[AComp] =
@@ -124,11 +126,11 @@ case class BasicDomain(config: Config) extends comp.Domain {
     //   map.map { case (k, v) => v }.foldLeft(Result.Bot)(_ ⊔ _)
 
     // // lookup
-    // def apply(value: AbsValue): AbsValue =
-    //   var newV = AbsValue.Bot
+    // def apply(value: AbsPureValue): AbsPureValue =
+    //   var newV = AbsPureValue.Bot
     //   val Result(v, t) = mergedResult
     //   if (AV_TYPE ⊑ value)
-    //     newV ⊔= AbsValue(const = AbsConst(map.keySet.map(AConst.apply)))
+    //     newV ⊔= AbsPureValue(const = AbsConst(map.keySet.map(AConst.apply)))
     //   if (AV_VALUE ⊑ value) newV ⊔= v
     //   if (AV_TARGET ⊑ value) newV ⊔= t
     //   newV

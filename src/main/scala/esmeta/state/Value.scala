@@ -108,7 +108,11 @@ case class Const(name: String) extends PureValue
 /** code units */
 case class CodeUnit(c: Char) extends PureValue
 
-/** simple values */
+/** simple values
+  *
+  * Simple values are ECMAScript values except objects and symbols. ECMAScript
+  * objects and symbols need to be stored in a heap.
+  */
 sealed trait SimpleValue extends PureValue
 
 /** numeric values */

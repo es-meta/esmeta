@@ -5,4 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.Clo
 
 /** abstract closure domain */
-trait Domain extends domain.Domain[Clo] with Prunable[Clo] with Meetable[Clo]
+trait Domain extends domain.Domain[Clo]

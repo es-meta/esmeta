@@ -5,7 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.*
 
 /** abstract undefined domain */
-trait Domain
-  extends domain.Domain[Undef]
-  with Prunable[Undef]
-  with Meetable[Undef]
+trait Domain extends domain.Domain[Undef]

@@ -6,9 +6,7 @@ import esmeta.util.Appender.*
 trait SimpleDomain[A](
   val topName: String, // name of top element
   val totalOpt: BSet[A] = Inf, // total elements
-) extends Domain[A]
-  with Prunable[A]
-  with Meetable[A] {
+) extends Domain[A] {
 
   /** elements */
   trait Elem
@@ -42,12 +40,12 @@ trait SimpleDomain[A](
       case (_, Bot) | (Top, _) => elem
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = (elem, that) match
+    override def ⊓(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => elem
       case (_, Bot) | (Top, _) => that
 
     /** prune operator */
-    def -(that: Elem): Elem = that match
+    override def -(that: Elem): Elem = that match
       case Bot => elem
       case Top => Bot
 

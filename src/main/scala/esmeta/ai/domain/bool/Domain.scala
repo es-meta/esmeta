@@ -5,10 +5,7 @@ import esmeta.ai.domain.*
 import esmeta.state.Bool
 
 /** abstract boolean domain */
-trait Domain
-  extends domain.Domain[Bool]
-  with Prunable[Bool]
-  with Meetable[Bool] {
+trait Domain extends domain.Domain[Bool] {
 
   /** boolean element interfaces */
   extension (elem: Elem) {
@@ -23,9 +20,9 @@ trait Domain
     def &&(that: Elem): Elem
 
     /** meet operator */
-    def ⊓(that: Elem): Elem
+    override def ⊓(that: Elem): Elem
 
     /** meet operator */
-    def -(that: Elem): Elem
+    override def -(that: Elem): Elem
   }
 }

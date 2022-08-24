@@ -13,7 +13,7 @@ import esmeta.util.Appender.{*, given}
 // import esmeta.util.StateMonad
 
 /** TODO basic domain for states */
-case class BasicDomain(config: Config) extends state.Domain {
+class BasicDomain(val config: Config) extends state.Domain {
   import config.*
 
   // // TODO remove unsafe type casting
@@ -95,7 +95,7 @@ case class BasicDomain(config: Config) extends state.Domain {
     //   }
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = ??? // (elem, that) match
+    override def ⊓(that: Elem): Elem = ??? // (elem, that) match
     //   case _ if elem.isBottom || that.isBottom => Bot
     //   case (l, r) =>
     //     var isBottom = false
@@ -150,7 +150,7 @@ case class BasicDomain(config: Config) extends state.Domain {
     //         case Str("length") => AbsValue(Math(BigDecimal.exact(str.length)))
     //         case Number(k)     => AbsValue(CodeUnit(str(k.toInt)))
     //         case _             => AbsValue.Bot
-    //     case _ => AbsValue.codeunit ⊔ AbsValue.math
+    //     case _ => AbsValue.codeUnit ⊔ AbsValue.math
     //   }
     // def apply(loc: Loc): AbsObj = heap(loc)
     // def lookupGlobal(x: Global): AbsValue =

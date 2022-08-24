@@ -7,9 +7,7 @@ import esmeta.util.Appender.*
 trait FlatDomain[A](
   val topName: String, // name of top element
   val totalOpt: BSet[A] = Inf, // total elements
-) extends Domain[A]
-  with Prunable[A]
-  with Meetable[A] {
+) extends Domain[A] {
 
   /** elements */
   sealed trait Elem extends Iterable[A] {
@@ -66,13 +64,13 @@ trait FlatDomain[A](
       case (Base(l), Base(r))  => if (l == r) elem else Top
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = (elem, that) match
+    override def ⊓(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => elem
       case (_, Bot) | (Top, _) => that
       case (Base(l), Base(r))  => if (l == r) elem else Bot
 
     /** prune operator */
-    def -(that: Elem): Elem = (elem, that) match
+    override def -(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => Bot
       case (_, Bot)            => elem
       case (Top, _: Base)      => Top

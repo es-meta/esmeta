@@ -6,7 +6,7 @@ import esmeta.state.*
 import esmeta.util.Appender.*
 
 /** basic domain for simple values */
-case class BasicDomain(config: Config) extends simpleValue.Domain {
+class BasicDomain(val config: Config) extends simpleValue.Domain {
   import config.*
 
   /** elements */
@@ -45,7 +45,7 @@ case class BasicDomain(config: Config) extends simpleValue.Domain {
     AbsAbsent(xs.collect { case x: Absent => x }),
   )
 
-  /** predefined number top */
+  /** predefined top values */
   val numberTop: Elem = Bot.copy(number = AbsNumber.Top)
   val bigIntTop: Elem = Bot.copy(bigInt = AbsBigInt.Top)
   val strTop: Elem = Bot.copy(str = AbsStr.Top)
@@ -53,14 +53,6 @@ case class BasicDomain(config: Config) extends simpleValue.Domain {
   val undefTop: Elem = Bot.copy(undef = AbsUndef.Top)
   val nullTop: Elem = Bot.copy(nullv = AbsNull.Top)
   val absentTop: Elem = Bot.copy(absent = AbsAbsent.Top)
-  def apply(simple: SimpleValue): Elem = simple match
-    case number: Number => Elem(number = AbsNumber(number))
-    case bigInt: BigInt => Elem(bigInt = AbsBigInt(bigInt))
-    case str: Str       => Elem(str = AbsStr(str))
-    case bool: Bool     => Elem(bool = AbsBool(bool))
-    case Undef          => undefTop
-    case Null           => nullTop
-    case Absent         => absentTop
 
   /** constructors */
   def apply(
@@ -129,7 +121,7 @@ case class BasicDomain(config: Config) extends simpleValue.Domain {
     )
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = Elem(
+    override def ⊓(that: Elem): Elem = Elem(
       elem.number ⊓ that.number,
       elem.bigInt ⊓ that.bigInt,
       elem.str ⊓ that.str,
@@ -140,7 +132,7 @@ case class BasicDomain(config: Config) extends simpleValue.Domain {
     )
 
     /** minus operator */
-    def -(that: Elem): Elem = Elem(
+    override def -(that: Elem): Elem = Elem(
       elem.number - that.number,
       elem.bigInt - that.bigInt,
       elem.str - that.str,

@@ -8,9 +8,7 @@ trait SetDomain[A](
   val topName: String, // name of top element
   val maxSizeOpt: Option[Int] = None, // max size of set
   val totalOpt: BSet[A] = Inf, // total elements
-) extends Domain[A]
-  with Prunable[A]
-  with Meetable[A] {
+) extends Domain[A] {
 
   /** elements */
   sealed trait Elem extends Iterable[A] {
@@ -68,13 +66,13 @@ trait SetDomain[A](
       case (Base(lset), Base(rset)) => alpha(lset ++ rset)
 
     /** meet operator */
-    def ⊓(that: Elem): Elem = (elem, that) match
+    override def ⊓(that: Elem): Elem = (elem, that) match
       case (Top, _)                 => that
       case (_, Top)                 => elem
       case (Base(lset), Base(rset)) => Base(lset intersect rset)
 
     /** prune operator */
-    def -(that: Elem): Elem = (elem, that) match
+    override def -(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => Bot
       case (_, Bot)            => elem
       case (Top, _: Base)      => Top

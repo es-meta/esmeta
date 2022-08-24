@@ -17,11 +17,13 @@ type StateDomain = state.Domain
 // type ObjDomain = obj.Domain
 type ValueDomain = value.Domain
 // type CompDomain = comp.Domain
+type PureValueDomain = pureValue.Domain
 type CloDomain = clo.Domain
 type ContDomain = cont.Domain
 type AddrDomain = addr.Domain
 type AstValueDomain = astValue.Domain
 type GrammarDomain = grammar.Domain
+type MathDomain = math.Domain
 type CodeUnitDomain = codeUnit.Domain
 type ConstDomain = const.Domain
 type SimpleValueDomain = simpleValue.Domain
@@ -42,11 +44,13 @@ type StateFactory = Config => StateDomain
 // type ObjFactory = Config => ObjDomain
 type ValueFactory = Config => ValueDomain
 // type CompFactory = Config => CompDomain
+type PureValueFactory = Config => PureValueDomain
 type CloFactory = Config => CloDomain
 type ContFactory = Config => ContDomain
 type AddrFactory = Config => AddrDomain
 type AstValueFactory = Config => AstValueDomain
 type GrammarFactory = Config => GrammarDomain
+type MathFactory = Config => MathDomain
 type CodeUnitFactory = Config => CodeUnitDomain
 type ConstFactory = Config => ConstDomain
 type SimpleValueFactory = Config => SimpleValueDomain

@@ -5,7 +5,4 @@ import esmeta.ai.domain.*
 import esmeta.state.CodeUnit
 
 /** abstract code unit domain */
-trait Domain
-  extends domain.Domain[CodeUnit]
-  with Prunable[CodeUnit]
-  with Meetable[CodeUnit]
+trait Domain extends domain.Domain[CodeUnit]

@@ -138,7 +138,7 @@ object BasicStateDomain extends StateDomain {
             case Str("length") => AbsValue(Math(BigDecimal.exact(str.length)))
             case Number(k)     => AbsValue(CodeUnit(str(k.toInt)))
             case _             => AbsValue.Bot
-        case _ => AbsValue.codeunit ⊔ AbsValue.math
+        case _ => AbsValue.codeUnit ⊔ AbsValue.math
       }
     def apply(loc: Loc): AbsObj = heap(loc)
     def lookupGlobal(x: Global): AbsValue =

@@ -71,7 +71,7 @@ type AbsAst = AbsAst.Elem
 lazy val AbsGrammar = FlatDomain[AGrammar]("grammar")
 type AbsGrammar = AbsGrammar.Elem
 
-lazy val AbsCodeUnit = FlatDomain[ACodeUnit]("codeunit")
+lazy val AbsCodeUnit = FlatDomain[ACodeUnit]("codeUnit")
 type AbsCodeUnit = AbsCodeUnit.Elem
 
 lazy val AbsConst = FlatDomain[AConst]("const")
