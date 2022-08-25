@@ -135,7 +135,9 @@ trait Domain extends domain.Domain[AValue] {
     def sourceText: Elem
     def parse(rule: Elem): Elem
     def duplicated(st: AbsState): Elem
+    def substring(from: Elem): Elem
     def substring(from: Elem, to: Elem): Elem
+    def clamp(lower: Elem, upper: Elem): Elem
     def isArrayIndex: Elem
 
     /** prune abstract values */

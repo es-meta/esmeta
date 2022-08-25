@@ -366,6 +366,14 @@ object BasicDomain extends value.Domain {
       apply(bool = elem.part.foldLeft(AbsBool.Bot: AbsBool) {
         case (avb, part) => avb ⊔ st.get(part).duplicated
       })
+    def substring(from: Elem): Elem =
+      (elem.getSingle, from.getSingle) match
+        case (Zero, _) | (_, Zero) => Bot
+        case (Many, _) | (_, Many) => exploded("ESubstring")
+        case (One(Str(s)), One(Math(f))) if f.isValidInt =>
+          apply(s.substring(f.toInt))
+        case _ => Bot
+
     def substring(from: Elem, to: Elem): Elem =
       (elem.getSingle, from.getSingle, to.getSingle) match
         case (Zero, _, _) | (_, Zero, _) | (_, _, Zero) => Bot
@@ -379,6 +387,26 @@ object BasicDomain extends value.Domain {
           if (s.length < t) apply(s.substring(f.toInt))
           else if (t.isValidInt) apply(s.substring(f.toInt, t.toInt))
           else Bot
+        case _ => Bot
+    def clamp(lower: Elem, upper: Elem): Elem =
+      (elem.getSingle, lower.getSingle, upper.getSingle) match
+        case (Zero, _, _) | (_, Zero, _) | (_, _, Zero) => Bot
+        case (Many, _, _) | (_, Many, _) | (_, _, Many) => exploded("EClamp")
+        case (
+              One(target),
+              One(Math(l)),
+              One(Math(u)),
+            ) =>
+          target match
+            case Math(t) =>
+              apply(
+                if (t < l) Math(l)
+                else if (t > u) Math(u)
+                else Math(t),
+              )
+            case POS_INF => apply(Math(u))
+            case NEG_INF => apply(Math(l))
+            case _       => Bot
         case _ => Bot
     def isArrayIndex: Elem = elem.getSingle match
       case Zero => Bot

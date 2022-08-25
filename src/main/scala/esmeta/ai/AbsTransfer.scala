@@ -429,7 +429,12 @@ case class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(elem)
           st <- get
         } yield st.contains(l, v, field)
-      case ESubstring(expr, from, to) =>
+      case ESubstring(expr, from, None) =>
+        for {
+          v <- transfer(expr)
+          f <- transfer(from)
+        } yield v.substring(f)
+      case ESubstring(expr, from, Some(to)) =>
         for {
           v <- transfer(expr)
           f <- transfer(from)
@@ -459,8 +464,12 @@ case class AbsTransfer(sem: AbsSemantics) {
           rv <- transfer(right)
           v <- get(transfer(_, bop, lv, rv))
         } yield v
-      case EClamp(target, lower, upper) => // TODO
-        throw NotSupported("EClamp is not supported expression")
+      case EClamp(target, lower, upper) =>
+        for {
+          v <- transfer(expr)
+          lv <- transfer(lower)
+          uv <- transfer(upper)
+        } yield v.clamp(lv, uv)
       case EVariadic(vop, exprs) =>
         for {
           vs <- join(exprs.map(transfer))
