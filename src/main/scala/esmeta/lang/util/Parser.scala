@@ -1015,7 +1015,7 @@ trait Parsers extends IndentParsers {
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))
     } |
-    (b <~ opt("either")) ~ repsep(p <~ compoundGuard, sep("or")) |
+    (b <~ opt("either" | "one of")) ~ repsep(p <~ compoundGuard, sep("or")) |
     b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
   private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(isNeg, p)

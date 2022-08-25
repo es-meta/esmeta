@@ -65,6 +65,7 @@ ArrayLiteral[2,0].Evaluation
 ArrayLiteral[2,1].Evaluation
 ArraySetLength
 ArraySpeciesCreate
+ArrowFunction[0,0].Contains
 ArrowFunction[0,0].Evaluation
 ArrowFunction[0,0].HasName
 ArrowFunction[0,0].InstantiateArrowFunctionExpression
@@ -126,10 +127,12 @@ AsyncArrowBindingIdentifier[0,0].ContainsExpression
 AsyncArrowBindingIdentifier[0,0].ExpectedArgumentCount
 AsyncArrowBindingIdentifier[0,0].IsSimpleParameterList
 AsyncArrowBindingIdentifier[0,0].IteratorBindingInitialization
+AsyncArrowFunction[0,0].Contains
 AsyncArrowFunction[0,0].Evaluation
 AsyncArrowFunction[0,0].HasName
 AsyncArrowFunction[0,0].InstantiateAsyncArrowFunctionExpression
 AsyncArrowFunction[0,0].NamedEvaluation
+AsyncArrowFunction[1,0].Contains
 AsyncArrowFunction[1,0].Evaluation
 AsyncArrowFunction[1,0].HasName
 AsyncArrowFunction[1,0].InstantiateAsyncArrowFunctionExpression
