@@ -120,7 +120,7 @@ trait Parsers extends BasicParsers {
       ":" ~> pair(ty ~ word),
     ) <~ ")" ^^ {
       case l ~ e ~ f => EContains(l, e, f)
-    } | "(" ~ "substring" ~> expr ~ expr ~ expr <~ ")" ^^ {
+    } | "(" ~ "substring" ~> expr ~ expr ~ opt(expr) <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
     } | "(" ~> uop ~ expr <~ ")" ^^ {
       case u ~ e => EUnary(u, e)

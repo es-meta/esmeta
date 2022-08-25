@@ -431,7 +431,11 @@ case class AbsTransfer(sem: AbsSemantics) {
         for {
           v <- transfer(expr)
           f <- transfer(from)
-          t <- transfer(to)
+          t <- to.fold(
+            throw NotSupported(
+              "ESubstring with no to is not supported expression", // TODO
+            ),
+          )(transfer)
         } yield v.substring(f, t)
       case ERef(ref) =>
         for {

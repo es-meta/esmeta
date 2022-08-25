@@ -132,7 +132,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         field.map { case (t, f) => app >> ": " >> t >> " " >> f }
         app >> ")"
       case ESubstring(expr, from, to) =>
-        app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
+        app >> "(substring " >> expr >> " " >> from
+        to.map(app >> " " >> _)
+        app >> ")"
       case ERef(ref) =>
         app >> ref
       case EUnary(uop, expr) =>

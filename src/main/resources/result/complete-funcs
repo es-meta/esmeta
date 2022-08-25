@@ -1332,6 +1332,8 @@ INTRINSICS.String.prototype.match
 INTRINSICS.String.prototype.matchAll
 INTRINSICS.String.prototype.padEnd
 INTRINSICS.String.prototype.padStart
+INTRINSICS.String.prototype.replace
+INTRINSICS.String.prototype.replaceAll
 INTRINSICS.String.prototype.search
 INTRINSICS.String.prototype.slice
 INTRINSICS.String.prototype.startsWith

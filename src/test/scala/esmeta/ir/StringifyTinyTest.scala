@@ -145,6 +145,8 @@ class StringifyTinyTest extends IRTest {
     lazy val yet = EYet("NOT YET")
     lazy val contains = EContains(xExpr, xExpr, None)
     lazy val containsField = EContains(xExpr, xExpr, Some(Type("T"), "Value"))
+    lazy val substring = ESubstring(xExpr, xExpr, None)
+    lazy val substringTo = ESubstring(xExpr, xExpr, Some(xExpr))
     lazy val xExpr = ERef(x)
     lazy val yExpr = ERef(y)
     lazy val unary = EUnary(UOp.Neg, xExpr)
@@ -206,6 +208,8 @@ class StringifyTinyTest extends IRTest {
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
       containsField -> "(contains x x: T Value)",
+      substring -> "(substring x x)",
+      substringTo -> "(substring x x x)",
       xExpr -> "x",
       unary -> "(- x)",
       binary -> "(+ x x)",
