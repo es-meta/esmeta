@@ -131,8 +131,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(contains " >> list >> " " >> elem
         field.map { case (t, f) => app >> ": " >> t >> " " >> f }
         app >> ")"
-      case ESubstring(expr, from, to) =>
-        app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
+      case ESubstring(expr, from, to) => to match {
+        case Some(to) => app >> "(substring " >> expr >> " " >> from >> " " >> to >> ")"
+        case None => app >> "(substring " >> expr >> " " >> from >> ")"
+      }
       case ERef(ref) =>
         app >> ref
       case EUnary(uop, expr) =>

@@ -91,7 +91,7 @@ trait Walker extends BasicWalker {
         walkOpt(field, { case (t, f) => (walk(t), f) }),
       )
     case ESubstring(expr, from, to) =>
-      ESubstring(walk(expr), walk(from), walk(to))
+      ESubstring(walk(expr), walk(from), walkOpt(to, walk))
     case ERef(ref) =>
       ERef(walk(ref))
     case EUnary(uop, expr) =>
