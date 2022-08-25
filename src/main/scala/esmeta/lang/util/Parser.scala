@@ -1022,7 +1022,7 @@ trait Parsers extends IndentParsers {
   private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(hasNeg, p)
   private def isNeg: Parser[Boolean] =
-    "is not" ^^^ true | "is" ^^^ false
+    "is not" ~ opt("one of") ^^^ true | "is" ~ opt("one of") ^^^ false
   private def areNeg: Parser[Boolean] =
     ("are both not" | "are not") ^^^ true |
     ("are both" | "are") ^^^ false
