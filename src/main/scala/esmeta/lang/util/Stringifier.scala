@@ -198,8 +198,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
         app >> "the substring of " >> expr >> " from " >> from
-        to.map(app >> " to " >> _)
-        app
+        to.fold(app)(app >> " to " >> _)
       case NumberOfExpression(expr) =>
         app >> "the number of elements in " >> expr
       case SourceTextExpression(expr) =>
