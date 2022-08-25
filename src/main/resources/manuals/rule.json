@@ -105,6 +105,7 @@
     "_op_ is `|`. Let _result_ be the result of applying the bitwise inclusive OR operation to _lbits_ and _rbits_.": "let result = (| lbits rbits)",
     "append each of its elements to _internalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
     "remove that element from the _varNames_.": "remove-elem varNames N",
-    "Let _r_ be the BigInt defined by the mathematical relation _r_ = _n_ - (_d_ × _q_) where _q_ is a BigInt that is negative only if _n_/_d_ is negative and positive only if _n_/_d_ is positive, and whose magnitude is as large as possible without exceeding the magnitude of the true mathematical quotient of _n_ and _d_.": "let r = (% n d)"
+    "Let _r_ be the BigInt defined by the mathematical relation _r_ = _n_ - (_d_ × _q_) where _q_ is a BigInt that is negative only if _n_/_d_ is negative and positive only if _n_/_d_ is positive, and whose magnitude is as large as possible without exceeding the magnitude of the true mathematical quotient of _n_ and _d_.": "let r = (% n d)",
+    "Return the String representation of this Number value using the radix specified by _radixMV_. Letters `a`-`z` are used for digits with values 10 through 35. The precise algorithm is implementation-defined, however the algorithm should be a generalization of that specified in <emu-xref href=\"#sec-numeric-types-bigint-tostring\"></emu-xref>.": "return ([str radixMV] x)"
   }
 }

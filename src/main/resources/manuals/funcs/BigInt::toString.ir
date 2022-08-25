@@ -1,0 +1,3 @@
+def <NUM>:BigInt::toString(x: BigInt): String {
+  return ([str] x)
+}

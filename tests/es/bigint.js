@@ -13,3 +13,5 @@ var rem_n1_1 = -4n % 3n;
 var rem_n1_2 = -4n % -3n;
 var lsht = 4n << 2n;
 var lsht2 = 4n << -2n;
+var to_str_10 = 42n.toString();
+var to_str_2 = 42n.toString(2);
