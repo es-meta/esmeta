@@ -269,10 +269,12 @@ class Interpreter(
         case (Number(d), ToMath)          => Math(BigDecimal.exact(d))
         case (CodeUnit(c), ToMath)        => Math(BigDecimal.exact(c.toInt))
         case (BigInt(n), ToMath)          => Math(BigDecimal.exact(n))
-        case (BigInt(n), ToStr(None))     => Str(n.toString())
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
+        case (BigInt(n), ToStr(radixOpt)) =>
+          val radix = radixOpt.fold(10)(e => eval(e).asInt)
+          Str(n.toString(radix))
         case (BigInt(n), ToBigInt) => BigInt(n)
         case (Math(n), ToMath)     => Math(n)
         case (Number(d), ToNumber) => Number(d)
