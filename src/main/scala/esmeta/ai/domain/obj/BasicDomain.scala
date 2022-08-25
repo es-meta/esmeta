@@ -11,7 +11,7 @@ import esmeta.util.BaseUtils.error
 object BasicDomain extends obj.Domain {
 
   /** elements */
-  trait Elem
+  trait Elem extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract object")
@@ -312,6 +312,18 @@ object BasicDomain extends obj.Domain {
       case list @ KeyWiseList(values) =>
         modifyList(elem, _ ++ values, _ ⊔ list.mergedValue, weak)
       case _ => Top
+
+    /** duplicated element check */
+    def duplicated: AbsBool = elem match
+      case _: MergedList => AB
+      case KeyWiseList(vs) if vs.forall(_.isSingle) =>
+        val values = vs.map(_.getSingle).flatMap {
+          case One(v) => Some(v)
+          case _      => None
+        }
+        AbsBool(Bool(values.toSet.size != values.size))
+      case _: KeyWiseList => AB
+      case _              => AbsBool.Bot
 
     /** appends */
     def append(value: AbsValue, weak: Boolean): Elem =

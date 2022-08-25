@@ -12,6 +12,8 @@ object FlatDomain extends astValue.Domain with FlatDomain[AstValue]("AST") {
 
     /** join operator */
     override def ⊔(that: Elem): Elem = (elem, that) match
+      case (Bot, _)                     => that
+      case (_, Bot)                     => elem
       case (Base(l), Base(r)) if l == r => elem
       case _ => exploded(s"Merged AST value is not supported")
   }

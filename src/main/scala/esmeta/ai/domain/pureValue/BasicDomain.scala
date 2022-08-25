@@ -19,7 +19,7 @@ object BasicDomain extends pureValue.Domain {
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
     simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
-  )
+  ) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract pure value")
@@ -174,6 +174,30 @@ object BasicDomain extends pureValue.Domain {
       elem.math - that.math,
       elem.simpleValue - that.simpleValue,
     )
+
+    /** concretization function */
+    override def gamma: BSet[APureValue] =
+      (elem.clo.gamma: BSet[APureValue]) ⊔
+      elem.cont.gamma ⊔
+      elem.part.gamma ⊔
+      elem.astValue.gamma ⊔
+      elem.grammar.gamma ⊔
+      elem.codeUnit.gamma ⊔
+      elem.const.gamma ⊔
+      elem.math.gamma ⊔
+      elem.simpleValue.gamma
+
+    /** get single value */
+    override def getSingle: Flat[APureValue] =
+      (elem.clo.getSingle: Flat[APureValue]) ⊔
+      elem.cont.getSingle ⊔
+      elem.part.getSingle ⊔
+      elem.astValue.getSingle ⊔
+      elem.grammar.getSingle ⊔
+      elem.codeUnit.getSingle ⊔
+      elem.const.getSingle ⊔
+      elem.math.getSingle ⊔
+      elem.simpleValue.getSingle
 
     /** getters */
     def clo: AbsClo = elem.clo

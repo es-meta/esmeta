@@ -1,8 +1,8 @@
 package esmeta.es
 
 import esmeta.ESMetaTest
-import esmeta.analyzer.AbsSemantics
-import esmeta.analyzer.domain.*
+import esmeta.ai.*
+import esmeta.ai.domain.*
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.es.util.*
@@ -24,11 +24,17 @@ object ESTest {
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")
 
+  // ---------------------------------------------------------------------------
+  // parser helpers
+  // ---------------------------------------------------------------------------
   // parse ES codes
   lazy val scriptParser: AstFrom = spec.scriptParser
   def parse(str: String): Ast = scriptParser.from(str)
   def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
 
+  // ---------------------------------------------------------------------------
+  // interpreter helpers
+  // ---------------------------------------------------------------------------
   // interpreter with additional assertion checks
   class CheckAfter(
     st: State,
@@ -52,12 +58,16 @@ object ESTest {
     cachedAst: Option[Ast] = None,
   ): State = eval(readFile(filename), checkAfter, cachedAst)
 
+  // ---------------------------------------------------------------------------
+  // analyzer helpers
+  // ---------------------------------------------------------------------------
+  // analyzer
+  lazy val analyzer = ESAnalyzer(cfg)
+
   // analyze ES codes
-  def analyzeFile(filename: String): AbsSemantics = {
-    val str = readFile(filename)
-    analyze(str)
-  }
-  def analyze(str: String): AbsSemantics = AbsSemantics(str).fixpoint
+  def analyzeFile(filename: String): AbsSemantics =
+    analyzer(readFile(filename).trim)
+  def analyze(str: String): AbsSemantics = analyzer(str)
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =
@@ -84,7 +94,7 @@ object ESTest {
 
   // tests for ES analyzer
   def checkExit(absSem: AbsSemantics): AbsSemantics =
-    assert(absSem.finalResult.value.getSingle == FlatElem(ASimple(Undef)))
+    assert(absSem.finalResult.value.getSingle == One(Undef))
     absSem
   def analyzeTest(str: String): AbsSemantics = checkExit(analyze(str))
   def analyzeTestFile(filename: String): AbsSemantics =

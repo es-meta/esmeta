@@ -20,8 +20,11 @@ case object CmdGraph
     repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
-  ): Unit = for { cp <- cpOpt } {
+  ): Unit = for (cp <- cpOpt) {
     mkdir(ANALYZE_LOG_DIR)
-    cp.func.dumpDot(s"$ANALYZE_LOG_DIR/repl")
+    cp.func.dumpDot(
+      s"$ANALYZE_LOG_DIR/repl.dot",
+      s"$ANALYZE_LOG_DIR/repl.pdf",
+    )
   }
 }

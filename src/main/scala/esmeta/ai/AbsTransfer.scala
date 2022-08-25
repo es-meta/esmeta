@@ -1,5 +1,6 @@
 package esmeta.ai
 
+import esmeta.ai.Config.*
 import esmeta.ai.domain.*
 import esmeta.ai.util.*
 import esmeta.cfg.*
@@ -174,6 +175,7 @@ case class AbsTransfer(sem: AbsSemantics) {
 
     /** prune condition */
     def prune(cond: Expr, positive: Boolean): Updater = cond match {
+      case _ if !USE_REFINE   => st => st
       case EUnary(UOp.Not, e) => prune(e, !positive)
       case EBinary(BOp.Eq, ERef(ref: Local), target) =>
         for {
@@ -419,7 +421,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           lv <- id(_.getChildren(asite, av, kOpt))
         } yield lv
       case EYet(msg) =>
-        if (sem.yetThrow) throw NotSupported(msg)
+        if (YET_THROW) throw NotSupported(msg)
         else AbsValue.Bot
       case EContains(list, elem, field) =>
         for {

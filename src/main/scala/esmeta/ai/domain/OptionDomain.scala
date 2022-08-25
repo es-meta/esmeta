@@ -11,7 +11,7 @@ class OptionDomain[V, D <: Domain[V] with Singleton](val AbsV: D)
   type AbsV = AbsV.Elem
 
   /** elements */
-  case class Elem(value: AbsV, absent: AbsAbsent)
+  case class Elem(value: AbsV, absent: AbsAbsent) extends Appendable
 
   /** top element */
   val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)

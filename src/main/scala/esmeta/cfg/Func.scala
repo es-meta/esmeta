@@ -77,4 +77,10 @@ case class Func(
     } error(s"""[DOT] [$name]: exception occured while converting to pdf:
                |
                |$e""".stripMargin)
+
+  /** dump in a DOT/PDF format */
+  def dumpDot(
+    dotPath: String,
+    pdfPath: String,
+  ): Unit = dumpDot(dotPath, Some(pdfPath))
 }

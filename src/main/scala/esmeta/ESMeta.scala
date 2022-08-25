@@ -75,6 +75,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdInject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     CmdAnalyze,
+    CmdAI,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -99,6 +100,7 @@ object ESMeta extends Git(BASE_DIR) {
     Inject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
+    AI,
   )
 
   /** command options */

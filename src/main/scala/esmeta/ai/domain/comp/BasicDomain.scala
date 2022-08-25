@@ -10,7 +10,7 @@ import esmeta.spec.SyntaxDirectedOperationHead.Target
 object BasicDomain extends comp.Domain {
 
   /** elements */
-  case class Elem(map: Map[String, Result] = Map())
+  case class Elem(map: Map[String, Result] = Map()) extends Appendable
 
   /** top element */
   lazy val Top = exploded("top abstract completion record")
@@ -38,10 +38,12 @@ object BasicDomain extends comp.Domain {
 
   /** appender */
   given rule: Rule[Elem] = (app, elem) =>
-    app >> elem.map.toList
-      .sortBy { case (t, _) => t }
-      .map { case (k, Result(v, t)) => s"~$k~ -> ($v, $t)" }
-      .mkString("{", ", ", "}")
+    if (!elem.isBottom)
+      app >> elem.map.toList
+        .sortBy { case (t, _) => t }
+        .map { case (k, Result(v, t)) => s"~$k~ -> ($v, $t)" }
+        .mkString("{", ", ", "}")
+    else app >> "⊥"
 
   /** constructors with maps */
   def apply(map: Map[String, Result]): Elem = Elem(map)

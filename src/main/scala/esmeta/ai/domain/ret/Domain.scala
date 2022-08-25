@@ -23,7 +23,7 @@ trait Domain extends domain.Domain[(AValue, State)] {
     def value: AbsValue
     def state: AbsState
 
-    /** conversion to string */
-    def toString(detail: Boolean): String
+    /** get string */
+    def getString(detail: Boolean): String
   }
 }

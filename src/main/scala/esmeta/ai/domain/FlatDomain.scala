@@ -10,7 +10,7 @@ trait FlatDomain[A](
 ) extends Domain[A] {
 
   /** elements */
-  sealed trait Elem extends Iterable[A] {
+  sealed trait Elem extends Iterable[A] with Appendable {
 
     /** iterators */
     final def iterator: Iterator[A] = (this match {

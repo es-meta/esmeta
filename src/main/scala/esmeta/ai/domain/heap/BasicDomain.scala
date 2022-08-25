@@ -2,6 +2,7 @@ package esmeta.ai.domain.heap
 
 import esmeta.LINE_SEP
 import esmeta.ai.*
+import esmeta.ai.Config.*
 import esmeta.ai.domain.*
 import esmeta.cfg.*
 import esmeta.es
@@ -16,7 +17,7 @@ import cats.instances.boolean
 object BasicDomain extends heap.Domain {
 
   /** elements */
-  case class Elem(map: Map[Part, AbsObj], merged: Set[Part])
+  case class Elem(map: Map[Part, AbsObj], merged: Set[Part]) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract heap")
@@ -129,7 +130,7 @@ object BasicDomain extends heap.Domain {
 
     /** lookup abstract address partitions */
     def apply(part: Part): AbsObj =
-      elem.map.getOrElse(part, Config.base.getOrElse(part, AbsObj.Bot))
+      elem.map.getOrElse(part, base.getOrElse(part, AbsObj.Bot))
     def apply(part: AbsPart, prop: AbsValue): AbsValue =
       part.map(elem(_, prop)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
     def apply(part: Part, prop: AbsValue): AbsValue = part match
@@ -137,9 +138,10 @@ object BasicDomain extends heap.Domain {
         prop.getSingle match
           case Zero => AbsValue.Bot
           case One(str: SimpleValue) =>
-            AbsValue(Config.baseHeap.getIntrinsics(str))
+            AbsValue(baseHeap.getIntrinsics(str))
           case One(_) => AbsValue.Bot
-          case Many   => AbsValue.Top
+          case Many =>
+            AbsValue.Top
       case _ => elem(part).get(prop)
 
     /** setters */
@@ -197,7 +199,7 @@ object BasicDomain extends heap.Domain {
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
     ): Elem =
-      given CFG = Config.cfg
+      given CFG = cfg
       val newObj = pairs.foldLeft(AbsObj(MapObj(tname))) {
         case (m, (k, v)) => m.update(k, v, weak = false)
       }

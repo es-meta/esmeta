@@ -17,7 +17,7 @@ object BasicDomain extends simpleValue.Domain {
     undef: AbsUndef = AbsUndef.Bot,
     nullv: AbsNull = AbsNull.Bot,
     absent: AbsAbsent = AbsAbsent.Bot,
-  )
+  ) extends Appendable
 
   /** top element */
   val Top = Elem(

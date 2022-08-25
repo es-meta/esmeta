@@ -1,5 +1,6 @@
 package esmeta.ai
 
+import esmeta.ai.Config.*
 import esmeta.ai.domain.*
 import esmeta.ai.repl.*
 import esmeta.cfg.*
@@ -23,28 +24,6 @@ case class AbsSemantics(
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   /** loop out edges */
   var loopOut: Map[View, Set[View]] = Map(),
-  /** loop maximum iteration */
-  loopIter: Int = 100,
-  /** loop maximum depth */
-  loopDepth: Int = 20,
-  /** analysis time limit */
-  timeLimit: Option[Long] = None,
-  /** debugging mode */
-  debug: Boolean = false,
-  /** REPL mode */
-  useRepl: Boolean = false,
-  /** check period */
-  checkPeriod: Int = 10000,
-  /** IR sensitivity */
-  irSens: Boolean = true,
-  /** infinite sensitivity */
-  infSens: Boolean = true,
-  /** throw exception for not yet compiled expressions */
-  yetThrow: Boolean = false,
-  /** AST sensitivity */
-  esCallDepth: Int = 20,
-  /** k-callsite sensitivity for IR functions */
-  irCallDepth: Int = 50,
 ) {
 
   /** assertions */
@@ -99,21 +78,21 @@ case class AbsSemantics(
       // increase iteration number
       iter += 1
       // check time limit
-      if (iter % checkPeriod == 0) timeLimit.map(limit => {
+      if (iter % CHECK_PERIOD == 0) TIME_LIMIT.map(limit => {
         val duration = (System.currentTimeMillis - startTime) / 1000
         if (duration > limit) throw AnalysisImprecise("timeout")
       })
       // text-based debugging
-      if (debug) println(s"${cp.func.name}:$cp")
+      if (DEBUG) println(s"${cp.func.name}:$cp")
       // run REPL
-      if (useRepl) repl(transfer, cp)
+      if (USE_REPL) repl(transfer, cp)
       // abstract transfer for the current control point
       else transfer(cp)
       // keep going
       fixpoint
     case None =>
       // finalize REPL
-      if (useRepl) repl.finished
+      if (USE_REPL) repl.finished
       // checker
       checkAssertion
       // final result
@@ -133,7 +112,7 @@ case class AbsSemantics(
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
     val (np, newSt) = pair
     val oldSt = this(np)
-    if (!oldSt.isBottom && useRepl) repl.merged = true
+    if (!oldSt.isBottom && USE_REPL) repl.merged = true
     if (!newSt.isBottom && !(newSt ⊑ oldSt))
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
@@ -169,12 +148,12 @@ case class AbsSemantics(
 
   /** TODO handle sensitivity */
   def handleSens[T](l: List[T], bound: Int): List[T] =
-    if (irSens) if (infSens) l else l.take(bound)
+    if (IR_SENS) if (INF_SENS) l else l.take(bound)
     else Nil
 
   /** TODO handle sensitivity for depths */
   def handleSens(n: Int, bound: Int): Int =
-    if (irSens) if (infSens) n else n min bound
+    if (IR_SENS) if (INF_SENS) n else n min bound
     else 0
 
   /** call transition */
@@ -188,7 +167,7 @@ case class AbsSemantics(
     // handle ir callsite sensitivity
     val NodePoint(callerFunc, callSite, callerView) = callerNp
     val baseView = callerView.copy(
-      calls = handleSens(callSite :: callerView.calls, irCallDepth),
+      calls = handleSens(callSite :: callerView.calls, IR_CALL_DEPTH),
       intraLoopDepth = 0,
     )
 
@@ -259,7 +238,7 @@ case class AbsSemantics(
     val retRp = ReturnPoint(func, getEntryView(view))
     if (!newRet.value.isBottom)
       val oldRet = this(retRp)
-      if (!oldRet.isBottom && useRepl) repl.merged = true
+      if (!oldRet.isBottom && USE_REPL) repl.merged = true
       if (newRet !⊑ oldRet)
         rpMap += retRp -> (oldRet ⊔ newRet)
         worklist += retRp
@@ -267,13 +246,13 @@ case class AbsSemantics(
   /** loop transition for next views */
   def loopNext(view: View): View = view.loops match
     case LoopCtxt(loop, k) :: rest =>
-      view.copy(loops = LoopCtxt(loop, handleSens(k + 1, loopIter)) :: rest)
+      view.copy(loops = LoopCtxt(loop, handleSens(k + 1, LOOP_ITER)) :: rest)
     case _ => view
 
   /** loop transition for function enter */
   def loopEnter(view: View, loop: Branch): View =
     val loopView = view.copy(
-      loops = handleSens(LoopCtxt(loop, 0) :: view.loops, loopDepth),
+      loops = handleSens(LoopCtxt(loop, 0) :: view.loops, LOOP_DEPTH),
       intraLoopDepth = view.intraLoopDepth + 1,
     )
     loopOut += loopView -> (loopOut.getOrElse(loopView, Set()) + view)
@@ -314,8 +293,8 @@ case class AbsSemantics(
     val cpStr = cp.toString(detail = detail)
     val k = setColor(color)(s"$func:$cpStr")
     val v = cp match {
-      case (np: NodePoint[_]) => this(np).toString(detail = detail)
-      case (rp: ReturnPoint)  => this(rp).toString(detail = detail)
+      case (np: NodePoint[_]) => this(np).getString(detail = detail)
+      case (rp: ReturnPoint)  => this(rp).getString(detail = detail)
     }
     s"$k -> $v"
 

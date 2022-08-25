@@ -46,6 +46,9 @@ trait Domain extends domain.Domain[Obj] {
     /** concat */
     def concat(list: AbsObj, weak: Boolean): Elem
 
+    /** duplicated element check */
+    def duplicated: AbsBool
+
     /** append */
     def append(value: AbsValue, weak: Boolean): Elem
 

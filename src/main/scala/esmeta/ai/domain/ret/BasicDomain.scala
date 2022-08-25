@@ -14,7 +14,7 @@ object BasicDomain extends ret.Domain {
   case class Elem(
     value: AbsValue = AbsValue.Bot,
     state: AbsState = AbsState.Bot,
-  )
+  ) extends Appendable
 
   /** top element */
   lazy val Top = Elem(AbsValue.Top, AbsState.Top)
@@ -39,16 +39,7 @@ object BasicDomain extends ret.Domain {
     Some(value, state)
 
   /** appender */
-  given rule: Rule[Elem] = (app, elem) =>
-    val Elem(value, state) = elem
-    app >> elem >> LINE_SEP
-    app >> "globals: "
-    app.wrap {
-      for ((k, v) <- state.globals.toList.sortBy(_._1.toString)) {
-        app :> s"$k -> $v" >> LINE_SEP
-      }
-    } >> LINE_SEP
-    app >> "heap: " >> state.heap
+  given rule: Rule[Elem] = (app, elem) => app >> elem.value
 
   /** element interfaces */
   extension (elem: Elem) {
@@ -81,7 +72,7 @@ object BasicDomain extends ret.Domain {
     def state: AbsState = elem.state
 
     /** conversion to string */
-    def toString(detail: Boolean): String =
+    def getString(detail: Boolean): String =
       val app = Appender()
       if (detail) {
         app >> elem >> LINE_SEP

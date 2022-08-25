@@ -170,7 +170,7 @@ trait Domain extends domain.Domain[State] {
     ): Elem
 
     /** conversion to string */
-    def toString(detail: Boolean): String
+    def getString(detail: Boolean): String
 
     /** get string with detailed shape of address partitions */
     def getString(value: AbsValue): String

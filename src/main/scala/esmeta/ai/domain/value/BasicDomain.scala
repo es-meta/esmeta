@@ -1,12 +1,12 @@
 package esmeta.ai.domain.value
 
 import esmeta.ai.*
+import esmeta.ai.Config.*
 import esmeta.ai.domain.*
-// import esmeta.ai.util.*
 import esmeta.cfg.Func
+import esmeta.es.*
 import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
-// import esmeta.es.*
 import esmeta.parser.ESValueParser
 import esmeta.util.Appender.*
 
@@ -17,7 +17,7 @@ object BasicDomain extends value.Domain {
   case class Elem(
     comp: AbsComp = AbsComp.Bot,
     pureValue: AbsPureValue = AbsPureValue.Bot,
-  )
+  ) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract value")
@@ -126,7 +126,7 @@ object BasicDomain extends value.Domain {
       case One(CodeUnit(cu)) => Some(cu.toString)
       case _                 => None
     // transfer body
-    if (vs.exists(_.isBottom)) vop match
+    if (!vs.exists(_.isBottom)) vop match
       case Min =>
         val set = scala.collection.mutable.Set[Elem]()
         if (vs.exists(apply(NEG_INF) ⊑ _)) set += apply(NEG_INF)
@@ -173,7 +173,7 @@ object BasicDomain extends value.Domain {
       elem.pureValue - that.pureValue,
     )
 
-    /** get single value */
+    /** concretization function */
     override def gamma: BSet[AValue] =
       elem.comp.gamma ⊔
       elem.pureValue.gamma
@@ -249,55 +249,54 @@ object BasicDomain extends value.Domain {
     def floor: Elem = ??? // TODO
 
     /** type operations */
-    def typeOf(st: AbsState): Elem = ??? // TODO {
-    //   var set = Set[String]()
-    //   if (!elem.num.isBottom) set += "Number"
-    //   if (!elem.bigInt.isBottom) set += "BigInt"
-    //   if (!elem.str.isBottom) set += "String"
-    //   if (!elem.bool.isBottom) set += "Boolean"
-    //   if (!elem.undef.isBottom) set += "Undefined"
-    //   if (!elem.nullv.isBottom) set += "Null"
-    //   if (!elem.loc.isBottom) for (loc <- elem.loc) {
-    //     val tname = st(loc).getTy match
-    //       case tname if cfg.typeModel.isSubType(tname, "Object") =>
-    //         "Object"
-    //       case tname => tname
-    //     set += tname
-    //   }
-    //   apply(str = AbsStr(set.map(Str.apply)))
-    // }
-    def typeCheck(tname: String, st: AbsState): Elem = ??? // TODO {
-    //   var bv: AbsBool = AbsBool.Bot
-    //   if (!elem.num.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
-    //   if (!elem.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
-    //   if (!elem.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
-    //   if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
-    //   if (!elem.const.isBottom)
-    //     bv ⊔= AbsBool(Bool(tname == "Constant"))
-    //   if (!elem.comp.isBottom)
-    //     bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
-    //   if (!elem.undef.isBottom)
-    //     bv ⊔= AbsBool(Bool(tname == "Undefined"))
-    //   if (!elem.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
-    //   if (!elem.clo.isBottom)
-    //     bv ⊔= AbsBool(Bool(tname == "AbstractClosure"))
-    //   elem.ast.getSingle match
-    //     case Zero => /* do nothing */
-    //     case Many => bv = AB
-    //     case One(AAst(ast)) =>
-    //       bv ⊔= AbsBool(
-    //         Bool(tname == "ParseNode" || (ast.types contains tname)),
-    //       )
-    //   for (loc <- elem.loc) {
-    //     val tname0 = st(loc).getTy
-    //     bv ⊔= AbsBool(
-    //       Bool(
-    //         tname0 == tname || cfg.typeModel.isSubType(tname0, tname),
-    //       ),
-    //     )
-    //   }
-    //   apply(bool = bv)
-    // }
+    def typeOf(st: AbsState): Elem =
+      var set = Set[String]()
+      if (!elem.number.isBottom) set += "Number"
+      if (!elem.bigInt.isBottom) set += "BigInt"
+      if (!elem.str.isBottom) set += "String"
+      if (!elem.bool.isBottom) set += "Boolean"
+      if (!elem.undef.isBottom) set += "Undefined"
+      if (!elem.nullv.isBottom) set += "Null"
+      if (!elem.part.isBottom) for (part <- elem.part) {
+        val tname = st.get(part).getTy match
+          case tname if cfg.typeModel.isSubType(tname, "Object") => "Object"
+          case tname                                             => tname
+        set += tname
+      }
+      apply(str = AbsStr(set.map(Str.apply)))
+
+    /** type check */
+    def typeCheck(tname: String, st: AbsState): Elem =
+      var bv: AbsBool = AbsBool.Bot
+      if (!elem.number.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
+      if (!elem.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
+      if (!elem.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
+      if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
+      if (!elem.const.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "Constant"))
+      if (!elem.comp.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
+      if (!elem.undef.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "Undefined"))
+      if (!elem.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
+      if (!elem.clo.isBottom)
+        bv ⊔= AbsBool(Bool(tname == "AbstractClosure"))
+      elem.astValue.getSingle match
+        case Zero => /* do nothing */
+        case Many => bv = AB
+        case One(AstValue(ast)) =>
+          bv ⊔= AbsBool(
+            Bool(tname == "ParseNode" || (ast.types contains tname)),
+          )
+      for (part <- elem.part) {
+        val newTName = st.get(part).getTy
+        bv ⊔= AbsBool(
+          Bool(
+            newTName == tname || cfg.typeModel.isSubType(newTName, tname),
+          ),
+        )
+      }
+      apply(bool = bv)
 
     /** helper functions for abstract transfer */
     def convertTo(cop: COp, radix: Elem): Elem =
@@ -336,52 +335,37 @@ object BasicDomain extends value.Domain {
         case _ => Bot
       )
       newV
-    def sourceText: Elem = ??? // TODO apply(str =
-    //   AbsStr(
-    //     elem.ast.toList.map(x =>
-    //       Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
-    //     ),
-    //   ),
-    // )
-    def parse(rule: Elem): Elem = ??? // TODO {
-    //   var newV: Elem = Bot
-
-    //   // codes
-    //   var codes: Set[(String, List[Boolean])] = Set()
-    //   for (Str(s) <- elem.str) codes += (s, List())
-    //   for (AAst(ast) <- elem.ast) {
-    //     val code = ast.toString(grammar = Some(cfg.grammar))
-    //     val args = ast match
-    //       case syn: Syntactic => syn.args
-    //       case _              => List()
-    //     codes += (code, args)
-    //   }
-
-    //   // parse
-    //   for {
-    //     AGrammar(name, params) <- rule.grammar
-    //     (str, args) <- codes
-    //     parseArgs = if (params.isEmpty) args else params
-    //   } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
-
-    //   // result
-    //   newV
-    // }
-    def duplicated(st: AbsState): Elem = ??? // TODO
-    // apply(bool = elem.part.foldLeft(AbsBool.Bot: AbsBool) {
-    //   case (avb, part) =>
-    //     avb ⊔ (st(part) match {
-    //       case _: AbsObj.MergedList => AT
-    //       case AbsObj.KeyWiseList(vs) if vs.forall(_.isSingle) =>
-    //         val values = vs.map(_.getSingle).flatMap {
-    //           case One(v) => Some(v)
-    //           case _           => None
-    //         }
-    //         AbsBool(Bool(values.toSet.size != values.size))
-    //       case _: AbsObj.KeyWiseList => AT
-    //       case _                     => AbsBool.Bot
-    //     })
-    // })
+    def sourceText: Elem = apply(str =
+      AbsStr(
+        elem.astValue.toList.map(x =>
+          Str(x.ast.toString(grammar = Some(cfg.grammar)).trim),
+        ),
+      ),
+    )
+    def parse(rule: Elem): Elem =
+      var newV: Elem = Bot
+      // codes
+      var codes: Set[(String, List[Boolean])] = Set()
+      for (Str(s) <- elem.str) codes += (s, List())
+      for (AstValue(ast) <- elem.astValue) {
+        val code = ast.toString(grammar = Some(cfg.grammar))
+        val args = ast match
+          case syn: Syntactic => syn.args
+          case _              => List()
+        codes += (code, args)
+      }
+      // parse
+      for {
+        Grammar(name, params) <- rule.grammar
+        (str, args) <- codes
+        parseArgs = if (params.isEmpty) args else params
+      } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
+      // result
+      newV
+    def duplicated(st: AbsState): Elem =
+      apply(bool = elem.part.foldLeft(AbsBool.Bot: AbsBool) {
+        case (avb, part) => avb ⊔ st.get(part).duplicated
+      })
     def substring(from: Elem, to: Elem): Elem =
       (elem.getSingle, from.getSingle, to.getSingle) match
         case (Zero, _, _) | (_, Zero, _) | (_, _, Zero) => Bot

@@ -144,7 +144,7 @@ trait Domain extends domain.Domain[AValue] {
     def pruneValue(r: Elem, positive: Boolean): Elem
 
     /** single check */
-    def isSingle: Boolean = getSingle match
+    def isSingle: Boolean = elem.getSingle match
       case One(_) => true
       case _      => false
 

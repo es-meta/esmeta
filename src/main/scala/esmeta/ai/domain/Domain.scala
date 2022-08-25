@@ -14,7 +14,7 @@ trait Domain[A] { self =>
   def Bot: Elem
 
   /** element */
-  type Elem
+  type Elem <: Appendable
 
   /** conversion to iterable object */
   given Conversion[Elem, Iterable[A]] = elem =>
@@ -31,6 +31,13 @@ trait Domain[A] { self =>
 
   /** appender */
   given rule: Rule[Elem]
+
+  /** appendable */
+  trait Appendable { this: Elem =>
+
+    /** conversion to string */
+    override def toString: String = stringify(this)
+  }
 
   /** optional domain */
   lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
@@ -58,9 +65,6 @@ trait Domain[A] { self =>
 
     /** bottom check */
     def isBottom: Boolean = elem == Bot
-
-    /** conversion to string */
-    def toString: String = stringify(elem)
 
     /** concretization function */
     def gamma: BSet[A] = if (isBottom) Fin() else Inf

@@ -64,7 +64,7 @@ case class REPL(sem: AbsSemantics) {
     .terminal(terminal)
     .completer(completer)
     .build()
-  private val prompt: String = LINE_SEP + s"${MAGENTA}ai>${RESET} "
+  private val prompt: String = LINE_SEP + s"${MAGENTA}analyzer>${RESET} "
 
   // show help message at the first time
   lazy val firstHelp: Unit = { CmdHelp.showHelp; println }

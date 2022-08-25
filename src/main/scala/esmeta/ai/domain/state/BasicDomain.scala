@@ -2,8 +2,8 @@ package esmeta.ai.domain.state
 
 import esmeta.LINE_SEP
 import esmeta.ai.*
+import esmeta.ai.Config.*
 import esmeta.ai.domain.*
-// import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ir.*
 import esmeta.es
@@ -23,7 +23,7 @@ object BasicDomain extends state.Domain {
     locals: Map[Local, AbsValue] = Map(),
     globals: Map[Global, AbsValue] = Map(),
     heap: AbsHeap = AbsHeap.Bot,
-  )
+  ) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract state")
@@ -114,7 +114,7 @@ object BasicDomain extends state.Domain {
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue =
-      elem.globals.getOrElse(x, Config.baseGlobals.getOrElse(x, AbsValue.Bot))
+      elem.globals.getOrElse(x, baseGlobals.getOrElse(x, AbsValue.Bot))
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem =
@@ -341,8 +341,8 @@ object BasicDomain extends state.Domain {
     // TODO garbage collection
     def garbageCollected: Elem = elem
     // if (USE_GC) {
-    //   val unreachLocs = (heap.map.keySet -- reachableParts).filter(!_.isNamed)
-    //   copy(heap = heap.removeLocs(unreachLocs))
+    //   val unreachParts = (heap.map.keySet -- reachableParts).filter(!_.isNamed)
+    //   copy(heap = heap.removeParts(unreachParts))
     // } else elem
 
     /** get reachable address partitions */
@@ -357,8 +357,8 @@ object BasicDomain extends state.Domain {
       locals: Map[Local, AbsValue] = Map(),
     ): Elem = elem.copy(locals = locals)
 
-    /** conversion to string */
-    def toString(detail: Boolean): String =
+    /** get string */
+    def getString(detail: Boolean): String =
       val app = Appender()
       given Rule[Elem] = if (detail) rule else shortRule
       app >> elem
@@ -368,10 +368,10 @@ object BasicDomain extends state.Domain {
     def getString(value: AbsValue): String =
       val app = Appender()
       app >> value.toString
-      val locs = value.reachableParts
-      if (!locs.isEmpty) (app >> " @ ").wrap(for (loc <- locs) {
-        val obj = heap(loc)
-        app :> s"$loc -> " >> obj >> LINE_SEP
+      val parts = value.reachableParts
+      if (!parts.isEmpty) (app >> " @ ").wrap(for (part <- parts) {
+        val obj = heap(part)
+        app :> s"$part -> " >> obj >> LINE_SEP
       })
       app.toString
 
@@ -389,7 +389,7 @@ object BasicDomain extends state.Domain {
     val irStringifier = IRElem.getStringifier(true, false)
     import irStringifier.given
     given Rule[AbsHeap] = if (detail) AbsHeap.rule else AbsHeap.shortRule
-    if (elem.isBottom) app.wrap {
+    if (!elem.isBottom) app.wrap {
       app :> "locals: " >> elem.locals >> LINE_SEP
       app :> "globals: " >> elem.globals >> LINE_SEP
       app :> "heaps: " >> elem.heap >> LINE_SEP
@@ -404,7 +404,7 @@ object BasicDomain extends state.Domain {
         ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
       case (One(AstValue(syn: es.Syntactic)), One(Str(propStr))) =>
         val es.Syntactic(name, _, rhsIdx, children) = syn
-        val rhs = Config.cfg.grammar.nameMap(name).rhsList(rhsIdx)
+        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
         rhs.getNtIndex(propStr).flatMap(children(_)) match
           case Some(child) => AbsValue(child)
           case _           => AbsValue.Bot
