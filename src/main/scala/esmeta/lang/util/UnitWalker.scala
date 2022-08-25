@@ -89,8 +89,7 @@ trait UnitWalker extends BasicUnitWalker {
     case LengthExpression(expr) =>
       walk(expr)
     case SubstringExpression(expr, from, to) =>
-      walk(expr); walk(from)
-      walkOpt(to, walk)
+      walk(expr); walk(from); walkOpt(to, walk)
     case NumberOfExpression(expr) =>
       walk(expr)
     case SourceTextExpression(expr) =>

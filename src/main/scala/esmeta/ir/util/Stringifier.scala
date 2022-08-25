@@ -133,10 +133,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ")"
       case ESubstring(expr, from, to) =>
         app >> "(substring " >> expr >> " " >> from
-        to match {
-          case Some(to) => app >> " " >> to
-          case None     => app
-        }
+        to.map(app >> " " >> _)
         app >> ")"
       case ERef(ref) =>
         app >> ref
