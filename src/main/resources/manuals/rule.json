@@ -43,6 +43,7 @@
     "If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
     "If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return undefined else {}",
     "If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) return null else return ec.ScriptOrModule",
+    "If only one argument was passed, return _to_.": "if (= argumentsList.length 0) return to else {}",
     "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.SubMap[N].initialized) return comp[~throw~/~empty~]((new OrdinaryObject(\"Prototype\" -> @EXECUTION_STACK[0].Realm.Intrinsics[\"%ReferenceError.prototype%\"], \"ErrorData\" -> undefined))) else {}",
     "If the execution context stack is empty, return *null*.": "if (= @EXECUTION_STACK.length 0) return null else {}",
     "If the host requires that the `this` binding in _realm_'s global scope return an object other than the global object, let _thisValue_ be such an object created in a host-defined manner. Otherwise, let _thisValue_ be *undefined*, indicating that _realm_'s global `this` binding should be the global object.": "let thisValue = undefined",

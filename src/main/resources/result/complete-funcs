@@ -1233,6 +1233,7 @@ INTRINSICS.Number.isSafeInteger
 INTRINSICS.Number.prototype.toString
 INTRINSICS.Number.prototype.valueOf
 INTRINSICS.Object
+INTRINSICS.Object.assign
 INTRINSICS.Object.create
 INTRINSICS.Object.defineProperties
 INTRINSICS.Object.defineProperty
