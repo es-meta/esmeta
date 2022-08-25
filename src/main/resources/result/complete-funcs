@@ -248,11 +248,16 @@ BigInt::bitwiseOR
 BigInt::bitwiseXOR
 BigInt::divide
 BigInt::equal
+BigInt::exponentiate
+BigInt::leftShift
 BigInt::lessThan
 BigInt::multiply
+BigInt::remainder
 BigInt::sameValue
 BigInt::sameValueZero
 BigInt::signedRightShift
+BigInt::subtract
+BigInt::toString
 BigInt::unaryMinus
 BigInt::unsignedRightShift
 BinaryAnd
@@ -1155,6 +1160,7 @@ INTRINSICS.Atomics.store
 INTRINSICS.BigInt
 INTRINSICS.BigInt.asIntN
 INTRINSICS.BigInt.asUintN
+INTRINSICS.BigInt.prototype.toString
 INTRINSICS.BigInt.prototype.valueOf
 INTRINSICS.Boolean
 INTRINSICS.Boolean.prototype.toString
