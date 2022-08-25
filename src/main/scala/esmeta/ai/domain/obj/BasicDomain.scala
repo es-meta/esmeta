@@ -81,6 +81,9 @@ object BasicDomain extends obj.Domain {
   /** get list with abstact values */
   def getList(values: Iterable[AbsValue]): Elem = KeyWiseList(values.toVector)
 
+  /** get list with a merged abstact value */
+  def getMergedList(value: AbsValue): Elem = MergedList(value)
+
   /** get symbol with abstract description value */
   def getSymbol(desc: AbsValue): Elem = SymbolElem(desc)
 
@@ -228,6 +231,11 @@ object BasicDomain extends obj.Domain {
           case l: ListElem               => l.mergedValue
           case NotSupportedElem(_, desc) => AbsValue.Bot
 
+    /** get list with abstact values */
+    def getList: Option[Vector[AbsValue]] = elem match
+      case KeyWiseList(vs) => Some(vs)
+      case _               => None
+
     /** get type */
     def getTy: String = elem match
       case Bot                        => ""
@@ -297,6 +305,14 @@ object BasicDomain extends obj.Domain {
         )
       modifyMap(elem, prop, aux, mergedAux, aux, mergedAux, weak)
 
+    /** concat */
+    def concat(list: AbsObj, weak: Boolean): Elem = list match
+      case MergedList(value) =>
+        modifyList(elem, x => x, _ ⊔ value, true)
+      case list @ KeyWiseList(values) =>
+        modifyList(elem, _ ++ values, _ ⊔ list.mergedValue, weak)
+      case _ => Top
+
     /** appends */
     def append(value: AbsValue, weak: Boolean): Elem =
       modifyList(elem, _ :+ value, _ ⊔ value, weak)
@@ -362,6 +378,26 @@ object BasicDomain extends obj.Domain {
         if ((mergedValue ⊓ value).isBottom) AVF
         else AVB
       case _ => AbsValue.Bot
+
+    /** find merged parts */
+    def findMerged(
+      part: Part,
+      path: String,
+      aux: (AbsValue, String, String) => Unit,
+    ): Unit = elem match
+      case Bot =>
+      case SymbolElem(desc) =>
+        aux(desc, s"$path.desc", s"$part.desc")
+      case PropMap(_, map, Some(_)) =>
+        for ((p, v) <- map) {
+          aux(v, s"$path[$p]", s"$part[$p]")
+        }
+      case KeyWiseList(values) =>
+        for ((v, k) <- values.zipWithIndex) {
+          aux(v, s"$path[$k]", s"$part[$k]")
+        }
+      case NotSupportedElem(_, _) =>
+      case obj => println(s"$path ($part) is merged object: $obj")
   }
 
   // ---------------------------------------------------------------------------

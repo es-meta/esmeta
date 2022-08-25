@@ -24,8 +24,8 @@ trait Domain extends domain.Domain[Heap] {
     def isSingle: Boolean
 
     /** singleton address partition checks */
-    def isSingle(aloc: AbsPart): Boolean
-    def isSingle(loc: Part): Boolean
+    def isSingle(apart: AbsPart): Boolean
+    def isSingle(part: Part): Boolean
 
     /** handle calls */
     def doCall: Elem
@@ -39,58 +39,65 @@ trait Domain extends domain.Domain[Heap] {
     def reachableParts(initParts: Set[Part]): Set[Part]
 
     /** remove given address partitions */
-    def removeParts(locs: Part*): Elem
-    def removeParts(locs: Set[Part]): Elem
+    def removeParts(parts: Part*): Elem
+    def removeParts(parts: Set[Part]): Elem
 
     /** lookup abstract address partitions */
-    def apply(loc: Part): AbsObj
-    def apply(loc: AbsPart, prop: AbsValue): AbsValue
-    def apply(loc: Part, prop: AbsValue): AbsValue
+    def apply(part: Part): AbsObj
+    def apply(part: AbsPart, prop: AbsValue): AbsValue
+    def apply(part: Part, prop: AbsValue): AbsValue
 
     /** setters */
-    def update(loc: AbsPart, prop: AbsValue, value: AbsValue): Elem
+    def update(part: AbsPart, prop: AbsValue, value: AbsValue): Elem
 
     /** delete */
-    def delete(loc: AbsPart, prop: AbsValue): Elem
+    def delete(part: AbsPart, prop: AbsValue): Elem
+
+    /** concat */
+    def concat(part: AbsPart, value: AbsValue): Elem
 
     /** appends */
-    def append(loc: AbsPart, value: AbsValue): Elem
+    def append(part: AbsPart, value: AbsValue): Elem
 
     /** prepends */
-    def prepend(loc: AbsPart, value: AbsValue): Elem
+    def prepend(part: AbsPart, value: AbsValue): Elem
 
     /** pops */
-    def pop(loc: AbsPart, front: Boolean): (AbsValue, Elem)
+    def pop(part: AbsPart, front: Boolean): (AbsValue, Elem)
 
     /** remove */
-    def remove(loc: AbsPart, value: AbsValue): Elem
+    def remove(part: AbsPart, value: AbsValue): Elem
 
     /** copy objects */
     def copyObj(from: AbsPart)(to: AllocSite): Elem
 
     /** keys of map */
-    def keys(loc: AbsPart, intSorted: Boolean)(to: AllocSite): Elem
+    def keys(part: AbsPart, intSorted: Boolean)(to: AllocSite): Elem
 
     /** has SubMap */
     def hasSubMap(tname: String): Boolean
 
-    /** map aladdress partitions */
+    /** allocation of map with address partitions */
     def allocMap(
+      to: AllocSite,
       tname: String,
-      pairs: List[(AbsValue, AbsValue)],
-    )(to: AllocSite): Elem
+      pairs: Iterable[(AbsValue, AbsValue)] = Nil,
+    ): Elem
 
-    /** list aladdress partitions */
-    def allocList(values: Iterable[AbsValue] = Nil)(to: AllocSite): Elem
+    /** allocation of list with address partitions */
+    def allocList(
+      to: AllocSite,
+      values: Iterable[AbsValue] = Nil,
+    ): Elem
 
-    /** symbol aladdress partitions */
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem
+    /** allocation of symbol with address partitions */
+    def allocSymbol(to: AllocSite, desc: AbsValue): Elem
 
     /** set type of objects */
-    def setType(loc: AbsPart, tname: String): Elem
+    def setType(part: AbsPart, tname: String): Elem
 
     /** check contains */
-    def contains(loc: AbsPart, value: AbsValue): AbsValue
+    def contains(part: AbsPart, value: AbsValue): AbsValue
 
     /** conversion to string */
     def toString(detail: Boolean): String

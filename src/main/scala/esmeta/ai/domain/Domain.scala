@@ -5,7 +5,7 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** domain */
-trait Domain[A] {
+trait Domain[A] { self =>
 
   /** top element */
   def Top: Elem
@@ -63,9 +63,9 @@ trait Domain[A] {
     def toString: String = stringify(elem)
 
     /** concretization function */
-    def gamma: BSet[A] = Inf
+    def gamma: BSet[A] = if (isBottom) Fin() else Inf
 
     /** get single value */
-    def getSingle: Flat[A] = Many
+    def getSingle: Flat[A] = if (isBottom) Zero else Many
   }
 }

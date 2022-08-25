@@ -8,7 +8,10 @@ import esmeta.state.*
 trait Domain extends domain.Domain[Obj] {
 
   /** get list with abstact values */
-  def getList(values: Iterable[AbsValue]): Elem
+  def getList(values: Iterable[AbsValue] = Nil): Elem
+
+  /** get list with a merged abstact value */
+  def getMergedList(value: AbsValue): Elem
 
   /** get symbol with abstract description value */
   def getSymbol(desc: AbsValue): Elem
@@ -21,6 +24,9 @@ trait Domain extends domain.Domain[Obj] {
 
     /** lookup */
     def get(akey: AbsValue): AbsValue
+
+    /** get list with abstact values */
+    def getList: Option[Vector[AbsValue]]
 
     /** get type */
     def getTy: String
@@ -37,10 +43,13 @@ trait Domain extends domain.Domain[Obj] {
     /** delete */
     def delete(prop: AbsValue, weak: Boolean): Elem
 
-    /** appends */
+    /** concat */
+    def concat(list: AbsObj, weak: Boolean): Elem
+
+    /** append */
     def append(value: AbsValue, weak: Boolean): Elem
 
-    /** prepends */
+    /** prepend */
     def prepend(value: AbsValue, weak: Boolean): Elem
 
     /** remove */
@@ -57,5 +66,12 @@ trait Domain extends domain.Domain[Obj] {
 
     /** check contains */
     def contains(value: AbsValue): AbsValue
+
+    /** find merged parts */
+    def findMerged(
+      part: Part,
+      path: String,
+      aux: (AbsValue, String, String) => Unit,
+    ): Unit
   }
 }

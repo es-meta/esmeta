@@ -2,6 +2,7 @@ package esmeta.ai.domain
 
 import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.ir.*
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 
@@ -11,25 +12,29 @@ object Config {
   // control flow graphs
   // ---------------------------------------------------------------------------
   def setCFG(cfg: CFG): Unit =
+    val init = new Initialize(cfg)
     this._cfg = cfg
-    this._baseHeap = new Initialize(cfg).initHeap
+    this._baseHeap = init.initHeap
     this._base = (for {
       (addr, obj) <- baseHeap.map
       part = Part.from(addr)
       aobj = AbsObj(obj)
     } yield part -> aobj).toMap
+    this._baseGlobals = for ((x, v) <- init.initGlobal) yield x -> AbsValue(v)
   def cfg: CFG = _cfg
   def baseHeap: Heap = _baseHeap
   def base: Map[Part, AbsObj] = _base
+  def baseGlobals: Map[Id, AbsValue] = _baseGlobals
   private var _cfg = CFG()
   private var _baseHeap = Heap()
   private var _base: Map[Part, AbsObj] = Map()
+  private var _baseGlobals: Map[Id, AbsValue] = Map()
   // ---------------------------------------------------------------------------
   // abstract domains
   // ---------------------------------------------------------------------------
   def setDomain(
     stateDomain: StateDomain = state.BasicDomain,
-    // retDomain: RetDomain,
+    retDomain: RetDomain,
     heapDomain: HeapDomain = heap.BasicDomain,
     objDomain: ObjDomain = obj.BasicDomain,
     valueDomain: ValueDomain = value.BasicDomain,
@@ -54,7 +59,7 @@ object Config {
   ): Unit =
     if (initialized) error("already initialized")
     this._stateDomain = stateDomain
-    // this._retDomain = retDomain
+    this._retDomain = retDomain
     this._heapDomain = heapDomain
     this._objDomain = objDomain
     this._valueDomain = valueDomain
@@ -77,7 +82,7 @@ object Config {
     this._nullDomain = nullDomain
     this._absentDomain = absentDomain
   private var _stateDomain: StateDomain = state.BasicDomain
-  // private var _retDomain: RetDomain
+  private var _retDomain: RetDomain = ret.BasicDomain
   private var _heapDomain: HeapDomain = heap.BasicDomain
   private var _objDomain: ObjDomain = obj.BasicDomain
   private var _valueDomain: ValueDomain = value.BasicDomain
@@ -104,7 +109,7 @@ object Config {
   // ---------------------------------------------------------------------------
   lazy val (
     stateDomain,
-    // retDomain,
+    retDomain,
     heapDomain,
     objDomain,
     valueDomain,
@@ -131,7 +136,7 @@ object Config {
     initialized = true
     (
       _stateDomain,
-      // _retDomain,
+      _retDomain,
       _heapDomain,
       _objDomain,
       _valueDomain,

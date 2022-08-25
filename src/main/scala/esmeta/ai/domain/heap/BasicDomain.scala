@@ -10,6 +10,7 @@ import esmeta.state.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
+import cats.instances.boolean
 
 /** basic domain for heaps */
 object BasicDomain extends heap.Domain {
@@ -138,7 +139,7 @@ object BasicDomain extends heap.Domain {
           case One(str: SimpleValue) =>
             AbsValue(Config.baseHeap.getIntrinsics(str))
           case One(_) => AbsValue.Bot
-          case Many   => ???
+          case Many   => AbsValue.Top
       case _ => elem(part).get(prop)
 
     /** setters */
@@ -149,11 +150,18 @@ object BasicDomain extends heap.Domain {
     def delete(part: AbsPart, prop: AbsValue): Elem =
       applyEach(elem, part)(_.delete(prop, _))
 
-    /** appends */
+    /** concat */
+    def concat(part: AbsPart, value: AbsValue): Elem =
+      val obj = value.part.foldLeft[AbsObj](AbsObj.Bot) {
+        case (obj, part) => obj ⊔ apply(part)
+      }
+      applyEach(elem, part)(_.concat(obj, _))
+
+    /** append */
     def append(part: AbsPart, value: AbsValue): Elem =
       applyEach(elem, part)(_.append(value, _))
 
-    /** prepends */
+    /** prepend */
     def prepend(part: AbsPart, value: AbsValue): Elem =
       applyEach(elem, part)(_.prepend(value, _))
 
@@ -183,11 +191,12 @@ object BasicDomain extends heap.Domain {
     def hasSubMap(tname: String): Boolean =
       (tname endsWith "Object") || (tname endsWith "EnvironmentRecord")
 
-    /** map aladdress partitions */
+    /** allocation of map with address partitions */
     def allocMap(
+      to: AllocSite,
       tname: String,
-      pairs: List[(AbsValue, AbsValue)],
-    )(to: AllocSite): Elem =
+      pairs: Iterable[(AbsValue, AbsValue)],
+    ): Elem =
       given CFG = Config.cfg
       val newObj = pairs.foldLeft(AbsObj(MapObj(tname))) {
         case (m, (k, v)) => m.update(k, v, weak = false)
@@ -203,12 +212,14 @@ object BasicDomain extends heap.Domain {
         alloc(newElem, subMapPart, subMapObj)
       } else alloc(elem, to, newObj)
 
-    /** list aladdress partitions */
-    def allocList(values: Iterable[AbsValue] = Nil)(to: AllocSite): Elem =
-      alloc(elem, to, AbsObj.getList(values))
+    /** allocation of list with address partitions */
+    def allocList(
+      to: AllocSite,
+      values: Iterable[AbsValue],
+    ): Elem = alloc(elem, to, AbsObj.getList(values))
 
-    /** symbol aladdress partitions */
-    def allocSymbol(desc: AbsValue)(to: AllocSite): Elem =
+    /** allocation of symbol with address partitions */
+    def allocSymbol(to: AllocSite, desc: AbsValue): Elem =
       alloc(elem, to, AbsObj.getSymbol(desc))
 
     /** set type of objects */
