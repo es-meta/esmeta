@@ -11,3 +11,5 @@ var rem_p1_1 = 4n % 3n;
 var rem_p1_2 = 4n % -3n;
 var rem_n1_1 = -4n % 3n;
 var rem_n1_2 = -4n % -3n;
+var lsht = 4n << 2n;
+var lsht2 = 4n << -2n;
