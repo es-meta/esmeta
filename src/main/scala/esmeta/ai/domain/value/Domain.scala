@@ -131,7 +131,7 @@ trait Domain extends domain.Domain[AValue] {
     def typeCheck(tname: String, st: AbsState): Elem
 
     /** helper functions for abstract transfer */
-    def convert(cop: COp, radix: Elem): Elem
+    def convertTo(cop: COp, radix: Elem): Elem
     def sourceText: Elem
     def parse(rule: Elem): Elem
     def duplicated(st: AbsState): Elem

@@ -24,26 +24,26 @@ trait Domain extends domain.Domain[State] {
   extension (elem: Elem) {
 
     /** getters */
-    def apply(
+    def get(
       rv: AbsRefValue,
       cp: ControlPoint,
       check: Boolean,
     ): AbsValue = rv match
-      case AbsRefId(x)            => elem(x, cp, check)
-      case AbsRefProp(base, prop) => elem(base, prop, check)
+      case AbsRefId(x)            => elem.get(x, cp, check)
+      case AbsRefProp(base, prop) => elem.get(base, prop, check)
 
     /** getters with identifiers */
-    def apply(x: Id, cp: ControlPoint, check: Boolean): AbsValue =
+    def get(x: Id, cp: ControlPoint, check: Boolean): AbsValue =
       val v = directLookup(x)
       if (cp.isBuiltin && AbsValue.absentTop ⊑ v)
         v.removeAbsent ⊔ AbsValue.undefTop
       else v
 
     /** getters with bases and properties */
-    def apply(base: AbsValue, prop: AbsValue, check: Boolean = true): AbsValue
+    def get(base: AbsValue, prop: AbsValue, check: Boolean = true): AbsValue
 
     /** getters with an address partition */
-    def apply(part: Part): AbsObj
+    def get(part: Part): AbsObj
 
     /** lookup variables */
     def directLookup(x: Id): AbsValue = x match
@@ -59,8 +59,9 @@ trait Domain extends domain.Domain[State] {
 
     /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
-      case AbsRefId(id)           => !directLookup(id).isAbsent
-      case AbsRefProp(base, prop) => !elem(base, prop, check = false).isAbsent
+      case AbsRefId(id) => !directLookup(id).isAbsent
+      case AbsRefProp(base, prop) =>
+        !elem.get(base, prop, check = false).isAbsent
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem
@@ -95,23 +96,26 @@ trait Domain extends domain.Domain[State] {
     def setType(part: AbsValue, tname: String): (AbsValue, Elem)
 
     /** copy object */
-    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem)
+    def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem)
 
     /** get object keys */
     def keys(
+      to: AllocSite,
       part: AbsValue,
       intSorted: Boolean,
-      to: AllocSite,
     ): (AbsValue, Elem)
 
     /** list concatenation */
-    def concat(ls: Iterable[AbsValue], to: AllocSite): (AbsValue, Elem)
+    def concat(
+      to: AllocSite,
+      ls: Iterable[AbsValue] = Nil,
+    ): (AbsValue, Elem)
 
     /** get childeren of AST */
     def getChildren(
+      to: AllocSite,
       ast: AbsValue,
       kindOpt: Option[AbsValue],
-      to: AllocSite,
     ): (AbsValue, Elem)
 
     /** allocation of map with address partitions */

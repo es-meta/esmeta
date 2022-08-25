@@ -8,7 +8,7 @@ case class View(
   loops: List[LoopCtxt] = Nil,
   intraLoopDepth: Int = 0,
   // TODO tys: List[Type] = Nil,
-)
+) extends AnalyzerElem
 
 /** loop context */
 case class LoopCtxt(loop: Branch, depth: Int)

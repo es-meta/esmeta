@@ -300,7 +300,7 @@ object BasicDomain extends value.Domain {
     // }
 
     /** helper functions for abstract transfer */
-    def convert(cop: COp, radix: Elem): Elem =
+    def convertTo(cop: COp, radix: Elem): Elem =
       import COp.*
       var newV = Bot
       for (Str(s) <- elem.str) newV ⊔= (cop match

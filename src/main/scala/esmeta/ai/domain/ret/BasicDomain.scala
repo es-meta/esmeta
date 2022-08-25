@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.ai.*
 import esmeta.ai.domain.*
 import esmeta.state.*
+import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** basic domain for return values */
@@ -74,5 +75,24 @@ object BasicDomain extends ret.Domain {
       elem.value - that.value,
       elem.state - that.state,
     )
+
+    /** getters */
+    def value: AbsValue = elem.value
+    def state: AbsState = elem.state
+
+    /** conversion to string */
+    def toString(detail: Boolean): String =
+      val app = Appender()
+      if (detail) {
+        app >> elem >> LINE_SEP
+        app >> "globals: "
+        app.wrap {
+          for ((k, v) <- state.globals.toList.sortBy(_._1.toString)) {
+            app :> s"$k -> $v" >> LINE_SEP
+          }
+        } >> LINE_SEP
+        app >> "heap: " >> state.heap
+      } else app >> elem
+      app.toString
   }
 }

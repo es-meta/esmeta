@@ -3,7 +3,7 @@ package esmeta.ai
 import esmeta.cfg.*
 
 /** control points */
-sealed trait ControlPoint {
+sealed trait ControlPoint extends AnalyzerElem {
   val view: View
   val func: Func
   def isBuiltin: Boolean = func.isBuiltin

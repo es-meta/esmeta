@@ -102,7 +102,7 @@ object BasicDomain extends state.Domain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters with bases and properties */
-    def apply(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue =
+    def get(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue =
       val compValue = AbsValue(pureValue = base.comp(prop.str))
       val partValue = elem.heap(base.part, prop)
       val astValue = lookupAst(base.astValue, prop)
@@ -110,7 +110,7 @@ object BasicDomain extends state.Domain {
       compValue ⊔ partValue ⊔ astValue ⊔ strValue
 
     /** getters with an address partition */
-    def apply(part: Part): AbsObj = elem.heap(part)
+    def get(part: Part): AbsObj = elem.heap(part)
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue =
@@ -173,7 +173,7 @@ object BasicDomain extends state.Domain {
       }
 
     /** copy object */
-    def copyObj(from: AbsValue, to: AllocSite): (AbsValue, Elem) =
+    def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) =
       val partV = AbsValue(to)
       elem.bottomCheck(AbsPart)(from.part) {
         (partV, elem.copy(heap = elem.heap.copyObj(from.part)(to)))
@@ -181,9 +181,9 @@ object BasicDomain extends state.Domain {
 
     /** get object keys */
     def keys(
+      to: AllocSite,
       v: AbsValue,
       intSorted: Boolean,
-      to: AllocSite,
     ): (AbsValue, Elem) =
       val partV = AbsValue(to)
       elem.bottomCheck(AbsPart)(v.part) {
@@ -191,7 +191,10 @@ object BasicDomain extends state.Domain {
       }
 
     /** list concatenation */
-    def concat(lists: Iterable[AbsValue], to: AllocSite): (AbsValue, Elem) =
+    def concat(
+      to: AllocSite,
+      lists: Iterable[AbsValue] = Nil,
+    ): (AbsValue, Elem) =
       elem.bottomCheck(AbsValue)(lists) {
         import monad.*
         (for {
@@ -205,9 +208,9 @@ object BasicDomain extends state.Domain {
 
     /** get childeren of AST */
     def getChildren(
+      to: AllocSite,
       ast: AbsValue,
       kindOpt: Option[AbsValue],
-      to: AllocSite,
     ): (AbsValue, Elem) = (kindOpt.map(_.getSingle), ast.getSingle) match
       case (Some(Zero), _) | (_, Zero) => (AbsValue.Bot, Bot)
       case (Some(Many), _) | (_, Many) => exploded("EGetChildren")
