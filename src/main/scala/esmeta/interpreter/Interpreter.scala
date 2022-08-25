@@ -295,6 +295,7 @@ class Interpreter(
         case (BigInt(n), ToBigInt) => BigInt(n)
         case (Math(n), ToMath)     => Math(n)
         case (Number(d), ToNumber) => Number(d)
+        case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
         // TODO other cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }

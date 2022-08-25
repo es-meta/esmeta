@@ -685,6 +685,10 @@ trait Parsers extends IndentParsers {
     // rounding towards 0
     expr <~ "rounded towards 0 to the next integer value" ^^ {
       case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    } |
+    // rounding towards nearest integer
+    expr <~ ", rounding down to the nearest integer, including for negative numbers" ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToNumber, List(e))
     }
 
   // not yet supported expressions
