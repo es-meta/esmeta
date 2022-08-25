@@ -193,7 +193,8 @@ class StringifyTinyTest extends LangTest {
     lazy val recordExpr =
       RecordExpression(ty, List(fieldLit -> refExpr))
     lazy val lengthExpr = LengthExpression(refExpr)
-    lazy val substrExpr = SubstringExpression(refExpr, refExpr, refExpr)
+    lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
+    lazy val substrExprTo = SubstringExpression(refExpr, refExpr, Some(refExpr))
     lazy val numberOfExpr = NumberOfExpression(refExpr)
     lazy val sourceTextExpr = SourceTextExpression(nt)
     lazy val coveredByExpr = CoveredByExpression(nt, nt)
@@ -261,7 +262,8 @@ class StringifyTinyTest extends LangTest {
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       lengthExpr -> "the length of _x_",
-      substrExpr -> "the substring of _x_ from _x_ to _x_",
+      substrExpr -> "the substring of _x_ from _x_",
+      substrExprTo -> "the substring of _x_ from _x_ to _x_",
       numberOfExpr -> "the number of elements in _x_",
       sourceTextExpr -> "the source text matched by |Identifier|",
       coveredByExpr -> "the |Identifier| that is covered by |Identifier|",

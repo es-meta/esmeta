@@ -443,7 +443,10 @@ class Compiler(
         ESubstring(
           compile(fb, expr),
           compile(fb, from),
-          compile(fb, to),
+          to match {
+            case Some(to) => Some(compile(fb, to))
+            case None => None
+          },
         )
       case NumberOfExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")

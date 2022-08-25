@@ -240,9 +240,13 @@ class Interpreter(
     case ESubstring(expr, from, to) =>
       val s = eval(expr).asStr
       val f = eval(from).asInt
-      eval(to) match
-        case Math(n) if s.length < n => Str(s.substring(f))
-        case v                       => Str(s.substring(f, v.asInt))
+      to match {
+        case None => Str(s.substring(f))
+        case Some(to) => eval(to) match {
+          case Math(n) if s.length < n => Str(s.substring(f))
+          case v                       => Str(s.substring(f, v.asInt))
+        }
+      }
     case ERef(ref) =>
       st(eval(ref))
     case EUnary(uop, expr) =>

@@ -26,7 +26,7 @@ case class LengthExpression(expr: Expression) extends Expression with Diverged
 case class SubstringExpression(
   expr: Expression,
   from: Expression,
-  to: Expression,
+  to: Option[Expression],
 ) extends Expression
 
 // `the number of elements in <list>` expressions

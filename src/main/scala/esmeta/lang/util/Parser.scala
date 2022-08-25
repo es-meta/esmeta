@@ -334,7 +334,7 @@ trait Parsers extends IndentParsers {
   lazy val substrExpr: PL[SubstringExpression] =
     ("the substring of" ~> expr) ~
     ("from" ~> expr) ~
-    ("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+    opt("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =
