@@ -196,10 +196,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app >> fields
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
-      case SubstringExpression(expr, from, to) => to match {
-        case Some(to) => app >> "the substring of " >> expr >> " from " >> from >> " to " >> to
-        case None => app >> "the substring of " >> expr >> " from " >> from
-      }
+      case SubstringExpression(expr, from, to) =>
+        app >> "the substring of " >> expr >> " from " >> from
+        to match
+          case Some(to) => app >> " to " >> to
+          case None     => app
       case NumberOfExpression(expr) =>
         app >> "the number of elements in " >> expr
       case SourceTextExpression(expr) =>

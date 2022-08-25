@@ -242,10 +242,11 @@ class Interpreter(
       val f = eval(from).asInt
       to match {
         case None => Str(s.substring(f))
-        case Some(to) => eval(to) match {
-          case Math(n) if s.length < n => Str(s.substring(f))
-          case v                       => Str(s.substring(f, v.asInt))
-        }
+        case Some(to) =>
+          eval(to) match {
+            case Math(n) if s.length < n => Str(s.substring(f))
+            case v                       => Str(s.substring(f, v.asInt))
+          }
       }
     case ERef(ref) =>
       st(eval(ref))

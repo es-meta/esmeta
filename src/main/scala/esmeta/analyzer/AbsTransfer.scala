@@ -427,14 +427,19 @@ case class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(elem)
           st <- get
         } yield st.contains(l, v, field)
-      case ESubstring(expr, from, to) => to match {
-        case Some(to) => for {
-          v <- transfer(expr)
-          f <- transfer(from)
-          t <- transfer(to)
-        } yield v.substring(f, t)
-        case None => throw NotSupported("ESubstring with no to is not supported expression") // TODO
-      }
+      case ESubstring(expr, from, to) =>
+        to match {
+          case Some(to) =>
+            for {
+              v <- transfer(expr)
+              f <- transfer(from)
+              t <- transfer(to)
+            } yield v.substring(f, t)
+          case None =>
+            throw NotSupported(
+              "ESubstring with no to is not supported expression",
+            ) // TODO
+        }
       case ERef(ref) =>
         for {
           rv <- transfer(ref)

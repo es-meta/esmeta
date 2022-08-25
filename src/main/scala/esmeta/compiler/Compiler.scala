@@ -445,7 +445,7 @@ class Compiler(
           compile(fb, from),
           to match {
             case Some(to) => Some(compile(fb, to))
-            case None => None
+            case None     => None
           },
         )
       case NumberOfExpression(ReferenceExpression(ref)) =>
