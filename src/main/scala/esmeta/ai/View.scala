@@ -1,4 +1,14 @@
 package esmeta.ai
 
-/** TODO view abstraction for analysis sensitivities */
-trait View // extends AnalyzerElem
+import esmeta.cfg.*
+
+/** view abstraction for analysis sensitivities */
+case class View(
+  calls: List[Call] = Nil,
+  loops: List[LoopCtxt] = Nil,
+  intraLoopDepth: Int = 0,
+  // TODO tys: List[Type] = Nil,
+)
+
+/** loop context */
+case class LoopCtxt(loop: Branch, depth: Int)

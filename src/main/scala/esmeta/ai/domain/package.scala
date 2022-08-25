@@ -1,5 +1,6 @@
 package esmeta.ai.domain
 
+import esmeta.ai.*
 import esmeta.state.*
 
 // -----------------------------------------------------------------------------

@@ -5,9 +5,19 @@ import esmeta.cfg.*
 /** control points */
 sealed trait ControlPoint {
   val view: View
-  def func: Func
+  val func: Func
   def isBuiltin: Boolean = func.isBuiltin
 }
-case class NodePoint[+T <: Node](func: Func, node: T, view: View)
-  extends ControlPoint
-case class ReturnPoint(func: Func, view: View) extends ControlPoint
+
+/** node points */
+case class NodePoint[+T <: Node](
+  func: Func,
+  node: T,
+  view: View,
+) extends ControlPoint
+
+/** return points */
+case class ReturnPoint(
+  func: Func,
+  view: View,
+) extends ControlPoint

@@ -1,5 +1,6 @@
-package esmeta.ai.domain
+package esmeta.ai
 
+import esmeta.ai.domain.*
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ir.*
@@ -57,7 +58,7 @@ object Config {
     nullDomain: NullDomain = nullv.SimpleDomain,
     absentDomain: AbsentDomain = absent.SimpleDomain,
   ): Unit =
-    if (initialized) error("already initialized")
+    if (initialized) error("analysis configuration is already initialized")
     this._stateDomain = stateDomain
     this._retDomain = retDomain
     this._heapDomain = heapDomain
@@ -132,7 +133,6 @@ object Config {
     nullDomain,
     absentDomain,
   ) =
-    if (initialized) error("already initialized")
     initialized = true
     (
       _stateDomain,

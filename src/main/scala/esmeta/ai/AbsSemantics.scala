@@ -1,11 +1,19 @@
 package esmeta.ai
 
-// import esmeta.ai.sensitivity.*
-// import esmeta.cfg.*
-// import scala.annotation.tailrec
+import esmeta.ai.domain.*
+import esmeta.cfg.*
+import scala.annotation.tailrec
 
 /** TODO abstract semantics */
-class AbsSemantics {
+case class AbsSemantics(
+  var npMap: Map[NodePoint[Node], AbsState] = Map(),
+  var rpMap: Map[ReturnPoint, AbsRet] = Map(),
+  var callInfo: Map[NodePoint[Call], AbsState] = Map(),
+  var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
+  var loopOut: Map[View, Set[View]] = Map(),
+  timeLimit: Option[Long] = None,
+  debug: Boolean = false,
+) {
   // /** abstract states in each node point */
   // var npMap: Map[NodePoint[Node], AbsState] = Map(),
 
@@ -49,9 +57,9 @@ class AbsSemantics {
   // /** iteration period for check */
   // val CHECK_PERIOD = 10000
 
-  // /** fixpiont computation */
-  // @tailrec
-  // final def fixpoint: AbsSemantics = worklist.next match {
+  /** fixpiont computation */
+  // XXX @tailrec
+  final def fixpoint: AbsSemantics = ??? // worklist.next match {
   //   case Some(cp) => {
   //     iter += 1
 
