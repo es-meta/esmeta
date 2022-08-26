@@ -1,9 +1,10 @@
 package esmeta.phase
 
 import esmeta.*
+import esmeta.ai.*
+import esmeta.ai.domain
+import esmeta.ai.{Config => AnalysisConfig, *}
 import esmeta.cfg.CFG
-import esmeta.analyzer.*
-import esmeta.analyzer.domain
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
@@ -15,23 +16,12 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): AbsSemantics = {
-    // initalize
-    domain._cfgOpt = Some(cfg)
-    domain.ABS_STATE = domain.TypeStateDomain
-    domain.ABS_VALUE = domain.TypeDomain
-    IR_SENS = false
-    TYPE_SENS = true
-    val npMap = Initialize.initType(cfg)
-
-    // perform type analysis
-    AbsSemantics(npMap).fixpoint
-  }
+  ): AbsSemantics = ???
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
       "repl",
-      BoolOption(c => USE_REPL = true),
+      BoolOption(c => AnalysisConfig.USE_REPL = true),
       "use a REPL for type analysis of ECMA-262.",
     ),
   )

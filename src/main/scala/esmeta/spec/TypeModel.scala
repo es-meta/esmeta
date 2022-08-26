@@ -1,8 +1,8 @@
 package esmeta.spec
 
+import esmeta.typing.*
+import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
-import esmeta.analyzer.domain.*
-import esmeta.analyzer.util.warning
 
 /** type modeling */
 // TODO consider refactoring
@@ -56,7 +56,7 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
     else
       propMap(tname).getOrElse(
         p, {
-          if (check) warning(s"unknown property access: $tname.$p")
+          if (check) warn(s"unknown property access: $tname.$p")
           Set(AbsentT)
         },
       )
@@ -834,6 +834,6 @@ case class TypeInfo(
       fs = fields.getOrElse(k, Set())
       tys = methods.get(k) match
         case None         => fs
-        case Some(method) => fs + CloT(method)
+        case Some(method) => fs + ??? // CloT(method)
     } yield k -> tys).toMap
 }

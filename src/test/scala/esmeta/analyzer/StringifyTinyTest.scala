@@ -1,4 +1,4 @@
-package esmeta.analyzer
+package esmeta.ai
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}

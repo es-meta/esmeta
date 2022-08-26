@@ -74,7 +74,6 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     CmdInject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
-    CmdAnalyze,
     CmdAI,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -99,7 +98,6 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     Inject,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
-    Analyze,
     AI,
   )
 

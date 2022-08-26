@@ -163,7 +163,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 object ESMetaTest {
   // extract specifications
   lazy val specOpt = optional(Extractor())
-  lazy val spec = ESMetaTest.specOpt.getOrElse(error("invalid spec"))
+  lazy val spec = Extractor()
   lazy val grammar = spec.grammar
   lazy val program = Compiler(spec)
   lazy val cfg = CFGBuilder(program)
