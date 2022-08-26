@@ -10,7 +10,7 @@ object Stringifier {
   import Appender.*, Symbol.*
 
   given elemRule: Rule[SpecElem] = (app, elem) =>
-    elem match {
+    elem match
       case elem: Spec            => specRule(app, elem)
       case elem: Summary         => summaryRule(app, elem)
       case elem: Grammar         => grammarRule(app, elem)
@@ -30,13 +30,13 @@ object Stringifier {
       case elem: Param.Kind      => paramKindRule(app, elem)
       case elem: Table           => tableRule(app, elem)
       case elem: Type            => tyRule(app, elem)
-    }
 
   // for specifications
-  given specRule: Rule[Spec] = (app, spec) => app >> spec.summary
+  given specRule: Rule[Spec] = (app, spec) =>
+    if (!spec.isEmpty) app >> spec.summary else app
 
   // for specification summaries
-  given summaryRule: Rule[Summary] = (app, summary) => {
+  given summaryRule: Rule[Summary] = (app, summary) =>
     import Production.Kind.*
     val Summary(version, grammar, algo, step, tables, typeModel) = summary
     version.map(app >> "- version: " >> _.toString >> LINE_SEP)
@@ -54,67 +54,60 @@ object Stringifier {
     app :> "  - incomplete: " >> step.incomplete
     app :> "- tables: " >> tables
     app :> "- type model: " >> typeModel
-  }
 
   // for grammars
-  given grammarRule: Rule[Grammar] = (app, grammar) => {
+  given grammarRule: Rule[Grammar] = (app, grammar) =>
     given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
     app >> "<Productions>"
     app :> grammar.prods
     app :> ""
     app :> "<Productions for Web>"
     app :> grammar.prodsForWeb
-  }
 
   // for productions
-  given prodRule: Rule[Production] = (app, prod) => {
+  given prodRule: Rule[Production] = (app, prod) =>
     val Production(lhs, kind, oneof, rhsList) = prod
     app >> lhs >> " " >> kind
     given Rule[List[Rhs]] = iterableRule(sep = " ")
     if (oneof) app.wrap(" one of", "")(app :> rhsList)
     else app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
-  }
 
   // for production left-hand-sides (LHSs)
-  given lhsRule: Rule[Lhs] = (app, lhs) => {
+  given lhsRule: Rule[Lhs] = (app, lhs) =>
     val Lhs(name, params) = lhs
     given Rule[List[String]] = iterableRule("[", ", ", "]")
     app >> name
     if (!params.isEmpty) app >> params else app
-  }
 
   // for production kinds
-  given prodKindRule: Rule[Production.Kind] = (app, kind) => {
+  given prodKindRule: Rule[Production.Kind] = (app, kind) =>
     import Production.Kind.*
-    app >> (kind match {
+    app >> (kind match
       case Syntactic     => ":"
       case Lexical       => "::"
       case NumericString => ":::"
-    })
-  }
+    )
 
   // for production alternative right-hand-sides (RHSs)
-  given rhsRule: Rule[Rhs] = (app, rhs) => {
+  given rhsRule: Rule[Rhs] = (app, rhs) =>
     val Rhs(condition, symbols, id) = rhs
     given Rule[List[Symbol]] = iterableRule(sep = " ")
     condition.foreach(app >> _ >> " ")
     app >> symbols
     id.foreach(app >> " #" >> _)
     app
-  }
 
   // for condidtions for RHSs
-  given rhsCondRule: Rule[RhsCond] = (app, rhsCond) => {
+  given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
     val RhsCond(name, pass) = rhsCond
     app >> "[" >> (if (pass) "+" else "~") >> name >> "]"
-  }
 
   // for condidtions for symbols
   given symbolRule: Rule[Symbol] = (app, symbol) =>
     given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
     given t: Rule[List[Symbol]] = iterableRule(sep = " ")
     given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")
-    symbol match {
+    symbol match
       case Terminal(term)      => app >> s"`$term`"
       case ButNot(base, cases) => app >> base >> " but not " >> cases
       case Empty               => app >> "[empty]"
@@ -133,22 +126,20 @@ object Stringifier {
         app >> "> any Unicode code point"
         cond.map(app >> " " >> _)
         app
-    }
 
   // for condidtions for nonterminal arguments
-  given ntArgRule: Rule[NtArg] = (app, ntArg) => {
+  given ntArgRule: Rule[NtArg] = (app, ntArg) =>
     val NtArg(kind, name) = ntArg
     app >> kind >> name
-  }
 
   // for condidtions for nonterminal argument kinds
   given ntArgKindRule: Rule[NtArg.Kind] = (app, kind) =>
     import NtArg.Kind.*
-    app >> (kind match {
+    app >> (kind match
       case True  => "+"
       case False => "~"
       case Pass  => "?"
-    })
+    )
 
   // for algorithms
   given algoRule: Rule[Algorithm] = (app, algo) => ??? // TODO
@@ -156,7 +147,7 @@ object Stringifier {
   // for algorithm heads
   given headRule: Rule[Head] = (app, head) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
-    head match {
+    head match
       case AbstractOperationHead(isHostDefined, name, params, rty) =>
         app >> name >> params >> ": " >> rty
       case NumericMethodHead(ty, name, params, rty) =>
@@ -181,7 +172,6 @@ object Stringifier {
         app >> params >> ": " >> rty
       case BuiltinHead(ref, params, rty) =>
         app >> "[BUILTIN] " >> ref >> params >> ": " >> rty
-    }
 
   given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) =>
     import BuiltinHead.Ref.*
