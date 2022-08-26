@@ -2,12 +2,17 @@ package esmeta.spec.util
 
 import esmeta.LINE_SEP
 import esmeta.util.Appender
+import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.spec.*
+import esmeta.typing.*
+import esmeta.typing.util.Stringifier.Target
 
 /** stringifier for specifications */
 object Stringifier {
-  import Appender.*, Symbol.*
+  // stringifier for IR
+  val typeStringifier = TypeElem.getStringifier(Target.Lang)
+  import typeStringifier.{given, *}
 
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match
@@ -29,7 +34,6 @@ object Stringifier {
       case elem: Param           => paramRule(app, elem)
       case elem: Param.Kind      => paramKindRule(app, elem)
       case elem: Table           => tableRule(app, elem)
-      case elem: Type            => tyRule(app, elem)
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) =>
@@ -195,9 +199,6 @@ object Stringifier {
 
   // TODO: for algorithm parameter kinds
   given paramKindRule: Rule[Param.Kind] = (app, param) => ???
-
-  // TODO: for types
-  given tyRule: Rule[Type] = (app, ty) => app >> ty.name
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???

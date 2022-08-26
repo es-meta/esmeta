@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.typing.Type
 import esmeta.spec.util.Parser
 
 /** algorithm heads */

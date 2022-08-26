@@ -1,7 +1,6 @@
 package esmeta.lang
 
 import esmeta.util.BaseUtils.*
-import esmeta.spec.{Type => SType, *}
 import esmeta.lang.*
 
 /** stringify test */

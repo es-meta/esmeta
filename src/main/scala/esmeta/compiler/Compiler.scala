@@ -5,7 +5,8 @@ import esmeta.ir.{Type => IRType, *}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
-import esmeta.spec.{Param => SParam, Type => SType, *}
+import esmeta.spec.{Param => SParam, *}
+import esmeta.typing.{Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
@@ -762,7 +763,7 @@ class Compiler(
   /** compile types */
   def compile(ty: SType): IRType = compile(ty.toLang)
   def compile(ty: Type): IRType =
-    if (ty == UnknownType) AnyType else IRType(ty.normalized.name)
+    if (ty == TopT) AnyType else IRType(ty.normalized.name)
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

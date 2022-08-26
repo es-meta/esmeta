@@ -1,15 +1,19 @@
 package esmeta.typing
 
 import esmeta.cfg.{Func, Node}
-import esmeta.state.*
 import esmeta.ir.{Name, Expr}
-import esmeta.spec.{Type => SType, *}
-import esmeta.util.BaseUtils.*
+import esmeta.lang.{Type => LangType}
+import esmeta.state.*
 import esmeta.util.DoubleEquals
-import scala.annotation.tailrec
 
 /** types */
-sealed trait Type
+sealed trait Type extends TypeElem {
+  def toLang: LangType = LangType(toString) // TODO
+  def normalizedName: String = toLang.normalized.name // TODO
+}
+object Type:
+  // TODO implement parser
+  def apply(str: String): Type = NameT(str)
 
 /** top type */
 case object TopT extends Type

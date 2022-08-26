@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.spec.util.*
+import esmeta.typing.TopT
 import esmeta.util.BaseUtils.cached
 
 /** alternatives or right-hand-sides (RHSs) of productions */
@@ -58,7 +59,7 @@ case class Rhs(
   /** get parameters from RHSs */
   // TODO give more precise type
   def params: List[Param] =
-    nts.map(nt => Param(nt.name, Param.Kind.Normal, UnknownType))
+    nts.map(nt => Param(nt.name, Param.Kind.Normal, TopT))
 }
 object Rhs extends Parser.From[Rhs] {
 

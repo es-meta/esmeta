@@ -2,6 +2,7 @@ package esmeta.spec
 
 import esmeta.util.BaseUtils.*
 import esmeta.spec.*
+import esmeta.typing.*
 import Symbol.*
 
 /** stringify test */
@@ -160,7 +161,7 @@ class StringifyTinyTest extends SpecTest {
           Param("searchValue", Param.Kind.Normal, Type("a String")),
           Param("fromIndex", Param.Kind.Normal, Type("a non-negative integer")),
         ),
-        UnknownType,
+        TopT,
       ) -> "StringIndexOf(string, searchValue, fromIndex): unknown",
       NumericMethodHead(
         Type("Number"),
@@ -168,14 +169,14 @@ class StringifyTinyTest extends SpecTest {
         List(
           Param("x", Param.Kind.Normal, Type("a Number")),
         ),
-        UnknownType,
+        TopT,
       ) -> "Number::unaryMinus(x): unknown",
       SyntaxDirectedOperationHead(
         None,
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-        UnknownType,
+        TopT,
       ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
@@ -194,7 +195,7 @@ class StringifyTinyTest extends SpecTest {
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-        UnknownType,
+        TopT,
       ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
@@ -211,7 +212,7 @@ class StringifyTinyTest extends SpecTest {
         "Evaluation",
         false,
         List(),
-        UnknownType,
+        TopT,
       ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R](): unknown",
       ConcreteMethodHead(
         "HasBinding",
@@ -221,18 +222,18 @@ class StringifyTinyTest extends SpecTest {
           Type("a declarative Environment Record"),
         ),
         List(Param("N", Param.Kind.Normal, Type("a String"))),
-        UnknownType,
+        TopT,
       ) -> "[METHOD] HasBinding(envRec)(N): unknown", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
       InternalMethodHead(
         "SetPrototypeOf",
         Param("O", Param.Kind.Normal, Type("an ordinary object")),
         List(Param("V", Param.Kind.Normal, Type("an Object or null"))),
-        UnknownType,
+        TopT,
       ) -> "[METHOD] SetPrototypeOf(O)(V): unknown", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
         Base("Boolean"),
         List(Param("value", Param.Kind.Normal, Type("an argument"))),
-        UnknownType,
+        TopT,
       ) -> "[BUILTIN] Boolean(value): unknown",
     )
   }

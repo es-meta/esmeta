@@ -4,13 +4,13 @@ import scala.io.Source
 import esmeta.*
 import esmeta.lang.Step
 import esmeta.spec.{*, given}
+import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
 import esmeta.spec.Summary.AlgorithmElem
-import akka.http.scaladsl.model.headers.LinkParams.`type`
 
 /** specification parsers */
 object Parser extends Parsers
@@ -228,8 +228,8 @@ trait Parsers extends BasicParsers {
     opt("optional") ~ specId ~ opt(":" ~> ty) ^^ {
       case opt ~ name ~ ty =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, ty.getOrElse(UnknownType))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, UnknownType)
+        Param(name, kind, ty.getOrElse(TopT))
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, TopT)
   }.named("spec.Param")
 
   // algorithm parameter description
@@ -323,7 +323,7 @@ trait Parsers extends BasicParsers {
     "[a-zA-Z0-9/]+".r
 
   lazy val retTy: Parser[Type] =
-    opt(":" ~> ty) ^^ { _.getOrElse(UnknownType) }
+    opt(":" ~> ty) ^^ { _.getOrElse(TopT) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =
