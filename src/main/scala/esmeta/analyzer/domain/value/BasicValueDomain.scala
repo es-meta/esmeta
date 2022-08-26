@@ -424,42 +424,44 @@ object BasicValueDomain extends ValueDomain {
     }
 
     /** helper functions for abstract transfer */
+    private def asInt: Set[Int] =
+      var set = Set[Int]()
+      for (AMath(n) <- this.math if n.isValidInt) set += n.toInt
+      for (Number(n) <- this.num if n.isValidInt) set += n.toInt
+      set
     def convert(cop: COp, radix: Elem): Elem = {
       import COp.*
       var newV = Bot
-      for (Str(s) <- this.str) newV ⊔= (cop match
-        case ToNumber => apply(Number(ESValueParser.str2Number(s)))
-        case ToBigInt => apply(ESValueParser.str2bigint(s))
-        case _        => Bot
-      )
-      for (AMath(n) <- this.math) newV ⊔= (cop match
-        case ToNumber => apply(Number(n.toDouble))
-        case ToBigInt => apply(BigInt(n.toBigInt))
-        case _        => Bot
-      )
-      for (BigInt(b) <- this.bigint) newV ⊔= (cop match
-        case ToMath => apply(Math(BigDecimal.exact(b)))
-        case _      => Bot
-      )
       for (ACodeUnit(cu) <- this.codeunit) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
         case _      => Bot
       )
-      for (Number(d) <- this.num)
-        newV ⊔= (cop match
-          case ToNumber | ToMath if d.isInfinity => apply(d)
-          case ToMath => apply(Math(BigDecimal.exact(d)))
-          case _: ToStr =>
-            var newV0 = Bot
-            for (AMath(n) <- radix.math if n.isValidInt) {
-              newV0 ⊔= apply(toStringHelper(d, n.toInt))
-            }
-            for (Number(n) <- radix.num if n.isValidInt) {
-              newV0 ⊔= apply(toStringHelper(d, n.toInt))
-            }
-            newV0
-          case _ => Bot
-        )
+      for (AMath(n) <- this.math) newV ⊔= (cop match
+        case ToNumber => apply(Number(n.toDouble))
+        case ToBigInt => apply(BigInt(n.toBigInt))
+        case ToMath   => apply(AMath(n))
+        case _        => Bot
+      )
+      for (Str(s) <- this.str) newV ⊔= (cop match
+        case ToNumber => apply(Number(ESValueParser.str2Number(s)))
+        case ToBigInt => apply(ESValueParser.str2bigint(s))
+        case _: ToStr => apply(Str(s))
+        case _        => Bot
+      )
+      for (Number(d) <- this.num) newV ⊔= (cop match
+        case ToMath => apply(Math(BigDecimal.exact(d)))
+        case _: ToStr =>
+          radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(toStringHelper(d, n)))
+        case ToNumber => apply(Number(d))
+        case ToBigInt => apply(BigInt(BigDecimal.exact(d).toBigInt))
+      )
+      for (BigInt(b) <- this.bigint) newV ⊔= (cop match
+        case ToMath => apply(Math(BigDecimal.exact(b)))
+        case _: ToStr =>
+          radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(Str(b.toString(n))))
+        case ToBigInt => apply(BigInt(b))
+        case _        => Bot
+      )
       newV
     }
     def sourceText: Elem = apply(str =

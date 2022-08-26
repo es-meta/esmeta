@@ -280,26 +280,30 @@ class Interpreter(
     case EConvert(cop, expr) =>
       import COp.*
       (eval(expr), cop) match {
-        case (Math(n), ToNumber)          => Number(n.toDouble)
-        case (Math(n), ToBigInt)          => BigInt(n.toBigInt)
-        case (Str(s), ToNumber)           => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt)           => ESValueParser.str2bigint(s)
-        case (POS_INF, ToMath | ToNumber) => POS_INF
-        case (NEG_INF, ToMath | ToNumber) => NEG_INF
-        case (Number(d), ToMath)          => Math(BigDecimal.exact(d))
-        case (CodeUnit(c), ToMath)        => Math(BigDecimal.exact(c.toInt))
-        case (BigInt(n), ToMath)          => Math(BigDecimal.exact(n))
+        // code unit
+        case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
+        // mathematical value
+        case (Math(n), ToNumber) => Number(n.toDouble)
+        case (Math(n), ToBigInt) => BigInt(n.toBigInt)
+        case (Math(n), ToMath)   => Math(n)
+        // string
+        case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
+        case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
+        case (Str(s), _: ToStr) => Str(s)
+        // numbers
+        case (Number(d), ToMath) => Math(BigDecimal.exact(d))
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
+        case (Number(d), ToNumber) => Number(d)
+        case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
+        // big integer
+        case (BigInt(n), ToMath) => Math(BigDecimal.exact(n))
         case (BigInt(n), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(n.toString(radix))
         case (BigInt(n), ToBigInt) => BigInt(n)
-        case (Math(n), ToMath)     => Math(n)
-        case (Number(d), ToNumber) => Number(d)
-        case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
-        // TODO other cases
+        // invalid cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
     case ETypeOf(base) =>

@@ -30,7 +30,7 @@
   "async1.js" : true,
   "await1.js" : true,
   "await2.js" : true,
-  "bigint.js" : false,
+  "bigint.js" : true,
   "bind1.js" : true,
   "bitwise.js" : true,
   "block1.js" : true,
