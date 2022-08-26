@@ -2,14 +2,14 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.ai.{Config => AnalysisConfig, *}
-import esmeta.ai.domain
+import esmeta.analyzer.{Config => AnalysisConfig, *}
+import esmeta.analyzer.domain
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
-/** `ai` phase */
-case object AI extends Phase[CFG, AbsSemantics] {
-  val name = "ai"
+/** `analyze` phase */
+case object Analyze extends Phase[CFG, AbsSemantics] {
+  val name = "analyze"
   val help = "analyzes an ECMAScript file using meta-level static analysis."
   def apply(
     cfg: CFG,

@@ -172,13 +172,13 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
-/** `ai` command */
-case object CmdAI extends Command("ai", CmdBuildCFG >> AI) {
+/** `analyze` command */
+case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
   val help = "analyzes an ECMAScript file using meta-level static analysis."
   val examples = List(
-    "esmeta ai a.js                         # analyze a.js file.",
-    "esmeta ai a.js -extract:target=es2022  # analyze with es2022 spec.",
-    "esmeta ai a.js -analyze:repl           # analyze in a REPL mode.",
+    "esmeta analyzer a.js                         # analyze a.js file.",
+    "esmeta analyzer a.js -extract:target=es2022  # analyze with es2022 spec.",
+    "esmeta analyzer a.js -analyze:repl           # analyze in a REPL mode.",
   )
   override val targetName = "<js>+"
 }

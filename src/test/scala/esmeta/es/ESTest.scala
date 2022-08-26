@@ -1,8 +1,8 @@
 package esmeta.es
 
 import esmeta.ESMetaTest
-import esmeta.ai.*
-import esmeta.ai.domain.*
+import esmeta.analyzer.*
+import esmeta.analyzer.domain.*
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.es.util.*

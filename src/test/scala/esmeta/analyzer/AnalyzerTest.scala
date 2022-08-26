@@ -1,4 +1,4 @@
-package esmeta.ai
+package esmeta.analyzer
 
 import esmeta.ESMetaTest
 

@@ -1,8 +1,8 @@
 package esmeta.es
 
 import esmeta.{ESMetaTest, ES_TEST_DIR}
-import esmeta.ai.Config
-import esmeta.ai.domain.*
+import esmeta.analyzer.Config
+import esmeta.analyzer.domain.*
 import esmeta.util.SystemUtils.*
 
 class AnalyzeSmallTest extends ESTest {

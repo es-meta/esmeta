@@ -1,9 +1,9 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.ai.*
-import esmeta.ai.domain
-import esmeta.ai.{Config => AnalysisConfig, *}
+import esmeta.analyzer.*
+import esmeta.analyzer.domain
+import esmeta.analyzer.{Config => AnalysisConfig, *}
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
