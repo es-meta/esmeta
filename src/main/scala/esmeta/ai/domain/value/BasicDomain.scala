@@ -302,37 +302,35 @@ object BasicDomain extends value.Domain {
     def convertTo(cop: COp, radix: Elem): Elem =
       import COp.*
       var newV = Bot
-      for (Str(s) <- elem.str) newV ⊔= (cop match
-        case ToNumber => apply(Number(ESValueParser.str2Number(s)))
-        case ToBigInt => apply(ESValueParser.str2bigInt(s))
-        case _        => Bot
-      )
-      for (Math(n) <- elem.math) newV ⊔= (cop match
-        case ToNumber => apply(Number(n.toDouble))
-        case ToBigInt => apply(BigInt(n.toBigInt))
-        case _        => Bot
-      )
-      for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
-        case ToMath => apply(Math(BigDecimal.exact(b)))
-        case _      => Bot
-      )
       for (CodeUnit(cu) <- elem.codeUnit) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
         case _      => Bot
       )
+      for (Math(n) <- elem.math) newV ⊔= (cop match
+        case ToNumber => apply(Number(n.toDouble))
+        case ToBigInt => apply(BigInt(n.toBigInt))
+        case ToMath   => apply(Math(n))
+        case _        => Bot
+      )
+      for (Str(s) <- elem.str) newV ⊔= (cop match
+        case ToNumber => apply(Number(ESValueParser.str2Number(s)))
+        case ToBigInt => apply(ESValueParser.str2bigInt(s))
+        case _: ToStr => apply(Str(s))
+        case _        => Bot
+      )
       for (Number(d) <- elem.number) newV ⊔= (cop match
-        case ToNumber | ToMath if d.isInfinity => apply(d)
         case ToMath => apply(Math(BigDecimal.exact(d)))
         case _: ToStr =>
-          var newV0 = Bot
-          for (Math(n) <- radix.math if n.isValidInt) {
-            newV0 ⊔= apply(toStringHelper(d, n.toInt))
-          }
-          for (Number(n) <- radix.number if n.isValidInt) {
-            newV0 ⊔= apply(toStringHelper(d, n.toInt))
-          }
-          newV0
-        case _ => Bot
+          radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(toStringHelper(d, n)))
+        case ToNumber => apply(Number(d))
+        case ToBigInt => apply(BigInt(BigDecimal.exact(d).toBigInt))
+      )
+      for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
+        case ToMath => apply(Math(BigDecimal.exact(b)))
+        case _: ToStr =>
+          radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(Str(b.toString(n))))
+        case ToBigInt => apply(BigInt(b))
+        case _        => Bot
       )
       newV
     def sourceText: Elem = apply(str =
@@ -472,5 +470,15 @@ object BasicDomain extends value.Domain {
     def undef: AbsUndef = elem.pureValue.undef
     def nullv: AbsNull = elem.pureValue.nullv
     def absent: AbsAbsent = elem.pureValue.absent
+
+    // -------------------------------------------------------------------------
+    // private helpers
+    // -------------------------------------------------------------------------
+    // conversion to integers
+    private def asInt: Set[Int] =
+      var set: Set[Int] = Set()
+      for (Math(n) <- elem.math if n.isValidInt) set += n.toInt
+      for (Number(n) <- elem.number if n.isValidInt) set += n.toInt
+      set
   }
 }
