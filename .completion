@@ -14,7 +14,7 @@ _esmeta_completions() {
   cmdList="help extract compile build-cfg type-check parse eval web test262-test inject analyze"
   globalOpt="-silent -time"
   helpOpt=""
-  extractOpt="-extract:target -extract:log"
+  extractOpt="-extract:target -extract:log -extract:repl"
   compileOpt="-compile:log"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   typecheckOpt="-type-check:repl"

@@ -2,9 +2,12 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.extractor.Extractor
+import esmeta.lang.Step
 import esmeta.spec.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.io.StdIn.readLine
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
@@ -14,7 +17,7 @@ case object Extract extends Phase[Unit, Spec] {
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Spec = {
+  ): Spec = if (!config.repl) {
     val spec = Extractor(config.target)
 
     // logging mode
@@ -49,7 +52,29 @@ case object Extract extends Phase[Unit, Spec] {
       spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
     }
     spec
+  } else {
+    runREPL
+    Spec()
   }
+
+  // run REPL
+  private val replWelcomeMessage =
+    """Welcome to REPL for metalanguage parser .
+      |Please input any metalanguage step as an input of the parser.
+      |If you want to exit, please type `q` ro `quit`.""".stripMargin
+  def runREPL: Unit =
+    println(replWelcomeMessage)
+    var keep = true
+    while (keep) stop("parser> ") match
+      case "q" | "quit" => keep = false
+      case input =>
+        for {
+          e <- getError(println(Step.from(input)))
+        } warn(e.getMessage)
+
+  // stop and read user message
+  private def stop(msg: String): String = { print(msg); readLine }
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
@@ -62,9 +87,15 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "repl",
+      BoolOption(c => c.repl = true),
+      "use a REPL for metalanguage parser.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
     var log: Boolean = false,
+    var repl: Boolean = false,
   )
 }

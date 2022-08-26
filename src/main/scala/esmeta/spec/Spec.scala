@@ -62,6 +62,14 @@ case class Spec(
       case algo :: Nil => algo
       case _           => error(s"no algorithms found for $id")
 
+  /** empty check */
+  def isEmpty: Boolean =
+    version == None &&
+    grammar == Grammar() &&
+    algorithms.isEmpty &&
+    tables.isEmpty &&
+    typeModel == TypeModel()
+
   /** ECMAScript version string */
   lazy val versionString: String = version.fold("<none>")(_.toString)
 }
