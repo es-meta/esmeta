@@ -97,10 +97,8 @@ trait Parsers extends IndentParsers {
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
-    "return" ~> end ^^! { ReturnStep(None) } |
-    "return" ~> endWithExpr ^^ {
-      case e => ReturnStep(Some(e))
-    }
+    "return" ~> end ^^! ReturnStep(None) |
+    "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
 
   // assertion steps
   lazy val assertStep: PL[AssertStep] =
@@ -648,25 +646,20 @@ trait Parsers extends IndentParsers {
   // bigint expressions
   lazy val bigintExpr: PL[Expression] =
     "the BigInt value that represents" ~> expr ^^ {
-      case e =>
-        MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
     }
 
   // expressions including calculation represented by words
-  lazy val inWordsExpr: PL[Expression] = {
+  lazy val inWordsExpr: PL[Expression] =
     ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
-    } |
-    ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+    } | ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
-    } |
-    ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
+    } | ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
       case l ~ r => BinaryExpression(l, BinaryExpression.Op.Sub, r)
-    } |
-    (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
+    } | (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
       case l ~ r => ExponentiationExpression(l, r)
     }
-  }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
