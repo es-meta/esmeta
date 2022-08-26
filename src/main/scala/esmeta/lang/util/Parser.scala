@@ -289,6 +289,8 @@ trait Parsers extends IndentParsers {
     listExpr |||
     xrefExpr |||
     soleExpr |||
+    bigintExpr |||
+    inWordsExpr |||
     specialExpr
   }.named("lang.Expression")
 
@@ -415,6 +417,7 @@ trait Parsers extends IndentParsers {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
+
     calc
   }
 
@@ -640,6 +643,24 @@ trait Parsers extends IndentParsers {
     "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
 
+  // bigint expressions
+  lazy val bigintExpr: PL[Expression] =
+    "the BigInt value that represents" ~> expr ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    }
+
+  // expressions including calculation represented by words
+  lazy val inWordsExpr: PL[Expression] =
+    ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
+    } | ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
+    } | ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
+      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Sub, r)
+    } | (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
+      case l ~ r => ExponentiationExpression(l, r)
+    }
+
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
     // ClassStaticBlockDefinitionEvaluation
@@ -651,7 +672,15 @@ trait Parsers extends IndentParsers {
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of the production" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> mathOpExpr
+    "the 32-bit two's complement bit string representing" ~> mathOpExpr |
+    // rounding towards 0
+    expr <~ "rounded towards 0 to the next integer value" ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+    } |
+    // rounding towards nearest integer
+    expr <~ ", rounding down to the nearest integer, including for negative numbers" ^^ {
+      case e => MathOpExpression(MathOpExpression.Op.ToNumber, List(e))
+    }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
