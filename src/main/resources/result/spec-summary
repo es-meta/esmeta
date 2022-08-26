@@ -5,11 +5,11 @@
     - numeric string: 16
     - syntactic: 195
   - extended productions for web: 28
-- algorithms: 2623 (85.89%)
-  - complete: 2253
-  - incomplete: 370
-- algorithm steps: 19056 (95.99%)
-  - complete: 18291
-  - incomplete: 765
+- algorithms: 2623 (86.08%)
+  - complete: 2258
+  - incomplete: 365
+- algorithm steps: 19061 (96.04%)
+  - complete: 18307
+  - incomplete: 754
 - tables: 89
 - type model: 58
