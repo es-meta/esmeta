@@ -15,8 +15,7 @@ object Stringifier {
 
   // types
   given typeRule: Rule[Ty] = (app, ty) =>
-    app >> (ty match // TODO
-      case DummyT(name) => name
-      case _            => ???
-    )
+    ty match
+      case UnknownT(name) => app >> name
+      case _              => ??? // TODO
 }

@@ -158,21 +158,21 @@ class StringifyTinyTest extends SpecTest {
         false,
         "StringIndexOf",
         List(
-          Param("string", Param.Kind.Normal, Type(Ty("a String"))),
-          Param("searchValue", Param.Kind.Normal, Type(Ty("a String"))),
+          Param("string", Param.Kind.Normal, Type(UnknownT("a String"))),
+          Param("searchValue", Param.Kind.Normal, Type(UnknownT("a String"))),
           Param(
             "fromIndex",
             Param.Kind.Normal,
-            Type(Ty("a non-negative integer")),
+            Type(UnknownT("a non-negative integer")),
           ),
         ),
         AnyType,
       ) -> "StringIndexOf(string, searchValue, fromIndex): unknown",
       NumericMethodHead(
-        Type(Ty("Number")),
+        Type(UnknownT("Number")),
         "unaryMinus",
         List(
-          Param("x", Param.Kind.Normal, Type(Ty("a Number"))),
+          Param("x", Param.Kind.Normal, Type(UnknownT("a Number"))),
         ),
         AnyType,
       ) -> "Number::unaryMinus(x): unknown",
@@ -224,20 +224,22 @@ class StringifyTinyTest extends SpecTest {
         Param(
           "envRec",
           Param.Kind.Normal,
-          Type(Ty("a declarative Environment Record")),
+          Type(UnknownT("a declarative Environment Record")),
         ),
-        List(Param("N", Param.Kind.Normal, Type(Ty("a String")))),
+        List(Param("N", Param.Kind.Normal, Type(UnknownT("a String")))),
         AnyType,
       ) -> "[METHOD] HasBinding(envRec)(N): unknown", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
       InternalMethodHead(
         "SetPrototypeOf",
-        Param("O", Param.Kind.Normal, Type(Ty("an ordinary object"))),
-        List(Param("V", Param.Kind.Normal, Type(Ty("an Object or null")))),
+        Param("O", Param.Kind.Normal, Type(UnknownT("an ordinary object"))),
+        List(
+          Param("V", Param.Kind.Normal, Type(UnknownT("an Object or null"))),
+        ),
         AnyType,
       ) -> "[METHOD] SetPrototypeOf(O)(V): unknown", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
         Base("Boolean"),
-        List(Param("value", Param.Kind.Normal, Type(Ty("an argument")))),
+        List(Param("value", Param.Kind.Normal, Type(UnknownT("an argument")))),
         AnyType,
       ) -> "[BUILTIN] Boolean(value): unknown",
     )

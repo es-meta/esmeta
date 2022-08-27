@@ -4,7 +4,6 @@ import esmeta.ir.*
 import esmeta.lang.Syntax
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Locational, BasicParsers}
-import scala.collection.mutable.ListBuffer
 
 /** IR parser */
 object Parser extends Parsers

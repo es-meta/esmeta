@@ -1,10 +1,9 @@
 package esmeta.typing
 
 import esmeta.cfg.{Func, Node}
-import esmeta.ir.{Name, Expr}
-import esmeta.lang.{Type => LangType}
-import esmeta.state.*
+import esmeta.ir.Name
 import esmeta.util.DoubleEquals
+import esmeta.typing.util.Parser
 
 /** types */
 sealed trait Ty extends TyElem {
@@ -21,15 +20,9 @@ sealed trait Ty extends TyElem {
     .map(_.capitalize)
     .mkString
 }
-object Ty:
-  // TODO implement parser
-  def apply(str: String): Ty = DummyT(str)
 
-/** dummy type
-  *
-  * TODO please remove it
-  */
-case class DummyT(override val name: String) extends Ty
+/** unknown type */
+case class UnknownT(override val name: String = "unknown") extends Ty
 
 /** top type */
 case object TopT extends Ty

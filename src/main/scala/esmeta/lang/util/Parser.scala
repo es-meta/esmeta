@@ -1,14 +1,15 @@
 package esmeta.lang.util
 
 import esmeta.lang.*
-import esmeta.typing.Ty
+import esmeta.typing.*
+import esmeta.typing.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational}
 import esmeta.util.BaseUtils.*
 import scala.util.matching.Regex
 
 /** metalanguage parser */
 object Parser extends Parsers
-trait Parsers extends IndentParsers {
+trait Parsers extends IndentParsers with TyParsers {
 
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
@@ -76,7 +77,7 @@ trait Parsers extends IndentParsers {
   // let steps
   lazy val letStep: PL[LetStep] =
     ("let" ~> variable <~ "be") ~ opt(
-      "the" ~> ty <~ "that is the value of",
+      "the" ~> langTy <~ "that is the value of",
     ) ~ endWithExpr ^^ { case x ~ _ ~ e => LetStep(x, e) }
 
   // set steps
@@ -112,7 +113,7 @@ trait Parsers extends IndentParsers {
   lazy val forEachStep: PL[ForEachStep] =
     lazy val ascending: Parser[Boolean] =
       opt("in reverse List order,") ^^ { !_.isDefined }
-    ("for each" ~ opt("element") ~> opt(ty)) ~ variable ~
+    ("for each" ~ opt("element") ~> opt(langTy)) ~ variable ~
     ("of" ~> expr) ~ ("," ~> ascending) ~ (opt("do") ~> step) ^^ {
       case t ~ r ~ e ~ a ~ s =>
         ForEachStep(t, r, e, a, s)
@@ -205,7 +206,7 @@ trait Parsers extends IndentParsers {
   lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
     lazy val param: P[Option[Variable]] =
       "for that execution context" ^^^ None |
-      "with a" ~ opt(ty) ~> variable ^^ { Some(_) } // TODO handle type
+      "with a" ~ opt(langTy) ~> variable ^^ { Some(_) } // TODO handle type
     lazy val body: P[Step] =
       ("the following steps will be performed:" ~> step) |
       // Await
@@ -312,14 +313,14 @@ trait Parsers extends IndentParsers {
 
   // record expressions
   lazy val recordExpr: PL[RecordExpression] =
-    opt("the") ~> ty ~
+    opt("the") ~> langTy ~
     ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}") ^^ {
       case t ~ fs =>
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
     } |||
     opt("an" | "a") ~ ("newly created" | "new") ~
-    guard(not("Realm")) ~> ty <~ opt(
+    guard(not("Realm")) ~> langTy <~ opt(
       "containing no bindings" |
       "with no fields" |
       "that initially has no fields",
@@ -463,7 +464,7 @@ trait Parsers extends IndentParsers {
 
   // literals
   // GetIdentifierReference uses 'the value'
-  lazy val literal: PL[Literal] = opt("the" ~ opt(ty) ~ "value") ~> (
+  lazy val literal: PL[Literal] = opt("the" ~ opt(langTy) ~ "value") ~> (
     (opt("the") ~> "*this* value" | "this Parse Node") ^^! ThisLiteral() |||
     "NewTarget" ^^! NewTargetLiteral() |||
     hexLiteral |||
@@ -580,7 +581,7 @@ trait Parsers extends IndentParsers {
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
-    guard(not("Return")) ~> ty ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
+    guard(not("Return")) ~> langTy ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
       case t ~ op ~ as =>
         InvokeNumericMethodExpression(t, op, as)
     }
@@ -618,7 +619,7 @@ trait Parsers extends IndentParsers {
 
     // Evalution SDO
     lazy val evalSDOExpr =
-      "the result of evaluating" ~ opt(ty <~ guard(expr)) ~> expr ^^ {
+      "the result of evaluating" ~ opt(langTy <~ guard(expr)) ~> expr ^^ {
         case b =>
           InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
       }
@@ -733,7 +734,7 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
-    expr ~ isEither((("an" | "a") ~> ty)) ^^ {
+    expr ~ isEither((("an" | "a") ~> langTy)) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
     }
 
@@ -818,7 +819,7 @@ trait Parsers extends IndentParsers {
   // contains-whose conditions
   lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
     expr ~
-    ("contains" ~ opt("an" | "a") ~> ty) ~
+    ("contains" ~ opt("an" | "a") ~> langTy) ~
     ("whose" ~ "[[" ~> word <~ "]]") ~
     ("is" ~> expr) ^^ {
       case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
@@ -862,10 +863,10 @@ trait Parsers extends IndentParsers {
     expr <~ "has no elements"
   } ^^ { PredicateCondition(_, false, PredicateCondition.Op.Empty) } | {
     // ArraySpeciesCreate, SameValueNonNumeric
-    expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(ty) ~ opt("value")
+    expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langTy) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {
     // SameValueNonNumeric, GeneratorValidate
-    expr ~ (isNeg <~ ("the same" ~ opt(ty) ~ opt("value") ~ "as")) ~ expr
+    expr ~ (isNeg <~ ("the same" ~ opt(langTy) ~ opt("value") ~ "as")) ~ expr
   } ^^ { case l ~ n ~ r => IsAreCondition(List(l), n, List(r)) } | {
     // SameValue
     expr ~ (isNeg <~ "different from" ^^ { !_ }) ~ expr
@@ -984,17 +985,34 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage types
   // ---------------------------------------------------------------------------
-  given ty: PL[Type] = {
-    rep1(camel) ^^ { case ss => Type(Ty(ss.mkString(" "))) } |||
-    "[a-zA-Z ]+ object".r ^^ { case s => Type(Ty(s)) } |||
-    "\\w+ Environment Record".r ^^ { case s => Type(Ty(s)) } |||
-    opt("ECMAScript code") ~ "execution context" ^^! {
-      Type(Ty("ExecutionContext"))
-    } |||
-    "List of" ~ word ^^! { Type(Ty("List")) } |||
-    nt ^^ { case s => Type(Ty(s)) } |||
-    "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! { Type(Ty("Record")) }
-  }.named("lang.Type")
+  given langTy: PL[Type] = {
+    rep1(camel) ^^ {
+      case ss => Type(UnknownT(ss.mkString(" ")))
+    } ||| "[a-zA-Z ]+ object".r ^^ {
+      case s => Type(UnknownT(s))
+    } ||| "\\w+ Environment Record".r ^^ {
+      case s => Type(UnknownT(s))
+    } ||| opt("ECMAScript code") ~ "execution context" ^^! {
+      Type(UnknownT("ExecutionContext"))
+    } ||| "List of" ~ word ^^! {
+      Type(UnknownT("List"))
+    } ||| nt ^^ {
+      case s => Type(UnknownT(s))
+    } ||| "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! {
+      Type(UnknownT("Record"))
+    }
+  }.named("lang.Type (langTy)")
+
+  // TODO
+  lazy val langTyWithLiteral: PL[Type] = {
+    langTy |
+    literalTy ^^ { Type(_) }
+  }.named("lang.Type (langTyWithLiteral)")
+
+  // TODO
+  lazy val literalTy: P[Ty] = literal ^^ {
+    case v => UnknownT(v.toString)
+  }
 
   // ---------------------------------------------------------------------------
   // private helpers

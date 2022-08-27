@@ -204,7 +204,7 @@ class StringifyTinyTest extends LangTest {
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
     lazy val invokeNumericExpr =
       InvokeNumericMethodExpression(
-        Type(Ty("Number")),
+        Type(UnknownT("Number")),
         "add",
         List(refExpr, refExpr),
       )
@@ -563,7 +563,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm types
     // -------------------------------------------------------------------------
-    lazy val ty = Type(Ty("Object"))
+    lazy val ty = Type(UnknownT("Object"))
 
     // tests
     checkParseAndStringify("Type", Type)(

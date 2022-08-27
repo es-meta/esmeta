@@ -3,8 +3,9 @@ package esmeta.spec.util
 import scala.io.Source
 import esmeta.*
 import esmeta.lang.*
-import esmeta.typing.*
+import esmeta.lang.util.{Parsers => LangParsers}
 import esmeta.spec.{*, given}
+import esmeta.typing.UnknownT
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
@@ -14,9 +15,9 @@ import esmeta.spec.Summary.AlgorithmElem
 
 /** specification parsers */
 object Parser extends Parsers
-trait Parsers extends BasicParsers {
+trait Parsers extends LangParsers {
   // skip only white spaces and comments
-  protected override val whiteSpace = "[ \t]*//.*|[ \t]+".r
+  override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
   // ---------------------------------------------------------------------------
   // Summary
@@ -204,9 +205,9 @@ trait Parsers extends BasicParsers {
     *   - a possibly empty List, each of whose elements is a String or
     *     *undefined* ...
     */
-  given ty: Parser[Type] = {
-    "([^_,:]|, )+".r ^^ { case s => Type(Ty(s)) }
-  }.named("spec.Type")
+  given specTy: Parser[Type] = {
+    "([^_,:]|, )+".r ^^ { case s => Type(UnknownT(s)) }
+  }.named("lang.Type (specTy)")
 
   // abstract opration (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
@@ -217,7 +218,7 @@ trait Parsers extends BasicParsers {
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] = {
-    (ty <~ "::") ~ name ~ params ~ retTy ^^ {
+    (specTy <~ "::") ~ name ~ params ~ retTy ^^ {
       case t ~ x ~ ps ~ rty => NumericMethodHead(t, x, ps, rty)
     }
   }.named("spec.NumericMethodHead")
@@ -225,18 +226,18 @@ trait Parsers extends BasicParsers {
   // algorithm parameters
   given param: Parser[Param] = {
     import Param.Kind.*
-    opt("optional") ~ specId ~ opt(":" ~> ty) ^^ {
-      case opt ~ name ~ ty =>
+    opt("optional") ~ specId ~ opt(":" ~> specTy) ^^ {
+      case opt ~ name ~ specTy =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, ty.getOrElse(AnyType))
+        Param(name, kind, specTy.getOrElse(AnyType))
     } | opt(",") ~ "…" ^^^ Param("", Ellipsis, AnyType)
   }.named("spec.Param")
 
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =
     import Param.Kind.*
-    ty ~ opt(specId) ^^ {
-      case ty ~ name => Param(name.getOrElse("this"), Normal, ty)
+    specTy ~ opt(specId) ^^ {
+      case specTy ~ name => Param(name.getOrElse("this"), Normal, specTy)
     }
 
   // multiple algorithm parameters
@@ -288,13 +289,13 @@ trait Parsers extends BasicParsers {
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] = {
-    ref ~ params ~ retTy ^^ {
+    builtinRef ~ params ~ retTy ^^ {
       case r ~ params ~ rty => BuiltinHead(r, params, rty)
     }
   }.named("spec.BuiltinHead")
 
   // built-in head references
-  given ref: Parser[BuiltinHead.Ref] = {
+  given builtinRef: Parser[BuiltinHead.Ref] = {
     import BuiltinHead.Ref
     import BuiltinHead.Ref.*
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
@@ -323,7 +324,7 @@ trait Parsers extends BasicParsers {
     "[a-zA-Z0-9/]+".r
 
   lazy val retTy: Parser[Type] =
-    opt(":" ~> ty) ^^ { _.getOrElse(AnyType) }
+    opt(":" ~> specTy) ^^ { _.getOrElse(AnyType) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

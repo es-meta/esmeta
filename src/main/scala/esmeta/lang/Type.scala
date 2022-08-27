@@ -1,7 +1,7 @@
 package esmeta.lang
 
 import esmeta.lang.util.*
-import esmeta.typing.Ty
+import esmeta.typing.*
 
 // metalanguage types
 // TODO more detailed instead of strings
@@ -13,4 +13,4 @@ case class Type(ty: Ty) extends Syntax {
 object Type extends Parser.From[Type]:
   // TODO refactor
   def unapply(ty: Type): Option[String] = Some(ty.name)
-val AnyType = Type(Ty("unknown"))
+val AnyType = Type(UnknownT())
