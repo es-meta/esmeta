@@ -46,8 +46,8 @@ trait Parsers extends BasicParsers {
       (empty ~ "- incomplete:" ~> int)
     } ^^ { case c ~ i => StepElem(c, i) }
     val tables = empty ~ "- tables:" ~> int
-    val typeModel = empty ~ "- type model:" ~> int <~ empty
-    version ~ grammar ~ algo ~ step ~ tables ~ typeModel ^^ {
+    val tyModel = empty ~ "- type model:" ~> int <~ empty
+    version ~ grammar ~ algo ~ step ~ tables ~ tyModel ^^ {
       case v ~ g ~ a ~ s ~ t ~ m => Summary(v, g, a, s, t, m)
     }
   }.named("spec.Summary")
