@@ -1,9 +1,8 @@
 package esmeta.spec
 
-import esmeta.lang.{Step, YetStep}
+import esmeta.lang.*
 import esmeta.lang.util.*
 import esmeta.spec.util.*
-import esmeta.typing.*
 import org.jsoup.nodes.Element
 
 /** abstract algorithms in ECMA-262 */

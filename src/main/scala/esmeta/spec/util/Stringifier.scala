@@ -1,18 +1,17 @@
 package esmeta.spec.util
 
 import esmeta.LINE_SEP
+import esmeta.lang.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.spec.*
-import esmeta.typing.*
-import esmeta.typing.util.Stringifier.Target
 
 /** stringifier for specifications */
 object Stringifier {
-  // stringifier for IR
-  val typeStringifier = TypeElem.getStringifier(Target.Lang)
-  import typeStringifier.{given, *}
+  // stringifier for metalanguage
+  val langStringifier = LangElem.getStringifier(false, false)
+  import langStringifier.{given, *}
 
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match

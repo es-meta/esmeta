@@ -258,5 +258,5 @@ trait Walker extends BasicWalker {
 
   def walk(intr: Intrinsic): Intrinsic = intr
 
-  def walk(ty: Type): Type = Type(ty.name)
+  def walk(ty: Type): Type = Type(ty.ty)
 }

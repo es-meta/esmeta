@@ -10,14 +10,14 @@ case class Summary(
   algos: Summary.AlgorithmElem = Summary.AlgorithmElem(), // abstract algorithms
   steps: Summary.StepElem = Summary.StepElem(), // abstract algorithms steps
   tables: Int = 0, // tables
-  typeModel: Int = 0, // type models
+  tyModel: Int = 0, // type models
 ) extends SpecElem
 
 /** helper of ECMAScript specifications (ECMA-262) summary */
 object Summary extends Parser.From[Summary] {
   def apply(spec: Spec): Summary = if (!spec.isEmpty) {
     import Production.Kind.*
-    val Spec(version, grammar, algos, tables, typeModel, _) = spec
+    val Spec(version, grammar, algos, tables, tyModel, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
     val completeAlgos = spec.completeAlgorithms.length
@@ -39,7 +39,7 @@ object Summary extends Parser.From[Summary] {
         incomplete = spec.allSteps.length - completeSteps,
       ),
       tables = tables.size,
-      typeModel = typeModel.infos.size,
+      tyModel = tyModel.infos.size,
     )
   } else Summary()
 

@@ -1,12 +1,11 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.{Type => IRType, AnyType => IRAnyType, *}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.{Param => SParam, *}
-import esmeta.typing.{Type => SType, *}
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
@@ -548,7 +547,7 @@ class Compiler(
             ck,
             cn,
             ps,
-            AnyType,
+            IRAnyType,
             fb.algo,
           ),
           body = body,
@@ -755,15 +754,14 @@ class Compiler(
 
   /** compile algorithm parameters */
   def compile(param: SParam): Func.Param = {
-    val SParam(name, skind, stype) = param
+    val SParam(name, skind, ty) = param
     val optional = skind == SParam.Kind.Optional
-    Func.Param(Name(name), optional, compile(stype))
+    Func.Param(Name(name), optional, compile(ty))
   }
 
   /** compile types */
-  def compile(ty: SType): IRType = compile(ty.toLang)
   def compile(ty: Type): IRType =
-    if (ty == TopT) AnyType else IRType(ty.normalized.name)
+    if (ty == AnyType) IRAnyType else IRType(ty.normalizedName)
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

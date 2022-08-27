@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 
 /** type modeling */
 // TODO consider refactoring
-case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
+case class TyModel(infos: Map[String, TyInfo] = Map()) {
 
   /** get method map */
   // TODO optimize
@@ -17,7 +17,7 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   }
 
   /** direct subtypes */
-  private lazy val directSubTypes: Map[String, Set[String]] = {
+  private lazy val directSubTys: Map[String, Set[String]] = {
     var children = Map[String, Set[String]]()
     for {
       (name, info) <- infos
@@ -28,28 +28,28 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   }
 
   /** subtypes */
-  lazy val subTypes: Map[String, Set[String]] = {
+  lazy val subTys: Map[String, Set[String]] = {
     var descs = Map[String, Set[String]]()
     def aux(name: String): Set[String] = descs.get(name) match {
       case Some(set) => set
       case None =>
         val set = (for {
-          sub <- directSubTypes.getOrElse(name, Set())
+          sub <- directSubTys.getOrElse(name, Set())
           elem <- aux(sub)
         } yield elem) + name
         descs += name -> set
         set
     }
-    infos.collect { case (name, TypeInfo(None, _, _)) => aux(name) }
+    infos.collect { case (name, TyInfo(None, _, _)) => aux(name) }
     descs
   }
-  def isSubType(t0: String, t1: String): Boolean = subTypes(t1) contains t0
+  def isSubTy(t0: String, t1: String): Boolean = subTys(t1) contains t0
 
   /** property map alias */
-  type PropMap = Map[String, Set[Type]]
+  type PropMap = Map[String, Set[Ty]]
 
   /** get types of property */
-  def getProp(tname: String, p: String, check: Boolean): Set[Type] =
+  def getProp(tname: String, p: String, check: Boolean): Set[Ty] =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       Set(NameT("Object"))
     else
@@ -89,7 +89,7 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
 
   /** get property map from ancestors */
   private def getLowerPropMap(name: String): PropMap =
-    directSubTypes.get(name) match
+    directSubTys.get(name) match
       case Some(children) =>
         children
           .map(child => {
@@ -125,10 +125,10 @@ case class TypeModel(infos: Map[String, TypeInfo] = Map()) {
   }
 
 }
-object TypeModel {
+object TyModel {
 
   /** conversion for type */
-  given Conversion[Type, Set[Type]] = Set(_)
+  given Conversion[Ty, Set[Ty]] = Set(_)
 
   /** alias */
   val EMPTY = ConstT("empty")
@@ -172,10 +172,10 @@ object TypeModel {
   val NAMESPACE = ConstT("NAMESPACE")
 
   // TODO extract type model from spec
-  lazy val es: TypeModel = TypeModel(
+  lazy val es: TyModel = TyModel(
     Map(
       // property descriptor
-      "PropertyDescriptor" -> TypeInfo(
+      "PropertyDescriptor" -> TyInfo(
         fields = Map(
           "Value" -> Set(ESValueT, AbsentT),
           "Writable" -> Set(BoolT, AbsentT),
@@ -187,7 +187,7 @@ object TypeModel {
       ),
 
       // realm record
-      "RealmRecord" -> TypeInfo(
+      "RealmRecord" -> TyInfo(
         fields = Map(
           "Intrinsics" -> NameT("IntrinsicsRecord"),
           "GlobalObject" -> Set(UndefT, NameT("Object")),
@@ -196,7 +196,7 @@ object TypeModel {
           "HostDefined" -> UndefT,
         ),
       ),
-      "TemplatePair" -> TypeInfo(
+      "TemplatePair" -> TyInfo(
         fields = Map(
           "Site" -> AstT("TemplateLiteral"),
           "Array" -> NameT("Object"),
@@ -204,7 +204,7 @@ object TypeModel {
       ),
 
       // execution contexts
-      "ExecutionContext" -> TypeInfo(
+      "ExecutionContext" -> TyInfo(
         fields = Map(
           "Function" -> Set(NameT("FunctionObject"), NullT),
           "Realm" -> NameT("RealmRecord"),
@@ -218,7 +218,7 @@ object TypeModel {
       ),
 
       // reference record
-      "ReferenceRecord" -> TypeInfo(
+      "ReferenceRecord" -> TyInfo(
         fields = Map(
           "Base" -> Set(ESValueT, NameT("EnvironmentRecord"), UNRESOLVABLE),
           "ReferencedName" -> Set(StrT, SymbolT, NameT("PrivateName")),
@@ -228,12 +228,12 @@ object TypeModel {
       ),
 
       // private name
-      "PrivateName" -> TypeInfo(
+      "PrivateName" -> TyInfo(
         fields = Map("Description" -> StrT),
       ),
 
       // private element
-      "PrivateElement" -> TypeInfo(
+      "PrivateElement" -> TyInfo(
         fields = Map(
           "Key" -> NameT("PrivateName"),
           "Kind" -> Set(FIELD, METHOD, ACCESSOR),
@@ -244,7 +244,7 @@ object TypeModel {
       ),
 
       // class field definition record
-      "ClassFieldDefinitionRecord" -> TypeInfo(
+      "ClassFieldDefinitionRecord" -> TyInfo(
         fields = Map(
           "Name" -> Set(NameT("PrivateName"), StrT, SymbolT),
           "Initializer" -> Set(NameT("FunctionObject"), EMPTY),
@@ -252,12 +252,12 @@ object TypeModel {
       ),
 
       // class static block definition record
-      "ClassStaticBlockDefinitionRecord" -> TypeInfo(
+      "ClassStaticBlockDefinitionRecord" -> TyInfo(
         fields = Map("BodyFunction" -> NameT("FunctionObject")),
       ),
 
       // iterator record
-      "IteratorRecord" -> TypeInfo(
+      "IteratorRecord" -> TyInfo(
         fields = Map(
           "Iterator" -> NameT("OrdinaryObject"),
           "NextMethod" -> NameT("FunctionObject"),
@@ -266,7 +266,7 @@ object TypeModel {
       ),
 
       // objects
-      "Object" -> TypeInfo(
+      "Object" -> TyInfo(
         parent = None,
         methods = Map(
           "GetPrototypeOf" -> "OrdinaryObject.GetPrototypeOf",
@@ -287,16 +287,16 @@ object TypeModel {
           "SubMap" -> MapT(NameT("PropertyDescriptor")),
         ),
       ),
-      "OrdinaryObject" -> TypeInfo(
+      "OrdinaryObject" -> TyInfo(
         parent = Some("Object"),
         fields = Map(
           "ParameterMap" -> UndefT,
         ),
       ),
-      "FunctionObject" -> TypeInfo(
+      "FunctionObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
       ),
-      "ECMAScriptFunctionObject" -> TypeInfo(
+      "ECMAScriptFunctionObject" -> TyInfo(
         parent = Some("FunctionObject"),
         methods = Map(
           "Call" -> "ECMAScriptFunctionObject.Call",
@@ -325,7 +325,7 @@ object TypeModel {
           "IsClassConstructor" -> BoolT,
         ),
       ),
-      "BuiltinFunctionObject" -> TypeInfo(
+      "BuiltinFunctionObject" -> TyInfo(
         parent = Some("FunctionObject"),
         methods = Map(
           "Call" -> "BuiltinFunctionObject.Call",
@@ -337,7 +337,7 @@ object TypeModel {
           "InitialName" -> Set(NullT, StrT),
         ),
       ),
-      "BoundFunctionExoticObject" -> TypeInfo(
+      "BoundFunctionExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "Call" -> "BoundFunctionExoticObject.Call",
@@ -349,13 +349,13 @@ object TypeModel {
           "BoundArguments" -> ListT(ESValueT),
         ),
       ),
-      "ArrayExoticObject" -> TypeInfo(
+      "ArrayExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "DefineOwnProperty" -> "ArrayExoticObject.DefineOwnProperty",
         ),
       ),
-      "StringExoticObject" -> TypeInfo(
+      "StringExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "GetOwnProperty" -> "StringExoticObject.GetOwnProperty",
@@ -365,7 +365,7 @@ object TypeModel {
         ),
         fields = Map("StringData" -> StrT),
       ),
-      "ArgumentsExoticObject" -> TypeInfo(
+      "ArgumentsExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "GetOwnProperty" -> "ArgumentsExoticObject.GetOwnProperty",
@@ -379,7 +379,7 @@ object TypeModel {
           "ParameterMap" -> Set(NameT("OrdinaryObject"), NullT),
         ),
       ),
-      "IntegerIndexedExoticObject" -> TypeInfo(
+      "IntegerIndexedExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "GetOwnProperty" ->
@@ -397,11 +397,11 @@ object TypeModel {
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
           "ArrayLength" -> MathT,
           "ByteOffset" -> MathT,
-          "ContentType" -> Set(NUMBER, BIGINT),
-          "TypedArrayName" -> StrT,
+          "ContentTy" -> Set(NUMBER, BIGINT),
+          "TydArrayName" -> StrT,
         ),
       ),
-      "ModuleNamespaceExoticObject" -> TypeInfo(
+      "ModuleNamespaceExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "GetPrototypeOf" -> "ModuleNamespaceExoticObject.GetPrototypeOf",
@@ -421,14 +421,14 @@ object TypeModel {
           "Exports" -> ListT(StrT),
         ),
       ),
-      "ImmutablePrototypeExoticObject" -> TypeInfo(
+      "ImmutablePrototypeExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "SetPrototypeOf" ->
           "ImmutablePrototypeExoticObject.SetPrototypeOf",
         ),
       ),
-      "ProxyExoticObject" -> TypeInfo(
+      "ProxyExoticObject" -> TyInfo(
         parent = Some("Object"),
         methods = Map(
           "GetPrototypeOf" -> "ProxyExoticObject.GetPrototypeOf",
@@ -450,14 +450,14 @@ object TypeModel {
           "ProxyTarget" -> Set(NameT("Object"), NullT),
         ),
       ),
-      "ArrayBufferObject" -> TypeInfo(parent = Some("Object")),
-      "BooleanObject" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "BigIntObject" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "NumberObject" -> TypeInfo(parent = Some("OrdinaryObject")),
-      "SymbolObject" -> TypeInfo(parent = Some("OrdinaryObject")),
+      "ArrayBufferObject" -> TyInfo(parent = Some("Object")),
+      "BooleanObject" -> TyInfo(parent = Some("OrdinaryObject")),
+      "BigIntObject" -> TyInfo(parent = Some("OrdinaryObject")),
+      "NumberObject" -> TyInfo(parent = Some("OrdinaryObject")),
+      "SymbolObject" -> TyInfo(parent = Some("OrdinaryObject")),
 
       // special instances
-      "ForInIteratorInstance" -> TypeInfo(
+      "ForInIteratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "Object" -> NameT("Object"),
@@ -466,27 +466,27 @@ object TypeModel {
           "RemainingKeys" -> ListT(StrT),
         ),
       ),
-      "AsyncFromSyncIteratorInstance" -> TypeInfo(
+      "AsyncFromSyncIteratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "SyncIteratorRecord" -> NameT("IteratorRecord"),
         ),
       ),
-      "PromiseCapabilityRecord" -> TypeInfo(
+      "PromiseCapabilityRecord" -> TyInfo(
         fields = Map(
           "Promise" -> NameT("Object"),
           "Resovle" -> NameT("FunctionObject"),
           "Reject" -> NameT("FunctionObject"),
         ),
       ),
-      "PromiseReaction" -> TypeInfo(
+      "PromiseReaction" -> TyInfo(
         fields = Map(
           "Capability" -> Set(NameT("PromiseCapabilityRecord"), UndefT),
-          "Type" -> Set(FULFILL, REJECT),
+          "Ty" -> Set(FULFILL, REJECT),
           "Handler" -> Set(NameT("JobCallbackRecord"), EMPTY),
         ),
       ),
-      "PromiseInstance" -> TypeInfo(
+      "PromiseInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "PromiseState" -> Set(PENDING, FULFILLED, REJECTED),
@@ -496,7 +496,7 @@ object TypeModel {
           "PromiseIsHandled" -> BoolT,
         ),
       ),
-      "GeneratorInstance" -> TypeInfo(
+      "GeneratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "GeneratorState" -> Set(
@@ -510,7 +510,7 @@ object TypeModel {
           "GeneratorBrand" -> Set(StrT, EMPTY),
         ),
       ),
-      "AsyncGeneratorInstance" -> TypeInfo(
+      "AsyncGeneratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "AsyncGeneratorState" -> Set(
@@ -526,7 +526,7 @@ object TypeModel {
           "GeneratorBrand" -> Set(StrT, EMPTY),
         ),
       ),
-      "AsyncGeneratorRequestRecord" -> TypeInfo(
+      "AsyncGeneratorRequestRecord" -> TyInfo(
         fields = Map(
           // TODO "Completion" -> Set(NormalT(_), AbruptT),
           "Capability" -> NameT("PromiseCapabilityRecord"),
@@ -534,24 +534,24 @@ object TypeModel {
       ),
 
       // environment records
-      "EnvironmentRecord" -> TypeInfo(
+      "EnvironmentRecord" -> TyInfo(
         fields = Map(
           "OuterEnv" -> Set(NullT, NameT("EnvironmentRecord")),
           "SubMap" -> MapT(NameT("Binding")),
         ),
       ),
-      "Binding" -> TypeInfo(
+      "Binding" -> TyInfo(
         fields = Map(
           "BoundValue" -> ESValueT,
           "initialized" -> BoolT,
         ),
       ),
-      "MutableBinding" -> TypeInfo(parent = Some("Binding")),
-      "ImmutableBinding" -> TypeInfo(
+      "MutableBinding" -> TyInfo(parent = Some("Binding")),
+      "ImmutableBinding" -> TyInfo(
         parent = Some("Binding"),
         fields = Map("strict" -> BoolT),
       ),
-      "DeclarativeEnvironmentRecord" -> TypeInfo(
+      "DeclarativeEnvironmentRecord" -> TyInfo(
         parent = Some("EnvironmentRecord"),
         methods = Map(
           "HasBinding" -> "DeclarativeEnvironmentRecord.HasBinding",
@@ -575,7 +575,7 @@ object TypeModel {
           "DeclarativeEnvironmentRecord.WithBaseObject",
         ),
       ),
-      "FunctionEnvironmentRecord" -> TypeInfo(
+      "FunctionEnvironmentRecord" -> TyInfo(
         parent = Some("DeclarativeEnvironmentRecord"),
         methods = Map(
           "BindThisValue" -> "FunctionEnvironmentRecord.BindThisValue",
@@ -594,7 +594,7 @@ object TypeModel {
           "NewTarget" -> Set(NameT("Object"), UndefT),
         ),
       ),
-      "ModuleEnvironmentRecord" -> TypeInfo(
+      "ModuleEnvironmentRecord" -> TyInfo(
         parent = Some("DeclarativeEnvironmentRecord"),
         methods = Map(
           "GetBindingValue" -> "ModuleEnvironmentRecord.GetBindingValue",
@@ -605,7 +605,7 @@ object TypeModel {
           "CreateImportBinding" -> "ModuleEnvironmentRecord.CreateImportBinding",
         ),
       ),
-      "ObjectEnvironmentRecord" -> TypeInfo(
+      "ObjectEnvironmentRecord" -> TyInfo(
         parent = Some("EnvironmentRecord"),
         methods = Map(
           "HasBinding" -> "ObjectEnvironmentRecord.HasBinding",
@@ -628,7 +628,7 @@ object TypeModel {
           "BindingObject" -> NameT("Object"),
         ),
       ),
-      "GlobalEnvironmentRecord" -> TypeInfo(
+      "GlobalEnvironmentRecord" -> TyInfo(
         parent = Some("EnvironmentRecord"),
         methods = Map(
           "HasBinding" -> "GlobalEnvironmentRecord.HasBinding",
@@ -673,7 +673,7 @@ object TypeModel {
       ),
 
       // private environment record
-      "PrivateEnvironmentRecord" -> TypeInfo(
+      "PrivateEnvironmentRecord" -> TyInfo(
         fields = Map(
           "OuterPrivateEnvironment" -> Set(
             NameT("PrivateEnvironmentRecord"),
@@ -684,7 +684,7 @@ object TypeModel {
       ),
 
       // job callback record
-      "JobCallbackRecord" -> TypeInfo(
+      "JobCallbackRecord" -> TyInfo(
         fields = Map(
           "Callback" -> NameT("FunctionObject"),
           "HostDefined" -> UndefT,
@@ -692,7 +692,7 @@ object TypeModel {
       ),
 
       // agent record
-      "AgentRecord" -> TypeInfo(
+      "AgentRecord" -> TyInfo(
         fields = Map(
           "LittleEndian" -> BoolT,
           "CanBlock" -> BoolT,
@@ -706,7 +706,7 @@ object TypeModel {
       ),
 
       // script record
-      "ScriptRecord" -> TypeInfo(
+      "ScriptRecord" -> TyInfo(
         fields = Map(
           "Realm" -> Set(NameT("RealmRecord"), UndefT),
           "ECMAScriptCode" -> AstT("Script"),
@@ -715,7 +715,7 @@ object TypeModel {
       ),
 
       // module record
-      "ModuleRecord" -> TypeInfo(
+      "ModuleRecord" -> TyInfo(
         fields = Map(
           "Realm" -> NameT("RealmRecord"),
           "Environment" -> Set(NameT("ModuleEnvironmentRecord"), EMPTY),
@@ -723,7 +723,7 @@ object TypeModel {
           "HostDefined" -> UndefT,
         ),
       ),
-      "CyclicModuleRecord" -> TypeInfo(
+      "CyclicModuleRecord" -> TyInfo(
         parent = Some("ModuleRecord"),
         methods = Map(
           "Link" -> "CyclicModuleRecord.Link",
@@ -751,7 +751,7 @@ object TypeModel {
           "PendingAsyncDependencies" -> Set(MathT, EMPTY),
         ),
       ),
-      "SourceTextModuleRecord" -> TypeInfo(
+      "SourceTextModuleRecord" -> TyInfo(
         parent = Some("CyclicModuleRecord"),
         methods = Map(
           "GetExportedNames" -> "SourceTextModuleRecord.GetExportedNames",
@@ -769,14 +769,14 @@ object TypeModel {
           "StarExportEntries" -> ListT(NameT("ExportEntryRecord")),
         ),
       ),
-      "ImportEntryRecord" -> TypeInfo(
+      "ImportEntryRecord" -> TyInfo(
         fields = Map(
           "ModuleRequest" -> StrT,
           "ImportName" -> Set(StrT, NAMESPACE_OBJ),
           "LocalName" -> StrT,
         ),
       ),
-      "ExportEntryRecord" -> TypeInfo(
+      "ExportEntryRecord" -> TyInfo(
         fields = Map(
           "ExportName" -> Set(StrT, NullT),
           "ModuleRequest" -> Set(StrT, NullT),
@@ -784,7 +784,7 @@ object TypeModel {
           "LocalName" -> Set(StrT, NullT),
         ),
       ),
-      "ResolvedBindingRecord" -> TypeInfo(
+      "ResolvedBindingRecord" -> TyInfo(
         fields = Map(
           "Module" -> NameT("ModuleRecord"),
           "BindingName" -> Set(StrT, NAMESPACE),
@@ -792,7 +792,7 @@ object TypeModel {
       ),
 
       // symbol registry
-      "GlobalSymbolRegistryRecord" -> TypeInfo(
+      "GlobalSymbolRegistryRecord" -> TyInfo(
         fields = Map(
           "Key" -> StrT,
           "Symbol" -> SymbolT,
@@ -800,7 +800,7 @@ object TypeModel {
       ),
 
       // match record
-      "MatchRecord" -> TypeInfo(
+      "MatchRecord" -> TyInfo(
         fields = Map(
           "StartIndex" -> MathT,
           "EndIndex" -> MathT,
@@ -808,7 +808,7 @@ object TypeModel {
       ),
 
       // pending job
-      "PendingJob" -> TypeInfo(
+      "PendingJob" -> TyInfo(
         fields = Map(
           "Job" -> CloTopT,
           "Realm" -> NameT("RealmRecord"),
@@ -821,12 +821,12 @@ object TypeModel {
 }
 
 /** type information */
-case class TypeInfo(
+case class TyInfo(
   parent: Option[String] = None,
   methods: Map[String, String] = Map(),
-  fields: Map[String, Set[Type]] = Map(),
+  fields: Map[String, Set[Ty]] = Map(),
 ) {
-  lazy val props: Map[String, Set[Type]] =
+  lazy val props: Map[String, Set[Ty]] =
     val keys = methods.keySet ++ fields.keySet
     (for {
       k <- keys

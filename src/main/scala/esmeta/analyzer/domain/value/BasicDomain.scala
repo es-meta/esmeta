@@ -259,8 +259,8 @@ object BasicDomain extends value.Domain {
       if (!elem.nullv.isBottom) set += "Null"
       if (!elem.part.isBottom) for (part <- elem.part) {
         val tname = st.get(part).getTy match
-          case tname if cfg.typeModel.isSubType(tname, "Object") => "Object"
-          case tname                                             => tname
+          case tname if cfg.tyModel.isSubTy(tname, "Object") => "Object"
+          case tname                                         => tname
         set += tname
       }
       apply(str = AbsStr(set.map(Str.apply)))
@@ -292,7 +292,7 @@ object BasicDomain extends value.Domain {
         val newTName = st.get(part).getTy
         bv ⊔= AbsBool(
           Bool(
-            newTName == tname || cfg.typeModel.isSubType(newTName, tname),
+            newTName == tname || cfg.tyModel.isSubTy(newTName, tname),
           ),
         )
       }

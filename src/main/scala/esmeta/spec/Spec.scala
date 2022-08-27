@@ -4,7 +4,7 @@ import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
-import esmeta.typing.TypeModel
+import esmeta.typing.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
@@ -17,7 +17,7 @@ case class Spec(
   grammar: Grammar = Grammar(), // lexical/syntactic grammar productions
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   tables: Map[String, Table] = Map(), // tables
-  typeModel: TypeModel = TypeModel(), // type models
+  tyModel: TyModel = TyModel(), // type models
   document: Document = Document(""), // HTML Document element
 ) extends SpecElem {
 
@@ -69,7 +69,7 @@ case class Spec(
     grammar == Grammar() &&
     algorithms.isEmpty &&
     tables.isEmpty &&
-    typeModel == TypeModel()
+    tyModel == TyModel()
 
   /** ECMAScript version string */
   lazy val versionString: String = version.fold("<none>")(_.toString)

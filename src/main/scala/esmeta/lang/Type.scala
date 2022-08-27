@@ -1,16 +1,16 @@
 package esmeta.lang
 
 import esmeta.lang.util.*
+import esmeta.typing.Ty
 
 // metalanguage types
 // TODO more detailed instead of strings
-case class Type(name: String) extends Syntax {
-  // normalize type string
+case class Type(ty: Ty) extends Syntax {
   // TODO refactor
-  def normalized: Type =
-    val trimmed = (if (name startsWith "a ") name.drop(2)
-                   else if (name startsWith "an ") name.drop(3)
-                   else name).replace("-", "").replace("|", "").trim
-    Type(trimmed.split(" ").map(_.capitalize).mkString)
+  def name: String = ty.name
+  def normalizedName: String = ty.normalizedName
 }
-object Type extends Parser.From[Type]
+object Type extends Parser.From[Type]:
+  // TODO refactor
+  def unapply(ty: Type): Option[String] = Some(ty.name)
+val AnyType = Type(Ty("unknown"))

@@ -1,6 +1,7 @@
 package esmeta.lang.util
 
 import esmeta.lang.*
+import esmeta.typing.Ty
 import esmeta.util.{IndentParsers, Locational}
 import esmeta.util.BaseUtils.*
 import scala.util.matching.Regex
@@ -984,15 +985,15 @@ trait Parsers extends IndentParsers {
   // metalanguage types
   // ---------------------------------------------------------------------------
   given ty: PL[Type] = {
-    rep1(camel) ^^ { case ss => Type(ss.mkString(" ")) } |||
-    "[a-zA-Z ]+ object".r ^^ { Type(_) } |||
-    "\\w+ Environment Record".r ^^ { Type(_) } |||
+    rep1(camel) ^^ { case ss => Type(Ty(ss.mkString(" "))) } |||
+    "[a-zA-Z ]+ object".r ^^ { case s => Type(Ty(s)) } |||
+    "\\w+ Environment Record".r ^^ { case s => Type(Ty(s)) } |||
     opt("ECMAScript code") ~ "execution context" ^^! {
-      Type("ExecutionContext")
+      Type(Ty("ExecutionContext"))
     } |||
-    "List of" ~ word ^^! { Type("List") } |||
-    nt ^^ { Type(_) } |||
-    "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! { Type("Record") }
+    "List of" ~ word ^^! { Type(Ty("List")) } |||
+    nt ^^ { case s => Type(Ty(s)) } |||
+    "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! { Type(Ty("Record")) }
   }.named("lang.Type")
 
   // ---------------------------------------------------------------------------

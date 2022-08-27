@@ -1,13 +1,13 @@
 package esmeta.spec
 
-import esmeta.typing.*
+import esmeta.lang.*
 import esmeta.spec.util.Parser
 
 /** algorithm parameters */
 case class Param(
   name: String,
   kind: Param.Kind = Param.Kind.Normal,
-  ty: Type = TopT,
+  ty: Type = AnyType,
 ) extends SpecElem
 object Param extends Parser.From[Param]:
   enum Kind extends SpecElem:

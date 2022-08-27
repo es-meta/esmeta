@@ -5,7 +5,7 @@ import esmeta.cfg.util.*
 import esmeta.ir.Program
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
-import esmeta.typing.TypeModel
+import esmeta.typing.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
@@ -46,7 +46,7 @@ case class CFG(
   } yield node -> func).toMap
 
   /** get a type model */
-  def typeModel: TypeModel = spec.typeModel
+  def tyModel: TyModel = spec.tyModel
 
   /** get the corresponding specification */
   def spec: Spec = program.spec

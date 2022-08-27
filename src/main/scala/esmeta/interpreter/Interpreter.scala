@@ -317,7 +317,7 @@ class Interpreter(
         case addr: Addr =>
           st(addr) match
             case m: MapObj =>
-              if (typeModel.isSubType(m.ty, "Object")) "Object"
+              if (tyModel.isSubTy(m.ty, "Object")) "Object"
               else m.ty
             case _: ListObj   => "List"
             case _: SymbolObj => "Symbol"
@@ -344,7 +344,7 @@ class Interpreter(
         case _: Clo => tyName == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj    => typeModel.isSubType(m.ty, tyName)
+            case m: MapObj    => tyModel.isSubTy(m.ty, tyName)
             case _: ListObj   => tyName == "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???
@@ -525,7 +525,7 @@ class Interpreter(
   private given cfg: CFG = st.cfg
 
   /** type model */
-  private def typeModel = cfg.typeModel
+  private def tyModel = cfg.tyModel
 
   /** grammar */
   private def grammar = cfg.grammar

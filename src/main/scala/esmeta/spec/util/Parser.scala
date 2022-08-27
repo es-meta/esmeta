@@ -2,9 +2,9 @@ package esmeta.spec.util
 
 import scala.io.Source
 import esmeta.*
-import esmeta.lang.Step
-import esmeta.spec.{*, given}
+import esmeta.lang.*
 import esmeta.typing.*
+import esmeta.spec.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
@@ -205,7 +205,7 @@ trait Parsers extends BasicParsers {
     *     *undefined* ...
     */
   given ty: Parser[Type] = {
-    "([^_,:]|, )+".r ^^ { Type(_) }
+    "([^_,:]|, )+".r ^^ { case s => Type(Ty(s)) }
   }.named("spec.Type")
 
   // abstract opration (AO) heads
@@ -228,8 +228,8 @@ trait Parsers extends BasicParsers {
     opt("optional") ~ specId ~ opt(":" ~> ty) ^^ {
       case opt ~ name ~ ty =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, ty.getOrElse(TopT))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, TopT)
+        Param(name, kind, ty.getOrElse(AnyType))
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, AnyType)
   }.named("spec.Param")
 
   // algorithm parameter description
@@ -323,7 +323,7 @@ trait Parsers extends BasicParsers {
     "[a-zA-Z0-9/]+".r
 
   lazy val retTy: Parser[Type] =
-    opt(":" ~> ty) ^^ { _.getOrElse(TopT) }
+    opt(":" ~> ty) ^^ { _.getOrElse(AnyType) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

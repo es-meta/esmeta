@@ -1,10 +1,10 @@
 package esmeta.extractor
 
 import esmeta.*
-import esmeta.lang.Step
+import esmeta.lang.*
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
-import esmeta.typing.{TopT, TypeModel}
+import esmeta.typing.TyModel
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -41,7 +41,7 @@ class Extractor(
     grammar = grammar,
     algorithms = algorithms,
     tables = tables,
-    typeModel = TypeModel.es, // TODO automatic extraction
+    tyModel = TyModel.es, // TODO automatic extraction
     document = document,
   )
 
@@ -251,12 +251,12 @@ class Extractor(
     elem: Element,
   ): List[Head] = elem.getPrevText match
     case thisValuePattern(name, param) =>
-      List(AbstractOperationHead(false, name, List(Param(param)), TopT))
+      List(AbstractOperationHead(false, name, List(Param(param)), AnyType))
     case aliasPattern() => extractAbsOpHead(parent, elem, false)
     case anonBuiltinPattern(name, param) =>
       val rname = name.trim.split(" ").map(_.capitalize).mkString
       val ref = BuiltinHead.Ref.YetRef(rname)
-      List(BuiltinHead(ref, List(Param(param)), TopT))
+      List(BuiltinHead(ref, List(Param(param)), AnyType))
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => extractBuiltinHead(parent, elem)
 
