@@ -8,10 +8,10 @@ import esmeta.cfg.*
 import esmeta.es
 import esmeta.ir.*
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import cats.instances.boolean
 
 /** basic domain for heaps */
 object BasicDomain extends heap.Domain {

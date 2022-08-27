@@ -1,6 +1,7 @@
 package esmeta.analyzer.domain
 
 import esmeta.analyzer.*
+import esmeta.util.*
 import esmeta.util.Appender.*
 
 /** flat domain */

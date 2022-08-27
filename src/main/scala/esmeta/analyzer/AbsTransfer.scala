@@ -10,6 +10,7 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, *}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 

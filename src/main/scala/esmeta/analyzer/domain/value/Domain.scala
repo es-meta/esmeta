@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
-// import esmeta.util.Appender import esmeta.util.Appender.*
+import esmeta.util.*
 
 /** abstract valude domain */
 trait Domain extends domain.Domain[AValue] {

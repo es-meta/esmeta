@@ -3,8 +3,8 @@ package esmeta.analyzer.domain.comp
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.spec.SyntaxDirectedOperationHead.Target
 
 /** basic domain for completion records */
 object BasicDomain extends comp.Domain {

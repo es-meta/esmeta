@@ -3,6 +3,7 @@ package esmeta.analyzer.domain.bool
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
+import esmeta.util.*
 
 /** simple domain for boolean values */
 object SimpleDomain

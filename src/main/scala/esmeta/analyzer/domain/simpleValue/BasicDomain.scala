@@ -3,6 +3,7 @@ package esmeta.analyzer.domain.simpleValue
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.Appender.*
 
 /** basic domain for simple values */

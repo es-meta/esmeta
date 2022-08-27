@@ -1,4 +1,4 @@
-package esmeta.analyzer.domain
+package esmeta.util
 
 /** flat lattice */
 sealed trait Flat[+A] {

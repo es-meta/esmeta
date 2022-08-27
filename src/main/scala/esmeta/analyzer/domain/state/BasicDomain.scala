@@ -8,11 +8,10 @@ import esmeta.state.*
 import esmeta.ir.*
 import esmeta.es
 import esmeta.es.*
+import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import reflect.Selectable.reflectiveSelectable
-import cats.instances.partialOrder
 
 /** basic domain for states */
 object BasicDomain extends state.Domain {

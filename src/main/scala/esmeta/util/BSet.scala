@@ -1,6 +1,4 @@
-package esmeta.analyzer.domain
-
-import esmeta.analyzer.*
+package esmeta.util
 
 /** bounded set lattice */
 sealed trait BSet[+A] {
@@ -13,7 +11,7 @@ sealed trait BSet[+A] {
   /** map function */
   def map[B](f: A => B): BSet[B] = this match
     case Fin(set) => Fin(set.map(f))
-    case Inf      => exploded(s"impossible to iterate infinite set.")
+    case Inf      => Inf
 }
 case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]

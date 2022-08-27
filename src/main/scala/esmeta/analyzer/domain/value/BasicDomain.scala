@@ -8,6 +8,7 @@ import esmeta.es.*
 import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.parser.ESValueParser
+import esmeta.util.*
 import esmeta.util.Appender.*
 
 /** basic domain for values */

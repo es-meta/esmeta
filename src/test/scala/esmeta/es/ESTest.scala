@@ -11,6 +11,7 @@ import esmeta.ir.NormalInst
 import esmeta.parser.AstFrom
 import esmeta.spec.Spec
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import org.scalatest.Assertions.*
 
