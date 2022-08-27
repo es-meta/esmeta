@@ -3,7 +3,8 @@ package esmeta.ir
 import esmeta.*
 import esmeta.ir.util.{Parser, YetCollector}
 import esmeta.parser.{ESParser, AstFrom}
-import esmeta.spec.{Spec, TypeModel}
+import esmeta.spec.Spec
+import esmeta.typing.TypeModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*

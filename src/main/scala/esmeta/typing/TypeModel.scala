@@ -1,6 +1,5 @@
-package esmeta.spec
+package esmeta.typing
 
-import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 

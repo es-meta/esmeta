@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.lang.Step
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
-import esmeta.typing.TopT
+import esmeta.typing.{TopT, TypeModel}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
