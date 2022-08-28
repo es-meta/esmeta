@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage references
 sealed trait Reference extends Syntax
-object Reference extends Parser.From[Reference]
+object Reference extends Parser.From[Reference](Parser.ref)
 
 // variables
 case class Variable(name: String) extends Reference
@@ -28,7 +28,7 @@ case class PropertyReference(base: Reference, prop: Property) extends Reference
 // metalanguage properties
 // -----------------------------------------------------------------------------
 sealed trait Property extends Syntax
-object Property extends Parser.From[Property]
+object Property extends Parser.From[Property](Parser.prop)
 
 // field property
 case class FieldProperty(name: String) extends Property
@@ -49,4 +49,4 @@ case class NonterminalProperty(name: String) extends Property
 // intrinsics
 // -----------------------------------------------------------------------------
 case class Intrinsic(base: String, props: List[String]) extends Syntax
-object Intrinsic extends Parser.From[Intrinsic]
+object Intrinsic extends Parser.From[Intrinsic](Parser.intr)

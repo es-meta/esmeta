@@ -9,6 +9,6 @@ case class Param(
   kind: Param.Kind = Param.Kind.Normal,
   ty: Type = Type(),
 ) extends SpecElem
-object Param extends Parser.From[Param]:
+object Param extends Parser.From[Param](Parser.param):
   enum Kind extends SpecElem:
     case Normal, Optional, Variadic, Ellipsis

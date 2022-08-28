@@ -12,7 +12,7 @@ sealed trait Symbol extends SpecElem {
     case ButOnlyIf(base, _, _) => Some(base)
     case _                     => None
 }
-object Symbol extends Parser.From[Symbol]
+object Symbol extends Parser.From[Symbol](Parser.symbol)
 
 /** terminal symbols */
 case class Terminal(term: String) extends Symbol
@@ -22,9 +22,9 @@ case class Nonterminal(name: String, args: List[NtArg], optional: Boolean)
   extends Symbol
 object Nonterminal:
   case class Arg(kind: Arg.Kind, name: String) extends SpecElem
-  object Arg extends Parser.From[Arg]:
+  object Arg extends Parser.From[Arg](Parser.ntArg):
     enum Kind extends SpecElem { case True, False, Pass }
-    object Kind extends Parser.From[Kind]
+    object Kind extends Parser.From[Kind](Parser.ntArgKind)
 
 /** helpers for nonterminal arguments */
 type NtArg = Nonterminal.Arg

@@ -38,4 +38,4 @@ case class Grammar(
     pair <- prod.idxMap
   } yield pair).toMap
 }
-object Grammar extends Parser.From[Grammar]
+object Grammar extends Parser.From[Grammar](Parser.grammarParser)

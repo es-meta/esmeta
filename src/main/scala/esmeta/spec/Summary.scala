@@ -15,7 +15,7 @@ case class Summary(
 ) extends SpecElem
 
 /** helper of ECMAScript specifications (ECMA-262) summary */
-object Summary extends Parser.From[Summary] {
+object Summary extends Parser.From[Summary](Parser.summary) {
   def apply(spec: Spec): Summary = if (!spec.isEmpty) {
     import Production.Kind.*
     val Spec(version, grammar, algos, tables, tyModel, _) = spec

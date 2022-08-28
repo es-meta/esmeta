@@ -10,7 +10,7 @@ case class Type(ty: Ty = UnknownTy()) extends Syntax {
   def name: String = ty.name
   def normalizedName: String = ty.normalizedName
 }
-object Type extends Parser.From[Type]:
+object Type extends Parser.From[Type](Parser.langTy):
   // TODO refactor
   def apply(str: String): Type = Type(UnknownTy(str))
   def unapply(ty: Type): Option[String] = Some(ty.name)

@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage conditions
 sealed trait Condition extends Syntax
-object Condition extends Parser.From[Condition]
+object Condition extends Parser.From[Condition](Parser.cond)
 
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition

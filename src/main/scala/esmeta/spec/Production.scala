@@ -25,10 +25,10 @@ case class Production(
     nt <- rhs.nts
   } yield nt
 }
-object Production extends Parser.From[Production]:
+object Production extends Parser.From[Production](Parser.prod):
   enum Kind extends SpecElem:
     case Syntactic, Lexical, NumericString
-  object Kind extends Parser.From[Kind]
+  object Kind extends Parser.From[Kind](Parser.prodKind)
 
 /** ordering of productions */
 given Ordering[Production] =

@@ -15,7 +15,7 @@ sealed trait Inst extends IRElem:
   def toList: List[Inst] = this match
     case ISeq(is) => is
     case i        => List(i)
-object Inst extends Parser.From[Inst]
+object Inst extends Parser.From[Inst](Parser.inst)
 
 // normal instructions
 sealed trait NormalInst extends Inst
@@ -29,7 +29,7 @@ case class IReturn(expr: Expr) extends NormalInst
 case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
-object NormalInsts extends Parser.From[List[NormalInst]]
+object NormalInsts extends Parser.From[List[NormalInst]](Parser.normalInsts)
 
 // call instructions
 sealed trait CallInst extends Inst {

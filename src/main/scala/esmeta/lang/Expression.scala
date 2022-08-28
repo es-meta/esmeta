@@ -5,7 +5,7 @@ import esmeta.util.DoubleEquals
 
 // metalanguage expressions
 sealed trait Expression extends Syntax
-object Expression extends Parser.From[Expression]
+object Expression extends Parser.From[Expression](Parser.expr)
 
 // string concatenation expressions
 case class StringConcatExpression(exprs: List[Expression]) extends Expression

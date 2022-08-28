@@ -20,7 +20,7 @@ trait Ty extends TyElem {
   /** completion check */
   def isCompletion: Boolean
 }
-object Ty extends Parser.From[Ty]
+object Ty extends Parser.From[Ty](Parser.ty)
 
 // -----------------------------------------------------------------------------
 // legacy types

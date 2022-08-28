@@ -25,13 +25,13 @@ case class Func(
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
 }
-object Func extends Parser.From[Func] {
+object Func extends Parser.From[Func](Parser.func) {
 
   /** function kinds */
   enum Kind extends IRElem:
     case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
     BuiltinClo
-  object Kind extends Parser.From[Kind]
+  object Kind extends Parser.From[Kind](Parser.funcKind)
 
   /** function parameters */
   case class Param(
@@ -39,5 +39,5 @@ object Func extends Parser.From[Func] {
     optional: Boolean = false,
     ty: Type = Type(),
   ) extends IRElem
-  object Param extends Parser.From[Param]
+  object Param extends Parser.From[Param](Parser.param)
 }

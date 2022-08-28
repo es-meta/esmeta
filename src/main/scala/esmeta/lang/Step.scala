@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage steps
 sealed trait Step extends Syntax
-object Step extends Parser.From[Step]
+object Step extends Parser.From[Step](Parser.step)
 
 // let steps
 case class LetStep(variable: Variable, expr: Expression) extends Step

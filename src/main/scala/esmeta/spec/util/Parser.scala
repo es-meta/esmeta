@@ -61,7 +61,7 @@ trait Parsers extends BasicParsers {
   // Grammar
   // ---------------------------------------------------------------------------
   /** grammar */
-  given grammarRule: Parser[Grammar] = {
+  given grammarParser: Parser[Grammar] = {
     (rep(newline) ~ "<Productions>" ~> prods) ~
     (rep(newline) ~ "<Productions for Web>" ~> prods) ^^ {
       case p ~ w => Grammar(p, w)

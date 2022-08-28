@@ -49,7 +49,7 @@ case class Program(
       getName = func => s"${func.normalizedName}.ir",
     )
 }
-object Program extends Parser.From[Program] {
+object Program extends Parser.From[Program](Parser.program) {
   def apply(funcs: List[Func], spec: Spec): Program =
     val program = Program(funcs)
     program.spec = spec

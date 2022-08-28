@@ -12,7 +12,8 @@ object Stringifier {
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
-      case elem: Ty          => typeRule(app, elem)
+      case elem: UnknownTy   => unknownTyRule(app, elem)
+      case elem: ValueTy     => valueTyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
