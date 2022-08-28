@@ -95,13 +95,16 @@ object Appender {
     else app.wrap(for (pair <- map) app :> pair)
 
   /** sorted map appender */
-  def sortedMapRule[K, V](using
+  def sortedMapRule[K, V](
+    left: String = "{",
+    right: String = "}",
+  )(using
     kOrd: Ordering[K],
     kRule: Rule[K],
     vRule: Rule[V],
   ): Rule[Map[K, V]] = (app, map) =>
     given Rule[(K, V)] = arrowRule
-    if (map.size == 0) app >> "{}"
+    if (map.size == 0) app >> left >> right
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)
 
   // basic values

@@ -2,7 +2,7 @@ package esmeta.ir.util
 
 import esmeta.ir.*
 import esmeta.lang.Syntax
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Locational, BasicParsers}
 
@@ -50,7 +50,7 @@ trait Parsers extends BasicParsers {
   }.named("ir.Func.Param")
 
   // return types
-  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(UnknownType) }
+  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(Type()) }
 
   // instructions
   given inst: Parser[Inst] = withLoc {
@@ -279,7 +279,7 @@ trait Parsers extends BasicParsers {
 
   // TODO types
   given ty: Parser[Type] = {
-    ident ^^ { case s => Type(UnknownTy(s)) }
+    ident ^^ { case s => Type(s) }
   }.named("ir.Type")
 
   // helper for locations

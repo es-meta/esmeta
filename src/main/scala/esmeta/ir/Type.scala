@@ -1,10 +1,10 @@
 package esmeta.ir
 
 import esmeta.ir.util.Parser
-import esmeta.typing.*
+import esmeta.ty.*
 
 // TODO ir types
-case class Type(ty: Ty) extends IRElem {
+case class Type(ty: Ty = UnknownTy()) extends IRElem {
   // TODO refactor
   def name: String = ty.name
   def normalizedName: String = ty.normalizedName
@@ -14,5 +14,5 @@ case class Type(ty: Ty) extends IRElem {
 }
 object Type extends Parser.From[Type]:
   // TODO refactor
+  def apply(str: String): Type = Type(UnknownTy(str))
   def unapply(ty: Type): Option[String] = Some(ty.name)
-val UnknownType = Type(UnknownTy())

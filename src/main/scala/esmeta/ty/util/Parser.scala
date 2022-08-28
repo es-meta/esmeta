@@ -1,6 +1,6 @@
-package esmeta.typing.util
+package esmeta.ty.util
 
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 
@@ -9,5 +9,5 @@ object Parser extends Parsers
 trait Parsers extends BasicParsers {
   given ty: Parser[Ty] = {
     "" ^^ { _ => ??? }
-  }.named("typing.Ty")
+  }.named("ty.Ty")
 }

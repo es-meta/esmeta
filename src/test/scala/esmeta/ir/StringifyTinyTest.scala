@@ -2,7 +2,7 @@ package esmeta.ir
 
 import esmeta.IR_TEST_DIR
 import esmeta.ir.*
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
@@ -319,7 +319,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // TODO types
     // -------------------------------------------------------------------------
-    lazy val ty = Type(UnknownTy("T"))
+    lazy val ty = Type("T")
     checkParseAndStringify("Type", Type)(ty -> "T")
   }
 

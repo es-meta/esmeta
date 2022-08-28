@@ -1,7 +1,7 @@
 package esmeta.lang
 
 import esmeta.lang.*
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 
 /** stringify test */
@@ -204,7 +204,7 @@ class StringifyTinyTest extends LangTest {
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
     lazy val invokeNumericExpr =
       InvokeNumericMethodExpression(
-        Type(UnknownTy("Number")),
+        Type("Number"),
         "add",
         List(refExpr, refExpr),
       )
@@ -563,7 +563,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm types
     // -------------------------------------------------------------------------
-    lazy val ty = Type(UnknownTy("Object"))
+    lazy val ty = Type("Object")
 
     // tests
     checkParseAndStringify("Type", Type)(

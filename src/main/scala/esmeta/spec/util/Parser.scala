@@ -5,7 +5,6 @@ import esmeta.*
 import esmeta.lang.*
 import esmeta.lang.util.{Parsers => LangParsers}
 import esmeta.spec.{*, given}
-import esmeta.typing.UnknownTy
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
@@ -15,7 +14,7 @@ import esmeta.spec.Summary.AlgorithmElem
 
 /** specification parsers */
 object Parser extends Parsers
-trait Parsers extends LangParsers {
+trait Parsers extends BasicParsers {
   // skip only white spaces and comments
   override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
@@ -211,7 +210,7 @@ trait Parsers extends LangParsers {
     *     *undefined* ...
     */
   given specTy: Parser[Type] = {
-    "([^_,:]|, )+".r ^^ { case s => Type(UnknownTy(s)) }
+    "([^_,:]|, )+".r ^^ { case s => Type(s) }
   }.named("lang.Type (specTy)")
 
   // abstract opration (AO) heads
@@ -234,8 +233,8 @@ trait Parsers extends LangParsers {
     opt("optional") ~ specId ~ opt(":" ~> specTy) ^^ {
       case opt ~ name ~ specTy =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, specTy.getOrElse(UnknownType))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, UnknownType)
+        Param(name, kind, specTy.getOrElse(Type()))
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, Type())
   }.named("spec.Param")
 
   // algorithm parameter description
@@ -329,7 +328,7 @@ trait Parsers extends LangParsers {
     "[a-zA-Z0-9/]+".r
 
   lazy val retTy: Parser[Type] =
-    opt(":" ~> specTy) ^^ { _.getOrElse(UnknownType) }
+    opt(":" ~> specTy) ^^ { _.getOrElse(Type()) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

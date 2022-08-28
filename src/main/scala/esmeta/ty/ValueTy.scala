@@ -1,15 +1,16 @@
-package esmeta.typing
+package esmeta.ty
 
+import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.util.*
-import java.lang.Character.Subset
 
 /** value types */
 case class ValueTy(
   comp: CompTy,
   pureValue: PureValueTy,
   subMap: SubMapTy,
-) extends Ty {
+) extends Ty
+  with Lattice[ValueTy] {
 
   /** bottom check */
   def isBottom: Boolean =
@@ -17,22 +18,28 @@ case class ValueTy(
     this.pureValue.isBottom &
     this.subMap.isBottom
 
+  /** partial order/subset operator */
+  def <=(that: => ValueTy): Boolean =
+    this.comp <= that.comp &
+    this.pureValue <= that.pureValue &
+    this.subMap <= that.subMap
+
   /** union type */
-  def |(that: ValueTy): ValueTy = ValueTy(
+  def |(that: => ValueTy): ValueTy = ValueTy(
     this.comp | that.comp,
     this.pureValue | that.pureValue,
     this.subMap | that.subMap,
   )
 
   /** intersection type */
-  def &(that: ValueTy): ValueTy = ValueTy(
+  def &(that: => ValueTy): ValueTy = ValueTy(
     this.comp & that.comp,
     this.pureValue & that.pureValue,
     this.subMap & that.subMap,
   )
 
   /** prune type */
-  def --(that: ValueTy): ValueTy = ValueTy(
+  def --(that: => ValueTy): ValueTy = ValueTy(
     this.comp -- that.comp,
     this.pureValue -- that.pureValue,
     this.subMap -- that.subMap,
@@ -50,8 +57,8 @@ object ValueTy {
     normal: PureValueTy = PureValueTy(),
     abrupt: Boolean = false,
     pureValue: PureValueTy = PureValueTy(),
-    clo: CloTy = CloTy(),
-    cont: ContTy = ContTy(),
+    clo: BSet[String] = Fin(),
+    cont: Set[Func] = Set(),
     record: RecordTy = RecordTy(),
     list: ListTy = ListTy(),
     symbol: Boolean = false,

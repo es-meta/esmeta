@@ -4,7 +4,7 @@ import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*

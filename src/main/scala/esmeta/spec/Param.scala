@@ -7,7 +7,7 @@ import esmeta.spec.util.Parser
 case class Param(
   name: String,
   kind: Param.Kind = Param.Kind.Normal,
-  ty: Type = UnknownType,
+  ty: Type = Type(),
 ) extends SpecElem
 object Param extends Parser.From[Param]:
   enum Kind extends SpecElem:

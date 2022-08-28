@@ -53,6 +53,11 @@ lazy val langTest = taskKey[Unit]("Launch lang tests")
 lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
 
+// ty
+lazy val tyTest = taskKey[Unit]("Launch ty tests")
+lazy val tyStringifyTest =
+  taskKey[Unit]("Launch stringify tests for ty (tiny)")
+
 // compiler
 lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
 lazy val compilerValidityTest =
@@ -81,6 +86,11 @@ lazy val interpreterEvalTest =
 lazy val stateTest = taskKey[Unit]("Launch state tests")
 lazy val stateStringifyTest =
   taskKey[Unit]("Launch stringify tests for state (tiny)")
+
+// analyzer
+lazy val analyzerTest = taskKey[Unit]("Launch analyzer tests")
+lazy val analyzerStringifyTest =
+  taskKey[Unit]("Launch stringify tests for analyzer (tiny)")
 
 // es
 lazy val esTest = taskKey[Unit]("Launch ECMAScript tests")
@@ -179,6 +189,11 @@ lazy val root = project
     langStringifyTest := (Test / testOnly)
       .toTask(" *.lang.Stringify*Test")
       .value,
+    // ty
+    tyTest := (Test / testOnly).toTask(" *.ty.*Test").value,
+    tyStringifyTest := (Test / testOnly)
+      .toTask(" *.ty.Stringify*Test")
+      .value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
     compilerValidityTest := (Test / testOnly)
@@ -204,6 +219,11 @@ lazy val root = project
     stateTest := (Test / testOnly).toTask(" *.state.*Test").value,
     stateStringifyTest := (Test / testOnly)
       .toTask(" *.state.Stringify*Test")
+      .value,
+    // analyzer
+    analyzerTest := (Test / testOnly).toTask(" *.analyzer.*Test").value,
+    analyzerStringifyTest := (Test / testOnly)
+      .toTask(" *.analyzer.Stringify*Test")
       .value,
     // es
     esTest := (Test / testOnly).toTask(" *.es.*Test").value,

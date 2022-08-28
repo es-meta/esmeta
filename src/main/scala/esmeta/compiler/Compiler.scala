@@ -1,12 +1,12 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.ir.{Type => IRType, UnknownType => IRUnknownType, *}
+import esmeta.ir.{Type => IRType, *}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.{Param => SParam, *}
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
@@ -539,7 +539,7 @@ class Compiler(
             (
               Func.Kind.Clo,
               fb.nextCloName,
-              params.map(x => Func.Param(compile(x), false, IRUnknownType)),
+              params.map(x => Func.Param(compile(x), false, IRType())),
               Nil,
             )
         addFunc(
@@ -548,7 +548,7 @@ class Compiler(
             ck,
             cn,
             ps,
-            IRUnknownType,
+            IRType(),
             fb.algo,
           ),
           body = body,
@@ -609,7 +609,7 @@ class Compiler(
     case ErrorObjectLiteral(name) =>
       val proto = Intrinsic(name, List("prototype"))
       EMap(
-        IRType(UnknownTy("OrdinaryObject")),
+        IRType("OrdinaryObject"),
         List(
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
           EStr("ErrorData") -> EUndef,
@@ -762,8 +762,8 @@ class Compiler(
 
   /** compile types */
   def compile(ty: Type): IRType =
-    if (ty == UnknownType) IRUnknownType
-    else IRType(UnknownTy(ty.normalizedName))
+    if (ty == Type()) IRType()
+    else IRType(ty.normalizedName)
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

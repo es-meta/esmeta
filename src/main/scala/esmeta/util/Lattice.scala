@@ -1,7 +1,29 @@
 package esmeta.util
 
-/** flat lattice */
-sealed trait Lattice[+A, L[_] <: Lattice[_, L]] {
+/** lattice */
+trait Lattice[L <: Lattice[L]] {
+
+  /** bottom check */
+  def isBottom: Boolean
+
+  /** partial order/subset operator */
+  def <=(that: => L): Boolean
+  def ⊑(that: => L): Boolean = this <= that
+
+  /** join/union operator */
+  def |(that: => L): L
+  def ⊔(that: => L): L = this | that
+
+  /** meet/intersection operator */
+  def &(that: => L): L
+  def ⊓(that: => L): L = this & that
+
+  /** prune operator */
+  def --(that: => L): L
+}
+
+/** lattice with concrete values */
+trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
 
   /** bottom check */
   def isBottom: Boolean
@@ -20,13 +42,12 @@ sealed trait Lattice[+A, L[_] <: Lattice[_, L]] {
 
   /** prune operator */
   def --[B >: A](that: => L[B]): L[B]
-
-  /** map function */
-  def map[B](f: A => B): L[B]
 }
 
-/** flat lattice */
-sealed trait Flat[+A] extends Lattice[A, Flat] {
+// -----------------------------------------------------------------------------
+// flat lattice
+// -----------------------------------------------------------------------------
+sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
 
   /** bottom check */
   def isBottom: Boolean = this == Zero
@@ -72,8 +93,10 @@ case class One[A](elem: A) extends Flat[A]
 /** no element */
 case object Zero extends Flat[Nothing]
 
-/** bounded set lattice */
-sealed trait BSet[+A] extends Lattice[A, BSet] {
+// -----------------------------------------------------------------------------
+// bounded set lattice
+// -----------------------------------------------------------------------------
+sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
 
   /** bottom check */
   def isBottom: Boolean = this == Fin()
@@ -110,28 +133,3 @@ case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]
 object Fin:
   def apply[A](elems: A*): Fin[A] = Fin(elems.toSet)
-
-/** simple lattice */
-case class Simple[+A](exist: Boolean) extends Lattice[A, Simple] {
-
-  /** bottom check */
-  def isBottom: Boolean = !exist
-
-  /** partial order/subset operator */
-  def <=[B >: A](that: => Simple[B]): Boolean = !this.exist | that.exist
-
-  /** join operator */
-  def |[B >: A](that: => Simple[B]): Simple[B] =
-    Simple(this.exist | that.exist)
-
-  /** meet/intersection operator */
-  def &[B >: A](that: => Simple[B]): Simple[B] =
-    Simple(this.exist & that.exist)
-
-  /** prune operator */
-  def --[B >: A](that: => Simple[B]): Simple[B] =
-    Simple(this.exist & !that.exist)
-
-  /** map function */
-  def map[B](f: A => B): Simple[B] = Simple(exist)
-}

@@ -1,7 +1,7 @@
 package esmeta.spec
 
 import esmeta.lang.*
-import esmeta.typing.*
+import esmeta.ty.*
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 import Symbol.*
@@ -162,30 +162,30 @@ class StringifyTinyTest extends SpecTest {
         false,
         "StringIndexOf",
         List(
-          Param("string", Param.Kind.Normal, Type(UnknownTy("a String"))),
-          Param("searchValue", Param.Kind.Normal, Type(UnknownTy("a String"))),
+          Param("string", Param.Kind.Normal, Type("a String")),
+          Param("searchValue", Param.Kind.Normal, Type("a String")),
           Param(
             "fromIndex",
             Param.Kind.Normal,
-            Type(UnknownTy("a non-negative integer")),
+            Type("a non-negative integer"),
           ),
         ),
-        UnknownType,
+        Type(),
       ) -> "StringIndexOf(string, searchValue, fromIndex): unknown",
       NumericMethodHead(
-        Type(UnknownTy("Number")),
+        Type("Number"),
         "unaryMinus",
         List(
-          Param("x", Param.Kind.Normal, Type(UnknownTy("a Number"))),
+          Param("x", Param.Kind.Normal, Type("a Number")),
         ),
-        UnknownType,
+        Type(),
       ) -> "Number::unaryMinus(x): unknown",
       SyntaxDirectedOperationHead(
         None,
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-        UnknownType,
+        Type(),
       ) -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
@@ -204,7 +204,7 @@ class StringifyTinyTest extends SpecTest {
         "VarDeclaredNames",
         true,
         List(Param("withParam")),
-        UnknownType,
+        Type(),
       ) -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam): unknown",
       SyntaxDirectedOperationHead(
         Some(
@@ -221,30 +221,30 @@ class StringifyTinyTest extends SpecTest {
         "Evaluation",
         false,
         List(),
-        UnknownType,
+        Type(),
       ) -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R](): unknown",
       ConcreteMethodHead(
         "HasBinding",
         Param(
           "envRec",
           Param.Kind.Normal,
-          Type(UnknownTy("a declarative Environment Record")),
+          Type("a declarative Environment Record"),
         ),
-        List(Param("N", Param.Kind.Normal, Type(UnknownTy("a String")))),
-        UnknownType,
+        List(Param("N", Param.Kind.Normal, Type("a String"))),
+        Type(),
       ) -> "[METHOD] HasBinding(envRec)(N): unknown", // Old: [METHOD] DeclarativeEnvironmentRecord.HasBinding(envRec)(N)
       InternalMethodHead(
         "SetPrototypeOf",
-        Param("O", Param.Kind.Normal, Type(UnknownTy("an ordinary object"))),
+        Param("O", Param.Kind.Normal, Type("an ordinary object")),
         List(
-          Param("V", Param.Kind.Normal, Type(UnknownTy("an Object or null"))),
+          Param("V", Param.Kind.Normal, Type("an Object or null")),
         ),
-        UnknownType,
+        Type(),
       ) -> "[METHOD] SetPrototypeOf(O)(V): unknown", // Old: [METHOD] OrdinaryObject.SetPrototypeOf(O)(V)
       BuiltinHead(
         Base("Boolean"),
-        List(Param("value", Param.Kind.Normal, Type(UnknownTy("an argument")))),
-        UnknownType,
+        List(Param("value", Param.Kind.Normal, Type("an argument"))),
+        Type(),
       ) -> "[BUILTIN] Boolean(value): unknown",
     )
   }

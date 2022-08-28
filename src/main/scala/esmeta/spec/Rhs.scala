@@ -1,6 +1,6 @@
 package esmeta.spec
 
-import esmeta.lang.UnknownType
+import esmeta.lang.Type
 import esmeta.spec.util.*
 import esmeta.util.BaseUtils.cached
 
@@ -59,7 +59,7 @@ case class Rhs(
   /** get parameters from RHSs */
   // TODO give more precise type
   def params: List[Param] =
-    nts.map(nt => Param(nt.name, Param.Kind.Normal, UnknownType))
+    nts.map(nt => Param(nt.name, Param.Kind.Normal, Type()))
 }
 object Rhs extends Parser.From[Rhs] {
 

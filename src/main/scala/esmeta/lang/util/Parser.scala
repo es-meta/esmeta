@@ -1,8 +1,8 @@
 package esmeta.lang.util
 
 import esmeta.lang.*
-import esmeta.typing.*
-import esmeta.typing.util.{Parsers => TyParsers}
+import esmeta.ty.*
+import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational}
 import esmeta.util.BaseUtils.*
 import scala.util.matching.Regex
@@ -987,32 +987,21 @@ trait Parsers extends IndentParsers with TyParsers {
   // ---------------------------------------------------------------------------
   given langTy: PL[Type] = {
     rep1(camel) ^^ {
-      case ss => Type(UnknownTy(ss.mkString(" ")))
+      case ss => Type(ss.mkString(" "))
     } ||| "[a-zA-Z ]+ object".r ^^ {
-      case s => Type(UnknownTy(s))
+      case s => Type(s)
     } ||| "\\w+ Environment Record".r ^^ {
-      case s => Type(UnknownTy(s))
+      case s => Type(s)
     } ||| opt("ECMAScript code") ~ "execution context" ^^! {
-      Type(UnknownTy("ExecutionContext"))
+      Type("ExecutionContext")
     } ||| "List of" ~ word ^^! {
-      Type(UnknownTy("List"))
+      Type("List")
     } ||| nt ^^ {
-      case s => Type(UnknownTy(s))
+      case s => Type(s)
     } ||| "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! {
-      Type(UnknownTy("Record"))
+      Type("Record")
     }
   }.named("lang.Type (langTy)")
-
-  // TODO
-  lazy val langTyWithLiteral: PL[Type] = {
-    langTy |
-    literalTy ^^ { Type(_) }
-  }.named("lang.Type (langTyWithLiteral)")
-
-  // TODO
-  lazy val literalTy: P[Ty] = literal ^^ {
-    case v => UnknownTy(v.toString)
-  }
 
   // ---------------------------------------------------------------------------
   // private helpers

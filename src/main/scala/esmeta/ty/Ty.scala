@@ -1,6 +1,6 @@
-package esmeta.typing
+package esmeta.ty
 
-import esmeta.typing.util.Parser
+import esmeta.ty.util.Parser
 
 /** types */
 trait Ty extends TyElem {

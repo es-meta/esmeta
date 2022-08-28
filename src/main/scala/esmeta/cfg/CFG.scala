@@ -5,7 +5,7 @@ import esmeta.cfg.util.*
 import esmeta.ir.Program
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
-import esmeta.typing.TyModel
+import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
