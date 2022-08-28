@@ -189,9 +189,9 @@ class StringifyTinyTest extends LangTest {
     lazy val listConcatExprThree =
       ListConcatExpression(List(refExpr, refExpr, refExpr))
     lazy val recordEmptyExpr =
-      RecordExpression(ty, Nil)
+      RecordExpression("Object", Nil)
     lazy val recordExpr =
-      RecordExpression(ty, List(fieldLit -> refExpr))
+      RecordExpression("Object", List(fieldLit -> refExpr))
     lazy val lengthExpr = LengthExpression(refExpr)
     lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
     lazy val substrExprTo = SubstringExpression(refExpr, refExpr, Some(refExpr))

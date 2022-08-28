@@ -1,4 +1,4 @@
-def RequireObjectCoercible(argument: Any) {
+def RequireObjectCoercible(argument: Unknown) {
   if (= (typeof argument) @Undefined) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}

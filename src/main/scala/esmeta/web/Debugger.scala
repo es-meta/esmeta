@@ -298,7 +298,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     def paramInfo(p: IRFunc.Param) = (
       p.lhs.name,
       p.optional,
-      p.ty.name,
+      p.ty.toString,
     )
 
     val ctxts = (st.context :: st.callStack.map(_.context)).drop(cid)

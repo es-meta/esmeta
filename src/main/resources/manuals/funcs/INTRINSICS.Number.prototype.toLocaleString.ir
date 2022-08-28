@@ -1,3 +1,3 @@
-def <BUILTIN>:INTRINSICS.Number.prototype.toLocaleString(this: Any, argumentsList: Any, NewTarget: Any): Unknown {
+def <BUILTIN>:INTRINSICS.Number.prototype.toLocaleString(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
   (yet "[YET] Number.prototype.toLocaleString")
 }

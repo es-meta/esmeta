@@ -1,4 +1,4 @@
-def fibo(n: int) {
+def fibo(n: Math) {
   if (< n 2) %0 = n
   else {
     let n1 = (- n 1)

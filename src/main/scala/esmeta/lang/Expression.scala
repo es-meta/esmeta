@@ -15,7 +15,7 @@ case class ListConcatExpression(exprs: List[Expression]) extends Expression
 
 // record expressions
 case class RecordExpression(
-  ty: Type,
+  tname: String,
   fields: List[(FieldLiteral, Expression)],
 ) extends Expression
 

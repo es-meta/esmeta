@@ -1,7 +1,6 @@
 package esmeta.ty
 
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.BaseUtils.*
 import esmeta.state.Grammar
 import scala.collection.mutable.ListBuffer
@@ -12,9 +11,6 @@ class StringifyTinyTest extends TyTest {
 
   // registration
   def init: Unit = {
-    lazy val func = Func(0, irFunc, Some(Block(0, ListBuffer())))
-    lazy val irFunc =
-      IRFunc(true, IRFunc.Kind.AbsOp, "ToNumber", Nil, Type(), ISeq(Nil))
     lazy val complexRecord =
       RecordT("A", "B") |
       RecordT(Map("A" -> NumberT, "B" -> BoolT))
@@ -22,21 +18,25 @@ class StringifyTinyTest extends TyTest {
       Grammar("Literal", List(true)),
       Grammar("Identifier", List(false, true, false)),
     )
-    checkStringify("Ty")(
+    checkParseAndStringify("Ty", Ty)(
       AbruptT -> "Abrupt",
       NormalT(PureValueTy(number = true)) -> "Normal[Number]",
-      SubMapT(StrTopT, RecordT("Binding")) -> "SubMap[Str |-> Record[Binding]]",
+      SubMapT(
+        StrTopT,
+        RecordT("Binding"),
+      ) -> "SubMap[String |-> Record[Binding]]",
       CloTopT -> "Clo",
-      CloT("ToString") -> "Clo[ToString]",
-      ContT(func) -> "Cont[ToNumber]",
+      CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
+      ContTopT -> "Cont",
+      ContT("ToNumber:cont0") -> "Cont[\"ToNumber:cont0\"]",
       ESValueT -> "ESValue",
-      UnknownTy() -> "unknown",
-      UnknownTy(Some("T")) -> "T",
+      UnknownTy() -> "Unknown",
+      UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       RecordT("A") -> "Record[A]",
       RecordT("A", "B") -> "Record[A, B]",
       RecordT(Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record {A -> Number, B -> Bool}",
-      complexRecord -> "Record[A, B] {A -> Number, B -> Bool}",
+      "Record {\"A\" -> Number, \"B\" -> Boolean}",
+      complexRecord -> "Record[A, B] {\"A\" -> Number, \"B\" -> Boolean}",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Symbol",
@@ -49,10 +49,10 @@ class StringifyTinyTest extends TyTest {
       MathT -> "Math",
       NumberT -> "Number",
       BigIntT -> "BigInt",
-      StrTopT -> "Str",
-      StrT("a") -> "Str[\"a\"]",
-      BoolT -> "Bool",
-      UndefT -> "Undef",
+      StrTopT -> "String",
+      StrT("a") -> "String[\"a\"]",
+      BoolT -> "Boolean",
+      UndefT -> "Undefined",
       NullT -> "Null",
       AbsentT -> "Absent",
     )

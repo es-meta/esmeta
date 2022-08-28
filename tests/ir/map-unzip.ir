@@ -1,5 +1,4 @@
-// input: Map, output: List[keySet of Map, ValueSet of Map]
-def unzip(map: Map) {
+def unzip(map: Record[Map]) {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
   let values = (new [])[#1]

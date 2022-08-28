@@ -1,4 +1,4 @@
-def filter(list: List, f: Function) {
+def filter(list: List[Math], f: Clo) {
   let clist = (copy list)[#1]
   if (= clist.length 0) %0 = clist
   else {
@@ -11,7 +11,7 @@ def filter(list: List, f: Function) {
   return %0
 }
 
-def even(i: int) {
+def even(i: Math) {
   let r = (% i 2)
   return (= r 0)
 }

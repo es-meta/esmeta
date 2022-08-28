@@ -1,4 +1,8 @@
-def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(envRec: DeclarativeEnvironmentRecord, N: String, V: ECMAScriptLanguageValue): Unknown {
+def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(
+  envRec: Record[DeclarativeEnvironmentRecord],
+  N: String,
+  V: ESValue
+): Unknown {
   // Assert: _envRec_ must have an uninitialized binding for _N_.
   assert (= envRec.SubMap[N].initialized false)
 

@@ -22,9 +22,10 @@ def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
   ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
 def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
   ValueTy(subMap = SubMapTy(key, value))
-def CloTopT: ValueTy = ValueTy(clo = Inf)
+val CloTopT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy = ValueTy(clo = Fin(names.toSet))
-def ContT(funcs: Func*): ValueTy = ValueTy(cont = funcs.toSet)
+val ContTopT: ValueTy = ValueTy(cont = Inf)
+def ContT(names: String*): ValueTy = ValueTy(cont = Fin(names.toSet))
 val ESPureValueT: PureValueTy = PureValueTy(
   record = RecordTy(Set("Object")),
   number = true,

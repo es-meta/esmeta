@@ -417,7 +417,7 @@ class Compiler(
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
       case ListConcatExpression(exprs) =>
         EListConcat(exprs.map(compile(fb, _)))
-      case RecordExpression(Type("Completion Record"), fields) =>
+      case RecordExpression("Completion Record", fields) =>
         val fmap = fields.toMap
         val fs @ List(ty, v, tgt) =
           List("Type", "Value", "Target").map(FieldLiteral(_))
@@ -429,11 +429,11 @@ class Compiler(
           compile(fb, fmap(v)),
           compile(fb, fmap(tgt)),
         )
-      case RecordExpression(ty, fields) =>
+      case RecordExpression(tname, fields) =>
         val props = fields.map {
           case (f, e) => compile(fb, f) -> compile(fb, e)
         }
-        EMap(compile(ty), props)
+        EMap(Type.normalizeName(tname), props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
@@ -609,7 +609,7 @@ class Compiler(
     case ErrorObjectLiteral(name) =>
       val proto = Intrinsic(name, List("prototype"))
       EMap(
-        IRType("OrdinaryObject"),
+        "OrdinaryObject",
         List(
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
           EStr("ErrorData") -> EUndef,
@@ -653,7 +653,7 @@ class Compiler(
         val xExpr = compile(fb, expr)
         val e =
           tys
-            .map[Expr](t => ETypeCheck(xExpr, EStr(compile(t).name)))
+            .map[Expr](t => ETypeCheck(xExpr, EStr(t.normalizedName)))
             .reduce(or(_, _))
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
@@ -761,9 +761,7 @@ class Compiler(
   }
 
   /** compile types */
-  def compile(ty: Type): IRType =
-    if (ty == Type()) IRType()
-    else IRType(ty.normalizedName)
+  def compile(ty: Type): IRType = IRType(ty.normalizedName)
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

@@ -2,12 +2,13 @@ package esmeta.ty
 
 import esmeta.cfg.Func
 import esmeta.state.*
+import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** pure value types (non-completion record types) */
 case class PureValueTy(
   clo: BSet[String] = Fin(),
-  cont: Set[Func] = Set(),
+  cont: BSet[String] = Fin(),
   record: RecordTy = RecordTy(),
   list: ListTy = ListTy(),
   symbol: Boolean = false,
@@ -73,7 +74,7 @@ case class PureValueTy(
     this.record | that.record,
     this.list | that.list,
     this.symbol | that.symbol,
-    this.astValue | that.astValue,
+    this.astValue | that.astValue, // TODO
     this.grammar | that.grammar,
     this.codeUnit | that.codeUnit,
     this.const | that.const,
@@ -94,7 +95,7 @@ case class PureValueTy(
     this.record & that.record,
     this.list & that.list,
     this.symbol & that.symbol,
-    this.astValue & that.astValue,
+    this.astValue & that.astValue, // TODO
     this.grammar & that.grammar,
     this.codeUnit & that.codeUnit,
     this.const & that.const,
@@ -115,7 +116,7 @@ case class PureValueTy(
     this.record -- that.record,
     this.list -- that.list,
     this.symbol -- that.symbol,
-    this.astValue -- that.astValue,
+    this.astValue -- that.astValue, // TODO
     this.grammar -- that.grammar,
     this.codeUnit -- that.codeUnit,
     this.const -- that.const,
@@ -129,3 +130,4 @@ case class PureValueTy(
     this.absent -- that.absent,
   )
 }
+object PureValueTy extends Parser.From[PureValueTy](Parser.pureValueTy)

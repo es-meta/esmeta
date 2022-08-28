@@ -21,7 +21,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val cfg = CFG(List(mainFunc, func(1)))
     // tests
     checkStringify("CFG")(
-      cfg -> """0: @main def f(x: T, y?: T): T {
+      cfg -> """0: @main def f(x: Number, y?: Number): Number {
       |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
@@ -31,7 +31,7 @@ class StringifyTinyTest extends CFGTest {
       |  }
       |  3: call %42 = x(x, y)
       |}
-      |1: def f(x: T, y?: T): T {
+      |1: def f(x: Number, y?: Number): Number {
       |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
@@ -63,7 +63,7 @@ class StringifyTinyTest extends CFGTest {
 
     // tests
     checkStringify("Func")(
-      mainFunc -> """0: @main def f(x: T, y?: T): T {
+      mainFunc -> """0: @main def f(x: Number, y?: Number): Number {
       |  0: let x = ~empty~ -> 1
       |  1: if x then 2 else 3
       |  2: {
@@ -73,7 +73,7 @@ class StringifyTinyTest extends CFGTest {
       |  }
       |  3: call %42 = x(x, y)
       |}""".stripMargin,
-      func(0) -> """0: def f(x: T, y?: T): T {
+      func(0) -> """0: def f(x: Number, y?: Number): Number {
       |  4: let x = ~empty~ -> 5
       |  5: if x then 6 else 7
       |  6: {
@@ -126,7 +126,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type("T")
+    lazy val ty = Type(NumberT)
   }
 
   init

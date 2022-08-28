@@ -1,4 +1,4 @@
-def <CLO>:CreateArrayIterator:clo0(): Any {
+def <CLO>:CreateArrayIterator:clo0(): Unknown {
   let index = 0
   loop[repeat] true {
     if (! (= array.TypedArrayName absent)) {

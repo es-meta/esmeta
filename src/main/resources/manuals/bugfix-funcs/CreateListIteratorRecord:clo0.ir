@@ -1,4 +1,4 @@
-def <CLO>:CreateListIteratorRecord:clo0(): Any {
+def <CLO>:CreateListIteratorRecord:clo0(): Unknown {
   %1 = list
   %0 = 0
   loop[foreach] (< %0 %1.length) {

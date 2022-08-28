@@ -31,12 +31,12 @@ class StringifyTinyTest extends IRTest {
 
     // tests
     checkParseAndStringify("Func", Func)(
-      mainFunc -> """@main def f(x: T, y?: T): T {
+      mainFunc -> """@main def f(x: Number, y?: Number): Number {
       |  let x = ~empty~
       |  delete x.p
       |  return x
       |}""".stripMargin,
-      func -> """def f(x: T, y?: T): T {
+      func -> """def f(x: Number, y?: Number): Number {
       |  let x = ~empty~
       |  delete x.p
       |  return x
@@ -66,8 +66,8 @@ class StringifyTinyTest extends IRTest {
 
     // tests
     checkParseAndStringify("Func.Param", Func.Param)(
-      xParam -> "x: T",
-      yParam -> "y?: T",
+      xParam -> "x: Number",
+      yParam -> "y?: Number",
     )
 
     // -------------------------------------------------------------------------
@@ -155,7 +155,7 @@ class StringifyTinyTest extends IRTest {
     lazy val clamp = EClamp(xExpr, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
-    lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.name))
+    lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
     // AST expressions
     lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
     lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
@@ -176,7 +176,7 @@ class StringifyTinyTest extends IRTest {
     lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions
     lazy val rec =
-      EMap(ty, List(EUndef -> EBool(true), ENull -> EAbsent))
+      EMap("T", List(EUndef -> EBool(true), ENull -> EAbsent))
     lazy val list = EList(List(EUndef, ENull, EAbsent))
     lazy val symbol = ESymbol(ENull)
     lazy val copy = ECopy(xExpr)
@@ -208,7 +208,7 @@ class StringifyTinyTest extends IRTest {
       egrammar -> "(grammar |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
-      containsField -> "(contains x x: T Value)",
+      containsField -> "(contains x x: Number Value)",
       substring -> "(substring x x)",
       substringTo -> "(substring x x x)",
       xExpr -> "x",
@@ -217,7 +217,7 @@ class StringifyTinyTest extends IRTest {
       clamp -> "(clamp x x x)",
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
-      typeCheck -> "(? x: \"T\")",
+      typeCheck -> "(? x: \"Number\")",
       // AST expressions
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",
@@ -319,8 +319,8 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // TODO types
     // -------------------------------------------------------------------------
-    lazy val ty = Type("T")
-    checkParseAndStringify("Type", Type)(ty -> "T")
+    lazy val ty = Type(NumberT)
+    checkParseAndStringify("Type", Type)(ty -> "Number")
   }
 
   init

@@ -1,4 +1,4 @@
-def <CONT>:AsyncGeneratorStart:cont0(): Any {
+def <CONT>:AsyncGeneratorStart:cont0(): Unknown {
   %0 = generatorBody
   if (? %0: "ParseNode") {
     sdo-call %1 = generatorBody->Evaluation()

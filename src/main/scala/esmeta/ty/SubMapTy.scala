@@ -1,6 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.*
+import esmeta.ty.util.Parser
 
 /** sub map types */
 case class SubMapTy(
@@ -29,11 +30,17 @@ case class SubMapTy(
   def &(that: => SubMapTy): SubMapTy = SubMapTy(
     this.key & that.key,
     this.value & that.value,
-  )
+  ).norm
 
   /** prune type */
   def --(that: => SubMapTy): SubMapTy = SubMapTy(
     this.key -- that.key,
     this.value -- that.value,
-  )
+  ).norm
+
+  // normalization
+  private def norm: SubMapTy =
+    if (key.isBottom | value.isBottom) SubMapTy()
+    else this
 }
+object SubMapTy extends Parser.From[SubMapTy](Parser.subMapTy)

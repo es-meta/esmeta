@@ -1,4 +1,4 @@
-def <BUILTIN>:INTRINSICS.SyntaxError(this: Any, argumentsList: Any, NewTarget: Any) {
+def <BUILTIN>:INTRINSICS.SyntaxError(this: Unknown, argumentsList: Unknown, NewTarget: Unknown) {
   if (< 0 argumentsList.length) let message = (pop < argumentsList) else let message = absent
   if (< 0 argumentsList.length) let options = (pop < argumentsList) else let options = absent
   %0 = (= NewTarget undefined)

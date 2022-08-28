@@ -1,4 +1,8 @@
-def <BUILTIN>:INTRINSICS.AsyncGenerator.prototype.return(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
+def <BUILTIN>:INTRINSICS.AsyncGenerator.prototype.return(
+  this: Unknown,
+  argumentsList: Unknown,
+  NewTarget: Unknown
+): Unknown {
   if (< 0 argumentsList.length) let value = (pop < argumentsList) else let value = absent
   let generator = this
   call %0 = clo<NewPromiseCapability>(@EXECUTION_STACK[0].Realm.Intrinsics["%Promise%"])

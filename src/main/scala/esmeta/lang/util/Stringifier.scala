@@ -1,10 +1,11 @@
 package esmeta.lang.util
 
 import esmeta.LINE_SEP
+import esmeta.lang.*
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.*
 
 /** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -420,7 +421,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case InstanceOfCondition(expr, neg, ty) =>
         app >> expr
         // TODO use a/an based on the types
-        given Rule[Type] = (app, ty) => app >> "a " >> ty.name
+        given Rule[Type] = (app, ty) => typeRule(app >> "a ", ty)
         ty match {
           case t :: Nil => app >> isStr(neg) >> t
           case _ =>
@@ -566,8 +567,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     props.map(app >> "." >> _)
     app >> "%"
 
-  // types
-  given typeRule: Rule[Type] = (app, ty) => app >> ty.name
+  // TODO types
+  given typeRule: Rule[Type] = (app, ty) =>
+    ty.ty match
+      case UnknownTy(msg) => app >> msg.getOrElse("unknown")
+      case _              => ???
 
   // ---------------------------------------------------------------------------
   // private helpers

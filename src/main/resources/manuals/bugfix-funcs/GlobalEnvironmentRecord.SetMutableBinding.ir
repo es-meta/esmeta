@@ -1,4 +1,9 @@
-def <CONC>:GlobalEnvironmentRecord.SetMutableBinding(envRec: GlobalEnvironmentRecord, N: String, V: ECMAScriptLanguageValue, S: Boolean): EitherANormalCompletionOrAnAbruptCompletion {
+def <CONC>:GlobalEnvironmentRecord.SetMutableBinding(
+  envRec: Record[GlobalEnvironmentRecord],
+  N: String,
+  V: ESValue,
+  S: Boolean
+): Normal[Const[~unused~]] | Abrupt {
   let DclRec = envRec.DeclarativeRecord
   method-call %0 = DclRec->HasBinding(N)
   if (= [! %0] true) {

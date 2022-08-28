@@ -1,4 +1,4 @@
-def foldleft(init: int, list: List, f: Function) {
+def foldleft(init: Math, list: List[Math], f: Clo) {
   if (= list.length 0) %0 = init
   else {
     let hd = (pop < list)
@@ -8,7 +8,7 @@ def foldleft(init: int, list: List, f: Function) {
   return %0
 }
 
-def add(i: int, j: int) {
+def add(i: Math, j: Math) {
   return (+ i j)
 }
 

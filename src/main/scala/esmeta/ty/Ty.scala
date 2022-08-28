@@ -4,18 +4,6 @@ import esmeta.ty.util.Parser
 
 /** types */
 trait Ty extends TyElem {
-  // TODO refactor
-  def name = this.toString
-  def normalizedName: String = {
-    if (name startsWith "a ") name.drop(2)
-    else if (name startsWith "an ") name.drop(3)
-    else name
-  }.replace("-", "")
-    .replace("|", "")
-    .trim
-    .split(" ")
-    .map(_.capitalize)
-    .mkString
 
   /** completion check */
   def isCompletion: Boolean

@@ -7,6 +7,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
@@ -370,7 +371,7 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case EMap(Type("Completion"), props) =>
+    case EMap("Completion", props) =>
       val map = (for {
         (kexpr, vexpr) <- props
         k = eval(kexpr)
@@ -388,8 +389,8 @@ class Interpreter(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
-    case EMap(ty, props) =>
-      val addr = st.allocMap(ty)
+    case EMap(tname, props) =>
+      val addr = st.allocMap(tname)
       for ((kexpr, vexpr) <- props)
         val k = eval(kexpr).toPureValue
         val v = eval(vexpr)

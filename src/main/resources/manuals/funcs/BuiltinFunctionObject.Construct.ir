@@ -1,4 +1,8 @@
-def <INTERNAL>:BuiltinFunctionObject.Construct(F: BuiltinFunctionObject, argumentsList: ListOfECMAScriptLanguageValues, newTarget: Constructor): Unknown {
+def <INTERNAL>:BuiltinFunctionObject.Construct(
+  F: Record[BuiltinFunctionObject],
+  argumentsList: List[ESValue],
+  newTarget: Record[Constructor]
+): Unknown {
   let callerContext = @EXECUTION_STACK[0]
   nop
   let calleeContext = (new ExecutionContext())

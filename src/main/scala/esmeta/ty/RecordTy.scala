@@ -1,6 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.*
+import esmeta.ty.util.Parser
 
 /** record types */
 case class RecordTy(
@@ -37,3 +38,4 @@ case class RecordTy(
     this.map -- that.map,
   )
 }
+object RecordTy extends Parser.From[RecordTy](Parser.recordTy)

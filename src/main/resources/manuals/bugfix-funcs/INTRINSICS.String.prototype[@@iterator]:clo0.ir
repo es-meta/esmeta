@@ -1,4 +1,4 @@
-def <CLO>:INTRINSICS.String.prototype[@@iterator]:clo0(): Any {
+def <CLO>:INTRINSICS.String.prototype[@@iterator]:clo0(): Unknown {
   let position = 0
   let len = s.length
   loop[repeat] (< position len) {

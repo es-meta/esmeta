@@ -541,7 +541,7 @@ case class AbsTransfer(sem: AbsSemantics) {
           }
         }
       case ELexical(name, expr) => ??? // TODO
-      case e @ EMap(ty, props) =>
+      case e @ EMap(tname, props) =>
         val asite = AllocSite(e.asite, cp.view)
         for {
           pairs <- join(props.map {
@@ -551,7 +551,7 @@ case class AbsTransfer(sem: AbsSemantics) {
                 v <- transfer(vexpr)
               } yield (k, v)
           })
-          lv <- id(_.allocMap(asite, ty.name, pairs))
+          lv <- id(_.allocMap(asite, tname, pairs))
         } yield lv
       case e @ EList(exprs) =>
         val asite = AllocSite(e.asite, cp.view)

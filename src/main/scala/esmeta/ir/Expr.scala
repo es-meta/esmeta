@@ -47,7 +47,7 @@ case class ELexical(
 
 // allocation expressions
 sealed trait AllocExpr extends Expr { var asite: Int = -1 }
-case class EMap(ty: Type, props: List[(Expr, Expr)]) extends AllocExpr
+case class EMap(tname: String, props: List[(Expr, Expr)]) extends AllocExpr
 case class EList(exprs: List[Expr]) extends AllocExpr
 case class EListConcat(exprs: List[Expr]) extends AllocExpr
 case class ESymbol(desc: Expr) extends AllocExpr

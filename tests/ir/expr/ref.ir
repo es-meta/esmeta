@@ -1,4 +1,4 @@
-def f(): Completion {
+def f(): Normal[Math] {
   return 42
 }
 

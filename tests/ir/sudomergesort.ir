@@ -1,4 +1,4 @@
-def sudomergesort(list: List) {
+def sudomergesort(list: List[Math]) {
   let length = list.length
   let sortedlist = (copy list)[#1]
   if (= length 2) {

@@ -1,4 +1,4 @@
-def gcd(a: int, b: int) {
+def gcd(a: Math, b: Math) {
   if (= a 0) %0 = b
   else if (= b 0) %0 = a
   else if (< b a) call %0 = clo<gcd>((- a b), b)

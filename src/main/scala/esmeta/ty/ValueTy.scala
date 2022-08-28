@@ -58,7 +58,7 @@ object ValueTy {
     abrupt: Boolean = false,
     pureValue: PureValueTy = PureValueTy(),
     clo: BSet[String] = Fin(),
-    cont: Set[Func] = Set(),
+    cont: BSet[String] = Fin(),
     record: RecordTy = RecordTy(),
     list: ListTy = ListTy(),
     symbol: Boolean = false,

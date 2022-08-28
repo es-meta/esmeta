@@ -21,14 +21,15 @@ object Stringifier {
       case elem: SubMapTy    => subMapTyRule(app, elem)
 
   /** types */
-  given typeRule: Rule[Ty] = (app, ty) =>
+  given tyRule: Rule[Ty] = (app, ty) =>
     ty match
       case ty: UnknownTy => unknownTyRule(app, ty)
       case ty: ValueTy   => valueTyRule(app, ty)
 
   /** unknown types */
   given unknownTyRule: Rule[UnknownTy] = (app, ty) =>
-    app >> ty.msg.getOrElse("unknown")
+    app >> "Unknown"
+    ty.msg.fold(app)(app >> "[\"" >> _ >> "\"]")
 
   /** value types */
   given valueTyRule: Rule[ValueTy] = (app, ty) =>
@@ -60,8 +61,8 @@ object Stringifier {
     if (ty == ESPureValueT) app >> "ESValue"
     else
       FilterApp(app)
-        .add(ty.clo, !ty.clo.isBottom, "Clo")
-        .add(ty.cont.map(_.name), !ty.cont.isBottom, "Cont")
+        .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
+        .add(ty.cont.map(s => s"\"$s\""), !ty.cont.isBottom, "Cont")
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
         .add("Symbol", !ty.symbol.isBottom)
@@ -72,15 +73,18 @@ object Stringifier {
         .add("Math", !ty.math.isBottom)
         .add("Number", !ty.number.isBottom)
         .add("BigInt", !ty.bigInt.isBottom)
-        .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "Str")
+        .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
-        .add("Undef", !ty.undef.isBottom)
+        .add("Undefined", !ty.undef.isBottom)
         .add("Null", !ty.nullv.isBottom)
         .add("Absent", !ty.absent.isBottom)
         .app
 
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
+    given Rule[(String, ValueTy)] = {
+      case (app, (key, value)) => app >> "\"" >> key >> "\" -> " >> value
+    }
     given Rule[List[(String, ValueTy)]] = iterableRule("{", ", ", "}")
     app >> "Record"
     if (!ty.names.isEmpty) app >> ty.names
@@ -106,12 +110,8 @@ object Stringifier {
   private given boolSetRule: Rule[Set[Boolean]] = (app, set) =>
     set.toList match
       case Nil        => app
-      case List(bool) => app >> bool
-      case _          => app >> "Bool"
-
-  // rule for boolean
-  private given boolRule: Rule[Boolean] = (app, bool) =>
-    app >> (if (bool) "T" else "F")
+      case List(bool) => app >> (if (bool) "True" else "False")
+      case _          => app >> "Boolean"
 
   // appender with filtering
   private class FilterApp(val app: Appender) {

@@ -174,5 +174,5 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(x: Name): Unit = walk(x.name)
 
   // TODO types
-  def walk(ty: Type): Unit = walk(ty.name)
+  def walk(ty: Type): Unit = {}
 }

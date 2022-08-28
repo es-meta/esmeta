@@ -1,6 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.*
+import esmeta.ty.util.Parser
 
 /** completion record types */
 case class CompTy(
@@ -37,3 +38,4 @@ case class CompTy(
     this.abrupt -- that.abrupt,
   )
 }
+object CompTy extends Parser.From[CompTy](Parser.compTy)

@@ -3,6 +3,7 @@ package esmeta.ir.util
 import esmeta.ir.*
 import esmeta.lang.Syntax
 import esmeta.ty.*
+import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Locational, BasicParsers}
 
@@ -10,7 +11,7 @@ import esmeta.util.{Locational, BasicParsers}
 object Parser extends Parsers
 
 /** IR parsers */
-trait Parsers extends BasicParsers {
+trait Parsers extends TyParsers {
   override protected val whiteSpace = whiteSpaceWithComment
 
   // programs
@@ -49,13 +50,13 @@ trait Parsers extends BasicParsers {
   // function parameters
   lazy val params: Parser[List[Func.Param]] = "(" ~> repsep(param, ",") <~ ")"
   given param: Parser[Func.Param] = {
-    name ~ opt("?") ~ (":" ~> ty) ^^ {
+    name ~ opt("?") ~ (":" ~> irType) ^^ {
       case x ~ o ~ t => Func.Param(x, o.isDefined, t)
     }
   }.named("ir.Func.Param")
 
   // return types
-  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(Type()) }
+  lazy val retTy: Parser[Type] = opt(":" ~> irType) ^^ { _.getOrElse(Type()) }
 
   // instructions
   given inst: Parser[Inst] = withLoc {
@@ -122,7 +123,7 @@ trait Parsers extends BasicParsers {
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
       case msg => EYet(msg)
     } | "(" ~ "contains" ~> expr ~ expr ~ opt(
-      ":" ~> pair(ty ~ word),
+      ":" ~> pair(irType ~ word),
     ) <~ ")" ^^ {
       case l ~ e ~ f => EContains(l, e, f)
     } | "(" ~ "substring" ~> expr ~ expr ~ opt(expr) <~ ")" ^^ {
@@ -170,7 +171,7 @@ trait Parsers extends BasicParsers {
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
-    ("(" ~ "new" ~> ty ~ opt(fields) <~ ")") ^^ {
+    ("(" ~ "new" ~> word ~ opt(fields) <~ ")") ^^ {
       case t ~ fields => EMap(t, fields.getOrElse(Nil))
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
@@ -282,9 +283,9 @@ trait Parsers extends BasicParsers {
   // named local identifiers
   lazy val name: Parser[Name] = "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ { Name(_) }
 
-  // TODO types
-  given ty: Parser[Type] = {
-    ident ^^ { case s => Type(s) }
+  // types
+  given irType: Parser[Type] = {
+    ty ^^ { Type(_) }
   }.named("ir.Type")
 
   // helper for locations

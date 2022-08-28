@@ -1,4 +1,4 @@
-def map(list: List, f: Function) {
+def map(list: List[Math], f: Clo) {
   let clist = (copy list)[#1]
   if (= clist.length 0) %0 = clist
   else {
@@ -11,7 +11,7 @@ def map(list: List, f: Function) {
   return %0
 }
 
-def double(i: int) {
+def double(i: Math) {
   return (* i 2)
 }
 

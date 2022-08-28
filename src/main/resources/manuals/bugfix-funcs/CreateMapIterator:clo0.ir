@@ -1,4 +1,4 @@
-def <CLO>:CreateMapIterator:clo0(): Any {
+def <CLO>:CreateMapIterator:clo0(): Unknown {
   let entries = map.MapData
   let index = 0
   let numEntries = entries.length

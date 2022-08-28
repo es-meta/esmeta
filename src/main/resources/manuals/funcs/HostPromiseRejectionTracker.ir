@@ -1,3 +1,6 @@
-def HostPromiseRejectionTracker(promise: Any, operation: Any): Any {
+def HostPromiseRejectionTracker(
+  promise: Unknown,
+  operation: Unknown
+): Unknown {
   return ~unused~
 }

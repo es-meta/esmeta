@@ -1,4 +1,8 @@
-def <CONC>:DeclarativeEnvironmentRecord.CreateImmutableBinding(envRec: DeclarativeEnvironmentRecord, N: String, S: Boolean): Unknown {
+def <CONC>:DeclarativeEnvironmentRecord.CreateImmutableBinding(
+  envRec: Record[DeclarativeEnvironmentRecord],
+  N: String,
+  S: Boolean
+): Unknown {
   // Assert: envRec does not already have a binding for N.
   assert (= envRec.SubMap[N] absent)
 

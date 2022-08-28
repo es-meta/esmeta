@@ -1,4 +1,9 @@
-def DefineMethodProperty(homeObject: Object, key: PropertyKeyOrPrivateName, closure: FunctionObject, enumerable: Boolean): Unknown {
+def DefineMethodProperty(
+  homeObject: Record[Object],
+  key: Record[PropertyKeyOrPrivateName],
+  closure: Record[FunctionObject],
+  enumerable: Boolean
+): Unknown {
   assert (&& (? homeObject: "OrdinaryObject") homeObject.Extensible)
   %0 = key
   if (? %0: "PrivateName") {

@@ -1,4 +1,4 @@
-def dec2bin(n: int) {
+def dec2bin(n: Math) {
   let temp = 0
   let i = 0
   loop[repeat] (! (|| (= n 0) (= n 1))) {
