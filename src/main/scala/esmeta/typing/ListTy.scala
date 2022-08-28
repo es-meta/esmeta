@@ -3,6 +3,9 @@ package esmeta.typing
 /** list types */
 case class ListTy(elem: Option[ValueTy] = None) {
 
+  /** bottom check */
+  def isBottom: Boolean = elem == None
+
   /** union type */
   def |(that: ListTy): ListTy = (this.elem, that.elem) match
     case (None, _)          => that

@@ -24,6 +24,26 @@ case class PureValueTy(
   absent: Boolean = false,
 ) {
 
+  /** bottom check */
+  def isBottom: Boolean =
+    this.clo.isBottom &
+    this.cont.isBottom &
+    this.record.isBottom &
+    this.list.isBottom &
+    !this.symbol &
+    this.astValue.isBottom &
+    this.grammar.isBottom &
+    !this.codeUnit &
+    this.const.isEmpty &
+    !this.math &
+    !this.number &
+    !this.bigInt &
+    this.str.isBottom &
+    this.bool.isEmpty &
+    !this.undef &
+    !this.nullv &
+    !this.absent
+
   /** union type */
   def |(that: PureValueTy): PureValueTy = PureValueTy(
     this.clo | that.clo,

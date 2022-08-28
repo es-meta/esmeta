@@ -3,7 +3,10 @@ package esmeta.typing
 import esmeta.cfg.{Func, Node}
 
 /** continuation types */
-case class ContTy(map: Map[ContTy.Target, CapturedMapTy] = Map()) {
+case class ContTy(map: Map[ContTy.Target, CapturedMapTy]) {
+
+  /** bottom check */
+  def isBottom: Boolean = map.isEmpty
 
   /** union type */
   def |(that: ContTy): ContTy = ContTy((for {
@@ -31,3 +34,4 @@ case class ContTy(map: Map[ContTy.Target, CapturedMapTy] = Map()) {
 }
 object ContTy:
   case class Target(func: Func, returnTo: Node)
+  def apply(pairs: (Target, CapturedMapTy)*): ContTy = ContTy(pairs.toMap)

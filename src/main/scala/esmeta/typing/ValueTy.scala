@@ -11,6 +11,12 @@ case class ValueTy(
   subMap: SubMapTy,
 ) extends Ty {
 
+  /** bottom check */
+  def isBottom: Boolean =
+    this.comp.isBottom &
+    this.pureValue.isBottom &
+    this.subMap.isBottom
+
   /** union type */
   def |(that: ValueTy): ValueTy = ValueTy(
     this.comp | that.comp,

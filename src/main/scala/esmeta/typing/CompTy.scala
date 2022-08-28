@@ -6,6 +6,11 @@ case class CompTy(
   abrupt: Boolean = false,
 ) {
 
+  /** bottom check */
+  def isBottom: Boolean =
+    this.normal.isBottom &
+    !this.abrupt
+
   /** union type */
   def |(that: CompTy): CompTy = CompTy(
     this.normal | that.normal,

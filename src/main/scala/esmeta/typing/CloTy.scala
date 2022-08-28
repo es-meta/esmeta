@@ -5,6 +5,9 @@ import akka.parboiled2.RuleTrace.Capture
 /** closure types */
 case class CloTy(map: Map[String, CapturedMapTy]) {
 
+  /** bottom check */
+  def isBottom: Boolean = map.isEmpty
+
   /** union type */
   def |(that: CloTy): CloTy = CloTy((for {
     key <- (this.map.keySet | that.map.keySet).toList

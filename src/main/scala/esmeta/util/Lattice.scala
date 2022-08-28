@@ -3,6 +3,9 @@ package esmeta.util
 /** flat lattice */
 sealed trait Lattice[+A, L[_] <: Lattice[_, L]] {
 
+  /** bottom check */
+  def isBottom: Boolean
+
   /** partial order/subset operator */
   def <=[B >: A](that: => L[B]): Boolean
   def ⊑[B >: A](that: => L[B]): Boolean = this <= that
@@ -24,6 +27,9 @@ sealed trait Lattice[+A, L[_] <: Lattice[_, L]] {
 
 /** flat lattice */
 sealed trait Flat[+A] extends Lattice[A, Flat] {
+
+  /** bottom check */
+  def isBottom: Boolean = this == Zero
 
   /** partial order/subset operator */
   def <=[B >: A](that: => Flat[B]): Boolean = (this, that) match
@@ -69,6 +75,9 @@ case object Zero extends Flat[Nothing]
 /** bounded set lattice */
 sealed trait BSet[+A] extends Lattice[A, BSet] {
 
+  /** bottom check */
+  def isBottom: Boolean = this == Fin()
+
   /** partial order/subset operator */
   def <=[B >: A](that: => BSet[B]): Boolean = (this, that) match
     case (_, Inf)               => true
@@ -104,6 +113,9 @@ object Fin:
 
 /** simple lattice */
 case class Simple[+A](exist: Boolean) extends Lattice[A, Simple] {
+
+  /** bottom check */
+  def isBottom: Boolean = !exist
 
   /** partial order/subset operator */
   def <=[B >: A](that: => Simple[B]): Boolean = !this.exist | that.exist

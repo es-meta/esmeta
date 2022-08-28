@@ -6,6 +6,11 @@ case class SubMapTy(
   value: PureValueTy = PureValueTy(),
 ) {
 
+  /** bottom check */
+  def isBottom: Boolean =
+    this.key.isBottom &
+    this.value.isBottom
+
   /** union type */
   def |(that: SubMapTy): SubMapTy = SubMapTy(
     this.key | that.key,
