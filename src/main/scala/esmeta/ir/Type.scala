@@ -9,4 +9,4 @@ case class Type(name: String) extends IRElem {
 
 }
 object Type extends Parser.From[Type]
-val AnyType = Type("Any")
+val UnknownType = Type("unknown")

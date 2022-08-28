@@ -49,7 +49,7 @@ trait Parsers extends BasicParsers {
   }.named("ir.Func.Param")
 
   // return types
-  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(AnyType) }
+  lazy val retTy: Parser[Type] = opt(":" ~> ty) ^^ { _.getOrElse(UnknownType) }
 
   // instructions
   given inst: Parser[Inst] = withLoc {

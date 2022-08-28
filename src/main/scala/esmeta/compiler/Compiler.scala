@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.ir.{Type => IRType, AnyType => IRAnyType, *}
+import esmeta.ir.{Type => IRType, UnknownType => IRUnknownType, *}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
@@ -547,7 +547,7 @@ class Compiler(
             ck,
             cn,
             ps,
-            IRAnyType,
+            IRUnknownType,
             fb.algo,
           ),
           body = body,
@@ -761,7 +761,7 @@ class Compiler(
 
   /** compile types */
   def compile(ty: Type): IRType =
-    if (ty == AnyType) IRAnyType else IRType(ty.normalizedName)
+    if (ty == UnknownType) IRUnknownType else IRType(ty.normalizedName)
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

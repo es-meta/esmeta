@@ -229,8 +229,8 @@ trait Parsers extends LangParsers {
     opt("optional") ~ specId ~ opt(":" ~> specTy) ^^ {
       case opt ~ name ~ specTy =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, specTy.getOrElse(AnyType))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, AnyType)
+        Param(name, kind, specTy.getOrElse(UnknownType))
+    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, UnknownType)
   }.named("spec.Param")
 
   // algorithm parameter description
@@ -324,7 +324,7 @@ trait Parsers extends LangParsers {
     "[a-zA-Z0-9/]+".r
 
   lazy val retTy: Parser[Type] =
-    opt(":" ~> specTy) ^^ { _.getOrElse(AnyType) }
+    opt(":" ~> specTy) ^^ { _.getOrElse(UnknownType) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =

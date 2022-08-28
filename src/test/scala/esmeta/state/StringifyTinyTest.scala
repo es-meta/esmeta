@@ -111,7 +111,11 @@ class StringifyTinyTest extends StateTest {
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
     lazy val func =
-      Func(0, IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, AnyType, INop()), None)
+      Func(
+        0,
+        IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, UnknownType, INop()),
+        None,
+      )
     lazy val clo = Clo(func, Map())
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)
