@@ -54,9 +54,9 @@ class OptionDomain[V, D <: Domain[V] with Singleton](val AbsV: D)
     )
 
     /** prune operator */
-    override def -(that: Elem): Elem = Elem(
-      elem.value - that.value,
-      elem.absent - that.absent,
+    override def --(that: Elem): Elem = Elem(
+      elem.value -- that.value,
+      elem.absent -- that.absent,
     )
 
     /** concretization function */

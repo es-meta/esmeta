@@ -5,7 +5,7 @@ import esmeta.*
 import esmeta.lang.*
 import esmeta.lang.util.{Parsers => LangParsers}
 import esmeta.spec.{*, given}
-import esmeta.typing.UnknownT
+import esmeta.typing.UnknownTy
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.HtmlUtils.*
@@ -206,7 +206,7 @@ trait Parsers extends LangParsers {
     *     *undefined* ...
     */
   given specTy: Parser[Type] = {
-    "([^_,:]|, )+".r ^^ { case s => Type(UnknownT(s)) }
+    "([^_,:]|, )+".r ^^ { case s => Type(UnknownTy(s)) }
   }.named("lang.Type (specTy)")
 
   // abstract opration (AO) heads

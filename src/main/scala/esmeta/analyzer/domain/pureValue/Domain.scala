@@ -39,7 +39,7 @@ trait Domain extends domain.Domain[APureValue] {
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
     simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
-    num: AbsNumber = AbsNumber.Bot,
+    number: AbsNumber = AbsNumber.Bot,
     bigInt: AbsBigInt = AbsBigInt.Bot,
     str: AbsStr = AbsStr.Bot,
     bool: AbsBool = AbsBool.Bot,
@@ -86,7 +86,7 @@ trait Domain extends domain.Domain[APureValue] {
     def absent: AbsAbsent
 
     /** remove absent values */
-    def removeAbsent: Elem = elem - absentTop
+    def removeAbsent: Elem = elem -- absentTop
 
     /** get reachable address partitions */
     def reachableParts: Set[Part]

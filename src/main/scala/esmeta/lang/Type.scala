@@ -13,4 +13,4 @@ case class Type(ty: Ty) extends Syntax {
 object Type extends Parser.From[Type]:
   // TODO refactor
   def unapply(ty: Type): Option[String] = Some(ty.name)
-val AnyType = Type(UnknownT())
+val AnyType = Type(UnknownTy())

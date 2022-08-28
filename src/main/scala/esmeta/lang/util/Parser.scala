@@ -987,19 +987,19 @@ trait Parsers extends IndentParsers with TyParsers {
   // ---------------------------------------------------------------------------
   given langTy: PL[Type] = {
     rep1(camel) ^^ {
-      case ss => Type(UnknownT(ss.mkString(" ")))
+      case ss => Type(UnknownTy(ss.mkString(" ")))
     } ||| "[a-zA-Z ]+ object".r ^^ {
-      case s => Type(UnknownT(s))
+      case s => Type(UnknownTy(s))
     } ||| "\\w+ Environment Record".r ^^ {
-      case s => Type(UnknownT(s))
+      case s => Type(UnknownTy(s))
     } ||| opt("ECMAScript code") ~ "execution context" ^^! {
-      Type(UnknownT("ExecutionContext"))
+      Type(UnknownTy("ExecutionContext"))
     } ||| "List of" ~ word ^^! {
-      Type(UnknownT("List"))
+      Type(UnknownTy("List"))
     } ||| nt ^^ {
-      case s => Type(UnknownT(s))
+      case s => Type(UnknownTy(s))
     } ||| "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! {
-      Type(UnknownT("Record"))
+      Type(UnknownTy("Record"))
     }
   }.named("lang.Type (langTy)")
 
@@ -1011,7 +1011,7 @@ trait Parsers extends IndentParsers with TyParsers {
 
   // TODO
   lazy val literalTy: P[Ty] = literal ^^ {
-    case v => UnknownT(v.toString)
+    case v => UnknownTy(v.toString)
   }
 
   // ---------------------------------------------------------------------------

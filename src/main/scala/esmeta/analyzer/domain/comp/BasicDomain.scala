@@ -83,14 +83,14 @@ object BasicDomain extends comp.Domain {
         Elem(newPairs.toMap)
 
     /** prune operator */
-    override def -(that: Elem): Elem = (elem, that) match
+    override def --(that: Elem): Elem = (elem, that) match
       case _ if elem ⊑ that            => Bot
       case _ if (elem ⊓ that).isBottom => elem
       case (Elem(lmap), Elem(rmap)) =>
         val newPairs = for {
           (ty, lres) <- lmap
           rres = that.get(ty)
-          newRes = lres - rres if !newRes.isBottom
+          newRes = lres -- rres if !newRes.isBottom
         } yield ty -> newRes
         Elem(newPairs.toMap)
 

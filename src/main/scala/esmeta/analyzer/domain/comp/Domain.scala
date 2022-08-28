@@ -30,8 +30,8 @@ trait Domain extends domain.Domain[AComp] {
       Result(this.value ⊔ that.value, this.target ⊔ that.target)
     def ⊓(that: Result): Result =
       Result(this.value ⊓ that.value, this.target ⊓ that.target)
-    def -(that: Result): Result =
-      Result(this.value - that.value, this.target - that.target)
+    def --(that: Result): Result =
+      Result(this.value -- that.value, this.target -- that.target)
   }
   object Result { val Bot = Result(AbsPureValue.Bot, AbsPureValue.Bot) }
 

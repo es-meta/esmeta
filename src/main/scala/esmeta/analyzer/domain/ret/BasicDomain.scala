@@ -62,9 +62,9 @@ object BasicDomain extends ret.Domain {
     )
 
     /** minus operator */
-    override def -(that: Elem): Elem = Elem(
-      elem.value - that.value,
-      elem.state - that.state,
+    override def --(that: Elem): Elem = Elem(
+      elem.value -- that.value,
+      elem.state -- that.state,
     )
 
     /** getters */

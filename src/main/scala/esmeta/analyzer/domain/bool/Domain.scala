@@ -18,11 +18,5 @@ trait Domain extends domain.Domain[Bool] {
 
     /** logical AND */
     def &&(that: Elem): Elem
-
-    /** meet operator */
-    override def ⊓(that: Elem): Elem
-
-    /** meet operator */
-    override def -(that: Elem): Elem
   }
 }

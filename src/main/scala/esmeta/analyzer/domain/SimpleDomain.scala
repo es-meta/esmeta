@@ -58,7 +58,7 @@ trait SimpleDomain[A](
       case (_, Bot) | (Top, _) => that
 
     /** prune operator */
-    override def -(that: Elem): Elem = that match
+    override def --(that: Elem): Elem = that match
       case Bot => elem
       case Top => Bot
 

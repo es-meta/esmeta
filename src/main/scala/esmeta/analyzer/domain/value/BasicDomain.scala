@@ -169,9 +169,9 @@ object BasicDomain extends value.Domain {
     )
 
     /** prune operator */
-    override def -(that: Elem): Elem = Elem(
-      elem.comp - that.comp,
-      elem.pureValue - that.pureValue,
+    override def --(that: Elem): Elem = Elem(
+      elem.comp -- that.comp,
+      elem.pureValue -- that.pureValue,
     )
 
     /** concretization function */
@@ -442,7 +442,7 @@ object BasicDomain extends value.Domain {
     def abruptCompletion: Elem = apply(comp = comp.removeNormal)
 
     /** absent helpers */
-    def removeAbsent: Elem = elem - absentTop
+    def removeAbsent: Elem = elem -- absentTop
     def isAbsent: Elem =
       var b: AbsBool = AbsBool.Bot
       if (!absent.isBottom) b ⊔= AT

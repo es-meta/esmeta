@@ -132,14 +132,14 @@ object BasicDomain extends simpleValue.Domain {
     )
 
     /** minus operator */
-    override def -(that: Elem): Elem = Elem(
-      elem.number - that.number,
-      elem.bigInt - that.bigInt,
-      elem.str - that.str,
-      elem.bool - that.bool,
-      elem.undef - that.undef,
-      elem.nullv - that.nullv,
-      elem.absent - that.absent,
+    override def --(that: Elem): Elem = Elem(
+      elem.number -- that.number,
+      elem.bigInt -- that.bigInt,
+      elem.str -- that.str,
+      elem.bool -- that.bool,
+      elem.undef -- that.undef,
+      elem.nullv -- that.nullv,
+      elem.absent -- that.absent,
     )
 
     /** concretization function */

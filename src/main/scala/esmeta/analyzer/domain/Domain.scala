@@ -59,7 +59,7 @@ trait Domain[A] { self =>
     def ⊓(that: Elem): Elem = Top
 
     /** prune operator */
-    def -(that: Elem): Elem = elem
+    def --(that: Elem): Elem = elem
 
     /** top check */
     def isTop: Boolean = elem == Top

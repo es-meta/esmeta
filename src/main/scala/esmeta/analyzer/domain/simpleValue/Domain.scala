@@ -52,7 +52,7 @@ trait Domain extends domain.Domain[SimpleValue] {
   extension (elem: Elem) {
 
     /** remove absent values */
-    def removeAbsent: Elem = elem - absentTop
+    def removeAbsent: Elem = elem -- absentTop
 
     /** getters */
     def number: AbsNumber

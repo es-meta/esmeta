@@ -73,7 +73,7 @@ trait SetDomain[A](
       case (Base(lset), Base(rset)) => Base(lset intersect rset)
 
     /** prune operator */
-    override def -(that: Elem): Elem = (elem, that) match
+    override def --(that: Elem): Elem = (elem, that) match
       case (Bot, _) | (_, Top) => Bot
       case (_, Bot)            => elem
       case (Top, _: Base)      => Top

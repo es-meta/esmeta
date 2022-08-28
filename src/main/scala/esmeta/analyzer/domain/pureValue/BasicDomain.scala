@@ -164,16 +164,16 @@ object BasicDomain extends pureValue.Domain {
     )
 
     /** prune operator */
-    override def -(that: Elem): Elem = Elem(
-      elem.clo - that.clo,
-      elem.cont - that.cont,
-      elem.part - that.part,
-      elem.astValue - that.astValue,
-      elem.grammar - that.grammar,
-      elem.codeUnit - that.codeUnit,
-      elem.const - that.const,
-      elem.math - that.math,
-      elem.simpleValue - that.simpleValue,
+    override def --(that: Elem): Elem = Elem(
+      elem.clo -- that.clo,
+      elem.cont -- that.cont,
+      elem.part -- that.part,
+      elem.astValue -- that.astValue,
+      elem.grammar -- that.grammar,
+      elem.codeUnit -- that.codeUnit,
+      elem.const -- that.const,
+      elem.math -- that.math,
+      elem.simpleValue -- that.simpleValue,
     )
 
     /** concretization function */
