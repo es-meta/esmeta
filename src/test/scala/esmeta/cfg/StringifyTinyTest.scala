@@ -3,6 +3,7 @@ package esmeta.cfg
 import esmeta.IR_TEST_DIR
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
@@ -125,7 +126,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type("T")
+    lazy val ty = Type(UnknownTy("T"))
   }
 
   init

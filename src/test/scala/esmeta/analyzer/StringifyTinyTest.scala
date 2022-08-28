@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.typing.*
 import scala.collection.mutable.ListBuffer
 
 class StringifyTinyTest extends AnalyzerTest {
@@ -75,7 +76,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type("T")
+    lazy val ty = Type(UnknownTy("T"))
   }
 
   init

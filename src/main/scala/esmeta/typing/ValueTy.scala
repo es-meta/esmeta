@@ -37,6 +37,12 @@ case class ValueTy(
     this.pureValue -- that.pureValue,
     this.subMap -- that.subMap,
   )
+
+  /** completion check */
+  def isCompletion: Boolean =
+    !comp.isBottom &
+    pureValue.isBottom &
+    subMap.isBottom
 }
 object ValueTy {
   def apply(

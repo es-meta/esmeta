@@ -16,6 +16,9 @@ trait Ty extends TyElem {
     .split(" ")
     .map(_.capitalize)
     .mkString
+
+  /** completion check */
+  def isCompletion: Boolean
 }
 object Ty extends Parser.From[Ty]
 

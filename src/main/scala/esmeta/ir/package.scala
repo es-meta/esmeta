@@ -88,9 +88,6 @@ val ENAME_THIS = ERef(NAME_THIS)
 val ENAME_ARGS_LIST = ERef(NAME_ARGS_LIST)
 val ENAME_NEW_TARGET = ERef(NAME_NEW_TARGET)
 
-/** predefined types */
-val TYPE_COMPLETION = Type("Completion Record")
-
 /** predefined parameters */
 val PARAM_THIS = Func.Param(NAME_THIS)
 val PARAM_ARGS_LIST = Func.Param(NAME_ARGS_LIST)

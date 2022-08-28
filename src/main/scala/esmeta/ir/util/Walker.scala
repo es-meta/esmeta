@@ -185,6 +185,6 @@ trait Walker extends BasicWalker {
   // named local identifiers
   def walk(x: Name): Name = Name(walk(x.name))
 
-  // TODO types
-  def walk(ty: Type): Type = Type(walk(ty.name))
+  // types
+  def walk(ty: Type): Type = Type(ty.ty)
 }

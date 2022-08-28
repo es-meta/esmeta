@@ -2,6 +2,7 @@ package esmeta.ir
 
 import esmeta.IR_TEST_DIR
 import esmeta.ir.*
+import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import esmeta.util.SystemUtils._
@@ -144,7 +145,7 @@ class StringifyTinyTest extends IRTest {
     lazy val egrammar = EGrammar("A", List(true, false))
     lazy val yet = EYet("NOT YET")
     lazy val contains = EContains(xExpr, xExpr, None)
-    lazy val containsField = EContains(xExpr, xExpr, Some(Type("T"), "Value"))
+    lazy val containsField = EContains(xExpr, xExpr, Some(ty, "Value"))
     lazy val substring = ESubstring(xExpr, xExpr, None)
     lazy val substringTo = ESubstring(xExpr, xExpr, Some(xExpr))
     lazy val xExpr = ERef(x)
@@ -175,7 +176,7 @@ class StringifyTinyTest extends IRTest {
     lazy val lex = ELexical("Identifier", xExpr)
     // allocation expressions
     lazy val rec =
-      EMap(Type("T"), List(EUndef -> EBool(true), ENull -> EAbsent))
+      EMap(ty, List(EUndef -> EBool(true), ENull -> EAbsent))
     lazy val list = EList(List(EUndef, ENull, EAbsent))
     lazy val symbol = ESymbol(ENull)
     lazy val copy = ECopy(xExpr)
@@ -318,7 +319,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // TODO types
     // -------------------------------------------------------------------------
-    lazy val ty = Type("T")
+    lazy val ty = Type(UnknownTy("T"))
     checkParseAndStringify("Type", Type)(ty -> "T")
   }
 

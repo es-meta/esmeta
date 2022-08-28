@@ -1,4 +1,8 @@
 package esmeta.typing
 
 /** unknown type */
-case class UnknownTy(override val name: String = "unknown") extends Ty
+case class UnknownTy(msg: String = "unknown") extends Ty {
+
+  /** completion check */
+  def isCompletion: Boolean = name contains "Completion"
+}

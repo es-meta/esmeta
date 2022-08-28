@@ -2,6 +2,7 @@ package esmeta.ir.util
 
 import esmeta.ir.*
 import esmeta.lang.Syntax
+import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Locational, BasicParsers}
 
@@ -278,7 +279,7 @@ trait Parsers extends BasicParsers {
 
   // TODO types
   given ty: Parser[Type] = {
-    ident ^^ { Type(_) }
+    ident ^^ { case s => Type(UnknownTy(s)) }
   }.named("ir.Type")
 
   // helper for locations
