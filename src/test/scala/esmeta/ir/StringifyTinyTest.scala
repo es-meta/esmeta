@@ -31,12 +31,18 @@ class StringifyTinyTest extends IRTest {
 
     // tests
     checkParseAndStringify("Func", Func)(
-      mainFunc -> """@main def f(x: Number, y?: Number): Number {
+      mainFunc -> """@main def f(
+      |  x: Number,
+      |  y?: Number,
+      |): Number {
       |  let x = ~empty~
       |  delete x.p
       |  return x
       |}""".stripMargin,
-      func -> """def f(x: Number, y?: Number): Number {
+      func -> """def f(
+      |  x: Number,
+      |  y?: Number,
+      |): Number {
       |  let x = ~empty~
       |  delete x.p
       |  return x

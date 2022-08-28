@@ -48,7 +48,8 @@ trait Parsers extends TyParsers {
   }.named("ir.Func.Kind")
 
   // function parameters
-  lazy val params: Parser[List[Func.Param]] = "(" ~> repsep(param, ",") <~ ")"
+  lazy val params: Parser[List[Func.Param]] =
+    "(" ~> repsep(param, ",") <~ opt(",") ~ ")"
   given param: Parser[Func.Param] = {
     name ~ opt("?") ~ (":" ~> irType) ^^ {
       case x ~ o ~ t => Func.Param(x, o.isDefined, t)
