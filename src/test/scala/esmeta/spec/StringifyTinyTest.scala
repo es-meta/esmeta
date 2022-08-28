@@ -19,8 +19,9 @@ class StringifyTinyTest extends SpecTest {
       Summary(
         Some(Spec.Version("main", "2j3foijwo2")),
         Summary.GrammarElem(145, 16, 195, 28),
-        Summary.AlgorithmElem(2236, 387),
-        Summary.StepElem(18271, 785),
+        Summary.AlgorithmElem(2258, 365),
+        Summary.StepElem(18307, 754),
+        Summary.TypeElem(0, 7451),
         89,
         58,
       ) ->
@@ -31,12 +32,15 @@ class StringifyTinyTest extends SpecTest {
          |    - numeric string: 16
          |    - syntactic: 195
          |  - extended productions for web: 28
-         |- algorithms: 2623 (85.25%)
-         |  - complete: 2236
-         |  - incomplete: 387
-         |- algorithm steps: 19056 (95.88%)
-         |  - complete: 18271
-         |  - incomplete: 785
+         |- algorithms: 2623 (86.08%)
+         |  - complete: 2258
+         |  - incomplete: 365
+         |- algorithm steps: 19061 (96.04%)
+         |  - complete: 18307
+         |  - incomplete: 754
+         |- types: 7451 (0.00%)
+         |  - known: 0
+         |  - unknown: 7451
          |- tables: 89
          |- type model: 58""".stripMargin,
     )

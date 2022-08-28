@@ -36,20 +36,25 @@ trait Parsers extends LangParsers {
       (empty ~ "- syntactic:" ~> int) ~
       (empty ~ "- extended productions for web:" ~> int)
     } ^^ { case l ~ n ~ s ~ w => GrammarElem(l, n, s, w) }
-    val algo = {
+    val algos = {
       (empty ~ "- algorithms:" ~ ".*".r) ~>
       (empty ~ "- complete:" ~> int) ~
       (empty ~ "- incomplete:" ~> int)
     } ^^ { case c ~ i => AlgorithmElem(c, i) }
-    val step = {
+    val steps = {
       (empty ~ "- algorithm steps:" ~ ".*".r) ~>
       (empty ~ "- complete:" ~> int) ~
       (empty ~ "- incomplete:" ~> int)
     } ^^ { case c ~ i => StepElem(c, i) }
+    val types = {
+      (empty ~ "- types:" ~ ".*".r) ~>
+      (empty ~ "- known:" ~> int) ~
+      (empty ~ "- unknown:" ~> int)
+    } ^^ { case c ~ i => TypeElem(c, i) }
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
-    version ~ grammar ~ algo ~ step ~ tables ~ tyModel ^^ {
-      case v ~ g ~ a ~ s ~ t ~ m => Summary(v, g, a, s, t, m)
+    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ^^ {
+      case v ~ g ~ a ~ s ~ ty ~ t ~ m => Summary(v, g, a, s, ty, t, m)
     }
   }.named("spec.Summary")
 

@@ -4,7 +4,7 @@ import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
-import esmeta.typing.TyModel
+import esmeta.typing.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
@@ -46,6 +46,20 @@ case class Spec(
   /** get complete algorithm steps */
   lazy val completeSteps: List[Step] =
     allSteps.filter(!_.isInstanceOf[YetStep])
+
+  /** get all types */
+  lazy val types: List[Type] = for {
+    algo <- algorithms
+    ty <- algo.retTy :: algo.head.funcParams.map(_.ty)
+  } yield ty
+
+  /** get known types */
+  lazy val knownTypes: List[Type] =
+    types.filter(_.ty.isInstanceOf[ValueTy])
+
+  /** get known types */
+  lazy val unknownTypes: List[Type] =
+    types.filter(_.ty.isInstanceOf[UnknownTy])
 
   /** mapping from algorithms names to algorithms */
   lazy val fnameMap: Map[String, Algorithm] =

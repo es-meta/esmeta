@@ -24,17 +24,28 @@ case object Extract extends Phase[Unit, Spec] {
     if (config.log) {
       mkdir(EXTRACT_LOG_DIR)
 
-      val yets = spec.incompleteSteps
+      val yetSteps = spec.incompleteSteps
       dumpFile(
         name = "not yet supported steps",
-        data = yets
+        data = yetSteps
           .map(_.toString(detail = false, location = false))
           .sorted
           .mkString(LINE_SEP),
-        filename = s"$EXTRACT_LOG_DIR/yets",
+        filename = s"$EXTRACT_LOG_DIR/yet-steps",
+      )
+
+      val unknownTypes = spec.unknownTypes
+      dumpFile(
+        name = "unknown types",
+        data = unknownTypes
+          .map(_.toString)
+          .sorted
+          .mkString(LINE_SEP),
+        filename = s"$EXTRACT_LOG_DIR/unknown-types",
       )
 
       dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/gramamr")
+
       // TODO dump algorithms
       // dumpDir(
       //   name = "algorithms",
