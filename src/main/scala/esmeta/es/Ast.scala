@@ -78,7 +78,7 @@ sealed trait Ast extends ESElem with Locational {
   override def hashCode: Int = super.hashCode
 }
 
-/** ASTs constructed by syntatic productions */
+/** ASTs constructed by syntactic productions */
 case class Syntactic(
   name: String,
   args: List[Boolean],

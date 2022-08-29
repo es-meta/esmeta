@@ -183,3 +183,14 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
   )
   override val targetName = "<js>+"
 }
+
+// -----------------------------------------------------------------------------
+// ECMAScript Static Analysis (Meta-Level Static Analysis)
+// -----------------------------------------------------------------------------
+/** `mutate` command */
+case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
+  def help = "mutates a JavaScript program."
+  val examples = List(
+    "esmeta mutate a.js    # mutate a.js file.",
+  )
+}
