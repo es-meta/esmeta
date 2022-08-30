@@ -28,7 +28,7 @@ object RandomMutation extends Walker {
   private val fff = List(false, false, false)
   private val ff = List(false, false)
 
-  val primExpr = buildExpr(
+  val primExpr: Ast = buildExpr(
     List(
       Left("PrimaryExpression", ff, 2),
       Left("Literal", List(), 2),
@@ -36,7 +36,7 @@ object RandomMutation extends Walker {
     ),
   )
 
-  val assignExpr = buildExpr(
+  val assignExpr: Ast = buildExpr(
     List(
       Left("AssignmentExpression", tff, 0),
       Left("ConditionalExpression", tff, 0),
@@ -61,28 +61,28 @@ object RandomMutation extends Walker {
     ),
   )
 
-  val bindingId = buildExpr(
+  val bindingId: Ast = buildExpr(
     List(
       Left("Identifier", ff, 0),
       Right(Lexical("IdentifierName \\ (ReservedWord)", "subway")),
     ),
   )
 
-  val initializer = buildExpr(
+  val initializer: Ast = buildExpr(
     List(
       Left("Initializer", tff, 0),
       Right(assignExpr),
     ),
   )
 
-  val declExpr = Syntactic(
+  val declExpr: Syntactic = Syntactic(
     "VariableDeclaration",
     tff,
     0,
     List(Some(bindingId), Some(initializer)),
   )
 
-  val statement = buildExpr(
+  val statement: Ast = buildExpr(
     List(
       Left("Statement", fff, 1),
       Left("VariableStatement", ff, 0),

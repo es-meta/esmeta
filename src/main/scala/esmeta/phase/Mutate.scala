@@ -22,6 +22,8 @@ case object Mutate extends Phase[CFG, String] {
     val filename = getFirstFilename(cmdConfig, this.name)
     val ast = ESParser(cfg.spec.grammar)("Script").fromFile(filename)
     val mutator: Mutator = RandomMutation(ast)
+    val synth: RandomSynth = RandomSynth(cfg.spec.grammar)
+    synth.synthesize("AssignmentExpression", "RelationalExpression")
     // mutator.mutate.toString
     mutator.mutate.toString(grammar = Some(cfg.grammar))
 
