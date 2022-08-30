@@ -122,13 +122,18 @@ trait Parsers extends BasicParsers {
   private lazy val singleRecordTy: Parser[RecordTy] = {
     "Record" ~>
     opt("[" ~> rep1sep(word, ",") <~ "]") ~
-    opt("{" ~> rep1sep(pair, ",") <~ "}") ^^ {
-      case n ~ p => RecordTy(n.getOrElse(Nil).toSet, p.getOrElse(Nil).toMap)
+    opt("{" ~> rep1sep(field, ",") <~ "}") ^^ {
+      case n ~ ps =>
+        val names = n.getOrElse(Nil).toSet
+        val pairs = ps.getOrElse(Nil)
+        val fields = pairs.collect { case (k, None) => k }.toSet
+        val map = pairs.collect { case (k, Some(v)) => k -> v }.toMap
+        RecordTy(names, fields, map)
     }
   }.named("ty.RecordTy (single)")
 
-  private lazy val pair: Parser[(String, ValueTy)] =
-    str ~ ("->" ~> valueTy) ^^ { case k ~ v => (k, v) }
+  private lazy val field: Parser[(String, Option[ValueTy])] =
+    ("[[" ~> word <~ "]]") ~ opt(":" ~> valueTy) ^^ { case k ~ v => (k, v) }
 
   /** list types */
   given listTy: Parser[ListTy] = {

@@ -39,8 +39,11 @@ val ESPureValueT: PureValueTy = PureValueTy(
 val ESValueT: ValueTy = ValueTy(pureValue = ESPureValueT)
 def RecordT(xs: String*): ValueTy =
   ValueTy(record = RecordTy(names = xs.toSet))
-def RecordT(map: Map[String, ValueTy]): ValueTy =
-  ValueTy(record = RecordTy(map = map))
+def RecordT(
+  names: Set[String],
+  fields: Set[String],
+  map: Map[String, ValueTy],
+): ValueTy = ValueTy(record = RecordTy(names, fields, map).norm)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(Some(ty)))
 val SymbolT: ValueTy = ValueTy(symbol = true)

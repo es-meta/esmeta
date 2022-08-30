@@ -82,13 +82,19 @@ object Stringifier {
 
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
-    given Rule[(String, ValueTy)] = {
-      case (app, (key, value)) => app >> "\"" >> key >> "\" -> " >> value
+    given Rule[(String, Option[ValueTy])] = {
+      case (app, (key, value)) =>
+        app >> "[[" >> key >> "]]"
+        value.fold(app)(app >> ": " >> _)
     }
-    given Rule[List[(String, ValueTy)]] = iterableRule("{", ", ", "}")
+    given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
     app >> "Record"
     if (!ty.names.isEmpty) app >> ty.names
-    if (!ty.map.isEmpty) app >> " " >> ty.map.toList.sortBy(_._1)
+
+    val map =
+      ty.fields.map(_ -> None) ++
+      ty.map.map { case (k, v) => k -> Some(v) }
+    if (!map.isEmpty) app >> " " >> map.toList.sortBy(_._1)
     app
 
   /** sub map types */

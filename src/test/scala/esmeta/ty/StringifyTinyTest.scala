@@ -11,13 +11,6 @@ class StringifyTinyTest extends TyTest {
 
   // registration
   def init: Unit = {
-    lazy val complexRecord =
-      RecordT("A", "B") |
-      RecordT(Map("A" -> NumberT, "B" -> BoolT))
-    lazy val grammar = GrammarT(
-      Grammar("Literal", List(true)),
-      Grammar("Identifier", List(false, true, false)),
-    )
     checkParseAndStringify("Ty", Ty)(
       AbruptT -> "Abrupt",
       NormalT(PureValueTy(number = true)) -> "Normal[Number]",
@@ -34,15 +27,26 @@ class StringifyTinyTest extends TyTest {
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       RecordT("A") -> "Record[A]",
       RecordT("A", "B") -> "Record[A, B]",
-      RecordT(Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record {\"A\" -> Number, \"B\" -> Boolean}",
-      complexRecord -> "Record[A, B] {\"A\" -> Number, \"B\" -> Boolean}",
+      RecordT(Set(), Set(), Map("A" -> NumberT, "B" -> BoolT)) ->
+      "Record { [[A]]: Number, [[B]]: Boolean }",
+      RecordT(Set(), Set("Key", "Value"), Map()) ->
+      "Record { [[Key]], [[Value]] }",
+      RecordT(Set(), Set("Key", "Value"), Map("Dummy" -> BotT)) ->
+      "Record { [[Key]], [[Value]] }",
+      RecordT(
+        names = Set("A", "B"),
+        fields = Set("P", "S"),
+        map = Map("Q" -> NumberT, "R" -> BoolT),
+      ) -> "Record[A, B] { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Symbol",
       AstTopT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
-      grammar -> "Grammar[|Identifier|[FTF], |Literal|[T]]",
+      GrammarT(
+        Grammar("Literal", List(true)),
+        Grammar("Identifier", List(false, true, false)),
+      ) -> "Grammar[|Identifier|[FTF], |Literal|[T]]",
       CodeUnitT -> "CodeUnit",
       ConstT("key") -> "Const[~key~]",
       ConstT("key", "value") -> "Const[~key~, ~value~]",
