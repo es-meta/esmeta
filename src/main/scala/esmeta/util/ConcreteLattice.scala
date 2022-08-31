@@ -98,8 +98,8 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
 
   /** prune operator */
   def --[B >: A](that: => BSet[B]): BSet[B] = (this, that) match
-    case (Inf, _)         => that
     case (_, Inf)         => Fin()
+    case (Inf, _)         => this
     case (Fin(l), Fin(r)) => Fin(l.toSet -- r)
 
   /** map function */

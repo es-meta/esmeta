@@ -28,13 +28,13 @@ val ContTopT: ValueTy = ValueTy(cont = Inf)
 def ContT(names: String*): ValueTy = ValueTy(cont = Fin(names.toSet))
 val ESPureValueT: PureValueTy = PureValueTy(
   record = RecordTy(Set("Object")),
+  symbol = true,
   number = true,
   bigInt = true,
   str = Inf,
   bool = Set(true, false),
   undef = true,
   nullv = true,
-  absent = true,
 )
 val ESValueT: ValueTy = ValueTy(pureValue = ESPureValueT)
 def RecordT(xs: String*): ValueTy =
@@ -59,6 +59,8 @@ val BigIntT: ValueTy = ValueTy(bigInt = true)
 val StrTopT: ValueTy = ValueTy(str = Inf)
 def StrT(xs: String*): ValueTy = ValueTy(str = Fin(xs.toSet))
 val BoolT: ValueTy = ValueTy(bool = Set(true, false))
+val TrueT: ValueTy = ValueTy(bool = Set(true))
+val FalseT: ValueTy = ValueTy(bool = Set(false))
 val UndefT: ValueTy = ValueTy(undef = true)
 val NullT: ValueTy = ValueTy(nullv = true)
 val AbsentT: ValueTy = ValueTy(absent = true)

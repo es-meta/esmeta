@@ -570,13 +570,56 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
       case ty: ValueTy    => valueTyRule(app, ty)
 
-  lazy val valueTyRule: Rule[ValueTy] = (app, ty) =>
-    given Rule[Iterable[String]] = listNamedSepRule(namedSep = "or")
+  // predefined types
+  lazy val predTys: List[(ValueTy, String)] = List(
+    ESValueT -> "an ECMAScript language value",
+  )
+
+  // value types
+  lazy val valueTyRule: Rule[ValueTy] = (app, originTy) =>
+    var ty: ValueTy = originTy
     var tys: Vector[String] = Vector()
+    for ((pred, name) <- predTys if pred <= ty)
+      tys :+= name; ty --= pred
+
+    // records
+    val RecordTy(names, fields, map) = ty.record
+    for (name <- names) tys :+= name.withIndefArticle
+
+    // symbols
+    if (!ty.symbol.isBottom) tys :+= "a Symbol"
+
+    // AST values
+    ty.astValue match
+      case Inf => tys :+= "a Parse Node"
+      case Fin(set) =>
+        for {
+          name <- set
+        } tys :+= s"${name.indefArticle} |$name| Parse Node"
+
+    // numbers
     if (!ty.number.isBottom) tys :+= "a Number"
+
+    // big integers
     if (!ty.bigInt.isBottom) tys :+= "a BigInt"
+
+    // strings
+    ty.str match
+      case Inf      => tys :+= "a String"
+      case Fin(set) => for (s <- set) tys :+= s"\"$s\""
+
+    // booleans
+    if (ty.bool.size > 1) tys :+= "a Boolean"
+    else if (ty.bool.size == 1) tys :+= s"*${ty.bool.head}*"
+
+    // undefined
+    if (!ty.undef.isBottom) tys :+= "*undefined*"
+
+    // null
+    if (!ty.nullv.isBottom) tys :+= "*null*"
+
+    given Rule[Iterable[String]] = listNamedSepRule(namedSep = "or")
     if (tys.isEmpty) app >> "nothing"
-    if (tys.length == 1) app >> tys.head
     else app >> tys
 
   // ---------------------------------------------------------------------------

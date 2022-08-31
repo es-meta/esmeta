@@ -986,7 +986,7 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage types
   // ---------------------------------------------------------------------------
-  // metalanguage types for algorithm heads
+  // metalanguage types with unknown types
   given langTypeWithUnknown: PL[Type] = {
     (
       langTy <~ guard(opt(",") ~ EOL | "[_:]".r) |
@@ -994,11 +994,14 @@ trait Parsers extends IndentParsers {
     ) ^^ { Type(_) }
   }.named("lang.Type")
 
+  // metalanguage types
   lazy val langType: PL[Type] = {
     langTy ^^ { Type(_) }
   }.named("lang.Type")
 
+  // types
   lazy val langTy: P[Ty] = valueTy | specialTy
+
   // unknown types
   lazy val unknownTy: P[Ty] = "([^,_]|, )+".r ^^ {
     case "unknown" => UnknownTy(None)
@@ -1014,7 +1017,17 @@ trait Parsers extends IndentParsers {
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
     "Number" ^^^ NumberT |
-    "BigInt" ^^^ BigIntT
+    "BigInt" ^^^ BigIntT |
+    "Boolean" ^^^ BoolT |
+    "Symbol" ^^^ SymbolT |
+    "String" ^^^ StrTopT |
+    "Object" ^^^ ObjectT |
+    "*undefined*" ^^^ UndefT |
+    "*null*" ^^^ NullT |
+    "*true*" ^^^ TrueT |
+    "*false*" ^^^ FalseT |
+    "ECMAScript language value" ^^^ ESValueT |
+    "Parse Node" ^^^ AstTopT
   }
 
   // rarely used expressions

@@ -206,5 +206,11 @@ object BaseUtils {
       case "ninth"   => 9
       case _         => str.dropRight(2).toInt,
     )
+    def indefArticle: String = str.headOption.fold("")(c =>
+      if ("[aeiou]".r.matches(c.toLower.toString)) "an"
+      else "a",
+    )
+
+    def withIndefArticle: String = str.indefArticle + " " + str
   }
 }
