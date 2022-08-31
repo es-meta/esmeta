@@ -584,7 +584,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // records
     val RecordTy(names, fields, map) = ty.record
-    for (name <- names) tys :+= name.withIndefArticle
+    for (name <- names.toList.sorted) tys :+= name.withIndefArticle
 
     // symbols
     if (!ty.symbol.isBottom) tys :+= "a Symbol"
@@ -593,9 +593,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     ty.astValue match
       case Inf => tys :+= "a Parse Node"
       case Fin(set) =>
-        for {
-          name <- set
-        } tys :+= s"${name.indefArticle} |$name| Parse Node"
+        for (name <- set.toList.sorted)
+          tys :+= s"${name.indefArticle} |$name| Parse Node"
+
+    // numbers
+    for (name <- ty.const.toList.sorted) tys :+= s"~$name~"
 
     // numbers
     if (!ty.number.isBottom) tys :+= "a Number"
@@ -606,7 +608,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // strings
     ty.str match
       case Inf      => tys :+= "a String"
-      case Fin(set) => for (s <- set) tys :+= s"\"$s\""
+      case Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
 
     // booleans
     if (ty.bool.size > 1) tys :+= "a Boolean"

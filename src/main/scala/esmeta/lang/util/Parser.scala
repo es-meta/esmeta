@@ -1027,8 +1027,10 @@ trait Parsers extends IndentParsers {
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
     "ECMAScript language value" ^^^ ESValueT |
-    "Parse Node" ^^^ AstTopT
-  }
+    "Parse Node" ^^^ AstTopT |
+    nt <~ "Parse Node" ^^ { AstT(_) } |
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
+  } <~ opt("s")
 
   // rarely used expressions
   lazy val specialTy: P[Ty] = opt("an" | "a") ~> {

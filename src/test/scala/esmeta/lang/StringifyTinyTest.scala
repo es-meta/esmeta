@@ -580,6 +580,11 @@ class StringifyTinyTest extends LangTest {
       Type(UndefT) -> "*undefined*",
       Type(NullT) -> "*null*",
       Type(AstTopT) -> "a Parse Node",
+      Type(AstT("Identifier")) -> "an |Identifier| Parse Node",
+      Type(ConstT("unused")) -> "~unused~",
+      Type(ConstT("string", "symbol")) -> "~string~ or ~symbol~",
+      Type(ConstT("start", "end", "start+end")) ->
+      "~end~, ~start~, or ~start+end~",
       // more complex
       Type(NumberT | BigIntT) -> "a Number or a BigInt",
       Type(NullT | ESValueT) -> "an ECMAScript language value",
