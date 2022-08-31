@@ -104,14 +104,13 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
   // ------------------------------------------------------------------------------
   // locational parser
   // ------------------------------------------------------------------------------
-  abstract class LocationalParser[+T <: Locational] extends Parser[T]
   override def locationed[T <: Locational](
     p: => Parser[T],
   ): LocationalParser[T] =
     new LocationalParser {
       def apply(in: Input) = in match
         case in: In =>
-          val trimmed = trimInput(in)
+          val trimmed = trimInput(in).asInstanceOf[In]
           p(trimmed) match
             case s @ Success(res, rest) =>
               Success(
@@ -123,7 +122,8 @@ trait IndentParsers extends BasicParsers with EPackratParsers {
     }
 
   // trim unused whitespace for position
-  private def trimInput[T](in: In): In =
+  override protected def trimInput[T](input: Input): Input =
+    val in = input.asInstanceOf[In]
     val trimmed = super.trimInput(in).asInstanceOf[In]
     trimmed.copy(newData =
       trimmed.data.copy(needUppercase = in.data.needUppercase),

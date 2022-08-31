@@ -52,12 +52,13 @@ trait Parsers extends TyParsers {
     "(" ~> repsep(param, ",") <~ opt(",") ~ ")"
   given param: Parser[Func.Param] = {
     name ~ opt("?") ~ (":" ~> irType) ^^ {
-      case x ~ o ~ t => Func.Param(x, o.isDefined, t)
+      case x ~ o ~ t => Func.Param(x, t, o.isDefined)
     }
   }.named("ir.Func.Param")
 
   // return types
-  lazy val retTy: Parser[Type] = opt(":" ~> irType) ^^ { _.getOrElse(Type()) }
+  lazy val retTy: Parser[Type] =
+    opt(":" ~> irType) ^^ { _.getOrElse(UnknownType) }
 
   // instructions
   given inst: Parser[Inst] = withLoc {

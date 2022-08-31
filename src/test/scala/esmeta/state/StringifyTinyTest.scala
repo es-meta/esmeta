@@ -113,7 +113,7 @@ class StringifyTinyTest extends StateTest {
     lazy val func =
       Func(
         0,
-        IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, Type(), INop()),
+        IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, UnknownType, INop()),
         None,
       )
     lazy val clo = Clo(func, Map())

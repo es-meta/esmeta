@@ -67,8 +67,8 @@ class StringifyTinyTest extends IRTest {
     // parameters
     // -------------------------------------------------------------------------
     lazy val params = List(xParam, yParam)
-    lazy val xParam = Func.Param(x, false, ty)
-    lazy val yParam = Func.Param(y, true, ty)
+    lazy val xParam = Func.Param(x, ty, false)
+    lazy val yParam = Func.Param(y, ty, true)
 
     // tests
     checkParseAndStringify("Func.Param", Func.Param)(

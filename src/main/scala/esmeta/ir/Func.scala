@@ -36,8 +36,8 @@ object Func extends Parser.From[Func](Parser.func) {
   /** function parameters */
   case class Param(
     lhs: Name,
+    ty: Type = UnknownType,
     optional: Boolean = false,
-    ty: Type = Type(),
   ) extends IRElem
   object Param extends Parser.From[Param](Parser.param)
 }

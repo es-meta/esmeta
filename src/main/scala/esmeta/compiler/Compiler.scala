@@ -1,11 +1,11 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.{Type => IRType, UnknownType => IRUnknownType, *}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
-import esmeta.spec.{Param => SParam, *}
+import esmeta.spec.*
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -23,6 +23,7 @@ class Compiler(
   spec: Spec,
   log: Boolean = false,
 ) {
+  import Func.{Param => IRParam}
 
   /** compiled specification */
   lazy val result: Program =
@@ -116,15 +117,15 @@ class Compiler(
   }
 
   /** get prefix instructions for builtin functions */
-  def getBuiltinPrefix(ps: List[SParam]): List[Inst] =
-    if (ps.exists(_.kind == SParam.Kind.Ellipsis)) Nil
+  def getBuiltinPrefix(ps: List[Param]): List[Inst] =
+    if (ps.exists(_.kind == Param.Kind.Ellipsis)) Nil
     else {
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
       ps.map {
-        case SParam(name, _, SParam.Kind.Variadic) =>
+        case Param(name, _, Param.Kind.Variadic) =>
           ILet(Name(name), ENAME_ARGS_LIST)
-        case SParam(name, _, _) =>
+        case Param(name, _, _) =>
           IIf(
             lessThan(zero, argsLen),
             ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
@@ -533,13 +534,13 @@ class Compiler(
               Func.Kind.BuiltinClo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-              getBuiltinPrefix(params.map(x => SParam(x.name, UnknownType))),
+              getBuiltinPrefix(params.map(x => Param(x.name, UnknownType))),
             )
           else
             (
               Func.Kind.Clo,
               fb.nextCloName,
-              params.map(x => Func.Param(compile(x), false, IRType())),
+              params.map(x => IRParam(compile(x), IRUnknownType, false)),
               Nil,
             )
         addFunc(
@@ -548,7 +549,7 @@ class Compiler(
             ck,
             cn,
             ps,
-            IRType(),
+            IRUnknownType,
             fb.algo,
           ),
           body = body,
@@ -754,14 +755,18 @@ class Compiler(
     })
 
   /** compile algorithm parameters */
-  def compile(param: SParam): Func.Param = {
-    val SParam(name, ty, skind) = param
-    val optional = skind == SParam.Kind.Optional
-    Func.Param(Name(name), optional, compile(ty))
+  def compile(param: Param): IRParam = {
+    val Param(name, ty, skind) = param
+    val optional = skind == Param.Kind.Optional
+    IRParam(Name(name), compile(ty), optional)
   }
 
   /** compile types */
-  def compile(ty: Type): IRType = IRType(ty.normalizedName)
+  def compile(ty: Type): IRType = ty.ty match
+    case UnknownTy(Some(msg)) =>
+      IRUnknownType(Type.normalizeName(msg), Some(ty))
+    case t =>
+      IRType(t, Some(ty))
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers
@@ -832,8 +837,8 @@ class Compiler(
       case _                 => error("invalid production")
 
   /** instruction helpers */
-  inline def toParams(paramOpt: Option[Variable]): List[Func.Param] =
-    paramOpt.map(param => Func.Param(Name(param.name))).toList
+  inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
+    paramOpt.map(param => IRParam(Name(param.name))).toList
   inline def emptyInst = ISeq(List())
 
   /** expression helpers */

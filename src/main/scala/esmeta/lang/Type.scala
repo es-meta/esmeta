@@ -14,7 +14,7 @@ case class Type(ty: Ty) extends Syntax {
   /** normalized type name */
   lazy val normalizedName: String = Type.normalizeName(name)
 }
-object Type extends Parser.From[Type](Parser.langType) {
+object Type extends Parser.From[Type](Parser.langTypeWithUnknown) {
 
   /** type name normalization */
   def normalizeName(name: String): String = {

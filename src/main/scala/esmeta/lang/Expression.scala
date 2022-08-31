@@ -85,7 +85,7 @@ case class InvokeAbstractOperationExpression(
 
 // numeric method invocation expression
 case class InvokeNumericMethodExpression(
-  ty: Type,
+  base: String,
   name: String,
   args: List[Expression],
 ) extends InvokeExpression

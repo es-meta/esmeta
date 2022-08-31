@@ -5,12 +5,11 @@ import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational}
 import esmeta.util.BaseUtils.*
-import scala.util.matching.Regex
 
 /** metalanguage parser */
 object Parser extends Parsers
-trait Parsers extends IndentParsers with TyParsers {
-
+trait Parsers extends IndentParsers {
+  // shortcuts
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
@@ -581,10 +580,12 @@ trait Parsers extends IndentParsers with TyParsers {
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
-    guard(not("Return")) ~> langType ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
-      case t ~ op ~ as =>
-        InvokeNumericMethodExpression(t, op, as)
+    guard(not("Return")) ~> numericName ~
+    ("::" ~> "[A-Za-z]+".r) ~
+    invokeArgs ^^ {
+      case t ~ op ~ as => InvokeNumericMethodExpression(t, op, as)
     }
+  lazy val numericName: Parser[String] = "Number" | "BigInt"
 
   // abstract closure invocation expression
   lazy val invokeClosureExpr: PL[InvokeAbstractClosureExpression] =
@@ -985,16 +986,49 @@ trait Parsers extends IndentParsers with TyParsers {
   // ---------------------------------------------------------------------------
   // metalanguage types
   // ---------------------------------------------------------------------------
-  given langType: PL[Type] = {
-    "List of" ~> word ^^ {
-      case s => UnknownType(s"List of $s")
-    } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
-      case fs => UnknownType(s"Record { ${fs.mkString(", ")} }")
-    } | (nt | tname) ^^ {
-      case s => UnknownType(s)
-    }
-  }.named("lang.Type (langType)")
+  // metalanguage types for algorithm heads
+  given langTypeWithUnknown: PL[Type] = {
+    (
+      langTy <~ guard(opt(",") ~ EOL | "[_:]".r) |
+      unknownTy
+    ) ^^ { Type(_) }
+  }.named("lang.Type")
 
+  lazy val langType: PL[Type] = {
+    langTy ^^ { Type(_) }
+  }.named("lang.Type")
+
+  lazy val langTy: P[Ty] = valueTy | specialTy
+  // unknown types
+  lazy val unknownTy: P[Ty] = "([^,_]|, )+".r ^^ {
+    case "unknown" => UnknownTy(None)
+    case s         => UnknownTy(Some(s.trim))
+  }
+
+  // value types
+  lazy val valueTy: P[ValueTy] =
+    opt("either") ~> rep1sep(simpleTy, sep("or")) ^^ {
+      case ts => ts.foldLeft(BotT)(_ | _)
+    }
+
+  // simple types
+  lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
+    "Number" ^^^ NumberT |
+    "BigInt" ^^^ BigIntT
+  }
+
+  // rarely used expressions
+  lazy val specialTy: P[Ty] = opt("an" | "a") ~> {
+    "List of" ~> word ^^ {
+      case s => UnknownTy(s"List of $s")
+    } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
+      case fs => UnknownTy(s"Record { ${fs.mkString(", ")} }")
+    } | (nt | tname) ^^ {
+      case s => UnknownTy(s)
+    }
+  }
+
+  // type name
   lazy val tname: P[String] =
     rep1(camel) ^^ { case ss => ss.mkString(" ") } |||
     "[a-zA-Z ]+ object".r |||
@@ -1004,26 +1038,6 @@ trait Parsers extends IndentParsers with TyParsers {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  // extensions for Parser for replacing `^^!`
-  //
-  // NOTE: Unlike the ^^^ operator, it always computes the parsing result when
-  // the parsing process succeeds. If the parsing result requires an automatic
-  // insertion of location info in abstract algorithms (`_ <: Locational`),
-  // please use the ^^! operator.
-  //
-  // $ var count = 0
-  // $ lazy val p = "" ^^^ { count += 1 }
-  // $ parse(p, ""); parse(p, ""); parse(p, ""); count
-  // result: 1
-  //
-  // $ var count = 0
-  // $ lazy val p = "" ^^! { count += 1 }
-  // $ parse(p, ""); parse(p, ""); parse(p, ""); count
-  // result: 3
-  extension [T](p: Parser[T]) {
-    def ^^![S](v: => S): Parser[S] = Parser { in => p(in).map(x => v) }
-  }
-
   // html tags
   private lazy val tagStart: Parser[String] = "<[^>]+>".r
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r

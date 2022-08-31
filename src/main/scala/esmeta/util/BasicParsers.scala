@@ -82,6 +82,7 @@ trait BasicParsers extends JavaTokenParsers {
   // ---------------------------------------------------------------------------
   // Source Location
   // ---------------------------------------------------------------------------
+  abstract class LocationalParser[+T <: Locational] extends Parser[T]
   def locationed[T <: Locational](p: => Parser[T]): Parser[T] =
     new Parser[T] {
       def apply(in: Input) =
@@ -104,4 +105,25 @@ trait BasicParsers extends JavaTokenParsers {
   /** implicit conversion from scala parser's Input to util.Pos */
   protected given Conversion[Input, Pos] with
     def apply(in: Input): Pos = Pos(in.pos.line, in.pos.column, in.offset)
+
+  /* extensions for Parser for replacing `^^!`
+   *
+   * NOTE: Unlike the ^^^ operator, it always computes the parsing result when
+   * the parsing process succeeds. If the parsing result requires an automatic
+   * insertion of location info in abstract algorithms (`_ <: Locational`),
+   * please use the ^^! operator.
+   *
+   * $ var count = 0
+   * $ lazy val p = "" ^^^ { count += 1 }
+   * $ parse(p, ""); parse(p, ""); parse(p, ""); count
+   * result: 1
+   *
+   * $ var count = 0
+   * $ lazy val p = "" ^^! { count += 1 }
+   * $ parse(p, ""); parse(p, ""); parse(p, ""); count
+   * result: 3
+   */
+  extension [T](p: Parser[T]) {
+    def ^^![S](v: => S): Parser[S] = Parser { in => p(in).map(x => v) }
+  }
 }

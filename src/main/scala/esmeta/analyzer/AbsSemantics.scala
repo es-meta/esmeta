@@ -216,7 +216,7 @@ case class AbsSemantics(
     @tailrec
     def aux(ps: List[Param], as: List[AbsValue]): Unit = (ps, as) match {
       case (Nil, Nil) =>
-      case (Param(lhs, optional, _) :: pl, Nil) =>
+      case (Param(lhs, _, optional) :: pl, Nil) =>
         if (optional) {
           map += lhs -> AbsValue(Absent)
           aux(pl, Nil)

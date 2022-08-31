@@ -387,9 +387,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case InvokeAbstractOperationExpression(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args
-      case InvokeNumericMethodExpression(ty, name, args) =>
+      case InvokeNumericMethodExpression(base, name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> ty >> "::" >> name >> args
+        app >> base >> "::" >> name >> args
       case InvokeAbstractClosureExpression(x, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> x >> args
@@ -426,13 +426,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case t :: Nil => app >> isStr(neg) >> t
           case _ =>
             app >> " is "
-            if (neg) {
-              given Rule[List[Type]] = listNamedSepRule(namedSep = "nor")
-              app >> "neither " >> ty
-            } else {
-              given Rule[List[Type]] = listNamedSepRule(namedSep = "or")
-              app >> "either " >> ty
-            }
+            val (left, namedSep) =
+              if (neg) ("neither ", "nor") else ("either ", "or")
+            given Rule[List[Type]] = listNamedSepRule(left, namedSep)
+            app >> ty
         }
       case HasFieldCondition(ref, neg, field) =>
         app >> ref >> hasStr(neg)
@@ -567,11 +564,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
     props.map(app >> "." >> _)
     app >> "%"
 
-  // TODO types
+  // types
   given typeRule: Rule[Type] = (app, ty) =>
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-      case _              => ???
+      case ty: ValueTy    => valueTyRule(app, ty)
+
+  lazy val valueTyRule: Rule[ValueTy] = (app, ty) =>
+    given Rule[Iterable[String]] = listNamedSepRule(namedSep = "or")
+    var tys: Vector[String] = Vector()
+    if (!ty.number.isBottom) tys :+= "a Number"
+    if (!ty.bigInt.isBottom) tys :+= "a BigInt"
+    if (tys.isEmpty) app >> "nothing"
+    if (tys.length == 1) app >> tys.head
+    else app >> tys
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -581,8 +587,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     left: String = "",
     namedSep: String = "",
     right: String = "",
-  )(using tRule: Rule[T]): Rule[List[T]] = (app, list) =>
-    val len = list.length
+  )(using tRule: Rule[T]): Rule[Iterable[T]] = (app, list) =>
+    val len = list.size
     app >> left
     for ((x, k) <- list.zipWithIndex) app >> (k match {
       case 0                 => ""

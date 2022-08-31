@@ -63,8 +63,8 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val irFunc = IRFunc(false, IRFunc.Kind.AbsOp, "f", params, ty, seq)
     lazy val seq = ISeq(List(let, del, ret))
     lazy val params = List(xParam, yParam)
-    lazy val xParam = IRFunc.Param(x, false, ty)
-    lazy val yParam = IRFunc.Param(y, true, ty)
+    lazy val xParam = IRFunc.Param(x, ty, false)
+    lazy val yParam = IRFunc.Param(y, ty, true)
     lazy val let = ILet(x, empty)
     lazy val del = IDelete(prop)
     lazy val ret = IReturn(xExpr)
@@ -76,7 +76,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type("T")
+    lazy val ty = Type(RecordT("T"))
   }
 
   init

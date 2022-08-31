@@ -50,6 +50,27 @@ case class ValueTy(
     !comp.isBottom &
     pureValue.isBottom &
     subMap.isBottom
+
+  /** getters */
+  def normal: PureValueTy = comp.normal
+  def abrupt: Boolean = comp.abrupt
+  def clo: BSet[String] = pureValue.clo
+  def cont: BSet[String] = pureValue.cont
+  def record: RecordTy = pureValue.record
+  def list: ListTy = pureValue.list
+  def symbol: Boolean = pureValue.symbol
+  def astValue: BSet[String] = pureValue.astValue
+  def grammar: BSet[Grammar] = pureValue.grammar
+  def codeUnit: Boolean = pureValue.codeUnit
+  def const: Set[String] = pureValue.const
+  def math: Boolean = pureValue.math
+  def number: Boolean = pureValue.number
+  def bigInt: Boolean = pureValue.bigInt
+  def str: BSet[String] = pureValue.str
+  def bool: Set[Boolean] = pureValue.bool
+  def undef: Boolean = pureValue.undef
+  def nullv: Boolean = pureValue.nullv
+  def absent: Boolean = pureValue.absent
 }
 object ValueTy {
   def apply(

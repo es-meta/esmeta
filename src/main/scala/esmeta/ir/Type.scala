@@ -1,14 +1,23 @@
 package esmeta.ir
 
 import esmeta.ir.util.Parser
+import esmeta.lang.{Type => LangType}
 import esmeta.ty.*
 
-// TODO ir types
-case class Type(ty: Ty = UnknownTy()) extends IRElem {
+/** IR types */
+case class Type(
+  ty: Ty,
+  langTy: Option[LangType] = None,
+) extends IRElem {
 
   /** completion check */
   def isCompletion: Boolean = ty.isCompletion
 }
-object Type extends Parser.From[Type](Parser.irType):
-  // TODO refactor
-  def apply(str: String): Type = Type(UnknownTy(str))
+object Type extends Parser.From[Type](Parser.irType)
+
+/** IR unknown types */
+val UnknownType: Type = Type(UnknownTy())
+def UnknownType(
+  msg: String,
+  langTy: Option[LangType] = None,
+): Type = Type(UnknownTy(Some(msg)), langTy)
