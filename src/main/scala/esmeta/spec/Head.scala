@@ -2,6 +2,7 @@ package esmeta.spec
 
 import esmeta.lang.Type
 import esmeta.spec.util.Parser
+import esmeta.ty.*
 
 /** algorithm heads */
 sealed trait Head extends SpecElem {
@@ -18,13 +19,18 @@ sealed trait Head extends SpecElem {
 
   /** get function parameters */
   def funcParams: List[Param] = this match
-    case head: AbstractOperationHead       => head.params
-    case head: NumericMethodHead           => head.params
-    case head: SyntaxDirectedOperationHead => Param("this") :: head.withParams
-    case head: ConcreteMethodHead          => head.receiverParam :: head.params
-    case head: InternalMethodHead          => head.receiverParam :: head.params
+    case head: AbstractOperationHead => head.params
+    case head: NumericMethodHead     => head.params
+    case head: ConcreteMethodHead    => head.receiverParam :: head.params
+    case head: InternalMethodHead    => head.receiverParam :: head.params
+    case head: SyntaxDirectedOperationHead =>
+      Param("this", Type(AstTopT)) :: head.withParams
     case head: BuiltinHead =>
-      List(Param("this"), Param("argumentsList"), Param("NewTarget"))
+      List(
+        Param("this", Type(ESValueT)),
+        Param("argumentsList", Type(ListT(ESValueT))),
+        Param("NewTarget", Type(ObjectT | UndefT)),
+      )
 
   /** get function name */
   def fname: String = this match

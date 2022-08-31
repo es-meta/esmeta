@@ -251,12 +251,19 @@ class Extractor(
     elem: Element,
   ): List[Head] = elem.getPrevText match
     case thisValuePattern(name, param) =>
-      List(AbstractOperationHead(false, name, List(Param(param)), Type()))
+      List(
+        AbstractOperationHead(
+          false,
+          name,
+          List(Param(param, UnknownType)),
+          UnknownType,
+        ),
+      )
     case aliasPattern() => extractAbsOpHead(parent, elem, false)
     case anonBuiltinPattern(name, param) =>
       val rname = name.trim.split(" ").map(_.capitalize).mkString
       val ref = BuiltinHead.Ref.YetRef(rname)
-      List(BuiltinHead(ref, List(Param(param)), Type()))
+      List(BuiltinHead(ref, List(Param(param, UnknownType)), UnknownType))
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => extractBuiltinHead(parent, elem)
 

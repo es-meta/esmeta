@@ -986,14 +986,12 @@ trait Parsers extends IndentParsers with TyParsers {
   // metalanguage types
   // ---------------------------------------------------------------------------
   given langType: PL[Type] = {
-    tname ^^ {
-      case s => Type(s)
-    } ||| "List of" ~ word ^^! {
-      Type("List")
-    } ||| nt ^^ {
-      case s => Type(s)
-    } ||| "Record" ~ "{" ~ repsep(fieldLiteral, ",") ~ "}" ^^! {
-      Type("Record")
+    "List of" ~> word ^^ {
+      case s => UnknownType(s"List of $s")
+    } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
+      case fs => UnknownType(s"Record { ${fs.mkString(", ")} }")
+    } | (nt | tname) ^^ {
+      case s => UnknownType(s)
     }
   }.named("lang.Type (langType)")
 

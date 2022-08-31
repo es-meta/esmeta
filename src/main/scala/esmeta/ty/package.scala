@@ -44,6 +44,7 @@ def RecordT(
   fields: Set[String],
   map: Map[String, ValueTy],
 ): ValueTy = ValueTy(record = RecordTy(names, fields, map).norm)
+val ObjectT: ValueTy = RecordT("Object")
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(Some(ty)))
 val SymbolT: ValueTy = ValueTy(symbol = true)

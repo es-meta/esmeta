@@ -122,7 +122,7 @@ class Compiler(
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
       ps.map {
-        case SParam(name, SParam.Kind.Variadic, _) =>
+        case SParam(name, _, SParam.Kind.Variadic) =>
           ILet(Name(name), ENAME_ARGS_LIST)
         case SParam(name, _, _) =>
           IIf(
@@ -533,7 +533,7 @@ class Compiler(
               Func.Kind.BuiltinClo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-              getBuiltinPrefix(params.map(x => SParam(x.name))),
+              getBuiltinPrefix(params.map(x => SParam(x.name, UnknownType))),
             )
           else
             (
@@ -755,7 +755,7 @@ class Compiler(
 
   /** compile algorithm parameters */
   def compile(param: SParam): Func.Param = {
-    val SParam(name, skind, ty) = param
+    val SParam(name, ty, skind) = param
     val optional = skind == SParam.Kind.Optional
     Func.Param(Name(name), optional, compile(ty))
   }

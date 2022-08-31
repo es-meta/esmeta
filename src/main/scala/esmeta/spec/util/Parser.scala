@@ -210,8 +210,13 @@ trait Parsers extends BasicParsers {
     *     *undefined* ...
     */
   given specTy: Parser[Type] = {
-    "([^_,:]|, )+".r ^^ { case s => Type(s) }
+    "([^_,:]|, )+".r ^^ { case s => UnknownType(s) }
   }.named("lang.Type (specTy)")
+
+  lazy val specTyWithColon: Parser[Type] =
+    opt(":" ~> specTy) ^^ { case ty => ty.getOrElse(UnknownType) }
+
+  lazy val retTy: Parser[Type] = specTyWithColon
 
   // abstract opration (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
@@ -230,18 +235,18 @@ trait Parsers extends BasicParsers {
   // algorithm parameters
   given param: Parser[Param] = {
     import Param.Kind.*
-    opt("optional") ~ specId ~ opt(":" ~> specTy) ^^ {
+    opt("optional") ~ specId ~ specTyWithColon ^^ {
       case opt ~ name ~ specTy =>
         val kind = if (opt.isDefined) Optional else Normal
-        Param(name, kind, specTy.getOrElse(Type()))
-    } | opt(",") ~ "…" ^^^ Param("", Ellipsis, Type())
+        Param(name, specTy, kind)
+    } | opt(",") ~ "…" ^^^ Param("", UnknownType, Ellipsis)
   }.named("spec.Param")
 
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =
     import Param.Kind.*
     specTy ~ opt(specId) ^^ {
-      case specTy ~ name => Param(name.getOrElse("this"), Normal, specTy)
+      case specTy ~ name => Param(name.getOrElse("this"), specTy)
     }
 
   // multiple algorithm parameters
@@ -326,9 +331,6 @@ trait Parsers extends BasicParsers {
   /** names */
   lazy val name: Parser[String] =
     "[a-zA-Z0-9/]+".r
-
-  lazy val retTy: Parser[Type] =
-    opt(":" ~> specTy) ^^ { _.getOrElse(Type()) }
 
   // runtime/static semantics
   lazy val semanticsKind: Parser[Boolean] =
