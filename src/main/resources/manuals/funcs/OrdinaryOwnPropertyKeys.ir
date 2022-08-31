@@ -1,4 +1,4 @@
-def OrdinaryOwnPropertyKeys(O: Record[Object]): Unknown {
+def OrdinaryOwnPropertyKeys(O: Object): Unknown {
   let keys = (new [])
   %0 = 0
   %1 = (keys-int O.SubMap)

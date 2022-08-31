@@ -16,8 +16,10 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
+def CompT(normal: ValueTy, abrupt: Boolean): ValueTy =
+  ValueTy(normal = normal.pureValue, abrupt = abrupt)
 val AbruptT: ValueTy = ValueTy(abrupt = true)
-def NormalT(value: PureValueTy): ValueTy = ValueTy(normal = value)
+def NormalT(value: ValueTy): ValueTy = ValueTy(normal = value.pureValue)
 def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
   ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
 def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
@@ -37,14 +39,12 @@ val ESPureValueT: PureValueTy = PureValueTy(
   nullv = true,
 )
 val ESValueT: ValueTy = ValueTy(pureValue = ESPureValueT)
-def RecordT(xs: String*): ValueTy =
-  ValueTy(record = RecordTy(names = xs.toSet))
+def NameT(names: String*): ValueTy = ValueTy(names = names.toSet)
+val ObjectT: ValueTy = NameT("Object")
 def RecordT(
-  names: Set[String],
-  fields: Set[String],
-  map: Map[String, ValueTy],
-): ValueTy = ValueTy(record = RecordTy(names, fields, map).norm)
-val ObjectT: ValueTy = RecordT("Object")
+  fields: Set[String] = Set(),
+  map: Map[String, ValueTy] = Map(),
+): ValueTy = ValueTy(record = RecordTy(fields, map).norm)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(Some(ty)))
 val SymbolT: ValueTy = ValueTy(symbol = true)

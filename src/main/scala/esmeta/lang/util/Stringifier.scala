@@ -568,50 +568,78 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given typeRule: Rule[Type] = (app, ty) =>
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-      case ty: ValueTy    => valueTyRule(app, ty)
+      case ty: ValueTy    => valueTyRule(false)(app, ty)
 
   // predefined types
-  lazy val predTys: List[(ValueTy, String)] = List(
-    ESValueT -> "an ECMAScript language value",
+  lazy val predTys: List[(PureValueTy, String)] = List(
+    ESPureValueT -> "ECMAScript language value",
   )
 
   // value types
-  lazy val valueTyRule: Rule[ValueTy] = (app, originTy) =>
-    var ty: ValueTy = originTy
+  def valueTyRule(
+    plural: Boolean,
+  ): Rule[ValueTy] = (app, ty) =>
+    given Rule[PureValueTy] = pureValueTyRule(plural)
+    val pure = !ty.pureValue.isBottom
+    if (!ty.comp.isBottom)
+      val normal = !ty.normal.isBottom
+      val abrupt = ty.abrupt
+      val both = normal && abrupt
+      if (both) app >> "either "
+      if (normal) app >> "a normal completion containing " >> ty.normal
+      if (both) app >> " or "
+      if (abrupt) app >> "an abrupt completion"
+      if (pure) app >> " or "
+    if (pure) app >> ty.pureValue
+    app
+
+  // pure value types
+  def pureValueTyRule(
+    plural: Boolean,
+  ): Rule[PureValueTy] = (app, originTy) =>
+    var ty: PureValueTy = originTy
     var tys: Vector[String] = Vector()
     for ((pred, name) <- predTys if pred <= ty)
-      tys :+= name; ty --= pred
+      tys :+= name.withArticle(plural); ty --= pred
+
+    // names
+    for (name <- ty.names.toList.sorted) tys :+= name.withArticle(plural)
 
     // records
-    val RecordTy(names, fields, map) = ty.record
-    for (name <- names.toList.sorted) tys :+= name.withIndefArticle
+    val RecordTy(fields, map) = ty.record
+
+    // symbols
+    for (vty <- ty.list.elem)
+      val sub = valueTyRule(true)(new Appender, vty)
+      tys :+= s"a List of $sub"
 
     // symbols
     if (!ty.symbol.isBottom) tys :+= "a Symbol"
 
     // AST values
     ty.astValue match
-      case Inf => tys :+= "a Parse Node"
+      case Inf => tys :+= "Parse Node".withArticle(plural)
       case Fin(set) =>
         for (name <- set.toList.sorted)
-          tys :+= s"${name.indefArticle} |$name| Parse Node"
+          if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
+          else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
     // numbers
     for (name <- ty.const.toList.sorted) tys :+= s"~$name~"
 
     // numbers
-    if (!ty.number.isBottom) tys :+= "a Number"
+    if (!ty.number.isBottom) tys :+= "Number".withArticle(plural)
 
     // big integers
-    if (!ty.bigInt.isBottom) tys :+= "a BigInt"
+    if (!ty.bigInt.isBottom) tys :+= "BigInt".withArticle(plural)
 
     // strings
     ty.str match
-      case Inf      => tys :+= "a String"
+      case Inf      => tys :+= "String".withArticle(plural)
       case Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
 
     // booleans
-    if (ty.bool.size > 1) tys :+= "a Boolean"
+    if (ty.bool.size > 1) tys :+= "Boolean".withArticle(plural)
     else if (ty.bool.size == 1) tys :+= s"*${ty.bool.head}*"
 
     // undefined
@@ -621,8 +649,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!ty.nullv.isBottom) tys :+= "*null*"
 
     given Rule[Iterable[String]] = listNamedSepRule(namedSep = "or")
-    if (tys.isEmpty) app >> "nothing"
-    else app >> tys
+    app >> tys
 
   // ---------------------------------------------------------------------------
   // private helpers

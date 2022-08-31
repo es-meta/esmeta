@@ -9,6 +9,11 @@ trait BasicWalker {
     tWalk: T => T,
   ): Option[T] = opt.map(tWalk)
 
+  def walkIterable[T](
+    set: Iterable[T],
+    tWalk: T => T,
+  ): Iterable[T] = set.map(tWalk)
+
   def walkSet[T](
     set: Set[T],
     tWalk: T => T,
@@ -35,6 +40,13 @@ trait BasicWalker {
     kWalk: K => K,
     vWalk: V => V,
   ): MMap[K, V] = map.map { case (k, v) => kWalk(k) -> vWalk(v) }
+
+  def walkBSet[T](
+    set: BSet[T],
+    tWalk: T => T,
+  ): BSet[T] = set match
+    case Inf      => Inf
+    case Fin(set) => Fin(set.map(tWalk))
 
   def walk(str: String): String = str
   def walk(bool: Boolean): Boolean = bool

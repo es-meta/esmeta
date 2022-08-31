@@ -210,7 +210,10 @@ object BaseUtils {
       if ("[aeiou]".r.matches(c.toLower.toString)) "an"
       else "a",
     )
-
+    def pluralPostfix: String = "s" // TODO
     def withIndefArticle: String = str.indefArticle + " " + str
+    def withArticle(plural: Boolean = false): String =
+      if (plural) str + str.pluralPostfix
+      else str.indefArticle + " " + str
   }
 }

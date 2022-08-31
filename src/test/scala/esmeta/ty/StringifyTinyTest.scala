@@ -13,11 +13,11 @@ class StringifyTinyTest extends TyTest {
   def init: Unit = {
     checkParseAndStringify("Ty", Ty)(
       AbruptT -> "Abrupt",
-      NormalT(PureValueTy(number = true)) -> "Normal[Number]",
+      NormalT(NumberT) -> "Normal[Number]",
       SubMapT(
         StrTopT,
-        RecordT("Binding"),
-      ) -> "SubMap[String |-> Record[Binding]]",
+        NameT("Binding"),
+      ) -> "SubMap[String |-> Binding]",
       CloTopT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContTopT -> "Cont",
@@ -25,19 +25,18 @@ class StringifyTinyTest extends TyTest {
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
-      RecordT("A") -> "Record[A]",
-      RecordT("A", "B") -> "Record[A, B]",
-      RecordT(Set(), Set(), Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record { [[A]]: Number, [[B]]: Boolean }",
-      RecordT(Set(), Set("Key", "Value"), Map()) ->
-      "Record { [[Key]], [[Value]] }",
-      RecordT(Set(), Set("Key", "Value"), Map("Dummy" -> BotT)) ->
-      "Record { [[Key]], [[Value]] }",
-      RecordT(
-        names = Set("A", "B"),
+      NameT("Cat") -> "Cat",
+      NameT("Cat", "Dog") -> "Cat | Dog",
+      RecordT(map = Map("A" -> NumberT, "B" -> BoolT)) ->
+      "{ [[A]]: Number, [[B]]: Boolean }",
+      RecordT(fields = Set("Key", "Value"), Map()) ->
+      "{ [[Key]], [[Value]] }",
+      RecordT(Set("Key", "Value"), Map("Dummy" -> BotT)) ->
+      "{ [[Key]], [[Value]] }",
+      (ObjectT | RecordT(
         fields = Set("P", "S"),
         map = Map("Q" -> NumberT, "R" -> BoolT),
-      ) -> "Record[A, B] { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
+      )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Symbol",

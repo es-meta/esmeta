@@ -9,6 +9,7 @@ import esmeta.util.*
 case class PureValueTy(
   clo: BSet[String] = Fin(),
   cont: BSet[String] = Fin(),
+  names: Set[String] = Set(),
   record: RecordTy = RecordTy(),
   list: ListTy = ListTy(),
   symbol: Boolean = false,
@@ -31,6 +32,7 @@ case class PureValueTy(
   def isBottom: Boolean =
     this.clo.isBottom &
     this.cont.isBottom &
+    this.names.isBottom &
     this.record.isBottom &
     this.list.isBottom &
     this.symbol.isBottom &
@@ -51,6 +53,7 @@ case class PureValueTy(
   def <=(that: => PureValueTy): Boolean =
     this.clo <= that.clo &
     this.cont <= that.cont &
+    this.names <= that.names &
     this.record <= that.record &
     this.list <= that.list &
     this.symbol <= that.symbol &
@@ -71,6 +74,7 @@ case class PureValueTy(
   def |(that: => PureValueTy): PureValueTy = PureValueTy(
     this.clo | that.clo,
     this.cont | that.cont,
+    this.names | that.names,
     this.record | that.record,
     this.list | that.list,
     this.symbol | that.symbol,
@@ -92,6 +96,7 @@ case class PureValueTy(
   def &(that: => PureValueTy): PureValueTy = PureValueTy(
     this.clo & that.clo,
     this.cont & that.cont,
+    this.names & that.names,
     this.record & that.record,
     this.list & that.list,
     this.symbol & that.symbol,
@@ -113,6 +118,7 @@ case class PureValueTy(
   def --(that: => PureValueTy): PureValueTy = PureValueTy(
     this.clo -- that.clo,
     this.cont -- that.cont,
+    this.names -- that.names,
     this.record -- that.record,
     this.list -- that.list,
     this.symbol -- that.symbol,

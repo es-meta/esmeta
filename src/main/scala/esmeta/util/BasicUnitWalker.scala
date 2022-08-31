@@ -41,6 +41,13 @@ trait BasicUnitWalker {
     vWalk: V => Unit,
   ): Unit = map.foreach { case (k, v) => kWalk(k) -> vWalk(v) }
 
+  def walkBSet[T](
+    set: BSet[T],
+    tWalk: T => Unit,
+  ): Unit = set match
+    case Inf      =>
+    case Fin(set) => set.map(tWalk)
+
   def walk(str: String): Unit = {}
   def walk(bool: Boolean): Unit = {}
   def walk(int: Int): Unit = {}

@@ -63,6 +63,7 @@ object Stringifier {
       FilterApp(app)
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont.map(s => s"\"$s\""), !ty.cont.isBottom, "Cont")
+        .add(ty.names.mkString(OR), !ty.names.isBottom)
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
         .add("Symbol", !ty.symbol.isBottom)
@@ -88,13 +89,11 @@ object Stringifier {
         value.fold(app)(app >> ": " >> _)
     }
     given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
-    app >> "Record"
-    if (!ty.names.isEmpty) app >> ty.names
 
     val map =
       ty.fields.map(_ -> None) ++
       ty.map.map { case (k, v) => k -> Some(v) }
-    if (!map.isEmpty) app >> " " >> map.toList.sortBy(_._1)
+    if (!map.isEmpty) app >> map.toList.sortBy(_._1)
     app
 
   /** sub map types */

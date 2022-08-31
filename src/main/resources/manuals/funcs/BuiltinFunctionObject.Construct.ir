@@ -1,7 +1,7 @@
 def <INTERNAL>:BuiltinFunctionObject.Construct(
-  F: Record[BuiltinFunctionObject],
+  F: BuiltinFunctionObject,
   argumentsList: List[ESValue],
-  newTarget: Record[Constructor]
+  newTarget: Constructor
 ): Unknown {
   let callerContext = @EXECUTION_STACK[0]
   nop

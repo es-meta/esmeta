@@ -1,5 +1,5 @@
 def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(
-  envRec: Record[DeclarativeEnvironmentRecord],
+  envRec: DeclarativeEnvironmentRecord,
   N: String,
   V: ESValue
 ): Unknown {

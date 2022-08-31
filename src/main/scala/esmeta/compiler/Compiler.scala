@@ -762,11 +762,8 @@ class Compiler(
   }
 
   /** compile types */
-  def compile(ty: Type): IRType = ty.ty match
-    case UnknownTy(Some(msg)) =>
-      IRUnknownType(Type.normalizeName(msg), Some(ty))
-    case t =>
-      IRType(t, Some(ty))
+  def compile(ty: Type): IRType =
+    IRType(TyCompiler.walk(ty.ty), Some(ty))
 
   /** compile shorthands */
   // NOTE: arguments for shorthands are named local identifiers

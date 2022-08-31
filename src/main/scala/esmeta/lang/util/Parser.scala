@@ -1009,10 +1009,22 @@ trait Parsers extends IndentParsers {
   }
 
   // value types
-  lazy val valueTy: P[ValueTy] =
-    opt("either") ~> rep1sep(simpleTy, sep("or")) ^^ {
-      case ts => ts.foldLeft(BotT)(_ | _)
-    }
+  lazy val valueTy: P[ValueTy] = opt("either") ~> rep1sep(
+    compTy | pureValueTy,
+    sep("or"),
+  ) ^^ { _.foldLeft(BotT)(_ | _) }
+
+  // completion record types
+  lazy val compTy: P[ValueTy] =
+    "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
+    "an abrupt completion" ^^^ AbruptT
+
+  // pure value types
+  lazy val pureValueTy: P[ValueTy] = listTy | simpleTy
+
+  // list types
+  lazy val listTy: P[ValueTy] =
+    opt("an" | "a") ~ "List of" ~> valueTy ^^ { ListT(_) }
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
@@ -1029,7 +1041,8 @@ trait Parsers extends IndentParsers {
     "ECMAScript language value" ^^^ ESValueT |
     "Parse Node" ^^^ AstTopT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |
+    "[a-zA-Z ]+Record".r ^^ { NameT(_) }
   } <~ opt("s")
 
   // rarely used expressions

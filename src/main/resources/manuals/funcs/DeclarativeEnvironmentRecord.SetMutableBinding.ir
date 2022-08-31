@@ -1,5 +1,5 @@
 def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(
-  envRec: Record[DeclarativeEnvironmentRecord],
+  envRec: DeclarativeEnvironmentRecord,
   N: String,
   V: ESValue,
   S: Boolean

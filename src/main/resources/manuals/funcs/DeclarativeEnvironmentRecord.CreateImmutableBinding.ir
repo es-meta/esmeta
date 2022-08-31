@@ -1,5 +1,5 @@
 def <CONC>:DeclarativeEnvironmentRecord.CreateImmutableBinding(
-  envRec: Record[DeclarativeEnvironmentRecord],
+  envRec: DeclarativeEnvironmentRecord,
   N: String,
   S: Boolean
 ): Unknown {

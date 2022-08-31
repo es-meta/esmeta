@@ -76,7 +76,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type(RecordT("T"))
+    lazy val ty = Type(NameT("T"))
   }
 
   init

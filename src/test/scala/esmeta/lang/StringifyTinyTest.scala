@@ -125,8 +125,8 @@ class StringifyTinyTest extends LangTest {
       returnStep -> "return _x_.",
       returnStepNoExpr -> "return.",
       assertStep -> "assert: _x_ and _x_.",
-      forEachStep -> "for each TempRecord _x_ of _x_, let _x_ be _x_.",
-      forEachReverseStep -> "for each TempRecord _x_ of _x_, in reverse List order, let _x_ be _x_.",
+      forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
+      forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> (
         "for each integer _x_ starting with _x_ such that _x_, " +
@@ -477,10 +477,10 @@ class StringifyTinyTest extends LangTest {
       CompoundCondition(isCond, CompoundCondition.Op.Imply, isEitherCond)
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
-      instanceOfCond -> "_x_ is a TempRecord",
-      notInstanceOfCond -> "_x_ is not a TempRecord",
-      eitherInstanceOfCond -> "_x_ is either a TempRecord, a TempRecord, or a TempRecord",
-      neitherInstanceOfCond -> "_x_ is neither a TempRecord nor a TempRecord",
+      instanceOfCond -> "_x_ is a Base",
+      notInstanceOfCond -> "_x_ is not a Base",
+      eitherInstanceOfCond -> "_x_ is either a Base, a Base, or a Base",
+      neitherInstanceOfCond -> "_x_ is neither a Base nor a Base",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
@@ -499,7 +499,7 @@ class StringifyTinyTest extends LangTest {
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
       binaryCondLt -> "_x_ < _x_ + _x_",
-      containsWhoseCond -> "_x_ contains a TempRecord whose [[Value]] is _x_",
+      containsWhoseCond -> "_x_ contains a Base whose [[Value]] is _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
     )
@@ -564,7 +564,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm types
     // -------------------------------------------------------------------------
-    lazy val ty = UnknownType("TempRecord")
+    lazy val ty = UnknownType("Base")
 
     // tests
     checkParseAndStringify("Type", Type)(
@@ -585,6 +585,14 @@ class StringifyTinyTest extends LangTest {
       Type(ConstT("string", "symbol")) -> "~string~ or ~symbol~",
       Type(ConstT("start", "end", "start+end")) ->
       "~end~, ~start~, or ~start+end~",
+      Type(ListT(NumberT)) -> "a List of Numbers",
+      Type(ListT(AstTopT)) -> "a List of Parse Nodes",
+      Type(ListT(StrTopT | UndefT)) -> "a List of Strings or *undefined*",
+      Type(NameT("Environment Record")) -> "an Environment Record",
+      Type(NormalT(NumberT)) -> "a normal completion containing a Number",
+      Type(AbruptT) -> "an abrupt completion",
+      Type(NormalT(BigIntT) | AbruptT) ->
+      "either a normal completion containing a BigInt or an abrupt completion",
       // more complex
       Type(NumberT | BigIntT) -> "a Number or a BigInt",
       Type(NullT | ESValueT) -> "an ECMAScript language value",

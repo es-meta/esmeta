@@ -25,8 +25,8 @@ trait Parsers extends BasicParsers {
 
   private lazy val singleValueTy: Parser[ValueTy] = {
     singleCompTy ^^ { case t => ValueTy(comp = t) } |
-    singlePureValueTy ^^ { case t => ValueTy(pureValue = t) } |
-    singleSubMapTy ^^ { case t => ValueTy(subMap = t) }
+    singleSubMapTy ^^ { case t => ValueTy(subMap = t) } |
+    singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
   }.named("ty.ValueTy (single)")
 
   /** completion record types */
@@ -96,7 +96,9 @@ trait Parsers extends BasicParsers {
     // null
     "Null" ^^^ PureValueTy(nullv = true) |
     // absent
-    "Absent" ^^^ PureValueTy(absent = true)
+    "Absent" ^^^ PureValueTy(absent = true) |
+    // name
+    camel ^^ { case n => PureValueTy(names = Set(n)) }
   }.named("ty.PureValueTy (single)")
 
   private lazy val grammar: Parser[Grammar] =
@@ -120,15 +122,11 @@ trait Parsers extends BasicParsers {
   }.named("ty.RecordTy")
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
-    "Record" ~>
-    opt("[" ~> rep1sep(word, ",") <~ "]") ~
-    opt("{" ~> rep1sep(field, ",") <~ "}") ^^ {
-      case n ~ ps =>
-        val names = n.getOrElse(Nil).toSet
-        val pairs = ps.getOrElse(Nil)
+    "{" ~> rep1sep(field, ",") <~ "}" ^^ {
+      case pairs =>
         val fields = pairs.collect { case (k, None) => k }.toSet
         val map = pairs.collect { case (k, Some(v)) => k -> v }.toMap
-        RecordTy(names, fields, map)
+        RecordTy(fields, map)
     }
   }.named("ty.RecordTy (single)")
 
