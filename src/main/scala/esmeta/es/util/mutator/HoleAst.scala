@@ -59,6 +59,6 @@ case class HoleLexical(
 
 case class Hole(
   name: String,
-  args: List[Option[NtArg]],
+  args: List[Option[NonterminalArgument]],
   rhsIdx: Int,
 ) extends HoleAst

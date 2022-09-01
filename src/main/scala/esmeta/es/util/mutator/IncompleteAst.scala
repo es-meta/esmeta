@@ -50,12 +50,12 @@ case class IncLexical(
 
 case class IncDesired(
   name: String,
-  args: List[Option[NtArg]],
+  args: List[Option[NonterminalArgument]],
   rhsIdx: Int,
 ) extends IncompleteAst
 
 case class IncUndesired(
   name: String,
-  args: List[Option[NtArg]],
+  args: List[Option[NonterminalArgument]],
   rhsIdx: Int,
 ) extends IncompleteAst
