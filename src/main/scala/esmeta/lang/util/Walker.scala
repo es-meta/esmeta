@@ -6,14 +6,14 @@ import esmeta.lang.*
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Syntax                => walk(elem)
-    case elem: PredicateCondition.Op => walk(elem)
-    case elem: MathOpExpression.Op   => walk(elem)
-    case elem: BinaryExpression.Op   => walk(elem)
-    case elem: UnaryExpression.Op    => walk(elem)
-    case elem: XRefExpression.Op     => walk(elem)
-    case elem: BinaryCondition.Op    => walk(elem)
-    case elem: CompoundCondition.Op  => walk(elem)
+    case elem: Syntax                     => walk(elem)
+    case elem: PredicateConditionOperator => walk(elem)
+    case elem: MathOpExpressionOperator   => walk(elem)
+    case elem: BinaryExpressionOperator   => walk(elem)
+    case elem: UnaryExpressionOperator    => walk(elem)
+    case elem: XRefExpressionOperator     => walk(elem)
+    case elem: BinaryConditionOperator    => walk(elem)
+    case elem: CompoundConditionOperator  => walk(elem)
   }
 
   def walk(syn: Syntax): Syntax = syn match {
@@ -178,15 +178,15 @@ trait Walker extends BasicWalker {
       UnaryExpression(walk(op), walk(expr))
   }
 
-  def walk(op: MathOpExpression.Op): MathOpExpression.Op = op
+  def walk(op: MathOpExpressionOperator): MathOpExpressionOperator = op
 
-  def walk(op: BinaryExpression.Op): BinaryExpression.Op = op
+  def walk(op: BinaryExpressionOperator): BinaryExpressionOperator = op
 
-  def walk(op: UnaryExpression.Op): UnaryExpression.Op = op
+  def walk(op: UnaryExpressionOperator): UnaryExpressionOperator = op
 
-  def walk(op: BitwiseExpression.Op): BitwiseExpression.Op = op
+  def walk(op: BitwiseExpressionOperator): BitwiseExpressionOperator = op
 
-  def walk(op: XRefExpression.Op): XRefExpression.Op = op
+  def walk(op: XRefExpressionOperator): XRefExpressionOperator = op
 
   def walk(lit: Literal): Literal = lit
   def walk(flit: FieldLiteral): FieldLiteral = flit
@@ -229,11 +229,11 @@ trait Walker extends BasicWalker {
       CompoundCondition(walk(left), walk(op), walk(right))
   }
 
-  def walk(op: PredicateCondition.Op): PredicateCondition.Op = op
+  def walk(op: PredicateConditionOperator): PredicateConditionOperator = op
 
-  def walk(op: BinaryCondition.Op): BinaryCondition.Op = op
+  def walk(op: BinaryConditionOperator): BinaryConditionOperator = op
 
-  def walk(op: CompoundCondition.Op): CompoundCondition.Op = op
+  def walk(op: CompoundConditionOperator): CompoundConditionOperator = op
 
   def walk(ref: Reference): Reference = ref match {
     case x: Variable                => walk(x)

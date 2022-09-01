@@ -4,7 +4,7 @@ import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, Name, Local}
+import esmeta.ir.{Func => IRFunc, Name, Param, Local}
 import esmeta.error.*
 import esmeta.state.*
 import esmeta.util.*
@@ -209,7 +209,6 @@ case class AbsSemantics(
     args: List[AbsValue],
     cont: Boolean = false,
   ): Map[Local, AbsValue] = {
-    import IRFunc.Param
     val params = func.irFunc.params
     var map = Map[Local, AbsValue]()
 

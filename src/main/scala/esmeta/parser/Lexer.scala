@@ -49,7 +49,7 @@ trait Lexer extends UnicodeParsers {
   // lexers
   lazy val lexers: Map[(String, Int), Lexer] = (for {
     prod <- grammar.prods
-    if prod.kind == Production.Kind.Lexical
+    if prod.kind == ProductionKind.Lexical
     name = prod.lhs.name
     size = prod.lhs.params.length
     argsBit <- 0 until 1 << size
@@ -142,12 +142,12 @@ trait Lexer extends UnicodeParsers {
   // conversion a list of nonterminal arguments to boolean arguments
   protected def toBools(
     argsSet: Set[String],
-    args: List[NtArg],
+    args: List[NonterminalArgument],
   ): List[Boolean] =
-    import NtArg.Kind.*
+    import NonterminalArgumentKind.*
     args.map {
-      case NtArg(True, _)    => true
-      case NtArg(False, _)   => false
-      case NtArg(Pass, name) => argsSet contains name
+      case NonterminalArgument(True, _)    => true
+      case NonterminalArgument(False, _)   => false
+      case NonterminalArgument(Pass, name) => argsSet contains name
     }
 }

@@ -2,7 +2,7 @@ package esmeta.error
 
 import esmeta.interpreter.*
 import esmeta.es.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.*
 import esmeta.cfg.*
 import esmeta.state.*
 
@@ -61,7 +61,7 @@ case class InvalidCompTarget(v: Value) extends InvalidComp(Some(s"(target) $v"))
 case object NoReturnValue extends InterpreterError(s"no return value")
 
 // arity mismatches
-case class RemainingParams(ps: List[IRFunc.Param])
+case class RemainingParams(ps: List[Param])
   extends InterpreterError(s"remaining parameters: ${ps.mkString(", ")}")
 case class RemainingArgs(as: List[Value])
   extends InterpreterError(s"remaining arguments: ${as.mkString(", ")}")

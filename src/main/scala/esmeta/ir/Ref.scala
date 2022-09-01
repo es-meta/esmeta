@@ -4,7 +4,7 @@ import esmeta.ir.util.Parser
 
 // IR references
 sealed trait Ref extends IRElem
-object Ref extends Parser.From[Ref](Parser.ref)
+object Ref extends Parser.From(Parser.ref)
 
 case class Prop(ref: Ref, expr: Expr) extends Ref
 

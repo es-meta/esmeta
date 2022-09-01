@@ -136,4 +136,4 @@ case class PureValueTy(
     this.absent -- that.absent,
   )
 }
-object PureValueTy extends Parser.From[PureValueTy](Parser.pureValueTy)
+object PureValueTy extends Parser.From(Parser.pureValueTy)

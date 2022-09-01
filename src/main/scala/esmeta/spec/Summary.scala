@@ -6,10 +6,10 @@ import esmeta.spec.util.Parser
 /** ECMAScript specifications (ECMA-262) summary */
 case class Summary(
   version: Option[Spec.Version] = None, // git version
-  grammar: Summary.GrammarElem = Summary.GrammarElem(), // grammar productions
-  algos: Summary.AlgorithmElem = Summary.AlgorithmElem(), // abstract algorithms
-  steps: Summary.StepElem = Summary.StepElem(), // abstract algorithms steps
-  types: Summary.TypeElem = Summary.TypeElem(), // types
+  grammar: GrammarSummary = GrammarSummary(), // grammar productions
+  algos: AlgorithmSummary = AlgorithmSummary(), // abstract algorithms
+  steps: StepSummary = StepSummary(), // abstract algorithms steps
+  types: TypeSummary = TypeSummary(), // types
   tables: Int = 0, // tables
   tyModel: Int = 0, // type models
 ) extends SpecElem
@@ -17,7 +17,7 @@ case class Summary(
 /** helper of ECMAScript specifications (ECMA-262) summary */
 object Summary extends Parser.From[Summary](Parser.summary) {
   def apply(spec: Spec): Summary = if (!spec.isEmpty) {
-    import Production.Kind.*
+    import ProductionKind.*
     val Spec(version, grammar, algos, tables, tyModel, _) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
@@ -26,21 +26,21 @@ object Summary extends Parser.From[Summary](Parser.summary) {
     val knownTypes = spec.knownTypes.length
     Summary(
       version = version,
-      grammar = GrammarElem(
+      grammar = GrammarSummary(
         lexical = prodsBy(Lexical).length,
         numeric = prodsBy(NumericString).length,
         syntactic = prodsBy(Syntactic).length,
         web = grammar.prodsForWeb.length,
       ),
-      algos = AlgorithmElem(
+      algos = AlgorithmSummary(
         complete = completeAlgos,
         incomplete = algos.length - completeAlgos,
       ),
-      steps = StepElem(
+      steps = StepSummary(
         complete = completeSteps,
         incomplete = spec.allSteps.length - completeSteps,
       ),
-      types = TypeElem(
+      types = TypeSummary(
         known = knownTypes,
         unknown = spec.types.length - knownTypes,
       ),
@@ -48,42 +48,42 @@ object Summary extends Parser.From[Summary](Parser.summary) {
       tyModel = tyModel.infos.size,
     )
   } else Summary()
+}
 
-  /** grammar element */
-  case class GrammarElem(
-    lexical: Int = 0,
-    numeric: Int = 0,
-    syntactic: Int = 0,
-    web: Int = 0,
-  ) {
-    def productions: Int = lexical + numeric + syntactic
-    def total: Int = productions + web
-  }
+/** grammar element */
+case class GrammarSummary(
+  lexical: Int = 0,
+  numeric: Int = 0,
+  syntactic: Int = 0,
+  web: Int = 0,
+) {
+  def productions: Int = lexical + numeric + syntactic
+  def total: Int = productions + web
+}
 
-  /** algorithm element */
-  case class AlgorithmElem(
-    complete: Int = 0,
-    incomplete: Int = 0,
-  ) {
-    def total: Int = complete + incomplete
-    def ratioString: String = ratioSimpleString(complete, total)
-  }
+/** algorithm element */
+case class AlgorithmSummary(
+  complete: Int = 0,
+  incomplete: Int = 0,
+) {
+  def total: Int = complete + incomplete
+  def ratioString: String = ratioSimpleString(complete, total)
+}
 
-  /** algorithm step element */
-  case class StepElem(
-    complete: Int = 0,
-    incomplete: Int = 0,
-  ) {
-    def total: Int = complete + incomplete
-    def ratioString: String = ratioSimpleString(complete, total)
-  }
+/** algorithm step element */
+case class StepSummary(
+  complete: Int = 0,
+  incomplete: Int = 0,
+) {
+  def total: Int = complete + incomplete
+  def ratioString: String = ratioSimpleString(complete, total)
+}
 
-  /** type element */
-  case class TypeElem(
-    known: Int = 0,
-    unknown: Int = 0,
-  ) {
-    def total: Int = known + unknown
-    def ratioString: String = ratioSimpleString(known, total)
-  }
+/** type element */
+case class TypeSummary(
+  known: Int = 0,
+  unknown: Int = 0,
+) {
+  def total: Int = known + unknown
+  def ratioString: String = ratioSimpleString(known, total)
 }

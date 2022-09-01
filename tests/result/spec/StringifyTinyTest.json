@@ -1,10 +1,10 @@
 {
-  "BuiltinHead.Reference" : true,
+  "BuiltinPath" : true,
   "Grammar" : true,
   "Head" : true,
   "Lhs" : true,
   "Production" : true,
-  "Production.Kind" : true,
+  "ProductionKind" : true,
   "Rhs" : true,
   "RhsCond" : true,
   "Summary" : true,

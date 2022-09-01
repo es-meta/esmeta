@@ -15,7 +15,7 @@ enum UOp extends Op:
   case Not
   // bitwise
   case BNot
-object UOp extends Parser.From[UOp](Parser.uop)
+object UOp extends Parser.From(Parser.uop)
 
 // binary operators
 enum BOp extends Op:
@@ -29,7 +29,7 @@ enum BOp extends Op:
   case LShift, SRShift, URShift
   // boolean
   case And, Or, Xor
-object BOp extends Parser.From[BOp](Parser.bop)
+object BOp extends Parser.From(Parser.bop)
 
 // variadic operators
 enum VOp extends Op:
@@ -37,10 +37,10 @@ enum VOp extends Op:
   case Min, Max
   // string
   case Concat
-object VOp extends Parser.From[VOp](Parser.vop)
+object VOp extends Parser.From(Parser.vop)
 
 // conversion operators
 enum COp extends Op:
   case ToBigInt, ToNumber, ToMath
   case ToStr(radix: Option[Expr])
-object COp extends Parser.From[COp](Parser.cop)
+object COp extends Parser.From(Parser.cop)

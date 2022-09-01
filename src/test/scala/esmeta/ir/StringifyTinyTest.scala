@@ -26,8 +26,8 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    lazy val mainFunc = Func(true, Func.Kind.AbsOp, "f", params, ty, seq)
-    lazy val func = Func(false, Func.Kind.AbsOp, "f", params, ty, seq)
+    lazy val mainFunc = Func(true, FuncKind.AbsOp, "f", params, ty, seq)
+    lazy val func = Func(false, FuncKind.AbsOp, "f", params, ty, seq)
 
     // tests
     checkParseAndStringify("Func", Func)(
@@ -52,26 +52,26 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // function kinds
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Func.Kind", Func.Kind)(
-      Func.Kind.AbsOp -> "",
-      Func.Kind.NumMeth -> "<NUM>:",
-      Func.Kind.SynDirOp -> "<SYNTAX>:",
-      Func.Kind.ConcMeth -> "<CONC>:",
-      Func.Kind.InternalMeth -> "<INTERNAL>:",
-      Func.Kind.Builtin -> "<BUILTIN>:",
-      Func.Kind.Clo -> "<CLO>:",
-      Func.Kind.Cont -> "<CONT>:",
+    checkParseAndStringify("FuncKind", FuncKind)(
+      FuncKind.AbsOp -> "",
+      FuncKind.NumMeth -> "<NUM>:",
+      FuncKind.SynDirOp -> "<SYNTAX>:",
+      FuncKind.ConcMeth -> "<CONC>:",
+      FuncKind.InternalMeth -> "<INTERNAL>:",
+      FuncKind.Builtin -> "<BUILTIN>:",
+      FuncKind.Clo -> "<CLO>:",
+      FuncKind.Cont -> "<CONT>:",
     )
 
     // -------------------------------------------------------------------------
     // parameters
     // -------------------------------------------------------------------------
     lazy val params = List(xParam, yParam)
-    lazy val xParam = Func.Param(x, ty, false)
-    lazy val yParam = Func.Param(y, ty, true)
+    lazy val xParam = Param(x, ty, false)
+    lazy val yParam = Param(y, ty, true)
 
     // tests
-    checkParseAndStringify("Func.Param", Func.Param)(
+    checkParseAndStringify("Param", Param)(
       xParam -> "x: Number",
       yParam -> "y?: Number",
     )

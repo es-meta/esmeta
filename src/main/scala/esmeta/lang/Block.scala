@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage blocks
 sealed trait Block extends Syntax
-object Block extends Parser.From[Block](Parser.block)
+object Block extends Parser.From(Parser.block)
 
 case class StepBlock(steps: List[SubStep]) extends Block
 case class ExprBlock(exprs: List[Expression]) extends Block

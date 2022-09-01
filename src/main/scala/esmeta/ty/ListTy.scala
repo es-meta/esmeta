@@ -34,4 +34,4 @@ case class ListTy(elem: Option[ValueTy] = None)
     case (_, None)          => this
     case (Some(l), Some(r)) => ListTy(Some(l -- r))
 }
-object ListTy extends Parser.From[ListTy](Parser.listTy)
+object ListTy extends Parser.From(Parser.listTy)

@@ -49,7 +49,7 @@ sealed trait Head extends SpecElem {
     case head: InternalMethodHead =>
       s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
     case head: BuiltinHead =>
-      val str = head.ref.toString
+      val str = head.path.toString
       val patched =
         if (str startsWith "Generator.prototype")
           str.replace(
@@ -116,16 +116,15 @@ case class InternalMethodHead(
 
 /** built-in heads */
 case class BuiltinHead(
-  ref: BuiltinHead.Ref,
+  path: BuiltinPath,
   params: List[Param],
   retTy: Type,
 ) extends Head
-object BuiltinHead:
-  enum Ref extends SpecElem:
-    case Base(name: String)
-    case NormalAccess(base: Ref, name: String)
-    case Getter(base: Ref)
-    case Setter(base: Ref)
-    case SymbolAccess(base: Ref, symbol: String)
-    case YetRef(name: String)
-  object Ref extends Parser.From[Ref](Parser.builtinRef)
+enum BuiltinPath extends SpecElem:
+  case Base(name: String)
+  case NormalAccess(base: BuiltinPath, name: String)
+  case Getter(base: BuiltinPath)
+  case Setter(base: BuiltinPath)
+  case SymbolAccess(base: BuiltinPath, symbol: String)
+  case YetPath(name: String)
+object BuiltinPath extends Parser.From(Parser.builtinPath)

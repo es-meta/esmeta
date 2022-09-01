@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage conditions
 sealed trait Condition extends Syntax
-object Condition extends Parser.From[Condition](Parser.cond)
+object Condition extends Parser.From(Parser.cond)
 
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
@@ -36,13 +36,12 @@ case class ProductionCondition(
 case class PredicateCondition(
   expr: Expression,
   negation: Boolean,
-  op: PredicateCondition.Op,
+  op: PredicateConditionOperator,
 ) extends Condition
-object PredicateCondition:
-  enum Op extends LangElem:
-    case Abrupt, NeverAbrupt, Normal, Finite, Duplicated, Present, Empty,
-    StrictMode, ArrayIndex, NonNegative, FalseToken, TrueToken, DataProperty,
-    AccessorProperty, FullyPopulated, Nonterminal, IntegralNumber
+enum PredicateConditionOperator extends LangElem:
+  case Abrupt, NeverAbrupt, Normal, Finite, Duplicated, Present, Empty,
+  StrictMode, ArrayIndex, NonNegative, FalseToken, TrueToken, DataProperty,
+  AccessorProperty, FullyPopulated, Nonterminal, IntegralNumber
 
 // `A is/are B` conditions
 case class IsAreCondition(
@@ -54,13 +53,12 @@ case class IsAreCondition(
 // binary conditions
 case class BinaryCondition(
   left: Expression,
-  op: BinaryCondition.Op,
+  op: BinaryConditionOperator,
   right: Expression,
 ) extends Condition
-object BinaryCondition:
-  enum Op extends LangElem:
-    case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
-    SameCodeUnits, Contains, NContains
+enum BinaryConditionOperator extends LangElem:
+  case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
+  SameCodeUnits, Contains, NContains
 
 // `contains ... whose` conditions
 case class ContainsWhoseCondition(
@@ -73,9 +71,8 @@ case class ContainsWhoseCondition(
 // compound conditions
 case class CompoundCondition(
   left: Condition,
-  op: CompoundCondition.Op,
+  op: CompoundConditionOperator,
   right: Condition,
 ) extends Condition
-object CompoundCondition:
-  enum Op extends LangElem:
-    case And, Or, Imply
+enum CompoundConditionOperator extends LangElem:
+  case And, Or, Imply

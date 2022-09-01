@@ -13,7 +13,7 @@ case class Type(
   /** completion check */
   def isCompletion: Boolean = ty.isCompletion
 }
-object Type extends Parser.From[Type](Parser.irType)
+object Type extends Parser.From(Parser.irType)
 
 /** IR unknown types */
 val UnknownType: Type = Type(UnknownTy())

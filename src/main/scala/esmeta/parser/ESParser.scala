@@ -37,7 +37,7 @@ case class ESParser(
   // parsers
   lazy val parsers: Map[String, ESParser[Ast]] = (for {
     prod <- grammar.prods
-    if prod.kind == Production.Kind.Syntactic
+    if prod.kind == ProductionKind.Syntactic
     name = prod.lhs.name
     parser =
       // TODO handle in a more general way for indirect left-recursion

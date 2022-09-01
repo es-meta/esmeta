@@ -1,7 +1,7 @@
 package esmeta.analyzer
 
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.ty.*
 import scala.collection.mutable.ListBuffer
 
@@ -40,7 +40,7 @@ class StringifyTinyTest extends AnalyzerTest {
     // -------------------------------------------------------------------------
     def entry(start: Int) = {
       val blockSingle = Block(start + 0, ListBuffer(let))
-      val branch = Branch(start + 1, Branch.Kind.If, xExpr)
+      val branch = Branch(start + 1, BranchKind.If, xExpr)
       val block = Block(start + 2, ListBuffer(let, del, ret))
       val call = Call(start + 3, ICall(temp, xExpr, List(xExpr, yExpr)))
       blockSingle.next = Some(branch)
@@ -53,18 +53,18 @@ class StringifyTinyTest extends AnalyzerTest {
     def func(id: Int): Func =
       Func(id, irFunc, entry(4))
     lazy val block = Block(0, ListBuffer(let, del, ret))
-    lazy val branch = Branch(0, Branch.Kind.Loop("repeat"), xExpr)
+    lazy val branch = Branch(0, BranchKind.Loop("repeat"), xExpr)
     lazy val call = Call(0, callInst)
 
     // -------------------------------------------------------------------------
     // IR elements
     // -------------------------------------------------------------------------
-    lazy val irMainFunc = IRFunc(true, IRFunc.Kind.AbsOp, "f", params, ty, seq)
-    lazy val irFunc = IRFunc(false, IRFunc.Kind.AbsOp, "f", params, ty, seq)
+    lazy val irMainFunc = IRFunc(true, IRFuncKind.AbsOp, "f", params, ty, seq)
+    lazy val irFunc = IRFunc(false, IRFuncKind.AbsOp, "f", params, ty, seq)
     lazy val seq = ISeq(List(let, del, ret))
     lazy val params = List(xParam, yParam)
-    lazy val xParam = IRFunc.Param(x, ty, false)
-    lazy val yParam = IRFunc.Param(y, ty, true)
+    lazy val xParam = Param(x, ty, false)
+    lazy val yParam = Param(y, ty, true)
     lazy val let = ILet(x, empty)
     lazy val del = IDelete(prop)
     lazy val ret = IReturn(xExpr)

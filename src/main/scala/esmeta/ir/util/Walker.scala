@@ -6,17 +6,17 @@ import esmeta.ir.*
 /** a walker for IR */
 trait Walker extends BasicWalker {
   def walk(elem: IRElem): IRElem = elem match
-    case elem: Program    => walk(elem)
-    case elem: Func       => walk(elem)
-    case elem: Func.Kind  => walk(elem)
-    case elem: Func.Param => walk(elem)
-    case elem: Inst       => walk(elem)
-    case elem: Expr       => walk(elem)
-    case elem: UOp        => walk(elem)
-    case elem: BOp        => walk(elem)
-    case elem: COp        => walk(elem)
-    case elem: Ref        => walk(elem)
-    case elem: Type       => walk(elem)
+    case elem: Program  => walk(elem)
+    case elem: Func     => walk(elem)
+    case elem: FuncKind => walk(elem)
+    case elem: Param    => walk(elem)
+    case elem: Inst     => walk(elem)
+    case elem: Expr     => walk(elem)
+    case elem: UOp      => walk(elem)
+    case elem: BOp      => walk(elem)
+    case elem: COp      => walk(elem)
+    case elem: Ref      => walk(elem)
+    case elem: Type     => walk(elem)
 
   // programs
   def walk(program: Program): Program =
@@ -36,12 +36,12 @@ trait Walker extends BasicWalker {
     )
 
   // function kinds
-  def walk(kind: Func.Kind): Func.Kind = kind
+  def walk(kind: FuncKind): FuncKind = kind
 
   // function parameters
-  def walk(param: Func.Param): Func.Param =
-    val Func.Param(name, opt, ty) = param
-    Func.Param(walk(name), walk(opt), walk(ty))
+  def walk(param: Param): Param =
+    val Param(name, opt, ty) = param
+    Param(walk(name), walk(opt), walk(ty))
 
   // instructions
   def walk(inst: Inst): Inst =

@@ -1,6 +1,6 @@
 package esmeta.compiler
 
-import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.{Type => IRType, Param => IRParam, *}
 import esmeta.lang.*
 import esmeta.spec.*
 import scala.collection.mutable.{ListBuffer, Stack}
@@ -8,9 +8,9 @@ import scala.collection.mutable.{ListBuffer, Stack}
 /** function builder */
 case class FuncBuilder(
   spec: Spec,
-  kind: Func.Kind,
+  kind: FuncKind,
   name: String,
-  params: List[Func.Param],
+  params: List[IRParam],
   retTy: IRType,
   algo: Algorithm,
   returnContext: Option[Ref] = None,

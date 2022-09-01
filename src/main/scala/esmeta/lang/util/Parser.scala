@@ -388,8 +388,8 @@ trait Parsers extends IndentParsers {
 
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
-    import BinaryExpression.Op.*
-    import UnaryExpression.Op.*
+    import BinaryExpressionOperator.*
+    import UnaryExpressionOperator.*
 
     lazy val base: PL[CalcExpression] =
       refExpr |||
@@ -425,8 +425,8 @@ trait Parsers extends IndentParsers {
   // emu-xref expressions
   // TODO cleanup spec.html
   lazy val xrefExpr: PL[XRefExpression] =
-    import XRefExpression.Op.*
-    lazy val xrefOp: P[XRefExpression.Op] = {
+    import XRefExpressionOperator.*
+    lazy val xrefOp: P[XRefExpressionOperator] = {
       "specified in" |
       "described in" |
       "the definition specified in" |
@@ -451,7 +451,7 @@ trait Parsers extends IndentParsers {
 
   // mathematical operation expressions
   lazy val mathOpExpr: PL[MathOpExpression] =
-    import MathOpExpression.Op.*
+    import MathOpExpressionOperator.*
     (
       "max" ^^^ Max ||| "min" ^^^ Min |||
       "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
@@ -544,14 +544,15 @@ trait Parsers extends IndentParsers {
 
   // clamping expression
   lazy val clampExpr: PL[ClampExpression] =
-    "the result of clamping" ~> expr ~ ("between" ~> expr) ~ ("and" ~> expr) ^^ {
+    "the result of clamping" ~> expr ~
+    ("between" ~> expr) ~ ("and" ~> expr) ^^ {
       case t ~ l ~ u => ClampExpression(t, l, u)
     }
 
   // bitwise expressions
   lazy val bitwiseExpr: PL[BitwiseExpression] =
-    import BitwiseExpression.Op.*
-    val op: Parser[BitwiseExpression.Op] =
+    import BitwiseExpressionOperator.*
+    val op: Parser[BitwiseExpressionOperator] =
       "bitwise AND" ^^^ BAnd |||
       "bitwise inclusive OR" ^^^ BOr |||
       "bitwise exclusive OR (XOR)" ^^^ BXOr
@@ -649,17 +650,17 @@ trait Parsers extends IndentParsers {
   // bigint expressions
   lazy val bigintExpr: PL[Expression] =
     "the BigInt value that represents" ~> expr ^^ {
-      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+      case e => MathOpExpression(MathOpExpressionOperator.ToBigInt, List(e))
     }
 
   // expressions including calculation represented by words
   lazy val inWordsExpr: PL[Expression] =
     ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Add, r)
+      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Add, r)
     } | ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Mul, r)
+      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Mul, r)
     } | ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpression.Op.Sub, r)
+      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Sub, r)
     } | (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
       case l ~ r => ExponentiationExpression(l, r)
     }
@@ -678,11 +679,14 @@ trait Parsers extends IndentParsers {
     "the 32-bit two's complement bit string representing" ~> mathOpExpr |
     // rounding towards 0
     expr <~ "rounded towards 0 to the next integer value" ^^ {
-      case e => MathOpExpression(MathOpExpression.Op.ToBigInt, List(e))
+      case e => MathOpExpression(MathOpExpressionOperator.ToBigInt, List(e))
     } |
     // rounding towards nearest integer
-    expr <~ ", rounding down to the nearest integer, including for negative numbers" ^^ {
-      case e => MathOpExpression(MathOpExpression.Op.ToNumber, List(e))
+    expr <~ (
+      ", rounding down to the nearest integer, " +
+      "including for negative numbers"
+    ) ^^ {
+      case e => MathOpExpression(MathOpExpressionOperator.ToNumber, List(e))
     }
 
   // not yet supported expressions
@@ -693,12 +697,12 @@ trait Parsers extends IndentParsers {
   // metalanguage conditions
   // ---------------------------------------------------------------------------
   given cond: PL[Condition] = {
-    import CompoundCondition.Op.*
+    import CompoundConditionOperator.*
 
     // get compound condition from base and operation
     def compound(
       base: P[Condition],
-      op: Parser[CompoundCondition.Op],
+      op: Parser[CompoundConditionOperator],
     ): Parser[Condition] =
       rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) ^^ {
         case ls ~ op ~ r =>
@@ -758,8 +762,8 @@ trait Parsers extends IndentParsers {
 
   // predicate conditions
   lazy val predCond: PL[PredicateCondition] =
-    import PredicateCondition.Op.*
-    lazy val op: Parser[PredicateCondition.Op] =
+    import PredicateConditionOperator.*
+    lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
       "an abrupt completion" ^^^ Abrupt |
       "a normal completion" ^^^ Normal |
@@ -800,8 +804,8 @@ trait Parsers extends IndentParsers {
 
   // binary conditions
   lazy val binCond: PL[BinaryCondition] =
-    import BinaryCondition.Op.*
-    lazy val op: Parser[BinaryCondition.Op] =
+    import BinaryConditionOperator.*
+    lazy val op: Parser[BinaryConditionOperator] =
       "=" ^^^ Eq |||
       "≠" ^^^ NEq |||
       "<" ^^^ LessThan |||
@@ -843,11 +847,11 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
-  } ^^ { PredicateCondition(_, true, PredicateCondition.Op.Empty) } | {
+  } ^^ { PredicateCondition(_, true, PredicateConditionOperator.Empty) } | {
     // ForBodyEvaluation
     expr ~ isNeg <~ "~[empty]~"
   } ^^ {
-    case e ~ n => PredicateCondition(e, !n, PredicateCondition.Op.Present)
+    case e ~ n => PredicateCondition(e, !n, PredicateConditionOperator.Present)
   } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~ variable ~ "of" ~> variable) ~
@@ -856,13 +860,13 @@ trait Parsers extends IndentParsers {
     case list ~ elem =>
       BinaryCondition(
         getRefExpr(list),
-        BinaryCondition.Op.NContains,
+        BinaryConditionOperator.NContains,
         getRefExpr(elem),
       )
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
-  } ^^ { PredicateCondition(_, false, PredicateCondition.Op.Empty) } | {
+  } ^^ { PredicateCondition(_, false, PredicateConditionOperator.Empty) } | {
     // ArraySpeciesCreate, SameValueNonNumeric
     expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langType) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {
@@ -878,7 +882,7 @@ trait Parsers extends IndentParsers {
     case v0 ~ v1 ~ n ~ e =>
       CompoundCondition(
         IsAreCondition(List(getRefExpr(v0)), n, List(e)),
-        CompoundCondition.Op.Or,
+        CompoundConditionOperator.Or,
         IsAreCondition(List(getRefExpr(v1)), n, List(e)),
       )
   }

@@ -18,10 +18,10 @@ class StringifyTinyTest extends SpecTest {
     checkParseAndStringify("Summary", Summary)(
       Summary(
         Some(Spec.Version("main", "2j3foijwo2")),
-        Summary.GrammarElem(145, 16, 195, 28),
-        Summary.AlgorithmElem(2258, 365),
-        Summary.StepElem(18307, 754),
-        Summary.TypeElem(0, 7451),
+        GrammarSummary(145, 16, 195, 28),
+        AlgorithmSummary(2258, 365),
+        StepSummary(18307, 754),
+        TypeSummary(0, 7451),
         89,
         58,
       ) ->
@@ -49,9 +49,9 @@ class StringifyTinyTest extends SpecTest {
     // -------------------------------------------------------------------------
     // pre-defined values
     val ntArgs = List(
-      NtArg(NtArg.Kind.True, "Await"),
-      NtArg(NtArg.Kind.False, "Yield"),
-      NtArg(NtArg.Kind.Pass, "For"),
+      NonterminalArgument(NonterminalArgumentKind.True, "Await"),
+      NonterminalArgument(NonterminalArgumentKind.False, "Yield"),
+      NonterminalArgument(NonterminalArgumentKind.Pass, "For"),
     )
     val nt: Nonterminal = Nonterminal("Identifier", Nil, false)
     val symbols = List(Terminal("{"), Terminal("}"))
@@ -90,11 +90,11 @@ class StringifyTinyTest extends SpecTest {
     val lhs1 = Lhs("Identifier", List("Yield", "Await", "In"))
     val lhs2 = Lhs("Identifier", Nil)
     val prod1 =
-      Production(lhs2, Production.Kind.Lexical, true, List(rhs3, rhs3))
+      Production(lhs2, ProductionKind.Lexical, true, List(rhs3, rhs3))
     val prod2 =
-      Production(lhs2, Production.Kind.Syntactic, false, List(rhs1, rhs2))
+      Production(lhs2, ProductionKind.Syntactic, false, List(rhs1, rhs2))
     val prod3 =
-      Production(lhs1, Production.Kind.NumericString, false, List(rhs1))
+      Production(lhs1, ProductionKind.NumericString, false, List(rhs1))
 
     // rhs
     checkParseAndStringify("Rhs", Rhs)(
@@ -121,10 +121,10 @@ class StringifyTinyTest extends SpecTest {
     )
 
     // production kinds
-    checkStringify("Production.Kind")(
-      Production.Kind.Syntactic -> ":",
-      Production.Kind.Lexical -> "::",
-      Production.Kind.NumericString -> ":::",
+    checkStringify("ProductionKind")(
+      ProductionKind.Syntactic -> ":",
+      ProductionKind.Lexical -> "::",
+      ProductionKind.NumericString -> ":::",
     )
 
     // grammar
@@ -143,14 +143,14 @@ class StringifyTinyTest extends SpecTest {
     // -------------------------------------------------------------------------
     // BuiltinHead Reference
     // -------------------------------------------------------------------------
-    import BuiltinHead.Ref.*
-    checkStringify("BuiltinHead.Reference")(
+    import BuiltinPath.*
+    checkStringify("BuiltinPath")(
       Base("A") -> "A",
       NormalAccess(Base("A"), "B") -> "A.B",
       Getter(NormalAccess(Base("A"), "B")) -> "get A.B",
       Setter(NormalAccess(Base("A"), "B")) -> "set A.B",
       SymbolAccess(Base("A"), "B") -> "A[@@B]",
-      YetRef("A B C") -> "yet:ABC",
+      YetPath("A B C") -> "yet:ABC",
     )
 
     // -------------------------------------------------------------------------

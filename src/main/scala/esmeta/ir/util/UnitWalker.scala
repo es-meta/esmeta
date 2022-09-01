@@ -6,17 +6,17 @@ import esmeta.util.BasicUnitWalker
 /** a unit walker for IR */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: IRElem): Unit = elem match {
-    case elem: Program    => walk(elem)
-    case elem: Func       => walk(elem)
-    case elem: Func.Kind  => walk(elem)
-    case elem: Func.Param => walk(elem)
-    case elem: Inst       => walk(elem)
-    case elem: Expr       => walk(elem)
-    case elem: UOp        => walk(elem)
-    case elem: BOp        => walk(elem)
-    case elem: COp        => walk(elem)
-    case elem: Ref        => walk(elem)
-    case elem: Type       => walk(elem)
+    case elem: Program  => walk(elem)
+    case elem: Func     => walk(elem)
+    case elem: FuncKind => walk(elem)
+    case elem: Param    => walk(elem)
+    case elem: Inst     => walk(elem)
+    case elem: Expr     => walk(elem)
+    case elem: UOp      => walk(elem)
+    case elem: BOp      => walk(elem)
+    case elem: COp      => walk(elem)
+    case elem: Ref      => walk(elem)
+    case elem: Type     => walk(elem)
   }
 
   // programs
@@ -29,11 +29,11 @@ trait UnitWalker extends BasicUnitWalker {
     walkList(ps, walk); walk(rty); walk(func.body)
 
   // function kinds
-  def walk(kind: Func.Kind): Unit = {}
+  def walk(kind: FuncKind): Unit = {}
 
   // function parameters
-  def walk(param: Func.Param): Unit =
-    val Func.Param(name, opt, ty) = param
+  def walk(param: Param): Unit =
+    val Param(name, opt, ty) = param
     walk(name); walk(opt); walk(ty)
 
   // instructions

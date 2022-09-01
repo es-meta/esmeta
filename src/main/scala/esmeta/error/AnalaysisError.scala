@@ -1,6 +1,6 @@
 package esmeta.error
 
-import esmeta.ir.Func
+import esmeta.ir.Param
 import esmeta.analyzer.domain.*
 
 sealed abstract class AnalysisError(msg: String)
@@ -14,7 +14,7 @@ case class NotSupportedOperation(obj: Any, method: String)
 case class AnalysisImprecise(msg: String) extends AnalysisError(msg)
 
 // arity mismatches
-case class AnalysisRemainingParams(ps: List[Func.Param])
+case class AnalysisRemainingParams(ps: List[Param])
   extends AnalysisError(s"remaining parameters: ${ps.mkString(", ")}")
 case class AnalysisRemainingArgs(as: List[AbsValue])
   extends AnalysisError(s"remaining arguments: ${as.mkString(", ")}")

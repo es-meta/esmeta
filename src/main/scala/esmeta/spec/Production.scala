@@ -5,7 +5,7 @@ import esmeta.spec.util.Parser
 /** productions for ECMAScript grammars */
 case class Production(
   lhs: Lhs,
-  kind: Production.Kind,
+  kind: ProductionKind,
   oneof: Boolean,
   rhsList: List[Rhs],
 ) extends SpecElem {
@@ -25,10 +25,10 @@ case class Production(
     nt <- rhs.nts
   } yield nt
 }
-object Production extends Parser.From[Production](Parser.prod):
-  enum Kind extends SpecElem:
-    case Syntactic, Lexical, NumericString
-  object Kind extends Parser.From[Kind](Parser.prodKind)
+object Production extends Parser.From(Parser.prod)
+enum ProductionKind extends SpecElem:
+  case Syntactic, Lexical, NumericString
+object ProductionKind extends Parser.From(Parser.prodKind)
 
 /** ordering of productions */
 given Ordering[Production] =

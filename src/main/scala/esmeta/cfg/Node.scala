@@ -55,16 +55,15 @@ case class Call(
 /** branch nodes */
 case class Branch(
   id: Int,
-  kind: Branch.Kind,
+  kind: BranchKind,
   cond: Expr,
   var thenNode: Option[Node] = None,
   var elseNode: Option[Node] = None,
 ) extends NodeWithInst {
   def isLoop: Boolean = kind match
-    case Branch.Kind.If => false
-    case _              => true
+    case BranchKind.If => false
+    case _             => true
 }
-object Branch:
-  enum Kind extends CFGElem:
-    case If
-    case Loop(str: String)
+enum BranchKind extends CFGElem:
+  case If
+  case Loop(str: String)

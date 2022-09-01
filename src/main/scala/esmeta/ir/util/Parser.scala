@@ -34,8 +34,8 @@ trait Parsers extends TyParsers {
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
   // function kinds
-  given funcKind: Parser[Func.Kind] = {
-    import Func.Kind.*
+  given funcKind: Parser[FuncKind] = {
+    import FuncKind.*
     "<NUM>:" ^^^ NumMeth |
     "<SYNTAX>:" ^^^ SynDirOp |
     "<CONC>:" ^^^ ConcMeth |
@@ -45,16 +45,16 @@ trait Parsers extends TyParsers {
     "<CONT>:" ^^^ Cont |
     "<BUILTIN-CLO>:" ^^^ BuiltinClo |
     "" ^^^ AbsOp
-  }.named("ir.Func.Kind")
+  }.named("ir.FuncKind")
 
   // function parameters
-  lazy val params: Parser[List[Func.Param]] =
+  lazy val params: Parser[List[Param]] =
     "(" ~> repsep(param, ",") <~ opt(",") ~ ")"
-  given param: Parser[Func.Param] = {
+  given param: Parser[Param] = {
     name ~ opt("?") ~ (":" ~> irType) ^^ {
-      case x ~ o ~ t => Func.Param(x, t, o.isDefined)
+      case x ~ o ~ t => Param(x, t, o.isDefined)
     }
-  }.named("ir.Func.Param")
+  }.named("ir.Param")
 
   // return types
   lazy val retTy: Parser[Type] =

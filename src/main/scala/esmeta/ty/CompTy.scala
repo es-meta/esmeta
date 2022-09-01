@@ -38,4 +38,4 @@ case class CompTy(
     this.abrupt -- that.abrupt,
   )
 }
-object CompTy extends Parser.From[CompTy](Parser.compTy)
+object CompTy extends Parser.From(Parser.compTy)

@@ -16,18 +16,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[IRElem] = (app, elem) =>
     elem match {
-      case elem: Program    => programRule(app, elem)
-      case elem: Func       => funcRule(app, elem)
-      case elem: Func.Kind  => funcKindRule(app, elem)
-      case elem: Func.Param => paramRule(app, elem)
-      case elem: Inst       => instRule(app, elem)
-      case elem: Expr       => exprRule(app, elem)
-      case elem: UOp        => uopRule(app, elem)
-      case elem: BOp        => bopRule(app, elem)
-      case elem: VOp        => vopRule(app, elem)
-      case elem: COp        => copRule(app, elem)
-      case elem: Ref        => refRule(app, elem)
-      case elem: Type       => tyRule(app, elem)
+      case elem: Program  => programRule(app, elem)
+      case elem: Func     => funcRule(app, elem)
+      case elem: FuncKind => funcKindRule(app, elem)
+      case elem: Param    => paramRule(app, elem)
+      case elem: Inst     => instRule(app, elem)
+      case elem: Expr     => exprRule(app, elem)
+      case elem: UOp      => uopRule(app, elem)
+      case elem: BOp      => bopRule(app, elem)
+      case elem: VOp      => vopRule(app, elem)
+      case elem: COp      => copRule(app, elem)
+      case elem: Ref      => refRule(app, elem)
+      case elem: Type     => tyRule(app, elem)
     }
 
   // programs
@@ -44,8 +44,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> ": " >> retTy >> " " >> body
 
   // function kinds
-  given funcKindRule: Rule[Func.Kind] = (app, kind) =>
-    import Func.Kind.*
+  given funcKindRule: Rule[FuncKind] = (app, kind) =>
+    import FuncKind.*
     app >> (kind match {
       case AbsOp        => ""
       case NumMeth      => "<NUM>:"
@@ -59,8 +59,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // function parameters
-  given paramRule: Rule[Func.Param] = (app, param) =>
-    val Func.Param(name, ty, optional) = param
+  given paramRule: Rule[Param] = (app, param) =>
+    val Param(name, ty, optional) = param
     app >> name >> (if (optional) "?" else "") >> ": " >> ty
 
   // instructions

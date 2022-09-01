@@ -1,7 +1,12 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.ir.{Type => IRType, UnknownType => IRUnknownType, *}
+import esmeta.ir.{
+  Type => IRType,
+  UnknownType => IRUnknownType,
+  Param => IRParam,
+  *,
+}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
@@ -23,7 +28,6 @@ class Compiler(
   spec: Spec,
   log: Boolean = false,
 ) {
-  import Func.{Param => IRParam}
 
   /** compiled specification */
   lazy val result: Program =
@@ -104,8 +108,8 @@ class Compiler(
   )
 
   /* get function kind */
-  def getKind(head: Head): Func.Kind = {
-    import Func.Kind.*
+  def getKind(head: Head): FuncKind = {
+    import FuncKind.*
     head match {
       case head: AbstractOperationHead       => AbsOp
       case head: NumericMethodHead           => NumMeth
@@ -118,12 +122,12 @@ class Compiler(
 
   /** get prefix instructions for builtin functions */
   def getBuiltinPrefix(ps: List[Param]): List[Inst] =
-    if (ps.exists(_.kind == Param.Kind.Ellipsis)) Nil
+    if (ps.exists(_.kind == ParamKind.Ellipsis)) Nil
     else {
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
       ps.map {
-        case Param(name, _, Param.Kind.Variadic) =>
+        case Param(name, _, ParamKind.Variadic) =>
           ILet(Name(name), ENAME_ARGS_LIST)
         case Param(name, _, _) =>
           IIf(
@@ -180,7 +184,7 @@ class Compiler(
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case IfStep(cond, thenStep, elseStep) =>
-      import CompoundCondition.Op.*
+      import CompoundConditionOperator.*
       // apply shortcircuit for invoke expression
       val condExpr = cond match
         case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
@@ -336,7 +340,7 @@ class Compiler(
       addFunc(
         fb = FuncBuilder(
           spec,
-          Func.Kind.Cont,
+          FuncKind.Cont,
           contName,
           toParams(paramOpt),
           fb.retTy,
@@ -357,7 +361,7 @@ class Compiler(
       addFunc(
         fb = FuncBuilder(
           spec,
-          Func.Kind.Cont,
+          FuncKind.Cont,
           contName,
           ps,
           fb.retTy,
@@ -502,7 +506,7 @@ class Compiler(
       case ReferenceExpression(ref) =>
         ERef(compile(fb, ref))
       case MathOpExpression(op, args) =>
-        import MathOpExpression.Op.*
+        import MathOpExpressionOperator.*
         (op, args) match
           case (Max, _)         => EVariadic(VOp.Max, args.map(compile(fb, _)))
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
@@ -531,14 +535,14 @@ class Compiler(
         val (ck, cn, ps, prefix) =
           if (fixClosurePrefixAOs.exists(_.matches(algoName)))
             (
-              Func.Kind.BuiltinClo,
+              FuncKind.BuiltinClo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
               getBuiltinPrefix(params.map(x => Param(x.name, UnknownType))),
             )
           else
             (
-              Func.Kind.Clo,
+              FuncKind.Clo,
               fb.nextCloName,
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
               Nil,
@@ -556,11 +560,11 @@ class Compiler(
           prefix = prefix,
         )
         EClo(cn, captured.map(compile))
-      case XRefExpression(XRefExpression.Op.Algo, id) =>
+      case XRefExpression(XRefExpressionOperator.Algo, id) =>
         EClo(spec.getAlgoById(id).head.fname, Nil)
-      case XRefExpression(XRefExpression.Op.ParamLength, id) =>
+      case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMathVal(spec.getAlgoById(id).head.originalParams.length)
-      case XRefExpression(XRefExpression.Op.InternalSlots, id) =>
+      case XRefExpression(XRefExpressionOperator.InternalSlots, id) =>
         // TODO properly handle table column
         EList(for {
           row <- spec.tables(id).rows
@@ -572,16 +576,16 @@ class Compiler(
     })
 
   /** compile binary operators */
-  def compile(op: BinaryExpression.Op): BOp = op match
-    case BinaryExpression.Op.Add => BOp.Plus
-    case BinaryExpression.Op.Sub => BOp.Sub
-    case BinaryExpression.Op.Mul => BOp.Mul
-    case BinaryExpression.Op.Div => BOp.Div
-    case BinaryExpression.Op.Mod => BOp.Mod
+  def compile(op: BinaryExpressionOperator): BOp = op match
+    case BinaryExpressionOperator.Add => BOp.Plus
+    case BinaryExpressionOperator.Sub => BOp.Sub
+    case BinaryExpressionOperator.Mul => BOp.Mul
+    case BinaryExpressionOperator.Div => BOp.Div
+    case BinaryExpressionOperator.Mod => BOp.Mod
 
   /** compile unary operators */
-  def compile(op: UnaryExpression.Op): UOp = op match
-    case UnaryExpression.Op.Neg => UOp.Neg
+  def compile(op: UnaryExpressionOperator): UOp = op match
+    case UnaryExpressionOperator.Neg => UOp.Neg
 
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
@@ -637,10 +641,10 @@ class Compiler(
   }
 
   /** compile bitwise operations */
-  def compile(op: BitwiseExpression.Op): BOp = op match {
-    case BitwiseExpression.Op.BAnd => BOp.BAnd
-    case BitwiseExpression.Op.BOr  => BOp.BOr
-    case BitwiseExpression.Op.BXOr => BOp.BXOr
+  def compile(op: BitwiseExpressionOperator): BOp = op match {
+    case BitwiseExpressionOperator.BAnd => BOp.BAnd
+    case BitwiseExpressionOperator.BOr  => BOp.BOr
+    case BitwiseExpressionOperator.BXOr => BOp.BXOr
   }
 
   /** compile branch conditions */
@@ -667,7 +671,7 @@ class Compiler(
         fb.ntBindings ++= List((rhsName, base, Some(0)))
         ETypeCheck(base, EStr(lhsName + rhsIdx))
       case PredicateCondition(expr, neg, op) =>
-        import PredicateCondition.Op.*
+        import PredicateConditionOperator.*
         val x = compile(fb, expr)
         val cond = op match {
           case Abrupt =>
@@ -725,7 +729,7 @@ class Compiler(
         }
         es.reduce(and(_, _))
       case BinaryCondition(left, op, right) =>
-        import BinaryCondition.Op.*
+        import BinaryConditionOperator.*
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)
         op match {
@@ -749,15 +753,15 @@ class Compiler(
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)
         op match
-          case CompoundCondition.Op.And   => and(l, r)
-          case CompoundCondition.Op.Or    => or(l, r)
-          case CompoundCondition.Op.Imply => or(not(l), r)
+          case CompoundConditionOperator.And   => and(l, r)
+          case CompoundConditionOperator.Or    => or(l, r)
+          case CompoundConditionOperator.Imply => or(not(l), r)
     })
 
   /** compile algorithm parameters */
   def compile(param: Param): IRParam = {
     val Param(name, ty, skind) = param
-    val optional = skind == Param.Kind.Optional
+    val optional = skind == ParamKind.Optional
     IRParam(Name(name), compile(ty), optional)
   }
 
@@ -794,7 +798,7 @@ class Compiler(
     cond: Condition,
   ): Unit = fb.withLang(cond) {
     val xExpr = toERef(x)
-    import CompoundCondition.Op.*
+    import CompoundConditionOperator.*
     cond match
       case CompoundCondition(left, And, right) =>
         fb.addInst(

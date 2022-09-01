@@ -243,11 +243,11 @@ class StringifyTinyTest extends LangTest {
     lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
     lazy val emptyListExpr = ListExpression(Nil)
     lazy val listExpr = ListExpression(List(refExpr, refExpr))
-    lazy val xrefAlgoExpr = XRefExpression(XRefExpression.Op.Algo, "sec-x")
+    lazy val xrefAlgoExpr = XRefExpression(XRefExpressionOperator.Algo, "sec-x")
     lazy val xrefSlotsExpr =
-      XRefExpression(XRefExpression.Op.InternalSlots, "sec-x")
+      XRefExpression(XRefExpressionOperator.InternalSlots, "sec-x")
     lazy val xrefLenExpr =
-      XRefExpression(XRefExpression.Op.ParamLength, "sec-x")
+      XRefExpression(XRefExpressionOperator.ParamLength, "sec-x")
     lazy val soleExpr = SoleElementExpression(listExpr)
     lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
@@ -295,23 +295,23 @@ class StringifyTinyTest extends LangTest {
     // algorithm calcualation expressions
     // -------------------------------------------------------------------------
     lazy val minExpr =
-      MathOpExpression(MathOpExpression.Op.Min, List(refExpr))
+      MathOpExpression(MathOpExpressionOperator.Min, List(refExpr))
     lazy val toNumberExpr =
-      MathOpExpression(MathOpExpression.Op.ToNumber, List(refExpr))
+      MathOpExpression(MathOpExpressionOperator.ToNumber, List(refExpr))
     lazy val addExpr =
-      BinaryExpression(refExpr, BinaryExpression.Op.Add, refExpr)
+      BinaryExpression(refExpr, BinaryExpressionOperator.Add, refExpr)
     lazy val subExpr =
-      BinaryExpression(refExpr, BinaryExpression.Op.Sub, refExpr)
+      BinaryExpression(refExpr, BinaryExpressionOperator.Sub, refExpr)
     lazy val mulExpr =
-      BinaryExpression(refExpr, BinaryExpression.Op.Mul, refExpr)
+      BinaryExpression(refExpr, BinaryExpressionOperator.Mul, refExpr)
     lazy val expExpr =
       ExponentiationExpression(refExpr, refExpr)
     lazy val unExpr =
-      UnaryExpression(UnaryExpression.Op.Neg, refExpr)
+      UnaryExpression(UnaryExpressionOperator.Neg, refExpr)
     lazy val parenAddExpr =
-      BinaryExpression(refExpr, BinaryExpression.Op.Mul, addExpr)
+      BinaryExpression(refExpr, BinaryExpressionOperator.Mul, addExpr)
     lazy val parenMulExpr =
-      UnaryExpression(UnaryExpression.Op.Neg, mulExpr)
+      UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
     lazy val parenUnExpr =
       ExponentiationExpression(unExpr, refExpr)
 
@@ -414,11 +414,11 @@ class StringifyTinyTest extends LangTest {
     // algorithm bitwise expressions
     // -------------------------------------------------------------------------
     lazy val bAndExpr =
-      BitwiseExpression(refExpr, BitwiseExpression.Op.BAnd, refExpr)
+      BitwiseExpression(refExpr, BitwiseExpressionOperator.BAnd, refExpr)
     lazy val bXorExpr =
-      BitwiseExpression(refExpr, BitwiseExpression.Op.BXOr, refExpr)
+      BitwiseExpression(refExpr, BitwiseExpressionOperator.BXOr, refExpr)
     lazy val bOrExpr =
-      BitwiseExpression(refExpr, BitwiseExpression.Op.BOr, refExpr)
+      BitwiseExpression(refExpr, BitwiseExpressionOperator.BOr, refExpr)
 
     // tests
     checkParseAndStringify("BitwiseExpression", Expression)(
@@ -441,25 +441,29 @@ class StringifyTinyTest extends LangTest {
     lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
     lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
     lazy val finiteCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Finite)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Finite)
     lazy val abruptCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Abrupt)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Abrupt)
     lazy val normalCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Normal)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Normal)
     lazy val dupCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Duplicated)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Duplicated)
     lazy val presentCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Present)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Present)
     lazy val emptyCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.Empty)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.Empty)
     lazy val strictCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.StrictMode)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.StrictMode)
     lazy val arrayIndexCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.ArrayIndex)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.ArrayIndex)
     lazy val nonNegativeCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.NonNegative)
+      PredicateCondition(refExpr, false, PredicateConditionOperator.NonNegative)
     lazy val integralCond =
-      PredicateCondition(refExpr, false, PredicateCondition.Op.IntegralNumber)
+      PredicateCondition(
+        refExpr,
+        false,
+        PredicateConditionOperator.IntegralNumber,
+      )
     lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
     lazy val areCond =
       IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
@@ -468,13 +472,13 @@ class StringifyTinyTest extends LangTest {
     lazy val isNeitherCond =
       IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
     lazy val binaryCondLt =
-      BinaryCondition(refExpr, BinaryCondition.Op.LessThan, addExpr)
+      BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
     lazy val containsWhoseCond =
       ContainsWhoseCondition(refExpr, ty, "Value", refExpr)
     lazy val compCond =
-      CompoundCondition(exprCond, CompoundCondition.Op.And, exprCond)
+      CompoundCondition(exprCond, CompoundConditionOperator.And, exprCond)
     lazy val implyCond =
-      CompoundCondition(isCond, CompoundCondition.Op.Imply, isEitherCond)
+      CompoundCondition(isCond, CompoundConditionOperator.Imply, isEitherCond)
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       instanceOfCond -> "_x_ is a Base",

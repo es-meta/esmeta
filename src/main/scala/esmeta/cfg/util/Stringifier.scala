@@ -17,10 +17,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[CFGElem] = (app, elem) =>
     elem match {
-      case elem: CFG         => cfgRule(app, elem)
-      case elem: Func        => funcRule(app, elem)
-      case elem: Node        => nodeRule(app, elem)
-      case elem: Branch.Kind => branchKindRule(app, elem)
+      case elem: CFG        => cfgRule(app, elem)
+      case elem: Func       => funcRule(app, elem)
+      case elem: Node       => nodeRule(app, elem)
+      case elem: BranchKind => branchKindRule(app, elem)
     }
 
   // control-flow graphs (CFGs)
@@ -33,7 +33,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // functions
   given funcRule: Rule[Func] = (app, func) =>
     val IRFunc(main, kind, name, params, retTy, _, _) = func.irFunc
-    given Rule[Iterable[IRFunc.Param]] = iterableRule("(", ", ", ")")
+    given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
     app >> func.id >> ": "
     app >> (if (main) "@main " else "") >> "def " >> kind
     app >> name >> params >> ": " >> retTy >> " "
@@ -68,8 +68,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app
 
   // branch kinds
-  given branchKindRule: Rule[Branch.Kind] = (app, kind) =>
-    import Branch.Kind.*
+  given branchKindRule: Rule[BranchKind] = (app, kind) =>
+    import BranchKind.*
     app >> (kind match {
       case If        => "if"
       case Loop(str) => s"loop[$str]"

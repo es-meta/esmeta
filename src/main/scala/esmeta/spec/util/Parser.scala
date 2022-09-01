@@ -15,44 +15,8 @@ trait Parsers extends LangParsers {
   // skip only white spaces and comments
   override val whiteSpace = "[ \t]*//.*|[ \t]+".r
 
-  // ---------------------------------------------------------------------------
-  // Summary
-  // ---------------------------------------------------------------------------
-  given summary: Parser[Summary] = {
-    import Summary.*
-    val version = opt("- version:" ~> ".*".r) ^^ {
-      case vOpt => vOpt.flatMap(v => optional(Spec.Version(v)))
-    }
-    val empty = rep(newline)
-    val grammar = {
-      (empty ~ "- grammar:") ~>
-      (empty ~ "- productions:" ~ ".*".r) ~>
-      (empty ~ "- lexical:" ~> int) ~
-      (empty ~ "- numeric string:" ~> int) ~
-      (empty ~ "- syntactic:" ~> int) ~
-      (empty ~ "- extended productions for web:" ~> int)
-    } ^^ { case l ~ n ~ s ~ w => GrammarElem(l, n, s, w) }
-    val algos = {
-      (empty ~ "- algorithms:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => AlgorithmElem(c, i) }
-    val steps = {
-      (empty ~ "- algorithm steps:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => StepElem(c, i) }
-    val types = {
-      (empty ~ "- types:" ~ ".*".r) ~>
-      (empty ~ "- known:" ~> int) ~
-      (empty ~ "- unknown:" ~> int)
-    } ^^ { case c ~ i => TypeElem(c, i) }
-    val tables = empty ~ "- tables:" ~> int
-    val tyModel = empty ~ "- type model:" ~> int <~ empty
-    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ^^ {
-      case v ~ g ~ a ~ s ~ ty ~ t ~ m => Summary(v, g, a, s, ty, t, m)
-    }
-  }.named("spec.Summary")
+  type NtArg = NonterminalArgument
+  type NtArgKind = NonterminalArgumentKind
 
   // ---------------------------------------------------------------------------
   // Grammar
@@ -84,10 +48,10 @@ trait Parsers extends LangParsers {
   }.named("spec.Production")
 
   /** production kinds */
-  given prodKind: Parser[Production.Kind] = {
-    import Production.Kind.*
+  given prodKind: Parser[ProductionKind] = {
+    import ProductionKind.*
     ":::" ^^^ NumericString | "::" ^^^ Lexical | ":" ^^^ Syntactic
-  }.named("spec.Production.Kind")
+  }.named("spec.ProductionKind")
 
   /** production left-hand-sides (LHSs) */
   given lhs: Parser[Lhs] = {
@@ -186,12 +150,12 @@ trait Parsers extends LangParsers {
 
   /** nonterminal arguments */
   given ntArg: Parser[NtArg] = {
-    ntArgKind ~ word ^^ { case kind ~ name => NtArg(kind, name) }
+    ntArgKind ~ word ^^ { case kind ~ name => NonterminalArgument(kind, name) }
   }.named("spec.NtArg")
 
   /** nonterminal argument kinds */
-  given ntArgKind: Parser[NtArg.Kind] = {
-    import NtArg.Kind.*
+  given ntArgKind: Parser[NtArgKind] = {
+    import NonterminalArgumentKind.*
     "+" ^^^ True | "~" ^^^ False | "?" ^^^ Pass
   }.named("spec.NtArg.Kind")
 
@@ -215,7 +179,7 @@ trait Parsers extends LangParsers {
 
   // algorithm parameters
   given param: Parser[Param] = {
-    import Param.Kind.*
+    import ParamKind.*
     opt("optional") ~ specId ~ specType ^^ {
       case opt ~ name ~ ty =>
         val kind = if (opt.isDefined) Optional else Normal
@@ -225,14 +189,14 @@ trait Parsers extends LangParsers {
 
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =
-    import Param.Kind.*
+    import ParamKind.*
     langTypeWithUnknown ~ opt(specId) ^^ {
       case ty ~ name => Param(name.getOrElse("this"), ty)
     }
 
   // multiple algorithm parameters
   lazy val params: Parser[List[Param]] = {
-    import Param.Kind.Ellipsis
+    import ParamKind.Ellipsis
     opt(
       "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) ~ oldOptParams <~
       opt("," ~ newline) ~ ")",
@@ -244,7 +208,7 @@ trait Parsers extends LangParsers {
 
   // TODO remove this legacy parser later
   lazy val oldOptParams: Parser[List[Param]] =
-    import Param.Kind.*
+    import ParamKind.*
     "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ {
       case p ~ psOpt => p.copy(kind = Optional) :: psOpt.getOrElse(Nil)
     } | opt(",") ~ "..." ~> param ^^ {
@@ -279,28 +243,28 @@ trait Parsers extends LangParsers {
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] = {
-    builtinRef ~ params ~ retTy ^^ {
+    builtinPath ~ params ~ retTy ^^ {
       case r ~ params ~ rty => BuiltinHead(r, params, rty)
     }
   }.named("spec.BuiltinHead")
 
-  // built-in head references
-  given builtinRef: Parser[BuiltinHead.Ref] = {
-    import BuiltinHead.Ref
-    import BuiltinHead.Ref.*
+  // built-in head paths
+  given builtinPath: Parser[BuiltinPath] = {
+    import BuiltinPath.*
+    type Path = BuiltinPath
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
     lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@: ]+".r ^^ { _.trim }
-    lazy val pre: Parser[Ref => Ref] =
+    lazy val pre: Parser[Path => Path] =
       "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
-    lazy val base: Parser[Ref] =
+    lazy val base: Parser[Path] =
       opt("%") ~> name <~ opt("%") ^^ { Base(_) }
-    lazy val access: Parser[Ref => Ref] =
+    lazy val access: Parser[Path => Path] =
       "." ~> name ^^ { case n => NormalAccess(_, n) } |
       "[" ~> "@@" ~> name <~ "]" ^^ { case s => SymbolAccess(_, s) }
     pre ~ base ~ rep(access) <~ (guard("(") | not(".".r)) ^^ {
       case p ~ b ~ as => p(as.foldLeft(b) { case (b, a) => a(b) })
-    } | yet ^^ { YetRef(_) }
-  }.named("spec.BuiltinHead.Ref")
+    } | yet ^^ { YetPath(_) }
+  }.named("spec.BuiltinPath")
 
   // ---------------------------------------------------------------------------
   // Types
@@ -311,6 +275,45 @@ trait Parsers extends LangParsers {
 
   // metalanguage return types
   lazy val retTy: PL[Type] = specType
+
+  // ---------------------------------------------------------------------------
+  // Summary
+  // ---------------------------------------------------------------------------
+  given summary: Parser[Summary] = {
+    import Summary.*
+    val version = opt("- version:" ~> ".*".r) ^^ {
+      case vOpt => vOpt.flatMap(v => optional(Spec.Version(v)))
+    }
+    val empty = rep(newline)
+    val grammar = {
+      (empty ~ "- grammar:") ~>
+      (empty ~ "- productions:" ~ ".*".r) ~>
+      (empty ~ "- lexical:" ~> int) ~
+      (empty ~ "- numeric string:" ~> int) ~
+      (empty ~ "- syntactic:" ~> int) ~
+      (empty ~ "- extended productions for web:" ~> int)
+    } ^^ { case l ~ n ~ s ~ w => GrammarSummary(l, n, s, w) }
+    val algos = {
+      (empty ~ "- algorithms:" ~ ".*".r) ~>
+      (empty ~ "- complete:" ~> int) ~
+      (empty ~ "- incomplete:" ~> int)
+    } ^^ { case c ~ i => AlgorithmSummary(c, i) }
+    val steps = {
+      (empty ~ "- algorithm steps:" ~ ".*".r) ~>
+      (empty ~ "- complete:" ~> int) ~
+      (empty ~ "- incomplete:" ~> int)
+    } ^^ { case c ~ i => StepSummary(c, i) }
+    val types = {
+      (empty ~ "- types:" ~ ".*".r) ~>
+      (empty ~ "- known:" ~> int) ~
+      (empty ~ "- unknown:" ~> int)
+    } ^^ { case c ~ i => TypeSummary(c, i) }
+    val tables = empty ~ "- tables:" ~> int
+    val tyModel = empty ~ "- type model:" ~> int <~ empty
+    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ^^ {
+      case v ~ g ~ a ~ s ~ ty ~ t ~ m => Summary(v, g, a, s, ty, t, m)
+    }
+  }.named("spec.Summary")
 
   // ---------------------------------------------------------------------------
   // Basic Helpers

@@ -2,7 +2,7 @@ package esmeta.cfg
 
 import esmeta.IR_TEST_DIR
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
@@ -48,7 +48,7 @@ class StringifyTinyTest extends CFGTest {
     // -------------------------------------------------------------------------
     def entry(start: Int) = {
       val blockSingle = Block(start + 0, ListBuffer(let))
-      val branch = Branch(start + 1, Branch.Kind.If, xExpr)
+      val branch = Branch(start + 1, BranchKind.If, xExpr)
       val block = Block(start + 2, ListBuffer(let, del, ret))
       val call = Call(start + 3, ICall(temp, xExpr, List(xExpr, yExpr)))
       blockSingle.next = Some(branch)
@@ -88,7 +88,7 @@ class StringifyTinyTest extends CFGTest {
     // nodes
     // -------------------------------------------------------------------------
     lazy val block = Block(0, ListBuffer(let, del, ret))
-    lazy val branch = Branch(0, Branch.Kind.If, xExpr)
+    lazy val branch = Branch(0, BranchKind.If, xExpr)
     lazy val call = Call(0, callInst)
 
     // tests
@@ -101,20 +101,20 @@ class StringifyTinyTest extends CFGTest {
       branch -> "0: if x",
       call -> "0: call %42 = x(x, y)",
     )
-    checkStringify("Branch.Kind")(
-      Branch.Kind.If -> "if",
-      Branch.Kind.Loop("repeat") -> "loop[repeat]",
+    checkStringify("BranchKind")(
+      BranchKind.If -> "if",
+      BranchKind.Loop("repeat") -> "loop[repeat]",
     )
 
     // -------------------------------------------------------------------------
     // IR elements
     // -------------------------------------------------------------------------
-    lazy val irMainFunc = IRFunc(true, IRFunc.Kind.AbsOp, "f", params, ty, seq)
-    lazy val irFunc = IRFunc(false, IRFunc.Kind.AbsOp, "f", params, ty, seq)
+    lazy val irMainFunc = IRFunc(true, IRFuncKind.AbsOp, "f", params, ty, seq)
+    lazy val irFunc = IRFunc(false, IRFuncKind.AbsOp, "f", params, ty, seq)
     lazy val seq = ISeq(List(let, del, ret))
     lazy val params = List(xParam, yParam)
-    lazy val xParam = IRFunc.Param(x, ty, false)
-    lazy val yParam = IRFunc.Param(y, ty, true)
+    lazy val xParam = Param(x, ty, false)
+    lazy val yParam = Param(y, ty, true)
     lazy val let = ILet(x, empty)
     lazy val del = IDelete(prop)
     lazy val ret = IReturn(xExpr)

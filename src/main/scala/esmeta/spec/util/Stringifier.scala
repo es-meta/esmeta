@@ -13,26 +13,29 @@ object Stringifier {
   val langStringifier = LangElem.getStringifier(false, false)
   import langStringifier.{given, *}
 
+  type NtArg = NonterminalArgument
+  type NtArgKind = NonterminalArgumentKind
+
   given elemRule: Rule[SpecElem] = (app, elem) =>
     elem match
-      case elem: Spec            => specRule(app, elem)
-      case elem: Summary         => summaryRule(app, elem)
-      case elem: Grammar         => grammarRule(app, elem)
-      case elem: Production      => prodRule(app, elem)
-      case elem: Lhs             => lhsRule(app, elem)
-      case elem: Production.Kind => prodKindRule(app, elem)
-      case elem: Rhs             => rhsRule(app, elem)
-      case elem: RhsCond         => rhsCondRule(app, elem)
-      case elem: Symbol          => symbolRule(app, elem)
-      case elem: NtArg           => ntArgRule(app, elem)
-      case elem: NtArg.Kind      => ntArgKindRule(app, elem)
-      case elem: Algorithm       => algoRule(app, elem)
-      case elem: Head            => headRule(app, elem)
-      case elem: SdoHeadTarget   => sdoHeadTargetRule(app, elem)
-      case elem: BuiltinHead.Ref => builtinHeadRefRule(app, elem)
-      case elem: Param           => paramRule(app, elem)
-      case elem: Param.Kind      => paramKindRule(app, elem)
-      case elem: Table           => tableRule(app, elem)
+      case elem: Spec           => specRule(app, elem)
+      case elem: Summary        => summaryRule(app, elem)
+      case elem: Grammar        => grammarRule(app, elem)
+      case elem: Production     => prodRule(app, elem)
+      case elem: Lhs            => lhsRule(app, elem)
+      case elem: ProductionKind => prodKindRule(app, elem)
+      case elem: Rhs            => rhsRule(app, elem)
+      case elem: RhsCond        => rhsCondRule(app, elem)
+      case elem: Symbol         => symbolRule(app, elem)
+      case elem: NtArg          => ntArgRule(app, elem)
+      case elem: NtArgKind      => ntArgKindRule(app, elem)
+      case elem: Algorithm      => algoRule(app, elem)
+      case elem: Head           => headRule(app, elem)
+      case elem: SdoHeadTarget  => sdoHeadTargetRule(app, elem)
+      case elem: BuiltinPath    => builtinPathRule(app, elem)
+      case elem: Param          => paramRule(app, elem)
+      case elem: ParamKind      => paramKindRule(app, elem)
+      case elem: Table          => tableRule(app, elem)
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) =>
@@ -40,7 +43,7 @@ object Stringifier {
 
   // for specification summaries
   given summaryRule: Rule[Summary] = (app, summary) =>
-    import Production.Kind.*
+    import ProductionKind.*
     val Summary(version, grammar, algos, steps, types, tables, tyModel) =
       summary
     version.map(app >> "- version: " >> _.toString >> LINE_SEP)
@@ -86,9 +89,9 @@ object Stringifier {
     app >> name
     if (!params.isEmpty) app >> params else app
 
-  // for production kinds
-  given prodKindRule: Rule[Production.Kind] = (app, kind) =>
-    import Production.Kind.*
+  // for ProductionKinds
+  given prodKindRule: Rule[ProductionKind] = (app, kind) =>
+    import ProductionKind.*
     app >> (kind match
       case Syntactic     => ":"
       case Lexical       => "::"
@@ -140,8 +143,8 @@ object Stringifier {
     app >> kind >> name
 
   // for condidtions for nonterminal argument kinds
-  given ntArgKindRule: Rule[NtArg.Kind] = (app, kind) =>
-    import NtArg.Kind.*
+  given ntArgKindRule: Rule[NtArgKind] = (app, kind) =>
+    import NonterminalArgumentKind.*
     app >> (kind match
       case True  => "+"
       case False => "~"
@@ -177,19 +180,19 @@ object Stringifier {
       case InternalMethodHead(methodName, receiverParam, params, rty) =>
         app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
         app >> params >> ": " >> rty
-      case BuiltinHead(ref, params, rty) =>
-        app >> "[BUILTIN] " >> ref >> params >> ": " >> rty
+      case BuiltinHead(path, params, rty) =>
+        app >> "[BUILTIN] " >> path >> params >> ": " >> rty
 
-  given builtinHeadRefRule: Rule[BuiltinHead.Ref] = (app, ref) =>
-    import BuiltinHead.Ref.*
-    ref match
+  given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
+    import BuiltinPath.*
+    path match
       case Base(name)               => app >> name
       case NormalAccess(base, name) => app >> base >> "." >> name
       case Getter(base)             => app >> "get " >> base
       case Setter(base)             => app >> "set " >> base
       case SymbolAccess(base, symbol) =>
         app >> base >> "[@@" >> symbol >> "]"
-      case YetRef(name) => app >> "yet:" >> name.replace(" ", "")
+      case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   // for syntax-directed operation head targets
   given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
@@ -201,7 +204,7 @@ object Stringifier {
   given paramRule: Rule[Param] = (app, param) => app >> param.name
 
   // TODO: for algorithm parameter kinds
-  given paramKindRule: Rule[Param.Kind] = (app, param) => ???
+  given paramKindRule: Rule[ParamKind] = (app, param) => ???
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???

@@ -295,7 +295,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   /** context information */
   def ctxtInfo(cid: Int) =
-    def paramInfo(p: IRFunc.Param) = (
+    def paramInfo(p: Param) = (
       p.lhs.name,
       p.optional,
       p.ty.toString,

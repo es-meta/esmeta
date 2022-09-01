@@ -7,9 +7,9 @@ import esmeta.spec.{Algorithm, Head}
 /** IR functions */
 case class Func(
   main: Boolean,
-  kind: Func.Kind,
+  kind: FuncKind,
   name: String,
-  params: List[Func.Param],
+  params: List[Param],
   retTy: Type,
   body: Inst,
   algo: Option[Algorithm] = None,
@@ -25,19 +25,10 @@ case class Func(
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
 }
-object Func extends Parser.From[Func](Parser.func) {
+object Func extends Parser.From(Parser.func)
 
-  /** function kinds */
-  enum Kind extends IRElem:
-    case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
-    BuiltinClo
-  object Kind extends Parser.From[Kind](Parser.funcKind)
-
-  /** function parameters */
-  case class Param(
-    lhs: Name,
-    ty: Type = UnknownType,
-    optional: Boolean = false,
-  ) extends IRElem
-  object Param extends Parser.From[Param](Parser.param)
-}
+/** function kinds */
+enum FuncKind extends IRElem:
+  case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
+  BuiltinClo
+object FuncKind extends Parser.From(Parser.funcKind)

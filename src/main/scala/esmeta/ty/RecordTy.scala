@@ -44,4 +44,4 @@ case class RecordTy(
     this.map.filter { case (_, v) => !v.isBottom },
   )
 }
-object RecordTy extends Parser.From[RecordTy](Parser.recordTy)
+object RecordTy extends Parser.From(Parser.recordTy)

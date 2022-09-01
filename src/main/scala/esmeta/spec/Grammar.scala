@@ -17,16 +17,16 @@ case class Grammar(
   /** get the lexical production names reachable by syntactic productions */
   lazy val topLevelLexicals: Set[String] = (for {
     prod <- prods
-    if prod.kind == Production.Kind.Syntactic
+    if prod.kind == ProductionKind.Syntactic
     nt <- prod.nts
     name = nt.name
     prodInRhs = nameMap(name)
-    if prodInRhs.kind == Production.Kind.Lexical
+    if prodInRhs.kind == ProductionKind.Lexical
   } yield name).toSet
 
   /** get lexical names */
   lazy val lexicalNames: Set[String] = (for {
-    prod <- prods if prod.kind != Production.Kind.Syntactic
+    prod <- prods if prod.kind != ProductionKind.Syntactic
   } yield prod.name).toSet
 
   /** the index mapping for grammars */
@@ -38,4 +38,4 @@ case class Grammar(
     pair <- prod.idxMap
   } yield pair).toMap
 }
-object Grammar extends Parser.From[Grammar](Parser.grammarParser)
+object Grammar extends Parser.From(Parser.grammarParser)

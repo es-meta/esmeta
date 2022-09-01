@@ -5,7 +5,7 @@ import esmeta.util.DoubleEquals
 
 // metalanguage expressions
 sealed trait Expression extends Syntax
-object Expression extends Parser.From[Expression](Parser.expr)
+object Expression extends Parser.From(Parser.expr)
 
 // string concatenation expressions
 case class StringConcatExpression(exprs: List[Expression]) extends Expression
@@ -60,11 +60,10 @@ case class ReturnIfAbruptExpression(
 case class ListExpression(entries: List[Expression]) extends Expression
 
 // emu-xref expressions
-case class XRefExpression(kind: XRefExpression.Op, id: String)
+case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression
-case object XRefExpression:
-  enum Op extends LangElem:
-    case Algo, InternalSlots, ParamLength
+enum XRefExpressionOperator extends LangElem:
+  case Algo, InternalSlots, ParamLength
 
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
@@ -113,7 +112,7 @@ case class InvokeSyntaxDirectedOperationExpression(
 // metalanguage calcualation expressions
 // -----------------------------------------------------------------------------
 sealed trait CalcExpression extends Expression {
-  import BinaryExpression.Op.*
+  import BinaryExpressionOperator.*
 
   /** level of calcualation expressions */
   def level: Int = this match
@@ -128,12 +127,11 @@ case class ReferenceExpression(ref: Reference) extends CalcExpression
 
 // mathematical operation expressions
 case class MathOpExpression(
-  op: MathOpExpression.Op,
+  op: MathOpExpressionOperator,
   args: List[Expression],
 ) extends CalcExpression
-object MathOpExpression:
-  enum Op extends LangElem:
-    case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
+enum MathOpExpressionOperator extends LangElem:
+  case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
 
 // exponentiation expressions
 case class ExponentiationExpression(
@@ -144,21 +142,19 @@ case class ExponentiationExpression(
 // binary expressions
 case class BinaryExpression(
   left: CalcExpression,
-  op: BinaryExpression.Op,
+  op: BinaryExpressionOperator,
   right: CalcExpression,
 ) extends CalcExpression
-object BinaryExpression:
-  enum Op extends LangElem:
-    case Add, Sub, Mul, Div, Mod
+enum BinaryExpressionOperator extends LangElem:
+  case Add, Sub, Mul, Div, Mod
 
 // unary expressions
 case class UnaryExpression(
-  op: UnaryExpression.Op,
+  op: UnaryExpressionOperator,
   expr: CalcExpression,
 ) extends CalcExpression
-object UnaryExpression:
-  enum Op extends LangElem:
-    case Neg
+enum UnaryExpressionOperator extends LangElem:
+  case Neg
 
 // -----------------------------------------------------------------------------
 // clamp expressions
@@ -174,12 +170,11 @@ case class ClampExpression(
 // -----------------------------------------------------------------------------
 case class BitwiseExpression(
   left: Expression,
-  op: BitwiseExpression.Op,
+  op: BitwiseExpressionOperator,
   right: Expression,
 ) extends Expression
-object BitwiseExpression:
-  enum Op extends LangElem:
-    case BAnd, BOr, BXOr
+enum BitwiseExpressionOperator extends LangElem:
+  case BAnd, BOr, BXOr
 
 // -----------------------------------------------------------------------------
 // metalanguage expressions with multiline

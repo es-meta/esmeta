@@ -1,7 +1,7 @@
 package esmeta.state
 
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, ListBuffer}
@@ -113,7 +113,7 @@ class StringifyTinyTest extends StateTest {
     lazy val func =
       Func(
         0,
-        IRFunc(true, IRFunc.Kind.AbsOp, "f", Nil, UnknownType, INop()),
+        IRFunc(true, IRFuncKind.AbsOp, "f", Nil, UnknownType, INop()),
         None,
       )
     lazy val clo = Clo(func, Map())

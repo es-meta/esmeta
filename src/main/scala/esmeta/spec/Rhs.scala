@@ -61,11 +61,11 @@ case class Rhs(
   def params: List[Param] =
     nts.map(nt => Param(nt.name, Type(AstT(nt.name))))
 }
-object Rhs extends Parser.From[Rhs](Parser.rhs) {
+object Rhs extends Parser.From(Parser.rhs) {
 
   /** conditions for RHSs */
   case class Condition(name: String, pass: Boolean) extends SpecElem
-  object Condition extends Parser.From[Condition](Parser.rhsCond)
+  object Condition extends Parser.From(Parser.rhsCond)
 }
 
 /** helpers for nonterminal arguments */

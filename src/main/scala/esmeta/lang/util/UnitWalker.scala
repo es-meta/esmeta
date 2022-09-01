@@ -6,14 +6,14 @@ import esmeta.lang.*
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
-    case elem: Syntax                => walk(elem)
-    case elem: PredicateCondition.Op => walk(elem)
-    case elem: MathOpExpression.Op   => walk(elem)
-    case elem: BinaryExpression.Op   => walk(elem)
-    case elem: UnaryExpression.Op    => walk(elem)
-    case elem: XRefExpression.Op     => walk(elem)
-    case elem: BinaryCondition.Op    => walk(elem)
-    case elem: CompoundCondition.Op  => walk(elem)
+    case elem: Syntax                     => walk(elem)
+    case elem: PredicateConditionOperator => walk(elem)
+    case elem: MathOpExpressionOperator   => walk(elem)
+    case elem: BinaryExpressionOperator   => walk(elem)
+    case elem: UnaryExpressionOperator    => walk(elem)
+    case elem: XRefExpressionOperator     => walk(elem)
+    case elem: BinaryConditionOperator    => walk(elem)
+    case elem: CompoundConditionOperator  => walk(elem)
   }
 
   def walk(syn: Syntax): Unit = syn match {
@@ -146,15 +146,15 @@ trait UnitWalker extends BasicUnitWalker {
       walk(lit)
   }
 
-  def walk(op: MathOpExpression.Op): Unit = {}
+  def walk(op: MathOpExpressionOperator): Unit = {}
 
-  def walk(op: BinaryExpression.Op): Unit = {}
+  def walk(op: BinaryExpressionOperator): Unit = {}
 
-  def walk(op: UnaryExpression.Op): Unit = {}
+  def walk(op: UnaryExpressionOperator): Unit = {}
 
-  def walk(op: BitwiseExpression.Op): Unit = {}
+  def walk(op: BitwiseExpressionOperator): Unit = {}
 
-  def walk(op: XRefExpression.Op): Unit = {}
+  def walk(op: XRefExpressionOperator): Unit = {}
 
   def walk(lit: Literal): Unit = {}
 
@@ -192,11 +192,11 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
   }
 
-  def walk(op: BinaryCondition.Op): Unit = {}
+  def walk(op: BinaryConditionOperator): Unit = {}
 
-  def walk(op: CompoundCondition.Op): Unit = {}
+  def walk(op: CompoundConditionOperator): Unit = {}
 
-  def walk(op: PredicateCondition.Op): Unit = {}
+  def walk(op: PredicateConditionOperator): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
     case PropertyReference(base, prop) => walk(base); walk(prop)

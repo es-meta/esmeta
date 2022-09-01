@@ -262,7 +262,7 @@ class Extractor(
     case aliasPattern() => extractAbsOpHead(parent, elem, false)
     case anonBuiltinPattern(name, param) =>
       val rname = name.trim.split(" ").map(_.capitalize).mkString
-      val ref = BuiltinHead.Ref.YetRef(rname)
+      val ref = BuiltinPath.YetPath(rname)
       List(BuiltinHead(ref, List(Param(param, UnknownType)), UnknownType))
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => extractBuiltinHead(parent, elem)

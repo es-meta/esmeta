@@ -450,7 +450,6 @@ class Interpreter(
         Interpreter.eval(bop, l, r)
 
   /** get initial local variables */
-  import IRFunc.Param
   def getLocals(
     params: List[Param],
     args: List[Value],

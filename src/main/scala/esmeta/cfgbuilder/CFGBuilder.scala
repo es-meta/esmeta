@@ -61,13 +61,13 @@ class CFGBuilder(
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
       case inst @ IIf(cond, thenInst, elseInst) =>
-        val branch = Branch(nextNId, Branch.Kind.If, cond)
+        val branch = Branch(nextNId, BranchKind.If, cond)
         connect(branch.setInst(inst))
         val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
         val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
         prev = thenPrev ++ elsePrev
       case inst @ ILoop(kind, cond, body) =>
-        val branch = Branch(nextNId, Branch.Kind.Loop(kind), cond)
+        val branch = Branch(nextNId, BranchKind.Loop(kind), cond)
         connect(branch.setInst(inst), isLoopPred = true)
         prev = List((branch, true)); aux(body); connect(branch)
         prev = List((branch, false))

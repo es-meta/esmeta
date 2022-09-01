@@ -7,8 +7,8 @@ import esmeta.spec.util.Parser
 case class Param(
   name: String,
   ty: Type,
-  kind: Param.Kind = Param.Kind.Normal,
+  kind: ParamKind = ParamKind.Normal,
 ) extends SpecElem
-object Param extends Parser.From[Param](Parser.param):
-  enum Kind extends SpecElem:
-    case Normal, Optional, Variadic, Ellipsis
+object Param extends Parser.From(Parser.param)
+enum ParamKind extends SpecElem:
+  case Normal, Optional, Variadic, Ellipsis

@@ -82,22 +82,21 @@ class Initialize(cfg: CFG) {
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
   private def intrClo(name: String): Clo = clo(intrName(name))
 
-  import BuiltinHead.Ref.*
-
   // get data from builtin head
   extension (str: String) {
     def getData: Option[(String, String, PureValue, String, Boolean)] =
-      BuiltinHead.Ref.from(str).getData
+      BuiltinPath.from(str).getData
   }
-  extension (ref: BuiltinHead.Ref) {
+  extension (path: BuiltinPath) {
     def getData: Option[(String, String, PureValue, String, Boolean)] =
-      ref match
+      import BuiltinPath.*
+      path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
           Some((b.toString, n, Str(n), n, true))
         case SymbolAccess(b, n) if !(yets contains b.toString) =>
           Some((b.toString, s"@@$n", symbolAddr(n), s"[Symbol.$n]", true))
-        case Getter(ref) =>
-          ref.getData match
+        case Getter(path) =>
+          path.getData match
             case Some((base, prop, propV, propName, _)) =>
               Some((base, prop, propV, s"get $propName", false))
             case _ => None
@@ -158,13 +157,13 @@ class Initialize(cfg: CFG) {
     func <- cfg.funcs
     (name, head) <- func.head match
       case Some(head: BuiltinHead) =>
-        head.ref match
-          case Base(b) if !(yets contains b) => Some((b, head))
-          case _                             => None
+        head.path match
+          case BuiltinPath.Base(b) if !(yets contains b) => Some((b, head))
+          case _                                         => None
       case _ => None
   } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
-    func <- cfg.funcs if func.irFunc.kind == Func.Kind.Builtin
+    func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
     fname = func.name.stripPrefix("INTRINSICS.")
     (base, prop, propV, defaultName, isData) <- fname.getData
     baseMapObj <- map.get(submapAddr(intrName(base))) match
@@ -190,7 +189,7 @@ class Initialize(cfg: CFG) {
 
   // get length value from built-in head parameters
   private def getLength(head: Head): Int =
-    head.originalParams.count(_.kind == Param.Kind.Normal)
+    head.originalParams.count(_.kind == ParamKind.Normal)
 }
 object Initialize {
   def apply(

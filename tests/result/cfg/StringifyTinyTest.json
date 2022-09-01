@@ -1,5 +1,5 @@
 {
-  "Branch.Kind" : true,
+  "BranchKind" : true,
   "CFG" : true,
   "Func" : true,
   "Node" : true

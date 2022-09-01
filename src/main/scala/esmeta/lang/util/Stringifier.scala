@@ -12,14 +12,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
-      case elem: Syntax                => syntaxRule(app, elem)
-      case elem: PredicateCondition.Op => predCondOpRule(app, elem)
-      case elem: MathOpExpression.Op   => mathOpExprOpRule(app, elem)
-      case elem: BinaryExpression.Op   => binExprOpRule(app, elem)
-      case elem: UnaryExpression.Op    => unExprOpRule(app, elem)
-      case elem: XRefExpression.Op     => xrefExprOpRule(app, elem)
-      case elem: BinaryCondition.Op    => binCondOpRule(app, elem)
-      case elem: CompoundCondition.Op  => compCondOpRule(app, elem)
+      case elem: Syntax                     => syntaxRule(app, elem)
+      case elem: PredicateConditionOperator => predCondOpRule(app, elem)
+      case elem: MathOpExpressionOperator   => mathOpExprOpRule(app, elem)
+      case elem: BinaryExpressionOperator   => binExprOpRule(app, elem)
+      case elem: UnaryExpressionOperator    => unExprOpRule(app, elem)
+      case elem: XRefExpressionOperator     => xrefExprOpRule(app, elem)
+      case elem: BinaryConditionOperator    => binCondOpRule(app, elem)
+      case elem: CompoundConditionOperator  => compCondOpRule(app, elem)
     }
 
   // syntax
@@ -103,7 +103,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> body
       case ForEachArrayIndexStep(key, array, start, ascending, body) =>
         app >> First("for each own property key ") >> key >> " of " >> array
-        app >> " that is an array index, whose numeric value is greater than or equal to "
+        app >> " that is an array index,"
+        app >> " whose numeric value is greater than or equal to "
         app >> start >> ", " >> "in descending numeric index order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
@@ -144,20 +145,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following steps will be performed:" >> step
       case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
-        app >> """<emu-meta effects="user-code">Resume the suspended evaluation of """ >> context
+        app >> """<emu-meta effects="user-code">"""
+        app >> "Resume the suspended evaluation of " >> context
         app >> "</emu-meta>"
-        for { arg <- argOpt }
-          app >> " using " >> arg >> " as the result of the operation that suspended it"
+        for (arg <- argOpt)
+          app >> " using " >> arg
+          app >> " as the result of the operation that suspended it"
         app >> "."
-        for { param <- paramOpt }
-        app >> " Let " >> param >> " be the value returned by the resumed computation."
-        for { step <- body } app :> "1. " >> step // TODO
+        for (param <- paramOpt)
+          app >> " Let " >> param
+          app >> " be the value returned by the resumed computation."
+        for (step <- body)
+          app :> "1. " >> step // TODO
         app
       case ReturnToResumeStep(context, retStep) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> retStep
         app :> "1. NOTE: This returns to the evaluation of the operation "
-        app >> "that had most previously resumed evaluation of " >> context >> "."
+        app >> "that had most previously resumed evaluation of "
+        app >> context >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>
@@ -207,7 +213,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case CoveredByExpression(code, rule) =>
         app >> "the " >> rule >> " that is covered by " >> code
       case GetChildrenExpression(nt, expr) =>
-        app >> "the List of " >> nt >> " items in " >> expr >> ", in source text order"
+        app >> "the List of " >> nt >> " items in " >> expr
+        app >> ", in source text order"
       case IntrinsicExpression(intr) =>
         app >> intr
       case XRefExpression(kind, id) =>
@@ -215,9 +222,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case ClampExpression(target, lower, upper) =>
-        app >> "the result of clamping " >> target >> " between " >> lower >> " and " >> upper
+        app >> "the result of clamping " >> target >> " between " >> lower
+        app >> " and " >> upper
       case BitwiseExpression(left, op, right) =>
-        app >> "the result of applying the " >> op >> " to " >> left >> " and " >> right
+        app >> "the result of applying the " >> op >> " to " >> left
+        app >> " and " >> right
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
       case ListExpression(Nil) => app >> "« »"
@@ -275,8 +284,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app
 
   // operators for mathematical operation expressions
-  given mathOpExprOpRule: Rule[MathOpExpression.Op] = (app, op) =>
-    import MathOpExpression.Op.*
+  given mathOpExprOpRule: Rule[MathOpExpressionOperator] = (app, op) =>
+    import MathOpExpressionOperator.*
     app >> (op match {
       case Max      => "max"
       case Min      => "min"
@@ -288,8 +297,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // operators for binary expressions
-  given binExprOpRule: Rule[BinaryExpression.Op] = (app, op) =>
-    import BinaryExpression.Op.*
+  given binExprOpRule: Rule[BinaryExpressionOperator] = (app, op) =>
+    import BinaryExpressionOperator.*
     app >> (op match {
       case Add => "+"
       case Sub => "-"
@@ -299,15 +308,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // operators for unary expressions
-  given unExprOpRule: Rule[UnaryExpression.Op] = (app, op) =>
-    import UnaryExpression.Op.*
+  given unExprOpRule: Rule[UnaryExpressionOperator] = (app, op) =>
+    import UnaryExpressionOperator.*
     app >> (op match {
       case Neg => "-"
     })
 
   // operators for emu-xref expressions
-  given xrefExprOpRule: Rule[XRefExpression.Op] = (app, op) =>
-    import XRefExpression.Op.*
+  given xrefExprOpRule: Rule[XRefExpressionOperator] = (app, op) =>
+    import XRefExpressionOperator.*
     app >> (op match {
       case Algo          => "the definition specified in"
       case InternalSlots => "the internal slots listed in"
@@ -373,8 +382,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // operators for bitwise expressions
-  given bitExprOpRule: Rule[BitwiseExpression.Op] = (app, op) =>
-    import BitwiseExpression.Op.*
+  given bitExprOpRule: Rule[BitwiseExpressionOperator] = (app, op) =>
+    import BitwiseExpressionOperator.*
     app >> (op match {
       case BAnd => "bitwise AND operation"
       case BXOr => "bitwise exclusive OR (XOR) operation"
@@ -471,7 +480,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " whose [[" >> fieldName >> "]] is " >> expr
       case CompoundCondition(left, op, right) =>
         op match {
-          case CompoundCondition.Op.Imply =>
+          case CompoundConditionOperator.Imply =>
             // TODO handle upper case of `if`
             app >> "If " >> left >> ", then " >> right
           case _ => app >> left >> " " >> op >> " " >> right
@@ -480,8 +489,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // operators for predicate conditions
-  given predCondOpRule: Rule[PredicateCondition.Op] = (app, op) =>
-    import PredicateCondition.Op.*
+  given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
+    import PredicateConditionOperator.*
     app >> (op match {
       case Finite           => "finite"
       case Abrupt           => "an abrupt completion"
@@ -503,8 +512,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // operators for binary conditions
-  given binCondOpRule: Rule[BinaryCondition.Op] = (app, op) =>
-    import BinaryCondition.Op.*
+  given binCondOpRule: Rule[BinaryConditionOperator] = (app, op) =>
+    import BinaryConditionOperator.*
     app >> (op match {
       case Eq               => "="
       case NEq              => "≠"
@@ -518,8 +527,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // operators for compound conditions
-  given compCondOpRule: Rule[CompoundCondition.Op] = (app, op) => {
-    import CompoundCondition.Op.*
+  given compCondOpRule: Rule[CompoundConditionOperator] = (app, op) => {
+    import CompoundConditionOperator.*
     app >> (op match {
       case And   => "and"
       case Or    => "or"

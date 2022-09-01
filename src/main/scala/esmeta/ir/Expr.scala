@@ -5,7 +5,7 @@ import esmeta.util.DoubleEquals
 
 // IR expressions
 sealed trait Expr extends IRElem
-object Expr extends Parser.From[Expr](Parser.expr)
+object Expr extends Parser.From(Parser.expr)
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr
 case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr

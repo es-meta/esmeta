@@ -43,4 +43,4 @@ case class SubMapTy(
     if (key.isBottom | value.isBottom) SubMapTy()
     else this
 }
-object SubMapTy extends Parser.From[SubMapTy](Parser.subMapTy)
+object SubMapTy extends Parser.From(Parser.subMapTy)

@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.cfg.util.*
-import esmeta.ir.{Type, Name, Func => IRFunc}
+import esmeta.ir.{Type, Name, Func => IRFunc, FuncKind => IRFuncKind}
 import esmeta.spec.Head
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
@@ -27,19 +27,19 @@ case class Func(
 
   /** check whether it is builtin */
   lazy val isBuiltin: Boolean =
-    irFunc.kind == IRFunc.Kind.Builtin || irFunc.kind == IRFunc.Kind.BuiltinClo
+    irFunc.kind == IRFuncKind.Builtin || irFunc.kind == IRFuncKind.BuiltinClo
 
   /** check whether it is SDO */
-  lazy val isSDO: Boolean = irFunc.kind == IRFunc.Kind.SynDirOp
+  lazy val isSDO: Boolean = irFunc.kind == IRFuncKind.SynDirOp
 
   /** check whether it is method operation */
   lazy val isMethod: Boolean =
-    irFunc.kind == IRFunc.Kind.ConcMeth || irFunc.kind == IRFunc.Kind.InternalMeth
+    irFunc.kind == IRFuncKind.ConcMeth || irFunc.kind == IRFuncKind.InternalMeth
 
   /** check wheter it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
-    case IRFunc.Kind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
-    case IRFunc.Kind.Builtin | IRFunc.Kind.BuiltinClo                => true
+    case IRFuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
+    case IRFuncKind.Builtin | IRFuncKind.BuiltinClo                 => true
     case _ => irFunc.retTy.isCompletion
 
   /** function name */
