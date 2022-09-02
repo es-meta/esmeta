@@ -9,10 +9,10 @@ class GrammarNode(
   val rhsSymbols: List[Option[List[Option[String]]]],
 ) {
   var parents: List[GrammarNode] = List.empty
-  var score: Option[Int] = None
-  val symbolScores: MMap[String, Option[Int]] =
+  var depth: Option[Int] = None
+  val symbolDepths: MMap[String, Option[Int]] =
     MMap.empty.withDefaultValue(None)
-  var rhsScores: List[Option[Int]] = List.empty
+  var rhsDepths: List[Option[Int]] = List.empty
 
   private def maxIfValid(list: List[Option[Int]]): Option[Int] = {
     if isValid(list) then Some(list.flatten.max) else None
@@ -22,39 +22,41 @@ class GrammarNode(
     if isValid(list) then Some(list.flatten.min) else None
   }
 
-  private def updateParents(): Unit =
-    parents.foreach(parent => score.map(parent.updateChildScore(_, name)))
+  def updateParents(): Unit =
+    parents.foreach(parent => {
+      depth.map(parent.updateChildDepth(_, name))
+    })
 
   /** update if rhsSymbolScores has changed */
   def update(): Unit = {
-    rhsScores = rhsSymbols.map(
+    rhsDepths = rhsSymbols.map(
       _.flatMap(symbols =>
-        maxIfValid(symbols.flatMap(s => s.map(symbolScores(_)))),
+        maxIfValid(symbols.flatMap(s => s.map(symbolDepths(_)))),
       ),
     )
-    val oldScore = score
-    score =
-      if rhsScores.flatten.nonEmpty then Some(rhsScores.flatten.min + 1)
+    val oldDepth = depth
+    depth =
+      if rhsDepths.flatten.nonEmpty then Some(rhsDepths.flatten.min + 1)
       else None
-    if (oldScore != score)
+    if (oldDepth != depth)
       updateParents()
   }
 
-  def setScore(newScore: Int): Unit = {
-    score = Some(newScore); updateParents()
+  def setDepth(newDepth: Int): Unit = {
+    depth = Some(newDepth); updateParents()
   }
 
-  def updateChildScore(newScore: Int, childName: String): Unit = {
-    symbolScores(childName) = Some(newScore)
+  def updateChildDepth(newDepth: Int, childName: String): Unit = {
+    symbolDepths(childName) = Some(newDepth)
     update()
   }
 
   def simplestRhsIdx: Option[Integer] =
-    val validRhsScoresWithIndex = rhsScores.zipWithIndex.flatMap {
-      case (scoreOpt, idx) => scoreOpt.map((_, idx))
+    val validRhsDepthsWithIndex = rhsDepths.zipWithIndex.flatMap {
+      case (depthOpt, idx) => depthOpt.map((_, idx))
     }
-    if validRhsScoresWithIndex.nonEmpty then
-      Some(validRhsScoresWithIndex.min._2)
+    if validRhsDepthsWithIndex.nonEmpty then
+      Some(validRhsDepthsWithIndex.min._2)
     else None
 }
 

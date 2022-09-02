@@ -17,7 +17,7 @@ class SimpleAstGenerator(grammar: Grammar) {
   val reversedMap: MMap[String, Set[String]] =
     MMap.empty.withDefaultValue(Set.empty)
 
-  var grammarNodeMap: Map[String, GrammarNode] = Map.empty
+  var syntacticNodeMap: Map[String, SyntacticNode] = Map.empty
   var lexicalNodeMap: Map[String, GrammarNode] = Map.empty
 
   var terminals: Set[String] = Set.empty
@@ -46,7 +46,7 @@ class SimpleAstGenerator(grammar: Grammar) {
     }
     // initialize grammarNodeMap and lexicalNodeMap for non-terminals
     topLevelTerminals.foreach(term =>
-      grammarNodeMap += (term -> GrammarNode(term, List.empty)),
+      syntacticNodeMap += (term -> SyntacticNode(term, List.empty)),
     )
     for (prod <- grammar.prods) yield {
       val rhsSymbols = prod.nonRecursiveRhsList.map(_.map(_.symbols.map {
@@ -57,18 +57,24 @@ class SimpleAstGenerator(grammar: Grammar) {
       }))
       prod.kind match {
         case ProductionKind.Syntactic =>
-          grammarNodeMap += (prod.name -> GrammarNode(prod.name, rhsSymbols))
+          syntacticNodeMap += (prod.name -> SyntacticNode(
+            prod.name,
+            rhsSymbols,
+          ))
         case _ =>
           lexicalNodeMap += (prod.name -> GrammarNode(prod.name, rhsSymbols))
           if topLevelLexicals.contains(prod.name) then
-            grammarNodeMap += (prod.name -> GrammarNode(prod.name, List.empty))
+            syntacticNodeMap += (prod.name -> SyntacticNode(
+              prod.name,
+              List.empty,
+            ))
       }
     }
     // initialize parents for grammar elements
     for ((child, parents) <- reversedMap) yield {
-      grammarNodeMap
+      syntacticNodeMap
         .get(child)
-        .foreach(_.parents = parents.toList.flatMap(grammarNodeMap.get(_)))
+        .foreach(_.parents = parents.toList.flatMap(syntacticNodeMap.get(_)))
 
       lexicalNodeMap
         .get(child)
@@ -78,22 +84,33 @@ class SimpleAstGenerator(grammar: Grammar) {
     }
     // initialize lexicalNodeMap for terminals
     for (term <- terminals) yield {
-      lexicalNodeMap(term).setScore(0)
+      lexicalNodeMap(term).setDepth(0)
     }
 
-    // initialize grammarNodeMap for terminals(top level lexicals)
-    for (term <- topLevelLexicals) yield {
-      grammarNodeMap(term).setScore(0)
-    }
-
-    val lexicalComplexityScoreMap: Map[String, Option[Int]] =
+    val lexicalDepthMap: Map[String, Option[Int]] =
       lexicalNodeMap.map {
-        case (name, node) => name -> node.score
+        case (name, node) => name -> node.depth
       }
 
-    val syntacticComplexityScoreMap: Map[String, Option[Int]] =
-      grammarNodeMap.map {
-        case (name, node) => name -> node.score
+    // calculate lengths of lexical productions
+    val lexicalStrMap: Map[String, Option[String]] =
+      lexicalNameMap.keys
+        .map(lexicalName =>
+          lexicalName -> generateLexical(lexicalName).map(_.str),
+        )
+        .toMap
+
+    // initialize SyntacticNodeMap for terminals in syntactic production view(top level lexicals)
+    for (term <- topLevelLexicals) yield {
+      for {
+        lexicalStrOpt <- lexicalStrMap.get(term)
+        lexicalStr <- lexicalStrOpt
+      } yield syntacticNodeMap(term).setLength(lexicalStr.length)
+    }
+
+    val syntacticLengthMap: Map[String, Option[Int]] =
+      syntacticNodeMap.map {
+        case (name, node) => name -> node.length
       }
   }
 
@@ -138,7 +155,7 @@ class SimpleAstGenerator(grammar: Grammar) {
     nameMap.get(name).flatMap { prod =>
       prod.kind match {
         case ProductionKind.Syntactic => {
-          val syntacticNode = grammarNodeMap(name)
+          val syntacticNode = syntacticNodeMap(name)
           val simplestRhsIdxOpt = syntacticNode.simplestRhsIdx
           val simplestRhs =
             simplestRhsIdxOpt.flatMap(prod.nonRecursiveRhsList(_))

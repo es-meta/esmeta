@@ -1,7 +1,5 @@
 package esmeta.es.util.mutator
 
-import com.sun.xml.internal.bind.v2.TODO
-
 import scala.collection.mutable.{Stack, Map as MMap, Set as MSet}
 import esmeta.spec.*
 import esmeta.es.*
