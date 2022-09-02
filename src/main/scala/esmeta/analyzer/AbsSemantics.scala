@@ -13,7 +13,7 @@ import scala.Console.*
 import scala.annotation.tailrec
 
 /** abstract semantics */
-case class AbsSemantics(
+class AbsSemantics(
   /** abstract states in each node point */
   var npMap: Map[NodePoint[Node], AbsState] = Map(),
   /** abstract states in each return point */

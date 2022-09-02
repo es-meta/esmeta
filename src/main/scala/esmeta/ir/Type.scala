@@ -11,6 +11,9 @@ case class Type(
 ) extends IRElem {
 
   /** completion check */
+  def isDefined: Boolean = ty.isDefined
+
+  /** completion check */
   def isCompletion: Boolean = ty.isCompletion
 }
 object Type extends Parser.From(Parser.irType)

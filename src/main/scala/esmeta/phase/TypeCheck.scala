@@ -16,7 +16,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): AbsSemantics = ???
+  ): AbsSemantics = TypeAnalyzer(cfg)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

@@ -4,10 +4,11 @@ import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
-import esmeta.state.*
+import esmeta.cfg.CFG
 import esmeta.ir.*
 import esmeta.es
 import esmeta.es.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
@@ -40,7 +41,14 @@ object BasicDomain extends state.Domain {
   given rule: Rule[Elem] = mkRule(true)
 
   /** simpler appender */
-  val shortRule: Rule[Elem] = mkRule(false)
+  private val shortRule: Rule[Elem] = mkRule(false)
+
+  /** set bases */
+  def setBase(init: Initialize): Unit =
+    AbsHeap.setBase(init.initHeap)
+    base = for ((x, v) <- init.initGlobal.toMap) yield x -> AbsValue(v)
+
+  private var base: Map[Id, AbsValue] = Map()
 
   /** element interfaces */
   extension (elem: Elem) {
@@ -101,7 +109,7 @@ object BasicDomain extends state.Domain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue =
+    def get(base: AbsValue, prop: AbsValue): AbsValue =
       val compValue = AbsValue(pureValue = base.comp(prop.str))
       val partValue = elem.heap(base.part, prop)
       val astValue = lookupAst(base.astValue, prop)
@@ -113,7 +121,7 @@ object BasicDomain extends state.Domain {
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue =
-      elem.globals.getOrElse(x, baseGlobals.getOrElse(x, AbsValue.Bot))
+      elem.globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem =
@@ -385,7 +393,7 @@ object BasicDomain extends state.Domain {
   // ---------------------------------------------------------------------------
   // appender generator
   private def mkRule(detail: Boolean): Rule[Elem] = (app, elem) =>
-    val irStringifier = IRElem.getStringifier(true, false)
+    val irStringifier = IRElem.getStringifier(detail, false)
     import irStringifier.given
     given Rule[AbsHeap] = if (detail) AbsHeap.rule else AbsHeap.shortRule
     if (!elem.isBottom) app.wrap {

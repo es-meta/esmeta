@@ -5,9 +5,10 @@ import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.state.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.parser.ESValueParser
+import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 
@@ -15,36 +16,41 @@ import esmeta.util.Appender.*
 object TypeDomain extends value.Domain {
 
   /** elements */
-  case class Elem() extends Appendable
+  case class Elem(ty: ValueTy) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract value")
 
   /** bottom element */
-  val Bot: Elem = Elem()
+  val Bot: Elem = Elem(ValueTy())
 
   /** abstraction functions */
   def alpha(xs: Iterable[AValue]): Elem = ???
 
+  /** constructor with types */
+  def apply(ty: Ty): Elem = ty match
+    case _: UnknownTy => Bot
+    case vty: ValueTy => Elem(vty)
+
   /** predefined top values */
-  def compTop: Elem = ???
-  def pureValueTop: Elem = ???
-  val cloTop: Elem = ???
-  val contTop: Elem = ???
-  val partTop: Elem = ???
-  val astValueTop: Elem = ???
-  val grammarTop: Elem = ???
-  val codeUnitTop: Elem = ???
-  val constTop: Elem = ???
-  val mathTop: Elem = ???
-  val simpleValueTop: Elem = ???
-  val numberTop: Elem = ???
-  val bigIntTop: Elem = ???
-  val strTop: Elem = ???
-  val boolTop: Elem = ???
-  val undefTop: Elem = ???
-  val nullTop: Elem = ???
-  val absentTop: Elem = ???
+  lazy val compTop: Elem = Elem(???)
+  lazy val pureValueTop: Elem = Elem(???)
+  lazy val cloTop: Elem = Elem(CloTopT)
+  lazy val contTop: Elem = Elem(ContTopT)
+  lazy val partTop: Elem = Elem(???)
+  lazy val astValueTop: Elem = Elem(???)
+  lazy val grammarTop: Elem = Elem(???)
+  lazy val codeUnitTop: Elem = Elem(CodeUnitT)
+  lazy val constTop: Elem = Elem(???)
+  lazy val mathTop: Elem = Elem(MathT)
+  lazy val simpleValueTop: Elem = Elem(???)
+  lazy val numberTop: Elem = Elem(NumberT)
+  lazy val bigIntTop: Elem = Elem(BigIntT)
+  lazy val strTop: Elem = Elem(StrTopT)
+  lazy val boolTop: Elem = Elem(BoolT)
+  lazy val undefTop: Elem = Elem(UndefT)
+  lazy val nullTop: Elem = Elem(NullT)
+  lazy val absentTop: Elem = Elem(AbsentT)
 
   /** constructors */
   def apply(
@@ -192,5 +198,6 @@ object TypeDomain extends value.Domain {
     def undef: AbsUndef = ???
     def nullv: AbsNull = ???
     def absent: AbsAbsent = ???
+    def toTy: ValueTy = elem.ty
   }
 }

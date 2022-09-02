@@ -20,7 +20,7 @@ object BasicDomain extends ret.Domain {
   lazy val Top = Elem(AbsValue.Top, AbsState.Top)
 
   /** bottom element */
-  val Bot = Elem()
+  lazy val Bot = Elem()
 
   /** abstraction functions */
   def alpha(xs: Iterable[(AValue, State)]): Elem =

@@ -15,7 +15,7 @@ import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** abstract transfer function */
-case class AbsTransfer(sem: AbsSemantics) {
+class AbsTransfer(sem: AbsSemantics) {
 
   /** loading monads */
   import AbsState.monad.*
@@ -66,7 +66,7 @@ case class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** get next node point */
-  private def getNextNp(
+  protected def getNextNp(
     fromCp: NodePoint[Node],
     to: Node,
     loopOut: Boolean = false,
@@ -617,7 +617,7 @@ case class AbsTransfer(sem: AbsSemantics) {
 
     /** transfer function for reference values */
     def transfer(rv: AbsRefValue): Result[AbsValue] = for {
-      v <- get(_.get(rv, cp, true))
+      v <- get(_.get(rv, cp))
     } yield v
 
     /** transfer function for unary operators */
@@ -733,5 +733,5 @@ case class AbsTransfer(sem: AbsSemantics) {
   }
 
   // CFG getter
-  private def cfg = Config.cfg
+  protected def cfg = Config.cfg
 }

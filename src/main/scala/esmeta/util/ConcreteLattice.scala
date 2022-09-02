@@ -106,6 +106,11 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
   def map[B](f: A => B): BSet[B] = this match
     case Fin(set) => Fin(set.map(f))
     case Inf      => Inf
+
+  /** inclusion check */
+  def contains[B >: A](x: B): Boolean = this match
+    case Fin(set) => set.toSet contains x
+    case Inf      => true
 }
 case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]

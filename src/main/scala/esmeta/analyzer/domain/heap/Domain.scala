@@ -14,6 +14,9 @@ trait Domain extends domain.Domain[Heap] {
   /** extractors */
   def unapply(elem: Elem): Option[(Map[Part, AbsObj], Set[Part])]
 
+  /** set bases */
+  def setBase(heap: Heap): Unit
+
   /** simpler appender */
   val shortRule: Rule[Elem]
 

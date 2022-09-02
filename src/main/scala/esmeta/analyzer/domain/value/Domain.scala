@@ -5,6 +5,7 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.ir.{COp, Name, VOp}
 import esmeta.util.*
 
@@ -13,6 +14,9 @@ trait Domain extends domain.Domain[AValue] {
 
   /** abstraction functions for an original value */
   def apply(value: Value): Elem = alpha(AValue.from(value))
+
+  /** constructor with types */
+  def apply(ty: Ty): Elem
 
   /** abstraction functions for raw data */
   def apply(ast: Ast): Elem = apply(AstValue(ast))
@@ -185,5 +189,6 @@ trait Domain extends domain.Domain[AValue] {
     def undef: AbsUndef
     def nullv: AbsNull
     def absent: AbsAbsent
+    def toTy: ValueTy
   }
 }

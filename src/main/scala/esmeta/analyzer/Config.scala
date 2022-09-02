@@ -9,31 +9,19 @@ import esmeta.util.BaseUtils.*
 
 /** mutable analysis configuration */
 object Config {
-  AbsValue(Str(""))
 
   /** set control flow graph */
   def setCFG(cfg: CFG): Unit =
-    val init = new Initialize(cfg)
     this._cfg = cfg
-    this._baseHeap = init.initHeap
-    this._base = (for {
-      (addr, obj) <- baseHeap.map
-      part = Part.from(addr)
-      aobj = AbsObj(obj)
-    } yield part -> aobj).toMap
-    this._baseGlobals = for ((x, v) <- init.initGlobal) yield x -> AbsValue(v)
+    AbsState.setBase(new Initialize(cfg))
 
   /** get control flow graph */
   def cfg: CFG = _cfg
   private var _cfg = CFG()
 
-  /** base concrete heap */
-  def baseHeap: Heap = _baseHeap
-  private var _baseHeap = Heap()
-
   /** base abstract heap map */
-  def base: Map[Part, AbsObj] = _base
-  private var _base: Map[Part, AbsObj] = Map()
+  def baseHeap: Map[Part, AbsObj] = _baseHeap
+  private var _baseHeap: Map[Part, AbsObj] = Map()
 
   /** base globals */
   def baseGlobals: Map[Id, AbsValue] = _baseGlobals

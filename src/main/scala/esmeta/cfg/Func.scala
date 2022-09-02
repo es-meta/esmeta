@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.cfg.util.*
-import esmeta.ir.{Type, Name, Func => IRFunc, FuncKind => IRFuncKind}
+import esmeta.ir.{Param, Type, Name, Func => IRFunc, FuncKind => IRFuncKind}
 import esmeta.spec.Head
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
@@ -14,6 +14,9 @@ case class Func(
   entry: Option[Node],
 ) extends CFGElem
   with UId { func =>
+
+  /** nodes */
+  lazy val params: List[Param] = irFunc.params
 
   /** nodes */
   lazy val nodes: Set[Node] = entry.fold(Set())(_.reachable)

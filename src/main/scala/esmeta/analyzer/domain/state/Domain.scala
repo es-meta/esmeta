@@ -2,8 +2,9 @@ package esmeta.analyzer.domain.state
 
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
-import esmeta.state.*
+import esmeta.es.Initialize
 import esmeta.ir.*
+import esmeta.state.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
@@ -17,8 +18,8 @@ trait Domain extends domain.Domain[State] {
   /** monad helper */
   val monad: StateMonad[Elem] = StateMonad[Elem]()
 
-  /** simpler appender */
-  val shortRule: Rule[Elem]
+  /** set bases */
+  def setBase(init: Initialize): Unit
 
   /** abstract state interfaces */
   extension (elem: Elem) {
@@ -27,20 +28,19 @@ trait Domain extends domain.Domain[State] {
     def get(
       rv: AbsRefValue,
       cp: ControlPoint,
-      check: Boolean,
     ): AbsValue = rv match
-      case AbsRefId(x)            => elem.get(x, cp, check)
-      case AbsRefProp(base, prop) => elem.get(base, prop, check)
+      case AbsRefId(x)            => elem.get(x, cp)
+      case AbsRefProp(base, prop) => elem.get(base, prop)
 
     /** getters with identifiers */
-    def get(x: Id, cp: ControlPoint, check: Boolean): AbsValue =
+    def get(x: Id, cp: ControlPoint): AbsValue =
       val v = directLookup(x)
       if (cp.isBuiltin && AbsValue.absentTop ⊑ v)
         v.removeAbsent ⊔ AbsValue.undefTop
       else v
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, check: Boolean = true): AbsValue
+    def get(base: AbsValue, prop: AbsValue): AbsValue
 
     /** getters with an address partition */
     def get(part: Part): AbsObj
@@ -61,7 +61,7 @@ trait Domain extends domain.Domain[State] {
     def exists(ref: AbsRefValue): AbsValue = ref match
       case AbsRefId(id) => !directLookup(id).isAbsent
       case AbsRefProp(base, prop) =>
-        !elem.get(base, prop, check = false).isAbsent
+        !elem.get(base, prop).isAbsent
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem

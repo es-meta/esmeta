@@ -19,7 +19,7 @@ case class Heap(
       case YetObj(_, msg) => throw NotSupported(msg)
       case obj            => obj
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
-    case _ if addr == NamedAddr(INTRINSICS) => getIntrinsics(key)
+    case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
@@ -140,6 +140,15 @@ case class Heap(
     case _ => error(s"invalid type update: $addr")
   }
 
+  /** copied */
+  def copied: Heap =
+    val newMap = MMap.from(map.toList.map {
+      case (addr, obj) => addr -> obj.copied
+    })
+    Heap(newMap, size)
+}
+object Heap {
+
   /** special getter for intrinsics */
   def getIntrinsics(key: PureValue): Value =
     val keyStr = key match
@@ -147,11 +156,4 @@ case class Heap(
         s.substring(1, s.length - 1)
       case v => error(s"invalid intrinsics key1: $key")
     intrAddr(keyStr)
-
-  /** copied */
-  def copied: Heap =
-    val newMap = MMap.from(map.toList.map {
-      case (addr, obj) => addr -> obj.copied
-    })
-    Heap(newMap, size)
 }

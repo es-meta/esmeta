@@ -1,10 +1,11 @@
 package esmeta.es
 
 import esmeta.cfg.CFG
-import esmeta.state.*
-import esmeta.ir.*
 import esmeta.es.builtin.*
+import esmeta.ir.*
 import esmeta.spec.*
+import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -27,24 +28,27 @@ class Initialize(cfg: CFG) {
   given CFG = cfg
 
   // initial globals
-  lazy val initGlobal: Map[Global, Value] = Map(
-    EXECUTION_STACK -> NamedAddr(EXECUTION_STACK),
-    HOST_DEFINED -> Undef,
-    INTRINSICS -> NamedAddr(INTRINSICS),
-    GLOBAL -> NamedAddr(GLOBAL),
-    SYMBOL -> NamedAddr(SYMBOL),
-    REALM -> NamedAddr(REALM),
-    JOB_QUEUE -> NamedAddr(JOB_QUEUE),
-    SYMBOL_REGISTRY -> NamedAddr(SYMBOL_REGISTRY),
-    UNDEF_TYPE -> Str("Undefined"),
-    NULL_TYPE -> Str("Null"),
-    BOOL_TYPE -> Str("Boolean"),
-    STRING_TYPE -> Str("String"),
-    SYMBOL_TYPE -> Str("Symbol"),
-    NUMBER_TYPE -> Str("Number"),
-    BIGINT_TYPE -> Str("BigInt"),
-    OBJECT_TYPE -> Str("Object"),
-  ).map { case (k, v) => Global(k) -> v }
+  lazy val initGlobal: Map[Global, Value] =
+    initTypedGlobal.map { case (k, (v, _)) => k -> v }
+  lazy val initTypedGlobal: Map[Global, (Value, Ty)] = Map(
+    EXECUTION_STACK ->
+    (NamedAddr(EXECUTION_STACK), ListT(NameT("ExecutionContext"))),
+    HOST_DEFINED -> (Undef, UndefT),
+    INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
+    GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
+    SYMBOL -> (NamedAddr(SYMBOL), UnknownTy()),
+    REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
+    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
+    SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
+    UNDEF_TYPE -> (Str("Undefined"), StrT("Undefined")),
+    NULL_TYPE -> (Str("Null"), StrT("Null")),
+    BOOL_TYPE -> (Str("Boolean"), StrT("Boolean")),
+    STRING_TYPE -> (Str("String"), StrT("String")),
+    SYMBOL_TYPE -> (Str("Symbol"), StrT("Symbol")),
+    NUMBER_TYPE -> (Str("Number"), StrT("Number")),
+    BIGINT_TYPE -> (Str("BigInt"), StrT("BigInt")),
+    OBJECT_TYPE -> (Str("Object"), StrT("Object")),
+  ).map { case (k, p) => Global(k) -> p }
 
   // initial heaps
   lazy val initHeap: Heap = {

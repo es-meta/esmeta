@@ -7,6 +7,7 @@ sealed trait ControlPoint extends AnalyzerElem {
   val view: View
   val func: Func
   def isBuiltin: Boolean = func.isBuiltin
+  def toReturnPoint: ReturnPoint = ReturnPoint(func, view)
 }
 
 /** node points */

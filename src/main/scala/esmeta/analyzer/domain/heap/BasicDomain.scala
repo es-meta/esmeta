@@ -48,6 +48,14 @@ object BasicDomain extends heap.Domain {
   /** simpler appender */
   val shortRule: Rule[Elem] = mkRule(false)
 
+  /** set bases */
+  def setBase(heap: Heap): Unit = base = (for {
+    (addr, obj) <- heap.map
+    part = Part.from(addr)
+    aobj = AbsObj(obj)
+  } yield part -> aobj).toMap
+  private var base: Map[Part, AbsObj] = Map()
+
   /** element interfaces */
   extension (elem: Elem) {
 
@@ -138,7 +146,7 @@ object BasicDomain extends heap.Domain {
         prop.getSingle match
           case Zero => AbsValue.Bot
           case One(str: SimpleValue) =>
-            AbsValue(baseHeap.getIntrinsics(str))
+            AbsValue(Heap.getIntrinsics(str))
           case One(_) => AbsValue.Bot
           case Many =>
             AbsValue.Top

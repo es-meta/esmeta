@@ -8,6 +8,8 @@ import esmeta.state.*
 import esmeta.ir.*
 import esmeta.es
 import esmeta.es.*
+import esmeta.ty.*
+import esmeta.ty.util.Stringifier.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
@@ -17,40 +19,99 @@ import esmeta.util.BaseUtils.*
 object TypeDomain extends state.Domain {
 
   /** elements */
-  case class Elem() extends Appendable
+  case class Elem(
+    reachable: Boolean = false,
+    locals: Map[Local, AbsValue] = Map(),
+  ) extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract state")
+
+  /** set bases */
+  def setBase(init: Initialize): Unit = base = for {
+    (x, (_, t)) <- init.initTypedGlobal.toMap
+  } yield x -> AbsValue(t)
+  private var base: Map[Id, AbsValue] = Map()
 
   /** bottom element */
   val Bot: Elem = Elem()
 
   /** empty element */
-  val Empty: Elem = ???
+  val Empty: Elem = Elem(reachable = true)
 
   /** abstraction functions */
-  def alpha(xs: Iterable[State]): Elem = ???
+  def alpha(xs: Iterable[State]): Elem = Top
 
   /** appender */
-  given rule: Rule[Elem] = ???
+  given rule: Rule[Elem] = mkRule(true)
 
   /** simpler appender */
-  val shortRule: Rule[Elem] = ???
+  private val shortRule: Rule[Elem] = mkRule(false)
 
   /** element interfaces */
   extension (elem: Elem) {
 
+    /** bottom check */
+    override def isBottom = !elem.reachable
+
     /** partial order */
-    def ⊑(that: Elem): Boolean = ???
+    def ⊑(that: Elem): Boolean = (elem, that) match
+      case _ if elem.isBottom => true
+      case _ if that.isBottom => false
+      case (Elem(_, llocals), Elem(_, rlocals)) =>
+        (llocals.keySet ++ rlocals.keySet).forall(x => {
+          elem.lookupLocal(x) ⊑ that.lookupLocal(x)
+        })
 
     /** join operator */
-    def ⊔(that: Elem): Elem = ???
+    def ⊔(that: Elem): Elem = (elem, that) match
+      case _ if elem.isBottom => that
+      case _ if that.isBottom => elem
+      case (l, r) =>
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = elem.lookupLocal(x) ⊔ that.lookupLocal(x)
+        } yield x -> v).toMap
+        Elem(true, newLocals)
 
     /** meet operator */
-    override def ⊓(that: Elem): Elem = ???
+    override def ⊓(that: Elem): Elem = (elem, that) match
+      case _ if elem.isBottom || that.isBottom => Bot
+      case (l, r) =>
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
+        } yield x -> v).toMap
+        Elem(true, newLocals)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, check: Boolean): AbsValue = ???
+    def get(base: AbsValue, prop: AbsValue): AbsValue =
+      val baseTy = base.toTy
+      val propTy = prop.toTy
+      val propStr = propTy.str
+      var res = ValueTy()
+      if (propStr contains "Value") res |= ValueTy(normal = baseTy.normal)
+      ???
+    // val vset = for {
+    //   ty <- base.set
+    //   p <- prop.set
+    //   v <- ty match
+    //     case comp: CompType  => lookupComp(comp, p, check)
+    //     case AstTopT         => lookupAst(p, check)
+    //     case ast: AstTBase   => lookupAst(ast, p, check)
+    //     case StrT            => lookupStr(p, check)
+    //     case str: StrSingleT => lookupStr(str, p, check)
+    //     case list: ListT     => lookupList(list, p, check)
+    //     case NilT            => lookupList(p, check)
+    //     case obj: NameT      => lookupNamedRec(obj, p, check)
+    //     case MapT(elemTy)    => Set(elemTy, AbsentT)
+    //     case rec: RecordT    => lookupRec(rec, p, check)
+    //     case SymbolT         => lookupSymbol(p, check)
+    //     case _ =>
+    //       if (check) warning(s"invalid property access: $ty[$p]")
+    //       Set()
+    // } yield v
+    // AbsValue(vset.toList: _*)
 
     /** getters with an address partition */
     def get(part: Part): AbsObj = ???
@@ -170,4 +231,13 @@ object TypeDomain extends state.Domain {
     def globals: Map[Global, AbsValue] = ???
     def heap: AbsHeap = ???
   }
+
+  // appender generator
+  private def mkRule(detail: Boolean): Rule[Elem] = (app, elem) =>
+    val irStringifier = IRElem.getStringifier(detail, false)
+    import irStringifier.given
+    if (!elem.isBottom) app.wrap {
+      app >> elem.locals >> LINE_SEP
+    }
+    else app >> "⊥"
 }
