@@ -98,34 +98,34 @@ class RandomSynth(grammar: Grammar) {
     }
   }
 
-  def getIncompleteAst(state: IncompleteAstState): IncompleteAstState = {
-    // TODO: consider parameter constraint of startNonterminal and endNonterminal
-    state.route match {
-      case head :: Nil => {
-        val prod = nameMap(head)
-        val rhsList = prod.rhsList
-        ???
-      }
-      case head :: tail => {
-        val prod = nameMap(head)
-//        prod.kind match { }
-        val paramNames = prod.lhs.params
-        for (paramInstance <- allParamInstances(paramNames)) yield {
-          getIncompleteAst(state.copy(route = tail)).incAstList.map {
-            case IncSyntactic(name, args, rhsIdx, children) => {
-//              if (arePossibleArgs(paramInstance, prod.rhsList(rhsIdx).symbols))
-              ???
-            }
-            case IncLexical(name, str)            => ???
-            case IncDesired(name, args, rhsIdx)   => ???
-            case IncUndesired(name, args, rhsIdx) => ???
-          }
-        }
-        ???
-      }
-      case _ => ???
-    }
-  }
+//  def getIncompleteAst(state: IncompleteAstState): IncompleteAstState = {
+//    // TODO: consider parameter constraint of startNonterminal and endNonterminal
+//    state.route match {
+//      case head :: Nil => {
+//        val prod = nameMap(head)
+//        val rhsList = prod.rhsList
+//        ???
+//      }
+//      case head :: tail => {
+//        val prod = nameMap(head)
+////        prod.kind match { }
+//        val paramNames = prod.lhs.params
+//        for (paramInstance <- allParamInstances(paramNames)) yield {
+//          getIncompleteAst(state.copy(route = tail)).incAstList.map {
+//            case IncSyntactic(name, args, rhsIdx, children) => {
+////              if (arePossibleArgs(paramInstance, prod.rhsList(rhsIdx).symbols))
+//              ???
+//            }
+//            case IncLexical(name, str)            => ???
+//            case IncDesired(name, args, rhsIdx)   => ???
+//            case IncUndesired(name, args, rhsIdx) => ???
+//          }
+//        }
+//        ???
+//      }
+//      case _ => ???
+//    }
+//  }
 
   def synthesize(from: String, to: String): Ast => Ast = {
     startNonterminal = from

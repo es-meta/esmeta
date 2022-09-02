@@ -24,7 +24,25 @@ case class Production(
     rhs <- rhsList
     nt <- rhs.nts
   } yield nt
+
+  /** get terminals in RHSs */
+  lazy val ts: List[Terminal] = for {
+    rhs <- rhsList
+    t <- rhs.ts
+  } yield t
+
+  lazy val nonRecursiveRhsList: List[Option[Rhs]] = {
+    rhsList.map(rhs =>
+      if rhs.symbols.forall {
+          case Nonterminal(ntName, _, _) if ntName == name => false
+          case _                                           => true
+        }
+      then Some(rhs)
+      else None,
+    )
+  }
 }
+
 object Production extends Parser.From(Parser.prod)
 enum ProductionKind extends SpecElem:
   case Syntactic, Lexical, NumericString
