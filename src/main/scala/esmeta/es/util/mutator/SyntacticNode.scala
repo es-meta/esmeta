@@ -1,12 +1,14 @@
 package esmeta.es.util.mutator
 
 import esmeta.es.util.mutator.GrammarNode.isValid
+import esmeta.spec.*
 
 import scala.collection.mutable.Map as MMap
 
 class SyntacticNode(
   val name: String,
   val rhsSymbols: List[Option[List[Option[String]]]],
+  val rhsConditions: List[Option[RhsCond]] = Nil,
 ) {
   var parents: List[SyntacticNode] = List.empty
   var length: Option[Int] = None
@@ -58,4 +60,23 @@ class SyntacticNode(
     if validRhsLengthsWithIndex.nonEmpty then
       Some(validRhsLengthsWithIndex.min._2)
     else None
+
+  def simplestRhsIdx(argsMap: Map[String, Boolean]) = {
+    val validRhsLengthsWithIndex =
+      (rhsLengths zip rhsConditions).zipWithIndex.flatMap {
+        case ((lengthOpt, conditionOpt), idx) =>
+          conditionOpt match {
+            case Some(RhsCond(condName, pass))
+                if (argsMap(condName) && !pass) || (!argsMap(
+                  condName,
+                ) && pass) =>
+              None
+            case _ => lengthOpt.map((_, idx))
+          }
+      }
+    if validRhsLengthsWithIndex.nonEmpty then
+      Some(validRhsLengthsWithIndex.min._2)
+    else None
+
+  }
 }

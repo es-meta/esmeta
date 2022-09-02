@@ -60,6 +60,7 @@ class SimpleAstGenerator(grammar: Grammar) {
           syntacticNodeMap += (prod.name -> SyntacticNode(
             prod.name,
             rhsSymbols,
+            prod.rhsList.map(_.condition),
           ))
         case _ =>
           lexicalNodeMap += (prod.name -> GrammarNode(prod.name, rhsSymbols))
@@ -116,16 +117,10 @@ class SimpleAstGenerator(grammar: Grammar) {
 
   def generateLexicalHelper(name: String): Option[String] = {
     if terminals.contains(name) then {
-//      println(lexicalNodeMap(name).parents.map(_.name));
-//      println(reversedMap(name));
       Some(name)
     } else {
       val prod = nameMap(name)
       val lexicalNode = lexicalNodeMap(name)
-//      print("LexicalNode.rhsSymbols: "); println(lexicalNode.rhsSymbols)
-//      print("LexicalNode.symbolScores: "); println(lexicalNode.symbolScores)
-//      print("LexicalNode.score: "); println(lexicalNode.score)
-//      print("LexicalNode.rhsScores: "); println(lexicalNode.rhsScores)
       val simplestRhs =
         lexicalNode.simplestRhsIdx.flatMap(prod.nonRecursiveRhsList(_))
       val instance = simplestRhs.map(_.symbols.map {
@@ -134,13 +129,11 @@ class SimpleAstGenerator(grammar: Grammar) {
           if optional then Some("") else generateLexicalHelper(name)
         case _ => Some("")
       })
-//      print("instance: "); println(instance)
       val ret = instance
         .flatMap(list =>
           if GrammarNode.isValid(list) then Some(list.flatten) else None,
         )
         .map(_.mkString)
-//      print("returning: "); println(a)
       ret
     }
   }
@@ -156,7 +149,8 @@ class SimpleAstGenerator(grammar: Grammar) {
       prod.kind match {
         case ProductionKind.Syntactic => {
           val syntacticNode = syntacticNodeMap(name)
-          val simplestRhsIdxOpt = syntacticNode.simplestRhsIdx
+          val simplestRhsIdxOpt =
+            syntacticNode.simplestRhsIdx((prod.lhs.params zip args).toMap)
           val simplestRhs =
             simplestRhsIdxOpt.flatMap(prod.nonRecursiveRhsList(_))
           val instance = simplestRhs.map(_.symbols.flatMap {
