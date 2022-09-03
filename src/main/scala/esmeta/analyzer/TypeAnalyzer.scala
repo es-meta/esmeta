@@ -38,7 +38,8 @@ class TypeAnalyzer(cfg: CFG) {
   lazy val initRpMap: Map[ReturnPoint, AbsRet] = (for {
     np @ NodePoint(func, _, _) <- nps
     rp = np.toReturnPoint
-  } yield rp -> ???).toMap
+    ret = AbsRet(AbsValue(func.retTy.ty))
+  } yield rp -> ret).toMap
 
   // get view from a function
   def getView(func: Func): View = View()
@@ -56,6 +57,7 @@ object TypeAnalyzer:
   setDomain(
     stateDomain = state.TypeDomain,
     valueDomain = value.TypeDomain,
+    retDomain = ret.TypeDomain,
   )
 
   /** perform analysis for a given ECMAScript code */

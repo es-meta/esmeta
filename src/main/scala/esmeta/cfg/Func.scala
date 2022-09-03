@@ -15,8 +15,11 @@ case class Func(
 ) extends CFGElem
   with UId { func =>
 
-  /** nodes */
+  /** parameters */
   lazy val params: List[Param] = irFunc.params
+
+  /** return types */
+  lazy val retTy: Type = irFunc.retTy
 
   /** nodes */
   lazy val nodes: Set[Node] = entry.fold(Set())(_.reachable)

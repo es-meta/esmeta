@@ -26,3 +26,6 @@ object AnalyzerElem {
 
 /** exploded */
 def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
+
+/** not supported */
+def notSupported(msg: String): Nothing = throw NotSupported(msg)

@@ -123,10 +123,7 @@ trait Parsers extends BasicParsers {
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
     "{" ~> rep1sep(field, ",") <~ "}" ^^ {
-      case pairs =>
-        val fields = pairs.collect { case (k, None) => k }.toSet
-        val map = pairs.collect { case (k, Some(v)) => k -> v }.toMap
-        RecordTy(fields, map)
+      case pairs => RecordTy(pairs.toMap)
     }
   }.named("ty.RecordTy (single)")
 

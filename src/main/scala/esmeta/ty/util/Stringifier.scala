@@ -89,11 +89,7 @@ object Stringifier {
         value.fold(app)(app >> ": " >> _)
     }
     given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
-
-    val map =
-      ty.fields.map(_ -> None) ++
-      ty.map.map { case (k, v) => k -> Some(v) }
-    if (!map.isEmpty) app >> map.toList.sortBy(_._1)
+    if (!ty.map.isEmpty) app >> ty.map.toList.sortBy(_._1)
     app
 
   /** sub map types */

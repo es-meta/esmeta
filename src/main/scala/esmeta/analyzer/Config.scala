@@ -5,6 +5,7 @@ import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ir.*
 import esmeta.state.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
 /** mutable analysis configuration */
@@ -13,7 +14,10 @@ object Config {
   /** set control flow graph */
   def setCFG(cfg: CFG): Unit =
     this._cfg = cfg
+    logger.reset
     AbsState.setBase(new Initialize(cfg))
+
+  lazy val logger: Logger = new Logger
 
   /** get control flow graph */
   def cfg: CFG = _cfg

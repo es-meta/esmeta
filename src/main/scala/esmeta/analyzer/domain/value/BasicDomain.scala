@@ -5,7 +5,6 @@ import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.error.NotSupported
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.ir.{COp, Name, VOp}
@@ -476,7 +475,7 @@ object BasicDomain extends value.Domain {
     def undef: AbsUndef = elem.pureValue.undef
     def nullv: AbsNull = elem.pureValue.nullv
     def absent: AbsAbsent = elem.pureValue.absent
-    def toTy: ValueTy = throw NotSupported("value.BasicDomain.toTy")
+    def toTy: ValueTy = notSupported("value.BasicDomain.toTy")
 
     // -------------------------------------------------------------------------
     // private helpers

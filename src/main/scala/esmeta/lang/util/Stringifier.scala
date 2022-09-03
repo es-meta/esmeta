@@ -614,10 +614,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // names
     for (name <- ty.names.toList.sorted) tys :+= name.withArticle(plural)
 
-    // records
-    val RecordTy(fields, map) = ty.record
-
-    // symbols
+    // lists
     for (vty <- ty.list.elem)
       val sub = valueTyRule(true)(new Appender, vty)
       tys :+= s"a List of $sub"
@@ -633,7 +630,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
-    // numbers
+    // consts
     for (name <- ty.const.toList.sorted) tys :+= s"~$name~"
 
     // numbers

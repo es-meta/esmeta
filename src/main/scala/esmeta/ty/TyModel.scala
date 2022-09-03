@@ -49,7 +49,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   type PropMap = Map[String, ValueTy]
 
   /** get types of property */
-  def getProp(tname: String, p: String, check: Boolean): ValueTy =
+  def getProp(tname: String, p: String, check: Boolean = false): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       NameT("Object")
     else

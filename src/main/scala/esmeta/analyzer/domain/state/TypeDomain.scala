@@ -5,7 +5,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
-import esmeta.ir.*
+import esmeta.ir.{*, given}
 import esmeta.es
 import esmeta.es.*
 import esmeta.ty.*
@@ -31,7 +31,7 @@ object TypeDomain extends state.Domain {
   def setBase(init: Initialize): Unit = base = for {
     (x, (_, t)) <- init.initTypedGlobal.toMap
   } yield x -> AbsValue(t)
-  private var base: Map[Id, AbsValue] = Map()
+  private var base: Map[Global, AbsValue] = Map()
 
   /** bottom element */
   val Bot: Elem = Elem()
@@ -88,30 +88,16 @@ object TypeDomain extends state.Domain {
     def get(base: AbsValue, prop: AbsValue): AbsValue =
       val baseTy = base.toTy
       val propTy = prop.toTy
-      val propStr = propTy.str
-      var res = ValueTy()
-      if (propStr contains "Value") res |= ValueTy(normal = baseTy.normal)
-      ???
-    // val vset = for {
-    //   ty <- base.set
-    //   p <- prop.set
-    //   v <- ty match
-    //     case comp: CompType  => lookupComp(comp, p, check)
-    //     case AstTopT         => lookupAst(p, check)
-    //     case ast: AstTBase   => lookupAst(ast, p, check)
-    //     case StrT            => lookupStr(p, check)
-    //     case str: StrSingleT => lookupStr(str, p, check)
-    //     case list: ListT     => lookupList(list, p, check)
-    //     case NilT            => lookupList(p, check)
-    //     case obj: NameT      => lookupNamedRec(obj, p, check)
-    //     case MapT(elemTy)    => Set(elemTy, AbsentT)
-    //     case rec: RecordT    => lookupRec(rec, p, check)
-    //     case SymbolT         => lookupSymbol(p, check)
-    //     case _ =>
-    //       if (check) warning(s"invalid property access: $ty[$p]")
-    //       Set()
-    // } yield v
-    // AbsValue(vset.toList: _*)
+      AbsValue(
+        lookupComp(baseTy.comp, propTy) |
+        lookupAst(baseTy.astValue, propTy) |
+        lookupStr(baseTy.str, propTy) |
+        lookupList(baseTy.list, propTy) |
+        lookupName(baseTy.names, propTy) |
+        lookupRecord(baseTy.record, propTy) |
+        lookupSymbol(baseTy.symbol, propTy) |
+        lookupSubMap(baseTy.subMap, propTy),
+      )
 
     /** getters with an address partition */
     def get(part: Part): AbsObj = ???
@@ -120,7 +106,12 @@ object TypeDomain extends state.Domain {
     def lookupGlobal(x: Global): AbsValue = ???
 
     /** identifier setter */
-    def update(x: Id, value: AbsValue): Elem = ???
+    def update(x: Id, value: AbsValue): Elem = x match
+      case x: Local  => defineLocal(x -> value)
+      case x: Global =>
+        // TODO if (value !⊑ baseGlobals(x))
+        //   logger.warn(s"invalid global variable update: $x = $value")
+        elem
 
     /** property setter */
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
@@ -190,7 +181,8 @@ object TypeDomain extends state.Domain {
     def defineGlobal(pairs: (Global, AbsValue)*): Elem = ???
 
     /** define local variables */
-    def defineLocal(pairs: (Local, AbsValue)*): Elem = ???
+    def defineLocal(pairs: (Local, AbsValue)*): Elem =
+      elem.copy(locals = locals ++ pairs)
 
     /** singleton checks */
     override def isSingle: Boolean = ???
@@ -220,24 +212,113 @@ object TypeDomain extends state.Domain {
     def copied(locals: Map[Local, AbsValue] = Map()): Elem = ???
 
     /** get string */
-    def getString(detail: Boolean): String = ???
+    def getString(detail: Boolean): String = elem.toString
 
     /** get string wth detailed shapes of locations */
-    def getString(value: AbsValue): String = ???
+    def getString(value: AbsValue): String = value.toString
 
     /** getters */
-    def reachable: Boolean = ???
-    def locals: Map[Local, AbsValue] = ???
-    def globals: Map[Global, AbsValue] = ???
-    def heap: AbsHeap = ???
+    def reachable: Boolean = elem.reachable
+    def locals: Map[Local, AbsValue] = locals
+    def globals: Map[Global, AbsValue] = base
+    def heap: AbsHeap = AbsHeap.Bot
   }
 
   // appender generator
   private def mkRule(detail: Boolean): Rule[Elem] = (app, elem) =>
-    val irStringifier = IRElem.getStringifier(detail, false)
-    import irStringifier.given
-    if (!elem.isBottom) app.wrap {
+    if (!elem.isBottom) {
+      val irStringifier = IRElem.getStringifier(detail, false)
+      import irStringifier.given
+      given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
       app >> elem.locals >> LINE_SEP
-    }
-    else app >> "⊥"
+    } else app >> "⊥"
+
+  // completion record lookup
+  lazy val constTyForAbruptTarget =
+    CONSTT_BREAK | CONSTT_CONTINUE | CONSTT_RETURN | CONSTT_THROW
+  private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
+    val str = prop.str
+    val normal = !comp.normal.isBottom
+    val abrupt = comp.abrupt
+    var res = ValueTy()
+    if (str contains "Value")
+      if (normal) res |= ValueTy(pureValue = comp.normal)
+      if (comp.abrupt) res |= ESValueT | CONSTT_EMPTY
+    if (str contains "Target")
+      if (normal) res |= CONSTT_EMPTY
+      if (comp.abrupt) res |= StrTopT | CONSTT_EMPTY
+    if (str contains "Type")
+      if (normal) res |= CONSTT_NORMAL
+      if (comp.abrupt) res |= constTyForAbruptTarget
+    res
+
+  // AST lookup
+  private def lookupAst(ast: BSet[String], prop: ValueTy): ValueTy =
+    var res = ValueTy()
+    ast match
+      case Inf => ???
+      case Fin(set) =>
+        for {
+          name <- set
+        } ???
+    res
+
+  // string lookup
+  private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
+    val str = prop.str
+    val math = prop.math
+    var res = ValueTy()
+    if (str contains "length") res |= MathT
+    if (math) res |= CodeUnitT
+    res
+
+  // named record lookup
+  private def lookupName(obj: Set[String], prop: ValueTy): ValueTy =
+    var res = ValueTy()
+    val str = prop.str
+    for {
+      name <- obj
+      propStr <- str match
+        case Inf      => exploded(s"too imprecise field name: $name[⊤]")
+        case Fin(set) => set
+    } res |= cfg.tyModel.getProp(name, propStr)
+    res
+
+  // record lookup
+  private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
+    val str = prop.str
+    var res = ValueTy()
+    def add(propStr: String): Unit = record.map.get(propStr) match
+      case None =>
+        logger.warn(s"invalid record property access: $record[$propStr]")
+      case Some(None) =>
+        exploded(s"too imprecise field access: $record[$propStr]")
+      case Some(Some(ty)) =>
+        res |= ty
+    if (!record.isBottom) str match
+      case Inf =>
+        exploded(s"too imprecise field name: $record[⊤]")
+      case Fin(set) =>
+        for (propStr <- set) add(propStr)
+    res
+
+  // list lookup
+  private def lookupList(list: ListTy, prop: ValueTy): ValueTy =
+    var res = ValueTy()
+    val str = prop.str
+    val math = prop.math
+    for (ty <- list.elem)
+      if (str contains "length") res |= MathT
+      if (math) res |= ty
+    res
+
+  // symbol lookup
+  private def lookupSymbol(symbol: Boolean, prop: ValueTy): ValueTy =
+    if (symbol && prop.str.contains("Description")) StrTopT
+    else ValueTy()
+
+  // submap lookup
+  private def lookupSubMap(subMap: SubMapTy, prop: ValueTy): ValueTy =
+    if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
+    else ValueTy()
 }

@@ -81,9 +81,15 @@ object Appender {
   given arrowRule[T, U](using
     tRule: Rule[T],
     uRule: Rule[U],
+  ): Rule[(T, U)] = arrowRule()
+  def arrowRule[T, U](
+    sep: String = " -> ",
+  )(using
+    tRule: Rule[T],
+    uRule: Rule[U],
   ): Rule[(T, U)] = (app, pair) =>
     val (t, u) = pair
-    app >> t >> " -> " >> u
+    app >> t >> sep >> u
 
   /** map appender */
   given mapRule[K, V](using
@@ -98,12 +104,13 @@ object Appender {
   def sortedMapRule[K, V](
     left: String = "{",
     right: String = "}",
+    sep: String = " -> ",
   )(using
     kOrd: Ordering[K],
     kRule: Rule[K],
     vRule: Rule[V],
   ): Rule[Map[K, V]] = (app, map) =>
-    given Rule[(K, V)] = arrowRule
+    given Rule[(K, V)] = arrowRule(sep)
     if (map.size == 0) app >> left >> right
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)
 

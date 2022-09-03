@@ -9,6 +9,7 @@ import esmeta.ir.{COp, Name, VOp}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.ty.*
+import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 
@@ -25,7 +26,7 @@ object TypeDomain extends value.Domain {
   val Bot: Elem = Elem(ValueTy())
 
   /** abstraction functions */
-  def alpha(xs: Iterable[AValue]): Elem = ???
+  def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
   /** constructor with types */
   def apply(ty: Ty): Elem = ty match
@@ -78,7 +79,9 @@ object TypeDomain extends value.Domain {
   def unapply(elem: Elem): Option[RawTuple] = ???
 
   /** appender */
-  given rule: Rule[Elem] = (app, elem) => ???
+  given rule: Rule[Elem] = (app, elem) =>
+    import TyStringifier.given
+    app >> elem.ty
 
   /** transfer for variadic operation */
   def vopTransfer(vop: VOp, vs: List[Elem]): Elem = ???
@@ -90,25 +93,25 @@ object TypeDomain extends value.Domain {
     def keyValue: Elem = ???
 
     /** partial order */
-    def ⊑(that: Elem): Boolean = ???
+    def ⊑(that: Elem): Boolean = elem.ty <= that.ty
 
     /** join operator */
-    def ⊔(that: Elem): Elem = ???
+    def ⊔(that: Elem): Elem = Elem(elem.ty | that.ty)
 
     /** meet operator */
-    override def ⊓(that: Elem): Elem = ???
+    override def ⊓(that: Elem): Elem = Elem(elem.ty & that.ty)
 
     /** prune operator */
-    override def --(that: Elem): Elem = ???
+    override def --(that: Elem): Elem = Elem(elem.ty -- that.ty)
 
     /** concretization function */
-    override def gamma: BSet[AValue] = ???
+    override def gamma: BSet[AValue] = Inf
 
     /** get single value */
-    override def getSingle: Flat[AValue] = ???
+    override def getSingle: Flat[AValue] = Many
 
     /** get reachable address partitions */
-    def reachableParts: Set[Part] = ???
+    def reachableParts: Set[Part] = Set()
 
     /** bitwise operations */
     def &(that: Elem): Elem = ???
@@ -121,9 +124,9 @@ object TypeDomain extends value.Domain {
     def <(that: Elem): Elem = ???
 
     /** logical operations */
-    def &&(that: Elem): Elem = ???
-    def ||(that: Elem): Elem = ???
-    def ^^(that: Elem): Elem = ???
+    def &&(that: Elem): Elem = logicalOp(_ && _)(elem, that)
+    def ||(that: Elem): Elem = logicalOp(_ || _)(elem, that)
+    def ^^(that: Elem): Elem = logicalOp(_ ^ _)(elem, that)
 
     /** numeric operations */
     def +(that: Elem): Elem = ???
@@ -200,4 +203,41 @@ object TypeDomain extends value.Domain {
     def absent: AbsAbsent = ???
     def toTy: ValueTy = elem.ty
   }
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // value type getter
+  private def getValueTy(vs: Iterable[AValue]): ValueTy =
+    vs.foldLeft(ValueTy()) { case (vty, v) => vty | getValueTy(v) }
+
+  // value type getter
+  private def getValueTy(v: AValue): ValueTy = v match
+    case AComp(CONST_NORMAL, v, _) => NormalT(getValueTy(v))
+    case _: AComp                  => AbruptT
+    case AClo(func, _)             => CloT(func.name)
+    case ACont(target, _)          => ContT(target.func.name)
+    case AstValue(ast)             => AstT(ast.name)
+    case grammar: Grammar          => GrammarT(grammar)
+    case CodeUnit(_)               => CodeUnitT
+    case Const(name)               => ConstT(name)
+    case Math(n)                   => MathT
+    case Number(_)                 => NumberT
+    case BigInt(_)                 => BigIntT
+    case Str(n)                    => StrT(n)
+    case Bool(true)                => TrueT
+    case Bool(false)               => BoolT
+    case Undef                     => UndefT
+    case Null                      => NullT
+    case Absent                    => AbsentT
+    case v => notSupported(s"impossible to convert to pure type ($v)")
+
+  // logical operator helper
+  private def logicalOp(
+    op: (Boolean, Boolean) => Boolean,
+  ): (Elem, Elem) => Elem = (l, r) =>
+    Elem(ValueTy(bool = for {
+      x <- l.ty.bool
+      y <- r.ty.bool
+    } yield op(x, y)))
 }

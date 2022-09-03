@@ -110,8 +110,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** record types */
   def walk(ty: RecordTy): Unit =
-    walkSet(ty.fields, walk)
-    walkMap(ty.map, walk, walk)
+    walkMap(ty.map, walk, walkOpt(_, walk))
 
   /** list types */
   def walk(ty: ListTy): Unit =

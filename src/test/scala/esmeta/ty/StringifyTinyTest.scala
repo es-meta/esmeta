@@ -27,15 +27,17 @@ class StringifyTinyTest extends TyTest {
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       NameT("Cat") -> "Cat",
       NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT(map = Map("A" -> NumberT, "B" -> BoolT)) ->
+      RecordT("A" -> Some(NumberT), "B" -> Some(BoolT)) ->
       "{ [[A]]: Number, [[B]]: Boolean }",
-      RecordT(fields = Set("Key", "Value"), Map()) ->
+      RecordT(Set("Key", "Value")) ->
       "{ [[Key]], [[Value]] }",
-      RecordT(Set("Key", "Value"), Map("Dummy" -> BotT)) ->
+      RecordT("Key" -> None, "Value" -> None, "Dummy" -> Some(BotT)) ->
       "{ [[Key]], [[Value]] }",
       (ObjectT | RecordT(
-        fields = Set("P", "S"),
-        map = Map("Q" -> NumberT, "R" -> BoolT),
+        "P" -> None,
+        "S" -> None,
+        "Q" -> Some(NumberT),
+        "R" -> Some(BoolT),
       )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",

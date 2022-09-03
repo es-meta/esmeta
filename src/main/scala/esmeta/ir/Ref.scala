@@ -14,3 +14,10 @@ case class Global(name: String) extends Id
 sealed trait Local extends Id
 case class Name(name: String) extends Local
 case class Temp(idx: Int) extends Local
+
+/** ordering of local identifiers */
+given Ordering[Local] = Ordering.by(local =>
+  local match
+    case Name(name) => (-1, name)
+    case Temp(idx)  => (idx, ""),
+)

@@ -115,8 +115,7 @@ trait Walker extends BasicWalker {
 
   /** record types */
   def walk(ty: RecordTy): RecordTy = RecordTy(
-    walkSet(ty.fields, walk),
-    walkMap(ty.map, walk, walk),
+    walkMap(ty.map, walk, walkOpt(_, walk)),
   )
 
   /** list types */

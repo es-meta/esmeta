@@ -41,10 +41,12 @@ val ESPureValueT: PureValueTy = PureValueTy(
 val ESValueT: ValueTy = ValueTy(pureValue = ESPureValueT)
 def NameT(names: String*): ValueTy = ValueTy(names = names.toSet)
 val ObjectT: ValueTy = NameT("Object")
-def RecordT(
-  fields: Set[String] = Set(),
-  map: Map[String, ValueTy] = Map(),
-): ValueTy = ValueTy(record = RecordTy(fields, map).norm)
+def RecordT(fields: Set[String]): ValueTy =
+  ValueTy(record = RecordTy(fields))
+def RecordT(map: Map[String, Option[ValueTy]]): ValueTy =
+  ValueTy(record = RecordTy(map).norm)
+def RecordT(pairs: (String, Option[ValueTy])*): ValueTy =
+  ValueTy(record = RecordTy(pairs.toMap).norm)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(Some(ty)))
 val SymbolT: ValueTy = ValueTy(symbol = true)
@@ -58,13 +60,48 @@ val NumberT: ValueTy = ValueTy(number = true)
 val BigIntT: ValueTy = ValueTy(bigInt = true)
 val StrTopT: ValueTy = ValueTy(str = Inf)
 def StrT(xs: String*): ValueTy = ValueTy(str = Fin(xs.toSet))
-val BoolT: ValueTy = ValueTy(bool = Set(true, false))
-val TrueT: ValueTy = ValueTy(bool = Set(true))
-val FalseT: ValueTy = ValueTy(bool = Set(false))
+def BoolT(set: Set[Boolean]): ValueTy = ValueTy(bool = set)
+def BoolT(seq: Boolean*): ValueTy = ValueTy(bool = seq.toSet)
+val BoolT: ValueTy = BoolT(true, false)
+val TrueT: ValueTy = BoolT(true)
+val FalseT: ValueTy = BoolT(false)
 val UndefT: ValueTy = ValueTy(undef = true)
 val NullT: ValueTy = ValueTy(nullv = true)
 val AbsentT: ValueTy = ValueTy(absent = true)
 val BotT: ValueTy = ValueTy()
+
+/** predefined constant types */
+val CONSTT_EMPTY = ConstT("empty")
+val CONSTT_UNRESOLVABLE = ConstT("unresolvable")
+val CONSTT_LEXICAL = ConstT("lexical")
+val CONSTT_INITIALIZED = ConstT("initialized")
+val CONSTT_UNINITIALIZED = ConstT("uninitialized")
+val CONSTT_BASE = ConstT("base")
+val CONSTT_DERIVED = ConstT("derived")
+val CONSTT_STRICT = ConstT("strict")
+val CONSTT_GLOBAL = ConstT("global")
+val CONSTT_UNLINKED = ConstT("unlinked")
+val CONSTT_LINKING = ConstT("linking")
+val CONSTT_LINKED = ConstT("linked")
+val CONSTT_EVALUATING = ConstT("evaluating")
+val CONSTT_EVALUATED = ConstT("evaluated")
+val CONSTT_NUMBER = ConstT("Number")
+val CONSTT_BIGINT = ConstT("BigInt")
+val CONSTT_NORMAL = ConstT("normal")
+val CONSTT_BREAK = ConstT("break")
+val CONSTT_CONTINUE = ConstT("continue")
+val CONSTT_RETURN = ConstT("return")
+val CONSTT_THROW = ConstT("throw")
+val CONSTT_SUSPENDED_START = ConstT("suspendedStart")
+val CONSTT_SUSPENDED_YIELD = ConstT("suspendedYield")
+val CONSTT_EXECUTING = ConstT("executing")
+val CONSTT_AWAITING_RETURN = ConstT("awaitingDASHreturn")
+val CONSTT_COMPLETED = ConstT("completed")
+val CONSTT_PENDING = ConstT("pending")
+val CONSTT_FULFILLED = ConstT("fulfilled")
+val CONSTT_REJECTED = ConstT("rejected")
+val CONSTT_FULFILL = ConstT("Fulfill")
+val CONSTT_REJECT = ConstT("Reject")
 
 extension (elem: Boolean) {
   def isBottom: Boolean = elem == false
@@ -73,34 +110,4 @@ extension (elem: Boolean) {
 extension [T](elem: Set[T]) {
   def isBottom: Boolean = elem.isEmpty
   def <=(that: Set[T]): Boolean = elem subsetOf that
-}
-extension [A, B <: Lattice[B]](elem: Map[A, B]) {
-  def isBottom: Boolean = elem.isEmpty
-  def <=(that: Map[A, B]): Boolean = (for {
-    key <- (elem.keySet | that.keySet).toList
-    bool = (elem.get(key), that.get(key)) match
-      case (None, _)          => true
-      case (_, None)          => false
-      case (Some(l), Some(r)) => l <= r
-  } yield bool).forall(_ == true)
-  def |(that: Map[A, B]): Map[A, B] = (for {
-    key <- (elem.keySet | that.keySet).toList
-    value <- (elem.get(key), that.get(key)) match
-      case (None, r)          => r
-      case (l, None)          => l
-      case (Some(l), Some(r)) => Some(l | r)
-  } yield key -> value).toMap
-  def &(that: Map[A, B]): Map[A, B] = (for {
-    key <- (elem.keySet & that.keySet).toList
-    value <- (elem.get(key), that.get(key)) match
-      case (None, _) | (_, None) => None
-      case (Some(l), Some(r))    => Some(l & r)
-  } yield key -> value).toMap
-  def --(that: Map[A, B]): Map[A, B] = (for {
-    key <- elem.keySet.toList
-    value <- (elem.get(key), that.get(key)) match
-      case (None, _)          => None
-      case (l, None)          => l
-      case (Some(l), Some(r)) => Some(l -- r)
-  } yield key -> value).toMap
 }
