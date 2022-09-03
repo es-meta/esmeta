@@ -60,6 +60,9 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
     case Zero      => Zero
     case One(elem) => One(f(elem))
     case Many      => Many
+
+  /** get single value */
+  def getSingle[B >: A]: Flat[B] = this
 }
 
 /** more than two elements */
@@ -111,6 +114,12 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
   def contains[B >: A](x: B): Boolean = this match
     case Fin(set) => set.toSet contains x
     case Inf      => true
+
+  /** get single value */
+  def getSingle[B >: A]: Flat[B] = this match
+    case Fin(set) if set.size == 0 => Zero
+    case Fin(set) if set.size == 1 => One(set.head)
+    case _                         => Many
 }
 case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]

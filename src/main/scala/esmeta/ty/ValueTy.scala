@@ -1,5 +1,6 @@
 package esmeta.ty
 
+import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.util.*
@@ -44,6 +45,12 @@ case class ValueTy(
     this.pureValue -- that.pureValue,
     this.subMap -- that.subMap,
   )
+
+  /** get single value */
+  def getSingle: Flat[AValue] =
+    this.comp.getSingle |
+    this.pureValue.getSingle |
+    this.subMap.getSingle
 
   /** completion check */
   def isCompletion: Boolean =

@@ -86,8 +86,8 @@ object TypeDomain extends state.Domain {
 
     /** getters with bases and properties */
     def get(base: AbsValue, prop: AbsValue): AbsValue =
-      val baseTy = base.toTy
-      val propTy = prop.toTy
+      val baseTy = base.ty
+      val propTy = prop.ty
       AbsValue(
         lookupComp(baseTy.comp, propTy) |
         lookupAst(baseTy.astValue, propTy) |
@@ -103,82 +103,112 @@ object TypeDomain extends state.Domain {
     def get(part: Part): AbsObj = ???
 
     /** lookup global variables */
-    def lookupGlobal(x: Global): AbsValue = ???
+    def lookupGlobal(x: Global): AbsValue = base.getOrElse(x, AbsValue.Bot)
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem = x match
-      case x: Local  => defineLocal(x -> value)
+      case x: Local => defineLocal(x -> value)
       case x: Global =>
-        // TODO if (value !⊑ baseGlobals(x))
-        //   logger.warn(s"invalid global variable update: $x = $value")
+        if (value !⊑ baseGlobals(x))
+          logger.warn(s"invalid global variable update: $x = $value")
         elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = ???
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
+      val origV = get(base, prop)
+      if (value !⊑ origV)
+        // XXX handle ArrayCreate, ...
+        logger.warn(s"invalid property update: $base[$prop] = $value")
+      elem
 
     /** deletion wiht reference values */
     def delete(refV: AbsRefValue): Elem = ???
 
     /** push values to a list */
-    def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = ???
+    def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem
 
     /** remove a value in a list */
-    def remove(list: AbsValue, value: AbsValue): Elem = ???
+    def remove(list: AbsValue, value: AbsValue): Elem = elem
 
     /** pop a value in a list */
-    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
+      (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
 
     /** set a type to an address partition */
-    def setType(v: AbsValue, tname: String): (AbsValue, Elem) = ???
+    def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
+      (AbsValue(NameT(tname)), elem)
 
     /** copy object */
-    def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) = ???
+    def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) = (from, elem)
 
     /** get object keys */
     def keys(
       to: AllocSite,
       v: AbsValue,
       intSorted: Boolean,
-    ): (AbsValue, Elem) = ???
+    ): (AbsValue, Elem) =
+      val value =
+        if (v.ty.subMap.isBottom) AbsValue.Bot
+        else AbsValue(StrTopT)
+      (value, elem)
 
     /** list concatenation */
     def concat(
       to: AllocSite,
       lists: Iterable[AbsValue] = Nil,
-    ): (AbsValue, Elem) = ???
+    ): (AbsValue, Elem) =
+      val value = AbsValue(ListT((for {
+        list <- lists
+        elem <- list.ty.list.elem
+      } yield elem).foldLeft(ValueTy())(_ | _)))
+      (value, elem)
 
     /** get childeren of AST */
     def getChildren(
       to: AllocSite,
       ast: AbsValue,
       kindOpt: Option[AbsValue],
-    ): (AbsValue, Elem) = ???
+    ): (AbsValue, Elem) = (AbsValue(ListT(AstTopT)), elem)
 
     /** allocation of map with address partitions */
     def allocMap(
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
-    ): (AbsValue, Elem) = ???
+    ): (AbsValue, Elem) =
+      val value =
+        if (tname == "Record") RecordT((for {
+          (k, v) <- pairs
+        } yield k.getSingle match
+          case One(Str(key)) => key -> Some(v.ty)
+          case _             => exploded(s"imprecise field name: $k")
+        ).toMap)
+        else NameT(tname)
+      (AbsValue(value), elem)
 
     /** allocation of list with address partitions */
     def allocList(
       to: AllocSite,
       list: Iterable[AbsValue] = Nil,
-    ): (AbsValue, Elem) = ???
+    ): (AbsValue, Elem) =
+      val listT = ListT(list.foldLeft(ValueTy()) { case (l, r) => l | r.ty })
+      (AbsValue(listT), elem)
 
     /** allocation of symbol with address partitions */
-    def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem) = ???
+    def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem) =
+      (AbsValue(SymbolT), elem)
 
     /** check contains */
     def contains(
       list: AbsValue,
       value: AbsValue,
       field: Option[(Type, String)],
-    ): AbsValue = ???
+    ): AbsValue =
+      if (list.ty.list.isBottom) AbsValue.Bot
+      else AbsValue.boolTop
 
     /** define global variables */
-    def defineGlobal(pairs: (Global, AbsValue)*): Elem = ???
+    def defineGlobal(pairs: (Global, AbsValue)*): Elem = elem
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
@@ -194,7 +224,7 @@ object TypeDomain extends state.Domain {
     def findMerged: Unit = ???
 
     /** handle calls */
-    def doCall: Elem = ???
+    def doCall: Elem = elem
     def doProcStart(fixed: Set[Part]): Elem = ???
 
     /** handle returns (elem: return states / to: caller states) */
@@ -206,10 +236,11 @@ object TypeDomain extends state.Domain {
     def garbageCollected: Elem = ???
 
     /** get reachable address partitions */
-    def reachableParts: Set[Part] = ???
+    def reachableParts: Set[Part] = Set()
 
     /** copy */
-    def copied(locals: Map[Local, AbsValue] = Map()): Elem = ???
+    def copied(locals: Map[Local, AbsValue] = Map()): Elem =
+      elem.copy(locals = locals)
 
     /** get string */
     def getString(detail: Boolean): String = elem.toString

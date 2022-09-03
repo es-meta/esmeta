@@ -475,7 +475,7 @@ object BasicDomain extends value.Domain {
     def undef: AbsUndef = elem.pureValue.undef
     def nullv: AbsNull = elem.pureValue.nullv
     def absent: AbsAbsent = elem.pureValue.absent
-    def toTy: ValueTy = notSupported("value.BasicDomain.toTy")
+    def ty: ValueTy = notSupported("value.BasicDomain.toTy")
 
     // -------------------------------------------------------------------------
     // private helpers

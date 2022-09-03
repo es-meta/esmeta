@@ -15,7 +15,12 @@ class TypeAnalyzer(cfg: CFG) {
   setCFG(cfg)
 
   // analysis result
-  lazy val result = AbsSemantics(initNpMap, initRpMap).fixpoint
+  lazy val result = new AbsSemantics(initNpMap, initRpMap) {
+
+    /** a worklist of control points */
+    override val worklist: Worklist[ControlPoint] =
+      QueueWorklist(nps.filter(_.func.params.forall(_.ty.isDefined)))
+  }.fixpoint
 
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
@@ -23,10 +28,6 @@ class TypeAnalyzer(cfg: CFG) {
     entry <- func.entry
     view = getView(func)
   } yield NodePoint(func, entry, view)
-
-  // initial worklist
-  lazy val worklist: Worklist[ControlPoint] =
-    QueueWorklist(nps.filter(_.func.params.forall(_.ty.isDefined)))
 
   // get initial abstract states in each node point
   lazy val initNpMap: Map[NodePoint[Node], AbsState] = (for {

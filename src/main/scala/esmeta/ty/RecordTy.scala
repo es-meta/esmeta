@@ -55,6 +55,9 @@ case class RecordTy(
   def norm: RecordTy = RecordTy(
     this.map.filter { case (_, v) => v.fold(true)(!_.isBottom) },
   )
+
+  /** get single value */
+  def getSingle: Flat[Nothing] = if (map.isEmpty) Zero else Many
 }
 object RecordTy extends Parser.From(Parser.recordTy):
   def apply(fields: Set[String]): RecordTy =

@@ -4,6 +4,7 @@ import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.analyzer.domain.*
 
 /** pure value types (non-completion record types) */
 case class PureValueTy(
@@ -135,5 +136,26 @@ case class PureValueTy(
     this.nullv -- that.nullv,
     this.absent -- that.absent,
   )
+
+  /** get single value */
+  def getSingle: Flat[APureValue] =
+    (if (this.clo.isBottom) Zero else Many) |
+    (if (this.cont.isBottom) Zero else Many) |
+    (if (this.names.isBottom) Zero else Many) |
+    (if (this.record.isBottom) Zero else Many) |
+    (if (this.list.isBottom) Zero else Many) |
+    (if (this.symbol.isBottom) Zero else Many) |
+    (if (this.astValue.isBottom) Zero else Many) |
+    (if (this.grammar.isBottom) Zero else Many) |
+    (if (this.codeUnit.isBottom) Zero else Many) |
+    (if (this.const.isBottom) Zero else Many) |
+    (if (this.math.isBottom) Zero else Many) |
+    (if (this.number.isBottom) Zero else Many) |
+    (if (this.bigInt.isBottom) Zero else Many) |
+    (str.getSingle.map(Str(_))) |
+    (bool.getSingle.map(Bool(_))) |
+    (if (this.undef.isBottom) Zero else One(Undef)) |
+    (if (this.nullv.isBottom) Zero else One(Null)) |
+    (if (this.absent.isBottom) Zero else One(Absent))
 }
 object PureValueTy extends Parser.From(Parser.pureValueTy)

@@ -189,6 +189,6 @@ trait Domain extends domain.Domain[AValue] {
     def undef: AbsUndef
     def nullv: AbsNull
     def absent: AbsAbsent
-    def toTy: ValueTy
+    def ty: ValueTy
   }
 }

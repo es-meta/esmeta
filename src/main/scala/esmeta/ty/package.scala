@@ -59,6 +59,7 @@ val MathT: ValueTy = ValueTy(math = true)
 val NumberT: ValueTy = ValueTy(number = true)
 val BigIntT: ValueTy = ValueTy(bigInt = true)
 val StrTopT: ValueTy = ValueTy(str = Inf)
+def StrT(set: Set[String]): ValueTy = ValueTy(str = Fin(set))
 def StrT(xs: String*): ValueTy = ValueTy(str = Fin(xs.toSet))
 def BoolT(set: Set[Boolean]): ValueTy = ValueTy(bool = set)
 def BoolT(seq: Boolean*): ValueTy = ValueTy(bool = seq.toSet)
@@ -110,4 +111,8 @@ extension (elem: Boolean) {
 extension [T](elem: Set[T]) {
   def isBottom: Boolean = elem.isEmpty
   def <=(that: Set[T]): Boolean = elem subsetOf that
+  def getSingle[U >: T]: Flat[U] = elem.size match
+    case 0 => Zero
+    case 1 => One(elem.head)
+    case _ => Many
 }
