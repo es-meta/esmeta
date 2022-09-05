@@ -8,7 +8,11 @@ case class View(
   loops: List[LoopCtxt] = Nil,
   intraLoopDepth: Int = 0,
   // TODO tys: List[Type] = Nil,
-) extends AnalyzerElem
+) extends AnalyzerElem {
+
+  /** empty check */
+  def isEmpty: Boolean = this == View()
+}
 
 /** loop context */
 case class LoopCtxt(loop: Branch, depth: Int)

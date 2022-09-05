@@ -28,11 +28,15 @@ class StringifyTinyTest extends AnalyzerTest {
     // Control Points
     // -------------------------------------------------------------------------
     lazy val np = NodePoint(mainFunc, block, irView)
+    lazy val npEmptyView = NodePoint(mainFunc, block, View())
     lazy val rp = ReturnPoint(mainFunc, irView)
+    lazy val rpEmptyView = ReturnPoint(mainFunc, View())
 
     checkStringify("ControlPoint")(
-      np -> "[call: 0, 0, 0][loop: 0(3), 0(3)]:Block[0]",
-      rp -> "[call: 0, 0, 0][loop: 0(3), 0(3)]:RET:f[0]",
+      np -> "f[0]:Block[0]:[call: 0, 0, 0][loop: 0(3), 0(3)]",
+      npEmptyView -> "f[0]:Block[0]",
+      rp -> "f[0]:RETURN:[call: 0, 0, 0][loop: 0(3), 0(3)]",
+      rpEmptyView -> "f[0]:RETURN",
     )
 
     // -------------------------------------------------------------------------

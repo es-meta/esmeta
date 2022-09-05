@@ -267,7 +267,7 @@ class AbsSemantics(
   def loopExit(view: View): View =
     val views = loopOut.getOrElse(loopBase(view), Set())
     views.size match
-      case 0 => ???
+      case 0 => error("invalid loop exit")
       case 1 => views.head
       case _ => exploded("loop is too merged.")
 
@@ -290,12 +290,15 @@ class AbsSemantics(
   ): String =
     val func = cp.func.name
     val cpStr = cp.toString(detail = detail)
-    val k = setColor(color)(s"$func:$cpStr")
-    val v = cp match {
-      case (np: NodePoint[_]) => this(np).getString(detail = detail)
-      case (rp: ReturnPoint)  => this(rp).getString(detail = detail)
-    }
-    s"$k -> $v"
+    val k = setColor(color)(cpStr)
+    cp match
+      case np: NodePoint[_] =>
+        val st = this(np).getString(detail = detail)
+        s"""$k -> $st
+           |${np.node}""".stripMargin
+      case rp: ReturnPoint =>
+        val st = this(rp).getString(detail = detail)
+        s"""$k -> $st"""
 
   /** check reachability based on call contexts */
   def reachable(np: NodePoint[Node]): Boolean =

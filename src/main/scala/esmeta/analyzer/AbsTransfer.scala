@@ -27,11 +27,12 @@ class AbsTransfer(sem: AbsSemantics) {
 
   /** transfer function for node points */
   def apply[T <: Node](np: NodePoint[T]): Unit = {
+    // record current control point for alarm
+    sem.curCP = Some(np)
+    given ControlPoint = np
     val st = sem(np)
     val NodePoint(func, node, view) = np
-    val helper = Helper(np)
 
-    import helper._
     node match {
       case Block(_, insts, next) =>
         val newSt = insts.foldLeft(st) {
@@ -66,7 +67,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** get next node point */
-  protected def getNextNp(
+  def getNextNp(
     fromCp: NodePoint[Node],
     to: Node,
     loopOut: Boolean = false,
@@ -128,9 +129,11 @@ class AbsTransfer(sem: AbsSemantics) {
 
   // transfer function for expressions
   def apply(cp: ControlPoint, expr: Expr): AbsValue = {
+    // record current control point for alarm
+    sem.curCP = Some(cp)
+    given ControlPoint = cp
     val st = sem.getState(cp)
-    val helper = Helper(cp)
-    helper.transfer(expr)(st)._1
+    transfer(expr)(st)._1
   }
 
   /** sdo with default case */
@@ -141,7 +144,7 @@ class AbsTransfer(sem: AbsSemantics) {
   )
 
   /** get syntax-directed operation(SDO) */
-  protected val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+  val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
     case (ast, operation) =>
       val fnameMap = cfg.fnameMap
       ast.chains.foldLeft[Option[(Ast, Func)]](None) {
@@ -158,7 +161,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** get sub index of parsed Ast */
-  protected val getSubIdx = cached[Ast, Int] {
+  val getSubIdx = cached[Ast, Int] {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
       val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
@@ -171,208 +174,126 @@ class AbsTransfer(sem: AbsSemantics) {
       }
   }
 
-  /** internal prune function */
-  protected trait PruneHelper { this: Helper =>
-
-    /** prune condition */
-    def prune(cond: Expr, positive: Boolean): Updater = cond match {
-      case _ if !USE_REFINE   => st => st
-      case EUnary(UOp.Not, e) => prune(e, !positive)
-      case EBinary(BOp.Eq, ERef(ref: Local), target) =>
-        for {
-          rv <- transfer(ref)
-          tv <- transfer(target)
-          _ <- modify(pruneValue(rv, tv, positive))
-        } yield ()
-      case ETypeCheck(ERef(ref: Local), tyExpr) =>
-        for {
-          rv <- transfer(ref)
-          tv <- transfer(tyExpr)
-          tname <- tv.getSingle match
-            case One(Str(s))        => pure(s)
-            case One(Grammar(n, _)) => pure(n)
-            case _                  => exploded("ETypeCheck")
-          _ <- modify(pruneTypeCheck(rv, tname, positive))
-        } yield ()
-      case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
-        for {
-          rv <- transfer(ref)
-          tv <- transfer(tyRef)
-          _ <- modify(pruneType(rv, tv, positive))
-        } yield ()
-      case EBinary(BOp.Or, l, r) =>
-        st =>
-          val lst = prune(l, positive)(st)
-          val rst = prune(r, positive)(st)
-          if (positive) lst ⊔ rst else lst ⊓ rst
-      case EBinary(BOp.And, l, r) =>
-        st =>
-          val lst = prune(l, positive)(st)
-          val rst = prune(r, positive)(st)
-          if (positive) lst ⊓ rst else lst ⊔ rst
-      case _ => st => st
-    }
-
-    /** prune value */
-    def pruneValue(l: AbsRefValue, r: AbsValue, positive: Boolean): Updater =
+  /** transfer function for normal instructions */
+  def transfer(inst: NormalInst)(using cp: ControlPoint): Updater = inst match {
+    case IExpr(expr) =>
       for {
-        lv <- transfer(l)
-        st <- get
-        prunedV = lv.pruneValue(r, positive)
-        _ <- modify(_.update(l, prunedV))
-      } yield ()
-
-    /** prune type */
-    def pruneType(l: AbsRefValue, r: AbsValue, positive: Boolean): Updater =
+        v <- transfer(expr)
+      } yield v
+    case ILet(id, expr) =>
       for {
-        lv <- transfer(l)
-        st <- get
-        prunedV = lv.pruneType(r, positive)
-        _ <- modify(_.update(l, prunedV))
+        v <- transfer(expr)
+        _ <- modify(_.defineLocal(id -> v))
       } yield ()
-
-    /** prune type check */
-    def pruneTypeCheck(
-      l: AbsRefValue,
-      tname: String,
-      positive: Boolean,
-    ): Updater =
+    case IAssign(ref, expr) =>
       for {
-        lv <- transfer(l)
-        st <- get
-        prunedV = lv.pruneTypeCheck(tname, positive)
-        _ <- modify(_.update(l, prunedV))
+        rv <- transfer(ref)
+        v <- transfer(expr)
+        _ <- modify(_.update(rv, v))
       } yield ()
+    case IDelete(ref) =>
+      for {
+        rv <- transfer(ref)
+        _ <- modify(_.delete(rv))
+      } yield ()
+    case IPush(expr, list, front) =>
+      for {
+        l <- transfer(list)
+        v <- transfer(expr)
+        _ <- modify(_.push(l, v, front))
+      } yield ()
+    case IRemoveElem(list, elem) =>
+      for {
+        l <- transfer(list)
+        v <- transfer(elem)
+        _ <- modify(_.remove(l, v))
+      } yield ()
+    case IReturn(expr) =>
+      for {
+        v <- transfer(expr)
+        _ <- doReturn(v)
+        _ <- put(AbsState.Bot)
+      } yield ()
+    case IAssert(expr: EYet) =>
+      st => st /* skip not yet compiled assertions */
+    case IAssert(expr) =>
+      for {
+        v <- transfer(expr)
+        _ <- modify(prune(expr, true))
+        _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
+      } yield sem.assertions += cp -> v
+    case IPrint(expr) => st => st
+    case INop()       => st => st
   }
 
-  /** internal transfer function with a specific view */
-  protected class Helper(val cp: ControlPoint) extends PruneHelper {
-    lazy val func = cp.func
-    lazy val view = cp.view
-    lazy val rp = ReturnPoint(func, view)
+  /** transfer function for call instructions */
+  def transfer(call: Call)(using cp: ControlPoint): Result[AbsValue] =
+    val callerNp = NodePoint(cp.func, call, cp.view)
+    call.callInst match {
+      case ICall(_, fexpr, args) =>
+        for {
+          fv <- transfer(fexpr)
+          as <- join(args.map(transfer))
+          st <- get
+        } yield {
+          // closure call
+          for (AClo(func, captured) <- fv.clo)
+            sem.doCall(callerNp, st, func, as, captured)
 
-    // record current control point for alarm
-    sem.curCP = Some(cp)
+          // continuation call
+          for (ACont(target, captured) <- fv.cont) {
+            val as0 =
+              as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
+            val newLocals =
+              sem.getLocals(target.func, as0, cont = true) ++ captured
+            sem += target -> st.copied(locals = newLocals)
+          }
+          AbsValue.Bot
+        }
+      case IMethodCall(_, base, method, args) =>
+        for {
+          rv <- transfer(base)
+          bv <- transfer(rv)
+          // TODO do not explicitly store methods in object but use a type
+          // model when accessing methods
+          fv <- get(_.get(bv, AbsValue(Str(method))))
+          as <- join(args.map(transfer))
+          st <- get
+        } yield {
+          for (AClo(func, _) <- fv.clo)
+            sem.doCall(callerNp, st, func, bv.refineThis(func) :: as)
+          AbsValue.Bot
+        }
+      case ISdoCall(_, base, method, args) =>
+        for {
+          bv <- transfer(base)
+          as <- join(args.map(transfer))
+          st <- get
+        } yield {
+          var newV: AbsValue = AbsValue.Bot
+          bv.getSingle match
+            case One(AstValue(syn: Syntactic)) =>
+              getSDO((syn, method)) match
+                case Some((ast0, sdo)) =>
+                  sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
+                case None => error("invalid sdo")
+            case One(AstValue(lex: Lexical)) =>
+              newV ⊔= AbsValue(Interpreter.eval(lex, method))
+            case Many => ???
+            // TODO // syntactic sdo
+            // for { (sdo, ast) <- bv.getSDO(method) }
+            //   sem.doCall(callerNp, st, sdo, ast :: as)
 
-    /** transfer function for normal instructions */
-    def transfer(inst: NormalInst): Updater = inst match {
-      case IExpr(expr) =>
-        for {
-          v <- transfer(expr)
-        } yield v
-      case ILet(id, expr) =>
-        for {
-          v <- transfer(expr)
-          _ <- modify(_.defineLocal(id -> v))
-        } yield ()
-      case IAssign(ref, expr) =>
-        for {
-          rv <- transfer(ref)
-          v <- transfer(expr)
-          _ <- modify(_.update(rv, v))
-        } yield ()
-      case IDelete(ref) =>
-        for {
-          rv <- transfer(ref)
-          _ <- modify(_.delete(rv))
-        } yield ()
-      case IPush(expr, list, front) =>
-        for {
-          l <- transfer(list)
-          v <- transfer(expr)
-          _ <- modify(_.push(l, v, front))
-        } yield ()
-      case IRemoveElem(list, elem) =>
-        for {
-          l <- transfer(list)
-          v <- transfer(elem)
-          _ <- modify(_.remove(l, v))
-        } yield ()
-      case IReturn(expr) =>
-        for {
-          v <- transfer(expr)
-          _ <- doReturn(v)
-          _ <- put(AbsState.Bot)
-        } yield ()
-      case IAssert(expr: EYet) =>
-        st => st /* skip not yet compiled assertions */
-      case IAssert(expr) =>
-        for {
-          v <- transfer(expr)
-          _ <- modify(prune(expr, true))
-          _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
-        } yield sem.assertions += cp -> v
-      case IPrint(expr) => st => st
-      case INop()       => st => st
+            // // lexical sdo
+            // newV ⊔= bv.getLexical(method)
+            case _ => /* do nothing */
+          newV
+        }
     }
 
-    /** transfer function for call instructions */
-    def transfer(call: Call): Result[AbsValue] =
-      val callerNp = NodePoint(func, call, view)
-      call.callInst match {
-        case ICall(_, fexpr, args) =>
-          for {
-            fv <- transfer(fexpr)
-            as <- join(args.map(transfer))
-            st <- get
-          } yield {
-            // closure call
-            for (AClo(func, captured) <- fv.clo)
-              sem.doCall(callerNp, st, func, as, captured)
-
-            // continuation call
-            for (ACont(target, captured) <- fv.cont) {
-              val as0 =
-                as.map(v => if (func.isReturnComp) v.wrapCompletion else v)
-              val newLocals =
-                sem.getLocals(target.func, as0, cont = true) ++ captured
-              sem += target -> st.copied(locals = newLocals)
-            }
-            AbsValue.Bot
-          }
-        case IMethodCall(_, base, method, args) =>
-          for {
-            rv <- transfer(base)
-            bv <- transfer(rv)
-            // TODO do not explicitly store methods in object but use a type
-            // model when accessing methods
-            fv <- get(_.get(bv, AbsValue(Str(method))))
-            as <- join(args.map(transfer))
-            st <- get
-          } yield {
-            for (AClo(func, _) <- fv.clo)
-              sem.doCall(callerNp, st, func, bv.refineThis(func) :: as)
-            AbsValue.Bot
-          }
-        case ISdoCall(_, base, method, args) =>
-          for {
-            bv <- transfer(base)
-            as <- join(args.map(transfer))
-            st <- get
-          } yield {
-            var newV: AbsValue = AbsValue.Bot
-            bv.getSingle match
-              case One(AstValue(syn: Syntactic)) =>
-                getSDO((syn, method)) match
-                  case Some((ast0, sdo)) =>
-                    sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
-                  case None => error("invalid sdo")
-              case One(AstValue(lex: Lexical)) =>
-                newV ⊔= AbsValue(Interpreter.eval(lex, method))
-              case Many => ???
-              // TODO // syntactic sdo
-              // for { (sdo, ast) <- bv.getSDO(method) }
-              //   sem.doCall(callerNp, st, sdo, ast :: as)
-
-              // // lexical sdo
-              // newV ⊔= bv.getLexical(method)
-              case _ => /* do nothing */
-            newV
-          }
-      }
-
-    /** transfer function for expressions */
-    def transfer(expr: Expr): Result[AbsValue] = expr match {
+  /** transfer function for expressions */
+  def transfer(expr: Expr)(using cp: ControlPoint): Result[AbsValue] =
+    expr match {
       case EComp(ty, value, target) =>
         for {
           tyV <- transfer(ty)
@@ -605,8 +526,9 @@ class AbsTransfer(sem: AbsSemantics) {
       case ECodeUnit(c)          => AbsValue(CodeUnit(c))
     }
 
-    /** transfer function for references */
-    def transfer(ref: Ref): Result[AbsRefValue] = ref match
+  /** transfer function for references */
+  def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
+    ref match
       case id: Id => AbsRefId(id)
       case Prop(ref, expr) =>
         for {
@@ -615,123 +537,201 @@ class AbsTransfer(sem: AbsSemantics) {
           p <- transfer(expr)
         } yield AbsRefProp(b, p)
 
-    /** transfer function for reference values */
-    def transfer(rv: AbsRefValue): Result[AbsValue] = for {
+  /** transfer function for reference values */
+  def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =
+    for {
       v <- get(_.get(rv, cp))
     } yield v
 
-    /** transfer function for unary operators */
-    def transfer(
-      st: AbsState,
-      uop: UOp,
-      operand: AbsValue,
-    ): AbsValue =
-      import UOp.*
-      operand.getSingle match
-        case Zero => AbsValue.Bot
-        case One(x: SimpleValue) =>
-          optional(AbsValue(Interpreter.eval(uop, x))).getOrElse(AbsValue.Bot)
-        case One(Math(x)) =>
-          optional(AbsValue(Interpreter.eval(uop, Math(x))))
-            .getOrElse(AbsValue.Bot)
-        case One(_) => AbsValue.Bot
-        case Many =>
-          uop match
-            case Neg   => -operand
-            case Not   => !operand
-            case BNot  => ~operand
-            case Abs   => operand.abs
-            case Floor => operand.floor
+  /** transfer function for unary operators */
+  def transfer(
+    st: AbsState,
+    uop: UOp,
+    operand: AbsValue,
+  )(using cp: ControlPoint): AbsValue =
+    import UOp.*
+    operand.getSingle match
+      case Zero => AbsValue.Bot
+      case One(x: SimpleValue) =>
+        optional(AbsValue(Interpreter.eval(uop, x))).getOrElse(AbsValue.Bot)
+      case One(Math(x)) =>
+        optional(AbsValue(Interpreter.eval(uop, Math(x))))
+          .getOrElse(AbsValue.Bot)
+      case One(_) => AbsValue.Bot
+      case Many =>
+        uop match
+          case Neg   => -operand
+          case Not   => !operand
+          case BNot  => ~operand
+          case Abs   => operand.abs
+          case Floor => operand.floor
 
-    /** transfer function for binary operators */
-    def transfer(
-      st: AbsState,
-      bop: BOp,
-      left: AbsValue,
-      right: AbsValue,
-    ): AbsValue =
-      import BOp.*
-      (left.getSingle, right.getSingle) match {
-        case (Zero, _) | (_, Zero) => AbsValue.Bot
-        case (One(l: SimpleValue), One(r: SimpleValue)) =>
-          optional(AbsValue(Interpreter.eval(bop, l, r)))
-            .getOrElse(AbsValue.Bot)
-        case (One(Math(l)), One(Math(r))) =>
-          optional(AbsValue(Interpreter.eval(bop, Math(l), Math(r))))
-            .getOrElse(AbsValue.Bot)
-        case (One(lpart: Part), One(rpart: Part))
-            if bop == Eq || bop == Equal =>
-          if (lpart == rpart) {
-            if (st.isSingle(lpart)) AVT
-            else AVB
-          } else AVF
-        case (One(l), One(r)) if bop == Eq || bop == Equal =>
-          AbsValue(l == r)
-        case _ =>
-          bop match {
-            case BAnd    => left & right
-            case BOr     => left | right
-            case BXOr    => left ^ right
-            case Eq      => left =^= right
-            case Equal   => left ==^== right
-            case Lt      => left < right
-            case And     => left && right
-            case Or      => left || right
-            case Xor     => left ^^ right
-            case Plus    => left + right
-            case Sub     => left sub right
-            case Div     => left / right
-            case Mul     => left * right
-            case Mod     => left % right
-            case UMod    => left %% right
-            case Pow     => left ** right
-            case LShift  => left << right
-            case SRShift => left >> right
-            case URShift => left >>> right
-          }
-      }
-
-    /** transfer for variadic operators */
-    def transfer(vop: VOp, vs: List[AbsValue]): AbsValue =
-      AbsValue.vopTransfer(vop, vs)
-
-    // return specific value
-    def doReturn(v: AbsValue): Result[Unit] = for {
-      st <- get
-      ret = AbsRet(v, st.copied(locals = Map()))
-      _ = sem.doReturn(rp, ret)
-    } yield ()
-
-    // return if abrupt completion
-    def returnIfAbrupt(
-      value: AbsValue,
-      check: Boolean,
-    ): Result[AbsValue] = {
-      val checkReturn: Result[Unit] =
-        if (check) doReturn(value.abruptCompletion)
-        else ()
-      for (_ <- checkReturn) yield value.unwrapCompletion
+  /** transfer function for binary operators */
+  def transfer(
+    st: AbsState,
+    bop: BOp,
+    left: AbsValue,
+    right: AbsValue,
+  )(using cp: ControlPoint): AbsValue =
+    import BOp.*
+    (left.getSingle, right.getSingle) match {
+      case (Zero, _) | (_, Zero) => AbsValue.Bot
+      case (One(l: SimpleValue), One(r: SimpleValue)) =>
+        optional(AbsValue(Interpreter.eval(bop, l, r)))
+          .getOrElse(AbsValue.Bot)
+      case (One(Math(l)), One(Math(r))) =>
+        optional(AbsValue(Interpreter.eval(bop, Math(l), Math(r))))
+          .getOrElse(AbsValue.Bot)
+      case (One(lpart: Part), One(rpart: Part)) if bop == Eq || bop == Equal =>
+        if (lpart == rpart) {
+          if (st.isSingle(lpart)) AVT
+          else AVB
+        } else AVF
+      case (One(l), One(r)) if bop == Eq || bop == Equal =>
+        AbsValue(l == r)
+      case _ =>
+        bop match {
+          case BAnd    => left & right
+          case BOr     => left | right
+          case BXOr    => left ^ right
+          case Eq      => left =^= right
+          case Equal   => left ==^== right
+          case Lt      => left < right
+          case And     => left && right
+          case Or      => left || right
+          case Xor     => left ^^ right
+          case Plus    => left + right
+          case Sub     => left sub right
+          case Div     => left / right
+          case Mul     => left * right
+          case Mod     => left % right
+          case UMod    => left %% right
+          case Pow     => left ** right
+          case LShift  => left << right
+          case SRShift => left >> right
+          case URShift => left >>> right
+        }
     }
 
-    // short circuit evaluation
-    def shortCircuit(
-      bop: BOp,
-      left: Expr,
-      right: Expr,
-    ): Result[AbsValue] = for {
-      l <- transfer(left)
-      v <- (bop, l.getSingle) match {
-        case (BOp.And, One(Bool(false))) => pure(AVF)
-        case (BOp.Or, One(Bool(true)))   => pure(AVT)
-        case _ =>
-          for {
-            r <- transfer(right)
-            v <- get(transfer(_, bop, l, r))
-          } yield v
-      }
-    } yield v
+  /** transfer for variadic operators */
+  def transfer(vop: VOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
+    AbsValue.vopTransfer(vop, vs)
+
+  // return specific value
+  def doReturn(v: AbsValue)(using cp: ControlPoint): Result[Unit] = for {
+    st <- get
+    ret = AbsRet(v, st.copied(locals = Map()))
+    _ = sem.doReturn(ReturnPoint(cp.func, cp.view), ret)
+  } yield ()
+
+  // return if abrupt completion
+  def returnIfAbrupt(
+    value: AbsValue,
+    check: Boolean,
+  )(using cp: ControlPoint): Result[AbsValue] = {
+    val checkReturn: Result[Unit] =
+      if (check) doReturn(value.abruptCompletion)
+      else ()
+    for (_ <- checkReturn) yield value.unwrapCompletion
   }
 
-  // CFG getter
-  protected def cfg = Config.cfg
+  // short circuit evaluation
+  def shortCircuit(
+    bop: BOp,
+    left: Expr,
+    right: Expr,
+  )(using cp: ControlPoint): Result[AbsValue] = for {
+    l <- transfer(left)
+    v <- (bop, l.getSingle) match {
+      case (BOp.And, One(Bool(false))) => pure(AVF)
+      case (BOp.Or, One(Bool(true)))   => pure(AVT)
+      case _ =>
+        for {
+          r <- transfer(right)
+          v <- get(transfer(_, bop, l, r))
+        } yield v
+    }
+  } yield v
+
+  // ---------------------------------------------------------------------------
+  // helper function for pruning/refinement
+  // ---------------------------------------------------------------------------
+  /** prune condition */
+  def prune(
+    cond: Expr,
+    positive: Boolean,
+  )(using cp: ControlPoint): Updater = cond match {
+    case _ if !USE_REFINE   => st => st
+    case EUnary(UOp.Not, e) => prune(e, !positive)
+    case EBinary(BOp.Eq, ERef(ref: Local), target) =>
+      for {
+        rv <- transfer(ref)
+        tv <- transfer(target)
+        _ <- modify(pruneValue(rv, tv, positive))
+      } yield ()
+    case ETypeCheck(ERef(ref: Local), tyExpr) =>
+      for {
+        rv <- transfer(ref)
+        tv <- transfer(tyExpr)
+        tname <- tv.getSingle match
+          case One(Str(s))        => pure(s)
+          case One(Grammar(n, _)) => pure(n)
+          case _                  => exploded("ETypeCheck")
+        _ <- modify(pruneTypeCheck(rv, tname, positive))
+      } yield ()
+    case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
+      for {
+        rv <- transfer(ref)
+        tv <- transfer(tyRef)
+        _ <- modify(pruneType(rv, tv, positive))
+      } yield ()
+    case EBinary(BOp.Or, l, r) =>
+      st =>
+        val lst = prune(l, positive)(st)
+        val rst = prune(r, positive)(st)
+        if (positive) lst ⊔ rst else lst ⊓ rst
+    case EBinary(BOp.And, l, r) =>
+      st =>
+        val lst = prune(l, positive)(st)
+        val rst = prune(r, positive)(st)
+        if (positive) lst ⊓ rst else lst ⊔ rst
+    case _ => st => st
+  }
+
+  /** prune value */
+  def pruneValue(
+    l: AbsRefValue,
+    r: AbsValue,
+    positive: Boolean,
+  )(using cp: ControlPoint): Updater = for {
+    lv <- transfer(l)
+    st <- get
+    prunedV = lv.pruneValue(r, positive)
+    _ <- modify(_.update(l, prunedV))
+  } yield ()
+
+  /** prune type */
+  def pruneType(
+    l: AbsRefValue,
+    r: AbsValue,
+    positive: Boolean,
+  )(using cp: ControlPoint): Updater = for {
+    lv <- transfer(l)
+    st <- get
+    prunedV = lv.pruneType(r, positive)
+    _ <- modify(_.update(l, prunedV))
+  } yield ()
+
+  /** prune type check */
+  def pruneTypeCheck(
+    l: AbsRefValue,
+    tname: String,
+    positive: Boolean,
+  )(using cp: ControlPoint): Updater =
+    for {
+      lv <- transfer(l)
+      st <- get
+      prunedV = lv.pruneTypeCheck(tname, positive)
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
 }

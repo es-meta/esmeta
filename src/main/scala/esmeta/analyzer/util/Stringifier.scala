@@ -57,10 +57,13 @@ class Stringifier(
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
-    cp match
-      case NodePoint(_, node, view) => app >> view >> ":" >> node.simpleString
-      case ReturnPoint(func, view) =>
-        app >> view >> ":RET:" >> func.name >> s"[${func.id}]"
+    app >> cp.func.name >> "[" >> cp.func.id >> "]:"
+    app >> (cp match
+      case NodePoint(_, node, view) => node.simpleString
+      case ReturnPoint(func, view)  => "RETURN"
+    )
+    if (cp.view.isEmpty) app
+    else app >> ":" >> cp.view
 
   // values for analysis
   given avRule: Rule[AValue] = (app, av) =>
