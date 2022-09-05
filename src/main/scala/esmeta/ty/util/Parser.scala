@@ -146,8 +146,8 @@ trait Parsers extends BasicParsers {
   }.named("ty.AstValueTy")
 
   private lazy val singleAstValueTy: Parser[AstValueTy] = {
-    "Ast[" ~> word ~ (":" ~> int) <~ "]" ^^ {
-      case x ~ i => AstSingleTy(x, i)
+    "Ast:" ~> word ~ ("[" ~> int) ~ ("," ~> int <~ "]") ^^ {
+      case x ~ i ~ j => AstSingleTy(x, i, j)
     } | "Ast[" ~> repsep(word, ",") <~ "]" ^^ {
       case xs => AstNameTy(xs.toSet)
     } | "Ast" ^^^ AstTopTy

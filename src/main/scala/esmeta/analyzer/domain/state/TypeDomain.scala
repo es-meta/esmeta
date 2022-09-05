@@ -294,7 +294,9 @@ object TypeDomain extends state.Domain {
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
     ast match
-      case _ => ???
+      case AstBotTy                       => /* do nothing */
+      case AstSingleTy(name, idx, subIdx) => ???
+      case _                              => res |= AstTopT
     res
 
   // string lookup

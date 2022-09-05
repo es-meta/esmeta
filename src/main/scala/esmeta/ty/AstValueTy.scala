@@ -48,9 +48,9 @@ object AstValueTy extends Parser.From(Parser.astValueTy)
 case object AstTopTy extends AstValueTy
 sealed trait AstNonTopTy extends AstValueTy {
   def toName: AstNameTy = this match
-    case ty: AstNameTy        => ty
-    case AstSingleTy(name, _) => AstNameTy(Set(name))
+    case ty: AstNameTy           => ty
+    case AstSingleTy(name, _, _) => AstNameTy(Set(name))
 }
 case class AstNameTy(names: Set[String] = Set()) extends AstNonTopTy
-case class AstSingleTy(name: String, rhsIdx: Int) extends AstNonTopTy
+case class AstSingleTy(name: String, idx: Int, subIdx: Int) extends AstNonTopTy
 val AstBotTy = AstNameTy()

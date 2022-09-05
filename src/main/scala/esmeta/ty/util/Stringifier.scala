@@ -97,9 +97,10 @@ object Stringifier {
   given astValueTyRule: Rule[AstValueTy] = (app, ty) =>
     app >> "Ast"
     ty match
-      case AstTopTy               => app
-      case AstNameTy(names)       => app >> names
-      case AstSingleTy(name, idx) => app >> "[" >> name >> ":" >> idx >> "]"
+      case AstTopTy         => app
+      case AstNameTy(names) => app >> names
+      case AstSingleTy(x, i, j) =>
+        app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
 
   /** sub map types */
   given subMapTyRule: Rule[SubMapTy] = (app, ty) =>

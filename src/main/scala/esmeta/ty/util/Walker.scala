@@ -69,9 +69,10 @@ trait Walker extends BasicWalker {
 
   /** AST value types */
   def walkAst(ast: AstValueTy): AstValueTy = ast match
-    case AstTopTy               => AstTopTy
-    case AstNameTy(names)       => AstNameTy(walkSet(names, walk))
-    case AstSingleTy(name, idx) => AstSingleTy(walk(name), walk(idx))
+    case AstTopTy         => AstTopTy
+    case AstNameTy(names) => AstNameTy(walkSet(names, walk))
+    case AstSingleTy(name, idx, subIdx) =>
+      AstSingleTy(walk(name), walk(idx), walk(subIdx))
 
   /** grammar types */
   def walkGrammar(grammar: BSet[Grammar]): BSet[Grammar] =

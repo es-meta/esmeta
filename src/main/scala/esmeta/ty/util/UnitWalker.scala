@@ -65,9 +65,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** AST value types */
   def walkAst(ast: AstValueTy): Unit = ast match
-    case AstTopTy               =>
-    case AstNameTy(names)       => walkSet(names, walk)
-    case AstSingleTy(name, idx) => walk(name); walk(idx)
+    case AstTopTy                       =>
+    case AstNameTy(names)               => walkSet(names, walk)
+    case AstSingleTy(name, idx, subIdx) => walk(name); walk(idx); walk(subIdx)
 
   /** grammar types */
   def walkGrammar(grammar: BSet[Grammar]): Unit =

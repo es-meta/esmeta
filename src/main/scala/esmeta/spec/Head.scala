@@ -24,7 +24,11 @@ sealed trait Head extends SpecElem {
     case head: ConcreteMethodHead    => head.receiverParam :: head.params
     case head: InternalMethodHead    => head.receiverParam :: head.params
     case head: SyntaxDirectedOperationHead =>
-      Param("this", Type(AstTopT)) :: head.withParams
+      val thisTy = head.target match
+        case Some(target) =>
+          AstSingleT(target.lhsName, target.idx, target.subIdx)
+        case None => AstTopT
+      Param("this", Type(thisTy)) :: head.withParams
     case head: BuiltinHead =>
       List(
         Param("this", Type(ESValueT)),

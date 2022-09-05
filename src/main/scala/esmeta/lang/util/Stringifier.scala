@@ -625,13 +625,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // AST values
     ty.astValue match
       case AstTopTy => tys :+= "Parse Node".withArticle(plural)
-      case AstNameTy(set) =>
+      case ty: AstNonTopTy =>
+        val set = ty.toName.names
         for (name <- set.toList.sorted)
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
-      case AstSingleTy(name, _) =>
-        if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
-        else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
     // consts
     for (name <- ty.const.toList.sorted) tys :+= s"~$name~"
