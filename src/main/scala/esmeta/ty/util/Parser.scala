@@ -54,7 +54,7 @@ trait Parsers extends BasicParsers {
       case s => PureValueTy(clo = Fin(s.toSet))
     } | "Clo" ^^^ PureValueTy(clo = Inf) |
     // continuation
-    "Cont[" ~> rep1sep(str, ",") <~ "]" ^^ {
+    "Cont[" ~> rep1sep(int, ",") <~ "]" ^^ {
       case s => PureValueTy(cont = Fin(s.toSet))
     } | "Cont" ^^^ PureValueTy(cont = Inf) |
     // record

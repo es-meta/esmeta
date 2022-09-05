@@ -62,7 +62,7 @@ case class ValueTy(
   def normal: PureValueTy = comp.normal
   def abrupt: Boolean = comp.abrupt
   def clo: BSet[String] = pureValue.clo
-  def cont: BSet[String] = pureValue.cont
+  def cont: BSet[Int] = pureValue.cont
   def names: Set[String] = pureValue.names
   def record: RecordTy = pureValue.record
   def list: ListTy = pureValue.list
@@ -87,7 +87,7 @@ object ValueTy {
     abrupt: Boolean = false,
     pureValue: PureValueTy = PureValueTy(),
     clo: BSet[String] = Fin(),
-    cont: BSet[String] = Fin(),
+    cont: BSet[Int] = Fin(),
     names: Set[String] = Set(),
     record: RecordTy = RecordTy(),
     list: ListTy = ListTy(),

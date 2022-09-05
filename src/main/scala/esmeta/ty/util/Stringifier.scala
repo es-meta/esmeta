@@ -62,7 +62,7 @@ object Stringifier {
     else
       FilterApp(app)
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
-        .add(ty.cont.map(s => s"\"$s\""), !ty.cont.isBottom, "Cont")
+        .add(ty.cont, !ty.cont.isBottom, "Cont")
         .add(ty.names.mkString(OR), !ty.names.isBottom)
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
@@ -97,15 +97,18 @@ object Stringifier {
     app >> "SubMap[" >> ty.key >> " |-> " >> ty.value >> "]"
 
   // rule for bounded set lattice
-  private given strBSetRule: Rule[BSet[String]] = (app, set) =>
-    set match
-      case Inf      => app
-      case Fin(set) => app >> set
+  private given bsetRule[T: Ordering](using Rule[T]): Rule[BSet[T]] =
+    (app, set) =>
+      given Rule[List[T]] = iterableRule("[", ", ", "]")
+      set match
+        case Inf      => app
+        case Fin(set) => app >> set.toList.sorted
 
   // rule for string set
-  private given strSetRule: Rule[Set[String]] = (app, set) =>
-    given Rule[List[String]] = iterableRule("[", ", ", "]")
-    app >> set.toList.sorted
+  private given setRule[T: Ordering](using Rule[T]): Rule[Set[T]] =
+    (app, set) =>
+      given Rule[List[T]] = iterableRule("[", ", ", "]")
+      app >> set.toList.sorted
 
   // rule for boolean set
   private given boolSetRule: Rule[Set[Boolean]] = (app, set) =>

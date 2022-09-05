@@ -21,12 +21,6 @@ class Initialize(cfg: CFG) {
     heap = initHeap,
   )
 
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // implicit CFG
-  given CFG = cfg
-
   // initial globals
   lazy val initGlobal: Map[Global, Value] =
     initTypedGlobal.map { case (k, (v, _)) => k -> v }
@@ -36,7 +30,7 @@ class Initialize(cfg: CFG) {
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
-    SYMBOL -> (NamedAddr(SYMBOL), UnknownTy()),
+    SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
     REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
     JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
@@ -52,9 +46,6 @@ class Initialize(cfg: CFG) {
 
   // initial heaps
   lazy val initHeap: Heap = {
-    val intr = Intrinsics(cfg)
-    val glob = GlobalObject(cfg)
-    val sym = Symbols(cfg)
 
     val map: MMap[Addr, Obj] = MMap(
       NamedAddr(INTRINSICS) -> intr.obj,
@@ -81,6 +72,16 @@ class Initialize(cfg: CFG) {
 
     Heap(map, map.size)
   }
+
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // implicit CFG
+  given CFG = cfg
+
+  private val intr = Intrinsics(cfg)
+  private val glob = GlobalObject(cfg)
+  private val sym = builtin.Symbol(cfg)
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())

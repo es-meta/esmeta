@@ -1043,6 +1043,7 @@ trait Parsers extends IndentParsers {
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
     "ECMAScript language value" ^^^ ESValueT |
+    "property key" ^^^ (StrTopT | SymbolT) |
     "Parse Node" ^^^ AstTopT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |

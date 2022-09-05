@@ -26,7 +26,7 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
       } yield NodePoint(func, entry, view))
 
     /** abstract transfer function */
-    override val transfer: AbsTransfer = new AbsTransfer(this) {}
+    override val transfer: AbsTransfer = TypeTransfer(this)
 
   }.fixpoint
 
@@ -68,6 +68,9 @@ object TypeAnalyzer:
     valueDomain = value.TypeDomain,
     retDomain = ret.TypeDomain,
   )
+
+  // no sensitivity
+  IR_SENS = false
 
   /** perform analysis for a given ECMAScript code */
   def apply(

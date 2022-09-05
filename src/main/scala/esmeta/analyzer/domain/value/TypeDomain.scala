@@ -239,8 +239,20 @@ object TypeDomain extends value.Domain {
     /** getters */
     def comp: AbsComp = ???
     def pureValue: AbsPureValue = ???
-    def clo: AbsClo = ???
-    def cont: AbsCont = ???
+    def clo: AbsClo = ty.clo match
+      case Inf => AbsClo.Top
+      case Fin(set) =>
+        AbsClo(for {
+          name <- set.toList
+        } yield AClo(cfg.fnameMap(name), Map())) // TODO captured
+    def cont: AbsCont = ty.cont match
+      case Inf => AbsCont.Top
+      case Fin(set) =>
+        AbsCont(for {
+          fid <- set.toList
+          node = cfg.nodeMap(fid)
+          func = cfg.funcOf(node)
+        } yield ACont(NodePoint(func, node, View()), Map())) // TODO captured
     def part: AbsPart = ???
     def astValue: AbsAstValue = ???
     def grammar: AbsGrammar = ???
@@ -270,7 +282,7 @@ object TypeDomain extends value.Domain {
     case AComp(CONST_NORMAL, v, _) => NormalT(getValueTy(v))
     case _: AComp                  => AbruptT
     case AClo(func, _)             => CloT(func.name)
-    case ACont(target, _)          => ContT(target.func.name)
+    case ACont(target, _)          => ContT(target.node.id)
     case AstValue(ast)             => AstT(ast.name)
     case grammar: Grammar          => GrammarT(grammar)
     case CodeUnit(_)               => CodeUnitT

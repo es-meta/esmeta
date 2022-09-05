@@ -65,7 +65,7 @@ trait Walker extends BasicWalker {
   def walkClo(clo: BSet[String]): BSet[String] = walkBSet(clo, walk)
 
   /** continuation types */
-  def walkCont(cont: BSet[String]): BSet[String] = walkBSet(cont, walk)
+  def walkCont(cont: BSet[Int]): BSet[Int] = walkBSet(cont, walk)
 
   /** AST value types */
   def walkAst(ast: BSet[String]): BSet[String] = walkBSet(ast, walk)

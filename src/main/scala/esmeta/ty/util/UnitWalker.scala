@@ -61,7 +61,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walkClo(clo: BSet[String]): Unit = walkBSet(clo, walk)
 
   /** continuation types */
-  def walkCont(cont: BSet[String]): Unit = walkBSet(cont, walk)
+  def walkCont(cont: BSet[Int]): Unit = walkBSet(cont, walk)
 
   /** AST value types */
   def walkAst(ast: BSet[String]): Unit = walkBSet(ast, walk)

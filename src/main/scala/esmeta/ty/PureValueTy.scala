@@ -9,7 +9,7 @@ import esmeta.analyzer.domain.*
 /** pure value types (non-completion record types) */
 case class PureValueTy(
   clo: BSet[String] = Fin(),
-  cont: BSet[String] = Fin(),
+  cont: BSet[Int] = Fin(),
   names: Set[String] = Set(),
   record: RecordTy = RecordTy(),
   list: ListTy = ListTy(),

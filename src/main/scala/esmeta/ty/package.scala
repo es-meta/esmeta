@@ -1,6 +1,6 @@
 package esmeta.ty
 
-import esmeta.cfg.Func
+import esmeta.cfg.Node
 import esmeta.state.*
 import esmeta.ty.util.*
 import esmeta.util.*
@@ -27,7 +27,7 @@ def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
 val CloTopT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy = ValueTy(clo = Fin(names.toSet))
 val ContTopT: ValueTy = ValueTy(cont = Inf)
-def ContT(names: String*): ValueTy = ValueTy(cont = Fin(names.toSet))
+def ContT(nids: Int*): ValueTy = ValueTy(cont = Fin(nids.toSet))
 val ESPureValueT: PureValueTy = PureValueTy(
   names = Set("Object"),
   symbol = true,

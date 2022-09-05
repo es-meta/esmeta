@@ -21,7 +21,7 @@ class StringifyTinyTest extends TyTest {
       CloTopT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContTopT -> "Cont",
-      ContT("ToNumber:cont0") -> "Cont[\"ToNumber:cont0\"]",
+      ContT(42, 3) -> "Cont[3, 42]",
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
