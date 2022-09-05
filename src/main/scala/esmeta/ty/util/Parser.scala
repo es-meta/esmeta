@@ -64,9 +64,7 @@ trait Parsers extends BasicParsers {
     // symbol
     "Symbol" ^^^ PureValueTy(symbol = true) |
     // AST value
-    "Ast[" ~> rep1sep(word, ",") <~ "]" ^^ {
-      case s => PureValueTy(astValue = Fin(s.toSet))
-    } | "Ast" ^^^ PureValueTy(astValue = Inf) |
+    singleAstValueTy ^^ { case ast => PureValueTy(astValue = ast) } |
     // grammar
     "Grammar[" ~> rep1sep(grammar, ",") <~ "]" ^^ {
       case s => PureValueTy(grammar = Fin(s.toSet))
@@ -138,6 +136,21 @@ trait Parsers extends BasicParsers {
   private lazy val singleListTy: Parser[ListTy] = {
     "List[" ~> valueTy <~ "]" ^^ { case v => ListTy(Some(v)) } |
     "Nil" ^^^ ListTy(Some(ValueTy()))
+  }.named("ty.ListTy (single)")
+
+  /** AST value types */
+  given astValueTy: Parser[AstValueTy] = {
+    rep1sep(singleAstValueTy, "|") ^^ {
+      case ts => ts.foldLeft[AstValueTy](AstNameTy())(_ | _)
+    }
+  }.named("ty.AstValueTy")
+
+  private lazy val singleAstValueTy: Parser[AstValueTy] = {
+    "Ast[" ~> word ~ (":" ~> int) <~ "]" ^^ {
+      case x ~ i => AstSingleTy(x, i)
+    } | "Ast[" ~> repsep(word, ",") <~ "]" ^^ {
+      case xs => AstNameTy(xs.toSet)
+    } | "Ast" ^^^ AstTopTy
   }.named("ty.ListTy (single)")
 
   /** sub map types */

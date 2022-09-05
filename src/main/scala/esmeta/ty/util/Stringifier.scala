@@ -18,6 +18,7 @@ object Stringifier {
       case elem: ListTy      => listTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
+      case elem: AstValueTy  => astValueTyRule(app, elem)
       case elem: SubMapTy    => subMapTyRule(app, elem)
 
   /** types */
@@ -67,7 +68,7 @@ object Stringifier {
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
         .add("Symbol", !ty.symbol.isBottom)
-        .add(ty.astValue, !ty.astValue.isBottom, "Ast")
+        .add(ty.astValue, !ty.astValue.isBottom)
         .add(ty.grammar.map(_.toString), !ty.grammar.isBottom, "Grammar")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
@@ -91,6 +92,14 @@ object Stringifier {
     given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
     if (!ty.map.isEmpty) app >> ty.map.toList.sortBy(_._1)
     app
+
+  /** AST value types */
+  given astValueTyRule: Rule[AstValueTy] = (app, ty) =>
+    app >> "Ast"
+    ty match
+      case AstTopTy               => app
+      case AstNameTy(names)       => app >> names
+      case AstSingleTy(name, idx) => app >> "[" >> name >> ":" >> idx >> "]"
 
   /** sub map types */
   given subMapTyRule: Rule[SubMapTy] = (app, ty) =>

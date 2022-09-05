@@ -44,6 +44,7 @@ class StringifyTinyTest extends TyTest {
       SymbolT -> "Symbol",
       AstTopT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
+      AstSingleT("Member", 3) -> "Ast[Member:3]",
       GrammarT(
         Grammar("Literal", List(true)),
         Grammar("Identifier", List(false, true, false)),

@@ -624,11 +624,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // AST values
     ty.astValue match
-      case Inf => tys :+= "Parse Node".withArticle(plural)
-      case Fin(set) =>
+      case AstTopTy => tys :+= "Parse Node".withArticle(plural)
+      case AstNameTy(set) =>
         for (name <- set.toList.sorted)
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
+      case AstSingleTy(name, _) =>
+        if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
+        else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
     // consts
     for (name <- ty.const.toList.sorted) tys :+= s"~$name~"

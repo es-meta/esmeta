@@ -64,7 +64,10 @@ trait UnitWalker extends BasicUnitWalker {
   def walkCont(cont: BSet[Int]): Unit = walkBSet(cont, walk)
 
   /** AST value types */
-  def walkAst(ast: BSet[String]): Unit = walkBSet(ast, walk)
+  def walkAst(ast: AstValueTy): Unit = ast match
+    case AstTopTy               =>
+    case AstNameTy(names)       => walkSet(names, walk)
+    case AstSingleTy(name, idx) => walk(name); walk(idx)
 
   /** grammar types */
   def walkGrammar(grammar: BSet[Grammar]): Unit =

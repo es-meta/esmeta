@@ -291,14 +291,10 @@ object TypeDomain extends state.Domain {
     res
 
   // AST lookup
-  private def lookupAst(ast: BSet[String], prop: ValueTy): ValueTy =
+  private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
     ast match
-      case Inf => ???
-      case Fin(set) =>
-        for {
-          name <- set
-        } ???
+      case _ => ???
     res
 
   // string lookup

@@ -206,7 +206,7 @@ object TypeDomain extends value.Domain {
     def sourceText: Elem = strTop
     def parse(rule: Elem): Elem = Elem(
       ValueTy(astValue =
-        Fin(
+        AstNameTy(
           (for (grammar <- rule.grammar) yield grammar.name).toSet,
         ),
       ),
@@ -373,9 +373,10 @@ object TypeDomain extends value.Domain {
       names ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
       names ++= ancestors(name)
     if (!ty.astValue.isBottom) ty.astValue match
-      case Inf =>
+      case AstTopTy =>
         names ++= astChildMap.keySet ++ Set("ParseNode", "Nonterminal")
-      case Fin(astNames) =>
+      case ty: AstNonTopTy =>
+        val astNames = ty.toName.names
         names += "ParseNode"
         for (astName <- astNames)
           if (!cfg.grammar.lexicalNames.contains(astName))

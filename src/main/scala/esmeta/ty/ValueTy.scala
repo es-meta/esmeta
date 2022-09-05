@@ -67,7 +67,7 @@ case class ValueTy(
   def record: RecordTy = pureValue.record
   def list: ListTy = pureValue.list
   def symbol: Boolean = pureValue.symbol
-  def astValue: BSet[String] = pureValue.astValue
+  def astValue: AstValueTy = pureValue.astValue
   def grammar: BSet[Grammar] = pureValue.grammar
   def codeUnit: Boolean = pureValue.codeUnit
   def const: Set[String] = pureValue.const
@@ -92,7 +92,7 @@ object ValueTy {
     record: RecordTy = RecordTy(),
     list: ListTy = ListTy(),
     symbol: Boolean = false,
-    astValue: BSet[String] = Fin(),
+    astValue: AstValueTy = AstNameTy(),
     grammar: BSet[Grammar] = Fin(),
     codeUnit: Boolean = false,
     const: Set[String] = Set(),

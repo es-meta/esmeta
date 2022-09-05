@@ -14,7 +14,7 @@ case class PureValueTy(
   record: RecordTy = RecordTy(),
   list: ListTy = ListTy(),
   symbol: Boolean = false,
-  astValue: BSet[String] = Fin(),
+  astValue: AstValueTy = AstNameTy(),
   grammar: BSet[Grammar] = Fin(),
   codeUnit: Boolean = false,
   const: Set[String] = Set(),

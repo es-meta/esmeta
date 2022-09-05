@@ -68,7 +68,10 @@ trait Walker extends BasicWalker {
   def walkCont(cont: BSet[Int]): BSet[Int] = walkBSet(cont, walk)
 
   /** AST value types */
-  def walkAst(ast: BSet[String]): BSet[String] = walkBSet(ast, walk)
+  def walkAst(ast: AstValueTy): AstValueTy = ast match
+    case AstTopTy               => AstTopTy
+    case AstNameTy(names)       => AstNameTy(walkSet(names, walk))
+    case AstSingleTy(name, idx) => AstSingleTy(walk(name), walk(idx))
 
   /** grammar types */
   def walkGrammar(grammar: BSet[Grammar]): BSet[Grammar] =
