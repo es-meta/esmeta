@@ -1020,11 +1020,24 @@ trait Parsers extends IndentParsers {
 
   // completion record types
   lazy val compTy: P[ValueTy] =
-    "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
+    "a normal completion containing" ~> valueTy ^^ { NormalT(_) } |
     "an abrupt completion" ^^^ AbruptT
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = listTy | simpleTy
+  lazy val pureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
+
+  // named record types
+  lazy val nameTy: P[ValueTy] =
+    opt("an " | "a ") ~> rep1("(?!or)[-a-zA-Z]+".r)
+      .flatMap {
+        case ss =>
+          val name = Type.normalizeName(ss.mkString(" "))
+          if (TyModel.es.infos.contains(name)) success(NameT(name))
+          else failure("unknown type name")
+      }
+
+  // record types TODO
+  lazy val recordTy: P[ValueTy] = opt("an" | "a") ~> failure("TODO")
 
   // list types
   lazy val listTy: P[ValueTy] =
