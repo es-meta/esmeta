@@ -29,7 +29,7 @@ def CloT(names: String*): ValueTy = ValueTy(clo = Fin(names.toSet))
 val ContTopT: ValueTy = ValueTy(cont = Inf)
 def ContT(names: String*): ValueTy = ValueTy(cont = Fin(names.toSet))
 val ESPureValueT: PureValueTy = PureValueTy(
-  record = RecordTy(Set("Object")),
+  names = Set("Object"),
   symbol = true,
   number = true,
   bigInt = true,

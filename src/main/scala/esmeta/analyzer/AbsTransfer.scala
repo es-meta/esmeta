@@ -141,7 +141,7 @@ class AbsTransfer(sem: AbsSemantics) {
   )
 
   /** get syntax-directed operation(SDO) */
-  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
+  protected val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
     case (ast, operation) =>
       val fnameMap = cfg.fnameMap
       ast.chains.foldLeft[Option[(Ast, Func)]](None) {
@@ -158,7 +158,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** get sub index of parsed Ast */
-  private val getSubIdx = cached[Ast, Int] {
+  protected val getSubIdx = cached[Ast, Int] {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
       val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
@@ -172,7 +172,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** internal prune function */
-  private trait PruneHelper { this: Helper =>
+  protected trait PruneHelper { this: Helper =>
 
     /** prune condition */
     def prune(cond: Expr, positive: Boolean): Updater = cond match {
@@ -246,7 +246,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** internal transfer function with a specific view */
-  private class Helper(val cp: ControlPoint) extends PruneHelper {
+  protected class Helper(val cp: ControlPoint) extends PruneHelper {
     lazy val func = cp.func
     lazy val view = cp.view
     lazy val rp = ReturnPoint(func, view)

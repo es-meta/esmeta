@@ -9,7 +9,7 @@ import esmeta.ty.*
 import esmeta.util.*
 
 /** specification type analyzer for ECMA-262 */
-class TypeAnalyzer(cfg: CFG) {
+class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
 
   // set CFG for analysis
   setCFG(cfg)
@@ -19,7 +19,15 @@ class TypeAnalyzer(cfg: CFG) {
 
     /** a worklist of control points */
     override val worklist: Worklist[ControlPoint] =
-      QueueWorklist(nps.filter(_.func.params.forall(_.ty.isDefined)))
+      QueueWorklist(for {
+        func <- targets
+        entry <- func.entry
+        view = getView(func)
+      } yield NodePoint(func, entry, view))
+
+    /** abstract transfer function */
+    override val transfer: AbsTransfer = new AbsTransfer(this) {}
+
   }.fixpoint
 
   // all entry node points
@@ -62,4 +70,7 @@ object TypeAnalyzer:
   )
 
   /** perform analysis for a given ECMAScript code */
-  def apply(cfg: CFG): AbsSemantics = new TypeAnalyzer(cfg).result
+  def apply(
+    cfg: CFG,
+    targets: List[Func],
+  ): AbsSemantics = new TypeAnalyzer(cfg, targets).result
