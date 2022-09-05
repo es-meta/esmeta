@@ -36,6 +36,13 @@ object BasicDomain extends value.Domain {
   /** constructor with types */
   def apply(ty: Ty): Elem = Top
 
+  /** constructor for completions */
+  def createCompletion(
+    ty: AbsValue,
+    value: AbsValue,
+    target: AbsValue,
+  ): Elem = Elem(AbsComp(ty, value, target))
+
   /** predefined top values */
   def compTop: Elem = Bot.copy(comp = AbsComp.Top)
   def pureValueTop: Elem = Bot.copy(pureValue = AbsPureValue.Top)

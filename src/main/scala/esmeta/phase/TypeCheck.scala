@@ -18,11 +18,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     cmdConfig: CommandConfig,
     config: Config,
   ): AbsSemantics =
-    val allFuncs = cfg.funcs.filter(_.params.forall(_.ty.isDefined))
+    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
     val funcs = config.target.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.matches(f.name))
       if (funcs.isEmpty)
-        warn(s"not functions matched with the pattern `$pattern`.")
+        warn(s"failed to find functions matched with the pattern `$pattern`.")
       funcs
     })
     println(s"- ${funcs.size} target functions.")

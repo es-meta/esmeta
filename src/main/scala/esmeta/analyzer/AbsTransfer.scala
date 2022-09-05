@@ -120,7 +120,7 @@ class AbsTransfer(sem: AbsSemantics) {
         // wrap completion by conditions specified in
         // [5.2.3.5 Implicit Normal Completion]
         // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-        call.lhs -> (if (rp.func.isReturnComp) value.wrapCompletion else value),
+        call.lhs -> value,
       )
 
       sem += nextNp -> newSt
@@ -299,7 +299,7 @@ class AbsTransfer(sem: AbsSemantics) {
           tyV <- transfer(ty)
           v <- transfer(value)
           targetV <- transfer(target)
-        } yield AbsValue(AbsComp(tyV, v, targetV))
+        } yield AbsValue.createCompletion(tyV, v, targetV)
       case EIsCompletion(expr) =>
         for {
           v <- transfer(expr)

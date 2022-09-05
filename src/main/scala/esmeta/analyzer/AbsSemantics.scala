@@ -171,31 +171,6 @@ class AbsSemantics(
       intraLoopDepth = 0,
     )
 
-    // TODO get typed arguments
-    // val typedArgsList =
-    //   args.map(_.getTypedArguments).foldRight(List(List[(AbsValue, Type)]())) {
-    //     case (typedArgList, argsList) =>
-    //       for {
-    //         curr <- argsList
-    //         (v, ty) <- typedArgList
-    //       } yield (v, ty) :: curr
-    //   }
-
-    // TODO get callee entry state for each arguments list
-    // for {
-    //   // TODO typedArgs <- typedArgsList
-    //   // TODO (currArgs, currTys) = typedArgs.unzip
-    //   calleeSt = callerSt.copied(locals =
-    //     getLocals(calleeFunc, currArgs) ++ captured,
-    //   )
-    //   // handle type sensitivity
-    //   calleeView = baseView
-    //   // TODO calleeView =
-    //   //   if (TYPE_SENS) baseView.copy(tys = currTys)
-    //   //   else baseView
-    //   calleeNp = NodePoint(calleeFunc, calleeFunc.entry.get, calleeView)
-    // } yield (calleeNp, calleeSt)
-
     val calleeSt = callerSt.copied(locals =
       getLocals(calleeFunc, args) ++ captured,
     )
@@ -232,9 +207,10 @@ class AbsSemantics(
   }
 
   /** update return points */
-  def doReturn(rp: ReturnPoint, newRet: AbsRet): Unit =
+  def doReturn(rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val retRp = ReturnPoint(func, getEntryView(view))
+    val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
     if (!newRet.value.isBottom)
       val oldRet = this(retRp)
       if (!oldRet.isBottom && USE_REPL) repl.merged = true

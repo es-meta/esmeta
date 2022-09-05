@@ -228,7 +228,14 @@ object TypeDomain extends state.Domain {
     def doProcStart(fixed: Set[Part]): Elem = ???
 
     /** handle returns (elem: return states / to: caller states) */
-    def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
+    def doReturn(
+      to: Elem,
+      defs: Iterable[(Local, AbsValue)],
+    ): Elem = Elem(
+      reachable = true,
+      locals = to.locals ++ defs,
+    )
+
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = ???
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
 

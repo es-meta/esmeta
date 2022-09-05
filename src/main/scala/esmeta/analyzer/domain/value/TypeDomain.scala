@@ -34,6 +34,19 @@ object TypeDomain extends value.Domain {
     case _: UnknownTy => Bot
     case vty: ValueTy => Elem(vty)
 
+  /** constructor for completions */
+  def createCompletion(
+    ty: AbsValue,
+    value: AbsValue,
+    target: AbsValue,
+  ): Elem =
+    val consts = ty.ty.const
+    val normal =
+      if (consts contains "normal") value.ty.pureValue
+      else PureValueTy()
+    val abrupt = !(consts - "normal").isEmpty
+    Elem(ValueTy(normal = normal, abrupt = abrupt))
+
   /** predefined top values */
   lazy val compTop: Elem = Elem(???)
   lazy val pureValueTop: Elem = Elem(???)
@@ -213,7 +226,6 @@ object TypeDomain extends value.Domain {
     def wrapCompletion: Elem =
       val ty = elem.ty
       Elem(ValueTy(normal = ty.normal | ty.pureValue, abrupt = ty.abrupt))
-    def wrapCompletion(ty: String): Elem = ???
     def unwrapCompletion: Elem =
       val ty = elem.ty
       Elem(ValueTy(pureValue = ty.normal | ty.pureValue))
@@ -223,7 +235,7 @@ object TypeDomain extends value.Domain {
       if (!ty.comp.isBottom) bs += true
       if (!ty.pureValue.isBottom) bs += false
       Elem(ValueTy(bool = bs))
-    def abruptCompletion: Elem = ???
+    def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
 
     /** absent helpers */
     def removeAbsent: Elem = Elem(elem.ty -- AbsentT)

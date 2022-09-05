@@ -18,6 +18,13 @@ trait Domain extends domain.Domain[AValue] {
   /** constructor with types */
   def apply(ty: Ty): Elem
 
+  /** constructor for completions */
+  def createCompletion(
+    ty: AbsValue,
+    value: AbsValue,
+    target: AbsValue,
+  ): Elem
+
   /** abstraction functions for raw data */
   def apply(ast: Ast): Elem = apply(AstValue(ast))
   def apply(n: Double): Elem = apply(Number(n))

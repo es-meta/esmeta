@@ -3,6 +3,7 @@ package esmeta.cfg
 import esmeta.cfg.util.*
 import esmeta.ir.{Param, Type, Name, Func => IRFunc, FuncKind => IRFuncKind}
 import esmeta.spec.Head
+import esmeta.ty.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Appender, UId}
@@ -17,6 +18,15 @@ case class Func(
 
   /** parameters */
   lazy val params: List[Param] = irFunc.params
+
+  /** all types */
+  lazy val tys: List[Type] = retTy :: params.map(_.ty)
+
+  /** parameter types */
+  lazy val paramTys: List[Type] = params.map(_.ty)
+
+  /** check whether parameter types are defined */
+  lazy val isParamTysDefined: Boolean = paramTys.forall(_.isDefined)
 
   /** return types */
   lazy val retTy: Type = irFunc.retTy

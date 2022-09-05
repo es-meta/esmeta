@@ -19,6 +19,9 @@ trait Domain extends domain.Domain[(AValue, State)] {
   /** return value element interfaces */
   extension (elem: Elem) {
 
+    /** wrap completion records */
+    def wrapCompletion: Elem
+
     /** getters */
     def value: AbsValue
     def state: AbsState

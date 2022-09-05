@@ -50,6 +50,9 @@ object TypeDomain extends ret.Domain {
     /** minus operator */
     override def --(that: Elem): Elem = Elem(elem.value -- that.value)
 
+    /** wrap completion records */
+    def wrapCompletion: Elem = Elem(elem.value.wrapCompletion)
+
     /** getters */
     def value: AbsValue = elem.value
     def state: AbsState = AbsState.Bot

@@ -2,7 +2,7 @@ package esmeta.analyzer
 
 import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
-import esmeta.ir.Param
+import esmeta.ir.{Name, Param, Type}
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ty.*
@@ -15,24 +15,47 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
   setCFG(cfg)
 
   // analysis result
-  lazy val result = new AbsSemantics(initNpMap, initRpMap) {
-
-    /** a worklist of control points */
-    override val worklist: Worklist[ControlPoint] =
-      QueueWorklist(for {
-        func <- targets
-        entry <- func.entry
-        view = getView(func)
-      } yield NodePoint(func, entry, view))
+  lazy val result = new AbsSemantics(initNpMap) {
 
     /** abstract transfer function */
     override val transfer: AbsTransfer = TypeTransfer(this)
+
+    /** handle calls */
+    override def doCall(
+      callerNp: NodePoint[Call],
+      callerSt: AbsState,
+      calleeFunc: Func,
+      args: List[AbsValue],
+      captured: Map[Name, AbsValue] = Map(),
+    ): Unit =
+      // get parameter types
+      val newArgs = (args zip calleeFunc.params).map {
+        case (arg, param) =>
+          param.ty.ty match
+            case _: UnknownTy => arg
+            case ty: ValueTy =>
+              val newArg = AbsValue(ty)
+              if (arg !⊑ newArg)
+                logger.warn(s"invalid input: $arg !⊑ $newArg")
+              newArg
+      }
+      val NodePoint(callerFunc, call, view) = callerNp
+      calleeFunc.retTy.ty match
+        case retTy: ValueTy if calleeFunc.isParamTysDefined =>
+          for {
+            nextNode <- call.next
+            nextNp = NodePoint(callerFunc, nextNode, View())
+            retV = AbsValue(retTy)
+            newSt = callerSt.defineLocal(call.lhs -> retV)
+          } this += nextNp -> newSt
+        case _ =>
+          super.doCall(callerNp, callerSt, calleeFunc, newArgs, captured)
 
   }.fixpoint
 
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
-    func <- cfg.funcs
+    func <- targets
     entry <- func.entry
     view = getView(func)
   } yield NodePoint(func, entry, view)
@@ -42,13 +65,6 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
     np @ NodePoint(func, _, _) <- nps
     st = getState(func)
   } yield np -> st).toMap
-
-  // get initial abstract states in each return point
-  lazy val initRpMap: Map[ReturnPoint, AbsRet] = (for {
-    np @ NodePoint(func, _, _) <- nps
-    rp = np.toReturnPoint
-    ret = AbsRet(AbsValue(func.retTy.ty))
-  } yield rp -> ret).toMap
 
   // get view from a function
   def getView(func: Func): View = View()

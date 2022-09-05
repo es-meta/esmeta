@@ -67,6 +67,9 @@ object BasicDomain extends ret.Domain {
       elem.state -- that.state,
     )
 
+    /** wrap completion records */
+    def wrapCompletion: Elem = Elem(elem.value.wrapCompletion, elem.state)
+
     /** getters */
     def value: AbsValue = elem.value
     def state: AbsState = elem.state
