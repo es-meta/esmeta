@@ -21,7 +21,6 @@ import scala.util.matching.Regex
 
 // REPL for static analysis
 case class REPL(sem: AbsSemantics) {
-  def cfg = Config.cfg
 
   // completer
   private val completer: TreeCompleter =
@@ -99,6 +98,7 @@ case class REPL(sem: AbsSemantics) {
   } catch {
     case e: ESMetaError =>
       printlnColor(RED)(s"- # iter: $iter")
+      showStatus(cp)
       throw e
     case e: Throwable =>
       printlnColor(RED)(s"- unexpectedly terminated (# iter: $iter).")

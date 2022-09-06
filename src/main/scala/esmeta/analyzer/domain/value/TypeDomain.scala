@@ -1,7 +1,6 @@
 package esmeta.analyzer.domain.value
 
 import esmeta.analyzer.*
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
@@ -51,17 +50,18 @@ object TypeDomain extends value.Domain {
     Elem(ValueTy(normal = normal, abrupt = abrupt))
 
   /** predefined top values */
-  lazy val compTop: Elem = Elem(???)
-  lazy val pureValueTop: Elem = Elem(???)
+  lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
+  lazy val pureValueTop: Elem = notSupported("value.TypeDomain.pureValueTop")
   lazy val cloTop: Elem = Elem(CloTopT)
   lazy val contTop: Elem = Elem(ContTopT)
-  lazy val partTop: Elem = Elem(???)
+  lazy val partTop: Elem = notSupported("value.TypeDomain.partTop")
   lazy val astValueTop: Elem = Elem(AstTopT)
-  lazy val grammarTop: Elem = Elem(???)
+  lazy val grammarTop: Elem = notSupported("value.TypeDomain.grammarTop")
   lazy val codeUnitTop: Elem = Elem(CodeUnitT)
-  lazy val constTop: Elem = Elem(???)
+  lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
   lazy val mathTop: Elem = Elem(MathTopT)
-  lazy val simpleValueTop: Elem = Elem(???)
+  lazy val simpleValueTop: Elem =
+    notSupported("value.TypeDomain.simpleValueTop")
   lazy val numberTop: Elem = Elem(NumberTopT)
   lazy val bigIntTop: Elem = Elem(BigIntT)
   lazy val strTop: Elem = Elem(StrTopT)
@@ -109,7 +109,7 @@ object TypeDomain extends value.Domain {
   extension (elem: Elem) {
 
     /** get key values */
-    def keyValue: Elem = ???
+    def keyValue: Elem = notSupported("value.TypeDomain.Elem.keyValue")
 
     /** partial order */
     def ⊑(that: Elem): Boolean = elem.ty <= that.ty
@@ -213,7 +213,7 @@ object TypeDomain extends value.Domain {
       )
     def sourceText: Elem = strTop
     def parse(rule: Elem): Elem = rule.ty.grammar match
-      case Inf => ???
+      case Inf => exploded("too imprecise grammar rule for parsing")
       case Fin(set) =>
         Elem(
           ValueTy(astValue =
@@ -309,8 +309,9 @@ object TypeDomain extends value.Domain {
         synSdoCache((name, idx, subIdx, method))
 
     /** getters */
-    def comp: AbsComp = ???
-    def pureValue: AbsPureValue = ???
+    def comp: AbsComp = notSupported("value.TypeDomain.Elem.comp")
+    def pureValue: AbsPureValue =
+      notSupported("value.TypeDomain.Elem.pureValue")
     def clo: AbsClo = ty.clo match
       case Inf => AbsClo.Top
       case Fin(set) =>
@@ -325,20 +326,21 @@ object TypeDomain extends value.Domain {
           node = cfg.nodeMap(fid)
           func = cfg.funcOf(node)
         } yield ACont(NodePoint(func, node, View()), Map())) // TODO captured
-    def part: AbsPart = ???
-    def astValue: AbsAstValue = ???
-    def grammar: AbsGrammar = ???
-    def codeUnit: AbsCodeUnit = ???
-    def const: AbsConst = ???
-    def math: AbsMath = ???
-    def simpleValue: AbsSimpleValue = ???
-    def number: AbsNumber = ???
-    def bigInt: AbsBigInt = ???
-    def str: AbsStr = ???
-    def bool: AbsBool = ???
-    def undef: AbsUndef = ???
-    def nullv: AbsNull = ???
-    def absent: AbsAbsent = ???
+    def part: AbsPart = notSupported("value.TypeDomain.Elem.part")
+    def astValue: AbsAstValue = notSupported("value.TypeDomain.Elem.astValue")
+    def grammar: AbsGrammar = notSupported("value.TypeDomain.Elem.grammar")
+    def codeUnit: AbsCodeUnit = notSupported("value.TypeDomain.Elem.codeUnit")
+    def const: AbsConst = notSupported("value.TypeDomain.Elem.const")
+    def math: AbsMath = notSupported("value.TypeDomain.Elem.math")
+    def simpleValue: AbsSimpleValue =
+      notSupported("value.TypeDomain.Elem.simpleValue")
+    def number: AbsNumber = notSupported("value.TypeDomain.Elem.number")
+    def bigInt: AbsBigInt = notSupported("value.TypeDomain.Elem.bigInt")
+    def str: AbsStr = notSupported("value.TypeDomain.Elem.str")
+    def bool: AbsBool = notSupported("value.TypeDomain.Elem.undef")
+    def undef: AbsUndef = notSupported("value.TypeDomain.Elem.nullv")
+    def nullv: AbsNull = notSupported("value.TypeDomain.Elem.absent")
+    def absent: AbsAbsent = notSupported("value.TypeDomain.Elem.ty")
     def ty: ValueTy = elem.ty
   }
 

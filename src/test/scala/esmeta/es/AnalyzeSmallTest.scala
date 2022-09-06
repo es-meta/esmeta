@@ -1,14 +1,14 @@
 package esmeta.es
 
 import esmeta.{ESMetaTest, ES_TEST_DIR}
-import esmeta.analyzer.Config
+import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.util.SystemUtils.*
 
 class AnalyzeSmallTest extends ESTest {
   import ESTest.*
 
-  Config.YET_THROW = true
+  YET_THROW = true
   val name: String = "esAnalyzeTest"
 
   // registration

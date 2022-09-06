@@ -1,7 +1,6 @@
 package esmeta.analyzer.domain.value
 
 import esmeta.analyzer.*
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*

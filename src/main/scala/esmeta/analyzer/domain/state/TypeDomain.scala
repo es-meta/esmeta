@@ -2,7 +2,6 @@ package esmeta.analyzer.domain.state
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
 import esmeta.ir.{*, given}
@@ -107,19 +106,11 @@ object TypeDomain extends state.Domain {
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem = x match
-      case x: Local => defineLocal(x -> value)
-      case x: Global =>
-        if (value !⊑ baseGlobals(x))
-          logger.warn(s"invalid global variable update: $x = $value")
-        elem
+      case x: Local  => defineLocal(x -> value)
+      case x: Global => elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
-      val origV = get(base, prop)
-      if (value !⊑ origV)
-        // XXX handle ArrayCreate, ...
-        logger.warn(s"invalid property update: $base[$prop] = $value")
-      elem
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
 
     /** deletion wiht reference values */
     def delete(refV: AbsRefValue): Elem = elem
@@ -337,15 +328,11 @@ object TypeDomain extends state.Domain {
     val str = prop.str
     var res = ValueTy()
     def add(propStr: String): Unit = record.map.get(propStr) match
-      case None =>
-        logger.warn(s"invalid record property access: $record[$propStr]")
-      case Some(None) =>
-        logger.warn(s"too imprecise field access: $record[$propStr]")
-      case Some(Some(ty)) =>
-        res |= ty
+      case None           =>
+      case Some(None)     =>
+      case Some(Some(ty)) => res |= ty
     if (!record.isBottom) str match
       case Inf =>
-        logger.warn(s"too imprecise field name: $record[⊤]")
       case Fin(set) =>
         for (propStr <- set) add(propStr)
     res

@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.analyzer.{Config => AnalysisConfig, *}
+import esmeta.analyzer.*
 import esmeta.analyzer.domain
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -16,7 +16,6 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
     cmdConfig: CommandConfig,
     config: Config,
   ): AbsSemantics =
-    AnalysisConfig.YET_THROW = true
     val filename = getFirstFilename(cmdConfig, this.name)
     val analyzer = ESAnalyzer(cfg)
     analyzer(readFile(filename).trim)
@@ -24,7 +23,7 @@ case object Analyze extends Phase[CFG, AbsSemantics] {
   val options: List[PhaseOption[Config]] = List(
     (
       "repl",
-      BoolOption(c => AnalysisConfig.USE_REPL = true),
+      BoolOption(c => USE_REPL = true),
       "use a REPL for meta-level static analysis.",
     ),
   )

@@ -18,7 +18,7 @@ case object CmdMove
   // get node points of given nid
   def getNps(repl: REPL, nid: Int): Array[NodePoint[Node]] = {
     val sem = repl.sem
-    val node = Config.cfg.nodeMap(nid)
+    val node = cfg.nodeMap(nid)
     sem.npMap.keys.toArray.filter(_.node.id == node.id)
   }
 

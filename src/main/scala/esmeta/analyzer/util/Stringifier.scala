@@ -1,6 +1,5 @@
 package esmeta.analyzer.util
 
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*

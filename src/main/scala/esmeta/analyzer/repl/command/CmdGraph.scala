@@ -12,7 +12,7 @@ case object CmdGraph
     "graph",
     "Dump the current control graph.",
   ) {
-  import DotPrinter.*, Config.*
+  import DotPrinter.*
 
   // options
   val options @ List(total) = List("total")

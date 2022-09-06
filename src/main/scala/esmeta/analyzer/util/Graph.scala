@@ -1,7 +1,6 @@
 package esmeta.analyzer.util
 
 import esmeta.analyzer.*
-import esmeta.analyzer.Config
 import esmeta.cfg.*
 import esmeta.util.Appender
 
@@ -85,7 +84,6 @@ case class Graph(
     view: View,
     isExit: Boolean = false,
   ) extends DotPrinter {
-    import Config.cfg
     def getId(func: Func): String = s"cluster${func.id}_${norm(view)}"
     def getId(node: Node): String = s"node${node.id}_${norm(view)}"
     def getName(func: Func): String =

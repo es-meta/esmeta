@@ -3,7 +3,6 @@ package esmeta.phase
 import esmeta.*
 import esmeta.analyzer.*
 import esmeta.analyzer.domain
-import esmeta.analyzer.{Config => AnalysisConfig, *}
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -38,7 +37,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     ),
     (
       "repl",
-      BoolOption(c => AnalysisConfig.USE_REPL = true),
+      BoolOption(c => USE_REPL = true),
       "use a REPL for type analysis of ECMA-262.",
     ),
   )

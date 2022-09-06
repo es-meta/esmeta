@@ -1,7 +1,7 @@
 package esmeta.error
 
 import esmeta.ir.Param
-import esmeta.analyzer.domain.*
+import esmeta.analyzer.*
 
 sealed abstract class AnalysisError(msg: String)
   extends ESMetaError(msg, s"AnalysisError")

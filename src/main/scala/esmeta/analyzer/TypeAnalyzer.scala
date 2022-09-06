@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.ir.{Name, Param, Type}
 import esmeta.cfg.*
@@ -11,14 +10,11 @@ import esmeta.util.*
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
 
-  // set CFG for analysis
-  setCFG(cfg)
+  // initilize CFG for analysis
+  initCFG(cfg)
 
   // analysis result
   lazy val result = new AbsSemantics(initNpMap) {
-
-    /** abstract transfer function */
-    override val transfer: AbsTransfer = TypeTransfer(this)
 
     /** handle calls */
     override def doCall(
@@ -33,11 +29,7 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
         case (arg, param) =>
           param.ty.ty match
             case _: UnknownTy => arg
-            case ty: ValueTy =>
-              val newArg = AbsValue(ty)
-              if (arg !⊑ newArg)
-                logger.warn(s"invalid input: $arg !⊑ $newArg")
-              newArg
+            case ty: ValueTy  => AbsValue(ty)
       }
       val NodePoint(callerFunc, call, view) = callerNp
       calleeFunc.retTy.ty match
@@ -79,7 +71,7 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
 }
 object TypeAnalyzer:
   // set type domains
-  setDomain(
+  initDomain(
     stateDomain = state.TypeDomain,
     valueDomain = value.TypeDomain,
     retDomain = ret.TypeDomain,
@@ -91,7 +83,7 @@ object TypeAnalyzer:
   // use type refinement
   USE_REFINE = true
 
-  /** perform analysis for a given ECMAScript code */
+  /** perform type analysis for given target functions */
   def apply(
     cfg: CFG,
     targets: List[Func],

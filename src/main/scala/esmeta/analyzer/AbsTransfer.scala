@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
@@ -28,7 +27,6 @@ class AbsTransfer(sem: AbsSemantics) {
   /** transfer function for node points */
   def apply[T <: Node](np: NodePoint[T]): Unit = {
     // record current control point for alarm
-    sem.curCP = Some(np)
     given ControlPoint = np
     val st = sem(np)
     val NodePoint(func, node, view) = np
@@ -130,7 +128,6 @@ class AbsTransfer(sem: AbsSemantics) {
   // transfer function for expressions
   def apply(cp: ControlPoint, expr: Expr): AbsValue = {
     // record current control point for alarm
-    sem.curCP = Some(cp)
     given ControlPoint = cp
     val st = sem.getState(cp)
     transfer(expr)(st)._1
@@ -236,11 +233,10 @@ class AbsTransfer(sem: AbsSemantics) {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          // closure call
-          for (AClo(func, captured) <- fv.clo)
+          // closure call (unsound for inifinitely many closures)
+          for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
             sem.doCall(callerNp, st, func, as, captured)
-
-          // continuation call
+          // continuation call (unsound for inifinitely many continuations)
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
               as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
@@ -343,7 +339,7 @@ class AbsTransfer(sem: AbsSemantics) {
           lv <- id(_.getChildren(asite, av, kOpt))
         } yield lv
       case EYet(msg) =>
-        if (YET_THROW) throw NotSupported(msg)
+        if (YET_THROW) notSupported(msg)
         else AbsValue.Bot
       case EContains(list, elem, field) =>
         for {
@@ -428,7 +424,6 @@ class AbsTransfer(sem: AbsSemantics) {
               captured = cap.map(x => x -> st.lookupLocal(x)).toMap
             } yield AbsValue(AClo(f, captured))
           case None =>
-            sem.warning(s"unknown function: $fname")
             for { _ <- put(AbsState.Bot) } yield AbsValue.Bot
         }
       case ECont(fname) =>
@@ -454,14 +449,13 @@ class AbsTransfer(sem: AbsSemantics) {
             val cs0 = cs.map(cOpt =>
               cOpt.map(_.getSingle match {
                 case One(AstValue(child)) => child
-                case Zero                 => ??? // impossible
                 case _                    => exploded("ESyntactic")
               }),
             )
             AbsValue(Syntactic(name, args, rhsIdx, cs0))
           }
         }
-      case ELexical(name, expr) => ??? // TODO
+      case ELexical(name, expr) => notSupported("ELexical")
       case e @ EMap(tname, props) =>
         val asite = AllocSite(e.asite, cp.view)
         for {

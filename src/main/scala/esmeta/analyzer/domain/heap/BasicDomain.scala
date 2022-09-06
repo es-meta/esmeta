@@ -2,7 +2,6 @@ package esmeta.analyzer.domain.heap
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.es

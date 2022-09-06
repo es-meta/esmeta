@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.es.*
@@ -8,8 +7,8 @@ import esmeta.ir.*
 
 /** meta-level static analyzer for ECMAScript */
 class ESAnalyzer(cfg: CFG) {
-  // set CFG for analysis
-  setCFG(cfg)
+  // initialize CFG for analysis
+  initCFG(cfg)
 
   /** initial control point */
   lazy val initCp =
@@ -28,3 +27,6 @@ class ESAnalyzer(cfg: CFG) {
     )
     sem.fixpoint
 }
+object ESAnalyzer:
+  // throw exceptions when touching not yet supported instructions
+  YET_THROW = true

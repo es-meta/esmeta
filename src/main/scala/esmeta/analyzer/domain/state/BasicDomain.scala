@@ -2,7 +2,6 @@ package esmeta.analyzer.domain.state
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.CFG
 import esmeta.ir.*
@@ -264,7 +263,7 @@ object BasicDomain extends state.Domain {
       value: AbsValue,
       field: Option[(Type, String)],
     ): AbsValue = field match
-      case Some(_) => ??? // TODO
+      case Some(_) => AbsValue.boolTop
       case None    => heap.contains(list.part, value)
 
     /** define global variables */

@@ -1,5 +1,6 @@
 package esmeta.analyzer.domain
 
+import esmeta.analyzer.*
 import esmeta.ir.*
 
 // basic abstract reference values

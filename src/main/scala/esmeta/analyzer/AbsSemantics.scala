@@ -1,6 +1,5 @@
 package esmeta.analyzer
 
-import esmeta.analyzer.Config.*
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
@@ -28,23 +27,9 @@ class AbsSemantics(
 
   /** assertions */
   var assertions: Map[ControlPoint, AbsValue] = Map()
-  def checkAssertion: Unit = for ((cp, v) <- assertions)
-    if (AVF == v) warning("assertion failed", cp)
 
   /** current control point */
   var curCP: Option[ControlPoint] = None
-
-  /** show warning messages */
-  def warning(msg: String): Unit = warning(msg, curCP)
-
-  /** show warning messages with optinal control points */
-  def warning(msg: String, cp: Option[ControlPoint]): Unit = cp match
-    case Some(cp) => warning(msg, cp)
-    case None     => printlnColor(RED)(msg)
-
-  /** show warning messages with control points */
-  def warning(msg: String, cp: ControlPoint): Unit =
-    printlnColor(RED)(s"[$cp @ ${cp.func.name}]: $msg")
 
   /** analysis REPL */
   val repl = REPL(this)
@@ -57,7 +42,7 @@ class AbsSemantics(
   private var iter: Int = 0
 
   /** RunJobs function */
-  val runJobs = Config.cfg.fnameMap("RunJobs")
+  val runJobs = cfg.fnameMap("RunJobs")
 
   /** get return point of RunJobs */
   val runJobsRp = ReturnPoint(runJobs, View())
@@ -80,7 +65,7 @@ class AbsSemantics(
       // check time limit
       if (iter % CHECK_PERIOD == 0) TIME_LIMIT.map(limit => {
         val duration = (System.currentTimeMillis - startTime) / 1000
-        if (duration > limit) throw AnalysisImprecise("timeout")
+        if (duration > limit) exploded("timeout")
       })
       // text-based debugging
       if (DEBUG) println(s"${cp.func.name}:$cp")
@@ -93,8 +78,6 @@ class AbsSemantics(
     case None =>
       // finalize REPL
       if (USE_REPL) repl.finished
-      // checker
-      checkAssertion
       // final result
       this
 
@@ -187,10 +170,9 @@ class AbsSemantics(
         if (optional) {
           map += lhs -> AbsValue(Absent)
           aux(pl, Nil)
-        } else throw AnalysisRemainingParams(ps)
+        }
       case (Nil, args) =>
-        // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-        if (!cont) error("") // TODO throw AnalysisRemainingArgs(args)
+      // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
         aux(pl, al)
