@@ -1,6 +1,7 @@
 package esmeta.ty.util
 
 import esmeta.LINE_SEP
+import esmeta.state.Number
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -72,8 +73,8 @@ object Stringifier {
         .add(ty.grammar.map(_.toString), !ty.grammar.isBottom, "Grammar")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
-        .add("Math", !ty.math.isBottom)
-        .add("Number", !ty.number.isBottom)
+        .add(ty.math, !ty.math.isBottom, "Math")
+        .add(ty.number, !ty.number.isBottom, "Number")
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
@@ -142,6 +143,15 @@ object Stringifier {
         app >> pre >> t >> post
       this
   }
+
+  // rule for number
+  private given numberRule: Rule[Number] = (app, number) =>
+    number match
+      case Number(Double.PositiveInfinity) => app >> "+INF"
+      case Number(Double.NegativeInfinity) => app >> "-INF"
+      case Number(n) if n.isNaN            => app >> "NaN"
+      case Number(n)                       => app >> n
+  given Ordering[Number] = Ordering.by(_.n)
 
   // separator for type disjuction
   private val OR = " | "

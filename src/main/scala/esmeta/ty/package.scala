@@ -31,7 +31,7 @@ def ContT(nids: Int*): ValueTy = ValueTy(cont = Fin(nids.toSet))
 val ESPureValueT: PureValueTy = PureValueTy(
   names = Set("Object"),
   symbol = true,
-  number = true,
+  number = Inf,
   bigInt = true,
   str = Inf,
   bool = Set(true, false),
@@ -57,8 +57,10 @@ def AstSingleT(name: String, idx: Int, subIdx: Int): ValueTy =
 def GrammarT(xs: Grammar*): ValueTy = ValueTy(grammar = Fin(xs.toSet))
 val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
 def ConstT(xs: String*): ValueTy = ValueTy(const = xs.toSet)
-val MathT: ValueTy = ValueTy(math = true)
-val NumberT: ValueTy = ValueTy(number = true)
+val MathTopT: ValueTy = ValueTy(math = Inf)
+def MathT(ns: BigDecimal*): ValueTy = ValueTy(math = Fin(ns.toSet))
+val NumberTopT: ValueTy = ValueTy(number = Inf)
+def NumberT(ns: Number*): ValueTy = ValueTy(number = Fin(ns.toSet))
 val BigIntT: ValueTy = ValueTy(bigInt = true)
 val StrTopT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy = ValueTy(str = Fin(set))

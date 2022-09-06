@@ -325,7 +325,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // TODO types
     // -------------------------------------------------------------------------
-    lazy val ty = Type(NumberT)
+    lazy val ty = Type(NumberTopT)
     checkParseAndStringify("Type", Type)(ty -> "Number")
   }
 

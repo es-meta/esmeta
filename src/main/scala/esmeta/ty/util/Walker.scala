@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.Grammar
+import esmeta.state.{Grammar, Number}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -91,10 +91,12 @@ trait Walker extends BasicWalker {
   def walkConst(const: Set[String]): Set[String] = walkSet(const, walk)
 
   /** mathematical value types */
-  def walkMath(math: Boolean): Boolean = walk(math)
+  def walkMath(math: BSet[BigDecimal]): BSet[BigDecimal] = walkBSet(math, walk)
+  def walk(math: BigDecimal): BigDecimal = math
 
   /** number types */
-  def walkNumber(number: Boolean): Boolean = walk(number)
+  def walkNumber(number: BSet[Number]): BSet[Number] = walkBSet(number, walk)
+  def walk(number: Number): Number = number
 
   /** big integer types */
   def walkBigInt(bigInt: Boolean): Boolean = walk(bigInt)

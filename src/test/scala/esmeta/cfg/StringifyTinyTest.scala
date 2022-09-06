@@ -126,7 +126,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)
-    lazy val ty = Type(NumberT)
+    lazy val ty = Type(NumberTopT)
   }
 
   init

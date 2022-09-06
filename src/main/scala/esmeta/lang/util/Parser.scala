@@ -1032,7 +1032,7 @@ trait Parsers extends IndentParsers {
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
-    "Number" ^^^ NumberT |
+    "Number" ^^^ NumberTopT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
     "Symbol" ^^^ SymbolT |

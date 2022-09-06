@@ -572,7 +572,7 @@ class StringifyTinyTest extends LangTest {
 
     // tests
     checkParseAndStringify("Type", Type)(
-      Type(NumberT) -> "a Number",
+      Type(NumberTopT) -> "a Number",
       Type(BigIntT) -> "a BigInt",
       Type(BoolT) -> "a Boolean",
       Type(SymbolT) -> "a Symbol",
@@ -589,16 +589,16 @@ class StringifyTinyTest extends LangTest {
       Type(ConstT("string", "symbol")) -> "~string~ or ~symbol~",
       Type(ConstT("start", "end", "start+end")) ->
       "~end~, ~start~, or ~start+end~",
-      Type(ListT(NumberT)) -> "a List of Numbers",
+      Type(ListT(NumberTopT)) -> "a List of Numbers",
       Type(ListT(AstTopT)) -> "a List of Parse Nodes",
       Type(ListT(StrTopT | UndefT)) -> "a List of Strings or *undefined*",
       Type(NameT("Environment Record")) -> "an Environment Record",
-      Type(NormalT(NumberT)) -> "a normal completion containing a Number",
+      Type(NormalT(NumberTopT)) -> "a normal completion containing a Number",
       Type(AbruptT) -> "an abrupt completion",
       Type(NormalT(BigIntT) | AbruptT) ->
       "either a normal completion containing a BigInt or an abrupt completion",
       // more complex
-      Type(NumberT | BigIntT) -> "a Number or a BigInt",
+      Type(NumberTopT | BigIntT) -> "a Number or a BigInt",
       Type(NullT | ESValueT) -> "an ECMAScript language value",
       Type(ESValueT | AstTopT) -> "an ECMAScript language value or a Parse Node",
     )

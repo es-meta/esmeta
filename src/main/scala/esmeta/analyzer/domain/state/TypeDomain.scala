@@ -294,9 +294,19 @@ object TypeDomain extends state.Domain {
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
     ast match
-      case AstBotTy                       => /* do nothing */
-      case AstSingleTy(name, idx, subIdx) => ???
-      case _                              => res |= AstTopT
+      case AstBotTy => /* do nothing */
+      case AstSingleTy(name, idx, subIdx) =>
+        prop.math match
+          case Fin(ns) =>
+            for {
+              n <- ns
+              if n.isValidInt
+              propIdx = n.toInt
+              rhs = cfg.grammar.nameMap(name).rhsList(idx)
+              nts = rhs.getNts(subIdx)
+            } res |= nts(propIdx).fold(AbsentT)(AstT(_))
+          case Inf => res |= AstTopT
+      case _ => res |= AstTopT
     res
 
   // string lookup
@@ -304,8 +314,8 @@ object TypeDomain extends state.Domain {
     val str = prop.str
     val math = prop.math
     var res = ValueTy()
-    if (str contains "length") res |= MathT
-    if (math) res |= CodeUnitT
+    if (str contains "length") res |= MathTopT
+    if (!math.isBottom) res |= CodeUnitT
     res
 
   // named record lookup
@@ -328,12 +338,12 @@ object TypeDomain extends state.Domain {
       case None =>
         logger.warn(s"invalid record property access: $record[$propStr]")
       case Some(None) =>
-        exploded(s"too imprecise field access: $record[$propStr]")
+        logger.warn(s"too imprecise field access: $record[$propStr]")
       case Some(Some(ty)) =>
         res |= ty
     if (!record.isBottom) str match
       case Inf =>
-        exploded(s"too imprecise field name: $record[⊤]")
+        logger.warn(s"too imprecise field name: $record[⊤]")
       case Fin(set) =>
         for (propStr <- set) add(propStr)
     res
@@ -344,8 +354,8 @@ object TypeDomain extends state.Domain {
     val str = prop.str
     val math = prop.math
     for (ty <- list.elem)
-      if (str contains "length") res |= MathT
-      if (math) res |= ty
+      if (str contains "length") res |= MathTopT
+      if (!math.isBottom) res |= ty
     res
 
   // symbol lookup

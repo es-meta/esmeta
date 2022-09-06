@@ -1,6 +1,7 @@
 package esmeta.analyzer.domain
 
 import esmeta.analyzer.*
+import esmeta.analyzer.Config.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -21,7 +22,9 @@ trait Domain[A] { self =>
   given Conversion[Elem, Iterable[A]] = elem =>
     new Iterable[A]:
       final def iterator: Iterator[A] = elem.gamma match
-        case Inf      => exploded(s"impossible to iterate infinte values")
+        case Inf =>
+          logger.warn(s"impossible to iterate infinte values")
+          Nil.iterator
         case Fin(set) => set.iterator
 
   /** abstraction functions */

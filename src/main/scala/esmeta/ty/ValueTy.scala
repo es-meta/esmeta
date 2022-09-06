@@ -71,8 +71,8 @@ case class ValueTy(
   def grammar: BSet[Grammar] = pureValue.grammar
   def codeUnit: Boolean = pureValue.codeUnit
   def const: Set[String] = pureValue.const
-  def math: Boolean = pureValue.math
-  def number: Boolean = pureValue.number
+  def math: BSet[BigDecimal] = pureValue.math
+  def number: BSet[Number] = pureValue.number
   def bigInt: Boolean = pureValue.bigInt
   def str: BSet[String] = pureValue.str
   def bool: Set[Boolean] = pureValue.bool
@@ -96,8 +96,8 @@ object ValueTy {
     grammar: BSet[Grammar] = Fin(),
     codeUnit: Boolean = false,
     const: Set[String] = Set(),
-    math: Boolean = false,
-    number: Boolean = false,
+    math: BSet[BigDecimal] = Fin(),
+    number: BSet[Number] = Fin(),
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
     bool: Set[Boolean] = Set(),

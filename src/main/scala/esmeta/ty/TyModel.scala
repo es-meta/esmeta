@@ -53,12 +53,14 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       NameT("Object")
     else
-      propMap(tname).getOrElse(
-        p, {
-          if (check) warn(s"unknown property access: $tname.$p")
-          AbsentT
-        },
-      )
+      propMap
+        .getOrElse(tname, Map())
+        .getOrElse(
+          p, {
+            if (check) warn(s"unknown property access: $tname.$p")
+            AbsentT
+          },
+        )
 
   /** property type */
   private lazy val propMap: Map[String, PropMap] = (for {
@@ -401,8 +403,8 @@ object TyModel {
         ),
         fields = Map(
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
-          "ArrayLength" -> MathT,
-          "ByteOffset" -> MathT,
+          "ArrayLength" -> MathTopT,
+          "ByteOffset" -> MathTopT,
           "ContentTy" -> (NUMBER | BIGINT),
           "TydArrayName" -> StrTopT,
         ),
@@ -748,8 +750,8 @@ object TyModel {
             EVALUATED
           ),
           "EvaluationError" -> (AbruptT | EMPTY),
-          "DFSIndex" -> (MathT | EMPTY),
-          "DFSAncestorIndex" -> (MathT | EMPTY),
+          "DFSIndex" -> (MathTopT | EMPTY),
+          "DFSAncestorIndex" -> (MathTopT | EMPTY),
           "RequestedModules" -> ListT(StrTopT),
           "CycleRoot" -> (NameT("CyclicModuleRecord") | EMPTY),
           "HasTLA" -> BoolT,
@@ -759,7 +761,7 @@ object TyModel {
             EMPTY,
           ),
           "AsyncParentModules" -> ListT(NameT("CyclicModuleRecord")),
-          "PendingAsyncDependencies" -> (MathT | EMPTY),
+          "PendingAsyncDependencies" -> (MathTopT | EMPTY),
         ),
       ),
       "SourceTextModuleRecord" -> TyInfo(
@@ -813,8 +815,8 @@ object TyModel {
       // match record
       "MatchRecord" -> TyInfo(
         fields = Map(
-          "StartIndex" -> MathT,
-          "EndIndex" -> MathT,
+          "StartIndex" -> MathTopT,
+          "EndIndex" -> MathTopT,
         ),
       ),
 

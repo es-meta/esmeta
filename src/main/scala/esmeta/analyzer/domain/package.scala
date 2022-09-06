@@ -13,8 +13,8 @@ def setDomain(
   valueDomain: ValueDomain = value.BasicDomain,
   compDomain: CompDomain = comp.BasicDomain,
   pureValueDomain: PureValueDomain = pureValue.BasicDomain,
-  cloDomain: CloDomain = clo.FlatDomain,
-  contDomain: ContDomain = cont.FlatDomain,
+  cloDomain: CloDomain = clo.SetDomain(),
+  contDomain: ContDomain = cont.SetDomain(),
   partDomain: PartDomain = part.SetDomain(),
   astValueDomain: AstValueDomain = astValue.FlatDomain,
   grammarDomain: GrammarDomain = grammar.FlatDomain,
@@ -105,11 +105,11 @@ lazy val AbsPureValue = _pureValueDomain.getOrElse(pureValue.BasicDomain)
 type AbsPureValue = AbsPureValue.Elem
 
 type CloDomain = clo.Domain
-lazy val AbsClo = _cloDomain.getOrElse(clo.FlatDomain)
+lazy val AbsClo = _cloDomain.getOrElse(clo.SetDomain())
 type AbsClo = AbsClo.Elem
 
 type ContDomain = cont.Domain
-lazy val AbsCont = _contDomain.getOrElse(cont.FlatDomain)
+lazy val AbsCont = _contDomain.getOrElse(cont.SetDomain())
 type AbsCont = AbsCont.Elem
 
 type PartDomain = part.Domain

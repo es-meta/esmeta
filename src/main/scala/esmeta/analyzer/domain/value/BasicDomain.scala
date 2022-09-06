@@ -463,6 +463,12 @@ object BasicDomain extends value.Domain {
     /** refine receiver object */
     def refineThis(func: Func): Elem = elem
 
+    /** get syntactic SDO */
+    def getSDO(method: String): List[(Func, Elem)] = ???
+
+    /** get lexical result */
+    def getLexical(method: String): Elem = ???
+
     /** getters */
     def comp: AbsComp = elem.comp
     def pureValue: AbsPureValue = elem.pureValue

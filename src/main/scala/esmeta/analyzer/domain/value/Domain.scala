@@ -177,6 +177,12 @@ trait Domain extends domain.Domain[AValue] {
     /** refine receiver object */
     def refineThis(func: Func): Elem
 
+    /** get syntactic SDO */
+    def getSDO(method: String): List[(Func, Elem)]
+
+    /** get lexical result */
+    def getLexical(method: String): Elem
+
     /** getters */
     def comp: AbsComp
     def pureValue: AbsPureValue

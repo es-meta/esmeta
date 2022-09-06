@@ -279,13 +279,13 @@ class AbsTransfer(sem: AbsSemantics) {
                 case None => error("invalid sdo")
             case One(AstValue(lex: Lexical)) =>
               newV ⊔= AbsValue(Interpreter.eval(lex, method))
-            case Many => ???
-            // TODO // syntactic sdo
-            // for { (sdo, ast) <- bv.getSDO(method) }
-            //   sem.doCall(callerNp, st, sdo, ast :: as)
+            case Many =>
+              // syntactic sdo
+              for { (sdo, ast) <- bv.getSDO(method) }
+                sem.doCall(callerNp, st, sdo, ast :: as)
 
-            // // lexical sdo
-            // newV ⊔= bv.getLexical(method)
+              // lexical sdo
+              newV ⊔= bv.getLexical(method)
             case _ => /* do nothing */
           newV
         }

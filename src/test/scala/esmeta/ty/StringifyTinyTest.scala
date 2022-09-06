@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.Grammar
+import esmeta.state.{Grammar, Number}
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
@@ -13,7 +13,7 @@ class StringifyTinyTest extends TyTest {
   def init: Unit = {
     checkParseAndStringify("Ty", Ty)(
       AbruptT -> "Abrupt",
-      NormalT(NumberT) -> "Normal[Number]",
+      NormalT(NumberTopT) -> "Normal[Number]",
       SubMapT(
         StrTopT,
         NameT("Binding"),
@@ -27,7 +27,7 @@ class StringifyTinyTest extends TyTest {
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       NameT("Cat") -> "Cat",
       NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT("A" -> Some(NumberT), "B" -> Some(BoolT)) ->
+      RecordT("A" -> Some(NumberTopT), "B" -> Some(BoolT)) ->
       "{ [[A]]: Number, [[B]]: Boolean }",
       RecordT(Set("Key", "Value")) ->
       "{ [[Key]], [[Value]] }",
@@ -36,11 +36,11 @@ class StringifyTinyTest extends TyTest {
       (ObjectT | RecordT(
         "P" -> None,
         "S" -> None,
-        "Q" -> Some(NumberT),
+        "Q" -> Some(NumberTopT),
         "R" -> Some(BoolT),
       )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
-      ListT(NumberT) -> "List[Number]",
+      ListT(NumberTopT) -> "List[Number]",
       SymbolT -> "Symbol",
       AstTopT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
@@ -52,8 +52,19 @@ class StringifyTinyTest extends TyTest {
       CodeUnitT -> "CodeUnit",
       ConstT("key") -> "Const[~key~]",
       ConstT("key", "value") -> "Const[~key~, ~value~]",
-      MathT -> "Math",
-      NumberT -> "Number",
+      MathTopT -> "Math",
+      MathT(0, 1) -> "Math[0, 1]",
+      NumberTopT -> "Number",
+      NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF]",
+      NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF]",
+      NumberT(Number(Double.NaN)) -> "Number[NaN]",
+      NumberT(
+        Number(Double.PositiveInfinity),
+        Number(Double.NegativeInfinity),
+        Number(Double.NaN),
+        Number(-0.0),
+        Number(0.0),
+      ) -> "Number[-INF, -0.0, 0.0, +INF, NaN]",
       BigIntT -> "BigInt",
       StrTopT -> "String",
       StrT("a") -> "String[\"a\"]",

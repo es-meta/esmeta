@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.Grammar
+import esmeta.state.{Grammar, Number}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -76,9 +76,13 @@ trait Parsers extends BasicParsers {
       case s => PureValueTy(const = s.toSet)
     } |
     // mathematical value
-    "Math" ^^^ PureValueTy(math = true) |
+    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
+      case m => PureValueTy(math = Fin(m.toSet))
+    } | "Math" ^^^ PureValueTy(math = Inf) |
     // number
-    "Number" ^^^ PureValueTy(number = true) |
+    "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
+      case n => PureValueTy(number = Fin(n.toSet))
+    } | "Number" ^^^ PureValueTy(number = Inf) |
     // big integer
     "BigInt" ^^^ PureValueTy(bigInt = true) |
     // string
@@ -98,6 +102,12 @@ trait Parsers extends BasicParsers {
     // name
     camel ^^ { case n => PureValueTy(names = Set(n)) }
   }.named("ty.PureValueTy (single)")
+
+  private lazy val numberWithSpecial: Parser[Number] =
+    double ^^ { Number(_) } |
+    ("+INF" | "INF") ^^^ Number(Double.PositiveInfinity) |
+    "-INF" ^^^ Number(Double.NegativeInfinity) |
+    "NaN" ^^^ Number(Double.NaN)
 
   private lazy val grammar: Parser[Grammar] =
     ("|" ~> word <~ "|") ~ opt(parseParams) ^^ {
