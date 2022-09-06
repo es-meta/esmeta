@@ -14,7 +14,7 @@ class ESAnalyzer(cfg: CFG) {
   /** initial control point */
   lazy val initCp =
     val runJobs = cfg.fnameMap("RunJobs")
-    val entry = runJobs.entry.get
+    val entry = runJobs.entry
     NodePoint(runJobs, entry, View())
 
   /** perform analysis for a given ECMAScript code */

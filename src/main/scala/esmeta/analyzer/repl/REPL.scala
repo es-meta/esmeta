@@ -159,7 +159,7 @@ case class REPL(sem: AbsSemantics) {
   // break points
   val breakpoints = ArrayBuffer[(String, String)]()
   private def isBreak(cp: ControlPoint): Boolean = cp match {
-    case NodePoint(func, node, _) if func.entry.get == node =>
+    case NodePoint(func, node, _) if func.entry == node =>
       breakpoints.exists {
         case (CmdBreak.func, name) => name == cfg.funcOf(node).name
         case (CmdBreak.block, uid) => uid.toInt == node.id

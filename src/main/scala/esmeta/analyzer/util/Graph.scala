@@ -19,7 +19,7 @@ case class Graph(
         val func = cp.func
         val view = sem.getEntryView(cp.view)
         val dot = ViewDotPrinter(view)
-        val entry = func.entry.get // XXX: unsafe access
+        val entry = func.entry
         var eid = dot.getId(entry)
         dot.addFunc(func, app)
         for (np <- path)
@@ -28,7 +28,7 @@ case class Graph(
           val dot = ViewDotPrinter(view)
           dot.addFunc(func, app)
           dot.drawCall(np.node, eid, app)
-          val entry = func.entry.get // XXX: unsafe access
+          val entry = func.entry
           eid = dot.getId(entry)
       case (Some(cp), Some(depth), _) =>
         val func = cp.func
@@ -45,7 +45,7 @@ case class Graph(
           dot.addFunc(func, app)
         // print call edges
         for ((ReturnPoint(func, returnView), calls) <- sem.retEdges)
-          val entry = func.entry.get // XXX: unsafe access
+          val entry = func.entry
           val eid = ViewDotPrinter(returnView).getId(entry)
           for (callNp @ NodePoint(_, call, callView) <- calls)
             ViewDotPrinter(sem.getEntryView(callView)).drawCall(call, eid, app),
@@ -65,7 +65,7 @@ case class Graph(
       dot: DotPrinter,
       depth: Int,
     ): Unit = if (depth > 0) {
-      val entry = rp.func.entry.get // XXX: unsafe access
+      val entry = rp.func.entry
       val entryNp = NodePoint(_, entry, rp.view)
       val eid = dot.getId(entry)
       for (callNp @ NodePoint(_, call, callView) <- sem.getRetEdges(rp))

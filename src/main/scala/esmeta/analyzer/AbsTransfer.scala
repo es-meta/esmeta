@@ -435,7 +435,7 @@ class AbsTransfer(sem: AbsSemantics) {
         for {
           st <- get
           func = cfg.fnameMap(fname)
-          target = NodePoint(func, func.entry.get, cp.view)
+          target = NodePoint(func, func.entry, cp.view)
           captured = st.locals.collect { case (x: Name, av) => x -> av }
           // return edges for resumed evaluation
           currRp = ReturnPoint(cp.func, cp.view)

@@ -46,7 +46,7 @@ trait DotPrinter {
       appEdge.wrap("", "") {
         app :> s"""label = "$name""""
         app :> s"""style = rounded"""
-        func.entry.map { drawReachables(_, id, app) }
+        drawReachables(func.entry, id, app)
       }
     }
   }

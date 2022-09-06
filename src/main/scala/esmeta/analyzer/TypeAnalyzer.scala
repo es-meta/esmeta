@@ -56,7 +56,7 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
     func <- targets
-    entry <- func.entry
+    entry = func.entry
     view = getView(func)
   } yield NodePoint(func, entry, view)
 

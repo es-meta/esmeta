@@ -12,7 +12,7 @@ import esmeta.util.{Appender, UId}
 case class Func(
   id: Int,
   irFunc: IRFunc,
-  entry: Option[Node],
+  entry: Node,
 ) extends CFGElem
   with UId { func =>
 
@@ -38,7 +38,7 @@ case class Func(
   lazy val retTy: Type = irFunc.retTy
 
   /** nodes */
-  lazy val nodes: Set[Node] = entry.fold(Set())(_.reachable)
+  lazy val nodes: Set[Node] = entry.reachable
 
   /** a mapping from nid to nodes */
   lazy val nodeMap: Map[Int, Node] =

@@ -19,7 +19,7 @@ class StringifyTinyTest extends StateTest {
     checkStringify("State")(
       st -> """{
       |  context: {
-      |    cursor: Func[0] @ f
+      |    cursor: Block[0] @ f
       |    local-vars: {}
       |  }
       |  call-stack: []
@@ -32,7 +32,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val callCtxt = CallContext(Name("x"), ctxt)
     checkStringify("CallContext")(
-      callCtxt -> "x @ Func[0]",
+      callCtxt -> "x @ Block[0]",
     )
     // -------------------------------------------------------------------------
     // Contexts
@@ -43,17 +43,17 @@ class StringifyTinyTest extends StateTest {
       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
     checkStringify("Context")(
       ctxt -> """{
-      |  cursor: Func[0] @ f
+      |  cursor: Block[0] @ f
       |  local-vars: {}
       |}""".stripMargin,
       ctxtSingle -> """{
-      |  cursor: Func[0] @ f
+      |  cursor: Block[0] @ f
       |  local-vars: {
       |    x -> 42,
       |  }
       |}""".stripMargin,
       ctxtMulti -> """{
-      |  cursor: Func[0] @ f
+      |  cursor: Block[0] @ f
       |  local-vars: {
       |    y -> "abc",
       |    x -> 42,
@@ -114,7 +114,7 @@ class StringifyTinyTest extends StateTest {
       Func(
         0,
         IRFunc(true, IRFuncKind.AbsOp, "f", Nil, UnknownType, INop()),
-        None,
+        Block(0),
       )
     lazy val clo = Clo(func, Map())
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))

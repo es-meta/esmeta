@@ -174,7 +174,7 @@ class AbsSemantics(
     val calleeSt = callerSt.copied(locals =
       getLocals(calleeFunc, args) ++ captured,
     )
-    val calleeNp = NodePoint(calleeFunc, calleeFunc.entry.get, baseView)
+    val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
     List((calleeNp, calleeSt))
   }
 

@@ -32,16 +32,16 @@ class CFGBuilder(
     // body
     val body = irFunc.body
 
-    // entry node
-    var entry: Option[Node] = None
+    // entry node with dummy
+    var dummyEntry: Node = Block(-1)
 
     // previous edges
     var prev: List[(Node, Boolean)] = Nil
 
     // connect previous edges
-    def connect(to: Node, isLoopPred: Boolean = false): Unit = {
-      if (prev.isEmpty) entry = Some(to)
-      for { (node, tf) <- prev } {
+    def connect(to: Node, isLoopPred: Boolean = false): Unit =
+      if (prev.isEmpty) dummyEntry = to
+      for ((node, tf) <- prev)
         node.isLoopPred = isLoopPred
         (node, tf) match
           case (block: Block, _) =>
@@ -49,8 +49,6 @@ class CFGBuilder(
           case (call: Call, _)         => call.next = Some(to)
           case (branch: Branch, true)  => branch.thenNode = Some(to)
           case (branch: Branch, false) => branch.elseNode = Some(to)
-      }
-    }
 
     // aux
     def aux(inst: Inst): Unit = inst match {
@@ -79,6 +77,7 @@ class CFGBuilder(
     }
     aux(body)
 
+    val entry = if (dummyEntry.id == -1) Block(nextNId) else dummyEntry
     val func = Func(nextFId, irFunc, entry)
     funcs += func
   }

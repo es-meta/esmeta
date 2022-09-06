@@ -13,7 +13,7 @@ case class Context(
 ) extends StateElem {
 
   /** current cursor in this context */
-  var cursor: Cursor = Cursor(func.entry, func)
+  var cursor: Cursor = NodeCursor(func.entry)
 
   /** move cursor to next */
   def moveNext: Unit = cursor match

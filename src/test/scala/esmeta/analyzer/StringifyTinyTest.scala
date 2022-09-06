@@ -42,7 +42,7 @@ class StringifyTinyTest extends AnalyzerTest {
     // -------------------------------------------------------------------------
     // CFG elements
     // -------------------------------------------------------------------------
-    def entry(start: Int) = {
+    def entry(start: Int): Node = {
       val blockSingle = Block(start + 0, ListBuffer(let))
       val branch = Branch(start + 1, BranchKind.If, xExpr)
       val block = Block(start + 2, ListBuffer(let, del, ret))
@@ -50,7 +50,7 @@ class StringifyTinyTest extends AnalyzerTest {
       blockSingle.next = Some(branch)
       branch.thenNode = Some(block)
       branch.elseNode = Some(call)
-      Some(blockSingle)
+      blockSingle
     }
     lazy val mainFunc =
       Func(0, irMainFunc, entry(0))
