@@ -33,7 +33,13 @@ case class Block(
   id: Int,
   var insts: ListBuffer[NormalInst] = ListBuffer(),
   var next: Option[Node] = None,
-) extends Node
+) extends Node {
+
+  /** check end with return instruction */
+  lazy val endsWithReturn: Boolean = insts.lastOption match
+    case Some(_: IReturn) => true
+    case _                => false
+}
 
 /** nodes with backward edge to inst */
 // TODO refactor

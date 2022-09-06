@@ -44,7 +44,8 @@ class CFGBuilder(
       for { (node, tf) <- prev } {
         node.isLoopPred = isLoopPred
         (node, tf) match
-          case (block: Block, _)       => block.next = Some(to)
+          case (block: Block, _) =>
+            block.next = if (block.endsWithReturn) None else Some(to)
           case (call: Call, _)         => call.next = Some(to)
           case (branch: Branch, true)  => branch.thenNode = Some(to)
           case (branch: Branch, false) => branch.elseNode = Some(to)
