@@ -24,7 +24,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
         warn(s"failed to find functions matched with the pattern `$pattern`.")
       funcs
     })
-    println(s"- ${funcs.size} target functions.")
+    println(s"- ${funcs.size} functions are initial targets.")
     val sem = TypeAnalyzer(cfg, funcs)
     // print types of functions
     sem
