@@ -1,8 +1,9 @@
 package esmeta.ir
 
-import esmeta.ir.util.{Parser, YetCollector}
+import esmeta.ir.util.{Parser, YetCollector, Stringifier}
 import esmeta.util.UId
 import esmeta.spec.{Algorithm, Head}
+import esmeta.util.Appender
 
 /** IR functions */
 case class Func(
@@ -21,6 +22,12 @@ case class Func(
 
   /** algorithm heads */
   lazy val head: Option[Head] = algo.map(_.head)
+
+  /** algorithm head string */
+  def headString: String =
+    val app = new Appender
+    IRElem.getStringifier(true, false).funcHeadRule(true)(app, this)
+    app.toString
 
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")

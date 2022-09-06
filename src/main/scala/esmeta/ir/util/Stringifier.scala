@@ -37,11 +37,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // functions
   given funcRule: Rule[Func] = (app, func) =>
+    funcHeadRule(false)(app, func)
+    app >> " " >> func.body
+
+  def funcHeadRule(inline: Boolean): Rule[Func] = (app, func) =>
     val Func(main, kind, name, params, retTy, body, _) = func
     app >> (if (main) "@main " else "") >> "def " >> kind
     app >> name
-    app.wrap("(", ")")(for (param <- params) app :> param >> ",")
-    app >> ": " >> retTy >> " " >> body
+    if (inline)
+      given Rule[List[Param]] = iterableRule("(", ", ", ")")
+      app >> params
+    else app.wrap("(", ")")(for (param <- params) app :> param >> ",")
+    app >> ": " >> retTy
 
   // function kinds
   given funcKindRule: Rule[FuncKind] = (app, kind) =>

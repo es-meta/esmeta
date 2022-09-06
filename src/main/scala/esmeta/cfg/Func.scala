@@ -41,6 +41,9 @@ case class Func(
   /** algorithm heads */
   lazy val head: Option[Head] = irFunc.head
 
+  /** algorithm head string */
+  def headString: String = irFunc.headString
+
   /** check whether it is builtin */
   lazy val isBuiltin: Boolean =
     irFunc.kind == IRFuncKind.Builtin || irFunc.kind == IRFuncKind.BuiltinClo
@@ -70,7 +73,7 @@ case class Func(
     val isExit: Boolean = _isExit
     def getId(func: Func): String = s"cluster${func.id}"
     def getId(node: Node): String = s"node${node.id}"
-    def getName(func: Func): String = func.irFunc.name
+    def getName(func: Func): String = func.headString
     def getColor(node: Node): String = REACH
     def getColor(from: Node, to: Node): String = REACH
     def getBgColor(node: Node): String =
