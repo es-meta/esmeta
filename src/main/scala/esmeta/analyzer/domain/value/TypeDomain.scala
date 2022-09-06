@@ -166,8 +166,8 @@ object TypeDomain extends value.Domain {
 
     /** unary operations */
     def unary_- : Elem = numericUnaryOp(elem)
-    def unary_! : Elem = numericUnaryOp(elem)
-    def unary_~ : Elem = logicalUnaryOp(!_)(elem)
+    def unary_! : Elem = logicalUnaryOp(!_)(elem)
+    def unary_~ : Elem = numericUnaryOp(elem)
     def abs: Elem = Elem(ValueTy(math = elem.ty.math))
     def floor: Elem = Elem(ValueTy(math = elem.ty.math))
 
