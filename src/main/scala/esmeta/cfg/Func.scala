@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.cfg.util.*
-import esmeta.ir.{Param, Type, Name, Func => IRFunc, FuncKind => IRFuncKind}
+import esmeta.ir.{Param, Type, Name, Func => IRFunc, FuncKind, EYet}
 import esmeta.spec.Head
 import esmeta.ty.*
 import esmeta.util.SystemUtils.*
@@ -28,6 +28,12 @@ case class Func(
   /** check whether parameter types are defined */
   lazy val isParamTysDefined: Boolean = paramTys.forall(_.isDefined)
 
+  /** not yet supported instructions */
+  lazy val yets: List[EYet] = irFunc.yets
+
+  /** check completeness */
+  lazy val complete: Boolean = irFunc.complete
+
   /** return types */
   lazy val retTy: Type = irFunc.retTy
 
@@ -46,19 +52,19 @@ case class Func(
 
   /** check whether it is builtin */
   lazy val isBuiltin: Boolean =
-    irFunc.kind == IRFuncKind.Builtin || irFunc.kind == IRFuncKind.BuiltinClo
+    irFunc.kind == FuncKind.Builtin || irFunc.kind == FuncKind.BuiltinClo
 
   /** check whether it is SDO */
-  lazy val isSDO: Boolean = irFunc.kind == IRFuncKind.SynDirOp
+  lazy val isSDO: Boolean = irFunc.kind == FuncKind.SynDirOp
 
   /** check whether it is method operation */
   lazy val isMethod: Boolean =
-    irFunc.kind == IRFuncKind.ConcMeth || irFunc.kind == IRFuncKind.InternalMeth
+    irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
 
   /** check wheter it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
-    case IRFuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
-    case IRFuncKind.Builtin | IRFuncKind.BuiltinClo                 => true
+    case FuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
+    case FuncKind.Builtin | FuncKind.BuiltinClo                   => true
     case _ => irFunc.retTy.isCompletion
 
   /** function name */

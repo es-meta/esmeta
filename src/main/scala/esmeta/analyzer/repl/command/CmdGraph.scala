@@ -1,9 +1,10 @@
 package esmeta.analyzer.repl.command
 
 import esmeta.analyzer.*
+import esmeta.analyzer.util.*
 import esmeta.analyzer.repl.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.ANALYZE_LOG_DIR
 
 // graph command
 case object CmdGraph
@@ -11,20 +12,19 @@ case object CmdGraph
     "graph",
     "Dump the current control graph.",
   ) {
+  import DotPrinter.*, Config.*
+
   // options
-  // val options @ List(total) = List("total")
-  val options = Nil
+  val options @ List(total) = List("total")
 
   // run command
   def apply(
     repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
-  ): Unit = for (cp <- cpOpt) {
-    mkdir(ANALYZE_LOG_DIR)
-    cp.func.dumpDot(
-      s"$ANALYZE_LOG_DIR/repl.dot",
-      s"$ANALYZE_LOG_DIR/repl.pdf",
-    )
-  }
+  ): Unit = (optional(args.head.toInt), args) match
+    case (Some(depth), _) => dumpCFG(repl.sem, cpOpt, depth = Some(depth))
+    case (None, s"-$total" :: _) =>
+      dumpCFG(repl.sem, cpOpt, depth = None)
+    case _ => dumpCFG(repl.sem, cpOpt, depth = Some(0))
 }

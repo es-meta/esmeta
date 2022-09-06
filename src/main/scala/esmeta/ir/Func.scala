@@ -16,8 +16,10 @@ case class Func(
   algo: Option[Algorithm] = None,
 ) extends IRElem {
 
-  /** algorithm heads */
+  /** not yet supported instructions */
   lazy val yets: List[EYet] = YetCollector(this)
+
+  /** check completeness */
   lazy val complete: Boolean = yets.isEmpty
 
   /** algorithm heads */
