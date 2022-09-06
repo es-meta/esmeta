@@ -44,7 +44,7 @@ case object Extract extends Phase[Unit, Spec] {
         filename = s"$EXTRACT_LOG_DIR/unknown-types",
       )
 
-      dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/gramamr")
+      dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
 
       // TODO dump algorithms
       // dumpDir(
