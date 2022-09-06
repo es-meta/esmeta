@@ -229,9 +229,29 @@ object TypeDomain extends value.Domain {
     def isArrayIndex: Elem = boolTop
 
     /** TODO prune abstract values */
-    def pruneType(r: Elem, positive: Boolean): Elem = elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem = elem
-    def pruneValue(r: Elem, positive: Boolean): Elem = elem
+    def pruneType(r: Elem, positive: Boolean): Elem =
+      r.ty.str.getSingle match
+        case One(tname) =>
+          val that = Elem(tname match
+            case "Object"    => NameT("Object")
+            case "Symbol"    => SymbolT
+            case "Number"    => NumberTopT
+            case "BigInt"    => BigIntT
+            case "String"    => StrTopT
+            case "Boolean"   => BoolT
+            case "Undefined" => UndefT
+            case "Null"      => NullT
+            case _           => ValueTy(),
+          )
+          if (positive) elem ⊓ that else elem -- that
+        case _ => elem
+    def pruneTypeCheck(tname: String, positive: Boolean): Elem =
+      if (cfg.tyModel.infos.contains(tname))
+        if (positive) Elem(NameT(tname))
+        else elem -- Elem(NameT(tname))
+      else elem
+    def pruneValue(r: Elem, positive: Boolean): Elem =
+      if (positive) elem ⊓ r else elem -- r
 
     /** completion helpers */
     def wrapCompletion: Elem =

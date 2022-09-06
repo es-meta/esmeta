@@ -88,6 +88,9 @@ object TypeAnalyzer:
   // no sensitivity
   IR_SENS = false
 
+  // use type refinement
+  USE_REFINE = true
+
   /** perform analysis for a given ECMAScript code */
   def apply(
     cfg: CFG,
