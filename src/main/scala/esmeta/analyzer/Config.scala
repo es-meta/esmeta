@@ -31,12 +31,6 @@ object Config {
   def baseGlobals: Map[Id, AbsValue] = _baseGlobals
   private var _baseGlobals: Map[Id, AbsValue] = Map()
 
-  /** loop maximum iteration */
-  var LOOP_ITER: Int = 100
-
-  /** loop maximum depth */
-  var LOOP_DEPTH: Int = 20
-
   /** analysis time limit */
   var TIME_LIMIT: Option[Long] = None
 
@@ -52,17 +46,8 @@ object Config {
   /** IR sensitivity */
   var IR_SENS: Boolean = true
 
-  /** infinite sensitivity */
-  var INF_SENS: Boolean = true
-
   /** throw exception for not yet compiled expressions */
   var YET_THROW: Boolean = false
-
-  /** AST sensitivity */
-  var ES_CALL_SENS: Int = 20
-
-  /** k-callsite sensitivity for IR functions */
-  var IR_CALL_DEPTH: Int = 50
 
   /** use condition-based refinement */
   var USE_REFINE: Boolean = false

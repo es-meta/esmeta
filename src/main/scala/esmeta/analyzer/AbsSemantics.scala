@@ -146,16 +146,6 @@ class AbsSemantics(
       if (!retT.isBottom) worklist += rp
     }
 
-  /** TODO handle sensitivity */
-  def handleSens[T](l: List[T], bound: Int): List[T] =
-    if (IR_SENS) if (INF_SENS) l else l.take(bound)
-    else Nil
-
-  /** TODO handle sensitivity for depths */
-  def handleSens(n: Int, bound: Int): Int =
-    if (IR_SENS) if (INF_SENS) n else n min bound
-    else 0
-
   /** call transition */
   def getCalleeEntries(
     callerNp: NodePoint[Call],
@@ -166,10 +156,13 @@ class AbsSemantics(
   ): List[(NodePoint[_], AbsState)] = {
     // handle ir callsite sensitivity
     val NodePoint(callerFunc, callSite, callerView) = callerNp
-    val baseView = callerView.copy(
-      calls = handleSens(callSite :: callerView.calls, IR_CALL_DEPTH),
-      intraLoopDepth = 0,
-    )
+    val baseView =
+      if (IR_SENS)
+        callerView.copy(
+          calls = callSite :: callerView.calls,
+          intraLoopDepth = 0,
+        )
+      else callerView
 
     val calleeSt = callerSt.copied(locals =
       getLocals(calleeFunc, args) ++ captured,
@@ -220,37 +213,41 @@ class AbsSemantics(
 
   /** loop transition for next views */
   def loopNext(view: View): View = view.loops match
-    case LoopCtxt(loop, k) :: rest =>
-      view.copy(loops = LoopCtxt(loop, handleSens(k + 1, LOOP_ITER)) :: rest)
+    case LoopCtxt(loop, k) :: rest if IR_SENS =>
+      view.copy(loops = LoopCtxt(loop, k + 1) :: rest)
     case _ => view
 
   /** loop transition for function enter */
   def loopEnter(view: View, loop: Branch): View =
-    val loopView = view.copy(
-      loops = handleSens(LoopCtxt(loop, 0) :: view.loops, LOOP_DEPTH),
-      intraLoopDepth = view.intraLoopDepth + 1,
-    )
+    val loopView =
+      if (IR_SENS)
+        view.copy(
+          loops = LoopCtxt(loop, 0) :: view.loops,
+          intraLoopDepth = view.intraLoopDepth + 1,
+        )
+      else view
     loopOut += loopView -> (loopOut.getOrElse(loopView, Set()) + view)
     loopView
 
   /** loop transition for bases */
   def loopBase(view: View): View = view.loops match
-    case LoopCtxt(loop, k) :: rest =>
+    case LoopCtxt(loop, k) :: rest if IR_SENS =>
       view.copy(loops = LoopCtxt(loop, 0) :: rest)
     case _ => view
 
   /** loop transition for function exits */
-  def loopExit(view: View): View =
+  def loopExit(view: View): View = if (IR_SENS) {
     val views = loopOut.getOrElse(loopBase(view), Set())
     views.size match
       case 0 => error("invalid loop exit")
       case 1 => views.head
       case _ => exploded("loop is too merged.")
+  } else view
 
   /** get entry views of loops */
   @tailrec
   final def getEntryView(view: View): View =
-    if (view.intraLoopDepth == 0) view
+    if (!IR_SENS | view.intraLoopDepth == 0) view
     else getEntryView(loopExit(view))
 
   /** get abstract state of control points */

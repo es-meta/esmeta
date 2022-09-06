@@ -280,12 +280,12 @@ class AbsTransfer(sem: AbsSemantics) {
             case One(AstValue(lex: Lexical)) =>
               newV ⊔= AbsValue(Interpreter.eval(lex, method))
             case Many =>
+              // lexical sdo
+              newV ⊔= bv.getLexical(method)
+
               // syntactic sdo
               for { (sdo, ast) <- bv.getSDO(method) }
                 sem.doCall(callerNp, st, sdo, ast :: as)
-
-              // lexical sdo
-              newV ⊔= bv.getLexical(method)
             case _ => /* do nothing */
           newV
         }
@@ -388,7 +388,7 @@ class AbsTransfer(sem: AbsSemantics) {
         } yield v
       case EClamp(target, lower, upper) =>
         for {
-          v <- transfer(expr)
+          v <- transfer(target)
           lv <- transfer(lower)
           uv <- transfer(upper)
         } yield v.clamp(lv, uv)
@@ -415,11 +415,11 @@ class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(expr)
           tv <- transfer(tyExpr)
           st <- get
-          tname <- tv.getSingle match
-            case One(Str(s))        => pure(s)
-            case One(Grammar(n, _)) => pure(n)
-            case _                  => exploded("ETypeCheck")
-        } yield v.typeCheck(tname, st)
+        } yield tv.getSingle match
+          case One(Str(s))        => v.typeCheck(s, st)
+          case One(Grammar(n, _)) => v.typeCheck(n, st)
+          case _                  => AbsValue.boolTop
+
       case EClo(fname, cap) =>
         cfg.fnameMap.get(fname) match {
           case Some(f) =>
@@ -673,12 +673,12 @@ class AbsTransfer(sem: AbsSemantics) {
       for {
         rv <- transfer(ref)
         tv <- transfer(tyExpr)
-        tname <- tv.getSingle match
-          case One(Str(s))        => pure(s)
-          case One(Grammar(n, _)) => pure(n)
-          case _                  => exploded("ETypeCheck")
-        _ <- modify(pruneTypeCheck(rv, tname, positive))
+        _ <- tv.getSingle match
+          case One(Str(s))        => modify(pruneTypeCheck(rv, s, positive))
+          case One(Grammar(n, _)) => modify(pruneTypeCheck(rv, n, positive))
+          case _                  => pure(())
       } yield ()
+
     case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
       for {
         rv <- transfer(ref)

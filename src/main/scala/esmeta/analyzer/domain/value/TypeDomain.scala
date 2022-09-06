@@ -160,16 +160,16 @@ object TypeDomain extends value.Domain {
     def %(that: Elem): Elem = numericOp(elem, that)
     def %%(that: Elem): Elem = numericOp(elem, that)
     def **(that: Elem): Elem = numericOp(elem, that)
-    def <<(that: Elem): Elem = ???
-    def >>>(that: Elem): Elem = ???
-    def >>(that: Elem): Elem = ???
+    def <<(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+    def >>(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+    def >>>(that: Elem): Elem = mathOp(elem, that)
 
     /** unary operations */
     def unary_- : Elem = numericUnaryOp(elem)
     def unary_! : Elem = logicalUnaryOp(!_)(elem)
     def unary_~ : Elem = numericUnaryOp(elem)
-    def abs: Elem = Elem(ValueTy(math = elem.ty.math))
-    def floor: Elem = Elem(ValueTy(math = elem.ty.math))
+    def abs: Elem = mathTop
+    def floor: Elem = mathTop
 
     /** type operations */
     def typeOf(st: AbsState): Elem =
@@ -370,19 +370,30 @@ object TypeDomain extends value.Domain {
     case Absent                    => AbsentT
     case v => notSupported(s"impossible to convert to pure type ($v)")
 
+  // mathematical operator helper
+  private lazy val mathOp: (Elem, Elem) => Elem = (l, r) =>
+    if (!l.ty.math.isBottom & !r.ty.math.isBottom) mathTop
+    else Bot
+
+  // number operator helper
+  private lazy val numberOp: (Elem, Elem) => Elem = (l, r) =>
+    if (!l.ty.number.isBottom & !r.ty.number.isBottom) numberTop
+    else Bot
+
+  // big integer operator helper
+  private lazy val bigIntOp: (Elem, Elem) => Elem = (l, r) =>
+    if (l.ty.bigInt & r.ty.bigInt) bigIntTop
+    else Bot
+
   // bitwise operator helper
   private lazy val bitwiseOp: (Elem, Elem) => Elem = (l, r) =>
-    Elem(
-      ValueTy(
-        math = l.ty.math & r.ty.math,
-        bigInt = l.ty.bigInt & r.ty.bigInt,
-      ),
-    )
+    mathOp(l, r) ⊔ bigIntOp(l, r)
 
   // logical unary operator helper
   private def logicalUnaryOp(
     op: Boolean => Boolean,
   ): Elem => Elem = b => Elem(ValueTy(bool = for (x <- b.ty.bool) yield op(x)))
+
   // logical operator helper
   private def logicalOp(
     op: (Boolean, Boolean) => Boolean,
@@ -408,13 +419,11 @@ object TypeDomain extends value.Domain {
 
   // numeric unary operator helper
   private lazy val numericUnaryOp: Elem => Elem = x =>
-    Elem(
-      ValueTy(
-        math = x.ty.math,
-        number = x.ty.number,
-        bigInt = x.ty.bigInt,
-      ),
-    )
+    var res: Elem = Bot
+    if (!x.ty.math.isBottom) res ⊔= mathTop
+    if (!x.ty.number.isBottom) res ⊔= numberTop
+    if (x.ty.bigInt) res ⊔= bigIntTop
+    res
 
   // numeric operator helper
   private lazy val numericOp: (Elem, Elem) => Elem = (l, r) =>
@@ -494,10 +503,7 @@ object TypeDomain extends value.Domain {
               (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
               subIdx <- (0 until rhs.countSubs)
             } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
-          } else {
-            logger.warn(s"unknown syntax-directed operation: $name.$method")
-            List()
-          }
+          } else Nil
         } else result
     }
   private lazy val synSdoCache =
@@ -511,10 +517,7 @@ object TypeDomain extends value.Domain {
           if (defaultSdos contains method) {
             val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
             List((defaultFunc, Elem(AstSingleT(name, idx, subIdx))))
-          } else {
-            logger.warn(s"unknown syntax-directed operation: $name.$method")
-            List()
-          }
+          } else Nil
         } else result
     }
 

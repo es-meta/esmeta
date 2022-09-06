@@ -122,7 +122,7 @@ object TypeDomain extends state.Domain {
       elem
 
     /** deletion wiht reference values */
-    def delete(refV: AbsRefValue): Elem = ???
+    def delete(refV: AbsRefValue): Elem = elem
 
     /** push values to a list */
     def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem
@@ -325,7 +325,9 @@ object TypeDomain extends state.Domain {
     for {
       name <- obj
       propStr <- str match
-        case Inf      => exploded(s"too imprecise field name: $name[⊤]")
+        case Inf =>
+          if (name == "IntrinsicsRecord") res |= ObjectT
+          Set()
         case Fin(set) => set
     } res |= cfg.tyModel.getProp(name, propStr)
     res
