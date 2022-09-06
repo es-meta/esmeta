@@ -24,20 +24,7 @@ class Summary {
   def close: Unit = { yets.close; timeouts.close; fails.close; passes.close }
 
   // time
-  var timeMillis: Long = 0L
-  def timeSeconds: Double = timeMillis / 1000.0
-  def timeMinutes: Double = timeSeconds / 60.0
-  def timeHours: Double = timeMinutes / 60.0
-  def timeString: String =
-    val s = timeMillis / 1000
-    val m = s / 60
-    val h = m / 60
-    val d = h / 24
-    var str = ""
-    if (d > 0) str += f"$d days "
-    if (h > 0) str += f"${h % 24}%02d:"
-    str += f"${m % 60}%02d:${s % 60}%02d"
-    str
+  var time: Time = Time()
 
   // total cases
   def total: Int = yet + timeout + fail + pass
@@ -70,7 +57,7 @@ class Summary {
       else "PASS"
     case _ =>
       val app = Appender()
-      app >> f"- time: $timeMillis%,d ms [$timeString]" >> LINE_SEP
+      app >> f"- time: $time" >> LINE_SEP
       app >> f"- total: $total%,d" >> LINE_SEP
       if (yet > 0) app >> f"  - yet: $yet%,d" >> LINE_SEP
       if (timeout > 0) app >> f"  - timeout: $timeout%,d" >> LINE_SEP

@@ -41,13 +41,13 @@ object ESMeta extends Git(BASE_DIR) {
     // execute the command.
     val result: Result = runner(config)
     // duration
-    val duration = System.currentTimeMillis - startTime
+    val duration = Time(System.currentTimeMillis - startTime)
     // display the result.
     if (!config.silent) command.showResult(result)
     // display the time.
     if (config.time)
       val name = config.command.name
-      println(s"The command '$name' took $duration ms.")
+      println(f"The command '$name' took $duration.")
     // return result
     result
 

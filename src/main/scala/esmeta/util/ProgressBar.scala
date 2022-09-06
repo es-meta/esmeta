@@ -23,7 +23,7 @@ case class ProgressBar[T](
   def postfix = (
     if (summary.total == summary.pass) ""
     else s" - ${summary.simpleString}"
-  ) + s" [${summary.timeString}]"
+  ) + s" [${summary.time.simpleString}]"
 
   // bar length
   val BAR_LEN = 40
@@ -38,7 +38,8 @@ case class ProgressBar[T](
   override def foreach[U](f: T => U): Unit = {
     var gcount = 0
     val start = System.currentTimeMillis
-    def updateTime: Unit = summary.timeMillis = System.currentTimeMillis - start
+    def updateTime: Unit =
+      summary.time = Time(System.currentTimeMillis - start)
 
     def show: Future[Unit] = Future {
       val count = gcount
