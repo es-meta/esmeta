@@ -33,7 +33,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   // function parameters
   def walk(param: Param): Unit =
-    val Param(name, opt, ty) = param
+    val Param(name, opt, ty, _) = param
     walk(name); walk(opt); walk(ty)
 
   // instructions

@@ -40,8 +40,8 @@ trait Walker extends BasicWalker {
 
   // function parameters
   def walk(param: Param): Param =
-    val Param(name, opt, ty) = param
-    Param(walk(name), walk(opt), walk(ty))
+    val Param(name, opt, ty, specParam) = param
+    Param(walk(name), walk(opt), walk(ty), specParam)
 
   // instructions
   def walk(inst: Inst): Inst =

@@ -762,7 +762,7 @@ class Compiler(
   def compile(param: Param): IRParam = {
     val Param(name, ty, skind) = param
     val optional = skind == ParamKind.Optional
-    IRParam(Name(name), compile(ty), optional)
+    IRParam(Name(name), compile(ty), optional, Some(param))
   }
 
   /** compile types */
