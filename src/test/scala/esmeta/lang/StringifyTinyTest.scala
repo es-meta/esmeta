@@ -593,7 +593,9 @@ class StringifyTinyTest extends LangTest {
       Type(ListT(AstTopT)) -> "a List of Parse Nodes",
       Type(ListT(StrTopT | UndefT)) -> "a List of Strings or *undefined*",
       Type(NameT("Environment Record")) -> "an Environment Record",
-      Type(NormalT(NumberTopT)) -> "a normal completion containing a Number",
+      Type(NormalT(NumberT)) -> "a normal completion containing a Number",
+      Type(NormalT(NumberT | BigIntT)) ->
+      "a normal completion containing either a Number or a BigInt",
       Type(AbruptT) -> "an abrupt completion",
       Type(NormalT(BigIntT) | AbruptT) ->
       "either a normal completion containing a BigInt or an abrupt completion",

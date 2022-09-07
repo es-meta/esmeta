@@ -10,5 +10,5 @@
   "Property" : true,
   "Reference" : true,
   "Step" : true,
-  "Type" : true
+  "Type" : false
 }
