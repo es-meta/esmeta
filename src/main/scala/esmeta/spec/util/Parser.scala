@@ -190,7 +190,7 @@ trait Parsers extends LangParsers {
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =
     import ParamKind.*
-    langTypeWithUnknown ~ opt(specId) ^^ {
+    langTypeWithUnknown ~ opt(specId) <~ opt("(.*)".r) ^^ {
       case ty ~ name => Param(name.getOrElse("this"), ty)
     }
 

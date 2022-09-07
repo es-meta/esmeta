@@ -54,6 +54,7 @@ val ECONST_REJECT = EConst("Reject")
 /** predefined globals identifiers */
 val GLOBAL_REALM = Global("REALM")
 val GLOBAL_EXECUTION_STACK = Global("EXECUTION_STACK")
+val GLOBAL_INTRINSICS = Global("INTRINSICS")
 val GLOBAL_CONTEXT = Prop(GLOBAL_EXECUTION_STACK, EMathVal(0))
 val GLOBAL_SYMBOL = Global("SYMBOL")
 val GLOBAL_UNDEF_TYPE = Global("Undefined")
@@ -67,6 +68,7 @@ val GLOBAL_OBJECT_TYPE = Global("Object")
 
 /** predefined globals identifier expressions */
 val EGLOBAL_EXECUTION_STACK = ERef(GLOBAL_EXECUTION_STACK)
+val EGLOBAL_INTRINSICS = ERef(GLOBAL_INTRINSICS)
 val EGLOBAL_CONTEXT = ERef(GLOBAL_CONTEXT)
 val EGLOBAL_SYMBOL = ERef(GLOBAL_SYMBOL)
 val EGLOBAL_UNDEF_TYPE = ERef(GLOBAL_UNDEF_TYPE)

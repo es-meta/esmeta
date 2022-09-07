@@ -52,6 +52,7 @@ trait Parsers extends IndentParsers {
     letStep |
     setEvalStateStep |
     setStep |
+    setFieldsWithIntrinsicsStep |
     performStep |
     performBlockStep |
     returnToResumedStep |
@@ -84,6 +85,14 @@ trait Parsers extends IndentParsers {
     ("set" ~> ref <~ ("as" | "to")) ~ endWithExpr ^^ {
       case r ~ e => SetStep(r, e)
     }
+
+  // set fields with intrinsics
+  lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] =
+    "set fields of" ~> ref <~ (
+      "with the values listed in" ~
+      "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>." ~
+      ".*".r
+    ) ^^ { SetFieldsWithIntrinsicsStep(_) }
 
   // if-then-else steps
   lazy val ifStep: PL[IfStep] = {
@@ -290,7 +299,7 @@ trait Parsers extends IndentParsers {
     listExpr |||
     xrefExpr |||
     soleExpr |||
-    bigintExpr |||
+    codeUnitAtExpr |||
     inWordsExpr |||
     specialExpr
   }.named("lang.Expression")
@@ -395,6 +404,7 @@ trait Parsers extends IndentParsers {
       refExpr |||
       literal |||
       mathOpExpr |||
+      convExpr |||
       returnIfAbruptExpr |||
       "(" ~> calc <~ ")" |||
       (base ~ ("<sup>" ~> calc <~ "</sup>")) ^^ {
@@ -421,6 +431,21 @@ trait Parsers extends IndentParsers {
 
     calc
   }
+
+  // conversion expressions
+  lazy val convExpr: PL[ConversionExpression] =
+    import ConversionExpressionOperator.*
+    val opFormat = (
+      "𝔽" ^^^ ToNumber ||| "ℤ" ^^^ ToBigInt ||| "ℝ" ^^^ ToMath
+    ) ~ ("(" ~> expr <~ ")") ^^ { case op ~ e => ConversionExpression(op, e) }
+    val textFormat = "the" ~> (
+      "Number" ^^^ ToNumber |
+      "BigInt" ^^^ ToBigInt |
+      opt("integer that is the") ~ "numeric" ^^^ ToMath
+    ) ~ ("value" ~ ("of" | "that represents" | "for") ~> expr) ^^ {
+      case op ~ e => ConversionExpression(op, e)
+    }
+    opFormat | textFormat
 
   // emu-xref expressions
   // TODO cleanup spec.html
@@ -454,9 +479,8 @@ trait Parsers extends IndentParsers {
     import MathOpExpressionOperator.*
     (
       "max" ^^^ Max ||| "min" ^^^ Min |||
-      "abs" ^^^ Abs ||| "floor" ^^^ Floor |||
-      "ℤ" ^^^ ToBigInt ||| "𝔽" ^^^ ToNumber ||| "ℝ" ^^^ ToMath
-    ) ~ ("(" ~> repsep(expr, ",") <~ ")") ^^ {
+      "abs" ^^^ Abs ||| "floor" ^^^ Floor
+    ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
         MathOpExpression(o, as)
     }
@@ -647,10 +671,11 @@ trait Parsers extends IndentParsers {
     "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
 
-  // bigint expressions
-  lazy val bigintExpr: PL[Expression] =
-    "the BigInt value that represents" ~> expr ^^ {
-      case e => MathOpExpression(MathOpExpressionOperator.ToBigInt, List(e))
+  // the code unit expression at specific index of a string
+  lazy val codeUnitAtExpr: PL[CodeUnitAtExpression] =
+    ("the code unit at index" ~> expr) ~
+    ("within" ~ opt("the String") ~> expr) ^^ {
+      case i ~ b => CodeUnitAtExpression(b, i)
     }
 
   // expressions including calculation represented by words
@@ -676,17 +701,17 @@ trait Parsers extends IndentParsers {
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of the production" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> mathOpExpr |
+    "the 32-bit two's complement bit string representing" ~> expr |
     // rounding towards 0
     expr <~ "rounded towards 0 to the next integer value" ^^ {
-      case e => MathOpExpression(MathOpExpressionOperator.ToBigInt, List(e))
+      case e => ConversionExpression(ConversionExpressionOperator.ToBigInt, e)
     } |
     // rounding towards nearest integer
     expr <~ (
       ", rounding down to the nearest integer, " +
       "including for negative numbers"
     ) ^^ {
-      case e => MathOpExpression(MathOpExpressionOperator.ToNumber, List(e))
+      case e => ConversionExpression(ConversionExpressionOperator.ToNumber, e)
     }
 
   // not yet supported expressions
@@ -729,6 +754,7 @@ trait Parsers extends IndentParsers {
     predCond |||
     isAreCond |||
     binCond |||
+    inclusiveIntervalCond |||
     containsWhoseCond |||
     specialCond
 
@@ -820,6 +846,16 @@ trait Parsers extends IndentParsers {
       case l ~ n ~ r =>
         BinaryCondition(r, if (n) NContains else Contains, l)
     }
+
+  // binary conditions
+  lazy val inclusiveIntervalCond: PL[InclusiveIntervalCondition] = {
+    (expr <~ "is") ~
+    opt("not") ~
+    ("in the inclusive interval from" ~> expr) ~
+    ("to" ~> expr)
+  } ^^ {
+    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t)
+  }
 
   // contains-whose conditions
   lazy val containsWhoseCond: PL[ContainsWhoseCondition] =

@@ -104,6 +104,9 @@ case class ReturnToResumeStep(
   returnStep: ReturnStep,
 ) extends Step
 
+// set fields with intrinsics
+case class SetFieldsWithIntrinsicsStep(ref: Reference) extends Step
+
 // block steps
 case class BlockStep(block: StepBlock) extends Step
 

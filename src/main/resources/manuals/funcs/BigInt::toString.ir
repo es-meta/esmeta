@@ -1,3 +1,4 @@
-def <NUM>:BigInt::toString(x: BigInt): String {
-  return ([str] x)
+def <NUM>:BigInt::toString(x: BigInt, radix?: Math): String {
+  if (= radix absent) return ([str] x)
+  else return ([str radix] x)
 }

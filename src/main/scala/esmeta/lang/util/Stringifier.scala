@@ -15,11 +15,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Syntax                     => syntaxRule(app, elem)
       case elem: PredicateConditionOperator => predCondOpRule(app, elem)
       case elem: MathOpExpressionOperator   => mathOpExprOpRule(app, elem)
-      case elem: BinaryExpressionOperator   => binExprOpRule(app, elem)
-      case elem: UnaryExpressionOperator    => unExprOpRule(app, elem)
-      case elem: XRefExpressionOperator     => xrefExprOpRule(app, elem)
-      case elem: BinaryConditionOperator    => binCondOpRule(app, elem)
-      case elem: CompoundConditionOperator  => compCondOpRule(app, elem)
+      case elem: ConversionExpressionOperator =>
+        convExprOpRule(false)(app, elem)
+      case elem: BinaryExpressionOperator  => binExprOpRule(app, elem)
+      case elem: UnaryExpressionOperator   => unExprOpRule(app, elem)
+      case elem: XRefExpressionOperator    => xrefExprOpRule(app, elem)
+      case elem: BinaryConditionOperator   => binCondOpRule(app, elem)
+      case elem: CompoundConditionOperator => compCondOpRule(app, elem)
     }
 
   // syntax
@@ -69,6 +71,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr
+      case SetFieldsWithIntrinsicsStep(ref) =>
+        app >> First("set fields of ") >> ref >> " with the values listed in "
+        app >> "<emu-xref href=\"#table-well-known-intrinsic-objects\">"
+        app >> "</emu-xref>."
       case IfStep(cond, thenStep, elseStep) =>
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
@@ -235,6 +241,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> entries
       case SoleElementExpression(expr) =>
         app >> "the sole element of " >> expr
+      case CodeUnitAtExpression(base, index) =>
+        app >> "the code unit at index " >> index >> " within " >> base
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)
@@ -271,6 +279,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathOpExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
+      case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
+        given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
+        app >> o >> "(" >> e >> ")"
+      case ConversionExpression(op, expr) =>
+        given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
+        app >> "the " >> op >> " value of " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
@@ -287,14 +301,21 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given mathOpExprOpRule: Rule[MathOpExpressionOperator] = (app, op) =>
     import MathOpExpressionOperator.*
     app >> (op match {
-      case Max      => "max"
-      case Min      => "min"
-      case Abs      => "abs"
-      case Floor    => "floor"
-      case ToBigInt => "ℤ"
-      case ToNumber => "𝔽"
-      case ToMath   => "ℝ"
+      case Max   => "max"
+      case Min   => "min"
+      case Abs   => "abs"
+      case Floor => "floor"
     })
+
+  // operators for conversion operation expressions
+  def convExprOpRule(text: Boolean): Rule[ConversionExpressionOperator] =
+    (app, op) =>
+      import ConversionExpressionOperator.*
+      app >> (op match {
+        case ToNumber => if (text) "Number" else "𝔽"
+        case ToBigInt => if (text) "BigInt" else "ℤ"
+        case ToMath   => if (text) "numeric" else "ℝ"
+      })
 
   // operators for binary expressions
   given binExprOpRule: Rule[BinaryExpressionOperator] = (app, op) =>
@@ -475,6 +496,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
+      case InclusiveIntervalCondition(left, neg, from, to) =>
+        app >> left >> " is"
+        if (neg) app >> " not"
+        app >> " in the inclusive interval from " >> from
+        app >> " to " >> to
       case ContainsWhoseCondition(list, ty, fieldName, expr) =>
         app >> list >> " contains a " >> ty
         app >> " whose [[" >> fieldName >> "]] is " >> expr

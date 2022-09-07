@@ -46,6 +46,7 @@ class StringifyTinyTest extends LangTest {
     lazy val letStepClosure =
       LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
     lazy val setStep = SetStep(x, addExpr)
+    lazy val setFieldsWithIntrinsicsStep = SetFieldsWithIntrinsicsStep(x)
     lazy val ifStep = IfStep(binaryCondLt, letStep, None)
     lazy val ifBlockStep =
       IfStep(binaryCondLt, blockStep, None)
@@ -101,6 +102,7 @@ class StringifyTinyTest extends LangTest {
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
+      setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>.",
       ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
       |  1. If _x_ < _x_ + _x_, then
@@ -249,6 +251,8 @@ class StringifyTinyTest extends LangTest {
     lazy val xrefLenExpr =
       XRefExpression(XRefExpressionOperator.ParamLength, "sec-x")
     lazy val soleExpr = SoleElementExpression(listExpr)
+    lazy val codeUnitAtExpr =
+      CodeUnitAtExpression(refExpr, refExpr)
     lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
     // tests
@@ -289,6 +293,7 @@ class StringifyTinyTest extends LangTest {
       xrefSlotsExpr -> "the internal slots listed in <emu-xref href=\"#sec-x\"></emu-xref>",
       xrefLenExpr -> "the number of non-optional parameters of the function definition in <emu-xref href=\"#sec-x\"></emu-xref>",
       soleExpr -> "the sole element of « _x_, _x_ »",
+      codeUnitAtExpr -> "the code unit at index _x_ within _x_",
     )
 
     // -------------------------------------------------------------------------
@@ -296,8 +301,6 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     lazy val minExpr =
       MathOpExpression(MathOpExpressionOperator.Min, List(refExpr))
-    lazy val toNumberExpr =
-      MathOpExpression(MathOpExpressionOperator.ToNumber, List(refExpr))
     lazy val addExpr =
       BinaryExpression(refExpr, BinaryExpressionOperator.Add, refExpr)
     lazy val subExpr =
@@ -314,11 +317,28 @@ class StringifyTinyTest extends LangTest {
       UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
     lazy val parenUnExpr =
       ExponentiationExpression(unExpr, refExpr)
+    lazy val convToNumberTextExpr =
+      ConversionExpression(
+        ConversionExpressionOperator.ToNumber,
+        codeUnitAtExpr,
+      )
+    lazy val convToBigIntTextExpr =
+      ConversionExpression(
+        ConversionExpressionOperator.ToBigInt,
+        codeUnitAtExpr,
+      )
+    lazy val convToMathTextExpr =
+      ConversionExpression(ConversionExpressionOperator.ToMath, codeUnitAtExpr)
+    lazy val convToNumberExpr =
+      ConversionExpression(ConversionExpressionOperator.ToNumber, refExpr)
+    lazy val convToBigIntExpr =
+      ConversionExpression(ConversionExpressionOperator.ToBigInt, refExpr)
+    lazy val convToMathExpr =
+      ConversionExpression(ConversionExpressionOperator.ToMath, refExpr)
 
     // tests
     checkParseAndStringify("CalcExpression", Expression)(
       minExpr -> "min(_x_)",
-      toNumberExpr -> "𝔽(_x_)",
       addExpr -> "_x_ + _x_",
       subExpr -> "_x_ - _x_",
       mulExpr -> "_x_ × _x_",
@@ -327,6 +347,12 @@ class StringifyTinyTest extends LangTest {
       parenAddExpr -> "_x_ × (_x_ + _x_)",
       parenMulExpr -> "-(_x_ × _x_)",
       parenUnExpr -> "(-_x_)<sup>_x_</sup>",
+      convToNumberTextExpr -> "the Number value of the code unit at index _x_ within _x_",
+      convToBigIntTextExpr -> "the BigInt value of the code unit at index _x_ within _x_",
+      convToMathTextExpr -> "the numeric value of the code unit at index _x_ within _x_",
+      convToNumberExpr -> "𝔽(_x_)",
+      convToBigIntExpr -> "ℤ(_x_)",
+      convToMathExpr -> "ℝ(_x_)",
     )
 
     // -------------------------------------------------------------------------
@@ -473,6 +499,15 @@ class StringifyTinyTest extends LangTest {
       IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
     lazy val binaryCondLt =
       BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
+    lazy val inclusiveIntervalCond =
+      InclusiveIntervalCondition(
+        refExpr,
+        false,
+        DecimalMathValueLiteral(BigDecimal(2)),
+        DecimalMathValueLiteral(BigDecimal(32)),
+      )
+    lazy val notInclusiveIntervalCond =
+      inclusiveIntervalCond.copy(negation = true)
     lazy val containsWhoseCond =
       ContainsWhoseCondition(refExpr, ty, "Value", refExpr)
     lazy val compCond =
@@ -503,6 +538,8 @@ class StringifyTinyTest extends LangTest {
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
       binaryCondLt -> "_x_ < _x_ + _x_",
+      inclusiveIntervalCond -> "_x_ is in the inclusive interval from 2 to 32",
+      notInclusiveIntervalCond -> "_x_ is not in the inclusive interval from 2 to 32",
       containsWhoseCond -> "_x_ contains a Base whose [[Value]] is _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",

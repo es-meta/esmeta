@@ -60,6 +60,14 @@ enum BinaryConditionOperator extends LangElem:
   case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
   SameCodeUnits, Contains, NContains
 
+// inclusive interval conditions
+case class InclusiveIntervalCondition(
+  left: Expression,
+  negation: Boolean,
+  from: Expression,
+  to: Expression,
+) extends Condition
+
 // `contains ... whose` conditions
 case class ContainsWhoseCondition(
   list: Expression,

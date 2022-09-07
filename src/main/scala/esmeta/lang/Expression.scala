@@ -68,6 +68,10 @@ enum XRefExpressionOperator extends LangElem:
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
 
+// the code unit expression at a specific index of a string
+case class CodeUnitAtExpression(base: Expression, index: Expression)
+  extends Expression
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 
@@ -128,10 +132,10 @@ case class ReferenceExpression(ref: Reference) extends CalcExpression
 // mathematical operation expressions
 case class MathOpExpression(
   op: MathOpExpressionOperator,
-  args: List[Expression],
+  args: List[CalcExpression],
 ) extends CalcExpression
 enum MathOpExpressionOperator extends LangElem:
-  case Max, Min, Abs, Floor, ToBigInt, ToNumber, ToMath
+  case Max, Min, Abs, Floor
 
 // exponentiation expressions
 case class ExponentiationExpression(
@@ -155,6 +159,14 @@ case class UnaryExpression(
 ) extends CalcExpression
 enum UnaryExpressionOperator extends LangElem:
   case Neg
+
+// conversion expressions
+case class ConversionExpression(
+  op: ConversionExpressionOperator,
+  expr: Expression,
+) extends CalcExpression
+enum ConversionExpressionOperator extends LangElem:
+  case ToBigInt, ToNumber, ToMath
 
 // -----------------------------------------------------------------------------
 // clamp expressions

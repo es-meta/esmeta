@@ -6,14 +6,15 @@ import esmeta.lang.*
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
-    case elem: Syntax                     => walk(elem)
-    case elem: PredicateConditionOperator => walk(elem)
-    case elem: MathOpExpressionOperator   => walk(elem)
-    case elem: BinaryExpressionOperator   => walk(elem)
-    case elem: UnaryExpressionOperator    => walk(elem)
-    case elem: XRefExpressionOperator     => walk(elem)
-    case elem: BinaryConditionOperator    => walk(elem)
-    case elem: CompoundConditionOperator  => walk(elem)
+    case elem: Syntax                       => walk(elem)
+    case elem: ConversionExpressionOperator => walk(elem)
+    case elem: PredicateConditionOperator   => walk(elem)
+    case elem: MathOpExpressionOperator     => walk(elem)
+    case elem: BinaryExpressionOperator     => walk(elem)
+    case elem: UnaryExpressionOperator      => walk(elem)
+    case elem: XRefExpressionOperator       => walk(elem)
+    case elem: BinaryConditionOperator      => walk(elem)
+    case elem: CompoundConditionOperator    => walk(elem)
   }
 
   def walk(syn: Syntax): Unit = syn match {
@@ -46,6 +47,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walk(expr)
     case SetStep(x, expr) =>
       walk(x); walk(expr)
+    case SetFieldsWithIntrinsicsStep(ref) =>
+      walk(ref)
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ReturnStep(expr) =>
@@ -114,6 +117,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(kind);
     case SoleElementExpression(expr) =>
       walk(expr)
+    case CodeUnitAtExpression(base, index) =>
+      walk(base); walk(index)
     case multi: MultilineExpression =>
       walk(multi)
     case yet: YetExpression =>
@@ -136,6 +141,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(ref)
     case MathOpExpression(op, args) =>
       walk(op); walkList(args, walk)
+    case ConversionExpression(op, expr) =>
+      walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
     case BinaryExpression(left, op, right) =>
@@ -147,6 +154,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(op: MathOpExpressionOperator): Unit = {}
+
+  def walk(op: ConversionExpressionOperator): Unit = {}
 
   def walk(op: BinaryExpressionOperator): Unit = {}
 
@@ -186,6 +195,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
+    case InclusiveIntervalCondition(left, neg, from, to) =>
+      walk(left); walk(neg); walk(from); walk(to)
     case ContainsWhoseCondition(list, ty, fieldName, expr) =>
       walk(list); walk(ty); walk(expr)
     case CompoundCondition(left, op, right) =>

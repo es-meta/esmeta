@@ -183,6 +183,8 @@ class Compiler(
       fb.addInst(ILet(compile(x), compile(fb, expr)))
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
+    case SetFieldsWithIntrinsicsStep(ref) =>
+      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case IfStep(cond, thenStep, elseStep) =>
       import CompoundConditionOperator.*
       // apply shortcircuit for invoke expression
@@ -511,11 +513,14 @@ class Compiler(
           case (Max, _)         => EVariadic(VOp.Max, args.map(compile(fb, _)))
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
           case (Abs, List(arg)) => EUnary(UOp.Abs, compile(fb, arg))
-          case (Floor, List(arg))    => EUnary(UOp.Floor, compile(fb, arg))
-          case (ToBigInt, List(arg)) => EConvert(COp.ToBigInt, compile(fb, arg))
-          case (ToNumber, List(arg)) => EConvert(COp.ToNumber, compile(fb, arg))
-          case (ToMath, List(arg))   => EConvert(COp.ToMath, compile(fb, arg))
-          case _                     => error(s"invalid math operation: $expr")
+          case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
+          case _                  => error(s"invalid math operation: $expr")
+      case ConversionExpression(op, expr) =>
+        import ConversionExpressionOperator.*
+        op match
+          case ToNumber => EConvert(COp.ToNumber, compile(fb, expr))
+          case ToBigInt => EConvert(COp.ToBigInt, compile(fb, expr))
+          case ToMath   => EConvert(COp.ToMath, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
@@ -572,6 +577,8 @@ class Compiler(
         } yield EStr(slot.substring(2, slot.length - 2)))
       case SoleElementExpression(list) =>
         toERef(fb, compile(fb, list), zero)
+      case CodeUnitAtExpression(base, index) =>
+        toERef(fb, compile(fb, base), compile(fb, index))
       case lit: Literal => compile(fb, lit)
     })
 
@@ -743,6 +750,12 @@ class Compiler(
           case Contains         => EContains(l, r, None)
           case NContains        => not(EContains(l, r, None))
         }
+      case InclusiveIntervalCondition(left, neg, from, to) =>
+        lazy val l = compile(fb, left)
+        lazy val f = compile(fb, from)
+        lazy val t = compile(fb, to)
+        val cond = not(or(lessThan(l, f), lessThan(t, l)))
+        if (neg) not(cond) else cond
       case ContainsWhoseCondition(list, ty, fieldName, expr) =>
         EContains(
           compile(fb, list),

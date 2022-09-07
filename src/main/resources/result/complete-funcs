@@ -1332,6 +1332,7 @@ INTRINSICS.String
 INTRINSICS.String.fromCodePoint
 INTRINSICS.String.prototype.at
 INTRINSICS.String.prototype.charAt
+INTRINSICS.String.prototype.charCodeAt
 INTRINSICS.String.prototype.codePointAt
 INTRINSICS.String.prototype.concat
 INTRINSICS.String.prototype.endsWith
@@ -1996,6 +1997,7 @@ RegExpHasFlag
 RegExpIdentifierName[0,0].CapturingGroupName
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
 RegExpIdentifierName[1,0].CapturingGroupName
+RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
 RejectPromise

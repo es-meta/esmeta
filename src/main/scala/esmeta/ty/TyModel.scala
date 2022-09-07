@@ -43,7 +43,8 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     infos.collect { case (name, TyInfo(None, _, _)) => aux(name) }
     descs
   }
-  def isSubTy(t0: String, t1: String): Boolean = subTys(t1) contains t0
+  def isSubTy(t0: String, t1: String): Boolean =
+    subTys.get(t1).fold(false)(_ contains t0)
 
   /** property map alias */
   type PropMap = Map[String, ValueTy]
