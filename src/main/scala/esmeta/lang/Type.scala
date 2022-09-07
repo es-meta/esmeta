@@ -27,7 +27,6 @@ object Type extends Parser.From(Parser.langTypeWithUnknown) {
     .split(" ")
     .map(_.capitalize)
     .mkString
-
 }
 
 /** unknown types */

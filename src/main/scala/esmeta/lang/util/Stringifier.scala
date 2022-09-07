@@ -615,8 +615,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       tys :+= name.withArticle(plural); ty --= pred
 
     // names
-    for (name <- ty.names.toList.sorted)
-      tys :+= name.withArticle(plural)
+    for (name <- ty.names.toList.sorted) tys :+= name.withArticle(plural)
 
     // lists
     for (vty <- ty.list.elem)
