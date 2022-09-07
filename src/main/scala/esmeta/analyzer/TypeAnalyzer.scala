@@ -109,7 +109,7 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
 
   // get return point
   def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
-    case (st, Param(x, ty, opt)) =>
+    case (st, Param(x, ty, opt, _)) =>
       var v = AbsValue(ty.ty)
       if (opt) v ⊔= AbsValue.absentTop
       st.update(x, v)

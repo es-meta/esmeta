@@ -67,7 +67,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // function parameters
   given paramRule: Rule[Param] = (app, param) =>
-    val Param(name, ty, optional) = param
+    val Param(name, ty, optional, _) = param
     app >> name >> (if (optional) "?" else "") >> ": " >> ty
 
   // instructions

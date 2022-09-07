@@ -458,8 +458,8 @@ class Interpreter(
     val map = MMap[Local, Value]()
     @tailrec
     def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
-      case (Nil, Nil)                           =>
-      case (Param(lhs, _, optional) :: pl, Nil) =>
+      case (Nil, Nil)                              =>
+      case (Param(lhs, _, optional, _) :: pl, Nil) =>
         // TODO parameter type check
         if (optional) {
           map += lhs -> Absent
