@@ -19,53 +19,54 @@ case object Extract extends Phase[Unit, Spec] {
     config: Config,
   ): Spec = if (!config.repl) {
     val spec = Extractor(config.target)
-
-    // logging mode
-    if (config.log) {
-      mkdir(EXTRACT_LOG_DIR)
-
-      val yetSteps = spec.incompleteSteps
-      dumpFile(
-        name = "not yet supported steps",
-        data = yetSteps
-          .map(_.toString(detail = false, location = false))
-          .sorted
-          .mkString(LINE_SEP),
-        filename = s"$EXTRACT_LOG_DIR/yet-steps",
-      )
-
-      val unknownTypes = spec.unknownTypes
-      dumpFile(
-        name = "unknown types",
-        data = unknownTypes
-          .map(_.toString)
-          .sorted
-          .mkString(LINE_SEP),
-        filename = s"$EXTRACT_LOG_DIR/unknown-types",
-      )
-
-      dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
-
-      // TODO dump algorithms
-      // dumpDir(
-      //   name = "algorithms",
-      //   iterable = spec.algorithms,
-      //   dirname = s"$EXTRACT_LOG_DIR/algos",
-      //   getName = algo => s"${algo.normalizedName}.algo",
-      // )
-
-      dumpFile(
-        name = "the summary of extracted specification",
-        data = spec,
-        filename = s"$EXTRACT_LOG_DIR/summary",
-      )
-
-      spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
-    }
+    if (config.log) log(spec)
     spec
   } else {
     runREPL
     Spec()
+  }
+
+  // logging mode
+  private def log(spec: Spec): Unit = {
+    mkdir(EXTRACT_LOG_DIR)
+
+    val yetSteps = spec.incompleteSteps
+    dumpFile(
+      name = "not yet supported steps",
+      data = yetSteps
+        .map(_.toString(detail = false, location = false))
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-steps",
+    )
+
+    val unknownTypes = spec.unknownTypes
+    dumpFile(
+      name = "unknown types",
+      data = unknownTypes
+        .map(_.toString)
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/unknown-types",
+    )
+
+    dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
+
+    // TODO dump algorithms
+    // dumpDir(
+    //   name = "algorithms",
+    //   iterable = spec.algorithms,
+    //   dirname = s"$EXTRACT_LOG_DIR/algos",
+    //   getName = algo => s"${algo.normalizedName}.algo",
+    // )
+
+    dumpFile(
+      name = "the summary of extracted specification",
+      data = spec,
+      filename = s"$EXTRACT_LOG_DIR/summary",
+    )
+
+    spec.stats.dumpTo(s"$EXTRACT_LOG_DIR/stat")
   }
 
   // run REPL

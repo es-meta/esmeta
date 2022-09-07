@@ -5,7 +5,9 @@ import esmeta.ir.{Name, Param, Type}
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ty.*
+import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
+import esmeta.util.Appender.*
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
@@ -43,6 +45,50 @@ class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
         case _ =>
           super.doCall(callerNp, callerSt, calleeFunc, newArgs, captured)
 
+    /** conversion to string */
+    override def toString: String =
+      (new Appender >> analyzedFuncs.toList.sortBy(_.name)).toString
+
+    /** conversion helper to string */
+    given getRule: Rule[Iterable[Func]] = (app, funcs) =>
+      import TyStringifier.given
+      given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
+      app >> "-" * 80
+      for (func <- funcs) {
+        val rp = ReturnPoint(func, View())
+        rpMap.get(rp) match
+          case None =>
+            app :> "analysis of " >> func.name >> " does not terminate."
+          case Some(ret) =>
+            app :> "   " >> func.headString
+            val fname = func.name
+            val entryNp = NodePoint(func, func.entry, View())
+            val st = this(entryNp)
+            val newParams = for {
+              p <- func.params
+            } yield {
+              p.lhs.name -> st.get(p.lhs, entryNp).ty
+            }
+            app :> "-> " >> "def " >> fname >> newParams
+            app >> ": " >> ret.value.ty
+        app :> "-" * 80
+      }
+      app
+
+    given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
+      import TyStringifier.given
+      val (param, ty) = pair
+      app >> param
+      if (ty.absent) app >> "?"
+      app >> ": " >> ty -- AbsentT
+
+    /** update return points */
+    override def doReturn(rp: ReturnPoint, origRet: AbsRet): Unit =
+      val ReturnPoint(func, view) = rp
+      val newRet = rp.func.retTy.ty match
+        case _: UnknownTy => origRet
+        case ty: ValueTy  => AbsRet(AbsValue(ty))
+      super.doReturn(rp, newRet)
   }.fixpoint
 
   // all entry node points

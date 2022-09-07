@@ -56,6 +56,9 @@ class AbsSemantics(
   /** set start time of analyzer */
   val startTime: Long = System.currentTimeMillis
 
+  def analyzedFuncs: Set[Func] =
+    npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
+
   /** fixpiont computation */
   @tailrec
   final def fixpoint: AbsSemantics = worklist.next match
@@ -267,8 +270,10 @@ class AbsSemantics(
       if givenNp.node == np.node && entryView == getEntryView(np.view)
     } yield np
 
-  /** string */
-  override def toString: String =
-    val funcs = npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
-    s"${funcs.size} functions are analyzed in $iter iterations."
+  /** conversion to string */
+  override def toString: String = shortString
+
+  /** conversion to short string */
+  def shortString: String =
+    s"- ${analyzedFuncs.size} functions are analyzed in $iter iterations."
 }
