@@ -588,9 +588,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   def valueTyRule(
     plural: Boolean,
   ): Rule[ValueTy] = (app, ty) =>
-    given Rule[PureValueTy] = pureValueTyRule(plural)
     val pure = !ty.pureValue.isBottom
     if (!ty.comp.isBottom)
+      given Rule[PureValueTy] = pureValueTyRule(plural, true)
       val normal = !ty.normal.isBottom
       val abrupt = ty.abrupt
       val both = normal && abrupt
@@ -599,12 +599,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       if (both) app >> " or "
       if (abrupt) app >> "an abrupt completion"
       if (pure) app >> " or "
-    if (pure) app >> ty.pureValue
+    if (pure)
+      given Rule[PureValueTy] = pureValueTyRule(plural, false)
+      app >> ty.pureValue
     app
 
   // pure value types
   def pureValueTyRule(
     plural: Boolean,
+    withEither: Boolean,
   ): Rule[PureValueTy] = (app, originTy) =>
     var ty: PureValueTy = originTy
     var tys: Vector[String] = Vector()
@@ -656,6 +659,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!ty.nullv.isBottom) tys :+= "*null*"
 
     given Rule[Iterable[String]] = listNamedSepRule(namedSep = "or")
+    if (withEither && tys.length >= 2) app >> "either "
     app >> tys
 
   // ---------------------------------------------------------------------------

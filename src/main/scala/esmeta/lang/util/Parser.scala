@@ -1024,7 +1024,24 @@ trait Parsers extends IndentParsers {
     "an abrupt completion" ^^^ AbruptT
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = listTy | simpleTy
+  lazy val pureValueTy: P[ValueTy] = opt("either") ~> rep1sep(
+    nameTy | recordTy | listTy | simpleTy,
+    sep("or"),
+  ) ^^ { _.foldLeft(BotT)(_ | _) }
+
+  // named record types
+  lazy val nameTy: P[ValueTy] =
+    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or"))
+      .flatMap {
+        case ss =>
+          val name = ss.mkString(" ")
+          val normalizedName = Type.normalizeName(name)
+          if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
+          else failure("unknown type name")
+      }
+
+  // record types TODO
+  lazy val recordTy: P[ValueTy] = opt("an" | "a") ~> failure("TODO")
 
   // list types
   lazy val listTy: P[ValueTy] =
