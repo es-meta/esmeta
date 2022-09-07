@@ -602,7 +602,10 @@ class StringifyTinyTest extends LangTest {
       // more complex
       Type(NumberTopT | BigIntT) -> "a Number or a BigInt",
       Type(NullT | ESValueT) -> "an ECMAScript language value",
-      Type(ESValueT | AstTopT) -> "an ECMAScript language value or a Parse Node",
+      Type(ESValueT | AstTopT) ->
+      "an ECMAScript language value or a Parse Node",
+      Type(NameT("ArrayBuffer") | NameT("SharedArrayBuffer")) ->
+      "an ArrayBuffer or a SharedArrayBuffer",
     )
   }
 
