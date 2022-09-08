@@ -18,7 +18,7 @@ import java.util.concurrent.TimeoutException
 /** `test262-test` phase */
 case object Test262Test extends Phase[CFG, Summary] {
   val name = "test262-test"
-  val help = "test Test262 tests with harness files (default: tests/test262)."
+  val help = "tests Test262 tests with harness files (default: tests/test262)."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,

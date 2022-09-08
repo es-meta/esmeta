@@ -3,4 +3,7 @@
 	url = https://github.com/tc39/ecma262
 [submodule "tests/test262"]
 	path = tests/test262
-	url = git@github.com:tc39/test262.git
+	url = https://github.com/tc39/test262.git
+[submodule "client"]
+	path = client
+	url = https://github.com/es-meta/esmeta-debugger-client.git

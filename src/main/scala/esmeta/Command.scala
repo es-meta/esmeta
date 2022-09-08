@@ -147,7 +147,7 @@ case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
 /** `test262-test` command */
 case object CmdTest262Test
   extends Command("test262-test", CmdBuildCFG >> Test262Test) {
-  val help = "test Test262 tests with harness files (default: tests/test262)."
+  val help = "tests Test262 tests with harness files (default: tests/test262)."
   val examples = List(
     "esmeta test262-test                                           # all ",
     "esmeta test262-test tests/test262/test/built-ins/Map/map.js   # file",
