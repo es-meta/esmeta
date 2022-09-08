@@ -1,8 +1,8 @@
-![test](https://github.com/es-meta/esmeta/actions/workflows/ci.yml/badge.svg)
-![license](https://badgen.net/github/license/es-meta/esmeta)
-![release](https://badgen.net/github/release/es-meta/esmeta)
-![prs](https://badgen.net/github/prs/es-meta/esmeta)
-![slack](https://badgen.net/badge/slack/esmeta/blue)
+[![test](https://github.com/es-meta/esmeta/actions/workflows/ci.yml/badge.svg)](https://github.com/es-meta/esmeta/actions)
+[![license](https://badgen.net/github/license/es-meta/esmeta)](https://github.com/es-meta/esmeta/blob/main/LICENSE.md)
+[![release](https://badgen.net/github/release/es-meta/esmeta)](https://github.com/es-meta/esmeta/releases)
+[![prs](https://badgen.net/github/prs/es-meta/esmeta)](https://github.com/es-meta/esmeta/pulls)
+[![slack](https://badgen.net/badge/slack/esmeta/blue)](https://esmetaecmascr-80e8523.slack.com)
 
 # ESMeta
 **ESMeta** is an **E**CMAScript **S**pecification **Meta**language. This
