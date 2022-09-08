@@ -1,10 +1,17 @@
 package esmeta.ir
 
 import esmeta.ir.util.Parser
+import esmeta.lang.Syntax
 import esmeta.util.DoubleEquals
 
 // IR expressions
-sealed trait Expr extends IRElem
+sealed trait Expr extends IRElem:
+  // backward edge to metalangauge
+  var langOpt: Option[Syntax] = None
+  def setLang(lang: Syntax): this.type = setLangOpt(Some(lang))
+  def setLangOpt(langOpt: Option[Syntax]): this.type =
+    this.langOpt = langOpt; this
+
 object Expr extends Parser.From(Parser.expr)
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr
