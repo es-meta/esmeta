@@ -1,14 +1,15 @@
 package esmeta.es.util.mutator
 
-import esmeta.es.util.mutator.GrammarNode.isValid
+import esmeta.es.util.mutator.LexicalNode.isValid
 
 import scala.collection.mutable.Map as MMap
 
-class GrammarNode(
+/** a class for find the shallowest string of a lexical production */
+class LexicalNode(
   val name: String,
   val rhsSymbols: List[Option[List[Option[String]]]],
 ) {
-  var parents: List[GrammarNode] = List.empty
+  var parents: List[LexicalNode] = List.empty
   var depth: Option[Int] = None
   val symbolDepths: MMap[String, Option[Int]] =
     MMap.empty.withDefaultValue(None)
@@ -60,7 +61,7 @@ class GrammarNode(
     else None
 }
 
-object GrammarNode {
+object LexicalNode {
   def isValid[T](list: List[Option[T]]): Boolean = list.foldLeft(true) {
     case (_, None)       => false
     case (bool, Some(_)) => bool

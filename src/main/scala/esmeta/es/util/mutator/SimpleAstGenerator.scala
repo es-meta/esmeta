@@ -9,8 +9,12 @@ class SimpleAstGenerator(grammar: Grammar) {
 
   /** a mapping from names to productions */
   lazy val nameMap: Map[String, Production] = grammar.nameMap
+
+  /** a mapping from names to lexical productions */
   lazy val lexicalNameMap: Map[String, Production] =
     nameMap.filter(_._2.kind == ProductionKind.Lexical)
+
+  /** a mapping from names to syntactic productions */
   lazy val syntacticNameMap: Map[String, Production] =
     nameMap.filter(_._2.kind == ProductionKind.Syntactic)
 
@@ -18,15 +22,25 @@ class SimpleAstGenerator(grammar: Grammar) {
   val reversedMap: MMap[String, Set[String]] =
     MMap.empty.withDefaultValue(Set.empty)
 
+  /** a mapping from production name to SyntacticNode */
   var syntacticNodeMap: Map[String, SyntacticNode] = Map.empty
-  var lexicalNodeMap: Map[String, GrammarNode] = Map.empty
 
+  /** a mapping from production name to LexicalNode */
+  var lexicalNodeMap: Map[String, LexicalNode] = Map.empty
+
+  /** a set of terminals in the grammar */
   var terminals: Set[String] = Set.empty
+
+  /** a set of terminals used in syntactic productions */
   val topLevelTerminals: Set[String] = grammar.topLevelTerminals
+
+  /** a set of lexicals used in syntactic productions */
   val topLevelLexicals: Set[String] =
     grammar.topLevelLexicals ++ topLevelTerminals
 
+  /** ast generation cache */
   var cache: MMap[String, Ast] = MMap.empty
+
   // Initialization
   {
     // initialize reversedMap, terminals
@@ -40,15 +54,15 @@ class SimpleAstGenerator(grammar: Grammar) {
         case Terminal(term) => {
           reversedMap(term) += prod.lhs.name
           terminals += term
-          lexicalNodeMap += (term -> GrammarNode(term, List.empty))
+          lexicalNodeMap += (term -> LexicalNode(term, List.empty))
         }
         case Nonterminal(name, _, _) => reversedMap(name) += prod.lhs.name
         case ButNot(Nonterminal(baseName, _, _), _) =>
           reversedMap(baseName) += prod.lhs.name // TODO: handle cases
-        case _ => // TODO: ButNot, ButOnlyIf, Lookahead
+        case _ => // TODO: ButOnlyIf, Lookahead
       }
     }
-    // initialize grammarNodeMap and lexicalNodeMap for non-terminals
+    // initialize syntacticNodeMap and lexicalNodeMap for non-terminals
     topLevelTerminals.foreach(term =>
       syntacticNodeMap += (term -> SyntacticNode(term, List.empty)),
     )
@@ -59,7 +73,7 @@ class SimpleAstGenerator(grammar: Grammar) {
           if optional then None else Some(name)
         case ButNot(Nonterminal(name, _, optional), _) =>
           if optional then None else Some(name) // TODO: handle cases
-        case _ => None // TODO: ButNot, ButOnlyIf, Lookahead
+        case _ => None // TODO: ButOnlyIf, Lookahead
       }))
       prod.kind match {
         case ProductionKind.Syntactic =>
@@ -69,7 +83,7 @@ class SimpleAstGenerator(grammar: Grammar) {
             prod.rhsList.map(_.condition),
           ))
         case _ =>
-          lexicalNodeMap += (prod.name -> GrammarNode(prod.name, rhsSymbols))
+          lexicalNodeMap += (prod.name -> LexicalNode(prod.name, rhsSymbols))
           if topLevelLexicals.contains(prod.name) then
             syntacticNodeMap += (prod.name -> SyntacticNode(
               prod.name,
@@ -124,6 +138,7 @@ class SimpleAstGenerator(grammar: Grammar) {
       }
   }
 
+  /** generate shortest string for lexical production */
   def generateLexicalHelper(name: String): Option[String] = {
     if terminals.contains(name) then {
       Some(name)
@@ -142,13 +157,14 @@ class SimpleAstGenerator(grammar: Grammar) {
       })
       val ret = instance
         .flatMap(list =>
-          if GrammarNode.isValid(list) then Some(list.flatten) else None,
+          if LexicalNode.isValid(list) then Some(list.flatten) else None,
         )
         .map(_.mkString)
       ret
     }
   }
 
+  /** generate shortest lexical production */
   def generateLexical(name: String): Option[Lexical] =
     generateLexicalHelper(name).map(Lexical(name, _))
 
@@ -173,6 +189,8 @@ class SimpleAstGenerator(grammar: Grammar) {
       Some(generate(ntName, newArgs))
     }
   }
+
+  /** generate shortest production */
   def generate(
     name: String,
     args: List[Boolean] = Nil,
@@ -196,8 +214,6 @@ class SimpleAstGenerator(grammar: Grammar) {
               val simplestRhs =
                 simplestRhsIdxOpt.flatMap(prod.nonRecursiveRhsList(_))
               val instance = simplestRhs.map(_.symbols.flatMap {
-//                No need to make terminal for symbolic ast
-//                case Terminal(term) => Some(generateLexical(term))
                 case Nonterminal(ntName, ntArgs, optional) =>
                   generateNonterminalOptOpt(
                     ntName,
@@ -230,6 +246,4 @@ class SimpleAstGenerator(grammar: Grammar) {
       case x => x
     }
   }
-
-  def debug() = println(syntacticNodeMap("CallExpression").length)
 }

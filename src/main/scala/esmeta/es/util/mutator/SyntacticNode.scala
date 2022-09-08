@@ -1,10 +1,11 @@
 package esmeta.es.util.mutator
 
-import esmeta.es.util.mutator.GrammarNode.isValid
+import esmeta.es.util.mutator.LexicalNode.isValid
 import esmeta.spec.*
 
 import scala.collection.mutable.Map as MMap
 
+/** a class for find the shortest string of a syntactic production */
 class SyntacticNode(
   val name: String,
   val rhsSymbols: List[Option[List[Option[String]]]],
