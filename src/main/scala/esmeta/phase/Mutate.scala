@@ -21,17 +21,40 @@ case object Mutate extends Phase[CFG, String] {
   ): String =
     val filename = getFirstFilename(cmdConfig, this.name)
     val ast = ESParser(cfg.spec.grammar)("Script").fromFile(filename)
-    val mutator: Mutator = RandomMutation(ast)
+    val mutator: Mutator = RandomMutation(cfg.grammar)
     val generator = SimpleAstGenerator(cfg.grammar)
+    val synthesizer = RandomSynth(cfg.grammar)
     val temp = List(
-      ("Punctuator", Nil),
-      ("AssignmentExpression", List(true, true, true)),
+//      ("Punctuator", Nil),
+      ("CallExpression", List(true, false)),
+//      ("CoverCallExpressionAndAsyncArrowHead", List(true, false)),
+//      ("Arguments", List(true, false)),
+//      ("AssignmentExpression", List(true, true, true)),
     )
-    temp.foreach(x => println(generator.generate(x._1, x._2)))
-//    println(generator.generate("AssignmentExpression", List(true, true, true)))
-//    val synth: RandomSynth = RandomSynth(cfg.spec.grammar)
-//    synth.synthesize("AssignmentExpression", "RelationalExpression")
-    mutator.mutate.toString(grammar = Some(cfg.grammar))
+//    temp.foreach(x => println(generator.generate(x._1, x._2)))
+////    generator.debug()
+//    temp.foreach { x =>
+//      val temp = synthesizer.synthesize(x._1, x._2);
+//      println(temp);
+//      println(temp.foreach(_.toString(grammar = Some(cfg.grammar))))
+//    }
+    for (_ <- Range(0, 20)) {
+      println("==============================================================")
+      val ret = mutator.mutate(ast)
+//      println(ret.toString)
+      println(ret.toString(grammar = Some(cfg.grammar)))
+      println("==============================================================")
+    }
+//    ret.toString(grammar = Some(cfg.grammar))
+    "whoa"
+
+//
+//    RandomMutation.exprList.foreach(expr =>
+//      println(expr.toString(grammar = Some(cfg.grammar))),
+//    )
+//    println(mutator.mutate(ast).toString(grammar = Some(cfg.grammar)))
+//    mutator.mutate(ast).toString(grammar = Some(cfg.grammar))
+//    "whoa"
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

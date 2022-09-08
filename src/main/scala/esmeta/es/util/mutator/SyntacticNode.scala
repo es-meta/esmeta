@@ -37,15 +37,17 @@ class SyntacticNode(
       ),
     )
     val oldLength = length
-    length =
-      if rhsLengths.flatten.nonEmpty then Some(rhsLengths.flatten.min)
-      else None
+    length = if rhsLengths.flatten.nonEmpty then {
+      Some(rhsLengths.flatten.min)
+    } else None
     if (oldLength != length)
+//      println(s"$name has been updated from $oldLength to $length.");
       updateParents()
   }
 
   def setLength(newLength: Int): Unit = {
     length = Some(newLength); updateParents()
+//    println(s"$name has been set to $length.")
   }
 
   def updateChildLength(newLength: Int, childName: String): Unit = {

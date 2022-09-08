@@ -1,15 +1,34 @@
 package esmeta.es.util.mutator
 
 import esmeta.util.BaseUtils
+import esmeta.spec.*
 import esmeta.es.util.*
 import esmeta.es.*
+import esmeta.es.util.mutator.RandomMutation.fff
 
 /* A simple random mutation */
-case class RandomMutation(ast: Ast) extends Mutator with Walker {
+case class RandomMutation(grammar: Grammar) extends Mutator with Walker {
   val name = "Random Mutation"
+  val synthesizer = RandomSynth(grammar)
+  val generator = SimpleAstGenerator(grammar)
 
-  def mutate = {
-    RandomMutation.walk(ast)
+  def mutate(ast: Ast): Ast = {
+//    println(generator.generate("Statement", fff))
+//    println(synthesizer.synthesize("Statement", fff))
+    walk(ast)
+  }
+  override def walk(ast: Syntactic): Syntactic = {
+    if (BaseUtils.randBool) {
+      val Syntactic(name, args, _, _) = ast
+      name match
+        case "AssignmentExpression" | "PrimaryExpression" | "Statement" |
+            "VariableDeclaration" =>
+          synthesizer
+            .synthesize(name, args)
+            .getOrElse(super.walk(ast))
+            .asInstanceOf[Syntactic]
+        case _ => super.walk(ast)
+    } else super.walk(ast)
   }
 }
 
@@ -97,7 +116,7 @@ object RandomMutation extends Walker {
 
   override def walk(ast: Syntactic): Syntactic = {
     if (BaseUtils.randBool) {
-      val Syntactic(name, _, _, _) = ast
+      val Syntactic(name, _, args, _) = ast
       name match
         case "AssignmentExpression" =>
           BaseUtils.choose(exprList).asInstanceOf[Syntactic]

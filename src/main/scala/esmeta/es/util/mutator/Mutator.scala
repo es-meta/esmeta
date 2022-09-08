@@ -4,5 +4,5 @@ import esmeta.es.*
 
 trait Mutator {
   val name: String
-  def mutate: Ast
+  def mutate(ast: Ast): Ast
 }

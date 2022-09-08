@@ -12,128 +12,96 @@ import scala.annotation.tailrec
 /** ast synthesizer for random mutation */
 class RandomSynth(grammar: Grammar) {
 
-  var startNonterminal: String = "AssignmentExpression"
-  var endNonterminal: String = "RelationalExpression"
+  val generator: SimpleAstGenerator = SimpleAstGenerator(grammar)
 
   /** a mapping from names to productions */
   lazy val nameMap: Map[String, Production] = grammar.nameMap
 
-  /** a mapping from rhs to lhs */
-  lazy val reversedMap: MMap[String, List[String]] = {
-    val revMap: MMap[String, List[String]] =
-      MMap.empty.withDefaultValue(List.empty)
-    for {
-      prod <- grammar.prods
-      rhs <- prod.rhsList
-      symbol <- rhs.symbols
-    } yield {
-      symbol match {
-        case Terminal(term)          => revMap(term) :+= prod.lhs.name
-        case Nonterminal(name, _, _) => revMap(name) :+= prod.lhs.name
-        case _                       =>
-      }
-    }
-    revMap
-  }
-
-  case class GrammarState(
-    stack: List[String],
-    routes: List[List[String]],
-    touched: Set[String],
+  val synthBreakpoints: Set[String] = Set(
+    "AssignmentExpression",
+    "PrimaryExpression",
+    "Statement",
+    "VariableDeclaration",
   )
-  case class IncompleteAstState(
-    route: List[String],
-    incAstList: List[IncompleteAst],
-  )
-  type ParamInstance = Map[String, Boolean]
-//  case class ParamInstance(values: List[Boolean], names: List[String])
-
-//  val grammarMonad: StateMonad[GrammarState] =
-//    StateMonad[GrammarState]()
-
-  def searchRoute(state: GrammarState): GrammarState = {
-    reversedMap(state.stack.head).foldLeft(state) {
-      case (GrammarState(stack, routes, touched), producer) =>
-        if (producer == startNonterminal)
-          GrammarState(
-            stack,
-            (producer :: stack) :: routes,
-            touched + producer,
-          )
-        else if (touched.contains(producer))
-          GrammarState(stack, routes, touched)
-        else
-          searchRoute(
-            GrammarState(producer :: stack, routes, touched + producer),
-          ).copy(stack = stack)
-    }
-  }
-  def enumerateBool(enumNum: Int): List[List[Boolean]] = {
-    @tailrec
-    def helper(n: Int, en: List[List[Boolean]]): List[List[Boolean]] =
-      if n == 0 then en
-      else helper(n - 1, en.flatMap(e => List(true :: e, false :: e)))
-    helper(enumNum, List.empty)
-  }
-  def allParamInstances(paramNames: List[String]): List[ParamInstance] = {
-    for (boolInstance <- enumerateBool(paramNames.length))
-      yield (paramNames zip boolInstance).toMap
-  }
-  def arePossibleArgs(
-    paramInstance: ParamInstance,
-    symbolArgs: List[NonterminalArgument],
+  def synthesizeNonterminalOptOpt(
+    name: String,
     args: List[Boolean],
-  ): Boolean = {
-    symbolArgs.zipWithIndex.foldLeft(true) {
-      case (possible, (ntArg, idx)) =>
-        if possible then
-          ntArg.kind match {
-            case NonterminalArgumentKind.True  => args(idx)
-            case NonterminalArgumentKind.False => !args(idx)
-            case NonterminalArgumentKind.Pass  => true
+    argsMap: Map[String, Boolean],
+    ntName: String,
+    ntArgs: List[NonterminalArgument],
+    optional: Boolean,
+  ): Option[Option[Ast]] = {
+    val makeOrNot = !optional || BaseUtils.randBool
+//    val makeOrNot = false
+    if makeOrNot then {
+      // TODO: Duplicated code
+      val newArgs = ntArgs.flatMap {
+        case NonterminalArgument(kind, ntArgName) =>
+          kind match {
+            case NonterminalArgumentKind.Pass  => argsMap.get(ntArgName)
+            case NonterminalArgumentKind.True  => Some(true)
+            case NonterminalArgumentKind.False => Some(false)
           }
-        else false
-    }
+      }
+      //      val simpleOrNot = BaseUtils.randBool || synthBreakpoints.contains(name)
+      val simpleOrNot = true
+      if simpleOrNot then Some(generator.generate(ntName, newArgs))
+      else
+        println(s"name: $name")
+        println(s"argsmap: $argsMap")
+//        println(s"validRhsList: $validRhsList")
+        println(s"ntName: $ntName")
+        synthesize(ntName, newArgs).map(Some(_))
+    } else Some(None)
   }
 
-//  def getIncompleteAst(state: IncompleteAstState): IncompleteAstState = {
-//    // TODO: consider parameter constraint of startNonterminal and endNonterminal
-//    state.route match {
-//      case head :: Nil => {
-//        val prod = nameMap(head)
-//        val rhsList = prod.rhsList
-//        ???
-//      }
-//      case head :: tail => {
-//        val prod = nameMap(head)
-////        prod.kind match { }
-//        val paramNames = prod.lhs.params
-//        for (paramInstance <- allParamInstances(paramNames)) yield {
-//          getIncompleteAst(state.copy(route = tail)).incAstList.map {
-//            case IncSyntactic(name, args, rhsIdx, children) => {
-////              if (arePossibleArgs(paramInstance, prod.rhsList(rhsIdx).symbols))
-//              ???
-//            }
-//            case IncLexical(name, str)            => ???
-//            case IncDesired(name, args, rhsIdx)   => ???
-//            case IncUndesired(name, args, rhsIdx) => ???
-//          }
-//        }
-//        ???
-//      }
-//      case _ => ???
-//    }
-//  }
+  def synthesize(name: String, args: List[Boolean]): Option[Ast] = {
+    nameMap
+      .get(name)
+      .flatMap(prod =>
+        prod.kind match {
+          case ProductionKind.Syntactic =>
+            val argsMap = (prod.lhs.params zip args).toMap
+            val validRhsList = prod.rhsList.filter(rhs =>
+              rhs.condition match {
+                case None                          => true
+                case Some(RhsCond(condName, pass)) =>
+//                  println(s"name: $name")
+//                  println(s"argsmap: $argsMap")
+//                  println(s"condName: $condName")
+                  (argsMap(condName) && pass) || (!argsMap(condName) && !pass)
 
-  def synthesize(from: String, to: String): Ast => Ast = {
-    startNonterminal = from
-    endNonterminal = to
-
-    val routes = searchRoute(
-      GrammarState(List(endNonterminal), List.empty, Set.empty),
-    ).routes
-
-    routes.foreach(_.foreach(println(_)))
-    x => x
+              },
+            )
+            val (rhs, rhsIdx) = BaseUtils.chooseWithIndex(validRhsList)
+            val childrenOpt = rhs.symbols.map {
+              case Terminal(term) => Some(Some(Lexical(term, term)))
+              case Nonterminal(ntName, ntArgs, optional) =>
+                synthesizeNonterminalOptOpt(
+                  name,
+                  args,
+                  argsMap,
+                  ntName,
+                  ntArgs,
+                  optional,
+                )
+              case ButNot(Nonterminal(ntName, ntArgs, optional), _) =>
+                synthesizeNonterminalOptOpt(
+                  name,
+                  args,
+                  argsMap,
+                  ntName,
+                  ntArgs,
+                  optional,
+                )
+              case _ => None // TODO: handle other symbols?
+            }
+//            println(s"childrenOpt: $childrenOpt")
+            if childrenOpt.forall(_.isDefined) then
+              Some(Syntactic(name, args, rhsIdx, childrenOpt.flatten))
+            else None
+          case _ => generator.generate(name)
+        },
+      )
   }
 }
