@@ -12,39 +12,51 @@ case class ValueTy(
   subMap: SubMapTy,
 ) extends Ty
   with Lattice[ValueTy] {
+  import ValueTy.*
 
   /** bottom check */
-  def isBottom: Boolean =
+  def isBottom: Boolean = (this eq Bot) | (
     this.comp.isBottom &
     this.pureValue.isBottom &
     this.subMap.isBottom
+  )
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean =
+  def <=(that: => ValueTy): Boolean = (this eq that) | (
     this.comp <= that.comp &
     this.pureValue <= that.pureValue &
     this.subMap <= that.subMap
+  )
 
   /** union type */
-  def |(that: => ValueTy): ValueTy = ValueTy(
-    this.comp | that.comp,
-    this.pureValue | that.pureValue,
-    this.subMap | that.subMap,
-  )
+  def |(that: => ValueTy): ValueTy =
+    if (this eq that) this
+    else
+      ValueTy(
+        this.comp | that.comp,
+        this.pureValue | that.pureValue,
+        this.subMap | that.subMap,
+      )
 
   /** intersection type */
-  def &(that: => ValueTy): ValueTy = ValueTy(
-    this.comp & that.comp,
-    this.pureValue & that.pureValue,
-    this.subMap & that.subMap,
-  )
+  def &(that: => ValueTy): ValueTy =
+    if (this eq that) this
+    else
+      ValueTy(
+        this.comp & that.comp,
+        this.pureValue & that.pureValue,
+        this.subMap & that.subMap,
+      )
 
   /** prune type */
-  def --(that: => ValueTy): ValueTy = ValueTy(
-    this.comp -- that.comp,
-    this.pureValue -- that.pureValue,
-    this.subMap -- that.subMap,
-  )
+  def --(that: => ValueTy): ValueTy =
+    if (that.isBottom) this
+    else
+      ValueTy(
+        this.comp -- that.comp,
+        this.pureValue -- that.pureValue,
+        this.subMap -- that.subMap,
+      )
 
   /** get single value */
   def getSingle: Flat[AValue] =
@@ -82,17 +94,17 @@ case class ValueTy(
 }
 object ValueTy {
   def apply(
-    comp: CompTy = CompTy(),
-    normal: PureValueTy = PureValueTy(),
+    comp: CompTy = CompTy.Bot,
+    normal: PureValueTy = PureValueTy.Bot,
     abrupt: Boolean = false,
-    pureValue: PureValueTy = PureValueTy(),
+    pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
     names: Set[String] = Set(),
-    record: RecordTy = RecordTy(),
-    list: ListTy = ListTy(),
+    record: RecordTy = RecordTy.Bot,
+    list: ListTy = ListTy.Bot,
     symbol: Boolean = false,
-    astValue: AstValueTy = AstNameTy(),
+    astValue: AstValueTy = AstValueTy.Bot,
     grammar: BSet[Grammar] = Fin(),
     codeUnit: Boolean = false,
     const: Set[String] = Set(),
@@ -104,7 +116,7 @@ object ValueTy {
     undef: Boolean = false,
     nullv: Boolean = false,
     absent: Boolean = false,
-    subMap: SubMapTy = SubMapTy(),
+    subMap: SubMapTy = SubMapTy.Bot,
   ): ValueTy = ValueTy(
     comp = comp | CompTy(normal, abrupt),
     pureValue = pureValue | PureValueTy(
@@ -129,4 +141,5 @@ object ValueTy {
     ),
     subMap = subMap,
   )
+  val Bot: ValueTy = ValueTy()
 }

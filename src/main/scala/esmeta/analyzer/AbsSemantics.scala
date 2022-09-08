@@ -23,13 +23,9 @@ class AbsSemantics(
   var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
   /** loop out edges */
   var loopOut: Map[View, Set[View]] = Map(),
-) {
-
-  /** assertions */
-  var assertions: Map[ControlPoint, AbsValue] = Map()
-
   /** current control point */
-  var curCP: Option[ControlPoint] = None
+  var curCp: Option[ControlPoint] = None,
+) {
 
   /** analysis REPL */
   val repl = REPL(this)
@@ -40,6 +36,11 @@ class AbsSemantics(
   /** the number of iterations */
   def getIter: Int = iter
   private var iter: Int = 0
+
+  /** count for each control point */
+  def getCounter: Map[ControlPoint, Int] = Map()
+  def getCount(cp: ControlPoint): Int = counter.getOrElse(cp, 0)
+  private var counter: Map[ControlPoint, Int] = Map()
 
   /** RunJobs function */
   val runJobs = cfg.fnameMap("RunJobs")
@@ -63,6 +64,10 @@ class AbsSemantics(
   @tailrec
   final def fixpoint: AbsSemantics = worklist.next match
     case Some(cp) =>
+      // set the current control point
+      curCp = Some(cp)
+      // count how many visited for each control point
+      counter += cp -> (getCount(cp) + 1)
       // increase iteration number
       iter += 1
       // check time limit
@@ -79,6 +84,8 @@ class AbsSemantics(
       // keep going
       fixpoint
     case None =>
+      // set the current control point
+      curCp = None
       // finalize REPL
       if (USE_REPL) repl.finished
       // final result

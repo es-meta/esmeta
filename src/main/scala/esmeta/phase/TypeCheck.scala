@@ -43,6 +43,13 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       data = sem,
       filename = s"$ANALYZE_LOG_DIR/type-analysis",
     )
+    dumpFile(
+      name = "visiting counter for control points",
+      data = sem.getCounter.toList
+        .sortBy(_._2)
+        .map { case (cp, k) => s"[$k] $cp" },
+      filename = s"$ANALYZE_LOG_DIR/counter",
+    )
   }
 
   def defaultConfig: Config = Config()

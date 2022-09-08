@@ -25,9 +25,9 @@ class AbsTransfer(sem: AbsSemantics) {
     case (rp: ReturnPoint)  => this(rp)
 
   /** transfer function for node points */
-  def apply[T <: Node](np: NodePoint[T]): Unit = {
+  def apply(np: NodePoint[_]): Unit = {
     // record current control point for alarm
-    given ControlPoint = np
+    given NodePoint[_] = np
     val st = sem(np)
     val NodePoint(func, node, view) = np
 
@@ -140,7 +140,7 @@ class AbsTransfer(sem: AbsSemantics) {
     "ContainsArguments",
   )
 
-  /** get syntax-directed operation(SDO) */
+  /** get syntax-directed operation (SDO) */
   val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
     case (ast, operation) =>
       val fnameMap = cfg.fnameMap
@@ -172,7 +172,7 @@ class AbsTransfer(sem: AbsSemantics) {
   }
 
   /** transfer function for normal instructions */
-  def transfer(inst: NormalInst)(using cp: ControlPoint): Updater = inst match {
+  def transfer(inst: NormalInst)(using cp: NodePoint[_]): Updater = inst match {
     case IExpr(expr) =>
       for {
         v <- transfer(expr)
@@ -218,13 +218,13 @@ class AbsTransfer(sem: AbsSemantics) {
         v <- transfer(expr)
         _ <- modify(prune(expr, true))
         _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
-      } yield sem.assertions += cp -> v
-    case IPrint(expr) => st => st
-    case INop()       => st => st
+      } yield ()
+    case IPrint(expr) => st => st /* skip */
+    case INop()       => st => st /* skip */
   }
 
   /** transfer function for call instructions */
-  def transfer(call: Call)(using cp: ControlPoint): Result[AbsValue] =
+  def transfer(call: Call)(using cp: NodePoint[_]): Result[AbsValue] =
     val callerNp = NodePoint(cp.func, call, cp.view)
     call.callInst match {
       case ICall(_, fexpr, args) =>
@@ -654,7 +654,7 @@ class AbsTransfer(sem: AbsSemantics) {
   def prune(
     cond: Expr,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater = cond match {
+  )(using cp: NodePoint[_]): Updater = cond match {
     case _ if !USE_REFINE   => st => st
     case EUnary(UOp.Not, e) => prune(e, !positive)
     case EBinary(BOp.Eq, ERef(ref: Local), target) =>
@@ -681,14 +681,16 @@ class AbsTransfer(sem: AbsSemantics) {
       } yield ()
     case EBinary(BOp.Or, l, r) =>
       st =>
-        val lst = prune(l, positive)(st)
-        val rst = prune(r, positive)(st)
-        if (positive) lst ⊔ rst else lst ⊓ rst
+        lazy val ltst = prune(l, true)(st)
+        lazy val lfst = prune(l, false)(st)
+        val rst = prune(r, positive)(lfst)
+        if (positive) ltst ⊔ rst else lfst ⊓ rst
     case EBinary(BOp.And, l, r) =>
       st =>
-        val lst = prune(l, positive)(st)
-        val rst = prune(r, positive)(st)
-        if (positive) lst ⊓ rst else lst ⊔ rst
+        lazy val ltst = prune(l, true)(st)
+        lazy val lfst = prune(l, false)(st)
+        val rst = prune(r, positive)(ltst)
+        if (positive) ltst ⊓ rst else lfst ⊔ rst
     case _ => st => st
   }
 
@@ -697,7 +699,7 @@ class AbsTransfer(sem: AbsSemantics) {
     l: AbsRefValue,
     r: AbsValue,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater = for {
+  )(using cp: NodePoint[_]): Updater = for {
     lv <- transfer(l)
     st <- get
     prunedV = lv.pruneValue(r, positive)
@@ -709,7 +711,7 @@ class AbsTransfer(sem: AbsSemantics) {
     l: AbsRefValue,
     r: AbsValue,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater = for {
+  )(using cp: NodePoint[_]): Updater = for {
     lv <- transfer(l)
     st <- get
     prunedV = lv.pruneType(r, positive)
@@ -721,7 +723,7 @@ class AbsTransfer(sem: AbsSemantics) {
     l: AbsRefValue,
     tname: String,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater =
+  )(using cp: NodePoint[_]): Updater =
     for {
       lv <- transfer(l)
       st <- get

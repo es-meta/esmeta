@@ -2,12 +2,14 @@ package esmeta.analyzer
 
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
-import esmeta.cfg.CFG
+import esmeta.cfg.{CFG, Node}
 import esmeta.error.*
 import esmeta.es.Initialize
 import esmeta.ir.*
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
+import java.io.PrintWriter
 
 /** analyzer elements */
 trait AnalyzerElem {
@@ -35,17 +37,51 @@ def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 /** not supported */
 def notSupported(msg: String): Nothing = throw NotSupported(msg)
 
-/** initilize control flow graphs (multiple time allowed) */
-def initCFG(cfg: CFG): Unit =
-  this._cfg = cfg
-  AbsState.setBase(new Initialize(cfg))
-
 // -----------------------------------------------------------------------------
-// mutable global options
+// global mutable options and structures
 // -----------------------------------------------------------------------------
 /** get control flow graph */
-def cfg: CFG = _cfg
-private var _cfg = CFG()
+def cfg: CFG = get(globalCFG, "CFG")
+private var globalCFG: Option[CFG] = None
+def withCFG[T](cfg: CFG)(t: => T): T =
+  globalCFG = Some(cfg)
+  AbsState.setBase(new Initialize(cfg))
+  val res = t
+  globalCFG = None
+  res
+
+/** abstract semantics */
+def sem: AbsSemantics = get(globalSem, "abstract semantics")
+private var globalSem: Option[AbsSemantics] = None
+def withSem[T](sem: AbsSemantics)(t: => T): T =
+  globalSem = Some(sem)
+  val res = t
+  globalSem = None
+  res
+
+/** logger */
+def warning(str: String): Unit =
+  val cpStr = sem.curCp.fold("")(" @ " + _.toString)
+  val msg = s"$str$cpStr"
+  if (!msgSet.contains(msg))
+    msgSet += msg
+    warn(msg)
+    nf.map(nf => { nf.println(msg); nf.flush })
+private var nf: Option[PrintWriter] = None
+private var msgSet: Set[String] = Set()
+def withLog[T](filename: String)(t: => T): T =
+  nf = Some(getPrintWriter(filename))
+  val res = t
+  msgSet = Set()
+  nf.map(_.close)
+  nf = None
+  res
+
+private def get[T](opt: Option[T], msg: String): T =
+  opt.getOrElse(throw Error(s"$msg is not yet initialized."))
+
+/** analysis time limit */
+var TYPE_CHECK: Boolean = false
 
 /** analysis time limit */
 var TIME_LIMIT: Option[Long] = None

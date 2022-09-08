@@ -215,20 +215,17 @@ object TypeDomain extends value.Domain {
     def parse(rule: Elem): Elem = rule.ty.grammar match
       case Inf => exploded("too imprecise grammar rule for parsing")
       case Fin(set) =>
-        Elem(
-          ValueTy(astValue =
-            AstNameTy(
-              (for (grammar <- set) yield grammar.name).toSet,
-            ),
-          ),
-        )
+        Elem(ValueTy(astValue = AstNameTy((for {
+          grammar <- set
+          name = grammar.name
+        } yield name).toSet)))
     def duplicated(st: AbsState): Elem = boolTop
     def substring(from: Elem): Elem = strTop
     def substring(from: Elem, to: Elem): Elem = strTop
     def clamp(lower: Elem, upper: Elem): Elem = mathTop
     def isArrayIndex: Elem = boolTop
 
-    /** TODO prune abstract values */
+    /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem =
       r.ty.str.getSingle match
         case One(tname) =>

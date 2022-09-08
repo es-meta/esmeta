@@ -11,10 +11,10 @@ case class PureValueTy(
   clo: BSet[String] = Fin(),
   cont: BSet[Int] = Fin(),
   names: Set[String] = Set(),
-  record: RecordTy = RecordTy(),
-  list: ListTy = ListTy(),
+  record: RecordTy = RecordTy.Bot,
+  list: ListTy = ListTy.Bot,
   symbol: Boolean = false,
-  astValue: AstValueTy = AstNameTy(),
+  astValue: AstValueTy = AstValueTy.Bot,
   grammar: BSet[Grammar] = Fin(),
   codeUnit: Boolean = false,
   const: Set[String] = Set(),
@@ -28,9 +28,10 @@ case class PureValueTy(
   absent: Boolean = false,
 ) extends TyElem
   with Lattice[PureValueTy] {
+  import PureValueTy.*
 
   /** bottom check */
-  def isBottom: Boolean =
+  def isBottom: Boolean = (this eq Bot) | (
     this.clo.isBottom &
     this.cont.isBottom &
     this.names.isBottom &
@@ -49,9 +50,10 @@ case class PureValueTy(
     this.undef.isBottom &
     this.nullv.isBottom &
     this.absent.isBottom
+  )
 
   /** partial order/subset operator */
-  def <=(that: => PureValueTy): Boolean =
+  def <=(that: => PureValueTy): Boolean = (this eq that) | (
     this.clo <= that.clo &
     this.cont <= that.cont &
     this.names <= that.names &
@@ -70,72 +72,82 @@ case class PureValueTy(
     this.undef <= that.undef &
     this.nullv <= that.nullv &
     this.absent <= that.absent
+  )
 
   /** union type */
-  def |(that: => PureValueTy): PureValueTy = PureValueTy(
-    this.clo | that.clo,
-    this.cont | that.cont,
-    this.names | that.names,
-    this.record | that.record,
-    this.list | that.list,
-    this.symbol | that.symbol,
-    this.astValue | that.astValue, // TODO
-    this.grammar | that.grammar,
-    this.codeUnit | that.codeUnit,
-    this.const | that.const,
-    this.math | that.math,
-    this.number | that.number,
-    this.bigInt | that.bigInt,
-    this.str | that.str,
-    this.bool | that.bool,
-    this.undef | that.undef,
-    this.nullv | that.nullv,
-    this.absent | that.absent,
-  )
+  def |(that: => PureValueTy): PureValueTy =
+    if (this eq that) this
+    else
+      PureValueTy(
+        this.clo | that.clo,
+        this.cont | that.cont,
+        this.names | that.names,
+        this.record | that.record,
+        this.list | that.list,
+        this.symbol | that.symbol,
+        this.astValue | that.astValue, // TODO
+        this.grammar | that.grammar,
+        this.codeUnit | that.codeUnit,
+        this.const | that.const,
+        this.math | that.math,
+        this.number | that.number,
+        this.bigInt | that.bigInt,
+        this.str | that.str,
+        this.bool | that.bool,
+        this.undef | that.undef,
+        this.nullv | that.nullv,
+        this.absent | that.absent,
+      )
 
   /** intersection type */
-  def &(that: => PureValueTy): PureValueTy = PureValueTy(
-    this.clo & that.clo,
-    this.cont & that.cont,
-    this.names & that.names,
-    this.record & that.record,
-    this.list & that.list,
-    this.symbol & that.symbol,
-    this.astValue & that.astValue, // TODO
-    this.grammar & that.grammar,
-    this.codeUnit & that.codeUnit,
-    this.const & that.const,
-    this.math & that.math,
-    this.number & that.number,
-    this.bigInt & that.bigInt,
-    this.str & that.str,
-    this.bool & that.bool,
-    this.undef & that.undef,
-    this.nullv & that.nullv,
-    this.absent & that.absent,
-  )
+  def &(that: => PureValueTy): PureValueTy =
+    if (this eq that) this
+    else
+      PureValueTy(
+        this.clo & that.clo,
+        this.cont & that.cont,
+        this.names & that.names,
+        this.record & that.record,
+        this.list & that.list,
+        this.symbol & that.symbol,
+        this.astValue & that.astValue, // TODO
+        this.grammar & that.grammar,
+        this.codeUnit & that.codeUnit,
+        this.const & that.const,
+        this.math & that.math,
+        this.number & that.number,
+        this.bigInt & that.bigInt,
+        this.str & that.str,
+        this.bool & that.bool,
+        this.undef & that.undef,
+        this.nullv & that.nullv,
+        this.absent & that.absent,
+      )
 
   /** prune type */
-  def --(that: => PureValueTy): PureValueTy = PureValueTy(
-    this.clo -- that.clo,
-    this.cont -- that.cont,
-    this.names -- that.names,
-    this.record -- that.record,
-    this.list -- that.list,
-    this.symbol -- that.symbol,
-    this.astValue -- that.astValue, // TODO
-    this.grammar -- that.grammar,
-    this.codeUnit -- that.codeUnit,
-    this.const -- that.const,
-    this.math -- that.math,
-    this.number -- that.number,
-    this.bigInt -- that.bigInt,
-    this.str -- that.str,
-    this.bool -- that.bool,
-    this.undef -- that.undef,
-    this.nullv -- that.nullv,
-    this.absent -- that.absent,
-  )
+  def --(that: => PureValueTy): PureValueTy =
+    if (that.isBottom) this
+    else
+      PureValueTy(
+        this.clo -- that.clo,
+        this.cont -- that.cont,
+        this.names -- that.names,
+        this.record -- that.record,
+        this.list -- that.list,
+        this.symbol -- that.symbol,
+        this.astValue -- that.astValue, // TODO
+        this.grammar -- that.grammar,
+        this.codeUnit -- that.codeUnit,
+        this.const -- that.const,
+        this.math -- that.math,
+        this.number -- that.number,
+        this.bigInt -- that.bigInt,
+        this.str -- that.str,
+        this.bool -- that.bool,
+        this.undef -- that.undef,
+        this.nullv -- that.nullv,
+        this.absent -- that.absent,
+      )
 
   /** get single value */
   def getSingle: Flat[APureValue] =
@@ -158,4 +170,6 @@ case class PureValueTy(
     (if (this.nullv.isBottom) Zero else One(Null)) |
     (if (this.absent.isBottom) Zero else One(Absent))
 }
-object PureValueTy extends Parser.From(Parser.pureValueTy)
+object PureValueTy extends Parser.From(Parser.pureValueTy) {
+  val Bot: PureValueTy = PureValueTy()
+}

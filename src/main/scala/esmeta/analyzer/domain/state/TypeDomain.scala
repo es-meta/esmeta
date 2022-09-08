@@ -99,7 +99,7 @@ object TypeDomain extends state.Domain {
       )
 
     /** getters with an address partition */
-    def get(part: Part): AbsObj = ???
+    def get(part: Part): AbsObj = AbsObj.Bot
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue = base.getOrElse(x, AbsValue.Bot)
@@ -107,7 +107,10 @@ object TypeDomain extends state.Domain {
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem = x match
       case x: Local  => defineLocal(x -> value)
-      case x: Global => elem
+      case x: Global =>
+        // TODO if (value !⊑ base(x))
+        //   warning(s"invalid global variable update: $x = $value")
+        elem
 
     /** property setter */
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
@@ -206,17 +209,17 @@ object TypeDomain extends state.Domain {
       elem.copy(locals = locals ++ pairs)
 
     /** singleton checks */
-    override def isSingle: Boolean = ???
+    override def isSingle: Boolean = false
 
     /** singleton address partition checks */
-    def isSingle(part: Part): Boolean = ???
+    def isSingle(part: Part): Boolean = false
 
     /** find merged parts */
-    def findMerged: Unit = ???
+    def findMerged: Unit = {}
 
     /** handle calls */
     def doCall: Elem = elem
-    def doProcStart(fixed: Set[Part]): Elem = ???
+    def doProcStart(fixed: Set[Part]): Elem = elem
 
     /** handle returns (elem: return states / to: caller states) */
     def doReturn(
@@ -227,11 +230,11 @@ object TypeDomain extends state.Domain {
       locals = to.locals ++ defs,
     )
 
-    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = ???
-    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = ???
+    def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = elem
+    def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = elem
 
     /** garbage collection */
-    def garbageCollected: Elem = ???
+    def garbageCollected: Elem = elem
 
     /** get reachable address partitions */
     def reachableParts: Set[Part] = Set()
@@ -279,13 +282,19 @@ object TypeDomain extends state.Domain {
     if (str contains "Type")
       if (normal) res |= CONSTT_NORMAL
       if (comp.abrupt) res |= constTyForAbruptTarget
+    // TODO if (!comp.isBottom)
+    //   boundCheck(
+    //     prop,
+    //     StrT("Value", "Target", "Type"),
+    //     t => s"invalid access: $t of $comp",
+    //   )
     res
 
   // AST lookup
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
     ast match
-      case AstBotTy => /* do nothing */
+      case AstValueTy.Bot => /* do nothing */
       case AstSingleTy(name, idx, subIdx) =>
         prop.math match
           case Fin(ns) =>
@@ -295,18 +304,37 @@ object TypeDomain extends state.Domain {
               propIdx = n.toInt
               rhs = cfg.grammar.nameMap(name).rhsList(idx)
               nts = rhs.getNts(subIdx)
-            } res |= nts(propIdx).fold(AbsentT)(AstT(_))
+            } {
+              if (propIdx >= nts.size)
+                () // TODO warning(s"invalid access: $propIdx of $ast")
+              else res |= nts(propIdx).fold(AbsentT)(AstT(_))
+              res |= nts(propIdx).fold(AbsentT)(AstT(_))
+            }
+          case Inf => res |= AstTopT
+        prop.str match
+          case Fin(ss) =>
+            for (s <- ss) s match
+              case "parent" => res |= AstTopT
+              case name =>
+                if (cfg.grammar.nameMap contains name) res |= AstT(name)
+                else () // TODO warning(s"invalid access: $name of $ast")
           case Inf => res |= AstTopT
       case _ => res |= AstTopT
+    // TODO if (!ast.isBottom)
+    //   boundCheck(prop, MathTopT | StrTopT, t => s"invalid access: $t of $ast")
     res
 
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
-    val str = prop.str
-    val math = prop.math
     var res = ValueTy()
-    if (str contains "length") res |= MathTopT
-    if (!math.isBottom) res |= CodeUnitT
+    if (prop.str contains "length") res |= MathTopT
+    if (!prop.math.isBottom) res |= CodeUnitT
+    // TODO if (!str.isBottom)
+    //   boundCheck(
+    //     prop,
+    //     MathTopT | StrT("length"),
+    //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
+    //   )
     res
 
   // named record lookup
@@ -356,4 +384,13 @@ object TypeDomain extends state.Domain {
   private def lookupSubMap(subMap: SubMapTy, prop: ValueTy): ValueTy =
     if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
     else ValueTy()
+
+  // bound check
+  private def boundCheck(
+    ty: ValueTy,
+    boundTy: => ValueTy,
+    f: ValueTy => String,
+  ): Unit =
+    val other = ty -- boundTy
+    if (!other.isBottom) warning(f(other))
 }

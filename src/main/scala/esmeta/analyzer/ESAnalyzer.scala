@@ -7,8 +7,13 @@ import esmeta.ir.*
 
 /** meta-level static analyzer for ECMAScript */
 class ESAnalyzer(cfg: CFG) {
-  // initialize CFG for analysis
-  initCFG(cfg)
+
+  /** perform analysis for a given ECMAScript code */
+  def apply(sourceText: String): AbsSemantics = withCFG(cfg) {
+    withSem(AbsSemantics(initNpMap(sourceText))) {
+      sem.fixpoint
+    }
+  }
 
   /** initial control point */
   lazy val initCp =
@@ -16,16 +21,12 @@ class ESAnalyzer(cfg: CFG) {
     val entry = runJobs.entry
     NodePoint(runJobs, entry, View())
 
-  /** perform analysis for a given ECMAScript code */
-  def apply(sourceText: String): AbsSemantics =
-    val sem = AbsSemantics(
-      npMap = Map(
-        initCp -> AbsState.Empty.defineGlobal(
-          Global(builtin.SOURCE_TEXT) -> AbsValue(sourceText),
-        ),
-      ),
-    )
-    sem.fixpoint
+  // get initial abstract states in each node point
+  def initNpMap(sourceText: String): Map[NodePoint[Node], AbsState] = Map(
+    initCp -> AbsState.Empty.defineGlobal(
+      Global(builtin.SOURCE_TEXT) -> AbsValue(sourceText),
+    ),
+  )
 }
 object ESAnalyzer:
   // throw exceptions when touching not yet supported instructions

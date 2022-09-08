@@ -20,7 +20,9 @@ trait Parsers extends BasicParsers {
   }.named("ty.UnknownTy")
 
   lazy val valueTy: Parser[ValueTy] = {
-    rep1sep(singleValueTy, "|") ^^ { case ts => ts.foldLeft(ValueTy())(_ | _) }
+    rep1sep(singleValueTy, "|") ^^ {
+      case ts => ts.foldLeft(ValueTy.Bot)(_ | _)
+    }
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
@@ -31,7 +33,7 @@ trait Parsers extends BasicParsers {
 
   /** completion record types */
   given compTy: Parser[CompTy] = {
-    rep1sep(singleCompTy, "|") ^^ { case ts => ts.foldLeft(CompTy())(_ | _) }
+    rep1sep(singleCompTy, "|") ^^ { case ts => ts.foldLeft(CompTy.Bot)(_ | _) }
   }.named("ty.CompTy")
 
   private lazy val singleCompTy: Parser[CompTy] = {
@@ -42,7 +44,7 @@ trait Parsers extends BasicParsers {
   /** pure value types (non-completion record types) */
   given pureValueTy: Parser[PureValueTy] = {
     rep1sep(singlePureValueTy, "|") ^^ {
-      case ts => ts.foldLeft(PureValueTy())(_ | _)
+      case ts => ts.foldLeft(PureValueTy.Bot)(_ | _)
     }
   }.named("ty.PureValueTy")
 
@@ -125,7 +127,7 @@ trait Parsers extends BasicParsers {
   /** record types */
   given recordTy: Parser[RecordTy] = {
     rep1sep(singleRecordTy, "|") ^^ {
-      case ts => ts.foldLeft(RecordTy())(_ | _)
+      case ts => ts.foldLeft(RecordTy.Bot)(_ | _)
     }
   }.named("ty.RecordTy")
 
@@ -140,18 +142,18 @@ trait Parsers extends BasicParsers {
 
   /** list types */
   given listTy: Parser[ListTy] = {
-    rep1sep(singleListTy, "|") ^^ { case ts => ts.foldLeft(ListTy())(_ | _) }
+    rep1sep(singleListTy, "|") ^^ { case ts => ts.foldLeft(ListTy.Bot)(_ | _) }
   }.named("ty.ListTy")
 
   private lazy val singleListTy: Parser[ListTy] = {
     "List[" ~> valueTy <~ "]" ^^ { case v => ListTy(Some(v)) } |
-    "Nil" ^^^ ListTy(Some(ValueTy()))
+    "Nil" ^^^ ListTy(Some(ValueTy.Bot))
   }.named("ty.ListTy (single)")
 
   /** AST value types */
   given astValueTy: Parser[AstValueTy] = {
     rep1sep(singleAstValueTy, "|") ^^ {
-      case ts => ts.foldLeft[AstValueTy](AstNameTy())(_ | _)
+      case ts => ts.foldLeft[AstValueTy](AstValueTy.Bot)(_ | _)
     }
   }.named("ty.AstValueTy")
 
@@ -166,7 +168,7 @@ trait Parsers extends BasicParsers {
   /** sub map types */
   given subMapTy: Parser[SubMapTy] = {
     rep1sep(singleSubMapTy, "|") ^^ {
-      case ts => ts.foldLeft(SubMapTy())(_ | _)
+      case ts => ts.foldLeft(SubMapTy.Bot)(_ | _)
     }
   }.named("ty.SubMapTy")
 
