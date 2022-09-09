@@ -10,12 +10,9 @@ class KindCollector extends UnitWalker {
   val map: MMap[ClassName, KindData] = MMap()
 
   private def collect(obj: LangElem): Unit = {
-    val diverged = obj match
-      case d: Diverged => d.map
-      case _           => Map()
     val name = ClassName(obj.getClass.getSimpleName, Kind(obj))
     val data = map.getOrElseUpdate(name, KindData())
-    data.inc; data.addDiverged(diverged)
+    data.inc
   }
 
   override def walk(step: Step): Unit =
@@ -36,25 +33,9 @@ object KindCollector {
       case _             => Kind.Etc
 
   case class ClassName(name: String, kind: Kind)
-  case class KindData(
-    var count: Int = 0,
-    diverged: MMap[String, MMap[Int, Int]] = MMap(),
-  ) {
+  case class KindData(var count: Int = 0) {
     def inc: Unit = count += 1
-    private def incDiverged(key: String, kind: Int, amount: Int = 1): Unit = {
-      val counter = diverged.getOrElseUpdate(key, MMap())
-      if (counter contains kind) counter(kind) += amount
-      else counter += kind -> amount
-    }
-    def addDiverged(map: Map[String, Int]): Unit =
-      for { (key, kind) <- map } { incDiverged(key, kind) }
-    def +=(other: KindData): Unit = {
-      count += other.count
-      for {
-        (key, otherCounter) <- other.diverged
-        (kind, kindCnt) <- otherCounter
-      } incDiverged(key, kind, kindCnt)
-    }
+    def +=(other: KindData): Unit = count += other.count
   }
 
   def apply(elem: LangElem): KindCollector =

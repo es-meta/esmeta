@@ -20,7 +20,7 @@ case class RecordExpression(
 ) extends Expression
 
 // `length of <string>` expressions
-case class LengthExpression(expr: Expression) extends Expression with Diverged
+case class LengthExpression(expr: Expression) extends Expression
 
 // `substring of` expressions
 case class SubstringExpression(
