@@ -29,6 +29,11 @@ ThisBuild / javacOptions ++= Seq(
 // automatic reload build.sbt
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+// setting for sbt-ghpages with scaladoc
+enablePlugins(GhpagesPlugin)
+enablePlugins(SiteScaladocPlugin)
+git.remoteRepo := "git@github.com:{your username}/{your project}.git"
+
 // basic
 lazy val basicTest = taskKey[Unit]("Launch basic tests")
 
