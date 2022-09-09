@@ -32,7 +32,7 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // setting for sbt-ghpages with scaladoc
 enablePlugins(GhpagesPlugin)
 enablePlugins(SiteScaladocPlugin)
-git.remoteRepo := "git@github.com:{your username}/{your project}.git"
+git.remoteRepo := "git@github.com:es-meta/esmeta.git"
 
 // basic
 lazy val basicTest = taskKey[Unit]("Launch basic tests")
