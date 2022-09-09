@@ -147,32 +147,11 @@ class Stats(spec: Spec) {
     def getStepString: String = getString(name => name.kind == Kind.Step)
     def getExprString: String = getString(name => name.kind == Kind.Expr)
     def getCondString: String = getString(name => name.kind == Kind.Cond)
-    private def getDivergedString(
-      diverged: MMap[String, MMap[Int, Int]],
-    ): String = {
-      // get new line string
-      def newline(indent: Int = 0): String = LINE_SEP + "  " * indent
-
-      // get string for kind counter
-      def getCounterString(counter: MMap[Int, Int]): String = {
-        val total = counter.map(_._2).sum
-        (for {
-          (kind, count) <- counter
-          ratio = ratioSimpleString(count, total)
-        } yield s"$kind -> $count/$total$ratio").mkString(", ")
-      }
-
-      (for {
-        (key, counter) <- diverged
-        counterStr = getCounterString(counter)
-      } yield newline(1) + s"- $key: $counterStr").mkString("")
-    }
     private def getString(
       filter: ClassName => Boolean,
     ): String = (for {
       (cname, data) <- sortedList if filter(cname)
-      divergedStr = getDivergedString(data.diverged)
-    } yield f"${cname.name}%-40s${data.count}$divergedStr").mkString(LINE_SEP)
+    } yield f"${cname.name}%-40s${data.count}").mkString(LINE_SEP)
   }
 
   /** initialize */
