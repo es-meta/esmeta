@@ -317,6 +317,11 @@ class StringifyTinyTest extends LangTest {
       UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
     lazy val parenUnExpr =
       ExponentiationExpression(unExpr, refExpr)
+    lazy val convToApproxNumberExpr =
+      ConversionExpression(
+        ConversionExpressionOperator.ToApproxNumber,
+        refExpr,
+      )
     lazy val convToNumberTextExpr =
       ConversionExpression(
         ConversionExpressionOperator.ToNumber,
@@ -347,6 +352,7 @@ class StringifyTinyTest extends LangTest {
       parenAddExpr -> "_x_ × (_x_ + _x_)",
       parenMulExpr -> "-(_x_ × _x_)",
       parenUnExpr -> "(-_x_)<sup>_x_</sup>",
+      convToApproxNumberExpr -> "an implementation-approximated Number value representing _x_",
       convToNumberTextExpr -> "the Number value of the code unit at index _x_ within _x_",
       convToBigIntTextExpr -> "the BigInt value of the code unit at index _x_ within _x_",
       convToMathTextExpr -> "the numeric value of the code unit at index _x_ within _x_",

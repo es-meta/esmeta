@@ -166,7 +166,7 @@ case class ConversionExpression(
   expr: Expression,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
-  case ToBigInt, ToNumber, ToMath
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath
 
 // -----------------------------------------------------------------------------
 // clamp expressions

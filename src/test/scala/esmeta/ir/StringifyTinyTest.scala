@@ -295,8 +295,9 @@ class StringifyTinyTest extends IRTest {
       BOp.SRShift -> ">>",
     )
     checkParseAndStringify("COp", COp)(
-      COp.ToBigInt -> "[bigInt]",
+      COp.ToApproxNumber -> "[approx-number]",
       COp.ToNumber -> "[number]",
+      COp.ToBigInt -> "[bigInt]",
       COp.ToStr(None) -> "[str]",
       COp.ToStr(Some(xExpr)) -> "[str x]",
     )

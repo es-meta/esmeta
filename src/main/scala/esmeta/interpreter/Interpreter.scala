@@ -284,9 +284,10 @@ class Interpreter(
         // code unit
         case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
         // mathematical value
-        case (Math(n), ToNumber) => Number(n.toDouble)
-        case (Math(n), ToBigInt) => BigInt(n.toBigInt)
-        case (Math(n), ToMath)   => Math(n)
+        case (Math(n), ToApproxNumber) => ???
+        case (Math(n), ToNumber)       => Number(n.toDouble)
+        case (Math(n), ToBigInt)       => BigInt(n.toBigInt)
+        case (Math(n), ToMath)         => Math(n)
         // string
         case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
         case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)

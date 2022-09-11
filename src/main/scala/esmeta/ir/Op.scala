@@ -41,6 +41,6 @@ object VOp extends Parser.From(Parser.vop)
 
 // conversion operators
 enum COp extends Op:
-  case ToBigInt, ToNumber, ToMath
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath
   case ToStr(radix: Option[Expr])
 object COp extends Parser.From(Parser.cop)

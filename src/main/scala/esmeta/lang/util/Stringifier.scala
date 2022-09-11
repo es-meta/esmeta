@@ -269,6 +269,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
+    import ConversionExpressionOperator.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
@@ -279,6 +280,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathOpExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
+      case ConversionExpression(ToApproxNumber, expr) =>
+        app >> "an implementation-approximated Number value representing "
+        app >> expr
       case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
         app >> o >> "(" >> e >> ")"
@@ -312,9 +316,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     (app, op) =>
       import ConversionExpressionOperator.*
       app >> (op match {
-        case ToNumber => if (text) "Number" else "𝔽"
-        case ToBigInt => if (text) "BigInt" else "ℤ"
-        case ToMath   => if (text) "numeric" else "ℝ"
+        case ToApproxNumber => "implementation-approximated Number"
+        case ToNumber       => if (text) "Number" else "𝔽"
+        case ToBigInt       => if (text) "BigInt" else "ℤ"
+        case ToMath         => if (text) "numeric" else "ℝ"
       })
 
   // operators for binary expressions

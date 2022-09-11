@@ -197,15 +197,17 @@ object TypeDomain extends value.Domain {
     def convertTo(cop: COp, radix: Elem): Elem =
       val ty = elem.ty
       Elem(cop match
-        case COp.ToMath
-            if (!ty.math.isBottom | !ty.number.isBottom | ty.bigInt) =>
-          MathTopT
+        case COp.ToApproxNumber if (!ty.math.isBottom) =>
+          NumberTopT
         case COp.ToNumber
             if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom) =>
           NumberTopT
         case COp.ToBigInt
             if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
           BigIntT
+        case COp.ToMath
+            if (!ty.math.isBottom | !ty.number.isBottom | ty.bigInt) =>
+          MathTopT
         case COp.ToStr(_)
             if (!ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
           StrTopT

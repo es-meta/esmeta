@@ -292,9 +292,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given copRule: Rule[COp] = (app, cop) =>
     import COp.*
     cop match {
-      case ToBigInt => app >> "[bigInt]"
-      case ToNumber => app >> "[number]"
-      case ToMath   => app >> "[math]"
+      case ToApproxNumber => app >> "[approx-number]"
+      case ToNumber       => app >> "[number]"
+      case ToBigInt       => app >> "[bigInt]"
+      case ToMath         => app >> "[math]"
       case ToStr(radix) =>
         app >> "[str"
         radix.map(app >> " " >> _)

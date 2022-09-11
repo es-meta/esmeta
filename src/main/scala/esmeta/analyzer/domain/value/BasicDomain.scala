@@ -318,10 +318,11 @@ object BasicDomain extends value.Domain {
         case _      => Bot
       )
       for (Math(n) <- elem.math) newV ⊔= (cop match
-        case ToNumber => apply(Number(n.toDouble))
-        case ToBigInt => apply(BigInt(n.toBigInt))
-        case ToMath   => apply(Math(n))
-        case _        => Bot
+        case ToApproxNumber => apply(Number(n.toDouble))
+        case ToNumber       => apply(Number(n.toDouble))
+        case ToBigInt       => apply(BigInt(n.toBigInt))
+        case ToMath         => apply(Math(n))
+        case _              => Bot
       )
       for (Str(s) <- elem.str) newV ⊔= (cop match
         case ToNumber => apply(Number(ESValueParser.str2Number(s)))
@@ -335,6 +336,7 @@ object BasicDomain extends value.Domain {
           radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(toStringHelper(d, n)))
         case ToNumber => apply(Number(d))
         case ToBigInt => apply(BigInt(BigDecimal.exact(d).toBigInt))
+        case _        => Bot
       )
       for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(b)))

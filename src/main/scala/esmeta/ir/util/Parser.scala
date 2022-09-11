@@ -262,8 +262,9 @@ trait Parsers extends TyParsers {
   // conversion operators
   given cop: Parser[COp] = {
     import COp.*
-    "[bigInt]" ^^^ ToBigInt |
+    "[approx-number]" ^^^ ToApproxNumber |
     "[number]" ^^^ ToNumber |
+    "[bigInt]" ^^^ ToBigInt |
     "[math]" ^^^ ToMath |
     "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) }
   }.named("ir.COp")

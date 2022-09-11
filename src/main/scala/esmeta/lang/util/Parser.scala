@@ -437,15 +437,16 @@ trait Parsers extends IndentParsers {
     import ConversionExpressionOperator.*
     val opFormat = (
       "𝔽" ^^^ ToNumber ||| "ℤ" ^^^ ToBigInt ||| "ℝ" ^^^ ToMath
-    ) ~ ("(" ~> expr <~ ")") ^^ { case op ~ e => ConversionExpression(op, e) }
-    val textFormat = "the" ~> (
-      "Number" ^^^ ToNumber |
-      "BigInt" ^^^ ToBigInt |
-      opt("integer that is the") ~ "numeric" ^^^ ToMath
-    ) ~ ("value" ~ ("of" | "that represents" | "for") ~> expr) ^^ {
-      case op ~ e => ConversionExpression(op, e)
-    }
-    opFormat | textFormat
+    ) ~ ("(" ~> expr <~ ")")
+    val textFormat =
+      ("the" | "an" | "a") ~> (
+        "implementation-approximated Number" ^^^ ToApproxNumber |
+        "Number" ^^^ ToNumber |
+        "BigInt" ^^^ ToBigInt |
+        opt("integer that is the") ~ "numeric" ^^^ ToMath
+      ) ~
+      ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr)
+    (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
 
   // emu-xref expressions
   // TODO cleanup spec.html
@@ -692,6 +693,7 @@ trait Parsers extends IndentParsers {
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
+    import ConversionExpressionOperator.*
     // ClassStaticBlockDefinitionEvaluation
     "the empty sequence of Unicode code points" ^^! StringLiteral("") |
     // Array.prototype.join
@@ -704,14 +706,14 @@ trait Parsers extends IndentParsers {
     "the 32-bit two's complement bit string representing" ~> expr |
     // rounding towards 0
     expr <~ "rounded towards 0 to the next integer value" ^^ {
-      case e => ConversionExpression(ConversionExpressionOperator.ToBigInt, e)
+      case e => ConversionExpression(ToBigInt, e)
     } |
     // rounding towards nearest integer
     expr <~ (
       ", rounding down to the nearest integer, " +
       "including for negative numbers"
     ) ^^ {
-      case e => ConversionExpression(ConversionExpressionOperator.ToNumber, e)
+      case e => ConversionExpression(ToNumber, e)
     }
 
   // not yet supported expressions

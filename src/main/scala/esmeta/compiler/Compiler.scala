@@ -272,7 +272,10 @@ class Compiler(
             val cond = and(
               EIsArrayIndex(keyExpr),
               not(
-                lessThan(EConvert(COp.ToNumber, keyExpr), compile(fb, start)),
+                lessThan(
+                  EConvert(COp.ToNumber, keyExpr),
+                  compile(fb, start),
+                ),
               ),
             )
             fb.addInst(IAssign(i, sub(iExpr, one)))
@@ -518,9 +521,10 @@ class Compiler(
       case ConversionExpression(op, expr) =>
         import ConversionExpressionOperator.*
         op match
-          case ToNumber => EConvert(COp.ToNumber, compile(fb, expr))
-          case ToBigInt => EConvert(COp.ToBigInt, compile(fb, expr))
-          case ToMath   => EConvert(COp.ToMath, compile(fb, expr))
+          case ToApproxNumber => EConvert(COp.ToApproxNumber, compile(fb, expr))
+          case ToNumber       => EConvert(COp.ToNumber, compile(fb, expr))
+          case ToBigInt       => EConvert(COp.ToBigInt, compile(fb, expr))
+          case ToMath         => EConvert(COp.ToMath, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
