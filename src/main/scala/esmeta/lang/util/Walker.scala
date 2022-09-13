@@ -9,7 +9,7 @@ trait Walker extends BasicWalker {
     case elem: Syntax                       => walk(elem)
     case elem: ConversionExpressionOperator => walk(elem)
     case elem: PredicateConditionOperator   => walk(elem)
-    case elem: MathOpExpressionOperator     => walk(elem)
+    case elem: MathFuncExpressionOperator   => walk(elem)
     case elem: BinaryExpressionOperator     => walk(elem)
     case elem: UnaryExpressionOperator      => walk(elem)
     case elem: XRefExpressionOperator       => walk(elem)
@@ -135,7 +135,9 @@ trait Walker extends BasicWalker {
     case expr: CalcExpression =>
       walk(expr)
     case ClampExpression(target, lower, upper) =>
-      walk(target); walk(lower); walk(upper)
+      ClampExpression(walk(target), walk(lower), walk(upper))
+    case MathOpExpression(op, args) =>
+      MathOpExpression(walk(op), walkList(args, walk))
     case BitwiseExpression(left, op, right) =>
       BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>
@@ -173,8 +175,8 @@ trait Walker extends BasicWalker {
       ReferenceExpression(walk(ref))
     case lit: Literal =>
       walk(lit)
-    case MathOpExpression(op, args) =>
-      MathOpExpression(walk(op), walkList(args, walk))
+    case MathFuncExpression(op, args) =>
+      MathFuncExpression(walk(op), walkList(args, walk))
     case ConversionExpression(op, expr) =>
       ConversionExpression(walk(op), walk(expr))
     case ExponentiationExpression(base, power) =>
@@ -186,6 +188,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(op: MathOpExpressionOperator): MathOpExpressionOperator = op
+
+  def walk(op: MathFuncExpressionOperator): MathFuncExpressionOperator = op
 
   def walk(op: ConversionExpressionOperator): ConversionExpressionOperator = op
 

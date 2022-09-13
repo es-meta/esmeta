@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp}
+import esmeta.ir.{COp, Name, VOp, MOp}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.spec.{Grammar => _, *}
@@ -105,6 +105,9 @@ object TypeDomain extends value.Domain {
     case VOp.Min | VOp.Max => mathTop
     case VOp.Concat        => strTop
 
+  /** transfer for mathematical operation */
+  def mopTransfer(mop: MOp, vs: List[Elem]): Elem = mathTop
+
   /** element interfaces */
   extension (elem: Elem) {
 
@@ -197,15 +200,17 @@ object TypeDomain extends value.Domain {
     def convertTo(cop: COp, radix: Elem): Elem =
       val ty = elem.ty
       Elem(cop match
-        case COp.ToMath
-            if (!ty.math.isBottom | !ty.number.isBottom | ty.bigInt) =>
-          MathTopT
+        case COp.ToApproxNumber if (!ty.math.isBottom) =>
+          NumberTopT
         case COp.ToNumber
             if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom) =>
           NumberTopT
         case COp.ToBigInt
             if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
           BigIntT
+        case COp.ToMath
+            if (!ty.math.isBottom | !ty.number.isBottom | ty.bigInt) =>
+          MathTopT
         case COp.ToStr(_)
             if (!ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
           StrTopT

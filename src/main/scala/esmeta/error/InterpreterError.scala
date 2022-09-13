@@ -49,6 +49,10 @@ case class InvalidClampOp(tv: Value, lv: Value, uv: Value)
   )
 case class InvalidVariadicOp(vop: VOp)
   extends InterpreterError(s"no arguments for the operator $vop")
+case class InvalidMathOp(mop: MOp, vs: List[PureValue])
+  extends InterpreterError(
+    s"invalid mathematical operation: $mop with ${vs.mkString(", ")}",
+  )
 
 // invalid completion values
 sealed abstract class InvalidComp(msg: Option[String])

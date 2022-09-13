@@ -14,6 +14,8 @@ trait Walker extends BasicWalker {
     case elem: Expr     => walk(elem)
     case elem: UOp      => walk(elem)
     case elem: BOp      => walk(elem)
+    case elem: VOp      => walk(elem)
+    case elem: MOp      => walk(elem)
     case elem: COp      => walk(elem)
     case elem: Ref      => walk(elem)
     case elem: Type     => walk(elem)
@@ -98,10 +100,12 @@ trait Walker extends BasicWalker {
       EUnary(walk(uop), walk(expr))
     case EBinary(bop, left, right) =>
       EBinary(walk(bop), walk(left), walk(right))
-    case EClamp(target, lower, upper) =>
-      EClamp(walk(target), walk(lower), walk(upper))
     case EVariadic(vop, exprs) =>
       EVariadic(walk(vop), walkList(exprs, walk))
+    case EClamp(target, lower, upper) =>
+      EClamp(walk(target), walk(lower), walk(upper))
+    case EMathOp(mop, exprs) =>
+      EMathOp(walk(mop), walkList(exprs, walk))
     case EConvert(cop, expr) =>
       EConvert(walk(cop), walk(expr))
     case ETypeOf(base) =>
@@ -163,6 +167,9 @@ trait Walker extends BasicWalker {
 
   // variadic operators
   def walk(vop: VOp): VOp = vop
+
+  // mathematical operators
+  def walk(mop: MOp): MOp = mop
 
   // conversion operators
   def walk(cop: COp): COp = cop match

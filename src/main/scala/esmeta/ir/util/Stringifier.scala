@@ -25,6 +25,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: UOp      => uopRule(app, elem)
       case elem: BOp      => bopRule(app, elem)
       case elem: VOp      => vopRule(app, elem)
+      case elem: MOp      => mopRule(app, elem)
       case elem: COp      => copRule(app, elem)
       case elem: Ref      => refRule(app, elem)
       case elem: Type     => tyRule(app, elem)
@@ -152,11 +153,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> uop >> " " >> expr >> ")"
       case EBinary(bop, left, right) =>
         app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
-      case EClamp(target, lower, upper) =>
-        app >> "(clamp " >> target >> " " >> lower >> " " >> upper >> ")"
       case EVariadic(vop, exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(" >> vop >> " " >> exprs >> ")"
+      case EClamp(target, lower, upper) =>
+        app >> "(clamp " >> target >> " " >> lower >> " " >> upper >> ")"
+      case EMathOp(mop, exprs) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(" >> mop >> " " >> exprs >> ")"
       case EConvert(cop, expr) =>
         app >> "(" >> cop >> " " >> expr >> ")"
       case ETypeOf(base) =>
@@ -258,7 +262,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given bopRule: Rule[BOp] = (app, bop) =>
     import BOp.*
     app >> (bop match
-      case Plus    => "+"
+      case Add     => "+"
       case Sub     => "-"
       case Mul     => "*"
       case Pow     => "**"
@@ -288,13 +292,42 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Concat => "concat"
     )
 
+  // mathematical operators
+  given mopRule: Rule[MOp] = (app, mop) =>
+    import MOp.*
+    app >> (mop match
+      case Expm1 => "[math:expm1]"
+      case Log10 => "[math:log10]"
+      case Log2  => "[math:log2]"
+      case Cos   => "[math:cos]"
+      case Cbrt  => "[math:cbrt]"
+      case Exp   => "[math:exp]"
+      case Cosh  => "[math:cosh]"
+      case Sinh  => "[math:sinh]"
+      case Tanh  => "[math:tanh]"
+      case Acos  => "[math:acos]"
+      case Acosh => "[math:acosh]"
+      case Asinh => "[math:asinh]"
+      case Atanh => "[math:atanh]"
+      case Asin  => "[math:asin]"
+      case Atan2 => "[math:atan2]"
+      case Atan  => "[math:atan]"
+      case Log1p => "[math:log1p]"
+      case Log   => "[math:log]"
+      case Sin   => "[math:sin]"
+      case Sqrt  => "[math:sqrt]"
+      case Tan   => "[math:tan]"
+      case Hypot => "[math:hypot]"
+    )
+
   // conversion operators
   given copRule: Rule[COp] = (app, cop) =>
     import COp.*
     cop match {
-      case ToBigInt => app >> "[bigInt]"
-      case ToNumber => app >> "[number]"
-      case ToMath   => app >> "[math]"
+      case ToApproxNumber => app >> "[approx-number]"
+      case ToNumber       => app >> "[number]"
+      case ToBigInt       => app >> "[bigInt]"
+      case ToMath         => app >> "[math]"
       case ToStr(radix) =>
         app >> "[str"
         radix.map(app >> " " >> _)

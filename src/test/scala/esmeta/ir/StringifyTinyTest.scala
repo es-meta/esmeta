@@ -157,7 +157,9 @@ class StringifyTinyTest extends IRTest {
     lazy val xExpr = ERef(x)
     lazy val yExpr = ERef(y)
     lazy val unary = EUnary(UOp.Neg, xExpr)
-    lazy val binary = EBinary(BOp.Plus, xExpr, xExpr)
+    lazy val binary = EBinary(BOp.Add, xExpr, xExpr)
+    lazy val variadic = EVariadic(VOp.Min, List(xExpr, xExpr, xExpr))
+    lazy val mathOp = EMathOp(MOp.Tan, List(xExpr))
     lazy val clamp = EClamp(xExpr, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
@@ -220,6 +222,8 @@ class StringifyTinyTest extends IRTest {
       xExpr -> "x",
       unary -> "(- x)",
       binary -> "(+ x x)",
+      variadic -> "(min x x x)",
+      mathOp -> "([math:tan] x)",
       clamp -> "(clamp x x x)",
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
@@ -274,7 +278,7 @@ class StringifyTinyTest extends IRTest {
       UOp.BNot -> "~",
     )
     checkParseAndStringify("BOp", BOp)(
-      BOp.Plus -> "+",
+      BOp.Add -> "+",
       BOp.Sub -> "-",
       BOp.Mul -> "*",
       BOp.Pow -> "**",
@@ -294,9 +298,39 @@ class StringifyTinyTest extends IRTest {
       BOp.URShift -> ">>>",
       BOp.SRShift -> ">>",
     )
+    checkParseAndStringify("VOp", VOp)(
+      VOp.Min -> "min",
+      VOp.Max -> "max",
+      VOp.Concat -> "concat",
+    )
+    checkParseAndStringify("MOp", MOp)(
+      MOp.Expm1 -> "[math:expm1]",
+      MOp.Log10 -> "[math:log10]",
+      MOp.Log2 -> "[math:log2]",
+      MOp.Cos -> "[math:cos]",
+      MOp.Cbrt -> "[math:cbrt]",
+      MOp.Exp -> "[math:exp]",
+      MOp.Cosh -> "[math:cosh]",
+      MOp.Sinh -> "[math:sinh]",
+      MOp.Tanh -> "[math:tanh]",
+      MOp.Acos -> "[math:acos]",
+      MOp.Acosh -> "[math:acosh]",
+      MOp.Asinh -> "[math:asinh]",
+      MOp.Atanh -> "[math:atanh]",
+      MOp.Asin -> "[math:asin]",
+      MOp.Atan2 -> "[math:atan2]",
+      MOp.Atan -> "[math:atan]",
+      MOp.Log1p -> "[math:log1p]",
+      MOp.Log -> "[math:log]",
+      MOp.Sin -> "[math:sin]",
+      MOp.Sqrt -> "[math:sqrt]",
+      MOp.Tan -> "[math:tan]",
+      MOp.Hypot -> "[math:hypot]",
+    )
     checkParseAndStringify("COp", COp)(
-      COp.ToBigInt -> "[bigInt]",
+      COp.ToApproxNumber -> "[approx-number]",
       COp.ToNumber -> "[number]",
+      COp.ToBigInt -> "[bigInt]",
       COp.ToStr(None) -> "[str]",
       COp.ToStr(Some(xExpr)) -> "[str x]",
     )

@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp}
+import esmeta.ir.{COp, Name, VOp, MOp}
 import esmeta.parser.ESValueParser
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -154,6 +154,20 @@ object BasicDomain extends value.Domain {
         set.foldLeft(Bot)(_ ⊔ _)
       case Concat => doVopTransfer[String](asStr, _ + _, apply, vs)
     else Bot
+
+  /** helpers for make transition for variadic operators */
+  protected def doVopTransfer[T](
+    f: Elem => Option[T],
+    op: (T, T) => T,
+    g: T => Elem,
+    vs: List[Elem],
+  ): Elem =
+    val vst = vs.map(f).flatten
+    if (vst.size != vs.size) Bot
+    else g(vst.reduce(op))
+
+  /** transfer for mathematical operation */
+  def mopTransfer(mop: MOp, vs: List[Elem]): Elem = mathTop
 
   /** element interfaces */
   extension (elem: Elem) {
@@ -318,10 +332,11 @@ object BasicDomain extends value.Domain {
         case _      => Bot
       )
       for (Math(n) <- elem.math) newV ⊔= (cop match
-        case ToNumber => apply(Number(n.toDouble))
-        case ToBigInt => apply(BigInt(n.toBigInt))
-        case ToMath   => apply(Math(n))
-        case _        => Bot
+        case ToApproxNumber => apply(Number(n.toDouble))
+        case ToNumber       => apply(Number(n.toDouble))
+        case ToBigInt       => apply(BigInt(n.toBigInt))
+        case ToMath         => apply(Math(n))
+        case _              => Bot
       )
       for (Str(s) <- elem.str) newV ⊔= (cop match
         case ToNumber => apply(Number(ESValueParser.str2Number(s)))
@@ -335,6 +350,7 @@ object BasicDomain extends value.Domain {
           radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(toStringHelper(d, n)))
         case ToNumber => apply(Number(d))
         case ToBigInt => apply(BigInt(BigDecimal.exact(d).toBigInt))
+        case _        => Bot
       )
       for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
         case ToMath => apply(Math(BigDecimal.exact(b)))

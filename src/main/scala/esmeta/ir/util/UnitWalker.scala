@@ -14,6 +14,8 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Expr     => walk(elem)
     case elem: UOp      => walk(elem)
     case elem: BOp      => walk(elem)
+    case elem: VOp      => walk(elem)
+    case elem: MOp      => walk(elem)
     case elem: COp      => walk(elem)
     case elem: Ref      => walk(elem)
     case elem: Type     => walk(elem)
@@ -88,6 +90,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(bop); walk(left); walk(right)
     case EClamp(target, lower, upper) =>
       walk(target); walk(lower); walk(upper)
+    case EMathOp(mop, exprs) =>
+      walk(mop); walkList(exprs, walk)
     case EVariadic(vop, exprs) =>
       walk(vop); walkList(exprs, walk)
     case EConvert(cop, expr) =>
@@ -150,6 +154,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   // variadic operators
   def walk(vop: VOp): Unit = {}
+
+  // mathematical operators
+  def walk(mop: MOp): Unit = {}
 
   // conversion operators
   def walk(cop: COp): Unit = cop match {

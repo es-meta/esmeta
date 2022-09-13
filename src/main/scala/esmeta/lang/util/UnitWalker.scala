@@ -9,7 +9,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Syntax                       => walk(elem)
     case elem: ConversionExpressionOperator => walk(elem)
     case elem: PredicateConditionOperator   => walk(elem)
-    case elem: MathOpExpressionOperator     => walk(elem)
+    case elem: MathFuncExpressionOperator   => walk(elem)
     case elem: BinaryExpressionOperator     => walk(elem)
     case elem: UnaryExpressionOperator      => walk(elem)
     case elem: XRefExpressionOperator       => walk(elem)
@@ -107,6 +107,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case ClampExpression(target, lower, upper) =>
       walk(target); walk(lower); walk(upper)
+    case MathOpExpression(op, args) =>
+      walk(op); walkList(args, walk)
     case BitwiseExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
     case invoke: InvokeExpression =>
@@ -139,7 +141,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case ReferenceExpression(ref) =>
       walk(ref)
-    case MathOpExpression(op, args) =>
+    case MathFuncExpression(op, args) =>
       walk(op); walkList(args, walk)
     case ConversionExpression(op, expr) =>
       walk(op); walk(expr)
@@ -154,6 +156,8 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(op: MathOpExpressionOperator): Unit = {}
+
+  def walk(op: MathFuncExpressionOperator): Unit = {}
 
   def walk(op: ConversionExpressionOperator): Unit = {}
 

@@ -272,7 +272,10 @@ class Compiler(
             val cond = and(
               EIsArrayIndex(keyExpr),
               not(
-                lessThan(EConvert(COp.ToNumber, keyExpr), compile(fb, start)),
+                lessThan(
+                  EConvert(COp.ToNumber, keyExpr),
+                  compile(fb, start),
+                ),
               ),
             )
             fb.addInst(IAssign(i, sub(iExpr, one)))
@@ -507,8 +510,8 @@ class Compiler(
         exprRules.get(yetStr).getOrElse(EYet(yetStr))
       case ReferenceExpression(ref) =>
         ERef(compile(fb, ref))
-      case MathOpExpression(op, args) =>
-        import MathOpExpressionOperator.*
+      case MathFuncExpression(op, args) =>
+        import MathFuncExpressionOperator.*
         (op, args) match
           case (Max, _)         => EVariadic(VOp.Max, args.map(compile(fb, _)))
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
@@ -518,9 +521,10 @@ class Compiler(
       case ConversionExpression(op, expr) =>
         import ConversionExpressionOperator.*
         op match
-          case ToNumber => EConvert(COp.ToNumber, compile(fb, expr))
-          case ToBigInt => EConvert(COp.ToBigInt, compile(fb, expr))
-          case ToMath   => EConvert(COp.ToMath, compile(fb, expr))
+          case ToApproxNumber => EConvert(COp.ToApproxNumber, compile(fb, expr))
+          case ToNumber       => EConvert(COp.ToNumber, compile(fb, expr))
+          case ToBigInt       => EConvert(COp.ToBigInt, compile(fb, expr))
+          case ToMath         => EConvert(COp.ToMath, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
@@ -533,6 +537,7 @@ class Compiler(
           compile(fb, lower),
           compile(fb, upper),
         )
+      case expr: MathOpExpression => compile(fb, expr)
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
@@ -582,9 +587,42 @@ class Compiler(
       case lit: Literal => compile(fb, lit)
     })
 
+  /** compile mathematical operators */
+  def compile(fb: FuncBuilder, expr: MathOpExpression): Expr =
+    import MathOpExpressionOperator.*
+    val MathOpExpression(op, args) = expr
+    (op, args.map(compile(fb, _))) match
+      case (Add, List(l, r))   => EBinary(BOp.Add, l, r)
+      case (Mul, List(l, r))   => EBinary(BOp.Mul, l, r)
+      case (Sub, List(l, r))   => EBinary(BOp.Sub, l, r)
+      case (Pow, List(l, r))   => EBinary(BOp.Pow, l, r)
+      case (Expm1, List(e))    => EMathOp(MOp.Expm1, List(e))
+      case (Log10, List(e))    => EMathOp(MOp.Log10, List(e))
+      case (Log2, List(e))     => EMathOp(MOp.Log2, List(e))
+      case (Cos, List(e))      => EMathOp(MOp.Cos, List(e))
+      case (Cbrt, List(e))     => EMathOp(MOp.Cbrt, List(e))
+      case (Exp, List(e))      => EMathOp(MOp.Exp, List(e))
+      case (Cosh, List(e))     => EMathOp(MOp.Cosh, List(e))
+      case (Sinh, List(e))     => EMathOp(MOp.Sinh, List(e))
+      case (Tanh, List(e))     => EMathOp(MOp.Tanh, List(e))
+      case (Acos, List(e))     => EMathOp(MOp.Acos, List(e))
+      case (Acosh, List(e))    => EMathOp(MOp.Acosh, List(e))
+      case (Asinh, List(e))    => EMathOp(MOp.Asinh, List(e))
+      case (Atanh, List(e))    => EMathOp(MOp.Atanh, List(e))
+      case (Asin, List(e))     => EMathOp(MOp.Asin, List(e))
+      case (Atan2, List(x, y)) => EMathOp(MOp.Atan2, List(x, y))
+      case (Atan, List(e))     => EMathOp(MOp.Atan, List(e))
+      case (Log1p, List(e))    => EMathOp(MOp.Log1p, List(e))
+      case (Log, List(e))      => EMathOp(MOp.Log, List(e))
+      case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
+      case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
+      case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))
+      case (Hypot, List(l))    => EMathOp(MOp.Hypot, List(l))
+      case _ => error(s"invalid math operationr: $op with $args")
+
   /** compile binary operators */
   def compile(op: BinaryExpressionOperator): BOp = op match
-    case BinaryExpressionOperator.Add => BOp.Plus
+    case BinaryExpressionOperator.Add => BOp.Add
     case BinaryExpressionOperator.Sub => BOp.Sub
     case BinaryExpressionOperator.Mul => BOp.Mul
     case BinaryExpressionOperator.Div => BOp.Div
@@ -630,21 +668,26 @@ class Compiler(
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
     case DecimalMathValueLiteral(n)         => EMathVal(n)
-    case NumberLiteral(n)                   => ENumber(n)
-    case BigIntLiteral(n)                   => EBigInt(n)
-    case TrueLiteral()                      => EBool(true)
-    case FalseLiteral()                     => EBool(false)
-    case UndefinedLiteral()                 => EUndef
-    case NullLiteral()                      => ENull
-    case AbsentLiteral()                    => EAbsent
-    case UndefinedTypeLiteral()             => EGLOBAL_UNDEF_TYPE
-    case NullTypeLiteral()                  => EGLOBAL_NULL_TYPE
-    case BooleanTypeLiteral()               => EGLOBAL_BOOL_TYPE
-    case StringTypeLiteral()                => EGLOBAL_STRING_TYPE
-    case SymbolTypeLiteral()                => EGLOBAL_SYMBOL_TYPE
-    case NumberTypeLiteral()                => EGLOBAL_NUMBER_TYPE
-    case BigIntTypeLiteral()                => EGLOBAL_BIGINT_TYPE
-    case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
+    case MathConstantLiteral(pre, name) =>
+      val expr = name match
+        case "π" => EGLOBAL_MATH_PI
+        case _   => EYet(s"<mathematical constant: $name>")
+      if (pre == 1) expr else EBinary(BOp.Mul, EMathVal(pre), expr)
+    case NumberLiteral(n)       => ENumber(n)
+    case BigIntLiteral(n)       => EBigInt(n)
+    case TrueLiteral()          => EBool(true)
+    case FalseLiteral()         => EBool(false)
+    case UndefinedLiteral()     => EUndef
+    case NullLiteral()          => ENull
+    case AbsentLiteral()        => EAbsent
+    case UndefinedTypeLiteral() => EGLOBAL_UNDEF_TYPE
+    case NullTypeLiteral()      => EGLOBAL_NULL_TYPE
+    case BooleanTypeLiteral()   => EGLOBAL_BOOL_TYPE
+    case StringTypeLiteral()    => EGLOBAL_STRING_TYPE
+    case SymbolTypeLiteral()    => EGLOBAL_SYMBOL_TYPE
+    case NumberTypeLiteral()    => EGLOBAL_NUMBER_TYPE
+    case BigIntTypeLiteral()    => EGLOBAL_BIGINT_TYPE
+    case ObjectTypeLiteral()    => EGLOBAL_OBJECT_TYPE
   }
 
   /** compile bitwise operations */
@@ -879,7 +922,7 @@ class Compiler(
     case _                     => EUnary(UOp.Not, expr)
   inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
-  inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
+  inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)
   inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)

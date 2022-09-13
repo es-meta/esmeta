@@ -14,7 +14,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     elem match {
       case elem: Syntax                     => syntaxRule(app, elem)
       case elem: PredicateConditionOperator => predCondOpRule(app, elem)
-      case elem: MathOpExpressionOperator   => mathOpExprOpRule(app, elem)
+      case elem: MathFuncExpressionOperator => mathFuncExprOpRule(app, elem)
       case elem: ConversionExpressionOperator =>
         convExprOpRule(false)(app, elem)
       case elem: BinaryExpressionOperator  => binExprOpRule(app, elem)
@@ -230,6 +230,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ClampExpression(target, lower, upper) =>
         app >> "the result of clamping " >> target >> " between " >> lower
         app >> " and " >> upper
+      case expr: MathOpExpression => mathOpExprRule(app, expr)
       case BitwiseExpression(left, op, right) =>
         app >> "the result of applying the " >> op >> " to " >> left
         app >> " and " >> right
@@ -250,6 +251,67 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
   }
 
+  // mathematical operations
+  lazy val mathOpExprRule: Rule[MathOpExpression] = (app, expr) =>
+    import MathOpExpressionOperator.*
+    val MathOpExpression(op, args) = expr
+    app >> "the "
+    (op, args) match
+      case (Add, List(l, r)) =>
+        app >> "sum of " >> l >> " and " >> r
+      case (Mul, List(l, r)) =>
+        app >> "product of " >> l >> " and " >> r
+      case (Sub, List(l, r)) =>
+        app >> "difference " >> l >> " minus " >> r
+      case (Pow, List(l, r)) =>
+        app >> "raising " >> l >> " to the " >> r >> " power"
+      case (Expm1, List(e)) =>
+        app >> "subtracting 1 from the exponential function of " >> e
+      case (Log10, List(e)) =>
+        app >> "base 10 logarithm of " >> e
+      case (Log2, List(e)) =>
+        app >> "base 2 logarithm of " >> e
+      case (Cos, List(e)) =>
+        app >> "cosine of " >> e
+      case (Cbrt, List(e)) =>
+        app >> "cube root of " >> e
+      case (Exp, List(e)) =>
+        app >> "exponential function of " >> e
+      case (Cosh, List(e)) =>
+        app >> "hyperbolic cosine of " >> e
+      case (Sinh, List(e)) =>
+        app >> "hyperbolic sine of " >> e
+      case (Tanh, List(e)) =>
+        app >> "hyperbolic tangent of " >> e
+      case (Acos, List(e)) =>
+        app >> "inverse cosine of " >> e
+      case (Acosh, List(e)) =>
+        app >> "inverse hyperbolic cosine of " >> e
+      case (Asinh, List(e)) =>
+        app >> "inverse hyperbolic sine of " >> e
+      case (Atanh, List(e)) =>
+        app >> "inverse hyperbolic tangent of " >> e
+      case (Asin, List(e)) =>
+        app >> "inverse sine of " >> e
+      case (Atan2, List(x, y)) =>
+        app >> "inverse tangent of the quotient " >> x >> " / " >> y
+      case (Atan, List(e)) =>
+        app >> "inverse tangent of " >> e
+      case (Log1p, List(e)) =>
+        app >> "natural logarithm of 1 + " >> e
+      case (Log, List(e)) =>
+        app >> "natural logarithm of " >> e
+      case (Sin, List(e)) =>
+        app >> "sine of " >> e
+      case (Sqrt, List(e)) =>
+        app >> "square root of " >> e
+      case (Tan, List(e)) =>
+        app >> "tangent of " >> e
+      case (Hypot, List(l)) =>
+        app >> "square root of the sum of squares of "
+        app >> "the mathematical values of the elements of " >> l
+      case _ => error(s"invalid math operationr: $op with $args")
+
   // multiline expressions
   given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
     expr match {
@@ -269,6 +331,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
+    import ConversionExpressionOperator.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
@@ -276,9 +339,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> (if (check) "?" else "!") >> " " >> expr
       case ReferenceExpression(ref) =>
         app >> ref
-      case MathOpExpression(op, args) =>
+      case MathFuncExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
+      case ConversionExpression(ToApproxNumber, expr) =>
+        app >> "an implementation-approximated Number value representing "
+        app >> expr
       case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
         app >> o >> "(" >> e >> ")"
@@ -297,9 +363,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (expr.level < level) app >> ")"
     app
 
-  // operators for mathematical operation expressions
-  given mathOpExprOpRule: Rule[MathOpExpressionOperator] = (app, op) =>
-    import MathOpExpressionOperator.*
+  // operators for mathematical function expressions
+  given mathFuncExprOpRule: Rule[MathFuncExpressionOperator] = (app, op) =>
+    import MathFuncExpressionOperator.*
     app >> (op match {
       case Max   => "max"
       case Min   => "min"
@@ -312,9 +378,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     (app, op) =>
       import ConversionExpressionOperator.*
       app >> (op match {
-        case ToNumber => if (text) "Number" else "𝔽"
-        case ToBigInt => if (text) "BigInt" else "ℤ"
-        case ToMath   => if (text) "numeric" else "ℝ"
+        case ToApproxNumber => "implementation-approximated Number"
+        case ToNumber       => if (text) "Number" else "𝔽"
+        case ToBigInt       => if (text) "BigInt" else "ℤ"
+        case ToMath         => if (text) "numeric" else "ℝ"
       })
 
   // operators for binary expressions
@@ -376,6 +443,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: PositiveInfinityMathValueLiteral => app >> "+∞"
       case _: NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)          => app >> n
+      case MathConstantLiteral(pre, name) =>
+        if (pre != 1) app >> pre
+        app >> name
       case NumberLiteral(n) =>
         if (n.isNaN) app >> "*NaN*"
         else

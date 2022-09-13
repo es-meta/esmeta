@@ -134,10 +134,12 @@ trait Parsers extends TyParsers {
       case u ~ e => EUnary(u, e)
     } | "(" ~> bop ~ expr ~ expr <~ ")" ^^ {
       case b ~ l ~ r => EBinary(b, l, r)
-    } | "(clamp" ~> expr ~ expr ~ expr <~ ")" ^^ {
-      case t ~ l ~ u => EClamp(t, l, u)
     } | "(" ~> vop ~ rep(expr) <~ ")" ^^ {
       case v ~ es => EVariadic(v, es)
+    } | "(clamp" ~> expr ~ expr ~ expr <~ ")" ^^ {
+      case t ~ l ~ u => EClamp(t, l, u)
+    } | "(" ~> mop ~ rep(expr) <~ ")" ^^ {
+      case m ~ es => EMathOp(m, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {
       case c ~ e => EConvert(c, e)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
@@ -230,7 +232,7 @@ trait Parsers extends TyParsers {
   // binary operators
   given bop: Parser[BOp] = {
     import BOp.*
-    "+" ^^^ Plus |
+    "+" ^^^ Add |
     "-" ^^^ Sub |
     "**" ^^^ Pow |
     "*" ^^^ Mul |
@@ -259,11 +261,39 @@ trait Parsers extends TyParsers {
     "concat" ^^^ Concat
   }.named("ir.VOp")
 
+  // mathematical operators
+  given mop: Parser[MOp] = {
+    import MOp.*
+    "[math:expm1]" ^^^ Expm1 |
+    "[math:log10]" ^^^ Log10 |
+    "[math:log2]" ^^^ Log2 |
+    "[math:cos]" ^^^ Cos |
+    "[math:cbrt]" ^^^ Cbrt |
+    "[math:exp]" ^^^ Exp |
+    "[math:cosh]" ^^^ Cosh |
+    "[math:sinh]" ^^^ Sinh |
+    "[math:tanh]" ^^^ Tanh |
+    "[math:acos]" ^^^ Acos |
+    "[math:acosh]" ^^^ Acosh |
+    "[math:asinh]" ^^^ Asinh |
+    "[math:atanh]" ^^^ Atanh |
+    "[math:asin]" ^^^ Asin |
+    "[math:atan2]" ^^^ Atan2 |
+    "[math:atan]" ^^^ Atan |
+    "[math:log1p]" ^^^ Log1p |
+    "[math:log]" ^^^ Log |
+    "[math:sin]" ^^^ Sin |
+    "[math:sqrt]" ^^^ Sqrt |
+    "[math:tan]" ^^^ Tan |
+    "[math:hypot]" ^^^ Hypot
+  }.named("ir.MOp")
+
   // conversion operators
   given cop: Parser[COp] = {
     import COp.*
-    "[bigInt]" ^^^ ToBigInt |
+    "[approx-number]" ^^^ ToApproxNumber |
     "[number]" ^^^ ToNumber |
+    "[bigInt]" ^^^ ToBigInt |
     "[math]" ^^^ ToMath |
     "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) }
   }.named("ir.COp")

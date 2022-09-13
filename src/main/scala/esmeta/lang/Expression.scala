@@ -50,12 +50,6 @@ case class GetChildrenExpression(
   expr: Expression,
 ) extends Expression
 
-// return-if-abrupt expressions
-case class ReturnIfAbruptExpression(
-  expr: Expression,
-  check: Boolean,
-) extends CalcExpression
-
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
@@ -126,15 +120,21 @@ sealed trait CalcExpression extends Expression {
     case _                                       => 3
 }
 
+// return-if-abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: Expression,
+  check: Boolean,
+) extends CalcExpression
+
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
 
-// mathematical operation expressions
-case class MathOpExpression(
-  op: MathOpExpressionOperator,
+// mathematical function expressions
+case class MathFuncExpression(
+  op: MathFuncExpressionOperator,
   args: List[CalcExpression],
 ) extends CalcExpression
-enum MathOpExpressionOperator extends LangElem:
+enum MathFuncExpressionOperator extends LangElem:
   case Max, Min, Abs, Floor
 
 // exponentiation expressions
@@ -166,7 +166,7 @@ case class ConversionExpression(
   expr: Expression,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
-  case ToBigInt, ToNumber, ToMath
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath
 
 // -----------------------------------------------------------------------------
 // clamp expressions
@@ -176,6 +176,18 @@ case class ClampExpression(
   lower: Expression,
   upper: Expression,
 ) extends Expression
+
+// -----------------------------------------------------------------------------
+// mathematical operation expressions
+// -----------------------------------------------------------------------------
+case class MathOpExpression(
+  op: MathOpExpressionOperator,
+  args: List[CalcExpression],
+) extends Expression
+enum MathOpExpressionOperator extends LangElem:
+  case Add, Sub, Mul, Pow
+  case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
+  case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan, Hypot
 
 // -----------------------------------------------------------------------------
 // bitwise expressions
@@ -249,6 +261,7 @@ sealed trait MathValueLiteral extends NumericLiteral
 case class PositiveInfinityMathValueLiteral() extends MathValueLiteral
 case class NegativeInfinityMathValueLiteral() extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
+case class MathConstantLiteral(pre: Int, name: String) extends MathValueLiteral
 case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
 case class BigIntLiteral(n: BigInt) extends NumericLiteral
 

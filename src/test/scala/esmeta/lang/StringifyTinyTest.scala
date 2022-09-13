@@ -300,7 +300,7 @@ class StringifyTinyTest extends LangTest {
     // algorithm calcualation expressions
     // -------------------------------------------------------------------------
     lazy val minExpr =
-      MathOpExpression(MathOpExpressionOperator.Min, List(refExpr))
+      MathFuncExpression(MathFuncExpressionOperator.Min, List(refExpr))
     lazy val addExpr =
       BinaryExpression(refExpr, BinaryExpressionOperator.Add, refExpr)
     lazy val subExpr =
@@ -317,6 +317,11 @@ class StringifyTinyTest extends LangTest {
       UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
     lazy val parenUnExpr =
       ExponentiationExpression(unExpr, refExpr)
+    lazy val convToApproxNumberExpr =
+      ConversionExpression(
+        ConversionExpressionOperator.ToApproxNumber,
+        refExpr,
+      )
     lazy val convToNumberTextExpr =
       ConversionExpression(
         ConversionExpressionOperator.ToNumber,
@@ -347,12 +352,123 @@ class StringifyTinyTest extends LangTest {
       parenAddExpr -> "_x_ × (_x_ + _x_)",
       parenMulExpr -> "-(_x_ × _x_)",
       parenUnExpr -> "(-_x_)<sup>_x_</sup>",
+      convToApproxNumberExpr -> "an implementation-approximated Number value representing _x_",
       convToNumberTextExpr -> "the Number value of the code unit at index _x_ within _x_",
       convToBigIntTextExpr -> "the BigInt value of the code unit at index _x_ within _x_",
       convToMathTextExpr -> "the numeric value of the code unit at index _x_ within _x_",
       convToNumberExpr -> "𝔽(_x_)",
       convToBigIntExpr -> "ℤ(_x_)",
       convToMathExpr -> "ℝ(_x_)",
+    )
+    // -------------------------------------------------------------------------
+    // algorithm mathematical operaion expressions
+    // -------------------------------------------------------------------------
+    // tests
+    checkParseAndStringify("MathOpExpression", Expression)(
+      MathOpExpression(
+        MathOpExpressionOperator.Add,
+        List(refExpr, refExpr),
+      ) -> "the sum of _x_ and _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Mul,
+        List(refExpr, refExpr),
+      ) -> "the product of _x_ and _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sub,
+        List(refExpr, refExpr),
+      ) -> "the difference _x_ minus _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Pow,
+        List(refExpr, refExpr),
+      ) -> "the raising _x_ to the _x_ power",
+      MathOpExpression(
+        MathOpExpressionOperator.Expm1,
+        List(refExpr),
+      ) -> "the subtracting 1 from the exponential function of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log10,
+        List(refExpr),
+      ) -> "the base 10 logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log2,
+        List(refExpr),
+      ) -> "the base 2 logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cos,
+        List(refExpr),
+      ) -> "the cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cbrt,
+        List(refExpr),
+      ) -> "the cube root of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Exp,
+        List(refExpr),
+      ) -> "the exponential function of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cosh,
+        List(refExpr),
+      ) -> "the hyperbolic cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sinh,
+        List(refExpr),
+      ) -> "the hyperbolic sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Tanh,
+        List(refExpr),
+      ) -> "the hyperbolic tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Acos,
+        List(refExpr),
+      ) -> "the inverse cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Acosh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Asinh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atanh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Asin,
+        List(refExpr),
+      ) -> "the inverse sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atan2,
+        List(refExpr, refExpr),
+      ) -> "the inverse tangent of the quotient _x_ / _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atan,
+        List(refExpr),
+      ) -> "the inverse tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log1p,
+        List(refExpr),
+      ) -> "the natural logarithm of 1 + _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log,
+        List(refExpr),
+      ) -> "the natural logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sin,
+        List(refExpr),
+      ) -> "the sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sqrt,
+        List(refExpr),
+      ) -> "the square root of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Tan,
+        List(refExpr),
+      ) -> "the tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Hypot,
+        List(refExpr),
+      ) -> "the square root of the sum of squares of the mathematical values of the elements of _x_",
     )
 
     // -------------------------------------------------------------------------
@@ -374,6 +490,8 @@ class StringifyTinyTest extends LangTest {
     lazy val sym = SymbolLiteral("iterator")
     lazy val errObj = ErrorObjectLiteral("TypeError")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
+    lazy val mathPi = MathConstantLiteral(1, "π")
+    lazy val mathPiWithPre = MathConstantLiteral(2, "π")
     lazy val posZero = NumberLiteral(+0.0)
     lazy val negZero = NumberLiteral(-0.0)
     lazy val posInf = NumberLiteral(Double.PositiveInfinity)
@@ -404,6 +522,8 @@ class StringifyTinyTest extends LangTest {
       PositiveInfinityMathValueLiteral() -> "+∞",
       NegativeInfinityMathValueLiteral() -> "-∞",
       mathVal -> "0.5",
+      mathPi -> "π",
+      mathPiWithPre -> "2π",
       posZero -> "*+0*<sub>𝔽</sub>",
       negZero -> "*-0*<sub>𝔽</sub>",
       posInf -> "*+∞*<sub>𝔽</sub>",
