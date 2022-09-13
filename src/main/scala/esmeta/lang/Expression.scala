@@ -50,12 +50,6 @@ case class GetChildrenExpression(
   expr: Expression,
 ) extends Expression
 
-// return-if-abrupt expressions
-case class ReturnIfAbruptExpression(
-  expr: Expression,
-  check: Boolean,
-) extends CalcExpression
-
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
@@ -125,6 +119,12 @@ sealed trait CalcExpression extends Expression {
     case UnaryExpression(_, _)                   => 2
     case _                                       => 3
 }
+
+// return-if-abrupt expressions
+case class ReturnIfAbruptExpression(
+  expr: Expression,
+  check: Boolean,
+) extends CalcExpression
 
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
@@ -249,6 +249,7 @@ sealed trait MathValueLiteral extends NumericLiteral
 case class PositiveInfinityMathValueLiteral() extends MathValueLiteral
 case class NegativeInfinityMathValueLiteral() extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
+case class MathConstantLiteral(pre: Int, name: String) extends MathValueLiteral
 case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
 case class BigIntLiteral(n: BigInt) extends NumericLiteral
 

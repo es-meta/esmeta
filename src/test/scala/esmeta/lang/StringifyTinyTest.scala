@@ -380,6 +380,8 @@ class StringifyTinyTest extends LangTest {
     lazy val sym = SymbolLiteral("iterator")
     lazy val errObj = ErrorObjectLiteral("TypeError")
     lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
+    lazy val mathPi = MathConstantLiteral(1, "π")
+    lazy val mathPiWithPre = MathConstantLiteral(2, "π")
     lazy val posZero = NumberLiteral(+0.0)
     lazy val negZero = NumberLiteral(-0.0)
     lazy val posInf = NumberLiteral(Double.PositiveInfinity)
@@ -410,6 +412,8 @@ class StringifyTinyTest extends LangTest {
       PositiveInfinityMathValueLiteral() -> "+∞",
       NegativeInfinityMathValueLiteral() -> "-∞",
       mathVal -> "0.5",
+      mathPi -> "π",
+      mathPiWithPre -> "2π",
       posZero -> "*+0*<sub>𝔽</sub>",
       negZero -> "*-0*<sub>𝔽</sub>",
       posInf -> "*+∞*<sub>𝔽</sub>",

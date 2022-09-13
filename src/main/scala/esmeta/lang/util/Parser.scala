@@ -401,11 +401,11 @@ trait Parsers extends IndentParsers {
     import UnaryExpressionOperator.*
 
     lazy val base: PL[CalcExpression] =
+      returnIfAbruptExpr |||
       refExpr |||
       literal |||
       mathOpExpr |||
       convExpr |||
-      returnIfAbruptExpr |||
       "(" ~> calc <~ ")" |||
       (base ~ ("<sup>" ~> calc <~ "</sup>")) ^^ {
         case b ~ e => ExponentiationExpression(b, e)
@@ -503,6 +503,9 @@ trait Parsers extends IndentParsers {
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
     "-∞" ^^! NegativeInfinityMathValueLiteral() |||
     number ^^ { case s => DecimalMathValueLiteral(BigDecimal.exact(s)) } |||
+    opt(int) ~ "π" ^^ {
+      case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
+    } |||
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |||
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |||
     "*NaN*" ^^! NumberLiteral(Double.NaN) |||

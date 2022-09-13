@@ -634,21 +634,26 @@ class Compiler(
     case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
     case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
     case DecimalMathValueLiteral(n)         => EMathVal(n)
-    case NumberLiteral(n)                   => ENumber(n)
-    case BigIntLiteral(n)                   => EBigInt(n)
-    case TrueLiteral()                      => EBool(true)
-    case FalseLiteral()                     => EBool(false)
-    case UndefinedLiteral()                 => EUndef
-    case NullLiteral()                      => ENull
-    case AbsentLiteral()                    => EAbsent
-    case UndefinedTypeLiteral()             => EGLOBAL_UNDEF_TYPE
-    case NullTypeLiteral()                  => EGLOBAL_NULL_TYPE
-    case BooleanTypeLiteral()               => EGLOBAL_BOOL_TYPE
-    case StringTypeLiteral()                => EGLOBAL_STRING_TYPE
-    case SymbolTypeLiteral()                => EGLOBAL_SYMBOL_TYPE
-    case NumberTypeLiteral()                => EGLOBAL_NUMBER_TYPE
-    case BigIntTypeLiteral()                => EGLOBAL_BIGINT_TYPE
-    case ObjectTypeLiteral()                => EGLOBAL_OBJECT_TYPE
+    case MathConstantLiteral(pre, name) =>
+      val expr = name match
+        case "π" => EGLOBAL_MATH_PI
+        case _   => EYet(s"<mathematical constant: $name>")
+      if (pre == 1) expr else EBinary(BOp.Mul, EMathVal(pre), expr)
+    case NumberLiteral(n)       => ENumber(n)
+    case BigIntLiteral(n)       => EBigInt(n)
+    case TrueLiteral()          => EBool(true)
+    case FalseLiteral()         => EBool(false)
+    case UndefinedLiteral()     => EUndef
+    case NullLiteral()          => ENull
+    case AbsentLiteral()        => EAbsent
+    case UndefinedTypeLiteral() => EGLOBAL_UNDEF_TYPE
+    case NullTypeLiteral()      => EGLOBAL_NULL_TYPE
+    case BooleanTypeLiteral()   => EGLOBAL_BOOL_TYPE
+    case StringTypeLiteral()    => EGLOBAL_STRING_TYPE
+    case SymbolTypeLiteral()    => EGLOBAL_SYMBOL_TYPE
+    case NumberTypeLiteral()    => EGLOBAL_NUMBER_TYPE
+    case BigIntTypeLiteral()    => EGLOBAL_BIGINT_TYPE
+    case ObjectTypeLiteral()    => EGLOBAL_OBJECT_TYPE
   }
 
   /** compile bitwise operations */

@@ -381,6 +381,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: PositiveInfinityMathValueLiteral => app >> "+∞"
       case _: NegativeInfinityMathValueLiteral => app >> "-∞"
       case DecimalMathValueLiteral(n)          => app >> n
+      case MathConstantLiteral(pre, name) =>
+        if (pre != 1) app >> pre
+        app >> name
       case NumberLiteral(n) =>
         if (n.isNaN) app >> "*NaN*"
         else
