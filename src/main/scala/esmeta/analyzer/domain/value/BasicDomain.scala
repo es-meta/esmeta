@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp}
+import esmeta.ir.{COp, Name, VOp, MOp}
 import esmeta.parser.ESValueParser
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -154,6 +154,20 @@ object BasicDomain extends value.Domain {
         set.foldLeft(Bot)(_ ⊔ _)
       case Concat => doVopTransfer[String](asStr, _ + _, apply, vs)
     else Bot
+
+  /** helpers for make transition for variadic operators */
+  protected def doVopTransfer[T](
+    f: Elem => Option[T],
+    op: (T, T) => T,
+    g: T => Elem,
+    vs: List[Elem],
+  ): Elem =
+    val vst = vs.map(f).flatten
+    if (vst.size != vs.size) Bot
+    else g(vst.reduce(op))
+
+  /** transfer for mathematical operation */
+  def mopTransfer(mop: MOp, vs: List[Elem]): Elem = mathTop
 
   /** element interfaces */
   extension (elem: Elem) {

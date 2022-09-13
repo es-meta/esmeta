@@ -257,6 +257,9 @@ class Interpreter(
       val l = eval(left)
       val r = eval(right)
       Interpreter.eval(bop, l, r)
+    case EVariadic(vop, exprs) =>
+      val vs = for (e <- exprs) yield eval(e).toPureValue
+      Interpreter.eval(vop, vs)
     case EClamp(target, lower, upper) =>
       val tv = eval(target)
       val lv = eval(lower)
@@ -275,16 +278,16 @@ class Interpreter(
         case (_, _, _) =>
           throw InvalidClampOp(tv, lv, uv)
       }
-    case EVariadic(vop, exprs) =>
+    case EMathOp(mop, exprs) =>
       val vs = for (e <- exprs) yield eval(e).toPureValue
-      Interpreter.eval(vop, vs)
+      Interpreter.eval(mop, st, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (eval(expr), cop) match {
         // code unit
         case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
         // mathematical value
-        case (Math(n), ToApproxNumber) => ???
+        case (Math(n), ToApproxNumber) => Number(n.toDouble) // TODO
         case (Math(n), ToNumber)       => Number(n.toDouble)
         case (Math(n), ToBigInt)       => BigInt(n.toBigInt)
         case (Math(n), ToMath)         => Math(n)
@@ -654,7 +657,7 @@ object Interpreter {
     import BOp.*
     (bop, left, right) match {
       // double operations
-      case (Plus, Number(l), Number(r)) => Number(l + r)
+      case (Add, Number(l), Number(r))  => Number(l + r)
       case (Sub, Number(l), Number(r))  => Number(l - r)
       case (Mul, Number(l), Number(r))  => Number(l * r)
       case (Pow, Number(l), Number(r))  => Number(math.pow(l, r))
@@ -666,10 +669,10 @@ object Interpreter {
       case (Lt, Number(l), Number(r)) => Bool(l < r)
 
       // mathematical value operations
-      case (Plus, Math(l), Math(r)) => Math(l + r)
-      case (Sub, Math(l), Math(r))  => Math(l - r)
-      case (Mul, Math(l), Math(r))  => Math(l * r)
-      case (Div, Math(l), Math(r))  => Math(l / r)
+      case (Add, Math(l), Math(r)) => Math(l + r)
+      case (Sub, Math(l), Math(r)) => Math(l - r)
+      case (Mul, Math(l), Math(r)) => Math(l * r)
+      case (Div, Math(l), Math(r)) => Math(l / r)
       case (Mod, Math(l), Math(r)) =>
         val m = l % r
         Math(if (m * r) < 0 then r + m else m)
@@ -710,7 +713,7 @@ object Interpreter {
       case (Equal, BigInt(l), BigInt(r)) => Bool(l == r)
 
       // big integers
-      case (Plus, BigInt(l), BigInt(r))    => BigInt(l + r)
+      case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
       case (LShift, BigInt(l), BigInt(r))  => BigInt(l << r.toInt)
       case (SRShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
       case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
@@ -748,6 +751,43 @@ object Interpreter {
         }
         vopEval(_.asMath, _ max _, Math(_), vs)
       case Concat => vopEval(_.asStr, _ + _, Str(_), vs)
+
+  /** transition for mathematical operators */
+  def eval(mop: MOp, st: State, vs: List[PureValue]): PureValue =
+    import math.*
+    (mop, vs) match
+      case (MOp.Expm1, List(Math(x))) => Math(expm1(x.toDouble))
+      case (MOp.Log10, List(Math(x))) => Math(log10(x.toDouble))
+      case (MOp.Log2, List(Math(x)))  => Math(log(x.toDouble) / log(2))
+      case (MOp.Cos, List(Math(x)))   => Math(cos(x.toDouble))
+      case (MOp.Cbrt, List(Math(x)))  => Math(cbrt(x.toDouble))
+      case (MOp.Exp, List(Math(x)))   => Math(exp(x.toDouble))
+      case (MOp.Cosh, List(Math(x)))  => Math(cosh(x.toDouble))
+      case (MOp.Sinh, List(Math(x)))  => Math(sinh(x.toDouble))
+      case (MOp.Tanh, List(Math(x)))  => Math(tanh(x.toDouble))
+      case (MOp.Acos, List(Math(x)))  => Math(acos(x.toDouble))
+      case (MOp.Acosh, List(Math(x))) => throw NotSupported("acosh")
+      case (MOp.Asinh, List(Math(x))) => throw NotSupported("asinh")
+      case (MOp.Atanh, List(Math(x))) => throw NotSupported("atanh")
+      case (MOp.Asin, List(Math(x)))  => Math(asin(x.toDouble))
+      case (MOp.Atan2, List(Math(x), Math(y))) =>
+        Math(atan2(x.toDouble, y.toDouble))
+      case (MOp.Atan, List(Math(x)))  => Math(atan(x.toDouble))
+      case (MOp.Log1p, List(Math(x))) => Math(log1p(x.toDouble))
+      case (MOp.Log, List(Math(x)))   => Math(log(x.toDouble))
+      case (MOp.Sin, List(Math(x)))   => Math(sin(x.toDouble))
+      case (MOp.Sqrt, List(Math(x)))  => Math(sqrt(x.toDouble))
+      case (MOp.Tan, List(Math(x)))   => Math(tan(x.toDouble))
+      case (MOp.Hypot, List(addr: Addr)) =>
+        st(addr) match
+          case ListObj(vs) =>
+            val ns = vs.map {
+              case Math(n) => n.toDouble
+              case _       => throw InvalidMathOp(mop, vs.toList)
+            }
+            Math(sqrt(ns.map(x => x * x).foldLeft(0.0)(_ + _)))
+          case _ => throw InvalidMathOp(mop, vs)
+      case _ => throw InvalidMathOp(mop, vs)
 
   /** helpers for make transition for variadic operators */
   private def vopEval[T](

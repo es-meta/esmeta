@@ -293,6 +293,7 @@ trait Parsers extends IndentParsers {
     intrExpr |||
     calcExpr |||
     clampExpr |||
+    mathOpExpr |||
     bitwiseExpr |||
     invokeExpr |||
     returnIfAbruptExpr |||
@@ -300,7 +301,6 @@ trait Parsers extends IndentParsers {
     xrefExpr |||
     soleExpr |||
     codeUnitAtExpr |||
-    inWordsExpr |||
     specialExpr
   }.named("lang.Expression")
 
@@ -395,25 +395,26 @@ trait Parsers extends IndentParsers {
     IntrinsicExpression(_)
   }
 
+  // base calculation expressions
+  lazy val baseCalcExpr: PL[CalcExpression] =
+    returnIfAbruptExpr |||
+    refExpr |||
+    literal |||
+    mathFuncExpr |||
+    convExpr |||
+    "(" ~> calcExpr <~ ")" |||
+    (baseCalcExpr ~ ("<sup>" ~> calcExpr <~ "</sup>")) ^^ {
+      case b ~ e => ExponentiationExpression(b, e)
+    }
+
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
     import BinaryExpressionOperator.*
     import UnaryExpressionOperator.*
 
-    lazy val base: PL[CalcExpression] =
-      returnIfAbruptExpr |||
-      refExpr |||
-      literal |||
-      mathOpExpr |||
-      convExpr |||
-      "(" ~> calc <~ ")" |||
-      (base ~ ("<sup>" ~> calc <~ "</sup>")) ^^ {
-        case b ~ e => ExponentiationExpression(b, e)
-      }
-
-    lazy val unary: PL[CalcExpression] = base ||| (
+    lazy val unary: PL[CalcExpression] = baseCalcExpr ||| (
       ("-" | "the result of negating") ^^^ Neg
-    ) ~ base ^^ { case o ~ e => UnaryExpression(o, e) }
+    ) ~ baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) }
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
       ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ unary,
@@ -476,14 +477,14 @@ trait Parsers extends IndentParsers {
   lazy val refExpr: PL[ReferenceExpression] = ref ^^ { ReferenceExpression(_) }
 
   // mathematical operation expressions
-  lazy val mathOpExpr: PL[MathOpExpression] =
-    import MathOpExpressionOperator.*
+  lazy val mathFuncExpr: PL[MathFuncExpression] =
+    import MathFuncExpressionOperator.*
     (
       "max" ^^^ Max ||| "min" ^^^ Min |||
       "abs" ^^^ Abs ||| "floor" ^^^ Floor
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
-        MathOpExpression(o, as)
+        MathFuncExpression(o, as)
     }
 
   // literals
@@ -575,6 +576,70 @@ trait Parsers extends IndentParsers {
     "the result of clamping" ~> expr ~
     ("between" ~> expr) ~ ("and" ~> expr) ^^ {
       case t ~ l ~ u => ClampExpression(t, l, u)
+    }
+
+// mathematical operation expressions
+  lazy val mathOpExpr: PL[MathOpExpression] =
+    opt("the result of") ~ opt("the") ~> {
+      import MathOpExpressionOperator.*
+      ("sum of" ~> baseCalcExpr) ~ ("and" ~> baseCalcExpr) ^^ {
+        case l ~ r => MathOpExpression(Add, List(l, r))
+      } | ("product of" ~> baseCalcExpr) ~ ("and" ~> baseCalcExpr) ^^ {
+        case l ~ r => MathOpExpression(Mul, List(l, r))
+      } | ("difference" ~> baseCalcExpr) ~ ("minus" ~> baseCalcExpr) ^^ {
+        case l ~ r => MathOpExpression(Sub, List(l, r))
+      } | (baseCalcExpr) ~ ("raised to the power" ~> baseCalcExpr) ^^ {
+        case l ~ r => MathOpExpression(Pow, List(l, r))
+      } | ("raising" ~> baseCalcExpr) ~ ("to the" ~> baseCalcExpr <~ "power") ^^ {
+        case l ~ r => MathOpExpression(Pow, List(l, r))
+      } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Expm1, List(e))
+      } | "base 10 logarithm of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Log10, List(e))
+      } | "base 2 logarithm of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Log2, List(e))
+      } | "cosine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Cos, List(e))
+      } | "cube root of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Cbrt, List(e))
+      } | "exponential function of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Exp, List(e))
+      } | "hyperbolic cosine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Cosh, List(e))
+      } | "hyperbolic sine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Sinh, List(e))
+      } | "hyperbolic tangent of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Tanh, List(e))
+      } | "inverse cosine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Acos, List(e))
+      } | "inverse hyperbolic cosine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Acosh, List(e))
+      } | "inverse hyperbolic sine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Asinh, List(e))
+      } | "inverse hyperbolic tangent of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Atanh, List(e))
+      } | "inverse sine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Asin, List(e))
+      } | ("inverse tangent of the quotient" ~> baseCalcExpr) ~ ("/" ~> baseCalcExpr) ^^ {
+        case x ~ y => MathOpExpression(Atan2, List(x, y))
+      } | "inverse tangent of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Atan, List(e))
+      } | "natural logarithm of 1 +" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Log1p, List(e))
+      } | "natural logarithm of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Log, List(e))
+      } | "sine of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Sin, List(e))
+      } | "square root of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Sqrt, List(e))
+      } | "tangent of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Tan, List(e))
+      } | (
+        "square root of the sum of squares of" ~
+        "the mathematical values of the elements of" ~> baseCalcExpr
+      ) ^^ {
+        case l => MathOpExpression(Hypot, List(l))
+      }
     }
 
   // bitwise expressions
@@ -680,18 +745,6 @@ trait Parsers extends IndentParsers {
     ("the code unit at index" ~> expr) ~
     ("within" ~ opt("the String") ~> expr) ^^ {
       case i ~ b => CodeUnitAtExpression(b, i)
-    }
-
-  // expressions including calculation represented by words
-  lazy val inWordsExpr: PL[Expression] =
-    ("the sum of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Add, r)
-    } | ("the product of" ~> calcExpr) ~ ("and" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Mul, r)
-    } | ("the difference" ~> calcExpr) ~ ("minus" ~> calcExpr) ^^ {
-      case l ~ r => BinaryExpression(l, BinaryExpressionOperator.Sub, r)
-    } | (calcExpr) ~ ("raised to the power" ~> calcExpr) ^^ {
-      case l ~ r => ExponentiationExpression(l, r)
     }
 
   // rarely used expressions

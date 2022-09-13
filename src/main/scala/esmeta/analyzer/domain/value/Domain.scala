@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp}
+import esmeta.ir.{COp, Name, VOp, MOp}
 import esmeta.util.*
 
 /** abstract valude domain */
@@ -31,17 +31,6 @@ trait Domain extends domain.Domain[AValue] {
   def apply(s: String): Elem = apply(Str(s))
   def apply(b: Boolean): Elem = apply(Bool(b))
   def apply(d: BigDecimal): Elem = apply(Math(d))
-
-  /** helpers for make transition for variadic operators */
-  protected def doVopTransfer[T](
-    f: Elem => Option[T],
-    op: (T, T) => T,
-    g: T => Elem,
-    vs: List[Elem],
-  ): Elem =
-    val vst = vs.map(f).flatten
-    if (vst.size != vs.size) Bot
-    else g(vst.reduce(op))
 
   /** predefined top values */
   def compTop: Elem
@@ -96,6 +85,9 @@ trait Domain extends domain.Domain[AValue] {
 
   /** transfer for variadic operation */
   def vopTransfer(vop: VOp, vs: List[Elem]): Elem
+
+  /** transfer for mathematical operation */
+  def mopTransfer(mop: MOp, vs: List[Elem]): Elem
 
   /** abstract value interfaces */
   extension (elem: Elem) {

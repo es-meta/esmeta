@@ -22,7 +22,7 @@ enum BOp extends Op:
   // equality (e.g. is, are)
   case Eq
   // numeric values
-  case Plus, Sub, Mul, Pow, Div, UMod, Mod, Lt, Equal
+  case Add, Sub, Mul, Pow, Div, UMod, Mod, Lt, Equal
   // bitwise
   case BAnd, BOr, BXOr
   // shift
@@ -38,6 +38,12 @@ enum VOp extends Op:
   // string
   case Concat
 object VOp extends Parser.From(Parser.vop)
+
+// mathematical operators
+enum MOp extends Op:
+  case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
+  case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan, Hypot
+object MOp extends Parser.From(Parser.mop)
 
 // conversion operators
 enum COp extends Op:

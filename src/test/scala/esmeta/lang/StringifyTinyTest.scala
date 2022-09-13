@@ -300,7 +300,7 @@ class StringifyTinyTest extends LangTest {
     // algorithm calcualation expressions
     // -------------------------------------------------------------------------
     lazy val minExpr =
-      MathOpExpression(MathOpExpressionOperator.Min, List(refExpr))
+      MathFuncExpression(MathFuncExpressionOperator.Min, List(refExpr))
     lazy val addExpr =
       BinaryExpression(refExpr, BinaryExpressionOperator.Add, refExpr)
     lazy val subExpr =
@@ -359,6 +359,116 @@ class StringifyTinyTest extends LangTest {
       convToNumberExpr -> "𝔽(_x_)",
       convToBigIntExpr -> "ℤ(_x_)",
       convToMathExpr -> "ℝ(_x_)",
+    )
+    // -------------------------------------------------------------------------
+    // algorithm mathematical operaion expressions
+    // -------------------------------------------------------------------------
+    // tests
+    checkParseAndStringify("MathOpExpression", Expression)(
+      MathOpExpression(
+        MathOpExpressionOperator.Add,
+        List(refExpr, refExpr),
+      ) -> "the sum of _x_ and _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Mul,
+        List(refExpr, refExpr),
+      ) -> "the product of _x_ and _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sub,
+        List(refExpr, refExpr),
+      ) -> "the difference _x_ minus _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Pow,
+        List(refExpr, refExpr),
+      ) -> "the raising _x_ to the _x_ power",
+      MathOpExpression(
+        MathOpExpressionOperator.Expm1,
+        List(refExpr),
+      ) -> "the subtracting 1 from the exponential function of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log10,
+        List(refExpr),
+      ) -> "the base 10 logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log2,
+        List(refExpr),
+      ) -> "the base 2 logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cos,
+        List(refExpr),
+      ) -> "the cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cbrt,
+        List(refExpr),
+      ) -> "the cube root of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Exp,
+        List(refExpr),
+      ) -> "the exponential function of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Cosh,
+        List(refExpr),
+      ) -> "the hyperbolic cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sinh,
+        List(refExpr),
+      ) -> "the hyperbolic sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Tanh,
+        List(refExpr),
+      ) -> "the hyperbolic tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Acos,
+        List(refExpr),
+      ) -> "the inverse cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Acosh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic cosine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Asinh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atanh,
+        List(refExpr),
+      ) -> "the inverse hyperbolic tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Asin,
+        List(refExpr),
+      ) -> "the inverse sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atan2,
+        List(refExpr, refExpr),
+      ) -> "the inverse tangent of the quotient _x_ / _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Atan,
+        List(refExpr),
+      ) -> "the inverse tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log1p,
+        List(refExpr),
+      ) -> "the natural logarithm of 1 + _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Log,
+        List(refExpr),
+      ) -> "the natural logarithm of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sin,
+        List(refExpr),
+      ) -> "the sine of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Sqrt,
+        List(refExpr),
+      ) -> "the square root of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Tan,
+        List(refExpr),
+      ) -> "the tangent of _x_",
+      MathOpExpression(
+        MathOpExpressionOperator.Hypot,
+        List(refExpr),
+      ) -> "the square root of the sum of squares of the mathematical values of the elements of _x_",
     )
 
     // -------------------------------------------------------------------------

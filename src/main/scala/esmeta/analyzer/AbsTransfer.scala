@@ -382,16 +382,20 @@ class AbsTransfer(sem: AbsSemantics) {
           rv <- transfer(right)
           v <- get(transfer(_, bop, lv, rv))
         } yield v
+      case EVariadic(vop, exprs) =>
+        for {
+          vs <- join(exprs.map(transfer))
+        } yield transfer(vop, vs)
       case EClamp(target, lower, upper) =>
         for {
           v <- transfer(target)
           lv <- transfer(lower)
           uv <- transfer(upper)
         } yield v.clamp(lv, uv)
-      case EVariadic(vop, exprs) =>
+      case EMathOp(mop, exprs) =>
         for {
           vs <- join(exprs.map(transfer))
-        } yield transfer(vop, vs)
+        } yield transfer(mop, vs)
       case EConvert(cop, expr) =>
         import COp.*
         for {
@@ -594,7 +598,7 @@ class AbsTransfer(sem: AbsSemantics) {
           case And     => left && right
           case Or      => left || right
           case Xor     => left ^^ right
-          case Plus    => left + right
+          case Add     => left + right
           case Sub     => left sub right
           case Div     => left / right
           case Mul     => left * right
@@ -610,6 +614,10 @@ class AbsTransfer(sem: AbsSemantics) {
   /** transfer for variadic operators */
   def transfer(vop: VOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
     AbsValue.vopTransfer(vop, vs)
+
+  /** transfer for mathematical operators */
+  def transfer(mop: MOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
+    AbsValue.mopTransfer(mop, vs)
 
   // return specific value
   def doReturn(v: AbsValue)(using cp: ControlPoint): Result[Unit] = for {

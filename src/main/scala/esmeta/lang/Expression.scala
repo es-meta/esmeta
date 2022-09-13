@@ -129,12 +129,12 @@ case class ReturnIfAbruptExpression(
 // reference expressions
 case class ReferenceExpression(ref: Reference) extends CalcExpression
 
-// mathematical operation expressions
-case class MathOpExpression(
-  op: MathOpExpressionOperator,
+// mathematical function expressions
+case class MathFuncExpression(
+  op: MathFuncExpressionOperator,
   args: List[CalcExpression],
 ) extends CalcExpression
-enum MathOpExpressionOperator extends LangElem:
+enum MathFuncExpressionOperator extends LangElem:
   case Max, Min, Abs, Floor
 
 // exponentiation expressions
@@ -176,6 +176,18 @@ case class ClampExpression(
   lower: Expression,
   upper: Expression,
 ) extends Expression
+
+// -----------------------------------------------------------------------------
+// mathematical operation expressions
+// -----------------------------------------------------------------------------
+case class MathOpExpression(
+  op: MathOpExpressionOperator,
+  args: List[CalcExpression],
+) extends Expression
+enum MathOpExpressionOperator extends LangElem:
+  case Add, Sub, Mul, Pow
+  case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
+  case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan, Hypot
 
 // -----------------------------------------------------------------------------
 // bitwise expressions

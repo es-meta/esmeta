@@ -510,8 +510,8 @@ class Compiler(
         exprRules.get(yetStr).getOrElse(EYet(yetStr))
       case ReferenceExpression(ref) =>
         ERef(compile(fb, ref))
-      case MathOpExpression(op, args) =>
-        import MathOpExpressionOperator.*
+      case MathFuncExpression(op, args) =>
+        import MathFuncExpressionOperator.*
         (op, args) match
           case (Max, _)         => EVariadic(VOp.Max, args.map(compile(fb, _)))
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
@@ -537,6 +537,7 @@ class Compiler(
           compile(fb, lower),
           compile(fb, upper),
         )
+      case expr: MathOpExpression => compile(fb, expr)
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
@@ -586,9 +587,42 @@ class Compiler(
       case lit: Literal => compile(fb, lit)
     })
 
+  /** compile mathematical operators */
+  def compile(fb: FuncBuilder, expr: MathOpExpression): Expr =
+    import MathOpExpressionOperator.*
+    val MathOpExpression(op, args) = expr
+    (op, args.map(compile(fb, _))) match
+      case (Add, List(l, r))   => EBinary(BOp.Add, l, r)
+      case (Mul, List(l, r))   => EBinary(BOp.Mul, l, r)
+      case (Sub, List(l, r))   => EBinary(BOp.Sub, l, r)
+      case (Pow, List(l, r))   => EBinary(BOp.Pow, l, r)
+      case (Expm1, List(e))    => EMathOp(MOp.Expm1, List(e))
+      case (Log10, List(e))    => EMathOp(MOp.Log10, List(e))
+      case (Log2, List(e))     => EMathOp(MOp.Log2, List(e))
+      case (Cos, List(e))      => EMathOp(MOp.Cos, List(e))
+      case (Cbrt, List(e))     => EMathOp(MOp.Cbrt, List(e))
+      case (Exp, List(e))      => EMathOp(MOp.Exp, List(e))
+      case (Cosh, List(e))     => EMathOp(MOp.Cosh, List(e))
+      case (Sinh, List(e))     => EMathOp(MOp.Sinh, List(e))
+      case (Tanh, List(e))     => EMathOp(MOp.Tanh, List(e))
+      case (Acos, List(e))     => EMathOp(MOp.Acos, List(e))
+      case (Acosh, List(e))    => EMathOp(MOp.Acosh, List(e))
+      case (Asinh, List(e))    => EMathOp(MOp.Asinh, List(e))
+      case (Atanh, List(e))    => EMathOp(MOp.Atanh, List(e))
+      case (Asin, List(e))     => EMathOp(MOp.Asin, List(e))
+      case (Atan2, List(x, y)) => EMathOp(MOp.Atan2, List(x, y))
+      case (Atan, List(e))     => EMathOp(MOp.Atan, List(e))
+      case (Log1p, List(e))    => EMathOp(MOp.Log1p, List(e))
+      case (Log, List(e))      => EMathOp(MOp.Log, List(e))
+      case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
+      case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
+      case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))
+      case (Hypot, List(l))    => EMathOp(MOp.Hypot, List(l))
+      case _ => error(s"invalid math operationr: $op with $args")
+
   /** compile binary operators */
   def compile(op: BinaryExpressionOperator): BOp = op match
-    case BinaryExpressionOperator.Add => BOp.Plus
+    case BinaryExpressionOperator.Add => BOp.Add
     case BinaryExpressionOperator.Sub => BOp.Sub
     case BinaryExpressionOperator.Mul => BOp.Mul
     case BinaryExpressionOperator.Div => BOp.Div
@@ -888,7 +922,7 @@ class Compiler(
     case _                     => EUnary(UOp.Not, expr)
   inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
-  inline def add(l: Expr, r: Expr) = EBinary(BOp.Plus, l, r)
+  inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)
   inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)

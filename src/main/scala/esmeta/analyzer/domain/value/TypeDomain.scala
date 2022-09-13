@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp}
+import esmeta.ir.{COp, Name, VOp, MOp}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.spec.{Grammar => _, *}
@@ -104,6 +104,9 @@ object TypeDomain extends value.Domain {
   def vopTransfer(vop: VOp, vs: List[Elem]): Elem = vop match
     case VOp.Min | VOp.Max => mathTop
     case VOp.Concat        => strTop
+
+  /** transfer for mathematical operation */
+  def mopTransfer(mop: MOp, vs: List[Elem]): Elem = mathTop
 
   /** element interfaces */
   extension (elem: Elem) {
