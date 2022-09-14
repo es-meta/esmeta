@@ -34,6 +34,9 @@ enablePlugins(GhpagesPlugin)
 enablePlugins(SiteScaladocPlugin)
 git.remoteRepo := "git@github.com:es-meta/esmeta.git"
 
+// general
+lazy val complTest = taskKey[Unit]("Launch .completion validity tests (tiny)")
+
 // basic
 lazy val basicTest = taskKey[Unit]("Launch basic tests")
 
@@ -179,6 +182,8 @@ lazy val root = project
     smallTest := (Test / testOnly).toTask(" *SmallTest").value,
     middleTest := (Test / testOnly).toTask(" *MiddleTest").value,
     largeTest := (Test / testOnly).toTask(" *LargeTest").value,
+    // general
+    complTest := (Test / testOnly).toTask(" *.Compl*Test").value,
     // extractor
     extractorTest := (Test / testOnly).toTask(" *.extractor.*Test").value,
     extractorValidityTest := (Test / testOnly)
