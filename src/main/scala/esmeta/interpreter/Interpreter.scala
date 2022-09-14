@@ -491,7 +491,7 @@ class Interpreter(
   /** transition for references */
   def eval(ref: Ref): RefValue = ref match
     case x: Id => IdValue(x)
-    case Prop(ref, expr) =>
+    case Prop(ref, expr, _) =>
       var base = st(eval(ref))
       val p = eval(expr)
       PropValue(base, p.toPureValue)

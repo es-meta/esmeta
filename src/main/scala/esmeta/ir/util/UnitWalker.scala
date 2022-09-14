@@ -166,15 +166,15 @@ trait UnitWalker extends BasicUnitWalker {
 
   // references
   def walk(ref: Ref): Unit = ref match {
-    case Prop(ref, expr) => walk(ref); walk(expr)
-    case x: Id           => walk(x)
+    case Prop(ref, expr, _) => walk(ref); walk(expr)
+    case x: Id              => walk(x)
   }
 
   // identifiers
   def walk(x: Id): Unit = x match {
-    case Global(x) => walk(x)
-    case x: Name   => walk(x)
-    case Temp(k)   => walk(k)
+    case Global(x, _) => walk(x)
+    case x: Name      => walk(x)
+    case Temp(k, _)   => walk(k)
   }
 
   // named local identifiers

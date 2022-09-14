@@ -288,7 +288,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       c.name,
       c.cursor.stepsOpt.getOrElse(List()),
       c.locals.collect {
-        case (Name(name), v) => (name, v.toString)
+        case (Name(name, _), v) => (name, v.toString)
       }.toList,
     )
     (st.context :: st.callStack.map(_.context)).map(getInfo(_))

@@ -491,7 +491,7 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
         // NOTE: there is no method call via dynamic property access
-        val Prop(base, EStr(method)) = compile(fb, ref)
+        val Prop(base, EStr(method), _) = compile(fb, ref)
         fb.addInst(IMethodCall(x, base, method, args.map(compile(fb, _))))
         xExpr
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>

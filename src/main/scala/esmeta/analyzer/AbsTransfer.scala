@@ -528,7 +528,7 @@ class AbsTransfer(sem: AbsSemantics) {
   def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
     ref match
       case id: Id => AbsRefId(id)
-      case Prop(ref, expr) =>
+      case Prop(ref, expr, _) =>
         for {
           rv <- transfer(ref)
           b <- transfer(rv)

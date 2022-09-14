@@ -338,17 +338,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refRule: Rule[Ref] = (app, ref) =>
     ref match {
-      case Prop(ref, EStr(inlineProp(str))) => app >> ref >> "." >> str
-      case Prop(ref, expr)                  => app >> ref >> "[" >> expr >> "]"
-      case id: Id                           => idRule(app, id)
+      case Prop(ref, EStr(inlineProp(str)), _) => app >> ref >> "." >> str
+      case Prop(ref, expr, _) => app >> ref >> "[" >> expr >> "]"
+      case id: Id             => idRule(app, id)
     }
 
   // identifiers
   given idRule: Rule[Id] = (app, id) =>
     id match {
-      case Global(name) => app >> "@" >> name
-      case Name(name)   => app >> name
-      case Temp(id)     => app >> "%" >> id
+      case Global(name, _) => app >> "@" >> name
+      case Name(name, _)   => app >> name
+      case Temp(id, _)     => app >> "%" >> id
     }
 
   // types
