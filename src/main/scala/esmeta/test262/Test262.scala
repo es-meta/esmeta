@@ -74,7 +74,13 @@ case class Test262(
   ): ProgressBar[NormalConfig] = ProgressBar(
     msg = s"Run Test262 $name tests",
     iterable = TestFilter(dataList).summary.normal,
-    getName = (test, _) => test.name,
+    getName = (test, _) =>
+      val name = test.name
+      val absPath = getAbsPath(name)
+      if (absPath.startsWith(TEST262_TEST_DIR))
+        absPath.drop(TEST262_TEST_DIR.length + 1)
+      else name
+    ,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
         case NotSupported(msg)   => summary.yets += s"$name - $msg"
