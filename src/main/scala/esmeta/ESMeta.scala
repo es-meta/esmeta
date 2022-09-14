@@ -20,6 +20,7 @@ object ESMeta extends Git(BASE_DIR) {
     // ESMetaError: print only the error message.
     case e: ESMetaError =>
       Console.err.println(e.getMessage)
+      if (ERROR_MODE) throw e
     // Unexpected: print the stack trace.
     case e: Throwable =>
       Console.err.println(s"[ESMeta v$VERSION] Unexpected error occurred:")
