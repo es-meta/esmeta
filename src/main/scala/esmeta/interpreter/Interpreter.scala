@@ -351,7 +351,7 @@ class Interpreter(
         case addr: Addr =>
           st(addr) match
             case m: MapObj    => tyModel.isSubTy(m.ty, tyName)
-            case _: ListObj   => tyName == "List"
+            case _: ListObj   => tyName contains "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???
         case v => ???,
