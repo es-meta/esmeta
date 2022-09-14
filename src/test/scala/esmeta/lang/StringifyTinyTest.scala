@@ -366,6 +366,10 @@ class StringifyTinyTest extends LangTest {
     // tests
     checkParseAndStringify("MathOpExpression", Expression)(
       MathOpExpression(
+        MathOpExpressionOperator.Neg,
+        List(refExpr),
+      ) -> "the negation of _x_",
+      MathOpExpression(
         MathOpExpressionOperator.Add,
         List(refExpr, refExpr),
       ) -> "the sum of _x_ and _x_",

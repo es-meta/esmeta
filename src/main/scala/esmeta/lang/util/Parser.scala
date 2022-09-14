@@ -582,7 +582,9 @@ trait Parsers extends IndentParsers {
   lazy val mathOpExpr: PL[MathOpExpression] =
     opt("the result of") ~ opt("the") ~> {
       import MathOpExpressionOperator.*
-      ("sum of" ~> baseCalcExpr) ~ ("and" ~> baseCalcExpr) ^^ {
+      "negation of" ~> baseCalcExpr ^^ {
+        case e => MathOpExpression(Neg, List(e))
+      } | ("sum of" ~> baseCalcExpr) ~ ("and" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Add, List(l, r))
       } | ("product of" ~> baseCalcExpr) ~ ("and" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Mul, List(l, r))
@@ -760,17 +762,11 @@ trait Parsers extends IndentParsers {
     "an instance of the production" ~> prodLiteral |
     // NumberBitwiseOp
     "the 32-bit two's complement bit string representing" ~> expr |
-    // rounding towards 0
-    expr <~ "rounded towards 0 to the next integer value" ^^ {
-      case e => ConversionExpression(ToBigInt, e)
-    } |
-    // rounding towards nearest integer
     expr <~ (
+      "rounded towards 0 to the next integer value" |
       ", rounding down to the nearest integer, " +
       "including for negative numbers"
-    ) ^^ {
-      case e => ConversionExpression(ToNumber, e)
-    }
+    )
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =

@@ -185,7 +185,7 @@ case class MathOpExpression(
   args: List[CalcExpression],
 ) extends Expression
 enum MathOpExpressionOperator extends LangElem:
-  case Add, Sub, Mul, Pow
+  case Neg, Add, Sub, Mul, Pow
   case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
   case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan, Hypot
 

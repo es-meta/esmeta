@@ -2,6 +2,9 @@ def ToBoolean(argument: Unknown) {
   if (= (typeof argument) @Undefined) return false else {}
   if (= (typeof argument) @Null) return false else {}
   if (= (typeof argument) @Boolean) return argument else {}
+  if (= (typeof argument) @BigInt) {
+    if (= argument 0n) return false else return true
+  } else {}
   if (= (typeof argument) @Number) {
     if (|| (|| (= argument 0.0f) (= argument -0.0f)) (= argument NaN)) return false else return true
   } else {}
@@ -9,9 +12,6 @@ def ToBoolean(argument: Unknown) {
     if (= argument "") return false else return true
   } else {}
   if (= (typeof argument) @Symbol) return true else {}
-  if (= (typeof argument) @BigInt) {
-    if (= argument 0n) return false else return true
-  } else {}
   if (= (typeof argument) @Object) return true else {}
   assert false
 }

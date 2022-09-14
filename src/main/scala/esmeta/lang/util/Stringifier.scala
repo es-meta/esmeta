@@ -257,6 +257,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     val MathOpExpression(op, args) = expr
     app >> "the "
     (op, args) match
+      case (Neg, List(e)) =>
+        app >> "negation of " >> e
       case (Add, List(l, r)) =>
         app >> "sum of " >> l >> " and " >> r
       case (Mul, List(l, r)) =>

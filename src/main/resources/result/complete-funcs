@@ -2253,6 +2253,7 @@ ThrowCompletion
 ThrowStatement[0,0].Evaluation
 TimeClip
 TimeString
+ToBigInt
 ToBigInt64
 ToBigUint64
 ToBoolean

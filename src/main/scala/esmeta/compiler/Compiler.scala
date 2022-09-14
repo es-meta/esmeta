@@ -592,6 +592,7 @@ class Compiler(
     import MathOpExpressionOperator.*
     val MathOpExpression(op, args) = expr
     (op, args.map(compile(fb, _))) match
+      case (Neg, List(e))      => EUnary(UOp.Neg, e)
       case (Add, List(l, r))   => EBinary(BOp.Add, l, r)
       case (Mul, List(l, r))   => EBinary(BOp.Mul, l, r)
       case (Sub, List(l, r))   => EBinary(BOp.Sub, l, r)

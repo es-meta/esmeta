@@ -1,0 +1,13 @@
+def <NUM>:BigInt::exponentiate(
+  base: BigInt,
+  exponent: BigInt,
+): Normal[BigInt] | Abrupt {
+  if (< exponent 0n) {
+    return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%RangeError.prototype%"], "ErrorData" -> undefined)))
+  } else {}
+  if (&& (= base 0n) (= exponent 0n)) {
+    return 1n
+  } else {}
+  return (** base exponent)
+  // return ([bigInt] (** ([math] base) ([math] exponent)))
+}

@@ -1,0 +1,21 @@
+def ToBigInt(
+  argument: Unknown,
+): Normal[BigInt] | Abrupt {
+  call %0 = clo<ToPrimitive>(argument, ~number~)
+  let prim = [? %0]
+  if (= (typeof prim) @Undefined) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}
+  if (= (typeof prim) @Null) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}
+  if (= (typeof prim) @Boolean) {
+    if prim return 1n else return 0n
+  } else {}
+  if (= (typeof prim) @BigInt) return prim else {}
+  if (= (typeof prim) @Number) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}
+  if (= (typeof prim) @String) {
+    call %1 = clo<StringToBigInt>(prim)
+    let n = %1
+    if (= n undefined) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%SyntaxError.prototype%"], "ErrorData" -> undefined))) else {}
+    return n
+  } else {}
+  if (= (typeof prim) @Symbol) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}
+  assert false
+}
