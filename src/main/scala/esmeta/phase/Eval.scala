@@ -19,7 +19,12 @@ case object Eval extends Phase[CFG, State] {
   ): State =
     val filename = getFirstFilename(cmdConfig, this.name)
     val initSt = Initialize.fromFile(cfg, filename)
-    val st = Interpreter(initSt, log = config.log, timeLimit = config.timeLimit)
+    val st = Interpreter(
+      initSt,
+      log = config.log,
+      timeLimit = config.timeLimit,
+      tycheck = config.tycheck,
+    )
     st
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -29,6 +34,11 @@ case object Eval extends Phase[CFG, State] {
       "set the time limit in seconds (default: no limit).",
     ),
     (
+      "tycheck",
+      BoolOption(c => c.tycheck = true),
+      "turn on type check mode.",
+    ),
+    (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
@@ -36,6 +46,7 @@ case object Eval extends Phase[CFG, State] {
   )
   case class Config(
     var timeLimit: Option[Int] = None,
+    var tycheck: Boolean = false,
     var log: Boolean = false,
   )
 }

@@ -91,6 +91,26 @@ case class ValueTy(
   def undef: Boolean = pureValue.undef
   def nullv: Boolean = pureValue.nullv
   def absent: Boolean = pureValue.absent
+
+  /** value containment check */
+  def contains(value: Value, state: State): Boolean = value match
+    case Comp(ty, value, target)         => ???
+    case NamedAddr(name)                 => ???
+    case DynamicAddr(long)               => ???
+    case Clo(func, captured)             => ???
+    case Cont(func, captured, callStack) => ???
+    case AstValue(ast)                   => ???
+    case Grammar(name, params)           => ???
+    case Math(n)                         => ???
+    case Const(name)                     => ???
+    case CodeUnit(c)                     => ???
+    case Number(n)                       => number contains n
+    case BigInt(n)                       => ???
+    case Str(str)                        => ???
+    case Bool(bool)                      => ???
+    case Undef                           => ???
+    case Null                            => ???
+    case Absent                          => ???
 }
 object ValueTy {
   def apply(
