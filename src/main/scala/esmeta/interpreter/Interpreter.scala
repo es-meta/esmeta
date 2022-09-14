@@ -23,6 +23,7 @@ class Interpreter(
   val log: Boolean = false,
   val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
+  val tycheck: Boolean = false,
 ) {
   import Interpreter.*
 
@@ -463,10 +464,11 @@ class Interpreter(
     val map = MMap[Local, Value]()
     @tailrec
     def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
-      case (Nil, Nil)                              =>
-      case (Param(lhs, _, optional, _) :: pl, Nil) =>
+      case (Nil, Nil)                               =>
+      case (Param(lhs, ty, optional, _) :: pl, Nil) =>
         // TODO parameter type check
         if (optional) {
+          if (tycheck) check(Absent, ty.ty)
           map += lhs -> Absent
           aux(pl, Nil)
         } else RemainingParams(ps)
@@ -474,12 +476,18 @@ class Interpreter(
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         if (!cont) throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
+        if (tycheck) check(arg, param.ty.ty)
         map += param.lhs -> arg
         aux(pl, al)
     }
     aux(params, args)
     map
   }
+
+  /** value type check */
+  def check(value: Value, ty: Ty): Unit =
+    println((value, ty))
+    if (!ty.contains(value, st)) throw InvalidTypedValue(value, ty)
 
   /** helper for return-if-abrupt cases */
   def returnIfAbrupt(value: Value, check: Boolean): Value = value match
@@ -584,7 +592,8 @@ object Interpreter {
     log: Boolean = false,
     logDir: String = EVAL_LOG_DIR,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, logDir, timeLimit).result
+    tycheck: Boolean = false,
+  ): State = new Interpreter(st, log, logDir, timeLimit, tycheck).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
