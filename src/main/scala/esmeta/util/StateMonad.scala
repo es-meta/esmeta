@@ -38,10 +38,10 @@ class StateMonad[S] {
   implicit def listModify(list: List[Updater]): List[Result[Unit]] =
     list.map(modify)
 
-  // pur a new state as the current state
+  // put a new state as the current state
   def put(s: S): Result[Unit] = _ => ((), s)
 
-  // create a state moand with a value
+  // create a state monad with a value
   implicit def pure[T](v: T): Result[T] = s => (v, s)
 
   // join a list of state monads to a state monad of lists

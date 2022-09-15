@@ -29,6 +29,7 @@ case class Rhs(
 
   /** get non-terminals in an RHS */
   lazy val nts: List[Nonterminal] = symbols.flatMap(_.getNt)
+  lazy val ts: List[Terminal] = symbols.flatMap(_.getT)
   lazy val getNts = cached[Int, List[Option[String]]] { subIdx =>
     val binStr = subIdx.toBinaryString
     val optCount = nts.count(_.optional)

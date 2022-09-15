@@ -170,6 +170,16 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   override val targetName = "<js>+"
 }
 
+/** `mutate` command */
+case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
+  def help = "mutates an ECMAScript program."
+  val examples = List(
+    "esmeta mutate a.js                           # mutate ECMAScript program.",
+    "esmeta mutate a.js -mutate:out=b.js          # dump the mutated program.",
+    "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------

@@ -11,6 +11,12 @@ sealed trait Symbol extends SpecElem {
     case ButNot(base, _)       => Some(base)
     case ButOnlyIf(base, _, _) => Some(base)
     case _                     => None
+
+  /** get a terminal or nothing from a symbol */
+  def getT: Option[Terminal] = this match {
+    case t: Terminal => Some(t)
+    case _           => None
+  }
 }
 object Symbol extends Parser.From(Parser.symbol)
 
