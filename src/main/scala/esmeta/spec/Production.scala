@@ -24,7 +24,14 @@ case class Production(
     rhs <- rhsList
     nt <- rhs.nts
   } yield nt
+
+  /** get terminals in RHSs */
+  lazy val ts: List[Terminal] = for {
+    rhs <- rhsList
+    t <- rhs.ts
+  } yield t
 }
+
 object Production extends Parser.From(Parser.prod)
 enum ProductionKind extends SpecElem:
   case Syntactic, Lexical, NumericString
