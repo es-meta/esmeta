@@ -2,8 +2,7 @@ package esmeta.web
 
 import esmeta.cfg.*
 import esmeta.es.Ast
-// import esmeta.ir.{Func => IRFunc, *}
-import esmeta.ir.{Func => IRFunc, NAME_THIS => NAME_THISS, *}
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.interpreter.Interpreter
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
@@ -252,7 +251,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
     /** ast of current context */
     def astOpt: Option[Ast] =
-      if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THISS).asAst)
+      if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THIS).asAst)
       else None
 
     /** check if es call */
