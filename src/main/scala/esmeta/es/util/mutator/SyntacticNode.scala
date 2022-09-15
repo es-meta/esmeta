@@ -21,10 +21,6 @@ class SyntacticNode(
     if list.flatten.nonEmpty then list.flatten.sum else 0
   }
 
-  private def minIfValid(list: List[Option[Int]]): Option[Int] = {
-    if isValid(list) then Some(list.flatten.min) else None
-  }
-
   def updateParents(): Unit =
     parents.foreach(parent => {
       length.map(parent.updateChildLength(_, name))
@@ -42,13 +38,11 @@ class SyntacticNode(
       Some(rhsLengths.flatten.min)
     } else None
     if (oldLength != length)
-//      println(s"$name has been updated from $oldLength to $length.");
       updateParents()
   }
 
   def setLength(newLength: Int): Unit = {
     length = Some(newLength); updateParents()
-//    println(s"$name has been set to $length.")
   }
 
   def updateChildLength(newLength: Int, childName: String): Unit = {

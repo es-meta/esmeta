@@ -25,49 +25,11 @@ case object Mutate extends Phase[CFG, String] {
     val mutator: Mutator = RandomMutation(cfg.grammar)
     val generator = SimpleAstGenerator(cfg.grammar)
     val synthesizer = RandomSynth(cfg.grammar)
-    val testList = List(
-      ("Punctuator", Nil),
-      ("CallExpression", List(true, false)),
-      ("AsyncFunctionExpression", List.empty),
-      ("FormalParameters", List(false, true)),
-      ("AsyncFunctionBody", List.empty),
-      ("FunctionBody", List(false, true)),
-      ("CoverCallExpressionAndAsyncArrowHead", List(true, false)),
-      ("Arguments", List(true, false)),
-      ("AssignmentExpression", List(true, true, true)),
-      ("FunctionStatementList", List(true, true)),
-      ("AsyncMethod", List()),
-      ("AsyncArrowFunction", List(true, true, true)),
-    )
 
     val test = false
     if (test) {
       generator.test()
       synthesizer.test()
-      testList.foreach { x =>
-        println(s"name: ${x._1}")
-        println(
-          "generation#####################################################################",
-        )
-        val gen = generator.generate(x._1, x._2)
-        println(
-          "synthesis######################################################################",
-        )
-        val syn = synthesizer.synthesize(x._1, x._2)
-        println(
-          "simple generation --------------------------------------------------------------",
-        )
-        println(gen);
-        println(gen.foreach(_.toString(grammar = Some(cfg.grammar))))
-        println(
-          "synthesis ----------------------------------------------------------------------",
-        )
-        println(syn);
-        println(syn.foreach(_.toString(grammar = Some(cfg.grammar))))
-        println(
-          "###############################################################################",
-        )
-      }
     }
 
     var cur = ast
@@ -85,15 +47,13 @@ case object Mutate extends Phase[CFG, String] {
             .from(curStr)
             .toString(grammar = Some(cfg.grammar)) != curStr
         ) {
-          println("Something is wrong..");
-          println(curStr)
-          println(cur)
+          throw new Exception()
         }
       }
     } catch {
       case _: Throwable =>
         println("parsing error"); println(curStr); println(cur)
-    } finally {}
+    }
     curStr
 
   def defaultConfig: Config = Config()

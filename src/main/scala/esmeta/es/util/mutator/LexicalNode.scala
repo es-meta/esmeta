@@ -20,10 +20,6 @@ class LexicalNode(
     if isValid(list) then Some(list.flatten.max) else None
   }
 
-  private def minIfValid(list: List[Option[Int]]): Option[Int] = {
-    if isValid(list) then Some(list.flatten.min) else None
-  }
-
   def updateParents(): Unit =
     parents.foreach(parent => {
       depth.map(parent.updateChildDepth(_, name))

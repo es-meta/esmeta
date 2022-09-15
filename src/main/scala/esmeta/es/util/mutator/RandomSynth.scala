@@ -26,8 +26,6 @@ class RandomSynth(grammar: Grammar) {
   )
 
   def synthesizeNonterminalOptOpt(
-    name: String,
-    args: List[Boolean],
     argsMap: Map[String, Boolean],
     ntName: String,
     ntArgs: List[NonterminalArgument],
@@ -44,15 +42,9 @@ class RandomSynth(grammar: Grammar) {
             case NonterminalArgumentKind.False => Some(false)
           }
       }
-      //      val simpleOrNot = BaseUtils.randBool || synthBreakpoints.contains(name)
       val simpleOrNot = true
       if simpleOrNot then Some(generator.generate(ntName, newArgs))
-      else
-//        println(s"name: $name")
-//        println(s"argsmap: $argsMap")
-//        println(s"validRhsList: $validRhsList")
-//        println(s"ntName: $ntName")
-        synthesize(ntName, newArgs).map(Some(_))
+      else synthesize(ntName, newArgs).map(Some(_))
     } else Some(None)
   }
 
@@ -82,8 +74,6 @@ class RandomSynth(grammar: Grammar) {
             val childrenOpt = rhs.symbols.filter(_.getNt.isDefined).map {
               case Nonterminal(ntName, ntArgs, optional) =>
                 synthesizeNonterminalOptOpt(
-                  name,
-                  args,
                   argsMap,
                   ntName,
                   ntArgs,
@@ -91,8 +81,6 @@ class RandomSynth(grammar: Grammar) {
                 )
               case ButNot(Nonterminal(ntName, ntArgs, optional), _) =>
                 synthesizeNonterminalOptOpt(
-                  name,
-                  args,
                   argsMap,
                   ntName,
                   ntArgs,
@@ -100,11 +88,6 @@ class RandomSynth(grammar: Grammar) {
                 )
               case _ => None // TODO: handle other symbols?
             }
-//            println(s"name: $name")
-//            println(s"argsmap: $argsMap")
-//            println(s"activeRhsList: $activeRhsList")
-//            println(s"rhs, rhsIdx: $rhs, $rhsIdx")
-//            println(s"childrenOpt: $childrenOpt")
             if childrenOpt.forall(_.isDefined) then
               Some(Syntactic(name, args, rhsIdx, childrenOpt.flatten))
             else None
@@ -145,12 +128,12 @@ class RandomSynth(grammar: Grammar) {
             }
           }
         } catch {
-          case s: Throwable => {
-            println(s"synthesis parsing fail: $name"); counter += 1
+          case s: Throwable =>
+            println(s"synthesis parsing fail: $name");
+            counter += 1
             println(s)
             println(curStr)
             println(cur)
-          }
         }
       }
     }

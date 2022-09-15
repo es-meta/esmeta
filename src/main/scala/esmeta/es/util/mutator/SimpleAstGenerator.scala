@@ -194,8 +194,6 @@ class SimpleAstGenerator(grammar: Grammar) {
     generateLexicalHelper(name).map(Lexical(name, _))
 
   def generateNonterminalOptOpt(
-    name: String,
-    args: List[Boolean],
     argsMap: Map[String, Boolean],
     ntName: String,
     ntArgs: List[NonterminalArgument],
@@ -230,12 +228,9 @@ class SimpleAstGenerator(grammar: Grammar) {
                 syntacticNode.simplestRhsIdx((prod.lhs.params zip args).toMap)
               val simplestRhs =
                 simplestRhsIdxOpt.flatMap(prod.nonRecursiveRhsList(_))
-//              println(simplestRhs)
               val instance = simplestRhs.map(_.symbols.flatMap {
                 case Nonterminal(ntName, ntArgs, optional) =>
                   generateNonterminalOptOpt(
-                    ntName,
-                    args,
                     (prod.lhs.params zip args).toMap,
                     ntName,
                     ntArgs,
@@ -243,8 +238,6 @@ class SimpleAstGenerator(grammar: Grammar) {
                   )
                 case ButNot(Nonterminal(ntName, ntArgs, optional), _) =>
                   generateNonterminalOptOpt(
-                    ntName,
-                    args,
                     (prod.lhs.params zip args).toMap,
                     ntName,
                     ntArgs,
@@ -253,14 +246,6 @@ class SimpleAstGenerator(grammar: Grammar) {
                 case _ => None
               })
 
-//              println(s"syntacticNode $name")
-//              print("rhsSymbols: "); println(syntacticNode.rhsSymbols)
-//              print("rhsConditions: "); println(syntacticNode.rhsConditions)
-//              print("length: "); println(syntacticNode.length)
-//              print("rhsLengths: "); println(syntacticNode.rhsLengths)
-//              print("symbolLengths: "); println(syntacticNode.symbolLengths)
-//              print("simplestRhsIdxOpt: "); println(simplestRhsIdxOpt)
-//              println(s"instance: $instance")
               for {
                 child <- instance
                 simplestRhsIdx <- simplestRhsIdxOpt
