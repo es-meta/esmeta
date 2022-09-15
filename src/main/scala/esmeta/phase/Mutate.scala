@@ -1,5 +1,6 @@
 package esmeta.phase
 
+import scala.collection.mutable.{Set => MSet}
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.interpreter.*
@@ -24,37 +25,76 @@ case object Mutate extends Phase[CFG, String] {
     val mutator: Mutator = RandomMutation(cfg.grammar)
     val generator = SimpleAstGenerator(cfg.grammar)
     val synthesizer = RandomSynth(cfg.grammar)
-    val temp = List(
-//      ("Punctuator", Nil),
+    val testList = List(
+      ("Punctuator", Nil),
       ("CallExpression", List(true, false)),
-//      ("CoverCallExpressionAndAsyncArrowHead", List(true, false)),
-//      ("Arguments", List(true, false)),
-//      ("AssignmentExpression", List(true, true, true)),
+      ("AsyncFunctionExpression", List.empty),
+      ("FormalParameters", List(false, true)),
+      ("AsyncFunctionBody", List.empty),
+      ("FunctionBody", List(false, true)),
+      ("CoverCallExpressionAndAsyncArrowHead", List(true, false)),
+      ("Arguments", List(true, false)),
+      ("AssignmentExpression", List(true, true, true)),
+      ("FunctionStatementList", List(true, true)),
+      ("AsyncMethod", List()),
+      ("AsyncArrowFunction", List(true, true, true)),
     )
-//    temp.foreach(x => println(generator.generate(x._1, x._2)))
-////    generator.debug()
-//    temp.foreach { x =>
-//      val temp = synthesizer.synthesize(x._1, x._2);
-//      println(temp);
-//      println(temp.foreach(_.toString(grammar = Some(cfg.grammar))))
-//    }
-    for (_ <- Range(0, 20)) {
-      println("==============================================================")
-      val ret = mutator.mutate(ast)
-//      println(ret.toString)
-      println(ret.toString(grammar = Some(cfg.grammar)))
-      println("==============================================================")
-    }
-//    ret.toString(grammar = Some(cfg.grammar))
-    "whoa"
 
-//
-//    RandomMutation.exprList.foreach(expr =>
-//      println(expr.toString(grammar = Some(cfg.grammar))),
-//    )
-//    println(mutator.mutate(ast).toString(grammar = Some(cfg.grammar)))
-//    mutator.mutate(ast).toString(grammar = Some(cfg.grammar))
-//    "whoa"
+    val test = false
+    if (test) {
+      generator.test()
+      synthesizer.test()
+      testList.foreach { x =>
+        println(s"name: ${x._1}")
+        println(
+          "generation#####################################################################",
+        )
+        val gen = generator.generate(x._1, x._2)
+        println(
+          "synthesis######################################################################",
+        )
+        val syn = synthesizer.synthesize(x._1, x._2)
+        println(
+          "simple generation --------------------------------------------------------------",
+        )
+        println(gen);
+        println(gen.foreach(_.toString(grammar = Some(cfg.grammar))))
+        println(
+          "synthesis ----------------------------------------------------------------------",
+        )
+        println(syn);
+        println(syn.foreach(_.toString(grammar = Some(cfg.grammar))))
+        println(
+          "###############################################################################",
+        )
+      }
+    }
+
+    var cur = ast
+    var curStr = ""
+    try {
+      for (_ <- Range(0, 100)) {
+        val ret = mutator.mutate(cur)
+        val retStr = ret.toString(grammar = Some(cfg.grammar))
+        curStr = cur.toString(grammar = Some(cfg.grammar))
+        if (retStr.length > curStr.length) cur = ret
+        println(curStr)
+
+        if (
+          ESParser(cfg.spec.grammar)("Script")
+            .from(curStr)
+            .toString(grammar = Some(cfg.grammar)) != curStr
+        ) {
+          println("Something is wrong..");
+          println(curStr)
+          println(cur)
+        }
+      }
+    } catch {
+      case _: Throwable =>
+        println("parsing error"); println(curStr); println(cur)
+    } finally {}
+    curStr
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()

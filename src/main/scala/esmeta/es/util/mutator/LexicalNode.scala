@@ -2,6 +2,7 @@ package esmeta.es.util.mutator
 
 import esmeta.es.util.mutator.LexicalNode.isValid
 
+import scala.collection.mutable
 import scala.collection.mutable.Map as MMap
 
 /** a class for find the shallowest string of a lexical production */
@@ -62,8 +63,9 @@ class LexicalNode(
 }
 
 object LexicalNode {
-  def isValid[T](list: List[Option[T]]): Boolean = list.foldLeft(true) {
-    case (_, None)       => false
-    case (bool, Some(_)) => bool
-  } && list.nonEmpty
+  def isValid[T](list: Iterable[Option[T]]): Boolean =
+    list.foldLeft(true) {
+      case (_, None)       => false
+      case (bool, Some(_)) => bool
+    } && list.nonEmpty
 }

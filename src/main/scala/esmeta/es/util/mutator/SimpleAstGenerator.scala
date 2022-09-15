@@ -4,6 +4,8 @@ import scala.collection.mutable.Map as MMap
 import esmeta.spec.*
 import esmeta.es.*
 import esmeta.spec
+import esmeta.util.BaseUtils
+import esmeta.parser.ESParser
 
 class SimpleAstGenerator(grammar: Grammar) {
 
@@ -41,8 +43,30 @@ class SimpleAstGenerator(grammar: Grammar) {
   /** ast generation cache */
   var cache: MMap[String, Ast] = MMap.empty
 
+  val reservedLexicals: Map[String, String] = Map(
+    "IdentifierName" -> "x",
+    "NullLiteral" -> "null",
+    "BooleanLiteral" -> "true",
+    "NumericLiteral" -> "42",
+    "StringLiteral" -> "''",
+    "NoSubstitutionTemplate" -> "``",
+    "TemplateHead" -> "`${",
+    "TemplateMiddle" -> "}${",
+    "TemplateTail" -> "}`",
+    "RegularExpressionLiteral" -> "/a/",
+    "PrivateIdentifier" -> "#x",
+  )
+
   // Initialization
   {
+    // warning if all top level lexicals (not terminals) are not reserved
+    if (
+      !LexicalNode.isValid(
+        grammar.topLevelLexicals.map(reservedLexicals.get),
+      )
+    ) {
+      println("Warning: there is an undefined top level lexical")
+    }
     // initialize reversedMap, terminals
     for {
       prod <- grammar.prods
@@ -142,7 +166,8 @@ class SimpleAstGenerator(grammar: Grammar) {
   def generateLexicalHelper(name: String): Option[String] = {
     if terminals.contains(name) then {
       Some(name)
-    } else {
+    } else if reservedLexicals.contains(name) then Some(reservedLexicals(name))
+    else {
       val prod = nameMap(name)
       val lexicalNode = lexicalNodeMap(name)
       val simplestRhs =
@@ -195,24 +220,17 @@ class SimpleAstGenerator(grammar: Grammar) {
     name: String,
     args: List[Boolean] = Nil,
   ): Option[Ast] = {
-    cache.get(name) match {
+    cache.get(name.concat(args.mkString)) match {
       case None =>
         val ret = nameMap.get(name).flatMap { prod =>
           prod.kind match {
             case ProductionKind.Syntactic =>
               val syntacticNode = syntacticNodeMap(name)
-//              println(s"syntacticNode $name")
-//              print("rhsSymbols: "); println(syntacticNode.rhsSymbols)
-//              print("rhsConditions: "); println(syntacticNode.rhsConditions)
-//              print("length: "); println(syntacticNode.length)
-//              print("rhsLengths: "); println(syntacticNode.rhsLengths)
-//              print("symbolLengths: "); println(syntacticNode.symbolLengths)
               val simplestRhsIdxOpt =
                 syntacticNode.simplestRhsIdx((prod.lhs.params zip args).toMap)
-//              print("simplestRhsIdxOpt: ")
-//              println(simplestRhsIdxOpt)
               val simplestRhs =
                 simplestRhsIdxOpt.flatMap(prod.nonRecursiveRhsList(_))
+//              println(simplestRhs)
               val instance = simplestRhs.map(_.symbols.flatMap {
                 case Nonterminal(ntName, ntArgs, optional) =>
                   generateNonterminalOptOpt(
@@ -234,6 +252,15 @@ class SimpleAstGenerator(grammar: Grammar) {
                   )
                 case _ => None
               })
+
+//              println(s"syntacticNode $name")
+//              print("rhsSymbols: "); println(syntacticNode.rhsSymbols)
+//              print("rhsConditions: "); println(syntacticNode.rhsConditions)
+//              print("length: "); println(syntacticNode.length)
+//              print("rhsLengths: "); println(syntacticNode.rhsLengths)
+//              print("symbolLengths: "); println(syntacticNode.symbolLengths)
+//              print("simplestRhsIdxOpt: "); println(simplestRhsIdxOpt)
+//              println(s"instance: $instance")
               for {
                 child <- instance
                 simplestRhsIdx <- simplestRhsIdxOpt
@@ -241,9 +268,51 @@ class SimpleAstGenerator(grammar: Grammar) {
             case _ => generateLexical(prod.name)
           }
         }
-        ret.foreach(cache += name -> _)
+        ret.foreach(cache += name.concat(args.mkString) -> _)
         ret
       case x => x
     }
+  }
+
+  def test(): Unit = {
+    var counter = 0
+    var curStr = ""
+    var cur: Ast = Lexical("", "")
+    for ((name, prod) <- syntacticNameMap) {
+      if (!RandomMutation.skippingProductions.contains(name)) {
+        try {
+          val argLen = prod.lhs.params.length
+          val randArg = List.fill(argLen)(BaseUtils.randBool)
+          val resultOpt = generate(name, randArg)
+          resultOpt match {
+            case None =>
+              println(s"simple generation fail: $name"); counter += 1
+            case Some(result) => {
+              cur = result
+              curStr = result.toString(grammar = Some(grammar))
+              val newCur = ESParser(grammar)(name, randArg)
+                .from(curStr)
+                .toString(grammar = Some(grammar))
+              val validity = newCur == curStr
+              if (!validity) {
+                println(s"simple generation is invalid: $name")
+                println(curStr)
+                println(cur)
+                println(newCur)
+                counter += 1
+              }
+            }
+          }
+        } catch {
+          case s: Throwable => {
+            println(s"simple generation parsing fail: $name"); counter += 1
+            println(s)
+            println(curStr)
+            println(cur)
+          }
+        }
+      }
+    }
+    println(s"total $counter failures.")
   }
 }

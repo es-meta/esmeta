@@ -27,3 +27,9 @@ case class RandomMutation(grammar: Grammar) extends Mutator with Walker {
     } else super.walk(ast)
   }
 }
+
+object RandomMutation {
+  val skippingProductions: Set[String] = Set(
+    "NativeFunction",
+  )
+}

@@ -3,6 +3,7 @@ package esmeta.es.util.mutator
 import scala.collection.mutable.{Stack, Map as MMap, Set as MSet}
 import esmeta.spec.*
 import esmeta.es.*
+import esmeta.parser.ESParser
 
 import scala.collection.mutable
 import esmeta.util.*
@@ -23,6 +24,7 @@ class RandomSynth(grammar: Grammar) {
     "Statement",
     "VariableDeclaration",
   )
+
   def synthesizeNonterminalOptOpt(
     name: String,
     args: List[Boolean],
@@ -32,7 +34,6 @@ class RandomSynth(grammar: Grammar) {
     optional: Boolean,
   ): Option[Option[Ast]] = {
     val makeOrNot = !optional || BaseUtils.randBool
-//    val makeOrNot = false
     if makeOrNot then {
       // TODO: Duplicated code
       val newArgs = ntArgs.flatMap {
@@ -47,10 +48,10 @@ class RandomSynth(grammar: Grammar) {
       val simpleOrNot = true
       if simpleOrNot then Some(generator.generate(ntName, newArgs))
       else
-        println(s"name: $name")
-        println(s"argsmap: $argsMap")
+//        println(s"name: $name")
+//        println(s"argsmap: $argsMap")
 //        println(s"validRhsList: $validRhsList")
-        println(s"ntName: $ntName")
+//        println(s"ntName: $ntName")
         synthesize(ntName, newArgs).map(Some(_))
     } else Some(None)
   }
@@ -62,20 +63,23 @@ class RandomSynth(grammar: Grammar) {
         prod.kind match {
           case ProductionKind.Syntactic =>
             val argsMap = (prod.lhs.params zip args).toMap
-            val validRhsList = prod.rhsList.filter(rhs =>
-              rhs.condition match {
-                case None                          => true
-                case Some(RhsCond(condName, pass)) =>
-//                  println(s"name: $name")
-//                  println(s"argsmap: $argsMap")
-//                  println(s"condName: $condName")
-                  (argsMap(condName) && pass) || (!argsMap(condName) && !pass)
+            val activeRhsList = prod.rhsList.map(rhs =>
+              if rhs.condition match {
+                  case None                          => true
+                  case Some(RhsCond(condName, pass)) =>
+//                    println(s"condName: $condName")
+                    (argsMap(condName) && pass) || (!argsMap(condName) && !pass)
 
-              },
+                }
+              then Some(rhs)
+              else None,
             )
-            val (rhs, rhsIdx) = BaseUtils.chooseWithIndex(validRhsList)
-            val childrenOpt = rhs.symbols.map {
-              case Terminal(term) => Some(Some(Lexical(term, term)))
+            val (rhs, rhsIdx) =
+              BaseUtils.choose(activeRhsList.zipWithIndex.flatMap {
+                case (Some(r), i) => Some(r, i)
+                case _            => None
+              })
+            val childrenOpt = rhs.symbols.filter(_.getNt.isDefined).map {
               case Nonterminal(ntName, ntArgs, optional) =>
                 synthesizeNonterminalOptOpt(
                   name,
@@ -96,6 +100,10 @@ class RandomSynth(grammar: Grammar) {
                 )
               case _ => None // TODO: handle other symbols?
             }
+//            println(s"name: $name")
+//            println(s"argsmap: $argsMap")
+//            println(s"activeRhsList: $activeRhsList")
+//            println(s"rhs, rhsIdx: $rhs, $rhsIdx")
 //            println(s"childrenOpt: $childrenOpt")
             if childrenOpt.forall(_.isDefined) then
               Some(Syntactic(name, args, rhsIdx, childrenOpt.flatten))
@@ -103,5 +111,49 @@ class RandomSynth(grammar: Grammar) {
           case _ => generator.generate(name)
         },
       )
+  }
+
+  def test(): Unit = {
+    val syntacticNameMap: Map[String, Production] =
+      nameMap.filter(_._2.kind == ProductionKind.Syntactic)
+    var counter = 0
+    var curStr = ""
+    var cur: Ast = Lexical("", "")
+    for ((name, prod) <- syntacticNameMap) {
+      if (!RandomMutation.skippingProductions.contains(name)) {
+        try {
+          val argLen = prod.lhs.params.length
+          val randArg = List.fill(argLen)(BaseUtils.randBool)
+          val resultOpt = synthesize(name, randArg)
+          resultOpt match {
+            case None =>
+              println(s"synthesis fail: $name"); counter += 1
+            case Some(result) => {
+              cur = result
+              curStr = result.toString(grammar = Some(grammar))
+              val newCur = ESParser(grammar)(name, randArg)
+                .from(curStr)
+                .toString(grammar = Some(grammar))
+              val validity = newCur == curStr
+              if (!validity) {
+                println(s"synthesis is invalid: $name")
+                println(curStr)
+                println(cur)
+                println(newCur)
+                counter += 1
+              }
+            }
+          }
+        } catch {
+          case s: Throwable => {
+            println(s"synthesis parsing fail: $name"); counter += 1
+            println(s)
+            println(curStr)
+            println(cur)
+          }
+        }
+      }
+    }
+    println(s"total $counter failures.")
   }
 }

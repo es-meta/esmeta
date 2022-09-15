@@ -17,8 +17,8 @@ class SyntacticNode(
     MMap.empty.withDefaultValue(None)
   var rhsLengths: List[Option[Int]] = List.empty
 
-  private def sumIfValid(list: List[Option[Int]]): Option[Int] = {
-    if isValid(list) then Some(list.flatten.sum) else None
+  private def sumOptList(list: List[Option[Int]]): Int = {
+    if list.flatten.nonEmpty then list.flatten.sum else 0
   }
 
   private def minIfValid(list: List[Option[Int]]): Option[Int] = {
@@ -33,8 +33,8 @@ class SyntacticNode(
   /** update if rhsSymbolLengths has changed */
   def update(): Unit = {
     rhsLengths = rhsSymbols.map(
-      _.flatMap(symbols =>
-        sumIfValid(symbols.flatMap(s => s.map(symbolLengths(_)))),
+      _.map(symbols =>
+        sumOptList(symbols.flatMap(s => s.map(symbolLengths(_)))),
       ),
     )
     val oldLength = length
