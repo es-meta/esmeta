@@ -199,20 +199,20 @@ class Interpreter(
       try {
         (str, eval(rule), st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
-          case (x, Grammar("Script", Nil), Some(y), Some(ast)) if x == y =>
+          case (x, Nt("Script", Nil), Some(y), Some(ast)) if x == y =>
             AstValue(ast)
-          case (x, Grammar(name, params), _, _) =>
+          case (x, Nt(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
             // TODO handle span of re-parsed ast
             ast.clearLoc
             ast.setChildLoc(locOpt)
             AstValue(ast)
-          case (_, r, _, _) => throw NoGrammar(rule, r)
+          case (_, r, _, _) => throw NoNt(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
-    case EGrammar(name, params) => Grammar(name, params)
+    case ENt(name, params) => Nt(name, params)
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
@@ -220,8 +220,8 @@ class Interpreter(
     case EGetChildren(kindOpt, ast) =>
       val kOpt = kindOpt.map(kind =>
         eval(kind) match
-          case Grammar(name, _) => name
-          case v                => throw NoGrammar(kind, v),
+          case Nt(name, _) => name
+          case v           => throw NoNt(kind, v),
       )
       val a = eval(ast).asAst
       (a, kOpt) match
@@ -332,9 +332,9 @@ class Interpreter(
     case ETypeCheck(expr, tyExpr) =>
       val v = eval(expr)
       val tyName = eval(tyExpr) match
-        case Str(s)        => s
-        case Grammar(s, _) => s
-        case v             => throw InvalidTypeExpr(expr, v)
+        case Str(s)   => s
+        case Nt(s, _) => s
+        case v        => throw InvalidTypeExpr(expr, v)
       Bool(v match
         case _: Number => tyName == "Number"
         case _: BigInt => tyName == "BigInt"

@@ -1,5 +1,5 @@
 def <SYNTAX>:CallExpression[0,0].Evaluation(this: Unknown): Unknown {
-  let expr = (parse this[0] (grammar |CallMemberExpression|[]))
+  let expr = (parse this[0] (nt |CallMemberExpression|[]))
   let memberExpr = expr.MemberExpression
   let arguments = expr.Arguments
   sdo-call %0 = memberExpr->Evaluation()

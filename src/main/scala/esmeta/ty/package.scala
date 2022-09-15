@@ -72,9 +72,9 @@ def AstT(xs: String*): ValueTy =
   else ValueTy(astValue = AstNameTy(xs.toSet))
 def AstSingleT(name: String, idx: Int, subIdx: Int): ValueTy =
   ValueTy(astValue = AstSingleTy(name, idx, subIdx))
-def GrammarT(xs: Grammar*): ValueTy =
+def NtT(xs: Nt*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
-  else ValueTy(grammar = Fin(xs.toSet))
+  else ValueTy(nt = Fin(xs.toSet))
 val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
 def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot

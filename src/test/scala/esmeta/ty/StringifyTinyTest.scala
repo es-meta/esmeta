@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.{Grammar, Number}
+import esmeta.state.{Nt, Number}
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
@@ -45,10 +45,10 @@ class StringifyTinyTest extends TyTest {
       AstTopT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
       AstSingleT("Member", 1, 3) -> "Ast:Member[1,3]",
-      GrammarT(
-        Grammar("Literal", List(true)),
-        Grammar("Identifier", List(false, true, false)),
-      ) -> "Grammar[|Identifier|[FTF], |Literal|[T]]",
+      NtT(
+        Nt("Literal", List(true)),
+        Nt("Identifier", List(false, true, false)),
+      ) -> "Nt[|Identifier|[FTF], |Literal|[T]]",
       CodeUnitT -> "CodeUnit",
       ConstT("key") -> "Const[~key~]",
       ConstT("key", "value") -> "Const[~key~, ~value~]",

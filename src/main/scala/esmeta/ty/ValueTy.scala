@@ -80,7 +80,7 @@ case class ValueTy(
   def list: ListTy = pureValue.list
   def symbol: Boolean = pureValue.symbol
   def astValue: AstValueTy = pureValue.astValue
-  def grammar: BSet[Grammar] = pureValue.grammar
+  def nt: BSet[Nt] = pureValue.nt
   def codeUnit: Boolean = pureValue.codeUnit
   def const: Set[String] = pureValue.const
   def math: BSet[BigDecimal] = pureValue.math
@@ -105,7 +105,7 @@ object ValueTy {
     list: ListTy = ListTy.Bot,
     symbol: Boolean = false,
     astValue: AstValueTy = AstValueTy.Bot,
-    grammar: BSet[Grammar] = Fin(),
+    nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: Set[String] = Set(),
     math: BSet[BigDecimal] = Fin(),
@@ -127,7 +127,7 @@ object ValueTy {
       list,
       symbol,
       astValue,
-      grammar,
+      nt,
       codeUnit,
       const,
       math,

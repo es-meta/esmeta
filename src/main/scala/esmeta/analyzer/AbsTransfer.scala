@@ -324,7 +324,7 @@ class AbsTransfer(sem: AbsSemantics) {
           c <- transfer(code)
           r <- transfer(rule)
         } yield c.parse(r)
-      case EGrammar(name, params) => AbsValue(Grammar(name, params))
+      case ENt(name, params) => AbsValue(Nt(name, params))
       case ESourceText(expr) =>
         for { v <- transfer(expr) } yield v.sourceText
       case e @ EGetChildren(kindOpt, ast) =>
@@ -416,9 +416,9 @@ class AbsTransfer(sem: AbsSemantics) {
           tv <- transfer(tyExpr)
           st <- get
         } yield tv.getSingle match
-          case One(Str(s))        => v.typeCheck(s, st)
-          case One(Grammar(n, _)) => v.typeCheck(n, st)
-          case _                  => AbsValue.boolTop
+          case One(Str(s))   => v.typeCheck(s, st)
+          case One(Nt(n, _)) => v.typeCheck(n, st)
+          case _             => AbsValue.boolTop
 
       case EClo(fname, cap) =>
         cfg.fnameMap.get(fname) match {
@@ -676,9 +676,9 @@ class AbsTransfer(sem: AbsSemantics) {
         rv <- transfer(ref)
         tv <- transfer(tyExpr)
         _ <- tv.getSingle match
-          case One(Str(s))        => modify(pruneTypeCheck(rv, s, positive))
-          case One(Grammar(n, _)) => modify(pruneTypeCheck(rv, n, positive))
-          case _                  => pure(())
+          case One(Str(s))   => modify(pruneTypeCheck(rv, s, positive))
+          case One(Nt(n, _)) => modify(pruneTypeCheck(rv, n, positive))
+          case _             => pure(())
       } yield ()
 
     case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>

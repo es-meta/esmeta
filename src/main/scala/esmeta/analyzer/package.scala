@@ -135,7 +135,7 @@ def initDomain(
   contDomain: ContDomain = cont.SetDomain(),
   partDomain: PartDomain = part.SetDomain(),
   astValueDomain: AstValueDomain = astValue.FlatDomain,
-  grammarDomain: GrammarDomain = grammar.FlatDomain,
+  ntDomain: NtDomain = nt.FlatDomain,
   mathDomain: MathDomain = math.FlatDomain,
   codeUnitDomain: CodeUnitDomain = codeUnit.FlatDomain,
   constDomain: ConstDomain = const.FlatDomain,
@@ -160,7 +160,7 @@ def initDomain(
   _contDomain = Some(contDomain)
   _partDomain = Some(partDomain)
   _astValueDomain = Some(astValueDomain)
-  _grammarDomain = Some(grammarDomain)
+  _ntDomain = Some(ntDomain)
   _mathDomain = Some(mathDomain)
   _codeUnitDomain = Some(codeUnitDomain)
   _constDomain = Some(constDomain)
@@ -188,7 +188,7 @@ private var _cloDomain: Option[CloDomain] = None
 private var _contDomain: Option[ContDomain] = None
 private var _partDomain: Option[PartDomain] = None
 private var _astValueDomain: Option[AstValueDomain] = None
-private var _grammarDomain: Option[GrammarDomain] = None
+private var _ntDomain: Option[NtDomain] = None
 private var _mathDomain: Option[MathDomain] = None
 private var _codeUnitDomain: Option[CodeUnitDomain] = None
 private var _constDomain: Option[ConstDomain] = None
@@ -245,9 +245,9 @@ type AstValueDomain = astValue.Domain
 lazy val AbsAstValue = _astValueDomain.getOrElse(astValue.FlatDomain)
 type AbsAstValue = AbsAstValue.Elem
 
-type GrammarDomain = grammar.Domain
-lazy val AbsGrammar = _grammarDomain.getOrElse(grammar.FlatDomain)
-type AbsGrammar = AbsGrammar.Elem
+type NtDomain = nt.Domain
+lazy val AbsNt = _ntDomain.getOrElse(nt.FlatDomain)
+type AbsNt = AbsNt.Elem
 
 type MathDomain = math.Domain
 lazy val AbsMath = _mathDomain.getOrElse(math.FlatDomain)

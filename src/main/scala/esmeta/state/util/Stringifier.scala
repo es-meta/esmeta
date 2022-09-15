@@ -106,7 +106,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case clo: Clo        => cloRule(app, clo)
       case cont: Cont      => contRule(app, cont)
       case AstValue(ast)   => app >> ast
-      case gr: Grammar     => grammarRule(app, gr)
+      case gr: Nt          => ntRule(app, gr)
       case m: Math         => mathRule(app, m)
       case c: Const        => constRule(app, c)
       case cu: CodeUnit    => cuRule(app, cu)
@@ -134,8 +134,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 
-  // grammar
-  given grammarRule: Rule[Grammar] = (app, gr) =>
+  // nonterminals
+  given ntRule: Rule[Nt] = (app, gr) =>
     given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
     given Rule[List[Boolean]] = iterableRule()
     app >> "|" >> gr.name >> "|"
