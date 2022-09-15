@@ -55,8 +55,8 @@ sealed trait Ast extends ESElem with Locational {
           case List(Some(child)) => child.types
           case _                 => Set()
         ) + "Nonterminal"
-      case _: Lexical => Set("Terminal")
-    )
+      case _: Lexical => Set()
+    ) + "ParseNode"
 
   /** flatten statements */
   // TODO refactoring

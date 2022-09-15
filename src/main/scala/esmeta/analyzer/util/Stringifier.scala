@@ -82,10 +82,10 @@ class Stringifier(
         app >> "cont<" >> target >> ">"
       case AstValue(ast) =>
         app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
-      case Grammar(name, params) =>
+      case Nt(name, params) =>
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule()
-        app >> "grammar<" >> name
+        app >> "nt<" >> name
         if (!params.isEmpty) app >> "[" >> params >> "]"
         app >> ">"
       case Math(n)         => app >> n

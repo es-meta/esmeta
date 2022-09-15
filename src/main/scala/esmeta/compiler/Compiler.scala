@@ -648,7 +648,7 @@ class Compiler(
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
-      } else EGrammar(name, flags.map(_ startsWith "+"))
+      } else ENt(name, flags.map(_ startsWith "+"))
     case ConstLiteral(name)                  => EConst(name)
     case StringLiteral(s)                    => EStr(s)
     case FieldLiteral(field)                 => EStr(field)

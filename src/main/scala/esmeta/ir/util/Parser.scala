@@ -118,8 +118,8 @@ trait Parsers extends TyParsers {
       case f ~ e => EPop(e, f)
     } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
-    } | "(" ~ "grammar" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
-      case x ~ ps => EGrammar(x, ps)
+    } | "(" ~ "nt" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => ENt(x, ps)
     } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {

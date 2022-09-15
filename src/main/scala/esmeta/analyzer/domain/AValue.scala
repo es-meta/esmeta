@@ -24,7 +24,7 @@ object AComp:
     AComp(ty, APureValue.from(value), target)
 
 /** pure values for analysis */
-type APureValue = Part | AClo | ACont | AstValue | Grammar | Math | Const |
+type APureValue = Part | AClo | ACont | AstValue | Nt | Math | Const |
   CodeUnit | SimpleValue
 object APureValue:
   /** from original pure values */
@@ -33,7 +33,7 @@ object APureValue:
     case clo: Clo                 => AClo.from(clo)
     case cont: Cont               => ACont.from(cont)
     case astValue: AstValue       => astValue
-    case grammar: Grammar         => grammar
+    case nt: Nt                   => nt
     case math: Math               => math
     case const: Const             => const
     case codeUnit: CodeUnit       => codeUnit

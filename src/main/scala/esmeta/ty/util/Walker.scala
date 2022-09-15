@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Grammar, Number}
+import esmeta.state.{Nt, Number}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -48,7 +48,7 @@ trait Walker extends BasicWalker {
     walk(ty.list),
     walk(ty.symbol),
     walkAst(ty.astValue),
-    walkGrammar(ty.grammar),
+    walkNt(ty.nt),
     walkCodeUnit(ty.codeUnit),
     walkConst(ty.const),
     walkMath(ty.math),
@@ -74,14 +74,14 @@ trait Walker extends BasicWalker {
     case AstSingleTy(name, idx, subIdx) =>
       AstSingleTy(walk(name), walk(idx), walk(subIdx))
 
-  /** grammar types */
-  def walkGrammar(grammar: BSet[Grammar]): BSet[Grammar] =
-    walkBSet(grammar, walk)
+  /** nt types */
+  def walkNt(nt: BSet[Nt]): BSet[Nt] =
+    walkBSet(nt, walk)
 
-  /** grammar */
-  def walk(grammar: Grammar): Grammar = Grammar(
-    walk(grammar.name),
-    walkList(grammar.params, walk),
+  /** nt */
+  def walk(nt: Nt): Nt = Nt(
+    walk(nt.name),
+    walkList(nt.params, walk),
   )
 
   /** code unit types */

@@ -56,7 +56,7 @@ object TypeDomain extends value.Domain {
   lazy val contTop: Elem = Elem(ContTopT)
   lazy val partTop: Elem = notSupported("value.TypeDomain.partTop")
   lazy val astValueTop: Elem = Elem(AstTopT)
-  lazy val grammarTop: Elem = notSupported("value.TypeDomain.grammarTop")
+  lazy val ntTop: Elem = notSupported("value.TypeDomain.ntTop")
   lazy val codeUnitTop: Elem = Elem(CodeUnitT)
   lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
   lazy val mathTop: Elem = Elem(MathTopT)
@@ -78,7 +78,7 @@ object TypeDomain extends value.Domain {
     cont: AbsCont,
     part: AbsPart,
     astValue: AbsAstValue,
-    grammar: AbsGrammar,
+    nt: AbsNt,
     codeUnit: AbsCodeUnit,
     const: AbsConst,
     math: AbsMath,
@@ -217,12 +217,12 @@ object TypeDomain extends value.Domain {
         case _ => ValueTy(),
       )
     def sourceText: Elem = strTop
-    def parse(rule: Elem): Elem = rule.ty.grammar match
-      case Inf => exploded("too imprecise grammar rule for parsing")
+    def parse(rule: Elem): Elem = rule.ty.nt match
+      case Inf => exploded("too imprecise nt rule for parsing")
       case Fin(set) =>
         Elem(ValueTy(astValue = AstNameTy((for {
-          grammar <- set
-          name = grammar.name
+          nt <- set
+          name = nt.name
         } yield name).toSet)))
     def duplicated(st: AbsState): Elem = boolTop
     def substring(from: Elem): Elem = strTop
@@ -330,7 +330,7 @@ object TypeDomain extends value.Domain {
         } yield ACont(NodePoint(func, node, View()), Map())) // TODO captured
     def part: AbsPart = notSupported("value.TypeDomain.Elem.part")
     def astValue: AbsAstValue = notSupported("value.TypeDomain.Elem.astValue")
-    def grammar: AbsGrammar = notSupported("value.TypeDomain.Elem.grammar")
+    def nt: AbsNt = notSupported("value.TypeDomain.Elem.nt")
     def codeUnit: AbsCodeUnit = notSupported("value.TypeDomain.Elem.codeUnit")
     def const: AbsConst = notSupported("value.TypeDomain.Elem.const")
     def math: AbsMath = notSupported("value.TypeDomain.Elem.math")
@@ -360,7 +360,7 @@ object TypeDomain extends value.Domain {
     case AClo(func, _)             => CloT(func.name)
     case ACont(target, _)          => ContT(target.node.id)
     case AstValue(ast)             => AstT(ast.name)
-    case grammar: Grammar          => GrammarT(grammar)
+    case nt: Nt                    => NtT(nt)
     case CodeUnit(_)               => CodeUnitT
     case Const(name)               => ConstT(name)
     case Math(n)                   => MathT(n)
@@ -447,13 +447,11 @@ object TypeDomain extends value.Domain {
       names ++= ancestors(name)
     if (!ty.astValue.isBottom) ty.astValue match
       case AstTopTy =>
-        names ++= astChildMap.keySet ++ Set("ParseNode", "Nonterminal")
+        names ++= astChildMap.keySet + "ParseNode" + "Nonterminal"
       case ty: AstNonTopTy =>
         val astNames = ty.toName.names
         names += "ParseNode"
         for (astName <- astNames)
-          if (!cfg.grammar.lexicalNames.contains(astName))
-            names += "Nonterminal"
           names ++= astChildMap.getOrElse(astName, Set(astName))
     names
 

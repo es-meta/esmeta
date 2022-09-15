@@ -15,7 +15,7 @@ case class PureValueTy(
   list: ListTy = ListTy.Bot,
   symbol: Boolean = false,
   astValue: AstValueTy = AstValueTy.Bot,
-  grammar: BSet[Grammar] = Fin(),
+  nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
   const: Set[String] = Set(),
   math: BSet[BigDecimal] = Fin(),
@@ -39,7 +39,7 @@ case class PureValueTy(
     this.list.isBottom &
     this.symbol.isBottom &
     this.astValue.isBottom &
-    this.grammar.isBottom &
+    this.nt.isBottom &
     this.codeUnit.isBottom &
     this.const.isBottom &
     this.math.isBottom &
@@ -61,7 +61,7 @@ case class PureValueTy(
     this.list <= that.list &
     this.symbol <= that.symbol &
     this.astValue <= that.astValue &
-    this.grammar <= that.grammar &
+    this.nt <= that.nt &
     this.codeUnit <= that.codeUnit &
     this.const <= that.const &
     this.math <= that.math &
@@ -86,7 +86,7 @@ case class PureValueTy(
         this.list | that.list,
         this.symbol | that.symbol,
         this.astValue | that.astValue, // TODO
-        this.grammar | that.grammar,
+        this.nt | that.nt,
         this.codeUnit | that.codeUnit,
         this.const | that.const,
         this.math | that.math,
@@ -111,7 +111,7 @@ case class PureValueTy(
         this.list & that.list,
         this.symbol & that.symbol,
         this.astValue & that.astValue, // TODO
-        this.grammar & that.grammar,
+        this.nt & that.nt,
         this.codeUnit & that.codeUnit,
         this.const & that.const,
         this.math & that.math,
@@ -136,7 +136,7 @@ case class PureValueTy(
         this.list -- that.list,
         this.symbol -- that.symbol,
         this.astValue -- that.astValue, // TODO
-        this.grammar -- that.grammar,
+        this.nt -- that.nt,
         this.codeUnit -- that.codeUnit,
         this.const -- that.const,
         this.math -- that.math,
@@ -158,7 +158,7 @@ case class PureValueTy(
     (if (this.list.isBottom) Zero else Many) |
     (if (this.symbol.isBottom) Zero else Many) |
     (if (this.astValue.isBottom) Zero else Many) |
-    (if (this.grammar.isBottom) Zero else Many) |
+    (if (this.nt.isBottom) Zero else Many) |
     (if (this.codeUnit.isBottom) Zero else Many) |
     (if (this.const.isBottom) Zero else Many) |
     (if (this.math.isBottom) Zero else Many) |

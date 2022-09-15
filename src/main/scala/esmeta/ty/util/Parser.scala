@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Grammar, Number}
+import esmeta.state.{Nt, Number}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -67,10 +67,10 @@ trait Parsers extends BasicParsers {
     "Symbol" ^^^ PureValueTy(symbol = true) |
     // AST value
     singleAstValueTy ^^ { case ast => PureValueTy(astValue = ast) } |
-    // grammar
-    "Grammar[" ~> rep1sep(grammar, ",") <~ "]" ^^ {
-      case s => PureValueTy(grammar = Fin(s.toSet))
-    } | "Grammar" ^^^ PureValueTy(grammar = Inf) |
+    // nt
+    "Nt[" ~> rep1sep(nt, ",") <~ "]" ^^ {
+      case s => PureValueTy(nt = Fin(s.toSet))
+    } | "Nt" ^^^ PureValueTy(nt = Inf) |
     // code unit
     "CodeUnit" ^^^ PureValueTy(codeUnit = true) |
     // constant
@@ -111,9 +111,9 @@ trait Parsers extends BasicParsers {
     "-INF" ^^^ Number(Double.NegativeInfinity) |
     "NaN" ^^^ Number(Double.NaN)
 
-  private lazy val grammar: Parser[Grammar] =
+  private lazy val nt: Parser[Nt] =
     ("|" ~> word <~ "|") ~ opt(parseParams) ^^ {
-      case x ~ ps => Grammar(x, ps.getOrElse(Nil))
+      case x ~ ps => Nt(x, ps.getOrElse(Nil))
     }
   private lazy val parseParams: Parser[List[Boolean]] =
     opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }

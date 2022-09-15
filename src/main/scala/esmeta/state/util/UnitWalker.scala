@@ -63,7 +63,7 @@ trait UnitWalker extends BasicUnitWalker {
     case Cont(_, captured, callStack) =>
       walkMap(captured, walk, walk); walkList(callStack, walk)
     case _: AstValue     =>
-    case _: Grammar      =>
+    case _: Nt           =>
     case _: Math         =>
     case _: Const        =>
     case _: CodeUnit     =>

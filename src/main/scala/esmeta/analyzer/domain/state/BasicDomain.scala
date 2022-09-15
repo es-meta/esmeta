@@ -220,7 +220,7 @@ object BasicDomain extends state.Domain {
     ): (AbsValue, Elem) = (kindOpt.map(_.getSingle), ast.getSingle) match
       case (Some(Zero), _) | (_, Zero) => (AbsValue.Bot, Bot)
       case (Some(Many), _) | (_, Many) => exploded("EGetChildren")
-      case (Some(One(Grammar(name, _))), One(AstValue(ast))) =>
+      case (Some(One(Nt(name, _))), One(AstValue(ast))) =>
         val vs = ast.getChildren(name).map(AbsValue(_))
         allocList(to, vs)
       case (None, One(AstValue(syn: Syntactic))) =>

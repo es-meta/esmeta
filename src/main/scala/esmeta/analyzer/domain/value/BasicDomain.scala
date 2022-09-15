@@ -49,7 +49,7 @@ object BasicDomain extends value.Domain {
   val contTop: Elem = Bot.copy(pureValue = AbsPureValue.contTop)
   val partTop: Elem = Bot.copy(pureValue = AbsPureValue.partTop)
   val astValueTop: Elem = Bot.copy(pureValue = AbsPureValue.astValueTop)
-  val grammarTop: Elem = Bot.copy(pureValue = AbsPureValue.grammarTop)
+  val ntTop: Elem = Bot.copy(pureValue = AbsPureValue.ntTop)
   val codeUnitTop: Elem = Bot.copy(pureValue = AbsPureValue.codeUnitTop)
   val constTop: Elem = Bot.copy(pureValue = AbsPureValue.constTop)
   val mathTop: Elem = Bot.copy(pureValue = AbsPureValue.mathTop)
@@ -70,7 +70,7 @@ object BasicDomain extends value.Domain {
     cont: AbsCont = AbsCont.Bot,
     part: AbsPart = AbsPart.Bot,
     astValue: AbsAstValue = AbsAstValue.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
+    nt: AbsNt = AbsNt.Bot,
     codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
@@ -89,7 +89,7 @@ object BasicDomain extends value.Domain {
       cont,
       part,
       astValue,
-      grammar,
+      nt,
       codeUnit,
       const,
       math,
@@ -381,7 +381,7 @@ object BasicDomain extends value.Domain {
       }
       // parse
       for {
-        Grammar(name, params) <- rule.grammar
+        Nt(name, params) <- rule.nt
         (str, args) <- codes
         parseArgs = if (params.isEmpty) args else params
       } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
@@ -491,7 +491,7 @@ object BasicDomain extends value.Domain {
     def cont: AbsCont = elem.pureValue.cont
     def part: AbsPart = elem.pureValue.part
     def astValue: AbsAstValue = elem.pureValue.astValue
-    def grammar: AbsGrammar = elem.pureValue.grammar
+    def nt: AbsNt = elem.pureValue.nt
     def codeUnit: AbsCodeUnit = elem.pureValue.codeUnit
     def const: AbsConst = elem.pureValue.const
     def math: AbsMath = elem.pureValue.math

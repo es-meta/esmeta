@@ -71,7 +71,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(list); walk(front)
     case EParse(code, rule) =>
       walk(code); walk(rule)
-    case EGrammar(name, params) =>
+    case ENt(name, params) =>
       walk(name); walkList(params, walk)
     case ESourceText(expr) =>
       walk(expr)

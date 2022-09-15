@@ -70,7 +70,7 @@ object Stringifier {
         .add(ty.list, !ty.list.isBottom)
         .add("Symbol", !ty.symbol.isBottom)
         .add(ty.astValue, !ty.astValue.isBottom)
-        .add(ty.grammar.map(_.toString), !ty.grammar.isBottom, "Grammar")
+        .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
         .add(ty.math, !ty.math.isBottom, "Math")

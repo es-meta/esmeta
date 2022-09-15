@@ -39,7 +39,7 @@ trait Domain extends domain.Domain[AValue] {
   def contTop: Elem
   def partTop: Elem
   def astValueTop: Elem
-  def grammarTop: Elem
+  def ntTop: Elem
   def codeUnitTop: Elem
   def constTop: Elem
   def mathTop: Elem
@@ -60,7 +60,7 @@ trait Domain extends domain.Domain[AValue] {
     cont: AbsCont = AbsCont.Bot,
     part: AbsPart = AbsPart.Bot,
     astValue: AbsAstValue = AbsAstValue.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
+    nt: AbsNt = AbsNt.Bot,
     codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
@@ -182,7 +182,7 @@ trait Domain extends domain.Domain[AValue] {
     def cont: AbsCont
     def part: AbsPart
     def astValue: AbsAstValue
-    def grammar: AbsGrammar
+    def nt: AbsNt
     def codeUnit: AbsCodeUnit
     def const: AbsConst
     def math: AbsMath

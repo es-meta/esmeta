@@ -96,8 +96,8 @@ case class Cont(
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue
 
-/** grammar goal symbols */
-case class Grammar(name: String, params: List[Boolean]) extends PureValue
+/** nonterminals for grammar goal symbols */
+case class Nt(name: String, params: List[Boolean]) extends PureValue
 
 /** math values */
 case class Math(n: BigDecimal) extends PureValue

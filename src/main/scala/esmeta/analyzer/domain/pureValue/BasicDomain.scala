@@ -15,7 +15,7 @@ object BasicDomain extends pureValue.Domain {
     cont: AbsCont = AbsCont.Bot,
     part: AbsPart = AbsPart.Bot,
     astValue: AbsAstValue = AbsAstValue.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
+    nt: AbsNt = AbsNt.Bot,
     codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
@@ -34,7 +34,7 @@ object BasicDomain extends pureValue.Domain {
     AbsCont(xs.collect { case x: ACont => x }),
     AbsPart(xs.collect { case x: Part => x }),
     AbsAstValue(xs.collect { case x: AstValue => x }),
-    AbsGrammar(xs.collect { case x: Grammar => x }),
+    AbsNt(xs.collect { case x: Nt => x }),
     AbsCodeUnit(xs.collect { case x: CodeUnit => x }),
     AbsConst(xs.collect { case x: Const => x }),
     AbsMath(xs.collect { case x: Math => x }),
@@ -46,7 +46,7 @@ object BasicDomain extends pureValue.Domain {
   val contTop: Elem = Bot.copy(cont = AbsCont.Top)
   val partTop: Elem = Bot.copy(part = AbsPart.Top)
   val astValueTop: Elem = Bot.copy(astValue = AbsAstValue.Top)
-  val grammarTop: Elem = Bot.copy(grammar = AbsGrammar.Top)
+  val ntTop: Elem = Bot.copy(nt = AbsNt.Top)
   val codeUnitTop: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
   val constTop: Elem = Bot.copy(const = AbsConst.Top)
   val mathTop: Elem = Bot.copy(math = AbsMath.Top)
@@ -65,7 +65,7 @@ object BasicDomain extends pureValue.Domain {
     cont: AbsCont = AbsCont.Bot,
     part: AbsPart = AbsPart.Bot,
     astValue: AbsAstValue = AbsAstValue.Bot,
-    grammar: AbsGrammar = AbsGrammar.Bot,
+    nt: AbsNt = AbsNt.Bot,
     codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
     const: AbsConst = AbsConst.Bot,
     math: AbsMath = AbsMath.Bot,
@@ -82,7 +82,7 @@ object BasicDomain extends pureValue.Domain {
     cont,
     part,
     astValue,
-    grammar,
+    nt,
     codeUnit,
     const,
     math,
@@ -96,7 +96,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont,
       elem.part,
       elem.astValue,
-      elem.grammar,
+      elem.nt,
       elem.codeUnit,
       elem.const,
       elem.math,
@@ -113,7 +113,7 @@ object BasicDomain extends pureValue.Domain {
       if (!elem.cont.isBottom) strs :+= elem.cont.toString
       if (!elem.part.isBottom) strs :+= elem.part.toString
       if (!elem.astValue.isBottom) strs :+= elem.astValue.toString
-      if (!elem.grammar.isBottom) strs :+= elem.grammar.toString
+      if (!elem.nt.isBottom) strs :+= elem.nt.toString
       if (!elem.codeUnit.isBottom) strs :+= elem.codeUnit.toString
       if (!elem.const.isBottom) strs :+= elem.const.toString
       if (!elem.math.isBottom) strs :+= elem.math.toString
@@ -131,7 +131,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont ⊑ that.cont &&
       elem.part ⊑ that.part &&
       elem.astValue ⊑ that.astValue &&
-      elem.grammar ⊑ that.grammar &&
+      elem.nt ⊑ that.nt &&
       elem.codeUnit ⊑ that.codeUnit &&
       elem.const ⊑ that.const &&
       elem.math ⊑ that.math &&
@@ -143,7 +143,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont ⊔ that.cont,
       elem.part ⊔ that.part,
       elem.astValue ⊔ that.astValue,
-      elem.grammar ⊔ that.grammar,
+      elem.nt ⊔ that.nt,
       elem.codeUnit ⊔ that.codeUnit,
       elem.const ⊔ that.const,
       elem.math ⊔ that.math,
@@ -156,7 +156,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont ⊓ that.cont,
       elem.part ⊓ that.part,
       elem.astValue ⊓ that.astValue,
-      elem.grammar ⊓ that.grammar,
+      elem.nt ⊓ that.nt,
       elem.codeUnit ⊓ that.codeUnit,
       elem.const ⊓ that.const,
       elem.math ⊓ that.math,
@@ -169,7 +169,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont -- that.cont,
       elem.part -- that.part,
       elem.astValue -- that.astValue,
-      elem.grammar -- that.grammar,
+      elem.nt -- that.nt,
       elem.codeUnit -- that.codeUnit,
       elem.const -- that.const,
       elem.math -- that.math,
@@ -182,7 +182,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont.gamma ⊔
       elem.part.gamma ⊔
       elem.astValue.gamma ⊔
-      elem.grammar.gamma ⊔
+      elem.nt.gamma ⊔
       elem.codeUnit.gamma ⊔
       elem.const.gamma ⊔
       elem.math.gamma ⊔
@@ -194,7 +194,7 @@ object BasicDomain extends pureValue.Domain {
       elem.cont.getSingle ⊔
       elem.part.getSingle ⊔
       elem.astValue.getSingle ⊔
-      elem.grammar.getSingle ⊔
+      elem.nt.getSingle ⊔
       elem.codeUnit.getSingle ⊔
       elem.const.getSingle ⊔
       elem.math.getSingle ⊔
@@ -205,7 +205,7 @@ object BasicDomain extends pureValue.Domain {
     def cont: AbsCont = elem.cont
     def part: AbsPart = elem.part
     def astValue: AbsAstValue = elem.astValue
-    def grammar: AbsGrammar = elem.grammar
+    def nt: AbsNt = elem.nt
     def codeUnit: AbsCodeUnit = elem.codeUnit
     def const: AbsConst = elem.const
     def math: AbsMath = elem.math
