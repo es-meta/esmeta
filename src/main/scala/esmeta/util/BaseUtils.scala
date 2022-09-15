@@ -118,9 +118,8 @@ object BaseUtils {
   def choose[T](seq: Seq[T]): T = seq(rand.nextInt(seq.length))
 
   /** randomly choose an element in a list and return it with its index */
-  def chooseWithIndex[T](seq: Seq[T]): (T, Int) = {
+  def chooseWithIndex[T](seq: Seq[T]): (T, Int) =
     val idx = rand.nextInt(seq.length); (seq(idx), idx)
-  }
 
   /** random boolean */
   def randBool: Boolean = rand.nextBoolean

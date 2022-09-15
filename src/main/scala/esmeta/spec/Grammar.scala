@@ -24,14 +24,6 @@ case class Grammar(
     if prodInRhs.kind == ProductionKind.Lexical
   } yield name).toSet
 
-  /** get the terminals reachable by syntactic productions */
-  lazy val topLevelTerminals: Set[String] = (for {
-    prod <- prods
-    if prod.kind == ProductionKind.Syntactic
-    t <- prod.ts
-    term = t.term
-  } yield term).toSet
-
   /** get lexical names */
   lazy val lexicalNames: Set[String] = (for {
     prod <- prods if prod.kind != ProductionKind.Syntactic

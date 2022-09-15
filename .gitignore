@@ -31,7 +31,7 @@ bin/
 ## vscode
 .vscode
 
-## idea
+## IDE configuration
 .idea
 
 ## test results for Test262

@@ -1,7 +1,7 @@
 package esmeta.es
 
-import esmeta.ir.Type
 import esmeta.es.util.*
+import esmeta.ir.Type
 import esmeta.spec.*
 import esmeta.util.*
 import scala.annotation.tailrec
@@ -19,6 +19,15 @@ sealed trait Ast extends ESElem with Locational {
   def idx: Int = this match
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
+
+  /** validity check */
+  def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)
+
+  /** size */
+  lazy val size: Int = this match
+    case lex: Lexical => 1
+    case syn: Syntactic =>
+      syn.children.map(_.fold(1)(_.size)).foldLeft(1)(_ + _)
 
   /** production chains */
   lazy val chains: List[Ast] = this match
@@ -74,7 +83,7 @@ sealed trait Ast extends ESElem with Locational {
       syn.loc = locOpt; syn
     case lex: Lexical => lex.loc = locOpt; lex
 
-  /** anot use case class' hash code */
+  /** not use case class' hash code */
   override def hashCode: Int = super.hashCode
 }
 
