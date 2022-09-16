@@ -90,6 +90,7 @@ It supports the following commands:
 - `web` starts a web server for an ECMAScript double debugger.
 - `test262-test` tests Test262 tests with harness files (default: tests/test262).
 - `inject` injects assertions to check final state of an ECMAScript file.
+- `mutate` mutates an ECMAScript program.
 - `analyze` analyzes an ECMAScript file using meta-level static analysis.
 
 and global options:
@@ -260,7 +261,7 @@ $ esmeta inject example.js
 # ----------------------------------------
 # // [EXIT] normal
 # let x; x ??= class {}; function* f() {}
-# 
+#
 # $algo.set(f, "GeneratorDeclaration[0,0].InstantiateGeneratorFunctionObject")
 # $assert.sameValue(Object.getPrototypeOf(f), GeneratorFunction.prototype);
 # $assert.sameValue(Object.isExtensible(f), true);
@@ -361,11 +362,11 @@ $ esmeta analyze example.js -analyze:repl
 # ========================================
 #  analyze phase
 # ----------------------------------------
-# 
+#
 # command list:
 # - help                     Show help message.
 # ...
-# 
+#
 # [1] RunJobs[62]:Call[637] -> {
 #   ...
 # }
