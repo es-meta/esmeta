@@ -41,6 +41,7 @@ class StringifyTinyTest extends StateTest {
     lazy val ctxtSingle = Context(func, MMap(Name("x") -> Math(42)))
     lazy val ctxtMulti =
       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
+
     checkStringify("Context")(
       ctxt -> """{
       |  cursor: Block[0] @ f
@@ -123,7 +124,7 @@ class StringifyTinyTest extends StateTest {
     lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
     lazy val astArgs =
       AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
-    lazy val nt = Nt("Identifier", List(true, false))
+    lazy val grammar = Grammar("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(
       comp -> "comp[~throw~/to](42)",
@@ -137,7 +138,7 @@ class StringifyTinyTest extends StateTest {
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",
       lex -> "|Identifier|(x)",
-      nt -> "|Identifier|[TF]",
+      grammar -> "|Identifier|[TF]",
       Math(3.2) -> "3.2",
       Number(3.2) -> "3.2f",
       BigInt(324) -> "324n",

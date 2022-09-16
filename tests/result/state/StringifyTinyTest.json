@@ -1,6 +1,6 @@
 {
   "CallContext" : true,
-  "Context" : true,
+  "Context" : false,
   "Cursor" : true,
   "Heap" : true,
   "Object" : true,
