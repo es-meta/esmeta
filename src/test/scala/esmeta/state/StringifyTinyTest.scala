@@ -49,14 +49,14 @@ class StringifyTinyTest extends StateTest {
       ctxtSingle -> """{
       |  cursor: Block[0] @ f
       |  local-vars: {
-      |    x -> 42,
+      |    x -> 42
       |  }
       |}""".stripMargin,
       ctxtMulti -> """{
       |  cursor: Block[0] @ f
       |  local-vars: {
-      |    y -> "abc",
-      |    x -> 42,
+      |    x -> 42
+      |    y -> "abc"
       |  }
       |}""".stripMargin,
     )
@@ -78,11 +78,11 @@ class StringifyTinyTest extends StateTest {
     checkStringify("Heap")(
       heap -> "(SIZE = 0): {}",
       heapSingle -> """(SIZE = 0): {
-      |  #Global -> [TYPE = A] {},
+      |  #Global -> [TYPE = A] {}
       |}""".stripMargin,
       heapMulti -> """(SIZE = 43): {
-      |  #Global -> (Symbol "description"),
-      |  #42 -> [42, "x"],
+      |  #Global -> (Symbol "description")
+      |  #42 -> [42, "x"]
       |}""".stripMargin,
     )
     // -------------------------------------------------------------------------
@@ -97,7 +97,7 @@ class StringifyTinyTest extends StateTest {
     checkStringify("Object")(
       map -> "[TYPE = A] {}",
       singleMap -> """[TYPE = A] {
-      |  "p" -> "p",
+      |  "p" -> "p"
       |}""".stripMargin,
       list -> """[42, "x"]""",
       symbol -> """(Symbol "description")""",

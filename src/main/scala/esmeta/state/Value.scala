@@ -83,6 +83,12 @@ sealed trait Addr extends PureValue
 case class NamedAddr(name: String) extends Addr
 case class DynamicAddr(long: Long) extends Addr
 
+/** ordering of addresses */
+given Ordering[Addr] = Ordering.by(_ match
+  case NamedAddr(name)   => (-1L, name)
+  case DynamicAddr(long) => (long, ""),
+)
+
 /** closures */
 case class Clo(func: Func, captured: Map[Name, Value]) extends PureValue
 
