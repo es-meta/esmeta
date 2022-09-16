@@ -93,12 +93,10 @@ object Appender {
 
   /** map appender */
   given mapRule[K, V](using
+    kOrd: Ordering[K],
     kRule: Rule[K],
     vRule: Rule[V],
-  ): Rule[Map[K, V]] = (app, map) =>
-    given Rule[(K, V)] = arrowRule
-    if (map.size == 0) app >> "{}"
-    else app.wrap(for (pair <- map) app :> pair)
+  ): Rule[Iterable[(K, V)]] = sortedMapRule()
 
   /** sorted map appender */
   def sortedMapRule[K, V](
@@ -109,7 +107,7 @@ object Appender {
     kOrd: Ordering[K],
     kRule: Rule[K],
     vRule: Rule[V],
-  ): Rule[Map[K, V]] = (app, map) =>
+  ): Rule[Iterable[(K, V)]] = (app, map) =>
     given Rule[(K, V)] = arrowRule(sep)
     if (map.size == 0) app >> left >> right
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)

@@ -1,8 +1,8 @@
 package esmeta.state.util
 
 import esmeta.cfg.*
-import esmeta.state.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.state.{*, given}
+import esmeta.ir.{Func => IRFunc, *, given}
 import esmeta.es.*
 import esmeta.util.Appender.{given, *}
 
@@ -39,8 +39,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       given Rule[List[String]] = iterableRule("[", ", ", "]")
       app :> "call-stack: "
       app.wrapIterable("[", "]")(st.callStack)
-      app :> "globals: "
-      app.wrapIterable(st.globals)
+      app :> "globals: " >> st.globals
       app :> "heap: " >> st.heap
     }
 
@@ -48,8 +47,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given ctxtRule: Rule[Context] = (app, ctxt) =>
     app.wrap {
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
-      app :> "local-vars: "
-      app.wrapIterable(ctxt.locals)
+      app :> "local-vars: " >> ctxt.locals
       ctxt.retVal.map(app :> "return: " >> _)
     }
 
@@ -67,15 +65,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // heaps
   given heapRule: Rule[Heap] = (app, heap) =>
     val Heap(map, size) = heap
-    app >> s"(SIZE = " >> size.toString >> "): "
-    app.wrapIterable(map)
+    app >> s"(SIZE = " >> size.toString >> "): " >> map
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
     obj match
       case map @ MapObj(tname, _, _) =>
-        app >> "[TYPE = " >> tname >> "] "
-        app.wrapIterable(map.pairs)
+        given Ordering[PureValue] = Ordering.by(_.toString)
+        app >> "[TYPE = " >> tname >> "] " >> map.pairs
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList

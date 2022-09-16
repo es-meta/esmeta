@@ -4,7 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.CFG
-import esmeta.ir.*
+import esmeta.ir.{*, given}
 import esmeta.es
 import esmeta.es.*
 import esmeta.state.*
