@@ -109,23 +109,26 @@ case class ValueTy(
 
   /** value containment check */
   def contains(value: Value, state: State): Boolean = value match
-    case Comp(ty, value, target)         => ???
+    case Comp(ty, value, target)         => isCompletion
     case NamedAddr(name)                 => ???
     case DynamicAddr(long)               => ???
     case Clo(func, captured)             => ???
-    case Cont(func, captured, callStack) => ???
-    case AstValue(ast)                   => ???
-    case Grammar(name, params)           => ???
-    case Math(n)                         => ???
-    case Const(name)                     => ???
-    case CodeUnit(c)                     => ???
-    case Number(n)                       => number contains n
-    case BigInt(n)                       => ???
-    case Str(str)                        => ???
-    case Bool(bool)                      => ???
-    case Undef                           => ???
-    case Null                            => ???
-    case Absent                          => ???
+    case Cont(func, captured, callStack) => ??? // cont.isBottom
+    case AstValue(ast) =>
+      astValue match
+        case AstTopTy       => true
+        case a: AstNonTopTy => a.toName.names contains ast.name
+    case g @ Grammar(name, params) => grammar contains g
+    case Math(n)                   => math contains n
+    case Const(name)               => const contains name
+    case CodeUnit(c)               => codeUnit
+    case Number(n)                 => number contains n
+    case BigInt(n)                 => bigInt
+    case Str(s)                    => str contains s
+    case Bool(b)                   => bool contains b
+    case Undef                     => undef
+    case Null                      => nullv
+    case Absent                    => absent
 }
 object ValueTy {
   def apply(
