@@ -28,7 +28,7 @@ _esmeta_completions() {
   # completion for commands
   case "${COMP_CWORD}" in
     1)
-      COMPREPLY=($(compgen -W "${cmdList}" "${cur}"))
+      COMPREPLY=($(compgen -W "version -version --version ${cmdList}"))
       return 0
       ;;
   esac
@@ -89,7 +89,6 @@ _esmeta_completions() {
       return 0
       ;;
   esac
-  
   COMPREPLY=( $(compgen -X '' -f "${cur}") )
 }
 # completion setting
