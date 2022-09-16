@@ -10,12 +10,13 @@ object ESMeta extends Git(BASE_DIR) {
   /** the main entry point of ESMeta. */
   def main(tokens: Array[String]): Unit = try
     tokens.toList match
+      case Nil                                        => println(welcome)
+      case List("--version" | "-version" | "version") => println(VERSION)
       case str :: args =>
         cmdMap.get(str) match {
           case Some(cmd) => cmd(args)
           case None      => throw NoCmdError(str)
         }
-      case Nil => println(welcome)
   catch
     // ESMetaError: print only the error message.
     case e: ESMetaError =>

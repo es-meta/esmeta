@@ -54,7 +54,7 @@ object GenCompl {
       app :> "# completion for commands"
       app :> "case \"${COMP_CWORD}\" in"
       app :> "  1)"
-      app :> "    COMPREPLY=($(compgen -W \"${cmdList}\" \"${cur}\"))"
+      app :> "    COMPREPLY=($(compgen -W \"version -version --version ${cmdList}\"))"
       app :> "    return 0"
       app :> "    ;;"
       app :> "esac"
@@ -77,7 +77,6 @@ object GenCompl {
           app :> ";;"
         }
       }
-      app :> ""
       app :> "COMPREPLY=( $(compgen -X '' -f \"${cur}\") )"
     }
 
