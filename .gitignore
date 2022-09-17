@@ -36,3 +36,7 @@ bin/
 
 ## test results for Test262
 tests/result/test262
+
+## local .bashrc/.zshrc files
+.bashrc
+.zshrc
