@@ -19,13 +19,18 @@ inline def toRef(fb: FuncBuilder, base: Expr, props: Expr*): Ref =
   toRef(getRef(fb, base), props*)
 inline def getRef(fb: FuncBuilder, expr: Expr): Ref = expr match {
   case ERef(ref) => ref
-  case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
+  case _ =>
+    val x = fb.newTId(); fb.addInst(IAssign(x, expr)); x
 }
 
 // conversion to intrinsics
-inline def toIntrinsic(base: Ref, intr: Intrinsic): Prop =
+inline def toIntrinsic(
+  base: Ref,
+  intr: Intrinsic,
+  langOpt: Option[Syntax] = None,
+): Prop =
   // convert intr to string for exceptional case in GetPrototypeFromConstructor
-  Prop(base, EStr(intr.toString))
+  Prop(base, EStr(intr.toString), langOpt)
 inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
   toERef(toIntrinsic(base, intr))
 

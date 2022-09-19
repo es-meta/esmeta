@@ -59,14 +59,20 @@ case class FuncBuilder(
   /** add return to resume instruction */
   def addReturnToResume(context: Ref, value: Expr): Unit =
     addInst(
-      ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
+      ICall(
+        newTId(),
+        EPop(toStrERef(context, "ReturnCont"), true),
+        List(value),
+      ),
     )
 
   /** get next temporal identifier */
-  def newTId: Temp = Temp(nextTId)
+  def newTId(langOpt: Option[Syntax] = None): Temp = Temp(nextTId, langOpt)
 
   /** get next temporal identifier with expressions */
-  def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
+  def newTIdWithExpr(langOpt: Option[Syntax] = None): (Temp, Expr) = {
+    val x = newTId(langOpt); (x, ERef(x))
+  }
 
   /** get closure name */
   def nextCloName: String = s"$name:clo${nextCId}"

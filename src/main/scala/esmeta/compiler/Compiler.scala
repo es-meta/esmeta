@@ -190,7 +190,7 @@ class Compiler(
       // apply shortcircuit for invoke expression
       val condExpr = cond match
         case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, xExpr) = fb.newTIdWithExpr
+          val (x, xExpr) = fb.newTIdWithExpr(Some(cond))
           compileShortCircuit(fb, x, cond)
           xExpr
         case _ => compile(fb, cond)
@@ -209,8 +209,8 @@ class Compiler(
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, x, expr, true, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr(Some(step))
+      val (list, listExpr) = fb.newTIdWithExpr(Some(step))
       fb.addInst(
         IAssign(list, compile(fb, expr)),
         IAssign(i, zero),
@@ -227,8 +227,8 @@ class Compiler(
         ),
       )
     case ForEachStep(ty, x, expr, false, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr(Some(step))
+      val (list, listExpr) = fb.newTIdWithExpr(Some(step))
       fb.addInst(
         IAssign(list, compile(fb, expr)),
         IAssign(i, toStrERef(list, "length")),
@@ -259,8 +259,8 @@ class Compiler(
         ),
       )
     case ForEachArrayIndexStep(x, array, start, ascending, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr(Some(step))
+      val (list, listExpr) = fb.newTIdWithExpr(Some(step))
       val (key, keyExpr) = compileWithExpr(x)
       fb.addInst(
         IAssign(list, EKeys(toStrERef(compile(fb, array), "SubMap"), true)),
@@ -291,9 +291,9 @@ class Compiler(
         ),
       )
     case ForEachParseNodeStep(x, expr, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      val (length, lengthExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr(Some(step))
+      val (list, listExpr) = fb.newTIdWithExpr(Some(step))
+      val (length, lengthExpr) = fb.newTIdWithExpr(Some(step))
       fb.addInst(
         IAssign(list, EGetChildren(None, compile(fb, expr))),
         IAssign(i, zero),
@@ -381,7 +381,11 @@ class Compiler(
           emptyInst,
         ),
         IPush(ECont(contName), eReturnCont, true),
-        ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
+        ICall(
+          fb.newTId(Some(step)),
+          eResumeCont,
+          argOpt.map(compile(fb, _)).toList,
+        ),
       )
     case ReturnToResumeStep(context, retStep) =>
       val arg = retStep.expr.fold(EUndef)(compile(fb, _))
@@ -414,11 +418,11 @@ class Compiler(
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)       => Prop(baseRef, EStr(name))
-      case ComponentProperty(name)   => Prop(baseRef, EStr(name))
-      case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
-      case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
-      case NonterminalProperty(name) => Prop(baseRef, EStr(name))
+      case FieldProperty(name)     => Prop(baseRef, EStr(name), Some(ref))
+      case ComponentProperty(name) => Prop(baseRef, EStr(name), Some(ref))
+      case IndexProperty(index) => Prop(baseRef, compile(fb, index), Some(ref))
+      case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr, Some(ref))
+      case NonterminalProperty(name) => Prop(baseRef, EStr(name), Some(ref))
 
   /** compile expressions */
   def compile(fb: FuncBuilder, expr: Expression): Expr =
@@ -447,7 +451,7 @@ class Compiler(
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         fb.addInst(IAssign(x, compile(fb, expr)))
         toStrERef(x, "length")
       case SubstringExpression(expr, from, to) =>
@@ -459,7 +463,7 @@ class Compiler(
       case NumberOfExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case NumberOfExpression(expr) =>
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         fb.addInst(IAssign(x, compile(fb, expr)))
         toStrERef(x, "length")
       case IntrinsicExpression(intr) =>
@@ -475,21 +479,21 @@ class Compiler(
         if simpleOps contains name then simpleOps(name)(as)
         else if shorthands contains name then compileShorthand(fb, name, as)
         else
-          val (x, xExpr) = fb.newTIdWithExpr
+          val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
           val f = EClo(name, Nil)
           fb.addInst(ICall(x, f, as))
           xExpr
       case InvokeNumericMethodExpression(ty, name, args) =>
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         val f = EClo(s"$ty::$name", Nil)
         fb.addInst(ICall(x, f, args.map(compile(fb, _))))
         xExpr
       case InvokeAbstractClosureExpression(ref, args) =>
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         fb.addInst(ICall(x, ERef(compile(fb, ref)), args.map(compile(fb, _))))
         xExpr
       case InvokeMethodExpression(ref, args) =>
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         // NOTE: there is no method call via dynamic property access
         val Prop(base, EStr(method), _) = compile(fb, ref)
         fb.addInst(IMethodCall(x, base, method, args.map(compile(fb, _))))
@@ -497,7 +501,7 @@ class Compiler(
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
         // XXX BUG in Static Semancis: CharacterValue
         val baseExpr = compile(fb, base)
-        val (x, xExpr) = fb.newTIdWithExpr
+        val (x, xExpr) = fb.newTIdWithExpr(Some(expr))
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
@@ -724,7 +728,7 @@ class Compiler(
       case PredicateCondition(expr, neg, op) =>
         import PredicateConditionOperator.*
         val x = compile(fb, expr)
-        val cond = op match {
+        val condExpr = op match {
           case Abrupt =>
             val tv = toERef(fb, x, EStr("Type"))
             and(EIsCompletion(x), not(is(tv, ECONST_NORMAL)))
@@ -752,11 +756,11 @@ class Compiler(
           case FalseToken => is(ESourceText(x), EStr("false"))
           case TrueToken  => is(ESourceText(x), EStr("true"))
           case DataProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
+            val (b, bExpr) = fb.newTIdWithExpr(Some(cond))
             fb.addInst(ICall(b, dataPropClo, List(x)))
             bExpr
           case AccessorProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
+            val (b, bExpr) = fb.newTIdWithExpr(Some(cond))
             fb.addInst(ICall(b, accessorPropClo, List(x)))
             bExpr
           case FullyPopulated =>
@@ -769,7 +773,7 @@ class Compiler(
             ETypeCheck(x, EStr("Nonterminal"))
           case IntegralNumber => isIntegral(x)
         }
-        if (neg) not(cond) else cond
+        if (neg) not(condExpr) else condExpr
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)
