@@ -6,7 +6,6 @@ import esmeta.analyzer.domain
 import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.SystemUtils.*
 
 /** `tycheck` phase */
 case object TypeCheck extends Phase[CFG, AbsSemantics] {
@@ -19,10 +18,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   ): AbsSemantics =
     val targets = getInitTargets(cfg, config.target)
     println(s"- ${targets.size} functions are initial targets.")
-    val sem = TypeAnalyzer(cfg, targets)
-    println(sem.shortString)
-    if (config.log) log(sem)
-    sem
+    TypeAnalyzer(cfg, targets, config.log)
 
   // find initial analysis targets based on a given regex pattern
   private def getInitTargets(cfg: CFG, target: Option[String]): List[Func] =
@@ -34,23 +30,6 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
         warn(s"failed to find functions matched with the pattern `$pattern`.")
       funcs
     })
-
-  // logging mode
-  private def log(sem: AbsSemantics): Unit = {
-    mkdir(ANALYZE_LOG_DIR)
-    dumpFile(
-      name = "type analysis result",
-      data = sem,
-      filename = s"$ANALYZE_LOG_DIR/types",
-    )
-    dumpFile(
-      name = "visiting counter for control points",
-      data = sem.getCounter.toList
-        .sortBy(_._2)
-        .map { case (cp, k) => s"[$k] $cp" },
-      filename = s"$ANALYZE_LOG_DIR/counter",
-    )
-  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

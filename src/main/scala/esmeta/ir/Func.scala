@@ -31,6 +31,12 @@ case class Func(
     IRElem.getStringifier(true, false).funcHeadRule(true)(app, this)
     app.toString
 
+  /** compute arity */
+  def arity: (Int, Int) =
+    val idx = params.indexWhere(_.optional)
+    val len = params.length
+    (if (idx == -1) len else idx, len)
+
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
 }

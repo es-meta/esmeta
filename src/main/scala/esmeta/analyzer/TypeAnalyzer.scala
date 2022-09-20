@@ -2,20 +2,31 @@ package esmeta.analyzer
 
 import esmeta.ANALYZE_LOG_DIR
 import esmeta.analyzer.domain.*
-import esmeta.ir.Param
 import esmeta.cfg.*
+import esmeta.error.TypeMismatchError
+import esmeta.ir.Param
+import esmeta.util.SystemUtils.*
 
 /** specification type analyzer for ECMA-262 */
-private class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
+private class TypeAnalyzer(
+  cfg: CFG,
+  targets: List[Func],
+  log: Boolean = false,
+) {
 
-  // initilize CFG for analysis
-  lazy val result: AbsSemantics = withCFG(cfg) {
-    withSem(TypeSemantics(initNpMap)) {
-      withLog(s"$ANALYZE_LOG_DIR/tycheck") {
-        sem.fixpoint
-      }
+  // initilize analysis with CFG and logging path
+  lazy val result: TypeSemantics = withCFG(cfg) {
+    withSem(sem) {
+      sem.fixpoint
+      println(sem.shortString)
+      if (log) logging
+      if (!sem.mismatches.isEmpty) throw TypeMismatchError(sem.mismatches)
+      sem
     }
   }
+
+  // type semantics
+  lazy val sem: TypeSemantics = TypeSemantics(initNpMap)
 
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
@@ -40,6 +51,23 @@ private class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
       if (opt) v ⊔= AbsValue.absentTop
       st.update(x, v)
   }
+
+  // logging mode
+  def logging: Unit = {
+    mkdir(ANALYZE_LOG_DIR)
+    dumpFile(
+      name = "type analysis result",
+      data = sem,
+      filename = s"$ANALYZE_LOG_DIR/types",
+    )
+    dumpFile(
+      name = "visiting counter for control points",
+      data = sem.getCounter.toList
+        .sortBy(_._2)
+        .map { case (cp, k) => s"[$k] $cp" },
+      filename = s"$ANALYZE_LOG_DIR/counter",
+    )
+  }
 }
 object TypeAnalyzer:
   // set type domains
@@ -59,4 +87,5 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     targets: List[Func],
-  ): AbsSemantics = new TypeAnalyzer(cfg, targets).result
+    log: Boolean = false,
+  ): TypeSemantics = new TypeAnalyzer(cfg, targets, log).result

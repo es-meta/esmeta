@@ -240,8 +240,13 @@ class AbsTransfer(sem: AbsSemantics) {
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
               as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
-            val newLocals =
-              sem.getLocals(target.func, as0, cont = true) ++ captured
+            val newLocals = sem.getLocals(
+              callerNp,
+              target.toReturnPoint,
+              target.func.irFunc.params,
+              as0,
+              cont = true,
+            ) ++ captured
             sem += target -> st.copied(locals = newLocals)
           }
           AbsValue.Bot

@@ -62,7 +62,7 @@ class AbsSemantics(
 
   /** fixpiont computation */
   @tailrec
-  final def fixpoint: AbsSemantics = worklist.next match
+  final def fixpoint: this.type = worklist.next match
     case Some(cp) =>
       // set the current control point
       curCp = Some(cp)
@@ -157,20 +157,22 @@ class AbsSemantics(
         )
       else callerView
 
-    val calleeSt = callerSt.copied(locals =
-      getLocals(calleeFunc, args) ++ captured,
-    )
     val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
+    val calleeRp = ReturnPoint(calleeFunc, baseView)
+    val calleeSt = callerSt.copied(locals =
+      getLocals(callerNp, calleeRp, calleeFunc.irFunc.params, args) ++ captured,
+    )
     List((calleeNp, calleeSt))
   }
 
   /** get local variables */
   def getLocals(
-    func: Func,
+    callerNp: NodePoint[Call],
+    calleeRp: ReturnPoint,
+    params: List[Param],
     args: List[AbsValue],
     cont: Boolean = false,
   ): Map[Local, AbsValue] = {
-    val params = func.irFunc.params
     var map = Map[Local, AbsValue]()
 
     @tailrec
