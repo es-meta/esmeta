@@ -19,8 +19,15 @@ object Extractor:
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String]): Spec =
-    val (version, document) =
-      Spec.getVersionWith(targetOpt)(readFile(SPEC_HTML).toHtml)
+    val (version, document) = Spec.getVersionWith(targetOpt) {
+      case version =>
+        val hash = version.hash
+        val patchFile = s"$BUGFIX_DIR/$hash.patch"
+        if (exists(patchFile)) Spec.applyPatch(patchFile)
+        val document = readFile(SPEC_HTML).toHtml
+        if (exists(patchFile)) Spec.clean
+        document
+    }
     apply(document, Some(version))
 
   /** extracts a specification with a target version of ECMA-262 */

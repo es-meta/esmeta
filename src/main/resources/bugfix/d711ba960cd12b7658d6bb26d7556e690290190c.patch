@@ -1,0 +1,177 @@
+diff --git a/spec.html b/spec.html
+index 5a4af52..5d516a1 100644
+--- a/spec.html
++++ b/spec.html
+@@ -7200,7 +7200,7 @@
+         1. Let _closure_ be a new Abstract Closure with no parameters that captures _list_ and performs the following steps when called:
+           1. For each element _E_ of _list_, do
+             1. Perform ? GeneratorYield(CreateIterResultObject(_E_, *false*)).
+-          1. Return *undefined*.
++          1. Return NormalCompletion(*undefined*).
+         1. Let _iterator_ be CreateIteratorFromClosure(_closure_, ~empty~, %IteratorPrototype%).
+         1. Return the Iterator Record { [[Iterator]]: _iterator_, [[NextMethod]]: %GeneratorFunction.prototype.prototype.next%, [[Done]]: *false* }.
+       </emu-alg>
+@@ -11002,7 +11002,7 @@
+           <emu-alg>
+             1. Let _DclRec_ be _envRec_.[[DeclarativeRecord]].
+             1. If ! _DclRec_.HasBinding(_N_) is *true*, then
+-              1. Return ! _DclRec_.SetMutableBinding(_N_, _V_, _S_).
++              1. Return ? _DclRec_.SetMutableBinding(_N_, _V_, _S_).
+             1. Let _ObjRec_ be _envRec_.[[ObjectRecord]].
+             1. Return ? <emu-meta effects="user-code">_ObjRec_.SetMutableBinding</emu-meta>(_N_, _V_, _S_).
+           </emu-alg>
+@@ -13604,7 +13604,7 @@
+           1. Return PrivateElement { [[Key]]: _key_, [[Kind]]: ~method~, [[Value]]: _closure_ }.
+         1. Else,
+           1. Let _desc_ be the PropertyDescriptor { [[Value]]: _closure_, [[Writable]]: *true*, [[Enumerable]]: _enumerable_, [[Configurable]]: *true* }.
+-          1. Perform ! DefinePropertyOrThrow(_homeObject_, _key_, _desc_).
++          1. Perform ? DefinePropertyOrThrow(_homeObject_, _key_, _desc_).
+           1. Return ~unused~.
+       </emu-alg>
+     </emu-clause>
+@@ -19064,7 +19064,7 @@
+           1. Let _expr_ be the |CallMemberExpression| that is covered by |CoverCallExpressionAndAsyncArrowHead|.
+           1. Let _memberExpr_ be the |MemberExpression| of _expr_.
+           1. Let _arguments_ be the |Arguments| of _expr_.
+-          1. Let _ref_ be the result of evaluating _memberExpr_.
++          1. Let _ref_ be ? Evaluation of _memberExpr_.
+           1. Let _func_ be ? GetValue(_ref_).
+           1. If _ref_ is a Reference Record, IsPropertyReference(_ref_) is *false*, and _ref_.[[ReferencedName]] is *"eval"*, then
+             1. If SameValue(_func_, %eval%) is *true*, then
+@@ -19081,7 +19081,7 @@
+         <p>A |CallExpression| evaluation that executes step <emu-xref href="#step-callexpression-evaluation-direct-eval"></emu-xref> is a <dfn variants="direct evals">direct eval</dfn>.</p>
+         <emu-grammar>CallExpression : CallExpression Arguments</emu-grammar>
+         <emu-alg>
+-          1. Let _ref_ be the result of evaluating |CallExpression|.
++          1. Let _ref_ be ? Evaluation of |CallExpression|.
+           1. Let _func_ be ? GetValue(_ref_).
+           1. Let _thisCall_ be this |CallExpression|.
+           1. Let _tailCall_ be IsInTailPosition(_thisCall_).
+@@ -19277,7 +19277,7 @@
+             MemberExpression OptionalChain
+         </emu-grammar>
+         <emu-alg>
+-          1. Let _baseReference_ be the result of evaluating |MemberExpression|.
++          1. Let _baseReference_ be ? Evaluation of |MemberExpression|.
+           1. Let _baseValue_ be ? GetValue(_baseReference_).
+           1. If _baseValue_ is *undefined* or *null*, then
+             1. Return *undefined*.
+@@ -19288,7 +19288,7 @@
+             CallExpression OptionalChain
+         </emu-grammar>
+         <emu-alg>
+-          1. Let _baseReference_ be the result of evaluating |CallExpression|.
++          1. Let _baseReference_ be ? Evaluation of |CallExpression|.
+           1. Let _baseValue_ be ? GetValue(_baseReference_).
+           1. If _baseValue_ is *undefined* or *null*, then
+             1. Return *undefined*.
+@@ -19299,7 +19299,7 @@
+             OptionalExpression OptionalChain
+         </emu-grammar>
+         <emu-alg>
+-          1. Let _baseReference_ be the result of evaluating |OptionalExpression|.
++          1. Let _baseReference_ be ? Evaluation of |OptionalExpression|.
+           1. Let _baseValue_ be ? GetValue(_baseReference_).
+           1. If _baseValue_ is *undefined* or *null*, then
+             1. Return *undefined*.
+@@ -19706,7 +19706,7 @@
+         <h1>Runtime Semantics: Evaluation</h1>
+         <emu-grammar>UnaryExpression : `typeof` UnaryExpression</emu-grammar>
+         <emu-alg>
+-          1. Let _val_ be the result of evaluating |UnaryExpression|.
++          1. Let _val_ be ? Evaluation of |UnaryExpression|.
+           1. If _val_ is a Reference Record, then
+             1. If IsUnresolvableReference(_val_) is *true*, return *"undefined"*.
+           1. Set _val_ to ? GetValue(_val_).
+@@ -20453,7 +20453,7 @@
+       </emu-alg>
+       <emu-grammar>AssignmentExpression : LeftHandSideExpression `&amp;&amp;=` AssignmentExpression</emu-grammar>
+       <emu-alg>
+-        1. Let _lref_ be the result of evaluating |LeftHandSideExpression|.
++        1. Let _lref_ be ? Evaluation of |LeftHandSideExpression|.
+         1. [id="step-assignmentexpression-evaluation-lgcl-and-getvalue"] Let _lval_ be ? GetValue(_lref_).
+         1. Let _lbool_ be ToBoolean(_lval_).
+         1. If _lbool_ is *false*, return _lval_.
+@@ -20467,7 +20467,7 @@
+       </emu-alg>
+       <emu-grammar>AssignmentExpression : LeftHandSideExpression `||=` AssignmentExpression</emu-grammar>
+       <emu-alg>
+-        1. Let _lref_ be the result of evaluating |LeftHandSideExpression|.
++        1. Let _lref_ be ? Evaluation of |LeftHandSideExpression|.
+         1. [id="step-assignmentexpression-evaluation-lgcl-or-getvalue"] Let _lval_ be ? GetValue(_lref_).
+         1. Let _lbool_ be ToBoolean(_lval_).
+         1. If _lbool_ is *true*, return _lval_.
+@@ -20481,7 +20481,7 @@
+       </emu-alg>
+       <emu-grammar>AssignmentExpression : LeftHandSideExpression `??=` AssignmentExpression</emu-grammar>
+       <emu-alg>
+-        1. Let _lref_ be the result of evaluating |LeftHandSideExpression|.
++        1. Let _lref_ be ? Evaluation of |LeftHandSideExpression|.
+         1. [id="step-assignmentexpression-evaluation-lgcl-nullish-getvalue"] Let _lval_ be ? GetValue(_lref_).
+         1. If _lval_ is neither *undefined* nor *null*, return _lval_.
+         1. If IsAnonymousFunctionDefinition(|AssignmentExpression|) is *true* and IsIdentifierRef of |LeftHandSideExpression| is *true*, then
+@@ -34371,7 +34371,7 @@ THH:mm:ss.sss
+               1. Let _resultString_ be the substring of _s_ from _position_ to _nextIndex_.
+               1. Set _position_ to _nextIndex_.
+               1. Perform ? GeneratorYield(CreateIterResultObject(_resultString_, *false*)).
+-            1. Return *undefined*.
++            1. Return NormalCompletion(*undefined*).
+           1. Return CreateIteratorFromClosure(_closure_, *"%StringIteratorPrototype%"*, %StringIteratorPrototype%).
+         </emu-alg>
+         <p>The value of the *"name"* property of this function is *"[Symbol.iterator]"*.</p>
+@@ -38153,7 +38153,7 @@ THH:mm:ss.sss
+                 1. Let _len_ be _array_.[[ArrayLength]].
+               1. Else,
+                 1. Let _len_ be ? LengthOfArrayLike(_array_).
+-              1. If _index_ &ge; _len_, return *undefined*.
++              1. If _index_ &ge; _len_, return NormalCompletion(*undefined*).
+               1. If _kind_ is ~key~, perform ? GeneratorYield(CreateIterResultObject(𝔽(_index_), *false*)).
+               1. Else,
+                 1. Let _elementKey_ be ! ToString(𝔽(_index_)).
+@@ -39989,7 +39989,7 @@ THH:mm:ss.sss
+                 1. Perform ? GeneratorYield(CreateIterResultObject(_result_, *false*)).
+                 1. NOTE: The number of elements in _entries_ may have changed while execution of this abstract operation was paused by Yield.
+                 1. Set _numEntries_ to the number of elements of _entries_.
+-            1. Return *undefined*.
++            1. Return NormalCompletion(*undefined*).
+           1. Return CreateIteratorFromClosure(_closure_, *"%MapIteratorPrototype%"*, %MapIteratorPrototype%).
+         </emu-alg>
+       </emu-clause>
+@@ -44786,8 +44786,8 @@ THH:mm:ss.sss
+             1. Else if _result_.[[Type]] is ~return~, let _resultValue_ be _result_.[[Value]].
+             1. Else,
+               1. Assert: _result_.[[Type]] is ~throw~.
+-              1. Return ? _result_.
+-            1. Return CreateIterResultObject(_resultValue_, *true*).
++              1. Return _result_.
++            1. Return NormalCompletion(CreateIterResultObject(_resultValue_, *true*)).
+           1. Set _generator_.[[GeneratorContext]] to _genContext_.
+           1. Set _generator_.[[GeneratorState]] to ~suspendedStart~.
+           1. Return ~unused~.
+@@ -45010,7 +45010,7 @@ THH:mm:ss.sss
+           1. Let _state_ be _generator_.[[AsyncGeneratorState]].
+           1. If _state_ is either ~suspendedStart~ or ~completed~, then
+             1. Set _generator_.[[AsyncGeneratorState]] to ~awaiting-return~.
+-            1. Perform ! AsyncGeneratorAwaitReturn(_generator_).
++            1. Perform ? AsyncGeneratorAwaitReturn(_generator_).
+           1. Else if _state_ is ~suspendedYield~, then
+             1. Perform AsyncGeneratorResume(_generator_, _completion_).
+           1. Else,
+@@ -45138,7 +45138,7 @@ THH:mm:ss.sss
+             1. If _result_.[[Type]] is ~return~, set _result_ to NormalCompletion(_result_.[[Value]]).
+             1. Perform AsyncGeneratorCompleteStep(_generator_, _result_, *true*).
+             1. Perform AsyncGeneratorDrainQueue(_generator_).
+-            1. Return *undefined*.
++            1. Return NormalCompletion(*undefined*).
+           1. Set _generator_.[[AsyncGeneratorContext]] to _genContext_.
+           1. Set _generator_.[[AsyncGeneratorState]] to ~suspendedStart~.
+           1. Set _generator_.[[AsyncGeneratorQueue]] to a new empty List.
+@@ -45530,7 +45530,7 @@ THH:mm:ss.sss
+             1. Else,
+               1. Assert: _result_.[[Type]] is ~throw~.
+               1. Perform ! Call(_promiseCapability_.[[Reject]], *undefined*, &laquo; _result_.[[Value]] &raquo;).
+-            1. [id="step-asyncblockstart-return-undefined"] Return ~unused~.
++            1. [id="step-asyncblockstart-return-undefined"] Return NormalCompletion(~unused~).
+           1. Push _asyncContext_ onto the execution context stack; _asyncContext_ is now the running execution context.
+           1. <emu-meta effects="user-code">Resume the suspended evaluation of _asyncContext_</emu-meta>. Let _result_ be the value returned by the resumed computation.
+           1. Assert: When we return here, _asyncContext_ has already been removed from the execution context stack and _runningContext_ is the currently running execution context.

@@ -623,7 +623,6 @@ DefaultClause[0,1].LexicallyScopedDeclarations
 DefaultClause[0,1].VarDeclaredNames
 DefaultClause[0,1].VarScopedDeclarations
 DefineField
-DefineMethodProperty
 DefinePropertyOrThrow
 DeletePropertyOrThrow
 DetachArrayBuffer
@@ -1149,7 +1148,6 @@ INTRINSICS.AsyncFromSyncIteratorPrototype.next
 INTRINSICS.AsyncFromSyncIteratorPrototype.return
 INTRINSICS.AsyncFromSyncIteratorPrototype.throw
 INTRINSICS.AsyncFunction
-INTRINSICS.AsyncGenerator.prototype.return
 INTRINSICS.AsyncGeneratorFunction
 INTRINSICS.AsyncGeneratorFunction.prototype.prototype.next
 INTRINSICS.AsyncGeneratorFunction.prototype.prototype.return
