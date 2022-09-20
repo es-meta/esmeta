@@ -50,6 +50,9 @@ val TEST262_TEST_DIR = s"$TEST262_DIR/test"
 /** error stack trace display mode */
 var ERROR_MODE = false
 
+/** exit status return mode */
+var STATUS_MODE = false
+
 // -----------------------------------------------------------------------------
 // Mutable Global Options
 // -----------------------------------------------------------------------------

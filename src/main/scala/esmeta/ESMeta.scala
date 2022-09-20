@@ -22,6 +22,7 @@ object ESMeta extends Git(BASE_DIR) {
     case e: ESMetaError =>
       Console.err.println(e.getMessage)
       if (ERROR_MODE) throw e
+      if (STATUS_MODE) sys.exit(1)
     // Unexpected: print the stack trace.
     case e: Throwable =>
       Console.err.println(s"[ESMeta v$VERSION] Unexpected error occurred:")
@@ -109,6 +110,7 @@ object ESMeta extends Git(BASE_DIR) {
   val options: List[PhaseOption[CommandConfig]] = List(
     ("silent", BoolOption(c => c.silent = true), "do not show final results."),
     ("error", BoolOption(_ => ERROR_MODE = true), "show error stack traces."),
+    ("status", BoolOption(_ => STATUS_MODE = true), "exit with status."),
     ("time", BoolOption(c => c.time = true), "display the duration time."),
   )
 }

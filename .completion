@@ -12,7 +12,7 @@ _esmeta_completions() {
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze"
-  globalOpt="-silent -error -time"
+  globalOpt="-silent -error -status -time"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:repl"
   compileOpt="-compile:log"

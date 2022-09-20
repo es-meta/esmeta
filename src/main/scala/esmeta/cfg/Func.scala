@@ -19,6 +19,9 @@ case class Func(
   /** parameters */
   lazy val params: List[Param] = irFunc.params
 
+  /** arity */
+  lazy val arity: (Int, Int) = irFunc.arity
+
   /** all types */
   lazy val tys: List[Type] = retTy :: params.map(_.ty)
 
