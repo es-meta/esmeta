@@ -8,6 +8,6 @@ object TyCompiler extends TyWalker {
   override def walk(ty: UnknownTy): UnknownTy =
     UnknownTy(ty.msg.map(Type.normalizeName))
 
-  override def walkNames(names: Set[String]): Set[String] =
-    names.map(Type.normalizeName)
+  override def walkName(name: NameTy): NameTy =
+    NameTy(name.set.map(Type.normalizeName))
 }

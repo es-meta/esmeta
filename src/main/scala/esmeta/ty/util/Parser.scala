@@ -102,7 +102,7 @@ trait Parsers extends BasicParsers {
     // absent
     "Absent" ^^^ PureValueTy(absent = true) |
     // name
-    camel ^^ { case n => PureValueTy(names = Set(n)) }
+    singleNameTy ^^ { case name => PureValueTy(name = name) }
   }.named("ty.PureValueTy (single)")
 
   private lazy val numberWithSpecial: Parser[Number] =
@@ -123,6 +123,17 @@ trait Parsers extends BasicParsers {
     "~" ~> "[^~]+".r <~ "~"
   private lazy val str: Parser[String] =
     """"[^"]*"""".r ^^ { case s => s.substring(1, s.length - 1) }
+
+  /** named record types */
+  given nameTy: Parser[NameTy] = {
+    rep1sep(singleNameTy, "|") ^^ {
+      case ts => ts.foldLeft(NameTy.Bot)(_ || _)
+    }
+  }.named("ty.NameTy")
+
+  private lazy val singleNameTy: Parser[NameTy] = {
+    camel ^^ { case name => NameTy(Set(name)) }
+  }.named("ty.NameTy (single)")
 
   /** record types */
   given recordTy: Parser[RecordTy] = {

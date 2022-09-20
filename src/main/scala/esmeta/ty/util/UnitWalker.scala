@@ -40,7 +40,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: PureValueTy): Unit =
     walkClo(ty.clo)
     walkCont(ty.cont)
-    walkNames(ty.names)
+    walkName(ty.name)
     walk(ty.record)
     walk(ty.list)
     walk(ty.symbol)
@@ -111,7 +111,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walkAbsent(absent: Boolean): Unit = walk(absent)
 
   /** name types */
-  def walkNames(names: Set[String]): Unit = walkSet(names, walk)
+  def walkName(name: NameTy): Unit = walkSet(name.set, walk)
 
   /** record types */
   def walk(ty: RecordTy): Unit =

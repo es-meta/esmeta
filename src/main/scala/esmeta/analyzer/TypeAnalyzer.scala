@@ -11,7 +11,7 @@ private class TypeAnalyzer(cfg: CFG, targets: List[Func]) {
   // initilize CFG for analysis
   lazy val result: AbsSemantics = withCFG(cfg) {
     withSem(TypeSemantics(initNpMap)) {
-      withLog(s"$ANALYZE_LOG_DIR/type-check") {
+      withLog(s"$ANALYZE_LOG_DIR/tycheck") {
         sem.fixpoint
       }
     }

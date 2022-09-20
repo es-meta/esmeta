@@ -10,7 +10,7 @@ import esmeta.analyzer.domain.*
 case class PureValueTy(
   clo: BSet[String] = Fin(),
   cont: BSet[Int] = Fin(),
-  names: Set[String] = Set(),
+  name: NameTy = NameTy.Bot,
   record: RecordTy = RecordTy.Bot,
   list: ListTy = ListTy.Bot,
   symbol: Boolean = false,
@@ -34,7 +34,7 @@ case class PureValueTy(
   def isBottom: Boolean = (this eq Bot) || (
     this.clo.isBottom &&
     this.cont.isBottom &&
-    this.names.isBottom &&
+    this.name.isBottom &&
     this.record.isBottom &&
     this.list.isBottom &&
     this.symbol.isBottom &&
@@ -56,7 +56,7 @@ case class PureValueTy(
   def <=(that: => PureValueTy): Boolean = (this eq that) || (
     this.clo <= that.clo &&
     this.cont <= that.cont &&
-    this.names <= that.names &&
+    this.name <= that.name &&
     this.record <= that.record &&
     this.list <= that.list &&
     this.symbol <= that.symbol &&
@@ -81,7 +81,7 @@ case class PureValueTy(
       PureValueTy(
         this.clo || that.clo,
         this.cont || that.cont,
-        this.names || that.names,
+        this.name || that.name,
         this.record || that.record,
         this.list || that.list,
         this.symbol || that.symbol,
@@ -106,7 +106,7 @@ case class PureValueTy(
       PureValueTy(
         this.clo && that.clo,
         this.cont && that.cont,
-        this.names && that.names,
+        this.name && that.name,
         this.record && that.record,
         this.list && that.list,
         this.symbol && that.symbol,
@@ -131,7 +131,7 @@ case class PureValueTy(
       PureValueTy(
         this.clo -- that.clo,
         this.cont -- that.cont,
-        this.names -- that.names,
+        this.name -- that.name,
         this.record -- that.record,
         this.list -- that.list,
         this.symbol -- that.symbol,
@@ -153,7 +153,7 @@ case class PureValueTy(
   def getSingle: Flat[APureValue] =
     (if (this.clo.isBottom) Zero else Many) ||
     (if (this.cont.isBottom) Zero else Many) ||
-    (if (this.names.isBottom) Zero else Many) ||
+    (if (this.name.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
     (if (this.list.isBottom) Zero else Many) ||
     (if (this.symbol.isBottom) Zero else Many) ||

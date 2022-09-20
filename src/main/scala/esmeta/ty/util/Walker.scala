@@ -43,7 +43,7 @@ trait Walker extends BasicWalker {
   def walk(ty: PureValueTy): PureValueTy = PureValueTy(
     walkClo(ty.clo),
     walkCont(ty.cont),
-    walkNames(ty.names),
+    walkName(ty.name),
     walk(ty.record),
     walk(ty.list),
     walk(ty.symbol),
@@ -117,7 +117,7 @@ trait Walker extends BasicWalker {
   def walkAbsent(absent: Boolean): Boolean = walk(absent)
 
   /** name types */
-  def walkNames(names: Set[String]): Set[String] = walkSet(names, walk)
+  def walkName(name: NameTy): NameTy = NameTy(walkSet(name.set, walk))
 
   /** record types */
   def walk(ty: RecordTy): RecordTy = RecordTy(

@@ -8,7 +8,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-/** `type-check` phase */
+/** `tycheck` phase */
 case object TypeCheck extends Phase[CFG, AbsSemantics] {
   val name = "tycheck"
   val help = "performs a type analysis of ECMA-262."
@@ -41,7 +41,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     dumpFile(
       name = "type analysis result",
       data = sem,
-      filename = s"$ANALYZE_LOG_DIR/type-analysis",
+      filename = s"$ANALYZE_LOG_DIR/types",
     )
     dumpFile(
       name = "visiting counter for control points",
