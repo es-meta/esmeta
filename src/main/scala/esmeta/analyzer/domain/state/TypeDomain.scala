@@ -88,13 +88,13 @@ object TypeDomain extends state.Domain {
       val baseTy = base.ty
       val propTy = prop.ty
       AbsValue(
-        lookupComp(baseTy.comp, propTy) |
-        lookupAst(baseTy.astValue, propTy) |
-        lookupStr(baseTy.str, propTy) |
-        lookupList(baseTy.list, propTy) |
-        lookupName(baseTy.names, propTy) |
-        lookupRecord(baseTy.record, propTy) |
-        lookupSymbol(baseTy.symbol, propTy) |
+        lookupComp(baseTy.comp, propTy) ||
+        lookupAst(baseTy.astValue, propTy) ||
+        lookupStr(baseTy.str, propTy) ||
+        lookupList(baseTy.list, propTy) ||
+        lookupName(baseTy.names, propTy) ||
+        lookupRecord(baseTy.record, propTy) ||
+        lookupSymbol(baseTy.symbol, propTy) ||
         lookupSubMap(baseTy.subMap, propTy),
       )
 
@@ -154,7 +154,7 @@ object TypeDomain extends state.Domain {
       val value = AbsValue(ListT((for {
         list <- lists
         elem <- list.ty.list.elem
-      } yield elem).foldLeft(ValueTy())(_ | _)))
+      } yield elem).foldLeft(ValueTy())(_ || _)))
       (value, elem)
 
     /** get childeren of AST */
@@ -185,7 +185,7 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       list: Iterable[AbsValue] = Nil,
     ): (AbsValue, Elem) =
-      val listT = ListT(list.foldLeft(ValueTy()) { case (l, r) => l | r.ty })
+      val listT = ListT(list.foldLeft(ValueTy()) { case (l, r) => l || r.ty })
       (AbsValue(listT), elem)
 
     /** allocation of symbol with address partitions */
@@ -267,21 +267,21 @@ object TypeDomain extends state.Domain {
 
   // completion record lookup
   lazy val constTyForAbruptTarget =
-    CONSTT_BREAK | CONSTT_CONTINUE | CONSTT_RETURN | CONSTT_THROW
+    CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
   private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
     val str = prop.str
     val normal = !comp.normal.isBottom
     val abrupt = comp.abrupt
     var res = ValueTy()
     if (str contains "Value")
-      if (normal) res |= ValueTy(pureValue = comp.normal)
-      if (comp.abrupt) res |= ESValueT | CONSTT_EMPTY
+      if (normal) res ||= ValueTy(pureValue = comp.normal)
+      if (comp.abrupt) res ||= ESValueT || CONSTT_EMPTY
     if (str contains "Target")
-      if (normal) res |= CONSTT_EMPTY
-      if (comp.abrupt) res |= StrTopT | CONSTT_EMPTY
+      if (normal) res ||= CONSTT_EMPTY
+      if (comp.abrupt) res ||= StrTopT || CONSTT_EMPTY
     if (str contains "Type")
-      if (normal) res |= CONSTT_NORMAL
-      if (comp.abrupt) res |= constTyForAbruptTarget
+      if (normal) res ||= CONSTT_NORMAL
+      if (comp.abrupt) res ||= constTyForAbruptTarget
     // TODO if (!comp.isBottom)
     //   boundCheck(
     //     prop,
@@ -307,32 +307,32 @@ object TypeDomain extends state.Domain {
             } {
               if (propIdx >= nts.size)
                 () // TODO warning(s"invalid access: $propIdx of $ast")
-              else res |= nts(propIdx).fold(AbsentT)(AstT(_))
-              res |= nts(propIdx).fold(AbsentT)(AstT(_))
+              else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
+              res ||= nts(propIdx).fold(AbsentT)(AstT(_))
             }
-          case Inf => res |= AstTopT
+          case Inf => res ||= AstTopT
         prop.str match
           case Fin(ss) =>
             for (s <- ss) s match
-              case "parent" => res |= AstTopT
+              case "parent" => res ||= AstTopT
               case name =>
-                if (cfg.grammar.nameMap contains name) res |= AstT(name)
+                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
                 else () // TODO warning(s"invalid access: $name of $ast")
-          case Inf => res |= AstTopT
-      case _ => res |= AstTopT
+          case Inf => res ||= AstTopT
+      case _ => res ||= AstTopT
     // TODO if (!ast.isBottom)
-    //   boundCheck(prop, MathTopT | StrTopT, t => s"invalid access: $t of $ast")
+    //   boundCheck(prop, MathTopT || StrTopT, t => s"invalid access: $t of $ast")
     res
 
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
     var res = ValueTy()
-    if (prop.str contains "length") res |= MathTopT
-    if (!prop.math.isBottom) res |= CodeUnitT
+    if (prop.str contains "length") res ||= MathTopT
+    if (!prop.math.isBottom) res ||= CodeUnitT
     // TODO if (!str.isBottom)
     //   boundCheck(
     //     prop,
-    //     MathTopT | StrT("length"),
+    //     MathTopT || StrT("length"),
     //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
     //   )
     res
@@ -345,10 +345,10 @@ object TypeDomain extends state.Domain {
       name <- obj
       propStr <- str match
         case Inf =>
-          if (name == "IntrinsicsRecord") res |= ObjectT
+          if (name == "IntrinsicsRecord") res ||= ObjectT
           Set()
         case Fin(set) => set
-    } res |= cfg.tyModel.getProp(name, propStr)
+    } res ||= cfg.tyModel.getProp(name, propStr)
     res
 
   // record lookup
@@ -358,7 +358,7 @@ object TypeDomain extends state.Domain {
     def add(propStr: String): Unit = record.map.get(propStr) match
       case None           =>
       case Some(None)     =>
-      case Some(Some(ty)) => res |= ty
+      case Some(Some(ty)) => res ||= ty
     if (!record.isBottom) str match
       case Inf =>
       case Fin(set) =>
@@ -371,8 +371,8 @@ object TypeDomain extends state.Domain {
     val str = prop.str
     val math = prop.math
     for (ty <- list.elem)
-      if (str contains "length") res |= MathTopT
-      if (!math.isBottom) res |= ty
+      if (str contains "length") res ||= MathTopT
+      if (!math.isBottom) res ||= ty
     res
 
   // symbol lookup

@@ -11,11 +11,11 @@ case class RecordTy(
   import RecordTy.*
 
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) | this.map.isEmpty
+  def isBottom: Boolean = (this eq Bot) || this.map.isEmpty
 
   /** partial order/subset operator */
-  def <=(that: => RecordTy): Boolean = (this eq that) | ((for {
-    field <- (this.map.keySet | that.map.keySet).toList
+  def <=(that: => RecordTy): Boolean = (this eq that) || ((for {
+    field <- (this.map.keySet || that.map.keySet).toList
     bool = (this.map.get(field), that.map.get(field)) match
       case (None, _) | (_, Some(None))    => true
       case (_, None) | (Some(None), _)    => false
@@ -23,29 +23,29 @@ case class RecordTy(
   } yield bool).forall(_ == true))
 
   /** union type */
-  def |(that: => RecordTy): RecordTy =
+  def ||(that: => RecordTy): RecordTy =
     if (this eq that) this
     else
       RecordTy((for {
-        field <- (this.map.keySet | that.map.keySet).toList
+        field <- (this.map.keySet || that.map.keySet).toList
         value <- (this.map.get(field), that.map.get(field)) match
           case (None, r)                         => r
           case (l, None)                         => l
           case (Some(None), _) | (_, Some(None)) => Some(None)
-          case (Some(Some(l)), Some(Some(r)))    => Some(Some(l | r))
+          case (Some(Some(l)), Some(Some(r)))    => Some(Some(l || r))
       } yield field -> value).toMap)
 
   /** intersection type */
-  def &(that: => RecordTy): RecordTy =
+  def &&(that: => RecordTy): RecordTy =
     if (this eq that) this
     else
       RecordTy((for {
-        field <- (this.map.keySet | that.map.keySet).toList
+        field <- (this.map.keySet || that.map.keySet).toList
         value <- (this.map.get(field), that.map.get(field)) match
           case (Some(None), r)                => r
           case (l, Some(None))                => l
           case (None, _) | (_, None)          => None
-          case (Some(Some(l)), Some(Some(r))) => Some(Some(l & r))
+          case (Some(Some(l)), Some(Some(r))) => Some(Some(l && r))
       } yield field -> value).toMap).norm
 
   /** prune type */
@@ -53,7 +53,7 @@ case class RecordTy(
     if (that.isBottom) this
     else
       RecordTy((for {
-        field <- (this.map.keySet | that.map.keySet).toList
+        field <- (this.map.keySet || that.map.keySet).toList
         value <- (this.map.get(field), that.map.get(field)) match
           case (None, _) | (_, Some(None))    => None
           case (Some(None), _)                => Some(None)

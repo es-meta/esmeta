@@ -11,12 +11,12 @@ trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
   def ⊑[B >: A](that: => L[B]): Boolean = this <= that
 
   /** join/union operator */
-  def |[B >: A](that: => L[B]): L[B]
-  def ⊔[B >: A](that: => L[B]): L[B] = this | that
+  def ||[B >: A](that: => L[B]): L[B]
+  def ⊔[B >: A](that: => L[B]): L[B] = this || that
 
   /** meet/intersection operator */
-  def &[B >: A](that: => L[B]): L[B]
-  def ⊓[B >: A](that: => L[B]): L[B] = this & that
+  def &&[B >: A](that: => L[B]): L[B]
+  def ⊓[B >: A](that: => L[B]): L[B] = this && that
 
   /** prune operator */
   def --[B >: A](that: => L[B]): L[B]
@@ -37,13 +37,13 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
     case (One(l), One(r))      => l == r
 
   /** join operator */
-  def |[B >: A](that: => Flat[B]): Flat[B] = (this, that) match
+  def ||[B >: A](that: => Flat[B]): Flat[B] = (this, that) match
     case (Zero, _) | (_, Many) => that
     case (_, Zero) | (Many, _) => this
     case (One(l), One(r))      => if (l == r) this else Many
 
   /** meet/intersection operator */
-  def &[B >: A](that: => Flat[B]): Flat[B] = (this, that) match
+  def &&[B >: A](that: => Flat[B]): Flat[B] = (this, that) match
     case (Zero, _) | (_, Many) => this
     case (_, Zero) | (Many, _) => that
     case (One(l), One(r))      => if (l == r) this else Zero
@@ -89,12 +89,12 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
     case (Fin(lset), Fin(rset)) => lset.toSet subsetOf rset.toSet
 
   /** join operator */
-  def |[B >: A](that: => BSet[B]): BSet[B] = (this, that) match
+  def ||[B >: A](that: => BSet[B]): BSet[B] = (this, that) match
     case (Inf, _) | (_, Inf)    => Inf
     case (Fin(lset), Fin(rset)) => Fin(lset ++ rset)
 
   /** meet/intersection operator */
-  def &[B >: A](that: => BSet[B]): BSet[B] = (this, that) match
+  def &&[B >: A](that: => BSet[B]): BSet[B] = (this, that) match
     case (Inf, _)               => that
     case (_, Inf)               => this
     case (Fin(lset), Fin(rset)) => Fin(lset.toSet intersect rset.toSet)

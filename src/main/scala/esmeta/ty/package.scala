@@ -17,17 +17,17 @@ trait TyElem {
 // helpers
 // -----------------------------------------------------------------------------
 def CompT(normal: ValueTy, abrupt: Boolean): ValueTy =
-  if (normal.pureValue.isBottom & !abrupt) ValueTy.Bot
+  if (normal.pureValue.isBottom && !abrupt) ValueTy.Bot
   else ValueTy(normal = normal.pureValue, abrupt = abrupt)
 val AbruptT: ValueTy = ValueTy(abrupt = true)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
   else ValueTy(normal = value.pureValue)
 def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
-  if (key.isBottom | value.isBottom) ValueTy.Bot
+  if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
 def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
-  if (key.isBottom | value.isBottom) ValueTy.Bot
+  if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key, value))
 val CloTopT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy =
@@ -149,6 +149,8 @@ extension (elem: Boolean) {
 extension [T](elem: Set[T]) {
   def isBottom: Boolean = elem.isEmpty
   def <=(that: Set[T]): Boolean = elem subsetOf that
+  def ||(that: Set[T]): Set[T] = elem ++ that
+  def &&(that: Set[T]): Set[T] = elem intersect that
   def getSingle[U >: T]: Flat[U] = elem.size match
     case 0 => Zero
     case 1 => One(elem.head)

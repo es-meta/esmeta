@@ -33,7 +33,7 @@ sealed trait Head extends SpecElem {
       List(
         Param("this", Type(ESValueT)),
         Param("argumentsList", Type(ListT(ESValueT))),
-        Param("NewTarget", Type(ObjectT | UndefT)),
+        Param("NewTarget", Type(ObjectT || UndefT)),
       )
 
   /** get function name */

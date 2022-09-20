@@ -74,7 +74,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     val lower = getLowerPropMap(name)
     lower.foldLeft(upper) {
       case (map, (k, t)) =>
-        val newT = t | map.getOrElse(k, BotT)
+        val newT = t || map.getOrElse(k, BotT)
         map + (k -> newT)
     }
 
@@ -110,7 +110,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
       .map(k => {
         val lt = lmap.getOrElse(k, BotT)
         val rt = rmap.getOrElse(k, BotT)
-        k -> (lt | rt)
+        k -> (lt || rt)
       })
       .toMap
   }
@@ -122,7 +122,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
       .map(k => {
         val lt = lmap.getOrElse(k, AbsentT)
         val rt = rmap.getOrElse(k, AbsentT)
-        k -> (lt | rt)
+        k -> (lt || rt)
       })
       .toMap
   }
@@ -177,12 +177,12 @@ object TyModel {
       // property descriptor
       "PropertyDescriptor" -> TyInfo(
         fields = Map(
-          "Value" -> (ESValueT | AbsentT),
-          "Writable" -> (BoolT | AbsentT),
-          "Get" -> (NameT("FunctionObject") | UndefT | AbsentT),
-          "Set" -> (NameT("FunctionObject") | UndefT | AbsentT),
-          "Enumerable" -> (BoolT | AbsentT),
-          "Configurable" -> (BoolT | AbsentT),
+          "Value" -> (ESValueT || AbsentT),
+          "Writable" -> (BoolT || AbsentT),
+          "Get" -> (NameT("FunctionObject") || UndefT || AbsentT),
+          "Set" -> (NameT("FunctionObject") || UndefT || AbsentT),
+          "Enumerable" -> (BoolT || AbsentT),
+          "Configurable" -> (BoolT || AbsentT),
         ),
       ),
 
@@ -190,7 +190,7 @@ object TyModel {
       "RealmRecord" -> TyInfo(
         fields = Map(
           "Intrinsics" -> NameT("IntrinsicsRecord"),
-          "GlobalObject" -> (UndefT | NameT("Object")),
+          "GlobalObject" -> (UndefT || NameT("Object")),
           "GlobalEnv" -> NameT("GlobalEnvironmentRecord"),
           "TemplateMap" -> ListT(NameT("TemplatePair")),
           "HostDefined" -> UndefT,
@@ -206,17 +206,17 @@ object TyModel {
       // execution contexts
       "ExecutionContext" -> TyInfo(
         fields = Map(
-          "Function" -> (NameT("FunctionObject") | NullT),
+          "Function" -> (NameT("FunctionObject") || NullT),
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" -> (
-            NameT("ScriptRecord") |
-            NameT("ModuleRecord") |
+            NameT("ScriptRecord") ||
+            NameT("ModuleRecord") ||
             NullT
           ),
           "LexicalEnvironment" -> NameT("EnvironmentRecord"),
           "VariableEnvironment" -> NameT("EnvironmentRecord"),
           "PrivateEnvironment" -> (
-            NameT("PrivateEnvironmentRecord") |
+            NameT("PrivateEnvironmentRecord") ||
             NullT
           ),
           "Generator" -> NameT("Object"),
@@ -226,10 +226,10 @@ object TyModel {
       // reference record
       "ReferenceRecord" -> TyInfo(
         fields = Map(
-          "Base" -> (ESValueT | NameT("EnvironmentRecord") | UNRESOLVABLE),
-          "ReferencedName" -> (StrTopT | SymbolT | NameT("PrivateName")),
+          "Base" -> (ESValueT || NameT("EnvironmentRecord") || UNRESOLVABLE),
+          "ReferencedName" -> (StrTopT || SymbolT || NameT("PrivateName")),
           "Strict" -> BoolT,
-          "ThisValue" -> (ESValueT | EMPTY),
+          "ThisValue" -> (ESValueT || EMPTY),
         ),
       ),
 
@@ -242,18 +242,18 @@ object TyModel {
       "PrivateElement" -> TyInfo(
         fields = Map(
           "Key" -> NameT("PrivateName"),
-          "Kind" -> (FIELD | METHOD | ACCESSOR),
-          "Value" -> (AbsentT | ESValueT),
-          "Get" -> (NameT("FunctionObject") | UndefT | AbsentT),
-          "Set" -> (NameT("FunctionObject") | UndefT | AbsentT),
+          "Kind" -> (FIELD || METHOD || ACCESSOR),
+          "Value" -> (AbsentT || ESValueT),
+          "Get" -> (NameT("FunctionObject") || UndefT || AbsentT),
+          "Set" -> (NameT("FunctionObject") || UndefT || AbsentT),
         ),
       ),
 
       // class field definition record
       "ClassFieldDefinitionRecord" -> TyInfo(
         fields = Map(
-          "Name" -> (NameT("PrivateName") | StrTopT | SymbolT),
-          "Initializer" -> (NameT("FunctionObject") | EMPTY),
+          "Name" -> (NameT("PrivateName") || StrTopT || SymbolT),
+          "Initializer" -> (NameT("FunctionObject") || EMPTY),
         ),
       ),
 
@@ -289,8 +289,8 @@ object TyModel {
         ),
         fields = Map(
           "Extensible" -> BoolT,
-          "Prototype" -> (NameT("Object") | NullT),
-          "SubMap" -> SubMapT(StrTopT | SymbolT, NameT("PropertyDescriptor")),
+          "Prototype" -> (NameT("Object") || NullT),
+          "SubMap" -> SubMapT(StrTopT || SymbolT, NameT("PropertyDescriptor")),
         ),
       ),
       "OrdinaryObject" -> TyInfo(
@@ -311,26 +311,26 @@ object TyModel {
         fields = Map(
           "Environment" -> NameT("EnvironmentRecord"),
           "PrivateEnvironment" -> (
-            NameT("PrivateEnvironmentRecord") |
+            NameT("PrivateEnvironmentRecord") ||
             NullT
           ),
           "FormalParameters" -> AstTopT,
           "ECMAScriptCode" -> AstTopT,
-          "ConstructorKind" -> (BASE | DERIVED),
+          "ConstructorKind" -> (BASE || DERIVED),
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" -> (
-            NameT("ScriptRecord") |
-            NameT("ModuleRecord") |
+            NameT("ScriptRecord") ||
+            NameT("ModuleRecord") ||
             NullT
           ),
-          "ThisMode" -> (LEXICAL | STRICT | GLOBAL),
+          "ThisMode" -> (LEXICAL || STRICT || GLOBAL),
           "Strict" -> BoolT,
-          "HomeObject" -> (NameT("Object") | UndefT),
+          "HomeObject" -> (NameT("Object") || UndefT),
           "SourceText" -> StrTopT,
           "Fields" -> ListT(NameT("ClassFieldDefinitionRecord")),
           "PrivateMethods" -> ListT(NameT("PrivateElement")),
           "ClassFieldInitializerName" ->
-          (StrTopT | SymbolT | NameT("PrivateName") | EMPTY),
+          (StrTopT || SymbolT || NameT("PrivateName") || EMPTY),
           "IsClassConstructor" -> BoolT,
         ),
       ),
@@ -343,7 +343,7 @@ object TyModel {
         fields = Map(
           "Code" -> CloTopT,
           "Realm" -> NameT("RealmRecord"),
-          "InitialName" -> (NullT | StrTopT),
+          "InitialName" -> (NullT || StrTopT),
         ),
       ),
       "BoundFunctionExoticObject" -> TyInfo(
@@ -385,7 +385,7 @@ object TyModel {
           "Delete" -> "ArgumentsExoticObject.Delete",
         ),
         fields = Map(
-          "ParameterMap" -> (NameT("OrdinaryObject") | NullT),
+          "ParameterMap" -> (NameT("OrdinaryObject") || NullT),
         ),
       ),
       "IntegerIndexedExoticObject" -> TyInfo(
@@ -406,7 +406,7 @@ object TyModel {
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
           "ArrayLength" -> MathTopT,
           "ByteOffset" -> MathTopT,
-          "ContentTy" -> (NUMBER | BIGINT),
+          "ContentTy" -> (NUMBER || BIGINT),
           "TydArrayName" -> StrTopT,
         ),
       ),
@@ -455,8 +455,8 @@ object TyModel {
           "Construct" -> "ProxyExoticObject.Construct",
         ),
         fields = Map(
-          "ProxyHandler" -> (NameT("Object") | NullT),
-          "ProxyTarget" -> (NameT("Object") | NullT),
+          "ProxyHandler" -> (NameT("Object") || NullT),
+          "ProxyTarget" -> (NameT("Object") || NullT),
         ),
       ),
       "ArrayBufferObject" -> TyInfo(parent = Some("Object")),
@@ -490,15 +490,15 @@ object TyModel {
       ),
       "PromiseReaction" -> TyInfo(
         fields = Map(
-          "Capability" -> (NameT("PromiseCapabilityRecord") | UndefT),
-          "Ty" -> (FULFILL | REJECT),
-          "Handler" -> (NameT("JobCallbackRecord") | EMPTY),
+          "Capability" -> (NameT("PromiseCapabilityRecord") || UndefT),
+          "Ty" -> (FULFILL || REJECT),
+          "Handler" -> (NameT("JobCallbackRecord") || EMPTY),
         ),
       ),
       "PromiseInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "PromiseState" -> (PENDING | FULFILLED | REJECTED),
+          "PromiseState" -> (PENDING || FULFILLED || REJECTED),
           "PromiseResult" -> ESValueT,
           "PromiseFulfillReactions" -> ListT(NameT("PromiseReaction")),
           "PromiseRejectReactions" -> ListT(NameT("PromiseReaction")),
@@ -509,37 +509,37 @@ object TyModel {
         parent = Some("OrdinaryObject"),
         fields = Map(
           "GeneratorState" -> (
-            UndefT |
-            SUSPENDED_START |
-            SUSPENDED_YIELD |
-            EXECUTING |
+            UndefT ||
+            SUSPENDED_START ||
+            SUSPENDED_YIELD ||
+            EXECUTING ||
             COMPLETED
           ),
           "GeneratorContext" -> NameT("ExecutionContext"),
-          "GeneratorBrand" -> (StrTopT | EMPTY),
+          "GeneratorBrand" -> (StrTopT || EMPTY),
         ),
       ),
       "AsyncGeneratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "AsyncGeneratorState" -> (
-            UndefT |
-            SUSPENDED_START |
-            SUSPENDED_YIELD |
-            EXECUTING |
-            AWAITING_RETURN |
+            UndefT ||
+            SUSPENDED_START ||
+            SUSPENDED_YIELD ||
+            EXECUTING ||
+            AWAITING_RETURN ||
             COMPLETED
           ),
           "AsyncGeneratorContext" -> NameT("ExecutionContext"),
           "AsyncGeneratorQueue" -> ListT(
             NameT("AsyncGeneratorRequestRecord"),
           ),
-          "GeneratorBrand" -> (StrTopT | EMPTY),
+          "GeneratorBrand" -> (StrTopT || EMPTY),
         ),
       ),
       "AsyncGeneratorRequestRecord" -> TyInfo(
         fields = Map(
-          // TODO "Completion" -> (NormalT(_) | AbruptT),
+          // TODO "Completion" -> (NormalT(_) || AbruptT),
           "Capability" -> NameT("PromiseCapabilityRecord"),
         ),
       ),
@@ -547,7 +547,7 @@ object TyModel {
       // environment records
       "EnvironmentRecord" -> TyInfo(
         fields = Map(
-          "OuterEnv" -> (NullT | NameT("EnvironmentRecord")),
+          "OuterEnv" -> (NullT || NameT("EnvironmentRecord")),
           "SubMap" -> SubMapT(StrTopT, NameT("Binding")),
         ),
       ),
@@ -600,9 +600,9 @@ object TyModel {
         ),
         fields = Map(
           "ThisValue" -> ESValueT,
-          "ThisBindingStatus" -> (LEXICAL | INITIALIZED | UNINITIALIZED),
+          "ThisBindingStatus" -> (LEXICAL || INITIALIZED || UNINITIALIZED),
           "FunctionObject" -> NameT("FunctionObject"),
-          "NewTarget" -> (NameT("Object") | UndefT),
+          "NewTarget" -> (NameT("Object") || UndefT),
         ),
       ),
       "ModuleEnvironmentRecord" -> TyInfo(
@@ -687,7 +687,7 @@ object TyModel {
       "PrivateEnvironmentRecord" -> TyInfo(
         fields = Map(
           "OuterPrivateEnvironment" -> (
-            NameT("PrivateEnvironmentRecord") |
+            NameT("PrivateEnvironmentRecord") ||
             NullT
           ),
           "Names" -> ListT(NameT("PrivateName")),
@@ -719,7 +719,7 @@ object TyModel {
       // script record
       "ScriptRecord" -> TyInfo(
         fields = Map(
-          "Realm" -> (NameT("RealmRecord") | UndefT),
+          "Realm" -> (NameT("RealmRecord") || UndefT),
           "ECMAScriptCode" -> AstT("Script"),
           "HostDefined" -> EMPTY,
         ),
@@ -729,8 +729,8 @@ object TyModel {
       "ModuleRecord" -> TyInfo(
         fields = Map(
           "Realm" -> NameT("RealmRecord"),
-          "Environment" -> (NameT("ModuleEnvironmentRecord") | EMPTY),
-          "Namespace" -> (NameT("ModuleNamespaceExoticObject") | EMPTY),
+          "Environment" -> (NameT("ModuleEnvironmentRecord") || EMPTY),
+          "Namespace" -> (NameT("ModuleNamespaceExoticObject") || EMPTY),
           "HostDefined" -> UndefT,
         ),
       ),
@@ -743,26 +743,26 @@ object TyModel {
         fields = Map(
           "Status" ->
           (
-            UNLINKED |
-            LINKING |
-            LINKED |
-            EVALUATING |
-            EVALUATING_ASYNC |
+            UNLINKED ||
+            LINKING ||
+            LINKED ||
+            EVALUATING ||
+            EVALUATING_ASYNC ||
             EVALUATED
           ),
-          "EvaluationError" -> (AbruptT | EMPTY),
-          "DFSIndex" -> (MathTopT | EMPTY),
-          "DFSAncestorIndex" -> (MathTopT | EMPTY),
+          "EvaluationError" -> (AbruptT || EMPTY),
+          "DFSIndex" -> (MathTopT || EMPTY),
+          "DFSAncestorIndex" -> (MathTopT || EMPTY),
           "RequestedModules" -> ListT(StrTopT),
-          "CycleRoot" -> (NameT("CyclicModuleRecord") | EMPTY),
+          "CycleRoot" -> (NameT("CyclicModuleRecord") || EMPTY),
           "HasTLA" -> BoolT,
           "AsyncEvaluation" -> BoolT,
           "TopLevelCapability" -> (
-            NameT("PromiseCapabilityRecord") |
+            NameT("PromiseCapabilityRecord") ||
             EMPTY,
           ),
           "AsyncParentModules" -> ListT(NameT("CyclicModuleRecord")),
-          "PendingAsyncDependencies" -> (MathTopT | EMPTY),
+          "PendingAsyncDependencies" -> (MathTopT || EMPTY),
         ),
       ),
       "SourceTextModuleRecord" -> TyInfo(
@@ -776,7 +776,7 @@ object TyModel {
         fields = Map(
           "ECMAScriptCode" -> AstT("Module"),
           "Context" -> NameT("ExecutionContext"),
-          "ImportMeta" -> (NameT("Object") | EMPTY),
+          "ImportMeta" -> (NameT("Object") || EMPTY),
           "ImportEntries" -> ListT(NameT("ImportEntryRecord")),
           "LocalExportEntries" -> ListT(NameT("ExportEntryRecord")),
           "IndirectExportEntries" -> ListT(NameT("ExportEntryRecord")),
@@ -786,22 +786,22 @@ object TyModel {
       "ImportEntryRecord" -> TyInfo(
         fields = Map(
           "ModuleRequest" -> StrTopT,
-          "ImportName" -> (StrTopT | NAMESPACE_OBJ),
+          "ImportName" -> (StrTopT || NAMESPACE_OBJ),
           "LocalName" -> StrTopT,
         ),
       ),
       "ExportEntryRecord" -> TyInfo(
         fields = Map(
-          "ExportName" -> (StrTopT | NullT),
-          "ModuleRequest" -> (StrTopT | NullT),
-          "ImportName" -> (StrTopT | NullT | ALL | ALL_BUT_DEFAULT),
-          "LocalName" -> (StrTopT | NullT),
+          "ExportName" -> (StrTopT || NullT),
+          "ModuleRequest" -> (StrTopT || NullT),
+          "ImportName" -> (StrTopT || NullT || ALL || ALL_BUT_DEFAULT),
+          "LocalName" -> (StrTopT || NullT),
         ),
       ),
       "ResolvedBindingRecord" -> TyInfo(
         fields = Map(
           "Module" -> NameT("ModuleRecord"),
-          "BindingName" -> (StrTopT | NAMESPACE),
+          "BindingName" -> (StrTopT || NAMESPACE),
         ),
       ),
 
@@ -827,7 +827,7 @@ object TyModel {
           "Job" -> CloTopT,
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" ->
-          (NameT("ScriptRecord") | NameT("ModuleRecord") | NullT),
+          (NameT("ScriptRecord") || NameT("ModuleRecord") || NullT),
         ),
       ),
     ),
@@ -847,6 +847,6 @@ case class TyInfo(
       fs = fields.getOrElse(k, BotT)
       tys = methods.get(k) match
         case None         => fs
-        case Some(method) => fs | CloT(method)
+        case Some(method) => fs || CloT(method)
     } yield k -> tys).toMap
 }

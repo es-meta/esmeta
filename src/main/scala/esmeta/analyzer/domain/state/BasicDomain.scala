@@ -96,12 +96,12 @@ object BasicDomain extends state.Domain {
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
-          _ = isBottom |= v.isBottom
+          _ = isBottom ||= v.isBottom
         } yield x -> v).toMap
         val newGlobals = (for {
           x <- (l.globals.keySet ++ r.globals.keySet).toList
           v = elem.lookupGlobal(x) ⊓ that.lookupGlobal(x)
-          _ = isBottom |= v.isBottom
+          _ = isBottom ||= v.isBottom
         } yield x -> v).toMap
         val newHeap = elem.heap ⊓ that.heap
         if (newHeap.isBottom || isBottom) Bot

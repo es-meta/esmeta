@@ -14,33 +14,33 @@ case class CompTy(
   import CompTy.*
 
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) | (
-    this.normal.isBottom &
+  def isBottom: Boolean = (this eq Bot) || (
+    this.normal.isBottom &&
     !this.abrupt
   )
 
   /** partial order/subset operator */
-  def <=(that: => CompTy): Boolean = (this eq that) | (
-    this.normal <= that.normal &
+  def <=(that: => CompTy): Boolean = (this eq that) || (
+    this.normal <= that.normal &&
     this.abrupt <= that.abrupt
   )
 
   /** union type */
-  def |(that: => CompTy): CompTy =
+  def ||(that: => CompTy): CompTy =
     if (this eq that) this
     else
       CompTy(
-        this.normal | that.normal,
-        this.abrupt | that.abrupt,
+        this.normal || that.normal,
+        this.abrupt || that.abrupt,
       )
 
   /** intersection type */
-  def &(that: => CompTy): CompTy =
+  def &&(that: => CompTy): CompTy =
     if (this eq that) this
     else
       CompTy(
-        this.normal & that.normal,
-        this.abrupt & that.abrupt,
+        this.normal && that.normal,
+        this.abrupt && that.abrupt,
       )
 
   /** prune type */

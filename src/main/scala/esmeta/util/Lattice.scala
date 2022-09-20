@@ -11,12 +11,12 @@ trait Lattice[L <: Lattice[L]] {
   def ⊑(that: => L): Boolean = this <= that
 
   /** join/union operator */
-  def |(that: => L): L
-  def ⊔(that: => L): L = this | that
+  def ||(that: => L): L
+  def ⊔(that: => L): L = this || that
 
   /** meet/intersection operator */
-  def &(that: => L): L
-  def ⊓(that: => L): L = this & that
+  def &&(that: => L): L
+  def ⊓(that: => L): L = this && that
 
   /** prune operator */
   def --(that: => L): L
@@ -37,11 +37,11 @@ case class Simple(exist: Boolean = false) extends Lattice[Simple] {
   def <=(that: => Simple): Boolean = this.exist <= that.exist
 
   /** join/union operator */
-  def |(that: => Simple): Simple = Simple(this.exist | that.exist)
+  def ||(that: => Simple): Simple = Simple(this.exist || that.exist)
 
   /** meet/intersection operator */
-  def &(that: => Simple): Simple = Simple(this.exist & that.exist)
+  def &&(that: => Simple): Simple = Simple(this.exist && that.exist)
 
   /** prune operator */
-  def --(that: => Simple): Simple = Simple(this.exist & !that.exist)
+  def --(that: => Simple): Simple = Simple(this.exist && !that.exist)
 }
