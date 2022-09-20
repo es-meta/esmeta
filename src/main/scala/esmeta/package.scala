@@ -35,6 +35,7 @@ val SRC_DIR = s"$BASE_DIR/src/main/scala/esmeta"
 /** resource directory */
 val RESOURCE_DIR = s"$BASE_DIR/src/main/resources"
 val UNICODE_DIR = s"$RESOURCE_DIR/unicode"
+val BUGFIX_DIR = s"$RESOURCE_DIR/bugfix"
 val MANUALS_DIR = s"$RESOURCE_DIR/manuals"
 val RESULT_DIR = s"$RESOURCE_DIR/result"
 

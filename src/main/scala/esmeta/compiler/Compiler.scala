@@ -709,7 +709,12 @@ class Compiler(
         val xExpr = compile(fb, expr)
         val e =
           tys
-            .map[Expr](t => ETypeCheck(xExpr, EStr(t.normalizedName)))
+            .map[Expr](t => {
+              val tname =
+                if (t.ty == AstTopT) "ParseNode"
+                else t.normalizedName
+              ETypeCheck(xExpr, EStr(tname))
+            })
             .reduce(or(_, _))
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
