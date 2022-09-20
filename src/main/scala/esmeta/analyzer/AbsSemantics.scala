@@ -38,7 +38,7 @@ class AbsSemantics(
   private var iter: Int = 0
 
   /** count for each control point */
-  def getCounter: Map[ControlPoint, Int] = Map()
+  def getCounter: Map[ControlPoint, Int] = counter
   def getCount(cp: ControlPoint): Int = counter.getOrElse(cp, 0)
   private var counter: Map[ControlPoint, Int] = Map()
 

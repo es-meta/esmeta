@@ -1,6 +1,6 @@
 package esmeta.analyzer
 
-import esmeta.ANALYZE_LOG_DIR
+import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.error.TypeMismatchError
@@ -64,7 +64,8 @@ private class TypeAnalyzer(
       name = "visiting counter for control points",
       data = sem.getCounter.toList
         .sortBy(_._2)
-        .map { case (cp, k) => s"[$k] $cp" },
+        .map { case (cp, k) => s"[$k] $cp" }
+        .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
     )
   }
