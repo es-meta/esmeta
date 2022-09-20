@@ -178,7 +178,8 @@ object TypeDomain extends value.Domain {
     def typeOf(st: AbsState): Elem =
       val ty = elem.ty
       var names: Set[String] = Set()
-      if (ty.names.exists(cfg.tyModel.isSubTy(_, "Object"))) names += "Object"
+      if (ty.name.set.exists(cfg.tyModel.isSubTy(_, "Object")))
+        names += "Object"
       if (ty.symbol) names += "Symbol"
       if (!ty.number.isBottom) names += "Number"
       if (ty.bigInt) names += "BigInt"
@@ -442,7 +443,7 @@ object TypeDomain extends value.Domain {
   /** instance name */
   private def instanceNameSet(ty: ValueTy): Set[String] =
     var names: Set[String] = Set()
-    for (name <- ty.names)
+    for (name <- ty.name.set)
       names ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
       names ++= ancestors(name)
     if (!ty.astValue.isBottom) ty.astValue match

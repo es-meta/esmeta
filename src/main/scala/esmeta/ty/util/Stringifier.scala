@@ -18,6 +18,7 @@ object Stringifier {
       case elem: CompTy      => compTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
+      case elem: NameTy      => nameTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
       case elem: SubMapTy    => subMapTyRule(app, elem)
@@ -65,7 +66,7 @@ object Stringifier {
       FilterApp(app)
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
-        .add(ty.names.mkString(OR), !ty.names.isBottom)
+        .add(ty.name, !ty.name.isBottom)
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
         .add("Symbol", !ty.symbol.isBottom)
@@ -83,6 +84,11 @@ object Stringifier {
         .add("Absent", !ty.absent.isBottom)
         .app
 
+  /** named record types */
+  given nameTyRule: Rule[NameTy] = (app, ty) =>
+    given Rule[Iterable[String]] = iterableRule(sep = OR)
+    app >> ty.set.toList.sorted
+
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
     given Rule[(String, Option[ValueTy])] = {
@@ -91,8 +97,7 @@ object Stringifier {
         value.fold(app)(app >> ": " >> _)
     }
     given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
-    if (!ty.map.isEmpty) app >> ty.map.toList.sortBy(_._1)
-    app
+    app >> ty.map.toList.sortBy(_._1)
 
   /** AST value types */
   given astValueTyRule: Rule[AstValueTy] = (app, ty) =>

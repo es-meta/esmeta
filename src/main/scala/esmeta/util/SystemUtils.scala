@@ -42,7 +42,10 @@ object SystemUtils {
 
   /** print writer */
   def getPrintWriter(filename: String): PrintWriter =
-    PrintWriter(File(filename))
+    val file = File(filename)
+    val parent = file.getParent
+    if (parent != null) mkdir(parent)
+    PrintWriter(file)
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String): Unit =

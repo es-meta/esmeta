@@ -37,8 +37,11 @@ val ContTopT: ValueTy = ValueTy(cont = Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) ValueTy.Bot
   else ValueTy(cont = Fin(nids.toSet))
-val ESPureValueT: PureValueTy = PureValueTy(
-  names = Set("Object"),
+def NameT(names: String*): ValueTy =
+  if (names.isEmpty) ValueTy.Bot
+  else ValueTy(name = NameTy(names.toSet))
+val ObjectT: ValueTy = NameT("Object")
+val ESPrimT: ValueTy = ValueTy(
   symbol = true,
   number = Inf,
   bigInt = true,
@@ -47,11 +50,8 @@ val ESPureValueT: PureValueTy = PureValueTy(
   undef = true,
   nullv = true,
 )
-val ESValueT: ValueTy = ValueTy(pureValue = ESPureValueT)
-def NameT(names: String*): ValueTy =
-  if (names.isEmpty) ValueTy.Bot
-  else ValueTy(names = names.toSet)
-val ObjectT: ValueTy = NameT("Object")
+val ESValueT: ValueTy = ObjectT || ESPrimT
+val ESPureValueT: PureValueTy = ESValueT.pureValue
 def RecordT(fields: Set[String]): ValueTy =
   if (fields.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(fields))

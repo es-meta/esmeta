@@ -43,8 +43,12 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     infos.collect { case (name, TyInfo(None, _, _)) => aux(name) }
     descs
   }
-  def isSubTy(t0: String, t1: String): Boolean =
-    subTys.get(t1).fold(false)(_ contains t0)
+  def isSubTy(l: String, r: String): Boolean =
+    (l == r) || subTys.get(r).fold(false)(_ contains l)
+  def isSubTy(l: String, rset: Set[String]): Boolean =
+    rset.exists(r => isSubTy(l, r))
+  def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
+    lset.forall(l => isSubTy(l, rset))
 
   /** property map alias */
   type PropMap = Map[String, ValueTy]
@@ -208,17 +212,10 @@ object TyModel {
         fields = Map(
           "Function" -> (NameT("FunctionObject") || NullT),
           "Realm" -> NameT("RealmRecord"),
-          "ScriptOrModule" -> (
-            NameT("ScriptRecord") ||
-            NameT("ModuleRecord") ||
-            NullT
-          ),
+          "ScriptOrModule" -> (NameT("ScriptRecord", "ModuleRecord") || NullT),
           "LexicalEnvironment" -> NameT("EnvironmentRecord"),
           "VariableEnvironment" -> NameT("EnvironmentRecord"),
-          "PrivateEnvironment" -> (
-            NameT("PrivateEnvironmentRecord") ||
-            NullT
-          ),
+          "PrivateEnvironment" -> (NameT("PrivateEnvironmentRecord") || NullT),
           "Generator" -> NameT("Object"),
         ),
       ),
@@ -226,7 +223,11 @@ object TyModel {
       // reference record
       "ReferenceRecord" -> TyInfo(
         fields = Map(
-          "Base" -> (ESValueT || NameT("EnvironmentRecord") || UNRESOLVABLE),
+          "Base" -> (
+            ESPrimT ||
+            NameT("Object", "EnvironmentRecord") ||
+            UNRESOLVABLE,
+          ),
           "ReferencedName" -> (StrTopT || SymbolT || NameT("PrivateName")),
           "Strict" -> BoolT,
           "ThisValue" -> (ESValueT || EMPTY),
@@ -319,8 +320,7 @@ object TyModel {
           "ConstructorKind" -> (BASE || DERIVED),
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" -> (
-            NameT("ScriptRecord") ||
-            NameT("ModuleRecord") ||
+            NameT("ScriptRecord", "ModuleRecord") ||
             NullT
           ),
           "ThisMode" -> (LEXICAL || STRICT || GLOBAL),
@@ -827,7 +827,7 @@ object TyModel {
           "Job" -> CloTopT,
           "Realm" -> NameT("RealmRecord"),
           "ScriptOrModule" ->
-          (NameT("ScriptRecord") || NameT("ModuleRecord") || NullT),
+          (NameT("ScriptRecord", "ModuleRecord") || NullT),
         ),
       ),
     ),

@@ -92,7 +92,7 @@ object TypeDomain extends state.Domain {
         lookupAst(baseTy.astValue, propTy) ||
         lookupStr(baseTy.str, propTy) ||
         lookupList(baseTy.list, propTy) ||
-        lookupName(baseTy.names, propTy) ||
+        lookupName(baseTy.name, propTy) ||
         lookupRecord(baseTy.record, propTy) ||
         lookupSymbol(baseTy.symbol, propTy) ||
         lookupSubMap(baseTy.subMap, propTy),
@@ -338,11 +338,11 @@ object TypeDomain extends state.Domain {
     res
 
   // named record lookup
-  private def lookupName(obj: Set[String], prop: ValueTy): ValueTy =
+  private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
     val str = prop.str
     for {
-      name <- obj
+      name <- obj.set
       propStr <- str match
         case Inf =>
           if (name == "IntrinsicsRecord") res ||= ObjectT
