@@ -13,7 +13,7 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => AstValueTy): Boolean = (this eq that) | (
+  def <=(that: => AstValueTy): Boolean = (this eq that) || (
     (this, that) match
       case (Bot, _) | (_, AstTopTy)         => true
       case (l: AstSingleTy, r: AstSingleTy) => l == r
@@ -23,7 +23,7 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
   )
 
   /** union type */
-  def |(that: => AstValueTy): AstValueTy =
+  def ||(that: => AstValueTy): AstValueTy =
     if (this eq that) this
     else
       (this, that) match
@@ -32,17 +32,18 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
         case (_, Bot)                                   => this
         case (l: AstSingleTy, r: AstSingleTy) if l == r => l
         case (l: AstNonTopTy, r: AstNonTopTy) =>
-          AstNameTy(l.toName.names | r.toName.names)
+          AstNameTy(l.toName.names || r.toName.names)
 
   /** intersection type */
-  def &(that: => AstValueTy): AstValueTy =
+  def &&(that: => AstValueTy): AstValueTy =
     if (this eq that) this
     else
       (this, that) match
-        case _ if this <= that                  => this
-        case _ if that <= this                  => that
-        case (AstNameTy(lset), AstNameTy(rset)) => AstNameTy(lset & rset)
-        case _                                  => Bot
+        case _ if this <= that => this
+        case _ if that <= this => that
+        case (AstNameTy(lset), AstNameTy(rset)) =>
+          AstNameTy(lset intersect rset)
+        case _ => Bot
 
   /** prune type */
   def --(that: => AstValueTy): AstValueTy =

@@ -33,7 +33,7 @@ class StringifyTinyTest extends TyTest {
       "{ [[Key]], [[Value]] }",
       RecordT("Key" -> None, "Value" -> None, "Dummy" -> Some(BotT)) ->
       "{ [[Key]], [[Value]] }",
-      (ObjectT | RecordT(
+      (ObjectT || RecordT(
         "P" -> None,
         "S" -> None,
         "Q" -> Some(NumberTopT),

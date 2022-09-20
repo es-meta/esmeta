@@ -752,20 +752,20 @@ class StringifyTinyTest extends LangTest {
       "~end~, ~start~, or ~start+end~",
       Type(ListT(NumberTopT)) -> "a List of Numbers",
       Type(ListT(AstTopT)) -> "a List of Parse Nodes",
-      Type(ListT(StrTopT | UndefT)) -> "a List of Strings or *undefined*",
+      Type(ListT(StrTopT || UndefT)) -> "a List of Strings or *undefined*",
       Type(NameT("Environment Record")) -> "an Environment Record",
       Type(NormalT(NumberTopT)) -> "a normal completion containing a Number",
-      Type(NormalT(NumberTopT | BigIntT)) ->
+      Type(NormalT(NumberTopT || BigIntT)) ->
       "a normal completion containing either a Number or a BigInt",
       Type(AbruptT) -> "an abrupt completion",
-      Type(NormalT(BigIntT) | AbruptT) ->
+      Type(NormalT(BigIntT) || AbruptT) ->
       "either a normal completion containing a BigInt or an abrupt completion",
-      Type(NormalT(NameT("Property Descriptor")) | AbruptT) ->
+      Type(NormalT(NameT("Property Descriptor")) || AbruptT) ->
       "either a normal completion containing a Property Descriptor or an abrupt completion",
       // more complex
-      Type(NumberTopT | BigIntT) -> "a Number or a BigInt",
-      Type(NullT | ESValueT) -> "an ECMAScript language value",
-      Type(ESValueT | AstTopT) ->
+      Type(NumberTopT || BigIntT) -> "a Number or a BigInt",
+      Type(NullT || ESValueT) -> "an ECMAScript language value",
+      Type(ESValueT || AstTopT) ->
       "an ECMAScript language value or a Parse Node",
     )
   }

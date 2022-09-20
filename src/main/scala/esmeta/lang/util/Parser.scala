@@ -1106,7 +1106,7 @@ trait Parsers extends IndentParsers {
   lazy val valueTy: P[ValueTy] = opt("either") ~> rep1sep(
     compTy | pureValueTy,
     sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ | _) }
+  ) ^^ { _.foldLeft(BotT)(_ || _) }
 
   // completion record types
   lazy val compTy: P[ValueTy] =
@@ -1117,7 +1117,7 @@ trait Parsers extends IndentParsers {
   lazy val pureValueTy: P[ValueTy] = opt("either") ~> rep1sep(
     nameTy | recordTy | listTy | simpleTy,
     sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ | _) }
+  ) ^^ { _.foldLeft(BotT)(_ || _) }
 
   // named record types
   lazy val nameTy: P[ValueTy] =
@@ -1150,7 +1150,7 @@ trait Parsers extends IndentParsers {
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
     "ECMAScript language value" ^^^ ESValueT |
-    "property key" ^^^ (StrTopT | SymbolT) |
+    "property key" ^^^ (StrTopT || SymbolT) |
     "Parse Node" ^^^ AstTopT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |

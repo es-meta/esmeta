@@ -13,33 +13,33 @@ case class SubMapTy(
   import SubMapTy.*
 
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) | (
-    this.key.isBottom &
+  def isBottom: Boolean = (this eq Bot) || (
+    this.key.isBottom &&
     this.value.isBottom
   )
 
   /** partial order/subset operator */
-  def <=(that: => SubMapTy): Boolean = (this eq that) | (
-    this.key <= that.key &
+  def <=(that: => SubMapTy): Boolean = (this eq that) || (
+    this.key <= that.key &&
     this.value <= that.value
   )
 
   /** union type */
-  def |(that: => SubMapTy): SubMapTy =
+  def ||(that: => SubMapTy): SubMapTy =
     if (this eq that) this
     else
       SubMapTy(
-        this.key | that.key,
-        this.value | that.value,
+        this.key || that.key,
+        this.value || that.value,
       )
 
   /** intersection type */
-  def &(that: => SubMapTy): SubMapTy =
+  def &&(that: => SubMapTy): SubMapTy =
     if (this eq that) this
     else
       SubMapTy(
-        this.key & that.key,
-        this.value & that.value,
+        this.key && that.key,
+        this.value && that.value,
       ).norm
 
   /** prune type */
@@ -56,7 +56,7 @@ case class SubMapTy(
 
   // normalization
   private def norm: SubMapTy =
-    if (key.isBottom | value.isBottom) Bot
+    if (key.isBottom || value.isBottom) Bot
     else this
 }
 object SubMapTy extends Parser.From(Parser.subMapTy) {

@@ -15,37 +15,37 @@ case class ValueTy(
   import ValueTy.*
 
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) | (
-    this.comp.isBottom &
-    this.pureValue.isBottom &
+  def isBottom: Boolean = (this eq Bot) || (
+    this.comp.isBottom &&
+    this.pureValue.isBottom &&
     this.subMap.isBottom
   )
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean = (this eq that) | (
-    this.comp <= that.comp &
-    this.pureValue <= that.pureValue &
+  def <=(that: => ValueTy): Boolean = (this eq that) || (
+    this.comp <= that.comp &&
+    this.pureValue <= that.pureValue &&
     this.subMap <= that.subMap
   )
 
   /** union type */
-  def |(that: => ValueTy): ValueTy =
+  def ||(that: => ValueTy): ValueTy =
     if (this eq that) this
     else
       ValueTy(
-        this.comp | that.comp,
-        this.pureValue | that.pureValue,
-        this.subMap | that.subMap,
+        this.comp || that.comp,
+        this.pureValue || that.pureValue,
+        this.subMap || that.subMap,
       )
 
   /** intersection type */
-  def &(that: => ValueTy): ValueTy =
+  def &&(that: => ValueTy): ValueTy =
     if (this eq that) this
     else
       ValueTy(
-        this.comp & that.comp,
-        this.pureValue & that.pureValue,
-        this.subMap & that.subMap,
+        this.comp && that.comp,
+        this.pureValue && that.pureValue,
+        this.subMap && that.subMap,
       )
 
   /** prune type */
@@ -60,14 +60,14 @@ case class ValueTy(
 
   /** get single value */
   def getSingle: Flat[AValue] =
-    this.comp.getSingle |
-    this.pureValue.getSingle |
+    this.comp.getSingle ||
+    this.pureValue.getSingle ||
     this.subMap.getSingle
 
   /** completion check */
   def isCompletion: Boolean =
-    !comp.isBottom &
-    pureValue.isBottom &
+    !comp.isBottom &&
+    pureValue.isBottom &&
     subMap.isBottom
 
   /** getters */
@@ -118,8 +118,8 @@ object ValueTy {
     absent: Boolean = false,
     subMap: SubMapTy = SubMapTy.Bot,
   ): ValueTy = ValueTy(
-    comp = comp | CompTy(normal, abrupt),
-    pureValue = pureValue | PureValueTy(
+    comp = comp || CompTy(normal, abrupt),
+    pureValue = pureValue || PureValueTy(
       clo,
       cont,
       names,

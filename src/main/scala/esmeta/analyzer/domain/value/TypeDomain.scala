@@ -118,10 +118,10 @@ object TypeDomain extends value.Domain {
     def ⊑(that: Elem): Boolean = elem.ty <= that.ty
 
     /** join operator */
-    def ⊔(that: Elem): Elem = Elem(elem.ty | that.ty)
+    def ⊔(that: Elem): Elem = Elem(elem.ty || that.ty)
 
     /** meet operator */
-    override def ⊓(that: Elem): Elem = Elem(elem.ty & that.ty)
+    override def ⊓(that: Elem): Elem = Elem(elem.ty && that.ty)
 
     /** prune operator */
     override def --(that: Elem): Elem = Elem(elem.ty -- that.ty)
@@ -203,16 +203,16 @@ object TypeDomain extends value.Domain {
         case COp.ToApproxNumber if (!ty.math.isBottom) =>
           NumberTopT
         case COp.ToNumber
-            if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom) =>
+            if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom) =>
           NumberTopT
         case COp.ToBigInt
-            if (!ty.math.isBottom | !ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
+            if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
           BigIntT
         case COp.ToMath
-            if (!ty.math.isBottom | !ty.number.isBottom | ty.bigInt) =>
+            if (!ty.math.isBottom || !ty.number.isBottom || ty.bigInt) =>
           MathTopT
         case COp.ToStr(_)
-            if (!ty.str.isBottom | !ty.number.isBottom | ty.bigInt) =>
+            if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
           StrTopT
         case _ => ValueTy(),
       )
@@ -258,10 +258,10 @@ object TypeDomain extends value.Domain {
     /** completion helpers */
     def wrapCompletion: Elem =
       val ty = elem.ty
-      Elem(ValueTy(normal = ty.normal | ty.pureValue, abrupt = ty.abrupt))
+      Elem(ValueTy(normal = ty.normal || ty.pureValue, abrupt = ty.abrupt))
     def unwrapCompletion: Elem =
       val ty = elem.ty
-      Elem(ValueTy(pureValue = ty.normal | ty.pureValue))
+      Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
     def isCompletion: Elem =
       val ty = elem.ty
       var bs: Set[Boolean] = Set()
@@ -288,8 +288,8 @@ object TypeDomain extends value.Domain {
         method match
           case "SV" | "TRV" | "StringValue" => StrTopT
           case "IdentifierCodePoints"       => StrTopT
-          case "MV" | "NumericValue"        => NumberTopT | BigIntT
-          case "TV"                         => StrTopT | UndefT
+          case "MV" | "NumericValue"        => NumberTopT || BigIntT
+          case "TV"                         => StrTopT || UndefT
           case "BodyText" | "FlagText"      => StrTopT
           case "Contains"                   => BoolT
           case _                            => ValueTy(),
@@ -351,7 +351,7 @@ object TypeDomain extends value.Domain {
   // ---------------------------------------------------------------------------
   // value type getter
   private def getValueTy(vs: Iterable[AValue]): ValueTy =
-    vs.foldLeft(ValueTy()) { case (vty, v) => vty | getValueTy(v) }
+    vs.foldLeft(ValueTy()) { case (vty, v) => vty || getValueTy(v) }
 
   // value type getter
   private def getValueTy(v: AValue): ValueTy = v match
@@ -376,17 +376,17 @@ object TypeDomain extends value.Domain {
 
   // mathematical operator helper
   private lazy val mathOp: (Elem, Elem) => Elem = (l, r) =>
-    if (!l.ty.math.isBottom & !r.ty.math.isBottom) mathTop
+    if (!l.ty.math.isBottom && !r.ty.math.isBottom) mathTop
     else Bot
 
   // number operator helper
   private lazy val numberOp: (Elem, Elem) => Elem = (l, r) =>
-    if (!l.ty.number.isBottom & !r.ty.number.isBottom) numberTop
+    if (!l.ty.number.isBottom && !r.ty.number.isBottom) numberTop
     else Bot
 
   // big integer operator helper
   private lazy val bigIntOp: (Elem, Elem) => Elem = (l, r) =>
-    if (l.ty.bigInt & r.ty.bigInt) bigIntTop
+    if (l.ty.bigInt && r.ty.bigInt) bigIntTop
     else Bot
 
   // bitwise operator helper
@@ -413,9 +413,9 @@ object TypeDomain extends value.Domain {
       ValueTy(
         bool =
           if (
-            (!l.ty.math.isBottom & !r.ty.math.isBottom) |
-            (!l.ty.number.isBottom & !r.ty.number.isBottom) |
-            (l.ty.bigInt & r.ty.bigInt)
+            (!l.ty.math.isBottom && !r.ty.math.isBottom) ||
+            (!l.ty.number.isBottom && !r.ty.number.isBottom) ||
+            (l.ty.bigInt && r.ty.bigInt)
           ) Set(true, false)
           else Set(),
       ),
@@ -433,9 +433,9 @@ object TypeDomain extends value.Domain {
   private lazy val numericOp: (Elem, Elem) => Elem = (l, r) =>
     Elem(
       ValueTy(
-        math = l.ty.math & r.ty.math,
-        number = l.ty.number & r.ty.number,
-        bigInt = l.ty.bigInt & r.ty.bigInt,
+        math = l.ty.math && r.ty.math,
+        number = l.ty.number && r.ty.number,
+        bigInt = l.ty.bigInt && r.ty.bigInt,
       ),
     )
 
