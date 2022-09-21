@@ -16,6 +16,13 @@ case class ParamTypeMismatch(
   argTy: ValueTy,
 ) extends TypeMismatch
 
+/** return type mismatches */
+case class ReturnTypeMismatch(
+  ret: Return,
+  calleeRp: ReturnPoint,
+  retTy: ValueTy,
+) extends TypeMismatch
+
 /** arity mismatches */
 case class ArityMismatch(
   callerNp: NodePoint[Call],

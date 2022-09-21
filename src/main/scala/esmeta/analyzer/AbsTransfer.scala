@@ -205,10 +205,10 @@ class AbsTransfer(sem: AbsSemantics) {
         v <- transfer(elem)
         _ <- modify(_.remove(l, v))
       } yield ()
-    case IReturn(expr) =>
+    case inst @ IReturn(expr) =>
       for {
         v <- transfer(expr)
-        _ <- doReturn(v)
+        _ <- doReturn(inst, v)
         _ <- put(AbsState.Bot)
       } yield ()
     case IAssert(expr: EYet) =>
@@ -317,19 +317,19 @@ class AbsTransfer(sem: AbsSemantics) {
         for {
           v <- transfer(expr)
         } yield v.isCompletion
-      case EReturnIfAbrupt(ERef(ref), check) =>
+      case riaExpr @ EReturnIfAbrupt(ERef(ref), check) =>
         for {
           rv <- transfer(ref)
           v <- transfer(rv)
-          newV <- returnIfAbrupt(v, check)
+          newV <- returnIfAbrupt(riaExpr, v, check)
           _ <-
             if (!newV.isBottom) modify(_.update(rv, newV))
             else put(AbsState.Bot)
         } yield newV
-      case EReturnIfAbrupt(expr, check) =>
+      case riaExpr @ EReturnIfAbrupt(expr, check) =>
         for {
           v <- transfer(expr)
-          newV <- returnIfAbrupt(v, check)
+          newV <- returnIfAbrupt(riaExpr, v, check)
         } yield newV
       case EPop(list, front) =>
         for {
@@ -637,19 +637,23 @@ class AbsTransfer(sem: AbsSemantics) {
     AbsValue.mopTransfer(mop, vs)
 
   // return specific value
-  def doReturn(v: AbsValue)(using cp: ControlPoint): Result[Unit] = for {
+  def doReturn(
+    elem: Return,
+    v: AbsValue,
+  )(using cp: ControlPoint): Result[Unit] = for {
     st <- get
     ret = AbsRet(v, st.copied(locals = Map()))
-    _ = sem.doReturn(ReturnPoint(cp.func, cp.view), ret)
+    _ = sem.doReturn(elem, ReturnPoint(cp.func, cp.view), ret)
   } yield ()
 
   // return if abrupt completion
   def returnIfAbrupt(
+    riaExpr: EReturnIfAbrupt,
     value: AbsValue,
     check: Boolean,
   )(using cp: ControlPoint): Result[AbsValue] = {
     val checkReturn: Result[Unit] =
-      if (check) doReturn(value.abruptCompletion)
+      if (check) doReturn(riaExpr, value.abruptCompletion)
       else ()
     for (_ <- checkReturn) yield value.unwrapCompletion
   }

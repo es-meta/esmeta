@@ -1,7 +1,7 @@
 package esmeta.analyzer
 
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, Name, Param, Local}
+import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
@@ -14,12 +14,23 @@ class TypeSemantics(
   /** type mismatches */
   def getMismatches: Set[TypeMismatch] =
     // get recorded parameter type mismatches
-    val paramTypeMismatchs = for {
+    val paramTypeMismatches = for {
       ((callerNp, calleeRp, param), argTy) <- argsForMismatch
     } yield ParamTypeMismatch(callerNp, calleeRp, param, argTy)
+    // get recorded return type mismatches
+    val returnTypeMismatches = for {
+      ((elem, rp), retTy) <- retForMismatch
+    } yield ReturnTypeMismatch(elem, rp, retTy)
     // return all type mismatches
-    mismatches ++ paramTypeMismatchs
+    mismatches ++
+    paramTypeMismatches ++
+    returnTypeMismatches
+  // record type mismatches
   private var mismatches: Set[TypeMismatch] = Set()
+  private type CallEdgeWithParam = (NodePoint[Call], ReturnPoint, Param)
+  private var argsForMismatch: Map[CallEdgeWithParam, ValueTy] = Map()
+  private type RetEdge = (Return, ReturnPoint)
+  private var retForMismatch: Map[RetEdge, ValueTy] = Map()
 
   /** handle calls */
   override def doCall(
@@ -64,35 +75,42 @@ class TypeSemantics(
     (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
       val argTy = arg.ty
       val expected = param.ty.ty match
-        // argument type check when parameter type is a known type
-        case paramTy: ValueTy if (!(argTy <= paramTy)) =>
-          val key = (callerNp, calleeRp, param)
-          if (method && idx == 0) () /* ignore `this` for method-like calls */
-          else
-            argsForMismatch += key -> {
-              argsForMismatch.get(key).fold(argTy)(_ || argTy)
-            }
+        case _: UnknownTy     => arg
+        case paramTy: ValueTy =>
+          // argument type check when parameter type is a known type
+          if (!(argTy <= paramTy))
+            val key = (callerNp, calleeRp, param)
+            if (method && idx == 0) () /* ignore `this` for method-like calls */
+            else
+              argsForMismatch += key -> {
+                argsForMismatch.get(key).fold(argTy)(_ || argTy)
+              }
           AbsValue(paramTy)
-        case _ => arg
       // force to set expected type for parameters
       param.lhs -> expected
     }).toMap
   }
-  // record this info for ParamTypeMismatch
-  private type CallEdgeWithParam = (NodePoint[Call], ReturnPoint, Param)
-  private var argsForMismatch: Map[CallEdgeWithParam, ValueTy] = Map()
 
   /** conversion to string */
   override def toString: String =
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
 
   /** update return points */
-  override def doReturn(rp: ReturnPoint, origRet: AbsRet): Unit =
+  override def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
-    val newRet = rp.func.retTy.ty match
-      case _: UnknownTy => origRet
-      case ty: ValueTy  => AbsRet(AbsValue(ty))
-    super.doReturn(rp, newRet)
+    val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
+    val givenTy = newRet.value.ty
+    val expected = rp.func.retTy.ty match
+      case _: UnknownTy        => newRet
+      case expectedTy: ValueTy =>
+        // return type check when it is a known type
+        if (!(givenTy <= expectedTy))
+          val key = (elem, rp)
+          retForMismatch += key -> {
+            retForMismatch.get(key).fold(givenTy)(_ || givenTy)
+          }
+        AbsRet(AbsValue(expectedTy))
+    super.doReturn(elem, rp, expected)
 
   /** conversion helper to string */
   given getRule: Rule[Iterable[Func]] = (app, funcs) =>

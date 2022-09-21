@@ -4,13 +4,7 @@ import esmeta.ir.util.Parser
 import esmeta.lang.Syntax
 
 // IR instructions
-sealed trait Inst extends IRElem:
-  // backward edge to metalangauge
-  var langOpt: Option[Syntax] = None
-  def setLang(lang: Syntax): this.type = setLangOpt(Some(lang))
-  def setLangOpt(langOpt: Option[Syntax]): this.type =
-    this.langOpt = langOpt; this
-
+sealed trait Inst extends IRElem with LangEdge:
   // conversion to instruction lists
   def toList: List[Inst] = this match
     case ISeq(is) => is
@@ -25,7 +19,7 @@ case class IAssign(ref: Ref, expr: Expr) extends NormalInst
 case class IDelete(ref: Ref) extends NormalInst
 case class IPush(from: Expr, to: Expr, front: Boolean) extends NormalInst
 case class IRemoveElem(list: Expr, elem: Expr) extends esmeta.ir.NormalInst
-case class IReturn(expr: Expr) extends NormalInst
+case class IReturn(expr: Expr) extends NormalInst with Return
 case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
