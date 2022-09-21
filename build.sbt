@@ -265,3 +265,10 @@ format := {
   (Compile / scalafmtAll).value
   (Compile / scalafmtSbt).value
 }
+
+// format check all files
+lazy val formatCheck = taskKey[Unit]("format check all files")
+formatCheck := {
+  (Compile / scalafmtCheckAll).value
+  (Compile / scalafmtSbtCheck).value
+}
