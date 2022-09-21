@@ -3,12 +3,19 @@ package esmeta.util
 import esmeta.util.SystemUtils.*
 
 /** git helpers */
-abstract class Git(path: String) { self =>
+abstract class Git(path: String, shortHashLength: Int = 16) { self =>
 
   /** git versions */
   case class Version(name: String, hash: String) {
     def git: Git = self
+
+    /** get short hashcode */
+    def shortHash: String = hash.take(shortHashLength)
+
+    /** conversion to string */
     override def toString: String = s"$name ($hash)"
+
+    /** hash-based equality check */
     override def equals(that: Any): Boolean = that match
       case that: Version => this.git == that.git && this.hash == that.hash
       case _             => false
