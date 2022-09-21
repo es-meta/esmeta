@@ -22,7 +22,7 @@ case object Compile extends Phase[Spec, Program] {
     // logging mode
     if (config.log)
       // results
-      program.dumpTo(COMPILE_LOG_DIR)
+      program.dumpTo(COMPILE_LOG_DIR, config.loc)
 
       // yet expressions
       dumpFile(
@@ -52,8 +52,14 @@ case object Compile extends Phase[Spec, Program] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "log-with-loc",
+      BoolOption(c => { c.log = true; c.loc = true }),
+      "turn on logging mode with location info.",
+    ),
   )
   case class Config(
     var log: Boolean = false,
+    var loc: Boolean = false,
   )
 }

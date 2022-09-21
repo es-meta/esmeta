@@ -59,9 +59,10 @@ object SystemUtils {
     iterable: Iterable[T],
     dirname: String,
     getName: T => String,
+    getData: T => Any = (x: T) => x,
   ): Unit =
     mkdir(dirname)
-    for (data <- iterable) dumpFile(data, s"$dirname/${getName(data)}")
+    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
     println(s"- Dumped $name into $dirname.")
 
   /** dump given data into a file and show message */

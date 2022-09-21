@@ -118,7 +118,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expr] = (app, expr) =>
+  given exprRule: Rule[Expr] = withLoc { (app, expr) =>
     expr match
       case EComp(tyExpr, valExpr, tgtExpr) =>
         app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
@@ -184,6 +184,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         allocExprRule(app, expr)
       case expr: LiteralExpr =>
         literalExprRule(app, expr)
+  }
 
   // abstract syntax tree (AST) expressions
   lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
@@ -336,12 +337,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // references
   lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refRule: Rule[Ref] = (app, ref) =>
+  given refRule: Rule[Ref] = withLoc { (app, ref) =>
     ref match {
       case Prop(ref, EStr(inlineProp(str))) => app >> ref >> "." >> str
       case Prop(ref, expr)                  => app >> ref >> "[" >> expr >> "]"
       case id: Id                           => idRule(app, id)
     }
+  }
 
   // identifiers
   given idRule: Rule[Id] = (app, id) =>
@@ -358,13 +360,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // private helpers
   // ---------------------------------------------------------------------------
   // append locations
-  private def withLoc(rule: Rule[Inst]): Rule[Inst] = (app, elem) =>
-    given Rule[Option[Syntax]] = (app, langOpt) =>
-      for {
-        lang <- langOpt
-        loc <- lang.loc
-      } app >> " @ " >> loc.toString
-      app
-    rule(app, elem)
-    if (location) app >> elem.langOpt else app
+  private def withLoc[T <: IRElem with LangEdge](rule: Rule[T]): Rule[T] =
+    (app, elem) =>
+      given Rule[Option[Syntax]] = (app, langOpt) =>
+        for {
+          lang <- langOpt
+          loc <- lang.loc
+        } app >> " @ " >> loc.toString
+        app
+      rule(app, elem)
+      if (location) app >> elem.langOpt else app
 }
