@@ -12,9 +12,13 @@ class TypeSemantics(
 ) extends AbsSemantics(npMap) {
 
   /** type mismatches */
-  def getMismatches: Set[TypeMismatch] = mismatches ++ (for {
-    ((callerNp, calleeRp, param), argTy) <- argsForMismatch
-  } yield ParamTypeMismatch(callerNp, calleeRp, param, argTy))
+  def getMismatches: Set[TypeMismatch] =
+    // get recorded parameter type mismatches
+    val paramTypeMismatchs = for {
+      ((callerNp, calleeRp, param), argTy) <- argsForMismatch
+    } yield ParamTypeMismatch(callerNp, calleeRp, param, argTy)
+    // return all type mismatches
+    mismatches ++ paramTypeMismatchs
   private var mismatches: Set[TypeMismatch] = Set()
 
   /** handle calls */
@@ -24,6 +28,7 @@ class TypeSemantics(
     calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue] = Map(),
+    method: Boolean = false,
   ): Unit =
     val NodePoint(callerFunc, call, view) = callerNp
     calleeFunc.retTy.ty match
@@ -38,32 +43,35 @@ class TypeSemantics(
         } this += nextNp -> newSt
       // Otherwise, do original abstract call semantics
       case _ =>
-        super.doCall(callerNp, callerSt, calleeFunc, args, captured)
+        super.doCall(callerNp, callerSt, calleeFunc, args, captured, method)
 
   /** get local variables */
   override def getLocals(
     callerNp: NodePoint[Call],
     calleeRp: ReturnPoint,
-    params: List[Param],
     args: List[AbsValue],
-    cont: Boolean = false,
+    cont: Boolean,
+    method: Boolean,
   ): Map[Local, AbsValue] = {
+    // get parameters
+    val params: List[Param] = calleeRp.func.irFunc.params
     // check arity
     val arity @ (from, to) = calleeRp.func.arity
     val len = args.length
     if (len < from || to < len)
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
     // construct local type environment
-    (for ((param, arg) <- (params zip args)) yield {
+    (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
       val argTy = arg.ty
       val expected = param.ty.ty match
-        // argument type check when parameter type is known type
+        // argument type check when parameter type is a known type
         case paramTy: ValueTy if (!(argTy <= paramTy)) =>
           val key = (callerNp, calleeRp, param)
-          argsForMismatch += key -> (argsForMismatch.get(key) match
-            case Some(origTy) => origTy || argTy
-            case None         => argTy
-          )
+          if (method && idx == 0) () /* ignore `this` for method-like calls */
+          else
+            argsForMismatch += key -> {
+              argsForMismatch.get(key).fold(argTy)(_ || argTy)
+            }
           AbsValue(paramTy)
         case _ => arg
       // force to set expected type for parameters
