@@ -3,7 +3,7 @@ package esmeta.analyzer.util
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.ir.{IRElem, Inst}
+import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
 import esmeta.state.SimpleValue
 import esmeta.ty.*
@@ -100,13 +100,18 @@ class Stringifier(
 
   // specification type mismatches
   given mismatchRule: Rule[TypeMismatch] = (app, m) =>
-    given Rule[Inst] = addLoc
+    given Rule[IRElem with LangEdge] = addLoc
     m match
       case m @ ParamTypeMismatch(callerNp, calleeRp, param, argTy) =>
         app >> "[ParamTypeMismatch] parameter _" >> param.lhs >> "_"
         app >> " of " >> callerNp.func.name >> callerNp.node.callInst
         app :> "- expected: " >> param.ty
         app :> "- actual  : " >> argTy
+      case m @ ReturnTypeMismatch(ret, calleeRp, actual) =>
+        app >> "[ReturnTypeMismatch] "
+        app >> calleeRp.func.name >> ret
+        app :> "- expected: " >> calleeRp.func.retTy
+        app :> "- actual  : " >> actual
       case ArityMismatch(callerNp, calleeRp, expected, actual) =>
         app >> "[ArityMismatch] " >> callerNp.func.name
         app >> callerNp.node.callInst
@@ -117,9 +122,9 @@ class Stringifier(
         app >> " for " >> calleeRp.func.name
         app :> "- actual  : " >> actual
 
-  private val addLoc: Rule[Inst] = (app, inst) => {
+  private val addLoc: Rule[IRElem with LangEdge] = (app, elem) => {
     for {
-      lang <- inst.langOpt
+      lang <- elem.langOpt
       loc <- lang.loc
     } app >> " @ " >> loc.toString
     app

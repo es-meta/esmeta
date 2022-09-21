@@ -3,7 +3,7 @@ package esmeta.analyzer
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
-import esmeta.ir.{Func => IRFunc, Name, Param, Local}
+import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local}
 import esmeta.error.*
 import esmeta.state.*
 import esmeta.util.*
@@ -204,7 +204,7 @@ class AbsSemantics(
   }
 
   /** update return points */
-  def doReturn(rp: ReturnPoint, origRet: AbsRet): Unit =
+  def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val retRp = ReturnPoint(func, getEntryView(view))
     val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
