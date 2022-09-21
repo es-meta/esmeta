@@ -12,7 +12,10 @@ class TypeSemantics(
 ) extends AbsSemantics(npMap) {
 
   /** type mismatches */
-  var mismatches: Set[TypeMismatch] = Set()
+  def getMismatches: Set[TypeMismatch] = mismatches ++ (for {
+    ((callerNp, calleeRp, param), argTy) <- argsForMismatch
+  } yield ParamTypeMismatch(callerNp, calleeRp, param, argTy))
+  private var mismatches: Set[TypeMismatch] = Set()
 
   /** handle calls */
   override def doCall(
@@ -45,14 +48,31 @@ class TypeSemantics(
     args: List[AbsValue],
     cont: Boolean = false,
   ): Map[Local, AbsValue] = {
+    // check arity
     val arity @ (from, to) = calleeRp.func.arity
     val len = args.length
     if (len < from || to < len)
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
-    (for {
-      (param, arg) <- (params zip args)
-    } yield param.lhs -> arg).toMap
+    // construct local type environment
+    (for ((param, arg) <- (params zip args)) yield {
+      val argTy = arg.ty
+      val expected = param.ty.ty match
+        // argument type check when parameter type is known type
+        case paramTy: ValueTy if (!(argTy <= paramTy)) =>
+          val key = (callerNp, calleeRp, param)
+          argsForMismatch += key -> (argsForMismatch.get(key) match
+            case Some(origTy) => origTy || argTy
+            case None         => argTy
+          )
+          AbsValue(paramTy)
+        case _ => arg
+      // force to set expected type for parameters
+      param.lhs -> expected
+    }).toMap
   }
+  // record this info for ParamTypeMismatch
+  private type CallEdgeWithParam = (NodePoint[Call], ReturnPoint, Param)
+  private var argsForMismatch: Map[CallEdgeWithParam, ValueTy] = Map()
 
   /** conversion to string */
   override def toString: String =

@@ -12,7 +12,8 @@ sealed trait TypeMismatch extends AnalyzerElem
 case class ParamTypeMismatch(
   callerNp: NodePoint[Call],
   calleeRp: ReturnPoint,
-  paramName: Name,
+  param: Param,
+  argTy: ValueTy,
 ) extends TypeMismatch
 
 /** arity mismatches */
