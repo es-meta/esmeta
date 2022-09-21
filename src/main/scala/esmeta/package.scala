@@ -7,7 +7,7 @@ val LINE_SEP = System.getProperty("line.separator")
 val BASE_DIR = System.getenv("ESMETA_HOME")
 
 /** base project directory root */
-val VERSION = "0.1.0-RC1"
+val VERSION = "0.1.0-rc2"
 
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
