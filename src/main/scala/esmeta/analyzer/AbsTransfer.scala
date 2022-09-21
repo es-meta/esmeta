@@ -243,9 +243,9 @@ class AbsTransfer(sem: AbsSemantics) {
             val newLocals = sem.getLocals(
               callerNp,
               target.toReturnPoint,
-              target.func.irFunc.params,
               as0,
               cont = true,
+              method = false,
             ) ++ captured
             sem += target -> st.copied(locals = newLocals)
           }
@@ -262,7 +262,13 @@ class AbsTransfer(sem: AbsSemantics) {
           st <- get
         } yield {
           for (AClo(func, _) <- fv.clo)
-            sem.doCall(callerNp, st, func, bv.refineThis(func) :: as)
+            sem.doCall(
+              callerNp,
+              st,
+              func,
+              bv.refineThis(func) :: as,
+              method = true,
+            )
           AbsValue.Bot
         }
       case ISdoCall(_, base, method, args) =>
@@ -276,7 +282,13 @@ class AbsTransfer(sem: AbsSemantics) {
             case One(AstValue(syn: Syntactic)) =>
               getSDO((syn, method)) match
                 case Some((ast0, sdo)) =>
-                  sem.doCall(callerNp, st, sdo, AbsValue(ast0) :: as)
+                  sem.doCall(
+                    callerNp,
+                    st,
+                    sdo,
+                    AbsValue(ast0) :: as,
+                    method = true,
+                  )
                 case None => error("invalid sdo")
             case One(AstValue(lex: Lexical)) =>
               newV ⊔= AbsValue(Interpreter.eval(lex, method))
@@ -285,8 +297,8 @@ class AbsTransfer(sem: AbsSemantics) {
               newV ⊔= bv.getLexical(method)
 
               // syntactic sdo
-              for { (sdo, ast) <- bv.getSDO(method) }
-                sem.doCall(callerNp, st, sdo, ast :: as)
+              for ((sdo, ast) <- bv.getSDO(method))
+                sem.doCall(callerNp, st, sdo, ast :: as, method = true)
             case _ => /* do nothing */
           newV
         }

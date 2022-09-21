@@ -117,6 +117,7 @@ class AbsSemantics(
     calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue] = Map(),
+    method: Boolean = false,
   ): Unit =
     this.callInfo += callerNp -> callerSt
     for {
@@ -126,6 +127,7 @@ class AbsSemantics(
         calleeFunc,
         args,
         captured,
+        method,
       )
     } {
       // add callee to worklist
@@ -146,6 +148,7 @@ class AbsSemantics(
     calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue],
+    method: Boolean,
   ): List[(NodePoint[_], AbsState)] = {
     // handle ir callsite sensitivity
     val NodePoint(callerFunc, callSite, callerView) = callerNp
@@ -160,7 +163,13 @@ class AbsSemantics(
     val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
     val calleeRp = ReturnPoint(calleeFunc, baseView)
     val calleeSt = callerSt.copied(locals =
-      getLocals(callerNp, calleeRp, calleeFunc.irFunc.params, args) ++ captured,
+      getLocals(
+        callerNp,
+        calleeRp,
+        args,
+        cont = false,
+        method,
+      ) ++ captured,
     )
     List((calleeNp, calleeSt))
   }
@@ -169,10 +178,11 @@ class AbsSemantics(
   def getLocals(
     callerNp: NodePoint[Call],
     calleeRp: ReturnPoint,
-    params: List[Param],
     args: List[AbsValue],
-    cont: Boolean = false,
+    cont: Boolean,
+    method: Boolean,
   ): Map[Local, AbsValue] = {
+    val params: List[Param] = calleeRp.func.irFunc.params
     var map = Map[Local, AbsValue]()
 
     @tailrec
