@@ -22,7 +22,7 @@ object Compiler:
   def apply(
     spec: Spec,
     log: Boolean = false,
-  ): Program = new Compiler(spec).result
+  ): Program = new Compiler(spec, log).result
 
 /** extensible helper of compiler from metalangauge to IR */
 class Compiler(
