@@ -401,24 +401,27 @@ class Compiler(
     val n = Name(x.name); (n, ERef(n))
 
   /** compile references */
-  def compile(fb: FuncBuilder, ref: Reference): Ref = ref match {
-    case x: Variable               => compile(x)
-    case RunningExecutionContext() => GLOBAL_CONTEXT
-    case SecondExecutionContext()  => toRef(GLOBAL_EXECUTION_STACK, EMathVal(1))
-    case CurrentRealmRecord()      => currentRealm
-    case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
-    case ref: PropertyReference    => compile(fb, ref)
-  }
+  def compile(fb: FuncBuilder, ref: Reference): Ref =
+    fb.withLang(ref)(ref match {
+      case x: Variable               => compile(x)
+      case RunningExecutionContext() => GLOBAL_CONTEXT
+      case SecondExecutionContext() =>
+        toRef(GLOBAL_EXECUTION_STACK, EMathVal(1))
+      case CurrentRealmRecord()   => currentRealm
+      case ActiveFunctionObject() => toStrRef(GLOBAL_CONTEXT, "Function")
+      case ref: PropertyReference => compile(fb, ref)
+    })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Prop =
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
-    prop match
+    fb.withLang(ref)(prop match {
       case FieldProperty(name)       => Prop(baseRef, EStr(name))
       case ComponentProperty(name)   => Prop(baseRef, EStr(name))
       case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Prop(baseRef, EStr(name))
+    })
 
   /** compile expressions */
   def compile(fb: FuncBuilder, expr: Expression): Expr =
