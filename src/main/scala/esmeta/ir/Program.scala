@@ -40,13 +40,14 @@ case class Program(
   def tyModel: TyModel = spec.tyModel
 
   /** dump IR program */
-  def dumpTo(baseDir: String): Unit =
+  def dumpTo(baseDir: String, loc: Boolean = false): Unit =
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "IR functions",
       iterable = ProgressBar("Dump IR functions", funcs),
       dirname = dirname,
       getName = func => s"${func.normalizedName}.ir",
+      getData = func => func.toString(detail = true, location = loc),
     )
 }
 object Program extends Parser.From(Parser.program) {
