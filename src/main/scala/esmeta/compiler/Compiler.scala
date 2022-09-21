@@ -12,6 +12,7 @@ import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.*
 import esmeta.ty.*
+import esmeta.util.ManualInfo
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.ListBuffer
@@ -36,7 +37,7 @@ class Compiler(
 
   /** load manually created AOs */
   val manualAlgos = (for {
-    file <- walkTree(MANUALS_DIR) if irFilter(file.getName)
+    file <- spec.manualInfo.funcFiles
     func = Func.fromFile(file.toString)
   } yield func).toList
   val manualAlgoNames = manualAlgos.map(_.name).toSet
@@ -45,8 +46,7 @@ class Compiler(
   val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
 
   /** load manual compile rules */
-  val manualRules: Map[String, Map[String, String]] =
-    readJson[Map[String, Map[String, String]]](s"$MANUALS_DIR/rule.json")
+  val manualRules: ManualInfo.CompileRule = spec.manualInfo.compileRule
 
   /** load manual compile rules for expressions */
   val exprRules: Map[String, Expr] = for {
