@@ -69,6 +69,14 @@ private class TypeAnalyzer(
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
     )
+    dumpFile(
+      name = "detected type mismatches",
+      data = sem.getMismatches.toList
+        .map(_.toString)
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$ANALYZE_LOG_DIR/mismatches",
+    )
   }
 }
 object TypeAnalyzer:
