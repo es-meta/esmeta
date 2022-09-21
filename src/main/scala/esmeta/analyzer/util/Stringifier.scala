@@ -6,6 +6,7 @@ import esmeta.cfg.*
 import esmeta.ir.{IRElem, Inst}
 import esmeta.state.*
 import esmeta.state.SimpleValue
+import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -101,13 +102,11 @@ class Stringifier(
   given mismatchRule: Rule[TypeMismatch] = (app, m) =>
     given Rule[Inst] = addLoc
     m match
-      case ParamTypeMismatch(callerNp, calleeRp, paramName) =>
-        ???
-      // app >> "[CallMismatch] " >> caller.name
-      // loc.fold(app)(app >> " @ " >> _.toString)
-      // app :> "- expected: " >> param.ty
-      // app >> " (" >> param.lhs >> " @ " >> callee.name >> ")"
-      // app :> "- actual  : " >> arg
+      case m @ ParamTypeMismatch(callerNp, calleeRp, param, argTy) =>
+        app >> "[ParamTypeMismatch] parameter _" >> param.lhs >> "_"
+        app >> " of " >> callerNp.func.name >> callerNp.node.callInst
+        app :> "- expected: " >> param.ty
+        app :> "- actual  : " >> argTy
       case ArityMismatch(callerNp, calleeRp, expected, actual) =>
         app >> "[ArityMismatch] " >> callerNp.func.name
         app >> callerNp.node.callInst

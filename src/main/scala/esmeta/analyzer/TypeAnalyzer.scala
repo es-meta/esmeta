@@ -20,7 +20,8 @@ private class TypeAnalyzer(
       sem.fixpoint
       println(sem.shortString)
       if (log) logging
-      if (!sem.mismatches.isEmpty) throw TypeMismatchError(sem.mismatches)
+      val mismatches = sem.getMismatches
+      if (!mismatches.isEmpty) throw TypeMismatchError(mismatches)
       sem
     }
   }
