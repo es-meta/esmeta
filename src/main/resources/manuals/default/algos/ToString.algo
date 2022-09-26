@@ -2,7 +2,7 @@
   <h1>
     ToString (
       _argument_: an ECMAScript language value,
-    ): either a normal completion containing an ECMAScript language value or an abrupt completion
+    ): either a normal completion containing a String or an abrupt completion
   </h1>
   <dl class="header"></dl>
   <emu-alg>
