@@ -105,7 +105,7 @@ class Stringifier(
       case m @ ParamTypeMismatch(callerNp, calleeRp, param, argTy) =>
         app >> "[ParamTypeMismatch] parameter _" >> param.lhs.name >> "_"
         app >> " of " >> calleeRp.func.name
-        app >> " from " >> callerNp.func.name >> callerNp.node.callInst
+        app >> " @ " >> callerNp.func.name >> callerNp.node.callInst
         app :> "- expected: " >> param.ty
         app :> "- actual  : " >> argTy
       case m @ ReturnTypeMismatch(ret, calleeRp, actual) =>
@@ -127,7 +127,7 @@ class Stringifier(
     for {
       lang <- elem.langOpt
       loc <- lang.loc
-    } app >> " @ " >> loc.toString
+    } app >> " " >> loc.toString
     app
   }
 
