@@ -103,8 +103,9 @@ class Stringifier(
     given Rule[IRElem with LangEdge] = addLoc
     m match
       case m @ ParamTypeMismatch(callerNp, calleeRp, param, argTy) =>
-        app >> "[ParamTypeMismatch] parameter _" >> param.lhs >> "_"
-        app >> " of " >> callerNp.func.name >> callerNp.node.callInst
+        app >> "[ParamTypeMismatch] parameter _" >> param.lhs.name >> "_"
+        app >> " of " >> calleeRp.func.name
+        app >> " from " >> callerNp.func.name >> callerNp.node.callInst
         app :> "- expected: " >> param.ty
         app :> "- actual  : " >> argTy
       case m @ ReturnTypeMismatch(ret, calleeRp, actual) =>

@@ -554,9 +554,7 @@ class AbsTransfer(sem: AbsSemantics) {
 
   /** transfer function for reference values */
   def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =
-    for {
-      v <- get(_.get(rv, cp))
-    } yield v
+    for { v <- get(_.get(rv, cp)) } yield v
 
   /** transfer function for unary operators */
   def transfer(
