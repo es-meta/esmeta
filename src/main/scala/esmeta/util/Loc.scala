@@ -29,7 +29,7 @@ case class Loc(
 
   // TODO short string for the same line (e.g. 3:2-4)
   override def toString: String =
-    s"${start.simpleString}-${end.simpleString} (step $stepString)"
+    s"(step $stepString, ${start.simpleString}-${end.simpleString})"
 
   def stepString: String =
     (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
