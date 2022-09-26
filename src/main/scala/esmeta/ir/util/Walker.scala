@@ -69,60 +69,62 @@ trait Walker extends BasicWalker {
     ).setLangOpt(inst.langOpt)
 
   // expressions
-  def walk(expr: Expr): Expr = expr match
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      EComp(walk(tyExpr), walk(valExpr), walk(tgtExpr))
-    case EIsCompletion(expr) =>
-      EIsCompletion(walk(expr))
-    case EReturnIfAbrupt(expr, check) =>
-      EReturnIfAbrupt(walk(expr), walk(check))
-    case EPop(list, front) =>
-      EPop(walk(list), walk(front))
-    case EParse(code, rule) =>
-      EParse(walk(code), walk(rule))
-    case ENt(name, params) =>
-      ENt(walk(name), walkList(params, walk))
-    case ESourceText(expr) =>
-      ESourceText(walk(expr))
-    case EYet(msg) =>
-      EYet(walk(msg))
-    case EContains(list, elem, field) =>
-      EContains(
-        walk(list),
-        walk(elem),
-        walkOpt(field, { case (t, f) => (walk(t), f) }),
-      )
-    case ESubstring(expr, from, to) =>
-      ESubstring(walk(expr), walk(from), walkOpt(to, walk))
-    case ERef(ref) =>
-      ERef(walk(ref))
-    case EUnary(uop, expr) =>
-      EUnary(walk(uop), walk(expr))
-    case EBinary(bop, left, right) =>
-      EBinary(walk(bop), walk(left), walk(right))
-    case EVariadic(vop, exprs) =>
-      EVariadic(walk(vop), walkList(exprs, walk))
-    case EClamp(target, lower, upper) =>
-      EClamp(walk(target), walk(lower), walk(upper))
-    case EMathOp(mop, exprs) =>
-      EMathOp(walk(mop), walkList(exprs, walk))
-    case EConvert(cop, expr) =>
-      EConvert(walk(cop), walk(expr))
-    case ETypeOf(base) =>
-      ETypeOf(walk(base))
-    case ETypeCheck(expr, ty) =>
-      ETypeCheck(walk(expr), walk(ty))
-    case EClo(fname, captured) =>
-      EClo(walk(fname), walkList(captured, walk))
-    case ECont(fname) =>
-      ECont(walk(fname))
-    case EDuplicated(expr) =>
-      EDuplicated(walk(expr))
-    case EIsArrayIndex(expr) =>
-      EIsArrayIndex(walk(expr))
-    case expr: AstExpr     => walk(expr)
-    case expr: AllocExpr   => walk(expr)
-    case expr: LiteralExpr => walk(expr)
+  def walk(expr: Expr): Expr =
+    (expr match
+      case EComp(tyExpr, valExpr, tgtExpr) =>
+        EComp(walk(tyExpr), walk(valExpr), walk(tgtExpr))
+      case EIsCompletion(expr) =>
+        EIsCompletion(walk(expr))
+      case EReturnIfAbrupt(expr, check) =>
+        EReturnIfAbrupt(walk(expr), walk(check))
+      case EPop(list, front) =>
+        EPop(walk(list), walk(front))
+      case EParse(code, rule) =>
+        EParse(walk(code), walk(rule))
+      case ENt(name, params) =>
+        ENt(walk(name), walkList(params, walk))
+      case ESourceText(expr) =>
+        ESourceText(walk(expr))
+      case EYet(msg) =>
+        EYet(walk(msg))
+      case EContains(list, elem, field) =>
+        EContains(
+          walk(list),
+          walk(elem),
+          walkOpt(field, { case (t, f) => (walk(t), f) }),
+        )
+      case ESubstring(expr, from, to) =>
+        ESubstring(walk(expr), walk(from), walkOpt(to, walk))
+      case ERef(ref) =>
+        ERef(walk(ref))
+      case EUnary(uop, expr) =>
+        EUnary(walk(uop), walk(expr))
+      case EBinary(bop, left, right) =>
+        EBinary(walk(bop), walk(left), walk(right))
+      case EVariadic(vop, exprs) =>
+        EVariadic(walk(vop), walkList(exprs, walk))
+      case EClamp(target, lower, upper) =>
+        EClamp(walk(target), walk(lower), walk(upper))
+      case EMathOp(mop, exprs) =>
+        EMathOp(walk(mop), walkList(exprs, walk))
+      case EConvert(cop, expr) =>
+        EConvert(walk(cop), walk(expr))
+      case ETypeOf(base) =>
+        ETypeOf(walk(base))
+      case ETypeCheck(expr, ty) =>
+        ETypeCheck(walk(expr), walk(ty))
+      case EClo(fname, captured) =>
+        EClo(walk(fname), walkList(captured, walk))
+      case ECont(fname) =>
+        ECont(walk(fname))
+      case EDuplicated(expr) =>
+        EDuplicated(walk(expr))
+      case EIsArrayIndex(expr) =>
+        EIsArrayIndex(walk(expr))
+      case expr: AstExpr     => walk(expr)
+      case expr: AllocExpr   => walk(expr)
+      case expr: LiteralExpr => walk(expr)
+    ).setLangOpt(expr.langOpt)
 
   // abstract syntax tree (AST) expressions
   def walk(ast: AstExpr): AstExpr = ast match
@@ -177,9 +179,11 @@ trait Walker extends BasicWalker {
     case op               => op
 
   // references
-  def walk(ref: Ref): Ref = ref match
-    case Prop(ref, expr) => Prop(walk(ref), walk(expr))
-    case x: Id           => walk(x)
+  def walk(ref: Ref): Ref =
+    (ref match
+      case Prop(ref, expr) => Prop(walk(ref), walk(expr))
+      case x: Id           => walk(x)
+    ).setLangOpt(ref.langOpt)
 
   // identifiers
   def walk(x: Id): Id = x match
