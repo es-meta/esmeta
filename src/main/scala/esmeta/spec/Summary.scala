@@ -24,6 +24,7 @@ object Summary extends Parser.From[Summary](Parser.summary) {
     val completeAlgos = spec.completeAlgorithms.length
     val completeSteps = spec.completeSteps.length
     val knownTypes = spec.knownTypes.length
+    val notyetTypes = spec.notyetTypes.length
     Summary(
       version = version,
       grammar = GrammarSummary(
@@ -42,7 +43,8 @@ object Summary extends Parser.From[Summary](Parser.summary) {
       ),
       types = TypeSummary(
         known = knownTypes,
-        unknown = spec.types.length - knownTypes,
+        unknown = spec.types.length - knownTypes - notyetTypes,
+        notyet = notyetTypes,
       ),
       tables = tables.size,
       tyModel = tyModel.infos.size,
@@ -83,7 +85,8 @@ case class StepSummary(
 case class TypeSummary(
   known: Int = 0,
   unknown: Int = 0,
+  notyet: Int = 0,
 ) {
-  def total: Int = known + unknown
+  def total: Int = known + notyet
   def ratioString: String = ratioSimpleString(known, total)
 }

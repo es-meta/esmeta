@@ -3,7 +3,7 @@ package esmeta.lang.util
 import esmeta.lang.*
 import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
-import esmeta.util.{IndentParsers, Locational}
+import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
 import esmeta.util.BaseUtils.*
 
 /** metalanguage parser */
@@ -1088,7 +1088,10 @@ trait Parsers extends IndentParsers {
     ) ^^ { Type(_) }
   }.named("lang.Type")
 
-  // metalanguage types
+  /** Metalanguage Types
+    *
+    * Reference: https://github.com/tc39/ecmarkup/blob/main/src/type-parser.ts
+    */
   lazy val langType: PL[Type] = {
     langTy ^^ { Type(_) }
   }.named("lang.Type")
@@ -1103,21 +1106,16 @@ trait Parsers extends IndentParsers {
   }
 
   // value types
-  lazy val valueTy: P[ValueTy] = opt("either") ~> rep1sep(
-    compTy | pureValueTy,
-    sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ || _) }
+  lazy val valueTy: P[ValueTy] = compTy | multi(pureValueTy, needEither = false)
 
   // completion record types
-  lazy val compTy: P[ValueTy] =
-    "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
-    "an abrupt completion" ^^^ AbruptT
+  lazy val compTy: P[ValueTy] = multi(
+    "a normal completion containing" ~> multi(pureValueTy) ^^ { NormalT(_) } |
+    "an abrupt completion" ^^^ AbruptT,
+  )
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = opt("either") ~> rep1sep(
-    nameTy | recordTy | listTy | simpleTy,
-    sep("or"),
-  ) ^^ { _.foldLeft(BotT)(_ || _) }
+  lazy val pureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
 
   // named record types
   lazy val nameTy: P[ValueTy] =
@@ -1135,7 +1133,7 @@ trait Parsers extends IndentParsers {
 
   // list types
   lazy val listTy: P[ValueTy] =
-    opt("an" | "a") ~ "List of" ~> valueTy ^^ { ListT(_) }
+    opt("an" | "a") ~ "List of" ~> multi(pureValueTy) ^^ { ListT(_) }
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
@@ -1156,6 +1154,16 @@ trait Parsers extends IndentParsers {
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |
     "[a-zA-Z ]+Record".r ^^ { NameT(_) }
   } <~ opt("s")
+
+  private def multi(
+    parser: P[ValueTy],
+    needEither: Boolean = true,
+  ): P[ValueTy] =
+    val multiParser = rep1sep(parser, sep("or")) ^^ {
+      _.foldLeft(BotT)(_ || _)
+    }
+    if (needEither) "either" ~> multiParser | parser
+    else multiParser
 
   // rarely used expressions
   lazy val specialTy: P[Ty] = opt("an" | "a") ~> {
