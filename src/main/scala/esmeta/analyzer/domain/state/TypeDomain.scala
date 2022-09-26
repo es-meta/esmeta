@@ -308,7 +308,6 @@ object TypeDomain extends state.Domain {
               if (propIdx >= nts.size)
                 () // TODO warning(s"invalid access: $propIdx of $ast")
               else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
-              res ||= nts(propIdx).fold(AbsentT)(AstT(_))
             }
           case Inf => res ||= AstTopT
         prop.str match
@@ -328,7 +327,7 @@ object TypeDomain extends state.Domain {
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
     var res = ValueTy()
     if (prop.str contains "length") res ||= MathTopT
-    if (!prop.math.isBottom) res ||= CodeUnitT
+    if (!str.isBottom && !prop.math.isBottom) res ||= CodeUnitT
     // TODO if (!str.isBottom)
     //   boundCheck(
     //     prop,
