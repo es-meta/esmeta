@@ -912,12 +912,12 @@ class Compiler(
   inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   /** literal helpers */
-  val zero = EMathVal(BigDecimal.exact(0))
-  val one = EMathVal(BigDecimal.exact(1))
-  val posInf = ENumber(Double.PositiveInfinity)
-  val negInf = ENumber(Double.NegativeInfinity)
-  val T = EBool(true)
-  val F = EBool(false)
+  def zero = EMathVal(BigDecimal.exact(0))
+  def one = EMathVal(BigDecimal.exact(1))
+  def posInf = ENumber(Double.PositiveInfinity)
+  def negInf = ENumber(Double.NegativeInfinity)
+  def T = EBool(true)
+  def F = EBool(false)
 
   /** operation helpers */
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
