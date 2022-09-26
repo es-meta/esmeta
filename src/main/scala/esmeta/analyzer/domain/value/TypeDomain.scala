@@ -47,7 +47,7 @@ object TypeDomain extends value.Domain {
       if (consts contains "normal") value.ty.pureValue
       else PureValueTy()
     val abrupt = !(consts - "normal").isEmpty
-    Elem(ValueTy(normal = normal, abrupt = abrupt))
+    Elem(ValueTy(normal = Some(normal), abrupt = abrupt))
 
   /** predefined top values */
   lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
@@ -259,10 +259,19 @@ object TypeDomain extends value.Domain {
     /** completion helpers */
     def wrapCompletion: Elem =
       val ty = elem.ty
-      Elem(ValueTy(normal = ty.normal || ty.pureValue, abrupt = ty.abrupt))
+      Elem(
+        ValueTy(
+          normal = ty.normal.map(_ || ty.pureValue),
+          abrupt = ty.abrupt,
+        ),
+      )
     def unwrapCompletion: Elem =
       val ty = elem.ty
-      Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
+      Elem(
+        ValueTy(
+          normal = ty.normal.map(_ || ty.pureValue),
+        ),
+      )
     def isCompletion: Elem =
       val ty = elem.ty
       var bs: Set[Boolean] = Set()

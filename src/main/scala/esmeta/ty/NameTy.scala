@@ -10,6 +10,10 @@ case class NameTy(set: Set[String] = Set())
   import NameTy.*
   import TyModel.es.isSubTy
 
+  if (set contains "any value except a Completion Record")
+    println("???")
+    throw Error("!!!")
+
   /** bottom check */
   def isBottom: Boolean = (this eq Bot) || set.isEmpty
 

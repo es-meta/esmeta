@@ -35,7 +35,7 @@ trait Walker extends BasicWalker {
 
   /** completion record types */
   def walk(ty: CompTy): CompTy = CompTy(
-    walk(ty.normal),
+    walkOpt(ty.normal, walk),
     walk(ty.abrupt),
   )
 

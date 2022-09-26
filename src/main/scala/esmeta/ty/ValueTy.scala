@@ -71,7 +71,7 @@ case class ValueTy(
     subMap.isBottom
 
   /** getters */
-  def normal: PureValueTy = comp.normal
+  def normal: Option[PureValueTy] = comp.normal
   def abrupt: Boolean = comp.abrupt
   def clo: BSet[String] = pureValue.clo
   def cont: BSet[Int] = pureValue.cont
@@ -140,7 +140,7 @@ case class ValueTy(
 object ValueTy {
   def apply(
     comp: CompTy = CompTy.Bot,
-    normal: PureValueTy = PureValueTy.Bot,
+    normal: Option[PureValueTy] = Some(PureValueTy.Bot),
     abrupt: Boolean = false,
     pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),

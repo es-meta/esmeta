@@ -327,7 +327,7 @@ trait Parsers extends IndentParsers {
         val fields = fs.map { case f ~ e => f -> e }
         RecordExpression(t, fields)
     } |||
-    opt("an" | "a") ~ ("newly created" | "new") ~
+    opt("an " | "a ") ~ ("newly created" | "new") ~
     guard(not("Realm")) ~> tname <~ opt(
       "containing no bindings" |
       "with no fields" |
@@ -440,7 +440,7 @@ trait Parsers extends IndentParsers {
       "𝔽" ^^^ ToNumber ||| "ℤ" ^^^ ToBigInt ||| "ℝ" ^^^ ToMath
     ) ~ ("(" ~> expr <~ ")")
     val textFormat =
-      ("the" | "an" | "a") ~> (
+      ("the " | "an " | "a ") ~> (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
@@ -819,7 +819,7 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
-    expr ~ isEither((("an" | "a") ~> langType)) ^^ {
+    expr ~ isEither((("an " | "a ") ~> langType)) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
     }
 
@@ -829,7 +829,7 @@ trait Parsers extends IndentParsers {
     // GeneratorValidate
     (ref <~ opt("also")) ~
     ("has" ^^^ false ||| "does not have" ^^^ true) ~
-    (("an" | "a") ~> expr <~ fieldStr) ^^ {
+    (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
 
@@ -914,7 +914,7 @@ trait Parsers extends IndentParsers {
   // contains-whose conditions
   lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
     expr ~
-    ("contains" ~ opt("an" | "a") ~> langType) ~
+    ("contains" ~ opt("an " | "a ") ~> langType) ~
     ("whose" ~ "[[" ~> word <~ "]]") ~
     ("is" ~> expr) ^^ {
       case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
@@ -1110,6 +1110,7 @@ trait Parsers extends IndentParsers {
 
   // completion record types
   lazy val compTy: P[ValueTy] = multi(
+    "a Completion Record" ^^^ CompT |
     "a normal completion containing" ~> multi(pureValueTy) ^^ { NormalT(_) } |
     "an abrupt completion" ^^^ AbruptT,
   )
@@ -1119,24 +1120,23 @@ trait Parsers extends IndentParsers {
 
   // named record types
   lazy val nameTy: P[ValueTy] =
-    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or"))
-      .flatMap {
-        case ss =>
-          val name = ss.mkString(" ")
-          val normalizedName = Type.normalizeName(name)
-          if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
-          else failure("unknown type name")
-      }
+    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
+      case ss =>
+        val name = ss.mkString(" ")
+        val normalizedName = Type.normalizeName(name)
+        if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
+        else failure("unknown type name")
+    }
 
   // record types TODO
-  lazy val recordTy: P[ValueTy] = opt("an" | "a") ~> failure("TODO")
+  lazy val recordTy: P[ValueTy] = opt("an " | "a ") ~> failure("TODO")
 
   // list types
   lazy val listTy: P[ValueTy] =
-    opt("an" | "a") ~ "List of" ~> multi(pureValueTy) ^^ { ListT(_) }
+    opt("an " | "a ") ~ "List of" ~> multi(pureValueTy) ^^ { ListT(_) }
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = opt("an" | "a") ~> {
+  lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
     "Number" ^^^ NumberTopT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1151,8 +1151,7 @@ trait Parsers extends IndentParsers {
     "property key" ^^^ (StrTopT || SymbolT) |
     "Parse Node" ^^^ AstTopT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) } |
-    "[a-zA-Z ]+Record".r ^^ { NameT(_) }
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
   } <~ opt("s")
 
   private def multi(
@@ -1166,7 +1165,7 @@ trait Parsers extends IndentParsers {
     else multiParser
 
   // rarely used expressions
-  lazy val specialTy: P[Ty] = opt("an" | "a") ~> {
+  lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
     } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {

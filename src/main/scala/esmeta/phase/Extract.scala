@@ -40,14 +40,14 @@ case object Extract extends Phase[Unit, Spec] {
       filename = s"$EXTRACT_LOG_DIR/yet-steps",
     )
 
-    val notyetTypes = spec.notyetTypes
+    val yetTypes = spec.yetTypes
     dumpFile(
       name = "not yet parsed types",
-      data = notyetTypes
+      data = yetTypes
         .map(_.toString)
         .sorted
         .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/notyet-types",
+      filename = s"$EXTRACT_LOG_DIR/yet-types",
     )
 
     dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")

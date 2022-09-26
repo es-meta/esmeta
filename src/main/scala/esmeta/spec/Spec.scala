@@ -58,7 +58,7 @@ case class Spec(
     types.collect { case ty @ Type(_: ValueTy) => ty }
 
   /** get known types */
-  lazy val notyetTypes: List[Type] =
+  lazy val yetTypes: List[Type] =
     types.collect { case ty @ Type(UnknownTy(Some(_))) => ty }
 
   /** mapping from algorithms names to algorithms */

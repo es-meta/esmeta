@@ -46,8 +46,9 @@ object Stringifier {
 
   /** completion record types */
   given compTyRule: Rule[CompTy] = (app, ty) =>
+    given Rule[Option[PureValueTy]] = topRule
     FilterApp(app)
-      .add(ty.normal, !ty.normal.isBottom, "Normal[", "]")
+      .add(ty.normal, !ty.normal.fold(false)(_.isBottom), "Normal")
       .add("Abrupt", !ty.abrupt.isBottom)
       .app
 
@@ -133,11 +134,15 @@ object Stringifier {
       case List(bool) => app >> (if (bool) "True" else "False")
       case _          => app >> "Boolean"
 
+  // rule for option type for top
+  private def topRule[T](using Rule[T]): Rule[Option[T]] = (app, opt) =>
+    opt.fold(app)(app >> "[" >> _ >> "]")
+
   // appender with filtering
   private class FilterApp(val app: Appender) {
     private var first = true
     def add[T](
-      t: T,
+      t: => T,
       valid: Boolean,
       pre: String = "",
       post: String = "",

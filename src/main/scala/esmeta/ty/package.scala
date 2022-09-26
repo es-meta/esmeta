@@ -16,13 +16,14 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
+val CompT: ValueTy = ValueTy(normal = None, abrupt = true)
 def CompT(normal: ValueTy, abrupt: Boolean): ValueTy =
   if (normal.pureValue.isBottom && !abrupt) ValueTy.Bot
-  else ValueTy(normal = normal.pureValue, abrupt = abrupt)
+  else ValueTy(normal = Some(normal.pureValue), abrupt = abrupt)
 val AbruptT: ValueTy = ValueTy(abrupt = true)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
-  else ValueTy(normal = value.pureValue)
+  else ValueTy(normal = Some(value.pureValue))
 def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))

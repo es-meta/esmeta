@@ -61,8 +61,8 @@ object Stringifier {
     app :> "  - incomplete: " >> steps.incomplete
     app :> "- types: " >> types.total >> " " >> types.ratioString
     app :> "  - known: " >> types.known
+    app :> "  - yet: " >> types.yet
     app :> "  - unknown: " >> types.unknown
-    app :> "  - notyet: " >> types.notyet
     app :> "- tables: " >> tables
     app :> "- type model: " >> tyModel
 

@@ -270,11 +270,13 @@ object TypeDomain extends state.Domain {
     CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
   private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
     val str = prop.str
-    val normal = !comp.normal.isBottom
+    val normal = !comp.normal.fold(false)(_.isBottom)
     val abrupt = comp.abrupt
     var res = ValueTy()
     if (str contains "Value")
-      if (normal) res ||= ValueTy(pureValue = comp.normal)
+      if (normal)
+        // remove impossible top normal completion
+        res ||= ValueTy(pureValue = comp.normal.getOrElse(PureValueTy.Bot))
       if (comp.abrupt) res ||= ESValueT || CONSTT_EMPTY
     if (str contains "Target")
       if (normal) res ||= CONSTT_EMPTY

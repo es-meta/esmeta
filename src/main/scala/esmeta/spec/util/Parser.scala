@@ -306,8 +306,8 @@ trait Parsers extends LangParsers {
     val types = {
       (empty ~ "- types:" ~ ".*".r) ~>
       (empty ~ "- known:" ~> int) ~
-      (empty ~ "- unknown:" ~> int) ~
-      (empty ~ "- notyet:" ~> int)
+      (empty ~ "- yet:" ~> int) ~
+      (empty ~ "- unknown:" ~> int)
     } ^^ { case c ~ u ~ n => TypeSummary(c, u, n) }
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
