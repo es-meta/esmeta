@@ -62,6 +62,7 @@ object Stringifier {
     app :> "- types: " >> types.total >> " " >> types.ratioString
     app :> "  - known: " >> types.known
     app :> "  - unknown: " >> types.unknown
+    app :> "  - notyet: " >> types.notyet
     app :> "- tables: " >> tables
     app :> "- type model: " >> tyModel
 

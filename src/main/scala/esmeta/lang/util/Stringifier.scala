@@ -675,7 +675,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given typeRule: Rule[Type] = (app, ty) =>
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-      case ty: ValueTy    => valueTyRule(false)(app, ty)
+      case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
   // predefined types
   lazy val predTys: List[(PureValueTy, String)] = List(
@@ -685,6 +685,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // value types
   def valueTyRule(
     plural: Boolean,
+    withEither: Boolean,
   ): Rule[ValueTy] = (app, ty) =>
     val pure = !ty.pureValue.isBottom
     if (!ty.comp.isBottom)
@@ -692,13 +693,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
       val normal = !ty.normal.isBottom
       val abrupt = ty.abrupt
       val both = normal && abrupt
+      lazy val normalStr = (new Appender >> ty.normal).toString
       if (both) app >> "either "
-      if (normal) app >> "a normal completion containing " >> ty.normal
-      if (both) app >> " or "
+      if (normal) app >> "a normal completion containing " >> normalStr
+      if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
       if (abrupt) app >> "an abrupt completion"
       if (pure) app >> " or "
     if (pure)
-      given Rule[PureValueTy] = pureValueTyRule(plural, false)
+      given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
       app >> ty.pureValue
     app
 
@@ -717,7 +719,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // lists
     for (vty <- ty.list.elem)
-      val sub = valueTyRule(true)(new Appender, vty)
+      val sub = valueTyRule(true, true)(new Appender, vty)
       tys :+= s"a List of $sub"
 
     // symbols

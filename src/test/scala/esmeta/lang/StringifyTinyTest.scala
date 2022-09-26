@@ -752,7 +752,9 @@ class StringifyTinyTest extends LangTest {
       "~end~, ~start~, or ~start+end~",
       Type(ListT(NumberTopT)) -> "a List of Numbers",
       Type(ListT(AstTopT)) -> "a List of Parse Nodes",
-      Type(ListT(StrTopT || UndefT)) -> "a List of Strings or *undefined*",
+      Type(
+        ListT(StrTopT || UndefT),
+      ) -> "a List of either Strings or *undefined*",
       Type(NameT("Environment Record")) -> "an Environment Record",
       Type(NormalT(NumberTopT)) -> "a normal completion containing a Number",
       Type(NormalT(NumberTopT || BigIntT)) ->
@@ -767,6 +769,9 @@ class StringifyTinyTest extends LangTest {
       Type(NullT || ESValueT) -> "an ECMAScript language value",
       Type(ESValueT || AstTopT) ->
       "an ECMAScript language value or a Parse Node",
+      Type(
+        CompT(ListT(StrTopT || NullT), true),
+      ) -> "either a normal completion containing a List of either Strings or *null*, or an abrupt completion",
     )
   }
 
