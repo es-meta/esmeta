@@ -195,6 +195,9 @@ trait DotPrinter {
     )
   }
   def norm(nodes: Iterable[IRElem]): String = {
-    nodes.map(norm(_)).mkString("""<BR ALIGN="LEFT"/>""")
+    nodes
+      .map(norm(_))
+      .mkString("""<BR ALIGN="LEFT"/>""")
+      .concat("""<BR ALIGN="LEFT"/>""")
   }
 }
