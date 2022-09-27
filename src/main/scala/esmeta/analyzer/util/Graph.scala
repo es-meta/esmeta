@@ -51,7 +51,8 @@ case class Graph(
             val entry = func.entry
             val eid = ViewDotPrinter(returnView).getId(entry)
             for (callNp @ NodePoint(_, call, callView) <- calls)
-              ViewDotPrinter(sem.getEntryView(callView)).drawCall(call, eid, app),
+              ViewDotPrinter(sem.getEntryView(callView))
+                .drawCall(call, eid, app),
     }
     app.toString
 
