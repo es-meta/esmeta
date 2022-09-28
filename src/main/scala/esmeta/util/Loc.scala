@@ -42,7 +42,7 @@ case class Loc(
   def stepString: String =
     (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
       case 0 => step.toString
-      case 1 => AlphabetNumeral(step + 1)
+      case 1 => AlphabetNumeral(step)
       case 2 => RomanNumeral(step, lower = true)
     ).mkString(".")
 
