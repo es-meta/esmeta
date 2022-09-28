@@ -44,8 +44,11 @@ case class FuncBuilder(
     scopes.push(ListBuffer()); f; ISeq(scopes.pop.toList)
 
   /** set backward egde from ir to lang */
-  def withLang[T](lang: Syntax)(f: => T): T =
+  def withLang(lang: Syntax)(f: => Unit): Unit =
     langs.push(lang); val result = f; langs.pop
+    result
+  def withLang[T <: IRElem](lang: Syntax)(f: => T): T =
+    langs.push(lang); val result = backEdgeWalker(f); langs.pop
     result
 
   /** add instructions to the current scope */
@@ -54,7 +57,7 @@ case class FuncBuilder(
       case ISeq(is) => is
       case i        => List(i)
     }
-    .map(BackEdgeWalker(this).walk(_))
+    .map(backEdgeWalker.apply)
 
   /** add return to resume instruction */
   def addReturnToResume(context: Ref, value: Expr): Unit =
@@ -82,6 +85,8 @@ case class FuncBuilder(
 
   /** lang stacks */
   val langs: Stack[Syntax] = Stack()
+
+  lazy val backEdgeWalker: BackEdgeWalker = BackEdgeWalker(this)
 
   // ---------------------------------------------------------------------------
   // Private Helpers

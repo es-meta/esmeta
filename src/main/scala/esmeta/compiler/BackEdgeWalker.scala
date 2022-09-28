@@ -1,22 +1,20 @@
 package esmeta.compiler
 
-import esmeta.ir.{Inst, Expr, Ref}
-import esmeta.ir.util.Walker
+import esmeta.ir.{Inst, Expr, Ref, IRElem}
+import esmeta.ir.util.UnitWalker
 
 /** walker for adjusting backward edge from ir to lang */
-case class BackEdgeWalker(
-  fb: FuncBuilder,
-  force: Boolean = false,
-) extends Walker {
-  override def walk(i: Inst) =
-    if (force || i.langOpt.isEmpty) i.setLangOpt(fb.langs.headOption)
-    super.walk(i)
+class BackEdgeWalker(fb: FuncBuilder) extends UnitWalker {
+  def apply[T <: IRElem](elem: T): T = { walk(elem); elem }
+  override def walk(inst: Inst): Unit = if (inst.langOpt.isEmpty)
+    inst.setLangOpt(fb.langs.headOption)
+    super.walk(inst)
 
-  override def walk(e: Expr) =
-    if (force || e.langOpt.isEmpty) e.setLangOpt(fb.langs.headOption)
-    super.walk(e)
+  override def walk(expr: Expr): Unit = if (expr.langOpt.isEmpty)
+    expr.setLangOpt(fb.langs.headOption)
+    super.walk(expr)
 
-  override def walk(r: Ref) =
-    if (force || r.langOpt.isEmpty) r.setLangOpt(fb.langs.headOption)
-    super.walk(r)
+  override def walk(ref: Ref): Unit = if (ref.langOpt.isEmpty)
+    ref.setLangOpt(fb.langs.headOption)
+    super.walk(ref)
 }

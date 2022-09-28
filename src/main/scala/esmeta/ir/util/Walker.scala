@@ -46,30 +46,29 @@ trait Walker extends BasicWalker {
     Param(walk(name), walk(opt), walk(ty), specParam)
 
   // instructions
-  def walk(inst: Inst): Inst =
-    (inst match
-      case IExpr(expr)             => IExpr(walk(expr))
-      case ILet(lhs, expr)         => ILet(walk(lhs), walk(expr))
-      case IAssign(ref, expr)      => IAssign(walk(ref), walk(expr))
-      case IDelete(ref)            => IDelete(walk(ref))
-      case IPush(from, to, front)  => IPush(walk(from), walk(to), walk(front))
-      case IRemoveElem(list, elem) => IRemoveElem(walk(list), walk(elem))
-      case IReturn(expr)           => IReturn(walk(expr))
-      case IAssert(expr)           => IAssert(walk(expr))
-      case IPrint(expr)            => IPrint(walk(expr))
-      case INop()                  => INop()
-      case ISeq(insts)             => ISeq(walkList(insts, walk))
-      case IIf(c, t, e)            => IIf(walk(c), walk(t), walk(e))
-      case ILoop(k, c, b)          => ILoop(walk(k), walk(c), walk(b))
-      case ICall(l, f, as) => ICall(walk(l), walk(f), walkList(as, walk))
-      case IMethodCall(l, b, n, as) =>
-        IMethodCall(walk(l), walk(b), walk(n), walkList(as, walk))
-      case ISdoCall(l, b, n, as) =>
-        ISdoCall(walk(l), walk(b), walk(n), walkList(as, walk))
-    ).setLangOpt(inst.langOpt)
+  def walk(inst: Inst): Inst = (inst match
+    case IExpr(expr)             => IExpr(walk(expr))
+    case ILet(lhs, expr)         => ILet(walk(lhs), walk(expr))
+    case IAssign(ref, expr)      => IAssign(walk(ref), walk(expr))
+    case IDelete(ref)            => IDelete(walk(ref))
+    case IPush(from, to, front)  => IPush(walk(from), walk(to), walk(front))
+    case IRemoveElem(list, elem) => IRemoveElem(walk(list), walk(elem))
+    case IReturn(expr)           => IReturn(walk(expr))
+    case IAssert(expr)           => IAssert(walk(expr))
+    case IPrint(expr)            => IPrint(walk(expr))
+    case INop()                  => INop()
+    case ISeq(insts)             => ISeq(walkList(insts, walk))
+    case IIf(c, t, e)            => IIf(walk(c), walk(t), walk(e))
+    case ILoop(k, c, b)          => ILoop(walk(k), walk(c), walk(b))
+    case ICall(l, f, as)         => ICall(walk(l), walk(f), walkList(as, walk))
+    case IMethodCall(l, b, n, as) =>
+      IMethodCall(walk(l), walk(b), walk(n), walkList(as, walk))
+    case ISdoCall(l, b, n, as) =>
+      ISdoCall(walk(l), walk(b), walk(n), walkList(as, walk))
+  ).setLangOpt(inst.langOpt)
 
   // expressions
-  def walk(expr: Expr): Expr = expr match
+  def walk(expr: Expr): Expr = (expr match
     case EComp(tyExpr, valExpr, tgtExpr) =>
       EComp(walk(tyExpr), walk(valExpr), walk(tgtExpr))
     case EIsCompletion(expr) =>
@@ -123,6 +122,7 @@ trait Walker extends BasicWalker {
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)
     case expr: LiteralExpr => walk(expr)
+  ).setLangOpt(expr.langOpt)
 
   // abstract syntax tree (AST) expressions
   def walk(ast: AstExpr): AstExpr = ast match
@@ -177,9 +177,10 @@ trait Walker extends BasicWalker {
     case op               => op
 
   // references
-  def walk(ref: Ref): Ref = ref match
+  def walk(ref: Ref): Ref = (ref match
     case Prop(ref, expr) => Prop(walk(ref), walk(expr))
     case x: Id           => walk(x)
+  ).setLangOpt(ref.langOpt)
 
   // identifiers
   def walk(x: Id): Id = x match

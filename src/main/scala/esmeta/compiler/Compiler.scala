@@ -392,7 +392,7 @@ class Compiler(
       val yetStr = yet.toString(true, false)
       val inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
       unusedRules -= yetStr
-      fb.addInst(BackEdgeWalker(fb, force = true).walk(inst))
+      fb.addInst(inst)
   })
 
   /** compile local variable */
@@ -415,13 +415,12 @@ class Compiler(
   def compile(fb: FuncBuilder, ref: PropertyReference): Prop =
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
-    fb.withLang(ref)(prop match {
+    prop match
       case FieldProperty(name)       => Prop(baseRef, EStr(name))
       case ComponentProperty(name)   => Prop(baseRef, EStr(name))
       case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Prop(baseRef, EStr(name))
-    })
 
   /** compile expressions */
   def compile(fb: FuncBuilder, expr: Expression): Expr =
@@ -853,7 +852,7 @@ class Compiler(
         case None     => x
     }
     val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
-    fb.addInst(BackEdgeWalker(fb, force = true).walk(renamed))
+    fb.addInst(renamed)
     EUndef // NOTE: unused expression
 
   /** handle short circuiting */
@@ -913,12 +912,12 @@ class Compiler(
   inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   /** literal helpers */
-  val zero = EMathVal(BigDecimal.exact(0))
-  val one = EMathVal(BigDecimal.exact(1))
-  val posInf = ENumber(Double.PositiveInfinity)
-  val negInf = ENumber(Double.NegativeInfinity)
-  val T = EBool(true)
-  val F = EBool(false)
+  def zero = EMathVal(BigDecimal.exact(0))
+  def one = EMathVal(BigDecimal.exact(1))
+  def posInf = ENumber(Double.PositiveInfinity)
+  def negInf = ENumber(Double.NegativeInfinity)
+  def T = EBool(true)
+  def F = EBool(false)
 
   /** operation helpers */
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
