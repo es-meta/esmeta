@@ -197,6 +197,8 @@ trait DotPrinter {
   def norm(nodes: Iterable[IRElem]): String = {
     nodes
       .map(norm(_))
+      .zipWithIndex
+      .map((ele, idx) => s"""[${idx}] ${ele}""")
       .mkString("""<BR ALIGN="LEFT"/>""")
       .concat("""<BR ALIGN="LEFT"/>""")
   }
