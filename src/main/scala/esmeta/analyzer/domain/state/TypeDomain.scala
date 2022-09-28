@@ -143,7 +143,7 @@ object TypeDomain extends state.Domain {
     ): (AbsValue, Elem) =
       val value =
         if (v.ty.subMap.isBottom) AbsValue.Bot
-        else AbsValue(StrTopT)
+        else AbsValue(StrT)
       (value, elem)
 
     /** list concatenation */
@@ -162,7 +162,7 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       ast: AbsValue,
       kindOpt: Option[AbsValue],
-    ): (AbsValue, Elem) = (AbsValue(ListT(AstTopT)), elem)
+    ): (AbsValue, Elem) = (AbsValue(ListT(AstT)), elem)
 
     /** allocation of map with address partitions */
     def allocMap(
@@ -280,7 +280,7 @@ object TypeDomain extends state.Domain {
       if (comp.abrupt) res ||= ESValueT || CONSTT_EMPTY
     if (str contains "Target")
       if (normal) res ||= CONSTT_EMPTY
-      if (comp.abrupt) res ||= StrTopT || CONSTT_EMPTY
+      if (comp.abrupt) res ||= StrT || CONSTT_EMPTY
     if (str contains "Type")
       if (normal) res ||= CONSTT_NORMAL
       if (comp.abrupt) res ||= constTyForAbruptTarget
@@ -311,29 +311,29 @@ object TypeDomain extends state.Domain {
                 () // TODO warning(s"invalid access: $propIdx of $ast")
               else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
             }
-          case Inf => res ||= AstTopT
+          case Inf => res ||= AstT
         prop.str match
           case Fin(ss) =>
             for (s <- ss) s match
-              case "parent" => res ||= AstTopT
+              case "parent" => res ||= AstT
               case name =>
                 if (cfg.grammar.nameMap contains name) res ||= AstT(name)
                 else () // TODO warning(s"invalid access: $name of $ast")
-          case Inf => res ||= AstTopT
-      case _ => res ||= AstTopT
+          case Inf => res ||= AstT
+      case _ => res ||= AstT
     // TODO if (!ast.isBottom)
-    //   boundCheck(prop, MathTopT || StrTopT, t => s"invalid access: $t of $ast")
+    //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
     res
 
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
     var res = ValueTy()
-    if (prop.str contains "length") res ||= MathTopT
+    if (prop.str contains "length") res ||= MathT
     if (!str.isBottom && !prop.math.isBottom) res ||= CodeUnitT
     // TODO if (!str.isBottom)
     //   boundCheck(
     //     prop,
-    //     MathTopT || StrT("length"),
+    //     MathT || StrT("length"),
     //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
     //   )
     res
@@ -372,13 +372,13 @@ object TypeDomain extends state.Domain {
     val str = prop.str
     val math = prop.math
     for (ty <- list.elem)
-      if (str contains "length") res ||= MathTopT
+      if (str contains "length") res ||= MathT
       if (!math.isBottom) res ||= ty
     res
 
   // symbol lookup
   private def lookupSymbol(symbol: Boolean, prop: ValueTy): ValueTy =
-    if (symbol && prop.str.contains("Description")) StrTopT
+    if (symbol && prop.str.contains("Description")) StrT
     else ValueTy()
 
   // submap lookup

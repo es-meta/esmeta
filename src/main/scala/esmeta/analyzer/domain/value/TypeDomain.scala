@@ -52,19 +52,19 @@ object TypeDomain extends value.Domain {
   /** predefined top values */
   lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
   lazy val pureValueTop: Elem = notSupported("value.TypeDomain.pureValueTop")
-  lazy val cloTop: Elem = Elem(CloTopT)
-  lazy val contTop: Elem = Elem(ContTopT)
+  lazy val cloTop: Elem = Elem(CloT)
+  lazy val contTop: Elem = Elem(ContT)
   lazy val partTop: Elem = notSupported("value.TypeDomain.partTop")
-  lazy val astValueTop: Elem = Elem(AstTopT)
+  lazy val astValueTop: Elem = Elem(AstT)
   lazy val ntTop: Elem = notSupported("value.TypeDomain.ntTop")
   lazy val codeUnitTop: Elem = Elem(CodeUnitT)
   lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
-  lazy val mathTop: Elem = Elem(MathTopT)
+  lazy val mathTop: Elem = Elem(MathT)
   lazy val simpleValueTop: Elem =
     notSupported("value.TypeDomain.simpleValueTop")
-  lazy val numberTop: Elem = Elem(NumberTopT)
+  lazy val numberTop: Elem = Elem(NumberT)
   lazy val bigIntTop: Elem = Elem(BigIntT)
-  lazy val strTop: Elem = Elem(StrTopT)
+  lazy val strTop: Elem = Elem(StrT)
   lazy val boolTop: Elem = Elem(BoolT)
   lazy val undefTop: Elem = Elem(UndefT)
   lazy val nullTop: Elem = Elem(NullT)
@@ -202,19 +202,19 @@ object TypeDomain extends value.Domain {
       val ty = elem.ty
       Elem(cop match
         case COp.ToApproxNumber if (!ty.math.isBottom) =>
-          NumberTopT
+          NumberT
         case COp.ToNumber
             if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom) =>
-          NumberTopT
+          NumberT
         case COp.ToBigInt
             if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
           BigIntT
         case COp.ToMath
             if (!ty.math.isBottom || !ty.number.isBottom || ty.bigInt) =>
-          MathTopT
+          MathT
         case COp.ToStr(_)
             if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
-          StrTopT
+          StrT
         case _ => ValueTy(),
       )
     def sourceText: Elem = strTop
@@ -238,9 +238,9 @@ object TypeDomain extends value.Domain {
           val that = Elem(tname match
             case "Object"    => NameT("Object")
             case "Symbol"    => SymbolT
-            case "Number"    => NumberTopT
+            case "Number"    => NumberT
             case "BigInt"    => BigIntT
-            case "String"    => StrTopT
+            case "String"    => StrT
             case "Boolean"   => BoolT
             case "Undefined" => UndefT
             case "Null"      => NullT
@@ -296,11 +296,11 @@ object TypeDomain extends value.Domain {
       if (elem.ty.astValue.isBottom) ValueTy()
       else
         method match
-          case "SV" | "TRV" | "StringValue" => StrTopT
-          case "IdentifierCodePoints"       => StrTopT
-          case "MV" | "NumericValue"        => NumberTopT || BigIntT
-          case "TV"                         => StrTopT || UndefT
-          case "BodyText" | "FlagText"      => StrTopT
+          case "SV" | "TRV" | "StringValue" => StrT
+          case "IdentifierCodePoints"       => StrT
+          case "MV" | "NumericValue"        => NumberT || BigIntT
+          case "TV"                         => StrT || UndefT
+          case "BodyText" | "FlagText"      => StrT
           case "Contains"                   => BoolT
           case _                            => ValueTy(),
     )
@@ -311,7 +311,7 @@ object TypeDomain extends value.Domain {
         for {
           func <- cfg.funcs if func.isSDO
           allSdoPattern(_, newMethod) = func.name if newMethod == method
-        } yield (func, Elem(AstTopT))
+        } yield (func, Elem(AstT))
       case AstNameTy(names) =>
         for {
           name <- names.toList

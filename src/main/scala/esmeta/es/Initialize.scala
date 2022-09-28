@@ -31,7 +31,7 @@ class Initialize(cfg: CFG) {
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
     SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
-    MATH_PI -> (Math(scala.math.Pi), MathTopT),
+    MATH_PI -> (Math(scala.math.Pi), MathT),
     REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
     JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
