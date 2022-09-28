@@ -194,7 +194,8 @@ trait DotPrinter {
         .escapeHtml(node.toString(detail = false, location = false)),
     )
   }
-  def norm(nodes: Iterable[IRElem]): String = {
-    nodes.map(norm(_)).mkString("""<BR ALIGN="LEFT"/>""")
-  }
+  def norm(insts: Iterable[Inst]): String = (for {
+    (inst, idx) <- insts.zipWithIndex
+    str = norm(inst)
+  } yield s"""[$idx] $str<BR ALIGN="LEFT"/>""").mkString
 }
