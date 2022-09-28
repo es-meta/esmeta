@@ -1137,19 +1137,19 @@ trait Parsers extends IndentParsers {
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
-    "Number" ^^^ NumberTopT |
+    "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
     "Symbol" ^^^ SymbolT |
-    "String" ^^^ StrTopT |
+    "String" ^^^ StrT |
     "Object" ^^^ ObjectT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
     "ECMAScript language value" ^^^ ESValueT |
-    "property key" ^^^ (StrTopT || SymbolT) |
-    "Parse Node" ^^^ AstTopT |
+    "property key" ^^^ (StrT || SymbolT) |
+    "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
   } <~ opt("s")

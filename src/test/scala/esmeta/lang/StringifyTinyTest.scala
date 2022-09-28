@@ -733,31 +733,31 @@ class StringifyTinyTest extends LangTest {
 
     // tests
     checkParseAndStringify("Type", Type)(
-      Type(NumberTopT) -> "a Number",
+      Type(NumberT) -> "a Number",
       Type(BigIntT) -> "a BigInt",
       Type(BoolT) -> "a Boolean",
       Type(SymbolT) -> "a Symbol",
-      Type(StrTopT) -> "a String",
+      Type(StrT) -> "a String",
       Type(ObjectT) -> "an Object",
       Type(ESValueT) -> "an ECMAScript language value",
       Type(TrueT) -> "*true*",
       Type(FalseT) -> "*false*",
       Type(UndefT) -> "*undefined*",
       Type(NullT) -> "*null*",
-      Type(AstTopT) -> "a Parse Node",
+      Type(AstT) -> "a Parse Node",
       Type(AstT("Identifier")) -> "an |Identifier| Parse Node",
       Type(ConstT("unused")) -> "~unused~",
       Type(ConstT("string", "symbol")) -> "~string~ or ~symbol~",
       Type(ConstT("start", "end", "start+end")) ->
       "~end~, ~start~, or ~start+end~",
-      Type(ListT(NumberTopT)) -> "a List of Numbers",
-      Type(ListT(AstTopT)) -> "a List of Parse Nodes",
+      Type(ListT(NumberT)) -> "a List of Numbers",
+      Type(ListT(AstT)) -> "a List of Parse Nodes",
       Type(
-        ListT(StrTopT || UndefT),
+        ListT(StrT || UndefT),
       ) -> "a List of either Strings or *undefined*",
       Type(NameT("Environment Record")) -> "an Environment Record",
-      Type(NormalT(NumberTopT)) -> "a normal completion containing a Number",
-      Type(NormalT(NumberTopT || BigIntT)) ->
+      Type(NormalT(NumberT)) -> "a normal completion containing a Number",
+      Type(NormalT(NumberT || BigIntT)) ->
       "a normal completion containing either a Number or a BigInt",
       Type(AbruptT) -> "an abrupt completion",
       Type(NormalT(BigIntT) || AbruptT) ->
@@ -765,12 +765,12 @@ class StringifyTinyTest extends LangTest {
       Type(NormalT(NameT("Property Descriptor")) || AbruptT) ->
       "either a normal completion containing a Property Descriptor or an abrupt completion",
       // more complex
-      Type(NumberTopT || BigIntT) -> "a Number or a BigInt",
+      Type(NumberT || BigIntT) -> "a Number or a BigInt",
       Type(NullT || ESValueT) -> "an ECMAScript language value",
-      Type(ESValueT || AstTopT) ->
+      Type(ESValueT || AstT) ->
       "an ECMAScript language value or a Parse Node",
       Type(
-        CompT(ListT(StrTopT || NullT), true),
+        CompT(ListT(StrT || NullT), true),
       ) -> "either a normal completion containing a List of either Strings or *null*, or an abrupt completion",
     )
   }
