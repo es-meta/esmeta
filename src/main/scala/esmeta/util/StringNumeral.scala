@@ -20,15 +20,16 @@ trait StringNumeral {
     base: Int,
     conversion: Int => String,
     lower: Boolean,
-  ): String = {
-    var cur = number
+  ): String =
+    var cur = number - 1
+    var len = 1
+    var mul = base
     var str = ""
-    while (cur > 0) {
+    while (cur >= mul) { cur -= mul; mul *= base; len += 1 }
+    for (_ <- Range(0, len))
       str = conversion(cur % base) + str
       cur /= base
-    }
     str
-  }
 }
 object RomanNumeral extends StringNumeral {
   def apply(number: Int, lower: Boolean = false): String = getString(
