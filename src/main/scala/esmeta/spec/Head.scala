@@ -27,7 +27,7 @@ sealed trait Head extends SpecElem {
       val thisTy = head.target match
         case Some(target) =>
           AstSingleT(target.lhsName, target.idx, target.subIdx)
-        case None => AstTopT
+        case None => AstT
       Param("this", Type(thisTy)) :: head.withParams
     case head: BuiltinHead =>
       List(

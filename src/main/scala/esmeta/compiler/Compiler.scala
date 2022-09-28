@@ -713,7 +713,7 @@ class Compiler(
           tys
             .map[Expr](t => {
               val tname =
-                if (t.ty == AstTopT) "ParseNode"
+                if (t.ty == AstT) "ParseNode"
                 else t.normalizedName
               ETypeCheck(xExpr, EStr(tname))
             })

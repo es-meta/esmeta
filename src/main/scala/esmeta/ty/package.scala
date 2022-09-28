@@ -30,11 +30,11 @@ def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
 def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key, value))
-val CloTopT: ValueTy = ValueTy(clo = Inf)
+val CloT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy =
   if (names.isEmpty) ValueTy.Bot
   else ValueTy(clo = Fin(names.toSet))
-val ContTopT: ValueTy = ValueTy(cont = Inf)
+val ContT: ValueTy = ValueTy(cont = Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) ValueTy.Bot
   else ValueTy(cont = Fin(nids.toSet))
@@ -67,7 +67,7 @@ def ListT(ty: ValueTy): ValueTy =
   if (ty.isBottom) ValueTy.Bot
   else ValueTy(list = ListTy(Some(ty)))
 val SymbolT: ValueTy = ValueTy(symbol = true)
-val AstTopT: ValueTy = ValueTy(astValue = AstTopTy)
+val AstT: ValueTy = ValueTy(astValue = AstTopTy)
 def AstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(astValue = AstNameTy(xs.toSet))
@@ -80,16 +80,16 @@ val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
 def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(const = xs.toSet)
-val MathTopT: ValueTy = ValueTy(math = Inf)
+val MathT: ValueTy = ValueTy(math = Inf)
 def MathT(ns: BigDecimal*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
   else ValueTy(math = Fin(ns.toSet))
-val NumberTopT: ValueTy = ValueTy(number = Inf)
+val NumberT: ValueTy = ValueTy(number = Inf)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
   else ValueTy(number = Fin(ns.toSet))
 val BigIntT: ValueTy = ValueTy(bigInt = true)
-val StrTopT: ValueTy = ValueTy(str = Inf)
+val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
   if (set.isEmpty) ValueTy.Bot
   else ValueTy(str = Fin(set))
