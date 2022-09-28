@@ -13,42 +13,47 @@ case class Graph(
   // conversion to DOT
   lazy val toDot: String =
     val app = new Appender
-    (app >> "digraph").wrap((curOpt, depthOpt, pathOpt) match
-      case (Some(cp), _, Some(path)) =>
-        val func = cp.func
-        val view = sem.getEntryView(cp.view)
-        val dot = ViewDotPrinter(view)
-        val entry = func.entry
-        var eid = dot.getId(entry)
-        dot.addFunc(func, app)
-        for (np <- path)
-          val func = np.func
-          val view = sem.getEntryView(np.view)
+    (app >> "digraph").wrap {
+      app :> """graph [fontname = "Consolas"]"""
+      app :> """node [fontname = "Consolas"]"""
+      app :> """edge [fontname = "Consolas"]"""
+      (curOpt, depthOpt, pathOpt) match
+        case (Some(cp), _, Some(path)) =>
+          val func = cp.func
+          val view = sem.getEntryView(cp.view)
           val dot = ViewDotPrinter(view)
-          dot.addFunc(func, app)
-          dot.drawCall(np.node, eid, app)
           val entry = func.entry
-          eid = dot.getId(entry)
-      case (Some(cp), Some(depth), _) =>
-        val func = cp.func
-        val view = sem.getEntryView(cp.view)
-        val dot = ViewDotPrinter(view)
-        val rp = ReturnPoint(func, view)
-        dot.addFunc(func, app)
-        showPrev(rp, dot, depth, app)
-      case _ =>
-        val funcs: Set[(Func, View)] =
-          sem.npMap.keySet.map(np => (np.func, sem.getEntryView(np.view)))
-        for ((func, view) <- funcs)
+          var eid = dot.getId(entry)
+          dot.addFunc(func, app)
+          for (np <- path)
+            val func = np.func
+            val view = sem.getEntryView(np.view)
+            val dot = ViewDotPrinter(view)
+            dot.addFunc(func, app)
+            dot.drawCall(np.node, eid, app)
+            val entry = func.entry
+            eid = dot.getId(entry)
+        case (Some(cp), Some(depth), _) =>
+          val func = cp.func
+          val view = sem.getEntryView(cp.view)
           val dot = ViewDotPrinter(view)
+          val rp = ReturnPoint(func, view)
           dot.addFunc(func, app)
-        // print call edges
-        for ((ReturnPoint(func, returnView), calls) <- sem.retEdges)
-          val entry = func.entry
-          val eid = ViewDotPrinter(returnView).getId(entry)
-          for (callNp @ NodePoint(_, call, callView) <- calls)
-            ViewDotPrinter(sem.getEntryView(callView)).drawCall(call, eid, app),
-    )
+          showPrev(rp, dot, depth, app)
+        case _ =>
+          val funcs: Set[(Func, View)] =
+            sem.npMap.keySet.map(np => (np.func, sem.getEntryView(np.view)))
+          for ((func, view) <- funcs)
+            val dot = ViewDotPrinter(view)
+            dot.addFunc(func, app)
+          // print call edges
+          for ((ReturnPoint(func, returnView), calls) <- sem.retEdges)
+            val entry = func.entry
+            val eid = ViewDotPrinter(returnView).getId(entry)
+            for (callNp @ NodePoint(_, call, callView) <- calls)
+              ViewDotPrinter(sem.getEntryView(callView))
+                .drawCall(call, eid, app),
+    }
     app.toString
 
   // show previous traces with depth

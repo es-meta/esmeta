@@ -29,9 +29,9 @@ trait DotPrinter {
   override def toString: String = {
     val app = Appender()
     (app >> "digraph ").wrap {
-      app :> """graph [fontname = "helvetica"]"""
-      app :> """node [fontname = "helvetica"]"""
-      app :> """edge [fontname = "helvetica"]"""
+      app :> """graph [fontname = "Consolas"]"""
+      app :> """node [fontname = "Consolas"]"""
+      app :> """edge [fontname = "Consolas"]"""
       this(app)
     }
     app.toString
