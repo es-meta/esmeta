@@ -27,9 +27,8 @@ case class Loc(
   // string getter
   def getString(str: String): String = str.substring(start.offset, end.offset)
 
-  // TODO short string for the same line (e.g. 3:2-4)
   override def toString: String =
-    s"(step $stepString, ${start.simpleString}-${end.simpleString})"
+    s"(step $stepString, ${start.simpleString()}-${end.simpleString(start.line != end.line)})"
 
   def stepString: String =
     (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
@@ -49,6 +48,7 @@ case class Pos(
   var column: Int,
   var offset: Int,
 ) {
-  def simpleString: String = s"$line:$column"
+  def simpleString(withLine: Boolean = true): String =
+    if withLine then s"$line:$column" else s"$column"
   override def toString: String = s"$simpleString($offset)"
 }
