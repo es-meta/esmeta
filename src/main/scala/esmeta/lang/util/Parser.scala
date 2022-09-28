@@ -5,6 +5,7 @@ import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
 import esmeta.util.BaseUtils.*
+import akka.http.scaladsl.model.MediaTypes.multipart
 
 /** metalanguage parser */
 object Parser extends Parsers
@@ -1097,7 +1098,7 @@ trait Parsers extends IndentParsers {
   }.named("lang.Type")
 
   // types
-  lazy val langTy: P[Ty] = valueTy | specialTy
+  lazy val langTy: P[Ty] = multi(valueTy, either = false) | specialTy
 
   // unknown types
   lazy val unknownTy: P[Ty] = "([^,_]|, )+".r ^^ {
@@ -1106,20 +1107,25 @@ trait Parsers extends IndentParsers {
   }
 
   // value types
-  lazy val valueTy: P[ValueTy] = compTy | multi(pureValueTy, needEither = false)
+  lazy val valueTy: P[ValueTy] = multi(compTy | pureValueTy)
 
   // completion record types
-  lazy val compTy: P[ValueTy] = multi(
+  lazy val compTy: P[ValueTy] = multi {
     "a Completion Record" ^^^ CompT |
-    "a normal completion containing" ~> multi(pureValueTy) ^^ { NormalT(_) } |
-    "an abrupt completion" ^^^ AbruptT,
-  )
+    "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
+    "a normal completion" ^^^ NormalT |
+    "a throw completion" ^^^ AbruptT("throw") |
+    "a return completion" ^^^ AbruptT("return") |
+    "an abrupt completion" ^^^ AbruptT
+  }
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
+  lazy val pureValueTy: P[ValueTy] = multi {
+    nameTy | recordTy | listTy | simpleTy,
+  }
 
   // named record types
-  lazy val nameTy: P[ValueTy] =
+  lazy val nameTy: P[ValueTy] = multi {
     opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
       case ss =>
         val name = ss.mkString(" ")
@@ -1127,16 +1133,18 @@ trait Parsers extends IndentParsers {
         if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
         else failure("unknown type name")
     }
+  }
 
   // record types TODO
-  lazy val recordTy: P[ValueTy] = opt("an " | "a ") ~> failure("TODO")
+  lazy val recordTy: P[ValueTy] = multi(opt("an " | "a ") ~> failure("TODO"))
 
   // list types
-  lazy val listTy: P[ValueTy] =
-    opt("an " | "a ") ~ "List of" ~> multi(pureValueTy) ^^ { ListT(_) }
+  lazy val listTy: P[ValueTy] = multi {
+    opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
+  }
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
+  lazy val simpleTy: P[ValueTy] = multi(opt("an " | "a ") ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1152,17 +1160,13 @@ trait Parsers extends IndentParsers {
     "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
-  } <~ opt("s")
+  } <~ opt("s"))
 
-  private def multi(
-    parser: P[ValueTy],
-    needEither: Boolean = true,
-  ): P[ValueTy] =
-    val multiParser = rep1sep(parser, sep("or")) ^^ {
-      _.foldLeft(BotT)(_ || _)
-    }
-    if (needEither) "either" ~> multiParser | parser
-    else multiParser
+  private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
+    val multiParser = (if (either) "either" else "") ~> {
+      rep1sep(parser, ",") ~ (sep("or") ~> parser)
+    } ^^ { case ts ~ t => ts.foldLeft(t)(_ || _) }
+    multiParser | parser
 
   // rarely used expressions
   lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {

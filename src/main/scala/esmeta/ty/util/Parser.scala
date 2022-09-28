@@ -39,7 +39,9 @@ trait Parsers extends BasicParsers {
   private lazy val singleCompTy: Parser[CompTy] = {
     "Normal" ~> opt("[" ~> pureValueTy <~ "]") ^^ {
       case v => CompTy(normal = v)
-    } | "Abrupt" ^^^ CompTy(abrupt = true)
+    } | "Abrupt" ~> opt("[" ~> rep1(camel) <~ "]") ^^ {
+      case s => CompTy(abrupt = s.fold(Inf)(Fin(_: _*)))
+    }
   }.named("ty.CompTy (single)")
 
   /** pure value types (non-completion record types) */

@@ -271,19 +271,19 @@ object TypeDomain extends state.Domain {
   private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
     val str = prop.str
     val normal = !comp.normal.fold(false)(_.isBottom)
-    val abrupt = comp.abrupt
+    val abrupt = !comp.abrupt.isBottom
     var res = ValueTy()
     if (str contains "Value")
       if (normal)
         // remove impossible top normal completion
         res ||= ValueTy(pureValue = comp.normal.getOrElse(PureValueTy.Bot))
-      if (comp.abrupt) res ||= ESValueT || CONSTT_EMPTY
+      if (abrupt) res ||= ESValueT || CONSTT_EMPTY
     if (str contains "Target")
       if (normal) res ||= CONSTT_EMPTY
-      if (comp.abrupt) res ||= StrT || CONSTT_EMPTY
+      if (abrupt) res ||= StrT || CONSTT_EMPTY
     if (str contains "Type")
       if (normal) res ||= CONSTT_NORMAL
-      if (comp.abrupt) res ||= constTyForAbruptTarget
+      if (abrupt) res ||= constTyForAbruptTarget
     // TODO if (!comp.isBottom)
     //   boundCheck(
     //     prop,

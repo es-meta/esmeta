@@ -34,7 +34,7 @@ trait UnitWalker extends BasicUnitWalker {
   /** completion record types */
   def walk(ty: CompTy): Unit =
     walkOpt(ty.normal, walk)
-    walk(ty.abrupt)
+    walkBSet(ty.abrupt, walk)
 
   /** pure value types */
   def walk(ty: PureValueTy): Unit =

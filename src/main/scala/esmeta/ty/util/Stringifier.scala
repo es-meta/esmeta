@@ -49,7 +49,7 @@ object Stringifier {
     given Rule[Option[PureValueTy]] = topRule
     FilterApp(app)
       .add(ty.normal, !ty.normal.fold(false)(_.isBottom), "Normal")
-      .add("Abrupt", !ty.abrupt.isBottom)
+      .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
       .app
 
   /** list types */

@@ -72,7 +72,7 @@ case class ValueTy(
 
   /** getters */
   def normal: Option[PureValueTy] = comp.normal
-  def abrupt: Boolean = comp.abrupt
+  def abrupt: BSet[String] = comp.abrupt
   def clo: BSet[String] = pureValue.clo
   def cont: BSet[Int] = pureValue.cont
   def name: NameTy = pureValue.name
@@ -96,7 +96,7 @@ object ValueTy {
   def apply(
     comp: CompTy = CompTy.Bot,
     normal: Option[PureValueTy] = Some(PureValueTy.Bot),
-    abrupt: Boolean = false,
+    abrupt: BSet[String] = Fin(),
     pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),

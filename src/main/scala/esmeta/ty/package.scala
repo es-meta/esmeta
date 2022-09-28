@@ -16,11 +16,13 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
-val CompT: ValueTy = ValueTy(normal = None, abrupt = true)
-def CompT(normal: ValueTy, abrupt: Boolean): ValueTy =
-  if (normal.pureValue.isBottom && !abrupt) ValueTy.Bot
+val CompT: ValueTy = ValueTy(normal = None, abrupt = Inf)
+def CompT(normal: ValueTy, abrupt: BSet[String]): ValueTy =
+  if (normal.pureValue.isBottom && abrupt.isBottom) ValueTy.Bot
   else ValueTy(normal = Some(normal.pureValue), abrupt = abrupt)
-val AbruptT: ValueTy = ValueTy(abrupt = true)
+val AbruptT: ValueTy = ValueTy(abrupt = Inf)
+def AbruptT(names: String*): ValueTy = ValueTy(abrupt = Fin(names: _*))
+def NormalT: ValueTy = ValueTy(normal = None)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
   else ValueTy(normal = Some(value.pureValue))
