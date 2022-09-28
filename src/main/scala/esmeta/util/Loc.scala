@@ -5,13 +5,18 @@ import scala.annotation.alpha
 
 /** A trait for objects that have a location in spec.html */
 trait Locational {
+
+  /** source location */
   var loc: Option[Loc] = None
+
+  /** set source location with start and end positions and steps */
   def setLoc(start: Pos, end: Pos, steps: List[Int]): this.type =
     setLoc(Some(Loc(start, end, steps)))
-  def setLoc(locOpt: Option[Loc]): this.type = {
+
+  /** set source location */
+  def setLoc(locOpt: Option[Loc]): this.type =
     if (loc.isEmpty) loc = locOpt
     this
-  }
 }
 
 /** source locations in algorithms
@@ -24,18 +29,27 @@ case class Loc(
   var end: Pos,
   var steps: List[Int],
 ) {
-  // string getter
+
+  /** string getter */
   def getString(str: String): String = str.substring(start.offset, end.offset)
 
-  override def toString: String =
-    s"(step $stepString, ${start.simpleString()}-${end.simpleString(start.line != end.line)})"
+  /** get range string */
+  def rangeString: String =
+    val (Pos(sl, sc, _), Pos(el, ec, _)) = (start, end)
+    if (sl == el) s"$sl:$sc-$ec" else s"$sl:$sc - $el:$ec"
 
+  /** get step string */
   def stepString: String =
     (for ((step, idx) <- steps.zipWithIndex) yield idx % 3 match
       case 0 => step.toString
       case 1 => AlphabetNumeral(step + 1)
       case 2 => RomanNumeral(step, lower = true)
     ).mkString(".")
+
+  /** conversion to string */
+  override def toString: String =
+    if (stepString == "") s"($rangeString)"
+    else s"(step $stepString, $rangeString)"
 }
 
 /** positions in algorithms
@@ -48,7 +62,10 @@ case class Pos(
   var column: Int,
   var offset: Int,
 ) {
-  def simpleString(withLine: Boolean = true): String =
-    if withLine then s"$line:$column" else s"$column"
+
+  /** get simple string */
+  def simpleString: String = s"$line:$column"
+
+  /** conversion to string */
   override def toString: String = s"$simpleString($offset)"
 }
