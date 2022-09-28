@@ -8,7 +8,7 @@ import esmeta.ty.util.Parser
 /** completion record types */
 case class CompTy(
   normal: Option[PureValueTy] = Some(PureValueTy.Bot),
-  abrupt: Boolean = false,
+  abrupt: BSet[String] = Fin(),
 ) extends TyElem
   with Lattice[CompTy] {
   import CompTy.*
@@ -16,7 +16,7 @@ case class CompTy(
   /** bottom check */
   def isBottom: Boolean = (this eq Bot) || (
     this.normal.fold(false)(_.isBottom) &&
-    !this.abrupt
+    this.abrupt.isBottom
   )
 
   /** partial order/subset operator */
@@ -68,10 +68,10 @@ case class CompTy(
 
   /** get single value */
   def getSingle: Flat[AValue] =
-    if (abrupt) Many
+    if (!abrupt.isBottom) Many
     else normal.fold(Many)(_.getSingle.map(AComp(Const("normal"), _, None)))
 }
 object CompTy extends Parser.From(Parser.compTy) {
   val Bot: CompTy = CompTy()
-  val Top = CompTy(None, true)
+  val Top = CompTy(None, Inf)
 }

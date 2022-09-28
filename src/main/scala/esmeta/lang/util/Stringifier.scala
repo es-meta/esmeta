@@ -691,19 +691,27 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!ty.comp.isBottom)
       given Rule[PureValueTy] = pureValueTyRule(plural, true)
       val normal = !ty.normal.fold(false)(_.isBottom)
-      val abrupt = ty.abrupt
+      val abrupt = !ty.abrupt.isBottom
       val both = normal && abrupt
-      ty.normal match
-        case None =>
-          app >> (if (ty.abrupt) "an abrupt" else "a normal")
-          app >> " completion record"
-        case Some(normalTy) =>
-          lazy val normalStr = (new Appender >> normalTy).toString
-          if (both) app >> "either "
-          if (normal) app >> "a normal completion containing " >> normalStr
-          if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
-          if (abrupt) app >> "an abrupt completion"
-          if (pure) app >> " or "
+      if (both) app >> "either "
+      val normalStr =
+        if (normal)
+          val app = new Appender
+          app >> "a normal completion"
+          ty.normal match
+            case None =>
+            case Some(normalTy) =>
+              app >> " containing " >> normalTy
+          app.toString
+        else ""
+      app >> normalStr
+      if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+      if (abrupt) ty.abrupt match
+        case Inf => app >> "an abrupt completion"
+        case Fin(names) =>
+          given Rule[List[String]] = listNamedSepRule(namedSep = "or")
+          app >> names.toList.map("a " + _ + " completion")
+      if (pure) app >> " or "
     if (pure)
       given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
       app >> ty.pureValue

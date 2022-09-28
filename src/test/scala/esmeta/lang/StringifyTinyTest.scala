@@ -2,6 +2,7 @@ package esmeta.lang
 
 import esmeta.lang.*
 import esmeta.ty.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
 /** stringify test */
@@ -760,6 +761,10 @@ class StringifyTinyTest extends LangTest {
       Type(NormalT(NumberT || BigIntT)) ->
       "a normal completion containing either a Number or a BigInt",
       Type(AbruptT) -> "an abrupt completion",
+      Type(AbruptT("throw")) -> "a throw completion",
+      Type(
+        AbruptT("return", "throw"),
+      ) -> "a return completion or a throw completion",
       Type(NormalT(BigIntT) || AbruptT) ->
       "either a normal completion containing a BigInt or an abrupt completion",
       Type(NormalT(NameT("Property Descriptor")) || AbruptT) ->
@@ -770,7 +775,7 @@ class StringifyTinyTest extends LangTest {
       Type(ESValueT || AstT) ->
       "an ECMAScript language value or a Parse Node",
       Type(
-        CompT(ListT(StrT || NullT), true),
+        CompT(ListT(StrT || NullT), Inf),
       ) -> "either a normal completion containing a List of either Strings or *null*, or an abrupt completion",
     )
   }

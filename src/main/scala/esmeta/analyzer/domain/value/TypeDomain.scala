@@ -46,8 +46,8 @@ object TypeDomain extends value.Domain {
     val normal =
       if (consts contains "normal") value.ty.pureValue
       else PureValueTy()
-    val abrupt = !(consts - "normal").isEmpty
-    Elem(ValueTy(normal = Some(normal), abrupt = abrupt))
+    val abrupt = consts - "normal"
+    Elem(ValueTy(normal = Some(normal), abrupt = Fin(abrupt)))
 
   /** predefined top values */
   lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
