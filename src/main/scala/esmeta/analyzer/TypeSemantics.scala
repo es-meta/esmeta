@@ -15,8 +15,8 @@ class TypeSemantics(
   def getMismatches: Set[TypeMismatch] =
     // get recorded parameter type mismatches
     val paramTypeMismatches = for {
-      ((callerNp, calleeRp, param), argTy) <- argsForMismatch
-    } yield ParamTypeMismatch(callerNp, calleeRp, param, argTy)
+      ((callerNp, calleeRp, idx, param), argTy) <- argsForMismatch
+    } yield ParamTypeMismatch(callerNp, calleeRp, idx, param, argTy)
     // get recorded return type mismatches
     val returnTypeMismatches = for {
       ((elem, rp), retTy) <- retForMismatch
@@ -27,7 +27,7 @@ class TypeSemantics(
     returnTypeMismatches
   // record type mismatches
   private var mismatches: Set[TypeMismatch] = Set()
-  private type CallEdgeWithParam = (NodePoint[Call], ReturnPoint, Param)
+  private type CallEdgeWithParam = (NodePoint[Call], ReturnPoint, Int, Param)
   private var argsForMismatch: Map[CallEdgeWithParam, ValueTy] = Map()
   private type RetEdge = (Return, ReturnPoint)
   private var retForMismatch: Map[RetEdge, ValueTy] = Map()
@@ -78,10 +78,11 @@ class TypeSemantics(
         case _: UnknownTy     => arg
         case paramTy: ValueTy =>
           // argument type check when parameter type is a known type
-          if (!(argTy <= paramTy))
-            val key = (callerNp, calleeRp, param)
+          // we use a loose subtyping relation for named records
+          if (!isLooseSubTy(argTy, paramTy))
             if (method && idx == 0) () /* ignore `this` for method-like calls */
             else
+              val key = (callerNp, calleeRp, idx, param)
               argsForMismatch += key -> {
                 argsForMismatch.get(key).fold(argTy)(_ || argTy)
               }
@@ -90,6 +91,17 @@ class TypeSemantics(
       param.lhs -> expected
     }).toMap
   }
+
+  // check loose subtyping relation for named records
+  private def isLooseSubTy(result: ValueTy, expected: ValueTy): Boolean =
+    import TyModel.es.isSubTy
+    (result -- NameT) <= (expected -- NameT) &&
+    ((result.name.set, expected.name.set) match
+      case (_, Inf) => true
+      case (Inf, _) => false
+      case (Fin(lset), Fin(rset)) =>
+        lset.forall(l => rset.exists(r => isSubTy(l, r) || isSubTy(r, l)))
+    )
 
   /** conversion to string */
   override def toString: String =
