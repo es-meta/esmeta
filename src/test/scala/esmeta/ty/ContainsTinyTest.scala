@@ -43,7 +43,6 @@ class ContainsTinyTest extends TyTest {
           st,
         ),
       )
-      // Test for AstNonTopT required
       assert(GrammarT(Grammar("", Nil)).contains(Grammar("", Nil), st))
       assert(ConstT("const").contains(Const("const"), st))
       assert(CodeUnitT.contains(CodeUnit(' '), st))
@@ -51,6 +50,8 @@ class ContainsTinyTest extends TyTest {
       assert(NullT.contains(Null, st))
       assert(AbsentT.contains(Absent, st))
       assert(AbruptT.contains(Comp(Const(" "), Math(5), None), st))
+      // TODO Test for addr, clo, cont
+      // Stringifier 참고해서 넣기.
     }
   }
   init
