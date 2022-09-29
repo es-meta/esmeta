@@ -46,8 +46,8 @@ object TypeDomain extends value.Domain {
     val normal =
       if (consts contains "normal") value.ty.pureValue
       else PureValueTy()
-    val abrupt = consts - "normal"
-    Elem(ValueTy(normal = Some(normal), abrupt = Fin(abrupt)))
+    val abrupt = consts -- Fin("normal")
+    Elem(ValueTy(normal = normal, abrupt = abrupt))
 
   /** predefined top values */
   lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
@@ -178,13 +178,16 @@ object TypeDomain extends value.Domain {
     def typeOf(st: AbsState): Elem =
       val ty = elem.ty
       var names: Set[String] = Set()
-      if (ty.name.set.exists(cfg.tyModel.isSubTy(_, "Object")))
-        names += "Object"
+      if (
+        ty.name.set match
+          case Inf      => true
+          case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Object"))
+      ) names += "Object"
       if (ty.symbol) names += "Symbol"
       if (!ty.number.isBottom) names += "Number"
       if (ty.bigInt) names += "BigInt"
       if (!ty.str.isBottom) names += "String"
-      if (!ty.bool.isEmpty) names += "Boolean"
+      if (!ty.bool.isBottom) names += "Boolean"
       if (ty.undef) names += "Undefined"
       if (ty.nullv) names += "Null"
       Elem(StrT(names))
@@ -261,23 +264,19 @@ object TypeDomain extends value.Domain {
       val ty = elem.ty
       Elem(
         ValueTy(
-          normal = ty.normal.map(_ || ty.pureValue),
+          normal = ty.normal || ty.pureValue,
           abrupt = ty.abrupt,
         ),
       )
     def unwrapCompletion: Elem =
       val ty = elem.ty
-      Elem(
-        ValueTy(
-          normal = ty.normal.map(_ || ty.pureValue),
-        ),
-      )
+      Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
     def isCompletion: Elem =
       val ty = elem.ty
       var bs: Set[Boolean] = Set()
       if (!ty.comp.isBottom) bs += true
       if (!ty.pureValue.isBottom) bs += false
-      Elem(ValueTy(bool = bs))
+      Elem(ValueTy(bool = BoolTy(bs)))
     def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
 
     /** absent helpers */
@@ -406,28 +405,30 @@ object TypeDomain extends value.Domain {
   // logical unary operator helper
   private def logicalUnaryOp(
     op: Boolean => Boolean,
-  ): Elem => Elem = b => Elem(ValueTy(bool = for (x <- b.ty.bool) yield op(x)))
+  ): Elem => Elem =
+    b => Elem(ValueTy(bool = BoolTy(for (x <- b.ty.bool.set) yield op(x))))
 
   // logical operator helper
   private def logicalOp(
     op: (Boolean, Boolean) => Boolean,
   ): (Elem, Elem) => Elem = (l, r) =>
-    Elem(ValueTy(bool = for {
-      x <- l.ty.bool
-      y <- r.ty.bool
-    } yield op(x, y)))
+    Elem(ValueTy(bool = BoolTy(for {
+      x <- l.ty.bool.set
+      y <- r.ty.bool.set
+    } yield op(x, y))))
 
   // numeric comparison operator helper
   private lazy val numericComapreOP: (Elem, Elem) => Elem = (l, r) =>
     Elem(
       ValueTy(
-        bool =
+        bool = BoolTy(
           if (
             (!l.ty.math.isBottom && !r.ty.math.isBottom) ||
             (!l.ty.number.isBottom && !r.ty.number.isBottom) ||
             (l.ty.bigInt && r.ty.bigInt)
           ) Set(true, false)
           else Set(),
+        ),
       ),
     )
 

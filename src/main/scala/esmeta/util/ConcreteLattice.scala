@@ -3,6 +3,9 @@ package esmeta.util
 /** lattice with concrete values */
 trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
 
+  /** top check */
+  def isTop: Boolean
+
   /** bottom check */
   def isBottom: Boolean
 
@@ -26,6 +29,9 @@ trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
 // flat concrete lattice
 // -----------------------------------------------------------------------------
 sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
+
+  /** top check */
+  def isTop: Boolean = this == Many
 
   /** bottom check */
   def isBottom: Boolean = this == Zero
@@ -61,9 +67,26 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
     case One(elem) => One(f(elem))
     case Many      => Many
 
+  /** get list function */
+  def toList: List[A] = this match
+    case One(elem) => List(elem)
+    case _         => Nil
+
+  /** foreach function */
+  def foreach(f: A => Unit): Unit = this match
+    case Zero      =>
+    case One(elem) => f(elem)
+    case Many      =>
+
   /** get single value */
   def getSingle[B >: A]: Flat[B] = this
 }
+object Flat:
+  def apply[A](elems: Iterable[A]): Flat[A] = elems.toSet match
+    case set if set.isEmpty   => Zero
+    case set if set.size == 1 => One(set.head)
+    case _                    => Many
+  def apply[A](elems: A*): Flat[A] = Flat(elems)
 
 /** more than two elements */
 case object Many extends Flat[Nothing]
@@ -78,6 +101,9 @@ case object Zero extends Flat[Nothing]
 // bounded concrete set lattice
 // -----------------------------------------------------------------------------
 sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
+
+  /** top check */
+  def isTop: Boolean = this == Inf
 
   /** bottom check */
   def isBottom: Boolean = this == Fin()
@@ -110,6 +136,16 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
     case Fin(set) => Fin(set.map(f))
     case Inf      => Inf
 
+  /** foreach function */
+  def foreach(f: A => Unit): Unit = this match
+    case Fin(set) => set.foreach(f)
+    case Inf      =>
+
+  /** get list function */
+  def toList: List[A] = this match
+    case Fin(set) => set.toList
+    case Inf      => Nil
+
   /** inclusion check */
   def contains[B >: A](x: B): Boolean = this match
     case Fin(set) => set.toSet contains x
@@ -124,4 +160,5 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
 case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]
 object Fin:
-  def apply[A](elems: A*): Fin[A] = Fin(elems.toSet)
+  def apply[A](elems: Iterable[A]): Fin[A] = Fin(elems.toSet)
+  def apply[A](elems: A*): Fin[A] = Fin(elems)

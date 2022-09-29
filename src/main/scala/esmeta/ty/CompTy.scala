@@ -7,25 +7,35 @@ import esmeta.ty.util.Parser
 
 /** completion record types */
 case class CompTy(
-  normal: Option[PureValueTy] = Some(PureValueTy.Bot),
+  normal: PureValueTy = PureValueTy.Bot,
   abrupt: BSet[String] = Fin(),
 ) extends TyElem
   with Lattice[CompTy] {
   import CompTy.*
 
+  /** top check */
+  def isTop: Boolean =
+    if (this eq Top) true
+    else if (this eq Bot) false
+    else {
+      this.normal.isTop &&
+      this.abrupt.isTop
+    }
+
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) || (
-    this.normal.fold(false)(_.isBottom) &&
-    this.abrupt.isBottom
-  )
+  def isBottom: Boolean =
+    if (this eq Bot) true
+    else if (this eq Top) false
+    else
+      (
+        this.normal.isBottom &&
+        this.abrupt.isBottom
+      )
 
   /** partial order/subset operator */
   def <=(that: => CompTy): Boolean = (this eq that) || (
-    ((this.normal, that.normal) match
-      case (_, None)          => true
-      case (None, _)          => false
-      case (Some(l), Some(r)) => l <= r
-    ) && this.abrupt <= that.abrupt
+    this.normal <= that.normal &&
+    this.abrupt <= that.abrupt
   )
 
   /** union type */
@@ -33,10 +43,7 @@ case class CompTy(
     if (this eq that) this
     else
       CompTy(
-        (this.normal, that.normal) match
-          case (None, _) | (_, None) => None
-          case (Some(l), Some(r))    => Some(l || r)
-        ,
+        this.normal || that.normal,
         this.abrupt || that.abrupt,
       )
 
@@ -45,11 +52,7 @@ case class CompTy(
     if (this eq that) this
     else
       CompTy(
-        (this.normal, that.normal) match
-          case (None, r)          => r
-          case (l, None)          => l
-          case (Some(l), Some(r)) => Some(l && r)
-        ,
+        this.normal && that.normal,
         this.abrupt && that.abrupt,
       )
 
@@ -58,20 +61,16 @@ case class CompTy(
     if (that.isBottom) this
     else
       CompTy(
-        (this.normal, that.normal) match
-          case (None, _)          => None
-          case (_, None)          => Some(PureValueTy.Bot)
-          case (Some(l), Some(r)) => Some(l -- r)
-        ,
+        this.normal -- that.normal,
         this.abrupt -- that.abrupt,
       )
 
   /** get single value */
   def getSingle: Flat[AValue] =
     if (!abrupt.isBottom) Many
-    else normal.fold(Many)(_.getSingle.map(AComp(Const("normal"), _, None)))
+    else normal.getSingle.map(AComp(Const("normal"), _, None))
 }
 object CompTy extends Parser.From(Parser.compTy) {
   val Bot: CompTy = CompTy()
-  val Top = CompTy(None, Inf)
+  val Top = CompTy(PureValueTy.Top, Inf)
 }

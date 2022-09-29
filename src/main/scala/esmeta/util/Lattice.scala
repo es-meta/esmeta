@@ -3,6 +3,9 @@ package esmeta.util
 /** lattice */
 trait Lattice[L <: Lattice[L]] {
 
+  /** top check */
+  def isTop: Boolean
+
   /** bottom check */
   def isBottom: Boolean
 

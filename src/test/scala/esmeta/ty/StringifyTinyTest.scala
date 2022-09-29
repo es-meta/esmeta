@@ -12,6 +12,8 @@ class StringifyTinyTest extends TyTest {
   // registration
   def init: Unit = {
     checkParseAndStringify("Ty", Ty)(
+      AnyT -> "Any",
+      PureValueT -> "PureValue",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
       SubMapT(
@@ -27,17 +29,17 @@ class StringifyTinyTest extends TyTest {
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
       NameT("Cat") -> "Cat",
       NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT("A" -> Some(NumberT), "B" -> Some(BoolT)) ->
+      RecordT("A" -> NumberT, "B" -> BoolT) ->
       "{ [[A]]: Number, [[B]]: Boolean }",
       RecordT(Set("Key", "Value")) ->
       "{ [[Key]], [[Value]] }",
-      RecordT("Key" -> None, "Value" -> None, "Dummy" -> Some(BotT)) ->
+      RecordT("Key" -> ValueTy.Top, "Value" -> ValueTy.Top, "Dummy" -> BotT) ->
       "{ [[Key]], [[Value]] }",
       (ObjectT || RecordT(
-        "P" -> None,
-        "S" -> None,
-        "Q" -> Some(NumberT),
-        "R" -> Some(BoolT),
+        "P" -> ValueTy.Top,
+        "S" -> ValueTy.Top,
+        "Q" -> NumberT,
+        "R" -> BoolT,
       )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",

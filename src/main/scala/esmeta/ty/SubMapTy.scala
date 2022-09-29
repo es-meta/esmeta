@@ -12,6 +12,12 @@ case class SubMapTy(
   with Lattice[SubMapTy] {
   import SubMapTy.*
 
+  /** top check */
+  def isTop: Boolean = (this eq Top) || (
+    this.key.isTop &&
+    this.value.isTop
+  )
+
   /** bottom check */
   def isBottom: Boolean = (this eq Bot) || (
     this.key.isBottom &&
@@ -60,5 +66,6 @@ case class SubMapTy(
     else this
 }
 object SubMapTy extends Parser.From(Parser.subMapTy) {
+  val Top = SubMapTy(PureValueTy.Top, PureValueTy.Top)
   val Bot: SubMapTy = SubMapTy()
 }

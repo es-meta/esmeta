@@ -26,6 +26,7 @@ trait Parsers extends BasicParsers {
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
+    "Any" ^^^ AnyT |
     singleCompTy ^^ { case t => ValueTy(comp = t) } |
     singleSubMapTy ^^ { case t => ValueTy(subMap = t) } |
     singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
@@ -38,7 +39,7 @@ trait Parsers extends BasicParsers {
 
   private lazy val singleCompTy: Parser[CompTy] = {
     "Normal" ~> opt("[" ~> pureValueTy <~ "]") ^^ {
-      case v => CompTy(normal = v)
+      case v => CompTy(normal = v.getOrElse(PureValueTy.Top))
     } | "Abrupt" ~> opt("[" ~> rep1(camel) <~ "]") ^^ {
       case s => CompTy(abrupt = s.fold(Inf)(Fin(_: _*)))
     }
@@ -52,6 +53,8 @@ trait Parsers extends BasicParsers {
   }.named("ty.PureValueTy")
 
   private lazy val singlePureValueTy: Parser[PureValueTy] = {
+    // any pure value
+    "PureValue" ^^^ PureValueTy.Top |
     // ECMAScript value
     "ESValue" ^^^ ESValueT.pureValue |
     // closure
@@ -78,7 +81,7 @@ trait Parsers extends BasicParsers {
     "CodeUnit" ^^^ PureValueTy(codeUnit = true) |
     // constant
     "Const[" ~> rep1sep(const, ",") <~ "]" ^^ {
-      case s => PureValueTy(const = s.toSet)
+      case s => PureValueTy(const = Fin(s.toSet))
     } |
     // mathematical value
     "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
@@ -95,9 +98,7 @@ trait Parsers extends BasicParsers {
       case s => PureValueTy(str = Fin(s.toSet))
     } | "String" ^^^ PureValueTy(str = Inf) |
     // boolean
-    "Boolean" ^^^ PureValueTy(bool = Set(true, false)) |
-    "True" ^^^ PureValueTy(bool = Set(true)) |
-    "False" ^^^ PureValueTy(bool = Set(false)) |
+    singleBoolTy ^^ { case b => PureValueTy(bool = b) } |
     // undefined
     "Undefined" ^^^ PureValueTy(undef = true) |
     // null
@@ -135,24 +136,37 @@ trait Parsers extends BasicParsers {
   }.named("ty.NameTy")
 
   private lazy val singleNameTy: Parser[NameTy] = {
-    camel ^^ { case name => NameTy(Set(name)) }
+    camel ^^ { case name => NameTy(Fin(name)) }
   }.named("ty.NameTy (single)")
 
   /** record types */
   given recordTy: Parser[RecordTy] = {
+    "AnyRecord" ^^^ RecordTy.Top |
     rep1sep(singleRecordTy, "|") ^^ {
-      case ts => ts.foldLeft(RecordTy.Bot)(_ || _)
+      case ts => ts.foldLeft[RecordTy](RecordTy.Bot)(_ || _)
     }
   }.named("ty.RecordTy")
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
     "{" ~> rep1sep(field, ",") <~ "}" ^^ {
-      case pairs => RecordTy(pairs.toMap)
+      case pairs => RecordTy.Elem(pairs.toMap)
     }
   }.named("ty.RecordTy (single)")
 
-  private lazy val field: Parser[(String, Option[ValueTy])] =
-    ("[[" ~> word <~ "]]") ~ opt(":" ~> valueTy) ^^ { case k ~ v => (k, v) }
+  given boolTy: Parser[BoolTy] = {
+    rep1sep(singleBoolTy, "|") ^^ { case ts => ts.foldLeft(BoolTy.Bot)(_ || _) }
+  }.named("ty.BoolTy")
+
+  private lazy val singleBoolTy: Parser[BoolTy] =
+    // boolean
+    "Boolean" ^^^ BoolTy(Set(false, true)) |
+    "True" ^^^ BoolTy(Set(true)) |
+    "False" ^^^ BoolTy(Set(false))
+
+  private lazy val field: Parser[(String, ValueTy)] =
+    ("[[" ~> word <~ "]]") ~ opt(":" ~> valueTy) ^^ {
+      case k ~ v => (k, v.getOrElse(ValueTy.Top))
+    }
 
   /** list types */
   given listTy: Parser[ListTy] = {

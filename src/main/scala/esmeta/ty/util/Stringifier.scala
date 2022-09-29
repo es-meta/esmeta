@@ -22,6 +22,7 @@ object Stringifier {
       case elem: RecordTy    => recordTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
       case elem: SubMapTy    => subMapTyRule(app, elem)
+      case elem: BoolTy      => boolTyRule(app, elem)
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>
@@ -36,7 +37,8 @@ object Stringifier {
 
   /** value types */
   given valueTyRule: Rule[ValueTy] = (app, ty) =>
-    if (!ty.isBottom)
+    if (ty.isTop) app >> "Any"
+    else if (!ty.isBottom)
       FilterApp(app)
         .add(ty.comp, !ty.comp.isBottom)
         .add(ty.pureValue, !ty.pureValue.isBottom)
@@ -46,9 +48,9 @@ object Stringifier {
 
   /** completion record types */
   given compTyRule: Rule[CompTy] = (app, ty) =>
-    given Rule[Option[PureValueTy]] = topRule
+    given Rule[PureValueTy] = topRule(pureValueTyRule)
     FilterApp(app)
-      .add(ty.normal, !ty.normal.fold(false)(_.isBottom), "Normal")
+      .add(ty.normal, !ty.normal.isBottom, "Normal")
       .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
       .app
 
@@ -58,13 +60,24 @@ object Stringifier {
       case None => app
       case Some(elem) =>
         if (elem.isBottom) app >> "Nil"
+        else if (elem.isTop) app >> "List"
         else app >> "List[" >> elem >> "]"
 
+  // predefined types
+  lazy val predTys: List[(PureValueTy, String)] = List(
+    ESPureValueT -> "ESValue",
+  )
+
   /** pure value types (non-completion record types) */
-  given pureValueTyRule: Rule[PureValueTy] = (app, ty) =>
-    if (ty == ESPureValueT) app >> "ESValue"
+  given pureValueTyRule: Rule[PureValueTy] = (app, origTy) =>
+    var ty: PureValueTy = origTy
+    if (ty.isTop) app >> "PureValue"
     else
-      FilterApp(app)
+      predTys
+        .foldLeft(FilterApp(app)) {
+          case (app, (pred, name)) =>
+            app.add({ ty --= pred; name }, pred <= ty)
+        }
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
         .add(ty.name, !ty.name.isBottom)
@@ -87,18 +100,25 @@ object Stringifier {
 
   /** named record types */
   given nameTyRule: Rule[NameTy] = (app, ty) =>
-    given Rule[Iterable[String]] = iterableRule(sep = OR)
-    app >> ty.set.toList.sorted
+    ty.set match
+      case Inf => app
+      case Fin(set) =>
+        given Rule[Set[String]] = setRule("", OR, "")
+        app >> set
 
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
-    given Rule[(String, Option[ValueTy])] = {
+    import RecordTy.*
+    given Rule[(String, ValueTy)] = {
       case (app, (key, value)) =>
         app >> "[[" >> key >> "]]"
-        value.fold(app)(app >> ": " >> _)
+        if (!value.isTop) app >> ": " >> value
+        else app
     }
-    given Rule[List[(String, Option[ValueTy])]] = iterableRule("{ ", ", ", " }")
-    app >> ty.map.toList.sortBy(_._1)
+    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
+    ty match
+      case Top       => app >> "AnyRecord"
+      case Elem(map) => app >> map.toList.sortBy(_._1)
 
   /** AST value types */
   given astValueTyRule: Rule[AstValueTy] = (app, ty) =>
@@ -108,6 +128,13 @@ object Stringifier {
       case AstNameTy(names) => app >> names
       case AstSingleTy(x, i, j) =>
         app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
+
+  /** boolean types */
+  given boolTyRule: Rule[BoolTy] = (app, ty) =>
+    ty.set match
+      case set if set.isEmpty   => app
+      case set if set.size == 1 => app >> (if (set.head) "True" else "False")
+      case _                    => app >> "Boolean"
 
   /** sub map types */
   given subMapTyRule: Rule[SubMapTy] = (app, ty) =>
@@ -123,20 +150,24 @@ object Stringifier {
 
   // rule for string set
   private given setRule[T: Ordering](using Rule[T]): Rule[Set[T]] =
-    (app, set) =>
-      given Rule[List[T]] = iterableRule("[", ", ", "]")
-      app >> set.toList.sorted
-
-  // rule for boolean set
-  private given boolSetRule: Rule[Set[Boolean]] = (app, set) =>
-    set.toList match
-      case Nil        => app
-      case List(bool) => app >> (if (bool) "True" else "False")
-      case _          => app >> "Boolean"
+    setRule("[", ", ", "]")
+  private def setRule[T: Ordering](
+    pre: String,
+    sep: String,
+    post: String,
+  )(using Rule[T]): Rule[Set[T]] = (app, set) =>
+    given Rule[List[T]] = iterableRule(pre, sep, post)
+    app >> set.toList.sorted
 
   // rule for option type for top
-  private def topRule[T](using Rule[T]): Rule[Option[T]] = (app, opt) =>
-    opt.fold(app)(app >> "[" >> _ >> "]")
+  private def topRule[T <: Lattice[T]](
+    tRule: Rule[T],
+    pre: String = "[",
+    post: String = "]",
+  ): Rule[T] = (app, t) =>
+    given Rule[T] = tRule
+    if (!t.isTop) app >> pre >> t >> post
+    else app
 
   // appender with filtering
   private class FilterApp(val app: Appender) {

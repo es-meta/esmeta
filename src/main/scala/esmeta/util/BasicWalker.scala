@@ -48,6 +48,14 @@ trait BasicWalker {
     case Inf      => Inf
     case Fin(set) => Fin(set.map(tWalk))
 
+  def walkFlat[T](
+    flat: Flat[T],
+    tWalk: T => T,
+  ): Flat[T] = flat match
+    case Zero      => Zero
+    case One(elem) => One(tWalk(elem))
+    case Many      => Many
+
   def walk(str: String): String = str
   def walk(bool: Boolean): Boolean = bool
   def walk(int: Int): Int = int

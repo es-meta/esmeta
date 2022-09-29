@@ -174,7 +174,7 @@ object TypeDomain extends state.Domain {
         if (tname == "Record") RecordT((for {
           (k, v) <- pairs
         } yield k.getSingle match
-          case One(Str(key)) => key -> Some(v.ty)
+          case One(Str(key)) => key -> v.ty
           case _             => exploded(s"imprecise field name: $k")
         ).toMap)
         else NameT(tname)
@@ -270,13 +270,11 @@ object TypeDomain extends state.Domain {
     CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
   private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
     val str = prop.str
-    val normal = !comp.normal.fold(false)(_.isBottom)
+    val normal = !comp.normal.isBottom
     val abrupt = !comp.abrupt.isBottom
     var res = ValueTy()
     if (str contains "Value")
-      if (normal)
-        // remove impossible top normal completion
-        res ||= ValueTy(pureValue = comp.normal.getOrElse(PureValueTy.Bot))
+      if (normal) res ||= ValueTy(pureValue = comp.normal)
       if (abrupt) res ||= ESValueT || CONSTT_EMPTY
     if (str contains "Target")
       if (normal) res ||= CONSTT_EMPTY
@@ -356,10 +354,9 @@ object TypeDomain extends state.Domain {
   private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
     val str = prop.str
     var res = ValueTy()
-    def add(propStr: String): Unit = record.map.get(propStr) match
-      case None           =>
-      case Some(None)     =>
-      case Some(Some(ty)) => res ||= ty
+    def add(propStr: String): Unit = record match
+      case RecordTy.Top       =>
+      case RecordTy.Elem(map) => map.get(propStr).map(res ||= _)
     if (!record.isBottom) str match
       case Inf =>
       case Fin(set) =>
