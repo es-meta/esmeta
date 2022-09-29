@@ -275,7 +275,12 @@ object TypeDomain extends state.Domain {
     var res = ValueTy()
     if (str contains "Value")
       if (normal) res ||= ValueTy(pureValue = comp.normal)
-      if (abrupt) res ||= ESValueT || CONSTT_EMPTY
+      if (abrupt) {
+        if (comp.abrupt.contains("return") || comp.abrupt.contains("throw"))
+          res ||= ESValueT
+        if (comp.abrupt.contains("continue") || comp.abrupt.contains("break"))
+          res || CONSTT_EMPTY
+      }
     if (str contains "Target")
       if (normal) res ||= CONSTT_EMPTY
       if (abrupt) res ||= StrT || CONSTT_EMPTY
