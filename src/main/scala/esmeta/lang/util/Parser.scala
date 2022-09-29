@@ -429,14 +429,14 @@ trait Parsers extends IndentParsers {
     ) ~ baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) }
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
-      ("×" ^^^ Mul ||| "/" ^^^ Div ||| "modulo" ^^^ Mod) ~ unary,
+      ("×" ^^^ Mul | "/" ^^^ Div | "modulo" ^^^ Mod) ~ unary,
     ) ^^ {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
     }
 
     lazy val calc: PL[CalcExpression] = term ~ rep(
-      ("+" ^^^ Add ||| "-" ^^^ Sub) ~ term,
+      ("+" ^^^ Add | "-" ^^^ Sub) ~ term,
     ) ^^ {
       case l ~ rs =>
         rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
@@ -449,7 +449,7 @@ trait Parsers extends IndentParsers {
   lazy val convExpr: PL[ConversionExpression] =
     import ConversionExpressionOperator.*
     val opFormat = (
-      "𝔽" ^^^ ToNumber ||| "ℤ" ^^^ ToBigInt ||| "ℝ" ^^^ ToMath
+      "𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath
     ) ~ ("(" ~> expr <~ ")")
     val textFormat =
       ("the " | "an " | "a ") ~> (
@@ -492,8 +492,8 @@ trait Parsers extends IndentParsers {
   lazy val mathFuncExpr: PL[MathFuncExpression] =
     import MathFuncExpressionOperator.*
     (
-      "max" ^^^ Max ||| "min" ^^^ Min |||
-      "abs" ^^^ Abs ||| "floor" ^^^ Floor
+      "max" ^^^ Max | "min" ^^^ Min |
+      "abs" ^^^ Abs | "floor" ^^^ Floor
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
         MathFuncExpression(o, as)
@@ -502,41 +502,41 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    opt("the") ~> "*this* value" ^^! ThisLiteral() |||
-    "this" ~ ("Parse Node" | ntLiteral) ^^! ThisLiteral() |||
-    "NewTarget" ^^! NewTargetLiteral() |||
-    hexLiteral |||
-    "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
-    ntLiteral |||
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |||
-    "the empty String" ^^! StringLiteral("") |||
-    strLiteral |||
-    fieldLiteral |||
-    errObjLiteral |||
-    "@@" ~> word ^^ { SymbolLiteral(_) } |||
-    "+∞" ^^! PositiveInfinityMathValueLiteral() |||
-    "-∞" ^^! NegativeInfinityMathValueLiteral() |||
-    decimal ^^ { DecimalMathValueLiteral(_) } |||
+    opt("the") ~> "*this* value" ^^! ThisLiteral() |
+    "this" ~ ("Parse Node" | ntLiteral) ^^! ThisLiteral() |
+    "NewTarget" ^^! NewTargetLiteral() |
+    hexLiteral |
+    "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
+    ntLiteral |
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |
+    "the empty String" ^^! StringLiteral("") |
+    strLiteral |
+    fieldLiteral |
+    errObjLiteral |
+    "@@" ~> word ^^ { SymbolLiteral(_) } |
+    "+∞" ^^! PositiveInfinityMathValueLiteral() |
+    "-∞" ^^! NegativeInfinityMathValueLiteral() |
+    decimal ^^ { DecimalMathValueLiteral(_) } |
     opt(int) ~ "π" ^^ {
       case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
-    } |||
-    "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |||
-    "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |||
-    "*NaN*" ^^! NumberLiteral(Double.NaN) |||
-    "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |||
-    "*" ~> bigInt <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |||
-    "*true*" ^^! TrueLiteral() |||
-    "*false*" ^^! FalseLiteral() |||
-    "*undefined*" ^^! UndefinedLiteral() |||
-    "*null*" ^^! NullLiteral() |||
-    "absent" ^^! AbsentLiteral() |||
-    "Undefined" ^^! UndefinedTypeLiteral() |||
-    "Null" ^^! NullTypeLiteral() |||
-    "Boolean" ^^! BooleanTypeLiteral() |||
-    "String" ^^! StringTypeLiteral() |||
-    "Symbol" ^^! SymbolTypeLiteral() |||
-    "Number" ^^! NumberTypeLiteral() |||
-    "BigInt" ^^! BigIntTypeLiteral() |||
+    } |
+    "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |
+    "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |
+    "*NaN*" ^^! NumberLiteral(Double.NaN) |
+    "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |
+    "*" ~> bigInt <~ "*<sub>ℤ</sub>" ^^ { BigIntLiteral(_) } |
+    "*true*" ^^! TrueLiteral() |
+    "*false*" ^^! FalseLiteral() |
+    "*undefined*" ^^! UndefinedLiteral() |
+    "*null*" ^^! NullLiteral() |
+    "absent" ^^! AbsentLiteral() |
+    "Undefined" ^^! UndefinedTypeLiteral() |
+    "Null" ^^! NullTypeLiteral() |
+    "Boolean" ^^! BooleanTypeLiteral() |
+    "String" ^^! StringTypeLiteral() |
+    "Symbol" ^^! SymbolTypeLiteral() |
+    "Number" ^^! NumberTypeLiteral() |
+    "BigInt" ^^! BigIntTypeLiteral() |
     "Object" ^^! ObjectTypeLiteral()
   )
 
@@ -661,8 +661,8 @@ trait Parsers extends IndentParsers {
   lazy val bitwiseExpr: PL[BitwiseExpression] =
     import BitwiseExpressionOperator.*
     val op: Parser[BitwiseExpressionOperator] =
-      "bitwise AND" ^^^ BAnd |||
-      "bitwise inclusive OR" ^^^ BOr |||
+      "bitwise AND" ^^^ BAnd |
+      "bitwise inclusive OR" ^^^ BOr |
       "bitwise exclusive OR (XOR)" ^^^ BXOr
     ("the result of applying the" ~> op) ~
     ("operation to" ~> expr) ~
@@ -842,7 +842,7 @@ trait Parsers extends IndentParsers {
     lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
     // GeneratorValidate
     (ref <~ opt("also")) ~
-    ("has" ^^^ false ||| "does not have" ^^^ true) ~
+    ("has" ^^^ false | "does not have" ^^^ true) ~
     (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
     }
@@ -909,14 +909,14 @@ trait Parsers extends IndentParsers {
   lazy val binCond: PL[BinaryCondition] =
     import BinaryConditionOperator.*
     lazy val op: Parser[BinaryConditionOperator] =
-      "=" ^^^ Eq |||
-      "≠" ^^^ NEq |||
-      "<" ^^^ LessThan |||
-      "≤" ^^^ LessThanEqual |||
-      ">" ^^^ GreaterThan |||
-      "≥" ^^^ GreaterThanEqual |||
-      "is the same sequence of code units as" ^^^ SameCodeUnits |||
-      "contains" ^^^ Contains |||
+      "≠" ^^^ NEq |
+      "=" ^^^ Eq |
+      "≤" ^^^ LessThanEqual |
+      "<" ^^^ LessThan |
+      "≥" ^^^ GreaterThanEqual |
+      ">" ^^^ GreaterThan |
+      "is the same sequence of code units as" ^^^ SameCodeUnits |
+      "contains" ^^^ Contains |
       "does not contain" ^^^ NContains
     expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |||
     expr ~ (isNeg <~ (opt("currently") ~> "an element of")) ~ expr ^^ {
@@ -1224,10 +1224,12 @@ trait Parsers extends IndentParsers {
 
   // type name
   lazy val tname: P[String] =
-    rep1(camel) ^^ { case ss => ss.mkString(" ") } |||
-    "[a-zA-Z ]+ object".r |||
-    "\\w+ Environment Record".r |||
-    opt("ECMAScript code") ~ "execution context" ^^^ "ExecutionContext"
+    rep1(camel) ^^ {
+      case ss => ss.mkString(" ")
+    } |||
+    (opt("ECMAScript code") ~ "execution context" ^^^ "ExecutionContext" |
+    "\\w+ Environment Record".r |
+    "[a-zA-Z ]+ object".r)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -1245,7 +1247,7 @@ trait Parsers extends IndentParsers {
 
   // separators
   private def sep(s: Parser[Any]): Parser[Any] = (
-    "," ||| "," ~ s ||| s
+    "," ~ s | s | ","
   )
 
   // verbs
