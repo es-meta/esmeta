@@ -1,6 +1,0 @@
-def OrdinaryCallEvaluateBody(F: FunctionObject, argumentsList: List[ESValue]) {
-  // Return the result of EvaluateBody of the parsed code that is _F_.[[ECMAScriptCode]] with arguments _F_ and _argumentsList_.
-  %0 = F.ECMAScriptCode
-  sdo-call %1 = %0->EvaluateBody(F, argumentsList)
-  return %1
-}
