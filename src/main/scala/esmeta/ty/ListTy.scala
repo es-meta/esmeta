@@ -9,8 +9,11 @@ case class ListTy(elem: Option[ValueTy] = None)
   with Lattice[ListTy] {
   import ListTy.*
 
+  /** top check */
+  def isTop: Boolean = this == Top
+
   /** bottom check */
-  def isBottom: Boolean = (this eq Bot) || (elem == None)
+  def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
   def <=(that: => ListTy): Boolean = (this eq that) || (
@@ -50,5 +53,6 @@ case class ListTy(elem: Option[ValueTy] = None)
   def getSingle: Flat[Nothing] = if (elem.isEmpty) Zero else Many
 }
 object ListTy extends Parser.From(Parser.listTy) {
+  val Top: ListTy = ListTy(Some(ValueTy.Top))
   val Bot: ListTy = ListTy()
 }

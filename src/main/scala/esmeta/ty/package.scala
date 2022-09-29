@@ -16,16 +16,18 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
-val CompT: ValueTy = ValueTy(normal = None, abrupt = Inf)
+val AnyT: ValueTy = ValueTy.Top
+val PureValueT: ValueTy = ValueTy(pureValue = PureValueTy.Top)
+val CompT: ValueTy = ValueTy(normal = PureValueTy.Top)
 def CompT(normal: ValueTy, abrupt: BSet[String]): ValueTy =
   if (normal.pureValue.isBottom && abrupt.isBottom) ValueTy.Bot
-  else ValueTy(normal = Some(normal.pureValue), abrupt = abrupt)
+  else ValueTy(normal = normal.pureValue, abrupt = abrupt)
 val AbruptT: ValueTy = ValueTy(abrupt = Inf)
 def AbruptT(names: String*): ValueTy = ValueTy(abrupt = Fin(names: _*))
-def NormalT: ValueTy = ValueTy(normal = None)
+val NormalT: ValueTy = ValueTy(normal = PureValueTy.Top)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
-  else ValueTy(normal = Some(value.pureValue))
+  else ValueTy(normal = value.pureValue)
 def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
@@ -42,14 +44,14 @@ def ContT(nids: Int*): ValueTy =
   else ValueTy(cont = Fin(nids.toSet))
 def NameT(names: String*): ValueTy =
   if (names.isEmpty) ValueTy.Bot
-  else ValueTy(name = NameTy(names.toSet))
+  else ValueTy(name = NameTy(Fin(names.toSet)))
 val ObjectT: ValueTy = NameT("Object")
 val ESPrimT: ValueTy = ValueTy(
   symbol = true,
   number = Inf,
   bigInt = true,
   str = Inf,
-  bool = Set(true, false),
+  bool = BoolTy.Top,
   undef = true,
   nullv = true,
 )
@@ -58,10 +60,10 @@ val ESPureValueT: PureValueTy = ESValueT.pureValue
 def RecordT(fields: Set[String]): ValueTy =
   if (fields.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(fields))
-def RecordT(map: Map[String, Option[ValueTy]]): ValueTy =
+def RecordT(map: Map[String, ValueTy]): ValueTy =
   if (map.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(map).norm)
-def RecordT(pairs: (String, Option[ValueTy])*): ValueTy =
+def RecordT(pairs: (String, ValueTy)*): ValueTy =
   if (pairs.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(pairs.toMap).norm)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
@@ -81,7 +83,7 @@ def NtT(xs: Nt*): ValueTy =
 val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
 def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
-  else ValueTy(const = xs.toSet)
+  else ValueTy(const = Fin(xs.toSet))
 val MathT: ValueTy = ValueTy(math = Inf)
 def MathT(ns: BigDecimal*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
@@ -100,10 +102,10 @@ def StrT(xs: String*): ValueTy =
   else ValueTy(str = Fin(xs.toSet))
 def BoolT(set: Set[Boolean]): ValueTy =
   if (set.isEmpty) ValueTy.Bot
-  else ValueTy(bool = set)
+  else ValueTy(bool = BoolTy(set))
 def BoolT(seq: Boolean*): ValueTy =
   if (seq.isEmpty) ValueTy.Bot
-  else ValueTy(bool = seq.toSet)
+  else ValueTy(bool = BoolTy(seq.toSet))
 val BoolT: ValueTy = BoolT(true, false)
 val TrueT: ValueTy = BoolT(true)
 val FalseT: ValueTy = BoolT(false)
@@ -146,16 +148,7 @@ val CONSTT_FULFILL = ConstT("Fulfill")
 val CONSTT_REJECT = ConstT("Reject")
 
 extension (elem: Boolean) {
+  def isTop: Boolean = elem == true
   def isBottom: Boolean = elem == false
   def --(that: Boolean): Boolean = elem && !that
-}
-extension [T](elem: Set[T]) {
-  def isBottom: Boolean = elem.isEmpty
-  def <=(that: Set[T]): Boolean = elem subsetOf that
-  def ||(that: Set[T]): Set[T] = elem ++ that
-  def &&(that: Set[T]): Set[T] = elem intersect that
-  def getSingle[U >: T]: Flat[U] = elem.size match
-    case 0 => Zero
-    case 1 => One(elem.head)
-    case _ => Many
 }

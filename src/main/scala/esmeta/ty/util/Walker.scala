@@ -15,6 +15,7 @@ trait Walker extends BasicWalker {
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
     case ty: SubMapTy    => walk(ty)
+    case ty: BoolTy      => walk(ty)
 
   /** types */
   def walk(ty: Ty): Ty = ty match
@@ -35,31 +36,34 @@ trait Walker extends BasicWalker {
 
   /** completion record types */
   def walk(ty: CompTy): CompTy = CompTy(
-    walkOpt(ty.normal, walk),
+    walk(ty.normal),
     walkBSet(ty.abrupt, walk),
   )
 
   /** pure value types */
-  def walk(ty: PureValueTy): PureValueTy = PureValueTy(
-    walkClo(ty.clo),
-    walkCont(ty.cont),
-    walkName(ty.name),
-    walk(ty.record),
-    walk(ty.list),
-    walk(ty.symbol),
-    walkAst(ty.astValue),
-    walkNt(ty.nt),
-    walkCodeUnit(ty.codeUnit),
-    walkConst(ty.const),
-    walkMath(ty.math),
-    walkNumber(ty.number),
-    walkBigInt(ty.bigInt),
-    walkStr(ty.str),
-    walkBool(ty.bool),
-    walkUndef(ty.undef),
-    walkNull(ty.nullv),
-    walkAbsent(ty.absent),
-  )
+  def walk(ty: PureValueTy): PureValueTy =
+    if (ty.isTop) ty
+    else
+      PureValueTy(
+        walkClo(ty.clo),
+        walkCont(ty.cont),
+        walkName(ty.name),
+        walk(ty.record),
+        walk(ty.list),
+        walk(ty.symbol),
+        walkAst(ty.astValue),
+        walkNt(ty.nt),
+        walkCodeUnit(ty.codeUnit),
+        walkConst(ty.const),
+        walkMath(ty.math),
+        walkNumber(ty.number),
+        walkBigInt(ty.bigInt),
+        walkStr(ty.str),
+        walkBool(ty.bool),
+        walkUndef(ty.undef),
+        walkNull(ty.nullv),
+        walkAbsent(ty.absent),
+      )
 
   /** closure types */
   def walkClo(clo: BSet[String]): BSet[String] = walkBSet(clo, walk)
@@ -88,7 +92,7 @@ trait Walker extends BasicWalker {
   def walkCodeUnit(codeUnit: Boolean): Boolean = walk(codeUnit)
 
   /** constant types */
-  def walkConst(const: Set[String]): Set[String] = walkSet(const, walk)
+  def walkConst(const: BSet[String]): BSet[String] = walkBSet(const, walk)
 
   /** mathematical value types */
   def walkMath(math: BSet[BigDecimal]): BSet[BigDecimal] = walkBSet(math, walk)
@@ -105,7 +109,7 @@ trait Walker extends BasicWalker {
   def walkStr(str: BSet[String]): BSet[String] = walkBSet(str, walk)
 
   /** boolean types */
-  def walkBool(bool: Set[Boolean]): Set[Boolean] = walkSet(bool, walk)
+  def walkBool(bool: BoolTy): BoolTy = BoolTy(walkSet(bool.set, walk))
 
   /** undefined types */
   def walkUndef(undef: Boolean): Boolean = walk(undef)
@@ -117,12 +121,14 @@ trait Walker extends BasicWalker {
   def walkAbsent(absent: Boolean): Boolean = walk(absent)
 
   /** name types */
-  def walkName(name: NameTy): NameTy = NameTy(walkSet(name.set, walk))
+  def walkName(name: NameTy): NameTy = NameTy(walkBSet(name.set, walk))
 
   /** record types */
-  def walk(ty: RecordTy): RecordTy = RecordTy(
-    walkMap(ty.map, walk, walkOpt(_, walk)),
-  )
+  def walk(ty: RecordTy): RecordTy =
+    import RecordTy.*
+    ty match
+      case Top       => Top
+      case Elem(map) => Elem(walkMap(map, walk, walk))
 
   /** list types */
   def walk(ty: ListTy): ListTy = ListTy(

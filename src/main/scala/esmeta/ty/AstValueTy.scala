@@ -10,6 +10,9 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
   import AstValueTy.*
 
   /** bottom check */
+  def isTop: Boolean = this eq Top
+
+  /** bottom check */
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
@@ -32,7 +35,7 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
         case (_, Bot)                                   => this
         case (l: AstSingleTy, r: AstSingleTy) if l == r => l
         case (l: AstNonTopTy, r: AstNonTopTy) =>
-          AstNameTy(l.toName.names || r.toName.names)
+          AstNameTy(l.toName.names ++ r.toName.names)
 
   /** intersection type */
   def &&(that: => AstValueTy): AstValueTy =
@@ -57,9 +60,6 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
   /** get single value */
   def getSingle: Flat[AValue] = Many
 }
-object AstValueTy extends Parser.From(Parser.astValueTy) {
-  val Bot: AstNameTy = AstNameTy()
-}
 case object AstTopTy extends AstValueTy
 sealed trait AstNonTopTy extends AstValueTy {
   def toName: AstNameTy = this match
@@ -68,3 +68,7 @@ sealed trait AstNonTopTy extends AstValueTy {
 }
 case class AstNameTy(names: Set[String] = Set()) extends AstNonTopTy
 case class AstSingleTy(name: String, idx: Int, subIdx: Int) extends AstNonTopTy
+object AstValueTy extends Parser.From(Parser.astValueTy) {
+  val Top = AstTopTy
+  val Bot: AstNameTy = AstNameTy()
+}

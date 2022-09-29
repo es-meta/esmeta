@@ -15,6 +15,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
     case ty: SubMapTy    => walk(ty)
+    case ty: BoolTy      => walk(ty)
 
   /** types */
   def walk(ty: Ty): Unit = ty match
@@ -33,11 +34,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** completion record types */
   def walk(ty: CompTy): Unit =
-    walkOpt(ty.normal, walk)
+    walk(ty.normal)
     walkBSet(ty.abrupt, walk)
 
   /** pure value types */
-  def walk(ty: PureValueTy): Unit =
+  def walk(ty: PureValueTy): Unit = if (!ty.isTop)
     walkClo(ty.clo)
     walkCont(ty.cont)
     walkName(ty.name)
@@ -82,7 +83,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walkCodeUnit(codeUnit: Boolean): Unit = walk(codeUnit)
 
   /** constant types */
-  def walkConst(const: Set[String]): Unit = walkSet(const, walk)
+  def walkConst(const: BSet[String]): Unit = walkBSet(const, walk)
 
   /** mathematical value types */
   def walkMath(math: BSet[BigDecimal]): Unit = walkBSet(math, walk)
@@ -99,7 +100,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walkStr(str: BSet[String]): Unit = walkBSet(str, walk)
 
   /** boolean types */
-  def walkBool(bool: Set[Boolean]): Unit = walkSet(bool, walk)
+  def walkBool(bool: BoolTy): Unit = walkSet(bool.set, walk)
 
   /** undefined types */
   def walkUndef(undef: Boolean): Unit = walk(undef)
@@ -111,11 +112,14 @@ trait UnitWalker extends BasicUnitWalker {
   def walkAbsent(absent: Boolean): Unit = walk(absent)
 
   /** name types */
-  def walkName(name: NameTy): Unit = walkSet(name.set, walk)
+  def walkName(name: NameTy): Unit = walkBSet(name.set, walk)
 
   /** record types */
   def walk(ty: RecordTy): Unit =
-    walkMap(ty.map, walk, walkOpt(_, walk))
+    import RecordTy.*
+    ty match
+      case Top       =>
+      case Elem(map) => walkMap(map, walk, walk)
 
   /** list types */
   def walk(ty: ListTy): Unit =

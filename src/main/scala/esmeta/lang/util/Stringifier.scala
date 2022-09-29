@@ -690,7 +690,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     val pure = !ty.pureValue.isBottom
     if (!ty.comp.isBottom)
       given Rule[PureValueTy] = pureValueTyRule(plural, true)
-      val normal = !ty.normal.fold(false)(_.isBottom)
+      val normal = !ty.normal.isBottom
       val abrupt = !ty.abrupt.isBottom
       val both = normal && abrupt
       if (both) app >> "either "
@@ -698,10 +698,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (normal)
           val app = new Appender
           app >> "a normal completion"
-          ty.normal match
-            case None =>
-            case Some(normalTy) =>
-              app >> " containing " >> normalTy
+          if (!ty.normal.isTop) app >> " containing " >> ty.normal
           app.toString
         else ""
       app >> normalStr
@@ -728,7 +725,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       tys :+= name.withArticle(plural); ty --= pred
 
     // names
-    for (name <- ty.name.set.toList.sorted) tys :+= name.withArticle(plural)
+    for (name <- ty.name.set) tys :+= name.withArticle(plural)
 
     // lists
     for (vty <- ty.list.elem)
@@ -762,8 +759,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
 
     // booleans
-    if (ty.bool.size > 1) tys :+= "Boolean".withArticle(plural)
-    else if (ty.bool.size == 1) tys :+= s"*${ty.bool.head}*"
+    if (ty.bool.set.size > 1) tys :+= "Boolean".withArticle(plural)
+    else if (ty.bool.set.size == 1) tys :+= s"*${ty.bool.set.head}*"
 
     // undefined
     if (!ty.undef.isBottom) tys :+= "*undefined*"

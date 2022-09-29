@@ -48,6 +48,14 @@ trait BasicUnitWalker {
     case Inf      =>
     case Fin(set) => set.map(tWalk)
 
+  def walkFlat[T](
+    flat: Flat[T],
+    tWalk: T => Unit,
+  ): Unit = flat match
+    case Zero      =>
+    case One(elem) => tWalk(elem)
+    case Many      =>
+
   def walk(str: String): Unit = {}
   def walk(bool: Boolean): Unit = {}
   def walk(int: Int): Unit = {}

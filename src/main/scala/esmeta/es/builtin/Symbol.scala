@@ -16,7 +16,7 @@ case class Symbol(cfg: CFG) {
 
   /** get symbol record */
   def ty: ValueTy = RecordT(
-    (for (symKey <- symbols) yield symKey -> Some(SymbolT)): _*,
+    (for (symKey <- symbols) yield symKey -> SymbolT): _*,
   )
 
   /** get symbol record */
