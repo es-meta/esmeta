@@ -81,11 +81,8 @@ case class Func(
   def toDot(
     nid: Int = -1,
     _isExit: Boolean = false,
-    _isReturnPointActivated: Boolean = false,
   ): String = new DotPrinter {
     val isExit: Boolean = _isExit
-
-    val isReturnPointActivated: Boolean = _isReturnPointActivated
     def getId(func: Func): String = s"cluster${func.id}"
     def getId(node: Node): String = s"node${node.id}"
     def getName(func: Func): String = func.headString

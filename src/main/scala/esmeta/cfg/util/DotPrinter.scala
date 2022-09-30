@@ -9,7 +9,6 @@ import scala.collection.mutable.Queue
 trait DotPrinter {
   // exit
   val isExit: Boolean
-  val isReturnPointActivated: Boolean
 
   // helpers
   def getId(func: Func): String
@@ -25,7 +24,6 @@ trait DotPrinter {
   val NON_REACH = """"gray""""
   val NORMAL = """"white""""
   val CURRENT = """"powderblue""""
-  val EXIT = """"red""""
 
   // conversion to string
   override def toString: String = {
@@ -90,8 +88,7 @@ trait DotPrinter {
     val exitId = s"${funcId}_exit"
     val nodeColor = getColor(node)
     val edgeColor = getColor(node, node)
-    val bgColor =
-      if (isExit) CURRENT else if (isReturnPointActivated) EXIT else NORMAL
+    val bgColor = if (isExit) CURRENT else NORMAL
     drawNamingNode(exitId, nodeColor, "Exit", app)
     drawNamingEdge(exitId, nodeColor, app)
     drawNode(exitId, "circle", nodeColor, bgColor, None, app)
