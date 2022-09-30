@@ -36,7 +36,14 @@ case class Graph(
         case (Some(cp), Some(depth), _) =>
           val func = cp.func
           val view = sem.getEntryView(cp.view)
-          val dot = ViewDotPrinter(view)
+          val isReturnPointActivated =
+            (sem.worklist has ReturnPoint(func, view)) || (cp.equals(
+              ReturnPoint(func, view),
+            ))
+          val dot = ViewDotPrinter(
+            view,
+            isReturnPointActivated = isReturnPointActivated,
+          )
           val rp = ReturnPoint(func, view)
           dot.addFunc(func, app)
           showPrev(rp, dot, depth, app)
@@ -88,6 +95,7 @@ case class Graph(
   private case class ViewDotPrinter(
     view: View,
     isExit: Boolean = false,
+    isReturnPointActivated: Boolean = false,
   ) extends DotPrinter {
     def getId(func: Func): String = s"cluster${func.id}_${norm(view)}"
     def getId(node: Node): String = s"node${node.id}_${norm(view)}"
