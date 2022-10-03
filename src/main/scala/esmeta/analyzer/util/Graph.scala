@@ -60,8 +60,7 @@ case class Graph(
             dot.addFunc(func, app)
           // print call edges
           for ((ReturnPoint(func, returnView), calls) <- sem.retEdges)
-            val entry = func.entry
-            val eid = ViewDotPrinter(returnView).getId(entry)
+            val eid = s"""${ViewDotPrinter(returnView).getId(func)}_entry"""
             for (callNp @ NodePoint(_, call, callView) <- calls)
               ViewDotPrinter(sem.getEntryView(callView))
                 .drawCall(call, eid, app),
