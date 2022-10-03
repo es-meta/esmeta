@@ -51,7 +51,12 @@ case class Graph(
           val funcs: Set[(Func, View)] =
             sem.npMap.keySet.map(np => (np.func, sem.getEntryView(np.view)))
           for ((func, view) <- funcs)
-            val dot = ViewDotPrinter(view)
+            val isExit =
+              (sem.worklist has ReturnPoint(func, view)) || (sem.curCp match {
+                case Some(x) => x.equals(ReturnPoint(func, view))
+                case None    => false
+              })
+            val dot = ViewDotPrinter(view, isExit)
             dot.addFunc(func, app)
           // print call edges
           for ((ReturnPoint(func, returnView), calls) <- sem.retEdges)
