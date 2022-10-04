@@ -81,13 +81,16 @@ case class Func(
   def toDot(
     nid: Int = -1,
     _isExit: Boolean = false,
+    _isExitWorklist: Boolean = false,
   ): String = new DotPrinter {
     val isExit: Boolean = _isExit
+    val isExitWorklist: Boolean = _isExitWorklist
     def getId(func: Func): String = s"cluster${func.id}"
     def getId(node: Node): String = s"node${node.id}"
     def getName(func: Func): String = func.headString
-    def getColor(node: Node): String = REACH
-    def getColor(from: Node, to: Node): String = REACH
+    def getColor(node: Node, isExit: Boolean = false): String = REACH
+    def getEdgeColor(from: Node, to: Node, isExit: Boolean = false): String =
+      REACH
     def getBgColor(node: Node): String =
       if (node.id == nid) CURRENT else NORMAL
     def apply(app: Appender): Unit = addFunc(func, app)

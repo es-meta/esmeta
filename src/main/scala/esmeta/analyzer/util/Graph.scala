@@ -36,13 +36,12 @@ case class Graph(
         case (Some(cp), Some(depth), _) =>
           val func = cp.func
           val view = sem.getEntryView(cp.view)
-          val isExit =
-            (sem.worklist has ReturnPoint(func, view)) || (cp.equals(
-              ReturnPoint(func, view),
-            ))
+          val isExitWorklist = sem.worklist has ReturnPoint(func, view)
+          val isExit = cp.equals(ReturnPoint(func, view))
           val dot = ViewDotPrinter(
             view,
             isExit,
+            isExitWorklist,
           )
           val rp = ReturnPoint(func, view)
           dot.addFunc(func, app)
@@ -51,11 +50,10 @@ case class Graph(
           val funcs: Set[(Func, View)] =
             sem.npMap.keySet.map(np => (np.func, sem.getEntryView(np.view)))
           for ((func, view) <- funcs)
-            val isExit =
-              (sem.worklist has ReturnPoint(func, view)) || (sem.curCp match {
-                case Some(x) => x.equals(ReturnPoint(func, view))
-                case None    => false
-              })
+            val isExitWorklist = sem.worklist has ReturnPoint(func, view)
+            val isExit = sem.curCp match
+              case Some(x) => x.equals(ReturnPoint(func, view))
+              case None    => false
             val dot = ViewDotPrinter(view, isExit)
             dot.addFunc(func, app)
           // print call edges
@@ -99,6 +97,7 @@ case class Graph(
   private case class ViewDotPrinter(
     view: View,
     isExit: Boolean = false,
+    isExitWorklist: Boolean = false,
   ) extends DotPrinter {
     def getId(func: Func): String = s"cluster${func.id}_${norm(view)}"
     def getId(node: Node): String = s"node${node.id}_${norm(view)}"
@@ -108,14 +107,16 @@ case class Graph(
         if (view.isEmpty) ""
         else " [VIEW: " + view.toString.replaceAll("\"", "\\\\\"") + "]"
       s"$funcName$viewName"
-    def getColor(node: Node): String =
+    def getColor(node: Node, isExit: Boolean = false): String =
       val np = NodePoint(cfg.funcOf(node), node, view)
-      if (sem.reachable(np)) REACH
+      if (isExit && !sem.rpMap.isEmpty) REACH
+      else if (!isExit && sem.reachable(np)) REACH
       else NON_REACH
-    def getColor(from: Node, to: Node): String =
+    def getEdgeColor(from: Node, to: Node, isExit: Boolean = false): String =
       val fromNP = NodePoint(cfg.funcOf(from), from, view)
       val toNP = NodePoint(cfg.funcOf(to), to, view)
-      if (sem.reachable(fromNP) && sem.reachable(toNP)) REACH
+      if (isExit && sem.reachable((fromNP)) && !sem.rpMap.isEmpty) REACH
+      else if (!isExit && sem.reachable(fromNP) && sem.reachable(toNP)) REACH
       else NON_REACH
     def getBgColor(node: Node): String =
       val np = NodePoint(cfg.funcOf(node), node, view)

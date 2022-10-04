@@ -9,13 +9,14 @@ import scala.collection.mutable.Queue
 trait DotPrinter {
   // exit
   val isExit: Boolean
+  val isExitWorklist: Boolean
 
   // helpers
   def getId(func: Func): String
   def getId(node: Node): String
   def getName(func: Func): String
-  def getColor(node: Node): String
-  def getColor(from: Node, to: Node): String
+  def getColor(node: Node, isExit: Boolean = false): String
+  def getEdgeColor(from: Node, to: Node, isExit: Boolean = false): String
   def getBgColor(node: Node): String
   def apply(app: Appender): Unit
 
@@ -74,7 +75,7 @@ trait DotPrinter {
     val nodeId = getId(node)
     val entryId = s"${funcId}_entry"
     val nodeColor = getColor(node)
-    val edgeColor = getColor(node, node)
+    val edgeColor = getEdgeColor(node, node)
     // val bgColor = getBgColor(node)
     val bgColor = NORMAL
     drawNamingNode(entryId, nodeColor, "Entry", app)
@@ -86,9 +87,10 @@ trait DotPrinter {
   def drawExit(node: Node, funcId: String, app: Appender): Unit = {
     val nodeId = getId(node)
     val exitId = s"${funcId}_exit"
-    val nodeColor = getColor(node)
-    val edgeColor = getColor(node, node)
-    val bgColor = if (isExit) CURRENT else NORMAL
+    val nodeColor = getColor(node, true)
+    val edgeColor = getEdgeColor(node, node)
+    val bgColor =
+      if (isExit) CURRENT else if (isExitWorklist) NON_REACH else NORMAL
     drawNamingNode(exitId, nodeColor, "Exit", app)
     drawNamingEdge(exitId, nodeColor, app)
     drawNode(exitId, "circle", nodeColor, bgColor, None, app)
@@ -97,7 +99,7 @@ trait DotPrinter {
   def drawCfgNode(node: Node, funcId: String, app: Appender): Unit = {
     val id = getId(node)
     val nodeColor = getColor(node)
-    val edgeColor = getColor(node, node)
+    val edgeColor = getEdgeColor(node, node)
     val bgColor = getBgColor(node)
     drawNamingNode(id, nodeColor, node.simpleString, app)
     drawNamingEdge(id, nodeColor, app)
@@ -106,8 +108,9 @@ trait DotPrinter {
         drawNode(id, "box", nodeColor, bgColor, Some(norm(insts)), app)
         nextOpt match {
           case Some(next) =>
-            drawEdge(id, getId(next), getColor(node, next), None, app)
+            drawEdge(id, getId(next), getEdgeColor(node, next), None, app)
           case None =>
+            val edgeColor = getEdgeColor(node, node, true)
             drawEdge(id.toString, s"${funcId}_exit", edgeColor, None, app)
         }
       }
@@ -122,7 +125,7 @@ trait DotPrinter {
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString), app)
         nextOpt match {
           case Some(next) =>
-            drawEdge(id, getId(next), getColor(node, next), None, app)
+            drawEdge(id, getId(next), getEdgeColor(node, next), None, app)
           case None =>
             drawEdge(id.toString, s"${funcId}_exit", edgeColor, None, app)
         }
@@ -130,10 +133,10 @@ trait DotPrinter {
       case Branch(_, kind, cond, thenOpt, elseOpt) => {
         drawNode(id, "diamond", nodeColor, bgColor, Some(norm(cond)), app)
         thenOpt.map { thn =>
-          drawEdge(id, getId(thn), getColor(node, thn), Some("true"), app),
+          drawEdge(id, getId(thn), getEdgeColor(node, thn), Some("true"), app),
         }
         elseOpt.map { els =>
-          drawEdge(id, getId(els), getColor(node, els), Some("false"), app),
+          drawEdge(id, getId(els), getEdgeColor(node, els), Some("false"), app),
         }
       }
     }
