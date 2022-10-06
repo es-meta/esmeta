@@ -19,7 +19,13 @@ class ContainsTinyTest extends TyTest {
     )
     lazy val ctxt = Context(func, MMap())
     // TODO fill out
-    lazy val heap = Heap(MMap(DynamicAddr(0) -> MapObj("A", MMap(), 0)), 1)
+    lazy val heap = Heap(
+      MMap(
+        DynamicAddr(0) -> MapObj("A", MMap(), 0),
+        DynamicAddr(1) -> ListObj(Vector(Math(5))),
+      ),
+      1,
+    )
     lazy val st = State(CFG(List(func)), ctxt, heap = heap)
 
     check("ty.contains") {
@@ -54,9 +60,54 @@ class ContainsTinyTest extends TyTest {
         RecordT("A" -> Some(NumberTopT), "B" -> Some(BoolT))
           .contains(DynamicAddr(0), st),
       )
-      
-      // TODO Test for addr, clo, cont
-      // Stringifier 참고해서 넣기.
+      assert(
+        ListT(MathTopT)
+          .contains(DynamicAddr(1), st),
+      )
+      assert(
+        CloTopT.contains(
+          Clo(
+            Func(
+              1,
+              IRFunc(
+                true,
+                IRFuncKind.Clo,
+                "test",
+                Nil,
+                UnknownType,
+                INop(),
+                None,
+              ),
+              Block(1),
+            ),
+            Map(),
+          ),
+          st,
+        ),
+      )
+      assert(
+        ContTopT.contains(
+          Cont(
+            Func(
+              1,
+              IRFunc(
+                true,
+                IRFuncKind.Clo,
+                "test",
+                Nil,
+                UnknownType,
+                INop(),
+                None,
+              ),
+              Block(1),
+            ),
+            Map(),
+            Nil,
+          ),
+          st,
+        ),
+      )
+
     }
   }
   init
