@@ -50,6 +50,11 @@ class ContainsTinyTest extends TyTest {
       assert(NullT.contains(Null, st))
       assert(AbsentT.contains(Absent, st))
       assert(AbruptT.contains(Comp(Const(" "), Math(5), None), st))
+      assert(
+        RecordT("A" -> Some(NumberTopT), "B" -> Some(BoolT))
+          .contains(DynamicAddr(0), st),
+      )
+      
       // TODO Test for addr, clo, cont
       // Stringifier 참고해서 넣기.
     }
