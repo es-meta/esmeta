@@ -30,13 +30,13 @@ class ContainsTinyTest extends TyTest {
 
     check("ty.contains") {
       // TODO fill out remaining cases
-      assert(NumberTopT.contains(Number(42), st))
+      assert(NumberT.contains(Number(42), st))
       assert(BoolT.contains(Bool(true), st))
       assert(BigIntT.contains(BigInt(42), st))
-      assert(StrTopT.contains(Str("test"), st))
-      assert(MathTopT.contains(Math(52), st))
+      assert(StrT.contains(Str("test"), st))
+      assert(MathT.contains(Math(52), st))
       assert(
-        AstTopT.contains(
+        AstT.contains(
           AstValue(Syntactic("", Nil, 5, List(Some(Lexical("name", "str"))))),
           st,
         ),
@@ -49,7 +49,6 @@ class ContainsTinyTest extends TyTest {
           st,
         ),
       )
-      assert(GrammarT(Grammar("", Nil)).contains(Grammar("", Nil), st))
       assert(ConstT("const").contains(Const("const"), st))
       assert(CodeUnitT.contains(CodeUnit(' '), st))
       assert(UndefT.contains(Undef, st))
@@ -57,15 +56,15 @@ class ContainsTinyTest extends TyTest {
       assert(AbsentT.contains(Absent, st))
       assert(AbruptT.contains(Comp(Const(" "), Math(5), None), st))
       assert(
-        RecordT("A" -> Some(NumberTopT), "B" -> Some(BoolT))
+        RecordT("A" -> NumberT, "B" -> BoolT)
           .contains(DynamicAddr(0), st),
       )
       assert(
-        ListT(MathTopT)
+        ListT(MathT)
           .contains(DynamicAddr(1), st),
       )
       assert(
-        CloTopT.contains(
+        CloT.contains(
           Clo(
             Func(
               1,
@@ -86,7 +85,7 @@ class ContainsTinyTest extends TyTest {
         ),
       )
       assert(
-        ContTopT.contains(
+        ContT.contains(
           Cont(
             Func(
               1,
