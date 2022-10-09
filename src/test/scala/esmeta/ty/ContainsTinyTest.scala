@@ -106,6 +106,7 @@ class ContainsTinyTest extends TyTest {
           st,
         ),
       )
+      assert(NtT(Nt("name", Nil)).contains(Nt("name", Nil), st))
 
     }
   }
