@@ -57,6 +57,7 @@ class AbsSemantics(
   /** set start time of analyzer */
   val startTime: Long = System.currentTimeMillis
 
+  /** set of analyzed functions */
   def analyzedFuncs: Set[Func] =
     npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
 

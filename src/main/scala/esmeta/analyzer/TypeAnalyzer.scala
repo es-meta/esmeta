@@ -19,7 +19,6 @@ private class TypeAnalyzer(
   lazy val result: TypeSemantics = withCFG(cfg) {
     withSem(sem) {
       sem.fixpoint
-      println(sem.shortString)
       if (log) logging
       val mismatches = sem.getMismatches.filter {
         case mismatch => !ignoreSet.contains(mismatch.name)
@@ -61,7 +60,7 @@ private class TypeAnalyzer(
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
       name = "type analysis result",
-      data = sem,
+      data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
     )
     dumpFile(

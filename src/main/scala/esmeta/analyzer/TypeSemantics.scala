@@ -103,8 +103,8 @@ class TypeSemantics(
         lset.forall(l => rset.exists(r => isSubTy(l, r) || isSubTy(r, l)))
     )
 
-  /** conversion to string */
-  override def toString: String =
+  /** type analysis result string */
+  def typesString: String =
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
 
   /** update return points */

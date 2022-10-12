@@ -103,7 +103,7 @@ case object CmdTypeCheck extends Command("tycheck", CmdBuildCFG >> TypeCheck) {
   val help = "performs a type analysis of ECMA-262."
   val examples = List(
     "esmeta tycheck                              # type check for spec.",
-    "esmeta tycheck -tycheck:target=\".*ToString\" # type check with targets",
+    "esmeta tycheck -tycheck:target='.*ToString' # type check with targets",
     "esmeta tycheck -extract:target=es2022       # type check for es2022 spec.",
   )
 }
