@@ -11,6 +11,7 @@ import esmeta.util.SystemUtils.*
 private class TypeAnalyzer(
   cfg: CFG,
   targets: List[Func],
+  ignoreSet: Set[String],
   log: Boolean = false,
 ) {
 
@@ -20,7 +21,9 @@ private class TypeAnalyzer(
       sem.fixpoint
       println(sem.shortString)
       if (log) logging
-      val mismatches = sem.getMismatches
+      val mismatches = sem.getMismatches.filter {
+        case mismatch => !ignoreSet.contains(mismatch.name)
+      }
       if (!mismatches.isEmpty) throw TypeMismatchError(mismatches)
       sem
     }
@@ -97,5 +100,6 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     targets: List[Func],
+    ignoreSet: Set[String],
     log: Boolean = false,
-  ): TypeSemantics = new TypeAnalyzer(cfg, targets, log).result
+  ): TypeSemantics = new TypeAnalyzer(cfg, targets, ignoreSet, log).result

@@ -6,7 +6,10 @@ import esmeta.ty.*
 import esmeta.util.*
 
 /** specification type mismatches */
-sealed trait TypeMismatch extends AnalyzerElem
+sealed trait TypeMismatch extends AnalyzerElem {
+  def calleeRp: ReturnPoint
+  def name: String = calleeRp.func.name
+}
 
 /** parameter type mismatches */
 case class ParamTypeMismatch(

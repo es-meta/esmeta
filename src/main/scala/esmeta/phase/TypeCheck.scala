@@ -6,6 +6,7 @@ import esmeta.analyzer.domain
 import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 
 /** `tycheck` phase */
 case object TypeCheck extends Phase[CFG, AbsSemantics] {
@@ -17,8 +18,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     config: Config,
   ): AbsSemantics =
     val targets = getInitTargets(cfg, config.target)
+    val ignoreSet = optional {
+      readJson[Set[String]](config.ignore.get)
+    }.getOrElse(Set())
     println(s"- ${targets.size} functions are initial targets.")
-    TypeAnalyzer(cfg, targets, config.log)
+    TypeAnalyzer(cfg, targets, ignoreSet, config.log)
 
   // find initial analysis targets based on a given regex pattern
   private def getInitTargets(cfg: CFG, target: Option[String]): List[Func] =
@@ -44,6 +48,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "use a REPL for type analysis of ECMA-262.",
     ),
     (
+      "ignore",
+      StrOption((c, s) => c.ignore = Some(s)),
+      "ignore type mismatches in algorithms listed in a given JSON file.",
+    ),
+    (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
@@ -51,6 +60,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   )
   case class Config(
     var target: Option[String] = None,
+    var ignore: Option[String] = None,
     var log: Boolean = false,
   )
 }
