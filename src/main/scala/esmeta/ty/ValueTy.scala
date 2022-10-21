@@ -140,18 +140,17 @@ case class ValueTy(
       astValue match
         case AstTopTy       => true
         case a: AstNonTopTy => a.toName.names contains ast.name
-    case g @ Grammar(name, params) => ??? // grammar contains g
-    case Math(n)                   => math contains n
-    case Const(name)               => const contains name
-    case CodeUnit(c)               => codeUnit
-    case num @ Number(n)           => number contains num
-    case BigInt(n)                 => bigInt
-    case Str(s)                    => str contains s
-    case Bool(b)                   => ??? // bool contains b
-    case Undef                     => undef
-    case Null                      => nullv
-    case Absent                    => absent
-    case _                         => ???
+    case Nt(name, params) => ??? // grammar contains g
+    case Math(n)          => math contains n
+    case Const(name)      => const contains name
+    case CodeUnit(c)      => codeUnit
+    case num @ Number(n)  => number contains num
+    case BigInt(n)        => bigInt
+    case Str(s)           => str contains s
+    case Bool(b)          => ??? // bool contains b
+    case Undef            => undef
+    case Null             => nullv
+    case Absent           => absent
 }
 object ValueTy {
   def apply(
