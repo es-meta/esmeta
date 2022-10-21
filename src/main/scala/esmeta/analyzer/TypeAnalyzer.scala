@@ -3,7 +3,7 @@ package esmeta.analyzer
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.error.TypeMismatchError
+import esmeta.error.*
 import esmeta.ir.Param
 import esmeta.util.SystemUtils.*
 
@@ -20,10 +20,15 @@ private class TypeAnalyzer(
     withSem(sem) {
       sem.fixpoint
       if (log) logging
+      var unusedSet = ignoreSet
       val mismatches = sem.getMismatches.filter {
-        case mismatch => !ignoreSet.contains(mismatch.name)
+        case mismatch =>
+          val name = mismatch.name
+          unusedSet -= name
+          !ignoreSet.contains(name)
       }
       if (!mismatches.isEmpty) throw TypeMismatchError(mismatches)
+      if (!unusedSet.isEmpty) throw UnneceesaryIgnore(unusedSet)
       sem
     }
   }
