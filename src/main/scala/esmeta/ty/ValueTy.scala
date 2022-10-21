@@ -112,18 +112,18 @@ case class ValueTy(
     case Comp(ty, value, target) => isCompletion
     case a: Addr =>
       state.heap(a) match {
-        case m @ MapObj(ty, props, _) =>
-          (names contains ty) | m.keys.foldLeft(true)({
-            case (t, key) => (
-              t && (record.map.get(key.asStr) match
-                case None => false
-                case Some(v) =>
-                  v match
-                    case None    => true
-                    case Some(v) => v.contains(props.get(key).get.value, state)
-              )
-            )
-          })
+        case m @ MapObj(ty, props, _) => ???
+        // (names contains ty) | m.keys.foldLeft(true)({
+        //   case (t, key) => (
+        //     t && (record.map.get(key.asStr) match
+        //       case None => false
+        //       case Some(v) =>
+        //         v match
+        //           case None    => true
+        //           case Some(v) => v.contains(props.get(key).get.value, state)
+        //     )
+        //   )
+        // })
         case ListObj(values) =>
           list.elem match
             case None => false
@@ -140,17 +140,18 @@ case class ValueTy(
       astValue match
         case AstTopTy       => true
         case a: AstNonTopTy => a.toName.names contains ast.name
-    case g @ Grammar(name, params) => grammar contains g
+    case g @ Grammar(name, params) => ??? // grammar contains g
     case Math(n)                   => math contains n
     case Const(name)               => const contains name
     case CodeUnit(c)               => codeUnit
     case num @ Number(n)           => number contains num
     case BigInt(n)                 => bigInt
     case Str(s)                    => str contains s
-    case Bool(b)                   => bool contains b
+    case Bool(b)                   => ??? // bool contains b
     case Undef                     => undef
     case Null                      => nullv
     case Absent                    => absent
+    case _                         => ???
 }
 object ValueTy {
   def apply(
