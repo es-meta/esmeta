@@ -89,7 +89,7 @@ class DotPrinter(
           case Some(next) =>
             drawEdge(id, getId(next), getEdgeColor(node, next), None)
           case None =>
-            val edgeColor = getEdgeColor(node, node)
+            val edgeColor = exitEdgeColor(node)
             drawEdge(id.toString, exitId, edgeColor, None)
       case Call(_, callInst, nextOpt) =>
         val simpleString = callInst match
