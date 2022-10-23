@@ -28,6 +28,7 @@ lazy val NormalT: ValueTy = ValueTy(normal = PureValueTy.Top)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
   else ValueTy(normal = value.pureValue)
+def SubMapT: ValueTy = ValueTy(subMap = SubMapTy.Top)
 def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
@@ -58,6 +59,7 @@ lazy val ESPrimT: ValueTy = ValueTy(
 )
 lazy val ESValueT: ValueTy = ObjectT || ESPrimT
 lazy val ESPureValueT: PureValueTy = ESValueT.pureValue
+lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
 def RecordT(fields: Set[String]): ValueTy =
   if (fields.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(fields))
@@ -68,6 +70,7 @@ def RecordT(pairs: (String, ValueTy)*): ValueTy =
   if (pairs.isEmpty) ValueTy.Bot
   else ValueTy(record = RecordTy(pairs.toMap).norm)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
+def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy =
   if (ty.isBottom) ValueTy.Bot
   else ValueTy(list = ListTy(Some(ty)))
@@ -78,10 +81,12 @@ def AstT(xs: String*): ValueTy =
   else ValueTy(astValue = AstNameTy(xs.toSet))
 def AstSingleT(name: String, idx: Int, subIdx: Int): ValueTy =
   ValueTy(astValue = AstSingleTy(name, idx, subIdx))
+def NtT: ValueTy = ValueTy(nt = Inf)
 def NtT(xs: Nt*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(nt = Fin(xs.toSet))
 lazy val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
+def ConstT: ValueTy = ValueTy(const = Inf)
 def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(const = Fin(xs.toSet))

@@ -71,6 +71,6 @@ case class CompTy(
     else normal.getSingle.map(AComp(Const("normal"), _, None))
 }
 object CompTy extends Parser.From(Parser.compTy) {
-  val Bot: CompTy = CompTy()
-  val Top = CompTy(PureValueTy.Top, Inf)
+  lazy val Bot: CompTy = CompTy()
+  lazy val Top = CompTy(PureValueTy.Top, Inf)
 }

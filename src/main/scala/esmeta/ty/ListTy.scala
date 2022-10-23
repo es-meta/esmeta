@@ -53,6 +53,6 @@ case class ListTy(elem: Option[ValueTy] = None)
   def getSingle: Flat[Nothing] = if (elem.isEmpty) Zero else Many
 }
 object ListTy extends Parser.From(Parser.listTy) {
-  val Top: ListTy = ListTy(Some(ValueTy.Top))
-  val Bot: ListTy = ListTy()
+  lazy val Top: ListTy = ListTy(Some(ValueTy.Top))
+  lazy val Bot: ListTy = ListTy()
 }

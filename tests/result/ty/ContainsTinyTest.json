@@ -1,3 +1,27 @@
 {
-  "ty.contains" : true
+  "abstract syntax tree (AST) values" : true,
+  "abstract syntax tree (AST) values (negative)" : true,
+  "closures" : true,
+  "closures (negative)" : true,
+  "code units" : true,
+  "completion values" : true,
+  "completion values (negative)" : true,
+  "constants" : true,
+  "constants (negative)" : true,
+  "continuations" : true,
+  "continuations (negative)" : true,
+  "list objects" : true,
+  "list objects (negative)" : true,
+  "map objects" : true,
+  "map objects (negative)" : true,
+  "math values" : true,
+  "math values (negative)" : true,
+  "non-numeric simple values" : true,
+  "non-numeric simple values (negative)" : true,
+  "nonterminals" : true,
+  "nonterminals (negative)" : true,
+  "numeric values" : true,
+  "numeric values (negative)" : true,
+  "symbol objects" : true,
+  "symbol objects (negative)" : true
 }

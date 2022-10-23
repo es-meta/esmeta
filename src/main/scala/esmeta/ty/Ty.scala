@@ -15,6 +15,7 @@ trait Ty extends TyElem {
   def isCompletion: Boolean
 
   /** value containment check */
-  def contains(value: Value, state: State): Boolean
+  def contains(value: Value, st: State): Boolean = contains(value, st.heap)
+  def contains(value: Value, heap: Heap): Boolean
 }
 object Ty extends Parser.From(Parser.ty)
