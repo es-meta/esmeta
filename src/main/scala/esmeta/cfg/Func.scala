@@ -1,6 +1,6 @@
 package esmeta.cfg
 
-import esmeta.cfg.util.*
+import esmeta.cfg.util.{DotPrinter => CFGDotPrinter, *}
 import esmeta.ir.{Param, Type, Name, Func => IRFunc, FuncKind, EYet}
 import esmeta.spec.Head
 import esmeta.ty.*
@@ -78,17 +78,8 @@ case class Func(
 
   /** conversion to a DOT format */
   def dot: String = toDot()
-  def toDot(nid: Int = -1, _isExit: Boolean = false): String = new DotPrinter {
-    val isExit: Boolean = _isExit
-    def getId(func: Func): String = s"cluster${func.id}"
-    def getId(node: Node): String = s"node${node.id}"
-    def getName(func: Func): String = func.headString
-    def getColor(node: Node): String = REACH
-    def getColor(from: Node, to: Node): String = REACH
-    def getBgColor(node: Node): String =
-      if (node.id == nid) CURRENT else NORMAL
-    def apply(app: Appender): Unit = addFunc(func, app)
-  }.toString
+  def toDot(targetId: Int = -1, isExit: Boolean = false): String =
+    new Func.DotPrinter(this, targetId, isExit).toString
 
   /** dump in a DOT format */
   def dumpDot(
@@ -111,4 +102,23 @@ case class Func(
     dotPath: String,
     pdfPath: String,
   ): Unit = dumpDot(dotPath, Some(pdfPath))
+}
+object Func {
+  class DotPrinter(
+    func: Func,
+    targetId: Int = -1,
+    isExit: Boolean = false,
+  ) extends CFGDotPrinter(func) {
+    override lazy val exitBgColor: String = if (isExit) CURRENT else NORMAL
+    override def getBgColor(node: Node): String =
+      if (node.id == targetId) CURRENT else NORMAL
+    override def toString: String =
+      val app = new Appender
+      (app >> "digraph ").wrap {
+        app :> """graph [fontname = "Consolas"]"""
+        app :> """node [fontname = "Consolas"]"""
+        app :> """edge [fontname = "Consolas"]"""
+        addTo(app)
+      }.toString
+  }
 }

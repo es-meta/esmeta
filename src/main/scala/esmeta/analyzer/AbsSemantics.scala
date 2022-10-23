@@ -278,17 +278,9 @@ class AbsSemantics(
         val st = this(rp).getString(detail = detail)
         s"""$k -> $st"""
 
-  /** check reachability based on call contexts */
-  def reachable(np: NodePoint[Node]): Boolean =
-    !getNps(np).forall(this(_).isBottom)
-
-  /** get node points */
-  def getNps(givenNp: NodePoint[Node]): Set[NodePoint[Node]] =
-    val entryView = getEntryView(givenNp.view)
-    for {
-      np <- npMap.keySet
-      if givenNp.node == np.node && entryView == getEntryView(np.view)
-    } yield np
+  /** check reachability */
+  def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
+  def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
 
   /** conversion to string */
   override def toString: String = shortString
