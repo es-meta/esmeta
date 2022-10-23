@@ -2,7 +2,7 @@
   <h1>
     ToNumber (
       _argument_: an ECMAScript language value,
-    ): either a normal completion containing an ECMAScript language value or an abrupt completion
+    ): either a normal completion containing a Number or a throw completion
   </h1>
   <dl class="header"></dl>
   <emu-alg>
