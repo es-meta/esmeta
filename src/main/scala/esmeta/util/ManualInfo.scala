@@ -2,7 +2,7 @@ package esmeta.util
 
 import esmeta.MANUALS_DIR
 import esmeta.spec.Spec
-import esmeta.test262.ManualConfig
+import esmeta.test262.util.ManualConfig
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File

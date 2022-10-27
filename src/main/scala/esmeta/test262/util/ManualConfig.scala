@@ -1,4 +1,4 @@
-package esmeta.test262
+package esmeta.test262.util
 
 import esmeta.MANUALS_DIR
 import esmeta.util.BaseUtils.*
@@ -14,7 +14,7 @@ object ManualConfig {
   def apply(paths: List[String]): ManualConfig =
     val fileMap: Map[String, String] = (for {
       path <- paths
-      file <- walkTree(s"$MANUALS_DIR/$path/test262/name")
+      file <- walkTree(s"$MANUALS_DIR/$path/test262")
       if jsonFilter(file.getName)
     } yield file.getName -> file.toString).toMap
     val filtered = fileMap

@@ -40,7 +40,7 @@ case class TestFilter(spec: Spec, tests: List[MetaData]) {
     ),
     "in-progress features" -> (m =>
       !m.features.forall(features.contains(_)) ||
-      manualInprogress.map(_._1).contains(removedExt(m.relName)),
+      manualInprogress.contains(removedExt(m.relName)),
     ),
     "non-strict" -> (m =>
       m.flags.contains("noStrict") ||
@@ -76,25 +76,34 @@ case class TestFilter(spec: Spec, tests: List[MetaData]) {
   lazy val languageFeatures = manualConfig.supportedFeatures
 
   /** manually filtered out non-strict mode tests */
-  lazy val manualNonstrict = List()
+  lazy val manualNonstrict =
+    manualConfig.filtered.getOrElse("non-strict tests", Nil).toSet
 
   /** manually filtered out tests for EarlyErorr */
-  lazy val manualEarlyError = List()
+  lazy val manualEarlyError =
+    manualConfig.filtered.getOrElse("early errors", Nil).toSet
 
   /** manually filtered out tests for in-progress features */
-  lazy val manualInprogress: List[(String, String)] = Nil
+  lazy val manualInprogress = (for {
+    (_, names) <- manualConfig.inProgress
+    name <- names
+  } yield name).toSet
 
   /** manually filtered out non test files */
-  lazy val manualNonTest = List()
+  lazy val manualNonTest =
+    manualConfig.filtered.getOrElse("non tests", Nil).toSet
 
   /** manually filtered out long tests */
-  lazy val longTest = List()
+  lazy val longTest =
+    manualConfig.filtered.getOrElse("long tests", Nil).toSet
 
   /** manually filtered out wrong test262 tests */
-  lazy val wrongTest = List()
+  lazy val wrongTest =
+    manualConfig.filtered.getOrElse("wrong tests", Nil).toSet
 
   /** manually filtered out not yet supported tests */
-  lazy val yets = List()
+  lazy val yets =
+    manualConfig.filtered.getOrElse("yet tests", Nil).toSet
 }
 
 /** helper of Test262 test filter */
