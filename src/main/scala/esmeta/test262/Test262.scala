@@ -30,7 +30,7 @@ case class Test262(
   lazy val allTests: List[MetaData] = MetaData.fromDir(TEST262_TEST_DIR)
 
   /** test262 test configuration */
-  lazy val allTestFilter: TestFilter = TestFilter(allTests)
+  lazy val allTestFilter: TestFilter = TestFilter(cfg.spec, allTests)
 
   /** configuration summary for applicable tests */
   lazy val config: ConfigSummary = allTestFilter.summary
@@ -73,7 +73,7 @@ case class Test262(
     useErrorHandler: Boolean = true,
   ): ProgressBar[NormalConfig] = ProgressBar(
     msg = s"Run Test262 $name tests",
-    iterable = TestFilter(dataList).summary.normal,
+    iterable = TestFilter(cfg.spec, dataList).summary.normal,
     getName = (test, _) =>
       val name = test.name
       val absPath = getAbsPath(name)

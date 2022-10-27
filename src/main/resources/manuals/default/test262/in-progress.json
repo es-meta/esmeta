@@ -1,0 +1,16 @@
+{
+  "matchAll": [
+    "built-ins/String/prototype/matchAll/length",
+    "built-ins/String/prototype/matchAll/name",
+    "built-ins/String/prototype/matchAll/prop-desc",
+    "built-ins/String/prototype/matchAll/regexp-is-null",
+    "built-ins/String/prototype/matchAll/regexp-is-undefined",
+    "built-ins/String/prototype/matchAll/regexp-matchAll-invocation",
+    "built-ins/String/prototype/matchAll/regexp-matchAll-not-callable",
+    "built-ins/String/prototype/matchAll/regexp-prototype-has-no-matchAll",
+    "built-ins/String/prototype/matchAll/this-val-non-obj-coercible"
+  ],
+  "substr": [
+    "built-ins/RegExp/lookBehind/sliced-strings"
+  ]
+}

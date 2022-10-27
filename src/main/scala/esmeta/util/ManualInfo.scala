@@ -2,6 +2,7 @@ package esmeta.util
 
 import esmeta.MANUALS_DIR
 import esmeta.spec.Spec
+import esmeta.test262.ManualConfig
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File
@@ -19,12 +20,15 @@ case class ManualInfo(version: Option[Spec.Version]) {
   /** get compile rules */
   def compileRule: CompileRule = getCompileRule(paths)
 
-  /** get compile rules */
+  /** get bugfixes */
   def bugfixFile: Option[File] = bugfixPath.map(File(_))
   def bugfixPath: Option[String] = version.fold(None)(version => {
     val patchFile = s"$MANUALS_DIR/${version.shortHash}/bugfix.patch"
     if (exists(patchFile)) Some(patchFile) else None
   })
+
+  /** get bugfixes */
+  def test262: ManualConfig = ManualConfig(paths)
 
   private def getAlgos(paths: List[String]): List[File] =
     getFiles(paths, algoFilter)
