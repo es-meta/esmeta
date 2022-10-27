@@ -116,9 +116,19 @@ lazy val test262ParseTest =
 lazy val test262EvalTest =
   taskKey[Unit]("Launch eval tests for Test262 (large)")
 
+// Java options for assembly
+lazy val assemblyJavaOpts = Seq(
+  "-Xms1g",
+  "-Xmx3g",
+  "-XX:ReservedCodeCacheSize=512m",
+  "-Dfile.encoding=utf8",
+)
+
 // assembly setting
-ThisBuild / assemblyPrependShellScript :=
-  Some(defaultUniversalScript(shebang = false))
+ThisBuild / assemblyPrependShellScript := Some(
+  assemblyJavaOpts.map("JAVA_OPTS=\"" + _ + " $JAVA_OPTS\"") ++
+  defaultUniversalScript(shebang = false),
+)
 
 // Akka
 val AkkaVersion = "2.6.19"
