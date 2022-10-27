@@ -18,6 +18,7 @@ import java.util.concurrent.TimeoutException
 case class Test262(
   version: Test262.Version,
   cfg: CFG,
+  withYet: Boolean = false,
 ) {
 
   /** cache for parsing results for necessary harness files */
@@ -30,7 +31,7 @@ case class Test262(
   lazy val allTests: List[MetaData] = MetaData.fromDir(TEST262_TEST_DIR)
 
   /** test262 test configuration */
-  lazy val allTestFilter: TestFilter = TestFilter(cfg.spec, allTests)
+  lazy val allTestFilter: TestFilter = TestFilter(cfg.spec, allTests, withYet)
 
   /** configuration summary for applicable tests */
   lazy val config: ConfigSummary = allTestFilter.summary

@@ -29,7 +29,7 @@ case object Test262Test extends Phase[CFG, Summary] {
 
     // get target version of Test262
     val version = Test262.getVersion(config.target)
-    val test262 = Test262(version, cfg)
+    val test262 = Test262(version, cfg, config.withYet)
 
     // run test262 eval test
     test262.evalTest(
@@ -63,6 +63,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the time limit in seconds (default: no limit).",
     ),
     (
+      "with-yet",
+      BoolOption(c => c.withYet = true),
+      "set the time limit in seconds (default: no limit).",
+    ),
+    (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
@@ -73,6 +78,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var coverage: Boolean = false,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
+    var withYet: Boolean = false,
     var log: Boolean = false,
   )
 }

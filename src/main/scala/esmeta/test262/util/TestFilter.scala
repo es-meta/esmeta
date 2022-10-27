@@ -10,7 +10,11 @@ import io.circe.*, io.circe.syntax.*
 import java.io.*
 
 /** Test262 test filter */
-case class TestFilter(spec: Spec, tests: List[MetaData]) {
+case class TestFilter(
+  spec: Spec,
+  tests: List[MetaData],
+  withYet: Boolean = false,
+) {
 
   /** configuration summary for applicable tests */
   lazy val summary = targetTests
@@ -103,7 +107,8 @@ case class TestFilter(spec: Spec, tests: List[MetaData]) {
 
   /** manually filtered out not yet supported tests */
   lazy val yets =
-    manualConfig.filtered.getOrElse("yet tests", Nil).toSet
+    if (withYet) Set()
+    else manualConfig.filtered.getOrElse("yet tests", Nil).toSet
 }
 
 /** helper of Test262 test filter */
