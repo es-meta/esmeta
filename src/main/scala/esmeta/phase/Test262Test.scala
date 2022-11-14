@@ -65,7 +65,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     (
       "with-yet",
       BoolOption(c => c.withYet = true),
-      "set the time limit in seconds (default: no limit).",
+      "test with currently ignored tests because of unknown issues.",
     ),
     (
       "log",

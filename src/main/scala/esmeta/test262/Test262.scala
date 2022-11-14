@@ -74,7 +74,7 @@ case class Test262(
     useErrorHandler: Boolean = true,
   ): ProgressBar[NormalConfig] = ProgressBar(
     msg = s"Run Test262 $name tests",
-    iterable = TestFilter(cfg.spec, dataList).summary.normal,
+    iterable = TestFilter(cfg.spec, dataList, withYet).summary.normal,
     getName = (test, _) =>
       val name = test.name
       val absPath = getAbsPath(name)
