@@ -1,0 +1,13 @@
+def <BUILTIN>:INTRINSICS.BigInt.asUintN(
+  this: ESValue,
+  argumentsList: List[ESValue],
+  NewTarget: Object | Undefined,
+): Unknown {
+  if (< 0 argumentsList.length) let bits = (pop < argumentsList) else let bits = absent
+  if (< 0 argumentsList.length) let bigint = (pop < argumentsList) else let bigint = absent
+  call %0 = clo<ToIndex>(bits)
+  bits = [? %0]
+  call %1 = clo<ToBigInt>(bigint)
+  bigint = [? %1]
+  return ([bigInt] (% ([math] bigint) (** 2 bits)))
+}
