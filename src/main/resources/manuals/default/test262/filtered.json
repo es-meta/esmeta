@@ -309,8 +309,6 @@
     "built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-rejected",
     "built-ins/AsyncFromSyncIteratorPrototype/throw/iterator-result",
     "built-ins/Atomics/wait/good-views",
-    "built-ins/BigInt/asIntN/arithmetic",
-    "built-ins/BigInt/asUintN/arithmetic",
     "built-ins/BigInt/wrapper-object-ordinary-toprimitive",
     "built-ins/Boolean/prototype/S15.6.3.1_A1",
     "built-ins/Function/private-identifiers-not-empty",
