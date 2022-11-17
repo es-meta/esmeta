@@ -6,12 +6,13 @@ def <BUILTIN>:INTRINSICS.BigInt.asIntN(
   if (< 0 argumentsList.length) let bits = (pop < argumentsList) else let bits = absent
   if (< 0 argumentsList.length) let bigint = (pop < argumentsList) else let bigint = absent
   call %0 = clo<ToIndex>(bits)
-  bits = [? %0]
+  bits = ([bigInt] [? %0])
   call %1 = clo<ToBigInt>(bigint)
   bigint = [? %1]
-  let mod = (% ([math] bigint) (** 2 bits))
-  if (! (< mod (** 2 (- bits 1)))) {
-    return ([bigInt] (- mod (** 2 bits)))
+  let mod = (% bigint (** ([bigInt] 2) bits))
+  if (== bits 0n) return ([bigInt] 0) else 0
+  if (! (< mod (** ([bigInt] 2) (- bits ([bigInt] 1))))) {
+    return ([bigInt] (- mod (** ([bigInt] 2) bits)))
   } else {
     return ([bigInt] mod)
   }
