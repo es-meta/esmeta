@@ -662,7 +662,9 @@ object Interpreter {
       case (Mul, Number(l), Number(r))  => Number(l * r)
       case (Pow, Number(l), Number(r))  => Number(math.pow(l, r))
       case (Div, Number(l), Number(r))  => Number(l / r)
-      case (Mod, Number(l), Number(r))  => Number(l % r)
+      case (Mod, Number(l), Number(r)) =>
+        val m = l % r
+        Number(if (m * r) < 0 then r + m else m)
       case (UMod, Number(l), Number(r)) => Number(l %% r)
       case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
         Bool(true)
@@ -719,7 +721,9 @@ object Interpreter {
       case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
       case (Mul, BigInt(l), BigInt(r))     => BigInt(l * r)
       case (Div, BigInt(l), BigInt(r))     => BigInt(l / r)
-      case (Mod, BigInt(l), BigInt(r))     => BigInt(l % r)
+      case (Mod, BigInt(l), BigInt(r)) =>
+        val m = l % r
+        BigInt(if (m * r) < 0 then r + m else m)
       case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
       case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
       case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
