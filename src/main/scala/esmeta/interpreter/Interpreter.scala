@@ -1,16 +1,18 @@
 package esmeta.interpreter
 
 import esmeta.EVAL_LOG_DIR
+import esmeta.TEST_MODE
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
-import esmeta.parser.{ESParser, ESValueParser}
+import esmeta.ir.{Func => IRFunc, _}
+import esmeta.parser.ESParser
+import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.util.BaseUtils.{error => _, *}
+import esmeta.util.BaseUtils.{error => _, _}
 import esmeta.util.SystemUtils.*
-import esmeta.TEST_MODE
+
 import java.io.PrintWriter
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
@@ -657,11 +659,11 @@ object Interpreter {
     import BOp.*
     (bop, left, right) match {
       // double operations
-      case (Add, Number(l), Number(r))  => Number(l + r)
-      case (Sub, Number(l), Number(r))  => Number(l - r)
-      case (Mul, Number(l), Number(r))  => Number(l * r)
-      case (Pow, Number(l), Number(r))  => Number(math.pow(l, r))
-      case (Div, Number(l), Number(r))  => Number(l / r)
+      case (Add, Number(l), Number(r)) => Number(l + r)
+      case (Sub, Number(l), Number(r)) => Number(l - r)
+      case (Mul, Number(l), Number(r)) => Number(l * r)
+      case (Pow, Number(l), Number(r)) => Number(math.pow(l, r))
+      case (Div, Number(l), Number(r)) => Number(l / r)
       case (Mod, Number(l), Number(r)) =>
         val m = l % r
         Number(if (m * r) < 0 then r + m else m)
@@ -724,12 +726,12 @@ object Interpreter {
       case (Mod, BigInt(l), BigInt(r)) =>
         val m = l % r
         BigInt(if (m * r) < 0 then r + m else m)
-      case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
-      case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
-      case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
-      case (BOr, BigInt(l), BigInt(r))     => BigInt(l | r)
-      case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
-      case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
+      case (UMod, BigInt(l), BigInt(r)) => BigInt(l %% r)
+      case (Lt, BigInt(l), BigInt(r))   => Bool(l < r)
+      case (BAnd, BigInt(l), BigInt(r)) => BigInt(l & r)
+      case (BOr, BigInt(l), BigInt(r))  => BigInt(l | r)
+      case (BXOr, BigInt(l), BigInt(r)) => BigInt(l ^ r)
+      case (Pow, BigInt(l), BigInt(r))  => BigInt(l.pow(r.toInt))
 
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
