@@ -32,13 +32,19 @@ case object Test262Test extends Phase[CFG, Summary] {
     val test262 = Test262(version, cfg, config.withYet)
 
     // run test262 eval test
-    test262.evalTest(
+    val summary = test262.evalTest(
       cmdConfig.targets,
       config.log,
       config.progress,
       config.coverage,
       config.timeLimit,
     )
+
+    // if summary has failed test case, throws an exception
+    if (summary.fail > 0) throw Test262Fail(summary.fails)
+
+    // return summary
+    summary
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
