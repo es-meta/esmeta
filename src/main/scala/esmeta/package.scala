@@ -1,13 +1,17 @@
 package esmeta
 
+import esmeta.error.NoEnvVarError
+
 /** line seperator */
 val LINE_SEP = System.getProperty("line.separator")
 
 /** base project directory root */
-val BASE_DIR = System.getenv("ESMETA_HOME")
+val VERSION = "0.1.0-rc5"
 
 /** base project directory root */
-val VERSION = "0.1.0-rc5"
+val BASE_DIR =
+  val path = System.getenv("ESMETA_HOME")
+  if (path == null) throw NoEnvVarError else path
 
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"
