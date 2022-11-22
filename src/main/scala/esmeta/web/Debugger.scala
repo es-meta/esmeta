@@ -36,7 +36,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   override def eval(node: Node): Unit = {
     saveBpCounts; // save counter
     node match
-      case block @ Block(_, insts, next) if cursor.stepsOpt.isDefined =>
+      case block @ Block(_, insts, next) =>
         eval(insts(cursor.idx))
         cursor.idx += 1
         if (cursor.idx == insts.length) {
