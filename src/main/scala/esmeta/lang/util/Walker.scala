@@ -39,8 +39,12 @@ trait Walker extends BasicWalker {
     StepBlock(walkList(stepBlock.steps, walk))
 
   def walk(subStep: SubStep): SubStep =
-    val SubStep(idTag, step) = subStep
-    SubStep(idTag, walk(step))
+    val SubStep(directive, step) = subStep
+    SubStep(walkOpt(directive, walk), walk(step))
+
+  def walk(directive: Directive): Directive =
+    val Directive(name, values) = directive
+    Directive(walk(name), walkList(values, walk))
 
   def walk(step: Step): Step = step match {
     case LetStep(x, expr) =>

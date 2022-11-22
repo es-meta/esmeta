@@ -122,18 +122,32 @@ class Compiler(
 
   /** get prefix instructions for builtin functions */
   def getBuiltinPrefix(ps: List[Param]): List[Inst] =
-    if (ps.exists(_.kind == ParamKind.Ellipsis)) Nil
+    import ParamKind.*
+    if (ps.exists(_.kind == Ellipsis)) Nil
     else {
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
-      ps.map {
-        case Param(name, _, ParamKind.Variadic) =>
-          ILet(Name(name), ENAME_ARGS_LIST)
-        case Param(name, _, _) =>
-          IIf(
-            lessThan(zero, argsLen),
-            ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
-            ILet(Name(name), EAbsent),
+      var remaining = ps.count(_.kind == Normal)
+      ps.flatMap {
+        case Param(name, _, Variadic) if remaining == 0 =>
+          List(ILet(Name(name), ENAME_ARGS_LIST))
+        case Param(name, _, Variadic) =>
+          List(
+            ILet(Name(name), EList(Nil)),
+            ILoop(
+              "args",
+              lessThan(EMathVal(BigDecimal.exact(remaining)), argsLen),
+              IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
+            ),
+          )
+        case Param(name, _, kind) =>
+          if (kind == Normal) remaining -= 1
+          List(
+            IIf(
+              lessThan(zero, argsLen),
+              ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
+              ILet(Name(name), EAbsent),
+            ),
           )
       }
     }

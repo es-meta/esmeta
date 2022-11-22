@@ -11,5 +11,7 @@ case class ExprBlock(exprs: List[Expression]) extends Block
 case class Figure(lines: List[String]) extends Block
 
 // sub-steps with optional id tags
-// TODO handle user-effective directive
-case class SubStep(idTag: Option[String], step: Step) extends Syntax
+case class SubStep(directive: Option[Directive], step: Step) extends Syntax
+
+// user-defined directives
+case class Directive(name: String, values: List[String]) extends Syntax

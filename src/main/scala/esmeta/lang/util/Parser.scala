@@ -5,7 +5,6 @@ import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
 import esmeta.util.BaseUtils.*
-import akka.http.scaladsl.model.MediaTypes.multipart
 
 /** metalanguage parser */
 object Parser extends Parsers
@@ -29,15 +28,19 @@ trait Parsers extends IndentParsers {
   lazy val stepBlock: Parser[StepBlock] =
     indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
 
+  // user-defined directives
+  lazy val directive: Parser[Directive] =
+    lazy val name = "[-a-zA-Z0-9]+".r
+    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
+      case x ~ vs => Directive(x, vs)
+    }
+
   // sub-steps
-  lazy val subStepPrefix: Parser[Option[String]] =
-    val directive =
-      ("[id=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]") |
-      ("[fence-effects=\"" ~> "[-a-zA-Z0-9]+".r <~ "\"]")
-    next ~> "1." ~> opt(directive) <~ upper
+  lazy val subStepPrefix: Parser[Option[Directive]] =
+    next ~ "1." ~> opt(directive) <~ upper
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
-      case x ~ s => SubStep(x, s)
+      case d ~ s => SubStep(d, s)
     }
 
   // figure string

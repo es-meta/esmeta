@@ -179,24 +179,26 @@ trait Parsers extends LangParsers {
 
   // algorithm parameters
   given param: Parser[Param] = {
-    import ParamKind.*
-    opt("optional") ~ specId ~ specType ^^ {
+    opt(paramKind) ~ specId ~ specType ^^ {
       case opt ~ name ~ ty =>
-        val kind = if (opt.isDefined) Optional else Normal
+        val kind = opt.getOrElse(ParamKind.Normal)
         Param(name, ty, kind)
-    } | opt(",") ~ "…" ^^^ Param("", UnknownType, Ellipsis)
+    }
   }.named("spec.Param")
+
+  // algorithm parameter kinds
+  lazy val paramKind: Parser[ParamKind] =
+    import ParamKind.*
+    "optional" ^^^ Optional | "..." ^^^ Variadic | "…" ~ "," ^^^ Ellipsis
 
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =
-    import ParamKind.*
     langTypeWithUnknown ~ opt(specId) <~ opt("(.*)".r) ^^ {
       case ty ~ name => Param(name.getOrElse("this"), ty)
     }
 
   // multiple algorithm parameters
   lazy val params: Parser[List[Param]] = {
-    import ParamKind.Ellipsis
     opt(
       "(" ~ opt(newline) ~> repsep(param, "," ~ opt(newline)) ~ oldOptParams <~
       opt("," ~ newline) ~ ")",
@@ -211,8 +213,6 @@ trait Parsers extends LangParsers {
     import ParamKind.*
     "[" ~> opt(",") ~> param ~ opt(oldOptParams) <~ "]" ^^ {
       case p ~ psOpt => p.copy(kind = Optional) :: psOpt.getOrElse(Nil)
-    } | opt(",") ~ "..." ~> param ^^ {
-      case p => List(p.copy(kind = Variadic))
     } | success(Nil)
 
   // syntax-directed operation (SDO) head generator

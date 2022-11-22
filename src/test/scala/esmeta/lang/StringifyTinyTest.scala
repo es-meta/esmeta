@@ -17,7 +17,8 @@ class StringifyTinyTest extends LangTest {
     def toBlockStep(steps: Step*): BlockStep =
       BlockStep(StepBlock(steps.toList.map(SubStep(None, _))))
     lazy val subStep = SubStep(None, letStep)
-    lazy val subStepId = SubStep(Some("this-is-id"), letStep)
+    lazy val directive = Directive("id", List("x", "y", "z"))
+    lazy val subStepId = SubStep(Some(directive), letStep)
     lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))
     lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
     lazy val figureBlock = Figure(List("a", "b", "c"))
@@ -26,7 +27,7 @@ class StringifyTinyTest extends LangTest {
     checkParseAndStringify("Block", Block)(
       stepBlock -> """
       |  1. Let _x_ be _x_.
-      |  1. [id="this-is-id"] Let _x_ be _x_.
+      |  1. [id="x,y,z"] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
       exprBlock -> """
       |  * _x_
