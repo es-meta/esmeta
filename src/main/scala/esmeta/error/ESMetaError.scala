@@ -1,6 +1,6 @@
 package esmeta.error
 
-import esmeta.VERSION
+import esmeta.{VERSION, LINE_SEP}
 
 class ESMetaError(
   val errMsg: String,
@@ -9,5 +9,6 @@ class ESMetaError(
 
 object NoEnvVarError
   extends ESMetaError(
-    "Please set the environment variable ESMETA_HOME.",
+    "Please set the environment variable ESMETA_HOME." + LINE_SEP +
+    "(See https://github.com/es-meta/esmeta#environment-setting)",
   )
