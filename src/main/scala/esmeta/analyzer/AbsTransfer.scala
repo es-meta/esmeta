@@ -388,7 +388,7 @@ class AbsTransfer(sem: AbsSemantics) {
       case EBinary(BOp.And, left, right) =>
         shortCircuit(BOp.And, left, right)
       case EBinary(BOp.Or, left, right) => shortCircuit(BOp.Or, left, right)
-      case EBinary(BOp.Eq, ERef(ref), EAbsent) =>
+      case EBinary(BOp.Eq, ERef(ref), EAbsent()) =>
         for {
           rv <- transfer(ref)
           b <- get(_.exists(rv))
@@ -534,9 +534,9 @@ class AbsTransfer(sem: AbsSemantics) {
       case EBigInt(n)            => AbsValue(BigInt(n))
       case EStr(str)             => AbsValue(Str(str))
       case EBool(b)              => AbsValue(Bool(b))
-      case EUndef                => AbsValue(Undef)
-      case ENull                 => AbsValue(Null)
-      case EAbsent               => AbsValue(Absent)
+      case EUndef()              => AbsValue(Undef)
+      case ENull()               => AbsValue(Null)
+      case EAbsent()             => AbsValue(Absent)
       case EConst(name)          => AbsValue(Const(name))
       case ECodeUnit(c)          => AbsValue(CodeUnit(c))
     }

@@ -241,9 +241,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EBigInt(n)                       => app >> n >> "n"
       case EStr(str)    => app >> "\"" >> normStr(str) >> "\""
       case EBool(b)     => app >> b
-      case EUndef       => app >> "undefined"
-      case ENull        => app >> "null"
-      case EAbsent      => app >> "absent"
+      case EUndef()     => app >> "undefined"
+      case ENull()      => app >> "null"
+      case EAbsent()    => app >> "absent"
       case EConst(name) => app >> "~" >> name >> "~"
       case ECodeUnit(c) => app >> c.toInt >> "cu"
     }

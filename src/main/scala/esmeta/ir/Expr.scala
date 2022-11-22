@@ -64,8 +64,8 @@ case class ENumber(n: Double) extends LiteralExpr with DoubleEquals(n)
 case class EBigInt(n: scala.math.BigInt) extends LiteralExpr
 case class EStr(str: String) extends LiteralExpr
 case class EBool(b: Boolean) extends LiteralExpr
-case object EUndef extends LiteralExpr
-case object ENull extends LiteralExpr
-case object EAbsent extends LiteralExpr
+case class EUndef() extends LiteralExpr
+case class ENull() extends LiteralExpr
+case class EAbsent() extends LiteralExpr
 case class EConst(name: String) extends LiteralExpr
 case class ECodeUnit(c: Char) extends esmeta.ir.LiteralExpr

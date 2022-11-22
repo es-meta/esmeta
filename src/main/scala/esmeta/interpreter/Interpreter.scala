@@ -252,7 +252,7 @@ class Interpreter(
       Interpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
-    case EBinary(BOp.Eq, ERef(ref), EAbsent) => Bool(!st.exists(eval(ref)))
+    case EBinary(BOp.Eq, ERef(ref), EAbsent()) => Bool(!st.exists(eval(ref)))
     case EBinary(bop, left, right) =>
       val l = eval(left)
       val r = eval(right)
@@ -436,9 +436,9 @@ class Interpreter(
     case EBigInt(n)            => BigInt(n)
     case EStr(str)             => Str(str)
     case EBool(b)              => Bool(b)
-    case EUndef                => Undef
-    case ENull                 => Null
-    case EAbsent               => Absent
+    case EUndef()              => Undef
+    case ENull()               => Null
+    case EAbsent()             => Absent
     case EConst(name)          => Const(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }

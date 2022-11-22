@@ -214,9 +214,9 @@ trait Parsers extends TyParsers {
     decimal ^^ { EMathVal(_) } |
     string ^^ { EStr(_) } |
     bool ^^ { EBool(_) } |
-    "undefined" ^^^ EUndef |
-    "null" ^^^ ENull |
-    "absent" ^^^ EAbsent |
+    "undefined" ^^^ EUndef() |
+    "null" ^^^ ENull() |
+    "absent" ^^^ EAbsent() |
     "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) }
 
   // unary operators
