@@ -2,10 +2,11 @@ package esmeta.state
 
 import esmeta.cfg.Func
 import esmeta.error.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
-import scala.collection.mutable.{Map => MMap}
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.DoubleEquals
+import java.math.MathContext.UNLIMITED
+import scala.collection.mutable.{Map => MMap}
 
 /** IR values */
 sealed trait Value extends StateElem {
@@ -107,6 +108,12 @@ case class Nt(name: String, params: List[Boolean]) extends PureValue
 
 /** math values */
 case class Math(n: BigDecimal) extends PureValue
+object Math {
+  def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
+}
 
 /** constants */
 case class Const(name: String) extends PureValue
@@ -125,8 +132,8 @@ sealed trait SimpleValue extends PureValue
 sealed trait Numeric extends SimpleValue:
   def toMath: Math = this match
     case math: Math     => math
-    case Number(double) => Math(BigDecimal.exact(double))
-    case BigInt(bigInt) => Math(BigDecimal.exact(bigInt))
+    case Number(double) => Math(double)
+    case BigInt(bigInt) => Math(bigInt)
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
 case class BigInt(n: scala.math.BigInt) extends Numeric
 

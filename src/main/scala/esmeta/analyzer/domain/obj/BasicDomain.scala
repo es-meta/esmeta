@@ -216,7 +216,7 @@ object BasicDomain extends obj.Domain {
             if (0 <= idx && idx < values.length) values(idx)
             else AbsValue.absentTop
           case Str("length") =>
-            AbsValue(Math(BigDecimal.exact(values.length)))
+            AbsValue(Math(values.length))
           case _ => AbsValue.Bot
       case NotSupportedElem(_, desc) => AbsValue.Bot
 

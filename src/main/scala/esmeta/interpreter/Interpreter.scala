@@ -12,6 +12,7 @@ import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
 import java.io.PrintWriter
+import java.math.MathContext.DECIMAL128
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -285,7 +286,7 @@ class Interpreter(
       import COp.*
       (eval(expr), cop) match {
         // code unit
-        case (CodeUnit(c), ToMath) => Math(BigDecimal.exact(c.toInt))
+        case (CodeUnit(c), ToMath) => Math(c.toInt)
         // mathematical value
         case (Math(n), ToApproxNumber) => Number(n.toDouble) // TODO
         case (Math(n), ToNumber)       => Number(n.toDouble)
@@ -296,14 +297,14 @@ class Interpreter(
         case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
-        case (Number(d), ToMath) => Math(BigDecimal.exact(d))
+        case (Number(d), ToMath) => Math(d)
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
         case (Number(d), ToNumber) => Number(d)
         case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
         // big integer
-        case (BigInt(n), ToMath) => Math(BigDecimal.exact(n))
+        case (BigInt(n), ToMath) => Math(n)
         case (BigInt(n), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(n.toString(radix))
@@ -672,13 +673,17 @@ object Interpreter {
       case (Add, Math(l), Math(r)) => Math(l + r)
       case (Sub, Math(l), Math(r)) => Math(l - r)
       case (Mul, Math(l), Math(r)) => Math(l * r)
-      case (Div, Math(l), Math(r)) => Math(l / r)
+      case (Div, Math(l), Math(r)) =>
+        // XXX rounded by DECIMAL128 to handle non-terminating decimal
+        // expansion. For example, 1 / 3 = 1.3333...
+        Math(l(DECIMAL128) / r(DECIMAL128))
       case (Mod, Math(l), Math(r)) =>
         val m = l % r
         Math(if (m * r) < 0 then r + m else m)
       case (UMod, Math(l), Math(r)) => Math(l %% r)
-      case (Pow, Math(l), Math(r)) =>
-        Math(math.pow(l.toDouble, r.toDouble))
+      case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
+        Math(l.pow(r.toInt))
+      case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
       // TODO consider 2's complement 32-bit strings
       case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
       case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)

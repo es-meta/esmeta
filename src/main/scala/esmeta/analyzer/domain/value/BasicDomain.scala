@@ -328,7 +328,7 @@ object BasicDomain extends value.Domain {
       import COp.*
       var newV = Bot
       for (CodeUnit(cu) <- elem.codeUnit) newV ⊔= (cop match
-        case ToMath => apply(Math(BigDecimal.exact(cu.toInt)))
+        case ToMath => apply(Math(cu.toInt))
         case _      => Bot
       )
       for (Math(n) <- elem.math) newV ⊔= (cop match
@@ -345,7 +345,7 @@ object BasicDomain extends value.Domain {
         case _        => Bot
       )
       for (Number(d) <- elem.number) newV ⊔= (cop match
-        case ToMath => apply(Math(BigDecimal.exact(d)))
+        case ToMath => apply(Math(d))
         case _: ToStr =>
           radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(toStringHelper(d, n)))
         case ToNumber => apply(Number(d))
@@ -353,7 +353,7 @@ object BasicDomain extends value.Domain {
         case _        => Bot
       )
       for (BigInt(b) <- elem.bigInt) newV ⊔= (cop match
-        case ToMath => apply(Math(BigDecimal.exact(b)))
+        case ToMath => apply(Math(b))
         case _: ToStr =>
           radix.asInt.foldLeft(Bot)((v, n) => v ⊔ apply(Str(b.toString(n))))
         case ToBigInt => apply(BigInt(b))

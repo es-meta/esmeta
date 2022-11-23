@@ -3,6 +3,7 @@ package esmeta.state
 import esmeta.state.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.ir.Global
+import java.math.MathContext.UNLIMITED
 
 /** IR state elements */
 trait StateElem {
@@ -78,26 +79,29 @@ def toStringHelper(m: Double, radix: Int = 10): String = {
   def getRadixString(d: Long): String =
     if (d < 10) d.toString else ('a' + (d - 10)).toChar.toString
 
+  def INT(n: Int): BigDecimal = BigDecimal(n, UNLIMITED)
+  def DOUBLE(n: Double): BigDecimal = BigDecimal(n, UNLIMITED)
+
   if (m.isNaN) "NaN"
   else if (m == 0) "0"
   else if (m < 0) "-" + toStringHelper(-m, radix)
   else if (m.isPosInfinity) "Infinity"
   else {
-    var s = BigDecimal(m)
+    var s = DOUBLE(m)
     var n = 0
-    while (s % radix == BigDecimal(0) || s % 1 != BigDecimal(0)) {
-      if (s % radix == BigDecimal(0)) { s /= radix; n += 1 }
+    while (s % radix == INT(0) || s % 1 != INT(0)) {
+      if (s % radix == INT(0)) { s /= radix; n += 1 }
       else { s *= radix; n -= 1 }
     }
     while (
-      (((s - (s % radix)) / radix) * BigDecimal(radix).pow(n + 1)).toDouble == m
+      (((s - (s % radix)) / radix) * INT(radix).pow(n + 1)).toDouble == m
     ) {
       s = (s - (s % radix)) / radix
       n = n + 1
     }
     var sLong = s.toLong
     var k = 0
-    while (s >= BigDecimal(1)) { s /= radix; k += 1 }
+    while (s >= INT(1)) { s /= radix; k += 1 }
     n += k
     if (k <= n && n <= 21) {
       getStr(sLong, radix) + ("0" * (n - k))

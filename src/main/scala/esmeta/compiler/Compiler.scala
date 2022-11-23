@@ -15,6 +15,7 @@ import esmeta.ty.*
 import esmeta.util.ManualInfo
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.ListBuffer
 
 /** compiler from metalangauge to IR */
@@ -136,7 +137,7 @@ class Compiler(
             ILet(Name(name), EList(Nil)),
             ILoop(
               "args",
-              lessThan(EMathVal(BigDecimal.exact(remaining)), argsLen),
+              lessThan(EMathVal(BigDecimal(remaining, UNLIMITED)), argsLen),
               IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
             ),
           )
@@ -926,8 +927,8 @@ class Compiler(
   inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   /** literal helpers */
-  def zero = EMathVal(BigDecimal.exact(0))
-  def one = EMathVal(BigDecimal.exact(1))
+  def zero = EMathVal(BigDecimal(0, UNLIMITED))
+  def one = EMathVal(BigDecimal(1, UNLIMITED))
   def posInf = ENumber(Double.PositiveInfinity)
   def negInf = ENumber(Double.NegativeInfinity)
   def T = EBool(true)

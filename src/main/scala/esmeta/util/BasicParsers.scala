@@ -3,6 +3,7 @@ package esmeta.util
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Loc, Pos}
 import java.io.*
+import java.math.MathContext.UNLIMITED
 import java.nio.charset.Charset
 import scala.util.parsing.combinator.JavaTokenParsers
 
@@ -61,7 +62,7 @@ trait BasicParsers extends JavaTokenParsers {
   lazy val double = number ^^ { _.toDouble }
   lazy val bigInt = integer ^^ { BigInt(_) }
   lazy val codeUnit = integer ^^ { _.toInt.toChar }
-  lazy val decimal = number ^^ { BigDecimal.exact(_) }
+  lazy val decimal = number ^^ { BigDecimal(_, UNLIMITED) }
 
   trait From[T](parser: Parser[T]) {
     def fromFile(str: String): T =

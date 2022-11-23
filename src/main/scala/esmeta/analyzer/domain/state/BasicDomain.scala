@@ -427,7 +427,7 @@ object BasicDomain extends state.Domain {
         AbsValue(CodeUnit(str(k.toInt)))
       case (One(Str(str)), One(simple: SimpleValue)) =>
         simple match
-          case Str("length") => AbsValue(Math(BigDecimal.exact(str.length)))
+          case Str("length") => AbsValue(Math(str.length))
           case Number(k)     => AbsValue(CodeUnit(str(k.toInt)))
           case _             => AbsValue.Bot
       case _ => AbsValue.codeUnitTop ⊔ AbsValue.mathTop

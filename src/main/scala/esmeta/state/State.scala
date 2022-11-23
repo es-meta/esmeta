@@ -63,7 +63,7 @@ case class State(
         syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
       case _ => throw InvalidAstProp(ast, prop)
   def apply(str: String, prop: PureValue): PureValue = prop match
-    case Str("length") => Math(BigDecimal.exact(str.length))
+    case Str("length") => Math(BigDecimal(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, prop)

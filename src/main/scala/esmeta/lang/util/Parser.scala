@@ -507,7 +507,7 @@ trait Parsers extends IndentParsers {
     "@@" ~> word ^^ { SymbolLiteral(_) } |||
     "+∞" ^^! PositiveInfinityMathValueLiteral() |||
     "-∞" ^^! NegativeInfinityMathValueLiteral() |||
-    number ^^ { case s => DecimalMathValueLiteral(BigDecimal.exact(s)) } |||
+    decimal ^^ { DecimalMathValueLiteral(_) } |||
     opt(int) ~ "π" ^^ {
       case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
     } |||

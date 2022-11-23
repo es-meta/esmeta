@@ -18,9 +18,8 @@ sealed trait Obj extends StateElem {
       val idx = decimal.toInt
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
-    case (ListObj(values), Str("length")) =>
-      Math(BigDecimal.exact(values.length))
-    case _ => throw InvalidObjProp(this, prop)
+    case (ListObj(values), Str("length")) => Math(values.length)
+    case _                                => throw InvalidObjProp(this, prop)
 
   /** copy of object */
   def copied: Obj = this match
