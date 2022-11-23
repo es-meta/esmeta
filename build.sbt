@@ -5,7 +5,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 ThisBuild / version := "0.1.0-rc5"
 
 // Scala version
-ThisBuild / scalaVersion := "3.1.0"
+ThisBuild / scalaVersion := "3.1.1"
 
 // ESMeta organization
 ThisBuild / organization := "esmeta"
@@ -263,22 +263,28 @@ genCompl := (root / Compile / runMain).toTask(" esmeta.util.GenCompl").value
 
 // build for release with genCompl and assembly
 lazy val release = taskKey[Unit]("release with format, genCompl, and assembly")
-release := {
-  format.value
-  genCompl.value
-  (root / assembly / assembly).value
-}
+release := Def
+  .sequential(
+    format,
+    genCompl,
+    root / assembly / assembly,
+  )
+  .value
 
 // format all files
 lazy val format = taskKey[Unit]("format all files")
-format := {
-  (Compile / scalafmtAll).value
-  (Compile / scalafmtSbt).value
-}
+format := Def
+  .sequential(
+    Compile / scalafmtAll,
+    Compile / scalafmtSbt,
+  )
+  .value
 
 // format check all files
 lazy val formatCheck = taskKey[Unit]("format check all files")
-formatCheck := {
-  (Compile / scalafmtCheckAll).value
-  (Compile / scalafmtSbtCheck).value
-}
+formatCheck := Def
+  .sequential(
+    Compile / scalafmtCheckAll,
+    Compile / scalafmtSbtCheck,
+  )
+  .value
