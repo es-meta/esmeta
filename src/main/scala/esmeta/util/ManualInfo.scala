@@ -22,13 +22,13 @@ case class ManualInfo(version: Option[Spec.Version]) {
 
   /** get bugfixes */
   def bugfixFile: Option[File] = bugfixPath.map(File(_))
-  def bugfixPath: Option[String] = version.fold(None)(version => {
-    val patchFile = s"$MANUALS_DIR/${version.shortHash}/bugfix.patch"
-    if (exists(patchFile)) Some(patchFile) else None
-  })
+  def bugfixPath: Option[String] = getPath("bugfix.patch")
 
-  /** get bugfixes */
+  /** get test262 */
   def test262: ManualConfig = ManualConfig(paths)
+
+  /** get tycheck-ignore.json */
+  def tycheckIgnore: Option[String] = getPath("tycheck-ignore.json")
 
   private def getAlgos(paths: List[String]): List[File] =
     getFiles(paths, algoFilter)
@@ -42,6 +42,11 @@ case class ManualInfo(version: Option[Spec.Version]) {
     file <- walkTree(s"$MANUALS_DIR/$path")
     if filter(file.getName)
   } yield file
+  private def getPath(name: String): Option[String] =
+    version.fold(None)(version => {
+      val path = s"$MANUALS_DIR/${version.shortHash}/$name"
+      if (exists(path)) Some(path) else None
+    })
   private def getCompileRule(paths: List[String]): CompileRule = paths
     .map(path => s"$MANUALS_DIR/$path/rule.json")
     .map(path => optional(readJson[CompileRule](path)).getOrElse(Map()))

@@ -25,6 +25,6 @@ case class TypeMismatchError(mismatches: Set[TypeMismatch])
   extends AnalysisError(s"${mismatches.size} type mismatches are detected")
 case class UnnecessaryIgnore(ignoreSet: Set[String])
   extends AnalysisError(
-    s"${ignoreSet.size} names are not unused to ignore type mismatches:" +
+    s"${ignoreSet.size} names are not used to ignore type mismatches:" +
     LINE_SEP + ignoreSet.toList.sorted.map("- " + _).mkString(LINE_SEP),
   )

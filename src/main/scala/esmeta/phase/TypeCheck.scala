@@ -16,24 +16,12 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): AbsSemantics =
-    val targets = getInitTargets(cfg, config.target)
-    val ignoreSet = optional {
-      readJson[Set[String]](config.ignore.get)
-    }.getOrElse(Set())
-    println(s"- ${targets.size} functions are initial targets.")
-    TypeAnalyzer(cfg, targets, config.ignore, ignoreSet, config.log)
-
-  // find initial analysis targets based on a given regex pattern
-  private def getInitTargets(cfg: CFG, target: Option[String]): List[Func] =
-    // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
-    target.fold(allFuncs)(pattern => {
-      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
-      if (funcs.isEmpty)
-        warn(s"failed to find functions matched with the pattern `$pattern`.")
-      funcs
-    })
+  ): AbsSemantics = TypeAnalyzer(
+    cfg = cfg,
+    target = config.target,
+    ignore = config.ignore,
+    log = config.log,
+  )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

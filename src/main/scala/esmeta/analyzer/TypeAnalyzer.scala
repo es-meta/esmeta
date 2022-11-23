@@ -15,6 +15,7 @@ private class TypeAnalyzer(
   ignorePath: Option[String],
   ignoreSet: Set[String],
   log: Boolean = false,
+  silent: Boolean = false,
 ) {
 
   // initilize analysis with CFG and logging path
@@ -31,22 +32,23 @@ private class TypeAnalyzer(
       }
       if (!mismatches.isEmpty) {
         // warning message
-        warn(
-          s"${mismatches.size} type mismatches are detected" + LINE_SEP +
-          mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP) +
-          // show help message about how to use the ignorance system
-          ignorePath.fold("")(path =>
-            LINE_SEP + "=" * 80 +
-            LINE_SEP + "To suppress this error message, " +
-            s"add the following names to `$path`:" +
-            mismatches
-              .map(LINE_SEP + "  - " + _.name)
-              .toList
-              .sorted
-              .mkString +
-            LINE_SEP + "=" * 80,
-          ),
-        )
+        if (!silent)
+          warn(
+            s"${mismatches.size} type mismatches are detected" + LINE_SEP +
+            mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP) +
+            // show help message about how to use the ignorance system
+            ignorePath.fold("")(path =>
+              LINE_SEP + "=" * 80 +
+              LINE_SEP + "To suppress this error message, " +
+              s"add the following names to `$path`:" +
+              mismatches
+                .map(LINE_SEP + "  - " + _.name)
+                .toList
+                .sorted
+                .mkString +
+              LINE_SEP + "=" * 80,
+            ),
+          )
         throw TypeMismatchError(mismatches)
       }
       if (!unusedSet.isEmpty) throw UnnecessaryIgnore(unusedSet)
@@ -124,9 +126,29 @@ object TypeAnalyzer:
   /** perform type analysis for given target functions */
   def apply(
     cfg: CFG,
-    targets: List[Func],
-    ignorePath: Option[String],
-    ignoreSet: Set[String],
+    target: Option[String] = None,
+    ignore: Option[String] = None,
     log: Boolean = false,
+    silent: Boolean = false,
   ): TypeSemantics =
-    new TypeAnalyzer(cfg, targets, ignorePath, ignoreSet, log).result
+    val targets = TypeAnalyzer.getInitTargets(cfg, target, silent)
+    if (!silent) println(s"- ${targets.size} functions are initial targets.")
+    val ignoreSet = optional {
+      readJson[Set[String]](ignore.get)
+    }.getOrElse(Set())
+    new TypeAnalyzer(cfg, targets, ignore, ignoreSet, log, silent).result
+
+  /** find initial analysis targets based on a given regex pattern */
+  def getInitTargets(
+    cfg: CFG,
+    target: Option[String],
+    silent: Boolean = false,
+  ): List[Func] =
+    // find all possible initial analysis target functions
+    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    target.fold(allFuncs)(pattern => {
+      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
+      if (!silent && funcs.isEmpty)
+        warn(s"failed to find functions matched with the pattern `$pattern`.")
+      funcs
+    })
