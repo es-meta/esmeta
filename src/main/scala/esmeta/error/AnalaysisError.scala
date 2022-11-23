@@ -22,11 +22,8 @@ case class AnalysisRemainingArgs(as: List[AbsValue])
 
 // type mismatches
 case class TypeMismatchError(mismatches: Set[TypeMismatch])
-  extends AnalysisError(
-    s"${mismatches.size} type mismatches are detected" + LINE_SEP +
-    mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP),
-  )
-case class UnneceesaryIgnore(ignoreSet: Set[String])
+  extends AnalysisError(s"${mismatches.size} type mismatches are detected")
+case class UnnecessaryIgnore(ignoreSet: Set[String])
   extends AnalysisError(
     s"${ignoreSet.size} names are not unused to ignore type mismatches:" +
     LINE_SEP + ignoreSet.toList.sorted.map("- " + _).mkString(LINE_SEP),

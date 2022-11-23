@@ -22,7 +22,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       readJson[Set[String]](config.ignore.get)
     }.getOrElse(Set())
     println(s"- ${targets.size} functions are initial targets.")
-    TypeAnalyzer(cfg, targets, ignoreSet, config.log)
+    TypeAnalyzer(cfg, targets, config.ignore, ignoreSet, config.log)
 
   // find initial analysis targets based on a given regex pattern
   private def getInitTargets(cfg: CFG, target: Option[String]): List[Func] =

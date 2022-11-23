@@ -6,11 +6,13 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.Param
 import esmeta.util.SystemUtils.*
+import esmeta.util.BaseUtils.*
 
 /** specification type analyzer for ECMA-262 */
 private class TypeAnalyzer(
   cfg: CFG,
   targets: List[Func],
+  ignorePath: Option[String],
   ignoreSet: Set[String],
   log: Boolean = false,
 ) {
@@ -27,8 +29,26 @@ private class TypeAnalyzer(
           unusedSet -= name
           !ignoreSet.contains(name)
       }
-      if (!mismatches.isEmpty) throw TypeMismatchError(mismatches)
-      if (!unusedSet.isEmpty) throw UnneceesaryIgnore(unusedSet)
+      if (!mismatches.isEmpty) {
+        // warning message
+        warn(
+          s"${mismatches.size} type mismatches are detected" + LINE_SEP +
+          mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP) +
+          // show help message about how to use the ignorance system
+          ignorePath.fold("")(path =>
+            LINE_SEP + "=" * 80 +
+            LINE_SEP + s"Please add the following callee names to `$path`:" +
+            mismatches
+              .map(LINE_SEP + "  - " + _.name)
+              .toList
+              .sorted
+              .mkString +
+            LINE_SEP + "=" * 80,
+          ),
+        )
+        throw TypeMismatchError(mismatches)
+      }
+      if (!unusedSet.isEmpty) throw UnnecessaryIgnore(unusedSet)
       sem
     }
   }
@@ -104,6 +124,8 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     targets: List[Func],
+    ignorePath: Option[String],
     ignoreSet: Set[String],
     log: Boolean = false,
-  ): TypeSemantics = new TypeAnalyzer(cfg, targets, ignoreSet, log).result
+  ): TypeSemantics =
+    new TypeAnalyzer(cfg, targets, ignorePath, ignoreSet, log).result
