@@ -37,7 +37,8 @@ private class TypeAnalyzer(
           // show help message about how to use the ignorance system
           ignorePath.fold("")(path =>
             LINE_SEP + "=" * 80 +
-            LINE_SEP + s"Please add the following callee names to `$path`:" +
+            LINE_SEP + "To suppress this error message, " +
+            s"add the following names to `$path`:" +
             mismatches
               .map(LINE_SEP + "  - " + _.name)
               .toList
