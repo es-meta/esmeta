@@ -124,19 +124,18 @@ class Interpreter(
   def eval(call: CallInst): Unit = call match {
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
-        case Clo(func, captured) =>
+        case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          val newLocals = getLocals(func.irFunc.params, vs) ++ captured
+          val newLocals = getLocals(func.irFunc.params, vs, clo) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
-        case Cont(func, captured, callStack) => {
+        case cont @ Cont(func, captured, callStack) => {
           val needWrapped = st.context.func.isReturnComp
           val vs =
             args
               .map(eval)
               .map(v => if (needWrapped) v.wrapCompletion else v)
-          val newLocals =
-            getLocals(func.irFunc.params, vs, cont = true) ++ captured
+          val newLocals = getLocals(func.irFunc.params, vs, cont) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
@@ -146,9 +145,9 @@ class Interpreter(
       // TODO do not explicitly store methods in object but use a type model
       // when accessing methods
       st(bv, Str(method)) match
-        case Clo(func, _) =>
+        case clo @ Clo(func, _) =>
           val vs = args.map(eval)
-          val newLocals = getLocals(func.irFunc.params, bv :: vs)
+          val newLocals = getLocals(func.irFunc.params, bv :: vs, clo)
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case v => throw NoFunc(call.fexpr, v)
@@ -158,8 +157,11 @@ class Interpreter(
           getSDO((syn, method)) match
             case Some((ast0, sdo)) =>
               val vs = args.map(eval)
-              val newLocals =
-                getLocals(sdo.irFunc.params, AstValue(ast0) :: vs)
+              val newLocals = getLocals(
+                sdo.irFunc.params,
+                AstValue(ast0) :: vs,
+                Clo(sdo, Map()),
+              )
               st.callStack ::= CallContext(lhs, st.context)
               st.context = Context(sdo, newLocals)
             case None => throw InvalidAstProp(syn, Str(method))
@@ -459,34 +461,38 @@ class Interpreter(
   def getLocals(
     params: List[Param],
     args: List[Value],
-    cont: Boolean = false,
+    callee: FuncValue,
   ): MMap[Local, Value] = {
+    val func = callee.func
     val map = MMap[Local, Value]()
     @tailrec
-    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
-      case (Nil, Nil)                               =>
+    def aux(ps: List[Param], as: List[Value], idx: Int): Unit = (ps, as) match {
+      case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        // TODO parameter type check
         if (optional) {
-          if (tycheck) check(Absent, ty.ty)
           map += lhs -> Absent
-          aux(pl, Nil)
+          aux(pl, Nil, idx + 1)
         } else RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-        if (!cont) throw RemainingArgs(args)
+        callee match
+          case _: Cont =>
+          case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
-        if (tycheck) check(arg, param.ty.ty)
+        if (tycheck)
+          // ignore type check for `this` value
+          if ((func.isMethod || func.isSDO) && idx == 0) {} /* do nothing */
+          else check(arg, param.ty.ty)
         map += param.lhs -> arg
-        aux(pl, al)
+        aux(pl, al, idx + 1)
     }
-    aux(params, args)
+    aux(params, args, 0)
     map
   }
+  enum CallKind { case Clo, Cont, Method, Sdo }
 
   /** value type check */
   def check(value: Value, ty: Ty): Unit =
-    println((value, ty))
     if (!ty.contains(value, st)) throw InvalidTypedValue(value, ty)
 
   /** helper for return-if-abrupt cases */

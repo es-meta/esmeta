@@ -18,7 +18,7 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 lazy val AnyT: ValueTy = ValueTy.Top
 lazy val PureValueT: ValueTy = ValueTy(pureValue = PureValueTy.Top)
-lazy val CompT: ValueTy = ValueTy(normal = PureValueTy.Top)
+lazy val CompT: ValueTy = ValueTy(comp = CompTy.Top)
 def CompT(normal: ValueTy, abrupt: BSet[String]): ValueTy =
   if (normal.pureValue.isBottom && abrupt.isBottom) ValueTy.Bot
   else ValueTy(normal = normal.pureValue, abrupt = abrupt)

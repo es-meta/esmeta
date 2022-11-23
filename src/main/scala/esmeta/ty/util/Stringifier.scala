@@ -49,10 +49,12 @@ object Stringifier {
   /** completion record types */
   given compTyRule: Rule[CompTy] = (app, ty) =>
     given Rule[PureValueTy] = topRule(pureValueTyRule)
-    FilterApp(app)
-      .add(ty.normal, !ty.normal.isBottom, "Normal")
-      .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
-      .app
+    if (ty.isTop) app >> "CompletionRecord"
+    else
+      FilterApp(app)
+        .add(ty.normal, !ty.normal.isBottom, "Normal")
+        .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
+        .app
 
   /** list types */
   given listTyRule: Rule[ListTy] = (app, ty) =>

@@ -721,8 +721,6 @@ class Compiler(
       case ExpressionCondition(expr) =>
         compile(fb, expr)
       case InstanceOfCondition(expr, neg, tys) =>
-        // val (x, xExpr) = fb.newTIdWithExpr
-        // fb.addInst(IAssign(x, compile(fb, expr)))
         val xExpr = compile(fb, expr)
         val e =
           tys
