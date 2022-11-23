@@ -18,7 +18,6 @@ object BreakpointRoute {
           decode[(Boolean, Int, List[Int], Boolean)](raw) match
             case Left(err) => ??? // TODO handle error
             case Right(data) =>
-              println(data)
               debugger.addBreak(data)
               complete(HttpEntity(ContentTypes.`application/json`, "null"))
         }
