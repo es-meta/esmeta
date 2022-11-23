@@ -12,11 +12,16 @@ import scala.collection.mutable.{Map => MMap}
 class Initialize(cfg: CFG) {
 
   /** the result state of initialization */
-  def getResult(sourceText: String, cachedAst: Option[Ast]): State = State(
+  def getResult(
+    sourceText: String,
+    cachedAst: Option[Ast],
+    filename: Option[String],
+  ): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
     cachedAst = cachedAst,
+    filename = filename,
     globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
     heap = initHeap,
   )
@@ -202,9 +207,10 @@ object Initialize {
     cfg: CFG,
     sourceText: String,
     cachedAst: Option[Ast] = None,
-  ): State = new Initialize(cfg).getResult(sourceText, cachedAst)
+    filename: Option[String] = None,
+  ): State = new Initialize(cfg).getResult(sourceText, cachedAst, filename)
 
   /** initialize from file */
   def fromFile(cfg: CFG, filename: String): State =
-    apply(cfg, readFile(filename))
+    apply(cfg, readFile(filename), filename = Some(filename))
 }

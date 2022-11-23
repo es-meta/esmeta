@@ -1,6 +1,7 @@
 package esmeta.interpreter
 
-import esmeta.EVAL_LOG_DIR
+import esmeta.{EVAL_LOG_DIR, LINE_SEP}
+import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -56,7 +57,7 @@ class Interpreter(
 
       // cursor
       eval(st.context.cursor)
-    } catch case ReturnValue(value) => { setReturn(value); true }
+    } catch case ReturnValue(value, ret) => { setReturn(value, ret); true }
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
@@ -64,10 +65,19 @@ class Interpreter(
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
-          st.context.retVal.map(v => st.globals += GLOBAL_RESULT -> v)
+          st.context.retVal.map((_, v) => st.globals += GLOBAL_RESULT -> v)
           false
         case CallContext(retId, ctxt) :: rest =>
-          val value = st.context.retVal.getOrElse(throw NoReturnValue)
+          val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
+          if (tycheck) (st.typeOf(value), func.retTy.ty) match
+            case (actual: ValueTy, ty: ValueTy) if !ty.contains(value, st) =>
+              val calleeRp = ReturnPoint(func, View())
+              var msg = ""
+              msg += ReturnTypeMismatch(ret, calleeRp, actual)
+              msg += LINE_SEP + "- return  : " + value
+              st.filename.map(msg += LINE_SEP + "- filename: " + _)
+              warn(msg)
+            case _ =>
           st.context = ctxt
           st.callStack = rest
           setCallResult(retId, value)
@@ -87,7 +97,7 @@ class Interpreter(
           },
           st.func,
         )
-      case Call(_, call, _) => eval(call)
+      case call: Call => eval(call)
     }
 
   /** transition for normal instructions */
@@ -107,8 +117,8 @@ class Interpreter(
       eval(list) match
         case (addr: Addr) => st.remove(addr, eval(elem).toPureValue)
         case v            => throw NoAddr(list, v)
-    case IReturn(expr)    => throw ReturnValue(eval(expr))
-    case IAssert(_: EYet) => /* skip not yet compiled assertions */
+    case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
+    case IAssert(_: EYet)    => /* skip not yet compiled assertions */
     case IAssert(expr) =>
       eval(expr) match {
         case Bool(true) =>
@@ -121,12 +131,13 @@ class Interpreter(
   }
 
   /** transition for calls */
-  def eval(call: CallInst): Unit = call match {
+  def eval(call: Call): Unit = call.callInst match {
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          val newLocals = getLocals(func.irFunc.params, vs, clo) ++ captured
+          val newLocals =
+            getLocals(func.irFunc.params, vs, call, clo) ++ captured
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
@@ -135,7 +146,8 @@ class Interpreter(
             args
               .map(eval)
               .map(v => if (needWrapped) v.wrapCompletion else v)
-          val newLocals = getLocals(func.irFunc.params, vs, cont) ++ captured
+          val newLocals =
+            getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
@@ -147,10 +159,10 @@ class Interpreter(
       st(bv, Str(method)) match
         case clo @ Clo(func, _) =>
           val vs = args.map(eval)
-          val newLocals = getLocals(func.irFunc.params, bv :: vs, clo)
+          val newLocals = getLocals(func.irFunc.params, bv :: vs, call, clo)
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
-        case v => throw NoFunc(call.fexpr, v)
+        case v => throw NoFunc(call.callInst.fexpr, v)
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
@@ -160,6 +172,7 @@ class Interpreter(
               val newLocals = getLocals(
                 sdo.irFunc.params,
                 AstValue(ast0) :: vs,
+                call,
                 Clo(sdo, Map()),
               )
               st.callStack ::= CallContext(lhs, st.context)
@@ -182,13 +195,13 @@ class Interpreter(
         case (y, t)                  => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
       Bool(eval(expr).isCompletion)
-    case EReturnIfAbrupt(ERef(ref), check) =>
+    case ria @ EReturnIfAbrupt(ERef(ref), check) =>
       val refV = eval(ref)
-      val value = returnIfAbrupt(st(refV), check)
+      val value = returnIfAbrupt(ria, st(refV), check)
       st.update(refV, value)
       value
-    case EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(eval(expr), check)
+    case ria @ EReturnIfAbrupt(expr, check) =>
+      returnIfAbrupt(ria, eval(expr), check)
     case EPop(list, front) =>
       eval(list) match
         case (addr: Addr) => st.pop(addr, front)
@@ -461,6 +474,7 @@ class Interpreter(
   def getLocals(
     params: List[Param],
     args: List[Value],
+    caller: Call,
     callee: FuncValue,
   ): MMap[Local, Value] = {
     val func = callee.func
@@ -479,10 +493,19 @@ class Interpreter(
           case _: Cont =>
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
-        if (tycheck)
+        if (tycheck) param.ty.ty match
           // ignore type check for `this` value
-          if ((func.isMethod || func.isSDO) && idx == 0) {} /* do nothing */
-          else check(arg, param.ty.ty)
+          case _ if (func.isMethod || func.isSDO) && idx == 0 =>
+          case ty: ValueTy if !ty.contains(arg, st) =>
+            val callerNp = NodePoint(cfg.funcOf(caller), caller, View())
+            val calleeRp = ReturnPoint(func, View())
+            val argTy = st.typeOf(arg)
+            var msg = ""
+            msg += ParamTypeMismatch(callerNp, calleeRp, idx, param, argTy)
+            msg += LINE_SEP + "- argument: " + arg
+            st.filename.map(msg += LINE_SEP + "- filename: " + _)
+            warn(msg)
+          case _ =>
         map += param.lhs -> arg
         aux(pl, al, idx + 1)
     }
@@ -491,15 +514,15 @@ class Interpreter(
   }
   enum CallKind { case Clo, Cont, Method, Sdo }
 
-  /** value type check */
-  def check(value: Value, ty: Ty): Unit =
-    if (!ty.contains(value, st)) throw InvalidTypedValue(value, ty)
-
   /** helper for return-if-abrupt cases */
-  def returnIfAbrupt(value: Value, check: Boolean): Value = value match
+  def returnIfAbrupt(
+    ria: EReturnIfAbrupt,
+    value: Value,
+    check: Boolean,
+  ): Value = value match
     case NormalComp(value) => value
     case comp: Comp =>
-      if (check) throw ReturnValue(value)
+      if (check) throw ReturnValue(value, ria)
       else throw UncheckedAbrupt(comp)
     case pure: PureValue => pure // XXX remove?
 
@@ -512,17 +535,20 @@ class Interpreter(
       PropValue(base, p.toPureValue)
 
   /** set return value and move to the exit node */
-  def setReturn(value: Value): Unit =
+  def setReturn(value: Value, ret: Return): Unit =
     // set type map
     (value, setTypeMap.get(st.context.name)) match
       case (addr: Addr, Some(tname))             => st.setType(addr, tname)
       case (NormalComp(addr: Addr), Some(tname)) => st.setType(addr, tname)
       case _                                     => /* do nothing */
     st.context.retVal = Some(
-      // wrap completion by conditions specified in
-      // [5.2.3.5 Implicit Normal Completion]
-      // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-      if (st.context.func.isReturnComp) value.wrapCompletion else value,
+      (
+        ret,
+        // wrap completion by conditions specified in
+        // [5.2.3.5 Implicit Normal Completion]
+        // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+        if (st.context.func.isReturnComp) value.wrapCompletion else value,
+      ),
     )
     st.context.cursor = ExitCursor(st.func)
 

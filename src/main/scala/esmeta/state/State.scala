@@ -2,8 +2,9 @@ package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
+import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -13,6 +14,7 @@ case class State(
   var context: Context,
   val sourceText: Option[String] = None,
   val cachedAst: Option[Ast] = None,
+  val filename: Option[String] = None,
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
@@ -139,6 +141,31 @@ case class State(
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
 
+  /** get types of values */
+  def typeOf(value: Value): ValueTy = value match
+    case NormalComp(v) => NormalT(typeOf(v))
+    case comp: Comp    => AbruptT(comp.ty.name)
+    case addr: Addr =>
+      apply(addr) match
+        case m: MapObj    => NameT(m.ty)
+        case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
+        case s: SymbolObj => SymbolT
+        case y: YetObj    => NameT(y.tname)
+    case clo: Clo      => CloT(clo.func.name)
+    case cont: Cont    => ContT(cont.func.id)
+    case AstValue(ast) => AstSingleT(ast.name, ast.idx, ast.subIdx)
+    case nt: Nt        => NtT(nt)
+    case Math(d)       => MathT(d)
+    case Const(name)   => ConstT(name)
+    case _: CodeUnit   => CodeUnitT
+    case _: Number     => NumberT
+    case _: BigInt     => BigIntT
+    case _: Str        => StrT
+    case _: Bool       => BoolT
+    case Undef         => UndefT
+    case Null          => NullT
+    case Absent        => AbsentT
+
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)
   def getCursorString(location: Boolean): String = context.cursor match
@@ -171,6 +198,7 @@ case class State(
       newContext,
       sourceText,
       cachedAst,
+      filename,
       newCallStack,
       newGlobals,
       newHeap,

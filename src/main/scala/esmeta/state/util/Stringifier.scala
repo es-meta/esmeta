@@ -35,6 +35,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // states
   given stRule: Rule[State] = (app, st) =>
     app.wrap {
+      st.filename.map(app :> "filename: " >> _)
       app :> "context: " >> st.context
       given Rule[List[String]] = iterableRule("[", ", ", "]")
       app :> "call-stack: "
