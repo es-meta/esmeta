@@ -140,10 +140,11 @@ case class State(
     heap.setType(addr, tname); this
 
   /** get string for a current cursor */
-  def getCursorString: String = context.cursor match
+  def getCursorString: String = getCursorString(false)
+  def getCursorString(location: Boolean): String = context.cursor match
     case NodeCursor(node) =>
       val irFunc = cfg.funcOf(node).irFunc
-      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = true)}"
+      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
     case ExitCursor(func) =>
       val irFunc = func.irFunc
       s"[${irFunc.kind}${irFunc.name}] Exited"
