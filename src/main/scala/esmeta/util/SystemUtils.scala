@@ -1,7 +1,7 @@
 package esmeta.util
 
 import java.io.{Reader, File, PrintWriter}
-import java.nio.file.{Files, StandardCopyOption}
+import java.nio.file.{Files, StandardCopyOption, Paths}
 import esmeta.*
 import esmeta.error.*
 import esmeta.util.BaseUtils.*
@@ -134,7 +134,7 @@ object SystemUtils {
 
   /** get absolute path */
   def getAbsPath(filename: String): String =
-    File(filename).getAbsolutePath
+    Paths.get(filename).toAbsolutePath.normalize.toString
 
   /** renamed filename */
   def renameFile(from: String, to: String): Unit =
