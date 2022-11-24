@@ -13,7 +13,6 @@ import esmeta.util.SystemUtils.*
 private class TypeAnalyzer(
   cfg: CFG,
   targets: List[Func],
-  strict: Boolean = false,
   ignorePath: Option[String],
   ignoreSet: Set[String],
   log: Boolean = false,
@@ -58,7 +57,7 @@ private class TypeAnalyzer(
   }
 
   // type semantics
-  lazy val sem: TypeSemantics = TypeSemantics(initNpMap, strict)
+  lazy val sem: TypeSemantics = TypeSemantics(initNpMap)
 
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
@@ -128,7 +127,6 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     target: Option[String] = None,
-    strict: Boolean = false,
     ignore: Option[String] = None,
     log: Boolean = false,
     silent: Boolean = false,
@@ -141,7 +139,6 @@ object TypeAnalyzer:
     new TypeAnalyzer(
       cfg,
       targets,
-      strict,
       ignore,
       ignoreSet,
       log,

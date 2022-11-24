@@ -9,7 +9,6 @@ import esmeta.util.Appender.*
 
 class TypeSemantics(
   npMap: Map[NodePoint[Node], AbsState],
-  strict: Boolean = false,
 ) extends AbsSemantics(npMap) {
 
   /** type mismatches */
@@ -79,9 +78,7 @@ class TypeSemantics(
         case _: UnknownTy => arg
         case paramTy: ValueTy =>
           if (method && idx == 0) () /* ignore `this` for method-like calls */
-          // argument type check when parameter type is a known type
-          // we use a loose subtyping relation for named records
-          else if (!isLooseSubTy(argTy, paramTy))
+          else if (!(argTy <= paramTy))
             val key = (callerNp, calleeRp, idx, param)
             argsForMismatch += key -> {
               argsForMismatch.get(key).fold(argTy)(_ || argTy)
@@ -96,8 +93,7 @@ class TypeSemantics(
   private def isLooseSubTy(
     result: ValueTy,
     expected: ValueTy,
-  ): Boolean = if (strict) result <= expected
-  else
+  ): Boolean =
     val pureValue = isLooseSubTy(result.pureValue, expected.pureValue)
     val normal = isLooseSubTy(result.normal, expected.normal)
     val abrupt = result.abrupt <= expected.abrupt
@@ -107,8 +103,7 @@ class TypeSemantics(
   private def isLooseSubTy(
     result: PureValueTy,
     expected: PureValueTy,
-  ): Boolean = if (strict) result <= expected
-  else
+  ): Boolean =
     import TyModel.es.isSubTy
     val noName = ((result -- NameT.pureValue) <= (expected -- NameT.pureValue))
     val name = ((result.name.set, expected.name.set) match
@@ -133,7 +128,7 @@ class TypeSemantics(
       case expectedTy: ValueTy =>
         // return type check when it is a known type
         // we use a loose subtyping relation for named records
-        if (!(isLooseSubTy(givenTy, expectedTy)))
+        if (!(givenTy <= expectedTy))
           val key = (elem, rp)
           retForMismatch += key -> {
             retForMismatch.get(key).fold(givenTy)(_ || givenTy)

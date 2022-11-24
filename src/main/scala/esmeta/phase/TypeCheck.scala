@@ -19,7 +19,6 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   ): AbsSemantics = TypeAnalyzer(
     cfg = cfg,
     target = config.target,
-    strict = config.strict,
     ignore = config.ignore,
     log = config.log,
   )
@@ -37,11 +36,6 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "use a REPL for type analysis of ECMA-262.",
     ),
     (
-      "strict",
-      BoolOption(c => c.strict = true),
-      "use strict subtyping relations.",
-    ),
-    (
       "ignore",
       StrOption((c, s) => c.ignore = Some(s)),
       "ignore type mismatches in algorithms listed in a given JSON file.",
@@ -54,7 +48,6 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   )
   case class Config(
     var target: Option[String] = None,
-    var strict: Boolean = false,
     var ignore: Option[String] = None,
     var log: Boolean = false,
   )
