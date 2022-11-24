@@ -227,6 +227,12 @@ class AbsTransfer(sem: AbsSemantics) {
   def transfer(call: Call)(using cp: NodePoint[_]): Result[AbsValue] =
     val callerNp = NodePoint(cp.func, call, cp.view)
     call.callInst match {
+      // XXX optimization for more precise type analysis
+      case ICall(id, EClo("Completion", Nil), List(expr)) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(prune(ETypeCheck(expr, EStr("CompletionRecord")), true))
+        } yield v
       case ICall(_, fexpr, args) =>
         for {
           fv <- transfer(fexpr)

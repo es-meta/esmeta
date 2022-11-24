@@ -5,13 +5,15 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.Param
-import esmeta.util.SystemUtils.*
+import esmeta.util.Appender
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
 
 /** specification type analyzer for ECMA-262 */
 private class TypeAnalyzer(
   cfg: CFG,
   targets: List[Func],
+  strict: Boolean = false,
   ignorePath: Option[String],
   ignoreSet: Set[String],
   log: Boolean = false,
@@ -30,34 +32,33 @@ private class TypeAnalyzer(
           unusedSet -= name
           !ignoreSet.contains(name)
       }
-      if (!mismatches.isEmpty) {
-        // warning message
-        if (!silent)
-          warn(
-            s"${mismatches.size} type mismatches are detected" + LINE_SEP +
-            mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP) +
-            // show help message about how to use the ignorance system
-            ignorePath.fold("")(path =>
-              LINE_SEP + "=" * 80 +
-              LINE_SEP + "To suppress this error message, " +
-              s"add the following names to `$path`:" +
-              mismatches
-                .map(LINE_SEP + "  - " + _.name)
-                .toList
-                .sorted
-                .mkString +
-              LINE_SEP + "=" * 80,
-            ),
-          )
-        throw TypeMismatchError(mismatches)
-      }
-      if (!unusedSet.isEmpty) throw UnnecessaryIgnore(unusedSet)
+      if (!mismatches.isEmpty || !unusedSet.isEmpty)
+        val app = new Appender
+        // show detected type mismatches
+        if (!mismatches.isEmpty)
+          app :> "* " >> mismatches.size
+          app >> " type mismatches are detected."
+        // show unused names
+        if (!unusedSet.isEmpty)
+          app :> "* " >> unusedSet.size
+          app >> " names are not used to ignore mismatches."
+        mismatches.toList.map(_.toString).sorted.map(app :> _)
+        // show help message about how to use the ignorance system
+        ignorePath.map(path =>
+          app :> "=" * 80
+          app :> "To suppress this error message, "
+          app >> "add/remove the following names to `" >> path >> "`:"
+          mismatches.toList.map(_.name).sorted.map(app :> "  + " >> _)
+          unusedSet.toList.sorted.map(app :> "  - " >> _)
+          app :> "=" * 80,
+        )
+        throw TypeCheckFail(if (silent) None else Some(app.toString))
       sem
     }
   }
 
   // type semantics
-  lazy val sem: TypeSemantics = TypeSemantics(initNpMap)
+  lazy val sem: TypeSemantics = TypeSemantics(initNpMap, strict)
 
   // all entry node points
   lazy val nps: List[NodePoint[Node]] = for {
@@ -127,6 +128,7 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     target: Option[String] = None,
+    strict: Boolean = false,
     ignore: Option[String] = None,
     log: Boolean = false,
     silent: Boolean = false,
@@ -136,7 +138,15 @@ object TypeAnalyzer:
     val ignoreSet = optional {
       readJson[Set[String]](ignore.get)
     }.getOrElse(Set())
-    new TypeAnalyzer(cfg, targets, ignore, ignoreSet, log, silent).result
+    new TypeAnalyzer(
+      cfg,
+      targets,
+      strict,
+      ignore,
+      ignoreSet,
+      log,
+      silent,
+    ).result
 
   /** find initial analysis targets based on a given regex pattern */
   def getInitTargets(
