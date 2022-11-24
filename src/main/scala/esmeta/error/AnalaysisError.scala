@@ -21,10 +21,5 @@ case class AnalysisRemainingArgs(as: List[AbsValue])
   extends AnalysisError(s"remaining arguments: ${as.mkString(", ")}")
 
 // type mismatches
-case class TypeMismatchError(mismatches: Set[TypeMismatch])
-  extends AnalysisError(s"${mismatches.size} type mismatches are detected")
-case class UnnecessaryIgnore(ignoreSet: Set[String])
-  extends AnalysisError(
-    s"${ignoreSet.size} names are not used to ignore type mismatches:" +
-    LINE_SEP + ignoreSet.toList.sorted.map("- " + _).mkString(LINE_SEP),
-  )
+case class TypeCheckFail(msg: Option[String])
+  extends AnalysisError("type check failed." + msg.fold("")(LINE_SEP + _))

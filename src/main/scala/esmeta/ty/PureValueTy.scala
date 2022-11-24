@@ -59,34 +59,36 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       )
 
   /** partial order/subset operator */
-  def <=(that: => PureValueTy): Boolean = (this eq that) || (
-    this.clo <= that.clo &&
-    this.cont <= that.cont &&
-    this.name <= that.name &&
-    this.record <= that.record &&
-    this.list <= that.list &&
-    this.symbol <= that.symbol &&
-    this.astValue <= that.astValue &&
-    this.nt <= that.nt &&
-    this.codeUnit <= that.codeUnit &&
-    this.const <= that.const &&
-    this.math <= that.math &&
-    this.number <= that.number &&
-    this.bigInt <= that.bigInt &&
-    this.str <= that.str &&
-    this.bool <= that.bool &&
-    this.undef <= that.undef &&
-    this.nullv <= that.nullv &&
-    this.absent <= that.absent
-  )
+  def <=(that: => PureValueTy): Boolean =
+    if ((this eq that) || (this eq Bot) || (that eq Top)) true
+    else if (this eq Top) false
+    else
+      this.clo <= that.clo &&
+      this.cont <= that.cont &&
+      this.name <= that.name &&
+      this.record <= that.record &&
+      this.list <= that.list &&
+      this.symbol <= that.symbol &&
+      this.astValue <= that.astValue &&
+      this.nt <= that.nt &&
+      this.codeUnit <= that.codeUnit &&
+      this.const <= that.const &&
+      this.math <= that.math &&
+      this.number <= that.number &&
+      this.bigInt <= that.bigInt &&
+      this.str <= that.str &&
+      this.bool <= that.bool &&
+      this.undef <= that.undef &&
+      this.nullv <= that.nullv &&
+      this.absent <= that.absent
 
   /** union type */
   def ||(that: => PureValueTy): PureValueTy =
-    if (this eq Top) Top
+    if (this eq that) this
     else if (this eq Bot) that
-    else if (that eq Top) Top
+    else if (this eq Top) Top
     else if (that eq Bot) this
-    else if (this eq that) this
+    else if (that eq Top) Top
     else
       PureValueTy(
         this.clo || that.clo,
@@ -111,11 +113,11 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 
   /** intersection type */
   def &&(that: => PureValueTy): PureValueTy =
-    if (this eq Top) this
+    if (this eq that) this
     else if (this eq Bot) Bot
-    else if (that eq Top) this
+    else if (this eq Top) that
     else if (that eq Bot) Bot
-    else if (this eq that) this
+    else if (that eq Top) this
     else
       PureValueTy(
         this.clo && that.clo,
@@ -140,10 +142,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 
   /** prune type */
   def --(that: => PureValueTy): PureValueTy =
-    if (this eq Bot) Bot
-    else if (that eq Top) Bot
+    if (this eq that) Bot
+    else if (this eq Bot) Bot
     else if (that eq Bot) this
-    else if (this eq that) Bot
+    else if (that eq Top) Bot
     else
       PureValueTy(
         this.clo -- that.clo,
@@ -212,24 +214,24 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 }
 
 case object PureValueTopTy extends PureValueTy {
-  def clo: BSet[String] = Fin() // TODO unsound but need to remove cycle
-  def cont: BSet[Int] = Fin() // unsound but need to remove cycle
-  def name: NameTy = NameTy.Bot // unsound but need to remove cycle
-  def record: RecordTy = RecordTy.Bot // unsound but need to remove cycle
+  def clo: BSet[String] = Inf
+  def cont: BSet[Int] = Inf
+  def name: NameTy = NameTy.Top
+  def record: RecordTy = RecordTy.Top
   def list: ListTy = ListTy.Bot // unsound but need to remove cycle
-  def symbol: Boolean = false // unsound but need to remove cycle
-  def astValue: AstValueTy = AstValueTy.Bot // unsound but need to remove cycle
-  def nt: BSet[Nt] = Fin() // unsound but need to remove cycle
-  def codeUnit: Boolean = false // unsound but need to remove cycle
-  def const: BSet[String] = Fin() // unsound but need to remove cycle
-  def math: BSet[BigDecimal] = Fin() // unsound but need to remove cycle
-  def number: BSet[Number] = Fin() // unsound but need to remove cycle
-  def bigInt: Boolean = false // unsound but need to remove cycle
-  def str: BSet[String] = Fin() // unsound but need to remove cycle
-  def bool: BoolTy = BoolTy.Bot // unsound but need to remove cycle
-  def undef: Boolean = false // unsound but need to remove cycle
-  def nullv: Boolean = false // unsound but need to remove cycle
-  def absent: Boolean = false // unsound but need to remove cycle
+  def symbol: Boolean = true
+  def astValue: AstValueTy = AstValueTy.Top
+  def nt: BSet[Nt] = Inf
+  def codeUnit: Boolean = true
+  def const: BSet[String] = Inf
+  def math: BSet[BigDecimal] = Inf
+  def number: BSet[Number] = Inf
+  def bigInt: Boolean = true
+  def str: BSet[String] = Inf
+  def bool: BoolTy = BoolTy.Top
+  def undef: Boolean = true
+  def nullv: Boolean = true
+  def absent: Boolean = true
 }
 
 case class PureValueElemTy(

@@ -75,33 +75,44 @@ class TypeSemantics(
     (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
       val argTy = arg.ty
       val expected = param.ty.ty match
-        case _: UnknownTy     => arg
+        case _: UnknownTy => arg
         case paramTy: ValueTy =>
-          // argument type check when parameter type is a known type
-          // we use a loose subtyping relation for named records
-          if (!isLooseSubTy(argTy, paramTy))
-            if (method && idx == 0) () /* ignore `this` for method-like calls */
-            else
-              val key = (callerNp, calleeRp, idx, param)
-              argsForMismatch += key -> {
-                argsForMismatch.get(key).fold(argTy)(_ || argTy)
-              }
+          if (method && idx == 0) () /* ignore `this` for method-like calls */
+          else if (!(argTy <= paramTy))
+            val key = (callerNp, calleeRp, idx, param)
+            argsForMismatch += key -> {
+              argsForMismatch.get(key).fold(argTy)(_ || argTy)
+            }
           AbsValue(paramTy)
       // force to set expected type for parameters
       param.lhs -> expected
     }).toMap
   }
 
-  // check loose subtyping relation for named records
-  private def isLooseSubTy(result: ValueTy, expected: ValueTy): Boolean =
+  // check loose subtyping relation for normal completions and named records
+  private def isLooseSubTy(
+    result: ValueTy,
+    expected: ValueTy,
+  ): Boolean =
+    val pureValue = isLooseSubTy(result.pureValue, expected.pureValue)
+    val normal = isLooseSubTy(result.normal, expected.normal)
+    val abrupt = result.abrupt <= expected.abrupt
+    pureValue && normal && abrupt
+
+  // check loose subtyping relation for normal completions and named records
+  private def isLooseSubTy(
+    result: PureValueTy,
+    expected: PureValueTy,
+  ): Boolean =
     import TyModel.es.isSubTy
-    (result -- NameT) <= (expected -- NameT) &&
-    ((result.name.set, expected.name.set) match
+    val noName = ((result -- NameT.pureValue) <= (expected -- NameT.pureValue))
+    val name = ((result.name.set, expected.name.set) match
       case (_, Inf) => true
       case (Inf, _) => false
       case (Fin(lset), Fin(rset)) =>
         lset.forall(l => rset.exists(r => isSubTy(l, r) || isSubTy(r, l)))
     )
+    noName && name
 
   /** type analysis result string */
   def typesString: String =
@@ -111,11 +122,12 @@ class TypeSemantics(
   override def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
-    val givenTy = newRet.value.ty
+    val givenTy = newRet.value.removeAbsent.ty
     val expected = rp.func.retTy.ty match
       case _: UnknownTy        => newRet
       case expectedTy: ValueTy =>
         // return type check when it is a known type
+        // we use a loose subtyping relation for named records
         if (!(givenTy <= expectedTy))
           val key = (elem, rp)
           retForMismatch += key -> {

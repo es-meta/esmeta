@@ -14,7 +14,7 @@ import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** abstract transfer function */
-class AbsTransfer(sem: AbsSemantics) {
+class AbsTransfer(sem: AbsSemantics) extends Optimized {
 
   /** loading monads */
   import AbsState.monad.*
@@ -227,6 +227,7 @@ class AbsTransfer(sem: AbsSemantics) {
   def transfer(call: Call)(using cp: NodePoint[_]): Result[AbsValue] =
     val callerNp = NodePoint(cp.func, call, cp.view)
     call.callInst match {
+      case OptimizedCall(result) => result
       case ICall(_, fexpr, args) =>
         for {
           fv <- transfer(fexpr)
