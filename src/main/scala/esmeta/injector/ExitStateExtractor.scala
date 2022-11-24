@@ -2,6 +2,7 @@ package esmeta.injector
 
 import esmeta.error.*
 import esmeta.interpreter.Interpreter
+import esmeta.ir.Return
 import esmeta.state.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -17,8 +18,8 @@ class ExitStateExtractor(val initSt: State) extends Interpreter(initSt) {
     catch { case e: InterpreterError => throw InterpreterErrorAt(e, cursor) }
 
   /** hook return points to keep address name mapping */
-  override def setReturn(value: Value): Unit = {
-    super.setReturn(value)
+  override def setReturn(value: Value, ret: Return): Unit = {
+    super.setReturn(value, ret)
     if (this.st.context.name == "MakeBasicObject") {
       val contexts = (this.st.context :: this.st.callStack.map(_.context))
         .filter(c => c.func.isSDO || c.func.isBuiltin)

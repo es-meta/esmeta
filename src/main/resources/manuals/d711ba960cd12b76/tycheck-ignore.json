@@ -1,4 +1,5 @@
 [
+  "AddEntriesFromIterable",
   "AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody",
   "BoundFunctionCreate",
   "CaseBlock[0,1].CaseBlockEvaluation",

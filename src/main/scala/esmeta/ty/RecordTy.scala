@@ -77,6 +77,6 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(fields: Map[String, ValueTy]): RecordTy = Elem(fields).norm
   val Elem = RecordElemTy
   type Elem = RecordElemTy
-  val Top = RecordTopTy
-  val Bot = Elem()
+  lazy val Top = RecordTopTy
+  lazy val Bot = Elem()
 }

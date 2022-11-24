@@ -26,10 +26,10 @@ object BaseUtils {
   }
 
   /** throw a simple error */
-  def error(msg: String): Nothing = throw ESMetaError(msg)
+  def error(any: Any): Nothing = throw ESMetaError(any.toString)
 
   /** show a warning message */
-  def warn(msg: String): Unit = Console.err.println(s"[WARNING] $msg")
+  def warn(any: Any): Unit = Console.err.println(s"[WARNING] $any")
 
   /** get duration time */
   def time[T](f: => T): (Long, T) = {

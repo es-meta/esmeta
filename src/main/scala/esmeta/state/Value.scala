@@ -90,15 +90,21 @@ given Ordering[Addr] = Ordering.by(_ match
   case DynamicAddr(long) => (long, ""),
 )
 
+/** function values */
+sealed trait FuncValue extends PureValue {
+  def func: Func
+  def captured: Map[Name, Value]
+}
+
 /** closures */
-case class Clo(func: Func, captured: Map[Name, Value]) extends PureValue
+case class Clo(func: Func, captured: Map[Name, Value]) extends FuncValue
 
 /** continuations */
 case class Cont(
   func: Func,
   captured: Map[Name, Value],
   callStack: List[CallContext],
-) extends PureValue
+) extends FuncValue
 
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue

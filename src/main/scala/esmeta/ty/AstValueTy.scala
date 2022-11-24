@@ -69,6 +69,6 @@ sealed trait AstNonTopTy extends AstValueTy {
 case class AstNameTy(names: Set[String] = Set()) extends AstNonTopTy
 case class AstSingleTy(name: String, idx: Int, subIdx: Int) extends AstNonTopTy
 object AstValueTy extends Parser.From(Parser.astValueTy) {
-  val Top = AstTopTy
-  val Bot: AstNameTy = AstNameTy()
+  lazy val Top = AstTopTy
+  lazy val Bot: AstNameTy = AstNameTy()
 }

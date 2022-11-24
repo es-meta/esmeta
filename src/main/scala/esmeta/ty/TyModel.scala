@@ -1,5 +1,6 @@
 package esmeta.ty
 
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
@@ -47,6 +48,9 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     (l == r) || subTys.get(r).fold(false)(_ contains l)
   def isSubTy(l: String, rset: Set[String]): Boolean =
     rset.exists(r => isSubTy(l, r))
+  def isSubTy(l: String, rset: BSet[String]): Boolean = rset match
+    case Inf       => true
+    case Fin(rset) => isSubTy(l, rset)
   def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
     lset.forall(l => isSubTy(l, rset))
 

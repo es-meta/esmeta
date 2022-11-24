@@ -823,7 +823,7 @@ trait Parsers extends IndentParsers {
 
   // instance check conditions
   lazy val instanceOfCond: PL[InstanceOfCondition] =
-    expr ~ isEither((("an " | "a ") ~> langType)) ^^ {
+    expr ~ isEither(singleLangType) ^^ {
       case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
     }
 
@@ -918,7 +918,7 @@ trait Parsers extends IndentParsers {
   // contains-whose conditions
   lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
     expr ~
-    ("contains" ~ opt("an " | "a ") ~> langType) ~
+    ("contains" ~> langType) ~
     ("whose" ~ "[[" ~> word <~ "]]") ~
     ("is" ~> expr) ^^ {
       case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
@@ -1100,8 +1100,13 @@ trait Parsers extends IndentParsers {
     langTy ^^ { Type(_) }
   }.named("lang.Type")
 
+  lazy val singleLangType: PL[Type] = {
+    singleLangTy ^^ { Type(_) }
+  }.named("lang.Type (single)")
+
   // types
   lazy val langTy: P[Ty] = multi(valueTy, either = false) | specialTy
+  lazy val singleLangTy: P[Ty] = singleValueTy | specialTy
 
   // unknown types
   lazy val unknownTy: P[Ty] = "([^,_]|, )+".r ^^ {
@@ -1110,25 +1115,25 @@ trait Parsers extends IndentParsers {
   }
 
   // value types
-  lazy val valueTy: P[ValueTy] = multi(compTy | pureValueTy)
+  lazy val valueTy: P[ValueTy] = multi(singleValueTy)
+  lazy val singleValueTy: P[ValueTy] = singleCompTy | singlePureValueTy
 
   // completion record types
-  lazy val compTy: P[ValueTy] = multi {
+  lazy val compTy: P[ValueTy] = multi(singleCompTy)
+  lazy val singleCompTy: P[ValueTy] =
     "a Completion Record" ^^^ CompT |
     "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
     "a normal completion" ^^^ NormalT |
     "a throw completion" ^^^ AbruptT("throw") |
     "a return completion" ^^^ AbruptT("return") |
     "an abrupt completion" ^^^ AbruptT
-  }
 
   // pure value types
-  lazy val pureValueTy: P[ValueTy] = multi {
-    nameTy | recordTy | listTy | simpleTy,
-  }
+  lazy val pureValueTy: P[ValueTy] = multi(singlePureValueTy)
+  lazy val singlePureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
 
   // named record types
-  lazy val nameTy: P[ValueTy] = multi {
+  lazy val nameTy: P[ValueTy] =
     opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
       case ss =>
         val name = ss.mkString(" ")
@@ -1136,18 +1141,16 @@ trait Parsers extends IndentParsers {
         if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
         else failure("unknown type name")
     }
-  }
 
   // record types TODO
-  lazy val recordTy: P[ValueTy] = multi(opt("an " | "a ") ~> failure("TODO"))
+  lazy val recordTy: P[ValueTy] = failure("TODO")
 
   // list types
-  lazy val listTy: P[ValueTy] = multi {
+  lazy val listTy: P[ValueTy] =
     opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
-  }
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = multi(opt("an " | "a ") ~> {
+  lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1163,7 +1166,7 @@ trait Parsers extends IndentParsers {
     "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
-  } <~ opt("s"))
+  } <~ opt("s")
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {
@@ -1213,7 +1216,7 @@ trait Parsers extends IndentParsers {
     b: Parser[Boolean],
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
-    lazy val compoundGuard = guard(not("is" | ">"))
+    lazy val compoundGuard = guard(not("is" | ">" | "(" | "of"))
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))

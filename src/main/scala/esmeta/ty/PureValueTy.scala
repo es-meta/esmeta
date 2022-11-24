@@ -212,7 +212,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 }
 
 case object PureValueTopTy extends PureValueTy {
-  def clo: BSet[String] = Fin() // unsound but need to remove cycle
+  def clo: BSet[String] = Fin() // TODO unsound but need to remove cycle
   def cont: BSet[Int] = Fin() // unsound but need to remove cycle
   def name: NameTy = NameTy.Bot // unsound but need to remove cycle
   def record: RecordTy = RecordTy.Bot // unsound but need to remove cycle
@@ -292,6 +292,6 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     nullv,
     absent,
   ).norm
-  val Top: PureValueTy = PureValueTopTy
-  val Bot: PureValueTy = PureValueElemTy()
+  lazy val Top: PureValueTy = PureValueTopTy
+  lazy val Bot: PureValueTy = PureValueElemTy()
 }

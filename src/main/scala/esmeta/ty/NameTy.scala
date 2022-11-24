@@ -57,6 +57,6 @@ case class NameTy(set: BSet[String] = Fin())
   def getSingle: Flat[Nothing] = if (isBottom) Zero else Many
 }
 object NameTy extends Parser.From(Parser.nameTy) {
-  val Top: NameTy = NameTy(Inf)
-  val Bot: NameTy = NameTy()
+  lazy val Top: NameTy = NameTy(Inf)
+  lazy val Bot: NameTy = NameTy()
 }

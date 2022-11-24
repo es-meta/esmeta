@@ -5,6 +5,7 @@ import esmeta.es.*
 import esmeta.ir.*
 import esmeta.cfg.*
 import esmeta.state.*
+import esmeta.ty.*
 
 // TODO change to abstract class after refactoring of error in interp
 sealed class InterpreterError(msg: String)
@@ -37,6 +38,8 @@ case class InvalidExit(value: Value)
   extends InterpreterError(s"return not undefined: $value")
 case class InvalidASTChildren(ast: Ast)
   extends InterpreterError(s"no children for lexical node: ${ast.name}")
+case class InvalidTypedValue(value: Value, ty: Ty)
+  extends InterpreterError(s"unexpected typed value: $value (expected: $ty)")
 
 // invalid operands for an operator
 case class InvalidUnaryOp(uop: UOp, v: Value)

@@ -20,6 +20,12 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
 
+  /** sub index */
+  def subIdx: Int = this match
+    case lex: Lexical => 0
+    case Syntactic(_, _, _, children) =>
+      children.map(child => if (child.isDefined) 1 else 0).fold(0)(_ * 2 + _)
+
   /** validity check */
   def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)
 

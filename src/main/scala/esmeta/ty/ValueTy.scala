@@ -13,6 +13,7 @@ case class ValueTy(
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
+  import TyModel.es.isSubTy
 
   /** top check */
   def isTop: Boolean =
@@ -106,6 +107,55 @@ case class ValueTy(
   def undef: Boolean = pureValue.undef
   def nullv: Boolean = pureValue.nullv
   def absent: Boolean = pureValue.absent
+
+  /** value containment check */
+  def contains(value: Value, heap: Heap): Boolean =
+    (pureValue.isTop && value.isInstanceOf[PureValue]) || (value match
+      case NormalComp(value) =>
+        ValueTy(pureValue = comp.normal).contains(value, heap)
+      case Comp(Const(tyStr), _, _) => comp.abrupt contains tyStr
+      case a: Addr =>
+        heap(a) match
+          case MapObj(tname, props, _) =>
+            isSubTy(tname, name.set) ||
+            (tname == "Record" && (props.forall {
+              case (Str(key), MapObj.Prop(value, _)) =>
+                record(key).contains(value, heap)
+              case _ => false
+            })) ||
+            (tname == "SubMap" && (props.forall {
+              case (key, MapObj.Prop(value, _)) =>
+                ValueTy(pureValue = subMap.key).contains(key, heap) &&
+                ValueTy(pureValue = subMap.value).contains(value, heap)
+            }))
+          case ListObj(values) =>
+            list.elem match
+              case None     => false
+              case Some(ty) => values.forall(ty.contains(_, heap))
+          case SymbolObj(_) => symbol
+          case YetObj(_, _) => true
+      case Clo(func, captured)             => clo contains func.irFunc.name
+      case Cont(func, captured, callStack) => cont contains func.id
+      case AstValue(ast) =>
+        astValue match
+          case AstTopTy         => true
+          case AstNameTy(names) => names contains ast.name
+          case AstSingleTy(name, idx, subIdx) =>
+            ast.name == name &&
+            ast.idx == idx &&
+            ast.subIdx == subIdx
+      case x @ Nt(name, params) => nt contains x
+      case Math(n)              => math contains n
+      case Const(name)          => const contains name
+      case CodeUnit(c)          => codeUnit
+      case num @ Number(n)      => number contains num
+      case BigInt(n)            => bigInt
+      case Str(s)               => str contains s
+      case Bool(b)              => bool contains b
+      case Undef                => undef
+      case Null                 => nullv
+      case Absent               => absent
+    )
 }
 object ValueTy {
   def apply(
@@ -156,6 +206,6 @@ object ValueTy {
     ),
     subMap = subMap,
   )
-  val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top, SubMapTy.Top)
-  val Bot: ValueTy = ValueTy()
+  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top, SubMapTy.Top)
+  lazy val Bot: ValueTy = ValueTy()
 }

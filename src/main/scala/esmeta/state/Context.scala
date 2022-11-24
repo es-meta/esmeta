@@ -22,7 +22,7 @@ case class Context(
     case _                        => error("cursor can't move to next")
 
   /** return variable */
-  var retVal: Option[Value] = None
+  var retVal: Option[(Return, Value)] = None
 
   /** copy contexts */
   def copied: Context = {
