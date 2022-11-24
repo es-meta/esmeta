@@ -17,15 +17,24 @@ case object Eval extends Phase[CFG, State] {
     cmdConfig: CommandConfig,
     config: Config,
   ): State =
-    val filename = getFirstFilename(cmdConfig, this.name)
-    val initSt = Initialize.fromFile(cfg, filename)
-    val st = Interpreter(
-      initSt,
-      log = config.log,
-      timeLimit = config.timeLimit,
-      tycheck = config.tycheck,
-    )
-    st
+    if (config.multiple)
+      var st = State(cfg, Context(cfg.main))
+      for {
+        path <- cmdConfig.targets
+        file <- walkTree(path)
+        filename = file.toString
+        if jsFilter(filename)
+      } st = run(cfg, config, filename)
+      st
+    else run(cfg, config, getFirstFilename(cmdConfig, this.name))
+
+  def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
+    Initialize.fromFile(cfg, filename),
+    log = config.log,
+    timeLimit = config.timeLimit,
+    tycheck = config.tycheck,
+  )
+
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
@@ -39,6 +48,11 @@ case object Eval extends Phase[CFG, State] {
       "turn on type check mode.",
     ),
     (
+      "multiple",
+      BoolOption(c => c.multiple = true),
+      "execute multiple programs (result is the state of the last program).",
+    ),
+    (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
@@ -47,6 +61,7 @@ case object Eval extends Phase[CFG, State] {
   case class Config(
     var timeLimit: Option[Int] = None,
     var tycheck: Boolean = false,
+    var multiple: Boolean = false,
     var log: Boolean = false,
   )
 }
