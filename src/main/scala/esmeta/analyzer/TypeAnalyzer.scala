@@ -48,7 +48,7 @@ private class TypeAnalyzer(
           app :> "=" * 80
           app :> "To suppress this error message, "
           app >> "add/remove the following names to `" >> path >> "`:"
-          mismatches.toList.map(_.name).sorted.map(app :> "  + " >> _)
+          mismatches.map(_.name).toList.sorted.map(app :> "  + " >> _)
           unusedSet.toList.sorted.map(app :> "  - " >> _)
           app :> "=" * 80,
         )
