@@ -73,7 +73,7 @@ class TypeSemantics(
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
     // construct local type environment
     (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
-      val argTy = arg.ty
+      val argTy = arg.removeAbsent.ty
       val expected = param.ty.ty match
         case _: UnknownTy => arg
         case paramTy: ValueTy =>
