@@ -9,6 +9,7 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, *}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
@@ -693,6 +694,18 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
         tv <- transfer(target)
         _ <- modify(pruneValue(rv, tv, positive))
       } yield ()
+    case EBinary(BOp.Eq, ERef(Prop(ref: Local, EStr("Value"))), target) =>
+      AbsValue match
+        case domain.value.TypeDomain =>
+          for {
+            rv <- transfer(ref)
+            base <- transfer(rv)
+            tv <- transfer(target)
+            comp = base.pruneValue(AbsValue(NormalT(tv.ty)), positive)
+            prim = AbsValue(base.ty -- CompT)
+            _ <- modify(_.update(rv, comp ⊔ prim))
+          } yield ()
+        case _ => st => st
     case ETypeCheck(ERef(ref: Local), tyExpr) =>
       for {
         rv <- transfer(ref)
@@ -702,7 +715,6 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
           case One(Nt(n, _)) => modify(pruneTypeCheck(rv, n, positive))
           case _             => pure(())
       } yield ()
-
     case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
       for {
         rv <- transfer(ref)
