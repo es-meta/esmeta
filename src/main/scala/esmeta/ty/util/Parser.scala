@@ -40,7 +40,7 @@ trait Parsers extends BasicParsers {
   private lazy val singleCompTy: Parser[CompTy] = {
     "Normal" ~> opt("[" ~> pureValueTy <~ "]") ^^ {
       case v => CompTy(normal = v.getOrElse(PureValueTy.Top))
-    } | "Abrupt" ~> opt("[" ~> rep1(camel) <~ "]") ^^ {
+    } | "Abrupt" ~> opt("[" ~> rep1(ident) <~ "]") ^^ {
       case s => CompTy(abrupt = s.fold(Inf)(Fin(_: _*)))
     }
   }.named("ty.CompTy (single)")
