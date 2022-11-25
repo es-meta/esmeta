@@ -112,6 +112,11 @@ object ESMeta extends Git(BASE_DIR) {
     ("error", BoolOption(_ => ERROR_MODE = true), "show error stack traces."),
     ("status", BoolOption(_ => STATUS_MODE = true), "exit with status."),
     ("time", BoolOption(c => c.time = true), "display the duration time."),
+    (
+      "test262dir",
+      StrOption((c, s) => TEST262_DIR = s),
+      "set the directory of Test262 (default: $ESMETA_HOME/tests/test262).",
+    ),
   )
 }
 
