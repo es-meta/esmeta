@@ -298,7 +298,7 @@ object TypeDomain extends value.Domain {
           case "SV" | "TRV" | "StringValue" => StrT
           case "IdentifierCodePoints"       => StrT
           case "MV" | "NumericValue"        => NumberT || BigIntT
-          case "TV"                         => StrT || UndefT
+          case "TV"                         => StrT // XXX ignore UndefT case
           case "BodyText" | "FlagText"      => StrT
           case "Contains"                   => BoolT
           case _                            => ValueTy(),
