@@ -34,7 +34,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     executeCmd(s"git checkout $target", path)
 
   /** apply git patch */
-  def applyPatch(patch: String): Unit = executeCmd(s"git apply $patch", path)
+  def applyPatch(patch: String): Unit = executeCmd(s"patch -p1 < $patch", path)
 
   /** clean modified content */
   def clean: Unit = executeCmd(s"git checkout -- .", path)
