@@ -1,4 +1,7 @@
-def HostEnsureCanCompileStrings(callerRealm: Unknown, calleeRealm: Unknown): Unknown {
+def HostEnsureCanCompileStrings(
+  callerRealm: RealmRecord,
+  calleeRealm: RealmRecord,
+): Normal[Const[~unused~]] | Abrupt {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0
 }

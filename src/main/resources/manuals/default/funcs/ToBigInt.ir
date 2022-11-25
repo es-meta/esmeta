@@ -1,5 +1,5 @@
 def ToBigInt(
-  argument: Unknown,
+  argument: ESValue,
 ): Normal[BigInt] | Abrupt[throw] {
   call %0 = clo<ToPrimitive>(argument, ~number~)
   let prim = [? %0]

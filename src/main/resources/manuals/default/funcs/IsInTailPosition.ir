@@ -1,4 +1,6 @@
-def IsInTailPosition(call: Unknown) {
+def IsInTailPosition(
+  call: Ast[CallExpression, MemberExpression, OptionalChain],
+): Boolean {
   // If the source text matched by _call_ is non-strict code, return *false*.
   if false return false else {}
 

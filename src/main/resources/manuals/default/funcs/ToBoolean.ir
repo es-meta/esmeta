@@ -1,4 +1,6 @@
-def ToBoolean(argument: Unknown) {
+def ToBoolean(
+  argument: ESValue,
+): Boolean {
   if (= (typeof argument) @Undefined) return false else {}
   if (= (typeof argument) @Null) return false else {}
   if (= (typeof argument) @Boolean) return argument else {}

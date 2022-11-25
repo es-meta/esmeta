@@ -1,4 +1,6 @@
-def StringToCodePoints(string: String): Unknown {
+def StringToCodePoints(
+  string: String
+): String {
   // IGNORE original algo
   return string
 }

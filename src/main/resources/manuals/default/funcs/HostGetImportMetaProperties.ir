@@ -1,3 +1,5 @@
-def HostGetImportMetaProperties(moduleRecord: Unknown): Unknown {
+def HostGetImportMetaProperties(
+  moduleRecord: ModuleRecord,
+): List[{ [[Key]]: PropertyKey, [[Value]]: ESValue }] {
   return (new [])
 }

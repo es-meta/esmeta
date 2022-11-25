@@ -2,8 +2,8 @@ def <CONC>:DeclarativeEnvironmentRecord.SetMutableBinding(
   envRec: DeclarativeEnvironmentRecord,
   N: String,
   V: ESValue,
-  S: Boolean
-): Unknown {
+  S: Boolean,
+): Normal[Const[~unused~]] | Abrupt[throw] {
   let binding = envRec.SubMap[N]
 
   // 1. [id="step-setmutablebinding-missing-binding"] If _envRec_ does not have a binding for _N_, then
