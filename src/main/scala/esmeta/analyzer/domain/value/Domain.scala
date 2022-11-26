@@ -160,6 +160,7 @@ trait Domain extends domain.Domain[AValue] {
     def wrapCompletion: Elem
     def unwrapCompletion: Elem
     def isCompletion: Elem
+    def normalCompletion: Elem
     def abruptCompletion: Elem
 
     /** absent helpers */

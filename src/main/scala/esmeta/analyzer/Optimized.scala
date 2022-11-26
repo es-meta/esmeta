@@ -18,6 +18,8 @@ trait Optimized { this: AbsTransfer =>
           v <- transfer(expr)
           _ <- modify(prune(ETypeCheck(expr, EStr("CompletionRecord")), true))
         } yield v)
+      case ICall(_, EClo("NormalCompletion", Nil), List(expr)) =>
+        Some(transfer(expr).map(_.normalCompletion))
       case ICall(_, EClo("UpdateEmpty", Nil), List(compExpr, valueExpr)) =>
         AbsValue match
           case domain.value.BasicDomain =>

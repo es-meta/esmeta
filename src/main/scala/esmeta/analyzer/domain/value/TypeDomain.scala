@@ -277,6 +277,7 @@ object TypeDomain extends value.Domain {
       if (!ty.comp.isBottom) bs += true
       if (!ty.pureValue.isBottom) bs += false
       Elem(ValueTy(bool = BoolTy(bs)))
+    def normalCompletion: Elem = Elem(ValueTy(normal = elem.ty.pureValue))
     def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
 
     /** absent helpers */

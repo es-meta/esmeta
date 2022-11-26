@@ -465,6 +465,11 @@ object BasicDomain extends value.Domain {
       if (!comp.isBottom) b ⊔= AT
       if (!pureValue.isBottom) b ⊔= AF
       apply(bool = b)
+    def normalCompletion: Elem =
+      if (pureValue.isBottom) Bot
+      else
+        val res = AbsComp.Result(pureValue, AbsPureValue(CONST_EMPTY))
+        Elem(comp = AbsComp(Map("normal" -> res)))
     def abruptCompletion: Elem = apply(comp = comp.removeNormal)
 
     /** absent helpers */
