@@ -22,6 +22,8 @@ trait Lattice[L <: Lattice[L]] {
   def ⊓(that: => L): L = this && that
 
   /** prune operator */
+  def prune(that: => L, positive: Boolean): L =
+    if (positive) this && that else this -- that
   def --(that: => L): L
 }
 

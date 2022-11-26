@@ -251,13 +251,21 @@ object TypeDomain extends value.Domain {
           )
           if (positive) elem ⊓ that else elem -- that
         case _ => elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem =
-      if (cfg.tyModel.infos.contains(tname))
-        if (positive) Elem(NameT(tname))
-        else elem -- Elem(NameT(tname))
-      else elem
+    def pruneTypeCheck(r: Elem, positive: Boolean): Elem = (for {
+      tname <- r.getSingle match
+        case One(Str(s))   => Some(s)
+        case One(Nt(n, _)) => Some(n)
+        case _             => None
+      if cfg.tyModel.infos.contains(tname)
+    } yield {
+      if (positive) Elem(NameT(tname))
+      else elem -- Elem(NameT(tname))
+    }).getOrElse(elem)
+
     def pruneValue(r: Elem, positive: Boolean): Elem =
-      if (positive) elem ⊓ r else elem -- r
+      if (positive) elem ⊓ r
+      else if (r.isSingle) elem -- r
+      else elem
 
     /** completion helpers */
     def wrapCompletion: Elem =

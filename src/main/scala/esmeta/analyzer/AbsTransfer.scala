@@ -701,19 +701,17 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
             rv <- transfer(ref)
             base <- transfer(rv)
             tv <- transfer(target)
-            comp = base.pruneValue(AbsValue(NormalT(tv.ty)), positive)
-            prim = AbsValue(base.ty -- CompT)
-            _ <- modify(_.update(rv, comp ⊔ prim))
+            ty = base.ty
+            normal = ty.normal.prune(tv.ty.pureValue, positive)
+            newV = AbsValue(ty.copy(comp = CompTy(normal, ty.abrupt)))
+            _ <- modify(_.update(rv, newV))
           } yield ()
         case _ => st => st
     case ETypeCheck(ERef(ref: Local), tyExpr) =>
       for {
         rv <- transfer(ref)
         tv <- transfer(tyExpr)
-        _ <- tv.getSingle match
-          case One(Str(s))   => modify(pruneTypeCheck(rv, s, positive))
-          case One(Nt(n, _)) => modify(pruneTypeCheck(rv, n, positive))
-          case _             => pure(())
+        _ <- modify(pruneTypeCheck(rv, tv, positive))
       } yield ()
     case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
       for {
@@ -763,13 +761,13 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
   /** prune type check */
   def pruneTypeCheck(
     l: AbsRefValue,
-    tname: String,
+    r: AbsValue,
     positive: Boolean,
   )(using cp: NodePoint[_]): Updater =
     for {
       lv <- transfer(l)
       st <- get
-      prunedV = lv.pruneTypeCheck(tname, positive)
+      prunedV = lv.pruneTypeCheck(r, positive)
       _ <- modify(_.update(l, prunedV))
     } yield ()
 }

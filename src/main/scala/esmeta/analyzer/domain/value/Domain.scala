@@ -145,7 +145,7 @@ trait Domain extends domain.Domain[AValue] {
 
     /** prune abstract values */
     def pruneType(r: Elem, positive: Boolean): Elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem
+    def pruneTypeCheck(r: Elem, positive: Boolean): Elem
     def pruneValue(r: Elem, positive: Boolean): Elem
 
     /** single check */

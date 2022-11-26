@@ -177,14 +177,14 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.list.isBottom) Zero else Many) ||
     (if (this.symbol.isBottom) Zero else Many) ||
     (if (this.astValue.isBottom) Zero else Many) ||
-    (if (this.nt.isBottom) Zero else Many) ||
+    nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
-    (if (this.const.isBottom) Zero else Many) ||
-    (if (this.math.isBottom) Zero else Many) ||
-    (if (this.number.isBottom) Zero else Many) ||
+    (const.getSingle.map(Const(_): APureValue)) ||
+    (math.getSingle.map(Math(_): APureValue)) ||
+    number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
-    (str.getSingle.map(Str(_))) ||
-    (bool.getSingle.map(Bool(_))) ||
+    (str.getSingle.map(Str(_): APureValue)) ||
+    (bool.getSingle.map(Bool(_): APureValue)) ||
     (if (this.undef.isBottom) Zero else One(Undef)) ||
     (if (this.nullv.isBottom) Zero else One(Null)) ||
     (if (this.absent.isBottom) Zero else One(Absent))
