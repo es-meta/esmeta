@@ -244,6 +244,16 @@ object TypeDomain extends value.Domain {
         case "Value" =>
           val normal = ty.normal.prune(r.ty.pureValue, positive)
           Elem(ty.copy(comp = CompTy(normal, ty.abrupt)))
+        case "Type" =>
+          Elem(r.ty.const.getSingle match
+            case One("normal") =>
+              if (positive) ValueTy(normal = ty.normal)
+              else ValueTy(abrupt = ty.abrupt)
+            case One(tname) =>
+              if (positive) ValueTy(abrupt = Fin(tname))
+              else ValueTy(normal = ty.normal, abrupt = ty.abrupt -- Fin(tname))
+            case _ => ty,
+          )
         case _ => elem
     def pruneType(r: Elem, positive: Boolean): Elem =
       r.ty.str.getSingle match
