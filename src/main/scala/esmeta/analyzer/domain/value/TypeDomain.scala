@@ -235,6 +235,16 @@ object TypeDomain extends value.Domain {
     def isArrayIndex: Elem = boolTop
 
     /** prune abstract values */
+    def pruneValue(r: Elem, positive: Boolean): Elem =
+      if (positive) elem ⊓ r
+      else if (r.isSingle) elem -- r
+      else elem
+    def pruneField(field: String, r: Elem, positive: Boolean): Elem =
+      field match
+        case "Value" =>
+          val normal = ty.normal.prune(r.ty.pureValue, positive)
+          Elem(ty.copy(comp = CompTy(normal, ty.abrupt)))
+        case _ => elem
     def pruneType(r: Elem, positive: Boolean): Elem =
       r.ty.str.getSingle match
         case One(tname) =>
@@ -261,11 +271,6 @@ object TypeDomain extends value.Domain {
       if (positive) Elem(NameT(tname))
       else elem -- Elem(NameT(tname))
     }).getOrElse(elem)
-
-    def pruneValue(r: Elem, positive: Boolean): Elem =
-      if (positive) elem ⊓ r
-      else if (r.isSingle) elem -- r
-      else elem
 
     /** completion helpers */
     def wrapCompletion: Elem =

@@ -144,9 +144,10 @@ trait Domain extends domain.Domain[AValue] {
     def isArrayIndex: Elem
 
     /** prune abstract values */
+    def pruneValue(r: Elem, positive: Boolean): Elem
+    def pruneField(field: String, r: Elem, positive: Boolean): Elem
     def pruneType(r: Elem, positive: Boolean): Elem
     def pruneTypeCheck(r: Elem, positive: Boolean): Elem
-    def pruneValue(r: Elem, positive: Boolean): Elem
 
     /** single check */
     def isSingle: Boolean = elem.getSingle match
