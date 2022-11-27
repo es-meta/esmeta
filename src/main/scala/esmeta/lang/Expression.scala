@@ -44,11 +44,9 @@ case class SourceTextExpression(
 case class CoveredByExpression(code: Expression, rule: Expression)
   extends Expression
 
-// get children ast expressions
-case class GetChildrenExpression(
-  nonterminal: Expression,
-  expr: Expression,
-) extends Expression
+// get items ast expressions
+case class GetItemsExpression(nt: Expression, expr: Expression)
+  extends Expression
 
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression

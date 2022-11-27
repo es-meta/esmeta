@@ -153,8 +153,10 @@ trait Walker extends BasicWalker {
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>
       EKeys(walk(map), walk(intSorted))
-    case EGetChildren(kind, ast) =>
-      EGetChildren(walkOpt(kind, walk), walk(ast))
+    case EGetChildren(ast) =>
+      EGetChildren(walk(ast))
+    case EGetItems(ast) =>
+      EGetItems(walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit

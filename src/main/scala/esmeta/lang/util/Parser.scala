@@ -293,7 +293,7 @@ trait Parsers extends IndentParsers {
     numberOfExpr |||
     sourceTextExpr |||
     coveredByExpr |||
-    getChildrenExpr |||
+    getItemsExpr |||
     intrExpr |||
     calcExpr |||
     clampExpr |||
@@ -371,11 +371,11 @@ trait Parsers extends IndentParsers {
       case r ~ c => CoveredByExpression(c, r)
     }
 
-  // get children ast expressions
-  lazy val getChildrenExpr: PL[GetChildrenExpression] =
+  // get items ast expressions
+  lazy val getItemsExpr: PL[GetItemsExpression] =
     ("the List of" ~> expr <~ "items") ~
     ("in" ~> expr <~ "," ~ "in source text order") ^^ {
-      case t ~ e => GetChildrenExpression(t, e)
+      case t ~ e => GetItemsExpression(t, e)
     }
 
   // abstract closure expressions

@@ -43,15 +43,14 @@ sealed trait Ast extends ESElem with Locational {
         case child :: Nil => this :: child.chains
         case _            => List(this)
 
-  /** children */
-  def getChildren(kind: String): List[Ast] = this match
-    case lex: Lexical => List()
-    case Syntactic(k, _, _, children) =>
-      val founded = (for {
-        child <- children.flatten
-        found <- child.getChildren(kind)
-      } yield found).toList
-      if (k == kind) this :: founded else founded
+  /** get items */
+  def getItems: List[Ast] = this match
+    case _: Lexical => Nil
+    case syn: Syntactic =>
+      for {
+        child <- syn.children.flatten
+        item <- if (child.name == this.name) child.getItems else List(child)
+      } yield item
 
   /** types */
   lazy val types: Set[String] =

@@ -310,7 +310,7 @@ class Compiler(
       val (list, listExpr) = fb.newTIdWithExpr
       val (length, lengthExpr) = fb.newTIdWithExpr
       fb.addInst(
-        IAssign(list, EGetChildren(None, compile(fb, expr))),
+        IAssign(list, EGetChildren(compile(fb, expr))),
         IAssign(i, zero),
         IAssign(length, toStrERef(list, "length")),
       )
@@ -485,8 +485,8 @@ class Compiler(
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetChildrenExpression(nt, expr) =>
-        EGetChildren(Some(compile(fb, nt)), compile(fb, expr))
+      case GetItemsExpression(nt, expr) =>
+        EGetItems(compile(fb, expr))
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
         if simpleOps contains name then simpleOps(name)(as)

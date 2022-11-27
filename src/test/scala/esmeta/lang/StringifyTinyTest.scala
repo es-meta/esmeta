@@ -203,7 +203,7 @@ class StringifyTinyTest extends LangTest {
     lazy val numberOfExpr = NumberOfExpression(refExpr)
     lazy val sourceTextExpr = SourceTextExpression(nt)
     lazy val coveredByExpr = CoveredByExpression(nt, nt)
-    lazy val getChildrenExpr = GetChildrenExpression(nt, refExpr)
+    lazy val getItemsExpr = GetItemsExpression(nt, refExpr)
     lazy val intrExpr = IntrinsicExpression(intr)
     lazy val invokeAOExpr =
       InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
@@ -274,7 +274,7 @@ class StringifyTinyTest extends LangTest {
       numberOfExpr -> "the number of elements in _x_",
       sourceTextExpr -> "the source text matched by |Identifier|",
       coveredByExpr -> "the |Identifier| that is covered by |Identifier|",
-      getChildrenExpr -> "the List of |Identifier| items in _x_, in source text order",
+      getItemsExpr -> "the List of |Identifier| items in _x_, in source text order",
       intrExpr -> "%Array%",
       invokeAOExpr -> "ToObject(_x_ + _x_, -_x_)",
       invokeNumericExpr -> "Number::add(_x_, _x_)",
