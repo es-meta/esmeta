@@ -187,8 +187,10 @@ trait Parsers extends TyParsers {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {
       case i ~ e => EKeys(e, i.isDefined)
-    } | "(" ~ "get-children" ~> opt(expr) ~ expr <~ ")" ^^ {
-      case k ~ a => EGetChildren(k, a)
+    } | "(" ~ "get-children" ~> expr <~ ")" ^^ {
+      case e => EGetChildren(e)
+    } | "(" ~ "get-items" ~> expr ~ expr <~ ")" ^^ {
+      case n ~ a => EGetItems(n, a)
     },
   )
 

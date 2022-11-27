@@ -345,16 +345,18 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
       case ENt(name, params) => AbsValue(Nt(name, params))
       case ESourceText(expr) =>
         for { v <- transfer(expr) } yield v.sourceText
-      case e @ EGetChildren(kindOpt, ast) =>
+      case e @ EGetChildren(ast) =>
         val asite = AllocSite(e.asite, cp.view)
         for {
-          kOpt <- id(st => {
-            kindOpt match
-              case Some(kind) => transfer(kind).map(Some(_))(st)
-              case None       => (None, st)
-          })
           av <- transfer(ast)
-          lv <- id(_.getChildren(asite, av, kOpt))
+          lv <- id(_.getChildren(asite, av))
+        } yield lv
+      case e @ EGetItems(nt, ast) =>
+        val asite = AllocSite(e.asite, cp.view)
+        for {
+          nv <- transfer(nt)
+          av <- transfer(ast)
+          lv <- id(_.getItems(asite, nv, av))
         } yield lv
       case EYet(msg) =>
         if (YET_THROW) notSupported(msg)

@@ -234,18 +234,16 @@ class Interpreter(
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
-    case EGetChildren(kindOpt, ast) =>
-      val kOpt = kindOpt.map(kind =>
-        eval(kind) match
-          case Nt(name, _) => name
-          case v           => throw NoNt(kind, v),
-      )
-      val a = eval(ast).asAst
-      (a, kOpt) match
-        case (_, Some(k)) => st.allocList(a.getChildren(k).map(AstValue(_)))
-        case (syn: Syntactic, None) =>
+    case EGetChildren(ast) =>
+      eval(ast).asAst match
+        case syn: Syntactic =>
           st.allocList(syn.children.flatten.map(AstValue(_)))
-        case _ => throw InvalidASTChildren(a)
+        case ast => throw InvalidASTChildren(ast)
+    case EGetItems(nt, ast) =>
+      val name = eval(nt) match
+        case Nt(name, _) => name
+        case v           => throw NoNt(nt, v)
+      st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>

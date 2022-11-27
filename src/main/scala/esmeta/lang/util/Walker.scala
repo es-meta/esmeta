@@ -132,8 +132,8 @@ trait Walker extends BasicWalker {
       SourceTextExpression(walk(expr))
     case CoveredByExpression(code, rule) =>
       CoveredByExpression(walk(code), walk(rule))
-    case GetChildrenExpression(nt, expr) =>
-      GetChildrenExpression(walk(nt), walk(expr))
+    case GetItemsExpression(nt, expr) =>
+      GetItemsExpression(walk(nt), walk(expr))
     case IntrinsicExpression(intr) =>
       IntrinsicExpression(walk(intr))
     case expr: CalcExpression =>

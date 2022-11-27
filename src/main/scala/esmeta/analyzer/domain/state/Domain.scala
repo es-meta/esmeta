@@ -115,7 +115,13 @@ trait Domain extends domain.Domain[State] {
     def getChildren(
       to: AllocSite,
       ast: AbsValue,
-      kindOpt: Option[AbsValue],
+    ): (AbsValue, Elem)
+
+    /** get items of AST */
+    def getItems(
+      to: AllocSite,
+      nt: AbsValue,
+      ast: AbsValue,
     ): (AbsValue, Elem)
 
     /** allocation of map with address partitions */

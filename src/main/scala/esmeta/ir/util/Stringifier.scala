@@ -222,10 +222,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EKeys(map, intSorted) =>
         app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
         app >> map >> ")"
-      case EGetChildren(kindOpt, ast) =>
-        app >> "(get-children "
-        kindOpt.foreach(kind => app >> kind >> " ")
-        app >> ast >> ")"
+      case EGetChildren(ast) =>
+        app >> "(get-children " >> ast >> ")"
+      case EGetItems(nt, ast) =>
+        app >> "(get-items " >> nt >> " " >> ast >> ")"
     }
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"

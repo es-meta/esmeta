@@ -216,17 +216,24 @@ object BasicDomain extends state.Domain {
     def getChildren(
       to: AllocSite,
       ast: AbsValue,
-      kindOpt: Option[AbsValue],
-    ): (AbsValue, Elem) = (kindOpt.map(_.getSingle), ast.getSingle) match
-      case (Some(Zero), _) | (_, Zero) => (AbsValue.Bot, Bot)
-      case (Some(Many), _) | (_, Many) => exploded("EGetChildren")
-      case (Some(One(Nt(name, _))), One(AstValue(ast))) =>
-        val vs = ast.getChildren(name).map(AbsValue(_))
-        allocList(to, vs)
-      case (None, One(AstValue(syn: Syntactic))) =>
+    ): (AbsValue, Elem) = ast.getSingle match
+      case One(AstValue(syn: Syntactic)) =>
         val vs = syn.children.flatten.map(AbsValue(_))
         allocList(to, vs)
-      case _ => (AbsValue.Bot, Bot)
+      case Many => exploded("EGetChildren")
+      case _    => (AbsValue.Bot, Bot)
+
+    /** get items of AST */
+    def getItems(
+      to: AllocSite,
+      nt: AbsValue,
+      ast: AbsValue,
+    ): (AbsValue, Elem) = (nt.getSingle, ast.getSingle) match
+      case (One(Nt(name, _)), One(AstValue(ast))) =>
+        val vs = ast.getItems(name).map(AbsValue(_))
+        allocList(to, vs)
+      case (Many, _) | (_, Many) => exploded("EGetItems")
+      case _                     => (AbsValue.Bot, Bot)
 
     /** allocation of map with address partitions */
     def allocMap(
