@@ -155,8 +155,8 @@ trait Walker extends BasicWalker {
       EKeys(walk(map), walk(intSorted))
     case EGetChildren(ast) =>
       EGetChildren(walk(ast))
-    case EGetItems(ast) =>
-      EGetItems(walk(ast))
+    case EGetItems(nt, ast) =>
+      EGetItems(walk(nt), walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit

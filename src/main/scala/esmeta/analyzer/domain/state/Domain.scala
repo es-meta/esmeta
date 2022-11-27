@@ -120,6 +120,7 @@ trait Domain extends domain.Domain[State] {
     /** get items of AST */
     def getItems(
       to: AllocSite,
+      nt: AbsValue,
       ast: AbsValue,
     ): (AbsValue, Elem)
 

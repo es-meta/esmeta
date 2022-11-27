@@ -141,8 +141,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(map); walk(intSorted)
     case EGetChildren(ast) =>
       walk(ast)
-    case EGetItems(ast) =>
-      walk(ast)
+    case EGetItems(nt, ast) =>
+      walk(nt); walk(ast)
   }
 
   // literals

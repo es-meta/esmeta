@@ -226,13 +226,14 @@ object BasicDomain extends state.Domain {
     /** get items of AST */
     def getItems(
       to: AllocSite,
+      nt: AbsValue,
       ast: AbsValue,
-    ): (AbsValue, Elem) = ast.getSingle match
-      case One(AstValue(ast)) =>
-        val vs = ast.getItems.map(AbsValue(_))
+    ): (AbsValue, Elem) = (nt.getSingle, ast.getSingle) match
+      case (One(Nt(name, _)), One(AstValue(ast))) =>
+        val vs = ast.getItems(name).map(AbsValue(_))
         allocList(to, vs)
-      case Many => exploded("EGetItems")
-      case _    => (AbsValue.Bot, Bot)
+      case (Many, _) | (_, Many) => exploded("EGetItems")
+      case _                     => (AbsValue.Bot, Bot)
 
     /** allocation of map with address partitions */
     def allocMap(

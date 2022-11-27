@@ -56,7 +56,7 @@ case class ESymbol(desc: Expr) extends AllocExpr
 case class ECopy(obj: Expr) extends AllocExpr
 case class EKeys(map: Expr, intSorted: Boolean) extends AllocExpr
 case class EGetChildren(ast: Expr) extends AllocExpr
-case class EGetItems(ast: Expr) extends AllocExpr
+case class EGetItems(nt: Expr, ast: Expr) extends AllocExpr
 
 // literals
 sealed trait LiteralExpr extends Expr

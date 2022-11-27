@@ -239,8 +239,11 @@ class Interpreter(
         case syn: Syntactic =>
           st.allocList(syn.children.flatten.map(AstValue(_)))
         case ast => throw InvalidASTChildren(ast)
-    case EGetItems(ast) =>
-      st.allocList(eval(ast).asAst.getItems.map(AstValue(_)))
+    case EGetItems(nt, ast) =>
+      val name = eval(nt) match
+        case Nt(name, _) => name
+        case v           => throw NoNt(nt, v)
+      st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(msg)
     case EContains(list, elem, field) =>

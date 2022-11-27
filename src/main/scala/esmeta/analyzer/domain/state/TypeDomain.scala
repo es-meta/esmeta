@@ -166,8 +166,9 @@ object TypeDomain extends state.Domain {
     /** get items of AST */
     def getItems(
       to: AllocSite,
+      nt: AbsValue,
       ast: AbsValue,
-    ): (AbsValue, Elem) = (AbsValue(ListT(AstT)), elem)
+    ): (AbsValue, Elem) = (AbsValue(ListT(AstT)), elem) // TODO more precise
 
     /** allocation of map with address partitions */
     def allocMap(

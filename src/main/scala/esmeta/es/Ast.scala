@@ -1,6 +1,7 @@
 package esmeta.es
 
 import esmeta.es.util.*
+import esmeta.error.InvalidASTItem
 import esmeta.ir.Type
 import esmeta.spec.*
 import esmeta.util.*
@@ -44,12 +45,15 @@ sealed trait Ast extends ESElem with Locational {
         case _            => List(this)
 
   /** get items */
-  def getItems: List[Ast] = this match
+  def getItems(name: String): List[Ast] = this match
     case _: Lexical => Nil
     case syn: Syntactic =>
       for {
         child <- syn.children.flatten
-        item <- if (child.name == this.name) child.getItems else List(child)
+        item <-
+          if (child.name == this.name) child.getItems(name)
+          else if (child.name == name) List(child)
+          else throw InvalidASTItem(child, name)
       } yield item
 
   /** types */

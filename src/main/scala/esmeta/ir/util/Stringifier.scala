@@ -224,8 +224,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> map >> ")"
       case EGetChildren(ast) =>
         app >> "(get-children " >> ast >> ")"
-      case EGetItems(ast) =>
-        app >> "(get-items " >> ast >> ")"
+      case EGetItems(nt, ast) =>
+        app >> "(get-items " >> nt >> " " >> ast >> ")"
     }
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"

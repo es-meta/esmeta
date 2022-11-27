@@ -191,7 +191,7 @@ class StringifyTinyTest extends IRTest {
     lazy val keys = EKeys(xExpr, false)
     lazy val keysInt = EKeys(xExpr, true)
     lazy val getChildren = EGetChildren(xExpr)
-    lazy val getItems = EGetItems(xExpr)
+    lazy val getItems = EGetItems(xExpr, xExpr)
     def assignASite(e: AllocExpr, k: Int): AllocExpr = { e.asite = k; e }
     lazy val recASite = assignASite(rec.copy(), 3)
     lazy val listASite = assignASite(list.copy(), 1)
@@ -247,7 +247,7 @@ class StringifyTinyTest extends IRTest {
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
       getChildren -> "(get-children x)",
-      getItems -> "(get-items x)",
+      getItems -> "(get-items x x)",
       // allocation expressions with allocation sites
       recASite -> "(new T(undefined -> true, null -> absent))[#3]",
       listASite -> "(new [undefined, null, absent])[#1]",
@@ -256,7 +256,7 @@ class StringifyTinyTest extends IRTest {
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",
       getChildrenASite -> "(get-children x)[#9]",
-      getItemsASite -> "(get-items x)[#10]",
+      getItemsASite -> "(get-items x x)[#10]",
       // literals
       EMathVal(4) -> "4",
       ENumber(3.0) -> "3.0f",

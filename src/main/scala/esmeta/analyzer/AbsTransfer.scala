@@ -351,11 +351,12 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
           av <- transfer(ast)
           lv <- id(_.getChildren(asite, av))
         } yield lv
-      case e @ EGetItems(ast) =>
+      case e @ EGetItems(nt, ast) =>
         val asite = AllocSite(e.asite, cp.view)
         for {
+          nv <- transfer(nt)
           av <- transfer(ast)
-          lv <- id(_.getItems(asite, av))
+          lv <- id(_.getItems(asite, nv, av))
         } yield lv
       case EYet(msg) =>
         if (YET_THROW) notSupported(msg)

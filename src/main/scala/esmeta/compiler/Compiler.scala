@@ -486,7 +486,7 @@ class Compiler(
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
       case GetItemsExpression(nt, expr) =>
-        EGetItems(compile(fb, expr))
+        EGetItems(compile(fb, nt), compile(fb, expr))
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
         if simpleOps contains name then simpleOps(name)(as)
