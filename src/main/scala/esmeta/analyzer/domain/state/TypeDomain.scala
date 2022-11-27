@@ -168,7 +168,10 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       nt: AbsValue,
       ast: AbsValue,
-    ): (AbsValue, Elem) = (AbsValue(ListT(AstT)), elem) // TODO more precise
+    ): (AbsValue, Elem) = nt.ty.nt.getSingle match
+      case One(Nt(name, _)) => (AbsValue(ListT(AstT(name))), elem)
+      case Many             => exploded(s"imprecise nt name: $nt")
+      case Zero             => (AbsValue.Bot, Bot)
 
     /** allocation of map with address partitions */
     def allocMap(
