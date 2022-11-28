@@ -1,6 +1,6 @@
 def HostEnsureCanCompileStrings(
   calleeRealm: RealmRecord
-): Normal[Const[~unsused~]] | Abrupt[throw] {
+): Normal[Const[~unused~]] | Abrupt[throw] {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0
 }
