@@ -1,4 +1,6 @@
-def ToObject(argument: Unknown) {
+def ToObject(
+  argument: ESValue
+): Normal[Object] | Abrupt[throw] {
   if (= (typeof argument) @Undefined) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
   } else {}

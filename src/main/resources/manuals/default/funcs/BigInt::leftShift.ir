@@ -1,4 +1,7 @@
-def <NUM>:BigInt::leftShift(x: BigInt, y: BigInt): BigInt {
+def <NUM>:BigInt::leftShift(
+  x: BigInt,
+  y: BigInt,
+): BigInt {
   return (<< x y)
   // if (< y 0n) {
   //   return ([bigInt] (/ ([math] x) (** 2 (- ([math] y)))))

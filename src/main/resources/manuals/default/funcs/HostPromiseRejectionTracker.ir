@@ -1,6 +1,6 @@
 def HostPromiseRejectionTracker(
-  promise: Unknown,
-  operation: Unknown
-): Unknown {
+  promise: Promise,
+  operation: String["reject", "handle"],
+): Const[~unused~] {
   return ~unused~
 }

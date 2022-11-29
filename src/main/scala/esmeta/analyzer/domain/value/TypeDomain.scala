@@ -235,6 +235,26 @@ object TypeDomain extends value.Domain {
     def isArrayIndex: Elem = boolTop
 
     /** prune abstract values */
+    def pruneValue(r: Elem, positive: Boolean): Elem =
+      if (positive) elem ⊓ r
+      else if (r.isSingle) elem -- r
+      else elem
+    def pruneField(field: String, r: Elem, positive: Boolean): Elem =
+      field match
+        case "Value" =>
+          val normal = ty.normal.prune(r.ty.pureValue, positive)
+          Elem(ty.copy(comp = CompTy(normal, ty.abrupt)))
+        case "Type" =>
+          Elem(r.ty.const.getSingle match
+            case One("normal") =>
+              if (positive) ValueTy(normal = ty.normal)
+              else ValueTy(abrupt = ty.abrupt)
+            case One(tname) =>
+              if (positive) ValueTy(abrupt = Fin(tname))
+              else ValueTy(normal = ty.normal, abrupt = ty.abrupt -- Fin(tname))
+            case _ => ty,
+          )
+        case _ => elem
     def pruneType(r: Elem, positive: Boolean): Elem =
       r.ty.str.getSingle match
         case One(tname) =>
@@ -251,13 +271,16 @@ object TypeDomain extends value.Domain {
           )
           if (positive) elem ⊓ that else elem -- that
         case _ => elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem =
-      if (cfg.tyModel.infos.contains(tname))
-        if (positive) Elem(NameT(tname))
-        else elem -- Elem(NameT(tname))
-      else elem
-    def pruneValue(r: Elem, positive: Boolean): Elem =
-      if (positive) elem ⊓ r else elem -- r
+    def pruneTypeCheck(r: Elem, positive: Boolean): Elem = (for {
+      tname <- r.getSingle match
+        case One(Str(s))   => Some(s)
+        case One(Nt(n, _)) => Some(n)
+        case _             => None
+      if cfg.tyModel.infos.contains(tname)
+    } yield {
+      if (positive) Elem(NameT(tname))
+      else elem -- Elem(NameT(tname))
+    }).getOrElse(elem)
 
     /** completion helpers */
     def wrapCompletion: Elem =
@@ -277,6 +300,7 @@ object TypeDomain extends value.Domain {
       if (!ty.comp.isBottom) bs += true
       if (!ty.pureValue.isBottom) bs += false
       Elem(ValueTy(bool = BoolTy(bs)))
+    def normalCompletion: Elem = Elem(ValueTy(normal = elem.ty.pureValue))
     def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
 
     /** absent helpers */
@@ -298,7 +322,7 @@ object TypeDomain extends value.Domain {
           case "SV" | "TRV" | "StringValue" => StrT
           case "IdentifierCodePoints"       => StrT
           case "MV" | "NumericValue"        => NumberT || BigIntT
-          case "TV"                         => StrT || UndefT
+          case "TV"                         => StrT // XXX ignore UndefT case
           case "BodyText" | "FlagText"      => StrT
           case "Contains"                   => BoolT
           case _                            => ValueTy(),

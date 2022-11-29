@@ -1,8 +1,8 @@
 def <INTERNAL>:BuiltinFunctionObject.Construct(
   F: BuiltinFunctionObject,
   argumentsList: List[ESValue],
-  newTarget: Constructor
-): Unknown {
+  newTarget: Constructor,
+): Normal[Object] | Abrupt[throw] {
   let callerContext = @EXECUTION_STACK[0]
   nop
   let calleeContext = (new ExecutionContext())

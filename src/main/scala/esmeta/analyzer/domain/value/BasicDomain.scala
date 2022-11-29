@@ -445,9 +445,10 @@ object BasicDomain extends value.Domain {
       case Many   => exploded("EIsArrayIndex")
 
     /** prune abstract values */
-    def pruneType(r: Elem, positive: Boolean): Elem = elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem = elem
     def pruneValue(r: Elem, positive: Boolean): Elem = elem
+    def pruneField(field: String, r: Elem, positive: Boolean): Elem = elem
+    def pruneType(r: Elem, positive: Boolean): Elem = elem
+    def pruneTypeCheck(r: Elem, positive: Boolean): Elem = elem
 
     /** completion helpers */
     def wrapCompletion: Elem = wrapCompletion("normal")
@@ -465,6 +466,11 @@ object BasicDomain extends value.Domain {
       if (!comp.isBottom) b ⊔= AT
       if (!pureValue.isBottom) b ⊔= AF
       apply(bool = b)
+    def normalCompletion: Elem =
+      if (pureValue.isBottom) Bot
+      else
+        val res = AbsComp.Result(pureValue, AbsPureValue(CONST_EMPTY))
+        Elem(comp = AbsComp(Map("normal" -> res)))
     def abruptCompletion: Elem = apply(comp = comp.removeNormal)
 
     /** absent helpers */

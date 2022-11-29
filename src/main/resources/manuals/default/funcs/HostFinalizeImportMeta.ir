@@ -1,3 +1,6 @@
-def HostFinalizeImportMeta(importMeta: Unknown, moduleRecord: Unknown): Unknown {
+def HostFinalizeImportMeta(
+  importMeta: Object,
+  moduleRecord: ModuleRecord,
+): Const[~unused~] {
   return ~unused~
 }

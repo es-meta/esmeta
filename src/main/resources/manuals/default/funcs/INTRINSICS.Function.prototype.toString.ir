@@ -1,4 +1,9 @@
-def <BUILTIN>:INTRINSICS.Function.prototype.toString(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
+def <BUILTIN>:INTRINSICS.Function.prototype.toString(
+  this: ESValue,
+  argumentsList: List[ESValue],
+  NewTarget: Object | Undefined,
+): Unknown {
+
   let func = this
 
   // 1. If Type(_func_) is Object and _func_ has a [[SourceText]] internal slot and _func_.[[SourceText]] is a sequence of Unicode code points and ! HostHasSourceTextAvailable(_func_) is *true*, then

@@ -73,7 +73,7 @@ class TypeSemantics(
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
     // construct local type environment
     (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
-      val argTy = arg.ty
+      val argTy = removeAbsentTy(arg.ty)
       val expected = param.ty.ty match
         case _: UnknownTy => arg
         case paramTy: ValueTy =>
@@ -88,6 +88,19 @@ class TypeSemantics(
       param.lhs -> expected
     }).toMap
   }
+
+  // remove absent types
+  private def removeAbsentTy(ty: ValueTy): ValueTy = ty.copy(
+    comp = CompTy(removeAbsentTy(ty.normal), ty.abrupt),
+    pureValue = removeAbsentTy(ty.pureValue),
+  )
+  private def removeAbsentTy(ty: PureValueTy): PureValueTy = ty match
+    case PureValueTopTy => PureValueTy.Top
+    case elem: PureValueElemTy =>
+      elem.copy(
+        list = elem.list.copy(elem.list.elem.map(removeAbsentTy)),
+        absent = false,
+      )
 
   // check loose subtyping relation for normal completions and named records
   private def isLooseSubTy(
@@ -122,7 +135,7 @@ class TypeSemantics(
   override def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
-    val givenTy = newRet.value.removeAbsent.ty
+    val givenTy = removeAbsentTy(newRet.value.ty)
     val expected = rp.func.retTy.ty match
       case _: UnknownTy        => newRet
       case expectedTy: ValueTy =>

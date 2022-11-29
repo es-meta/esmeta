@@ -144,9 +144,10 @@ trait Domain extends domain.Domain[AValue] {
     def isArrayIndex: Elem
 
     /** prune abstract values */
-    def pruneType(r: Elem, positive: Boolean): Elem
-    def pruneTypeCheck(tname: String, positive: Boolean): Elem
     def pruneValue(r: Elem, positive: Boolean): Elem
+    def pruneField(field: String, r: Elem, positive: Boolean): Elem
+    def pruneType(r: Elem, positive: Boolean): Elem
+    def pruneTypeCheck(r: Elem, positive: Boolean): Elem
 
     /** single check */
     def isSingle: Boolean = elem.getSingle match
@@ -160,6 +161,7 @@ trait Domain extends domain.Domain[AValue] {
     def wrapCompletion: Elem
     def unwrapCompletion: Elem
     def isCompletion: Elem
+    def normalCompletion: Elem
     def abruptCompletion: Elem
 
     /** absent helpers */

@@ -1,6 +1,6 @@
 def ToBigInt(
-  argument: Unknown,
-): Normal[BigInt] | Abrupt {
+  argument: ESValue,
+): Normal[BigInt] | Abrupt[throw] {
   call %0 = clo<ToPrimitive>(argument, ~number~)
   let prim = [? %0]
   if (= (typeof prim) @Undefined) return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined))) else {}

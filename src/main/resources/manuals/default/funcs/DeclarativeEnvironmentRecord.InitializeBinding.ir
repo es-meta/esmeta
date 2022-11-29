@@ -1,8 +1,8 @@
 def <CONC>:DeclarativeEnvironmentRecord.InitializeBinding(
   envRec: DeclarativeEnvironmentRecord,
   N: String,
-  V: ESValue
-): Unknown {
+  V: ESValue,
+): Normal[Const[~unused~]] {
   // Assert: _envRec_ must have an uninitialized binding for _N_.
   assert (= envRec.SubMap[N].initialized false)
 

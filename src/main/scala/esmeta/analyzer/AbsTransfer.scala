@@ -9,12 +9,13 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, *}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** abstract transfer function */
-class AbsTransfer(sem: AbsSemantics) extends Optimized {
+class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
 
   /** loading monads */
   import AbsState.monad.*
@@ -676,88 +677,4 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized {
         } yield v
     }
   } yield v
-
-  // ---------------------------------------------------------------------------
-  // helper function for pruning/refinement
-  // ---------------------------------------------------------------------------
-  /** prune condition */
-  def prune(
-    cond: Expr,
-    positive: Boolean,
-  )(using cp: NodePoint[_]): Updater = cond match {
-    case _ if !USE_REFINE   => st => st
-    case EUnary(UOp.Not, e) => prune(e, !positive)
-    case EBinary(BOp.Eq, ERef(ref: Local), target) =>
-      for {
-        rv <- transfer(ref)
-        tv <- transfer(target)
-        _ <- modify(pruneValue(rv, tv, positive))
-      } yield ()
-    case ETypeCheck(ERef(ref: Local), tyExpr) =>
-      for {
-        rv <- transfer(ref)
-        tv <- transfer(tyExpr)
-        _ <- tv.getSingle match
-          case One(Str(s))   => modify(pruneTypeCheck(rv, s, positive))
-          case One(Nt(n, _)) => modify(pruneTypeCheck(rv, n, positive))
-          case _             => pure(())
-      } yield ()
-
-    case EBinary(BOp.Eq, ETypeOf(ERef(ref: Local)), tyRef: ERef) =>
-      for {
-        rv <- transfer(ref)
-        tv <- transfer(tyRef)
-        _ <- modify(pruneType(rv, tv, positive))
-      } yield ()
-    case EBinary(BOp.Or, l, r) =>
-      st =>
-        lazy val ltst = prune(l, true)(st)
-        lazy val lfst = prune(l, false)(st)
-        val rst = prune(r, positive)(lfst)
-        if (positive) ltst ⊔ rst else lfst ⊓ rst
-    case EBinary(BOp.And, l, r) =>
-      st =>
-        lazy val ltst = prune(l, true)(st)
-        lazy val lfst = prune(l, false)(st)
-        val rst = prune(r, positive)(ltst)
-        if (positive) ltst ⊓ rst else lfst ⊔ rst
-    case _ => st => st
-  }
-
-  /** prune value */
-  def pruneValue(
-    l: AbsRefValue,
-    r: AbsValue,
-    positive: Boolean,
-  )(using cp: NodePoint[_]): Updater = for {
-    lv <- transfer(l)
-    st <- get
-    prunedV = lv.pruneValue(r, positive)
-    _ <- modify(_.update(l, prunedV))
-  } yield ()
-
-  /** prune type */
-  def pruneType(
-    l: AbsRefValue,
-    r: AbsValue,
-    positive: Boolean,
-  )(using cp: NodePoint[_]): Updater = for {
-    lv <- transfer(l)
-    st <- get
-    prunedV = lv.pruneType(r, positive)
-    _ <- modify(_.update(l, prunedV))
-  } yield ()
-
-  /** prune type check */
-  def pruneTypeCheck(
-    l: AbsRefValue,
-    tname: String,
-    positive: Boolean,
-  )(using cp: NodePoint[_]): Updater =
-    for {
-      lv <- transfer(l)
-      st <- get
-      prunedV = lv.pruneTypeCheck(tname, positive)
-      _ <- modify(_.update(l, prunedV))
-    } yield ()
 }

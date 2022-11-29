@@ -1,4 +1,8 @@
-def <BUILTIN>:INTRINSICS.print(this: Unknown, argumentsList: Unknown, NewTarget: Unknown): Unknown {
+def <BUILTIN>:INTRINSICS.print(
+  this: ESValue,
+  argumentsList: List[ESValue],
+  NewTarget: Object | Undefined,
+): Unknown {
   if (< 0 argumentsList.length) let x = (pop < argumentsList) else let x = absent
   print x
   return undefined

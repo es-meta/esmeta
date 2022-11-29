@@ -1,4 +1,6 @@
-def StringToBigInt(str: String): Unknown {
+def StringToBigInt(
+  str: String,
+): BigInt | Undefined {
   // IGNORE original algo
   return ([bigInt] str)
 }
