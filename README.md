@@ -68,7 +68,7 @@ $ cd esmeta && git submodule update --init && sbt assembly && source .completion
 If you see the following message, ESMeta is successfully installed:
 ```bash
 $ esmeta
-# Welcome to ESMeta v0.1.0-RC1 - ECMAScript Specification Metalanguage.
+# Welcome to ESMeta v0.1.0 - ECMAScript Specification Metalanguage.
 # Please type `esmeta help` to see the help message.
 ```
 
@@ -96,7 +96,9 @@ It supports the following commands:
 and global options:
 - `-silent` does not show final results.
 - `-error` shows error stack traces.
+- `-status` exits with status.
 - `-time` displays the duration time.
+- `-test262dir={string}` sets the directory of Test262 (default: `$ESMETA_HOME/tests/test262`).
 
 If you want to see the detailed help messages and command-specific options,
 please use the `help` command:
@@ -121,10 +123,10 @@ $ esmeta build-cfg
 # ========================================
 #  build-cfg phase
 # ----------------------------------------
-# 0: def <SYNTAX>:CallExpression[3,0].Evaluation(this: Unknown): Unknown {
+# 0: def <BUILTIN>:INTRINSICS.SyntaxError(...): Unknown {
 #   ...
 # }
-# 1: def <CONT>:AsyncGeneratorStart:cont0(): Unknown {
+# 1: def <INTERNAL>:BuiltinFunctionObject.Construct(...): Normal[Object] | Abrupt[throw] {
 #   ...
 # }
 # ...
@@ -181,8 +183,8 @@ $ esmeta test262-test
 # - harness                       :    96 tests are removed
 # ...
 # ----------------------------------------
-# - total: 31,920 available tests
-#   - normal: 31,920 tests
+# - total: 31,537 available tests
+#   - normal: 31,537 tests
 #   - error: 0 tests
 # ----------------------------------------
 # ...
@@ -304,18 +306,8 @@ $ esmeta tycheck
 # ========================================
 #  tycheck phase
 # ----------------------------------------
-# - 1779 functions are initial targets.
-# - 2360 functions are analyzed in 38704 iterations.
-# --------------------------------------------------------------------------------
-# ...
-# --------------------------------------------------------------------------------
-#    def <SYNTAX>:ThrowStatement[0,0].Evaluation(this: Ast:ThrowStatement[0,0]): Unknown
-# -> def <SYNTAX>:ThrowStatement[0,0].Evaluation(this: Ast:ThrowStatement[0,0]): Abrupt
-# ...
-# --------------------------------------------------------------------------------
-#    def ToBoolean(argument: Unknown): Unknown
-# -> def ToBoolean(argument: ESValue): Boolean
-# ...
+# - 1806 functions are initial targets.
+# - 2372 functions are analyzed in 32493 iterations.
 ```
 
 You can perform type analysis on other versions of ECMA-262 with the
@@ -329,9 +321,6 @@ $ esmeta tycheck -extract:target=origin/main
 $ esmeta tycheck -extract:target=2c78e6f
 ```
 
-In the future version of ESMeta, we plan to support a bug detector to detect
-type-related editorial bugs in ECMA-262 based on the type analysis results.
-
 
 ### Meta-Level Static Analyzer for ECMAScript
 
@@ -340,9 +329,8 @@ programs based on mechanized specifications extracted from ECMA-262. A
 mechanized specification is an interpreter that can parse and execute JavaScript
 programs. We introduced a way to indirectly analyze an ECMAScript/JavaScript
 program by analyzing its interpreter with a restriction with the given program.
-We call it _meta-level static analysis_ and will present this technique at
-[ESEC/FSE
-2022](https://2022.esec-fse.org/details/fse-2022-research-papers/19/Automatically-Deriving-JavaScript-Static-Analyzers-from-Specifications-using-Meta-Lev).
+We call it _meta-level static analysis_ and presented this technique at
+[ESEC/FSE 2022](https://dl.acm.org/doi/10.1145/3540250.3549097).
 
 If you want to analyze JavaScript program using a meta-level static analysis,
 please use the `analyze` command:
@@ -352,7 +340,7 @@ $ esmeta analyze example.js
 # ========================================
 #  analyze phase
 # ----------------------------------------
-# - 111 functions are analyzed in 1708 iterations.
+# - 108 functions are analyzed in 1688 iterations.
 ```
 
 ESMeta supports an interactive Read–eval–print loop (REPL) for the analysis with
@@ -367,12 +355,12 @@ $ esmeta analyze example.js -analyze:repl
 # - help                     Show help message.
 # ...
 #
-# [1] RunJobs[62]:Call[637] -> {
+# [1] RunJobs[42]:Call[339] -> {
 #   ...
 # }
 
 analyzer> continue
-# - Static analysis finished. (# iter: 1708)
+# - Static analysis finished. (# iter: 1688)
 
 analyzer> print -expr @REALM.GlobalObject.SubMap.f.Value.SubMap.name.Value
 # "f"
@@ -389,12 +377,10 @@ analyzer REPL.
 
 ### Publications
 
-- [ASE 2020] [JISET: JavaScript IR-based Semantics Extraction
-  Toolchain](https://doi.org/10.1145/3324884.3416632) [[old repo](https://github.com/kaist-plrg/jiset)]
-- [ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript
-  Engines](https://doi.org/10.1109/ICSE43902.2021.00015) [[old repo](https://github.com/kaist-plrg/jest)]
+- [ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632) [[old repo](https://github.com/kaist-plrg/jiset)]
+- [ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015) [[old repo](https://github.com/kaist-plrg/jest)]
 - [ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781) [[old repo](https://github.com/kaist-plrg/jstar)]
-- [ESEC/FSE 2022] Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis [[old repo](https://github.com/kaist-plrg/jsaver)]
+- [ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097) [[old repo](https://github.com/kaist-plrg/jsaver)]
 
 ### PLDI 2022 Tutorial
 

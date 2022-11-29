@@ -20,8 +20,6 @@
   "CreateArrayIterator",
   "CreateBuiltinFunction",
   "CreateUnmappedArgumentsObject",
-  "DeclarativeEnvironmentRecord.InitializeBinding",
-  "DeclarativeEnvironmentRecord.SetMutableBinding",
   "ECMAScriptFunctionObject.Construct",
   "FlattenIntoArray",
   "ForIn/OfBodyEvaluation",
