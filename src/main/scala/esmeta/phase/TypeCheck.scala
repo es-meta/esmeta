@@ -19,7 +19,10 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   ): AbsSemantics = TypeAnalyzer(
     cfg = cfg,
     target = config.target,
-    ignore = config.ignore,
+    ignore = config.ignore match
+      case None   => cfg.spec.manualInfo.tycheckIgnore
+      case ignore => ignore
+    ,
     log = config.log,
   )
 
