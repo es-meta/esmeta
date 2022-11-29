@@ -13,8 +13,7 @@ import esmeta.util.SystemUtils.*
 private class TypeAnalyzer(
   cfg: CFG,
   targets: List[Func],
-  ignorePath: Option[String],
-  ignoreSet: Set[String],
+  ignore: TypeAnalyzer.Ignore,
   log: Boolean = false,
   silent: Boolean = false,
 ) {
@@ -24,12 +23,13 @@ private class TypeAnalyzer(
     withSem(sem) {
       sem.fixpoint
       if (log) logging
-      var unusedSet = ignoreSet
-      val mismatches = sem.getMismatches.filter {
+      var unusedSet = ignore.names
+      val origMismatches = sem.getMismatches
+      val mismatches = origMismatches.filter {
         case mismatch =>
           val name = mismatch.name
           unusedSet -= name
-          !ignoreSet.contains(name)
+          !ignore.names.contains(name)
       }
       if (!mismatches.isEmpty || !unusedSet.isEmpty)
         val app = new Appender
@@ -43,13 +43,21 @@ private class TypeAnalyzer(
           app >> " names are not used to ignore mismatches."
         mismatches.toList.map(_.toString).sorted.map(app :> _)
         // show help message about how to use the ignorance system
-        ignorePath.map(path =>
-          app :> "=" * 80
-          app :> "To suppress this error message, "
-          app >> "add/remove the following names to `" >> path >> "`:"
-          mismatches.map(_.name).toList.sorted.map(app :> "  + " >> _)
-          unusedSet.toList.sorted.map(app :> "  - " >> _)
-          app :> "=" * 80,
+        ignore.filename.map(path =>
+          if (ignore.update)
+            dumpJson(
+              name = "algorithm names for the ignorance system",
+              data = origMismatches.map(_.name).toList.sorted,
+              filename = path,
+              noSpace = false,
+            )
+          else
+            app :> "=" * 80
+            app :> "To suppress this error message, "
+            app >> "add/remove the following names to `" >> path >> "`:"
+            mismatches.map(_.name).toList.sorted.map(app :> "  + " >> _)
+            unusedSet.toList.sorted.map(app :> "  - " >> _)
+            app :> "=" * 80,
         )
         throw TypeCheckFail(if (silent) None else Some(app.toString))
       sem
@@ -109,7 +117,7 @@ private class TypeAnalyzer(
     )
   }
 }
-object TypeAnalyzer:
+object TypeAnalyzer {
   // set type domains
   initDomain(
     stateDomain = state.TypeDomain,
@@ -127,20 +135,16 @@ object TypeAnalyzer:
   def apply(
     cfg: CFG,
     target: Option[String] = None,
-    ignore: Option[String] = None,
+    ignore: Ignore = Ignore(),
     log: Boolean = false,
     silent: Boolean = false,
   ): TypeSemantics =
     val targets = TypeAnalyzer.getInitTargets(cfg, target, silent)
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
-    val ignoreSet = optional {
-      readJson[Set[String]](ignore.get)
-    }.getOrElse(Set())
     new TypeAnalyzer(
       cfg,
       targets,
       ignore,
-      ignoreSet,
       log,
       silent,
     ).result
@@ -159,3 +163,17 @@ object TypeAnalyzer:
         warn(s"failed to find functions matched with the pattern `$pattern`.")
       funcs
     })
+
+  /** algorithm names used in ignoring type mismatches */
+  case class Ignore(
+    filename: Option[String] = None,
+    names: Set[String] = Set(),
+    update: Boolean = false,
+  )
+  object Ignore:
+    def apply(filename: String, update: Boolean): Ignore = Ignore(
+      filename = Some(filename),
+      names = optional { readJson[Set[String]](filename) }.getOrElse(Set()),
+      update = update,
+    )
+}

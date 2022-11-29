@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.analyzer.*
+import esmeta.analyzer.TypeAnalyzer.Ignore
 import esmeta.analyzer.domain
 import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
@@ -16,15 +17,17 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): AbsSemantics = TypeAnalyzer(
-    cfg = cfg,
-    target = config.target,
-    ignore = config.ignore match
-      case None   => cfg.spec.manualInfo.tycheckIgnore
-      case ignore => ignore
-    ,
-    log = config.log,
-  )
+  ): AbsSemantics =
+    val ignorePath = config.ignorePath match
+      case None => cfg.spec.manualInfo.tycheckIgnore
+      case path => path
+    val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
+    TypeAnalyzer(
+      cfg = cfg,
+      target = config.target,
+      ignore = ignore,
+      log = config.log,
+    )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -40,8 +43,13 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     ),
     (
       "ignore",
-      StrOption((c, s) => c.ignore = Some(s)),
+      StrOption((c, s) => c.ignorePath = Some(s)),
       "ignore type mismatches in algorithms listed in a given JSON file.",
+    ),
+    (
+      "update-ignore",
+      BoolOption(c => c.ignoreUpdate = true),
+      "update the given JSON file used in ignoring type mismatches.",
     ),
     (
       "log",
@@ -51,7 +59,8 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   )
   case class Config(
     var target: Option[String] = None,
-    var ignore: Option[String] = None,
+    var ignorePath: Option[String] = None,
+    var ignoreUpdate: Boolean = false,
     var log: Boolean = false,
   )
 }
