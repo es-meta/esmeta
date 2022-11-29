@@ -808,6 +808,7 @@ trait Parsers extends IndentParsers {
     exprCond |||
     instanceOfCond |||
     hasFieldCond |||
+    hasBindingCond |||
     productionCond |||
     predCond |||
     isAreCond |||
@@ -835,6 +836,15 @@ trait Parsers extends IndentParsers {
     ("has" ^^^ false ||| "does not have" ^^^ true) ~
     (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
+    }
+
+  // binding includsion conditions
+  lazy val hasBindingCond: PL[HasBindingCondition] =
+    // GeneratorValidate
+    (ref <~ opt("also")) ~
+    ("has" ^^^ false ||| "does not have" ^^^ true) ~
+    ("a binding for" ~> expr) ^^ {
+      case r ~ n ~ f => HasBindingCondition(r, n, f)
     }
 
   // production conditions
@@ -979,6 +989,19 @@ trait Parsers extends IndentParsers {
         CompoundConditionOperator.Or,
         IsAreCondition(List(getRefExpr(v1)), n, List(e)),
       )
+  } | {
+    ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
+  } ^^ {
+    case r ~ n =>
+      val ref = PropertyReference(r, FieldProperty("strict"))
+      IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
+  } | {
+    ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~
+    "initialized"
+  } ^^ {
+    case r ~ n =>
+      val ref = PropertyReference(r, FieldProperty("initialized"))
+      IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   }
 
   // ---------------------------------------------------------------------------
@@ -1050,15 +1073,20 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage properties
   // ---------------------------------------------------------------------------
-  given prop: PL[Property] = {
-    ("." ~> "[[" ~> word <~ "]]") ^^ { FieldProperty(_) } |||
-    ("." ~ "[[" ~> intr <~ "]]") ^^ { i => IntrinsicProperty(i) } |||
-    (("'s" | ".") ~> camel) ^^ { ComponentProperty(_) } |||
-    ("the" ~> component <~ opt("component") ~ "of") ^^ {
+  given prop: PL[Property] = preProp | postProp
+  lazy val preProp: PL[Property] = {
+    "the" ~> component <~ opt("component") ~ "of" ^^ {
       ComponentProperty(_)
     } |||
-    ("the" ~> nt <~ "of") ^^ { NonterminalProperty(_) } |||
-    ("[" ~> expr <~ "]") ^^ { IndexProperty(_) }
+    "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |||
+    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) }
+  }.named("lang.Property")
+
+  lazy val postProp: PL[Property] = {
+    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) } |||
+    "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
+    ("'s" | ".") ~> camel ^^ { ComponentProperty(_) } |||
+    "[" ~> expr <~ "]" ^^ { IndexProperty(_) }
   }.named("lang.Property")
 
   // TODO extract component name from spec.html

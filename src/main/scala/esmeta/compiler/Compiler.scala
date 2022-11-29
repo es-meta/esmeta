@@ -431,8 +431,10 @@ class Compiler(
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)       => Prop(baseRef, EStr(name))
-      case ComponentProperty(name)   => Prop(baseRef, EStr(name))
+      case FieldProperty(name)     => Prop(baseRef, EStr(name))
+      case ComponentProperty(name) => Prop(baseRef, EStr(name))
+      case BindingProperty(expr) =>
+        Prop(toStrRef(baseRef, "SubMap"), compile(fb, expr))
       case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Prop(baseRef, EStr(name))
@@ -734,6 +736,11 @@ class Compiler(
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
         val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
+        if (neg) e else not(e)
+      case HasBindingCondition(ref, neg, binding) =>
+        val e = isAbsent(
+          toERef(compile(fb, ref), EStr("SubMap"), compile(fb, binding)),
+        )
         if (neg) e else not(e)
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>

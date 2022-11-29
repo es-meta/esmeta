@@ -195,6 +195,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(neg); walkList(ty, walk)
     case HasFieldCondition(ref, neg, field) =>
       walk(ref); walk(neg); walk(field)
+    case HasBindingCondition(ref, neg, binding) =>
+      walk(ref); walk(neg); walk(binding)
     case ProductionCondition(nt, lhs, rhs) =>
       walk(nt);
     case PredicateCondition(expr, neg, op) =>
@@ -218,14 +220,27 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(op: PredicateConditionOperator): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
+    case x: Variable                => walk(x)
+    case RunningExecutionContext()  =>
+    case SecondExecutionContext()   =>
+    case CurrentRealmRecord()       =>
+    case ActiveFunctionObject()     =>
+    case propRef: PropertyReference => walk(propRef)
+  }
+
+  def walk(x: Variable): Unit = {}
+
+  def walk(propRef: PropertyReference): Unit = propRef match {
     case PropertyReference(base, prop) => walk(base); walk(prop)
-    case _                             =>
   }
 
   def walk(prop: Property): Unit = prop match {
+    case FieldProperty(n)        =>
+    case ComponentProperty(c)    =>
+    case BindingProperty(b)      => walk(b)
     case IndexProperty(e)        => walk(e)
     case IntrinsicProperty(intr) => walk(intr)
-    case _                       =>
+    case NonterminalProperty(n)  =>
   }
 
   def walk(intr: Intrinsic): Unit = {}

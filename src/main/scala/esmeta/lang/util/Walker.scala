@@ -232,6 +232,8 @@ trait Walker extends BasicWalker {
       InstanceOfCondition(walk(expr), walk(neg), walkList(ty, walk))
     case HasFieldCondition(ref, neg, field) =>
       HasFieldCondition(walk(ref), walk(neg), walk(field))
+    case HasBindingCondition(ref, neg, binding) =>
+      HasBindingCondition(walk(ref), walk(neg), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
     case PredicateCondition(expr, neg, op) =>
@@ -256,22 +258,26 @@ trait Walker extends BasicWalker {
 
   def walk(ref: Reference): Reference = ref match {
     case x: Variable                => walk(x)
+    case RunningExecutionContext()  => RunningExecutionContext()
+    case SecondExecutionContext()   => SecondExecutionContext()
+    case CurrentRealmRecord()       => CurrentRealmRecord()
+    case ActiveFunctionObject()     => ActiveFunctionObject()
     case propRef: PropertyReference => walk(propRef)
-    case _                          => ref
   }
+
+  def walk(x: Variable): Variable = Variable(x.name)
 
   def walk(propRef: PropertyReference): PropertyReference = propRef match {
     case PropertyReference(base, prop) =>
       PropertyReference(walk(base), walk(prop))
   }
 
-  def walk(x: Variable): Variable = Variable(x.name)
-
   def walk(prop: Property): Property = prop match {
     case FieldProperty(n)        => FieldProperty(n)
+    case ComponentProperty(c)    => ComponentProperty(c)
+    case BindingProperty(b)      => BindingProperty(walk(b))
     case IndexProperty(e)        => IndexProperty(walk(e))
     case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
-    case ComponentProperty(c)    => ComponentProperty(c)
     case NonterminalProperty(n)  => NonterminalProperty(n)
   }
 
