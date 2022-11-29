@@ -431,8 +431,10 @@ class Compiler(
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)       => Prop(baseRef, EStr(name))
-      case ComponentProperty(name)   => Prop(baseRef, EStr(name))
+      case FieldProperty(name)     => Prop(baseRef, EStr(name))
+      case ComponentProperty(name) => Prop(baseRef, EStr(name))
+      case BindingProperty(expr) =>
+        Prop(toStrRef(baseRef, "SubMap"), compile(fb, expr))
       case IndexProperty(index)      => Prop(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Prop(baseRef, EStr(name))

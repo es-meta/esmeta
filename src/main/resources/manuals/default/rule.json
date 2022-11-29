@@ -3,6 +3,7 @@
     "The execution context stack has at least two elements.": "(< 1 @EXECUTION_STACK.length)",
     "The execution context stack is empty.": "(= @EXECUTION_STACK.length 0)",
     "The execution context stack is not empty.": "(! (= @EXECUTION_STACK.length 0))",
+    "This is an attempt to change the value of an immutable binding.": "true",
     "When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.": "(&& (= prevContext @EXECUTION_STACK[0]) (! (= asyncContext @EXECUTION_STACK[0])))",
     "When we return here, _asyncContext_ has already been removed from the execution context stack and _runningContext_ is the currently running execution context.": "(&& (= runningContext @EXECUTION_STACK[0]) (! (= asyncContext @EXECUTION_STACK[0])))",
     "When we return here, _genContext_ has already been removed from the execution context stack and _callerContext_ is the currently running execution context.": "(&& (= callerContext @EXECUTION_STACK[0]) (! (= genContext @EXECUTION_STACK[0])))",
@@ -18,15 +19,18 @@
     "_calleeContext_ is now the running execution context.": "(= calleeContext @EXECUTION_STACK[0])",
     "_envRec_ does not already have a binding for _N_.": "(= envRec.SubMap[N] absent)",
     "_envRec_ has a binding for _N_.": "(! (= envRec.SubMap[N] absent))",
+    "_envRec_ must have an uninitialized binding for _N_.": "(= envRec.SubMap[N].initialized false)",
     "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(! (|| (= exponent 0.0f) (= exponent -0.0f)))",
     "_genContext_ is the execution context of a generator.": "(? genContext: \"ExecutionContext\")",
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized.": "(! (= realm.Intrinsics[\"%ThrowTypeError%\"] absent))",
     "_x_ and _y_ are both finite.": "(&& (! (|| (= x +INF) (= x -INF))) (! (|| (= y +INF) (= y -INF))))"
   },
   "inst": {
+    "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.SubMap[N].initialized = true",
     "Append the pair (a two element List) consisting of _nextKey_ and _desc_ to the end of _descriptors_.": "push descriptors < (new [nextKey, desc])",
     "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
     "Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.SubMap[N] = (new MutableBinding(\"initialized\" -> false))  if (= D true) envRec.SubMap[N].maybeDeleted = true else {} }",
+    "Create an immutable binding in _envRec_ for _N_ and record that it is uninitialized. If _S_ is *true*, record that the newly created binding is a strict binding.": "envRec.SubMap[N] = (new ImmutableBinding(\"initialized\" -> false, \"strict\" -> S))",
     "Create an own accessor property named _P_ of object _O_ whose [[Get]], [[Set]], [[Enumerable]], and [[Configurable]] attributes are set to the value of the corresponding field in _Desc_ if _Desc_ has that field, or to the attribute's <emu-xref href=\"#table-object-property-attributes\">default value</emu-xref> otherwise.": "{ let ap = (new PropertyDescriptor()) if (= Desc.Get absent) ap.Get = undefined else ap.Get = Desc.Get if (= Desc.Set absent) ap.Set = undefined else ap.Set = Desc.Set if (= Desc.Enumerable absent) ap.Enumerable = false else ap.Enumerable = Desc.Enumerable if (= Desc.Configurable absent) ap.Configurable = false else ap.Configurable = Desc.Configurable O.SubMap[P] = ap }",
     "Create an own data property named _P_ of object _O_ whose [[Value]], [[Writable]], [[Enumerable]], and [[Configurable]] attributes are set to the value of the corresponding field in _Desc_ if _Desc_ has that field, or to the attribute's <emu-xref href=\"#table-object-property-attributes\">default value</emu-xref> otherwise.": "{ let dp = (new PropertyDescriptor()) if (= Desc.Value absent) dp.Value = undefined else dp.Value = Desc.Value if (= Desc.Writable absent) dp.Writable = false else dp.Writable = Desc.Writable if (= Desc.Enumerable absent) dp.Enumerable = false else dp.Enumerable = Desc.Enumerable if (= Desc.Configurable absent) dp.Configurable = false else dp.Configurable = Desc.Configurable O.SubMap[P] = dp }",
     "Create any host-defined global object properties on _globalObj_.": "nop",
@@ -100,8 +104,10 @@
     "Return the result of performing a zero-filling right shift of _lnum_ by _shiftCount_ bits. Vacated bits are filled with zero. The mathematical value of the result is exactly representable as a 32-bit unsigned bit string.": "return ([number] (>>> ([math] lnum) shiftCount))",
     "Return the value currently bound to _N_ in _envRec_.": "return envRec.SubMap[N].BoundValue",
     "Set _obj_'s essential internal methods to the default ordinary object definitions specified in <emu-xref href=\"#sec-ordinary-object-internal-methods-and-internal-slots\"></emu-xref>.": "nop",
+    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.SubMap[N].BoundValue = V",
     "_op_ is `|`. Let _result_ be the result of applying the bitwise inclusive OR operation to _lbits_ and _rbits_.": "let result = (| lbits rbits)",
     "append each of its elements to _internalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
+    "change its bound value to _V_.": "envRec.SubMap[N].BoundValue = V",
     "remove that element from the _varNames_.": "remove-elem varNames N"
   }
 }

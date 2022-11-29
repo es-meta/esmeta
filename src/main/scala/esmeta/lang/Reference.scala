@@ -36,6 +36,9 @@ case class FieldProperty(name: String) extends Property
 // component property
 case class ComponentProperty(name: String) extends Property
 
+// binding property
+case class BindingProperty(binding: Expression) extends Property
+
 // index property
 case class IndexProperty(index: Expression) extends Property
 

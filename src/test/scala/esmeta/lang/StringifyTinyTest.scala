@@ -707,6 +707,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     lazy val fieldProp = FieldProperty("Value")
     lazy val componentProp = ComponentProperty("Realm")
+    lazy val bindingProp = BindingProperty(refExpr)
     lazy val indexProp = IndexProperty(refExpr)
     lazy val intrProp = IntrinsicProperty(intr)
     lazy val propIntrProp = IntrinsicProperty(propIntr)
@@ -715,6 +716,7 @@ class StringifyTinyTest extends LangTest {
     checkParseAndStringify("Property", Property)(
       fieldProp -> ".[[Value]]",
       componentProp -> ".Realm",
+      bindingProp -> "the binding for _x_ in",
       indexProp -> "[_x_]",
       intrProp -> ".[[%Array%]]",
       propIntrProp -> ".[[%Array.prototype.toString%]]",

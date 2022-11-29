@@ -665,10 +665,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // properties
   given propRule: Rule[Property] = (app, prop) =>
     prop match {
-      case FieldProperty(f)          => app >> ".[[" >> f >> "]]"
-      case ComponentProperty(name)   => app >> "." >> name
-      case IndexProperty(index)      => app >> "[" >> index >> "]"
-      case IntrinsicProperty(intr)   => app >> ".[[" >> intr >> "]]"
+      case FieldProperty(f)        => app >> ".[[" >> f >> "]]"
+      case ComponentProperty(name) => app >> "." >> name
+      case BindingProperty(expr)   => app >> "the binding for " >> expr >> " in"
+      case IndexProperty(index)    => app >> "[" >> index >> "]"
+      case IntrinsicProperty(intr) => app >> ".[[" >> intr >> "]]"
       case NonterminalProperty(name) => app >> "the |" >> name >> "| of"
     }
 
