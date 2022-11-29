@@ -735,6 +735,11 @@ class Compiler(
       case HasFieldCondition(ref, neg, field) =>
         val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
         if (neg) e else not(e)
+      case HasBindingCondition(ref, neg, binding) =>
+        val e = isAbsent(
+          toERef(compile(fb, ref), EStr("SubMap"), compile(fb, binding)),
+        )
+        if (neg) e else not(e)
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>
         val base = compile(fb, nt)

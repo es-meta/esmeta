@@ -543,6 +543,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         // TODO use a/an based on the fields
         app >> "a"
         app >> " " >> field >> " internal slot"
+      case HasBindingCondition(ref, neg, binding) =>
+        app >> ref >> hasStr(neg)
+        app >> "a binding for " >> binding
       case ProductionCondition(nt, lhs, rhs) =>
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs

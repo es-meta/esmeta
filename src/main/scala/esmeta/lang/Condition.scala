@@ -23,6 +23,13 @@ case class HasFieldCondition(
   field: Expression,
 ) extends Condition
 
+// binding inclusion conditions
+case class HasBindingCondition(
+  ref: Reference,
+  negation: Boolean,
+  binding: Expression,
+) extends Condition
+
 // production condition such as
 // `|Declartion| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
 // XXX use production literal?

@@ -808,6 +808,7 @@ trait Parsers extends IndentParsers {
     exprCond |||
     instanceOfCond |||
     hasFieldCond |||
+    hasBindingCond |||
     productionCond |||
     predCond |||
     isAreCond |||
@@ -835,6 +836,15 @@ trait Parsers extends IndentParsers {
     ("has" ^^^ false ||| "does not have" ^^^ true) ~
     (("an " | "a ") ~> expr <~ fieldStr) ^^ {
       case r ~ n ~ f => HasFieldCondition(r, n, f)
+    }
+
+  // binding includsion conditions
+  lazy val hasBindingCond: PL[HasBindingCondition] =
+    // GeneratorValidate
+    (ref <~ opt("also")) ~
+    ("has" ^^^ false ||| "does not have" ^^^ true) ~
+    ("a binding for" ~> expr) ^^ {
+      case r ~ n ~ f => HasBindingCondition(r, n, f)
     }
 
   // production conditions

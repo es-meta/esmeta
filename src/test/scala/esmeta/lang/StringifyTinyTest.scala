@@ -591,6 +591,8 @@ class StringifyTinyTest extends LangTest {
       InstanceOfCondition(refExpr, true, List(ty, ty))
     lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
     lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
+    lazy val hasBindingCond = HasBindingCondition(x, false, refExpr)
+    lazy val noHasBindingCond = HasBindingCondition(x, true, refExpr)
     lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
     lazy val finiteCond =
       PredicateCondition(refExpr, false, PredicateConditionOperator.Finite)
@@ -648,6 +650,8 @@ class StringifyTinyTest extends LangTest {
       neitherInstanceOfCond -> "_x_ is neither a Base nor a Base",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
+      hasBindingCond -> "_x_ has a binding for _x_",
+      noHasBindingCond -> "_x_ does not have a binding for _x_",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
       abruptCond -> "_x_ is an abrupt completion",

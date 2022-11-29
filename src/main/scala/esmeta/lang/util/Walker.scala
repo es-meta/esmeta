@@ -232,6 +232,8 @@ trait Walker extends BasicWalker {
       InstanceOfCondition(walk(expr), walk(neg), walkList(ty, walk))
     case HasFieldCondition(ref, neg, field) =>
       HasFieldCondition(walk(ref), walk(neg), walk(field))
+    case HasBindingCondition(ref, neg, binding) =>
+      HasBindingCondition(walk(ref), walk(neg), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
     case PredicateCondition(expr, neg, op) =>

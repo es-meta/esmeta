@@ -195,6 +195,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(neg); walkList(ty, walk)
     case HasFieldCondition(ref, neg, field) =>
       walk(ref); walk(neg); walk(field)
+    case HasBindingCondition(ref, neg, binding) =>
+      walk(ref); walk(neg); walk(binding)
     case ProductionCondition(nt, lhs, rhs) =>
       walk(nt);
     case PredicateCondition(expr, neg, op) =>
