@@ -133,15 +133,22 @@ trait Parsers extends IndentParsers {
 
   // for-each steps for integers
   lazy val forEachIntStep: PL[ForEachIntegerStep] =
-    lazy val ascending: Parser[Boolean] =
-      ("ascending" ^^^ true | "descending" ^^^ false)
+    lazy val interval: Parser[(Expression, Expression)] =
+      ("starting with" ~> expr) ~ ("such that" ~ variable ~> (
+        "≤" ^^^ { (x: CalcExpression) => x } |
+        "<" ^^^ { BinaryExpression(_, BinaryExpressionOperator.Sub, one) }
+      ) ~ calcExpr) ^^ {
+        case l ~ (f ~ h) => (l, f(h))
+      } | "such that" ~> calcExpr ~ ("≤" ~ variable ~ "≤" ~> calcExpr) ^^ {
+        case l ~ h => (l, h)
+      }
+    lazy val ascending: Parser[Boolean] = opt(
+      ", in" ~> ("ascending" ^^^ true | "descending" ^^^ false) <~ "order,",
+    ) ^^ { _.getOrElse(true) }
     ("for each" ~ "(non-negative )?integer".r ~> variable) ~
-    ("starting with" ~> expr) ~
-    ("such that" ~> cond) ~
-    (", in" ~> ascending <~ "order,") ~
-    (opt("do") ~> step) ^^ {
-      case x ~ start ~ cond ~ asc ~ body =>
-        ForEachIntegerStep(x, start, cond, asc, body)
+    interval ~ ascending ~ (opt("do") ~> step) ^^ {
+      case x ~ (low, high) ~ asc ~ body =>
+        ForEachIntegerStep(x, low, high, asc, body)
     }
 
   // for-each steps for array index property
@@ -1266,4 +1273,7 @@ trait Parsers extends IndentParsers {
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
   private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
+
+  // literal for mathematical one
+  private val one = DecimalMathValueLiteral(1)
 }

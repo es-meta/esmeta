@@ -34,8 +34,8 @@ case class ForEachStep(
 // for-each steps for integers
 case class ForEachIntegerStep(
   variable: Variable,
-  start: Expression,
-  cond: Condition,
+  low: Expression,
+  high: Expression,
   ascending: Boolean,
   body: Step,
 ) extends Step

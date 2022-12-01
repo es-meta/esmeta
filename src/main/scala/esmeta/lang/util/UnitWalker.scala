@@ -61,8 +61,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(cond)
     case ForEachStep(ty, elem, expr, ascending, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
-    case ForEachIntegerStep(x, start, cond, ascending, body) =>
-      walk(x); walk(start); walk(cond); walk(body)
+    case ForEachIntegerStep(x, low, high, ascending, body) =>
+      walk(x); walk(low); walk(high); walk(body)
     case ForEachArrayIndexStep(key, array, start, ascending, body) =>
       walk(key); walk(array); walk(start); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>

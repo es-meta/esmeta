@@ -139,7 +139,7 @@ class StringifyTinyTest extends StateTest {
       lex -> "|Identifier|(x)",
       nt -> "|Identifier|[TF]",
       Math(3.2) -> "3.2",
-      Number(3.2) -> "3.2f",
+      Number(3.2) -> "3.2",
       BigInt(324) -> "324n",
       Str("abc") -> "\"abc\"",
       Bool(true) -> "true",

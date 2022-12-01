@@ -1,5 +1,5 @@
 diff --git a/spec.html b/spec.html
-index 5a4af52..5d516a1 100644
+index 5a4af52..3753675 100644
 --- a/spec.html
 +++ b/spec.html
 @@ -7200,7 +7200,7 @@
@@ -110,6 +110,23 @@ index 5a4af52..5d516a1 100644
          1. [id="step-assignmentexpression-evaluation-lgcl-nullish-getvalue"] Let _lval_ be ? GetValue(_lref_).
          1. If _lval_ is neither *undefined* nor *null*, return _lval_.
          1. If IsAnonymousFunctionDefinition(|AssignmentExpression|) is *true* and IsIdentifierRef of |LeftHandSideExpression| is *true*, then
+@@ -33723,12 +33723,12 @@ THH:mm:ss.sss
+           1. Let _searchStr_ be ? ToString(_searchString_).
+           1. Let _numPos_ be ? ToNumber(_position_).
+           1. Assert: If _position_ is *undefined*, then _numPos_ is *NaN*.
+-          1. If _numPos_ is *NaN*, let _pos_ be +&infin;; otherwise, let _pos_ be ! ToIntegerOrInfinity(_numPos_).
++          1. If _numPos_ is *NaN*, let _pos_ be +∞; otherwise, let _pos_ be ! ToIntegerOrInfinity(_numPos_).
+           1. Let _len_ be the length of _S_.
+-          1. Let _start_ be the result of clamping _pos_ between 0 and _len_.
+-          1. If _searchStr_ is the empty String, return 𝔽(_start_).
+           1. Let _searchLen_ be the length of _searchStr_.
+-          1. For each non-negative integer _i_ starting with _start_ such that _i_ &le; _len_ - _searchLen_, in descending order, do
++          1. Let _start_ be the result of clamping _pos_ between 0 and _len_ - _searchLen_.
++          1. If _searchStr_ is the empty String, return 𝔽(_start_).
++          1. For each integer _i_ such that 0 ≤ _i_ ≤ _start_, in descending order, do
+             1. Let _candidate_ be the substring of _S_ from _i_ to _i_ + _searchLen_.
+             1. If _candidate_ is the same sequence of code units as _searchStr_, return 𝔽(_i_).
+           1. Return *-1*<sub>𝔽</sub>.
 @@ -34371,7 +34371,7 @@ THH:mm:ss.sss
                1. Let _resultString_ be the substring of _s_ from _position_ to _nextIndex_.
                1. Set _position_ to _nextIndex_.

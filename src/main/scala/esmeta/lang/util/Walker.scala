@@ -67,11 +67,11 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case ForEachIntegerStep(x, start, cond, ascending, body) =>
+    case ForEachIntegerStep(x, low, high, ascending, body) =>
       ForEachIntegerStep(
         walk(x),
-        walk(start),
-        walk(cond),
+        walk(low),
+        walk(high),
         ascending,
         walk(body),
       )
