@@ -259,13 +259,15 @@ class Compiler(
           },
         ),
       )
-    case ForEachIntegerStep(x, start, cond, ascending, body) =>
+    case ForEachIntegerStep(x, low, high, ascending, body) =>
+      val (start, end) = if (ascending) (low, high) else (high, low)
       val (i, iExpr) = compileWithExpr(x)
       fb.addInst(ILet(i, compile(fb, start)))
       fb.addInst(
         ILoop(
           "foreach-int",
-          compile(fb, cond),
+          if (ascending) not(lessThan(compile(fb, end), iExpr))
+          else not(lessThan(iExpr, compile(fb, end))),
           fb.newScope {
             compile(fb, body)
             val op = if (ascending) add(_, _) else sub(_, _)

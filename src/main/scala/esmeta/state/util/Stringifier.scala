@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.state.{*, given}
 import esmeta.ir.{Func => IRFunc, *, given}
 import esmeta.es.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
 /** stringifier for state elements */
@@ -152,7 +153,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // simple values
   given svRule: Rule[SimpleValue] = (app, sv) =>
     sv match
-      case Number(n)  => app >> n >> "f"
+      case Number(n)  => app >> toStringHelper(n)
       case BigInt(n)  => app >> n >> "n"
       case Str(str)   => app >> "\"" >> str >> "\""
       case Bool(bool) => app >> bool

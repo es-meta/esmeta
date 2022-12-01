@@ -106,9 +106,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (!ascending) app >> "in reverse List order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
-      case ForEachIntegerStep(x, start, cond, ascending, body) =>
-        app >> First("for each integer ") >> x >> " starting with " >> start
-        app >> " such that " >> cond >> ", in "
+      case ForEachIntegerStep(x, low, high, ascending, body) =>
+        app >> First("for each integer ") >> x >> " such that " >> low
+        app >> " ≤ " >> x >> " ≤ " >> high >> ", in "
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body

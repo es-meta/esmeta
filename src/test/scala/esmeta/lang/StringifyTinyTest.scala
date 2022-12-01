@@ -66,10 +66,20 @@ class StringifyTinyTest extends LangTest {
       ForEachStep(Some(ty), x, refExpr, false, letStep)
     lazy val forEachStepNoType =
       ForEachStep(None, x, refExpr, true, letStep)
-    lazy val forEachIntStepTrue =
-      ForEachIntegerStep(x, refExpr, exprCond, true, letStep)
-    lazy val forEachIntStepFalse =
-      ForEachIntegerStep(x, refExpr, exprCond, false, letStep)
+    lazy val forEachIntStepTrue = ForEachIntegerStep(
+      x,
+      DecimalMathValueLiteral(BigDecimal(2)),
+      DecimalMathValueLiteral(BigDecimal(5)),
+      true,
+      letStep,
+    )
+    lazy val forEachIntStepFalse = ForEachIntegerStep(
+      x,
+      DecimalMathValueLiteral(BigDecimal(2)),
+      DecimalMathValueLiteral(BigDecimal(5)),
+      false,
+      letStep,
+    )
     lazy val forEachArrayIndexStep =
       ForEachArrayIndexStep(x, x, refExpr, false, blockStep)
     lazy val throwStep = ThrowStep(errObj)
@@ -133,12 +143,12 @@ class StringifyTinyTest extends LangTest {
       forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
       forEachIntStepTrue -> (
-        "for each integer _x_ starting with _x_ such that _x_, " +
-        "in ascending order, let _x_ be _x_."
+        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in ascending order, " +
+        "let _x_ be _x_."
       ),
       forEachIntStepFalse -> (
-        "for each integer _x_ starting with _x_ such that _x_, " +
-        "in descending order, let _x_ be _x_."
+        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in descending order, " +
+        "let _x_ be _x_."
       ),
       toBlockStep(forEachArrayIndexStep) -> """
       |  1. For each own property key _x_ of _x_ that is an array index, whose numeric value is greater than or equal to _x_, in descending numeric index order, do
