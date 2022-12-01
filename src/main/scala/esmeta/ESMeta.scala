@@ -12,7 +12,7 @@ object ESMeta extends Git(BASE_DIR) {
     tokens.toList match
       case Nil                                        => println(welcome)
       case List("--version" | "-version" | "version") => println(VERSION)
-      case str :: args =>
+      case str :: args      =>
         cmdMap.get(str) match {
           case Some(cmd) => cmd(args)
           case None      => throw NoCmdError(str)

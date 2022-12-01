@@ -18,13 +18,13 @@ jobs:
       run: sbt basicTest
 
     - name: Report Status
+      if: failure()
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
         fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      if: always()
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -36,10 +36,10 @@ jobs:
       run: sbt formatCheck
 
     - name: Report Status
+      if: failure()
       uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
         fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      if: always()
