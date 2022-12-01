@@ -15,7 +15,7 @@ jobs:
     - name: Run e2e tests
       run: |
         sbt assembly
-        cd $ESMETA_HOME/client 
+        cd $ESMETA_HOME/client
         npm ci
         npx playwright install chromium --with-deps
         npx playwright test --project=chromium
@@ -25,3 +25,12 @@ jobs:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
+
+    - name: Report Status
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
