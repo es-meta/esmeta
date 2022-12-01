@@ -1,2 +1,4 @@
 let map = @REALM.GlobalObject.SubMap
 assert (= map.x.Value "20")
+assert (= map.y.Value "0.000001")
+assert (= map.z.Value "1")
