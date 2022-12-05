@@ -10,65 +10,68 @@ import io.circe.*, io.circe.syntax.*
 import java.io.*
 
 /** Test262 test filter */
-case class TestFilter(
-  spec: Spec,
-  tests: List[MetaData],
-  withYet: Boolean = false,
-) {
+case class TestFilter(spec: Spec) {
 
-  /** configuration summary for applicable tests */
-  lazy val summary = targetTests
-    .remove(
-      "longTest" -> (m => longTest.contains(removedExt(m.relName))),
-      "yet" -> (m => yets.contains(removedExt(m.relName))),
-    )
-    .summary
+  /** target tests and removed tests by each reason */
+  def apply(
+    tests: List[Test],
+    withYet: Boolean = false,
+    features: List[String] = languageFeatures,
+  ): (List[Test], Map[String, List[Test]]) = {
+    val filters = getFilters(withYet, features)
+    var removedMap: Map[String, List[Test]] = Map()
+    val targetTests = filters.foldLeft(tests) {
+      case (tests, (desc, filter)) =>
+        val result = tests.groupBy(filter)
+        val removed = result.getOrElse(true, Nil)
+        val removedCount = removed.length
+        if (removedCount > 0)
+          println(f"- $desc%-30s: $removedCount%,5d tests are removed")
+        removedMap += desc -> removed
+        result.getOrElse(false, Nil)
+    }
+    (targetTests, removedMap.toMap)
+  }
 
-  /** configuration summary for long tests */
-  lazy val longSummary = targetTests
-    .remove(
-      "non longTest" -> (m => !longTest.contains(removedExt(m.relName))),
-    )
-    .summary
-
-  /** target Test262 tests */
-  lazy val targetTests = getTests(features = languageFeatures)
-
-  /** a getter of tests for given language features */
-  def getTests(features: List[String] = Nil): List[MetaData] = tests.remove(
+  private def getFilters(
+    withYet: Boolean,
+    features: List[String],
+  ): List[(String, Test => Boolean)] = List(
     "harness" -> (_.relName.startsWith("harness")),
     "internationalisation" -> (_.relName.startsWith("intl")),
-    "annex" -> (m =>
-      m.relName.startsWith("annex") ||
-      m.relName.contains("__proto__"),
+    "annex" -> (test =>
+      test.relName.startsWith("annex") ||
+      test.relName.contains("__proto__"),
     ),
-    "in-progress features" -> (m =>
-      !m.features.forall(features.contains(_)) ||
-      manualInprogress.contains(removedExt(m.relName)),
+    "in-progress-features" -> (test =>
+      !test.features.forall(features.contains(_)) ||
+      manualInprogress.contains(removedExt(test.relName)),
     ),
-    "non-strict" -> (m =>
-      m.flags.contains("noStrict") ||
-      m.flags.contains("raw") ||
-      manualNonstrict.contains(removedExt(m.relName)),
+    "non-strict" -> (test =>
+      test.flags.contains("noStrict") ||
+      test.flags.contains("raw") ||
+      manualNonstrict.contains(removedExt(test.relName)),
     ),
-    "module" -> (m =>
-      m.flags.contains("module") ||
-      m.relName.startsWith("language/module-code/") ||
-      m.relName.startsWith("language/import/") ||
-      m.relName.startsWith("language/expressions/dynamic-import/") ||
-      m.relName.startsWith("language/expressions/import.meta/"),
+    "module" -> (test =>
+      test.flags.contains("module") ||
+      test.relName.startsWith("language/module-code/") ||
+      test.relName.startsWith("language/import/") ||
+      test.relName.startsWith("language/expressions/dynamic-import/") ||
+      test.relName.startsWith("language/expressions/import.meta/"),
     ),
-    "early errors" -> (m =>
-      !m.negative.isEmpty ||
-      manualEarlyError.contains(removedExt(m.relName)),
+    "negative-errors" -> (test =>
+      test.negative.isDefined ||
+      manualEarlyError.contains(removedExt(test.relName)),
     ),
-    "inessential built-in objects" -> (m =>
-      m.flags.contains("CanBlockIsFalse") ||
-      m.flags.contains("CanBlockIsTrue") ||
-      !m.locales.isEmpty,
+    "inessential-builtin-objects" -> (test =>
+      test.flags.contains("CanBlockIsFalse") ||
+      test.flags.contains("CanBlockIsTrue") ||
+      !test.locales.isEmpty,
     ),
-    "non tests" -> (m => manualNonTest.contains(removedExt(m.relName))),
-    "wrong tests" -> (m => wrongTest.contains(removedExt(m.relName))),
+    "non-tests" -> (test => manualNonTest.contains(removedExt(test.relName))),
+    "wrong-tests" -> (test => wrongTest.contains(removedExt(test.relName))),
+    "longTest" -> (test => longTest.contains(removedExt(test.relName))),
+    "yet" -> (test => !withYet && yets.contains(removedExt(test.relName))),
   )
 
   lazy val manualConfig = spec.manualInfo.test262
@@ -107,11 +110,5 @@ case class TestFilter(
 
   /** manually filtered out not yet supported tests */
   lazy val yets =
-    if (withYet) Set()
-    else manualConfig.filtered.getOrElse("yet tests", Nil).toSet
+    manualConfig.filtered.getOrElse("yet tests", Nil).toSet
 }
-
-/** helper of Test262 test filter */
-object TestFilter:
-  def fromDir(spec: Spec, dirname: String): TestFilter =
-    apply(spec, MetaData.fromDir(dirname))
