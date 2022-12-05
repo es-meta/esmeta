@@ -227,6 +227,7 @@ case class Test262(
       mkdir(logDir)
       dumpFile(spec.versionString, s"$logDir/ecma262-version")
       dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
+      logRemovedInfo(logDir, removed)
       summary.timeouts.setPath(s"$logDir/timeout.log")
       summary.yets.setPath(s"$logDir/yet.log")
       summary.fails.setPath(s"$logDir/fail.log")
@@ -250,4 +251,29 @@ case class Test262(
              s"$summary$LINE_SEP$postSummary$LINE_SEP")
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
 }
+
+def logRemovedInfo(logDir: String, removed: Map[String, List[Test]]) = {
+  removed.foreach { (desc, tests) =>
+    // maybe this is too fragile against desc name change? Should use Constant?
+    if (desc == "in-progress-features")
+      // map from a feature to lists of tests that have the feature
+      var featureMap: Map[String, List[String]] = Map().withDefaultValue(List())
+      for {
+        test <- tests
+        feature <- test.features
+      }
+        featureMap += feature -> (test.relName :: featureMap(feature))
+      val filesByFeature =
+        featureMap.toSeq
+          .sortBy(-_._2.length)
+          .map((feature, relnames) =>
+            s"$feature: ${relnames.length}$LINE_SEP- ${relnames
+              .mkString(s"$LINE_SEP- ")}",
+          )
+          .mkString(LINE_SEP)
+      dumpFile(filesByFeature, s"$logDir/$desc")
+    else dumpFile(tests.map(_.relName).mkString(LINE_SEP), s"$logDir/$desc")
+  }
+}
+
 object Test262 extends Git(TEST262_DIR)
