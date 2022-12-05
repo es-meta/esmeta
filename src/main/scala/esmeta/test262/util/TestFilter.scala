@@ -17,32 +17,22 @@ case class TestFilter(
 ) {
 
   /** configuration summary for applicable tests */
-  lazy val summary = targetTests
-    .remove(
-      "longTest" -> (m => longTest.contains(removedExt(m.relName))),
-      "yet" -> (m => yets.contains(removedExt(m.relName))),
-    )
-    .summary
-
-  /** configuration summary for long tests */
-  lazy val longSummary = targetTests
-    .remove(
-      "non longTest" -> (m => !longTest.contains(removedExt(m.relName))),
-    )
-    .summary
+  lazy val summary = targetTests.summary
 
   /** target Test262 tests */
-  lazy val targetTests = getTests(features = languageFeatures)
+  lazy val (targetTests, removedTests) = getTests(features = languageFeatures)
 
   /** a getter of tests for given language features */
-  def getTests(features: List[String] = Nil): List[MetaData] = tests.remove(
+  def getTests(
+    features: List[String] = Nil,
+  ): (List[MetaData], Map[String, List[MetaData]]) = tests.remove(
     "harness" -> (_.relName.startsWith("harness")),
     "internationalisation" -> (_.relName.startsWith("intl")),
     "annex" -> (m =>
       m.relName.startsWith("annex") ||
       m.relName.contains("__proto__"),
     ),
-    "in-progress features" -> (m =>
+    "in-progress-features" -> (m =>
       !m.features.forall(features.contains(_)) ||
       manualInprogress.contains(removedExt(m.relName)),
     ),
@@ -58,17 +48,19 @@ case class TestFilter(
       m.relName.startsWith("language/expressions/dynamic-import/") ||
       m.relName.startsWith("language/expressions/import.meta/"),
     ),
-    "early errors" -> (m =>
+    "early-errors" -> (m =>
       !m.negative.isEmpty ||
       manualEarlyError.contains(removedExt(m.relName)),
     ),
-    "inessential built-in objects" -> (m =>
+    "inessential-builtin-objects" -> (m =>
       m.flags.contains("CanBlockIsFalse") ||
       m.flags.contains("CanBlockIsTrue") ||
       !m.locales.isEmpty,
     ),
-    "non tests" -> (m => manualNonTest.contains(removedExt(m.relName))),
-    "wrong tests" -> (m => wrongTest.contains(removedExt(m.relName))),
+    "non-tests" -> (m => manualNonTest.contains(removedExt(m.relName))),
+    "wrong-tests" -> (m => wrongTest.contains(removedExt(m.relName))),
+    "longTest" -> (m => longTest.contains(removedExt(m.relName))),
+    "yet" -> (m => yets.contains(removedExt(m.relName))),
   )
 
   lazy val manualConfig = spec.manualInfo.test262

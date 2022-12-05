@@ -149,19 +149,31 @@ given Ordering[MetaData] = Ordering.by(_.path)
 /** extensions for list of metadata */
 extension (data: List[MetaData]) {
 
-  /** remove metadata using a filter */
-  def remove(pairs: (String, MetaData => Boolean)*): List[MetaData] =
-    pairs.foldLeft(data) {
-      case (data, (desc, f)) =>
-        val (filtered, removed) = data.foldLeft(List[MetaData](), 0) {
-          case ((l, count), meta) =>
-            if (f(meta)) (l, count + 1)
-            else (meta :: l, count)
-        }
-        if (removed > 0)
-          println(f"- $desc%-30s: $removed%,5d tests are removed")
-        filtered.reverse
-    }
+  /** Remove metadata using filters. It returns tuple, first element being list
+    * after removal, second element being map with key of a feature and value of
+    * list being removed by the feature.
+    */
+  def remove(
+    pairs: (String, MetaData => Boolean)*,
+  ): (List[MetaData], Map[String, List[MetaData]]) =
+    val removedMap = scala.collection.mutable.Map[String, List[MetaData]]()
+    (
+      pairs.foldLeft(data) {
+        case (data, (desc, f)) =>
+          val (filtered, removed) = data.foldLeft(List[MetaData](), 0) {
+            case ((l, count), meta) =>
+              if (f(meta)) then
+                removedMap(desc) =
+                  meta :: removedMap.getOrElse(desc, List[MetaData]())
+                (l, count + 1)
+              else (meta :: l, count)
+          }
+          if (removed > 0)
+            println(f"- $desc%-30s: $removed%,5d tests are removed")
+          filtered.reverse
+      },
+      removedMap.map((k, v) => (k, v.reverse)).toMap,
+    )
 
   /** get the summary */
   def summary: ConfigSummary =

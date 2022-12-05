@@ -72,24 +72,29 @@ case class Test262(
     dataList: List[MetaData],
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
-  ): ProgressBar[NormalConfig] = ProgressBar(
-    msg = s"Run Test262 $name tests",
-    iterable = TestFilter(cfg.spec, dataList, withYet).summary.normal,
-    getName = (test, _) =>
-      val name = test.name
-      val absPath = getAbsPath(name)
-      if (absPath.startsWith(TEST262_TEST_DIR))
-        absPath.drop(TEST262_TEST_DIR.length + 1)
-      else name
-    ,
-    errorHandler = (e, summary, name) =>
-      if (useErrorHandler) e match
-        case NotSupported(msg)   => summary.yets += s"$name - $msg"
-        case _: TimeoutException => summary.timeouts += name
-        case e: Throwable        => summary.fails += s"$name - ${e.getMessage}"
-      else throw e,
-    verbose = useProgress,
-  )
+  ): (ProgressBar[NormalConfig], Map[String, List[MetaData]]) =
+    val testFilter = TestFilter(cfg.spec, dataList, withYet)
+    (
+      ProgressBar(
+        msg = s"Run Test262 $name tests",
+        iterable = testFilter.summary.normal,
+        getName = (test, _) =>
+          val name = test.name
+          val absPath = getAbsPath(name)
+          if (absPath.startsWith(TEST262_TEST_DIR))
+            absPath.drop(TEST262_TEST_DIR.length + 1)
+          else name
+        ,
+        errorHandler = (e, summary, name) =>
+          if (useErrorHandler) e match
+            case NotSupported(msg)   => summary.yets += s"$name - $msg"
+            case _: TimeoutException => summary.timeouts += name
+            case e: Throwable => summary.fails += s"$name - ${e.getMessage}"
+          else throw e,
+        verbose = useProgress,
+      ),
+      testFilter.removedTests,
+    )
 
   /** interpreter test */
   def evalTest(
@@ -106,7 +111,7 @@ case class Test262(
     val multiple = dataList.length > 1
 
     // get all applicable tests with progress bar
-    val tests = getTests(
+    val (tests, filtered) = getTests(
       name = "eval",
       dataList = dataList,
       useProgress = useProgress,
@@ -124,6 +129,7 @@ case class Test262(
     logForTests(
       name = "eval",
       tests = tests,
+      filtered = filtered,
       postSummary = if (useCoverage) cov.toString else "",
       log = log && multiple,
     )(
@@ -154,7 +160,7 @@ case class Test262(
     val dataList: List[MetaData] = getDataList(paths.toList)
 
     // get all applicable tests with progress bar
-    val tests = getTests(
+    val (tests, filtered) = getTests(
       name = "parse",
       dataList = dataList,
       useProgress = useProgress,
@@ -164,6 +170,7 @@ case class Test262(
     logForTests(
       name = "parse",
       tests = tests,
+      filtered = filtered,
       log = log,
     )(
       // check parsing result with its corresponding code
@@ -209,6 +216,7 @@ case class Test262(
   private def logForTests(
     name: String,
     tests: ProgressBar[NormalConfig],
+    filtered: Map[String, List[MetaData]],
     postSummary: => String = "",
     log: Boolean = false,
   )(
@@ -235,9 +243,16 @@ case class Test262(
     // logging after tests
     if (log)
       summary.close
+      val filtered_total = filtered.foldLeft(0)(_ + _._2.length)
       val summaryStr =
-        if (postSummary.isEmpty) s"$summary"
-        else s"$summary$LINE_SEP$postSummary"
+        s"- total: ${summary.total + filtered_total}$LINE_SEP" +
+        s"- filtered: ${filtered_total}$LINE_SEP" +
+        filtered.foldLeft("") {
+          case (acc, (s, i)) => acc + s"  - $s: ${i.length}$LINE_SEP"
+        }
+        + (if (postSummary.isEmpty) s"$summary$LINE_SEP"
+           else
+             s"$summary$LINE_SEP$postSummary$LINE_SEP")
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
 }
 object Test262 extends Git(TEST262_DIR)
