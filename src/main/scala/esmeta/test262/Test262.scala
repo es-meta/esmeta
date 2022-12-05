@@ -27,14 +27,14 @@ case class Test262(
     () => parseFile(filename).flattenStmt,
   )
 
+  /** test262 filter */
+  lazy val testFilter: TestFilter = TestFilter(cfg.spec)
+
   /** all Test262 tests */
-  lazy val allTests: List[MetaData] = MetaData.fromDir(TEST262_TEST_DIR)
+  lazy val allTests: List[Test] = Test.fromDir(TEST262_TEST_DIR)
 
   /** test262 test configuration */
-  lazy val allTestFilter: TestFilter = TestFilter(cfg.spec, allTests, withYet)
-
-  /** configuration summary for applicable tests */
-  lazy val config: ConfigSummary = allTestFilter.summary
+  lazy val (allTargetTests, allRemoved) = testFilter(allTests, withYet)
 
   /** basic harness files */
   lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
@@ -44,7 +44,7 @@ case class Test262(
 
   /** load test262 */
   def loadTest(filename: String): Ast =
-    loadTest(filename, MetaData(filename).includes)
+    loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
   def loadTest(filename: String, includes: List[String]): Ast =
@@ -55,46 +55,35 @@ case class Test262(
     val stmts = flattenStmt(parseFile(filename))
     mergeStmt(harnessStmts ++ stmts)
 
-  /** get data list */
-  def getDataList(
+  /** get tests */
+  def getTests(
     paths: List[String] = Nil,
     log: Boolean = false,
-  ): List[MetaData] =
-    if (log) println("- Extracting metadata of Test262 tests...")
-    MetaData.fromDirs(paths match
+  ): List[Test] =
+    if (log) println("- Extracting tests of Test262 tests...")
+    Test.fromDirs(paths match
       case Nil   => List(TEST262_TEST_DIR)
       case paths => paths,
     )
 
   /** get tests */
-  def getTests(
+  def getProgressBar(
     name: String,
-    dataList: List[MetaData],
+    targetTests: List[Test],
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
-  ): (ProgressBar[NormalConfig], Map[String, List[MetaData]]) =
-    val testFilter = TestFilter(cfg.spec, dataList, withYet)
-    (
-      ProgressBar(
-        msg = s"Run Test262 $name tests",
-        iterable = testFilter.summary.normal,
-        getName = (test, _) =>
-          val name = test.name
-          val absPath = getAbsPath(name)
-          if (absPath.startsWith(TEST262_TEST_DIR))
-            absPath.drop(TEST262_TEST_DIR.length + 1)
-          else name
-        ,
-        errorHandler = (e, summary, name) =>
-          if (useErrorHandler) e match
-            case NotSupported(msg)   => summary.yets += s"$name - $msg"
-            case _: TimeoutException => summary.timeouts += name
-            case e: Throwable => summary.fails += s"$name - ${e.getMessage}"
-          else throw e,
-        verbose = useProgress,
-      ),
-      testFilter.removedTests,
-    )
+  ): ProgressBar[Test] = ProgressBar(
+    msg = s"Run Test262 $name tests",
+    iterable = targetTests,
+    getName = (test, _) => test.relName,
+    errorHandler = (e, summary, name) =>
+      if (useErrorHandler) e match
+        case NotSupported(msg)   => summary.yets += s"$name - $msg"
+        case _: TimeoutException => summary.timeouts += name
+        case e: Throwable        => summary.fails += s"$name - ${e.getMessage}"
+      else throw e,
+    verbose = useProgress,
+  )
 
   /** interpreter test */
   def evalTest(
@@ -104,16 +93,19 @@ case class Test262(
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
   ): Summary = {
-    // get metadata list
-    val dataList: List[MetaData] = getDataList(paths.toList)
+    // extract tests from paths
+    val tests: List[Test] = getTests(paths.toList)
 
     // use error handler for multiple targets
-    val multiple = dataList.length > 1
+    val multiple = tests.length > 1
 
-    // get all applicable tests with progress bar
-    val (tests, filtered) = getTests(
+    // get target tests and removed tests
+    val (targetTests, removed) = testFilter(tests, withYet)
+
+    // get progress bar for extracted tests
+    val progressBar = getProgressBar(
       name = "eval",
-      dataList = dataList,
+      targetTests = targetTests,
       useProgress = useProgress,
       useErrorHandler = multiple,
     )
@@ -128,14 +120,14 @@ case class Test262(
     // run tests with logging
     logForTests(
       name = "eval",
-      tests = tests,
-      filtered = filtered,
+      progressBar = progressBar,
+      removed = removed,
       postSummary = if (useCoverage) cov.toString else "",
       log = log && multiple,
     )(
       // check final execution status of each Test262 test
       check = test =>
-        val filename = test.name
+        val filename = test.path
         val st =
           if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
           else cov.run(filename)
@@ -146,7 +138,7 @@ case class Test262(
       logDir => if (useCoverage) cov.dumpTo(logDir),
     )
 
-    tests.summary
+    progressBar.summary
   }
 
   /** parse test */
@@ -156,32 +148,35 @@ case class Test262(
     useProgress: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
   ): Summary = {
-    // get metadata list
-    val dataList: List[MetaData] = getDataList(paths.toList)
+    // extract tests from paths
+    val tests: List[Test] = getTests(paths.toList)
 
-    // get all applicable tests with progress bar
-    val (tests, filtered) = getTests(
+    // get target tests and removed tests
+    val (targetTests, removed) = testFilter(tests, withYet)
+
+    // get progress bar for extracted tests
+    val progressBar = getProgressBar(
       name = "parse",
-      dataList = dataList,
+      targetTests = targetTests,
       useProgress = useProgress,
     )
 
     // run tests with logging
     logForTests(
       name = "parse",
-      tests = tests,
-      filtered = filtered,
+      progressBar = progressBar,
+      removed = removed,
       log = log,
     )(
       // check parsing result with its corresponding code
       check = test =>
-        val filename = test.name
+        val filename = test.path
         val ast = parseFile(filename)
         val newAst = parse(ast.toString(grammar = Some(cfg.grammar)))
         if (ast != newAst) throw UnexpectedParseResult,
     )
 
-    tests.summary
+    progressBar.summary
   }
 
   // ---------------------------------------------------------------------------
@@ -215,15 +210,15 @@ case class Test262(
   // logging mode for tests
   private def logForTests(
     name: String,
-    tests: ProgressBar[NormalConfig],
-    filtered: Map[String, List[MetaData]],
+    progressBar: ProgressBar[Test],
+    removed: Map[String, List[Test]],
     postSummary: => String = "",
     log: Boolean = false,
   )(
-    check: NormalConfig => Unit,
+    check: Test => Unit,
     postJob: String => Unit = _ => {},
   ): Unit =
-    val summary = tests.summary
+    val summary: Summary = progressBar.summary
     val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
 
     // setting for logging
@@ -238,16 +233,16 @@ case class Test262(
       summary.passes.setPath(s"$logDir/pass.log")
 
     // run tests
-    for (test <- tests) check(test)
+    for (test <- progressBar) check(test)
 
     // logging after tests
     if (log)
       summary.close
-      val filtered_total = filtered.foldLeft(0)(_ + _._2.length)
+      val removed_total = removed.foldLeft(0)(_ + _._2.length)
       val summaryStr =
-        s"- total: ${summary.total + filtered_total}$LINE_SEP" +
-        s"- filtered: ${filtered_total}$LINE_SEP" +
-        filtered.foldLeft("") {
+        s"- total: ${summary.total + removed_total}$LINE_SEP" +
+        s"- removed: ${removed_total}$LINE_SEP" +
+        removed.foldLeft("") {
           case (acc, (s, i)) => acc + s"  - $s: ${i.length}$LINE_SEP"
         }
         + (if (postSummary.isEmpty) s"$summary$LINE_SEP"
