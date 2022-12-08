@@ -501,7 +501,8 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    (opt("the") ~> "*this* value" | "this Parse Node") ^^! ThisLiteral() |||
+    opt("the") ~> "*this* value" ^^! ThisLiteral() |||
+    "this" ~ ("Parse Node" | ntLiteral) ^^! ThisLiteral() |||
     "NewTarget" ^^! NewTargetLiteral() |||
     hexLiteral |||
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |||
@@ -554,7 +555,7 @@ trait Parsers extends IndentParsers {
   lazy val ntLiteral: PL[NonterminalLiteral] =
     lazy val flags: P[List[String]] =
       "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
-    opt("the grammar symbol" | "the" | "this") ~> opt(ordinal) ~
+    opt("the grammar symbol" | "the") ~> opt(ordinal) ~
     ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
       case ord ~ x ~ fs => NonterminalLiteral(ord, x, fs)
     }
