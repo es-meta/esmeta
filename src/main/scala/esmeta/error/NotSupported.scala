@@ -1,6 +1,6 @@
 package esmeta.error
 
-// not supported errors
+/** not supported errors */
 case class NotSupported(reasons: NotSupported.ReasonPath)
   extends ESMetaError(s"${reasons.mkString("/")}", "NotSupported")
 object NotSupported:

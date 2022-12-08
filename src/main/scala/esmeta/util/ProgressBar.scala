@@ -12,7 +12,7 @@ case class ProgressBar[T](
   iterable: Iterable[T],
   getName: (T, Int) => String = (_: T, idx) => s"${idx.toOrdinal} element",
   errorHandler: (Throwable, Summary, String) => Unit = (_, summary, name) =>
-    summary.fails.add(name),
+    summary.fail.add(name),
   timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
 ) extends Iterable[T] {
@@ -21,7 +21,7 @@ case class ProgressBar[T](
 
   // postfix for summary
   def postfix = (
-    if (summary.total == summary.pass) ""
+    if (summary.total == summary.pass_count) ""
     else s" - ${summary.simpleString}"
   ) + s" [${summary.time.simpleString}]"
 
@@ -62,7 +62,7 @@ case class ProgressBar[T](
       val name = getName(x, idx)
       getError {
         f(x)
-        summary.passes.add(name)
+        summary.pass.add(name)
       }.map(errorHandler(_, summary, name))
       gcount += 1
 

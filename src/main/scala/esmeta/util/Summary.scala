@@ -12,47 +12,48 @@ class Summary {
   import Summary.*
 
   /** not yet supported */
-  val yets: Elem = Elem()
-  def yet: Int = yets.size
+  val notsupported: Elem = Elem()
+  def notsupported_count: Int = notsupported.size
 
   /** timeout */
-  val timeouts: Elem = Elem()
-  def timeout: Int = timeouts.size
+  val timeout: Elem = Elem()
+  def timeout_count: Int = timeout.size
 
   /** fail */
-  val fails: Elem = Elem()
-  def fail: Int = fails.size
+  val fail: Elem = Elem()
+  def fail_count: Int = fail.size
 
   /** pass */
-  val passes: Elem = Elem()
-  def pass: Int = passes.size
+  val pass: Elem = Elem()
+  def pass_count: Int = pass.size
 
   /** dump results */
   def dumpTo(baseDir: String): Unit =
-    if (!yets.isEmpty) yets.dumpTo("yet", s"$baseDir/yets.json")
-    if (!timeouts.isEmpty) timeouts.dumpTo("timeout", s"$baseDir/timeouts.json")
-    if (!fails.isEmpty) fails.dumpTo("fail", s"$baseDir/fails.json")
-    if (!passes.isEmpty) passes.dumpTo("pass", s"$baseDir/passes.json")
+    if (!notsupported.isEmpty)
+      notsupported.dumpTo("notsupported", s"$baseDir/notsupported.json")
+    if (!timeout.isEmpty) timeout.dumpTo("timeout", s"$baseDir/timeout.json")
+    if (!fail.isEmpty) fail.dumpTo("fail", s"$baseDir/fail.json")
+    if (!pass.isEmpty) pass.dumpTo("pass", s"$baseDir/pass.json")
 
   /** time */
   var time: Time = Time()
 
   /** total cases */
-  def total: Int = yet + timeout + fail + pass
+  def total: Int = notsupported_count + timeout_count + fail_count + pass_count
 
   /** supported total cases */
-  def supported: Int = timeout + fail + pass
+  def supported: Int = timeout_count + fail_count + pass_count
 
   /** pass rate */
-  def passRate: Double = pass.toDouble / supported
+  def passRate: Double = pass_count.toDouble / supported
   def passPercent: Double = passRate * 100
 
   /** get simple string */
   def simpleString: String =
-    var pairs = List(("P", pass))
-    if (fail > 0) pairs ::= ("F", fail)
-    if (yet > 0) pairs ::= ("Y", yet)
-    if (timeout > 0) pairs ::= ("T", timeout)
+    var pairs = List(("P", pass_count))
+    if (fail_count > 0) pairs ::= ("F", fail_count)
+    if (notsupported_count > 0) pairs ::= ("N", notsupported_count)
+    if (timeout_count > 0) pairs ::= ("T", timeout_count)
     val (names, counts) = pairs.unzip
     val namesStr = names.mkString("/")
     val countsStr = counts.map(x => f"$x%,d").mkString("/")
@@ -62,19 +63,21 @@ class Summary {
   override def toString: String = total match
     case 0 => "[Summary] no targets."
     case 1 =>
-      if (yet == 1) "YET"
-      else if (timeout == 1) "TIMEOUT"
-      else if (fail == 1) "FAIL"
+      if (notsupported_count == 1) "NOTSUPPORTED"
+      else if (timeout_count == 1) "TIMEOUT"
+      else if (fail_count == 1) "FAIL"
       else "PASS"
     case _ =>
       val app = Appender()
       app >> f"- time: $time" >> LINE_SEP
       app >> f"- total: $total%,d" >> LINE_SEP
-      if (yet > 0) app >> f"  - yet: $yet%,d" >> LINE_SEP
-      if (timeout > 0) app >> f"  - timeout: $timeout%,d" >> LINE_SEP
-      if (fail > 0) app >> f"  - fail: $fail%,d" >> LINE_SEP
-      if (pass > 0) app >> f"  - pass: $pass%,d" >> LINE_SEP
-      app >> f"- pass-rate: $pass%,d/$supported%,d ($passPercent%2.2f%%)"
+      if (notsupported_count > 0)
+        app >> f"  - notsupported: $notsupported_count%,d" >> LINE_SEP
+      if (timeout_count > 0)
+        app >> f"  - timeout: $timeout_count%,d" >> LINE_SEP
+      if (fail_count > 0) app >> f"  - fail: $fail_count%,d" >> LINE_SEP
+      if (pass_count > 0) app >> f"  - pass: $pass_count%,d" >> LINE_SEP
+      app >> f"- pass-rate: $pass_count%,d/$supported%,d ($passPercent%2.2f%%)"
       app.toString
 }
 

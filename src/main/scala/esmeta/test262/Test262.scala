@@ -78,9 +78,9 @@ case class Test262(
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
-        case NotSupported(reasons) => summary.yets.add(name, reasons)
-        case _: TimeoutException   => summary.timeouts.add(name)
-        case e: Throwable          => summary.fails.add(name, e.getMessage)
+        case NotSupported(reasons) => summary.notsupported.add(name, reasons)
+        case _: TimeoutException   => summary.timeout.add(name)
+        case e: Throwable          => summary.fail.add(name, e.getMessage)
       else throw e,
     verbose = useProgress,
   )

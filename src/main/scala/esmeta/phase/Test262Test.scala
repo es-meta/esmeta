@@ -41,7 +41,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     )
 
     // if summary has failed test case, throws an exception
-    if (summary.fail > 0) throw Test262Fail(summary.fails)
+    if (summary.fail_count > 0) throw Test262Fail(summary.fail)
 
     // return summary
     summary
