@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.error.NotSupported
 import esmeta.error.NotSupported.*
 import esmeta.util.SystemUtils.*
+import scala.collection.mutable.{Map => MMap, ListBuffer}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import java.io.PrintWriter
 
@@ -11,19 +12,19 @@ class Summary {
   import Summary.*
 
   /** not yet supported */
-  val yets: Elem = MapElem()
+  val yets: Elem = Elem()
   def yet: Int = yets.size
 
   /** timeout */
-  val timeouts: Elem = SeqElem()
+  val timeouts: Elem = Elem()
   def timeout: Int = timeouts.size
 
   /** fail */
-  val fails: Elem = SeqElem()
+  val fails: Elem = Elem()
   def fail: Int = fails.size
 
   /** pass */
-  val passes: Elem = SeqElem()
+  val passes: Elem = Elem()
   def pass: Int = passes.size
 
   /** dump results */
@@ -80,39 +81,32 @@ class Summary {
 object Summary {
 
   /** summary elements */
-  sealed trait Elem {
+  case class Elem(
+    seq: ListBuffer[String] = ListBuffer(),
+    map: MMap[Reason, Elem] = MMap(),
+  ) {
 
     /** all elements */
-    def all: List[String] = this match
-      case SeqElem(elems) => elems.toList
-      case MapElem(map) =>
+    def all: List[String] =
+      val mapElems =
         for { (_, elem) <- map.toList; elem <- elem.all } yield elem
+      val seqElems = seq.toList
+      seqElems ++ mapElems
 
     /** empty check */
-    def isEmpty: Boolean = this match
-      case SeqElem(elems) => elems.isEmpty
-      case MapElem(map)   => map.forall { case (_, elem) => elem.isEmpty }
+    def isEmpty: Boolean =
+      seq.isEmpty && map.forall { case (_, elem) => elem.isEmpty }
 
     /** size */
-    def size: Int = this match
-      case SeqElem(elems) => elems.size
-      case MapElem(map)   => (for { (_, elem) <- map } yield elem.size).sum
+    def size: Int =
+      seq.size + (for { (_, elem) <- map } yield elem.size).sum
 
     /** add data */
     def add(data: String, reason: Reason): Unit = add(data, List(reason))
-    def add(data: String, reasons: ReasonPath = Nil): Unit =
-      (this, reasons) match
-        case (elem @ SeqElem(_), Nil) => elem.elems :+= data
-        case (elem @ MapElem(_), reason :: remain) =>
-          val subElem = elem.map.getOrElse(
-            reason, {
-              val newSubElem = if (remain.isEmpty) SeqElem() else MapElem()
-              elem.map += reason -> newSubElem
-              newSubElem
-            },
-          )
-          subElem.add(data, remain)
-        case _ => ???
+    def add(data: String, reasons: ReasonPath = Nil): Unit = reasons match
+      case Nil => seq.append(data)
+      case reason :: remain =>
+        map.getOrElseUpdate(reason, Elem()).add(data, remain)
 
     /** dump results */
     def dumpTo(name: String, filename: String): Unit = dumpJson(
@@ -123,15 +117,13 @@ object Summary {
     )
 
     /** conversion to JSON */
-    def toJson: Json = this match
-      case SeqElem(elems) => Json.fromValues(elems.map(Json.fromString))
-      case MapElem(map) =>
-        Json.fromFields(map.toList.map { case (r, e) => r -> e.toJson })
+    def toJson: Json =
+      lazy val seqJson = Json.fromValues(seq.map(Json.fromString))
+      if (map.isEmpty) seqJson
+      else
+        val mapValues = map.toList.map { case (r, e) => r -> e.toJson }
+        Json.fromFields(
+          if (seq.isEmpty) mapValues else mapValues :+ ("others" -> seqJson),
+        )
   }
-
-  /** sequential elements */
-  case class SeqElem(var elems: Vector[String] = Vector()) extends Elem
-
-  /** mapping from reasons to elements */
-  case class MapElem(var map: Map[Reason, Elem] = Map()) extends Elem
 }
