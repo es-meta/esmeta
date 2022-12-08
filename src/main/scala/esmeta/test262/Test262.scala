@@ -78,9 +78,9 @@ case class Test262(
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
-        case NotSupported(msg)   => summary.yets += s"$name - $msg"
-        case _: TimeoutException => summary.timeouts += name
-        case e: Throwable        => summary.fails += s"$name - ${e.getMessage}"
+        case NotSupported(reasons) => summary.yets.add(name, reasons)
+        case _: TimeoutException   => summary.timeouts.add(name)
+        case e: Throwable          => summary.fails.add(name, e.getMessage)
       else throw e,
     verbose = useProgress,
   )
@@ -223,22 +223,17 @@ case class Test262(
 
     // setting for logging
     if (log)
-      println(s"- Logging to $logDir...")
       mkdir(logDir)
       dumpFile(spec.versionString, s"$logDir/ecma262-version")
       dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
       logRemovedInfo(logDir, removed)
-      summary.timeouts.setPath(s"$logDir/timeout.log")
-      summary.yets.setPath(s"$logDir/yet.log")
-      summary.fails.setPath(s"$logDir/fail.log")
-      summary.passes.setPath(s"$logDir/pass.log")
 
     // run tests
     for (test <- progressBar) check(test)
 
     // logging after tests
     if (log)
-      summary.close
+      summary.dumpTo(logDir)
       val removed_total = removed.foldLeft(0)(_ + _._2.length)
       val summaryStr =
         s"- total: ${summary.total + removed_total}$LINE_SEP" +

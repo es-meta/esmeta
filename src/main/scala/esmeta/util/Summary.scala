@@ -1,42 +1,52 @@
 package esmeta.util
 
-import java.io.PrintWriter
 import esmeta.LINE_SEP
+import esmeta.error.NotSupported
+import esmeta.error.NotSupported.*
+import esmeta.util.SystemUtils.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import java.io.PrintWriter
 
 class Summary {
-  // not yet supported
-  val yets: SummaryElem = SummaryElem()
+  import Summary.*
+
+  /** not yet supported */
+  val yets: Elem = MapElem()
   def yet: Int = yets.size
 
-  // timeout
-  val timeouts: SummaryElem = SummaryElem()
+  /** timeout */
+  val timeouts: Elem = SeqElem()
   def timeout: Int = timeouts.size
 
-  // fail
-  val fails: SummaryElem = SummaryElem()
+  /** fail */
+  val fails: Elem = SeqElem()
   def fail: Int = fails.size
 
-  // pass
-  val passes: SummaryElem = SummaryElem()
+  /** pass */
+  val passes: Elem = SeqElem()
   def pass: Int = passes.size
 
-  // close all print writers
-  def close: Unit = { yets.close; timeouts.close; fails.close; passes.close }
+  /** dump results */
+  def dumpTo(baseDir: String): Unit =
+    if (!yets.isEmpty) yets.dumpTo("yet", s"$baseDir/yets.json")
+    if (!timeouts.isEmpty) timeouts.dumpTo("timeout", s"$baseDir/timeouts.json")
+    if (!fails.isEmpty) fails.dumpTo("fail", s"$baseDir/fails.json")
+    if (!passes.isEmpty) passes.dumpTo("pass", s"$baseDir/passes.json")
 
-  // time
+  /** time */
   var time: Time = Time()
 
-  // total cases
+  /** total cases */
   def total: Int = yet + timeout + fail + pass
 
-  // supported total cases
+  /** supported total cases */
   def supported: Int = timeout + fail + pass
 
-  // pass rate
+  /** pass rate */
   def passRate: Double = pass.toDouble / supported
   def passPercent: Double = passRate * 100
 
-  // get simple string
+  /** get simple string */
   def simpleString: String =
     var pairs = List(("P", pass))
     if (fail > 0) pairs ::= ("F", fail)
@@ -47,7 +57,7 @@ class Summary {
     val countsStr = counts.map(x => f"$x%,d").mkString("/")
     f"$namesStr = $countsStr ($passPercent%2.2f%%)"
 
-  // conversion to string
+  /** conversion to string */
   override def toString: String = total match
     case 0 => "[Summary] no targets."
     case 1 =>
@@ -67,24 +77,61 @@ class Summary {
       app.toString
 }
 
-class SummaryElem {
-  // elements
-  var elements: Vector[String] = Vector()
+object Summary {
 
-  // print writer
-  var nfOpt: Option[PrintWriter] = None
-  def setPath(nf: PrintWriter): Unit = nfOpt = Some(nf)
-  def setPath(filename: String): Unit =
-    setPath(SystemUtils.getPrintWriter(filename))
-  def close: Unit = nfOpt.map(_.close())
+  /** summary elements */
+  sealed trait Elem {
 
-  // size
-  def size: Int = elements.size
+    /** all elements */
+    def all: List[String] = this match
+      case SeqElem(elems) => elems.toList
+      case MapElem(map) =>
+        for { (_, elem) <- map.toList; elem <- elem.all } yield elem
 
-  // add data
-  def +=(data: String): Unit =
-    for (nf <- nfOpt)
-      nf.println(data)
-      nf.flush()
-    elements :+= data
+    /** empty check */
+    def isEmpty: Boolean = this match
+      case SeqElem(elems) => elems.isEmpty
+      case MapElem(map)   => map.forall { case (_, elem) => elem.isEmpty }
+
+    /** size */
+    def size: Int = this match
+      case SeqElem(elems) => elems.size
+      case MapElem(map)   => (for { (_, elem) <- map } yield elem.size).sum
+
+    /** add data */
+    def add(data: String, reason: Reason): Unit = add(data, List(reason))
+    def add(data: String, reasons: ReasonPath = Nil): Unit =
+      (this, reasons) match
+        case (elem @ SeqElem(_), Nil) => elem.elems :+= data
+        case (elem @ MapElem(_), reason :: remain) =>
+          val subElem = elem.map.getOrElse(
+            reason, {
+              val newSubElem = if (remain.isEmpty) SeqElem() else MapElem()
+              elem.map += reason -> newSubElem
+              newSubElem
+            },
+          )
+          subElem.add(data, remain)
+        case _ => ???
+
+    /** dump results */
+    def dumpTo(name: String, filename: String): Unit = dumpJson(
+      name = s"$name cases",
+      data = toJson,
+      filename = filename,
+      noSpace = false,
+    )
+
+    /** conversion to JSON */
+    def toJson: Json = this match
+      case SeqElem(elems) => Json.fromValues(elems.map(Json.fromString))
+      case MapElem(map) =>
+        Json.fromFields(map.toList.map { case (r, e) => r -> e.toJson })
+  }
+
+  /** sequential elements */
+  case class SeqElem(var elems: Vector[String] = Vector()) extends Elem
+
+  /** mapping from reasons to elements */
+  case class MapElem(var map: Map[Reason, Elem] = Map()) extends Elem
 }

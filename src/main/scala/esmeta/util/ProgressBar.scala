@@ -12,7 +12,7 @@ case class ProgressBar[T](
   iterable: Iterable[T],
   getName: (T, Int) => String = (_: T, idx) => s"${idx.toOrdinal} element",
   errorHandler: (Throwable, Summary, String) => Unit = (_, summary, name) =>
-    summary.fails += name,
+    summary.fails.add(name),
   timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
 ) extends Iterable[T] {
@@ -62,17 +62,17 @@ case class ProgressBar[T](
       val name = getName(x, idx)
       getError {
         f(x)
-        summary.passes += name
+        summary.passes.add(name)
       }.map(errorHandler(_, summary, name))
       gcount += 1
 
     updateTime
 
-    // close all print writers
-    summary.close
-
     if (verbose) Thread.sleep(term)
   }
+
+  /** dump results */
+  def dumpTo(baseDir: String): Unit = summary.dumpTo(baseDir)
 
   // progress bar character
   val BAR = "#"
