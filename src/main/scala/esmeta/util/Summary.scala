@@ -1,9 +1,9 @@
 package esmeta.util
 
-import esmeta.LINE_SEP
 import esmeta.error.NotSupported
 import esmeta.error.NotSupported.*
 import esmeta.util.SystemUtils.*
+import esmeta.util.Appender.Rule
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import java.io.PrintWriter
@@ -69,24 +69,28 @@ class Summary {
       else "PASS"
     case _ =>
       val app = Appender()
-      app >> f"- time: $time" >> LINE_SEP
-      app >> f"- total: $total%,d" >> LINE_SEP
-      if (notSupportedCount > 0)
-        app >> f"  - notsupported: $notSupportedCount%,d" >> LINE_SEP
-        val notsupported_subsection =
-          notSupported.map.toList
-            .sortBy(-_._2.size)
-            .map { (reason, elem) =>
-              s"$reason: ${elem.size}"
-            }
-            .mkString(s"$LINE_SEP    - ")
-        app >> s"    - $notsupported_subsection" >> LINE_SEP
-      if (timeoutCount > 0)
-        app >> f"  - timeout: $timeoutCount%,d" >> LINE_SEP
-      if (failCount > 0) app >> f"  - fail: $failCount%,d" >> LINE_SEP
-      if (passCount > 0) app >> f"  - pass: $passCount%,d" >> LINE_SEP
-      app >> f"- pass-rate: $passCount%,d/$supported%,d ($passPercent%2.2f%%)"
+      app >> f"- time: $time"
+      (app :> "total" -> total).wrap("", "") {
+        if (notSupportedCount > 0) app :> "not-supported" -> notSupported
+        if (timeoutCount > 0) app :> "timeout" -> timeoutCount
+        if (failCount > 0) app :> "fail" -> failCount
+        if (passCount > 0) app :> "pass" -> passCount
+      }
+      app :> f"- pass-rate: $passCount%,d/$supported%,d ($passPercent%2.2f%%)"
       app.toString
+
+  private given Rule[(String, Int)] = {
+    case (app, (name, count)) => app >> f"- $name: $count%,d"
+  }
+  private given Rule[(Reason, Elem)] = {
+    case (app, (reason, elem @ Elem(seq, map))) =>
+      app >> reason -> elem.size
+      if (!map.isEmpty)
+        var pairs = map.toList.sortBy(-_._2.size)
+        if (!seq.isEmpty) pairs :+= "others" -> Elem(seq)
+        app.wrapIterable("", "", "")(pairs)
+      app
+  }
 }
 
 object Summary {
