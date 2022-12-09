@@ -304,7 +304,7 @@
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
     "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
   ],
-  "yet tests": [
+  "not yet categorized tests": [
     "built-ins/Array/prototype/sort/stability-2048-elements",
     "built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-rejected",
     "built-ins/AsyncFromSyncIteratorPrototype/throw/iterator-result",
@@ -365,6 +365,7 @@
     "built-ins/Promise/all/iter-arg-is-string-resolve",
     "built-ins/Promise/allSettled/iter-arg-is-string-resolve",
     "built-ins/Promise/any/iter-arg-is-empty-string-reject",
+    "built-ins/RegExp/lookBehind/sliced-strings",
     "built-ins/Set/prototype/entries/returns-iterator",
     "built-ins/Set/prototype/entries/returns-iterator-empty",
     "built-ins/Set/prototype/values/returns-iterator",
@@ -391,6 +392,15 @@
     "built-ins/String/prototype/S15.5.4_A2",
     "built-ins/String/prototype/concat/S15.5.4.6_A3",
     "built-ins/String/prototype/constructor/S15.5.4.1_A1_T2",
+    "built-ins/String/prototype/matchAll/length",
+    "built-ins/String/prototype/matchAll/name",
+    "built-ins/String/prototype/matchAll/prop-desc",
+    "built-ins/String/prototype/matchAll/regexp-is-null",
+    "built-ins/String/prototype/matchAll/regexp-is-undefined",
+    "built-ins/String/prototype/matchAll/regexp-matchAll-invocation",
+    "built-ins/String/prototype/matchAll/regexp-matchAll-not-callable",
+    "built-ins/String/prototype/matchAll/regexp-prototype-has-no-matchAll",
+    "built-ins/String/prototype/matchAll/this-val-non-obj-coercible",
     "built-ins/Symbol/prototype/Symbol.toPrimitive/redefined-symbol-wrapper-ordinary-toprimitive",
     "built-ins/Symbol/prototype/Symbol.toPrimitive/removed-symbol-wrapper-ordinary-toprimitive",
     "language/computed-property-names/class/static/generator-prototype",
