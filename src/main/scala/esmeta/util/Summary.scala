@@ -67,7 +67,7 @@ case class Summary(
     if (detail)
       app >> N("P", "F", "T", "N").mkString(":") >> " = "
       app >> C("P", "F", "T", "N").map(x => f"$x%,d").mkString(":")
-    if (passPercent < 1)
+    if (passRate < 1)
       app >> " => " >> "P/" >> N("P", "F", "T").mkString("+") >> " = "
       app >> f"$passCount%,d/${C("P", "F", "T").sum}%,d ($passPercent%2.2f%%)"
     app.toString
