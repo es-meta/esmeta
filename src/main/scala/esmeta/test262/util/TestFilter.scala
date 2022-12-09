@@ -18,22 +18,18 @@ case class TestFilter(spec: Spec) {
     tests: List[Test],
     withYet: Boolean = false,
     features: List[String] = languageFeatures,
-  ): (List[Test], Map[ReasonPath, List[Test]]) = {
-    val filters = getFilters(withYet, features.toSet)
-    var removedMap: Map[ReasonPath, List[Test]] = Map()
-    val targetTests = filters.foldLeft(tests) {
+  ): (List[Test], Iterable[(Test, ReasonPath)]) =
+    var removedMap: Vector[(Test, ReasonPath)] = Vector()
+    val targetTests = getFilters(withYet, features.toSet).foldLeft(tests) {
       case (tests, (desc, filter)) =>
-        val result = tests.groupBy(filter)
-        removedMap ++=
-          (for { (Some(path), tests) <- result } yield path -> tests)
-        val remained = result.getOrElse(None, Nil)
-        val removedCount = tests.length - remained.length
-        if (removedCount > 0)
-          println(f"- $desc%-30s: $removedCount%,5d tests are removed")
-        remained
+        for {
+          test <- tests
+          if filter(test) match
+            case Some(reasonPath) => removedMap +:= test -> reasonPath; false
+            case None             => true
+        } yield test
     }
-    (targetTests, removedMap.toMap)
-  }
+    (targetTests, removedMap)
 
   private def getFilters(
     withYet: Boolean,

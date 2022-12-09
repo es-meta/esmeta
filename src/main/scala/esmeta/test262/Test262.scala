@@ -72,11 +72,13 @@ case class Test262(
   def getProgressBar(
     name: String,
     targetTests: List[Test],
+    removed: Iterable[(Test, ReasonPath)] = Nil,
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
   ): ProgressBar[Test] = ProgressBar(
     msg = s"Run Test262 $name tests",
     iterable = targetTests,
+    notSupported = removed,
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
@@ -108,15 +110,10 @@ case class Test262(
     val progressBar = getProgressBar(
       name = "eval",
       targetTests = targetTests,
+      removed = removed,
       useProgress = useProgress,
       useErrorHandler = multiple,
     )
-    // Initialize progressbar with info about tests filtered statically.
-    for {
-      (reasonpath, tests) <- removed;
-      test <- tests
-    }
-      progressBar.summary.notSupported.add(test.relName, reasonpath)
 
     // coverage with time limit
     lazy val cov = Coverage(
@@ -165,13 +162,9 @@ case class Test262(
     val progressBar = getProgressBar(
       name = "parse",
       targetTests = targetTests,
+      removed = removed,
       useProgress = useProgress,
     )
-    // Initialize progressbar with info about tests filtered statically.
-    for {
-      (reasonpath, tests) <- removed
-      test <- tests
-    } progressBar.summary.notSupported.add(test.relName, reasonpath)
 
     // run tests with logging
     logForTests(

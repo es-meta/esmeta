@@ -1,15 +1,17 @@
 package esmeta.util
 
+import esmeta.LINE_SEP
+import esmeta.error.NotSupported.*
+import esmeta.util.BaseUtils.*
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import esmeta.LINE_SEP
-import esmeta.util.BaseUtils.*
 
 // progress bar
 case class ProgressBar[T](
   msg: String,
   iterable: Iterable[T],
+  notSupported: Iterable[(T, ReasonPath)] = Map[T, ReasonPath](),
   getName: (T, Int) => String = (_: T, idx) => s"${idx.toOrdinal} element",
   errorHandler: (Throwable, Summary, String) => Unit = (_, summary, name) =>
     summary.fail.add(name),
@@ -17,7 +19,11 @@ case class ProgressBar[T](
   verbose: Boolean = true,
 ) extends Iterable[T] {
   // summary
-  val summary = Summary()
+  val summary =
+    val elem = Summary.Elem()
+    for { ((x, reasonPath), idx) <- notSupported.zipWithIndex }
+      elem.add(getName(x, idx), reasonPath)
+    Summary(notSupported = elem)
 
   // postfix for summary
   def postfix = (
@@ -34,9 +40,14 @@ case class ProgressBar[T](
   // iterators
   final def iterator: Iterator[T] = iterable.iterator
 
+  // size
+  val notSupportedSize = notSupported.size
+  val baseSize = notSupportedSize
+  override val size: Int = baseSize + iterable.size
+
   // foreach function
   override def foreach[U](f: T => U): Unit = {
-    var gcount = 0
+    var gcount = baseSize
     val start = System.currentTimeMillis
     def updateTime: Unit =
       summary.time = Time(System.currentTimeMillis - start)
@@ -55,11 +66,18 @@ case class ProgressBar[T](
     }
 
     if (verbose)
-      println(s"- $msg...")
+      println(f"- $msg... (total: $size%,d)")
+      if (baseSize > 0)
+        println(f"  - $baseSize%,d targets are detected as not supported.")
+        println("    (The not supported targets can be dynamically detected.)")
+      println(s"  - P: passed targets")
+      println(s"  - F: failed targets")
+      println(s"  - T: timeout targets")
+      println(s"  - N: not supported targets")
       show
 
     for ((x, idx) <- iterable.zipWithIndex)
-      val name = getName(x, idx)
+      val name = getName(x, baseSize + idx)
       getError {
         f(x)
         summary.pass.add(name)
@@ -76,4 +94,8 @@ case class ProgressBar[T](
 
   // progress bar character
   val BAR = "#"
+}
+object ProgressBar {
+  def defaultGetName[T](x: T, idx: Int): String =
+    s"${idx.toOrdinal} element",
 }

@@ -1,30 +1,30 @@
 package esmeta.util
 
-import esmeta.error.NotSupported
 import esmeta.error.NotSupported.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.Appender.Rule
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import java.io.PrintWriter
+import Summary.*
 
-class Summary {
-  import Summary.*
+case class Summary(
+  notSupported: Elem = Elem(), // not yet supported elements
+  timeout: Elem = Elem(), // timeout elements
+  fail: Elem = Elem(), // failed elements
+  pass: Elem = Elem(), // passed elements
+) {
 
-  /** not yet supported */
-  val notSupported: Elem = Elem()
+  // the number of not yet supported elements
   def notSupportedCount: Int = notSupported.size
 
-  /** timeout */
-  val timeout: Elem = Elem()
+  // the number of timeout elements
   def timeoutCount: Int = timeout.size
 
-  /** fail */
-  val fail: Elem = Elem()
+  // the number of failed elements
   def failCount: Int = fail.size
 
-  /** pass */
-  val pass: Elem = Elem()
+  // the number of passed elements
   def passCount: Int = pass.size
 
   /** dump results */
@@ -49,15 +49,28 @@ class Summary {
   def passPercent: Double = passRate * 100
 
   /** get simple string */
-  def simpleString: String =
-    var pairs = List(("P", passCount))
-    if (failCount > 0) pairs ::= ("F", failCount)
-    if (notSupportedCount > 0) pairs ::= ("N", notSupportedCount)
-    if (timeoutCount > 0) pairs ::= ("T", timeoutCount)
-    val (names, counts) = pairs.unzip
-    val namesStr = names.mkString("/")
-    val countsStr = counts.map(x => f"$x%,d").mkString("/")
-    f"$namesStr = $countsStr ($passPercent%2.2f%%)"
+  def simpleString: String = simpleString(true)
+  def simpleString(detail: Boolean = true): String =
+    def getMap(pairs: (String, Int)*): Map[String, Int] = (for {
+      (x, count) <- pairs
+      if count > 0
+    } yield x -> count).toMap
+    val map = getMap(
+      "P" -> passCount,
+      "F" -> failCount,
+      "N" -> notSupportedCount,
+      "T" -> timeoutCount,
+    )
+    def N(xs: String*) = xs.filter(map.contains)
+    def C(xs: String*) = xs.flatMap(map.get)
+    val app = Appender()
+    if (detail)
+      app >> N("P", "F", "T", "N").mkString(":") >> " = "
+      app >> C("P", "F", "T", "N").map(x => f"$x%,d").mkString(":")
+    if (passPercent < 1)
+      app >> " => " >> "P/" >> N("P", "F", "T").mkString("+") >> " = "
+      app >> f"$passCount%,d/${C("P", "F", "T").sum}%,d ($passPercent%2.2f%%)"
+    app.toString
 
   /** conversion to string */
   override def toString: String = total match
@@ -71,12 +84,12 @@ class Summary {
       val app = Appender()
       app >> f"- time: $time"
       (app :> "total" -> total).wrap("", "") {
-        if (notSupportedCount > 0) app :> "not-supported" -> notSupported
-        if (timeoutCount > 0) app :> "timeout" -> timeoutCount
-        if (failCount > 0) app :> "fail" -> failCount
-        if (passCount > 0) app :> "pass" -> passCount
+        if (notSupportedCount > 0) app :> "not-supported (N)" -> notSupported
+        if (timeoutCount > 0) app :> "timeout (T)" -> timeoutCount
+        if (failCount > 0) app :> "fail (F)" -> failCount
+        if (passCount > 0) app :> "pass (P)" -> passCount
       }
-      app :> f"- pass-rate: $passCount%,d/$supported%,d ($passPercent%2.2f%%)"
+      app :> f"- pass-rate: ${simpleString(detail = false)}"
       app.toString
 
   private given Rule[(String, Int)] = {
