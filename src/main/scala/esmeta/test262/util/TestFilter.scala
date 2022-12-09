@@ -5,6 +5,7 @@ import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.error.NotSupported.*
 import esmeta.test262.{*, given}
 import io.circe.*, io.circe.syntax.*
 import java.io.*
@@ -17,9 +18,9 @@ case class TestFilter(spec: Spec) {
     tests: List[Test],
     withYet: Boolean = false,
     features: List[String] = languageFeatures,
-  ): (List[Test], Map[String, List[Test]]) = {
+  ): (List[Test], Map[ReasonPath, List[Test]]) = {
     val filters = getFilters(withYet, features)
-    var removedMap: Map[String, List[Test]] = Map()
+    var removedMap: Map[ReasonPath, List[Test]] = Map()
     val targetTests = filters.foldLeft(tests) {
       case (tests, (desc, filter)) =>
         val result = tests.groupBy(filter)
@@ -27,7 +28,16 @@ case class TestFilter(spec: Spec) {
         val removedCount = removed.length
         if (removedCount > 0)
           println(f"- $desc%-30s: $removedCount%,5d tests are removed")
-        removedMap += desc -> removed
+        if (desc == "in-progress-features") {
+          for {
+            test <- tests;
+            feature <- test.features
+            if !features.contains(feature)
+          }
+            removedMap += List(desc, feature) -> removed
+        } else {
+          removedMap += List(desc) -> removed
+        }
         result.getOrElse(false, Nil)
     }
     (targetTests, removedMap.toMap)

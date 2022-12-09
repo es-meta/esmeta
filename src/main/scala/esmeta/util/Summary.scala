@@ -73,6 +73,14 @@ class Summary {
       app >> f"- total: $total%,d" >> LINE_SEP
       if (notsupported_count > 0)
         app >> f"  - notsupported: $notsupported_count%,d" >> LINE_SEP
+        val notsupported_subsection =
+          notsupported.map.toList
+            .sortBy(-_._2.size)
+            .map { (reason, elem) =>
+              s"$reason: ${elem.size}"
+            }
+            .mkString(s"$LINE_SEP    - ")
+        app >> s"    - $notsupported_subsection" >> LINE_SEP
       if (timeout_count > 0)
         app >> f"  - timeout: $timeout_count%,d" >> LINE_SEP
       if (fail_count > 0) app >> f"  - fail: $fail_count%,d" >> LINE_SEP

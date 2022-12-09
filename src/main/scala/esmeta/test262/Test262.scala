@@ -3,6 +3,7 @@ package esmeta.test262
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
+import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
@@ -12,6 +13,7 @@ import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+
 import java.util.concurrent.TimeoutException
 
 /** data in Test262 */
@@ -109,6 +111,12 @@ case class Test262(
       useProgress = useProgress,
       useErrorHandler = multiple,
     )
+    // Initialize progressbar with info about tests filtered statically.
+    for {
+      (reasonpath, tests) <- removed;
+      test <- tests
+    }
+      progressBar.summary.notsupported.add(test.relName, reasonpath)
 
     // coverage with time limit
     lazy val cov = Coverage(
@@ -211,7 +219,7 @@ case class Test262(
   private def logForTests(
     name: String,
     progressBar: ProgressBar[Test],
-    removed: Map[String, List[Test]],
+    removed: Map[ReasonPath, List[Test]],
     postSummary: => String = "",
     log: Boolean = false,
   )(
@@ -226,7 +234,6 @@ case class Test262(
       mkdir(logDir)
       dumpFile(spec.versionString, s"$logDir/ecma262-version")
       dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-      logRemovedInfo(logDir, removed)
 
     // run tests
     for (test <- progressBar) check(test)
@@ -234,41 +241,11 @@ case class Test262(
     // logging after tests
     if (log)
       summary.dumpTo(logDir)
-      val removed_total = removed.foldLeft(0)(_ + _._2.length)
-      val summaryStr =
-        s"- total: ${summary.total + removed_total}$LINE_SEP" +
-        s"- removed: ${removed_total}$LINE_SEP" +
-        removed.foldLeft("") {
-          case (acc, (s, i)) => acc + s"  - $s: ${i.length}$LINE_SEP"
-        }
-        + (if (postSummary.isEmpty) s"$summary$LINE_SEP"
-           else
-             s"$summary$LINE_SEP$postSummary$LINE_SEP")
-      dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
-}
 
-def logRemovedInfo(logDir: String, removed: Map[String, List[Test]]) = {
-  removed.foreach { (desc, tests) =>
-    // maybe this is too fragile against desc name change? Should use Constant?
-    if (desc == "in-progress-features")
-      // map from a feature to lists of tests that have the feature
-      var featureMap: Map[String, List[String]] = Map().withDefaultValue(List())
-      for {
-        test <- tests
-        feature <- test.features
-      }
-        featureMap += feature -> (test.relName :: featureMap(feature))
-      val filesByFeature =
-        featureMap.toSeq
-          .sortBy(-_._2.length)
-          .map((feature, relnames) =>
-            s"$feature: ${relnames.length}$LINE_SEP- ${relnames
-              .mkString(s"$LINE_SEP- ")}",
-          )
-          .mkString(LINE_SEP)
-      dumpFile(filesByFeature, s"$logDir/$desc")
-    else dumpFile(tests.map(_.relName).mkString(LINE_SEP), s"$logDir/$desc")
-  }
+      val summaryStr =
+        if (postSummary.isEmpty) s"$summary"
+        else s"$summary$LINE_SEP$postSummary"
+      dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
 }
 
 object Test262 extends Git(TEST262_DIR)
