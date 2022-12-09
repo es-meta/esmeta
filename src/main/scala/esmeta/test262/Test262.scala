@@ -80,7 +80,7 @@ case class Test262(
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
-        case NotSupported(reasons) => summary.notsupported.add(name, reasons)
+        case NotSupported(reasons) => summary.notSupported.add(name, reasons)
         case _: TimeoutException   => summary.timeout.add(name)
         case e: Throwable          => summary.fail.add(name, e.getMessage)
       else throw e,
@@ -116,7 +116,7 @@ case class Test262(
       (reasonpath, tests) <- removed;
       test <- tests
     }
-      progressBar.summary.notsupported.add(test.relName, reasonpath)
+      progressBar.summary.notSupported.add(test.relName, reasonpath)
 
     // coverage with time limit
     lazy val cov = Coverage(
@@ -129,7 +129,6 @@ case class Test262(
     logForTests(
       name = "eval",
       progressBar = progressBar,
-      removed = removed,
       postSummary = if (useCoverage) cov.toString else "",
       log = log && multiple,
     )(
@@ -168,12 +167,16 @@ case class Test262(
       targetTests = targetTests,
       useProgress = useProgress,
     )
+    // Initialize progressbar with info about tests filtered statically.
+    for {
+      (reasonpath, tests) <- removed
+      test <- tests
+    } progressBar.summary.notSupported.add(test.relName, reasonpath)
 
     // run tests with logging
     logForTests(
       name = "parse",
       progressBar = progressBar,
-      removed = removed,
       log = log,
     )(
       // check parsing result with its corresponding code
@@ -219,7 +222,6 @@ case class Test262(
   private def logForTests(
     name: String,
     progressBar: ProgressBar[Test],
-    removed: Map[ReasonPath, List[Test]],
     postSummary: => String = "",
     log: Boolean = false,
   )(
@@ -241,7 +243,6 @@ case class Test262(
     // logging after tests
     if (log)
       summary.dumpTo(logDir)
-
       val summaryStr =
         if (postSummary.isEmpty) s"$summary"
         else s"$summary$LINE_SEP$postSummary"

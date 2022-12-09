@@ -11,7 +11,7 @@ class EvalLargeTest extends Test262Test {
       useCoverage = true,
       timeLimit = Some(10),
     )
-    val f = summary.fail_count
+    val f = summary.failCount
     if (f > 0) fail(s"$f tests are failed (See `$logDir/fail.log`).")
   }
 

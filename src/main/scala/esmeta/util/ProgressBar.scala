@@ -21,7 +21,7 @@ case class ProgressBar[T](
 
   // postfix for summary
   def postfix = (
-    if (summary.total == summary.pass_count) ""
+    if (summary.total == summary.passCount) ""
     else s" - ${summary.simpleString}"
   ) + s" [${summary.time.simpleString}]"
 

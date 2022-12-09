@@ -12,25 +12,25 @@ class Summary {
   import Summary.*
 
   /** not yet supported */
-  val notsupported: Elem = Elem()
-  def notsupported_count: Int = notsupported.size
+  val notSupported: Elem = Elem()
+  def notSupportedCount: Int = notSupported.size
 
   /** timeout */
   val timeout: Elem = Elem()
-  def timeout_count: Int = timeout.size
+  def timeoutCount: Int = timeout.size
 
   /** fail */
   val fail: Elem = Elem()
-  def fail_count: Int = fail.size
+  def failCount: Int = fail.size
 
   /** pass */
   val pass: Elem = Elem()
-  def pass_count: Int = pass.size
+  def passCount: Int = pass.size
 
   /** dump results */
   def dumpTo(baseDir: String): Unit =
-    if (!notsupported.isEmpty)
-      notsupported.dumpTo("notsupported", s"$baseDir/notsupported.json")
+    if (!notSupported.isEmpty)
+      notSupported.dumpTo("notsupported", s"$baseDir/notsupported.json")
     if (!timeout.isEmpty) timeout.dumpTo("timeout", s"$baseDir/timeout.json")
     if (!fail.isEmpty) fail.dumpTo("fail", s"$baseDir/fail.json")
     if (!pass.isEmpty) pass.dumpTo("pass", s"$baseDir/pass.json")
@@ -39,21 +39,21 @@ class Summary {
   var time: Time = Time()
 
   /** total cases */
-  def total: Int = notsupported_count + timeout_count + fail_count + pass_count
+  def total: Int = notSupportedCount + timeoutCount + failCount + passCount
 
   /** supported total cases */
-  def supported: Int = timeout_count + fail_count + pass_count
+  def supported: Int = timeoutCount + failCount + passCount
 
   /** pass rate */
-  def passRate: Double = pass_count.toDouble / supported
+  def passRate: Double = passCount.toDouble / supported
   def passPercent: Double = passRate * 100
 
   /** get simple string */
   def simpleString: String =
-    var pairs = List(("P", pass_count))
-    if (fail_count > 0) pairs ::= ("F", fail_count)
-    if (notsupported_count > 0) pairs ::= ("N", notsupported_count)
-    if (timeout_count > 0) pairs ::= ("T", timeout_count)
+    var pairs = List(("P", passCount))
+    if (failCount > 0) pairs ::= ("F", failCount)
+    if (notSupportedCount > 0) pairs ::= ("N", notSupportedCount)
+    if (timeoutCount > 0) pairs ::= ("T", timeoutCount)
     val (names, counts) = pairs.unzip
     val namesStr = names.mkString("/")
     val countsStr = counts.map(x => f"$x%,d").mkString("/")
@@ -63,29 +63,29 @@ class Summary {
   override def toString: String = total match
     case 0 => "[Summary] no targets."
     case 1 =>
-      if (notsupported_count == 1) "NOTSUPPORTED"
-      else if (timeout_count == 1) "TIMEOUT"
-      else if (fail_count == 1) "FAIL"
+      if (notSupportedCount == 1) "NOTSUPPORTED"
+      else if (timeoutCount == 1) "TIMEOUT"
+      else if (failCount == 1) "FAIL"
       else "PASS"
     case _ =>
       val app = Appender()
       app >> f"- time: $time" >> LINE_SEP
       app >> f"- total: $total%,d" >> LINE_SEP
-      if (notsupported_count > 0)
-        app >> f"  - notsupported: $notsupported_count%,d" >> LINE_SEP
+      if (notSupportedCount > 0)
+        app >> f"  - notsupported: $notSupportedCount%,d" >> LINE_SEP
         val notsupported_subsection =
-          notsupported.map.toList
+          notSupported.map.toList
             .sortBy(-_._2.size)
             .map { (reason, elem) =>
               s"$reason: ${elem.size}"
             }
             .mkString(s"$LINE_SEP    - ")
         app >> s"    - $notsupported_subsection" >> LINE_SEP
-      if (timeout_count > 0)
-        app >> f"  - timeout: $timeout_count%,d" >> LINE_SEP
-      if (fail_count > 0) app >> f"  - fail: $fail_count%,d" >> LINE_SEP
-      if (pass_count > 0) app >> f"  - pass: $pass_count%,d" >> LINE_SEP
-      app >> f"- pass-rate: $pass_count%,d/$supported%,d ($passPercent%2.2f%%)"
+      if (timeoutCount > 0)
+        app >> f"  - timeout: $timeoutCount%,d" >> LINE_SEP
+      if (failCount > 0) app >> f"  - fail: $failCount%,d" >> LINE_SEP
+      if (passCount > 0) app >> f"  - pass: $passCount%,d" >> LINE_SEP
+      app >> f"- pass-rate: $passCount%,d/$supported%,d ($passPercent%2.2f%%)"
       app.toString
 }
 
