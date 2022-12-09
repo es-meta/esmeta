@@ -516,10 +516,10 @@ trait Parsers extends IndentParsers {
     "@@" ~> word ^^ { SymbolLiteral(_) } |
     "+∞" ^^! PositiveInfinityMathValueLiteral() |
     "-∞" ^^! NegativeInfinityMathValueLiteral() |
-    decimal ^^ { DecimalMathValueLiteral(_) } |
     opt(int) ~ "π" ^^ {
       case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
     } |
+    decimal ^^ { DecimalMathValueLiteral(_) } |
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |
     "*NaN*" ^^! NumberLiteral(Double.NaN) |
