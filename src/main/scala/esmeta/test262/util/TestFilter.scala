@@ -128,5 +128,5 @@ case class TestFilter(spec: Spec) {
 
   /** manually filtered out not yet supported tests */
   lazy val yets =
-    manualConfig.filtered.getOrElse("yet tests", Nil).toSet
+    manualConfig.filtered.getOrElse("not yet categorized tests", Nil).toSet
 }

@@ -13,7 +13,6 @@ import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-
 import java.util.concurrent.TimeoutException
 
 /** data in Test262 */
@@ -241,5 +240,4 @@ case class Test262(
         else s"$summary$LINE_SEP$postSummary"
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
 }
-
 object Test262 extends Git(TEST262_DIR)

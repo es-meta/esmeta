@@ -5,7 +5,6 @@ import esmeta.util.SystemUtils.*
 import esmeta.util.Appender.Rule
 import scala.collection.mutable.{Map => MMap, ListBuffer}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
-import java.io.PrintWriter
 import Summary.*
 
 case class Summary(
@@ -30,7 +29,7 @@ case class Summary(
   /** dump results */
   def dumpTo(baseDir: String): Unit =
     if (!notSupported.isEmpty)
-      notSupported.dumpTo("notsupported", s"$baseDir/notsupported.json")
+      notSupported.dumpTo("not-supported", s"$baseDir/not-supported.json")
     if (!timeout.isEmpty) timeout.dumpTo("timeout", s"$baseDir/timeout.json")
     if (!fail.isEmpty) fail.dumpTo("fail", s"$baseDir/fail.json")
     if (!pass.isEmpty) pass.dumpTo("pass", s"$baseDir/pass.json")
@@ -76,7 +75,7 @@ case class Summary(
   override def toString: String = total match
     case 0 => "[Summary] no targets."
     case 1 =>
-      if (notSupportedCount == 1) "NOTSUPPORTED"
+      if (notSupportedCount == 1) "NOT-SUPPORTED"
       else if (timeoutCount == 1) "TIMEOUT"
       else if (failCount == 1) "FAIL"
       else "PASS"
