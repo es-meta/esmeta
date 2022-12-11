@@ -244,7 +244,7 @@ trait Parsers extends IndentParsers {
   // resume the suspended evaluation steps
   lazy val resumeStep: PL[ResumeEvaluationStep] =
     lazy val context: P[Variable] =
-      tagStart ~ "Resume the suspended evaluation of" ~> variable <~ tagEnd
+      tagged("Resume the suspended evaluation of" ~> variable)
     lazy val arg: P[Option[Expression]] =
       "using" ~> expr <~ "as the result of" ~
       "the operation that suspended it." ^^ { Some(_) } |
@@ -279,7 +279,7 @@ trait Parsers extends IndentParsers {
   lazy val note = "NOTE:" ~> ".*".r
   lazy val ignore =
     "(" ~ "see.*\\)".r |
-    "as defined in" ~ tagStart ~ tagEnd |
+    "as defined in" ~ tagged("") |
     "; that is[^.]*".r
   lazy val end: Parser[String] =
     opt(ignore) ~> "." <~ opt(
@@ -293,26 +293,25 @@ trait Parsers extends IndentParsers {
   // metalanguage expressions
   // ---------------------------------------------------------------------------
   given expr: PL[Expression] = {
-    stringConcatExpr |||
-    listConcatExpr |||
-    recordExpr |||
-    lengthExpr |||
-    substrExpr |||
-    numberOfExpr |||
-    sourceTextExpr |||
-    coveredByExpr |||
-    getItemsExpr |||
-    intrExpr |||
-    calcExpr |||
-    clampExpr |||
-    mathOpExpr |||
-    bitwiseExpr |||
-    invokeExpr |||
-    returnIfAbruptExpr |||
-    listExpr |||
-    xrefExpr |||
-    soleExpr |||
-    codeUnitAtExpr |||
+    stringConcatExpr |
+    listConcatExpr |
+    recordExpr |
+    lengthExpr |
+    substrExpr |
+    numberOfExpr |
+    sourceTextExpr |
+    coveredByExpr |
+    getItemsExpr |
+    intrExpr |
+    clampExpr |
+    mathOpExpr |
+    bitwiseExpr |
+    listExpr |
+    xrefExpr |
+    soleExpr |
+    codeUnitAtExpr |
+    invokeExpr |
+    calcExpr |
     specialExpr
   }.named("lang.Expression")
 
@@ -332,19 +331,21 @@ trait Parsers extends IndentParsers {
     }
 
   // record expressions
-  lazy val recordExpr: PL[RecordExpression] =
+  lazy val recordExpr: PL[RecordExpression] = {
     opt("the") ~> tname ~
-    ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}") ^^ {
-      case t ~ fs =>
-        val fields = fs.map { case f ~ e => f -> e }
-        RecordExpression(t, fields)
-    } |||
+    ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}")
+  } ^^ {
+    case t ~ fs => RecordExpression(t, fs.map { case f ~ e => f -> e })
+  } | {
     opt("an " | "a ") ~ ("newly created" | "new") ~
     guard(not("Realm")) ~> tname <~ opt(
       "containing no bindings" |
       "with no fields" |
       "that initially has no fields",
-    ) ^^ { case t => RecordExpression(t, List()) }
+    )
+  } ^^ {
+    case t => RecordExpression(t, List())
+  }
 
   // `length of` expressions
   lazy val lengthExpr: PL[LengthExpression] =
@@ -403,30 +404,30 @@ trait Parsers extends IndentParsers {
     }
 
   // intrinsic expressions
-  lazy val intrExpr: PL[IntrinsicExpression] = intr ^^ {
-    IntrinsicExpression(_)
-  }
+  lazy val intrExpr: PL[IntrinsicExpression] =
+    intr ^^ { IntrinsicExpression(_) }
 
-  // base calculation expressions
+  // base calculation expressione
   lazy val baseCalcExpr: PL[CalcExpression] =
-    returnIfAbruptExpr |||
-    refExpr |||
-    literal |||
-    mathFuncExpr |||
-    convExpr |||
-    "(" ~> calcExpr <~ ")" |||
     (baseCalcExpr ~ ("<sup>" ~> calcExpr <~ "</sup>")) ^^ {
       case b ~ e => ExponentiationExpression(b, e)
-    }
+    } |
+    returnIfAbruptExpr |
+    convExpr |
+    mathFuncExpr |
+    "(" ~> calcExpr <~ ")" |
+    refExpr |
+    literal
 
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
     import BinaryExpressionOperator.*
     import UnaryExpressionOperator.*
 
-    lazy val unary: PL[CalcExpression] = baseCalcExpr ||| (
-      ("-" | "the result of negating") ^^^ Neg
-    ) ~ baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) }
+    lazy val unary: PL[CalcExpression] =
+      (("-" | "the result of negating") ^^^ Neg) ~
+      baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) } |
+      baseCalcExpr
 
     lazy val term: PL[CalcExpression] = unary ~ rep(
       ("×" ^^^ Mul | "/" ^^^ Div | "modulo" ^^^ Mod) ~ unary,
@@ -448,17 +449,19 @@ trait Parsers extends IndentParsers {
   // conversion expressions
   lazy val convExpr: PL[ConversionExpression] =
     import ConversionExpressionOperator.*
-    val opFormat = (
+    lazy val opFormat = (
       "𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath
     ) ~ ("(" ~> expr <~ ")")
-    val textFormat =
+    lazy val textFormat =
       ("the " | "an " | "a ") ~> (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
-      ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr)
+      ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr) <~
+      opt(textFormatPostfix)
+    lazy val textFormatPostfix = opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r
     (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
 
   // emu-xref expressions
@@ -510,7 +513,7 @@ trait Parsers extends IndentParsers {
     ntLiteral |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |
     "the empty String" ^^! StringLiteral("") |
-    strLiteral |
+    strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |
     "@@" ~> word ^^ { SymbolLiteral(_) } |
@@ -575,13 +578,15 @@ trait Parsers extends IndentParsers {
   // production literals
   // XXX need to be generalized?
   private lazy val prodLiteral: PL[ProductionLiteral] =
-    (tagStart ~> word <~ ":") ~ ("[\\[\\]A-Za-z]+".r <~ tagEnd) ^^ {
+    tagged((word <~ ":") ~ ("[\\[\\]A-Za-z]+".r)) ^^ {
       case l ~ r => ProductionLiteral(l, r)
     }
 
   // error object literals
   lazy val errObjLiteral: PL[ErrorObjectLiteral] =
-    lazy val errorName = "*" ~> word <~ "*" ^^ { ErrorObjectLiteral(_) }
+    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*" ^^ {
+      ErrorObjectLiteral(_)
+    }
     "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
 
   // clamping expression
@@ -669,29 +674,26 @@ trait Parsers extends IndentParsers {
     ("and" ~> expr) ^^ { case op ~ l ~ r => BitwiseExpression(l, op, r) }
 
   // metalanguage invocation expressions
-  lazy val invokeExpr: PL[InvokeExpression] =
-    invokeAOExpr |||
-    invokeNumericExpr |||
-    invokeClosureExpr |||
-    invokeAMExpr |||
+  lazy val invokeExpr: PL[InvokeExpression] = tagged {
+    invokeAOExpr |
+    invokeNumericExpr |
+    invokeClosureExpr |
+    invokeAMExpr |
     invokeSDOExpr
+  }
 
   // arguments for invocation epxressions
   lazy val invokeArgs: P[List[Expression]] = ("(" ~> repsep(expr, ",") <~ ")")
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
-    opt(tagStart) ~> "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs <~ opt(
-      tagEnd,
-    ) ^^ {
+    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
-    guard(not("Return")) ~> numericName ~
-    ("::" ~> "[A-Za-z]+".r) ~
-    invokeArgs ^^ {
+    numericName ~ ("::" ~> "[A-Za-z]+".r) ~ invokeArgs ^^ {
       case t ~ op ~ as => InvokeNumericMethodExpression(t, op, as)
     }
   lazy val numericName: Parser[String] = "Number" | "BigInt"
@@ -706,7 +708,7 @@ trait Parsers extends IndentParsers {
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
     // handle emu-meta tag
-    (opt(tagStart) ~> propRef <~ opt(tagEnd)) ~ (invokeArgs <~ opt(tagEnd)) ^^ {
+    tagged(propRef) ~ invokeArgs ^^ {
       case p ~ as => InvokeMethodExpression(p, as)
     }
 
@@ -769,17 +771,10 @@ trait Parsers extends IndentParsers {
     "the empty sequence of Unicode code points" ^^! StringLiteral("") |
     // Array.prototype.join
     "the single-element String" ~> strLiteral |
-    // CreateDynamicFunction
-    strLiteral <~ "\\([^)]*\\)".r |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of the production" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> expr |
-    expr <~ (
-      "rounded towards 0 to the next integer value" |
-      ", rounding down to the nearest integer, " +
-      "including for negative numbers"
-    )
+    "the 32-bit two's complement bit string representing" ~> expr
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -1237,6 +1232,8 @@ trait Parsers extends IndentParsers {
   // html tags
   private lazy val tagStart: Parser[String] = "<[^>]+>".r
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
+  private def tagged[T](parser: Parser[T]): Parser[T] =
+    opt(tagStart) ~> parser <~ opt(tagEnd)
 
   // nonterminals
   private lazy val nt: Parser[String] = "|" ~> word <~ "|"
