@@ -245,7 +245,7 @@ class Interpreter(
         case v           => throw NoNt(nt, v)
       st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
-      throw NotSupported(msg)
+      throw NotSupported(List("metalanguage", msg))
     case EContains(list, elem, field) =>
       val l = eval(list).getList(list, st)
       val e = eval(elem)
@@ -666,7 +666,7 @@ object Interpreter {
         Str(ESValueParser.parseTRVTemplateTail(str))
       case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(s"RegularExpressionLiteral.$sdoName")
+        throw NotSupported(List("RegExp", sdoName))
       case _ =>
         throw InvalidAstProp(lex, Str(sdoName))
     }

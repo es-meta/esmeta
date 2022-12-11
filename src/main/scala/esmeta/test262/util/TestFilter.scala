@@ -5,6 +5,7 @@ import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.error.NotSupported.*
 import esmeta.test262.{*, given}
 import io.circe.*, io.circe.syntax.*
 import java.io.*
@@ -17,62 +18,85 @@ case class TestFilter(spec: Spec) {
     tests: List[Test],
     withYet: Boolean = false,
     features: List[String] = languageFeatures,
-  ): (List[Test], Map[String, List[Test]]) = {
-    val filters = getFilters(withYet, features)
-    var removedMap: Map[String, List[Test]] = Map()
-    val targetTests = filters.foldLeft(tests) {
+  ): (List[Test], Iterable[(Test, ReasonPath)]) =
+    var removedMap: Vector[(Test, ReasonPath)] = Vector()
+    val targetTests = getFilters(withYet, features.toSet).foldLeft(tests) {
       case (tests, (desc, filter)) =>
-        val result = tests.groupBy(filter)
-        val removed = result.getOrElse(true, Nil)
-        val removedCount = removed.length
-        if (removedCount > 0)
-          println(f"- $desc%-30s: $removedCount%,5d tests are removed")
-        removedMap += desc -> removed
-        result.getOrElse(false, Nil)
+        for {
+          test <- tests
+          if filter(test) match
+            case Some(reasonPath) => removedMap +:= test -> reasonPath; false
+            case None             => true
+        } yield test
     }
-    (targetTests, removedMap.toMap)
-  }
+    (targetTests, removedMap)
 
   private def getFilters(
     withYet: Boolean,
-    features: List[String],
-  ): List[(String, Test => Boolean)] = List(
-    "harness" -> (_.relName.startsWith("harness")),
-    "internationalisation" -> (_.relName.startsWith("intl")),
-    "annex" -> (test =>
-      test.relName.startsWith("annex") ||
-      test.relName.contains("__proto__"),
+    features: Set[String],
+  ): List[(String, Test => Option[ReasonPath])] = List(
+    lift("harness" -> (_.relName.startsWith("harness"))),
+    lift("internationalisation" -> (_.relName.startsWith("intl"))),
+    lift(
+      "annex" -> (test =>
+        test.relName.startsWith("annex") ||
+        test.relName.contains("__proto__"),
+      ),
     ),
-    "in-progress-features" -> (test =>
-      !test.features.forall(features.contains(_)) ||
-      manualInprogress.contains(removedExt(test.relName)),
+    liftReason(
+      "not-supported-features" -> (_.features.find(!features.contains(_))),
     ),
-    "non-strict" -> (test =>
-      test.flags.contains("noStrict") ||
-      test.flags.contains("raw") ||
-      manualNonstrict.contains(removedExt(test.relName)),
+    lift(
+      "non-strict" -> (test =>
+        test.flags.contains("noStrict") ||
+        test.flags.contains("raw") ||
+        manualNonstrict.contains(removedExt(test.relName)),
+      ),
     ),
-    "module" -> (test =>
-      test.flags.contains("module") ||
-      test.relName.startsWith("language/module-code/") ||
-      test.relName.startsWith("language/import/") ||
-      test.relName.startsWith("language/expressions/dynamic-import/") ||
-      test.relName.startsWith("language/expressions/import.meta/"),
+    lift(
+      "module" -> (test =>
+        test.flags.contains("module") ||
+        test.relName.startsWith("language/module-code/") ||
+        test.relName.startsWith("language/import/") ||
+        test.relName.startsWith("language/expressions/dynamic-import/") ||
+        test.relName.startsWith("language/expressions/import.meta/"),
+      ),
     ),
-    "negative-errors" -> (test =>
-      test.negative.isDefined ||
-      manualEarlyError.contains(removedExt(test.relName)),
+    lift(
+      "negative-errors" -> (test =>
+        test.negative.isDefined ||
+        manualEarlyError.contains(removedExt(test.relName)),
+      ),
     ),
-    "inessential-builtin-objects" -> (test =>
-      test.flags.contains("CanBlockIsFalse") ||
-      test.flags.contains("CanBlockIsTrue") ||
-      !test.locales.isEmpty,
+    lift(
+      "inessential-builtin-objects" -> (test =>
+        test.flags.contains("CanBlockIsFalse") ||
+        test.flags.contains("CanBlockIsTrue") ||
+        !test.locales.isEmpty,
+      ),
     ),
-    "non-tests" -> (test => manualNonTest.contains(removedExt(test.relName))),
-    "wrong-tests" -> (test => wrongTest.contains(removedExt(test.relName))),
-    "longTest" -> (test => longTest.contains(removedExt(test.relName))),
-    "yet" -> (test => !withYet && yets.contains(removedExt(test.relName))),
+    lift(
+      "non-tests" -> (test => manualNonTest.contains(removedExt(test.relName))),
+    ),
+    lift(
+      "wrong-tests" -> (test => wrongTest.contains(removedExt(test.relName))),
+    ),
+    lift("longTest" -> (test => longTest.contains(removedExt(test.relName)))),
+    lift("yet" -> (test => !withYet && yets.contains(removedExt(test.relName)))),
   )
+
+  private def lift(
+    pair: (String, Test => Boolean),
+  ): (String, Test => Option[ReasonPath]) =
+    val (name, filter) = pair
+    val lifted = (x: Test) => if (filter(x)) Some(List(name)) else None
+    name -> lifted
+
+  private def liftReason(
+    pair: (String, Test => Option[Reason]),
+  ): (String, Test => Option[ReasonPath]) =
+    val (name, filter) = pair
+    name -> (test => filter(test).map(List(name, _)))
 
   lazy val manualConfig = spec.manualInfo.test262
 
@@ -90,12 +114,6 @@ case class TestFilter(spec: Spec) {
   lazy val manualEarlyError =
     manualConfig.filtered.getOrElse("early errors", Nil).toSet
 
-  /** manually filtered out tests for in-progress features */
-  lazy val manualInprogress = (for {
-    (_, names) <- manualConfig.inProgress
-    name <- names
-  } yield name).toSet
-
   /** manually filtered out non test files */
   lazy val manualNonTest =
     manualConfig.filtered.getOrElse("non tests", Nil).toSet
@@ -110,5 +128,5 @@ case class TestFilter(spec: Spec) {
 
   /** manually filtered out not yet supported tests */
   lazy val yets =
-    manualConfig.filtered.getOrElse("yet tests", Nil).toSet
+    manualConfig.filtered.getOrElse("not yet categorized tests", Nil).toSet
 }

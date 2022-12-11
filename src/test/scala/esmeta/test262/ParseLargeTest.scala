@@ -8,9 +8,9 @@ class ParseLargeTest extends Test262Test {
     val summary = Test262Test.test262.parseTest(
       log = true,
       useProgress = true,
-      timeLimit = Some(100),
+      timeLimit = Some(60),
     )
-    val f = summary.fail
+    val f = summary.failCount
     if (f > 0) fail(s"$f tests are failed (See `$logDir/fail.log`).")
   }
   init

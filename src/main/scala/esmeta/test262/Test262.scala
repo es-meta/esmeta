@@ -3,6 +3,7 @@ package esmeta.test262
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
+import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
@@ -70,17 +71,19 @@ case class Test262(
   def getProgressBar(
     name: String,
     targetTests: List[Test],
+    removed: Iterable[(Test, ReasonPath)] = Nil,
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
   ): ProgressBar[Test] = ProgressBar(
     msg = s"Run Test262 $name tests",
     iterable = targetTests,
+    notSupported = removed,
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
-        case NotSupported(msg)   => summary.yets += s"$name - $msg"
-        case _: TimeoutException => summary.timeouts += name
-        case e: Throwable        => summary.fails += s"$name - ${e.getMessage}"
+        case NotSupported(reasons) => summary.notSupported.add(name, reasons)
+        case _: TimeoutException   => summary.timeout.add(name)
+        case e: Throwable          => summary.fail.add(name, e.getMessage)
       else throw e,
     verbose = useProgress,
   )
@@ -106,6 +109,7 @@ case class Test262(
     val progressBar = getProgressBar(
       name = "eval",
       targetTests = targetTests,
+      removed = removed,
       useProgress = useProgress,
       useErrorHandler = multiple,
     )
@@ -121,7 +125,6 @@ case class Test262(
     logForTests(
       name = "eval",
       progressBar = progressBar,
-      removed = removed,
       postSummary = if (useCoverage) cov.toString else "",
       log = log && multiple,
     )(
@@ -158,6 +161,7 @@ case class Test262(
     val progressBar = getProgressBar(
       name = "parse",
       targetTests = targetTests,
+      removed = removed,
       useProgress = useProgress,
     )
 
@@ -165,7 +169,6 @@ case class Test262(
     logForTests(
       name = "parse",
       progressBar = progressBar,
-      removed = removed,
       log = log,
     )(
       // check parsing result with its corresponding code
@@ -211,7 +214,6 @@ case class Test262(
   private def logForTests(
     name: String,
     progressBar: ProgressBar[Test],
-    removed: Map[String, List[Test]],
     postSummary: => String = "",
     log: Boolean = false,
   )(
@@ -223,31 +225,19 @@ case class Test262(
 
     // setting for logging
     if (log)
-      println(s"- Logging to $logDir...")
       mkdir(logDir)
       dumpFile(spec.versionString, s"$logDir/ecma262-version")
       dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-      summary.timeouts.setPath(s"$logDir/timeout.log")
-      summary.yets.setPath(s"$logDir/yet.log")
-      summary.fails.setPath(s"$logDir/fail.log")
-      summary.passes.setPath(s"$logDir/pass.log")
 
     // run tests
     for (test <- progressBar) check(test)
 
     // logging after tests
     if (log)
-      summary.close
-      val removed_total = removed.foldLeft(0)(_ + _._2.length)
+      summary.dumpTo(logDir)
       val summaryStr =
-        s"- total: ${summary.total + removed_total}$LINE_SEP" +
-        s"- removed: ${removed_total}$LINE_SEP" +
-        removed.foldLeft("") {
-          case (acc, (s, i)) => acc + s"  - $s: ${i.length}$LINE_SEP"
-        }
-        + (if (postSummary.isEmpty) s"$summary$LINE_SEP"
-           else
-             s"$summary$LINE_SEP$postSummary$LINE_SEP")
+        if (postSummary.isEmpty) s"$summary"
+        else s"$summary$LINE_SEP$postSummary"
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
 }
 object Test262 extends Git(TEST262_DIR)

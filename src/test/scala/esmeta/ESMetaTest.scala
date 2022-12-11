@@ -2,7 +2,8 @@ package esmeta
 
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
-import esmeta.error.NotSupported
+import esmeta.error.{NotSupported => NSError}
+import esmeta.error.NotSupported.*
 import esmeta.extractor.Extractor
 import esmeta.phase.*
 import esmeta.util.BaseUtils.*
@@ -20,21 +21,23 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // results
   trait Result
   case object Pass extends Result
-  case class Yet(msg: String) extends Result
+  case class NotSupported(reasonPath: ReasonPath) extends Result
   case object Fail extends Result
   protected var resMap: Map[String, Result] = Map()
   implicit val ResultDecoder: Decoder[Result] = new Decoder[Result] {
     final def apply(c: HCursor): Decoder.Result[Result] = c.value match {
-      case Json.True       => Right(Pass)
-      case Json.False      => Right(Fail)
-      case v if v.isString => Right(Yet(v.asString.get))
+      case Json.True  => Right(Pass)
+      case Json.False => Right(Fail)
+      case v if v.isArray =>
+        Right(NotSupported(v.asArray.get.map(_.asString.get).toList))
       case _ => Left(DecodingFailure(s"unknown Result: ${c.value}", c.history))
     }
   }
   implicit val ResultEncoder: Encoder[Result] = Encoder.instance {
-    case Pass     => Json.True
-    case Fail     => Json.False
-    case Yet(msg) => Json.fromString(msg)
+    case Pass => Json.True
+    case Fail => Json.False
+    case NotSupported(reasonPath) =>
+      Json.fromValues(reasonPath.map(Json.fromString))
   }
 
   // count tests
@@ -48,8 +51,8 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
         tester
         resMap += name -> Pass
       } catch {
-        case e @ NotSupported(msg) =>
-          resMap += name -> Yet(msg)
+        case e @ NSError(reasonPath) =>
+          resMap += name -> NotSupported(reasonPath)
         case e: Throwable =>
           println(e)
           resMap += name -> Fail

@@ -37,12 +37,13 @@ class Appender(tab: String = "  ") {
     wrapIterable()(iter)
   def wrapIterable[T](
     open: String = "{",
+    sep: String = ",",
     close: String = "}",
     detail: Boolean = true,
   )(iter: Iterable[T])(using tRule: Rule[T]): Appender =
     if (iter.isEmpty) this >> open >> close
     else if (!detail) this >> open >> " ... " >> close
-    else this.wrap(open, close) { for (elem <- iter) this :> elem >> "," }
+    else this.wrap(open, close) { for (elem <- iter) this :> elem >> sep }
 }
 
 /** helper for appender */
