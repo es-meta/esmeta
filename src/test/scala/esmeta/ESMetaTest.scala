@@ -21,7 +21,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // results
   trait Result
   case object Pass extends Result
-  case class NotSupported(reasonPath: List[String]) extends Result
+  case class NotSupported(reasonPath: ReasonPath) extends Result
   case object Fail extends Result
   protected var resMap: Map[String, Result] = Map()
   implicit val ResultDecoder: Decoder[Result] = new Decoder[Result] {
