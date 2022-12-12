@@ -117,7 +117,7 @@ object Test {
           val featuresn =
             if (line contains "features:") line.dropWhile(_ != '[') match {
               case "" => List()
-              case s  => s.tail.takeWhile(_ != ']').split(", ").toList
+              case s => s.tail.takeWhile(_ != ']').split(",").map(_.trim).toList
             }
             else features
           (
