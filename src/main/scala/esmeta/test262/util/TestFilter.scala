@@ -34,56 +34,53 @@ case class TestFilter(spec: Spec) {
   private def getFilters(
     withYet: Boolean,
     features: Set[String],
-  ): List[(String, Test => Option[ReasonPath])] = List(
-    lift("harness" -> (_.relName.startsWith("harness"))),
-    lift("internationalisation" -> (_.relName.startsWith("intl"))),
-    lift(
-      "annex" -> (test =>
-        test.relName.startsWith("annex") ||
-        test.relName.contains("__proto__"),
+  ): List[(String, Test => Option[ReasonPath])] =
+    manualConfig.filtered.toList.map { (desc, tests) =>
+      lift(
+        desc -> (test =>
+          if (desc == "yet")
+            !withYet && tests.contains(removedExt(test.relName))
+          else tests.contains(removedExt(test.relName)),
+        ),
+      )
+    } ++ List(
+      lift("harness" -> (_.relName.startsWith("harness"))),
+      lift("internationalisation" -> (_.relName.startsWith("intl"))),
+      lift(
+        "annex" -> (test =>
+          test.relName.startsWith("annex") ||
+          test.relName.contains("__proto__"),
+        ),
       ),
-    ),
-    liftReason(
-      "not-supported-features" -> (_.features.find(!features.contains(_))),
-    ),
-    lift(
-      "non-strict" -> (test =>
-        test.flags.contains("noStrict") ||
-        test.flags.contains("raw") ||
-        manualNonstrict.contains(removedExt(test.relName)),
+      liftReason(
+        "not-supported-features" -> (_.features.find(!features.contains(_))),
       ),
-    ),
-    lift(
-      "module" -> (test =>
-        test.flags.contains("module") ||
-        test.relName.startsWith("language/module-code/") ||
-        test.relName.startsWith("language/import/") ||
-        test.relName.startsWith("language/expressions/dynamic-import/") ||
-        test.relName.startsWith("language/expressions/import.meta/"),
+      lift(
+        "non-strict" -> (test =>
+          test.flags.contains("noStrict") ||
+          test.flags.contains("raw"),
+        ),
       ),
-    ),
-    lift(
-      "negative-errors" -> (test =>
-        test.negative.isDefined ||
-        manualEarlyError.contains(removedExt(test.relName)),
+      lift(
+        "module" -> (test =>
+          test.flags.contains("module") ||
+          test.relName.startsWith("language/module-code/") ||
+          test.relName.startsWith("language/import/") ||
+          test.relName.startsWith("language/expressions/dynamic-import/") ||
+          test.relName.startsWith("language/expressions/import.meta/"),
+        ),
       ),
-    ),
-    lift(
-      "inessential-builtin-objects" -> (test =>
-        test.flags.contains("CanBlockIsFalse") ||
-        test.flags.contains("CanBlockIsTrue") ||
-        !test.locales.isEmpty,
+      lift(
+        "negative-errors" -> (test => test.negative.isDefined),
       ),
-    ),
-    lift(
-      "non-tests" -> (test => manualNonTest.contains(removedExt(test.relName))),
-    ),
-    lift(
-      "wrong-tests" -> (test => wrongTest.contains(removedExt(test.relName))),
-    ),
-    lift("longTest" -> (test => longTest.contains(removedExt(test.relName)))),
-    lift("yet" -> (test => !withYet && yets.contains(removedExt(test.relName)))),
-  )
+      lift(
+        "inessential-builtin-objects" -> (test =>
+          test.flags.contains("CanBlockIsFalse") ||
+          test.flags.contains("CanBlockIsTrue") ||
+          !test.locales.isEmpty,
+        ),
+      ),
+    )
 
   private def lift(
     pair: (String, Test => Boolean),
@@ -106,27 +103,4 @@ case class TestFilter(spec: Spec) {
     */
   lazy val languageFeatures = manualConfig.supportedFeatures
 
-  /** manually filtered out non-strict mode tests */
-  lazy val manualNonstrict =
-    manualConfig.filtered.getOrElse("non-strict tests", Nil).toSet
-
-  /** manually filtered out tests for EarlyErorr */
-  lazy val manualEarlyError =
-    manualConfig.filtered.getOrElse("early errors", Nil).toSet
-
-  /** manually filtered out non test files */
-  lazy val manualNonTest =
-    manualConfig.filtered.getOrElse("non tests", Nil).toSet
-
-  /** manually filtered out long tests */
-  lazy val longTest =
-    manualConfig.filtered.getOrElse("long tests", Nil).toSet
-
-  /** manually filtered out wrong test262 tests */
-  lazy val wrongTest =
-    manualConfig.filtered.getOrElse("wrong tests", Nil).toSet
-
-  /** manually filtered out not yet supported tests */
-  lazy val yets =
-    manualConfig.filtered.getOrElse("not yet categorized tests", Nil).toSet
 }

@@ -1,5 +1,5 @@
 {
-  "early errors": [
+  "negative-errors": [
     "built-ins/AsyncGeneratorFunction/instance-await-expr-in-param",
     "built-ins/AsyncGeneratorFunction/instance-yield-expr-in-param",
     "built-ins/Function/StrictFunction_reservedwords_with",
@@ -181,7 +181,7 @@
     "language/statements/with/12.10.1-16-s",
     "language/statements/with/12.10.1-7-s"
   ],
-  "long tests": [
+  "long-tests": [
     "built-ins/Array/length/S15.4.5.2_A3_T4",
     "built-ins/Array/prototype/Symbol.unscopables/value",
     "built-ins/Array/prototype/concat/Array.prototype.concat_spreadable-sparse-object",
@@ -235,12 +235,12 @@
     "language/statements/while/tco-body",
     "language/types/number/8.5.1"
   ],
-  "non tests": [
+  "non-tests": [
     "built-ins/ShadowRealm/prototype/importValue/import-value_FIXTURE",
     "built-ins/ShadowRealm/prototype/importValue/import-value_syntax_error_FIXTURE",
     "built-ins/ShadowRealm/prototype/importValue/import-value_throws_FIXTURE"
   ],
-  "non-strict tests": [
+  "non-strict": [
     "built-ins/Function/S15.3.2.1_A3_T8",
     "built-ins/Function/S15.3.5_A2_T1",
     "built-ins/Function/S15.3.5_A2_T2",
@@ -300,11 +300,11 @@
     "language/statements/variable/12.2.1-17-s",
     "language/statements/variable/12.2.1-21-s"
   ],
-  "wrong tests": [
+  "wrong-tests": [
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
     "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
   ],
-  "not yet categorized tests": [
+  "not-yet-categorized-tests": [
     "built-ins/Array/prototype/sort/stability-2048-elements",
     "built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-rejected",
     "built-ins/AsyncFromSyncIteratorPrototype/throw/iterator-result",
