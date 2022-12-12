@@ -3,12 +3,20 @@ package esmeta.util
 import scala.util.parsing.combinator.*
 import scala.util.parsing.input.{Reader, Position}
 import scala.collection.mutable
+import java.util.concurrent.atomic.AtomicInteger
 
 /** an extensible packrat parsers */
 trait EPackratParsers extends Parsers {
   protected trait DataType { def next: Data }
   protected type Data <: DataType
   protected def defaultData: Data
+
+  // option for evaluation
+  def eval: Boolean = false
+  private val parseCount: AtomicInteger = new AtomicInteger
+  def getParseCount: Int = parseCount.get
+  private val cacheCount: AtomicInteger = new AtomicInteger
+  def getCacheCount: Int = cacheCount.get
 
   class EPackratReader[+T <: Elem](underlying: Reader[T]) extends Reader[T] {
     outer =>
@@ -87,6 +95,8 @@ trait EPackratParsers extends Parsers {
     def apply(in: Input) =
       val inMem = in.asInstanceOf[EPackratReader[Elem]]
       val m = recall(p, inMem)
+      // count the number of parsing or using cached results
+      if (eval) (if (m.isDefined) cacheCount else parseCount).incrementAndGet
       m match
         case None =>
           val base = LR(Failure("Base Failure", in), p, None)

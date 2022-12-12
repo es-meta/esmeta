@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.extractor.Extractor
 import esmeta.lang.Step
+import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -18,7 +19,11 @@ case object Extract extends Phase[Unit, Spec] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Spec = if (!config.repl) {
-    val spec = Extractor(config.target)
+    lazy val spec = Extractor(config.target, config.eval)
+    if (config.eval)
+      time("extracting specification", spec)
+      println(f"- # of actual parsing: $getParseCount%,d")
+      println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
     spec
   } else {
@@ -100,6 +105,11 @@ case object Extract extends Phase[Unit, Spec] {
       "turn on logging mode.",
     ),
     (
+      "eval",
+      BoolOption(c => c.eval = true),
+      "evaluate the extractor.",
+    ),
+    (
       "repl",
       BoolOption(c => c.repl = true),
       "use a REPL for metalanguage parser.",
@@ -108,6 +118,7 @@ case object Extract extends Phase[Unit, Spec] {
   case class Config(
     var target: Option[String] = None,
     var log: Boolean = false,
+    var eval: Boolean = false,
     var repl: Boolean = false,
   )
 }

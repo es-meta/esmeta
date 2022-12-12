@@ -2,6 +2,7 @@ package esmeta.extractor
 
 import esmeta.*
 import esmeta.lang.*
+import esmeta.lang.{util => LangUtil}
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
@@ -15,11 +16,12 @@ object Extractor:
   /** extracts a specification */
   def apply(
     document: Document,
-    version: Option[Spec.Version] = None,
-  ): Spec = new Extractor(document, version).result
+    version: Option[Spec.Version],
+    eval: Boolean,
+  ): Spec = new Extractor(document, version, eval).result
 
   /** extracts a specification with a target version of ECMA-262 */
-  def apply(targetOpt: Option[String]): Spec =
+  def apply(targetOpt: Option[String] = None, eval: Boolean = false): Spec =
     val (version, document) = Spec.getVersionWith(targetOpt) {
       case version =>
         // if bugfix patch exists, apply it to spec.html
@@ -29,19 +31,19 @@ object Extractor:
         }
         document
     }
-    apply(document, Some(version))
+    apply(document, Some(version), eval)
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(target: String): Spec = apply(Some(target))
-
-  /** extracts a specification with the current version of ECMA-262 */
-  def apply(): Spec = apply(None)
 
 /** extensible helper of specification extractor from ECMA-262 */
 class Extractor(
   document: Document,
   version: Option[Spec.Version] = None,
+  eval: Boolean = false,
 ) extends SpecParsers {
+  lazy val parser: LangUtil.Parsers =
+    if (eval) LangUtil.ParserForEval else LangUtil.Parser
 
   lazy val manualInfo: ManualInfo = ManualInfo(version)
 
@@ -104,7 +106,7 @@ class Extractor(
   def extractAlgorithm(elem: Element): List[Algorithm] = for {
     head <- extractHeads(elem)
     code = elem.html.unescapeHtml
-    body = Step.from(code)
+    body = parser.parseBy(parser.step)(code)
   } yield Algorithm(head, elem, body, code)
 
   /** TODO ignores elements whose parents' ids are in this list */

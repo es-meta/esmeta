@@ -8,6 +8,7 @@ import esmeta.util.BaseUtils.*
 
 /** metalanguage parser */
 object Parser extends Parsers
+object ParserForEval extends Parsers { override def eval = true }
 trait Parsers extends IndentParsers {
   // shortcuts
   type P[T] = EPackratParser[T]
