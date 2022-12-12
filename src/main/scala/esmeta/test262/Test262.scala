@@ -195,14 +195,10 @@ case class Test262(
     filename: String,
     log: Boolean = false,
     timeLimit: Option[Int] = None,
-  ): State = eval(loadTest(filename), log, timeLimit)
-  private def eval(
-    script: Ast,
-    log: Boolean = false,
-    timeLimit: Option[Int] = None,
   ): State =
-    val code = script.toString(grammar = Some(cfg.grammar)).trim
-    val st = Initialize(cfg, code, Some(script))
+    val ast = loadTest(filename)
+    val code = ast.toString(grammar = Some(cfg.grammar)).trim
+    val st = Initialize(cfg, code, Some(ast), Some(filename))
     Interpreter(
       st = st,
       log = log,
