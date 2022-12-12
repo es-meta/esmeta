@@ -9,6 +9,7 @@
       1. Perform ? ScriptEvaluation(_script_).
       1. Return *undefined*.
     1. Perform HostEnqueuePromiseJob(_scriptEvaluationJob_, the current Realm Record).
+    1. Let _errors_ be *undefined*.
     1. Repeat,
       1. Suspend the running execution context and remove it from the execution context stack.
       1. Assert: The execution context stack is empty.
@@ -21,6 +22,9 @@
       1. Set _newContext_'s ScriptOrModule to _nextPending_.[[ScriptOrModule]].
       1. Push _newContext_ onto the execution context stack; _newContext_ is now the running execution context.
       1. Let _job_ be _nextPending_.[[Job]].
-      1. Perform ? _job_().
+      1. Let _result_ be _job_().
+      1. If _result_ is an abrupt completion,
+        1. If _errors_ is *undefined*, set _errors_ to « _result_.[[Value]] ».
+        1. Otherwise, append _result_.[[Value]] to _errors_.
   </emu-alg>
 <emu-clause>
