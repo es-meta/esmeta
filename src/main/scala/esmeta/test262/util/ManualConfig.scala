@@ -7,6 +7,7 @@ import java.io.File
 
 case class ManualConfig(
   filtered: Map[String, List[String]],
+  yetCategorized: List[String],
   supportedFeatures: List[String],
 )
 object ManualConfig {
@@ -19,8 +20,11 @@ object ManualConfig {
     val filtered = fileMap
       .get("filtered.json")
       .fold(Map())(readJson[Map[String, List[String]]])
+    val yetCategorized = fileMap
+      .get("yet-categorized.json")
+      .fold(Nil)(readJson[List[String]])
     val supportedFeatures = fileMap
       .get("supported-features.json")
       .fold(Nil)(readJson[List[String]])
-    ManualConfig(filtered, supportedFeatures)
+    ManualConfig(filtered, yetCategorized, supportedFeatures)
 }

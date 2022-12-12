@@ -21,7 +21,7 @@ case class TestFilter(spec: Spec) {
   ): (List[Test], Iterable[(Test, ReasonPath)]) =
     var removedMap: Vector[(Test, ReasonPath)] = Vector()
     val targetTests = getFilters(withYet, features.toSet).foldLeft(tests) {
-      case (tests, (desc, filter)) =>
+      case (tests, filter) =>
         for {
           test <- tests
           if filter(test) match
@@ -34,73 +34,68 @@ case class TestFilter(spec: Spec) {
   private def getFilters(
     withYet: Boolean,
     features: Set[String],
-  ): List[(String, Test => Option[ReasonPath])] =
-    manualConfig.filtered.toList.map { (desc, tests) =>
-      lift(
-        desc -> (test =>
-          if (desc == "yet")
-            !withYet && tests.contains(removedExt(test.relName))
-          else tests.contains(removedExt(test.relName)),
-        ),
-      )
-    } ++ List(
-      lift("harness" -> (_.relName.startsWith("harness"))),
-      lift("internationalisation" -> (_.relName.startsWith("intl"))),
-      lift(
-        "annex" -> (test =>
-          test.relName.startsWith("annex") ||
-          test.relName.contains("__proto__"),
-        ),
-      ),
-      liftReason(
-        "not-supported-features" -> (_.features.find(!features.contains(_))),
-      ),
-      lift(
-        "non-strict" -> (test =>
-          test.flags.contains("noStrict") ||
-          test.flags.contains("raw"),
-        ),
-      ),
-      lift(
-        "module" -> (test =>
-          test.flags.contains("module") ||
-          test.relName.startsWith("language/module-code/") ||
-          test.relName.startsWith("language/import/") ||
-          test.relName.startsWith("language/expressions/dynamic-import/") ||
-          test.relName.startsWith("language/expressions/import.meta/"),
-        ),
-      ),
-      lift(
-        "negative-errors" -> (test => test.negative.isDefined),
-      ),
-      lift(
-        "inessential-builtin-objects" -> (test =>
-          test.flags.contains("CanBlockIsFalse") ||
-          test.flags.contains("CanBlockIsTrue") ||
-          !test.locales.isEmpty,
-        ),
-      ),
-    )
+  ): List[Test => Option[ReasonPath]] = List(
+    "harness" -> ((test: Test) => test.relName.startsWith("harness")),
+    "internationalisation" -> ((test: Test) => test.relName.startsWith("intl")),
+    "annex" -> ((test: Test) =>
+      test.relName.startsWith("annex") ||
+      test.relName.contains("__proto__"),
+    ),
+    "not-supported-features" -> ((test: Test) =>
+      test.features.find(!features.contains(_)),
+    ),
+    "non-strict" -> ((test: Test) =>
+      test.flags.contains("noStrict") ||
+      test.flags.contains("raw"),
+    ),
+    "module" -> ((test: Test) =>
+      test.flags.contains("module") ||
+      test.relName.startsWith("language/module-code/") ||
+      test.relName.startsWith("language/import/") ||
+      test.relName.startsWith("language/expressions/dynamic-import/") ||
+      test.relName.startsWith("language/expressions/import.meta/"),
+    ),
+    "negative-errors" -> ((test: Test) => test.negative.isDefined),
+    "inessential-builtin-objects" -> ((test: Test) =>
+      test.flags.contains("CanBlockIsFalse") ||
+      test.flags.contains("CanBlockIsTrue") ||
+      !test.locales.isEmpty,
+    ),
+    // manually filter tests
+    test => manualFilterMap.get(removedExt(test.relName)),
+    // manually filter not yet categorized tests
+    "not-yet-categorized" -> ((test: Test) =>
+      !withYet && manualYetCategorized.contains(removedExt(test.relName)),
+    ),
+  )
 
-  private def lift(
-    pair: (String, Test => Boolean),
-  ): (String, Test => Option[ReasonPath]) =
+  given liftBool: Conversion[
+    (String, Test => Boolean),
+    Test => Option[ReasonPath],
+  ] = pair =>
     val (name, filter) = pair
     val lifted = (x: Test) => if (filter(x)) Some(List(name)) else None
-    name -> lifted
+    lifted
 
-  private def liftReason(
-    pair: (String, Test => Option[Reason]),
-  ): (String, Test => Option[ReasonPath]) =
+  given liftReason: Conversion[
+    (String, Test => Option[Reason]),
+    Test => Option[ReasonPath],
+  ] = pair =>
     val (name, filter) = pair
-    name -> (test => filter(test).map(List(name, _)))
+    test => filter(test).map(List(name, _))
 
   lazy val manualConfig = spec.manualInfo.test262
+
+  lazy val manualFilterMap = (for {
+    (reason, tests) <- manualConfig.filtered
+    test <- tests
+  } yield test -> List(reason)).toMap
+
+  lazy val manualYetCategorized = manualConfig.yetCategorized.toSet
 
   /** language features in Test262
     * @url
     *   https://github.com/tc39/test262/blob/main/features.txt
     */
   lazy val languageFeatures = manualConfig.supportedFeatures
-
 }
