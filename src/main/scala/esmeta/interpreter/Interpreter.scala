@@ -1,6 +1,6 @@
 package esmeta.interpreter
 
-import esmeta.{EVAL_LOG_DIR, LINE_SEP}
+import esmeta.{EVAL_LOG_DIR, LINE_SEP, NOT_SUPPORTED_FEATURES}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
@@ -666,7 +666,7 @@ object Interpreter {
         Str(ESValueParser.parseTRVTemplateTail(str))
       case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(List("RegExp", sdoName))
+        throw NotSupported(List(NOT_SUPPORTED_FEATURES, "RegExp", sdoName))
       case _ =>
         throw InvalidAstProp(lex, Str(sdoName))
     }

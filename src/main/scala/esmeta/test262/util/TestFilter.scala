@@ -41,7 +41,7 @@ case class TestFilter(spec: Spec) {
       test.relName.startsWith("annex") ||
       test.relName.contains("__proto__"),
     ),
-    "not-supported-features" -> ((test: Test) =>
+    NOT_SUPPORTED_FEATURES -> ((test: Test) =>
       test.features.find(!features.contains(_)),
     ),
     "non-strict" -> ((test: Test) =>

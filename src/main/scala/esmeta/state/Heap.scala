@@ -1,5 +1,6 @@
 package esmeta.state
 
+import esmeta.{NOT_SUPPORTED_FEATURES}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -16,14 +17,15 @@ case class Heap(
   /** getters */
   def apply(addr: Addr): Obj =
     map.getOrElse(addr, throw UnknownAddr(addr)) match
-      case YetObj(_, msg) => throw NotSupported(msg)
-      case obj            => obj
+      case YetObj(_, msg) =>
+        throw NotSupported(List(NOT_SUPPORTED_FEATURES, msg))
+      case obj => obj
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
-    case YetObj(_, msg)                     => throw NotSupported(msg)
+    case YetObj(_, msg) => throw NotSupported(List(NOT_SUPPORTED_FEATURES, msg))
 
   /** setters */
   def update(addr: Addr, prop: PureValue, value: Value): this.type =
