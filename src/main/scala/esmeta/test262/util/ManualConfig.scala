@@ -18,7 +18,7 @@ object ManualConfig {
       if jsonFilter(file.getName)
     } yield file.getName -> file.toString).toMap
     val filtered = fileMap
-      .get("filtered.json")
+      .get("categorized.json")
       .fold(Map())(readJson[Map[String, List[String]]])
     val yetCategorized = fileMap
       .get("yet-categorized.json")

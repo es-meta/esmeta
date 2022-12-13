@@ -59,9 +59,6 @@ var STATUS_MODE = false
 var TEST262_DIR = s"$TEST_DIR/test262"
 def TEST262_TEST_DIR = s"$TEST262_DIR/test"
 
-/** constant string for not supported features */
-val NOT_SUPPORTED_FEATURES = "not-supported-features"
-
 // -----------------------------------------------------------------------------
 // Mutable Global Options
 // -----------------------------------------------------------------------------
