@@ -103,7 +103,7 @@ object Stringifier {
   /** named record types */
   given nameTyRule: Rule[NameTy] = (app, ty) =>
     ty.set match
-      case Inf => app
+      case Inf => app >> "AnyName"
       case Fin(set) =>
         given Rule[Set[String]] = setRule("", OR, "")
         app >> set

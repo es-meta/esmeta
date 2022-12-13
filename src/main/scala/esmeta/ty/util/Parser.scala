@@ -26,10 +26,11 @@ trait Parsers extends BasicParsers {
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
-    "Any" ^^^ AnyT |
-    singleCompTy ^^ { case t => ValueTy(comp = t) } |
-    singleSubMapTy ^^ { case t => ValueTy(subMap = t) } |
-    singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
+    "Any" ^^^ AnyT ||| (
+      singleCompTy ^^ { case t => ValueTy(comp = t) } |
+      singleSubMapTy ^^ { case t => ValueTy(subMap = t) } |
+      singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
+    )
   }.named("ty.ValueTy (single)")
 
   /** completion record types */
@@ -136,18 +137,19 @@ trait Parsers extends BasicParsers {
   }.named("ty.NameTy")
 
   private lazy val singleNameTy: Parser[NameTy] = {
-    camel ^^ { case name => NameTy(Fin(name)) }
+    "AnyName" ^^^ NameTy.Top |
+    not("Any") ~> camel ^^ { case name => NameTy(Fin(name)) }
   }.named("ty.NameTy (single)")
 
   /** record types */
   given recordTy: Parser[RecordTy] = {
-    "AnyRecord" ^^^ RecordTy.Top |
     rep1sep(singleRecordTy, "|") ^^ {
       case ts => ts.foldLeft[RecordTy](RecordTy.Bot)(_ || _)
     }
   }.named("ty.RecordTy")
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
+    "AnyRecord" ^^^ RecordTy.Top |
     "{" ~> rep1sep(field, ",") <~ "}" ^^ {
       case pairs => RecordTy.Elem(pairs.toMap)
     }

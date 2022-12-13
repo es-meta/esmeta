@@ -27,8 +27,10 @@ class StringifyTinyTest extends TyTest {
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
+      NameT -> "AnyName",
       NameT("Cat") -> "Cat",
       NameT("Cat", "Dog") -> "Cat | Dog",
+      RecordT -> "AnyRecord",
       RecordT("A" -> NumberT, "B" -> BoolT) ->
       "{ [[A]]: Number, [[B]]: Boolean }",
       RecordT(Set("Key", "Value")) ->
