@@ -2,6 +2,8 @@ package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
+import esmeta.error.NotSupported.{*, given}
+import esmeta.error.NotSupported.Category.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.builtin.*
 import esmeta.util.BaseUtils.*
@@ -16,14 +18,14 @@ case class Heap(
   /** getters */
   def apply(addr: Addr): Obj =
     map.getOrElse(addr, throw UnknownAddr(addr)) match
-      case YetObj(_, msg) => throw NotSupported(msg)
+      case YetObj(_, msg) => throw NotSupported(Feature)(msg)
       case obj            => obj
   def apply(addr: Addr, key: PureValue): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
-    case YetObj(_, msg)                     => throw NotSupported(msg)
+    case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
   def update(addr: Addr, prop: PureValue, value: Value): this.type =

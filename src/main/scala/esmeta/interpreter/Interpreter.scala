@@ -4,6 +4,8 @@ import esmeta.{EVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
+import esmeta.error.NotSupported.{*, given}
+import esmeta.error.NotSupported.Category.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
@@ -245,7 +247,7 @@ class Interpreter(
         case v           => throw NoNt(nt, v)
       st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
-      throw NotSupported(List("metalanguage", msg))
+      throw NotSupported(Metalanguage)(List(msg))
     case EContains(list, elem, field) =>
       val l = eval(list).getList(list, st)
       val e = eval(elem)
@@ -666,7 +668,7 @@ object Interpreter {
         Str(ESValueParser.parseTRVTemplateTail(str))
       case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(List("RegExp", sdoName))
+        throw NotSupported(Feature)(List("RegExp"))
       case _ =>
         throw InvalidAstProp(lex, Str(sdoName))
     }
@@ -810,10 +812,13 @@ object Interpreter {
       case (MOp.Sinh, List(Math(x)))  => Math(sinh(x.toDouble))
       case (MOp.Tanh, List(Math(x)))  => Math(tanh(x.toDouble))
       case (MOp.Acos, List(Math(x)))  => Math(acos(x.toDouble))
-      case (MOp.Acosh, List(Math(x))) => throw NotSupported("acosh")
-      case (MOp.Asinh, List(Math(x))) => throw NotSupported("asinh")
-      case (MOp.Atanh, List(Math(x))) => throw NotSupported("atanh")
-      case (MOp.Asin, List(Math(x)))  => Math(asin(x.toDouble))
+      case (MOp.Acosh, List(Math(x))) =>
+        throw NotSupported(Metalanguage)("acosh")
+      case (MOp.Asinh, List(Math(x))) =>
+        throw NotSupported(Metalanguage)("asinh")
+      case (MOp.Atanh, List(Math(x))) =>
+        throw NotSupported(Metalanguage)("atanh")
+      case (MOp.Asin, List(Math(x))) => Math(asin(x.toDouble))
       case (MOp.Atan2, List(Math(x), Math(y))) =>
         Math(atan2(x.toDouble, y.toDouble))
       case (MOp.Atan, List(Math(x)))  => Math(atan(x.toDouble))

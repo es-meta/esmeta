@@ -4,6 +4,7 @@ import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.{CFG, Node}
 import esmeta.error.*
+import esmeta.error.NotSupported.given
 import esmeta.es.Initialize
 import esmeta.ir.*
 import esmeta.state.*
