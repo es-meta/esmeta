@@ -44,7 +44,7 @@ case class Program(
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "IR functions",
-      iterable = ProgressBar("Dump IR functions", funcs),
+      iterable = ProgressBar("Dump IR functions", funcs, detail = false),
       dirname = dirname,
       getName = func => s"${func.normalizedName}.ir",
       getData = func => func.toString(detail = true, location = loc),

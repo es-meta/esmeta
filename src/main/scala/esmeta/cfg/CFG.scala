@@ -59,7 +59,7 @@ case class CFG(
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "CFG functions",
-      iterable = ProgressBar("Dump CFG functions", funcs),
+      iterable = ProgressBar("Dump CFG functions", funcs, detail = false),
       dirname = dirname,
       getName = func => s"${func.normalizedName}.cfg",
     )
@@ -75,6 +75,7 @@ case class CFG(
       msg = s"Dump CFG functions in $format",
       iterable = funcs,
       getName = (x, _) => x.name,
+      detail = false,
     )
     for (func <- progress)
       val path = s"$baseDir/${func.normalizedName}"

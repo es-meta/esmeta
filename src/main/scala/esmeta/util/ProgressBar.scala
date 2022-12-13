@@ -17,6 +17,7 @@ case class ProgressBar[T](
     summary.fail.add(name),
   timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
+  detail: Boolean = true,
 ) extends Iterable[T] {
   // summary
   val summary =
@@ -26,10 +27,11 @@ case class ProgressBar[T](
     Summary(notSupported = elem)
 
   // postfix for summary
-  def postfix = (
-    if (summary.total == summary.passCount) ""
-    else s" - ${summary.simpleString}"
-  ) + s" [${summary.time.simpleString}]"
+  def postfix =
+    (if (detail)
+       if (summary.total == summary.passCount) ""
+       else s" - ${summary.simpleString}"
+     else "") + s" [${summary.time.simpleString}]"
 
   // bar length
   val BAR_LEN = 40
@@ -70,10 +72,11 @@ case class ProgressBar[T](
       if (baseSize > 0)
         println(f"  - $baseSize%,d targets are detected as not supported.")
         println("    (The not supported targets can be dynamically detected.)")
-      println(s"  - P: passed targets")
-      println(s"  - F: failed targets")
-      println(s"  - T: timeout targets")
-      println(s"  - N: not supported targets")
+      if (detail)
+        println(s"  - P: passed targets")
+        println(s"  - F: failed targets")
+        println(s"  - T: timeout targets")
+        println(s"  - N: not supported targets")
       show
 
     for ((x, idx) <- iterable.zipWithIndex)
