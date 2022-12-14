@@ -472,7 +472,8 @@ trait Parsers extends IndentParsers {
       "specified in" |
       "described in" |
       "the definition specified in" |
-      "the algorithm steps defined in"
+      "the algorithm steps defined in" |
+      "the ordinary object internal method defined in"
     } ^^^ Algo | {
       "the internal slots listed in"
     } ^^^ InternalSlots | {
