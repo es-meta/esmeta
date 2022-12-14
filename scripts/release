@@ -1,0 +1,223 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+# PLEASE CAREFULLY USE IT.
+# IT WILL AUTOMATICALLY COMMIT/PUSH AND EVEN PUBLISH DOC PAGES.
+# ------------------------------------------------------------------------------
+
+# colors
+RED='\033[0;31m'
+LRED='\033[1;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# log file
+LOG=logs/release
+rm -f $LOG
+
+function log {
+  color=$CYAN
+  if ! [ -z $2 ]; then color=$2; fi
+  dateStr=`date '+%Y-%m-%d %H:%M:%S'`
+  echo -e -n "${color}[$dateStr]${NC} $1... " | tee -a $LOG
+}
+
+function msg {
+  color=$NC
+  if ! [ -z $2 ]; then color=$2; fi
+  echo -e "${color}$1${NC}" | tee -a $LOG
+}
+
+function pass {
+  msg "PASS" $GREEN
+}
+
+function fail {
+  msg "FAIL" $RED
+}
+
+function error {
+  fail && msg && msg "$1" $RED
+}
+
+function warn {
+  msg "$1" $LRED
+}
+
+function clean {
+  fail
+  (
+    git checkout -- . &&
+    git switch dev
+  ) >/dev/null 2>&1
+  exit 1
+}
+
+function help {
+  log "Usage: $0 <semver>"
+  log
+  log "We use Semantic Versioning 2.0 without pre-release names."
+  log "(Please see https://semver.org.)"
+  exit 1
+}
+
+if [ "$#" -ne 1 ]; then
+  help
+fi
+
+VERSION=$1
+TAG_NAME="v$VERSION"
+SEM_VER_PATTERN='^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'
+REGEX='^(0|[1-9]\d*)\.(0|[1-9]\d*).(0|[1-9]\d*)$'
+
+log "Checking version name"
+if ! [[ "$VERSION" =~ $REGEX ]]; then
+  error "Invalid version name: ${LRED}$VERSION"
+  exit 1
+fi
+pass
+
+log "Fetching git"
+git fetch >/dev/null 2>&1 && pass || clean
+
+log "Checking tag name"
+if git rev-parse $TAG_NAME >/dev/null 2>&1; then
+  error "Already existed tag/branch name: ${LRED}$TAG_NAME"
+  exit 1
+fi
+pass
+
+log "Checking git status"
+git update-index --refresh >/dev/null 2>&1
+if ! git diff-index --quiet HEAD -- >/dev/null 2>&1; then
+  error "Please remove all staged (M/D) or untracked(??) files:"
+  warn
+  warn "`git status --porcelain=v1 >/dev/null 2>&1`"
+  warn
+  exit 1
+fi
+pass
+
+log "Updating \`dev\` branch"
+(
+  git switch dev &&
+  git pull origin dev
+) >/dev/null 2>&1 && pass || clean
+
+log "Checking \`dev\` branch"
+DEV_HASH=`git rev-parse dev`
+ORIGIN_DEV_HASH=`git rev-parse origin/dev`
+if [ "$DEV_HASH" != "$ORIGIN_DEV_HASH" ]; then
+  error "The \`dev\` branch is not same with \`origin/dev\`:"
+  warn
+  warn "- dev       : $DEV_HASH"
+  warn "- origin/dev: $ORIGIN_DEV_HASH"
+  warn
+  exit 1
+fi
+pass
+
+log "Checking whether \`main\` is an ancestor of \`dev\`"
+if ! git merge-base --is-ancestor origin/main dev; then
+  error "Please rebase \`dev\` into \`main\`:"
+  warn
+  warn "    $ git rebase main" $LRED
+  warn
+  exit 1
+fi
+pass
+
+log "Updating \`build.sbt\`"
+(
+  sed -i '' -r -e 's/version := "[^ ]+"/version := "'$VERSION'"/' build.sbt
+) >/dev/null 2>&1 && pass || clean
+
+log "Updating \`package.json\`"
+(
+  sed -i '' -r -e 's/VERSION = "[^ ]+"/VERSION = "'$VERSION'"/' src/main/scala/esmeta/package.scala &&
+  pass
+) >/dev/null 2>&1 && pass || clean
+
+log "Updating \`README.md\`"
+(
+  sed -i '' -r -e 's/ESMeta v[^ ]+/ESMeta '$TAG_NAME'/' README.md &&
+  pass
+) >/dev/null 2>&1 && pass || clean
+
+log "Updating binary file using \`sbt release\`"
+(
+  sbt release
+) >/dev/null 2>&1 && pass || clean
+
+log "Testing using \`sbt test\`"
+(
+  sbt test
+) >/dev/null 2>&1 && pass || clean
+
+log "Adding commit to \`dev\`"
+(
+  git add build.sbt src/main/scala/esmeta/package.scala README.md &&
+  git commit -m 'Updated version'
+) >/dev/null 2>&1 && pass || clean
+
+log "Checking \`main\` branch"
+(
+  git switch main &&
+  git pull origin main
+) >/dev/null 2>&1 || clean
+MAIN_HASH=`git rev-parse main`
+ORIGIN_MAIN_HASH=`git rev-parse origin/main`
+if [ "$MAIN_HASH" != "$ORIGIN_MAIN_HASH" ]; then
+  error "The \`main\` branch is not same with \`origin/main\`:"
+  warn
+  warn "- main       : $MAIN_HASH"
+  warn "- origin/main: $ORIGIN_MAIN_HASH"
+  warn
+  exit 1
+fi
+pass
+
+log "Merging \`main\` to \`dev\`"
+(
+  git switch main &&
+  git pull origin main &&
+  git merge dev
+) >/dev/null 2>&1 && pass || clean
+
+echo
+echo -n "Do you want to publish ESMeta $TAG_NAME to the remote server? (y/n) "
+read PUBLISH
+if [ "$PUBLISH" != "y" ] && [ "$PUBLISH" != "" ]; then
+  log "Rollback \`dev\` and \`main\` branches "
+  (
+    git switch main &&
+    git reset --hard origin/main &&
+    git switch dev &&
+    git reset --hard origin/dev
+  ) >/dev/null 2>&1 && pass || clean
+  exit 1
+fi
+msg
+
+log "Pushing \`dev\` to \`origin/dev\`"
+(
+  git switch dev &&
+  git push origin dev
+) >/dev/null 2>&1 && pass || clean
+
+log "Pushing \`main\` to \`origin/main\`"
+(
+  git switch main &&
+  git push origin main
+) >/dev/null 2>&1 && pass || clean
+
+log "Creating tag \`$TAG_NAME\`"
+(
+  git tag $TAG_NAME &&
+  git push --tag origin $TAG_NAME
+) >/dev/null 2>&1 && pass || clean
+
+log "Updating \`gh-pages\`"
+(
+  sbt ghpagesPushSite
+) >/dev/null 2>&1 && pass || clean
