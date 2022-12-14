@@ -39,6 +39,7 @@
   "Symbol.unscopables",
   "WeakMap",
   "WeakSet",
+  "__proto__",
   "align-detached-buffer-semantics-with-web-reality",
   "arrow-function",
   "async-functions",
