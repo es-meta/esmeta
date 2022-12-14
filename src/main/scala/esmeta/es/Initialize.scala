@@ -95,23 +95,28 @@ class Initialize(cfg: CFG) {
 
   // get data from builtin head
   extension (str: String) {
-    def getData: Option[(String, String, PureValue, String, Boolean)] =
+    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
       BuiltinPath.from(str).getData
   }
   extension (path: BuiltinPath) {
-    def getData: Option[(String, String, PureValue, String, Boolean)] =
+    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
       import BuiltinPath.*
       path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
-          Some((b.toString, n, Str(n), n, true))
+          Some((b.toString, n, Str(n), n, T, F))
         case SymbolAccess(b, n) if !(yets contains b.toString) =>
-          Some((b.toString, s"@@$n", symbolAddr(n), s"[Symbol.$n]", true))
+          Some((b.toString, s"@@$n", symbolAddr(n), s"[Symbol.$n]", T, F))
         case Getter(path) =>
           path.getData match
-            case Some((base, prop, propV, propName, _)) =>
-              Some((base, prop, propV, s"get $propName", false))
+            case Some((base, prop, propV, propName, _, _)) =>
+              Some((base, prop, propV, s"get $propName", F, T))
             case _ => None
-        case _ => None // TODO setter
+        case Setter(path) =>
+          path.getData match
+            case Some((base, prop, propV, propName, _, _)) =>
+              Some((base, prop, propV, s"set $propName", F, F))
+            case _ => None
+        case _ => None
   }
 
   // add member functions of intrinsics
@@ -173,30 +178,37 @@ class Initialize(cfg: CFG) {
           case _                                         => None
       case _ => None
   } createBuiltinFunction(name, getLength(head), name, map)
-  private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
-    func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
-    fname = func.name.stripPrefix("INTRINSICS.")
-    (base, prop, propV, defaultName, isData) <- fname.getData
-    baseMapObj <- map.get(submapAddr(intrName(base))) match
-      case Some(m: MapObj) => Some(m)
-      case _               => None
-  } {
-    val desc = descAddr(base, prop)
-    val defaultLength = func.head.fold(0)(getLength(_))
-    baseMapObj.update(propV, desc)
-    if (isData) // data property
-      map.getOrElse(
-        desc,
-        map += desc -> DataProperty(intrAddr(fname), T, F, T).toObject,
-      )
-    else // accessor property
-      map.getOrElse(
-        desc,
-        map += desc -> AccessorProperty(intrAddr(fname), U, F, T).toObject,
-      )
-    if (yetFuncs contains fname) map += (intrAddr(fname) -> YetObj("", fname))
-    else createBuiltinFunction(fname, defaultLength, defaultName, map)
-  }
+  private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
+    var propMap: Map[Addr, Property] = Map()
+    for {
+      func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
+      fname = func.name.stripPrefix("INTRINSICS.")
+      (base, prop, propV, defaultName, isData, isGetter) <- fname.getData
+      baseMapObj <- map.get(submapAddr(intrName(base))) match
+        case Some(m: MapObj) => Some(m)
+        case _               => None
+      desc = descAddr(base, prop)
+      defaultLength = func.head.fold(0)(getLength(_))
+      _ = baseMapObj.update(propV, desc)
+      intr = intrAddr(fname)
+      property =
+        if (isData) DataProperty(intr, T, F, T)
+        else if (isGetter) AccessorProperty(intr, U, F, T)
+        else AccessorProperty(U, intr, F, T)
+      _ =
+        if (yetFuncs contains fname) map += (intr -> YetObj("", fname))
+        else createBuiltinFunction(fname, defaultLength, defaultName, map)
+    } (propMap.get(desc), property) match
+      case (Some(l: AccessorProperty), r: AccessorProperty) =>
+        var ap: AccessorProperty = l
+        if (l.get == U) ap = ap.copy(get = r.get)
+        if (l.set == U) ap = ap.copy(set = r.set)
+        propMap += desc -> ap
+      case _ =>
+        propMap += desc -> property
+    for {
+      (desc, property) <- propMap
+    } map.getOrElse(desc, map += desc -> property.toObject)
 
   // get length value from built-in head parameters
   private def getLength(head: Head): Int =

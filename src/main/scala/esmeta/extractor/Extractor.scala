@@ -249,9 +249,16 @@ class Extractor(
     elem: Element,
   ): List[BuiltinHead] =
     val headContent = getHeadContent(parent)
-    List(parseBy(builtinHead)(headContent))
+    val prevContent = elem.getPrevContent
+    val heads = List(parseBy(builtinHead)(headContent))
+    prevContent match
+      case builtinHeadPattern(name) =>
+        heads.map(_.copy(params = List(Param(name, UnknownType))))
+      case _ => heads
 
   // handle unusual heads
+  private lazy val builtinHeadPattern =
+    ".*a built-in function that takes an argument _(\\w+)_.*".r
   private lazy val thisValuePattern =
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
   private lazy val aliasPattern =
