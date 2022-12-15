@@ -82,10 +82,15 @@ def EGLOBAL_NUMBER_TYPE = ERef(GLOBAL_NUMBER_TYPE)
 def EGLOBAL_BIGINT_TYPE = ERef(GLOBAL_BIGINT_TYPE)
 def EGLOBAL_OBJECT_TYPE = ERef(GLOBAL_OBJECT_TYPE)
 
+/** predefined local variable names */
+def THIS_STR = "this"
+def ARGS_LIST_STR = "ArgumentsList"
+def NEW_TARGET_STR = "NewTarget"
+
 /** predefined local variables */
-def NAME_THIS = Name("this")
-def NAME_ARGS_LIST = Name("argumentsList")
-def NAME_NEW_TARGET = Name("NewTarget")
+def NAME_THIS = Name(THIS_STR)
+def NAME_ARGS_LIST = Name(ARGS_LIST_STR)
+def NAME_NEW_TARGET = Name(NEW_TARGET_STR)
 
 /** predefined globals identifier expressions */
 def ENAME_THIS = ERef(NAME_THIS)
