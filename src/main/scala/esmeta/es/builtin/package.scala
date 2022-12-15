@@ -63,7 +63,6 @@ val yets: Set[String] = Set(
   "WeakRef",
   "FinalizationRegistry",
   // 28. Reflection
-  "Reflect",
   "Proxy",
   // test262
   "$262",
