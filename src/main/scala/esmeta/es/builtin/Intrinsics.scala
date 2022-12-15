@@ -848,6 +848,9 @@ case class Intrinsics(cfg: CFG) {
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
       ),
+      nmap = List(
+        "@@toStringTag" -> DataProperty(Str("Reflect"), F, F, T),
+      ),
     ),
     "Proxy" -> Struct(
       typeName = "BuiltinFunctionObject",
