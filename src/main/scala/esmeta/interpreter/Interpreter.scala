@@ -582,7 +582,7 @@ class Interpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $logDir...")
+    println(s"[Interpreter] Logging into $logDir/log ...")
     mkdir(logDir)
     getPrintWriter(s"$logDir/log")
 
