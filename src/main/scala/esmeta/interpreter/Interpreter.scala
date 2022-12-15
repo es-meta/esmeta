@@ -35,6 +35,7 @@ class Interpreter(
     {
       while (step) {}
       if (log)
+        pw.println(st)
         pw.close
         println("[Interpreter] Logging finished")
       st
