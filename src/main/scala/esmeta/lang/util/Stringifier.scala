@@ -314,9 +314,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "square root of " >> e
       case (Tan, List(e)) =>
         app >> "tangent of " >> e
-      case (Hypot, List(l)) =>
-        app >> "square root of the sum of squares of "
-        app >> "the mathematical values of the elements of " >> l
       case _ => error(s"invalid math operationr: $op with $args")
 
   // multiline expressions

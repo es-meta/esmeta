@@ -655,11 +655,6 @@ trait Parsers extends IndentParsers {
         case e => MathOpExpression(Sqrt, List(e))
       } | "tangent of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Tan, List(e))
-      } | (
-        "square root of the sum of squares of" ~
-        "the mathematical values of the elements of" ~> baseCalcExpr
-      ) ^^ {
-        case l => MathOpExpression(Hypot, List(l))
       }
     }
 

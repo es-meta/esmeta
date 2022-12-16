@@ -333,7 +333,6 @@ class StringifyTinyTest extends IRTest {
       MOp.Sin -> "[math:sin]",
       MOp.Sqrt -> "[math:sqrt]",
       MOp.Tan -> "[math:tan]",
-      MOp.Hypot -> "[math:hypot]",
     )
     checkParseAndStringify("COp", COp)(
       COp.ToApproxNumber -> "[approx-number]",

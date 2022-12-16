@@ -318,7 +318,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Sin   => "[math:sin]"
       case Sqrt  => "[math:sqrt]"
       case Tan   => "[math:tan]"
-      case Hypot => "[math:hypot]"
     )
 
   // conversion operators

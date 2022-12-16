@@ -828,16 +828,7 @@ object Interpreter {
       case (MOp.Sin, List(Math(x)))   => Math(sin(x.toDouble))
       case (MOp.Sqrt, List(Math(x)))  => Math(sqrt(x.toDouble))
       case (MOp.Tan, List(Math(x)))   => Math(tan(x.toDouble))
-      case (MOp.Hypot, List(addr: Addr)) =>
-        st(addr) match
-          case ListObj(vs) =>
-            val ns = vs.map {
-              case Math(n) => n.toDouble
-              case _       => throw InvalidMathOp(mop, vs.toList)
-            }
-            Math(sqrt(ns.map(x => x * x).foldLeft(0.0)(_ + _)))
-          case _ => throw InvalidMathOp(mop, vs)
-      case _ => throw InvalidMathOp(mop, vs)
+      case _                          => throw InvalidMathOp(mop, vs)
 
   /** helpers for make transition for variadic operators */
   private def vopEval[T](
