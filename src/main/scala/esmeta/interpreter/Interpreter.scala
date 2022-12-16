@@ -832,8 +832,8 @@ object Interpreter {
         st(addr) match
           case ListObj(vs) =>
             val ns = vs.map {
-              case Number(n) => n.toDouble
-              case _         => throw InvalidMathOp(mop, vs.toList)
+              case Math(n) => n.toDouble
+              case _       => throw InvalidMathOp(mop, vs.toList)
             }
             Math(sqrt(ns.map(x => x * x).foldLeft(0.0)(_ + _)))
           case _ => throw InvalidMathOp(mop, vs)
