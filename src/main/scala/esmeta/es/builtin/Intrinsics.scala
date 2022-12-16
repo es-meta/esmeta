@@ -260,6 +260,7 @@ case class Intrinsics(cfg: CFG) {
     "Math" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
+        "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
