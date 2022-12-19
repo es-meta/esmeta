@@ -32,6 +32,9 @@ case class EIsArrayIndex(expr: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr
 
+// random number expressions
+case class ERandom() extends Expr
+
 // abstract syntax tree (AST) expressions
 sealed trait AstExpr extends Expr {
   val name: String

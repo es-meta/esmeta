@@ -164,6 +164,8 @@ class StringifyTinyTest extends IRTest {
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
     lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
+    // random number expressions
+    lazy val rand = ERandom()
     // AST expressions
     lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
     lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
@@ -232,6 +234,8 @@ class StringifyTinyTest extends IRTest {
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: \"Number\")",
+      // random number expressions
+      rand -> "(random)",
       // AST expressions
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",

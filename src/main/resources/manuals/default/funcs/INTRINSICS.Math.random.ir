@@ -1,0 +1,7 @@
+def <BUILTIN>:INTRINSICS.Math.random(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Object | Undefined,
+): Unknown {
+  return (random)
+}
