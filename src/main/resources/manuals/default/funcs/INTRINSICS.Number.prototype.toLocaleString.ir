@@ -1,6 +1,6 @@
 def <BUILTIN>:INTRINSICS.Number.prototype.toLocaleString(
   this: ESValue,
-  argumentsList: List[ESValue],
+  ArgumentsList: List[ESValue],
   NewTarget: Object | Undefined,
 ): Unknown {
   (yet "[YET] Number.prototype.toLocaleString")

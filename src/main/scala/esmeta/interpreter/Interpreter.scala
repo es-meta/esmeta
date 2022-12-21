@@ -380,6 +380,7 @@ class Interpreter(
       val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, Map.from(captured), st.callStack)
+    case ERandom() => Number(math.random)
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(childOpt =>
         childOpt.map(child =>
@@ -582,7 +583,7 @@ class Interpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $logDir...")
+    println(s"[Interpreter] Logging into $logDir/log ...")
     mkdir(logDir)
     getPrintWriter(s"$logDir/log")
 
@@ -828,16 +829,7 @@ object Interpreter {
       case (MOp.Sin, List(Math(x)))   => Math(sin(x.toDouble))
       case (MOp.Sqrt, List(Math(x)))  => Math(sqrt(x.toDouble))
       case (MOp.Tan, List(Math(x)))   => Math(tan(x.toDouble))
-      case (MOp.Hypot, List(addr: Addr)) =>
-        st(addr) match
-          case ListObj(vs) =>
-            val ns = vs.map {
-              case Math(n) => n.toDouble
-              case _       => throw InvalidMathOp(mop, vs.toList)
-            }
-            Math(sqrt(ns.map(x => x * x).foldLeft(0.0)(_ + _)))
-          case _ => throw InvalidMathOp(mop, vs)
-      case _ => throw InvalidMathOp(mop, vs)
+      case _                          => throw InvalidMathOp(mop, vs)
 
   /** helpers for make transition for variadic operators */
   private def vopEval[T](

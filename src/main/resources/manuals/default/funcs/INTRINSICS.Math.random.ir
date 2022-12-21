@@ -1,7 +1,7 @@
-def <BUILTIN>:INTRINSICS.Function.prototype(
+def <BUILTIN>:INTRINSICS.Math.random(
   this: ESValue,
   ArgumentsList: List[ESValue],
   NewTarget: Object | Undefined,
 ): Unknown {
-  return undefined
+  return (random)
 }

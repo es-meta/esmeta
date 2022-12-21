@@ -108,10 +108,14 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case EIsArrayIndex(expr) =>
       walk(expr)
+    case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)
     case expr: LiteralExpr => walk(expr)
   }
+
+  // random number expressions
+  def walk(rand: ERandom): Unit = {}
 
   // abstract syntax tree (AST) expressions
   def walk(ast: AstExpr): Unit = ast match {

@@ -36,7 +36,6 @@ val OBJECT_TYPE = "Object"
 /** not yet supported objects */
 val yets: Set[String] = Set(
   // 21. Numbers and Dates
-  "Math",
   "Date",
   // 22. Text Processing
   "RegExp",
@@ -63,7 +62,6 @@ val yets: Set[String] = Set(
   "WeakRef",
   "FinalizationRegistry",
   // 28. Reflection
-  "Reflect",
   "Proxy",
   // test262
   "$262",

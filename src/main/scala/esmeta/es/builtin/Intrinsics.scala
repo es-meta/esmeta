@@ -260,6 +260,7 @@ case class Intrinsics(cfg: CFG) {
     "Math" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
+        "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
@@ -847,6 +848,9 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
+      ),
+      nmap = List(
+        "@@toStringTag" -> DataProperty(Str("Reflect"), F, F, T),
       ),
     ),
     "Proxy" -> Struct(
