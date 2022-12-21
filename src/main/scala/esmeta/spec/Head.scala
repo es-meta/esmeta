@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.ir
 import esmeta.lang.Type
 import esmeta.spec.util.Parser
 import esmeta.ty.*
@@ -31,9 +32,9 @@ sealed trait Head extends SpecElem {
       Param("this", Type(thisTy)) :: head.withParams
     case head: BuiltinHead =>
       List(
-        Param("this", Type(ESValueT)),
-        Param("argumentsList", Type(ListT(ESValueT))),
-        Param("NewTarget", Type(ObjectT || UndefT)),
+        Param(ir.THIS_STR, Type(ESValueT)),
+        Param(ir.ARGS_LIST_STR, Type(ListT(ESValueT))),
+        Param(ir.NEW_TARGET_STR, Type(ObjectT || UndefT)),
       )
 
   /** get function name */

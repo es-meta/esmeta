@@ -481,10 +481,6 @@ class StringifyTinyTest extends LangTest {
         MathOpExpressionOperator.Tan,
         List(refExpr),
       ) -> "the tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Hypot,
-        List(refExpr),
-      ) -> "the square root of the sum of squares of the mathematical values of the elements of _x_",
     )
 
     // -------------------------------------------------------------------------

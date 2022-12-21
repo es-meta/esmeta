@@ -119,10 +119,14 @@ trait Walker extends BasicWalker {
       EDuplicated(walk(expr))
     case EIsArrayIndex(expr) =>
       EIsArrayIndex(walk(expr))
+    case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)
     case expr: LiteralExpr => walk(expr)
   ).setLangOpt(expr.langOpt)
+
+  // random number expressions
+  def walk(rand: ERandom): ERandom = ERandom()
 
   // abstract syntax tree (AST) expressions
   def walk(ast: AstExpr): AstExpr = ast match

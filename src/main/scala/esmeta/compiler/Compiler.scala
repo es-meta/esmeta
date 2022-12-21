@@ -639,7 +639,6 @@ class Compiler(
       case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
       case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
       case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))
-      case (Hypot, List(l))    => EMathOp(MOp.Hypot, List(l))
       case _ => error(s"invalid math operationr: $op with $args")
 
   /** compile binary operators */

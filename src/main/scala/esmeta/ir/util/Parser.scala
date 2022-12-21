@@ -154,6 +154,8 @@ trait Parsers extends TyParsers {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
     } | ("cont<" ~> fname <~ ">") ^^ {
       case s => ECont(s)
+    } | {
+      "(" ~ "random" ~ ")" ^^^ ERandom()
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
   }.named("ir.Expr")
 
@@ -286,8 +288,7 @@ trait Parsers extends TyParsers {
     "[math:log]" ^^^ Log |
     "[math:sin]" ^^^ Sin |
     "[math:sqrt]" ^^^ Sqrt |
-    "[math:tan]" ^^^ Tan |
-    "[math:hypot]" ^^^ Hypot
+    "[math:tan]" ^^^ Tan
   }.named("ir.MOp")
 
   // conversion operators

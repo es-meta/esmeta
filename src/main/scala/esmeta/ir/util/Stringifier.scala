@@ -178,6 +178,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> fname >> ">"
+      case expr: ERandom =>
+        randRule(app, expr)
       case expr: AstExpr =>
         astExprRule(app, expr)
       case expr: AllocExpr =>
@@ -185,6 +187,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case expr: LiteralExpr =>
         literalExprRule(app, expr)
   }
+
+  // random number expressions
+  lazy val randRule: Rule[ERandom] = (app, rand) => app >> "(random)"
 
   // abstract syntax tree (AST) expressions
   lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
@@ -318,7 +323,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Sin   => "[math:sin]"
       case Sqrt  => "[math:sqrt]"
       case Tan   => "[math:tan]"
-      case Hypot => "[math:hypot]"
     )
 
   // conversion operators
