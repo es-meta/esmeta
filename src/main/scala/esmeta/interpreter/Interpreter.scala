@@ -634,6 +634,7 @@ object Interpreter {
     "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
     "ArrayCreate" -> "ArrayExoticObject",
     "OrdinaryObjectCreate" -> "OrdinaryObject",
+    "ProxyCreate" -> "ProxyExoticObject",
   )
 
   /** transition for lexical SDO */
