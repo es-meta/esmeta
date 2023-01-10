@@ -309,7 +309,7 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(7.0), F, F, T),
       ),
     ),
-    "Date.prorotype" -> Struct(
+    "Date.prototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),

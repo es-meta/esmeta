@@ -1989,6 +1989,7 @@ PropertyName[0,0].ComputedPropertyContains
 PropertyName[0,0].IsComputedPropertyKey
 PropertyName[1,0].IsComputedPropertyKey
 PropertySetParameterList[0,0].ExpectedArgumentCount
+ProxyCreate
 ProxyExoticObject.Call
 ProxyExoticObject.Construct
 ProxyExoticObject.DefineOwnProperty

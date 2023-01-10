@@ -187,9 +187,10 @@ trait Parsers extends IndentParsers {
     ".*".r ~> stepBlock ^^ { PerformBlockStep(_) }
 
   // append steps
+  // NOTE: ("append" ~> expr) ~ ("to" ~> ref) <~ end
   lazy val appendStep: PL[AppendStep] =
-    ("append" | "add") ~> expr ~
-    ((("to" ~ opt("the end of")) | "as the last element of") ~> ref) <~ end
+    ("append" | "add") ~> expr ~ ((("to" ~ opt("the end of")) |
+    "as" ~ ("an" | "the last") ~ "element of" ~ opt("the list")) ~> ref) <~ end
     ^^ { case e ~ r => AppendStep(e, r) }
 
   // prepend steps
