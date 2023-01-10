@@ -61,8 +61,6 @@ val yets: Set[String] = Set(
   // 26. Managing Memory
   "WeakRef",
   "FinalizationRegistry",
-  // 28. Reflection
-  "Proxy",
   // test262
   "$262",
   // ShadowRealm
