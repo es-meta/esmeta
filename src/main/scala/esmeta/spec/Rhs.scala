@@ -7,7 +7,7 @@ import esmeta.util.BaseUtils.cached
 
 /** alternatives or right-hand-sides (RHSs) of productions */
 case class Rhs(
-  condition: Option[RhsCond],
+  conditions: List[RhsCond],
   symbols: List[Symbol],
   id: Option[String],
 ) extends SpecElem {
@@ -61,6 +61,15 @@ case class Rhs(
   /** get parameters from RHSs */
   def params: List[Param] =
     nts.map(nt => Param(nt.name, Type(AstT(nt.name))))
+
+  /** check whether the RHS is available */
+  def available(argsSet: Set[String]): Boolean = conditions.forall {
+    case RhsCond(name, pass) => (argsSet contains name) == pass
+  }
+
+  /** check whether the RHS is available */
+  def available(argsMap: Map[String, Boolean]): Boolean =
+    conditions.forall(cond => argsMap(cond.name) == cond.pass)
 }
 object Rhs extends Parser.From(Parser.rhs) {
 

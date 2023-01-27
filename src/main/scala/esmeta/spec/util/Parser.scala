@@ -41,7 +41,7 @@ trait Parsers extends LangParsers {
         val rs = for {
           r <- origRs
           s <- r.symbols
-        } yield Rhs(None, List(s), None)
+        } yield Rhs(Nil, List(s), None)
         Production(l, k, true, rs)
       case l ~ k ~ None ~ rs => Production(l, k, false, rs)
     }
@@ -64,18 +64,18 @@ trait Parsers extends LangParsers {
   /** production alternative right-hand-sides (RHSs) */
   given rhs: Parser[Rhs] = {
     lazy val rhsId: Parser[String] = "#" ~> "[-a-zA-Z0-9]+".r
-    opt(rhsCond) ~ rep1(symbol) ~ opt(rhsId) ^^ {
-      case c ~ ss ~ i =>
-        Rhs(c, ss, i)
+    opt(rhsConds) ~ rep1(symbol) ~ opt(rhsId) ^^ {
+      case cs ~ ss ~ i => Rhs(cs.getOrElse(Nil), ss, i)
     }
   }.named("spec.Rhs")
 
   /** RHS conditions */
+  given rhsConds: Parser[List[RhsCond]] = {
+    "[" ~> rep1sep(rhsCond, ",") <~ "]"
+  }.named("List[spec.RhsCond]")
+
   given rhsCond: Parser[RhsCond] = {
-    "[" ~> ("[+~]".r) ~ word <~ "]" ^^ {
-      case str ~ name =>
-        RhsCond(name, str == "+")
-    }
+    ("[+~]".r) ~ word ^^ { case str ~ name => RhsCond(name, str == "+") }
   }.named("spec.RhsCond")
 
   /** grammar symbols */

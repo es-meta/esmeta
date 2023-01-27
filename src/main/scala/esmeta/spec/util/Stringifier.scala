@@ -101,17 +101,20 @@ object Stringifier {
 
   // for production alternative right-hand-sides (RHSs)
   given rhsRule: Rule[Rhs] = (app, rhs) =>
-    val Rhs(condition, symbols, id) = rhs
+    val Rhs(conditions, symbols, id) = rhs
     given Rule[List[Symbol]] = iterableRule(sep = " ")
-    condition.foreach(app >> _ >> " ")
+    if (conditions.nonEmpty) app >> conditions >> " "
     app >> symbols
     id.foreach(app >> " #" >> _)
     app
 
+  // for list of conditions for RHSs
+  given rhsCondsRule: Rule[List[RhsCond]] = iterableRule("[", ", ", "]")
+
   // for conditions for RHSs
   given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
     val RhsCond(name, pass) = rhsCond
-    app >> "[" >> (if (pass) "+" else "~") >> name >> "]"
+    app >> (if (pass) "+" else "~") >> name
 
   // for conditions for symbols
   given symbolRule: Rule[Symbol] = (app, symbol) =>

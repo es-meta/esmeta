@@ -80,14 +80,19 @@ class StringifyTinyTest extends SpecTest {
 
     // rhs conditions
     checkParseAndStringify("RhsCond", RhsCond)(
-      RhsCond("Hello", true) -> "[+Hello]",
-      RhsCond("Bye", false) -> "[~Bye]",
+      RhsCond("Hello", true) -> "+Hello",
+      RhsCond("Bye", false) -> "~Bye",
     )
 
     val rhsCond: RhsCond = RhsCond("Yield", true)
-    val rhs1: Rhs = Rhs(Some(rhsCond), symbols, None)
-    val rhs2: Rhs = Rhs(None, symbols, Some("this-is-id"))
-    val rhs3: Rhs = Rhs(None, List(Terminal("a")), None)
+    val rhs1: Rhs = Rhs(List(rhsCond), symbols, None)
+    val rhs2: Rhs = Rhs(Nil, symbols, Some("this-is-id"))
+    val rhs3: Rhs = Rhs(Nil, List(Terminal("a")), None)
+    val rhs4: Rhs = Rhs(
+      List(RhsCond("Hello", true), RhsCond("Bye", false)),
+      List(Terminal("a")),
+      None,
+    )
     val lhs1 = Lhs("Identifier", List("Yield", "Await", "In"))
     val lhs2 = Lhs("Identifier", Nil)
     val prod1 =
@@ -102,6 +107,7 @@ class StringifyTinyTest extends SpecTest {
       rhs1 -> "[+Yield] `{` `}`",
       rhs2 -> "`{` `}` #this-is-id",
       rhs3 -> "`a`",
+      rhs4 -> "[+Hello, ~Bye] `a`",
     )
 
     // lhs
