@@ -18,7 +18,7 @@ class RandomSynthesizer(
     val argsMap = (lhs.params zip args).toMap
     val pairs = for {
       (rhs, rhsIdx) <- rhsList.zipWithIndex
-      if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
+      if rhs.available(argsMap)
     } yield (rhs, rhsIdx)
     val (rhs, rhsIdx) = choose(pairs)
     val children = rhs.symbols.flatMap(synSymbol(argsMap))
