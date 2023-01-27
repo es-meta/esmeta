@@ -1,5 +1,6 @@
 package esmeta.parser
 
+import esmeta.LINE_SEP
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.spec.*
@@ -108,25 +109,21 @@ case class ESParser(
   ): FLAParser[Ast] =
     val pre: String = s"$name[$idx]: $name "
     val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
-    log(rhs.condition match {
-      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
-        MISMATCH
-      case _ =>
-        val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-        rhs.symbols
-          .drop(1)
-          .foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-          case cs =>
-            (base: Ast) =>
-              val children = Some(base) :: cs.reverse
-              withLoc(
-                syntactic(name, args, idx, children),
-                base,
-                cs.flatten.headOption.getOrElse(base),
-              )
-        }
-    })(s"""$pre${rhs.symbols.drop(1)}
-          |$cursor""".stripMargin)
+    log(if (rhs.available(argsSet)) {
+      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+      rhs.symbols
+        .drop(1)
+        .foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+        case cs =>
+          (base: Ast) =>
+            val children = Some(base) :: cs.reverse
+            withLoc(
+              syntactic(name, args, idx, children),
+              base,
+              cs.flatten.headOption.getOrElse(base),
+            )
+      }
+    } else MISMATCH)(s"$pre${rhs.symbols.drop(1)}$LINE_SEP$cursor")
 
   // get parsers
   private def getParsers(
@@ -138,16 +135,12 @@ case class ESParser(
   ): LAParser[Ast] =
     val pre: String = s"$name[$idx]: "
     val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
-    log(rhs.condition match {
-      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass =>
-        MISMATCH
-      case _ =>
-        val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-        rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-          case cs => syntactic(name, args, idx, cs.reverse)
-        },
-    })(s"""$pre$rhs
-          |$cursor""".stripMargin)
+    log(if (rhs.available(argsSet)) {
+      val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+      rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+        case cs => syntactic(name, args, idx, cs.reverse)
+      }
+    } else MISMATCH)(s"$pre$rhs$LINE_SEP$cursor")
 
   // append a parser
   private def appendParser(

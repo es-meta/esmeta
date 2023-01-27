@@ -29,7 +29,7 @@ class SimpleSynthesizer(
       val argsMap = (lhs.params zip args).toMap
       val syns = for {
         (rhs, rhsIdx) <- rhsList.zipWithIndex
-        if rhs.condition.fold(true)(cond => argsMap(cond.name) == cond.pass)
+        if rhs.available(argsMap)
         children <- optional(rhs.symbols.flatMap(synSymbol(argsMap)))
         syn = Syntactic(name, args, rhsIdx, children)
       } yield syn

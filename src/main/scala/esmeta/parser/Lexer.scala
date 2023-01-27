@@ -82,13 +82,11 @@ trait Lexer extends UnicodeParsers {
 
   // get a parser for a right-hand side (RHS)
   protected def getRhsParser(rhs: Rhs, argsSet: Set[String]): Parser[String] =
-    rhs.condition match {
-      case Some(RhsCond(name, pass)) if (argsSet contains name) != pass => FAIL
-      case _ =>
-        rhs.symbols
-          .map(getSymbolParser(_, argsSet))
-          .reduce(_ % _)
-    }
+    if (rhs.available(argsSet))
+      rhs.symbols
+        .map(getSymbolParser(_, argsSet))
+        .reduce(_ % _)
+    else FAIL
 
   // get a parser for a symbol
   protected def getSymbolParser(
