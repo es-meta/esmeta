@@ -447,9 +447,10 @@ object TypeDomain extends value.Domain {
       ValueTy(
         bool = BoolTy(
           if (
-            (!l.ty.math.isBottom && !r.ty.math.isBottom) ||
-            (!l.ty.number.isBottom && !r.ty.number.isBottom) ||
-            (l.ty.bigInt && r.ty.bigInt)
+            (
+              (!l.ty.math.isBottom || !l.ty.number.isBottom) &&
+              (!r.ty.math.isBottom || !r.ty.number.isBottom)
+            ) || (l.ty.bigInt && r.ty.bigInt)
           ) Set(true, false)
           else Set(),
         ),
