@@ -37,7 +37,8 @@ case object CmdPrint
             println(ret.state.getString(ret.value))
         }
       }
-      case s"-${`expr`}" :: str :: _ => {
+      case s"-${`expr`}" :: rest => {
+        val str = rest.mkString(" ")
         val sem = repl.sem
         val v = sem.transfer(cp, Expr.from(str))
         val st = cp match {
