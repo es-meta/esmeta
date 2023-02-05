@@ -8,10 +8,12 @@ import org.jsoup.nodes.Element
 /** abstract algorithms in ECMA-262 */
 case class Algorithm(
   head: Head,
-  elem: Element,
   body: Step,
   code: String,
 ) extends SpecElem {
+
+  /** HTML elements */
+  var elem: Element = Element("emu-alg")
 
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty

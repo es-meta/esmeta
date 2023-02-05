@@ -75,6 +75,8 @@ object JsonProtocol extends BasicJsonProtocol {
   // ---------------------------------------------------------------------------
   // Algorithms
   // ---------------------------------------------------------------------------
+  given Decoder[Algorithm] = deriveDecoder
+  given Encoder[Algorithm] = deriveEncoder
   // algorithm heads
   given Decoder[Head] =
     decoderWithDiscriminator("algorithm head", headDiscriminators)
