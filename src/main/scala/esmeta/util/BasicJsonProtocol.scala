@@ -36,19 +36,17 @@ trait BasicJsonProtocol {
     Decoder.instance(_.as[Vector[(K, V)]].map(MMap.from))
 
   // decoder for double values
-  given doubleDecoder: Decoder[Double] = new Decoder[Double] {
-    final def apply(c: HCursor): Decoder.Result[Double] = {
-      c.value.asString
-        .map(_ match
-          case "Infinity"  => Double.PositiveInfinity
-          case "-Infinity" => Double.NegativeInfinity
-          case "NaN"       => Double.NaN,
-        )
-        .orElse(c.value.asNumber.map(_.toDouble))
-        .map(Right(_))
-        .getOrElse(invalidFail("double", c))
-    }
-  }
+  given doubleDecoder: Decoder[Double] = Decoder.instance(c =>
+    c.value.asString
+      .map(_ match
+        case "Infinity"  => Double.PositiveInfinity
+        case "-Infinity" => Double.NegativeInfinity
+        case "NaN"       => Double.NaN,
+      )
+      .orElse(c.value.asNumber.map(_.toDouble))
+      .map(Right(_))
+      .getOrElse(invalidFail("double", c)),
+  )
 
   // encoder for double values
   given doubleEncoder: Encoder[Double] =
@@ -56,36 +54,49 @@ trait BasicJsonProtocol {
 
   // decoder for UId: id -> UId
   def uidDecoder[T <: UId](getter: Int => Option[T]): Decoder[T] =
-    new Decoder[T] {
-      final def apply(c: HCursor): Decoder.Result[T] = (for {
+    Decoder.instance(c =>
+      (for {
         number <- c.value.asNumber
         id <- number.toInt
         x <- getter(id)
-      } yield Right(x)).getOrElse(invalidFail("id", c))
-    }
+      } yield Right(x)).getOrElse(invalidFail("id", c)),
+    )
 
   // encoder for UId: UId -> id
-  def uidEncoder[T <: UId]: Encoder[T] = new Encoder[T] {
-    final def apply(x: T): Json = Json.fromInt(x.id)
-  }
+  def uidEncoder[T <: UId]: Encoder[T] =
+    Encoder.instance(x => Json.fromInt(x.id))
 
   // decoder for UId with name: { name: id } -> UId
   def uidDecoderWithName[T <: UId](
     name: String,
     getter: Int => Option[T],
-  ): Decoder[T] = new Decoder[T] {
-    final def apply(c: HCursor): Decoder.Result[T] = (for {
+  ): Decoder[T] = Decoder.instance(c =>
+    (for {
       obj <- c.value.asObject
       value <- obj(name)
       number <- value.asNumber
       id <- number.toInt
       x <- getter(id)
-    } yield Right(x)).getOrElse(invalidFail("id", c))
-  }
+    } yield Right(x)).getOrElse(invalidFail("id", c)),
+  )
 
   // encoder based on stringifiers
   def encoderWithStringifier[T](stringifier: T => String): Encoder[T] =
     Encoder.instance(x => Json.fromString(stringifier(x)))
+
+  // encoder based on discrimators
+  def decoderWithDiscriminator[T](
+    name: String,
+    discriminators: List[(String, HCursor => Decoder.Result[T])],
+  ): Decoder[T] = Decoder.instance(c =>
+    (for {
+      obj <- c.value.asObject
+      res <- discriminators.foldLeft[Option[Decoder.Result[T]]](None) {
+        case (None, (key, decoder)) if obj.contains(key) => Some(decoder(c))
+        case (res, _)                                    => res
+      }
+    } yield res).getOrElse(invalidFail(name, c)),
+  )
 
   // decoder based on parsers
   def decoderWithParser[T](parser: String => T): Decoder[T] =
@@ -97,10 +108,8 @@ trait BasicJsonProtocol {
     )
 
   // encoder for UId with name: UId -> { name: id }
-  def uidEncoderWithName[T <: UId](name: String): Encoder[T] = new Encoder[T] {
-    final def apply(x: T): Json =
-      Json.fromFields(Seq(name -> Json.fromInt(x.id)))
-  }
+  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
+    Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
 
   // decoding failure
   def decodeFail[T](msg: String, c: HCursor): Decoder.Result[T] =
