@@ -4,6 +4,7 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.util.*
+import esmeta.ty.util.Parser
 
 /** value types */
 case class ValueTy(
@@ -157,7 +158,7 @@ case class ValueTy(
       case Absent               => absent
     )
 }
-object ValueTy {
+object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(
     comp: CompTy = CompTy.Bot,
     normal: PureValueTy = PureValueTy.Bot,

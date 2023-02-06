@@ -1,22 +1,23 @@
 package esmeta.lang
 
-import esmeta.lang.*
+import esmeta.lang.util.JsonProtocol.given
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
 
-/** stringify test */
-class StringifyTinyTest extends LangTest {
-  import LangTest.*
-
-  val name: String = "langStringifyTest"
+/** JSON test */
+class JsonTinyTest extends LangTest {
+  val name: String = "langJsonTest"
 
   // registration
   def init: Unit = {
+    import LangTest.*
+
     // -------------------------------------------------------------------------
     // blocks
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Block", Block)(
+    checkJsonWithString("Block")(
       stepBlock -> """
       |  1. Let _x_ be _x_.
       |  1. [id="x,y,z"] Let _x_ be _x_.
@@ -36,7 +37,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm steps
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Step", Step)(
+    checkJsonWithString("Step")(
       letStep -> "let _x_ be _x_.",
       toBlockStep(letStepClosure) -> """
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
@@ -118,7 +119,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Expression", Expression)(
+    checkJsonWithString("Expression")(
       refExpr -> "_x_",
       stringConcatExprOne -> "the string-concatenation of _x_",
       stringConcatExprTwo -> "the string-concatenation of _x_ and _x_",
@@ -159,9 +160,9 @@ class StringifyTinyTest extends LangTest {
     )
 
     // -------------------------------------------------------------------------
-    // algorithm calculation expressions
+    // algorithm calcualation expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("CalcExpression", Expression)(
+    checkJsonWithString("CalcExpression")(
       minExpr -> "min(_x_)",
       addExpr -> "_x_ + _x_",
       subExpr -> "_x_ - _x_",
@@ -180,9 +181,9 @@ class StringifyTinyTest extends LangTest {
       convToMathExpr -> "ℝ(_x_)",
     )
     // -------------------------------------------------------------------------
-    // algorithm mathematical operation expressions
+    // algorithm mathematical operaion expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("MathOpExpression", Expression)(
+    checkJsonWithString("MathOpExpression")(
       MathOpExpression(
         MathOpExpressionOperator.Neg,
         List(refExpr),
@@ -292,7 +293,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm literals
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Literal", Expression)(
+    checkJsonWithString("Literal")(
       ThisLiteral() -> "*this* value",
       NewTargetLiteral() -> "NewTarget",
       hex -> "0x0024",
@@ -340,14 +341,14 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm clamp expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("ClampExpression", Expression)(
+    checkJsonWithString("ClampExpression")(
       clampExpr -> "the result of clamping _x_ between _x_ and _x_",
     )
 
     // -------------------------------------------------------------------------
     // algorithm bitwise expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("BitwiseExpression", Expression)(
+    checkJsonWithString("BitwiseExpression")(
       bAndExpr -> "the result of applying the bitwise AND operation to _x_ and _x_",
       bXorExpr -> "the result of applying the bitwise exclusive OR (XOR) operation to _x_ and _x_",
       bOrExpr -> "the result of applying the bitwise inclusive OR operation to _x_ and _x_",
@@ -356,7 +357,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm conditions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Condition", Condition)(
+    checkJsonWithString("Condition")(
       exprCond -> "_x_",
       instanceOfCond -> "_x_ is a Base",
       notInstanceOfCond -> "_x_ is not a Base",
@@ -392,7 +393,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm references
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Reference", Reference)(
+    checkJsonWithString("Reference")(
       x -> "_x_",
       RunningExecutionContext() -> "the running execution context",
       SecondExecutionContext() -> "the second to top element of the execution context stack",
@@ -409,7 +410,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm references
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Property", Property)(
+    checkJsonWithString("Property")(
       fieldProp -> ".[[Value]]",
       componentProp -> ".Realm",
       bindingProp -> "the binding for _x_ in",
@@ -421,7 +422,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm intrinsics
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Intrinsic", Intrinsic)(
+    checkJsonWithString("Intrinsic")(
       intr -> "%Array%",
       propIntr -> "%Array.prototype.toString%",
     )
@@ -429,7 +430,7 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm types
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Type", Type)(
+    checkJsonWithString("Type")(
       Type(NumberT) -> "a Number",
       Type(BigIntT) -> "a BigInt",
       Type(BoolT) -> "a Boolean",

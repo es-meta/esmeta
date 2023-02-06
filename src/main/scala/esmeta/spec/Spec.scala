@@ -18,8 +18,10 @@ case class Spec(
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   tables: Map[String, Table] = Map(), // tables
   tyModel: TyModel = TyModel(), // type models
-  document: Document = Document(""), // HTML Document element
 ) extends SpecElem {
+
+  /** HTML Document element */
+  var document: Document = Document("")
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)

@@ -48,14 +48,16 @@ class Extractor(
   lazy val manualInfo: ManualInfo = ManualInfo(version)
 
   /** final result */
-  lazy val result = Spec(
-    version = version,
-    grammar = grammar,
-    algorithms = algorithms,
-    tables = tables,
-    tyModel = TyModel.es, // TODO automatic extraction
-    document = document,
-  )
+  lazy val result =
+    val spec = Spec(
+      version = version,
+      grammar = grammar,
+      algorithms = algorithms,
+      tables = tables,
+      tyModel = TyModel.es, // TODO automatic extraction
+    )
+    spec.document = document
+    spec
 
   /** ECMAScript grammar */
   lazy val grammar = extractGrammar
@@ -107,7 +109,9 @@ class Extractor(
     head <- extractHeads(elem)
     code = elem.html.unescapeHtml
     body = parser.parseBy(parser.step)(code)
-  } yield Algorithm(head, elem, body, code)
+    algo = Algorithm(head, body, code)
+    _ = algo.elem = elem
+  } yield algo
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
