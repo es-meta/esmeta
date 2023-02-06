@@ -58,6 +58,7 @@ lazy val extractorValidityTest =
 lazy val specTest = taskKey[Unit]("Launch spec tests")
 lazy val specStringifyTest =
   taskKey[Unit]("Launch stringify tests for spec (tiny)")
+lazy val specJsonTest = taskKey[Unit]("Launch JSON tests for spec (tiny)")
 
 // lang
 lazy val langTest = taskKey[Unit]("Launch lang tests")
@@ -70,6 +71,7 @@ lazy val tyTest = taskKey[Unit]("Launch ty tests")
 lazy val tyContainsTest = taskKey[Unit]("Launch contains tests for ty (tiny)")
 lazy val tyStringifyTest =
   taskKey[Unit]("Launch stringify tests for ty (tiny)")
+lazy val tyJsonTest = taskKey[Unit]("Launch JSON tests for ty (tiny)")
 
 // compiler
 lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
@@ -210,6 +212,7 @@ lazy val root = project
     specStringifyTest := (Test / testOnly)
       .toTask(" *.spec.Stringify*Test")
       .value,
+    specJsonTest := (Test / testOnly).toTask(" *.spec.Json*Test").value,
     // lang
     langTest := (Test / testOnly).toTask(" *.lang.*Test").value,
     langStringifyTest := (Test / testOnly)
@@ -218,12 +221,9 @@ lazy val root = project
     langJsonTest := (Test / testOnly).toTask(" *.lang.Json*Test").value,
     // ty
     tyTest := (Test / testOnly).toTask(" *.ty.*Test").value,
-    tyContainsTest := (Test / testOnly)
-      .toTask(" *.ty.Contains*Test")
-      .value,
-    tyStringifyTest := (Test / testOnly)
-      .toTask(" *.ty.Stringify*Test")
-      .value,
+    tyContainsTest := (Test / testOnly).toTask(" *.ty.Contains*Test").value,
+    tyStringifyTest := (Test / testOnly).toTask(" *.ty.Stringify*Test").value,
+    tyJsonTest := (Test / testOnly).toTask(" *.ty.Json*Test").value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
     compilerValidityTest := (Test / testOnly)

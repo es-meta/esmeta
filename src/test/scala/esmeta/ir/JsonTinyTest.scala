@@ -1,6 +1,5 @@
 package esmeta.ir
 
-import esmeta.ir.*
 import esmeta.ir.util.JsonProtocol.given
 import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
 

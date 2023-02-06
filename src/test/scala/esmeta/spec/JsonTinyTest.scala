@@ -1,7 +1,6 @@
 package esmeta.spec
 
 import esmeta.lang.*
-import esmeta.spec.*
 import esmeta.spec.util.JsonProtocol.given
 import esmeta.ty.*
 import esmeta.util.*
