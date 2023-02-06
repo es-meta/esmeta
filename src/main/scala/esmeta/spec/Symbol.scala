@@ -38,7 +38,7 @@ enum NonterminalArgumentKind extends SpecElem { case True, False, Pass }
 object NonterminalArgumentKind extends Parser.From(Parser.ntArgKind)
 
 /** butnot symbols */
-case class ButNot(base: Nonterminal, cases: List[Symbol]) extends Symbol
+case class ButNot(base: Nonterminal, notCases: List[Symbol]) extends Symbol
 
 /** but-only-if symbols */
 case class ButOnlyIf(base: Nonterminal, methodName: String, cond: String)
@@ -58,4 +58,4 @@ case object NoLineTerminator extends Symbol
 case class CodePointAbbr(abbr: String) extends Symbol
 
 /** symbols for sets of unicode code points with a condition */
-case class UnicodeSet(cond: Option[String]) extends Symbol
+case class UnicodeSet(cpCond: Option[String]) extends Symbol

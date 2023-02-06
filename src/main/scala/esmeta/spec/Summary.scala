@@ -18,7 +18,7 @@ case class Summary(
 object Summary extends Parser.From[Summary](Parser.summary) {
   def apply(spec: Spec): Summary = if (!spec.isEmpty) {
     import ProductionKind.*
-    val Spec(version, grammar, algos, tables, tyModel, _) = spec
+    val Spec(version, grammar, algos, tables, tyModel) = spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
     val completeAlgos = spec.completeAlgorithms.length

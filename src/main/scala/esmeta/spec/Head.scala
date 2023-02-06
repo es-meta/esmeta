@@ -42,7 +42,7 @@ sealed trait Head extends SpecElem {
     case head: AbstractOperationHead =>
       head.name
     case head: NumericMethodHead =>
-      s"${head.ty.normalizedName}::${head.name}"
+      s"${head.baseTy.normalizedName}::${head.name}"
     case head: SyntaxDirectedOperationHead =>
       val Target = SyntaxDirectedOperationHead.Target
       val pre = head.target.fold("<DEFAULT>") {
@@ -50,7 +50,7 @@ sealed trait Head extends SpecElem {
       }
       s"$pre.${head.methodName}"
     case head: ConcreteMethodHead =>
-      s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
+      s"${head.receiverParam.ty.normalizedName}.${head.concMethodName}"
     case head: InternalMethodHead =>
       s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
     case head: BuiltinHead =>
@@ -80,7 +80,7 @@ case class AbstractOperationHead(
 
 /** numeric method heads */
 case class NumericMethodHead(
-  ty: Type,
+  baseTy: Type,
   name: String,
   params: List[Param],
   retTy: Type,
@@ -105,7 +105,7 @@ type SdoHeadTarget = SyntaxDirectedOperationHead.Target
 
 /** concrete method heads */
 case class ConcreteMethodHead(
-  methodName: String,
+  concMethodName: String,
   receiverParam: Param,
   params: List[Param],
   retTy: Type,

@@ -1,7 +1,5 @@
 package esmeta.util
 
-import esmeta.error.WrongUId
-
 /** unique ids */
 trait UId {
   // unique ids
@@ -22,3 +20,4 @@ trait UId {
   // override hashCode using unique ids
   override def hashCode: Int = id
 }
+given Ordering[UId] = Ordering.by(_.id)

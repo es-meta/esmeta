@@ -117,6 +117,7 @@ sealed trait CalcExpression extends Expression {
     case UnaryExpression(_, _)                   => 2
     case _                                       => 3
 }
+object CalcExpression extends Parser.From(Parser.calcExpr)
 
 // return-if-abrupt expressions
 case class ReturnIfAbruptExpression(
@@ -174,6 +175,7 @@ case class ClampExpression(
   lower: Expression,
   upper: Expression,
 ) extends Expression
+object ClampExpression extends Parser.From(Parser.clampExpr)
 
 // -----------------------------------------------------------------------------
 // mathematical operation expressions
@@ -182,6 +184,7 @@ case class MathOpExpression(
   op: MathOpExpressionOperator,
   args: List[CalcExpression],
 ) extends Expression
+object MathOpExpression extends Parser.From(Parser.mathOpExpr)
 enum MathOpExpressionOperator extends LangElem:
   case Neg, Add, Sub, Mul, Pow
   case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
@@ -195,6 +198,7 @@ case class BitwiseExpression(
   op: BitwiseExpressionOperator,
   right: Expression,
 ) extends Expression
+object BitwiseExpression extends Parser.From(Parser.bitwiseExpr)
 enum BitwiseExpressionOperator extends LangElem:
   case BAnd, BOr, BXOr
 
@@ -214,6 +218,7 @@ case class AbstractClosureExpression(
 // metalanguage literals
 // -----------------------------------------------------------------------------
 sealed trait Literal extends CalcExpression
+object Literal extends Parser.From(Parser.literal)
 
 // `this` literals
 case class ThisLiteral() extends Literal

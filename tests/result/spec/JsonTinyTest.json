@@ -1,0 +1,11 @@
+{
+  "BuiltinPath" : true,
+  "Grammar" : true,
+  "Head" : true,
+  "Lhs" : true,
+  "Production" : true,
+  "ProductionKind" : true,
+  "Rhs" : true,
+  "RhsCond" : true,
+  "Symbol" : true
+}

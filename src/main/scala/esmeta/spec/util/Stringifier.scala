@@ -2,16 +2,18 @@ package esmeta.spec.util
 
 import esmeta.LINE_SEP
 import esmeta.lang.*
+import esmeta.spec.*
+import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.spec.*
 
 /** stringifier for specifications */
 object Stringifier {
   // stringifier for metalanguage
   val langStringifier = LangElem.getStringifier(false, false)
   import langStringifier.{given, *}
+  import TyStringifier.{*, given}
 
   type NtArg = NonterminalArgument
   type NtArgKind = NonterminalArgumentKind
@@ -165,7 +167,7 @@ object Stringifier {
       case AbstractOperationHead(isHostDefined, name, params, rty) =>
         app >> name >> params >> ": " >> rty
       case NumericMethodHead(ty, name, params, rty) =>
-        app >> ty >> "::" >> name >> params >> ": " >> rty
+        app >> ty.ty >> "::" >> name >> params >> ": " >> rty
       case SyntaxDirectedOperationHead(
             target,
             methodName,

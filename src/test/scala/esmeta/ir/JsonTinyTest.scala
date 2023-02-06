@@ -1,34 +1,20 @@
 package esmeta.ir
 
-import esmeta.IR_TEST_DIR
-import esmeta.ir.*
-import esmeta.ty.*
-import esmeta.util.BaseUtils.*
-import esmeta.util.{Loc, Pos}
-import esmeta.util.SystemUtils._
-import scala.collection.mutable.ListBuffer
+import esmeta.ir.util.JsonProtocol.given
+import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
 
-/** stringify test */
-class StringifyTinyTest extends IRTest {
-  val name: String = "irStringifyTest"
+/** JSON test */
+class JsonTinyTest extends IRTest {
+  val name: String = "irJsonTest"
 
   // registration
   def init: Unit = {
     import IRTest.*
 
-    // check parser and stringifier from files
-    for (file <- walkTree(IR_TEST_DIR)) {
-      val filename = file.getName
-      if (irFilter(filename)) check(filename) {
-        val name = file.toString
-        IRTest.parseFileTest(name)
-      }
-    }
-
     // -------------------------------------------------------------------------
     // functions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Func", Func)(
+    checkJsonWithString("Func")(
       mainFunc -> """@main def f(
       |  x: Number,
       |  y?: Number,
@@ -50,7 +36,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // function kinds
     // -------------------------------------------------------------------------
-    checkParseAndStringify("FuncKind", FuncKind)(
+    checkJsonWithString("FuncKind")(
       FuncKind.AbsOp -> "",
       FuncKind.NumMeth -> "<NUM>:",
       FuncKind.SynDirOp -> "<SYNTAX>:",
@@ -64,7 +50,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // parameters
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Param", Param)(
+    checkJsonWithString("Param")(
       xParam -> "x: Number",
       yParam -> "y?: Number",
     )
@@ -72,7 +58,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // instructions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Inst", Inst)(
+    checkJsonWithString("Inst")(
       xExprInst -> "x",
       let -> "let x = ~empty~",
       del -> "delete x.p",
@@ -107,7 +93,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // expressions
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Expr", Expr)(
+    checkJsonWithString("Expr")(
       comp -> "comp[~normal~/~empty~](x)",
       isComp -> "(comp? x)",
       riaCheck -> "[? x]",
@@ -180,12 +166,12 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // operators
     // -------------------------------------------------------------------------
-    checkParseAndStringify("UOp", UOp)(
+    checkJsonWithString("UOp")(
       UOp.Neg -> "-",
       UOp.Not -> "!",
       UOp.BNot -> "~",
     )
-    checkParseAndStringify("BOp", BOp)(
+    checkJsonWithString("BOp")(
       BOp.Add -> "+",
       BOp.Sub -> "-",
       BOp.Mul -> "*",
@@ -206,12 +192,12 @@ class StringifyTinyTest extends IRTest {
       BOp.URShift -> ">>>",
       BOp.SRShift -> ">>",
     )
-    checkParseAndStringify("VOp", VOp)(
+    checkJsonWithString("VOp")(
       VOp.Min -> "min",
       VOp.Max -> "max",
       VOp.Concat -> "concat",
     )
-    checkParseAndStringify("MOp", MOp)(
+    checkJsonWithString("MOp")(
       MOp.Expm1 -> "[math:expm1]",
       MOp.Log10 -> "[math:log10]",
       MOp.Log2 -> "[math:log2]",
@@ -234,7 +220,7 @@ class StringifyTinyTest extends IRTest {
       MOp.Sqrt -> "[math:sqrt]",
       MOp.Tan -> "[math:tan]",
     )
-    checkParseAndStringify("COp", COp)(
+    checkJsonWithString("COp")(
       COp.ToApproxNumber -> "[approx-number]",
       COp.ToNumber -> "[number]",
       COp.ToBigInt -> "[bigInt]",
@@ -245,7 +231,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // references
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Ref", Ref)(
+    checkJsonWithString("Ref")(
       global -> "@GLOBAL",
       x -> "x",
       temp -> "%42",
@@ -257,7 +243,7 @@ class StringifyTinyTest extends IRTest {
     // -------------------------------------------------------------------------
     // types
     // -------------------------------------------------------------------------
-    checkParseAndStringify("Type", Type)(ty -> "Number")
+    checkJsonWithString("Type")(ty -> "Number")
   }
 
   init
