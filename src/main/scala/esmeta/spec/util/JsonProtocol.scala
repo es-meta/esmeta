@@ -44,7 +44,7 @@ object JsonProtocol extends BasicJsonProtocol {
     : List[(String, HCursor => Decoder.Result[Symbol])] = List(
     "term" -> (_.as[Terminal]),
     "name" -> (_.as[Nonterminal]),
-    "nonCases" -> (_.as[ButNot]),
+    "notCases" -> (_.as[ButNot]),
     "methodName" -> (_.as[ButOnlyIf]),
     "cases" -> (_.as[Lookahead]),
     "empty" -> (_ => Right(Empty)),
