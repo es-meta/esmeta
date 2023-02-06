@@ -2,12 +2,22 @@ package esmeta
 package spec
 package util
 
+import esmeta.lang.util.JsonProtocol.given
+import esmeta.ty.*
+import esmeta.ty.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
-import lang.util.JsonProtocol.given
 
 object JsonProtocol extends BasicJsonProtocol {
+  // ECMAScript specifications (ECMA-262)
+  given Decoder[Spec] = deriveDecoder
+  given Encoder[Spec] = deriveEncoder
+
+  // tables
+  given Decoder[Table] = deriveDecoder
+  given Encoder[Table] = deriveEncoder
+
   // ---------------------------------------------------------------------------
   // Grammar
   // ---------------------------------------------------------------------------

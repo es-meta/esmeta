@@ -48,14 +48,16 @@ class Extractor(
   lazy val manualInfo: ManualInfo = ManualInfo(version)
 
   /** final result */
-  lazy val result = Spec(
-    version = version,
-    grammar = grammar,
-    algorithms = algorithms,
-    tables = tables,
-    tyModel = TyModel.es, // TODO automatic extraction
-    document = document,
-  )
+  lazy val result =
+    val spec = Spec(
+      version = version,
+      grammar = grammar,
+      algorithms = algorithms,
+      tables = tables,
+      tyModel = TyModel.es, // TODO automatic extraction
+    )
+    spec.document = document
+    spec
 
   /** ECMAScript grammar */
   lazy val grammar = extractGrammar
