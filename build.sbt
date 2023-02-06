@@ -78,6 +78,7 @@ lazy val compilerValidityTest =
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
+lazy val irJsonTest = taskKey[Unit]("Launch JSON tests for ir (tiny)")
 
 // cfgBuilder
 lazy val cfgBuilderTest = taskKey[Unit]("Launch CFG builder tests")
@@ -229,6 +230,7 @@ lazy val root = project
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
+    irJsonTest := (Test / testOnly).toTask(" *.ir.Json*Test").value,
     // cfgBuilder
     cfgBuilderTest := (Test / testOnly).toTask(" *.cfgBuilder.*Test").value,
     cfgBuilderValidityTest := (Test / testOnly)

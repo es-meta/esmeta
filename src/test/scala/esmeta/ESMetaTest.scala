@@ -2,17 +2,18 @@ package esmeta
 
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
-import esmeta.error.{NotSupported => NSError}
 import esmeta.error.NotSupported.*
+import esmeta.error.{NotSupported => NSError}
 import esmeta.extractor.Extractor
 import esmeta.phase.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.SystemUtils.*
-import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*, io.circe.generic.auto.*
 import java.io.*
 import org.scalatest.*
 import scala.runtime.ScalaRunTime
+import scala.util.{Try, Failure, Success}
 
 trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // set test mode
@@ -111,6 +112,43 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
         assert(parsed == Some(obj))
         assert(stringified == string)
     })
+
+  // check JSON encoder/decoder
+  def checkJson[T](desc: String)(
+    cases: (T, Json)*,
+  )(using
+    encoder: Encoder[T],
+    decoder: Decoder[T],
+  ): Unit =
+    check(desc)(cases.foreach {
+      case (obj, json) =>
+        // check encoder
+        val encoded = Try(obj.asJson)
+        if (encoded != Success(json)) {
+          println(s"[FAILED] $desc (encoding)")
+          println(s"- result: $encoded")
+          println(s"- expected: $json")
+        }
+        // check stringify
+        val decoded = decoder.decodeJson(json).toTry
+        if (decoded != Success(obj)) {
+          println(s"[FAILED] $desc (decoding)")
+          println(s"- result: $decoded")
+          println(s"- expected: $json")
+        }
+        assert(encoded == Success(json))
+        assert(decoded == Success(obj))
+    })
+
+  // check JSON encoder/decoder with string values
+  def checkJsonWithString[T](desc: String)(
+    cases: (T, String)*,
+  )(using
+    encoder: Encoder[T],
+    decoder: Decoder[T],
+  ): Unit = checkJson(desc)(cases.map {
+    case (obj, str) => obj -> Json.fromString(str)
+  }: _*)
 
   // get score
   def getScore(res: Map[String, Result]): (Int, Int) = (

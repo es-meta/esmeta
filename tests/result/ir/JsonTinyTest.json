@@ -1,0 +1,14 @@
+{
+  "BOp" : true,
+  "COp" : true,
+  "Expr" : true,
+  "Func" : true,
+  "FuncKind" : true,
+  "Inst" : true,
+  "MOp" : true,
+  "Param" : true,
+  "Ref" : true,
+  "Type" : true,
+  "UOp" : true,
+  "VOp" : true
+}
