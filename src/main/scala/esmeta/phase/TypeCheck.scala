@@ -42,6 +42,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "use a REPL for type analysis of ECMA-262.",
     ),
     (
+      "repl-continue",
+      BoolOption(c => REPL_CONTINUE = true),
+      "run continue command at startup when using repl",
+    ),
+    (
       "ignore",
       StrOption((c, s) => c.ignorePath = Some(s)),
       "ignore type mismatches in algorithms listed in a given JSON file.",

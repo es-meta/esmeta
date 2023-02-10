@@ -93,6 +93,9 @@ var DEBUG: Boolean = false
 /** REPL mode */
 var USE_REPL: Boolean = false
 
+/** Run continue command at startup when using repl */
+var REPL_CONTINUE: Boolean = false
+
 /** check period */
 var CHECK_PERIOD: Int = 10000
 
