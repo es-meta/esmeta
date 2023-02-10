@@ -144,7 +144,7 @@ case class REPL(sem: AbsSemantics) {
   def restoreCp() = curCp = origCp
 
   // continue option
-  var continue: Boolean = false
+  var continue: Boolean = REPL_CONTINUE
 
   // jump point
   var jumpTo: Option[Int] = None
