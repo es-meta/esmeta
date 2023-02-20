@@ -1,5 +1,6 @@
 def OrdinaryOwnPropertyKeys(
   O: Object,
+  // PropertyKey is alias of `Symbol | String` but this does not typecheck currently.
 ): List[PropertyKey] {
   let keys = (new [])
   %0 = 0
