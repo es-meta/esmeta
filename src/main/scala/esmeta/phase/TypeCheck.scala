@@ -44,7 +44,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     (
       "repl-continue",
       BoolOption(c => REPL_CONTINUE = true),
-      "run continue command at startup when using repl",
+      "run `continue` command at startup when using REPL",
     ),
     (
       "ignore",
