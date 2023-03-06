@@ -100,5 +100,5 @@ case class ProgressBar[T](
 }
 object ProgressBar {
   def defaultGetName[T](x: T, idx: Int): String =
-    s"${idx.toOrdinal} element",
+    s"${idx.toOrdinal} element"
 }

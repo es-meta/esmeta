@@ -108,10 +108,10 @@ class DotPrinter(
       case Branch(_, kind, cond, thenOpt, elseOpt) =>
         drawNode(id, "diamond", nodeColor, bgColor, Some(norm(cond)))
         thenOpt.map { thn =>
-          drawEdge(id, getId(thn), getEdgeColor(node, thn), Some("true")),
+          drawEdge(id, getId(thn), getEdgeColor(node, thn), Some("true"))
         }
         elseOpt.map { els =>
-          drawEdge(id, getId(els), getEdgeColor(node, els), Some("false")),
+          drawEdge(id, getId(els), getEdgeColor(node, els), Some("false"))
         }
 
   protected def drawNode(
