@@ -23,8 +23,8 @@ object SpecRoute {
               .asJson
               .noSpaces,
           ),
-        ),
+        )
       }
     },
-  ),
+  )
 }
