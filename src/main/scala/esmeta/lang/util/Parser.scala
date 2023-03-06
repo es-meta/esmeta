@@ -1016,7 +1016,7 @@ trait Parsers extends IndentParsers {
   lazy val propRef: PL[PropertyReference] = opt("the value of") ~> {
     baseRef ~ rep1(prop) ^^ {
       case base ~ ps =>
-        val (p :: rest) = ps
+        val (p :: rest) = ps: @unchecked
         rest.foldLeft[PropertyReference](PropertyReference(base, p))(
           PropertyReference(_, _),
         )

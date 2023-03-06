@@ -333,7 +333,8 @@ object TypeDomain extends value.Domain {
       case AstTopTy =>
         for {
           func <- cfg.funcs if func.isSDO
-          allSdoPattern(_, newMethod) = func.name if newMethod == method
+          allSdoPattern(_, newMethod) = func.name: @unchecked
+          if newMethod == method
         } yield (func, Elem(AstT))
       case AstNameTy(names) =>
         for {
@@ -590,7 +591,7 @@ object TypeDomain extends value.Domain {
     for {
       func <- cfg.funcs if func.isSDO
       isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
-      sdoPattern(name, idxStr, subIdxStr, method) = func.name
+      sdoPattern(name, idxStr, subIdxStr, method) = func.name: @unchecked
       (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
       key = s"$name[$idx,$subIdx]"
     } {

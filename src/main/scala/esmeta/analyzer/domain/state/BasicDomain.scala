@@ -301,7 +301,7 @@ object BasicDomain extends state.Domain {
       var visited = Set[Part]()
 
       // heap members
-      val heap @ AbsHeap(map, merged) = elem.heap
+      val heap @ AbsHeap(map, merged) = elem.heap: @unchecked
 
       // auxiliary functions for values
       def auxValue(

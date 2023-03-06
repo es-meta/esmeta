@@ -27,7 +27,7 @@ trait Optimized { this: AbsTransfer =>
               compValue <- transfer(compExpr)
               newValue <- transfer(valueExpr)
             } yield {
-              val AbsComp(map) = compValue.comp
+              val AbsComp(map) = compValue.comp: @unchecked
               val empty = AbsPureValue(CONST_EMPTY)
               val newMap = map.map {
                 case (ty, res @ AbsComp.Result(value, target)) =>
