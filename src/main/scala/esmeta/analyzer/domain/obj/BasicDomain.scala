@@ -361,7 +361,7 @@ object BasicDomain extends obj.Domain {
       case PropMap(tname, map, Some(props)) =>
         KeyWiseList(if (intSorted) {
           (for {
-            Str(s) <- props
+            case Str(s) <- props
             d = ESValueParser.str2Number(s)
             if toStringHelper(d) == s
             i = d.toLong

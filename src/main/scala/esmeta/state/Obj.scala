@@ -69,7 +69,7 @@ case class MapObj(
       else props.toVector.map(_._1).sortBy(_.toString)
     } else
       (for {
-        (Str(s), _) <- props.toVector
+        case (Str(s), _) <- props.toVector
         d = ESValueParser.str2Number(s)
         if toStringHelper(d) == s
         i = d.toLong // should handle unsigned integer
