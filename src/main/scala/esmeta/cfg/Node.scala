@@ -54,7 +54,7 @@ case class Call(
   callInst: CallInst,
   var next: Option[Node] = None,
 ) extends NodeWithInst {
-  override val inst: Option[Inst] = Some(callInst)
+  setInst(callInst)
   def lhs: Local = callInst.lhs
 }
 
