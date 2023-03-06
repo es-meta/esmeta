@@ -137,7 +137,6 @@ sealed trait SimpleValue extends PureValue
 /** numeric values */
 sealed trait Numeric extends SimpleValue:
   def toMath: Math = this match
-    case math: Math     => math
     case Number(double) => Math(double)
     case BigInt(bigInt) => Math(bigInt)
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
