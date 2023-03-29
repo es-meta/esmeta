@@ -2,7 +2,7 @@ package esmeta
 
 import esmeta.error.NoEnvVarError
 
-/** line seperator */
+/** line separator */
 val LINE_SEP = System.getProperty("line.separator")
 
 /** base project directory root */

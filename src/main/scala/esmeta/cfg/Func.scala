@@ -64,7 +64,7 @@ case class Func(
   lazy val isMethod: Boolean =
     irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
 
-  /** check wheter it needs normal completion wrapping */
+  /** check whether it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
     case FuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
     case FuncKind.Builtin | FuncKind.BuiltinClo                   => true
@@ -93,7 +93,7 @@ case class Func(
     for {
       pdfPath <- pdfPathOpt
       e <- getError(executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath""""))
-    } error(s"""[DOT] [$name]: exception occured while converting to pdf:
+    } error(s"""[DOT] [$name]: exception occurred while converting to pdf:
                |
                |$e""".stripMargin)
 

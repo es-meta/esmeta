@@ -785,7 +785,7 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("AsyncGeneratorFunction"), F, F, T),
       ),
     ),
-    // Generator.protoype == GeneratorFunction.prototype.prototype
+    // Generator.prototype == GeneratorFunction.prototype.prototype
     "GeneratorFunction.prototype.prototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(

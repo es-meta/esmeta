@@ -108,12 +108,12 @@ object Stringifier {
     id.foreach(app >> " #" >> _)
     app
 
-  // for condidtions for RHSs
+  // for conditions for RHSs
   given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
     val RhsCond(name, pass) = rhsCond
     app >> "[" >> (if (pass) "+" else "~") >> name >> "]"
 
-  // for condidtions for symbols
+  // for conditions for symbols
   given symbolRule: Rule[Symbol] = (app, symbol) =>
     given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
     given t: Rule[List[Symbol]] = iterableRule(sep = " ")
@@ -138,12 +138,12 @@ object Stringifier {
         cond.map(app >> " " >> _)
         app
 
-  // for condidtions for nonterminal arguments
+  // for conditions for nonterminal arguments
   given ntArgRule: Rule[NtArg] = (app, ntArg) =>
     val NtArg(kind, name) = ntArg
     app >> kind >> name
 
-  // for condidtions for nonterminal argument kinds
+  // for conditions for nonterminal argument kinds
   given ntArgKindRule: Rule[NtArgKind] = (app, kind) =>
     import NonterminalArgumentKind.*
     app >> (kind match

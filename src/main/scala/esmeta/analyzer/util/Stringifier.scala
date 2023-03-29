@@ -72,7 +72,7 @@ class Stringifier(
   // values for analysis
   given avRule: Rule[AValue] = (app, av) =>
     av match
-      case AComp(Const("noraml"), v, _) =>
+      case AComp(Const("normal"), v, _) =>
         app >> "N(" >> v >> ")"
       case AComp(ty, value, target) =>
         app >> "comp[" >> ty

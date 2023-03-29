@@ -123,7 +123,7 @@ lazy val AV_TARGET = AbsValue(Str("Target"))
 // -----------------------------------------------------------------------------
 // abstract domains
 // -----------------------------------------------------------------------------
-/** initilize analysis domains (only once) */
+/** initialize analysis domains (only once) */
 def initDomain(
   stateDomain: StateDomain = state.BasicDomain,
   retDomain: RetDomain = ret.BasicDomain,

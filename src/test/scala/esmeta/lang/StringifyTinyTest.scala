@@ -309,7 +309,7 @@ class StringifyTinyTest extends LangTest {
     )
 
     // -------------------------------------------------------------------------
-    // algorithm calcualation expressions
+    // algorithm calculation expressions
     // -------------------------------------------------------------------------
     lazy val minExpr =
       MathFuncExpression(MathFuncExpressionOperator.Min, List(refExpr))
@@ -373,7 +373,7 @@ class StringifyTinyTest extends LangTest {
       convToMathExpr -> "ℝ(_x_)",
     )
     // -------------------------------------------------------------------------
-    // algorithm mathematical operaion expressions
+    // algorithm mathematical operation expressions
     // -------------------------------------------------------------------------
     // tests
     checkParseAndStringify("MathOpExpression", Expression)(

@@ -119,7 +119,7 @@ case class Coverage(
       noSpace = true,
     )
 
-  /** convertion to string */
+  /** conversion to string */
   private def percent(n: Double, t: Double): Double = n / t * 100
   override def toString: String = {
     val (nCovered, nTotal) = nodeCov

@@ -73,7 +73,7 @@ trait Domain[A] { self =>
     def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
       final def iterator: Iterator[A] = elem.gamma match
         case Inf =>
-          if (stop) exploded(s"impossible to iterate infinte values")
+          if (stop) exploded(s"impossible to iterate infinite values")
           else Nil.iterator
         case Fin(set) => set.iterator
   }

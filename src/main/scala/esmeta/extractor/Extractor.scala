@@ -195,7 +195,7 @@ class Extractor(
       "Every grammar production alternative in this specification which is " +
       "not listed below implicitly has the following default definition of"
     val generator = parseBy(sdoHeadGen)(headContent)
-    // to hande "default" case algorithms
+    // to handle "default" case algorithms
     if (!prevContent.startsWith(defaultCaseStr)) {
       // normal case
       for {

@@ -31,7 +31,7 @@ case class HasBindingCondition(
 ) extends Condition
 
 // production condition such as
-// `|Declartion| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
+// `|Declaration| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
 // XXX use production literal?
 case class ProductionCondition(
   ntLiteral: Expression,

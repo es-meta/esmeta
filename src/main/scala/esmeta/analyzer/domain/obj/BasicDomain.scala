@@ -79,10 +79,10 @@ object BasicDomain extends obj.Domain {
   /** not supported objects */
   case class NotSupportedElem(tname: String, desc: String) extends Elem
 
-  /** get list with abstact values */
+  /** get list with abstract values */
   def getList(values: Iterable[AbsValue]): Elem = KeyWiseList(values.toVector)
 
-  /** get list with a merged abstact value */
+  /** get list with a merged abstract value */
   def getMergedList(value: AbsValue): Elem = MergedList(value)
 
   /** get symbol with abstract description value */
@@ -232,7 +232,7 @@ object BasicDomain extends obj.Domain {
           case l: ListElem               => l.mergedValue
           case NotSupportedElem(_, desc) => AbsValue.Bot
 
-    /** get list with abstact values */
+    /** get list with abstract values */
     def getList: Option[Vector[AbsValue]] = elem match
       case KeyWiseList(vs) => Some(vs)
       case _               => None

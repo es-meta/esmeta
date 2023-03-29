@@ -43,7 +43,7 @@ case class FuncBuilder(
   def newScope(f: => Unit): Inst =
     scopes.push(ListBuffer()); f; ISeq(scopes.pop.toList)
 
-  /** set backward egde from ir to lang */
+  /** set backward edge from ir to lang */
   def withLang(lang: Syntax)(f: => Unit): Unit =
     langs.push(lang); val result = f; langs.pop
     result

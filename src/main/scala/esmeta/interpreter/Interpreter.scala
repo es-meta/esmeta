@@ -184,7 +184,7 @@ class Interpreter(
           setCallResult(lhs, Interpreter.eval(lex, method))
   }
 
-  /** transition for expresssions */
+  /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EComp(tyExpr, valExpr, tgtExpr) =>
       val y = eval(tyExpr)
@@ -645,7 +645,7 @@ object Interpreter {
         Str(ESValueParser.parseIdentifier(str))
       case ("PrivateIdentifier", "StringValue") =>
         Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
-      // TODO handle numeric seperator in ESValueParser
+      // TODO handle numeric separator in ESValueParser
       case ("NumericLiteral", "MV" | "NumericValue") =>
         ESValueParser.parseNumber(str.replaceAll("_", ""))
       case ("StringLiteral", "SV" | "StringValue") =>

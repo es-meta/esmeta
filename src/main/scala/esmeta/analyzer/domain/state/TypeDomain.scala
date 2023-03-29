@@ -115,7 +115,7 @@ object TypeDomain extends state.Domain {
     /** property setter */
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
 
-    /** deletion wiht reference values */
+    /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
 
     /** push values to a list */
@@ -255,7 +255,7 @@ object TypeDomain extends state.Domain {
     /** get string */
     def getString(detail: Boolean): String = elem.toString
 
-    /** get string wth detailed shapes of locations */
+    /** get string with detailed shapes of locations */
     def getString(value: AbsValue): String = value.toString
 
     /** getters */

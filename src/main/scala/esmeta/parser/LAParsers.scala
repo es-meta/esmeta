@@ -205,7 +205,7 @@ trait LAParsers extends Lexer {
     res
   }
 
-  // Parse charater reader `in` with parser `p`
+  // Parse character reader `in` with parser `p`
   def parse[T](p: LAParser[T], in: Reader[Char]): ParseResult[T] = {
     p(emptyFirst, new EPackratReader(in))
   }

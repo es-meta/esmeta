@@ -80,7 +80,7 @@ trait Domain extends domain.Domain[State] {
     /** property setter */
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
 
-    /** deletion wiht reference values */
+    /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem
 
     /** push values to a list */

@@ -180,7 +180,7 @@ trait Parsers extends IndentParsers {
       PerformStep(_)
     }
 
-  // peform block steps
+  // perform block steps
   lazy val performBlockStep: PL[PerformBlockStep] =
     "perform the following substeps" ~
     "in an implementation-defined order" ~
@@ -730,7 +730,7 @@ trait Parsers extends IndentParsers {
           InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
       }
 
-    // Evalution SDO
+    // Evaluation SDO
     lazy val evalSDOExpr =
       "the result of evaluating" ~ opt(langType <~ guard(expr)) ~> expr ^^ {
         case b =>

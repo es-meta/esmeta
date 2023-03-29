@@ -7,10 +7,10 @@ import esmeta.state.*
 /** abstract object domain */
 trait Domain extends domain.Domain[Obj] {
 
-  /** get list with abstact values */
+  /** get list with abstract values */
   def getList(values: Iterable[AbsValue] = Nil): Elem
 
-  /** get list with a merged abstact value */
+  /** get list with a merged abstract value */
   def getMergedList(value: AbsValue): Elem
 
   /** get symbol with abstract description value */
@@ -25,7 +25,7 @@ trait Domain extends domain.Domain[Obj] {
     /** lookup */
     def get(akey: AbsValue): AbsValue
 
-    /** get list with abstact values */
+    /** get list with abstract values */
     def getList: Option[Vector[AbsValue]]
 
     /** get type */
