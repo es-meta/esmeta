@@ -317,7 +317,7 @@ as an input of the option:
 # analyze types for origin/main branch version of ECMA-262
 $ esmeta tycheck -extract:target=origin/main
 
-# analyze types for 2c78e6f commit verison of ECMA-262
+# analyze types for 2c78e6f commit version of ECMA-262
 $ esmeta tycheck -extract:target=2c78e6f
 ```
 
