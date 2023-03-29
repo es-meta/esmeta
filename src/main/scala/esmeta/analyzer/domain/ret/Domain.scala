@@ -14,7 +14,7 @@ trait Domain extends domain.Domain[(AValue, State)] {
   ): Elem
 
   /** extractors */
-  def unapply(elem: Elem): Option[(AbsValue, AbsState)]
+  def unapply(elem: Elem): (AbsValue, AbsState)
 
   /** return value element interfaces */
   extension (elem: Elem) {

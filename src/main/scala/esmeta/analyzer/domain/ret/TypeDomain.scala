@@ -29,8 +29,7 @@ object TypeDomain extends ret.Domain {
   ): Elem = Elem(value)
 
   /** extractors */
-  def unapply(elem: Elem): Option[(AbsValue, AbsState)] =
-    Some(elem.value, AbsState.Bot)
+  def unapply(elem: Elem): (AbsValue, AbsState) = (elem.value, AbsState.Bot)
 
   /** appender */
   given rule: Rule[Elem] = (app, elem) => app >> elem.value

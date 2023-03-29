@@ -49,7 +49,7 @@ object BasicDomain extends comp.Domain {
   def apply(map: Map[String, Result]): Elem = Elem(map)
 
   /** extractors */
-  def unapply(elem: Elem): Option[Map[String, Result]] = Some(elem.map)
+  def unapply(elem: Elem): Product1[Map[String, Result]] = Tuple1(elem.map)
 
   /** element interfaces */
   extension (elem: Elem) {

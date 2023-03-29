@@ -86,7 +86,7 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
 
   /** transfer function for return points */
   def apply(rp: ReturnPoint): Unit = {
-    var ret @ AbsRet(value, st) = sem(rp): @unchecked
+    var AbsRet(value, st) = sem(rp)
 
     // proper type handle
     Interpreter.setTypeMap
