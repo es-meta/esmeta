@@ -1,4 +1,4 @@
-// TODO implementaion is missing
+// TODO implementation is missing
 @main def main() {
   //let const = ~empty~
   //assert (= (typeof const) "Constant")
