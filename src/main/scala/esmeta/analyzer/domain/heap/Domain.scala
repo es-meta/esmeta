@@ -12,7 +12,7 @@ trait Domain extends domain.Domain[Heap] {
   def apply(map: Map[Part, AbsObj] = Map(), merged: Set[Part] = Set()): Elem
 
   /** extractors */
-  def unapply(elem: Elem): Option[(Map[Part, AbsObj], Set[Part])]
+  def unapply(elem: Elem): (Map[Part, AbsObj], Set[Part])
 
   /** set bases */
   def setBase(heap: Heap): Unit

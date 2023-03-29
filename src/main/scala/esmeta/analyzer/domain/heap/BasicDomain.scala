@@ -34,12 +34,8 @@ object BasicDomain extends heap.Domain {
   ): Elem = Elem(map, merged)
 
   /** extractors */
-  def unapply(elem: Elem): Option[(Map[Part, AbsObj], Set[Part])] = Some(
-    (
-      elem.map,
-      elem.merged,
-    ),
-  )
+  def unapply(elem: Elem): (Map[Part, AbsObj], Set[Part]) =
+    (elem.map, elem.merged)
 
   /** appender */
   given rule: Rule[Elem] = mkRule(true)

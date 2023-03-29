@@ -19,7 +19,7 @@ trait Domain extends domain.Domain[AComp] {
   def apply(map: Map[String, Result]): Elem
 
   /** extractors */
-  def unapply(elem: Elem): Option[Map[String, Result]]
+  def unapply(elem: Elem): Product1[Map[String, Result]]
 
   /** results in completion records */
   case class Result(value: AbsPureValue, target: AbsPureValue) {

@@ -512,9 +512,11 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
         // NOTE: there is no method call via dynamic property access
-        val Prop(base, EStr(method)) = compile(fb, ref): @unchecked
-        fb.addInst(IMethodCall(x, base, method, args.map(compile(fb, _))))
-        xExpr
+        compile(fb, ref) match
+          case Prop(base, EStr(method)) =>
+            fb.addInst(IMethodCall(x, base, method, args.map(compile(fb, _))))
+            xExpr
+          case _ => ???
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
         // XXX BUG in Static Semancis: CharacterValue
         val baseExpr = compile(fb, base)
