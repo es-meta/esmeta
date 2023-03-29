@@ -54,7 +54,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case other: NodeWithInst => app >> other
     app
 
-  // nodes withs instruction backward edge
+  // nodes with instruction backward edge
   // TODO handle location option
   given nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
     node match

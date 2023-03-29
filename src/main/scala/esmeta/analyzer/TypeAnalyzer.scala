@@ -18,7 +18,7 @@ private class TypeAnalyzer(
   silent: Boolean = false,
 ) {
 
-  // initilize analysis with CFG and logging path
+  // initialize analysis with CFG and logging path
   lazy val result: TypeSemantics = withCFG(cfg) {
     withSem(sem) {
       sem.fixpoint

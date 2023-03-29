@@ -270,7 +270,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   /** extension for func */
   extension (func: Func) {
 
-    /** check wheter it is runtime SDO */
+    /** check whether it is runtime SDO */
     def isRuntimeSDO: Boolean = func.irFunc.head match
       case Some(SyntaxDirectedOperationHead(_, _, false, _, _)) => true
       case _                                                    => false

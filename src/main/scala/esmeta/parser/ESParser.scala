@@ -380,7 +380,7 @@ case class ESParser(
     f ~ p ^^ { case a ~ f => f(a) }
   }
 
-  // record right-most faield positions
+  // record right-most field positions
   protected def record[T](
     parser: Parser[T],
     in: EPackratReader[Char],

@@ -163,7 +163,7 @@ trait Parsers extends LangParsers {
   // Algorithms
   // ---------------------------------------------------------------------------
 
-  // abstract opration (AO) heads
+  // abstract operation (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
     opt(semanticsKind) ~> name ~ params ~ retTy ^^ {
       case name ~ params ~ rty => AbstractOperationHead(_, name, params, rty)

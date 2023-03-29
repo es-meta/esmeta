@@ -62,7 +62,7 @@ object BaseUtils {
   def optional[T](f: => T): Option[T] = try Some(f)
   catch { case e: Throwable => None }
 
-  /** get catched error message */
+  /** get caught error message */
   def getError[T](f: => T): Option[Throwable] =
     try { f; None }
     catch { case e: Throwable => Some(e) }

@@ -507,7 +507,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         // handle Evaluation
         if (name == "Evaluation") app >> "the result of evaluating " >> base
-        // XXX handle Conatins, Contains always takes one argument
+        // XXX handle Contains, Contains always takes one argument
         else if (name == "Contains") app >> base >> " Contains " >> args.head
         // Otherwise
         else {

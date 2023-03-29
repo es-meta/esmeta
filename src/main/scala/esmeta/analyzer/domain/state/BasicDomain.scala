@@ -141,7 +141,7 @@ object BasicDomain extends state.Domain {
         elem.copy(heap = elem.heap.update(base.part, prop, value))
       }
 
-    /** deletion wiht reference values */
+    /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = refV match
       case AbsRefId(x) => error(s"cannot delete variable $x")
       case AbsRefProp(base, prop) =>
@@ -377,7 +377,7 @@ object BasicDomain extends state.Domain {
       app >> elem
       app.toString
 
-    /** get string wth detailed shapes of locations */
+    /** get string with detailed shapes of locations */
     def getString(value: AbsValue): String =
       val app = Appender()
       app >> value.toString

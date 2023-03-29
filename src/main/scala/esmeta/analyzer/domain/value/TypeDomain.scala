@@ -147,8 +147,8 @@ object TypeDomain extends value.Domain {
         case (One(l), One(r))            => Elem(BoolT(l == r))
         case _ if (elem ⊓ that).isBottom => Elem(FalseT)
         case _                           => boolTop
-    def ==^==(that: Elem): Elem = numericComapreOP(elem, that)
-    def <(that: Elem): Elem = numericComapreOP(elem, that)
+    def ==^==(that: Elem): Elem = numericCompareOP(elem, that)
+    def <(that: Elem): Elem = numericCompareOP(elem, that)
 
     /** logical operations */
     def &&(that: Elem): Elem = logicalOp(_ && _)(elem, that)
@@ -442,7 +442,7 @@ object TypeDomain extends value.Domain {
     } yield op(x, y))))
 
   // numeric comparison operator helper
-  private lazy val numericComapreOP: (Elem, Elem) => Elem = (l, r) =>
+  private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
     Elem(
       ValueTy(
         bool = BoolTy(

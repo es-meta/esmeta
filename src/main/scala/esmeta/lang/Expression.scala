@@ -105,12 +105,12 @@ case class InvokeSyntaxDirectedOperationExpression(
 ) extends InvokeExpression
 
 // -----------------------------------------------------------------------------
-// metalanguage calcualation expressions
+// metalanguage calculation expressions
 // -----------------------------------------------------------------------------
 sealed trait CalcExpression extends Expression {
   import BinaryExpressionOperator.*
 
-  /** level of calcualation expressions */
+  /** level of calculation expressions */
   def level: Int = this match
     case BinaryExpression(_, Add | Sub, _)       => 0
     case BinaryExpression(_, Mul | Div | Mod, _) => 1

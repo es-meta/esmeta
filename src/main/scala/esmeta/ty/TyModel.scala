@@ -488,7 +488,7 @@ object TyModel {
       "PromiseCapabilityRecord" -> TyInfo(
         fields = Map(
           "Promise" -> NameT("Object"),
-          "Resovle" -> NameT("FunctionObject"),
+          "Resolve" -> NameT("FunctionObject"),
           "Reject" -> NameT("FunctionObject"),
         ),
       ),
