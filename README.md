@@ -386,6 +386,6 @@ analyzer REPL.
 
 **Title**: [Filling the gap between the JavaScript language specification and tools using the JISET family](https://pldi22.sigplan.org/details/pldi-2022-tutorials/1/Filling-the-gap-between-the-JavaScript-language-specification-and-tools-using-the-JIS)
 - Presenters: [Jihyeok Park](https://park.jihyeok.site/), [Seungmin An](https://github.com/h2oche), and [Sukyoung Ryu](https://plrg.kaist.ac.kr/ryu)
-- [Session 1](https://park.jihyeok.site/assets/data/slide/2022/pldi22-tutorial-1.pdf)
-- [Session 2-1](https://park.jihyeok.site/assets/data/slide/2022/pldi22-tutorial-2.pdf)
-- [Session 2-2](https://park.jihyeok.site/assets/data/slide/2022/pldi22-tutorial-3.pdf)
+- [Session 1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-1.pdf)
+- [Session 2-1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-2.pdf)
+- [Session 2-2](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-3.pdf)
