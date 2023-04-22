@@ -381,6 +381,7 @@ analyzer REPL.
 - [ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015) [[old repo](https://github.com/kaist-plrg/jest)]
 - [ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781) [[old repo](https://github.com/kaist-plrg/jstar)]
 - [ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097) [[old repo](https://github.com/kaist-plrg/jsaver)]
+- [PLDI 2023] Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations
 
 ### PLDI 2022 Tutorial
 
