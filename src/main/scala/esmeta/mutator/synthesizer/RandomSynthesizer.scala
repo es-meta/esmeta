@@ -36,10 +36,11 @@ class RandomSynthesizer(
     symbol: Symbol,
   ): Option[Option[Ast]] = symbol match
     case ButNot(nt, _) => synSymbol(argsMap)(nt)
-    case Nonterminal(name, args, optional) =>
+    case Optional(symbol) =>
+      if (randBool) Some(None) else synSymbol(argsMap)(symbol)
+    case Nonterminal(name, args) =>
       if (reservedLexicals contains name)
         Some(Some(Lexical(name, reservedLexicals(name))))
-      else if (optional && randBool) Some(None)
       else {
         import NonterminalArgumentKind.*
         val newArgs = for (arg <- args) yield arg.kind match

@@ -44,6 +44,7 @@ object JsonProtocol extends BasicJsonProtocol {
     : List[(String, HCursor => Decoder.Result[Symbol])] = List(
     "term" -> (_.as[Terminal]),
     "name" -> (_.as[Nonterminal]),
+    "symbol" -> (_.as[Optional]),
     "notCases" -> (_.as[ButNot]),
     "methodName" -> (_.as[ButOnlyIf]),
     "cases" -> (_.as[Lookahead]),
@@ -55,6 +56,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Symbol] = Encoder.instance {
     case symbol: Terminal      => symbol.asJson
     case symbol: Nonterminal   => symbol.asJson
+    case symbol: Optional      => symbol.asJson
     case symbol: ButNot        => symbol.asJson
     case symbol: ButOnlyIf     => symbol.asJson
     case symbol: Lookahead     => symbol.asJson
@@ -71,6 +73,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[NonterminalArgument] = deriveEncoder
   given Decoder[NonterminalArgumentKind] = deriveDecoder
   given Encoder[NonterminalArgumentKind] = deriveEncoder
+  given Decoder[Optional] = deriveDecoder
+  given Encoder[Optional] = deriveEncoder
   given Decoder[ButNot] = deriveDecoder
   given Encoder[ButNot] = deriveEncoder
   given Decoder[ButOnlyIf] = deriveDecoder

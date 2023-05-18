@@ -19,11 +19,17 @@ case class Production(
     (name, j) <- rhs.allNames.zipWithIndex
   } yield lhs.name + ":" + name -> (i, j)).toMap
 
-  /** get non-terminals in RHSs */
+  /** get non-terminals with whether it is optional in an RHS */
   lazy val nts: List[Nonterminal] = for {
     rhs <- rhsList
     nt <- rhs.nts
   } yield nt
+
+  /** get non-terminals with whether it is optional in an RHS */
+  lazy val ntsWithOptional: List[(Nonterminal, Boolean)] = for {
+    rhs <- rhsList
+    pair <- rhs.ntsWithOptional
+  } yield pair
 
   /** get terminals in RHSs */
   lazy val ts: List[Terminal] = for {

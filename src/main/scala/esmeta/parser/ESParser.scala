@@ -148,37 +148,37 @@ case class ESParser(
     prev: LAParser[List[Option[Ast]]],
     symbol: Symbol,
     argsSet: Set[String],
-  ): LAParser[List[Option[Ast]]] =
-    symbol match {
-      case Terminal(")") if name == "DoWhileStatement" => prev <~ doWhileCloseT
-      case Terminal(term)                              => prev <~ t(term)
-      case Nonterminal(name, args, optional) =>
-        lazy val parser =
+    optional: Boolean = false,
+  ): LAParser[List[Option[Ast]]] = symbol match
+    case Terminal(")") if name == "DoWhileStatement" => prev <~ doWhileCloseT
+    case Terminal(term)                              => prev <~ t(term)
+    case symbol: NtBase =>
+      lazy val parser = symbol match
+        case Nonterminal(name, args) =>
           if (lexNames contains name) nt(name, lexers(name, 0))
           else parsers(name)(toBools(argsSet, args))
-        if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
-        else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
-      case ButNot(base, cases) =>
-        val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
-        lazy val parser = nt(name, getSymbolParser(symbol, argsSet))
-        prev ~ parser ^^ { case l ~ s => Some(s) :: l }
-      case ButOnlyIf(base, methodName, cond) => ???
-      case Lookahead(contains, cases) =>
-        lazy val parser = cases
-          .map(
-            _.map(_ match {
-              case Terminal(t) if t.matches("[a-z]+") => t <~ not(IDContinue)
-              case symbol => getSymbolParser(symbol, argsSet)
-            }).reduce(_ %% _),
-          )
-          .reduce(_ | _)
-        lazy val lookahead = ntl(symbol.toString, parser)
-        prev <~ (if (contains) +lookahead else -lookahead)
-      case Empty               => prev
-      case NoLineTerminator    => prev <~ noLineTerminator
-      case CodePointAbbr(abbr) => ???
-      case UnicodeSet(cond)    => ???
-    }
+        case ButNot(base, cases) =>
+          val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
+          nt(name, getSymbolParser(symbol, argsSet))
+        case ButOnlyIf(base, methodName, cond) => ???
+      if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
+      else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
+    case Optional(symbol) => appendParser(name, prev, symbol, argsSet, true)
+    case Lookahead(contains, cases) =>
+      lazy val parser = cases
+        .map(
+          _.map(_ match {
+            case Terminal(t) if t.matches("[a-z]+") => t <~ not(IDContinue)
+            case symbol => getSymbolParser(symbol, argsSet)
+          }).reduce(_ %% _),
+        )
+        .reduce(_ | _)
+      lazy val lookahead = ntl(symbol.toString, parser)
+      prev <~ (if (contains) +lookahead else -lookahead)
+    case Empty               => prev
+    case NoLineTerminator    => prev <~ noLineTerminator
+    case CodePointAbbr(abbr) => ???
+    case UnicodeSet(cond)    => ???
 
   // a terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
@@ -428,10 +428,10 @@ case class ESParser(
   }
 
   // check whether it is a left-recursive production
-  private def isLR(name: String, rhs: Rhs): Boolean = rhs.symbols match {
-    case Nonterminal(`name`, _, _) :: _ => true
-    case _                              => false
-  }
+  private def isLR(name: String, rhs: Rhs): Boolean = (for {
+    symbol <- rhs.symbols.headOption
+    nt <- symbol.getNt
+  } yield nt.name == name).getOrElse(false)
 
   // TODO more general rule
   // handle indirect left-recursive case

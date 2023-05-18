@@ -53,9 +53,10 @@ class StringifyTinyTest extends SpecTest {
     // symbols
     checkParseAndStringify("Symbol", Symbol)(
       Terminal("{") -> "`{`",
-      Nonterminal("Identifier", ntArgs, true) ->
-      "Identifier[+Await, ~Yield, ?For]?",
-      Nonterminal("Identifier", Nil, false) -> "Identifier",
+      Nonterminal("Identifier", Nil) -> "Identifier",
+      Nonterminal("Identifier", ntArgs) -> "Identifier[+Await, ~Yield, ?For]",
+      Optional(Terminal("{")) -> "`{`?",
+      Optional(Nonterminal("Identifier", Nil)) -> "Identifier?",
       ButNot(nt, List(nt)) -> "Identifier but not Identifier",
       ButOnlyIf(nt, "MV", "> 0x10FFFF") ->
       "Identifier [> but only if MV of |Identifier|> 0x10FFFF]",

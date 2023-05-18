@@ -17,7 +17,7 @@ object SpecTest {
     NonterminalArgument(NonterminalArgumentKind.False, "Yield"),
     NonterminalArgument(NonterminalArgumentKind.Pass, "For"),
   )
-  lazy val nt: Nonterminal = Nonterminal("Identifier", Nil, false)
+  lazy val nt: Nonterminal = Nonterminal("Identifier", Nil)
   lazy val symbols = List(Terminal("{"), Terminal("}"))
 
   lazy val rhsCond: RhsCond = RhsCond("Yield", true)

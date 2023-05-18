@@ -510,7 +510,7 @@ object TypeDomain extends value.Domain {
       case Production(lhs, _, _, rhsList) =>
         val name = lhs.name
         val subs = rhsList.collect {
-          case Rhs(_, List(Nonterminal(name, _, _)), _) => name
+          case Rhs(_, List(Nonterminal(name, _)), _) => name
         }.toSet
         name -> subs
     }).toMap

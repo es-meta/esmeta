@@ -15,36 +15,49 @@ case class Rhs(
   /** get RHS all names */
   def allNames: List[String] =
     symbols.foldLeft(List[String]("")) {
-      case (names, Terminal(term)) => names.map(_ + term)
-      case (names, Nonterminal(name, _, optional)) =>
-        names.flatMap(x => {
-          if (optional) List(x, x + name) else List(x + name)
-        })
-      case (names, ButNot(base, _)) =>
-        names.map(_ + base.name)
-      case (names, ButOnlyIf(base, _, _)) =>
-        names.map(_ + base.name)
-      case (names, _) => names
+      case (names, Terminal(term)) =>
+        names.map(_ + term)
+      case (names, s: Optional) =>
+        s.getName.fold(names)(name => names.flatMap(x => List(x, x + name)))
+      case (names, s) =>
+        s.getName.fold(names)(name => names.map(_ + name))
     }
 
-  /** get non-terminals in an RHS */
-  lazy val nts: List[Nonterminal] = symbols.flatMap(_.getNt)
+  /** optional symbols */
+  lazy val optionals = symbols.collect { case opt: Optional => opt }
+
+  lazy val nts: List[Nonterminal] = for {
+    symbol <- symbols
+    nt <- symbol.getNt
+  } yield nt
+
+  /** get non-terminals with whether it is optional in an RHS */
+  lazy val ntsWithOptional: List[(Nonterminal, Boolean)] = for {
+    symbol <- symbols
+    nt <- symbol.getNt
+  } yield (nt, symbol.isInstanceOf[Optional])
+
+  /** get terminals in an RHS */
   lazy val ts: List[Terminal] = symbols.flatMap(_.getT)
+
+  /** get terminals in an RHS */
   lazy val getNts = cached[Int, List[Option[String]]] { subIdx =>
     val binStr = subIdx.toBinaryString
-    val optCount = nts.count(_.optional)
+    val optCount = optionals.size
     var flags = (("0" * (optCount - binStr.length)) + binStr).map(_ == '1')
-    nts.map(nt =>
-      if (nt.optional) {
+    for {
+      symbol <- symbols
+      nt <- symbol.getNt
+    } yield symbol match
+      case _: Optional =>
         val present = flags.head
         flags = flags.tail
         if (present) Some(nt.name) else None
-      } else Some(nt.name),
-    )
+      case _ => Some(nt.name)
   }
 
   /** count sub production */
-  lazy val countSubs: Int = scala.math.pow(2, nts.count(_.optional)).toInt
+  lazy val countSubs: Int = scala.math.pow(2, optionals.size).toInt
 
   /** check if empty */
   def isEmpty: Boolean = symbols match
@@ -53,14 +66,10 @@ case class Rhs(
 
   /** get index of non-terminal */
   def getNtIndex(ntName: String): Option[Int] =
-    val filtered = nts.zipWithIndex.filter { case (nt, _) => nt.name == ntName }
-    filtered match
-      case (_, idx) :: rest => Some(idx)
-      case _                => None
+    nts.zipWithIndex.find(_.head.name == ntName).map(_.last)
 
   /** get parameters from RHSs */
-  def params: List[Param] =
-    nts.map(nt => Param(nt.name, Type(AstT(nt.name))))
+  def params: List[Param] = nts.map(nt => Param(nt.name, Type(AstT(nt.name))))
 
   /** check whether the RHS is available */
   def available(argsSet: Set[String]): Boolean = conditions.forall {

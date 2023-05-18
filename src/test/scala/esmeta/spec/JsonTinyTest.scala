@@ -21,40 +21,38 @@ class JsonTinyTest extends SpecTest {
     // symbols
     checkJson("Symbol")(
       Terminal("{") -> Json.obj("term" -> "{".asJson),
-      Nonterminal("Identifier", ntArgs, true) -> Json.obj(
-        "name" -> "Identifier".asJson,
-        "args" -> Json.arr(
-          Json.obj(
-            "kind" -> Json.obj("True" -> Json.obj()),
-            "name" -> "Await".asJson,
-          ),
-          Json.obj(
-            "kind" -> Json.obj("False" -> Json.obj()),
-            "name" -> "Yield".asJson,
-          ),
-          Json.obj(
-            "kind" -> Json.obj("Pass" -> Json.obj()),
-            "name" -> "For".asJson,
-          ),
-        ),
-        "optional" -> Json.True,
-      ),
-      Nonterminal("Identifier", Nil, false) -> Json.obj(
+      Nonterminal("Identifier", Nil) -> Json.obj(
         "name" -> "Identifier".asJson,
         "args" -> Json.arr(),
-        "optional" -> Json.False,
+      ),
+      Optional(Nonterminal("Identifier", ntArgs)) -> Json.obj(
+        "symbol" -> Json.obj(
+          "name" -> "Identifier".asJson,
+          "args" -> Json.arr(
+            Json.obj(
+              "kind" -> Json.obj("True" -> Json.obj()),
+              "name" -> "Await".asJson,
+            ),
+            Json.obj(
+              "kind" -> Json.obj("False" -> Json.obj()),
+              "name" -> "Yield".asJson,
+            ),
+            Json.obj(
+              "kind" -> Json.obj("Pass" -> Json.obj()),
+              "name" -> "For".asJson,
+            ),
+          ),
+        ),
       ),
       ButNot(nt, List(nt)) -> Json.obj(
         "base" -> Json.obj(
           "name" -> "Identifier".asJson,
           "args" -> Json.arr(),
-          "optional" -> Json.False,
         ),
         "notCases" -> Json.arr(
           Json.obj(
             "name" -> "Identifier".asJson,
             "args" -> Json.arr(),
-            "optional" -> Json.False,
           ),
         ),
       ),
@@ -62,7 +60,6 @@ class JsonTinyTest extends SpecTest {
         "base" -> Json.obj(
           "name" -> "Identifier".asJson,
           "args" -> Json.arr(),
-          "optional" -> Json.False,
         ),
         "methodName" -> "MV".asJson,
         "cond" -> "> 0x10FFFF".asJson,

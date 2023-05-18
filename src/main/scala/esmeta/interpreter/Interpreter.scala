@@ -610,7 +610,7 @@ class Interpreter(
     case Syntactic(name, _, rhsIdx, children) =>
       val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
       val optionals = (for {
-        (opt, child) <- rhs.nts.map(_.optional) zip children if opt
+        ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
       } yield !child.isEmpty)
       optionals.reverse.zipWithIndex.foldLeft(0) {
         case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt

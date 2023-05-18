@@ -33,7 +33,6 @@
   "GetSubstitution",
   "GetThisValue",
   "GetValue",
-  "HostEnqueuePromiseJob",
   "InnerModuleEvaluation",
   "IntegerIndexedObjectCreate",
   "LabelledItem[1,0].LabelledEvaluation",

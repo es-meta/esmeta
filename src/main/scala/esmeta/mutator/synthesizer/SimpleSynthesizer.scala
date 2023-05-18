@@ -42,11 +42,11 @@ class SimpleSynthesizer(
   private def synSymbol(argsMap: Map[String, Boolean])(
     symbol: Symbol,
   ): Option[Option[Ast]] = symbol match
-    case ButNot(nt, _) => synSymbol(argsMap)(nt)
-    case Nonterminal(name, args, optional) =>
+    case ButNot(nt, _)    => synSymbol(argsMap)(nt)
+    case Optional(symbol) => Some(None)
+    case Nonterminal(name, args) =>
       if (reservedLexicals contains name)
         Some(Some(Lexical(name, reservedLexicals(name))))
-      else if (optional) Some(None)
       else {
         import NonterminalArgumentKind.*
         val newArgs = for (arg <- args) yield arg.kind match

@@ -129,10 +129,11 @@ object Stringifier {
       case Empty               => app >> "[empty]"
       case NoLineTerminator    => app >> "[no LineTerminator here]"
       case CodePointAbbr(abbr) => app >> "<" >> abbr >> ">"
-      case Nonterminal(name, args, opt) =>
+      case Nonterminal(name, args) =>
         app >> name
-        if (!args.isEmpty) app >> args
-        if (opt) app >> "?" else app
+        if (!args.isEmpty) app >> args else app
+      case Optional(symbol) =>
+        app >> symbol >> "?"
       case Lookahead(b, cases) =>
         app >> "[lookahead " >> (if (b) "<" else "<!") >> " " >> cases >> "]"
       case ButOnlyIf(base, name, cond) =>

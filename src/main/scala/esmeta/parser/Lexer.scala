@@ -94,10 +94,10 @@ trait Lexer extends UnicodeParsers {
     argsSet: Set[String],
   ): Parser[String] = symbol match
     case Terminal(term) => term
-    case Nonterminal(name, args, optional) =>
-      val parser = lexers((name, toBit(toBools(argsSet, args))))
-      if (optional) opt(parser) ^^ { _.getOrElse("") }
-      else parser
+    case Nonterminal(name, args) =>
+      lexers((name, toBit(toBools(argsSet, args))))
+    case Optional(symbol) =>
+      opt(getSymbolParser(symbol, argsSet)) ^^ { _.getOrElse("") }
     case ButNot(base, cases) =>
       val parser = getSymbolParser(base, argsSet)
       val exclude = cases.map(getSymbolParser(_, argsSet)).reduce(_ ||| _)

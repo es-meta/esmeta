@@ -80,7 +80,10 @@ trait Parsers extends LangParsers {
 
   /** grammar symbols */
   given symbol: Parser[Symbol] = {
-    term | butnot | lookahead | butOnlyIf | nt | abbr | unicodeSet | empty | nlt
+    {
+      term | butnot | lookahead | butOnlyIf | nt | abbr | unicodeSet |
+      empty | nlt
+    } ~ opt("?") ^^ { case s ~ o => if (o.isDefined) Optional(s) else s }
   }.named("spec.Symbol")
 
   /** terminals */
@@ -93,9 +96,8 @@ trait Parsers extends LangParsers {
 
   /** nonterminals */
   lazy val nt: Parser[Nonterminal] = {
-    word ~ opt("[" ~> rep1sep(ntArg, ",") <~ "]") ~ opt("?") ^^ {
-      case name ~ args ~ opt =>
-        Nonterminal(name, args.getOrElse(Nil), opt.isDefined)
+    word ~ opt("[" ~> rep1sep(ntArg, ",") <~ "]") ^^ {
+      case name ~ args => Nonterminal(name, args.getOrElse(Nil))
     }
   }.named("spec.Nonterminal")
 
