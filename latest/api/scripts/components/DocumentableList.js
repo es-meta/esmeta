@@ -4,7 +4,7 @@
  *  @typedef { [key: string, value: string][] } Dataset
  */
 
-class DocumentableList extends Component {
+ class DocumentableList extends Component {
   constructor(props) {
     super(props);
 
@@ -46,6 +46,13 @@ class DocumentableList extends Component {
 
               return isElementVisible;
             }).length;
+
+          findRefs("span.groupHeader", listRef).forEach(h => {
+            const headerSiblings = this.state.list.getSectionListElementsRefs(h.parentNode).map(ref => this.state.list.toListElement(ref))
+            const isHeaderVisible = headerSiblings.filter(s => this.state.list.isElementVisible(s, filter)) != 0
+
+            this.toggleDisplayStyles(isHeaderVisible, h)
+          })
 
           this.toggleDisplayStyles(isListVisible, listRef);
 
@@ -132,7 +139,9 @@ class List {
       : includesInputValue()
 
     function includesInputValue() {
-      return elementData.name.includes(filter.value) || elementData.description.includes(filter.value);
+      const lcValue = filter.value.toLowerCase()
+      return elementData.name.toLowerCase().includes(lcValue)
+          || elementData.description.toLowerCase().includes(lcValue);
     }
 
     function areFiltersFromElementSelected() {
@@ -168,7 +177,7 @@ class List {
         .every(([filterKey, value]) => {
           const filterGroup = filter.filters[filterKey]
 
-          return value.split(",").some(v => filterGroup && filterGroup[v].selected)
+          return Object.entries(filterGroup).filter(arr => arr[1].selected).length == 0 || value.split(",").some(v => (filterGroup && filterGroup[v].selected))
         })
 
       return isVisible

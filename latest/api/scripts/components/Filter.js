@@ -4,7 +4,7 @@
  * @typedef { Record<FilterAttributes, FilterMap> } Filters
  */
 
-class Filter {
+ class Filter {
   /**
    * @param value { string }
    * @param filters { Filters }
@@ -75,12 +75,14 @@ class Filter {
   * @returns { Filters }
   */
   _generateFiltersOnTyping(value) {
+    const lcValue = value.toLowerCase()
+
     const elementsDatasets = this.elementsRefs
       .filter(element => {
-        const name = getElementTextContent(getElementNameRef(element));
-        const description = getElementTextContent(getElementDescription(element));
+        const lcName = getElementTextContent(getElementNameRef(element)).toLowerCase();
+        const lcDescription = getElementTextContent(getElementDescription(element)).toLowerCase();
 
-        return name.includes(value) || description.includes(value);
+        return lcName.includes(lcValue) || lcDescription.includes(lcValue);
       })
       .map(element => this._getDatasetWithKeywordData(element.dataset))
 
@@ -215,7 +217,7 @@ class Filter {
 }
 
 class FilterItem {
-  constructor(selected = true, visible = true) {
+  constructor(selected = false, visible = true) {
     this.selected = selected
     this.visible = visible
   }

@@ -1,14 +1,14 @@
 /* Snippets */
 
-.snippet {
-  padding: 12px 8px 10px 12px;
+/* .snippet {
+  position: relative;
   background: var(--code-bg);
   margin: 1em 0px;
   border-radius: 2px;
   box-shadow: 0 0 2px #888;
   cursor: default;
-}
-.snippet-error {
+} */
+/* .snippet-error {
   border-bottom: 2px dotted red;
 }
 .snippet-warn {
@@ -19,22 +19,25 @@
 }
 .snippet-debug {
   border-bottom: 2px dotted pink;
-}
+} */
 
-.snippet .snippet-meta {
+/* .snippet .snippet-meta {
   border-top: 2px solid var(--inactive-bg);
   color: var(--inactive-fg);
   margin-top: 10px;
   padding-top: 10px;
   font-size: 0.75em;
-}
+} */
 
-.snippet-meta .snippet-label {
+/* .snippet-meta .snippet-label {
   font-weight: bold;
 }
 
 .snippet .buttons {
   --icon-size: 16px;
+  position: absolute;
+  right: 0;
+  top: 0.5em
 }
 
 .snippet-showhide {
@@ -112,16 +115,18 @@ input:checked + .slider:before {
   transform: translateX(var(--translation-size));
 }
 
-.tooltip {
-  position: relative;
+.tooltip-container {
+  display: none;
 }
-.tooltip:hover:after {
+.tooltip:hover .tooltip-container {
+  display: block;
+}
+.tooltip:hover .tooltip-container::after {
   content: attr(label);
   padding: 4px 8px;
   color: white;
   background-color:black;
   position: absolute;
-  left: 0;
   z-index:10;
   box-shadow:0 0 3px #444;
   opacity: 0.8;
@@ -132,9 +137,17 @@ input:checked + .slider:before {
 }
 
 .snippet .buttons {
+  transition: all .2s ease;
+  opacity: 0;
+  visibility: hidden;
   display: flex;
   flex-direction: row-reverse;
   justify-content: flex-start;
+}
+
+.snippet:hover .buttons {
+  opacity: 1;
+  visibility: visible;
 }
 
 .snippet .buttons button {
@@ -306,4 +319,4 @@ input:checked + .slider:before {
       --slider-width: 24px;
       --slider-height: 10px;
   }
-}
+} */
