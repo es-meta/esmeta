@@ -68,7 +68,7 @@ $ cd esmeta && git submodule update --init && sbt assembly && source .completion
 If you see the following message, ESMeta is successfully installed:
 ```bash
 $ esmeta
-# Welcome to ESMeta v0.2.0 - ECMAScript Specification Metalanguage.
+# Welcome to ESMeta v0.3.0 - ECMAScript Specification Metalanguage.
 # Please type `esmeta help` to see the help message.
 ```
 
