@@ -88,7 +88,7 @@ trait Parsers extends LangParsers {
 
   /** terminals */
   lazy val term: Parser[Terminal] = {
-    "`[^`]+`|```".r ^^ {
+    "`[^`]+`|`[`]+`".r ^^ {
       case str =>
         Terminal(str.substring(1, str.length - 1))
     }
