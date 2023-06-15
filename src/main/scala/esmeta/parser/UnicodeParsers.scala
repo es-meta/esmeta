@@ -28,11 +28,11 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val PS = "\u2029".r
 
   lazy val lines = "[\u000A\u000D\u2028\u2029]".r
-  lazy val Unicode = "(?s).".r
+  lazy val Any = "(?s).".r
   lazy val IDStart =
-    Unicode.filter(s => CodePoint.IDStart contains toCodePoint(s))
+    Any.filter(s => Unicode.IDStart contains toCodePoint(s))
   lazy val IDContinue =
-    Unicode.filter(s => CodePoint.IDContinue contains toCodePoint(s))
+    Any.filter(s => Unicode.IDContinue contains toCodePoint(s))
 
   protected def toCodePoint(str: String): Int =
     def check4B(i: Int): Boolean =

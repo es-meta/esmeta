@@ -128,6 +128,8 @@ object Stringifier {
       case ButNot(base, cases) => app >> base >> " but not " >> cases
       case Empty               => app >> "[empty]"
       case NoLineTerminator    => app >> "[no LineTerminator here]"
+      case CodePoint(cp, desc) =>
+        app >> "<U+" >> cp >> (if (desc == "") "" else " " + desc) >> ">"
       case CodePointAbbr(abbr) => app >> "<" >> abbr >> ">"
       case Nonterminal(name, args) =>
         app >> name
