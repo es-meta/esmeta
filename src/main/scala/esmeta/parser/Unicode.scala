@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
-object CodePoint {
+object Unicode {
   val RECENT_VERSION = "14.0.0"
 
   lazy val IDStart = get("ID_Start")

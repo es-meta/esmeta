@@ -81,7 +81,7 @@ trait Parsers extends LangParsers {
   /** grammar symbols */
   given symbol: Parser[Symbol] = {
     {
-      term | butnot | lookahead | butOnlyIf | nt | abbr | unicodeSet |
+      term | butnot | lookahead | butOnlyIf | nt | cp | abbr | unicodeSet |
       empty | nlt
     } ~ opt("?") ^^ { case s ~ o => if (o.isDefined) Optional(s) else s }
   }.named("spec.Symbol")
@@ -128,6 +128,15 @@ trait Parsers extends LangParsers {
   lazy val nlt: Parser[NoLineTerminator.type] = {
     "\\[no [\\|]?LineTerminator[\\|]? here\\]".r ^^^ NoLineTerminator
   }.named("spec.NoLineTerminator")
+
+  /** symbols for code point abbreviations */
+  lazy val cp: Parser[CodePoint] = {
+    lazy val unicode = "U[+]([1-9A-F]|10)?[0-9A-F]{4}".r
+    "<" ~> unicode ~ rep(word) <~ ">" ^^ {
+      case cp ~ desc =>
+        CodePoint(Integer.parseInt(cp.drop(2), 16), desc.mkString(" "))
+    }
+  }.named("spec.CodePoint")
 
   /** symbols for code point abbreviations */
   lazy val abbr: Parser[CodePointAbbr] = {

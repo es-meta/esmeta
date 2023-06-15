@@ -68,6 +68,9 @@ case object Empty extends Symbol
 case object NoLineTerminator extends Symbol
 
 /** symbols for code point abbreviations */
+case class CodePoint(cp: Int, desc: String) extends Symbol
+
+/** symbols for code point abbreviations */
 case class CodePointAbbr(abbr: String) extends Symbol
 
 /** symbols for sets of unicode code points with a condition */

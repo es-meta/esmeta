@@ -175,10 +175,9 @@ case class ESParser(
         .reduce(_ | _)
       lazy val lookahead = ntl(symbol.toString, parser)
       prev <~ (if (contains) +lookahead else -lookahead)
-    case Empty               => prev
-    case NoLineTerminator    => prev <~ noLineTerminator
-    case CodePointAbbr(abbr) => ???
-    case UnicodeSet(cond)    => ???
+    case Empty            => prev
+    case NoLineTerminator => prev <~ noLineTerminator
+    case _                => throw UnexpectedSymbol(symbol)
 
   // a terminal lexer
   protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {

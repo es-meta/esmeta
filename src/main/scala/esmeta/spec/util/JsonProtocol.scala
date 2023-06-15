@@ -50,6 +50,7 @@ object JsonProtocol extends BasicJsonProtocol {
     "cases" -> (_.as[Lookahead]),
     "empty" -> (_ => Right(Empty)),
     "nlt" -> (_ => Right(NoLineTerminator)),
+    "cp" -> (_.as[CodePoint]),
     "abbr" -> (_.as[CodePointAbbr]),
     "cpCond" -> (_.as[UnicodeSet]),
   )
@@ -62,6 +63,7 @@ object JsonProtocol extends BasicJsonProtocol {
     case symbol: Lookahead     => symbol.asJson
     case Empty                 => Json.obj("empty" -> Json.Null)
     case NoLineTerminator      => Json.obj("nlt" -> Json.Null)
+    case symbol: CodePoint     => symbol.asJson
     case symbol: CodePointAbbr => symbol.asJson
     case symbol: UnicodeSet    => symbol.asJson
   }
@@ -81,6 +83,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ButOnlyIf] = deriveEncoder
   given Decoder[Lookahead] = deriveDecoder
   given Encoder[Lookahead] = deriveEncoder
+  given Decoder[CodePoint] = deriveDecoder
+  given Encoder[CodePoint] = deriveEncoder
   given Decoder[CodePointAbbr] = deriveDecoder
   given Encoder[CodePointAbbr] = deriveEncoder
   given Decoder[UnicodeSet] = deriveDecoder

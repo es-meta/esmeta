@@ -109,14 +109,15 @@ trait Lexer extends UnicodeParsers {
         .map(_.map(getSymbolParser(_, argsSet)).reduce(_ % _))
         .reduce(_ ||| _)
       "" <~ (if (b) guard else not)(parser)
-    case Empty            => EMPTY
-    case NoLineTerminator => strNoLineTerminator
+    case Empty               => EMPTY
+    case NoLineTerminator    => strNoLineTerminator
+    case CodePoint(cp, desc) => cp.toChar.toString.r
     case CodePointAbbr(abbr) =>
       abbrCPs.getOrElse(
         abbr,
         error(s"unknown code point abbreviation: <$abbr>"),
       )
-    case UnicodeSet(None)                                         => Unicode
+    case UnicodeSet(None)                                         => Any
     case UnicodeSet(Some("with the Unicode property “ID_Start”")) => IDStart
     case UnicodeSet(Some("with the Unicode property “ID_Continue”")) =>
       IDContinue
