@@ -71,22 +71,25 @@ class TypeSemantics(
     val len = args.length
     if (len < from || to < len)
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
+    // fill optional args after arity checked
+    val argsWithOptional = args ++ List.fill(to - len)(AbsValue.absentTop)
     // construct local type environment
-    (for (((param, arg), idx) <- (params zip args).zipWithIndex) yield {
-      val argTy = removeAbsentTy(arg.ty)
-      val expected = param.ty.ty match
-        case _: UnknownTy => arg
-        case paramTy: ValueTy =>
-          if (method && idx == 0) () /* ignore `this` for method-like calls */
-          else if (!(argTy <= paramTy))
-            val key = (callerNp, calleeRp, idx, param)
-            argsForMismatch += key -> {
-              argsForMismatch.get(key).fold(argTy)(_ || argTy)
-            }
-          AbsValue(paramTy)
-      // force to set expected type for parameters
-      param.lhs -> expected
-    }).toMap
+    (for (((param, arg), idx) <- (params zip argsWithOptional).zipWithIndex)
+      yield {
+        val argTy = removeAbsentTy(arg.ty)
+        val expected = param.ty.ty match
+          case _: UnknownTy => arg
+          case paramTy: ValueTy =>
+            if (method && idx == 0) () /* ignore `this` for method-like calls */
+            else if (!(argTy <= paramTy))
+              val key = (callerNp, calleeRp, idx, param)
+              argsForMismatch += key -> {
+                argsForMismatch.get(key).fold(argTy)(_ || argTy)
+              }
+            AbsValue(paramTy)
+        // force to set expected type for parameters
+        param.lhs -> expected
+      }).toMap
   }
 
   // remove absent types
