@@ -208,6 +208,9 @@ class AbsSemantics(
   def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
     val ReturnPoint(func, view) = rp
     val retRp = ReturnPoint(func, getEntryView(view))
+    // wrap completion by conditions specified in
+    // [5.2.3.5 Implicit Normal Completion]
+    // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
     val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
     if (!newRet.value.isBottom)
       val oldRet = this(retRp)
