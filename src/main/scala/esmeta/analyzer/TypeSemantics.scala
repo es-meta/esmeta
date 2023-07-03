@@ -76,10 +76,10 @@ class TypeSemantics(
     // construct local type environment
     (for (((param, arg), idx) <- (params zip argsWithOptional).zipWithIndex)
       yield {
-        val argTy = removeAbsentTy(arg.ty)
         val expected = param.ty.ty match
           case _: UnknownTy => arg
           case paramTy: ValueTy =>
+            val argTy = removeAbsentTy(arg.ty)
             if (method && idx == 0) () /* ignore `this` for method-like calls */
             else if (!(argTy <= paramTy))
               val key = (callerNp, calleeRp, idx, param)
