@@ -94,7 +94,10 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
       .map(ty => {
         if (!value.unwrapCompletion.isBottom) {
           val (newV, newSt) = st.setType(value.unwrapCompletion, ty)
-          value = newV ⊔ value.abruptCompletion
+          // wrap completion by conditions specified in
+          // [5.2.3.5 Implicit Normal Completion]
+          // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+          value = if (rp.func.isReturnComp) newV.wrapCompletion else newV
           st = newSt
         }
       })
