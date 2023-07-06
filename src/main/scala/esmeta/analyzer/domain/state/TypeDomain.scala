@@ -340,8 +340,9 @@ object TypeDomain extends state.Domain {
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
     var res = ValueTy()
+    if (str.isBottom) return res
     if (prop.str contains "length") res ||= MathT
-    if (!str.isBottom && !prop.math.isBottom) res ||= CodeUnitT
+    if (!prop.math.isBottom) res ||= CodeUnitT
     // TODO if (!str.isBottom)
     //   boundCheck(
     //     prop,
