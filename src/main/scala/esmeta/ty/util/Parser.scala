@@ -72,6 +72,8 @@ trait Parsers extends BasicParsers {
     singleListTy ^^ { case l => PureValueTy(list = l) } |
     // symbol
     "Symbol" ^^^ PureValueTy(symbol = true) |
+    // Property key
+    "PropertyKey" ^^^ PureValueTy(str = Inf, symbol = true) |
     // AST value
     singleAstValueTy ^^ { case ast => PureValueTy(astValue = ast) } |
     // nt
