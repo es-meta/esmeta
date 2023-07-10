@@ -332,6 +332,15 @@ object TypeDomain extends state.Domain {
                 if (cfg.grammar.nameMap contains name) res ||= AstT(name)
                 else () // TODO warning(s"invalid access: $name of $ast")
           case Inf => res ||= AstT
+      case AstNameTy(names) =>
+        prop.str match
+          case Fin(ss) =>
+            for (s <- ss) s match
+              case "parent" => res ||= AstT
+              case name =>
+                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
+                else () // TODO warning(s"invalid access: $name of $ast")
+          case Inf => res ||= AstT
       case _ => res ||= AstT
     // TODO if (!ast.isBottom)
     //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
