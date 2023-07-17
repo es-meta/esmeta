@@ -30,6 +30,9 @@ ThisBuild / javacOptions ++= Seq(
 // automatic reload build.sbt
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
+// Metals requires the semanticdb compiler plugin
+Global / semanticdbEnabled := true
+
 // setting for sbt-ghpages with scaladoc
 // NOTE: If you want to update gh-pages, use `ghpagesPushSite` command.
 // Please carefully use it. See https://index.scala-lang.org/sbt/sbt-ghpages
