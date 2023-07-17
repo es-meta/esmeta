@@ -339,17 +339,19 @@ object TypeDomain extends state.Domain {
 
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
-    var res = ValueTy()
-    if (str.isBottom) return res
-    if (prop.str contains "length") res ||= MathT
-    if (!prop.math.isBottom) res ||= CodeUnitT
-    // TODO if (!str.isBottom)
-    //   boundCheck(
-    //     prop,
-    //     MathT || StrT("length"),
-    //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
-    //   )
-    res
+    if (str.isBottom) ValueTy.Bot
+    else {
+      var res = ValueTy.Bot
+      if (prop.str contains "length") res ||= MathT
+      if (!prop.math.isBottom) res ||= CodeUnitT
+      // TODO if (!str.isBottom)
+      //   boundCheck(
+      //     prop,
+      //     MathT || StrT("length"),
+      //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
+      //   )
+      res
+    }
 
   // named record lookup
   private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
