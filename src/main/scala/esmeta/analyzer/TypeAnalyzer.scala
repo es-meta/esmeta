@@ -83,7 +83,7 @@ private class TypeAnalyzer(
   // get view from a function
   def getView(func: Func): View = View()
 
-  // get return point
+  // get initial state of function
   def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
     case (st, Param(x, ty, opt, _)) =>
       var v = AbsValue(ty.ty)
