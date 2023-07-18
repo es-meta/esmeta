@@ -307,6 +307,15 @@ object TypeDomain extends state.Domain {
   // AST lookup
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
+    def handlePropStr(prop: ValueTy): Unit =
+      prop.str match
+        case Fin(ss) =>
+          for (s <- ss) s match
+            case "parent" => res ||= AstT
+            case name =>
+              if (cfg.grammar.nameMap contains name) res ||= AstT(name)
+              else () // TODO warning(s"invalid access: $name of $ast")
+        case Inf => res ||= AstT
     ast match
       case AstValueTy.Bot => /* do nothing */
       case AstSingleTy(name, idx, subIdx) =>
@@ -324,23 +333,19 @@ object TypeDomain extends state.Domain {
               else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
             }
           case Inf => res ||= AstT
-        prop.str match
-          case Fin(ss) =>
-            for (s <- ss) s match
-              case "parent" => res ||= AstT
-              case name =>
-                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
-                else () // TODO warning(s"invalid access: $name of $ast")
-          case Inf => res ||= AstT
+        handlePropStr(prop)
       case AstNameTy(names) =>
-        prop.str match
-          case Fin(ss) =>
-            for (s <- ss) s match
-              case "parent" => res ||= AstT
-              case name =>
-                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
-                else () // TODO warning(s"invalid access: $name of $ast")
+        prop.math match
+          case Fin(ns) =>
+            for {
+              n <- ns
+              if n.isValidInt
+              propIdx = n.toInt
+            } {
+              res ||= AstT
+            }
           case Inf => res ||= AstT
+        handlePropStr(prop)
       case _ => res ||= AstT
     // TODO if (!ast.isBottom)
     //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
