@@ -47,12 +47,18 @@ trait Domain extends domain.Domain[State] {
 
     /** lookup variables */
     def directLookup(x: Id): AbsValue = x match
-      case x: Local  => lookupLocal(x)
+      case x: Local  => lookupLocal(x, check = true)
       case x: Global => lookupGlobal(x)
 
     /** lookup local variables */
-    def lookupLocal(x: Local): AbsValue =
-      elem.locals.getOrElse(x, AbsValue.Bot)
+    def lookupLocal(x: Local, check: Boolean = false): AbsValue =
+      elem.locals.getOrElse(
+        x, {
+          // ignore if bottom for avoiding false alarm
+          if (check && !elem.isBottom) warning(s"unknown variable: $x")
+          AbsValue.Bot
+        },
+      )
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue

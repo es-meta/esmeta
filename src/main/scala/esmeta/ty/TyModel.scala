@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
+import esmeta.analyzer.warning
 
 /** type modeling */
 // TODO consider refactoring
@@ -91,7 +92,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
         .getOrElse(tname, Map())
         .getOrElse(
           p, {
-            if (check) warn(s"unknown property access: $tname.$p")
+            if (check) warning(s"unknown property access: $tname.$p")
             AbsentT
           },
         )
