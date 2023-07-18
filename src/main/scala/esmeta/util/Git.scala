@@ -46,7 +46,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
   /** get git commit version */
   def getVersion(target: String): Version =
     val name = executeCmd(s"git name-rev --name-only $target", path).trim
-    val hash = executeCmd(s"git rev-parse $target", path).trim
+    val hash = executeCmd(s"git rev-list -n 1 $target", path).trim
     Version(name, hash)
 
   /** get git commit hash for the current version */
