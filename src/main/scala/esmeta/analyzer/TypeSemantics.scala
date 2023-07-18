@@ -7,8 +7,15 @@ import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 
+case class TypeCheckConfig(
+  arity: Boolean = true,
+  paramType: Boolean = true,
+  returnType: Boolean = true,
+)
+
 class TypeSemantics(
   npMap: Map[NodePoint[Node], AbsState],
+  config: TypeCheckConfig = TypeCheckConfig(),
 ) extends AbsSemantics(npMap) {
 
   /** type mismatches */
@@ -69,7 +76,7 @@ class TypeSemantics(
     // check arity
     val arity @ (from, to) = calleeRp.func.arity
     val len = args.length
-    if (len < from || to < len)
+    if (config.arity && (len < from || to < len))
       mismatches += ArityMismatch(callerNp, calleeRp, arity, len)
     // fill optional args after arity checked
     val argsWithOptional = args ++ List.fill(to - len)(AbsValue.absentTop)
@@ -81,7 +88,7 @@ class TypeSemantics(
           case paramTy: ValueTy =>
             val argTy = removeAbsentTy(arg.ty)
             if (method && idx == 0) () /* ignore `this` for method-like calls */
-            else if (!(argTy <= paramTy))
+            else if (config.paramType && !(argTy <= paramTy))
               val key = (callerNp, calleeRp, idx, param)
               argsForMismatch += key -> {
                 argsForMismatch.get(key).fold(argTy)(_ || argTy)
@@ -147,7 +154,7 @@ class TypeSemantics(
       case expectedTy: ValueTy =>
         // return type check when it is a known type
         // we use a loose subtyping relation for named records
-        if (!(givenTy <= expectedTy))
+        if (config.returnType && !(givenTy <= expectedTy))
           val key = (elem, rp)
           retForMismatch += key -> {
             retForMismatch.get(key).fold(givenTy)(_ || givenTy)
