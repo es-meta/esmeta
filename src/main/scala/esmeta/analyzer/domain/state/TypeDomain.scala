@@ -307,6 +307,29 @@ object TypeDomain extends state.Domain {
   // AST lookup
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
     var res = ValueTy()
+    def handlePropMath(
+      prop: ValueTy,
+      names: Set[String],
+      idx: Option[Int],
+      subIdx: Option[Int],
+    ): Unit =
+      prop.math match
+        case Fin(ns) =>
+          for {
+            n <- ns
+            if n.isValidInt
+            propIdx = n.toInt
+            name <- names
+            idx <- idx
+            subIdx <- subIdx
+            rhs = cfg.grammar.nameMap(name).rhsList(idx)
+            nts = rhs.getNts(subIdx)
+          } {
+            if (propIdx >= nts.size)
+              () // TODO warning(s"invalid access: $propIdx of $ast")
+            else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
+          }
+        case Inf => res ||= AstT
     def handlePropStr(prop: ValueTy): Unit =
       prop.str match
         case Fin(ss) =>
@@ -319,32 +342,10 @@ object TypeDomain extends state.Domain {
     ast match
       case AstValueTy.Bot => /* do nothing */
       case AstSingleTy(name, idx, subIdx) =>
-        prop.math match
-          case Fin(ns) =>
-            for {
-              n <- ns
-              if n.isValidInt
-              propIdx = n.toInt
-              rhs = cfg.grammar.nameMap(name).rhsList(idx)
-              nts = rhs.getNts(subIdx)
-            } {
-              if (propIdx >= nts.size)
-                () // TODO warning(s"invalid access: $propIdx of $ast")
-              else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
-            }
-          case Inf => res ||= AstT
+        handlePropMath(prop, Set(name), Some(idx), Some(subIdx))
         handlePropStr(prop)
       case AstNameTy(names) =>
-        prop.math match
-          case Fin(ns) =>
-            for {
-              n <- ns
-              if n.isValidInt
-              propIdx = n.toInt
-            } {
-              res ||= AstT
-            }
-          case Inf => res ||= AstT
+        handlePropMath(prop, names, None, None)
         handlePropStr(prop)
       case _ => res ||= AstT
     // TODO if (!ast.isBottom)
