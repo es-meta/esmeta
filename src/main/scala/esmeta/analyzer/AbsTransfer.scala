@@ -734,6 +734,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
   )(using cp: ControlPoint): Result[AbsValue] = {
     val checkReturn: Result[Unit] =
       if (check) doReturn(riaExpr, value.abruptCompletion)
+      else if (!value.abruptCompletion.isBottom)
+        warning(s"unchecked abrupt completion: $value")
       else ()
     for (_ <- checkReturn) yield value.unwrapCompletion
   }
