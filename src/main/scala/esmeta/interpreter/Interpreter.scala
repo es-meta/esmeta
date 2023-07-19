@@ -76,7 +76,8 @@ class Interpreter(
             case (actual: ValueTy, ty: ValueTy) if !ty.contains(value, st) =>
               val calleeRp = ReturnPoint(func, View())
               var msg = ""
-              msg += ReturnTypeMismatch(ret, calleeRp, actual)
+              val irp = InternalReturnPoint(ret, calleeRp)
+              msg += ReturnTypeMismatch(irp, actual)
               msg += LINE_SEP + "- return  : " + value
               st.filename.map(msg += LINE_SEP + "- filename: " + _)
               warn(msg)
@@ -500,10 +501,11 @@ class Interpreter(
           case _ if (func.isMethod || func.isSDO) && idx == 0 =>
           case ty: ValueTy if !ty.contains(arg, st) =>
             val callerNp = NodePoint(cfg.funcOf(caller), caller, View())
-            val calleeRp = ReturnPoint(func, View())
+            val calleeNp = NodePoint(func, func.entry, View())
+            val aap = ArgAssignPoint(CallPoint(callerNp, calleeNp), idx)
             val argTy = st.typeOf(arg)
             var msg = ""
-            msg += ParamTypeMismatch(callerNp, calleeRp, idx, param, argTy)
+            msg += ParamTypeMismatch(aap, argTy)
             msg += LINE_SEP + "- argument: " + arg
             st.filename.map(msg += LINE_SEP + "- filename: " + _)
             warn(msg)

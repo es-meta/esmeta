@@ -16,26 +16,24 @@ case object CmdInfo
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = args match {
     case opt :: optArgs if options contains opt.substring(1) =>
-      showInfo(repl, opt.substring(1), optArgs)
+      showInfo(opt.substring(1), optArgs)
     case _ =>
       cpOpt match {
         case Some(cp) =>
           val detail = args.headOption == Some("-detail")
-          println(repl.cpInfo(cp, detail))
+          println(REPL.cpInfo(cp, detail))
           println
         case None =>
-          showInfo(repl, ret, List("RunJobs"))
+          showInfo(ret, List("RunJobs"))
       }
   }
 
   // show information
-  def showInfo(repl: REPL, opt: String, optArgs: List[String]): Unit = {
-    val sem = repl.sem
+  def showInfo(opt: String, optArgs: List[String]): Unit = {
     val info = (opt, optArgs) match {
       case (`ret`, target :: _) =>
         val fname = target
@@ -44,13 +42,13 @@ case object CmdInfo
         val uid = target.toInt
         sem.npMap.keySet.filter(_.node.id == uid)
       case (`callsite`, _) =>
-        val cp = repl.curCp.get
+        val cp = REPL.curCp.get
         val rp = ReturnPoint(cp.func, cp.view)
         sem.retEdges(rp)
       case _ =>
         println("Inappropriate argument")
         Set()
     }
-    info.foreach(cp => { println(repl.cpInfo(cp, true)); println })
+    info.foreach(cp => { println(REPL.cpInfo(cp, true)); println })
   }
 }

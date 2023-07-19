@@ -41,14 +41,17 @@ def notSupported(msg: String): Nothing = throw NotSupported(msg)
 // -----------------------------------------------------------------------------
 // global mutable options and structures
 // -----------------------------------------------------------------------------
-/** get control flow graph */
-def cfg: CFG = get(globalCFG, "CFG")
-private var globalCFG: Option[CFG] = None
-def withCFG[T](cfg: CFG)(t: => T): T =
-  globalCFG = Some(cfg)
-  AbsState.setBase(new Initialize(cfg))
+/** control-flow graph (CFG) */
+def cfg: CFG = analyzer.cfg
+
+/** current static analyzer */
+def analyzer: Analyzer = get(globalAnalyzer, "Analyzer")
+private var globalAnalyzer: Option[Analyzer] = None
+def withAnalyzer[T](analyzer: Analyzer)(t: => T): T =
+  globalAnalyzer = Some(analyzer)
+  AbsState.setBase(new Initialize(analyzer.cfg))
   val res = t
-  globalCFG = None
+  globalAnalyzer = None
   res
 
 /** abstract semantics */

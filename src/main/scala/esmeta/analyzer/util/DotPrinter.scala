@@ -63,7 +63,6 @@ object DotPrinter {
 
   // dump CFG in DOT/PDF format
   def dumpCFG(
-    sem: AbsSemantics,
     cp: Option[ControlPoint] = None,
     pdf: Boolean = true,
     depth: Option[Int] = None,

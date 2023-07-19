@@ -20,7 +20,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.matching.Regex
 
 // REPL for static analysis
-case class REPL(sem: AbsSemantics) {
+object REPL {
 
   // completer
   private val completer: TreeCompleter =
@@ -40,7 +40,7 @@ case class REPL(sem: AbsSemantics) {
   }
 
   // get the number of iterations
-  def iter: Int = sem.getIter
+  inline def iter: Int = sem.iter
 
   // show current status
   def showStatus(cp: Option[ControlPoint]): Unit = cp.map(showStatus)
@@ -118,7 +118,7 @@ case class REPL(sem: AbsSemantics) {
               false
             case name :: args => {
               Command.cmdMap.get(name) match {
-                case Some(cmd) => cmd(this, curCp, args)
+                case Some(cmd) => cmd(curCp, args)
                 case None =>
                   println(s"The command `$name` does not exist. (Try `help`)")
               }

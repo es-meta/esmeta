@@ -14,7 +14,6 @@ case object CmdHelp
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = showHelp

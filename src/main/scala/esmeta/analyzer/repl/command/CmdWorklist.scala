@@ -14,15 +14,14 @@ case object CmdWorklist
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = {
-    val worklist = repl.sem.worklist
+    val worklist = sem.worklist
     val size = worklist.size
     println(s"Total $size elements exist in the worklist.")
     args match {
-      case s"-${`detail`}" :: _ => repl.sem.worklist.foreach(println(_))
+      case s"-${`detail`}" :: _ => sem.worklist.foreach(println(_))
       case _                    =>
     }
   }

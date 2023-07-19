@@ -14,10 +14,9 @@ case object CmdListBreak
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = for {
-    ((k, v), i) <- repl.breakpoints.zipWithIndex
+    ((k, v), i) <- REPL.breakpoints.zipWithIndex
   } println(f"$i: $k%-15s $v")
 }

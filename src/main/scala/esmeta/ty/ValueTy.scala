@@ -87,6 +87,13 @@ case class ValueTy(
     pureValue.isBottom &&
     subMap.isBottom
 
+  /** remove absent types */
+  def removeAbsent: ValueTy = copy(
+    comp = CompTy(normal.removeAbsent, abrupt),
+    pureValue = pureValue.removeAbsent,
+    subMap = subMap,
+  )
+
   /** getters */
   def normal: PureValueTy = comp.normal
   def abrupt: BSet[String] = comp.abrupt

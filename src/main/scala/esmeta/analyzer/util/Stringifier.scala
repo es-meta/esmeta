@@ -29,10 +29,10 @@ class Stringifier(
   /** elements */
   given elemRule: Rule[AnalyzerElem] = (app, elem) =>
     elem match
-      case elem: View         => viewRule(app, elem)
-      case elem: ControlPoint => cpRule(app, elem)
-      case elem: AValue       => avRule(app, elem)
-      case elem: TypeMismatch => mismatchRule(app, elem)
+      case elem: View          => viewRule(app, elem)
+      case elem: AnalysisPoint => apRule(app, elem)
+      case elem: AValue        => avRule(app, elem)
+      case elem: TypeMismatch  => mismatchRule(app, elem)
   // TODO case ty: Type          => typeRule(app, ty)
 
   /** view */
@@ -58,6 +58,23 @@ class Stringifier(
     //   app >> view.tys
     // }
     app
+
+  // analysis points
+  given apRule: Rule[AnalysisPoint] = (app, ap) =>
+    given Rule[IRElem with LangEdge] = addLocRule
+    ap match
+      case cp: ControlPoint => cpRule(app, cp)
+      case CallPoint(callerNp, calleeNp) =>
+        app >> "function call from "
+        app >> callerNp.func.name >> callerNp.node.callInst
+        app >> " to " >> calleeNp.func.name
+      case aap @ ArgAssignPoint(cp, idx) =>
+        val param = aap.param
+        app >> "argument assignment to "
+        app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
+        app >> " when " >> cp
+      case InternalReturnPoint(irReturn, calleeRp) =>
+        app >> "return statement in " >> calleeRp.func.name >> irReturn
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -99,37 +116,34 @@ class Stringifier(
       case sv: SimpleValue => app >> sv.toString
 
   // specification type mismatches
-  given mismatchRule: Rule[TypeMismatch] = (app, m) =>
-    given Rule[IRElem with LangEdge] = addLoc
-    m match
-      case m @ ParamTypeMismatch(callerNp, calleeRp, idx, param, argTy) =>
-        app >> "[ParamTypeMismatch] "
-        app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
-        app >> " of " >> calleeRp.func.name
-        app >> " @ " >> callerNp.func.name >> callerNp.node.callInst
-        app :> "- expected: " >> param.ty
-        app :> "- actual  : " >> argTy
-      case m @ ReturnTypeMismatch(ret, calleeRp, actual) =>
-        app >> "[ReturnTypeMismatch] "
-        app >> calleeRp.func.name >> ret
-        app :> "- expected: " >> calleeRp.func.retTy
+  given mismatchRule: Rule[TypeMismatch] = (app, mismatch) =>
+    mismatch match
+      case ParamTypeMismatch(aap, actual) =>
+        app >> "[ParamTypeMismatch] " >> aap
+        app :> "- expected: " >> aap.param.ty
         app :> "- actual  : " >> actual
-      case ArityMismatch(callerNp, calleeRp, expected, actual) =>
-        app >> "[ArityMismatch] " >> callerNp.func.name
-        app >> callerNp.node.callInst
-        val (from, to) = expected
-        app :> "- expected: "
-        if (from == to) app >> from
-        else app >> "[" >> from >> ", " >> to >> "]"
-        app >> " for " >> calleeRp.func.name
+      case ReturnTypeMismatch(irp, actual) =>
+        app >> "[ReturnTypeMismatch] " >> irp
+        app :> "- expected: " >> irp.calleeRp.func.retTy
+        app :> "- actual  : " >> actual
+      case ArityMismatch(cp, actual) =>
+        given Rule[(Int, Int)] = arityRangeRule
+        app >> "[ArityMismatch] " >> cp
+        app :> "- expected: " >> cp.func.arity
         app :> "- actual  : " >> actual
 
-  private val addLoc: Rule[IRElem with LangEdge] = (app, elem) => {
+  private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {
       lang <- elem.langOpt
       loc <- lang.loc
     } app >> " " >> loc.toString
     app
+  }
+
+  private val arityRangeRule: Rule[(Int, Int)] = {
+    case (app, (from, to)) =>
+      if (from == to) app >> from
+      else app >> "[" >> from >> ", " >> to >> "]"
   }
 
   // TODO type

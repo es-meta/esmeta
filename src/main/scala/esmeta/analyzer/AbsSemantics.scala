@@ -27,20 +27,15 @@ class AbsSemantics(
   var curCp: Option[ControlPoint] = None,
 ) {
 
-  /** analysis REPL */
-  val repl = REPL(this)
-
   /** a worklist of control points */
   val worklist: Worklist[ControlPoint] = QueueWorklist(npMap.keySet)
 
   /** the number of iterations */
-  def getIter: Int = iter
-  private var iter: Int = 0
+  var iter: Int = 0
 
   /** count for each control point */
-  def getCounter: Map[ControlPoint, Int] = counter
+  var counter: Map[ControlPoint, Int] = Map()
   def getCount(cp: ControlPoint): Int = counter.getOrElse(cp, 0)
-  private var counter: Map[ControlPoint, Int] = Map()
 
   /** RunJobs function */
   val runJobs = cfg.fnameMap("RunJobs")
@@ -51,46 +46,12 @@ class AbsSemantics(
   /** get abstract return values and states of RunJobs */
   def finalResult: AbsRet = this(runJobsRp)
 
-  /** abstract transfer function */
-  val transfer: AbsTransfer = AbsTransfer(this)
-
   /** set start time of analyzer */
   val startTime: Long = System.currentTimeMillis
 
   /** set of analyzed functions */
   def analyzedFuncs: Set[Func] =
     npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
-
-  /** fixpiont computation */
-  @tailrec
-  final def fixpoint: this.type = worklist.next match
-    case Some(cp) =>
-      // set the current control point
-      curCp = Some(cp)
-      // count how many visited for each control point
-      counter += cp -> (getCount(cp) + 1)
-      // increase iteration number
-      iter += 1
-      // check time limit
-      if (iter % CHECK_PERIOD == 0) TIME_LIMIT.map(limit => {
-        val duration = (System.currentTimeMillis - startTime) / 1000
-        if (duration > limit) exploded("timeout")
-      })
-      // text-based debugging
-      if (DEBUG) println(s"${cp.func.name}:$cp")
-      // run REPL
-      if (USE_REPL) repl(transfer, cp)
-      // abstract transfer for the current control point
-      else transfer(cp)
-      // keep going
-      fixpoint
-    case None =>
-      // set the current control point
-      curCp = None
-      // finalize REPL
-      if (USE_REPL) repl.finished
-      // final result
-      this
 
   /** get return edges */
   def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
@@ -106,118 +67,10 @@ class AbsSemantics(
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
     val (np, newSt) = pair
     val oldSt = this(np)
-    if (!oldSt.isBottom && USE_REPL) repl.merged = true
+    if (!oldSt.isBottom && USE_REPL) REPL.merged = true
     if (!newSt.isBottom && !(newSt ⊑ oldSt))
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
-
-  /** handle calls */
-  def doCall(
-    callerNp: NodePoint[Call],
-    callerSt: AbsState,
-    calleeFunc: Func,
-    args: List[AbsValue],
-    captured: Map[Name, AbsValue] = Map(),
-    method: Boolean = false,
-  ): Unit =
-    this.callInfo += callerNp -> callerSt
-    for {
-      (calleeNp, calleeSt) <- getCalleeEntries(
-        callerNp,
-        callerSt,
-        calleeFunc,
-        args,
-        captured,
-        method,
-      )
-    } {
-      // add callee to worklist
-      this += calleeNp -> calleeSt.doCall
-      // add return edges from callee to caller
-      val rp = ReturnPoint(calleeFunc, calleeNp.view)
-      val set = retEdges.getOrElse(rp, Set())
-      retEdges += rp -> (set + callerNp)
-      // propagate callee analysis result
-      val retT = this(rp)
-      if (!retT.isBottom) worklist += rp
-    }
-
-  /** call transition */
-  def getCalleeEntries(
-    callerNp: NodePoint[Call],
-    callerSt: AbsState,
-    calleeFunc: Func,
-    args: List[AbsValue],
-    captured: Map[Name, AbsValue],
-    method: Boolean,
-  ): List[(NodePoint[_], AbsState)] = {
-    // handle ir callsite sensitivity
-    val NodePoint(callerFunc, callSite, callerView) = callerNp
-    val baseView =
-      if (IR_SENS)
-        callerView.copy(
-          calls = callSite :: callerView.calls,
-          intraLoopDepth = 0,
-        )
-      else callerView
-
-    val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
-    val calleeRp = ReturnPoint(calleeFunc, baseView)
-    val calleeSt = callerSt.copied(locals =
-      getLocals(
-        callerNp,
-        calleeRp,
-        args,
-        cont = false,
-        method,
-      ) ++ captured,
-    )
-    List((calleeNp, calleeSt))
-  }
-
-  /** get local variables */
-  def getLocals(
-    callerNp: NodePoint[Call],
-    calleeRp: ReturnPoint,
-    args: List[AbsValue],
-    cont: Boolean,
-    method: Boolean,
-  ): Map[Local, AbsValue] = {
-    val params: List[Param] = calleeRp.func.irFunc.params
-    var map = Map[Local, AbsValue]()
-
-    @tailrec
-    def aux(ps: List[Param], as: List[AbsValue]): Unit = (ps, as) match {
-      case (Nil, Nil) =>
-      case (Param(lhs, _, optional, _) :: pl, Nil) =>
-        if (optional) {
-          map += lhs -> AbsValue(Absent)
-          aux(pl, Nil)
-        }
-      case (Nil, args) =>
-      // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-      case (param :: pl, arg :: al) =>
-        map += param.lhs -> arg
-        aux(pl, al)
-    }
-    aux(params, args)
-    map
-  }
-
-  /** update return points */
-  def doReturn(elem: Return, rp: ReturnPoint, origRet: AbsRet): Unit =
-    val ReturnPoint(func, view) = rp
-    val retRp = ReturnPoint(func, getEntryView(view))
-    // wrap completion by conditions specified in
-    // [5.2.3.5 Implicit Normal Completion]
-    // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-    val newRet = if (func.isReturnComp) origRet.wrapCompletion else origRet
-    if (!newRet.value.isBottom)
-      val oldRet = this(retRp)
-      if (!oldRet.isBottom && USE_REPL) repl.merged = true
-      if (newRet !⊑ oldRet)
-        rpMap += retRp -> (oldRet ⊔ newRet)
-        worklist += retRp
 
   /** loop transition for next views */
   def loopNext(view: View): View = view.loops match

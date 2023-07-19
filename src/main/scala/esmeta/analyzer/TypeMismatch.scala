@@ -6,31 +6,26 @@ import esmeta.ty.*
 import esmeta.util.*
 
 /** specification type mismatches */
-sealed trait TypeMismatch extends AnalyzerElem {
-  def calleeRp: ReturnPoint
-  def name: String = calleeRp.func.name
+sealed abstract class TypeMismatch(
+  val ap: AnalysisPoint,
+) extends AnalyzerElem {
+  inline def func: Func = ap.func
 }
 
 /** parameter type mismatches */
 case class ParamTypeMismatch(
-  callerNp: NodePoint[Call],
-  calleeRp: ReturnPoint,
-  idx: Int,
-  param: Param,
-  argTy: ValueTy,
-) extends TypeMismatch
+  aap: ArgAssignPoint[Node],
+  actual: ValueTy,
+) extends TypeMismatch(aap)
 
 /** return type mismatches */
 case class ReturnTypeMismatch(
-  ret: Return,
-  calleeRp: ReturnPoint,
-  retTy: ValueTy,
-) extends TypeMismatch
+  irp: InternalReturnPoint,
+  actual: ValueTy,
+) extends TypeMismatch(irp)
 
 /** arity mismatches */
 case class ArityMismatch(
-  callerNp: NodePoint[Call],
-  calleeRp: ReturnPoint,
-  expected: (Int, Int),
+  cp: CallPoint[Node],
   actual: Int,
-) extends TypeMismatch
+) extends TypeMismatch(cp)

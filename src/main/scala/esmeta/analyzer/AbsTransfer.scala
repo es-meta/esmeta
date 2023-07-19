@@ -1,6 +1,7 @@
 package esmeta.analyzer
 
 import esmeta.analyzer.domain.*
+import esmeta.analyzer.repl.*
 import esmeta.analyzer.util.*
 import esmeta.cfg.*
 import esmeta.error.*
@@ -15,10 +16,39 @@ import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** abstract transfer function */
-class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
+trait AbsTransfer extends Optimized with PruneHelper {
 
   /** loading monads */
   import AbsState.monad.*
+
+  /** fixpiont computation */
+  @tailrec
+  final def fixpoint: Unit = sem.worklist.next match
+    case Some(cp) =>
+      // set the current control point
+      sem.curCp = Some(cp)
+      // count how many visited for each control point
+      sem.counter += cp -> (sem.getCount(cp) + 1)
+      // increase iteration number
+      sem.iter += 1
+      // check time limit
+      if (sem.iter % CHECK_PERIOD == 0) TIME_LIMIT.map(limit => {
+        val duration = (System.currentTimeMillis - sem.startTime) / 1000
+        if (duration > limit) exploded("timeout")
+      })
+      // text-based debugging
+      if (DEBUG) println(s"${cp.func.name}:$cp")
+      // run REPL
+      if (USE_REPL) REPL(this, cp)
+      // abstract transfer for the current control point
+      else apply(cp)
+      // keep going
+      fixpoint
+    case None =>
+      // set the current control point
+      sem.curCp = None
+      // finalize REPL
+      if (USE_REPL) REPL.finished
 
   /** transfer function for control points */
   def apply(cp: ControlPoint): Unit = cp match
@@ -237,14 +267,13 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
         } yield {
           // closure call (unsound for inifinitely many closures)
           for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
-            sem.doCall(callerNp, st, func, as, captured)
+            doCall(callerNp, st, func, as, captured)
           // continuation call (unsound for inifinitely many continuations)
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
               as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
-            val newLocals = sem.getLocals(
-              callerNp,
-              target.toReturnPoint,
+            val newLocals = getLocals(
+              CallPoint(callerNp, target),
               as0,
               cont = true,
               method = false,
@@ -264,7 +293,7 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
           st <- get
         } yield {
           for (AClo(func, _) <- fv.clo)
-            sem.doCall(
+            doCall(
               callerNp,
               st,
               func,
@@ -284,7 +313,7 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
             case One(AstValue(syn: Syntactic)) =>
               getSDO((syn, method)) match
                 case Some((ast0, sdo)) =>
-                  sem.doCall(
+                  doCall(
                     callerNp,
                     st,
                     sdo,
@@ -300,7 +329,7 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
 
               // syntactic sdo
               for ((sdo, ast) <- bv.getSDO(method))
-                sem.doCall(callerNp, st, sdo, ast :: as, method = true)
+                doCall(callerNp, st, sdo, ast :: as, method = true)
             case _ => /* do nothing */
           newV
         }
@@ -639,15 +668,63 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
   def transfer(mop: MOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
     AbsValue.mopTransfer(mop, vs)
 
+  /** handle calls */
+  def doCall(
+    callerNp: NodePoint[Call],
+    callerSt: AbsState,
+    calleeFunc: Func,
+    args: List[AbsValue],
+    captured: Map[Name, AbsValue] = Map(),
+    method: Boolean = false,
+  ): Unit =
+    sem.callInfo += callerNp -> callerSt
+    for {
+      (calleeNp, calleeSt) <- getCalleeEntries(
+        callerNp,
+        callerSt,
+        calleeFunc,
+        args,
+        captured,
+        method,
+      )
+    } {
+      // add callee to worklist
+      sem += calleeNp -> calleeSt.doCall
+      // add return edges from callee to caller
+      val rp = ReturnPoint(calleeFunc, calleeNp.view)
+      val set = sem.getRetEdges(rp)
+      sem.retEdges += rp -> (set + callerNp)
+      // propagate callee analysis result
+      val retT = sem(rp)
+      if (!retT.isBottom) sem.worklist += rp
+    }
+
   // return specific value
   def doReturn(
-    elem: Return,
+    irReturn: Return,
     v: AbsValue,
   )(using cp: ControlPoint): Result[Unit] = for {
     st <- get
     ret = AbsRet(v, st.copied(locals = Map()))
-    _ = sem.doReturn(elem, ReturnPoint(cp.func, cp.view), ret)
+    calleeRp = ReturnPoint(cp.func, cp.view)
+    irp = InternalReturnPoint(irReturn, calleeRp)
+    _ = doReturn(irp, ret)
   } yield ()
+
+  /** update return points */
+  def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =
+    val InternalReturnPoint(_, ReturnPoint(func, view)) = irp
+    val retRp = ReturnPoint(func, sem.getEntryView(view))
+    // wrap completion by conditions specified in
+    // [5.2.3.5 Implicit Normal Completion]
+    // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+    val newRet = if (func.isReturnComp) givenRet.wrapCompletion else givenRet
+    if (!newRet.value.isBottom)
+      val oldRet = sem(retRp)
+      if (!oldRet.isBottom && USE_REPL) REPL.merged = true
+      if (newRet !⊑ oldRet)
+        sem.rpMap += retRp -> (oldRet ⊔ newRet)
+        sem.worklist += retRp
 
   // return if abrupt completion
   def returnIfAbrupt(
@@ -678,4 +755,64 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
         } yield v
     }
   } yield v
+
+  /** call transition */
+  def getCalleeEntries(
+    callerNp: NodePoint[Call],
+    callerSt: AbsState,
+    calleeFunc: Func,
+    args: List[AbsValue],
+    captured: Map[Name, AbsValue],
+    method: Boolean,
+  ): List[(NodePoint[_], AbsState)] = {
+    // handle ir callsite sensitivity
+    val NodePoint(callerFunc, callSite, callerView) = callerNp
+    val baseView =
+      if (IR_SENS)
+        callerView.copy(
+          calls = callSite :: callerView.calls,
+          intraLoopDepth = 0,
+        )
+      else callerView
+
+    val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
+    val calleeSt = callerSt.copied(locals =
+      getLocals(
+        CallPoint(callerNp, calleeNp),
+        args,
+        cont = false,
+        method,
+      ) ++ captured,
+    )
+    List((calleeNp, calleeSt))
+  }
+
+  /** get local variables */
+  def getLocals(
+    cp: CallPoint[Node],
+    args: List[AbsValue],
+    cont: Boolean,
+    method: Boolean,
+  ): Map[Local, AbsValue] = {
+    val CallPoint(callerNp, calleeNp) = cp
+    val params: List[Param] = calleeNp.func.irFunc.params
+    var map = Map[Local, AbsValue]()
+
+    @tailrec
+    def aux(ps: List[Param], as: List[AbsValue]): Unit = (ps, as) match {
+      case (Nil, Nil) =>
+      case (Param(lhs, _, optional, _) :: pl, Nil) =>
+        if (optional) {
+          map += lhs -> AbsValue(Absent)
+          aux(pl, Nil)
+        }
+      case (Nil, args) =>
+      // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+      case (param :: pl, arg :: al) =>
+        map += param.lhs -> arg
+        aux(pl, al)
+    }
+    aux(params, args)
+    map
+  }
 }

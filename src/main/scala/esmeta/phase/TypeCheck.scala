@@ -22,11 +22,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       case None => cfg.spec.manualInfo.tycheckIgnore
       case path => path
     val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
-    TypeAnalyzer(
-      cfg = cfg,
+    TypeAnalyzer(cfg)(
       target = config.target,
       ignore = ignore,
       log = config.log,
+      silent = false,
     )
 
   def defaultConfig: Config = Config()

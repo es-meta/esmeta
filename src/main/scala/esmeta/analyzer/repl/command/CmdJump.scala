@@ -15,17 +15,16 @@ case object CmdJump
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = args match {
     case s"-${`entry`}" :: _ =>
-      repl.nextEntry = true; repl.continue = true
+      REPL.nextEntry = true; REPL.continue = true
     case s"-${`merged`}" :: _ =>
-      repl.untilMerged = true; repl.continue = true
+      REPL.untilMerged = true; REPL.continue = true
     case arg :: _ if !optional(arg.toInt).isEmpty =>
       val iter = arg.toInt
-      if (iter > repl.iter) { repl.jumpTo = Some(iter); repl.continue = true }
+      if (iter > REPL.iter) { REPL.jumpTo = Some(iter); REPL.continue = true }
       else println(s"The iteration [$iter] is already passed.")
     case _ => println("Inappropriate argument")
   }

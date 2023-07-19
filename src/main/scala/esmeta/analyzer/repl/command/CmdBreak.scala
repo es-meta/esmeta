@@ -14,12 +14,11 @@ case object CmdBreak
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = args match {
     case opt :: bp :: _ if options contains opt.substring(1) =>
-      repl.breakpoints += (opt.substring(1) -> bp)
+      REPL.breakpoints += (opt.substring(1) -> bp)
     case _ => println("Inappropriate argument")
   }
 }

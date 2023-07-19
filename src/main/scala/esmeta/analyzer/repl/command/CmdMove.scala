@@ -16,8 +16,7 @@ case object CmdMove
   val options @ List(to, reset) = List("to", "reset")
 
   // get node points of given nid
-  def getNps(repl: REPL, nid: Int): Array[NodePoint[Node]] = {
-    val sem = repl.sem
+  def getNps(nid: Int): Array[NodePoint[Node]] = {
     val node = cfg.nodeMap(nid)
     sem.npMap.keys.toArray.filter(_.node.id == node.id)
   }
@@ -33,16 +32,15 @@ case object CmdMove
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = args match {
     case s"-${`to`}" :: nid :: idx :: _ =>
-      val nps = getNps(repl, nid.toInt)
+      val nps = getNps(nid.toInt)
       val i = idx.toInt
       if (i < nps.size) {
         val newNp = nps(i)
-        repl.moveCp(newNp)
+        REPL.moveCp(newNp)
         println(s"Current control point is moved to $newNp")
       } else {
         println(s"Wrong index: $i")
@@ -50,10 +48,10 @@ case object CmdMove
       }
 
     case s"-${`to`}" :: nid :: Nil =>
-      val nps = getNps(repl, nid.toInt)
+      val nps = getNps(nid.toInt)
       printNps(nps)
     case s"-${`reset`}" :: _ =>
-      repl.restoreCp()
+      REPL.restoreCp()
       println("Current control point is restored")
     case _ => println("Inappropriate argument")
   }

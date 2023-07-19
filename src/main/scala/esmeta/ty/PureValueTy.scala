@@ -211,6 +211,15 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     absent.isTop
   ) PureValueTy.Top
   else this
+
+  /** remove absent types */
+  def removeAbsent: PureValueTy = this match
+    case PureValueTopTy => PureValueTy.Top
+    case elem: PureValueElemTy =>
+      elem.copy(
+        list = elem.list.copy(elem.list.elem.map(_.removeAbsent)),
+        absent = false,
+      )
 }
 
 case object PureValueTopTy extends PureValueTy {

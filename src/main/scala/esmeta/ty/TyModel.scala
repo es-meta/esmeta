@@ -54,6 +54,31 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
     lset.forall(l => isSubTy(l, rset))
 
+  /** loose subtyping relation between two value types */
+  def isLooseSubTy(
+    l: ValueTy,
+    r: ValueTy,
+  ): Boolean =
+    val pureValue = isLooseSubTy(l.pureValue, r.pureValue)
+    val normal = isLooseSubTy(l.normal, r.normal)
+    val abrupt = l.abrupt <= r.abrupt
+    pureValue && normal && abrupt
+
+  /** loose subtyping relation between two pure value types */
+  def isLooseSubTy(
+    l: PureValueTy,
+    r: PureValueTy,
+  ): Boolean =
+    val noName =
+      ((l -- NameT.pureValue) <= (r -- NameT.pureValue))
+    val name = ((l.name.set, r.name.set) match
+      case (_, Inf) => true
+      case (Inf, _) => false
+      case (Fin(lset), Fin(rset)) =>
+        lset.forall(l => rset.exists(r => isSubTy(l, r) || isSubTy(r, l)))
+    )
+    noName && name
+
   /** property map alias */
   type PropMap = Map[String, ValueTy]
 

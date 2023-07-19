@@ -18,18 +18,16 @@ case object CmdPrint
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = {
-    val cp = cpOpt.getOrElse(repl.sem.runJobsRp)
+    val cp = cpOpt.getOrElse(sem.runJobsRp)
     args match {
       case s"-${`reachLoc`}" :: _ => {
-        val st = repl.sem.getState(cp)
+        val st = sem.getState(cp)
         st.reachableParts.foreach(println _)
       }
       case s"-${`ret`}" :: _ => {
-        val sem = repl.sem
         val v = cp match {
           case np: NodePoint[Node] => println("no return value")
           case rp: ReturnPoint =>
@@ -39,8 +37,7 @@ case object CmdPrint
       }
       case s"-${`expr`}" :: rest => {
         val str = rest.mkString(" ")
-        val sem = repl.sem
-        val v = sem.transfer(cp, Expr.from(str))
+        val v = analyzer.transfer(cp, Expr.from(str))
         val st = cp match {
           case np: NodePoint[Node] => sem(np)
           case rp: ReturnPoint     => sem(rp).state

@@ -16,13 +16,12 @@ case object CmdFindMerged
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = cpOpt.map(cp => {
     val st = cp match {
-      case np: NodePoint[Node] => repl.sem(np)
-      case rp: ReturnPoint     => repl.sem(rp).state
+      case np: NodePoint[Node] => sem(np)
+      case rp: ReturnPoint     => sem(rp).state
     }
     st.findMerged
   })

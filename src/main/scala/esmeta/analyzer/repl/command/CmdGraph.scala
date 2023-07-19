@@ -19,12 +19,11 @@ case object CmdGraph
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = (optional(args.head.toInt), args) match
-    case (Some(depth), _) => dumpCFG(repl.sem, cpOpt, depth = Some(depth))
+    case (Some(depth), _) => dumpCFG(cpOpt, depth = Some(depth))
     case (None, s"-$total" :: _) =>
-      dumpCFG(repl.sem, cpOpt, depth = None)
-    case _ => dumpCFG(repl.sem, cpOpt, depth = Some(0))
+      dumpCFG(cpOpt, depth = None)
+    case _ => dumpCFG(cpOpt, depth = Some(0))
 }

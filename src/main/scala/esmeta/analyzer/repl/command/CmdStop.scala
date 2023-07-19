@@ -15,8 +15,7 @@ case object CmdStop
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
-  ): Unit = repl.stop
+  ): Unit = REPL.stop
 }

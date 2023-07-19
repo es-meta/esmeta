@@ -6,23 +6,34 @@ import esmeta.es.*
 import esmeta.ir.*
 
 /** meta-level static analyzer for ECMAScript */
-class ESAnalyzer(cfg: CFG) {
+class ESAnalyzer(cfg: CFG) extends Analyzer(cfg) {
+
+  /** default abstract semantics as results */
+  type Result = AbsSemantics
+
+  /** default abstract transfer function as transfer */
+  trait Transfer extends AbsTransfer
+
+  /** transfer function */
+  object transfer extends Transfer
 
   /** perform analysis for a given ECMAScript code */
-  def apply(sourceText: String): AbsSemantics = withCFG(cfg) {
-    withSem(AbsSemantics(initNpMap(sourceText))) {
-      sem.fixpoint
-    }
-  }
+  def apply(sourceText: String): AbsSemantics =
+    apply(AbsSemantics(initNpMap(sourceText)))
 
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
   /** initial control point */
-  lazy val initCp =
+  private lazy val initCp =
     val runJobs = cfg.fnameMap("RunJobs")
     val entry = runJobs.entry
     NodePoint(runJobs, entry, View())
 
-  // get initial abstract states in each node point
-  def initNpMap(sourceText: String): Map[NodePoint[Node], AbsState] = Map(
+  /** get initial abstract states in each node point */
+  private def initNpMap(
+    sourceText: String,
+  ): Map[NodePoint[Node], AbsState] = Map(
     initCp -> AbsState.Empty.defineGlobal(
       Global(builtin.SOURCE_TEXT) -> AbsValue(sourceText),
     ),

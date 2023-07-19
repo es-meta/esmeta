@@ -15,7 +15,6 @@ case object CmdExit
 
   // run command
   def apply(
-    repl: REPL,
     cpOpt: Option[ControlPoint],
     args: List[String],
   ): Unit = error("stop for debugging")
