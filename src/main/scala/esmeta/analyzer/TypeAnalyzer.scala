@@ -73,9 +73,7 @@ class TypeAnalyzer(
         if (check) doReturn(riaExpr, value.abruptCompletion)
         else if (!value.abruptCompletion.isBottom)
           val riap = ReturnIfAbruptPoint(cp, riaExpr)
-          addMismatch(
-            UncheckedAbruptCompletionMismatch(riap, value.ty),
-          )
+          addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
         else ()
       for (_ <- checkReturn) yield value.unwrapCompletion
     }
