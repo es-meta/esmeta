@@ -75,6 +75,10 @@ class Stringifier(
         app >> " when " >> cp
       case InternalReturnPoint(irReturn, calleeRp) =>
         app >> "return statement in " >> calleeRp.func.name >> irReturn
+      case ReturnIfAbruptPoint(riap, riaExpr) =>
+        app >> "returnIfAbrupt"
+        app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
+        app >> "in " >> riap.func.name >> riaExpr
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -130,6 +134,9 @@ class Stringifier(
         given Rule[(Int, Int)] = arityRangeRule
         app >> "[ArityMismatch] " >> cp
         app :> "- expected: " >> cp.func.arity
+        app :> "- actual  : " >> actual
+      case UncheckedAbruptCompletionMismatch(riap, actual) =>
+        app >> "[UncheckedAbruptCompletionMismatch] " >> riap
         app :> "- actual  : " >> actual
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {

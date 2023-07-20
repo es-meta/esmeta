@@ -4,11 +4,12 @@ import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local}
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
+import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
@@ -60,6 +61,24 @@ class TypeAnalyzer(
 
   /** abstract transfer function for types */
   trait Transfer extends AbsTransfer {
+    import AbsState.monad.{Result => ResultMonad, _}
+    type Result = ResultMonad
+
+    override def returnIfAbrupt(
+      riaExpr: EReturnIfAbrupt,
+      value: AbsValue,
+      check: Boolean,
+    )(using cp: ControlPoint): Result[AbsValue] = {
+      val checkReturn: Result[Unit] =
+        if (check) doReturn(riaExpr, value.abruptCompletion)
+        else if (!value.abruptCompletion.isBottom)
+          val riap = ReturnIfAbruptPoint(cp, riaExpr)
+          addMismatch(
+            UncheckedAbruptCompletionMismatch(riap, value.ty),
+          )
+        else ()
+      for (_ <- checkReturn) yield value.unwrapCompletion
+    }
 
     /** handle calls */
     override def doCall(
@@ -301,5 +320,6 @@ object TypeAnalyzer {
     arity: Boolean = true,
     paramType: Boolean = true,
     returnType: Boolean = true,
+    uncheckedAbrupt: Boolean = false,
   )
 }

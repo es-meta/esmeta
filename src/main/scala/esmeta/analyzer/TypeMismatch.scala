@@ -29,3 +29,9 @@ case class ArityMismatch(
   cp: CallPoint[Node],
   actual: Int,
 ) extends TypeMismatch(cp)
+
+/** unchecked abrupt completion mismatches */
+case class UncheckedAbruptCompletionMismatch(
+  riap: ReturnIfAbruptPoint,
+  actual: ValueTy,
+) extends TypeMismatch(riap)
