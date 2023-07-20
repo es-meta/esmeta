@@ -270,7 +270,7 @@ class TypeAnalyzer(
     silent: Boolean = false,
   ): List[Func] =
     // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val allFuncs = cfg.funcs.filter(f => f.isParamTysDefined && !f.isClosure)
     target.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
