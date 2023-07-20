@@ -19,7 +19,7 @@ object BasicDomain extends state.Domain {
   /** elements */
   case class Elem(
     reachable: Boolean = false,
-    locals: Map[Local, AbsValue] = Map(),
+    locals: Map[Local, OptionalAbsValue] = Map(),
     globals: Map[Global, AbsValue] = Map(),
     heap: AbsHeap = AbsHeap.Bot,
   ) extends Appendable
@@ -80,7 +80,7 @@ object BasicDomain extends state.Domain {
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = elem.lookupLocal(x) ⊔ that.lookupLocal(x)
-        } yield x -> v).toMap
+        } yield x -> v.toOption).toMap
         val newGlobals = (for {
           x <- (l.globals.keySet ++ r.globals.keySet).toList
           v = elem.lookupGlobal(x) ⊔ that.lookupGlobal(x)
@@ -97,7 +97,7 @@ object BasicDomain extends state.Domain {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
           _ = isBottom ||= v.isBottom
-        } yield x -> v).toMap
+        } yield x -> v.toOption).toMap
         val newGlobals = (for {
           x <- (l.globals.keySet ++ r.globals.keySet).toList
           v = elem.lookupGlobal(x) ⊓ that.lookupGlobal(x)
@@ -129,9 +129,9 @@ object BasicDomain extends state.Domain {
           case x: Global if globals contains x =>
             elem.copy(globals = globals + (x -> value))
           case x: Name if locals contains x =>
-            elem.copy(locals = locals + (x -> value))
+            elem.copy(locals = locals + (x -> value.toOption))
           case x: Temp =>
-            elem.copy(locals = locals + (x -> value))
+            elem.copy(locals = locals + (x -> value.toOption))
           case _ => Bot
       }
 
@@ -282,13 +282,15 @@ object BasicDomain extends state.Domain {
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
       elem.bottomCheck(AbsValue)(pairs.unzip._2) {
-        elem.copy(locals = elem.locals ++ pairs)
+        elem.copy(locals = elem.locals ++ pairs.map { (local, value) =>
+          (local, value.toOption)
+        })
       }
 
     /** singleton checks */
     override def isSingle: Boolean =
       reachable &&
-      locals.forall { case (_, v) => v.isSingle } &&
+      locals.forall { case (_, v) => v.value.isSingle } &&
       globals.forall { case (_, v) => v.isSingle } &&
       heap.isSingle
 
@@ -320,7 +322,7 @@ object BasicDomain extends state.Domain {
           visited += part
           heap(part).findMerged(part, path, auxValue)
 
-      for ((x, v) <- locals) auxValue(v, s"partal $x")
+      for ((x, v) <- locals) auxValue(v.value, s"partial $x")
       for ((x, v) <- globals) auxValue(v, s"global $x")
       for (part <- map.keys if part.isNamed) auxPart(part, s"$part")
       for (part <- map.keys if !part.isNamed)
@@ -338,7 +340,9 @@ object BasicDomain extends state.Domain {
     /** handle returns (elem: return states / to: caller states) */
     def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
-      locals = to.locals ++ defs,
+      locals = to.locals ++ defs.map { (local, value) =>
+        (local, value.toOption)
+      },
       globals = globals,
       heap = heap.doReturn(to.heap),
     ).garbageCollected
@@ -346,7 +350,9 @@ object BasicDomain extends state.Domain {
       doProcEnd(to, defs)
     def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
       reachable = true,
-      locals = to.locals ++ defs,
+      locals = to.locals ++ defs.map { (local, value) =>
+        (local, value.toOption)
+      },
       globals = globals,
       heap = heap.doProcEnd(to.heap),
     ).garbageCollected
@@ -361,13 +367,13 @@ object BasicDomain extends state.Domain {
     /** get reachable address partitions */
     def reachableParts: Set[Part] =
       var parts = Set[Part]()
-      for ((_, v) <- locals) parts ++= v.reachableParts
+      for ((_, v) <- locals) parts ++= v.value.reachableParts
       for ((_, v) <- globals) parts ++= v.reachableParts
       heap.reachableParts(parts)
 
     /** copy */
     def copied(
-      locals: Map[Local, AbsValue] = Map(),
+      locals: Map[Local, OptionalAbsValue] = Map(),
     ): Elem = elem.copy(locals = locals)
 
     /** get string */
@@ -390,7 +396,7 @@ object BasicDomain extends state.Domain {
 
     /** getters */
     def reachable: Boolean = elem.reachable
-    def locals: Map[Local, AbsValue] = elem.locals
+    def locals: Map[Local, OptionalAbsValue] = elem.locals
     def globals: Map[Global, AbsValue] = elem.globals
     def heap: AbsHeap = elem.heap
   }

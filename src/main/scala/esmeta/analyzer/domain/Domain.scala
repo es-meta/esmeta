@@ -37,7 +37,7 @@ trait Domain[A] { self =>
   }
 
   /** optional domain */
-  lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
+  final lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
 
   /** domain element interfaces */
   extension (elem: Elem) {
@@ -76,5 +76,7 @@ trait Domain[A] { self =>
           if (stop) exploded(s"impossible to iterate infinite values")
           else Nil.iterator
         case Fin(set) => set.iterator
+
+    def toOption: optional.Elem = optional.Elem(elem, AbsAbsent.Bot)
   }
 }

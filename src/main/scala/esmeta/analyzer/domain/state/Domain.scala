@@ -15,6 +15,8 @@ trait Domain extends domain.Domain[State] {
   /** empty state */
   def Empty: Elem
 
+  type OptionalAbsValue = AbsValue.optional.Elem
+
   /** monad helper */
   val monad: StateMonad[Elem] = StateMonad[Elem]()
 
@@ -52,16 +54,26 @@ trait Domain extends domain.Domain[State] {
 
     /** lookup local variables */
     def lookupLocal(x: Local): AbsValue =
-      elem.locals.getOrElse(x, AbsValue.Bot)
+      lookupLocalOpt(x).value
+
+    def lookupLocalOpt(x: Local): OptionalAbsValue =
+      elem.locals.getOrElse(x, AbsValue.optional.Empty)
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue
 
     /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
-      case AbsRefId(id) => !directLookup(id).isAbsent
+      case AbsRefId(id) =>
+        !directLookup(id).isAbsent
       case AbsRefProp(base, prop) =>
         !elem.get(base, prop).isAbsent
+
+    /** Local variable exitence check */
+    def localExistCheck(x: Local): Boolean =
+      val OptionalAbsValue(v, abs) =
+        elem.locals.getOrElse(x, AbsValue.optional.Empty)
+      abs.isBottom && !v.isMustAbsent
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem
@@ -172,7 +184,7 @@ trait Domain extends domain.Domain[State] {
 
     /** copy */
     def copied(
-      locals: Map[Local, AbsValue] = Map(),
+      locals: Map[Local, OptionalAbsValue] = Map(),
     ): Elem
 
     /** conversion to string */
@@ -183,7 +195,7 @@ trait Domain extends domain.Domain[State] {
 
     /** getters */
     def reachable: Boolean
-    def locals: Map[Local, AbsValue]
+    def locals: Map[Local, OptionalAbsValue]
     def globals: Map[Global, AbsValue]
     def heap: AbsHeap
 
