@@ -16,3 +16,18 @@ class YetCollector extends UnitWalker:
       case yet: EYet => yets += yet
       case _         =>
     super.walk(expr)
+
+/** empty list collector */
+object EmptyListCollector:
+  def apply(elem: IRElem): List[EList] =
+    val collector = new EmptyListCollector
+    collector.walk(elem)
+    collector.emptylists.toList
+class EmptyListCollector extends UnitWalker:
+  var emptylists: ListBuffer[EList] = ListBuffer()
+  override def walk(expr: Expr): Unit =
+    expr match
+      case emptylist: EList if emptylist.exprs.size == 0 =>
+        emptylists += emptylist
+      case _ =>
+    super.walk(expr)
