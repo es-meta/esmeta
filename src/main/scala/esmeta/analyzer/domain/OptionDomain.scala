@@ -8,14 +8,14 @@ import esmeta.util.Appender.*
 class OptionDomain[V, D <: Domain[V] with Singleton](val AbsV: D)
   extends Domain[Option[V]] {
 
-  /** astract V type domain */
+  /** abstract V type domain */
   type AbsV = AbsV.Elem
 
   /** elements */
   case class Elem(value: AbsV, absent: AbsAbsent) extends Appendable
 
   /** top element */
-  val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)
+  lazy val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)
 
   /** bottom element */
   val Bot: Elem = Elem(AbsV.Bot, AbsAbsent.Bot)
