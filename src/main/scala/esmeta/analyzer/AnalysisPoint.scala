@@ -30,6 +30,14 @@ case class ArgAssignPoint[+T <: Node](
   inline def param = cp.calleeNp.func.params(idx)
 }
 
+case class VarAssignPoint[+T <: Node](
+  np: NodePoint[T],
+  varId: Id,
+) extends AnalysisPoint {
+  inline def view = np.view
+  inline def func = np.func
+}
+
 /** internal return points */
 case class InternalReturnPoint(
   irReturn: Return,

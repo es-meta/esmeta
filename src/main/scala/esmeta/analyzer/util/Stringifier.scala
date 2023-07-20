@@ -73,6 +73,10 @@ class Stringifier(
         app >> "argument assignment to "
         app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
         app >> " when " >> cp
+      case vap @ VarAssignPoint(np, varId) =>
+        import irStringifier.given
+        app >> "variable assignment to _" >> varId >> "_"
+        app >> " in " >> np.func.name
       case InternalReturnPoint(irReturn, calleeRp) =>
         app >> "return statement in " >> calleeRp.func.name >> irReturn
       case ReturnIfAbruptPoint(riap, riaExpr) =>
@@ -126,6 +130,8 @@ class Stringifier(
         app >> "[ParamTypeMismatch] " >> aap
         app :> "- expected: " >> aap.param.ty
         app :> "- actual  : " >> actual
+      case DuplicateAssignMismatch(vap) =>
+        app >> "[DuplicateAssignMismatch] " >> vap
       case ReturnTypeMismatch(irp, actual) =>
         app >> "[ReturnTypeMismatch] " >> irp
         app :> "- expected: " >> irp.calleeRp.func.retTy

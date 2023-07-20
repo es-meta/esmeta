@@ -18,6 +18,11 @@ case class ParamTypeMismatch(
   actual: ValueTy,
 ) extends TypeMismatch(aap)
 
+/** duplicate variable assignment mismatches */
+case class DuplicateAssignMismatch(
+  vap: VarAssignPoint[Node],
+) extends TypeMismatch(vap)
+
 /** return type mismatches */
 case class ReturnTypeMismatch(
   irp: InternalReturnPoint,
