@@ -26,7 +26,7 @@ class TypeAnalyzer(
   private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
 
   /** type semantics as results */
-  class Result(npMap: Map[NodePoint[Node], AbsState])
+  class Semantics(npMap: Map[NodePoint[Node], AbsState])
     extends AbsSemantics(npMap) {
 
     /** type analysis result string */
@@ -152,9 +152,9 @@ class TypeAnalyzer(
     ignore: Ignore,
     log: Boolean,
     silent: Boolean,
-  ): Result = apply(
-    init = Result(initNpMap(targets)),
-    postProcess = (sem: Result) => {
+  ): Semantics = apply(
+    init = Semantics(initNpMap(targets)),
+    postProcess = (sem: Semantics) => {
       if (log) logging(sem)
       var unusedSet = ignore.names
       val detected = mismatches.filter(mismatch => {
@@ -199,7 +199,7 @@ class TypeAnalyzer(
     ignore: Ignore,
     log: Boolean,
     silent: Boolean,
-  ): Result =
+  ): Semantics =
     val targets = getInitTargets(target, silent)
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
     apply(targets, ignore, log, silent)
@@ -243,7 +243,7 @@ class TypeAnalyzer(
     })
 
   // logging mode
-  def logging(sem: Result): Unit = {
+  def logging(sem: Semantics): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
       name = "type analysis result",

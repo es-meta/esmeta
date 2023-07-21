@@ -8,8 +8,8 @@ import esmeta.ir.*
 /** meta-level static analyzer for ECMAScript */
 class ESAnalyzer(cfg: CFG) extends Analyzer(cfg) {
 
-  /** default abstract semantics as results */
-  type Result = AbsSemantics
+  /** default abstract semantics */
+  type Semantics = AbsSemantics
 
   /** default abstract transfer function as transfer */
   trait Transfer extends AbsTransfer
