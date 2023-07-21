@@ -84,18 +84,13 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   type PropMap = Map[String, ValueTy]
 
   /** get types of property */
-  def getProp(tname: String, p: String, handleAbsent: => Unit): ValueTy =
+  def getPropOrElse(tname: String, p: String)(default: => ValueTy): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       NameT("Object")
     else
       propMap
         .getOrElse(tname, Map())
-        .getOrElse(
-          p, {
-            handleAbsent
-            AbsentT
-          },
-        )
+        .getOrElse(p, default)
 
   /** property type */
   private lazy val propMap: Map[String, PropMap] = (for {

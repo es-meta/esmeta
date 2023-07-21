@@ -397,14 +397,20 @@ object TypeDomain extends state.Domain {
           if (name == "IntrinsicsRecord") res ||= ObjectT
           Set()
         case Fin(set) => set
-    } res ||= cfg.tyModel.getProp(
-      name,
-      propStr,
-      for { cp <- sem.curCp } {
-        val nplp = NamePropLookupPoint(cp)
-        analyzer.addMismatch(UnknownPropertyMismatch(nplp, obj, prop))
-      },
-    )
+    } {
+      res ||= cfg.tyModel.getPropOrElse(name, propStr) {
+        analyzer match {
+          case ta: TypeAnalyzer => {
+            if (ta.config.unknownProperty)
+              for { cp <- sem.curCp } {
+                val nplp = NamePropLookupPoint(cp)
+                ta.addMismatch(UnknownPropertyMismatch(nplp, obj, prop))
+              }
+          }
+        }
+        AbsentT
+      }
+    }
     res
 
   // record lookup
