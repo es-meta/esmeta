@@ -305,37 +305,39 @@ object TypeDomain extends state.Domain {
     res
 
   // AST lookup
-  private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
-    var res = ValueTy()
-    ast match
-      case AstValueTy.Bot => /* do nothing */
-      case AstSingleTy(name, idx, subIdx) =>
-        prop.math match
-          case Fin(ns) =>
-            for {
-              n <- ns
-              if n.isValidInt
-              propIdx = n.toInt
-              rhs = cfg.grammar.nameMap(name).rhsList(idx)
-              nts = rhs.getNts(subIdx)
-            } {
-              if (propIdx >= nts.size)
-                () // TODO warning(s"invalid access: $propIdx of $ast")
-              else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
-            }
-          case Inf => res ||= AstT
-        prop.str match
-          case Fin(ss) =>
-            for (s <- ss) s match
-              case "parent" => res ||= AstT
-              case name =>
-                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
-                else () // TODO warning(s"invalid access: $name of $ast")
-          case Inf => res ||= AstT
-      case _ => res ||= AstT
-    // TODO if (!ast.isBottom)
-    //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
-    res
+  private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy = ast match
+    case AstValueTy.Bot => ValueTy.Bot
+    case AstSingleTy(name, idx, subIdx) =>
+      lookupAstIdxProp(name, idx, subIdx)(prop) ||
+      lookupAstStrProp(prop)
+    case AstNameTy(names) =>
+      if (!prop.math.isBottom) AstT // TODO more precise
+      else lookupAstStrProp(prop)
+    case _ => AstT
+  // TODO if (!ast.isBottom)
+  //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
+
+  // lookup index properties of ASTs
+  private def lookupAstIdxProp(
+    name: String,
+    idx: Int,
+    subIdx: Int,
+  )(prop: ValueTy): ValueTy = prop.math.getSingle match
+    case One(n) if n.isValidInt =>
+      val propIdx = n.toInt
+      val rhs = cfg.grammar.nameMap(name).rhsList(idx)
+      val nts = rhs.getNts(subIdx)
+      nts(propIdx).fold(AbsentT)(AstT(_))
+    case Zero | One(_) => ValueTy.Bot
+    case _             => AstT // TODO more precise
+
+  // lookup string properties of ASTs
+  private def lookupAstStrProp(prop: ValueTy): ValueTy =
+    val nameMap = cfg.grammar.nameMap
+    prop.str.getSingle match
+      case Zero                               => ValueTy.Bot
+      case One(name) if nameMap contains name => AstT(name)
+      case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
   // string lookup
   private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
