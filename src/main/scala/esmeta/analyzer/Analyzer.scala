@@ -14,6 +14,8 @@ abstract class Analyzer(val cfg: CFG) {
   /** transfer function */
   val transfer: Transfer
 
+  def addMismatch(mismatch: TypeMismatch): Unit
+
   /** perform analysis for a given initial abstract semantics */
   def apply(
     init: => Semantics,

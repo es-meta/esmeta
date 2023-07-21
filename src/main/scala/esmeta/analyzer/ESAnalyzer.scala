@@ -17,6 +17,8 @@ class ESAnalyzer(cfg: CFG) extends Analyzer(cfg) {
   /** transfer function */
   object transfer extends Transfer
 
+  def addMismatch(mismatch: TypeMismatch): Unit = ()
+
   /** perform analysis for a given ECMAScript code */
   def apply(sourceText: String): AbsSemantics =
     apply(AbsSemantics(initNpMap(sourceText)))
