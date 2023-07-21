@@ -35,3 +35,10 @@ case class UncheckedAbruptCompletionMismatch(
   riap: ReturnIfAbruptPoint,
   actual: ValueTy,
 ) extends TypeMismatch(riap)
+
+/** unknown property mismatches */
+case class UnknownPropertyMismatch(
+  plp: PropertyLookupPoint,
+  base: TyElem,
+  prop: ValueTy,
+) extends TypeMismatch(plp)

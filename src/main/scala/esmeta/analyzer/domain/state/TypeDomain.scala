@@ -296,12 +296,14 @@ object TypeDomain extends state.Domain {
     if (str contains "Type")
       if (normal) res ||= CONSTT_NORMAL
       if (abrupt) res ||= constTyForAbruptTarget
-    // TODO if (!comp.isBottom)
-    //   boundCheck(
-    //     prop,
-    //     StrT("Value", "Target", "Type"),
-    //     t => s"invalid access: $t of $comp",
-    //   )
+    if (!comp.isBottom)
+      boundCheck(
+        prop,
+        StrT("Value", "Target", "Type"),
+        (cp, t) =>
+          val cplp = CompPropLookupPoint(cp)
+          UnknownPropertyMismatch(cplp, comp, t),
+      )
     res
 
   // AST lookup
@@ -338,7 +340,9 @@ object TypeDomain extends state.Domain {
       boundCheck(
         prop,
         MathT || StrT,
-        t => s"invalid ast value property: $t of $ast",
+        (cp, t) =>
+          val aplp = AstPropLookupPoint(cp)
+          UnknownPropertyMismatch(aplp, ast, t),
       )
     res
 
@@ -375,7 +379,9 @@ object TypeDomain extends state.Domain {
       boundCheck(
         prop,
         MathT || StrT("length"),
-        t => s"invalid access on string type: $t of ${PureValueTy(str = str)}",
+        (cp, t) =>
+          val splp = StringPropLookupPoint(cp)
+          UnknownPropertyMismatch(splp, PureValueTy(str = str), t),
       )
       res
     }
@@ -394,7 +400,10 @@ object TypeDomain extends state.Domain {
     } res ||= cfg.tyModel.getProp(
       name,
       propStr,
-      check = true, // unknown property check
+      for { cp <- sem.curCp } {
+        val nplp = NamePropLookupPoint(cp)
+        analyzer.addMismatch(UnknownPropertyMismatch(nplp, obj, prop))
+      },
     )
     res
 
@@ -435,8 +444,16 @@ object TypeDomain extends state.Domain {
   private def boundCheck(
     ty: ValueTy,
     boundTy: => ValueTy,
-    f: ValueTy => String,
+    f: (ControlPoint, ValueTy) => TypeMismatch,
   ): Unit =
     val other = ty -- boundTy
-    if (!other.isBottom) warning(f(other))
+    if (!other.isBottom)
+      analyzer match {
+        case ta: TypeAnalyzer => {
+          if (ta.config.unknownProperty)
+            for { cp <- sem.curCp } {
+              ta.addMismatch(f(cp, other))
+            }
+        }
+      }
 }

@@ -84,7 +84,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   type PropMap = Map[String, ValueTy]
 
   /** get types of property */
-  def getProp(tname: String, p: String, check: Boolean = false): ValueTy =
+  def getProp(tname: String, p: String, handleAbsent: => Unit): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       NameT("Object")
     else
@@ -92,7 +92,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
         .getOrElse(tname, Map())
         .getOrElse(
           p, {
-            if (check) warning(s"unknown property access: $tname.$p")
+            handleAbsent
             AbsentT
           },
         )

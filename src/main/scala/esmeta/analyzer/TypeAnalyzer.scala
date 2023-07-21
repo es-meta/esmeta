@@ -16,7 +16,7 @@ import esmeta.util.SystemUtils.*
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
   cfg: CFG,
-  config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
+  val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
 ) extends Analyzer(cfg) {
   import TypeAnalyzer.*
 
@@ -318,5 +318,6 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
+    unknownProperty: Boolean = true,
   )
 }
