@@ -45,7 +45,6 @@
   "OptionalChain[9,0].ChainEvaluation",
   "OrdinaryFunctionCreate",
   "OrdinaryObject.OwnPropertyKeys",
-  "PerformEval",
   "ProxyCreate",
   "SerializeJSONObject",
   "SetFunctionLength",
