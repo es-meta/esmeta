@@ -1,6 +1,6 @@
 package esmeta.analyzer
 
-import esmeta.ir.Return
+import esmeta.ir.{Func => _, *}
 import esmeta.cfg.*
 
 /** analysis points */
@@ -37,6 +37,15 @@ case class InternalReturnPoint(
 ) extends AnalysisPoint {
   inline def view = calleeRp.view
   inline def func = calleeRp.func
+}
+
+/** return-if-abrupt points */
+case class ReturnIfAbruptPoint(
+  cp: ControlPoint,
+  riaExpr: EReturnIfAbrupt,
+) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
 }
 
 /** control points */
