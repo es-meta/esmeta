@@ -61,21 +61,20 @@ class TypeAnalyzer(
 
   /** abstract transfer function for types */
   trait Transfer extends AbsTransfer {
-    import AbsState.monad.{Result => ResultMonad, _}
-    type Result = ResultMonad
 
+    /** loading monads */
+    import AbsState.monad.*
+
+    /** return-if-abrupt completion */
     override def returnIfAbrupt(
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
     )(using cp: ControlPoint): Result[AbsValue] = {
-      val checkReturn: Result[Unit] =
-        if (check) doReturn(riaExpr, value.abruptCompletion)
-        else if (!value.abruptCompletion.isBottom)
-          val riap = ReturnIfAbruptPoint(cp, riaExpr)
-          addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
-        else ()
-      for (_ <- checkReturn) yield value.unwrapCompletion
+      if (config.uncheckedAbrupt && !check && !value.abruptCompletion.isBottom)
+        val riap = ReturnIfAbruptPoint(cp, riaExpr)
+        addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
+      super.returnIfAbrupt(riaExpr, value, check)
     }
 
     /** handle calls */

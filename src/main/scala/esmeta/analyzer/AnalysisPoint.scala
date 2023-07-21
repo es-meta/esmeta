@@ -39,6 +39,7 @@ case class InternalReturnPoint(
   inline def func = calleeRp.func
 }
 
+/** return-if-abrupt points */
 case class ReturnIfAbruptPoint(
   cp: ControlPoint,
   riaExpr: EReturnIfAbrupt,

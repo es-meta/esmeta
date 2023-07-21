@@ -726,7 +726,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
         sem.rpMap += retRp -> (oldRet ⊔ newRet)
         sem.worklist += retRp
 
-  // return if abrupt completion
+  /** return-if-abrupt completion */
   def returnIfAbrupt(
     riaExpr: EReturnIfAbrupt,
     value: AbsValue,
