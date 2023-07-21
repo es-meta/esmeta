@@ -308,34 +308,6 @@ object TypeDomain extends state.Domain {
 
   // AST lookup
   private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
-    var res = ValueTy()
-    ast match
-      case AstValueTy.Bot => /* do nothing */
-      case AstSingleTy(name, idx, subIdx) =>
-        prop.math match
-          case Fin(ns) =>
-            for {
-              n <- ns
-              if n.isValidInt
-              propIdx = n.toInt
-              rhs = cfg.grammar.nameMap(name).rhsList(idx)
-              nts = rhs.getNts(subIdx)
-            } {
-              if (propIdx >= nts.size)
-                () // TODO warning(s"invalid access: $propIdx of $ast")
-              else res ||= nts(propIdx).fold(AbsentT)(AstT(_))
-            }
-          case Inf => res ||= AstT
-        prop.str match
-          case Fin(ss) =>
-            for (s <- ss) s match
-              case "parent" => res ||= AstT
-              case name =>
-                if (cfg.grammar.nameMap contains name) res ||= AstT(name)
-                else () // TODO warning(s"invalid access: $name of $ast")
-          case Inf => res ||= AstT
-      case _ => res ||= AstT
-    // invalid ast value property
     if (!ast.isBottom)
       boundCheck(
         prop,
@@ -344,7 +316,15 @@ object TypeDomain extends state.Domain {
           val aplp = AstPropLookupPoint(cp)
           UnknownPropertyMismatch(aplp, ast, t),
       )
-    res
+    ast match
+      case AstValueTy.Bot => ValueTy.Bot
+      case AstSingleTy(name, idx, subIdx) =>
+        lookupAstIdxProp(name, idx, subIdx)(prop) ||
+        lookupAstStrProp(prop)
+      case AstNameTy(names) =>
+        if (!prop.math.isBottom) AstT // TODO more precise
+        else lookupAstStrProp(prop)
+      case _ => AstT
 
   // lookup index properties of ASTs
   private def lookupAstIdxProp(
