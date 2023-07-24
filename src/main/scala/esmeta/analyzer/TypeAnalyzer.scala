@@ -168,8 +168,10 @@ class TypeAnalyzer(
             _ <- modify(prune(expr, true))
             _ <-
               if (v ⊑ AVF) {
-                val asp = AssertionPoint(cp, iexpr)
-                addMismatch(AssertionMismatch(asp))
+                if (config.assertion) {
+                  val asp = AssertionPoint(cp, iexpr)
+                  addMismatch(AssertionMismatch(asp))
+                }
                 put(AbsState.Bot)
               } else pure(())
           } yield ()
@@ -336,5 +338,6 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
+    assertion: Boolean = false,
   )
 }
