@@ -20,7 +20,7 @@ object TypeDomain extends state.Domain {
   /** elements */
   case class Elem(
     reachable: Boolean = false,
-    locals: Map[Local, OptionalAbsValue] = Map(),
+    locals: Map[Local, AbsOptValue] = Map(),
   ) extends Appendable
 
   /** top element */
@@ -253,7 +253,7 @@ object TypeDomain extends state.Domain {
     def reachableParts: Set[Part] = Set()
 
     /** copy */
-    def copied(locals: Map[Local, OptionalAbsValue] = Map()): Elem =
+    def copied(locals: Map[Local, AbsOptValue] = Map()): Elem =
       elem.copy(locals = locals)
 
     /** get string */
@@ -264,7 +264,7 @@ object TypeDomain extends state.Domain {
 
     /** getters */
     def reachable: Boolean = elem.reachable
-    def locals: Map[Local, OptionalAbsValue] = locals
+    def locals: Map[Local, AbsOptValue] = locals
     def globals: Map[Global, AbsValue] = base
     def heap: AbsHeap = AbsHeap.Bot
   }
