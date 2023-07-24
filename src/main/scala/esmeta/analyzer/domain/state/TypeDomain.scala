@@ -84,15 +84,15 @@ object TypeDomain extends state.Domain {
         Elem(true, newLocals)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue): AbsValue =
+    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref]): AbsValue =
       val baseTy = base.ty
       val propTy = prop.ty
       AbsValue(
-        lookupComp(baseTy.comp, propTy) ||
-        lookupAst(baseTy.astValue, propTy) ||
-        lookupStr(baseTy.str, propTy) ||
+        lookupComp(baseTy.comp, propTy, ref) ||
+        lookupAst(baseTy.astValue, propTy, ref) ||
+        lookupStr(baseTy.str, propTy, ref) ||
         lookupList(baseTy.list, propTy) ||
-        lookupName(baseTy.name, propTy) ||
+        lookupName(baseTy.name, propTy, ref) ||
         lookupRecord(baseTy.record, propTy) ||
         lookupSymbol(baseTy.symbol, propTy) ||
         lookupSubMap(baseTy.subMap, propTy),
@@ -277,7 +277,11 @@ object TypeDomain extends state.Domain {
   // completion record lookup
   lazy val constTyForAbruptTarget =
     CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
-  private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
+  private def lookupComp(
+    comp: CompTy,
+    prop: ValueTy,
+    ref: Option[Ref],
+  ): ValueTy =
     val str = prop.str
     val normal = !comp.normal.isBottom
     val abrupt = !comp.abrupt.isBottom
@@ -301,19 +305,23 @@ object TypeDomain extends state.Domain {
         prop,
         StrT("Value", "Target", "Type"),
         (cp, t) =>
-          val cplp = CompPropLookupPoint(cp)
+          val cplp = CompPropLookupPoint(cp, ref)
           UnknownPropertyMismatch(cplp, comp, t),
       )
     res
 
   // AST lookup
-  private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy =
+  private def lookupAst(
+    ast: AstValueTy,
+    prop: ValueTy,
+    ref: Option[Ref],
+  ): ValueTy =
     if (!ast.isBottom)
       boundCheck(
         prop,
         MathT || StrT,
         (cp, t) =>
-          val aplp = AstPropLookupPoint(cp)
+          val aplp = AstPropLookupPoint(cp, ref)
           UnknownPropertyMismatch(aplp, ast, t),
       )
     ast match
@@ -349,7 +357,11 @@ object TypeDomain extends state.Domain {
       case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
   // string lookup
-  private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
+  private def lookupStr(
+    str: BSet[String],
+    prop: ValueTy,
+    ref: Option[Ref],
+  ): ValueTy =
     if (str.isBottom) ValueTy.Bot
     else {
       var res = ValueTy.Bot
@@ -360,14 +372,18 @@ object TypeDomain extends state.Domain {
         prop,
         MathT || StrT("length"),
         (cp, t) =>
-          val splp = StringPropLookupPoint(cp)
+          val splp = StringPropLookupPoint(cp, ref)
           UnknownPropertyMismatch(splp, PureValueTy(str = str), t),
       )
       res
     }
 
   // named record lookup
-  private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
+  private def lookupName(
+    obj: NameTy,
+    prop: ValueTy,
+    ref: Option[Ref],
+  ): ValueTy =
     var res = ValueTy()
     val str = prop.str
     for {
@@ -383,7 +399,7 @@ object TypeDomain extends state.Domain {
           case ta: TypeAnalyzer => {
             if (ta.config.unknownProperty)
               for { cp <- sem.curCp } {
-                val nplp = NamePropLookupPoint(cp)
+                val nplp = NamePropLookupPoint(cp, ref)
                 ta.addMismatch(UnknownPropertyMismatch(nplp, obj, prop))
               }
           }

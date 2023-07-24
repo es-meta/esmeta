@@ -578,13 +578,13 @@ trait AbsTransfer extends Optimized with PruneHelper {
   /** transfer function for references */
   def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
     ref match
-      case id: Id => AbsRefId(id)
-      case Prop(ref, expr) =>
+      case id: Id => AbsRefId(id).setRef(ref)
+      case Prop(base, expr) =>
         for {
-          rv <- transfer(ref)
+          rv <- transfer(base)
           b <- transfer(rv)
           p <- transfer(expr)
-        } yield AbsRefProp(b, p)
+        } yield AbsRefProp(b, p).setRef(ref)
 
   /** transfer function for reference values */
   def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =

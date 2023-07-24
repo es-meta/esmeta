@@ -88,6 +88,8 @@ class Stringifier(
           case _: CompPropLookupPoint   => app >> "(comp)"
         }
         app >> " in " >> plp.func.name
+        for (ref <- plp.ref) app >> ref
+        app
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
