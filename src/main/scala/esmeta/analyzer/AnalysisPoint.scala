@@ -49,24 +49,18 @@ case class ReturnIfAbruptPoint(
 }
 
 /** property lookup points */
-sealed trait PropertyLookupPoint extends AnalysisPoint {
-  val cp: ControlPoint
-  val ref: Option[Ref]
+case class PropertyLookupPoint(
+  kind: LookupKind,
+  cp: ControlPoint,
+  ref: Option[Ref],
+) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
 }
 
-case class AstPropLookupPoint(cp: ControlPoint, ref: Option[Ref])
-  extends PropertyLookupPoint
-
-case class StringPropLookupPoint(cp: ControlPoint, ref: Option[Ref])
-  extends PropertyLookupPoint
-
-case class NamePropLookupPoint(cp: ControlPoint, ref: Option[Ref])
-  extends PropertyLookupPoint
-
-case class CompPropLookupPoint(cp: ControlPoint, ref: Option[Ref])
-  extends PropertyLookupPoint
+/** detailed lookup kinds */
+enum LookupKind:
+  case Ast, Str, Name, Comp
 
 /** control points */
 sealed trait ControlPoint extends AnalysisPoint

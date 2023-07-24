@@ -305,8 +305,8 @@ object TypeDomain extends state.Domain {
         prop,
         StrT("Value", "Target", "Type"),
         (cp, t) =>
-          val cplp = CompPropLookupPoint(cp, ref)
-          UnknownPropertyMismatch(cplp, comp, t),
+          val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
+          UnknownPropertyMismatch(plp, comp, t),
       )
     res
 
@@ -321,8 +321,8 @@ object TypeDomain extends state.Domain {
         prop,
         MathT || StrT,
         (cp, t) =>
-          val aplp = AstPropLookupPoint(cp, ref)
-          UnknownPropertyMismatch(aplp, ast, t),
+          val plp = PropertyLookupPoint(LookupKind.Ast, cp, ref)
+          UnknownPropertyMismatch(plp, ast, t),
       )
     ast match
       case AstValueTy.Bot => ValueTy.Bot
@@ -372,8 +372,8 @@ object TypeDomain extends state.Domain {
         prop,
         MathT || StrT("length"),
         (cp, t) =>
-          val splp = StringPropLookupPoint(cp, ref)
-          UnknownPropertyMismatch(splp, PureValueTy(str = str), t),
+          val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
+          UnknownPropertyMismatch(plp, PureValueTy(str = str), t),
       )
       res
     }
@@ -399,8 +399,8 @@ object TypeDomain extends state.Domain {
           case ta: TypeAnalyzer => {
             if (ta.config.unknownProperty)
               for { cp <- sem.curCp } {
-                val nplp = NamePropLookupPoint(cp, ref)
-                ta.addMismatch(UnknownPropertyMismatch(nplp, obj, prop))
+                val plp = PropertyLookupPoint(LookupKind.Name, cp, ref)
+                ta.addMismatch(UnknownPropertyMismatch(plp, obj, prop))
               }
           }
         }

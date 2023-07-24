@@ -81,11 +81,11 @@ class Stringifier(
         app >> "in " >> riap.func.name >> riaExpr
       case plp: PropertyLookupPoint =>
         app >> "property lookup"
-        plp match {
-          case _: AstPropLookupPoint    => app >> "(ast)"
-          case _: StringPropLookupPoint => app >> "(string)"
-          case _: NamePropLookupPoint   => app >> "(name)"
-          case _: CompPropLookupPoint   => app >> "(comp)"
+        plp.kind match {
+          case LookupKind.Ast  => app >> "(ast)"
+          case LookupKind.Str  => app >> "(string)"
+          case LookupKind.Name => app >> "(name)"
+          case LookupKind.Comp => app >> "(comp)"
         }
         app >> " in " >> plp.func.name
         for (ref <- plp.ref) app >> ref
