@@ -48,6 +48,15 @@ case class ReturnIfAbruptPoint(
   inline def func = cp.func
 }
 
+/** assertion points */
+case class AssertionPoint(
+  cp: ControlPoint,
+  assertExpr: IAssert,
+) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
+}
+
 /** control points */
 sealed trait ControlPoint extends AnalysisPoint
 

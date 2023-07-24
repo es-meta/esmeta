@@ -35,3 +35,8 @@ case class UncheckedAbruptCompletionMismatch(
   riap: ReturnIfAbruptPoint,
   actual: ValueTy,
 ) extends TypeMismatch(riap)
+
+/** assertion mismatches */
+case class AssertionMismatch(
+  asp: AssertionPoint,
+) extends TypeMismatch(asp)

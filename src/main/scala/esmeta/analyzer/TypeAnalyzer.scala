@@ -157,6 +157,24 @@ class TypeAnalyzer(
             addMismatch(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(expectedTy))
       super.doReturn(irp, expected)
+
+    override def transfer(inst: NormalInst)(using cp: NodePoint[_]): Updater =
+      inst match {
+        case IAssert(expr: EYet) =>
+          st => st /* skip not yet compiled assertions */
+        case iexpr @ IAssert(expr) =>
+          for {
+            v <- transfer(expr)
+            _ <- modify(prune(expr, true))
+            _ <-
+              if (v ⊑ AVF) {
+                val asp = AssertionPoint(cp, iexpr)
+                addMismatch(AssertionMismatch(asp))
+                put(AbsState.Bot)
+              } else pure(())
+          } yield ()
+        case _ => super.transfer(inst)
+      }
   }
 
   /** transfer function */

@@ -79,6 +79,10 @@ class Stringifier(
         app >> "returnIfAbrupt"
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
         app >> "in " >> riap.func.name >> riaExpr
+      case AssertionPoint(cp, assertExpr) =>
+        import irStringifier.given
+        app >> "assertion " >> assertExpr.expr >> " "
+        app >> "in " >> cp.func.name
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -138,6 +142,8 @@ class Stringifier(
       case UncheckedAbruptCompletionMismatch(riap, actual) =>
         app >> "[UncheckedAbruptCompletionMismatch] " >> riap
         app :> "- actual  : " >> actual
+      case AssertionMismatch(asp) =>
+        app >> "[AssertionMismatch] " >> asp >> " failed"
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {
