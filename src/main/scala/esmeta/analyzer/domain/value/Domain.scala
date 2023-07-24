@@ -167,7 +167,6 @@ trait Domain extends domain.Domain[AValue] {
     /** absent helpers */
     def removeAbsent: Elem
     def isAbsent: Elem
-    def isMustAbsent: Boolean
 
     /** refine receiver object */
     def refineThis(func: Func): Elem

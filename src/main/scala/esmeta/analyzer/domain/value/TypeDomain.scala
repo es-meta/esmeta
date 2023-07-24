@@ -311,12 +311,6 @@ object TypeDomain extends value.Domain {
       if (!elem.removeAbsent.ty.isBottom) bs += false
       Elem(BoolT(bs))
 
-    def isMustAbsent: Boolean =
-      val abs = elem.isAbsent
-      abs.getSingle match
-        case One(Bool(b)) => b
-        case _            => false
-
     /** refine receiver object */
     def refineThis(func: Func): Elem = elem
 

@@ -73,7 +73,7 @@ trait Domain extends domain.Domain[State] {
     def localExistCheck(x: Local): Boolean =
       val OptionalAbsValue(v, abs) =
         elem.locals.getOrElse(x, AbsValue.optional.Empty)
-      abs.isBottom && !v.isMustAbsent
+      abs.isBottom && v.isAbsent != AVT
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem
