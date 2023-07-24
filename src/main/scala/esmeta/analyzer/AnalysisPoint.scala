@@ -20,6 +20,19 @@ case class CallPoint[+T <: Node](
   inline def func = calleeNp.func
 }
 
+case class TryCallPoint(
+  callerNp: NodePoint[Call],
+  callInst: CallInst,
+) extends AnalysisPoint {
+  inline def view = callerNp.view
+  inline def func = callerNp.func
+
+  val callType: String = callInst match
+    case _: ICall       => "function"
+    case _: IMethodCall => "method"
+    case _: ISdoCall    => "syntax-directed operation"
+}
+
 /** argument assignment points */
 case class ArgAssignPoint[+T <: Node](
   cp: CallPoint[T],

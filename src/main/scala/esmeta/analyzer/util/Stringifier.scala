@@ -3,7 +3,7 @@ package esmeta.analyzer.util
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.ir.{IRElem, LangEdge}
+import esmeta.ir.*
 import esmeta.state.*
 import esmeta.state.SimpleValue
 import esmeta.ty.*
@@ -68,6 +68,17 @@ class Stringifier(
         app >> "function call from "
         app >> callerNp.func.name >> callerNp.node.callInst
         app >> " to " >> calleeNp.func.name
+      case tcp @ TryCallPoint(callerNp, callInst) =>
+        app >> "tried to call a " >> tcp.callType >> " "
+        val funcId = callInst match
+          case ICall(_, fexpr, _) => {
+            import irStringifier.given
+            fexpr.toString
+          }
+          case IMethodCall(_, base, method, _) => method // TODO: base
+          case ISdoCall(_, base, method, _)    => method // TODO: base
+        app >> funcId >> callInst.fexpr
+        app >> " in " >> callerNp.func.name
       case aap @ ArgAssignPoint(cp, idx) =>
         val param = aap.param
         app >> "argument assignment to "
@@ -138,6 +149,8 @@ class Stringifier(
       case UncheckedAbruptCompletionMismatch(riap, actual) =>
         app >> "[UncheckedAbruptCompletionMismatch] " >> riap
         app :> "- actual  : " >> actual
+      case InvalidCallMismatch(tcp) =>
+        app >> "[InvalidCallMismatch] " >> tcp >> " but failed"
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {

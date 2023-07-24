@@ -4,6 +4,8 @@ import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.error.*
+import esmeta.es.*
+import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
@@ -64,6 +66,99 @@ class TypeAnalyzer(
 
     /** loading monads */
     import AbsState.monad.*
+
+    override def transfer(call: Call)(using
+      cp: NodePoint[_],
+    ): Result[AbsValue] =
+      val callerNp = NodePoint(cp.func, call, cp.view)
+      call.callInst match {
+        case OptimizedCall(result) => result
+        case iCall @ ICall(_, fexpr, args) =>
+          for {
+            fv <- transfer(fexpr)
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            // closure call (unsound for inifinitely many closures)
+            for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
+              doCall(callerNp, st, func, as, captured)
+            // continuation call (unsound for inifinitely many continuations)
+            for (ACont(target, captured) <- fv.cont) {
+              val as0 =
+                as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
+              val newLocals = getLocals(
+                CallPoint(callerNp, target),
+                as0,
+                cont = true,
+                method = false,
+              ) ++ captured
+              sem += target -> st.copied(locals = newLocals)
+            }
+            if (fv.clo.isBottom && fv.cont.isEmpty) {
+              val tcp = TryCallPoint(callerNp, iCall)
+              addMismatch(InvalidCallMismatch(tcp))
+            }
+            AbsValue.Bot
+          }
+        case iMethodCall @ IMethodCall(_, base, method, args) =>
+          for {
+            rv <- transfer(base)
+            bv <- transfer(rv)
+            // TODO do not explicitly store methods in object but use a type
+            // model when accessing methods
+            fv <- get(_.get(bv, AbsValue(Str(method))))
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            for (AClo(func, _) <- fv.clo)
+              doCall(
+                callerNp,
+                st,
+                func,
+                bv.refineThis(func) :: as,
+                method = true,
+              )
+            if (fv.clo.isBottom && fv.cont.isEmpty) {
+              val tcp = TryCallPoint(callerNp, iMethodCall)
+              addMismatch(InvalidCallMismatch(tcp))
+            }
+            AbsValue.Bot
+          }
+        case iSdoCall @ ISdoCall(_, base, method, args) =>
+          for {
+            bv <- transfer(base)
+            as <- join(args.map(transfer))
+            st <- get
+          } yield {
+            var newV: AbsValue = AbsValue.Bot
+            bv.getSingle match
+              case One(AstValue(syn: Syntactic)) =>
+                getSDO((syn, method)) match
+                  case Some((ast0, sdo)) =>
+                    doCall(
+                      callerNp,
+                      st,
+                      sdo,
+                      AbsValue(ast0) :: as,
+                      method = true,
+                    )
+                  case None => {
+                    val tcp = TryCallPoint(callerNp, iSdoCall)
+                    addMismatch(InvalidCallMismatch(tcp))
+                  }
+              case One(AstValue(lex: Lexical)) =>
+                newV ⊔= AbsValue(Interpreter.eval(lex, method))
+              case Many =>
+                // lexical sdo
+                newV ⊔= bv.getLexical(method)
+
+                // syntactic sdo
+                for ((sdo, ast) <- bv.getSDO(method))
+                  doCall(callerNp, st, sdo, ast :: as, method = true)
+              case _ => /* do nothing */
+            newV
+          }
+      }
 
     /** return-if-abrupt completion */
     override def returnIfAbrupt(

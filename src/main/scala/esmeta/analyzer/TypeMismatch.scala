@@ -35,3 +35,8 @@ case class UncheckedAbruptCompletionMismatch(
   riap: ReturnIfAbruptPoint,
   actual: ValueTy,
 ) extends TypeMismatch(riap)
+
+/** invalid function call mismatches */
+case class InvalidCallMismatch(
+  tcp: TryCallPoint,
+) extends TypeMismatch(tcp)
