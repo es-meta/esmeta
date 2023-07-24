@@ -162,15 +162,17 @@ class TypeAnalyzer(
       inst match {
         case ILet(id, expr) =>
           for {
-            exist <- get(_.localExistCheck(id))
-            _ <-
-              if (exist && config.dupAssign) {
-                val vap = VarAssignPoint(cp, id)
-                addMismatch(DuplicateAssignMismatch(vap))
-              } else {}
+            optval <- get(_.lookupLocalOpt(id))
             v <- transfer(expr)
             _ <- modify(_.defineLocal(id -> v))
-          } yield ()
+          } yield {
+            val AbsOptValue(v, abs) = optval
+            val exist = abs.isBottom && v.isAbsent != AVT
+            if (exist && config.dupAssign) {
+              val vap = VarAssignPoint(cp, id)
+              addMismatch(DuplicateAssignMismatch(vap))
+            }
+          }
         case _ => super.transfer(inst)
       }
   }

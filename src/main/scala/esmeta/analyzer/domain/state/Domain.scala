@@ -67,12 +67,6 @@ trait Domain extends domain.Domain[State] {
       case AbsRefProp(base, prop) =>
         !elem.get(base, prop).isAbsent
 
-    /** Local variable exitence check */
-    def localExistCheck(x: Local): Boolean =
-      val AbsOptValue(v, abs) =
-        elem.locals.getOrElse(x, AbsValue.optional.Empty)
-      abs.isBottom && v.isAbsent != AVT
-
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem
 
