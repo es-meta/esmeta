@@ -45,9 +45,11 @@ case class ListTy(elem: Option[ValueTy] = None)
     if (that.isBottom) this
     else
       (this.elem, that.elem) match
-        case (None, _)          => Bot
-        case (_, None)          => this
-        case (Some(l), Some(r)) => ListTy(Some(l -- r))
+        case (None, _) => Bot
+        case (_, None) => this
+        case (Some(l), Some(r)) =>
+          val ty = l -- r
+          if (ty.isBottom) Bot else ListTy(Some(ty))
 
   /** get single value */
   def getSingle: Flat[Nothing] = if (elem.isEmpty) Zero else Many
