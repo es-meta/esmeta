@@ -35,3 +35,9 @@ case class UncheckedAbruptCompletionMismatch(
   riap: ReturnIfAbruptPoint,
   actual: ValueTy,
 ) extends TypeMismatch(riap)
+
+/** invalid pop expression mismatches */
+case class InvalidPopExpressionMismatch(
+  pp: PopPoint,
+  actual: ValueTy,
+) extends TypeMismatch(pp)

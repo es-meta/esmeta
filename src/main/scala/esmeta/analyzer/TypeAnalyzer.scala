@@ -65,6 +65,23 @@ class TypeAnalyzer(
     /** loading monads */
     import AbsState.monad.*
 
+    override def transfer(
+      expr: Expr,
+    )(using cp: ControlPoint): Result[AbsValue] =
+      expr match {
+        case e @ EPop(list, front) =>
+          for {
+            v <- transfer(list)
+            pv <- id(_.pop(v, front))
+          } yield {
+            if (config.invalidPop && v.ty.list.isBottom)
+              val pp = PopPoint(cp, e)
+              addMismatch(InvalidPopExpressionMismatch(pp, v.ty))
+            pv
+          }
+        case _ => super.transfer(expr)
+      }
+
     /** return-if-abrupt completion */
     override def returnIfAbrupt(
       riaExpr: EReturnIfAbrupt,
@@ -318,5 +335,6 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
+    invalidPop: Boolean = false,
   )
 }

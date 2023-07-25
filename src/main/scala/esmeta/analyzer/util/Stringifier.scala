@@ -79,6 +79,8 @@ class Stringifier(
         app >> "returnIfAbrupt"
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
         app >> "in " >> riap.func.name >> riaExpr
+      case PopPoint(cp, popExpr) =>
+        app >> "pop in " >> cp.func.name >> popExpr
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -137,6 +139,9 @@ class Stringifier(
         app :> "- actual  : " >> actual
       case UncheckedAbruptCompletionMismatch(riap, actual) =>
         app >> "[UncheckedAbruptCompletionMismatch] " >> riap
+        app :> "- actual  : " >> actual
+      case InvalidPopExpressionMismatch(pp, actual) =>
+        app >> "[InvalidPopExpressionMismatch] " >> pp
         app :> "- actual  : " >> actual
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {

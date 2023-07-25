@@ -48,6 +48,15 @@ case class ReturnIfAbruptPoint(
   inline def func = cp.func
 }
 
+/** pop points */
+case class PopPoint(
+  cp: ControlPoint,
+  popExpr: EPop,
+) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
+}
+
 /** control points */
 sealed trait ControlPoint extends AnalysisPoint
 
