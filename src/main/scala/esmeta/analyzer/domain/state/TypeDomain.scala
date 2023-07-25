@@ -113,7 +113,7 @@ object TypeDomain extends state.Domain {
         elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue, ref: Option[Ref]): Elem = elem
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
@@ -178,6 +178,7 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
+      emap: EMap,
     ): (AbsValue, Elem) =
       val value =
         if (tname == "Record") RecordT((for {
