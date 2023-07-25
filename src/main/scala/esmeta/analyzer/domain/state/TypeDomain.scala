@@ -90,9 +90,9 @@ object TypeDomain extends state.Domain {
       AbsValue(
         lookupComp(baseTy.comp, propTy, ref) ||
         lookupAst(baseTy.astValue, propTy, ref) ||
-        lookupStr(baseTy.str, propTy, ref) ||
+        lookupStr(baseTy.str, propTy, ref, baseTy) ||
         lookupList(baseTy.list, propTy) ||
-        lookupName(baseTy.name, propTy, ref) ||
+        lookupName(baseTy.name, propTy, ref, baseTy) ||
         lookupRecord(baseTy.record, propTy) ||
         lookupSymbol(baseTy.symbol, propTy) ||
         lookupSubMap(baseTy.subMap, propTy),
@@ -361,6 +361,7 @@ object TypeDomain extends state.Domain {
     str: BSet[String],
     prop: ValueTy,
     ref: Option[Ref],
+    baseTy: ValueTy,
   ): ValueTy =
     if (str.isBottom) ValueTy.Bot
     else {
@@ -373,7 +374,7 @@ object TypeDomain extends state.Domain {
         MathT || StrT("length"),
         (cp, t) =>
           val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
-          UnknownPropertyMismatch(plp, PureValueTy(str = str), t),
+          UnknownPropertyMismatch(plp, baseTy, t),
       )
       res
     }
@@ -383,6 +384,7 @@ object TypeDomain extends state.Domain {
     obj: NameTy,
     prop: ValueTy,
     ref: Option[Ref],
+    baseTy: ValueTy,
   ): ValueTy =
     var res = ValueTy()
     val str = prop.str
@@ -400,7 +402,7 @@ object TypeDomain extends state.Domain {
             if (ta.config.unknownProperty)
               for { cp <- sem.curCp } {
                 val plp = PropertyLookupPoint(LookupKind.Name, cp, ref)
-                ta.addMismatch(UnknownPropertyMismatch(plp, obj, prop))
+                ta.addMismatch(UnknownPropertyMismatch(plp, baseTy, prop))
               }
           }
         }
