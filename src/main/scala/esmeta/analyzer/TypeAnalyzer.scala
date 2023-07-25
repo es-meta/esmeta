@@ -74,7 +74,10 @@ class TypeAnalyzer(
             v <- transfer(list)
             pv <- id(_.pop(v, front))
           } yield {
-            if (config.invalidPop && v.ty.list.isBottom)
+            if (
+              config.invalidPop &&
+              (v.ty.list.isBottom || !(v.ty -- ListT).isBottom)
+            )
               val pp = PopPoint(cp, e)
               addMismatch(InvalidPopExpressionMismatch(pp, v.ty))
             pv
