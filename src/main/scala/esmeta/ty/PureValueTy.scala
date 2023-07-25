@@ -168,6 +168,32 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.absent -- that.absent,
       )
 
+  /** concretization function */
+  def gamma: Set[ValueTy] =
+    (if (this.clo.isBottom) Set() else Set(CloT)) ++
+    (if (this.cont.isBottom) Set() else Set(ContT)) ++
+    (if (this.name.isBottom) Set() else Set(NameT)) ++
+    (if (this.record.isBottom) Set() else Set(RecordT)) ++
+    (if (this.list.isBottom) Set()
+     else {
+       val v =
+         this.list.elem.getOrElse(throw Error("list type is not defined"))
+       v.gamma.map(ListT)
+     }) ++
+    (if (this.symbol.isBottom) Set() else Set(SymbolT)) ++
+    (if (this.astValue.isBottom) Set() else Set(AstT)) ++
+    (if (this.nt.isBottom) Set() else Set(NtT)) ++
+    (if (this.codeUnit.isBottom) Set() else Set(CodeUnitT)) ++
+    (if (this.const.isBottom) Set() else Set(ConstT)) ++
+    (if (this.math.isBottom) Set() else Set(MathT)) ++
+    (if (this.number.isBottom) Set() else Set(NumberT)) ++
+    (if (this.bigInt.isBottom) Set() else Set(BigIntT)) ++
+    (if (this.str.isBottom) Set() else Set(StrT)) ++
+    (if (this.bool.isBottom) Set() else Set(BoolT)) ++
+    (if (this.undef.isBottom) Set() else Set(UndefT)) ++
+    (if (this.nullv.isBottom) Set() else Set(NullT)) ++
+    (if (this.absent.isBottom) Set() else Set(AbsentT))
+
   /** get single value */
   def getSingle: Flat[APureValue] =
     (if (this.clo.isBottom) Zero else Many) ||

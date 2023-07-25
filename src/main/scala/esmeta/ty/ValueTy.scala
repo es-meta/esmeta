@@ -75,6 +75,10 @@ case class ValueTy(
         this.subMap -- that.subMap,
       )
 
+  /** concretization function */
+  def gamma: Set[ValueTy] =
+    comp.gamma ++ pureValue.gamma ++ subMap.gamma
+
   /** get single value */
   def getSingle: Flat[AValue] =
     this.comp.getSingle ||
