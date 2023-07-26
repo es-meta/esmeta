@@ -183,16 +183,16 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     }
 
     if (!tp.clo.isBottom) base += ValueTy(clo = this.clo)
-    if (!tp.cont.isBottom) base += ContT
-    if (!tp.name.isBottom) base += NameT
-    if (!tp.record.isBottom) base += RecordT
+    if (!tp.cont.isBottom) base += ValueTy(cont = this.cont)
+    if (!tp.name.isBottom) base += ValueTy(name = this.name)
+    if (!tp.record.isBottom) base += ValueTy(record = this.record)
     if (!tp.list.isBottom) base ++= {
       val v =
         tp.list.elem.getOrElse(throw Error("list type is not defined"))
       v.gamma.map(ListT)
     }
     if (!tp.symbol.isBottom) base += SymbolT
-    if (!tp.astValue.isBottom) base += AstT
+    if (!tp.astValue.isBottom) base += ValueTy(astValue = this.astValue)
     if (!tp.nt.isBottom) base += NtT
     if (!tp.codeUnit.isBottom) base += CodeUnitT
     if (!tp.const.isBottom) base += ValueTy(const = this.const)
