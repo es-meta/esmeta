@@ -17,7 +17,7 @@ _esmeta_completions() {
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl"
   compileOpt="-compile:log -compile:log-with-loc"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
-  tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:tysens"
+  tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:priority -tycheck:tysens"
   parseOpt="-parse:debug"
   evalOpt="-eval:timeout -eval:tycheck -eval:multiple -eval:log"
   webOpt="-web:port"

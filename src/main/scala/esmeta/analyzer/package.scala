@@ -114,6 +114,9 @@ var YET_THROW: Boolean = false
 /** use condition-based refinement */
 var USE_REFINE: Boolean = false
 
+/** priority */
+var PRIORITY_FLAG: Int = 1
+
 // -----------------------------------------------------------------------------
 // shortcuts
 // -----------------------------------------------------------------------------
