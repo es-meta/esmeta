@@ -272,12 +272,12 @@ trait AbsTransfer extends Optimized with PruneHelper {
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
               as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
-            val newLocals = getLocals(
+            val newLocals = (getLocals(
               CallPoint(callerNp, target),
               as0,
               cont = true,
               method = false,
-            ) ++ captured
+            ) ++ captured).map((loc, v) => loc -> v.toOption)
             sem += target -> st.copied(locals = newLocals)
           }
           AbsValue.Bot
@@ -485,7 +485,9 @@ trait AbsTransfer extends Optimized with PruneHelper {
           st <- get
           func = cfg.fnameMap(fname)
           target = NodePoint(func, func.entry, cp.view)
-          captured = st.locals.collect { case (x: Name, av) => x -> av }
+          captured = st.locals.collect {
+            case (x: Name, av) => x -> av.value
+          }
           // return edges for resumed evaluation
           currRp = ReturnPoint(cp.func, cp.view)
           contRp = ReturnPoint(func, cp.view)
@@ -777,12 +779,12 @@ trait AbsTransfer extends Optimized with PruneHelper {
 
     val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
     val calleeSt = callerSt.copied(locals =
-      getLocals(
+      (getLocals(
         CallPoint(callerNp, calleeNp),
         args,
         cont = false,
         method,
-      ) ++ captured,
+      ) ++ captured).map((loc, v) => loc -> v.toOption),
     )
     List((calleeNp, calleeSt))
   }

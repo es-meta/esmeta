@@ -157,6 +157,24 @@ class TypeAnalyzer(
             addMismatch(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(expectedTy))
       super.doReturn(irp, expected)
+
+    override def transfer(inst: NormalInst)(using cp: NodePoint[_]): Updater =
+      inst match {
+        case ILet(id, expr) =>
+          for {
+            optval <- get(_.lookupLocalOpt(id))
+            v <- transfer(expr)
+            _ <- modify(_.defineLocal(id -> v))
+          } yield {
+            val AbsOptValue(v, abs) = optval
+            val exist = abs.isBottom && v.isAbsent != AVT
+            if (exist && config.dupAssign) {
+              val vap = VarAssignPoint(cp, id)
+              addMismatch(DuplicateAssignMismatch(vap))
+            }
+          }
+        case _ => super.transfer(inst)
+      }
   }
 
   /** transfer function */
@@ -317,6 +335,7 @@ object TypeAnalyzer {
     arity: Boolean = true,
     paramType: Boolean = true,
     returnType: Boolean = true,
+    dupAssign: Boolean = true,
     uncheckedAbrupt: Boolean = false,
   )
 }
