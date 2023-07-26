@@ -507,7 +507,7 @@ object TypeDomain extends state.Domain {
       boundCheck(
         LookupKind.SubMap,
         prop,
-        ValueTy(normal = subMap.key),
+        ValueTy(pureValue = subMap.key),
         (cp, t) => {
           val plp = PropertyLookupPoint(LookupKind.SubMap, cp, ref)
           InvalidPropertyMismatch(plp, base, t)
