@@ -60,7 +60,7 @@ case class PropertyLookupPoint(
 
 /** detailed lookup kinds */
 enum LookupKind:
-  case Ast, Str, Name, Comp
+  case Ast, Str, Name, Comp, Record, List, Symbol, SubMap
 
 /** control points */
 sealed trait ControlPoint extends AnalysisPoint

@@ -318,6 +318,13 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
-    invalidProperty: Boolean = true,
+    invalidAstProperty: Boolean = true,
+    invalidStrProperty: Boolean = true,
+    invalidNameProperty: Boolean = true,
+    invalidCompProperty: Boolean = true,
+    invalidRecordProperty: Boolean = true,
+    invalidListProperty: Boolean = true,
+    invalidSymbolProperty: Boolean = true,
+    invalidSubMapProperty: Boolean = true,
   )
 }
