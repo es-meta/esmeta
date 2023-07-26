@@ -20,7 +20,7 @@ case class CallPoint[+T <: Node](
 ) extends AnalysisPoint {
   inline def view = calleeNp.view
   inline def func = calleeNp.func
-  inline def withoutView = copy(calleeNp = calleeNp.copy(view = View()))
+  def withoutView = copy(calleeNp = calleeNp.copy(view = View()))
 }
 
 /** argument assignment points */
@@ -31,7 +31,7 @@ case class ArgAssignPoint[+T <: Node](
   inline def view = cp.view
   inline def func = cp.func
   inline def param = cp.calleeNp.func.params(idx)
-  inline def withoutView =
+  def withoutView =
     copy(cp = cp.copy(calleeNp = cp.calleeNp.copy(view = View())))
 }
 
@@ -42,7 +42,7 @@ case class InternalReturnPoint(
 ) extends AnalysisPoint {
   inline def view = calleeRp.view
   inline def func = calleeRp.func
-  inline def withoutView = copy(calleeRp = calleeRp.copy(view = View()))
+  def withoutView = copy(calleeRp = calleeRp.copy(view = View()))
 }
 
 /** return-if-abrupt points */
@@ -52,12 +52,13 @@ case class ReturnIfAbruptPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
-  inline def withoutView = copy(cp = cp.withoutView)
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 case class MapAllocPoint(cp: ControlPoint, emap: EMap) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** property lookup points */
@@ -68,7 +69,7 @@ case class PropertyLookupPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
-  inline def withoutView = copy(cp = cp.withoutView)
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** property assign points */
@@ -78,6 +79,7 @@ case class PropertyAssignPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** detailed lookup kinds */
