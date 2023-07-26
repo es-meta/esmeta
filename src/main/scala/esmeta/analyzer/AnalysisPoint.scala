@@ -20,7 +20,8 @@ case class CallPoint[+T <: Node](
 ) extends AnalysisPoint {
   inline def view = calleeNp.view
   inline def func = calleeNp.func
-  def withoutView: CallPoint[T] = copy(calleeNp = calleeNp.withoutView)
+  def withoutView: CallPoint[T] =
+    copy(calleeNp = calleeNp.withoutView, callerNp = callerNp.withoutView)
 }
 
 /** argument assignment points */
