@@ -149,8 +149,8 @@ class Stringifier(
       case UncheckedAbruptCompletionMismatch(riap, actual) =>
         app >> "[UncheckedAbruptCompletionMismatch] " >> riap
         app :> "- actual  : " >> actual
-      case UnknownPropertyMismatch(plp, base, prop) =>
-        app >> "[UnknownPropertyMismatch] " >> plp
+      case InvalidPropertyMismatch(plp, base, prop) =>
+        app >> "[InvalidPropertyMismatch] " >> plp
         app :> "- lookup  : " >> prop >> " of " >> base
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {

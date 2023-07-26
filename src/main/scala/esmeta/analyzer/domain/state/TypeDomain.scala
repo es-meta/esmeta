@@ -306,7 +306,7 @@ object TypeDomain extends state.Domain {
         StrT("Value", "Target", "Type"),
         (cp, t) =>
           val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
-          UnknownPropertyMismatch(plp, comp, t),
+          InvalidPropertyMismatch(plp, comp, t),
       )
     res
 
@@ -322,7 +322,7 @@ object TypeDomain extends state.Domain {
         MathT || StrT,
         (cp, t) =>
           val plp = PropertyLookupPoint(LookupKind.Ast, cp, ref)
-          UnknownPropertyMismatch(plp, ast, t),
+          InvalidPropertyMismatch(plp, ast, t),
       )
     ast match
       case AstValueTy.Bot => ValueTy.Bot
@@ -374,7 +374,7 @@ object TypeDomain extends state.Domain {
         MathT || StrT("length"),
         (cp, t) =>
           val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
-          UnknownPropertyMismatch(plp, baseTy, t),
+          InvalidPropertyMismatch(plp, baseTy, t),
       )
       res
     }
@@ -399,10 +399,10 @@ object TypeDomain extends state.Domain {
       res ||= cfg.tyModel.getPropOrElse(name, propStr) {
         analyzer match {
           case ta: TypeAnalyzer => {
-            if (ta.config.unknownProperty)
+            if (ta.config.invalidProperty)
               for { cp <- sem.curCp } {
                 val plp = PropertyLookupPoint(LookupKind.Name, cp, ref)
-                ta.addMismatch(UnknownPropertyMismatch(plp, baseTy, prop))
+                ta.addMismatch(InvalidPropertyMismatch(plp, baseTy, prop))
               }
           }
         }
@@ -454,7 +454,7 @@ object TypeDomain extends state.Domain {
     if (!other.isBottom)
       analyzer match {
         case ta: TypeAnalyzer => {
-          if (ta.config.unknownProperty)
+          if (ta.config.invalidProperty)
             for { cp <- sem.curCp } {
               ta.addMismatch(f(cp, other))
             }

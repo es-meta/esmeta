@@ -318,6 +318,6 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
-    unknownProperty: Boolean = true,
+    invalidProperty: Boolean = true,
   )
 }
