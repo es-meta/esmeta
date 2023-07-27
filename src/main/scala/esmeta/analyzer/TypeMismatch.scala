@@ -47,8 +47,3 @@ case class InvalidPropertyMismatch(
   base: TyElem,
   prop: ValueTy,
 ) extends TypeMismatch(plp)
-
-case class NoReturn(
-  rp: ReturnPoint,
-  cause: String,
-) extends TypeMismatch(rp)

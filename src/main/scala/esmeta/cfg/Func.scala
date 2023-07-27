@@ -64,10 +64,6 @@ case class Func(
   lazy val isMethod: Boolean =
     irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
 
-  /** check whether it is closure */
-  lazy val isClosure: Boolean =
-    irFunc.kind == FuncKind.Clo || irFunc.kind == FuncKind.BuiltinClo
-
   /** check whether it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
     case FuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
