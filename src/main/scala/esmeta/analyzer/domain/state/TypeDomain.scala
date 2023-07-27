@@ -87,15 +87,26 @@ object TypeDomain extends state.Domain {
     def get(base: AbsValue, prop: AbsValue, ref: Option[Ref]): AbsValue =
       val baseTy = base.ty
       val propTy = prop.ty
+      val isESValue = baseTy == ESValueT
+      if (isESValue)
+        analyzer match {
+          case ta: TypeAnalyzer => {
+            if (ta.config.invalidNameProperty)
+              for { cp <- sem.curCp } {
+                val plp = PropertyLookupPoint(cp, ref)
+                ta.addMismatch(InvalidPropertyMismatch(plp, baseTy, propTy))
+              }
+          }
+        }
       AbsValue(
-        lookupComp(baseTy, propTy, ref) ||
-        lookupAst(baseTy, propTy, ref) ||
-        lookupStr(baseTy, propTy, ref) ||
-        lookupList(baseTy, propTy, ref) ||
-        lookupName(baseTy, propTy, ref) ||
-        lookupRecord(baseTy, propTy, ref) ||
-        lookupSymbol(baseTy, propTy, ref) ||
-        lookupSubMap(baseTy, propTy, ref),
+        lookupComp(baseTy, propTy, ref, isESValue) ||
+        lookupAst(baseTy, propTy, ref, isESValue) ||
+        lookupStr(baseTy, propTy, ref, isESValue) ||
+        lookupList(baseTy, propTy, ref, isESValue) ||
+        lookupName(baseTy, propTy, ref, isESValue) ||
+        lookupRecord(baseTy, propTy, ref, isESValue) ||
+        lookupSymbol(baseTy, propTy, ref, isESValue) ||
+        lookupSubMap(baseTy, propTy, ref, isESValue),
       )
 
     /** getters with an address partition */
@@ -326,6 +337,7 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val comp = base.comp
     val str = prop.str
@@ -346,13 +358,13 @@ object TypeDomain extends state.Domain {
     if (str contains "Type")
       if (normal) res ||= CONSTT_NORMAL
       if (abrupt) res ||= constTyForAbruptTarget
-    if (!comp.isBottom)
+    if (!skipCheck && !comp.isBottom)
       boundCheck(
         LookupKind.Str,
         prop,
         StrT("Value", "Target", "Type"),
         (cp, t) =>
-          val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
+          val plp = PropertyLookupPoint(cp, ref)
           InvalidPropertyMismatch(plp, comp, t),
       )
     res
@@ -362,15 +374,16 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val ast = base.astValue
-    if (!ast.isBottom)
+    if (!skipCheck && !ast.isBottom)
       boundCheck(
         LookupKind.Ast,
         prop,
         MathT || StrT,
         (cp, t) =>
-          val plp = PropertyLookupPoint(LookupKind.Ast, cp, ref)
+          val plp = PropertyLookupPoint(cp, ref)
           InvalidPropertyMismatch(plp, ast, t),
       )
     ast match
@@ -410,6 +423,7 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val str = base.str
     if (str.isBottom) ValueTy.Bot
@@ -418,14 +432,15 @@ object TypeDomain extends state.Domain {
       if (prop.str contains "length") res ||= MathT
       if (!prop.math.isBottom) res ||= CodeUnitT
       // invalid access on string type
-      boundCheck(
-        LookupKind.Str,
-        prop,
-        MathT || StrT("length"),
-        (cp, t) =>
-          val plp = PropertyLookupPoint(LookupKind.Str, cp, ref)
-          InvalidPropertyMismatch(plp, base, t),
-      )
+      if (!skipCheck)
+        boundCheck(
+          LookupKind.Str,
+          prop,
+          MathT || StrT("length"),
+          (cp, t) =>
+            val plp = PropertyLookupPoint(cp, ref)
+            InvalidPropertyMismatch(plp, base, t),
+        )
       res
     }
 
@@ -434,6 +449,7 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val obj = base.name
     val str = prop.str
@@ -447,15 +463,16 @@ object TypeDomain extends state.Domain {
         case Fin(set) => set
     } {
       res ||= cfg.tyModel.getPropOrElse(name, propStr) {
-        analyzer match {
-          case ta: TypeAnalyzer => {
-            if (ta.config.invalidNameProperty)
-              for { cp <- sem.curCp } {
-                val plp = PropertyLookupPoint(LookupKind.Name, cp, ref)
-                ta.addMismatch(InvalidPropertyMismatch(plp, base, prop))
-              }
+        if (!skipCheck)
+          analyzer match {
+            case ta: TypeAnalyzer => {
+              if (ta.config.invalidNameProperty)
+                for { cp <- sem.curCp } {
+                  val plp = PropertyLookupPoint(cp, ref)
+                  ta.addMismatch(InvalidPropertyMismatch(plp, base, prop))
+                }
+            }
           }
-        }
         AbsentT
       }
     }
@@ -466,6 +483,7 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val record = base.record
     val str = prop.str
@@ -482,12 +500,12 @@ object TypeDomain extends state.Domain {
         case Inf =>
         case Fin(set) =>
           for (propStr <- set) add(propStr)
-    if (!invalidProps.isEmpty)
+    if (!skipCheck && !invalidProps.isEmpty)
       analyzer match {
         case ta: TypeAnalyzer => {
           if (ta.config.invalidRecordProperty)
             for { cp <- sem.curCp } {
-              val plp = PropertyLookupPoint(LookupKind.Name, cp, ref)
+              val plp = PropertyLookupPoint(cp, ref)
               ta.addMismatch(
                 InvalidPropertyMismatch(plp, record, StrT(invalidProps)),
               )
@@ -501,6 +519,7 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val list = base.list
     val str = prop.str
@@ -509,13 +528,13 @@ object TypeDomain extends state.Domain {
     for (ty <- list.elem)
       if (str contains "length") res ||= MathT
       if (!math.isBottom) res ||= ty
-    if (!list.isBottom)
+    if (!skipCheck && !list.isBottom)
       boundCheck(
         LookupKind.List,
         prop,
         MathT || StrT("length"),
         (cp, t) => {
-          val plp = PropertyLookupPoint(LookupKind.List, cp, ref)
+          val plp = PropertyLookupPoint(cp, ref)
           InvalidPropertyMismatch(plp, base, t)
         },
       )
@@ -526,15 +545,16 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val symbol = base.symbol
-    if (symbol)
+    if (!skipCheck && symbol)
       boundCheck(
         LookupKind.Symbol,
         prop,
         StrT("Description"),
         (cp, t) => {
-          val plp = PropertyLookupPoint(LookupKind.Symbol, cp, ref)
+          val plp = PropertyLookupPoint(cp, ref)
           InvalidPropertyMismatch(plp, base, t)
         },
       )
@@ -546,15 +566,16 @@ object TypeDomain extends state.Domain {
     base: ValueTy,
     prop: ValueTy,
     ref: Option[Ref],
+    skipCheck: Boolean,
   ): ValueTy =
     val subMap = base.subMap
-    if (!subMap.isBottom)
+    if (!skipCheck && !subMap.isBottom)
       boundCheck(
         LookupKind.SubMap,
         prop,
         ValueTy(pureValue = subMap.key),
         (cp, t) => {
-          val plp = PropertyLookupPoint(LookupKind.SubMap, cp, ref)
+          val plp = PropertyLookupPoint(cp, ref)
           InvalidPropertyMismatch(plp, base, t)
         },
       )
