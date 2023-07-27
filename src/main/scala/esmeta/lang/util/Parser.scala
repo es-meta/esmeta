@@ -1202,7 +1202,6 @@ trait Parsers extends IndentParsers {
 
   // rarely used expressions
   lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
-    "sequence of Unicode code points" ^^^ StrT |
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
     } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
