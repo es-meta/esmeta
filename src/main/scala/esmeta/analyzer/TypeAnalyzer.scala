@@ -12,6 +12,7 @@ import esmeta.util.Appender.*
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.ir.util.EmptyListCollector
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
@@ -189,6 +190,7 @@ class TypeAnalyzer(
   ): Semantics = apply(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
+      if config.noReturn then noReturnCheck(sem)
       if (log) logging(sem)
       var unusedSet = ignore.names
       val detected = mismatches.filter(mismatch => {
@@ -268,7 +270,7 @@ class TypeAnalyzer(
     silent: Boolean = false,
   ): List[Func] =
     // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val allFuncs = cfg.funcs.filter(f => f.isParamTysDefined && !f.isClosure)
     target.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
@@ -300,6 +302,23 @@ class TypeAnalyzer(
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/mismatches",
     )
+  }
+
+  def noReturnCheck(sem: Semantics): Unit = {
+    val rpset = sem.npMap.keySet.map {
+      case NodePoint(func, node, view) => ReturnPoint(cfg.funcOf(node), view)
+    } -- sem.rpMap.keySet
+    // tag rp with known causes
+    rpset.foreach {
+      // expressions that are not compiled correctly evaluates to bottom
+      case rp @ ReturnPoint(func, _) if func.yets.size != 0 =>
+        addMismatch(NoReturn(rp, "Yet Expressions"))
+      // "new empty List evaluates to bottom"
+      case rp @ ReturnPoint(func, _)
+          if EmptyListCollector(func.irFunc).size != 0 =>
+        addMismatch(NoReturn(rp, "new empty list"))
+      case rp @ ReturnPoint(_, _) => addMismatch(NoReturn(rp, "Unknown"))
+    }
   }
 }
 object TypeAnalyzer {
@@ -336,6 +355,7 @@ object TypeAnalyzer {
     paramType: Boolean = true,
     returnType: Boolean = true,
     dupAssign: Boolean = true,
+    noReturn: Boolean = true,
     uncheckedAbrupt: Boolean = false,
     invalidAstProperty: Boolean = true,
     invalidStrProperty: Boolean = true,

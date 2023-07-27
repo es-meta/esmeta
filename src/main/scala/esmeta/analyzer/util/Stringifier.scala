@@ -162,6 +162,9 @@ class Stringifier(
       case InvalidPropertyMismatch(plp, base, prop) =>
         app >> "[InvalidPropertyMismatch] " >> plp
         app :> "- lookup  : " >> prop >> " of " >> base
+      case NoReturn(rp, cause) =>
+        app >> "[NoReturn] " >> rp
+        app :> "- cause: " >> cause
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {
