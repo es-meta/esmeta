@@ -16,7 +16,7 @@ import esmeta.util.SystemUtils.*
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
   cfg: CFG,
-  config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
+  val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
 ) extends Analyzer(cfg) {
   import TypeAnalyzer.*
 
@@ -337,5 +337,13 @@ object TypeAnalyzer {
     returnType: Boolean = true,
     dupAssign: Boolean = true,
     uncheckedAbrupt: Boolean = false,
+    invalidAstProperty: Boolean = true,
+    invalidStrProperty: Boolean = true,
+    invalidNameProperty: Boolean = true,
+    invalidCompProperty: Boolean = true,
+    invalidRecordProperty: Boolean = true,
+    invalidListProperty: Boolean = true,
+    invalidSymbolProperty: Boolean = true,
+    invalidSubMapProperty: Boolean = true,
   )
 }

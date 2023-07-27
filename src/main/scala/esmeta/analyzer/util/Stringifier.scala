@@ -83,6 +83,21 @@ class Stringifier(
         app >> "returnIfAbrupt"
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
         app >> "in " >> riap.func.name >> riaExpr
+      case plp: PropertyLookupPoint =>
+        app >> "property lookup"
+        plp.kind match {
+          case LookupKind.Ast    => app >> "(ast)"
+          case LookupKind.Str    => app >> "(string)"
+          case LookupKind.Name   => app >> "(name)"
+          case LookupKind.Comp   => app >> "(comp)"
+          case LookupKind.Record => app >> "(record)"
+          case LookupKind.List   => app >> "(list)"
+          case LookupKind.Symbol => app >> "(symbol)"
+          case LookupKind.SubMap => app >> "(submap)"
+        }
+        app >> " in " >> plp.func.name
+        for (ref <- plp.ref) app >> ref
+        app
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -144,6 +159,9 @@ class Stringifier(
       case UncheckedAbruptCompletionMismatch(riap, actual) =>
         app >> "[UncheckedAbruptCompletionMismatch] " >> riap
         app :> "- actual  : " >> actual
+      case InvalidPropertyMismatch(plp, base, prop) =>
+        app >> "[InvalidPropertyMismatch] " >> plp
+        app :> "- lookup  : " >> prop >> " of " >> base
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {

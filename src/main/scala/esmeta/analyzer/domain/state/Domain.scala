@@ -30,7 +30,7 @@ trait Domain extends domain.Domain[State] {
       cp: ControlPoint,
     ): AbsValue = rv match
       case AbsRefId(x)            => elem.get(x, cp)
-      case AbsRefProp(base, prop) => elem.get(base, prop)
+      case AbsRefProp(base, prop) => elem.get(base, prop, rv.refElem)
 
     /** getters with identifiers */
     def get(x: Id, cp: ControlPoint): AbsValue =
@@ -40,7 +40,7 @@ trait Domain extends domain.Domain[State] {
       else v
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue): AbsValue
+    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref] = None): AbsValue
 
     /** getters with an address partition */
     def get(part: Part): AbsObj

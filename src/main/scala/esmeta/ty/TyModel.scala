@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
+import esmeta.analyzer.warning
 
 /** type modeling */
 // TODO consider refactoring
@@ -83,18 +84,13 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   type PropMap = Map[String, ValueTy]
 
   /** get types of property */
-  def getProp(tname: String, p: String, check: Boolean = false): ValueTy =
+  def getPropOrElse(tname: String, p: String)(default: => ValueTy): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       NameT("Object")
     else
       propMap
         .getOrElse(tname, Map())
-        .getOrElse(
-          p, {
-            if (check) warn(s"unknown property access: $tname.$p")
-            AbsentT
-          },
-        )
+        .getOrElse(p, default)
 
   /** property type */
   private lazy val propMap: Map[String, PropMap] = (for {

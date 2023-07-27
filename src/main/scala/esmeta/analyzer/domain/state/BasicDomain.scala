@@ -108,7 +108,7 @@ object BasicDomain extends state.Domain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue): AbsValue =
+    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref]): AbsValue =
       val compValue = AbsValue(pureValue = base.comp(prop.str))
       val partValue = elem.heap(base.part, prop)
       val astValue = lookupAst(base.astValue, prop)
