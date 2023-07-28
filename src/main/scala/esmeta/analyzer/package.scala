@@ -227,7 +227,6 @@ type AbsObj = AbsObj.Elem
 type ValueDomain = value.Domain
 lazy val AbsValue = _valueDomain.getOrElse(value.BasicDomain)
 type AbsValue = AbsValue.Elem
-type AbsOptValue = AbsValue.optional.Elem
 
 type CompDomain = comp.Domain
 lazy val AbsComp = _compDomain.getOrElse(comp.BasicDomain)

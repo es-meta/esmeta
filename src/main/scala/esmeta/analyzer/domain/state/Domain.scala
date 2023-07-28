@@ -52,18 +52,14 @@ trait Domain extends domain.Domain[State] {
 
     /** lookup local variables */
     def lookupLocal(x: Local): AbsValue =
-      lookupLocalOpt(x).value
-
-    def lookupLocalOpt(x: Local): AbsOptValue =
-      elem.locals.getOrElse(x, AbsValue.optional.Empty)
+      elem.locals.getOrElse(x, AbsValue.Bot)
 
     /** lookup global variables */
     def lookupGlobal(x: Global): AbsValue
 
     /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
-      case AbsRefId(id) =>
-        !directLookup(id).isAbsent
+      case AbsRefId(id) => !directLookup(id).isAbsent
       case AbsRefProp(base, prop) =>
         !elem.get(base, prop).isAbsent
 
@@ -176,7 +172,7 @@ trait Domain extends domain.Domain[State] {
 
     /** copy */
     def copied(
-      locals: Map[Local, AbsOptValue] = Map(),
+      locals: Map[Local, AbsValue] = Map(),
     ): Elem
 
     /** conversion to string */
@@ -187,7 +183,7 @@ trait Domain extends domain.Domain[State] {
 
     /** getters */
     def reachable: Boolean
-    def locals: Map[Local, AbsOptValue]
+    def locals: Map[Local, AbsValue]
     def globals: Map[Global, AbsValue]
     def heap: AbsHeap
 

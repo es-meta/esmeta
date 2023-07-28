@@ -99,7 +99,7 @@ case class State(
   private def hasBinding(x: Id): Boolean = x match
     case x: Global => globals contains x
     case x: Local  => context.locals contains x
-  def exists(x: Id): Boolean = directLookup(x) != Absent
+  def exists(x: Id): Boolean = hasBinding(x) && directLookup(x) != Absent
   def exists(ref: RefValue): Boolean = ref match {
     case IdValue(id)           => exists(id)
     case PropValue(base, prop) => apply(base, prop) != Absent
