@@ -20,7 +20,7 @@ object TypeDomain extends state.Domain {
   /** elements */
   case class Elem(
     reachable: Boolean = false,
-    locals: Map[Local, AbsOptValue] = Map(),
+    locals: Map[Local, AbsValue] = Map(),
   ) extends Appendable
 
   /** top element */
@@ -59,7 +59,7 @@ object TypeDomain extends state.Domain {
       case _ if that.isBottom => false
       case (Elem(_, llocals), Elem(_, rlocals)) =>
         (llocals.keySet ++ rlocals.keySet).forall(x => {
-          elem.lookupLocalOpt(x) ⊑ that.lookupLocalOpt(x)
+          elem.lookupLocal(x) ⊑ that.lookupLocal(x)
         })
 
     /** join operator */
@@ -69,7 +69,7 @@ object TypeDomain extends state.Domain {
       case (l, r) =>
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = elem.lookupLocalOpt(x) ⊔ that.lookupLocalOpt(x)
+          v = elem.lookupLocal(x) ⊔ that.lookupLocal(x)
         } yield x -> v).toMap
         Elem(true, newLocals)
 
@@ -79,7 +79,7 @@ object TypeDomain extends state.Domain {
       case (l, r) =>
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = elem.lookupLocalOpt(x) ⊓ that.lookupLocalOpt(x)
+          v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
         } yield x -> v).toMap
         Elem(true, newLocals)
 
@@ -215,9 +215,7 @@ object TypeDomain extends state.Domain {
 
     /** define local variables */
     def defineLocal(pairs: (Local, AbsValue)*): Elem =
-      elem.copy(locals = locals ++ pairs.map { (local, value) =>
-        (local, value.toOption)
-      })
+      elem.copy(locals = locals ++ pairs)
 
     /** singleton checks */
     override def isSingle: Boolean = false
@@ -238,9 +236,7 @@ object TypeDomain extends state.Domain {
       defs: Iterable[(Local, AbsValue)],
     ): Elem = Elem(
       reachable = true,
-      locals = to.locals ++ defs.map { (local, value) =>
-        (local, value.toOption)
-      },
+      locals = to.locals ++ defs,
     )
 
     def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = elem
@@ -253,7 +249,7 @@ object TypeDomain extends state.Domain {
     def reachableParts: Set[Part] = Set()
 
     /** copy */
-    def copied(locals: Map[Local, AbsOptValue] = Map()): Elem =
+    def copied(locals: Map[Local, AbsValue] = Map()): Elem =
       elem.copy(locals = locals)
 
     /** get string */
@@ -264,7 +260,7 @@ object TypeDomain extends state.Domain {
 
     /** getters */
     def reachable: Boolean = elem.reachable
-    def locals: Map[Local, AbsOptValue] = locals
+    def locals: Map[Local, AbsValue] = locals
     def globals: Map[Global, AbsValue] = base
     def heap: AbsHeap = AbsHeap.Bot
   }
