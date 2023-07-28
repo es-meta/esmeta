@@ -317,7 +317,7 @@ object TypeAnalyzer {
     arity: Boolean = true,
     paramType: Boolean = true,
     returnType: Boolean = true,
-    uncheckedAbrupt: Boolean = false,
+    uncheckedAbrupt: Boolean = true,
     invalidAstProperty: Boolean = true,
     invalidStrProperty: Boolean = true,
     invalidNameProperty: Boolean = true,
@@ -326,5 +326,7 @@ object TypeAnalyzer {
     invalidListProperty: Boolean = true,
     invalidSymbolProperty: Boolean = true,
     invalidSubMapProperty: Boolean = true,
+    propertyUpdate: Boolean = true,
+    mapAlloc: Boolean = true,
   )
 }
