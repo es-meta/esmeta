@@ -90,7 +90,7 @@ class TypeAnalyzer(
       calleeFunc.retTy.ty match
         // Stop the propagation of analysis when it is unnecessary to analyze
         // the callee function because it has full type annotations.
-        case retTy: ValueTy if calleeFunc.isParamTysDefined =>
+        case retTy: ValueTy if calleeFunc.isParamTysDefined && !TY_SENS =>
           for {
             nextNode <- call.next
             nextNp = NodePoint(callerFunc, nextNode, View())
@@ -100,6 +100,48 @@ class TypeAnalyzer(
         // Otherwise, do original abstract call semantics
         case _ =>
           super.doCall(callerNp, callerSt, calleeFunc, args, captured, method)
+
+    /** call transition */
+    override def getCalleeEntries(
+      callerNp: NodePoint[Call],
+      callerSt: AbsState,
+      calleeFunc: Func,
+      args: List[AbsValue],
+      captured: Map[Name, AbsValue],
+      method: Boolean,
+    ): List[(NodePoint[_], AbsState)] =
+      for {
+        baseView <- if (TY_SENS) getViewFromArgs(args) else List(View())
+      } yield {
+        // handle ir callsite sensitivity
+        val NodePoint(callerFunc, callSite, callerView) = callerNp
+
+        val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
+        val calleeSt = callerSt.copied(locals =
+          getLocals(
+            CallPoint(callerNp, calleeNp),
+            args,
+            cont = false,
+            method,
+          ) ++ captured,
+        )
+        (calleeNp, calleeSt)
+      }
+
+    private def getViewFromArgs(args: List[AbsValue]): List[View] =
+      val types = getTypes(args.map(_.ty))
+      val views = types.map(t => View().copy(tys = t))
+      views
+
+    private def getTypes(args: List[ValueTy]): List[List[ValueTy]] = {
+      args.foldRight(List(List[ValueTy]())) {
+        case (aty, tysList) =>
+          for {
+            tys <- tysList
+            ty <- aty.gamma
+          } yield ty :: tys
+      }
+    }
 
     /** get local variables */
     override def getLocals(
@@ -234,7 +276,17 @@ class TypeAnalyzer(
   } yield np -> st).toMap
 
   // get view from a function
-  def getView(func: Func): View = View()
+  def getView(func: Func): View = {
+    if (!TY_SENS) View()
+    else {
+      val paramTy = func.paramTys.map(_.ty)
+      View(tys = paramTy.map(_ match {
+        case _: UnknownTy =>
+          throw Error("parameter call with UnknownTy is not allowed")
+        case ty: ValueTy => ty
+      }))
+    }
+  }
 
   // get initial state of function
   def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
