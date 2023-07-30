@@ -106,7 +106,7 @@ var CHECK_PERIOD: Int = 10000
 var IR_SENS: Boolean = true
 
 /** Type sensitivity */
-var TY_SENS: Boolean = true
+var TY_SENS: Boolean = false
 
 /** throw exception for not yet compiled expressions */
 var YET_THROW: Boolean = false

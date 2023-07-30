@@ -22,7 +22,8 @@ class TypeAnalyzer(
 
   // record type mismatches
   def addMismatch(mismatch: TypeMismatch): Unit =
-    mismatchMap += mismatch.ap -> mismatch
+    val ap = if (TY_SENS) mismatch.ap.withoutView else mismatch.ap
+    mismatchMap += ap -> mismatch
   lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
   private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
 
