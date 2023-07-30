@@ -170,29 +170,43 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 
   /** concretization function */
   def gamma: Set[ValueTy] =
-    (if (this.clo.isBottom) Set() else Set(CloT)) ++
-    (if (this.cont.isBottom) Set() else Set(ContT)) ++
-    (if (this.name.isBottom) Set() else Set(NameT)) ++
-    (if (this.record.isBottom) Set() else Set(RecordT)) ++
-    (if (this.list.isBottom) Set()
+
+    var base: Set[ValueTy] = Set()
+    var tp: PureValueTy = this
+
+    if (ESValueT.pureValue <= tp) {
+      base = base + ESValueT
+      tp = tp -- ESValueT.pureValue
+    } else if (ESPrimT.pureValue <= tp) {
+      base = base + ESPrimT
+      tp = tp -- ESPrimT.pureValue
+    }
+
+    base ++
+    (if (tp.clo.isBottom) Set()
+     else Set(ValueTy(clo = this.clo))) ++
+    (if (tp.cont.isBottom) Set() else Set(ContT)) ++
+    (if (tp.name.isBottom) Set() else Set(NameT)) ++
+    (if (tp.record.isBottom) Set() else Set(RecordT)) ++
+    (if (tp.list.isBottom) Set()
      else {
        val v =
-         this.list.elem.getOrElse(throw Error("list type is not defined"))
+         tp.list.elem.getOrElse(throw Error("list type is not defined"))
        v.gamma.map(ListT)
      }) ++
-    (if (this.symbol.isBottom) Set() else Set(SymbolT)) ++
-    (if (this.astValue.isBottom) Set() else Set(AstT)) ++
-    (if (this.nt.isBottom) Set() else Set(NtT)) ++
-    (if (this.codeUnit.isBottom) Set() else Set(CodeUnitT)) ++
-    (if (this.const.isBottom) Set() else Set(ConstT)) ++
-    (if (this.math.isBottom) Set() else Set(MathT)) ++
-    (if (this.number.isBottom) Set() else Set(NumberT)) ++
-    (if (this.bigInt.isBottom) Set() else Set(BigIntT)) ++
-    (if (this.str.isBottom) Set() else Set(StrT)) ++
-    (if (this.bool.isBottom) Set() else Set(BoolT)) ++
-    (if (this.undef.isBottom) Set() else Set(UndefT)) ++
-    (if (this.nullv.isBottom) Set() else Set(NullT)) ++
-    (if (this.absent.isBottom) Set() else Set(AbsentT))
+    (if (tp.symbol.isBottom) Set() else Set(SymbolT)) ++
+    (if (tp.astValue.isBottom) Set() else Set(AstT)) ++
+    (if (tp.nt.isBottom) Set() else Set(NtT)) ++
+    (if (tp.codeUnit.isBottom) Set() else Set(CodeUnitT)) ++
+    (if (tp.const.isBottom) Set() else Set(ValueTy(const = this.const))) ++
+    (if (tp.math.isBottom) Set() else Set(MathT)) ++
+    (if (tp.number.isBottom) Set() else Set(NumberT)) ++
+    (if (tp.bigInt.isBottom) Set() else Set(BigIntT)) ++
+    (if (tp.str.isBottom) Set() else Set(StrT)) ++
+    (if (tp.bool.isBottom) Set() else Set(BoolT)) ++
+    (if (tp.undef.isBottom) Set() else Set(UndefT)) ++
+    (if (tp.nullv.isBottom) Set() else Set(NullT)) ++
+    (if (tp.absent.isBottom) Set() else Set(AbsentT))
 
   /** get single value */
   def getSingle: Flat[APureValue] =
