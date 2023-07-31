@@ -494,31 +494,31 @@ object TyModel {
       "BooleanObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "BooleanData" -> (AbsentT || BoolT),
+          "BooleanData" -> BoolT,
         ),
       ),
       "BigIntObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "BigIntData" -> (AbsentT || BigIntT),
+          "BigIntData" -> BigIntT,
         ),
       ),
       "NumberObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "NumberData" -> (AbsentT || NumberT),
+          "NumberData" -> NumberT,
         ),
       ),
       "SymbolObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "SymbolData" -> (AbsentT || SymbolT),
+          "SymbolData" -> SymbolT,
         ),
       ),
       "ErrorObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "ErrorData" -> (AbsentT || UndefT),
+          "ErrorData" -> UndefT,
         ),
       ),
       // special instances
