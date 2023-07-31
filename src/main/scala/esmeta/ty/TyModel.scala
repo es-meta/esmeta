@@ -86,6 +86,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   /** get types of property */
   def getPropOrElse(tname: String, p: String)(default: => ValueTy): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
+      // can be  made more precise for %ThrowTypeError% which is function object(https://tc39.es/ecma262/2022/#table-well-known-intrinsic-objects)
       NameT("Object")
     else
       propMap
@@ -222,7 +223,7 @@ object TyModel {
           "GlobalObject" -> (UndefT || NameT("Object")),
           "GlobalEnv" -> NameT("GlobalEnvironmentRecord"),
           "TemplateMap" -> ListT(NameT("TemplatePair")),
-          "HostDefined" -> UndefT,
+          "HostDefined" -> AnyT,
         ),
       ),
       "TemplatePair" -> TyInfo(
@@ -327,6 +328,11 @@ object TyModel {
       ),
       "FunctionObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
+        fields = Map(
+          "Errors" -> (AbsentT || ListT),
+          "Values" -> (AbsentT || ListT),
+          "Index" -> (AbsentT || MathT),
+        ),
       ),
       "ECMAScriptFunctionObject" -> TyInfo(
         parent = Some("FunctionObject"),
@@ -485,11 +491,36 @@ object TyModel {
         ),
       ),
       "ArrayBufferObject" -> TyInfo(parent = Some("Object")),
-      "BooleanObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "BigIntObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "NumberObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "SymbolObject" -> TyInfo(parent = Some("OrdinaryObject")),
-
+      "BooleanObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "BooleanData" -> BoolT,
+        ),
+      ),
+      "BigIntObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "BigIntData" -> BigIntT,
+        ),
+      ),
+      "NumberObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "NumberData" -> NumberT,
+        ),
+      ),
+      "SymbolObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "SymbolData" -> SymbolT,
+        ),
+      ),
+      "ErrorObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "ErrorData" -> UndefT,
+        ),
+      ),
       // special instances
       "ForInIteratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
@@ -516,7 +547,7 @@ object TyModel {
       "PromiseReaction" -> TyInfo(
         fields = Map(
           "Capability" -> (NameT("PromiseCapabilityRecord") || UndefT),
-          "Ty" -> (FULFILL || REJECT),
+          "Type" -> (FULFILL || REJECT),
           "Handler" -> (NameT("JobCallbackRecord") || EMPTY),
         ),
       ),
@@ -723,7 +754,7 @@ object TyModel {
       "JobCallbackRecord" -> TyInfo(
         fields = Map(
           "Callback" -> NameT("FunctionObject"),
-          "HostDefined" -> UndefT,
+          "HostDefined" -> AnyT,
         ),
       ),
 
@@ -746,7 +777,7 @@ object TyModel {
         fields = Map(
           "Realm" -> (NameT("RealmRecord") || UndefT),
           "ECMAScriptCode" -> AstT("Script"),
-          "HostDefined" -> EMPTY,
+          "HostDefined" -> AnyT,
         ),
       ),
 
@@ -756,7 +787,7 @@ object TyModel {
           "Realm" -> NameT("RealmRecord"),
           "Environment" -> (NameT("ModuleEnvironmentRecord") || EMPTY),
           "Namespace" -> (NameT("ModuleNamespaceExoticObject") || EMPTY),
-          "HostDefined" -> UndefT,
+          "HostDefined" -> AnyT,
         ),
       ),
       "CyclicModuleRecord" -> TyInfo(

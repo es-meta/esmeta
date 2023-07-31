@@ -72,13 +72,18 @@ trait Domain extends domain.Domain[State] {
     /** setter with reference values */
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
       case AbsRefId(x)            => update(x, value)
-      case AbsRefProp(base, prop) => update(base, prop, value)
+      case AbsRefProp(base, prop) => update(base, prop, value, refV.refElem)
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
+    def update(
+      base: AbsValue,
+      prop: AbsValue,
+      value: AbsValue,
+      ref: Option[Ref],
+    ): Elem
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem
@@ -129,6 +134,7 @@ trait Domain extends domain.Domain[State] {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
+      e: EMap,
     ): (AbsValue, Elem)
 
     /** allocation of list with address partitions */

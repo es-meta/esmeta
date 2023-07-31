@@ -113,7 +113,27 @@ object TypeDomain extends state.Domain {
         elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
+    def update(
+      base: AbsValue,
+      prop: AbsValue,
+      value: AbsValue,
+      ref: Option[Ref],
+    ): Elem =
+      getTACP.foreach { (ta, cp) =>
+        if (ta.config.propertyUpdate)
+          val origTy = get(base, prop, None).ty
+          val newTy = value.ty
+          if (!(newTy <= origTy))
+            val pap = PropertyAssignPoint(cp, ref)
+            ta.addMismatch(PropertyTypeMismatch(pap, origTy, newTy))
+      }
+      elem
+
+    def getTACP: Option[(TypeAnalyzer, ControlPoint)] = analyzer match {
+      case ta: TypeAnalyzer => {
+        sem.curCp.map(cp => ((ta, cp)))
+      }
+    }
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
@@ -178,15 +198,40 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
+      emap: EMap,
     ): (AbsValue, Elem) =
       val value =
-        if (tname == "Record") RecordT((for {
-          (k, v) <- pairs
-        } yield k.getSingle match
-          case One(Str(key)) => key -> v.ty
-          case _             => exploded(s"imprecise field name: $k")
-        ).toMap)
-        else NameT(tname)
+        if (tname == "Record")
+          RecordT((for {
+            (k, v) <- pairs
+          } yield k.getSingle match
+            case One(Str(key)) => key -> v.ty
+            case _             => exploded(s"imprecise field name: $k")
+          ).toMap)
+        else {
+          val isKnownTy = cfg.tyModel.infos.get(tname).isDefined
+          if (isKnownTy)
+            for {
+              (k, v) <- pairs
+            } yield k.getSingle match
+              case One(Str(key)) => {
+                val propTy = cfg.tyModel.getPropOrElse(tname, key) {
+                  // warning(s"unknown property: $tname.$key")
+                  AbsentT
+                }
+                getTACP.foreach { (ta, cp) =>
+                  if (ta.config.mapAlloc)
+                    if (propTy != AbsentT && !(v.ty ⊑ propTy)) {
+                      val map = MapAllocPoint(cp, emap)
+                      ta.addMismatch(
+                        PropertyTypeMismatch(map, propTy, v.ty),
+                      )
+                    }
+                }
+              }
+              case _ =>
+          NameT(tname)
+        }
       (AbsValue(value), elem)
 
     /** allocation of list with address partitions */
