@@ -749,6 +749,20 @@ trait AbsTransfer extends Optimized with PruneHelper {
     v <- (bop, l.getSingle) match {
       case (BOp.And, One(Bool(false))) => pure(AVF)
       case (BOp.Or, One(Bool(true)))   => pure(AVT)
+      case (BOp.And, Many) =>
+        for {
+          st <- get
+          _ <- modify(prune(left, true))
+          r <- transfer(right)
+          _ <- put(st)
+        } yield r ⊔ AVF
+      case (BOp.Or, Many) =>
+        for {
+          st <- get
+          _ <- modify(prune(left, false))
+          r <- transfer(right)
+          _ <- put(st)
+        } yield r ⊔ AVT
       case _ =>
         for {
           r <- transfer(right)
