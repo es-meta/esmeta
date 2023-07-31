@@ -318,13 +318,6 @@ object TyModel {
           "Extensible" -> BoolT,
           "Prototype" -> (NameT("Object") || NullT),
           "SubMap" -> SubMapT(StrT || SymbolT, NameT("PropertyDescriptor")),
-          "ErrorData" -> (AbsentT || UndefT),
-          "BooleanData" -> (AbsentT || BoolT),
-          "NumberData" -> (AbsentT || NumberT),
-          "SymbolData" -> (AbsentT || SymbolT),
-          "BigIntData" -> (AbsentT || BigIntT),
-          "DateValue" -> (AbsentT || NumberT),
-          "CleanupCallback" -> (AbsentT || NameT("JobCallbackRecord")),
         ),
       ),
       "OrdinaryObject" -> TyInfo(
@@ -498,11 +491,36 @@ object TyModel {
         ),
       ),
       "ArrayBufferObject" -> TyInfo(parent = Some("Object")),
-      "BooleanObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "BigIntObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "NumberObject" -> TyInfo(parent = Some("OrdinaryObject")),
-      "SymbolObject" -> TyInfo(parent = Some("OrdinaryObject")),
-
+      "BooleanObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "BooleanData" -> (AbsentT || BoolT),
+        ),
+      ),
+      "BigIntObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "BigIntData" -> (AbsentT || BigIntT),
+        ),
+      ),
+      "NumberObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "NumberData" -> (AbsentT || NumberT),
+        ),
+      ),
+      "SymbolObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "SymbolData" -> (AbsentT || SymbolT),
+        ),
+      ),
+      "ErrorObject" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "ErrorData" -> (AbsentT || UndefT),
+        ),
+      ),
       // special instances
       "ForInIteratorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
