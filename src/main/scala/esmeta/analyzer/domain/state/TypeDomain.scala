@@ -430,13 +430,13 @@ object TypeDomain extends state.Domain {
     else {
       var res = ValueTy.Bot
       if (prop.str contains "length") res ||= MathT
-      if (!prop.math.isBottom) res ||= CodeUnitT
+      if (!prop.math.isBottom || !prop.number.isBottom) res ||= CodeUnitT
       // invalid access on string type
       if (!skipCheck)
         boundCheck(
           LookupKind.Str,
           prop,
-          MathT || StrT("length"),
+          MathT || NumberT || StrT("length"),
           (cp, t) =>
             val plp = PropertyLookupPoint(cp, ref)
             InvalidPropertyMismatch(plp, base, t),
