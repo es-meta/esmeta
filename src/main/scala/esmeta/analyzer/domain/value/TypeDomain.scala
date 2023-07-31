@@ -410,16 +410,22 @@ object TypeDomain extends value.Domain {
 
   // mathematical operator helper
   private lazy val mathOp: (Elem, Elem) => Elem = (l, r) =>
+    checkNumeric(l)
+    checkNumeric(r)
     if (!l.ty.math.isBottom && !r.ty.math.isBottom) mathTop
     else Bot
 
   // number operator helper
   private lazy val numberOp: (Elem, Elem) => Elem = (l, r) =>
+    checkNumeric(l)
+    checkNumeric(r)
     if (!l.ty.number.isBottom && !r.ty.number.isBottom) numberTop
     else Bot
 
   // big integer operator helper
   private lazy val bigIntOp: (Elem, Elem) => Elem = (l, r) =>
+    checkNumeric(l)
+    checkNumeric(r)
     if (l.ty.bigInt && r.ty.bigInt) bigIntTop
     else Bot
 
@@ -443,7 +449,15 @@ object TypeDomain extends value.Domain {
     } yield op(x, y))))
 
   // numeric comparison operator helper
+  def checkNumeric(elem: Elem): Unit =
+    if (!(elem.ty <= ValueTy(math = Inf, number = Inf, bigInt = true)))
+      warning(
+        s"operand $elem of is not a numeric",
+      )
+
   private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
+    checkNumeric(l)
+    checkNumeric(r)
     Elem(
       ValueTy(
         bool = BoolTy(
@@ -460,6 +474,7 @@ object TypeDomain extends value.Domain {
 
   // numeric unary operator helper
   private lazy val numericUnaryOp: Elem => Elem = x =>
+    checkNumeric(x)
     var res: Elem = Bot
     if (!x.ty.math.isBottom) res ⊔= mathTop
     if (!x.ty.number.isBottom) res ⊔= numberTop
@@ -468,6 +483,8 @@ object TypeDomain extends value.Domain {
 
   // numeric operator helper
   private lazy val numericOp: (Elem, Elem) => Elem = (l, r) =>
+    checkNumeric(l)
+    checkNumeric(r)
     Elem(
       ValueTy(
         math = l.ty.math && r.ty.math,
