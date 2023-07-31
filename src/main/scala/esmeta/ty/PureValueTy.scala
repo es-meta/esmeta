@@ -182,31 +182,30 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       tp = tp -- ESPrimT.pureValue
     }
 
-    base ++
-    (if (tp.clo.isBottom) Set()
-     else Set(ValueTy(clo = this.clo))) ++
-    (if (tp.cont.isBottom) Set() else Set(ContT)) ++
-    (if (tp.name.isBottom) Set() else Set(NameT)) ++
-    (if (tp.record.isBottom) Set() else Set(RecordT)) ++
-    (if (tp.list.isBottom) Set()
-     else {
-       val v =
-         tp.list.elem.getOrElse(throw Error("list type is not defined"))
-       v.gamma.map(ListT)
-     }) ++
-    (if (tp.symbol.isBottom) Set() else Set(SymbolT)) ++
-    (if (tp.astValue.isBottom) Set() else Set(AstT)) ++
-    (if (tp.nt.isBottom) Set() else Set(NtT)) ++
-    (if (tp.codeUnit.isBottom) Set() else Set(CodeUnitT)) ++
-    (if (tp.const.isBottom) Set() else Set(ValueTy(const = this.const))) ++
-    (if (tp.math.isBottom) Set() else Set(MathT)) ++
-    (if (tp.number.isBottom) Set() else Set(NumberT)) ++
-    (if (tp.bigInt.isBottom) Set() else Set(BigIntT)) ++
-    (if (tp.str.isBottom) Set() else Set(StrT)) ++
-    (if (tp.bool.isBottom) Set() else Set(BoolT)) ++
-    (if (tp.undef.isBottom) Set() else Set(UndefT)) ++
-    (if (tp.nullv.isBottom) Set() else Set(NullT)) ++
-    (if (tp.absent.isBottom) Set() else Set(AbsentT))
+    if (!tp.clo.isBottom) base += ValueTy(clo = this.clo)
+    if (!tp.cont.isBottom) base += ContT
+    if (!tp.name.isBottom) base += NameT
+    if (!tp.record.isBottom) base += RecordT
+    if (!tp.list.isBottom) base ++= {
+      val v =
+        tp.list.elem.getOrElse(throw Error("list type is not defined"))
+      v.gamma.map(ListT)
+    }
+    if (!tp.symbol.isBottom) base += SymbolT
+    if (!tp.astValue.isBottom) base += AstT
+    if (!tp.nt.isBottom) base += NtT
+    if (!tp.codeUnit.isBottom) base += CodeUnitT
+    if (!tp.const.isBottom) base += ValueTy(const = this.const)
+    if (!tp.math.isBottom) base += MathT
+    if (!tp.number.isBottom) base += NumberT
+    if (!tp.bigInt.isBottom) base += BigIntT
+    if (!tp.str.isBottom) base += StrT
+    if (!tp.bool.isBottom) base += BoolT
+    if (!tp.undef.isBottom) base += UndefT
+    if (!tp.nullv.isBottom) base += NullT
+    if (!tp.absent.isBottom) base += AbsentT
+
+    base
 
   /** get single value */
   def getSingle: Flat[APureValue] =
