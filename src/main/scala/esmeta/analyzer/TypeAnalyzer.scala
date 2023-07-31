@@ -131,7 +131,7 @@ class TypeAnalyzer(
 
     private def getViewFromArgs(args: List[AbsValue]): List[View] =
       val types = getTypes(args.map(_.ty))
-      val views = types.map(t => View().copy(tys = t))
+      val views = types.map(t => View(tys = t))
       views
 
     private def getTypes(args: List[ValueTy]): List[List[ValueTy]] = {
