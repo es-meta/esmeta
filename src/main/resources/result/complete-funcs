@@ -63,7 +63,6 @@ ArrayLiteral[0,1].Evaluation
 ArrayLiteral[1,0].Evaluation
 ArrayLiteral[2,0].Evaluation
 ArrayLiteral[2,1].Evaluation
-ArraySetLength
 ArraySpeciesCreate
 ArrowFunction[0,0].Contains
 ArrowFunction[0,0].Evaluation
@@ -137,7 +136,6 @@ AsyncArrowFunction[1,0].Evaluation
 AsyncArrowFunction[1,0].HasName
 AsyncArrowFunction[1,0].InstantiateAsyncArrowFunctionExpression
 AsyncArrowFunction[1,0].NamedEvaluation
-AsyncBlockStart
 AsyncConciseBody[0,0].AsyncConciseBodyContainsUseStrict
 AsyncConciseBody[0,0].EvaluateAsyncConciseBody
 AsyncConciseBody[0,0].EvaluateBody
@@ -180,7 +178,6 @@ AsyncGeneratorAwaitReturn:clo0
 AsyncGeneratorAwaitReturn:clo1
 AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody
 AsyncGeneratorBody[0,0].EvaluateBody
-AsyncGeneratorCompleteStep
 AsyncGeneratorDeclaration[0,0].BoundNames
 AsyncGeneratorDeclaration[0,0].Contains
 AsyncGeneratorDeclaration[0,0].ContainsArguments
@@ -216,11 +213,8 @@ AsyncGeneratorMethod[0,0].PrivateBoundIdentifiers
 AsyncGeneratorMethod[0,0].PropName
 AsyncGeneratorResume
 AsyncGeneratorResume:cont0
-AsyncGeneratorStart
 AsyncGeneratorUnwrapYieldResumption
 AsyncGeneratorValidate
-AsyncGeneratorYield
-AsyncGeneratorYield:cont0
 AsyncIteratorClose
 AsyncMethod[0,0].ComputedPropertyContains
 AsyncMethod[0,0].ContainsArguments
@@ -246,15 +240,11 @@ BigInt::bitwiseAND
 BigInt::bitwiseNOT
 BigInt::bitwiseOR
 BigInt::bitwiseXOR
-BigInt::divide
 BigInt::equal
 BigInt::exponentiate
 BigInt::leftShift
 BigInt::lessThan
 BigInt::multiply
-BigInt::remainder
-BigInt::sameValue
-BigInt::sameValueZero
 BigInt::signedRightShift
 BigInt::subtract
 BigInt::toString
@@ -343,7 +333,6 @@ BreakableStatement[0,0].Evaluation
 BreakableStatement[0,0].LabelledEvaluation
 BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
-BuiltinFunctionObject.Call
 BuiltinFunctionObject.Construct
 Call
 CallExpression[0,0].AssignmentTargetType
@@ -369,6 +358,7 @@ CallExpression[7,0].AllPrivateIdentifiersValid
 CallExpression[7,0].AssignmentTargetType
 CallExpression[7,0].Evaluation
 CallExpression[7,0].HasCallInTailPosition
+CanBeHeldWeakly
 CanonicalNumericIndexString
 CaseBlock[0,0].CaseBlockEvaluation
 CaseBlock[0,0].ContainsDuplicateLabels
@@ -380,7 +370,6 @@ CaseBlock[0,0].LexicallyScopedDeclarations
 CaseBlock[0,0].VarDeclaredNames
 CaseBlock[0,0].VarScopedDeclarations
 CaseBlock[0,1].CaseBlockEvaluation
-CaseBlock[1,0].CaseBlockEvaluation
 CaseBlock[1,0].ContainsDuplicateLabels
 CaseBlock[1,0].ContainsUndefinedBreakTarget
 CaseBlock[1,0].ContainsUndefinedContinueTarget
@@ -389,7 +378,6 @@ CaseBlock[1,0].LexicallyDeclaredNames
 CaseBlock[1,0].LexicallyScopedDeclarations
 CaseBlock[1,0].VarDeclaredNames
 CaseBlock[1,0].VarScopedDeclarations
-CaseBlock[1,1].CaseBlockEvaluation
 CaseBlock[1,1].ContainsDuplicateLabels
 CaseBlock[1,1].ContainsUndefinedBreakTarget
 CaseBlock[1,1].ContainsUndefinedContinueTarget
@@ -398,7 +386,6 @@ CaseBlock[1,1].LexicallyDeclaredNames
 CaseBlock[1,1].LexicallyScopedDeclarations
 CaseBlock[1,1].VarDeclaredNames
 CaseBlock[1,1].VarScopedDeclarations
-CaseBlock[1,2].CaseBlockEvaluation
 CaseBlock[1,2].ContainsDuplicateLabels
 CaseBlock[1,2].ContainsUndefinedBreakTarget
 CaseBlock[1,2].ContainsUndefinedContinueTarget
@@ -407,7 +394,6 @@ CaseBlock[1,2].LexicallyDeclaredNames
 CaseBlock[1,2].LexicallyScopedDeclarations
 CaseBlock[1,2].VarDeclaredNames
 CaseBlock[1,2].VarScopedDeclarations
-CaseBlock[1,3].CaseBlockEvaluation
 CaseBlock[1,3].ContainsDuplicateLabels
 CaseBlock[1,3].ContainsUndefinedBreakTarget
 CaseBlock[1,3].ContainsUndefinedContinueTarget
@@ -538,6 +524,8 @@ CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation
 CoalesceExpression[0,0].HasCallInTailPosition
 CoalesceExpression[0,0].IsFunctionDefinition
+CompareArrayElements
+CompareTypedArrayElements
 CompletePropertyDescriptor
 Completion
 ComputedPropertyName[0,0].Evaluation
@@ -554,6 +542,11 @@ ConditionalExpression[1,0].Evaluation
 ConditionalExpression[1,0].HasCallInTailPosition
 ConditionalExpression[1,0].IsFunctionDefinition
 Construct
+ContinueDynamicImport
+ContinueDynamicImport:clo0
+ContinueDynamicImport:clo1
+ContinueDynamicImport:clo1:clo0
+ContinueModuleLoading
 ContinueStatement[0,0].ContainsUndefinedContinueTarget
 ContinueStatement[0,0].Evaluation
 ContinueStatement[1,0].ContainsUndefinedContinueTarget
@@ -590,6 +583,7 @@ CreateSetIterator
 CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
 CyclicModuleRecord.Link
+CyclicModuleRecord.LoadRequestedModules
 DecimalBigIntegerLiteral[0,0].NumericValue
 DecimalBigIntegerLiteral[1,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
@@ -648,7 +642,7 @@ Elision[0,0].IteratorDestructuringAssignmentEvaluation
 Elision[1,0].ArrayAccumulation
 Elision[1,0].IteratorDestructuringAssignmentEvaluation
 EmptyStatement[0,0].Evaluation
-EnumerableOwnPropertyNames
+EnumerableOwnProperties
 EnumerateObjectProperties
 EqualityExpression[1,0].AssignmentTargetType
 EqualityExpression[1,0].Evaluation
@@ -708,13 +702,11 @@ ExportDeclaration[3,0].ExportedNames
 ExportDeclaration[3,0].LexicallyScopedDeclarations
 ExportDeclaration[3,0].ModuleRequests
 ExportDeclaration[4,0].Evaluation
-ExportDeclaration[4,0].ExportEntries
 ExportDeclaration[4,0].ExportedBindings
 ExportDeclaration[4,0].ExportedNames
 ExportDeclaration[4,0].LexicallyScopedDeclarations
 ExportDeclaration[4,0].ModuleRequests
 ExportDeclaration[5,0].Evaluation
-ExportDeclaration[5,0].ExportEntries
 ExportDeclaration[5,0].ExportedBindings
 ExportDeclaration[5,0].ExportedNames
 ExportDeclaration[5,0].LexicallyScopedDeclarations
@@ -732,10 +724,8 @@ ExportFromClause[0,0].ExportedNames
 ExportFromClause[1,0].ExportEntriesForModule
 ExportFromClause[1,0].ExportedNames
 ExportFromClause[2,0].ExportedNames
-ExportSpecifier[0,0].ExportEntriesForModule
 ExportSpecifier[0,0].ExportedBindings
 ExportSpecifier[0,0].ExportedNames
-ExportSpecifier[1,0].ExportEntriesForModule
 ExportSpecifier[1,0].ExportedBindings
 ExportSpecifier[1,0].ExportedNames
 ExportSpecifier[1,0].ReferencedBindings
@@ -758,8 +748,6 @@ FieldDefinition[0,1].ClassFieldDefinitionEvaluation
 FieldDefinition[0,1].ComputedPropertyContains
 FieldDefinition[0,1].PrivateBoundIdentifiers
 FieldDefinition[0,1].PropName
-FinishDynamicImport
-FinishDynamicImport:clo1
 ForBinding[0,0].IsDestructuring
 ForBinding[1,0].IsDestructuring
 ForBodyEvaluation
@@ -1047,10 +1035,7 @@ GeneratorResume
 GeneratorResume:cont0
 GeneratorResumeAbrupt
 GeneratorResumeAbrupt:cont0
-GeneratorStart
 GeneratorValidate
-GeneratorYield
-GeneratorYield:cont0
 Get
 GetActiveScriptOrModule
 GetFunctionRealm
@@ -1058,14 +1043,17 @@ GetGeneratorKind
 GetGlobalObject
 GetIdentifierReference
 GetIterator
+GetIteratorFromMethod
 GetMethod
 GetModuleNamespace
 GetNewTarget
 GetOwnPropertyKeys
 GetPromiseResolve
+GetStringIndex
 GetSuperConstructor
 GetThisEnvironment
 GetThisValue
+GetUTCEpochNanoseconds
 GetV
 GetValue
 GlobalDeclarationInstantiation
@@ -1074,7 +1062,6 @@ GlobalEnvironmentRecord.CreateGlobalFunctionBinding
 GlobalEnvironmentRecord.CreateGlobalVarBinding
 GlobalEnvironmentRecord.CreateImmutableBinding
 GlobalEnvironmentRecord.CreateMutableBinding
-GlobalEnvironmentRecord.DeleteBinding
 GlobalEnvironmentRecord.GetBindingValue
 GlobalEnvironmentRecord.GetThisBinding
 GlobalEnvironmentRecord.HasBinding
@@ -1085,6 +1072,7 @@ GlobalEnvironmentRecord.HasThisBinding
 GlobalEnvironmentRecord.HasVarDeclaration
 GlobalEnvironmentRecord.SetMutableBinding
 GlobalEnvironmentRecord.WithBaseObject
+GroupName[0,0].CapturingGroupName
 HasOwnProperty
 HasProperty
 HexLeadSurrogate[0,0].CharacterValue
@@ -1118,6 +1106,8 @@ INTRINSICS.Array.prototype.fill
 INTRINSICS.Array.prototype.filter
 INTRINSICS.Array.prototype.find
 INTRINSICS.Array.prototype.findIndex
+INTRINSICS.Array.prototype.findLast
+INTRINSICS.Array.prototype.findLastIndex
 INTRINSICS.Array.prototype.flat
 INTRINSICS.Array.prototype.flatMap
 INTRINSICS.Array.prototype.forEach
@@ -1131,15 +1121,21 @@ INTRINSICS.Array.prototype.pop
 INTRINSICS.Array.prototype.push
 INTRINSICS.Array.prototype.reduce
 INTRINSICS.Array.prototype.reduceRight
+INTRINSICS.Array.prototype.reverse
 INTRINSICS.Array.prototype.shift
 INTRINSICS.Array.prototype.slice
 INTRINSICS.Array.prototype.some
 INTRINSICS.Array.prototype.sort
 INTRINSICS.Array.prototype.sort:clo0
 INTRINSICS.Array.prototype.splice
+INTRINSICS.Array.prototype.toReversed
+INTRINSICS.Array.prototype.toSorted
+INTRINSICS.Array.prototype.toSorted:clo0
+INTRINSICS.Array.prototype.toSpliced
 INTRINSICS.Array.prototype.toString
 INTRINSICS.Array.prototype.unshift
 INTRINSICS.Array.prototype.values
+INTRINSICS.Array.prototype.with
 INTRINSICS.ArrayBuffer
 INTRINSICS.ArrayBuffer.isView
 INTRINSICS.ArrayBuffer.prototype.slice
@@ -1154,6 +1150,7 @@ INTRINSICS.AsyncGeneratorFunction.prototype.prototype.return
 INTRINSICS.AsyncGeneratorFunction.prototype.prototype.throw
 INTRINSICS.AsyncIteratorPrototype[@@asyncIterator]
 INTRINSICS.Atomics.load
+INTRINSICS.Atomics.notify
 INTRINSICS.Atomics.store
 INTRINSICS.BigInt
 INTRINSICS.BigInt.asIntN
@@ -1203,6 +1200,7 @@ INTRINSICS.Date.prototype.toJSON
 INTRINSICS.Date.prototype.toString
 INTRINSICS.Date.prototype.valueOf
 INTRINSICS.Date.prototype[@@toPrimitive]
+INTRINSICS.DefaultTimeZone
 INTRINSICS.Error
 INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
@@ -1219,6 +1217,8 @@ INTRINSICS.GeneratorFunction
 INTRINSICS.GeneratorFunction.prototype.prototype.next
 INTRINSICS.GeneratorFunction.prototype.prototype.return
 INTRINSICS.GeneratorFunction.prototype.prototype.throw
+INTRINSICS.GetNamedTimeZoneEpochNanoseconds
+INTRINSICS.GetNamedTimeZoneOffsetNanoseconds
 INTRINSICS.IteratorPrototype[@@iterator]
 INTRINSICS.Map
 INTRINSICS.Map.prototype.clear
@@ -1336,6 +1336,7 @@ INTRINSICS.RegExp.prototype.test
 INTRINSICS.RegExp.prototype.toString
 INTRINSICS.RegExp.prototype[@@matchAll]
 INTRINSICS.RegExp.prototype[@@match]
+INTRINSICS.RegExp.prototype[@@replace]
 INTRINSICS.RegExp.prototype[@@search]
 INTRINSICS.RegExp.prototype[@@split]
 INTRINSICS.RegExpStringIteratorPrototype.next
@@ -1347,6 +1348,7 @@ INTRINSICS.Set.prototype.has
 INTRINSICS.Set.prototype.values
 INTRINSICS.SetIteratorPrototype.next
 INTRINSICS.SharedArrayBuffer
+INTRINSICS.SharedArrayBuffer.prototype.slice
 INTRINSICS.String
 INTRINSICS.String.fromCodePoint
 INTRINSICS.String.prototype.at
@@ -1376,8 +1378,9 @@ INTRINSICS.String.prototype.trimStart
 INTRINSICS.String.prototype.valueOf
 INTRINSICS.String.prototype[@@iterator]
 INTRINSICS.String.prototype[@@iterator]:clo0
+INTRINSICS.String.raw
 INTRINSICS.StringIteratorPrototype.next
-INTRINSICS.Symbol
+INTRINSICS.Symbol.keyFor
 INTRINSICS.Symbol.prototype.toString
 INTRINSICS.Symbol.prototype.valueOf
 INTRINSICS.Symbol.prototype[@@toPrimitive]
@@ -1394,6 +1397,8 @@ INTRINSICS.TypedArray.prototype.fill
 INTRINSICS.TypedArray.prototype.filter
 INTRINSICS.TypedArray.prototype.find
 INTRINSICS.TypedArray.prototype.findIndex
+INTRINSICS.TypedArray.prototype.findLast
+INTRINSICS.TypedArray.prototype.findLastIndex
 INTRINSICS.TypedArray.prototype.forEach
 INTRINSICS.TypedArray.prototype.includes
 INTRINSICS.TypedArray.prototype.indexOf
@@ -1407,8 +1412,13 @@ INTRINSICS.TypedArray.prototype.reverse
 INTRINSICS.TypedArray.prototype.slice
 INTRINSICS.TypedArray.prototype.some
 INTRINSICS.TypedArray.prototype.sort
+INTRINSICS.TypedArray.prototype.sort:clo0
 INTRINSICS.TypedArray.prototype.subarray
+INTRINSICS.TypedArray.prototype.toReversed
+INTRINSICS.TypedArray.prototype.toSorted
+INTRINSICS.TypedArray.prototype.toSorted:clo0
 INTRINSICS.TypedArray.prototype.values
+INTRINSICS.TypedArray.prototype.with
 INTRINSICS.URIError
 INTRINSICS.WeakMap
 INTRINSICS.WeakMap.prototype.delete
@@ -1420,7 +1430,10 @@ INTRINSICS.WeakRef.prototype.deref
 INTRINSICS.WeakSet
 INTRINSICS.WeakSet.prototype.add
 INTRINSICS.WeakSet.prototype.has
+INTRINSICS.decodeURI
 INTRINSICS.decodeURIComponent
+INTRINSICS.encodeURI
+INTRINSICS.encodeURIComponent
 INTRINSICS.eval
 INTRINSICS.get ArrayBuffer.prototype.byteLength
 INTRINSICS.get ArrayBuffer[@@species]
@@ -1541,9 +1554,8 @@ IsDetachedBuffer
 IsExtensible
 IsGenericDescriptor
 IsInTailPosition
-IsIntegralNumber
 IsLabelledFunction
-IsLessThan
+IsLooselyEqual
 IsNoTearConfiguration
 IsPrivateReference
 IsPromise
@@ -1552,9 +1564,9 @@ IsPropertyReference
 IsRegExp
 IsSharedArrayBuffer
 IsStrictlyEqual
-IsStringPrefix
 IsStringWellFormedUnicode
 IsSuperReference
+IsTimeZoneOffsetString
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
@@ -1567,6 +1579,7 @@ IteratorClose
 IteratorComplete
 IteratorNext
 IteratorStep
+IteratorToList
 IteratorValue
 LabelIdentifier[1,0].StringValue
 LabelIdentifier[2,0].StringValue
@@ -1729,6 +1742,7 @@ ModuleItemList[1,0].ExportedNames
 ModuleItemList[1,0].ImportEntries
 ModuleItemList[1,0].LexicallyDeclaredNames
 ModuleItemList[1,0].LexicallyScopedDeclarations
+ModuleItemList[1,0].ModuleRequests
 ModuleItemList[1,0].VarDeclaredNames
 ModuleItemList[1,0].VarScopedDeclarations
 ModuleItem[0,0].ContainsDuplicateLabels
@@ -1909,6 +1923,7 @@ OrdinaryToPrimitive
 ParenthesizedExpression[0,0].Evaluation
 ParenthesizedExpression[0,0].HasCallInTailPosition
 ParenthesizedExpression[0,0].NamedEvaluation
+ParseHexOctet
 ParseScript
 Pattern[0,0].CompilePattern
 PerformPromiseAll
@@ -1969,11 +1984,8 @@ PrimaryExpression[8,0].IsIdentifierRef
 PrimaryExpression[9,0].AssignmentTargetType
 PrimaryExpression[9,0].HasCallInTailPosition
 PrimaryExpression[9,0].IsIdentifierRef
-PrivateElementFind
-PrivateFieldAdd
 PrivateGet
 PrivateIdentifier[0,0].StringValue
-PrivateMethodOrAccessorAdd
 PrivateSet
 PromiseResolve
 PropertyDefinitionList[0,0].PropertyNameList
@@ -2015,9 +2027,7 @@ RegExpAlloc
 RegExpCreate
 RegExpExec
 RegExpHasFlag
-RegExpIdentifierName[0,0].CapturingGroupName
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
-RegExpIdentifierName[1,0].CapturingGroupName
 RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
@@ -2063,7 +2073,6 @@ ReturnStatement[1,0].HasCallInTailPosition
 RunJobs
 RunJobs:clo0
 SameValue
-SameValueNonNumeric
 SameValueZero
 ScriptBody[0,0].LexicallyDeclaredNames
 ScriptBody[0,0].LexicallyScopedDeclarations
@@ -2085,6 +2094,7 @@ SetImmutablePrototype
 SetIntegrityLevel
 SetRealmGlobalObject
 SetTypedArrayFromArrayLike
+SetTypedArrayFromTypedArray
 ShiftExpression[1,0].AssignmentTargetType
 ShiftExpression[1,0].Evaluation
 ShiftExpression[1,0].HasCallInTailPosition
@@ -2246,6 +2256,7 @@ TemplateSpans[0,0].TemplateStrings
 TemplateSpans[1,0].Evaluation
 TemplateSpans[1,0].SubstitutionEvaluation
 TemplateSpans[1,0].TemplateStrings
+TemplateString
 Term[0,0].CompileSubpattern
 Term[1,0].CompileSubpattern
 TestIntegrityLevel
@@ -2258,10 +2269,6 @@ ToBigInt64
 ToBigUint64
 ToBoolean
 ToDateString
-ToInt16
-ToInt32
-ToInt8
-ToIntegerOrInfinity
 ToLength
 ToNumber
 ToNumeric
@@ -2270,9 +2277,6 @@ ToPrimitive
 ToPropertyDescriptor
 ToPropertyKey
 ToString
-ToUint16
-ToUint32
-ToUint8
 TriggerPromiseReactions
 TryStatement[0,0].ContainsDuplicateLabels
 TryStatement[0,0].ContainsUndefinedBreakTarget
@@ -2295,6 +2299,7 @@ TryStatement[2,0].Evaluation
 TryStatement[2,0].HasCallInTailPosition
 TryStatement[2,0].VarDeclaredNames
 TryStatement[2,0].VarScopedDeclarations
+TypedArrayCreate
 UnaryExpression[1,0].AssignmentTargetType
 UnaryExpression[1,0].Evaluation
 UnaryExpression[1,0].HasCallInTailPosition
@@ -2346,6 +2351,7 @@ UpdateExpression[4,0].IsFunctionDefinition
 ValidateAndApplyPropertyDescriptor
 ValidateAtomicAccess
 ValidateIntegerTypedArray
+ValidateNonRevokedProxy
 ValidateTypedArray
 VariableDeclarationList[0,0].VarScopedDeclarations
 VariableDeclarationList[1,0].BoundNames
