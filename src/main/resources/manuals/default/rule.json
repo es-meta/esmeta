@@ -44,7 +44,7 @@
     "If _genContext_ does not have a Generator component, return ~non-generator~.": "if (= genContext.Generator absent) return ~non-generator~ else {}",
     "If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
     "If _x_ and _y_ are both *true* or both *false*, return *true*; otherwise, return *false*.": "if (|| (&& (= x true) (= y true)) (&& (= x false) (= y false))) return true else return false",
-    "If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
+    "If _x_ and _y_ have the same length and the same code units in the same positions, return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
     "If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return errors else {}",
     "If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) return null else return ec.ScriptOrModule",
     "If only one argument was passed, return _to_.": "if (= ArgumentsList.length 0) return to else {}",
