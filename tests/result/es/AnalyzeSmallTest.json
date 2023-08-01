@@ -2,9 +2,7 @@
   "abstract-equality2.js" : true,
   "abstract-equality3.js" : true,
   "abstract-equality4.js" : true,
-  "abstract-equality5.js" : [
-    "If _x_ and _y_ have the same length and the same code units in the same positions, return *true*; otherwise, return *false*."
-  ],
+  "abstract-equality5.js" : true,
   "abstract-equality6.js" : true,
   "addition1.js" : true,
   "addition2.js" : true,
