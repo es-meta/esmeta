@@ -522,7 +522,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
                 v <- transfer(vexpr)
               } yield (k, v)
           })
-          lv <- id(_.allocMap(asite, tname, pairs))
+          lv <- id(_.allocMap(asite, tname, pairs, e))
         } yield lv
       case e @ EList(exprs) =>
         val asite = AllocSite(e.asite, cp.view)

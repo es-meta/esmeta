@@ -303,7 +303,8 @@ class TypeAnalyzer(
     silent: Boolean = false,
   ): List[Func] =
     // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val allFuncs =
+      cfg.funcs.filter(f => f.isParamTysDefined && !f.isCloure && !f.isCont)
     target.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
@@ -370,7 +371,7 @@ object TypeAnalyzer {
     arity: Boolean = true,
     paramType: Boolean = true,
     returnType: Boolean = true,
-    uncheckedAbrupt: Boolean = false,
+    uncheckedAbrupt: Boolean = true,
     invalidAstProperty: Boolean = true,
     invalidStrProperty: Boolean = true,
     invalidNameProperty: Boolean = true,
@@ -379,5 +380,7 @@ object TypeAnalyzer {
     invalidListProperty: Boolean = true,
     invalidSymbolProperty: Boolean = true,
     invalidSubMapProperty: Boolean = true,
+    propertyUpdate: Boolean = true,
+    mapAlloc: Boolean = true,
   )
 }

@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.util.*
+import esmeta.analyzer.domain.AllocSite
 
 /** specification type mismatches */
 sealed abstract class TypeMismatch(
@@ -38,7 +39,14 @@ case class UncheckedAbruptCompletionMismatch(
 
 /** invalid property mismatches */
 case class InvalidPropertyMismatch(
-  plp: PropertyLookupPoint,
+  plp: AnalysisPoint,
   base: TyElem,
   prop: ValueTy,
 ) extends TypeMismatch(plp)
+
+/** property type mismatches */
+case class PropertyTypeMismatch(
+  cp: AnalysisPoint,
+  expected: ValueTy,
+  actual: ValueTy,
+) extends TypeMismatch(cp)

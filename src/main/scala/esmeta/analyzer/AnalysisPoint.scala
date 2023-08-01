@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.ir.{Func => _, *}
 import esmeta.cfg.*
+import esmeta.analyzer.domain.AllocSite
 
 /** analysis points */
 sealed trait AnalysisPoint extends AnalyzerElem {
@@ -54,6 +55,11 @@ case class ReturnIfAbruptPoint(
   inline def withoutView = copy(cp = cp.withoutView)
 }
 
+case class MapAllocPoint(cp: ControlPoint, emap: EMap) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
+}
+
 /** property lookup points */
 case class PropertyLookupPoint(
   kind: LookupKind,
@@ -63,6 +69,15 @@ case class PropertyLookupPoint(
   inline def view = cp.view
   inline def func = cp.func
   inline def withoutView = copy(cp = cp.withoutView)
+}
+
+/** property assign points */
+case class PropertyAssignPoint(
+  cp: ControlPoint,
+  ref: Option[Ref],
+) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
 }
 
 /** detailed lookup kinds */
