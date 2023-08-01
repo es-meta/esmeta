@@ -1,19 +1,19 @@
-- version: tags/es2022-candidate-2022-03^0 (d711ba960cd12b7658d6bb26d7556e690290190c)
+- version: tags/es2023-candidate-2023-04^0 (d048f32e861c2ed4a26f59a50d392918f26da3ba)
 - grammar:
-  - productions: 356
-    - lexical: 145
-    - numeric string: 16
+  - productions: 359
+    - lexical: 147
+    - numeric string: 17
     - syntactic: 195
   - extended productions for web: 28
-- algorithms: 2623 (87.11%)
-  - complete: 2285
-  - incomplete: 338
-- algorithm steps: 19073 (96.37%)
-  - complete: 18381
-  - incomplete: 692
-- types: 5908 (92.16%)
-  - known: 5445
-  - yet: 463
-  - unknown: 1543
+- algorithms: 2656 (87.46%)
+  - complete: 2323
+  - incomplete: 333
+- algorithm steps: 19550 (96.30%)
+  - complete: 18827
+  - incomplete: 723
+- types: 7000 (91.49%)
+  - known: 6404
+  - yet: 596
+  - unknown: 620
 - tables: 89
 - type model: 58
