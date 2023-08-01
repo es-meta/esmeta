@@ -2073,6 +2073,7 @@ ReturnStatement[1,0].HasCallInTailPosition
 RunJobs
 RunJobs:clo0
 SameValue
+SameValueNonNumber
 SameValueZero
 ScriptBody[0,0].LexicallyDeclaredNames
 ScriptBody[0,0].LexicallyScopedDeclarations

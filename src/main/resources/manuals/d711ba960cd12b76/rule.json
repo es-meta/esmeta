@@ -1,0 +1,7 @@
+{
+  "expr": {
+  },
+  "inst": {
+    "If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false"
+  }
+}
