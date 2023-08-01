@@ -318,6 +318,7 @@ object TyModel {
           "Extensible" -> BoolT,
           "Prototype" -> (NameT("Object") || NullT),
           "SubMap" -> SubMapT(StrT || SymbolT, NameT("PropertyDescriptor")),
+          "PrivateElements" -> ListT(NameT("PrivateElement")),
         ),
       ),
       "OrdinaryObject" -> TyInfo(
@@ -437,8 +438,8 @@ object TyModel {
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
           "ArrayLength" -> MathT,
           "ByteOffset" -> MathT,
-          "ContentTy" -> (NUMBER || BIGINT),
-          "TydArrayName" -> StrT,
+          "ContentType" -> (NUMBER || BIGINT),
+          "TypedArrayName" -> StrT,
         ),
       ),
       "ModuleNamespaceExoticObject" -> TyInfo(
@@ -515,7 +516,31 @@ object TyModel {
           "SymbolData" -> SymbolT,
         ),
       ),
-      "ErrorObject" -> TyInfo(
+      "SetInstance" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "SetData" -> ListT(ESValueT),
+        ),
+      ),
+      "MapInstance" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "MapData" -> ListT(RecordT(Set("Key", "Value"))),
+        ),
+      ),
+      "WeakMapInstance" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "WeakMapData" -> ListT(RecordT(Set("Key", "Value"))),
+        ),
+      ),
+      "WeakSetInstance" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "WeakSetData" -> ListT(ESValueT),
+        ),
+      ),
+      "ErrorInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "ErrorData" -> UndefT,

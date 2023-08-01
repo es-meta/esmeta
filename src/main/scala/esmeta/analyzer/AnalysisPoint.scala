@@ -64,7 +64,6 @@ case class MapAllocPoint(cp: ControlPoint, emap: EMap) extends AnalysisPoint {
 
 /** property lookup points */
 case class PropertyLookupPoint(
-  kind: LookupKind,
   cp: ControlPoint,
   ref: Option[Ref],
 ) extends AnalysisPoint {

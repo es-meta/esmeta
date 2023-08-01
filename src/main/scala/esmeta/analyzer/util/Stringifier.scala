@@ -86,18 +86,7 @@ class Stringifier(
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
         app >> "in " >> riap.func.name >> riaExpr
       case plp: PropertyLookupPoint =>
-        app >> "property lookup"
-        plp.kind match {
-          case LookupKind.Ast    => app >> "(ast)"
-          case LookupKind.Str    => app >> "(string)"
-          case LookupKind.Name   => app >> "(name)"
-          case LookupKind.Comp   => app >> "(comp)"
-          case LookupKind.Record => app >> "(record)"
-          case LookupKind.List   => app >> "(list)"
-          case LookupKind.Symbol => app >> "(symbol)"
-          case LookupKind.SubMap => app >> "(submap)"
-        }
-        app >> " in " >> plp.func.name
+        app >> "property lookup in " >> plp.func.name
         for (ref <- plp.ref) app >> ref
         app
       case MapAllocPoint(cp: ControlPoint, emap: EMap) =>
