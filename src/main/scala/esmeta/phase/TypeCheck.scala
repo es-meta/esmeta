@@ -61,6 +61,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "tysens",
+      BoolOption(c => TY_SENS = true),
+      "turn on type sensitivity.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,

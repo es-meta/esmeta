@@ -28,7 +28,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
       // set the current control point
       sem.curCp = Some(cp)
       // count how many visited for each control point
-      sem.counter += cp -> (sem.getCount(cp) + 1)
+      val countCp = if (TY_SENS) cp.withoutView else cp
+      sem.counter += countCp -> (sem.getCount(countCp) + 1)
       // increase iteration number
       sem.iter += 1
       // check time limit

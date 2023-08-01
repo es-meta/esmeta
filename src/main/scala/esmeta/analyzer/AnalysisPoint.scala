@@ -10,6 +10,7 @@ sealed trait AnalysisPoint extends AnalyzerElem {
   def func: Func
   def isBuiltin: Boolean = func.isBuiltin
   def toReturnPoint: ReturnPoint = ReturnPoint(func, view)
+  def withoutView: AnalysisPoint
 }
 
 /** call points */
@@ -19,6 +20,7 @@ case class CallPoint[+T <: Node](
 ) extends AnalysisPoint {
   inline def view = calleeNp.view
   inline def func = calleeNp.func
+  def withoutView = copy(calleeNp = calleeNp.copy(view = View()))
 }
 
 /** argument assignment points */
@@ -29,6 +31,8 @@ case class ArgAssignPoint[+T <: Node](
   inline def view = cp.view
   inline def func = cp.func
   inline def param = cp.calleeNp.func.params(idx)
+  def withoutView =
+    copy(cp = cp.copy(calleeNp = cp.calleeNp.copy(view = View())))
 }
 
 /** internal return points */
@@ -38,6 +42,7 @@ case class InternalReturnPoint(
 ) extends AnalysisPoint {
   inline def view = calleeRp.view
   inline def func = calleeRp.func
+  def withoutView = copy(calleeRp = calleeRp.copy(view = View()))
 }
 
 /** return-if-abrupt points */
@@ -47,11 +52,13 @@ case class ReturnIfAbruptPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 case class MapAllocPoint(cp: ControlPoint, emap: EMap) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** property lookup points */
@@ -62,6 +69,7 @@ case class PropertyLookupPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** property assign points */
@@ -71,6 +79,7 @@ case class PropertyAssignPoint(
 ) extends AnalysisPoint {
   inline def view = cp.view
   inline def func = cp.func
+  def withoutView = copy(cp = cp.withoutView)
 }
 
 /** detailed lookup kinds */
@@ -78,17 +87,23 @@ enum LookupKind:
   case Ast, Str, Name, Comp, Record, List, Symbol, SubMap
 
 /** control points */
-sealed trait ControlPoint extends AnalysisPoint
+sealed trait ControlPoint extends AnalysisPoint {
+  def withoutView: ControlPoint
+}
 
 /** node points */
 case class NodePoint[+T <: Node](
   func: Func,
   node: T,
   view: View,
-) extends ControlPoint
+) extends ControlPoint {
+  def withoutView = copy(view = View())
+}
 
 /** return points */
 case class ReturnPoint(
   func: Func,
   view: View,
-) extends ControlPoint
+) extends ControlPoint {
+  def withoutView = copy(view = View())
+}

@@ -65,6 +65,10 @@ case class CompTy(
         this.abrupt -- that.abrupt,
       )
 
+  /** concretization function */
+  def gamma: Set[ValueTy] =
+    normal.gamma.map(NormalT) ++ (if (abrupt.isBottom) Set() else Set(AbruptT))
+
   /** get single value */
   def getSingle: Flat[AValue] =
     if (!abrupt.isBottom) Many

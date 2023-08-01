@@ -1,13 +1,14 @@
 package esmeta.analyzer
 
 import esmeta.cfg.*
+import esmeta.ty.*
 
 /** view abstraction for analysis sensitivities */
 case class View(
   calls: List[Call] = Nil,
   loops: List[LoopCtxt] = Nil,
   intraLoopDepth: Int = 0,
-  // TODO tys: List[Type] = Nil,
+  tys: List[ValueTy] = Nil,
 ) extends AnalyzerElem {
 
   /** empty check */

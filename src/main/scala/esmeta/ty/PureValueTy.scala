@@ -168,6 +168,45 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.absent -- that.absent,
       )
 
+  /** concretization function */
+  def gamma: Set[ValueTy] =
+
+    var base: Set[ValueTy] = Set()
+    var tp: PureValueTy = this
+
+    if (ESValueT.pureValue <= tp) {
+      base = base + ESValueT
+      tp = tp -- ESValueT.pureValue
+    } else if (ESPrimT.pureValue <= tp) {
+      base = base + ESPrimT
+      tp = tp -- ESPrimT.pureValue
+    }
+
+    if (!tp.clo.isBottom) base += ValueTy(clo = this.clo)
+    if (!tp.cont.isBottom) base += ValueTy(cont = this.cont)
+    if (!tp.name.isBottom) base += ValueTy(name = this.name)
+    if (!tp.record.isBottom) base += ValueTy(record = this.record)
+    if (!tp.list.isBottom) base ++= {
+      val v =
+        tp.list.elem.getOrElse(throw Error("list type is not defined"))
+      v.gamma.map(ListT)
+    }
+    if (!tp.symbol.isBottom) base += SymbolT
+    if (!tp.astValue.isBottom) base += ValueTy(astValue = this.astValue)
+    if (!tp.nt.isBottom) base += NtT
+    if (!tp.codeUnit.isBottom) base += CodeUnitT
+    if (!tp.const.isBottom) base += ValueTy(const = this.const)
+    if (!tp.math.isBottom) base += MathT
+    if (!tp.number.isBottom) base += NumberT
+    if (!tp.bigInt.isBottom) base += BigIntT
+    if (!tp.str.isBottom) base += StrT
+    if (!tp.bool.isBottom) base += BoolT
+    if (!tp.undef.isBottom) base += UndefT
+    if (!tp.nullv.isBottom) base += NullT
+    if (!tp.absent.isBottom) base += AbsentT
+
+    base
+
   /** get single value */
   def getSingle: Flat[APureValue] =
     (if (this.clo.isBottom) Zero else Many) ||
