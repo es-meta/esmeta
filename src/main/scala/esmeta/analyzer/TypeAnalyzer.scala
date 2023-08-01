@@ -368,19 +368,42 @@ object TypeAnalyzer {
   /** configuration for type checking */
   case class Config(
     // type checkers
-    arity: Boolean = true,
-    paramType: Boolean = true,
-    returnType: Boolean = true,
-    uncheckedAbrupt: Boolean = true,
-    invalidAstProperty: Boolean = true,
-    invalidStrProperty: Boolean = true,
-    invalidNameProperty: Boolean = true,
-    invalidCompProperty: Boolean = true,
-    invalidRecordProperty: Boolean = true,
-    invalidListProperty: Boolean = true,
-    invalidSymbolProperty: Boolean = true,
-    invalidSubMapProperty: Boolean = true,
-    propertyUpdate: Boolean = true,
-    mapAlloc: Boolean = true,
-  )
+    arityPriority: Int = 1,
+    paramTypePriority: Int = 1,
+    returnTypePriority: Int = 1,
+    uncheckedAbruptPriority: Int = 1,
+    invalidAstPropertyPriority: Int = 1,
+    invalidStrPropertyPriority: Int = 1,
+    invalidNamePropertyPriority: Int = 1,
+    invalidCompPropertyPriority: Int = 1,
+    invalidRecordPropertyPriority: Int = 1,
+    invalidListPropertyPriority: Int = 1,
+    invalidSymbolPropertyPriority: Int = 1,
+    invalidSubMapPropertyPriority: Int = 1,
+    propertyUpdatePriority: Int = 1,
+    mapAllocPriority: Int = 1,
+  ) {
+    def arity: Boolean = arityPriority <= PRIORITY_FLAG
+    def paramType: Boolean = paramTypePriority <= PRIORITY_FLAG
+    def returnType: Boolean = returnTypePriority <= PRIORITY_FLAG
+    def uncheckedAbrupt: Boolean = uncheckedAbruptPriority <= PRIORITY_FLAG
+    def invalidAstProperty: Boolean =
+      invalidAstPropertyPriority <= PRIORITY_FLAG
+    def invalidStrProperty: Boolean =
+      invalidStrPropertyPriority <= PRIORITY_FLAG
+    def invalidNameProperty: Boolean =
+      invalidNamePropertyPriority <= PRIORITY_FLAG
+    def invalidCompProperty: Boolean =
+      invalidCompPropertyPriority <= PRIORITY_FLAG
+    def invalidRecordProperty: Boolean =
+      invalidRecordPropertyPriority <= PRIORITY_FLAG
+    def invalidListProperty: Boolean =
+      invalidListPropertyPriority <= PRIORITY_FLAG
+    def invalidSymbolProperty: Boolean =
+      invalidSymbolPropertyPriority <= PRIORITY_FLAG
+    def invalidSubMapProperty: Boolean =
+      invalidSubMapPropertyPriority <= PRIORITY_FLAG
+    def propertyUpdate: Boolean = propertyUpdatePriority <= PRIORITY_FLAG
+    def mapAlloc: Boolean = mapAllocPriority <= PRIORITY_FLAG
+  }
 }
