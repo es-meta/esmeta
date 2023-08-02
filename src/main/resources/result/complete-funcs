@@ -333,6 +333,7 @@ BreakableStatement[0,0].Evaluation
 BreakableStatement[0,0].LabelledEvaluation
 BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
+BuiltinFunctionObject.Call
 BuiltinFunctionObject.Construct
 Call
 CallExpression[0,0].AssignmentTargetType
@@ -1380,6 +1381,7 @@ INTRINSICS.String.prototype[@@iterator]
 INTRINSICS.String.prototype[@@iterator]:clo0
 INTRINSICS.String.raw
 INTRINSICS.StringIteratorPrototype.next
+INTRINSICS.Symbol
 INTRINSICS.Symbol.keyFor
 INTRINSICS.Symbol.prototype.toString
 INTRINSICS.Symbol.prototype.valueOf
@@ -2270,6 +2272,10 @@ ToBigInt64
 ToBigUint64
 ToBoolean
 ToDateString
+ToInt16
+ToInt32
+ToInt8
+ToIntegerOrInfinity
 ToLength
 ToNumber
 ToNumeric
@@ -2278,6 +2284,9 @@ ToPrimitive
 ToPropertyDescriptor
 ToPropertyKey
 ToString
+ToUint16
+ToUint32
+ToUint8
 TriggerPromiseReactions
 TryStatement[0,0].ContainsDuplicateLabels
 TryStatement[0,0].ContainsUndefinedBreakTarget
