@@ -3,11 +3,8 @@
   },
   "inst": {
     "If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)",
-    "Let _int_ be truncate(ℝ(_number_)).": "{ let int = (floor (abs ([math] number))) if (< number 0.0f) int = (* -1 int) else {} }",
-    "Return truncate(ℝ(_number_)).": "if (< number 0.0f) return (* -1 (floor (abs ([math] number)))) else return (floor (abs ([math] number)))",
-    "Let _r_ be the first element of _O_.[[RemainingKeys]].": "let r = O.RemainingKeys[0]",
-    "Remove the first element from _O_.[[RemainingKeys]].": "(pop < O.RemainingKeys)",
-    "Return a new Symbol whose [[Description]] is _descString_.": "return (new 'descString)" 
+    "Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)",
+    "Let _int_ be the mathematical value whose sign is the sign of _number_ and whose magnitude is floor(abs(ℝ(_number_))).": "{ let int = (floor (abs ([math] number))) if (< number 0.0f) int = (* -1 int) else {} }",
+    "Return a new unique Symbol value whose [[Description]] value is _descString_.": "return (new 'descString)"
   }
 }
