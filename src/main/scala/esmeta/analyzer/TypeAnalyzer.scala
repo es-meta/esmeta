@@ -205,6 +205,91 @@ class TypeAnalyzer(
           AbsRet(AbsValue(expectedTy))
       val retTy = if (TY_SENS) newRet else expected
       super.doReturn(irp, retTy)
+
+    override def transfer(
+      st: AbsState,
+      bop: BOp,
+      left: AbsValue,
+      right: AbsValue,
+    )(using cp: ControlPoint): AbsValue =
+      import BOp.*
+      import esmeta.interpreter.Interpreter
+      (left.getSingle, right.getSingle) match {
+        case (Zero, _) | (_, Zero) => AbsValue.Bot
+        case (One(l: SimpleValue), One(r: SimpleValue)) =>
+          optional(AbsValue(Interpreter.eval(bop, l, r)))
+            .getOrElse(AbsValue.Bot)
+        case (One(Math(l)), One(Math(r))) =>
+          optional(AbsValue(Interpreter.eval(bop, Math(l), Math(r))))
+            .getOrElse(AbsValue.Bot)
+        case (One(lpart: Part), One(rpart: Part))
+            if bop == Eq || bop == Equal =>
+          if (lpart == rpart) {
+            if (st.isSingle(lpart)) AVT
+            else AVB
+          } else AVF
+        case (One(l), One(r)) if bop == Eq || bop == Equal =>
+          AbsValue(l == r)
+        case _ =>
+          bop match {
+            case Add | Sub | Div | Mul | Mod | UMod | Pow =>
+              checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
+            case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
+              checkBOp(bop, left, right, Set(MathT, BigIntT))
+            case Lt
+                if !(left.ty ⊑ InfT || right.ty ⊑ InfT) => // exception handling for infinity
+              checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
+            case _ =>
+          }
+          bop match {
+            case BAnd    => left & right
+            case BOr     => left | right
+            case BXOr    => left ^ right
+            case Eq      => left =^= right
+            case Equal   => left ==^== right
+            case Lt      => left < right
+            case And     => left && right
+            case Or      => left || right
+            case Xor     => left ^^ right
+            case Add     => left + right
+            case Sub     => left sub right
+            case Div     => left / right
+            case Mul     => left * right
+            case Mod     => left % right
+            case UMod    => left %% right
+            case Pow     => left ** right
+            case LShift  => left << right
+            case SRShift => left >> right
+            case URShift => left >>> right
+          }
+      }
+
+    private def checkOperationType(
+      l: AbsValue,
+      r: AbsValue,
+    ): Option[ValueTy] = {
+      if (l.isBottom || r.isBottom) return None
+      if (l.ty <= MathT && r.ty <= MathT) Some(MathT)
+      else if (l.ty <= NumberT && r.ty <= NumberT) Some(NumberT)
+      else if (l.ty <= BigIntT && r.ty <= BigIntT) Some(BigIntT)
+      else if (l.ty <= StrT && r.ty <= StrT) Some(StrT)
+      else None
+    }
+
+    private def checkBOp(
+      op: BOp,
+      l: AbsValue,
+      r: AbsValue,
+      check: Set[ValueTy],
+    )(using cp: ControlPoint): Unit = {
+      val ty = checkOperationType(l, r)
+      val checkTy = check.foldLeft(ValueTy.Bot)(_ ⊔ _)
+      val bOpPoint = BinaryOperationPoint(cp, op, l, r)
+      ty match
+        case None => addMismatch(BinaryOperatorInvalidTypeMismatch(bOpPoint))
+        case Some(v) =>
+          if (!(v <= checkTy)) addMismatch(BinaryOperatorTypeMismatch(bOpPoint))
+    }
   }
 
   /** transfer function */

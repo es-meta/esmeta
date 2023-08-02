@@ -97,6 +97,8 @@ class Stringifier(
           import irStringifier.given
           app >> ref
         app >> " in " >> pap.func.name
+      case bop: BinaryOperationPoint =>
+        app >> "binary operation (" >> bop.lhs >> ") " >> bop.op >> " (" >> bop.rhs >> ") in " >> bop.func.name
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -163,6 +165,11 @@ class Stringifier(
         app >> "[PropertyTypeMismatch] " >> cp
         app :> "- expected: " >> expected
         app :> "- actual  : " >> actual
+      case BinaryOperatorTypeMismatch(bop) =>
+        app >> "[BinaryOperatorTypeMismatch] " >> bop
+      case BinaryOperatorInvalidTypeMismatch(bop) =>
+        app >> "[BinaryOperatorInvalidTypeMismatch] " >> bop
+
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {
       lang <- elem.langOpt
