@@ -7,13 +7,9 @@
   "addition1.js" : true,
   "addition2.js" : true,
   "addition3.js" : true,
-  "addition4.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "addition4.js" : true,
   "addition5.js" : true,
-  "addition6.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "addition6.js" : true,
   "arguments1.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
@@ -21,21 +17,15 @@
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "array1.js" : true,
-  "array2.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
-  ],
+  "array2.js" : true,
   "array3.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "array4.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
+    "For each own property key _P_ of _A_ such that _P_ is an array index and ! ToUint32(_P_) ≥ _newLen_, in descending numeric index order, do\n  1. Let _deleteSucceeded_ be ! _A_.[[Delete]](_P_).\n  1. If _deleteSucceeded_ is *false*, then\n    1. Set _newLenDesc_.[[Value]] to ! ToUint32(_P_) + *1*<sub>𝔽</sub>.\n    1. If _newWritable_ is *false*, set _newLenDesc_.[[Writable]] to *false*.\n    1. Perform ! OrdinaryDefineOwnProperty(_A_, *\"length\"*, _newLenDesc_).\n    1. Return *false*."
   ],
-  "array5.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "array6.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "array5.js" : true,
+  "array6.js" : true,
   "assign-object.js" : true,
   "assign-object2.js" : true,
   "assign-object3.js" : true,
@@ -50,10 +40,10 @@
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "async1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "await1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "await2.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
@@ -62,20 +52,14 @@
     "Return ℤ(truncate(_quotient_))."
   ],
   "bind1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "bitwise.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
-  ],
+  "bitwise.js" : true,
   "block1.js" : true,
   "boolean1.js" : true,
   "boolean2.js" : true,
-  "boolean3.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "boolean4.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "boolean3.js" : true,
+  "boolean4.js" : true,
   "class-decl1.js" : true,
   "class-decl2.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
@@ -83,9 +67,7 @@
   "compare1.js" : [
     "For each integer _i_ such that 0 ≤ _i_ < min(_lx_, _ly_), in ascending order, do\n  1. Let _cx_ be the numeric value of the code unit at index _i_ within _px_.\n  1. Let _cy_ be the numeric value of the code unit at index _i_ within _py_.\n  1. If _cx_ < _cy_, return *true*.\n  1. If _cx_ > _cy_, return *false*."
   ],
-  "complement1.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
-  ],
+  "complement1.js" : true,
   "constructor1.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
@@ -96,10 +78,10 @@
   "for1.js" : true,
   "for2.js" : true,
   "forin1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "If there does not exist an element _v_ of _O_.[[VisitedKeys]] such that SameValue(_r_, _v_) is *true*, then\n  1. Let _desc_ be ? _object_.[[GetOwnProperty]](_r_).\n  1. If _desc_ is not *undefined*, then\n    1. Append _r_ to _O_.[[VisitedKeys]].\n    1. If _desc_.[[Enumerable]] is *true*, return CreateIterResultObject(_r_, *false*)."
   ],
   "forof1.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "function-application1.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
@@ -120,12 +102,8 @@
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "function-declare1.js" : true,
-  "function1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "function2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "function1.js" : true,
+  "function2.js" : true,
   "function3.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
@@ -138,13 +116,9 @@
   "generator3.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "global-eval.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "global-eval.js" : true,
   "global-object.js" : true,
-  "global-object2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "global-object2.js" : true,
   "global.js" : true,
   "harness.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
@@ -152,31 +126,23 @@
   "if-statement1.js" : true,
   "increment1.js" : true,
   "increment2.js" : true,
-  "instanceof1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "instanceof1.js" : true,
   "instanceof2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "map-iter.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "multiple-statements.js" : true,
-  "number1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "number2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "number3.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "number1.js" : true,
+  "number2.js" : true,
+  "number3.js" : true,
   "number4.js" : true,
   "object1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "object2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "object3.js" : true,
   "promise1.js" : [
@@ -191,38 +157,24 @@
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "set1.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
+    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "shift1.js" : [
-    "Let _int_ be truncate(ℝ(_number_))."
-  ],
-  "string1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "string2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "shift1.js" : true,
+  "string1.js" : true,
+  "string2.js" : true,
   "string3.js" : true,
   "switch1.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "symbol1.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "symbol2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
-  "symbol3.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "symbol1.js" : true,
+  "symbol2.js" : true,
+  "symbol3.js" : true,
   "template1.js" : [
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
   "template2.js" : true,
   "try1.js" : true,
-  "try2.js" : [
-    "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*."
-  ],
+  "try2.js" : true,
   "typeof1.js" : true,
   "variable-declare1.js" : true,
   "variable-declare2.js" : true,
