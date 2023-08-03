@@ -232,13 +232,10 @@ class TypeAnalyzer(
           AbsValue(l == r)
         case _ =>
           bop match {
-            case Add | Sub | Div | Mul | Mod | UMod | Pow =>
+            case Add | Sub | Div | Mul | Mod | UMod | Pow | Lt | Equal =>
               checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
             case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
               checkBOp(bop, left, right, Set(MathT, BigIntT))
-            case Lt
-                if !(left.ty ⊑ InfT || right.ty ⊑ InfT) => // exception handling for infinity
-              checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
             case _ =>
           }
           bop match {
@@ -264,31 +261,22 @@ class TypeAnalyzer(
           }
       }
 
-    private def checkOperationType(
-      l: AbsValue,
-      r: AbsValue,
-    ): Option[ValueTy] = {
-      if (l.isBottom || r.isBottom) return None
-      if (l.ty <= MathT && r.ty <= MathT) Some(MathT)
-      else if (l.ty <= NumberT && r.ty <= NumberT) Some(NumberT)
-      else if (l.ty <= BigIntT && r.ty <= BigIntT) Some(BigIntT)
-      else if (l.ty <= StrT && r.ty <= StrT) Some(StrT)
-      else None
-    }
-
     private def checkBOp(
       op: BOp,
       l: AbsValue,
       r: AbsValue,
       check: Set[ValueTy],
     )(using cp: ControlPoint): Unit = {
-      val ty = checkOperationType(l, r)
-      val checkTy = check.foldLeft(ValueTy.Bot)(_ ⊔ _)
-      val bOpPoint = BinaryOperationPoint(cp, op, l, r)
-      ty match
-        case None => addMismatch(BinaryOperatorInvalidTypeMismatch(bOpPoint))
-        case Some(v) =>
-          if (!(v <= checkTy)) addMismatch(BinaryOperatorTypeMismatch(bOpPoint))
+      if (l.isBottom || r.isBottom) return
+      val valid = check.exists(ty => {
+        val lty = l.ty -- InfT
+        val rty = r.ty -- InfT
+        lty <= ty && rty <= ty
+      })
+      if (!valid) {
+        val bop = BinaryOperationPoint(cp, op, l, r)
+        addMismatch(BinaryOperatorTypeMismatch(bop))
+      }
     }
   }
 

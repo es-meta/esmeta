@@ -167,8 +167,6 @@ class Stringifier(
         app :> "- actual  : " >> actual
       case BinaryOperatorTypeMismatch(bop) =>
         app >> "[BinaryOperatorTypeMismatch] " >> bop
-      case BinaryOperatorInvalidTypeMismatch(bop) =>
-        app >> "[BinaryOperatorInvalidTypeMismatch] " >> bop
 
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
     for {

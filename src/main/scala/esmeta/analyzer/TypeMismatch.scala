@@ -55,8 +55,3 @@ case class PropertyTypeMismatch(
 case class BinaryOperatorTypeMismatch(
   bop: BinaryOperationPoint,
 ) extends TypeMismatch(bop)
-
-/** binary operator invalid type mismatches */
-case class BinaryOperatorInvalidTypeMismatch(
-  bop: BinaryOperationPoint,
-) extends TypeMismatch(bop)
