@@ -442,6 +442,7 @@ object TypeDomain extends value.Domain {
       y <- r.ty.bool.set
     } yield op(x, y))))
 
+  // numeric comparison operator helper
   private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
     Elem(
       ValueTy(
