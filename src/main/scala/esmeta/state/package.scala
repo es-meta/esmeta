@@ -60,8 +60,10 @@ val GLOBAL_RESULT = Global("RESULT")
 val STR_TOP_LEVEL = "TOP_LEVEL"
 
 /** predefined values */
-val POS_INF = Number(Double.PositiveInfinity)
-val NEG_INF = Number(Double.NegativeInfinity)
+val POS_INF = MathInf(true)
+val NEG_INF = MathInf(false)
+val POS_INF_F = Number(Double.PositiveInfinity)
+val NEG_INF_F = Number(Double.NegativeInfinity)
 
 /** conversion number to string */
 def toStringHelper(x: Double, radix: Int = 10): String = {

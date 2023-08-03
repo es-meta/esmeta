@@ -315,7 +315,7 @@ class Interpreter(
         case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
-        case (Number(d), ToMath) => Math(d)
+        case (Number(d), ToMath) => ExtMath(d)
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
@@ -451,6 +451,7 @@ class Interpreter(
           Bool(ds == s && 0 <= l && d == l && l < UPPER)
         case _ => Bool(false)
     case EMathVal(n)           => Math(n)
+    case EMathInf(pos)         => if (pos) POS_INF else NEG_INF
     case ENumber(n) if n.isNaN => Number(Double.NaN)
     case ENumber(n)            => Number(n)
     case EBigInt(n)            => BigInt(n)

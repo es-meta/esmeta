@@ -113,11 +113,24 @@ case class AstValue(ast: Ast) extends PureValue
 case class Nt(name: String, params: List[Boolean]) extends PureValue
 
 /** math values */
-case class Math(n: BigDecimal) extends PureValue
+trait ExtMath extends PureValue
+case class Math(n: BigDecimal) extends ExtMath
+case class MathInf(pos: Boolean) extends ExtMath
+
+object ExtMath {
+  def apply(n: Int): ExtMath = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: Long): ExtMath = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: scala.math.BigInt): ExtMath = Math(BigDecimal(n, UNLIMITED))
+  def apply(n: Double): ExtMath = {
+    if (n.isPosInfinity) MathInf(true)
+    else if (n.isNegInfinity) MathInf(false)
+    else Math(BigDecimal(n, UNLIMITED))
+  }
+}
+
 object Math {
   def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
   def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
-  def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
   def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
 }
 
@@ -136,8 +149,8 @@ sealed trait SimpleValue extends PureValue
 
 /** numeric values */
 sealed trait Numeric extends SimpleValue:
-  def toMath: Math = this match
-    case Number(double) => Math(double)
+  def toMath: ExtMath = this match
+    case Number(double) => ExtMath(double)
     case BigInt(bigInt) => Math(bigInt)
 case class Number(n: Double) extends Numeric with DoubleEquals(n)
 case class BigInt(n: scala.math.BigInt) extends Numeric

@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, ExtMath, Math, MathInf}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -84,8 +84,8 @@ trait Parsers extends BasicParsers {
     "Const[" ~> rep1sep(const, ",") <~ "]" ^^ {
       case s => PureValueTy(const = Fin(s.toSet))
     } |
-    // mathematical value
-    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
+    // (extended) mathematical value
+    "Math[" ~> rep1sep(extmathWithSpecial, ",") <~ "]" ^^ {
       case m => PureValueTy(math = Fin(m.toSet))
     } | "Math" ^^^ PureValueTy(math = Inf) |
     // number
@@ -110,10 +110,15 @@ trait Parsers extends BasicParsers {
     singleNameTy ^^ { case name => PureValueTy(name = name) }
   }.named("ty.PureValueTy (single)")
 
+  private lazy val extmathWithSpecial: Parser[ExtMath] =
+    math ^^ { Math(_) } |
+    ("+INF" | "INF") ^^^ MathInf(true) |
+    "-INF" ^^^ MathInf(false)
+
   private lazy val numberWithSpecial: Parser[Number] =
     double ^^ { Number(_) } |
-    ("+INF" | "INF") ^^^ Number(Double.PositiveInfinity) |
-    "-INF" ^^^ Number(Double.NegativeInfinity) |
+    ("+INF_F" | "INF_F") ^^^ Number(Double.PositiveInfinity) |
+    "-INF_F" ^^^ Number(Double.NegativeInfinity) |
     "NaN" ^^^ Number(Double.NaN)
 
   private lazy val nt: Parser[Nt] =

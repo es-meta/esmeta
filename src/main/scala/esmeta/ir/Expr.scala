@@ -64,6 +64,7 @@ case class EGetItems(nt: Expr, ast: Expr) extends AllocExpr
 // literals
 sealed trait LiteralExpr extends Expr
 case class EMathVal(n: BigDecimal) extends LiteralExpr
+case class EMathInf(pos: Boolean) extends LiteralExpr
 case class ENumber(n: Double) extends LiteralExpr with DoubleEquals(n)
 case class EBigInt(n: scala.math.BigInt) extends LiteralExpr
 case class EStr(str: String) extends LiteralExpr

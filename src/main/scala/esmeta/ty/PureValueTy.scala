@@ -20,7 +20,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def nt: BSet[Nt]
   def codeUnit: Boolean
   def const: BSet[String]
-  def math: BSet[BigDecimal]
+  def math: BSet[ExtMath]
   def number: BSet[Number]
   def bigInt: Boolean
   def str: BSet[String]
@@ -219,7 +219,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (const.getSingle.map(Const(_): APureValue)) ||
-    (math.getSingle.map(Math(_): APureValue)) ||
+    math.getSingle ||
     number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
     (str.getSingle.map(Str(_): APureValue)) ||
@@ -272,7 +272,7 @@ case object PureValueTopTy extends PureValueTy {
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
   def const: BSet[String] = Inf
-  def math: BSet[BigDecimal] = Inf
+  def math: BSet[ExtMath] = Inf
   def number: BSet[Number] = Inf
   def bigInt: Boolean = true
   def str: BSet[String] = Inf
@@ -293,7 +293,7 @@ case class PureValueElemTy(
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
   const: BSet[String] = Fin(),
-  math: BSet[BigDecimal] = Fin(),
+  math: BSet[ExtMath] = Fin(),
   number: BSet[Number] = Fin(),
   bigInt: Boolean = false,
   str: BSet[String] = Fin(),
@@ -314,7 +314,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[BigDecimal] = Fin(),
+    math: BSet[ExtMath] = Fin(),
     number: BSet[Number] = Fin(),
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),

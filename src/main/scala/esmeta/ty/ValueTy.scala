@@ -111,7 +111,7 @@ case class ValueTy(
   def nt: BSet[Nt] = pureValue.nt
   def codeUnit: Boolean = pureValue.codeUnit
   def const: BSet[String] = pureValue.const
-  def math: BSet[BigDecimal] = pureValue.math
+  def math: BSet[ExtMath] = pureValue.math
   def number: BSet[Number] = pureValue.number
   def bigInt: Boolean = pureValue.bigInt
   def str: BSet[String] = pureValue.str
@@ -157,7 +157,8 @@ case class ValueTy(
             ast.idx == idx &&
             ast.subIdx == subIdx
       case x @ Nt(name, params) => nt contains x
-      case Math(n)              => math contains n
+      case mat @ Math(n)        => math contains mat
+      case mat @ MathInf(pos)   => math contains mat
       case Const(name)          => const contains name
       case CodeUnit(c)          => codeUnit
       case num @ Number(n)      => number contains num
@@ -185,7 +186,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[BigDecimal] = Fin(),
+    math: BSet[ExtMath] = Fin(),
     number: BSet[Number] = Fin(),
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),

@@ -688,8 +688,8 @@ class Compiler(
           EStr("ErrorData") -> EUndef(),
         ),
       )
-    case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
-    case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
+    case PositiveInfinityMathValueLiteral() => EMathInf(true)
+    case NegativeInfinityMathValueLiteral() => EMathInf(false)
     case DecimalMathValueLiteral(n)         => EMathVal(n)
     case MathConstantLiteral(pre, name) =>
       val expr = name match

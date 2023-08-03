@@ -269,8 +269,8 @@ class TypeAnalyzer(
     )(using cp: ControlPoint): Unit = {
       if (l.isBottom || r.isBottom) return
       val valid = check.exists(ty => {
-        val lty = l.ty -- InfT
-        val rty = r.ty -- InfT
+        val lty = l.ty
+        val rty = r.ty
         lty <= ty && rty <= ty
       })
       if (!valid) {
