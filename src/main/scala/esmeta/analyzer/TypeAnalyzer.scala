@@ -161,7 +161,10 @@ class TypeAnalyzer(
       if (config.arity && (len < from || to < len))
         addMismatch(ArityMismatch(cp, len))
       // fill optional args after arity checked
-      val argsWithOptional = args ++ List.fill(to - len)(AbsValue.absentTop)
+      val viewargs = calleeNp.view.tys.map { AbsValue(_) }
+      val argsWithOptional = (if (TY_SENS) viewargs else args) ++ List.fill(
+        to - len,
+      )(AbsValue.absentTop)
       // construct local type environment
       (for (((param, arg), idx) <- (params zip argsWithOptional).zipWithIndex)
         yield {
@@ -175,8 +178,9 @@ class TypeAnalyzer(
                 val aap = ArgAssignPoint(cp, idx)
                 addMismatch(ParamTypeMismatch(aap, argTy))
               AbsValue(paramTy)
-          // force to set expected type for parameters
-          param.lhs -> expected
+          // force to set expected type for parameters when not type-sensitive
+          val paramTy = if (TY_SENS) arg else expected
+          param.lhs -> paramTy
         }).toMap
     }
 
@@ -199,7 +203,8 @@ class TypeAnalyzer(
           if (config.returnType && !(givenTy <= expectedTy))
             addMismatch(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(expectedTy))
-      super.doReturn(irp, expected)
+      val retTy = if (TY_SENS) newRet else expected
+      super.doReturn(irp, retTy)
   }
 
   /** transfer function */

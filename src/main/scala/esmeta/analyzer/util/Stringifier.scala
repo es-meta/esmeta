@@ -58,11 +58,10 @@ class Stringifier(
 
     // ir contexts
     if (IR_SENS) ctxtStr(view.calls.map(_.id.toString), view.loops)
-    // TODO type contexts
-    // if (TYPE_SENS) {
-    //   given Rule[Iterable[Type]] = iterableRule("[", ", ", "]")
-    //   app >> view.tys
-    // }
+    if (TY_SENS) {
+      given Rule[Iterable[ValueTy]] = iterableRule("[", ", ", "]")
+      app >> view.tys
+    }
     app
 
   // analysis points
