@@ -373,42 +373,56 @@ object TypeAnalyzer {
   /** configuration for type checking */
   case class Config(
     // type checkers
-    arityPriority: Int = 1,
-    paramTypePriority: Int = 1,
-    returnTypePriority: Int = 1,
-    uncheckedAbruptPriority: Int = 1,
-    invalidAstPropertyPriority: Int = 1,
-    invalidStrPropertyPriority: Int = 1,
-    invalidNamePropertyPriority: Int = 1,
-    invalidCompPropertyPriority: Int = 1,
-    invalidRecordPropertyPriority: Int = 1,
-    invalidListPropertyPriority: Int = 1,
-    invalidSymbolPropertyPriority: Int = 1,
-    invalidSubMapPropertyPriority: Int = 1,
-    propertyUpdatePriority: Int = 1,
-    mapAllocPriority: Int = 1,
-  ) {
-    def arity: Boolean = arityPriority <= PRIORITY_FLAG
-    def paramType: Boolean = paramTypePriority <= PRIORITY_FLAG
-    def returnType: Boolean = returnTypePriority <= PRIORITY_FLAG
-    def uncheckedAbrupt: Boolean = uncheckedAbruptPriority <= PRIORITY_FLAG
-    def invalidAstProperty: Boolean =
-      invalidAstPropertyPriority <= PRIORITY_FLAG
-    def invalidStrProperty: Boolean =
-      invalidStrPropertyPriority <= PRIORITY_FLAG
-    def invalidNameProperty: Boolean =
-      invalidNamePropertyPriority <= PRIORITY_FLAG
-    def invalidCompProperty: Boolean =
-      invalidCompPropertyPriority <= PRIORITY_FLAG
-    def invalidRecordProperty: Boolean =
-      invalidRecordPropertyPriority <= PRIORITY_FLAG
-    def invalidListProperty: Boolean =
-      invalidListPropertyPriority <= PRIORITY_FLAG
-    def invalidSymbolProperty: Boolean =
-      invalidSymbolPropertyPriority <= PRIORITY_FLAG
-    def invalidSubMapProperty: Boolean =
-      invalidSubMapPropertyPriority <= PRIORITY_FLAG
-    def propertyUpdate: Boolean = propertyUpdatePriority <= PRIORITY_FLAG
-    def mapAlloc: Boolean = mapAllocPriority <= PRIORITY_FLAG
-  }
+    arity: Boolean,
+    paramType: Boolean,
+    returnType: Boolean,
+    uncheckedAbrupt: Boolean,
+    invalidAstProperty: Boolean,
+    invalidStrProperty: Boolean,
+    invalidNameProperty: Boolean,
+    invalidCompProperty: Boolean,
+    invalidRecordProperty: Boolean,
+    invalidListProperty: Boolean,
+    invalidSymbolProperty: Boolean,
+    invalidSubMapProperty: Boolean,
+    invalidPropertyAccess: Boolean,
+    propertyUpdate: Boolean,
+    mapAlloc: Boolean,
+  )
+  object Config:
+    val ignoreAll = Config(
+      arity = false,
+      paramType = false,
+      returnType = false,
+      uncheckedAbrupt = false,
+      invalidAstProperty = false,
+      invalidStrProperty = false,
+      invalidNameProperty = false,
+      invalidCompProperty = false,
+      invalidRecordProperty = false,
+      invalidListProperty = false,
+      invalidSymbolProperty = false,
+      invalidSubMapProperty = false,
+      invalidPropertyAccess = false,
+      propertyUpdate = false,
+      mapAlloc = false,
+    )
+
+    def apply(): Config = Config(
+      arity = 1 <= PRIORITY_FLAG,
+      paramType = 1 <= PRIORITY_FLAG,
+      returnType = 1 <= PRIORITY_FLAG,
+      uncheckedAbrupt = 1 <= PRIORITY_FLAG,
+      invalidAstProperty = 1 <= PRIORITY_FLAG,
+      invalidStrProperty = 1 <= PRIORITY_FLAG,
+      invalidNameProperty = 1 <= PRIORITY_FLAG,
+      invalidCompProperty = 1 <= PRIORITY_FLAG,
+      invalidRecordProperty = 1 <= PRIORITY_FLAG,
+      invalidListProperty = 1 <= PRIORITY_FLAG,
+      invalidSymbolProperty = 1 <= PRIORITY_FLAG,
+      invalidSubMapProperty = 1 <= PRIORITY_FLAG,
+      invalidPropertyAccess = 1 <= PRIORITY_FLAG,
+      propertyUpdate = 1 <= PRIORITY_FLAG,
+      mapAlloc = 1 <= PRIORITY_FLAG,
+    )
 }
