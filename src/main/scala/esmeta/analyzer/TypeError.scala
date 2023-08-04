@@ -5,11 +5,17 @@ import esmeta.error.{InvalidAnalysisPointMerge, InvalidTypeErrorMerge}
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
+import esmeta.analyzer.util.Fingerprint
 
 /** type errors in specification */
 sealed trait TypeError extends AnalyzerElem {
   val point: AnalysisPoint
   inline def func: Func = point.func
+  def toFingerprint: String =
+    val fingerprint = TypeError.getFingerprint(())
+    import fingerprint.errorRule
+    stringify(this)
   def +(that: TypeError): TypeError = (this, that) match
     case (ParamTypeMismatch(lp, lty), ParamTypeMismatch(rp, rty)) =>
       ParamTypeMismatch(lp + rp, lty || rty)
@@ -24,6 +30,12 @@ sealed trait TypeError extends AnalyzerElem {
     case (BinaryOpTypeMismatch(lp, ll, lr), BinaryOpTypeMismatch(rp, rl, rr)) =>
       BinaryOpTypeMismatch(lp + rp, ll || rl, lr || rr)
     case _ => throw InvalidTypeErrorMerge(this, that)
+}
+
+object TypeError {
+  val getFingerprint = cached[Unit, Fingerprint] { _ =>
+    Fingerprint()
+  }
 }
 
 /** parameter type mismatches */
