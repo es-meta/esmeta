@@ -77,8 +77,7 @@ object Stringifier {
           case One(v) => Set(v)
           case Zero   => Set()
         val union = set ++ infSet
-        given Rule[Set[ExtMath]] = setRule("", OR, "")
-        app >> union
+        app >> "Math" >> union
     }
 
   // predefined types

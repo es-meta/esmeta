@@ -67,7 +67,7 @@
   "global-eval.js" : true,
   "global-object.js" : true,
   "global-object2.js" : true,
-  "global.js" : true,
+  "global.js" : false,
   "harness.js" : true,
   "if-statement1.js" : true,
   "increment1.js" : true,

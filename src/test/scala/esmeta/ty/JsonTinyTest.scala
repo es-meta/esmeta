@@ -1,7 +1,7 @@
 package esmeta.ty
 
 import esmeta.ty.util.JsonProtocol.given
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, ExtMath, Math, MathInf}
 import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
 
 /** JSON test */
@@ -57,9 +57,12 @@ class JsonTinyTest extends TyTest {
       ConstT("key", "value") -> "Const[~key~, ~value~]",
       MathT -> "Math",
       MathT(0, 1) -> "Math[0, 1]",
+      MathInfT(true) -> "Math[+INF]",
+      MathInfT(false) -> "Math[-INF]",
+      ExtMathT -> "ExtMath",
       NumberT -> "Number",
-      NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF]",
-      NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF]",
+      NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF_F]",
+      NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF_F]",
       NumberT(Number(Double.NaN)) -> "Number[NaN]",
       NumberT(
         Number(Double.PositiveInfinity),
@@ -67,7 +70,7 @@ class JsonTinyTest extends TyTest {
         Number(Double.NaN),
         Number(-0.0),
         Number(0.0),
-      ) -> "Number[-INF, -0.0, 0.0, +INF, NaN]",
+      ) -> "Number[-INF_F, -0.0, 0.0, +INF_F, NaN]",
       BigIntT -> "BigInt",
       StrT -> "String",
       StrT("a") -> "String[\"a\"]",

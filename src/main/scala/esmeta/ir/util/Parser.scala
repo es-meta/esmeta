@@ -212,8 +212,10 @@ trait Parsers extends TyParsers {
     bigInt <~ "n" ^^ { EBigInt(_) } |
     double <~ "f" ^^ { ENumber(_) } |
     codeUnit <~ "cu" ^^ { ECodeUnit(_) } |
-    ("+INF" | "INF") ^^^ ENumber(Double.PositiveInfinity) |
-    "-INF" ^^^ ENumber(Double.NegativeInfinity) |
+    ("+INF_F" | "INF_F") ^^^ ENumber(Double.PositiveInfinity) |
+    "-INF_F" ^^^ ENumber(Double.NegativeInfinity) |
+    ("+INF" | "INF") ^^^ EMathInf(true) |
+    "-INF" ^^^ EMathInf(false) |
     "NaN" ^^^ ENumber(Double.NaN) |
     decimal ^^ { EMathVal(_) } |
     string ^^ { EStr(_) } |

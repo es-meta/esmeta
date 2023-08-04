@@ -146,8 +146,8 @@ class JsonTinyTest extends IRTest {
       // literals
       EMathVal(4) -> "4",
       ENumber(3.0) -> "3.0f",
-      ENumber(Double.PositiveInfinity) -> "+INF",
-      ENumber(Double.NegativeInfinity) -> "-INF",
+      ENumber(Double.PositiveInfinity) -> "+INF_F",
+      ENumber(Double.NegativeInfinity) -> "-INF_F",
       ENumber(Double.NaN) -> "NaN",
       EBigInt(1024) -> "1024n",
       EStr("hi") -> "\"hi\"",

@@ -146,8 +146,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (
       math match
         case Math(n)        => n.toString
-        case MathInf(true)  => "+∞"
-        case MathInf(false) => "-∞"
+        case MathInf(true)  => "+INF"
+        case MathInf(false) => "-INF"
     )
 
   // constant
