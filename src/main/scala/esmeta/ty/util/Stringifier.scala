@@ -68,9 +68,18 @@ object Stringifier {
 
   /** extended math types */
   given extMathTyRule: Rule[ExtMathTy] = (app, ty) =>
-    if (ty.isTop) app >> "ExtMath"
-    else if (ty == ExtMathTy(Inf, Zero)) app >> "Math"
-    else app >> "ExtMath" // TODO: more precise
+    ty match {
+      case ExtMathTy(Inf, One(_)) | ExtMathTy(Inf, Many) => app >> "ExtMath"
+      case ExtMathTy(Inf, Zero)                          => app >> "Math"
+      case ExtMathTy(Fin(set), inf) =>
+        val infSet: Set[ExtMath] = inf match
+          case Many   => Set(MathInf(true), MathInf(false))
+          case One(v) => Set(v)
+          case Zero   => Set()
+        val union = set ++ infSet
+        given Rule[Set[ExtMath]] = setRule("", OR, "")
+        app >> union
+    }
 
   // predefined types
   lazy val predTys: List[(PureValueTy, String)] = List(
@@ -97,7 +106,7 @@ object Stringifier {
         .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
-        .add(ty.math, !ty.math.isBottom, "Math")
+        .add(ty.math, !ty.math.isBottom)
         .add(ty.number, !ty.number.isBottom, "Number")
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
@@ -199,6 +208,14 @@ object Stringifier {
       case Math(n)        => app >> n
       case MathInf(true)  => app >> "INF"
       case MathInf(false) => app >> "-INF"
+  given Ordering[ExtMath] with {
+    def compare(x: ExtMath, y: ExtMath): Int = (x, y) match {
+      case (MathInf(px), MathInf(py)) => Ordering[Boolean].compare(px, py)
+      case (Math(nx), Math(ny))       => Ordering[BigDecimal].compare(nx, ny)
+      case (MathInf(px), Math(_))     => if (px) 1 else -1
+      case (Math(_), MathInf(py))     => if (py) -1 else 1
+    }
+  }
 
   // rule for number
   private given numberRule: Rule[Number] = (app, number) =>

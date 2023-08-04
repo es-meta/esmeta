@@ -233,9 +233,9 @@ class TypeAnalyzer(
         case _ =>
           bop match {
             case Add | Sub | Div | Mul | Mod | UMod | Pow | Lt | Equal =>
-              checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
+              checkBOp(bop, left, right, Set(ExtMathT, NumberT, BigIntT))
             case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
-              checkBOp(bop, left, right, Set(MathT, BigIntT))
+              checkBOp(bop, left, right, Set(ExtMathT, BigIntT))
             case _ =>
           }
           bop match {
