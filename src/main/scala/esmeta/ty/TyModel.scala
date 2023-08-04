@@ -435,8 +435,8 @@ object TyModel {
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
           "ArrayLength" -> MathT,
           "ByteOffset" -> MathT,
-          "ContentTy" -> (NUMBER || BIGINT),
-          "TydArrayName" -> StrT,
+          "ContentType" -> (NUMBER || BIGINT),
+          "TypedArrayName" -> StrT,
         ),
       ),
       "ModuleNamespaceExoticObject" -> TyInfo(
