@@ -50,3 +50,8 @@ case class PropertyTypeMismatch(
   expected: ValueTy,
   actual: ValueTy,
 ) extends TypeMismatch(cp)
+
+/** binary operator lhs/rhs type mismatches */
+case class BinaryOperatorTypeMismatch(
+  bop: BinaryOperationPoint,
+) extends TypeMismatch(bop)

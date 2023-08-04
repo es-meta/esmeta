@@ -86,6 +86,18 @@ case class PropertyAssignPoint(
 enum LookupKind:
   case Ast, Str, Name, Comp, Record, List, Symbol, SubMap
 
+/** binary operation points */
+case class BinaryOperationPoint(
+  cp: ControlPoint,
+  op: BOp,
+  lhs: AbsValue,
+  rhs: AbsValue,
+) extends AnalysisPoint {
+  inline def view = cp.view
+  inline def func = cp.func
+  def withoutView: BinaryOperationPoint = copy(cp = cp.withoutView)
+}
+
 /** control points */
 sealed trait ControlPoint extends AnalysisPoint {
   def withoutView: ControlPoint

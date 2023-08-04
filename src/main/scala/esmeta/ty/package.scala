@@ -98,6 +98,7 @@ lazy val NumberT: ValueTy = ValueTy(number = Inf)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
   else ValueTy(number = Fin(ns.toSet))
+lazy val InfT = NumberT(POS_INF, NEG_INF)
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
 lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
