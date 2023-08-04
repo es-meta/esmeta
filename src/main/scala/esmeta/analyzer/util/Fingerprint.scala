@@ -11,7 +11,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
-class Fingerprint {
+object Fingerprint {
   private val cfgStringifier = CFGElem.getStringifier(false, false)
   import cfgStringifier.given
 
