@@ -135,6 +135,7 @@ class Stringifier(
         if (!params.isEmpty) app >> "[" >> params >> "]"
         app >> ">"
       case Math(n)         => app >> n
+      case MathInf(pos)    => app >> (if (pos) "∞" else "-∞")
       case Const(name)     => app >> "~" >> name >> "~"
       case CodeUnit(c)     => app >> c.toInt >> "cu"
       case sv: SimpleValue => app >> sv.toString

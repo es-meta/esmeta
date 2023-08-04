@@ -398,6 +398,7 @@ object TypeDomain extends value.Domain {
     case CodeUnit(_)               => CodeUnitT
     case Const(name)               => ConstT(name)
     case Math(n)                   => MathT(n)
+    case MathInf(pos)              => MathInfT(pos)
     case n: Number                 => NumberT(n)
     case BigInt(_)                 => BigIntT
     case Str(n)                    => StrT(n)

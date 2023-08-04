@@ -94,6 +94,8 @@ lazy val MathT: ValueTy = ValueTy(math = ExtMathTy(Inf, Zero))
 def MathT(ns: BigDecimal*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
   else ValueTy(math = ExtMathTy(Fin(ns.toSet.map(Math(_))), Zero))
+def MathInfT(pos: Boolean): ValueTy =
+  ValueTy(math = ExtMathTy(Fin(), One(MathInf(pos))))
 lazy val ExtMathT: ValueTy = ValueTy(math = ExtMathTy.Top)
 lazy val NumberT: ValueTy = ValueTy(number = Inf)
 def NumberT(ns: Number*): ValueTy =

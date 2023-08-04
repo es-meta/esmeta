@@ -1,7 +1,7 @@
 package esmeta.ty.util
 
 import esmeta.LINE_SEP
-import esmeta.state.Number
+import esmeta.state.{Number, ExtMath, Math, MathInf}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -17,6 +17,7 @@ object Stringifier {
       case elem: ValueTy     => valueTyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
+      case elem: ExtMathTy   => extMathTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
       case elem: NameTy      => nameTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
@@ -64,6 +65,12 @@ object Stringifier {
         if (elem.isBottom) app >> "Nil"
         else if (elem.isTop) app >> "List"
         else app >> "List[" >> elem >> "]"
+
+  /** extended math types */
+  given extMathTyRule: Rule[ExtMathTy] = (app, ty) =>
+    if (ty.isTop) app >> "ExtMath"
+    else if (ty == ExtMathTy(Inf, Zero)) app >> "Math"
+    else app >> "ExtMath" // TODO: more precise
 
   // predefined types
   lazy val predTys: List[(PureValueTy, String)] = List(
@@ -187,11 +194,17 @@ object Stringifier {
       this
   }
 
+  private given extMathRule: Rule[ExtMath] = (app, emath) =>
+    emath match
+      case Math(n)        => app >> n
+      case MathInf(true)  => app >> "INF"
+      case MathInf(false) => app >> "-INF"
+
   // rule for number
   private given numberRule: Rule[Number] = (app, number) =>
     number match
-      case Number(Double.PositiveInfinity) => app >> "+INF"
-      case Number(Double.NegativeInfinity) => app >> "-INF"
+      case Number(Double.PositiveInfinity) => app >> "+INF_F"
+      case Number(Double.NegativeInfinity) => app >> "-INF_F"
       case Number(n) if n.isNaN            => app >> "NaN"
       case Number(n)                       => app >> n
   given Ordering[Number] = Ordering.by(_.n)
