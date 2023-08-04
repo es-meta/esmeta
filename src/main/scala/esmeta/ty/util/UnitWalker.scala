@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, ExtMath, Math, MathInf}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -86,8 +86,13 @@ trait UnitWalker extends BasicUnitWalker {
   def walkConst(const: BSet[String]): Unit = walkBSet(const, walk)
 
   /** mathematical value types */
-  def walkMath(math: BSet[BigDecimal]): Unit = walkBSet(math, walk)
-  def walk(math: BigDecimal): Unit = {}
+  def walkMath(math: ExtMathTy): Unit = math match
+    case ExtMathTy(mat, inf) => {
+      walkBSet(mat, walk)
+      walkFlat(inf, walk)
+    }
+  def walk(math: Math): Unit = {}
+  def walk(math: MathInf): Unit = {}
 
   /** number types */
   def walkNumber(number: BSet[Number]): Unit = walkBSet(number, walk)

@@ -90,11 +90,11 @@ def ConstT: ValueTy = ValueTy(const = Inf)
 def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(const = Fin(xs.toSet))
-lazy val MathT: ValueTy = ValueTy(math = Inf)
+lazy val MathT: ValueTy = ValueTy(math = ExtMathTy(Inf, Zero))
 def MathT(ns: BigDecimal*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
-  else ValueTy(math = Fin(ns.toSet.map(Math(_))))
-lazy val ExtMathT: ValueTy = ValueTy(math = Inf)
+  else ValueTy(math = ExtMathTy(Fin(ns.toSet.map(Math(_))), Zero))
+lazy val ExtMathT: ValueTy = ValueTy(math = ExtMathTy.Top)
 lazy val NumberT: ValueTy = ValueTy(number = Inf)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot

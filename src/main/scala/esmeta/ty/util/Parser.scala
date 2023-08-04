@@ -84,10 +84,6 @@ trait Parsers extends BasicParsers {
     "Const[" ~> rep1sep(const, ",") <~ "]" ^^ {
       case s => PureValueTy(const = Fin(s.toSet))
     } |
-    // (extended) mathematical value
-    "Math[" ~> rep1sep(extmathWithSpecial, ",") <~ "]" ^^ {
-      case m => PureValueTy(math = Fin(m.toSet))
-    } | "Math" ^^^ PureValueTy(math = Inf) |
     // number
     "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
       case n => PureValueTy(number = Fin(n.toSet))
@@ -109,11 +105,6 @@ trait Parsers extends BasicParsers {
     // name
     singleNameTy ^^ { case name => PureValueTy(name = name) }
   }.named("ty.PureValueTy (single)")
-
-  private lazy val extmathWithSpecial: Parser[ExtMath] =
-    math ^^ { Math(_) } |
-    ("+INF" | "INF") ^^^ MathInf(true) |
-    "-INF" ^^^ MathInf(false)
 
   private lazy val numberWithSpecial: Parser[Number] =
     double ^^ { Number(_) } |
@@ -184,6 +175,26 @@ trait Parsers extends BasicParsers {
     "List[" ~> valueTy <~ "]" ^^ { case v => ListTy(Some(v)) } |
     "Nil" ^^^ ListTy(Some(ValueTy.Bot))
   }.named("ty.ListTy (single)")
+
+  /** extended math types */
+  given extMathTy: Parser[ExtMathTy] = {
+    rep1sep(singleExtMathTy, "|") ^^ {
+      case ts => ts.foldLeft(ExtMathTy.Bot)(_ || _)
+    }
+  }.named("ty.ExtMathTy")
+
+  private lazy val singleExtMathTy: Parser[ExtMathTy] = {
+    "Math" ^^^ ExtMathTy(Inf, Zero) |
+    "Math[" ~> mathWithSpecial <~ "]" ^^ {
+      case mat @ Math(_)    => ExtMathTy(Fin(Set(mat)), Zero)
+      case mat @ MathInf(_) => ExtMathTy(Fin(), One(mat))
+    }
+  }.named("ty.ExtMathTy (single)")
+
+  private lazy val mathWithSpecial: Parser[ExtMath] =
+    decimal ^^ { Math(_) } |
+    ("+INF" | "INF") ^^^ MathInf(true) |
+    "-INF" ^^^ MathInf(false)
 
   /** AST value types */
   given astValueTy: Parser[AstValueTy] = {

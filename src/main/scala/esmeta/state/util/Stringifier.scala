@@ -106,7 +106,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case cont: Cont      => contRule(app, cont)
       case AstValue(ast)   => app >> ast
       case gr: Nt          => ntRule(app, gr)
-      case m: Math         => mathRule(app, m)
+      case m: ExtMath      => mathRule(app, m)
       case c: Const        => constRule(app, c)
       case cu: CodeUnit    => cuRule(app, cu)
       case sv: SimpleValue => svRule(app, sv)
@@ -142,7 +142,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app
 
   // math
-  given mathRule: Rule[Math] = (app, math) => app >> math.n
+  given mathRule: Rule[ExtMath] = (app, math) =>
+    app >> (
+      math match
+        case Math(n)        => n.toString
+        case MathInf(true)  => "+∞"
+        case MathInf(false) => "-∞"
+    )
 
   // constant
   given constRule: Rule[Const] = (app, c) => app >> "~" >> c.name >> "~"

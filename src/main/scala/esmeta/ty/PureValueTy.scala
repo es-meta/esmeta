@@ -20,7 +20,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def nt: BSet[Nt]
   def codeUnit: Boolean
   def const: BSet[String]
-  def math: BSet[ExtMath]
+  def math: ExtMathTy
   def number: BSet[Number]
   def bigInt: Boolean
   def str: BSet[String]
@@ -272,7 +272,7 @@ case object PureValueTopTy extends PureValueTy {
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
   def const: BSet[String] = Inf
-  def math: BSet[ExtMath] = Inf
+  def math: ExtMathTy = ExtMathTy.Top
   def number: BSet[Number] = Inf
   def bigInt: Boolean = true
   def str: BSet[String] = Inf
@@ -293,7 +293,7 @@ case class PureValueElemTy(
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
   const: BSet[String] = Fin(),
-  math: BSet[ExtMath] = Fin(),
+  math: ExtMathTy = ExtMathTy.Bot,
   number: BSet[Number] = Fin(),
   bigInt: Boolean = false,
   str: BSet[String] = Fin(),
@@ -314,7 +314,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[ExtMath] = Fin(),
+    math: ExtMathTy = ExtMathTy.Bot,
     number: BSet[Number] = Fin(),
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),

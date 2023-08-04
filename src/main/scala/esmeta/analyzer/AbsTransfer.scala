@@ -564,6 +564,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
           v <- transfer(expr)
         } yield v.isArrayIndex
       case EMathVal(n)           => AbsValue(Math(n))
+      case EMathInf(pos)         => AbsValue(MathInf(pos))
       case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
       case ENumber(n)            => AbsValue(n)
       case EBigInt(n)            => AbsValue(BigInt(n))

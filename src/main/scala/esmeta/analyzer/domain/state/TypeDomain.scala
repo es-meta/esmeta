@@ -407,7 +407,7 @@ object TypeDomain extends state.Domain {
     idx: Int,
     subIdx: Int,
   )(prop: ValueTy): ValueTy = prop.math.getSingle match
-    case One(n) if n.isValidInt =>
+    case One(Math(n)) if n.isValidInt =>
       val propIdx = n.toInt
       val rhs = cfg.grammar.nameMap(name).rhsList(idx)
       val nts = rhs.getNts(subIdx)

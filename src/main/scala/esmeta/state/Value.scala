@@ -113,7 +113,7 @@ case class AstValue(ast: Ast) extends PureValue
 case class Nt(name: String, params: List[Boolean]) extends PureValue
 
 /** math values */
-trait ExtMath extends PureValue
+sealed trait ExtMath extends PureValue
 case class Math(n: BigDecimal) extends ExtMath
 case class MathInf(pos: Boolean) extends ExtMath
 

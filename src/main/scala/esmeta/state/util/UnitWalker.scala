@@ -64,7 +64,7 @@ trait UnitWalker extends BasicUnitWalker {
       walkMap(captured, walk, walk); walkList(callStack, walk)
     case _: AstValue     =>
     case _: Nt           =>
-    case _: Math         =>
+    case _: ExtMath      =>
     case _: Const        =>
     case _: CodeUnit     =>
     case sv: SimpleValue => walk(sv)
