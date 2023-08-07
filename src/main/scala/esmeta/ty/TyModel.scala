@@ -3,7 +3,6 @@ package esmeta.ty
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
-import esmeta.analyzer.warning
 
 /** type modeling */
 // TODO consider refactoring
@@ -84,9 +83,14 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   type PropMap = Map[String, ValueTy]
 
   /** get types of property */
+  def getProp(tname: String, p: String): ValueTy =
+    getPropOrElse(tname, p)(AbsentT)
+
+  /** get types of property */
   def getPropOrElse(tname: String, p: String)(default: => ValueTy): ValueTy =
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
-      // can be  made more precise for %ThrowTypeError% which is function object(https://tc39.es/ecma262/2022/#table-well-known-intrinsic-objects)
+      // TODO more precise for %ThrowTypeError% which is function object
+      // (https://tc39.es/ecma262/2022/#table-well-known-intrinsic-objects)
       NameT("Object")
     else
       propMap
@@ -223,7 +227,7 @@ object TyModel {
           "GlobalObject" -> (UndefT || NameT("Object")),
           "GlobalEnv" -> NameT("GlobalEnvironmentRecord"),
           "TemplateMap" -> ListT(NameT("TemplatePair")),
-          "HostDefined" -> AnyT,
+          "HostDefined" -> UndefT,
         ),
       ),
       "TemplatePair" -> TyInfo(
@@ -323,17 +327,9 @@ object TyModel {
       ),
       "OrdinaryObject" -> TyInfo(
         parent = Some("Object"),
-        fields = Map(
-          "ParameterMap" -> UndefT,
-        ),
       ),
       "FunctionObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
-        fields = Map(
-          "Errors" -> (AbsentT || ListT),
-          "Values" -> (AbsentT || ListT),
-          "Index" -> (AbsentT || MathT),
-        ),
       ),
       "ECMAScriptFunctionObject" -> TyInfo(
         parent = Some("FunctionObject"),
@@ -417,7 +413,7 @@ object TyModel {
           "Delete" -> "ArgumentsExoticObject.Delete",
         ),
         fields = Map(
-          "ParameterMap" -> (NameT("OrdinaryObject") || NullT),
+          "ParameterMap" -> NameT("OrdinaryObject"),
         ),
       ),
       "IntegerIndexedExoticObject" -> TyInfo(
@@ -525,19 +521,23 @@ object TyModel {
       "MapInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
-          "MapData" -> ListT(RecordT(Set("Key", "Value"))),
-        ),
-      ),
-      "WeakMapInstance" -> TyInfo(
-        parent = Some("OrdinaryObject"),
-        fields = Map(
-          "WeakMapData" -> ListT(RecordT(Set("Key", "Value"))),
+          "MapData" -> ListT(
+            RecordT("Key" -> (ESValueT || EMPTY), "Value" -> ESValueT),
+          ),
         ),
       ),
       "WeakSetInstance" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
           "WeakSetData" -> ListT(ESValueT),
+        ),
+      ),
+      "WeakMapInstance" -> TyInfo(
+        parent = Some("OrdinaryObject"),
+        fields = Map(
+          "WeakMapData" -> ListT(
+            RecordT("Key" -> (ESValueT || EMPTY), "Value" -> ESValueT),
+          ),
         ),
       ),
       "ErrorInstance" -> TyInfo(
@@ -779,7 +779,7 @@ object TyModel {
       "JobCallbackRecord" -> TyInfo(
         fields = Map(
           "Callback" -> NameT("FunctionObject"),
-          "HostDefined" -> AnyT,
+          "HostDefined" -> EMPTY,
         ),
       ),
 
@@ -802,7 +802,7 @@ object TyModel {
         fields = Map(
           "Realm" -> (NameT("RealmRecord") || UndefT),
           "ECMAScriptCode" -> AstT("Script"),
-          "HostDefined" -> AnyT,
+          "HostDefined" -> EMPTY,
         ),
       ),
 
@@ -812,7 +812,7 @@ object TyModel {
           "Realm" -> NameT("RealmRecord"),
           "Environment" -> (NameT("ModuleEnvironmentRecord") || EMPTY),
           "Namespace" -> (NameT("ModuleNamespaceExoticObject") || EMPTY),
-          "HostDefined" -> AnyT,
+          "HostDefined" -> UndefT,
         ),
       ),
       "CyclicModuleRecord" -> TyInfo(

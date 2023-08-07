@@ -74,6 +74,12 @@ object BasicDomain extends ret.Domain {
     def value: AbsValue = elem.value
     def state: AbsState = elem.state
 
+    /** copy */
+    def copy(
+      value: AbsValue = elem.value,
+      state: AbsState = elem.state,
+    ): Elem = Elem(value, state)
+
     /** conversion to string */
     def getString(detail: Boolean): String =
       val app = Appender()

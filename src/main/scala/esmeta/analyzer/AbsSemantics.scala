@@ -10,6 +10,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.Console.*
 import scala.annotation.tailrec
+import scala.collection.mutable.{Map => MMap}
 
 /** abstract semantics */
 class AbsSemantics(
@@ -137,6 +138,19 @@ class AbsSemantics(
   /** check reachability */
   def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
   def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
+
+  /** get detected type errors */
+  def errors: Set[TypeError] =
+    errorMap.map((_, innerMap) => innerMap.values.reduce(_ + _)).toSet
+
+  // record type errors
+  def +=(error: TypeError): Unit =
+    val sensPoint = error.point
+    val insensPoint = sensPoint.withoutView
+    errorMap
+      .getOrElseUpdate(insensPoint, MMap.empty)
+      .getOrElseUpdate(sensPoint, error)
+  private val errorMap = MMap[AnalysisPoint, MMap[AnalysisPoint, TypeError]]()
 
   /** conversion to string */
   override def toString: String = shortString

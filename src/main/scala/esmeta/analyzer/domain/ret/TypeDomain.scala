@@ -56,6 +56,12 @@ object TypeDomain extends ret.Domain {
     def value: AbsValue = elem.value
     def state: AbsState = AbsState.Bot
 
+    /** copy */
+    def copy(
+      value: AbsValue = elem.value,
+      state: AbsState = elem.state,
+    ): Elem = Elem(value)
+
     /** conversion to string */
     def getString(detail: Boolean): String = elem.toString
   }

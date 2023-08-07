@@ -49,7 +49,7 @@ class Appender(tab: String = "  ") {
 /** helper for appender */
 object Appender {
 
-  /** Rule * */
+  /** appender rule */
   type Rule[T] = (Appender, T) => Appender
 
   /** subtype rule */

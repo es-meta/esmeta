@@ -12,20 +12,17 @@ import esmeta.util.Appender.*
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.collection.mutable.{Map => MMap}
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
   cfg: CFG,
-  val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
-) extends Analyzer(cfg) {
+  alarmLevel: Int = 1,
+) extends Analyzer(cfg) { analyzer =>
   import TypeAnalyzer.*
 
-  // record type mismatches
-  def addMismatch(mismatch: TypeMismatch): Unit =
-    val ap = if (TY_SENS) mismatch.ap.withoutView else mismatch.ap
-    mismatchMap += ap -> mismatch
-  lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
-  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
+  /** configuration for type errors */
+  val config: AlarmConfig = AlarmConfig(alarmLevel = alarmLevel)
 
   /** type semantics as results */
   class Semantics(npMap: Map[NodePoint[Node], AbsState])
@@ -66,218 +63,128 @@ class TypeAnalyzer(
     /** loading monads */
     import AbsState.monad.*
 
+    /** refine invalid base for property reference */
+    override def refinePropBase(
+      cp: ControlPoint,
+      prop: Prop,
+      base: AbsValue,
+    ): AbsValue =
+      val baseTy = base.ty
+      val noPropTy = baseTy.noProp
+      if (config.invalidPropBase && !noPropTy.isBottom)
+        sem += InvalidPropBase(PropBasePoint(PropPoint(cp, prop)), baseTy)
+      AbsValue(baseTy -- noPropTy)
+
     /** return-if-abrupt completion */
     override def returnIfAbrupt(
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
-    )(using cp: ControlPoint): Result[AbsValue] = {
-      if (config.uncheckedAbrupt && !check && !value.abruptCompletion.isBottom)
-        val riap = ReturnIfAbruptPoint(cp, riaExpr)
-        addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
+    )(using cp: ControlPoint): Result[AbsValue] =
+      if (config.uncheckedAbruptComp)
+        if (!check && !value.abruptCompletion.isBottom)
+          val riaPoint = ReturnIfAbruptPoint(cp, riaExpr)
+          sem += UncheckedAbruptComp(riaPoint, value.ty)
       super.returnIfAbrupt(riaExpr, value, check)
-    }
-
-    /** handle calls */
-    override def doCall(
-      callerNp: NodePoint[Call],
-      callerSt: AbsState,
-      calleeFunc: Func,
-      args: List[AbsValue],
-      captured: Map[Name, AbsValue] = Map(),
-      method: Boolean = false,
-    ): Unit =
-      val NodePoint(callerFunc, call, view) = callerNp
-      calleeFunc.retTy.ty match
-        // Stop the propagation of analysis when it is unnecessary to analyze
-        // the callee function because it has full type annotations.
-        case retTy: ValueTy if calleeFunc.isParamTysDefined && !TY_SENS =>
-          for {
-            nextNode <- call.next
-            nextNp = NodePoint(callerFunc, nextNode, View())
-            retV = AbsValue(retTy)
-            newSt = callerSt.defineLocal(call.lhs -> retV)
-          } sem += nextNp -> newSt
-        // Otherwise, do original abstract call semantics
-        case _ =>
-          super.doCall(callerNp, callerSt, calleeFunc, args, captured, method)
 
     /** call transition */
-    override def getCalleeEntries(
+    override def getCalleeView(
       callerNp: NodePoint[Call],
-      callerSt: AbsState,
       calleeFunc: Func,
       args: List[AbsValue],
-      captured: Map[Name, AbsValue],
+    ): List[View] = List(View()) // TODO
+
+    /** assign argument to parameter */
+    override def assignArg(
+      cp: CallPoint,
       method: Boolean,
-    ): List[(NodePoint[_], AbsState)] =
-      for {
-        baseView <- if (TY_SENS) getViewFromArgs(args) else List(View())
-      } yield {
-        // handle ir callsite sensitivity
-        val NodePoint(callerFunc, callSite, callerView) = callerNp
+      idx: Int,
+      param: Param,
+      arg: AbsValue,
+    ): AbsValue = param.ty.ty match
+      case _: UnknownTy => arg
+      case paramTy: ValueTy =>
+        val argTy = arg.ty
+        val normalArgTy = argTy.removeAbsent
+        if (method && idx == 0) () /* ignore `this` for method calls */
+        else if (config.paramTypeMismatch && !(normalArgTy <= paramTy))
+          sem += ParamTypeMismatch(
+            ArgAssignPoint(cp, idx),
+            normalArgTy,
+          )
+        AbsValue(argTy && paramTy)
 
-        val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
-        val calleeSt = callerSt.copied(locals =
-          getLocals(
-            CallPoint(callerNp, calleeNp),
-            args,
-            cont = false,
-            method,
-          ) ++ captured,
-        )
-        (calleeNp, calleeSt)
-      }
-
-    private def getViewFromArgs(args: List[AbsValue]): List[View] =
-      val types = getTypes(args.map(_.ty))
-      val views = types.map(t => View(tys = t))
-      views
-
-    private def getTypes(args: List[ValueTy]): List[List[ValueTy]] = {
-      args.foldRight(List(List[ValueTy]())) {
-        case (aty, tysList) =>
-          for {
-            tys <- tysList
-            ty <- aty.gamma
-          } yield ty :: tys
-      }
-    }
-
-    /** get local variables */
-    override def getLocals(
-      cp: CallPoint[Node],
-      args: List[AbsValue],
-      cont: Boolean,
-      method: Boolean,
-    ): Map[Local, AbsValue] = {
-      val CallPoint(callerNp, calleeNp) = cp
-      val callee: Func = calleeNp.func
-      // get parameters
-      val params: List[Param] = callee.irFunc.params
-      // check arity
-      val arity @ (from, to) = callee.arity
-      val len = args.length
-      if (config.arity && (len < from || to < len))
-        addMismatch(ArityMismatch(cp, len))
-      // fill optional args after arity checked
-      val viewargs = calleeNp.view.tys.map { AbsValue(_) }
-      val argsWithOptional = (if (TY_SENS) viewargs else args) ++ List.fill(
-        to - len,
-      )(AbsValue.absentTop)
-      // construct local type environment
-      (for (((param, arg), idx) <- (params zip argsWithOptional).zipWithIndex)
-        yield {
-          val expected = param.ty.ty match
-            case _: UnknownTy => arg
-            case paramTy: ValueTy =>
-              val argTy = arg.ty.removeAbsent
-              if (method && idx == 0) {
-                () /* ignore `this` for method-like calls */
-              } else if (config.paramType && !(argTy <= paramTy))
-                val aap = ArgAssignPoint(cp, idx)
-                addMismatch(ParamTypeMismatch(aap, argTy))
-              AbsValue(paramTy)
-          // force to set expected type for parameters when not type-sensitive
-          val paramTy = if (TY_SENS) arg else expected
-          param.lhs -> paramTy
-        }).toMap
-    }
-
-    /** update return points */
-    override def doReturn(
-      irp: InternalReturnPoint,
-      givenRet: AbsRet,
-    ): Unit =
-      val InternalReturnPoint(irReturn, ReturnPoint(callee, view)) = irp
-      // wrap completion by conditions specified in
-      // [5.2.3.5 Implicit Normal Completion]
-      // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-      val newRet =
-        if (callee.isReturnComp) givenRet.wrapCompletion else givenRet
-      val givenTy = newRet.value.ty.removeAbsent
-      val expected = callee.retTy.ty match
-        case _: UnknownTy        => newRet
+    /** get return value with a state */
+    override def getReturn(irp: InternalReturnPoint, ret: AbsRet): AbsRet =
+      irp.func.retTy.ty match
+        case _: UnknownTy => ret
         case expectedTy: ValueTy =>
+          val givenTy = ret.value.ty.removeAbsent
           // return type check when it is a known type
-          if (config.returnType && !(givenTy <= expectedTy))
-            addMismatch(ReturnTypeMismatch(irp, givenTy))
-          AbsRet(AbsValue(expectedTy))
-      val retTy = if (TY_SENS) newRet else expected
-      super.doReturn(irp, retTy)
+          if (config.returnTypeMismatch && !(givenTy <= expectedTy))
+            sem += ReturnTypeMismatch(irp, givenTy)
+          ret.copy(value = AbsValue(givenTy && expectedTy))
 
+    /** transfer function for unary operators */
     override def transfer(
       st: AbsState,
-      bop: BOp,
+      unary: EUnary,
+      operand: AbsValue,
+    )(using cp: ControlPoint): AbsValue =
+      import UOp.*
+      if (config.unaryOpTypeMismatch)
+        val operandTy = operand.ty
+        unary.uop match
+          case Abs | Floor =>
+            checkUnary(unary, operandTy, MathT)
+          case Neg | BNot =>
+            checkUnary(unary, operandTy, MathT || NumberT || BigIntT)
+          case Not =>
+            checkUnary(unary, operandTy, BoolT)
+      super.transfer(st, unary, operand)
+
+    private def checkUnary(
+      unary: EUnary,
+      operandTy: ValueTy,
+      expectedTys: ValueTy,
+    )(using cp: ControlPoint): Unit = if (!(operandTy <= expectedTys))
+      sem += UnaryOpTypeMismatch(
+        UnaryOpPoint(cp, unary),
+        operandTy,
+      )
+
+    /** transfer function for binary operators */
+    override def transfer(
+      st: AbsState,
+      binary: EBinary,
       left: AbsValue,
       right: AbsValue,
     )(using cp: ControlPoint): AbsValue =
       import BOp.*
-      import esmeta.interpreter.Interpreter
-      (left.getSingle, right.getSingle) match {
-        case (Zero, _) | (_, Zero) => AbsValue.Bot
-        case (One(l: SimpleValue), One(r: SimpleValue)) =>
-          optional(AbsValue(Interpreter.eval(bop, l, r)))
-            .getOrElse(AbsValue.Bot)
-        case (One(Math(l)), One(Math(r))) =>
-          optional(AbsValue(Interpreter.eval(bop, Math(l), Math(r))))
-            .getOrElse(AbsValue.Bot)
-        case (One(lpart: Part), One(rpart: Part))
-            if bop == Eq || bop == Equal =>
-          if (lpart == rpart) {
-            if (st.isSingle(lpart)) AVT
-            else AVB
-          } else AVF
-        case (One(l), One(r)) if bop == Eq || bop == Equal =>
-          AbsValue(l == r)
-        case _ =>
-          bop match {
-            case Add | Sub | Div | Mul | Mod | UMod | Pow | Lt | Equal =>
-              checkBOp(bop, left, right, Set(MathT, NumberT, BigIntT))
-            case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
-              checkBOp(bop, left, right, Set(MathT, BigIntT))
-            case _ =>
-          }
-          bop match {
-            case BAnd    => left & right
-            case BOr     => left | right
-            case BXOr    => left ^ right
-            case Eq      => left =^= right
-            case Equal   => left ==^== right
-            case Lt      => left < right
-            case And     => left && right
-            case Or      => left || right
-            case Xor     => left ^^ right
-            case Add     => left + right
-            case Sub     => left sub right
-            case Div     => left / right
-            case Mul     => left * right
-            case Mod     => left % right
-            case UMod    => left %% right
-            case Pow     => left ** right
-            case LShift  => left << right
-            case SRShift => left >> right
-            case URShift => left >>> right
-          }
-      }
+      if (config.binaryOpTypeMismatch)
+        val (lhsTy, rhsTy) = (left.ty, right.ty)
+        binary.bop match
+          case Add | Sub | Mul | Pow | Div | UMod | Mod | Lt | Equal =>
+            checkBinary(binary, lhsTy, rhsTy, Set(ExtMathT, NumberT, BigIntT))
+          case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
+            checkBinary(binary, lhsTy, rhsTy, Set(MathT, BigIntT))
+          case And | Or | Xor =>
+            checkBinary(binary, lhsTy, rhsTy, Set(BoolT))
+          case Eq =>
+      super.transfer(st, binary, left, right)
 
-    private def checkBOp(
-      op: BOp,
-      l: AbsValue,
-      r: AbsValue,
-      check: Set[ValueTy],
-    )(using cp: ControlPoint): Unit = {
-      if (l.isBottom || r.isBottom) return
-      val valid = check.exists(ty => {
-        val lty = l.ty -- InfT
-        val rty = r.ty -- InfT
-        lty <= ty && rty <= ty
-      })
-      if (!valid) {
-        val bop = BinaryOperationPoint(cp, op, l, r)
-        addMismatch(BinaryOperatorTypeMismatch(bop))
-      }
-    }
+    private def checkBinary(
+      binary: EBinary,
+      lhsTy: ValueTy,
+      rhsTy: ValueTy,
+      expectedTys: Set[ValueTy],
+    )(using cp: ControlPoint): Unit =
+      if (!expectedTys.exists(ty => lhsTy <= ty || rhsTy <= ty))
+        sem += BinaryOpTypeMismatch(
+          BinaryOpPoint(cp, binary),
+          lhsTy,
+          rhsTy,
+        )
   }
 
   /** transfer function */
@@ -292,39 +199,43 @@ class TypeAnalyzer(
   ): Semantics = apply(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
-      if (log) logging(sem)
-      var unusedSet = ignore.names
-      val detected = mismatches.filter(mismatch => {
-        val name = mismatch.func.name
-        unusedSet -= name
-        !ignore.names.contains(name)
-      })
-      if (!detected.isEmpty || !unusedSet.isEmpty)
+      val errors: Set[TypeError] = sem.errors
+      if (log) logging(sem, errors)
+      val ignoreNames = ignore.names
+      val errorNames = errors.map(_.func.name)
+      val unusedNames = ignoreNames -- errorNames
+      val detectedNames = errorNames -- ignoreNames
+      val detected = errors.filter(detectedNames contains _.func.name)
+      if (!detectedNames.isEmpty || !unusedNames.isEmpty)
         val app = new Appender
         // show detected type mismatches
         if (!detected.isEmpty)
           app :> "* " >> detected.size
           app >> " type mismatches are detected."
         // show unused names
-        if (!unusedSet.isEmpty)
-          app :> "* " >> unusedSet.size
+        if (!unusedNames.isEmpty)
+          app :> "* " >> unusedNames.size
           app >> " names are not used to ignore mismatches."
         detected.toList.map(_.toString).sorted.map(app :> _)
-        // show help message about how to use the ignorance system
+        // update ignore file or guide user to update it
         ignore.filename.map(path =>
           if (ignore.update)
             dumpJson(
               name = "algorithm names for the ignorance system",
-              data = mismatches.map(_.func.name).toList.sorted,
+              data = errorNames.toList.sorted,
               filename = path,
               noSpace = false,
             )
           else
             app :> "=" * 80
-            app :> "To suppress this error message, "
-            app >> "add/remove the following names to `" >> path >> "`:"
-            detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
-            unusedSet.toList.sorted.map(app :> "  - " >> _)
+            if (!detectedNames.isEmpty)
+              app :> "To suppress this error message, "
+              app >> "add the following names to `" >> path >> "`:"
+              detectedNames.toList.sorted.map(app :> "  + " >> _)
+            if (!unusedNames.isEmpty)
+              app :> "To suppress this error message, "
+              app >> "remove the following names to `" >> path >> "`:"
+              unusedNames.toList.sorted.map(app :> "  - " >> _)
             app :> "=" * 80,
         )
         throw TypeCheckFail(if (silent) None else Some(app.toString))
@@ -337,61 +248,12 @@ class TypeAnalyzer(
     log: Boolean,
     silent: Boolean,
   ): Semantics =
-    val targets = getInitTargets(target, silent)
+    val targets = getInitTargets(cfg, target, silent)
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
     apply(targets, ignore, log, silent)
 
-  // all entry node points
-  def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
-    func <- targets
-    entry = func.entry
-    view = getView(func)
-  } yield NodePoint(func, entry, view)
-
-  // get initial abstract states in each node point
-  def initNpMap(targets: List[Func]): Map[NodePoint[Node], AbsState] = (for {
-    np @ NodePoint(func, _, _) <- getNps(targets)
-    st = getState(func)
-  } yield np -> st).toMap
-
-  // get view from a function
-  def getView(func: Func): View = {
-    if (!TY_SENS) View()
-    else {
-      val paramTy = func.paramTys.map(_.ty)
-      View(tys = paramTy.map(_ match {
-        case _: UnknownTy =>
-          throw Error("parameter call with UnknownTy is not allowed")
-        case ty: ValueTy => ty
-      }))
-    }
-  }
-
-  // get initial state of function
-  def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
-    case (st, Param(x, ty, opt, _)) =>
-      var v = AbsValue(ty.ty)
-      if (opt) v ⊔= AbsValue.absentTop
-      st.update(x, v)
-  }
-
-  /** find initial analysis targets based on a given regex pattern */
-  def getInitTargets(
-    target: Option[String],
-    silent: Boolean = false,
-  ): List[Func] =
-    // find all possible initial analysis target functions
-    val allFuncs =
-      cfg.funcs.filter(f => f.isParamTysDefined && !f.isCloure && !f.isCont)
-    target.fold(allFuncs)(pattern => {
-      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
-      if (!silent && funcs.isEmpty)
-        warn(s"failed to find functions matched with the pattern `$pattern`.")
-      funcs
-    })
-
   // logging mode
-  def logging(sem: Semantics): Unit = {
+  private def logging(sem: Semantics, errors: Set[TypeError]): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
       name = "type analysis result",
@@ -407,12 +269,12 @@ class TypeAnalyzer(
       filename = s"$ANALYZE_LOG_DIR/counter",
     )
     dumpFile(
-      name = "detected type mismatches",
-      data = mismatches.toList
+      name = "detected type errors",
+      data = errors.toList
         .map(_.toString)
         .sorted
         .mkString(LINE_SEP),
-      filename = s"$ANALYZE_LOG_DIR/mismatches",
+      filename = s"$ANALYZE_LOG_DIR/errors",
     )
   }
 }
@@ -443,59 +305,68 @@ object TypeAnalyzer {
       update = update,
     )
 
-  /** configuration for type checking */
-  case class Config(
-    // type checkers
-    arity: Boolean,
-    paramType: Boolean,
-    returnType: Boolean,
-    uncheckedAbrupt: Boolean,
-    invalidAstProperty: Boolean,
-    invalidStrProperty: Boolean,
-    invalidNameProperty: Boolean,
-    invalidCompProperty: Boolean,
-    invalidRecordProperty: Boolean,
-    invalidListProperty: Boolean,
-    invalidSymbolProperty: Boolean,
-    invalidSubMapProperty: Boolean,
-    invalidPropertyAccess: Boolean,
-    propertyUpdate: Boolean,
-    mapAlloc: Boolean,
+  /** configuration for type error alarms */
+  case class AlarmConfig(
+    paramTypeMismatch: Boolean = false,
+    returnTypeMismatch: Boolean = false,
+    uncheckedAbruptComp: Boolean = false,
+    invalidPropBase: Boolean = false,
+    unaryOpTypeMismatch: Boolean = false,
+    binaryOpTypeMismatch: Boolean = false,
   )
-  object Config:
-    val ignoreAll = Config(
-      arity = false,
-      paramType = false,
-      returnType = false,
-      uncheckedAbrupt = false,
-      invalidAstProperty = false,
-      invalidStrProperty = false,
-      invalidNameProperty = false,
-      invalidCompProperty = false,
-      invalidRecordProperty = false,
-      invalidListProperty = false,
-      invalidSymbolProperty = false,
-      invalidSubMapProperty = false,
-      invalidPropertyAccess = false,
-      propertyUpdate = false,
-      mapAlloc = false,
+  object AlarmConfig:
+    val PARAM_TYPE_MISMATCH_LEVEL = 1
+    val RETURN_TYPE_MISMATCH_LEVEL = 1
+    val UNCHECKED_ABRUPT_COMP_LEVEL = 2
+    val INVALID_PROP_BASE_LEVEL = 2
+    val UNARY_OP_TYPE_MISMATCH_LEVEL = 2
+    val BINARY_OP_TYPE_MISMATCH_LEVEL = 2
+
+    def apply(alarmLevel: Int): AlarmConfig = AlarmConfig(
+      paramTypeMismatch = alarmLevel >= PARAM_TYPE_MISMATCH_LEVEL,
+      returnTypeMismatch = alarmLevel >= RETURN_TYPE_MISMATCH_LEVEL,
+      uncheckedAbruptComp = alarmLevel >= UNCHECKED_ABRUPT_COMP_LEVEL,
+      invalidPropBase = alarmLevel >= INVALID_PROP_BASE_LEVEL,
+      unaryOpTypeMismatch = alarmLevel >= UNARY_OP_TYPE_MISMATCH_LEVEL,
+      binaryOpTypeMismatch = alarmLevel >= BINARY_OP_TYPE_MISMATCH_LEVEL,
     )
 
-    def apply(): Config = Config(
-      arity = 1 <= PRIORITY_FLAG,
-      paramType = 1 <= PRIORITY_FLAG,
-      returnType = 1 <= PRIORITY_FLAG,
-      uncheckedAbrupt = 1 <= PRIORITY_FLAG,
-      invalidAstProperty = 1 <= PRIORITY_FLAG,
-      invalidStrProperty = 1 <= PRIORITY_FLAG,
-      invalidNameProperty = 1 <= PRIORITY_FLAG,
-      invalidCompProperty = 1 <= PRIORITY_FLAG,
-      invalidRecordProperty = 1 <= PRIORITY_FLAG,
-      invalidListProperty = 1 <= PRIORITY_FLAG,
-      invalidSymbolProperty = 1 <= PRIORITY_FLAG,
-      invalidSubMapProperty = 1 <= PRIORITY_FLAG,
-      invalidPropertyAccess = 1 <= PRIORITY_FLAG,
-      propertyUpdate = 1 <= PRIORITY_FLAG,
-      mapAlloc = 1 <= PRIORITY_FLAG,
-    )
+  // get initial abstract states in each node point
+  def initNpMap(targets: List[Func]): Map[NodePoint[Node], AbsState] = (for {
+    np @ NodePoint(func, _, _) <- getNps(targets)
+    st = getState(func)
+  } yield np -> st).toMap
+
+  // all entry node points
+  def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
+    func <- targets
+    entry = func.entry
+    view = getView(func)
+  } yield NodePoint(func, entry, view)
+
+  // get view from a function
+  def getView(func: Func): View = View() // TODO
+
+  // get initial state of function
+  def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
+    case (st, Param(x, ty, opt, _)) =>
+      var v = AbsValue(ty.ty)
+      if (opt) v ⊔= AbsValue.absentTop
+      st.update(x, v)
+  }
+
+  /** find initial analysis targets based on a given regex pattern */
+  def getInitTargets(
+    cfg: CFG,
+    target: Option[String],
+    silent: Boolean = false,
+  ): List[Func] =
+    // find all possible initial analysis target functions
+    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    target.fold(allFuncs)(pattern => {
+      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
+      if (!silent && funcs.isEmpty)
+        warn(s"failed to find functions matched with the pattern `$pattern`.")
+      funcs
+    })
 }

@@ -5,18 +5,11 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
-import esmeta.state.SimpleValue
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.ir.EMap
-import esmeta.ir.Prop
-import esmeta.ir.Global
-import esmeta.ir.Name
-import esmeta.ir.Temp
-import esmeta.ir.EStr
 
 /** stringifier for analyzer */
 class Stringifier(
@@ -38,67 +31,56 @@ class Stringifier(
       case elem: View          => viewRule(app, elem)
       case elem: AnalysisPoint => apRule(app, elem)
       case elem: AValue        => avRule(app, elem)
-      case elem: TypeMismatch  => mismatchRule(app, elem)
-  // TODO case ty: Type          => typeRule(app, ty)
+      case elem: TypeError     => errorRule(app, elem)
 
   /** view */
   given viewRule: Rule[View] = (app, view) =>
-    def ctxtStr(
-      calls: List[String],
-      loops: List[LoopCtxt],
-    ): Appender = if (detail) {
-      app >> calls.mkString("[call: ", ", ", "]")
-      app >> loops
-        .map { case LoopCtxt(loop, depth) => s"${loop.id}($depth)" }
-        .mkString("[loop: ", ", ", "]")
-    } else {
-      app >> "[call: " >> calls.length >> "]"
-      app >> "[loop: " >> loops.length >> "]"
-    }
+    given Rule[Call] = (app, call) => app >> call.id.toString
+    given Rule[LoopCtxt] = (app, ctxt) =>
+      app >> ctxt.loop.id >> "(" >> ctxt.depth >> ")"
+    def aux[T](name: String)(using f: Rule[T]): Rule[List[T]] = (app, xs) =>
+      if (xs.isEmpty) app
+      else
+        app >> "[" >> name >> ": "
+        if (detail) iterableRule(sep = ", ")(app, xs)
+        else app >> xs.length
+        app >> "]"
 
-    // ir contexts
-    if (IR_SENS) ctxtStr(view.calls.map(_.id.toString), view.loops)
-    if (TY_SENS) {
-      given Rule[Iterable[ValueTy]] = iterableRule("[", ", ", "]")
-      app >> view.tys
-    }
-    app
+    val View(calls, loops, _, tys) = view
+    aux[Call]("call")(app, calls)
+    aux[LoopCtxt]("loop")(app, loops)
+    aux[ValueTy]("ty")(app, tys)
 
   // analysis points
   given apRule: Rule[AnalysisPoint] = (app, ap) =>
     given Rule[IRElem with LangEdge] = addLocRule
     ap match
       case cp: ControlPoint => cpRule(app, cp)
-      case CallPoint(callerNp, calleeNp) =>
+      case CallPoint(callerNp, callee) =>
         app >> "function call from "
         app >> callerNp.func.name >> callerNp.node.callInst
-        app >> " to " >> calleeNp.func.name
+        app >> " to " >> callee.name
       case aap @ ArgAssignPoint(cp, idx) =>
         val param = aap.param
         app >> "argument assignment to "
         app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
         app >> " when " >> cp
-      case InternalReturnPoint(irReturn, calleeRp) =>
+      case InternalReturnPoint(calleeRp, irReturn) =>
         app >> "return statement in " >> calleeRp.func.name >> irReturn
-      case ReturnIfAbruptPoint(riap, riaExpr) =>
-        app >> "returnIfAbrupt"
+      case ReturnIfAbruptPoint(cp, riaExpr) =>
+        app >> "ReturnIfAbrupt"
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
-        app >> "in " >> riap.func.name >> riaExpr
-      case plp: PropertyLookupPoint =>
-        app >> "property lookup in " >> plp.func.name
-        for (ref <- plp.ref) app >> ref
-        app
-      case MapAllocPoint(cp: ControlPoint, emap: EMap) =>
-        app >> "map allocation " >> emap
-        app >> "in " >> cp.func.name
-      case pap: PropertyAssignPoint =>
-        app >> "property assignment to "
-        for (ref <- pap.ref)
-          import irStringifier.given
-          app >> ref
-        app >> " in " >> pap.func.name
-      case bop: BinaryOperationPoint =>
-        app >> "binary operation (" >> bop.lhs >> ") " >> bop.op >> " (" >> bop.rhs >> ") in " >> bop.func.name
+        app >> "in " >> cp.func.name >> riaExpr
+      case PropBasePoint(propPoint) =>
+        app >> "base in" >> propPoint
+      case PropPoint(cp, prop) =>
+        app >> "property lookup in " >> cp.func.name >> prop
+      case UnaryOpPoint(cp, unary) =>
+        app >> "unary operation (" >> unary.uop >> ") in " >> cp.func.name
+        app >> unary
+      case BinaryOpPoint(cp, binary) =>
+        app >> "binary operation (" >> binary.bop >> ") in " >> cp.func.name
+        app >> binary
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -139,49 +121,36 @@ class Stringifier(
       case CodeUnit(c)     => app >> c.toInt >> "cu"
       case sv: SimpleValue => app >> sv.toString
 
-  // specification type mismatches
-  given mismatchRule: Rule[TypeMismatch] = (app, mismatch) =>
-    mismatch match
-      case ParamTypeMismatch(aap, actual) =>
-        app >> "[ParamTypeMismatch] " >> aap
-        app :> "- expected: " >> aap.param.ty
-        app :> "- actual  : " >> actual
-      case ReturnTypeMismatch(irp, actual) =>
-        app >> "[ReturnTypeMismatch] " >> irp
-        app :> "- expected: " >> irp.calleeRp.func.retTy
-        app :> "- actual  : " >> actual
-      case ArityMismatch(cp, actual) =>
-        given Rule[(Int, Int)] = arityRangeRule
-        app >> "[ArityMismatch] " >> cp
-        app :> "- expected: " >> cp.func.arity
-        app :> "- actual  : " >> actual
-      case UncheckedAbruptCompletionMismatch(riap, actual) =>
-        app >> "[UncheckedAbruptCompletionMismatch] " >> riap
-        app :> "- actual  : " >> actual
-      case InvalidPropertyMismatch(plp, base, prop) =>
-        app >> "[InvalidPropertyMismatch] " >> plp
-        app :> "- lookup  : " >> prop >> " of " >> base
-      case PropertyTypeMismatch(cp, expected, actual) =>
-        app >> "[PropertyTypeMismatch] " >> cp
-        app :> "- expected: " >> expected
-        app :> "- actual  : " >> actual
-      case BinaryOperatorTypeMismatch(bop) =>
-        app >> "[BinaryOperatorTypeMismatch] " >> bop
+  // type errors in specifications
+  given errorRule: Rule[TypeError] = (app, error) =>
+    app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
+    error match
+      case ParamTypeMismatch(point, argTy) =>
+        app :> "- expected: " >> point.param.ty
+        app :> "- actual  : " >> argTy
+      case ReturnTypeMismatch(point, retTy) =>
+        app :> "- expected: " >> point.calleeRp.func.retTy
+        app :> "- actual  : " >> retTy
+      case UncheckedAbruptComp(point, ty) =>
+        app :> "- actual  : " >> ty
+      case InvalidPropBase(point, baseTy) =>
+        app :> "- base    : " >> baseTy
+      case UnaryOpTypeMismatch(point, operandTy) =>
+        app :> "- operand : " >> operandTy
+      case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
+        app :> "- lhs     : " >> lhsTy
+        app :> "- rhs     : " >> rhsTy
 
-  private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
+  private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
     for {
       lang <- elem.langOpt
       loc <- lang.loc
     } app >> " " >> loc.toString
     app
-  }
 
   private val arityRangeRule: Rule[(Int, Int)] = {
     case (app, (from, to)) =>
       if (from == to) app >> from
       else app >> "[" >> from >> ", " >> to >> "]"
   }
-
-  // TODO type
-  // given typeRule: Rule[Type] = (app, ty) => ???
 }

@@ -21,12 +21,12 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     val ignorePath = config.ignorePath match
       case None => cfg.spec.manualInfo.tycheckIgnore
       case path => path
-    val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
-    TypeAnalyzer(cfg)(
+    val ignore = ignorePath.fold(Ignore())(Ignore(_, config.updateIgnore))
+    TypeAnalyzer(cfg, config.alarmLevel)(
       target = config.target,
       ignore = ignore,
       log = config.log,
-      silent = false,
+      silent = config.silent,
     )
 
   def defaultConfig: Config = Config()
@@ -35,6 +35,12 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "target",
       StrOption((c, s) => c.target = Some(s)),
       "set the target of type analysis with a regular expression pattern.",
+    ),
+    (
+      "alarm-level",
+      NumOption((c, k) => c.alarmLevel = k),
+      "turn on alarms for type errors whose alarm level is " +
+      "lower than or equal to the given number (default: 1)",
     ),
     (
       "repl",
@@ -53,18 +59,18 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     ),
     (
       "update-ignore",
-      BoolOption(c => c.ignoreUpdate = true),
+      BoolOption(c => c.updateIgnore = true),
       "update the given JSON file used in ignoring type mismatches.",
+    ),
+    (
+      "silent",
+      BoolOption(c => c.silent = true),
+      "turn on silent mode.",
     ),
     (
       "log",
       BoolOption(c => c.log = true),
       "turn on logging mode.",
-    ),
-    (
-      "priority",
-      NumOption((c, n) => PRIORITY_FLAG = n),
-      "turn on all type mismatches with a priority higher(1 is highest) than or equal.",
     ),
     (
       "tysens",
@@ -74,8 +80,10 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   )
   case class Config(
     var target: Option[String] = None,
+    var alarmLevel: Int = 1,
     var ignorePath: Option[String] = None,
-    var ignoreUpdate: Boolean = false,
+    var updateIgnore: Boolean = false,
+    var silent: Boolean = false,
     var log: Boolean = false,
   )
 }

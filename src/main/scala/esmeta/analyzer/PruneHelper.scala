@@ -15,7 +15,7 @@ trait PruneHelper { this: AbsTransfer =>
   def prune(
     cond: Expr,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater = cond match {
+  )(using cp: NodePoint[_]): Updater = cond match {
     case _ if !USE_REFINE => st => st
     // prune values
     case EBinary(BOp.Eq, ERef(ref: Local), target) =>

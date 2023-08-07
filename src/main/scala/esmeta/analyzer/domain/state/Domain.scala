@@ -21,6 +21,9 @@ trait Domain extends domain.Domain[State] {
   /** set bases */
   def setBase(init: Initialize): Unit
 
+  /** reset bases */
+  def resetBase: Unit
+
   /** abstract state interfaces */
   extension (elem: Elem) {
 
@@ -30,7 +33,7 @@ trait Domain extends domain.Domain[State] {
       cp: ControlPoint,
     ): AbsValue = rv match
       case AbsRefId(x)            => elem.get(x, cp)
-      case AbsRefProp(base, prop) => elem.get(base, prop, rv.refElem)
+      case AbsRefProp(base, prop) => elem.get(base, prop)
 
     /** getters with identifiers */
     def get(x: Id, cp: ControlPoint): AbsValue =
@@ -40,7 +43,7 @@ trait Domain extends domain.Domain[State] {
       else v
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref] = None): AbsValue
+    def get(base: AbsValue, prop: AbsValue): AbsValue
 
     /** getters with an address partition */
     def get(part: Part): AbsObj
@@ -72,18 +75,13 @@ trait Domain extends domain.Domain[State] {
     /** setter with reference values */
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
       case AbsRefId(x)            => update(x, value)
-      case AbsRefProp(base, prop) => update(base, prop, value, refV.refElem)
+      case AbsRefProp(base, prop) => update(base, prop, value)
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem
 
     /** property setter */
-    def update(
-      base: AbsValue,
-      prop: AbsValue,
-      value: AbsValue,
-      ref: Option[Ref],
-    ): Elem
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem
@@ -134,7 +132,6 @@ trait Domain extends domain.Domain[State] {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
-      e: EMap,
     ): (AbsValue, Elem)
 
     /** allocation of list with address partitions */

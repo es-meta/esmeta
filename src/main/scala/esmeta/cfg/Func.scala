@@ -29,7 +29,8 @@ case class Func(
   lazy val paramTys: List[Type] = params.map(_.ty)
 
   /** check whether parameter types are defined */
-  lazy val isParamTysDefined: Boolean = paramTys.forall(_.isDefined)
+  lazy val isParamTysDefined: Boolean =
+    paramTys.forall(_.isDefined) && !isClo && !isCont
 
   /** not yet supported instructions */
   lazy val yets: List[EYet] = irFunc.yets
@@ -54,8 +55,7 @@ case class Func(
   def headString: String = irFunc.headString
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean =
-    irFunc.kind == FuncKind.Builtin || irFunc.kind == FuncKind.BuiltinClo
+  lazy val isBuiltin: Boolean = irFunc.kind == FuncKind.Builtin
 
   /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == FuncKind.SynDirOp
@@ -65,7 +65,7 @@ case class Func(
     irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
 
   /** check whether it is closure */
-  lazy val isCloure: Boolean =
+  lazy val isClo: Boolean =
     irFunc.kind == FuncKind.Clo || irFunc.kind == FuncKind.BuiltinClo
 
   lazy val isCont: Boolean =

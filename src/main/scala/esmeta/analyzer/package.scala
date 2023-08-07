@@ -51,6 +51,7 @@ def withAnalyzer[T](analyzer: Analyzer)(t: => T): T =
   globalAnalyzer = Some(analyzer)
   AbsState.setBase(new Initialize(analyzer.cfg))
   val res = t
+  AbsState.resetBase
   globalAnalyzer = None
   res
 
@@ -115,7 +116,7 @@ var YET_THROW: Boolean = false
 var USE_REFINE: Boolean = false
 
 /** priority */
-var PRIORITY_FLAG: Int = 1
+var TYPE_ALARM_LEVEL: Int = 1
 
 // -----------------------------------------------------------------------------
 // shortcuts

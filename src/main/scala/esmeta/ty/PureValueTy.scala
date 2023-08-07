@@ -168,7 +168,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.absent -- that.absent,
       )
 
-  /** concretization function */
+  /** TODO concretization function */
   def gamma: Set[ValueTy] =
 
     var base: Set[ValueTy] = Set()
@@ -259,6 +259,34 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         list = elem.list.copy(elem.list.elem.map(_.removeAbsent)),
         absent = false,
       )
+
+  /** types having no property */
+  def noProp: PureValueTy = this match
+    case PureValueTopTy =>
+      PureValueElemTy(
+        clo = Inf,
+        cont = Inf,
+        nt = Inf,
+        codeUnit = true,
+        const = Inf,
+        math = Inf,
+        number = Inf,
+        bigInt = true,
+        bool = BoolTy.Top,
+        undef = true,
+        nullv = true,
+        absent = true,
+      )
+    case elem: PureValueElemTy =>
+      elem.copy(
+        name = NameTy.Bot,
+        record = RecordTy.Bot,
+        list = ListTy.Bot,
+        symbol = false,
+        astValue = AstValueTy.Bot,
+        str = Fin(),
+      )
+
 }
 
 case object PureValueTopTy extends PureValueTy {

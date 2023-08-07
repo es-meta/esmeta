@@ -47,6 +47,8 @@ object BasicDomain extends state.Domain {
     AbsHeap.setBase(init.initHeap)
     base = for ((x, v) <- init.initGlobal.toMap) yield x -> AbsValue(v)
 
+  /** reset bases */
+  def resetBase: Unit = base = Map()
   private var base: Map[Id, AbsValue] = Map()
 
   /** element interfaces */
@@ -108,7 +110,7 @@ object BasicDomain extends state.Domain {
         else Elem(true, newLocals, newGlobals, newHeap)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref]): AbsValue =
+    def get(base: AbsValue, prop: AbsValue): AbsValue =
       val compValue = AbsValue(pureValue = base.comp(prop.str))
       val partValue = elem.heap(base.part, prop)
       val astValue = lookupAst(base.astValue, prop)
@@ -136,12 +138,7 @@ object BasicDomain extends state.Domain {
       }
 
     /** property setter */
-    def update(
-      base: AbsValue,
-      prop: AbsValue,
-      value: AbsValue,
-      ref: Option[Ref],
-    ): Elem =
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
       elem.bottomCheck(AbsValue)(base, prop, value) {
         elem.copy(heap = elem.heap.update(base.part, prop, value))
       }
@@ -245,7 +242,6 @@ object BasicDomain extends state.Domain {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
-      e: EMap,
     ): (AbsValue, Elem) =
       val partV = AbsValue(to)
       elem.bottomCheck(AbsValue)(pairs.flatMap { case (k, v) => List(k, v) }) {

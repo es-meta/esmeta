@@ -76,7 +76,7 @@ class Interpreter(
             case (actual: ValueTy, ty: ValueTy) if !ty.contains(value, st) =>
               val calleeRp = ReturnPoint(func, View())
               var msg = ""
-              val irp = InternalReturnPoint(ret, calleeRp)
+              val irp = InternalReturnPoint(calleeRp, ret)
               msg += ReturnTypeMismatch(irp, actual)
               msg += LINE_SEP + "- return  : " + value
               st.filename.map(msg += LINE_SEP + "- filename: " + _)
@@ -145,11 +145,7 @@ class Interpreter(
           st.callStack ::= CallContext(lhs, st.context)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
-          val needWrapped = st.context.func.isReturnComp
-          val vs =
-            args
-              .map(eval)
-              .map(v => if (needWrapped) v.wrapCompletion else v)
+          val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
@@ -502,7 +498,7 @@ class Interpreter(
           case ty: ValueTy if !ty.contains(arg, st) =>
             val callerNp = NodePoint(cfg.funcOf(caller), caller, View())
             val calleeNp = NodePoint(func, func.entry, View())
-            val aap = ArgAssignPoint(CallPoint(callerNp, calleeNp), idx)
+            val aap = ArgAssignPoint(CallPoint(callerNp, func), idx)
             val argTy = st.typeOf(arg)
             var msg = ""
             msg += ParamTypeMismatch(aap, argTy)

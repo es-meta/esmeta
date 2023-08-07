@@ -75,7 +75,7 @@ case class ValueTy(
         this.subMap -- that.subMap,
       )
 
-  /** concretization function */
+  /** TODO concretization function */
   def gamma: Set[ValueTy] =
     comp.gamma ++ pureValue.gamma ++ subMap.gamma
 
@@ -119,6 +119,9 @@ case class ValueTy(
   def undef: Boolean = pureValue.undef
   def nullv: Boolean = pureValue.nullv
   def absent: Boolean = pureValue.absent
+
+  /** types having no property */
+  def noProp: ValueTy = Bot.copy(pureValue = pureValue.noProp)
 
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean =

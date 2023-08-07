@@ -1,49 +1,56 @@
 package esmeta.analyzer
 
-import esmeta.ir.{Func => _, *}
 import esmeta.cfg.*
-import esmeta.analyzer.domain.AllocSite
+import esmeta.error.InvalidAnalysisPointMerge
+import esmeta.ir.{Func => _, *}
 
 /** analysis points */
 sealed trait AnalysisPoint extends AnalyzerElem {
+  type This <: AnalysisPoint
   def view: View
   def func: Func
   def isBuiltin: Boolean = func.isBuiltin
   def toReturnPoint: ReturnPoint = ReturnPoint(func, view)
-  def withoutView: AnalysisPoint
+  def withoutView: This
+  def +(that: This): This =
+    if (this == that) that
+    else if (this.withoutView == that.withoutView) this.withoutView
+    else throw InvalidAnalysisPointMerge(this, that)
 }
 
 /** call points */
-case class CallPoint[+T <: Node](
+case class CallPoint(
   callerNp: NodePoint[Call],
-  calleeNp: NodePoint[T],
+  callee: Func,
 ) extends AnalysisPoint {
-  inline def view = calleeNp.view
-  inline def func = calleeNp.func
-  def withoutView: CallPoint[T] =
-    copy(calleeNp = calleeNp.withoutView, callerNp = callerNp.withoutView)
+  type This = CallPoint
+  inline def view = callerNp.view
+  inline def func = callerNp.func
+  def withoutView: CallPoint =
+    copy(callerNp = callerNp.withoutView, callee)
 }
 
 /** argument assignment points */
-case class ArgAssignPoint[+T <: Node](
-  cp: CallPoint[T],
+case class ArgAssignPoint(
+  callPoint: CallPoint,
   idx: Int,
 ) extends AnalysisPoint {
-  inline def view = cp.view
-  inline def func = cp.func
-  inline def param = cp.calleeNp.func.params(idx)
-  def withoutView: ArgAssignPoint[T] = copy(cp = cp.withoutView)
+  type This = ArgAssignPoint
+  inline def view = callPoint.view
+  inline def func = callPoint.func
+  inline def param = callPoint.callee.params(idx)
+  def withoutView: ArgAssignPoint = copy(callPoint = callPoint.withoutView)
 }
 
 /** internal return points */
 case class InternalReturnPoint(
-  irReturn: Return,
   calleeRp: ReturnPoint,
+  irReturn: Return,
 ) extends AnalysisPoint {
+  type This = InternalReturnPoint
   inline def view = calleeRp.view
   inline def func = calleeRp.func
-  def withoutView: InternalReturnPoint =
-    copy(calleeRp = calleeRp.withoutView)
+  def withoutView: InternalReturnPoint = copy(calleeRp = calleeRp.withoutView)
 }
 
 /** return-if-abrupt points */
@@ -51,57 +58,57 @@ case class ReturnIfAbruptPoint(
   cp: ControlPoint,
   riaExpr: EReturnIfAbrupt,
 ) extends AnalysisPoint {
+  type This = ReturnIfAbruptPoint
   inline def view = cp.view
   inline def func = cp.func
   def withoutView: ReturnIfAbruptPoint = copy(cp = cp.withoutView)
 }
 
-case class MapAllocPoint(cp: ControlPoint, emap: EMap) extends AnalysisPoint {
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: MapAllocPoint = copy(cp = cp.withoutView)
-}
-
-/** property lookup points */
-case class PropertyLookupPoint(
-  cp: ControlPoint,
-  ref: Option[Ref],
+/** base in property reference points */
+case class PropBasePoint(
+  propPoint: PropPoint,
 ) extends AnalysisPoint {
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: PropertyLookupPoint = copy(cp = cp.withoutView)
+  type This = PropBasePoint
+  inline def view = propPoint.view
+  inline def func = propPoint.func
+  def withoutView: PropBasePoint = copy(propPoint = propPoint.withoutView)
 }
 
-/** property assign points */
-case class PropertyAssignPoint(
+/** property reference points */
+case class PropPoint(
   cp: ControlPoint,
-  ref: Option[Ref],
+  prop: Prop,
 ) extends AnalysisPoint {
+  type This = PropPoint
   inline def view = cp.view
   inline def func = cp.func
-  def withoutView: PropertyAssignPoint = copy(cp = cp.withoutView)
+  def withoutView: PropPoint = copy(cp = cp.withoutView)
 }
 
-/** detailed lookup kinds */
-enum LookupKind:
-  case Ast, Str, Name, Comp, Record, List, Symbol, SubMap
+/** unary operation points */
+case class UnaryOpPoint(
+  cp: ControlPoint,
+  unary: EUnary,
+) extends AnalysisPoint {
+  type This = UnaryOpPoint
+  inline def view = cp.view
+  inline def func = cp.func
+  def withoutView: UnaryOpPoint = copy(cp = cp.withoutView)
+}
 
 /** binary operation points */
-case class BinaryOperationPoint(
+case class BinaryOpPoint(
   cp: ControlPoint,
-  op: BOp,
-  lhs: AbsValue,
-  rhs: AbsValue,
+  binary: EBinary,
 ) extends AnalysisPoint {
+  type This = BinaryOpPoint
   inline def view = cp.view
   inline def func = cp.func
-  def withoutView: BinaryOperationPoint = copy(cp = cp.withoutView)
+  def withoutView: BinaryOpPoint = copy(cp = cp.withoutView)
 }
 
 /** control points */
-sealed trait ControlPoint extends AnalysisPoint {
-  def withoutView: ControlPoint
-}
+sealed trait ControlPoint extends AnalysisPoint { type This <: ControlPoint }
 
 /** node points */
 case class NodePoint[+T <: Node](
@@ -109,6 +116,7 @@ case class NodePoint[+T <: Node](
   node: T,
   view: View,
 ) extends ControlPoint {
+  type This = NodePoint[Node]
   def withoutView: NodePoint[T] = copy(view = View())
 }
 
@@ -117,5 +125,6 @@ case class ReturnPoint(
   func: Func,
   view: View,
 ) extends ControlPoint {
+  type This = ReturnPoint
   def withoutView: ReturnPoint = copy(view = View())
 }

@@ -57,7 +57,7 @@ case class SubMapTy(
         this.value -- that.value,
       ).norm
 
-  /** concretization function */
+  /** TODO concretization function */
   def gamma: Set[ValueTy] = if (this.isBottom) Set() else Set(SubMapT)
 
   /** get single value */

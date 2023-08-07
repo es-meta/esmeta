@@ -13,7 +13,6 @@ import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.analyzer.TypeAnalyzer.Config
 
 /** type domain for states */
 object TypeDomain extends state.Domain {
@@ -31,6 +30,9 @@ object TypeDomain extends state.Domain {
   def setBase(init: Initialize): Unit = base = for {
     (x, (_, t)) <- init.initTypedGlobal.toMap
   } yield x -> AbsValue(t)
+
+  /** reset bases */
+  def resetBase: Unit = base = Map()
   private var base: Map[Global, AbsValue] = Map()
 
   /** bottom element */
@@ -47,23 +49,6 @@ object TypeDomain extends state.Domain {
 
   /** simpler appender */
   private val shortRule: Rule[Elem] = mkRule(false)
-
-  /** mismatch config for TypeMismatch */
-  private lazy val mismatchConfig: Config = {
-    analyzer match {
-      case ta: TypeAnalyzer => ta.config
-      case _                => Config.ignoreAll
-    }
-  }
-
-  /** mismatch adder for TypeMismatch */
-  private lazy val addMismatch: TypeMismatch => Unit = {
-    analyzer match {
-      case ta: TypeAnalyzer => ta.addMismatch
-      case _ =>
-        throw Error("TypeAnalyzer should not be called in this context.")
-    }
-  }
 
   /** element interfaces */
   extension (elem: Elem) {
@@ -102,30 +87,18 @@ object TypeDomain extends state.Domain {
         Elem(true, newLocals)
 
     /** getters with bases and properties */
-    def get(base: AbsValue, prop: AbsValue, ref: Option[Ref]): AbsValue =
+    def get(base: AbsValue, prop: AbsValue): AbsValue =
       val baseTy = base.ty
       val propTy = prop.ty
-      val isESValue = baseTy == ESValueT
-      if (isESValue)
-        analyzer match {
-          case ta: TypeAnalyzer => {
-            if (ta.config.invalidNameProperty)
-              for { cp <- sem.curCp } {
-                val plp = PropertyLookupPoint(cp, ref)
-                ta.addMismatch(InvalidPropertyMismatch(plp, baseTy, propTy))
-              }
-          }
-        }
-      checkInvalidBaseTy(baseTy, propTy, ref, isESValue)
       AbsValue(
-        lookupComp(baseTy, propTy, ref, isESValue) ||
-        lookupAst(baseTy, propTy, ref, isESValue) ||
-        lookupStr(baseTy, propTy, ref, isESValue) ||
-        lookupList(baseTy, propTy, ref, isESValue) ||
-        lookupName(baseTy, propTy, ref, isESValue) ||
-        lookupRecord(baseTy, propTy, ref, isESValue) ||
-        lookupSymbol(baseTy, propTy, ref, isESValue) ||
-        lookupSubMap(baseTy, propTy, ref, isESValue),
+        lookupComp(baseTy.comp, propTy) ||
+        lookupAst(baseTy.astValue, propTy) ||
+        lookupStr(baseTy.str, propTy) ||
+        lookupList(baseTy.list, propTy) ||
+        lookupName(baseTy.name, propTy) ||
+        lookupRecord(baseTy.record, propTy) ||
+        lookupSymbol(baseTy.symbol, propTy) ||
+        lookupSubMap(baseTy.subMap, propTy),
       )
 
     /** getters with an address partition */
@@ -143,27 +116,7 @@ object TypeDomain extends state.Domain {
         elem
 
     /** property setter */
-    def update(
-      base: AbsValue,
-      prop: AbsValue,
-      value: AbsValue,
-      ref: Option[Ref],
-    ): Elem =
-      getTACP.foreach { (ta, cp) =>
-        if (ta.config.propertyUpdate)
-          val origTy = get(base, prop, None).ty
-          val newTy = value.ty
-          if (!(newTy <= origTy))
-            val pap = PropertyAssignPoint(cp, ref)
-            ta.addMismatch(PropertyTypeMismatch(pap, origTy, newTy))
-      }
-      elem
-
-    def getTACP: Option[(TypeAnalyzer, ControlPoint)] = analyzer match {
-      case ta: TypeAnalyzer => {
-        sem.curCp.map(cp => ((ta, cp)))
-      }
-    }
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
@@ -204,7 +157,7 @@ object TypeDomain extends state.Domain {
       val value = AbsValue(ListT((for {
         list <- lists
         elem <- list.ty.list.elem
-      } yield elem).foldLeft(ValueTy())(_ || _)))
+      } yield elem).foldLeft(BotT)(_ || _)))
       (value, elem)
 
     /** get childeren of AST */
@@ -228,40 +181,15 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       tname: String,
       pairs: Iterable[(AbsValue, AbsValue)],
-      emap: EMap,
     ): (AbsValue, Elem) =
       val value =
-        if (tname == "Record")
-          RecordT((for {
-            (k, v) <- pairs
-          } yield k.getSingle match
-            case One(Str(key)) => key -> v.ty
-            case _             => exploded(s"imprecise field name: $k")
-          ).toMap)
-        else {
-          val isKnownTy = cfg.tyModel.infos.get(tname).isDefined
-          if (isKnownTy)
-            for {
-              (k, v) <- pairs
-            } yield k.getSingle match
-              case One(Str(key)) => {
-                val propTy = cfg.tyModel.getPropOrElse(tname, key) {
-                  // warning(s"unknown property: $tname.$key")
-                  AbsentT
-                }
-                getTACP.foreach { (ta, cp) =>
-                  if (ta.config.mapAlloc)
-                    if (propTy != AbsentT && !(v.ty ⊑ propTy)) {
-                      val map = MapAllocPoint(cp, emap)
-                      ta.addMismatch(
-                        PropertyTypeMismatch(map, propTy, v.ty),
-                      )
-                    }
-                }
-              }
-              case _ =>
-          NameT(tname)
-        }
+        if (tname == "Record") RecordT((for {
+          (k, v) <- pairs
+        } yield k.getSingle match
+          case One(Str(key)) => key -> v.ty
+          case _             => exploded(s"imprecise field name: $k")
+        ).toMap)
+        else NameT(tname)
       (AbsValue(value), elem)
 
     /** allocation of list with address partitions */
@@ -269,7 +197,7 @@ object TypeDomain extends state.Domain {
       to: AllocSite,
       list: Iterable[AbsValue] = Nil,
     ): (AbsValue, Elem) =
-      val listT = ListT(list.foldLeft(ValueTy()) { case (l, r) => l || r.ty })
+      val listT = ListT(list.foldLeft(BotT) { case (l, r) => l || r.ty })
       (AbsValue(listT), elem)
 
     /** allocation of symbol with address partitions */
@@ -352,17 +280,11 @@ object TypeDomain extends state.Domain {
   // completion record lookup
   lazy val constTyForAbruptTarget =
     CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
-  private def lookupComp(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val comp = base.comp
+  private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
     val str = prop.str
     val normal = !comp.normal.isBottom
     val abrupt = !comp.abrupt.isBottom
-    var res = ValueTy()
+    var res = BotT
     if (str contains "Value")
       if (normal) res ||= ValueTy(pureValue = comp.normal)
       if (abrupt) {
@@ -377,29 +299,26 @@ object TypeDomain extends state.Domain {
     if (str contains "Type")
       if (normal) res ||= CONSTT_NORMAL
       if (abrupt) res ||= constTyForAbruptTarget
-    if (mismatchConfig.invalidCompProperty && !skipCheck && !comp.isBottom)
-      boundCheck(base, prop, StrT("Value", "Target", "Type"), ref)
+    // TODO if (!comp.isBottom)
+    //   boundCheck(
+    //     prop,
+    //     StrT("Value", "Target", "Type"),
+    //     t => s"invalid access: $t of $comp",
+    //   )
     res
 
   // AST lookup
-  private def lookupAst(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val ast = base.astValue
-    if (mismatchConfig.invalidAstProperty && !skipCheck && !ast.isBottom)
-      boundCheck(base, prop, MathT || StrT, ref)
-    ast match
-      case AstValueTy.Bot => ValueTy.Bot
-      case AstSingleTy(name, idx, subIdx) =>
-        lookupAstIdxProp(name, idx, subIdx)(prop) ||
-        lookupAstStrProp(prop)
-      case AstNameTy(names) =>
-        if (!prop.math.isBottom) AstT // TODO more precise
-        else lookupAstStrProp(prop)
-      case _ => AstT
+  private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy = ast match
+    case AstValueTy.Bot => BotT
+    case AstSingleTy(name, idx, subIdx) =>
+      lookupAstIdxProp(name, idx, subIdx)(prop) ||
+      lookupAstStrProp(prop)
+    case AstNameTy(names) =>
+      if (!prop.math.isBottom) AstT // TODO more precise
+      else lookupAstStrProp(prop)
+    case _ => AstT
+  // TODO if (!ast.isBottom)
+  //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
 
   // lookup index properties of ASTs
   private def lookupAstIdxProp(
@@ -412,46 +331,37 @@ object TypeDomain extends state.Domain {
       val rhs = cfg.grammar.nameMap(name).rhsList(idx)
       val nts = rhs.getNts(subIdx)
       nts(propIdx).fold(AbsentT)(AstT(_))
-    case Zero | One(_) => ValueTy.Bot
+    case Zero | One(_) => BotT
     case _             => AstT // TODO more precise
 
   // lookup string properties of ASTs
   private def lookupAstStrProp(prop: ValueTy): ValueTy =
     val nameMap = cfg.grammar.nameMap
     prop.str.getSingle match
-      case Zero                               => ValueTy.Bot
+      case Zero                               => BotT
       case One(name) if nameMap contains name => AstT(name)
       case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
   // string lookup
-  private def lookupStr(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val str = base.str
-    if (str.isBottom) ValueTy.Bot
+  private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
+    if (str.isBottom) BotT
     else {
-      var res = ValueTy.Bot
+      var res = BotT
       if (prop.str contains "length") res ||= MathT
-      if (!prop.math.isBottom || !prop.number.isBottom) res ||= CodeUnitT
-      // invalid access on string type
-      if (mismatchConfig.invalidStrProperty && !skipCheck)
-        boundCheck(base, prop, MathT || NumberT || StrT("length"), ref)
+      if (!prop.math.isBottom) res ||= CodeUnitT
+      // TODO if (!str.isBottom)
+      //   boundCheck(
+      //     prop,
+      //     MathT || StrT("length"),
+      //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
+      //   )
       res
     }
 
   // named record lookup
-  private def lookupName(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val obj = base.name
+  private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
+    var res = BotT
     val str = prop.str
-    var res = ValueTy.Bot
     for {
       name <- obj.set
       propStr <- str match
@@ -459,117 +369,48 @@ object TypeDomain extends state.Domain {
           if (name == "IntrinsicsRecord") res ||= ObjectT
           Set()
         case Fin(set) => set
-    } {
-      res ||= cfg.tyModel.getPropOrElse(name, propStr) {
-        if (mismatchConfig.invalidNameProperty && !skipCheck)
-          for { cp <- sem.curCp } {
-            val plp = PropertyLookupPoint(cp, ref)
-            addMismatch(InvalidPropertyMismatch(plp, base, prop))
-          }
-        AbsentT
-      }
-    }
+    } res ||= cfg.tyModel.getProp(name, propStr)
     res
 
   // record lookup
-  private def lookupRecord(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val record = base.record
+  private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
     val str = prop.str
-    var res = ValueTy.Bot
-    var invalidProps = Set[String]()
+    var res = BotT
     def add(propStr: String): Unit = record match
-      case RecordTy.Top =>
-      case RecordTy.Elem(map) =>
-        map.get(propStr) match
-          case Some(value) => res ||= value
-          case None        => invalidProps += propStr
-    if (!record.isBottom)
-      str match
-        case Inf =>
-        case Fin(set) =>
-          for (propStr <- set) add(propStr)
-    if (
-      mismatchConfig.invalidRecordProperty && !skipCheck && !invalidProps.isEmpty
-    )
-      for { cp <- sem.curCp } {
-        val plp = PropertyLookupPoint(cp, ref)
-        addMismatch(InvalidPropertyMismatch(plp, base, StrT(invalidProps)))
-      }
+      case RecordTy.Top       =>
+      case RecordTy.Elem(map) => map.get(propStr).map(res ||= _)
+    if (!record.isBottom) str match
+      case Inf =>
+      case Fin(set) =>
+        for (propStr <- set) add(propStr)
     res
 
   // list lookup
-  private def lookupList(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val list = base.list
+  private def lookupList(list: ListTy, prop: ValueTy): ValueTy =
+    var res = BotT
     val str = prop.str
     val math = prop.math
-    var res = ValueTy.Bot
     for (ty <- list.elem)
       if (str contains "length") res ||= MathT
       if (!math.isBottom) res ||= ty
-    if (mismatchConfig.invalidListProperty && !skipCheck && !list.isBottom)
-      boundCheck(base, prop, MathT || StrT("length"), ref)
     res
 
   // symbol lookup
-  private def lookupSymbol(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val symbol = base.symbol
-    if (mismatchConfig.invalidSymbolProperty && !skipCheck && symbol)
-      boundCheck(base, prop, StrT("Description"), ref)
+  private def lookupSymbol(symbol: Boolean, prop: ValueTy): ValueTy =
     if (symbol && prop.str.contains("Description")) StrT
-    else ValueTy.Bot
+    else BotT
 
   // submap lookup
-  private def lookupSubMap(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): ValueTy =
-    val subMap = base.subMap
-    if (mismatchConfig.invalidSubMapProperty && !skipCheck && !subMap.isBottom)
-      boundCheck(base, prop, ValueTy(pureValue = subMap.key), ref)
-      ValueTy(pureValue = subMap.value)
-    else ValueTy.Bot
-
-  private def checkInvalidBaseTy(
-    base: ValueTy,
-    prop: ValueTy,
-    ref: Option[Ref],
-    skipCheck: Boolean,
-  ): Unit =
-    if (!skipCheck && mismatchConfig.invalidPropertyAccess)
-      if (base.nullv || base.undef || base.absent)
-        for { cp <- sem.curCp } {
-          val plp = PropertyLookupPoint(cp, ref)
-          addMismatch(InvalidPropertyMismatch(plp, base, prop))
-        }
+  private def lookupSubMap(subMap: SubMapTy, prop: ValueTy): ValueTy =
+    if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
+    else BotT
 
   // bound check
   private def boundCheck(
-    base: ValueTy,
-    prop: ValueTy,
+    ty: ValueTy,
     boundTy: => ValueTy,
-    ref: Option[Ref],
+    f: ValueTy => String,
   ): Unit =
-    val other = prop -- boundTy
-    if (!other.isBottom)
-      for { cp <- sem.curCp } {
-        val plp = PropertyLookupPoint(cp, ref)
-        addMismatch(InvalidPropertyMismatch(plp, base, other))
-      }
+    val other = ty -- boundTy
+    if (!other.isBottom) warning(f(other))
 }

@@ -28,8 +28,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
       // set the current control point
       sem.curCp = Some(cp)
       // count how many visited for each control point
-      val countCp = if (TY_SENS) cp.withoutView else cp
-      sem.counter += countCp -> (sem.getCount(countCp) + 1)
+      sem.counter += cp -> (sem.getCount(cp) + 1)
       // increase iteration number
       sem.iter += 1
       // check time limit
@@ -266,18 +265,16 @@ trait AbsTransfer extends Optimized with PruneHelper {
           as <- join(args.map(transfer))
           st <- get
         } yield {
-          // closure call (unsound for inifinitely many closures)
+          // closure call (XXX: unsound for inifinitely many closures)
           for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
             doCall(callerNp, st, func, as, captured)
-          // continuation call (unsound for inifinitely many continuations)
+          // continuation call (XXX: unsound for inifinitely many continuations)
           for (ACont(target, captured) <- fv.cont) {
-            val as0 =
-              as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
+            // TODO refactoring with doCall
             val newLocals = getLocals(
-              CallPoint(callerNp, target),
-              as0,
-              cont = true,
+              CallPoint(callerNp, target.func),
               method = false,
+              as,
             ) ++ captured
             sem += target -> st.copied(locals = newLocals)
           }
@@ -414,24 +411,25 @@ trait AbsTransfer extends Optimized with PruneHelper {
           rv <- transfer(ref)
           v <- transfer(rv)
         } yield v
-      case EUnary(uop, expr) =>
+      case unary @ EUnary(_, expr) =>
         for {
           v <- transfer(expr)
-          v0 <- get(transfer(_, uop, v))
+          v0 <- get(transfer(_, unary, v))
         } yield v0
-      case EBinary(BOp.And, left, right) =>
-        shortCircuit(BOp.And, left, right)
-      case EBinary(BOp.Or, left, right) => shortCircuit(BOp.Or, left, right)
       case EBinary(BOp.Eq, ERef(ref), EAbsent()) =>
         for {
           rv <- transfer(ref)
           b <- get(_.exists(rv))
         } yield !b
-      case EBinary(bop, left, right) =>
+      case binary @ EBinary(BOp.And, left, right) =>
+        shortCircuit(binary, left, right)
+      case binary @ EBinary(BOp.Or, left, right) =>
+        shortCircuit(binary, left, right)
+      case binary @ EBinary(_, left, right) =>
         for {
           lv <- transfer(left)
           rv <- transfer(right)
-          v <- get(transfer(_, bop, lv, rv))
+          v <- get(transfer(_, binary, lv, rv))
         } yield v
       case EVariadic(vop, exprs) =>
         for {
@@ -522,7 +520,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
                 v <- transfer(vexpr)
               } yield (k, v)
           })
-          lv <- id(_.allocMap(asite, tname, pairs, e))
+          lv <- id(_.allocMap(asite, tname, pairs))
         } yield lv
       case e @ EList(exprs) =>
         val asite = AllocSite(e.asite, cp.view)
@@ -579,13 +577,20 @@ trait AbsTransfer extends Optimized with PruneHelper {
   /** transfer function for references */
   def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
     ref match
-      case id: Id => AbsRefId(id).setRef(ref)
-      case Prop(base, expr) =>
+      case id: Id => AbsRefId(id)
+      case prop @ Prop(base, expr) =>
         for {
           rv <- transfer(base)
           b <- transfer(rv)
           p <- transfer(expr)
-        } yield AbsRefProp(b, p).setRef(ref)
+        } yield AbsRefProp(refinePropBase(cp, prop, b), p)
+
+  /** refine invalid base for property reference */
+  def refinePropBase(
+    cp: ControlPoint,
+    prop: Prop,
+    base: AbsValue,
+  ): AbsValue = base
 
   /** transfer function for reference values */
   def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =
@@ -594,10 +599,11 @@ trait AbsTransfer extends Optimized with PruneHelper {
   /** transfer function for unary operators */
   def transfer(
     st: AbsState,
-    uop: UOp,
+    unary: EUnary,
     operand: AbsValue,
   )(using cp: ControlPoint): AbsValue =
     import UOp.*
+    val uop = unary.uop
     operand.getSingle match
       case Zero => AbsValue.Bot
       case One(x: SimpleValue) =>
@@ -617,11 +623,12 @@ trait AbsTransfer extends Optimized with PruneHelper {
   /** transfer function for binary operators */
   def transfer(
     st: AbsState,
-    bop: BOp,
+    binary: EBinary,
     left: AbsValue,
     right: AbsValue,
   )(using cp: ControlPoint): AbsValue =
     import BOp.*
+    val bop = binary.bop
     (left.getSingle, right.getSingle) match {
       case (Zero, _) | (_, Zero) => AbsValue.Bot
       case (One(l: SimpleValue), One(r: SimpleValue)) =>
@@ -708,13 +715,13 @@ trait AbsTransfer extends Optimized with PruneHelper {
     st <- get
     ret = AbsRet(v, st.copied(locals = Map()))
     calleeRp = ReturnPoint(cp.func, cp.view)
-    irp = InternalReturnPoint(irReturn, calleeRp)
+    irp = InternalReturnPoint(calleeRp, irReturn)
     _ = doReturn(irp, ret)
   } yield ()
 
   /** update return points */
   def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =
-    val InternalReturnPoint(_, ReturnPoint(func, view)) = irp
+    val InternalReturnPoint(ReturnPoint(func, view), _) = irp
     val retRp = ReturnPoint(func, sem.getEntryView(view))
     // wrap completion by conditions specified in
     // [5.2.3.5 Implicit Normal Completion]
@@ -724,8 +731,11 @@ trait AbsTransfer extends Optimized with PruneHelper {
       val oldRet = sem(retRp)
       if (!oldRet.isBottom && USE_REPL) REPL.merged = true
       if (newRet !⊑ oldRet)
-        sem.rpMap += retRp -> (oldRet ⊔ newRet)
+        sem.rpMap += retRp -> getReturn(irp, oldRet ⊔ newRet)
         sem.worklist += retRp
+
+  /** get return value with a state */
+  def getReturn(irp: InternalReturnPoint, ret: AbsRet): AbsRet = ret
 
   /** return-if-abrupt completion */
   def returnIfAbrupt(
@@ -741,32 +751,18 @@ trait AbsTransfer extends Optimized with PruneHelper {
 
   // short circuit evaluation
   def shortCircuit(
-    bop: BOp,
+    binary: EBinary,
     left: Expr,
     right: Expr,
   )(using cp: ControlPoint): Result[AbsValue] = for {
     l <- transfer(left)
-    v <- (bop, l.getSingle) match {
+    v <- (binary.bop, l.getSingle) match {
       case (BOp.And, One(Bool(false))) => pure(AVF)
       case (BOp.Or, One(Bool(true)))   => pure(AVT)
-      case (BOp.And, Many) =>
-        for {
-          st <- get
-          _ <- modify(prune(left, true))
-          r <- transfer(right)
-          _ <- put(st)
-        } yield r ⊔ AVF
-      case (BOp.Or, Many) =>
-        for {
-          st <- get
-          _ <- modify(prune(left, false))
-          r <- transfer(right)
-          _ <- put(st)
-        } yield r ⊔ AVT
       case _ =>
         for {
           r <- transfer(right)
-          v <- get(transfer(_, bop, l, r))
+          v <- get(transfer(_, binary, l, r))
         } yield v
     }
   } yield v
@@ -775,59 +771,61 @@ trait AbsTransfer extends Optimized with PruneHelper {
   def getCalleeEntries(
     callerNp: NodePoint[Call],
     callerSt: AbsState,
-    calleeFunc: Func,
+    callee: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue],
     method: Boolean,
-  ): List[(NodePoint[_], AbsState)] = {
-    // handle ir callsite sensitivity
+  ): List[(NodePoint[_], AbsState)] = for {
+    view <- getCalleeView(callerNp, callee, args)
+    calleeNp = NodePoint(callee, callee.entry, view)
+    calleeSt = callerSt.copied(locals =
+      getLocals(
+        CallPoint(callerNp, callee),
+        method,
+        args,
+      ) ++ captured,
+    )
+  } yield (calleeNp, calleeSt)
+
+  def getCalleeView(
+    callerNp: NodePoint[Call],
+    calleeFunc: Func,
+    args: List[AbsValue],
+  ): List[View] =
     val NodePoint(callerFunc, callSite, callerView) = callerNp
-    val baseView =
+    List(
+      // handle ir callsite sensitivity
       if (IR_SENS)
         callerView.copy(
           calls = callSite :: callerView.calls,
           intraLoopDepth = 0,
         )
-      else callerView
-
-    val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
-    val calleeSt = callerSt.copied(locals =
-      getLocals(
-        CallPoint(callerNp, calleeNp),
-        args,
-        cont = false,
-        method,
-      ) ++ captured,
+      else callerView,
     )
-    List((calleeNp, calleeSt))
-  }
 
   /** get local variables */
   def getLocals(
-    cp: CallPoint[Node],
-    args: List[AbsValue],
-    cont: Boolean,
+    cp: CallPoint,
     method: Boolean,
-  ): Map[Local, AbsValue] = {
-    val CallPoint(callerNp, calleeNp) = cp
-    val params: List[Param] = calleeNp.func.irFunc.params
-    var map = Map[Local, AbsValue]()
+    args: List[AbsValue],
+  ): Map[Local, AbsValue] =
+    val CallPoint(callerNp, callee) = cp
+    // get parameters
+    val params: List[Param] = callee.irFunc.params
+    // full arguments with optional parameters
+    val fullArgs =
+      args ++ List.fill(params.length - args.length)(AbsValue(Absent))
+    // construct local type environment
+    (for {
+      ((param, arg), idx) <- (params zip fullArgs).zipWithIndex
+    } yield param.lhs -> assignArg(cp, method, idx, param, arg)).toMap
 
-    @tailrec
-    def aux(ps: List[Param], as: List[AbsValue]): Unit = (ps, as) match {
-      case (Nil, Nil) =>
-      case (Param(lhs, _, optional, _) :: pl, Nil) =>
-        if (optional) {
-          map += lhs -> AbsValue(Absent)
-          aux(pl, Nil)
-        }
-      case (Nil, args) =>
-      // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-      case (param :: pl, arg :: al) =>
-        map += param.lhs -> arg
-        aux(pl, al)
-    }
-    aux(params, args)
-    map
-  }
+  /** assign argument to parameter */
+  def assignArg(
+    cp: CallPoint,
+    method: Boolean,
+    idx: Int,
+    param: Param,
+    arg: AbsValue,
+  ): AbsValue = arg
 }

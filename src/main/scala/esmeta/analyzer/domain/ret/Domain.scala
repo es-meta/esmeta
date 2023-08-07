@@ -26,6 +26,12 @@ trait Domain extends domain.Domain[(AValue, State)] {
     def value: AbsValue
     def state: AbsState
 
+    /** copy */
+    def copy(
+      value: AbsValue = elem.value,
+      state: AbsState = elem.state,
+    ): Elem
+
     /** get string */
     def getString(detail: Boolean): String
   }

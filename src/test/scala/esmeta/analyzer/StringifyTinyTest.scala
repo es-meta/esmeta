@@ -20,7 +20,7 @@ class StringifyTinyTest extends AnalyzerTest {
       loops = List(loopCtxt, loopCtxt),
     )
     checkStringify("View")(
-      insensView -> "[call: ][loop: ]",
+      insensView -> "",
       irView -> "[call: 0, 0, 0][loop: 0(3), 0(3)]",
     )
 
