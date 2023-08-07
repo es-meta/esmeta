@@ -50,19 +50,19 @@ private var globalAnalyzer: Option[Analyzer] = None
 def withAnalyzer[T](analyzer: Analyzer)(t: => T): T =
   globalAnalyzer = Some(analyzer)
   AbsState.setBase(new Initialize(analyzer.cfg))
-  val res = t
-  AbsState.resetBase
-  globalAnalyzer = None
-  res
+  AbsValue.setCache
+  try t
+  finally
+    AbsState.resetBase
+    globalAnalyzer = None
 
 /** abstract semantics */
 def sem: AbsSemantics = get(globalSem, "abstract semantics")
 private var globalSem: Option[AbsSemantics] = None
 def withSem[T](sem: AbsSemantics)(t: => T): T =
   globalSem = Some(sem)
-  val res = t
-  globalSem = None
-  res
+  try t
+  finally globalSem = None
 
 /** logger */
 def warning(str: String): Unit =

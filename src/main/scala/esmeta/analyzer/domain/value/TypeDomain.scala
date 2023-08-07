@@ -28,6 +28,14 @@ object TypeDomain extends value.Domain {
   /** bottom element */
   val Bot: Elem = Elem(ValueTy())
 
+  def setCache: Unit =
+    // order matters.
+    sdoMap = createSdoMap
+    astDirectChildMap = createAstDirectChildMap
+    astChildMap = createAstChildMap
+    astSdoCache = createAstSdoCache
+    synSdoCache = createSynSdoCache
+
   /** abstraction functions */
   def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
@@ -515,7 +523,8 @@ object TypeDomain extends value.Domain {
   } yield p
 
   /** ast type check helper */
-  lazy val astDirectChildMap: Map[String, Set[String]] =
+  var astDirectChildMap: Map[String, Set[String]] = Map()
+  private def createAstDirectChildMap =
     (cfg.grammar.prods.map {
       case Production(lhs, _, _, rhsList) =>
         val name = lhs.name
@@ -524,7 +533,9 @@ object TypeDomain extends value.Domain {
         }.toSet
         name -> subs
     }).toMap
-  lazy val astChildMap: Map[String, Set[String]] =
+
+  var astChildMap: Map[String, Set[String]] = Map()
+  private def createAstChildMap =
     var descs = Map[String, Set[String]]()
     def aux(name: String): Set[String] = descs.get(name) match
       case Some(set) => set
@@ -539,23 +550,25 @@ object TypeDomain extends value.Domain {
     descs
 
   /** sdo access helper */
-  private lazy val astSdoCache: ((String, String)) => List[(Func, Elem)] =
-    cached[(String, String), List[(Func, Elem)]] {
-      case (name, method) =>
-        val result = (for {
-          (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set()) if hint == method
-        } yield (cfg.funcMap(fid), Elem(thisTy))).toList
-        if (result.isEmpty) {
-          if (defaultSdos contains method) {
-            val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
-            for {
-              (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
-              subIdx <- (0 until rhs.countSubs)
-            } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
-          } else Nil
-        } else result
-    }
-  private lazy val synSdoCache =
+  private var astSdoCache: ((String, String)) => List[(Func, Elem)] =
+    createAstSdoCache
+  private def createAstSdoCache = cached[(String, String), List[(Func, Elem)]] {
+    case (name, method) =>
+      val result = (for {
+        (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set()) if hint == method
+      } yield (cfg.funcMap(fid), Elem(thisTy))).toList
+      if (result.isEmpty) {
+        if (defaultSdos contains method) {
+          val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+          for {
+            (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
+            subIdx <- (0 until rhs.countSubs)
+          } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
+        } else Nil
+      } else result
+  }
+  private var synSdoCache = createSynSdoCache
+  private def createSynSdoCache =
     cached[(String, Int, Int, String), List[(Func, Elem)]] {
       case (name, idx, subIdx, method) =>
         val result = (for {
@@ -579,85 +592,90 @@ object TypeDomain extends value.Domain {
 
   private lazy val allSdoPattern = """(<DEFAULT>|\w+\[\d+,\d+\])\.(\w+)""".r
   private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
-  private lazy val sdoMap = {
-    val edges: MMap[String, MSet[String]] = MMap()
-    for {
-      prod <- cfg.grammar.prods
-      name = prod.name if !(cfg.grammar.lexicalNames contains name)
-      (rhs, idx) <- prod.rhsList.zipWithIndex
-      subIdx <- (0 until rhs.countSubs)
-    } {
-      val syntacticName = s"$name[$idx,$subIdx]"
-      edges += (syntacticName -> MSet(name))
-      rhs.getNts(subIdx) match
-        case List(Some(chain)) =>
-          if (edges contains chain) edges(chain) += syntacticName
-          else edges(chain) = MSet(syntacticName)
-        case _ =>
+  private var sdoMap: Map[String, Set[(Int, ValueTy, String)]] = Map()
+  private def createSdoMap = {
+    {
+      val edges: MMap[String, MSet[String]] = MMap()
+      for {
+        prod <- cfg.grammar.prods
+        name = prod.name if !(cfg.grammar.lexicalNames contains name)
+        (rhs, idx) <- prod.rhsList.zipWithIndex
+        subIdx <- (0 until rhs.countSubs)
+      } {
+        val syntacticName = s"$name[$idx,$subIdx]"
+        edges += (syntacticName -> MSet(name))
+        rhs.getNts(subIdx) match
+          case List(Some(chain)) =>
+            if (edges contains chain) edges(chain) += syntacticName
+            else edges(chain) = MSet(syntacticName)
+          case _ =>
+      }
+      val worklist = QueueWorklist[String](List())
+      val infos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      var defaultInfos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      for {
+        func <- cfg.funcs if func.isSDO
+        isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
+        List(name, idxStr, subIdxStr, method) <- sdoPattern.unapplySeq(
+          func.name,
+        )
+        (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
+        key = s"$name[$idx,$subIdx]"
+      } {
+        val newInfo = (func.id, AstSingleT(name, idx, subIdx), method)
+        val isDefaultSdo = defaultSdos contains method
+
+        // update target info
+        val targetInfos = if (isDefaultSdo) defaultInfos else infos
+        if (targetInfos contains key) targetInfos(key) += newInfo
+        else targetInfos(key) = MSet(newInfo)
+        if (targetInfos contains name) targetInfos(name) += newInfo
+        else targetInfos(name) = MSet(newInfo)
+
+        // propagate chain production
+        if (!isDefaultSdo) worklist += name
+      }
+
+      // record original infos
+      val origInfos = (for { (k, set) <- infos } yield k -> set.toSet).toMap
+
+      // propagate chain productions
+      @tailrec
+      def aux(): Unit = worklist.next match
+        case Some(key) =>
+          val childInfo = infos.getOrElse(key, MSet())
+          for {
+            next <- edges.getOrElse(key, MSet())
+            info = infos.getOrElse(next, MSet())
+            oldInfoSize = info.size
+
+            newInfo =
+              // A[i,j] -> A
+              if (key endsWith "]") info ++ childInfo
+              // A.method -> B[i,j].method
+              // only if B[i,j].method not exists (chain production)
+              else {
+                val origInfo = origInfos.getOrElse(next, Set())
+                info ++ (for {
+                  triple <- childInfo
+                  if !(origInfo.exists(_._3 == triple._3))
+                } yield triple)
+              }
+
+            _ = infos(next) = newInfo
+            if newInfo.size > oldInfoSize
+          } worklist += next
+          aux()
+        case None => /* do nothing */
+      aux()
+
+      // merge default infos
+      (for {
+        key <- infos.keySet ++ defaultInfos.keySet
+        info = infos.getOrElse(key, MSet())
+        defaultInfo = defaultInfos.getOrElse(key, MSet())
+        finalInfo = (info ++ defaultInfo).toSet
+      } yield key -> finalInfo).toMap
     }
-    val worklist = QueueWorklist[String](List())
-    val infos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-    var defaultInfos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-    for {
-      func <- cfg.funcs if func.isSDO
-      isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
-      List(name, idxStr, subIdxStr, method) <- sdoPattern.unapplySeq(func.name)
-      (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
-      key = s"$name[$idx,$subIdx]"
-    } {
-      val newInfo = (func.id, AstSingleT(name, idx, subIdx), method)
-      val isDefaultSdo = defaultSdos contains method
-
-      // update target info
-      val targetInfos = if (isDefaultSdo) defaultInfos else infos
-      if (targetInfos contains key) targetInfos(key) += newInfo
-      else targetInfos(key) = MSet(newInfo)
-      if (targetInfos contains name) targetInfos(name) += newInfo
-      else targetInfos(name) = MSet(newInfo)
-
-      // propagate chain production
-      if (!isDefaultSdo) worklist += name
-    }
-
-    // record original infos
-    val origInfos = (for { (k, set) <- infos } yield k -> set.toSet).toMap
-
-    // propagate chain productions
-    @tailrec
-    def aux(): Unit = worklist.next match
-      case Some(key) =>
-        val childInfo = infos.getOrElse(key, MSet())
-        for {
-          next <- edges.getOrElse(key, MSet())
-          info = infos.getOrElse(next, MSet())
-          oldInfoSize = info.size
-
-          newInfo =
-            // A[i,j] -> A
-            if (key endsWith "]") info ++ childInfo
-            // A.method -> B[i,j].method
-            // only if B[i,j].method not exists (chain production)
-            else {
-              val origInfo = origInfos.getOrElse(next, Set())
-              info ++ (for {
-                triple <- childInfo
-                if !(origInfo.exists(_._3 == triple._3))
-              } yield triple)
-            }
-
-          _ = infos(next) = newInfo
-          if newInfo.size > oldInfoSize
-        } worklist += next
-        aux()
-      case None => /* do nothing */
-    aux()
-
-    // merge default infos
-    (for {
-      key <- infos.keySet ++ defaultInfos.keySet
-      info = infos.getOrElse(key, MSet())
-      defaultInfo = defaultInfos.getOrElse(key, MSet())
-      finalInfo = (info ++ defaultInfo).toSet
-    } yield key -> finalInfo).toMap
   }
 }

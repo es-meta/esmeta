@@ -26,6 +26,8 @@ object BasicDomain extends value.Domain {
   /** bottom element */
   val Bot: Elem = Elem()
 
+  def setCache: Unit = ()
+
   /** abstraction functions */
   def alpha(xs: Iterable[AValue]): Elem = Elem(
     AbsComp(xs.collect { case x: AComp => x }),

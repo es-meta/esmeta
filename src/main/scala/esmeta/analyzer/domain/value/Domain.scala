@@ -18,6 +18,8 @@ trait Domain extends domain.Domain[AValue] {
   /** constructor with types */
   def apply(ty: Ty): Elem
 
+  def setCache: Unit
+
   /** constructor for completions */
   def createCompletion(
     ty: AbsValue,
