@@ -24,10 +24,7 @@
     "metalanguage",
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "array4.js" : [
-    "metalanguage",
-    "For each own property key _P_ of _A_ such that _P_ is an array index and ! ToUint32(_P_) ≥ _newLen_, in descending numeric index order, do\n  1. Let _deleteSucceeded_ be ! _A_.[[Delete]](_P_).\n  1. If _deleteSucceeded_ is *false*, then\n    1. Set _newLenDesc_.[[Value]] to ! ToUint32(_P_) + *1*<sub>𝔽</sub>.\n    1. If _newWritable_ is *false*, set _newLenDesc_.[[Writable]] to *false*.\n    1. Perform ! OrdinaryDefineOwnProperty(_A_, *\"length\"*, _newLenDesc_).\n    1. Return *false*."
-  ],
+  "array4.js" : true,
   "array5.js" : true,
   "array6.js" : true,
   "assign-object.js" : true,
@@ -57,10 +54,7 @@
     "metalanguage",
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
   ],
-  "bigint.js" : [
-    "metalanguage",
-    "Return ℤ(truncate(_quotient_))."
-  ],
+  "bigint.js" : true,
   "bind1.js" : [
     "metalanguage",
     "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."

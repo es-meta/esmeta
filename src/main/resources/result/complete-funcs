@@ -63,6 +63,7 @@ ArrayLiteral[0,1].Evaluation
 ArrayLiteral[1,0].Evaluation
 ArrayLiteral[2,0].Evaluation
 ArrayLiteral[2,1].Evaluation
+ArraySetLength
 ArraySpeciesCreate
 ArrowFunction[0,0].Contains
 ArrowFunction[0,0].Evaluation
@@ -240,11 +241,13 @@ BigInt::bitwiseAND
 BigInt::bitwiseNOT
 BigInt::bitwiseOR
 BigInt::bitwiseXOR
+BigInt::divide
 BigInt::equal
 BigInt::exponentiate
 BigInt::leftShift
 BigInt::lessThan
 BigInt::multiply
+BigInt::remainder
 BigInt::signedRightShift
 BigInt::subtract
 BigInt::toString
