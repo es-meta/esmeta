@@ -493,7 +493,14 @@ object TyModel {
           "ProxyTarget" -> (NameT("Object") || NullT),
         ),
       ),
-      "ArrayBufferObject" -> TyInfo(parent = Some("Object")),
+      "ArrayBufferObject" -> TyInfo(
+        parent = Some("Object"),
+        fields = Map(
+          "ArrayBufferData" -> (NameT("SharedDataBlock") || NullT),
+          "ArrayBufferByteLength" -> MathT,
+          "ArrayBufferDetachKey" -> ESValueT,
+        ),
+      ),
       "BooleanObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
         fields = Map(
