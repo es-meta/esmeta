@@ -222,7 +222,8 @@ class TypeAnalyzer(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      if (log) logging(sem, errors, detail)
+      val unreachables: Set[Unreachable] = sem.unreachables
+      if (log) logging(sem, errors, unreachables, detail)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -279,6 +280,7 @@ class TypeAnalyzer(
   private def logging(
     sem: Semantics,
     errors: Set[TypeError],
+    unreachables: Set[Unreachable],
     detail: Boolean = false,
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
@@ -287,6 +289,7 @@ class TypeAnalyzer(
       data = Yaml(
         "duration" -> f"${sem.elapsedTime}%,d ms",
         "error" -> errors.size,
+        "unreachable" -> unreachables.size,
         "iter" -> sem.iter,
         "analyzed" -> Map(
           "functions" -> sem.analyzedFuncs.size,
@@ -299,6 +302,14 @@ class TypeAnalyzer(
       name = "type analysis result",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
+    )
+    dumpFile(
+      name = "unreachable node",
+      data = unreachables.toList
+        .map(_.toString)
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$ANALYZE_LOG_DIR/unreachables",
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -323,6 +334,7 @@ class TypeAnalyzer(
         filename = s"$ANALYZE_LOG_DIR/result",
       )
   }
+
 }
 object TypeAnalyzer {
   // set type domains

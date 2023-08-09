@@ -141,6 +141,13 @@ class Stringifier(
         app :> "- lhs     : " >> lhsTy
         app :> "- rhs     : " >> rhsTy
 
+  /** unreachables */
+  given urRule: Rule[Unreachable] = (app, elem) =>
+    app >> "[Unreachable] " >> elem.func.name
+    elem.cause.collect { app >> " (caused by " >> _.id >> ")" }
+    app :> "- " >> elem.node
+    app
+
   private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
     for {
       lang <- elem.langOpt

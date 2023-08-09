@@ -161,6 +161,41 @@ class AbsSemantics(
   def errors: Set[TypeError] =
     errorMap.map((_, innerMap) => innerMap.values.reduce(_ + _)).toSet
 
+  def unreachables: Set[Unreachable] = {
+    val funcs = (for {
+      func <- cfg.funcs
+      entry = func.entry
+    } yield func -> entry).toSet
+    var set = Set[Unreachable]()
+    val visited = MMap[Node, Boolean]()
+    val total = npMap.keys.map(_.node).toSet
+    def checkUnreachable(node: Node) = {
+      val states = npMap
+        .filter(_._1.node == node)
+        .values
+        .toSet
+      states.forall(_.isBottom)
+    }
+    def aux(node: Node)(using func: Func, cause: Option[Node] = None): Unit = {
+      if (visited.contains(node)) return
+      visited += node -> true
+      val unreachable = checkUnreachable(node)
+      if (unreachable) set += Unreachable(func, node, cause)
+      given Option[Node] =
+        if (unreachable && cause.isEmpty) Some(node) else cause
+      node match
+        case block: Block =>
+          block.next.foreach(aux)
+        case call: Call =>
+          call.next.foreach(aux)
+        case branch: Branch =>
+          branch.thenNode.foreach(aux)
+          branch.elseNode.foreach(aux)
+    }
+    for ((func, entry) <- funcs) aux(entry)(using func)
+    set
+  }
+
   // record type errors
   def +=(error: TypeError): Unit =
     val sensPoint = error.point
