@@ -127,7 +127,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
           // wrap completion by conditions specified in
           // [5.2.3.5 Implicit Normal Completion]
           // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-          value = if (rp.func.isReturnComp) newV.wrapCompletion else newV
+          value = (if (rp.func.isReturnComp) newV.wrapCompletion
+                   else newV) ⊔ value.abruptCompletion
           st = newSt
         }
       })
