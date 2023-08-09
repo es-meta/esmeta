@@ -468,13 +468,11 @@ object TypeDomain extends value.Domain {
 
   // numeric operator helper
   private lazy val numericOp: (Elem, Elem) => Elem = (l, r) =>
-    Elem(
-      ValueTy(
-        math = l.ty.math && r.ty.math,
-        number = l.ty.number && r.ty.number,
-        bigInt = l.ty.bigInt && r.ty.bigInt,
-      ),
-    )
+    var res: Elem = Bot
+    if (!l.ty.math.isBottom && !r.ty.math.isBottom) res ⊔= mathTop
+    if (!l.ty.number.isBottom && !r.ty.number.isBottom) res ⊔= numberTop
+    if (l.ty.bigInt && r.ty.bigInt) res ⊔= bigIntTop
+    res
 
   /** instance name */
   private def getTypeNames(ty: ValueTy): Set[String] =
