@@ -108,6 +108,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case EIsArrayIndex(expr) =>
       walk(expr)
+    case EDebug(expr) =>
+      walk(expr)
     case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)

@@ -474,7 +474,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
           contRp = ReturnPoint(func, cp.view)
           _ = sem.retEdges += (contRp -> sem.retEdges.getOrElse(currRp, Set()))
         } yield AbsValue(ACont(target, captured))
-      case ERandom() => pure(AbsValue.numberTop)
+      case EDebug(expr) => transfer(expr).map(debug)
+      case ERandom()    => pure(AbsValue.numberTop)
       case ESyntactic(name, args, rhsIdx, children) =>
         for {
           cs <- join(children.map {

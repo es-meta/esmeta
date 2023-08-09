@@ -377,7 +377,8 @@ class Interpreter(
       val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, Map.from(captured), st.callStack)
-    case ERandom() => Number(math.random)
+    case EDebug(expr) => debug(eval(expr))
+    case ERandom()    => Number(math.random)
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(childOpt =>
         childOpt.map(child =>
