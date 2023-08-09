@@ -1156,17 +1156,7 @@ trait Parsers extends IndentParsers {
 
   // pure value types
   lazy val pureValueTy: P[ValueTy] = multi(singlePureValueTy)
-  lazy val singlePureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
-
-  // named record types
-  lazy val nameTy: P[ValueTy] =
-    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
-      case ss =>
-        val name = ss.mkString(" ")
-        val normalizedName = Type.normalizeName(name)
-        if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
-        else failure("unknown type name")
-    }
+  lazy val singlePureValueTy: P[ValueTy] = recordTy | listTy | simpleTy | nameTy
 
   // record types TODO
   lazy val recordTy: P[ValueTy] = failure("TODO")
@@ -1177,22 +1167,42 @@ trait Parsers extends IndentParsers {
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
-    "Number" ^^^ NumberT |
-    "BigInt" ^^^ BigIntT |
-    "Boolean" ^^^ BoolT |
-    "Symbol" ^^^ SymbolT |
-    "String" ^^^ StrT |
-    "Object" ^^^ ObjectT |
+    "0" ^^^ MathT(0) |
+    "1" ^^^ MathT(1) |
+    "`" ~> "[^`]+".r <~ "`" ^^ { StrT(_) } |
+    "+∞" ^^^ PosInfT |
+    "-∞" ^^^ NegInfT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
-    "ECMAScript language value" ^^^ ESValueT |
-    "property key" ^^^ (StrT || SymbolT) |
-    "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
   } <~ opt("s")
+
+  // named record types
+  lazy val nameTy: P[ValueTy] =
+    def getName(name: String): String =
+      if (name.endsWith("s")) name.dropRight(1)
+      else name
+    val infos = TyModel.es.infos
+    def check(name: String): Parser[ValueTy] =
+      if (infos.contains(Type.normalizeName(name))) success(NameT(name))
+      else failure(s"unknown type name: $name")
+    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
+      case ss =>
+        getName(ss.mkString(" ")) match
+          case "Number"                    => success(NumberT)
+          case "BigInt"                    => success(BigIntT)
+          case "Boolean"                   => success(BoolT)
+          case "Symbol"                    => success(SymbolT)
+          case "String"                    => success(StrT)
+          case "Object"                    => success(ObjectT)
+          case "ECMAScript language value" => success(ESValueT)
+          case "property key"              => success(StrT || SymbolT)
+          case "Parse Node"                => success(AstT)
+          case name                        => check(name)
+    }
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {
