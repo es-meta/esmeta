@@ -194,11 +194,21 @@ object TypeDomain extends value.Domain {
 
     /** type check */
     def typeCheck(tname: String, st: AbsState): Elem =
-      val names = instanceNameSet(elem.ty)
-      if (names.isEmpty) Bot
-      else if (names == Set(tname)) Elem(TrueT)
-      else if (!names.contains(tname)) Elem(FalseT)
-      else boolTop
+      var set: Set[Boolean] = Set()
+      val ty = elem.ty
+      if (!ty.number.isBottom) set += tname == "Number"
+      if (!ty.bigInt) set += tname == "BigInt"
+      if (!ty.str.isBottom) set += tname == "String"
+      if (!ty.bool.isBottom) set += tname == "Boolean"
+      if (!ty.const.isBottom) set += tname == "Constant"
+      if (!ty.comp.isBottom) set += tname == "CompletionRecord"
+      if (!ty.undef) set += tname == "Undefined"
+      if (!ty.nullv) set += tname == "Null"
+      if (!ty.clo.isBottom) set += tname == "AbstractClosure"
+      val names = instanceNameSet(ty)
+      if (names.contains(tname)) set += true
+      if (!names.contains(tname)) set += false
+      Elem(BoolT(set))
 
     /** helper functions for abstract transfer */
     def convertTo(cop: COp, radix: Elem): Elem =
