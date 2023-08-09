@@ -1,0 +1,1762 @@
+{
+  "infos" : [
+    [
+      "ModuleNamespaceExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "Set",
+            "ModuleNamespaceExoticObject.Set"
+          ],
+          [
+            "SetPrototypeOf",
+            "ModuleNamespaceExoticObject.SetPrototypeOf"
+          ],
+          [
+            "Get",
+            "ModuleNamespaceExoticObject.Get"
+          ],
+          [
+            "PreventExtensions",
+            "ModuleNamespaceExoticObject.PreventExtensions"
+          ],
+          [
+            "Delete",
+            "ModuleNamespaceExoticObject.Delete"
+          ],
+          [
+            "GetOwnProperty",
+            "ModuleNamespaceExoticObject.GetOwnProperty"
+          ],
+          [
+            "IsExtensible",
+            "ModuleNamespaceExoticObject.IsExtensible"
+          ],
+          [
+            "HasProperty",
+            "ModuleNamespaceExoticObject.HasProperty"
+          ],
+          [
+            "DefineOwnProperty",
+            "ModuleNamespaceExoticObject.DefineOwnProperty"
+          ],
+          [
+            "OwnPropertyKeys",
+            "ModuleNamespaceExoticObject.OwnPropertyKeys"
+          ],
+          [
+            "GetPrototypeOf",
+            "ModuleNamespaceExoticObject.GetPrototypeOf"
+          ]
+        ],
+        "fields" : [
+          [
+            "Module",
+            "ModuleRecord"
+          ],
+          [
+            "Exports",
+            "List[String]"
+          ]
+        ]
+      }
+    ],
+    [
+      "DeclarativeEnvironmentRecord",
+      {
+        "parent" : "EnvironmentRecord",
+        "methods" : [
+          [
+            "WithBaseObject",
+            "DeclarativeEnvironmentRecord.WithBaseObject"
+          ],
+          [
+            "HasSuperBinding",
+            "DeclarativeEnvironmentRecord.HasSuperBinding"
+          ],
+          [
+            "DeleteBinding",
+            "DeclarativeEnvironmentRecord.DeleteBinding"
+          ],
+          [
+            "InitializeBinding",
+            "DeclarativeEnvironmentRecord.InitializeBinding"
+          ],
+          [
+            "GetBindingValue",
+            "DeclarativeEnvironmentRecord.GetBindingValue"
+          ],
+          [
+            "CreateMutableBinding",
+            "DeclarativeEnvironmentRecord.CreateMutableBinding"
+          ],
+          [
+            "CreateImmutableBinding",
+            "DeclarativeEnvironmentRecord.CreateImmutableBinding"
+          ],
+          [
+            "SetMutableBinding",
+            "DeclarativeEnvironmentRecord.SetMutableBinding"
+          ],
+          [
+            "HasThisBinding",
+            "DeclarativeEnvironmentRecord.HasThisBinding"
+          ],
+          [
+            "HasBinding",
+            "DeclarativeEnvironmentRecord.HasBinding"
+          ]
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "ReferenceRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Base",
+            "ESValue | EnvironmentRecord | Const[~unresolvable~]"
+          ],
+          [
+            "ReferencedName",
+            "PrivateName | Symbol | String"
+          ],
+          [
+            "Strict",
+            "Boolean"
+          ],
+          [
+            "ThisValue",
+            "ESValue | Const[~empty~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "StringExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "GetOwnProperty",
+            "StringExoticObject.GetOwnProperty"
+          ],
+          [
+            "DefineOwnProperty",
+            "StringExoticObject.DefineOwnProperty"
+          ],
+          [
+            "OwnPropertyKeys",
+            "StringExoticObject.OwnPropertyKeys"
+          ]
+        ],
+        "fields" : [
+          [
+            "StringData",
+            "String"
+          ]
+        ]
+      }
+    ],
+    [
+      "Binding",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "BoundValue",
+            "ESValue"
+          ],
+          [
+            "initialized",
+            "Boolean"
+          ]
+        ]
+      }
+    ],
+    [
+      "PrivateElement",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Set",
+            "FunctionObject | Undefined | Absent"
+          ],
+          [
+            "Get",
+            "FunctionObject | Undefined | Absent"
+          ],
+          [
+            "Value",
+            "ESValue | Absent"
+          ],
+          [
+            "Kind",
+            "Const[~accessor~, ~field~, ~method~]"
+          ],
+          [
+            "Key",
+            "PrivateName"
+          ]
+        ]
+      }
+    ],
+    [
+      "AsyncGeneratorInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "AsyncGeneratorState",
+            "Const[~awaitingDASHreturn~, ~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined"
+          ],
+          [
+            "AsyncGeneratorContext",
+            "ExecutionContext"
+          ],
+          [
+            "AsyncGeneratorQueue",
+            "List[AsyncGeneratorRequestRecord]"
+          ],
+          [
+            "GeneratorBrand",
+            "Const[~empty~] | String"
+          ]
+        ]
+      }
+    ],
+    [
+      "EnvironmentRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "OuterEnv",
+            "EnvironmentRecord | Null"
+          ],
+          [
+            "SubMap",
+            "SubMap[String |-> Binding]"
+          ]
+        ]
+      }
+    ],
+    [
+      "SourceTextModuleRecord",
+      {
+        "parent" : "CyclicModuleRecord",
+        "methods" : [
+          [
+            "GetExportedNames",
+            "SourceTextModuleRecord.GetExportedNames"
+          ],
+          [
+            "ResolveExport",
+            "SourceTextModuleRecord.ResolveExport"
+          ],
+          [
+            "InitializeEnvironment",
+            "SourceTextModuleRecord.InitializeEnvironment"
+          ],
+          [
+            "ExecuteModule",
+            "SourceTextModuleRecord.ExecuteModule"
+          ]
+        ],
+        "fields" : [
+          [
+            "ImportEntries",
+            "List[ImportEntryRecord]"
+          ],
+          [
+            "LocalExportEntries",
+            "List[ExportEntryRecord]"
+          ],
+          [
+            "StarExportEntries",
+            "List[ExportEntryRecord]"
+          ],
+          [
+            "IndirectExportEntries",
+            "List[ExportEntryRecord]"
+          ],
+          [
+            "ECMAScriptCode",
+            "Ast[Module]"
+          ],
+          [
+            "Context",
+            "ExecutionContext"
+          ],
+          [
+            "ImportMeta",
+            "Object | Const[~empty~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "BigIntObject",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "BigIntData",
+            "BigInt"
+          ]
+        ]
+      }
+    ],
+    [
+      "NumberObject",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "NumberData",
+            "Number"
+          ]
+        ]
+      }
+    ],
+    [
+      "AsyncFromSyncIteratorInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "SyncIteratorRecord",
+            "IteratorRecord"
+          ]
+        ]
+      }
+    ],
+    [
+      "ScriptRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Realm",
+            "RealmRecord | Undefined"
+          ],
+          [
+            "ECMAScriptCode",
+            "Ast[Script]"
+          ],
+          [
+            "HostDefined",
+            "Const[~empty~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ModuleEnvironmentRecord",
+      {
+        "parent" : "DeclarativeEnvironmentRecord",
+        "methods" : [
+          [
+            "GetBindingValue",
+            "ModuleEnvironmentRecord.GetBindingValue"
+          ],
+          [
+            "HasThisBinding",
+            "ModuleEnvironmentRecord.HasThisBinding"
+          ],
+          [
+            "GetThisBinding",
+            "ModuleEnvironmentRecord.GetThisBinding"
+          ],
+          [
+            "CreateImportBinding",
+            "ModuleEnvironmentRecord.CreateImportBinding"
+          ]
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "ClassStaticBlockDefinitionRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "BodyFunction",
+            "FunctionObject"
+          ]
+        ]
+      }
+    ],
+    [
+      "WeakSetInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "WeakSetData",
+            "List[ESValue]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ExportEntryRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "ExportName",
+            "String | Null"
+          ],
+          [
+            "ModuleRequest",
+            "String | Null"
+          ],
+          [
+            "ImportName",
+            "Const[~all-but-default~, ~all~] | String | Null"
+          ],
+          [
+            "LocalName",
+            "String | Null"
+          ]
+        ]
+      }
+    ],
+    [
+      "SetInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "SetData",
+            "List[ESValue]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ObjectEnvironmentRecord",
+      {
+        "parent" : "EnvironmentRecord",
+        "methods" : [
+          [
+            "WithBaseObject",
+            "ObjectEnvironmentRecord.WithBaseObject"
+          ],
+          [
+            "HasSuperBinding",
+            "ObjectEnvironmentRecord.HasSuperBinding"
+          ],
+          [
+            "DeleteBinding",
+            "ObjectEnvironmentRecord.DeleteBinding"
+          ],
+          [
+            "InitializeBinding",
+            "ObjectEnvironmentRecord.InitializeBinding"
+          ],
+          [
+            "GetBindingValue",
+            "ObjectEnvironmentRecord.GetBindingValue"
+          ],
+          [
+            "CreateMutableBinding",
+            "ObjectEnvironmentRecord.CreateMutableBinding"
+          ],
+          [
+            "SetMutableBinding",
+            "ObjectEnvironmentRecord.SetMutableBinding"
+          ],
+          [
+            "HasThisBinding",
+            "ObjectEnvironmentRecord.HasThisBinding"
+          ],
+          [
+            "HasBinding",
+            "ObjectEnvironmentRecord.HasBinding"
+          ]
+        ],
+        "fields" : [
+          [
+            "IsWithEnvironment",
+            "Boolean"
+          ],
+          [
+            "BindingObject",
+            "Object"
+          ]
+        ]
+      }
+    ],
+    [
+      "ClassFieldDefinitionRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Name",
+            "PrivateName | Symbol | String"
+          ],
+          [
+            "Initializer",
+            "FunctionObject | Const[~empty~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "IteratorRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Iterator",
+            "OrdinaryObject"
+          ],
+          [
+            "NextMethod",
+            "FunctionObject"
+          ],
+          [
+            "Done",
+            "Boolean"
+          ]
+        ]
+      }
+    ],
+    [
+      "ArrayBufferObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "AgentRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "IsLockFree8",
+            "Boolean"
+          ],
+          [
+            "KeptAlive",
+            "List[Object]"
+          ],
+          [
+            "IsLockFree2",
+            "Boolean"
+          ],
+          [
+            "CandidateExecution",
+            "CandidateExecutionRecord"
+          ],
+          [
+            "IsLockFree1",
+            "Boolean"
+          ],
+          [
+            "CanBlock",
+            "Boolean"
+          ],
+          [
+            "LittleEndian",
+            "Boolean"
+          ],
+          [
+            "Signifier",
+            "AgentSignifier"
+          ]
+        ]
+      }
+    ],
+    [
+      "RealmRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "HostDefined",
+            "Undefined"
+          ],
+          [
+            "GlobalEnv",
+            "GlobalEnvironmentRecord"
+          ],
+          [
+            "GlobalObject",
+            "Object | Undefined"
+          ],
+          [
+            "Intrinsics",
+            "IntrinsicsRecord"
+          ],
+          [
+            "TemplateMap",
+            "List[TemplatePair]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ResolvedBindingRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Module",
+            "ModuleRecord"
+          ],
+          [
+            "BindingName",
+            "Const[~NAMESPACE~] | String"
+          ]
+        ]
+      }
+    ],
+    [
+      "ArgumentsExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "DefineOwnProperty",
+            "ArgumentsExoticObject.DefineOwnProperty"
+          ],
+          [
+            "Set",
+            "ArgumentsExoticObject.Set"
+          ],
+          [
+            "Get",
+            "ArgumentsExoticObject.Get"
+          ],
+          [
+            "Delete",
+            "ArgumentsExoticObject.Delete"
+          ],
+          [
+            "GetOwnProperty",
+            "ArgumentsExoticObject.GetOwnProperty"
+          ]
+        ],
+        "fields" : [
+          [
+            "ParameterMap",
+            "OrdinaryObject"
+          ]
+        ]
+      }
+    ],
+    [
+      "PendingJob",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Job",
+            "Clo"
+          ],
+          [
+            "Realm",
+            "RealmRecord"
+          ],
+          [
+            "ScriptOrModule",
+            "ModuleRecord | ScriptRecord | Null"
+          ]
+        ]
+      }
+    ],
+    [
+      "PrivateName",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Description",
+            "String"
+          ]
+        ]
+      }
+    ],
+    [
+      "ImportEntryRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "ModuleRequest",
+            "String"
+          ],
+          [
+            "ImportName",
+            "Const[~namespace-object~] | String"
+          ],
+          [
+            "LocalName",
+            "String"
+          ]
+        ]
+      }
+    ],
+    [
+      "ECMAScriptFunctionObject",
+      {
+        "parent" : "FunctionObject",
+        "methods" : [
+          [
+            "Call",
+            "ECMAScriptFunctionObject.Call"
+          ],
+          [
+            "Construct",
+            "ECMAScriptFunctionObject.Construct"
+          ]
+        ],
+        "fields" : [
+          [
+            "ThisMode",
+            "Const[~global~, ~lexical~, ~strict~]"
+          ],
+          [
+            "SourceText",
+            "String"
+          ],
+          [
+            "Environment",
+            "EnvironmentRecord"
+          ],
+          [
+            "FormalParameters",
+            "Ast"
+          ],
+          [
+            "IsClassConstructor",
+            "Boolean"
+          ],
+          [
+            "Realm",
+            "RealmRecord"
+          ],
+          [
+            "PrivateEnvironment",
+            "PrivateEnvironmentRecord | Null"
+          ],
+          [
+            "ECMAScriptCode",
+            "Ast"
+          ],
+          [
+            "PrivateMethods",
+            "List[PrivateElement]"
+          ],
+          [
+            "HomeObject",
+            "Object | Undefined"
+          ],
+          [
+            "Fields",
+            "List[ClassFieldDefinitionRecord]"
+          ],
+          [
+            "ConstructorKind",
+            "Const[~base~, ~derived~]"
+          ],
+          [
+            "ClassFieldInitializerName",
+            "PrivateName | Symbol | Const[~empty~] | String"
+          ],
+          [
+            "ScriptOrModule",
+            "ModuleRecord | ScriptRecord | Null"
+          ],
+          [
+            "Strict",
+            "Boolean"
+          ]
+        ]
+      }
+    ],
+    [
+      "ForInIteratorInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Object",
+            "Object"
+          ],
+          [
+            "ObjectWasVisited",
+            "Boolean"
+          ],
+          [
+            "VisitedKeys",
+            "List[String]"
+          ],
+          [
+            "RemainingKeys",
+            "List[String]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ModuleRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Realm",
+            "RealmRecord"
+          ],
+          [
+            "Environment",
+            "ModuleEnvironmentRecord | Const[~empty~]"
+          ],
+          [
+            "Namespace",
+            "ModuleNamespaceExoticObject | Const[~empty~]"
+          ],
+          [
+            "HostDefined",
+            "Undefined"
+          ]
+        ]
+      }
+    ],
+    [
+      "SymbolObject",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "SymbolData",
+            "Symbol"
+          ]
+        ]
+      }
+    ],
+    [
+      "PropertyDescriptor",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Set",
+            "FunctionObject | Undefined | Absent"
+          ],
+          [
+            "Get",
+            "FunctionObject | Undefined | Absent"
+          ],
+          [
+            "Writable",
+            "Boolean | Absent"
+          ],
+          [
+            "Enumerable",
+            "Boolean | Absent"
+          ],
+          [
+            "Value",
+            "ESValue | Absent"
+          ],
+          [
+            "Configurable",
+            "Boolean | Absent"
+          ]
+        ]
+      }
+    ],
+    [
+      "GlobalSymbolRegistryRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Key",
+            "String"
+          ],
+          [
+            "Symbol",
+            "Symbol"
+          ]
+        ]
+      }
+    ],
+    [
+      "OrdinaryObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "WeakMapInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "WeakMapData",
+            "List[{ [[Key]]: ESValue | Const[~empty~], [[Value]]: ESValue }]"
+          ]
+        ]
+      }
+    ],
+    [
+      "CyclicModuleRecord",
+      {
+        "parent" : "ModuleRecord",
+        "methods" : [
+          [
+            "Link",
+            "CyclicModuleRecord.Link"
+          ],
+          [
+            "Evaluate",
+            "CyclicModuleRecord.Evaluate"
+          ]
+        ],
+        "fields" : [
+          [
+            "DFSAncestorIndex",
+            "Const[~empty~] | Math"
+          ],
+          [
+            "AsyncParentModules",
+            "List[CyclicModuleRecord]"
+          ],
+          [
+            "CycleRoot",
+            "CyclicModuleRecord | Const[~empty~]"
+          ],
+          [
+            "EvaluationError",
+            "Abrupt | Const[~empty~]"
+          ],
+          [
+            "HasTLA",
+            "Boolean"
+          ],
+          [
+            "DFSIndex",
+            "Const[~empty~] | Math"
+          ],
+          [
+            "RequestedModules",
+            "List[String]"
+          ],
+          [
+            "TopLevelCapability",
+            "PromiseCapabilityRecord | Const[~empty~]"
+          ],
+          [
+            "Status",
+            "Const[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~]"
+          ],
+          [
+            "AsyncEvaluation",
+            "Boolean"
+          ],
+          [
+            "PendingAsyncDependencies",
+            "Const[~empty~] | Math"
+          ]
+        ]
+      }
+    ],
+    [
+      "ErrorInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "ErrorData",
+            "Undefined"
+          ]
+        ]
+      }
+    ],
+    [
+      "ImmutablePrototypeExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "SetPrototypeOf",
+            "ImmutablePrototypeExoticObject.SetPrototypeOf"
+          ]
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "PromiseCapabilityRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Promise",
+            "Object"
+          ],
+          [
+            "Resolve",
+            "FunctionObject"
+          ],
+          [
+            "Reject",
+            "FunctionObject"
+          ]
+        ]
+      }
+    ],
+    [
+      "GlobalEnvironmentRecord",
+      {
+        "parent" : "EnvironmentRecord",
+        "methods" : [
+          [
+            "CreateGlobalVarBinding",
+            "GlobalEnvironmentRecord.CreateGlobalVarBinding"
+          ],
+          [
+            "WithBaseObject",
+            "GlobalEnvironmentRecord.WithBaseObject"
+          ],
+          [
+            "HasRestrictedGlobalProperty",
+            "GlobalEnvironmentRecord.HasRestrictedGlobalProperty"
+          ],
+          [
+            "HasSuperBinding",
+            "GlobalEnvironmentRecord.HasSuperBinding"
+          ],
+          [
+            "HasLexicalDeclaration",
+            "GlobalEnvironmentRecord.HasLexicalDeclaration"
+          ],
+          [
+            "CanDeclareGlobalVar",
+            "GlobalEnvironmentRecord.CanDeclareGlobalVar"
+          ],
+          [
+            "DeleteBinding",
+            "GlobalEnvironmentRecord.DeleteBinding"
+          ],
+          [
+            "InitializeBinding",
+            "GlobalEnvironmentRecord.InitializeBinding"
+          ],
+          [
+            "GetBindingValue",
+            "GlobalEnvironmentRecord.GetBindingValue"
+          ],
+          [
+            "GetThisBinding",
+            "GlobalEnvironmentRecord.GetThisBinding"
+          ],
+          [
+            "CanDeclareGlobalFunction",
+            "GlobalEnvironmentRecord.CanDeclareGlobalFunction"
+          ],
+          [
+            "HasVarDeclaration",
+            "GlobalEnvironmentRecord.HasVarDeclaration"
+          ],
+          [
+            "CreateImmutableBinding",
+            "GlobalEnvironmentRecord.CreateImmutableBinding"
+          ],
+          [
+            "CreateGlobalFunctionBinding",
+            "GlobalEnvironmentRecord.CreateGlobalFunctionBinding"
+          ],
+          [
+            "CreateMutableBinding",
+            "GlobalEnvironmentRecord.CreateMutableBinding"
+          ],
+          [
+            "SetMutableBinding",
+            "GlobalEnvironmentRecord.SetMutableBinding"
+          ],
+          [
+            "HasThisBinding",
+            "GlobalEnvironmentRecord.HasThisBinding"
+          ],
+          [
+            "HasBinding",
+            "GlobalEnvironmentRecord.HasBinding"
+          ]
+        ],
+        "fields" : [
+          [
+            "ObjectRecord",
+            "ObjectEnvironmentRecord"
+          ],
+          [
+            "GlobalThisValue",
+            "Object"
+          ],
+          [
+            "DeclarativeRecord",
+            "DeclarativeEnvironmentRecord"
+          ],
+          [
+            "VarNames",
+            "List[String]"
+          ]
+        ]
+      }
+    ],
+    [
+      "Object",
+      {
+        "parent" : null,
+        "methods" : [
+          [
+            "Set",
+            "OrdinaryObject.Set"
+          ],
+          [
+            "SetPrototypeOf",
+            "OrdinaryObject.SetPrototypeOf"
+          ],
+          [
+            "Get",
+            "OrdinaryObject.Get"
+          ],
+          [
+            "PreventExtensions",
+            "OrdinaryObject.PreventExtensions"
+          ],
+          [
+            "Delete",
+            "OrdinaryObject.Delete"
+          ],
+          [
+            "GetOwnProperty",
+            "OrdinaryObject.GetOwnProperty"
+          ],
+          [
+            "IsExtensible",
+            "OrdinaryObject.IsExtensible"
+          ],
+          [
+            "HasProperty",
+            "OrdinaryObject.HasProperty"
+          ],
+          [
+            "DefineOwnProperty",
+            "OrdinaryObject.DefineOwnProperty"
+          ],
+          [
+            "OwnPropertyKeys",
+            "OrdinaryObject.OwnPropertyKeys"
+          ],
+          [
+            "GetPrototypeOf",
+            "OrdinaryObject.GetPrototypeOf"
+          ]
+        ],
+        "fields" : [
+          [
+            "Extensible",
+            "Boolean"
+          ],
+          [
+            "Prototype",
+            "Object | Null"
+          ],
+          [
+            "SubMap",
+            "SubMap[Symbol | String |-> PropertyDescriptor]"
+          ],
+          [
+            "PrivateElements",
+            "List[PrivateElement]"
+          ]
+        ]
+      }
+    ],
+    [
+      "BuiltinFunctionObject",
+      {
+        "parent" : "FunctionObject",
+        "methods" : [
+          [
+            "Call",
+            "BuiltinFunctionObject.Call"
+          ]
+        ],
+        "fields" : [
+          [
+            "Code",
+            "Clo"
+          ],
+          [
+            "Realm",
+            "RealmRecord"
+          ],
+          [
+            "InitialName",
+            "String | Null"
+          ]
+        ]
+      }
+    ],
+    [
+      "ExecutionContext",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "VariableEnvironment",
+            "EnvironmentRecord"
+          ],
+          [
+            "Generator",
+            "Object"
+          ],
+          [
+            "Function",
+            "FunctionObject | Null"
+          ],
+          [
+            "Realm",
+            "RealmRecord"
+          ],
+          [
+            "PrivateEnvironment",
+            "PrivateEnvironmentRecord | Null"
+          ],
+          [
+            "ScriptOrModule",
+            "ModuleRecord | ScriptRecord | Null"
+          ],
+          [
+            "LexicalEnvironment",
+            "EnvironmentRecord"
+          ]
+        ]
+      }
+    ],
+    [
+      "MutableBinding",
+      {
+        "parent" : "Binding",
+        "methods" : [
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "IntegerIndexedExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "Set",
+            "IntegerIndexedExoticObject.Set"
+          ],
+          [
+            "Get",
+            "IntegerIndexedExoticObject.Get"
+          ],
+          [
+            "Delete",
+            "IntegerIndexedExoticObject.Delete"
+          ],
+          [
+            "GetOwnProperty",
+            "IntegerIndexedExoticObject.GetOwnProperty"
+          ],
+          [
+            "OwnPropertyKeys",
+            "IntegerIndexedExoticObject.OwnPropertyKeys"
+          ],
+          [
+            "HasProperty",
+            "IntegerIndexedExoticObject.HasProperty"
+          ],
+          [
+            "DefineOwnProperty",
+            "IntegerIndexedExoticObject.DefineOwnProperty"
+          ]
+        ],
+        "fields" : [
+          [
+            "ByteOffset",
+            "Math"
+          ],
+          [
+            "TypedArrayName",
+            "String"
+          ],
+          [
+            "ArrayLength",
+            "Math"
+          ],
+          [
+            "ViewedArrayBuffer",
+            "ArrayBufferObject"
+          ],
+          [
+            "ContentType",
+            "Const[~BigInt~, ~Number~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "BoundFunctionExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "Call",
+            "BoundFunctionExoticObject.Call"
+          ],
+          [
+            "Construct",
+            "BoundFunctionExoticObject.Construct"
+          ]
+        ],
+        "fields" : [
+          [
+            "BoundTargetFunction",
+            "FunctionObject"
+          ],
+          [
+            "BoundThis",
+            "ESValue"
+          ],
+          [
+            "BoundArguments",
+            "List[ESValue]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ArrayExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "DefineOwnProperty",
+            "ArrayExoticObject.DefineOwnProperty"
+          ]
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "ImmutableBinding",
+      {
+        "parent" : "Binding",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "strict",
+            "Boolean"
+          ]
+        ]
+      }
+    ],
+    [
+      "TemplatePair",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Site",
+            "Ast[TemplateLiteral]"
+          ],
+          [
+            "Array",
+            "Object"
+          ]
+        ]
+      }
+    ],
+    [
+      "PrivateEnvironmentRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "OuterPrivateEnvironment",
+            "PrivateEnvironmentRecord | Null"
+          ],
+          [
+            "Names",
+            "List[PrivateName]"
+          ]
+        ]
+      }
+    ],
+    [
+      "MapInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "MapData",
+            "List[{ [[Key]]: ESValue | Const[~empty~], [[Value]]: ESValue }]"
+          ]
+        ]
+      }
+    ],
+    [
+      "GeneratorInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "GeneratorState",
+            "Const[~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined"
+          ],
+          [
+            "GeneratorContext",
+            "ExecutionContext"
+          ],
+          [
+            "GeneratorBrand",
+            "Const[~empty~] | String"
+          ]
+        ]
+      }
+    ],
+    [
+      "BooleanObject",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "BooleanData",
+            "Boolean"
+          ]
+        ]
+      }
+    ],
+    [
+      "MatchRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "StartIndex",
+            "Math"
+          ],
+          [
+            "EndIndex",
+            "Math"
+          ]
+        ]
+      }
+    ],
+    [
+      "PromiseReaction",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Capability",
+            "PromiseCapabilityRecord | Undefined"
+          ],
+          [
+            "Type",
+            "Const[~Fulfill~, ~Reject~]"
+          ],
+          [
+            "Handler",
+            "JobCallbackRecord | Const[~empty~]"
+          ]
+        ]
+      }
+    ],
+    [
+      "FunctionObject",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+        ]
+      }
+    ],
+    [
+      "FunctionEnvironmentRecord",
+      {
+        "parent" : "DeclarativeEnvironmentRecord",
+        "methods" : [
+          [
+            "HasSuperBinding",
+            "FunctionEnvironmentRecord.HasSuperBinding"
+          ],
+          [
+            "HasThisBinding",
+            "FunctionEnvironmentRecord.HasThisBinding"
+          ],
+          [
+            "BindThisValue",
+            "FunctionEnvironmentRecord.BindThisValue"
+          ],
+          [
+            "GetThisBinding",
+            "FunctionEnvironmentRecord.GetThisBinding"
+          ],
+          [
+            "GetSuperBase",
+            "FunctionEnvironmentRecord.GetSuperBase"
+          ]
+        ],
+        "fields" : [
+          [
+            "ThisValue",
+            "ESValue"
+          ],
+          [
+            "ThisBindingStatus",
+            "Const[~initialized~, ~lexical~, ~uninitialized~]"
+          ],
+          [
+            "FunctionObject",
+            "FunctionObject"
+          ],
+          [
+            "NewTarget",
+            "Object | Undefined"
+          ]
+        ]
+      }
+    ],
+    [
+      "AsyncGeneratorRequestRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Capability",
+            "PromiseCapabilityRecord"
+          ]
+        ]
+      }
+    ],
+    [
+      "PromiseInstance",
+      {
+        "parent" : "OrdinaryObject",
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "PromiseFulfillReactions",
+            "List[PromiseReaction]"
+          ],
+          [
+            "PromiseState",
+            "Const[~fulfilled~, ~pending~, ~rejected~]"
+          ],
+          [
+            "PromiseIsHandled",
+            "Boolean"
+          ],
+          [
+            "PromiseResult",
+            "ESValue"
+          ],
+          [
+            "PromiseRejectReactions",
+            "List[PromiseReaction]"
+          ]
+        ]
+      }
+    ],
+    [
+      "ProxyExoticObject",
+      {
+        "parent" : "Object",
+        "methods" : [
+          [
+            "Set",
+            "ProxyExoticObject.Set"
+          ],
+          [
+            "SetPrototypeOf",
+            "ProxyExoticObject.SetPrototypeOf"
+          ],
+          [
+            "Get",
+            "ProxyExoticObject.Get"
+          ],
+          [
+            "PreventExtensions",
+            "ProxyExoticObject.PreventExtensions"
+          ],
+          [
+            "Construct",
+            "ProxyExoticObject.Construct"
+          ],
+          [
+            "Delete",
+            "ProxyExoticObject.Delete"
+          ],
+          [
+            "GetOwnProperty",
+            "ProxyExoticObject.GetOwnProperty"
+          ],
+          [
+            "Call",
+            "ProxyExoticObject.Call"
+          ],
+          [
+            "IsExtensible",
+            "ProxyExoticObject.IsExtensible"
+          ],
+          [
+            "HasProperty",
+            "ProxyExoticObject.HasProperty"
+          ],
+          [
+            "DefineOwnProperty",
+            "ProxyExoticObject.DefineOwnProperty"
+          ],
+          [
+            "OwnPropertyKeys",
+            "ProxyExoticObject.OwnPropertyKeys"
+          ],
+          [
+            "GetPrototypeOf",
+            "ProxyExoticObject.GetPrototypeOf"
+          ]
+        ],
+        "fields" : [
+          [
+            "ProxyHandler",
+            "Object | Null"
+          ],
+          [
+            "ProxyTarget",
+            "Object | Null"
+          ]
+        ]
+      }
+    ],
+    [
+      "JobCallbackRecord",
+      {
+        "parent" : null,
+        "methods" : [
+        ],
+        "fields" : [
+          [
+            "Callback",
+            "FunctionObject"
+          ],
+          [
+            "HostDefined",
+            "Const[~empty~]"
+          ]
+        ]
+      }
+    ]
+  ]
+}
