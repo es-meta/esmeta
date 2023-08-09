@@ -37,11 +37,22 @@ case class NumOption[T](assign: (T, Int) => Unit) extends OptionKind[T] {
 }
 
 /** string options */
-case class StrOption[T](assign: (T, String) => Unit) extends OptionKind[T] {
-  def postfix: String = "={string}"
+case class StrOption[T](
+  assign: (T, String) => Unit,
+  allowEmpty: Boolean = false,
+) extends OptionKind[T] {
+  def postfix: String = "={string}" ++ (if (allowEmpty) "?" else "")
   def argRegexList(name: String): List[ArgRegex[T]] = List(
     (("-" + name + "=").r, ".+".r, (c, s) => assign(c, s)),
-    (("-" + name + "=").r, ".*".r, (_, _) => throw NoStrArgError(name)),
-    (("-" + name).r, "".r, (_, _) => throw NoStrArgError(name)),
+    (
+      ("-" + name + "=").r,
+      ".*".r,
+      (c, s) => if (allowEmpty) assign(c, s) else throw NoStrArgError(name),
+    ),
+    (
+      ("-" + name).r,
+      "".r,
+      (c, s) => if (allowEmpty) assign(c, s) else throw NoStrArgError(name),
+    ),
   )
 }

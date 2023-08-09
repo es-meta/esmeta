@@ -66,4 +66,15 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     case None =>
       val version = currentVersion
       (version, f(version))
+
+  def getAllTargets(commits: List[String]): List[String] =
+    val targets =
+      executeCmd(
+        s"git rev-list --topo-order --reverse ${commits.mkString(" ")}",
+        path,
+      ).trim
+        .split("\n")
+        .toList
+    targets
+
 }

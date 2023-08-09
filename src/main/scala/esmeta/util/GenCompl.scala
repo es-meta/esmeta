@@ -3,7 +3,7 @@ package esmeta.util
 import esmeta.*
 import SystemUtils.*
 
-// autocompltion fil generator for shell
+// autocompletion file generator for shell
 object GenCompl {
   import Appender.*
 

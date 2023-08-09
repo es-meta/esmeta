@@ -21,7 +21,7 @@ case class AnalysisRemainingArgs(as: List[AbsValue])
   extends AnalysisError(s"remaining arguments: ${as.mkString(", ")}")
 
 // type check failure
-case class TypeCheckFail(msg: Option[String])
+case class TypeCheckFail(msg: Option[String], size: Int)
   extends AnalysisError("type check failed." + msg.fold("")(LINE_SEP + _))
 
 // invalid analysis point merge
