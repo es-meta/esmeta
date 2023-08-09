@@ -59,6 +59,9 @@ var STATUS_MODE = false
 var TEST262_DIR = s"$TEST_DIR/test262"
 def TEST262_TEST_DIR = s"$TEST262_DIR/test"
 
+/** stack trace depth */
+val STACK_TRACE_DEPTH = 15
+
 // -----------------------------------------------------------------------------
 // Mutable Global Options
 // -----------------------------------------------------------------------------

@@ -64,12 +64,12 @@ object SystemUtils {
   ): Unit =
     mkdir(dirname)
     for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
-    println(s"- Dumped $name into $dirname .")
+    println(s"- Dumped $name into `$dirname`.")
 
   /** dump given data into a file and show message */
   def dumpFile(name: String, data: Any, filename: String): Unit =
     dumpFile(data, filename)
-    println(s"- Dumped $name into $filename .")
+    println(s"- Dumped $name into `$filename`.")
 
   /** dump given data in a JSON format */
   def dumpJson[T](

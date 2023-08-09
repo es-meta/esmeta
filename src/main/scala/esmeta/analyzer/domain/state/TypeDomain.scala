@@ -360,17 +360,13 @@ object TypeDomain extends state.Domain {
 
   // named record lookup
   private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
-    var res = BotT
-    val str = prop.str
-    for {
-      name <- obj.set
-      propStr <- str match
-        case Inf =>
-          if (name == "IntrinsicsRecord") res ||= ObjectT
-          Set()
-        case Fin(set) => set
-    } res ||= cfg.tyModel.getProp(name, propStr)
-    res
+    val tyModel = cfg.tyModel
+    obj.set.safeFold(BotT, AnyT) {
+      case (res, name) =>
+        prop.str.safeFold(res, res || tyModel.getAllProp(name)) {
+          case (res, propStr) => res || tyModel.getProp(name, propStr)
+        }
+    }
 
   // record lookup
   private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
@@ -379,10 +375,7 @@ object TypeDomain extends state.Domain {
     def add(propStr: String): Unit = record match
       case RecordTy.Top       =>
       case RecordTy.Elem(map) => map.get(propStr).map(res ||= _)
-    if (!record.isBottom) str match
-      case Inf =>
-      case Fin(set) =>
-        for (propStr <- set) add(propStr)
+    if (!record.isBottom) for (propStr <- str) add(propStr)
     res
 
   // list lookup

@@ -479,7 +479,7 @@ object TypeDomain extends value.Domain {
   /** instance name */
   private def instanceNameSet(ty: ValueTy): Set[String] =
     var names: Set[String] = Set()
-    for (name <- ty.name.set)
+    for (name <- ty.name.set) // XXX unsound
       names ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
       names ++= ancestors(name)
     if (!ty.astValue.isBottom) ty.astValue match

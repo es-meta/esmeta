@@ -82,6 +82,12 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   /** property map alias */
   type PropMap = Map[String, ValueTy]
 
+  /** get types of all properties */
+  val getAllProp: String => ValueTy = cached(tname =>
+    if (tname == "IntrinsicsRecord") ObjectT
+    else propMap.getOrElse(tname, Map()).values.foldLeft(BotT)(_ || _),
+  )
+
   /** get types of property */
   def getProp(tname: String, p: String): ValueTy =
     getPropOrElse(tname, p)(AbsentT)
@@ -91,7 +97,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     if (tname == "IntrinsicsRecord" && p.startsWith("%") && p.endsWith("%"))
       // TODO more precise for %ThrowTypeError% which is function object
       // (https://tc39.es/ecma262/2022/#table-well-known-intrinsic-objects)
-      NameT("Object")
+      ObjectT
     else
       propMap
         .getOrElse(tname, Map())

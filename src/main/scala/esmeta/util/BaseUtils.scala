@@ -29,13 +29,18 @@ object BaseUtils {
   def error(any: Any): Nothing = throw ESMetaError(any.toString)
 
   /** show a warning message */
-  def warn[T](x: T): T = warn("WARNING", x)
-  def warn[T](head: String, x: T): T =
+  def warn[T](x: T, showTrace: Boolean = false): T =
+    warn("WARNING", x, showTrace)
+  def warn[T](head: String, x: T, showTrace: Boolean): T =
     Console.err.println(s"[$head] $x")
+    if (showTrace)
+      Console.err.print(s" at ")
+      println(getStackTrace.take(STACK_TRACE_DEPTH).mkString(LINE_SEP + "    "))
     x
 
   /** show a deubgging message */
-  def debug[T](x: T): T = warn("DEBUG", x)
+  def debug[T](x: T, showTrace: Boolean = false): T =
+    warn("DEBUG", x, showTrace)
 
   /** get duration time */
   def time[T](f: => T): (Long, T) = {
@@ -167,6 +172,10 @@ object BaseUtils {
     else if (isNegZero(left) && !isNegZero(right)) false
     else if (!isNegZero(left) && isNegZero(right)) false
     else left == right
+
+  /** get current stack trace */
+  def getStackTrace: List[StackTraceElement] =
+    (new Error).getStackTrace.toList
 
   /** negative zero check */
   def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity
