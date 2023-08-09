@@ -6,6 +6,7 @@ import esmeta.test262.util.ManualConfig
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File
+import esmeta.ty.TyModel
 
 /** manual information helpers */
 case class ManualInfo(version: Option[Spec.Version]) {
@@ -19,6 +20,8 @@ case class ManualInfo(version: Option[Spec.Version]) {
 
   /** get compile rules */
   def compileRule: CompileRule = getCompileRule(paths)
+
+  def tyModel: TyModel = getTyModel(version)
 
   /** get bugfixes */
   def bugfixFile: Option[File] = bugfixPath.map(File(_))
@@ -47,10 +50,16 @@ case class ManualInfo(version: Option[Spec.Version]) {
       val path = s"$MANUALS_DIR/${version.shortHash}/$name"
       if (exists(path)) Some(path) else None
     })
+  private def getPathWithDefault(name: String): String =
+    getPath(name).getOrElse(s"$MANUALS_DIR/default/$name")
   private def getCompileRule(paths: List[String]): CompileRule = paths
     .map(path => s"$MANUALS_DIR/$path/rule.json")
     .map(path => optional(readJson[CompileRule](path)).getOrElse(Map()))
     .foldLeft[CompileRule](Map())(_ ++ _)
+  private def getTyModel(version: Option[Spec.Version]): TyModel =
+    import esmeta.ty.util.JsonProtocol.given
+    val path = getPathWithDefault("tymodel.json")
+    readJson[TyModel](path)
   private lazy val paths: List[String] =
     List("default") ++ version.map(_.shortHash)
 }

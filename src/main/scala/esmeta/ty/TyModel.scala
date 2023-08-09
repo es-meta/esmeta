@@ -171,8 +171,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
 
 }
 object TyModel {
-  // TODO: make path version dependent
-  val es = readJson[TyModel](
+  var es = readJson[TyModel](
     "src/main/resources/manuals/default/tymodel.json",
   )
 }

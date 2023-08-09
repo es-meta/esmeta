@@ -14,7 +14,6 @@ case class ValueTy(
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
-  import TyModel.es.isSubTy
 
   /** top check */
   def isTop: Boolean =
@@ -141,7 +140,7 @@ case class ValueTy(
       case a: Addr =>
         heap(a) match
           case MapObj(tname, props, _) =>
-            isSubTy(tname, name.set) ||
+            (TyModel.es != null && TyModel.es.isSubTy(tname, name.set)) ||
             (tname == "Record" && (props.forall {
               case (Str(key), MapObj.Prop(value, _)) =>
                 record(key).contains(value, heap)

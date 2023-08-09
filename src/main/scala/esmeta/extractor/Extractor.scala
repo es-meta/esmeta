@@ -54,7 +54,7 @@ class Extractor(
       grammar = grammar,
       algorithms = algorithms,
       tables = tables,
-      tyModel = TyModel.es, // TODO automatic extraction
+      tyModel = tymodel,
     )
     spec.document = document
     spec
@@ -70,6 +70,15 @@ class Extractor(
 
   /** tables in ECMA-262 */
   lazy val tables = extractTables
+
+  lazy val tymodel = extractTyModel
+
+  // TODO automatic extraction
+  def extractTyModel: TyModel = {
+    val tymodel = manualInfo.tyModel
+    esmeta.ty.TyModel.es = tymodel
+    tymodel
+  }
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
