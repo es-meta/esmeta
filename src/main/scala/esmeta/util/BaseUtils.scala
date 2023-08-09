@@ -42,7 +42,7 @@ object BaseUtils {
   def debug[T](x: T, showTrace: Boolean = false): T =
     warn("DEBUG", x, showTrace)
 
-  /** get duration time */
+  /** get duration time in milliseconds */
   def time[T](f: => T): (Long, T) = {
     val start = System.currentTimeMillis
     val result = f

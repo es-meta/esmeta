@@ -1,6 +1,7 @@
 package esmeta.analyzer
 
 import esmeta.cfg.*
+import esmeta.util.BaseUtils.*
 
 /** static analyzer */
 abstract class Analyzer(val cfg: CFG) {

@@ -50,9 +50,15 @@ class AbsSemantics(
   /** set start time of analyzer */
   val startTime: Long = System.currentTimeMillis
 
+  /** get elapsed time of analyzer */
+  def elapsedTime: Long = System.currentTimeMillis - startTime
+
   /** set of analyzed functions */
   def analyzedFuncs: Set[Func] =
     npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
+
+  /** set of analyzed nodes */
+  def analyzedNodes: Set[Node] = npMap.keySet.map(_.node)
 
   /** get return edges */
   def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =

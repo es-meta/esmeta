@@ -283,6 +283,19 @@ class TypeAnalyzer(
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
+      name = "summary of type analysis",
+      data = Yaml(
+        "duration" -> f"${sem.elapsedTime}%,d ms",
+        "error" -> errors.size,
+        "iter" -> sem.iter,
+        "analyzed" -> Map(
+          "functions" -> sem.analyzedFuncs.size,
+          "nodes" -> sem.analyzedNodes.size,
+        ),
+      ),
+      filename = s"$ANALYZE_LOG_DIR/summary.yml",
+    )
+    dumpFile(
       name = "type analysis result",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
