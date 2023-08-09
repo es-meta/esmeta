@@ -5,6 +5,7 @@ import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 import esmeta.util.SystemUtils.*
 import esmeta.ty.util.JsonProtocol.given
+import esmeta.MANUALS_DIR
 
 /** type modeling */
 // TODO consider refactoring
@@ -172,7 +173,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
 }
 object TyModel {
   var es = readJson[TyModel](
-    "src/main/resources/manuals/default/tymodel.json",
+    s"${MANUALS_DIR}/default/tymodel.json",
   )
 }
 
