@@ -771,9 +771,18 @@ trait AbsTransfer extends Optimized with PruneHelper {
     right: Expr,
   )(using cp: ControlPoint): Result[AbsValue] = for {
     l <- transfer(left)
-    v <- (binary.bop, l.getSingle) match {
-      case (BOp.And, One(Bool(false))) => pure(AVF)
-      case (BOp.Or, One(Bool(true)))   => pure(AVT)
+    st <- get
+    v <- binary.bop match {
+      case BOp.And =>
+        l.bool.cond(AbsState)(AbsValue)(
+          thenBranch = transfer(right).eval(prune(left, true)(st)),
+          elseBranch = AVF,
+        )
+      case BOp.Or =>
+        l.bool.cond(AbsState)(AbsValue)(
+          thenBranch = AVT,
+          elseBranch = transfer(right).eval(prune(left, false)(st)),
+        )
       case _ =>
         for {
           r <- transfer(right)

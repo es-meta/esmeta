@@ -82,6 +82,12 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
 
   /** get single value */
   def getSingle[B >: A]: Flat[B] = this
+
+  /** safe fold function */
+  def safeFold[T](base: T, top: T)(op: (T, A) => T): T = this match
+    case Zero      => base
+    case One(elem) => op(base, elem)
+    case Many      => top
 }
 object Flat:
   def apply[A](elems: Iterable[A]): Flat[A] = elems.toSet match
