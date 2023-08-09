@@ -46,7 +46,7 @@ case class SubMapTy(
       SubMapTy(
         this.key && that.key,
         this.value && that.value,
-      ).norm
+      ).normalized
 
   /** prune type */
   def --(that: => SubMapTy): SubMapTy =
@@ -55,16 +55,13 @@ case class SubMapTy(
       SubMapTy(
         this.key -- that.key,
         this.value -- that.value,
-      ).norm
-
-  /** TODO concretization function */
-  def gamma: Set[ValueTy] = if (this.isBottom) Set() else Set(SubMapT)
+      ).normalized
 
   /** get single value */
   def getSingle: Flat[AValue] = if (this.isBottom) Zero else Many
 
-  // normalization
-  private def norm: SubMapTy =
+  /** normalized type */
+  def normalized: SubMapTy =
     if (key.isBottom || value.isBottom) Bot
     else this
 }

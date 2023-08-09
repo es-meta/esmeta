@@ -46,7 +46,10 @@ object REPL {
   def showStatus(cp: Option[ControlPoint]): Unit = cp.map(showStatus)
   def showStatus(cp: ControlPoint): Unit = println(s"[$iter] ${cpInfo(cp)}")
   def cpInfo(cp: ControlPoint, detail: Boolean = false): String =
-    sem.getString(cp, CYAN, detail)
+    sem.resultString(cp, CYAN, detail) + (cp match
+      case np: NodePoint[_] => LINE_SEP + np.node.toString
+      case rp: ReturnPoint  => ""
+    )
 
   // handle when the static analysis is finished
   def finished: Unit = {

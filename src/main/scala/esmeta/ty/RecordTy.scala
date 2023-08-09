@@ -41,7 +41,7 @@ sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
         (for {
           field <- (lmap.keySet ++ rmap.keySet).toList
         } yield field -> (this(field) && that(field))).toMap,
-      ).norm
+      ).normalized
 
   /** prune type */
   def --(that: => RecordTy): RecordTy = (this, that) match
@@ -52,19 +52,20 @@ sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
         (for {
           field <- (lmap.keySet ++ rmap.keySet).toList
         } yield field -> (this(field) -- that(field))).toMap,
-      ).norm
+      ).normalized
 
   /** field accessor */
   def apply(field: String): ValueTy = this match
     case Top       => ValueTy.Top
     case Elem(map) => map.getOrElse(field, ValueTy.Bot)
 
-  /** normalization */
-  def norm: RecordTy = this match
+  /** normalized type */
+  def normalized: RecordTy = this match
     case Top => Top
-    case Elem(map) =>
-      val newMap = map.filter { case (_, v) => !v.isBottom }
-      if (newMap.isEmpty) Bot else Elem(newMap)
+    case Bot => Bot
+    case Elem(m) =>
+      val map = m.collect { case (k, v) if !v.isBottom => k -> v }
+      if (map.isEmpty) Bot else Elem(map)
 
   /** get single value */
   def getSingle: Flat[Nothing] = if (isBottom) Zero else Many
@@ -74,7 +75,7 @@ case class RecordElemTy(map: Map[String, ValueTy] = Map()) extends RecordTy
 object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(fields: Set[String]): RecordTy =
     apply(fields.map(_ -> ValueTy.Top).toMap)
-  def apply(fields: Map[String, ValueTy]): RecordTy = Elem(fields).norm
+  def apply(fields: Map[String, ValueTy]): RecordTy = Elem(fields).normalized
   val Elem = RecordElemTy
   type Elem = RecordElemTy
   lazy val Top = RecordTopTy

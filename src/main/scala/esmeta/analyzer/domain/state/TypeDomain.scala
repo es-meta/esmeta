@@ -274,7 +274,7 @@ object TypeDomain extends state.Domain {
       val irStringifier = IRElem.getStringifier(detail, false)
       import irStringifier.given
       given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-      app >> elem.locals >> LINE_SEP
+      app >> elem.locals
     } else app >> "⊥"
 
   // completion record lookup

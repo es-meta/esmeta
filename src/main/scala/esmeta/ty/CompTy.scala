@@ -65,9 +65,13 @@ case class CompTy(
         this.abrupt -- that.abrupt,
       )
 
-  /** TODO concretization function */
-  def gamma: Set[ValueTy] =
-    normal.gamma.map(NormalT) ++ (if (abrupt.isBottom) Set() else Set(AbruptT))
+  /** upcast type */
+  def upcast: CompTy = CompTy(normal.upcast, abrupt)
+
+  /** flatten types */
+  def flatten: Set[CompTy] =
+    normal.flatten.map(ty => CompTy(normal = ty)) ++
+    (if (abrupt.isBottom) Set() else Set(CompTy(abrupt = abrupt)))
 
   /** get single value */
   def getSingle: Flat[AValue] =
@@ -77,4 +81,5 @@ case class CompTy(
 object CompTy extends Parser.From(Parser.compTy) {
   lazy val Bot: CompTy = CompTy()
   lazy val Top = CompTy(PureValueTy.Top, Inf)
+  val allAbrupt = Set("normal", "break", "continue", "return", "throw")
 }

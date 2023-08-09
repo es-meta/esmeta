@@ -28,10 +28,6 @@ case class Func(
   /** parameter types */
   lazy val paramTys: List[Type] = params.map(_.ty)
 
-  /** check whether parameter types are defined */
-  lazy val isParamTysDefined: Boolean =
-    paramTys.forall(_.isDefined) && !isClo && !isCont
-
   /** not yet supported instructions */
   lazy val yets: List[EYet] = irFunc.yets
 

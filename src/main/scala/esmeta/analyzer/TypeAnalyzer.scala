@@ -87,16 +87,40 @@ class TypeAnalyzer(
           sem += UncheckedAbruptComp(riaPoint, value.ty)
       super.returnIfAbrupt(riaExpr, value, check)
 
-    /** call transition */
-    override def getCalleeView(
+    /** callee entries */
+    override def getCalleeEntries(
       callerNp: NodePoint[Call],
-      calleeFunc: Func,
-      args: List[AbsValue],
-    ): List[View] = List(View()) // TODO
+      locals: List[(Local, AbsValue)],
+    ): List[(View, List[(Local, AbsValue)])] =
+      // type sensitivity
+      if (TY_SENS) tySensCalleeEntries(locals).map(list => {
+        val view = View(tys = list.map((_, ty) => ty))
+        val locals = list.map((x, ty) => x -> AbsValue(ty))
+        view -> locals
+      })
+      else
+        List(View() -> (for {
+          (local, value) <- locals
+        } yield local -> AbsValue(value.ty.upcast)))
+
+    /** callee entries with type sensitivity */
+    private def tySensCalleeEntries(
+      locals: List[(Local, AbsValue)],
+    ): List[List[(Local, ValueTy)]] =
+      def aux(
+        list: List[(Local, Set[ValueTy])],
+      ): List[List[(Local, ValueTy)]] = list match
+        case Nil => List(Nil)
+        case (local, tys) :: rest =>
+          for {
+            locals <- aux(rest)
+            ty <- tys
+          } yield local -> ty :: locals
+      aux(locals.map((local, value) => local -> value.ty.upcast.flatten))
 
     /** assign argument to parameter */
     override def assignArg(
-      cp: CallPoint,
+      callPoint: CallPoint,
       method: Boolean,
       idx: Int,
       param: Param,
@@ -108,10 +132,7 @@ class TypeAnalyzer(
         val normalArgTy = argTy.removeAbsent
         if (method && idx == 0) () /* ignore `this` for method calls */
         else if (config.paramTypeMismatch && !(normalArgTy <= paramTy))
-          sem += ParamTypeMismatch(
-            ArgAssignPoint(cp, idx),
-            normalArgTy,
-          )
+          sem += ParamTypeMismatch(ArgAssignPoint(callPoint, idx), normalArgTy)
         AbsValue(argTy && paramTy)
 
     /** get return value with a state */
@@ -195,12 +216,13 @@ class TypeAnalyzer(
     targets: List[Func],
     ignore: Ignore,
     log: Boolean,
+    detail: Boolean,
     silent: Boolean,
   ): Semantics = apply(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      if (log) logging(sem, errors)
+      if (log) logging(sem, errors, detail)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -246,14 +268,19 @@ class TypeAnalyzer(
     target: Option[String],
     ignore: Ignore,
     log: Boolean,
+    detail: Boolean,
     silent: Boolean,
   ): Semantics =
     val targets = getInitTargets(cfg, target, silent)
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
-    apply(targets, ignore, log, silent)
+    apply(targets, ignore, log, detail, silent)
 
   // logging mode
-  private def logging(sem: Semantics, errors: Set[TypeError]): Unit = {
+  private def logging(
+    sem: Semantics,
+    errors: Set[TypeError],
+    detail: Boolean = false,
+  ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
       name = "type analysis result",
@@ -276,6 +303,12 @@ class TypeAnalyzer(
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
     )
+    if (detail)
+      dumpFile(
+        name = "analysis result for each control point",
+        data = sem.resultStrings(detail = true).mkString(LINE_SEP),
+        filename = s"$ANALYZE_LOG_DIR/result",
+      )
   }
 }
 object TypeAnalyzer {
@@ -345,14 +378,13 @@ object TypeAnalyzer {
   } yield NodePoint(func, entry, view)
 
   // get view from a function
-  def getView(func: Func): View = View() // TODO
+  def getView(func: Func): View =
+    if (TY_SENS) View(tys = func.params.map(_.getTy))
+    else View()
 
   // get initial state of function
   def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
-    case (st, Param(x, ty, opt, _)) =>
-      var v = AbsValue(ty.ty)
-      if (opt) v ⊔= AbsValue.absentTop
-      st.update(x, v)
+    case (st, param) => st.update(param.lhs, AbsValue(param.getTy))
   }
 
   /** find initial analysis targets based on a given regex pattern */
@@ -361,8 +393,7 @@ object TypeAnalyzer {
     target: Option[String],
     silent: Boolean = false,
   ): List[Func] =
-    // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val allFuncs = cfg.funcs
     target.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)

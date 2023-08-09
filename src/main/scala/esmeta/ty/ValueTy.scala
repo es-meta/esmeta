@@ -75,9 +75,18 @@ case class ValueTy(
         this.subMap -- that.subMap,
       )
 
-  /** TODO concretization function */
-  def gamma: Set[ValueTy] =
-    comp.gamma ++ pureValue.gamma ++ subMap.gamma
+  /** upcast type */
+  def upcast: ValueTy = ValueTy(
+    this.comp.upcast,
+    this.pureValue.upcast,
+    this.subMap,
+  )
+
+  /** flatten types */
+  def flatten: Set[ValueTy] =
+    this.comp.flatten.map(ty => Bot.copy(comp = ty)) ++
+    this.pureValue.flatten.map(ty => Bot.copy(pureValue = ty)) ++
+    (if (this.subMap.isBottom) Set() else Set(Bot.copy(subMap = this.subMap)))
 
   /** get single value */
   def getSingle: Flat[AValue] =

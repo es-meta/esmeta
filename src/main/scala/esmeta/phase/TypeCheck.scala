@@ -22,10 +22,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       case None => cfg.spec.manualInfo.tycheckIgnore
       case path => path
     val ignore = ignorePath.fold(Ignore())(Ignore(_, config.updateIgnore))
-    TypeAnalyzer(cfg, config.alarmLevel)(
+    TypeAnalyzer(cfg, config.level)(
       target = config.target,
       ignore = ignore,
       log = config.log,
+      detail = config.detail,
       silent = config.silent,
     )
 
@@ -37,8 +38,8 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "set the target of type analysis with a regular expression pattern.",
     ),
     (
-      "alarm-level",
-      NumOption((c, k) => c.alarmLevel = k),
+      "level",
+      NumOption((c, k) => c.level = k),
       "turn on alarms for type errors whose alarm level is " +
       "lower than or equal to the given number (default: 1)",
     ),
@@ -73,6 +74,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "turn on logging mode.",
     ),
     (
+      "detail-log",
+      BoolOption(c => { c.log = true; c.detail = true }),
+      "turn on logging mode with detailed information.",
+    ),
+    (
       "tysens",
       BoolOption(c => TY_SENS = true),
       "turn on type sensitivity.",
@@ -80,10 +86,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
   )
   case class Config(
     var target: Option[String] = None,
-    var alarmLevel: Int = 1,
+    var level: Int = 1,
     var ignorePath: Option[String] = None,
     var updateIgnore: Boolean = false,
     var silent: Boolean = false,
     var log: Boolean = false,
+    var detail: Boolean = false,
   )
 }

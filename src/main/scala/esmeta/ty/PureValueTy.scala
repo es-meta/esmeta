@@ -168,44 +168,55 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.absent -- that.absent,
       )
 
-  /** TODO concretization function */
-  def gamma: Set[ValueTy] =
+  /** upcast type */
+  def upcast: PureValueTy =
+    def upcast[T](set: BSet[T]): BSet[T] = if (set.isBottom) set else Inf
+    if (this eq Bot) Bot
+    else if (this eq Top) Top
+    else
+      PureValueTy(
+        this.clo,
+        this.cont,
+        this.name,
+        this.record,
+        this.list.upcast,
+        this.symbol,
+        this.astValue,
+        this.nt,
+        this.codeUnit,
+        this.const,
+        upcast(this.math),
+        upcast(this.number),
+        this.bigInt,
+        upcast(this.str),
+        this.bool,
+        this.undef,
+        this.nullv,
+        this.absent,
+      )
 
-    var base: Set[ValueTy] = Set()
-    var tp: PureValueTy = this
-
-    if (ESValueT.pureValue <= tp) {
-      base = base + ESValueT
-      tp = tp -- ESValueT.pureValue
-    } else if (ESPrimT.pureValue <= tp) {
-      base = base + ESPrimT
-      tp = tp -- ESPrimT.pureValue
-    }
-
-    if (!tp.clo.isBottom) base += ValueTy(clo = this.clo)
-    if (!tp.cont.isBottom) base += ValueTy(cont = this.cont)
-    if (!tp.name.isBottom) base += ValueTy(name = this.name)
-    if (!tp.record.isBottom) base += ValueTy(record = this.record)
-    if (!tp.list.isBottom) base ++= {
-      val v =
-        tp.list.elem.getOrElse(throw Error("list type is not defined"))
-      v.gamma.map(ListT)
-    }
-    if (!tp.symbol.isBottom) base += SymbolT
-    if (!tp.astValue.isBottom) base += ValueTy(astValue = this.astValue)
-    if (!tp.nt.isBottom) base += NtT
-    if (!tp.codeUnit.isBottom) base += CodeUnitT
-    if (!tp.const.isBottom) base += ValueTy(const = this.const)
-    if (!tp.math.isBottom) base += MathT
-    if (!tp.number.isBottom) base += NumberT
-    if (!tp.bigInt.isBottom) base += BigIntT
-    if (!tp.str.isBottom) base += StrT
-    if (!tp.bool.isBottom) base += BoolT
-    if (!tp.undef.isBottom) base += UndefT
-    if (!tp.nullv.isBottom) base += NullT
-    if (!tp.absent.isBottom) base += AbsentT
-
-    base
+  /** flatten types */
+  def flatten: Set[PureValueTy] =
+    var set = Set[PureValueTy]()
+    if (!this.clo.isBottom) set += PureValueTy(clo = this.clo)
+    if (!this.cont.isBottom) set += PureValueTy(cont = this.cont)
+    if (!this.name.isBottom) set += PureValueTy(name = this.name)
+    if (!this.record.isBottom) set += PureValueTy(record = this.record)
+    if (!this.list.isBottom) set += PureValueTy(list = this.list)
+    if (!this.symbol.isBottom) set += PureValueTy(symbol = this.symbol)
+    if (!this.astValue.isBottom) set += PureValueTy(astValue = this.astValue)
+    if (!this.nt.isBottom) set += PureValueTy(nt = this.nt)
+    if (!this.codeUnit.isBottom) set += PureValueTy(codeUnit = this.codeUnit)
+    if (!this.const.isBottom) set += PureValueTy(const = this.const)
+    if (!this.math.isBottom) set += PureValueTy(math = this.math)
+    if (!this.number.isBottom) set += PureValueTy(number = this.number)
+    if (!this.bigInt.isBottom) set += PureValueTy(bigInt = this.bigInt)
+    if (!this.str.isBottom) set += PureValueTy(str = this.str)
+    if (!this.bool.isBottom) set += PureValueTy(bool = this.bool)
+    if (!this.undef.isBottom) set += PureValueTy(undef = this.undef)
+    if (!this.nullv.isBottom) set += PureValueTy(nullv = this.nullv)
+    if (!this.absent.isBottom) set += PureValueTy(absent = this.absent)
+    set
 
   /** get single value */
   def getSingle: Flat[APureValue] =

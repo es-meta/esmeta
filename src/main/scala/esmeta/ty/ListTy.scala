@@ -51,6 +51,9 @@ case class ListTy(elem: Option[ValueTy] = None)
 
   /** get single value */
   def getSingle: Flat[Nothing] = if (elem.isEmpty) Zero else Many
+
+  /** upcast type */
+  def upcast: ListTy = ListTy(elem.map(_.upcast))
 }
 object ListTy extends Parser.From(Parser.listTy) {
   lazy val Top: ListTy = ListTy(Some(ValueTy.Top))

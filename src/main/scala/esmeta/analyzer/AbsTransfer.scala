@@ -267,17 +267,11 @@ trait AbsTransfer extends Optimized with PruneHelper {
         } yield {
           // closure call (XXX: unsound for inifinitely many closures)
           for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
-            doCall(callerNp, st, func, as, captured)
+            doCall(CallPoint(callerNp, func), st, as, captured)
           // continuation call (XXX: unsound for inifinitely many continuations)
-          for (ACont(target, captured) <- fv.cont) {
-            // TODO refactoring with doCall
-            val newLocals = getLocals(
-              CallPoint(callerNp, target.func),
-              method = false,
-              as,
-            ) ++ captured
-            sem += target -> st.copied(locals = newLocals)
-          }
+          for (ACont(target, captured) <- fv.cont)
+            val callPoint = CallPoint(callerNp, target.func)
+            doCall(callPoint, st, as, captured, contTarget = Some(target))
           AbsValue.Bot
         }
       case IMethodCall(_, base, method, args) =>
@@ -291,13 +285,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
           st <- get
         } yield {
           for (AClo(func, _) <- fv.clo)
-            doCall(
-              callerNp,
-              st,
-              func,
-              bv.refineThis(func) :: as,
-              method = true,
-            )
+            val args = bv.refineThis(func) :: as
+            doCall(CallPoint(callerNp, func), st, args, method = true)
           AbsValue.Bot
         }
       case ISdoCall(_, base, method, args) =>
@@ -310,14 +299,9 @@ trait AbsTransfer extends Optimized with PruneHelper {
           bv.getSingle match
             case One(AstValue(syn: Syntactic)) =>
               getSDO((syn, method)) match
-                case Some((ast0, sdo)) =>
-                  doCall(
-                    callerNp,
-                    st,
-                    sdo,
-                    AbsValue(ast0) :: as,
-                    method = true,
-                  )
+                case Some((ast, sdo)) =>
+                  val args = AbsValue(ast) :: as
+                  doCall(CallPoint(callerNp, sdo), st, args, method = true)
                 case None => error("invalid sdo")
             case One(AstValue(lex: Lexical)) =>
               newV ⊔= AbsValue(Interpreter.eval(lex, method))
@@ -327,7 +311,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
 
               // syntactic sdo
               for ((sdo, ast) <- bv.getSDO(method))
-                doCall(callerNp, st, sdo, ast :: as, method = true)
+                doCall(CallPoint(callerNp, sdo), st, ast :: as, method = true)
             case _ => /* do nothing */
           newV
         }
@@ -678,34 +662,63 @@ trait AbsTransfer extends Optimized with PruneHelper {
 
   /** handle calls */
   def doCall(
-    callerNp: NodePoint[Call],
+    callPoint: CallPoint,
     callerSt: AbsState,
-    calleeFunc: Func,
     args: List[AbsValue],
     captured: Map[Name, AbsValue] = Map(),
     method: Boolean = false,
+    contTarget: Option[NodePoint[Node]] = None,
   ): Unit =
-    sem.callInfo += callerNp -> callerSt
-    for {
-      (calleeNp, calleeSt) <- getCalleeEntries(
-        callerNp,
-        callerSt,
-        calleeFunc,
-        args,
-        captured,
-        method,
-      )
-    } {
-      // add callee to worklist
-      sem += calleeNp -> calleeSt.doCall
-      // add return edges from callee to caller
-      val rp = ReturnPoint(calleeFunc, calleeNp.view)
-      val set = sem.getRetEdges(rp)
-      sem.retEdges += rp -> (set + callerNp)
-      // propagate callee analysis result
-      val retT = sem(rp)
-      if (!retT.isBottom) sem.worklist += rp
-    }
+    val CallPoint(callerNp, callee) = callPoint
+    // get locals
+    val locals = getLocals(callPoint, method, args) ++ captured
+    // keep caller state to restore it
+    contTarget match
+      case Some(target) =>
+        sem += target -> callerSt.copied(locals = locals.toMap)
+      case None =>
+        sem.callInfo += callerNp -> callerSt
+        for {
+          (calleeView, newLocals) <- getCalleeEntries(callerNp, locals)
+          calleeSt = callerSt.copied(locals = newLocals.toMap)
+          calleeNp = NodePoint(callee, callee.entry, calleeView)
+        } {
+          // add callee to worklist
+          sem += calleeNp -> calleeSt.doCall
+          // add return edges from callee to caller
+          val rp = ReturnPoint(callee, calleeNp.view)
+          val set = sem.getRetEdges(rp)
+          sem.retEdges += rp -> (set + callerNp)
+          // propagate callee analysis result
+          val retT = sem(rp)
+          if (!retT.isBottom) sem.worklist += rp
+        }
+
+  /** get local variables */
+  def getLocals(
+    callPoint: CallPoint,
+    method: Boolean,
+    args: List[AbsValue],
+  ): List[(Local, AbsValue)] =
+    val CallPoint(callerNp, callee) = callPoint
+    // get parameters
+    val params: List[Param] = callee.irFunc.params
+    // full arguments with optional parameters
+    val fullArgs =
+      args ++ List.fill(params.length - args.length)(AbsValue.absentTop)
+    // construct local type environment
+    (for {
+      ((param, arg), idx) <- (params zip fullArgs).zipWithIndex
+    } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
+
+  /** assign argument to parameter */
+  def assignArg(
+    callPoint: CallPoint,
+    method: Boolean,
+    idx: Int,
+    param: Param,
+    arg: AbsValue,
+  ): AbsValue = arg
 
   // return specific value
   def doReturn(
@@ -731,7 +744,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
       val oldRet = sem(retRp)
       if (!oldRet.isBottom && USE_REPL) REPL.merged = true
       if (newRet !⊑ oldRet)
-        sem.rpMap += retRp -> getReturn(irp, oldRet ⊔ newRet)
+        sem.rpMap += retRp -> (oldRet ⊔ getReturn(irp, newRet))
         sem.worklist += retRp
 
   /** get return value with a state */
@@ -767,65 +780,16 @@ trait AbsTransfer extends Optimized with PruneHelper {
     }
   } yield v
 
-  /** call transition */
+  /** callee entries */
   def getCalleeEntries(
     callerNp: NodePoint[Call],
-    callerSt: AbsState,
-    callee: Func,
-    args: List[AbsValue],
-    captured: Map[Name, AbsValue],
-    method: Boolean,
-  ): List[(NodePoint[_], AbsState)] = for {
-    view <- getCalleeView(callerNp, callee, args)
-    calleeNp = NodePoint(callee, callee.entry, view)
-    calleeSt = callerSt.copied(locals =
-      getLocals(
-        CallPoint(callerNp, callee),
-        method,
-        args,
-      ) ++ captured,
-    )
-  } yield (calleeNp, calleeSt)
-
-  def getCalleeView(
-    callerNp: NodePoint[Call],
-    calleeFunc: Func,
-    args: List[AbsValue],
-  ): List[View] =
-    val NodePoint(callerFunc, callSite, callerView) = callerNp
-    List(
+    locals: List[(Local, AbsValue)],
+  ): List[(View, List[(Local, AbsValue)])] =
+    val NodePoint(_, callSite, callerView) = callerNp
+    lazy val calls = callSite :: callerView.calls
+    val view =
       // handle ir callsite sensitivity
-      if (IR_SENS)
-        callerView.copy(
-          calls = callSite :: callerView.calls,
-          intraLoopDepth = 0,
-        )
-      else callerView,
-    )
-
-  /** get local variables */
-  def getLocals(
-    cp: CallPoint,
-    method: Boolean,
-    args: List[AbsValue],
-  ): Map[Local, AbsValue] =
-    val CallPoint(callerNp, callee) = cp
-    // get parameters
-    val params: List[Param] = callee.irFunc.params
-    // full arguments with optional parameters
-    val fullArgs =
-      args ++ List.fill(params.length - args.length)(AbsValue(Absent))
-    // construct local type environment
-    (for {
-      ((param, arg), idx) <- (params zip fullArgs).zipWithIndex
-    } yield param.lhs -> assignArg(cp, method, idx, param, arg)).toMap
-
-  /** assign argument to parameter */
-  def assignArg(
-    cp: CallPoint,
-    method: Boolean,
-    idx: Int,
-    param: Param,
-    arg: AbsValue,
-  ): AbsValue = arg
+      if (IR_SENS) callerView.copy(calls = calls, intraLoopDepth = 0)
+      else callerView
+    List(view -> locals)
 }
