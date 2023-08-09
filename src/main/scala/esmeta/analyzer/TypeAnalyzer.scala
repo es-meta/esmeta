@@ -94,14 +94,14 @@ class TypeAnalyzer(
     ): List[(View, List[(Local, AbsValue)])] =
       // type sensitivity
       if (TY_SENS) tySensCalleeEntries(locals).map(list => {
-        val view = View(tys = list.map((_, ty) => ty))
+        val view = View(tys = list.map((_, ty) => ty.upcast))
         val locals = list.map((x, ty) => x -> AbsValue(ty))
         view -> locals
       })
       else
         List(View() -> (for {
           (local, value) <- locals
-        } yield local -> AbsValue(value.ty.upcast)))
+        } yield local -> AbsValue(value.ty)))
 
     /** callee entries with type sensitivity */
     private def tySensCalleeEntries(
@@ -116,7 +116,7 @@ class TypeAnalyzer(
             locals <- aux(rest)
             ty <- tys
           } yield local -> ty :: locals
-      aux(locals.map((local, value) => local -> value.ty.upcast.flatten))
+      aux(locals.map((local, value) => local -> value.ty.flatten))
 
     /** assign argument to parameter */
     override def assignArg(
