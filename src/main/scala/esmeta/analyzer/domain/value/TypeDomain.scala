@@ -195,19 +195,9 @@ object TypeDomain extends value.Domain {
     /** type check */
     def typeCheck(tname: String, st: AbsState): Elem =
       var set: Set[Boolean] = Set()
-      val ty = elem.ty
-      if (!ty.number.isBottom) set += tname == "Number"
-      if (!ty.bigInt) set += tname == "BigInt"
-      if (!ty.str.isBottom) set += tname == "String"
-      if (!ty.bool.isBottom) set += tname == "Boolean"
-      if (!ty.const.isBottom) set += tname == "Constant"
-      if (!ty.comp.isBottom) set += tname == "CompletionRecord"
-      if (!ty.undef) set += tname == "Undefined"
-      if (!ty.nullv) set += tname == "Null"
-      if (!ty.clo.isBottom) set += tname == "AbstractClosure"
-      val names = instanceNameSet(ty)
-      if (names.contains(tname)) set += true
-      if (!names.contains(tname)) set += false
+      val tnames = getTypeNames(elem.ty)
+      if (tnames.contains(tname)) set += true
+      if (tnames.exists(_ != tname)) set += false
       Elem(BoolT(set))
 
     /** helper functions for abstract transfer */
@@ -487,20 +477,29 @@ object TypeDomain extends value.Domain {
     )
 
   /** instance name */
-  private def instanceNameSet(ty: ValueTy): Set[String] =
-    var names: Set[String] = Set()
+  private def getTypeNames(ty: ValueTy): Set[String] =
+    var tnames: Set[String] = Set()
+    if (!ty.number.isBottom) tnames += "Number"
+    if (ty.bigInt) tnames += "BigInt"
+    if (!ty.str.isBottom) tnames += "String"
+    if (!ty.bool.isBottom) tnames += "Boolean"
+    if (!ty.const.isBottom) tnames += "Constant"
+    if (!ty.comp.isBottom) tnames += "CompletionRecord"
+    if (ty.undef) tnames += "Undefined"
+    if (ty.nullv) tnames += "Null"
+    if (!ty.clo.isBottom) tnames += "AbstractClosure"
     for (name <- ty.name.set) // XXX unsound
-      names ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
-      names ++= ancestors(name)
+      tnames ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
+      tnames ++= ancestors(name)
     if (!ty.astValue.isBottom) ty.astValue match
       case AstTopTy =>
-        names ++= astChildMap.keySet + "ParseNode" + "Nonterminal"
+        tnames ++= astChildMap.keySet + "ParseNode" + "Nonterminal"
       case ty: AstNonTopTy =>
         val astNames = ty.toName.names
-        names += "ParseNode"
+        tnames += "ParseNode"
         for (astName <- astNames)
-          names ++= astChildMap.getOrElse(astName, Set(astName))
-    names
+          tnames ++= astChildMap.getOrElse(astName, Set(astName))
+    tnames
 
   /** get ancestor types */
   private def ancestors(tname: String): Set[String] =
