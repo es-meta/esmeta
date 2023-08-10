@@ -11,6 +11,7 @@ import scala.io.StdIn
 import esmeta.error.TypeCheckFail
 import esmeta.error.ESMetaError
 import esmeta.error.NoTargetError
+import esmeta.analyzer.util.DiffChecker
 
 case object RangeTypeCheck extends Phase[Unit, Unit] {
   val name = "range-tycheck"
@@ -32,6 +33,7 @@ case object RangeTypeCheck extends Phase[Unit, Unit] {
         return println("Canceled.")
 
     val targetLen = targets.length
+    var dirBefore = ""
     for ((target, idx) <- targets.zipWithIndex) {
       val logDir = s"$LOG_DIR/ranges/$target"
       val Version(name, _) = getVersion(target)
@@ -41,11 +43,18 @@ case object RangeTypeCheck extends Phase[Unit, Unit] {
           s"""esmeta tycheck -silent -extract:target="$target" -tycheck:level=${config.level} -tycheck:log="${logDir}"""",
         )
       } catch {
-        case e => print(" - failed " + e)
+        case e =>
+          print(" - failed " + e)
       }
+      val (del, add) = DiffChecker.diffBetweenTwo(
+        leftPath = s"$dirBefore",
+        rightPath = s"$logDir",
+        record = true,
+      )
       println()
+      println(s"[Difference] -Removed: ${del.length} / +Added: ${add.length}")
+      dirBefore = logDir
     }
-
     if (!cmdConfig.silent) println("Done.")
 
   def defaultConfig: Config = Config()
