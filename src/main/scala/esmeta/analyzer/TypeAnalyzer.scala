@@ -222,8 +222,7 @@ class TypeAnalyzer(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      val unreachables: Set[Unreachable] = sem.unreachables
-      if (log) logging(sem, errors, unreachables, detail)
+      if (log) logging(sem, errors, detail)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -280,7 +279,6 @@ class TypeAnalyzer(
   private def logging(
     sem: Semantics,
     errors: Set[TypeError],
-    unreachables: Set[Unreachable],
     detail: Boolean = false,
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
@@ -289,11 +287,14 @@ class TypeAnalyzer(
       data = Yaml(
         "duration" -> f"${sem.elapsedTime}%,d ms",
         "error" -> errors.size,
-        "unreachable" -> unreachables.size,
         "iter" -> sem.iter,
         "analyzed" -> Map(
           "functions" -> sem.analyzedFuncs.size,
           "nodes" -> sem.analyzedNodes.size,
+        ),
+        "unreachable" -> Map(
+          "functions" -> sem.unreachableFuncs.size,
+          "nodes" -> sem.unreachableNodes.values.flatten.size,
         ),
       ),
       filename = s"$ANALYZE_LOG_DIR/summary.yml",
@@ -304,12 +305,21 @@ class TypeAnalyzer(
       filename = s"$ANALYZE_LOG_DIR/types",
     )
     dumpFile(
-      name = "unreachable node",
-      data = unreachables.toList
-        .map(_.toString)
+      name = "unreachable nodes",
+      data = sem.unreachableNodes.toList
+        .flatMap({ case (k, v) => v.map(k -> _) })
+        .map({ case (func, node) => s"${func.name}: ${node.simpleString}" })
         .sorted
         .mkString(LINE_SEP),
-      filename = s"$ANALYZE_LOG_DIR/unreachables",
+      filename = s"$ANALYZE_LOG_DIR/unreachable-nodes",
+    )
+    dumpFile(
+      name = "unreachable funcs",
+      data = sem.unreachableFuncs.toList
+        .map(_.name.toString)
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$ANALYZE_LOG_DIR/unreachable-funcs",
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -334,7 +344,6 @@ class TypeAnalyzer(
         filename = s"$ANALYZE_LOG_DIR/result",
       )
   }
-
 }
 object TypeAnalyzer {
   // set type domains

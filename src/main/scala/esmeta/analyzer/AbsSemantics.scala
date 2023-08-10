@@ -161,33 +161,13 @@ class AbsSemantics(
   def errors: Set[TypeError] =
     errorMap.map((_, innerMap) => innerMap.values.reduce(_ + _)).toSet
 
-  def unreachables: Set[Unreachable] = {
-    val funcs = (for {
-      func <- cfg.funcs
-      entry = func.entry
-    } yield func -> entry).toSet
-    var set = Set[Unreachable]()
-    val visited = MMap[Node, Boolean]()
-    val analyzed = analyzedNodes.toSet
-    def aux(node: Node)(using func: Func, cause: Option[Node] = None): Unit = {
-      if (visited.contains(node)) return
-      visited += node -> true
-      val unreachable = !analyzed.contains(node)
-      if (unreachable) set += Unreachable(func, node, cause)
-      given Option[Node] =
-        if (unreachable && cause.isEmpty) Some(node) else cause
-      node match
-        case block: Block =>
-          block.next.foreach(aux)
-        case call: Call =>
-          call.next.foreach(aux)
-        case branch: Branch =>
-          branch.thenNode.foreach(aux)
-          branch.elseNode.foreach(aux)
-    }
-    for ((func, entry) <- funcs) aux(entry)(using func)
-    set
-  }
+  /** set of unreachable nodes */
+  def unreachableNodes: Map[Func, Set[Node]] =
+    (cfg.nodeMap.values.toSet -- analyzedNodes).groupBy(cfg.funcOf(_))
+
+  /** set of funcs that all of its returns are unreachable */
+  def unreachableFuncs: Set[Func] =
+    cfg.funcs.filter(func => !rpMap.keySet.exists(_.func == func)).toSet
 
   // record type errors
   def +=(error: TypeError): Unit =
