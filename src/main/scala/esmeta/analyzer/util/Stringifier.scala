@@ -81,6 +81,10 @@ class Stringifier(
       case BinaryOpPoint(cp, binary) =>
         app >> "binary operation (" >> binary.bop >> ") in " >> cp.func.name
         app >> binary
+    ap match
+      case tep: TypeErrorPoint[_] if detail =>
+        app >> " <" >> tep.node.simpleString >> ">"
+      case _ => app
 
   // control points
   given cpRule: Rule[ControlPoint] = (app, cp) =>
