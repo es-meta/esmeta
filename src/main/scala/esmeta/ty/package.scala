@@ -71,9 +71,7 @@ def RecordT(pairs: (String, ValueTy)*): ValueTy =
   else ValueTy(record = RecordTy(pairs.toMap).normalized)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
-def ListT(ty: ValueTy): ValueTy =
-  if (ty.isBottom) ValueTy.Bot
-  else ValueTy(list = ListTy(Some(ty)))
+def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(Some(ty)))
 lazy val SymbolT: ValueTy = ValueTy(symbol = true)
 lazy val AstT: ValueTy = ValueTy(astValue = AstTopTy)
 def AstT(xs: String*): ValueTy =
