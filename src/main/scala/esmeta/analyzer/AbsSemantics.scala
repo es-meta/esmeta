@@ -168,18 +168,11 @@ class AbsSemantics(
     } yield func -> entry).toSet
     var set = Set[Unreachable]()
     val visited = MMap[Node, Boolean]()
-    val total = npMap.keys.map(_.node).toSet
-    def checkUnreachable(node: Node) = {
-      val states = npMap
-        .filter(_._1.node == node)
-        .values
-        .toSet
-      states.forall(_.isBottom)
-    }
+    val analyzed = analyzedNodes.toSet
     def aux(node: Node)(using func: Func, cause: Option[Node] = None): Unit = {
       if (visited.contains(node)) return
       visited += node -> true
-      val unreachable = checkUnreachable(node)
+      val unreachable = !analyzed.contains(node)
       if (unreachable) set += Unreachable(func, node, cause)
       given Option[Node] =
         if (unreachable && cause.isEmpty) Some(node) else cause
