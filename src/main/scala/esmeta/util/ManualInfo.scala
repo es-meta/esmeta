@@ -8,6 +8,7 @@ import esmeta.ty.util.JsonProtocol.given
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File
+import esmeta.analyzer.repl.command.CmdEntry.path
 
 /** manual information helpers */
 case class ManualInfo(version: Option[Spec.Version]) {
@@ -25,6 +26,9 @@ case class ManualInfo(version: Option[Spec.Version]) {
   /** get type model */
   def tyModel: TyModel = getTyModel(paths)
 
+  /** get fingerprints tags */
+  def fingerprintTags: Map[String, List[String]] = getFingerprintTags(paths)
+
   /** get bugfixes */
   def bugfixFile: Option[File] = bugfixPath.map(File(_))
   def bugfixPath: Option[String] = getPath("bugfix.patch")
@@ -40,6 +44,21 @@ case class ManualInfo(version: Option[Spec.Version]) {
       val path = s"$MANUALS_DIR/${version.shortHash}/$name"
       if (exists(path)) Some(path) else None
     })
+
+  private def getCompileRule(paths: List[String]): CompileRule = paths
+    .map(path => s"$MANUALS_DIR/$path/rule.json")
+    .map(path => optional(readJson[CompileRule](path)).getOrElse(Map()))
+    .foldLeft[CompileRule](Map())(_ ++ _)
+
+  private def getFingerprintTags(
+    paths: List[String],
+  ): Map[String, List[String]] = paths
+    .map(path => s"$MANUALS_DIR/$path/fingerprint-tag.json")
+    .map(path =>
+      optional(readJson[Map[String, List[String]]](path)).getOrElse(Map()),
+    )
+    .foldLeft[Map[String, List[String]]](Map())(_ ++ _)
+
   private lazy val paths: List[String] =
     List("default") ++ version.map(_.shortHash)
 }

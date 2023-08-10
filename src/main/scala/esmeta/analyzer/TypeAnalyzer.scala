@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
+import esmeta.analyzer.util.Fingerprint
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
@@ -215,6 +216,7 @@ class TypeAnalyzer(
   def apply(
     targets: List[Func],
     ignore: Ignore,
+    tags: Map[String, List[String]],
     log: Boolean,
     detail: Boolean,
     silent: Boolean,
@@ -222,7 +224,7 @@ class TypeAnalyzer(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      if (log) logging(sem, errors, detail, silent)
+      if (log) logging(sem, errors, tags, detail, silent)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -267,18 +269,20 @@ class TypeAnalyzer(
   def apply(
     target: Option[String],
     ignore: Ignore,
+    tags: Map[String, List[String]],
     log: Boolean,
     detail: Boolean,
     silent: Boolean,
   ): Semantics =
     val targets = getInitTargets(cfg, target, silent)
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
-    apply(targets, ignore, log, detail, silent)
+    apply(targets, ignore, tags, log, detail, silent)
 
   // logging mode
   private def logging(
     sem: Semantics,
     errors: Set[TypeError],
+    tags: Map[String, List[String]],
     detail: Boolean = false,
     silent: Boolean = false,
   ): Unit = {
