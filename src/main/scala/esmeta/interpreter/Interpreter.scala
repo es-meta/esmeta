@@ -68,15 +68,16 @@ class Interpreter(
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
-          st.context.retVal.map((_, v) => st.globals += GLOBAL_RESULT -> v)
+          st.context.retVal.map((_, _, v) => st.globals += GLOBAL_RESULT -> v)
           false
         case CallContext(retId, ctxt) :: rest =>
-          val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
+          val (node, ret, value) =
+            st.context.retVal.getOrElse(throw NoReturnValue)
           if (tycheck) (st.typeOf(value), func.retTy.ty) match
             case (actual: ValueTy, ty: ValueTy) if !ty.contains(value, st) =>
-              val calleeRp = ReturnPoint(func, View())
+              val returnNp = NodePoint(func, node, View())
               var msg = ""
-              val irp = InternalReturnPoint(calleeRp, ret)
+              val irp = InternalReturnPoint(returnNp, ret)
               msg += ReturnTypeMismatch(irp, actual)
               msg += LINE_SEP + "- return  : " + value
               st.filename.map(msg += LINE_SEP + "- filename: " + _)
@@ -544,6 +545,7 @@ class Interpreter(
       case _                                     => /* do nothing */
     st.context.retVal = Some(
       (
+        curNode,
         ret,
         // wrap completion by conditions specified in
         // [5.2.3.5 Implicit Normal Completion]
@@ -616,6 +618,10 @@ class Interpreter(
         case (acc, _)           => acc
       }
   }
+
+  /** get current node */
+  private def curNode: Node =
+    st.context.cursor.nodeOpt.getOrElse(throw NoNodeCursor)
 }
 
 /** IR interpreter with a CFG */

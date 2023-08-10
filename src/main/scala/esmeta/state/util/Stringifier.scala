@@ -50,7 +50,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app.wrap {
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: " >> ctxt.locals
-      ctxt.retVal.map(app :> "return: " >> _)
+      ctxt.retVal.map((node, ret, value) =>
+        app :> "return: (" >> node.simpleString >> ", " >> ret >> ")"
+        app >> " -> " >> value,
+      )
     }
 
   // cursor

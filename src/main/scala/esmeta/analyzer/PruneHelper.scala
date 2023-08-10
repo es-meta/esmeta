@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.util.*
+import esmeta.cfg.Node
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 
@@ -15,7 +16,7 @@ trait PruneHelper { this: AbsTransfer =>
   def prune(
     cond: Expr,
     positive: Boolean,
-  )(using cp: ControlPoint): Updater = cond match {
+  )(using np: NodePoint[Node]): Updater = cond match {
     case _ if !USE_REFINE => st => st
     // prune values
     case EBinary(BOp.Eq, ERef(ref: Local), target) =>

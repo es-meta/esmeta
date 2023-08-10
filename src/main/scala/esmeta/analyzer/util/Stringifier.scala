@@ -65,8 +65,8 @@ class Stringifier(
         app >> "argument assignment to "
         app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
         app >> " when " >> cp
-      case InternalReturnPoint(calleeRp, irReturn) =>
-        app >> "return statement in " >> calleeRp.func.name >> irReturn
+      case InternalReturnPoint(returnNp, irReturn) =>
+        app >> "return statement in " >> returnNp.func.name >> irReturn
       case ReturnIfAbruptPoint(cp, riaExpr) =>
         app >> "ReturnIfAbrupt"
         app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
@@ -129,7 +129,7 @@ class Stringifier(
         app :> "- expected: " >> point.param.ty
         app :> "- actual  : " >> argTy
       case ReturnTypeMismatch(point, retTy) =>
-        app :> "- expected: " >> point.calleeRp.func.retTy
+        app :> "- expected: " >> point.func.retTy
         app :> "- actual  : " >> retTy
       case UncheckedAbruptComp(point, ty) =>
         app :> "- actual  : " >> ty

@@ -66,6 +66,9 @@ case object InvalidComp extends InvalidComp(None)
 case class InvalidCompType(v: Value) extends InvalidComp(Some(s"(type) $v"))
 case class InvalidCompTarget(v: Value) extends InvalidComp(Some(s"(target) $v"))
 
+// no node cursor
+case object NoNodeCursor extends InterpreterError(s"no node cursor")
+
 // no return values
 case object NoReturnValue extends InterpreterError(s"no return value")
 

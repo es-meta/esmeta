@@ -8,7 +8,8 @@ import esmeta.util.*
 
 /** type errors in specification */
 sealed trait TypeError extends AnalyzerElem {
-  val point: AnalysisPoint
+  type This <: TypeError
+  val point: AnalysisPoint with TypeErrorPoint[This]
   inline def func: Func = point.func
   def +(that: TypeError): TypeError = (this, that) match
     case (ParamTypeMismatch(lp, lty), ParamTypeMismatch(rp, rty)) =>
@@ -30,35 +31,35 @@ sealed trait TypeError extends AnalyzerElem {
 case class ParamTypeMismatch(
   point: ArgAssignPoint,
   argTy: ValueTy,
-) extends TypeError
+) extends TypeError { type This = ParamTypeMismatch }
 
 /** return type mismatches */
 case class ReturnTypeMismatch(
   point: InternalReturnPoint,
   retTy: ValueTy,
-) extends TypeError
+) extends TypeError { type This = ReturnTypeMismatch }
 
 /** unchecked abrupt completion */
 case class UncheckedAbruptComp(
   point: ReturnIfAbruptPoint,
   ty: ValueTy,
-) extends TypeError
+) extends TypeError { type This = UncheckedAbruptComp }
 
 /** invalid base in property referecens */
 case class InvalidPropBase(
   point: PropBasePoint,
   baseTy: ValueTy,
-) extends TypeError
+) extends TypeError { type This = InvalidPropBase }
 
 /** operand type mismatches for unary operators */
 case class UnaryOpTypeMismatch(
   point: UnaryOpPoint,
   operandTy: ValueTy,
-) extends TypeError
+) extends TypeError { type This = UnaryOpTypeMismatch }
 
 /** operand type mismatches for binary operators */
 case class BinaryOpTypeMismatch(
   point: BinaryOpPoint,
   lhsTy: ValueTy,
   rhsTy: ValueTy,
-) extends TypeError
+) extends TypeError { type This = BinaryOpTypeMismatch }

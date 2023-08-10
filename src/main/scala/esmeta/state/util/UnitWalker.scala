@@ -28,7 +28,7 @@ trait UnitWalker extends BasicUnitWalker {
   // context
   def walk(context: Context): Unit =
     walkMMap(context.locals, walk, walk)
-    context.retVal.map { case (_, value) => walk(value) }
+    context.retVal.map { case (_, _, value) => walk(value) }
 
   // cursor
   def walk(cursor: Cursor): Unit = {}

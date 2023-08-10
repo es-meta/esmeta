@@ -65,14 +65,14 @@ class TypeAnalyzer(
 
     /** refine invalid base for property reference */
     override def refinePropBase(
-      cp: ControlPoint,
+      np: NodePoint[Node],
       prop: Prop,
       base: AbsValue,
     ): AbsValue =
       val baseTy = base.ty
       val noPropTy = baseTy.noProp
       if (config.invalidPropBase && !noPropTy.isBottom)
-        sem += InvalidPropBase(PropBasePoint(PropPoint(cp, prop)), baseTy)
+        sem += InvalidPropBase(PropBasePoint(PropPoint(np, prop)), baseTy)
       AbsValue(baseTy -- noPropTy)
 
     /** return-if-abrupt completion */
@@ -80,10 +80,10 @@ class TypeAnalyzer(
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
-    )(using cp: ControlPoint): Result[AbsValue] =
+    )(using np: NodePoint[Node]): Result[AbsValue] =
       if (config.uncheckedAbruptComp)
         if (!check && !value.abruptCompletion.isBottom)
-          val riaPoint = ReturnIfAbruptPoint(cp, riaExpr)
+          val riaPoint = ReturnIfAbruptPoint(np, riaExpr)
           sem += UncheckedAbruptComp(riaPoint, value.ty)
       super.returnIfAbrupt(riaExpr, value, check)
 
@@ -151,7 +151,7 @@ class TypeAnalyzer(
       st: AbsState,
       unary: EUnary,
       operand: AbsValue,
-    )(using cp: ControlPoint): AbsValue =
+    )(using np: NodePoint[Node]): AbsValue =
       import UOp.*
       if (config.unaryOpTypeMismatch)
         val operandTy = operand.ty
@@ -168,9 +168,9 @@ class TypeAnalyzer(
       unary: EUnary,
       operandTy: ValueTy,
       expectedTys: ValueTy,
-    )(using cp: ControlPoint): Unit = if (!(operandTy <= expectedTys))
+    )(using np: NodePoint[Node]): Unit = if (!(operandTy <= expectedTys))
       sem += UnaryOpTypeMismatch(
-        UnaryOpPoint(cp, unary),
+        UnaryOpPoint(np, unary),
         operandTy,
       )
 
@@ -180,7 +180,7 @@ class TypeAnalyzer(
       binary: EBinary,
       left: AbsValue,
       right: AbsValue,
-    )(using cp: ControlPoint): AbsValue =
+    )(using np: NodePoint[Node]): AbsValue =
       import BOp.*
       if (config.binaryOpTypeMismatch)
         val (lhsTy, rhsTy) = (left.ty, right.ty)
@@ -199,10 +199,10 @@ class TypeAnalyzer(
       lhsTy: ValueTy,
       rhsTy: ValueTy,
       expectedTys: Set[ValueTy],
-    )(using cp: ControlPoint): Unit =
+    )(using np: NodePoint[Node]): Unit =
       if (!expectedTys.exists(ty => lhsTy <= ty || rhsTy <= ty))
         sem += BinaryOpTypeMismatch(
-          BinaryOpPoint(cp, binary),
+          BinaryOpPoint(np, binary),
           lhsTy,
           rhsTy,
         )

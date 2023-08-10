@@ -158,12 +158,9 @@ trait AbsTransfer extends Optimized with PruneHelper {
   }
 
   // transfer function for expressions
-  def apply(cp: ControlPoint, expr: Expr): AbsValue = {
-    // record current control point for alarm
-    given ControlPoint = cp
-    val st = sem.getState(cp)
+  def apply(expr: Expr)(using np: NodePoint[Node]): AbsValue =
+    val st = sem.getState(np)
     transfer(expr)(st)._1
-  }
 
   /** sdo with default case */
   val defaultCases = List(
@@ -204,7 +201,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
   }
 
   /** transfer function for normal instructions */
-  def transfer(inst: NormalInst)(using cp: NodePoint[_]): Updater = inst match {
+  def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater = inst match {
     case IExpr(expr) =>
       for {
         v <- transfer(expr)
@@ -256,8 +253,8 @@ trait AbsTransfer extends Optimized with PruneHelper {
   }
 
   /** transfer function for call instructions */
-  def transfer(call: Call)(using cp: NodePoint[_]): Result[AbsValue] =
-    val callerNp = NodePoint(cp.func, call, cp.view)
+  def transfer(call: Call)(using np: NodePoint[_]): Result[AbsValue] =
+    val callerNp = NodePoint(np.func, call, np.view)
     call.callInst match {
       case OptimizedCall(result) => result
       case ICall(_, fexpr, args) =>
@@ -319,7 +316,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     }
 
   /** transfer function for expressions */
-  def transfer(expr: Expr)(using cp: ControlPoint): Result[AbsValue] =
+  def transfer(expr: Expr)(using np: NodePoint[Node]): Result[AbsValue] =
     expr match {
       case EComp(ty, value, target) =>
         for {
@@ -359,13 +356,13 @@ trait AbsTransfer extends Optimized with PruneHelper {
       case ESourceText(expr) =>
         for { v <- transfer(expr) } yield v.sourceText
       case e @ EGetChildren(ast) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           av <- transfer(ast)
           lv <- id(_.getChildren(asite, av))
         } yield lv
       case e @ EGetItems(nt, ast) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           nv <- transfer(nt)
           av <- transfer(ast)
@@ -468,18 +465,18 @@ trait AbsTransfer extends Optimized with PruneHelper {
         for {
           st <- get
           func = cfg.fnameMap(fname)
-          target = NodePoint(func, func.entry, cp.view)
+          target = NodePoint(func, func.entry, np.view)
           captured = st.locals.collect { case (x: Name, av) => x -> av }
           // return edges for resumed evaluation
-          currRp = ReturnPoint(cp.func, cp.view)
-          contRp = ReturnPoint(func, cp.view)
+          currRp = ReturnPoint(np.func, np.view)
+          contRp = ReturnPoint(func, np.view)
           _ = sem.retEdges += (contRp -> sem.retEdges.getOrElse(currRp, Set()))
         } yield AbsValue(ACont(target, captured))
       case EDebug(expr) =>
         for {
           v <- transfer(expr)
           st <- get
-          _ = debug(s"[[ $expr @ $cp ]]($st) = $v")
+          _ = debug(s"[[ $expr @ $np ]]($st) = $v")
         } yield v
       case ERandom() => pure(AbsValue.numberTop)
       case ESyntactic(name, args, rhsIdx, children) =>
@@ -502,7 +499,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
         }
       case ELexical(name, expr) => notSupported("ELexical")
       case e @ EMap(tname, props) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           pairs <- join(props.map {
             case (kexpr, vexpr) =>
@@ -514,31 +511,31 @@ trait AbsTransfer extends Optimized with PruneHelper {
           lv <- id(_.allocMap(asite, tname, pairs))
         } yield lv
       case e @ EList(exprs) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           vs <- join(exprs.map(transfer))
           lv <- id(_.allocList(asite, vs))
         } yield lv
       case e @ EListConcat(exprs) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           ls <- join(exprs.map(transfer))
           lv <- id(_.concat(asite, ls))
         } yield lv
       case e @ ESymbol(desc) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           v <- transfer(desc)
           lv <- id(_.allocSymbol(asite, v))
         } yield lv
       case e @ ECopy(obj) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           v <- transfer(obj)
           lv <- id(_.copyObj(asite, v))
         } yield lv
       case e @ EKeys(map, intSorted) =>
-        val asite = AllocSite(e.asite, cp.view)
+        val asite = AllocSite(e.asite, np.view)
         for {
           v <- transfer(map)
           lv <- id(_.keys(asite, v, intSorted))
@@ -566,7 +563,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     }
 
   /** transfer function for references */
-  def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
+  def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefValue] =
     ref match
       case id: Id => AbsRefId(id)
       case prop @ Prop(base, expr) =>
@@ -574,25 +571,25 @@ trait AbsTransfer extends Optimized with PruneHelper {
           rv <- transfer(base)
           b <- transfer(rv)
           p <- transfer(expr)
-        } yield AbsRefProp(refinePropBase(cp, prop, b), p)
+        } yield AbsRefProp(refinePropBase(np, prop, b), p)
 
   /** refine invalid base for property reference */
   def refinePropBase(
-    cp: ControlPoint,
+    np: NodePoint[Node],
     prop: Prop,
     base: AbsValue,
   ): AbsValue = base
 
   /** transfer function for reference values */
-  def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =
-    for { v <- get(_.get(rv, cp)) } yield v
+  def transfer(rv: AbsRefValue)(using np: NodePoint[Node]): Result[AbsValue] =
+    for { v <- get(_.get(rv, np)) } yield v
 
   /** transfer function for unary operators */
   def transfer(
     st: AbsState,
     unary: EUnary,
     operand: AbsValue,
-  )(using cp: ControlPoint): AbsValue =
+  )(using np: NodePoint[Node]): AbsValue =
     import UOp.*
     val uop = unary.uop
     operand.getSingle match
@@ -617,7 +614,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     binary: EBinary,
     left: AbsValue,
     right: AbsValue,
-  )(using cp: ControlPoint): AbsValue =
+  )(using np: NodePoint[Node]): AbsValue =
     import BOp.*
     val bop = binary.bop
     (left.getSingle, right.getSingle) match {
@@ -660,11 +657,15 @@ trait AbsTransfer extends Optimized with PruneHelper {
     }
 
   /** transfer for variadic operators */
-  def transfer(vop: VOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
+  def transfer(vop: VOp, vs: List[AbsValue])(using
+    np: NodePoint[Node],
+  ): AbsValue =
     AbsValue.vopTransfer(vop, vs)
 
   /** transfer for mathematical operators */
-  def transfer(mop: MOp, vs: List[AbsValue])(using cp: ControlPoint): AbsValue =
+  def transfer(mop: MOp, vs: List[AbsValue])(using
+    np: NodePoint[Node],
+  ): AbsValue =
     AbsValue.mopTransfer(mop, vs)
 
   /** handle calls */
@@ -731,17 +732,16 @@ trait AbsTransfer extends Optimized with PruneHelper {
   def doReturn(
     irReturn: Return,
     v: AbsValue,
-  )(using cp: ControlPoint): Result[Unit] = for {
+  )(using returnNp: NodePoint[Node]): Result[Unit] = for {
     st <- get
     ret = AbsRet(v, st.copied(locals = Map()))
-    calleeRp = ReturnPoint(cp.func, cp.view)
-    irp = InternalReturnPoint(calleeRp, irReturn)
+    irp = InternalReturnPoint(returnNp, irReturn)
     _ = doReturn(irp, ret)
   } yield ()
 
   /** update return points */
   def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =
-    val InternalReturnPoint(ReturnPoint(func, view), _) = irp
+    val InternalReturnPoint(NodePoint(func, node, view), _) = irp
     val retRp = ReturnPoint(func, sem.getEntryView(view))
     // wrap completion by conditions specified in
     // [5.2.3.5 Implicit Normal Completion]
@@ -762,7 +762,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     riaExpr: EReturnIfAbrupt,
     value: AbsValue,
     check: Boolean,
-  )(using cp: ControlPoint): Result[AbsValue] = {
+  )(using np: NodePoint[Node]): Result[AbsValue] = {
     val checkReturn: Result[Unit] =
       if (check) doReturn(riaExpr, value.abruptCompletion)
       else ()
@@ -774,7 +774,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     binary: EBinary,
     left: Expr,
     right: Expr,
-  )(using cp: ControlPoint): Result[AbsValue] = for {
+  )(using np: NodePoint[Node]): Result[AbsValue] = for {
     l <- transfer(left)
     st <- get
     v <- binary.bop match {

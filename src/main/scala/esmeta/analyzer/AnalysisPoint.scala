@@ -18,6 +18,11 @@ sealed trait AnalysisPoint extends AnalyzerElem {
     else throw InvalidAnalysisPointMerge(this, that)
 }
 
+/** type error points */
+sealed trait TypeErrorPoint[Error <: TypeError] {
+  def node: Node
+}
+
 /** call points */
 case class CallPoint(
   callerNp: NodePoint[Call],
@@ -26,6 +31,7 @@ case class CallPoint(
   type This = CallPoint
   inline def view = callerNp.view
   inline def func = callerNp.func
+  inline def node = callerNp.node
   def withoutView: CallPoint =
     copy(callerNp = callerNp.withoutView, callee)
 }
@@ -34,77 +40,90 @@ case class CallPoint(
 case class ArgAssignPoint(
   callPoint: CallPoint,
   idx: Int,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[ParamTypeMismatch] {
   type This = ArgAssignPoint
   inline def view = callPoint.view
   inline def func = callPoint.func
+  inline def node = callPoint.node
   inline def param = callPoint.callee.params(idx)
   def withoutView: ArgAssignPoint = copy(callPoint = callPoint.withoutView)
 }
 
 /** internal return points */
 case class InternalReturnPoint(
-  calleeRp: ReturnPoint,
+  returnNp: NodePoint[Node],
   irReturn: Return,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[ReturnTypeMismatch] {
   type This = InternalReturnPoint
-  inline def view = calleeRp.view
-  inline def func = calleeRp.func
-  def withoutView: InternalReturnPoint = copy(calleeRp = calleeRp.withoutView)
+  inline def view = returnNp.view
+  inline def func = returnNp.func
+  inline def node = returnNp.node
+  def withoutView: InternalReturnPoint = copy(returnNp = returnNp.withoutView)
 }
 
 /** return-if-abrupt points */
 case class ReturnIfAbruptPoint(
-  cp: ControlPoint,
+  np: NodePoint[Node],
   riaExpr: EReturnIfAbrupt,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[UncheckedAbruptComp] {
   type This = ReturnIfAbruptPoint
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: ReturnIfAbruptPoint = copy(cp = cp.withoutView)
+  inline def view = np.view
+  inline def func = np.func
+  inline def node = np.node
+  def withoutView: ReturnIfAbruptPoint = copy(np = np.withoutView)
 }
 
 /** base in property reference points */
 case class PropBasePoint(
   propPoint: PropPoint,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[InvalidPropBase] {
   type This = PropBasePoint
   inline def view = propPoint.view
   inline def func = propPoint.func
+  inline def node = propPoint.node
   def withoutView: PropBasePoint = copy(propPoint = propPoint.withoutView)
 }
 
 /** property reference points */
 case class PropPoint(
-  cp: ControlPoint,
+  np: NodePoint[Node],
   prop: Prop,
 ) extends AnalysisPoint {
   type This = PropPoint
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: PropPoint = copy(cp = cp.withoutView)
+  inline def view = np.view
+  inline def func = np.func
+  inline def node = np.node
+  def withoutView: PropPoint = copy(np = np.withoutView)
 }
 
 /** unary operation points */
 case class UnaryOpPoint(
-  cp: ControlPoint,
+  np: NodePoint[Node],
   unary: EUnary,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[UnaryOpTypeMismatch] {
   type This = UnaryOpPoint
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: UnaryOpPoint = copy(cp = cp.withoutView)
+  inline def view = np.view
+  inline def func = np.func
+  inline def node = np.node
+  def withoutView: UnaryOpPoint = copy(np = np.withoutView)
 }
 
 /** binary operation points */
 case class BinaryOpPoint(
-  cp: ControlPoint,
+  np: NodePoint[Node],
   binary: EBinary,
-) extends AnalysisPoint {
+) extends AnalysisPoint
+  with TypeErrorPoint[BinaryOpTypeMismatch] {
   type This = BinaryOpPoint
-  inline def view = cp.view
-  inline def func = cp.func
-  def withoutView: BinaryOpPoint = copy(cp = cp.withoutView)
+  inline def view = np.view
+  inline def func = np.func
+  inline def node = np.node
+  def withoutView: BinaryOpPoint = copy(np = np.withoutView)
 }
 
 /** control points */

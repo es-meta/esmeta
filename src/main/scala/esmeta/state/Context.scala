@@ -1,6 +1,6 @@
 package esmeta.state
 
-import esmeta.cfg.{Func, Block, Call}
+import esmeta.cfg.{Func, Block, Call, Node}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.Ast
 import esmeta.util.BaseUtils.error
@@ -22,7 +22,7 @@ case class Context(
     case _                        => error("cursor can't move to next")
 
   /** return variable */
-  var retVal: Option[(Return, Value)] = None
+  var retVal: Option[(Node, Return, Value)] = None
 
   /** copy contexts */
   def copied: Context = {
