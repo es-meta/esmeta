@@ -1,0 +1,10 @@
+{
+    "test1": [
+        "PTM AAP ApplyStringOrNumericBinaryOperator CP ApplyStringOrNumericBinaryOperator BigInt::add 1 xBigInt",
+        "PTM AAP ApplyStringOrNumericBinaryOperator CP ApplyStringOrNumericBinaryOperator BigInt::add 2 yBigInt"
+    ],
+    "test2": [
+        "PTM AAP BigIntBitwiseOp CP BigIntBitwiseOp BinaryAnd 1 xMath[0, 1]",
+        "PTM AAP BigIntBitwiseOp CP BigIntBitwiseOp BinaryAnd 2 yMath[0, 1]"
+    ]
+}
