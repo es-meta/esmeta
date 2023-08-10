@@ -5,12 +5,17 @@ import esmeta.error.{InvalidAnalysisPointMerge, InvalidTypeErrorMerge}
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
+import esmeta.analyzer.util.Fingerprintifier
 
 /** type errors in specification */
 sealed trait TypeError extends AnalyzerElem {
   type This <: TypeError
   val point: AnalysisPoint with TypeErrorPoint[This]
   inline def func: Func = point.func
+  def toFingerprint: String =
+    import Fingerprintifier.errorRule
+    stringify(this)
   def +(that: TypeError): TypeError = (this, that) match
     case (ParamTypeMismatch(lp, lty), ParamTypeMismatch(rp, rty)) =>
       ParamTypeMismatch(lp + rp, lty || rty)
