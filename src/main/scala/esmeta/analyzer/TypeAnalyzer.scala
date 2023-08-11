@@ -222,7 +222,7 @@ class TypeAnalyzer(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      if (log) logging(sem, errors, detail)
+      if (log) logging(sem, errors, detail, silent)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -280,6 +280,7 @@ class TypeAnalyzer(
     sem: Semantics,
     errors: Set[TypeError],
     detail: Boolean = false,
+    silent: Boolean = false,
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
@@ -299,6 +300,7 @@ class TypeAnalyzer(
       name = "type analysis result",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
+      silent = silent,
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -307,6 +309,7 @@ class TypeAnalyzer(
         .map { case (cp, k) => s"[$k] $cp" }
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
+      silent = silent,
     )
     dumpFile(
       name = "detected type errors",
@@ -315,6 +318,7 @@ class TypeAnalyzer(
         .sorted
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
+      silent = silent,
     )
     if (detail)
       dumpFile(

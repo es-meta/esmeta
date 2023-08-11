@@ -67,9 +67,14 @@ object SystemUtils {
     println(s"- Dumped $name into `$dirname`.")
 
   /** dump given data into a file and show message */
-  def dumpFile(name: String, data: Any, filename: String): Unit =
+  def dumpFile(
+    name: String,
+    data: Any,
+    filename: String,
+    silent: Boolean = false,
+  ): Unit =
     dumpFile(data, filename)
-    println(s"- Dumped $name into `$filename`.")
+    if (!silent) println(s"- Dumped $name into `$filename`.")
 
   /** dump given data in a JSON format */
   def dumpJson[T](
