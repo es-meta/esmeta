@@ -76,6 +76,9 @@ case class Func(
   /** function name */
   def name: String = irFunc.name
 
+  /** function name with id */
+  def nameWithId: String = s"[$id] $name"
+
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
 
