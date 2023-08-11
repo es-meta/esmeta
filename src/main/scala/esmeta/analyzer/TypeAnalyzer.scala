@@ -8,11 +8,11 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
-import esmeta.util.Appender.*
+import esmeta.util.UId.given
+import esmeta.util.Appender.{*, given}
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{Map => MMap}
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
@@ -282,6 +282,9 @@ class TypeAnalyzer(
     detail: Boolean = false,
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
+    val analyzedFuncs = sem.analyzedFuncs
+    val analyzedNodes = sem.analyzedNodes
+    val analyzedReturns = sem.analyzedReturns
     dumpFile(
       name = "summary of type analysis",
       data = Yaml(
@@ -289,37 +292,17 @@ class TypeAnalyzer(
         "error" -> errors.size,
         "iter" -> sem.iter,
         "analyzed" -> Map(
-          "functions" -> sem.analyzedFuncs.size,
-          "nodes" -> sem.analyzedNodes.size,
-        ),
-        "unreachable" -> Map(
-          "functions" -> sem.unreachableFuncs.size,
-          "nodes" -> sem.unreachableNodes.values.flatten.size,
+          "funcs" -> ratioSimpleString(analyzedFuncs.size, cfg.funcs.size),
+          "nodes" -> ratioSimpleString(analyzedNodes.size, cfg.nodes.size),
+          "returns" -> ratioSimpleString(analyzedReturns.size, cfg.funcs.size),
         ),
       ),
       filename = s"$ANALYZE_LOG_DIR/summary.yml",
     )
     dumpFile(
-      name = "type analysis result",
+      name = "type analysis result for each function",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
-    )
-    dumpFile(
-      name = "unreachable nodes",
-      data = sem.unreachableNodes.toList
-        .flatMap({ case (k, v) => v.map(k -> _) })
-        .map({ case (func, node) => s"${func.name}: ${node.simpleString}" })
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$ANALYZE_LOG_DIR/unreachable-nodes",
-    )
-    dumpFile(
-      name = "unreachable funcs",
-      data = sem.unreachableFuncs.toList
-        .map(_.name.toString)
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$ANALYZE_LOG_DIR/unreachable-funcs",
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -331,17 +314,42 @@ class TypeAnalyzer(
     )
     dumpFile(
       name = "detected type errors",
-      data = errors.toList
-        .map(_.toString)
-        .sorted
-        .mkString(LINE_SEP),
+      data = errors.toList.map(_.toString).sorted.mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
     )
     if (detail)
+      val UNREACHABLE_DIR = s"$ANALYZE_LOG_DIR/unreachable"
+      val unreachableFuncs = cfg.funcs.filterNot(analyzedFuncs.contains)
+      val unreachableNodes = cfg.nodes.filterNot(analyzedNodes.contains)
+      val unreachableReturns = cfg.funcs.filterNot(analyzedReturns.contains)
+      mkdir(UNREACHABLE_DIR)
       dumpFile(
-        name = "analysis result for each control point",
+        name = "unreachable functions",
+        data = unreachableFuncs.sorted.map(_.nameWithId).mkString(LINE_SEP),
+        filename = s"$UNREACHABLE_DIR/funcs",
+      )
+      dumpFile(
+        name = "unreachable nodes",
+        data = unreachableNodes
+          .groupBy(cfg.funcOf)
+          .toList
+          .sortBy(_._1)
+          .map {
+            case (f, ns) =>
+              f.nameWithId + ns.map(LINE_SEP + "  " + _.name).mkString
+          }
+          .mkString(LINE_SEP),
+        filename = s"$UNREACHABLE_DIR/nodes",
+      )
+      dumpFile(
+        name = "unreachable returns",
+        data = unreachableReturns.sorted.map(_.nameWithId).mkString(LINE_SEP),
+        filename = s"$UNREACHABLE_DIR/returns",
+      )
+      dumpFile(
+        name = "detailed type analysis result for each control point",
         data = sem.resultStrings(detail = true).mkString(LINE_SEP),
-        filename = s"$ANALYZE_LOG_DIR/result",
+        filename = s"$ANALYZE_LOG_DIR/detailed-types",
       )
   }
 }

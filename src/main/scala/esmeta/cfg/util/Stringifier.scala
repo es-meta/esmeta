@@ -4,6 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.*
+import esmeta.util.UId.given
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.ListBuffer
@@ -27,7 +28,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given cfgRule: Rule[CFG] = (app, cfg) =>
     val CFG(funcs) = cfg
     given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
-    given Ordering[Func] = Ordering.by(_.id)
     app >> cfg.funcs.sorted
 
   // functions
@@ -38,7 +38,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (if (main) "@main " else "") >> "def " >> kind
     app >> name >> params >> ": " >> retTy >> " "
     app.wrap {
-      given Ordering[Node] = Ordering.by(_.id)
       for (node <- func.nodes.toList.sorted) app :> node
     }
 

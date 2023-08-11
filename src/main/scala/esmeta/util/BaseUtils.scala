@@ -154,17 +154,20 @@ object BaseUtils {
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
     rule(Appender(), t).toString
 
+  /** get a simple string for success ratio */
+  def ratioSimpleString(pass: Int, total: Int): String =
+    ratioString(pass, total, true)
+
   /** get a string for success ratio */
-  def ratioString(pass: Int, total: Int): String = {
+  def ratioString(pass: Int, total: Int, simple: Boolean = false): String =
     val fail = total - pass
-    f"P/F/T = $pass/$fail/$total ${ratioSimpleString(pass, total)}"
-  }
+    if (simple) f"$pass%,d/$total%,d ${percentString(pass, total)}"
+    else f"P/F/T = $pass%,d/$fail%,d/$total%,d ${percentString(pass, total)}"
 
   /** get a simple string for success ratio */
-  def ratioSimpleString(pass: Int, total: Int): String = {
+  def percentString(pass: Int, total: Int): String =
     val percent = pass / total.toDouble * 100
     f"($percent%.2f%%)"
-  }
 
   /** equality between doubles */
   def doubleEquals(left: Double, right: Double): Boolean =

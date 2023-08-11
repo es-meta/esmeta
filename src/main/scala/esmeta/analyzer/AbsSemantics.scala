@@ -53,12 +53,20 @@ class AbsSemantics(
   /** get elapsed time of analyzer */
   def elapsedTime: Long = System.currentTimeMillis - startTime
 
+  /** check reachability of node points */
+  def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
+
+  /** check reachability of return points */
+  def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
+
   /** set of analyzed functions */
-  def analyzedFuncs: Set[Func] =
-    npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
+  def analyzedFuncs: Set[Func] = npMap.keySet.map(_.func) ++ analyzedReturns
 
   /** set of analyzed nodes */
   def analyzedNodes: Set[Node] = npMap.keySet.map(_.node)
+
+  /** set of analyzed nodes */
+  def analyzedReturns: Set[Func] = rpMap.keySet.map(_.func)
 
   /** get return edges */
   def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
@@ -153,21 +161,9 @@ class AbsSemantics(
         val st = this(rp).getString(detail = detail)
         s"$k -> $st"
 
-  /** check reachability */
-  def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
-  def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
-
   /** get detected type errors */
   def errors: Set[TypeError] =
     errorMap.map((_, innerMap) => innerMap.values.reduce(_ + _)).toSet
-
-  /** set of unreachable nodes */
-  def unreachableNodes: Map[Func, Set[Node]] =
-    (cfg.nodeMap.values.toSet -- analyzedNodes).groupBy(cfg.funcOf(_))
-
-  /** set of funcs that all of its returns are unreachable */
-  def unreachableFuncs: Set[Func] =
-    cfg.funcs.filter(func => !rpMap.keySet.exists(_.func == func)).toSet
 
   // record type errors
   def +=(error: TypeError): Unit =
