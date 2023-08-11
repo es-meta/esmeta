@@ -75,9 +75,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
         path,
       ).trim
         .split("\n")
-        .collect(_ match {
-          case pattern(hash, name) => Version(name, hash)
-        })
+        .collect { case pattern(hash, name) => Version(name, hash) }
         .toList
     versions
 
