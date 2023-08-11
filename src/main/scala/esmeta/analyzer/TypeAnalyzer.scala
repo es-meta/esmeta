@@ -342,7 +342,7 @@ class TypeAnalyzer(
         filename = s"$UNREACHABLE_DIR/nodes",
       )
       dumpFile(
-        name = "unreachable returns",
+        name = "unreachable function returns",
         data = unreachableReturns.sorted.map(_.nameWithId).mkString(LINE_SEP),
         filename = s"$UNREACHABLE_DIR/returns",
       )

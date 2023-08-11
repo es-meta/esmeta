@@ -65,7 +65,7 @@ class AbsSemantics(
   /** set of analyzed nodes */
   def analyzedNodes: Set[Node] = npMap.keySet.map(_.node)
 
-  /** set of analyzed nodes */
+  /** set of analyzed function returns */
   def analyzedReturns: Set[Func] = rpMap.keySet.map(_.func)
 
   /** get return edges */
