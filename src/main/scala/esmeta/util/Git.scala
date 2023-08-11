@@ -67,14 +67,18 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
       val version = currentVersion
       (version, f(version))
 
-  def getAllTargets(commits: List[String]): List[String] =
-    val targets =
+  def getAllTargets(commits: List[String]): List[Version] =
+    val pattern = """^(.+) \((.+)\)$""".r
+    val versions =
       executeCmd(
-        s"git rev-list --topo-order --reverse ${commits.mkString(" ")}",
+        s"git rev-list --topo-order --reverse ${commits.mkString(" ")} | git name-rev --annotate-stdin",
         path,
       ).trim
         .split("\n")
+        .collect(_ match {
+          case pattern(hash, name) => Version(name, hash)
+        })
         .toList
-    targets
+    versions
 
 }

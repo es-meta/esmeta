@@ -32,13 +32,14 @@ case object RangeTypeCheck extends Phase[Unit, Unit] {
         return println("Canceled.")
 
     val targetLen = targets.length
-    for ((target, idx) <- targets.zipWithIndex) {
-      val logdir = s"$LOG_DIR/ranges/$target"
-      val Version(name, _) = getVersion(target)
-      print(s"[${idx + 1}/${targetLen}]: $name (hash: $target)")
+    for ((v @ Version(name, hash), idx) <- targets.zipWithIndex) {
+      val logdir =
+        s"$LOG_DIR/range-tycheck/${s"%0${targetLen.toString.length}d"
+          .format(idx + 1)}-${v.shortHash}"
+      print(s"[${idx + 1}/${targetLen}]: $name (hash: $hash)")
       try {
         val result = executeCmd(
-          s"""esmeta tycheck -silent -extract:target="$target" -tycheck:log -tycheck:logdir="${logdir}" -tycheck:level=${config.level}""",
+          s"""esmeta tycheck -silent -extract:target="$hash" -tycheck:log -tycheck:logdir="${logdir}" -tycheck:level=${config.level}""",
         )
       } catch {
         case e => print(" - failed " + e)
