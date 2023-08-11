@@ -38,7 +38,7 @@ case object RangeTypeCheck extends Phase[Unit, Unit] {
       print(s"[${idx + 1}/${targetLen}]: $name (hash: $target)")
       try {
         val result = executeCmd(
-          s"""esmeta tycheck -silent -extract:target="$target" -tycheck:level=${config.level} -tycheck:logdir="${logdir}"""",
+          s"""esmeta tycheck -silent -extract:target="$target" -tycheck:log -tycheck:logdir="${logdir}" -tycheck:level=${config.level}""",
         )
       } catch {
         case e => print(" - failed " + e)
