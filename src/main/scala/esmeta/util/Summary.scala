@@ -110,7 +110,7 @@ object Summary {
 
   /** summary elements */
   case class Elem(
-    seq: BlockingQueue[String] = new LinkedBlockingQueue,
+    seq: BlockingQueue[String] = LinkedBlockingQueue(),
     map: TrieMap[Reason, Elem] = TrieMap(),
   ) {
 

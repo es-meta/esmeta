@@ -52,7 +52,7 @@ case class ProgressBar[T](
 
   // foreach function
   override def foreach[U](f: T => U): Unit = {
-    val gcount = new AtomicInteger(baseSize)
+    val gcount = AtomicInteger(baseSize)
     val start = System.currentTimeMillis
     def updateTime: Unit =
       summary.time = Time(System.currentTimeMillis - start)
