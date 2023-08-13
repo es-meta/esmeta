@@ -181,6 +181,7 @@ AsyncGeneratorAwaitReturn:clo0
 AsyncGeneratorAwaitReturn:clo1
 AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody
 AsyncGeneratorBody[0,0].EvaluateBody
+AsyncGeneratorCompleteStep
 AsyncGeneratorDeclaration[0,0].BoundNames
 AsyncGeneratorDeclaration[0,0].Contains
 AsyncGeneratorDeclaration[0,0].ContainsArguments

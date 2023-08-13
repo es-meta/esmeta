@@ -26,14 +26,10 @@
   "assign-object6.js" : true,
   "assign-object7.js" : true,
   "assignment1.js" : true,
-  "async-generator1.js" : [
-    "Let _next_ be the first element of _generator_.[[AsyncGeneratorQueue]]."
-  ],
+  "async-generator1.js" : true,
   "async1.js" : true,
   "await1.js" : true,
-  "await2.js" : [
-    "Let _next_ be the first element of _generator_.[[AsyncGeneratorQueue]]."
-  ],
+  "await2.js" : true,
   "bigint.js" : true,
   "bind1.js" : true,
   "bitwise.js" : true,

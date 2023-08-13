@@ -70,6 +70,7 @@ trait Parsers extends IndentParsers {
     pushCtxtStep |
     noteStep |
     suspendStep |
+    removeFirstStep |
     removeCtxtStep |
     ifStep |
     forEachArrayIndexStep |
@@ -224,6 +225,10 @@ trait Parsers extends IndentParsers {
     "suspend" ~> baseRef ~ (remove <~ end) ^^ {
       case base ~ r => SuspendStep(base, r)
     }
+
+  // remove first element step
+  lazy val removeFirstStep: PL[RemoveFirstStep] =
+    "remove the first element from" ~> expr <~ end ^^ { RemoveFirstStep(_) }
 
   // remove execution context step
   lazy val removeCtxtStep: PL[RemoveContextStep] =
@@ -1089,10 +1094,10 @@ trait Parsers extends IndentParsers {
     ("the List that is" ~> propRef)
   } | {
     // AsyncGeneratorCompleteStep
-    ("the" ~> ordinal <~ "element") ~ ("of" ~> variable)
+    ("the" ~> ordinal <~ "element") ~ (("of" | "from") ~> ref)
   } ^^ {
-    case o ~ x =>
-      PropertyReference(x, IndexProperty(DecimalMathValueLiteral(o - 1)))
+    case o ~ b =>
+      PropertyReference(b, IndexProperty(DecimalMathValueLiteral(o - 1)))
   } | {
     // SetFunctionName, SymbolDescriptiveString
     (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"

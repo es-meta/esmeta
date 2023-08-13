@@ -356,6 +356,8 @@ class Compiler(
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+    case RemoveFirstStep(expr) =>
+      fb.addInst(IExpr(EPop(compile(fb, expr), true)))
     case RemoveContextStep(_, _) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case SetEvaluationStateStep(context, paramOpt, body) =>

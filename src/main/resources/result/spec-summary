@@ -5,12 +5,12 @@
     - numeric string: 17
     - syntactic: 195
   - extended productions for web: 28
-- algorithms: 2656 (87.80%)
-  - complete: 2332
-  - incomplete: 324
-- algorithm steps: 19553 (96.40%)
-  - complete: 18850
-  - incomplete: 703
+- algorithms: 2656 (87.91%)
+  - complete: 2335
+  - incomplete: 321
+- algorithm steps: 19553 (96.44%)
+  - complete: 18856
+  - incomplete: 697
 - types: 7000 (91.49%)
   - known: 6404
   - yet: 596
