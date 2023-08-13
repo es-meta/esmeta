@@ -76,6 +76,7 @@ case class CFG(
       iterable = funcs,
       getName = (x, _) => x.name,
       detail = false,
+      concurrent = true,
     )
     for (func <- progress)
       val path = s"$baseDir/${func.normalizedName}"
