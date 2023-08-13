@@ -40,10 +40,7 @@
   "boolean4.js" : true,
   "class-decl1.js" : true,
   "class-decl2.js" : true,
-  "compare1.js" : [
-    "metalanguage",
-    "For each integer _i_ such that 0 ≤ _i_ < min(_lx_, _ly_), in ascending order, do\n  1. Let _cx_ be the numeric value of the code unit at index _i_ within _px_.\n  1. Let _cy_ be the numeric value of the code unit at index _i_ within _py_.\n  1. If _cx_ < _cy_, return *true*.\n  1. If _cx_ > _cy_, return *false*."
-  ],
+  "compare1.js" : true,
   "complement1.js" : true,
   "constructor1.js" : true,
   "delete1.js" : true,
@@ -52,10 +49,7 @@
   "expression-statement1.js" : true,
   "for1.js" : true,
   "for2.js" : true,
-  "forin1.js" : [
-    "metalanguage",
-    "If there does not exist an element _v_ of _O_.[[VisitedKeys]] such that SameValue(_r_, _v_) is *true*, then\n  1. Let _desc_ be ? _object_.[[GetOwnProperty]](_r_).\n  1. If _desc_ is not *undefined*, then\n    1. Append _r_ to _O_.[[VisitedKeys]].\n    1. If _desc_.[[Enumerable]] is *true*, return CreateIterResultObject(_r_, *false*)."
-  ],
+  "forin1.js" : true,
   "forof1.js" : true,
   "function-application1.js" : true,
   "function-application2.js" : true,
