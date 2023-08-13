@@ -76,6 +76,7 @@ trait Parsers extends IndentParsers {
     forEachIntStep |
     forEachParseNodeStep |
     resumeStep |
+    resumeYieldStep |
     blockStep
   }.named("lang.Step")
 
@@ -229,11 +230,15 @@ trait Parsers extends IndentParsers {
       "for that execution context" ^^^ None |
       "with a" ~ opt(langType) ~> variable ^^ { Some(_) } // TODO handle type
     lazy val body: P[Step] =
-      ("the following steps will be performed:" ~> step) |
+      "the following steps will be performed:" ~> step |
+      // closure-based
+      "," ~> variable <~ "will be called with no arguments." ^^ {
+        case e => PerformStep(InvokeAbstractClosureExpression(e, Nil))
+      } |
       // Await
-      (", the following steps of the algorithm" ~
+      ", the following steps of the algorithm" ~
       "that invoked Await will be performed," ~
-      "with" ~> variable <~ "available" ~ end) ^^ {
+      "with" ~> variable <~ "available" ~ end ^^ {
         case x => ReturnStep(Some(ReferenceExpression(x)))
       }
 
@@ -260,6 +265,19 @@ trait Parsers extends IndentParsers {
       guard("\n") ^^^ None
     context ~ arg ~ param ~ rep1(subStep) ^^ {
       case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
+    }
+
+  // resume steps for yield
+  lazy val resumeYieldStep: PL[ResumeYieldStep] =
+    lazy val callerCtxt: P[Variable] = "Resume" ~> variable
+    lazy val arg: P[Expression] = "passing" ~> expr <~ "."
+    lazy val genCtxt: P[Variable] =
+      "If" ~> variable <~ "is ever resumed again,"
+    lazy val param: P[Variable] =
+      "let" ~> variable <~ "be" ~
+      "the Completion Record with which it is resumed." ~ guard("\n")
+    callerCtxt ~ arg ~ genCtxt ~ param ~ rep1(subStep) ^^ {
+      case c ~ e ~ r ~ v ~ subs => ResumeYieldStep(c, e, r, v, subs)
     }
 
   // return to resumed steps
@@ -1083,7 +1101,7 @@ trait Parsers extends IndentParsers {
   lazy val postProp: PL[Property] = {
     "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
-    ("'s" | ".") ~> camel ^^ { ComponentProperty(_) } |||
+    ("'s" | ".") ~> camel.filter(_ != "If") ^^ { ComponentProperty(_) } |||
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) }
   }.named("lang.Property")
 

@@ -169,6 +169,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
         for (step <- body)
           app :> "1. " >> step // TODO
         app
+      case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
+        given Rule[Step] = stepWithUpperRule(true)
+        app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
+        app >> "If " >> genCtxt >> " is ever resumed again, "
+        app >> "let " >> param >> " be "
+        app >> "the Completion Record with which it is resumed."
+        for (step <- steps) app :> "1. " >> step
+        app
       case ReturnToResumeStep(context, retStep) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> retStep

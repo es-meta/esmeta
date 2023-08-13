@@ -400,6 +400,23 @@ class Compiler(
         IPush(ECont(contName), eReturnCont, true),
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
       )
+    case ResumeYieldStep(_, arg, context, param, steps) =>
+      val ctxt = compile(fb, context)
+      val contName = fb.nextContName
+      addFunc(
+        fb = FuncBuilder(
+          spec,
+          FuncKind.Cont,
+          contName,
+          List(toParam(param)),
+          fb.retTy,
+          fb.algo,
+          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+        ),
+        body = BlockStep(StepBlock(steps)),
+      )
+      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case ReturnToResumeStep(context, retStep) =>
       val arg = retStep.expr.fold(EUndef())(compile(fb, _))
       fb.addReturnToResume(compile(fb, context), arg)
@@ -926,7 +943,8 @@ class Compiler(
 
   /** instruction helpers */
   inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
-    paramOpt.map(param => IRParam(Name(param.name))).toList
+    paramOpt.map(toParam(_)).toList
+  inline def toParam(x: Variable): IRParam = IRParam(Name(x.name))
   inline def emptyInst = ISeq(List())
 
   /** expression helpers */
