@@ -107,6 +107,14 @@ trait Walker extends BasicWalker {
         walkOpt(pOpt, walk),
         walkList(steps, walk),
       )
+    case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
+      ResumeYieldStep(
+        walk(callerCtxt),
+        walk(arg),
+        walk(genCtxt),
+        walk(param),
+        walkList(steps, walk),
+      )
     case ReturnToResumeStep(base, retStep) =>
       ReturnToResumeStep(walk(base), walk(retStep).asInstanceOf[ReturnStep])
     case BlockStep(block) => BlockStep(walk(block))

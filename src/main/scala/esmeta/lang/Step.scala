@@ -98,6 +98,15 @@ case class ResumeEvaluationStep(
   steps: List[SubStep],
 ) extends Step
 
+// resume steps for yield
+case class ResumeYieldStep(
+  callerContext: Reference,
+  argument: Expression,
+  generatorContext: Reference,
+  param: Variable, // TODO handle type
+  steps: List[SubStep],
+) extends Step
+
 // return to the resumed step
 case class ReturnToResumeStep(
   context: Reference,

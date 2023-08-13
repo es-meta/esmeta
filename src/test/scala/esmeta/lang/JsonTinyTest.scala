@@ -109,6 +109,9 @@ class JsonTinyTest extends LangTest {
       toBlockStep(resumeParamStep) -> """
       |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
       |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeYieldStep) -> """
+      |  1. Resume _x_ passing _x_. If _x_ is ever resumed again, let _x_ be the Completion Record with which it is resumed.
+      |  1. Let _x_ be _x_.""".stripMargin,
       toBlockStep(returnToResumeStep) -> """
       |  1. Return _x_.
       |  1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of _x_.""".stripMargin,
