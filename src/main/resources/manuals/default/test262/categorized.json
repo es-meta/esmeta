@@ -297,7 +297,6 @@
   ],
   "wrong": [
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
-    "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise",
-    "language/types/number/S8.5_A13_T2"
+    "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
   ]
 }
