@@ -8,9 +8,9 @@
 - algorithms: 2656 (87.46%)
   - complete: 2323
   - incomplete: 333
-- algorithm steps: 19550 (96.30%)
-  - complete: 18827
-  - incomplete: 723
+- algorithm steps: 19553 (96.33%)
+  - complete: 18836
+  - incomplete: 717
 - types: 7000 (91.49%)
   - known: 6404
   - yet: 596

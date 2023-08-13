@@ -10,20 +10,11 @@
   "addition4.js" : true,
   "addition5.js" : true,
   "addition6.js" : true,
-  "arguments1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "arguments2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "arguments1.js" : true,
+  "arguments2.js" : true,
   "array1.js" : true,
   "array2.js" : true,
-  "array3.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "array3.js" : true,
   "array4.js" : true,
   "array5.js" : true,
   "array6.js" : true,
@@ -31,34 +22,28 @@
   "assign-object2.js" : true,
   "assign-object3.js" : true,
   "assign-object4.js" : true,
-  "assign-object5.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "assign-object5.js" : true,
   "assign-object6.js" : true,
   "assign-object7.js" : true,
   "assignment1.js" : true,
   "async-generator1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "async1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acAsyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "await1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acAsyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "await2.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "bigint.js" : true,
-  "bind1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "bind1.js" : true,
   "bitwise.js" : true,
   "block1.js" : true,
   "boolean1.js" : true,
@@ -66,19 +51,13 @@
   "boolean3.js" : true,
   "boolean4.js" : true,
   "class-decl1.js" : true,
-  "class-decl2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "class-decl2.js" : true,
   "compare1.js" : [
     "metalanguage",
     "For each integer _i_ such that 0 ≤ _i_ < min(_lx_, _ly_), in ascending order, do\n  1. Let _cx_ be the numeric value of the code unit at index _i_ within _px_.\n  1. Let _cy_ be the numeric value of the code unit at index _i_ within _py_.\n  1. If _cx_ < _cy_, return *true*.\n  1. If _cx_ > _cy_, return *false*."
   ],
   "complement1.js" : true,
-  "constructor1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "constructor1.js" : true,
   "delete1.js" : true,
   "empty-statement.js" : true,
   "equality1.js" : true,
@@ -91,118 +70,70 @@
   ],
   "forof1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
-  "function-application1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "function-application2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "function-application3.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "function-application4.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "function-application5.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "function-application6.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "function-application1.js" : true,
+  "function-application2.js" : true,
+  "function-application3.js" : true,
+  "function-application4.js" : true,
+  "function-application5.js" : true,
+  "function-application6.js" : true,
   "function-declare1.js" : true,
   "function1.js" : true,
   "function2.js" : true,
   "function3.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "generator1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
-  "generator2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "generator2.js" : true,
   "generator3.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "global-eval.js" : true,
   "global-object.js" : true,
   "global-object2.js" : true,
   "global.js" : true,
-  "harness.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "harness.js" : true,
   "if-statement1.js" : true,
   "increment1.js" : true,
   "increment2.js" : true,
   "instanceof1.js" : true,
-  "instanceof2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "instanceof2.js" : true,
   "map-iter.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "multiple-statements.js" : true,
   "number1.js" : true,
   "number2.js" : true,
   "number3.js" : true,
   "number4.js" : true,
-  "object1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
-  "object2.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "object1.js" : true,
+  "object2.js" : true,
   "object3.js" : true,
-  "promise1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "promise1.js" : true,
   "read-property1.js" : true,
-  "semicolon-insertion1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "semicolon-insertion1.js" : true,
   "semicolon-insertion2.js" : true,
-  "semicolon-insertion3.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "semicolon-insertion3.js" : true,
   "set1.js" : [
     "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
+    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
   ],
   "shift1.js" : true,
   "string1.js" : true,
   "string2.js" : true,
   "string3.js" : true,
-  "switch1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "switch1.js" : true,
   "symbol1.js" : true,
   "symbol2.js" : true,
   "symbol3.js" : true,
-  "template1.js" : [
-    "metalanguage",
-    "Set the code evaluation state of _genContext_ such that when evaluation is resumed for that execution context, _closure_ will be called with no arguments."
-  ],
+  "template1.js" : true,
   "template2.js" : true,
   "try1.js" : true,
   "try2.js" : true,

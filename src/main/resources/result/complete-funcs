@@ -137,6 +137,8 @@ AsyncArrowFunction[1,0].Evaluation
 AsyncArrowFunction[1,0].HasName
 AsyncArrowFunction[1,0].InstantiateAsyncArrowFunctionExpression
 AsyncArrowFunction[1,0].NamedEvaluation
+AsyncBlockStart
+AsyncBlockStart:cont1
 AsyncConciseBody[0,0].AsyncConciseBodyContainsUseStrict
 AsyncConciseBody[0,0].EvaluateAsyncConciseBody
 AsyncConciseBody[0,0].EvaluateBody
@@ -214,8 +216,11 @@ AsyncGeneratorMethod[0,0].PrivateBoundIdentifiers
 AsyncGeneratorMethod[0,0].PropName
 AsyncGeneratorResume
 AsyncGeneratorResume:cont0
+AsyncGeneratorStart
+AsyncGeneratorStart:cont1
 AsyncGeneratorUnwrapYieldResumption
 AsyncGeneratorValidate
+AsyncGeneratorYield
 AsyncIteratorClose
 AsyncMethod[0,0].ComputedPropertyContains
 AsyncMethod[0,0].ContainsArguments
@@ -1039,7 +1044,10 @@ GeneratorResume
 GeneratorResume:cont0
 GeneratorResumeAbrupt
 GeneratorResumeAbrupt:cont0
+GeneratorStart
+GeneratorStart:cont1
 GeneratorValidate
+GeneratorYield
 Get
 GetActiveScriptOrModule
 GetFunctionRealm
