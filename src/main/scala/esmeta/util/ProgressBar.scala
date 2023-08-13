@@ -3,9 +3,11 @@ package esmeta.util
 import esmeta.LINE_SEP
 import esmeta.error.NotSupported.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.{concurrent => doConcurrent}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import java.util.concurrent.atomic.AtomicInteger
 
 // progress bar
 case class ProgressBar[T](
@@ -18,6 +20,7 @@ case class ProgressBar[T](
   timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
   detail: Boolean = true,
+  concurrent: Boolean = false,
 ) extends Iterable[T] {
   // summary
   val summary =
@@ -49,13 +52,13 @@ case class ProgressBar[T](
 
   // foreach function
   override def foreach[U](f: T => U): Unit = {
-    var gcount = baseSize
+    val gcount = AtomicInteger(baseSize)
     val start = System.currentTimeMillis
     def updateTime: Unit =
       summary.time = Time(System.currentTimeMillis - start)
 
     def show: Future[Unit] = Future {
-      val count = gcount
+      val count = gcount.get
       val percent = count.toDouble / size * 100
       val len = count * BAR_LEN / size
       val bars = (BAR * len) + (" " * (BAR_LEN - len))
@@ -79,13 +82,16 @@ case class ProgressBar[T](
         println(s"  - N: not supported targets")
       show
 
-    for ((x, idx) <- iterable.zipWithIndex)
+    val tests = for ((x, idx) <- iterable.zipWithIndex) yield () =>
       val name = getName(x, baseSize + idx)
       getError {
         f(x)
         summary.pass.add(name)
       }.map(errorHandler(_, summary, name))
-      gcount += 1
+      gcount.incrementAndGet
+
+    if (concurrent) doConcurrent(tests)
+    else tests.foreach(_.apply)
 
     updateTime
 

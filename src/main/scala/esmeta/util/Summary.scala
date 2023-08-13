@@ -1,11 +1,13 @@
 package esmeta.util
 
 import esmeta.error.NotSupported.*
-import esmeta.util.SystemUtils.*
 import esmeta.util.Appender.Rule
-import scala.collection.mutable.{Map => MMap, ListBuffer}
+import esmeta.util.Summary.*
+import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
-import Summary.*
+import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
+import scala.collection.concurrent.TrieMap
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 case class Summary(
   notSupported: Elem = Elem(), // not yet supported elements
@@ -108,15 +110,15 @@ object Summary {
 
   /** summary elements */
   case class Elem(
-    seq: ListBuffer[String] = ListBuffer(),
-    map: MMap[Reason, Elem] = MMap(),
+    seq: BlockingQueue[String] = LinkedBlockingQueue(),
+    map: TrieMap[Reason, Elem] = TrieMap(),
   ) {
 
     /** all elements */
     def all: List[String] =
       val mapElems =
         for { (_, elem) <- map.toList; elem <- elem.all } yield elem
-      val seqElems = seq.toList
+      val seqElems = seq.asScala.toList
       seqElems ++ mapElems
 
     /** empty check */
@@ -130,7 +132,7 @@ object Summary {
     /** add data */
     def add(data: String, reason: Reason): Unit = add(data, List(reason))
     def add(data: String, reasons: ReasonPath = Nil): Unit = reasons match
-      case Nil => seq.append(data)
+      case Nil => seq.offer(data)
       case reason :: remain =>
         map.getOrElseUpdate(reason, Elem()).add(data, remain)
 
@@ -144,7 +146,7 @@ object Summary {
 
     /** conversion to JSON */
     def toJson: Json =
-      lazy val seqJson = Json.fromValues(seq.map(Json.fromString))
+      lazy val seqJson = Json.fromValues(seq.asScala.map(Json.fromString))
       if (map.isEmpty) seqJson
       else
         val mapValues = map.toList.map { case (r, e) => r -> e.toJson }

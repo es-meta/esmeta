@@ -74,6 +74,7 @@ case class Test262(
     removed: Iterable[(Test, ReasonPath)] = Nil,
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
+    concurrent: Boolean = false,
   ): ProgressBar[Test] = ProgressBar(
     msg = s"Run Test262 $name tests",
     iterable = targetTests,
@@ -86,6 +87,7 @@ case class Test262(
         case e: Throwable          => summary.fail.add(name, e.getMessage)
       else throw e,
     verbose = useProgress,
+    concurrent = concurrent,
   )
 
   /** interpreter test */
@@ -95,6 +97,7 @@ case class Test262(
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
+    concurrent: Boolean = false,
   ): Summary = {
     // extract tests from paths
     val tests: List[Test] = getTests(paths.toList)
@@ -112,6 +115,7 @@ case class Test262(
       removed = removed,
       useProgress = useProgress,
       useErrorHandler = multiple,
+      concurrent = concurrent,
     )
 
     // coverage with time limit
