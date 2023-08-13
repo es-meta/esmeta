@@ -68,6 +68,8 @@ object LangTest {
   )
   lazy val suspendStep = SuspendStep(x, false)
   lazy val suspendAndRemoveStep = SuspendStep(x, true)
+  lazy val removeCtxtStep = RemoveContextStep(x, None)
+  lazy val removeCtxtWithRestoreStep = RemoveContextStep(x, Some(x))
   lazy val setEvalStateStep = SetEvaluationStateStep(x, None, blockStep)
   lazy val setEvalStateParamStep =
     SetEvaluationStateStep(x, Some(x), blockStep)

@@ -70,6 +70,7 @@ trait Parsers extends IndentParsers {
     pushCtxtStep |
     noteStep |
     suspendStep |
+    removeCtxtStep |
     ifStep |
     forEachArrayIndexStep |
     forEachStep |
@@ -224,6 +225,17 @@ trait Parsers extends IndentParsers {
       case base ~ r => SuspendStep(base, r)
     }
 
+  // remove execution context step
+  lazy val removeCtxtStep: PL[RemoveContextStep] =
+    val remove: Parser[Variable] =
+      "remove" ~> variable <~ "from the execution context stack"
+    val restore: Parser[Option[Variable]] = "and restore" ~> (
+      variable ^^ { Some(_) } |
+      "the execution context that is" ~
+      "at the top of the execution context stack" ^^^ None
+    ) <~ "as the running execution context"
+    remove ~ restore <~ end ^^ { case x ~ y => RemoveContextStep(x, y) }
+
   // set the code evaluation state steps
   lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
     lazy val param: P[Option[Variable]] =
@@ -233,7 +245,7 @@ trait Parsers extends IndentParsers {
       "the following steps will be performed:" ~> step |
       // closure-based
       "," ~> variable <~ "will be called with no arguments." ^^ {
-        case e => PerformStep(InvokeAbstractClosureExpression(e, Nil))
+        case e => ReturnStep(Some(InvokeAbstractClosureExpression(e, Nil)))
       } |
       // Await
       ", the following steps of the algorithm" ~

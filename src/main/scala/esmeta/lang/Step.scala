@@ -83,6 +83,12 @@ case class NoteStep(note: String) extends Step
 // suspend steps
 case class SuspendStep(context: Reference, remove: Boolean) extends Step
 
+// remove execution context steps
+case class RemoveContextStep(
+  removeContext: Reference,
+  restoreContext: Option[Reference],
+) extends Step
+
 // set the code evaluation state steps
 case class SetEvaluationStateStep(
   context: Reference,

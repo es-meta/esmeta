@@ -94,6 +94,8 @@ class JsonTinyTest extends LangTest {
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
       suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
+      removeCtxtStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
+      removeCtxtWithRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
       toBlockStep(setEvalStateStep) -> """
       |  1. Set the code evaluation state of _x_ such that when evaluation is resumed for that execution context the following steps will be performed:
       |    1. Let _x_ be _x_.""".stripMargin,
