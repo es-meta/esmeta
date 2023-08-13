@@ -26,12 +26,6 @@ case object Test262Test extends Phase[CFG, Summary] {
   ): Summary =
     // set test mode
     TEST_MODE = true
-    if (config.concurrent && config.progress)
-      // TODO: make progress bar stable in concurrent mode.
-      warn(
-        "progress bar may be unstable in concurrent mode. turning off progress bar",
-      )
-      config.progress = false
 
     // get target version of Test262
     val version = Test262.getVersion(config.target)
