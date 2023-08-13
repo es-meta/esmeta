@@ -137,13 +137,17 @@ trait Parsers extends IndentParsers {
 
   // for-each steps for integers
   lazy val forEachIntStep: PL[ForEachIntegerStep] =
+    import MathOpExpressionOperator.Sub
+    lazy val upper: Parser[Expression] =
+      "≤" ~> calcExpr |
+      "<" ~> calcExpr ^^ { e => MathOpExpression(Sub, List(e, one)) }
     lazy val interval: Parser[(Expression, Expression)] =
       ("starting with" ~> expr) ~ ("such that" ~ variable ~> (
         "≤" ^^^ { (x: CalcExpression) => x } |
         "<" ^^^ { BinaryExpression(_, BinaryExpressionOperator.Sub, one) }
       ) ~ calcExpr) ^^ {
         case l ~ (f ~ h) => (l, f(h))
-      } | "such that" ~> calcExpr ~ ("≤" ~ variable ~ "≤" ~> calcExpr) ^^ {
+      } | ("such that" ~> calcExpr <~ "≤" ~ variable) ~ upper ^^ {
         case l ~ h => (l, h)
       }
     lazy val ascending: Parser[Boolean] = opt(
@@ -994,12 +998,12 @@ trait Parsers extends IndentParsers {
     case e ~ n => PredicateCondition(e, !n, PredicateConditionOperator.Present)
   } | {
     // %ForInIteratorPrototype%.next
-    ("there does not exist an element" ~ variable ~ "of" ~> variable) ~
+    ("there does not exist an element" ~ variable ~ "of" ~> expr) ~
     ("such that SameValue(" ~> variable <~ "," ~ variable ~ ") is *true*")
   } ^^ {
     case list ~ elem =>
       BinaryCondition(
-        getRefExpr(list),
+        list,
         BinaryConditionOperator.NContains,
         getRefExpr(elem),
       )
