@@ -118,6 +118,31 @@ object TypeDomain extends state.Domain {
     /** property setter */
     def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
 
+    override def update(
+      base: AbsValue,
+      prop: AbsValue,
+      value: AbsValue,
+      id: Id,
+    ): Elem = id match {
+      case id: Local =>
+        // TODO: allow type only with names?
+        val tyModel = cfg.tyModel
+        val obj = base.ty.name
+        val subTys = obj.set.safeFold(List[String](), List[String]()) {
+          case (res, name) =>
+            prop.ty.str.safeFold(res, res) {
+              case (res, key) => res ++ tyModel.getSubTypes(name, key, value.ty)
+            }
+        }
+        val normalized =
+          subTys.foldLeft(AbsValue.Bot)((res, name) =>
+            res ⊔ AbsValue(NameT(name)),
+          )
+        if (!normalized.isBottom) defineLocal(id -> normalized ⊓ base)
+        else elem
+      case _: Global => elem
+    }
+
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
 

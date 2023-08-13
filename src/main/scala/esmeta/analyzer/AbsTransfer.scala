@@ -571,7 +571,13 @@ trait AbsTransfer extends Optimized with PruneHelper {
           rv <- transfer(base)
           b <- transfer(rv)
           p <- transfer(expr)
-        } yield AbsRefProp(refinePropBase(np, prop, b), p)
+        } yield {
+          val id = base match {
+            case id: Id => Some(id)
+            case _      => None
+          }
+          AbsRefProp(refinePropBase(np, prop, b), p, id) // fixme: id
+        }
 
   /** refine invalid base for property reference */
   def refinePropBase(

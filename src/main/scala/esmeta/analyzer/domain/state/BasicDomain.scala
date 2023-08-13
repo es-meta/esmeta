@@ -146,7 +146,7 @@ object BasicDomain extends state.Domain {
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = refV match
       case AbsRefId(x) => error(s"cannot delete variable $x")
-      case AbsRefProp(base, prop) =>
+      case AbsRefProp(base, prop, _) =>
         elem.bottomCheck(AbsValue)(base, prop) {
           elem.copy(heap = elem.heap.delete(base.part, prop))
         }

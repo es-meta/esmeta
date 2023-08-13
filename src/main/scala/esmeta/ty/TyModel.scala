@@ -130,6 +130,23 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   private def getSamePropMap(name: String): PropMap =
     infos.get(name).map(_.props).getOrElse(Map())
 
+  /** get subtypes with specific property */
+  def getSubTypes(
+    name: String,
+    key: String,
+    value: ValueTy,
+  ): List[String] = {
+    val propValue = getSamePropMap(name).getOrElse(key, BotT)
+    if (value <= propValue) List(name)
+    else
+      directSubTys.get(name) match
+        case Some(children) =>
+          children
+            .flatMap(child => getSubTypes(child, key, value))
+            .toList
+        case None => List()
+  }
+
   /** get property map from ancestors */
   private def getLowerPropMap(name: String): PropMap =
     directSubTys.get(name) match
@@ -381,7 +398,8 @@ object TyModel {
         ),
       ),
       "BoundFunctionExoticObject" -> TyInfo(
-        parent = Some("Object"),
+        // monkey-patching for current object modeling
+        parent = Some("FunctionObject"),
         methods = Map(
           "Call" -> "BoundFunctionExoticObject.Call",
           "Construct" -> "BoundFunctionExoticObject.Construct",

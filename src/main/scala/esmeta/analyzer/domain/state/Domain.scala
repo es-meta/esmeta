@@ -32,8 +32,8 @@ trait Domain extends domain.Domain[State] {
       rv: AbsRefValue,
       cp: ControlPoint,
     ): AbsValue = rv match
-      case AbsRefId(x)            => elem.get(x, cp)
-      case AbsRefProp(base, prop) => elem.get(base, prop)
+      case AbsRefId(x)               => elem.get(x, cp)
+      case AbsRefProp(base, prop, _) => elem.get(base, prop)
 
     /** getters with identifiers */
     def get(x: Id, cp: ControlPoint): AbsValue =
@@ -63,7 +63,7 @@ trait Domain extends domain.Domain[State] {
     /** existence checks */
     def exists(ref: AbsRefValue): AbsValue = ref match
       case AbsRefId(id) => !directLookup(id).isAbsent
-      case AbsRefProp(base, prop) =>
+      case AbsRefProp(base, prop, _) =>
         !elem.get(base, prop).isAbsent
 
     /** define local variables */
@@ -74,8 +74,12 @@ trait Domain extends domain.Domain[State] {
 
     /** setter with reference values */
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
-      case AbsRefId(x)            => update(x, value)
-      case AbsRefProp(base, prop) => update(base, prop, value)
+      case AbsRefId(x)                      => update(x, value)
+      case AbsRefProp(base, prop, Some(id)) => update(base, prop, value, id)
+      case AbsRefProp(base, prop, _)        => update(base, prop, value)
+
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue, id: Id): Elem =
+      update(base, prop, value)
 
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem
