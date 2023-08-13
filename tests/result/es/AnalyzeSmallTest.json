@@ -27,16 +27,12 @@
   "assign-object7.js" : true,
   "assignment1.js" : true,
   "async-generator1.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
+    "Let _next_ be the first element of _generator_.[[AsyncGeneratorQueue]]."
   ],
-  "async1.js" : [
-    "Remove _acAsyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
-  "await1.js" : [
-    "Remove _acAsyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "async1.js" : true,
+  "await1.js" : true,
   "await2.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
+    "Let _next_ be the first element of _generator_.[[AsyncGeneratorQueue]]."
   ],
   "bigint.js" : true,
   "bind1.js" : true,
@@ -62,9 +58,7 @@
   "forin1.js" : [
     "If there does not exist an element _v_ of _O_.[[VisitedKeys]] such that SameValue(_r_, _v_) is *true*, then\n  1. Let _desc_ be ? _object_.[[GetOwnProperty]](_r_).\n  1. If _desc_ is not *undefined*, then\n    1. Append _r_ to _O_.[[VisitedKeys]].\n    1. If _desc_.[[Enumerable]] is *true*, return CreateIterResultObject(_r_, *false*)."
   ],
-  "forof1.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "forof1.js" : true,
   "function-application1.js" : true,
   "function-application2.js" : true,
   "function-application3.js" : true,
@@ -74,16 +68,10 @@
   "function-declare1.js" : true,
   "function1.js" : true,
   "function2.js" : true,
-  "function3.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
-  "generator1.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "function3.js" : true,
+  "generator1.js" : true,
   "generator2.js" : true,
-  "generator3.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "generator3.js" : true,
   "global-eval.js" : true,
   "global-object.js" : true,
   "global-object2.js" : true,
@@ -94,9 +82,7 @@
   "increment2.js" : true,
   "instanceof1.js" : true,
   "instanceof2.js" : true,
-  "map-iter.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "map-iter.js" : true,
   "multiple-statements.js" : true,
   "number1.js" : true,
   "number2.js" : true,
@@ -110,9 +96,7 @@
   "semicolon-insertion1.js" : true,
   "semicolon-insertion2.js" : true,
   "semicolon-insertion3.js" : true,
-  "set1.js" : [
-    "Remove _acGenContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context."
-  ],
+  "set1.js" : true,
   "shift1.js" : true,
   "string1.js" : true,
   "string2.js" : true,
