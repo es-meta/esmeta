@@ -1569,6 +1569,7 @@ IsExtensible
 IsGenericDescriptor
 IsInTailPosition
 IsLabelledFunction
+IsLessThan
 IsLooselyEqual
 IsNoTearConfiguration
 IsPrivateReference
