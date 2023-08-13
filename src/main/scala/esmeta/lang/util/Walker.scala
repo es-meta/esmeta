@@ -98,6 +98,8 @@ trait Walker extends BasicWalker {
     case PushCtxtStep(ref)       => PushCtxtStep(walk(ref))
     case NoteStep(note)          => NoteStep(note)
     case SuspendStep(base, r)    => SuspendStep(walk(base), r)
+    case RemoveContextStep(remove, restore) =>
+      RemoveContextStep(walk(remove), walkOpt(restore, walk))
     case SetEvaluationStateStep(base, p, body) =>
       SetEvaluationStateStep(walk(base), walkOpt(p, walk), walk(body))
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>

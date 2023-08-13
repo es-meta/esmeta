@@ -356,6 +356,8 @@ class Compiler(
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+    case RemoveContextStep(_, _) =>
+      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName

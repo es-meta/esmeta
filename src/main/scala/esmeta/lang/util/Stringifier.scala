@@ -147,6 +147,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("suspend ") >> context
         if (remove) app >> " and remove it from the execution context stack"
         app >> "."
+      case RemoveContextStep(removeCtxt, restoreCtxt) =>
+        app >> First("remove ") >> removeCtxt
+        app >> " from the execution context stack"
+        app >> " and restore "
+        restoreCtxt match
+          case None =>
+            app >> "the execution context that is "
+            app >> "at the top of the execution context stack"
+          case Some(ctxt) => app >> ctxt
+        app >> " as the running execution context."
       case SetEvaluationStateStep(context, param, step) =>
         app >> First("set the code evaluation state of ") >> context >> " "
         app >> "such that when evaluation is resumed "
