@@ -1,10 +1,27 @@
 {
-    "test1": [
-        "PTM AAP ApplyStringOrNumericBinaryOperator CP ApplyStringOrNumericBinaryOperator BigInt::add 1 xBigInt",
-        "PTM AAP ApplyStringOrNumericBinaryOperator CP ApplyStringOrNumericBinaryOperator BigInt::add 2 yBigInt"
-    ],
-    "test2": [
-        "PTM AAP BigIntBitwiseOp CP BigIntBitwiseOp BinaryAnd 1 xMath[0, 1]",
-        "PTM AAP BigIntBitwiseOp CP BigIntBitwiseOp BinaryAnd 2 yMath[0, 1]"
-    ]
+    "true bugs": {
+        "https://github.com/tc39/ecma262/pull/2704": [
+            "RTM IRP CreateUnmappedArgumentsObject ArgumentsExoticObject"
+        ],
+        "https://github.com/tc39/ecma262/pull/2924": [
+            "RTM IRP Catch[0,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP Catch[1,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody Normal[ESValue] | Abrupt",
+            "RTM IRP FunctionBody[0,0].EvaluateFunctionBody Normal[ESValue] | Abrupt",
+            "RTM IRP LabelledItem[1,0].LabelledEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP Statement[0,0].LabelledEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP Statement[1,0].LabelledEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP Statement[2,0].LabelledEvaluation Normal[ESValue] | Abrupt"
+        ],
+        "https://github.com/tc39/ecma262/pull/2925": [
+            "RTM IRP OptionalChain[1,0].ChainEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP OptionalChain[2,0].ChainEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP OptionalChain[4,0].ChainEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP OptionalChain[6,0].ChainEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP OptionalChain[7,0].ChainEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP OptionalChain[9,0].ChainEvaluation Normal[ESValue] | Abrupt"
+        ]
+    },
+    "false alarms": {
+    }
 }
