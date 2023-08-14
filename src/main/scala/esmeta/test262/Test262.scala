@@ -84,7 +84,7 @@ case class Test262(
       if (useErrorHandler) e match
         case NotSupported(reasons) => summary.notSupported.add(name, reasons)
         case _: TimeoutException   => summary.timeout.add(name)
-        case e: Throwable          => summary.fail.add(name, e.getMessage)
+        case e: Throwable          => summary.fail.add(name, getMessage(e))
       else throw e,
     verbose = useProgress,
     concurrent = concurrent,

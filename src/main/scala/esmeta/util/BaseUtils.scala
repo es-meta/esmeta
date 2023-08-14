@@ -59,8 +59,13 @@ object BaseUtils {
   def showTime[T](msg: String, f: => T): T = time(msg, f)._2
 
   /** catch exceptions with Option[_] */
-  def optional[T](f: => T): Option[T] = try Some(f)
-  catch { case e: Throwable => None }
+  def optional[T](f: => T): Option[T] =
+    try Some(f)
+    catch { case e: Throwable => None }
+
+  def getMessage(e: Throwable): String =
+    val msg = e.getMessage
+    if (msg == null) e.getClass.getSimpleName else msg
 
   /** get caught error message */
   def getError[T](f: => T): Option[Throwable] =

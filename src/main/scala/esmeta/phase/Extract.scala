@@ -87,7 +87,7 @@ case object Extract extends Phase[Unit, Spec] {
       case input =>
         for {
           e <- getError(println(Step.from(input)))
-        } warn(e.getMessage)
+        } warn(getMessage(e))
 
   // stop and read user message
   private def stop(msg: String): String = { print(msg); readLine }

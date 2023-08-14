@@ -3,6 +3,7 @@ package esmeta
 import esmeta.error.*
 import esmeta.phase.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 
 /** ESMeta top-level object */
 object ESMeta extends Git(BASE_DIR) {
@@ -20,7 +21,7 @@ object ESMeta extends Git(BASE_DIR) {
   catch
     // ESMetaError: print only the error message.
     case e: ESMetaError =>
-      Console.err.println(e.getMessage)
+      Console.err.println(getMessage(e))
       if (ERROR_MODE) throw e
       if (STATUS_MODE) sys.exit(1)
     // Unexpected: print the stack trace.
