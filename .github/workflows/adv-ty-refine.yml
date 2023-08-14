@@ -22,12 +22,13 @@ jobs:
         if: always()
         run: |
           commit_url=https://github.com/${{github.repository}}/commit/${{github.sha}}
-          # output URL, date, duration, error, iter, analyzed functions, analyzed nodes
+          # output URL, date, duration, error, iter, analyzed functions, analyzed nodes, analyzed returns
           data="[[\"$commit_url\", \"$(date -I)\", $(awk '/duration:/ {gsub(/,/, "", $2); printf "%s, ", $2}
           /error:/ {printf "%s, ", $2}
           /iter:/ {gsub(/,/, "", $2); printf "%s, ", $2}
-          /functions:/ {gsub(/,/, "", $2); printf "%s, ", $2}
-          /nodes:/ {gsub(/,/, "", $2); printf "%s", $2}' logs/analyze/summary.yml)]]"
+          /funcs:/ {split($2, arr, "/"); gsub(/,/, "", arr[1]); gsub(/,/, "", arr[2]); printf "%s, ", arr[1]}
+          /nodes:/ {split($2, arr, "/"); gsub(/,/, "", arr[1]); gsub(/,/, "", arr[2]); printf "%s, ", arr[1]}
+          /returns:/ {split($2, arr, "/"); gsub(/,/, "", arr[1]); gsub(/,/, "", arr[2]); printf "%s", arr[1]}' logs/analyze/summary.yml)]]"
           echo "test_result=$data" >> $GITHUB_ENV
       - name: Update worksheet
         if: always()
