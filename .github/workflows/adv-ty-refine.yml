@@ -1,0 +1,44 @@
+name: typecheck CI
+on:
+  push:
+    branches:
+      - adv-ty-refine
+env:
+  ESMETA_HOME: ${{ github.workspace }}
+jobs:
+  report_sheets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Build ESMeta
+        run: |
+            sbt assembly
+      - name: Run Typecheck
+        run: ./bin/esmeta tycheck -status -tycheck:log
+      - name: Parse Typecheck Log
+        if: always()
+        run: |
+          commit_url=https://github.com/${{github.repository}}/commit/${{github.sha}}
+          # output URL, date, duration, error, iter, analyzed functions, analyzed nodes
+          data="[[\"$commit_url\", \"$(date -I)\", $(awk '/duration:/ {gsub(/,/, "", $2); printf "%s, ", $2}
+          /error:/ {printf "%s, ", $2}
+          /iter:/ {gsub(/,/, "", $2); printf "%s, ", $2}
+          /functions:/ {gsub(/,/, "", $2); printf "%s, ", $2}
+          /nodes:/ {gsub(/,/, "", $2); printf "%s", $2}' logs/analyze/summary.yml)]]"
+          echo "test_result=$data" >> $GITHUB_ENV
+      - name: Update worksheet
+        if: always()
+        uses: jroehl/gsheet.action@v1.0.0 # you can specify '@release' to always have the latest changes
+        with:
+          spreadsheetId: 16c8B7ILFGFjJMV4HcvX_7lPG6IrwQIekqfIJDbKgCNw
+          commands: | # list of commands, specified as a valid JSON string
+            [
+              { "command": "getWorksheet", "args": { "worksheetTitle": "stats" }},
+              { "command": "appendData", "args": { "data": ${{ env.test_result }}, "minCol": 1 }}
+            ]
+        env:
+          GSHEET_CLIENT_EMAIL: ${{ secrets.GSHEET_CLIENT_EMAIL }}
+          GSHEET_PRIVATE_KEY: ${{ secrets.GSHEET_PRIVATE_KEY }}
