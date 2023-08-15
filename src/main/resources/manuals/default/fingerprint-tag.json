@@ -1,9 +1,9 @@
 {
     "true bugs": {
-        "https://github.com/tc39/ecma262/pull/2704": [
+        "2704": [
             "RTM IRP CreateUnmappedArgumentsObject ArgumentsExoticObject"
         ],
-        "https://github.com/tc39/ecma262/pull/2924": [
+        "2924": [
             "RTM IRP Catch[0,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP Catch[1,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody Normal[ESValue] | Abrupt",
@@ -13,7 +13,7 @@
             "RTM IRP Statement[1,0].LabelledEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP Statement[2,0].LabelledEvaluation Normal[ESValue] | Abrupt"
         ],
-        "https://github.com/tc39/ecma262/pull/2925": [
+        "2925": [
             "RTM IRP OptionalChain[1,0].ChainEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP OptionalChain[2,0].ChainEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP OptionalChain[4,0].ChainEvaluation Normal[ESValue] | Abrupt",
