@@ -328,17 +328,15 @@ class TypeAnalyzer(
 
     /* Partition fingerprints into true bugs, false alarms, and unknown */
     def partitionFingerPrints(): Unit =
-      val trueBugs = tags("true bugs")
-        .flatten {
-          case (f, bugs) => bugs
-        }
-      val falseAlarms = tags("false alarms")
-        .flatten {
-          case (f, alarms) => alarms
-        }
+      val fingerprints = errors.map { _.toFingerprint }
+      val trueBugs = tags("true bugs").flatten {
+        case (f, bugs) => bugs
+      }.toSet & fingerprints
+      val falseAlarms = tags("false alarms").flatten {
+        case (f, alarms) => alarms
+      }.toSet & fingerprints
       // this also has an effect of deduplicating errors mapped to same fingerprints
-      val unknowns = (errors
-        .map { _.toFingerprint } -- trueBugs -- falseAlarms).toList.sorted
+      val unknowns = (fingerprints -- trueBugs -- falseAlarms).toList.sorted
       val data =
         List(s"true bugs: ${trueBugs.size}") ++ List(
           s"false alarms: ${falseAlarms.size}",
