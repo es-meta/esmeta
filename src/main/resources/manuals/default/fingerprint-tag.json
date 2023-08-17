@@ -3,6 +3,10 @@
         "2704": [
             "RTM IRP CreateUnmappedArgumentsObject ArgumentsExoticObject"
         ],
+        "2744": [
+            "PTM AAP CallExpression[6,0].Evaluation CP CallExpression[6,0].Evaluation EvaluateCall 2 refESValue | ReferenceRecord",
+            "PTM AAP MemberExpression[3,0].Evaluation CP MemberExpression[3,0].Evaluation EvaluateCall 2 refESValue | ReferenceRecord"
+        ],
         "2924": [
             "RTM IRP Catch[0,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP Catch[1,0].CatchClauseEvaluation Normal[ESValue] | Abrupt",
@@ -20,6 +24,13 @@
             "RTM IRP OptionalChain[6,0].ChainEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP OptionalChain[7,0].ChainEvaluation Normal[ESValue] | Abrupt",
             "RTM IRP OptionalChain[9,0].ChainEvaluation Normal[ESValue] | Abrupt"
+        ],
+        "3021": [
+            "PTM AAP GetIterator CP GetIterator GetIterator 3 methodFunctionObject"
+        ],
+        "": [
+            "PTM AAP ParenthesizedExpression[0,0].NamedEvaluation CP ParenthesizedExpression[0,0].NamedEvaluation IsAnonymousFunctionDefinition 1 exprAst[AssignmentExpression, Initializer]",
+            "PTM AAP ProxyExoticObject.GetOwnProperty CP ProxyExoticObject.GetOwnProperty IsCompatiblePropertyDescriptor 3 CurrentPropertyDescriptor"
         ]
     },
     "false alarms": {
@@ -77,6 +88,24 @@
             "PTM AAP SameValueZero CP SameValueZero BigInt::sameValueZero 2 yBigInt",
             "PTM AAP SameValueZero CP SameValueZero Number::sameValueZero 2 yNumber"
         ],
+        "Assign to temp": [
+            "PTM AAP CallExpression[0,0].Evaluation CP CallExpression[0,0].Evaluation IsPropertyReference 1 VReferenceRecord",
+            "PTM AAP InstallErrorCause CP InstallErrorCause Get 1 OObject",
+            "PTM AAP InstallErrorCause CP InstallErrorCause HasProperty 1 OObject"
+        ],
+        "Hard Problem": [
+            "PTM AAP BindingRestElement[0,0].IteratorBindingInitialization CP BindingRestElement[0,0].IteratorBindingInitialization IteratorValue 1 iterResultObject",
+            "PTM AAP BindingRestElement[1,0].IteratorBindingInitialization CP BindingRestElement[1,0].IteratorBindingInitialization IteratorValue 1 iterResultObject",
+            "RTM IRP AsyncGeneratorUnwrapYieldResumption Normal[ESValue] | Abrupt",
+            "RTM IRP GeneratorValidate Normal[Const[~completed~, ~suspendedStart~, ~suspendedYield~]] | Abrupt",
+            "RTM IRP GetGlobalObject Object"
+        ],
+        "Intrinsics modelling": [
+            "PTM AAP CreateIntrinsics CP CreateIntrinsics AddRestrictedFunctionProperties 1 FFunctionObject"
+        ],
+        "IsArray": [
+            "PTM AAP SerializeJSONArray CP SerializeJSONArray LengthOfArrayLike 1 objObject"
+        ],
         "IsCallable": [
             "PTM AAP INTRINSICS.FinalizationRegistry CP INTRINSICS.FinalizationRegistry HostMakeJobCallback 1 callbackFunctionObject",
             "PTM AAP INTRINSICS.Function.prototype.bind CP INTRINSICS.Function.prototype.bind BoundFunctionCreate 1 targetFunctionFunctionObject",
@@ -86,7 +115,24 @@
             "PTM AAP INTRINSICS.Map CP INTRINSICS.Map AddEntriesFromIterable 3 adderFunctionObject",
             "PTM AAP INTRINSICS.WeakMap CP INTRINSICS.WeakMap AddEntriesFromIterable 3 adderFunctionObject",
             "RTM IRP GetMethod Normal[FunctionObject | Undefined] | Abrupt",
-            "RTM IRP GetPromiseResolve Normal[FunctionObject] | Abrupt"
+            "RTM IRP GetPromiseResolve Normal[FunctionObject] | Abrupt",
+            "PTM AAP OrdinaryHasInstance CP OrdinaryHasInstance Get 1 OObject"
+        ],
+        "IsConstructor": [
+            "PTM AAP ArraySpeciesCreate CP ArraySpeciesCreate GetFunctionRealm 1 objFunctionObject",
+            "PTM AAP ClassTail[0,2].ClassDefinitionEvaluation CP ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 6 prototypeObject | Null",
+            "PTM AAP ClassTail[0,3].ClassDefinitionEvaluation CP ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 6 prototypeObject | Null",
+            "PTM AAP ClassTail[0,2].ClassDefinitionEvaluation CP ClassTail[0,2].ClassDefinitionEvaluation Get 1 OObject",
+            "PTM AAP ClassTail[0,3].ClassDefinitionEvaluation CP ClassTail[0,3].ClassDefinitionEvaluation Get 1 OObject"
+        ],
+        "IsPromise": [
+            "PTM AAP INTRINSICS.Promise.prototype.then CP INTRINSICS.Promise.prototype.then SpeciesConstructor 1 OObject",
+            "PTM AAP PromiseResolve CP PromiseResolve Get 1 OObject"
+        ],
+        "IsPropertyReference": [
+            "PTM AAP UnaryExpression[1,0].Evaluation CP UnaryExpression[1,0].Evaluation ToObject 1 argumentESValue",
+            "PTM AAP GetValue CP GetValue ToObject 1 argumentESValue",
+            "PTM AAP PutValue CP PutValue ToObject 1 argumentESValue"
         ],
         "IteratorClose": [
             "RTM IRP AddEntriesFromIterable Normal[ESValue] | Abrupt",
@@ -99,7 +145,8 @@
             "RTM IRP ArrayAssignmentPattern[2,1].DestructuringAssignmentEvaluation Normal[Const[~unused~]] | Abrupt",
             "RTM IRP ArrayAssignmentPattern[2,2].DestructuringAssignmentEvaluation Normal[Const[~unused~]] | Abrupt",
             "RTM IRP ArrayAssignmentPattern[2,3].DestructuringAssignmentEvaluation Normal[Const[~unused~]] | Abrupt",
-            "RTM IRP ForIn/OfBodyEvaluation Normal[ESValue] | Abrupt"
+            "RTM IRP ForIn/OfBodyEvaluation Normal[ESValue] | Abrupt",
+            "RTM IRP BindingPattern[1,0].BindingInitialization Normal[Const[~unused~]] | Abrupt"
         ],
         "Modulo prune": [
             "PTM AAP BigIntBitwiseOp CP BigIntBitwiseOp BinaryAnd 1 xMath[0, 1]",
@@ -189,8 +236,7 @@
             "PTM AAP INTRINSICS.TypedArray.prototype.reverse CP INTRINSICS.TypedArray.prototype.reverse Set 1 OObject",
             "PTM AAP INTRINSICS.TypedArray.prototype.some CP INTRINSICS.TypedArray.prototype.some Get 1 OObject",
             "PTM AAP INTRINSICS.TypedArray.prototype.sort CP INTRINSICS.TypedArray.prototype.sort SortIndexedProperties 1 objObject",
-            "PTM AAP INTRINSICS.TypedArray.prototype.values CP INTRINSICS.TypedArray.prototype.values CreateArrayIterator 1 arrayObject",
-            "RTM IRP BindingPattern[1,0].BindingInitialization Normal[Const[~unused~]] | Abrupt"
+            "PTM AAP INTRINSICS.TypedArray.prototype.values CP INTRINSICS.TypedArray.prototype.values CreateArrayIterator 1 arrayObject"
         ]
     }
 }
