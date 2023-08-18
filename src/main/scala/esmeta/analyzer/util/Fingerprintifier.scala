@@ -24,21 +24,29 @@ object Fingerprintifier {
   given errorRule: Rule[TypeError] = (app, error) =>
     app >> errSymbol(error) >> error.point
     error match
-      case ParamTypeMismatch(point, argTy)  => app >> point.param.ty
-      case ReturnTypeMismatch(point, retTy) => app >> point.returnNp.func.retTy
-      case UncheckedAbruptComp(point, ty)   => app >> ty
-      case InvalidPropBase(point, baseTy)   => app >> baseTy
-      case UnaryOpTypeMismatch(point, operandTy)     => app >> operandTy
-      case BinaryOpTypeMismatch(point, lhsTy, rhsTy) => app >> lhsTy >> rhsTy
+      case ParamTypeMismatch(point, argTy) =>
+        app >> point.param.ty
+      case ReturnTypeMismatch(point, retTy) =>
+        app >> point.returnNp.func.retTy
+      case UncheckedAbruptComp(point, ty) => app >> point.riaExpr
+      case InvalidPropBase(point, baseTy) =>
+        app >> point.propPoint.prop
+      case UnaryOpTypeMismatch(point, operandTy) =>
+        app >> operandTy
+      case BinaryOpTypeMismatch(point, lhsTy, rhsTy) => app
+    printStep(app, error)
+    printHash(app, error.point.func)
 
   // analysis points
   given apRule: Rule[AnalysisPoint] = (app, ap) =>
-    app >> apSymbol(ap) >> funcSymbol(ap.func)
+    app >> funcSymbol(ap.func)
     ap match
       case cp: ControlPoint            => app
       case CallPoint(callerNp, callee) => app >> funcSymbol(callee)
       case aap @ ArgAssignPoint(cp, idx) =>
-        app >> cp >> idx + 1 >> " " >> aap.param.lhs.name
+        app >> funcSymbol(
+          cp.callee,
+        ) >> s"${idx + 1} "
       case InternalReturnPoint(calleeRp, irReturn) => app
       case ReturnIfAbruptPoint(cp, riaExpr)        => app
       case PropBasePoint(propPoint)                => app
@@ -67,4 +75,33 @@ object Fingerprintifier {
     case _: BinaryOpTypeMismatch => "BOTM "
 
   def funcSymbol(func: Func): String = func.irFunc.name + " "
+
+  private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
+    for {
+      lang <- elem.langOpt
+      loc <- lang.loc
+    } app >> " " >> loc.toString
+    app
+
+  /** Print where the point of error is located in the algorithm */
+  private def printStep(app: Appender, error: TypeError): Appender =
+    given Rule[IRElem with LangEdge] = addLocRule
+    error match
+      case ParamTypeMismatch(point, argTy) =>
+        app >> point.callPoint.callerNp.node.callInst
+      case ReturnTypeMismatch(point, retTy)      => app >> point.irReturn
+      case UncheckedAbruptComp(point, ty)        => app >> point.riaExpr
+      case InvalidPropBase(point, baseTy)        => app >> point.propPoint.prop
+      case UnaryOpTypeMismatch(point, operandTy) => app >> point.unary
+      case BinaryOpTypeMismatch(point, lhsTy, rhsTy) => app >> point.binary
+    app >> " "
+
+  /** Print hash obtained from the algorithm's head and body */
+  private def printHash(app: Appender, func: Func): Appender =
+    app >> (func.irFunc.algo match
+      // this happens for manually written IRs
+      case None => "".hashCode().toHexString
+      case Some(value) =>
+        (value.head.toString() ++ value.body.toString()).hashCode().toHexString
+    )
 }
