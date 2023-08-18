@@ -600,7 +600,7 @@
       }
     },
     "BoundFunctionExoticObject" : {
-      "parent" : "Object",
+      "parent" : "FunctionObject",
       "methods" : {
         "Call" : "BoundFunctionExoticObject.Call",
         "Construct" : "BoundFunctionExoticObject.Construct"
