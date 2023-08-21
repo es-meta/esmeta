@@ -258,7 +258,9 @@
         
       },
       "fields" : {
-        
+        "ArrayBufferData" : "SharedDataBlock | Null",
+        "ArrayBufferByteLength" : "Math",
+        "ArrayBufferDetachKey" : "ESValue"
       }
     },
     "AgentRecord" : {
