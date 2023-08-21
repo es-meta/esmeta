@@ -281,7 +281,7 @@ object TypeDomain extends value.Domain {
       if (positive) Elem(NameT(tname))
       else elem -- Elem(NameT(tname))
     }).getOrElse(elem)
-    def pruneObject(field: String, positive: Boolean): Elem =
+    def pruneAbsentField(field: String, positive: Boolean): Elem =
       val subTys = (for {
         name <- elem.ty.name.set
       } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten

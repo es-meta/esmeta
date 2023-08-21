@@ -32,7 +32,7 @@ trait PruneHelper { this: AbsTransfer =>
       for {
         l <- transfer(ref)
         lv <- transfer(l)
-        prunedV = lv.pruneObject(field, positive)
+        prunedV = lv.pruneAbsentField(field, positive)
         _ <- modify(_.update(l, prunedV))
       } yield ()
     // prune fields

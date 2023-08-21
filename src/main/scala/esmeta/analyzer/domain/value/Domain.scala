@@ -148,7 +148,7 @@ trait Domain extends domain.Domain[AValue] {
     def pruneField(field: String, r: Elem, positive: Boolean): Elem
     def pruneType(r: Elem, positive: Boolean): Elem
     def pruneTypeCheck(r: Elem, positive: Boolean): Elem
-    def pruneObject(field: String, positive: Boolean): Elem
+    def pruneAbsentField(field: String, positive: Boolean): Elem
 
     /** single check */
     def isSingle: Boolean = elem.getSingle match
