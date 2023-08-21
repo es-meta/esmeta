@@ -8,35 +8,35 @@ import io.circe.syntax.*
 trait BasicJsonProtocol {
 
   // encoder for map structures
-  given mapEncoder[K, V](using
+  def mapEncoder[K, V](using
     kEncoder: Encoder[K],
     vEncoder: Encoder[V],
   ): Encoder[Map[K, V]] =
     Encoder.instance(map => Json.fromValues(map.map(_.asJson)))
 
   // decoder for map structures
-  given mapDecoder[K, V](using
+  def mapDecoder[K, V](using
     kDecoder: Decoder[K],
     vDecoder: Decoder[V],
   ): Decoder[Map[K, V]] =
     Decoder.instance(_.as[Vector[(K, V)]].map(_.toMap))
 
   // encoder for mutable map structures
-  given mmapEncoder[K, V](using
+  def mmapEncoder[K, V](using
     kEncoder: Encoder[K],
     vEncoder: Encoder[V],
   ): Encoder[MMap[K, V]] =
     Encoder.instance(map => Json.fromValues(map.map(_.asJson)))
 
   // decoder for mutable map structures
-  given mmapDecoder[K, V](using
+  def mmapDecoder[K, V](using
     kDecoder: Decoder[K],
     vDecoder: Decoder[V],
   ): Decoder[MMap[K, V]] =
     Decoder.instance(_.as[Vector[(K, V)]].map(MMap.from))
 
   // decoder for double values
-  given doubleDecoder: Decoder[Double] = Decoder.instance(c =>
+  def doubleDecoder: Decoder[Double] = Decoder.instance(c =>
     c.value.asString
       .map(_ match
         case "Infinity"  => Double.PositiveInfinity
@@ -49,7 +49,7 @@ trait BasicJsonProtocol {
   )
 
   // encoder for double values
-  given doubleEncoder: Encoder[Double] =
+  def doubleEncoder: Encoder[Double] =
     Encoder.instance(Json.fromDoubleOrString)
 
   // decoder for UId: id -> UId

@@ -8,13 +8,7 @@ case class NameTy(set: BSet[String] = Fin())
   extends TyElem
   with Lattice[NameTy] {
   import NameTy.*
-  import TyModel.es
-
-  // TODO: more elegant solution
-  def isSubTy(lset: Set[String], rset: Set[String]) =
-    if (es == null) false else es.isSubTy(lset, rset)
-  def isSubTy(l: String, rset: Set[String]) =
-    if (es == null) false else es.isSubTy(l, rset)
+  import TyModel.es.isSubTy
 
   /** top check */
   def isTop: Boolean = (this eq Top) || (set eq Inf)

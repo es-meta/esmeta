@@ -1,15 +1,18 @@
 package esmeta.ty
 
+import esmeta.MANUALS_DIR
+import esmeta.ty.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.annotation.tailrec
 import esmeta.util.SystemUtils.*
-import esmeta.ty.util.JsonProtocol.given
-import esmeta.MANUALS_DIR
+import scala.annotation.tailrec
 
 /** type modeling */
 // TODO consider refactoring
 case class TyModel(infos: Map[String, TyInfo] = Map()) {
+
+  /** merge two type models */
+  def ++(that: TyModel): TyModel = TyModel(this.infos ++ that.infos)
 
   /** get method map */
   // TODO optimize
@@ -172,22 +175,20 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
 
 }
 object TyModel {
-  var es = readJson[TyModel](
-    s"${MANUALS_DIR}/default/tymodel.json",
-  )
+  lazy val es: TyModel = ManualInfo.getTyModel()
 }
 
 /** type information */
 case class TyInfo(
   parent: Option[String] = None,
   methods: Map[String, String] = Map(),
-  fields: Map[String, ValueTy] = Map(),
+  fields: Map[String, String] = Map(),
 ) {
   lazy val props: Map[String, ValueTy] =
     val keys = methods.keySet ++ fields.keySet
     (for {
       k <- keys
-      fs = fields.getOrElse(k, BotT)
+      fs = fields.get(k).fold(BotT)(ValueTy.from)
       tys = methods.get(k) match
         case None         => fs
         case Some(method) => fs || CloT(method)
