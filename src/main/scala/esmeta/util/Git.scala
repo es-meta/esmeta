@@ -71,7 +71,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     val pattern = """^(.+) \((.+)\)$""".r
     val versions =
       executeCmd(
-        s"git rev-list --topo-order --reverse ${commits.mkString(" ")} | git name-rev --annotate-stdin",
+        s"git rev-list --topo-order --reverse ${commits.mkString(" ")} | git name-rev --stdin", // stdin option is deprecated, update this later
         path,
       ).trim
         .split("\n")
