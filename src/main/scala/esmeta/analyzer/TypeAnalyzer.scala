@@ -222,7 +222,7 @@ class TypeAnalyzer(
     init = Semantics(initNpMap(targets)),
     postProcess = (sem: Semantics) => {
       val errors: Set[TypeError] = sem.errors
-      if (log) logging(sem, errors, detail)
+      if (log) logging(sem, errors, detail, silent)
       val ignoreNames = ignore.names
       val errorNames = errors.map(_.func.name)
       val unusedNames = ignoreNames -- errorNames
@@ -280,6 +280,7 @@ class TypeAnalyzer(
     sem: Semantics,
     errors: Set[TypeError],
     detail: Boolean = false,
+    silent: Boolean = false,
   ): Unit = {
     mkdir(ANALYZE_LOG_DIR)
     val analyzedFuncs = sem.analyzedFuncs
@@ -303,6 +304,7 @@ class TypeAnalyzer(
       name = "type analysis result for each function",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
+      silent = silent,
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -311,11 +313,13 @@ class TypeAnalyzer(
         .map { case (cp, k) => s"[$k] $cp" }
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
+      silent = silent,
     )
     dumpFile(
       name = "detected type errors",
       data = errors.toList.map(_.toString).sorted.mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
+      silent = silent,
     )
     if (detail)
       val UNREACHABLE_DIR = s"$ANALYZE_LOG_DIR/unreachable"

@@ -27,7 +27,7 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       ignore = ignore,
       log = config.log,
       detail = config.detail,
-      silent = config.silent,
+      silent = config.silent || cmdConfig.silent,
     )
 
   def defaultConfig: Config = Config()
@@ -77,6 +77,11 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
       "detail-log",
       BoolOption(c => { c.log = true; c.detail = true }),
       "turn on logging mode with detailed information.",
+    ),
+    (
+      "logdir",
+      StrOption((c, s) => ANALYZE_LOG_DIR = s),
+      "set the directory for analyzer logs (log, detail-log).",
     ),
     (
       "tysens",

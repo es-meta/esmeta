@@ -108,6 +108,17 @@ case object CmdTypeCheck extends Command("tycheck", CmdBuildCFG >> TypeCheck) {
   )
 }
 
+case object CmdRangeTypeCheck
+  extends Command("range-tycheck", CmdBase >> RangeTypeCheck) {
+  val help =
+    "performs a type analysis of ECMA-262 across multiple versions of specification."
+  val examples = List(
+    "esmeta range-tycheck es2022          # type check started from es2022.",
+    "esmeta range-tycheck es2022...es2023 # type check between es2022 and es2023. (including both)",
+  )
+  override val targetName = "<commit>+"
+}
+
 // -----------------------------------------------------------------------------
 // Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------

@@ -11,13 +11,14 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze"
+  cmdList="help extract compile build-cfg tycheck range-tycheck parse eval web test262-test inject mutate analyze"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl"
   compileOpt="-compile:log -compile:log-with-loc"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
-  tycheckOpt="-tycheck:target -tycheck:level -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:silent -tycheck:log -tycheck:detail-log -tycheck:tysens"
+  tycheckOpt="-tycheck:target -tycheck:level -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:silent -tycheck:log -tycheck:detail-log -tycheck:logdir -tycheck:tysens"
+  rangetycheckOpt="-range-tycheck:yes -range-tycheck:level"
   parseOpt="-parse:debug"
   evalOpt="-eval:timeout -eval:tycheck -eval:multiple -eval:log"
   webOpt="-web:port"
@@ -55,6 +56,10 @@ _esmeta_completions() {
           ;;
         tycheck)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${tycheckOpt}"))
+          return 0
+          ;;
+        range-tycheck)
+          COMPREPLY=($(compgen -W "${globalOpt} ${rangetycheckOpt}"))
           return 0
           ;;
         parse)
