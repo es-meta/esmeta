@@ -91,9 +91,10 @@ object SystemUtils {
     data: T,
     filename: String,
     noSpace: Boolean,
+    silent: Boolean,
   )(using encoder: Encoder[T]): Unit =
     dumpJson(data, filename, noSpace)
-    println(s"- Dumped $name into $filename in a JSON format.")
+    if (!silent) println(s"- Dumped $name into $filename in a JSON format.")
 
   /** get first filename */
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =

@@ -12,55 +12,28 @@ object Fingerprint {
   def apply(err: Iterable[TypeError]): List[String] =
     err.map(_.toFingerprint).map(normStr).toList
 
-  def tagStatistics(
-    manual: Map[String, List[String]],
-    fp: List[String],
-  ): Map[String, Int] = {
-    val invertedManual = for {
-      (tag, strings) <- manual
-      string <- strings
-    } yield string -> tag
+  private def readFingerprintJson(path: String): Map[String, List[String]] =
+    optional(readJson[Map[String, List[String]]](path))
+      .getOrElse(throw ESMetaError(s"File not found: $path"))
 
-    fp.map(string => invertedManual.getOrElse(string, "Unknown"))
-      .groupBy(identity)
-      .map { case (tag, instances) => tag -> instances.size }
-  }
-
-  def diffBetweenTwo(
+  case class FingerprintDiff(
+    added: List[String],
+    removed: List[String],
+    preserved: List[String],
+  )
+  def getDiff(
     leftPath: String,
     rightPath: String,
-    record: Boolean = true,
-  ): (List[String], List[String]) = {
-    val left =
-      if (leftPath == "") Set()
-      else
-        optional(readFile(leftPath + "/fingerprints").split(LINE_SEP).toSet)
-          .getOrElse(throw ESMetaError(s"File not found: $leftPath"))
-    val right =
-      optional(readFile(rightPath + "/fingerprints").split(LINE_SEP).toSet)
-        .getOrElse(throw ESMetaError(s"File not found: $rightPath"))
-
-    val ldiff = left.diff(right).toList.sorted
-    val rdiff = right.diff(left).toList.sorted
-
-    if (record) {
-      val delPath = s"$rightPath/removed"
-      val addPath = s"$rightPath/added"
-      if (ldiff.nonEmpty)
-        dumpFile(
-          name = "deleted type errors",
-          data = ldiff.mkString(LINE_SEP),
-          filename = delPath,
-        )
-      if (rdiff.nonEmpty)
-        dumpFile(
-          name = "added type errors",
-          data = rdiff.mkString(LINE_SEP),
-          filename = addPath,
-        )
-    }
-
-    // deleted, added
-    (ldiff, rdiff)
+  ): FingerprintDiff = {
+    val left: Set[String] = readFingerprintJson(leftPath).values.flatten.toSet
+    val right: Set[String] = readFingerprintJson(rightPath).values.flatten.toSet
+    val added = right.diff(left)
+    val removed = left.diff(right)
+    val preserved = left.intersect(right)
+    FingerprintDiff(
+      added.toList,
+      removed.toList,
+      preserved.toList,
+    )
   }
 }

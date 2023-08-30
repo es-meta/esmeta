@@ -119,6 +119,16 @@ case object CmdRangeTypeCheck
   override val targetName = "<commit>+"
 }
 
+case object CmdRangeFingerprintDiff
+  extends Command("range-fingerprint-diff", CmdBase >> RangeFingerprintDiff) {
+  val help =
+    "extracts statistics from fingerprint differences across multiple fingerprint sequence"
+  val examples = List(
+    "esmeta range-fingerprint-diff $ESMETA_HOME/logs/range-tycheck # extract statistics from logs/range-tycheck directory.",
+  )
+  override val targetName = "<dir>"
+}
+
 // -----------------------------------------------------------------------------
 // Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------
