@@ -239,6 +239,14 @@ object TypeDomain extends value.Domain {
       if (positive) elem ⊓ r
       else if (r.isSingle) elem -- r
       else elem
+    def pruneAbsentField(field: String, positive: Boolean): Elem =
+      val subTys = (for {
+        name <- elem.ty.name.set
+      } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
+      val normalized = Elem(subTys.foldLeft(ValueTy.Bot) {
+        case (res, name) => res ⊔ NameT(name)
+      })
+      if (positive) elem else elem ⊓ normalized
     def pruneField(field: String, r: Elem, positive: Boolean): Elem =
       field match
         case "Value" =>
@@ -281,14 +289,6 @@ object TypeDomain extends value.Domain {
       if (positive) Elem(NameT(tname))
       else elem -- Elem(NameT(tname))
     }).getOrElse(elem)
-    def pruneAbsentField(field: String, positive: Boolean): Elem =
-      val subTys = (for {
-        name <- elem.ty.name.set
-      } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
-      val normalized = Elem(subTys.foldLeft(ValueTy.Bot) {
-        case (res, name) => res ⊔ NameT(name)
-      })
-      if (positive) elem else elem ⊓ normalized
 
     /** completion helpers */
     def wrapCompletion: Elem =
