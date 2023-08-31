@@ -62,7 +62,6 @@
             "PTM ProxyExoticObject.GetOwnProperty IsCompatiblePropertyDescriptor 3 PropertyDescriptor (step 13, 20:27-105) ab6bbcc2"
         ],
         "": [
-            "PTM INTRINSICS.Array.prototype.flatMap FlattenIntoArray 6 FunctionObject (step 5, 6:24-98) 2ae65c84"
         ]
     },
     "false alarms": {
@@ -288,6 +287,21 @@
             "PTM SameValueZero Number::sameValueZero 2 Number (step 2.a, 4:21-52) 7decd657",
             "PTM SameValueZero Number::sameValueZero 2 Number (step 2.a, 4:21-52) a51a58e4"
         ],
+        "(< relativeStart 0) should prune +INF": [
+            "BOTM INTRINSICS.ArrayBuffer.prototype.slice + (step 12, 13:60-81) 4008c1c9",
+            "BOTM INTRINSICS.ArrayBuffer.prototype.slice + (step 12, 13:60-81) 3091dbf7",
+            "BOTM INTRINSICS.SharedArrayBuffer.prototype.slice + (step 11, 12:60-81) 818a7e3d",
+            "BOTM INTRINSICS.SharedArrayBuffer.prototype.slice + (step 11, 12:60-81) d72b2d4a",
+            "BOTM INTRINSICS.TypedArray.prototype.copyWithin + (step 14, 15:60-81) c34120f6",
+            "BOTM INTRINSICS.TypedArray.prototype.copyWithin + (step 14, 15:60-81) 3ebb3527",
+            "BOTM INTRINSICS.TypedArray.prototype.fill + (step 12, 13:60-81) 5d9bd9a2",
+            "BOTM INTRINSICS.TypedArray.prototype.fill + (step 12, 13:60-81) aabd5ae6",
+            "BOTM INTRINSICS.TypedArray.prototype.slice + (step 10, 11:60-81) 62679a8d",
+            "BOTM INTRINSICS.TypedArray.prototype.slice + (step 10, 11:60-81) b1222df6",
+            "BOTM INTRINSICS.TypedArray.prototype.slice + (step 10, 11:60-81) 9b9c2a8d",
+            "BOTM INTRINSICS.TypedArray.prototype.subarray + (step 12, 13:63-90) 1ac1f3b5",
+            "BOTM INTRINSICS.TypedArray.prototype.subarray + (step 12, 13:63-90) 6b7a4d0f"
+        ],
         "Assign to temp": [
             "PTM SerializeJSONProperty SerializeJSONObject 2 Object (step 11.c, 29:25-62) a875cfd",
             "PTM SerializeJSONProperty SerializeJSONObject 2 Object (step 11.c, 29:25-62) 66d4b411",
@@ -303,6 +317,10 @@
         ],
         "CanBeHeldWeakly": [
             "PTM INTRINSICS.WeakRef AddToKeptObjects 1 Object | Symbol (step 4, 5:22-48) da27a61d"
+        ],
+        "complex assertion": [
+            "BOTM CompareTypedArrayElements < (step 6, 10:17-26) aad095f0",
+            "BOTM CompareTypedArrayElements < (step 7, 11:17-26) aad095f0"
         ],
         "Field Refinement": [
             "RTM ECMAScriptFunctionObject.Construct Normal[Object] | Abrupt (step 10.a, 18:53-79) ebcba3ca",
@@ -325,7 +343,29 @@
             "PTM Initializer[0,0].EvaluateBody ClassExpression[0,0].NamedEvaluation 2 PrivateName | Symbol | String (step 3.a, 5:33-126) 93df3a67",
             "PTM Initializer[0,0].EvaluateBody FunctionExpression[0,0].NamedEvaluation 2 PrivateName | Symbol | String (step 3.a, 5:33-126) 93df3a67",
             "PTM Initializer[0,0].EvaluateBody GeneratorExpression[0,0].NamedEvaluation 2 PrivateName | Symbol | String (step 3.a, 5:33-126) 93df3a67",
-            "PTM Initializer[0,0].EvaluateBody PrimaryExpression[12,0].NamedEvaluation 2 PrivateName | Symbol | String (step 3.a, 5:33-126) 93df3a67"
+            "PTM Initializer[0,0].EvaluateBody PrimaryExpression[12,0].NamedEvaluation 2 PrivateName | Symbol | String (step 3.a, 5:33-126) 93df3a67",
+            "BOTM InnerModuleEvaluation < (step 15, 42:26-79) 993aa226",
+            "BOTM InnerModuleEvaluation < (step 15, 42:26-79) 500f047a",
+            "BOTM InnerModuleEvaluation < (step 15, 41:26-79) 20e82124",
+            "BOTM InnerModuleEvaluation < (step 15, 41:26-79) f31c0856",
+            "BOTM InnerModuleEvaluation < (step 15, 41:26-79) e3102261",
+            "BOTM InnerModuleEvaluation == (step 16, 43:21-74) 993aa226",
+            "BOTM InnerModuleEvaluation == (step 16, 43:21-74) 500f047a",
+            "BOTM InnerModuleEvaluation == (step 16, 42:21-74) 20e82124",
+            "BOTM InnerModuleEvaluation == (step 16, 42:21-74) f31c0856",
+            "BOTM InnerModuleEvaluation == (step 16, 42:21-74) e3102261",
+            "BOTM InnerModuleLinking < (step 12, 23:26-79) 26464071",
+            "BOTM InnerModuleLinking < (step 12, 23:26-79) 7410689d",
+            "BOTM InnerModuleLinking < (step 12, 23:26-79) 2be293aa",
+            "BOTM InnerModuleLinking < (step 12, 23:26-79) d368545c",
+            "BOTM InnerModuleLinking < (step 12, 23:26-79) 40e8f222",
+            "BOTM InnerModuleLinking == (step 13, 24:21-74) 26464071",
+            "BOTM InnerModuleLinking == (step 13, 24:21-74) 7410689d",
+            "BOTM InnerModuleLinking == (step 13, 24:21-74) 2be293aa",
+            "BOTM InnerModuleLinking == (step 13, 24:21-74) d368545c",
+            "BOTM InnerModuleLinking == (step 13, 24:21-74) 40e8f222",
+            "BOTM TypedArraySpeciesCreate == (step 5, 6:17-70) 8a054861",
+            "BOTM TypedArraySpeciesCreate == (step 5, 6:17-70) 7621e335"
         ],
         "IsArray": [
             "PTM SerializeJSONArray LengthOfArrayLike 1 Object (step 6, 7:29-55) 2da57449",
@@ -363,7 +403,9 @@
             "PTM INTRINSICS.RegExp.prototype[@@replace] GetSubstitution 6 String (step 14.l.ii, 57:41-129) db7f4855",
             "PTM INTRINSICS.RegExp.prototype[@@replace] GetSubstitution 6 String (step 14.l.ii, 57:41-129) e87c1801",
             "PTM PerformPromiseThen HostMakeJobCallback 1 FunctionObject (step 4.a, 8:50-84) cc7d7287",
-            "PTM PerformPromiseThen HostMakeJobCallback 1 FunctionObject (step 6.a, 12:49-82) cc7d7287"
+            "PTM PerformPromiseThen HostMakeJobCallback 1 FunctionObject (step 6.a, 12:49-82) cc7d7287",
+            "PTM INTRINSICS.Array.prototype.flatMap FlattenIntoArray 6 FunctionObject (step 5, 6:24-98) 2ae65c84"
+
         ],
         "IsConcatSpreadable": [
             "PTM INTRINSICS.Array.prototype.concat LengthOfArrayLike 1 Object (step 5.b.ii, 10:33-55) 98c57080",
