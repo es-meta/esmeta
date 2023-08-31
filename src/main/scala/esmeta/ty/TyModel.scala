@@ -136,6 +136,17 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   private def getSamePropMap(name: String): PropMap =
     infos.get(name).map(_.props).getOrElse(Map())
 
+  /** get subtypes with field existence */
+  lazy val getSubTypes: ((String, String)) => List[String] =
+    cached((name, key) =>
+      val exist = getSamePropMap(name).contains(key)
+      if (exist) List(name)
+      else
+        directSubTys
+          .get(name)
+          .fold(Nil)(_.flatMap(child => getSubTypes(child, key)).toList),
+    )
+
   /** get property map from ancestors */
   private def getLowerPropMap(name: String): PropMap =
     directSubTys.get(name) match
