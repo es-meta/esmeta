@@ -14,6 +14,7 @@ import esmeta.util.Appender.{*, given}
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import io.circe.*, io.circe.syntax.*
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
@@ -249,6 +250,7 @@ class TypeAnalyzer(
               data = errorNames.toList.sorted,
               filename = path,
               noSpace = false,
+              silent = silent,
             )
           else
             app :> "=" * 80
@@ -278,6 +280,26 @@ class TypeAnalyzer(
     if (!silent) println(s"- ${targets.size} functions are initial targets.")
     apply(targets, ignore, tags, log, detail, silent)
 
+  /** Partition fingerprints into true bugs, false alarms, and unknowns */
+  private def getFingerprintResult(
+    errors: Set[TypeError],
+    tags: ManualInfo.FingerprintTags,
+  ): Map[Option[String], Set[String]] =
+    val fingerprints = errors.map { _.toFingerprint }
+    val fingerprintMap: Map[String, (String, String)] = for {
+      (tag, map) <- tags
+      (pattern, fps) <- map
+      fp <- fps
+    } yield fp -> (tag, pattern)
+    fingerprints
+      .map { fp =>
+        fingerprintMap.get(fp) match {
+          case Some(tag, pattern) => Some(tag) -> fp
+          case None               => None -> fp // None for unlabeled case
+        }
+      }
+      .groupMap(_._1)(_._2)
+
   // logging mode
   private def logging(
     sem: Semantics,
@@ -290,6 +312,7 @@ class TypeAnalyzer(
     val analyzedFuncs = sem.analyzedFuncs
     val analyzedNodes = sem.analyzedNodes
     val analyzedReturns = sem.analyzedReturns
+    val fingerprints = getFingerprintResult(errors, tags)
     dumpFile(
       name = "summary of type analysis",
       data = Yaml(
@@ -301,6 +324,10 @@ class TypeAnalyzer(
           "nodes" -> ratioSimpleString(analyzedNodes.size, cfg.nodes.size),
           "returns" -> ratioSimpleString(analyzedReturns.size, cfg.funcs.size),
         ),
+        "fingerprints" -> fingerprints.map {
+          case (Some(tag), fps) => tag -> fps.size
+          case (None, fps)      => "not labeled" -> fps.size
+        },
       ),
       filename = s"$ANALYZE_LOG_DIR/summary.yml",
     )
@@ -325,28 +352,17 @@ class TypeAnalyzer(
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )
+    dumpJson(
+      name = "fingerprints of type errors",
+      data = fingerprints.collect {
+        case (Some(tag), fps) => tag -> fps.toList.sorted
+        case (None, fps)      => "not labeled" -> fps.toList.sorted
+      }.asJson,
+      filename = s"$ANALYZE_LOG_DIR/fingerprints.json",
+      noSpace = false,
+      silent = silent,
+    )
 
-    /* Partition fingerprints into true bugs, false alarms, and unknown */
-    def partitionFingerPrints(): Unit =
-      val fingerprints = errors.map { _.toFingerprint }
-      val trueBugs = tags("true bugs").flatten {
-        case (f, bugs) => bugs
-      }.toSet & fingerprints
-      val falseAlarms = tags("false alarms").flatten {
-        case (f, alarms) => alarms
-      }.toSet & fingerprints
-      // this also has an effect of deduplicating errors mapped to same fingerprints
-      val unknowns = (fingerprints -- trueBugs -- falseAlarms).toList.sorted
-      val data =
-        List(s"true bugs: ${trueBugs.size}") ++ List(
-          s"false alarms: ${falseAlarms.size}",
-        ) ++ List(s"unknown: ${unknowns.size} ") ++ unknowns
-      dumpFile(
-        name = "fingerprints of type errors",
-        data = data.mkString(LINE_SEP),
-        filename = s"$ANALYZE_LOG_DIR/fingerprints",
-      )
-    partitionFingerPrints()
     if (detail)
       val UNREACHABLE_DIR = s"$ANALYZE_LOG_DIR/unreachable"
       val unreachableFuncs = cfg.funcs.filterNot(analyzedFuncs.contains)
