@@ -12,7 +12,7 @@ object Fingerprint {
   def apply(err: Iterable[TypeError]): List[String] =
     err.map(_.toFingerprint).map(normStr).toList
 
-  private def readFingerprintJson(path: String): Map[String, List[String]] =
+  def readFingerprintJson(path: String): Map[String, List[String]] =
     optional(readJson[Map[String, List[String]]](path))
       .getOrElse(throw ESMetaError(s"File not found: $path"))
 
