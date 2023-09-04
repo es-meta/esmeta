@@ -112,7 +112,11 @@ object Appender {
         given Rule[(String, Yaml)] = { case (a, (k, v)) => a >> k >> ":" >> v }
         app >> items
       case YList(items) =>
-        given Rule[Yaml] = { case (a, v) => a >> "- " >> v }
+        given Rule[Yaml] = {
+          case (a, v) =>
+            given Rule[Yaml] = yamlWithIndentRule(false)
+            a >> "- " >> v
+        }
         app >> items
       case YString(value) =>
         if (wrap) app >> " " >> value

@@ -140,6 +140,7 @@ object Summary {
       data = toJson,
       filename = filename,
       noSpace = false,
+      silent = false,
     )
 
     /** conversion to JSON */

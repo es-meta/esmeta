@@ -69,6 +69,7 @@ object ESMeta extends Git(BASE_DIR) {
     // Analysis of ECMA-262
     CmdTypeCheck,
     CmdRangeTypeCheck,
+    CmdRangeFingerprintDiff,
     // Interpreter & Double Debugger for ECMAScript
     CmdParse,
     CmdEval,
@@ -95,6 +96,7 @@ object ESMeta extends Git(BASE_DIR) {
     // Analysis of ECMA-262
     TypeCheck,
     RangeTypeCheck,
+    RangeFingerprintDiff,
     // Interpreter & Double Debugger for ECMAScript
     Parse,
     Eval,
