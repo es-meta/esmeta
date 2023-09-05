@@ -440,8 +440,8 @@ object TypeAnalyzer {
     val RETURN_TYPE_MISMATCH_LEVEL = 1
     val UNCHECKED_ABRUPT_COMP_LEVEL = 2
     val INVALID_PROP_BASE_LEVEL = 2
-    val UNARY_OP_TYPE_MISMATCH_LEVEL = 2
-    val BINARY_OP_TYPE_MISMATCH_LEVEL = 2
+    val UNARY_OP_TYPE_MISMATCH_LEVEL = 1
+    val BINARY_OP_TYPE_MISMATCH_LEVEL = 1
 
     def apply(alarmLevel: Int): AlarmConfig = AlarmConfig(
       paramTypeMismatch = alarmLevel >= PARAM_TYPE_MISMATCH_LEVEL,
