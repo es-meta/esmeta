@@ -298,5 +298,31 @@
   "wrong": [
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
     "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
+  ],
+  "large": [
+    "language/identifiers/start-unicode-10.0.0-class",
+    "language/identifiers/start-unicode-10.0.0",
+    "language/identifiers/start-unicode-10.0.0-escaped",
+    "language/identifiers/start-unicode-10.0.0-class-escaped",
+    "language/identifiers/start-unicode-13.0.0-class",
+    "language/identifiers/start-unicode-13.0.0-class-escaped",
+    "language/identifiers/start-unicode-13.0.0-escaped",
+    "language/identifiers/start-unicode-13.0.0",
+    "language/identifiers/start-unicode-5.2.0-class",
+    "language/identifiers/start-unicode-5.2.0",
+    "language/identifiers/start-unicode-5.2.0-class-escaped",
+    "language/identifiers/start-unicode-5.2.0-escaped",
+    "language/identifiers/start-unicode-8.0.0-class",
+    "language/identifiers/start-unicode-8.0.0-class-escaped",
+    "language/identifiers/start-unicode-8.0.0-escaped",
+    "language/identifiers/start-unicode-8.0.0",
+    "language/identifiers/start-unicode-9.0.0-class-escaped",
+    "language/identifiers/start-unicode-9.0.0-class",
+    "language/identifiers/start-unicode-9.0.0-escaped",
+    "language/identifiers/start-unicode-9.0.0"
+  ],
+  "precision": [
+    "language/expressions/does-not-equals/bigint-and-number-extremes",
+    "language/expressions/equals/bigint-and-number-extremes"
   ]
 }
