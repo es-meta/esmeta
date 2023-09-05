@@ -158,7 +158,7 @@ def getLifespans(
   lifespans ++ finalState.alive.map { (fingerprint, firstAppear) =>
     Lifespan(
       fingerprint,
-      (firstAppear, finalState.generation - 1),
+      (firstAppear, finalState.generation),
     )
   }.toList
 }
