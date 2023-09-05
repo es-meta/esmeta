@@ -1,5 +1,5 @@
 diff --git a/spec.html b/spec.html
-index 5a4af52..3753675 100644
+index 5a4af52e..602154bc 100644
 --- a/spec.html
 +++ b/spec.html
 @@ -7200,7 +7200,7 @@
@@ -20,6 +20,15 @@ index 5a4af52..3753675 100644
              1. Let _ObjRec_ be _envRec_.[[ObjectRecord]].
              1. Return ? <emu-meta effects="user-code">_ObjRec_.SetMutableBinding</emu-meta>(_N_, _V_, _S_).
            </emu-alg>
+@@ -13594,7 +13594,7 @@
+           _key_: a property key or Private Name,
+           _closure_: a function object,
+           _enumerable_: a Boolean,
+-        ): a PrivateElement or ~unused~
++        ): either a normal completion containing either a PrivateElement or ~unused~, or an abrupt completion
+       </h1>
+       <dl class="header">
+       </dl>
 @@ -13604,7 +13604,7 @@
            1. Return PrivateElement { [[Key]]: _key_, [[Kind]]: ~method~, [[Value]]: _closure_ }.
          1. Else,
