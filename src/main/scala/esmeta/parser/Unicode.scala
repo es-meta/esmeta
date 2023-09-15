@@ -5,7 +5,7 @@ import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 
 object Unicode {
-  val RECENT_VERSION = "14.0.0"
+  val RECENT_VERSION = "15.1.0"
 
   lazy val IDStart = get("ID_Start")
   lazy val IDContinue = get("ID_Continue")
