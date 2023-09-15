@@ -186,6 +186,7 @@ case class ESParser(
         case (parser, Rhs(_, tokens, _)) =>
           tokens.foldLeft(parser) {
             case (parser, Terminal("?.")) => parser ||| ("?." <~ not("\\d".r))
+            case (parser, Terminal(",}")) => parser
             case (parser, Terminal(t))    => parser ||| t
             case (parser, _)              => parser
           }

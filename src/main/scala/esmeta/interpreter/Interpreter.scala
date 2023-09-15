@@ -762,6 +762,10 @@ object Interpreter {
       case (Equal, Math(l), Math(r))     => Bool(l == r)
       case (Equal, Number(l), Number(r)) => Bool(l == r)
       case (Equal, BigInt(l), BigInt(r)) => Bool(l == r)
+      case (Equal, POS_INF, Math(_))     => Bool(false)
+      case (Equal, Math(_), POS_INF)     => Bool(false)
+      case (Equal, NEG_INF, Math(_))     => Bool(false)
+      case (Equal, Math(_), NEG_INF)     => Bool(false)
 
       // big integers
       case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
