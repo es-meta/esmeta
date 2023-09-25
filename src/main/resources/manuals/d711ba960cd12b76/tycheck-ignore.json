@@ -33,7 +33,6 @@
   "CreateIntrinsics",
   "CreateMappedArgumentsObject",
   "CreateUnmappedArgumentsObject",
-  "DefineMethodProperty",
   "ECMAScriptFunctionObject.Construct",
   "EvaluateStringOrNumericBinaryExpression",
   "FlattenIntoArray",
