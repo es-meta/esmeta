@@ -1,5 +1,8 @@
 {
     "true bugs": {
+        "2610": [
+            "PTM ScriptEvaluation GlobalDeclarationInstantiation 1 Ast[ScriptBody] (step 12, 13:39-92) 2e8115b3"
+        ],
         "2704": [
             "RTM CreateUnmappedArgumentsObject ArgumentsExoticObject (step 9, 13:14-27) 94c1ab0f"
         ],
@@ -10,6 +13,29 @@
             "PTM CallExpression[0,0].Evaluation EvaluateCall 2 ESValue | ReferenceRecord (step 9, 16:23-75) 9c341b0",
             "PTM CallExpression[3,0].Evaluation EvaluateCall 2 ESValue | ReferenceRecord (step 5, 6:23-75) e063d219",
             "PTM OptionalChain[0,0].ChainEvaluation EvaluateCall 2 ESValue | ReferenceRecord (step 3, 4:23-90) 3600a229"
+        ],
+        "2745": [
+            "PTM ClassTail[0,0].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) d2c5a0e0",
+            "PTM ClassTail[0,0].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) a81f103f",
+            "PTM ClassTail[0,0].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 35cfaeba",
+            "PTM ClassTail[0,0].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 3c26b199",
+            "PTM ClassTail[0,0].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 8e6e317e",
+            "PTM ClassTail[0,1].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 9b6f04ff",
+            "PTM ClassTail[0,1].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) ebffe89e",
+            "PTM ClassTail[0,1].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) b9cbf099",
+            "PTM ClassTail[0,1].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) b219f7b8",
+            "PTM ClassTail[0,1].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 4770097f",
+            "PTM ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 6418691e",
+            "PTM ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 2fe0c0fd",
+            "PTM ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 3dc83278",
+            "PTM ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 280d3dd7",
+            "PTM ClassTail[0,2].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 71e180",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 2cc1cd3d",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 73c1995c",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) c1c47457",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) 9e0083f6",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) b973b981",
+            "PTM ClassTail[0,3].ClassDefinitionEvaluation CreateBuiltinFunction 3 Symbol | String (step 14.b, 52:25-172) b973b981"
         ],
         "2924": [
             "RTM Catch[0,0].CatchClauseEvaluation Normal[ESValue] | Abrupt (step 9, 13:12-25) 8c682711",
@@ -48,7 +74,11 @@
         "3021": [
             "PTM GetIterator GetIterator 3 FunctionObject (step 2.a.ii.2, 8:48-88) eac7bca6",
             "PTM GetIterator GetIterator 3 FunctionObject (step 2.a.ii.2, 8:48-88) d2e080ba",
-            "PTM GetIterator GetIterator 3 FunctionObject (step 2.a.ii.2, 8:48-88) 700ee491"
+            "PTM GetIterator GetIterator 3 FunctionObject (step 2.a.ii.2, 8:48-88) 700ee491",
+            "PTM GetIterator GetIteratorFromMethod 2 FunctionObject (step 2.b.ii, 7:46-88) dd7936da",
+            "PTM GetIterator GetIteratorFromMethod 2 FunctionObject (step 1.b.ii, 6:46-88) 523c15b6",
+            "PTM GetIterator GetIteratorFromMethod 2 FunctionObject (step 4, 10:21-59) dd7936da",
+            "PTM GetIterator GetIteratorFromMethod 2 FunctionObject (step 3, 9:21-59) 523c15b6"
         ],
         "3148": [
             "PTM ParenthesizedExpression[0,0].NamedEvaluation IsAnonymousFunctionDefinition 1 Ast[AssignmentExpression, Initializer] (step 1, 2:20-63) a805aab2"
@@ -61,10 +91,69 @@
             "PTM ProxyExoticObject.GetOwnProperty IsCompatiblePropertyDescriptor 3 PropertyDescriptor (step 14, 21:27-105) 8e84ecf9",
             "PTM ProxyExoticObject.GetOwnProperty IsCompatiblePropertyDescriptor 3 PropertyDescriptor (step 13, 20:27-105) ab6bbcc2"
         ],
-        "": [
+        "3162": [
+            "PTM LabelledStatement[0,0].LabelledEvaluation SameValue 1 ESValue (step 4, 5:52-95) 740d65ef"
         ]
     },
     "false alarms": {
+        "hard problems": [
+            "RTM SourceTextModuleRecord.ExecuteModule Normal[Const[~unused~]] | Abrupt[throw] (step 9.f.i, 17:27-37) 5e615535",
+            "RTM SourceTextModuleRecord.ExecuteModule Normal[Const[~unused~]] | Abrupt[throw] (step 9.f.i, 17:27-37) 94a8cfd6"
+        ],
+        "context-sensitive": [
+            "PTM AsyncGeneratorCompleteStep Call 3 List[ESValue] (step 7.a, 9:26-88) 5672229c",
+            "PTM AsyncGeneratorCompleteStep Call 3 List[ESValue] (step 6.a, 8:26-88) 86511525",
+            "PTM AsyncGeneratorCompleteStep CreateIterResultObject 1 ESValue (step 8.b.iii, 15:42-81) 5672229c",
+            "PTM AsyncGeneratorCompleteStep CreateIterResultObject 1 ESValue (step 7.b.iii, 14:42-81) 86511525",
+            "PTM AsyncGeneratorCompleteStep CreateIterResultObject 1 ESValue (step 8.c.i, 18:42-81) 5672229c",
+            "PTM AsyncGeneratorCompleteStep CreateIterResultObject 1 ESValue (step 7.c.i, 17:42-81) 86511525",
+            "RTM AsyncGeneratorUnwrapYieldResumption Normal[ESValue] | Abrupt (step 1, 2:61-88) 3f638d58",
+            "RTM ECMAScriptFunctionObject.Call Normal[ESValue] | Abrupt[throw] (step 9, 14:12-36) 3775c374",
+            "RTM ECMAScriptFunctionObject.Construct Normal[Object] | Abrupt[throw] (step 11, 21:18-42) 61c9799e",
+            "RTM ECMAScriptFunctionObject.Construct Normal[Object] | Abrupt[throw] (step 11, 21:18-42) 88eb7872",
+            "PTM EvaluateStringOrNumericBinaryExpression ApplyStringOrNumericBinaryOperator 2 String[\"%\", \"&\", \"*\", \"**\", \"+\", \"-\", \"/\", \"<<\", \">>\", \">>>\", \"^\", \"|\"] (step 5, 6:21-81) ae4942fe",
+            "PTM EvaluateStringOrNumericBinaryExpression ApplyStringOrNumericBinaryOperator 2 String[\"%\", \"&\", \"*\", \"**\", \"+\", \"-\", \"/\", \"<<\", \">>\", \">>>\", \"^\", \"|\"] (step 5, 6:21-81) a5e9ea7c",
+            "PTM ForIn/OfBodyEvaluation PutValue 1 ESValue | ReferenceRecord (step 6.g.ii.3.a, 29:49-90) ea1fa2f2",
+            "RTM PerformEval Normal[ESValue] | Abrupt[throw] (step 32, 57:21-31) 3e8547dc",
+            "RTM PerformEval Normal[ESValue] | Abrupt[throw] (step 33, 58:21-31) bc61962e",
+            "RTM PerformEval Normal[ESValue] | Abrupt[throw] (step 33, 58:21-31) 345bc0fd",
+            "RTM PerformEval Normal[ESValue] | Abrupt[throw] (step 33, 58:21-31) 90f7d51d",
+            "RTM PerformEval Normal[ESValue] | Abrupt[throw] (step 33, 58:21-31) baf18df0",
+            "PTM PutValue Set 2 Symbol | String (step 4.c, 8:26-80) be6b5af2",
+            "PTM PutValue Set 2 Symbol | String (step 2.c, 6:26-80) 4c807af",
+            "PTM BindingRestElement[0,0].IteratorBindingInitialization IteratorValue 1 Object (step 4.c, 14:44-65) f6ff7044",
+            "PTM BindingRestElement[1,0].IteratorBindingInitialization IteratorValue 1 Object (step 3.c, 12:44-65) f380b099",
+            "RTM GeneratorValidate Normal[Const[~completed~, ~suspendedStart~, ~suspendedYield~]] | Abrupt (step 7, 8:14-29) c95d0712",
+            "RTM GeneratorValidate Normal[Const[~completed~, ~suspendedStart~, ~suspendedYield~]] | Abrupt[throw] (step 7, 8:14-29) 59e847e6",
+            "RTM GetGlobalObject Object (step 2, 3:12-51) cb850a01",
+            "PTM SourceTextModuleRecord.InitializeEnvironment SourceTextModuleRecord.ResolveExport 2 String (step 1.a, 3:40-82) ad91a17c",
+            "PTM SourceTextModuleRecord.InitializeEnvironment SourceTextModuleRecord.ResolveExport 2 String (step 1.a, 3:40-82) cf67e410",
+            "PTM SourceTextModuleRecord.InitializeEnvironment SourceTextModuleRecord.ResolveExport 2 String (step 1.a, 3:38-80) fb862ea0",
+            "PTM SourceTextModuleRecord.GetExportedNames GetImportedModule 2 String (step 8.a, 16:43-93) 7c9eb7b0",
+            "PTM SourceTextModuleRecord.ResolveExport GetImportedModule 2 String (step 6.a.i, 15:44-94) c3a40b8d",
+            "PTM SourceTextModuleRecord.ResolveExport GetImportedModule 2 String (step 6.a.i, 15:44-94) 2bc79a0b",
+            "PTM SourceTextModuleRecord.ResolveExport GetImportedModule 2 String (step 9.a, 28:42-92) c3a40b8d",
+            "PTM SourceTextModuleRecord.ResolveExport GetImportedModule 2 String (step 9.a, 28:42-92) 2bc79a0b",
+            "PTM RelationalExpression[7,0].Evaluation ResolvePrivateIdentifier 1 PrivateEnvironmentRecord (step 6, 7:33-92) 7f831cd",
+            "PTM RelationalExpression[7,0].Evaluation ResolvePrivateIdentifier 1 PrivateEnvironmentRecord (step 6, 7:33-92) da4fdace",
+            "PTM RelationalExpression[7,0].Evaluation ResolvePrivateIdentifier 1 PrivateEnvironmentRecord (step 6, 7:33-92) d2eac9e1",
+            "PTM EvaluatePropertyAccessWithExpressionKey GetValue 1 ESValue | ReferenceRecord (step 2, 3:41-74) 69ebbcae",
+            "PTM EvaluateStringOrNumericBinaryExpression GetValue 1 ESValue | ReferenceRecord (step 2, 3:28-44) a5e9ea7c",
+            "PTM EvaluateStringOrNumericBinaryExpression GetValue 1 ESValue | ReferenceRecord (step 4, 5:28-44) a5e9ea7c",
+            "RTM ToBigInt Normal[BigInt] | Abrupt[throw] 0",
+            "RTM ToNumber Normal[Number] | Abrupt[throw] (step 8.b, 13:29-64) 4732751f",
+            "RTM GeneratorBody[0,0].EvaluateGeneratorBody Abrupt[return, throw] (step 1, 2:20-89) a6802fdb",
+            "RTM GeneratorBody[0,0].EvaluateGeneratorBody Abrupt[return, throw] (step 2, 3:23-183) a6802fdb",
+            "RTM AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody Abrupt[return, throw] (step 1, 2:20-89) fe865c99",
+            "RTM AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody Abrupt[return, throw] (step 2, 3:31-231) fe865c99",
+            "PTM MethodDefinition[0,0].DefineMethod OrdinaryFunctionCreate 1 Object (step 8, 11:29-161) e58651db",
+            "PTM MethodDefinition[0,0].DefineMethod OrdinaryFunctionCreate 1 Object (step 7, 10:29-161) e4b4a6",
+            "RTM GetValue Normal[ESValue] | Abrupt (step 2, 3:48-59) ec3d06a1"
+        ],
+        "Intrinsics modeling": [
+            "PTM CreateIntrinsics AddRestrictedFunctionProperties 1 FunctionObject (step 3, 4:20-115) 4377bbac",
+            "PTM CreateIntrinsics AddRestrictedFunctionProperties 1 FunctionObject (step 3, 4:20-115) d1a4a708"
+        ],
         "simple type test breaks": [
             "PTM IntegerIndexedExoticObject.DefineOwnProperty CanonicalNumericIndexString 1 String (step 1.a, 3:38-70) fc4fb4c4",
             "PTM IntegerIndexedExoticObject.Delete CanonicalNumericIndexString 1 String (step 1.a, 3:38-70) a8b525f6",
@@ -287,7 +376,7 @@
             "PTM SameValueZero Number::sameValueZero 2 Number (step 2.a, 4:21-52) 7decd657",
             "PTM SameValueZero Number::sameValueZero 2 Number (step 2.a, 4:21-52) a51a58e4"
         ],
-        "(< relativeStart 0) should prune +INF": [
+        "arithmetic pruning": [
             "BOTM INTRINSICS.ArrayBuffer.prototype.slice + (step 12, 13:60-81) 4008c1c9",
             "BOTM INTRINSICS.ArrayBuffer.prototype.slice + (step 12, 13:60-81) 3091dbf7",
             "BOTM INTRINSICS.SharedArrayBuffer.prototype.slice + (step 11, 12:60-81) 818a7e3d",
@@ -300,12 +389,16 @@
             "BOTM INTRINSICS.TypedArray.prototype.slice + (step 10, 11:60-81) b1222df6",
             "BOTM INTRINSICS.TypedArray.prototype.slice + (step 10, 11:60-81) 9b9c2a8d",
             "BOTM INTRINSICS.TypedArray.prototype.subarray + (step 12, 13:63-90) 1ac1f3b5",
-            "BOTM INTRINSICS.TypedArray.prototype.subarray + (step 12, 13:63-90) 6b7a4d0f"
+            "BOTM INTRINSICS.TypedArray.prototype.subarray + (step 12, 13:63-90) 6b7a4d0f",
+            "PTM INTRINSICS.Number.prototype.toString Number::toString 2 Math (step 5, 6:21-53) ec3f6745",
+            "PTM INTRINSICS.BigInt.prototype.toString BigInt::toString 2 Math (step 5, 6:21-53) 1273bb73"
         ],
         "Assign to temp": [
             "PTM SerializeJSONProperty SerializeJSONObject 2 Object (step 11.c, 29:25-62) a875cfd",
             "PTM SerializeJSONProperty SerializeJSONObject 2 Object (step 11.c, 29:25-62) 66d4b411",
             "PTM SerializeJSONProperty SerializeJSONObject 2 Object (step 11.c, 29:25-62) 4dfc770e",
+            "PTM SerializeJSONProperty Get 1 Object (step 1, 2:31-51) a875cfd",
+            "PTM SerializeJSONProperty Get 1 Object (step 1, 2:31-51) 66d4b411",
             "PTM CallExpression[0,0].Evaluation IsPropertyReference 1 ReferenceRecord (step 6, 7:46-72) 9c8a88ec",
             "PTM CallExpression[0,0].Evaluation IsPropertyReference 1 ReferenceRecord (step 6, 7:46-72) 82e41e4f",
             "PTM InstallErrorCause Get 1 Object (step 1.a, 3:33-58) 5ff7af90",
@@ -457,7 +550,8 @@
             "PTM PutValue ToObject 1 ESValue (step 5.a, 11:65-87) be6b5af2",
             "PTM PutValue ToObject 1 ESValue (step 3.a, 9:65-87) 4c807af",
             "PTM UnaryExpression[1,0].Evaluation ToObject 1 ESValue (step 5.c, 11:72-96) 3b9b75ef",
-            "PTM UnaryExpression[1,0].Evaluation ToObject 1 ESValue (step 4.c, 10:72-96) ea93c8c5"
+            "PTM UnaryExpression[1,0].Evaluation ToObject 1 ESValue (step 4.c, 10:72-96) ea93c8c5",
+            "RTM GetThisValue ESValue (step 2, 3:86-106) d7edc1d6"
         ],
         "IsRegExp": [
             "PTM INTRINSICS.RegExp Get 1 Object (step 2.b.i, 6:48-79) 83a3ee6e",
@@ -470,6 +564,9 @@
             "PTM INTRINSICS.String.prototype.replaceAll Get 1 Object (step 2.b.i, 6:35-64) 969a76c1",
             "PTM INTRINSICS.String.prototype.replaceAll Get 1 Object (step 2.b.i, 6:35-64) 8e087c58",
             "PTM INTRINSICS.String.prototype.replaceAll Get 1 Object (step 2.b.i, 6:35-64) 7d8ff6c7"
+        ],
+        "IsSuperReference": [
+            "RTM GetThisValue ESValue (step 2, 3:50-75) d7edc1d6"
         ],
         "IteratorClose": [
             "RTM AddEntriesFromIterable Normal[ESValue] | Abrupt (step 1, 2:48-98) 5b674283",
@@ -552,7 +649,10 @@
             "PTM INTRINSICS.Array GetPrototypeFromConstructor 1 FunctionObject (step 2, 3:31-94) 59d7a3ee",
             "PTM INTRINSICS.Array GetPrototypeFromConstructor 1 FunctionObject (step 2, 3:31-94) 4e79ae55",
             "PTM INTRINSICS.String GetPrototypeFromConstructor 1 FunctionObject (step 4, 7:41-103) 361f358",
-            "PTM INTRINSICS.String GetPrototypeFromConstructor 1 FunctionObject (step 4, 7:41-103) 29757619"
+            "PTM INTRINSICS.String GetPrototypeFromConstructor 1 FunctionObject (step 4, 7:41-103) 29757619",
+            "PTM OrdinaryCreateFromConstructor GetPrototypeFromConstructor 1 FunctionObject (step 2, 3:29-96) f6ab4b4c",
+            "PTM OrdinaryCreateFromConstructor GetPrototypeFromConstructor 1 FunctionObject (step 2, 3:29-96) 1449ccf8",
+            "PTM OrdinaryCreateFromConstructor GetPrototypeFromConstructor 1 FunctionObject (step 2, 3:29-96) 31470590"
         ],
         "Parsing problem": [
             "PTM TypedArraySpeciesCreate SpeciesConstructor 1 Object (step 2, 3:37-89) 8a054861",
@@ -717,7 +817,8 @@
             "PTM INTRINSICS.ArrayBuffer.prototype.slice SpeciesConstructor 1 Object (step 15, 16:30-68) 4008c1c9",
             "PTM INTRINSICS.ArrayBuffer.prototype.slice SpeciesConstructor 1 Object (step 15, 16:30-68) 3091dbf7",
             "PTM INTRINSICS.SharedArrayBuffer.prototype.slice SpeciesConstructor 1 Object (step 14, 15:30-74) 818a7e3d",
-            "PTM INTRINSICS.SharedArrayBuffer.prototype.slice SpeciesConstructor 1 Object (step 14, 15:30-74) d72b2d4a"
+            "PTM INTRINSICS.SharedArrayBuffer.prototype.slice SpeciesConstructor 1 Object (step 14, 15:30-74) d72b2d4a",
+            "BOTM INTRINSICS.DataView < (step 8.b, 12:19-67) 8b560abf"
         ],
         "Structure, known": [
             "RTM ArrayCreate Normal[ArrayExoticObject] | Abrupt (step 7, 8:14-25) e448f8a9",
