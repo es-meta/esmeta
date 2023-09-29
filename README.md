@@ -377,15 +377,20 @@ analyzer REPL.
 
 ### Publications
 
-- [ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632) [[old repo](https://github.com/kaist-plrg/jiset)]
-- [ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015) [[old repo](https://github.com/kaist-plrg/jest)]
-- [ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781) [[old repo](https://github.com/kaist-plrg/jstar)]
-- [ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097) [[old repo](https://github.com/kaist-plrg/jsaver)]
-- [PLDI 2023] Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations
+- **[ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632)**
+  ([old repo](https://github.com/kaist-plrg/jiset))
+- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015)**
+  ([old repo](https://github.com/kaist-plrg/jest))
+- **[ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781)**
+  ([old repo](https://github.com/kaist-plrg/jstar))
+- **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
+  ([old repo](https://github.com/kaist-plrg/jsaver))
+- **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
+  ([old repo](https://github.com/jestfs/jestfs))
 
 ### PLDI 2022 Tutorial
 
-**Title**: [Filling the gap between the JavaScript language specification and tools using the JISET family](https://pldi22.sigplan.org/details/pldi-2022-tutorials/1/Filling-the-gap-between-the-JavaScript-language-specification-and-tools-using-the-JIS)
+**Title**: **[Filling the gap between the JavaScript language specification and tools using the JISET family](https://pldi22.sigplan.org/details/pldi-2022-tutorials/1/Filling-the-gap-between-the-JavaScript-language-specification-and-tools-using-the-JIS)**
 - Presenters: [Jihyeok Park](https://park.jihyeok.site/), [Seungmin An](https://github.com/h2oche), and [Sukyoung Ryu](https://plrg.kaist.ac.kr/ryu)
 - [Session 1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-1.pdf)
 - [Session 2-1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-2.pdf)
