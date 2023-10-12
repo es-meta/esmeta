@@ -1,0 +1,56 @@
+========================================
+ extract phase
+----------------------------------------
+========================================
+ parse phase
+----------------------------------------
+|Script|<0>{1:1(0)-1:21(20)}(
+  |ScriptBody|<0>{1:1(0)-1:21(20)}(
+    |StatementList|[FFF]<0>{1:1(0)-1:21(20)}(
+      |StatementListItem|[FFF]<1>{1:1(0)-1:21(20)}(
+        |Declaration|[FF]<0>{1:1(0)-1:21(20)}(
+          |HoistableDeclaration|[FFF]<0>{1:1(0)-1:21(20)}(
+            |FunctionDeclaration|[FFF]<0>{1:1(0)-1:21(20)}(
+              |BindingIdentifier|[FF]<0>{1:9(8)-1:11(10)}(
+                |Identifier|<0>{1:9(8)-1:11(10)}(
+                  |IdentifierName \ (ReservedWord)|(f){1:9(8)-1:11(10)},
+                ),
+              ),
+              |FormalParameters|[FF]<2>{1:12(11)-1:17(16)}(
+                |FormalParameterList|[FF]<0>{1:12(11)-1:17(16)}(
+                  |FormalParameter|[FF]<0>{1:12(11)-1:17(16)}(
+                    |BindingElement|[FF]<1>{1:12(11)-1:17(16)}(
+                      |BindingPattern|[FF]<0>{1:12(11)-1:17(16)}(
+                        |ObjectBindingPattern|[FF]<3>{1:12(11)-1:17(16)}(
+                          |BindingPropertyList|[FF]<0>{1:13(12)-1:14(13)}(
+                            |BindingProperty|[FF]<0>{1:13(12)-1:14(13)}(
+                              |SingleNameBinding|[FF]<0>{1:13(12)-1:14(13)}(
+                                |BindingIdentifier|[FF]<0>{1:13(12)-1:14(13)}(
+                                  |Identifier|<0>{1:13(12)-1:14(13)}(
+                                    |IdentifierName \ (ReservedWord)|(x){1:13(12)-1:14(13)},
+                                  ),
+                                ),
+                                <none>,
+                              ),
+                            ),
+                          ),
+                          <none>,
+                        ),
+                      ),
+                      <none>,
+                    ),
+                  ),
+                ),
+              ),
+              |FunctionBody|[FF]<0>{1:20(19)-1:20(19)}(
+                |FunctionStatementList|[FF]<0>{1:20(19)-1:20(19)}(
+                  <none>,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+)
