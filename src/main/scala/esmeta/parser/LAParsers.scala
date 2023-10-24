@@ -225,5 +225,5 @@ trait LAParsers extends Lexer {
   ): ParseResult[T]
 
   // terminal lexer
-  protected val TERMINAL: Lexer
+  protected val TERMINAL: Parser[String]
 }

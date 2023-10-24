@@ -180,18 +180,33 @@ case class ESParser(
     case _                => throw UnexpectedSymbol(symbol)
 
   // a terminal lexer
-  protected val TERMINAL: Lexer = grammar.prods.foldLeft[Parser[String]]("") {
-    case (parser, Production(lhs, _, _, rhsList)) =>
-      rhsList.foldLeft(parser) {
-        case (parser, Rhs(_, tokens, _)) =>
-          tokens.foldLeft(parser) {
-            case (parser, Terminal("?.")) => parser ||| ("?." <~ not("\\d".r))
-            case (parser, Terminal(",}")) => parser
-            case (parser, Terminal(t))    => parser ||| t
-            case (parser, _)              => parser
-          }
-      }
-  }
+  protected val TERMINAL: EPackratParser[String] =
+    val ts = (for {
+      prod <- grammar.prods
+      if prod.kind == ProductionKind.Syntactic
+      rhs <- prod.rhsList
+      t <- rhs.symbols.collect { case Terminal(t) => t }
+    } yield t).toSet
+    // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
+    val trie = Trie(ts - "?.")
+    def aux(
+      trie: Trie,
+      in: Input,
+      prevRes: ParseResult[String],
+      cur: String = "",
+    ): ParseResult[String] =
+      val res = if (trie.exist) Success(cur, in) else prevRes
+      if (!in.atEnd && trie.children.contains(in.first))
+        aux(
+          trie.children(in.first),
+          in.rest,
+          res,
+          cur + in.first,
+        )
+      else res
+    val parser = Parser { in => aux(trie, in, Failure("", in)) }
+    // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
+    parser ||| ("?." <~ not("\\d".r))
 
   // automatic semicolon insertion
   private def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
