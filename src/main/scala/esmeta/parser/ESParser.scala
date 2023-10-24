@@ -181,12 +181,14 @@ case class ESParser(
 
   // a terminal lexer
   protected val TERMINAL: EPackratParser[String] =
-    val trie = Trie((for {
+    val ts = (for {
       prod <- grammar.prods
       if prod.kind == ProductionKind.Syntactic
       rhs <- prod.rhsList
       t <- rhs.symbols.collect { case Terminal(t) => t }
-    } yield t).toSet)
+    } yield t).toSet
+    // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
+    val trie = Trie(ts - "?.")
     def aux(
       trie: Trie,
       in: Input,
@@ -202,7 +204,9 @@ case class ESParser(
           cur + in.first,
         )
       else res
-    Parser { in => aux(trie, in, Failure("", in)) }
+    val parser = Parser { in => aux(trie, in, Failure("", in)) }
+    // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
+    parser ||| ("?." <~ not("\\d".r))
 
   // automatic semicolon insertion
   private def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
