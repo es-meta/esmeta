@@ -353,6 +353,7 @@ object TypeDomain extends value.Domain {
       case Fin(set) =>
         AbsClo(for {
           name <- set.toList
+          if cfg.fnameMap.contains(name)
         } yield AClo(cfg.fnameMap(name), Map())) // TODO captured
     def cont: AbsCont = ty.cont match
       case Inf => AbsCont.Top
