@@ -561,7 +561,18 @@ class Compiler(
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
           case (Abs, List(arg)) => EUnary(UOp.Abs, compile(fb, arg))
           case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
-          case _                  => error(s"invalid math operation: $expr")
+          case (Truncate, List(arg)) =>
+            val (x, xExpr) = fb.newTIdWithExpr
+            fb.addInst(
+              IAssign(x, compile(fb, arg)),
+              IIf(
+                lessThan(ERef(x), zero),
+                IAssign(x, neg(floor(neg(xExpr)))),
+                IAssign(x, floor(xExpr)),
+              ),
+            )
+            xExpr
+          case _ => error(s"invalid math operation: $expr")
       case ConversionExpression(op, expr) =>
         import ConversionExpressionOperator.*
         op match
@@ -973,6 +984,7 @@ class Compiler(
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
     case _                     => EUnary(UOp.Not, expr)
+  inline def neg(expr: Expr) = EUnary(UOp.Neg, expr)
   inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)

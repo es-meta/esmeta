@@ -1568,6 +1568,7 @@ IsDetachedBuffer
 IsExtensible
 IsGenericDescriptor
 IsInTailPosition
+IsIntegralNumber
 IsLabelledFunction
 IsLessThan
 IsLooselyEqual
@@ -1655,6 +1656,7 @@ Literal[0,0].Evaluation
 Literal[1,0].Evaluation
 Literal[2,0].Evaluation
 Literal[3,0].Evaluation
+LocalTime
 LogicalANDExpression[1,0].AssignmentTargetType
 LogicalANDExpression[1,0].Evaluation
 LogicalANDExpression[1,0].HasCallInTailPosition

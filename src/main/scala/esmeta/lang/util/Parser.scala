@@ -537,7 +537,8 @@ trait Parsers extends IndentParsers {
     import MathFuncExpressionOperator.*
     (
       "max" ^^^ Max | "min" ^^^ Min |
-      "abs" ^^^ Abs | "floor" ^^^ Floor
+      "abs" ^^^ Abs | "floor" ^^^ Floor |
+      "truncate" ^^^ Truncate
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
         MathFuncExpression(o, as)

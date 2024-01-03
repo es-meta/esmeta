@@ -134,7 +134,7 @@ case class MathFuncExpression(
   args: List[CalcExpression],
 ) extends CalcExpression
 enum MathFuncExpressionOperator extends LangElem:
-  case Max, Min, Abs, Floor
+  case Max, Min, Abs, Floor, Truncate
 
 // exponentiation expressions
 case class ExponentiationExpression(

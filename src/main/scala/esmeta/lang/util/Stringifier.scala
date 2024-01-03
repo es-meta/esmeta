@@ -391,10 +391,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given mathFuncExprOpRule: Rule[MathFuncExpressionOperator] = (app, op) =>
     import MathFuncExpressionOperator.*
     app >> (op match {
-      case Max   => "max"
-      case Min   => "min"
-      case Abs   => "abs"
-      case Floor => "floor"
+      case Max      => "max"
+      case Min      => "min"
+      case Abs      => "abs"
+      case Floor    => "floor"
+      case Truncate => "truncate"
     })
 
   // operators for conversion operation expressions
