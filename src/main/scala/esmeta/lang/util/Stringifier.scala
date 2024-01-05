@@ -237,6 +237,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SubstringExpression(expr, from, to) =>
         app >> "the substring of " >> expr >> " from " >> from
         to.fold(app)(app >> " to " >> _)
+      case TrimExpression(expr, leading, trailing) =>
+        app >> "the String value that is a copy of " >> expr >> " with "
+        app >> ((leading, trailing) match
+          case (true, true)   => "both leading and trailing"
+          case (true, false)  => "leading"
+          case (false, true)  => "trailing"
+          case (false, false) => "no"
+        )
+        app >> " white space removed"
       case NumberOfExpression(expr) =>
         app >> "the number of elements in " >> expr
       case SourceTextExpression(expr) =>

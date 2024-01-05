@@ -413,6 +413,16 @@ object BasicDomain extends value.Domain {
           else if (t.isValidInt) apply(s.substring(f.toInt, t.toInt))
           else Bot
         case _ => Bot
+    def trim(leading: Boolean, trailing: Boolean): Elem = elem.getSingle match
+      case Many => exploded("ETrim")
+      case One(Str(s)) =>
+        apply(
+          if (leading && trailing) s.trim
+          else if (leading) s.replaceAll("^\\s+", "")
+          else if (trailing) s.replaceAll("\\s+$", "")
+          else s,
+        )
+      case _ => Bot
     def clamp(lower: Elem, upper: Elem): Elem =
       (elem.getSingle, lower.getSingle, upper.getSingle) match
         case (Zero, _, _) | (_, Zero, _) | (_, _, Zero) => Bot

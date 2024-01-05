@@ -264,6 +264,12 @@ class Interpreter(
         case Math(n) if s.length < n => s.substring(f)
         case v                       => s.substring(f, v.asInt),
       ))
+    case ETrim(expr, leading, trailing) =>
+      eval(expr).asStr match
+        case s if leading && trailing => Str(s.trim)
+        case s if leading             => Str(s.replaceAll("^\\s+", ""))
+        case s if trailing            => Str(s.replaceAll("\\s+$", ""))
+        case s                        => Str(s)
     case ERef(ref) =>
       st(eval(ref))
     case EUnary(uop, expr) =>

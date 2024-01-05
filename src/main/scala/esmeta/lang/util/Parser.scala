@@ -338,6 +338,7 @@ trait Parsers extends IndentParsers {
     recordExpr |
     lengthExpr |
     substrExpr |
+    trimExpr |
     numberOfExpr |
     sourceTextExpr |
     coveredByExpr |
@@ -400,6 +401,17 @@ trait Parsers extends IndentParsers {
     ("the substring of" ~> expr) ~
     ("from" ~> expr) ~
     opt("to" ~> expr) ^^ { case e ~ f ~ t => SubstringExpression(e, f, t) }
+
+  // trim expressions
+  lazy val trimExpr: PL[TrimExpression] =
+    ("the String value that is a copy of" ~> expr) ~
+    ("with" ~> (
+      "leading" ^^^ (true, false) |
+      "trailing" ^^^ (false, true) |
+      "both leading and trailing" ^^^ (true, true)
+    ) <~ "white space removed") ^^ {
+      case e ~ (l, t) => TrimExpression(e, l, t)
+    }
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =

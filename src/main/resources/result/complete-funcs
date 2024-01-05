@@ -2303,6 +2303,7 @@ ToUint16
 ToUint32
 ToUint8
 TriggerPromiseReactions
+TrimString
 TryStatement[0,0].ContainsDuplicateLabels
 TryStatement[0,0].ContainsUndefinedBreakTarget
 TryStatement[0,0].ContainsUndefinedContinueTarget
