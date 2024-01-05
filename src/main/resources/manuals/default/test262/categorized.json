@@ -327,6 +327,7 @@
   ],
   "precision": [
     "language/expressions/does-not-equals/bigint-and-number-extremes",
-    "language/expressions/equals/bigint-and-number-extremes"
+    "language/expressions/equals/bigint-and-number-extremes",
+    "language/expressions/modulus/S11.5.3_A4_T7.js"
   ]
 }
