@@ -2009,8 +2009,10 @@ PrimaryExpression[8,0].IsIdentifierRef
 PrimaryExpression[9,0].AssignmentTargetType
 PrimaryExpression[9,0].HasCallInTailPosition
 PrimaryExpression[9,0].IsIdentifierRef
+PrivateFieldAdd
 PrivateGet
 PrivateIdentifier[0,0].StringValue
+PrivateMethodOrAccessorAdd
 PrivateSet
 PromiseResolve
 PropertyDefinitionList[0,0].PropertyNameList
