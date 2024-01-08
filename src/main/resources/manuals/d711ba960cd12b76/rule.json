@@ -1,10 +1,33 @@
 {
   "expr": {
+    "_envRec_ has a binding for _N_.": "(! (= envRec.SubMap[N] absent))"
   },
   "inst": {
+    "If _envRec_ has a binding for the name that is the value of _N_, return *true*.": "if (! (= envRec.SubMap[N] absent)) return true else {}",
     "If _x_ and _y_ are exactly the same sequence of code units (same length and same code units at corresponding indices), return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
-    "Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)",
+    "Let _args_ be the _argumentsList_ that was passed to this function by [[Call]] or [[Construct]].": "let args = ArgumentsList",
+    "Let _entry_ be that PrivateElement.": "{ let elems = O.PrivateElements let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem.Key P) let entry = elem else {} idx = (+ idx 1) } }",
+    "Let _existing_ be that PrivateElement.": "{ let elems = container let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem.Key element.Key) let existing = elem else {} idx = (+ idx 1) } }",
     "Let _int_ be the mathematical value whose sign is the sign of _number_ and whose magnitude is floor(abs(ℝ(_number_))).": "{ let int = (floor (abs ([math] number))) if (< number 0.0f) int = (* -1 int) else {} }",
-    "Return a new unique Symbol value whose [[Description]] value is _descString_.": "return (new 'descString)"
+    "Let _k_ be the smallest non-negative integer such that the code unit at index _k_ within _px_ is different from the code unit at index _k_ within _py_. (There must be such a _k_, for neither String is a prefix of the other.)": "{ let k = 0 loop[repeat] (= px[k] py[k]) k = (+ k 1) }",
+    "Let _name_ be a new Private Name whose [[Description]] value is _dn_.": "let name = (new PrivateName(\"Description\" -> dn))",
+    "Let _name_ be that Private Name.": "{ let idx = 0 loop[repeat] (< idx names.length) { let elem = names[idx] if (= elem.Description identifier) let name = elem else {} idx = (+ idx 1) } }",
+    "Let _r_ be the BigInt defined by the mathematical relation _r_ = _n_ - (_d_ × _q_) where _q_ is a BigInt that is negative only if _n_/_d_ is negative and positive only if _n_/_d_ is positive, and whose magnitude is as large as possible without exceeding the magnitude of the true mathematical quotient of _n_ and _d_.": "let r = (% n d)",
+    "Let _r_ be the first element of _O_.[[RemainingKeys]].": "let r = O.RemainingKeys[0]",
+    "Let _result_ be the Completion Record that is the result of evaluating _F_ in a manner that conforms to the specification of _F_. _thisArgument_ is the *this* value, _argumentsList_ provides the named parameters, and the NewTarget value is *undefined*.": "call result = F.Code(thisArgument, argumentsList, undefined)",
+    "Once a generator enters the ~completed~ state it never leaves it and its associated execution context is never resumed. Any execution state associated with _generator_ can be discarded at this point.": "nop",
+    "Remove _asyncContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "(pop < @EXECUTION_STACK)",
+    "Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.": "(pop < @EXECUTION_STACK)",
+    "Remove _genContext_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.": "(pop < @EXECUTION_STACK)",
+    "Remove the first element from _O_.[[RemainingKeys]].": "(pop < O.RemainingKeys)",
+    "Remove the first element from _queue_.": "(pop < queue)",
+    "Remove the first element from _remaining_.": "(pop < remaining)",
+    "Replace _existing_ in _container_ with _combined_.": "{ let elems = container let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem existing) elems[idx] = combined else {} idx = (+ idx 1)} }",
+    "Return a String according to <emu-xref href=\"#table-typeof-operator-results\"></emu-xref>.": "{ let t = (typeof val) if (= t @Undefined) return \"undefined\" else if (= t @Null) return \"object\" else if (= t @Boolean) return \"boolean\" else if (= t @Number) return \"number\" else if (= t @String) return \"string\" else if (= t @Symbol) return \"symbol\" else if (= t @BigInt) return \"bigint\" else if (= t @Object) if (= val.Call absent) return \"object\" else return \"function\" else assert false }",
+    "Return a new unique Symbol value whose [[Description]] value is _descString_.": "return (new 'descString)",
+    "Return the String representation of this Number value using the radix specified by _radixMV_. Letters `a`-`z` are used for digits with values 10 through 35. The precise algorithm is implementation-defined, however the algorithm should be a generalization of that specified in <emu-xref href=\"#sec-numeric-types-bigint-tostring\"></emu-xref>.": "return ([str radixMV] x)",
+    "Return the String representation of this Number value using the radix specified by _radixMV_. Letters `a`-`z` are used for digits with values 10 through 35. The precise algorithm is implementation-defined, however the algorithm should be a generalization of that specified in <emu-xref href=\"#sec-numeric-types-number-tostring\"></emu-xref>.": "return ([str radixMV] x)",
+    "append each of its elements to _internalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
+    "remove that element from the _varNames_.": "remove-elem varNames N"
   }
 }
