@@ -231,6 +231,7 @@ object TypeDomain extends value.Domain {
     def duplicated(st: AbsState): Elem = boolTop
     def substring(from: Elem): Elem = strTop
     def substring(from: Elem, to: Elem): Elem = strTop
+    def trim(leading: Boolean, trailing: Boolean): Elem = strTop
     def clamp(lower: Elem, upper: Elem): Elem = mathTop
     def isArrayIndex: Elem = boolTop
 

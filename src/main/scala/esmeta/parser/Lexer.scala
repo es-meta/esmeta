@@ -33,17 +33,24 @@ trait Lexer extends UnicodeParsers {
     )
   }
 
+  // special code points
+  lazy val WhiteSpaceCPs = USP ++ Set(TAB, VT, FF, SP, NBSP, ZWNBSP)
+  lazy val LineTerminatorCPs = Set(LF, CR, LS, PS)
+  lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
+
   // special lexers
-  lazy val WhiteSpace = TAB | VT | FF | SP | NBSP | ZWNBSP | USP
-  lazy val LineTerminator = LF | CR | LS | PS
+  lazy val WhiteSpace = toParser(WhiteSpaceCPs)
+  lazy val LineTerminator = toParser(LineTerminatorCPs)
   lazy val LineTerminatorSequence =
-    LF | CR <~ not(LF) | LS | PS | CR % LF
+    val cr = toParser(CR)
+    val lf = toParser(LF)
+    toParser(LF, LS, PS) | cr <~ not(lf) | cr % lf
   lazy val Comment =
     """/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*""".r
   lazy val empty = "".r
-  lazy val Skip =
-    rep(WhiteSpace | LineTerminator | Comment) ^^ { _.mkString }
+  lazy val Skip = rep(WhiteSpace | LineTerminator | Comment) ^^ { _.mkString }
   lazy val strNoLineTerminator =
+    val lines = LineTerminatorCPs.map(_.toChar).mkString("[", "", "]").r
     "" <~ guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
 
   // lexers
@@ -113,10 +120,14 @@ trait Lexer extends UnicodeParsers {
     case NoLineTerminator    => strNoLineTerminator
     case CodePoint(cp, desc) => cp.toChar.toString.r
     case CodePointAbbr(abbr) =>
-      abbrCPs.getOrElse(
-        abbr,
-        error(s"unknown code point abbreviation: <$abbr>"),
-      )
+      abbrCPs
+        .getOrElse(
+          abbr,
+          error(s"unknown code point abbreviation: <$abbr>"),
+        )
+        .map(_.toChar)
+        .mkString("[", "", "]")
+        .r
     case UnicodeSet(None)                                         => Any
     case UnicodeSet(Some("with the Unicode property “ID_Start”")) => IDStart
     case UnicodeSet(Some("with the Unicode property “ID_Continue”")) =>

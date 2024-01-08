@@ -147,6 +147,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(substring " >> expr >> " " >> from
         to.map(app >> " " >> _)
         app >> ")"
+      case ETrim(expr, leading, trailing) =>
+        (leading, trailing) match
+          case (true, true)   => app >> "(trim " >> expr >> ")"
+          case (true, false)  => app >> "(trim-start " >> expr >> ")"
+          case (false, true)  => app >> "(trim-end " >> expr >> ")"
+          case (false, false) => app >> expr
       case ERef(ref) =>
         app >> ref
       case EUnary(uop, expr) =>

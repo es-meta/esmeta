@@ -408,6 +408,10 @@ trait AbsTransfer extends Optimized with PruneHelper {
           f <- transfer(from)
           t <- transfer(to)
         } yield v.substring(f, t)
+      case ETrim(expr, leading, trailing) =>
+        for {
+          v <- transfer(expr)
+        } yield v.trim(leading, trailing)
       case ERef(ref) =>
         for {
           rv <- transfer(ref)

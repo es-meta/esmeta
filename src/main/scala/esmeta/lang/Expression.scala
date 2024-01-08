@@ -29,6 +29,13 @@ case class SubstringExpression(
   to: Option[Expression],
 ) extends Expression
 
+// trim expressions
+case class TrimExpression(
+  expr: Expression,
+  leading: Boolean,
+  trailing: Boolean,
+) extends Expression
+
 // `the number of elements in <list>` expressions
 case class NumberOfExpression(expr: Expression) extends Expression
 
