@@ -9,43 +9,41 @@ import scala.util.matching.Regex
 
 /** ECMAScript special unicodes */
 trait UnicodeParsers extends BasicParsers with EPackratParsers {
-  val ZWNJ = "\u200C".r
-  val ZWJ = "\u200D".r
-  val ZWNBSP = "\uFEFF".r
+  val ZWNJ = 0x200c
+  val ZWJ = 0x200d
+  val ZWNBSP = 0xfeff
   // white spaces
-  val TAB = "\u0009".r
-  val VT = "\u000B".r
-  val FF = "\u000C".r
-  val SP = "\u0020".r
-  val NBSP = "\u00A0".r
+  val TAB = 0x0009
+  val VT = 0x000b
+  val FF = 0x000c
+  val SP = 0x0020
+  val NBSP = 0x00a0
   // TODO automatically extract category "Zs"
-  val USP =
-    "[\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000]".r
+  val USP = Set(
+    0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
+    0x2008, 0x2009, 0x200a, 0x202f, 0x205f, 0x3000,
+  )
   // line terminators
-  val LF = "\u000A".r
-  val CR = "\u000D".r
-  val LS = "\u2028".r
-  val PS = "\u2029".r
+  val LF = 0x000a
+  val CR = 0x000d
+  val LS = 0x2028
+  val PS = 0x2029
 
-  lazy val lines = "[\u000A\u000D\u2028\u2029]".r
+  lazy val lines = toParser(LF, CR, LS, PS)
   lazy val Any = "(?s).".r
-  lazy val IDStart =
-    Any.filter(s => Unicode.IDStart contains toCodePoint(s))
-  lazy val IDContinue =
-    Any.filter(s => Unicode.IDContinue contains toCodePoint(s))
+  lazy val IDStart = toParser(Unicode.IDStart)
+  lazy val IDContinue = toParser(Unicode.IDContinue)
 
-  protected def toCodePoint(str: String): Int =
-    def check4B(i: Int): Boolean =
-      str.codePointCount(i, str.length min (i + 2)) == 1
-    def aux(i: Int, acc: Int): Int =
-      if (i >= str.length) acc
-      else
-        val nextAcc = str.codePointAt(i) + (acc * (1 << 16))
-        aux(if (check4B(i)) i + 2 else i + 1, nextAcc)
-    aux(0, 0)
+  protected inline def toCodePoint(s: String): Int = s.codePoints.toArray.head
+
+  protected inline def toParser(seq: Int*): Parser[String] = toParser(seq.toSet)
+  protected inline def toParser(cp: Int): Parser[String] =
+    Any.filter(s => toCodePoint(s) == cp)
+  protected inline def toParser(set: Set[Int]): Parser[String] =
+    Any.filter(s => set contains toCodePoint(s))
 
   // abbreviated code points mapping
-  val abbrCPs: Map[String, Regex] = Map(
+  val abbrCPs: Map[String, Set[Int]] = Map(
     "ZWNJ" -> ZWNJ,
     "ZWJ" -> ZWJ,
     "ZWNBSP" -> ZWNBSP,
@@ -54,10 +52,11 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
     "FF" -> FF,
     "SP" -> SP,
     "NBSP" -> NBSP,
-    "USP" -> USP,
     "LF" -> LF,
     "CR" -> CR,
     "LS" -> LS,
     "PS" -> PS,
+  ).map((k, v) => k -> Set(v)) + (
+    "USP" -> USP
   )
 }
