@@ -1083,7 +1083,7 @@ trait Parsers extends IndentParsers {
 
   // base references
   lazy val baseRef: PL[Reference] =
-    variable |
+    opt(nt) ~> variable |
     "the" ~ opt("currently") ~ "running execution context" ^^! {
       RunningExecutionContext()
     } | "the current Realm Record" ^^! {
