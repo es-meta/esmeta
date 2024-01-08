@@ -38,9 +38,6 @@ trait Lexer extends UnicodeParsers {
   lazy val LineTerminatorCPs = Set(LF, CR, LS, PS)
   lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
 
-  // white space check
-  def isWhiteSpace(cp: Int): Boolean = WhiteSpaceCPs contains cp
-
   // special lexers
   lazy val WhiteSpace = toParser(WhiteSpaceCPs)
   lazy val LineTerminator = toParser(LineTerminatorCPs)
@@ -53,7 +50,8 @@ trait Lexer extends UnicodeParsers {
   lazy val empty = "".r
   lazy val Skip = rep(WhiteSpace | LineTerminator | Comment) ^^ { _.mkString }
   lazy val strNoLineTerminator =
-    "" <~ guard(rep(WhiteSpace | Comment) ~ not(LineTerminator))
+    val lines = LineTerminatorCPs.map(_.toChar).mkString("[", "", "]").r
+    "" <~ guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
 
   // lexers
   lazy val lexers: Map[(String, Int), Lexer] = (for {
