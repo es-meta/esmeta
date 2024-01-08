@@ -70,6 +70,7 @@ trait Parsers extends IndentParsers {
     pushCtxtStep |
     noteStep |
     suspendStep |
+    removeElemStep |
     removeFirstStep |
     removeCtxtStep |
     ifStep |
@@ -228,6 +229,12 @@ trait Parsers extends IndentParsers {
       opt("and remove it from the execution context stack") ^^ { _.isDefined }
     "suspend" ~> baseRef ~ (remove <~ end) ^^ {
       case base ~ r => SuspendStep(base, r)
+    }
+
+  // remove element step
+  lazy val removeElemStep: PL[RemoveElemStep] =
+    "remove" ~> expr ~ ("from" ~> expr) <~ end ^^ {
+      case e ~ v => RemoveElemStep(e, v)
     }
 
   // remove first element step
@@ -1076,7 +1083,7 @@ trait Parsers extends IndentParsers {
 
   // base references
   lazy val baseRef: PL[Reference] =
-    variable |
+    opt(nt) ~> variable |
     "the" ~ opt("currently") ~ "running execution context" ^^! {
       RunningExecutionContext()
     } | "the current Realm Record" ^^! {

@@ -93,6 +93,7 @@ class StringifyTinyTest extends LangTest {
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
       suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
+      removeElemStep -> "remove _x_ from _x_.",
       removeFirstStep -> "remove the first element from _x_.",
       removeCtxtStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
       removeCtxtWithRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
