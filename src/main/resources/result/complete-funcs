@@ -1077,6 +1077,7 @@ GlobalEnvironmentRecord.CreateGlobalFunctionBinding
 GlobalEnvironmentRecord.CreateGlobalVarBinding
 GlobalEnvironmentRecord.CreateImmutableBinding
 GlobalEnvironmentRecord.CreateMutableBinding
+GlobalEnvironmentRecord.DeleteBinding
 GlobalEnvironmentRecord.GetBindingValue
 GlobalEnvironmentRecord.GetThisBinding
 GlobalEnvironmentRecord.HasBinding
@@ -1221,6 +1222,7 @@ INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
 INTRINSICS.FinalizationRegistry
 INTRINSICS.FinalizationRegistry.prototype.register
+INTRINSICS.FinalizationRegistry.prototype.unregister
 INTRINSICS.Function
 INTRINSICS.Function.prototype
 INTRINSICS.Function.prototype.apply

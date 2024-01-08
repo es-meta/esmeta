@@ -67,16 +67,17 @@ trait UnitWalker extends BasicUnitWalker {
       walk(key); walk(array); walk(start); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
-    case ThrowStep(expr)         => walk(expr)
-    case PerformStep(expr)       => walk(expr)
-    case PerformBlockStep(block) => walk(block)
-    case AppendStep(expr, ref)   => walk(expr); walk(ref)
-    case PrependStep(expr, ref)  => walk(expr); walk(ref)
-    case RepeatStep(cond, body)  => walkOpt(cond, walk); walk(body)
-    case PushCtxtStep(ref)       => walk(ref)
-    case NoteStep(note)          =>
-    case SuspendStep(base, _)    => walk(base)
-    case RemoveFirstStep(expr)   => walk(expr)
+    case ThrowStep(expr)            => walk(expr)
+    case PerformStep(expr)          => walk(expr)
+    case PerformBlockStep(block)    => walk(block)
+    case AppendStep(expr, ref)      => walk(expr); walk(ref)
+    case PrependStep(expr, ref)     => walk(expr); walk(ref)
+    case RepeatStep(cond, body)     => walkOpt(cond, walk); walk(body)
+    case PushCtxtStep(ref)          => walk(ref)
+    case NoteStep(note)             =>
+    case SuspendStep(base, _)       => walk(base)
+    case RemoveElemStep(expr, elem) => walk(expr); walk(elem)
+    case RemoveFirstStep(expr)      => walk(expr)
     case RemoveContextStep(remove, restore) =>
       walk(remove); walkOpt(restore, walk)
     case SetEvaluationStateStep(base, p, body) =>
