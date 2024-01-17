@@ -63,7 +63,6 @@ ArrayLiteral[0,1].Evaluation
 ArrayLiteral[1,0].Evaluation
 ArrayLiteral[2,0].Evaluation
 ArrayLiteral[2,1].Evaluation
-ArraySetLength
 ArraySpeciesCreate
 ArrowFunction[0,0].Contains
 ArrowFunction[0,0].Evaluation

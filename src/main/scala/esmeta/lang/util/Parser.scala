@@ -175,18 +175,17 @@ trait Parsers extends IndentParsers {
   // for-each steps for OwnPropertyKey - replace forEachArrayIndexStep
   lazy val forEachOwnPropertyKeyStep: PL[ForEachOwnPropertyKeyStep] =
     lazy val ascending: Parser[Boolean] =
-      opt("ascending") ^^ { _.isDefined }
+      ("ascending" ^^^ true | "descending" ^^^ false)
     lazy val order =
       "numeric index order" |
       "chronological order of property creation"
-    ("For each own property key" ~> variable) ~
+    ("for each own property key" ~> variable) ~
     ("of" ~> variable <~ "such that") ~
     cond ~
     (", in" ~> ascending) ~
     order ~
-    (", do" ~> step) ^^ {
-      case k ~ x ~ c ~ a ~ o ~ b =>
-        ForEachOwnPropertyKeyStep(k, x, c, a, o, b)
+    ("," ~ opt("do") ~> step) ^^ {
+      case k ~ x ~ c ~ a ~ o ~ b => ForEachOwnPropertyKeyStep(k, x, c, a, o, b)
     }
 
   // for-each steps for parse node

@@ -120,10 +120,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
-        app >> First("For each own property key ") >> key >> " of " >> obj
+        app >> First("for each own property key ") >> key >> " of " >> obj
         app >> " such that " >> cond >> ", in "
         if (ascending) app >> "ascending " else app >> "descending "
-        app >> order >> ", do" >> body
+        app >> order >> ", "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
+        app >> body
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body

@@ -79,6 +79,14 @@ class JsonTinyTest extends LangTest {
         "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in descending order, " +
         "let _x_ be _x_."
       ),
+      forEachAscOPKStep -> (
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, " +
+        "let _x_ be _x_."
+      ),
+      forEachDscOPKStep -> (
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
+        "let _x_ be _x_."
+      ),
       toBlockStep(forEachArrayIndexStep) -> """
       |  1. For each own property key _x_ of _x_ that is an array index, whose numeric value is greater than or equal to _x_, in descending numeric index order, do
       |    1. Let _x_ be _x_.""".stripMargin,
