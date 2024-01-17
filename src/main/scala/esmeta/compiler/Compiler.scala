@@ -307,8 +307,29 @@ class Compiler(
           },
         ),
       )
-    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
-      fb.addInst(IExpr(EYet("TODO")))
+    case ForEachOwnPropertyKeyStep(x, obj, cond, ascending, order, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      val (key, keyExpr) = compileWithExpr(x)
+      fb.addInst(
+        IAssign(i, zero),
+        IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), true)),
+        ILoop(
+          "repeat",
+          lessThan(iExpr, toStrERef(list, "length")),
+          fb.newScope {
+            fb.addInst(ILet(key, toERef(list, iExpr)))
+            fb.addInst(
+              IIf(
+                compile(fb, cond),
+                compileWithScope(fb, body),
+                emptyInst,
+              ),
+            )
+            fb.addInst(IAssign(i, add(iExpr, one)))
+          },
+        ),
+      )
     case ForEachParseNodeStep(x, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
