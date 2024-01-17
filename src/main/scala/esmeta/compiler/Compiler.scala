@@ -312,12 +312,15 @@ class Compiler(
       val (list, listExpr) = fb.newTIdWithExpr
       val (key, keyExpr) = compileWithExpr(x)
       fb.addInst(
-        IAssign(i, zero),
         IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), true)),
+        if (ascending) IAssign(i, zero)
+        else IAssign(i, toStrERef(list, "length")),
         ILoop(
           "repeat",
-          lessThan(iExpr, toStrERef(list, "length")),
+          if (ascending) lessThan(iExpr, toStrERef(list, "length"))
+          else lessThan(zero, iExpr),
           fb.newScope {
+            if (!ascending) fb.addInst(IAssign(i, sub(iExpr, one)))
             fb.addInst(ILet(key, toERef(list, iExpr)))
             fb.addInst(
               IIf(
@@ -326,7 +329,7 @@ class Compiler(
                 emptyInst,
               ),
             )
-            fb.addInst(IAssign(i, add(iExpr, one)))
+            if (ascending) fb.addInst(IAssign(i, add(iExpr, one)))
           },
         ),
       )
