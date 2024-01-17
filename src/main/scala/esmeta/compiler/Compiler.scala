@@ -307,6 +307,8 @@ class Compiler(
           },
         ),
       )
+    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+      fb.addInst(IExpr(EYet("TODO")))
     case ForEachParseNodeStep(x, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

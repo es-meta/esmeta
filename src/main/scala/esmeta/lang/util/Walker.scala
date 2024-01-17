@@ -83,6 +83,15 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
+    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+      ForEachOwnPropertyKeyStep(
+        walk(key),
+        walk(obj),
+        walk(cond),
+        ascending,
+        order,
+        walk(body),
+      )
     case ForEachParseNodeStep(x, expr, body) =>
       ForEachParseNodeStep(
         walk(x),
