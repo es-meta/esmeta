@@ -1072,7 +1072,9 @@ trait Parsers extends IndentParsers {
   }.named("lang.Reference")
 
   // property references
-  lazy val propRef: PL[PropertyReference] = opt("the value of") ~> {
+  lazy val propRef: PL[PropertyReference] = opt(
+    "the" ~ opt("String") ~ "value" ~ opt("of"),
+  ) ~> {
     baseRef ~ prop ~ rep(prop) ^^ {
       case base ~ p ~ ps =>
         ps.foldLeft(PropertyReference(base, p))(PropertyReference(_, _))
