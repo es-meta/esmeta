@@ -120,12 +120,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+        import ForEachOwnPropertyKeyStepOrder.*
         app >> First("for each own property key ") >> key >> " of " >> obj
         app >> " such that " >> cond >> ", in "
         if (ascending) app >> "ascending " else app >> "descending "
         order match
-          case Order.NumericIndexOrder => app >> "numeric index order"
-          case Order.ChronologicalOrder =>
+          case NumericIndexOrder => app >> "numeric index order"
+          case ChronologicalOrder =>
             app >> "chronological order of property creation"
         app >> ", "
         if (body.isInstanceOf[BlockStep]) app >> "do"
@@ -214,6 +215,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> expr
     }
   }
+
+  // operators for bitwise expressions
+  given ForEachOwnPropertyKeyStepOrderRule
+    : Rule[ForEachOwnPropertyKeyStepOrder] =
+    (app, order) =>
+      import ForEachOwnPropertyKeyStepOrder.*
+      app >> (order match
+        case NumericIndexOrder  => "numeric index order"
+        case ChronologicalOrder => "chronological order of property creation"
+      )
   private case class First(str: String)
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first

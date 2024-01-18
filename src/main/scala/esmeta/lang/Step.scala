@@ -55,9 +55,11 @@ case class ForEachOwnPropertyKeyStep(
   obj: Variable,
   cond: Condition,
   ascending: Boolean,
-  order: Order,
+  order: ForEachOwnPropertyKeyStepOrder,
   body: Step,
 ) extends Step
+enum ForEachOwnPropertyKeyStepOrder extends LangElem:
+  case NumericIndexOrder, ChronologicalOrder
 
 // for-each steps for parse node
 case class ForEachParseNodeStep(

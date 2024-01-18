@@ -61,7 +61,7 @@ object LangTest {
     x,
     compCond,
     true,
-    util.Order.NumericIndexOrder,
+    ForEachOwnPropertyKeyStepOrder.NumericIndexOrder,
     letStep,
   )
   lazy val forEachDscOPKStep = ForEachOwnPropertyKeyStep(
@@ -69,7 +69,7 @@ object LangTest {
     x,
     compCond,
     false,
-    util.Order.ChronologicalOrder,
+    ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
   lazy val throwStep = ThrowStep(errObj)

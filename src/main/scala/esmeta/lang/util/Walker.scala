@@ -6,15 +6,16 @@ import esmeta.lang.*
 /** a walker for metalanguage */
 trait Walker extends BasicWalker {
   def walk(elem: LangElem): LangElem = elem match {
-    case elem: Syntax                       => walk(elem)
-    case elem: ConversionExpressionOperator => walk(elem)
-    case elem: PredicateConditionOperator   => walk(elem)
-    case elem: MathFuncExpressionOperator   => walk(elem)
-    case elem: BinaryExpressionOperator     => walk(elem)
-    case elem: UnaryExpressionOperator      => walk(elem)
-    case elem: XRefExpressionOperator       => walk(elem)
-    case elem: BinaryConditionOperator      => walk(elem)
-    case elem: CompoundConditionOperator    => walk(elem)
+    case elem: Syntax                         => walk(elem)
+    case elem: ForEachOwnPropertyKeyStepOrder => walk(elem)
+    case elem: ConversionExpressionOperator   => walk(elem)
+    case elem: PredicateConditionOperator     => walk(elem)
+    case elem: MathFuncExpressionOperator     => walk(elem)
+    case elem: BinaryExpressionOperator       => walk(elem)
+    case elem: UnaryExpressionOperator        => walk(elem)
+    case elem: XRefExpressionOperator         => walk(elem)
+    case elem: BinaryConditionOperator        => walk(elem)
+    case elem: CompoundConditionOperator      => walk(elem)
   }
 
   def walk(syn: Syntax): Syntax = syn match {
@@ -89,7 +90,7 @@ trait Walker extends BasicWalker {
         walk(obj),
         walk(cond),
         ascending,
-        order,
+        walk(order),
         walk(body),
       )
     case ForEachParseNodeStep(x, expr, body) =>
@@ -213,6 +214,10 @@ trait Walker extends BasicWalker {
     case UnaryExpression(op, expr) =>
       UnaryExpression(walk(op), walk(expr))
   }
+
+  def walk(
+    order: ForEachOwnPropertyKeyStepOrder,
+  ): ForEachOwnPropertyKeyStepOrder = order
 
   def walk(op: MathOpExpressionOperator): MathOpExpressionOperator = op
 

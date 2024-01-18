@@ -6,10 +6,6 @@ import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
 import esmeta.util.BaseUtils.*
 
-enum Order:
-  case NumericIndexOrder
-  case ChronologicalOrder
-
 /** metalanguage parser */
 object Parser extends Parsers
 object ParserForEval extends Parsers { override def eval = true }
@@ -178,11 +174,12 @@ trait Parsers extends IndentParsers {
 
   // for-each steps for OwnPropertyKey
   lazy val forEachOwnPropertyKeyStep: PL[ForEachOwnPropertyKeyStep] =
+    import ForEachOwnPropertyKeyStepOrder.*
     lazy val ascending: Parser[Boolean] =
       ("ascending" ^^^ true | "descending" ^^^ false)
-    lazy val order: Parser[Order] =
-      "numeric index order" ^^^ Order.NumericIndexOrder |
-      "chronological order of property creation" ^^^ Order.ChronologicalOrder
+    lazy val order: Parser[ForEachOwnPropertyKeyStepOrder] =
+      "numeric index order" ^^^ NumericIndexOrder |
+      "chronological order of property creation" ^^^ ChronologicalOrder
     ("for each own property key" ~> variable) ~
     ("of" ~> variable <~ "such that") ~
     cond ~
