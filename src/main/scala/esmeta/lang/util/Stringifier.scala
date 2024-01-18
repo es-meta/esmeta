@@ -216,7 +216,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
   }
 
-  // operators for bitwise expressions
+  // ForEachOwnPropertyKeyStepOrder
   given ForEachOwnPropertyKeyStepOrderRule
     : Rule[ForEachOwnPropertyKeyStepOrder] =
     (app, order) =>
