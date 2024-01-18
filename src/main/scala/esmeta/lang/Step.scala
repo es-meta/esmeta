@@ -40,14 +40,17 @@ case class ForEachIntegerStep(
   body: Step,
 ) extends Step
 
-// for-each steps for array index property
-case class ForEachArrayIndexStep(
+// for-each steps for OwnPropertyKey
+case class ForEachOwnPropertyKeyStep(
   key: Variable,
-  array: Variable,
-  start: Expression,
+  obj: Variable,
+  cond: Condition,
   ascending: Boolean,
+  order: ForEachOwnPropertyKeyStepOrder,
   body: Step,
 ) extends Step
+enum ForEachOwnPropertyKeyStepOrder extends LangElem:
+  case NumericIndexOrder, ChronologicalOrder
 
 // for-each steps for parse node
 case class ForEachParseNodeStep(

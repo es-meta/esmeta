@@ -271,11 +271,18 @@
     "language/expressions/conditional/tco-pos",
     "language/expressions/logical-and/tco-right",
     "language/expressions/logical-or/tco-right",
+    "language/expressions/tagged-template/tco-call",
+    "language/expressions/tagged-template/tco-member",
     "language/expressions/tco-pos",
     "language/reserved-words/ident-name-keyword-accessor",
     "language/reserved-words/ident-name-keyword-prop-name",
     "language/statements/block/tco-stmt",
     "language/statements/block/tco-stmt-list",
+    "language/statements/do-while/S12.6.1_A4_T5",
+    "language/statements/do-while/S12.6.1_A5",
+    "language/statements/do-while/S12.6.1_A8",
+    "language/statements/do-while/S12.6.1_A9",
+    "language/statements/do-while/cptn-abrupt-empty",
     "language/statements/do-while/tco-body",
     "language/statements/for/tco-const-body",
     "language/statements/for/tco-let-body",
@@ -293,7 +300,8 @@
     "language/statements/try/tco-catch-finally",
     "language/statements/try/tco-finally",
     "language/statements/while/tco-body",
-    "language/types/number/8.5.1"
+    "language/types/number/8.5.1",
+    "language/types/number/S8.5_A13_T2"
   ],
   "wrong": [
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",

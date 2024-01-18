@@ -275,35 +275,30 @@ class Compiler(
           },
         ),
       )
-    case ForEachArrayIndexStep(x, array, start, ascending, body) =>
+    case ForEachOwnPropertyKeyStep(x, obj, cond, ascending, order, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       val (key, keyExpr) = compileWithExpr(x)
+      val intSorted = order == ForEachOwnPropertyKeyStepOrder.NumericIndexOrder
       fb.addInst(
-        IAssign(list, EKeys(toStrERef(compile(fb, array), "SubMap"), true)),
-        IAssign(i, toStrERef(list, "length")),
+        IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), intSorted)),
+        if (ascending) IAssign(i, zero)
+        else IAssign(i, toStrERef(list, "length")),
         ILoop(
-          "foreach-array",
-          lessThan(zero, iExpr),
+          "repeat",
+          if (ascending) lessThan(iExpr, toStrERef(list, "length"))
+          else lessThan(zero, iExpr),
           fb.newScope {
-            val cond = and(
-              EIsArrayIndex(keyExpr),
-              not(
-                lessThan(
-                  EConvert(COp.ToNumber, keyExpr),
-                  compile(fb, start),
-                ),
-              ),
-            )
-            fb.addInst(IAssign(i, sub(iExpr, one)))
+            if (!ascending) fb.addInst(IAssign(i, sub(iExpr, one)))
             fb.addInst(ILet(key, toERef(list, iExpr)))
             fb.addInst(
               IIf(
-                cond,
+                compile(fb, cond),
                 compileWithScope(fb, body),
                 emptyInst,
               ),
             )
+            if (ascending) fb.addInst(IAssign(i, add(iExpr, one)))
           },
         ),
       )

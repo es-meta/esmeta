@@ -2245,6 +2245,7 @@ StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
 StringExoticObject.DefineOwnProperty
 StringExoticObject.GetOwnProperty
+StringExoticObject.OwnPropertyKeys
 StringGetOwnProperty
 StringIndexOf
 StringNumericLiteral[0,0].StringNumericValue

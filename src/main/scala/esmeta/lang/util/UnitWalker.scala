@@ -6,15 +6,16 @@ import esmeta.lang.*
 /** a unit walker for metalanguage */
 trait UnitWalker extends BasicUnitWalker {
   def walk(elem: LangElem): Unit = elem match {
-    case elem: Syntax                       => walk(elem)
-    case elem: ConversionExpressionOperator => walk(elem)
-    case elem: PredicateConditionOperator   => walk(elem)
-    case elem: MathFuncExpressionOperator   => walk(elem)
-    case elem: BinaryExpressionOperator     => walk(elem)
-    case elem: UnaryExpressionOperator      => walk(elem)
-    case elem: XRefExpressionOperator       => walk(elem)
-    case elem: BinaryConditionOperator      => walk(elem)
-    case elem: CompoundConditionOperator    => walk(elem)
+    case elem: Syntax                         => walk(elem)
+    case elem: ForEachOwnPropertyKeyStepOrder => walk(elem)
+    case elem: ConversionExpressionOperator   => walk(elem)
+    case elem: PredicateConditionOperator     => walk(elem)
+    case elem: MathFuncExpressionOperator     => walk(elem)
+    case elem: BinaryExpressionOperator       => walk(elem)
+    case elem: UnaryExpressionOperator        => walk(elem)
+    case elem: XRefExpressionOperator         => walk(elem)
+    case elem: BinaryConditionOperator        => walk(elem)
+    case elem: CompoundConditionOperator      => walk(elem)
   }
 
   def walk(syn: Syntax): Unit = syn match {
@@ -63,8 +64,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, low, high, ascending, body) =>
       walk(x); walk(low); walk(high); walk(body)
-    case ForEachArrayIndexStep(key, array, start, ascending, body) =>
-      walk(key); walk(array); walk(start); walk(body)
+    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+      walk(key); walk(obj); walk(cond); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
     case ThrowStep(expr)            => walk(expr)
@@ -167,6 +168,8 @@ trait UnitWalker extends BasicUnitWalker {
     case lit: Literal =>
       walk(lit)
   }
+
+  def walk(order: ForEachOwnPropertyKeyStepOrder): Unit = {}
 
   def walk(op: MathOpExpressionOperator): Unit = {}
 

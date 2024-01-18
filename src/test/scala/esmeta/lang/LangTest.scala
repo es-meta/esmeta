@@ -54,8 +54,22 @@ object LangTest {
     false,
     letStep,
   )
-  lazy val forEachArrayIndexStep =
-    ForEachArrayIndexStep(x, x, refExpr, false, blockStep)
+  lazy val forEachAscOPKStep = ForEachOwnPropertyKeyStep(
+    x,
+    x,
+    compCond,
+    true,
+    ForEachOwnPropertyKeyStepOrder.NumericIndexOrder,
+    letStep,
+  )
+  lazy val forEachDscOPKStep = ForEachOwnPropertyKeyStep(
+    x,
+    x,
+    compCond,
+    false,
+    ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
+    letStep,
+  )
   lazy val throwStep = ThrowStep(errObj)
   lazy val performStep = PerformStep(invokeAOExpr)
   lazy val appendStep = AppendStep(refExpr, fieldRef)
