@@ -312,7 +312,7 @@ class Compiler(
       val (list, listExpr) = fb.newTIdWithExpr
       val (key, keyExpr) = compileWithExpr(x)
       fb.addInst(
-        IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), true)),
+        IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), false)),
         if (ascending) IAssign(i, zero)
         else IAssign(i, toStrERef(list, "length")),
         ILoop(
