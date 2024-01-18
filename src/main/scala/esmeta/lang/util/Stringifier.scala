@@ -123,7 +123,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("for each own property key ") >> key >> " of " >> obj
         app >> " such that " >> cond >> ", in "
         if (ascending) app >> "ascending " else app >> "descending "
-        app >> order >> ", "
+        order match
+          case Order.NumericIndexOrder => app >> "numeric index order"
+          case Order.ChronologicalOrder =>
+            app >> "chronological order of property creation"
+        app >> ", "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
       case ForEachParseNodeStep(x, expr, body) =>
