@@ -76,14 +76,6 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case ForEachArrayIndexStep(key, array, start, ascending, body) =>
-      ForEachArrayIndexStep(
-        walk(key),
-        walk(array),
-        walk(start),
-        ascending,
-        walk(body),
-      )
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
       ForEachOwnPropertyKeyStep(
         walk(key),

@@ -87,9 +87,6 @@ class JsonTinyTest extends LangTest {
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
         "let _x_ be _x_."
       ),
-      toBlockStep(forEachArrayIndexStep) -> """
-      |  1. For each own property key _x_ of _x_ that is an array index, whose numeric value is greater than or equal to _x_, in descending numeric index order, do
-      |    1. Let _x_ be _x_.""".stripMargin,
       throwStep -> "throw a newly created *TypeError* object.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",

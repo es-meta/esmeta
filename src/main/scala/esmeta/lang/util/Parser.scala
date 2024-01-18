@@ -74,7 +74,6 @@ trait Parsers extends IndentParsers {
     removeFirstStep |
     removeCtxtStep |
     ifStep |
-    forEachArrayIndexStep |
     forEachOwnPropertyKeyStep |
     forEachStep |
     forEachIntStep |
@@ -159,17 +158,6 @@ trait Parsers extends IndentParsers {
     interval ~ ascending ~ (opt("do") ~> step) ^^ {
       case x ~ (low, high) ~ asc ~ body =>
         ForEachIntegerStep(x, low, high, asc, body)
-    }
-
-  // for-each steps for array index property
-  lazy val forEachArrayIndexStep: PL[ForEachArrayIndexStep] =
-    lazy val ascending: Parser[Boolean] =
-      opt("in descending numeric index order,") ^^ { !_.isDefined }
-    ("for each own property key" ~> variable) ~
-    ("of" ~> variable <~ "that is an array index,") ~
-    ("whose numeric value is greater than or equal to" ~> expr <~ ",") ~
-    ascending ~ (opt("do") ~> step) ^^ {
-      case k ~ x ~ s ~ a ~ b => ForEachArrayIndexStep(k, x, s, a, b)
     }
 
   // for-each steps for OwnPropertyKey

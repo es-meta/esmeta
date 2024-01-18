@@ -54,8 +54,6 @@ object LangTest {
     false,
     letStep,
   )
-  lazy val forEachArrayIndexStep =
-    ForEachArrayIndexStep(x, x, refExpr, false, blockStep)
   lazy val forEachAscOPKStep = ForEachOwnPropertyKeyStep(
     x,
     x,

@@ -112,13 +112,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
-      case ForEachArrayIndexStep(key, array, start, ascending, body) =>
-        app >> First("for each own property key ") >> key >> " of " >> array
-        app >> " that is an array index,"
-        app >> " whose numeric value is greater than or equal to "
-        app >> start >> ", " >> "in descending numeric index order, "
-        if (body.isInstanceOf[BlockStep]) app >> "do"
-        app >> body
       case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
         import ForEachOwnPropertyKeyStepOrder.*
         app >> First("for each own property key ") >> key >> " of " >> obj

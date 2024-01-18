@@ -40,15 +40,6 @@ case class ForEachIntegerStep(
   body: Step,
 ) extends Step
 
-// for-each steps for array index property
-case class ForEachArrayIndexStep(
-  key: Variable,
-  array: Variable,
-  start: Expression,
-  ascending: Boolean,
-  body: Step,
-) extends Step
-
 // for-each steps for OwnPropertyKey
 case class ForEachOwnPropertyKeyStep(
   key: Variable,
