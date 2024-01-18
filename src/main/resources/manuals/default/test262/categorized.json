@@ -294,9 +294,14 @@
     "language/statements/try/tco-finally",
     "language/statements/while/tco-body",
     "language/types/number/8.5.1",
-    "language/expressions/tagged-template/tco-call.js",
-    "language/expressions/tagged-template/tco-member.js",
-    "language/types/number/S8.5_A13_T2.js"
+    "language/statements/do-while/S12.6.1_A5",
+    "language/statements/do-while/S12.6.1_A4_T5",
+    "language/expressions/tagged-template/tco-call",
+    "language/statements/do-while/cptn-abrupt-empty",
+    "language/statements/do-while/S12.6.1_A9",
+    "language/statements/do-while/S12.6.1_A8",
+    "language/expressions/tagged-template/tco-member",
+    "language/types/number/S8.5_A13_T2"
   ],
   "wrong": [
     "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
