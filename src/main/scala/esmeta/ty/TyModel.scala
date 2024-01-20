@@ -115,7 +115,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   } yield name -> getPropMap(name)).toMap
 
   /** get property map */
-  private def getPropMap(name: String): PropMap =
+  def getPropMap(name: String): PropMap =
     val upper = getUpperPropMap(name)
     val lower = getLowerPropMap(name)
     lower.foldLeft(upper) {

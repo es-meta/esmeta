@@ -129,6 +129,10 @@ trait Parsers extends BasicParsers {
   private lazy val str: Parser[String] =
     """"[^"]*"""".r ^^ { case s => s.substring(1, s.length - 1) }
 
+  /** structural types */
+  given structTy: Parser[StructTy] = ???
+  given structsTy: Parser[StructsTy] = ???
+
   /** named record types */
   given nameTy: Parser[NameTy] = {
     rep1sep(singleNameTy, "|") ^^ {
