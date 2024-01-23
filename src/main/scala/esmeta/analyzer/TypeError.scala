@@ -50,7 +50,7 @@ case class UncheckedAbruptComp(
   ty: ValueTy,
 ) extends TypeError { type This = UncheckedAbruptComp }
 
-/** invalid base in property referecens */
+/** invalid base in property references */
 case class InvalidPropBase(
   point: PropBasePoint,
   baseTy: ValueTy,

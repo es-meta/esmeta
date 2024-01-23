@@ -139,12 +139,32 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   /** get subtypes with field existence */
   lazy val getSubTypes: ((String, String)) => List[String] =
     cached((name, key) =>
-      val exist = getSamePropMap(name).contains(key)
+      val exist = getUpperPropMap(name).contains(key)
       if (exist) List(name)
       else
         directSubTys
           .get(name)
           .fold(Nil)(_.flatMap(child => getSubTypes(child, key)).toList),
+    )
+
+  /** get subtypes with specific field/value */
+  lazy val getSubTypesWithFields: ((String, String, ValueTy)) => List[String] =
+    cached((name, key, value) =>
+      val currentValue = getUpperPropMap(name).getOrElse(key, ValueTy.Bot)
+      if (value <= currentValue) List(name)
+      else
+        directSubTys
+          .get(name)
+          .fold(Nil)(_.flatMap(getSubTypesWithFields(_, key, value)).toList),
+    )
+
+  /** get supertype without specific field */
+  lazy val getSupType: ((String, String)) => Option[String] =
+    cached((name, key) =>
+      val absent = !getSamePropMap(name).contains(key)
+      if (absent) Some(name)
+      else
+        infos.get(name).fold(None)(_.parent.fold(None)(getSupType(_, key))),
     )
 
   /** get property map from ancestors */

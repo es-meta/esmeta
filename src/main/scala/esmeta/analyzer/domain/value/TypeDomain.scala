@@ -240,13 +240,33 @@ object TypeDomain extends value.Domain {
       else if (r.isSingle) elem -- r
       else elem
     def pruneAbsentField(field: String, positive: Boolean): Elem =
-      val subTys = (for {
-        name <- elem.ty.name.set
-      } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
-      val normalized = Elem(subTys.foldLeft(ValueTy.Bot) {
-        case (res, name) => res ⊔ NameT(name)
-      })
-      if (positive) elem else elem ⊓ normalized
+      if (positive)
+        val supTys =
+          elem.ty.name.set.toList.flatMap(cfg.tyModel.getSupType(_, field))
+        val normalized = Elem(supTys.foldLeft(ValueTy.Bot)(_ ⊔ NameT(_)))
+        // if joins, we ignore the case when there is no supertype (bottom)
+        // ALL of these cases are related with `PropertyDescriptor`
+        elem ⊔ normalized
+      else
+        val subTys =
+          elem.ty.name.set.toList.flatMap(cfg.tyModel.getSubTypes(_, field))
+        val normalized = Elem(subTys.foldLeft(ValueTy.Bot)(_ ⊔ NameT(_)))
+        elem ⊓ normalized
+    def pruneUpdateField(field: String, value: Elem): Elem =
+      // TODO: temporary fix for RecordTy
+      if (elem.ty.name.isBottom) return elem
+      val subTys = elem.ty.name.set.toList
+        .flatMap(cfg.tyModel.getSubTypesWithFields(_, field, value.ty))
+      val normalized = Elem(subTys.foldLeft(ValueTy.Bot)(_ ⊔ NameT(_)))
+      if (normalized.isBottom || subTys.isEmpty)
+        // TODO: temporary fix for imprecision of TyModel
+        // TODO: temporary fix for MakeConstructor sets 'ConstructorKind' on 'BuiltinFunctionObject'
+        // throw warning and do not refine at this moment
+        println(
+          s"pruneUpdateField: ${sem.curCp.get.func.name} ($elem).$field = $value -> ${elem ⊓ normalized}",
+        )
+        elem
+      else elem ⊓ normalized
     def pruneField(field: String, r: Elem, positive: Boolean): Elem =
       field match
         case "Value" =>
