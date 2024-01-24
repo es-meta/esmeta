@@ -83,6 +83,16 @@ case class ContainsWhoseCondition(
   expr: Expression,
 ) extends Condition
 
+// `contiains ... such that` conditions
+case class ContainsSTCondition(
+  list: Expression,
+  ty: Type,
+  x: Variable,
+  y: Variable,
+  fieldName: String,
+  expr: Expression,
+) extends Condition
+
 // compound conditions
 case class CompoundCondition(
   left: Condition,

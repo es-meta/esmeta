@@ -865,7 +865,13 @@ class Compiler(
         EContains(
           compile(fb, list),
           compile(fb, expr),
-          Some((compile(ty), fieldName)),
+          Some(compile(ty), fieldName),
+        )
+      case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
+        EContains(
+          compile(fb, list),
+          compile(fb, expr),
+          Some(compile(ty), fieldName),
         )
       case CompoundCondition(left, op, right) =>
         lazy val l = compile(fb, left)

@@ -628,6 +628,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ContainsWhoseCondition(list, ty, fieldName, expr) =>
         app >> list >> " contains a " >> ty
         app >> " whose [[" >> fieldName >> "]] is " >> expr
+      case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
+        app >> list >> " contains a " >> ty
+        app >> " " >> x >> " such that "
+        app >> y >> ".[[" >> fieldName >> "]] is " >> expr
       case CompoundCondition(left, op, right) =>
         op match {
           case CompoundConditionOperator.Imply =>

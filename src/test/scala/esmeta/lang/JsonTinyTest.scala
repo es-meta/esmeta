@@ -401,6 +401,7 @@ class JsonTinyTest extends LangTest {
       inclusiveIntervalCond -> "_x_ is in the inclusive interval from 2 to 32",
       notInclusiveIntervalCond -> "_x_ is not in the inclusive interval from 2 to 32",
       containsWhoseCond -> "_x_ contains a Base whose [[Value]] is _x_",
+      containsSTCond -> "_x_ contains a Base _x_ such that _x_.[[Value]] is _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
     )

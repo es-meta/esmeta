@@ -221,6 +221,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(neg); walk(from); walk(to)
     case ContainsWhoseCondition(list, ty, fieldName, expr) =>
       walk(list); walk(ty); walk(expr)
+    case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
+      walk(list); walk(ty); walk(x); walk(y); walk(expr)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
   }

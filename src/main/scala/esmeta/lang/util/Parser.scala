@@ -881,6 +881,7 @@ trait Parsers extends IndentParsers {
     binCond |||
     inclusiveIntervalCond |||
     containsWhoseCond |||
+    containsSTCond |||
     specialCond
 
   // expression conditions
@@ -981,7 +982,7 @@ trait Parsers extends IndentParsers {
         BinaryCondition(r, if (n) NContains else Contains, l)
     }
 
-  // binary conditions
+  // inclusive interval conditions
   lazy val inclusiveIntervalCond: PL[InclusiveIntervalCondition] = {
     (expr <~ "is") ~
     opt("not") ~
@@ -998,6 +999,17 @@ trait Parsers extends IndentParsers {
     ("whose" ~ "[[" ~> word <~ "]]") ~
     ("is" ~> expr) ^^ {
       case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
+    }
+
+  // contains-such-that conditions
+  lazy val containsSTCond: PL[ContainsSTCondition] =
+    expr ~
+    ("contains" ~> langType) ~
+    variable ~
+    ("such that" ~> variable) ~
+    ("." ~ "[[" ~> word <~ "]]") ~
+    ("is" ~> expr) ^^ {
+      case l ~ t ~ x ~ y ~ f ~ e => ContainsSTCondition(l, t, x, y, f, e)
     }
 
   // rarely used conditions

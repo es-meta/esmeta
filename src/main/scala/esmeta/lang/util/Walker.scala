@@ -266,6 +266,15 @@ trait Walker extends BasicWalker {
       InclusiveIntervalCondition(walk(left), walk(neg), walk(from), walk(to))
     case ContainsWhoseCondition(list, ty, fieldName, expr) =>
       ContainsWhoseCondition(walk(list), walk(ty), fieldName, walk(expr))
+    case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
+      ContainsSTCondition(
+        walk(list),
+        walk(ty),
+        walk(x),
+        walk(y),
+        fieldName,
+        walk(expr),
+      )
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }

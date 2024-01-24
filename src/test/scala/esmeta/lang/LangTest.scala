@@ -320,6 +320,8 @@ object LangTest {
     inclusiveIntervalCond.copy(negation = true)
   lazy val containsWhoseCond =
     ContainsWhoseCondition(refExpr, ty, "Value", refExpr)
+  lazy val containsSTCond =
+    ContainsSTCondition(refExpr, ty, x, x, "Value", refExpr)
   lazy val compCond =
     CompoundCondition(exprCond, CompoundConditionOperator.And, exprCond)
   lazy val implyCond =
