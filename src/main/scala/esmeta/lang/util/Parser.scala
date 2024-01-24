@@ -391,6 +391,12 @@ trait Parsers extends IndentParsers {
   } ^^ {
     case t ~ fs => RecordExpression(t, fs.map { case f ~ e => f -> e })
   } | {
+    ("a new" ~> tname) ~
+    ("whose" ~> fieldLiteral) ~
+    ("is" ~> expr)
+  } ^^ {
+    case t ~ f ~ e => RecordExpression(t, List(f -> e))
+  } | {
     opt("an " | "a ") ~ ("newly created" | "new") ~
     guard(not("Realm")) ~> tname <~ opt(
       "containing no bindings" |
