@@ -216,7 +216,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
         l <- transfer(ref)
         v <- transfer(expr)
         lv <- transfer(l)
-        prunedV = lv.pruneUpdateField(field, v)
+        prunedV = lv.pruneField(field, v, true)
         _ <- modify(_.update(l, prunedV))
       } yield ()
     case IAssign(ref, expr) =>

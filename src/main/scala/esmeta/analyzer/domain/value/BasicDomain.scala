@@ -450,7 +450,6 @@ object BasicDomain extends value.Domain {
     def pruneType(r: Elem, positive: Boolean): Elem = elem
     def pruneTypeCheck(r: Elem, positive: Boolean): Elem = elem
     def pruneAbsentField(field: String, positive: Boolean): Elem = elem
-    def pruneUpdateField(field: String, value: Elem): Elem = elem
 
     /** completion helpers */
     def wrapCompletion: Elem = wrapCompletion("normal")

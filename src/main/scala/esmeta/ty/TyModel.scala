@@ -158,15 +158,6 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
           .fold(Nil)(_.flatMap(getSubTypesWithFields(_, key, value)).toList),
     )
 
-  /** get supertype without specific field */
-  lazy val getSupType: ((String, String)) => Option[String] =
-    cached((name, key) =>
-      val absent = !getSamePropMap(name).contains(key)
-      if (absent) Some(name)
-      else
-        infos.get(name).fold(None)(_.parent.fold(None)(getSupType(_, key))),
-    )
-
   /** get property map from ancestors */
   private def getLowerPropMap(name: String): PropMap =
     directSubTys.get(name) match
