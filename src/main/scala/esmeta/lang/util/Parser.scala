@@ -953,7 +953,8 @@ trait Parsers extends IndentParsers {
       "an accessor property" ^^^ AccessorProperty |
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
       "an instance of a nonterminal" ^^^ Nonterminal |
-      "an integral Number" ^^^ IntegralNumber
+      "an integral Number" ^^^ IntegralNumber |
+      "an odd integral Number" ^^^ OddIntegralNumber
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)

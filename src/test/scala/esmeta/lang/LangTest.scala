@@ -301,6 +301,12 @@ object LangTest {
       false,
       PredicateConditionOperator.IntegralNumber,
     )
+  lazy val oddintegralCond =
+    PredicateCondition(
+      refExpr,
+      false,
+      PredicateConditionOperator.OddIntegralNumber,
+    )
   lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
   lazy val areCond =
     IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))

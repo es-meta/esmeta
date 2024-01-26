@@ -822,6 +822,8 @@ class Compiler(
           case Nonterminal =>
             ETypeCheck(x, EStr("Nonterminal"))
           case IntegralNumber => isIntegral(x)
+          case OddIntegralNumber =>
+            and(not(is(mod(x, ENumber(2.0f)), ENumber(0.0f))), isIntegral(x))
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
@@ -1024,6 +1026,7 @@ class Compiler(
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)
   inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
+  inline def mod(l: Expr, r: Expr) = EBinary(BOp.Mod, l, r)
   inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
   inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
