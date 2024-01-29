@@ -830,7 +830,10 @@ class Compiler(
             ETypeCheck(x, EStr("Nonterminal"))
           case IntegralNumber => isIntegral(x)
           case OddIntegralNumber =>
-            and(not(is(mod(x, ENumber(2.0f)), ENumber(0.0f))), isIntegral(x))
+            and(
+              and(not(is(x, posInf)), not(is(x, negInf))),
+              and(is(mod(x, ENumber(2.0f)), ENumber(1.0f)), isIntegral(x)),
+            )
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
