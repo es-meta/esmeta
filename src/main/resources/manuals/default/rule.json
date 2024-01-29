@@ -16,11 +16,11 @@
     "_O_ is an Object that has a [[SyncIteratorRecord]] internal slot.": "(&& (? O: \"Object\") (! (= O.SyncIteratorRecord absent)))",
     "_O_ is an ordinary, extensible object with no non-configurable properties.": "(&& (? O: \"OrdinaryObject\") O.Extensible)",
     "_Receiver_ does not currently have a property _P_.": "(= Receiver.SubMap[P] absent)",
-    "_base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(! (|| (= base 0.0f) (= base -0.0f)))",
+    "_base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(&& (! (|| (= base NaN) (|| (= base +INF) (= base -INF)))) (! (|| (= base 0.0f) (= base -0.0f))))",
     "_calleeContext_ is now the running execution context.": "(= calleeContext @EXECUTION_STACK[0])",
     "_envRec_ does not already have a binding for _N_.": "(= envRec.SubMap[N] absent)",
     "_envRec_ must have an uninitialized binding for _N_.": "(= envRec.SubMap[N].initialized false)",
-    "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(! (|| (= exponent 0.0f) (= exponent -0.0f)))",
+    "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(&& (! (|| (= exponent NaN) (|| (= exponent +INF) (= exponent -INF)))) (! (|| (= exponent 0.0f) (= exponent -0.0f))))",
     "_genContext_ is the execution context of a generator.": "(? genContext: \"ExecutionContext\")",
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized.": "(! (= realm.Intrinsics[\"%ThrowTypeError%\"] absent))",
     "_x_ and _y_ are both finite.": "(&& (! (|| (= x +INF) (= x -INF))) (! (|| (= y +INF) (= y -INF))))"
