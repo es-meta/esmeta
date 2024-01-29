@@ -825,7 +825,7 @@ class Compiler(
           case OddIntegralNumber =>
             and(
               and(not(is(x, posInf)), not(is(x, negInf))),
-              and(is(mod(x, ENumber(2.0f)), ENumber(1.0f)), isIntegral(x)),
+              and(is(umod(x, ENumber(2.0f)), ENumber(1.0f)), isIntegral(x)),
             )
         }
         if (neg) not(cond) else cond
@@ -1029,7 +1029,7 @@ class Compiler(
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
   inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)
   inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
-  inline def mod(l: Expr, r: Expr) = EBinary(BOp.Mod, l, r)
+  inline def umod(l: Expr, r: Expr) = EBinary(BOp.UMod, l, r)
   inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
   inline def or(l: Expr, r: Expr) = EBinary(BOp.Or, l, r)
   inline def is(l: Expr, r: Expr) = EBinary(BOp.Eq, l, r)
