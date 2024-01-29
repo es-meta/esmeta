@@ -831,7 +831,9 @@ class Compiler(
           case IntegralNumber => isIntegral(x)
           case OddIntegralNumber =>
             and(
-              and(not(is(x, posInf)), not(is(x, negInf))),
+              not(
+                or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
+              ),
               and(is(umod(x, ENumber(2.0f)), ENumber(1.0f)), isIntegral(x)),
             )
         }
