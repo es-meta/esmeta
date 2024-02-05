@@ -300,6 +300,12 @@ object LangTest {
       false,
       PredicateConditionOperator.IntegralNumber,
     )
+  lazy val integerCond =
+    PredicateCondition(
+      refExpr,
+      false,
+      PredicateConditionOperator.IntegerNumber,
+    )
   lazy val oddintegralCond =
     PredicateCondition(
       refExpr,
