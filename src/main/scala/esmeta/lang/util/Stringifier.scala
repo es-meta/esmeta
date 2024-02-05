@@ -659,6 +659,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FullyPopulated    => "a fully populated Property Descriptor"
       case Nonterminal       => "an instance of a nonterminal"
       case IntegralNumber    => "an integral Number"
+      case IntegerNumber     => "an integer"
       case OddIntegralNumber => "an odd integral Number"
     })
 

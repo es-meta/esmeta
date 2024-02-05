@@ -829,6 +829,7 @@ class Compiler(
           case Nonterminal =>
             ETypeCheck(x, EStr("Nonterminal"))
           case IntegralNumber => isIntegral(x)
+          case IntegerNumber => isInteger(x)
           case OddIntegralNumber =>
             and(
               not(
@@ -984,6 +985,9 @@ class Compiler(
   /** operation helpers */
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
   inline def isIntegral(x: Expr) =
+    val m = EConvert(COp.ToMath, x)
+    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
+  inline def isInteger(x: Expr) = 
     val m = EConvert(COp.ToMath, x)
     and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
   def not(expr: Expr) = expr match
