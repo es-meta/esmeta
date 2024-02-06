@@ -265,13 +265,8 @@ object BasicDomain extends state.Domain {
       }
 
     /** check contains */
-    def contains(
-      list: AbsValue,
-      value: AbsValue,
-      field: Option[(Type, String)],
-    ): AbsValue = field match
-      case Some(_) => AbsValue.boolTop
-      case None    => heap.contains(list.part, value)
+    def contains(list: AbsValue, value: AbsValue): AbsValue =
+      heap.contains(list.part, value)
 
     /** define global variables */
     def defineGlobal(pairs: (Global, AbsValue)*): Elem =

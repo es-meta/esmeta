@@ -141,11 +141,7 @@ trait Domain extends domain.Domain[State] {
     def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem)
 
     /** check contains */
-    def contains(
-      list: AbsValue,
-      value: AbsValue,
-      field: Option[(Type, String)],
-    ): AbsValue
+    def contains(list: AbsValue, value: AbsValue): AbsValue
 
     /** find merged parts */
     def findMerged: Unit

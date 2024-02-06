@@ -10,7 +10,6 @@
     "Let _existing_ be that PrivateElement.": "{ let elems = container let idx = 0 loop[repeat] (< idx elems.length) { let elem = elems[idx] if (= elem.Key element.Key) let existing = elem else {} idx = (+ idx 1) } }",
     "Let _int_ be the mathematical value whose sign is the sign of _number_ and whose magnitude is floor(abs(ℝ(_number_))).": "{ let int = (floor (abs ([math] number))) if (< number 0.0f) int = (* -1 int) else {} }",
     "Let _k_ be the smallest non-negative integer such that the code unit at index _k_ within _px_ is different from the code unit at index _k_ within _py_. (There must be such a _k_, for neither String is a prefix of the other.)": "{ let k = 0 loop[repeat] (= px[k] py[k]) k = (+ k 1) }",
-    "Let _name_ be a new Private Name whose [[Description]] value is _dn_.": "let name = (new PrivateName(\"Description\" -> dn))",
     "Let _name_ be that Private Name.": "{ let idx = 0 loop[repeat] (< idx names.length) { let elem = names[idx] if (= elem.Description identifier) let name = elem else {} idx = (+ idx 1) } }",
     "Let _r_ be the BigInt defined by the mathematical relation _r_ = _n_ - (_d_ × _q_) where _q_ is a BigInt that is negative only if _n_/_d_ is negative and positive only if _n_/_d_ is positive, and whose magnitude is as large as possible without exceeding the magnitude of the true mathematical quotient of _n_ and _d_.": "let r = (% n d)",
     "Let _r_ be the first element of _O_.[[RemainingKeys]].": "let r = O.RemainingKeys[0]",

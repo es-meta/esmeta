@@ -15,6 +15,7 @@ trait Walker extends BasicWalker {
     case elem: UnaryExpressionOperator        => walk(elem)
     case elem: XRefExpressionOperator         => walk(elem)
     case elem: BinaryConditionOperator        => walk(elem)
+    case elem: ContainsConditionTarget        => walk(elem)
     case elem: CompoundConditionOperator      => walk(elem)
   }
 
@@ -264,8 +265,8 @@ trait Walker extends BasicWalker {
       BinaryCondition(walk(left), walk(op), walk(right))
     case InclusiveIntervalCondition(left, neg, from, to) =>
       InclusiveIntervalCondition(walk(left), walk(neg), walk(from), walk(to))
-    case ContainsWhoseCondition(list, ty, fieldName, expr) =>
-      ContainsWhoseCondition(walk(list), walk(ty), fieldName, walk(expr))
+    case ContainsCondition(list, neg, target) =>
+      ContainsCondition(walk(list), walk(neg), walk(target))
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }
@@ -273,6 +274,15 @@ trait Walker extends BasicWalker {
   def walk(op: PredicateConditionOperator): PredicateConditionOperator = op
 
   def walk(op: BinaryConditionOperator): BinaryConditionOperator = op
+
+  def walk(target: ContainsConditionTarget): ContainsConditionTarget =
+    import ContainsConditionTarget.*
+    target match
+      case Expr(expr) => Expr(walk(expr))
+      case WhoseField(tyOpt, fieldName, expr) =>
+        WhoseField(walkOpt(tyOpt, walk), fieldName, walk(expr))
+      case SuchThat(tyOpt, x, cond) =>
+        SuchThat(walkOpt(tyOpt, walk), walk(x), walk(cond))
 
   def walk(op: CompoundConditionOperator): CompoundConditionOperator = op
 

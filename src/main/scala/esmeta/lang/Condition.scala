@@ -65,7 +65,7 @@ case class BinaryCondition(
 ) extends Condition
 enum BinaryConditionOperator extends LangElem:
   case Eq, NEq, LessThan, LessThanEqual, GreaterThan, GreaterThanEqual,
-  SameCodeUnits, Contains, NContains
+  SameCodeUnits
 
 // inclusive interval conditions
 case class InclusiveIntervalCondition(
@@ -75,13 +75,18 @@ case class InclusiveIntervalCondition(
   to: Expression,
 ) extends Condition
 
-// `contains ... whose` conditions
-case class ContainsWhoseCondition(
+// `contiains` conditions
+case class ContainsCondition(
   list: Expression,
-  ty: Type,
-  fieldName: String,
-  expr: Expression,
+  negation: Boolean,
+  target: ContainsConditionTarget,
 ) extends Condition
+enum ContainsConditionTarget extends LangElem:
+  case Expr(expr: Expression)
+  // `contains ... whose [[ ... ]] is ...` condition
+  case WhoseField(tyOpt: Option[Type], fieldName: String, expr: Expression)
+  // `contains ... such that ...` condition
+  case SuchThat(tyOpt: Option[Type], x: Variable, cond: Condition)
 
 // compound conditions
 case class CompoundCondition(

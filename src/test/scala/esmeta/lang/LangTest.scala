@@ -318,8 +318,20 @@ object LangTest {
     )
   lazy val notInclusiveIntervalCond =
     inclusiveIntervalCond.copy(negation = true)
-  lazy val containsWhoseCond =
-    ContainsWhoseCondition(refExpr, ty, "Value", refExpr)
+  lazy val containsCond =
+    ContainsCondition(refExpr, false, ContainsConditionTarget.Expr(refExpr))
+  lazy val notContainsCond =
+    ContainsCondition(refExpr, true, ContainsConditionTarget.Expr(refExpr))
+  lazy val containsWhoseFieldCond = ContainsCondition(
+    refExpr,
+    false,
+    ContainsConditionTarget.WhoseField(Some(ty), "Field", refExpr),
+  )
+  lazy val containsSuchThatCond = ContainsCondition(
+    refExpr,
+    false,
+    ContainsConditionTarget.SuchThat(Some(ty), x, isCond),
+  )
   lazy val compCond =
     CompoundCondition(exprCond, CompoundConditionOperator.And, exprCond)
   lazy val implyCond =

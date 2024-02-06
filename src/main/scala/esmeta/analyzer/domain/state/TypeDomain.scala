@@ -202,11 +202,7 @@ object TypeDomain extends state.Domain {
       (AbsValue(SymbolT), elem)
 
     /** check contains */
-    def contains(
-      list: AbsValue,
-      value: AbsValue,
-      field: Option[(Type, String)],
-    ): AbsValue =
+    def contains(list: AbsValue, value: AbsValue): AbsValue =
       if (list.ty.list.isBottom) AbsValue.Bot
       else AbsValue.boolTop
 

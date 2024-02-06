@@ -250,13 +250,10 @@ class Interpreter(
       st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(List(msg))
-    case EContains(list, elem, field) =>
+    case EContains(list, elem) =>
       val l = eval(list).getList(list, st)
       val e = eval(elem)
-      Bool(field match {
-        case Some((_, f)) => l.values.exists(x => st(PropValue(x, Str(f))) == e)
-        case None         => l.values.contains(e)
-      })
+      Bool(l.values.contains(e))
     case ESubstring(expr, from, to) =>
       val s = eval(expr).asStr
       val f = eval(from).asInt
