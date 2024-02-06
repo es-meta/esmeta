@@ -10,6 +10,7 @@ trait Walker extends BasicWalker {
     case elem: ForEachOwnPropertyKeyStepOrder => walk(elem)
     case elem: ConversionExpressionOperator   => walk(elem)
     case elem: PredicateConditionOperator     => walk(elem)
+    case elem: IntegerConditionOperator       => walk(elem)
     case elem: MathFuncExpressionOperator     => walk(elem)
     case elem: BinaryExpressionOperator       => walk(elem)
     case elem: UnaryExpressionOperator        => walk(elem)
@@ -261,6 +262,8 @@ trait Walker extends BasicWalker {
       ProductionCondition(walk(nt), lhs, rhs)
     case PredicateCondition(expr, neg, op) =>
       PredicateCondition(walk(expr), neg, walk(op))
+    case IntegerCondition(expr, neg, op, isnum) =>
+      IntegerCondition(walk(expr), neg, walk(op), walk(isnum))
     case IsAreCondition(ls, neg, rs) =>
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
@@ -274,6 +277,8 @@ trait Walker extends BasicWalker {
   }
 
   def walk(op: PredicateConditionOperator): PredicateConditionOperator = op
+
+  def walk(op: IntegerConditionOperator): IntegerConditionOperator = op
 
   def walk(op: BinaryConditionOperator): BinaryConditionOperator = op
 

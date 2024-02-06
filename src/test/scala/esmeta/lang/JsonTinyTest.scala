@@ -395,6 +395,7 @@ class JsonTinyTest extends LangTest {
       nonNegativeCond -> "_x_ is a non-negative integral Number",
       integralCond -> "_x_ is an integral Number",
       oddintegralCond -> "_x_ is an odd integral Number",
+      integerCond -> "_x_ is an integer",
       isCond -> "_x_ is the length of _x_",
       areCond -> "both _x_ and _x_ are not *true*",
       isEitherCond -> "_x_ is either *true* or *false*",

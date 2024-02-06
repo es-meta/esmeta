@@ -890,6 +890,7 @@ trait Parsers extends IndentParsers {
     hasBindingCond |||
     productionCond |||
     predCond |||
+    integerCond |||
     isAreCond |||
     binCond |||
     inclusiveIntervalCond |||
@@ -946,21 +947,31 @@ trait Parsers extends IndentParsers {
       ("empty" | "an empty List") ^^^ Empty |
       "strict mode code" ^^^ StrictMode |
       "an array index" ^^^ ArrayIndex |
-      "a non-negative integral Number" ^^^ NonNegative |
       "the token `false`" ^^^ FalseToken |
       "the token `true`" ^^^ TrueToken |
       "a data property" ^^^ DataProperty |
       "an accessor property" ^^^ AccessorProperty |
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
-      "an instance of a nonterminal" ^^^ Nonterminal |
-      "an integral Number" ^^^ IntegralNumber |
-      "an odd integral Number" ^^^ OddIntegralNumber
+      "an instance of a nonterminal" ^^^ Nonterminal
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)
 
     expr ~ neg ~ op ^^ {
       case r ~ n ~ o => PredicateCondition(r, n, o)
+    }
+  lazy val integerCond: PL[IntegerCondition] =
+    import IntegerConditionOperator.*
+    lazy val op: Parser[IntegerConditionOperator] =
+      "a positive" ^^^ Positive |||
+      "a negative" ^^^ Negative |||
+      "a non-negative" ^^^ NonNegative |||
+      "an even" ^^^ Even |||
+      "an odd" ^^^ Odd |||
+      "an" ^^^ None
+    expr ~ isNeg ~ op ~
+    ("integral Number" ^^^ true ||| "integer" ^^^ false) ^^ {
+      case r ~ n ~ o ~ i => IntegerCondition(r, n, o, i)
     }
 
   // `A is/are B` condition

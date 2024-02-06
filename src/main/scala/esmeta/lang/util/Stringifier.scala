@@ -14,6 +14,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     elem match {
       case elem: Syntax                     => syntaxRule(app, elem)
       case elem: PredicateConditionOperator => predCondOpRule(app, elem)
+      case elem: IntegerConditionOperator   => integerCondOpRule(app, elem)
       case elem: MathFuncExpressionOperator => mathFuncExprOpRule(app, elem)
       case elem: ConversionExpressionOperator =>
         convExprOpRule(false)(app, elem)
@@ -600,6 +601,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case PredicateCondition(x, neg, op) =>
         // TODO is/has
         app >> x >> isStr(neg) >> op
+      case IntegerCondition(x, neg, op, isnum) =>
+        app >> x >> isStr(neg) >> op
+        if (isnum) app >> " integral Number"
+        else app >> " integer"
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head
@@ -644,26 +649,33 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
     import PredicateConditionOperator.*
     app >> (op match {
-      case Finite            => "finite"
-      case Abrupt            => "an abrupt completion"
-      case NeverAbrupt       => "never an abrupt completion"
-      case Normal            => "a normal completion"
-      case Duplicated        => "duplicate entries"
-      case Present           => "present"
-      case Empty             => "empty"
-      case StrictMode        => "strict mode code"
-      case ArrayIndex        => "an array index"
-      case NonNegative       => "a non-negative integral Number"
-      case FalseToken        => "the token `false`"
-      case TrueToken         => "the token `true`"
-      case DataProperty      => "a data property"
-      case AccessorProperty  => "an accessor property"
-      case FullyPopulated    => "a fully populated Property Descriptor"
-      case Nonterminal       => "an instance of a nonterminal"
-      case IntegralNumber    => "an integral Number"
-      case OddIntegralNumber => "an odd integral Number"
+      case Finite           => "finite"
+      case Abrupt           => "an abrupt completion"
+      case NeverAbrupt      => "never an abrupt completion"
+      case Normal           => "a normal completion"
+      case Duplicated       => "duplicate entries"
+      case Present          => "present"
+      case Empty            => "empty"
+      case StrictMode       => "strict mode code"
+      case ArrayIndex       => "an array index"
+      case FalseToken       => "the token `false`"
+      case TrueToken        => "the token `true`"
+      case DataProperty     => "a data property"
+      case AccessorProperty => "an accessor property"
+      case FullyPopulated   => "a fully populated Property Descriptor"
+      case Nonterminal      => "an instance of a nonterminal"
     })
 
+  given integerCondOpRule: Rule[IntegerConditionOperator] = (app, op) =>
+    import IntegerConditionOperator.*
+    app >> (op match {
+      case Positive    => "a positive"
+      case Negative    => "a negative"
+      case NonNegative => "a non-negative"
+      case Even        => "an even"
+      case Odd         => "an odd"
+      case None        => "an"
+    })
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryConditionOperator] = (app, op) =>
     import BinaryConditionOperator.*

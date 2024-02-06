@@ -801,8 +801,6 @@ class Compiler(
             is(lv, zero)
           case StrictMode => T // XXX assume strict mode
           case ArrayIndex => EIsArrayIndex(x)
-          case NonNegative =>
-            and(not(lessThan(x, ENumber(0.0f))), isIntegral(x))
           case FalseToken => is(ESourceText(x), EStr("false"))
           case TrueToken  => is(ESourceText(x), EStr("true"))
           case DataProperty =>
@@ -821,16 +819,27 @@ class Compiler(
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
             ETypeCheck(x, EStr("Nonterminal"))
-          case IntegralNumber => isIntegral(x)
-          case OddIntegralNumber =>
-            and(
-              not(
-                or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
-              ),
-              and(is(umod(x, ENumber(2.0f)), ENumber(1.0f)), isIntegral(x)),
-            )
         }
         if (neg) not(cond) else cond
+      case IntegerCondition(expr, neg, op, isnum) =>
+        import IntegerConditionOperator.*
+        val x = compile(fb, expr)
+        val cond = op match {
+          case Positive    => lessThan(ENumber(0.0f), x)
+          case Negative    => lessThan(x, ENumber(0.0f))
+          case NonNegative => not(lessThan(x, ENumber(0.0f)))
+          case Even        => is(umod(x, ENumber(2.0f)), ENumber(1.0f))
+          case Odd         => is(umod(x, ENumber(2.0f)), ENumber(0.0f))
+          case None        => T
+        }
+        val notinf =
+          or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
+        val integral =
+          if (isnum) isIntegral(x)
+          else T
+        val condneg = if (neg) not(cond) else cond
+        and(and(notinf, integral), condneg)
+
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)

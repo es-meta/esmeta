@@ -10,6 +10,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: ForEachOwnPropertyKeyStepOrder => walk(elem)
     case elem: ConversionExpressionOperator   => walk(elem)
     case elem: PredicateConditionOperator     => walk(elem)
+    case elem: IntegerConditionOperator       => walk(elem)
     case elem: MathFuncExpressionOperator     => walk(elem)
     case elem: BinaryExpressionOperator       => walk(elem)
     case elem: UnaryExpressionOperator        => walk(elem)
@@ -216,6 +217,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(nt);
     case PredicateCondition(expr, neg, op) =>
       walk(expr); walk(neg); walk(op)
+    case IntegerCondition(expr, neg, op, isnum) =>
+      walk(expr); walk(neg); walk(op); walk(isnum)
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
@@ -242,6 +245,8 @@ trait UnitWalker extends BasicUnitWalker {
         walkOpt(tyOpt, walk); walk(x); walk(cond)
 
   def walk(op: CompoundConditionOperator): Unit = {}
+
+  def walk(op: IntegerConditionOperator): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
     case x: Variable                => walk(x)
