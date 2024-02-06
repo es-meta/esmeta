@@ -832,13 +832,10 @@ class Compiler(
           case Odd         => is(umod(x, ENumber(2.0f)), ENumber(0.0f))
           case None        => T
         }
-        val notinf =
-          or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
         val integral =
           if (isnum) isIntegral(x)
-          else T
-        val condneg = if (neg) not(cond) else cond
-        and(and(notinf, integral), condneg)
+          else isInteger(x)
+        and(integral, if (neg) not(cond) else cond)
 
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
@@ -1030,7 +1027,15 @@ class Compiler(
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
-    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
+    and(
+      not(or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))),
+      and(ETypeCheck(x, EStr("Number")), is(m, floor(m))),
+    )
+  inline def isInteger(x: Expr) =
+    and(
+      not(or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))),
+      is(x, x),
+    )
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
