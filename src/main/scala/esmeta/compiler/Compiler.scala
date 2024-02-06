@@ -758,15 +758,7 @@ class Compiler(
         compile(fb, expr)
       case InstanceOfCondition(expr, neg, tys) =>
         val xExpr = compile(fb, expr)
-        val e =
-          tys
-            .map[Expr](t => {
-              val tname =
-                if (t.ty == AstT) "ParseNode"
-                else t.normalizedName
-              ETypeCheck(xExpr, EStr(tname))
-            })
-            .reduce(or(_, _))
+        val e = tys.map(toETypeCheck(xExpr, _)).reduce(or(_, _))
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
         val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
@@ -861,56 +853,17 @@ class Compiler(
         if (neg) not(cond) else cond
       case ContainsCondition(list, neg, target) =>
         import ContainsConditionTarget.*
-        lazy val e = target match
+        lazy val l = compile(fb, list)
+        val e = target match
           case Expr(expr) =>
-            EContains(compile(fb, list), compile(fb, expr))
+            EContains(l, compile(fb, expr))
           case WhoseField(tyOpt, fieldName, expr) =>
-            val (l, lExpr) = fb.newTIdWithExpr
-            val (i, iExpr) = fb.newTIdWithExpr
-            val (b, bExpr) = fb.newTIdWithExpr
-            val (x, xExpr) = fb.newTIdWithExpr
-            fb.addInst(
-              IAssign(l, compile(fb, list)),
-              IAssign(i, zero),
-              IAssign(b, F),
-              ILoop(
-                "contains",
-                and(bExpr, lessThan(iExpr, toStrERef(l, "length"))),
-                fb.newScope {
-                  fb.addInst(
-                    IAssign(x, toERef(l, iExpr)),
-                    // TODO handle tyOpt
-                    IAssign(b, is(toStrERef(x, fieldName), compile(fb, expr))),
-                    IAssign(i, add(iExpr, one)),
-                  )
-                },
-              ),
-            )
-            bExpr
-          case SuchThat(tyOpt, name, cond) =>
-            val (l, lExpr) = fb.newTIdWithExpr
-            val (i, iExpr) = fb.newTIdWithExpr
-            val (b, bExpr) = fb.newTIdWithExpr
-            val (x, xExpr) = fb.newTIdWithExpr
-            fb.addInst(
-              IAssign(l, compile(fb, list)),
-              IAssign(i, zero),
-              IAssign(b, F),
-              ILoop(
-                "contains",
-                and(bExpr, lessThan(iExpr, toStrERef(l, "length"))),
-                fb.newScope {
-                  fb.addInst(
-                    IAssign(x, toERef(l, iExpr)),
-                    // TODO handle tyOpt
-                    IAssign(b, compile(fb, cond)),
-                    IAssign(i, add(iExpr, one)),
-                  )
-                },
-              ),
-              IIf(bExpr, ILet(compile(name), xExpr), emptyInst),
-            )
-            bExpr
+            val x = fb.newTId
+            lazy val c = is(toStrERef(x, fieldName), compile(fb, expr))
+            compile(fb, l, tyOpt, x, c)
+          case SuchThat(tyOpt, x, cond) =>
+            lazy val c = compile(fb, cond)
+            compile(fb, l, tyOpt, Name(x.name), c)
         if (neg) not(e) else e
       case CompoundCondition(left, op, right) =>
         lazy val l = compile(fb, left)
@@ -920,6 +873,43 @@ class Compiler(
           case CompoundConditionOperator.Or    => or(l, r)
           case CompoundConditionOperator.Imply => or(not(l), r)
     })
+
+  /** compile contains condition with additional constraints */
+  def compile(
+    fb: FuncBuilder,
+    list: Expr,
+    tyOpt: Option[Type],
+    x: Local,
+    givenCond: => Expr,
+  ): Expr =
+    lazy val cond = givenCond
+    val (l, lExpr) = fb.newTIdWithExpr
+    val (i, iExpr) = fb.newTIdWithExpr
+    val (b, bExpr) = fb.newTIdWithExpr
+    fb.addInst(
+      IAssign(l, list),
+      IAssign(i, zero),
+      IAssign(b, F),
+      ILoop(
+        "contains",
+        and(not(bExpr), lessThan(iExpr, toStrERef(l, "length"))),
+        fb.newScope {
+          fb.addInst(
+            x match
+              case x: Name => ILet(x, toERef(l, iExpr))
+              case x: Temp => IAssign(x, toERef(l, iExpr)),
+          )
+          fb.addInst(
+            IAssign(
+              b,
+              tyOpt.fold(cond)(ty => and(toETypeCheck(ERef(x), ty), cond)),
+            ),
+            IAssign(i, add(iExpr, one)),
+          )
+        },
+      ),
+    )
+    bExpr
 
   /** compile algorithm parameters */
   def compile(param: Param): IRParam = {
