@@ -143,7 +143,7 @@ object TypeDomain extends state.Domain {
     ): (AbsValue, Elem) =
       val value =
         if (v.ty.subMap.isBottom) AbsValue.Bot
-        else AbsValue(StrT)
+        else AbsValue(ListT(StrT))
       (value, elem)
 
     /** list concatenation */
