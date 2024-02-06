@@ -39,6 +39,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.timeLimit,
       config.concurrent,
+      config.verbose,
     )
 
     // if summary has failed test case, throws an exception
@@ -84,6 +85,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       BoolOption(c => c.concurrent = true),
       "turn on concurrent mode.",
     ),
+    (
+      "verbose",
+      BoolOption(c => c.verbose = true),
+      "turn on verbose mode.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -93,5 +99,6 @@ case object Test262Test extends Phase[CFG, Summary] {
     var withYet: Boolean = false,
     var log: Boolean = false,
     var concurrent: Boolean = false,
+    var verbose: Boolean = false,
   )
 }
