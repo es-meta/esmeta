@@ -21,6 +21,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: UnaryExpressionOperator   => unExprOpRule(app, elem)
       case elem: XRefExpressionOperator    => xrefExprOpRule(app, elem)
       case elem: BinaryConditionOperator   => binCondOpRule(app, elem)
+      case elem: ContainsConditionTarget   => containsTargetRule(app, elem)
       case elem: CompoundConditionOperator => compCondOpRule(app, elem)
     }
 
@@ -625,13 +626,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (neg) app >> " not"
         app >> " in the inclusive interval from " >> from
         app >> " to " >> to
-      case ContainsWhoseCondition(list, ty, fieldName, expr) =>
-        app >> list >> " contains a " >> ty
-        app >> " whose [[" >> fieldName >> "]] is " >> expr
-      case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
-        app >> list >> " contains a " >> ty
-        app >> " " >> x >> " such that "
-        app >> y >> ".[[" >> fieldName >> "]] is " >> expr
+      case ContainsCondition(list, neg, expr) =>
+        app >> list >> (if (neg) " does not contain " else " contains ") >> expr
       case CompoundCondition(left, op, right) =>
         op match {
           case CompoundConditionOperator.Imply =>
@@ -676,9 +672,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case GreaterThan      => ">"
       case GreaterThanEqual => "≥"
       case SameCodeUnits    => "is the same sequence of code units as"
-      case Contains         => "contains"
-      case NContains        => "does not contain"
     })
+
+  // targets for `contains` conditions
+  given containsTargetRule: Rule[ContainsConditionTarget] = (app, target) => {
+    import ContainsConditionTarget.*
+    given Rule[Option[Type]] = (app, tyOpt) =>
+      tyOpt match
+        case Some(ty) => app >> "a " >> ty
+        case None     => app >> "an element"
+    target match
+      case Expr(e) => app >> e
+      case WhoseField(tyOpt, field, expr) =>
+        app >> tyOpt >> " whose [[" >> field >> "]] is " >> expr
+      case SuchThat(tyOpt, x, cond) =>
+        app >> tyOpt >> " " >> x >> " such that " >> cond
+  }
 
   // operators for compound conditions
   given compCondOpRule: Rule[CompoundConditionOperator] = (app, op) => {

@@ -852,8 +852,6 @@ class Compiler(
           case GreaterThan      => lessThan(r, l)
           case GreaterThanEqual => not(lessThan(l, r))
           case SameCodeUnits    => EBinary(BOp.Eq, l, r)
-          case Contains         => EContains(l, r, None)
-          case NContains        => not(EContains(l, r, None))
         }
       case InclusiveIntervalCondition(left, neg, from, to) =>
         lazy val l = compile(fb, left)
@@ -861,18 +859,59 @@ class Compiler(
         lazy val t = compile(fb, to)
         val cond = not(or(lessThan(l, f), lessThan(t, l)))
         if (neg) not(cond) else cond
-      case ContainsWhoseCondition(list, ty, fieldName, expr) =>
-        EContains(
-          compile(fb, list),
-          compile(fb, expr),
-          Some(compile(ty), fieldName),
-        )
-      case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
-        EContains(
-          compile(fb, list),
-          compile(fb, expr),
-          Some(compile(ty), fieldName),
-        )
+      case ContainsCondition(list, neg, target) =>
+        import ContainsConditionTarget.*
+        lazy val e = target match
+          case Expr(expr) =>
+            EContains(compile(fb, list), compile(fb, expr))
+          case WhoseField(tyOpt, fieldName, expr) =>
+            val (l, lExpr) = fb.newTIdWithExpr
+            val (i, iExpr) = fb.newTIdWithExpr
+            val (b, bExpr) = fb.newTIdWithExpr
+            val (x, xExpr) = fb.newTIdWithExpr
+            fb.addInst(
+              IAssign(l, compile(fb, list)),
+              IAssign(i, zero),
+              IAssign(b, F),
+              ILoop(
+                "contains",
+                and(bExpr, lessThan(iExpr, toStrERef(l, "length"))),
+                fb.newScope {
+                  fb.addInst(
+                    IAssign(x, toERef(l, iExpr)),
+                    // TODO handle tyOpt
+                    IAssign(b, is(toStrERef(x, fieldName), compile(fb, expr))),
+                    IAssign(i, add(iExpr, one)),
+                  )
+                },
+              ),
+            )
+            bExpr
+          case SuchThat(tyOpt, name, cond) =>
+            val (l, lExpr) = fb.newTIdWithExpr
+            val (i, iExpr) = fb.newTIdWithExpr
+            val (b, bExpr) = fb.newTIdWithExpr
+            val (x, xExpr) = fb.newTIdWithExpr
+            fb.addInst(
+              IAssign(l, compile(fb, list)),
+              IAssign(i, zero),
+              IAssign(b, F),
+              ILoop(
+                "contains",
+                and(bExpr, lessThan(iExpr, toStrERef(l, "length"))),
+                fb.newScope {
+                  fb.addInst(
+                    IAssign(x, toERef(l, iExpr)),
+                    // TODO handle tyOpt
+                    IAssign(b, compile(fb, cond)),
+                    IAssign(i, add(iExpr, one)),
+                  )
+                },
+              ),
+              IIf(bExpr, ILet(compile(name), xExpr), emptyInst),
+            )
+            bExpr
+        if (neg) not(e) else e
       case CompoundCondition(left, op, right) =>
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)

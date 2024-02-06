@@ -124,10 +124,8 @@ trait Parsers extends TyParsers {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
       case msg => EYet(msg)
-    } | "(" ~ "contains" ~> expr ~ expr ~ opt(
-      ":" ~> pair(irType ~ word),
-    ) <~ ")" ^^ {
-      case l ~ e ~ f => EContains(l, e, f)
+    } | "(" ~ "contains" ~> expr ~ expr <~ ")" ^^ {
+      case l ~ e => EContains(l, e)
     } | "(" ~ "substring" ~> expr ~ expr ~ opt(expr) <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
     } | "(" ~ "trim-start" ~> expr <~ ")" ^^ {

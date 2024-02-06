@@ -104,7 +104,6 @@ class JsonTinyTest extends IRTest {
       nt -> "(nt |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
-      containsField -> "(contains x x: Number Value)",
       substring -> "(substring x x)",
       substringTo -> "(substring x x x)",
       trim -> "(trim x)",

@@ -15,6 +15,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: UnaryExpressionOperator        => walk(elem)
     case elem: XRefExpressionOperator         => walk(elem)
     case elem: BinaryConditionOperator        => walk(elem)
+    case elem: ContainsConditionTarget        => walk(elem)
     case elem: CompoundConditionOperator      => walk(elem)
   }
 
@@ -219,19 +220,26 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
     case InclusiveIntervalCondition(left, neg, from, to) =>
       walk(left); walk(neg); walk(from); walk(to)
-    case ContainsWhoseCondition(list, ty, fieldName, expr) =>
-      walk(list); walk(ty); walk(expr)
-    case ContainsSTCondition(list, ty, x, y, fieldName, expr) =>
-      walk(list); walk(ty); walk(x); walk(y); walk(expr)
+    case ContainsCondition(list, neg, target) =>
+      walk(list); walk(neg); walk(target)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
   }
 
+  def walk(op: PredicateConditionOperator): Unit = {}
+
   def walk(op: BinaryConditionOperator): Unit = {}
 
-  def walk(op: CompoundConditionOperator): Unit = {}
+  def walk(target: ContainsConditionTarget): Unit =
+    import ContainsConditionTarget.*
+    target match
+      case Expr(expr) => walk(expr)
+      case WhoseField(tyOpt, fieldName, expr) =>
+        walkOpt(tyOpt, walk); walk(expr)
+      case SuchThat(tyOpt, x, cond) =>
+        walkOpt(tyOpt, walk); walk(x); walk(cond)
 
-  def walk(op: PredicateConditionOperator): Unit = {}
+  def walk(op: CompoundConditionOperator): Unit = {}
 
   def walk(ref: Reference): Unit = ref match {
     case x: Variable                => walk(x)

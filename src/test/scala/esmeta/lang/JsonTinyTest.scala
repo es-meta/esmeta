@@ -400,8 +400,10 @@ class JsonTinyTest extends LangTest {
       binaryCondLt -> "_x_ < _x_ + _x_",
       inclusiveIntervalCond -> "_x_ is in the inclusive interval from 2 to 32",
       notInclusiveIntervalCond -> "_x_ is not in the inclusive interval from 2 to 32",
-      containsWhoseCond -> "_x_ contains a Base whose [[Value]] is _x_",
-      containsSTCond -> "_x_ contains a Base _x_ such that _x_.[[Value]] is _x_",
+      containsCond -> "_x_ contains _x_",
+      notContainsCond -> "_x_ does not contain _x_",
+      containsWhoseFieldCond -> "_x_ contains a Base whose [[Field]] is _x_",
+      containsSuchThatCond -> "_x_ contains a Base _x_ such that _x_ is the length of _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
     )

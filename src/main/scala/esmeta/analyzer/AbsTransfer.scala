@@ -391,12 +391,12 @@ trait AbsTransfer extends Optimized with PruneHelper {
       case EYet(msg) =>
         if (YET_THROW) notSupported(msg)
         else AbsValue.Bot
-      case EContains(list, elem, field) =>
+      case EContains(list, elem) =>
         for {
           l <- transfer(list)
           v <- transfer(elem)
           st <- get
-        } yield st.contains(l, v, field)
+        } yield st.contains(l, v)
       case ESubstring(expr, from, None) =>
         for {
           v <- transfer(expr)

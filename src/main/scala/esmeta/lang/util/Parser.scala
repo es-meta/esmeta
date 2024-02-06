@@ -886,8 +886,7 @@ trait Parsers extends IndentParsers {
     isAreCond |||
     binCond |||
     inclusiveIntervalCond |||
-    containsWhoseCond |||
-    containsSTCond |||
+    containsCond |||
     specialCond
 
   // expression conditions
@@ -979,14 +978,8 @@ trait Parsers extends IndentParsers {
       "<" ^^^ LessThan |
       "≥" ^^^ GreaterThanEqual |
       ">" ^^^ GreaterThan |
-      "is the same sequence of code units as" ^^^ SameCodeUnits |
-      "contains" ^^^ Contains |
-      "does not contain" ^^^ NContains
-    expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) } |||
-    expr ~ (isNeg <~ (opt("currently") ~> "an element of")) ~ expr ^^ {
-      case l ~ n ~ r =>
-        BinaryCondition(r, if (n) NContains else Contains, l)
-    }
+      "is the same sequence of code units as" ^^^ SameCodeUnits
+    expr ~ op ~ expr ^^ { case l ~ o ~ r => BinaryCondition(l, o, r) }
 
   // inclusive interval conditions
   lazy val inclusiveIntervalCond: PL[InclusiveIntervalCondition] = {
@@ -998,25 +991,27 @@ trait Parsers extends IndentParsers {
     case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t)
   }
 
-  // contains-whose conditions
-  lazy val containsWhoseCond: PL[ContainsWhoseCondition] =
+  // `contains` conditions
+  lazy val containsCond: PL[ContainsCondition] = {
     expr ~
-    ("contains" ~> langType) ~
-    ("whose" ~ "[[" ~> word <~ "]]") ~
-    ("is" ~> expr) ^^ {
-      case l ~ t ~ f ~ e => ContainsWhoseCondition(l, t, f, e)
-    }
-
-  // contains-such-that conditions
-  lazy val containsSTCond: PL[ContainsSTCondition] =
-    expr ~
-    ("contains" ~> langType) ~
-    variable ~
-    ("such that" ~> variable) ~
-    ("." ~ "[[" ~> word <~ "]]") ~
-    ("is" ~> expr) ^^ {
-      case l ~ t ~ x ~ y ~ f ~ e => ContainsSTCondition(l, t, x, y, f, e)
-    }
+    ("does not contain" ^^^ true | "contains" ^^^ false) ~
+    containsTarget
+  } ^^ { case l ~ n ~ e => ContainsCondition(l, n, e) }
+  lazy val containsTarget: P[ContainsConditionTarget] =
+    import ContainsConditionTarget.*
+    lazy val exprTarget = expr ^^ { Expr(_) }
+    lazy val targetType = "an element" ^^^ None | langType ^^ Some.apply
+    lazy val whoseFieldTarget = {
+      (targetType <~ "whose") ~
+      ("[[" ~> word <~ "]]") ~
+      ("is" ~> expr)
+    } ^^ { case t ~ f ~ e => WhoseField(t, f, e) }
+    lazy val suchThatTarget = {
+      targetType ~
+      variable ~
+      ("such that" ~> cond)
+    } ^^ { case t ~ x ~ c => SuchThat(t, x, c) }
+    exprTarget ||| whoseFieldTarget ||| suchThatTarget
 
   // rarely used conditions
   // TODO clean-up
@@ -1042,15 +1037,12 @@ trait Parsers extends IndentParsers {
     case e ~ n => PredicateCondition(e, !n, PredicateConditionOperator.Present)
   } | {
     // %ForInIteratorPrototype%.next
-    ("there does not exist an element" ~ variable ~ "of" ~> expr) ~
-    ("such that SameValue(" ~> variable <~ "," ~ variable ~ ") is *true*")
+    ("there does not exist an element" ~> variable) ~
+    ("of" ~> expr) ~
+    ("such that" ~> cond)
   } ^^ {
-    case list ~ elem =>
-      BinaryCondition(
-        list,
-        BinaryConditionOperator.NContains,
-        getRefExpr(elem),
-      )
+    case x ~ l ~ c =>
+      ContainsCondition(l, true, ContainsConditionTarget.SuchThat(None, x, c))
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
