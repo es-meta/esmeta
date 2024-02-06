@@ -75,6 +75,7 @@ case class Test262(
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
     concurrent: Boolean = false,
+    verbose: Boolean = false,
   ): ProgressBar[Test] = ProgressBar(
     msg = s"Run Test262 $name tests",
     iterable = targetTests,
@@ -82,9 +83,14 @@ case class Test262(
     getName = (test, _) => test.relName,
     errorHandler = (e, summary, name) =>
       if (useErrorHandler) e match
-        case NotSupported(reasons) => summary.notSupported.add(name, reasons)
-        case _: TimeoutException   => summary.timeout.add(name)
-        case e: Throwable          => summary.fail.add(name, getMessage(e))
+        case NotSupported(reasons) =>
+          summary.notSupported.add(name, reasons)
+        case _: TimeoutException =>
+          if (verbose) println(s"[TIMEOUT] $name")
+          summary.timeout.add(name)
+        case e: Throwable =>
+          if (verbose) println(s"[FAIL   ] $name")
+          summary.fail.add(name, getMessage(e))
       else throw e,
     verbose = useProgress,
     concurrent = concurrent,
@@ -98,6 +104,7 @@ case class Test262(
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: Boolean = false,
+    verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
     val tests: List[Test] = getTests(paths.toList)
@@ -116,6 +123,7 @@ case class Test262(
       useProgress = useProgress,
       useErrorHandler = multiple,
       concurrent = concurrent,
+      verbose = verbose,
     )
 
     // coverage with time limit
