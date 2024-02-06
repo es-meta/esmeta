@@ -38,8 +38,6 @@
   "LengthOfArrayLike",
   "MethodDefinition[0,0].DefineMethod",
   "ModuleNamespaceCreate",
-  "ModuleNamespaceExoticObject.OwnPropertyKeys",
-  "OrdinaryObject.OwnPropertyKeys",
   "ProxyCreate",
   "SerializeJSONObject",
   "SetFunctionLength",
