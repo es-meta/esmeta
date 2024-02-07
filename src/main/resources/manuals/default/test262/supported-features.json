@@ -13,6 +13,7 @@
   "Promise.allSettled",
   "Promise.any",
   "Promise.prototype.finally",
+  "Proxy",
   "Reflect",
   "Reflect.construct",
   "Reflect.set",
