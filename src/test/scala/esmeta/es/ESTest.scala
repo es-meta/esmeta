@@ -65,11 +65,12 @@ object ESTest {
   // ---------------------------------------------------------------------------
   // analyzer
   lazy val analyzer = ESAnalyzer(cfg)
+  import analyzer.*
 
   // analyze ES codes
-  def analyzeFile(filename: String): AbsSemantics =
+  def analyzeFile(filename: String): analyzer.Semantics =
     analyzer(readFile(filename).trim)
-  def analyze(str: String): AbsSemantics = analyzer(str)
+  def analyze(str: String): Semantics = analyzer(str)
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =

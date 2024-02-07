@@ -10,24 +10,28 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `tycheck` phase */
-case object TypeCheck extends Phase[CFG, AbsSemantics] {
+case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
   val name = "tycheck"
   val help = "performs a type analysis of ECMA-262."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): AbsSemantics =
+  ): TypeAnalyzer#Semantics =
     val ignorePath = config.ignorePath match
       case None => cfg.spec.manualInfo.tycheckIgnore
       case path => path
     val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
-    TypeAnalyzer(cfg)(
-      target = config.target,
+    TypeAnalyzer(
+      cfg = cfg,
+      targetPattern = config.target,
+      config = TypeAnalyzer.Config(),
       ignore = ignore,
       log = config.log,
       silent = false,
-    )
+      useRepl = config.useRepl,
+      replContinue = config.replContinue,
+    ).result
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -38,12 +42,12 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     ),
     (
       "repl",
-      BoolOption(c => USE_REPL = true),
+      BoolOption(c => c.useRepl = true),
       "use a REPL for type analysis of ECMA-262.",
     ),
     (
       "repl-continue",
-      BoolOption(c => REPL_CONTINUE = true),
+      BoolOption(c => c.replContinue = true),
       "run `continue` command at startup when using REPL",
     ),
     (
@@ -66,6 +70,8 @@ case object TypeCheck extends Phase[CFG, AbsSemantics] {
     var target: Option[String] = None,
     var ignorePath: Option[String] = None,
     var ignoreUpdate: Boolean = false,
+    var useRepl: Boolean = false,
+    var replContinue: Boolean = false,
     var log: Boolean = false,
   )
 }

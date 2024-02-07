@@ -75,12 +75,6 @@ case class ValueTy(
         this.subMap -- that.subMap,
       )
 
-  /** get single value */
-  def getSingle: Flat[AValue] =
-    this.comp.getSingle ||
-    this.pureValue.getSingle ||
-    this.subMap.getSingle
-
   /** completion check */
   def isCompletion: Boolean =
     !comp.isBottom &&

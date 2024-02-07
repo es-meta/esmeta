@@ -57,9 +57,6 @@ case class SubMapTy(
         this.value -- that.value,
       ).norm
 
-  /** get single value */
-  def getSingle: Flat[AValue] = if (this.isBottom) Zero else Many
-
   // normalization
   private def norm: SubMapTy =
     if (key.isBottom || value.isBottom) Bot

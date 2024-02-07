@@ -6,20 +6,28 @@ import esmeta.es.*
 import esmeta.ir.*
 
 /** meta-level static analyzer for ECMAScript */
-class ESAnalyzer(cfg: CFG) extends Analyzer(cfg) {
+class ESAnalyzer(
+  val cfg: CFG,
+  override val useRepl: Boolean = false,
+) extends Analyzer {
 
-  /** default abstract semantics */
+  /** perform type analysis with the given control flow graph */
+  def apply(sourceText: String): Semantics =
+    AbsState.setBase(new Initialize(cfg))
+    sem.reset(AbsSemantics(initNpMap(sourceText)))
+    transfer.fixpoint
+    sem
+
+  /** abstract semantics */
+  lazy val sem: AbsSemantics = new AbsSemantics
   type Semantics = AbsSemantics
 
-  /** default abstract transfer function as transfer */
-  trait Transfer extends AbsTransfer
-
   /** transfer function */
-  object transfer extends Transfer
+  lazy val transfer: Transfer = new Transfer
+  class Transfer extends AbsTransfer
 
-  /** perform analysis for a given ECMAScript code */
-  def apply(sourceText: String): AbsSemantics =
-    apply(AbsSemantics(initNpMap(sourceText)))
+  /** throw exception for not yet compiled expressions */
+  override val yetThrow: Boolean = true
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -39,6 +47,3 @@ class ESAnalyzer(cfg: CFG) extends Analyzer(cfg) {
     ),
   )
 }
-object ESAnalyzer:
-  // throw exceptions when touching not yet supported instructions
-  YET_THROW = true
