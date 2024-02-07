@@ -5,6 +5,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.TypeAnalyzer.Ignore
 import esmeta.analyzer.domain
 import esmeta.cfg.{CFG, Func}
+import esmeta.error.TypeCheckFail
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -18,20 +19,23 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     cmdConfig: CommandConfig,
     config: Config,
   ): TypeAnalyzer#Semantics =
-    val ignorePath = config.ignorePath match
-      case None => cfg.spec.manualInfo.tycheckIgnore
-      case path => path
+    val ignorePath = config.ignorePath.orElse(cfg.spec.manualInfo.tycheckIgnore)
     val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
-    TypeAnalyzer(
+    val silent = cmdConfig.silent
+    val analyzer: TypeAnalyzer = TypeAnalyzer(
       cfg = cfg,
       targetPattern = config.target,
       config = TypeAnalyzer.Config(),
       ignore = ignore,
       log = config.log,
-      silent = false,
+      silent = silent,
       useRepl = config.useRepl,
       replContinue = config.replContinue,
-    ).result
+    )
+    val sem = analyzer.analyze
+    if (analyzer.detected.nonEmpty || analyzer.unusedSet.nonEmpty)
+      throw TypeCheckFail(if (silent) None else Some(analyzer.toString))
+    sem
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

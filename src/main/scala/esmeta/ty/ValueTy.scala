@@ -1,6 +1,5 @@
 package esmeta.ty
 
-import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.util.*
@@ -158,6 +157,12 @@ case class ValueTy(
       case Null                 => nullv
       case Absent               => absent
     )
+
+  /** get single value */
+  def getSingle: Flat[Value] =
+    this.comp.getSingle ||
+    this.pureValue.getSingle ||
+    this.subMap.getSingle
 }
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(

@@ -131,6 +131,9 @@ trait ValueTypeDomainDecl { self: Self =>
       /** concretization function */
       override def gamma: BSet[AValue] = Inf
 
+      /** get single string value */
+      override def getSingle: Flat[AValue] = elem.ty.getSingle.map(AValue.from)
+
       /** get reachable address partitions */
       def reachableParts: Set[Part] = Set()
 

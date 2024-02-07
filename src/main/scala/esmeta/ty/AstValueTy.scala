@@ -1,6 +1,5 @@
 package esmeta.ty
 
-import esmeta.analyzer.domain.*
 import esmeta.util.*
 import esmeta.state.*
 import esmeta.ty.util.Parser

@@ -29,6 +29,9 @@ case class BoolTy(set: Set[Boolean] = Set())
 
   /** inclusion check */
   def contains(b: Boolean): Boolean = set contains b
+
+  /** get single value */
+  def getSingle: Flat[Boolean] = Flat(set)
 }
 object BoolTy extends Parser.From(Parser.boolTy) {
   lazy val Top: BoolTy = BoolTy(Set(false, true))

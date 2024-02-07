@@ -3,7 +3,6 @@ package esmeta.analyzer
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
@@ -27,12 +26,26 @@ class TypeAnalyzer(
 ) extends Analyzer {
   import TypeAnalyzer.*
 
-  /** perform type analysis with the given control flow graph */
-  lazy val result: Semantics =
+  lazy val analyze: Semantics =
     AbsState.setBase(new Initialize(cfg))
     transfer.fixpoint
-    postProcess
+    if (log) logging
+    if (ignore.update) updateIgnore
     sem
+
+  /** unused ignore set */
+  private var _unusedSet: Set[String] = ignore.names
+  inline def unusedSet: Set[String] = _unusedSet
+
+  /** perform type analysis with the given control flow graph */
+  lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
+  lazy val detected =
+    analyze
+    mismatches.filter(mismatch => {
+      val name = mismatch.func.name
+      _unusedSet -= name
+      !ignore.names.contains(name)
+    })
 
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =
@@ -47,9 +60,8 @@ class TypeAnalyzer(
     funcs
 
   /** record type mismatches */
-  def addMismatch(mismatch: TypeMismatch): Unit =
+  private def addMismatch(mismatch: TypeMismatch): Unit =
     mismatchMap += mismatch.ap -> mismatch
-  lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
   private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
 
   /** no sensitivity */
@@ -197,44 +209,27 @@ class TypeAnalyzer(
   retDomain = Some(RetTypeDomain)
   valueDomain = Some(ValueTypeDomain)
 
-  /** post-: t-Domainprocessing */
-  def postProcess: Unit =
-    if (log) logging
-    var unusedSet = ignore.names
-    val detected = mismatches.filter(mismatch => {
-      val name = mismatch.func.name
-      unusedSet -= name
-      !ignore.names.contains(name)
-    })
-    if (!detected.isEmpty || !unusedSet.isEmpty)
-      val app = new Appender
-      // show detected type mismatches
-      if (!detected.isEmpty)
-        app :> "* " >> detected.size
-        app >> " type mismatches are detected."
-      // show unused names
-      if (!unusedSet.isEmpty)
-        app :> "* " >> unusedSet.size
-        app >> " names are not used to ignore mismatches."
-      detected.toList.map(_.toString).sorted.map(app :> _)
-      // show help message about how to use the ignorance system
-      ignore.filename.map(path =>
-        if (ignore.update)
-          dumpJson(
-            name = "algorithm names for the ignorance system",
-            data = mismatches.map(_.func.name).toList.sorted,
-            filename = path,
-            noSpace = false,
-          )
-        else
-          app :> "=" * 80
-          app :> "To suppress this error message, "
-          app >> "add/remove the following names to `" >> path >> "`:"
-          detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
-          unusedSet.toList.sorted.map(app :> "  - " >> _)
-          app :> "=" * 80,
-      )
-      throw TypeCheckFail(if (silent) None else Some(app.toString))
+  /** conversion to string */
+  override def toString: String =
+    val app = new Appender
+    // show detected type mismatches
+    if (!detected.isEmpty)
+      app :> "* " >> detected.size
+      app >> " type mismatches are detected."
+    // show unused names
+    if (!unusedSet.isEmpty)
+      app :> "* " >> unusedSet.size
+      app >> " names are not used to ignore mismatches."
+    detected.toList.map(_.toString).sorted.map(app :> _)
+    // show help message about how to use the ignorance system
+    for (path <- ignore.filename if !ignore.update)
+      app :> "=" * 80
+      app :> "To suppress this error message, "
+      app >> "add/remove the following names to `" >> path >> "`:"
+      detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
+      unusedSet.toList.sorted.map(app :> "  - " >> _)
+      app :> "=" * 80
+    app.toString
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -293,6 +288,15 @@ class TypeAnalyzer(
       filename = s"$ANALYZE_LOG_DIR/mismatches",
     )
   }
+
+  /** update ignorance system */
+  private def updateIgnore: Unit = for (path <- ignore.filename)
+    dumpJson(
+      name = "algorithm names for the ignorance system",
+      data = mismatches.map(_.func.name).toList.sorted,
+      filename = path,
+      noSpace = false,
+    )
 }
 object TypeAnalyzer:
 
