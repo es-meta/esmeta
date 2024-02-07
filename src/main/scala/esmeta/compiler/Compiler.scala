@@ -1034,7 +1034,10 @@ class Compiler(
   inline def isInteger(x: Expr) =
     and(
       not(or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))),
-      is(x, x),
+      and(
+        or(ETypeCheck(x, EStr("Number")), ETypeCheck(x, EStr("BigInt"))),
+        is(x, floor(x)),
+      ),
     )
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
