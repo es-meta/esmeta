@@ -101,7 +101,7 @@ trait Walker extends BasicWalker {
     case PushCtxtStep(ref)       => PushCtxtStep(walk(ref))
     case NoteStep(note)          => NoteStep(note)
     case SuspendStep(base, r)    => SuspendStep(walk(base), r)
-    case RemoveElemStep(expr, elem) => RemoveElemStep(walk(expr), walk(elem))
+    case RemoveElemStep(elem, list) => RemoveElemStep(walk(elem), walk(list))
     case RemoveFirstStep(expr)      => RemoveFirstStep(walk(expr))
     case RemoveContextStep(remove, restore) =>
       RemoveContextStep(walk(remove), walkOpt(restore, walk))

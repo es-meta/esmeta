@@ -78,7 +78,7 @@ trait UnitWalker extends BasicUnitWalker {
     case PushCtxtStep(ref)          => walk(ref)
     case NoteStep(note)             =>
     case SuspendStep(base, _)       => walk(base)
-    case RemoveElemStep(expr, elem) => walk(expr); walk(elem)
+    case RemoveElemStep(elem, list) => walk(elem); walk(list)
     case RemoveFirstStep(expr)      => walk(expr)
     case RemoveContextStep(remove, restore) =>
       walk(remove); walkOpt(restore, walk)
