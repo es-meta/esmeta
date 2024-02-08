@@ -12,11 +12,11 @@ jobs:
       with:
         submodules: true
 
-    - name: Fetch all commits and tags from ecma262
+    - name: Fetch all tags from ecma262
       env:
         ESMETA_HOME: ${{ github.workspace }}
       run:
-        cd ecma262 && git fetch --all --tags
+        cd ecma262 && git fetch --tags
 
     - name: Run test
       env:
