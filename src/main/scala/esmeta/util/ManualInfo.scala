@@ -63,3 +63,13 @@ case class ManualInfo(version: Option[Spec.Version]) {
 }
 object ManualInfo:
   type CompileRule = Map[String, Map[String, String]]
+
+  /** default path */
+  lazy val defaultPath: String = s"$MANUALS_DIR/default"
+
+  /** default version */
+  lazy val defaultVersion: Spec.Version =
+    Spec.getVersion(readFile(s"$defaultPath/hash"))
+
+  /** default tycheck-ignore.json */
+  lazy val tycheckIgnore: String = s"$defaultPath/tycheck-ignore.json"

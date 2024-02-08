@@ -32,6 +32,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
       useRepl = config.useRepl,
       replContinue = config.replContinue,
     )
+    analyzer.analyze
     if (analyzer.needUpdate)
       if (config.updateIgnore) analyzer.updateIgnore
       throw TypeCheckFail(if (silent) None else Some(analyzer.toString))

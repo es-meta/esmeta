@@ -26,6 +26,12 @@ class TypeAnalyzer(
 ) extends Analyzer {
   import TypeAnalyzer.*
 
+  /** perform type analysis */
+  lazy val analyze: Unit =
+    AbsState.setBase(new Initialize(cfg))
+    transfer.fixpoint
+    if (log) logging
+
   /** unused ignore set */
   protected var _unusedSet: Set[String] = ignore.names
   inline def unusedSet: Set[String] = _unusedSet
@@ -291,12 +297,6 @@ class TypeAnalyzer(
       filename = s"$ANALYZE_LOG_DIR/mismatches",
     )
   }
-
-  /** perform type analysis */
-  AbsState.setBase(new Initialize(cfg))
-  transfer.fixpoint
-  if (log) logging
-  sem
 }
 object TypeAnalyzer:
 
