@@ -19,7 +19,7 @@ class StringifyTinyTest extends SpecTest {
     // -------------------------------------------------------------------------
     checkParseAndStringify("Summary", Summary)(
       Summary(
-        Some(Spec.Version("main", "2j3foijwo2")),
+        Some(Spec.Version("d048f32e861c2ed4a26f59a50d392918f26da3ba")),
         GrammarSummary(145, 16, 195, 28),
         AlgorithmSummary(2258, 365),
         StepSummary(18307, 754),
@@ -27,7 +27,7 @@ class StringifyTinyTest extends SpecTest {
         89,
         58,
       ) ->
-      s"""- version: main (2j3foijwo2)
+      s"""- version: d048f32e861c2ed4a26f59a50d392918f26da3ba (es2023)
          |- grammar:
          |  - productions: 356
          |    - lexical: 145
