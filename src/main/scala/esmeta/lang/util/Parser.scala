@@ -240,7 +240,7 @@ trait Parsers extends IndentParsers {
   // remove element step
   lazy val removeElemStep: PL[RemoveElemStep] =
     "remove" ~> expr ~ ("from" ~> expr) <~ end ^^ {
-      case e ~ v => RemoveElemStep(e, v)
+      case e ~ l => RemoveElemStep(e, l)
     }
 
   // remove first element step
@@ -348,6 +348,7 @@ trait Parsers extends IndentParsers {
   given expr: PL[Expression] = {
     stringConcatExpr |
     listConcatExpr |
+    listCopyExpr |
     recordExpr |
     lengthExpr |
     substrExpr |
@@ -382,6 +383,12 @@ trait Parsers extends IndentParsers {
   lazy val listConcatExpr: PL[ListConcatExpression] =
     "the list-concatenation of" ~> repsep(expr, sep("and")) ^^ {
       ListConcatExpression(_)
+    }
+
+  // list copy expressions
+  lazy val listCopyExpr: PL[ListCopyExpression] =
+    "a List whose elements are the elements of" ~> expr ^^ {
+      ListCopyExpression(_)
     }
 
   // record expressions

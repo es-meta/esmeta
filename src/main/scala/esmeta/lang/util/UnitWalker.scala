@@ -78,7 +78,7 @@ trait UnitWalker extends BasicUnitWalker {
     case PushCtxtStep(ref)          => walk(ref)
     case NoteStep(note)             =>
     case SuspendStep(base, _)       => walk(base)
-    case RemoveElemStep(expr, elem) => walk(expr); walk(elem)
+    case RemoveElemStep(elem, list) => walk(elem); walk(list)
     case RemoveFirstStep(expr)      => walk(expr)
     case RemoveContextStep(remove, restore) =>
       walk(remove); walkOpt(restore, walk)
@@ -100,6 +100,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
+    case ListCopyExpression(expr) =>
+      walk(expr)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
     case LengthExpression(expr) =>

@@ -115,6 +115,7 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr))
   lazy val listConcatExprThree =
     ListConcatExpression(List(refExpr, refExpr, refExpr))
+  lazy val listCopyExpr = ListCopyExpression(refExpr)
   lazy val recordEmptyExpr =
     RecordExpression("Object", Nil)
   lazy val recordExpr =

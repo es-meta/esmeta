@@ -1,5 +1,5 @@
 diff --git a/spec.html b/spec.html
-index 47ad886a..403c360d 100644
+index 47ad886a..361e0a0b 100644
 --- a/spec.html
 +++ b/spec.html
 @@ -34650,7 +34650,7 @@ THH:mm:ss.sss
@@ -47,3 +47,12 @@ index 47ad886a..403c360d 100644
          </emu-alg>
        </emu-clause>
  
+@@ -46497,7 +46497,7 @@ THH:mm:ss.sss
+             1. Let _p_ be _F_.[[RevocableProxy]].
+             1. If _p_ is *null*, return *undefined*.
+             1. Set _F_.[[RevocableProxy]] to *null*.
+-            1. Assert: _p_ is a Proxy object.
++            1. Assert: _p_ is a Proxy exotic object.
+             1. Set _p_.[[ProxyTarget]] to *null*.
+             1. Set _p_.[[ProxyHandler]] to *null*.
+             1. Return *undefined*.

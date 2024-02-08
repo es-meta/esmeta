@@ -351,8 +351,8 @@ class Compiler(
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
-    case RemoveElemStep(expr, elem) =>
-      fb.addInst(IRemoveElem(compile(fb, expr), compile(fb, elem)))
+    case RemoveElemStep(elem, list) =>
+      fb.addInst(IRemoveElem(compile(fb, list), compile(fb, elem)))
     case RemoveFirstStep(expr) =>
       fb.addInst(IExpr(EPop(compile(fb, expr), true)))
     case RemoveContextStep(_, _) =>
@@ -466,6 +466,7 @@ class Compiler(
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
       case ListConcatExpression(exprs) =>
         EListConcat(exprs.map(compile(fb, _)))
+      case ListCopyExpression(expr) => ECopy(compile(fb, expr))
       case RecordExpression("Completion Record", fields) =>
         val fmap = fields.toMap
         val fs @ List(ty, v, tgt) =

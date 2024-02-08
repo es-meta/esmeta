@@ -13,6 +13,9 @@ case class StringConcatExpression(exprs: List[Expression]) extends Expression
 // list concatenation expressions
 case class ListConcatExpression(exprs: List[Expression]) extends Expression
 
+// list copy expressions
+case class ListCopyExpression(expr: Expression) extends Expression
+
 // record expressions
 case class RecordExpression(
   tname: String,

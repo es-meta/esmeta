@@ -153,8 +153,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("suspend ") >> context
         if (remove) app >> " and remove it from the execution context stack"
         app >> "."
-      case RemoveElemStep(expr, elem) =>
-        app >> First("remove ") >> elem >> " from " >> expr >> "."
+      case RemoveElemStep(elem, list) =>
+        app >> First("remove ") >> elem >> " from " >> list >> "."
       case RemoveFirstStep(expr) =>
         app >> First("remove") >> " the first element from " >> expr >> "."
       case RemoveContextStep(removeCtxt, restoreCtxt) =>
@@ -240,6 +240,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
+      case ListCopyExpression(expr) =>
+        app >> "a List whose elements are the elements of " >> expr
       case RecordExpression(ty, fields) =>
         given Rule[(FieldLiteral, Expression)] = {
           case (app, (field, expr)) =>
