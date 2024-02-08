@@ -175,8 +175,7 @@ object SystemUtils {
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
     val sb = new StringBuilder
-    process ! ProcessLogger(sb.append, _ => ())
-    sb.toString
+    process !! ProcessLogger(s => (), s => ())
 
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Int]): T =

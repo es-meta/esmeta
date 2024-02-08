@@ -17,7 +17,6 @@
   "Catch[1,0].CatchClauseEvaluation",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
   "CreateBuiltinFunction",
-  "CreateDynamicFunction",
   "FlattenIntoArray",
   "ForIn/OfBodyEvaluation",
   "FunctionBody[0,0].EvaluateFunctionBody",
