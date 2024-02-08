@@ -133,6 +133,8 @@ trait Walker extends BasicWalker {
       StringConcatExpression(walkList(exprs, walk))
     case ListConcatExpression(exprs) =>
       ListConcatExpression(walkList(exprs, walk))
+    case ListCopyExpression(expr) =>
+      ListCopyExpression(walk(expr))
     case RecordExpression(ty, fields) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })

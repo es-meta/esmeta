@@ -466,6 +466,7 @@ class Compiler(
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
       case ListConcatExpression(exprs) =>
         EListConcat(exprs.map(compile(fb, _)))
+      case ListCopyExpression(expr) => ECopy(compile(fb, expr))
       case RecordExpression("Completion Record", fields) =>
         val fmap = fields.toMap
         val fs @ List(ty, v, tgt) =

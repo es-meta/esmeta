@@ -348,6 +348,7 @@ trait Parsers extends IndentParsers {
   given expr: PL[Expression] = {
     stringConcatExpr |
     listConcatExpr |
+    listCopyExpr |
     recordExpr |
     lengthExpr |
     substrExpr |
@@ -382,6 +383,12 @@ trait Parsers extends IndentParsers {
   lazy val listConcatExpr: PL[ListConcatExpression] =
     "the list-concatenation of" ~> repsep(expr, sep("and")) ^^ {
       ListConcatExpression(_)
+    }
+
+  // list copy expressions
+  lazy val listCopyExpr: PL[ListCopyExpression] =
+    "a List whose elements are the elements of" ~> expr ^^ {
+      ListCopyExpression(_)
     }
 
   // record expressions

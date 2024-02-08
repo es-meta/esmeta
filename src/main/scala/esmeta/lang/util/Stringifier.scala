@@ -240,6 +240,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
+      case ListCopyExpression(expr) =>
+        app >> "a List whose elements are the elements of " >> expr
       case RecordExpression(ty, fields) =>
         given Rule[(FieldLiteral, Expression)] = {
           case (app, (field, expr)) =>

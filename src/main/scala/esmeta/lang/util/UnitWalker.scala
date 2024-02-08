@@ -100,6 +100,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
+    case ListCopyExpression(expr) =>
+      walk(expr)
     case RecordExpression(ty, fields) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
     case LengthExpression(expr) =>

@@ -2040,6 +2040,7 @@ ProxyExoticObject.GetOwnProperty
 ProxyExoticObject.GetPrototypeOf
 ProxyExoticObject.HasProperty
 ProxyExoticObject.IsExtensible
+ProxyExoticObject.OwnPropertyKeys
 ProxyExoticObject.PreventExtensions
 ProxyExoticObject.Set
 ProxyExoticObject.SetPrototypeOf

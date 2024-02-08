@@ -138,6 +138,7 @@ class StringifyTinyTest extends LangTest {
       listConcatExprOne -> "the list-concatenation of _x_",
       listConcatExprTwo -> "the list-concatenation of _x_ and _x_",
       listConcatExprThree -> "the list-concatenation of _x_, _x_, and _x_",
+      listCopyExpr -> "a List whose elements are the elements of _x_",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       lengthExpr -> "the length of _x_",
