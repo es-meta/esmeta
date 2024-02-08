@@ -42,17 +42,34 @@ case class ManualInfo(version: Option[Spec.Version]) {
     file <- walkTree(s"$MANUALS_DIR/$path")
     if filter(file.getName)
   } yield file
-  private def getPath(name: String): Option[String] =
-    version.fold(None)(version => {
-      val path = s"$MANUALS_DIR/${version.shortHash}/$name"
-      if (exists(path)) Some(path) else None
-    })
-  private def getCompileRule(paths: List[String]): CompileRule = paths
-    .map(path => s"$MANUALS_DIR/$path/rule.json")
-    .map(path => optional(readJson[CompileRule](path)).getOrElse(Map()))
-    .foldLeft[CompileRule](Map())(_ ++ _)
+  private def getPath(name: String): Option[String] = for {
+    version <- version
+    tag <- version.tag
+    path = s"$MANUALS_DIR/$tag/$name"
+    if exists(path)
+  } yield path
+  private def getCompileRule(paths: List[String]): CompileRule = (for {
+    path <- paths
+    rulePath = s"$MANUALS_DIR/$path/rule.json"
+    rule <- optional(readJson[CompileRule](rulePath))
+  } yield rule)
+    .foldLeft[CompileRule](Map())((acc, rule) =>
+      rule.foldLeft(acc) {
+        case (acc, (k, m)) => acc + (k -> (acc.getOrElse(k, Map()) ++ m))
+      },
+    )
   private lazy val paths: List[String] =
-    List("default") ++ version.map(_.shortHash)
+    List("default") ++ version.flatMap(_.tag)
 }
 object ManualInfo:
   type CompileRule = Map[String, Map[String, String]]
+
+  /** default path */
+  lazy val defaultPath: String = s"$MANUALS_DIR/default"
+
+  /** default version */
+  lazy val defaultVersion: Spec.Version =
+    Spec.getVersion(readFile(s"$defaultPath/hash"))
+
+  /** default tycheck-ignore.json */
+  lazy val tycheckIgnore: String = s"$defaultPath/tycheck-ignore.json"

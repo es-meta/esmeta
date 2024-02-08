@@ -52,9 +52,6 @@ case class NameTy(set: BSet[String] = Fin())
   def norm: NameTy = this.set match
     case Inf      => this
     case Fin(set) => NameTy(Fin(set.filter(x => !isSubTy(x, set - x))))
-
-  /** get single value */
-  def getSingle: Flat[Nothing] = if (isBottom) Zero else Many
 }
 object NameTy extends Parser.From(Parser.nameTy) {
   lazy val Top: NameTy = NameTy(Inf)

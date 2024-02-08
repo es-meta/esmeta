@@ -14,12 +14,6 @@ case class NotSupportedOperation(obj: Any, method: String)
 // imprecise
 case class AnalysisImprecise(msg: String) extends AnalysisError(msg)
 
-// arity mismatches
-case class AnalysisRemainingParams(ps: List[Param])
-  extends AnalysisError(s"remaining parameters: ${ps.mkString(", ")}")
-case class AnalysisRemainingArgs(as: List[AbsValue])
-  extends AnalysisError(s"remaining arguments: ${as.mkString(", ")}")
-
 // type mismatches
 case class TypeCheckFail(msg: Option[String])
   extends AnalysisError("type check failed." + msg.fold("")(LINE_SEP + _))

@@ -32,7 +32,6 @@ case object Eval extends Phase[CFG, State] {
     Initialize.fromFile(cfg, filename),
     log = config.log,
     timeLimit = config.timeLimit,
-    tycheck = config.tycheck,
   )
 
   def defaultConfig: Config = Config()
@@ -41,11 +40,6 @@ case object Eval extends Phase[CFG, State] {
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
       "set the time limit in seconds (default: no limit).",
-    ),
-    (
-      "tycheck",
-      BoolOption(c => c.tycheck = true),
-      "turn on type check mode.",
     ),
     (
       "multiple",
@@ -60,7 +54,6 @@ case object Eval extends Phase[CFG, State] {
   )
   case class Config(
     var timeLimit: Option[Int] = None,
-    var tycheck: Boolean = false,
     var multiple: Boolean = false,
     var log: Boolean = false,
   )

@@ -40,6 +40,9 @@ sealed abstract class Command[Result](
     parser(args)
     ESMeta(this, runner(_), cmdConfig)
 
+  /** run command with command-line arguments */
+  def apply(args: String): Result = apply(args.split(" +").toList)
+
   /** a list of phases without specific IO types */
   def phases: Vector[Phase[_, _]] = pList.phases
 

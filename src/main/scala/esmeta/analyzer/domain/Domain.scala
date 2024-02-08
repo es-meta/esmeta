@@ -5,76 +5,79 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
-/** domain */
-trait Domain[A] { self =>
+trait DomainDecl { self: Self =>
 
-  /** top element */
-  def Top: Elem
+  /** domain */
+  trait Domain[A] { self =>
 
-  /** bottom element */
-  def Bot: Elem
+    /** top element */
+    def Top: Elem
 
-  /** element */
-  type Elem <: Appendable
+    /** bottom element */
+    def Bot: Elem
 
-  /** conversion to iterable object */
-  given Conversion[Elem, Iterable[A]] = _.toIterable(true)
+    /** element */
+    type Elem <: Appendable
 
-  /** abstraction functions */
-  def alpha(elems: Iterable[A]): Elem
-  def alpha(elems: A*): Elem = alpha(elems)
-  def apply(elems: Iterable[A]): Elem = alpha(elems)
-  def apply(elems: A*): Elem = alpha(elems)
+    /** conversion to iterable object */
+    given Conversion[Elem, Iterable[A]] = _.toIterable(true)
 
-  /** appender */
-  given rule: Rule[Elem]
+    /** abstraction functions */
+    def alpha(elems: Iterable[A]): Elem
+    def alpha(elems: A*): Elem = alpha(elems)
+    def apply(elems: Iterable[A]): Elem = alpha(elems)
+    def apply(elems: A*): Elem = alpha(elems)
 
-  /** appendable */
-  trait Appendable { this: Elem =>
+    /** appender */
+    given rule: Rule[Elem]
 
-    /** conversion to string */
-    override def toString: String = stringify(this)
-  }
+    /** appendable */
+    trait Appendable { this: Elem =>
 
-  /** optional domain */
-  lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
+      /** conversion to string */
+      override def toString: String = stringify(this)
+    }
 
-  /** domain element interfaces */
-  extension (elem: Elem) {
+    /** optional domain */
+    lazy val optional: OptionDomain[A, this.type] = OptionDomain(this)
 
-    /** partial order */
-    def ⊑(that: Elem): Boolean
+    /** domain element interfaces */
+    extension (elem: Elem) {
 
-    /** not partial order */
-    def !⊑(that: Elem): Boolean = !(elem ⊑ that)
+      /** partial order */
+      def ⊑(that: Elem): Boolean
 
-    /** join operator */
-    def ⊔(that: Elem): Elem
+      /** not partial order */
+      def !⊑(that: Elem): Boolean = !(elem ⊑ that)
 
-    /** meet operator */
-    def ⊓(that: Elem): Elem = Top
+      /** join operator */
+      def ⊔(that: Elem): Elem
 
-    /** prune operator */
-    def --(that: Elem): Elem = elem
+      /** meet operator */
+      def ⊓(that: Elem): Elem = Top
 
-    /** top check */
-    def isTop: Boolean = elem == Top
+      /** prune operator */
+      def --(that: Elem): Elem = elem
 
-    /** bottom check */
-    def isBottom: Boolean = elem == Bot
+      /** top check */
+      def isTop: Boolean = elem == Top
 
-    /** concretization function */
-    def gamma: BSet[A] = if (isBottom) Fin() else Inf
+      /** bottom check */
+      def isBottom: Boolean = elem == Bot
 
-    /** get single value */
-    def getSingle: Flat[A] = if (isBottom) Zero else Many
+      /** concretization function */
+      def gamma: BSet[A] = if (isBottom) Fin() else Inf
 
-    /** conversion to iterable */
-    def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
-      final def iterator: Iterator[A] = elem.gamma match
-        case Inf =>
-          if (stop) exploded(s"impossible to iterate infinite values")
-          else Nil.iterator
-        case Fin(set) => set.iterator
+      /** get single value */
+      def getSingle: Flat[A] = if (isBottom) Zero else Many
+
+      /** conversion to iterable */
+      def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
+        final def iterator: Iterator[A] = elem.gamma match
+          case Inf =>
+            if (stop) exploded(s"impossible to iterate infinite values")
+            else Nil.iterator
+          case Fin(set) => set.iterator
+    }
   }
 }

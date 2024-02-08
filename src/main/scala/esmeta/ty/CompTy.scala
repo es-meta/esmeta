@@ -1,6 +1,5 @@
 package esmeta.ty
 
-import esmeta.analyzer.domain.*
 import esmeta.util.*
 import esmeta.state.*
 import esmeta.ty.util.Parser
@@ -66,9 +65,9 @@ case class CompTy(
       )
 
   /** get single value */
-  def getSingle: Flat[AValue] =
+  def getSingle: Flat[Value] =
     if (!abrupt.isBottom) Many
-    else normal.getSingle.map(AComp(Const("normal"), _, None))
+    else normal.getSingle.map(Comp(Const("normal"), _, None))
 }
 object CompTy extends Parser.From(Parser.compTy) {
   lazy val Bot: CompTy = CompTy()

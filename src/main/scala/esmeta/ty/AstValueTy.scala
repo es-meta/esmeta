@@ -1,6 +1,5 @@
 package esmeta.ty
 
-import esmeta.analyzer.domain.*
 import esmeta.util.*
 import esmeta.state.*
 import esmeta.ty.util.Parser
@@ -56,9 +55,6 @@ sealed trait AstValueTy extends TyElem with Lattice[AstValueTy] {
         case _ if this <= that                  => Bot
         case (AstNameTy(lset), AstNameTy(rset)) => AstNameTy(lset -- rset)
         case _                                  => this
-
-  /** get single value */
-  def getSingle: Flat[AValue] = Many
 }
 case object AstTopTy extends AstValueTy
 sealed trait AstNonTopTy extends AstValueTy {

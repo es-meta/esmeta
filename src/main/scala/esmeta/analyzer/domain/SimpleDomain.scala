@@ -4,75 +4,78 @@ import esmeta.analyzer.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 
-/** simple domain */
-trait SimpleDomain[A](
-  val topName: String, // name of top element
-  val totalOpt: BSet[A] = Inf, // total elements
-) extends Domain[A] {
+trait SimpleDomainDecl { self: Self =>
 
-  /** elements */
-  sealed trait Elem extends Iterable[A] with Appendable {
+  /** simple domain */
+  trait SimpleDomain[A](
+    val topName: String, // name of top element
+    val totalOpt: BSet[A] = Inf, // total elements
+  ) extends Domain[A] {
 
-    /** iterators */
-    final def iterator: Iterator[A] = (this match {
-      case Bot => Nil
-      case Top =>
-        totalOpt match
-          case Fin(set) => set
-          case Inf =>
-            exploded(s"impossible to concretize the top value of $topName.")
-    }).iterator
-  }
+    /** elements */
+    sealed trait Elem extends Iterable[A] with Appendable {
 
-  /** top element */
-  object Top extends Elem
+      /** iterators */
+      final def iterator: Iterator[A] = (this match {
+        case Bot => Nil
+        case Top =>
+          totalOpt match
+            case Fin(set) => set
+            case Inf =>
+              exploded(s"impossible to concretize the top value of $topName.")
+      }).iterator
+    }
 
-  /** bottom element */
-  object Bot extends Elem
+    /** top element */
+    object Top extends Elem
 
-  /** abstraction functions */
-  def alpha(elems: Iterable[A]): Elem = if (elems.isEmpty) Bot else Top
+    /** bottom element */
+    object Bot extends Elem
 
-  /** appender */
-  given rule: Rule[Elem] = (app, elem) =>
-    elem match
-      case Bot => app >> "⊥"
-      case Top => app >> topName.toString
+    /** abstraction functions */
+    def alpha(elems: Iterable[A]): Elem = if (elems.isEmpty) Bot else Top
 
-  /** element interfaces */
-  extension (elem: Elem) {
+    /** appender */
+    given rule: Rule[Elem] = (app, elem) =>
+      elem match
+        case Bot => app >> "⊥"
+        case Top => app >> topName.toString
 
-    /** partial order */
-    def ⊑(that: Elem): Boolean = (elem, that) match
-      case (Bot, _) | (_, Top) => true
-      case (_, Bot) | (Top, _) => false
+    /** element interfaces */
+    extension (elem: Elem) {
 
-    /** join operator */
-    def ⊔(that: Elem): Elem = (elem, that) match
-      case (Bot, _) | (_, Top) => that
-      case (_, Bot) | (Top, _) => elem
+      /** partial order */
+      def ⊑(that: Elem): Boolean = (elem, that) match
+        case (Bot, _) | (_, Top) => true
+        case (_, Bot) | (Top, _) => false
 
-    /** meet operator */
-    override def ⊓(that: Elem): Elem = (elem, that) match
-      case (Bot, _) | (_, Top) => elem
-      case (_, Bot) | (Top, _) => that
+      /** join operator */
+      def ⊔(that: Elem): Elem = (elem, that) match
+        case (Bot, _) | (_, Top) => that
+        case (_, Bot) | (Top, _) => elem
 
-    /** prune operator */
-    override def --(that: Elem): Elem = that match
-      case Bot => elem
-      case Top => Bot
+      /** meet operator */
+      override def ⊓(that: Elem): Elem = (elem, that) match
+        case (Bot, _) | (_, Top) => elem
+        case (_, Bot) | (Top, _) => that
 
-    /** concretization function */
-    override def gamma: BSet[A] = elem match
-      case Bot => Fin(Set())
-      case Top => totalOpt
+      /** prune operator */
+      override def --(that: Elem): Elem = that match
+        case Bot => elem
+        case Top => Bot
 
-    /** get single value */
-    override def getSingle: Flat[A] = elem match
-      case Bot => Zero
-      case Top =>
-        totalOpt match
-          case Fin(set) if set.size == 1 => One(set.head)
-          case _                         => Many
+      /** concretization function */
+      override def gamma: BSet[A] = elem match
+        case Bot => Fin(Set())
+        case Top => totalOpt
+
+      /** get single value */
+      override def getSingle: Flat[A] = elem match
+        case Bot => Zero
+        case Top =>
+          totalOpt match
+            case Fin(set) if set.size == 1 => One(set.head)
+            case _                         => Many
+    }
   }
 }

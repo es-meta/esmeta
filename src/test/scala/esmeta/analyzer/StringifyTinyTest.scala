@@ -6,6 +6,8 @@ import esmeta.ty.*
 import scala.collection.mutable.ListBuffer
 
 class StringifyTinyTest extends AnalyzerTest {
+  import AnalyzerTest.*, analyzer.*
+
   val name: String = "analyzerStringifyTest"
 
   // registration
@@ -20,7 +22,9 @@ class StringifyTinyTest extends AnalyzerTest {
       loops = List(loopCtxt, loopCtxt),
     )
     checkStringify("View")(
-      insensView -> "[call: ][loop: ]",
+      View() -> "",
+      View(calls = List(call, call)) -> "[call: 0, 0]",
+      View(loops = List(loopCtxt)) -> "[loop: 0(3)]",
       irView -> "[call: 0, 0, 0][loop: 0(3), 0(3)]",
     )
 

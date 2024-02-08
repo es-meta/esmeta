@@ -1,11 +1,13 @@
 package esmeta
 
+import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.error.NotSupported.*
 import esmeta.error.{NotSupported => NSError}
 import esmeta.extractor.Extractor
 import esmeta.phase.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 import esmeta.util.SystemUtils.*
@@ -203,9 +205,11 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 }
 object ESMetaTest {
   // extract specifications
-  lazy val specOpt = optional(Extractor())
   lazy val spec = Extractor()
   lazy val grammar = spec.grammar
   lazy val program = Compiler(spec)
   lazy val cfg = CFGBuilder(program)
+  lazy val defaultVersion = ManualInfo.defaultVersion
+  lazy val defaultCFG = getCFG(defaultVersion.hash)
+  def getCFG(target: String): CFG = CFGBuilder(Compiler(Extractor(target)))
 }

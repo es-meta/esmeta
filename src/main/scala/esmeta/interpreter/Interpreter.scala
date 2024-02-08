@@ -26,7 +26,6 @@ class Interpreter(
   val log: Boolean = false,
   val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
-  val tycheck: Boolean = false,
 ) {
   import Interpreter.*
 
@@ -72,16 +71,6 @@ class Interpreter(
           false
         case CallContext(retId, ctxt) :: rest =>
           val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
-          if (tycheck) (st.typeOf(value), func.retTy.ty) match
-            case (actual: ValueTy, ty: ValueTy) if !ty.contains(value, st) =>
-              val calleeRp = ReturnPoint(func, View())
-              var msg = ""
-              val irp = InternalReturnPoint(ret, calleeRp)
-              msg += ReturnTypeMismatch(irp, actual)
-              msg += LINE_SEP + "- return  : " + value
-              st.filename.map(msg += LINE_SEP + "- filename: " + _)
-              warn(msg)
-            case _ =>
           st.context = ctxt
           st.callStack = rest
           setCallResult(retId, value)
@@ -505,20 +494,6 @@ class Interpreter(
           case _: Cont =>
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
-        if (tycheck) param.ty.ty match
-          // ignore type check for `this` value
-          case _ if (func.isMethod || func.isSDO) && idx == 0 =>
-          case ty: ValueTy if !ty.contains(arg, st) =>
-            val callerNp = NodePoint(cfg.funcOf(caller), caller, View())
-            val calleeNp = NodePoint(func, func.entry, View())
-            val aap = ArgAssignPoint(CallPoint(callerNp, calleeNp), idx)
-            val argTy = st.typeOf(arg)
-            var msg = ""
-            msg += ParamTypeMismatch(aap, argTy)
-            msg += LINE_SEP + "- argument: " + arg
-            st.filename.map(msg += LINE_SEP + "- filename: " + _)
-            warn(msg)
-          case _ =>
         map += param.lhs -> arg
         aux(pl, al, idx + 1)
     }
@@ -637,8 +612,7 @@ object Interpreter {
     log: Boolean = false,
     logDir: String = EVAL_LOG_DIR,
     timeLimit: Option[Int] = None,
-    tycheck: Boolean = false,
-  ): State = new Interpreter(st, log, logDir, timeLimit, tycheck).result
+  ): State = new Interpreter(st, log, logDir, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(

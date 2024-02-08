@@ -8,7 +8,6 @@ import esmeta.util.SystemUtils.*
 class AnalyzeSmallTest extends ESTest {
   import ESTest.*
 
-  YET_THROW = true
   val name: String = "esAnalyzeTest"
 
   // registration

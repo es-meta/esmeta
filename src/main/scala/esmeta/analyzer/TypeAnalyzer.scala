@@ -3,7 +3,7 @@ package esmeta.analyzer
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.error.*
+import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
@@ -15,20 +15,68 @@ import esmeta.util.SystemUtils.*
 
 /** specification type analyzer for ECMA-262 */
 class TypeAnalyzer(
-  cfg: CFG,
-  config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
-) extends Analyzer(cfg) {
+  val cfg: CFG,
+  val targetPattern: Option[String] = None,
+  val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
+  val ignore: TypeAnalyzer.Ignore = Ignore(),
+  val log: Boolean = false,
+  val silent: Boolean = false,
+  override val useRepl: Boolean = false,
+  override val replContinue: Boolean = false,
+) extends Analyzer {
   import TypeAnalyzer.*
 
-  // record type mismatches
-  def addMismatch(mismatch: TypeMismatch): Unit =
-    mismatchMap += mismatch.ap -> mismatch
+  /** perform type analysis */
+  lazy val analyze: Unit =
+    AbsState.setBase(new Initialize(cfg))
+    transfer.fixpoint
+    if (log) logging
+
+  /** unused ignore set */
+  protected var _unusedSet: Set[String] = ignore.names
+  inline def unusedSet: Set[String] = _unusedSet
+
+  /** perform type analysis with the given control flow graph */
   lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
-  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
+  lazy val detected = mismatches.filter(mismatch => {
+    val name = mismatch.func.name
+    _unusedSet -= name
+    !ignore.names.contains(name)
+  })
+
+  /** all possible initial analysis target functions */
+  def targetFuncs: List[Func] =
+    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val funcs = targetPattern.fold(allFuncs)(pattern => {
+      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
+      if (!silent && funcs.isEmpty)
+        warn(s"failed to find functions matched with the pattern `$pattern`.")
+      funcs
+    })
+    if (!silent) println(s"- ${funcs.size} functions are initial targets.")
+    funcs
+
+  /** check if the ignore set needs to be updated */
+  def needUpdate: Boolean = detected.nonEmpty || unusedSet.nonEmpty
+
+  /** update ignorance system */
+  def updateIgnore: Unit = for (path <- ignore.filename)
+    dumpJson(
+      name = "algorithm names for the ignorance system",
+      data = mismatches.map(_.func.name).toList.sorted,
+      filename = path,
+      noSpace = false,
+    )
+
+  /** no sensitivity */
+  override val irSens: Boolean = false
+
+  /** use type refinement */
+  override val useRefine: Boolean = true
 
   /** type semantics as results */
-  class Semantics(npMap: Map[NodePoint[Node], AbsState])
-    extends AbsSemantics(npMap) {
+  lazy val sem: Semantics = new Semantics
+  class Semantics extends AbsSemantics(getInitNpMap(targetFuncs)) {
 
     /** type analysis result string */
     def typesString: String =
@@ -59,8 +107,9 @@ class TypeAnalyzer(
       (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
   }
 
-  /** abstract transfer function for types */
-  trait Transfer extends AbsTransfer {
+  /** transfer function */
+  lazy val transfer: Transfer = new Transfer
+  class Transfer extends AbsTransfer {
 
     /** loading monads */
     import AbsState.monad.*
@@ -159,107 +208,72 @@ class TypeAnalyzer(
       super.doReturn(irp, expected)
   }
 
-  /** transfer function */
-  object transfer extends Transfer
+  /** use type abstract domains */
+  stateDomain = Some(StateTypeDomain)
+  retDomain = Some(RetTypeDomain)
+  valueDomain = Some(ValueTypeDomain)
 
-  /** perform type analysis for given targets */
-  def apply(
-    targets: List[Func],
-    ignore: Ignore,
-    log: Boolean,
-    silent: Boolean,
-  ): Semantics = apply(
-    init = Semantics(initNpMap(targets)),
-    postProcess = (sem: Semantics) => {
-      if (log) logging(sem)
-      var unusedSet = ignore.names
-      val detected = mismatches.filter(mismatch => {
-        val name = mismatch.func.name
-        unusedSet -= name
-        !ignore.names.contains(name)
-      })
-      if (!detected.isEmpty || !unusedSet.isEmpty)
-        val app = new Appender
-        // show detected type mismatches
-        if (!detected.isEmpty)
-          app :> "* " >> detected.size
-          app >> " type mismatches are detected."
-        // show unused names
-        if (!unusedSet.isEmpty)
-          app :> "* " >> unusedSet.size
-          app >> " names are not used to ignore mismatches."
-        detected.toList.map(_.toString).sorted.map(app :> _)
-        // show help message about how to use the ignorance system
-        ignore.filename.map(path =>
-          if (ignore.update)
-            dumpJson(
-              name = "algorithm names for the ignorance system",
-              data = mismatches.map(_.func.name).toList.sorted,
-              filename = path,
-              noSpace = false,
-            )
-          else
-            app :> "=" * 80
-            app :> "To suppress this error message, "
-            app >> "add/remove the following names to `" >> path >> "`:"
-            detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
-            unusedSet.toList.sorted.map(app :> "  - " >> _)
-            app :> "=" * 80,
-        )
-        throw TypeCheckFail(if (silent) None else Some(app.toString))
-      sem
-    },
-  )
-  def apply(
-    target: Option[String],
-    ignore: Ignore,
-    log: Boolean,
-    silent: Boolean,
-  ): Semantics =
-    val targets = getInitTargets(target, silent)
-    if (!silent) println(s"- ${targets.size} functions are initial targets.")
-    apply(targets, ignore, log, silent)
+  /** conversion to string */
+  override def toString: String =
+    val app = new Appender
+    // show detected type mismatches
+    if (!detected.isEmpty)
+      app :> "* " >> detected.size
+      app >> " type mismatches are detected."
+    // show unused names
+    if (!unusedSet.isEmpty)
+      app :> "* " >> unusedSet.size
+      app >> " names are not used to ignore mismatches."
+    detected.toList.map(_.toString).sorted.map(app :> _)
+    // show help message about how to use the ignorance system
+    for (path <- ignore.filename)
+      app :> "=" * 80
+      app :> "To suppress this error message, "
+      app >> "add/remove the following names to `" >> path >> "`:"
+      detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
+      unusedSet.toList.sorted.map(app :> "  - " >> _)
+      app :> "=" * 80
+    app.toString
 
-  // all entry node points
-  def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+
+  /** record type mismatches */
+  private def addMismatch(mismatch: TypeMismatch): Unit =
+    mismatchMap += mismatch.ap -> mismatch
+  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
+
+  /** all entry node points */
+  private def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
     func <- targets
     entry = func.entry
     view = getView(func)
   } yield NodePoint(func, entry, view)
 
-  // get initial abstract states in each node point
-  def initNpMap(targets: List[Func]): Map[NodePoint[Node], AbsState] = (for {
-    np @ NodePoint(func, _, _) <- getNps(targets)
-    st = getState(func)
-  } yield np -> st).toMap
+  /** get initial abstract states in each node point */
+  private def getInitNpMap(
+    targets: List[Func],
+  ): Map[NodePoint[Node], AbsState] =
+    (for {
+      np @ NodePoint(func, _, _) <- getNps(targets)
+      st = getState(func)
+    } yield np -> st).toMap
 
-  // get view from a function
-  def getView(func: Func): View = View()
+  /** get view from a function */
+  private def getView(func: Func): View = View()
 
-  // get initial state of function
-  def getState(func: Func): AbsState = func.params.foldLeft(AbsState.Empty) {
-    case (st, Param(x, ty, opt, _)) =>
-      var v = AbsValue(ty.ty)
-      if (opt) v ⊔= AbsValue.absentTop
-      st.update(x, v)
-  }
+  /** get initial state of function */
+  private def getState(func: Func): AbsState =
+    func.params.foldLeft(AbsState.Empty) {
+      case (st, Param(x, ty, opt, _)) =>
+        var v = AbsValue(ty.ty)
+        if (opt) v ⊔= AbsValue.absentTop
+        st.update(x, v)
+    }
 
-  /** find initial analysis targets based on a given regex pattern */
-  def getInitTargets(
-    target: Option[String],
-    silent: Boolean = false,
-  ): List[Func] =
-    // find all possible initial analysis target functions
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
-    target.fold(allFuncs)(pattern => {
-      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
-      if (!silent && funcs.isEmpty)
-        warn(s"failed to find functions matched with the pattern `$pattern`.")
-      funcs
-    })
-
-  // logging mode
-  def logging(sem: Semantics): Unit = {
+  /** logging mode */
+  private def logging: Unit = {
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
       name = "type analysis result",
@@ -284,31 +298,17 @@ class TypeAnalyzer(
     )
   }
 }
-object TypeAnalyzer {
-  // set type domains
-  initDomain(
-    stateDomain = state.TypeDomain,
-    valueDomain = value.TypeDomain,
-    retDomain = ret.TypeDomain,
-  )
-
-  // no sensitivity
-  IR_SENS = false
-
-  // use type refinement
-  USE_REFINE = true
+object TypeAnalyzer:
 
   /** algorithm names used in ignoring type mismatches */
   case class Ignore(
     filename: Option[String] = None,
     names: Set[String] = Set(),
-    update: Boolean = false,
   )
   object Ignore:
-    def apply(filename: String, update: Boolean): Ignore = Ignore(
+    def apply(filename: String): Ignore = Ignore(
       filename = Some(filename),
       names = optional { readJson[Set[String]](filename) }.getOrElse(Set()),
-      update = update,
     )
 
   /** configuration for type checking */
@@ -319,4 +319,3 @@ object TypeAnalyzer {
     returnType: Boolean = true,
     uncheckedAbrupt: Boolean = false,
   )
-}

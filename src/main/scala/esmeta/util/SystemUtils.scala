@@ -171,11 +171,11 @@ object SystemUtils {
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined
 
   /** execute shell command with given dir, default to CUR_DIR */
-  def executeCmd(cmdStr: String, dir: String = CUR_DIR): String =
-    var cmd = s"$cmdStr 2> /dev/null"
+  def executeCmd(cmd: String, dir: String = CUR_DIR): String =
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
-    process.!!
+    val sb = new StringBuilder
+    process !! ProcessLogger(s => (), s => ())
 
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Int]): T =

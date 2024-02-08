@@ -44,9 +44,12 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     executeCmd(s"git rev-list -n 1 $target", path).trim
 
   /** get git tag */
-  def getTag(target: String): Option[String] = optional(
-    executeCmd(s"git describe --tags --exact-match $target", path).trim,
-  )
+  def getTag(target: String): Option[String] = optional {
+    executeCmd(
+      s"git describe --tags --exact-match $target 2>/dev/null",
+      path,
+    ).trim
+  }
 
   /** apply git patch */
   def applyPatch(patch: String): Unit = executeCmd(s"patch -p1 < $patch", path)

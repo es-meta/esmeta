@@ -65,9 +65,6 @@ sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       val newMap = map.filter { case (_, v) => !v.isBottom }
       if (newMap.isEmpty) Bot else Elem(newMap)
-
-  /** get single value */
-  def getSingle: Flat[Nothing] = if (isBottom) Zero else Many
 }
 case object RecordTopTy extends RecordTy
 case class RecordElemTy(map: Map[String, ValueTy] = Map()) extends RecordTy
