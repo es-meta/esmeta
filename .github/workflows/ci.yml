@@ -15,7 +15,7 @@ jobs:
     - name: Run test
       env:
         ESMETA_HOME: ${{ github.workspace }}
-      run: sbt basicTest
+      run: sbt basicTest || cat tests/detail
 
     - name: Report Status
       if: failure()

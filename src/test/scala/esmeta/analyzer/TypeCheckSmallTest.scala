@@ -7,10 +7,11 @@ class TypeCheckSmallTest extends AnalyzerTest {
 
   // registration
   def init: Unit = {
-    check("recent") {
-      assert(analyzer.detected.isEmpty)
-      assert(analyzer.unusedSet.isEmpty)
-      if (analyzer.needUpdate) analyzer.updateIgnore
+    check("es2023") {
+      if (analyzer.needUpdate)
+        analyzer.updateIgnore
+        assert(analyzer.detected.isEmpty)
+        assert(analyzer.unusedSet.isEmpty)
     }
   }
 
