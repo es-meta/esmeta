@@ -26,26 +26,17 @@ class TypeAnalyzer(
 ) extends Analyzer {
   import TypeAnalyzer.*
 
-  lazy val analyze: Semantics =
-    AbsState.setBase(new Initialize(cfg))
-    transfer.fixpoint
-    if (log) logging
-    if (ignore.update) updateIgnore
-    sem
-
   /** unused ignore set */
-  private var _unusedSet: Set[String] = ignore.names
+  protected var _unusedSet: Set[String] = ignore.names
   inline def unusedSet: Set[String] = _unusedSet
 
   /** perform type analysis with the given control flow graph */
   lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
-  lazy val detected =
-    analyze
-    mismatches.filter(mismatch => {
-      val name = mismatch.func.name
-      _unusedSet -= name
-      !ignore.names.contains(name)
-    })
+  lazy val detected = mismatches.filter(mismatch => {
+    val name = mismatch.func.name
+    _unusedSet -= name
+    !ignore.names.contains(name)
+  })
 
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =
@@ -59,10 +50,17 @@ class TypeAnalyzer(
     if (!silent) println(s"- ${funcs.size} functions are initial targets.")
     funcs
 
-  /** record type mismatches */
-  private def addMismatch(mismatch: TypeMismatch): Unit =
-    mismatchMap += mismatch.ap -> mismatch
-  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
+  /** check if the ignore set needs to be updated */
+  def needUpdate: Boolean = detected.nonEmpty || unusedSet.nonEmpty
+
+  /** update ignorance system */
+  def updateIgnore: Unit = for (path <- ignore.filename)
+    dumpJson(
+      name = "algorithm names for the ignorance system",
+      data = mismatches.map(_.func.name).toList.sorted,
+      filename = path,
+      noSpace = false,
+    )
 
   /** no sensitivity */
   override val irSens: Boolean = false
@@ -222,7 +220,7 @@ class TypeAnalyzer(
       app >> " names are not used to ignore mismatches."
     detected.toList.map(_.toString).sorted.map(app :> _)
     // show help message about how to use the ignorance system
-    for (path <- ignore.filename if !ignore.update)
+    for (path <- ignore.filename)
       app :> "=" * 80
       app :> "To suppress this error message, "
       app >> "add/remove the following names to `" >> path >> "`:"
@@ -234,6 +232,11 @@ class TypeAnalyzer(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+
+  /** record type mismatches */
+  private def addMismatch(mismatch: TypeMismatch): Unit =
+    mismatchMap += mismatch.ap -> mismatch
+  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
 
   /** all entry node points */
   private def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
@@ -289,14 +292,11 @@ class TypeAnalyzer(
     )
   }
 
-  /** update ignorance system */
-  private def updateIgnore: Unit = for (path <- ignore.filename)
-    dumpJson(
-      name = "algorithm names for the ignorance system",
-      data = mismatches.map(_.func.name).toList.sorted,
-      filename = path,
-      noSpace = false,
-    )
+  /** perform type analysis */
+  AbsState.setBase(new Initialize(cfg))
+  transfer.fixpoint
+  if (log) logging
+  sem
 }
 object TypeAnalyzer:
 
@@ -304,13 +304,11 @@ object TypeAnalyzer:
   case class Ignore(
     filename: Option[String] = None,
     names: Set[String] = Set(),
-    update: Boolean = false,
   )
   object Ignore:
-    def apply(filename: String, update: Boolean): Ignore = Ignore(
+    def apply(filename: String): Ignore = Ignore(
       filename = Some(filename),
       names = optional { readJson[Set[String]](filename) }.getOrElse(Set()),
-      update = update,
     )
 
   /** configuration for type checking */

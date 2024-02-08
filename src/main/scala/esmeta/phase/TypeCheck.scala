@@ -20,7 +20,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     config: Config,
   ): TypeAnalyzer#Semantics =
     val ignorePath = config.ignorePath.orElse(cfg.spec.manualInfo.tycheckIgnore)
-    val ignore = ignorePath.fold(Ignore())(Ignore(_, config.ignoreUpdate))
+    val ignore = ignorePath.fold(Ignore())(Ignore.apply)
     val silent = cmdConfig.silent
     val analyzer: TypeAnalyzer = TypeAnalyzer(
       cfg = cfg,
@@ -32,10 +32,10 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
       useRepl = config.useRepl,
       replContinue = config.replContinue,
     )
-    val sem = analyzer.analyze
-    if (analyzer.detected.nonEmpty || analyzer.unusedSet.nonEmpty)
+    if (analyzer.needUpdate)
+      if (config.updateIgnore) analyzer.updateIgnore
       throw TypeCheckFail(if (silent) None else Some(analyzer.toString))
-    sem
+    analyzer.sem
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -61,7 +61,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     ),
     (
       "update-ignore",
-      BoolOption(c => c.ignoreUpdate = true),
+      BoolOption(c => c.updateIgnore = true),
       "update the given JSON file used in ignoring type mismatches.",
     ),
     (
@@ -73,7 +73,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
   case class Config(
     var target: Option[String] = None,
     var ignorePath: Option[String] = None,
-    var ignoreUpdate: Boolean = false,
+    var updateIgnore: Boolean = false,
     var useRepl: Boolean = false,
     var replContinue: Boolean = false,
     var log: Boolean = false,

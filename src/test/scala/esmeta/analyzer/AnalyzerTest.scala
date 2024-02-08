@@ -11,7 +11,7 @@ object AnalyzerTest {
   import ESMetaTest.*
 
   lazy val ignorePath = cfg.spec.manualInfo.tycheckIgnore
-  lazy val ignore = ignorePath.fold(Ignore())(Ignore(_, update = true))
+  lazy val ignore = ignorePath.fold(Ignore())(Ignore.apply)
   lazy val analyzer: TypeAnalyzer = TypeAnalyzer(
     cfg = cfg,
     ignore = ignore,

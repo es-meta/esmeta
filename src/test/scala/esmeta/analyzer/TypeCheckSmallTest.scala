@@ -10,6 +10,7 @@ class TypeCheckSmallTest extends AnalyzerTest {
     check("recent") {
       assert(analyzer.detected.isEmpty)
       assert(analyzer.unusedSet.isEmpty)
+      if (analyzer.needUpdate) analyzer.updateIgnore
     }
   }
 
