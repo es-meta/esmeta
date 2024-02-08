@@ -10,14 +10,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        fetch-tags: true
         submodules: true
+
+    - name: Fetch all commits and tags from ecma262
+      env:
+        ESMETA_HOME: ${{ github.workspace }}
+      run:
+        cd ecma262 && git fetch --all --tags
 
     - name: Run test
       env:
         ESMETA_HOME: ${{ github.workspace }}
-      run: sbt basicTest || cat tests/detail
+      run: sbt basicTest || (cat tests/detail && exit 1)
 
-    - name: Report Status
+    - name: Report status
       if: failure()
       uses: 8398a7/action-slack@v3
       with:
@@ -35,7 +42,7 @@ jobs:
     - name: Check code format
       run: sbt formatCheck
 
-    - name: Report Status
+    - name: Report status
       if: failure()
       uses: 8398a7/action-slack@v3
       with:
