@@ -8,7 +8,7 @@ import esmeta.util.SystemUtils.*
 abstract class Git(path: String, shortHashLength: Int = 16) { self =>
 
   /** git versions */
-  case class Version private (hash: String, tag: Option[String]) {
+  case class Version(hash: String, tag: Option[String]) {
 
     def git: Git = self
 
@@ -27,15 +27,9 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     val simplePattern = "([a-z0-9]+)".r
     val tagPattern = "([a-z0-9]+) \\((.+)\\)".r
     def apply(string: String): Version = string match
-      case simplePattern(hash) => Version(hash, getTag(hash))
-      case tagPattern(hash, tag) =>
-        if (getTag(hash) != Some(tag)) throw GitTagMismatch(hash, tag)
-        Version(hash, Some(tag))
-      case _ => throw InvalidGitVersion(string)
-
-  def getTag(target: String): Option[String] = optional(
-    executeCmd(s"git describe --tags --exact-match $target", path).trim,
-  )
+      case simplePattern(hash)   => Version(hash, None)
+      case tagPattern(hash, tag) => Version(hash, Some(tag))
+      case _                     => throw InvalidGitVersion(string)
 
   /** change git version */
   def changeVersion(version: Version): Unit =
@@ -44,6 +38,15 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
   /** change git version with target name */
   def changeVersion(target: String): Unit =
     executeCmd(s"git checkout $target", path)
+
+  /** get git hash */
+  def getHash(target: String): String =
+    executeCmd(s"git rev-list -n 1 $target", path).trim
+
+  /** get git tag */
+  def getTag(target: String): Option[String] = optional(
+    executeCmd(s"git describe --tags --exact-match $target", path).trim,
+  )
 
   /** apply git patch */
   def applyPatch(patch: String): Unit = executeCmd(s"patch -p1 < $patch", path)
@@ -57,7 +60,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
 
   /** get git commit version */
   def getVersion(target: String): Version =
-    Version(executeCmd(s"git rev-list -n 1 $target", path).trim)
+    Version(getHash(target), getTag(target))
 
   /** get git commit hash for the current version */
   def currentVersion: Version = getVersion("HEAD")

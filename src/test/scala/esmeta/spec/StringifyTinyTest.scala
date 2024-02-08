@@ -17,9 +17,11 @@ class StringifyTinyTest extends SpecTest {
     // -------------------------------------------------------------------------
     // Summary
     // -------------------------------------------------------------------------
+    val version =
+      Spec.Version("d048f32e861c2ed4a26f59a50d392918f26da3ba", Some("es2023"))
     checkParseAndStringify("Summary", Summary)(
       Summary(
-        Some(Spec.Version("d048f32e861c2ed4a26f59a50d392918f26da3ba")),
+        Some(version),
         GrammarSummary(145, 16, 195, 28),
         AlgorithmSummary(2258, 365),
         StepSummary(18307, 754),
