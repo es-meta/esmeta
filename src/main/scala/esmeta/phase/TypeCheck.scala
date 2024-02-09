@@ -24,7 +24,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
       cfg = cfg,
       targetPattern = config.target,
       config = TypeAnalyzer.Config(),
-      ignore = ManualInfo.tycheckIgnore,
+      ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
       silent = silent,
       useRepl = config.useRepl,
