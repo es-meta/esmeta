@@ -26,15 +26,15 @@ object ManualInfo {
   }.getOrElse(Map.empty)
   type CompileRule = Map[String, Map[String, String]]
 
-  /** bugfix patch file */
+  /** bugfix patch map */
   lazy val bugfixPatchMap: Map[String, String] = (for {
     file <- getFiles(patchFilter)
     name = file.getName
     pattern = "(.*).patch".r
-    tag <- name match
-      case pattern(tag) => Some(tag)
-      case _            => None
-  } yield tag -> file.toString).toMap
+    hash <- name match
+      case pattern(hash) => Some(hash)
+      case _             => None
+  } yield hash -> file.toString).toMap
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

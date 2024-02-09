@@ -27,8 +27,7 @@ object Extractor:
         // if bugfix patch exists, apply it to spec.html
         lazy val document = readFile(SPEC_HTML).toHtml
         for {
-          tag <- version.tag
-          patchFile <- ManualInfo.bugfixPatchMap.get(tag)
+          patchFile <- ManualInfo.bugfixPatchMap.get(version.hash)
         } {
           Spec.applyPatch(patchFile)
           document

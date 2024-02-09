@@ -1,4 +1,4 @@
-- version: d048f32e861c2ed4a26f59a50d392918f26da3ba (es2023)
+- version: d048f32e861c2ed4a26f59a50d392918f26da3ba
 - grammar:
   - productions: 359
     - lexical: 147
