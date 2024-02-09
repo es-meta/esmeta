@@ -26,8 +26,13 @@ object Extractor:
       case version =>
         // if bugfix patch exists, apply it to spec.html
         lazy val document = readFile(SPEC_HTML).toHtml
-        for (path <- ManualInfo(Some(version)).bugfixPath) {
-          Spec.applyPatch(path); document; Spec.clean
+        for {
+          tag <- version.tag
+          patchFile <- ManualInfo.bugfixPatchMap.get(tag)
+        } {
+          Spec.applyPatch(patchFile)
+          document
+          Spec.clean
         }
         document
     }
@@ -44,8 +49,6 @@ class Extractor(
 ) extends SpecParsers {
   lazy val parser: LangUtil.Parsers =
     if (eval) LangUtil.ParserForEval else LangUtil.Parser
-
-  lazy val manualInfo: ManualInfo = ManualInfo(version)
 
   /** final result */
   lazy val result =
@@ -91,7 +94,7 @@ class Extractor(
   def extractAlgorithms: List[Algorithm] =
     // XXX load manually created algorithms
     var manualJobs = for {
-      file <- manualInfo.algoFiles
+      file <- ManualInfo.algoFiles
       content = readFile(file.toString)
       document = content.toHtml
       elem <- document.getElems("emu-alg:not([example])")

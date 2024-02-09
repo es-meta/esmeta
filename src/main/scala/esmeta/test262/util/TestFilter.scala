@@ -86,7 +86,7 @@ case class TestFilter(spec: Spec) {
     val (category, filter) = pair
     test => filter(test).map(List(category.name, _))
 
-  lazy val manualConfig = spec.manualInfo.test262
+  lazy val manualConfig = ManualInfo.test262Config
 
   lazy val manualFilterMap = (for {
     (reason, tests) <- manualConfig.filtered

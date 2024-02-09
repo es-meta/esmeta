@@ -37,6 +37,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
 
   /** change git version with target name */
   def changeVersion(target: String): Unit =
+    println(target)
     executeCmd(s"git checkout $target", path)
 
   /** get git hash */

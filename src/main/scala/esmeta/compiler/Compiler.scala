@@ -38,7 +38,7 @@ class Compiler(
 
   /** load manually created AOs */
   val manualAlgos = (for {
-    file <- spec.manualInfo.funcFiles
+    file <- ManualInfo.funcFiles
     func = Func.fromFile(file.toString)
   } yield func).toList
   val manualAlgoNames = manualAlgos.map(_.name).toSet
@@ -47,7 +47,7 @@ class Compiler(
   val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
 
   /** load manual compile rules */
-  val manualRules: ManualInfo.CompileRule = spec.manualInfo.compileRule
+  val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
 
   /** load manual compile rules for expressions */
   val exprRules: Map[String, Expr] = for {

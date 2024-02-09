@@ -40,6 +40,7 @@ object SystemUtils {
   lazy val cfgFilter = extFilter("cfg")
   lazy val jsFilter = extFilter("js")
   lazy val jsonFilter = extFilter("json")
+  lazy val patchFilter = extFilter("patch")
 
   /** print writer */
   def getPrintWriter(filename: String): PrintWriter =

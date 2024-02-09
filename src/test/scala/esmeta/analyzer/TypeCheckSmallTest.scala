@@ -5,16 +5,13 @@ class TypeCheckSmallTest extends AnalyzerTest {
 
   val name: String = "analyzerTypeCheckTest"
 
-  def checkAnalyzer(analyzer: TypeAnalyzer): Unit =
+  // registration
+  def init: Unit = check("typeCheck") {
     analyzer.analyze
     if (analyzer.needUpdate)
       analyzer.updateIgnore
+      println(s"type checker failed to analyze ${analyzer.cfg.spec.version}")
       fail(analyzer.toString)
-
-  // registration
-  def init: Unit = {
-    check("es2023") { checkAnalyzer(analyzer) }
-    check("default") { checkAnalyzer(defaultAnalyzer) }
   }
 
   init

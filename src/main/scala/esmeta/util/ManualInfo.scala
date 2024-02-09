@@ -1,6 +1,7 @@
 package esmeta.util
 
 import esmeta.MANUALS_DIR
+import esmeta.analyzer.TypeAnalyzer.Ignore
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
 import esmeta.util.BaseUtils.*
@@ -8,68 +9,47 @@ import esmeta.util.SystemUtils.*
 import java.io.File
 
 /** manual information helpers */
-case class ManualInfo(version: Option[Spec.Version]) {
-  import ManualInfo.*
+object ManualInfo {
 
-  /** get algorithm files */
-  def algoFiles: List[File] = getAlgos(paths)
+  /** A list of algorithms to ignore for tycheck */
+  lazy val tycheckIgnore: Ignore = Ignore(s"$MANUALS_DIR/tycheck-ignore.json")
 
-  /** get IR function files */
-  def funcFiles: List[File] = getFuncs(paths)
+  /** manual algorithm files */
+  lazy val algoFiles: List[String] = getFileNames(algoFilter)
 
-  /** get compile rules */
-  def compileRule: CompileRule = getCompileRule(paths)
+  /** manual IR function files */
+  lazy val funcFiles: List[String] = getFileNames(irFilter)
 
-  /** get bugfixes */
-  def bugfixFile: Option[File] = bugfixPath.map(File(_))
-  def bugfixPath: Option[String] = getPath("bugfix.patch")
-
-  /** get test262 */
-  def test262: ManualConfig = ManualConfig(paths)
-
-  /** get tycheck-ignore.json */
-  def tycheckIgnore: Option[String] = getPath("tycheck-ignore.json")
-
-  private def getAlgos(paths: List[String]): List[File] =
-    getFiles(paths, algoFilter)
-  private def getFuncs(paths: List[String]): List[File] =
-    getFiles(paths, irFilter)
-  private def getFiles(
-    paths: List[String],
-    filter: String => Boolean,
-  ): List[File] = for {
-    path <- paths
-    file <- walkTree(s"$MANUALS_DIR/$path")
-    if filter(file.getName)
-  } yield file
-  private def getPath(name: String): Option[String] = for {
-    version <- version
-    tag <- version.tag
-    path = s"$MANUALS_DIR/$tag/$name"
-    if exists(path)
-  } yield path
-  private def getCompileRule(paths: List[String]): CompileRule = (for {
-    path <- paths
-    rulePath = s"$MANUALS_DIR/$path/rule.json"
-    rule <- optional(readJson[CompileRule](rulePath))
-  } yield rule)
-    .foldLeft[CompileRule](Map())((acc, rule) =>
-      rule.foldLeft(acc) {
-        case (acc, (k, m)) => acc + (k -> (acc.getOrElse(k, Map()) ++ m))
-      },
-    )
-  private lazy val paths: List[String] =
-    List("default") ++ version.flatMap(_.tag)
-}
-object ManualInfo:
+  /** manual compilation rule */
+  lazy val compileRule: CompileRule = optional {
+    readJson[CompileRule](s"$MANUALS_DIR/rule.json")
+  }.getOrElse(Map.empty)
   type CompileRule = Map[String, Map[String, String]]
 
-  /** default path */
-  lazy val defaultPath: String = s"$MANUALS_DIR/default"
+  /** bugfix patch file */
+  lazy val bugfixPatchMap: Map[String, String] = (for {
+    file <- getFiles(patchFilter)
+    name = file.getName
+    pattern = "(.*).patch".r
+    tag <- name match
+      case pattern(tag) => Some(tag)
+      case _            => None
+  } yield tag -> file.toString).toMap
 
-  /** default version */
-  lazy val defaultVersion: Spec.Version =
-    Spec.getVersion(readFile(s"$defaultPath/hash"))
+  /** get test262 manual configuration */
+  lazy val test262Config: ManualConfig = ManualConfig(
+    readJson[Map[String, List[String]]](s"$MANUALS_DIR/test262/filtered.json"),
+    readJson[List[String]](s"$MANUALS_DIR/test262/yet-categorized.json"),
+    readJson[List[String]](s"$MANUALS_DIR/test262/supported-features.json"),
+  )
 
-  /** default tycheck-ignore.json */
-  lazy val tycheckIgnore: String = s"$defaultPath/tycheck-ignore.json"
+  /** find all files in the manual directory with a filter */
+  private def getFiles(filter: String => Boolean): List[File] = (for {
+    file <- walkTree(MANUALS_DIR)
+    if filter(file.getName)
+  } yield file).toList
+
+  /** find all file names in the manual directory with a filter */
+  private def getFileNames(filter: String => Boolean): List[String] =
+    getFiles(filter).map(_.toString)
+}

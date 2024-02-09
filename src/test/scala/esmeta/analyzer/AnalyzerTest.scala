@@ -12,15 +12,11 @@ trait AnalyzerTest extends ESMetaTest {
 object AnalyzerTest {
   import ESMetaTest.*
   lazy val analyzer: TypeAnalyzer = getAnalyzer(cfg)
-  lazy val defaultIgnore: Ignore = Ignore(ManualInfo.tycheckIgnore)
-  lazy val defaultAnalyzer: TypeAnalyzer =
-    getAnalyzer(defaultCFG, defaultIgnore)
+  inline def ignore: Ignore = ManualInfo.tycheckIgnore
 
   // helper methods
-  def getIgnore(cfg: CFG): Ignore =
-    cfg.spec.manualInfo.tycheckIgnore.fold(Ignore())(Ignore.apply)
   def getAnalyzer(target: String): TypeAnalyzer = getAnalyzer(getCFG(target))
-  def getAnalyzer(cfg: CFG): TypeAnalyzer = getAnalyzer(cfg, getIgnore(cfg))
+  def getAnalyzer(cfg: CFG): TypeAnalyzer = getAnalyzer(cfg, ignore)
   def getAnalyzer(cfg: CFG, ignore: Ignore): TypeAnalyzer = TypeAnalyzer(
     cfg = cfg,
     ignore = ignore,

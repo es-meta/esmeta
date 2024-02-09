@@ -1,4 +1,3 @@
 {
-  "default" : true,
-  "es2023" : true
+  "typeCheck" : true
 }

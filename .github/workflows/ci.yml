@@ -16,7 +16,7 @@ jobs:
       env:
         ESMETA_HOME: ${{ github.workspace }}
       run:
-        cd ecma262 && git fetch --tags
+        cd ecma262 && git fetch --tags --depth=1
 
     - name: Run test
       env:

@@ -6,7 +6,7 @@ import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.{Git, ManualInfo}
+import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
 import esmeta.{error => ESMetaError, *}
 import org.jsoup.nodes.Document
@@ -86,8 +86,6 @@ case class Spec(
     algorithms.isEmpty &&
     tables.isEmpty &&
     tyModel == TyModel()
-
-  lazy val manualInfo: ManualInfo = ManualInfo(this.version)
 
   /** ECMAScript version string */
   lazy val versionString: String = version.fold("<none>")(_.toString)

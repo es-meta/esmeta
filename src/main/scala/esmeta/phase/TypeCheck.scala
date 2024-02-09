@@ -19,14 +19,12 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     cmdConfig: CommandConfig,
     config: Config,
   ): TypeAnalyzer#Semantics =
-    val ignorePath = config.ignorePath.orElse(cfg.spec.manualInfo.tycheckIgnore)
-    val ignore = ignorePath.fold(Ignore())(Ignore.apply)
     val silent = cmdConfig.silent
     val analyzer: TypeAnalyzer = TypeAnalyzer(
       cfg = cfg,
       targetPattern = config.target,
       config = TypeAnalyzer.Config(),
-      ignore = ignore,
+      ignore = ManualInfo.tycheckIgnore,
       log = config.log,
       silent = silent,
       useRepl = config.useRepl,
