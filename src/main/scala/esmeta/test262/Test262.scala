@@ -162,6 +162,8 @@ case class Test262(
     log: Boolean = false,
     useProgress: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
+    concurrent: Boolean = false,
+    verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
     val tests: List[Test] = getTests(paths.toList)
@@ -175,6 +177,8 @@ case class Test262(
       targetTests = targetTests,
       removed = removed,
       useProgress = useProgress,
+      concurrent = concurrent,
+      verbose = verbose,
     )
 
     // run tests with logging
