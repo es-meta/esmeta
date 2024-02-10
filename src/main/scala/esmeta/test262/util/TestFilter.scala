@@ -17,7 +17,15 @@ case class TestFilter(spec: Spec) {
   def apply(
     tests: List[Test],
     withYet: Boolean = false,
-    features: List[String] = languageFeatures,
+    features: Option[List[String]] = None,
+  ): (List[Test], Iterable[(Test, ReasonPath)]) =
+    apply(tests, withYet, features.getOrElse(languageFeatures))
+
+  /** target tests and removed tests by each reason */
+  def apply(
+    tests: List[Test],
+    withYet: Boolean,
+    features: List[String],
   ): (List[Test], Iterable[(Test, ReasonPath)]) =
     var removedMap: Vector[(Test, ReasonPath)] = Vector()
     val targetTests = getFilters(withYet, features.toSet).foldLeft(tests) {
