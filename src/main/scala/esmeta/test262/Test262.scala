@@ -58,14 +58,12 @@ case class Test262(
 
   /** get tests */
   def getTests(
-    paths: List[String] = Nil,
+    paths: Option[List[String]] = None,
+    features: Option[List[String]] = None,
     log: Boolean = false,
   ): List[Test] =
     if (log) println("- Extracting tests of Test262 tests...")
-    Test.fromDirs(paths match
-      case Nil   => List(TEST262_TEST_DIR)
-      case paths => paths,
-    )
+    Test.fromDirs(paths.getOrElse(List(TEST262_TEST_DIR)), features)
 
   /** get tests */
   def getProgressBar(
@@ -98,7 +96,8 @@ case class Test262(
 
   /** interpreter test */
   def evalTest(
-    paths: Iterable[String] = Nil,
+    paths: Option[List[String]] = None,
+    features: Option[List[String]] = None,
     log: Boolean = false,
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
@@ -107,7 +106,7 @@ case class Test262(
     verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
-    val tests: List[Test] = getTests(paths.toList)
+    val tests: List[Test] = getTests(paths, features)
 
     // use error handler for multiple targets
     val multiple = tests.length > 1
@@ -158,7 +157,7 @@ case class Test262(
 
   /** parse test */
   def parseTest(
-    paths: Iterable[String] = Nil,
+    paths: Option[List[String]] = None,
     log: Boolean = false,
     useProgress: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
@@ -166,7 +165,7 @@ case class Test262(
     verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
-    val tests: List[Test] = getTests(paths.toList)
+    val tests: List[Test] = getTests(paths)
 
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)

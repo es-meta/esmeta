@@ -30,9 +30,13 @@ case class Test(
 object Test {
 
   /** test generation from multiple paths */
-  def fromDirs(paths: List[String]): List[Test] = (for {
+  def fromDirs(
+    paths: List[String],
+    features: Option[List[String]] = None,
+  ): List[Test] = (for {
     path <- paths
     data <- Test.fromDir(path)
+    if features.fold(true)(_.exists(data.features.contains))
   } yield data).sorted
 
   /** test generation from multiple a directory */

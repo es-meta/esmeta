@@ -30,10 +30,14 @@ case object Test262Test extends Phase[CFG, Summary] {
     // get target version of Test262
     val version = Test262.getVersion(config.target)
     val test262 = Test262(version, cfg, config.withYet)
+    val targets =
+      if (cmdConfig.targets.isEmpty) None
+      else Some(cmdConfig.targets)
 
     // run test262 eval test
     val summary = test262.evalTest(
-      cmdConfig.targets,
+      targets,
+      config.features,
       config.log,
       config.progress,
       config.coverage,
@@ -54,6 +58,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       "target",
       StrOption((c, s) => c.target = Some(s)),
       "set the target git version of Test262 (default: current version).",
+    ),
+    (
+      "features",
+      StrListOption((c, s) => c.features = Some(s)),
+      "set the target features of Test262.",
     ),
     (
       "progress",
@@ -99,6 +108,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var withYet: Boolean = false,
     var log: Boolean = false,
     var concurrent: Boolean = false,
+    var features: Option[List[String]] = None,
     var verbose: Boolean = false,
   )
 }

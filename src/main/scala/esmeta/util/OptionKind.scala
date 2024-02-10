@@ -45,3 +45,14 @@ case class StrOption[T](assign: (T, String) => Unit) extends OptionKind[T] {
     (("-" + name).r, "".r, (_, _) => throw NoStrArgError(name)),
   )
 }
+
+/** string list options */
+case class StrListOption[T](assign: (T, List[String]) => Unit)
+  extends OptionKind[T] {
+  def postfix: String = "={string,...,string}"
+  def argRegexList(name: String): List[ArgRegex[T]] = List(
+    (("-" + name + "=").r, ".+".r, (c, s) => assign(c, s.split(",").toList)),
+    (("-" + name + "=").r, ".*".r, (_, _) => throw NoStrArgError(name)),
+    (("-" + name).r, "".r, (_, _) => throw NoStrArgError(name)),
+  )
+}
