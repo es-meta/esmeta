@@ -16,12 +16,14 @@ object Stringifier {
       case elem: UnknownTy   => unknownTyRule(app, elem)
       case elem: ValueTy     => valueTyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
-      case elem: ListTy      => listTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
-      case elem: NameTy      => nameTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
+      case elem: ListTy      => listTyRule(app, elem)
+      case elem: NameTy      => nameTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
       case elem: SubMapTy    => subMapTyRule(app, elem)
+      case elem: MathTy      => mathTyRule(app, elem)
+      case elem: InfTy       => infTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
 
   /** types */
@@ -90,7 +92,8 @@ object Stringifier {
         .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
-        .add(ty.math, !ty.math.isBottom, "Math")
+        .add(ty.math, !ty.math.isBottom)
+        .add(ty.inf, !ty.inf.isBottom)
         .add(ty.number, !ty.number.isBottom, "Number")
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
@@ -130,6 +133,24 @@ object Stringifier {
       case AstNameTy(names) => app >> names
       case AstSingleTy(x, i, j) =>
         app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
+
+  /** mathematical value types */
+  given mathTyRule: Rule[MathTy] = (app, ty) =>
+    ty match
+      case MathTopTy      => app >> "Math"
+      case IntTy          => app >> "Int"
+      case NonPosIntTy    => app >> "NonPosInt"
+      case NonNegIntTy    => app >> "NonNegInt"
+      case NegIntTy       => app >> "NegInt"
+      case PosIntTy       => app >> "PosInt"
+      case MathSetTy(set) => if (set.isEmpty) app else app >> "Math" >> set
+
+  /** infinity types */
+  given infTyRule: Rule[InfTy] = (app, ty) =>
+    ty.isPos match
+      case set if set.isEmpty   => app
+      case set if set.size == 1 => app >> (if (set.head) "+INF" else "-INF")
+      case _                    => app >> "INF"
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>

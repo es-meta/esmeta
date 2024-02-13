@@ -25,7 +25,10 @@
   "assign-object5.js" : true,
   "assign-object6.js" : true,
   "assign-object7.js" : true,
-  "assignment1.js" : true,
+  "assignment1.js" : [
+    "metalanguage",
+    "If _base_ < *-0*<sub>𝔽</sub> and _exponent_ is not an integral Number, return *NaN*."
+  ],
   "async-generator1.js" : true,
   "async1.js" : true,
   "await1.js" : true,
@@ -41,7 +44,10 @@
   "class-decl1.js" : true,
   "class-decl2.js" : true,
   "compare1.js" : true,
-  "complement1.js" : true,
+  "complement1.js" : [
+    "metalanguage",
+    "If _base_ < *-0*<sub>𝔽</sub> and _exponent_ is not an integral Number, return *NaN*."
+  ],
   "constructor1.js" : true,
   "delete1.js" : true,
   "empty-statement.js" : true,

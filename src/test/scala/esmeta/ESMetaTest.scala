@@ -100,14 +100,14 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
         val parsed = optional(parser.from(string))
         val stringified = obj.toString
         if (parsed != Some(obj)) {
-          println(s"[FAILED] $desc")
+          println(s"[FAILED] $desc (parsing)")
           val parsedStr = parsed.fold("<parsing failed>")(origToString)
           println(s"- result: ${parsedStr}")
           println(s"- expected: ${origToString(obj)}")
         }
         // check stringify
         if (stringified != string) {
-          println(s"[FAILED] $desc")
+          println(s"[FAILED] $desc (stringify)")
           println(s"- result: $stringified")
           println(s"- expected: $string")
         }

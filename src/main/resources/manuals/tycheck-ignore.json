@@ -32,6 +32,7 @@
   "GetPromiseResolve",
   "GetThisValue",
   "INTRINSICS.DefaultTimeZone",
+  "INTRINSICS.GetNamedTimeZoneEpochNanoseconds",
   "InnerModuleEvaluation",
   "IntegerIndexedObjectCreate",
   "LabelledItem[1,0].LabelledEvaluation",

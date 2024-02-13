@@ -801,8 +801,6 @@ class Compiler(
             is(lv, zero)
           case StrictMode => T // XXX assume strict mode
           case ArrayIndex => EIsArrayIndex(x)
-          case NonNegative =>
-            and(not(lessThan(x, ENumber(0.0f))), isIntegral(x))
           case FalseToken => is(ESourceText(x), EStr("false"))
           case TrueToken  => is(ESourceText(x), EStr("true"))
           case DataProperty =>
@@ -821,7 +819,6 @@ class Compiler(
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
             ETypeCheck(x, EStr("Nonterminal"))
-          case IntegralNumber => isIntegral(x)
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>

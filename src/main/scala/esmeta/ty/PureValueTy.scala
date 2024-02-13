@@ -19,7 +19,8 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def nt: BSet[Nt]
   def codeUnit: Boolean
   def const: BSet[String]
-  def math: BSet[BigDecimal]
+  def math: MathTy
+  def inf: InfTy
   def number: BSet[Number]
   def bigInt: Boolean
   def str: BSet[String]
@@ -48,6 +49,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit.isBottom &&
         this.const.isBottom &&
         this.math.isBottom &&
+        this.inf.isBottom &&
         this.number.isBottom &&
         this.bigInt.isBottom &&
         this.str.isBottom &&
@@ -73,6 +75,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.codeUnit <= that.codeUnit &&
       this.const <= that.const &&
       this.math <= that.math &&
+      this.inf <= that.inf &&
       this.number <= that.number &&
       this.bigInt <= that.bigInt &&
       this.str <= that.str &&
@@ -101,6 +104,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit || that.codeUnit,
         this.const || that.const,
         this.math || that.math,
+        this.inf || that.inf,
         this.number || that.number,
         this.bigInt || that.bigInt,
         this.str || that.str,
@@ -130,6 +134,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit && that.codeUnit,
         this.const && that.const,
         this.math && that.math,
+        this.inf && that.inf,
         this.number && that.number,
         this.bigInt && that.bigInt,
         this.str && that.str,
@@ -158,6 +163,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit -- that.codeUnit,
         this.const -- that.const,
         this.math -- that.math,
+        this.inf -- that.inf,
         this.number -- that.number,
         this.bigInt -- that.bigInt,
         this.str -- that.str,
@@ -180,6 +186,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     codeUnit.isTop &&
     const.isTop &&
     math.isTop &&
+    inf.isTop &&
     number.isTop &&
     bigInt.isTop &&
     str.isTop &&
@@ -212,6 +219,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (const.getSingle.map(Const(_): PureValue)) ||
     (math.getSingle.map(Math(_): PureValue)) ||
+    // TODO (inf.getSingle.map(Inf(_): PureValue)) ||
     number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
     (str.getSingle.map(Str(_): PureValue)) ||
@@ -232,7 +240,8 @@ case object PureValueTopTy extends PureValueTy {
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
   def const: BSet[String] = Inf
-  def math: BSet[BigDecimal] = Inf
+  def math: MathTy = MathTy.Top
+  def inf: InfTy = InfTy.Top
   def number: BSet[Number] = Inf
   def bigInt: Boolean = true
   def str: BSet[String] = Inf
@@ -253,7 +262,8 @@ case class PureValueElemTy(
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
   const: BSet[String] = Fin(),
-  math: BSet[BigDecimal] = Fin(),
+  math: MathTy = MathTy.Bot,
+  inf: InfTy = InfTy.Bot,
   number: BSet[Number] = Fin(),
   bigInt: Boolean = false,
   str: BSet[String] = Fin(),
@@ -274,7 +284,8 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[BigDecimal] = Fin(),
+    math: MathTy = MathTy.Bot,
+    inf: InfTy = InfTy.Bot,
     number: BSet[Number] = Fin(),
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
@@ -294,6 +305,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     codeUnit,
     const,
     math,
+    inf,
     number,
     bigInt,
     str,

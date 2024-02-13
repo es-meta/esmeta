@@ -85,9 +85,9 @@ trait Parsers extends BasicParsers {
       case s => PureValueTy(const = Fin(s.toSet))
     } |
     // mathematical value
-    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
-      case m => PureValueTy(math = Fin(m.toSet))
-    } | "Math" ^^^ PureValueTy(math = Inf) |
+    singleMathTy ^^ { case m => PureValueTy(math = m) } |
+    // infinity
+    singleInfTy ^^ { case i => PureValueTy(inf = i) } |
     // number
     "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
       case n => PureValueTy(number = Fin(n.toSet))
@@ -154,6 +154,29 @@ trait Parsers extends BasicParsers {
       case pairs => RecordTy.Elem(pairs.toMap)
     }
   }.named("ty.RecordTy (single)")
+
+  /** mathematical value types */
+  given mathTy: Parser[MathTy] = {
+    rep1sep(singleMathTy, "|") ^^ { case ts => ts.foldLeft(MathTy.Bot)(_ || _) }
+  }.named("ty.MathTy")
+
+  private lazy val singleMathTy: Parser[MathTy] =
+    "Int" ^^^ IntTy |
+    "NonPosInt" ^^^ NonPosIntTy |
+    "NonNegInt" ^^^ NonNegIntTy |
+    "NegInt" ^^^ NegIntTy |
+    "PosInt" ^^^ PosIntTy |
+    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
+      case m => MathSetTy(m.toSet)
+    } | "Math" ^^^ MathTopTy
+
+  /** infinity types */
+  given infTy: Parser[InfTy] = {
+    rep1sep(singleInfTy, "|") ^^ { case ts => ts.foldLeft(InfTy.Bot)(_ || _) }
+  }.named("ty.InfTy")
+
+  private lazy val singleInfTy: Parser[InfTy] =
+    "INF" ^^^ InfTy.Top | "+INF" ^^^ InfTy.Pos | "-INF" ^^^ InfTy.Neg
 
   given boolTy: Parser[BoolTy] = {
     rep1sep(singleBoolTy, "|") ^^ { case ts => ts.foldLeft(BoolTy.Bot)(_ || _) }

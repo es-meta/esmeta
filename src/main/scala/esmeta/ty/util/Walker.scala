@@ -15,6 +15,8 @@ trait Walker extends BasicWalker {
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
     case ty: SubMapTy    => walk(ty)
+    case ty: MathTy      => walk(ty)
+    case ty: InfTy       => walk(ty)
     case ty: BoolTy      => walk(ty)
 
   /** types */
@@ -56,6 +58,7 @@ trait Walker extends BasicWalker {
         walkCodeUnit(ty.codeUnit),
         walkConst(ty.const),
         walkMath(ty.math),
+        walkInf(ty.inf),
         walkNumber(ty.number),
         walkBigInt(ty.bigInt),
         walkStr(ty.str),
@@ -95,8 +98,13 @@ trait Walker extends BasicWalker {
   def walkConst(const: BSet[String]): BSet[String] = walkBSet(const, walk)
 
   /** mathematical value types */
-  def walkMath(math: BSet[BigDecimal]): BSet[BigDecimal] = walkBSet(math, walk)
+  def walkMath(math: MathTy): MathTy = math match
+    case MathSetTy(set) => MathSetTy(walkSet(set, walk))
+    case _              => math
   def walk(math: BigDecimal): BigDecimal = math
+
+  /** infinity types */
+  def walkInf(inf: InfTy): InfTy = InfTy(inf.isPos.map(walk))
 
   /** number types */
   def walkNumber(number: BSet[Number]): BSet[Number] = walkBSet(number, walk)
