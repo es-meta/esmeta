@@ -65,6 +65,7 @@ trait UnitWalker extends BasicUnitWalker {
     case _: AstValue     =>
     case _: Nt           =>
     case _: Math         =>
+    case _: Infinity     =>
     case _: Const        =>
     case _: CodeUnit     =>
     case sv: SimpleValue => walk(sv)

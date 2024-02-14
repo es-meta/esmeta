@@ -1,0 +1,6 @@
+def Decode(
+  string: String,
+  preserveEscapeSet: String,
+): Normal[String] | Abrupt[throw] {
+  (yet "Decode")
+}

@@ -21,6 +21,7 @@ trait PureValueDomainDecl { self: Self =>
     def codeUnitTop: Elem
     def constTop: Elem
     def mathTop: Elem
+    def infinityTop: Elem
     def simpleValueTop: Elem
     def numberTop: Elem
     def bigIntTop: Elem
@@ -40,6 +41,7 @@ trait PureValueDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       const: AbsConst = AbsConst.Bot,
       math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
       number: AbsNumber = AbsNumber.Bot,
       bigInt: AbsBigInt = AbsBigInt.Bot,
@@ -60,6 +62,7 @@ trait PureValueDomainDecl { self: Self =>
       AbsCodeUnit,
       AbsConst,
       AbsMath,
+      AbsInfinity,
       AbsSimpleValue,
     )
 
@@ -78,6 +81,7 @@ trait PureValueDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit
       def const: AbsConst
       def math: AbsMath
+      def infinity: AbsInfinity
       def simpleValue: AbsSimpleValue
       def number: AbsNumber
       def bigInt: AbsBigInt

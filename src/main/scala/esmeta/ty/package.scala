@@ -50,7 +50,7 @@ def NameT(names: String*): ValueTy =
 lazy val ObjectT: ValueTy = NameT("Object")
 lazy val ESPrimT: ValueTy = ValueTy(
   symbol = true,
-  number = Inf,
+  number = NumberTy.Top,
   bigInt = true,
   str = Inf,
   bool = BoolTy.Top,
@@ -96,16 +96,20 @@ lazy val NonPosIntT: ValueTy = ValueTy(math = NonPosIntTy)
 lazy val NonNegIntT: ValueTy = ValueTy(math = NonNegIntTy)
 lazy val NegIntT: ValueTy = ValueTy(math = NegIntTy)
 lazy val PosIntT: ValueTy = ValueTy(math = PosIntTy)
-lazy val InfT: ValueTy = ValueTy(inf = InfTy.Top)
-lazy val NegInfT: ValueTy = ValueTy(inf = InfTy.Neg)
-lazy val PosInfT: ValueTy = ValueTy(inf = InfTy.Pos)
 def MathT(ns: BigDecimal*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
   else ValueTy(math = MathSetTy(ns.toSet))
-lazy val NumberT: ValueTy = ValueTy(number = Inf)
+lazy val InfinityT: ValueTy = ValueTy(infinity = InfinityTy.Top)
+lazy val NegInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Neg)
+lazy val PosInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Pos)
+def InfinityT(ps: Boolean*): ValueTy =
+  if (ps.isEmpty) ValueTy.Bot
+  else ValueTy(infinity = InfinityTy(ps.toSet))
+lazy val NumberT: ValueTy = ValueTy(number = NumberTy.Top)
+lazy val NumberIntT: ValueTy = ValueTy(number = NumberTy.Int)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) ValueTy.Bot
-  else ValueTy(number = Fin(ns.toSet))
+  else ValueTy(number = NumberSetTy(ns.toSet))
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
 lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =

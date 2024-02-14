@@ -353,7 +353,10 @@ class Interpreter(
         case Nt(s, _) => s
         case v        => throw InvalidTypeExpr(expr, v)
       Bool(v match
-        case _: Number => tyName == "Number"
+        case Math(d) =>
+          optional(MathTy.from(tyName)).fold(false)(_.contains(d))
+        case n: Number =>
+          optional(NumberTy.from(tyName)).fold(false)(_.contains(n))
         case _: BigInt => tyName == "BigInt"
         case _: Str    => tyName == "String"
         case _: Bool   => tyName == "Boolean"
@@ -448,7 +451,8 @@ class Interpreter(
           val l = d.toLong
           Bool(ds == s && 0 <= l && d == l && l < UPPER)
         case _ => Bool(false)
-    case EMathVal(n)           => Math(n)
+    case EMath(n)              => Math(n)
+    case EInfinity(pos)        => Infinity(pos)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
     case ENumber(n)            => Number(n)
     case EBigInt(n)            => BigInt(n)

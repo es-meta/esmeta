@@ -21,6 +21,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       const: AbsConst = AbsConst.Bot,
       math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
     ) extends Appendable
 
@@ -40,6 +41,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       AbsCodeUnit(xs.collect { case x: CodeUnit => x }),
       AbsConst(xs.collect { case x: Const => x }),
       AbsMath(xs.collect { case x: Math => x }),
+      AbsInfinity(xs.collect { case x: Infinity => x }),
       AbsSimpleValue(xs.collect { case x: SimpleValue => x }),
     )
 
@@ -52,6 +54,7 @@ trait PureValueBasicDomainDecl { self: Self =>
     val codeUnitTop: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
     val constTop: Elem = Bot.copy(const = AbsConst.Top)
     val mathTop: Elem = Bot.copy(math = AbsMath.Top)
+    val infinityTop: Elem = Bot.copy(infinity = AbsInfinity.Top)
     val simpleValueTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.Top)
     val numberTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.numberTop)
     val bigIntTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.bigIntTop)
@@ -71,6 +74,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       const: AbsConst = AbsConst.Bot,
       math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
       num: AbsNumber = AbsNumber.Bot,
       bigInt: AbsBigInt = AbsBigInt.Bot,
@@ -88,6 +92,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       codeUnit,
       const,
       math,
+      infinity,
       simpleValue ⊔ AbsSimpleValue(num, bigInt, str, bool, undef, nullv, absent),
     )
 
@@ -102,6 +107,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit,
         elem.const,
         elem.math,
+        elem.infinity,
         elem.simpleValue,
       ),
     )
@@ -119,6 +125,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         if (!elem.codeUnit.isBottom) strs :+= elem.codeUnit.toString
         if (!elem.const.isBottom) strs :+= elem.const.toString
         if (!elem.math.isBottom) strs :+= elem.math.toString
+        if (!elem.infinity.isBottom) strs :+= elem.infinity.toString
         if (!elem.simpleValue.isBottom) strs :+= elem.simpleValue.toString
         app >> strs.mkString(", ")
       }
@@ -137,6 +144,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit ⊑ that.codeUnit &&
         elem.const ⊑ that.const &&
         elem.math ⊑ that.math &&
+        elem.infinity ⊑ that.infinity &&
         elem.simpleValue ⊑ that.simpleValue
 
       /** join operator */
@@ -149,6 +157,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit ⊔ that.codeUnit,
         elem.const ⊔ that.const,
         elem.math ⊔ that.math,
+        elem.infinity ⊔ that.infinity,
         elem.simpleValue ⊔ that.simpleValue,
       )
 
@@ -162,6 +171,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit ⊓ that.codeUnit,
         elem.const ⊓ that.const,
         elem.math ⊓ that.math,
+        elem.infinity ⊓ that.infinity,
         elem.simpleValue ⊓ that.simpleValue,
       )
 
@@ -175,6 +185,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit -- that.codeUnit,
         elem.const -- that.const,
         elem.math -- that.math,
+        elem.infinity -- that.infinity,
         elem.simpleValue -- that.simpleValue,
       )
 
@@ -188,6 +199,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit.gamma ⊔
         elem.const.gamma ⊔
         elem.math.gamma ⊔
+        elem.infinity.gamma ⊔
         elem.simpleValue.gamma
 
       /** get single value */
@@ -200,6 +212,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.codeUnit.getSingle ⊔
         elem.const.getSingle ⊔
         elem.math.getSingle ⊔
+        elem.infinity.getSingle ⊔
         elem.simpleValue.getSingle
 
       /** getters */
@@ -211,6 +224,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit = elem.codeUnit
       def const: AbsConst = elem.const
       def math: AbsMath = elem.math
+      def infinity: AbsInfinity = elem.infinity
       def simpleValue: AbsSimpleValue = elem.simpleValue
       def number: AbsNumber = elem.simpleValue.number
       def bigInt: AbsBigInt = elem.simpleValue.bigInt

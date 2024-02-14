@@ -242,9 +242,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // literals
   lazy val literalExprRule: Rule[LiteralExpr] = (app, lit) =>
     lit match {
-      case EMathVal(n)                      => app >> n
-      case ENumber(Double.PositiveInfinity) => app >> "+INF"
-      case ENumber(Double.NegativeInfinity) => app >> "-INF"
+      case EMath(n)     => app >> n
+      case EInfinity(p) => app >> (if (p) "+" else "-") >> "INF"
+      case ENumber(Double.PositiveInfinity) => app >> "+NUM_INF"
+      case ENumber(Double.NegativeInfinity) => app >> "-NUM_INF"
       case ENumber(n) if n.isNaN            => app >> "NaN"
       case ENumber(n)                       => app >> n >> "f"
       case EBigInt(n)                       => app >> n >> "n"

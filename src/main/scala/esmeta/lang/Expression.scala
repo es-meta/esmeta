@@ -275,8 +275,10 @@ case class PositiveInfinityMathValueLiteral() extends MathValueLiteral
 case class NegativeInfinityMathValueLiteral() extends MathValueLiteral
 case class DecimalMathValueLiteral(n: BigDecimal) extends MathValueLiteral
 case class MathConstantLiteral(pre: Int, name: String) extends MathValueLiteral
-case class NumberLiteral(n: Double) extends NumericLiteral with DoubleEquals(n)
-case class BigIntLiteral(n: BigInt) extends NumericLiteral
+case class NumberLiteral(double: Double)
+  extends NumericLiteral
+  with DoubleEquals
+case class BigIntLiteral(bigInt: BigInt) extends NumericLiteral
 
 // boolean literals
 sealed trait BooleanLiteral extends Literal

@@ -1269,7 +1269,16 @@ trait Parsers extends IndentParsers {
     "*null*" ^^^ NullT |
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
+    "integer" ^^^ IntT |
+    "non-negative integer" ^^^ NonNegIntT |
+    "negative integer" ^^^ NegIntT |
+    "non-positive integer" ^^^ NonPosIntT |
+    "positive integer" ^^^ PosIntT |
+    decimal ^^ { MathT(_) } |
+    "+∞" ^^^ PosInfinityT |
+    "-∞" ^^^ NegInfinityT |
     "ECMAScript language value" ^^^ ESValueT |
+    "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |

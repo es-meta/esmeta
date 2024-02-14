@@ -16,9 +16,10 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** partial order/subset operator */
   def <=(that: => MathTy): Boolean = (this, that) match
-    case _ if (this eq that) || (this == Bot)                     => true
-    case (_, MathTopTy)                                           => true
-    case (NegIntTy | PosIntTy | NonNegIntTy | NonPosIntTy, IntTy) => true
+    case _ if (this eq that) || (this == Bot) => true
+    case (_, MathTopTy)                       => true
+    case (NegIntTy | PosIntTy | NonNegIntTy | NonPosIntTy | IntTy, IntTy) =>
+      true
     case (MathSetTy(set), IntTy)               => set.forall(d => d.isWhole)
     case (NegIntTy | NonPosIntTy, NonPosIntTy) => true
     case (MathSetTy(set), NonPosIntTy) => set.forall(d => d.isWhole && d <= 0)

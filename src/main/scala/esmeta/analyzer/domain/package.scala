@@ -23,6 +23,7 @@ trait Decl
   with cont.Decl
   with heap.Decl
   with math.Decl
+  with infinity.Decl
   with nt.Decl
   with nullv.Decl
   with number.Decl

@@ -20,8 +20,8 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def codeUnit: Boolean
   def const: BSet[String]
   def math: MathTy
-  def inf: InfTy
-  def number: BSet[Number]
+  def infinity: InfinityTy
+  def number: NumberTy
   def bigInt: Boolean
   def str: BSet[String]
   def bool: BoolTy
@@ -49,7 +49,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit.isBottom &&
         this.const.isBottom &&
         this.math.isBottom &&
-        this.inf.isBottom &&
+        this.infinity.isBottom &&
         this.number.isBottom &&
         this.bigInt.isBottom &&
         this.str.isBottom &&
@@ -75,7 +75,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.codeUnit <= that.codeUnit &&
       this.const <= that.const &&
       this.math <= that.math &&
-      this.inf <= that.inf &&
+      this.infinity <= that.infinity &&
       this.number <= that.number &&
       this.bigInt <= that.bigInt &&
       this.str <= that.str &&
@@ -104,7 +104,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit || that.codeUnit,
         this.const || that.const,
         this.math || that.math,
-        this.inf || that.inf,
+        this.infinity || that.infinity,
         this.number || that.number,
         this.bigInt || that.bigInt,
         this.str || that.str,
@@ -134,7 +134,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit && that.codeUnit,
         this.const && that.const,
         this.math && that.math,
-        this.inf && that.inf,
+        this.infinity && that.infinity,
         this.number && that.number,
         this.bigInt && that.bigInt,
         this.str && that.str,
@@ -163,7 +163,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit -- that.codeUnit,
         this.const -- that.const,
         this.math -- that.math,
-        this.inf -- that.inf,
+        this.infinity -- that.infinity,
         this.number -- that.number,
         this.bigInt -- that.bigInt,
         this.str -- that.str,
@@ -186,7 +186,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     codeUnit.isTop &&
     const.isTop &&
     math.isTop &&
-    inf.isTop &&
+    infinity.isTop &&
     number.isTop &&
     bigInt.isTop &&
     str.isTop &&
@@ -219,7 +219,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (const.getSingle.map(Const(_): PureValue)) ||
     (math.getSingle.map(Math(_): PureValue)) ||
-    // TODO (inf.getSingle.map(Inf(_): PureValue)) ||
+    (infinity.getSingle.map(Infinity(_): PureValue)) ||
     number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
     (str.getSingle.map(Str(_): PureValue)) ||
@@ -241,8 +241,8 @@ case object PureValueTopTy extends PureValueTy {
   def codeUnit: Boolean = true
   def const: BSet[String] = Inf
   def math: MathTy = MathTy.Top
-  def inf: InfTy = InfTy.Top
-  def number: BSet[Number] = Inf
+  def infinity: InfinityTy = InfinityTy.Top
+  def number: NumberTy = NumberTy.Top
   def bigInt: Boolean = true
   def str: BSet[String] = Inf
   def bool: BoolTy = BoolTy.Top
@@ -263,8 +263,8 @@ case class PureValueElemTy(
   codeUnit: Boolean = false,
   const: BSet[String] = Fin(),
   math: MathTy = MathTy.Bot,
-  inf: InfTy = InfTy.Bot,
-  number: BSet[Number] = Fin(),
+  infinity: InfinityTy = InfinityTy.Bot,
+  number: NumberTy = NumberTy.Bot,
   bigInt: Boolean = false,
   str: BSet[String] = Fin(),
   bool: BoolTy = BoolTy.Bot,
@@ -285,8 +285,8 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
-    inf: InfTy = InfTy.Bot,
-    number: BSet[Number] = Fin(),
+    infinity: InfinityTy = InfinityTy.Bot,
+    number: NumberTy = NumberTy.Bot,
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
     bool: BoolTy = BoolTy.Bot,
@@ -305,7 +305,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     codeUnit,
     const,
     math,
-    inf,
+    infinity,
     number,
     bigInt,
     str,

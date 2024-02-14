@@ -101,8 +101,8 @@ case class ValueTy(
   def codeUnit: Boolean = pureValue.codeUnit
   def const: BSet[String] = pureValue.const
   def math: MathTy = pureValue.math
-  def inf: InfTy = pureValue.inf
-  def number: BSet[Number] = pureValue.number
+  def infinity: InfinityTy = pureValue.infinity
+  def number: NumberTy = pureValue.number
   def bigInt: Boolean = pureValue.bigInt
   def str: BSet[String] = pureValue.str
   def bool: BoolTy = pureValue.bool
@@ -148,16 +148,16 @@ case class ValueTy(
             ast.subIdx == subIdx
       case x @ Nt(name, params) => nt contains x
       case Math(n)              => math contains n
-      // TODO inf
-      case Const(name)     => const contains name
-      case CodeUnit(c)     => codeUnit
-      case num @ Number(n) => number contains num
-      case BigInt(n)       => bigInt
-      case Str(s)          => str contains s
-      case Bool(b)         => bool contains b
-      case Undef           => undef
-      case Null            => nullv
-      case Absent          => absent
+      case Infinity(p)          => infinity contains p
+      case Const(name)          => const contains name
+      case CodeUnit(c)          => codeUnit
+      case n: Number            => number contains n
+      case BigInt(n)            => bigInt
+      case Str(s)               => str contains s
+      case Bool(b)              => bool contains b
+      case Undef                => undef
+      case Null                 => nullv
+      case Absent               => absent
     )
 
   /** get single value */
@@ -183,8 +183,8 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
-    inf: InfTy = InfTy.Bot,
-    number: BSet[Number] = Fin(),
+    infinity: InfinityTy = InfinityTy.Bot,
+    number: NumberTy = NumberTy.Bot,
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
     bool: BoolTy = BoolTy.Bot,
@@ -206,7 +206,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       codeUnit,
       const,
       math,
-      inf,
+      infinity,
       number,
       bigInt,
       str,

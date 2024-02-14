@@ -1072,6 +1072,7 @@ GetSuperConstructor
 GetTemplateObject
 GetThisEnvironment
 GetThisValue
+GetUTCEpochNanoseconds
 GetV
 GetValue
 GlobalDeclarationInstantiation

@@ -575,7 +575,8 @@ trait AbsTransferDecl { self: Analyzer =>
           for {
             v <- transfer(expr)
           } yield v.isArrayIndex
-        case EMathVal(n)           => AbsValue(Math(n))
+        case EMath(n)              => AbsValue(Math(n))
+        case EInfinity(pos)        => AbsValue(Infinity(pos))
         case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
         case ENumber(n)            => AbsValue(n)
         case EBigInt(n)            => AbsValue(BigInt(n))

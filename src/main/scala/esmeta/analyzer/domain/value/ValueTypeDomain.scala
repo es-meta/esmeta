@@ -62,6 +62,7 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val codeUnitTop: Elem = Elem(CodeUnitT)
     lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
     lazy val mathTop: Elem = Elem(MathT)
+    lazy val infinityTop: Elem = Elem(InfinityT)
     lazy val simpleValueTop: Elem =
       notSupported("value.TypeDomain.simpleValueTop")
     lazy val numberTop: Elem = Elem(NumberT)
@@ -84,6 +85,7 @@ trait ValueTypeDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit,
       const: AbsConst,
       math: AbsMath,
+      infinity: AbsInfinity,
       simpleValue: AbsSimpleValue,
       num: AbsNumber,
       bigInt: AbsBigInt,
@@ -373,6 +375,7 @@ trait ValueTypeDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit = notSupported("value.TypeDomain.Elem.codeUnit")
       def const: AbsConst = notSupported("value.TypeDomain.Elem.const")
       def math: AbsMath = notSupported("value.TypeDomain.Elem.math")
+      def infinity: AbsInfinity = notSupported("value.TypeDomain.Elem.infinity")
       def simpleValue: AbsSimpleValue =
         notSupported("value.TypeDomain.Elem.simpleValue")
       def number: AbsNumber = notSupported("value.TypeDomain.Elem.number")
@@ -403,6 +406,7 @@ trait ValueTypeDomainDecl { self: Self =>
       case CodeUnit(_)               => CodeUnitT
       case Const(name)               => ConstT(name)
       case Math(n)                   => MathT(n)
+      case Infinity(pos)             => InfinityT(pos)
       case n: Number                 => NumberT(n)
       case BigInt(_)                 => BigIntT
       case Str(n)                    => StrT(n)

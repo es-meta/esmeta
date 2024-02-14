@@ -103,6 +103,7 @@ abstract class Analyzer
   protected var astValueDomain: Option[AstValueDomain] = None
   protected var ntDomain: Option[NtDomain] = None
   protected var mathDomain: Option[MathDomain] = None
+  protected var infinityDomain: Option[InfinityDomain] = None
   protected var codeUnitDomain: Option[CodeUnitDomain] = None
   protected var constDomain: Option[ConstDomain] = None
   protected var simpleValueDomain: Option[SimpleValueDomain] = None
@@ -152,6 +153,9 @@ abstract class Analyzer
 
   final lazy val AbsMath = mathDomain.getOrElse(MathFlatDomain)
   type AbsMath = AbsMath.Elem
+
+  final lazy val AbsInfinity = infinityDomain.getOrElse(InfinityFlatDomain)
+  type AbsInfinity = AbsInfinity.Elem
 
   final lazy val AbsCodeUnit = codeUnitDomain.getOrElse(CodeUnitFlatDomain)
   type AbsCodeUnit = AbsCodeUnit.Elem

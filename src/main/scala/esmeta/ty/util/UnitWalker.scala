@@ -16,7 +16,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ty: ListTy      => walk(ty)
     case ty: SubMapTy    => walk(ty)
     case ty: MathTy      => walk(ty)
-    case ty: InfTy       => walk(ty)
+    case ty: InfinityTy  => walk(ty)
     case ty: BoolTy      => walk(ty)
 
   /** types */
@@ -52,7 +52,7 @@ trait UnitWalker extends BasicUnitWalker {
     walkCodeUnit(ty.codeUnit)
     walkConst(ty.const)
     walkMath(ty.math)
-    walkInf(ty.inf)
+    walkInfinity(ty.infinity)
     walkNumber(ty.number)
     walkBigInt(ty.bigInt)
     walkStr(ty.str)
@@ -95,10 +95,12 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(math: BigDecimal): Unit = {}
 
   /** infinity types */
-  def walkInf(inf: InfTy): Unit = inf.isPos.map(walk)
+  def walkInfinity(infinity: InfinityTy): Unit = infinity.pos.map(walk)
 
   /** number types */
-  def walkNumber(number: BSet[Number]): Unit = walkBSet(number, walk)
+  def walkNumber(number: NumberTy): Unit = number match
+    case NumberSetTy(set) => walkSet(set, walk)
+    case _                =>
   def walk(number: Number): Unit = {}
 
   /** big integer types */

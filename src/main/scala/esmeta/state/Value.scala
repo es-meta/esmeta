@@ -112,7 +112,7 @@ case class AstValue(ast: Ast) extends PureValue
 /** nonterminals for grammar goal symbols */
 case class Nt(name: String, params: List[Boolean]) extends PureValue
 
-/** math values */
+/** mathematical values */
 case class Math(n: BigDecimal) extends PureValue
 object Math {
   def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
@@ -120,6 +120,9 @@ object Math {
   def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
   def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
 }
+
+/** infinity values */
+case class Infinity(pos: Boolean) extends PureValue
 
 /** constants */
 case class Const(name: String) extends PureValue
@@ -139,8 +142,8 @@ sealed trait Numeric extends SimpleValue:
   def toMath: Math = this match
     case Number(double) => Math(double)
     case BigInt(bigInt) => Math(bigInt)
-case class Number(n: Double) extends Numeric with DoubleEquals(n)
-case class BigInt(n: scala.math.BigInt) extends Numeric
+case class Number(double: Double) extends Numeric with DoubleEquals
+case class BigInt(bigInt: scala.math.BigInt) extends Numeric
 
 /** non-numeric simple values */
 case class Str(str: String) extends SimpleValue
