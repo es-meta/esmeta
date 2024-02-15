@@ -4,7 +4,8 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, UOp}
+import esmeta.interpreter.Interpreter
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.spec.{Grammar => _, *}
@@ -62,6 +63,11 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val codeUnitTop: Elem = Elem(CodeUnitT)
     lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
     lazy val mathTop: Elem = Elem(MathT)
+    lazy val intTop: Elem = Elem(IntT)
+    lazy val nonPosIntTop: Elem = Elem(NonPosIntT)
+    lazy val nonNegIntTop: Elem = Elem(NonNegIntT)
+    lazy val negIntTop: Elem = Elem(NegIntT)
+    lazy val posIntTop: Elem = Elem(PosIntT)
     lazy val infinityTop: Elem = Elem(InfinityT)
     lazy val simpleValueTop: Elem =
       notSupported("value.TypeDomain.simpleValueTop")
@@ -72,6 +78,9 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val undefTop: Elem = Elem(UndefT)
     lazy val nullTop: Elem = Elem(NullT)
     lazy val absentTop: Elem = Elem(AbsentT)
+
+    /** TODO AST type names whose MV returns a non-negative integer */
+    lazy val nonNegIntMVTyNames: Set[String] = Set("HexEscapeSequence")
 
     /** constructors */
     def apply(
@@ -175,8 +184,19 @@ trait ValueTypeDomainDecl { self: Self =>
       def unary_- : Elem = numericUnaryOp(elem)
       def unary_! : Elem = logicalUnaryOp(!_)(elem)
       def unary_~ : Elem = numericUnaryOp(elem)
-      def abs: Elem = mathTop
-      def floor: Elem = mathTop
+      def abs: Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy                         => MathTopTy
+          case IntTy | NonNegIntTy | NonPosIntTy => NonNegIntTy
+          case NegIntTy | PosIntTy               => PosIntTy
+          case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
+        Elem(ValueTy(math = mathTy))
+      def floor: Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy | IntTy                                     => IntTy
+          case m @ (NonNegIntTy | NonPosIntTy | NegIntTy | PosIntTy) => m
+          case MathSetTy(set) => MathSetTy(set.map(Interpreter.floor))
+        Elem(ValueTy(math = mathTy))
 
       /** type operations */
       def typeOf(st: AbsState): Elem =
@@ -327,11 +347,16 @@ trait ValueTypeDomainDecl { self: Self =>
           method match
             case "SV" | "TRV" | "StringValue" => StrT
             case "IdentifierCodePoints"       => StrT
-            case "MV" | "NumericValue"        => NumberT || BigIntT
-            case "TV"                         => StrT // XXX ignore UndefT case
-            case "BodyText" | "FlagText"      => StrT
-            case "Contains"                   => BoolT
-            case _                            => ValueTy(),
+            case "MV" | "NumericValue" =>
+              elem.ty.astValue.getNames match
+                case Fin(set) =>
+                  if (set subsetOf nonNegIntMVTyNames) NonNegIntT
+                  else MathT
+                case Inf => MathT
+            case "TV"                    => StrT // XXX ignore UndefT case
+            case "BodyText" | "FlagText" => StrT
+            case "Contains"              => BoolT
+            case _                       => ValueTy(),
       )
 
       /** get syntactic SDO */

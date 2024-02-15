@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -167,7 +167,7 @@ trait Parsers extends BasicParsers {
     "NegInt" ^^^ NegIntTy |
     "PosInt" ^^^ PosIntTy |
     "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
-      case m => MathSetTy(m.toSet)
+      case ds => MathSetTy(ds.toSet.map(Math(_)))
     } | "Math" ^^^ MathTopTy
 
   /** infinity types */

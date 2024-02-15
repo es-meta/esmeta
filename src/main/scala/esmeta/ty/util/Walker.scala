@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -101,7 +101,7 @@ trait Walker extends BasicWalker {
   def walkMath(math: MathTy): MathTy = math match
     case MathSetTy(set) => MathSetTy(walkSet(set, walk))
     case _              => math
-  def walk(math: BigDecimal): BigDecimal = math
+  def walk(math: Math): Math = math
 
   /** infinity types */
   def walkInfinity(infinity: InfinityTy): InfinityTy =

@@ -147,7 +147,7 @@ case class ValueTy(
             ast.idx == idx &&
             ast.subIdx == subIdx
       case x @ Nt(name, params) => nt contains x
-      case Math(n)              => math contains n
+      case m: Math              => math contains m
       case Infinity(p)          => infinity contains p
       case Const(name)          => const contains name
       case CodeUnit(c)          => codeUnit

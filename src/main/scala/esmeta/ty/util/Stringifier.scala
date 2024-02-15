@@ -1,7 +1,7 @@
 package esmeta.ty.util
 
 import esmeta.LINE_SEP
-import esmeta.state.Number
+import esmeta.state.{Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -215,6 +215,10 @@ object Stringifier {
         app >> pre >> t >> post
       this
   }
+
+  // rule for math
+  private given mathRule: Rule[Math] = (app, math) => app >> math.toString
+  given Ordering[Math] = Ordering.by(_.decimal)
 
   // rule for number
   private given numberRule: Rule[Number] = (app, number) =>

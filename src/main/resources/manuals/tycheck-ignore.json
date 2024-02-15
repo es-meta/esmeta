@@ -16,7 +16,6 @@
   "BoundFunctionCreate",
   "Catch[0,0].CatchClauseEvaluation",
   "Catch[1,0].CatchClauseEvaluation",
-  "CharacterEscape[3,0].CharacterValue",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
   "CodePointAt",
   "CreateArrayIterator",
@@ -32,7 +31,6 @@
   "GetGlobalObject",
   "GetMethod",
   "GetPromiseResolve",
-  "GetStringIndex",
   "GetThisValue",
   "GetUTCEpochNanoseconds",
   "HexLeadSurrogate[0,0].CharacterValue",
@@ -73,6 +71,5 @@
   "ToLength",
   "ToUint16",
   "ToUint32",
-  "ToUint8",
-  "ToUint8Clamp"
+  "ToUint8"
 ]

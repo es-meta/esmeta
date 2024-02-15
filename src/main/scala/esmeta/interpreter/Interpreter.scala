@@ -353,8 +353,8 @@ class Interpreter(
         case Nt(s, _) => s
         case v        => throw InvalidTypeExpr(expr, v)
       Bool(v match
-        case Math(d) =>
-          optional(MathTy.from(tyName)).fold(false)(_.contains(d))
+        case m: Math =>
+          optional(MathTy.from(tyName)).fold(false)(_.contains(m))
         case n: Number =>
           optional(NumberTy.from(tyName)).fold(false)(_.contains(n))
         case _: BigInt => tyName == "BigInt"
@@ -671,9 +671,8 @@ object Interpreter {
     import UOp.*
     (uop, operand) match
       // mathematic values
-      case (Abs, Math(n))                    => Math(n.abs)
-      case (Floor, Math(n)) if n.isValidLong => Math(n)
-      case (Floor, Math(n)) => Math(n - (n % 1) - (if (n < 0) 1 else 0))
+      case (Abs, m: Math)   => abs(m)
+      case (Floor, m: Math) => floor(m)
       // numeric values
       case (Neg, Number(n)) => Number(-n)
       case (Neg, Math(n))   => Math(-n)
@@ -825,8 +824,17 @@ object Interpreter {
       case (MOp.Tan, List(Math(x)))   => Math(tan(x.toDouble))
       case _                          => throw InvalidMathOp(mop, vs)
 
+  /** the absolute value operation for mathematical values */
+  def abs(m: Math): Math = Math(m.decimal.abs)
+
+  /** the floor operation for mathematical values */
+  def floor(m: Math): Math =
+    val Math(d) = m
+    if (d.isWhole) m
+    else Math(d - (d % 1) - (if (d < 0) 1 else 0))
+
   /** helpers for make transition for variadic operators */
-  private def vopEval[T](
+  def vopEval[T](
     f: PureValue => T,
     op: (T, T) => T,
     g: T => PureValue,

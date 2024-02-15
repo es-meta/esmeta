@@ -143,7 +143,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app
 
   // math
-  given mathRule: Rule[Math] = (app, math) => app >> math.n
+  given mathRule: Rule[Math] = (app, math) => app >> math.decimal
 
   // infinity
   given infinityRule: Rule[Infinity] = (app, inf) =>

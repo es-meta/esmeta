@@ -322,7 +322,7 @@ trait StateTypeDomainDecl { self: Self =>
       idx: Int,
       subIdx: Int,
     )(prop: ValueTy): ValueTy = prop.math.getSingle match
-      case One(n) if n.isValidInt =>
+      case One(Math(n)) if n.isValidInt =>
         val propIdx = n.toInt
         val rhs = cfg.grammar.nameMap(name).rhsList(idx)
         val nts = rhs.getNts(subIdx)
@@ -343,7 +343,7 @@ trait StateTypeDomainDecl { self: Self =>
       if (str.isBottom) ValueTy.Bot
       else {
         var res = ValueTy.Bot
-        if (prop.str contains "length") res ||= MathT
+        if (prop.str contains "length") res ||= NonNegIntT
         if (!prop.math.isBottom) res ||= CodeUnitT
         // TODO if (!str.isBottom)
         //   boundCheck(
@@ -387,7 +387,7 @@ trait StateTypeDomainDecl { self: Self =>
       val str = prop.str
       val math = prop.math
       for (ty <- list.elem)
-        if (str contains "length") res ||= MathT
+        if (str contains "length") res ||= NonNegIntT
         if (!math.isBottom) res ||= ty
       res
 

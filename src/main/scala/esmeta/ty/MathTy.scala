@@ -20,15 +20,20 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (_, MathTopTy)                       => true
     case (NegIntTy | PosIntTy | NonNegIntTy | NonPosIntTy | IntTy, IntTy) =>
       true
-    case (MathSetTy(set), IntTy)               => set.forall(d => d.isWhole)
+    case (MathSetTy(set), IntTy) =>
+      set.forall(_.decimal.isWhole)
     case (NegIntTy | NonPosIntTy, NonPosIntTy) => true
-    case (MathSetTy(set), NonPosIntTy) => set.forall(d => d.isWhole && d <= 0)
+    case (MathSetTy(set), NonPosIntTy) =>
+      set.forall(m => m.decimal.isWhole && m.decimal <= 0)
     case (PosIntTy | NonNegIntTy, NonNegIntTy) => true
-    case (MathSetTy(set), NonNegIntTy) => set.forall(d => d.isWhole && d >= 0)
-    case (NegIntTy, NegIntTy)          => true
-    case (MathSetTy(set), NegIntTy)    => set.forall(d => d.isWhole && d < 0)
-    case (PosIntTy, PosIntTy)          => true
-    case (MathSetTy(set), PosIntTy)    => set.forall(d => d.isWhole && d > 0)
+    case (MathSetTy(set), NonNegIntTy) =>
+      set.forall(m => m.decimal.isWhole && m.decimal >= 0)
+    case (NegIntTy, NegIntTy) => true
+    case (MathSetTy(set), NegIntTy) =>
+      set.forall(m => m.decimal.isWhole && m.decimal < 0)
+    case (PosIntTy, PosIntTy) => true
+    case (MathSetTy(set), PosIntTy) =>
+      set.forall(m => m.decimal.isWhole && m.decimal > 0)
     case (MathSetTy(lset), MathSetTy(rset)) => lset subsetOf rset
     case _                                  => false
 
@@ -37,33 +42,33 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case _ if this eq that               => this
     case (MathTopTy, _) | (_, MathTopTy) => Top
     case (IntTy, MathSetTy(set)) =>
-      if (set.exists(d => d.isWhole)) Top
+      if (set.exists(_.decimal.isWhole)) Top
       else IntTy
     case (IntTy, _) => IntTy
     case (NonPosIntTy, MathSetTy(set)) =>
-      if (set.exists(d => !d.isWhole)) Top
-      else if (set.exists(d => d >= 0)) IntTy
+      if (set.exists(m => !m.decimal.isWhole)) Top
+      else if (set.exists(m => m.decimal >= 0)) IntTy
       else NonPosIntTy
     case (NonPosIntTy, PosIntTy | NonNegIntTy | IntTy) => IntTy
     case (NonPosIntTy, _)                              => NonPosIntTy
     case (NonNegIntTy, MathSetTy(set)) =>
-      if (set.exists(d => !d.isWhole)) Top
-      else if (set.exists(d => d < 0)) IntTy
+      if (set.exists(m => !m.decimal.isWhole)) Top
+      else if (set.exists(m => m.decimal < 0)) IntTy
       else NonNegIntTy
     case (NonNegIntTy, NegIntTy | NonPosIntTy | IntTy) => IntTy
     case (NonNegIntTy, _)                              => NonNegIntTy
     case (NegIntTy, MathSetTy(set)) =>
-      if (set.exists(d => !d.isWhole)) Top
-      else if (set.exists(d => d > 0)) IntTy
-      else if (set contains 0) NonNegIntTy
+      if (set.exists(m => !m.decimal.isWhole)) Top
+      else if (set.exists(m => m.decimal > 0)) IntTy
+      else if (set contains Math.zero) NonNegIntTy
       else NegIntTy
     case (NegIntTy, PosIntTy | NonNegIntTy | IntTy) => IntTy
     case (NegIntTy, NonPosIntTy)                    => NonPosIntTy
     case (NegIntTy, _)                              => NegIntTy
     case (PosIntTy, MathSetTy(set)) =>
-      if (set.exists(d => !d.isWhole)) Top
-      else if (set.exists(d => d < 0)) IntTy
-      else if (set contains 0) NonNegIntTy
+      if (set.exists(m => !m.decimal.isWhole)) Top
+      else if (set.exists(m => m.decimal < 0)) IntTy
+      else if (set contains Math.zero) NonNegIntTy
       else PosIntTy
     case (PosIntTy, NegIntTy | NonPosIntTy | IntTy) => IntTy
     case (PosIntTy, NonNegIntTy)                    => NonNegIntTy
@@ -76,29 +81,29 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case _ if this eq that          => this
     case (_, MathTopTy)             => this
     case (MathTopTy, _)             => that
-    case (IntTy, MathSetTy(set))    => MathSetTy(set.filter(d => d.isWhole))
+    case (IntTy, MathSetTy(set))    => MathSetTy(set.filter(_.decimal.isWhole))
     case (IntTy, _)                 => that
     case (NonPosIntTy, IntTy)       => NonPosIntTy
     case (NonPosIntTy, NonNegIntTy) => Zero
     case (NonPosIntTy, PosIntTy)    => Bot
     case (NonPosIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(d => d.isWhole && d <= 0))
+      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal <= 0))
     case (NonPosIntTy, _)        => that
     case (NonNegIntTy, IntTy)    => NonNegIntTy
     case (NonNegIntTy, NegIntTy) => Zero
     case (NonNegIntTy, PosIntTy) => Bot
     case (NonNegIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(d => d.isWhole && d >= 0))
+      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal >= 0))
     case (NonNegIntTy, _)                   => that
     case (NegIntTy, NonPosIntTy | IntTy)    => NegIntTy
     case (NegIntTy, NonNegIntTy | PosIntTy) => Bot
     case (NegIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(d => d.isWhole && d < 0))
+      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal < 0))
     case (NegIntTy, _)                      => that
     case (PosIntTy, NonNegIntTy | IntTy)    => PosIntTy
     case (PosIntTy, NonPosIntTy | NegIntTy) => Bot
     case (PosIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(d => d.isWhole && d > 0))
+      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal > 0))
     case (PosIntTy, _)                      => that
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset intersect rset)
     case _                                  => that && this
@@ -127,29 +132,29 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (PosIntTy, PosIntTy | NonNegIntTy | IntTy) => Bot
     case (PosIntTy, _)                              => PosIntTy
     case (MathSetTy(set), IntTy) =>
-      MathSetTy(set.filter(d => !d.isWhole))
+      MathSetTy(set.filter(m => !m.decimal.isWhole))
     case (MathSetTy(set), NonPosIntTy) =>
-      MathSetTy(set.filter(d => !(d.isWhole && d <= 0)))
+      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal <= 0)))
     case (MathSetTy(set), NonNegIntTy) =>
-      MathSetTy(set.filter(d => !(d.isWhole && d >= 0)))
+      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal >= 0)))
     case (MathSetTy(set), NegIntTy) =>
-      MathSetTy(set.filter(d => !(d.isWhole && d < 0)))
+      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal < 0)))
     case (MathSetTy(set), PosIntTy) =>
-      MathSetTy(set.filter(d => !(d.isWhole && d > 0)))
+      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal > 0)))
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
 
   /** inclusion check */
-  def contains(decimal: BigDecimal): Boolean = this match
+  def contains(math: Math): Boolean = this match
     case MathTopTy      => true
-    case IntTy          => decimal.isWhole
-    case NonPosIntTy    => decimal.isWhole && decimal <= 0
-    case NonNegIntTy    => decimal.isWhole && decimal >= 0
-    case NegIntTy       => decimal.isWhole && decimal < 0
-    case PosIntTy       => decimal.isWhole && decimal > 0
-    case MathSetTy(set) => set contains decimal
+    case IntTy          => math.decimal.isWhole
+    case NonPosIntTy    => math.decimal.isWhole && math.decimal <= 0
+    case NonNegIntTy    => math.decimal.isWhole && math.decimal >= 0
+    case NegIntTy       => math.decimal.isWhole && math.decimal < 0
+    case PosIntTy       => math.decimal.isWhole && math.decimal > 0
+    case MathSetTy(set) => set contains math
 
   /** get single value */
-  def getSingle: Flat[BigDecimal] = this match
+  def getSingle: Flat[Math] = this match
     case MathSetTy(set) => Flat(set)
     case _              => Many
 }
@@ -173,10 +178,10 @@ case object NegIntTy extends MathTy
 case object PosIntTy extends MathTy
 
 /** types for set of mathematical values */
-case class MathSetTy(set: Set[BigDecimal]) extends MathTy
+case class MathSetTy(set: Set[Math]) extends MathTy
 
 object MathTy extends Parser.From(Parser.mathTy) {
   lazy val Top: MathTy = MathTopTy
   lazy val Bot: MathTy = MathSetTy(Set.empty)
-  lazy val Zero: MathTy = MathSetTy(Set(0))
+  lazy val Zero: MathTy = MathSetTy(Set(Math.zero))
 }

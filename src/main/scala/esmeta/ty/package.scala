@@ -96,9 +96,9 @@ lazy val NonPosIntT: ValueTy = ValueTy(math = NonPosIntTy)
 lazy val NonNegIntT: ValueTy = ValueTy(math = NonNegIntTy)
 lazy val NegIntT: ValueTy = ValueTy(math = NegIntTy)
 lazy val PosIntT: ValueTy = ValueTy(math = PosIntTy)
-def MathT(ns: BigDecimal*): ValueTy =
-  if (ns.isEmpty) ValueTy.Bot
-  else ValueTy(math = MathSetTy(ns.toSet))
+def MathT(ds: BigDecimal*): ValueTy =
+  if (ds.isEmpty) ValueTy.Bot
+  else ValueTy(math = MathSetTy(ds.toSet.map(Math(_))))
 lazy val InfinityT: ValueTy = ValueTy(infinity = InfinityTy.Top)
 lazy val NegInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Neg)
 lazy val PosInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Pos)

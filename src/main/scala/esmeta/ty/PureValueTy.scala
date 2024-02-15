@@ -218,7 +218,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (const.getSingle.map(Const(_): PureValue)) ||
-    (math.getSingle.map(Math(_): PureValue)) ||
+    math.getSingle ||
     (infinity.getSingle.map(Infinity(_): PureValue)) ||
     number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
