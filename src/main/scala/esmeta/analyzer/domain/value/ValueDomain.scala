@@ -149,6 +149,7 @@ trait ValueDomainDecl { self: Self =>
       def isArrayIndex: Elem
 
       /** prune abstract values */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem
       def pruneValue(r: Elem, positive: Boolean): Elem
       def pruneField(field: String, r: Elem, positive: Boolean): Elem
       def pruneType(r: Elem, positive: Boolean): Elem

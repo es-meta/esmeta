@@ -79,8 +79,17 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val nullTop: Elem = Elem(NullT)
     lazy val absentTop: Elem = Elem(AbsentT)
 
+    /** TODO AST type names whose MV returns a positive integer */
+    lazy val posIntMVTyNames: Set[String] = Set(
+      "NonZeroDigit",
+    )
+
     /** TODO AST type names whose MV returns a non-negative integer */
-    lazy val nonNegIntMVTyNames: Set[String] = Set("HexEscapeSequence")
+    lazy val nonNegIntMVTyNames: Set[String] = Set(
+      "CodePoint",
+      "Hex4Digits",
+      "HexEscapeSequence",
+    ) ++ posIntMVTyNames
 
     /** constructors */
     def apply(
@@ -259,6 +268,18 @@ trait ValueTypeDomainDecl { self: Self =>
       def clamp(lower: Elem, upper: Elem): Elem = mathTop
       def isArrayIndex: Elem = boolTop
 
+      /** prune abstract values with inequalities */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem =
+        (positive, withZero) match
+          // x >= 0
+          case (true, true) => elem ⊓ Elem(ValueTy(math = NonNegIntTy))
+          // x > 0
+          case (true, false) => elem ⊓ Elem(ValueTy(math = PosIntTy))
+          // x <= 0
+          case (false, true) => elem ⊓ Elem(ValueTy(math = NonPosIntTy))
+          // x < 0
+          case (false, false) => elem ⊓ Elem(ValueTy(math = NegIntTy))
+
       /** prune abstract values */
       def pruneValue(r: Elem, positive: Boolean): Elem =
         if (positive) elem ⊓ r
@@ -350,7 +371,8 @@ trait ValueTypeDomainDecl { self: Self =>
             case "MV" | "NumericValue" =>
               elem.ty.astValue.getNames match
                 case Fin(set) =>
-                  if (set subsetOf nonNegIntMVTyNames) NonNegIntT
+                  if (set subsetOf posIntMVTyNames) PosIntT
+                  else if (set subsetOf nonNegIntMVTyNames) NonNegIntT
                   else MathT
                 case Inf => MathT
             case "TV"                    => StrT // XXX ignore UndefT case

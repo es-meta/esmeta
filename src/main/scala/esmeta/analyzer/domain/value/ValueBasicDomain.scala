@@ -460,6 +460,7 @@ trait ValueBasicDomainDecl { self: Self =>
         case Many   => exploded("EIsArrayIndex")
 
       /** prune abstract values */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem = elem
       def pruneValue(r: Elem, positive: Boolean): Elem = elem
       def pruneField(field: String, r: Elem, positive: Boolean): Elem = elem
       def pruneType(r: Elem, positive: Boolean): Elem = elem
