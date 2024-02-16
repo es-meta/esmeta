@@ -719,9 +719,9 @@ class Compiler(
           EStr("ErrorData") -> EUndef(),
         ),
       )
-    case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
-    case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
-    case DecimalMathValueLiteral(n)         => EMath(n)
+    case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)
+    case _: NegativeInfinityMathValueLiteral => EInfinity(pos = false)
+    case DecimalMathValueLiteral(n)          => EMath(n)
     case MathConstantLiteral(pre, name) =>
       val expr = name match
         case "π" => EGLOBAL_MATH_PI

@@ -116,6 +116,7 @@ case class Nt(name: String, params: List[Boolean]) extends PureValue
 case class Math(decimal: BigDecimal) extends PureValue
 object Math {
   val zero: Math = Math(0)
+  val one: Math = Math(1)
   def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
   def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
   def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))

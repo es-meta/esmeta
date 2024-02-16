@@ -143,6 +143,44 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal > 0)))
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
 
+  /** min operation */
+  def min(that: MathTy): MathTy = (this, that) match
+    case (MathTopTy, _) | (_, MathTopTy)         => MathTopTy
+    case (IntTy, IntTy | NonNegIntTy | PosIntTy) => IntTy
+    case (IntTy, NonPosIntTy)                    => NonPosIntTy
+    case (IntTy, NegIntTy)                       => NegIntTy
+    case (NonNegIntTy, NonNegIntTy | PosIntTy)   => NonNegIntTy
+    case (NonNegIntTy, NonPosIntTy)              => NonPosIntTy
+    case (NonNegIntTy, NegIntTy)                 => NegIntTy
+    case (NonPosIntTy, NonPosIntTy | PosIntTy)   => NonPosIntTy
+    case (NonPosIntTy, NegIntTy)                 => NegIntTy
+    case (PosIntTy, PosIntTy)                    => PosIntTy
+    case (PosIntTy, NegIntTy)                    => NegIntTy
+    case (NegIntTy, NegIntTy)                    => NegIntTy
+    case (MathSetTy(set), _)                     => set.foldLeft(this)(_ min _)
+    case _                                       => that min this
+
+  /** min operation */
+  def min(math: Math): MathTy =
+    val Math(d) = math
+    this match
+      case MathTopTy       => MathTopTy
+      case MathSetTy(set)  => MathSetTy(set.map(m => Math(m.decimal min d)))
+      case _ if !d.isWhole => MathTopTy
+      case IntTy if d < 0  => NegIntTy
+      case IntTy if d <= 0 => NonPosIntTy
+      case IntTy           => IntTy
+      case NonNegIntTy if d <= 0 => MathSetTy(Set(math))
+      case NonNegIntTy           => NonNegIntTy
+      case NonPosIntTy if d < 0  => NegIntTy
+      case NonPosIntTy           => NonPosIntTy
+      case PosIntTy if d <= 1    => MathSetTy(Set(math))
+      case PosIntTy              => PosIntTy
+      case NegIntTy              => NegIntTy
+
+  /** max operation */
+  def max(that: MathTy): MathTy = MathTopTy
+
   /** inclusion check */
   def contains(math: Math): Boolean = this match
     case MathTopTy      => true
@@ -157,6 +195,12 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
   def getSingle: Flat[Math] = this match
     case MathSetTy(set) => Flat(set)
     case _              => Many
+
+  /** integral check */
+  def isInt: Boolean = this match
+    case IntTy | NonPosIntTy | NonNegIntTy | NegIntTy | PosIntTy => true
+    case MathSetTy(set) => set.forall(n => n.decimal.isWhole)
+    case _              => false
 }
 
 /** mathematical value types */
@@ -184,4 +228,5 @@ object MathTy extends Parser.From(Parser.mathTy) {
   lazy val Top: MathTy = MathTopTy
   lazy val Bot: MathTy = MathSetTy(Set.empty)
   lazy val Zero: MathTy = MathSetTy(Set(Math.zero))
+  lazy val One: MathTy = MathSetTy(Set(Math.one))
 }

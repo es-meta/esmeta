@@ -68,6 +68,12 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
   def getSingle: Flat[Number] = this match
     case NumberSetTy(set) => Flat(set)
     case _                => Many
+
+  /** integral check */
+  def isInt: Boolean = this match
+    case NumberIntTy      => true
+    case NumberSetTy(set) => set.forall(n => n.double.isWhole)
+    case _                => false
 }
 
 /** number top types */

@@ -630,6 +630,7 @@ DefaultClause[0,1].LexicallyDeclaredNames
 DefaultClause[0,1].LexicallyScopedDeclarations
 DefaultClause[0,1].VarDeclaredNames
 DefaultClause[0,1].VarScopedDeclarations
+DefaultTimeZone
 DefineField
 DefinePropertyOrThrow
 DeletePropertyOrThrow
@@ -1064,6 +1065,8 @@ GetIterator
 GetIteratorFromMethod
 GetMethod
 GetModuleNamespace
+GetNamedTimeZoneEpochNanoseconds
+GetNamedTimeZoneOffsetNanoseconds
 GetNewTarget
 GetOwnPropertyKeys
 GetPromiseResolve
@@ -1220,7 +1223,6 @@ INTRINSICS.Date.prototype.toJSON
 INTRINSICS.Date.prototype.toString
 INTRINSICS.Date.prototype.valueOf
 INTRINSICS.Date.prototype[@@toPrimitive]
-INTRINSICS.DefaultTimeZone
 INTRINSICS.Error
 INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
@@ -1238,8 +1240,6 @@ INTRINSICS.GeneratorFunction
 INTRINSICS.GeneratorFunction.prototype.prototype.next
 INTRINSICS.GeneratorFunction.prototype.prototype.return
 INTRINSICS.GeneratorFunction.prototype.prototype.throw
-INTRINSICS.GetNamedTimeZoneEpochNanoseconds
-INTRINSICS.GetNamedTimeZoneOffsetNanoseconds
 INTRINSICS.IteratorPrototype[@@iterator]
 INTRINSICS.Map
 INTRINSICS.Map.prototype.clear
