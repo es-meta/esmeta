@@ -303,11 +303,13 @@ class Interpreter(
       (eval(expr), cop) match {
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
-        // mathematical value
-        case (Math(n), ToApproxNumber) => Number(n.toDouble) // TODO
-        case (Math(n), ToNumber)       => Number(n.toDouble)
-        case (Math(n), ToBigInt)       => BigInt(n.toBigInt)
-        case (Math(n), ToMath)         => Math(n)
+        // extended mathematical value
+        case (Infinity(true), ToNumber)  => NUMBER_POS_INF
+        case (Infinity(false), ToNumber) => NUMBER_NEG_INF
+        case (Math(n), ToApproxNumber)   => Number(n.toDouble) // TODO
+        case (Math(n), ToNumber)         => Number(n.toDouble)
+        case (Math(n), ToBigInt)         => BigInt(n.toBigInt)
+        case (Math(n), ToMath)           => Math(n)
         // string
         case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
         case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)
@@ -745,13 +747,14 @@ object Interpreter {
       case (Eq, l, r)                     => Bool(l == r)
 
       // numeric equality operations
-      case (Equal, Math(l), Math(r))     => Bool(l == r)
-      case (Equal, Number(l), Number(r)) => Bool(l == r)
-      case (Equal, BigInt(l), BigInt(r)) => Bool(l == r)
-      case (Equal, POS_INF, Math(_))     => Bool(false)
-      case (Equal, Math(_), POS_INF)     => Bool(false)
-      case (Equal, NEG_INF, Math(_))     => Bool(false)
-      case (Equal, Math(_), NEG_INF)     => Bool(false)
+      case (Equal, Math(l), Math(r))         => Bool(l == r)
+      case (Equal, Infinity(l), Infinity(r)) => Bool(l == r)
+      case (Equal, Number(l), Number(r))     => Bool(l == r)
+      case (Equal, BigInt(l), BigInt(r))     => Bool(l == r)
+      case (Equal, POS_INF, Math(_))         => Bool(false)
+      case (Equal, Math(_), POS_INF)         => Bool(false)
+      case (Equal, NEG_INF, Math(_))         => Bool(false)
+      case (Equal, Math(_), NEG_INF)         => Bool(false)
 
       // big integers
       case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
