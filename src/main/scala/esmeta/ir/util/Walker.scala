@@ -117,6 +117,8 @@ trait Walker extends BasicWalker {
       EDuplicated(walk(expr))
     case EIsArrayIndex(expr) =>
       EIsArrayIndex(walk(expr))
+    case EDebug(expr) =>
+      EDebug(walk(expr))
     case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)

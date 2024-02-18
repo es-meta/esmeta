@@ -69,7 +69,7 @@ case class AlgorithmSummary(
   incomplete: Int = 0,
 ) {
   def total: Int = complete + incomplete
-  def ratioString: String = ratioSimpleString(complete, total)
+  def ratioString: String = percentString(complete, total)
 }
 
 /** algorithm step element */
@@ -78,7 +78,7 @@ case class StepSummary(
   incomplete: Int = 0,
 ) {
   def total: Int = complete + incomplete
-  def ratioString: String = ratioSimpleString(complete, total)
+  def ratioString: String = percentString(complete, total)
 }
 
 /** type element */
@@ -88,5 +88,5 @@ case class TypeSummary(
   unknown: Int = 0,
 ) {
   def total: Int = known + yet
-  def ratioString: String = ratioSimpleString(known, total)
+  def ratioString: String = percentString(known, total)
 }
