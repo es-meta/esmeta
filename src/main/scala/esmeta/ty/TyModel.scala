@@ -433,7 +433,7 @@ object TyModel {
         ),
         fields = Map(
           "ViewedArrayBuffer" -> NameT("ArrayBufferObject"),
-          "ArrayLength" -> MathT,
+          "ArrayLength" -> NonNegIntT,
           "ByteOffset" -> MathT,
           "ContentType" -> (NUMBER || BIGINT),
           "TypedArrayName" -> StrT,

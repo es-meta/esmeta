@@ -109,6 +109,7 @@ trait StringifierDecl { self: Self =>
           if (!params.isEmpty) app >> "[" >> params >> "]"
           app >> ">"
         case Math(n)         => app >> n
+        case Infinity(p)     => app >> (if (p) "+" else "-") >> "∞"
         case Const(name)     => app >> "~" >> name >> "~"
         case CodeUnit(c)     => app >> c.toInt >> "cu"
         case sv: SimpleValue => app >> sv.toString

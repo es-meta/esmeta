@@ -55,6 +55,7 @@ trait ValueBasicDomainDecl { self: Self =>
     val codeUnitTop: Elem = Bot.copy(pureValue = AbsPureValue.codeUnitTop)
     val constTop: Elem = Bot.copy(pureValue = AbsPureValue.constTop)
     val mathTop: Elem = Bot.copy(pureValue = AbsPureValue.mathTop)
+    val infinityTop: Elem = Bot.copy(pureValue = AbsPureValue.infinityTop)
     val simpleValueTop: Elem = Bot.copy(pureValue = AbsPureValue.simpleValueTop)
     val numberTop: Elem = Bot.copy(pureValue = AbsPureValue.numberTop)
     val bigIntTop: Elem = Bot.copy(pureValue = AbsPureValue.bigIntTop)
@@ -76,6 +77,7 @@ trait ValueBasicDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       const: AbsConst = AbsConst.Bot,
       math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
       num: AbsNumber = AbsNumber.Bot,
       bigInt: AbsBigInt = AbsBigInt.Bot,
@@ -95,6 +97,7 @@ trait ValueBasicDomainDecl { self: Self =>
         codeUnit,
         const,
         math,
+        infinity,
         simpleValue ⊔ AbsSimpleValue(
           num,
           bigInt,
@@ -457,6 +460,7 @@ trait ValueBasicDomainDecl { self: Self =>
         case Many   => exploded("EIsArrayIndex")
 
       /** prune abstract values */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem = elem
       def pruneValue(r: Elem, positive: Boolean): Elem = elem
       def pruneField(field: String, r: Elem, positive: Boolean): Elem = elem
       def pruneType(r: Elem, positive: Boolean): Elem = elem
@@ -513,6 +517,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit = elem.pureValue.codeUnit
       def const: AbsConst = elem.pureValue.const
       def math: AbsMath = elem.pureValue.math
+      def infinity: AbsInfinity = elem.pureValue.infinity
       def simpleValue: AbsSimpleValue = elem.pureValue.simpleValue
       def number: AbsNumber = elem.pureValue.number
       def bigInt: AbsBigInt = elem.pureValue.bigInt

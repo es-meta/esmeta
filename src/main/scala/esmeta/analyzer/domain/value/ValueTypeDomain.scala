@@ -4,7 +4,8 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, UOp}
+import esmeta.interpreter.Interpreter
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.spec.{Grammar => _, *}
@@ -62,15 +63,34 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val codeUnitTop: Elem = Elem(CodeUnitT)
     lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
     lazy val mathTop: Elem = Elem(MathT)
+    lazy val intTop: Elem = Elem(IntT)
+    lazy val nonPosIntTop: Elem = Elem(NonPosIntT)
+    lazy val nonNegIntTop: Elem = Elem(NonNegIntT)
+    lazy val negIntTop: Elem = Elem(NegIntT)
+    lazy val posIntTop: Elem = Elem(PosIntT)
+    lazy val infinityTop: Elem = Elem(InfinityT)
     lazy val simpleValueTop: Elem =
       notSupported("value.TypeDomain.simpleValueTop")
     lazy val numberTop: Elem = Elem(NumberT)
+    lazy val numberIntTop: Elem = Elem(NumberIntT)
     lazy val bigIntTop: Elem = Elem(BigIntT)
     lazy val strTop: Elem = Elem(StrT)
     lazy val boolTop: Elem = Elem(BoolT)
     lazy val undefTop: Elem = Elem(UndefT)
     lazy val nullTop: Elem = Elem(NullT)
     lazy val absentTop: Elem = Elem(AbsentT)
+
+    /** TODO AST type names whose MV returns a positive integer */
+    lazy val posIntMVTyNames: Set[String] = Set(
+      "NonZeroDigit",
+    )
+
+    /** TODO AST type names whose MV returns a non-negative integer */
+    lazy val nonNegIntMVTyNames: Set[String] = Set(
+      "CodePoint",
+      "Hex4Digits",
+      "HexEscapeSequence",
+    ) ++ posIntMVTyNames
 
     /** constructors */
     def apply(
@@ -84,6 +104,7 @@ trait ValueTypeDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit,
       const: AbsConst,
       math: AbsMath,
+      infinity: AbsInfinity,
       simpleValue: AbsSimpleValue,
       num: AbsNumber,
       bigInt: AbsBigInt,
@@ -104,8 +125,9 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** transfer for variadic operation */
     def vopTransfer(vop: VOp, vs: List[Elem]): Elem = vop match
-      case VOp.Min | VOp.Max => mathTop
-      case VOp.Concat        => strTop
+      case VOp.Min    => Elem(ValueTy(math = vs.map(_.ty.math).reduce(_ min _)))
+      case VOp.Max    => Elem(ValueTy(math = vs.map(_.ty.math).reduce(_ max _)))
+      case VOp.Concat => strTop
 
     /** transfer for mathematical operation */
     def mopTransfer(mop: MOp, vs: List[Elem]): Elem = mathTop
@@ -138,9 +160,9 @@ trait ValueTypeDomainDecl { self: Self =>
       def reachableParts: Set[Part] = Set()
 
       /** bitwise operations */
-      def &(that: Elem): Elem = bitwiseOp(elem, that)
-      def |(that: Elem): Elem = bitwiseOp(elem, that)
-      def ^(that: Elem): Elem = bitwiseOp(elem, that)
+      def &(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def |(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def ^(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
 
       /** comparison operations */
       def =^=(that: Elem): Elem =
@@ -158,9 +180,19 @@ trait ValueTypeDomainDecl { self: Self =>
       def ^^(that: Elem): Elem = logicalOp(_ ^ _)(elem, that)
 
       /** numeric operations */
-      def +(that: Elem): Elem = numericOp(elem, that)
+      def +(that: Elem): Elem =
+        // TODO handle increment case
+        if (that.ty.math == MathTy.One) Elem(ValueTy(math = elem.ty.math match
+          case MathTopTy                      => MathTopTy
+          case NonNegIntTy | PosIntTy         => PosIntTy
+          case NonPosIntTy | NegIntTy | IntTy => IntTy
+          case MathSetTy(set) =>
+            if (set.forall(_.decimal.isWhole)) IntTy
+            else MathTopTy,
+        ))
+        else numericOp(elem, that)
       def sub(that: Elem): Elem = numericOp(elem, that)
-      def /(that: Elem): Elem = numericOp(elem, that)
+      def /(that: Elem): Elem = numericOp(elem, that, intPreserve = false)
       def *(that: Elem): Elem = numericOp(elem, that)
       def %(that: Elem): Elem = numericOp(elem, that)
       def %%(that: Elem): Elem = numericOp(elem, that)
@@ -169,12 +201,55 @@ trait ValueTypeDomainDecl { self: Self =>
       def >>(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
       def >>>(that: Elem): Elem = mathOp(elem, that)
 
-      /** unary operations */
-      def unary_- : Elem = numericUnaryOp(elem)
+      /** unary negation operation */
+      def unary_- : Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy      => MathTopTy
+          case IntTy          => IntTy
+          case NonPosIntTy    => NonNegIntTy
+          case NonNegIntTy    => NonPosIntTy
+          case PosIntTy       => NegIntTy
+          case NegIntTy       => PosIntTy
+          case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
+        val numberTy = elem.ty.number match
+          case NumberTopTy      => NumberTopTy
+          case NumberIntTy      => NumberIntTy
+          case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
+        Elem(ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt))
+
+      /** unary logical negation operation */
       def unary_! : Elem = logicalUnaryOp(!_)(elem)
-      def unary_~ : Elem = numericUnaryOp(elem)
-      def abs: Elem = mathTop
-      def floor: Elem = mathTop
+
+      /** unary bitwise negation operation */
+      def unary_~ : Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy | IntTy | NonPosIntTy => IntTy
+          case NonNegIntTy | PosIntTy          => NegIntTy
+          case NegIntTy                        => PosIntTy
+          case MathSetTy(set) =>
+            MathSetTy(set.map(m => Math(~(m.decimal.toInt))))
+        val numberTy = elem.ty.number match
+          case NumberTopTy      => NumberTopTy
+          case NumberIntTy      => NumberIntTy
+          case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
+        Elem(ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt))
+
+      /** absolute operation */
+      def abs: Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy                         => MathTopTy
+          case IntTy | NonNegIntTy | NonPosIntTy => NonNegIntTy
+          case NegIntTy | PosIntTy               => PosIntTy
+          case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
+        Elem(ValueTy(math = mathTy))
+
+      /** floor operation */
+      def floor: Elem =
+        val mathTy = elem.ty.math match
+          case MathTopTy | IntTy                                     => IntTy
+          case m @ (NonNegIntTy | NonPosIntTy | NegIntTy | PosIntTy) => m
+          case MathSetTy(set) => MathSetTy(set.map(Interpreter.floor))
+        Elem(ValueTy(math = mathTy))
 
       /** type operations */
       def typeOf(st: AbsState): Elem =
@@ -206,17 +281,27 @@ trait ValueTypeDomainDecl { self: Self =>
       def convertTo(cop: COp, radix: Elem): Elem =
         val ty = elem.ty
         Elem(cop match
-          case COp.ToApproxNumber if (!ty.math.isBottom) =>
-            NumberT
-          case COp.ToNumber
-              if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom) =>
-            NumberT
+          case COp.ToApproxNumber =>
+            if (!ty.math.isBottom) NumberT
+            else ValueTy.Bot
+          case COp.ToNumber =>
+            lazy val fromMath = ty.math match
+              case MathTopTy => NumberTopTy
+              case MathSetTy(set) =>
+                NumberSetTy(set.map(m => Number(m.decimal.toDouble)))
+              case _ => NumberIntTy
+            if (!ty.str.isBottom) NumberT
+            else ValueTy(number = ty.number || fromMath)
           case COp.ToBigInt
               if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
             BigIntT
-          case COp.ToMath
-              if (!ty.math.isBottom || !ty.number.isBottom || ty.bigInt) =>
-            MathT
+          case COp.ToMath =>
+            val fromNumber = ty.number match
+              case NumberTopTy      => MathTopTy
+              case NumberIntTy      => IntTy
+              case NumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
+            val fromBigInt = if (ty.bigInt) IntTy else MathTy.Bot
+            ValueTy(math = ty.math || fromNumber || fromBigInt)
           case COp.ToStr(_)
               if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
             StrT
@@ -236,6 +321,18 @@ trait ValueTypeDomainDecl { self: Self =>
       def trim(leading: Boolean, trailing: Boolean): Elem = strTop
       def clamp(lower: Elem, upper: Elem): Elem = mathTop
       def isArrayIndex: Elem = boolTop
+
+      /** prune abstract values with inequalities */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem =
+        (positive, withZero) match
+          // x >= 0
+          case (true, true) => elem ⊓ Elem(ValueTy(math = NonNegIntTy))
+          // x > 0
+          case (true, false) => elem ⊓ Elem(ValueTy(math = PosIntTy))
+          // x <= 0
+          case (false, true) => elem ⊓ Elem(ValueTy(math = NonPosIntTy))
+          // x < 0
+          case (false, false) => elem ⊓ Elem(ValueTy(math = NegIntTy))
 
       /** prune abstract values */
       def pruneValue(r: Elem, positive: Boolean): Elem =
@@ -325,11 +422,17 @@ trait ValueTypeDomainDecl { self: Self =>
           method match
             case "SV" | "TRV" | "StringValue" => StrT
             case "IdentifierCodePoints"       => StrT
-            case "MV" | "NumericValue"        => NumberT || BigIntT
-            case "TV"                         => StrT // XXX ignore UndefT case
-            case "BodyText" | "FlagText"      => StrT
-            case "Contains"                   => BoolT
-            case _                            => ValueTy(),
+            case "MV" | "NumericValue" =>
+              elem.ty.astValue.getNames match
+                case Fin(set) =>
+                  if (set subsetOf posIntMVTyNames) PosIntT
+                  else if (set subsetOf nonNegIntMVTyNames) NonNegIntT
+                  else MathT
+                case Inf => MathT
+            case "TV"                    => StrT // XXX ignore UndefT case
+            case "BodyText" | "FlagText" => StrT
+            case "Contains"              => BoolT
+            case _                       => ValueTy(),
       )
 
       /** get syntactic SDO */
@@ -373,6 +476,7 @@ trait ValueTypeDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit = notSupported("value.TypeDomain.Elem.codeUnit")
       def const: AbsConst = notSupported("value.TypeDomain.Elem.const")
       def math: AbsMath = notSupported("value.TypeDomain.Elem.math")
+      def infinity: AbsInfinity = notSupported("value.TypeDomain.Elem.infinity")
       def simpleValue: AbsSimpleValue =
         notSupported("value.TypeDomain.Elem.simpleValue")
       def number: AbsNumber = notSupported("value.TypeDomain.Elem.number")
@@ -403,6 +507,7 @@ trait ValueTypeDomainDecl { self: Self =>
       case CodeUnit(_)               => CodeUnitT
       case Const(name)               => ConstT(name)
       case Math(n)                   => MathT(n)
+      case Infinity(pos)             => InfinityT(pos)
       case n: Number                 => NumberT(n)
       case BigInt(_)                 => BigIntT
       case Str(n)                    => StrT(n)
@@ -413,24 +518,30 @@ trait ValueTypeDomainDecl { self: Self =>
       case Absent                    => AbsentT
       case v => notSupported(s"impossible to convert to pure type ($v)")
 
+    // numeric operator helper
+    private def numericOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      mathOp(l, r, intPreserve) ⊔ numberOp(l, r, intPreserve) ⊔ bigIntOp(l, r)
+
     // mathematical operator helper
-    private lazy val mathOp: (Elem, Elem) => Elem = (l, r) =>
-      if (!l.ty.math.isBottom && !r.ty.math.isBottom) mathTop
-      else Bot
+    private def mathOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      val lty = l.ty.math
+      val rty = r.ty.math
+      if (lty.isBottom || rty.isBottom) Bot
+      else if (intPreserve && lty.isInt && rty.isInt) intTop
+      else mathTop
 
     // number operator helper
-    private lazy val numberOp: (Elem, Elem) => Elem = (l, r) =>
-      if (!l.ty.number.isBottom && !r.ty.number.isBottom) numberTop
-      else Bot
+    private def numberOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      val lty = l.ty.number
+      val rty = r.ty.number
+      if (lty.isBottom || rty.isBottom) Bot
+      else if (intPreserve && lty.isInt && rty.isInt) numberIntTop
+      else numberTop
 
     // big integer operator helper
-    private lazy val bigIntOp: (Elem, Elem) => Elem = (l, r) =>
+    private def bigIntOp(l: Elem, r: Elem) =
       if (l.ty.bigInt && r.ty.bigInt) bigIntTop
       else Bot
-
-    // bitwise operator helper
-    private lazy val bitwiseOp: (Elem, Elem) => Elem = (l, r) =>
-      mathOp(l, r) ⊔ bigIntOp(l, r)
 
     // logical unary operator helper
     private def logicalUnaryOp(
@@ -460,24 +571,6 @@ trait ValueTypeDomainDecl { self: Self =>
             ) Set(true, false)
             else Set(),
           ),
-        ),
-      )
-
-    // numeric unary operator helper
-    private lazy val numericUnaryOp: Elem => Elem = x =>
-      var res: Elem = Bot
-      if (!x.ty.math.isBottom) res ⊔= mathTop
-      if (!x.ty.number.isBottom) res ⊔= numberTop
-      if (x.ty.bigInt) res ⊔= bigIntTop
-      res
-
-    // numeric operator helper
-    private lazy val numericOp: (Elem, Elem) => Elem = (l, r) =>
-      Elem(
-        ValueTy(
-          math = l.ty.math && r.ty.math,
-          number = l.ty.number && r.ty.number,
-          bigInt = l.ty.bigInt && r.ty.bigInt,
         ),
       )
 

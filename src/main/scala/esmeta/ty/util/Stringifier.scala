@@ -1,7 +1,7 @@
 package esmeta.ty.util
 
 import esmeta.LINE_SEP
-import esmeta.state.Number
+import esmeta.state.{Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -16,12 +16,15 @@ object Stringifier {
       case elem: UnknownTy   => unknownTyRule(app, elem)
       case elem: ValueTy     => valueTyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
-      case elem: ListTy      => listTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
-      case elem: NameTy      => nameTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
+      case elem: ListTy      => listTyRule(app, elem)
+      case elem: NameTy      => nameTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
       case elem: SubMapTy    => subMapTyRule(app, elem)
+      case elem: MathTy      => mathTyRule(app, elem)
+      case elem: InfinityTy  => infinityTyRule(app, elem)
+      case elem: NumberTy    => numberTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
 
   /** types */
@@ -90,8 +93,9 @@ object Stringifier {
         .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
-        .add(ty.math, !ty.math.isBottom, "Math")
-        .add(ty.number, !ty.number.isBottom, "Number")
+        .add(ty.math, !ty.math.isBottom)
+        .add(ty.infinity, !ty.infinity.isBottom)
+        .add(ty.number, !ty.number.isBottom)
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
@@ -130,6 +134,31 @@ object Stringifier {
       case AstNameTy(names) => app >> names
       case AstSingleTy(x, i, j) =>
         app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
+
+  /** mathematical value types */
+  given mathTyRule: Rule[MathTy] = (app, ty) =>
+    ty match
+      case MathTopTy      => app >> "Math"
+      case IntTy          => app >> "Int"
+      case NonPosIntTy    => app >> "NonPosInt"
+      case NonNegIntTy    => app >> "NonNegInt"
+      case NegIntTy       => app >> "NegInt"
+      case PosIntTy       => app >> "PosInt"
+      case MathSetTy(set) => if (set.isEmpty) app else app >> "Math" >> set
+
+  /** infinity types */
+  given infinityTyRule: Rule[InfinityTy] = (app, ty) =>
+    ty.pos match
+      case set if set.isEmpty   => app
+      case set if set.size == 1 => app >> (if (set.head) "+INF" else "-INF")
+      case _                    => app >> "INF"
+
+  /** number types */
+  given numberTyRule: Rule[NumberTy] = (app, ty) =>
+    ty match
+      case NumberTopTy      => app >> "Number"
+      case NumberIntTy      => app >> "NumberInt"
+      case NumberSetTy(set) => if (set.isEmpty) app else app >> "Number" >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>
@@ -187,6 +216,10 @@ object Stringifier {
       this
   }
 
+  // rule for math
+  private given mathRule: Rule[Math] = (app, math) => app >> math.toString
+  given Ordering[Math] = Ordering.by(_.decimal)
+
   // rule for number
   private given numberRule: Rule[Number] = (app, number) =>
     number match
@@ -194,7 +227,7 @@ object Stringifier {
       case Number(Double.NegativeInfinity) => app >> "-INF"
       case Number(n) if n.isNaN            => app >> "NaN"
       case Number(n)                       => app >> n
-  given Ordering[Number] = Ordering.by(_.n)
+  given Ordering[Number] = Ordering.by(_.double)
 
   // separator for type disjuction
   private val OR = " | "

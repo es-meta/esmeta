@@ -137,7 +137,7 @@ class Compiler(
             ILet(Name(name), EList(Nil)),
             ILoop(
               "args",
-              lessThan(EMathVal(BigDecimal(remaining, UNLIMITED)), argsLen),
+              lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
               IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
             ),
           )
@@ -440,11 +440,10 @@ class Compiler(
     fb.withLang(ref)(ref match {
       case x: Variable               => compile(x)
       case RunningExecutionContext() => GLOBAL_CONTEXT
-      case SecondExecutionContext() =>
-        toRef(GLOBAL_EXECUTION_STACK, EMathVal(1))
-      case CurrentRealmRecord()   => currentRealm
-      case ActiveFunctionObject() => toStrRef(GLOBAL_CONTEXT, "Function")
-      case ref: PropertyReference => compile(fb, ref)
+      case SecondExecutionContext()  => toRef(GLOBAL_EXECUTION_STACK, EMath(1))
+      case CurrentRealmRecord()      => currentRealm
+      case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
+      case ref: PropertyReference    => compile(fb, ref)
     })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Prop =
@@ -628,7 +627,7 @@ class Compiler(
       case XRefExpression(XRefExpressionOperator.Algo, id) =>
         EClo(spec.getAlgoById(id).head.fname, Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
-        EMathVal(spec.getAlgoById(id).head.originalParams.length)
+        EMath(spec.getAlgoById(id).head.originalParams.length)
       case XRefExpression(XRefExpressionOperator.InternalSlots, id) =>
         // TODO properly handle table column
         EList(for {
@@ -692,7 +691,7 @@ class Compiler(
     case ThisLiteral()      => ENAME_THIS
     case NewTargetLiteral() => ENAME_NEW_TARGET
     case HexLiteral(hex, name) =>
-      if (name.isDefined) ECodeUnit(hex.toChar) else EMathVal(hex)
+      if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case NonterminalLiteral(ordinal, name, flags) =>
       val ntNames = fb.ntBindings.map(_._1)
@@ -701,7 +700,7 @@ class Compiler(
         val xs = fb.ntBindings.filter(_._1 == name)
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
-          case (_, base, Some(idx)) => toERef(fb, base, EMathVal(idx))
+          case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
       } else ENt(name, flags.map(_ startsWith "+"))
     case ConstLiteral(name)                  => EConst(name)
     case StringLiteral(s)                    => EStr(s)
@@ -720,14 +719,14 @@ class Compiler(
           EStr("ErrorData") -> EUndef(),
         ),
       )
-    case PositiveInfinityMathValueLiteral() => ENumber(Double.PositiveInfinity)
-    case NegativeInfinityMathValueLiteral() => ENumber(Double.NegativeInfinity)
-    case DecimalMathValueLiteral(n)         => EMathVal(n)
+    case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)
+    case _: NegativeInfinityMathValueLiteral => EInfinity(pos = false)
+    case DecimalMathValueLiteral(n)          => EMath(n)
     case MathConstantLiteral(pre, name) =>
       val expr = name match
         case "π" => EGLOBAL_MATH_PI
         case _   => EYet(s"<mathematical constant: $name>")
-      if (pre == 1) expr else EBinary(BOp.Mul, EMathVal(pre), expr)
+      if (pre == 1) expr else EBinary(BOp.Mul, EMath(pre), expr)
     case NumberLiteral(n)       => ENumber(n)
     case BigIntLiteral(n)       => EBigInt(n)
     case TrueLiteral()          => EBool(true)
@@ -801,8 +800,6 @@ class Compiler(
             is(lv, zero)
           case StrictMode => T // XXX assume strict mode
           case ArrayIndex => EIsArrayIndex(x)
-          case NonNegative =>
-            and(not(lessThan(x, ENumber(0.0f))), isIntegral(x))
           case FalseToken => is(ESourceText(x), EStr("false"))
           case TrueToken  => is(ESourceText(x), EStr("true"))
           case DataProperty =>
@@ -821,7 +818,6 @@ class Compiler(
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
             ETypeCheck(x, EStr("Nonterminal"))
-          case IntegralNumber => isIntegral(x)
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
@@ -1003,8 +999,8 @@ class Compiler(
   inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
 
   /** literal helpers */
-  def zero = EMathVal(BigDecimal(0, UNLIMITED))
-  def one = EMathVal(BigDecimal(1, UNLIMITED))
+  def zero = EMath(BigDecimal(0, UNLIMITED))
+  def one = EMath(BigDecimal(1, UNLIMITED))
   def posInf = ENumber(Double.PositiveInfinity)
   def negInf = ENumber(Double.NegativeInfinity)
   def T = EBool(true)

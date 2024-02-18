@@ -213,13 +213,15 @@ trait Parsers extends TyParsers {
 
   // literals
   lazy val literal: Parser[LiteralExpr] =
-    bigInt <~ "n" ^^ { EBigInt(_) } |
-    double <~ "f" ^^ { ENumber(_) } |
-    codeUnit <~ "cu" ^^ { ECodeUnit(_) } |
-    ("+INF" | "INF") ^^^ ENumber(Double.PositiveInfinity) |
-    "-INF" ^^^ ENumber(Double.NegativeInfinity) |
+    s"${integer}n".r ^^ { s => EBigInt(BigInt(s.dropRight(1))) } |
+    s"${number}f".r ^^ { s => ENumber(s.dropRight(1).toDouble) } |
+    s"${integer}cu".r ^^ { s => ECodeUnit(s.dropRight(2).toInt.toChar) } |
+    "+NUM_INF" ^^^ ENumber(Double.PositiveInfinity) |
+    "-NUM_INF" ^^^ ENumber(Double.NegativeInfinity) |
     "NaN" ^^^ ENumber(Double.NaN) |
-    decimal ^^ { EMathVal(_) } |
+    decimal ^^ { EMath(_) } |
+    "+INF" ^^^ EInfinity(pos = true) |
+    "-INF" ^^^ EInfinity(pos = false) |
     string ^^ { EStr(_) } |
     bool ^^ { EBool(_) } |
     "undefined" ^^^ EUndef() |

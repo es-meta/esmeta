@@ -45,6 +45,7 @@ trait ValueDomainDecl { self: Self =>
     def codeUnitTop: Elem
     def constTop: Elem
     def mathTop: Elem
+    def infinityTop: Elem
     def simpleValueTop: Elem
     def numberTop: Elem
     def bigIntTop: Elem
@@ -66,6 +67,7 @@ trait ValueDomainDecl { self: Self =>
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       const: AbsConst = AbsConst.Bot,
       math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
       num: AbsNumber = AbsNumber.Bot,
       bigInt: AbsBigInt = AbsBigInt.Bot,
@@ -147,6 +149,7 @@ trait ValueDomainDecl { self: Self =>
       def isArrayIndex: Elem
 
       /** prune abstract values */
+      def pruneIneq(positive: Boolean, withZero: Boolean): Elem
       def pruneValue(r: Elem, positive: Boolean): Elem
       def pruneField(field: String, r: Elem, positive: Boolean): Elem
       def pruneType(r: Elem, positive: Boolean): Elem
@@ -191,6 +194,7 @@ trait ValueDomainDecl { self: Self =>
       def codeUnit: AbsCodeUnit
       def const: AbsConst
       def math: AbsMath
+      def infinity: AbsInfinity
       def simpleValue: AbsSimpleValue
       def number: AbsNumber
       def bigInt: AbsBigInt

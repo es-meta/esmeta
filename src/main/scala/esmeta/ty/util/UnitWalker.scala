@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -15,6 +15,8 @@ trait UnitWalker extends BasicUnitWalker {
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
     case ty: SubMapTy    => walk(ty)
+    case ty: MathTy      => walk(ty)
+    case ty: InfinityTy  => walk(ty)
     case ty: BoolTy      => walk(ty)
 
   /** types */
@@ -50,6 +52,7 @@ trait UnitWalker extends BasicUnitWalker {
     walkCodeUnit(ty.codeUnit)
     walkConst(ty.const)
     walkMath(ty.math)
+    walkInfinity(ty.infinity)
     walkNumber(ty.number)
     walkBigInt(ty.bigInt)
     walkStr(ty.str)
@@ -86,11 +89,18 @@ trait UnitWalker extends BasicUnitWalker {
   def walkConst(const: BSet[String]): Unit = walkBSet(const, walk)
 
   /** mathematical value types */
-  def walkMath(math: BSet[BigDecimal]): Unit = walkBSet(math, walk)
-  def walk(math: BigDecimal): Unit = {}
+  def walkMath(math: MathTy): Unit = math match
+    case MathSetTy(set) => walkSet(set, walk)
+    case _              =>
+  def walk(math: Math): Unit = {}
+
+  /** infinity types */
+  def walkInfinity(infinity: InfinityTy): Unit = infinity.pos.map(walk)
 
   /** number types */
-  def walkNumber(number: BSet[Number]): Unit = walkBSet(number, walk)
+  def walkNumber(number: NumberTy): Unit = number match
+    case NumberSetTy(set) => walkSet(set, walk)
+    case _                =>
   def walk(number: Number): Unit = {}
 
   /** big integer types */

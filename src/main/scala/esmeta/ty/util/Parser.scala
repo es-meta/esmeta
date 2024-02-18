@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number}
+import esmeta.state.{Nt, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -85,13 +85,11 @@ trait Parsers extends BasicParsers {
       case s => PureValueTy(const = Fin(s.toSet))
     } |
     // mathematical value
-    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
-      case m => PureValueTy(math = Fin(m.toSet))
-    } | "Math" ^^^ PureValueTy(math = Inf) |
+    singleMathTy ^^ { case m => PureValueTy(math = m) } |
+    // infinity
+    singleInfinityTy ^^ { case i => PureValueTy(infinity = i) } |
     // number
-    "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
-      case n => PureValueTy(number = Fin(n.toSet))
-    } | "Number" ^^^ PureValueTy(number = Inf) |
+    singleNumberTy ^^ { case n => PureValueTy(number = n) } |
     // big integer
     "BigInt" ^^^ PureValueTy(bigInt = true) |
     // string
@@ -111,10 +109,12 @@ trait Parsers extends BasicParsers {
   }.named("ty.PureValueTy (single)")
 
   private lazy val numberWithSpecial: Parser[Number] =
-    double ^^ { Number(_) } |
-    ("+INF" | "INF") ^^^ Number(Double.PositiveInfinity) |
-    "-INF" ^^^ Number(Double.NegativeInfinity) |
-    "NaN" ^^^ Number(Double.NaN)
+    doubleWithSpecial ^^ { Number(_) }
+  private lazy val doubleWithSpecial: Parser[Double] =
+    double |
+    ("+INF" | "INF") ^^^ Double.PositiveInfinity |
+    "-INF" ^^^ Double.NegativeInfinity |
+    "NaN" ^^^ Double.NaN
 
   private lazy val nt: Parser[Nt] =
     ("|" ~> word <~ "|") ~ opt(parseParams) ^^ {
@@ -154,6 +154,44 @@ trait Parsers extends BasicParsers {
       case pairs => RecordTy.Elem(pairs.toMap)
     }
   }.named("ty.RecordTy (single)")
+
+  /** mathematical value types */
+  given mathTy: Parser[MathTy] = {
+    rep1sep(singleMathTy, "|") ^^ { case ts => ts.foldLeft(MathTy.Bot)(_ || _) }
+  }.named("ty.MathTy")
+
+  private lazy val singleMathTy: Parser[MathTy] =
+    "Int" ^^^ IntTy |
+    "NonPosInt" ^^^ NonPosIntTy |
+    "NonNegInt" ^^^ NonNegIntTy |
+    "NegInt" ^^^ NegIntTy |
+    "PosInt" ^^^ PosIntTy |
+    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
+      case ds => MathSetTy(ds.toSet.map(Math(_)))
+    } | "Math" ^^^ MathTopTy
+
+  /** infinity types */
+  given infTy: Parser[InfinityTy] = {
+    rep1sep(singleInfinityTy, "|") ^^ {
+      case ts => ts.foldLeft(InfinityTy.Bot)(_ || _)
+    }
+  }.named("ty.InfinityTy")
+
+  /** number types */
+  given numberTy: Parser[NumberTy] = {
+    rep1sep(singleNumberTy, "|") ^^ {
+      case ts => ts.foldLeft(NumberTy.Bot)(_ || _)
+    }
+  }.named("ty.NumberTy")
+
+  private lazy val singleNumberTy: Parser[NumberTy] =
+    "NumberInt" ^^^ NumberIntTy |
+    "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
+      case n => NumberSetTy(n.toSet)
+    } | "Number" ^^^ NumberTopTy
+
+  private lazy val singleInfinityTy: Parser[InfinityTy] =
+    "INF" ^^^ InfinityTy.Top | "+INF" ^^^ InfinityTy.Pos | "-INF" ^^^ InfinityTy.Neg
 
   given boolTy: Parser[BoolTy] = {
     rep1sep(singleBoolTy, "|") ^^ { case ts => ts.foldLeft(BoolTy.Bot)(_ || _) }

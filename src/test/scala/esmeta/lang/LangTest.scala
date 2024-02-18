@@ -293,14 +293,6 @@ object LangTest {
     PredicateCondition(refExpr, false, PredicateConditionOperator.StrictMode)
   lazy val arrayIndexCond =
     PredicateCondition(refExpr, false, PredicateConditionOperator.ArrayIndex)
-  lazy val nonNegativeCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.NonNegative)
-  lazy val integralCond =
-    PredicateCondition(
-      refExpr,
-      false,
-      PredicateConditionOperator.IntegralNumber,
-    )
   lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
   lazy val areCond =
     IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))

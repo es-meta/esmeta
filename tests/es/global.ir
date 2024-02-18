@@ -1,4 +1,4 @@
-assert (= @GLOBAL.SubMap.Infinity.Value INF)
+assert (= @GLOBAL.SubMap.Infinity.Value +NUM_INF)
 assert (= @GLOBAL.SubMap.Infinity.Writable false)
 assert (= @GLOBAL.SubMap.Infinity.Enumerable false)
 assert (= @GLOBAL.SubMap.Infinity.Configurable false)

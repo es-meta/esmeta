@@ -26,8 +26,8 @@ trait AValueDecl { self: Self =>
       AComp(ty, APureValue.from(value), target)
 
   /** pure values for analysis */
-  type APureValue = Part | AClo | ACont | AstValue | Nt | Math | Const |
-    CodeUnit | SimpleValue
+  type APureValue = Part | AClo | ACont | AstValue | Nt | Math | Infinity |
+    Const | CodeUnit | SimpleValue
   object APureValue:
     /** from original pure values */
     def from(pureValue: PureValue): APureValue = pureValue match
@@ -37,6 +37,7 @@ trait AValueDecl { self: Self =>
       case astValue: AstValue       => astValue
       case nt: Nt                   => nt
       case math: Math               => math
+      case infinity: Infinity       => infinity
       case const: Const             => const
       case codeUnit: CodeUnit       => codeUnit
       case simpleValue: SimpleValue => simpleValue

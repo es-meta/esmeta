@@ -145,6 +145,10 @@ class Extractor(
     parent.attr("type") match {
       case "abstract operation" =>
         extractAbsOpHead(parent, elem, false)
+      case "implementation-defined abstract operation" =>
+        // TODO handle `implementation-defined abstract operation`
+        // It is different with `host-defined abstract operation`
+        extractAbsOpHead(parent, elem, true)
       case "host-defined abstract operation" =>
         extractAbsOpHead(parent, elem, true)
       case "numeric method" =>

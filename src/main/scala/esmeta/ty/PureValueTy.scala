@@ -19,8 +19,9 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def nt: BSet[Nt]
   def codeUnit: Boolean
   def const: BSet[String]
-  def math: BSet[BigDecimal]
-  def number: BSet[Number]
+  def math: MathTy
+  def infinity: InfinityTy
+  def number: NumberTy
   def bigInt: Boolean
   def str: BSet[String]
   def bool: BoolTy
@@ -48,6 +49,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit.isBottom &&
         this.const.isBottom &&
         this.math.isBottom &&
+        this.infinity.isBottom &&
         this.number.isBottom &&
         this.bigInt.isBottom &&
         this.str.isBottom &&
@@ -73,6 +75,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.codeUnit <= that.codeUnit &&
       this.const <= that.const &&
       this.math <= that.math &&
+      this.infinity <= that.infinity &&
       this.number <= that.number &&
       this.bigInt <= that.bigInt &&
       this.str <= that.str &&
@@ -101,6 +104,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit || that.codeUnit,
         this.const || that.const,
         this.math || that.math,
+        this.infinity || that.infinity,
         this.number || that.number,
         this.bigInt || that.bigInt,
         this.str || that.str,
@@ -130,6 +134,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit && that.codeUnit,
         this.const && that.const,
         this.math && that.math,
+        this.infinity && that.infinity,
         this.number && that.number,
         this.bigInt && that.bigInt,
         this.str && that.str,
@@ -158,6 +163,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.codeUnit -- that.codeUnit,
         this.const -- that.const,
         this.math -- that.math,
+        this.infinity -- that.infinity,
         this.number -- that.number,
         this.bigInt -- that.bigInt,
         this.str -- that.str,
@@ -180,6 +186,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     codeUnit.isTop &&
     const.isTop &&
     math.isTop &&
+    infinity.isTop &&
     number.isTop &&
     bigInt.isTop &&
     str.isTop &&
@@ -211,7 +218,8 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (const.getSingle.map(Const(_): PureValue)) ||
-    (math.getSingle.map(Math(_): PureValue)) ||
+    math.getSingle ||
+    (infinity.getSingle.map(Infinity(_): PureValue)) ||
     number.getSingle ||
     (if (this.bigInt.isBottom) Zero else Many) ||
     (str.getSingle.map(Str(_): PureValue)) ||
@@ -232,8 +240,9 @@ case object PureValueTopTy extends PureValueTy {
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
   def const: BSet[String] = Inf
-  def math: BSet[BigDecimal] = Inf
-  def number: BSet[Number] = Inf
+  def math: MathTy = MathTy.Top
+  def infinity: InfinityTy = InfinityTy.Top
+  def number: NumberTy = NumberTy.Top
   def bigInt: Boolean = true
   def str: BSet[String] = Inf
   def bool: BoolTy = BoolTy.Top
@@ -253,8 +262,9 @@ case class PureValueElemTy(
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
   const: BSet[String] = Fin(),
-  math: BSet[BigDecimal] = Fin(),
-  number: BSet[Number] = Fin(),
+  math: MathTy = MathTy.Bot,
+  infinity: InfinityTy = InfinityTy.Bot,
+  number: NumberTy = NumberTy.Bot,
   bigInt: Boolean = false,
   str: BSet[String] = Fin(),
   bool: BoolTy = BoolTy.Bot,
@@ -274,8 +284,9 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[BigDecimal] = Fin(),
-    number: BSet[Number] = Fin(),
+    math: MathTy = MathTy.Bot,
+    infinity: InfinityTy = InfinityTy.Bot,
+    number: NumberTy = NumberTy.Bot,
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
     bool: BoolTy = BoolTy.Bot,
@@ -294,6 +305,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     codeUnit,
     const,
     math,
+    infinity,
     number,
     bigInt,
     str,

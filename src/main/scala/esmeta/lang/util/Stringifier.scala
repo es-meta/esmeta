@@ -653,14 +653,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Empty            => "empty"
       case StrictMode       => "strict mode code"
       case ArrayIndex       => "an array index"
-      case NonNegative      => "a non-negative integral Number"
       case FalseToken       => "the token `false`"
       case TrueToken        => "the token `true`"
       case DataProperty     => "a data property"
       case AccessorProperty => "an accessor property"
       case FullyPopulated   => "a fully populated Property Descriptor"
       case Nonterminal      => "an instance of a nonterminal"
-      case IntegralNumber   => "an integral Number"
     })
 
   // operators for binary conditions

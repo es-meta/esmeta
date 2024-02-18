@@ -575,7 +575,8 @@ trait AbsTransferDecl { self: Analyzer =>
           for {
             v <- transfer(expr)
           } yield v.isArrayIndex
-        case EMathVal(n)           => AbsValue(Math(n))
+        case EMath(n)              => AbsValue(Math(n))
+        case EInfinity(pos)        => AbsValue(Infinity(pos))
         case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
         case ENumber(n)            => AbsValue(n)
         case EBigInt(n)            => AbsValue(BigInt(n))
@@ -887,6 +888,22 @@ trait AbsTransferDecl { self: Analyzer =>
       positive: Boolean,
     )(using cp: NodePoint[_]): Updater = cond match {
       case _ if !useRefine => st => st
+      // prune inequality: x < 0
+      case EBinary(BOp.Lt, ERef(ref: Local), EMath(0)) =>
+        for {
+          l <- transfer(ref)
+          lv <- transfer(l)
+          prunedV = lv.pruneIneq(!positive, !positive)
+          _ <- modify(_.update(l, prunedV))
+        } yield ()
+      // prune inequality: 0 < x
+      case EBinary(BOp.Lt, EMath(0), ERef(ref: Local)) =>
+        for {
+          r <- transfer(ref)
+          rv <- transfer(r)
+          prunedV = rv.pruneIneq(positive, !positive)
+          _ <- modify(_.update(r, prunedV))
+        } yield ()
       // prune values
       case EBinary(BOp.Eq, ERef(ref: Local), target) =>
         for {

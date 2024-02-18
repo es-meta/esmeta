@@ -100,8 +100,9 @@ case class ValueTy(
   def nt: BSet[Nt] = pureValue.nt
   def codeUnit: Boolean = pureValue.codeUnit
   def const: BSet[String] = pureValue.const
-  def math: BSet[BigDecimal] = pureValue.math
-  def number: BSet[Number] = pureValue.number
+  def math: MathTy = pureValue.math
+  def infinity: InfinityTy = pureValue.infinity
+  def number: NumberTy = pureValue.number
   def bigInt: Boolean = pureValue.bigInt
   def str: BSet[String] = pureValue.str
   def bool: BoolTy = pureValue.bool
@@ -146,10 +147,11 @@ case class ValueTy(
             ast.idx == idx &&
             ast.subIdx == subIdx
       case x @ Nt(name, params) => nt contains x
-      case Math(n)              => math contains n
+      case m: Math              => math contains m
+      case Infinity(p)          => infinity contains p
       case Const(name)          => const contains name
       case CodeUnit(c)          => codeUnit
-      case num @ Number(n)      => number contains num
+      case n: Number            => number contains n
       case BigInt(n)            => bigInt
       case Str(s)               => str contains s
       case Bool(b)              => bool contains b
@@ -180,8 +182,9 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
     const: BSet[String] = Fin(),
-    math: BSet[BigDecimal] = Fin(),
-    number: BSet[Number] = Fin(),
+    math: MathTy = MathTy.Bot,
+    infinity: InfinityTy = InfinityTy.Bot,
+    number: NumberTy = NumberTy.Bot,
     bigInt: Boolean = false,
     str: BSet[String] = Fin(),
     bool: BoolTy = BoolTy.Bot,
@@ -203,6 +206,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       codeUnit,
       const,
       math,
+      infinity,
       number,
       bigInt,
       str,

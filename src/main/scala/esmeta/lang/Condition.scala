@@ -47,8 +47,8 @@ case class PredicateCondition(
 ) extends Condition
 enum PredicateConditionOperator extends LangElem:
   case Abrupt, NeverAbrupt, Normal, Finite, Duplicated, Present, Empty,
-  StrictMode, ArrayIndex, NonNegative, FalseToken, TrueToken, DataProperty,
-  AccessorProperty, FullyPopulated, Nonterminal, IntegralNumber
+  StrictMode, ArrayIndex, FalseToken, TrueToken, DataProperty, AccessorProperty,
+  FullyPopulated, Nonterminal
 
 // `A is/are B` conditions
 case class IsAreCondition(

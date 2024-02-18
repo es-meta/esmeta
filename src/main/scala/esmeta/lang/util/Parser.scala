@@ -946,14 +946,12 @@ trait Parsers extends IndentParsers {
       ("empty" | "an empty List") ^^^ Empty |
       "strict mode code" ^^^ StrictMode |
       "an array index" ^^^ ArrayIndex |
-      "a non-negative integral Number" ^^^ NonNegative |
       "the token `false`" ^^^ FalseToken |
       "the token `true`" ^^^ TrueToken |
       "a data property" ^^^ DataProperty |
       "an accessor property" ^^^ AccessorProperty |
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
-      "an instance of a nonterminal" ^^^ Nonterminal |
-      "an integral Number" ^^^ IntegralNumber
+      "an instance of a nonterminal" ^^^ Nonterminal
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)
@@ -1271,7 +1269,16 @@ trait Parsers extends IndentParsers {
     "*null*" ^^^ NullT |
     "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
+    "integer" ^^^ IntT |
+    "non-negative integer" ^^^ NonNegIntT |
+    "negative integer" ^^^ NegIntT |
+    "non-positive integer" ^^^ NonPosIntT |
+    "positive integer" ^^^ PosIntT |
+    decimal ^^ { MathT(_) } |
+    "+∞" ^^^ PosInfinityT |
+    "-∞" ^^^ NegInfinityT |
     "ECMAScript language value" ^^^ ESValueT |
+    "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
