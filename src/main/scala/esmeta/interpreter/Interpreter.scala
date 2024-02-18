@@ -639,6 +639,8 @@ object Interpreter {
         Str(ESValueParser.parseIdentifier(str))
       case ("PrivateIdentifier", "StringValue") =>
         Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
+      case ("HexDigits", "MV") =>
+        Math.fromHex(str)
       // TODO handle numeric separator in ESValueParser
       case ("NumericLiteral", "MV" | "NumericValue") =>
         ESValueParser.parseNumber(str.replaceAll("_", ""))

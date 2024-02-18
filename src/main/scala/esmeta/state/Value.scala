@@ -117,10 +117,26 @@ case class Math(decimal: BigDecimal) extends PureValue
 object Math {
   val zero: Math = Math(0)
   val one: Math = Math(1)
-  def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
-  def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
-  def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
-  def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(s: String): Math = Math(BigDecimal(s, UNLIMITED))
+  inline def fromHex(s: String): Math = apply(scala.math.BigInt(s, 16))
+
+  extension (m: Math) {
+    def +(n: Math): Math = Math(m.decimal + n.decimal)
+    def -(n: Math): Math = Math(m.decimal - n.decimal)
+    def *(n: Math): Math = Math(m.decimal * n.decimal)
+    def /(n: Math): Math = Math(m.decimal / n.decimal)
+    def pow(n: Math): Math = Math(m.decimal.pow(n.toInt))
+    def unary_- : Math = Math(-m.decimal)
+    def toInt: Int = m.decimal.toInt
+    def toLong: Long = m.decimal.toLong
+    def toDouble: Double = m.decimal.toDouble
+    def toBigInt: BigInt = BigInt(m.decimal.toBigInt)
+    def toBigDecimal: BigDecimal = m.decimal
+  }
 }
 
 /** infinity values */

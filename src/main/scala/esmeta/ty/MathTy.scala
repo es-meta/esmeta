@@ -201,6 +201,30 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case IntTy | NonPosIntTy | NonNegIntTy | NegIntTy | PosIntTy => true
     case MathSetTy(set) => set.forall(n => n.decimal.isWhole)
     case _              => false
+
+  /** non-positive integral check */
+  def isNonPosInt: Boolean = this match
+    case NonPosIntTy    => true
+    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal <= 0)
+    case _              => false
+
+  /** non-negative integral check */
+  def isNonNegInt: Boolean = this match
+    case NonNegIntTy    => true
+    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal >= 0)
+    case _              => false
+
+  /** negative integral check */
+  def isNegInt: Boolean = this match
+    case NegIntTy       => true
+    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal < 0)
+    case _              => false
+
+  /** positive integral check */
+  def isPosInt: Boolean = this match
+    case PosIntTy       => true
+    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal > 0)
+    case _              => false
 }
 
 /** mathematical value types */

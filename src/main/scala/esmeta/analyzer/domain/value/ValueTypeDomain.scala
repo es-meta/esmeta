@@ -181,14 +181,11 @@ trait ValueTypeDomainDecl { self: Self =>
 
       /** numeric operations */
       def +(that: Elem): Elem =
-        // TODO handle increment case
-        if (that.ty.math == MathTy.One) Elem(ValueTy(math = elem.ty.math match
-          case MathTopTy                      => MathTopTy
-          case NonNegIntTy | PosIntTy         => PosIntTy
-          case NonPosIntTy | NegIntTy | IntTy => IntTy
-          case MathSetTy(set) =>
-            if (set.forall(_.decimal.isWhole)) IntTy
-            else MathTopTy,
+        if (that.ty.math.isPosInt) Elem(ValueTy(math = elem.ty.math match
+          case m if m.isBottom    => MathTy.Bot
+          case m if m.isNonNegInt => PosIntTy
+          case m if m.isInt       => IntTy
+          case _                  => MathTopTy,
         ))
         else numericOp(elem, that)
       def sub(that: Elem): Elem = numericOp(elem, that)

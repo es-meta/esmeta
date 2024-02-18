@@ -38,13 +38,16 @@ case class ESParser(
   // parsers
   lazy val parsers: Map[String, ESParser[Ast]] = (for {
     prod <- grammar.prods
-    if prod.kind == ProductionKind.Syntactic
-    name = prod.lhs.name
-    parser =
-      // TODO handle in a more general way for indirect left-recursion
-      if (name == "CoalesceExpressionHead") handleLR
-      else getParser(prod)
-  } yield name -> parser).toMap
+  } yield {
+    val name = prod.lhs.name
+    val parser =
+      if (prod.kind == ProductionKind.Syntactic)
+        // TODO handle in a more general way for indirect left-recursion
+        if (name == "CoalesceExpressionHead") handleLR
+        else getParser(prod)
+      else (args: List[Boolean]) => nt(name, lexers(name, 0))
+    name -> parser
+  }).toMap
 
   // ---------------------------------------------------------------------------
   // private helpers
