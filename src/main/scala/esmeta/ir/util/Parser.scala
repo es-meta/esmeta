@@ -158,8 +158,10 @@ trait Parsers extends TyParsers {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
     } | ("cont<" ~> fname <~ ">") ^^ {
       case s => ECont(s)
-    } | {
-      "(" ~ "random" ~ ")" ^^^ ERandom()
+    } | "(" ~ "debug" ~> expr <~ ")" ^^ {
+      case e => EDebug(e)
+    } | "(" ~ "random" ~ ")" ^^^ {
+      ERandom()
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
   }.named("ir.Expr")
 

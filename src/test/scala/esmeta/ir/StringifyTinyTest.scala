@@ -132,6 +132,8 @@ class StringifyTinyTest extends IRTest {
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: \"Number\")",
+      // debugging expressions
+      debug -> "(debug x)",
       // random number expressions
       rand -> "(random)",
       // AST expressions
