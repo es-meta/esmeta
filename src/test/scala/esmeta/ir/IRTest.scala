@@ -79,6 +79,8 @@ object IRTest {
   lazy val convert = EConvert(COp.ToBigInt, xExpr)
   lazy val typeOf = ETypeOf(xExpr)
   lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
+  // debugging expressions
+  lazy val debug = EDebug(xExpr)
   // random number expressions
   lazy val rand = ERandom()
   // AST expressions

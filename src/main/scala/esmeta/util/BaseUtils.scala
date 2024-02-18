@@ -29,9 +29,20 @@ object BaseUtils {
   def error(any: Any): Nothing = throw ESMetaError(any.toString)
 
   /** show a warning message */
-  def warn(any: Any): Unit = Console.err.println(s"[WARNING] $any")
+  def warn[T](x: T, showTrace: Boolean = false): T =
+    warn("WARNING", x, showTrace)
+  def warn[T](head: String, x: T, showTrace: Boolean): T =
+    Console.err.println(s"[$head] $x")
+    if (showTrace)
+      Console.err.print(s" at ")
+      println(getStackTrace.take(STACK_TRACE_DEPTH).mkString(LINE_SEP + "    "))
+    x
 
-  /** get duration time */
+  /** show a deubgging message */
+  def debug[T](x: T, showTrace: Boolean = false): T =
+    warn("DEBUG", x, showTrace)
+
+  /** get duration time in milliseconds */
   def time[T](f: => T): (Long, T) = {
     val start = System.currentTimeMillis
     val result = f
@@ -148,17 +159,20 @@ object BaseUtils {
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
     rule(Appender(), t).toString
 
+  /** get a simple string for success ratio */
+  def ratioSimpleString(pass: Int, total: Int): String =
+    ratioString(pass, total, true)
+
   /** get a string for success ratio */
-  def ratioString(pass: Int, total: Int): String = {
+  def ratioString(pass: Int, total: Int, simple: Boolean = false): String =
     val fail = total - pass
-    f"P/F/T = $pass/$fail/$total ${ratioSimpleString(pass, total)}"
-  }
+    if (simple) f"$pass%,d/$total%,d ${percentString(pass, total)}"
+    else f"P/F/T = $pass%,d/$fail%,d/$total%,d ${percentString(pass, total)}"
 
   /** get a simple string for success ratio */
-  def ratioSimpleString(pass: Int, total: Int): String = {
+  def percentString(pass: Int, total: Int): String =
     val percent = pass / total.toDouble * 100
     f"($percent%.2f%%)"
-  }
 
   /** equality between doubles */
   def doubleEquals(left: Double, right: Double): Boolean =
@@ -166,6 +180,10 @@ object BaseUtils {
     else if (isNegZero(left) && !isNegZero(right)) false
     else if (!isNegZero(left) && isNegZero(right)) false
     else left == right
+
+  /** get current stack trace */
+  def getStackTrace: List[StackTraceElement] =
+    (new Error).getStackTrace.toList
 
   /** negative zero check */
   def isNegZero(double: Double): Boolean = (1 / double).isNegInfinity

@@ -182,6 +182,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> fname >> ">"
+      case EDebug(expr) =>
+        app >> "(debug " >> expr >> ")"
       case expr: ERandom =>
         randRule(app, expr)
       case expr: AstExpr =>

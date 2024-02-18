@@ -32,6 +32,9 @@ case class EIsArrayIndex(expr: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr
 
+// debugging expressions
+case class EDebug(expr: Expr) extends Expr
+
 // random number expressions
 case class ERandom() extends Expr
 

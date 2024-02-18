@@ -54,7 +54,7 @@ abstract class Analyzer
   val timeLimit: Option[Long] = None
 
   /** debugging mode */
-  val debug: Boolean = false
+  val debugMode: Boolean = false
 
   /** REPL mode */
   val useRepl: Boolean = false

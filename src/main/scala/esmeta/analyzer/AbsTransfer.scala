@@ -39,7 +39,7 @@ trait AbsTransferDecl { self: Analyzer =>
           if (duration > limit) exploded("timeout")
         })
         // text-based debugging
-        if (debug) println(s"${cp.func.name}:$cp")
+        if (debugMode) println(s"${cp.func.name}:$cp")
         // run REPL
         if (useRepl) Repl(this, cp)
         // abstract transfer for the current control point
@@ -504,6 +504,12 @@ trait AbsTransferDecl { self: Analyzer =>
               Set(),
             ))
           } yield AbsValue(ACont(target, captured))
+        case EDebug(expr) =>
+          for {
+            v <- transfer(expr)
+            st <- get
+            _ = debug(s"[[ $expr @ $cp ]]($st) = $v")
+          } yield v
         case ERandom() => pure(AbsValue.numberTop)
         case ESyntactic(name, args, rhsIdx, children) =>
           for {
