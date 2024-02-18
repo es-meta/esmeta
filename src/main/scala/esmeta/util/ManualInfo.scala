@@ -4,6 +4,7 @@ import esmeta.MANUALS_DIR
 import esmeta.analyzer.TypeAnalyzer.Ignore
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
+import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File
@@ -35,6 +36,12 @@ object ManualInfo {
       case pattern(hash) => Some(hash)
       case _             => None
   } yield hash -> file.toString).toMap
+
+  /** type model */
+  lazy val tyModel: TyModel = optional {
+    import esmeta.ty.util.JsonProtocol.given
+    readJson[TyModel](s"$MANUALS_DIR/ty-model.json")
+  }.getOrElse(TyModel())
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

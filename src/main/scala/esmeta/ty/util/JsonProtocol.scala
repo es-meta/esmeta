@@ -29,6 +29,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Ty] = encoderWithStringifier(stringify)
   given Decoder[NameTy] = decoderWithParser(NameTy.from)
   given Encoder[NameTy] = encoderWithStringifier(stringify)
+  given [T](using decoder: Decoder[T]): Decoder[Map[String, T]] = strMapDecoder
+  given [T](using encoder: Encoder[T]): Encoder[Map[String, T]] = strMapEncoder
 
   // type modeling
   given Decoder[TyModel] = deriveDecoder

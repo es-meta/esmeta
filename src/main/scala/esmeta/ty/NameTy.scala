@@ -8,7 +8,7 @@ case class NameTy(set: BSet[String] = Fin())
   extends TyElem
   with Lattice[NameTy] {
   import NameTy.*
-  import TyModel.es.isSubTy
+  import ManualInfo.tyModel.isSubTy
 
   /** top check */
   def isTop: Boolean = (this eq Top) || (set eq Inf)

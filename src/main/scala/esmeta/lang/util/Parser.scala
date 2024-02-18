@@ -3,7 +3,7 @@ package esmeta.lang.util
 import esmeta.lang.*
 import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
-import esmeta.util.{IndentParsers, Locational, ConcreteLattice}
+import esmeta.util.{IndentParsers, Locational, ConcreteLattice, ManualInfo}
 import esmeta.util.BaseUtils.*
 
 /** metalanguage parser */
@@ -1246,7 +1246,8 @@ trait Parsers extends IndentParsers {
       case ss =>
         val name = ss.mkString(" ")
         val normalizedName = Type.normalizeName(name)
-        if (TyModel.es.infos.contains(normalizedName)) success(NameT(name))
+        if (ManualInfo.tyModel.infos.contains(normalizedName))
+          success(NameT(name))
         else failure("unknown type name")
     }
 

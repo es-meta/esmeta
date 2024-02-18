@@ -13,7 +13,7 @@ case class ValueTy(
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
-  import TyModel.es.isSubTy
+  import ManualInfo.tyModel.isSubTy
 
   /** top check */
   def isTop: Boolean =
