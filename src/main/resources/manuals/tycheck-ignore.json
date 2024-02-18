@@ -37,7 +37,6 @@
   "LengthOfArrayLike",
   "MethodDefinition[0,0].DefineMethod",
   "ModuleNamespaceCreate",
-  "OrdinaryCreateFromConstructor",
   "OrdinaryFunctionCreate",
   "ProxyCreate",
   "SerializeJSONObject",
@@ -49,6 +48,5 @@
   "Statement[1,0].LabelledEvaluation",
   "Statement[2,0].LabelledEvaluation",
   "StringCreate",
-  "ToIndex",
-  "TypedArrayCreate"
+  "ToIndex"
 ]

@@ -34,7 +34,7 @@ sealed trait Head extends SpecElem {
       List(
         Param(ir.THIS_STR, Type(ESValueT)),
         Param(ir.ARGS_LIST_STR, Type(ListT(ESValueT))),
-        Param(ir.NEW_TARGET_STR, Type(ConstructorT || UndefT)),
+        Param(ir.NEW_TARGET_STR, Type(ObjectT || UndefT)),
       )
 
   /** get function name */

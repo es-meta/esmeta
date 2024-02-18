@@ -48,8 +48,6 @@ def NameT(names: String*): ValueTy =
   if (names.isEmpty) ValueTy.Bot
   else ValueTy(name = NameTy(Fin(names.toSet)))
 lazy val ObjectT: ValueTy = NameT("Object")
-lazy val FunctionT: ValueTy = NameT("FunctionObject")
-lazy val ConstructorT: ValueTy = NameT("Constructor")
 lazy val ESPrimT: ValueTy = ValueTy(
   symbol = true,
   number = NumberTy.Top,

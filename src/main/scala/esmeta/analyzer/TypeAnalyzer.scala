@@ -114,20 +114,6 @@ class TypeAnalyzer(
     /** loading monads */
     import AbsState.monad.*
 
-    /** transfer function for expressions */
-    override def transfer(expr: Expr)(using
-      cp: ControlPoint,
-    ): Result[AbsValue] = expr match
-      // a precise type of `the active function object` in built-in functions
-      case ERef(
-            Prop(
-              Prop(Global("EXECUTION_STACK"), EMath(0)),
-              EStr("Function"),
-            ),
-          ) if cp.func.isBuiltin =>
-        pure(AbsValue(ConstructorT))
-      case _ => super.transfer(expr)
-
     /** return-if-abrupt completion */
     override def returnIfAbrupt(
       riaExpr: EReturnIfAbrupt,
