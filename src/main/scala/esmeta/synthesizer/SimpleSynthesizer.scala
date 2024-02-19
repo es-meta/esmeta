@@ -1,4 +1,4 @@
-package esmeta.mutator.synthesizer
+package esmeta.synthesizer
 
 import esmeta.es.*
 import esmeta.spec.*
