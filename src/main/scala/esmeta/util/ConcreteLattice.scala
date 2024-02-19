@@ -1,5 +1,7 @@
 package esmeta.util
 
+import esmeta.util.BaseUtils.warn
+
 /** lattice with concrete values */
 trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
 
@@ -139,12 +141,12 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
   /** foreach function */
   def foreach(f: A => Unit): Unit = this match
     case Fin(set) => set.foreach(f)
-    case Inf      =>
+    case Inf      => warn("iterate on infinite set", showTrace = true)
 
   /** get list function */
   def toList: List[A] = this match
     case Fin(set) => set.toList
-    case Inf      => Nil
+    case Inf      => warn("convert infinite set to list", showTrace = true); Nil
 
   /** inclusion check */
   def contains[B >: A](x: B): Boolean = this match

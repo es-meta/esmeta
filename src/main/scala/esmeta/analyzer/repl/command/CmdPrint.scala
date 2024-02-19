@@ -23,9 +23,9 @@ trait CmdPrintDecl { self: Self =>
     def apply(
       cpOpt: Option[ControlPoint],
       args: List[String],
-    ): Unit = {
+    ): Unit =
       val cp = cpOpt.getOrElse(sem.runJobsRp)
-      args match {
+      args match
         case s"-${`reachLoc`}" :: _ =>
           val st = sem.getState(cp)
           st.reachableParts.foreach(println _)
@@ -46,7 +46,5 @@ trait CmdPrintDecl { self: Self =>
             case rp: ReturnPoint =>
               println("cannot evaluate expression in return point")
         case _ => println("Inappropriate argument")
-      }
-    }
   }
 }

@@ -339,7 +339,7 @@ trait AbsTransferDecl { self: Analyzer =>
       }
 
     /** transfer function for expressions */
-    def transfer(expr: Expr)(using cp: ControlPoint): Result[AbsValue] =
+    def transfer(expr: Expr)(using np: NodePoint[Node]): Result[AbsValue] =
       expr match {
         case EComp(ty, value, target) =>
           for {
@@ -379,13 +379,13 @@ trait AbsTransferDecl { self: Analyzer =>
         case ESourceText(expr) =>
           for { v <- transfer(expr) } yield v.sourceText
         case e @ EGetChildren(ast) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             av <- transfer(ast)
             lv <- id(_.getChildren(asite, av))
           } yield lv
         case e @ EGetItems(nt, ast) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             nv <- transfer(nt)
             av <- transfer(ast)
@@ -491,11 +491,11 @@ trait AbsTransferDecl { self: Analyzer =>
           for {
             st <- get
             func = cfg.fnameMap(fname)
-            target = NodePoint(func, func.entry, cp.view)
+            target = NodePoint(func, func.entry, np.view)
             captured = st.locals.collect { case (x: Name, av) => x -> av }
             // return edges for resumed evaluation
-            currRp = ReturnPoint(cp.func, cp.view)
-            contRp = ReturnPoint(func, cp.view)
+            currRp = ReturnPoint(np.func, np.view)
+            contRp = ReturnPoint(func, np.view)
             _ = sem.retEdges += (contRp -> sem.retEdges.getOrElse(
               currRp,
               Set(),
@@ -505,7 +505,7 @@ trait AbsTransferDecl { self: Analyzer =>
           for {
             v <- transfer(expr)
             st <- get
-            _ = debug(s"[[ $expr @ $cp ]]($st) = $v")
+            _ = debug(s"[[ $expr @ $np ]]($st) = $v")
           } yield v
         case ERandom() => pure(AbsValue.numberTop)
         case ESyntactic(name, args, rhsIdx, children) =>
@@ -528,7 +528,7 @@ trait AbsTransferDecl { self: Analyzer =>
           }
         case ELexical(name, expr) => notSupported("ELexical")
         case e @ EMap(tname, props) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             pairs <- join(props.map {
               case (kexpr, vexpr) =>
@@ -540,31 +540,31 @@ trait AbsTransferDecl { self: Analyzer =>
             lv <- id(_.allocMap(asite, tname, pairs))
           } yield lv
         case e @ EList(exprs) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             vs <- join(exprs.map(transfer))
             lv <- id(_.allocList(asite, vs))
           } yield lv
         case e @ EListConcat(exprs) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             ls <- join(exprs.map(transfer))
             lv <- id(_.concat(asite, ls))
           } yield lv
         case e @ ESymbol(desc) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             v <- transfer(desc)
             lv <- id(_.allocSymbol(asite, v))
           } yield lv
         case e @ ECopy(obj) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             v <- transfer(obj)
             lv <- id(_.copyObj(asite, v))
           } yield lv
         case e @ EKeys(map, intSorted) =>
-          val asite = AllocSite(e.asite, cp.view)
+          val asite = AllocSite(e.asite, np.view)
           for {
             v <- transfer(map)
             lv <- id(_.keys(asite, v, intSorted))
@@ -593,7 +593,7 @@ trait AbsTransferDecl { self: Analyzer =>
       }
 
     /** transfer function for references */
-    def transfer(ref: Ref)(using cp: ControlPoint): Result[AbsRefValue] =
+    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefValue] =
       ref match
         case id: Id => AbsRefId(id)
         case Prop(ref, expr) =>
@@ -604,15 +604,15 @@ trait AbsTransferDecl { self: Analyzer =>
           } yield AbsRefProp(b, p)
 
     /** transfer function for reference values */
-    def transfer(rv: AbsRefValue)(using cp: ControlPoint): Result[AbsValue] =
-      for { v <- get(_.get(rv, cp)) } yield v
+    def transfer(rv: AbsRefValue)(using np: NodePoint[Node]): Result[AbsValue] =
+      for { v <- get(_.get(rv, np)) } yield v
 
     /** transfer function for unary operators */
     def transfer(
       st: AbsState,
       uop: UOp,
       operand: AbsValue,
-    )(using cp: ControlPoint): AbsValue =
+    )(using np: NodePoint[Node]): AbsValue =
       import UOp.*
       operand.getSingle match
         case Zero => AbsValue.Bot
@@ -636,7 +636,7 @@ trait AbsTransferDecl { self: Analyzer =>
       bop: BOp,
       left: AbsValue,
       right: AbsValue,
-    )(using cp: ControlPoint): AbsValue =
+    )(using np: NodePoint[Node]): AbsValue =
       import BOp.*
       (left.getSingle, right.getSingle) match {
         case (Zero, _) | (_, Zero) => AbsValue.Bot
@@ -680,13 +680,13 @@ trait AbsTransferDecl { self: Analyzer =>
 
     /** transfer for variadic operators */
     def transfer(vop: VOp, vs: List[AbsValue])(using
-      cp: ControlPoint,
+      np: NodePoint[Node],
     ): AbsValue =
       AbsValue.vopTransfer(vop, vs)
 
     /** transfer for mathematical operators */
     def transfer(mop: MOp, vs: List[AbsValue])(using
-      cp: ControlPoint,
+      np: NodePoint[Node],
     ): AbsValue =
       AbsValue.mopTransfer(mop, vs)
 
@@ -725,10 +725,10 @@ trait AbsTransferDecl { self: Analyzer =>
     def doReturn(
       irReturn: Return,
       v: AbsValue,
-    )(using cp: ControlPoint): Result[Unit] = for {
+    )(using np: NodePoint[Node]): Result[Unit] = for {
       st <- get
       ret = AbsRet(v, st.copied(locals = Map()))
-      calleeRp = ReturnPoint(cp.func, cp.view)
+      calleeRp = ReturnPoint(np.func, np.view)
       irp = InternalReturnPoint(irReturn, calleeRp)
       _ = doReturn(irp, ret)
     } yield ()
@@ -753,7 +753,7 @@ trait AbsTransferDecl { self: Analyzer =>
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
-    )(using cp: ControlPoint): Result[AbsValue] = {
+    )(using np: NodePoint[Node]): Result[AbsValue] = {
       val checkReturn: Result[Unit] =
         if (check) doReturn(riaExpr, value.abruptCompletion)
         else ()
@@ -765,7 +765,7 @@ trait AbsTransferDecl { self: Analyzer =>
       bop: BOp,
       left: Expr,
       right: Expr,
-    )(using cp: ControlPoint): Result[AbsValue] = for {
+    )(using np: NodePoint[Node]): Result[AbsValue] = for {
       l <- transfer(left)
       v <- (bop, l.getSingle) match {
         case (BOp.And, One(Bool(false))) => pure(AVF)
@@ -811,12 +811,12 @@ trait AbsTransferDecl { self: Analyzer =>
 
     /** get local variables */
     def getLocals(
-      cp: CallPoint[Node],
+      np: CallPoint[Node],
       args: List[AbsValue],
       cont: Boolean,
       method: Boolean,
     ): Map[Local, AbsValue] = {
-      val CallPoint(callerNp, calleeNp) = cp
+      val CallPoint(callerNp, calleeNp) = np
       val params: List[Param] = calleeNp.func.irFunc.params
       var map = Map[Local, AbsValue]()
 
@@ -840,7 +840,7 @@ trait AbsTransferDecl { self: Analyzer =>
 
     object OptimizedCall {
       def unapply(callInst: CallInst)(using
-        cp: NodePoint[_],
+        np: NodePoint[_],
       ): Option[Result[AbsValue]] = callInst match
         case ICall(_, EClo("Completion", Nil), List(expr)) =>
           Some(for {
@@ -889,7 +889,7 @@ trait AbsTransferDecl { self: Analyzer =>
     def prune(
       cond: Expr,
       positive: Boolean,
-    )(using cp: NodePoint[_]): Updater = cond match {
+    )(using np: NodePoint[_]): Updater = cond match {
       case _ if !useRefine => st => st
       // prune inequality: x < 0
       case EBinary(BOp.Lt, ERef(ref: Local), EMath(0)) =>
