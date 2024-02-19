@@ -204,7 +204,7 @@ trait AbsTransferDecl { self: Analyzer =>
     }
 
     /** transfer function for normal instructions */
-    def transfer(inst: NormalInst)(using cp: NodePoint[_]): Updater =
+    def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater =
       inst match {
         case IExpr(expr) =>
           for {
@@ -258,8 +258,8 @@ trait AbsTransferDecl { self: Analyzer =>
       }
 
     /** transfer function for call instructions */
-    def transfer(call: Call)(using cp: NodePoint[_]): Result[AbsValue] =
-      val callerNp = NodePoint(cp.func, call, cp.view)
+    def transfer(call: Call)(using np: NodePoint[_]): Result[AbsValue] =
+      val callerNp = NodePoint(np.func, call, np.view)
       call.callInst match {
         case OptimizedCall(result) => result
         case ICall(_, fexpr, args) =>
@@ -268,13 +268,13 @@ trait AbsTransferDecl { self: Analyzer =>
             as <- join(args.map(transfer))
             st <- get
           } yield {
-            // closure call (unsound for inifinitely many closures)
+            // closure call (XXX: unsound for inifinitely many closures)
             for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
               doCall(callerNp, st, func, as, captured)
             // continuation call (unsound for inifinitely many continuations)
             for (ACont(target, captured) <- fv.cont) {
               val as0 =
-                as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
+                as.map(v => if (np.func.isReturnComp) v.wrapCompletion else v)
               val newLocals = getLocals(
                 CallPoint(callerNp, target.func),
                 as0,
@@ -420,24 +420,25 @@ trait AbsTransferDecl { self: Analyzer =>
             rv <- transfer(ref)
             v <- transfer(rv)
           } yield v
-        case EUnary(uop, expr) =>
+        case unary @ EUnary(_, expr) =>
           for {
             v <- transfer(expr)
-            v0 <- get(transfer(_, uop, v))
+            v0 <- get(transfer(_, unary, v))
           } yield v0
-        case EBinary(BOp.And, left, right) =>
-          shortCircuit(BOp.And, left, right)
-        case EBinary(BOp.Or, left, right) => shortCircuit(BOp.Or, left, right)
         case EBinary(BOp.Eq, ERef(ref), EAbsent()) =>
           for {
             rv <- transfer(ref)
             b <- get(_.exists(rv))
           } yield !b
-        case EBinary(bop, left, right) =>
+        case binary @ EBinary(BOp.And, left, right) =>
+          shortCircuit(binary, left, right)
+        case binary @ EBinary(BOp.Or, left, right) =>
+          shortCircuit(binary, left, right)
+        case binary @ EBinary(_, left, right) =>
           for {
             lv <- transfer(left)
             rv <- transfer(right)
-            v <- get(transfer(_, bop, lv, rv))
+            v <- get(transfer(_, binary, lv, rv))
           } yield v
         case EVariadic(vop, exprs) =>
           for {
@@ -610,10 +611,11 @@ trait AbsTransferDecl { self: Analyzer =>
     /** transfer function for unary operators */
     def transfer(
       st: AbsState,
-      uop: UOp,
+      unary: EUnary,
       operand: AbsValue,
     )(using np: NodePoint[Node]): AbsValue =
       import UOp.*
+      val uop = unary.uop
       operand.getSingle match
         case Zero => AbsValue.Bot
         case One(x: SimpleValue) =>
@@ -633,11 +635,12 @@ trait AbsTransferDecl { self: Analyzer =>
     /** transfer function for binary operators */
     def transfer(
       st: AbsState,
-      bop: BOp,
+      binary: EBinary,
       left: AbsValue,
       right: AbsValue,
     )(using np: NodePoint[Node]): AbsValue =
       import BOp.*
+      val bop = binary.bop
       (left.getSingle, right.getSingle) match {
         case (Zero, _) | (_, Zero) => AbsValue.Bot
         case (One(l: SimpleValue), One(r: SimpleValue)) =>
@@ -725,10 +728,10 @@ trait AbsTransferDecl { self: Analyzer =>
     def doReturn(
       irReturn: Return,
       v: AbsValue,
-    )(using np: NodePoint[Node]): Result[Unit] = for {
+    )(using returnNp: NodePoint[Node]): Result[Unit] = for {
       st <- get
       ret = AbsRet(v, st.copied(locals = Map()))
-      irp = InternalReturnPoint(np, irReturn)
+      irp = InternalReturnPoint(returnNp, irReturn)
       _ = doReturn(irp, ret)
     } yield ()
 
@@ -761,18 +764,27 @@ trait AbsTransferDecl { self: Analyzer =>
 
     // short circuit evaluation
     def shortCircuit(
-      bop: BOp,
+      binary: EBinary,
       left: Expr,
       right: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = for {
       l <- transfer(left)
-      v <- (bop, l.getSingle) match {
-        case (BOp.And, One(Bool(false))) => pure(AVF)
-        case (BOp.Or, One(Bool(true)))   => pure(AVT)
+      st <- get
+      v <- binary.bop match {
+        case BOp.And =>
+          l.bool.cond(AbsState)(AbsValue)(
+            thenBranch = transfer(right).eval(prune(left, true)(st)),
+            elseBranch = AVF,
+          )
+        case BOp.Or =>
+          l.bool.cond(AbsState)(AbsValue)(
+            thenBranch = AVT,
+            elseBranch = transfer(right).eval(prune(left, false)(st)),
+          )
         case _ =>
           for {
             r <- transfer(right)
-            v <- get(transfer(_, bop, l, r))
+            v <- get(transfer(_, binary, l, r))
           } yield v
       }
     } yield v

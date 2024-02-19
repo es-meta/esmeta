@@ -479,10 +479,10 @@ trait ValueTypeDomainDecl { self: Self =>
       def number: AbsNumber = notSupported("value.TypeDomain.Elem.number")
       def bigInt: AbsBigInt = notSupported("value.TypeDomain.Elem.bigInt")
       def str: AbsStr = notSupported("value.TypeDomain.Elem.str")
-      def bool: AbsBool = notSupported("value.TypeDomain.Elem.undef")
-      def undef: AbsUndef = notSupported("value.TypeDomain.Elem.nullv")
-      def nullv: AbsNull = notSupported("value.TypeDomain.Elem.absent")
-      def absent: AbsAbsent = notSupported("value.TypeDomain.Elem.ty")
+      def bool: AbsBool = AbsBool.alpha(elem.ty.bool.set.map(Bool.apply))
+      def undef: AbsUndef = notSupported("value.TypeDomain.Elem.undef")
+      def nullv: AbsNull = notSupported("value.TypeDomain.Elem.nullv")
+      def absent: AbsAbsent = notSupported("value.TypeDomain.Elem.absent")
       def ty: ValueTy = elem.ty
     }
 

@@ -14,6 +14,9 @@ class StateMonad[S] {
       val (v, s0) = this(s)
       f(v)(s0)
     }
+
+    // get the value of the result
+    def eval(s: S): T = this(s)._1
   }
 
   // convert function to result type
