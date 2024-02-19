@@ -183,6 +183,16 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
   )
 }
 
+/** `fuzz` command */
+case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
+  val help = "generate ECMAScript programs for fuzzing."
+  val examples = List(
+    "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
+    "esmeta fuzz -fuzz:out=out   # dump the generated program to `out`",
+  )
+  override def showResult(cov: es.util.Coverage): Unit = ???
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
