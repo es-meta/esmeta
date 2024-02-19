@@ -2,9 +2,9 @@ package esmeta.mutator
 
 import esmeta.es.*
 import esmeta.es.util.{Walker => AstWalker}
-import esmeta.mutator.synthesizer.*
 import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
+import esmeta.synthesizer.*
 
 /** A random ECMAScript AST mutator */
 class RandomMutator(
