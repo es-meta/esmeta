@@ -161,12 +161,9 @@ trait AbsTransferDecl { self: Analyzer =>
     }
 
     // transfer function for expressions
-    def apply(cp: ControlPoint, expr: Expr): AbsValue = {
-      // record current control point for alarm
-      given ControlPoint = cp
-      val st = sem.getState(cp)
+    def apply(expr: Expr)(using np: NodePoint[Node]): AbsValue =
+      val st = sem.getState(np)
       transfer(expr)(st)._1
-    }
 
     /** sdo with default case */
     val defaultCases = List(

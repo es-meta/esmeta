@@ -62,22 +62,32 @@ object SystemUtils {
     dirname: String,
     getName: T => String,
     getData: T => Any = (x: T) => x,
+    silent: Boolean = false,
   ): Unit =
     mkdir(dirname)
     for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
-    println(s"- Dumped $name into $dirname .")
+    println(s"- Dumped $name into `$dirname` .")
 
   /** dump given data into a file and show message */
-  def dumpFile(name: String, data: Any, filename: String): Unit =
+  def dumpFile(
+    name: String,
+    data: Any,
+    filename: String,
+    silent: Boolean = false,
+  ): Unit =
     dumpFile(data, filename)
-    println(s"- Dumped $name into $filename .")
+    if (!silent) println(s"- Dumped $name into `$filename` .")
+
+  /** dump given data in a JSON format */
+  def dumpJson[T](data: T, filename: String)(using Encoder[T]): Unit =
+    dumpJson(data, filename, false)
 
   /** dump given data in a JSON format */
   def dumpJson[T](
     data: T,
     filename: String,
-    noSpace: Boolean = false,
-  )(using encoder: Encoder[T]): Unit =
+    noSpace: Boolean,
+  )(using Encoder[T]): Unit =
     val json = data.asJson
     dumpFile(if (noSpace) json.noSpaces else json.spaces2, filename)
 
@@ -86,10 +96,11 @@ object SystemUtils {
     name: String,
     data: T,
     filename: String,
-    noSpace: Boolean,
-  )(using encoder: Encoder[T]): Unit =
+    noSpace: Boolean = false,
+    silent: Boolean = false,
+  )(using Encoder[T]): Unit =
     dumpJson(data, filename, noSpace)
-    println(s"- Dumped $name into $filename in a JSON format.")
+    if (!silent) println(s"- Dumped $name into `$filename` in a JSON format.")
 
   /** get first filename */
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =

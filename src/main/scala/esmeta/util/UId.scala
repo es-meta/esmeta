@@ -20,4 +20,5 @@ trait UId {
   // override hashCode using unique ids
   override def hashCode: Int = id
 }
-given Ordering[UId] = Ordering.by(_.id)
+object UId:
+  given uidOrdering[T <: UId]: Ordering[T] = Ordering.by(_.id)
