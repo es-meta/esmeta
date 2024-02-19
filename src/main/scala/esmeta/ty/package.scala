@@ -91,6 +91,7 @@ def ConstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
   else ValueTy(const = Fin(xs.toSet))
 lazy val MathT: ValueTy = ValueTy(math = MathTy.Top)
+lazy val ExtMathT: ValueTy = MathT || InfinityT
 lazy val IntT: ValueTy = ValueTy(math = IntTy)
 lazy val NonPosIntT: ValueTy = ValueTy(math = NonPosIntTy)
 lazy val NonNegIntT: ValueTy = ValueTy(math = NonNegIntTy)
