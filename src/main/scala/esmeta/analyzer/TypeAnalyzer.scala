@@ -17,9 +17,11 @@ import esmeta.util.SystemUtils.*
 class TypeAnalyzer(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
+  val tySens: Boolean = false,
   val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
   val ignore: TypeAnalyzer.Ignore = Ignore(),
   val log: Boolean = false,
+  val detail: Boolean = false,
   val silent: Boolean = false,
   override val useRepl: Boolean = false,
   override val replContinue: Boolean = false,
@@ -66,6 +68,7 @@ class TypeAnalyzer(
       data = mismatches.map(_.func.name).toList.sorted,
       filename = path,
       noSpace = false,
+      silent = silent,
     )
 
   /** no sensitivity */
@@ -217,20 +220,24 @@ class TypeAnalyzer(
   override def toString: String =
     val app = new Appender
     // show detected type mismatches
-    if (!detected.isEmpty)
+    if (detected.nonEmpty)
       app :> "* " >> detected.size
       app >> " type mismatches are detected."
     // show unused names
-    if (!unusedSet.isEmpty)
+    if (unusedSet.nonEmpty)
       app :> "* " >> unusedSet.size
       app >> " names are not used to ignore mismatches."
     detected.toList.map(_.toString).sorted.map(app :> _)
     // show help message about how to use the ignorance system
     for (path <- ignore.filename)
       app :> "=" * 80
-      app :> "To suppress this error message, "
-      app >> "add/remove the following names to `" >> path >> "`:"
-      detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
+      if (detected.nonEmpty)
+        app :> "To suppress this error message, "
+        app >> "add the following names to `" >> path >> "`:"
+        detected.map(_.func.name).toList.sorted.map(app :> "  + " >> _)
+      if (unusedSet.nonEmpty)
+        app :> "To suppress this error message, "
+        app >> "remove the following names from `" >> path >> "`:"
       unusedSet.toList.sorted.map(app :> "  - " >> _)
       app :> "=" * 80
     app.toString
@@ -274,11 +281,30 @@ class TypeAnalyzer(
 
   /** logging mode */
   private def logging: Unit = {
+    val analyzedFuncs = sem.analyzedFuncs
+    val analyzedNodes = sem.analyzedNodes
+    val analyzedReturns = sem.analyzedReturns
+
     mkdir(ANALYZE_LOG_DIR)
     dumpFile(
-      name = "type analysis result",
+      name = "summary of type analysis",
+      data = Yaml(
+        "duration" -> f"${sem.elapsedTime}%,d ms",
+        "error" -> mismatches.size,
+        "iter" -> sem.iter,
+        "analyzed" -> Map(
+          "funcs" -> ratioSimpleString(analyzedFuncs.size, cfg.funcs.size),
+          "nodes" -> ratioSimpleString(analyzedNodes.size, cfg.nodes.size),
+          "returns" -> ratioSimpleString(analyzedReturns.size, cfg.funcs.size),
+        ),
+      ),
+      filename = s"$ANALYZE_LOG_DIR/summary.yml",
+    )
+    dumpFile(
+      name = "type analysis result for each function",
       data = sem.typesString,
       filename = s"$ANALYZE_LOG_DIR/types",
+      silent = silent,
     )
     dumpFile(
       name = "visiting counter for control points",
@@ -287,15 +313,49 @@ class TypeAnalyzer(
         .map { case (cp, k) => s"[$k] $cp" }
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
+      silent = silent,
     )
     dumpFile(
-      name = "detected type mismatches",
-      data = mismatches.toList
-        .map(_.toString)
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$ANALYZE_LOG_DIR/mismatches",
+      name = "detected type errors",
+      data = mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP),
+      filename = s"$ANALYZE_LOG_DIR/errors",
+      silent = silent,
     )
+
+    if (detail)
+      val unreachableDir = s"$ANALYZE_LOG_DIR/unreachable"
+      val unreachableFuncs = cfg.funcs.filterNot(analyzedFuncs.contains)
+      val unreachableNodes = cfg.nodes.filterNot(analyzedNodes.contains)
+      val unreachableReturns = cfg.funcs.filterNot(analyzedReturns.contains)
+      mkdir(unreachableDir)
+      dumpFile(
+        name = "unreachable functions",
+        data = unreachableFuncs.sorted.map(_.nameWithId).mkString(LINE_SEP),
+        filename = s"$unreachableDir/funcs",
+      )
+      dumpFile(
+        name = "unreachable nodes",
+        data = unreachableNodes
+          .groupBy(cfg.funcOf)
+          .toList
+          .sortBy(_._1)
+          .map {
+            case (f, ns) =>
+              f.nameWithId + ns.map(LINE_SEP + "  " + _.name).mkString
+          }
+          .mkString(LINE_SEP),
+        filename = s"$unreachableDir/nodes",
+      )
+      dumpFile(
+        name = "unreachable function returns",
+        data = unreachableReturns.sorted.map(_.nameWithId).mkString(LINE_SEP),
+        filename = s"$unreachableDir/returns",
+      )
+      dumpFile(
+        name = "detailed type analysis result for each control point",
+        data = sem.resultStrings(detail = true).mkString(LINE_SEP),
+        filename = s"$ANALYZE_LOG_DIR/detailed-types",
+      )
   }
 }
 object TypeAnalyzer:

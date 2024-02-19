@@ -54,8 +54,7 @@ case class Func(
   def headString: String = irFunc.headString
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean =
-    irFunc.kind == FuncKind.Builtin || irFunc.kind == FuncKind.BuiltinClo
+  lazy val isBuiltin: Boolean = irFunc.kind == FuncKind.Builtin
 
   /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == FuncKind.SynDirOp
@@ -63,6 +62,13 @@ case class Func(
   /** check whether it is method operation */
   lazy val isMethod: Boolean =
     irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
+
+  /** check whether it is closure */
+  lazy val isClo: Boolean =
+    irFunc.kind == FuncKind.Clo || irFunc.kind == FuncKind.BuiltinClo
+
+  lazy val isCont: Boolean =
+    irFunc.kind == FuncKind.Cont
 
   /** check whether it needs normal completion wrapping */
   lazy val isReturnComp: Boolean = irFunc.kind match
@@ -72,6 +78,9 @@ case class Func(
 
   /** function name */
   def name: String = irFunc.name
+
+  /** function name with id */
+  def nameWithId: String = s"[$id] $name"
 
   /** normalized function name */
   def normalizedName: String = name.replace("/", "").replace("`", "")
