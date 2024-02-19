@@ -122,9 +122,9 @@ class TypeAnalyzer(
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
-    )(using cp: ControlPoint): Result[AbsValue] = {
+    )(using np: NodePoint[Node]): Result[AbsValue] = {
       if (config.uncheckedAbrupt && !check && !value.abruptCompletion.isBottom)
-        val riap = ReturnIfAbruptPoint(cp, riaExpr)
+        val riap = ReturnIfAbruptPoint(np, riaExpr)
         addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
       super.returnIfAbrupt(riaExpr, value, check)
     }
@@ -285,7 +285,10 @@ class TypeAnalyzer(
     val analyzedNodes = sem.analyzedNodes
     val analyzedReturns = sem.analyzedReturns
 
+    // create log directory
     mkdir(ANALYZE_LOG_DIR)
+
+    // basic logging
     dumpFile(
       name = "summary of type analysis",
       data = Yaml(
@@ -322,12 +325,16 @@ class TypeAnalyzer(
       silent = silent,
     )
 
+    // detailed logging
     if (detail)
       val unreachableDir = s"$ANALYZE_LOG_DIR/unreachable"
       val unreachableFuncs = cfg.funcs.filterNot(analyzedFuncs.contains)
       val unreachableNodes = cfg.nodes.filterNot(analyzedNodes.contains)
       val unreachableReturns = cfg.funcs.filterNot(analyzedReturns.contains)
+
+      // create unreachable directory
       mkdir(unreachableDir)
+
       dumpFile(
         name = "unreachable functions",
         data = unreachableFuncs.sorted.map(_.nameWithId).mkString(LINE_SEP),

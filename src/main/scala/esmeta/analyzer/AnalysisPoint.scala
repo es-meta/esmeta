@@ -10,7 +10,6 @@ trait AnalysisPointDecl { self: Analyzer =>
     def view: View
     def func: Func
     def isBuiltin: Boolean = func.isBuiltin
-    def toReturnPoint: ReturnPoint = ReturnPoint(func, view)
   }
 
   /** call points */
@@ -43,11 +42,11 @@ trait AnalysisPointDecl { self: Analyzer =>
 
   /** return-if-abrupt points */
   case class ReturnIfAbruptPoint(
-    cp: ControlPoint,
+    np: NodePoint[Node],
     riaExpr: EReturnIfAbrupt,
   ) extends AnalysisPoint {
-    inline def view = cp.view
-    inline def func = cp.func
+    inline def view = np.view
+    inline def func = np.func
   }
 
   /** control points */
