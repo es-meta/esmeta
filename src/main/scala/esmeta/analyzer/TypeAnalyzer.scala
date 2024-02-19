@@ -39,9 +39,9 @@ class TypeAnalyzer(
   inline def unusedSet: Set[String] = _unusedSet
 
   /** perform type analysis with the given control flow graph */
-  lazy val mismatches: Set[TypeMismatch] = mismatchMap.values.toSet
-  lazy val detected = mismatches.filter(mismatch => {
-    val name = mismatch.func.name
+  lazy val errors: Set[TypeError] = errorMap.values.toSet
+  lazy val detected = errors.filter(error => {
+    val name = error.func.name
     _unusedSet -= name
     !ignore.names.contains(name)
   })
@@ -65,7 +65,7 @@ class TypeAnalyzer(
   def updateIgnore: Unit = for (path <- ignore.filename)
     dumpJson(
       name = "algorithm names for the ignorance system",
-      data = mismatches.map(_.func.name).toList.sorted,
+      data = errors.map(_.func.name).toList.sorted,
       filename = path,
       noSpace = false,
       silent = silent,
@@ -125,7 +125,7 @@ class TypeAnalyzer(
     )(using np: NodePoint[Node]): Result[AbsValue] = {
       if (config.uncheckedAbrupt && !check && !value.abruptCompletion.isBottom)
         val riap = ReturnIfAbruptPoint(np, riaExpr)
-        addMismatch(UncheckedAbruptCompletionMismatch(riap, value.ty))
+        addError(UncheckedAbruptError(riap, value.ty))
       super.returnIfAbrupt(riaExpr, value, check)
     }
 
@@ -155,20 +155,19 @@ class TypeAnalyzer(
 
     /** get local variables */
     override def getLocals(
-      cp: CallPoint[Node],
+      cp: CallPoint,
       args: List[AbsValue],
       cont: Boolean,
       method: Boolean,
     ): Map[Local, AbsValue] = {
-      val CallPoint(callerNp, calleeNp) = cp
-      val callee: Func = calleeNp.func
+      val CallPoint(callerNp, callee) = cp
       // get parameters
       val params: List[Param] = callee.irFunc.params
       // check arity
       val arity @ (from, to) = callee.arity
       val len = args.length
       if (config.arity && (len < from || to < len))
-        addMismatch(ArityMismatch(cp, len))
+        addError(ArityMismatch(cp, len))
       // fill optional args after arity checked
       val argsWithOptional = args ++ List.fill(to - len)(AbsValue.absentTop)
       // construct local type environment
@@ -182,7 +181,7 @@ class TypeAnalyzer(
                 () /* ignore `this` for method-like calls */
               } else if (config.paramType && !(argTy <= paramTy))
                 val aap = ArgAssignPoint(cp, idx)
-                addMismatch(ParamTypeMismatch(aap, argTy))
+                addError(ParamTypeMismatch(aap, argTy))
               AbsValue(paramTy)
           // force to set expected type for parameters
           param.lhs -> expected
@@ -194,19 +193,19 @@ class TypeAnalyzer(
       irp: InternalReturnPoint,
       givenRet: AbsRet,
     ): Unit =
-      val InternalReturnPoint(irReturn, ReturnPoint(callee, view)) = irp
+      val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
       // wrap completion by conditions specified in
       // [5.2.3.5 Implicit Normal Completion]
       // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
       val newRet =
-        if (callee.isReturnComp) givenRet.wrapCompletion else givenRet
+        if (func.isReturnComp) givenRet.wrapCompletion else givenRet
       val givenTy = newRet.value.ty.removeAbsent
-      val expected = callee.retTy.ty match
+      val expected = func.retTy.ty match
         case _: UnknownTy        => newRet
         case expectedTy: ValueTy =>
           // return type check when it is a known type
           if (config.returnType && !(givenTy <= expectedTy))
-            addMismatch(ReturnTypeMismatch(irp, givenTy))
+            addError(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(expectedTy))
       super.doReturn(irp, expected)
   }
@@ -219,14 +218,14 @@ class TypeAnalyzer(
   /** conversion to string */
   override def toString: String =
     val app = new Appender
-    // show detected type mismatches
+    // show detected type errors
     if (detected.nonEmpty)
       app :> "* " >> detected.size
-      app >> " type mismatches are detected."
+      app >> " type errors are detected."
     // show unused names
     if (unusedSet.nonEmpty)
       app :> "* " >> unusedSet.size
-      app >> " names are not used to ignore mismatches."
+      app >> " names are not used to ignore errors."
     detected.toList.map(_.toString).sorted.map(app :> _)
     // show help message about how to use the ignorance system
     for (path <- ignore.filename)
@@ -246,10 +245,10 @@ class TypeAnalyzer(
   // private helpers
   // ---------------------------------------------------------------------------
 
-  /** record type mismatches */
-  private def addMismatch(mismatch: TypeMismatch): Unit =
-    mismatchMap += mismatch.ap -> mismatch
-  private var mismatchMap: Map[AnalysisPoint, TypeMismatch] = Map()
+  /** record type errors */
+  private def addError(error: TypeError): Unit =
+    errorMap += error.point -> error
+  private var errorMap: Map[AnalysisPoint, TypeError] = Map()
 
   /** all entry node points */
   private def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
@@ -293,7 +292,7 @@ class TypeAnalyzer(
       name = "summary of type analysis",
       data = Yaml(
         "duration" -> f"${sem.elapsedTime}%,d ms",
-        "error" -> mismatches.size,
+        "error" -> errors.size,
         "iter" -> sem.iter,
         "analyzed" -> Map(
           "funcs" -> ratioSimpleString(analyzedFuncs.size, cfg.funcs.size),
@@ -320,7 +319,7 @@ class TypeAnalyzer(
     )
     dumpFile(
       name = "detected type errors",
-      data = mismatches.toList.map(_.toString).sorted.mkString(LINE_SEP),
+      data = errors.toList.map(_.toString).sorted.mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )
@@ -367,7 +366,7 @@ class TypeAnalyzer(
 }
 object TypeAnalyzer:
 
-  /** algorithm names used in ignoring type mismatches */
+  /** algorithm names used in ignoring type errors */
   case class Ignore(
     filename: Option[String] = None,
     names: Set[String] = Set(),

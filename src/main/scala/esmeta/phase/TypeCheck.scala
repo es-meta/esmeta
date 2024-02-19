@@ -58,12 +58,12 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     (
       "ignore",
       StrOption((c, s) => c.ignorePath = Some(s)),
-      "ignore type mismatches in algorithms listed in a given JSON file.",
+      "ignore type errors in algorithms listed in a given JSON file.",
     ),
     (
       "update-ignore",
       BoolOption(c => c.updateIgnore = true),
-      "update the given JSON file used in ignoring type mismatches.",
+      "update the given JSON file used in ignoring type errors.",
     ),
     (
       "log",

@@ -10,7 +10,7 @@ abstract class Analyzer
   extends AbsTransferDecl
   with AbsSemanticsDecl
   with AnalysisPointDecl
-  with TypeMismatchDecl
+  with TypeErrorDecl
   with ViewDecl
   with domain.Decl
   with repl.Decl

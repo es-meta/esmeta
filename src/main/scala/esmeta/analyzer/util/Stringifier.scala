@@ -5,7 +5,6 @@ import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
-import esmeta.state.SimpleValue
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
@@ -34,7 +33,7 @@ trait StringifierDecl { self: Self =>
         case elem: View          => viewRule(app, elem)
         case elem: AnalysisPoint => apRule(app, elem)
         case elem: AValue        => avRule(app, elem)
-        case elem: TypeMismatch  => mismatchRule(app, elem)
+        case elem: TypeError     => errorRule(app, elem)
     // TODO case ty: Type          => typeRule(app, ty)
 
     /** view */
@@ -58,21 +57,35 @@ trait StringifierDecl { self: Self =>
       given Rule[IRElem with LangEdge] = addLocRule
       ap match
         case cp: ControlPoint => cpRule(app, cp)
-        case CallPoint(callerNp, calleeNp) =>
+        case CallPoint(callerNp, callee) =>
           app >> "function call from "
           app >> callerNp.func.name >> callerNp.node.callInst
-          app >> " to " >> calleeNp.func.name
+          app >> " to " >> callee.name
         case aap @ ArgAssignPoint(cp, idx) =>
           val param = aap.param
           app >> "argument assignment to "
           app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
           app >> " when " >> cp
-        case InternalReturnPoint(irReturn, calleeRp) =>
-          app >> "return statement in " >> calleeRp.func.name >> irReturn
-        case ReturnIfAbruptPoint(riap, riaExpr) =>
-          app >> "returnIfAbrupt"
+        case InternalReturnPoint(returnNp, irReturn) =>
+          app >> "return statement in " >> returnNp.func.name >> irReturn
+        case ReturnIfAbruptPoint(cp, riaExpr) =>
+          app >> "ReturnIfAbrupt"
           app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
-          app >> "in " >> riap.func.name >> riaExpr
+          app >> "in " >> cp.func.name >> riaExpr
+        case PropBasePoint(propPoint) =>
+          app >> "base in" >> propPoint
+        case PropPoint(cp, prop) =>
+          app >> "property lookup in " >> cp.func.name >> prop
+        case UnaryOpPoint(cp, unary) =>
+          app >> "unary operation (" >> unary.uop >> ") in " >> cp.func.name
+          app >> unary
+        case BinaryOpPoint(cp, binary) =>
+          app >> "binary operation (" >> binary.bop >> ") in " >> cp.func.name
+          app >> binary
+      ap match
+        case tep: TypeErrorPoint if detail =>
+          app >> " <" >> tep.node.simpleString >> ">"
+        case _ => app
 
     // control points
     given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -114,41 +127,39 @@ trait StringifierDecl { self: Self =>
         case CodeUnit(c)     => app >> c.toInt >> "cu"
         case sv: SimpleValue => app >> sv.toString
 
-    // specification type mismatches
-    given mismatchRule: Rule[TypeMismatch] = (app, mismatch) =>
-      mismatch match
-        case ParamTypeMismatch(aap, actual) =>
-          app >> "[ParamTypeMismatch] " >> aap
-          app :> "- expected: " >> aap.param.ty
+    // specification type errors
+    given errorRule: Rule[TypeError] = (app, error) =>
+      error match
+        case ParamTypeMismatch(point, argTy) =>
+          app :> "- expected: " >> point.param.ty
+          app :> "- actual  : " >> argTy
+        case ReturnTypeMismatch(point, retTy) =>
+          app :> "- expected: " >> point.func.retTy
+          app :> "- actual  : " >> retTy
+        case ArityMismatch(point, actual) =>
+          app :> "- expected: " >> point.func.arity
           app :> "- actual  : " >> actual
-        case ReturnTypeMismatch(irp, actual) =>
-          app >> "[ReturnTypeMismatch] " >> irp
-          app :> "- expected: " >> irp.calleeRp.func.retTy
-          app :> "- actual  : " >> actual
-        case ArityMismatch(cp, actual) =>
-          given Rule[(Int, Int)] = arityRangeRule
-          app >> "[ArityMismatch] " >> cp
-          app :> "- expected: " >> cp.func.arity
-          app :> "- actual  : " >> actual
-        case UncheckedAbruptCompletionMismatch(riap, actual) =>
-          app >> "[UncheckedAbruptCompletionMismatch] " >> riap
-          app :> "- actual  : " >> actual
+        case UncheckedAbruptError(point, ty) =>
+          app :> "- actual  : " >> ty
+        case InvalidBaseError(point, baseTy) =>
+          app :> "- base    : " >> baseTy
+        case UnaryOpTypeMismatch(point, operandTy) =>
+          app :> "- operand : " >> operandTy
+        case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
+          app :> "- lhs     : " >> lhsTy
+          app :> "- rhs     : " >> rhsTy
 
-    private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) => {
+    private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
       for {
         lang <- elem.langOpt
         loc <- lang.loc
       } app >> " " >> loc.toString
       app
-    }
 
     private val arityRangeRule: Rule[(Int, Int)] = {
       case (app, (from, to)) =>
         if (from == to) app >> from
         else app >> "[" >> from >> ", " >> to >> "]"
     }
-
-    // TODO type
-    // given typeRule: Rule[Type] = (app, ty) => ???
   }
 }
