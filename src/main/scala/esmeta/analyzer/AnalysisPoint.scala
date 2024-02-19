@@ -1,7 +1,7 @@
 package esmeta.analyzer
 
-import esmeta.ir.{Func => _, *}
 import esmeta.cfg.*
+import esmeta.ir.{Func => _, *}
 
 trait AnalysisPointDecl { self: Analyzer =>
 
@@ -12,41 +12,89 @@ trait AnalysisPointDecl { self: Analyzer =>
     def isBuiltin: Boolean = func.isBuiltin
   }
 
+  /** type error points */
+  sealed trait TypeErrorPoint extends AnalysisPoint {
+    def node: Node
+  }
+
   /** call points */
-  case class CallPoint[+T <: Node](
+  case class CallPoint(
     callerNp: NodePoint[Call],
-    calleeNp: NodePoint[T],
-  ) extends AnalysisPoint {
-    inline def view = calleeNp.view
-    inline def func = calleeNp.func
+    callee: Func,
+  ) extends TypeErrorPoint {
+    inline def view = callerNp.view
+    inline def func = callerNp.func
+    inline def node = callerNp.node
   }
 
   /** argument assignment points */
-  case class ArgAssignPoint[+T <: Node](
-    cp: CallPoint[T],
+  case class ArgAssignPoint(
+    callPoint: CallPoint,
     idx: Int,
-  ) extends AnalysisPoint {
-    inline def view = cp.view
-    inline def func = cp.func
-    inline def param = cp.calleeNp.func.params(idx)
+  ) extends TypeErrorPoint {
+    inline def view = callPoint.view
+    inline def func = callPoint.func
+    inline def node = callPoint.node
+    inline def param = callPoint.callee.params(idx)
   }
 
   /** internal return points */
   case class InternalReturnPoint(
+    returnNp: NodePoint[Node],
     irReturn: Return,
-    calleeRp: ReturnPoint,
-  ) extends AnalysisPoint {
-    inline def view = calleeRp.view
-    inline def func = calleeRp.func
+  ) extends TypeErrorPoint {
+    inline def view = returnNp.view
+    inline def func = returnNp.func
+    inline def node = returnNp.node
   }
 
   /** return-if-abrupt points */
   case class ReturnIfAbruptPoint(
     np: NodePoint[Node],
     riaExpr: EReturnIfAbrupt,
-  ) extends AnalysisPoint {
+  ) extends TypeErrorPoint {
     inline def view = np.view
     inline def func = np.func
+    inline def node = np.node
+  }
+
+  /** base in property reference points */
+  case class PropBasePoint(
+    propPoint: PropPoint,
+  ) extends TypeErrorPoint {
+    inline def view = propPoint.view
+    inline def func = propPoint.func
+    inline def node = propPoint.node
+  }
+
+  /** property reference points */
+  case class PropPoint(
+    np: NodePoint[Node],
+    prop: Prop,
+  ) extends TypeErrorPoint {
+    inline def view = np.view
+    inline def func = np.func
+    inline def node = np.node
+  }
+
+  /** unary operation points */
+  case class UnaryOpPoint(
+    np: NodePoint[Node],
+    unary: EUnary,
+  ) extends TypeErrorPoint {
+    inline def view = np.view
+    inline def func = np.func
+    inline def node = np.node
+  }
+
+  /** binary operation points */
+  case class BinaryOpPoint(
+    np: NodePoint[Node],
+    binary: EBinary,
+  ) extends TypeErrorPoint {
+    inline def view = np.view
+    inline def func = np.func
+    inline def node = np.node
   }
 
   /** control points */
