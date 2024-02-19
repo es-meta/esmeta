@@ -276,7 +276,7 @@ trait AbsTransferDecl { self: Analyzer =>
               val as0 =
                 as.map(v => if (cp.func.isReturnComp) v.wrapCompletion else v)
               val newLocals = getLocals(
-                CallPoint(callerNp, target),
+                CallPoint(callerNp, target.func),
                 as0,
                 cont = true,
                 method = false,
@@ -694,7 +694,7 @@ trait AbsTransferDecl { self: Analyzer =>
     def doCall(
       callerNp: NodePoint[Call],
       callerSt: AbsState,
-      calleeFunc: Func,
+      callee: Func,
       args: List[AbsValue],
       captured: Map[Name, AbsValue] = Map(),
       method: Boolean = false,
@@ -704,7 +704,7 @@ trait AbsTransferDecl { self: Analyzer =>
         (calleeNp, calleeSt) <- getCalleeEntries(
           callerNp,
           callerSt,
-          calleeFunc,
+          callee,
           args,
           captured,
           method,
@@ -713,7 +713,7 @@ trait AbsTransferDecl { self: Analyzer =>
         // add callee to worklist
         sem += calleeNp -> calleeSt.doCall
         // add return edges from callee to caller
-        val rp = ReturnPoint(calleeFunc, calleeNp.view)
+        val rp = ReturnPoint(callee, calleeNp.view)
         val set = sem.getRetEdges(rp)
         sem.retEdges += rp -> (set + callerNp)
         // propagate callee analysis result
@@ -728,14 +728,13 @@ trait AbsTransferDecl { self: Analyzer =>
     )(using np: NodePoint[Node]): Result[Unit] = for {
       st <- get
       ret = AbsRet(v, st.copied(locals = Map()))
-      calleeRp = ReturnPoint(np.func, np.view)
-      irp = InternalReturnPoint(irReturn, calleeRp)
+      irp = InternalReturnPoint(np, irReturn)
       _ = doReturn(irp, ret)
     } yield ()
 
     /** update return points */
     def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =
-      val InternalReturnPoint(_, ReturnPoint(func, view)) = irp
+      val InternalReturnPoint(NodePoint(func, _, view), _) = irp
       val retRp = ReturnPoint(func, sem.getEntryView(view))
       // wrap completion by conditions specified in
       // [5.2.3.5 Implicit Normal Completion]
@@ -782,7 +781,7 @@ trait AbsTransferDecl { self: Analyzer =>
     def getCalleeEntries(
       callerNp: NodePoint[Call],
       callerSt: AbsState,
-      calleeFunc: Func,
+      callee: Func,
       args: List[AbsValue],
       captured: Map[Name, AbsValue],
       method: Boolean,
@@ -797,10 +796,10 @@ trait AbsTransferDecl { self: Analyzer =>
           )
         else callerView
 
-      val calleeNp = NodePoint(calleeFunc, calleeFunc.entry, baseView)
+      val calleeNp = NodePoint(callee, callee.entry, baseView)
       val calleeSt = callerSt.copied(locals =
         getLocals(
-          CallPoint(callerNp, calleeNp),
+          CallPoint(callerNp, callee),
           args,
           cont = false,
           method,
@@ -811,13 +810,13 @@ trait AbsTransferDecl { self: Analyzer =>
 
     /** get local variables */
     def getLocals(
-      np: CallPoint[Node],
+      np: CallPoint,
       args: List[AbsValue],
       cont: Boolean,
       method: Boolean,
     ): Map[Local, AbsValue] = {
-      val CallPoint(callerNp, calleeNp) = np
-      val params: List[Param] = calleeNp.func.irFunc.params
+      val CallPoint(callerNp, callee) = np
+      val params: List[Param] = callee.irFunc.params
       var map = Map[Local, AbsValue]()
 
       @tailrec
