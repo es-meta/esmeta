@@ -8,6 +8,9 @@ import scala.collection.mutable.{Queue, ListBuffer}
 // CFG nodes
 sealed trait Node extends CFGElem with UId {
 
+  /** node name */
+  inline def name: String = simpleString
+
   /** marker for loop predecessor for loop sensitivity */
   var isLoopPred: Boolean = false
 

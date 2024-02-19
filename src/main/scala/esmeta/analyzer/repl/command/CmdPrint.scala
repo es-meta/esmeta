@@ -26,27 +26,25 @@ trait CmdPrintDecl { self: Self =>
     ): Unit = {
       val cp = cpOpt.getOrElse(sem.runJobsRp)
       args match {
-        case s"-${`reachLoc`}" :: _ => {
+        case s"-${`reachLoc`}" :: _ =>
           val st = sem.getState(cp)
           st.reachableParts.foreach(println _)
-        }
-        case s"-${`ret`}" :: _ => {
-          val v = cp match {
+        case s"-${`ret`}" :: _ =>
+          val v = cp match
             case np: NodePoint[Node] => println("no return value")
             case rp: ReturnPoint =>
               val ret = sem(rp)
               println(ret.state.getString(ret.value))
-          }
-        }
-        case s"-${`expr`}" :: rest => {
+        case s"-${`expr`}" :: rest =>
           val str = rest.mkString(" ")
-          val v = transfer(cp, Expr.from(str))
-          val st = cp match {
-            case np: NodePoint[Node] => sem(np)
-            case rp: ReturnPoint     => sem(rp).state
-          }
-          println(st.getString(v))
-        }
+          cp match
+            case np: NodePoint[Node] =>
+              given NodePoint[Node] = np
+              val v = transfer(Expr.from(str))
+              println(sem(np).getString(v))
+
+            case rp: ReturnPoint =>
+              println("cannot evaluate expression in return point")
         case _ => println("Inappropriate argument")
       }
     }

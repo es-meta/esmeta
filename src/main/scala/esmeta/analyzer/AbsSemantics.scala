@@ -53,6 +53,37 @@ trait AbsSemanticsDecl { self: Analyzer =>
       startTime = System.currentTimeMillis
     }
 
+    /** get elapsed time of analyzer */
+    def elapsedTime: Long = System.currentTimeMillis - startTime
+
+    /** check reachability of node points */
+    def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
+
+    /** check reachability of return points */
+    def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
+
+    /** set of analyzed functions */
+    def analyzedFuncs: Set[Func] = npMap.keySet.map(_.func) ++ analyzedReturns
+
+    /** set of analyzed nodes */
+    def analyzedNodes: Set[Node] = npMap.keySet.map(_.node)
+
+    /** set of analyzed function returns */
+    def analyzedReturns: Set[Func] = rpMap.keySet.map(_.func)
+
+    /** get string for result of all control points */
+    def resultStrings: List[String] = resultStrings(None, false)
+    def resultStrings(
+      color: Option[String] = None,
+      detail: Boolean = false,
+    ): List[String] =
+      npMap.keys.toList.sortBy(_.node.id).map(resultString(_, color, detail)) ++
+      rpMap.keys.toList.sortBy(_.func.id).map(resultString(_, color, detail))
+
+    /** get string for result of control points */
+    def resultString(cp: ControlPoint, color: String, detail: Boolean): String =
+      resultString(cp, Some(color), detail)
+
     /** increase the counter */
     def count(cp: ControlPoint): Unit =
       counter += cp -> (counter.getOrElse(cp, 0) + 1)
@@ -65,10 +96,6 @@ trait AbsSemanticsDecl { self: Analyzer =>
 
     /** get abstract return values and states of RunJobs */
     def finalResult: AbsRet = this(runJobsRp)
-
-    /** set of analyzed functions */
-    def analyzedFuncs: Set[Func] =
-      npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
 
     /** get return edges */
     def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
@@ -134,26 +161,21 @@ trait AbsSemanticsDecl { self: Analyzer =>
       case rp: ReturnPoint  => this(rp).state
 
     /** get string for result of control points */
-    def getString(
+    def resultString(
       cp: ControlPoint,
-      color: String,
-      detail: Boolean,
+      color: Option[String] = None,
+      detail: Boolean = false,
     ): String =
       val func = cp.func.name
       val cpStr = cp.toString(detail = detail)
-      val k = setColor(color)(cpStr)
+      val k = color.fold(cpStr)(setColor(_)(cpStr))
       cp match
         case np: NodePoint[_] =>
           val st = this(np).getString(detail = detail)
-          s"""$k -> $st
-           |${np.node}""".stripMargin
+          s"$k -> $st"
         case rp: ReturnPoint =>
           val st = this(rp).getString(detail = detail)
-          s"""$k -> $st"""
-
-    /** check reachability */
-    def reachable(np: NodePoint[Node]): Boolean = !apply(np).isBottom
-    def reachable(rp: ReturnPoint): Boolean = !apply(rp).isBottom
+          s"$k -> $st"
 
     /** conversion to string */
     override def toString: String = shortString

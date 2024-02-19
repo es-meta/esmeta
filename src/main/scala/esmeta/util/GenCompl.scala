@@ -7,8 +7,11 @@ import SystemUtils.*
 object GenCompl {
   import Appender.*
 
+  // the main method
+  def main(args: Array[String]): Unit = update
+
   // generate completion file "$ESMETA_HOME/.completion"
-  def main(args: Array[String]): Unit = dumpFile(content, path)
+  def update: Unit = dumpFile(content, path)
 
   // commands
   val commands = ESMeta.commands

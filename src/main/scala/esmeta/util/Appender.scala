@@ -49,7 +49,7 @@ class Appender(tab: String = "  ") {
 /** helper for appender */
 object Appender {
 
-  /** Rule * */
+  /** appender rule */
   type Rule[T] = (Appender, T) => Appender
 
   /** subtype rule */
@@ -91,6 +91,37 @@ object Appender {
   ): Rule[(T, U)] = (app, pair) =>
     val (t, u) = pair
     app >> t >> sep >> u
+
+  /** YAML appender */
+  given yamlRule: Rule[Yaml] = yamlWithIndentRule(false)
+
+  /** YAML appender with indent */
+  def yamlWithIndentRule(wrap: Boolean): Rule[Yaml] = (app, yaml) =>
+    given Rule[Yaml] = yamlWithIndentRule(true)
+    given iterableRule[T](using Rule[T]): Rule[Iterable[T]] = (app, iter) =>
+      if (wrap) app.wrap("", "")(iter.map(app :> _))
+      else
+        iter.splitAt(1) match
+          case (hd, tl) if !hd.isEmpty =>
+            app >> hd.head
+            tl.map(app :> _)
+          case _ =>
+      app
+    yaml match
+      case YMap(items) =>
+        given Rule[(String, Yaml)] = { case (a, (k, v)) => a >> k >> ":" >> v }
+        app >> items
+      case YList(items) =>
+        given Rule[Yaml] = {
+          case (a, v) =>
+            given Rule[Yaml] = yamlWithIndentRule(false)
+            a >> "- " >> v
+        }
+        app >> items
+      case YString(value) =>
+        if (wrap) app >> " " >> value
+        else app >> value
+    app
 
   /** map appender */
   given mapRule[K, V](using
