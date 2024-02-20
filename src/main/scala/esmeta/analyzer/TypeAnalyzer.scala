@@ -307,10 +307,9 @@ class TypeAnalyzer(
       base: AbsValue,
     ): AbsValue =
       val baseTy = base.ty
-      val noPropTy = baseTy.noProp
-      if (config.checkInvalidBase && !noPropTy.isBottom)
+      if (config.checkInvalidBase && !baseTy.noProp.isBottom)
         addError(InvalidBaseError(PropBasePoint(PropPoint(np, prop)), baseTy))
-      AbsValue(baseTy -- noPropTy)
+      AbsValue(baseTy)
   }
 
   /** use type abstract domains */
