@@ -20,9 +20,6 @@ trait Synthesizer {
   /** for lexical production */
   def apply(name: String): Lexical
   def apply(ast: Lexical): Lexical = apply(ast.name)
-
-  /** ECMAScript grammar */
-  def grammar: Grammar = cfg.grammar
 }
 object Synthesizer:
   type Builder = Grammar => Synthesizer

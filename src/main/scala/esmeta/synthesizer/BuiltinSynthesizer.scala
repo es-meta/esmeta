@@ -11,8 +11,9 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** An ECMAScript AST synthesizer for built-in libraries */
-object BuiltinSynthesizer extends BuiltinSynthesizer
-trait BuiltinSynthesizer extends Synthesizer {
+class BuiltinSynthesizer(
+  algorithms: List[Algorithm],
+) extends Synthesizer {
 
   /** synthesizer name */
   def name: String = "BuiltinSynthesizer"
@@ -22,7 +23,7 @@ trait BuiltinSynthesizer extends Synthesizer {
 
   /** get initial pool */
   lazy val initPool: Vector[String] = (for {
-    case BuiltinHead(path, _, _) <- cfg.spec.algorithms.map(_.head)
+    case BuiltinHead(path, _, _) <- algorithms.map(_.head)
     code <- path match
       case YetPath(_) => Nil
       case Getter(base) =>
