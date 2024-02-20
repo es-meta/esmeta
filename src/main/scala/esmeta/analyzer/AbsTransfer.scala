@@ -120,7 +120,7 @@ trait AbsTransferDecl { self: Analyzer =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = {
-      var AbsRet(value, st) = sem(rp)
+      var AbsRet(value, st) = getReturn(rp)
 
       // proper type handle
       Interpreter.setTypeMap
@@ -131,7 +131,9 @@ trait AbsTransferDecl { self: Analyzer =>
             // wrap completion by conditions specified in
             // [5.2.3.5 Implicit Normal Completion]
             // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+            val abrupt = value.abruptCompletion
             value = if (rp.func.isReturnComp) newV.wrapCompletion else newV
+            value ⊔= abrupt
             st = newSt
           }
         })
@@ -712,9 +714,12 @@ trait AbsTransferDecl { self: Analyzer =>
             val set = sem.getRetEdges(rp)
             sem.retEdges += rp -> (set + callerNp)
             // propagate callee analysis result
-            val retT = sem(rp)
+            val retT = getReturn(rp)
             if (!retT.isBottom) sem.worklist += rp
           }
+
+    /** get return value for a return point */
+    def getReturn(rp: ReturnPoint): AbsRet = sem(rp)
 
     // return specific value
     def doReturn(
@@ -739,11 +744,8 @@ trait AbsTransferDecl { self: Analyzer =>
         val oldRet = sem(retRp)
         if (!oldRet.isBottom && useRepl) Repl.merged = true
         if (newRet !⊑ oldRet)
-          sem.rpMap += retRp -> (oldRet ⊔ getReturn(irp, newRet))
+          sem.rpMap += retRp -> (oldRet ⊔ newRet)
           sem.worklist += retRp
-
-    /** get return value with a state */
-    def getReturn(irp: InternalReturnPoint, ret: AbsRet): AbsRet = ret
 
     /** return-if-abrupt completion */
     def returnIfAbrupt(
