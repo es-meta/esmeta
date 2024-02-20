@@ -1,5 +1,7 @@
 package esmeta.synthesizer
 
+import esmeta.cfg.*
+import esmeta.es.util.*
 import esmeta.es.*
 import esmeta.spec.Grammar
 
@@ -20,7 +22,7 @@ trait Synthesizer {
   def apply(ast: Lexical): Lexical = apply(ast.name)
 
   /** ECMAScript grammar */
-  def grammar: Grammar
+  def grammar: Grammar = cfg.grammar
 }
 object Synthesizer:
   type Builder = Grammar => Synthesizer
