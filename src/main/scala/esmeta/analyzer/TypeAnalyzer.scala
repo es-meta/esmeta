@@ -131,18 +131,19 @@ class TypeAnalyzer(
 
     /** handle calls */
     override def doCall(
-      callerNp: NodePoint[Call],
+      callPoint: CallPoint,
       callerSt: AbsState,
-      calleeFunc: Func,
       args: List[AbsValue],
-      captured: Map[Name, AbsValue] = Map(),
-      method: Boolean = false,
+      captured: Map[Name, AbsValue],
+      method: Boolean,
+      contTarget: Option[NodePoint[Node]],
     ): Unit =
+      val CallPoint(callerNp, callee) = callPoint
       val NodePoint(callerFunc, call, view) = callerNp
-      calleeFunc.retTy.ty match
+      callee.retTy.ty match
         // Stop the propagation of analysis when it is unnecessary to analyze
         // the callee function because it has full type annotations.
-        case retTy: ValueTy if calleeFunc.isParamTysDefined =>
+        case retTy: ValueTy if callee.isParamTysDefined =>
           for {
             nextNode <- call.next
             nextNp = NodePoint(callerFunc, nextNode, View())
@@ -151,42 +152,80 @@ class TypeAnalyzer(
           } sem += nextNp -> newSt
         // Otherwise, do original abstract call semantics
         case _ =>
-          super.doCall(callerNp, callerSt, calleeFunc, args, captured, method)
+          super.doCall(callPoint, callerSt, args, captured, method, contTarget)
+
+    /** assign argument to parameter */
+    override def assignArg(
+      callPoint: CallPoint,
+      method: Boolean,
+      idx: Int,
+      param: Param,
+      arg: AbsValue,
+    ): AbsValue = param.ty.ty match
+      case _: UnknownTy => arg
+      case paramTy: ValueTy =>
+        val argTy = arg.ty
+        val normalArgTy = argTy.removeAbsent
+        if (method && idx == 0) () /* ignore `this` for method calls */
+        else if (config.paramType && !(normalArgTy <= paramTy))
+          addError(
+            ParamTypeMismatch(ArgAssignPoint(callPoint, idx), normalArgTy),
+          )
+        AbsValue(paramTy)
+
+    /** get return value with a state */
+    override def getReturn(irp: InternalReturnPoint, ret: AbsRet): AbsRet =
+      irp.func.retTy.ty match
+        case _: UnknownTy => ret
+        case expectedTy: ValueTy =>
+          val givenTy = ret.value.ty.removeAbsent
+          // return type check when it is a known type
+          if (!(givenTy <= expectedTy))
+            addError(ReturnTypeMismatch(irp, givenTy))
+          AbsRet(AbsValue(givenTy && expectedTy), ret.state)
+
+    /** callee entries */
+    override def getCalleeEntries(
+      callerNp: NodePoint[Call],
+      locals: List[(Local, AbsValue)],
+    ): List[(View, List[(Local, AbsValue)])] =
+      // type sensitivity
+      // if (TY_SENS) tySensCalleeEntries(locals).map(list => {
+      //   val view = View(tys = list.map((_, ty) => ty.upcast))
+      //   val locals = list.map((x, ty) => x -> AbsValue(ty))
+      //   view -> locals
+      // })
+      List(View() -> (for {
+        (local, value) <- locals
+      } yield local -> AbsValue(value.ty)))
 
     /** get local variables */
     override def getLocals(
-      cp: CallPoint,
-      args: List[AbsValue],
-      cont: Boolean,
+      callPoint: CallPoint,
       method: Boolean,
-    ): Map[Local, AbsValue] = {
-      val CallPoint(callerNp, callee) = cp
-      // get parameters
-      val params: List[Param] = callee.irFunc.params
-      // check arity
+      args: List[AbsValue],
+    ): List[(Local, AbsValue)] =
+      val CallPoint(callerNp, callee) = callPoint
       val arity @ (from, to) = callee.arity
       val len = args.length
       if (config.arity && (len < from || to < len))
-        addError(ArityMismatch(cp, len))
-      // fill optional args after arity checked
-      val argsWithOptional = args ++ List.fill(to - len)(AbsValue.absentTop)
-      // construct local type environment
-      (for (((param, arg), idx) <- (params zip argsWithOptional).zipWithIndex)
-        yield {
-          val expected = param.ty.ty match
-            case _: UnknownTy => arg
-            case paramTy: ValueTy =>
-              val argTy = arg.ty.removeAbsent
-              if (method && idx == 0) {
-                () /* ignore `this` for method-like calls */
-              } else if (config.paramType && !(argTy <= paramTy))
-                val aap = ArgAssignPoint(cp, idx)
-                addError(ParamTypeMismatch(aap, argTy))
-              AbsValue(paramTy)
-          // force to set expected type for parameters
-          param.lhs -> expected
-        }).toMap
-    }
+        addError(ArityMismatch(callPoint, len))
+      super.getLocals(callPoint, method, args)
+
+    /** callee entries with type sensitivity */
+    // private def tySensCalleeEntries(
+    //   locals: List[(Local, AbsValue)],
+    // ): List[List[(Local, ValueTy)]] =
+    //   def aux(
+    //     list: List[(Local, Set[ValueTy])],
+    //   ): List[List[(Local, ValueTy)]] = list match
+    //     case Nil => List(Nil)
+    //     case (local, tys) :: rest =>
+    //       for {
+    //         locals <- aux(rest)
+    //         ty <- tys
+    //       } yield local -> ty :: locals
+    //   aux(locals.map((local, value) => local -> value.ty.flatten))
 
     /** update return points */
     override def doReturn(
