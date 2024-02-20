@@ -8,6 +8,9 @@ import scala.annotation.tailrec
 // TODO consider refactoring
 case class TyModel(infos: Map[String, TyInfo] = Map()) {
 
+  /** merge two type models */
+  def ++(that: TyModel): TyModel = TyModel(this.infos ++ that.infos)
+
   /** get method map */
   // TODO optimize
   def getMethod(tname: String): Map[String, String] = infos.get(tname) match {
