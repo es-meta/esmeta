@@ -10,7 +10,6 @@ class RandomSynthesizer(
   val grammar: Grammar,
 ) extends Synthesizer {
   import grammar.*
-  import SimpleSynthesizer.*
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =
@@ -39,8 +38,10 @@ class RandomSynthesizer(
     case Optional(symbol) =>
       if (randBool) Some(None) else synSymbol(argsMap)(symbol)
     case Nonterminal(name, args) =>
-      if (reservedLexicals contains name)
-        Some(Some(Lexical(name, reservedLexicals(name))))
+      if (SimpleSynthesizer(grammar).reservedLexicals contains name)
+        Some(
+          Some(Lexical(name, SimpleSynthesizer(grammar).reservedLexicals(name))),
+        )
       else {
         import NonterminalArgumentKind.*
         val newArgs = for (arg <- args) yield arg.kind match
