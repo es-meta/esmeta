@@ -50,12 +50,12 @@ trait AnalysisPointDecl { self: Analyzer =>
 
   /** return-if-abrupt points */
   case class ReturnIfAbruptPoint(
-    np: NodePoint[Node],
+    nodePoint: NodePoint[Node],
     riaExpr: EReturnIfAbrupt,
   ) extends TypeErrorPoint {
-    inline def view = np.view
-    inline def func = np.func
-    inline def node = np.node
+    inline def view = nodePoint.view
+    inline def func = nodePoint.func
+    inline def node = nodePoint.node
   }
 
   /** base in property reference points */
@@ -69,32 +69,32 @@ trait AnalysisPointDecl { self: Analyzer =>
 
   /** property reference points */
   case class PropPoint(
-    np: NodePoint[Node],
+    nodePoint: NodePoint[Node],
     prop: Prop,
   ) extends TypeErrorPoint {
-    inline def view = np.view
-    inline def func = np.func
-    inline def node = np.node
+    inline def view = nodePoint.view
+    inline def func = nodePoint.func
+    inline def node = nodePoint.node
   }
 
   /** unary operation points */
   case class UnaryOpPoint(
-    np: NodePoint[Node],
+    nodePoint: NodePoint[Node],
     unary: EUnary,
   ) extends TypeErrorPoint {
-    inline def view = np.view
-    inline def func = np.func
-    inline def node = np.node
+    inline def view = nodePoint.view
+    inline def func = nodePoint.func
+    inline def node = nodePoint.node
   }
 
   /** binary operation points */
   case class BinaryOpPoint(
-    np: NodePoint[Node],
+    nodePoint: NodePoint[Node],
     binary: EBinary,
   ) extends TypeErrorPoint {
-    inline def view = np.view
-    inline def func = np.func
-    inline def node = np.node
+    inline def view = nodePoint.view
+    inline def func = nodePoint.func
+    inline def node = nodePoint.node
   }
 
   /** control points */
