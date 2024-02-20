@@ -98,8 +98,8 @@ case class GrammarGraph(grammar: Grammar) {
       rhs: Rhs,
       argMap: Map[String, Boolean],
     ): Unit = for {
-      nt <- rhs.nts
-      must = Optional(nt).getNt == None
+      (nt, isOptional) <- rhs.ntsWithOptional
+      must = !isOptional
       name = nt.name
       prod <- grammar.nameMap.get(name)
       prodNode <- prod.kind match
