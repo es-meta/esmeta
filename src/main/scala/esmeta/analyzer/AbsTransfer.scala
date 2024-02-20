@@ -927,6 +927,14 @@ trait AbsTransferDecl { self: Analyzer =>
           prunedV = lv.pruneValue(r, positive)
           _ <- modify(_.update(l, prunedV))
         } yield ()
+      // prune types with field existence
+      case EBinary(BOp.Eq, ERef(Prop(ref: Local, EStr(field))), EAbsent()) =>
+        for {
+          l <- transfer(ref)
+          lv <- transfer(l)
+          prunedV = lv.pruneAbsentField(field, positive)
+          _ <- modify(_.update(l, prunedV))
+        } yield ()
       // prune fields
       case EBinary(BOp.Eq, ERef(Prop(ref: Local, EStr(field))), target) =>
         for {

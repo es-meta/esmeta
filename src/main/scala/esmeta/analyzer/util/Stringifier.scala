@@ -129,6 +129,7 @@ trait StringifierDecl { self: Self =>
 
     // specification type errors
     given errorRule: Rule[TypeError] = (app, error) =>
+      app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
       error match
         case ParamTypeMismatch(point, argTy) =>
           app :> "- expected: " >> point.param.ty
