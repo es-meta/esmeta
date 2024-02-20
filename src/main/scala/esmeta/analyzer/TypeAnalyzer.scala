@@ -129,31 +129,6 @@ class TypeAnalyzer(
           addError(UncheckedAbruptError(riap, value.ty))
       super.returnIfAbrupt(riaExpr, value, check)
 
-    /** handle calls */
-    override def doCall(
-      callPoint: CallPoint,
-      callerSt: AbsState,
-      args: List[AbsValue],
-      captured: Map[Name, AbsValue],
-      method: Boolean,
-      contTarget: Option[NodePoint[Node]],
-    ): Unit =
-      val CallPoint(callerNp, callee) = callPoint
-      val NodePoint(callerFunc, call, view) = callerNp
-      callee.retTy.ty match
-        // Stop the propagation of analysis when it is unnecessary to analyze
-        // the callee function because it has full type annotations.
-        case retTy: ValueTy if callee.isParamTysDefined =>
-          for {
-            nextNode <- call.next
-            nextNp = NodePoint(callerFunc, nextNode, View())
-            retV = AbsValue(retTy)
-            newSt = callerSt.defineLocal(call.lhs -> retV)
-          } sem += nextNp -> newSt
-        // Otherwise, do original abstract call semantics
-        case _ =>
-          super.doCall(callPoint, callerSt, args, captured, method, contTarget)
-
     /** assign argument to parameter */
     override def assignArg(
       callPoint: CallPoint,
@@ -169,17 +144,6 @@ class TypeAnalyzer(
         else if (config.checkParamType && !(argTy <= paramTy))
           addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
         AbsValue(paramTy)
-
-    /** get return value with a state */
-    override def getReturn(irp: InternalReturnPoint, ret: AbsRet): AbsRet =
-      irp.func.retTy.ty match
-        case _: UnknownTy => ret
-        case expectedTy: ValueTy =>
-          val givenTy = ret.value.ty.removeAbsent
-          // return type check when it is a known type
-          if (!(givenTy <= expectedTy))
-            addError(ReturnTypeMismatch(irp, givenTy))
-          AbsRet(AbsValue(givenTy && expectedTy), ret.state)
 
     /** callee entries */
     override def getCalleeEntries(
@@ -223,6 +187,12 @@ class TypeAnalyzer(
     //         ty <- tys
     //       } yield local -> ty :: locals
     //   aux(locals.map((local, value) => local -> value.ty.flatten))
+
+    /** get return value for a return point */
+    override def getReturn(rp: ReturnPoint): AbsRet =
+      val retTy = rp.func.retTy.ty
+      if (retTy.isDefined) AbsRet(AbsValue(retTy))
+      else sem(rp)
 
     /** update return points */
     override def doReturn(
