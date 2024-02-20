@@ -1,4 +1,5 @@
 {
-  "ControlPoint" : true,
+  "AnalysisPoint" : true,
+  "TypeError" : true,
   "View" : true
 }
