@@ -82,10 +82,6 @@ trait StringifierDecl { self: Self =>
         case BinaryOpPoint(cp, binary) =>
           app >> "binary operation (" >> binary.bop >> ") in " >> cp.func.name
           app >> binary
-      ap match
-        case tep: TypeErrorPoint if detail =>
-          app >> " <" >> tep.node.simpleString >> ">"
-        case _ => app
 
     // control points
     given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -138,17 +134,18 @@ trait StringifierDecl { self: Self =>
           app :> "- expected: " >> point.func.retTy
           app :> "- actual  : " >> retTy
         case ArityMismatch(point, actual) =>
-          app :> "- expected: " >> point.func.arity
+          val (from, to) = point.func.arity
+          app :> "- expected: " >> "[" >> from >> ", " >> to >> "]"
           app :> "- actual  : " >> actual
         case UncheckedAbruptError(point, ty) =>
-          app :> "- actual  : " >> ty
+          app :> "- type    : " >> ty
         case InvalidBaseError(point, baseTy) =>
           app :> "- base    : " >> baseTy
         case UnaryOpTypeMismatch(point, operandTy) =>
           app :> "- operand : " >> operandTy
         case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
-          app :> "- lhs     : " >> lhsTy
-          app :> "- rhs     : " >> rhsTy
+          app :> "- left    : " >> lhsTy
+          app :> "- right   : " >> rhsTy
 
     private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
       for {
