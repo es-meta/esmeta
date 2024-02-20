@@ -88,3 +88,15 @@ case class CFG(
       val pdfPath = if (pdf) Some(s"$path.pdf") else None
       func.dumpDot(dotPath, pdfPath)
 }
+object CFG {
+
+  /** a default cfg */
+  lazy val defaultCFG = getDefaultCFG
+
+  /** create a new default cfg */
+  def getDefaultCFG =
+    import esmeta.cfgBuilder.CFGBuilder
+    import esmeta.compiler.Compiler
+    import esmeta.extractor.Extractor
+    CFGBuilder(Compiler(Extractor()))
+}
