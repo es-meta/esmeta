@@ -1,6 +1,8 @@
 package esmeta.es.util
 
 import esmeta.es.*
+import esmeta.cfg.CFG
+import esmeta.util.BaseUtils.warn
 
 /** merge statements to script */
 // TODO refactoring
@@ -35,3 +37,20 @@ def flattenStmt(s: Ast): List[Ast] = s match
         flattenStmtList(stmtList)
       case _ => Nil
   case _ => Nil
+
+// -----------------------------------------------------------------------------
+// global mutable options and structures
+// -----------------------------------------------------------------------------
+/** get control flow graph */
+def cfg: CFG = globalCFG.getOrElse(defaultCFG)
+
+private var globalCFG: Option[CFG] = None
+def withCFG[T](cfg: CFG)(t: => T): T =
+  globalCFG = Some(cfg)
+  val res = t
+  globalCFG = None
+  res
+
+lazy val defaultCFG =
+  warn("CFG is not yet initialized. Using default cfg instead.")
+  CFG.defaultCFG
