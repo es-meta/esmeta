@@ -227,6 +227,34 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.undef.isBottom) Zero else One(Undef)) ||
     (if (this.nullv.isBottom) Zero else One(Null)) ||
     (if (this.absent.isBottom) Zero else One(Absent))
+
+  /** types having no property */
+  def noProp: PureValueTy = this match
+    case PureValueTopTy =>
+      PureValueElemTy(
+        clo = Inf,
+        cont = Inf,
+        nt = Inf,
+        codeUnit = true,
+        const = Inf,
+        math = MathTy.Top,
+        number = NumberTy.Top,
+        bigInt = true,
+        bool = BoolTy.Top,
+        undef = true,
+        nullv = true,
+        absent = true,
+      )
+    case elem: PureValueElemTy =>
+      elem.copy(
+        name = NameTy.Bot,
+        record = RecordTy.Bot,
+        list = ListTy.Bot,
+        symbol = false,
+        astValue = AstValueTy.Bot,
+        str = Fin(),
+      )
+
 }
 
 case object PureValueTopTy extends PureValueTy {
