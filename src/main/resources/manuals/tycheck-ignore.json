@@ -44,6 +44,7 @@
   "INTRINSICS.TypedArray.prototype.values",
   "INTRINSICS.WeakMap",
   "InnerModuleEvaluation",
+  "InnerModuleLinking",
   "IntegerIndexedObjectCreate",
   "LabelledItem[1,0].LabelledEvaluation",
   "LengthOfArrayLike",

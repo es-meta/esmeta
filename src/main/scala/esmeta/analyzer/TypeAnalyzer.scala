@@ -122,12 +122,12 @@ class TypeAnalyzer(
       riaExpr: EReturnIfAbrupt,
       value: AbsValue,
       check: Boolean,
-    )(using np: NodePoint[Node]): Result[AbsValue] = {
-      if (config.uncheckedAbrupt && !check && !value.abruptCompletion.isBottom)
-        val riap = ReturnIfAbruptPoint(np, riaExpr)
-        addError(UncheckedAbruptError(riap, value.ty))
+    )(using np: NodePoint[Node]): Result[AbsValue] =
+      if (config.checkUncheckedAbrupt)
+        if (!check && !value.abruptCompletion.isBottom)
+          val riap = ReturnIfAbruptPoint(np, riaExpr)
+          addError(UncheckedAbruptError(riap, value.ty))
       super.returnIfAbrupt(riaExpr, value, check)
-    }
 
     /** handle calls */
     override def doCall(
@@ -164,13 +164,10 @@ class TypeAnalyzer(
     ): AbsValue = param.ty.ty match
       case _: UnknownTy => arg
       case paramTy: ValueTy =>
-        val argTy = arg.ty
-        val normalArgTy = argTy.removeAbsent
+        val argTy = arg.ty.removeAbsent
         if (method && idx == 0) () /* ignore `this` for method calls */
-        else if (config.paramType && !(normalArgTy <= paramTy))
-          addError(
-            ParamTypeMismatch(ArgAssignPoint(callPoint, idx), normalArgTy),
-          )
+        else if (config.checkParamType && !(argTy <= paramTy))
+          addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
         AbsValue(paramTy)
 
     /** get return value with a state */
@@ -208,11 +205,11 @@ class TypeAnalyzer(
       val CallPoint(callerNp, callee) = callPoint
       val arity @ (from, to) = callee.arity
       val len = args.length
-      if (config.arity && (len < from || to < len))
+      if (config.checkArity && (len < from || to < len))
         addError(ArityMismatch(callPoint, len))
       super.getLocals(callPoint, method, args)
 
-    /** callee entries with type sensitivity */
+    /** TODO callee entries with type sensitivity */
     // private def tySensCalleeEntries(
     //   locals: List[(Local, AbsValue)],
     // ): List[List[(Local, ValueTy)]] =
@@ -243,10 +240,65 @@ class TypeAnalyzer(
         case _: UnknownTy        => newRet
         case expectedTy: ValueTy =>
           // return type check when it is a known type
-          if (config.returnType && !(givenTy <= expectedTy))
+          if (config.checkReturnType && !(givenTy <= expectedTy))
             addError(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(expectedTy))
       super.doReturn(irp, expected)
+
+    /** transfer function for unary operators */
+    override def transfer(
+      st: AbsState,
+      unary: EUnary,
+      operand: AbsValue,
+    )(using np: NodePoint[Node]): AbsValue =
+      import UOp.*
+      if (config.checkUnaryOp)
+        val operandTy = operand.ty
+        unary.uop match
+          case Abs | Floor =>
+            checkUnary(unary, operandTy, MathT)
+          case Neg | BNot =>
+            checkUnary(unary, operandTy, MathT || NumberT || BigIntT)
+          case Not =>
+            checkUnary(unary, operandTy, BoolT)
+      super.transfer(st, unary, operand)
+
+    private def checkUnary(
+      unary: EUnary,
+      operandTy: ValueTy,
+      expectedTys: ValueTy,
+    )(using np: NodePoint[Node]): Unit = if (!(operandTy <= expectedTys))
+      addError(UnaryOpTypeMismatch(UnaryOpPoint(np, unary), operandTy))
+
+    /** transfer function for binary operators */
+    override def transfer(
+      st: AbsState,
+      binary: EBinary,
+      left: AbsValue,
+      right: AbsValue,
+    )(using np: NodePoint[Node]): AbsValue =
+      import BOp.*
+      if (config.checkBinaryOp)
+        val (lhsTy, rhsTy) = (left.ty, right.ty)
+        binary.bop match
+          case Add | Sub | Mul | Pow | Div | UMod | Mod | Lt | Equal =>
+            checkBinary(binary, lhsTy, rhsTy, Set(ExtMathT, NumberT, BigIntT))
+          case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
+            checkBinary(binary, lhsTy, rhsTy, Set(MathT, BigIntT))
+          case And | Or | Xor =>
+            checkBinary(binary, lhsTy, rhsTy, Set(BoolT))
+          case Eq =>
+      super.transfer(st, binary, left, right)
+
+    private def checkBinary(
+      binary: EBinary,
+      lhsTy: ValueTy,
+      rhsTy: ValueTy,
+      expectedTys: Set[ValueTy],
+    )(using np: NodePoint[Node]): Unit =
+      if (!expectedTys.exists(ty => lhsTy <= ty || rhsTy <= ty))
+        val binaryPoint = BinaryOpPoint(np, binary)
+        addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
   }
 
   /** use type abstract domains */
@@ -418,9 +470,10 @@ object TypeAnalyzer:
 
   /** configuration for type checking */
   case class Config(
-    // type checkers
-    arity: Boolean = true,
-    paramType: Boolean = true,
-    returnType: Boolean = true,
-    uncheckedAbrupt: Boolean = false,
+    checkArity: Boolean = true,
+    checkParamType: Boolean = true,
+    checkReturnType: Boolean = true,
+    checkUncheckedAbrupt: Boolean = false, // TODO
+    checkUnaryOp: Boolean = true,
+    checkBinaryOp: Boolean = true,
   )

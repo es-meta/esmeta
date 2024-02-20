@@ -65,10 +65,10 @@ def RecordT(fields: Set[String]): ValueTy =
   else ValueTy(record = RecordTy(fields))
 def RecordT(map: Map[String, ValueTy]): ValueTy =
   if (map.isEmpty) ValueTy.Bot
-  else ValueTy(record = RecordTy(map).norm)
+  else ValueTy(record = RecordTy(map).normalized)
 def RecordT(pairs: (String, ValueTy)*): ValueTy =
   if (pairs.isEmpty) ValueTy.Bot
-  else ValueTy(record = RecordTy(pairs.toMap).norm)
+  else ValueTy(record = RecordTy(pairs.toMap).normalized)
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy =
