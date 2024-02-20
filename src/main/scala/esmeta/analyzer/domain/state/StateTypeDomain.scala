@@ -157,7 +157,7 @@ trait StateTypeDomainDecl { self: Self =>
         val value = AbsValue(ListT((for {
           list <- lists
           elem <- list.ty.list.elem
-        } yield elem).foldLeft(ValueTy())(_ || _)))
+        } yield elem).foldLeft(BotT)(_ || _)))
         (value, elem)
 
       /** get childeren of AST */
@@ -197,7 +197,7 @@ trait StateTypeDomainDecl { self: Self =>
         to: AllocSite,
         list: Iterable[AbsValue] = Nil,
       ): (AbsValue, Elem) =
-        val listT = ListT(list.foldLeft(ValueTy()) { case (l, r) => l || r.ty })
+        val listT = ListT(list.foldLeft(BotT) { case (l, r) => l || r.ty })
         (AbsValue(listT), elem)
 
       /** allocation of symbol with address partitions */
@@ -270,7 +270,7 @@ trait StateTypeDomainDecl { self: Self =>
         val irStringifier = IRElem.getStringifier(detail, false)
         import irStringifier.given
         given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-        app >> elem.locals >> LINE_SEP
+        app >> elem.locals
       } else app >> "⊥"
 
     // completion record lookup
@@ -280,7 +280,7 @@ trait StateTypeDomainDecl { self: Self =>
       val str = prop.str
       val normal = !comp.normal.isBottom
       val abrupt = !comp.abrupt.isBottom
-      var res = ValueTy()
+      var res = BotT
       if (str contains "Value")
         if (normal) res ||= ValueTy(pureValue = comp.normal)
         if (abrupt) {
@@ -305,7 +305,7 @@ trait StateTypeDomainDecl { self: Self =>
 
     // AST lookup
     private def lookupAst(ast: AstValueTy, prop: ValueTy): ValueTy = ast match
-      case AstValueTy.Bot => ValueTy.Bot
+      case AstValueTy.Bot => BotT
       case AstSingleTy(name, idx, subIdx) =>
         lookupAstIdxProp(name, idx, subIdx)(prop) ||
         lookupAstStrProp(prop)
@@ -327,22 +327,22 @@ trait StateTypeDomainDecl { self: Self =>
         val rhs = cfg.grammar.nameMap(name).rhsList(idx)
         val nts = rhs.getNts(subIdx)
         nts(propIdx).fold(AbsentT)(AstT(_))
-      case Zero | One(_) => ValueTy.Bot
+      case Zero | One(_) => BotT
       case _             => AstT // TODO more precise
 
     // lookup string properties of ASTs
     private def lookupAstStrProp(prop: ValueTy): ValueTy =
       val nameMap = cfg.grammar.nameMap
       prop.str.getSingle match
-        case Zero                               => ValueTy.Bot
+        case Zero                               => BotT
         case One(name) if nameMap contains name => AstT(name)
         case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
     // string lookup
     private def lookupStr(str: BSet[String], prop: ValueTy): ValueTy =
-      if (str.isBottom) ValueTy.Bot
+      if (str.isBottom) BotT
       else {
-        var res = ValueTy.Bot
+        var res = BotT
         if (prop.str contains "length") res ||= NonNegIntT
         if (!prop.math.isBottom) res ||= CodeUnitT
         // TODO if (!str.isBottom)
@@ -356,7 +356,7 @@ trait StateTypeDomainDecl { self: Self =>
 
     // named record lookup
     private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
-      var res = ValueTy()
+      var res = BotT
       val str = prop.str
       for {
         name <- obj.set
@@ -371,19 +371,16 @@ trait StateTypeDomainDecl { self: Self =>
     // record lookup
     private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
       val str = prop.str
-      var res = ValueTy()
+      var res = BotT
       def add(propStr: String): Unit = record match
         case RecordTy.Top       =>
         case RecordTy.Elem(map) => map.get(propStr).map(res ||= _)
-      if (!record.isBottom) str match
-        case Inf =>
-        case Fin(set) =>
-          for (propStr <- set) add(propStr)
+      if (!record.isBottom) for (propStr <- str) add(propStr)
       res
 
     // list lookup
     private def lookupList(list: ListTy, prop: ValueTy): ValueTy =
-      var res = ValueTy()
+      var res = BotT
       val str = prop.str
       val math = prop.math
       for (ty <- list.elem)
@@ -394,12 +391,12 @@ trait StateTypeDomainDecl { self: Self =>
     // symbol lookup
     private def lookupSymbol(symbol: Boolean, prop: ValueTy): ValueTy =
       if (symbol && prop.str.contains("Description")) StrT
-      else ValueTy()
+      else BotT
 
     // submap lookup
     private def lookupSubMap(subMap: SubMapTy, prop: ValueTy): ValueTy =
       if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
-      else ValueTy()
+      else BotT
 
     // bound check
     private def boundCheck(

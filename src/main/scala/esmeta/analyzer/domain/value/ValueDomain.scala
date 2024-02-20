@@ -152,6 +152,7 @@ trait ValueDomainDecl { self: Self =>
       def pruneIneq(positive: Boolean, withZero: Boolean): Elem
       def pruneValue(r: Elem, positive: Boolean): Elem
       def pruneField(field: String, r: Elem, positive: Boolean): Elem
+      def pruneAbsentField(field: String, positive: Boolean): Elem
       def pruneType(r: Elem, positive: Boolean): Elem
       def pruneTypeCheck(r: Elem, positive: Boolean): Elem
 
