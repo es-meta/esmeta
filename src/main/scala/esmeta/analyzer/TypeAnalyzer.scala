@@ -299,6 +299,18 @@ class TypeAnalyzer(
       if (!expectedTys.exists(ty => lhsTy <= ty || rhsTy <= ty))
         val binaryPoint = BinaryOpPoint(np, binary)
         addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
+
+    /** refine invalid base for property reference */
+    override def refinePropBase(
+      np: NodePoint[Node],
+      prop: Prop,
+      base: AbsValue,
+    ): AbsValue =
+      val baseTy = base.ty
+      val noPropTy = baseTy.noProp
+      if (config.checkInvalidBase && !noPropTy.isBottom)
+        addError(InvalidBaseError(PropBasePoint(PropPoint(np, prop)), baseTy))
+      AbsValue(baseTy -- noPropTy)
   }
 
   /** use type abstract domains */
@@ -474,6 +486,7 @@ object TypeAnalyzer:
     checkParamType: Boolean = true,
     checkReturnType: Boolean = true,
     checkUncheckedAbrupt: Boolean = false, // TODO
+    checkInvalidBase: Boolean = false,
     checkUnaryOp: Boolean = true,
     checkBinaryOp: Boolean = true,
   )
