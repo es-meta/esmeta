@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.es.util.Coverage
+import esmeta.synthesizer.BuiltinSynthesizer
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
@@ -13,7 +14,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Coverage = ???
+  ): Coverage =
+    for (code <- BuiltinSynthesizer(cfg.spec.algorithms).initPool)
+      println(code)
+    ???
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
