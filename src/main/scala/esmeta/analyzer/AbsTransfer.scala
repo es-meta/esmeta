@@ -579,12 +579,19 @@ trait AbsTransferDecl { self: Analyzer =>
     def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefValue] =
       ref match
         case id: Id => AbsRefId(id)
-        case Prop(ref, expr) =>
+        case prop @ Prop(base, expr) =>
           for {
-            rv <- transfer(ref)
+            rv <- transfer(base)
             b <- transfer(rv)
             p <- transfer(expr)
-          } yield AbsRefProp(b, p)
+          } yield AbsRefProp(refinePropBase(np, prop, b), p)
+
+    /** refine invalid base for property reference */
+    def refinePropBase(
+      np: NodePoint[Node],
+      prop: Prop,
+      base: AbsValue,
+    ): AbsValue = base
 
     /** transfer function for reference values */
     def transfer(rv: AbsRefValue)(using np: NodePoint[Node]): Result[AbsValue] =
