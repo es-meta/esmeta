@@ -27,17 +27,18 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(cfg, extractor.result, defs, log).result
+    new Injector(cfg, extractor.result, src, defs, log).result
 
   /** injection from files */
   def fromFile(
     cfg: CFG,
     filename: String,
+    bodyPath: String,
     defs: Boolean = false,
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(cfg, extractor.result, defs, log).result
+    new Injector(cfg, extractor.result, readFile(bodyPath), defs, log).result
 
   /** assertion definitions */
   lazy val header: String = readFile(s"$RESOURCE_DIR/assertions.js")
@@ -46,6 +47,7 @@ object Injector:
 class Injector(
   cfg: CFG,
   exitSt: State,
+  body: String,
   defs: Boolean,
   log: Boolean,
 ) {
