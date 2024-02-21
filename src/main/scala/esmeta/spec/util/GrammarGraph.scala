@@ -84,7 +84,7 @@ case class GrammarGraph(grammar: Grammar) {
       prod: Production,
       argMap: Map[String, Boolean],
     ): Unit = for {
-      (rhs, idx) <- prod.rhsList.zipWithIndex
+      (rhs, idx) <- prod.rhsVec.zipWithIndex
       if (rhs.conditions.forall(condition =>
         argMap.get(condition.name).fold(false)(condition.pass == _),
       ))
@@ -260,7 +260,7 @@ case class GrammarGraph(grammar: Grammar) {
     args: List[Boolean],
     idx: Int,
   ) extends Node {
-    lazy val rhs: Rhs = prod.rhsList(idx)
+    lazy val rhs: Rhs = prod.rhsVec(idx)
     lazy val argMap: Map[String, Boolean] = (prod.lhs.params zip args).toMap
   }
 

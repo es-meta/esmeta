@@ -211,7 +211,7 @@ class Extractor(
       for {
         prod <- parse[List[Production]](prevContent)
         lhsName = prod.lhs.name
-        rhs <- prod.rhsList
+        rhs <- prod.rhsVec
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
         (idx, subIdx) = idxMap(syntax)

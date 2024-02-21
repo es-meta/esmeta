@@ -186,19 +186,19 @@ class JsonTinyTest extends SpecTest {
       "lhs" -> lhsJson2,
       "kind" -> Json.obj("Lexical" -> Json.obj()),
       "oneof" -> Json.True,
-      "rhsList" -> Json.arr(rhsJson3, rhsJson3),
+      "rhsVec" -> Json.arr(rhsJson3, rhsJson3),
     )
     lazy val prodJson2 = Json.obj(
       "lhs" -> lhsJson2,
       "kind" -> Json.obj("Syntactic" -> Json.obj()),
       "oneof" -> Json.False,
-      "rhsList" -> Json.arr(rhsJson1, rhsJson2),
+      "rhsVec" -> Json.arr(rhsJson1, rhsJson2),
     )
     lazy val prodJson3 = Json.obj(
       "lhs" -> lhsJson1,
       "kind" -> Json.obj("NumericString" -> Json.obj()),
       "oneof" -> Json.False,
-      "rhsList" -> Json.arr(rhsJson1),
+      "rhsVec" -> Json.arr(rhsJson1),
     )
     checkJson("Production")(
       prod1 -> prodJson1,

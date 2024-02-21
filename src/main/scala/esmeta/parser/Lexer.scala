@@ -81,7 +81,7 @@ trait Lexer extends UnicodeParsers {
     prod: Production,
     argsSet: Set[String],
   ): Lexer = {
-    lazy val parser = prod.rhsList.map(getRhsParser(_, argsSet)).reduce(_ ||| _)
+    lazy val parser = prod.rhsVec.map(getRhsParser(_, argsSet)).reduce(_ ||| _)
     parser
   }
 

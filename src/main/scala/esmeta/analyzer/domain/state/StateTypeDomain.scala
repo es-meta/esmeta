@@ -324,7 +324,7 @@ trait StateTypeDomainDecl { self: Self =>
     )(prop: ValueTy): ValueTy = prop.math.getSingle match
       case One(Math(n)) if n.isValidInt =>
         val propIdx = n.toInt
-        val rhs = cfg.grammar.nameMap(name).rhsList(idx)
+        val rhs = cfg.grammar.nameMap(name).rhsVec(idx)
         val nts = rhs.getNts(subIdx)
         nts(propIdx).fold(AbsentT)(AstT(_))
       case Zero | One(_) => ValueTy.Bot

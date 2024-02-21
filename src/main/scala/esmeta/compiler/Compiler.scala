@@ -979,13 +979,13 @@ class Compiler(
   /** production helpers */
   def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
     val prod = grammar.nameMap(lhsName)
-    val rhsList = prod.rhsList.zipWithIndex.filter {
+    val rhsVec = prod.rhsVec.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
-    rhsList match
-      case (rhs, idx) :: Nil => (prod.lhs, idx)
-      case _                 => error("invalid production")
+    rhsVec match
+      case Vector((rhs, idx)) => (prod.lhs, idx)
+      case _                  => error("invalid production")
 
   /** instruction helpers */
   inline def toParams(paramOpt: Option[Variable]): List[IRParam] =

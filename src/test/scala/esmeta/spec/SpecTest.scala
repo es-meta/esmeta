@@ -32,11 +32,11 @@ object SpecTest {
   lazy val lhs1 = Lhs("Identifier", List("Yield", "Await", "In"))
   lazy val lhs2 = Lhs("Identifier", Nil)
   lazy val prod1 =
-    Production(lhs2, ProductionKind.Lexical, true, List(rhs3, rhs3))
+    Production(lhs2, ProductionKind.Lexical, true, Vector(rhs3, rhs3))
   lazy val prod2 =
-    Production(lhs2, ProductionKind.Syntactic, false, List(rhs1, rhs2))
+    Production(lhs2, ProductionKind.Syntactic, false, Vector(rhs1, rhs2))
   lazy val prod3 =
-    Production(lhs1, ProductionKind.NumericString, false, List(rhs1))
+    Production(lhs1, ProductionKind.NumericString, false, Vector(rhs1))
 
   // algorithms
 
