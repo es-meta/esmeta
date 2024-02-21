@@ -5,7 +5,6 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.spec.util.GrammarGraph
-import esmeta.ty.PureValueTopTy.symbol
 
 // TODO refactoring
 /** A simple ECMAScript AST synthesizer */
