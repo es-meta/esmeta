@@ -57,7 +57,7 @@ case class State(
       case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
       case (syn: Syntactic, Str(fieldStr)) =>
         val Syntactic(name, _, rhsIdx, children) = syn
-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+        val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
         rhs.getNtIndex(fieldStr).flatMap(children(_)) match
           case Some(child) => AstValue(child)
           case _           => throw InvalidAstField(syn, Str(fieldStr))

@@ -35,7 +35,7 @@ class Stringifier(
       case Lexical(name, str) => app >> str >> " "
       case Syntactic(name, args, rhsIdx, children) =>
         var cs = children
-        for (symbol <- nameMap(name).rhsList(rhsIdx).symbols) symbol match
+        for (symbol <- nameMap(name).rhsVec(rhsIdx).symbols) symbol match
           case Terminal(term)                          => app >> term >> " "
           case Empty | NoLineTerminator | _: Lookahead =>
           case _ =>

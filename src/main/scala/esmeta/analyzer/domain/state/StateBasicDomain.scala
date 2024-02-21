@@ -410,7 +410,7 @@ trait StateBasicDomainDecl { self: Self =>
           ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
           val es.Syntactic(name, _, rhsIdx, children) = syn
-          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+          val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
           rhs.getNtIndex(fieldStr).flatMap(children(_)) match
             case Some(child) => AbsValue(child)
             case _           => AbsValue.Bot
