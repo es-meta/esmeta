@@ -38,9 +38,9 @@ class RandomSynthesizer(
     case Optional(symbol) =>
       if (randBool) Some(None) else synSymbol(argsMap)(symbol)
     case Nonterminal(name, args) =>
-      if (SimpleSynthesizer(grammar).reservedLexicals contains name)
+      if (simpleSyn.reservedLexicals contains name)
         Some(
-          Some(Lexical(name, SimpleSynthesizer(grammar).reservedLexicals(name))),
+          Some(Lexical(name, simpleSyn.reservedLexicals(name))),
         )
       else {
         import NonterminalArgumentKind.*
