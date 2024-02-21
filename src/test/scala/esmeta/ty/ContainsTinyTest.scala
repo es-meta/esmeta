@@ -120,9 +120,10 @@ class ContainsTinyTest extends TyTest {
       ContT(42) -> cont,
     )
 
-    lazy val ast1 = Syntactic("A", List(false, true), 5, Nil)
+    lazy val ast1 = Syntactic("A", List(false, true), 5, Vector())
     lazy val astValue1 = AstValue(ast1)
-    lazy val ast2 = Syntactic("B", List(false, true), 5, List(Some(ast1), None))
+    lazy val ast2 =
+      Syntactic("B", List(false, true), 5, Vector(Some(ast1), None))
     lazy val astValue2 = AstValue(ast2)
     checkContains("abstract syntax tree (AST) values")(
       AstT -> astValue1,

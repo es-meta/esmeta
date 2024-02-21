@@ -111,7 +111,7 @@ class SimpleSynthesizer(
           Some(auxSymbol(map, rhsNode.prod, base, rhsNode.argMap)._2)
         case _ => None
     } yield child
-    val ast = Syntactic(name, args, rhsIdx, children)
+    val ast = Syntactic(name, args, rhsIdx, children.toVector)
     val code = ast.toString(grammar = Some(grammar))
     (ast, code)
 
@@ -154,7 +154,7 @@ class SimpleSynthesizer(
         (prodNode, child) = auxSymbol(cache, rhsNode.prod, nt, argMap)
       } yield (prodNode, Some(child))).unzip
       def create(children: Vector[Option[Ast]]): Syntactic =
-        astF(Syntactic(name, args, rhsIdx, children.toList))
+        astF(Syntactic(name, args, rhsIdx, children))
       for {
         removed <- opts.toSet.subsets
         newChildren = for {
