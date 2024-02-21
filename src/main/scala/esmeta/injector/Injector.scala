@@ -24,17 +24,18 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(extractor, defs, log).result
+    new Injector(extractor, src, defs, log).result
 
   /** injection from files */
   def fromFile(
     cfg: CFG,
     filename: String,
+    bodyPath: String,
     defs: Boolean = false,
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(extractor, defs, log).result
+    new Injector(extractor, readFile(bodyPath), defs, log).result
 
   /** assertion definitions */
   lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
@@ -42,6 +43,7 @@ object Injector:
 /** extensible helper of assertion injector */
 class Injector(
   extractor: ExitStateExtractor,
+  body: String,
   defs: Boolean,
   log: Boolean,
 ) {
@@ -50,7 +52,7 @@ class Injector(
   lazy val result: String =
     if (defs) app >> Injector.assertions >> LINE_SEP
     app >> "// [EXIT] " >> exitTag.toString // append exit status tag
-    app :> original // append original script
+    app :> body // append body script
     if (normalExit)
       if (isAsync) startAsync // handle async
       handleVariable // inject assertions from variables
