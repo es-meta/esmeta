@@ -254,7 +254,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         astValue = AstValueTy.Bot,
         str = Fin(),
       )
-
 }
 
 case object PureValueTopTy extends PureValueTy {

@@ -160,6 +160,58 @@ case class ValueTy(
       case Absent               => absent
     )
 
+  /** copy value type */
+  def copied(
+    comp: CompTy = CompTy.Bot,
+    normal: PureValueTy = normal,
+    abrupt: BSet[String] = abrupt,
+    pureValue: PureValueTy = PureValueTy.Bot,
+    clo: BSet[String] = clo,
+    cont: BSet[Int] = cont,
+    name: NameTy = name,
+    record: RecordTy = record,
+    list: ListTy = list,
+    symbol: Boolean = symbol,
+    astValue: AstValueTy = astValue,
+    nt: BSet[Nt] = nt,
+    codeUnit: Boolean = codeUnit,
+    const: BSet[String] = const,
+    math: MathTy = math,
+    infinity: InfinityTy = infinity,
+    number: NumberTy = number,
+    bigInt: Boolean = bigInt,
+    str: BSet[String] = str,
+    bool: BoolTy = bool,
+    undef: Boolean = undef,
+    nullv: Boolean = nullv,
+    absent: Boolean = absent,
+    subMap: SubMapTy = subMap,
+  ): ValueTy = ValueTy(
+    comp = comp || CompTy(normal, abrupt),
+    pureValue = pureValue || PureValueTy(
+      clo,
+      cont,
+      name,
+      record,
+      list,
+      symbol,
+      astValue,
+      nt,
+      codeUnit,
+      const,
+      math,
+      infinity,
+      number,
+      bigInt,
+      str,
+      bool,
+      undef,
+      nullv,
+      absent,
+    ),
+    subMap = subMap,
+  )
+
   /** get single value */
   def getSingle: Flat[Value] =
     this.comp.getSingle ||

@@ -44,10 +44,13 @@ def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) ValueTy.Bot
   else ValueTy(cont = Fin(nids.toSet))
 lazy val NameT: ValueTy = ValueTy(name = NameTy.Top)
-def NameT(names: String*): ValueTy =
-  if (names.isEmpty) ValueTy.Bot
-  else ValueTy(name = NameTy(Fin(names.toSet)))
+def NameT(names: String*): ValueTy = NameT(names.toSet)
+def NameT(set: Set[String]): ValueTy =
+  if (set.isEmpty) ValueTy.Bot
+  else ValueTy(name = NameTy(Fin(set)))
 lazy val ObjectT: ValueTy = NameT("Object")
+lazy val FunctionT: ValueTy = NameT("FunctionObject")
+lazy val ConstructorT: ValueTy = NameT("Constructor")
 lazy val ESPrimT: ValueTy = ValueTy(
   symbol = true,
   number = NumberTy.Top,

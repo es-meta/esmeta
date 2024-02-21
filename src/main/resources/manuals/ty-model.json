@@ -90,7 +90,7 @@
       }
     },
     "BoundFunctionExoticObject" : {
-      "parent" : "FunctionObject",
+      "parent" : "Constructor",
       "methods" : {
         "Call" : "BoundFunctionExoticObject.Call",
         "Construct" : "BoundFunctionExoticObject.Construct"
@@ -102,9 +102,10 @@
       }
     },
     "BuiltinFunctionObject" : {
-      "parent" : "FunctionObject",
+      "parent" : "Constructor",
       "methods" : {
-        "Call" : "BuiltinFunctionObject.Call"
+        "Call" : "BuiltinFunctionObject.Call",
+        "Construct" : "BuiltinFunctionObject.Construct"
       },
       "fields" : {
         "Code" : "Clo",
@@ -126,6 +127,11 @@
       "fields" : {
         "BodyFunction" : "FunctionObject"
       }
+    },
+    "Constructor" : {
+      "parent" : "FunctionObject",
+      "methods" : { },
+      "fields" : { }
     },
     "CyclicModuleRecord" : {
       "parent" : "ModuleRecord",
@@ -164,7 +170,7 @@
       "fields" : { }
     },
     "ECMAScriptFunctionObject" : {
-      "parent" : "FunctionObject",
+      "parent" : "Constructor",
       "methods" : {
         "Call" : "ECMAScriptFunctionObject.Call",
         "Construct" : "ECMAScriptFunctionObject.Construct"
@@ -344,6 +350,11 @@
         "ViewedArrayBuffer" : "ArrayBufferObject"
       }
     },
+    "Intrinsics" : {
+      "parent" : null,
+      "methods" : { },
+      "fields" : { }
+    },
     "IteratorRecord" : {
       "parent" : null,
       "methods" : { },
@@ -512,12 +523,12 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "Promise" : "Object",
+        "Promise" : "Promise",
         "Reject" : "FunctionObject",
         "Resolve" : "FunctionObject"
       }
     },
-    "PromiseInstance" : {
+    "Promise" : {
       "parent" : "OrdinaryObject",
       "methods" : { },
       "fields" : {
@@ -550,7 +561,7 @@
       }
     },
     "ProxyExoticObject" : {
-      "parent" : "Object",
+      "parent" : "Constructor",
       "methods" : {
         "Call" : "ProxyExoticObject.Call",
         "Construct" : "ProxyExoticObject.Construct",
@@ -578,7 +589,7 @@
         "GlobalEnv" : "GlobalEnvironmentRecord",
         "GlobalObject" : "Object | Undefined",
         "HostDefined" : "Undefined",
-        "Intrinsics" : "SubMap[String |-> Object]",
+        "Intrinsics" : "Intrinsics",
         "TemplateMap" : "List[TemplatePair]"
       }
     },
@@ -590,6 +601,13 @@
         "ReferencedName" : "PrivateName | Symbol | String",
         "Strict" : "Boolean",
         "ThisValue" : "ESValue | Const[~empty~]"
+      }
+    },
+    "RegExpObject" : {
+      "parent" : "Object",
+      "methods" : { },
+      "fields" : {
+        "RegExpMatcher" : "Clo"
       }
     },
     "ResolvedBindingRecord" : {
@@ -656,7 +674,7 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "Array" : "Object",
+        "Array" : "ArrayExoticObject",
         "Site" : "Ast[TemplateLiteral]"
       }
     },

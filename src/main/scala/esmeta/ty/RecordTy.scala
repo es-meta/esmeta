@@ -45,8 +45,9 @@ sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** prune type */
   def --(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that   => this
-    case (Top, _) | (_, Top) => Top
+    case _ if this eq that => this
+    case (Top, _)          => Top
+    case (_, Top)          => Bot
     case (Elem(lmap), Elem(rmap)) =>
       Elem(
         (for {
