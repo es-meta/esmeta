@@ -153,10 +153,34 @@ trait ValueTypeDomainDecl { self: Self =>
       def ⊑(that: Elem): Boolean = elem.ty <= that.ty
 
       /** join operator */
-      def ⊔(that: Elem): Elem = Elem(elem.ty || that.ty)
+      def ⊔(that: Elem): Elem =
+        val keys = elem.refinements.keySet ++ that.refinements.keySet
+        val refinements = keys.map { key =>
+          val lmap = elem.refinements.getOrElse(key, Map.empty)
+          val rmap = that.refinements.getOrElse(key, Map.empty)
+          val keys = lmap.keySet ++ rmap.keySet
+          key -> (keys.map { key =>
+            val l = lmap.getOrElse(key, ValueTy.Bot)
+            val r = rmap.getOrElse(key, ValueTy.Bot)
+            key -> (l || r)
+          }.toMap)
+        }.toMap
+        Elem(elem.ty || that.ty, refinements)
 
       /** meet operator */
-      override def ⊓(that: Elem): Elem = Elem(elem.ty && that.ty)
+      override def ⊓(that: Elem): Elem =
+        val keys = elem.refinements.keySet ++ that.refinements.keySet
+        val refinements = keys.map { key =>
+          val lmap = elem.refinements.getOrElse(key, Map.empty)
+          val rmap = that.refinements.getOrElse(key, Map.empty)
+          val keys = lmap.keySet ++ rmap.keySet
+          key -> (keys.map { key =>
+            val l = lmap.getOrElse(key, ValueTy.Bot)
+            val r = rmap.getOrElse(key, ValueTy.Bot)
+            key -> (l ⊓ r)
+          }.toMap)
+        }.toMap
+        Elem(elem.ty && that.ty, refinements)
 
       /** prune operator */
       override def --(that: Elem): Elem = Elem(elem.ty -- that.ty)
@@ -327,7 +351,19 @@ trait ValueTypeDomainDecl { self: Self =>
       def substring(from: Elem): Elem = strTop
       def substring(from: Elem, to: Elem): Elem = strTop
       def trim(leading: Boolean, trailing: Boolean): Elem = strTop
-      def clamp(lower: Elem, upper: Elem): Elem = mathTop
+      def clamp(lower: Elem, upper: Elem): Elem =
+        val xty = elem.ty.math
+        val lowerTy = lower.ty.math
+        val upperTy = upper.ty.math
+        val mathTy =
+          if (xty.isInt)
+            if (lowerTy.isPosInt) PosIntTy
+            else if (lowerTy.isNonNegInt) NonNegIntTy
+            else if (upperTy.isNegInt) NegIntTy
+            else if (upperTy.isNonPosInt) NonPosIntTy
+            else IntTy
+          else MathTopTy
+        Elem(ValueTy(math = mathTy))
       def isArrayIndex: Elem = boolTop
 
       /** completion helpers */

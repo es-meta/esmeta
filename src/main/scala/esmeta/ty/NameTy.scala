@@ -56,4 +56,6 @@ case class NameTy(set: BSet[String] = Fin())
 object NameTy extends Parser.From(Parser.nameTy) {
   lazy val Top: NameTy = NameTy(Inf)
   lazy val Bot: NameTy = NameTy()
+  def apply(set: Set[String]): NameTy = NameTy(Fin(set))
+  def apply(names: String*): NameTy = NameTy(Fin(names.toSet))
 }

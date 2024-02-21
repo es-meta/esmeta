@@ -29,9 +29,12 @@ class TypeAnalyzer(
   import TypeAnalyzer.*
   import AbsValue.{Refinements, RefinementKind}
 
+  /** initialization of ECMAScript environment */
+  lazy val init: Initialize = new Initialize(cfg)
+
   /** perform type analysis */
   lazy val analyze: Unit =
-    AbsState.setBase(new Initialize(cfg))
+    AbsState.setBase(init)
     transfer.fixpoint
     if (log) logging
 
@@ -216,8 +219,17 @@ class TypeAnalyzer(
         "IsCallable" -> List(
           (0, True, NameT("FunctionObject")),
         ),
+        "IsConstructor" -> List(
+          (0, True, NameT("Constructor")),
+        ),
         "ValidateTypedArray" -> List(
           (0, Normal, NameT("IntegerIndexedExoticObject")),
+        ),
+        "IsPromise" -> List(
+          (0, True, NameT("Promise")),
+        ),
+        "NewPromiseCapability" -> List(
+          (0, Normal, NameT("Constructor")),
         ),
       )
 
@@ -392,7 +404,10 @@ class TypeAnalyzer(
         kind <- kinds
         map <- value.refinements.get(kind).toList
         (x, ty) <- map
-      } yield modify(_.update(x, AbsValue(ty))))
+      } yield for {
+        origV <- get(_.get(x, np))
+        _ <- modify(_.update(x, AbsValue(ty) ⊓ origV))
+      } yield ())
 
     /** prune types for boolean local variables */
     def pruneBool(
@@ -463,25 +478,33 @@ class TypeAnalyzer(
           } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
           lv ⊓ AbsValue(subTys.foldLeft(ValueTy.Bot) { _ ⊔ NameT(_) })
         case _ =>
-          field match
-            case "Value" =>
-              val normal = lty.normal.prune(rty.pureValue, positive)
-              AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
-            case "Type" =>
-              AbsValue(rty.const.getSingle match
-                case One("normal") =>
-                  if (positive) ValueTy(normal = lty.normal)
-                  else ValueTy(abrupt = lty.abrupt)
-                case One(tname) =>
-                  if (positive) ValueTy(abrupt = Fin(tname))
-                  else
-                    ValueTy(
-                      normal = lty.normal,
-                      abrupt = lty.abrupt -- Fin(tname),
-                    )
-                case _ => lty,
-              )
-            case _ => lv
+          if (field == "Value")
+            val normal = lty.normal.prune(rty.pureValue, positive)
+            AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
+          else if (field == "Type")
+            AbsValue(rty.const.getSingle match
+              case One("normal") =>
+                if (positive) ValueTy(normal = lty.normal)
+                else ValueTy(abrupt = lty.abrupt)
+              case One(tname) =>
+                if (positive) ValueTy(abrupt = Fin(tname))
+                else
+                  ValueTy(
+                    normal = lty.normal,
+                    abrupt = lty.abrupt -- Fin(tname),
+                  )
+              case _ => lty,
+            )
+          else
+            val recordTy = lty.record
+            val ty = recordTy(field)
+            val prunedTy = if (positive) ty ⊓ rty else ty -- rty
+            AbsValue(lty.copied(record = recordTy match
+              case RecordTopTy => RecordTopTy
+              case RecordElemTy(map) =>
+                if (prunedTy.isBottom) RecordElemTy(map - field)
+                else RecordElemTy(map + (field -> prunedTy)),
+            ))
       _ <- modify(_.update(l, prunedV))
     } yield ()
 
@@ -540,7 +563,7 @@ class TypeAnalyzer(
   }
 
   /** use type abstract domains */
-  stateDomain = Some(StateTypeDomain)
+  stateDomain = Some(StateTypeDomain(this))
   retDomain = Some(RetTypeDomain)
   valueDomain = Some(ValueTypeDomain)
 

@@ -161,14 +161,17 @@ trait Parsers extends BasicParsers {
   }.named("ty.MathTy")
 
   private lazy val singleMathTy: Parser[MathTy] =
-    "Int" ^^^ IntTy |
-    "NonPosInt" ^^^ NonPosIntTy |
-    "NonNegInt" ^^^ NonNegIntTy |
-    "NegInt" ^^^ NegIntTy |
-    "PosInt" ^^^ PosIntTy |
-    "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
-      case ds => MathSetTy(ds.toSet.map(Math(_)))
-    } | "Math" ^^^ MathTopTy
+    "Math[" ~> rep1sep(decimal, ",") <~ "]"
+    ^^ { case ds => MathSetTy(ds.toSet.map(Math(_))) } |
+    camel
+    ^? {
+      case "Int"       => IntTy
+      case "NonPosInt" => NonPosIntTy
+      case "NonNegInt" => NonNegIntTy
+      case "NegInt"    => NegIntTy
+      case "PosInt"    => PosIntTy
+      case "Math"      => MathTopTy
+    }
 
   /** infinity types */
   given infTy: Parser[InfinityTy] = {

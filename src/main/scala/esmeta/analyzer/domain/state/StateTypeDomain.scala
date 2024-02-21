@@ -7,17 +7,18 @@ import esmeta.state.*
 import esmeta.ir.{*, given}
 import esmeta.es
 import esmeta.es.*
+import esmeta.es.builtin.*
 import esmeta.ty.*
 import esmeta.ty.util.Stringifier.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
-import esmeta.util.BaseUtils.*
+import esmeta.util.BaseUtils.{optional => opt, *}
 
 trait StateTypeDomainDecl { self: Self =>
 
   /** type domain for states */
-  object StateTypeDomain extends StateDomain {
+  class StateTypeDomain(analyzer: TypeAnalyzer) extends StateDomain {
 
     /** elements */
     case class Elem(
@@ -355,18 +356,26 @@ trait StateTypeDomainDecl { self: Self =>
       }
 
     // named record lookup
+    private val INTRINSICS_NAME_TY = NameTy("Intrinsics")
     private def lookupName(obj: NameTy, prop: ValueTy): ValueTy =
-      var res = BotT
-      val str = prop.str
-      for {
-        name <- obj.set
-        propStr <- str match
-          case Inf =>
-            if (name == "IntrinsicsRecord") res ||= ObjectT
-            Set()
-          case Fin(set) => set
-      } res ||= cfg.tyModel.getProp(name, propStr)
-      res
+      if (obj == INTRINSICS_NAME_TY) lookupIntrinsics(prop)
+      else
+        (for {
+          name <- obj.set
+          propStr <- prop.str
+        } yield cfg.tyModel.getProp(name, propStr)).foldLeft(BotT)(_ || _)
+
+    // intrinsics lookup
+    private def lookupIntrinsics(prop: ValueTy): ValueTy = prop.str match
+      case Inf => ObjectT
+      case Fin(set) =>
+        NameT(for {
+          s <- set
+          if s.startsWith("%") && s.endsWith("%")
+          propStr = s.substring(1, s.length - 1)
+          addr = intrAddr(propStr)
+          case MapObj(tname, _, _) <- opt(analyzer.init.initHeap(addr))
+        } yield tname)
 
     // record lookup
     private def lookupRecord(record: RecordTy, prop: ValueTy): ValueTy =
