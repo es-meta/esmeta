@@ -16,7 +16,7 @@ trait Walker extends BasicWalker {
   /** syntactic productions */
   def walk(ast: Syntactic): Syntactic =
     val Syntactic(name, args, rhsIdx, children) = ast
-    Syntactic(name, args, rhsIdx, walkList(children, walkOpt(_, walk)))
+    Syntactic(name, args, rhsIdx, walkVector(children, walkOpt(_, walk)))
 
   /** lexical productions */
   def walk(ast: Lexical): Lexical = ast

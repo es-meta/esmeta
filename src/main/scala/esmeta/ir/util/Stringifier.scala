@@ -205,7 +205,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (!args.isEmpty) app >> args
         app >> "<" >> rhsIdx >> ">"
         given eo: Rule[Option[Expr]] = optionRule("")
-        given el: Rule[List[Option[Expr]]] = iterableRule("(", ", ", ")")
+        given el: Rule[Iterable[Option[Expr]]] = iterableRule("(", ", ", ")")
         if (!children.isEmpty) app >> children
         app
       case ELexical(name, expr) =>

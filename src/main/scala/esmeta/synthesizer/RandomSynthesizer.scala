@@ -20,7 +20,7 @@ class RandomSynthesizer(
       if rhs.available(argsMap)
     } yield (rhs, rhsIdx)
     val (rhs, rhsIdx) = choose(pairs)
-    val children = rhs.symbols.flatMap(synSymbol(argsMap))
+    val children = rhs.symbols.flatMap(synSymbol(argsMap)).toVector
     Syntactic(name, args, rhsIdx, children)
 
   /** for lexical production */

@@ -43,7 +43,7 @@ case class ESyntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  children: List[Option[Expr]],
+  children: Vector[Option[Expr]],
 ) extends AstExpr
 case class ELexical(
   name: String,

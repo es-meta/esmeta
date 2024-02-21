@@ -709,7 +709,7 @@ class Compiler(
     case ProductionLiteral(lhsName, rhsName) =>
       // XXX need to handle arguments, children?
       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
-      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Vector())
     case ErrorObjectLiteral(name) =>
       val proto = Intrinsic(name, List("prototype"))
       EMap(

@@ -120,9 +120,9 @@ class StringifyTinyTest extends StateTest {
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)
     lazy val contCaptured = Cont(func, Map(Name("x") -> Str("abc")), Nil)
-    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
+    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Vector()))
     lazy val astArgs =
-      AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
+      AstValue(Syntactic("Identifier", List(true, false), 1, Vector()))
     lazy val nt = Nt("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(

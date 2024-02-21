@@ -6,6 +6,7 @@ import esmeta.ir.Type
 import esmeta.spec.*
 import esmeta.util.*
 import scala.annotation.tailrec
+import scala.collection.immutable.Nil
 
 /** abstract syntax tree (AST) values */
 sealed trait Ast extends ESElem with Locational {
@@ -41,28 +42,28 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => List(this)
     case syn: Syntactic =>
       syn.children.flatten match
-        case child :: Nil => this :: child.chains
-        case _            => List(this)
+        case Vector(child) => this :: child.chains
+        case _             => List(this)
 
   /** get items */
   def getItems(name: String): List[Ast] = this match
     case _: Lexical => Nil
     case syn: Syntactic =>
-      for {
+      (for {
         child <- syn.children.flatten
         item <-
           if (child.name == this.name) child.getItems(name)
           else if (child.name == name) List(child)
           else throw InvalidASTItem(child, name)
-      } yield item
+      } yield item).toList
 
   /** types */
   lazy val types: Set[String] =
     Set(name, s"$name$idx") union (this match
       case Syntactic(_, _, _, cs) =>
         (cs match
-          case List(Some(child)) => child.types
-          case _                 => Set()
+          case Vector(Some(child)) => child.types
+          case _                   => Set()
         ) + "Nonterminal"
       case _: Lexical => Set()
     ) + "ParseNode"
@@ -70,9 +71,9 @@ sealed trait Ast extends ESElem with Locational {
   /** flatten statements */
   // TODO refactoring
   def flattenStmt: List[Ast] = this match
-    case Syntactic("Script", _, 0, List(Some(body))) =>
+    case Syntactic("Script", _, 0, Vector(Some(body))) =>
       body match
-        case Syntactic("ScriptBody", _, 0, List(Some(stlist))) =>
+        case Syntactic("ScriptBody", _, 0, Vector(Some(stlist))) =>
           flattenStmtList(stlist)
         case _ => Nil
     case _ => Nil
@@ -101,7 +102,7 @@ case class Syntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  children: List[Option[Ast]],
+  children: Vector[Option[Ast]],
 ) extends Ast
 
 /** ASTs constructed by lexical productions */

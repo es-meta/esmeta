@@ -39,8 +39,8 @@ class Stringifier(
           case Terminal(term)                          => app >> term >> " "
           case Empty | NoLineTerminator | _: Lookahead =>
           case _ =>
-            cs match
-              case hd :: tl => hd.map(aux); cs = tl
+            cs.headOption match
+              case Some(hd) => hd.map(aux); cs = cs.tail
               case _        => error(s"invalid AST: $origAst")
     aux(origAst)
     app

@@ -230,7 +230,7 @@ class Interpreter(
     case EGetChildren(ast) =>
       eval(ast).asAst match
         case syn: Syntactic =>
-          st.allocList(syn.children.flatten.map(AstValue(_)))
+          st.allocList(syn.children.flatten.map(AstValue(_)).toList)
         case ast => throw InvalidASTChildren(ast)
     case EGetItems(nt, ast) =>
       val name = eval(nt) match

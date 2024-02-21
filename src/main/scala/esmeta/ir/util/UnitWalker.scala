@@ -124,7 +124,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(name)
       walkList(args, walk)
       walk(rhsIdx)
-      walkList(children, walkOpt(_, walk))
+      walkVector(children, walkOpt(_, walk))
     case ELexical(name, expr) =>
       walk(name); walk(expr)
   }
