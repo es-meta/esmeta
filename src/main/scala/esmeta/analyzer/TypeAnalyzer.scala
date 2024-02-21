@@ -27,6 +27,7 @@ class TypeAnalyzer(
   override val replContinue: Boolean = false,
 ) extends Analyzer {
   import TypeAnalyzer.*
+  import AbsValue.{Refinements, RefinementKind}
 
   /** perform type analysis */
   lazy val analyze: Unit =
@@ -124,7 +125,10 @@ class TypeAnalyzer(
         if (!check && !value.abruptCompletion.isBottom)
           val riap = ReturnIfAbruptPoint(np, riaExpr)
           addError(UncheckedAbruptError(riap, value.ty))
-      super.returnIfAbrupt(riaExpr, value, check)
+      for {
+        prunedV <- super.returnIfAbrupt(riaExpr, value, check)
+        _ <- prune(value, prunedV)
+      } yield prunedV
 
     /** assign argument to parameter */
     override def assignArg(
@@ -189,7 +193,7 @@ class TypeAnalyzer(
             case ERef(x: Local) => Some(x)
             case _              => None
           }
-          val refinements = list.foldLeft(Map[Boolean, Map[Local, ValueTy]]()) {
+          val refinements = list.foldLeft[Refinements](Map()) {
             case (acc, (idx, b, ty)) =>
               xs(idx) match
                 case Some(x) =>
@@ -206,9 +210,16 @@ class TypeAnalyzer(
         case None =>
           super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
 
-    val typeGuards: Map[String, List[(Int, Boolean, ValueTy)]] = Map(
-      "IsCallable" -> List((0, true, NameT("FunctionObject"))),
-    )
+    val typeGuards: Map[String, List[(Int, RefinementKind, ValueTy)]] =
+      import RefinementKind.*
+      Map(
+        "IsCallable" -> List(
+          (0, True, NameT("FunctionObject")),
+        ),
+        "ValidateTypedArray" -> List(
+          (0, Normal, NameT("IntegerIndexedExoticObject")),
+        ),
+      )
 
     /** TODO callee entries with type sensitivity */
     // private def tySensCalleeEntries(
@@ -365,6 +376,24 @@ class TypeAnalyzer(
       case _ => st => st
     }
 
+    /** prune types */
+    def prune(
+      value: AbsValue,
+      prunedValue: AbsValue,
+    )(using np: NodePoint[_]): Result[List[Unit]] =
+      var kinds = Vector.empty[RefinementKind]
+      if (prunedValue ⊑ AVT) kinds :+= RefinementKind.True
+      if (prunedValue ⊑ AVF) kinds :+= RefinementKind.False
+      if (!prunedValue.normalCompletion.isBottom)
+        kinds :+= RefinementKind.Normal
+      if (!prunedValue.abruptCompletion.isBottom)
+        kinds :+= RefinementKind.Abrupt
+      join(for {
+        kind <- kinds
+        map <- value.refinements.get(kind).toList
+        (x, ty) <- map
+      } yield modify(_.update(x, AbsValue(ty))))
+
     /** prune types for boolean local variables */
     def pruneBool(
       x: Local,
@@ -374,17 +403,8 @@ class TypeAnalyzer(
       lv <- transfer(l)
       prunedV = if (positive) AVT else AVF
       _ <- modify(_.update(l, prunedV))
-      _ <- pruneBool(lv, positive)
+      _ <- prune(lv, prunedV)
     } yield ()
-
-    /** prune types for boolean local variables */
-    def pruneBool(
-      value: AbsValue,
-      positive: Boolean,
-    )(using np: NodePoint[_]): Result[List[Unit]] = join(for {
-      map <- value.refinements.get(positive).toList
-      (x, ty) <- map
-    } yield modify(_.update(x, AbsValue(ty))))
 
     /** prune types with inequalities */
     def pruneIneq(
@@ -420,8 +440,7 @@ class TypeAnalyzer(
         else if (rv.isSingle) lv -- rv
         else lv
       _ <- modify(_.update(l, prunedV))
-      _ <- if (prunedV ⊑ AVT) pruneBool(lv, true) else pure(Nil)
-      _ <- if (prunedV ⊑ AVF) pruneBool(lv, false) else pure(Nil)
+      _ <- prune(lv, prunedV)
     } yield ()
 
     /** prune types with field equality */
