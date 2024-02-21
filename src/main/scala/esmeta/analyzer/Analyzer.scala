@@ -71,9 +71,6 @@ abstract class Analyzer
   /** throw exception for not yet compiled expressions */
   val yetThrow: Boolean = false
 
-  /** use condition-based refinement */
-  val useRefine: Boolean = false
-
   // ---------------------------------------------------------------------------
   // shortcuts
   // ---------------------------------------------------------------------------

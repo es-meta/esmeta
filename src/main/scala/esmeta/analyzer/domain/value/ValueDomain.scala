@@ -148,14 +148,6 @@ trait ValueDomainDecl { self: Self =>
       def clamp(lower: Elem, upper: Elem): Elem
       def isArrayIndex: Elem
 
-      /** prune abstract values */
-      def pruneIneq(positive: Boolean, withZero: Boolean): Elem
-      def pruneValue(r: Elem, positive: Boolean): Elem
-      def pruneField(field: String, r: Elem, positive: Boolean): Elem
-      def pruneAbsentField(field: String, positive: Boolean): Elem
-      def pruneType(r: Elem, positive: Boolean): Elem
-      def pruneTypeCheck(r: Elem, positive: Boolean): Elem
-
       /** single check */
       def isSingle: Boolean = elem.getSingle match
         case One(_) => true
