@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, Local}
 import esmeta.parser.ESValueParser
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -35,7 +35,7 @@ trait ValueBasicDomainDecl { self: Self =>
     )
 
     /** constructor with types */
-    def apply(ty: Ty): Elem = Top
+    def apply(ty: Ty, refinements: Refinements) = Top
 
     /** constructor for completions */
     def createCompletion(
@@ -519,7 +519,10 @@ trait ValueBasicDomainDecl { self: Self =>
       def undef: AbsUndef = elem.pureValue.undef
       def nullv: AbsNull = elem.pureValue.nullv
       def absent: AbsAbsent = elem.pureValue.absent
-      def ty: ValueTy = notSupported("value.BasicDomain.toTy")
+      def ty: ValueTy = notSupported("ValueBasicDomain.ty")
+      def refinements: Refinements = notSupported(
+        "ValueBasicDomain.refinements",
+      )
 
       // -------------------------------------------------------------------------
       // private helpers
