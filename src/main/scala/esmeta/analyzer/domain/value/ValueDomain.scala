@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, Local}
 import esmeta.util.*
 
 trait ValueDomainDecl { self: Self =>
@@ -18,7 +18,9 @@ trait ValueDomainDecl { self: Self =>
     def apply(value: Value): Elem = alpha(AValue.from(value))
 
     /** constructor with types */
-    def apply(ty: Ty): Elem
+    def apply(ty: Ty): Elem = apply(ty, Map.empty)
+    def apply(ty: Ty, refinements: Refinements): Elem
+    type Refinements = Map[Boolean, Map[Local, ValueTy]]
 
     /** constructor for completions */
     def createCompletion(
@@ -197,6 +199,7 @@ trait ValueDomainDecl { self: Self =>
       def nullv: AbsNull
       def absent: AbsAbsent
       def ty: ValueTy
+      def refinements: Refinements
     }
   }
 }
