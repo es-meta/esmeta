@@ -20,7 +20,11 @@ trait ValueDomainDecl { self: Self =>
     /** constructor with types */
     def apply(ty: Ty): Elem = apply(ty, Map.empty)
     def apply(ty: Ty, refinements: Refinements): Elem
+
+    /** type refinements */
     type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
+
+    /** type refinement kinds */
     enum RefinementKind:
       case True, False, Normal, Abrupt
 
