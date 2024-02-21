@@ -127,7 +127,8 @@ trait ValueTypeDomainDecl { self: Self =>
       given Rule[Refinements] = sortedMapRule("{", "}", " => ")
       given Rule[Local] = (app, local) => app >> local.toString
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
-      given Ordering[Boolean] = Ordering.Boolean
+      given Rule[RefinementKind] = (app, kind) => app >> kind.toString
+      given Ordering[RefinementKind] = Ordering.by(_.toString)
       given Ordering[Local] = Ordering.by(_.toString)
       app >> elem.ty
       if (elem.refinements.nonEmpty) app >> " " >> elem.refinements
