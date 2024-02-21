@@ -74,9 +74,6 @@ class TypeAnalyzer(
   /** no sensitivity */
   override val irSens: Boolean = false
 
-  /** use type refinement */
-  override val useRefine: Boolean = true
-
   /** type semantics as results */
   lazy val sem: Semantics = new Semantics
   class Semantics extends AbsSemantics(getInitNpMap(targetFuncs)) {
@@ -280,6 +277,181 @@ class TypeAnalyzer(
       if (config.checkInvalidBase && !baseTy.noProp.isBottom)
         addError(InvalidBaseError(PropBasePoint(PropPoint(np, prop)), baseTy))
       AbsValue(baseTy)
+
+    /** prune condition */
+    override def prune(
+      cond: Expr,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = cond match {
+      // prune inequality: x < 0
+      case EBinary(BOp.Lt, ERef(x: Local), EMath(0)) =>
+        pruneIneq(x, !positive, !positive)
+      // prune inequality: 0 < x
+      case EBinary(BOp.Lt, EMath(0), ERef(x: Local)) =>
+        pruneIneq(x, positive, !positive)
+      // prune local variables
+      case EBinary(BOp.Eq, ERef(x: Local), expr) =>
+        pruneLocal(x, expr, positive)
+      // prune fields
+      case EBinary(BOp.Eq, ERef(Prop(x: Local, EStr(field))), expr) =>
+        pruneField(x, field, expr, positive)
+      // prune types
+      case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
+        pruneType(x, expr, positive)
+      // prune type checks
+      case ETypeCheck(ERef(x: Local), expr) =>
+        pruneTypeCheck(x, expr, positive)
+      // prune logical negation
+      case EUnary(UOp.Not, e) =>
+        prune(e, !positive)
+      // prune logical disjunction
+      case EBinary(BOp.Or, l, r) =>
+        st =>
+          lazy val ltst = prune(l, true)(st)
+          lazy val lfst = prune(l, false)(st)
+          val rst = prune(r, positive)(lfst)
+          if (positive) ltst ⊔ rst else lfst ⊓ rst
+      // prune logical conjunction
+      case EBinary(BOp.And, l, r) =>
+        st =>
+          lazy val ltst = prune(l, true)(st)
+          lazy val lfst = prune(l, false)(st)
+          val rst = prune(r, positive)(ltst)
+          if (positive) ltst ⊓ rst else lfst ⊔ rst
+      // no pruning
+      case _ => st => st
+    }
+
+    /** prune types with inequalities */
+    def pruneIneq(
+      x: Local,
+      positive: Boolean,
+      withZero: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      prunedV = AbsValue(
+        ValueTy(math =
+          (positive, withZero) match
+            case (true, true)   => NonNegIntTy // x >= 0
+            case (true, false)  => PosIntTy // x > 0
+            case (false, true)  => NonPosIntTy // x <= 0
+            case (false, false) => NegIntTy, // x < 0
+        ),
+      )
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
+
+    /** prune types of local variables with equality */
+    def pruneLocal(
+      x: Local,
+      expr: Expr,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      rv <- transfer(expr)
+      lv <- transfer(l)
+      prunedV =
+        if (positive) lv ⊓ rv
+        else if (rv.isSingle) lv -- rv
+        else lv
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
+
+    /** prune types with field equality */
+    def pruneField(
+      x: Local,
+      field: String,
+      expr: Expr,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      rv <- transfer(expr)
+      lty = lv.ty
+      rty = rv.ty
+      prunedV = expr match
+        case EAbsent() if positive => lv
+        case EAbsent() =>
+          val subTys = (for {
+            name <- lty.name.set
+          } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
+          lv ⊓ AbsValue(subTys.foldLeft(ValueTy.Bot) { _ ⊔ NameT(_) })
+        case _ =>
+          field match
+            case "Value" =>
+              val normal = lty.normal.prune(rty.pureValue, positive)
+              AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
+            case "Type" =>
+              AbsValue(rty.const.getSingle match
+                case One("normal") =>
+                  if (positive) ValueTy(normal = lty.normal)
+                  else ValueTy(abrupt = lty.abrupt)
+                case One(tname) =>
+                  if (positive) ValueTy(abrupt = Fin(tname))
+                  else
+                    ValueTy(
+                      normal = lty.normal,
+                      abrupt = lty.abrupt -- Fin(tname),
+                    )
+                case _ => lty,
+              )
+            case _ => lv
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
+
+    /** prune types with `typeof` constraints */
+    def pruneType(
+      x: Local,
+      expr: Expr,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      rv <- transfer(expr)
+      lty = lv.ty
+      rty = rv.ty
+      prunedV = rty.str.getSingle match
+        case One(tname) =>
+          val value = AbsValue(tname match
+            case "Object"    => NameT("Object")
+            case "Symbol"    => SymbolT
+            case "Number"    => NumberT
+            case "BigInt"    => BigIntT
+            case "String"    => StrT
+            case "Boolean"   => BoolT
+            case "Undefined" => UndefT
+            case "Null"      => NullT
+            case _           => ValueTy(),
+          )
+          if (positive) lv ⊓ value else lv -- value
+        case _ => lv
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
+
+    /** prune types with type checks */
+    def pruneTypeCheck(
+      x: Local,
+      expr: Expr,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      rv <- transfer(expr)
+      lty = lv.ty
+      rty = rv.ty
+      prunedV = (for {
+        tname <- rv.getSingle match
+          case One(Str(s))   => Some(s)
+          case One(Nt(n, _)) => Some(n)
+          case _             => None
+        if cfg.tyModel.infos.contains(tname)
+      } yield {
+        if (positive) AbsValue(NameT(tname))
+        else lv -- AbsValue(NameT(tname))
+      }).getOrElse(lv)
+      _ <- modify(_.update(l, prunedV))
+    } yield ()
   }
 
   /** use type abstract domains */

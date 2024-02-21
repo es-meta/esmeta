@@ -459,14 +459,6 @@ trait ValueBasicDomainDecl { self: Self =>
         case One(_) => apply(F)
         case Many   => exploded("EIsArrayIndex")
 
-      /** prune abstract values */
-      def pruneIneq(positive: Boolean, withZero: Boolean): Elem = elem
-      def pruneValue(r: Elem, positive: Boolean): Elem = elem
-      def pruneField(field: String, r: Elem, positive: Boolean): Elem = elem
-      def pruneAbsentField(field: String, positive: Boolean): Elem = elem
-      def pruneType(r: Elem, positive: Boolean): Elem = elem
-      def pruneTypeCheck(r: Elem, positive: Boolean): Elem = elem
-
       /** completion helpers */
       def wrapCompletion: Elem = wrapCompletion("normal")
       def wrapCompletion(ty: String): Elem = apply(comp = {
