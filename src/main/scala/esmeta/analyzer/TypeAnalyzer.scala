@@ -161,14 +161,54 @@ class TypeAnalyzer(
     override def getLocals(
       callPoint: CallPoint,
       method: Boolean,
-      args: List[AbsValue],
+      vs: List[AbsValue],
     ): List[(Local, AbsValue)] =
       val CallPoint(callerNp, callee) = callPoint
       val arity @ (from, to) = callee.arity
-      val len = args.length
+      val len = vs.length
       if (config.checkArity && (len < from || to < len))
         addError(ArityMismatch(callPoint, len))
-      super.getLocals(callPoint, method, args)
+      super.getLocals(callPoint, method, vs)
+
+    /** handle calls */
+    override def doCall(
+      callPoint: CallPoint,
+      callerSt: AbsState,
+      args: List[Expr],
+      vs: List[AbsValue],
+      captured: Map[Name, AbsValue] = Map(),
+      method: Boolean = false,
+      tgt: Option[NodePoint[Node]] = None,
+    ): Unit =
+      val CallPoint(callerNp, callee) = callPoint
+      typeGuards.get(callee.name) match
+        case Some(list) =>
+          val call = callerNp.node
+          val retTy = callee.retTy.ty
+          val xs = args.map {
+            case ERef(x: Local) => Some(x)
+            case _              => None
+          }
+          val refinements = list.foldLeft(Map[Boolean, Map[Local, ValueTy]]()) {
+            case (acc, (idx, b, ty)) =>
+              xs(idx) match
+                case Some(x) =>
+                  val m = acc.getOrElse(b, Map())
+                  acc + (b -> (m + (x -> ty)))
+                case None => acc
+          }
+          for {
+            nextNode <- callerNp.node.next
+            nextNp = NodePoint(callerNp.func, nextNode, View())
+            retV = AbsValue(retTy, refinements)
+            newSt = callerSt.defineLocal(call.lhs -> retV)
+          } sem += nextNp -> newSt
+        case None =>
+          super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
+
+    val typeGuards: Map[String, List[(Int, Boolean, ValueTy)]] = Map(
+      "IsCallable" -> List((0, true, NameT("FunctionObject"))),
+    )
 
     /** TODO callee entries with type sensitivity */
     // private def tySensCalleeEntries(
@@ -283,6 +323,9 @@ class TypeAnalyzer(
       cond: Expr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = cond match {
+      // prune boolean local variables
+      case ERef(x: Local) =>
+        pruneBool(x, positive)
       // prune inequality: x < 0
       case EBinary(BOp.Lt, ERef(x: Local), EMath(0)) =>
         pruneIneq(x, !positive, !positive)
@@ -322,6 +365,27 @@ class TypeAnalyzer(
       case _ => st => st
     }
 
+    /** prune types for boolean local variables */
+    def pruneBool(
+      x: Local,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      prunedV = if (positive) AVT else AVF
+      _ <- modify(_.update(l, prunedV))
+      _ <- pruneBool(lv, positive)
+    } yield ()
+
+    /** prune types for boolean local variables */
+    def pruneBool(
+      value: AbsValue,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Result[List[Unit]] = join(for {
+      map <- value.refinements.get(positive).toList
+      (x, ty) <- map
+    } yield modify(_.update(x, AbsValue(ty))))
+
     /** prune types with inequalities */
     def pruneIneq(
       x: Local,
@@ -348,14 +412,16 @@ class TypeAnalyzer(
       expr: Expr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
-      l <- transfer(x)
       rv <- transfer(expr)
+      l <- transfer(x)
       lv <- transfer(l)
       prunedV =
         if (positive) lv ⊓ rv
         else if (rv.isSingle) lv -- rv
         else lv
       _ <- modify(_.update(l, prunedV))
+      _ <- if (prunedV ⊑ AVT) pruneBool(lv, true) else pure(Nil)
+      _ <- if (prunedV ⊑ AVF) pruneBool(lv, false) else pure(Nil)
     } yield ()
 
     /** prune types with field equality */

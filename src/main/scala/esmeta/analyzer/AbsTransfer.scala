@@ -267,16 +267,17 @@ trait AbsTransferDecl { self: Analyzer =>
         case ICall(_, fexpr, args) =>
           for {
             fv <- transfer(fexpr)
-            as <- join(args.map(transfer))
+            vs <- join(args.map(transfer))
             st <- get
           } yield {
             // closure call (XXX: unsound for inifinitely many closures)
             for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
-              doCall(CallPoint(callerNp, func), st, as, captured)
+              val callPoint = CallPoint(callerNp, func)
+              doCall(callPoint, st, args, vs, captured)
             // continuation call (XXX: unsound for inifinitely many continuations)
-            for (ACont(target, captured) <- fv.cont)
-              val callPoint = CallPoint(callerNp, target.func)
-              doCall(callPoint, st, as, captured, contTarget = Some(target))
+            for (ACont(tgt, captured) <- fv.cont)
+              val callPoint = CallPoint(callerNp, tgt.func)
+              doCall(callPoint, st, args, vs, captured, contTarget = Some(tgt))
             AbsValue.Bot
           }
         case IMethodCall(_, base, method, args) =>
@@ -286,18 +287,19 @@ trait AbsTransferDecl { self: Analyzer =>
             // TODO do not explicitly store methods in object but use a type
             // model when accessing methods
             fv <- get(_.get(bv, AbsValue(Str(method))))
-            as <- join(args.map(transfer))
+            vs <- join(args.map(transfer))
             st <- get
           } yield {
             for (AClo(func, _) <- fv.clo)
-              val args = bv.refineThis(func) :: as
-              doCall(CallPoint(callerNp, func), st, args, method = true)
+              val newVs = bv.refineThis(func) :: vs
+              val callPoint = CallPoint(callerNp, func)
+              doCall(callPoint, st, args, newVs, method = true)
             AbsValue.Bot
           }
         case ISdoCall(_, base, method, args) =>
           for {
             bv <- transfer(base)
-            as <- join(args.map(transfer))
+            vs <- join(args.map(transfer))
             st <- get
           } yield {
             var newV: AbsValue = AbsValue.Bot
@@ -305,8 +307,9 @@ trait AbsTransferDecl { self: Analyzer =>
               case One(AstValue(syn: Syntactic)) =>
                 getSDO((syn, method)) match
                   case Some((ast, sdo)) =>
-                    val args = AbsValue(ast) :: as
-                    doCall(CallPoint(callerNp, sdo), st, args, method = true)
+                    val callPoint = CallPoint(callerNp, sdo)
+                    val astV = AbsValue(ast)
+                    doCall(callPoint, st, args, astV :: vs, method = true)
                   case None => error("invalid sdo")
               case One(AstValue(lex: Lexical)) =>
                 newV ⊔= AbsValue(Interpreter.eval(lex, method))
@@ -316,7 +319,8 @@ trait AbsTransferDecl { self: Analyzer =>
 
                 // syntactic sdo
                 for ((sdo, ast) <- bv.getSDO(method))
-                  doCall(CallPoint(callerNp, sdo), st, ast :: as, method = true)
+                  val callPoint = CallPoint(callerNp, sdo)
+                  doCall(callPoint, st, args, ast :: vs, method = true)
               case _ => /* do nothing */
             newV
           }
@@ -688,14 +692,15 @@ trait AbsTransferDecl { self: Analyzer =>
     def doCall(
       callPoint: CallPoint,
       callerSt: AbsState,
-      args: List[AbsValue],
+      args: List[Expr],
+      vs: List[AbsValue],
       captured: Map[Name, AbsValue] = Map(),
       method: Boolean = false,
       contTarget: Option[NodePoint[Node]] = None,
     ): Unit =
       val CallPoint(callerNp, callee) = callPoint
       // get locals
-      val locals = getLocals(callPoint, method, args) ++ captured
+      val locals = getLocals(callPoint, method, vs) ++ captured
       // keep caller state to restore it
       contTarget match
         case Some(target) =>
@@ -803,17 +808,17 @@ trait AbsTransferDecl { self: Analyzer =>
     def getLocals(
       callPoint: CallPoint,
       method: Boolean,
-      args: List[AbsValue],
+      vs: List[AbsValue],
     ): List[(Local, AbsValue)] =
       val CallPoint(callerNp, callee) = callPoint
       // get parameters
       val params: List[Param] = callee.irFunc.params
       // full arguments with optional parameters
-      val fullArgs =
-        args ++ List.fill(params.length - args.length)(AbsValue.absentTop)
+      val fullVs =
+        vs ++ List.fill(params.length - vs.length)(AbsValue.absentTop)
       // construct local type environment
       (for {
-        ((param, arg), idx) <- (params zip fullArgs).zipWithIndex
+        ((param, arg), idx) <- (params zip fullVs).zipWithIndex
       } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
 
     /** assign argument to parameter */

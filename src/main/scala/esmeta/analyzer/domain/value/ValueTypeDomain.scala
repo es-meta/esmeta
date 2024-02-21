@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp, MOp, UOp}
+import esmeta.ir.{COp, Name, VOp, MOp, UOp, Local}
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESValueParser
 import esmeta.state.*
@@ -23,7 +23,10 @@ trait ValueTypeDomainDecl { self: Self =>
   object ValueTypeDomain extends ValueDomain {
 
     /** elements */
-    case class Elem(ty: ValueTy) extends Appendable
+    case class Elem(
+      ty: ValueTy,
+      refinements: Refinements = Map(),
+    ) extends Appendable
 
     /** top element */
     lazy val Top: Elem = exploded("top abstract value")
@@ -35,9 +38,9 @@ trait ValueTypeDomainDecl { self: Self =>
     def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
     /** constructor with types */
-    def apply(ty: Ty): Elem = ty match
+    def apply(ty: Ty, refinements: Refinements): Elem = ty match
       case _: UnknownTy => Bot
-      case vty: ValueTy => Elem(vty)
+      case vty: ValueTy => Elem(vty, refinements)
 
     /** constructor for completions */
     def createCompletion(
@@ -121,7 +124,14 @@ trait ValueTypeDomainDecl { self: Self =>
     /** appender */
     given rule: Rule[Elem] = (app, elem) =>
       import TyStringifier.given
+      given Rule[Refinements] = sortedMapRule("{", "}", " => ")
+      given Rule[Local] = (app, local) => app >> local.toString
+      given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
+      given Ordering[Boolean] = Ordering.Boolean
+      given Ordering[Local] = Ordering.by(_.toString)
       app >> elem.ty
+      if (elem.refinements.nonEmpty) app >> " " >> elem.refinements
+      app
 
     /** transfer for variadic operation */
     def vopTransfer(vop: VOp, vs: List[Elem]): Elem = vop match
@@ -406,23 +416,24 @@ trait ValueTypeDomainDecl { self: Self =>
             node = cfg.nodeMap(fid)
             func = cfg.funcOf(node)
           } yield ACont(NodePoint(func, node, View()), Map())) // TODO captured
-      def part: AbsPart = notSupported("value.TypeDomain.Elem.part")
-      def astValue: AbsAstValue = notSupported("value.TypeDomain.Elem.astValue")
-      def nt: AbsNt = notSupported("value.TypeDomain.Elem.nt")
-      def codeUnit: AbsCodeUnit = notSupported("value.TypeDomain.Elem.codeUnit")
-      def const: AbsConst = notSupported("value.TypeDomain.Elem.const")
-      def math: AbsMath = notSupported("value.TypeDomain.Elem.math")
-      def infinity: AbsInfinity = notSupported("value.TypeDomain.Elem.infinity")
+      def part: AbsPart = notSupported("ValueTypeDomain.Elem.part")
+      def astValue: AbsAstValue = notSupported("ValueTypeDomain.Elem.astValue")
+      def nt: AbsNt = notSupported("ValueTypeDomain.Elem.nt")
+      def codeUnit: AbsCodeUnit = notSupported("ValueTypeDomain.Elem.codeUnit")
+      def const: AbsConst = notSupported("ValueTypeDomain.Elem.const")
+      def math: AbsMath = notSupported("ValueTypeDomain.Elem.math")
+      def infinity: AbsInfinity = notSupported("ValueTypeDomain.Elem.infinity")
       def simpleValue: AbsSimpleValue =
-        notSupported("value.TypeDomain.Elem.simpleValue")
-      def number: AbsNumber = notSupported("value.TypeDomain.Elem.number")
-      def bigInt: AbsBigInt = notSupported("value.TypeDomain.Elem.bigInt")
-      def str: AbsStr = notSupported("value.TypeDomain.Elem.str")
+        notSupported("ValueTypeDomain.Elem.simpleValue")
+      def number: AbsNumber = notSupported("ValueTypeDomain.Elem.number")
+      def bigInt: AbsBigInt = notSupported("ValueTypeDomain.Elem.bigInt")
+      def str: AbsStr = notSupported("ValueTypeDomain.Elem.str")
       def bool: AbsBool = AbsBool.alpha(elem.ty.bool.set.map(Bool.apply))
-      def undef: AbsUndef = notSupported("value.TypeDomain.Elem.undef")
-      def nullv: AbsNull = notSupported("value.TypeDomain.Elem.nullv")
-      def absent: AbsAbsent = notSupported("value.TypeDomain.Elem.absent")
+      def undef: AbsUndef = notSupported("ValueTypeDomain.Elem.undef")
+      def nullv: AbsNull = notSupported("ValueTypeDomain.Elem.nullv")
+      def absent: AbsAbsent = notSupported("ValueTypeDomain.Elem.absent")
       def ty: ValueTy = elem.ty
+      def refinements: Refinements = elem.refinements
     }
 
     // -------------------------------------------------------------------------
