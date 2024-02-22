@@ -2,10 +2,17 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.parser.AstFrom
+import esmeta.es.Ast
+import esmeta.es.util.UnitWalker
 import esmeta.es.util.Coverage
 import esmeta.synthesizer.SimpleSynthesizer
 import esmeta.synthesizer.BuiltinSynthesizer
 import esmeta.spec.util.GrammarGraph
+import esmeta.util.SystemUtils.*
+import esmeta.spec.Grammar
+import esmeta.es.Syntactic
+import esmeta.es.Lexical
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
@@ -17,8 +24,39 @@ case object Fuzz extends Phase[CFG, Coverage] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Coverage =
-    for (code <- SimpleSynthesizer(cfg.grammar).initPool)
-      println(code)
+    val graph = GrammarGraph(cfg.grammar)
+    import graph.*
+
+    val simpleSyn = SimpleSynthesizer(cfg.grammar)
+    val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
+    val initPool = simpleSyn.initPool ++ builtInSyn.initPool
+
+    println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
+    println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
+    println(s"--- [PASS] ${initPool.length} seed programs are synthesized")
+
+    // TODO filter invalid programs in initPool
+    val filteredInitPool = Set(initPool(0), initPool(1)) // TEST
+
+    val asts = filteredInitPool.map(cfg.scriptParser.from(_))
+    val covered = asts
+      .map(
+        _.chains
+          .map(_ match
+            case lex: Lexical =>
+            case syn: Syntactic =>
+              getRhs(syn.name, syn.args, syn.rhsIdx),
+          )
+          .toSet,
+      )
+      .reduce(_ ++ _)
+
+    val percent = (covered.size.toDouble / rhsNodes.size) * 100
+    println(s"=== Covered ${covered.size} rhsNodes (Total: ${rhsNodes.size})")
+    println(f"=== SyntaxCoverage: ${percent}%.2f%%")
+
+    if (percent == 100) println("--- [PASS] Covered all rhsNodes")
+    else println("--- [FAIL] Uncovered rhsNodes remaining...")
     ???
 
   def defaultConfig: Config = Config()
