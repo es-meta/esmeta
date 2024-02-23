@@ -39,18 +39,18 @@ class SimpleSynthesizer(
   def apply(name: String): Lexical = Lexical(name, reservedLexicals(name))
 
   /** reserved lexicals */
-  val reservedLexicals: Map[String, String] = Map(
-    "IdentifierName" -> "x",
-    "NullLiteral" -> "null",
+  lazy val reservedLexicals: Map[String, String] = Map(
     "BooleanLiteral" -> "true",
-    "NumericLiteral" -> "42",
-    "StringLiteral" -> "''",
+    "IdentifierName" -> "x",
     "NoSubstitutionTemplate" -> "``",
+    "NullLiteral" -> "null",
+    "NumericLiteral" -> "0",
+    "PrivateIdentifier" -> "#x",
+    "RegularExpressionLiteral" -> "/a/",
+    "StringLiteral" -> "''",
     "TemplateHead" -> "`${",
     "TemplateMiddle" -> "}${",
     "TemplateTail" -> "}`",
-    "RegularExpressionLiteral" -> "/a/",
-    "PrivateIdentifier" -> "#x",
   )
 
   // ---------------------------------------------------------------------------
@@ -100,17 +100,13 @@ class SimpleSynthesizer(
   ): (Ast, String) =
     val RhsNode(_, name, args, rhsIdx) = rhsNode
     val children = for {
-      symbol <- rhsNode.rhs.symbols
-      child = symbol.match
-        case (nt: Nonterminal) =>
-          Some(auxSymbol(map, rhsNode.prod, nt, rhsNode.argMap)._2)
-        case ButNot(base, _) =>
-          Some(auxSymbol(map, rhsNode.prod, base, rhsNode.argMap)._2)
-        case ButOnlyIf(base, _, _) =>
-          Some(auxSymbol(map, rhsNode.prod, base, rhsNode.argMap)._2)
-        case _ => None
+      symbol <- rhsNode.rhs.symbols.toVector
+      nt <- symbol.getNt
+      child = symbol match
+        case Optional(_) => None
+        case _ => Some(auxSymbol(map, rhsNode.prod, nt, rhsNode.argMap)._2)
     } yield child
-    val ast = Syntactic(name, args, rhsIdx, children.toVector)
+    val ast = Syntactic(name, args, rhsIdx, children)
     val code = ast.toString(grammar = Some(grammar))
     (ast, code)
 
@@ -146,7 +142,14 @@ class SimpleSynthesizer(
       val RhsNode(_, name, args, rhsIdx) = rhsNode
       var scripts = Vector[Ast]()
       val nts = rhs.symbols.flatMap(_.getNt).toVector
-      val opts = rhs.symbols.zipWithIndex.collect { case (Optional(_), i) => i }
+      val opts = rhs.symbols
+        .collect {
+          case (nt: NtBase)    => nt
+          case (opt: Optional) => opt
+        }
+        .zipWithIndex
+        .collect { case (Optional(_), i) => i }
+        .toVector
       // added scripts for current RHS node
       val (prodNodes, children) = (for {
         nt <- nts
