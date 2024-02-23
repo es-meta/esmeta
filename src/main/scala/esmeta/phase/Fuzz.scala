@@ -28,17 +28,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
     import graph.*
 
     val simpleSyn = SimpleSynthesizer(cfg.grammar)
-    val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
-    val initPool = simpleSyn.initPool ++ builtInSyn.initPool
-
     println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
-    println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
-    println(s"--- [PASS] ${initPool.length} seed programs are synthesized")
 
-    // TODO filter invalid programs in initPool
-    val filteredInitPool = Set(initPool(0), initPool(1)) // TEST
+    // TODO Filter early-error seeds for avoiding error
 
-    val asts = filteredInitPool.map(cfg.scriptParser.from(_))
+    /** Measure Syntax Coverage of synthesized seeds of simpleSyn */
+    val asts = simpleSyn.initPool.map(cfg.scriptParser.from(_))
     val covered = asts
       .map(
         _.chains
@@ -57,6 +52,12 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     if (percent == 100) println("--- [PASS] Covered all rhsNodes")
     else println("--- [FAIL] Uncovered rhsNodes remaining...")
+
+    val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
+    println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
+
+    val initPool = simpleSyn.initPool ++ builtInSyn.initPool
+    println(s"--- [PASS] ${initPool.length} seed programs are synthesized")
     ???
 
   def defaultConfig: Config = Config()
