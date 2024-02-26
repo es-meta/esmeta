@@ -1,5 +1,6 @@
 package esmeta.es.util
 
+import esmeta.*
 import esmeta.es.*
 
 /** merge statements to script */
@@ -35,3 +36,6 @@ def flattenStmt(s: Ast): List[Ast] = s match
         flattenStmtList(stmtList)
       case _ => Nil
   case _ => Nil
+
+/** ECMAScript strict mode directive */
+val USE_STRICT = s"\"use strict\";$LINE_SEP"
