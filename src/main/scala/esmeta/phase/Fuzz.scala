@@ -44,6 +44,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"--- Filtered into ${validSeeds.length} valid seeds")
     println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
 
+    /** Measure Syntax Coverage of seeds of simpleSyn */
     def processAst(ast: Ast): Set[RhsNode] = ast match {
       case lex: Lexical => Set()
       case syn: Syntactic =>
@@ -61,9 +62,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
         },
       )
       .reduce(_ ++ _)
-
-    for (e <- (rhsNodes -- covered).toList.sortBy(_.id))
-      println(e)
 
     println(f"--- SyntaxCoverage: ${ratioString(covered.size, rhsNodes.size)}")
 
