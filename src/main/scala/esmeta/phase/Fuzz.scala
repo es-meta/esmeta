@@ -15,6 +15,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.spec.Grammar
 import esmeta.es.Syntactic
 import esmeta.es.Lexical
+import io.circe.JsonObject
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
@@ -32,14 +33,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val simpleSyn = SimpleSynthesizer(cfg.grammar)
     println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
 
+    mkdir(FUZZ_DIR)
     val validSeeds = (for {
-      raw <- simpleSyn.initPool
-      filtered <- optional(cfg.scriptParser.from(raw))
-    } yield filtered).filter(ValidityChecker(cfg.grammar, _))
+      (raw, k) <- simpleSyn.initPool.zipWithIndex
+      opt = optional(cfg.scriptParser.from(raw))
+      _ = if (opt.isEmpty) dumpFile(raw, s"$FUZZ_DIR/$k.js")
+      filtered <- opt
+    } yield filtered) // .filter(ValidityChecker(cfg.grammar, _)) // TODO ValidityChecker
 
-    println(
-      s"--- Filter seeds of SimpleSyn (${simpleSyn.initPool.length} -> ${validSeeds.length})",
-    )
+    println(s"--- Filtered into ${validSeeds.length} valid seeds")
+    println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
 
     /** Measure Syntax Coverage of synthesized seeds of simpleSyn */
     // TODO walker based tracer
