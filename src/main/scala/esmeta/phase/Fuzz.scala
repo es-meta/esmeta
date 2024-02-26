@@ -44,22 +44,28 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"--- Filtered into ${validSeeds.length} valid seeds")
     println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
 
-    /** Measure Syntax Coverage of synthesized seeds of simpleSyn */
-    // TODO walker based tracer
-    // val asts = validSeeds.map(cfg.scriptParser.from(_))
-    // val covered = asts
-    //   .map(
-    //     _.chains
-    //       .map(_ match
-    //         case lex: Lexical =>
-    //         case syn: Syntactic =>
-    //           getRhs(syn.name, syn.args, syn.rhsIdx),
-    //       )
-    //       .toSet,
-    //   )
-    //   .reduce(_ ++ _)
+    def processAst(ast: Ast): Set[RhsNode] = ast match {
+      case lex: Lexical => Set()
+      case syn: Syntactic =>
+        val childrenResults = syn.children.flatMap {
+          case Some(childAst) => processAst(childAst)
+          case None           => Set()
+        }.toSet
+        childrenResults + getRhs(syn.name, syn.args, syn.rhsIdx)
+    }
+    val covered = validSeeds
+      .flatMap(ast =>
+        ast match {
+          case syn: Syntactic => syn.chains.map(processAst).toSet
+          case _              => Set()
+        },
+      )
+      .reduce(_ ++ _)
 
-    // println(f"--- SyntaxCoverage: ${ratioString(covered.size, rhsNodes.size)}")
+    for (e <- (rhsNodes -- covered).toList.sortBy(_.id))
+      println(e)
+
+    println(f"--- SyntaxCoverage: ${ratioString(covered.size, rhsNodes.size)}")
 
     val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
     println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
