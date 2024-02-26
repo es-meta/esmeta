@@ -8,3 +8,6 @@ case class InvalidGitVersion(msg: String)
 
 case class GitTagMismatch(hash: String, tagName: String)
   extends UtilError(s"Git tag mismatch: $hash != $tagName")
+
+case class NoCommandError(command: String)
+  extends UtilError(s"Command not found: $command")
