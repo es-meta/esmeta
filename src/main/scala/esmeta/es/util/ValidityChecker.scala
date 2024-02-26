@@ -8,6 +8,7 @@ import sys.process.*
 import java.util.StringJoiner
 import scala.util.Try
 
+// TODO refactor using GraalVM
 /** ECMAScript program validity checker */
 object ValidityChecker {
   def apply(grammar: Grammar, ast: Ast): Boolean =
