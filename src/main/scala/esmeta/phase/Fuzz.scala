@@ -34,12 +34,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
 
     mkdir(FUZZ_DIR)
-    val validSeeds = (for {
+    // TODO refactoring
+    val validSeeds = for {
       (raw, k) <- simpleSyn.initPool.zipWithIndex
       opt = optional(cfg.scriptParser.from(raw))
       _ = if (opt.isEmpty) dumpFile(raw, s"$FUZZ_DIR/$k.js")
       filtered <- opt
-    } yield filtered) // .filter(ValidityChecker(cfg.grammar, _)) // TODO ValidityChecker
+      isValid = ValidityChecker(cfg.grammar, filtered)
+      _ = if (!isValid) dumpFile(raw, s"$FUZZ_DIR/$k.js")
+      valid <- if (isValid) Some(filtered) else None
+    } yield valid
 
     println(s"--- Filtered into ${validSeeds.length} valid seeds")
     println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
