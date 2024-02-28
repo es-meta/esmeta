@@ -170,6 +170,8 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("ch.megard" %% "akka-http-cors" % "1.1.2")
         .cross(CrossVersion.for3Use2_13), // cors
+      "org.graalvm.polyglot" % "js" % "23.1.2" % "provided",
+      "org.graalvm.polyglot" % "polyglot" % "23.1.2" % "provided",
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is

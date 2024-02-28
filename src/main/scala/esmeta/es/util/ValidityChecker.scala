@@ -1,9 +1,11 @@
 package esmeta.es.util
 
+import scala.util.Try
 import esmeta.*
 import esmeta.es.*
 import esmeta.spec.*
-import javax.script._
+import esmeta.js.JSEngine
+import esmeta.util.BaseUtils.warn
 
 /** ECMAScript program validity checker */
 object ValidityChecker {
@@ -12,25 +14,13 @@ object ValidityChecker {
   def apply(grammar: Grammar, ast: Ast): Boolean =
     apply(ast.toString(grammar = Some(grammar)))
   def apply(code: String): Boolean =
-    useGraalJs(code)
-
-  def useGraalJs(code: String): Boolean = {
-    val manager = new ScriptEngineManager
-    val engine = manager.getEngineByName("Graal.js")
-    if (engine == null) {
-      Console.err.println(
-        "[WARNING] ValidityChecker always return true because Graal.js is not yet installed in this environment.",
-      )
+    val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP;$LINE_SEP$code"
+    if (JSEngine.useGraal) checkValid(JSEngine.runGraal(src, Some(1000)))
+    else if (JSEngine.useNode) checkValid(JSEngine.runNode(src, Some(1000)))
+    else
+      warn("No JSEngine available. this may pass invalid program.")
       true
-    } else
-      try {
-        val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP;$LINE_SEP$code"
-        engine.eval(src)
-        false
-      } catch {
-        case e: ScriptException =>
-          val pass = e.toString.contains(MESSAGE)
-          pass
-      }
-  }
+
+  private def checkValid(result: Try[Any]): Boolean =
+    result.failed.filter(_.getMessage contains MESSAGE).isSuccess
 }
