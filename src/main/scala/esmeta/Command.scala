@@ -188,7 +188,7 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
   val help = "generate ECMAScript programs for fuzzing."
   val examples = List(
     "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
-    "esmeta fuzz -fuzz:out=out   # dump the generated program to `out`",
+    "esmeta fuzz -fuzz:log       # fuzz in the logging mode.",
   )
   override def showResult(cov: es.util.Coverage): Unit = ???
 }

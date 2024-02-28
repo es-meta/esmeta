@@ -2,20 +2,14 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.parser.AstFrom
-import esmeta.es.Ast
-import esmeta.es.util.UnitWalker
-import esmeta.es.util.Coverage
-import esmeta.synthesizer.SimpleSynthesizer
-import esmeta.synthesizer.BuiltinSynthesizer
-import esmeta.es.util.ValidityChecker
-import esmeta.spec.util.GrammarGraph
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.spec.Grammar
-import esmeta.es.Syntactic
-import esmeta.es.Lexical
-import io.circe.JsonObject
+import esmeta.es.*
+import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker}
+import esmeta.spec.util.GrammarGraph
+import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
+import scala.collection.mutable.ListBuffer
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
@@ -33,20 +27,27 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val simpleSyn = SimpleSynthesizer(cfg.grammar)
     println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
 
-    mkdir(FUZZ_DIR)
+    var parseFails = new ListBuffer[String]()
+    var validationFails = new ListBuffer[String]()
+
     // TODO refactoring
     val validSeeds = for {
       (raw, k) <- simpleSyn.initPool.zipWithIndex
       opt = optional(cfg.scriptParser.from(raw))
-      _ = if (opt.isEmpty) dumpFile(raw, s"$FUZZ_DIR/$k.js")
+      _ = if (opt.isEmpty) parseFails += raw
       filtered <- opt
       isValid = ValidityChecker(cfg.grammar, filtered)
-      _ = if (!isValid) dumpFile(raw, s"$FUZZ_DIR/$k.js")
+      _ = if (!isValid) validationFails += raw
       valid <- if (isValid) Some(filtered) else None
     } yield valid
 
     println(s"--- Filtered into ${validSeeds.length} valid seeds")
-    println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
+
+    if (config.log) {
+      println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
+      log("parse-failures", parseFails)
+      log("validation-failures", validationFails)
+    }
 
     /** Measure Syntax Coverage of seeds of simpleSyn */
     def processAst(ast: Ast): Set[RhsNode] = ast match {
@@ -76,7 +77,24 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"[*] Total ${initPool.length} seeds are synthesized")
     ???
 
+  /** logging mode */
+  private def log(filename: String, fails: ListBuffer[String]): Unit = {
+    mkdir(FUZZ_DIR)
+    dumpFile(
+      data = fails.sorted.mkString(LINE_SEP),
+      filename = s"$FUZZ_DIR/$filename",
+    )
+  }
+
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
+  val options: List[PhaseOption[Config]] = List(
+    (
+      "log",
+      BoolOption(c => c.log = true),
+      "turn on logging mode.",
+    ),
+  )
+  case class Config(
+    var log: Boolean = false,
+  )
 }
