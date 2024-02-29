@@ -30,8 +30,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val parseFails: ArrayBuffer[String] = ArrayBuffer()
     val validationFails: ArrayBuffer[String] = ArrayBuffer()
 
-    // TODO refactoring
-    val validSeeds = for {
+    val validAsts = for {
       (raw, k) <- simpleSyn.initPool.zipWithIndex
       opt = optional(cfg.scriptParser.from(raw))
       filtered <- opt
@@ -41,7 +40,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       _ = if (config.log && !isValid) validationFails += raw
     } yield valid
 
-    println(s"--- Filtered into ${validSeeds.length} valid seeds")
+    println(s"--- Filtered into ${validAsts.length} valid seeds")
 
     if (config.log) {
       println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
@@ -49,20 +48,21 @@ case object Fuzz extends Phase[CFG, Coverage] {
       log("validation-failures", validationFails)
     }
 
+    /** TODO fix the design of syntax coverage */
     /** Measure Syntax Coverage of seeds of simpleSyn */
-    def processAst(ast: Ast): Set[RhsNode] = ast match {
+    def auxAst(ast: Ast): Set[RhsNode] = ast match {
       case lex: Lexical => Set()
       case syn: Syntactic =>
         val childrenResults = syn.children.flatMap {
-          case Some(childAst) => processAst(childAst)
+          case Some(childAst) => auxAst(childAst)
           case None           => Set()
         }.toSet
         childrenResults + getRhs(syn.name, syn.args, syn.rhsIdx)
     }
-    val covered = validSeeds
+    val covered = validAsts
       .flatMap(ast =>
         ast match {
-          case syn: Syntactic => syn.chains.map(processAst).toSet
+          case syn: Syntactic => syn.chains.map(auxAst).toSet
           case _              => Set()
         },
       )
@@ -73,8 +73,17 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
     println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
 
+    val validSeeds = validAsts.map(_.toString(grammar = Some(grammar)).trim)
     val initPool = validSeeds ++ builtInSyn.initPool
     println(s"[*] Total ${initPool.length} seeds are synthesized")
+
+    // TODO refactor and add features to Coverage
+    println(s"--- Testing SemanticCoverage...")
+    val target = "const array1 = [1, 2, 3];\narray1.shift();" // TEST
+    lazy val cov = Coverage(cfg = cfg, timeLimit = Some(1))
+    try cov.runWithSrc(target)
+    catch { case e: Throwable => println("NotSupported feature detected") }
+    println(cov.toString)
     ???
 
   /** logging mode */
