@@ -24,6 +24,54 @@ case class Coverage(
 
   /** update coverage for a given ECMAScript program */
   private lazy val scriptParser = cfg.scriptParser
+  def runWithSrc(src: String): State = {
+    val script = scriptParser.from(src)
+    // program infos
+    val pid = programs.size
+    val code = script.toString(grammar = Some(cfg.grammar)).trim
+    val programSize = code.length
+    programs += (("tmp", programSize))
+
+    var markedAst = script.nodeSet
+
+    // run interpreter and record touched
+    val touched: MSet[Int] = MSet()
+    val finalSt = new Interpreter(
+      Initialize(cfg, code, Some(script)),
+      timeLimit = timeLimit,
+    ) {
+      // check if current state need to be recorded
+      private def needRecord: Boolean =
+        val contexts = st.context :: st.callStack.map(_.context)
+        val astOpt = contexts.flatMap(_.astOpt).headOption
+        astOpt.fold(false)(markedAst contains _)
+
+      // override eval for node
+      override def eval(node: Node): Unit =
+        // record touched
+        if (needRecord) touched += node.id
+        super.eval(node)
+
+      // handle dynamically created ast
+      override def eval(expr: Expr): Value =
+        val v = super.eval(expr)
+        (expr, v) match
+          case (_: EParse, AstValue(ast)) if needRecord =>
+            markedAst ++= ast.nodeSet
+          case _ => /* do nothing */
+        v
+    }.result
+
+    // update coverage
+    for { nid <- touched } {
+      nodeMap.get(nid) match
+        case Some(pid0) if programs(pid0)._2 <= programSize => /* do nothing */
+        case _ => nodeMap += (nid -> pid)
+    }
+
+    finalSt
+  }
+
   def run(path: String): State = {
     // script AST
     val script = test262 match
