@@ -9,7 +9,7 @@ import esmeta.es.*
 import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker}
 import esmeta.spec.util.GrammarGraph
 import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 /** `fuzz` phase */
 case object Fuzz extends Phase[CFG, Coverage] {
@@ -27,18 +27,18 @@ case object Fuzz extends Phase[CFG, Coverage] {
     val simpleSyn = SimpleSynthesizer(cfg.grammar)
     println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
 
-    var parseFails = new ListBuffer[String]()
-    var validationFails = new ListBuffer[String]()
+    val parseFails: ArrayBuffer[String] = ArrayBuffer()
+    val validationFails: ArrayBuffer[String] = ArrayBuffer()
 
     // TODO refactoring
     val validSeeds = for {
       (raw, k) <- simpleSyn.initPool.zipWithIndex
       opt = optional(cfg.scriptParser.from(raw))
-      _ = if (opt.isEmpty) parseFails += raw
       filtered <- opt
       isValid = ValidityChecker(cfg.grammar, filtered)
-      _ = if (!isValid) validationFails += raw
       valid <- if (isValid) Some(filtered) else None
+      _ = if (config.log && opt.isEmpty) parseFails += raw
+      _ = if (config.log && !isValid) validationFails += raw
     } yield valid
 
     println(s"--- Filtered into ${validSeeds.length} valid seeds")
@@ -78,7 +78,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     ???
 
   /** logging mode */
-  private def log(filename: String, fails: ListBuffer[String]): Unit = {
+  private def log(filename: String, fails: ArrayBuffer[String]): Unit = {
     mkdir(FUZZ_DIR)
     dumpFile(
       data = fails.sorted.mkString(LINE_SEP),
