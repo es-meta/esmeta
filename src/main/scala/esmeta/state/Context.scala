@@ -10,6 +10,7 @@ import scala.collection.mutable.{Map => MMap}
 case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
+  val nearest: Option[Nearest] = None,
 ) extends StateElem {
 
   /** current cursor in this context */
