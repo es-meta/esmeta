@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
 import esmeta.error.NotSupported.*
-import esmeta.es.*
+import esmeta.es.{Ast}
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
@@ -24,10 +24,8 @@ case class Test262(
 ) {
 
   /** cache for parsing results for necessary harness files */
-  lazy val getHarness = cached(name =>
-    val filename = s"$TEST262_DIR/harness/$name"
-    () => parseFile(filename).flattenStmt,
-  )
+  lazy val getHarness =
+    cached[String, String](name => readFile(s"$TEST262_DIR/harness/$name"))
 
   /** test262 filter */
   lazy val testFilter: TestFilter = TestFilter(cfg.spec)
@@ -39,23 +37,24 @@ case class Test262(
   lazy val (allTargetTests, allRemoved) = testFilter(allTests, withYet)
 
   /** basic harness files */
-  lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
+  lazy val basicHarness = Vector(getHarness("assert.js"), getHarness("sta.js"))
 
   /** specification */
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): Ast =
+  def loadTest(filename: String): String =
     loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): Ast =
+  def loadTest(filename: String, includes: List[String]): String =
     // load harness
-    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_)())
+    val harnessStmts = includes.foldLeft(basicHarness)(_ :+ getHarness(_))
 
     // merge with harnesses
-    val stmts = flattenStmt(parseFile(filename))
-    mergeStmt(harnessStmts ++ stmts)
+    val code = readFile(filename)
+
+    (harnessStmts :+ code).mkString(LINE_SEP)
 
   /** get tests */
   def getTests(
@@ -145,7 +144,7 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
-          else cov.run(filename)
+          else cov.runAndCheck(Script(loadTest(filename), filename))._1
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
@@ -211,10 +210,13 @@ case class Test262(
     filename: String,
     log: Boolean = false,
     timeLimit: Option[Int] = None,
+  ): State = eval(loadTest(filename), log, timeLimit)
+  private def eval(
+    code: String,
+    log: Boolean = false,
+    timeLimit: Option[Int] = None,
   ): State =
-    val ast = loadTest(filename)
-    val code = ast.toString(grammar = Some(cfg.grammar)).trim
-    val st = Initialize(cfg, code, Some(ast), Some(filename))
+    val st = cfg.init.from(code)
     Interpreter(
       st = st,
       log = log,

@@ -33,6 +33,14 @@ case class ESParser(
       def from(str: String): Ast =
         if (debug) println(debugWelcome)
         parse(parser, str).get
+      def fromFileWithCode(filename: String): (Ast, String) =
+        if (debug) println(debugWelcome)
+        val res = parse(parser, fileReader(filename))
+        (res.get, res.next.source.toString)
+      def fromWithCode(str: String): (Ast, String) =
+        if (debug) println(debugWelcome)
+        val res = parse(parser, str)
+        (res.get, res.next.source.toString)
     }
 
   // parsers

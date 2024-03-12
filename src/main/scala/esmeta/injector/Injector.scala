@@ -24,7 +24,7 @@ object Injector:
     defs: Boolean = false,
     log: Boolean = false,
   ): String =
-    val extractor = ExitStateExtractor(Initialize(cfg, src))
+    val extractor = ExitStateExtractor(cfg.init.from(src))
     new Injector(extractor, defs, log).result
 
   /** injection from files */
@@ -34,7 +34,7 @@ object Injector:
     defs: Boolean = false,
     log: Boolean = false,
   ): String =
-    val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
+    val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
     new Injector(extractor, defs, log).result
 
   /** assertion definitions */

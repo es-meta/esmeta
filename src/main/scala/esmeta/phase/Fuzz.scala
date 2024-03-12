@@ -6,7 +6,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
-import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker}
+import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker, Script}
 import esmeta.spec.util.GrammarGraph
 import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
 import scala.collection.mutable.ArrayBuffer
@@ -81,9 +81,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"--- Testing SemanticCoverage...")
     val target = "const array1 = [1, 2, 3];\narray1.shift();" // TEST
     lazy val cov = Coverage(cfg = cfg, timeLimit = Some(1))
-    try cov.runWithSrc(target)
+    try cov.runAndCheck(Script(target, "tmp.js"))
     catch { case e: Throwable => println("NotSupported feature detected") }
     println(cov.toString)
+    cov.dumpTo(LOG_DIR)
     ???
 
   /** logging mode */
