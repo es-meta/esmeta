@@ -8,7 +8,6 @@ import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.Interp
-import esmeta.test262.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -19,8 +18,8 @@ import scala.math.Ordering.Implicits.seqOrdering
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
-  test262: Option[Test262] = None,
   timeLimit: Option[Int] = None,
+  logDir: Option[String] = None, // TODO: use this
 ) {
   import Coverage.{*, given}
 

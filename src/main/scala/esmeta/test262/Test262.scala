@@ -128,7 +128,6 @@ case class Test262(
     // coverage with time limit
     lazy val cov = Coverage(
       cfg = cfg,
-      test262 = Some(this),
       timeLimit = timeLimit,
     )
 
