@@ -43,7 +43,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"--- Filtered into ${validAsts.length} valid seeds")
 
     if (config.log) {
-      println(s"--- Invalid seeds are logged into $FUZZ_DIR ...")
+      println(s"--- Invalid seeds are logged into $FUZZ_LOG_DIR ...")
       log("parse-failures", parseFails)
       log("validation-failures", validationFails)
     }
@@ -89,10 +89,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
   /** logging mode */
   private def log(filename: String, fails: ArrayBuffer[String]): Unit = {
-    mkdir(FUZZ_DIR)
+    mkdir(FUZZ_LOG_DIR)
     dumpFile(
       data = fails.sorted.mkString(LINE_SEP),
-      filename = s"$FUZZ_DIR/$filename",
+      filename = s"$FUZZ_LOG_DIR/$filename",
     )
   }
 
