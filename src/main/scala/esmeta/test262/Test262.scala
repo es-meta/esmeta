@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
 import esmeta.error.NotSupported.*
-import esmeta.es.{Ast}
+import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
