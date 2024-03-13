@@ -6,7 +6,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
-import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker, Script}
+import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker}
 import esmeta.spec.util.GrammarGraph
 import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
 import scala.collection.mutable.ArrayBuffer

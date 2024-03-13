@@ -15,8 +15,6 @@ import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
 import scala.math.Ordering.Implicits.seqOrdering
 
-case class Script(code: String, name: String)
-
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
