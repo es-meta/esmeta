@@ -29,12 +29,14 @@ object JSEngine {
           context.eval("js", "")
         } catch
           case e =>
-            warn("Unable to run js using Graal. try `gu --jvm install js`.")
+            // TODO(@hyp3rflow): fix this error message correctly
+            warn("Unable to run GraalVM polyglot API.")
             throw e
       }.isSuccess
     catch {
       case e: Error =>
-        warn("Unable to run Graal.")
+        // TODO(@hyp3rflow): fix this error message correctly
+        warn("Unable to run GraalVM polyglot API.")
         false
     }
 
