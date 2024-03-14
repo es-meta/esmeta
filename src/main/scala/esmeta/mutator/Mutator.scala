@@ -2,14 +2,41 @@ package esmeta.mutator
 
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
+import esmeta.util.*
+import esmeta.parser.{ESParser, AstFrom}
 
 /** ECMAScript AST mutator */
-trait Mutator extends Walker {
-  def apply(ast: Ast): Ast = walk(ast)
+trait Mutator(using val grammar: Grammar) extends Walker {
 
-  /** ECMAScript grammar */
-  def grammar: Grammar
+  /** ECMAScript parser */
+  lazy val esParser: ESParser = ESParser(grammar)
+  lazy val scriptParser: AstFrom = esParser("Script")
+
+  private type Result = Seq[(String, Ast)]
+
+  /*placeholder for weight*/
+  def calculateWeight(ast: Ast): Int
+
+  /** mutate string */
+  def apply(code: String, n: Int): Result =
+    apply(code, n, None)
+  def apply(
+    code: String,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Result = apply(scriptParser.from(code), n, target)
+
+  /** mutate asts */
+  def apply(ast: Ast, n: Int): Result = apply(ast, n, None)
+  def apply(
+    ast: Ast,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Result
+
+  /** Possible names of underlying mutators */
+  val names: List[String]
+  lazy val name: String = names.head
 }
-object Mutator:
-  type Builder = Grammar => Mutator
