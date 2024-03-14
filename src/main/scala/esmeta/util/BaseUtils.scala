@@ -167,6 +167,9 @@ object BaseUtils {
     aux()
   }
 
+  /** shuffle a sequence */
+  def shuffle[T](seq: Seq[T]) = rand.shuffle(seq)
+
   /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
     rule(Appender(), t).toString
