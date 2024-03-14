@@ -1,11 +1,12 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.{error => _, *}
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
+import esmeta.es.util.fuzzer.Fuzzer
 import esmeta.es.util.{UnitWalker, Coverage, ValidityChecker}
 import esmeta.spec.util.GrammarGraph
 import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
@@ -21,71 +22,25 @@ case object Fuzz extends Phase[CFG, Coverage] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Coverage =
+    // optionally set the seed for the random number generator
+    config.seed.foreach(setSeed)
+
     val graph = GrammarGraph(cfg.grammar)
     import graph.*
 
-    val simpleSyn = SimpleSynthesizer(cfg.grammar)
-    println(s"=== SimpleSyn: ${simpleSyn.initPool.length} seeds synthesized")
+    val cov = Fuzzer(
+      cfg = cfg,
+      logInterval = config.logInterval,
+      debug = config.debug,
+      timeLimit = config.timeLimit,
+      trial = config.trial,
+      duration = config.duration,
+      useSens = config.useSens,
+    )
 
-    val parseFails: ArrayBuffer[String] = ArrayBuffer()
-    val validationFails: ArrayBuffer[String] = ArrayBuffer()
+    for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
-    val validAsts = for {
-      (raw, k) <- simpleSyn.initPool.zipWithIndex
-      opt = optional(cfg.scriptParser.from(raw))
-      filtered <- opt
-      isValid = ValidityChecker(cfg.grammar, filtered)
-      valid <- if (isValid) Some(filtered) else None
-      _ = if (config.log && opt.isEmpty) parseFails += raw
-      _ = if (config.log && !isValid) validationFails += raw
-    } yield valid
-
-    println(s"--- Filtered into ${validAsts.length} valid seeds")
-
-    if (config.log) {
-      println(s"--- Invalid seeds are logged into $FUZZ_LOG_DIR ...")
-      log("parse-failures", parseFails)
-      log("validation-failures", validationFails)
-    }
-
-    /** TODO fix the design of syntax coverage */
-    /** Measure Syntax Coverage of seeds of simpleSyn */
-    def auxAst(ast: Ast): Set[RhsNode] = ast match {
-      case lex: Lexical => Set()
-      case syn: Syntactic =>
-        val childrenResults = syn.children.flatMap {
-          case Some(childAst) => auxAst(childAst)
-          case None           => Set()
-        }.toSet
-        childrenResults + getRhs(syn.name, syn.args, syn.rhsIdx)
-    }
-    val covered = validAsts
-      .flatMap(ast =>
-        ast match {
-          case syn: Syntactic => syn.chains.map(auxAst).toSet
-          case _              => Set()
-        },
-      )
-      .reduce(_ ++ _)
-
-    println(f"--- SyntaxCoverage: ${ratioString(covered.size, rhsNodes.size)}")
-
-    val builtInSyn = BuiltinSynthesizer(cfg.spec.algorithms)
-    println(s"=== BuiltInSyn: ${builtInSyn.initPool.length} seeds synthesized")
-
-    val validSeeds = validAsts.map(_.toString(grammar = Some(grammar)).trim)
-    val initPool = validSeeds ++ builtInSyn.initPool
-    println(s"[*] Total ${initPool.length} seeds are synthesized")
-
-    // TODO refactor and add features to Coverage
-    println(s"--- Testing SemanticCoverage...")
-    val target = "const array1 = [1, 2, 3];\narray1.shift();" // TEST
-    lazy val cov = Coverage(cfg = cfg, timeLimit = Some(1))
-    try cov.runAndCheck(Script(target, "tmp.js"))
-    catch { case e: Throwable => println("NotSupported feature detected") }
-    println(cov.toString)
-    cov.dumpTo(LOG_DIR)
-    ???
+    cov
 
   /** logging mode */
   private def log(filename: String, fails: ArrayBuffer[String]): Unit = {
@@ -103,8 +58,71 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "log-interval",
+      NumOption((c, k) => c.logInterval = Some(k)),
+      "turn on logging mode and set logging interval (default: 600 seconds).",
+    ),
+    (
+      "out",
+      StrOption((c, s) => c.out = Some(s)),
+      "dump the generated ECMAScript programs to a given directory.",
+    ),
+    (
+      "debug",
+      NumOption((c, k) =>
+        if (k < 0 || k > 2) error("invalid debug level: please set 0 to 2")
+        else c.debug = k,
+      ),
+      "turn on deug mode with level (0: no-debug, 1: partial, 2: all)",
+    ),
+    (
+      "timeout",
+      NumOption((c, k) => c.timeLimit = Some(k)),
+      "set the time limit in seconds (default: 1 second).",
+    ),
+    (
+      "trial",
+      NumOption((c, k) => c.trial = Some(k)),
+      "set the number of trials (default: INF).",
+    ),
+    (
+      "duration",
+      NumOption((c, k) => c.duration = Some(k)),
+      "set the maximum duration for fuzzing (default: INF)",
+    ),
+    (
+      "seed",
+      NumOption((c, k) => c.seed = Some(k)),
+      "set the specific seed for the random number generator (default: None).",
+    ),
+    (
+      "cp",
+      BoolOption(c => c.cp = true),
+      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
+    ),
+    (
+      "init",
+      StrOption((c, s) => c.init = Some(s)),
+      "explicitly use the given init pool",
+    ),
+    (
+      "sens",
+      BoolOption(c => c.useSens = true),
+      "turn on node/branch coverage sensitivity",
+    ),
   )
   case class Config(
     var log: Boolean = false,
+    var logInterval: Option[Int] = Some(600),
+    var out: Option[String] = None,
+    var debug: Int = 0,
+    var timeLimit: Option[Int] = Some(1),
+    var trial: Option[Int] = None,
+    var duration: Option[Int] = None,
+    var seed: Option[Int] = None,
+    var cp: Boolean = false,
+    var init: Option[String] = None,
+    var useSens: Boolean = false,
   )
 }
