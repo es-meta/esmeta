@@ -30,13 +30,13 @@ object JSEngine {
         } catch
           case e =>
             // TODO(@hyp3rflow): fix this error message correctly
-            warn("Unable to run GraalVM polyglot API.")
+            warn(s"Unable to run GraalVM polyglot API: $e")
             throw e
       }.isSuccess
     catch {
       case e: Error =>
         // TODO(@hyp3rflow): fix this error message correctly
-        warn("Unable to run GraalVM polyglot API.")
+        warn(s"Unable to run GraalVM polyglot API: $e")
         false
     }
 
@@ -84,7 +84,10 @@ object JSEngine {
     try {
       context.eval("js", src)
       out.toString
-    } finally stat.done = true
+    } finally {
+      context.close
+      stat.done = true
+    }
 
   // ---------------------------------------------------------------------------
   // handling PolyglotException from Polyglot API
