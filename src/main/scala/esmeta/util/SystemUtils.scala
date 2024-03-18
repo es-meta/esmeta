@@ -10,8 +10,9 @@ import scala.concurrent.*
 import scala.concurrent.duration.*
 import scala.io.Source
 import scala.sys.process.*
-import scala.util.Try
+import scala.util.{Try, Failure, Success}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import java.util.concurrent.atomic.AtomicReference
 
 /** file utilities */
 object SystemUtils {
@@ -212,7 +213,17 @@ object SystemUtils {
 
   /** set timeout with duration */
   def timeout[T](f: => T, duration: Duration): T =
-    Await.result(Future(Try(f)), duration).get
+    val ref = AtomicReference[Thread]()
+    try {
+      val promise = Future {
+        ref.synchronized(ref.set(Thread.currentThread)); Try(f)
+      }
+      Await.result(promise, duration).get
+    } catch {
+      case e: java.util.concurrent.TimeoutException =>
+        ref.synchronized(ref.get.interrupt); throw e
+      case e => throw e
+    }
 
   /** concurrently execute a list of functions */
   def concurrent[T](

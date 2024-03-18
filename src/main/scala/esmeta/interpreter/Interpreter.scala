@@ -39,7 +39,9 @@ class Interpreter(
   /** final state */
   lazy val result: State = timeout(
     {
-      while (step) {}
+      while (step) {
+        if (Thread.currentThread.isInterrupted) throw InterruptedException()
+      }
       if (log)
         pw.println(st)
         pw.close
