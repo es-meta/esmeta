@@ -12,7 +12,6 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 
-import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
 import scala.math.Ordering.Implicits.seqOrdering
 
 /** coverage measurement of cfg */
@@ -59,7 +58,7 @@ case class Coverage(
     script: Script,
   ): (State, Boolean, Boolean) = {
     val interp = run(script.code)
-    check(script, interp)
+    this.synchronized(check(script, interp))
   }
 
   /** evaluate a given ECMAScript program */
