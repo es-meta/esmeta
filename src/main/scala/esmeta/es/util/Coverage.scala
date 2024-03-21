@@ -143,6 +143,13 @@ case class Coverage(
   def branchCov: Int = condViewMap.size
   def branchViewCov: Int = condViews.size
 
+  /** dump results with detail */
+  def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
+    baseDir = baseDir,
+    withScripts = true,
+    withMsg = withMsg,
+  )
+
   /** dump results */
   def dumpTo(
     baseDir: String,
