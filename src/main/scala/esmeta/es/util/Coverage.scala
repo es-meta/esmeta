@@ -332,7 +332,7 @@ object Coverage {
     // TODO: impl this
     private def getView(node: Node | Cond): View = None
 
-    // TODO: impl nearest
+    // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
   }
 
