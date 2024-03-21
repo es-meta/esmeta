@@ -130,22 +130,6 @@ case class Coverage(
   def branchCov: Int = condViewMap.size
   def branchViewCov: Int = condViews.size
 
-  /** get branch coverage */
-  // TODO handle return-if-abrupt
-  // def branchCov: (Int, Int) =
-  //   val branches = cfg.nodeMap.values.collect { case br: Branch => br }
-  //   val count = branches.foldLeft(0) {
-  //     case (acc, Branch(bid, _, _, Some(thenNode), Some(elseNode))) =>
-  //       nodeMap.get(bid) match
-  //         case Some(_) =>
-  //           val t = if (nodeMap contains thenNode.id) 1 else 0
-  //           val e = if (nodeMap contains elseNode.id) 1 else 0
-  //           acc + t + e
-  //         case _ => acc
-  //     case (acc, _) => acc
-  //   }
-  //   (count, branches.size * 2)
-
   /** dump results */
   def dumpTo(
     baseDir: String,
