@@ -81,9 +81,10 @@ case object Fuzz extends Phase[CFG, Coverage] {
     println(s"--- Testing SemanticCoverage...")
     val target = "const array1 = [1, 2, 3];\narray1.shift();" // TEST
     lazy val cov = Coverage(cfg = cfg, timeLimit = Some(1))
-    try cov.runWithSrc(target)
+    try cov.runAndCheck(Script(target, "tmp.js"))
     catch { case e: Throwable => println("NotSupported feature detected") }
     println(cov.toString)
+    cov.dumpTo(LOG_DIR)
     ???
 
   /** logging mode */

@@ -2,6 +2,7 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
+import esmeta.es.Initialize
 import esmeta.ir.Program
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
@@ -24,6 +25,9 @@ case class CFG(
   /** an ECMAScript parser */
   lazy val esParser: ESParser = program.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
+
+  /** ECMAScript initializer */
+  lazy val init: Initialize = new Initialize(this)
 
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =
