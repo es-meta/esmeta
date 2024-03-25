@@ -6,7 +6,6 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.spec.util.GrammarGraph
 
-// TODO refactoring
 /** A simple ECMAScript AST synthesizer */
 class SimpleSynthesizer(
   grammar: Grammar,

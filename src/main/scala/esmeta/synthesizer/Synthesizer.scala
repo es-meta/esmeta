@@ -8,6 +8,9 @@ import esmeta.spec.Grammar
 /** ECMAScript AST synthesizer */
 trait Synthesizer {
 
+  /** synthesizer name */
+  def name: String
+
   /** for general production */
   def apply(ast: Ast): Ast = ast match
     case ast: Syntactic => apply(ast)

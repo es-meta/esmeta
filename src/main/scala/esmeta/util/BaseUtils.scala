@@ -130,7 +130,7 @@ object BaseUtils {
     .replace("\b", "\\b")
 
   private var _seed: Int = Random().nextInt
-  private def rand = Random(_seed)
+  private val rand = Random(_seed)
 
   /** getter and setter for the seed */
   def getSeed = _seed
