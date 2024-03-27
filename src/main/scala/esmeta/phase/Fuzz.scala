@@ -42,15 +42,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     cov
 
-  /** logging mode */
-  private def log(filename: String, fails: ArrayBuffer[String]): Unit = {
-    mkdir(FUZZ_LOG_DIR)
-    dumpFile(
-      data = fails.sorted.mkString(LINE_SEP),
-      filename = s"$FUZZ_LOG_DIR/$filename",
-    )
-  }
-
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
