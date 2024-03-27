@@ -11,12 +11,15 @@ import org.graalvm.polyglot.*
 import esmeta.LINE_SEP
 import esmeta.error.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
+import java.util.concurrent.atomic.AtomicReference
 
 /** JavaScript Engines */
 object JSEngine {
 
   /** default commands */
   val defaultCmd = Map(
+    "d8" -> "d8 --ignore-unhandled-promises -e", // d8
     "js" -> "js -e", // graal.js
     "node" -> "node --unhandled-rejections=none -e", // node.js
   )
@@ -24,17 +27,22 @@ object JSEngine {
   /** Check if GraalVM polyglot API can be used */
   lazy val useGraal: Boolean =
     try
-      Using(Context.newBuilder("js").build()) { context =>
+      Using(
+        Context
+          .newBuilder("js")
+          .option("engine.WarnInterpreterOnly", "false")
+          .build(),
+      ) { context =>
         try {
           context.eval("js", "")
         } catch
           case e =>
-            warn("Unable to run js using Graal. try `gu --jvm install js`.")
+            warn(s"Unable to run GraalVM polyglot API: $e")
             throw e
       }.isSuccess
     catch {
       case e: Error =>
-        warn("Unable to run Graal.")
+        warn(s"Unable to run GraalVM polyglot API: $e")
         false
     }
 
@@ -50,7 +58,13 @@ object JSEngine {
   ): Try[T] =
     if (!useGraal) throw NoGraalError
     val out = new ByteArrayOutputStream
-    Using(Context.newBuilder("js").out(out).build()) { context =>
+    Using(
+      Context
+        .newBuilder("js")
+        .option("engine.WarnInterpreterOnly", "false")
+        .out(out)
+        .build(),
+    ) { context =>
       f(context, out)
     }.recoverWith(e => polyglotExceptionResolver(e))
 
@@ -59,17 +73,21 @@ object JSEngine {
     src: String,
     context: Context,
     out: ByteArrayOutputStream,
-    timeout: Option[Int] = None,
+    limit: Option[Int] = None,
   ): String =
     if (!useGraal) throw NoGraalError
-    val stat = Status()
     out.reset
-    timeout.foreach(millis => registerTimeout(context, millis, stat))
-    stat.running = true
     try {
-      context.eval("js", src)
-      out.toString
-    } finally stat.done = true
+      timeout(
+        {
+          context.eval("js", src)
+          out.toString
+        },
+        limit,
+      )
+    } finally {
+      context.close
+    }
 
   // ---------------------------------------------------------------------------
   // handling PolyglotException from Polyglot API
@@ -89,21 +107,6 @@ object JSEngine {
     case _ =>
       Failure(e)
   }
-
-  case class Status(var running: Boolean = false, var done: Boolean = false)
-
-  /** register timeout to context in milliseconds */
-  def registerTimeout(context: Context, timeout: Int, stat: Status) =
-    Future {
-      while (!stat.done) {
-        Thread.sleep(timeout)
-        if (!stat.done && stat.running)
-          // TODO race condition:
-          // new eval is performed between
-          // (!stat.done) check and interrupt
-          context.interrupt(ZERO)
-      }
-    }
 
   // -------------------------------------------------------------------------
   // executing JavaScript program using shell command
@@ -153,4 +156,13 @@ object JSEngine {
 
   def runNode(src: String, timeout: Option[Int] = None): Try[String] =
     execScript(defaultCmd("node"), src, timeout)
+
+  lazy val useD8: Boolean =
+    runD8(";", Some(1000)) match
+      case Success(value)             => true
+      case Failure(NoCommandError(_)) => warn("No D8"); false
+      case _                          => false
+
+  def runD8(src: String, timeout: Option[Int] = None): Try[String] =
+    execScript(defaultCmd("d8"), src, timeout)
 }

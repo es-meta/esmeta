@@ -6,7 +6,6 @@ import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.Interp
-import esmeta.test262.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -17,8 +16,8 @@ import scala.math.Ordering.Implicits.seqOrdering
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
-  test262: Option[Test262] = None,
   timeLimit: Option[Int] = None,
+  logDir: Option[String] = None, // TODO: use this
 ) {
   import Coverage.{*, given}
 
@@ -129,6 +128,13 @@ case class Coverage(
   /** get branch coverage */
   def branchCov: Int = condViewMap.size
   def branchViewCov: Int = condViews.size
+
+  /** dump results with detail */
+  def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
+    baseDir = baseDir,
+    withScripts = true,
+    withMsg = withMsg,
+  )
 
   /** dump results */
   def dumpTo(

@@ -117,7 +117,13 @@ object BaseUtils {
     .replace("\n", "\\n")
     .replace("\b", "\\b")
 
-  private def rand = Random()
+  private var _seed: Int = Random().nextInt
+  private val rand = Random(_seed)
+
+  /** getter and setter for the seed */
+  def getSeed = _seed
+  def setSeed(seed: Int) = { _seed = seed; rand.setSeed(seed) }
+  def resetSeed = setSeed(getSeed)
 
   /** randomly choose an element in a list */
   def choose[T](vec: Vector[T]): T = vec(rand.nextInt(vec.length))
@@ -148,6 +154,9 @@ object BaseUtils {
     }
     aux()
   }
+
+  /** shuffle a sequence */
+  def shuffle[T](seq: Seq[T]) = rand.shuffle(seq)
 
   /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
