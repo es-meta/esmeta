@@ -33,6 +33,7 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
+    beforeCheck: String => Unit = _ => (),
   ): Coverage = new Fuzzer(
     cfg,
     logInterval,
@@ -44,6 +45,7 @@ object Fuzzer {
     init,
     kFs,
     cp,
+    beforeCheck,
   ).result
 
   // debugging levels
@@ -64,6 +66,7 @@ class Fuzzer(
   init: Option[String] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  beforeCheck: String => Unit = _ => (),
 ) {
   import Fuzzer.*
 
@@ -199,6 +202,7 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+    beforeCheck(code)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
