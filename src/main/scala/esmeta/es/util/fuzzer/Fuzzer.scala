@@ -32,6 +32,7 @@ class Fuzzer(
   init: Option[String] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  beforeCheck: String => Unit = _ => (),
 ) {
   import Fuzzer.*
 
@@ -167,6 +168,7 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+    beforeCheck(code)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered

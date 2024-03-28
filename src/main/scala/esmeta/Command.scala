@@ -192,6 +192,17 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
   )
 }
 
+/** `minify-fuzz` command */
+case object CmdMinifyFuzz
+  extends Command("minify-fuzz", CmdBuildCFG >> MinifyFuzz) {
+  val help = "generate ECMAScript programs for fuzzing."
+  val examples = List(
+    "esmeta minify-fuzz                   # generate ECMAScript programs for fuzzing",
+    "esmeta minify-fuzz -minify-fuzz:log  # fuzz in the logging mode.",
+  )
+  override def showResult(cov: es.util.Coverage): Unit = ???
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
