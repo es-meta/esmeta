@@ -32,6 +32,7 @@ object Fuzzer {
     duration: Option[Int] = None, // `None` denotes no bound
     useSens: Boolean = false, // TODO(@hyp3rflow): Use node/cond sensitivity
     init: Option[String] = None, // initial pool directory path given by user
+    beforeCheck: String => Unit = _ => (),
     // kFs: Int = 0,
     // cp: Boolean = false,
     // init: Option[String] = None,
@@ -67,6 +68,7 @@ class Fuzzer(
   duration: Option[Int] = None, // `None` denotes no bound
   useSens: Boolean = false,
   init: Option[String] = None,
+  beforeCheck: String => Unit = _ => (),
 ) {
   import Fuzzer.*
 
@@ -197,6 +199,7 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+    beforeCheck(code)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
