@@ -15,6 +15,7 @@ import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.TimeoutException
+import scala.collection.mutable.ListBuffer
 
 /** assertion injector */
 object Injector:
@@ -25,7 +26,7 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(extractor, defs, log).result
+    new Injector(cfg, extractor.result, defs, log).result
 
   /** injection from files */
   def fromFile(
@@ -35,41 +36,46 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(extractor, defs, log).result
+    new Injector(cfg, extractor.result, defs, log).result
 
   /** assertion definitions */
-  lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
+  lazy val header: String = readFile(s"$RESOURCE_DIR/assertions.js")
 
 /** extensible helper of assertion injector */
 class Injector(
-  extractor: ExitStateExtractor,
+  cfg: CFG,
+  exitSt: State,
   defs: Boolean,
   log: Boolean,
 ) {
 
-  /** injected script */
-  lazy val result: String =
-    if (defs) app >> Injector.assertions >> LINE_SEP
-    app >> "// [EXIT] " >> exitTag.toString // append exit status tag
-    app :> original // append original script
+  /** generated assertions */
+  lazy val assertions: Vector[Assertion] =
+    _assertions.clear
     if (normalExit)
-      if (isAsync) startAsync // handle async
       handleVariable // inject assertions from variables
       handleLet // inject assertions from lexical variables
-      if (isAsync) endAsync
     if (log)
       pw.close
       println("[Injector] Logging finished")
-    app.toString
+    _assertions.toVector
 
-  /** initial state */
-  lazy val initSt: State = extractor.initSt
+  /** generated conformance test */
+  lazy val conformTest: ConformTest =
+    ConformTest(
+      0,
+      script,
+      exitTag,
+      defs,
+      isAsync,
+      assertions,
+    )
 
-  /** exit state */
-  lazy val exitSt: State = extractor.result
+  /** injected script */
+  lazy val result: String = conformTest.toString
 
-  /** original script */
-  lazy val original = initSt.sourceText.get
+  /** target script */
+  lazy val script = exitSt.sourceText.get
 
   /** exit status tag */
   lazy val exitTag: ExitTag = ExitTag(exitSt)
@@ -80,7 +86,7 @@ class Injector(
   /** check whether it uses asynchronous features */
   // TODO more precise detection
   lazy val isAsync: Boolean =
-    original.contains("async") || original.contains("Promise")
+    script.contains("async") || script.contains("Promise")
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -93,24 +99,18 @@ class Injector(
   private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
-  // appender
-  private val app: Appender = new Appender
-
-  // handle async
-  private def startAsync: Unit =
-    log("handling async..."); app :> "$delay(() => {"
-  private def endAsync: Unit =
-    app :> "});"
+  // internal assertions
+  private val _assertions: ListBuffer[Assertion] = ListBuffer()
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
     log("handling variable...")
+    val path = s"globalThis[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
-      case Absent => /* do nothing(handle global accessor property) */
-      case sv: SimpleValue =>
-        app :> s"$$assert.sameValue($x, ${sv2str(sv)});"
-      case addr: Addr => handleObject(addr, x)
-      case _          => /* do nothing */
+      case Absent          => /* do nothing(handle global accessor property) */
+      case sv: SimpleValue => _assertions += HasValue(path, sv)
+      case addr: Addr      => handleObject(addr, path)
+      case _               => /* do nothing */
   }
 
   // get created variables
@@ -126,7 +126,7 @@ class Injector(
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
     log("handling let...")
     getValue(s"""$lexRecord["$x"].BoundValue""") match
-      case sv: SimpleValue => app :> s"$$assert.sameValue($x, ${sv2str(sv)});"
+      case sv: SimpleValue => _assertions += HasValue(x, sv)
       case addr: Addr      => handleObject(addr, x)
       case _               => /* do nothing */
   }
@@ -136,12 +136,9 @@ class Injector(
     log(s"handleObject: $addr, $path")
     (addr, handledObjects.get(addr)) match
       case (_, Some(origPath)) =>
-        app :> s"$$assert.sameValue($path, $origPath);"
+        _assertions += SameObject(addr, path, origPath)
       case (_: DynamicAddr, None) if addr != globalThis =>
         handledObjects += addr -> path
-        extractor.addrNames
-          .get(addr)
-          .map(name => app :> s"""$$algo.set($path, "$name")""")
         exitSt(addr) match
           case (_: MapObj) =>
             handlePrototype(addr, path)
@@ -159,8 +156,9 @@ class Injector(
             handleProperty(addr, path)
           case _ =>
       case _ =>
+  private lazy val initHeap = cfg.init.initHeap.copied
   private var handledObjects: Map[Addr, String] = (for {
-    addr <- initSt.heap.map.keySet
+    addr <- initHeap.map.keySet
     name <- addrToName(addr)
   } yield addr -> name).toMap
   private lazy val PREFIX_INTRINSIC = "INTRINSICS."
@@ -181,22 +179,22 @@ class Injector(
     log(s"handleExtensible: $addr, $path")
     access(addr, Str("Extensible")) match
       case Bool(b) =>
-        app :> s"$$assert.sameValue(Object.isExtensible($path), $b);"
+        _assertions += IsExtensible(addr, path, b)
       case _ => warning("non-boolean [[Extensible]]: $path")
 
   // handle [[Call]]
   private def handleCall(addr: Addr, path: String): Unit =
     log(s"handleCall: $addr, $path")
-    if (access(addr, Str("Call")) == Absent) {
-      app :> s"$$assert.notCallable($path);"
-    } else app :> s"$$assert.callable($path);"
+    _assertions += IsCallable(addr, path, access(addr, Str("Call")) != Absent)
 
   // handle [[Construct]]
   private def handleConstruct(addr: Addr, path: String): Unit =
     log(s"handleConstruct: $addr, $path")
-    if (access(addr, Str("Construct")) == Absent) {
-      app :> s"$$assert.notConstructable($path);"
-    } else app :> s"$$assert.constructable($path);"
+    _assertions += IsConstructable(
+      addr,
+      path,
+      access(addr, Str("Construct")) != Absent,
+    )
 
   // handle property names
   private def handlePropKeys(addr: Addr, path: String): Unit =
@@ -220,8 +218,7 @@ class Injector(
             case _          => None
           })
         if (array.length == len)
-          app :> s"$$assert.compareArray(Reflect.ownKeys($path), ${array
-            .mkString("[", ", ", "]")}, $path);"
+          _assertions += CompareArray(addr, path, array)
       case _ => warning("non-closure [[OwnPropertyKeys]]: $path")
 
   // handle properties
@@ -238,14 +235,14 @@ class Injector(
                 "PropertyDescriptor" | "DataProperty" | "AccessorProperty",
                 props,
               ) =>
-            var set = Set[String]()
+            var desc: Map[String, SimpleValue] = Map.empty
             val2str(p).map(propStr => {
               for {
                 field <- fields
                 value <- props.get(field)
               } value match
                 case sv: SimpleValue =>
-                  set += s"${field.toLowerCase}: ${sv2str(sv)}"
+                  desc += (field.toLowerCase -> sv)
                 case addr: Addr =>
                   field match
                     case "Value" => handleObject(addr, s"$path[$propStr]")
@@ -261,8 +258,7 @@ class Injector(
                       )
                     case _ =>
                 case _ => warning("invalid property: $path")
-              val desc = set.mkString("{ ", ", ", "}")
-              app :> s"$$verifyProperty($path, $propStr, $desc);"
+              _assertions += VerifyProperty(addr, path, propStr, desc)
             })
           case x => warning("invalid property: $path")
       case v => warning("invalid property: $path")
@@ -299,7 +295,4 @@ class Injector(
     case sv: SimpleValue => Some(sv.toString)
     case addr: Addr      => addrToName(addr)
     case x               => None
-  private def sv2str(sv: SimpleValue): String = sv match
-    case Number(n) => n.toString
-    case v         => v.toString
 }

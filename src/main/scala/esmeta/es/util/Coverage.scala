@@ -1,6 +1,8 @@
 package esmeta.es.util
 
+import esmeta.LINE_SEP
 import esmeta.cfg.*
+import esmeta.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
 import esmeta.es.*
@@ -115,6 +117,7 @@ case class Coverage(
 
     if (updated)
       _minimalInfo += script.name -> ScriptInfo(
+        ConformTest.createTest(cfg, finalSt),
         touchedNodeViews.keys,
         touchedCondViews.keys,
       )
@@ -134,11 +137,22 @@ case class Coverage(
   def dumpTo(
     baseDir: String,
     withScripts: Boolean = false,
+    withScriptInfo: Boolean = false,
+    withTargetCondViews: Boolean = false,
+    withUnreachableFuncs: Boolean = false,
+    // TODO(@hyp3rflow): use this for ignoring dump messages
     withMsg: Boolean = false,
   ): Unit =
     mkdir(baseDir)
     lazy val orderedNodeViews = nodeViews.toList.sorted
     lazy val orderedCondViews = condViews.toList.sorted
+    lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
+    lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
+    // TODO(@hyp3rflow): impl logging for coverage constructor
+    // dumpJson(
+    //   CoverageConstructor(timeLimit, kFs, cp, onlineNumStdDev, checkIter),
+    //   s"$baseDir/constructor.json",
+    // )
 
     val st = System.nanoTime()
     def elapsedSec = (System.nanoTime() - st) / 1e9
@@ -158,6 +172,48 @@ case class Coverage(
       noSpace = false,
     )
     log("Dumped branch coverage")
+    if (withScripts)
+      dumpDir[Script](
+        name = "minimal ECMAScript programs",
+        iterable = _minimalScripts,
+        dirname = s"$baseDir/minimal",
+        getName = _.name,
+        getData = USE_STRICT + _.code + LINE_SEP,
+        remove = true,
+      )
+      log("Dumped scripts")
+    if (withScriptInfo)
+      dumpDir[(String, ScriptInfo)](
+        name = "minimal ECMAScript assertions",
+        iterable = _minimalInfo,
+        dirname = s"$baseDir/minimal-assertion",
+        getName = _._1,
+        getData = _._2.test.core, // TODO: dump this as json?
+        remove = true,
+      )
+      log("Dumped assertions")
+    if (withTargetCondViews)
+      dumpJson(
+        name = "target conditional branches",
+        data = (for {
+          (cond, viewMap) <- _targetCondViews
+          (view, _) <- viewMap
+        } yield getCondViewsId(CondView(cond, view))).toSeq.sorted.asJson,
+        filename = s"$baseDir/target-conds.json",
+        noSpace = false,
+      )
+      log("dumped target conds")
+    if (withUnreachableFuncs)
+      dumpFile(
+        name = "unreachable functions",
+        data = cfg.funcs
+          .filter(f => !nodeViewMap.contains(f.entry))
+          .map(_.name)
+          .sorted
+          .mkString(LINE_SEP),
+        filename = s"$baseDir/unreach-funcs",
+      )
+      log("dumped unreachable functions")
 
   /** conversion to string */
   private def percent(n: Double, t: Double): Double = n / t * 100
@@ -167,7 +223,11 @@ case class Coverage(
       app :> "- node: " >> nodeCov
       app :> "- branch: " >> branchCov
     }
-    // TODO: sensitive coverage
+    // TODO(@hyp3rflow): sensitive coverage
+    // if (kFs > 0) (app :> "- sensitive coverage:").wrap("", "") {
+    //   app :> "- node: " >> nodeViewCov
+    //   app :> "- branch: " >> branchViewCov
+    // }
     app.toString
 
   /** extension for AST */
@@ -337,8 +397,8 @@ object Coverage {
   }
 
   /** meta-information for each script */
-  private case class ScriptInfo(
-    // test: ConformTest, // TODO: fill this
+  case class ScriptInfo(
+    test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
     touchedCondViews: Iterable[CondView],
   )

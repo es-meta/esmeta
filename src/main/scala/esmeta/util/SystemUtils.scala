@@ -63,8 +63,10 @@ object SystemUtils {
     dirname: String,
     getName: T => String,
     getData: T => Any = (x: T) => x,
+    remove: Boolean = false,
     silent: Boolean = false,
   ): Unit =
+    if (remove) rmdir(dirname)
     mkdir(dirname)
     for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
     println(s"- Dumped $name into `$dirname` .")
