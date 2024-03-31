@@ -15,13 +15,12 @@ class NearestMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
   import NearestMutator.*
+  val randomMutator = RandomMutator()
 
   val names = "NearestMutator" :: randomMutator.names
 
   /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
-
-  val randomMutator = RandomMutator()
 
   /** default weight for NearestMutator is 6 */
   def calculateWeight(ast: Ast): Int = 6
