@@ -136,6 +136,9 @@ case class Coverage(
   def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
     baseDir = baseDir,
     withScripts = true,
+    withScriptInfo = true,
+    withTargetCondViews = true,
+    withUnreachableFuncs = true,
     withMsg = withMsg,
   )
 
