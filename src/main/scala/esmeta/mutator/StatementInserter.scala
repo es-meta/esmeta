@@ -16,9 +16,9 @@ class StatementInserter(using cfg: CFG)(
   with Util.MultiplicativeListWalker {
   import StatementInserter.*
 
-  val names = "StatementInserter" :: randomMutator.names
-
   val randomMutator = RandomMutator()
+
+  val names = "StatementInserter" :: randomMutator.names
 
   val synthesizer = synBuilder(cfg.grammar)
 

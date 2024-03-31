@@ -15,11 +15,11 @@ class Remover(using cfg: CFG)(
   with Util.MultiplicativeListWalker {
   import Remover.*
 
+  val randomMutator = RandomMutator()
+
   val names = "Remover" :: randomMutator.names
 
   val synthesizer = synBuilder(cfg.grammar)
-
-  val randomMutator = RandomMutator()
 
   /** default weight for Remover is 1 */
   def calculateWeight(ast: Ast): Int = 1

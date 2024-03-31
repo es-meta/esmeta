@@ -15,11 +15,11 @@ class SpecStringMutator(using cfg: CFG)(
   with Util.MultiplicativeListWalker {
   import SpecStringMutator.*
 
+  val randomMutator = RandomMutator()
+
   val names = "SpecStringMutator" :: randomMutator.names
 
   val synthesizer = synBuilder(cfg.grammar)
-
-  val randomMutator = RandomMutator()
 
   /** default weight for SpecStringMutator is 1 */
   def calculateWeight(ast: Ast): Int = 1
