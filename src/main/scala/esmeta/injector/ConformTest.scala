@@ -65,10 +65,10 @@ case class ConformTest(
         // TODO handle ThrowValueTag more carefully
         val msg = e.getMessage
         val tag =
-          if msg.contains("Error:") then ThrowErrorTag(msg.split(":").head)
+          if msg.contains("Error:") then ThrowTag(msg.split(":").head)
           // TODO(@hyp3rflow): port JSTranspiler for targeting transpilers
           // else if msg.contains(JSTrans.failTag) then TranspileFailTag
-          else ThrowValueTag(esmeta.state.Str(msg))
+          else ThrowTag(esmeta.state.Str(msg))
         Success((tag, Vector(), Vector()))
       case e: TimeoutException =>
         Success((TimeoutTag, Vector(), Vector()))

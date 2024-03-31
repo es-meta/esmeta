@@ -11,23 +11,28 @@ trait ExitTag:
     case NormalTag                   => s"normal"
     case TimeoutTag                  => s"timeout"
     case SpecErrorTag(error, cursor) => s"spec-error: $cursor"
-    case ThrowValueTag(value: Value) => s"throw-value: $value"
-    case ThrowErrorTag(errorName, msg) =>
-      s"throw-error: ${errorName}${msg.map(msg => s"($msg)").getOrElse("")}"
+    case ThrowTag(items, msg) =>
+      s"throw: ${items.mkString(", ")}${msg.fold("")(m => s"($m)")}"
   def equivalent(that: ExitTag): Boolean = (this, that) match
-    case (_: ThrowValueTag, _: ThrowValueTag)               => true
-    case (ThrowErrorTag(name1, _), ThrowErrorTag(name2, _)) => name1 == name2
-    case _                                                  => this == that
+    case (ThrowTag(list1, _), ThrowTag(list2, _)) =>
+      (list1 zip list2).forall(_ equivalent _)
+    case _ => this == that
 
 object ExitTag:
   def apply(st: => State): ExitTag = try {
+    def getThrowItem(value: Value) = value match
+      case addr: DynamicAddr =>
+        st(addr)(Str("Ptototype")) match
+          case NamedAddr(errorNameRegex(errorName)) =>
+            ThrowNativeError(errorName)
+          case _ => ThrowValue(addr)
+      case _ => ThrowValue(value)
     st(GLOBAL_RESULT) match
       case Undef => NormalTag
-      case comp @ Comp(ENUM_THROW, addr: DynamicAddr, _) =>
-        st(addr)(Str("Prototype")) match
-          case NamedAddr(errorNameRegex(errorName)) => ThrowErrorTag(errorName)
-          case _                                    => ThrowValueTag(addr)
-      case comp @ Comp(ENUM_THROW, value, _) => ThrowValueTag(value)
+      case addr: Addr =>
+        st(addr) match
+          case ListObj(list) => ThrowTag(list.map(getThrowItem))
+          case _             => error(s"unexpected exit status: $addr")
       case v => error(s"unexpected exit status: $v")
   } catch {
     case _: TimeoutException   => TimeoutTag
@@ -46,10 +51,27 @@ case object TimeoutTag extends ExitTag
 /** an error is thrown in specification */
 case class SpecErrorTag(error: ESMetaError, cursor: Cursor) extends ExitTag
 
-/** an error is thrown with a ECMAScript value */
-case class ThrowValueTag(value: Value) extends ExitTag
-
-/** an error is thrown with an ECMAScript error */
-// TODO(@hyp3rflow): `msg` can be used with provenance; add this and extend stringifier
-case class ThrowErrorTag(errorName: String, msg: Option[String] = None)
+/** an error is thrown with ECMAScript error or ECMAScript value */
+// TODO(@hyp3rflow): `msg` can be used with provenance (maybe); add this and extend stringifier
+case class ThrowTag(items: Vector[ThrowItem], msg: Option[String] = None)
   extends ExitTag
+
+object ThrowTag:
+  def apply(errorName: String): ThrowTag =
+    ThrowTag(Vector(ThrowNativeError(errorName)))
+  def apply(value: Value): ThrowTag =
+    ThrowTag(Vector(ThrowValue(value)))
+
+trait ThrowItem:
+  def equivalent(that: ThrowItem): Boolean =
+    (this, that) match
+      case (ThrowNativeError(error1), ThrowNativeError(error2)) =>
+        error1 == error2
+      case (ThrowValue(_), ThrowValue(_)) => true
+      case _                              => false
+
+/** an ECMAScript error */
+case class ThrowNativeError(errorName: String) extends ThrowItem
+
+/** an ECMAScript value */
+case class ThrowValue(value: Value) extends ThrowItem
