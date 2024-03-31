@@ -5,13 +5,14 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
+import esmeta.cfg.CFG
 import esmeta.parser.{ESParser, AstFrom}
 
 /** ECMAScript AST mutator */
-trait Mutator(using val grammar: Grammar) extends Walker {
+trait Mutator(using val cfg: CFG) {
 
   /** ECMAScript parser */
-  lazy val esParser: ESParser = ESParser(grammar)
+  lazy val esParser: ESParser = cfg.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
 
   private type Result = Seq[(String, Ast)]

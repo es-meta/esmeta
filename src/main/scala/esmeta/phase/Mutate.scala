@@ -20,7 +20,7 @@ case object Mutate extends Phase[CFG, String] {
     val grammar = cfg.grammar
     val filename = getFirstFilename(cmdConfig, this.name)
     val ast = cfg.scriptParser.fromFile(filename)
-    val mutator = config.builder(using grammar)
+    val mutator = config.builder(using cfg)
 
     // get a mutated AST
     var mutatedAst = mutator(ast, 1).head._2
@@ -67,7 +67,7 @@ case object Mutate extends Phase[CFG, String] {
   )
   class Config(
     var out: Option[String] = None,
-    var builder: Grammar ?=> Mutator = RandomMutator(),
+    var builder: CFG ?=> Mutator = RandomMutator(),
     var untilValid: Boolean = false,
   )
 }

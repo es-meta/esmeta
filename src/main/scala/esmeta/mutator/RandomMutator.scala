@@ -8,17 +8,18 @@ import esmeta.mutator.*
 import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 import esmeta.synthesizer.*
+import esmeta.cfg.CFG
 
 /** A random ECMAScript AST mutator */
-class RandomMutator(using grammar: Grammar)(
+class RandomMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
   import RandomMutator.*
 
   /** synthesizer */
-  val synthesizer = synBuilder(grammar)
+  val synthesizer = synBuilder(cfg.grammar)
 
-  /** default fot RandomMutator is 3 */
+  /** default weight for RandomMutator is 3 */
   def calculateWeight(ast: Ast): Int = 3
 
   val names = List("RandomMutator")

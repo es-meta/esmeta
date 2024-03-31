@@ -9,9 +9,10 @@ import esmeta.spec.Grammar
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.ty.AstSingleTy
+import esmeta.cfg.CFG
 
-/** A nearest ECMAScript AST mutator */
-class WeightedMutator(using grammar: Grammar)(
+/** A mutator selects one of given mutators under weight */
+class WeightedMutator(using cfg: CFG)(
   val mutators: (Mutator)*,
 ) extends Mutator {
 
