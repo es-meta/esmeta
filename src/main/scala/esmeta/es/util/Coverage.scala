@@ -377,7 +377,7 @@ object Coverage {
   class Interp(
     initSt: State,
     timeLimit: Option[Int],
-  ) extends Interpreter(initSt, timeLimit = timeLimit) {
+  ) extends Interpreter(initSt, timeLimit = timeLimit, keepProvenance = true) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
