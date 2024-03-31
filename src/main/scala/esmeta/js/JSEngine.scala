@@ -12,6 +12,8 @@ import org.graalvm.polyglot.*
 import esmeta.LINE_SEP
 import esmeta.error.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.*
+import java.util.concurrent.atomic.AtomicReference
 
 /** JavaScript Engines */
 object JSEngine {
@@ -71,33 +73,34 @@ object JSEngine {
   def runGraalUsingContext(
     src: String,
     context: Context,
-    timeout: Option[Int] = None,
+    limit: Option[Int] = None,
   ): Unit =
     if (!useGraal) throw NoGraalError
-    val stat = Status()
-    timeout.foreach(millis => registerTimeout(context, millis, stat))
-    stat.running = true
-    try context.eval("js", src)
-    finally stat.done = true
+    try {
+      timeout(context.eval("js", src), limit)
+    } finally {
+      context.close
+    }
 
   /** execute given JavaScript program and return its stdout as string */
   def runGraalUsingContextOut(
     src: String,
     context: Context,
     out: ByteArrayOutputStream,
-    timeout: Option[Int] = None,
+    limit: Option[Int] = None,
   ): String =
     if (!useGraal) throw NoGraalError
-    val stat = Status()
     out.reset
-    timeout.foreach(millis => registerTimeout(context, millis, stat))
-    stat.running = true
     try {
-      context.eval("js", src)
-      out.toString
+      timeout(
+        {
+          context.eval("js", src)
+          out.toString
+        },
+        limit,
+      )
     } finally {
       context.close
-      stat.done = true
     }
 
   // ---------------------------------------------------------------------------
@@ -118,21 +121,6 @@ object JSEngine {
     case _ =>
       Failure(e)
   }
-
-  case class Status(var running: Boolean = false, var done: Boolean = false)
-
-  /** register timeout to context in milliseconds */
-  def registerTimeout(context: Context, timeout: Int, stat: Status) =
-    Future {
-      while (!stat.done) {
-        Thread.sleep(timeout)
-        if (!stat.done && stat.running)
-          // TODO race condition:
-          // new eval is performed between
-          // (!stat.done) check and interrupt
-          context.interrupt(ZERO)
-      }
-    }
 
   // -------------------------------------------------------------------------
   // executing JavaScript program using shell command
