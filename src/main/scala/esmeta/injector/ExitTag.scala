@@ -8,11 +8,17 @@ import java.util.concurrent.TimeoutException
 /** exit status tag */
 trait ExitTag:
   override def toString: String = this match
-    case NormalTag                        => s"normal"
-    case TimeoutTag                       => s"timeout"
-    case SpecErrorTag(error, cursor)      => s"spec-error: $cursor"
-    case ThrowErrorTag(errorName: String) => s"throw-error: $errorName"
-    case ThrowValueTag(value: Value)      => s"throw-value: $value"
+    case NormalTag                   => s"normal"
+    case TimeoutTag                  => s"timeout"
+    case SpecErrorTag(error, cursor) => s"spec-error: $cursor"
+    case ThrowValueTag(value: Value) => s"throw-value: $value"
+    case ThrowErrorTag(errorName, msg) =>
+      s"throw-error: ${errorName}${msg.map(msg => s"($msg)").getOrElse("")}"
+  def equivalent(that: ExitTag): Boolean = (this, that) match
+    case (_: ThrowValueTag, _: ThrowValueTag)               => true
+    case (ThrowErrorTag(name1, _), ThrowErrorTag(name2, _)) => name1 == name2
+    case _                                                  => this == that
+
 object ExitTag:
   def apply(st: => State): ExitTag = try {
     st(GLOBAL_RESULT) match
@@ -40,8 +46,10 @@ case object TimeoutTag extends ExitTag
 /** an error is thrown in specification */
 case class SpecErrorTag(error: ESMetaError, cursor: Cursor) extends ExitTag
 
-/** an error is thrown with an ECMAScript error */
-case class ThrowErrorTag(errorName: String) extends ExitTag
-
 /** an error is thrown with a ECMAScript value */
 case class ThrowValueTag(value: Value) extends ExitTag
+
+/** an error is thrown with an ECMAScript error */
+// TODO(@hyp3rflow): `msg` can be used with provenance; add this and extend stringifier
+case class ThrowErrorTag(errorName: String, msg: Option[String] = None)
+  extends ExitTag
