@@ -79,6 +79,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdInject,
     CmdMutate,
     CmdFuzz,
+    CmdMinifyFuzz,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     CmdAnalyze,
   )

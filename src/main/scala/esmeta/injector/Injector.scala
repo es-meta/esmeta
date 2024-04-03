@@ -29,6 +29,16 @@ object Injector:
     val extractor = ExitStateExtractor(cfg.init.from(src))
     new Injector(cfg, extractor.result, src, defs, log).result
 
+  def replaceBody(
+    cfg: CFG,
+    src: String,
+    body: String,
+    defs: Boolean = false,
+    log: Boolean = false,
+  ): String =
+    val extractor = ExitStateExtractor(cfg.init.from(src))
+    new Injector(cfg, extractor.result, body, defs, log).result
+
   /** injection from files */
   def fromFile(
     cfg: CFG,

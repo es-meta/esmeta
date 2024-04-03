@@ -12,10 +12,20 @@ import esmeta.js.minifier.Minifier
 import esmeta.injector.Injector
 import scala.util.*
 import esmeta.js.JSEngine
+import esmeta.injector.ReturnInjector
+import esmeta.interpreter.Interpreter
+import java.util.concurrent.atomic.AtomicLong
+import scala.collection.parallel.CollectionConverters._
+import esmeta.util.SystemUtils.*
 
 case object MinifyFuzz extends Phase[CFG, Coverage] {
   val name = "minify-fuzz"
   val help = "generate ECMAScript programs for fuzzing minifier"
+
+  // TODO(@hyp3rflow): refactor this
+  val counter = AtomicLong(0)
+  val logDir: String = s"$MINIFY_FUZZ_LOG_DIR/fuzz-$dateStr"
+  val symlink: String = s"$MINIFY_FUZZ_LOG_DIR/recent"
 
   def apply(
     cfg: CFG,
@@ -26,6 +36,10 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
     val graph = GrammarGraph(cfg.grammar)
     import graph.*
 
+    mkdir(logDir, remove = true)
+    createSymlink(symlink, logDir, overwrite = true)
+    dumpFile(getSeed, s"$logDir/seed")
+
     val cov = Fuzzer(
       cfg = cfg,
       logInterval = config.logInterval,
@@ -33,22 +47,42 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
-      beforeCheck = { code =>
-        Minifier.minifySwc(code) match
-          case Failure(exception) => println("exception")
-          case Success(minified) => {
-            val injected =
-              Injector.fromFile(cfg, filename = "tmp.js", minified, defs = true)
-            JSEngine.runGraal(injected, Some(1000)) match
-              case Success(v)         => println(s"pass $v")
-              case Failure(exception) => println("failed")
-          }
+      beforeCheck = { (finalState, code) =>
+        val returns = ReturnInjector(cfg, finalState).assertions
+        for (ret <- returns.par) {
+          val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
+          Minifier.minifySwc(wrapped) match
+            case Failure(exception) => println(exception)
+            case Success(minified) => {
+              val injected =
+                Injector.replaceBody(cfg, wrapped, minified, true, false)
+              JSEngine.runGraal(injected, Some(1000)) match
+                case Success(v) => println(s"pass $v")
+                case Failure(exception) =>
+                  log(wrapped, minified, injected, exception.toString)
+            }
+        }
       },
     ).result
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     cov
+
+  def log(
+    original: String,
+    minified: String,
+    injected: String,
+    exception: String,
+  ) = {
+    val count = counter.incrementAndGet()
+    val dirpath = s"$logDir/$count"
+    mkdir(dirpath)
+    dumpFile(original, s"$dirpath/original.js")
+    dumpFile(minified, s"$dirpath/minified.js")
+    dumpFile(injected, s"$dirpath/injected.js")
+    dumpFile(exception, s"$dirpath/reason")
+  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

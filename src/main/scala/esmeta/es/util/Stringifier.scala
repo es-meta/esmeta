@@ -18,10 +18,11 @@ class Stringifier(
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
     elem match
-      case elem: Script      => scriptRule(app, elem)
-      case elem: Ast         => astRule(app, elem)
-      case elem: ConformTest => testRule(app, elem)
-      case elem: Assertion   => assertRule(app, elem)
+      case elem: Script          => scriptRule(app, elem)
+      case elem: Ast             => astRule(app, elem)
+      case elem: ConformTest     => testRule(app, elem)
+      case elem: Assertion       => assertRule(app, elem)
+      case elem: ReturnAssertion => returnAssertRule(app, elem)
 
   // ECMAScript script program
   given scriptRule: Rule[Script] = (app, script) => app >> script.code
@@ -120,10 +121,14 @@ class Stringifier(
       case IsConstructable(addr, path, b) =>
         app >> s"$$assert.${if b then "c" else "notC"}onstructable($path);"
       case CompareArray(addr, path, array) =>
-        app >> s"$$assert.compareArray($$Reflect.ownKeys($path), ${array
+        app >> s"$$assert.compareArray($$Reflect_ownKeys($path), ${array
           .mkString("[", ", ", "]")}, $path);"
       case SameObject(addr, path, origPath) =>
         app >> s"$$assert.sameValue($path, $origPath);"
       case VerifyProperty(addr, path, propStr, desc) =>
         app >> s"$$verifyProperty($path, $propStr, " >> desc >> ");"
+
+  given returnAssertRule: Rule[ReturnAssertion] = (app, assert) =>
+    assert match
+      case ReturnVariable(x) => app >> s"return $x;"
 }
