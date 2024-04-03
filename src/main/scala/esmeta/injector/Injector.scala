@@ -75,7 +75,7 @@ class Injector(
   lazy val conformTest: ConformTest =
     ConformTest(
       0,
-      script,
+      body,
       exitTag,
       defs,
       isAsync,
