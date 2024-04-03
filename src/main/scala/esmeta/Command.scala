@@ -203,6 +203,15 @@ case object CmdMinifyFuzz
   override def showResult(cov: es.util.Coverage): Unit = ???
 }
 
+/** `inject-minify` command */
+case object CmdInjectMinify
+  extends Command("inject-minify", CmdBuildCFG >> InjectMinify) {
+  val help = "generate ECMAScript programs for targeting minifier"
+  val examples = List(
+    "esmeta inject-minify                   # generate ECMAScript programs for fuzzing",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
