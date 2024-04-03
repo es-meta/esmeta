@@ -29,13 +29,13 @@ class BuiltinSynthesizer(
       case Getter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
+            List(s"let x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
           case _ => Nil
         )
       case Setter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
+            List(s"let x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
           case _ => Nil
         )
       case path =>
