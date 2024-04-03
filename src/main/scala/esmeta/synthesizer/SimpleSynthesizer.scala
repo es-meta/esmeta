@@ -195,6 +195,6 @@ class SimpleSynthesizer(
 
   // handle invalid code
   private def handleInvalid(code: String): String =
-    if (code.startsWith("{") && code.endsWith("} ;")) "var x = " + code
+    if (code.startsWith("{") && code.endsWith("} ;")) "let x = " + code
     else code
 }
