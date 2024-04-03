@@ -110,7 +110,14 @@ object ConformTest {
 
   /** Create a test using init state and exit state */
   def createTest(cfg: CFG, exitSt: State): ConformTest =
-    new Injector(cfg, exitSt, exitSt.sourceText.get, true, false).conformTest
+    new Injector(
+      cfg,
+      exitSt,
+      exitSt.sourceText.get,
+      true,
+      false,
+      Nil,
+    ).conformTest
 
   // TODO(@hyp3rflow): port manualRule to categorize known bugs
   /** Manually written rule to categorize bugs kind */
