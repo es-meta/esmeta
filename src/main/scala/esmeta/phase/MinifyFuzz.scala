@@ -59,9 +59,18 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
                 case Failure(exception) => println(exception)
                 case Success(minified) => {
                   val injected =
-                    Injector.replaceBody(cfg, wrapped, minified, true, false)
+                    Injector.replaceBody(
+                      cfg,
+                      wrapped,
+                      minified,
+                      true,
+                      false,
+                      "\"name\"" :: Nil,
+                    )
                   JSEngine.runNode(injected, Some(1000)) match
-                    case Success(v) => println(s"pass $v")
+                    case Success(v) if v.isEmpty => println(s"pass")
+                    case Success(v) =>
+                      log(wrapped, minified, injected, v)
                     case Failure(exception) =>
                       log(wrapped, minified, injected, exception.toString)
                 }

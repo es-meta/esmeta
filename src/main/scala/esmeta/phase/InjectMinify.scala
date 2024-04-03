@@ -11,6 +11,7 @@ import scala.util.*
 import esmeta.js.JSEngine
 import scala.collection.parallel.CollectionConverters._
 import esmeta.js.minifier.Minifier
+import esmeta.util.BoolOption
 
 case object InjectMinify extends Phase[CFG, List[String]] {
   val name = "inject-minify"
@@ -34,12 +35,27 @@ case object InjectMinify extends Phase[CFG, List[String]] {
         case Success(minified) => {
           Some(
             Injector
-              .replaceBody(cfg, wrapped, minified, false, false, "name" :: Nil),
+              .replaceBody(
+                cfg,
+                wrapped,
+                minified,
+                config.defs,
+                false,
+                "\"name\"" :: Nil,
+              ),
           )
         }
     }).flatten.toList
 
   def defaultConfig: Config = Config()
-  val options: List[PhaseOption[Config]] = List()
-  case class Config()
+  val options: List[PhaseOption[Config]] = List(
+    (
+      "defs",
+      BoolOption(c => c.defs = true),
+      "prepend definitions of helpers for assertions.",
+    ),
+  )
+  case class Config(
+    var defs: Boolean = false,
+  )
 }
