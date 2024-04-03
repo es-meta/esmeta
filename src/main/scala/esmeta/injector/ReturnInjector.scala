@@ -74,22 +74,24 @@ class ReturnInjector(cfg: CFG, exitSt: State):
                 props,
               ) =>
             var desc: Map[String, SimpleValue] = Map.empty
-            val2str(p).map(propStr => {
-              for {
-                field <- fields
-                value <- props.get(field) if field != "name" // not to compare class/function name
-              } value match
-                case sv: SimpleValue =>
-                  desc += (field.toLowerCase -> sv)
-                case addr: Addr =>
-                  field match
-                    case "Value" => handleObject(addr, s"$path[$propStr]")
-                    case "Get"   =>
-                    case "Set"   =>
-                    case _       =>
-                case _ => println("invalid property: $path")
-              _returns += ReturnVariable(s"$path[$propStr]")
-            })
+            val2str(p)
+              .filter(p => p != "\"name\"")
+              .map(propStr => {
+                for {
+                  field <- fields
+                  value <- props.get(field)
+                } value match
+                  case sv: SimpleValue =>
+                    desc += (field.toLowerCase -> sv)
+                  case addr: Addr =>
+                    field match
+                      case "Value" => handleObject(addr, s"$path[$propStr]")
+                      case "Get"   =>
+                      case "Set"   =>
+                      case _       =>
+                  case _ => println("invalid property: $path")
+                _returns += ReturnVariable(s"$path[$propStr]")
+              })
           case x => println("invalid property: $path")
       case v => println("invalid property: $path")
 

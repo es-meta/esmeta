@@ -35,9 +35,17 @@ object Injector:
     body: String,
     defs: Boolean = false,
     log: Boolean = false,
+    ignoreProperties: List[String] = Nil,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(cfg, extractor.result, body, defs, log).result
+    new Injector(
+      cfg,
+      extractor.result,
+      body,
+      defs,
+      log,
+      ignoreProperties,
+    ).result
 
   /** injection from files */
   def fromFile(
@@ -60,6 +68,7 @@ class Injector(
   body: String,
   defs: Boolean,
   log: Boolean,
+  ignoreProperties: List[String] = Nil,
 ) {
 
   /** generated assertions */
@@ -254,30 +263,32 @@ class Injector(
                 props,
               ) =>
             var desc: Map[String, SimpleValue] = Map.empty
-            val2str(p).map(propStr => {
-              for {
-                field <- fields
-                value <- props.get(field)
-              } value match
-                case sv: SimpleValue =>
-                  desc += (field.toLowerCase -> sv)
-                case addr: Addr =>
-                  field match
-                    case "Value" => handleObject(addr, s"$path[$propStr]")
-                    case "Get" =>
-                      handleObject(
-                        addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).get",
-                      )
-                    case "Set" =>
-                      handleObject(
-                        addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).set",
-                      )
-                    case _ =>
-                case _ => warning("invalid property: $path")
-              _assertions += VerifyProperty(addr, path, propStr, desc)
-            })
+            val2str(p)
+              .filter(p => !ignoreProperties.contains(p))
+              .map(propStr => {
+                for {
+                  field <- fields
+                  value <- props.get(field)
+                } value match
+                  case sv: SimpleValue =>
+                    desc += (field.toLowerCase -> sv)
+                  case addr: Addr =>
+                    field match
+                      case "Value" => handleObject(addr, s"$path[$propStr]")
+                      case "Get" =>
+                        handleObject(
+                          addr,
+                          s"Object.getOwnPropertyDescriptor($path, $propStr).get",
+                        )
+                      case "Set" =>
+                        handleObject(
+                          addr,
+                          s"Object.getOwnPropertyDescriptor($path, $propStr).set",
+                        )
+                      case _ =>
+                  case _ => warning("invalid property: $path")
+                _assertions += VerifyProperty(addr, path, propStr, desc)
+              })
           case x => warning("invalid property: $path")
       case v => warning("invalid property: $path")
 
