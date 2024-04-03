@@ -34,6 +34,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
         handledObjects += addr -> path
         exitSt(addr) match
           case (_: MapObj) =>
+            _returns += ReturnVariable(path)
             handleProperty(addr, path)
           case _ =>
       case _ =>
@@ -77,6 +78,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
               for {
                 field <- fields
                 value <- props.get(Str(field)).map(_.value.toPureValue)
+                if field != "name" // not to compare class/function name
               } value match
                 case sv: SimpleValue =>
                   desc += (field.toLowerCase -> sv)
