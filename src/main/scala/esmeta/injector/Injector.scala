@@ -25,7 +25,7 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(cfg, extractor.result, src, defs, log).result
+    new Injector(cfg, extractor.result, src, defs, log, Nil).result
 
   def replaceBody(
     cfg: CFG,
@@ -54,7 +54,14 @@ object Injector:
     log: Boolean = false,
   ): String =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(cfg, extractor.result, readFile(bodyPath), defs, log).result
+    new Injector(
+      cfg,
+      extractor.result,
+      readFile(bodyPath),
+      defs,
+      log,
+      Nil,
+    ).result
 
   /** assertion definitions */
   lazy val header: String = readFile(s"$RESOURCE_DIR/assertions.js")
@@ -66,7 +73,7 @@ class Injector(
   body: String,
   defs: Boolean,
   log: Boolean,
-  ignoreProperties: List[String] = Nil,
+  ignoreProperties: List[String],
 ) {
 
   /** generated assertions */
