@@ -32,7 +32,10 @@ case object InjectMinify extends Phase[CFG, List[String]] {
       Minifier.minifySwc(wrapped) match
         case Failure(exception) => println(exception); None
         case Success(minified) => {
-          Some(Injector.replaceBody(cfg, wrapped, minified, false, false))
+          Some(
+            Injector
+              .replaceBody(cfg, wrapped, minified, false, false, "name" :: Nil),
+          )
         }
     }).flatten.toList
 
