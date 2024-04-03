@@ -8,7 +8,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
 
-/** A mutator that generates based on stirngs in spec literals */
+/** A mutator that generates based on strings in spec literals */
 class SpecStringMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator
