@@ -17,6 +17,7 @@ import esmeta.interpreter.Interpreter
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.parallel.CollectionConverters._
 import esmeta.util.SystemUtils.*
+import esmeta.injector.NormalTag
 
 case object MinifyFuzz extends Phase[CFG, Coverage] {
   val name = "minify-fuzz"
@@ -48,20 +49,24 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       trial = config.trial,
       duration = config.duration,
       beforeCheck = { (finalState, code) =>
-        val returns = ReturnInjector(cfg, finalState).assertions
-        for (ret <- returns.par) {
-          val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
-          Minifier.minifySwc(wrapped) match
-            case Failure(exception) => println(exception)
-            case Success(minified) => {
-              val injected =
-                Injector.replaceBody(cfg, wrapped, minified, true, false)
-              JSEngine.runNode(injected, Some(1000)) match
-                case Success(v) => println(s"pass $v")
-                case Failure(exception) =>
-                  log(wrapped, minified, injected, exception.toString)
+        val injector = ReturnInjector(cfg, finalState)
+        injector.exitTag match
+          case NormalTag =>
+            val returns = injector.assertions
+            for (ret <- returns.par) {
+              val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
+              Minifier.minifySwc(wrapped) match
+                case Failure(exception) => println(exception)
+                case Success(minified) => {
+                  val injected =
+                    Injector.replaceBody(cfg, wrapped, minified, true, false)
+                  JSEngine.runNode(injected, Some(1000)) match
+                    case Success(v) => println(s"pass $v")
+                    case Failure(exception) =>
+                      log(wrapped, minified, injected, exception.toString)
+                }
             }
-        }
+          case _ =>
       },
     ).result
 
