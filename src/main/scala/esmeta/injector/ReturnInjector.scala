@@ -8,7 +8,12 @@ import esmeta.es.ESElem
 import esmeta.es.builtin.INNER_MAP
 import scala.collection.mutable.ListBuffer
 
-class ReturnInjector(cfg: CFG, exitSt: State, log: Boolean = false):
+class ReturnInjector(
+  cfg: CFG,
+  exitSt: State,
+  timeLimit: Option[Int] = None,
+  log: Boolean = false,
+):
   /** generated assertions */
   lazy val assertions: Vector[ReturnAssertion] =
     _returns.clear
@@ -120,7 +125,7 @@ class ReturnInjector(cfg: CFG, exitSt: State, log: Boolean = false):
   // get values
   private def getValue(str: String): Value = getValue(Expr.from(str))
   private def getValue(expr: Expr): Value =
-    (new Interpreter(exitSt.copied)).eval(expr)
+    (new Interpreter(exitSt.copied, timeLimit = timeLimit)).eval(expr)
   private def getValue(rt: RefTarget): Value = exitSt(rt)
   private def getValue(addr: Addr, prop: String): Value =
     getValue(FieldTarget(addr, Str(prop)))

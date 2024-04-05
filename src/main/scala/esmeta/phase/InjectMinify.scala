@@ -39,9 +39,10 @@ case object InjectMinify extends Phase[CFG, List[String]] {
                 cfg,
                 wrapped,
                 minified,
-                config.defs,
-                false,
-                "\"name\"" :: Nil,
+                defs = config.defs,
+                timeLimit = Some(1000),
+                log = false,
+                ignoreProperties = "\"name\"" :: Nil,
               ),
           )
         }

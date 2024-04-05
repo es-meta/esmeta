@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.collection.parallel.CollectionConverters._
 import esmeta.util.SystemUtils.*
 import esmeta.injector.NormalTag
+import esmeta.es.util.ValidityChecker
 
 case object MinifyFuzz extends Phase[CFG, Coverage] {
   val name = "minify-fuzz"
@@ -49,7 +50,7 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       trial = config.trial,
       duration = config.duration,
       beforeCheck = { (finalState, code) =>
-        val injector = ReturnInjector(cfg, finalState)
+        val injector = ReturnInjector(cfg, finalState, config.timeLimit, true)
         injector.exitTag match
           case NormalTag =>
             val returns = injector.assertions
@@ -63,9 +64,10 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
                       cfg,
                       wrapped,
                       minified,
-                      true,
-                      false,
-                      "\"name\"" :: Nil,
+                      defs = true,
+                      timeLimit = config.timeLimit,
+                      log = false,
+                      ignoreProperties = "\"name\"" :: Nil,
                     )
                   JSEngine.runNode(injected, Some(1000)) match
                     case Success(v) if v.isEmpty => println(s"pass")

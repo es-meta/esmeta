@@ -34,10 +34,11 @@ object Injector:
     src: String,
     body: String,
     defs: Boolean = false,
+    timeLimit: Option[Int] = None,
     log: Boolean = false,
     ignoreProperties: List[String] = Nil,
   ): String =
-    val extractor = ExitStateExtractor(cfg.init.from(src))
+    val extractor = ExitStateExtractor(cfg.init.from(src), timeLimit)
     new Injector(
       cfg,
       extractor.result,
