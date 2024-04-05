@@ -47,6 +47,22 @@ object JSEngine {
         false
     }
 
+  // TODO(@hyp3rflow): fix this thread issue
+  case class Status(var running: Boolean = false, var done: Boolean = false)
+
+  /** register timeout to context in milliseconds */
+  def registerTimeout(context: Context, timeout: Int, stat: Status) =
+    Future {
+      while (!stat.done) {
+        Thread.sleep(timeout)
+        if (!stat.done && stat.running)
+          // TODO race condition:
+          // new eval is performed between
+          // (!stat.done) check and interrupt
+          context.interrupt(ZERO)
+      }
+    }
+
   /** run JavaScript program with timeout(ms) using GraalVM Polyglot API */
   def runGraal(src: String, timeout: Option[Int] = None): Try[String] =
     createGraalContext((context, out) =>
@@ -76,11 +92,11 @@ object JSEngine {
     limit: Option[Int] = None,
   ): Unit =
     if (!useGraal) throw NoGraalError
-    try {
-      timeout(context.eval("js", src), limit)
-    } finally {
-      context.close
-    }
+    val stat = Status()
+    limit.foreach(millis => registerTimeout(context, millis, stat))
+    stat.running = true
+    try context.eval("js", src)
+    finally context.close
 
   /** execute given JavaScript program and return its stdout as string */
   def runGraalUsingContextOut(
@@ -90,18 +106,14 @@ object JSEngine {
     limit: Option[Int] = None,
   ): String =
     if (!useGraal) throw NoGraalError
+    val stat = Status()
     out.reset
+    limit.foreach(millis => registerTimeout(context, millis, stat))
+    stat.running = true
     try {
-      timeout(
-        {
-          context.eval("js", src)
-          out.toString
-        },
-        limit,
-      )
-    } finally {
-      context.close
-    }
+      context.eval("js", src)
+      out.toString
+    } finally stat.done = true
 
   // ---------------------------------------------------------------------------
   // handling PolyglotException from Polyglot API
