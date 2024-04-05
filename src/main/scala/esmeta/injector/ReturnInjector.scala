@@ -7,7 +7,7 @@ import esmeta.interpreter.Interpreter
 import esmeta.es.ESElem
 import scala.collection.mutable.ListBuffer
 
-class ReturnInjector(cfg: CFG, exitSt: State):
+class ReturnInjector(cfg: CFG, exitSt: State, log: Boolean = false):
   /** generated assertions */
   lazy val assertions: Vector[ReturnAssertion] =
     _returns.clear
@@ -26,7 +26,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
   lazy val normalExit: Boolean = exitTag == NormalTag
 
   private def handleObject(addr: Addr, path: String): Unit =
-    println(s"handleObject: $addr, $path")
+    if (log) println(s"handleObject: $addr, $path")
     (addr, handledObjects.get(addr)) match
       case (_, Some(origPath)) =>
         _returns += ReturnVariable(path)
@@ -41,7 +41,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
-    println("handling variable...")
+    if (log) println("handling variable...")
     val path = s"globalThis[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
       case Absent          => /* handle global accessor property */
@@ -52,7 +52,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
-    println("handling let...")
+    if (log) println("handling let...")
     getValue(s"""$lexRecord["$x"].BoundValue""") match
       case sv: SimpleValue => _returns += ReturnVariable(x)
       case addr: Addr      => handleObject(addr, x)
@@ -63,7 +63,7 @@ class ReturnInjector(cfg: CFG, exitSt: State):
   private lazy val fields =
     List("Get", "Set", "Value", "Writable", "Enumerable", "Configurable")
   private def handleProperty(addr: Addr, path: String): Unit =
-    println(s"handleProperty: $addr, $path")
+    if (log) println(s"handleProperty: $addr, $path")
     val subMap = access(addr, Str("SubMap"))
     for (p <- getKeys(subMap)) access(subMap, p) match
       case addr: Addr =>
@@ -89,11 +89,11 @@ class ReturnInjector(cfg: CFG, exitSt: State):
                       case "Get"   =>
                       case "Set"   =>
                       case _       =>
-                  case _ => println("invalid property: $path")
+                  case _ => if (log) println("invalid property: $path")
                 _returns += ReturnVariable(s"$path[$propStr]")
               })
-          case x => println("invalid property: $path")
-      case v => println("invalid property: $path")
+          case x => if (log) println("invalid property: $path")
+      case v => if (log) println("invalid property: $path")
 
   private val _returns: ListBuffer[ReturnAssertion] = ListBuffer()
 
@@ -133,8 +133,9 @@ class ReturnInjector(cfg: CFG, exitSt: State):
     case addr: Addr =>
       exitSt(addr) match
         case m: MapObj => m.props.keySet.toSet
-        case _ => println("[[SubMap]] is not a map object: $path"); Set()
-    case _ => println("[[SubMap]] is not an address: $path"); Set()
+        case _ =>
+          if (log) println("[[SubMap]] is not a map object: $path"); Set()
+    case _ => if (log) println("[[SubMap]] is not an address: $path"); Set()
 
   // get values
   private def getValue(str: String): Value = getValue(Expr.from(str))
