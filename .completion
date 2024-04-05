@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz analyze"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate fuzz minify-fuzz inject-minify analyze"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl"
@@ -84,6 +84,14 @@ _esmeta_completions() {
           ;;
         fuzz)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${fuzzOpt}"))
+          return 0
+          ;;
+        minify-fuzz)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${minifyfuzzOpt}"))
+          return 0
+          ;;
+        inject-minify)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${injectminifyOpt}"))
           return 0
           ;;
         analyze)
