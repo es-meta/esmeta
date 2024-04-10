@@ -17,6 +17,7 @@ object JSEngine {
 
   /** default commands */
   val defaultCmd = Map(
+    "d8" -> "d8 --ignore-unhandled-promises -e", // d8
     "js" -> "js -e", // graal.js
     "node" -> "node --unhandled-rejections=none -e", // node.js
   )
@@ -24,18 +25,21 @@ object JSEngine {
   /** Check if GraalVM polyglot API can be used */
   lazy val useGraal: Boolean =
     try
-      Using(Context.newBuilder("js").build()) { context =>
+      Using(
+        Context
+          .newBuilder("js")
+          .option("engine.WarnInterpreterOnly", "false")
+          .build(),
+      ) { context =>
         try {
           context.eval("js", "")
         } catch
           case e =>
-            // TODO(@hyp3rflow): fix this error message correctly
             warn(s"Unable to run GraalVM polyglot API: $e")
             throw e
       }.isSuccess
     catch {
       case e: Error =>
-        // TODO(@hyp3rflow): fix this error message correctly
         warn(s"Unable to run GraalVM polyglot API: $e")
         false
     }
@@ -52,7 +56,13 @@ object JSEngine {
   ): Try[T] =
     if (!useGraal) throw NoGraalError
     val out = new ByteArrayOutputStream
-    Using(Context.newBuilder("js").out(out).build()) { context =>
+    Using(
+      Context
+        .newBuilder("js")
+        .option("engine.WarnInterpreterOnly", "false")
+        .out(out)
+        .build(),
+    ) { context =>
       f(context, out)
     }.recoverWith(e => polyglotExceptionResolver(e))
 
@@ -171,4 +181,13 @@ object JSEngine {
 
   def runNode(src: String, timeout: Option[Int] = None): Try[String] =
     execScript(defaultCmd("node"), src, timeout)
+
+  lazy val useD8: Boolean =
+    runD8(";", Some(1000)) match
+      case Success(value)             => true
+      case Failure(NoCommandError(_)) => warn("No D8"); false
+      case _                          => false
+
+  def runD8(src: String, timeout: Option[Int] = None): Try[String] =
+    execScript(defaultCmd("d8"), src, timeout)
 }
