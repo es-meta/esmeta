@@ -14,6 +14,7 @@ import scala.util.*
 import scala.collection.parallel.CollectionConverters._
 import esmeta.js.minifier.Minifier
 import esmeta.js.JSEngine
+import io.circe.Json
 
 object MinifyFuzzer {
   def apply(
@@ -39,6 +40,9 @@ object MinifyFuzzer {
     kFs,
     cp,
   ).result
+
+  val logDir: String = s"$MINIFY_FUZZ_LOG_DIR/fuzz-$dateStr"
+  val symlink: String = s"$MINIFY_FUZZ_LOG_DIR/recent"
 }
 
 class MinifyFuzzer(
@@ -53,9 +57,9 @@ class MinifyFuzzer(
   kFs: Int = 0,
   cp: Boolean = false,
 ) {
+  import MinifyFuzzer.*
+
   val counter = AtomicLong(0)
-  val logDir: String = s"$MINIFY_FUZZ_LOG_DIR/fuzz-$dateStr"
-  val symlink: String = s"$MINIFY_FUZZ_LOG_DIR/recent"
 
   lazy val result: Coverage =
     Fuzzer(
@@ -68,20 +72,52 @@ class MinifyFuzzer(
       init = init,
       kFs = kFs,
       cp = cp,
-      beforeCheck = beforeCheck,
-      logDir = logDir,
-      symlink = symlink,
     ).result
 
-  private def beforeCheck(finalState: State, code: String) =
-    val injector = ReturnInjector(cfg, finalState, timeLimit, true)
+  lazy val fuzzer = new Fuzzer(
+    cfg = cfg,
+    logInterval = logInterval,
+    debug = debug,
+    timeLimit = timeLimit,
+    trial = trial,
+    duration = duration,
+    kFs = kFs,
+    cp = cp,
+  ) {
+    override lazy val logDir = MinifyFuzzer.logDir
+    override lazy val symlink = MinifyFuzzer.symlink
+    override def add(code: String, info: CandInfo): Boolean = handleResult(
+      Try {
+        if (info.visited)
+          fail("ALREADY VISITED")
+        visited += code
+        if (info.invalid)
+          fail("INVALID PROGRAM")
+        val script = toScript(code)
+        val interp = info.interp.getOrElse(fail("Interp Fail"))
+        val finalState = interp.result
+        val (_, updated, covered) = cov.check(script, interp)
+        beforeUpdate(iter, finalState, code, covered)
+        if (!updated) fail("NO UPDATE")
+        covered
+      },
+    )
+  }
+
+  private def beforeUpdate(
+    iter: Int,
+    finalState: State,
+    code: String,
+    covered: Boolean,
+  ) =
+    val injector = ReturnInjector(cfg, finalState, timeLimit, false)
     injector.exitTag match
       case NormalTag =>
         val returns = injector.assertions
         for (ret <- returns.par) {
           val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
           Minifier.minifySwc(wrapped) match
-            case Failure(exception) => println(exception)
+            case Failure(exception) => println(s"[minify-fuzz] $exception")
             case Success(minified) => {
               val injected =
                 Injector.replaceBody(
@@ -93,17 +129,26 @@ class MinifyFuzzer(
                   log = false,
                   ignoreProperties = "\"name\"" :: Nil,
                 )
-              JSEngine.runNode(injected, Some(1000)) match
-                case Success(v) if v.isEmpty => println(s"pass")
+              JSEngine.runGraal(injected, Some(1000)) match
+                case Success(v) if v.isEmpty => println(s"[minify-fuzz] pass")
                 case Success(v) =>
-                  log(wrapped, minified, injected, v)
+                  log(iter, covered, wrapped, minified, injected, v)
                 case Failure(exception) =>
-                  log(wrapped, minified, injected, exception.toString)
+                  log(
+                    iter,
+                    covered,
+                    wrapped,
+                    minified,
+                    injected,
+                    exception.toString,
+                  )
             }
         }
       case _ =>
 
   private def log(
+    iter: Int,
+    covered: Boolean,
     original: String,
     minified: String,
     injected: String,
@@ -116,6 +161,13 @@ class MinifyFuzzer(
     dumpFile(minified, s"$dirpath/minified.js")
     dumpFile(injected, s"$dirpath/injected.js")
     dumpFile(exception, s"$dirpath/reason")
+    dumpJson(
+      Json.obj(
+        "iter" -> Json.fromInt(iter),
+        "covered" -> Json.fromBoolean(covered),
+      ),
+      s"$dirpath/info",
+    )
   }
 
 }

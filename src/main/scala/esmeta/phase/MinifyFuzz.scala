@@ -17,7 +17,6 @@ import esmeta.interpreter.Interpreter
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.parallel.CollectionConverters._
 import esmeta.util.SystemUtils.*
-import esmeta.injector.NormalTag
 import esmeta.es.util.ValidityChecker
 import esmeta.es.util.fuzzer.MinifyFuzzer
 
