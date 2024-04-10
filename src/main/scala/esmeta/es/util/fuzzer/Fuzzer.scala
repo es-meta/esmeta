@@ -33,7 +33,6 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
-    beforeCheck: (State, String) => Unit = (_, _) => (),
     logDir: String = logDir,
     symlink: String = symlink,
   ): Coverage = new Fuzzer(
@@ -47,7 +46,6 @@ object Fuzzer {
     init,
     kFs,
     cp,
-    beforeCheck,
     logDir,
     symlink,
   ).result
@@ -72,7 +70,6 @@ class Fuzzer(
   init: Option[String] = None,
   kFs: Int = 0,
   cp: Boolean = false,
-  beforeCheck: (State, String) => Unit = (_, _) => (),
   logDir: String,
   symlink: String,
 ) {
@@ -210,7 +207,6 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
-    beforeCheck(finalState, code)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
@@ -303,7 +299,7 @@ class Fuzzer(
   // private helpers
   // ---------------------------------------------------------------------------
   // current iteration count
-  private var iter: Int = 0
+  protected var iter: Int = 0
 
   // current id
   private var idCounter: Long = 0
@@ -317,13 +313,13 @@ class Fuzzer(
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
-  private def toScript(code: String): Script = Script(code, s"$nextId.js")
+  protected def toScript(code: String): Script = Script(code, s"$nextId.js")
 
   // check if the added code is visited
-  private var visited: Set[String] = Set()
+  protected var visited: Set[String] = Set()
 
   // indicating that add failed
-  private def fail(msg: String) = throw Exception(msg)
+  protected def fail(msg: String) = throw Exception(msg)
 
   // debugging
   private var debugMsg = ""
