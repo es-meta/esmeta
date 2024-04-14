@@ -22,7 +22,7 @@ object ExitTag:
   def apply(st: => State): ExitTag = try {
     def getThrowItem(value: Value) = value match
       case addr: DynamicAddr =>
-        st(addr)(Str("Ptototype")) match
+        st(addr)(Str("Prototype")) match
           case NamedAddr(errorNameRegex(errorName)) =>
             ThrowNativeError(errorName)
           case _ => ThrowValue(addr)
