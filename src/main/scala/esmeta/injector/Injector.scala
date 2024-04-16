@@ -204,21 +204,26 @@ class Injector(
       case Clo(f, _) =>
         newSt.context = Context(f, MMap(Name("O") -> addr))
         newSt.callStack = Nil
-        Interpreter(newSt)
-        val propsAddr = newSt(GLOBAL_RESULT) match
-          case Comp(_, addr: Addr, _) => addr
-          case addr: Addr             => addr
-          case v                      => error("not an address: $v")
-        val len = newSt(propsAddr, Str("length")).asMath.toInt
-        val array = (0 until len)
-          .map(k => newSt(propsAddr, Math(k)))
-          .flatMap(_ match {
-            case Str(str)   => Some(s"'$str'")
-            case addr: Addr => addrToName(addr)
-            case _          => None
-          })
-        if (array.length == len)
-          _assertions += CompareArray(addr, path, array)
+        try {
+          // @TODO(@hyp3rflow): handle proxy correctly in interpreter
+          Interpreter(newSt)
+          val propsAddr = newSt(GLOBAL_RESULT) match
+            case Comp(_, addr: Addr, _) => addr
+            case addr: Addr             => addr
+            case v                      => error("not an address: $v")
+          val len = newSt(propsAddr, Str("length")).asMath.toInt
+          val array = (0 until len)
+            .map(k => newSt(propsAddr, Math(k)))
+            .flatMap(_ match {
+              case Str(str)   => Some(s"'$str'")
+              case addr: Addr => addrToName(addr)
+              case _          => None
+            })
+          if (array.length == len)
+            _assertions += CompareArray(addr, path, array)
+        } catch {
+          case e => warning("failed to interpret [[OwnPropertyKeys]]")
+        }
       case _ => warning("non-closure [[OwnPropertyKeys]]: $path")
 
   // handle properties
