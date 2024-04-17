@@ -37,6 +37,8 @@ class Interpreter(
 
   lazy val startTime: Long = System.currentTimeMillis
 
+  var coveredAOs: List[String] = List.empty
+
   /** final state */
   lazy val result: State = {
     while (step) {}
@@ -140,6 +142,7 @@ class Interpreter(
           val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, clo) ++ captured
+          coveredAOs :+= func.irFunc.name
           st.callStack ::= CallContext(lhs, st.context)
           st.context = createContext(call, func, newLocals, st.context)
         case cont @ Cont(func, captured, callStack) => {
