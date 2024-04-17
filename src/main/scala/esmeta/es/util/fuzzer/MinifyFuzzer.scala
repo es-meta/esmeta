@@ -15,6 +15,7 @@ import scala.collection.parallel.CollectionConverters._
 import esmeta.js.minifier.Minifier
 import esmeta.js.JSEngine
 import io.circe.Json
+import esmeta.es.util.USE_STRICT
 
 object MinifyFuzzer {
   def apply(
@@ -115,7 +116,7 @@ class MinifyFuzzer(
       case NormalTag =>
         val returns = injector.assertions
         for (ret <- returns.par) {
-          val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
+          val wrapped = s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
           Minifier.minifySwc(wrapped) match
             case Failure(exception) => println(s"[minify-fuzz] $exception")
             case Success(minified) => {
