@@ -53,7 +53,7 @@ object ESTest {
     cachedAst: Option[Ast] = None,
     filename: Option[String] = None,
   ): State =
-    new CheckAfter(Initialize(cfg, str, cachedAst, filename), checkAfter).result
+    new CheckAfter(cfg.init.from(str), checkAfter).result
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,

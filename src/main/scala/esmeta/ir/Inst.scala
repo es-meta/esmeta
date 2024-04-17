@@ -2,9 +2,10 @@ package esmeta.ir
 
 import esmeta.ir.util.Parser
 import esmeta.lang.Syntax
+import esmeta.util.WeakUId
 
 // IR instructions
-sealed trait Inst extends IRElem with LangEdge:
+sealed trait Inst extends IRElem with LangEdge with WeakUId[Inst]:
   // conversion to instruction lists
   def toList: List[Inst] = this match
     case ISeq(is) => is

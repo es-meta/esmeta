@@ -3,11 +3,11 @@ package esmeta.util
 import esmeta.LINE_SEP
 import esmeta.error.NotSupported.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.SystemUtils.{concurrent => doConcurrent}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import java.util.concurrent.atomic.AtomicInteger
+import scala.collection.parallel.CollectionConverters._
 
 // progress bar
 case class ProgressBar[T](
@@ -90,7 +90,7 @@ case class ProgressBar[T](
       }.map(errorHandler(_, summary, name))
       gcount.incrementAndGet
 
-    if (concurrent) doConcurrent(tests)
+    if (concurrent) tests.par.foreach(_.apply)
     else tests.foreach(_.apply)
 
     updateTime
