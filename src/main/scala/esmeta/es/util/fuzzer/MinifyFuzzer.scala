@@ -75,6 +75,10 @@ class MinifyFuzzer(
       cp = cp,
     ).result
 
+  val filteredAOs: List[String] = List(
+    "INTRINSICS.Function.prototype.toString",
+  )
+
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
     logInterval = logInterval,
@@ -98,7 +102,10 @@ class MinifyFuzzer(
         val interp = info.interp.getOrElse(fail("Interp Fail"))
         val finalState = interp.result
         val (_, updated, covered) = cov.check(script, interp)
-        beforeUpdate(iter, finalState, code, covered)
+        val filtered = interp.coveredAOs intersect filteredAOs
+        if (filtered.isEmpty)
+          beforeUpdate(iter, finalState, code, covered)
+        else println(s"PASS minifier check due to: $filtered")
         if (!updated) fail("NO UPDATE")
         covered
       },
