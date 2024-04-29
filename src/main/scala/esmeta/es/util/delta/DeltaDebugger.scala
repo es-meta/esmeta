@@ -6,6 +6,7 @@ import esmeta.parser.AstFrom
 import esmeta.mutator.Util
 import esmeta.util.BasicWalker
 import esmeta.util.BaseUtils.error
+import esmeta.injector.Injector.header
 
 // A hierarchical delta debugger
 class DeltaDebugger(
@@ -40,31 +41,37 @@ class DeltaDebugger(
       val Syntactic(name, args, rhsIdx, children) = syn
       name match
         case "StatementList" if !visited.contains(syn) =>
-          log(s"walk: statementList")
-          val statementListItems = flattenStatementList(syn)
-          if (statementListItems.size < 2) baseWalk(syn, f)
-          else
-            val d = MinDD(
-              statementListItems.size,
-              mask => {
-                log(s"walk/mask: $mask")
-                val items = (statementListItems zip mask).filter(_._2).map(_._1)
-                foldStatementList(items) match
-                  case Some(statementList) =>
-                    val code =
-                      f(statementList).toString(grammar = Some(grammar))
-                    checker(code)
-                  case None => false
-              },
-              detail,
-            ).result
-            val items = (statementListItems zip d).filter(_._2).map(_._1)
-            foldStatementList(items) match
-              case Some(statementList) =>
-                minimal +:= f(statementList)
-                baseWalk(statementList, f)
-              case None => error("Failed to get StatementList")
+          log(s"walk: StatementList")
+          delta(syn, f, flattenStatementList, foldStatementList)
+        case "CaseBlock" if !visited.contains(syn) =>
+          log(s"walk: CaseBlock")
+          delta(syn, f, flattenCaseBlock, foldCaseBlock(syn))
         case _ => baseWalk(syn, f)
+
+    def delta(
+      syn: Syntactic,
+      f: Ast => Ast,
+      flat: Syntactic => List[Syntactic],
+      fold: (List[Syntactic], Option[Syntactic]) => Option[Syntactic],
+    ): Syntactic =
+      val items = flat(syn)
+      if (items.size < 2) baseWalk(syn, f)
+      else
+        val mask = MinDD(
+          items.size,
+          mask =>
+            log(s"walk/mask: $mask")
+            val filtered = (items zip mask).filter(_._2).map(_._1)
+            fold(filtered, None).fold(false)(list =>
+              checker(f(list).toString(grammar = Some(grammar))),
+            )
+          ,
+          detail,
+        ).result
+        val filtered = (items zip mask).filter(_._2).map(_._1)
+        fold(filtered, None) match
+          case Some(list) => minimal +:= f(list); baseWalk(list, f)
+          case None       => error("Failed to get list")
 
     def baseWalk(syn: Syntactic, f: Ast => Ast): Syntactic =
       syn match
@@ -93,50 +100,78 @@ class DeltaDebugger(
           }
           Syntactic(name, args, rhsIdx, base)
 
-    private def flattenStatementList(ast: Syntactic): List[Syntactic] =
-      ast match
-        // singleton (-> StatementListItem)
-        case Syntactic("StatementList", args, 0, children) =>
-          children.collect {
-            case Some(child @ Syntactic(_, _, _, _)) => child
-          }.toList
-        // list (-> StatementList :: StatementListItem)
-        case Syntactic("StatementList", args, 1, children) =>
-          children.toList match
-            case Some(
-                  list @ Syntactic(
-                    "StatementList",
-                    _,
-                    _,
-                    _,
-                  ),
-                ) :: Some(
-                  listItem @ Syntactic(
-                    "StatementListItem",
-                    _,
-                    _,
-                    _,
-                  ),
-                ) :: Nil =>
-              flattenStatementList(list) :+ listItem
-            case _ => error("Unexpected Ast @ flattenStatementList")
-        case _ => error("Unexpected Ast @ flattenStatementList")
+    private def flattenStatementList(syn: Syntactic): List[Syntactic] =
+      syn.getItems("StatementListItem").asInstanceOf[List[Syntactic]]
 
     private def foldStatementList(
       items: List[Syntactic],
       head: Option[Syntactic] = None,
+    ): Option[Syntactic] =
+      foldList(items, head, "StatementList", "StatementListItem")
+
+    private def foldList(
+      items: List[Syntactic],
+      head: Option[Syntactic],
+      listName: String,
+      itemName: String,
     ): Option[Syntactic] = items match
       case Nil => head
       case h :: t =>
         h match
-          case item @ Syntactic("StatementListItem", args, _, _) =>
+          case item @ Syntactic(itemName, args, _, _) =>
             val newHead = head match
               case Some(_) =>
-                Syntactic("StatementList", args, 1, Vector(head, Some(item)))
+                Syntactic(listName, args, 1, Vector(head, Some(item)))
               case None =>
-                Syntactic("StatementList", args, 0, Vector(Some(item)))
-            visited += newHead; foldStatementList(t, Some(newHead))
-          case _ => error("Unexpected Ast @ foldStatementList")
+                Syntactic(listName, args, 0, Vector(Some(item)))
+            visited += newHead; foldList(t, Some(newHead), listName, itemName)
+
+    private def flattenCaseBlock(syn: Syntactic): List[Syntactic] =
+      syn match
+        // CaseBlock[0] -> "{" CaseClauses? "}"
+        case Syntactic("CaseBlock", args, 0, children) =>
+          children.toList match
+            case Some(clauses) :: Nil =>
+              clauses.getItems("CaseClause").asInstanceOf[List[Syntactic]]
+            case _ => Nil
+        // CaseBlock[1] -> "{" CaseClauses? DefaultClause CaseClauses? "}"
+        case Syntactic("CaseBlock", args, 1, children) =>
+          children.toList match
+            case cs1 :: dc :: cs2 :: Nil =>
+              (cs1.fold(Nil)(_.getItems("CaseClause")) ++
+              (dc.get :: cs2.fold(Nil)(_.getItems("CaseClause"))))
+                .asInstanceOf[List[Syntactic]]
+            case _ => error("Expected CaseBlock[1] @ flattenCaseBlock")
+        case _ => error("Unexpected Ast @ flattenCaseBlock")
+
+    private def foldCaseBlock(
+      syn: Syntactic,
+    )(items: List[Syntactic], head: Option[Syntactic]): Option[Syntactic] =
+      val Syntactic(name, args, rhsIdx, children) = syn
+      items.find(p => p.name == "DefaultClause") match
+        case Some(default) =>
+          items.splitAt(items.indexOf(default)) match
+            case (css1, d :: css2) =>
+              val cs1 = foldList(css1, None, "CaseClauses", "CaseClause")
+              val cs2 = foldList(css2, None, "CaseClauses", "CaseClause")
+              Some(
+                Syntactic(
+                  name,
+                  args,
+                  rhsIdx,
+                  Vector(cs1, Some(d), cs2),
+                ),
+              )
+            case _ => error("Unexpected CaseBlock @ foldCaseBlock")
+        case None =>
+          Some(
+            Syntactic(
+              name,
+              args,
+              0,
+              Vector(foldList(items, None, "CaseClauses", "CaseClause")),
+            ),
+          )
   }
 }
 trait AstWalker extends BasicWalker {
