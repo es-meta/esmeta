@@ -212,6 +212,15 @@ case object CmdInjectMinify
   )
 }
 
+/** `delta-debug` command */
+case object CmdDeltaDebug
+  extends Command("delta-debug", CmdBuildCFG >> DeltaDebug) {
+  val help = "delta-debug ECMAScript program for test case minimization"
+  val examples = List(
+    "esmeta delta-debug                   # delta-debug ECMAScript program",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
