@@ -79,6 +79,8 @@ class MinifyFuzzer(
     "INTRINSICS.Function.prototype.toString",
   )
 
+  var foundBugs: List[String] = List()
+
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
     logInterval = logInterval,
@@ -137,19 +139,24 @@ class MinifyFuzzer(
                   log = false,
                   ignoreProperties = "\"name\"" :: Nil,
                 )
-              JSEngine.runGraal(injected, Some(1000)) match
-                case Success(v) if v.isEmpty => println(s"[minify-fuzz] pass")
-                case Success(v) =>
-                  log(iter, covered, wrapped, minified, injected, v)
-                case Failure(exception) =>
-                  log(
-                    iter,
-                    covered,
-                    wrapped,
-                    minified,
-                    injected,
-                    exception.toString,
-                  )
+              injected.exitTag match
+                case NormalTag =>
+                  val code = injected.toString
+                  JSEngine.runGraal(code, Some(1000)) match
+                    case Success(v) if v.isEmpty =>
+                      println(s"[minify-fuzz] pass")
+                    case Success(v) =>
+                      log(iter, covered, wrapped, minified, code, v)
+                    case Failure(exception) =>
+                      log(
+                        iter,
+                        covered,
+                        wrapped,
+                        minified,
+                        code,
+                        exception.toString,
+                      )
+                case _ =>
             }
         }
       case _ =>

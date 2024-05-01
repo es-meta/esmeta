@@ -37,7 +37,7 @@ object Injector:
     timeLimit: Option[Int] = None,
     log: Boolean = false,
     ignoreProperties: List[String] = Nil,
-  ): String =
+  ): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.from(src), timeLimit)
     new Injector(
       cfg,
@@ -46,7 +46,7 @@ object Injector:
       defs,
       log,
       ignoreProperties,
-    ).result
+    ).conformTest
 
   /** injection from files */
   def fromFile(

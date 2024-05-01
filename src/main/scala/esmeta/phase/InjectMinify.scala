@@ -43,7 +43,8 @@ case object InjectMinify extends Phase[CFG, List[String]] {
                 timeLimit = Some(1000),
                 log = false,
                 ignoreProperties = "\"name\"" :: Nil,
-              ),
+              )
+              .toString,
           )
         }
     }).flatten.toList
