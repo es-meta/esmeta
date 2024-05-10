@@ -29,6 +29,7 @@ automatically generates language-based tools.
   * [Academic Achievement](#academic-achievement)
     + [Publications](#publications)
     + [PLDI 2022 Tutorial](#pldi-2022-tutorial)
+    + [Communications of the ACM (CACM)](#communications-of-the-acm-cacm)
 
 
 ## Installation Guide
@@ -377,16 +378,16 @@ analyzer REPL.
 
 ### Publications
 
-- **[ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632)**
-  ([old repo](https://github.com/kaist-plrg/jiset))
-- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015)**
-  ([old repo](https://github.com/kaist-plrg/jest))
-- **[ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781)**
-  ([old repo](https://github.com/kaist-plrg/jstar))
-- **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
-  ([old repo](https://github.com/kaist-plrg/jsaver))
 - **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
   ([old repo](https://github.com/jestfs/jestfs))
+- **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
+  ([old repo](https://github.com/kaist-plrg/jsaver))
+- **[ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781)**
+  ([old repo](https://github.com/kaist-plrg/jstar))
+- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015)**
+  ([old repo](https://github.com/kaist-plrg/jest))
+- **[ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632)**
+  ([old repo](https://github.com/kaist-plrg/jiset))
 
 ### PLDI 2022 Tutorial
 
@@ -395,3 +396,14 @@ analyzer REPL.
 - [Session 1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-1.pdf)
 - [Session 2-1](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-2.pdf)
 - [Session 2-2](https://plrg.korea.ac.kr/assets/data/slides/2022/pldi22-tutorial-3.pdf)
+
+### Communications of the ACM (CACM)
+
+- **Title**: **[JavaScript Language Design and Implementation in Tandem](https://cacm.acm.org/research/javascript-language-design-and-implementation-in-tandem/)**
+  - DOI: [10.1145/3624723](https://doi.org/10.1145/3624723)
+
+See the following video for more details:
+
+[<p align="center"><img src="http://img.youtube.com/vi/JGxc-KIUnQY/maxresdefault.jpg" width="500"></p>](https://youtu.be/JGxc-KIUnQY)
+
+- link: [https://youtu.be/JGxc-KIUnQY](https://youtu.be/JGxc-KIUnQY)
