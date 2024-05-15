@@ -36,6 +36,8 @@ case object Fuzz extends Phase[CFG, Coverage] {
       trial = config.trial,
       duration = config.duration,
       useSens = config.useSens,
+      kFs = config.kFs,
+      cp = config.cp,
     )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -102,6 +104,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption(c => c.useSens = true),
       "turn on node/branch coverage sensitivity",
     ),
+    (
+      "k-fs",
+      NumOption((c, k) => c.kFs = k),
+      "set the k-value for feature sensitivity (default: 0).",
+    ),
+    (
+      "cp",
+      BoolOption(c => c.cp = true),
+      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
+    ),
   )
   case class Config(
     var log: Boolean = false,
@@ -112,8 +124,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
-    var cp: Boolean = false,
     var init: Option[String] = None,
     var useSens: Boolean = false,
+    var kFs: Int = 0,
+    var cp: Boolean = false,
   )
 }
