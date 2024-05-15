@@ -37,6 +37,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       duration = config.duration,
       kFs = config.kFs,
       cp = config.cp,
+      init = config.init,
     ).result
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -94,14 +95,14 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
     (
-      "init",
-      StrOption((c, s) => c.init = Some(s)),
-      "explicitly use the given init pool",
-    ),
-    (
       "k-fs",
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
+    ),
+    (
+      "init",
+      StrOption((c, s) => c.init = Some(s)),
+      "explicitly use the given init pool",
     ),
   )
   case class Config(

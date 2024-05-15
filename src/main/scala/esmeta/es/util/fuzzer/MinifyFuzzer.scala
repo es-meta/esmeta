@@ -90,6 +90,7 @@ class MinifyFuzzer(
     duration = duration,
     kFs = kFs,
     cp = cp,
+    init = init,
   ) {
     override lazy val logDir = MinifyFuzzer.logDir
     override lazy val symlink = MinifyFuzzer.symlink
@@ -124,6 +125,7 @@ class MinifyFuzzer(
     injector.exitTag match
       case NormalTag =>
         val returns = injector.assertions
+        // TODO: some simple programs cannot be checked by this logic due to the empty return assertion
         for (ret <- returns.par) {
           val wrapped = s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
           Minifier.minifySwc(wrapped) match
@@ -146,8 +148,10 @@ class MinifyFuzzer(
                     case Success(v) if v.isEmpty =>
                       println(s"[minify-fuzz] pass")
                     case Success(v) =>
+                      println(s"[minify-fuzz] return value exists")
                       log(iter, covered, wrapped, minified, code, v)
                     case Failure(exception) =>
+                      println(s"[minify-fuzz] bug #${counter.get()}")
                       log(
                         iter,
                         covered,
@@ -156,7 +160,7 @@ class MinifyFuzzer(
                         code,
                         exception.toString,
                       )
-                case _ =>
+                case _ => println("[minify-fuzz] exit state is not normal")
             }
         }
       case _ =>
