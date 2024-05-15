@@ -103,11 +103,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
     ),
-    (
-      "cp",
-      BoolOption(c => c.cp = true),
-      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
-    ),
   )
   case class Config(
     var log: Boolean = false,
