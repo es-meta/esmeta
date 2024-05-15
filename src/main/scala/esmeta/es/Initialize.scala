@@ -101,7 +101,7 @@ class Initialize(cfg: CFG) {
     // add global object
     map ++= glob.map
 
-    Heap(map, map.size)
+    Heap.initialize(map, map.size)
   }
 
   // ---------------------------------------------------------------------------

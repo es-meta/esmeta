@@ -18,6 +18,8 @@ import scala.math.Ordering.Implicits.seqOrdering
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
+  kFs: Int = 0,
+  cp: Boolean = false,
   timeLimit: Option[Int] = None,
   logDir: Option[String] = None, // TODO: use this
 ) {
@@ -69,14 +71,14 @@ case class Coverage(
   /** evaluate a given ECMAScript program */
   def run(code: String): Interp = {
     val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, timeLimit)
+    val interp = Interp(initSt, kFs, cp, timeLimit)
     interp.result; interp
   }
 
   /** evaluate a given ECMAScript AST */
   def run(ast: Ast): Interp = {
     val initSt = cfg.init.from(ast)
-    val interp = Interp(initSt, timeLimit)
+    val interp = Interp(initSt, kFs, cp, timeLimit)
     interp.result; interp
   }
 
@@ -168,9 +170,8 @@ case class Coverage(
     lazy val orderedCondViews = condViews.toList.sorted
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
-    // TODO(@hyp3rflow): impl logging for coverage constructor
     // dumpJson(
-    //   CoverageConstructor(timeLimit, kFs, cp, onlineNumStdDev, checkIter),
+    //   CoverageConstructor(timeLimit, kFs, cp),
     //   s"$baseDir/constructor.json",
     // )
 
@@ -243,11 +244,10 @@ case class Coverage(
       app :> "- node: " >> nodeCov
       app :> "- branch: " >> branchCov
     }
-    // TODO(@hyp3rflow): sensitive coverage
-    // if (kFs > 0) (app :> "- sensitive coverage:").wrap("", "") {
-    //   app :> "- node: " >> nodeViewCov
-    //   app :> "- branch: " >> branchViewCov
-    // }
+    if (kFs > 0) (app :> "- sensitive coverage:").wrap("", "") {
+      app :> "- node: " >> nodeViewCov
+      app :> "- branch: " >> branchViewCov
+    }
     app.toString
 
   /** extension for AST */
@@ -379,6 +379,8 @@ case class Coverage(
 object Coverage {
   class Interp(
     initSt: State,
+    kFs: Int,
+    cp: Boolean,
     timeLimit: Option[Int],
   ) extends Interpreter(initSt, timeLimit = timeLimit, keepProvenance = true) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
@@ -409,8 +411,14 @@ object Coverage {
       touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.returnIfAbrupt(riaExpr, value, check)
 
-    // TODO: impl this
-    private def getView(node: Node | Cond): View = None
+    // get syntax-sensitive views
+    private def getView(node: Node | Cond): View =
+      val stack = st.context.featureStack.take(kFs)
+      val path = if (cp) then Some(st.context.callPath) else None
+      stack match {
+        case Nil                  => None
+        case feature :: enclosing => Some(enclosing, feature, path)
+      }
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
@@ -423,20 +431,24 @@ object Coverage {
     touchedCondViews: Iterable[CondView],
   )
 
-  // TODO: impl this
-  type View = Option[(List[Int])]
+  /** syntax-sensitive view */
+  type View = Option[(List[Feature], Feature, Option[CallPath])]
+  private def stringOfView(view: View) = view.fold("") {
+    case (enclosing, feature, path) =>
+      s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
+  }
   sealed trait NodeOrCondView(view: View) {}
   case class NodeView(node: Node, view: View) extends NodeOrCondView(view) {
-    override def toString: String = node.simpleString
+    override def toString: String = node.simpleString + stringOfView(view)
   }
 
   case class CondView(cond: Cond, view: View) extends NodeOrCondView(view) {
+    override def toString: String = cond.toString + stringOfView(view)
     def neg: CondView = copy(cond = cond.neg)
-    override def toString: String = cond.toString
   }
 
   case class FuncView(func: Func, view: View) {
-    override def toString: String = func.name
+    override def toString: String = func.name + stringOfView(view)
   }
 
   // branch or reference to EReturnIfAbrupt with boolean values
@@ -476,11 +488,61 @@ object Coverage {
   }
 
   /** ordering of syntax-sensitive views */
+  given Ordering[Feature] = Ordering.by(_.toString)
+  given Ordering[CallPath] = Ordering.by(_.toString)
   given Ordering[Node] = Ordering.by(_.id)
   given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
-  given Ordering[Cond] = Ordering.by(_.id)
+  given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
+  // meta-info for each view or features
   case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
+  case class CondViewInfo(index: Int, condView: CondView, script: String)
+
+  case class CoverageConstructor(
+    cfg: CFG,
+    kFs: Int,
+    cp: Boolean,
+    timeLimit: Option[Int],
+  )
+
+  // def fromLog(cfg: CFG, baseDir: String): Coverage =
+  //   val jsonProtocol = JsonProtocol(cfg)
+  //   import jsonProtocol.given
+
+  //   def rj[T](json: String)(implicit decoder: Decoder[T]) =
+  //     readJson[T](s"$baseDir/$json")
+
+  //   val con: CoverageConstructor = rj(s"constructor.json")
+  //   val cov = new Coverage(con.cfg, con.kFs, con.cp, con.timeLimit)
+
+  //   val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
+  //   val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")
+
+  //   val minimalTouchNodeView: Map[String, Vector[Int]] = rj(
+  //     "minimal-touch-nodeview.json",
+  //   )
+  //   val minimalTouchCondView: Map[String, Vector[Int]] = rj(
+  //     "minimal-touch-condview.json",
+  //   )
+
+  //   for {
+  //     minimal <- listFiles(s"$baseDir/minimal")
+  //     name = minimal.getName
+  //     code = readFile(minimal.getPath).drop(USE_STRICT.length).strip
+  //     script = Script(code, name)
+  //   } {
+  //     minimalTouchNodeView(name).foreach(i =>
+  //       cov.update(nodeViewInfos(i).nodeView, script),
+  //     )
+  //     minimalTouchCondView(name).foreach(i =>
+  //       cov.update(condViewInfos(i).condView, None, script),
+  //     )
+  //   }
+
+  //   // TODO: read assertions, and recover complete minimal infos
+  //   // TODO: Recover target conds
+
+  //   cov
 
 }

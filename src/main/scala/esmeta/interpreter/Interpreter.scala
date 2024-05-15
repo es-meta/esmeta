@@ -32,7 +32,6 @@ class Interpreter(
   val detail: Boolean = false,
   val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
-  // TODO: impl provenance of addresses
   val keepProvenance: Boolean = false,
 ) {
   import Interpreter.*
@@ -85,7 +84,7 @@ class Interpreter(
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(node) => eval(node); true
+    case NodeCursor(_, node, _) => eval(node); true
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
@@ -102,7 +101,11 @@ class Interpreter(
   def eval(node: Node): Unit =
     node match {
       case Block(_, insts, _) =>
-        for (inst <- insts) eval(inst); st.context.moveNext
+        for (inst <- insts) {
+          eval(inst)
+          st.context.step
+        }
+        st.context.moveNext
       case branch: Branch =>
         eval(branch.cond) match
           case Bool(bool) => moveBranch(branch, bool)
@@ -544,6 +547,10 @@ class Interpreter(
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
+  // get current provenance
+  private inline given Option[Provenance] =
+    if (keepProvenance) Some(st.provenance) else None
+
   // create a new context
   private def createContext(
     call: Call,
@@ -557,10 +564,12 @@ class Interpreter(
     locals: MMap[Local, Value],
     prevCtxt: Option[Context] = None,
   ): Context = if (keepProvenance) {
-    // TODO: add call path and feature stack
+    lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
+    lazy val prevCallPath = prevCtxt.fold(CallPath())(_.callPath)
     lazy val prevNearest = prevCtxt.flatMap(_.nearest)
     func.head match
       case Some(head: SyntaxDirectedOperationHead) =>
+        val feature = SyntacticFeature(func, head)
         val nearest = for {
           case AstValue(ast @ Syntactic(name, _, idx, _)) <- locals.get(
             Name("this"),
@@ -568,13 +577,15 @@ class Interpreter(
           loc <- ast.loc
           ty = AstSingleTy(name, idx, ast.subIdx)
         } yield Nearest(ty, loc)
-        Context(func, locals, nearest)
+        Context(func, locals, feature :: prevFeatureStack, nearest)
       case Some(head: BuiltinHead) => Context(func, locals)
       case _ =>
         Context(
           func,
           locals,
+          prevFeatureStack,
           prevNearest,
+          prevCallPath + call,
         )
   } else Context(func, locals)
 }

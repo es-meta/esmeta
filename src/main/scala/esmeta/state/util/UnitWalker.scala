@@ -39,6 +39,11 @@ trait UnitWalker extends BasicUnitWalker {
   // heap
   def walk(heap: Heap): Unit = walkMMap(heap.map, walk, walk)
 
+  // heap elements
+  def walk(pair: (Obj, Option[Provenance])): Unit =
+    val (obj, provenance) = pair
+    walk(obj); walkOpt(provenance, walk)
+
   // object
   def walk(obj: Obj): Unit = obj match
     case RecordObj(_, map) => walkMMap(map, walk, walk)
@@ -79,6 +84,12 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(rv: RefTarget): Unit = rv match
     case _: VarTarget             =>
     case FieldTarget(base, field) => walk(base); walk(field)
+
+  // provenance
+  def walk(provenance: Provenance): Unit = {}
+
+  // ECMAScript features
+  def walk(feature: Feature): Unit = {}
 
   // ir id
   def walk(id: Var): Unit = {}

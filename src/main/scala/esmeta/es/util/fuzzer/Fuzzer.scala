@@ -245,6 +245,8 @@ class Fuzzer(
   val cov: Coverage =
     Coverage(
       cfg,
+      kFs,
+      cp,
       timeLimit,
       Some(logDir),
     )

@@ -21,9 +21,7 @@ case class State(
 ) extends StateElem {
 
   /** get the current function */
-  def func: Func = context.cursor match
-    case NodeCursor(node) => cfg.funcOf(node)
-    case ExitCursor(func) => func
+  def func: Func = context.cursor.func
 
   /** get local variable maps */
   def locals: MMap[Local, Value] = context.locals
@@ -70,6 +68,9 @@ case class State(
     case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, field)
   def apply(addr: Addr): Obj = heap(addr)
+
+  def getProvenance(value: Value): Option[Provenance] =
+    heap.getProvenance(value)
 
   /** setters */
   def define(x: Var, value: Value): this.type = x match
@@ -125,15 +126,17 @@ case class State(
     heap.prepend(addr, value); this
   def pop(addr: Addr, front: Boolean): Value =
     heap.pop(addr, front)
-  def copyObj(addr: Addr): Addr =
+  def copyObj(addr: Addr)(using Option[Provenance]): Addr =
     heap.copyObj(addr)
-  def keys(addr: Addr, intSorted: Boolean): Addr =
+  def keys(addr: Addr, intSorted: Boolean)(using Option[Provenance]): Addr =
     heap.keys(addr, intSorted)
-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
+  def allocRecord(
+    tnameOpt: Option[String],
+  )(using CFG, Option[Provenance]): Addr =
     heap.allocRecord(tnameOpt)
-  def allocMap: Addr =
+  def allocMap(using Option[Provenance]): Addr =
     heap.allocMap
-  def allocList(list: List[Value]): Addr =
+  def allocList(list: List[Value])(using Option[Provenance]): Addr =
     heap.allocList(list)
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
@@ -167,8 +170,8 @@ case class State(
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)
   def getCursorString(location: Boolean): String = context.cursor match
-    case NodeCursor(node) =>
-      val irFunc = cfg.funcOf(node).irFunc
+    case NodeCursor(func, node, _) =>
+      val irFunc = func.irFunc
       s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
     case ExitCursor(func) =>
       val irFunc = func.irFunc
@@ -201,6 +204,8 @@ case class State(
       newGlobals,
       newHeap,
     )
+
+  def provenance: Provenance = context.provenance
 }
 object State {
 
