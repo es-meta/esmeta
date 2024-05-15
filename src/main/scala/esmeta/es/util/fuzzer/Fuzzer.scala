@@ -32,8 +32,8 @@ object Fuzzer {
     duration: Option[Int] = None, // `None` denotes no bound
     useSens: Boolean = false, // TODO(@hyp3rflow): Use node/cond sensitivity
     init: Option[String] = None, // initial pool directory path given by user
-    // kFs: Int = 0,
-    // cp: Boolean = false,
+    kFs: Int = 0,
+    cp: Boolean = false,
     // init: Option[String] = None,
     // targets: List[Target] = List(),
     // onlineNumStdDev: Option[Int] = None,
@@ -48,6 +48,8 @@ object Fuzzer {
     trial,
     duration,
     useSens,
+    kFs = kFs,
+    cp = cp,
   ).result
 
   // debugging levels
@@ -67,6 +69,8 @@ class Fuzzer(
   duration: Option[Int] = None, // `None` denotes no bound
   useSens: Boolean = false,
   init: Option[String] = None,
+  kFs: Int = 0,
+  cp: Boolean = false,
 ) {
   import Fuzzer.*
 
