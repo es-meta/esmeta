@@ -35,7 +35,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
-      useSens = config.useSens,
       kFs = config.kFs,
       cp = config.cp,
     )
@@ -100,11 +99,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       "explicitly use the given init pool",
     ),
     (
-      "sens",
-      BoolOption(c => c.useSens = true),
-      "turn on node/branch coverage sensitivity",
-    ),
-    (
       "k-fs",
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
@@ -125,7 +119,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
     var init: Option[String] = None,
-    var useSens: Boolean = false,
     var kFs: Int = 0,
     var cp: Boolean = false,
   )
