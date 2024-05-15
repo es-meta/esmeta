@@ -108,8 +108,8 @@ object SpecStringMutator {
   }
   val primaryCounter = Util.AstCounter(isPrimary)
 
-  // manually selected algorithms,
-  // whoose purposes is reading property
+  // manually selected algorithms for extracting property
+  // TODO: we have to check not only property but also method name
   val propReadingAlgos = Set(
     "HasProperty",
     "GetMethod",
@@ -127,7 +127,12 @@ object SpecStringMutator {
     "async function ( x ) { }",
     "async function * ( x ) { }",
     "0",
+    "-0",
+    "42",
+    "-42",
     "null",
+    "void 0",
+    "undefined",
     "( ) => { throw 0 ; }",
   )
 
