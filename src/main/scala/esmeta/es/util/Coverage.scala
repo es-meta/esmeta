@@ -495,44 +495,4 @@ object Coverage {
     cp: Boolean,
     timeLimit: Option[Int],
   )
-
-  // def fromLog(cfg: CFG, baseDir: String): Coverage =
-  //   val jsonProtocol = JsonProtocol(cfg)
-  //   import jsonProtocol.given
-
-  //   def rj[T](json: String)(implicit decoder: Decoder[T]) =
-  //     readJson[T](s"$baseDir/$json")
-
-  //   val con: CoverageConstructor = rj(s"constructor.json")
-  //   val cov = new Coverage(con.cfg, con.kFs, con.cp, con.timeLimit)
-
-  //   val nodeViewInfos: Vector[NodeViewInfo] = rj("node-coverage.json")
-  //   val condViewInfos: Vector[CondViewInfo] = rj("branch-coverage.json")
-
-  //   val minimalTouchNodeView: Map[String, Vector[Int]] = rj(
-  //     "minimal-touch-nodeview.json",
-  //   )
-  //   val minimalTouchCondView: Map[String, Vector[Int]] = rj(
-  //     "minimal-touch-condview.json",
-  //   )
-
-  //   for {
-  //     minimal <- listFiles(s"$baseDir/minimal")
-  //     name = minimal.getName
-  //     code = readFile(minimal.getPath).drop(USE_STRICT.length).strip
-  //     script = Script(code, name)
-  //   } {
-  //     minimalTouchNodeView(name).foreach(i =>
-  //       cov.update(nodeViewInfos(i).nodeView, script),
-  //     )
-  //     minimalTouchCondView(name).foreach(i =>
-  //       cov.update(condViewInfos(i).condView, None, script),
-  //     )
-  //   }
-
-  //   // TODO: read assertions, and recover complete minimal infos
-  //   // TODO: Recover target conds
-
-  //   cov
-
 }
