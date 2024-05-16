@@ -7,6 +7,21 @@ import io.circe.syntax.*
 /** basic JSON protocols */
 trait BasicJsonProtocol {
 
+  // encoder for option
+  given optionEncoder[T](using
+    tEncoder: Encoder[T],
+  ): Encoder[Option[T]] =
+    Encoder.instance(opt => opt.fold(Json.Null)(tEncoder.apply))
+
+  // decoder for option
+  given optionDecoder[T](using
+    tDecoder: Decoder[T],
+  ): Decoder[Option[T]] =
+    Decoder.instance(c =>
+      if c.value.isNull then Right(None)
+      else tDecoder(c).map(Some(_)),
+    )
+
   // encoder for map structures
   given mapEncoder[K, V](using
     kEncoder: Encoder[K],
@@ -107,8 +122,37 @@ trait BasicJsonProtocol {
         .getOrElse(decodeFail(s"expected a string instead of ${c.value}", c)),
     )
 
-  // encoder for UId with name: UId -> { name: id }
-  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
+  // decoder for IntId: id -> IntId
+  def idDecoder[T <: IntId](getter: Int => Option[T]): Decoder[T] =
+    Decoder.instance(c =>
+      (for {
+        number <- c.value.asNumber
+        id <- number.toInt
+        x <- getter(id)
+      } yield Right(x)).getOrElse(invalidFail("id", c)),
+    )
+
+  // encoder for IntId: IntId -> id
+  def idEncoder[T <: IntId]: Encoder[T] =
+    Encoder.instance(x => Json.fromInt(x.id))
+
+  // decoder for IntId with name: { name: id } -> IntId
+  def idDecoder[T <: IntId](
+    name: String,
+    getter: Int => Option[T],
+  ): Decoder[T] =
+    Decoder.instance(c =>
+      (for {
+        obj <- c.value.asObject
+        value <- obj(name)
+        number <- value.asNumber
+        id <- number.toInt
+        x <- getter(id)
+      } yield Right(x)).getOrElse(invalidFail("id", c)),
+    )
+
+  // encoder for IntId with name: IntId -> { name: id }
+  def idEncoder[T <: IntId](name: String): Encoder[T] =
     Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
 
   // decoding failure
