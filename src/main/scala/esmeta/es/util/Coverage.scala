@@ -25,6 +25,9 @@ case class Coverage(
 ) {
   import Coverage.{*, given}
 
+  val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
+  import jsonProtocol.given
+
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
@@ -160,10 +163,10 @@ case class Coverage(
     lazy val orderedCondViews = condViews.toList.sorted
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
-    // dumpJson(
-    //   CoverageConstructor(timeLimit, kFs, cp),
-    //   s"$baseDir/constructor.json",
-    // )
+    dumpJson(
+      CoverageConstructor(kFs, cp, timeLimit),
+      s"$baseDir/constructor.json",
+    )
 
     val st = System.nanoTime()
     def elapsedSec = (System.nanoTime() - st) / 1e9
@@ -490,7 +493,6 @@ object Coverage {
   case class CondViewInfo(index: Int, condView: CondView, script: String)
 
   case class CoverageConstructor(
-    cfg: CFG,
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],

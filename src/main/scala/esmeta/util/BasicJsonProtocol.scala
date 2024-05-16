@@ -16,6 +16,17 @@ trait BasicJsonProtocol {
       Json.fromFields(map.toList.sortBy(_._1).map { (k, v) => (k, v.asJson) })
     }
 
+  // decoder for option
+  def optionDecoder[T](using decoder: Decoder[T]): Decoder[Option[T]] =
+    Decoder.instance(c =>
+      if c.value.isNull then Right(None)
+      else decoder(c).map(Some(_)),
+    )
+
+  // encoder for option
+  def optionEncoder[T](using encoder: Encoder[T]): Encoder[Option[T]] =
+    Encoder.instance(opt => opt.fold(Json.Null)(encoder.apply))
+
   // decoder for double values
   def doubleDecoder: Decoder[Double] = Decoder.instance(c =>
     c.value.asString
@@ -88,8 +99,37 @@ trait BasicJsonProtocol {
         .getOrElse(decodeFail(s"expected a string instead of ${c.value}", c)),
     )
 
-  // encoder for UId with name: UId -> { name: id }
-  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
+  // decoder for IntId: id -> IntId
+  def idDecoder[T <: IntId](getter: Int => Option[T]): Decoder[T] =
+    Decoder.instance(c =>
+      (for {
+        number <- c.value.asNumber
+        id <- number.toInt
+        x <- getter(id)
+      } yield Right(x)).getOrElse(invalidFail("id", c)),
+    )
+
+  // encoder for IntId: IntId -> id
+  def idEncoder[T <: IntId]: Encoder[T] =
+    Encoder.instance(x => Json.fromInt(x.id))
+
+  // decoder for IntId with name: { name: id } -> IntId
+  def idDecoder[T <: IntId](
+    name: String,
+    getter: Int => Option[T],
+  ): Decoder[T] =
+    Decoder.instance(c =>
+      (for {
+        obj <- c.value.asObject
+        value <- obj(name)
+        number <- value.asNumber
+        id <- number.toInt
+        x <- getter(id)
+      } yield Right(x)).getOrElse(invalidFail("id", c)),
+    )
+
+  // encoder for IntId with name: IntId -> { name: id }
+  def idEncoder[T <: IntId](name: String): Encoder[T] =
     Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
 
   // decoding failure
