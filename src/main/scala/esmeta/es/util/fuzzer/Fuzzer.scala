@@ -33,6 +33,8 @@ class Fuzzer(
   kFs: Int = 0,
   cp: Boolean = false,
   beforeCheck: (State, String) => Unit = (_, _) => (),
+  logDir: String = Fuzzer.defaultLogDir,
+  symlink: String = Fuzzer.defaultSymlink,
 ) {
   import Fuzzer.*
 
@@ -257,9 +259,6 @@ class Fuzzer(
         .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
     )
 
-  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
-  lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"
-
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
@@ -380,4 +379,7 @@ object Fuzzer {
   val ALL = 2
   val PARTIAL = 1
   val NO_DEBUG = 0
+
+  lazy val defaultLogDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+  lazy val defaultSymlink: String = s"$FUZZ_LOG_DIR/recent"
 }

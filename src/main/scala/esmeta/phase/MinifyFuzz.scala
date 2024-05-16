@@ -19,15 +19,11 @@ import scala.collection.parallel.CollectionConverters._
 import esmeta.util.SystemUtils.*
 import esmeta.injector.NormalTag
 import esmeta.es.util.ValidityChecker
+import esmeta.es.util.fuzzer.MinifyFuzzer
 
 case object MinifyFuzz extends Phase[CFG, Coverage] {
   val name = "minify-fuzz"
   val help = "generate ECMAScript programs for fuzzing minifier"
-
-  // TODO(@hyp3rflow): refactor this
-  val counter = AtomicLong(0)
-  val logDir: String = s"$MINIFY_FUZZ_LOG_DIR/fuzz-$dateStr"
-  val symlink: String = s"$MINIFY_FUZZ_LOG_DIR/recent"
 
   def apply(
     cfg: CFG,
@@ -38,67 +34,20 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
     val graph = GrammarGraph(cfg.grammar)
     import graph.*
 
-    mkdir(logDir, remove = true)
-    createSymlink(symlink, logDir, overwrite = true)
-    dumpFile(getSeed, s"$logDir/seed")
-
-    val cov = Fuzzer(
+    val cov = MinifyFuzzer(
       cfg = cfg,
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
-      beforeCheck = { (finalState, code) =>
-        val injector = ReturnInjector(cfg, finalState, config.timeLimit, true)
-        injector.exitTag match
-          case NormalTag =>
-            val returns = injector.assertions
-            for (ret <- returns.par) {
-              val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
-              Minifier.minifySwc(wrapped) match
-                case Failure(exception) => println(exception)
-                case Success(minified) => {
-                  val injected =
-                    Injector.replaceBody(
-                      cfg,
-                      wrapped,
-                      minified,
-                      defs = true,
-                      timeLimit = config.timeLimit,
-                      log = false,
-                      ignoreProperties = "\"name\"" :: Nil,
-                    )
-                  JSEngine.runNode(injected, Some(1000)) match
-                    case Success(v) if v.isEmpty => println(s"pass")
-                    case Success(v) =>
-                      log(wrapped, minified, injected, v)
-                    case Failure(exception) =>
-                      log(wrapped, minified, injected, exception.toString)
-                }
-            }
-          case _ =>
-      },
-    ).result
+      kFs = config.kFs,
+      cp = config.cp,
+    )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     cov
-
-  def log(
-    original: String,
-    minified: String,
-    injected: String,
-    exception: String,
-  ) = {
-    val count = counter.incrementAndGet()
-    val dirpath = s"$logDir/$count"
-    mkdir(dirpath)
-    dumpFile(original, s"$dirpath/original.js")
-    dumpFile(minified, s"$dirpath/minified.js")
-    dumpFile(injected, s"$dirpath/injected.js")
-    dumpFile(exception, s"$dirpath/reason")
-  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
@@ -156,9 +105,9 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       "explicitly use the given init pool",
     ),
     (
-      "sens",
-      BoolOption(c => c.useSens = true),
-      "turn on node/branch coverage sensitivity",
+      "k-fs",
+      NumOption((c, k) => c.kFs = k),
+      "set the k-value for feature sensitivity (default: 0).",
     ),
   )
   case class Config(
@@ -170,8 +119,8 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
     var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
-    var cp: Boolean = false,
     var init: Option[String] = None,
-    var useSens: Boolean = false,
+    var kFs: Int = 0,
+    var cp: Boolean = false,
   )
 }
