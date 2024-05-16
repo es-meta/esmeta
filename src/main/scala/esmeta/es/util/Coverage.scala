@@ -174,14 +174,14 @@ case class Coverage(
 
     dumpJson(
       name = "node coverage",
-      data = nodeViewMapJson(orderedNodeViews),
+      data = nodeViewInfos(orderedNodeViews),
       filename = s"$baseDir/node-coverage.json",
       noSpace = false,
     )
     log("Dumped node coverage")
     dumpJson(
       name = "branch coverage",
-      data = condViewMapJson(orderedCondViews),
+      data = condViewInfos(orderedCondViews),
       filename = s"$baseDir/branch-coverage.json",
       noSpace = false,
     )
@@ -335,38 +335,12 @@ case class Coverage(
       script <- getScript(nodeView)
     } yield NodeViewInfo(idx, nodeView, script.name)
 
-  // ported from https://github.com/kaist-plrg/esmeta/commit/fc351874a846aba36ddd940d1a6eeff391572b07
-  private def nodeViewMapJson(ordered: List[NodeView]): Json =
-    Json.fromValues(
-      for {
-        (nodeView, idx) <- ordered.zipWithIndex
-        script <- getScript(nodeView)
-      } yield Json.obj(
-        "index" -> idx.asJson,
-        "node" -> Json.obj(
-          "func" -> cfg.funcOf(nodeView.node).name.asJson,
-          "loc" -> nodeView.node.loc.map(_.toString).asJson,
-        ),
-        "script" -> script.name.asJson,
-      ),
-    )
-
-  private def condViewMapJson(ordered: List[CondView]): Json =
-    Json.fromValues(
-      for {
-        (condView, idx) <- ordered.zipWithIndex
-        script <- getScript(condView)
-      } yield Json.obj(
-        "index" -> idx.asJson,
-        "cond" -> Json.obj(
-          "func" -> condView.cond.node.map(cfg.funcOf(_).name).asJson,
-          "loc" -> condView.cond.loc.map(_.toString).asJson,
-          "kind" -> condView.toString.asJson,
-        ),
-        "script" -> script.name.asJson,
-      ),
-    )
-
+  // get JSON for branch coverage
+  private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
+    for {
+      (condView, idx) <- ordered.zipWithIndex
+      script <- getScript(condView)
+    } yield CondViewInfo(idx, condView, script.name)
 }
 
 object Coverage {
