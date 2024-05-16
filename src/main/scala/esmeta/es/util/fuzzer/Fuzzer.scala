@@ -34,6 +34,8 @@ object Fuzzer {
     kFs: Int = 0,
     cp: Boolean = false,
     beforeCheck: (State, String) => Unit = (_, _) => (),
+    logDir: String = logDir,
+    symlink: String = symlink,
   ): Coverage = new Fuzzer(
     cfg,
     logInterval,
@@ -46,7 +48,11 @@ object Fuzzer {
     kFs,
     cp,
     beforeCheck,
+    logDir,
+    symlink,
   ).result
+  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
+  lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"
 
   // debugging levels
   val ALL = 2
@@ -67,6 +73,8 @@ class Fuzzer(
   kFs: Int = 0,
   cp: Boolean = false,
   beforeCheck: (State, String) => Unit = (_, _) => (),
+  logDir: String,
+  symlink: String,
 ) {
   import Fuzzer.*
 
@@ -290,9 +298,6 @@ class Fuzzer(
       BuiltinSynthesizer(cfg.spec.algorithms).initPool
         .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
     )
-
-  lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
-  lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"
 
   // ---------------------------------------------------------------------------
   // private helpers
