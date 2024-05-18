@@ -46,13 +46,26 @@ class DeltaDebugger(
         case "CaseBlock" if !visited.contains(syn) =>
           log(s"walk: CaseBlock")
           delta(syn, f, flattenCaseBlock, foldCaseBlock(syn))
+        case "ArrayLiteral" if !visited.contains(syn) =>
+          log(s"walk: ArrayLiteral")
+          delta(
+            syn,
+            f,
+            flattenArrayLiteralToElementLists,
+            foldArrayLiteralWithElementLists(syn),
+            1,
+          )
+        case "Elision" if !visited.contains(syn) =>
+          log(s"walk: Elision")
+          delta(syn, f, flattenElision, foldElision, 1)
         case _ => baseWalk(syn, f)
 
     def delta(
       syn: Syntactic,
       f: Ast => Ast,
       flat: Syntactic => List[Syntactic],
-      fold: (List[Syntactic], Option[Syntactic]) => Option[Syntactic],
+      fold: List[Syntactic] => Option[Syntactic],
+      granularity: Int = 2,
     ): Syntactic =
       val items = flat(syn)
       if (items.size < 2) baseWalk(syn, f)
@@ -62,17 +75,18 @@ class DeltaDebugger(
           mask =>
             log(s"walk/mask: $mask")
             val filtered = (items zip mask).filter(_._2).map(_._1)
-            fold(filtered, None).fold(false)(list =>
+            fold(filtered).fold(false)(list =>
               checker(f(list).toString(grammar = Some(grammar))),
             )
           ,
           detail,
-        ).result
+        ).result(granularity)
         val filtered = (items zip mask).filter(_._2).map(_._1)
-        fold(filtered, None) match
+        fold(filtered) match
           case Some(list) => minimal +:= f(list); baseWalk(list, f)
           case None       => error("Failed to get list")
 
+    // just walk and forward AST constructor function `f`
     def baseWalk(syn: Syntactic, f: Ast => Ast): Syntactic =
       syn match
         case Syntactic(name, args, rhsIdx, children) =>
@@ -95,7 +109,7 @@ class DeltaDebugger(
                   ),
               ),
             ) match
-              case Some(syn) => base.updated(index, Some(syn))
+              case Some(syn) => base = base.updated(index, Some(syn))
               case None      =>
           }
           Syntactic(name, args, rhsIdx, base)
@@ -103,11 +117,8 @@ class DeltaDebugger(
     private def flattenStatementList(syn: Syntactic): List[Syntactic] =
       syn.getItems("StatementListItem").asInstanceOf[List[Syntactic]]
 
-    private def foldStatementList(
-      items: List[Syntactic],
-      head: Option[Syntactic] = None,
-    ): Option[Syntactic] =
-      foldList(items, head, "StatementList", "StatementListItem")
+    private def foldStatementList(items: List[Syntactic]): Option[Syntactic] =
+      foldList(items, None, "StatementList", "StatementListItem")
 
     private def foldList(
       items: List[Syntactic],
@@ -144,9 +155,9 @@ class DeltaDebugger(
             case _ => error("Expected CaseBlock[1] @ flattenCaseBlock")
         case _ => error("Unexpected Ast @ flattenCaseBlock")
 
-    private def foldCaseBlock(
-      syn: Syntactic,
-    )(items: List[Syntactic], head: Option[Syntactic]): Option[Syntactic] =
+    private def foldCaseBlock(syn: Syntactic)(
+      items: List[Syntactic],
+    ): Option[Syntactic] =
       val Syntactic(name, args, rhsIdx, children) = syn
       items.find(p => p.name == "DefaultClause") match
         case Some(default) =>
@@ -172,6 +183,81 @@ class DeltaDebugger(
               Vector(foldList(items, None, "CaseClauses", "CaseClause")),
             ),
           )
+
+    private def flattenArrayLiteralToElementLists(
+      syn: Syntactic,
+    ): List[Syntactic] =
+      syn.getMatchedItems("ElementList").asInstanceOf[List[Syntactic]]
+
+    private def foldArrayLiteralWithElementLists(syn: Syntactic)(
+      items: List[Syntactic],
+    ): Option[Syntactic] =
+      def foldElementList(head: Syntactic, tail: List[Syntactic]): Syntactic =
+        val Syntactic(name, args, rhsIdx, children) = head
+        println(name)
+        rhsIdx match
+          case 0 | 1 => Syntactic(name, args, rhsIdx, children)
+          case 2 | 3 =>
+            tail match
+              case head :: tail =>
+                Syntactic(
+                  name,
+                  args,
+                  rhsIdx,
+                  children.updated(0, Some(foldElementList(head, tail))),
+                )
+              case Nil =>
+                children.last.get.name match
+                  case "AssignmentExpression" =>
+                    Syntactic(name, args, 0, children.tail)
+                  case "SpreadElement" =>
+                    Syntactic(name, args, 1, children.tail)
+                  case name @ _ =>
+                    error(
+                      s"Unexpected children name: $name @ foldArrayLiteralToElementLists",
+                    )
+      val Syntactic(name, args, rhsIdx, children) = syn
+      items match
+        case Nil =>
+          children.lastOption match
+            case Some(Some(elision)) if elision.name == "Elision" =>
+              Some(Syntactic(name, args, 0, Vector(Some(elision))))
+            case Some(Some(_) | None) =>
+              Some(Syntactic(name, args, 0, Vector(None)))
+            case None => error("Unexpected children list")
+        case head :: tail =>
+          Some(
+            Syntactic(
+              name,
+              args,
+              rhsIdx,
+              children.updated(0, Some(foldElementList(head, tail))),
+            ),
+          )
+
+    private def flattenElision(syn: Syntactic): List[Syntactic] =
+      syn.getMatchedItems("Elision").asInstanceOf[List[Syntactic]]
+
+    private def foldElision(items: List[Syntactic]): Option[Syntactic] = {
+      items match
+        case _ :: t if foldElision(t).isDefined =>
+          Some(Syntactic("Elision", Nil, 1, Vector(foldElision(t))))
+        case _ =>
+          Some(Syntactic("Elision", Nil, 0, Vector.empty))
+    }
+  }
+
+  extension (ast: Ast) {
+    def getMatchedItems(name: String): List[Ast] = ast match
+      case _: Lexical => Nil
+      case syn: Syntactic =>
+        (for {
+          child <- syn.children.flatten
+          item <- {
+            if (ast.name != name) child.getMatchedItems(name)
+            else child.getMatchedItems(name) :+ ast
+          } if child.name == name
+        } yield item).toList
   }
 }
 trait AstWalker extends BasicWalker {
