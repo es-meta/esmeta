@@ -196,12 +196,8 @@ class MinifyFuzzer(
             case Some(result) =>
               val MinifyTestResult(original, minified, injected, exception) =
                 result
-              val delta = deltaDebug(
-                original,
-                injector.exitTag,
-                assertions,
-                minifyTest(_).isDefined,
-              )(original)
+              val delta =
+                DeltaDebugger(cfg, minifyTest(_).isDefined).result(original)
               log(
                 MinifyFuzzResult(
                   iter,
@@ -251,44 +247,6 @@ class MinifyFuzzer(
     minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
   }
 
-  private def deltaDebug(
-    originalCode: String,
-    exitTag: ExitTag,
-    assertions: Vector[Assertion],
-    checker: (delta: String) => Boolean,
-  ) =
-    val debugger = DeltaDebugger(
-      cfg,
-      delta => {
-        Minifier.minifySwc(delta) match
-          case Failure(_)        => false
-          case Success(minified) =>
-            // check delta is valid
-            val deltaAssertions =
-              Injector
-                .getTest(
-                  cfg,
-                  delta,
-                  timeLimit = timeLimit,
-                  ignoreProperties = ignoreProperties,
-                )
-                .assertions
-            val injected = Injector.replaceBody(
-              cfg,
-              originalCode,
-              minified,
-              defs = true,
-              timeLimit = timeLimit,
-              ignoreProperties = ignoreProperties,
-            )
-            injected.exitTag match
-              case tag if exitTag == tag =>
-                if (assertions != deltaAssertions) false
-                else checker(injected.toString)
-              case _ => false
-      },
-    )
-    debugger.result
 }
 
 case class MinifyFuzzResult(
