@@ -29,6 +29,24 @@ object Injector:
     val extractor = ExitStateExtractor(cfg.init.from(src))
     new Injector(cfg, extractor.result, src, defs, log, Nil).result
 
+  def getTest(
+    cfg: CFG,
+    src: String,
+    defs: Boolean = false,
+    log: Boolean = false,
+    timeLimit: Option[Int] = None,
+    ignoreProperties: List[String] = Nil,
+  ): ConformTest =
+    val extractor = ExitStateExtractor(cfg.init.from(src), timeLimit)
+    new Injector(
+      cfg,
+      extractor.result,
+      src,
+      defs,
+      log,
+      ignoreProperties,
+    ).conformTest
+
   def replaceBody(
     cfg: CFG,
     src: String,
