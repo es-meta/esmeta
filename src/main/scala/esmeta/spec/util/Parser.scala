@@ -132,7 +132,8 @@ trait Parsers extends LangParsers {
   /** symbols for code point abbreviations */
   lazy val cp: Parser[CodePoint] = {
     lazy val unicode = "U[+]([1-9A-F]|10)?[0-9A-F]{4}".r
-    "<" ~> unicode ~ rep(word) <~ ">" ^^ {
+    // https://www.unicode.org/reports/tr34/#UAX34-R1
+    "<" ~> unicode ~ (opt("(") ~> rep("[-A-Z0-9]+".r) <~ opt(")")) <~ ">" ^^ {
       case cp ~ desc =>
         CodePoint(Integer.parseInt(cp.drop(2), 16), desc.mkString(" "))
     }
@@ -145,7 +146,9 @@ trait Parsers extends LangParsers {
 
   /** symbols for sets of unicode code points with a condition */
   lazy val unicodeSet: Parser[UnicodeSet] = {
-    ">" ~ "any Unicode code point" ~> opt(".+".r) ^^ { UnicodeSet(_) }
+    ">" ~ ("any Unicode code point" | "any code point") ~> opt(".+".r) ^^ {
+      UnicodeSet(_)
+    }
   }.named("spec.UnicodeSet")
 
   /** lookahead symbol */
