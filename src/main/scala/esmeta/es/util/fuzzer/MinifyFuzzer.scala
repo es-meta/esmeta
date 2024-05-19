@@ -182,15 +182,6 @@ class MinifyFuzzer(
         for (ret <- returns.par) {
           val original =
             s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
-          // get assertions from original code to compare with delta-debugged code
-          val assertions = Injector
-            .getTest(
-              cfg,
-              original,
-              timeLimit = timeLimit,
-              ignoreProperties = ignoreProperties,
-            )
-            .assertions
           minifyTest(original) match
             case None =>
             case Some(result) =>
