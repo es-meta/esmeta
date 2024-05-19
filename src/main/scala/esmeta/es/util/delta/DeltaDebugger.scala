@@ -63,6 +63,27 @@ class DeltaDebugger(
               ); minimal +:= f(removed);
               walk(removed, f)
             case false => baseWalk(syn, f)
+        case "ExponentiationExpression" | "MultiplicativeExpression" |
+            "AdditiveExpression" | "ShiftExpression" | "RelationalExpression" |
+            "EqualityExpression" | "BitwiseANDExpression" |
+            "BitwiseXORExpression" | "BitwiseORExpression" |
+            "LogicalANDExpression" | "LogicalORExpression" if rhsIdx != 0 =>
+          val candidates = List(
+            children.head.get.asInstanceOf[Syntactic],
+            children.last.get.asInstanceOf[Syntactic],
+          )
+          (for {
+            candidate <- candidates
+          } yield {
+            checker(f(candidate).toString(grammar = Some(grammar))) match
+              case true =>
+                log(
+                  s"walk: $name ${f(candidate).toString(grammar = Some(grammar))}",
+                ); minimal +:= f(candidate);
+                walk(candidate, f)
+              case false => baseWalk(syn, f)
+          }).sortBy(_.toString(grammar = Some(grammar)).length).head
+
         case _ => baseWalk(syn, f)
 
     def delta(
