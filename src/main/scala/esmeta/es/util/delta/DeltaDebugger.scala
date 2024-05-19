@@ -34,7 +34,7 @@ class DeltaDebugger(
     def result(ast: Ast): Ast =
       minimal = List(ast)
       walk(ast, ast => ast)
-      minimal.head
+      minimal.sortBy(_.toString(grammar = Some(grammar)).length).head
 
     def walk(syn: Syntactic, f: Ast => Ast): Syntactic =
       val Syntactic(name, args, rhsIdx, children) = syn
@@ -71,6 +71,9 @@ class DeltaDebugger(
           val candidates = List(
             children.head.get.asInstanceOf[Syntactic],
             children.last.get.asInstanceOf[Syntactic],
+          )
+          println(
+            s"candidates: ${candidates.map(_.toString(grammar = Some(grammar))).mkString(" ")}",
           )
           (for {
             candidate <- candidates
