@@ -72,7 +72,7 @@ class DeltaDebugger(
             children.head.get.asInstanceOf[Syntactic],
             children.last.get.asInstanceOf[Syntactic],
           )
-          println(
+          log(
             s"candidates: ${candidates.map(_.toString(grammar = Some(grammar))).mkString(" ")}",
           )
           (for {
@@ -86,7 +86,72 @@ class DeltaDebugger(
                 walk(candidate, f)
               case false => baseWalk(syn, f)
           }).sortBy(_.toString(grammar = Some(grammar)).length).head
-
+        case "AssignmentExpression" if rhsIdx > 4 =>
+          val candidates = List(
+            children.head.get.asInstanceOf[Syntactic],
+            children.last.get.asInstanceOf[Syntactic],
+            Syntactic(
+              name,
+              args,
+              5,
+              Vector(
+                children.head,
+                Some(Syntactic("AssignmentOperator", Nil, 3, Vector.empty)),
+                children.last,
+              ),
+            ),
+          )
+          log(
+            s"candidates: ${candidates.map(_.toString(grammar = Some(grammar))).mkString(" ")}",
+          )
+          (for {
+            candidate <- candidates
+          } yield {
+            checker(f(candidate).toString(grammar = Some(grammar))) match
+              case true =>
+                log(
+                  s"walk: $name ${f(candidate).toString(grammar = Some(grammar))}",
+                ); minimal +:= f(candidate);
+                if (candidate.name != name) walk(candidate, f)
+                else baseWalk(candidate, f)
+              case false => baseWalk(syn, f)
+          }).sortBy(_.toString(grammar = Some(grammar)).length).head
+        case "ArgumentList" if rhsIdx == 1 =>
+          walk(Syntactic(name, args, 0, children), f)
+        case "ArgumentList" if rhsIdx == 2 =>
+          val candidates = List(
+            children.head.get.asInstanceOf[Syntactic],
+            children.last.get.asInstanceOf[Syntactic],
+          )
+          log(
+            s"candidates: ${candidates.map(_.toString(grammar = Some(grammar))).mkString(" ")}",
+          )
+          (for {
+            candidate <- candidates
+          } yield {
+            checker(f(candidate).toString(grammar = Some(grammar))) match
+              case true =>
+                log(
+                  s"walk: $name ${f(candidate).toString(grammar = Some(grammar))}",
+                ); minimal +:= f(candidate);
+                if (candidate.name != name) walk(candidate, f)
+                else baseWalk(candidate, f)
+              case false => baseWalk(syn, f)
+          }).sortBy(_.toString(grammar = Some(grammar)).length).head
+        case "ArgumentList" if rhsIdx == 3 =>
+          val newSyn = Syntactic(
+            name,
+            args,
+            2,
+            Vector(
+              children.head,
+              Some(Syntactic("ArgumentList", Nil, 2, Vector.empty)),
+              children.last,
+            ),
+          )
+          walk(newSyn, f)
+        case "Arguments" if rhsIdx > 0 =>
+          walk(Syntactic(name, args, 0, children), f)
         case _ => baseWalk(syn, f)
 
     def delta(
