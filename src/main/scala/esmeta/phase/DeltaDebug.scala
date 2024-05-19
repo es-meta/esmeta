@@ -13,6 +13,8 @@ import esmeta.js.JSEngine
 import esmeta.js.minifier.Minifier
 import esmeta.util.BaseUtils.error
 import esmeta.injector.ReturnInjector
+import esmeta.es.util.fuzzer.MinifyTestResult
+import esmeta.injector.NormalTag
 
 case object DeltaDebug extends Phase[CFG, String] {
   val name = "delta-debugger"
@@ -22,81 +24,59 @@ case object DeltaDebug extends Phase[CFG, String] {
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
     val filename = getFirstFilename(cmdConfig, this.name)
     val originalCode = readFile(filename)
-    val finalState = Interpreter(cfg.init.from(originalCode))
-    val minifiedCode = Minifier.minifySwc(originalCode) match
-      case Failure(exception) => error(s"[delta-debug] $exception")
-      case Success(minified)  => minified
-    val injected =
-      Injector
-        .replaceBody(
-          cfg,
-          originalCode,
-          minifiedCode,
-          defs = true,
-          timeLimit = Some(1000),
-          log = false,
-          ignoreProperties = "\"name\"" :: Nil,
-        )
-    val testCode = injected.toString
-    val assertions = injected.assertions
-    val result = JSEngine.runGraal(testCode, Some(1000)) match
-      case Success(v) if v.isEmpty => error("[delta-debug] pass")
-      case result @ _              => result.fold(_.toString, identity)
-    DeltaDebugger(
-      cfg,
-      delta => {
-        println(s"[delta-debug] trial\n${delta}")
-        // 1. check if it is valid program
-        JSEngine.runGraal(delta, Some(1000)) match
-          case Failure(_) => false
-          case _          =>
-            // 2. if it is valid, minify it
-            Minifier.minifySwc(delta) match
-              case Failure(_)             => false
-              case Success(minifiedDelta) =>
-                // 3. get assertions (final state) from the delta program
-                val deltaAssertions = Injector
-                  .getTest(
-                    cfg,
-                    delta,
-                    defs = true,
-                    log = false,
-                    timeLimit = Some(1000),
-                    ignoreProperties = "\"name\"" :: Nil,
-                  )
-                  .assertions
-                // 4. if assertions between two program (original <-> delta), discard program.
-                if (assertions != deltaAssertions)
-                  println(s"= assertions\n$assertions\n")
-                  println(s"= dassertions\n$deltaAssertions\n")
-                  false
-                else {
-                  // 5. get assertion-injected program from delta program
-                  val code = Injector
-                    .replaceBody(
-                      cfg,
-                      originalCode,
-                      minifiedDelta,
-                      defs = true,
-                      timeLimit = Some(1000),
-                      log = false,
-                      ignoreProperties = "\"name\"" :: Nil,
-                    )
-                    .toString
-                  val test = JSEngine
-                    .runGraal(code, Some(1000))
-                    .fold(_.toString, identity)
-                    .toString
-                  // 6. run and check output from the injected code
-                  if (test != result)
-                    println(
-                      s"expect:\n${result}\nactual:\n${test}",
-                    )
-                  test == result
-                }
-      },
-      detail = true,
-    ).result(originalCode)
+    minifyTest(cfg, originalCode) match
+      case None => println(s"[delta-debug] pass"); originalCode
+      case Some(MinifyTestResult(original, minified, injected, exception)) =>
+        DeltaDebugger(cfg, minifyTest(cfg, _).isDefined, detail = true)
+          .result(original)
+
+  private def minifyTest(cfg: CFG, code: String): Option[MinifyTestResult] =
+    Minifier.minifySwc(code) match
+      case Failure(exception) => println(s"[minify-test] $exception"); None
+      case Success(minified) => {
+        val injected =
+          Injector.replaceBody(
+            cfg,
+            code,
+            minified,
+            defs = true,
+            timeLimit = Some(1000),
+            ignoreProperties = "\"name\"" :: Nil,
+          )
+        injected.exitTag match
+          case NormalTag =>
+            val injectedCode = injected.toString
+            JSEngine.runGraal(injectedCode, Some(1000)) match
+              // minified program passes assertions
+              case Success(v) if v.isEmpty =>
+                println(s"[minify-test] pass"); None
+              // minified program fails on assertions
+              case Success(v) =>
+                println(s"[minify-test] return value exists")
+                Some(
+                  MinifyTestResult(
+                    code,
+                    minified,
+                    injectedCode,
+                    v,
+                  ),
+                )
+              // minified program throws exception
+              // TODO(@hyp3rflow): we have to mask span data of program exception
+              case Failure(exception) =>
+                println(s"[minify-test] exception throws")
+                Some(
+                  MinifyTestResult(
+                    code,
+                    minified,
+                    injectedCode,
+                    exception.toString,
+                  ),
+                )
+
+          case _ =>
+            println("[minify-test] exit state is not normal"); None
+      }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
