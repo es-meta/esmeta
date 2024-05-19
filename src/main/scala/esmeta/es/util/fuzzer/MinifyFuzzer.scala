@@ -244,7 +244,7 @@ class MinifyFuzzer(
         s"$dirpath/info",
       )
     }
-    val count = minimals.get(delta)
+    val count = minimals.get(delta).get
     val dirpath = s"$logDir/$count/bugs"
     mkdir(dirpath)
     dumpFile(original, s"$dirpath/$iter.js")
