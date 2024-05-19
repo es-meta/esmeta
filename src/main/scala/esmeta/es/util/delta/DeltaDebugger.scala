@@ -58,7 +58,9 @@ class DeltaDebugger(
           val removed = children(0).get.asInstanceOf[Syntactic]
           checker(f(removed).toString(grammar = Some(grammar))) match
             case true =>
-              log(s"walk: $name ${f(removed).toString(grammar = Some(grammar))}"); minimal +:= f(removed);
+              log(
+                s"walk: $name ${f(removed).toString(grammar = Some(grammar))}",
+              ); minimal +:= f(removed);
               walk(removed, f)
             case false => baseWalk(syn, f)
         case _ => baseWalk(syn, f)
