@@ -12,6 +12,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run e2e tests
         run: |
           sbt assembly

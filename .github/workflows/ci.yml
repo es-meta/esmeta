@@ -11,6 +11,13 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: "21"
+          distribution: "graalvm-community"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Fetch all tags from ecma262
         env:
           ESMETA_HOME: ${{ github.workspace }}
