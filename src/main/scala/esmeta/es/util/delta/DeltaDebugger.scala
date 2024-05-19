@@ -28,9 +28,6 @@ class DeltaDebugger(
   private def log(x: Any): Unit = if (detail) println(s"[dd] $x")
 
   object DeltaWalker extends AstWalker {
-    // skip visited Syn node
-    var visited: Set[Syntactic] = Set.empty
-
     // tracking minimal Ast to retrieve result
     var minimal: List[Ast] = List.empty
 
@@ -42,11 +39,28 @@ class DeltaDebugger(
     def walk(syn: Syntactic, f: Ast => Ast): Syntactic =
       val Syntactic(name, args, rhsIdx, children) = syn
       name match
-        case "StatementList" | "CaseBlock" if !visited.contains(syn) =>
+        case "StatementList" | "CaseBlock" =>
           log(s"walk: $name"); delta(syn, f)
         case "ArrayLiteral" | "ElementList" | "Elision" | "ObjectLiteral" |
-            "PropertyDefinitionList" if !visited.contains(syn) =>
+            "PropertyDefinitionList" | "ObjectAssignmentPattern" |
+            "AssignmentPropertyList" | "ArrayAssignmentPattern" |
+            "AssignmentElementList" | "FormalParameters" |
+            "FormalParameterList" =>
           log(s"walk: $name"); delta(syn, f, 1)
+        // MemberExpression[1] -> MemberExpression "[" Expression "]"
+        case "MemberExpression" if rhsIdx == 1 =>
+          val removed = children(0).get.asInstanceOf[Syntactic]
+          checker(f(removed).toString(grammar = Some(grammar))) match
+            case true =>
+              log(s"walk: $name"); minimal +:= f(removed); walk(removed, f)
+            case false => baseWalk(syn, f)
+        case "OptionalExpression" =>
+          val removed = children(0).get.asInstanceOf[Syntactic]
+          checker(f(removed).toString(grammar = Some(grammar))) match
+            case true =>
+              log(s"walk: $name ${f(removed).toString(grammar = Some(grammar))}"); minimal +:= f(removed);
+              walk(removed, f)
+            case false => baseWalk(syn, f)
         case _ => baseWalk(syn, f)
 
     def delta(
