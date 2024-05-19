@@ -45,14 +45,14 @@ class BuiltinSynthesizer(
         val calls = for {
           argsLen <- Range(1, MAX_ARGS + 1).toList
           argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
-        } yield s"$pathStr.call$argsStr;"
+        } yield s"let x = $pathStr.call$argsStr;"
         // construct without arguments
-        val construct = s"new $pathStr;"
+        val construct = s"let x = new $pathStr;"
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, MAX_ARGS).toList
           argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
-        } yield s"new $pathStr$argsStr;"
+        } yield s"let x = new $pathStr$argsStr;"
         calls ++ (construct :: constructs)
   } yield code).toVector
 
