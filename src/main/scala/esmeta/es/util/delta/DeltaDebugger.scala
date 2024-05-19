@@ -36,6 +36,9 @@ class DeltaDebugger(
       walk(ast, ast => ast)
       minimal.sortBy(_.toString(grammar = Some(grammar)).length).head
 
+    override def walk(lex: Lexical, f: Ast => Ast): Lexical =
+      minimal :+= f(lex); lex
+
     def walk(syn: Syntactic, f: Ast => Ast): Syntactic =
       val Syntactic(name, args, rhsIdx, children) = syn
       name match
@@ -117,8 +120,10 @@ class DeltaDebugger(
               case false => baseWalk(syn, f)
           }).sortBy(_.toString(grammar = Some(grammar)).length).head
         case "ArgumentList" if rhsIdx == 1 =>
+          log(s"walk: $name:$rhsIdx")
           walk(Syntactic(name, args, 0, children), f)
         case "ArgumentList" if rhsIdx == 2 =>
+          log(s"walk: $name:$rhsIdx")
           val candidates = List(
             children.head.get.asInstanceOf[Syntactic],
             children.last.get.asInstanceOf[Syntactic],
@@ -139,6 +144,7 @@ class DeltaDebugger(
               case false => baseWalk(syn, f)
           }).sortBy(_.toString(grammar = Some(grammar)).length).head
         case "ArgumentList" if rhsIdx == 3 =>
+          log(s"walk: $name:$rhsIdx")
           val newSyn = Syntactic(
             name,
             args,
@@ -149,9 +155,16 @@ class DeltaDebugger(
               children.last,
             ),
           )
-          walk(newSyn, f)
+          List(
+            walk(newSyn, f),
+            baseWalk(syn, f),
+          ).sortBy(_.toString(grammar = Some(grammar)).length).head
         case "Arguments" if rhsIdx > 0 =>
-          walk(Syntactic(name, args, 0, children), f)
+          log(s"walk: $name:$rhsIdx")
+          List(
+            walk(Syntactic(name, args, 0, children), f),
+            baseWalk(syn, f),
+          ).sortBy(_.toString(grammar = Some(grammar)).length).head
         case _ => baseWalk(syn, f)
 
     def delta(
