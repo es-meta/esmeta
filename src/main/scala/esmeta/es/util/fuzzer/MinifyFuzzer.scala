@@ -120,12 +120,60 @@ class MinifyFuzzer(
     )
   }
 
+  private def minifyTest(code: String): Option[MinifyTestResult] =
+    Minifier.minifySwc(code) match
+      case Failure(exception) => println(s"[minify-fuzz] $exception"); None
+      case Success(minified) => {
+        val injected =
+          Injector.replaceBody(
+            cfg,
+            code,
+            minified,
+            defs = true,
+            timeLimit = timeLimit,
+            ignoreProperties = ignoreProperties,
+          )
+        injected.exitTag match
+          case NormalTag =>
+            val injectedCode = injected.toString
+            JSEngine.runGraal(injectedCode, Some(1000)) match
+              // minified program passes assertions
+              case Success(v) if v.isEmpty =>
+                println(s"[minify-fuzz] pass"); None
+              // minified program fails on assertions
+              case Success(v) =>
+                println(s"[minify-fuzz] return value exists")
+                Some(
+                  MinifyTestResult(
+                    code,
+                    minified,
+                    injectedCode,
+                    v,
+                  ),
+                )
+              // minified program throws exception
+              // TODO(@hyp3rflow): we have to mask span data of program exception
+              case Failure(exception) =>
+                println(s"[minify-fuzz] exception throws")
+                Some(
+                  MinifyTestResult(
+                    code,
+                    minified,
+                    injectedCode,
+                    exception.toString,
+                  ),
+                )
+
+          case _ =>
+            println("[minify-fuzz] exit state is not normal"); None
+      }
+
   private def minifyTest(
     iter: Int,
     finalState: State,
     code: String,
     covered: Boolean,
-  ) =
+  ): Unit =
     val injector = ReturnInjector(cfg, finalState, timeLimit, false)
     injector.exitTag match
       case NormalTag =>
@@ -143,76 +191,28 @@ class MinifyFuzzer(
               ignoreProperties = ignoreProperties,
             )
             .assertions
-          Minifier.minifySwc(original) match
-            case Failure(exception) => println(s"[minify-fuzz] $exception")
-            case Success(minified) => {
-              val injected =
-                Injector.replaceBody(
-                  cfg,
+          minifyTest(original) match
+            case None =>
+            case Some(result) =>
+              val MinifyTestResult(original, minified, injected, exception) =
+                result
+              val delta = deltaDebug(
+                original,
+                injector.exitTag,
+                assertions,
+                minifyTest(_).isDefined,
+              )(original)
+              log(
+                MinifyFuzzResult(
+                  iter,
+                  covered,
                   original,
                   minified,
-                  defs = true,
-                  timeLimit = timeLimit,
-                  ignoreProperties = ignoreProperties,
-                )
-              injected.exitTag match
-                case NormalTag =>
-                  val injectedCode = injected.toString
-                  JSEngine.runGraal(injectedCode, Some(1000)) match
-                    // minified program passes assertions
-                    case Success(v) if v.isEmpty =>
-                      println(s"[minify-fuzz] pass")
-                    // minified program fails on assertions
-                    case Success(v) =>
-                      println(s"[minify-fuzz] return value exists")
-                      val delta = deltaDebug(
-                        original,
-                        injected.exitTag,
-                        assertions,
-                        { code =>
-                          JSEngine.runGraal(code, Some(1000)) match
-                            case Success(mv) if !mv.isEmpty => mv == v
-                            case _                          => false
-                        },
-                      )(original)
-                      log(
-                        MinifyFuzzResult(
-                          iter,
-                          covered,
-                          original,
-                          minified,
-                          delta,
-                          injectedCode,
-                          v,
-                        ),
-                      )
-                    // minified program throws exception
-                    // TODO(@hyp3rflow): we have to mask span data of program exception
-                    case Failure(exception) =>
-                      println(s"[minify-fuzz] exception throws")
-                      val delta = deltaDebug(
-                        original,
-                        injected.exitTag,
-                        assertions,
-                        { code =>
-                          JSEngine.runGraal(code, Some(1000)) match
-                            case Failure(e) => e.toString == exception.toString
-                            case _          => false
-                        },
-                      )(original)
-                      log(
-                        MinifyFuzzResult(
-                          iter,
-                          covered,
-                          original,
-                          minified,
-                          delta,
-                          injectedCode,
-                          exception.toString,
-                        ),
-                      )
-                case _ => println("[minify-fuzz] exit state is not normal")
-            }
+                  delta,
+                  injected,
+                  exception,
+                ),
+              )
         }
       case _ =>
 
@@ -297,6 +297,13 @@ case class MinifyFuzzResult(
   originalCode: String,
   minifiedCode: String,
   deltaDebugged: String,
+  injectedCode: String,
+  exception: String,
+)
+
+case class MinifyTestResult(
+  originalCode: String,
+  minifiedCode: String,
   injectedCode: String,
   exception: String,
 )
