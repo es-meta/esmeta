@@ -6,46 +6,43 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: true
+      - name: Fetch all tags from ecma262
+        env:
+          ESMETA_HOME: ${{ github.workspace }}
+        run: cd ecma262 && git fetch --tags --depth=1
 
-    - name: Fetch all tags from ecma262
-      env:
-        ESMETA_HOME: ${{ github.workspace }}
-      run:
-        cd ecma262 && git fetch --tags --depth=1
+      - name: Run test
+        env:
+          ESMETA_HOME: ${{ github.workspace }}
+        run: sbt basicTest || (cat tests/detail && exit 1)
 
-    - name: Run test
-      env:
-        ESMETA_HOME: ${{ github.workspace }}
-      run: sbt basicTest || (cat tests/detail && exit 1)
-
-    - name: Report status
-      if: failure()
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Report status
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Check code format
+        run: sbt formatCheck
 
-    - name: Check code format
-      run: sbt formatCheck
-
-    - name: Report status
-      if: failure()
-      uses: 8398a7/action-slack@v3
-      with:
-        status: ${{ job.status }}
-        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Report status
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
