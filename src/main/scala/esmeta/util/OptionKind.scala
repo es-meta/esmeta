@@ -30,7 +30,7 @@ case class BoolOption[T](assign: T => Unit) extends OptionKind[T] {
 case class NumOption[T](assign: (T, Int) => Unit) extends OptionKind[T] {
   def postfix: String = "={number}"
   def argRegexList(name: String): List[ArgRegex[T]] = List(
-    (("-" + name + "=").r, "[0-9]+".r, (c, s) => assign(c, s.toInt)),
+    (("-" + name + "=").r, "-?[0-9]+".r, (c, s) => assign(c, s.toInt)),
     (("-" + name + "=").r, ".*".r, (_, _) => throw NoNumArgError(name)),
     (("-" + name).r, "".r, (_, _) => throw NoNumArgError(name)),
   )
