@@ -1,21 +1,24 @@
 package esmeta.es.util.fuzzer
 
-import esmeta.{error => _, *}
 import esmeta.util.*
 import esmeta.cfg.CFG
-import esmeta.es.util.fuzzer.Fuzzer.NO_DEBUG
+import esmeta.{error => _, *}
 import esmeta.es.util.Coverage
+import esmeta.es.util.fuzzer.Fuzzer.NO_DEBUG
 import esmeta.injector.*
 import esmeta.state.State
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import java.util.concurrent.atomic.AtomicLong
+import esmeta.js.JSEngine
+import esmeta.js.minifier.Minifier
+import esmeta.es.util.USE_STRICT
+import esmeta.es.util.delta.DeltaDebugger
 import scala.util.*
 import scala.collection.parallel.CollectionConverters._
-import esmeta.js.minifier.Minifier
-import esmeta.js.JSEngine
+import scala.collection.mutable.{Map => MMap, Set => MSet}
+
 import io.circe.Json
-import esmeta.es.util.USE_STRICT
+import java.util.concurrent.atomic.AtomicInteger
 
 object MinifyFuzzer {
   def apply(
@@ -60,7 +63,7 @@ class MinifyFuzzer(
 ) {
   import MinifyFuzzer.*
 
-  val counter = AtomicLong(0)
+  val counter = AtomicInteger(0)
 
   lazy val result: Coverage =
     Fuzzer(
@@ -78,8 +81,10 @@ class MinifyFuzzer(
   val filteredAOs: List[String] = List(
     "INTRINSICS.Function.prototype.toString",
   )
+  val ignoreProperties: List[String] = List("name").map(prop => s"\"$prop\"")
 
-  var foundBugs: List[String] = List()
+  var minimals: MMap[String, Int] = MMap.empty
+  val minimalMap: MMap[String, MSet[String]] = MMap.empty
 
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
@@ -107,7 +112,7 @@ class MinifyFuzzer(
         val (_, updated, covered) = cov.check(script, interp)
         val filtered = interp.coveredAOs intersect filteredAOs
         if (filtered.isEmpty)
-          beforeUpdate(iter, finalState, code, covered)
+          minifyTest(iter, finalState, code, covered)
         else println(s"PASS minifier check due to: $filtered")
         if (!updated) fail("NO UPDATE")
         covered
@@ -115,7 +120,7 @@ class MinifyFuzzer(
     )
   }
 
-  private def beforeUpdate(
+  private def minifyTest(
     iter: Int,
     finalState: State,
     code: String,
@@ -127,66 +132,171 @@ class MinifyFuzzer(
         val returns = injector.assertions
         // TODO: some simple programs cannot be checked by this logic due to the empty return assertion
         for (ret <- returns.par) {
-          val wrapped = s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
-          Minifier.minifySwc(wrapped) match
+          val original =
+            s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
+          // get assertions from original code to compare with delta-debugged code
+          val assertions = Injector
+            .getTest(
+              cfg,
+              original,
+              timeLimit = timeLimit,
+              ignoreProperties = ignoreProperties,
+            )
+            .assertions
+          Minifier.minifySwc(original) match
             case Failure(exception) => println(s"[minify-fuzz] $exception")
             case Success(minified) => {
               val injected =
                 Injector.replaceBody(
                   cfg,
-                  wrapped,
+                  original,
                   minified,
                   defs = true,
                   timeLimit = timeLimit,
-                  log = false,
-                  ignoreProperties = "\"name\"" :: Nil,
+                  ignoreProperties = ignoreProperties,
                 )
               injected.exitTag match
                 case NormalTag =>
-                  val code = injected.toString
-                  JSEngine.runGraal(code, Some(1000)) match
+                  val injectedCode = injected.toString
+                  JSEngine.runGraal(injectedCode, Some(1000)) match
+                    // minified program passes assertions
                     case Success(v) if v.isEmpty =>
                       println(s"[minify-fuzz] pass")
+                    // minified program fails on assertions
                     case Success(v) =>
                       println(s"[minify-fuzz] return value exists")
-                      log(iter, covered, wrapped, minified, code, v)
-                    case Failure(exception) =>
-                      println(s"[minify-fuzz] bug #${counter.get()}")
+                      val delta = deltaDebug(
+                        original,
+                        injected.exitTag,
+                        assertions,
+                        { code =>
+                          JSEngine.runGraal(code, Some(1000)) match
+                            case Success(mv) if !mv.isEmpty => mv == v
+                            case _                          => false
+                        },
+                      )(original)
                       log(
-                        iter,
-                        covered,
-                        wrapped,
-                        minified,
-                        code,
-                        exception.toString,
+                        MinifyFuzzResult(
+                          iter,
+                          covered,
+                          original,
+                          minified,
+                          delta,
+                          injectedCode,
+                          v,
+                        ),
+                      )
+                    // minified program throws exception
+                    // TODO(@hyp3rflow): we have to mask span data of program exception
+                    case Failure(exception) =>
+                      println(s"[minify-fuzz] exception throws")
+                      val delta = deltaDebug(
+                        original,
+                        injected.exitTag,
+                        assertions,
+                        { code =>
+                          JSEngine.runGraal(code, Some(1000)) match
+                            case Failure(e) => e.toString == exception.toString
+                            case _          => false
+                        },
+                      )(original)
+                      log(
+                        MinifyFuzzResult(
+                          iter,
+                          covered,
+                          original,
+                          minified,
+                          delta,
+                          injectedCode,
+                          exception.toString,
+                        ),
                       )
                 case _ => println("[minify-fuzz] exit state is not normal")
             }
         }
       case _ =>
 
-  private def log(
-    iter: Int,
-    covered: Boolean,
-    original: String,
-    minified: String,
-    injected: String,
-    exception: String,
-  ) = {
-    val count = counter.incrementAndGet()
-    val dirpath = s"$logDir/$count"
+  private def log(result: MinifyFuzzResult) = minimals.synchronized {
+    val MinifyFuzzResult(
+      iter,
+      covered,
+      original,
+      minified,
+      delta,
+      injected,
+      exception,
+    ) = result
+    if (!minimals.contains(delta)) {
+      val count = counter.incrementAndGet()
+      minimals += (delta -> count)
+      val dirpath = s"$logDir/$count"
+      mkdir(dirpath)
+      dumpFile(original, s"$dirpath/original.js")
+      dumpFile(minified, s"$dirpath/minified.js")
+      dumpFile(injected, s"$dirpath/injected.js")
+      dumpFile(delta, s"$dirpath/delta.js")
+      dumpFile(exception, s"$dirpath/reason")
+      dumpJson(
+        Json.obj(
+          "iter" -> Json.fromInt(iter),
+          "covered" -> Json.fromBoolean(covered),
+        ),
+        s"$dirpath/info",
+      )
+    }
+    val count = minimals.get(delta)
+    val dirpath = s"$logDir/$count/bugs"
     mkdir(dirpath)
-    dumpFile(original, s"$dirpath/original.js")
-    dumpFile(minified, s"$dirpath/minified.js")
-    dumpFile(injected, s"$dirpath/injected.js")
-    dumpFile(exception, s"$dirpath/reason")
-    dumpJson(
-      Json.obj(
-        "iter" -> Json.fromInt(iter),
-        "covered" -> Json.fromBoolean(covered),
-      ),
-      s"$dirpath/info",
-    )
+    dumpFile(original, s"$dirpath/$iter.js")
+    minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
   }
 
+  private def deltaDebug(
+    originalCode: String,
+    exitTag: ExitTag,
+    assertions: Vector[Assertion],
+    checker: (delta: String) => Boolean,
+  ) =
+    val debugger = DeltaDebugger(
+      cfg,
+      delta => {
+        Minifier.minifySwc(delta) match
+          case Failure(_)        => false
+          case Success(minified) =>
+            // check delta is valid
+            val deltaAssertions =
+              Injector
+                .getTest(
+                  cfg,
+                  delta,
+                  timeLimit = timeLimit,
+                  ignoreProperties = ignoreProperties,
+                )
+                .assertions
+            val injected = Injector.replaceBody(
+              cfg,
+              originalCode,
+              minified,
+              defs = true,
+              timeLimit = timeLimit,
+              ignoreProperties = ignoreProperties,
+            )
+            injected.exitTag match
+              case tag if exitTag == tag =>
+                if (assertions != deltaAssertions) false
+                else checker(injected.toString)
+              case _ => false
+      },
+    )
+    debugger.result
 }
+
+case class MinifyFuzzResult(
+  iteration: Int,
+  covered: Boolean,
+  originalCode: String,
+  minifiedCode: String,
+  deltaDebugged: String,
+  injectedCode: String,
+  exception: String,
+)
