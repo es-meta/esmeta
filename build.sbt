@@ -3,7 +3,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
 // NOTE: please update version info in the README.md file
-ThisBuild / version := "0.4.0"
+ThisBuild / version := "0.4.1"
 
 // Scala version
 ThisBuild / scalaVersion := "3.3.1"
