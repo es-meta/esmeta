@@ -37,7 +37,9 @@ class DeltaDebugger(
       minimal.sortBy(_.toString(grammar = Some(grammar)).length).head
 
     override def walk(lex: Lexical, f: Ast => Ast): Lexical =
-      minimal :+= f(lex); lex
+      // TODO(@hyp3rflow): need refactor
+      if (checker(f(lex).toString(grammar = Some(grammar)))) minimal :+= f(lex)
+      lex
 
     def walk(syn: Syntactic, f: Ast => Ast): Syntactic =
       val Syntactic(name, args, rhsIdx, children) = syn
@@ -52,11 +54,13 @@ class DeltaDebugger(
           log(s"walk: $name"); delta(syn, f, 1)
         // MemberExpression[1] -> MemberExpression "[" Expression "]"
         case "MemberExpression" if rhsIdx == 1 =>
+          log(s"walk: $name:$rhsIdx")
           val removed = children(0).get.asInstanceOf[Syntactic]
-          checker(f(removed).toString(grammar = Some(grammar))) match
-            case true =>
-              log(s"walk: $name"); minimal +:= f(removed); walk(removed, f)
-            case false => baseWalk(syn, f)
+          if (checker(f(removed).toString(grammar = Some(grammar))))
+            List(walk(removed, f), baseWalk(syn, f))
+              .sortBy(_.toString(grammar = Some(grammar)).length)
+              .head
+          else baseWalk(syn, f)
         case "OptionalExpression" =>
           val removed = children(0).get.asInstanceOf[Syntactic]
           checker(f(removed).toString(grammar = Some(grammar))) match
@@ -149,22 +153,23 @@ class DeltaDebugger(
             name,
             args,
             2,
-            Vector(
-              children.head,
-              Some(Syntactic("ArgumentList", Nil, 2, Vector.empty)),
-              children.last,
-            ),
+            Vector(children.head, children.last),
           )
-          List(
-            walk(newSyn, f),
-            baseWalk(syn, f),
-          ).sortBy(_.toString(grammar = Some(grammar)).length).head
+          if (checker(f(newSyn).toString(grammar = Some(grammar))))
+            List(
+              walk(newSyn, f),
+              baseWalk(syn, f),
+            ).sortBy(_.toString(grammar = Some(grammar)).length).head
+          else baseWalk(syn, f)
         case "Arguments" if rhsIdx > 0 =>
           log(s"walk: $name:$rhsIdx")
-          List(
-            walk(Syntactic(name, args, 0, children), f),
-            baseWalk(syn, f),
-          ).sortBy(_.toString(grammar = Some(grammar)).length).head
+          val newSyn = Syntactic(name, args, 0, Vector.empty)
+          if (checker(f(newSyn).toString(grammar = Some(grammar))))
+            List(
+              walk(newSyn, f),
+              baseWalk(syn, f),
+            ).sortBy(_.toString(grammar = Some(grammar)).length).head
+          else baseWalk(syn, f)
         case _ => baseWalk(syn, f)
 
     def delta(
