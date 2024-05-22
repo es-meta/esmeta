@@ -12,7 +12,7 @@ import esmeta.util.BaseUtils.*
 class SpecStringMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator
-  with Util.MultiplicativeListWalker {
+  with Walker {
   import SpecStringMutator.*
 
   val randomMutator = RandomMutator()
@@ -34,7 +34,6 @@ class SpecStringMutator(using cfg: CFG)(
     val k = primaryCounter(ast)
     if (k == 0) randomMutator(ast, n, target)
     else
-      c = (n - 1) / k + 1
       targetCondStr = target.flatMap(_._1.cond.elem match {
         case esmeta.cfg.Branch(_, _, e, _, _) => findCondStr(e)
         case _                                => None
@@ -42,27 +41,30 @@ class SpecStringMutator(using cfg: CFG)(
       sample(ast, n)
   }
 
-  /** parameter for sampler */
-  private var c = 0
-
   /** string in target branch */
   private var targetCondStr: Option[String] = None
 
   /** sample n distinct asts using spec-strings */
-  private def sample(ast: Ast, n: Int) =
-    shuffle(walk(ast)).take(n).map((name, _))
+  private def sample(ast: Ast, n: Int): Seq[(String, Ast)] =
+    Set.tabulate[Ast](n)(_ => walk(ast)).map((name, _)).toSeq
 
   /** ast walker */
-  override def walk(syn: Syntactic): List[Syntactic] =
+  override def walk(syn: Syntactic): Syntactic =
     if (isPrimary(syn))
-      List.tabulate(c)(i => {
-        if (targetCondStr.isDefined && i == 0)
-          generateString(targetCondStr.get, syn.args)
-        else
-          generateObject(syn.args)
-      }) ++ super.walk(syn)
-    else
-      super.walk(syn)
+      if (targetCondStr.isDefined)
+        weightedChoose(
+          generateString(targetCondStr.get, syn.args) -> 1,
+          // Add more weight to generate more object
+          generateObject(syn.args) -> 3,
+          syn -> 1,
+        )
+      else
+        weightedChoose(
+          // Add more weight to generate more object
+          generateObject(syn.args) -> 4,
+          syn -> 1,
+        )
+    else super.walk(syn)
 
   // convert the given string to primary expression
   def generateString(str: String, args: List[Boolean]): Syntactic =
