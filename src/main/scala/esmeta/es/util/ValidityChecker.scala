@@ -16,6 +16,8 @@ object ValidityChecker {
   def apply(code: String): Boolean =
     val src = s"${USE_STRICT}throw \"$MESSAGE\";$LINE_SEP;$LINE_SEP$code"
     if (JSEngine.useGraal) checkValid(JSEngine.runGraal(src, Some(1000)))
+    else if (JSEngine.useD8) checkValid(JSEngine.runD8(src, Some(1000)))
+    else if (JSEngine.useJs) checkValid(JSEngine.runJs(src, Some(1000)))
     else if (JSEngine.useNode) checkValid(JSEngine.runNode(src, Some(1000)))
     else
       warn("No JSEngine available. this may pass invalid program.")

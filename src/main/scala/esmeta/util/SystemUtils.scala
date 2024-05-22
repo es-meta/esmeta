@@ -10,8 +10,9 @@ import scala.concurrent.*
 import scala.concurrent.duration.*
 import scala.io.Source
 import scala.sys.process.*
-import scala.util.Try
+import scala.util.{Try, Failure, Success}
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import java.util.concurrent.atomic.AtomicReference
 
 /** file utilities */
 object SystemUtils {
@@ -150,8 +151,24 @@ object SystemUtils {
     StandardCopyOption.REPLACE_EXISTING,
   )
 
+  /** create symbolic link */
+  def createSymlink(
+    link: String,
+    target: String,
+    overwrite: Boolean = false,
+  ): Unit = {
+    if (overwrite)
+      deleteFile(link)
+    Files.createSymbolicLink(
+      File(link).toPath,
+      File(target).toPath,
+    )
+  }
+
   /** create directories */
-  def mkdir(name: String): Unit = File(name).mkdirs
+  def mkdir(name: String, remove: Boolean = false): Unit =
+    if (remove) rmdir(name)
+    File(name).mkdirs
 
   /** clean directories */
   def cleanDir(name: String) = for (file <- walkTree(name)) file.delete
@@ -166,6 +183,14 @@ object SystemUtils {
       f.delete()
     deleteRecursively(File(name))
   }
+
+  /** list directory */
+  def listFiles(name: String): List[File] = listFiles(File(name))
+  def listFiles(dir: File): List[File] =
+    Option(dir.listFiles)
+      .map(_.toList)
+      .getOrElse(List())
+      .filter(!_.getName.startsWith("."))
 
   /** file existence check */
   def exists(name: String): Boolean = File(name).exists
@@ -190,7 +215,17 @@ object SystemUtils {
 
   /** set timeout with duration */
   def timeout[T](f: => T, duration: Duration): T =
-    Await.result(Future(Try(f)), duration).get
+    val ref = AtomicReference[Thread]()
+    try {
+      val promise = Future {
+        ref.synchronized(ref.set(Thread.currentThread)); Try(f)
+      }
+      Await.result(promise, duration).get
+    } catch {
+      case e: java.util.concurrent.TimeoutException =>
+        ref.synchronized(ref.get.interrupt); throw e
+      case e => throw e
+    }
 
   /** concurrently execute a list of functions */
   def concurrent[T](

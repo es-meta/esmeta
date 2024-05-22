@@ -36,18 +36,17 @@ class Interpreter(
 ) {
   import Interpreter.*
 
+  lazy val startTime: Long = System.currentTimeMillis
+
   /** final state */
-  lazy val result: State = timeout(
-    {
-      while (step) {}
-      if (log)
-        pw.println(st)
-        pw.close
-        println("[Interpreter] Logging finished")
-      st
-    },
-    timeLimit,
-  )
+  lazy val result: State = {
+    while (step) {}
+    if (log)
+      pw.println(st)
+      pw.close
+      println("[Interpreter] Logging finished")
+    st
+  }
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
@@ -62,7 +61,12 @@ class Interpreter(
 
       // garbage collection
       iter += 1
-      if (iter % 100000 == 0) GC(st)
+      if (iter % 100000 == 0) {
+        for (limit <- timeLimit)
+          val duration = System.currentTimeMillis - startTime
+          if (duration / 1000 > limit) throw TimeoutException("interp")
+        GC(st)
+      }
 
       // cursor
       eval(st.context.cursor)
