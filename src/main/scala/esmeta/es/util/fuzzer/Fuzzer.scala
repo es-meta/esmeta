@@ -133,6 +133,8 @@ class Fuzzer(
   /** one trial to fuzz new programs to increase coverage */
   def fuzz: Unit =
     iter += 1
+
+    val startTime = System.currentTimeMillis
     debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
     for (bound <- logInterval) {
       val seconds = bound * 1000
@@ -161,6 +163,9 @@ class Fuzzer(
       val result = add(mutatedCode, info)
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
+
+    val duration = Time(System.currentTimeMillis - startTime)
+    debugging(s"iter/end: $iter - $duration")
 
   /** Case class to hold the information about a candidate */
   case class CandInfo(
