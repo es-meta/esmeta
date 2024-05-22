@@ -30,15 +30,9 @@ object Fuzzer {
     timeLimit: Option[Int] = None, // time limitation for each evaluation
     trial: Option[Int] = None, // `None` denotes no bound
     duration: Option[Int] = None, // `None` denotes no bound
-    useSens: Boolean = false, // TODO(@hyp3rflow): Use node/cond sensitivity
     init: Option[String] = None, // initial pool directory path given by user
-    // kFs: Int = 0,
-    // cp: Boolean = false,
-    // init: Option[String] = None,
-    // targets: List[Target] = List(),
-    // onlineNumStdDev: Option[Int] = None,
-    // checkIter: Option[Int] = None,
-    // fixedTrieOpt: Option[FSTrie] = None,
+    kFs: Int = 0,
+    cp: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
     logInterval,
@@ -47,7 +41,9 @@ object Fuzzer {
     timeLimit,
     trial,
     duration,
-    useSens,
+    init,
+    kFs,
+    cp,
   ).result
 
   // debugging levels
@@ -65,8 +61,9 @@ class Fuzzer(
   timeLimit: Option[Int] = None, // time limitation for each evaluation
   trial: Option[Int] = None, // `None` denotes no bound
   duration: Option[Int] = None, // `None` denotes no bound
-  useSens: Boolean = false,
   init: Option[String] = None,
+  kFs: Int = 0,
+  cp: Boolean = false,
 ) {
   import Fuzzer.*
 
@@ -248,6 +245,8 @@ class Fuzzer(
   val cov: Coverage =
     Coverage(
       cfg,
+      kFs,
+      cp,
       timeLimit,
       Some(logDir),
     )
@@ -342,8 +341,9 @@ class Fuzzer(
       "node(#)",
       "branch(#)",
     )
-    if (useSens) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
+    if (kFs > 0) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
     header ++= Vector("target-conds(#)")
+    if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
@@ -381,8 +381,9 @@ class Fuzzer(
     val tc = cov.targetCondViews.size
     val tcv = cov.targetCondViews.map(_._2.size).fold(0)(_ + _)
     var row = Vector(iter, e, t, visited.size, pool.size, n, b)
-    if (useSens) row ++= Vector(nv, bv)
+    if (kFs > 0) row ++= Vector(nv, bv)
     row ++= Vector(tc)
+    if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))

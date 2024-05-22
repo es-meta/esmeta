@@ -48,7 +48,7 @@ trait HeapBasicDomainDecl { self: Self =>
 
     /** set bases */
     def setBase(heap: Heap): Unit = base = (for {
-      (addr, obj) <- heap.map
+      (addr, (obj, _)) <- heap.map
       part = Part.from(addr)
       aobj = AbsObj(obj)
     } yield part -> aobj).toMap
