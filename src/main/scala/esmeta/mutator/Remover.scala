@@ -28,23 +28,29 @@ class Remover(using cfg: CFG)(
   def apply(
     ast: Ast,
     n: Int,
-    _target: Option[(CondView, Coverage)],
+    target: Option[(CondView, Coverage)],
   ): Seq[(String, Ast)] = {
-    // count the number of potential victims
+    // count of removal candidates
     val k = victimCounter(ast)
-    k1 = 0
-    k2 = k
-    if (k == 0) randomMutator(ast, n, _target)
-    else if (Math.pow(2, k) < n)
-      walk(ast)
-        .map((name, _)) ++ randomMutator(ast, n - (1 << k), _target)
-    else {
-      // calculate the most efficient parameters
-      while (Math.pow(2, k2 - 1) >= n)
-        k1 = k1 + 1
-        k2 = k2 - 1
-      sample(ast, n)
-    }
+    if (k == 0) randomMutator(ast, n, target)
+    else
+      k1 = 0; k2 = k
+      // if n is bigger than 2^k (the total size of the search space),
+      // fill the remaining count with the randomly generated program.
+      if (Math.pow(2, k) < n)
+        walk(ast)
+          .map((name, _)) ++ randomMutator(ast, n - (1 << k), target)
+      else {
+        // calculate the most efficient parameters
+        // until 2^(k2 - 1) < n, increase k1 and decrease k2 (initially k)
+        // if we have 5 victims and n is 4, k1 = 2, k2 = 3 after this loop.
+        // k1: the number of survivors among victims
+        // k2: the number of casualties among victims
+        while (Math.pow(2, k2 - 1) >= n)
+          k1 = k1 + 1
+          k2 = k2 - 1
+        sample(ast, n)
+      }
   }
 
   /** parameter for sampler */
@@ -54,7 +60,7 @@ class Remover(using cfg: CFG)(
     shuffle(walk(ast)).take(n).map((name, _))
 
   private def doDrop: Boolean =
-    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
+    if k1 > 0 && randBool(k1 / (k1 + k2).toFloat) then
       k1 -= 1; false
     else if k2 > 0 then
       k2 -= 1; true

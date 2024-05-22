@@ -51,26 +51,18 @@ class SpecStringMutator(using cfg: CFG)(
   /** ast walker */
   override def walk(syn: Syntactic): Syntactic =
     if (isPrimary(syn))
+      val candidates = List(generateObjectWithWeight(syn.args), syn -> 1)
       if (targetCondStr.isDefined)
-        weightedChoose(
-          generateString(targetCondStr.get, syn.args) -> 1,
-          // Add more weight to generate more object
-          generateObject(syn.args) -> 3,
-          syn -> 1,
-        )
-      else
-        weightedChoose(
-          // Add more weight to generate more object
-          generateObject(syn.args) -> 4,
-          syn -> 1,
-        )
+        val candidate = (generateString(targetCondStr.get, syn.args) -> 1)
+        weightedChoose(candidate :: candidates)
+      else weightedChoose(candidates)
     else super.walk(syn)
 
   // convert the given string to primary expression
   def generateString(str: String, args: List[Boolean]): Syntactic =
     cfg
       .esParser(PRIMARY_EXPRESSION, args)
-      .from(s"\'str\'")
+      .from(s"\'$str\'")
       .asInstanceOf[Syntactic]
 
   // Properties appearing in specification
@@ -97,11 +89,12 @@ class SpecStringMutator(using cfg: CFG)(
   }
 
   // generate a random object, whose property is read in specification
-  def generateObject(args: List[Boolean]): Syntactic =
+  def generateObjectWithWeight(args: List[Boolean]): (Syntactic, Int) =
     val k = choose(specProps)
     val v = choose(defaultValues)
     val raw = s"{ $k : $v }"
-    cfg.esParser(PRIMARY_EXPRESSION, args).from(raw).asInstanceOf[Syntactic]
+    cfg.esParser(PRIMARY_EXPRESSION, args).from(raw).asInstanceOf[Syntactic] ->
+    (specProps.size * defaultValues.size) // total search space of object generation
 }
 
 object SpecStringMutator {
