@@ -15,6 +15,7 @@ import esmeta.util.BaseUtils.error
 import esmeta.injector.ReturnInjector
 import esmeta.es.util.fuzzer.MinifyTestResult
 import esmeta.injector.NormalTag
+import esmeta.util.SystemUtils.*
 
 case object DeltaDebug extends Phase[CFG, String] {
   val name = "delta-debugger"
@@ -22,10 +23,30 @@ case object DeltaDebug extends Phase[CFG, String] {
   val help = "delta-debugs ECMAScript program to minimize buggy program"
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
-    val filename = getFirstFilename(cmdConfig, this.name)
-    val originalCode = readFile(filename)
-    minifyTest(cfg, originalCode) match
-      case None => println(s"[delta-debug] pass"); originalCode
+    if (config.multiple) {
+      var minimals: Set[String] = Set.empty
+      for {
+        path <- cmdConfig.targets
+        file <- walkTree(path)
+        filename = file.toString
+        if jsFilter(filename)
+      } minimals += run(cfg, readFile(filename))
+      println(s"minimal size: ${minimals.size}")
+      println(minimals.mkString("\n"))
+      ""
+    } else {
+      val filename = getFirstFilename(cmdConfig, this.name)
+      val originalCode = readFile(filename)
+      minifyTest(cfg, originalCode) match
+        case None => println(s"[delta-debug] pass"); originalCode
+        case Some(MinifyTestResult(original, minified, injected, exception)) =>
+          DeltaDebugger(cfg, minifyTest(cfg, _).isDefined, detail = true)
+            .result(original)
+    }
+
+  private def run(cfg: CFG, code: String): String =
+    minifyTest(cfg, code) match
+      case None => println(s"[delta-debug] pass"); code
       case Some(MinifyTestResult(original, minified, injected, exception)) =>
         DeltaDebugger(cfg, minifyTest(cfg, _).isDefined, detail = true)
           .result(original)
@@ -43,6 +64,9 @@ case object DeltaDebug extends Phase[CFG, String] {
             timeLimit = Some(1000),
             ignoreProperties = "\"name\"" :: Nil,
           )
+        println(s"[minify-test] test start")
+        println(s"[minify-test/code]\n$code")
+        println(s"[minify-test/minified]\n$minified")
         injected.exitTag match
           case NormalTag =>
             val injectedCode = injected.toString
@@ -75,7 +99,7 @@ case object DeltaDebug extends Phase[CFG, String] {
                 )
 
           case _ =>
-            println("[minify-test] exit state is not normal"); None
+            println(s"[minify-test] exit state is not normal"); None
       }
 
   def defaultConfig: Config = Config()
@@ -85,8 +109,14 @@ case object DeltaDebug extends Phase[CFG, String] {
       StrOption((c, v) => c.checker = v),
       "select checker",
     ),
+    (
+      "multiple",
+      BoolOption(c => c.multiple = true),
+      "delta-debug multiple programs",
+    ),
   )
   case class Config(
     var checker: String = "minifier",
+    var multiple: Boolean = false,
   )
 }
