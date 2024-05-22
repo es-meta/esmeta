@@ -36,6 +36,7 @@ object Util {
 
   private type Childrens = List[Vector[Option[Ast]]]
 
+  // should be used carefully because this can explode the size of created program so easily
   trait MultiplicativeListWalker extends ListWalker {
     def preChild(ast: Syntactic, i: Int): Unit = ()
     def postChild(ast: Syntactic, i: Int): Unit = ()
@@ -59,7 +60,7 @@ object Util {
         Syntactic(name, args, rhsIdx, newChildren),
       )
 
-    // Cacluate the most efficient parameter for the multiplicative calculator.
+    // Calculate the most efficient parameter for the multiplicative calculator.
     // n: number of mutants to make
     // k: number of candidate to make change
     // ->
