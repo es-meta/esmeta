@@ -67,7 +67,7 @@ case object DeltaDebug extends Phase[CFG, String] {
     Minifier.minifySwc(code) match
       case Failure(exception) => log("minify-test", s"$exception"); None
       case Success(minified) => {
-        val injected =
+        val injected = Try {
           Injector.replaceBody(
             cfg,
             code,
@@ -76,11 +76,12 @@ case object DeltaDebug extends Phase[CFG, String] {
             timeLimit = Some(1000),
             ignoreProperties = "\"name\"" :: Nil,
           )
+        }
         log("minify-test", s"test start")
         log("minify-test/code", s"\n$code\n")
         log("minify-test/minified", s"\n$minified\n")
-        injected.exitTag match
-          case NormalTag =>
+        injected match
+          case Success(i) if i.exitTag == NormalTag =>
             val injectedCode = injected.toString
             JSEngine.runGraal(injectedCode, Some(1000)) match
               // minified program passes assertions
@@ -109,9 +110,10 @@ case object DeltaDebug extends Phase[CFG, String] {
                     exception.toString,
                   ),
                 )
-
-          case _ =>
+          case Success(_) =>
             log("minify-test", "exit state is not normal"); None
+          case Failure(exception) =>
+            log("minify-test", exception.toString); None
       }
 
   private def log(label: String, description: String) =
