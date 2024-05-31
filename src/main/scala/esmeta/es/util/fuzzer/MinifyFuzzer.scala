@@ -78,13 +78,21 @@ class MinifyFuzzer(
       cp = cp,
     ).result
 
+  lazy val db: MinifierDB = MinifierDB.fromResource
+
   val filteredAOs: List[String] = List(
     "INTRINSICS.Function.prototype.toString",
   )
   val ignoreProperties: List[String] = List("name").map(prop => s"\"$prop\"")
 
-  var minimals: MMap[String, Int] = MMap.empty
+  // delta -> unique bug counter in this iteration
+  var minimalIterMap: MMap[String, Int] = MMap.empty
+
+  // delta -> original programs
   val minimalMap: MMap[String, MSet[String]] = MMap.empty
+
+  // set of programs we already saw
+  var pass: Set[String] = (db.minimals ++ minimalIterMap.keys).toSet
 
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
@@ -169,6 +177,7 @@ class MinifyFuzzer(
       }
 
   private def minifyTest(
+    // TODO(@hyp3rflow): we should consider about same iter number among different programs due to return injector
     iter: Int,
     finalState: State,
     code: String,
@@ -203,7 +212,7 @@ class MinifyFuzzer(
         }
       case _ =>
 
-  private def log(result: MinifyFuzzResult) = minimals.synchronized {
+  private def log(result: MinifyFuzzResult) = minimalIterMap.synchronized {
     val MinifyFuzzResult(
       iter,
       covered,
@@ -213,9 +222,10 @@ class MinifyFuzzer(
       injected,
       exception,
     ) = result
-    if (!minimals.contains(delta)) {
+    // if it is new, we have to log
+    if (!pass.contains(delta)) {
       val count = counter.incrementAndGet()
-      minimals += (delta -> count)
+      minimalIterMap += (delta -> count)
       val dirpath = s"$logDir/$count"
       mkdir(dirpath)
       dumpFile(original, s"$dirpath/original.js")
@@ -230,12 +240,26 @@ class MinifyFuzzer(
         ),
         s"$dirpath/info",
       )
+      // TODO(@hyp3rflow): extends Fuzzer and dumps DB periodically.
+      // dumpJson(db.asJson, s"$dirpath/db.json")
     }
-    val count = minimals.get(delta).get
-    val dirpath = s"$logDir/$count/bugs"
-    mkdir(dirpath)
-    dumpFile(original, s"$dirpath/$iter.js")
-    minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
+    // we have to log original program even if it is not new
+    minimalIterMap.get(delta) match
+      case Some(count) =>
+        val dirpath = s"$logDir/$count/bugs"
+        mkdir(dirpath)
+        dumpFile(original, s"$dirpath/$iter.js")
+        minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
+      case None if db.getLabel(delta).isDefined =>
+        val label = db.getLabel(delta).get
+        val dirpath = s"$logDir/labels/$label"
+        mkdir(dirpath)
+        dumpFile(original, s"$dirpath/$iter.js")
+        dumpFile(exception, s"$dirpath/$iter.reason.txt")
+      // do not add minimalMap to keep memory size small
+      case _ =>
+        error("Unexpected program in log")
+
   }
 
 }
