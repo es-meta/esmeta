@@ -190,7 +190,7 @@ class MinifyFuzzer(
         // TODO: some simple programs cannot be checked by this logic due to the empty return assertion
         for (ret <- returns.par) {
           val original =
-            s"${USE_STRICT}const k = (() => {\n$code\n$ret\n})();\n"
+            s"${USE_STRICT}const k = (function () {\n$code\n$ret\n})();\n"
           minifyTest(original) match
             case None =>
             case Some(result) =>
