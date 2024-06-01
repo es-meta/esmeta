@@ -29,7 +29,7 @@ case object InjectMinify extends Phase[CFG, List[String]] {
     val finalState = Interpreter(cfg.init.from(code))
     val returns = ReturnInjector(cfg, finalState).assertions
     (for (ret <- returns.par) yield {
-      val wrapped = s"const k = (() => {\n$code\n$ret\n})();\n"
+      val wrapped = s"const k = (function () {\n$code\n$ret\n})();\n"
       Minifier.minifySwc(wrapped) match
         case Failure(exception) => println(exception); None
         case Success(minified) => {
