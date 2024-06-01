@@ -92,7 +92,7 @@ class MinifyFuzzer(
   val minimalMap: MMap[String, MSet[String]] = MMap.empty
 
   // set of programs we already saw
-  var pass: Set[String] = (db.minimals ++ minimalIterMap.keys).toSet
+  def pass: Set[String] = (db.minimals ++ minimalIterMap.keys).toSet
 
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
