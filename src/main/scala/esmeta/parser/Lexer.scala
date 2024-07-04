@@ -33,11 +33,6 @@ trait Lexer extends UnicodeParsers {
     )
   }
 
-  // special code points
-  lazy val WhiteSpaceCPs = USP ++ Set(TAB, VT, FF, SP, NBSP, ZWNBSP)
-  lazy val LineTerminatorCPs = Set(LF, CR, LS, PS)
-  lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
-
   // special lexers
   lazy val WhiteSpace = toParser(WhiteSpaceCPs)
   lazy val LineTerminator = toParser(LineTerminatorCPs)
@@ -64,6 +59,10 @@ trait Lexer extends UnicodeParsers {
     argsSet = getArgs(prod.lhs.params, args)
     lexer = getLexer(prod, argsSet)
   } yield (name, argsBit) -> lexer).toMap
+
+  // get lexers
+  def getLexer(name: String, args: List[Boolean]): Lexer =
+    lexers(name, toBit(args))
 
   lazy val lexNames = lexers.keySet.map(_._1)
 

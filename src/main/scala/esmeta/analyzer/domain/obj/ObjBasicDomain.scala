@@ -367,7 +367,7 @@ trait ObjBasicDomainDecl { self: Self =>
           KeyWiseList(if (intSorted) {
             (for {
               case Str(s) <- props
-              d = ESValueParser.str2Number(s)
+              d = ESValueParser.str2number(s).double
               if toStringHelper(d) == s
               i = d.toLong
               if d == i
