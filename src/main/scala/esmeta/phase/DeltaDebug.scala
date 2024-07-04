@@ -13,7 +13,7 @@ import esmeta.js.JSEngine
 import esmeta.js.minifier.Minifier
 import esmeta.util.BaseUtils.error
 import esmeta.injector.ReturnInjector
-import esmeta.es.util.fuzzer.MinifyTestResult
+import esmeta.es.util.fuzzer.MinifyTesterResult
 import esmeta.injector.NormalTag
 import esmeta.util.SystemUtils.*
 import scala.collection.parallel.CollectionConverters._
@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.concurrent.TrieMap
 import io.circe.syntax._
+import esmeta.es.util.fuzzer.MinifyTester
+import esmeta.es.util.fuzzer.MinifyTesterConfig
 
 case object DeltaDebug extends Phase[CFG, String] {
   val name = "delta-debugger"
@@ -32,6 +34,8 @@ case object DeltaDebug extends Phase[CFG, String] {
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
     _config = Some(config)
+    val minifyTester =
+      MinifyTester(cfg, MinifyTesterConfig(debugLevel = config.debug))
     // TODO: fix this after separating silent option
     val result = if (config.multiple) {
       val count = AtomicInteger(0)
@@ -43,7 +47,7 @@ case object DeltaDebug extends Phase[CFG, String] {
         if jsFilter(filename)
       } yield filename)
       files.par.foreach { filename =>
-        minimalMap.put(filename, run(cfg, readFile(filename), config.debug > 1))
+        minimalMap.put(filename, minifyTester.dd(readFile(filename)))
         info("delta-debug", s"${count.incrementAndGet}/${files.size} completed")
       }
       log("delta-debug", s"minimal size: ${minimalMap.size}")
@@ -51,70 +55,10 @@ case object DeltaDebug extends Phase[CFG, String] {
     } else {
       val filename = getFirstFilename(cmdConfig, this.name)
       val originalCode = readFile(filename)
-      run(cfg, originalCode, config.debug > 1)
+      minifyTester.dd(originalCode)
     }
     // TODO(@hyp3rflow): silent option removes both phase header and output log
     println(result); result
-
-  private def run(cfg: CFG, code: String, detail: Boolean): String =
-    minifyTest(cfg, code) match
-      case None => log("delta-debug", "pass"); code
-      case Some(MinifyTestResult(original, minified, injected, exception)) =>
-        DeltaDebugger(cfg, minifyTest(cfg, _).isDefined, detail)
-          .result(original)
-
-  private def minifyTest(cfg: CFG, code: String): Option[MinifyTestResult] =
-    Minifier.minifySwc(code) match
-      case Failure(exception) => log("minify-test", s"$exception"); None
-      case Success(minified) => {
-        val injected = Try {
-          Injector.replaceBody(
-            cfg,
-            code,
-            minified,
-            defs = true,
-            timeLimit = Some(1000),
-            ignoreProperties = "\"name\"" :: Nil,
-          )
-        }
-        log("minify-test", s"test start")
-        log("minify-test/code", s"\n$code\n")
-        log("minify-test/minified", s"\n$minified\n")
-        injected match
-          case Success(i) if i.exitTag == NormalTag =>
-            val injectedCode = injected.toString
-            JSEngine.runGraal(injectedCode, Some(1000)) match
-              // minified program passes assertions
-              case Success(v) if v.isEmpty =>
-                log("minify-test", "pass"); None
-              // minified program fails on assertions
-              case Success(v) =>
-                log("minify-test", "return value exists")
-                Some(
-                  MinifyTestResult(
-                    code,
-                    minified,
-                    injectedCode,
-                    v,
-                  ),
-                )
-              // minified program throws exception
-              // TODO(@hyp3rflow): we have to mask span data of program exception
-              case Failure(exception) =>
-                log("minify-test", "exception throws")
-                Some(
-                  MinifyTestResult(
-                    code,
-                    minified,
-                    injectedCode,
-                    exception.toString,
-                  ),
-                )
-          case Success(_) =>
-            log("minify-test", "exit state is not normal"); None
-          case Failure(exception) =>
-            log("minify-test", exception.toString); None
-      }
 
   private def log(label: String, description: String) =
     if (_config.get.debug > 1) println(s"[$label] $description")
