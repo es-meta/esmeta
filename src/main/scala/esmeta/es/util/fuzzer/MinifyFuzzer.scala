@@ -65,18 +65,14 @@ class MinifyFuzzer(
 
   val counter = AtomicInteger(0)
 
-  lazy val result: Coverage =
-    Fuzzer(
-      cfg = cfg,
-      logInterval = logInterval,
-      debug = debug,
+  val minifyTester = MinifyTester(
+    cfg,
+    MinifyTesterConfig(
       timeLimit = timeLimit,
-      trial = trial,
-      duration = duration,
-      init = init,
-      kFs = kFs,
-      cp = cp,
-    ).result
+    ),
+  )
+
+  lazy val result: Coverage = fuzzer.result
 
   lazy val db: MinifierDB = MinifierDB.fromResource
 
@@ -128,54 +124,6 @@ class MinifyFuzzer(
     )
   }
 
-  private def minifyTest(code: String): Option[MinifyTestResult] =
-    Minifier.minifySwc(code) match
-      case Failure(exception) => println(s"[minify-fuzz] $exception"); None
-      case Success(minified) => {
-        val injected =
-          Injector.replaceBody(
-            cfg,
-            code,
-            minified,
-            defs = true,
-            timeLimit = timeLimit,
-            ignoreProperties = ignoreProperties,
-          )
-        injected.exitTag match
-          case NormalTag =>
-            val injectedCode = injected.toString
-            JSEngine.runGraal(injectedCode, Some(1000)) match
-              // minified program passes assertions
-              case Success(v) if v.isEmpty =>
-                println(s"[minify-fuzz] pass"); None
-              // minified program fails on assertions
-              case Success(v) =>
-                println(s"[minify-fuzz] return value exists")
-                Some(
-                  MinifyTestResult(
-                    code,
-                    minified,
-                    injectedCode,
-                    v,
-                  ),
-                )
-              // minified program throws exception
-              // TODO(@hyp3rflow): we have to mask span data of program exception
-              case Failure(exception) =>
-                println(s"[minify-fuzz] exception throws")
-                Some(
-                  MinifyTestResult(
-                    code,
-                    minified,
-                    injectedCode,
-                    exception.toString,
-                  ),
-                )
-
-          case _ =>
-            println("[minify-fuzz] exit state is not normal"); None
-      }
-
   private def minifyTest(
     // TODO(@hyp3rflow): we should consider about same iter number among different programs due to return injector
     iter: Int,
@@ -191,13 +139,19 @@ class MinifyFuzzer(
         for (ret <- returns.par) {
           val original =
             s"${USE_STRICT}const k = (function () {\n$code\n$ret\n})();\n"
-          minifyTest(original) match
+          minifyTester.test(original) match
             case None =>
-            case Some(result) =>
-              val MinifyTestResult(original, minified, injected, exception) =
-                result
+            case Some(
+                  MinifyTesterResult(original, minified, injected, exception),
+                ) =>
               val delta =
-                DeltaDebugger(cfg, minifyTest(_).isDefined).result(original)
+                DeltaDebugger(
+                  cfg, {
+                    minifyTester.test(_) match
+                      case Some(result) => exception == result.exception
+                      case _            => false
+                  },
+                ).result(original)
               log(
                 MinifyFuzzResult(
                   iter,
@@ -270,13 +224,6 @@ case class MinifyFuzzResult(
   originalCode: String,
   minifiedCode: String,
   deltaDebugged: String,
-  injectedCode: String,
-  exception: String,
-)
-
-case class MinifyTestResult(
-  originalCode: String,
-  minifiedCode: String,
   injectedCode: String,
   exception: String,
 )
