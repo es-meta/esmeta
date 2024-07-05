@@ -55,7 +55,7 @@ class MinifyTester(
         log("minify-tester/minified", s"\n$minified\n")
         injected match
           case Success(i) if i.exitTag == NormalTag =>
-            val injectedCode = injected.toString
+            val injectedCode = i.toString
             JSEngine.runGraal(injectedCode, Some(1000)) match
               // minified program passes assertions
               case Success(v) if v.isEmpty =>
@@ -74,7 +74,10 @@ class MinifyTester(
               // minified program throws exception
               // TODO(@hyp3rflow): we have to mask span in exception description
               case Failure(exception) =>
-                log("minify-tester", "exception throws")
+                log(
+                  "minify-tester",
+                  s"exception throws\n${exception.toString}\n",
+                )
                 Some(
                   MinifyTesterResult(
                     code,
