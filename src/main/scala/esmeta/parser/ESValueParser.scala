@@ -30,7 +30,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     inline def rep1: S = x0.+ ^^ { _.mkString }
     inline def opt: S = x0.? ^^ { _.getOrElse("") }
     inline def %(x1: => S): S = x0 ~ x1 ^^ { case x ~ y => x + y }
-    inline def not: S = Predef.SourceCharacter.filter(parseAll(x0, _).isEmpty)
+    inline def exc: S = Predef.SourceCharacter.filter(parseAll(x0, _).isEmpty)
   }
 
   def str2number(str: String): Number = optional {
@@ -59,7 +59,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     lazy val HexIntegerLiteral: S = "0[xX][0-9a-fA-F]+".r
     lazy val NonDecimalIntegerLiteral: S =
       BinaryIntegerLiteral | OctalIntegerLiteral | HexIntegerLiteral
-    lazy val StrIntegerLiteral: S = SignedInteger | NonDecimalIntegerLiteral
+    lazy val StrIntegerLiteral: S = NonDecimalIntegerLiteral | SignedInteger
     lazy val LegacyOctalEscapeSequence: S =
       "0" <~ guard("8" | "9") |
       NonZeroOctalDigit <~ not(OctalDigit) |
@@ -90,9 +90,9 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       "u{" % NotCodePoint <~ not(HexDigit) |
       "u{" % CodePoint <~ not(HexDigit) <~ not("}")
     lazy val CodePoint: S =
-      HexDigits.filter { s => Math(s).toInt <= 0x10ffff }
+      HexDigits.filter { s => Math.fromHex(s).toInt <= 0x10ffff }
     lazy val NotCodePoint: S =
-      HexDigits.filter { s => Math(s).toInt > 0x10ffff }
+      HexDigits.filter { s => Math.fromHex(s).toInt > 0x10ffff }
   }
 
   // ---------------------------------------------------------------------------
@@ -139,9 +139,10 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
 
     // convert to a numeric value with a base
     private def toNumeric(s: String, base: Int): Numeric =
-      if (s.endsWith("n")) BigIntV(BigInt(s.dropRight(1), base))
-      else if (base == 10) Number(Math(s).toDouble)
-      else Number(Math.from(s, base).toDouble)
+      val ss = noSep(s)
+      if (ss.endsWith("n")) BigIntV(BigInt(ss.dropRight(1), base))
+      else if (base == 10) Number(Math(ss).toDouble)
+      else Number(Math.from(ss, base).toDouble)
   }
 
   // ---------------------------------------------------------------------------
@@ -208,9 +209,6 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       Predef.OctalIntegerLiteral ^^ { s => Math.fromOctal(s.drop(2)) } |
       Predef.HexIntegerLiteral ^^ { s => Math.fromHex(s.drop(2)) }
 
-    // remove numeric literal separator
-    private def noSep(s: String): String = s.replace("_", "")
-
     // remove suffix "n" from a string
     private inline def noSuffix(s: String): String =
       if (s.endsWith("n")) s.dropRight(1) else s
@@ -247,15 +245,15 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       } <~ opt(StrWhiteSpace) |
       opt(Predef.StrWhiteSpace) ^^^ Number(0)
     lazy val StrNumericLiteral: N =
-      StringNumericValue.StrDecimalLiteral |
-      MV.NonDecimalIntegerLiteral ^^ { n => Number(n.toDouble) }
+      MV.NonDecimalIntegerLiteral ^^ { n => Number(n.toDouble) } |
+      StringNumericValue.StrDecimalLiteral
     lazy val StrDecimalLiteral: N =
       "[-+]?".r ~ StringNumericValue.StrUnsignedDecimalLiteral ^^ {
         case s ~ Number(n) => if (s == "-") Number(-n) else Number(n)
       }
     lazy val StrUnsignedDecimalLiteral: N =
       "Infinity" ^^^ Number(Double.PositiveInfinity) |
-      "[.eE0-9]+".r ^^ { s => Number(Math(s).toDouble) }
+      "[-+.eE0-9]+".r ^^ { s => Number(Math(s).toDouble) }
   }
 
   // ---------------------------------------------------------------------------
@@ -273,13 +271,13 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     lazy val DoubleStringCharacters: S = SV.DoubleStringCharacter.rep1
     lazy val SingleStringCharacters: S = SV.SingleStringCharacter.rep1
     lazy val DoubleStringCharacter: S =
-      ("\"" | "\\" | Predef.LineTerminator).not |
+      ("\"" | "\\" | Predef.LineTerminator).exc |
       Predef.ls |
       Predef.ps |
       "\\" ~> SV.EscapeSequence |
       Predef.LineContinuation ^^^ ""
     lazy val SingleStringCharacter: S =
-      ("'" | "\\" | Predef.LineTerminator).not |
+      ("'" | "\\" | Predef.LineTerminator).exc |
       Predef.ls |
       Predef.ps |
       "\\" ~> SV.EscapeSequence |
@@ -303,7 +301,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       } |
       SV.NonEscapeCharacter
     lazy val NonEscapeCharacter: S =
-      (Predef.EscapeCharacter | Predef.LineTerminator).not
+      (Predef.EscapeCharacter | Predef.LineTerminator).exc
     lazy val HexEscapeSequence: S =
       "x" ~> MV.HexDigit ~ MV.HexDigit ^^ {
         case x ~ y => Character.toChars(16 * x.toInt + y.toInt).mkString
@@ -354,7 +352,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       "\\" ~> Predef.NotEscapeSequence ^^^ { throw ReturnUndef } |
       TV.LineContinuation |
       TRV.LineTerminatorSequence |
-      ("`" | "\\" | "$" | Predef.LineTerminator).not
+      ("`" | "\\" | "$" | Predef.LineTerminator).exc
     lazy val TemplateCharacters: S =
       TV.TemplateCharacter.rep1
     lazy val LineContinuation: S =
@@ -392,7 +390,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
       "\\" % TRV.NotEscapeSequence |
       TRV.LineContinuation |
       TRV.LineTerminatorSequence |
-      ("`" | "\\" | "$" | Predef.LineTerminator).not
+      ("`" | "\\" | "$" | Predef.LineTerminator).exc
     lazy val TemplateEscapeSequence: S =
       TRV.CharacterEscapeSequence |
       "0" ^^^ "\u0030" |
@@ -455,6 +453,10 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     case _               => default
   }
 
+  // remove numeric literal separator
+  private def noSep(s: String): String = s.replace("_", "")
+
+  // check if a string is an octal string
   private def isOctalString(s: String): Boolean =
     s.startsWith("0") && s.forall(c => '0' <= c && c < '8')
 }

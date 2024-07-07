@@ -16,7 +16,7 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val VT = 0x000b
   val FF = 0x000c
   val ZWNBSP = 0xfeff
-  // TODO automatically extract category "Zs"
+  // TODO automatically extract category "Space_Separator (Zs)"
   val USP = Set(
     0x0020, 0x00a0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
     0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x202f, 0x205f, 0x3000,
