@@ -716,6 +716,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " " >> base
       case PropertyReference(base, prop) =>
         app >> base >> prop
+      case AgentRecord() =>
+        app >> "the Agent Record of the surrounding agent"
     }
   }
 

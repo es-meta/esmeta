@@ -37,6 +37,13 @@ class Initialize(cfg: CFG) {
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
     SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
     MATH_PI -> (Math(scala.math.Pi), MathT),
+    AGENT_RECORD -> (NamedAddr(AGENT_RECORD), NameT("AgentRecord")),
+    AGENT_SIGNIFIER -> (NamedAddr(AGENT_SIGNIFIER), StrT("AgentSignifier")),
+    CANDIDATE_EXECUTION -> (
+      NamedAddr("CandidateExecution"),
+      NameT("CandidateExecution"),
+    ),
+    KEPT_ALIVE -> (NamedAddr("KeptAlive"), ListT(ObjectT || SymbolT)),
     REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
     JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
@@ -57,6 +64,13 @@ class Initialize(cfg: CFG) {
       NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
+      NamedAddr(AGENT_RECORD) -> agent,
+      NamedAddr(AGENT_SIGNIFIER) -> MapObj("AgentSignifier"),
+      NamedAddr(CANDIDATE_EXECUTION) -> YetObj(
+        "CandidateExecution",
+        "AgentRecord.[[CandidateExecution]]",
+      ),
+      NamedAddr(KEPT_ALIVE) -> ListObj(),
       NamedAddr(REALM) -> MapObj("RealmRecord"),
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
@@ -88,6 +102,16 @@ class Initialize(cfg: CFG) {
   private val intr = Intrinsics(cfg)
   private val glob = GlobalObject(cfg)
   private val sym = builtin.Symbol(cfg)
+  private val agent = MapObj("AgentRecord")(
+    Str("LittleEndian") -> Bool(true),
+    Str("CanBlock") -> Bool(true),
+    Str("Signifier") -> NamedAddr(AGENT_SIGNIFIER),
+    Str("IsLockFree1") -> Bool(true),
+    Str("IsLockFree2") -> Bool(true),
+    Str("IsLockFree8") -> Bool(true),
+    Str("CandidateExecution") -> NamedAddr(CANDIDATE_EXECUTION),
+    Str("KeptAlive") -> NamedAddr(KEPT_ALIVE),
+  )
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())

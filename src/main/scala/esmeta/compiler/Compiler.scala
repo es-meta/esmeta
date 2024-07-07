@@ -444,6 +444,7 @@ class Compiler(
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
       case ref: PropertyReference    => compile(fb, ref)
+      case AgentRecord()             => GLOBAL_AGENT_RECORD
     })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Prop =
@@ -784,9 +785,15 @@ class Compiler(
           case NeverAbrupt =>
             val tv = toERef(fb, x, EStr("Type"))
             or(not(EIsCompletion(x)), is(tv, ECONST_NORMAL))
-          case Normal =>
+          case op @ (Normal | Throw | Return | Break | Continue) =>
             val tv = toERef(fb, x, EStr("Type"))
-            and(EIsCompletion(x), is(tv, ECONST_NORMAL))
+            val expected = op match
+              case Normal   => ECONST_NORMAL
+              case Throw    => ECONST_THROW
+              case Return   => ECONST_RETURN
+              case Break    => ECONST_BREAK
+              case Continue => ECONST_CONTINUE
+            and(EIsCompletion(x), is(tv, expected))
           case Finite =>
             not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),

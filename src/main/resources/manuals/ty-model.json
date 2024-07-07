@@ -9,7 +9,7 @@
         "IsLockFree1" : "Boolean",
         "IsLockFree2" : "Boolean",
         "IsLockFree8" : "Boolean",
-        "KeptAlive" : "List[Object]",
+        "KeptAlive" : "List[Object | Symbol]",
         "LittleEndian" : "Boolean",
         "Signifier" : "AgentSignifier"
       }
