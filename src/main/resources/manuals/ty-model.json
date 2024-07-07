@@ -104,8 +104,7 @@
     "BuiltinFunctionObject" : {
       "parent" : "Constructor",
       "methods" : {
-        "Call" : "BuiltinFunctionObject.Call",
-        "Construct" : "BuiltinFunctionObject.Construct"
+        "Call" : "BuiltinFunctionObject.Call"
       },
       "fields" : {
         "Code" : "Clo",
