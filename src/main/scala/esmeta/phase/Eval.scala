@@ -31,6 +31,7 @@ case object Eval extends Phase[CFG, State] {
   def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
     Initialize.fromFile(cfg, filename),
     log = config.log,
+    detail = config.detail,
     timeLimit = config.timeLimit,
   )
 
@@ -51,10 +52,16 @@ case object Eval extends Phase[CFG, State] {
       BoolOption(c => c.log = true),
       "turn on logging mode.",
     ),
+    (
+      "detail-log",
+      BoolOption(c => { c.log = true; c.detail = true }),
+      "turn on logging mode with detailed information.",
+    ),
   )
   case class Config(
     var timeLimit: Option[Int] = None,
     var multiple: Boolean = false,
     var log: Boolean = false,
+    var detail: Boolean = false,
   )
 }

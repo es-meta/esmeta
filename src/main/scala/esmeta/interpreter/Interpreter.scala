@@ -24,6 +24,7 @@ import scala.math.{BigInt => SBigInt}
 class Interpreter(
   val st: State,
   val log: Boolean = false,
+  val detail: Boolean = false,
   val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
 ) {
@@ -51,15 +52,25 @@ class Interpreter(
       // text-based logging
       if (log)
         pw.println(st.getCursorString)
+        if (detail) pw.println(st.context)
         pw.flush
 
       // garbage collection
       iter += 1
-      if (iter % 100000 == 0) GC(st)
+      if (!detail && iter % 100_000 == 0) GC(st)
 
       // cursor
       eval(st.context.cursor)
-    } catch case ReturnValue(value, ret) => { setReturn(value, ret); true }
+    } catch {
+      case ReturnValue(value, ret) => { setReturn(value, ret); true }
+      case e =>
+        if (log)
+          pw.println(st)
+          pw.println("[Interpreter] unexpected error: " + e)
+          pw.println(e.getStackTrace.mkString(LINE_SEP))
+          pw.flush
+        throw e
+    }
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
@@ -617,9 +628,10 @@ object Interpreter {
   def apply(
     st: State,
     log: Boolean = false,
+    detail: Boolean = false,
     logDir: String = EVAL_LOG_DIR,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, logDir, timeLimit).result
+  ): State = new Interpreter(st, log, detail, logDir, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
