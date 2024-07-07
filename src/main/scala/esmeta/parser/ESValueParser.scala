@@ -416,14 +416,14 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     lazy val HexEscapeSequence: S = "x" % TRV.HexDigit % TRV.HexDigit
     lazy val UnicodeEscapeSequence: S =
       "u" % TRV.Hex4Digits |
-      "u{" % TRV.CodePoint <~ "}"
+      "u{" % TRV.CodePoint % "}"
     lazy val Hex4Digits: S =
       TRV.HexDigit % TRV.HexDigit % TRV.HexDigit % TRV.HexDigit
     lazy val HexDigit: S = Predef.HexDigit
     lazy val LineContinuation: S = "\\" % LineTerminatorSequence
     lazy val LineTerminatorSequence: S =
-      Predef.cr ^^^ "\u000a" |
       Predef.cr ~> Predef.lf |
+      Predef.cr ^^^ "\u000a" |
       Predef.lf |
       Predef.ls |
       Predef.ps
