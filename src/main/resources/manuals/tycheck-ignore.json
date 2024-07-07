@@ -133,8 +133,6 @@
   "LengthOfArrayLike",
   "LexicalBinding[0,1].Evaluation",
   "LexicalBinding[1,0].Evaluation",
-  "LiteralPropertyName[2,0].Evaluation",
-  "LiteralPropertyName[2,0].PropName",
   "LogicalANDExpression[1,0].Evaluation",
   "LogicalORExpression[1,0].Evaluation",
   "MemberExpression[1,0].Evaluation",

@@ -109,6 +109,7 @@ lazy val PosInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Pos)
 def InfinityT(ps: Boolean*): ValueTy =
   if (ps.isEmpty) ValueTy.Bot
   else ValueTy(infinity = InfinityTy(ps.toSet))
+lazy val NumericT: ValueTy = NumberT || BigIntT
 lazy val NumberT: ValueTy = ValueTy(number = NumberTy.Top)
 lazy val NumberIntT: ValueTy = ValueTy(number = NumberTy.Int)
 def NumberT(ns: Number*): ValueTy =

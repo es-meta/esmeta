@@ -122,7 +122,10 @@ object Math {
   inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(s: String): Math = Math(BigDecimal(s, UNLIMITED))
-  inline def fromHex(s: String): Math = apply(scala.math.BigInt(s, 16))
+  inline def from(s: String, b: Int): Math = apply(scala.math.BigInt(s, b))
+  inline def fromBinary(s: String): Math = from(s, 2)
+  inline def fromOctal(s: String): Math = from(s, 8)
+  inline def fromHex(s: String): Math = from(s, 16)
 
   extension (m: Math) {
     def +(n: Math): Math = Math(m.decimal + n.decimal)
