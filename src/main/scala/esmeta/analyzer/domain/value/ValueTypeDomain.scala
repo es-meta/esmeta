@@ -404,14 +404,16 @@ trait ValueTypeDomainDecl { self: Self =>
         else
           method match
             case "SV" | "TRV" | "StringValue" => StrT
-            case "IdentifierCodePoints"       => StrT
-            case "MV" | "NumericValue" =>
+            // TODO handle `list of code points` type
+            case "IdentifierCodePoints" => StrT
+            case "MV" =>
               elem.ty.astValue.getNames match
                 case Fin(set) =>
                   if (set subsetOf posIntMVTyNames) PosIntT
                   else if (set subsetOf nonNegIntMVTyNames) NonNegIntT
                   else MathT
                 case Inf => MathT
+            case "NumericValue"          => NumericT
             case "TV"                    => StrT // XXX ignore UndefT case
             case "BodyText" | "FlagText" => StrT
             case "Contains"              => BoolT

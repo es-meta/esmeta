@@ -311,8 +311,8 @@ class Interpreter(
         case (Math(n), ToBigInt)         => BigInt(n.toBigInt)
         case (Math(n), ToMath)           => Math(n)
         // string
-        case (Str(s), ToNumber) => Number(ESValueParser.str2Number(s))
-        case (Str(s), ToBigInt) => ESValueParser.str2bigInt(s)
+        case (Str(s), ToNumber) => ESValueParser.str2number(s)
+        case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
         case (Number(d), ToMath) => Math(d)
@@ -448,7 +448,7 @@ class Interpreter(
     case EIsArrayIndex(expr) =>
       eval(expr) match
         case Str(s) =>
-          val d = ESValueParser.str2Number(s)
+          val d = ESValueParser.str2number(s).double
           val ds = toStringHelper(d)
           val UPPER = (1L << 32) - 1
           val l = d.toLong
@@ -631,38 +631,21 @@ object Interpreter {
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): PureValue = {
+    import ESValueParser.*
     val Lexical(name, str) = lex
     (name, sdoName) match {
-      case (
-            "IdentifierName \\ (ReservedWord)" | "IdentifierName",
-            "StringValue",
-          ) =>
-        Str(ESValueParser.parseIdentifier(str))
-      case ("PrivateIdentifier", "StringValue") =>
-        Str("#" + ESValueParser.parseIdentifier(str.substring(1)))
-      case ("HexDigits", "MV") =>
-        Math.fromHex(str)
-      // TODO handle numeric separator in ESValueParser
-      case ("NumericLiteral", "MV" | "NumericValue") =>
-        ESValueParser.parseNumber(str.replaceAll("_", ""))
-      case ("StringLiteral", "SV" | "StringValue") =>
-        Str(ESValueParser.parseString(str))
-      case ("NoSubstitutionTemplate", "TV") =>
-        ESValueParser.parseTVNoSubstitutionTemplate(str)
-      case ("TemplateHead", "TV") =>
-        ESValueParser.parseTVTemplateHead(str)
-      case ("TemplateMiddle", "TV") =>
-        ESValueParser.parseTVTemplateMiddle(str)
-      case ("TemplateTail", "TV") =>
-        ESValueParser.parseTVTemplateTail(str)
-      case ("NoSubstitutionTemplate", "TRV") =>
-        Str(ESValueParser.parseTRVNoSubstitutionTemplate(str))
-      case ("TemplateHead", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateHead(str))
-      case ("TemplateMiddle", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateMiddle(str))
-      case ("TemplateTail", "TRV") =>
-        Str(ESValueParser.parseTRVTemplateTail(str))
+      case (_, "StringValue") if StringValue.of.contains(name) =>
+        StringValue.of(name)(str)
+      case (_, "NumericValue") if NumericValue.of.contains(name) =>
+        NumericValue.of(name)(str)
+      case (_, "MV") if MV.of.contains(name) =>
+        MV.of(name)(str)
+      case (_, "SV") if SV.of.contains(name) =>
+        SV.of(name)(str)
+      case (_, "TV") if TV.of.contains(name) =>
+        TV.of(name)(str)
+      case (_, "TRV") if TRV.of.contains(name) =>
+        TRV.of(name)(str)
       case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
         throw NotSupported(Feature)(List("RegExp"))

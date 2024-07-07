@@ -11,17 +11,15 @@ import scala.util.matching.Regex
 trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val ZWNJ = 0x200c
   val ZWJ = 0x200d
-  val ZWNBSP = 0xfeff
   // white spaces
   val TAB = 0x0009
   val VT = 0x000b
   val FF = 0x000c
-  val SP = 0x0020
-  val NBSP = 0x00a0
-  // TODO automatically extract category "Zs"
+  val ZWNBSP = 0xfeff
+  // TODO automatically extract category "Space_Separator (Zs)"
   val USP = Set(
-    0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
-    0x2008, 0x2009, 0x200a, 0x202f, 0x205f, 0x3000,
+    0x0020, 0x00a0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
+    0x2006, 0x2007, 0x2008, 0x2009, 0x200a, 0x202f, 0x205f, 0x3000,
   )
   // line terminators
   val LF = 0x000a
@@ -33,6 +31,12 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   lazy val Any = "(?s).".r
   lazy val IDStart = toParser(Unicode.IDStart)
   lazy val IDContinue = toParser(Unicode.IDContinue)
+
+  // special code points
+  lazy val WhiteSpaceCPs = USP ++ Set(TAB, VT, FF, ZWNBSP)
+  lazy val LineTerminatorCPs = Set(LF, CR, LS, PS)
+  lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
+  lazy val StrWhiteSpaceCharCPs = WhiteSpaceCPs ++ LineTerminatorCPs
 
   protected inline def toCodePoint(s: String): Int = s.codePoints.toArray.head
 
@@ -46,12 +50,10 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val abbrCPs: Map[String, Set[Int]] = Map(
     "ZWNJ" -> ZWNJ,
     "ZWJ" -> ZWJ,
-    "ZWNBSP" -> ZWNBSP,
     "TAB" -> TAB,
     "VT" -> VT,
     "FF" -> FF,
-    "SP" -> SP,
-    "NBSP" -> NBSP,
+    "ZWNBSP" -> ZWNBSP,
     "LF" -> LF,
     "CR" -> CR,
     "LS" -> LS,

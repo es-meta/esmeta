@@ -45,7 +45,7 @@ case class ESParser(
         // TODO handle in a more general way for indirect left-recursion
         if (name == "CoalesceExpressionHead") handleLR
         else getParser(prod)
-      else (args: List[Boolean]) => nt(name, lexers(name, 0))
+      else (args: List[Boolean]) => nt(name, lexers(name, 0 /* TODO args */ ))
     name -> parser
   }).toMap
 
@@ -158,7 +158,7 @@ case class ESParser(
     case symbol: NtBase =>
       lazy val parser = symbol match
         case Nonterminal(name, args) =>
-          if (lexNames contains name) nt(name, lexers(name, 0))
+          if (lexNames contains name) nt(name, lexers(name, 0 /* TODO args */ ))
           else parsers(name)(toBools(argsSet, args))
         case ButNot(base, cases) =>
           val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"

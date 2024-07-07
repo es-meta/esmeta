@@ -344,8 +344,8 @@ trait ValueBasicDomainDecl { self: Self =>
           case _              => Bot
         )
         for (Str(s) <- elem.str) newV ⊔= (cop match
-          case ToNumber => apply(Number(ESValueParser.str2Number(s)))
-          case ToBigInt => apply(ESValueParser.str2bigInt(s))
+          case ToNumber => apply(ESValueParser.str2number(s))
+          case ToBigInt => apply(ESValueParser.str2bigint(s))
           case _: ToStr => apply(Str(s))
           case _        => Bot
         )
@@ -451,7 +451,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def isArrayIndex: Elem = elem.getSingle match
         case Zero => Bot
         case One(Str(s)) =>
-          val d = ESValueParser.str2Number(s)
+          val d = ESValueParser.str2number(s).double
           val ds = toStringHelper(d)
           val UPPER = (1L << 32) - 1
           val l = d.toLong
