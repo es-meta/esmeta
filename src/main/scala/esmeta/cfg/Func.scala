@@ -54,7 +54,8 @@ case class Func(
   def headString: String = irFunc.headString
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean = irFunc.kind == FuncKind.Builtin
+  lazy val isBuiltin: Boolean =
+    irFunc.kind == FuncKind.Builtin || irFunc.kind == FuncKind.BuiltinClo
 
   /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == FuncKind.SynDirOp
