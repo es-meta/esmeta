@@ -295,6 +295,7 @@ trait Walker extends BasicWalker {
     case CurrentRealmRecord()       => CurrentRealmRecord()
     case ActiveFunctionObject()     => ActiveFunctionObject()
     case propRef: PropertyReference => walk(propRef)
+    case AgentRecord()              => AgentRecord()
   }
 
   def walk(x: Variable): Variable = Variable(x.name)

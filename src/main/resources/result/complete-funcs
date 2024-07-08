@@ -12,10 +12,12 @@ AdditiveExpression[2,0].Evaluation
 AdditiveExpression[2,0].HasCallInTailPosition
 AdditiveExpression[2,0].IsFunctionDefinition
 AdvanceStringIndex
-AllocateArrayBuffer
-AllocateSharedArrayBuffer
+AgentCanSuspend
+AgentSignifier
 AllocateTypedArray
 AllocateTypedArrayBuffer
+Alternative[0,0].CompileSubpattern
+Alternative[1,0].CompileSubpattern
 ApplyStringOrNumericBinaryOperator
 ArgumentList[0,0].ArgumentListEvaluation
 ArgumentList[1,0].ArgumentListEvaluation
@@ -56,6 +58,7 @@ ArrayBindingPattern[2,2].IteratorBindingInitialization
 ArrayBindingPattern[2,3].BoundNames
 ArrayBindingPattern[2,3].ContainsExpression
 ArrayBindingPattern[2,3].IteratorBindingInitialization
+ArrayBufferCopyAndDetach
 ArrayCreate
 ArrayLiteral[0,0].Evaluation
 ArrayLiteral[0,1].Evaluation
@@ -231,8 +234,6 @@ AsyncMethod[0,0].PrivateBoundIdentifiers
 AsyncMethod[0,0].PropName
 AsyncModuleExecutionRejected
 AtomEscape[0,0].CompileAtom
-AtomEscape[1,0].CompileAtom
-Atom[3,0].CompileAtom
 Atom[5,0].CompileAtom
 AtomicReadModifyWrite
 Await
@@ -342,6 +343,7 @@ BreakableStatement[0,0].Evaluation
 BreakableStatement[0,0].LabelledEvaluation
 BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
+BuiltinCallOrConstruct
 BuiltinFunctionObject.Call
 BuiltinFunctionObject.Construct
 Call
@@ -351,6 +353,7 @@ CallExpression[0,0].HasCallInTailPosition
 CallExpression[1,0].AssignmentTargetType
 CallExpression[1,0].HasCallInTailPosition
 CallExpression[2,0].AssignmentTargetType
+CallExpression[2,0].HasCallInTailPosition
 CallExpression[3,0].AssignmentTargetType
 CallExpression[3,0].Evaluation
 CallExpression[3,0].HasCallInTailPosition
@@ -450,13 +453,23 @@ Catch[0,0].HasCallInTailPosition
 Catch[0,0].VarDeclaredNames
 Catch[0,0].VarScopedDeclarations
 Catch[1,0].CatchClauseEvaluation
+CharacterClassEscape[0,0].MayContainStrings
+CharacterClassEscape[1,0].MayContainStrings
+CharacterClassEscape[2,0].MayContainStrings
+CharacterClassEscape[3,0].MayContainStrings
 CharacterClassEscape[4,0].CompileToCharSet
+CharacterClassEscape[4,0].MayContainStrings
+CharacterClassEscape[5,0].MayContainStrings
+CharacterClassEscape[6,0].CompileToCharSet
+CharacterClassEscape[7,0].MayContainStrings
 CharacterClass[0,0].CompileCharacterClass
 CharacterClass[1,0].CompileCharacterClass
 CharacterEscape[3,0].CharacterValue
 ClassAtomNoDash[0,0].IsCharacterClass
 ClassAtom[0,0].IsCharacterClass
 ClassBody[0,0].AllPrivateIdentifiersValid
+ClassContents[0,0].MayContainStrings
+ClassContents[1,0].MayContainStrings
 ClassDeclaration[0,0].BindingClassDeclarationEvaluation
 ClassDeclaration[0,0].BoundNames
 ClassDeclaration[0,0].Evaluation
@@ -511,8 +524,14 @@ ClassExpression[0,0].NamedEvaluation
 ClassExpression[0,1].Evaluation
 ClassExpression[0,1].HasName
 ClassExpression[0,1].IsFunctionDefinition
+ClassIntersection[0,0].MayContainStrings
+ClassIntersection[1,0].MayContainStrings
+ClassSetOperand[0,0].CompileToCharSet
+ClassSetOperand[1,0].CompileToCharSet
+ClassSetOperand[2,0].CompileToCharSet
+ClassSetOperand[2,0].MayContainStrings
+ClassSetRange[0,0].CompileToCharSet
 ClassStaticBlockBody[0,0].EvaluateBody
-ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody
 ClassStaticBlockStatementList[0,0].ContainsDuplicateLabels
 ClassStaticBlockStatementList[0,0].ContainsUndefinedBreakTarget
 ClassStaticBlockStatementList[0,0].ContainsUndefinedContinueTarget
@@ -527,12 +546,23 @@ ClassStaticBlockStatementList[0,1].VarDeclaredNames
 ClassStaticBlockStatementList[0,1].VarScopedDeclarations
 ClassStaticBlock[0,0].ClassStaticBlockDefinitionEvaluation
 ClassStaticBlock[0,0].Contains
+ClassStringDisjunctionContents[1,0].MayContainStrings
+ClassStringDisjunction[0,0].CompileToCharSet
+ClassString[0,0].MayContainStrings
+ClassString[1,0].CompileClassSetString
+ClassString[1,0].MayContainStrings
+ClassSubtraction[0,0].MayContainStrings
+ClassSubtraction[1,0].MayContainStrings
 ClassTail[0,0].ClassDefinitionEvaluation:clo0
 ClassTail[0,1].ClassDefinitionEvaluation:clo0
 ClassTail[0,1].Contains
 ClassTail[0,2].ClassDefinitionEvaluation:clo0
 ClassTail[0,3].ClassDefinitionEvaluation:clo0
 ClassTail[0,3].Contains
+ClassUnion[0,0].MayContainStrings
+ClassUnion[0,1].MayContainStrings
+ClassUnion[1,0].MayContainStrings
+ClassUnion[1,1].MayContainStrings
 CloneArrayBuffer
 CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation
@@ -586,7 +616,6 @@ CreateListIteratorRecord
 CreateListIteratorRecord:clo0
 CreateMapIterator
 CreateMapIterator:clo0
-CreateMethodProperty
 CreateNonEnumerableDataPropertyOrThrow
 CreatePerIterationEnvironment
 CreateRealm
@@ -598,6 +627,9 @@ CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
 CyclicModuleRecord.Link
 CyclicModuleRecord.LoadRequestedModules
+DateFromTime
+DayFromYear
+DaysInYear
 DecimalBigIntegerLiteral[0,0].NumericValue
 DecimalBigIntegerLiteral[1,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
@@ -630,11 +662,11 @@ DefaultClause[0,1].LexicallyDeclaredNames
 DefaultClause[0,1].LexicallyScopedDeclarations
 DefaultClause[0,1].VarDeclaredNames
 DefaultClause[0,1].VarScopedDeclarations
-DefaultTimeZone
 DefineField
 DefinePropertyOrThrow
 DeletePropertyOrThrow
 DetachArrayBuffer
+Disjunction[1,0].CompileSubpattern
 DoWhileStatement[0,0].ContainsDuplicateLabels
 DoWhileStatement[0,0].ContainsUndefinedBreakTarget
 DoWhileStatement[0,0].ContainsUndefinedContinueTarget
@@ -657,6 +689,8 @@ Elision[0,0].IteratorDestructuringAssignmentEvaluation
 Elision[1,0].ArrayAccumulation
 Elision[1,0].IteratorDestructuringAssignmentEvaluation
 EmptyStatement[0,0].Evaluation
+EnqueueResolveInAgentJob
+EnqueueResolveInAgentJob:clo0
 EnumerableOwnProperties
 EnumerateObjectProperties
 EqualityExpression[1,0].AssignmentTargetType
@@ -1057,6 +1091,7 @@ GeneratorYield
 GeneratorYield:cont0
 Get
 GetActiveScriptOrModule
+GetArrayBufferMaxByteLengthOption
 GetFunctionRealm
 GetGeneratorKind
 GetGlobalObject
@@ -1078,6 +1113,7 @@ GetThisValue
 GetUTCEpochNanoseconds
 GetV
 GetValue
+GetViewByteLength
 GlobalDeclarationInstantiation
 GlobalEnvironmentRecord.CanDeclareGlobalVar
 GlobalEnvironmentRecord.CreateGlobalFunctionBinding
@@ -1095,7 +1131,9 @@ GlobalEnvironmentRecord.HasThisBinding
 GlobalEnvironmentRecord.HasVarDeclaration
 GlobalEnvironmentRecord.SetMutableBinding
 GlobalEnvironmentRecord.WithBaseObject
+GroupBy
 GroupName[0,0].CapturingGroupName
+HasEitherUnicodeFlag
 HasOwnProperty
 HasProperty
 HexLeadSurrogate[0,0].CharacterValue
@@ -1161,7 +1199,10 @@ INTRINSICS.Array.prototype.values
 INTRINSICS.Array.prototype.with
 INTRINSICS.ArrayBuffer
 INTRINSICS.ArrayBuffer.isView
+INTRINSICS.ArrayBuffer.prototype.resize
 INTRINSICS.ArrayBuffer.prototype.slice
+INTRINSICS.ArrayBuffer.prototype.transfer
+INTRINSICS.ArrayBuffer.prototype.transferToFixedLength
 INTRINSICS.ArrayIteratorPrototype.next
 INTRINSICS.AsyncFromSyncIteratorPrototype.next
 INTRINSICS.AsyncFromSyncIteratorPrototype.return
@@ -1172,9 +1213,12 @@ INTRINSICS.AsyncGeneratorFunction.prototype.prototype.next
 INTRINSICS.AsyncGeneratorFunction.prototype.prototype.return
 INTRINSICS.AsyncGeneratorFunction.prototype.prototype.throw
 INTRINSICS.AsyncIteratorPrototype[@@asyncIterator]
+INTRINSICS.Atomics.isLockFree
 INTRINSICS.Atomics.load
 INTRINSICS.Atomics.notify
 INTRINSICS.Atomics.store
+INTRINSICS.Atomics.wait
+INTRINSICS.Atomics.waitAsync
 INTRINSICS.BigInt
 INTRINSICS.BigInt.asIntN
 INTRINSICS.BigInt.asUintN
@@ -1204,6 +1248,7 @@ INTRINSICS.DataView.prototype.setInt8
 INTRINSICS.DataView.prototype.setUint16
 INTRINSICS.DataView.prototype.setUint32
 INTRINSICS.DataView.prototype.setUint8
+INTRINSICS.Date.UTC
 INTRINSICS.Date.prototype.getDate
 INTRINSICS.Date.prototype.getDay
 INTRINSICS.Date.prototype.getFullYear
@@ -1219,8 +1264,19 @@ INTRINSICS.Date.prototype.getUTCHours
 INTRINSICS.Date.prototype.getUTCMinutes
 INTRINSICS.Date.prototype.getUTCMonth
 INTRINSICS.Date.prototype.getUTCSeconds
+INTRINSICS.Date.prototype.setDate
+INTRINSICS.Date.prototype.setFullYear
+INTRINSICS.Date.prototype.setMilliseconds
+INTRINSICS.Date.prototype.setMonth
+INTRINSICS.Date.prototype.setTime
+INTRINSICS.Date.prototype.setUTCDate
+INTRINSICS.Date.prototype.setUTCFullYear
+INTRINSICS.Date.prototype.setUTCMilliseconds
+INTRINSICS.Date.prototype.setUTCMonth
+INTRINSICS.Date.prototype.toDateString
 INTRINSICS.Date.prototype.toJSON
 INTRINSICS.Date.prototype.toString
+INTRINSICS.Date.prototype.toTimeString
 INTRINSICS.Date.prototype.valueOf
 INTRINSICS.Date.prototype[@@toPrimitive]
 INTRINSICS.Error
@@ -1242,6 +1298,7 @@ INTRINSICS.GeneratorFunction.prototype.prototype.return
 INTRINSICS.GeneratorFunction.prototype.prototype.throw
 INTRINSICS.IteratorPrototype[@@iterator]
 INTRINSICS.Map
+INTRINSICS.Map.groupBy
 INTRINSICS.Map.prototype.clear
 INTRINSICS.Map.prototype.delete
 INTRINSICS.Map.prototype.entries
@@ -1299,6 +1356,7 @@ INTRINSICS.Object.getOwnPropertyDescriptors
 INTRINSICS.Object.getOwnPropertyNames
 INTRINSICS.Object.getOwnPropertySymbols
 INTRINSICS.Object.getPrototypeOf
+INTRINSICS.Object.groupBy
 INTRINSICS.Object.hasOwn
 INTRINSICS.Object.is
 INTRINSICS.Object.isExtensible
@@ -1333,6 +1391,7 @@ INTRINSICS.Promise.prototype.then
 INTRINSICS.Promise.race
 INTRINSICS.Promise.reject
 INTRINSICS.Promise.resolve
+INTRINSICS.Promise.withResolvers
 INTRINSICS.Proxy
 INTRINSICS.Proxy.revocable
 INTRINSICS.Proxy.revocable:clo0
@@ -1380,6 +1439,7 @@ INTRINSICS.String.prototype.concat
 INTRINSICS.String.prototype.endsWith
 INTRINSICS.String.prototype.includes
 INTRINSICS.String.prototype.indexOf
+INTRINSICS.String.prototype.isWellFormed
 INTRINSICS.String.prototype.lastIndexOf
 INTRINSICS.String.prototype.localeCompare
 INTRINSICS.String.prototype.match
@@ -1393,6 +1453,7 @@ INTRINSICS.String.prototype.slice
 INTRINSICS.String.prototype.startsWith
 INTRINSICS.String.prototype.substring
 INTRINSICS.String.prototype.toString
+INTRINSICS.String.prototype.toWellFormed
 INTRINSICS.String.prototype.trim
 INTRINSICS.String.prototype.trimEnd
 INTRINSICS.String.prototype.trimStart
@@ -1431,7 +1492,6 @@ INTRINSICS.TypedArray.prototype.map
 INTRINSICS.TypedArray.prototype.reduce
 INTRINSICS.TypedArray.prototype.reduceRight
 INTRINSICS.TypedArray.prototype.reverse
-INTRINSICS.TypedArray.prototype.slice
 INTRINSICS.TypedArray.prototype.some
 INTRINSICS.TypedArray.prototype.sort
 INTRINSICS.TypedArray.prototype.sort:clo0
@@ -1458,6 +1518,9 @@ INTRINSICS.encodeURI
 INTRINSICS.encodeURIComponent
 INTRINSICS.eval
 INTRINSICS.get ArrayBuffer.prototype.byteLength
+INTRINSICS.get ArrayBuffer.prototype.detached
+INTRINSICS.get ArrayBuffer.prototype.maxByteLength
+INTRINSICS.get ArrayBuffer.prototype.resizable
 INTRINSICS.get ArrayBuffer[@@species]
 INTRINSICS.get Array[@@species]
 INTRINSICS.get DataView.prototype.buffer
@@ -1475,10 +1538,13 @@ INTRINSICS.get RegExp.prototype.multiline
 INTRINSICS.get RegExp.prototype.source
 INTRINSICS.get RegExp.prototype.sticky
 INTRINSICS.get RegExp.prototype.unicode
+INTRINSICS.get RegExp.prototype.unicodeSets
 INTRINSICS.get RegExp[@@species]
 INTRINSICS.get Set.prototype.size
 INTRINSICS.get Set[@@species]
 INTRINSICS.get SharedArrayBuffer.prototype.byteLength
+INTRINSICS.get SharedArrayBuffer.prototype.growable
+INTRINSICS.get SharedArrayBuffer.prototype.maxByteLength
 INTRINSICS.get SharedArrayBuffer[@@species]
 INTRINSICS.get Symbol.prototype.description
 INTRINSICS.get TypedArray.prototype.buffer
@@ -1542,6 +1608,7 @@ ImportedDefaultBinding[0,0].ImportEntriesForModule
 ImportedLocalNames
 ImportsList[1,0].BoundNames
 ImportsList[1,0].ImportEntriesForModule
+InLeapYear
 InitializeBoundName
 InitializeHostDefinedRealm
 InitializeInstanceElements
@@ -1552,20 +1619,12 @@ InitializeTypedArrayFromTypedArray
 Initializer[0,0].EvaluateBody
 InstallErrorCause
 InstanceofOperator
-IntegerIndexedElementGet
-IntegerIndexedElementSet
-IntegerIndexedExoticObject.DefineOwnProperty
-IntegerIndexedExoticObject.Delete
-IntegerIndexedExoticObject.Get
-IntegerIndexedExoticObject.GetOwnProperty
-IntegerIndexedExoticObject.HasProperty
-IntegerIndexedExoticObject.Set
-IntegerIndexedObjectCreate
 InternalizeJSONProperty
 Invoke
 IsAccessorDescriptor
 IsAnonymousFunctionDefinition
 IsArray
+IsArrayBufferViewOutOfBounds
 IsBigIntElementType
 IsCallable
 IsCompatiblePropertyDescriptor
@@ -1574,6 +1633,7 @@ IsConstructor
 IsDataDescriptor
 IsDetachedBuffer
 IsExtensible
+IsFixedLengthArrayBuffer
 IsGenericDescriptor
 IsInTailPosition
 IsIntegralNumber
@@ -1603,6 +1663,7 @@ IteratorClose
 IteratorComplete
 IteratorNext
 IteratorStep
+IteratorStepValue
 IteratorToList
 IteratorValue
 LabelIdentifier[1,0].StringValue
@@ -1680,9 +1741,12 @@ MakeArgSetter
 MakeArgSetter:clo0
 MakeClassConstructor
 MakeConstructor
+MakeDataViewWithBufferWitnessRecord
+MakeFullYear
 MakeMethod
 MakePrivateReference
 MakeSuperPropertyReference
+MakeTypedArrayWithBufferWitnessRecord
 MemberExpression[0,0].IsDestructuring
 MemberExpression[1,0].AssignmentTargetType
 MemberExpression[1,0].Evaluation
@@ -1810,6 +1874,7 @@ Module[0,0].ImportEntries
 Module[0,0].LexicallyScopedDeclarations
 Module[0,0].ModuleRequests
 Module[0,0].VarScopedDeclarations
+MonthFromTime
 MultiplicativeExpression[1,0].AssignmentTargetType
 MultiplicativeExpression[1,0].Evaluation
 MultiplicativeExpression[1,0].HasCallInTailPosition
@@ -1821,6 +1886,10 @@ NamedExports[0,0].ExportedNames
 NamedExports[0,0].ReferencedBindings
 NamedImports[0,0].BoundNames
 NamedImports[0,0].ImportEntriesForModule
+NestedClass[0,0].CompileToCharSet
+NestedClass[1,0].CompileToCharSet
+NestedClass[1,0].MayContainStrings
+NestedClass[2,0].CompileToCharSet
 NewDeclarativeEnvironment
 NewExpression[1,0].AssignmentTargetType
 NewExpression[1,0].Evaluation
@@ -1841,6 +1910,8 @@ NewPromiseResolveThenableJob
 NewPromiseResolveThenableJob:clo0
 NewTarget[0,0].AssignmentTargetType
 NewTarget[0,0].Evaluation
+NonEmptyClassString[0,0].MayContainStrings
+NonEmptyClassString[0,1].MayContainStrings
 NormalCompletion
 Number::add
 Number::bitwiseAND
@@ -2099,6 +2170,7 @@ ReturnStatement[0,0].Evaluation
 ReturnStatement[0,0].HasCallInTailPosition
 ReturnStatement[1,0].Evaluation
 ReturnStatement[1,0].HasCallInTailPosition
+RevalidateAtomicAccess
 RunJobs
 RunJobs:clo0
 SameValue
@@ -2291,6 +2363,11 @@ TemplateString
 Term[0,0].CompileSubpattern
 Term[1,0].CompileSubpattern
 TestIntegrityLevel
+ThisBigIntValue
+ThisBooleanValue
+ThisNumberValue
+ThisStringValue
+ThisSymbolValue
 ThrowCompletion
 ThrowStatement[0,0].Evaluation
 TimeClip
@@ -2300,6 +2377,7 @@ ToBigInt64
 ToBigUint64
 ToBoolean
 ToDateString
+ToIndex
 ToInt16
 ToInt32
 ToInt8
@@ -2338,7 +2416,18 @@ TryStatement[2,0].Evaluation
 TryStatement[2,0].HasCallInTailPosition
 TryStatement[2,0].VarDeclaredNames
 TryStatement[2,0].VarScopedDeclarations
+TypedArray.DefineOwnProperty
+TypedArray.Delete
+TypedArray.Get
+TypedArray.GetOwnProperty
+TypedArray.HasProperty
+TypedArray.Set
+TypedArrayByteLength
 TypedArrayCreate
+TypedArrayCreateFromConstructor
+TypedArrayGetElement
+TypedArrayLength
+TypedArraySetElement
 UnaryExpression[1,0].AssignmentTargetType
 UnaryExpression[1,0].Evaluation
 UnaryExpression[1,0].HasCallInTailPosition
@@ -2370,6 +2459,7 @@ UnaryExpression[7,0].IsFunctionDefinition
 UnaryExpression[8,0].AssignmentTargetType
 UnaryExpression[8,0].HasCallInTailPosition
 UnaryExpression[8,0].IsFunctionDefinition
+UnicodePropertyValueExpression[0,0].MayContainStrings
 UpdateEmpty
 UpdateExpression[1,0].AssignmentTargetType
 UpdateExpression[1,0].Evaluation
@@ -2389,6 +2479,7 @@ UpdateExpression[4,0].HasCallInTailPosition
 UpdateExpression[4,0].IsFunctionDefinition
 ValidateAndApplyPropertyDescriptor
 ValidateAtomicAccess
+ValidateAtomicAccessOnIntegerTypedArray
 ValidateIntegerTypedArray
 ValidateNonRevokedProxy
 ValidateTypedArray
@@ -2423,9 +2514,3 @@ Yield
 YieldExpression[0,0].Evaluation
 YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
-thisBigIntValue
-thisBooleanValue
-thisNumberValue
-thisStringValue
-thisSymbolValue
-thisTimeValue
