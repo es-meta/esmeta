@@ -55,6 +55,7 @@
   "async-functions",
   "async-iteration",
   "caller",
+  "change-array-by-copy",
   "class",
   "class-fields-private",
   "class-fields-private-in",

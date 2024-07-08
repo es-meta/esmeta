@@ -797,6 +797,7 @@ FieldDefinition[0,1].ClassFieldDefinitionEvaluation
 FieldDefinition[0,1].ComputedPropertyContains
 FieldDefinition[0,1].PrivateBoundIdentifiers
 FieldDefinition[0,1].PropName
+FindViaPredicate
 ForBinding[0,0].IsDestructuring
 ForBinding[1,0].IsDestructuring
 ForBodyEvaluation
