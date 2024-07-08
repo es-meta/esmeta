@@ -49,6 +49,7 @@
   "__proto__",
   "__setter__",
   "align-detached-buffer-semantics-with-web-reality",
+  "array-grouping",
   "arrow-function",
   "async-functions",
   "async-iteration",
