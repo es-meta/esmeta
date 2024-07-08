@@ -646,6 +646,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (op match {
       case Finite           => "finite"
       case Abrupt           => "an abrupt completion"
+      case Throw            => "a throw completion"
+      case Return           => "a return completion"
+      case Break            => "a break completion"
+      case Continue         => "a continue completion"
       case NeverAbrupt      => "never an abrupt completion"
       case Normal           => "a normal completion"
       case Duplicated       => "duplicate entries"
@@ -716,6 +720,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " " >> base
       case PropertyReference(base, prop) =>
         app >> base >> prop
+      case AgentRecord() =>
+        app >> "the Agent Record of the surrounding agent"
     }
   }
 

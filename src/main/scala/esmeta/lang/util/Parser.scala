@@ -938,8 +938,12 @@ trait Parsers extends IndentParsers {
     import PredicateConditionOperator.*
     lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
-      "an abrupt completion" ^^^ Abrupt |
       "a normal completion" ^^^ Normal |
+      "an abrupt completion" ^^^ Abrupt |
+      "a throw completion" ^^^ Throw |
+      "a return completion" ^^^ Return |
+      "a break completion" ^^^ Break |
+      "a continue completion" ^^^ Continue |
       "never an abrupt completion" ^^^ NeverAbrupt |
       "duplicate entries" ^^^ Duplicated |
       "present" ^^^ Present |
@@ -1148,7 +1152,10 @@ trait Parsers extends IndentParsers {
   } | {
     // SetFunctionName, SymbolDescriptiveString
     (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
-  } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) }
+  } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) } | {
+    // AgentSignifier or AgentCanSuspend
+    "the Agent Record of the surrounding agent" ^^! AgentRecord()
+  }
 
   // ---------------------------------------------------------------------------
   // metalanguage properties

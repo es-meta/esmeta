@@ -1,5 +1,8 @@
 def HostEnsureCanCompileStrings(
-  calleeRealm: RealmRecord
+  calleeRealm: RealmRecord,
+  parameterStrings: List[String],
+  bodyString: String,
+  direct: Boolean
 ): Normal[Const[~unused~]] | Abrupt[throw] {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0

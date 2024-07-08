@@ -250,6 +250,7 @@ trait UnitWalker extends BasicUnitWalker {
     case CurrentRealmRecord()       =>
     case ActiveFunctionObject()     =>
     case propRef: PropertyReference => walk(propRef)
+    case AgentRecord()              =>
   }
 
   def walk(x: Variable): Unit = {}

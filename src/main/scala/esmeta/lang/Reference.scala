@@ -24,6 +24,9 @@ case class ActiveFunctionObject() extends Reference
 // references to property
 case class PropertyReference(base: Reference, prop: Property) extends Reference
 
+// references to agent record
+case class AgentRecord() extends Reference
+
 // -----------------------------------------------------------------------------
 // metalanguage properties
 // -----------------------------------------------------------------------------

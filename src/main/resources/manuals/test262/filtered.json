@@ -337,5 +337,12 @@
     "language/expressions/does-not-equals/bigint-and-number-extremes",
     "language/expressions/equals/bigint-and-number-extremes",
     "language/expressions/modulus/S11.5.3_A4_T7"
+  ],
+  "order": [
+    "language/expressions/assignment/destructuring/iterator-destructuring-property-reference-target-evaluation-order",
+    "language/expressions/assignment/destructuring/keyed-destructuring-property-reference-target-evaluation-order",
+    "language/expressions/assignment/target-member-computed-reference",
+    "language/expressions/assignment/target-super-computed-reference",
+    "language/expressions/member-expression/computed-reference-null-or-undefined"
   ]
 }
