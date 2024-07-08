@@ -132,6 +132,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(invoke)
     case ListExpression(entries) =>
       walkList(entries, walk)
+    case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
+      walk(from); walk(to)
     case XRefExpression(kind, id) =>
       walk(kind);
     case SoleElementExpression(expr) =>

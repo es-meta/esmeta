@@ -294,6 +294,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListExpression(entries) =>
         given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
         app >> entries
+      case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
+        app >> "a List of the integers in the interval from " >> from
+        app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
+        app >> " to " >> to
+        app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
+        app >> ", in " >> (if (isInc) "ascending" else "descending") >> "order"
       case SoleElementExpression(expr) =>
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>

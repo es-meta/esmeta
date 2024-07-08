@@ -237,7 +237,7 @@ class Compiler(
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
-            fb.addInst(IAssign(i, add(iExpr, one)))
+            fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
       )
@@ -298,7 +298,7 @@ class Compiler(
                 emptyInst,
               ),
             )
-            if (ascending) fb.addInst(IAssign(i, add(iExpr, one)))
+            if (ascending) fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
       )
@@ -318,7 +318,7 @@ class Compiler(
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
-            fb.addInst(IAssign(i, add(iExpr, one)))
+            fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
       )
@@ -548,6 +548,34 @@ class Compiler(
         EReturnIfAbrupt(compile(fb, expr), check)
       case ListExpression(entries) =>
         EList(entries.map(compile(fb, _)))
+      case IntListExpression(from, fInc, to, tInc, asc) =>
+        val (f, fExpr) = fb.newTIdWithExpr
+        val (t, tExpr) = fb.newTIdWithExpr
+        val (i, iExpr) = fb.newTIdWithExpr
+        val (list, listExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          IAssign(f, compile(fb, from)),
+          IAssign(t, compile(fb, to)),
+          IAssign(
+            i,
+            if (asc) (if (fInc) fExpr else inc(fExpr))
+            else if (tInc) tExpr
+            else dec(tExpr),
+          ),
+          IAssign(list, EList(Nil)),
+        )
+        fb.addInst(
+          ILoop(
+            "int-list",
+            if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
+            else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
+            fb.newScope {
+              fb.addInst(IPush(iExpr, listExpr, false))
+              fb.addInst(IAssign(i, if (asc) inc(iExpr) else dec(iExpr)))
+            },
+          ),
+        )
+        listExpr
       case yet: YetExpression =>
         val yetStr = yet.toString(true, false)
         unusedRules -= yetStr
@@ -1025,6 +1053,8 @@ class Compiler(
   inline def neg(expr: Expr) = EUnary(UOp.Neg, expr)
   inline def floor(expr: Expr) = EUnary(UOp.Floor, expr)
   inline def lessThan(l: Expr, r: Expr) = EBinary(BOp.Lt, l, r)
+  inline def inc(e: Expr) = add(e, one)
+  inline def dec(e: Expr) = sub(e, one)
   inline def add(l: Expr, r: Expr) = EBinary(BOp.Add, l, r)
   inline def sub(l: Expr, r: Expr) = EBinary(BOp.Sub, l, r)
   inline def and(l: Expr, r: Expr) = EBinary(BOp.And, l, r)
