@@ -729,10 +729,26 @@ object Interpreter {
       case (Lt, Math(l), Math(r)) => Bool(l < r)
 
       // extended mathematical value operations
-      case (Lt, POS_INF, Math(r)) => Bool(false)
-      case (Lt, Math(r), POS_INF) => Bool(true)
-      case (Lt, NEG_INF, Math(r)) => Bool(true)
-      case (Lt, Math(r), NEG_INF) => Bool(false)
+      case (Add, POS_INF, Math(_))          => POS_INF
+      case (Add, Math(_), POS_INF)          => POS_INF
+      case (Add, NEG_INF, Math(_))          => NEG_INF
+      case (Add, Math(_), NEG_INF)          => NEG_INF
+      case (Sub, POS_INF, Math(_))          => POS_INF
+      case (Sub, Math(_), POS_INF)          => NEG_INF
+      case (Sub, NEG_INF, Math(_))          => NEG_INF
+      case (Sub, Math(_), NEG_INF)          => POS_INF
+      case (Mul, POS_INF, Math(r)) if r > 0 => POS_INF
+      case (Mul, POS_INF, Math(r)) if r < 0 => NEG_INF
+      case (Mul, Math(l), POS_INF) if l > 0 => POS_INF
+      case (Mul, Math(l), POS_INF) if l < 0 => NEG_INF
+      case (Mul, NEG_INF, Math(r)) if r > 0 => NEG_INF
+      case (Mul, NEG_INF, Math(r)) if r < 0 => POS_INF
+      case (Mul, Math(l), NEG_INF) if l > 0 => NEG_INF
+      case (Mul, Math(l), NEG_INF) if l < 0 => POS_INF
+      case (Lt, POS_INF, Math(_))           => Bool(false)
+      case (Lt, Math(_), POS_INF)           => Bool(true)
+      case (Lt, NEG_INF, Math(_))           => Bool(true)
+      case (Lt, Math(_), NEG_INF)           => Bool(false)
 
       // logical operations
       case (And, Bool(l), Bool(r)) => Bool(l && r)
