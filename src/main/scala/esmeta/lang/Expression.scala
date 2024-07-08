@@ -61,6 +61,15 @@ case class GetItemsExpression(nt: Expression, expr: Expression)
 // list expressions
 case class ListExpression(entries: List[Expression]) extends Expression
 
+// integer list expressions
+case class IntListExpression(
+  from: CalcExpression,
+  isFromInclusive: Boolean,
+  to: CalcExpression,
+  isToInclusive: Boolean,
+  isAscending: Boolean,
+) extends Expression
+
 // emu-xref expressions
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression

@@ -362,6 +362,7 @@ trait Parsers extends IndentParsers {
     mathOpExpr |
     bitwiseExpr |
     listExpr |
+    intListExpr |
     xrefExpr |
     soleExpr |
     codeUnitAtExpr |
@@ -831,6 +832,15 @@ trait Parsers extends IndentParsers {
     "a new empty List" ^^! ListExpression(Nil) |
     "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
     "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+
+  // integer list expressions
+  lazy val intListExpr: PL[IntListExpression] =
+    val inc = "(" ~> ("inclusive" ^^^ true | "exclusive" ^^^ false) <~ ")"
+    val asc = "in" ~> ("ascending" ^^^ true | "descending" ^^^ false) <~ "order"
+    "a List of the integers in the interval from" ~>
+    (calcExpr ~ inc <~ "to") ~ (calcExpr ~ inc <~ ",") ~ asc ^^ {
+      case (f ~ fi) ~ (t ~ ti) ~ a => IntListExpression(f, fi, t, ti, a)
+    }
 
   // the code unit expression at specific index of a string
   lazy val codeUnitAtExpr: PL[CodeUnitAtExpression] =
