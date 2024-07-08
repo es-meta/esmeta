@@ -247,6 +247,8 @@
     "built-ins/Array/prototype/concat/Array.prototype.concat_spreadable-sparse-object",
     "built-ins/Array/prototype/every/15.4.4.16-7-c-ii-2",
     "built-ins/Array/prototype/filter/15.4.4.20-9-c-ii-1",
+    "built-ins/Array/prototype/findLast/maximum-index",
+    "built-ins/Array/prototype/findLastIndex/maximum-index",
     "built-ins/Array/prototype/flatMap/array-like-objects",
     "built-ins/Array/prototype/forEach/15.4.4.18-7-c-ii-1",
     "built-ins/Array/prototype/indexOf/15.4.4.14-10-1",
