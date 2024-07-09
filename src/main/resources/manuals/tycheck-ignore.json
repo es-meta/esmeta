@@ -118,7 +118,6 @@
   "IfStatement[0,0].Evaluation",
   "IfStatement[1,0].Evaluation",
   "ImportCall[0,0].Evaluation",
-  "ImportMeta[0,0].Evaluation",
   "InitializeReferencedBinding",
   "Initializer[0,0].EvaluateBody",
   "InnerModuleEvaluation",
