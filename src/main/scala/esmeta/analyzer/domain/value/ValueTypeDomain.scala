@@ -138,26 +138,22 @@ trait ValueTypeDomainDecl { self: Self =>
       case VOp.Min =>
         val math = vs.map(_.ty.math).reduce(_ min _)
         val inf = vs.map(_.ty.infinity).reduce(_ || _)
-        val res = Elem(
+        Elem(
           ValueTy(
             math = math,
             infinity = if (math.isBottom) inf else inf && InfinityTy.Neg,
           ),
         )
-        println(("min", vs, res))
-        res
 
       case VOp.Max =>
         val math = vs.map(_.ty.math).reduce(_ max _)
         val inf = vs.map(_.ty.infinity).reduce(_ || _)
-        val res = Elem(
+        Elem(
           ValueTy(
             math = math,
             infinity = if (math.isBottom) inf else inf && InfinityTy.Pos,
           ),
         )
-        println(("max", vs, res))
-        res
       case VOp.Concat => strTop
 
     /** transfer for mathematical operation */
