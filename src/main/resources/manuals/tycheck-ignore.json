@@ -108,8 +108,6 @@
   "INTRINSICS.RangeError",
   "INTRINSICS.ReferenceError",
   "INTRINSICS.RegExp",
-  "INTRINSICS.String.prototype.includes",
-  "INTRINSICS.String.prototype.indexOf",
   "INTRINSICS.String.prototype.matchAll",
   "INTRINSICS.String.prototype.replaceAll",
   "INTRINSICS.SyntaxError",
