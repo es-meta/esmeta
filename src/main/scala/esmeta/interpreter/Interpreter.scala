@@ -354,10 +354,9 @@ class Interpreter(
             case m: MapObj =>
               if (tyModel.isSubTy(m.ty, "Object")) "Object"
               else m.ty
-            case _: ListObj   => "List"
             case _: SymbolObj => "Symbol"
-            case v            => ???
-        case v => ???,
+            case v            => "SpecType"
+        case v => "SpecType",
       )
     case ETypeCheck(expr, tyExpr) =>
       val v = eval(expr)
