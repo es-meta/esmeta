@@ -211,6 +211,7 @@ trait AbsTransferDecl { self: Analyzer =>
         case IExpr(expr) =>
           for {
             v <- transfer(expr)
+            _ <- if (v.isBottom) put(AbsState.Bot) else pure(())
           } yield v
         case ILet(id, expr) =>
           for {
