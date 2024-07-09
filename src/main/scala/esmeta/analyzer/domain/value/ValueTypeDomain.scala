@@ -303,18 +303,23 @@ trait ValueTypeDomainDecl { self: Self =>
       def typeOf(st: AbsState): Elem =
         val ty = elem.ty
         var names: Set[String] = Set()
-        if (
-          ty.name.set match
-            case Inf      => true
-            case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Object"))
-        ) names += "Object"
-        if (ty.symbol) names += "Symbol"
         if (!ty.number.isBottom) names += "Number"
         if (ty.bigInt) names += "BigInt"
         if (!ty.str.isBottom) names += "String"
         if (!ty.bool.isBottom) names += "Boolean"
         if (ty.undef) names += "Undefined"
         if (ty.nullv) names += "Null"
+        if (
+          ty.name.set match
+            case Inf      => true
+            case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Object"))
+        ) names += "Object"
+        if (ty.symbol) names += "Symbol"
+        if (
+          ty.name.set match
+            case Inf      => true
+            case Fin(set) => set.exists(!cfg.tyModel.isSubTy(_, "Object"))
+        ) names += "SpecType"
         Elem(StrT(names))
 
       /** type check */

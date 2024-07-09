@@ -288,10 +288,10 @@ trait ValueBasicDomainDecl { self: Self =>
         if (!elem.undef.isBottom) set += "Undefined"
         if (!elem.nullv.isBottom) set += "Null"
         if (!elem.part.isBottom) for (part <- elem.part) {
-          val tname = st.get(part).getTy match
-            case tname if cfg.tyModel.isSubTy(tname, "Object") => "Object"
-            case tname                                         => tname
-          set += tname
+          val tname = st.get(part).getTy
+          if (cfg.tyModel.isSubTy(tname, "Object")) set += "Object"
+          else if (cfg.tyModel.isSubTy(tname, "Symbol")) set += "Symbol"
+          else set += "SpecType"
         }
         apply(str = AbsStr(set.map(Str.apply)))
 
