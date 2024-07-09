@@ -42,7 +42,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case _ if this eq that               => this
     case (MathTopTy, _) | (_, MathTopTy) => Top
     case (IntTy, MathSetTy(set)) =>
-      if (set.exists(_.decimal.isWhole)) Top
+      if (set.exists(m => !m.decimal.isWhole)) Top
       else IntTy
     case (IntTy, _) => IntTy
     case (NonPosIntTy, MathSetTy(set)) =>
@@ -157,11 +157,11 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (PosIntTy, PosIntTy)                    => PosIntTy
     case (PosIntTy, NegIntTy)                    => NegIntTy
     case (NegIntTy, NegIntTy)                    => NegIntTy
-    case (MathSetTy(set), _)                     => set.foldLeft(this)(_ min _)
+    case (MathSetTy(set), _)                     => set.foldLeft(that)(_ min _)
     case _                                       => that min this
 
   /** min operation */
-  def min(math: Math): MathTy =
+  private def min(math: Math): MathTy =
     val Math(d) = math
     this match
       case MathTopTy       => MathTopTy
@@ -179,7 +179,38 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       case NegIntTy              => NegIntTy
 
   /** max operation */
-  def max(that: MathTy): MathTy = MathTopTy
+  def max(that: MathTy): MathTy = (this, that) match
+    case (MathTopTy, _) | (_, MathTopTy)       => MathTopTy
+    case (IntTy, IntTy)                        => IntTy
+    case (IntTy, NonPosIntTy | NegIntTy)       => IntTy
+    case (IntTy, NonNegIntTy)                  => NonNegIntTy
+    case (IntTy, PosIntTy)                     => PosIntTy
+    case (PosIntTy, PosIntTy | NonNegIntTy)    => PosIntTy
+    case (PosIntTy, NonPosIntTy | NegIntTy)    => PosIntTy
+    case (NonNegIntTy, NonNegIntTy)            => NonNegIntTy
+    case (NonNegIntTy, NonPosIntTy | NegIntTy) => NonNegIntTy
+    case (NonPosIntTy, NonPosIntTy | NegIntTy) => NonPosIntTy
+    case (NegIntTy, NegIntTy)                  => NegIntTy
+    case (MathSetTy(set), _)                   => set.foldLeft(that)(_ max _)
+    case _                                     => that max this
+
+  /** max operation */
+  private def max(math: Math): MathTy =
+    val Math(d) = math
+    this match
+      case MathTopTy       => MathTopTy
+      case MathSetTy(set)  => MathSetTy(set.map(m => Math(m.decimal max d)))
+      case _ if !d.isWhole => MathTopTy
+      case IntTy if d > 0  => PosIntTy
+      case IntTy if d >= 0 => NonNegIntTy
+      case IntTy           => IntTy
+      case NonPosIntTy if d >= 0 => MathSetTy(Set(math))
+      case NonPosIntTy           => NonPosIntTy
+      case NonNegIntTy if d > 0  => PosIntTy
+      case NonNegIntTy           => NonNegIntTy
+      case NegIntTy if d >= -1   => MathSetTy(Set(math))
+      case NegIntTy              => NegIntTy
+      case PosIntTy              => PosIntTy
 
   /** inclusion check */
   def contains(math: Math): Boolean = this match
