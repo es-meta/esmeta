@@ -144,7 +144,7 @@
         "CycleRoot" : "CyclicModuleRecord | Const[~empty~]",
         "DFSAncestorIndex" : "Const[~empty~] | Int",
         "DFSIndex" : "Const[~empty~] | Int",
-        "EvaluationError" : "Abrupt | Const[~empty~]",
+        "EvaluationError" : "Abrupt[throw] | Const[~empty~]",
         "HasTLA" : "Boolean",
         "PendingAsyncDependencies" : "Const[~empty~] | Int",
         "RequestedModules" : "List[String]",
