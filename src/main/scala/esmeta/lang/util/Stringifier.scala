@@ -153,7 +153,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("suspend ") >> context
         if (remove) app >> " and remove it from the execution context stack"
         app >> "."
-      case RemoveElemStep(elem, list) =>
+      case RemoveStep(elem, list) =>
         app >> First("remove ") >> elem >> " from " >> list >> "."
       case RemoveFirstStep(expr) =>
         app >> First("remove") >> " the first element from " >> expr >> "."
