@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   // mathematical values
   assert (= (min 1 2 3) 1)
   assert (= (min 3.2 2.4 3.3) 2.4)

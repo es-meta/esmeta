@@ -32,7 +32,7 @@ class StringifyTinyTest extends IRTest {
       mainFunc -> """@main def f(
       |  x: Number,
       |  y?: Number,
-      |): Number {
+      |): Number = {
       |  let x = ~empty~
       |  delete x.p
       |  return x
@@ -40,7 +40,7 @@ class StringifyTinyTest extends IRTest {
       func -> """def f(
       |  x: Number,
       |  y?: Number,
-      |): Number {
+      |): Number = {
       |  let x = ~empty~
       |  delete x.p
       |  return x

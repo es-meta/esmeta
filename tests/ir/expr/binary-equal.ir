@@ -1,8 +1,8 @@
-def g() { }
+def g() = { }
 
-def h() { }
+def h() = { }
 
-@main def main() {
+@main def main() = {
   // objects
   let x = (new A())[#1]
   let y = x

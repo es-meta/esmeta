@@ -26,7 +26,7 @@ trait Parsers extends TyParsers {
     "[<>\\w|:\\.\\[\\],@]+".r ~
     params ~
     retTy ~
-    inst ^^ {
+    ("=" ~> inst) ^^ {
       case m ~ k ~ n ~ ps ~ rty ~ b => Func(m, k, n, ps, rty, b)
     }
   }.named("ir.Func")

@@ -1,5 +1,5 @@
 // TODO need more test (access property)
-@main def main() {
+@main def main() = {
   let m = (new A(1 -> true, "x" -> null))[#1]
   assert (= m[1] true)
   assert (= m["x"] null)

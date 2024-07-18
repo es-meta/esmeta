@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let x = (new [])[#1]
   let y = (new [1,null,"A"])[#1]
   assert (= x[0] absent)

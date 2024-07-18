@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   // id
   let a = 0
   a = 42

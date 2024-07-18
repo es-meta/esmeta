@@ -2,7 +2,7 @@ def <BUILTIN>:INTRINSICS.print(
   this: ESValue,
   ArgumentsList: List[ESValue],
   NewTarget: Object | Undefined,
-): Unknown {
+): Unknown = {
   if (< 0 ArgumentsList.length) let x = (pop < ArgumentsList) else let x = absent
   print x
   return undefined

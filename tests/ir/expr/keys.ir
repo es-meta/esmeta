@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let m = (new A(1 -> true, "x" -> null))[#1]
   let keys = (keys m)[#1]
   assert (= keys.length 2)
