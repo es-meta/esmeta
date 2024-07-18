@@ -90,8 +90,8 @@ trait Parsers extends TyParsers {
       case r => IDelete(r)
     } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
       case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
-    } | "remove-elem" ~> expr ~ expr ^^ {
-      case l ~ e => IRemoveElem(l, e)
+    } | "remove" ~> expr ~ expr ^^ {
+      case e ~ l => IRemove(e, l)
     } | "return" ~> expr ^^ {
       case e => IReturn(e)
     } | "assert" ~> expr ^^ {

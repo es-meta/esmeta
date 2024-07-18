@@ -87,7 +87,7 @@ case class NoteStep(note: String) extends Step
 case class SuspendStep(context: Reference, remove: Boolean) extends Step
 
 // remove element steps
-case class RemoveElemStep(elem: Expression, list: Expression) extends Step
+case class RemoveStep(elem: Expression, list: Expression) extends Step
 
 // remove firts element steps
 case class RemoveFirstStep(expr: Expression) extends Step

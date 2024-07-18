@@ -238,9 +238,9 @@ trait Parsers extends IndentParsers {
     }
 
   // remove element step
-  lazy val removeElemStep: PL[RemoveElemStep] =
+  lazy val removeElemStep: PL[RemoveStep] =
     "remove" ~> expr ~ ("from" ~> expr) <~ end ^^ {
-      case e ~ l => RemoveElemStep(e, l)
+      case e ~ l => RemoveStep(e, l)
     }
 
   // remove first element step
