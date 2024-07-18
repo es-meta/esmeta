@@ -1,4 +1,4 @@
-def map(list: List[Math], f: Clo) {
+def map(list: List[Math], f: Clo) = {
   let clist = (copy list)[#1]
   if (= clist.length 0) %0 = clist
   else {
@@ -11,11 +11,11 @@ def map(list: List[Math], f: Clo) {
   return %0
 }
 
-def double(i: Math) {
+def double(i: Math) = {
   return (* i 2)
 }
 
-@main def main() {
+@main def main() = {
   let list = (new [1, 2, 3, 4, 5])[#1]
   call doublelist = clo<map>(list, clo<double>)
   assert (= doublelist[0] 2)

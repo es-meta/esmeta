@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let nx = 1.2f
   let ny = 2.0f
   let nz = 59.0f

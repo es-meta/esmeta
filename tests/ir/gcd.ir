@@ -1,4 +1,4 @@
-def gcd(a: Math, b: Math) {
+def gcd(a: Math, b: Math) = {
   if (= a 0) %0 = b
   else if (= b 0) %0 = a
   else if (< b a) call %0 = clo<gcd>((- a b), b)
@@ -6,7 +6,7 @@ def gcd(a: Math, b: Math) {
   return %0
 }
 
-@main def main() {
+@main def main() = {
   call g = clo<gcd>(42, 224)
   assert (= g 14)
 }

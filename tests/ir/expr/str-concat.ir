@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let a = "a"
   let b = "b"
   let c = "c"

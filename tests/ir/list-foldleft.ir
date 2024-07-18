@@ -1,4 +1,4 @@
-def foldleft(init: Math, list: List[Math], f: Clo) {
+def foldleft(init: Math, list: List[Math], f: Clo) = {
   if (= list.length 0) %0 = init
   else {
     let hd = (pop < list)
@@ -8,11 +8,11 @@ def foldleft(init: Math, list: List[Math], f: Clo) {
   return %0
 }
 
-def add(i: Math, j: Math) {
+def add(i: Math, j: Math) = {
   return (+ i j)
 }
 
-@main def main() {
+@main def main() = {
   let list = (new [1, 2, 3, 4, 5])[#1]
   call sum = clo<foldleft>(0, list, clo<add>)
   assert (= sum 15)

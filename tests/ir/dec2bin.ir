@@ -1,4 +1,4 @@
-def dec2bin(n: Math) {
+def dec2bin(n: Math) = {
   let temp = 0
   let i = 0
   loop[repeat] (! (|| (= n 0) (= n 1))) {
@@ -12,7 +12,7 @@ def dec2bin(n: Math) {
   return temp
 }
 
-@main def main() {
+@main def main() = {
   call b = clo<dec2bin>(35)
   assert (= b 100011)
 }

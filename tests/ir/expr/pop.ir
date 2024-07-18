@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let list = (new [4, 5, 3, 7, 5, 2, 3])[#1]
   assert (= list.length 7)
   assert (= (pop < list) 4)

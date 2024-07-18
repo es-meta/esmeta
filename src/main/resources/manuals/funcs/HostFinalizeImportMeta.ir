@@ -1,6 +1,6 @@
 def HostFinalizeImportMeta(
   importMeta: Object,
   moduleRecord: ModuleRecord,
-): Const[~unused~] {
+): Const[~unused~] = {
   return ~unused~
 }

@@ -1,4 +1,4 @@
-def filter(list: List[Math], f: Clo) {
+def filter(list: List[Math], f: Clo) = {
   let clist = (copy list)[#1]
   if (= clist.length 0) %0 = clist
   else {
@@ -11,12 +11,12 @@ def filter(list: List[Math], f: Clo) {
   return %0
 }
 
-def even(i: Math) {
+def even(i: Math) = {
   let r = (% i 2)
   return (= r 0)
 }
 
-@main def main() {
+@main def main() = {
   let list = (new [1, 2, 3, 4, 5])[#1]
   call evenlist = clo<filter>(list, clo<even>)
   assert (= evenlist[0] 2)

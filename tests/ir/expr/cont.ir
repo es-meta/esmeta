@@ -1,4 +1,4 @@
-def f(x: Math) {
+def f(x: Math) = {
   assert (= x 1)
 
   // captured context
@@ -8,11 +8,11 @@ def f(x: Math) {
   call y2 = cont2()
 }
 
-def g(x: Math) {
+def g(x: Math) = {
   assert (= x 0)
 }
 
-@main def main() {
+@main def main() = {
   let cont1 = cont<f>
   call y1 = cont1(1)
 }

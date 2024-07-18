@@ -1,6 +1,6 @@
 def StringToCodePoints(
   string: String
-): String {
+): String = {
   // IGNORE original algo
   return string
 }

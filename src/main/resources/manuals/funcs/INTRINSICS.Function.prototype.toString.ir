@@ -2,7 +2,7 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   this: ESValue,
   ArgumentsList: List[ESValue],
   NewTarget: Object | Undefined,
-): Unknown {
+): Unknown = {
 
   let func = this
 

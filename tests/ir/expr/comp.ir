@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let p = comp[~normal~/~empty~](0)
   let p = comp[~normal~/"A"](0)
 }

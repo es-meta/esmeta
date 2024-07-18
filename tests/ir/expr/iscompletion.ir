@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let x = 0
   let p = comp[~normal~/~empty~](x)
   assert (! (comp? x))

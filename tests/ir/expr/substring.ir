@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let str = "0123456789"
   
   assert (= (substring str 0 1) "0")

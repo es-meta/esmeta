@@ -1,4 +1,4 @@
-def fibo(n: Math) {
+def fibo(n: Math) = {
   if (< n 2) %0 = n
   else {
     let n1 = (- n 1)
@@ -10,7 +10,7 @@ def fibo(n: Math) {
   return %0
 }
 
-@main def main() {
+@main def main() = {
   call f9 = clo<fibo>(9)
   assert (= f9 34)
 }

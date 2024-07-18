@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let x = 1.2f
 
   // mathematical values

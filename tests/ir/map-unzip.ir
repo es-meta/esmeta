@@ -1,4 +1,4 @@
-def unzip(map: SubMap[Math |-> String]) {
+def unzip(map: SubMap[Math |-> String]) = {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
   let values = (new [])[#1]
@@ -11,7 +11,7 @@ def unzip(map: SubMap[Math |-> String]) {
   return pair
 }
 
-@main def main() {
+@main def main() = {
   let map = (new Map(1 -> "a", 2 -> "b", 3 -> "c"))[#1]
   call pair = clo<unzip>(map)
   assert (contains pair[0] 1)

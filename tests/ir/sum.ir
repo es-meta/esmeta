@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let sum = 0
   let i = 0
   loop["repeat"] (< i 11) {

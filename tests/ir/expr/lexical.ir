@@ -1,3 +1,3 @@
-@main def main() {
+@main def main() = {
   let lex = |Identifier|("x")
 }

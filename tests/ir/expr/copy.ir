@@ -1,4 +1,4 @@
-@main def main() {
+@main def main() = {
   let obj1 = (new Record("x" -> 1, "y" -> 2))[#1]
   let obj2 = (copy obj1)[#1]
 

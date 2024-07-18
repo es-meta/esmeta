@@ -1,6 +1,6 @@
 def ToBoolean(
   argument: ESValue,
-): Boolean {
+): Boolean = {
   if (= (typeof argument) @Undefined) return false else {}
   if (= (typeof argument) @Null) return false else {}
   if (= (typeof argument) @Boolean) return argument else {}

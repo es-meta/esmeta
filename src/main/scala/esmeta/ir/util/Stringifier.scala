@@ -39,7 +39,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // functions
   given funcRule: Rule[Func] = (app, func) =>
     funcHeadRule(false)(app, func)
-    app >> " " >> func.body
+    app >> " = " >> func.body
 
   def funcHeadRule(inline: Boolean): Rule[Func] = (app, func) =>
     val Func(main, kind, name, params, retTy, body, _) = func
