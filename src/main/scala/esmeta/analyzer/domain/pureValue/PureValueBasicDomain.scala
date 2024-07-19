@@ -19,7 +19,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       astValue: AbsAstValue = AbsAstValue.Bot,
       nt: AbsNt = AbsNt.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
-      const: AbsConst = AbsConst.Bot,
+      enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
       infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
@@ -39,7 +39,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       AbsAstValue(xs.collect { case x: AstValue => x }),
       AbsNt(xs.collect { case x: Nt => x }),
       AbsCodeUnit(xs.collect { case x: CodeUnit => x }),
-      AbsConst(xs.collect { case x: Const => x }),
+      AbsEnum(xs.collect { case x: Enum => x }),
       AbsMath(xs.collect { case x: Math => x }),
       AbsInfinity(xs.collect { case x: Infinity => x }),
       AbsSimpleValue(xs.collect { case x: SimpleValue => x }),
@@ -52,7 +52,7 @@ trait PureValueBasicDomainDecl { self: Self =>
     val astValueTop: Elem = Bot.copy(astValue = AbsAstValue.Top)
     val ntTop: Elem = Bot.copy(nt = AbsNt.Top)
     val codeUnitTop: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
-    val constTop: Elem = Bot.copy(const = AbsConst.Top)
+    val enumTop: Elem = Bot.copy(enumv = AbsEnum.Top)
     val mathTop: Elem = Bot.copy(math = AbsMath.Top)
     val infinityTop: Elem = Bot.copy(infinity = AbsInfinity.Top)
     val simpleValueTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.Top)
@@ -72,7 +72,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       astValue: AbsAstValue = AbsAstValue.Bot,
       nt: AbsNt = AbsNt.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
-      const: AbsConst = AbsConst.Bot,
+      enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
       infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
@@ -90,7 +90,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       astValue,
       nt,
       codeUnit,
-      const,
+      enumv,
       math,
       infinity,
       simpleValue ⊔ AbsSimpleValue(num, bigInt, str, bool, undef, nullv, absent),
@@ -105,7 +105,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue,
         elem.nt,
         elem.codeUnit,
-        elem.const,
+        elem.enumv,
         elem.math,
         elem.infinity,
         elem.simpleValue,
@@ -123,7 +123,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         if (!elem.astValue.isBottom) strs :+= elem.astValue.toString
         if (!elem.nt.isBottom) strs :+= elem.nt.toString
         if (!elem.codeUnit.isBottom) strs :+= elem.codeUnit.toString
-        if (!elem.const.isBottom) strs :+= elem.const.toString
+        if (!elem.enumv.isBottom) strs :+= elem.enumv.toString
         if (!elem.math.isBottom) strs :+= elem.math.toString
         if (!elem.infinity.isBottom) strs :+= elem.infinity.toString
         if (!elem.simpleValue.isBottom) strs :+= elem.simpleValue.toString
@@ -142,7 +142,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue ⊑ that.astValue &&
         elem.nt ⊑ that.nt &&
         elem.codeUnit ⊑ that.codeUnit &&
-        elem.const ⊑ that.const &&
+        elem.enumv ⊑ that.enumv &&
         elem.math ⊑ that.math &&
         elem.infinity ⊑ that.infinity &&
         elem.simpleValue ⊑ that.simpleValue
@@ -155,7 +155,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue ⊔ that.astValue,
         elem.nt ⊔ that.nt,
         elem.codeUnit ⊔ that.codeUnit,
-        elem.const ⊔ that.const,
+        elem.enumv ⊔ that.enumv,
         elem.math ⊔ that.math,
         elem.infinity ⊔ that.infinity,
         elem.simpleValue ⊔ that.simpleValue,
@@ -169,7 +169,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue ⊓ that.astValue,
         elem.nt ⊓ that.nt,
         elem.codeUnit ⊓ that.codeUnit,
-        elem.const ⊓ that.const,
+        elem.enumv ⊓ that.enumv,
         elem.math ⊓ that.math,
         elem.infinity ⊓ that.infinity,
         elem.simpleValue ⊓ that.simpleValue,
@@ -183,7 +183,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue -- that.astValue,
         elem.nt -- that.nt,
         elem.codeUnit -- that.codeUnit,
-        elem.const -- that.const,
+        elem.enumv -- that.enumv,
         elem.math -- that.math,
         elem.infinity -- that.infinity,
         elem.simpleValue -- that.simpleValue,
@@ -197,7 +197,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue.gamma ⊔
         elem.nt.gamma ⊔
         elem.codeUnit.gamma ⊔
-        elem.const.gamma ⊔
+        elem.enumv.gamma ⊔
         elem.math.gamma ⊔
         elem.infinity.gamma ⊔
         elem.simpleValue.gamma
@@ -210,7 +210,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.astValue.getSingle ⊔
         elem.nt.getSingle ⊔
         elem.codeUnit.getSingle ⊔
-        elem.const.getSingle ⊔
+        elem.enumv.getSingle ⊔
         elem.math.getSingle ⊔
         elem.infinity.getSingle ⊔
         elem.simpleValue.getSingle
@@ -222,7 +222,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       def astValue: AbsAstValue = elem.astValue
       def nt: AbsNt = elem.nt
       def codeUnit: AbsCodeUnit = elem.codeUnit
-      def const: AbsConst = elem.const
+      def enumv: AbsEnum = elem.enumv
       def math: AbsMath = elem.math
       def infinity: AbsInfinity = elem.infinity
       def simpleValue: AbsSimpleValue = elem.simpleValue

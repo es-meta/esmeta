@@ -32,8 +32,8 @@ trait CompBasicDomainDecl { self: Self =>
     /** abstraction functions */
     def alpha(ty: AbsValue, value: AbsValue, target: AbsValue): Elem =
       val v = value.pureValue
-      val t = AbsPureValue(str = target.str, const = target.const)
-      ty.const.gamma match
+      val t = AbsPureValue(str = target.str, enumv = target.enumv)
+      ty.enumv.gamma match
         case Inf => Top
         case Fin(set) =>
           Elem((for (ty <- set) yield ty.name -> Result(v, t)).toMap)
@@ -115,7 +115,7 @@ trait CompBasicDomainDecl { self: Self =>
                 val tOpt = t match
                   case Str(str) => Some(str)
                   case _        => None
-                One(AComp(Const(ty), v, tOpt))
+                One(AComp(Enum(ty), v, tOpt))
               case _ => Many
           case _ => Many
         else Zero
@@ -129,7 +129,7 @@ trait CompBasicDomainDecl { self: Self =>
         var newV = AbsPureValue.Bot
         val Result(value, target) = mergedResult
         if (AbsStr(Str("Type")) ⊑ str)
-          newV ⊔= AbsPureValue(elem.map.keySet.map(Const(_)))
+          newV ⊔= AbsPureValue(elem.map.keySet.map(Enum(_)))
         if (AbsStr(Str("Value")) ⊑ str) newV ⊔= value
         if (AbsStr(Str("Target")) ⊑ str) newV ⊔= target
         newV

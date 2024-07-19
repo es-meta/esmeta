@@ -108,7 +108,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case gr: Nt          => ntRule(app, gr)
       case m: Math         => mathRule(app, m)
       case i: Infinity     => infinityRule(app, i)
-      case c: Const        => constRule(app, c)
+      case e: Enum         => enumRule(app, e)
       case cu: CodeUnit    => cuRule(app, cu)
       case sv: SimpleValue => svRule(app, sv)
 
@@ -149,8 +149,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given infinityRule: Rule[Infinity] = (app, inf) =>
     app >> (if (inf.pos) "+INF" else "-INF")
 
-  // constant
-  given constRule: Rule[Const] = (app, c) => app >> "~" >> c.name >> "~"
+  // enum
+  given enumRule: Rule[Enum] = (app, e) => app >> "~" >> e.name >> "~"
 
   // code unit
   given cuRule: Rule[CodeUnit] = (app, cu) => app >> cu.c.toInt >> "cu"

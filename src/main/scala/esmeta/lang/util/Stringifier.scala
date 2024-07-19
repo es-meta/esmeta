@@ -488,7 +488,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "|" >> name
         if (!flags.isEmpty) app >> flags
         app >> "|"
-      case ConstLiteral(name) => app >> "~" >> name >> "~"
+      case EnumLiteral(name) => app >> "~" >> name >> "~"
       case StringLiteral(str) =>
         val replaced = str
           .replace("\\", "\\\\")
@@ -822,8 +822,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
-    // consts
-    for (name <- ty.const.toList.sorted) tys :+= s"~$name~"
+    // enums
+    for (name <- ty.enumv.toList.sorted) tys :+= s"~$name~"
 
     // numbers
     if (!ty.number.isBottom) tys :+= "Number".withArticle(plural)

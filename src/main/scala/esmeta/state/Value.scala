@@ -18,12 +18,12 @@ sealed trait Value extends StateElem {
 
   /** check abrupt completion */
   def isAbruptCompletion: Boolean = this match
-    case comp: Comp => comp.ty != CONST_NORMAL
+    case comp: Comp => comp.ty != ENUM_NORMAL
     case _          => false
 
   /** wrap completion */
-  def wrapCompletion: Comp = wrapCompletion(CONST_NORMAL)
-  def wrapCompletion(ty: Const): Comp = this match
+  def wrapCompletion: Comp = wrapCompletion(ENUM_NORMAL)
+  def wrapCompletion(ty: Enum): Comp = this match
     case comp: Comp      => comp
     case pure: PureValue => Comp(ty, pure, None)
 
@@ -59,20 +59,20 @@ sealed trait Value extends StateElem {
 
 /** completion values */
 case class Comp(
-  ty: Const,
+  ty: Enum,
   var value: PureValue, // XXX YieldExpression[2,0].Evaluation
   target: Option[String],
 ) extends Value {
-  def targetValue: PureValue = target.fold[PureValue](CONST_EMPTY)(Str(_))
+  def targetValue: PureValue = target.fold[PureValue](ENUM_EMPTY)(Str(_))
 }
 
 /** normal completion */
 object NormalComp {
   def apply(value: PureValue): Comp =
-    Comp(CONST_NORMAL, value, None)
+    Comp(ENUM_NORMAL, value, None)
   def unapply(comp: Comp): Option[PureValue] = comp match {
-    case Comp(CONST_NORMAL, value, None) => Some(value)
-    case _                               => None
+    case Comp(ENUM_NORMAL, value, None) => Some(value)
+    case _                              => None
   }
 }
 
@@ -145,8 +145,8 @@ object Math {
 /** infinity values */
 case class Infinity(pos: Boolean) extends PureValue
 
-/** constants */
-case class Const(name: String) extends PureValue
+/** enums */
+case class Enum(name: String) extends PureValue
 
 /** code units */
 case class CodeUnit(c: Char) extends PureValue

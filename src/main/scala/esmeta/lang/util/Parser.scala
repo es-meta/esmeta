@@ -592,7 +592,7 @@ trait Parsers extends IndentParsers {
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
     ntLiteral |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstLiteral(_) } |
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumLiteral(_) } |
     "the empty String" ^^! StringLiteral("") |
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
@@ -1300,7 +1300,7 @@ trait Parsers extends IndentParsers {
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |
     nt <~ "Parse Node" ^^ { AstT(_) } |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { ConstT(_) }
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =

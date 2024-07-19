@@ -1,6 +1,7 @@
 package esmeta.analyzer.domain
 
 import esmeta.analyzer.Analyzer
+import enumv.Decl
 
 type Self = Decl & Analyzer
 
@@ -19,7 +20,7 @@ trait Decl
   with clo.Decl
   with codeUnit.Decl
   with comp.Decl
-  with const.Decl
+  with enumv.Decl
   with cont.Decl
   with heap.Decl
   with math.Decl

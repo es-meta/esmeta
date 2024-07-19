@@ -106,8 +106,8 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Values
     // -------------------------------------------------------------------------
-    lazy val normalComp = Comp(Const("normal"), Math(42), None)
-    lazy val comp = Comp(Const("throw"), Math(42), Some("to"))
+    lazy val normalComp = Comp(Enum("normal"), Math(42), None)
+    lazy val comp = Comp(Enum("throw"), Math(42), Some("to"))
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
     lazy val func =
@@ -147,7 +147,7 @@ class StringifyTinyTest extends StateTest {
       Undef -> "undefined",
       Null -> "null",
       Absent -> "absent",
-      Const("empty") -> "~empty~",
+      Enum("empty") -> "~empty~",
       CodeUnit(97) -> "97cu",
     )
     // -------------------------------------------------------------------------

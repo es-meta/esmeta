@@ -66,8 +66,8 @@ class ContainsTinyTest extends TyTest {
     )
 
     lazy val normalComp = NormalComp(Str("a"))
-    lazy val throwComp = Comp(Const("throw"), Str("a"), None)
-    lazy val returnComp = Comp(Const("return"), Str("a"), None)
+    lazy val throwComp = Comp(Enum("throw"), Str("a"), None)
+    lazy val returnComp = Comp(Enum("return"), Str("a"), None)
     checkContains("completion values")(
       NormalT -> normalComp,
       NormalT(StrT) -> normalComp,
@@ -162,11 +162,11 @@ class ContainsTinyTest extends TyTest {
       MathT(52.24) -> Math(1.5),
     )
 
-    checkContains("constants")(
-      ConstT -> Const("empty"),
-      ConstT("empty") -> Const("empty"),
+    checkContains("enum values")(
+      EnumT -> Enum("empty"),
+      EnumT("empty") -> Enum("empty"),
     ).neg(
-      ConstT("empty") -> Const("iterate"),
+      EnumT("empty") -> Enum("iterate"),
     )
 
     checkContains("code units")(

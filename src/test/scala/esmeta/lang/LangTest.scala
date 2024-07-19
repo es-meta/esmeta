@@ -234,7 +234,7 @@ object LangTest {
   lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", List())
   lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", List())
   lazy val ntFlags = NonterminalLiteral(None, "A", List("~Yield", "+Await"))
-  lazy val empty = ConstLiteral("empty")
+  lazy val empty = EnumLiteral("empty")
   lazy val emptyStr = StringLiteral("")
   lazy val str = StringLiteral("abc")
   lazy val strWithStar = StringLiteral("abc*")

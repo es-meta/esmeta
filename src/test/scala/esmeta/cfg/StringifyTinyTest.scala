@@ -121,7 +121,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val callInst = ICall(temp, xExpr, List(xExpr, yExpr))
     lazy val xExpr = ERef(x)
     lazy val yExpr = ERef(y)
-    lazy val empty = EConst("empty")
+    lazy val empty = EEnum("empty")
     lazy val prop = Prop(x, EStr("p"))
     lazy val x = Name("x")
     lazy val y = Name("y")
