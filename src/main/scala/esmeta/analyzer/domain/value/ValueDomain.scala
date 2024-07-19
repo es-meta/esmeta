@@ -51,7 +51,7 @@ trait ValueDomainDecl { self: Self =>
     def astValueTop: Elem
     def ntTop: Elem
     def codeUnitTop: Elem
-    def constTop: Elem
+    def enumTop: Elem
     def mathTop: Elem
     def infinityTop: Elem
     def simpleValueTop: Elem
@@ -73,7 +73,7 @@ trait ValueDomainDecl { self: Self =>
       astValue: AbsAstValue = AbsAstValue.Bot,
       nt: AbsNt = AbsNt.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
-      const: AbsConst = AbsConst.Bot,
+      enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
       infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
@@ -193,7 +193,7 @@ trait ValueDomainDecl { self: Self =>
       def astValue: AbsAstValue
       def nt: AbsNt
       def codeUnit: AbsCodeUnit
-      def const: AbsConst
+      def enumv: AbsEnum
       def math: AbsMath
       def infinity: AbsInfinity
       def simpleValue: AbsSimpleValue

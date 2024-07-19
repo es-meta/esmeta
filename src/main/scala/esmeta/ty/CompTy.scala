@@ -67,7 +67,7 @@ case class CompTy(
   /** get single value */
   def getSingle: Flat[Value] =
     if (!abrupt.isBottom) Many
-    else normal.getSingle.map(Comp(Const("normal"), _, None))
+    else normal.getSingle.map(Comp(Enum("normal"), _, None))
 }
 object CompTy extends Parser.From(Parser.compTy) {
   lazy val Bot: CompTy = CompTy()

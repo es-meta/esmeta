@@ -578,7 +578,7 @@ trait AbsTransferDecl { self: Analyzer =>
         case EUndef()              => AbsValue(Undef)
         case ENull()               => AbsValue(Null)
         case EAbsent()             => AbsValue(Absent)
-        case EConst(name)          => AbsValue(Const(name))
+        case EEnum(name)           => AbsValue(Enum(name))
         case ECodeUnit(c)          => AbsValue(CodeUnit(c))
       }
 
@@ -850,7 +850,7 @@ trait AbsTransferDecl { self: Analyzer =>
                 newValue <- transfer(valueExpr)
               } yield {
                 val AbsComp(map) = compValue.comp
-                val empty = AbsPureValue(CONST_EMPTY)
+                val empty = AbsPureValue(ENUM_EMPTY)
                 val newMap = map.map {
                   case (ty, res @ AbsComp.Result(value, target)) =>
                     ty -> (
@@ -869,7 +869,7 @@ trait AbsTransferDecl { self: Analyzer =>
                 val compTy = compValue.ty.comp
                 val normalTy = compTy.normal
                 val newValueTy = newValue.ty.pureValue
-                val emptyTy = ConstT("empty").pureValue
+                val emptyTy = EnumT("empty").pureValue
                 val updated =
                   compTy.copy(normal = (normalTy -- emptyTy) ⊔ newValueTy)
                 AbsValue(ValueTy(comp = updated))

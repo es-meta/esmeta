@@ -256,7 +256,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EUndef()     => app >> "undefined"
       case ENull()      => app >> "null"
       case EAbsent()    => app >> "absent"
-      case EConst(name) => app >> "~" >> name >> "~"
+      case EEnum(name)  => app >> "~" >> name >> "~"
       case ECodeUnit(c) => app >> c.toInt >> "cu"
     }
 

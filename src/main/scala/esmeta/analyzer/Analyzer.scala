@@ -102,7 +102,7 @@ abstract class Analyzer
   protected var mathDomain: Option[MathDomain] = None
   protected var infinityDomain: Option[InfinityDomain] = None
   protected var codeUnitDomain: Option[CodeUnitDomain] = None
-  protected var constDomain: Option[ConstDomain] = None
+  protected var enumDomain: Option[EnumDomain] = None
   protected var simpleValueDomain: Option[SimpleValueDomain] = None
   protected var numberDomain: Option[NumberDomain] = None
   protected var bigIntDomain: Option[BigIntDomain] = None
@@ -157,8 +157,8 @@ abstract class Analyzer
   final lazy val AbsCodeUnit = codeUnitDomain.getOrElse(CodeUnitFlatDomain)
   type AbsCodeUnit = AbsCodeUnit.Elem
 
-  final lazy val AbsConst = constDomain.getOrElse(ConstFlatDomain)
-  type AbsConst = AbsConst.Elem
+  final lazy val AbsEnum = enumDomain.getOrElse(EnumFlatDomain)
+  type AbsEnum = AbsEnum.Elem
 
   final lazy val AbsSimpleValue =
     simpleValueDomain.getOrElse(SimpleValueBasicDomain)

@@ -92,7 +92,7 @@ object Stringifier {
         .add(ty.astValue, !ty.astValue.isBottom)
         .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)
-        .add(ty.const.map(s => s"~$s~"), !ty.const.isBottom, "Const")
+        .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
         .add(ty.infinity, !ty.infinity.isBottom)
         .add(ty.number, !ty.number.isBottom)

@@ -75,5 +75,5 @@ case class EBool(b: Boolean) extends LiteralExpr
 case class EUndef() extends LiteralExpr
 case class ENull() extends LiteralExpr
 case class EAbsent() extends LiteralExpr
-case class EConst(name: String) extends LiteralExpr
+case class EEnum(name: String) extends LiteralExpr
 case class ECodeUnit(c: Char) extends esmeta.ir.LiteralExpr

@@ -482,7 +482,7 @@ class TypeAnalyzer(
             val normal = lty.normal.prune(rty.pureValue, positive)
             AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
           else if (field == "Type")
-            AbsValue(rty.const.getSingle match
+            AbsValue(rty.enumv.getSingle match
               case One("normal") =>
                 if (positive) ValueTy(normal = lty.normal)
                 else ValueTy(abrupt = lty.abrupt)

@@ -229,7 +229,7 @@ trait Parsers extends TyParsers {
     "undefined" ^^^ EUndef() |
     "null" ^^^ ENull() |
     "absent" ^^^ EAbsent() |
-    "~" ~> "[^~]+".r <~ "~" ^^ { EConst(_) }
+    "~" ~> "[^~]+".r <~ "~" ^^ { EEnum(_) }
 
   // unary operators
   given uop: Parser[UOp] = {

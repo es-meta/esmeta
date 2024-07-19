@@ -460,9 +460,9 @@ class StringifyTinyTest extends LangTest {
       Type(NullT) -> "*null*",
       Type(AstT) -> "a Parse Node",
       Type(AstT("Identifier")) -> "an |Identifier| Parse Node",
-      Type(ConstT("unused")) -> "~unused~",
-      Type(ConstT("string", "symbol")) -> "~string~ or ~symbol~",
-      Type(ConstT("start", "end", "start+end")) ->
+      Type(EnumT("unused")) -> "~unused~",
+      Type(EnumT("string", "symbol")) -> "~string~ or ~symbol~",
+      Type(EnumT("start", "end", "start+end")) ->
       "~end~, ~start~, or ~start+end~",
       Type(ListT(NumberT)) -> "a List of Numbers",
       Type(ListT(AstT)) -> "a List of Parse Nodes",

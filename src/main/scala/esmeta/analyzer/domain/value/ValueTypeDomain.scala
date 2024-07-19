@@ -47,11 +47,11 @@ trait ValueTypeDomainDecl { self: Self =>
       value: AbsValue,
       target: AbsValue,
     ): Elem =
-      val consts = ty.ty.const
+      val enums = ty.ty.enumv
       val normal =
-        if (consts contains "normal") value.ty.pureValue
+        if (enums contains "normal") value.ty.pureValue
         else PureValueTy()
-      val abrupt = consts -- Fin("normal")
+      val abrupt = enums -- Fin("normal")
       Elem(ValueTy(normal = normal, abrupt = abrupt))
 
     /** predefined top values */
@@ -63,7 +63,7 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val astValueTop: Elem = Elem(AstT)
     lazy val ntTop: Elem = notSupported("value.TypeDomain.ntTop")
     lazy val codeUnitTop: Elem = Elem(CodeUnitT)
-    lazy val constTop: Elem = notSupported("value.TypeDomain.constTop")
+    lazy val enumTop: Elem = notSupported("value.TypeDomain.enumTop")
     lazy val mathTop: Elem = Elem(MathT)
     lazy val intTop: Elem = Elem(IntT)
     lazy val nonPosIntTop: Elem = Elem(NonPosIntT)
@@ -104,7 +104,7 @@ trait ValueTypeDomainDecl { self: Self =>
       astValue: AbsAstValue,
       nt: AbsNt,
       codeUnit: AbsCodeUnit,
-      const: AbsConst,
+      enumv: AbsEnum,
       math: AbsMath,
       infinity: AbsInfinity,
       simpleValue: AbsSimpleValue,
@@ -480,7 +480,7 @@ trait ValueTypeDomainDecl { self: Self =>
       def astValue: AbsAstValue = notSupported("ValueTypeDomain.Elem.astValue")
       def nt: AbsNt = notSupported("ValueTypeDomain.Elem.nt")
       def codeUnit: AbsCodeUnit = notSupported("ValueTypeDomain.Elem.codeUnit")
-      def const: AbsConst = notSupported("ValueTypeDomain.Elem.const")
+      def enumv: AbsEnum = notSupported("ValueTypeDomain.Elem.enumv")
       def math: AbsMath = notSupported("ValueTypeDomain.Elem.math")
       def infinity: AbsInfinity = notSupported("ValueTypeDomain.Elem.infinity")
       def simpleValue: AbsSimpleValue =
@@ -505,24 +505,24 @@ trait ValueTypeDomainDecl { self: Self =>
 
     // value type getter
     private def getValueTy(v: AValue): ValueTy = v match
-      case AComp(CONST_NORMAL, v, _) => NormalT(getValueTy(v))
-      case _: AComp                  => AbruptT
-      case AClo(func, _)             => CloT(func.name)
-      case ACont(target, _)          => ContT(target.node.id)
-      case AstValue(ast)             => AstT(ast.name)
-      case nt: Nt                    => NtT(nt)
-      case CodeUnit(_)               => CodeUnitT
-      case Const(name)               => ConstT(name)
-      case Math(n)                   => MathT(n)
-      case Infinity(pos)             => InfinityT(pos)
-      case n: Number                 => NumberT(n)
-      case BigInt(_)                 => BigIntT
-      case Str(n)                    => StrT(n)
-      case Bool(true)                => TrueT
-      case Bool(false)               => FalseT
-      case Undef                     => UndefT
-      case Null                      => NullT
-      case Absent                    => AbsentT
+      case AComp(ENUM_NORMAL, v, _) => NormalT(getValueTy(v))
+      case _: AComp                 => AbruptT
+      case AClo(func, _)            => CloT(func.name)
+      case ACont(target, _)         => ContT(target.node.id)
+      case AstValue(ast)            => AstT(ast.name)
+      case nt: Nt                   => NtT(nt)
+      case CodeUnit(_)              => CodeUnitT
+      case Enum(name)               => EnumT(name)
+      case Math(n)                  => MathT(n)
+      case Infinity(pos)            => InfinityT(pos)
+      case n: Number                => NumberT(n)
+      case BigInt(_)                => BigIntT
+      case Str(n)                   => StrT(n)
+      case Bool(true)               => TrueT
+      case Bool(false)              => FalseT
+      case Undef                    => UndefT
+      case Null                     => NullT
+      case Absent                   => AbsentT
       case v => notSupported(s"impossible to convert to pure type ($v)")
 
     // numeric operator helper

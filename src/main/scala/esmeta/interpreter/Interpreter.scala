@@ -194,10 +194,10 @@ class Interpreter(
       val t = eval(tgtExpr)
       val v = eval(valExpr).toPureValue
       (y, t) match
-        case (y: Const, Str(t))      => Comp(y, v, Some(t))
-        case (y: Const, CONST_EMPTY) => Comp(y, v, None)
-        case (y: Const, t)           => throw InvalidCompTarget(y)
-        case (y, t)                  => throw InvalidCompType(t)
+        case (y: Enum, Str(t))     => Comp(y, v, Some(t))
+        case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
+        case (y: Enum, t)          => throw InvalidCompTarget(y)
+        case (y, t)                => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
       Bool(eval(expr).isCompletion)
     case ria @ EReturnIfAbrupt(ERef(ref), check) =>
@@ -373,7 +373,7 @@ class Interpreter(
         case _: BigInt => tyName == "BigInt"
         case _: Str    => tyName == "String"
         case _: Bool   => tyName == "Boolean"
-        case _: Const  => tyName == "Constant"
+        case _: Enum   => tyName == "Enum"
         case _: Comp   => tyName == "CompletionRecord"
         case Undef     => tyName == "Undefined"
         case Null      => tyName == "Null"
@@ -421,10 +421,10 @@ class Interpreter(
         map.get(Str("Value")),
         map.get(Str("Target")),
       ) match
-        case (Some(ty: Const), Some(value), Some(target)) =>
+        case (Some(ty: Enum), Some(value), Some(target)) =>
           val targetOpt = target match
             case Str(target) => Some(target)
-            case CONST_EMPTY => None
+            case ENUM_EMPTY  => None
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
@@ -475,7 +475,7 @@ class Interpreter(
     case EUndef()              => Undef
     case ENull()               => Null
     case EAbsent()             => Absent
-    case EConst(name)          => Const(name)
+    case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
 

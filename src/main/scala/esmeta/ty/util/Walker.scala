@@ -56,7 +56,7 @@ trait Walker extends BasicWalker {
         walkAst(ty.astValue),
         walkNt(ty.nt),
         walkCodeUnit(ty.codeUnit),
-        walkConst(ty.const),
+        walkEnum(ty.enumv),
         walkMath(ty.math),
         walkInfinity(ty.infinity),
         walkNumber(ty.number),
@@ -94,8 +94,8 @@ trait Walker extends BasicWalker {
   /** code unit types */
   def walkCodeUnit(codeUnit: Boolean): Boolean = walk(codeUnit)
 
-  /** constant types */
-  def walkConst(const: BSet[String]): BSet[String] = walkBSet(const, walk)
+  /** enum types */
+  def walkEnum(enumv: BSet[String]): BSet[String] = walkBSet(enumv, walk)
 
   /** mathematical value types */
   def walkMath(math: MathTy): MathTy = math match

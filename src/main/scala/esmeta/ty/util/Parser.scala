@@ -80,9 +80,9 @@ trait Parsers extends BasicParsers {
     } | "Nt" ^^^ PureValueTy(nt = Inf) |
     // code unit
     "CodeUnit" ^^^ PureValueTy(codeUnit = true) |
-    // constant
-    "Const[" ~> rep1sep(const, ",") <~ "]" ^^ {
-      case s => PureValueTy(const = Fin(s.toSet))
+    // enum
+    "Enum[" ~> rep1sep(enumv, ",") <~ "]" ^^ {
+      case s => PureValueTy(enumv = Fin(s.toSet))
     } |
     // mathematical value
     singleMathTy ^^ { case m => PureValueTy(math = m) } |
@@ -124,7 +124,7 @@ trait Parsers extends BasicParsers {
     opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }
   private lazy val simpleBool: Parser[Boolean] =
     "T" ^^^ true | "F" ^^^ false
-  private lazy val const: Parser[String] =
+  private lazy val enumv: Parser[String] =
     "~" ~> "[^~]+".r <~ "~"
   private lazy val str: Parser[String] =
     """"[^"]*"""".r ^^ { case s => s.substring(1, s.length - 1) }

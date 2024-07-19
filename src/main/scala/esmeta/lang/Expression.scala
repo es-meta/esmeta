@@ -258,8 +258,8 @@ case class NonterminalLiteral(
   flags: List[String],
 ) extends Literal
 
-// constant literals
-case class ConstLiteral(name: String) extends Literal
+// enum literals
+case class EnumLiteral(name: String) extends Literal
 
 // string literals
 case class StringLiteral(s: String) extends Literal
