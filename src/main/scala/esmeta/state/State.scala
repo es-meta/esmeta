@@ -157,7 +157,7 @@ case class State(
     case nt: Nt        => NtT(nt)
     case Math(d)       => MathT(d)
     case Infinity(d)   => InfinityT
-    case Const(name)   => ConstT(name)
+    case Enum(name)    => EnumT(name)
     case _: CodeUnit   => CodeUnitT
     case _: Number     => NumberT
     case _: BigInt     => BigIntT

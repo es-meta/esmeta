@@ -18,7 +18,7 @@ trait AValueDecl { self: Self =>
       case pureValue: PureValue => APureValue.from(pureValue)
 
   /** completion values for analysis */
-  case class AComp(ty: Const, value: APureValue, target: Option[String])
+  case class AComp(ty: Enum, value: APureValue, target: Option[String])
   object AComp:
     /** from original completions */
     def from(comp: Comp): AComp =
@@ -27,7 +27,7 @@ trait AValueDecl { self: Self =>
 
   /** pure values for analysis */
   type APureValue = Part | AClo | ACont | AstValue | Nt | Math | Infinity |
-    Const | CodeUnit | SimpleValue
+    Enum | CodeUnit | SimpleValue
   object APureValue:
     /** from original pure values */
     def from(pureValue: PureValue): APureValue = pureValue match
@@ -38,7 +38,7 @@ trait AValueDecl { self: Self =>
       case nt: Nt                   => nt
       case math: Math               => math
       case infinity: Infinity       => infinity
-      case const: Const             => const
+      case enumv: Enum              => enumv
       case codeUnit: CodeUnit       => codeUnit
       case simpleValue: SimpleValue => simpleValue
 

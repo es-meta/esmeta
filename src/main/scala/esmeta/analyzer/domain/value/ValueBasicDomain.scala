@@ -53,7 +53,7 @@ trait ValueBasicDomainDecl { self: Self =>
     val astValueTop: Elem = Bot.copy(pureValue = AbsPureValue.astValueTop)
     val ntTop: Elem = Bot.copy(pureValue = AbsPureValue.ntTop)
     val codeUnitTop: Elem = Bot.copy(pureValue = AbsPureValue.codeUnitTop)
-    val constTop: Elem = Bot.copy(pureValue = AbsPureValue.constTop)
+    val enumTop: Elem = Bot.copy(pureValue = AbsPureValue.enumTop)
     val mathTop: Elem = Bot.copy(pureValue = AbsPureValue.mathTop)
     val infinityTop: Elem = Bot.copy(pureValue = AbsPureValue.infinityTop)
     val simpleValueTop: Elem = Bot.copy(pureValue = AbsPureValue.simpleValueTop)
@@ -75,7 +75,7 @@ trait ValueBasicDomainDecl { self: Self =>
       astValue: AbsAstValue = AbsAstValue.Bot,
       nt: AbsNt = AbsNt.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
-      const: AbsConst = AbsConst.Bot,
+      enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
       infinity: AbsInfinity = AbsInfinity.Bot,
       simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
@@ -95,7 +95,7 @@ trait ValueBasicDomainDecl { self: Self =>
         astValue,
         nt,
         codeUnit,
-        const,
+        enumv,
         math,
         infinity,
         simpleValue ⊔ AbsSimpleValue(
@@ -302,8 +302,8 @@ trait ValueBasicDomainDecl { self: Self =>
         if (!elem.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
         if (!elem.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
         if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
-        if (!elem.const.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "Constant"))
+        if (!elem.enumv.isBottom)
+          bv ⊔= AbsBool(Bool(tname == "Enum"))
         if (!elem.comp.isBottom)
           bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
         if (!elem.undef.isBottom)
@@ -464,7 +464,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def wrapCompletion(ty: String): Elem = apply(comp = {
         if (!pureValue.isBottom)
           comp ⊔ AbsComp(
-            Map(ty -> AbsComp.Result(pureValue, AbsPureValue(CONST_EMPTY))),
+            Map(ty -> AbsComp.Result(pureValue, AbsPureValue(ENUM_EMPTY))),
           )
         else comp
       })
@@ -478,7 +478,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def normalCompletion: Elem =
         if (pureValue.isBottom) Bot
         else
-          val res = AbsComp.Result(pureValue, AbsPureValue(CONST_EMPTY))
+          val res = AbsComp.Result(pureValue, AbsPureValue(ENUM_EMPTY))
           Elem(comp = AbsComp(Map("normal" -> res)))
       def abruptCompletion: Elem = apply(comp = comp.removeNormal)
 
@@ -508,7 +508,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def astValue: AbsAstValue = elem.pureValue.astValue
       def nt: AbsNt = elem.pureValue.nt
       def codeUnit: AbsCodeUnit = elem.pureValue.codeUnit
-      def const: AbsConst = elem.pureValue.const
+      def enumv: AbsEnum = elem.pureValue.enumv
       def math: AbsMath = elem.pureValue.math
       def infinity: AbsInfinity = elem.pureValue.infinity
       def simpleValue: AbsSimpleValue = elem.pureValue.simpleValue

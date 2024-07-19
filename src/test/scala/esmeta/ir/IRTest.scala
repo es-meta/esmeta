@@ -121,8 +121,8 @@ object IRTest {
   lazy val getChildrenASite = assignASite(getChildren.copy(), 9)
   lazy val getItemsASite = assignASite(getItems.copy(), 10)
   // literals
-  lazy val normal = EConst("normal")
-  lazy val empty = EConst("empty")
+  lazy val normal = EEnum("normal")
+  lazy val empty = EEnum("empty")
   lazy val clo = EClo("f", Nil)
   lazy val cloWithCaptured = EClo("f", List(x))
   lazy val cont = ECont("g")

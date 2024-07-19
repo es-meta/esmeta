@@ -96,11 +96,11 @@ trait StringifierDecl { self: Self =>
     // values for analysis
     given avRule: Rule[AValue] = (app, av) =>
       av match
-        case AComp(Const("normal"), v, _) =>
+        case AComp(Enum("normal"), v, _) =>
           app >> "N(" >> v >> ")"
         case AComp(ty, value, target) =>
           app >> "comp[" >> ty
-          app >> "/" >> target.getOrElse(CONST_EMPTY.toString) >> "]"
+          app >> "/" >> target.getOrElse(ENUM_EMPTY.toString) >> "]"
           app >> "(" >> value >> ")"
         case Named(name)        => app >> "#" >> name
         case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
@@ -119,7 +119,7 @@ trait StringifierDecl { self: Self =>
           app >> ">"
         case Math(n)         => app >> n
         case Infinity(p)     => app >> (if (p) "+" else "-") >> "∞"
-        case Const(name)     => app >> "~" >> name >> "~"
+        case Enum(name)      => app >> "~" >> name >> "~"
         case CodeUnit(c)     => app >> c.toInt >> "cu"
         case sv: SimpleValue => app >> sv.toString
 

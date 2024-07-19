@@ -99,7 +99,7 @@ case class ValueTy(
   def astValue: AstValueTy = pureValue.astValue
   def nt: BSet[Nt] = pureValue.nt
   def codeUnit: Boolean = pureValue.codeUnit
-  def const: BSet[String] = pureValue.const
+  def enumv: BSet[String] = pureValue.enumv
   def math: MathTy = pureValue.math
   def infinity: InfinityTy = pureValue.infinity
   def number: NumberTy = pureValue.number
@@ -115,7 +115,7 @@ case class ValueTy(
     (pureValue.isTop && value.isInstanceOf[PureValue]) || (value match
       case NormalComp(value) =>
         ValueTy(pureValue = comp.normal).contains(value, heap)
-      case Comp(Const(tyStr), _, _) => comp.abrupt contains tyStr
+      case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
       case a: Addr =>
         heap(a) match
           case MapObj(tname, props, _) =>
@@ -149,7 +149,7 @@ case class ValueTy(
       case x @ Nt(name, params) => nt contains x
       case m: Math              => math contains m
       case Infinity(p)          => infinity contains p
-      case Const(name)          => const contains name
+      case Enum(name)           => enumv contains name
       case CodeUnit(c)          => codeUnit
       case n: Number            => number contains n
       case BigInt(n)            => bigInt
@@ -175,7 +175,7 @@ case class ValueTy(
     astValue: AstValueTy = astValue,
     nt: BSet[Nt] = nt,
     codeUnit: Boolean = codeUnit,
-    const: BSet[String] = const,
+    enumv: BSet[String] = enumv,
     math: MathTy = math,
     infinity: InfinityTy = infinity,
     number: NumberTy = number,
@@ -198,7 +198,7 @@ case class ValueTy(
       astValue,
       nt,
       codeUnit,
-      const,
+      enumv,
       math,
       infinity,
       number,
@@ -236,7 +236,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     astValue: AstValueTy = AstValueTy.Bot,
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
-    const: BSet[String] = Fin(),
+    enumv: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
     infinity: InfinityTy = InfinityTy.Bot,
     number: NumberTy = NumberTy.Bot,
@@ -259,7 +259,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       astValue,
       nt,
       codeUnit,
-      const,
+      enumv,
       math,
       infinity,
       number,

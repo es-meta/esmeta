@@ -275,8 +275,8 @@ trait StateTypeDomainDecl { self: Self =>
       } else app >> "⊥"
 
     // completion record lookup
-    lazy val constTyForAbruptTarget =
-      CONSTT_BREAK || CONSTT_CONTINUE || CONSTT_RETURN || CONSTT_THROW
+    lazy val enumTyForAbruptTarget =
+      ENUMT_BREAK || ENUMT_CONTINUE || ENUMT_RETURN || ENUMT_THROW
     private def lookupComp(comp: CompTy, prop: ValueTy): ValueTy =
       val str = prop.str
       val normal = !comp.normal.isBottom
@@ -288,14 +288,14 @@ trait StateTypeDomainDecl { self: Self =>
           if (comp.abrupt.contains("return") || comp.abrupt.contains("throw"))
             res ||= ESValueT
           if (comp.abrupt.contains("continue") || comp.abrupt.contains("break"))
-            res || CONSTT_EMPTY
+            res || ENUMT_EMPTY
         }
       if (str contains "Target")
-        if (normal) res ||= CONSTT_EMPTY
-        if (abrupt) res ||= StrT || CONSTT_EMPTY
+        if (normal) res ||= ENUMT_EMPTY
+        if (abrupt) res ||= StrT || ENUMT_EMPTY
       if (str contains "Type")
-        if (normal) res ||= CONSTT_NORMAL
-        if (abrupt) res ||= constTyForAbruptTarget
+        if (normal) res ||= ENUMT_NORMAL
+        if (abrupt) res ||= enumTyForAbruptTarget
       // TODO if (!comp.isBottom)
       //   boundCheck(
       //     prop,

@@ -3,7 +3,7 @@ def HostEnsureCanCompileStrings(
   parameterStrings: List[String],
   bodyString: String,
   direct: Boolean
-): Normal[Const[~unused~]] | Abrupt[throw] = {
+): Normal[Enum[~unused~]] | Abrupt[throw] = {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0
 }

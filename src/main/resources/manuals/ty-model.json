@@ -56,8 +56,8 @@
       "fields" : {
         "AsyncGeneratorContext" : "ExecutionContext",
         "AsyncGeneratorQueue" : "List[AsyncGeneratorRequestRecord]",
-        "AsyncGeneratorState" : "Const[~awaitingDASHreturn~, ~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined",
-        "GeneratorBrand" : "Const[~empty~] | String"
+        "AsyncGeneratorState" : "Enum[~awaitingDASHreturn~, ~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined",
+        "GeneratorBrand" : "Enum[~empty~] | String"
       }
     },
     "AsyncGeneratorRequestRecord" : {
@@ -116,7 +116,7 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "Initializer" : "FunctionObject | Const[~empty~]",
+        "Initializer" : "FunctionObject | Enum[~empty~]",
         "Name" : "PrivateName | Symbol | String"
       }
     },
@@ -141,15 +141,15 @@
       "fields" : {
         "AsyncEvaluation" : "Boolean",
         "AsyncParentModules" : "List[CyclicModuleRecord]",
-        "CycleRoot" : "CyclicModuleRecord | Const[~empty~]",
-        "DFSAncestorIndex" : "Const[~empty~] | Int",
-        "DFSIndex" : "Const[~empty~] | Int",
-        "EvaluationError" : "Abrupt[throw] | Const[~empty~]",
+        "CycleRoot" : "CyclicModuleRecord | Enum[~empty~]",
+        "DFSAncestorIndex" : "Enum[~empty~] | Int",
+        "DFSIndex" : "Enum[~empty~] | Int",
+        "EvaluationError" : "Abrupt[throw] | Enum[~empty~]",
         "HasTLA" : "Boolean",
-        "PendingAsyncDependencies" : "Const[~empty~] | Int",
+        "PendingAsyncDependencies" : "Enum[~empty~] | Int",
         "RequestedModules" : "List[String]",
-        "Status" : "Const[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~]",
-        "TopLevelCapability" : "PromiseCapabilityRecord | Const[~empty~]"
+        "Status" : "Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~]",
+        "TopLevelCapability" : "PromiseCapabilityRecord | Enum[~empty~]"
       }
     },
     "DeclarativeEnvironmentRecord" : {
@@ -175,8 +175,8 @@
         "Construct" : "ECMAScriptFunctionObject.Construct"
       },
       "fields" : {
-        "ClassFieldInitializerName" : "PrivateName | Symbol | Const[~empty~] | String",
-        "ConstructorKind" : "Const[~base~, ~derived~]",
+        "ClassFieldInitializerName" : "PrivateName | Symbol | Enum[~empty~] | String",
+        "ConstructorKind" : "Enum[~base~, ~derived~]",
         "ECMAScriptCode" : "Ast",
         "Environment" : "EnvironmentRecord",
         "Fields" : "List[ClassFieldDefinitionRecord]",
@@ -189,7 +189,7 @@
         "ScriptOrModule" : "ModuleRecord | ScriptRecord | Null",
         "SourceText" : "String",
         "Strict" : "Boolean",
-        "ThisMode" : "Const[~global~, ~lexical~, ~strict~]"
+        "ThisMode" : "Enum[~global~, ~lexical~, ~strict~]"
       }
     },
     "EnvironmentRecord" : {
@@ -225,7 +225,7 @@
       "methods" : { },
       "fields" : {
         "ExportName" : "String | Null",
-        "ImportName" : "Const[~all-but-default~, ~all~] | String | Null",
+        "ImportName" : "Enum[~all-but-default~, ~all~] | String | Null",
         "LocalName" : "String | Null",
         "ModuleRequest" : "String | Null"
       }
@@ -252,7 +252,7 @@
       "fields" : {
         "FunctionObject" : "FunctionObject",
         "NewTarget" : "Object | Undefined",
-        "ThisBindingStatus" : "Const[~initialized~, ~lexical~, ~uninitialized~]",
+        "ThisBindingStatus" : "Enum[~initialized~, ~lexical~, ~uninitialized~]",
         "ThisValue" : "ESValue"
       }
     },
@@ -265,9 +265,9 @@
       "parent" : "OrdinaryObject",
       "methods" : { },
       "fields" : {
-        "GeneratorBrand" : "Const[~empty~] | String",
+        "GeneratorBrand" : "Enum[~empty~] | String",
         "GeneratorContext" : "ExecutionContext",
-        "GeneratorState" : "Const[~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined"
+        "GeneratorState" : "Enum[~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined"
       }
     },
     "GlobalEnvironmentRecord" : {
@@ -325,7 +325,7 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "ImportName" : "Const[~namespace-object~] | String",
+        "ImportName" : "Enum[~namespace-object~] | String",
         "LocalName" : "String",
         "ModuleRequest" : "String"
       }
@@ -344,7 +344,7 @@
       "fields" : {
         "ArrayLength" : "NonNegInt",
         "ByteOffset" : "NonNegInt",
-        "ContentType" : "Const[~BigInt~, ~Number~]",
+        "ContentType" : "Enum[~BigInt~, ~Number~]",
         "TypedArrayName" : "String",
         "ViewedArrayBuffer" : "ArrayBufferObject"
       }
@@ -368,14 +368,14 @@
       "methods" : { },
       "fields" : {
         "Callback" : "FunctionObject",
-        "HostDefined" : "Const[~empty~]"
+        "HostDefined" : "Enum[~empty~]"
       }
     },
     "MapInstance" : {
       "parent" : "OrdinaryObject",
       "methods" : { },
       "fields" : {
-        "MapData" : "List[{ [[Key]]: ESValue | Const[~empty~], [[Value]]: ESValue }]"
+        "MapData" : "List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]"
       }
     },
     "MatchRecord" : {
@@ -420,9 +420,9 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "Environment" : "ModuleEnvironmentRecord | Const[~empty~]",
+        "Environment" : "ModuleEnvironmentRecord | Enum[~empty~]",
         "HostDefined" : "Undefined",
-        "Namespace" : "ModuleNamespaceExoticObject | Const[~empty~]",
+        "Namespace" : "ModuleNamespaceExoticObject | Enum[~empty~]",
         "Realm" : "RealmRecord"
       }
     },
@@ -498,7 +498,7 @@
       "fields" : {
         "Get" : "FunctionObject | Undefined | Absent",
         "Key" : "PrivateName",
-        "Kind" : "Const[~accessor~, ~field~, ~method~]",
+        "Kind" : "Enum[~accessor~, ~field~, ~method~]",
         "Set" : "FunctionObject | Undefined | Absent",
         "Value" : "ESValue | Absent"
       }
@@ -535,7 +535,7 @@
         "PromiseIsHandled" : "Boolean",
         "PromiseRejectReactions" : "List[PromiseReaction]",
         "PromiseResult" : "ESValue",
-        "PromiseState" : "Const[~fulfilled~, ~pending~, ~rejected~]"
+        "PromiseState" : "Enum[~fulfilled~, ~pending~, ~rejected~]"
       }
     },
     "PromiseReaction" : {
@@ -543,8 +543,8 @@
       "methods" : { },
       "fields" : {
         "Capability" : "PromiseCapabilityRecord | Undefined",
-        "Handler" : "JobCallbackRecord | Const[~empty~]",
-        "Type" : "Const[~Fulfill~, ~Reject~]"
+        "Handler" : "JobCallbackRecord | Enum[~empty~]",
+        "Type" : "Enum[~Fulfill~, ~Reject~]"
       }
     },
     "PropertyDescriptor" : {
@@ -596,10 +596,10 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "Base" : "ESValue | EnvironmentRecord | Const[~unresolvable~]",
+        "Base" : "ESValue | EnvironmentRecord | Enum[~unresolvable~]",
         "ReferencedName" : "PrivateName | Symbol | String",
         "Strict" : "Boolean",
-        "ThisValue" : "ESValue | Const[~empty~]"
+        "ThisValue" : "ESValue | Enum[~empty~]"
       }
     },
     "RegExpObject" : {
@@ -613,7 +613,7 @@
       "parent" : null,
       "methods" : { },
       "fields" : {
-        "BindingName" : "Const[~NAMESPACE~] | String",
+        "BindingName" : "Enum[~NAMESPACE~] | String",
         "Module" : "ModuleRecord"
       }
     },
@@ -622,7 +622,7 @@
       "methods" : { },
       "fields" : {
         "ECMAScriptCode" : "Ast[Script]",
-        "HostDefined" : "Const[~empty~]",
+        "HostDefined" : "Enum[~empty~]",
         "Realm" : "RealmRecord | Undefined"
       }
     },
@@ -645,7 +645,7 @@
         "Context" : "ExecutionContext",
         "ECMAScriptCode" : "Ast[Module]",
         "ImportEntries" : "List[ImportEntryRecord]",
-        "ImportMeta" : "Object | Const[~empty~]",
+        "ImportMeta" : "Object | Enum[~empty~]",
         "IndirectExportEntries" : "List[ExportEntryRecord]",
         "LocalExportEntries" : "List[ExportEntryRecord]",
         "StarExportEntries" : "List[ExportEntryRecord]"
@@ -681,7 +681,7 @@
       "parent" : "OrdinaryObject",
       "methods" : { },
       "fields" : {
-        "WeakMapData" : "List[{ [[Key]]: ESValue | Const[~empty~], [[Value]]: ESValue }]"
+        "WeakMapData" : "List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]"
       }
     },
     "WeakSetInstance" : {

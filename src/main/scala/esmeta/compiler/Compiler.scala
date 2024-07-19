@@ -323,7 +323,7 @@ class Compiler(
         ),
       )
     case ThrowStep(expr) =>
-      val comp = EComp(ECONST_THROW, compile(fb, expr), ECONST_EMPTY)
+      val comp = EComp(EENUM_THROW, compile(fb, expr), EENUM_EMPTY)
       fb.addInst(IReturn(comp))
     case PerformStep(expr) =>
       compile(fb, expr) match
@@ -731,7 +731,7 @@ class Compiler(
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
       } else ENt(name, flags.map(_ startsWith "+"))
-    case ConstLiteral(name)                  => EConst(name)
+    case EnumLiteral(name)                   => EEnum(name)
     case StringLiteral(s)                    => EStr(s)
     case FieldLiteral(field)                 => EStr(field)
     case SymbolLiteral(sym)                  => toERef(GLOBAL_SYMBOL, EStr(sym))
@@ -809,18 +809,18 @@ class Compiler(
         val cond = op match {
           case Abrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            and(EIsCompletion(x), not(is(tv, ECONST_NORMAL)))
+            and(EIsCompletion(x), not(is(tv, EENUM_NORMAL)))
           case NeverAbrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            or(not(EIsCompletion(x)), is(tv, ECONST_NORMAL))
+            or(not(EIsCompletion(x)), is(tv, EENUM_NORMAL))
           case op @ (Normal | Throw | Return | Break | Continue) =>
             val tv = toERef(fb, x, EStr("Type"))
             val expected = op match
-              case Normal   => ECONST_NORMAL
-              case Throw    => ECONST_THROW
-              case Return   => ECONST_RETURN
-              case Break    => ECONST_BREAK
-              case Continue => ECONST_CONTINUE
+              case Normal   => EENUM_NORMAL
+              case Throw    => EENUM_THROW
+              case Return   => EENUM_RETURN
+              case Break    => EENUM_BREAK
+              case Continue => EENUM_CONTINUE
             and(EIsCompletion(x), is(tv, expected))
           case Finite =>
             not(

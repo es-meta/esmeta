@@ -18,7 +18,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def astValue: AstValueTy
   def nt: BSet[Nt]
   def codeUnit: Boolean
-  def const: BSet[String]
+  def enumv: BSet[String]
   def math: MathTy
   def infinity: InfinityTy
   def number: NumberTy
@@ -47,7 +47,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.astValue.isBottom &&
         this.nt.isBottom &&
         this.codeUnit.isBottom &&
-        this.const.isBottom &&
+        this.enumv.isBottom &&
         this.math.isBottom &&
         this.infinity.isBottom &&
         this.number.isBottom &&
@@ -73,7 +73,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.astValue <= that.astValue &&
       this.nt <= that.nt &&
       this.codeUnit <= that.codeUnit &&
-      this.const <= that.const &&
+      this.enumv <= that.enumv &&
       this.math <= that.math &&
       this.infinity <= that.infinity &&
       this.number <= that.number &&
@@ -102,7 +102,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.astValue || that.astValue,
         this.nt || that.nt,
         this.codeUnit || that.codeUnit,
-        this.const || that.const,
+        this.enumv || that.enumv,
         this.math || that.math,
         this.infinity || that.infinity,
         this.number || that.number,
@@ -132,7 +132,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.astValue && that.astValue,
         this.nt && that.nt,
         this.codeUnit && that.codeUnit,
-        this.const && that.const,
+        this.enumv && that.enumv,
         this.math && that.math,
         this.infinity && that.infinity,
         this.number && that.number,
@@ -161,7 +161,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.astValue -- that.astValue,
         this.nt -- that.nt,
         this.codeUnit -- that.codeUnit,
-        this.const -- that.const,
+        this.enumv -- that.enumv,
         this.math -- that.math,
         this.infinity -- that.infinity,
         this.number -- that.number,
@@ -184,7 +184,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     astValue.isTop &&
     nt.isTop &&
     codeUnit.isTop &&
-    const.isTop &&
+    enumv.isTop &&
     math.isTop &&
     infinity.isTop &&
     number.isTop &&
@@ -217,7 +217,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.astValue.isBottom) Zero else Many) ||
     nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
-    (const.getSingle.map(Const(_): PureValue)) ||
+    (enumv.getSingle.map(Enum(_): PureValue)) ||
     math.getSingle ||
     (infinity.getSingle.map(Infinity(_): PureValue)) ||
     number.getSingle ||
@@ -236,7 +236,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         cont = Inf,
         nt = Inf,
         codeUnit = true,
-        const = Inf,
+        enumv = Inf,
         math = MathTy.Top,
         number = NumberTy.Top,
         bigInt = true,
@@ -266,7 +266,7 @@ case object PureValueTopTy extends PureValueTy {
   def astValue: AstValueTy = AstValueTy.Top
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
-  def const: BSet[String] = Inf
+  def enumv: BSet[String] = Inf
   def math: MathTy = MathTy.Top
   def infinity: InfinityTy = InfinityTy.Top
   def number: NumberTy = NumberTy.Top
@@ -288,7 +288,7 @@ case class PureValueElemTy(
   astValue: AstValueTy = AstValueTy.Bot,
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
-  const: BSet[String] = Fin(),
+  enumv: BSet[String] = Fin(),
   math: MathTy = MathTy.Bot,
   infinity: InfinityTy = InfinityTy.Bot,
   number: NumberTy = NumberTy.Bot,
@@ -310,7 +310,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     astValue: AstValueTy = AstValueTy.Bot,
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
-    const: BSet[String] = Fin(),
+    enumv: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
     infinity: InfinityTy = InfinityTy.Bot,
     number: NumberTy = NumberTy.Bot,
@@ -330,7 +330,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     astValue,
     nt,
     codeUnit,
-    const,
+    enumv,
     math,
     infinity,
     number,
