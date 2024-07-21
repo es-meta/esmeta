@@ -101,7 +101,7 @@ object MapObj {
 }
 
 /** list objects */
-case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj {
+case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 
   /** updates a value */
   def update(prop: PureValue, value: Value): this.type =
@@ -110,13 +110,13 @@ case class ListObj(var values: Vector[PureValue] = Vector()) extends Obj {
     this
 
   /** appends a value */
-  def append(value: PureValue): this.type = { values :+= value; this }
+  def append(value: Value): this.type = { values :+= value; this }
 
   /** prepends a value */
-  def prepend(value: PureValue): this.type = { values +:= value; this }
+  def prepend(value: Value): this.type = { values +:= value; this }
 
   /** pops a value */
-  def pop(front: Boolean): PureValue =
+  def pop(front: Boolean): Value =
     val vs = values
     if (vs.isEmpty) throw OutOfRange(this, 0)
     val v = if (front) vs.head else vs.last
