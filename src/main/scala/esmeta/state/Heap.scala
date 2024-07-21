@@ -42,19 +42,19 @@ case class Heap(
   }
 
   /** appends */
-  def append(addr: Addr, value: PureValue): this.type = apply(addr) match {
+  def append(addr: Addr, value: Value): this.type = apply(addr) match {
     case (l: ListObj) => l.append(value); this
     case v            => error(s"not a list: $v")
   }
 
   /** prepends */
-  def prepend(addr: Addr, value: PureValue): this.type = apply(addr) match {
+  def prepend(addr: Addr, value: Value): this.type = apply(addr) match {
     case (l: ListObj) => l.prepend(value); this
     case v            => error(s"not a list: $v")
   }
 
   /** pops */
-  def pop(addr: Addr, front: Boolean): PureValue = apply(addr) match {
+  def pop(addr: Addr, front: Boolean): Value = apply(addr) match {
     case (l: ListObj) => l.pop(front)
     case v            => error(s"not a list: $v")
   }
@@ -101,7 +101,7 @@ case class Heap(
     isObject(tname) || isEnvRec(tname)
 
   /** list allocations */
-  def allocList(list: List[PureValue]): Addr = alloc(ListObj(list.toVector))
+  def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
 
   /** symbol allocations */
   def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))

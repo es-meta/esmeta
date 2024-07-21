@@ -119,11 +119,11 @@ case class State(
   }
 
   /** object operators */
-  def append(addr: Addr, value: PureValue): this.type =
+  def append(addr: Addr, value: Value): this.type =
     heap.append(addr, value); this
-  def prepend(addr: Addr, value: PureValue): this.type =
+  def prepend(addr: Addr, value: Value): this.type =
     heap.prepend(addr, value); this
-  def pop(addr: Addr, front: Boolean): PureValue =
+  def pop(addr: Addr, front: Boolean): Value =
     heap.pop(addr, front)
   def remove(addr: Addr, value: PureValue): this.type =
     heap.remove(addr, value); this
@@ -134,7 +134,7 @@ case class State(
   def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
     CFG,
   ): Addr = heap.allocMap(tname, map)
-  def allocList(list: List[PureValue]): Addr =
+  def allocList(list: List[Value]): Addr =
     heap.allocList(list)
   def allocSymbol(desc: PureValue): Addr =
     heap.allocSymbol(desc)

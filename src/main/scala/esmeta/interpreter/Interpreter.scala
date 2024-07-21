@@ -111,10 +111,11 @@ class Interpreter(
     case IAssign(ref, expr) => st.update(eval(ref), eval(expr))
     case IDelete(ref)       => st.delete(eval(ref))
     case IPush(from, to, front) =>
+      val fromValue = eval(from)
       eval(to) match {
         case (addr: Addr) =>
-          if (front) st.prepend(addr, eval(from).toPureValue)
-          else st.append(addr, eval(from).toPureValue)
+          if (front) st.prepend(addr, fromValue)
+          else st.append(addr, fromValue)
         case v => throw NoAddr(to, v)
       }
     case IRemove(elem, list) =>
