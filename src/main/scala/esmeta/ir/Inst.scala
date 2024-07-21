@@ -31,10 +31,6 @@ sealed trait CallInst extends Inst {
   def fexpr: Expr
 }
 case class ICall(lhs: Local, fexpr: Expr, args: List[Expr]) extends CallInst
-case class IMethodCall(lhs: Local, base: Ref, method: String, args: List[Expr])
-  extends CallInst {
-  lazy val fexpr: Expr = ERef(Prop(base, EStr(method)))
-}
 case class ISdoCall(lhs: Local, base: Expr, method: String, args: List[Expr])
   extends CallInst {
   lazy val fexpr: Expr = base match

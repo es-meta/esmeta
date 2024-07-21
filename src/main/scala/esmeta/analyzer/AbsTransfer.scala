@@ -272,29 +272,14 @@ trait AbsTransferDecl { self: Analyzer =>
             st <- get
           } yield {
             // closure call (XXX: unsound for inifinitely many closures)
-            for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
-              val callPoint = CallPoint(callerNp, func)
-              doCall(callPoint, st, args, vs, captured)
+            for (AClo(f, captured) <- fv.clo.toIterable(stop = false))
+              val callPoint = CallPoint(callerNp, f)
+              doCall(callPoint, st, args, vs, captured, f.isMethod)
             // continuation call (XXX: unsound for inifinitely many continuations)
             for (ACont(tgt, captured) <- fv.cont)
-              val callPoint = CallPoint(callerNp, tgt.func)
-              doCall(callPoint, st, args, vs, captured, contTarget = Some(tgt))
-            AbsValue.Bot
-          }
-        case IMethodCall(_, base, method, args) =>
-          for {
-            rv <- transfer(base)
-            bv <- transfer(rv)
-            // TODO do not explicitly store methods in object but use a type
-            // model when accessing methods
-            fv <- get(_.get(bv, AbsValue(Str(method))))
-            vs <- join(args.map(transfer))
-            st <- get
-          } yield {
-            for (AClo(func, _) <- fv.clo)
-              val newVs = bv.refineThis(func) :: vs
-              val callPoint = CallPoint(callerNp, func)
-              doCall(callPoint, st, args, newVs, method = true)
+              val f = tgt.func
+              val callPoint = CallPoint(callerNp, f)
+              doCall(callPoint, st, args, vs, captured, f.isMethod, Some(tgt))
             AbsValue.Bot
           }
         case ISdoCall(_, base, method, args) =>
