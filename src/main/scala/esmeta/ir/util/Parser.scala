@@ -71,8 +71,6 @@ trait Parsers extends TyParsers {
     lazy val args: Parser[List[Expr]] = ("(" ~> repsep(expr, ",") <~ ")")
     ("call" ~> local <~ "=") ~ expr ~ args ^^ {
       case lhs ~ f ~ as => ICall(lhs, f, as)
-    } | ("method-call" ~> local <~ "=") ~ ref ~ ("->" ~> word) ~ args ^^ {
-      case lhs ~ b ~ m ~ as => IMethodCall(lhs, b, m, as)
     } | ("sdo-call" ~> local <~ "=") ~ expr ~ ("->" ~> word) ~ args ^^ {
       case lhs ~ a ~ m ~ as => ISdoCall(lhs, a, m, as)
     }
