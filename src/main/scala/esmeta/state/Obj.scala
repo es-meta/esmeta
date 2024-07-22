@@ -10,52 +10,52 @@ import scala.collection.mutable.{Map => MMap}
 sealed trait Obj extends StateElem {
 
   /** getters */
-  def apply(prop: PureValue): Value = (this, prop) match
+  def apply(field: PureValue): Value = (this, field) match
     case (SymbolObj(desc), Str("Description")) => desc
-    case (MapObj(_, props, _), prop) =>
-      props.get(prop).fold[Value](Absent)(_.value)
+    case (MapObj(_, fields, _), field) =>
+      fields.get(field).fold[Value](Absent)(_.value)
     case (ListObj(values), Math(decimal)) =>
       val idx = decimal.toInt
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
     case (ListObj(values), Str("length")) => Math(values.length)
-    case _                                => throw InvalidObjProp(this, prop)
+    case _                                => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
-    case MapObj(tname, props, size) => MapObj(tname, MMap.from(props), size)
-    case ListObj(values)            => ListObj(Vector.from(values))
-    case _                          => this
+    case MapObj(tname, fields, size) => MapObj(tname, MMap.from(fields), size)
+    case ListObj(values)             => ListObj(Vector.from(values))
+    case _                           => this
 }
 
 /** map objects */
 case class MapObj(
   var ty: String, // TODO handle type
-  val props: MMap[PureValue, MapObj.Prop],
+  val fields: MMap[PureValue, MapObj.Field],
   var size: Int,
 ) extends Obj {
 
   /** setters */
-  def findOrUpdate(prop: PureValue, value: Value): this.type =
-    props.get(prop) match
+  def findOrUpdate(field: PureValue, value: Value): this.type =
+    fields.get(field) match
       case Some(_) => this
-      case _       => update(prop, value)
+      case _       => update(field, value)
 
   /** updates */
-  def update(prop: PureValue, value: Value): this.type =
-    val id = props
-      .get(prop)
+  def update(field: PureValue, value: Value): this.type =
+    val id = fields
+      .get(field)
       .map(_.creationTime)
       .getOrElse({ size += 1; size })
-    props += prop -> MapObj.Prop(value, id)
+    fields += field -> MapObj.Field(value, id)
     this
 
   /** deletes */
-  def delete(prop: PureValue): this.type = { props -= prop; this }
+  def delete(field: PureValue): this.type = { fields -= field; this }
 
   /** pairs of map */
-  def pairs: Map[PureValue, Value] = (props.map {
-    case (k, (MapObj.Prop(v, _))) => k -> v
+  def pairs: Map[PureValue, Value] = (fields.map {
+    case (k, (MapObj.Field(v, _))) => k -> v
   }).toMap
 
   /** keys of map */
@@ -63,13 +63,13 @@ case class MapObj(
   def keys(intSorted: Boolean): Vector[PureValue] = {
     if (!intSorted) {
       if (ty == "SubMap")
-        props.toVector
+        fields.toVector
           .sortBy(_._2._2)
           .map(_._1)
-      else props.toVector.map(_._1).sortBy(_.toString)
+      else fields.toVector.map(_._1).sortBy(_.toString)
     } else
       (for {
-        case (Str(s), _) <- props.toVector
+        case (Str(s), _) <- fields.toVector
         d = ESValueParser.str2number(s).double
         if toStringHelper(d) == s
         i = d.toLong // should handle unsigned integer
@@ -79,15 +79,15 @@ case class MapObj(
 }
 object MapObj {
 
-  /** property values */
-  case class Prop(value: Value, creationTime: Int)
+  /** field values */
+  case class Field(value: Value, creationTime: Int)
 
   /** apply with type model */
-  def apply(tname: String)(props: (PureValue, Value)*)(using CFG): MapObj =
+  def apply(tname: String)(fields: (PureValue, Value)*)(using CFG): MapObj =
     val obj: MapObj = MapObj(tname)
-    for { ((k, v), idx) <- props.zipWithIndex }
-      obj.props += k -> Prop(v, idx + obj.size)
-    obj.size += props.size
+    for { ((k, v), idx) <- fields.zipWithIndex }
+      obj.fields += k -> Field(v, idx + obj.size)
+    obj.size += fields.size
     obj
 
   def apply(tname: String)(using cfg: CFG): MapObj =
@@ -96,7 +96,7 @@ object MapObj {
     val methods = cfg.tyModel.getMethod(tname)
     val obj = MapObj(tname, MMap(), methods.size)
     for { ((name, fname), idx) <- methods.zipWithIndex }
-      obj.props += Str(name) -> Prop(Clo(cfg.fnameMap(fname), Map()), idx)
+      obj.fields += Str(name) -> Field(Clo(cfg.fnameMap(fname), Map()), idx)
     obj
 }
 

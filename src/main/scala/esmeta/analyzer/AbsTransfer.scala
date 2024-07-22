@@ -502,10 +502,10 @@ trait AbsTransferDecl { self: Analyzer =>
             }
           }
         case ELexical(name, expr) => notSupported("ELexical")
-        case e @ EMap(tname, props) =>
+        case e @ EMap(tname, fields) =>
           val asite = AllocSite(e.asite, np.view)
           for {
-            pairs <- join(props.map {
+            pairs <- join(fields.map {
               case (kexpr, vexpr) =>
                 for {
                   k <- transfer(kexpr)
@@ -571,17 +571,17 @@ trait AbsTransferDecl { self: Analyzer =>
     def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefTarget] =
       ref match
         case x: Var => AbsRefVar(x)
-        case prop @ Prop(base, expr) =>
+        case field @ Field(base, expr) =>
           for {
             rv <- transfer(base)
             b <- transfer(rv)
             p <- transfer(expr)
-          } yield AbsRefProp(refinePropBase(np, prop, b), p)
+          } yield AbsRefField(refineFieldBase(np, field, b), p)
 
-    /** refine invalid base for property reference */
-    def refinePropBase(
+    /** refine invalid base for field reference */
+    def refineFieldBase(
       np: NodePoint[Node],
-      prop: Prop,
+      field: Field,
       base: AbsValue,
     ): AbsValue = base
 

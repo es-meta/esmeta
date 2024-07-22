@@ -31,8 +31,8 @@ trait StateDomainDecl { self: Self =>
         rt: AbsRefTarget,
         cp: ControlPoint,
       ): AbsValue = rt match
-        case AbsRefVar(x)           => elem.get(x, cp)
-        case AbsRefProp(base, prop) => elem.get(base, prop)
+        case AbsRefVar(x)             => elem.get(x, cp)
+        case AbsRefField(base, field) => elem.get(base, field)
 
       /** getters with identifiers */
       def get(x: Var, cp: ControlPoint): AbsValue =
@@ -41,8 +41,8 @@ trait StateDomainDecl { self: Self =>
           v.removeAbsent ⊔ AbsValue.undefTop
         else v
 
-      /** getters with bases and properties */
-      def get(base: AbsValue, prop: AbsValue): AbsValue
+      /** getters with bases and fields */
+      def get(base: AbsValue, field: AbsValue): AbsValue
 
       /** getters with an address partition */
       def get(part: Part): AbsObj
@@ -62,8 +62,8 @@ trait StateDomainDecl { self: Self =>
       /** existence checks */
       def exists(rt: AbsRefTarget): AbsValue = rt match
         case AbsRefVar(x) => !directLookup(x).isAbsent
-        case AbsRefProp(base, prop) =>
-          !elem.get(base, prop).isAbsent
+        case AbsRefField(base, field) =>
+          !elem.get(base, field).isAbsent
 
       /** define local variables */
       def defineLocal(pairs: (Local, AbsValue)*): Elem
@@ -73,14 +73,14 @@ trait StateDomainDecl { self: Self =>
 
       /** setter with reference values */
       def update(rt: AbsRefTarget, value: AbsValue): Elem = rt match
-        case AbsRefVar(x)           => update(x, value)
-        case AbsRefProp(base, prop) => update(base, prop, value)
+        case AbsRefVar(x)             => update(x, value)
+        case AbsRefField(base, field) => update(base, field, value)
 
       /** identifier setter */
       def update(x: Var, value: AbsValue): Elem
 
-      /** property setter */
-      def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
+      /** fielderty setter */
+      def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem
 
       /** deletion with reference values */
       def delete(rt: AbsRefTarget): Elem

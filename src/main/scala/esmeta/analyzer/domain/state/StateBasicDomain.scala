@@ -109,12 +109,12 @@ trait StateBasicDomainDecl { self: Self =>
           if (newHeap.isBottom || isBottom) Bot
           else Elem(true, newLocals, newGlobals, newHeap)
 
-      /** getters with bases and properties */
-      def get(base: AbsValue, prop: AbsValue): AbsValue =
-        val compValue = AbsValue(pureValue = base.comp(prop.str))
-        val partValue = elem.heap(base.part, prop)
-        val astValue = lookupAst(base.astValue, prop)
-        val strValue = lookupStr(base.str, prop)
+      /** getters with bases and fields */
+      def get(base: AbsValue, field: AbsValue): AbsValue =
+        val compValue = AbsValue(pureValue = base.comp(field.str))
+        val partValue = elem.heap(base.part, field)
+        val astValue = lookupAst(base.astValue, field)
+        val strValue = lookupStr(base.str, field)
         compValue ⊔ partValue ⊔ astValue ⊔ strValue
 
       /** getters with an address partition */
@@ -137,18 +137,18 @@ trait StateBasicDomainDecl { self: Self =>
             case _ => Bot
         }
 
-      /** property setter */
-      def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem =
-        elem.bottomCheck(AbsValue)(base, prop, value) {
-          elem.copy(heap = elem.heap.update(base.part, prop, value))
+      /** fielderty setter */
+      def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem =
+        elem.bottomCheck(AbsValue)(base, field, value) {
+          elem.copy(heap = elem.heap.update(base.part, field, value))
         }
 
       /** deletion with reference values */
       def delete(refV: AbsRefTarget): Elem = refV match
         case AbsRefVar(x) => error(s"cannot delete variable $x")
-        case AbsRefProp(base, prop) =>
-          elem.bottomCheck(AbsValue)(base, prop) {
-            elem.copy(heap = elem.heap.delete(base.part, prop))
+        case AbsRefField(base, field) =>
+          elem.bottomCheck(AbsValue)(base, field) {
+            elem.copy(heap = elem.heap.delete(base.part, field))
           }
 
       /** push values to a list */
@@ -409,25 +409,25 @@ trait StateBasicDomainDecl { self: Self =>
       else app >> "⊥"
 
     // lookup ASTs
-    private def lookupAst(ast: AbsAstValue, prop: AbsValue): AbsValue =
-      (ast.getSingle, prop.getSingle) match
+    private def lookupAst(ast: AbsAstValue, field: AbsValue): AbsValue =
+      (ast.getSingle, field.getSingle) match
         case (Zero, _) | (_, Zero) => AbsValue.Bot
         case (One(AstValue(ast)), One(Str("parent"))) =>
           ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (One(AstValue(syn: es.Syntactic)), One(Str(propStr))) =>
+        case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
           val es.Syntactic(name, _, rhsIdx, children) = syn
           val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-          rhs.getNtIndex(propStr).flatMap(children(_)) match
+          rhs.getNtIndex(fieldStr).flatMap(children(_)) match
             case Some(child) => AbsValue(child)
             case _           => AbsValue.Bot
         case (One(AstValue(syn: es.Syntactic)), One(Math(n))) if n.isValidInt =>
           syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (_: One[_], _: One[_]) => AbsValue.Bot
-        case _                      => exploded("ast property access")
+        case _                      => exploded("ast fielderty access")
 
     // lookup strings
-    private def lookupStr(str: AbsStr, prop: AbsValue): AbsValue =
-      (str.getSingle, prop.getSingle) match
+    private def lookupStr(str: AbsStr, field: AbsValue): AbsValue =
+      (str.getSingle, field.getSingle) match
         case (Zero, _) | (_, Zero) => AbsValue.Bot
         case (One(Str(str)), One(Math(k))) =>
           AbsValue(CodeUnit(str(k.toInt)))

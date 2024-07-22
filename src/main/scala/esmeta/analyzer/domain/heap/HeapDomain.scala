@@ -49,14 +49,14 @@ trait HeapDomainDecl { self: Self =>
 
       /** lookup abstract address partitions */
       def apply(part: Part): AbsObj
-      def apply(part: AbsPart, prop: AbsValue): AbsValue
-      def apply(part: Part, prop: AbsValue): AbsValue
+      def apply(part: AbsPart, field: AbsValue): AbsValue
+      def apply(part: Part, field: AbsValue): AbsValue
 
       /** setters */
-      def update(part: AbsPart, prop: AbsValue, value: AbsValue): Elem
+      def update(part: AbsPart, field: AbsValue, value: AbsValue): Elem
 
       /** delete */
-      def delete(part: AbsPart, prop: AbsValue): Elem
+      def delete(part: AbsPart, field: AbsValue): Elem
 
       /** concat */
       def concat(part: AbsPart, value: AbsValue): Elem

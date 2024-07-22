@@ -44,7 +44,7 @@ class ContainsTinyTest extends TyTest {
     lazy val mapObj = MapObj("A", MMap(), 0)
     lazy val recordAddr = NamedAddr("recordAddr")
     lazy val recordObj =
-      MapObj("Record", MMap(Str("P") -> MapObj.Prop(Number(42), 0)), 1)
+      MapObj("Record", MMap(Str("P") -> MapObj.Field(Number(42), 0)), 1)
     lazy val nilAddr = NamedAddr("nilAddr")
     lazy val nilObj = ListObj(Vector())
     lazy val listAddr = NamedAddr("listAddr")
@@ -53,7 +53,7 @@ class ContainsTinyTest extends TyTest {
     lazy val symbolObj = SymbolObj(Str("desc"))
     lazy val subMapAddr = NamedAddr("subMapAddr")
     lazy val subMapObj =
-      MapObj("SubMap", MMap(symbolAddr -> MapObj.Prop(Number(42), 0)), 1)
+      MapObj("SubMap", MMap(symbolAddr -> MapObj.Field(Number(42), 0)), 1)
     given Heap = Heap(
       MMap(
         mapAddr -> mapObj,

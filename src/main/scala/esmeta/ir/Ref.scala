@@ -6,7 +6,7 @@ import esmeta.ir.util.Parser
 sealed trait Ref extends IRElem with LangEdge
 object Ref extends Parser.From(Parser.ref)
 
-case class Prop(ref: Ref, expr: Expr) extends Ref
+case class Field(ref: Ref, expr: Expr) extends Ref
 
 sealed trait Var extends Ref
 case class Global(name: String) extends Var

@@ -254,9 +254,9 @@ class StringifyTinyTest extends IRTest {
       global -> "@GLOBAL",
       x -> "x",
       temp -> "%42",
-      prop -> "x.p",
-      propStr -> "x[\"!!\"]",
-      propId -> "x[x]",
+      field -> "x.p",
+      fieldStr -> "x[\"!!\"]",
+      fieldId -> "x[x]",
     )
 
     // -------------------------------------------------------------------------

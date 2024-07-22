@@ -330,15 +330,17 @@ class TypeAnalyzer(
         val binaryPoint = BinaryOpPoint(np, binary)
         addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
 
-    /** refine invalid base for property reference */
-    override def refinePropBase(
+    /** refine invalid base for field reference */
+    override def refineFieldBase(
       np: NodePoint[Node],
-      prop: Prop,
+      field: Field,
       base: AbsValue,
     ): AbsValue =
       val baseTy = base.ty
-      if (config.checkInvalidBase && !baseTy.noProp.isBottom)
-        addError(InvalidBaseError(PropBasePoint(PropPoint(np, prop)), baseTy))
+      if (config.checkInvalidBase && !baseTy.noField.isBottom)
+        addError(
+          InvalidBaseError(FieldBasePoint(FieldPoint(np, field)), baseTy),
+        )
       AbsValue(baseTy)
 
     /** prune condition */
@@ -359,7 +361,7 @@ class TypeAnalyzer(
       case EBinary(BOp.Eq, ERef(x: Local), expr) =>
         pruneLocal(x, expr, positive)
       // prune fields
-      case EBinary(BOp.Eq, ERef(Prop(x: Local, EStr(field))), expr) =>
+      case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
         pruneField(x, field, expr, positive)
       // prune types
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>

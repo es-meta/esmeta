@@ -8,8 +8,8 @@ trait AbsRefTargetDecl { self: Self =>
   /** basic abstract reference values */
   sealed trait AbsRefTarget:
     override def toString: String = this match
-      case AbsRefVar(x)           => s"$x"
-      case AbsRefProp(base, prop) => s"$base[$prop]"
+      case AbsRefVar(x)             => s"$x"
+      case AbsRefField(base, field) => s"$base[$field]"
   case class AbsRefVar(x: Var) extends AbsRefTarget
-  case class AbsRefProp(base: AbsValue, prop: AbsValue) extends AbsRefTarget
+  case class AbsRefField(base: AbsValue, field: AbsValue) extends AbsRefTarget
 }

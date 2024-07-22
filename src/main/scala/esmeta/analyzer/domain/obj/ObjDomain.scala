@@ -40,10 +40,10 @@ trait ObjDomainDecl { self: Self =>
       def reachableParts: Set[Part]
 
       /** updates */
-      def update(prop: AbsValue, value: AbsValue, weak: Boolean): Elem
+      def update(field: AbsValue, value: AbsValue, weak: Boolean): Elem
 
       /** delete */
-      def delete(prop: AbsValue, weak: Boolean): Elem
+      def delete(field: AbsValue, weak: Boolean): Elem
 
       /** concat */
       def concat(list: AbsObj, weak: Boolean): Elem

@@ -40,7 +40,7 @@ case class ICall(lhs: Local, fexpr: Expr, args: List[Expr]) extends CallInst
 case class ISdoCall(lhs: Local, base: Expr, method: String, args: List[Expr])
   extends CallInst {
   lazy val fexpr: Expr = base match
-    case ERef(base) => ERef(Prop(base, EStr(method)))
+    case ERef(base) => ERef(Field(base, EStr(method)))
     case _          => ??? // XXX error -> see compiler
 }
 

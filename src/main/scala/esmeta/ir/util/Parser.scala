@@ -313,8 +313,8 @@ trait Parsers extends TyParsers {
 
   // references
   given ref: Parser[Ref] = {
-    val prop = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
-    x ~ rep(prop) ^^ { case x ~ es => es.foldLeft[Ref](x)(Prop(_, _)) }
+    val field = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
+    x ~ rep(field) ^^ { case x ~ es => es.foldLeft[Ref](x)(Field(_, _)) }
   }.named("ir.Ref")
 
   // identifiers

@@ -90,7 +90,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val map = MapObj("A", MMap(), 0)
     lazy val singleMap =
-      MapObj("A", MMap(Str("p") -> MapObj.Prop(Str("p"), 0)), 1)
+      MapObj("A", MMap(Str("p") -> MapObj.Field(Str("p"), 0)), 1)
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")
@@ -155,12 +155,12 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val x = Name("x")
     lazy val xRefTarget = VarTarget(x)
-    lazy val prop = PropTarget(addr, Str("prop"))
-    lazy val noInlineProp = PropTarget(addr, Math(42))
+    lazy val field = FieldTarget(addr, Str("field"))
+    lazy val noInlineField = FieldTarget(addr, Math(42))
     checkStringify("RefTarget")(
       xRefTarget -> "x",
-      prop -> "#42.prop",
-      noInlineProp -> "#42[42]",
+      field -> "#42.field",
+      noInlineField -> "#42[42]",
     )
   }
 

@@ -35,8 +35,8 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val argAssignPoint = ArgAssignPoint(callPoint, 0)
     lazy val internalReturnPoint = InternalReturnPoint(nodePoint, ret)
     lazy val riaPoint = ReturnIfAbruptPoint(nodePoint, riaCheck)
-    lazy val propBasePoint = PropBasePoint(propPoint)
-    lazy val propPoint = PropPoint(nodePoint, prop)
+    lazy val fieldBasePoint = FieldBasePoint(fieldPoint)
+    lazy val fieldPoint = FieldPoint(nodePoint, field)
     lazy val unaryOpPoint = UnaryOpPoint(nodePoint, unary)
     lazy val binaryOpPoint = BinaryOpPoint(nodePoint, binary)
     lazy val nodePoint = NodePoint(mainFunc, block, View())
@@ -49,8 +49,8 @@ class StringifyTinyTest extends AnalyzerTest {
       argAssignPoint -> "argument assignment to first parameter _x_ when function call from f to f",
       internalReturnPoint -> "return statement in f",
       riaPoint -> "ReturnIfAbrupt(?) in f",
-      propBasePoint -> "base inproperty lookup in f",
-      propPoint -> "property lookup in f",
+      fieldBasePoint -> "base inproperty lookup in f",
+      fieldPoint -> "property lookup in f",
       unaryOpPoint -> "unary operation (-) in f",
       binaryOpPoint -> "binary operation (+) in f",
       nodePoint -> "f[0]:Block[0]",
@@ -66,7 +66,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val returnTypeMismatch = ReturnTypeMismatch(internalReturnPoint, ty)
     lazy val arityMismatch = ArityMismatch(callPoint, 3)
     lazy val uncheckedAbruptError = UncheckedAbruptError(riaPoint, ty)
-    lazy val invalidBaseError = InvalidBaseError(propBasePoint, ty)
+    lazy val invalidBaseError = InvalidBaseError(fieldBasePoint, ty)
     lazy val unaryOpTypeMismatch = UnaryOpTypeMismatch(unaryOpPoint, ty)
     lazy val binaryOpTypeMismatch = BinaryOpTypeMismatch(binaryOpPoint, ty, ty)
 
@@ -129,7 +129,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val xParam = Param(x, irTy, false)
     lazy val yParam = Param(y, irTy, true)
     lazy val let = ILet(x, empty)
-    lazy val del = IDelete(prop)
+    lazy val del = IDelete(field)
     lazy val ret = IReturn(xExpr)
     lazy val riaCheck = EReturnIfAbrupt(xExpr, true)
     lazy val unary = EUnary(UOp.Neg, xExpr)
@@ -138,7 +138,7 @@ class StringifyTinyTest extends AnalyzerTest {
     lazy val xExpr = ERef(x)
     lazy val yExpr = ERef(y)
     lazy val empty = EEnum("empty")
-    lazy val prop = Prop(x, EStr("p"))
+    lazy val field = Field(x, EStr("p"))
     lazy val x = Name("x")
     lazy val y = Name("y")
     lazy val temp = Temp(42)

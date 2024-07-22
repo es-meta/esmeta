@@ -167,11 +167,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Absent     => app >> "absent"
 
   // reference value
-  lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
+  lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refTargetRule: Rule[RefTarget] = (app, refTarget) =>
     refTarget match {
-      case VarTarget(id)                          => app >> id
-      case PropTarget(base, Str(inlineProp(str))) => app >> base >> "." >> str
-      case PropTarget(base, prop) => app >> base >> "[" >> prop >> "]"
+      case VarTarget(id)                           => app >> id
+      case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
+      case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
 }

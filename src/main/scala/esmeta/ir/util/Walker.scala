@@ -182,8 +182,8 @@ trait Walker extends BasicWalker {
 
   // references
   def walk(ref: Ref): Ref = (ref match
-    case Prop(ref, expr) => Prop(walk(ref), walk(expr))
-    case x: Var          => walk(x)
+    case Field(ref, expr) => Field(walk(ref), walk(expr))
+    case x: Var           => walk(x)
   ).setLangOpt(ref.langOpt)
 
   // identifiers

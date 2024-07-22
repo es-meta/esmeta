@@ -172,7 +172,7 @@ class Interpreter(
               )
               st.callStack ::= CallContext(st.context, lhs)
               st.context = Context(sdo, newLocals)
-            case None => throw InvalidAstProp(syn, Str(method))
+            case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
   }
@@ -400,9 +400,9 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case EMap("Completion", props) =>
+    case EMap("Completion", fields) =>
       val map = (for {
-        (kexpr, vexpr) <- props
+        (kexpr, vexpr) <- fields
         k = eval(kexpr)
         v = eval(vexpr)
       } yield k -> v).toMap
@@ -418,9 +418,9 @@ class Interpreter(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
-    case EMap(tname, props) =>
+    case EMap(tname, fields) =>
       val addr = st.allocMap(tname)
-      for ((kexpr, vexpr) <- props)
+      for ((kexpr, vexpr) <- fields)
         val k = eval(kexpr).toPureValue
         val v = eval(vexpr)
         st.update(addr, k, v)
@@ -525,10 +525,10 @@ class Interpreter(
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
     case x: Var => VarTarget(x)
-    case Prop(ref, expr) =>
+    case Field(ref, expr) =>
       var base = st(eval(ref))
-      val p = eval(expr)
-      PropTarget(base, p.toPureValue)
+      val f = eval(expr)
+      FieldTarget(base, f.toPureValue)
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
@@ -651,7 +651,7 @@ object Interpreter {
       case ("RegularExpressionLiteral", name) =>
         throw NotSupported(Feature)(List("RegExp"))
       case _ =>
-        throw InvalidAstProp(lex, Str(sdoName))
+        throw InvalidAstField(lex, Str(sdoName))
     }
   }
 

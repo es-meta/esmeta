@@ -265,7 +265,7 @@ class Injector(
     (new Interpreter(exitSt.copied)).eval(expr)
   private def getValue(rt: RefTarget): Value = exitSt(rt)
   private def getValue(addr: Addr, prop: String): Value =
-    getValue(PropTarget(addr, Str(prop)))
+    getValue(FieldTarget(addr, Str(prop)))
 
   // access properties
   private def access(base: Value, props: PureValue*): Value =
@@ -283,7 +283,7 @@ class Injector(
   private def getKeys(value: Value, path: String): Set[PureValue] = value match
     case addr: Addr =>
       exitSt(addr) match
-        case m: MapObj => m.props.keySet.toSet
+        case m: MapObj => m.fields.keySet.toSet
         case _ => warning("[[SubMap]] is not a map object: $path"); Set()
     case _ => warning("[[SubMap]] is not an address: $path"); Set()
 
