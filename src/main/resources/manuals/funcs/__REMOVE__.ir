@@ -1,0 +1,15 @@
+def <AUX>:__REMOVE__(
+  elem: Purevalue,
+  list: List
+): List = {
+  let buffer = (new [])
+  loop[aux] (< 0 list.length) {
+    let x = (pop < list)
+    if (= elem x) nop else push buffer < x
+  }
+  loop[aux] (< 0 buffer.length) {
+    let b = (pop < buffer)
+    push list < b
+  }
+  return list
+}

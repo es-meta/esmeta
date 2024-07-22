@@ -236,12 +236,6 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             _ <- modify(_.push(l, v, front))
           } yield ()
-        case IRemove(elem, list) =>
-          for {
-            v <- transfer(elem)
-            l <- transfer(list)
-            _ <- modify(_.remove(l, v))
-          } yield ()
         case inst @ IReturn(expr) =>
           for {
             v <- transfer(expr)
