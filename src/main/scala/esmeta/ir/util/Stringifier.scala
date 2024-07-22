@@ -64,6 +64,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Clo          => "<CLO>:"
       case Cont         => "<CONT>:"
       case BuiltinClo   => "<BUILTIN-CLO>:"
+      case Aux          => "<AUX>:"
     })
 
   // function parameters
@@ -156,8 +157,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EVariadic(vop, exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(" >> vop >> " " >> exprs >> ")"
-      case EClamp(target, lower, upper) =>
-        app >> "(clamp " >> target >> " " >> lower >> " " >> upper >> ")"
       case EMathOp(mop, exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(" >> mop >> " " >> exprs >> ")"

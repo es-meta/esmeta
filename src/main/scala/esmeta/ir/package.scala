@@ -102,3 +102,7 @@ def ENAME_NEW_TARGET = ERef(NAME_NEW_TARGET)
 def PARAM_THIS = Param(NAME_THIS)
 def PARAM_ARGS_LIST = Param(NAME_ARGS_LIST)
 def PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)
+
+/** predefined auxiliary functions */
+inline def getAux(name: String): EClo = EClo("__" + name + "__", Nil)
+def AUX_CLAMP = getAux("CLAMP")

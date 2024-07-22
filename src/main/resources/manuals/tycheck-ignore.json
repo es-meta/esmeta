@@ -105,6 +105,8 @@
   "INTRINSICS.RangeError",
   "INTRINSICS.ReferenceError",
   "INTRINSICS.RegExp",
+  "INTRINSICS.String.prototype.includes",
+  "INTRINSICS.String.prototype.indexOf",
   "INTRINSICS.String.prototype.matchAll",
   "INTRINSICS.String.prototype.replaceAll",
   "INTRINSICS.SyntaxError",
@@ -198,5 +200,6 @@
   "WithStatement[0,0].Evaluation",
   "Yield",
   "YieldExpression[1,0].Evaluation",
-  "YieldExpression[2,0].Evaluation"
+  "YieldExpression[2,0].Evaluation",
+  "__CLAMP__"
 ]

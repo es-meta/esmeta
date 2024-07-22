@@ -73,7 +73,6 @@ object IRTest {
   lazy val binary = EBinary(BOp.Add, xExpr, xExpr)
   lazy val variadic = EVariadic(VOp.Min, List(xExpr, xExpr, xExpr))
   lazy val mathOp = EMathOp(MOp.Tan, List(xExpr))
-  lazy val clamp = EClamp(xExpr, xExpr, xExpr)
   lazy val convert = EConvert(COp.ToBigInt, xExpr)
   lazy val typeOf = ETypeOf(xExpr)
   lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))

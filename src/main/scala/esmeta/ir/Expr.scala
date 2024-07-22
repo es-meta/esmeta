@@ -22,7 +22,6 @@ case class ERef(ref: Ref) extends Expr
 case class EUnary(uop: UOp, expr: Expr) extends Expr
 case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EVariadic(vop: VOp, exprs: List[Expr]) extends Expr
-case class EClamp(target: Expr, lower: Expr, upper: Expr) extends Expr
 case class EMathOp(mop: MOp, args: List[Expr]) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
