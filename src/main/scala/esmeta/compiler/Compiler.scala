@@ -135,8 +135,7 @@ class Compiler(
         case Param(name, _, Variadic) =>
           List(
             ILet(Name(name), EList(Nil)),
-            ILoop(
-              "args",
+            IWhile(
               lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
               IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
             ),
@@ -231,8 +230,7 @@ class Compiler(
         IAssign(i, zero),
       )
       fb.addInst(
-        ILoop(
-          "foreach",
+        IWhile(
           lessThan(iExpr, toStrERef(list, "length")),
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
@@ -249,8 +247,7 @@ class Compiler(
         IAssign(i, toStrERef(list, "length")),
       )
       fb.addInst(
-        ILoop(
-          "foreach",
+        IWhile(
           lessThan(zero, iExpr),
           fb.newScope {
             fb.addInst(IAssign(i, sub(iExpr, one)))
@@ -264,8 +261,7 @@ class Compiler(
       val (i, iExpr) = compileWithExpr(x)
       fb.addInst(ILet(i, compile(fb, start)))
       fb.addInst(
-        ILoop(
-          "foreach-int",
+        IWhile(
           if (ascending) not(lessThan(compile(fb, end), iExpr))
           else not(lessThan(iExpr, compile(fb, end))),
           fb.newScope {
@@ -284,8 +280,7 @@ class Compiler(
         IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), intSorted)),
         if (ascending) IAssign(i, zero)
         else IAssign(i, toStrERef(list, "length")),
-        ILoop(
-          "repeat",
+        IWhile(
           if (ascending) lessThan(iExpr, toStrERef(list, "length"))
           else lessThan(zero, iExpr),
           fb.newScope {
@@ -312,8 +307,7 @@ class Compiler(
         IAssign(length, toStrERef(list, "length")),
       )
       fb.addInst(
-        ILoop(
-          "foreach-node",
+        IWhile(
           lessThan(iExpr, lengthExpr),
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
@@ -337,8 +331,7 @@ class Compiler(
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
     case RepeatStep(cond, body) =>
       fb.addInst(
-        ILoop(
-          "repeat",
+        IWhile(
           cond.fold(EBool(true))(compile(fb, _)),
           compileWithScope(fb, body),
         ),
@@ -565,8 +558,7 @@ class Compiler(
           IAssign(list, EList(Nil)),
         )
         fb.addInst(
-          ILoop(
-            "int-list",
+          IWhile(
             if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
             else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
             fb.newScope {
@@ -922,8 +914,7 @@ class Compiler(
       IAssign(l, list),
       IAssign(i, zero),
       IAssign(b, F),
-      ILoop(
-        "contains",
+      IWhile(
         and(not(bExpr), lessThan(iExpr, toStrERef(l, "length"))),
         fb.newScope {
           fb.addInst(

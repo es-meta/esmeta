@@ -103,7 +103,7 @@ class StringifyTinyTest extends CFGTest {
     )
     checkStringify("BranchKind")(
       BranchKind.If -> "if",
-      BranchKind.Loop("repeat") -> "loop[repeat]",
+      BranchKind.While -> "while",
     )
 
     // -------------------------------------------------------------------------

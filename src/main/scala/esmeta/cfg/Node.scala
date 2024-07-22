@@ -70,9 +70,9 @@ case class Branch(
   var elseNode: Option[Node] = None,
 ) extends NodeWithInst {
   def isLoop: Boolean = kind match
-    case BranchKind.If => false
-    case _             => true
+    case BranchKind.If    => false
+    case BranchKind.While => true
 }
 enum BranchKind extends CFGElem:
   case If
-  case Loop(str: String)
+  case While

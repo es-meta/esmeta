@@ -105,8 +105,8 @@ trait Parsers extends TyParsers {
   given branchInst: Parser[BranchInst] = {
     ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
       case c ~ t ~ e => IIf(c, t, e)
-    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
-      case k ~ c ~ b => ILoop(k, c, b)
+    } | ("while " ~> expr) ~ inst ^^ {
+      case c ~ b => IWhile(c, b)
     }
   }.named("ir.BranchInst")
 

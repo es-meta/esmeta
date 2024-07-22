@@ -44,8 +44,7 @@ object IRTest {
     seq,
     emptySeq,
   )
-  lazy val loopInst = ILoop(
-    "repeat",
+  lazy val whileInst = IWhile(
     xExpr,
     seq,
   )

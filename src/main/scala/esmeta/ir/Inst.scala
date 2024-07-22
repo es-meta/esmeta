@@ -28,7 +28,7 @@ object NormalInsts extends Parser.From(Parser.normalInsts)
 // branch instructions
 sealed trait BranchInst extends Inst
 case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends BranchInst
-case class ILoop(kind: String, cond: Expr, body: Inst) extends BranchInst
+case class IWhile(cond: Expr, body: Inst) extends BranchInst
 object BranchInst extends Parser.From(Parser.branchInst)
 
 // call instructions

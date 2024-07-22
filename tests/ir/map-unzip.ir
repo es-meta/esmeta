@@ -2,7 +2,7 @@ def unzip(map: SubMap[Math |-> String]) = {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
   let values = (new [])[#1]
-  loop[repeat] (! (= ckeys.length 0)) {
+  while (! (= ckeys.length 0)) {
     let key = (pop < ckeys)
     let value = map[key]
     push value > values

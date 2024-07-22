@@ -70,7 +70,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given branchKindRule: Rule[BranchKind] = (app, kind) =>
     import BranchKind.*
     app >> (kind match {
-      case If        => "if"
-      case Loop(str) => s"loop[$str]"
+      case If    => "if"
+      case While => "while"
     })
 }
