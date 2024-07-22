@@ -17,6 +17,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.ListBuffer
+import esmeta.ir.util.isPure
 
 /** compiler from metalangauge to IR */
 object Compiler:
@@ -526,6 +527,11 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         // NOTE: there is no method call via dynamic property access
         compile(fb, ref) match
+          case prop @ Prop(base, EStr(method)) if isPure(base) =>
+            val fexpr = ERef(Prop(base, EStr(method)))
+            val (x, xExpr) = fb.newTIdWithExpr
+            fb.addInst(ICall(x, fexpr, ERef(base) :: args.map(compile(fb, _))))
+            xExpr
           case prop @ Prop(base, EStr(method)) =>
             val (b, bExpr) = fb.newTIdWithExpr
             val fexpr = ERef(Prop(b, EStr(method)))
