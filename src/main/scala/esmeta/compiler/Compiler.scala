@@ -534,7 +534,7 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         // NOTE: there is no method call via dynamic property access
         compile(fb, ref) match
-          case prop @ Prop(base, EStr(method)) if (isPure(base)) =>
+          case prop @ Prop(base, EStr(method)) if isPure(base) =>
             val fexpr = ERef(Prop(base, EStr(method)))
             val (x, xExpr) = fb.newTIdWithExpr
             fb.addInst(ICall(x, fexpr, ERef(base) :: args.map(compile(fb, _))))
