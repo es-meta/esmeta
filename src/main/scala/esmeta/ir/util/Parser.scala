@@ -44,6 +44,7 @@ trait Parsers extends TyParsers {
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
     "<BUILTIN-CLO>:" ^^^ BuiltinClo |
+    "<AUX>:" ^^^ Aux |
     "" ^^^ AbsOp
   }.named("ir.FuncKind")
 
@@ -142,8 +143,6 @@ trait Parsers extends TyParsers {
       case b ~ l ~ r => EBinary(b, l, r)
     } | "(" ~> vop ~ rep(expr) <~ ")" ^^ {
       case v ~ es => EVariadic(v, es)
-    } | "(clamp" ~> expr ~ expr ~ expr <~ ")" ^^ {
-      case t ~ l ~ u => EClamp(t, l, u)
     } | "(" ~> mop ~ rep(expr) <~ ")" ^^ {
       case m ~ es => EMathOp(m, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {

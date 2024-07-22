@@ -45,6 +45,7 @@ class JsonTinyTest extends IRTest {
       FuncKind.Builtin -> "<BUILTIN>:",
       FuncKind.Clo -> "<CLO>:",
       FuncKind.Cont -> "<CONT>:",
+      FuncKind.Aux -> "<AUX>:",
     )
 
     // -------------------------------------------------------------------------
@@ -113,7 +114,6 @@ class JsonTinyTest extends IRTest {
       binary -> "(+ x x)",
       variadic -> "(min x x x)",
       mathOp -> "([math:tan] x)",
-      clamp -> "(clamp x x x)",
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
       typeCheck -> "(? x: \"Number\")",

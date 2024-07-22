@@ -45,5 +45,5 @@ object Func extends Parser.From(Parser.func)
 /** function kinds */
 enum FuncKind extends IRElem:
   case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
-  BuiltinClo
+  BuiltinClo, Aux
 object FuncKind extends Parser.From(Parser.funcKind)
