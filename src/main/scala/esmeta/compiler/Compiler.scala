@@ -614,11 +614,12 @@ class Compiler(
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
       case ClampExpression(target, lower, upper) =>
-        EClamp(
-          compile(fb, target),
-          compile(fb, lower),
-          compile(fb, upper),
-        )
+        val t = compile(fb, target)
+        val l = compile(fb, lower)
+        val u = compile(fb, upper)
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(x, AUX_CLAMP, List(t, l, u)))
+        xExpr
       case expr: MathOpExpression => compile(fb, expr)
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))

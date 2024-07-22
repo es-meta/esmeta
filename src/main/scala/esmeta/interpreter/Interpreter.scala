@@ -269,24 +269,6 @@ class Interpreter(
     case EVariadic(vop, exprs) =>
       val vs = for (e <- exprs) yield eval(e).toPureValue
       Interpreter.eval(vop, vs)
-    case EClamp(target, lower, upper) =>
-      val tv = eval(target)
-      val lv = eval(lower)
-      val uv = eval(upper)
-      (tv, lv, uv) match {
-        // mathematical value operations
-        case (Math(t), Math(l), Math(u)) =>
-          if (t < l) Math(l)
-          else if (t > u) Math(u)
-          else Math(t)
-
-        // extended mathematical value operations
-        case (POS_INF, Math(l), Math(u)) => Math(u)
-        case (NEG_INF, Math(l), Math(u)) => Math(l)
-
-        case (_, _, _) =>
-          throw InvalidClampOp(tv, lv, uv)
-      }
     case EMathOp(mop, exprs) =>
       val vs = for (e <- exprs) yield eval(e).toPureValue
       Interpreter.eval(mop, st, vs)

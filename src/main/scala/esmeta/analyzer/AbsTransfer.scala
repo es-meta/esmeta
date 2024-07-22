@@ -418,12 +418,6 @@ trait AbsTransferDecl { self: Analyzer =>
           for {
             vs <- join(exprs.map(transfer))
           } yield transfer(vop, vs)
-        case EClamp(target, lower, upper) =>
-          for {
-            v <- transfer(target)
-            lv <- transfer(lower)
-            uv <- transfer(upper)
-          } yield v.clamp(lv, uv)
         case EMathOp(mop, exprs) =>
           for {
             vs <- join(exprs.map(transfer))
