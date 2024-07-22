@@ -94,7 +94,7 @@ class StringifyTinyTest extends IRTest {
       |  delete x.p
       |  return x
       |} else {}""".stripMargin,
-      loopInst -> """loop[repeat] x {
+      whileInst -> """while x {
       |  let x = ~empty~
       |  delete x.p
       |  return x

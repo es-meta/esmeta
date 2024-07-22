@@ -102,8 +102,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " " >> thenInst
         app >> " else " >> elseInst
-      case ILoop(kind, cond, body) =>
-        app >> "loop[" >> kind >> "] " >> cond >> " " >> body
+      case IWhile(cond, body) =>
+        app >> "while " >> cond >> " " >> body
       case ICall(lhs, fexpr, args) =>
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "call " >> lhs >> " = " >> fexpr >> args

@@ -25,6 +25,12 @@ case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
 object NormalInsts extends Parser.From(Parser.normalInsts)
 
+// branch instructions
+sealed trait BranchInst extends Inst
+case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends BranchInst
+case class IWhile(cond: Expr, body: Inst) extends BranchInst
+object BranchInst extends Parser.From(Parser.branchInst)
+
 // call instructions
 sealed trait CallInst extends Inst {
   val lhs: Local
@@ -44,5 +50,3 @@ case class ISdoCall(lhs: Local, base: Expr, method: String, args: List[Expr])
 
 // special instructions
 case class ISeq(insts: List[Inst]) extends Inst
-case class IIf(cond: Expr, thenInst: Inst, elseInst: Inst) extends Inst
-case class ILoop(kind: String, cond: Expr, body: Inst) extends Inst

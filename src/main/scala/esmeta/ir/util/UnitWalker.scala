@@ -52,7 +52,7 @@ trait UnitWalker extends BasicUnitWalker {
     case INop()                 =>
     case ISeq(insts)            => walkList(insts, walk)
     case IIf(c, t, e)           => walk(c); walk(t); walk(e)
-    case ILoop(k, c, b)         => walk(c); walk(b)
+    case IWhile(c, b)           => walk(c); walk(b)
     case ICall(l, f, as)        => walk(l); walk(f); walkList(as, walk)
     case IMethodCall(l, b, n, as) =>
       walk(l); walk(b); walk(n); walkList(as, walk)
