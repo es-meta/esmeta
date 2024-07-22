@@ -2515,3 +2515,4 @@ Yield
 YieldExpression[0,0].Evaluation
 YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
+__CLAMP__
