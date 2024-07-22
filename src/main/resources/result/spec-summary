@@ -1,4 +1,4 @@
-- version: 0b24a049c11fe0604b1c929772e7cbd671b78492 (es2024)
+- version: 0b24a049c11fe0604b1c929772e7cbd671b78492 (es2024-candidate-2024-02-28)
 - grammar:
   - productions: 374
     - lexical: 162

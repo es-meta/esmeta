@@ -59,17 +59,19 @@ class CFGBuilder(
         block.insts += normal
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
-      case inst @ IIf(cond, thenInst, elseInst) =>
-        val branch = Branch(nextNId, BranchKind.If, cond)
-        connect(branch.setInst(inst))
-        val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
-        val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
-        prev = thenPrev ++ elsePrev
-      case inst @ ILoop(kind, cond, body) =>
-        val branch = Branch(nextNId, BranchKind.Loop(kind), cond)
-        connect(branch.setInst(inst), isLoopPred = true)
-        prev = List((branch, true)); aux(body); connect(branch)
-        prev = List((branch, false))
+      case branch: BranchInst =>
+        branch match
+          case IIf(cond, thenInst, elseInst) =>
+            val branch = Branch(nextNId, BranchKind.If, cond)
+            connect(branch.setInst(inst))
+            val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
+            val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
+            prev = thenPrev ++ elsePrev
+          case ILoop(kind, cond, body) =>
+            val branch = Branch(nextNId, BranchKind.Loop(kind), cond)
+            connect(branch.setInst(inst), isLoopPred = true)
+            prev = List((branch, true)); aux(body); connect(branch)
+            prev = List((branch, false))
       case callInst: CallInst =>
         val call = Call(nextNId, callInst)
         connect(call)

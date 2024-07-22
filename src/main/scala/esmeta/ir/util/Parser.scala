@@ -64,11 +64,7 @@ trait Parsers extends TyParsers {
   given inst: Parser[Inst] = withLoc {
     "{" ~> rep(inst) <~ "}" ^^ {
       ISeq(_)
-    } | ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
-      case c ~ t ~ e => IIf(c, t, e)
-    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
-      case k ~ c ~ b => ILoop(k, c, b)
-    } | callInst | normalInst
+    } | branchInst | callInst | normalInst
   }.named("ir.Inst")
 
   lazy val callInst: Parser[CallInst] =
@@ -105,6 +101,14 @@ trait Parsers extends TyParsers {
     } | expr ^^ {
       case e => IExpr(e)
     }
+
+  given branchInst: Parser[BranchInst] = {
+    ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
+      case c ~ t ~ e => IIf(c, t, e)
+    } | ("loop[" ~> "[^\\]]+".r <~ "]") ~ expr ~ inst ^^ {
+      case k ~ c ~ b => ILoop(k, c, b)
+    }
+  }.named("ir.BranchInst")
 
   // expressions
   given expr: Parser[Expr] = {
