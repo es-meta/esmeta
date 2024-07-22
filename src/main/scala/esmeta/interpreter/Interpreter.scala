@@ -648,7 +648,6 @@ object Interpreter {
         TV.of(name)(str)
       case (_, "TRV") if TRV.of.contains(name) =>
         TRV.of(name)(str)
-      case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
         throw NotSupported(Feature)(List("RegExp"))
       case _ =>
