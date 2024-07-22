@@ -111,8 +111,6 @@ trait Walker extends BasicWalker {
       ECont(walk(fname))
     case EDuplicated(expr) =>
       EDuplicated(walk(expr))
-    case EIsArrayIndex(expr) =>
-      EIsArrayIndex(walk(expr))
     case EDebug(expr) =>
       EDebug(walk(expr))
     case expr: ERandom     => walk(expr)

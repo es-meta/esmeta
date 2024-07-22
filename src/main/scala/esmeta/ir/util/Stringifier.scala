@@ -168,8 +168,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EDuplicated(expr) =>
         app >> "(duplicated " >> expr >> ")"
-      case EIsArrayIndex(expr) =>
-        app >> "(array-index " >> expr >> ")"
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
         app >> "clo<" >> fname

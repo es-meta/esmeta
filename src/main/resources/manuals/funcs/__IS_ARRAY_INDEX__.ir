@@ -1,0 +1,25 @@
+def <AUX>:__IS_ARRAY_INDEX__(
+  P: Symbol | String
+): Boolean = {
+  if (= (typeof P) @String) {
+    call %0 = clo<CanonicalNumericIndexString>(P)
+    if (= %0 undefined) {
+      return false
+    } else {
+      // IsIntegralNumber AO will be removed in ES2025
+      call %1 = clo<IsIntegralNumber>(%0)
+      if %1 {
+        %2 = ([math] %0)
+        if (&& (|| (< 0 %2) (= 0 %2)) (< %2 (- (** 2 32) 1))) {
+          return true
+        } else {
+          return false
+        }
+      } else {
+        return false
+      }
+    }
+  } else {
+    return false
+  }
+}

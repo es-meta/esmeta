@@ -153,7 +153,6 @@ trait ValueDomainDecl { self: Self =>
       def substring(from: Elem): Elem
       def substring(from: Elem, to: Elem): Elem
       def trim(leading: Boolean, trailing: Boolean): Elem
-      def isArrayIndex: Elem
 
       /** single check */
       def isSingle: Boolean = elem.getSingle match

@@ -106,3 +106,4 @@ def PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)
 /** predefined auxiliary functions */
 inline def getAux(name: String): EClo = EClo("__" + name + "__", Nil)
 def AUX_CLAMP = getAux("CLAMP")
+def AUX_IS_ARRAY_INDEX = getAux("IS_ARRAY_INDEX")
