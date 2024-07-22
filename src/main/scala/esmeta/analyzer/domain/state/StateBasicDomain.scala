@@ -137,7 +137,7 @@ trait StateBasicDomainDecl { self: Self =>
             case _ => Bot
         }
 
-      /** fielderty setter */
+      /** field setter */
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem =
         elem.bottomCheck(AbsValue)(base, field, value) {
           elem.copy(heap = elem.heap.update(base.part, field, value))
@@ -423,7 +423,7 @@ trait StateBasicDomainDecl { self: Self =>
         case (One(AstValue(syn: es.Syntactic)), One(Math(n))) if n.isValidInt =>
           syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
         case (_: One[_], _: One[_]) => AbsValue.Bot
-        case _                      => exploded("ast fielderty access")
+        case _                      => exploded("ast field access")
 
     // lookup strings
     private def lookupStr(str: AbsStr, field: AbsValue): AbsValue =

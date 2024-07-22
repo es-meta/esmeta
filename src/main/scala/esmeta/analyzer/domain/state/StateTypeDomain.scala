@@ -115,7 +115,7 @@ trait StateTypeDomainDecl { self: Self =>
           //   warning(s"invalid global variable update: $x = $value")
           elem
 
-      /** fielderty setter */
+      /** field setter */
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem = elem
 
       /** deletion with reference values */

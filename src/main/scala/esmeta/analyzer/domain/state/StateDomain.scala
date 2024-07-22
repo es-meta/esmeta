@@ -79,7 +79,7 @@ trait StateDomainDecl { self: Self =>
       /** identifier setter */
       def update(x: Var, value: AbsValue): Elem
 
-      /** fielderty setter */
+      /** field setter */
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem
 
       /** deletion with reference values */
