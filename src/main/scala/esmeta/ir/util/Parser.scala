@@ -321,12 +321,13 @@ trait Parsers extends TyParsers {
   lazy val x: Parser[Var] =
     "@[A-Za-z_]+".r ^^ { case s => Global(s.substring(1)) } |
     local
-  lazy val local: Parser[Local] =
-    "%(0|[1-9][0-9]*)".r ^^ { case s => Temp(s.substring(1).toInt) } |
-    name
+  lazy val local: Parser[Local] = temp | name
 
   // named local identifiers
   lazy val name: Parser[Name] = "[_a-zA-Z][_a-zA-Z0-9]*".r ^^ { Name(_) }
+  lazy val temp: Parser[Temp] = "%(0|[1-9][0-9]*)".r ^^ {
+    case s => Temp(s.substring(1).toInt)
+  }
 
   // types
   given irType: Parser[Type] = {

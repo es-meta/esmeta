@@ -30,7 +30,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Calling Contexts
     // -------------------------------------------------------------------------
-    lazy val callCtxt = CallContext(Name("x"), ctxt)
+    lazy val callCtxt = CallContext(ctxt, Name("x"))
     checkStringify("CallContext")(
       callCtxt -> "x @ Block[0]",
     )

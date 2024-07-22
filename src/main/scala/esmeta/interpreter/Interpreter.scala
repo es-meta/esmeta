@@ -80,7 +80,7 @@ class Interpreter(
         case Nil =>
           st.context.retVal.map((_, v) => st.globals += GLOBAL_RESULT -> v)
           false
-        case CallContext(retId, ctxt) :: rest =>
+        case CallContext(ctxt, retId) :: rest =>
           val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
           st.context = ctxt
           st.callStack = rest
@@ -144,7 +144,7 @@ class Interpreter(
           val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, clo) ++ captured
-          st.callStack ::= CallContext(lhs, st.context)
+          st.callStack ::= CallContext(st.context, lhs)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
           val needWrapped = st.context.func.isReturnComp
@@ -170,7 +170,7 @@ class Interpreter(
                 call,
                 Clo(sdo, Map()),
               )
-              st.callStack ::= CallContext(lhs, st.context)
+              st.callStack ::= CallContext(st.context, lhs)
               st.context = Context(sdo, newLocals)
             case None => throw InvalidAstProp(syn, Str(method))
         case lex: Lexical =>

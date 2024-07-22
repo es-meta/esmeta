@@ -61,7 +61,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
-    val CallContext(retId, context) = callCtxt
+    val CallContext(context, retId) = callCtxt
     app >> retId >> " @ " >> context.cursor
 
   // heaps
