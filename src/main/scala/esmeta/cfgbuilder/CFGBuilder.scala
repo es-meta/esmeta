@@ -50,6 +50,28 @@ class CFGBuilder(
           case (branch: Branch, true)  => branch.thenNode = Some(to)
           case (branch: Branch, false) => branch.elseNode = Some(to)
 
+    // aux branch case
+    def auxBranch(inst: Inst): Unit =
+      inst match
+        case branch: BranchInst =>
+          branch match
+            case IIf(cond, thenInst, elseInst) =>
+              val branch = Branch(nextNId, BranchKind.If, cond)
+              connect(branch.setInst(inst))
+              val thenPrev = {
+                prev = List((branch, true)); aux(thenInst); prev
+              }
+              val elsePrev = {
+                prev = List((branch, false)); aux(elseInst); prev
+              }
+              prev = thenPrev ++ elsePrev
+            case IWhile(cond, body) =>
+              val branch = Branch(nextNId, BranchKind.While, cond)
+              connect(branch.setInst(inst), isLoopPred = true)
+              prev = List((branch, true)); aux(body); connect(branch)
+              prev = List((branch, false))
+        case _ => throw Exception("impossible match")
+
     // aux
     def aux(inst: Inst): Unit = inst match {
       case normal: NormalInst =>
@@ -60,18 +82,7 @@ class CFGBuilder(
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
       case branch: BranchInst =>
-        branch match
-          case IIf(cond, thenInst, elseInst) =>
-            val branch = Branch(nextNId, BranchKind.If, cond)
-            connect(branch.setInst(inst))
-            val thenPrev = { prev = List((branch, true)); aux(thenInst); prev }
-            val elsePrev = { prev = List((branch, false)); aux(elseInst); prev }
-            prev = thenPrev ++ elsePrev
-          case IWhile(cond, body) =>
-            val branch = Branch(nextNId, BranchKind.While, cond)
-            connect(branch.setInst(inst), isLoopPred = true)
-            prev = List((branch, true)); aux(body); connect(branch)
-            prev = List((branch, false))
+        auxBranch(inst)
       case callInst: CallInst =>
         val call = Call(nextNId, callInst)
         connect(call)
