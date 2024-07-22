@@ -49,7 +49,6 @@ object IRTest {
     seq,
   )
   lazy val call = ICall(temp, xExpr, List(xExpr, yExpr))
-  lazy val methodCall = IMethodCall(temp, x, "Get", List(xExpr, yExpr))
   lazy val sdoCall = ISdoCall(temp, xExpr, "Evaluation", List(xExpr, yExpr))
 
   // expressions

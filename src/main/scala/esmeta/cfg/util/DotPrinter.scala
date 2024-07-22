@@ -95,8 +95,6 @@ class DotPrinter(
         val simpleString = callInst match
           case ICall(lhs, fexpr, args) =>
             s"${norm(lhs)} = ${norm(fexpr)}(${args.map(norm(_)).mkString(", ")})"
-          case IMethodCall(lhs, base, method, args) =>
-            s"${norm(lhs)} = ${norm(base)}-&gt;${norm(method)}(${args.map(norm(_)).mkString(", ")})"
           case ISdoCall(lhs, ast, method, args) =>
             s"${norm(lhs)} = ${norm(ast)}-&gt;$method(${args.map(norm(_)).mkString(", ")})"
         drawNode(id, "cds", nodeColor, bgColor, Some(simpleString))
