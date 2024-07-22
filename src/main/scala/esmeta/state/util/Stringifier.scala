@@ -31,7 +31,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Heap        => heapRule(app, elem)
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
-      case elem: RefValue    => refValRule(app, elem)
+      case elem: RefTarget   => refTargetRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -168,10 +168,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // reference value
   lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refValRule: Rule[RefValue] = (app, refValue) =>
-    refValue match {
-      case IdValue(id)                           => app >> id
-      case PropValue(base, Str(inlineProp(str))) => app >> base >> "." >> str
-      case PropValue(base, prop) => app >> base >> "[" >> prop >> "]"
+  given refTargetRule: Rule[RefTarget] = (app, refTarget) =>
+    refTarget match {
+      case VarTarget(id)                          => app >> id
+      case PropTarget(base, Str(inlineProp(str))) => app >> base >> "." >> str
+      case PropTarget(base, prop) => app >> base >> "[" >> prop >> "]"
     }
 }

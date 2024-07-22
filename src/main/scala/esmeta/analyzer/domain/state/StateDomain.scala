@@ -28,14 +28,14 @@ trait StateDomainDecl { self: Self =>
 
       /** getters */
       def get(
-        rv: AbsRefValue,
+        rt: AbsRefTarget,
         cp: ControlPoint,
-      ): AbsValue = rv match
-        case AbsRefId(x)            => elem.get(x, cp)
+      ): AbsValue = rt match
+        case AbsRefVar(x)           => elem.get(x, cp)
         case AbsRefProp(base, prop) => elem.get(base, prop)
 
       /** getters with identifiers */
-      def get(x: Id, cp: ControlPoint): AbsValue =
+      def get(x: Var, cp: ControlPoint): AbsValue =
         val v = directLookup(x)
         if (cp.isBuiltin && AbsValue.absentTop ⊑ v)
           v.removeAbsent ⊔ AbsValue.undefTop
@@ -48,7 +48,7 @@ trait StateDomainDecl { self: Self =>
       def get(part: Part): AbsObj
 
       /** lookup variables */
-      def directLookup(x: Id): AbsValue = x match
+      def directLookup(x: Var): AbsValue = x match
         case x: Local  => lookupLocal(x)
         case x: Global => lookupGlobal(x)
 
@@ -60,8 +60,8 @@ trait StateDomainDecl { self: Self =>
       def lookupGlobal(x: Global): AbsValue
 
       /** existence checks */
-      def exists(ref: AbsRefValue): AbsValue = ref match
-        case AbsRefId(id) => !directLookup(id).isAbsent
+      def exists(rt: AbsRefTarget): AbsValue = rt match
+        case AbsRefVar(x) => !directLookup(x).isAbsent
         case AbsRefProp(base, prop) =>
           !elem.get(base, prop).isAbsent
 
@@ -72,18 +72,18 @@ trait StateDomainDecl { self: Self =>
       def defineGlobal(pairs: (Global, AbsValue)*): Elem
 
       /** setter with reference values */
-      def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
-        case AbsRefId(x)            => update(x, value)
+      def update(rt: AbsRefTarget, value: AbsValue): Elem = rt match
+        case AbsRefVar(x)           => update(x, value)
         case AbsRefProp(base, prop) => update(base, prop, value)
 
       /** identifier setter */
-      def update(x: Id, value: AbsValue): Elem
+      def update(x: Var, value: AbsValue): Elem
 
       /** property setter */
       def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
 
       /** deletion with reference values */
-      def delete(refV: AbsRefValue): Elem
+      def delete(rt: AbsRefTarget): Elem
 
       /** push values to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem

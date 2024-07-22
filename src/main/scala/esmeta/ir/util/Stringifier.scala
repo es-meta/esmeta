@@ -348,16 +348,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
     ref match {
       case Prop(ref, EStr(inlineProp(str))) => app >> ref >> "." >> str
       case Prop(ref, expr)                  => app >> ref >> "[" >> expr >> "]"
-      case id: Id                           => idRule(app, id)
+      case x: Var                           => varRule(app, x)
     }
   }
 
   // identifiers
-  given idRule: Rule[Id] = (app, id) =>
-    id match {
+  given varRule: Rule[Var] = (app, x) =>
+    x match {
       case Global(name) => app >> "@" >> name
       case Name(name)   => app >> name
-      case Temp(id)     => app >> "%" >> id
+      case Temp(idx)    => app >> "%" >> idx
     }
 
   // types

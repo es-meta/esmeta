@@ -154,11 +154,11 @@ class StringifyTinyTest extends StateTest {
     // Reference Values
     // -------------------------------------------------------------------------
     lazy val x = Name("x")
-    lazy val xRefVal = IdValue(x)
-    lazy val prop = PropValue(addr, Str("prop"))
-    lazy val noInlineProp = PropValue(addr, Math(42))
-    checkStringify("RefValue")(
-      xRefVal -> "x",
+    lazy val xRefTarget = VarTarget(x)
+    lazy val prop = PropTarget(addr, Str("prop"))
+    lazy val noInlineProp = PropTarget(addr, Math(42))
+    checkStringify("RefTarget")(
+      xRefTarget -> "x",
       prop -> "#42.prop",
       noInlineProp -> "#42[42]",
     )

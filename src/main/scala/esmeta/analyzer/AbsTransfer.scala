@@ -568,9 +568,9 @@ trait AbsTransferDecl { self: Analyzer =>
       }
 
     /** transfer function for references */
-    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefValue] =
+    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefTarget] =
       ref match
-        case id: Id => AbsRefId(id)
+        case x: Var => AbsRefVar(x)
         case prop @ Prop(base, expr) =>
           for {
             rv <- transfer(base)
@@ -586,8 +586,10 @@ trait AbsTransferDecl { self: Analyzer =>
     ): AbsValue = base
 
     /** transfer function for reference values */
-    def transfer(rv: AbsRefValue)(using np: NodePoint[Node]): Result[AbsValue] =
-      for { v <- get(_.get(rv, np)) } yield v
+    def transfer(rt: AbsRefTarget)(using
+      np: NodePoint[Node],
+    ): Result[AbsValue] =
+      for { v <- get(_.get(rt, np)) } yield v
 
     /** transfer function for unary operators */
     def transfer(

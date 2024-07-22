@@ -7,7 +7,7 @@ type Self = Decl & Analyzer
 
 trait Decl
   extends AValueDecl
-  with AbsRefValueDecl
+  with AbsRefTargetDecl
   with DomainDecl
   with FlatDomainDecl
   with OptionDomainDecl

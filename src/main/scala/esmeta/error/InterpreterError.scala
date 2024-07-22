@@ -106,7 +106,7 @@ case class NotDecimalType(v: Value)
   extends InvalidTypeConversion(Some(s"$v is not decimal number"))
 
 // undefined values
-case class UnknownId(x: Id) extends InterpreterError(s"unknown variable: $x")
+case class UnknownId(x: Var) extends InterpreterError(s"unknown variable: $x")
 case class UnknownAddr(addr: Addr)
   extends InterpreterError(s"unknown address: $addr")
 case class UnknownFunc(name: String)

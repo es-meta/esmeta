@@ -49,7 +49,7 @@ trait StateBasicDomainDecl { self: Self =>
       AbsHeap.setBase(init.initHeap)
       base = for ((x, v) <- init.initGlobal.toMap) yield x -> AbsValue(v)
 
-    private var base: Map[Id, AbsValue] = Map()
+    private var base: Map[Var, AbsValue] = Map()
 
     /** element interfaces */
     extension (elem: Elem) {
@@ -125,7 +125,7 @@ trait StateBasicDomainDecl { self: Self =>
         elem.globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
 
       /** identifier setter */
-      def update(x: Id, value: AbsValue): Elem =
+      def update(x: Var, value: AbsValue): Elem =
         elem.bottomCheck(AbsValue)(value) {
           x match
             case x: Global if globals contains x =>
@@ -144,8 +144,8 @@ trait StateBasicDomainDecl { self: Self =>
         }
 
       /** deletion with reference values */
-      def delete(refV: AbsRefValue): Elem = refV match
-        case AbsRefId(x) => error(s"cannot delete variable $x")
+      def delete(refV: AbsRefTarget): Elem = refV match
+        case AbsRefVar(x) => error(s"cannot delete variable $x")
         case AbsRefProp(base, prop) =>
           elem.bottomCheck(AbsValue)(base, prop) {
             elem.copy(heap = elem.heap.delete(base.part, prop))

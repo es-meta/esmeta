@@ -263,9 +263,9 @@ class Injector(
   private def getValue(str: String): Value = getValue(Expr.from(str))
   private def getValue(expr: Expr): Value =
     (new Interpreter(exitSt.copied)).eval(expr)
-  private def getValue(refV: RefValue): Value = exitSt(refV)
+  private def getValue(rt: RefTarget): Value = exitSt(rt)
   private def getValue(addr: Addr, prop: String): Value =
-    getValue(PropValue(addr, Str(prop)))
+    getValue(PropTarget(addr, Str(prop)))
 
   // access properties
   private def access(base: Value, props: PureValue*): Value =

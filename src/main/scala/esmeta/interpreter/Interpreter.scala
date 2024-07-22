@@ -523,12 +523,12 @@ class Interpreter(
     case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
-  def eval(ref: Ref): RefValue = ref match
-    case x: Id => IdValue(x)
+  def eval(ref: Ref): RefTarget = ref match
+    case x: Var => VarTarget(x)
     case Prop(ref, expr) =>
       var base = st(eval(ref))
       val p = eval(expr)
-      PropValue(base, p.toPureValue)
+      PropTarget(base, p.toPureValue)
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
@@ -549,8 +549,8 @@ class Interpreter(
     st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */
-  def setCallResult(id: Id, value: Value): Unit =
-    st.define(id, value)
+  def setCallResult(x: Var, value: Value): Unit =
+    st.define(x, value)
     st.context.moveNext
 
   /** sdo with default case */

@@ -174,11 +174,11 @@ trait UnitWalker extends BasicUnitWalker {
   // references
   def walk(ref: Ref): Unit = ref match {
     case Prop(ref, expr) => walk(ref); walk(expr)
-    case x: Id           => walk(x)
+    case x: Var          => walk(x)
   }
 
   // identifiers
-  def walk(x: Id): Unit = x match {
+  def walk(x: Var): Unit = x match {
     case Global(x) => walk(x)
     case x: Name   => walk(x)
     case Temp(k)   => walk(k)

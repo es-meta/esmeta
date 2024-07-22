@@ -108,7 +108,7 @@ trait StateTypeDomainDecl { self: Self =>
       def lookupGlobal(x: Global): AbsValue = base.getOrElse(x, AbsValue.Bot)
 
       /** identifier setter */
-      def update(x: Id, value: AbsValue): Elem = x match
+      def update(x: Var, value: AbsValue): Elem = x match
         case x: Local  => defineLocal(x -> value)
         case x: Global =>
           // TODO if (value !⊑ base(x))
@@ -119,7 +119,7 @@ trait StateTypeDomainDecl { self: Self =>
       def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
 
       /** deletion with reference values */
-      def delete(refV: AbsRefValue): Elem = elem
+      def delete(rt: AbsRefTarget): Elem = elem
 
       /** push values to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem

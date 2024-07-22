@@ -4,7 +4,7 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 
 /** IR calling contexts */
-case class CallContext(retId: Id, context: Context) extends StateElem {
+case class CallContext(retId: Var, context: Context) extends StateElem {
 
   /** function name * */
   def name: String = context.func.irFunc.name

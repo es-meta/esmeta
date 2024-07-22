@@ -314,11 +314,11 @@ trait Parsers extends TyParsers {
   // references
   given ref: Parser[Ref] = {
     val prop = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
-    id ~ rep(prop) ^^ { case x ~ es => es.foldLeft[Ref](x)(Prop(_, _)) }
+    x ~ rep(prop) ^^ { case x ~ es => es.foldLeft[Ref](x)(Prop(_, _)) }
   }.named("ir.Ref")
 
   // identifiers
-  lazy val id: Parser[Id] =
+  lazy val x: Parser[Var] =
     "@[A-Za-z_]+".r ^^ { case s => Global(s.substring(1)) } |
     local
   lazy val local: Parser[Local] =

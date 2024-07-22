@@ -15,7 +15,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Heap        => walk(elem)
     case elem: Obj         => walk(elem)
     case elem: Value       => walk(elem)
-    case elem: RefValue    => walk(elem)
+    case elem: RefTarget   => walk(elem)
 
   // states
   def walk(st: State): Unit =
@@ -77,10 +77,10 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(sv: SimpleValue): Unit = {}
 
   // reference value
-  def walk(rv: RefValue): Unit = rv match
-    case _: IdValue            =>
-    case PropValue(base, prop) => walk(base); walk(prop)
+  def walk(rv: RefTarget): Unit = rv match
+    case _: VarTarget           =>
+    case PropTarget(base, prop) => walk(base); walk(prop)
 
   // ir id
-  def walk(id: Id): Unit = {}
+  def walk(id: Var): Unit = {}
 }

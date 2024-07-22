@@ -3,13 +3,13 @@ package esmeta.analyzer.domain
 import esmeta.analyzer.*
 import esmeta.ir.*
 
-trait AbsRefValueDecl { self: Self =>
+trait AbsRefTargetDecl { self: Self =>
 
   /** basic abstract reference values */
-  sealed trait AbsRefValue:
+  sealed trait AbsRefTarget:
     override def toString: String = this match
-      case AbsRefId(id)           => s"$id"
+      case AbsRefVar(x)           => s"$x"
       case AbsRefProp(base, prop) => s"$base[$prop]"
-  case class AbsRefId(id: Id) extends AbsRefValue
-  case class AbsRefProp(base: AbsValue, prop: AbsValue) extends AbsRefValue
+  case class AbsRefVar(x: Var) extends AbsRefTarget
+  case class AbsRefProp(base: AbsValue, prop: AbsValue) extends AbsRefTarget
 }
