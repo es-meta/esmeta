@@ -8,7 +8,7 @@ def IsInTailPosition(
   // Let _body_ be the |FunctionBody|, |ConciseBody|, or |AsyncConciseBody| that most closely contains _call_.
   %0 = false
   %1 = call
-  loop[repeat] (&& (! %0) (! (= %1 absent))) {
+  while (&& (! %0) (! (= %1 absent))) {
     %0 = (|| (|| (|| %0 (? %1: "FunctionBody")) (? %1: "ConciseBody")) (? %1: "AsyncConciseBody"))
     if (! %0) %1 = %1.parent else {}
   }

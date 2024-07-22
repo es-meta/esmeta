@@ -1,7 +1,7 @@
 @main def main() = {
   let sum = 0
   let i = 0
-  loop["repeat"] (< i 11) {
+  while (< i 11) {
     sum = (+ sum i)
     i = (+ i 1)
   }

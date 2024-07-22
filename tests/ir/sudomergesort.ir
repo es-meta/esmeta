@@ -15,7 +15,7 @@ def sudomergesort(list: List[Math]) = {
     let left = (new [])[#1]
     let right = sortedlist
     let i = (>> length 1)
-    loop[repeat] (< 0 i) {
+    while (< 0 i) {
       i = (- i 1)
       %0 = (pop < right)
       push left < %0

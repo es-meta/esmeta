@@ -1,7 +1,7 @@
 def dec2bin(n: Math) = {
   let temp = 0
   let i = 0
-  loop[repeat] (! (|| (= n 0) (= n 1))) {
+  while (! (|| (= n 0) (= n 1))) {
     let q = (>> n 1)
     let r = (% n 2)
     n = q

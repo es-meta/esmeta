@@ -116,7 +116,7 @@ class StringifyTinyTest extends AnalyzerTest {
     def func(id: Int): Func =
       Func(id, irFunc, entry(4))
     lazy val block = Block(0, ListBuffer(let, del, ret))
-    lazy val branch = Branch(0, BranchKind.Loop("repeat"), xExpr)
+    lazy val branch = Branch(0, BranchKind.While, xExpr)
     lazy val call = Call(0, callInst)
 
     // -------------------------------------------------------------------------
