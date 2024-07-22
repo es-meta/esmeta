@@ -49,8 +49,8 @@ class StringifyTinyTest extends AnalyzerTest {
       argAssignPoint -> "argument assignment to first parameter _x_ when function call from f to f",
       internalReturnPoint -> "return statement in f",
       riaPoint -> "ReturnIfAbrupt(?) in f",
-      fieldBasePoint -> "base inproperty lookup in f",
-      fieldPoint -> "property lookup in f",
+      fieldBasePoint -> "base infield lookup in f",
+      fieldPoint -> "field lookup in f",
       unaryOpPoint -> "unary operation (-) in f",
       binaryOpPoint -> "binary operation (+) in f",
       nodePoint -> "f[0]:Block[0]",
@@ -87,7 +87,7 @@ class StringifyTinyTest extends AnalyzerTest {
       """[UncheckedAbruptError] ReturnIfAbrupt(?) in f
         |- type    : T""".stripMargin,
       invalidBaseError ->
-      """[InvalidBaseError] base inproperty lookup in f
+      """[InvalidBaseError] base infield lookup in f
         |- base    : T""".stripMargin,
       unaryOpTypeMismatch ->
       """[UnaryOpTypeMismatch] unary operation (-) in f
