@@ -100,7 +100,6 @@ class StringifyTinyTest extends IRTest {
       |  return x
       |}""".stripMargin,
       call -> "call %42 = x(x, y)",
-      methodCall -> "method-call %42 = x->Get(x, y)",
       sdoCall -> "sdo-call %42 = x->Evaluation(x, y)",
     )
 

@@ -158,17 +158,6 @@ class Interpreter(
           st.context = Context(func, newLocals)
         }
         case v => throw NoFunc(fexpr, v)
-    case IMethodCall(lhs, base, method, args) =>
-      val bv = st(eval(base))
-      // TODO do not explicitly store methods in object but use a type model
-      // when accessing methods
-      st(bv, Str(method)) match
-        case clo @ Clo(func, _) =>
-          val vs = args.map(eval)
-          val newLocals = getLocals(func.irFunc.params, bv :: vs, call, clo)
-          st.callStack ::= CallContext(lhs, st.context)
-          st.context = Context(func, newLocals)
-        case v => throw NoFunc(call.callInst.fexpr, v)
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
@@ -659,7 +648,6 @@ object Interpreter {
         TV.of(name)(str)
       case (_, "TRV") if TRV.of.contains(name) =>
         TRV.of(name)(str)
-      case (_, "Contains") => Bool(false)
       case ("RegularExpressionLiteral", name) =>
         throw NotSupported(Feature)(List("RegExp"))
       case _ =>
