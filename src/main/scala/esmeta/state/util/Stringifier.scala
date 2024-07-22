@@ -170,7 +170,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refTargetRule: Rule[RefTarget] = (app, refTarget) =>
     refTarget match {
-      case VarTarget(id)                           => app >> id
+      case VarTarget(id)                            => app >> id
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
