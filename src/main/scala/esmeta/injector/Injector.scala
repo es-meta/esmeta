@@ -234,7 +234,7 @@ class Injector(
             val2str(p).map(propStr => {
               for {
                 field <- fields
-                value <- props.get(Str(field)).map(_.value.toPureValue)
+                value <- props.get(Str(field)).map(_.toPureValue)
               } value match
                 case sv: SimpleValue =>
                   set += s"${field.toLowerCase}: ${sv2str(sv)}"

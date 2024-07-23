@@ -98,7 +98,7 @@ trait ObjBasicDomainDecl { self: Self =>
           tname = tname,
           map = (for {
             (k, fieldV) <- fields
-          } yield AValue.from(k) -> AbsValue(fieldV.value)).toMap,
+          } yield AValue.from(k) -> AbsValue(fieldV)).toMap,
           order = Some(m.keys.map(AValue.from)),
         )
       case ListObj(values)     => KeyWiseList(values.map(AbsValue(_)))
