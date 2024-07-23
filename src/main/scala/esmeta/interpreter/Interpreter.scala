@@ -253,7 +253,7 @@ class Interpreter(
         case v                       => s.substring(f, v.asInt),
       ))
     case ETrim(expr, isStarting) =>
-      Str(trimString(eval(expr).asStr, isStarting))
+      Str(trimString(eval(expr).asStr, isStarting, esParser))
     case ERef(ref) =>
       st(eval(ref))
     case EUnary(uop, expr) =>

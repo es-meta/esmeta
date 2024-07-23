@@ -420,7 +420,7 @@ trait ValueBasicDomainDecl { self: Self =>
           case _ => Bot
       def trim(isStarting: Boolean): Elem = elem.getSingle match
         case Many        => exploded("ETrim")
-        case One(Str(s)) => apply(trimString(s, isStarting))
+        case One(Str(s)) => apply(trimString(s, isStarting, cfg.esParser))
         case _           => Bot
       def clamp(lower: Elem, upper: Elem): Elem =
         (elem.getSingle, lower.getSingle, upper.getSingle) match
