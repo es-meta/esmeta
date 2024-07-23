@@ -6,7 +6,7 @@ def <AUX>:__REMOVE__(
   let to = 0
 
   // @after  : to <= list.length && from = list.length
-  loop[aux] (< from list.length) {
+  while (< from list.length) {
     if (= list[from] elem) {}
     else {
       list[to] = list[from]
@@ -18,7 +18,7 @@ def <AUX>:__REMOVE__(
 
   // @before : to <= list.length
   // @after  : to  = list.length
-  loop[aux] (< to list.length) {
+  while (< to list.length) {
     (pop > list)
   }
   return list
