@@ -41,7 +41,7 @@ case class State(
   def apply(x: Var): Value = directLookup(x) match
     case Absent if func.isBuiltin => Undef
     case v                        => v
-  def apply(base: Value, field: PureValue): Value = base match
+  def apply(base: Value, field: Value): Value = base match
     case comp: Comp =>
       field match
         case Str("Type")   => comp.ty
@@ -52,7 +52,7 @@ case class State(
     case AstValue(ast) => apply(ast, field)
     case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
-  def apply(ast: Ast, field: PureValue): PureValue =
+  def apply(ast: Ast, field: Value): PureValue =
     (ast, field) match
       case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
       case (syn: Syntactic, Str(fieldStr)) =>
@@ -64,7 +64,7 @@ case class State(
       case (syn: Syntactic, Math(n)) if n.isValidInt =>
         syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
       case _ => throw InvalidAstField(ast, field)
-  def apply(str: String, field: PureValue): PureValue = field match
+  def apply(str: String, field: Value): PureValue = field match
     case Str("length") => Math(BigDecimal(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
@@ -92,7 +92,7 @@ case class State(
       case x: Temp                    => context.locals += x -> value
       case _ => error(s"illegal variable update: $x = $value")
     this
-  def update(addr: Addr, field: PureValue, value: Value): this.type =
+  def update(addr: Addr, field: Value, value: Value): this.type =
     heap.update(addr, field, value); this
 
   /** existence checks */

@@ -272,12 +272,12 @@ class Injector(
   private def getValue(expr: Expr): Value =
     (new Interpreter(exitSt.copied)).eval(expr)
   private def getValue(rt: RefTarget): Value = exitSt(rt)
-  private def getValue(addr: Addr, prop: String): Value =
-    getValue(FieldTarget(addr, Str(prop)))
+  private def getValue(addr: Addr, field: String): Value =
+    getValue(FieldTarget(addr, Str(field)))
 
-  // access properties
-  private def access(base: Value, props: PureValue*): Value =
-    props.foldLeft(base) { case (base, p) => exitSt(base, p) }
+  // access fields
+  private def access(base: Value, fields: Value*): Value =
+    fields.foldLeft(base) { case (base, p) => exitSt(base, p) }
 
   // get created lexical variables
   private lazy val lexRecord = s"@REALM.GlobalEnv.DeclarativeRecord.$INNER_MAP"
@@ -287,7 +287,7 @@ class Injector(
   // get keys
   private def getStrKeys(value: Value, path: String): Set[String] =
     getKeys(value, path).collect { case Str(p) => p }
-  private def getKeys(value: Value, path: String): Set[PureValue] = value match
+  private def getKeys(value: Value, path: String): Set[Value] = value match
     case addr: Addr =>
       exitSt(addr) match
         case m: MapObj => m.map.keySet.toSet
