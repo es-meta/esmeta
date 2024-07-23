@@ -138,7 +138,6 @@ trait ValueDomainDecl { self: Self =>
       def unary_- : Elem
       def unary_! : Elem
       def unary_~ : Elem
-      def abs: Elem
       def floor: Elem
 
       /** type operations */

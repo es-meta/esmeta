@@ -633,7 +633,6 @@ object Interpreter {
     import UOp.*
     (uop, operand) match
       // mathematic values
-      case (Abs, m: Math)   => abs(m)
       case (Floor, m: Math) => floor(m)
       // numeric values
       case (Neg, Number(n)) => Number(-n)

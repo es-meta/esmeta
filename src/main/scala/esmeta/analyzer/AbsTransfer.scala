@@ -602,7 +602,6 @@ trait AbsTransferDecl { self: Analyzer =>
             case Neg   => -operand
             case Not   => !operand
             case BNot  => ~operand
-            case Abs   => operand.abs
             case Floor => operand.floor
 
     /** transfer function for binary operators */

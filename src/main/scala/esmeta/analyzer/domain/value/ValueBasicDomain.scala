@@ -275,7 +275,6 @@ trait ValueBasicDomainDecl { self: Self =>
       def unary_- : Elem = ??? // TODO
       def unary_! : Elem = apply(bool = !elem.bool)
       def unary_~ : Elem = ??? // TODO
-      def abs: Elem = ??? // TODO
       def floor: Elem = ??? // TODO
 
       /** type operations */

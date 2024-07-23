@@ -257,7 +257,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given uopRule: Rule[UOp] = (app, uop) =>
     import UOp.*
     app >> (uop match {
-      case Abs   => "abs"
       case Floor => "floor"
       case Neg   => "-"
       case Not   => "!"

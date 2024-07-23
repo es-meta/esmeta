@@ -285,7 +285,7 @@ class TypeAnalyzer(
       if (config.checkUnaryOp)
         val operandTy = operand.ty
         unary.uop match
-          case Abs | Floor =>
+          case Floor =>
             checkUnary(unary, operandTy, MathT)
           case Neg | BNot =>
             checkUnary(unary, operandTy, MathT || NumberT || BigIntT)

@@ -8,7 +8,7 @@ sealed trait Op extends IRElem
 // unary operators
 enum UOp extends Op:
   // mathematic values
-  case Abs, Floor
+  case Floor
   // numeric values
   case Neg
   // boolean

@@ -282,15 +282,6 @@ trait ValueTypeDomainDecl { self: Self =>
           case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
         Elem(ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt))
 
-      /** absolute operation */
-      def abs: Elem =
-        val mathTy = elem.ty.math match
-          case MathTopTy                         => MathTopTy
-          case IntTy | NonNegIntTy | NonPosIntTy => NonNegIntTy
-          case NegIntTy | PosIntTy               => PosIntTy
-          case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
-        Elem(ValueTy(math = mathTy))
-
       /** floor operation */
       def floor: Elem =
         val mathTy = elem.ty.math match

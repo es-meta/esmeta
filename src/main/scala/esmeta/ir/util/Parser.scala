@@ -233,7 +233,6 @@ trait Parsers extends TyParsers {
   // unary operators
   given uop: Parser[UOp] = {
     import UOp.*
-    "abs" ^^^ Abs |
     "floor" ^^^ Floor |
     "-" ^^^ Neg |
     "!" ^^^ Not |

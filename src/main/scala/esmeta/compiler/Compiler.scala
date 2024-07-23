@@ -579,9 +579,12 @@ class Compiler(
       case MathFuncExpression(op, args) =>
         import MathFuncExpressionOperator.*
         (op, args) match
-          case (Max, _)         => EVariadic(VOp.Max, args.map(compile(fb, _)))
-          case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
-          case (Abs, List(arg)) => EUnary(UOp.Abs, compile(fb, arg))
+          case (Max, _) => EVariadic(VOp.Max, args.map(compile(fb, _)))
+          case (Min, _) => EVariadic(VOp.Min, args.map(compile(fb, _)))
+          case (Abs, List(arg)) =>
+            val (x, xExpr) = fb.newTIdWithExpr
+            fb.addInst(ICall(x, AUX_ABS, List(compile(fb, arg))))
+            xExpr
           case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
           case (Truncate, List(arg)) =>
             val (x, xExpr) = fb.newTIdWithExpr
