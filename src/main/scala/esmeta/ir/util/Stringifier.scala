@@ -163,8 +163,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(typeof " >> base >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
-      case EDuplicated(expr) =>
-        app >> "(duplicated " >> expr >> ")"
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
         app >> "clo<" >> fname

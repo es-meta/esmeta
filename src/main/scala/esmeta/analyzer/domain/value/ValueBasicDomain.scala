@@ -392,10 +392,6 @@ trait ValueBasicDomainDecl { self: Self =>
         } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
         // result
         newV
-      def duplicated(st: AbsState): Elem =
-        apply(bool = elem.part.foldLeft(AbsBool.Bot: AbsBool) {
-          case (avb, part) => avb ⊔ st.get(part).duplicated
-        })
       def substring(from: Elem): Elem =
         (elem.getSingle, from.getSingle) match
           case (Zero, _) | (_, Zero) => Bot

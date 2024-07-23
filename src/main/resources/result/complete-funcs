@@ -2516,5 +2516,6 @@ YieldExpression[0,0].Evaluation
 YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
 __CLAMP__
+__HAS_DUPLICATE__
 __IS_ARRAY_INDEX__
 __REMOVE_ELEM__

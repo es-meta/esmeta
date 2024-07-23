@@ -48,9 +48,6 @@ trait ObjDomainDecl { self: Self =>
       /** concat */
       def concat(list: AbsObj, weak: Boolean): Elem
 
-      /** duplicated element check */
-      def duplicated: AbsBool
-
       /** append */
       def append(value: AbsValue, weak: Boolean): Elem
 

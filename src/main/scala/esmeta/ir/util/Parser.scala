@@ -148,8 +148,6 @@ trait Parsers extends TyParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | "(" ~ "duplicated" ~> expr <~ ")" ^^ {
-      case e => EDuplicated(e)
     } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
     } | ("cont<" ~> fname <~ ">") ^^ {
