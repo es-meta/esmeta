@@ -118,11 +118,6 @@ class Interpreter(
           else st.append(addr, fromValue)
         case v => throw NoAddr(to, v)
       }
-    case IRemove(elem, list) =>
-      val v = eval(elem).toPureValue
-      eval(list) match
-        case (addr: Addr) => st.remove(addr, v)
-        case v            => throw NoAddr(list, v)
     case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
     case IAssert(_: EYet)    => /* skip not yet compiled assertions */
     case IAssert(expr) =>

@@ -88,9 +88,6 @@ trait StateDomainDecl { self: Self =>
       /** push values to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem
 
-      /** remove a value in a list */
-      def remove(list: AbsValue, value: AbsValue): Elem
-
       /** pop a value in a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem)
 

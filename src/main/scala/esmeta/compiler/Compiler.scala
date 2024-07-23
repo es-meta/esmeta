@@ -346,7 +346,13 @@ class Compiler(
     case SuspendStep(context, true) =>
       fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
     case RemoveStep(elem, list) =>
-      fb.addInst(IRemove(compile(fb, elem), compile(fb, list)))
+      fb.addInst(
+        ICall(
+          fb.newTId,
+          AUX_REMOVE_ELEM,
+          List(compile(fb, elem), compile(fb, list)),
+        ),
+      )
     case RemoveFirstStep(expr) =>
       fb.addInst(IExpr(EPop(compile(fb, expr), true)))
     case RemoveContextStep(_, _) =>

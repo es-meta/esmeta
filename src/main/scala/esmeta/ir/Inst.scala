@@ -18,7 +18,6 @@ case class ILet(lhs: Name, expr: Expr) extends NormalInst
 case class IAssign(ref: Ref, expr: Expr) extends NormalInst
 case class IDelete(ref: Ref) extends NormalInst
 case class IPush(from: Expr, to: Expr, front: Boolean) extends NormalInst
-case class IRemove(elem: Expr, list: Expr) extends esmeta.ir.NormalInst
 case class IReturn(expr: Expr) extends NormalInst with Return
 case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst

@@ -125,8 +125,6 @@ case class State(
     heap.prepend(addr, value); this
   def pop(addr: Addr, front: Boolean): Value =
     heap.pop(addr, front)
-  def remove(addr: Addr, value: PureValue): this.type =
-    heap.remove(addr, value); this
   def copyObj(addr: Addr): Addr =
     heap.copyObj(addr)
   def keys(addr: Addr, intSorted: Boolean): Addr =
