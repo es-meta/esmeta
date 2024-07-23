@@ -124,12 +124,11 @@ class Interpreter(
         case (addr: Addr) => st.remove(addr, v)
         case v            => throw NoAddr(list, v)
     case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
-    case IAssert(_: EYet)    => /* skip not yet compiled assertions */
     case IAssert(expr) =>
-      eval(expr) match {
-        case Bool(true) =>
-        case v          => throw AssertionFail(expr)
-      }
+      optional(eval(expr)) match
+        case None             => /* skip not yet compiled assertions */
+        case Some(Bool(true)) =>
+        case v                => throw AssertionFail(expr)
     case IPrint(expr) =>
       val v = eval(expr)
       if (!TEST_MODE) println(st.getString(v))
