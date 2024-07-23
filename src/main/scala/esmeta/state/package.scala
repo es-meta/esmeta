@@ -65,6 +65,11 @@ val NEG_INF = Infinity(pos = false)
 val NUMBER_POS_INF = Number(Double.PositiveInfinity)
 val NUMBER_NEG_INF = Number(Double.NegativeInfinity)
 
+def trimString(x: String, isStarting: Boolean): String = {
+  if (isStarting) x.replaceAll("^\\s+", "")
+  else x.replaceAll("\\s+$", "")
+}
+
 /** conversion number to string */
 def toStringHelper(x: Double, radix: Int = 10): String = {
   // get sign

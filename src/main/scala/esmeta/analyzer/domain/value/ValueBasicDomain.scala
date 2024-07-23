@@ -419,13 +419,9 @@ trait ValueBasicDomainDecl { self: Self =>
             else Bot
           case _ => Bot
       def trim(isStarting: Boolean): Elem = elem.getSingle match
-        case Many => exploded("ETrim")
-        case One(Str(s)) =>
-          apply(
-            if (isStarting) s.replaceAll("^\\s+", "")
-            else s.replaceAll("\\s+$", ""),
-          )
-        case _ => Bot
+        case Many        => exploded("ETrim")
+        case One(Str(s)) => apply(trimString(s, isStarting))
+        case _           => Bot
       def clamp(lower: Elem, upper: Elem): Elem =
         (elem.getSingle, lower.getSingle, upper.getSingle) match
           case (Zero, _, _) | (_, Zero, _) | (_, _, Zero) => Bot

@@ -253,17 +253,7 @@ class Interpreter(
         case v                       => s.substring(f, v.asInt),
       ))
     case ETrim(expr, isStarting) =>
-      val sb = new java.lang.StringBuilder
-      val arr = eval(expr).asStr.codePoints.toArray
-      val cps = esParser.WhiteSpaceCPs ++ esParser.LineTerminatorCPs
-      def find(i: Int, next: Int => Int): Int =
-        if (i < 0 || i >= arr.length) i
-        else if (cps contains arr(i)) find(next(i), next)
-        else i
-      val start = if (isStarting) find(0, _ + 1) else 0
-      val end = if (isStarting) arr.length else find(arr.length - 1, _ - 1)
-      arr.slice(start, end + 1).foreach(sb.appendCodePoint)
-      Str(sb.toString)
+      Str(trimString(eval(expr).asStr, isStarting))
     case ERef(ref) =>
       st(eval(ref))
     case EUnary(uop, expr) =>
