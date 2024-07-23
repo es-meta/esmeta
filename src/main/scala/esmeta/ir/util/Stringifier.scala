@@ -101,7 +101,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app.wrap(for { i <- insts } app :> i)
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " " >> thenInst
-        app >> " else " >> elseInst
+        elseInst match
+          case ISeq(List()) => app
+          case _            => app >> " else " >> elseInst
       case IWhile(cond, body) =>
         app >> "while " >> cond >> " " >> body
       case ICall(lhs, fexpr, args) =>

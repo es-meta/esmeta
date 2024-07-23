@@ -101,8 +101,9 @@ trait Parsers extends TyParsers {
     }
 
   given branchInst: Parser[BranchInst] = {
-    ("if " ~> expr) ~ inst ~ ("else" ~> inst) ^^ {
-      case c ~ t ~ e => IIf(c, t, e)
+    ("if " ~> expr) ~ inst ~ opt("else" ~> inst) ^^ {
+      case (c ~ t ~ Some(e)) => IIf(c, t, e)
+      case (c ~ t ~ None)    => IIf(c, t, ISeq(Nil))
     } | ("while " ~> expr) ~ inst ^^ {
       case c ~ b => IWhile(c, b)
     }

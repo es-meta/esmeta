@@ -3,29 +3,29 @@ def ToObject(
 ): Normal[Object] | Abrupt[throw] = {
   if (= (typeof argument) @Undefined) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
-  } else {}
+  }
   if (= (typeof argument) @Null) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
-  } else {}
+  }
   if (= (typeof argument) @Boolean) {
     return (new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"], "BooleanData" -> argument, "Extensible" -> true))
-  } else {}
+  }
   if (= (typeof argument) @Number) {
     return (new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%Number.prototype%"], "NumberData" -> argument, "Extensible" -> true))
-  } else {}
+  }
   if (= (typeof argument) @String) {
     let obj = (new StringExoticObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"], "StringData" -> argument, "Extensible" -> true))
     obj.SubMap.length = (new PropertyDescriptor("Value" -> ([number] argument.length), "Writable" -> false, "Enumerable" -> false, "Configurable" -> false))
     return obj
-  } else {}
+  }
   if (= (typeof argument) @Symbol) {
     let obj = (new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%Symbol.prototype%"], "SymbolData" -> argument, "Extensible" -> true))
     return obj
-  } else {}
+  }
   if (= (typeof argument) @BigInt) {
     let obj = (new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"], "BigIntData" -> argument, "Extensible" -> true))
     return obj
-  } else {}
-  if (= (typeof argument) @Object) return argument else {}
+  }
+  if (= (typeof argument) @Object) return argument
   assert false
 }
