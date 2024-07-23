@@ -79,8 +79,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(list); walk(elem)
     case ESubstring(expr, from, to) =>
       walk(expr); walk(from); walkOpt(to, walk)
-    case ETrim(expr, leading, trailing) =>
-      walk(expr); walk(leading); walk(trailing)
+    case ETrim(expr, isStarting) =>
+      walk(expr); walk(isStarting)
     case ERef(ref) =>
       walk(ref)
     case EUnary(uop, expr) =>
