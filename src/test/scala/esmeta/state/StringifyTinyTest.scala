@@ -4,7 +4,8 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.es.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Map => MMap, ListBuffer}
+import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
+import scala.collection.mutable.ListBuffer
 
 /** stringify test */
 class StringifyTinyTest extends StateTest {
@@ -88,9 +89,9 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Objects
     // -------------------------------------------------------------------------
-    lazy val map = MapObj("A", MMap(), 0)
+    lazy val map = MapObj("A", LMMap(), 0)
     lazy val singleMap =
-      MapObj("A", MMap(Str("p") -> MapObj.Field(Str("p"), 0)), 1)
+      MapObj("A", LMMap(Str("p") -> Str("p")), 1)
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")

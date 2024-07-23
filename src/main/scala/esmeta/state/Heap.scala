@@ -7,7 +7,7 @@ import esmeta.error.NotSupported.Category.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.builtin.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 
 /** IR heaps */
 case class Heap(
@@ -82,7 +82,7 @@ case class Heap(
     m: Map[PureValue, PureValue],
   )(using CFG): Addr = {
     val irMap =
-      if (tname == "Record") MapObj(tname, MMap(), 0) else MapObj(tname)
+      if (tname == "Record") MapObj(tname, LMMap(), 0) else MapObj(tname)
     for ((k, v) <- m) irMap.update(k, v)
     if (hasSubMap(tname))
       val subMap = MapObj("SubMap")
