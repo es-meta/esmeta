@@ -1,0 +1,25 @@
+def <AUX>:__REMOVE_ELEM__(
+  elem: PureValue,
+  list: List
+): List = {
+  let from = 0
+  let to = 0
+
+  // @after  : to <= list.length && from = list.length
+  while (< from list.length) {
+    if (= list[from] elem) {}
+    else {
+      list[to] = list[from]
+      // to 'counts' length of result list
+      to = (+ to 1)
+    }
+    from = (+ from 1)
+  }
+
+  // @before : to <= list.length
+  // @after  : to  = list.length
+  while (< to list.length) {
+    (pop > list)
+  }
+  return list
+}
