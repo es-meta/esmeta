@@ -134,9 +134,19 @@ case class ValueTy(
             list.elem match
               case None     => false
               case Some(ty) => values.forall(ty.contains(_, heap))
-          case SymbolObj(_)     => symbol
-          case RecordObj(field) => ???
-          case YetObj(_, _)     => true // TODO : Check is this okay
+          case SymbolObj(_) => symbol
+          case RecordObj(tname, props, _) =>
+            isSubTy(tname, name.set) ||
+            (tname == "Record" && (props.forall {
+              case (key, value) =>
+                record(key).contains(value, heap)
+            })) ||
+            (tname == "SubMap" && (props.forall {
+              case (key, value) =>
+                ValueTy(pureValue = subMap.key).contains(Str(key), heap) &&
+                ValueTy(pureValue = subMap.value).contains(value, heap)
+            }))
+          case YetObj(_, _) => true // TODO : Check is this okay
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
       case AstValue(ast) =>

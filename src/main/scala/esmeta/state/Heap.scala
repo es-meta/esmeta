@@ -110,10 +110,22 @@ case class Heap(
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
 
-  def allocRecord(m: Map[String, Value]): Addr =
-    val fields = RecordObj(LMMap())
-    for ((k, v) <- m) fields.update(k, v)
-    alloc(fields)
+  /** record allocations */
+  def allocRecord(
+    tname: String,
+    m: Map[String, Value],
+  )(using CFG): Addr = {
+    val irMap =
+      if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
+    for ((k, v) <- m) irMap.update(k, v)
+    if (hasSubMap(tname))
+      val subMap = MapObj("SubMap")
+      irMap.update("SubMap", alloc(subMap))
+    if (isObject(tname))
+      val privateElems = ListObj()
+      irMap.update("PrivateElements", alloc(privateElems))
+    alloc(irMap)
+  }
 
   /** symbol allocations */
   def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))

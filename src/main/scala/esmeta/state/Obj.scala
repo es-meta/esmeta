@@ -18,15 +18,17 @@ sealed trait Obj extends StateElem {
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
     case (ListObj(values), Str("length")) => Math(values.length)
-    case (RecordObj(fields), Str(prop))   => fields.getOrElse(prop, Absent)
-    case _                                => throw InvalidObjField(this, field)
+    case (RecordObj(_, fields, _), Str(field)) =>
+      fields.getOrElse(field, Absent)
+    case _ => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
     case MapObj(tname, fields, size) => MapObj(tname, LMMap.from(fields), size)
     case ListObj(values)             => ListObj(Vector.from(values))
-    case RecordObj(fields)           => RecordObj(LMMap.from(fields))
-    case _                           => this
+    case RecordObj(tname, fields, size) =>
+      RecordObj(tname, LMMap.from(fields), size)
+    case _ => this
 }
 
 /** map objects */
@@ -121,13 +123,75 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
   }
 }
 
-case class RecordObj(fields: MMap[String, Value]) extends Obj {
+case class RecordObj(
+  var ty: String, // TODO handle type
+  private val fields: MMap[String, Value],
+  var size: Int,
+) extends Obj {
+
+  /** Tracks */
+  // private var cache: Option[Boolean] = None
+
+  // def isCompletion(using st: State): Boolean = cache match
+  //   case Some(v) => v
+  //   case None =>
+  //     val valueCheck = fields.get("Value").map(_.isCompletion)
+  //     cache = Some(
+  //       fields.size == 3 &&
+  //       COMPLETION_TYPES.contains(fields.getOrElse("Type", Absent)) && (
+  //         (fields.getOrElse("Target", Absent)) match
+  //           case `ENUM_EMPTY` => true
+  //           case Str(_)       => true
+  //           case _            => false
+  //       ),
+  //     )
+  //     isCompletion
 
   /** updates a value */
   def update(field: String, value: Value): this.type =
     fields += field -> value
     this
 
+  /** pairs of map */
+  def pairs: Map[String, Value] = (fields.map {
+    case (k, v) => k -> v
+  }).toMap
+
+  /** keys of map */
+  def keys: Vector[String] = keys(intSorted = false)
+  def keys(intSorted: Boolean): Vector[String] = {
+    if (!intSorted) {
+      if (ty == "SubMap") fields.keys.toVector
+      else fields.keys.toVector.sortBy(_.toString)
+    } else
+      (for {
+        case (s, _) <- fields.toVector
+        d = ESValueParser.str2number(s).double
+        if toStringHelper(d) == s
+        i = d.toLong // should handle unsigned integer
+        if d == i
+      } yield (s, i)).sortBy(_._2).map { case (s, _) => s }
+  }
+
+}
+object RecordObj {
+
+  /** apply with type model */
+  def apply(tname: String)(fields: (String, Value)*)(using CFG): RecordObj =
+    val obj: RecordObj = RecordObj(tname)
+    for { ((k, v), idx) <- fields.zipWithIndex }
+      obj.fields += k -> v
+    obj.size += fields.size
+    obj
+
+  def apply(tname: String)(using cfg: CFG): RecordObj =
+    // TODO do not explicitly store methods in object but use a type model when
+    // accessing methods
+    val methods = cfg.tyModel.getMethod(tname)
+    val obj = RecordObj(tname, LMMap(), methods.size)
+    for { ((name, fname), idx) <- methods.zipWithIndex }
+      obj.fields += name -> Clo(cfg.fnameMap(fname), Map())
+    obj
 }
 
 /** symbol objects */

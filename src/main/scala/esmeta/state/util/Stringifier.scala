@@ -79,9 +79,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList
       case SymbolObj(desc) => app >> "(Symbol " >> desc >> ")"
-      case RecordObj(fields) =>
-        given Rule[Iterable[(String, Value)]] = sortedMapRule[String, Value]()
-        app >> "(Record " >> fields >> ")"
+      case record @ RecordObj(tname, _, _) =>
+        given Ordering[PureValue] = Ordering.by(_.toString)
+        app >> "[TYPE = " >> tname >> "] " >> record.pairs
       case YetObj(tname, msg) =>
         app >> "(Yet [TYPE = " >> tname >> "] \"" >> msg >> "\")"
 

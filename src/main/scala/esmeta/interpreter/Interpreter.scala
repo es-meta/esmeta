@@ -419,16 +419,13 @@ class Interpreter(
     case EListConcat(exprs) =>
       val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
       st.allocList(ls)
-    case ERecord(exprs) =>
-      val fields = for {
-        (kexpr, vexpr) <- exprs
-        k = (eval(kexpr).toPureValue) match
-          // TODO : Check if .asStr is enough
-          case Str(s) => s
-          case kv     => throw NoString(kexpr, kv)
-        v = eval(vexpr)
-      } yield k -> v
-      st.allocRecord(fields.toMap)
+    case ERecord(tname, fields) =>
+      val addr = st.allocRecord(tname)
+      for ((kexpr, vexpr) <- fields)
+        val k = eval(kexpr).toPureValue
+        val v = eval(vexpr)
+        st.update(addr, k, v)
+      addr
     case ESymbol(desc) =>
       eval(desc) match
         case (str: Str) => st.allocSymbol(str)

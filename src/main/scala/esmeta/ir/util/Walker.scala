@@ -149,8 +149,9 @@ trait Walker extends BasicWalker {
       EList(walkList(exprs, walk))
     case EListConcat(exprs) =>
       EListConcat(walkList(exprs, walk))
-    case ERecord(fields) =>
+    case ERecord(tname, fields) =>
       ERecord(
+        walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
     case ESymbol(desc) =>
