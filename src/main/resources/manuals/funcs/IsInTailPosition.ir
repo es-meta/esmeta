@@ -2,7 +2,7 @@ def IsInTailPosition(
   call: Ast[CallExpression, MemberExpression, OptionalChain],
 ): Boolean = {
   // If the source text matched by _call_ is non-strict code, return *false*.
-  if false return false else {}
+  if false return false
 
   // If _call_ is not contained within a |FunctionBody|, |ConciseBody|, or |AsyncConciseBody|, return *false*.
   // Let _body_ be the |FunctionBody|, |ConciseBody|, or |AsyncConciseBody| that most closely contains _call_.
@@ -10,9 +10,9 @@ def IsInTailPosition(
   %1 = call
   while (&& (! %0) (! (= %1 absent))) {
     %0 = (|| (|| (|| %0 (? %1: "FunctionBody")) (? %1: "ConciseBody")) (? %1: "AsyncConciseBody"))
-    if (! %0) %1 = %1.parent else {}
+    if (! %0) %1 = %1.parent
   }
-  if (! %0) return false else {}
+  if (! %0) return false
   let body = %1
   
   // If _body_ is the |FunctionBody| of a |GeneratorBody|, return *false*.
@@ -20,13 +20,13 @@ def IsInTailPosition(
   // If _body_ is the |FunctionBody| of an |AsyncGeneratorBody|, return *false*.
   %2 = body.parent
   if (! (= %2 absent)) {
-    if (&& (? body: "FunctionBody") (? %2: "GeneratorBody")) return false else {}
-    if (&& (? body: "FunctionBody") (? %2: "AsyncFunctionBody")) return false else {}
-    if (&& (? body: "FunctionBody") (? %2: "AsyncGeneratorBody")) return false else {}
-  } else {}
+    if (&& (? body: "FunctionBody") (? %2: "GeneratorBody")) return false
+    if (&& (? body: "FunctionBody") (? %2: "AsyncFunctionBody")) return false
+    if (&& (? body: "FunctionBody") (? %2: "AsyncGeneratorBody")) return false
+  }
 
   // If body is an |AsyncConciseBody|, return false.
-  if (? body: "AsyncConciseBody") return false else {}
+  if (? body: "AsyncConciseBody") return false
 
   // Return the result of HasCallInTailPosition of _body_ with argument _call_.
   sdo-call %3 = body->HasCallInTailPosition(call)

@@ -79,7 +79,17 @@ class JsonTinyTest extends IRTest {
       |  let x = ~empty~
       |  delete x.p
       |  return x
-      |} else {}""".stripMargin,
+      |}""".stripMargin,
+      ifElseInst ->
+      """if x {
+      |  let x = ~empty~
+      |  delete x.p
+      |  return x
+      |} else {
+      |  let x = ~empty~
+      |  delete x.p
+      |  return x
+      |}""".stripMargin,
       whileInst -> """while x {
       |  let x = ~empty~
       |  delete x.p

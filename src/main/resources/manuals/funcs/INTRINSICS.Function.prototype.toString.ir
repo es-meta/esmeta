@@ -10,18 +10,18 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   //   1. Return ! CodePointsToString(_func_.[[SourceText]]).
   if (&& (= (typeof func) @Object) (&& (! (= func.SourceText absent)) (= (typeof func.SourceText) @String))) {
     return func.SourceText
-  } else {}
+  }
 
   // 1. If _func_ is a <emu-xref href=\"#sec-built-in-function-objects\">built-in function object</emu-xref>, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|. Additionally, if _func_ has an [[InitialName]] internal slot and _func_.[[InitialName]] is a String, the portion of the returned String that would be matched by |NativeFunctionAccessor?| |PropertyName| must be the value of _func_.[[InitialName]].
   if (? func: "BuiltinFunctionObject") {
     return (concat "function " func.InitialName "() { [native code] }")
-  } else {}
+  }
 
   // 1. If Type(_func_) is Object and IsCallable(_func_) is *true*, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|.
   call %0 = clo<IsCallable>(func)
   if (&& (= (typeof func) @Object) (= %0 true)) {
     return "function () { [native code] }"
-  } else {}
+  }
 
   return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
 }
