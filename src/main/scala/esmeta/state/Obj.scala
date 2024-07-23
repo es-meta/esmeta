@@ -57,8 +57,8 @@ case class MapObj(
   def keys: Vector[PureValue] = keys(intSorted = false)
   def keys(intSorted: Boolean): Vector[PureValue] = {
     if (!intSorted) {
-      if (ty == "SubMap") fields.toVector.map(_._1)
-      else fields.toVector.map(_._1).sortBy(_.toString)
+      if (ty == "SubMap") fields.keys.toVector
+      else fields.keys.toVector.sortBy(_.toString)
     } else
       (for {
         case (Str(s), _) <- fields.toVector
