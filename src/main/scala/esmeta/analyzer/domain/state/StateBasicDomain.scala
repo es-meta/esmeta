@@ -158,12 +158,6 @@ trait StateBasicDomainDecl { self: Self =>
           else elem.copy(heap = elem.heap.append(list.part, value))
         }
 
-      /** remove a value in a list */
-      def remove(list: AbsValue, value: AbsValue): Elem =
-        elem.bottomCheck(AbsValue)(list, value) {
-          elem.copy(heap = elem.heap.remove(list.part, value))
-        }
-
       /** pop a value in a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
         var v: AbsValue = AbsValue.Bot
