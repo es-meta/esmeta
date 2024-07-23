@@ -149,7 +149,6 @@ trait ValueDomainDecl { self: Self =>
       def convertTo(cop: COp, radix: Elem): Elem
       def sourceText: Elem
       def parse(rule: Elem): Elem
-      def duplicated(st: AbsState): Elem
       def substring(from: Elem): Elem
       def substring(from: Elem, to: Elem): Elem
       def trim(isStarting: Boolean): Elem

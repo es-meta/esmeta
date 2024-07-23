@@ -409,9 +409,6 @@ class Interpreter(
       eval(map) match
         case addr: Addr => st.keys(addr, intSorted)
         case v          => throw NoAddr(map, v)
-    case EDuplicated(expr) =>
-      val vs = eval(expr).getList(expr, st).values
-      Bool(vs.toSet.size != vs.length)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)
     case ENumber(n) if n.isNaN => Number(Double.NaN)

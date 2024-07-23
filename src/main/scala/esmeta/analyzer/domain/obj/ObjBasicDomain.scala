@@ -344,18 +344,6 @@ trait ObjBasicDomainDecl { self: Self =>
           modifyList(elem, _ ++ values, _ ⊔ list.mergedValue, weak)
         case _ => Top
 
-      /** duplicated element check */
-      def duplicated: AbsBool = elem match
-        case _: MergedList => AB
-        case KeyWiseList(vs) if vs.forall(_.isSingle) =>
-          val values = vs.map(_.getSingle).flatMap {
-            case One(v) => Some(v)
-            case _      => None
-          }
-          AbsBool(Bool(values.toSet.size != values.size))
-        case _: KeyWiseList => AB
-        case _              => AbsBool.Bot
-
       /** appends */
       def append(value: AbsValue, weak: Boolean): Elem =
         modifyList(elem, _ :+ value, _ ⊔ value, weak)
