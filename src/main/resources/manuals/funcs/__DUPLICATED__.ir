@@ -1,0 +1,14 @@
+def <AUX>:__DUPLICATED__(
+  list: List[ESValue]
+): Boolean = {
+    let i = 0
+    let newlist = (copy list)
+    let len = newlist.length
+    while (< i len) {
+      let x = (pop < newlist)
+      if (contains newlist x) return true
+      else {}
+      i = (+ i 1)
+    }
+    return false
+}

@@ -833,7 +833,9 @@ class Compiler(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
             )
           case Duplicated =>
-            EDuplicated(x)
+            val (b, bExpr) = fb.newTIdWithExpr
+            fb.addInst(ICall(b, AUX_DUPLICATED, List(x)))
+            bExpr
           case Present =>
             not(isAbsent(x))
           case Empty =>

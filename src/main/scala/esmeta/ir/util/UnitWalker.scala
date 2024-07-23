@@ -100,8 +100,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(fname); walkList(captured, walk)
     case ECont(fname) =>
       walk(fname)
-    case EDuplicated(expr) =>
-      walk(expr)
     case EDebug(expr) =>
       walk(expr)
     case expr: ERandom     => walk(expr)

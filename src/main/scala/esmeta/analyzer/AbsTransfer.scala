@@ -532,11 +532,6 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(map)
             lv <- id(_.keys(asite, v, intSorted))
           } yield lv
-        case EDuplicated(expr) =>
-          for {
-            v <- transfer(expr)
-            st <- get
-          } yield v.duplicated(st)
         case EMath(n)              => AbsValue(Math(n))
         case EInfinity(pos)        => AbsValue(Infinity(pos))
         case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
