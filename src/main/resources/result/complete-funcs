@@ -2517,4 +2517,4 @@ YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
 __CLAMP__
 __IS_ARRAY_INDEX__
-__REMOVE__
+__REMOVE_ELEM__

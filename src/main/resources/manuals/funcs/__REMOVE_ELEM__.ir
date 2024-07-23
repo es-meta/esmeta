@@ -1,4 +1,4 @@
-def <AUX>:__REMOVE__(
+def <AUX>:__REMOVE_ELEM__(
   elem: PureValue,
   list: List
 ): List = {
