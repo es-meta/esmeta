@@ -18,7 +18,7 @@ case class ESourceText(expr: Expr) extends Expr
 case class EYet(msg: String) extends Expr
 case class EContains(list: Expr, expr: Expr) extends Expr
 case class ESubstring(expr: Expr, from: Expr, to: Option[Expr]) extends Expr
-case class ETrim(expr: Expr, leading: Boolean, trailing: Boolean) extends Expr
+case class ETrim(expr: Expr, isStarting: Boolean) extends Expr
 case class ERef(ref: Ref) extends Expr
 case class EUnary(uop: UOp, expr: Expr) extends Expr
 case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr

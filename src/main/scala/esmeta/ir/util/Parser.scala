@@ -130,12 +130,10 @@ trait Parsers extends TyParsers {
       case l ~ e => EContains(l, e)
     } | "(" ~ "substring" ~> expr ~ expr ~ opt(expr) <~ ")" ^^ {
       case e ~ f ~ t => ESubstring(e, f, t)
-    } | "(" ~ "trim-start" ~> expr <~ ")" ^^ {
-      case e => ETrim(e, true, false)
-    } | "(" ~ "trim-end" ~> expr <~ ")" ^^ {
-      case e => ETrim(e, false, true)
-    } | "(" ~ "trim" ~> expr <~ ")" ^^ {
-      case e => ETrim(e, true, true)
+    } | "(" ~ "trim" ~ ">" ~> expr <~ ")" ^^ {
+      case e => ETrim(e, true)
+    } | "(" ~ "trim" ~> expr <~ "<" ~ ")" ^^ {
+      case e => ETrim(e, false)
     } | "(" ~> uop ~ expr <~ ")" ^^ {
       case u ~ e => EUnary(u, e)
     } | "(" ~> bop ~ expr ~ expr <~ ")" ^^ {

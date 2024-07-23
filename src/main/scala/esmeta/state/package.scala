@@ -3,6 +3,7 @@ package esmeta.state
 import esmeta.state.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.ir.Global
+import esmeta.parser.ESParser
 import java.math.MathContext.{UNLIMITED, DECIMAL128}
 
 /** IR state elements */
@@ -64,6 +65,19 @@ val POS_INF = Infinity(pos = true)
 val NEG_INF = Infinity(pos = false)
 val NUMBER_POS_INF = Number(Double.PositiveInfinity)
 val NUMBER_NEG_INF = Number(Double.NegativeInfinity)
+
+def trimString(x: String, isStarting: Boolean, esParser: ESParser): String =
+  val sb = new java.lang.StringBuilder
+  val arr = x.codePoints.toArray
+  val cps = esParser.WhiteSpaceCPs ++ esParser.LineTerminatorCPs
+  def find(i: Int, next: Int => Int): Int =
+    if (i < 0 || i >= arr.length) i
+    else if (cps contains arr(i)) find(next(i), next)
+    else i
+  val start = if (isStarting) find(0, _ + 1) else 0
+  val end = if (isStarting) arr.length else find(arr.length - 1, _ - 1)
+  arr.slice(start, end + 1).foreach(sb.appendCodePoint)
+  sb.toString
 
 /** conversion number to string */
 def toStringHelper(x: Double, radix: Int = 10): String = {
