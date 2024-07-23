@@ -1,0 +1,11 @@
+def <AUX>:__IS_ARRAY_INDEX__(
+  P: ESValue
+): Boolean = {
+  if (= (typeof P) @String) {
+    call n = clo<CanonicalNumericIndexString>(P)
+    if (? n: "NumberInt") {
+      return (&& (< -1f n) (< n (- (** 2f 32f) 1f)))
+    } else {}
+  } else {}
+  return false
+}

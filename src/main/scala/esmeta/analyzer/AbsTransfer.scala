@@ -522,10 +522,6 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             st <- get
           } yield v.duplicated(st)
-        case EIsArrayIndex(expr) =>
-          for {
-            v <- transfer(expr)
-          } yield v.isArrayIndex
         case EMath(n)              => AbsValue(Math(n))
         case EInfinity(pos)        => AbsValue(Infinity(pos))
         case ENumber(n) if n.isNaN => AbsValue(Double.NaN)
