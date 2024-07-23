@@ -368,7 +368,6 @@ trait ValueTypeDomainDecl { self: Self =>
             nt <- set
             name = nt.name
           } yield name).toSet)))
-      def duplicated(st: AbsState): Elem = boolTop
       def substring(from: Elem): Elem = strTop
       def substring(from: Elem, to: Elem): Elem = strTop
       def trim(isStarting: Boolean): Elem = strTop

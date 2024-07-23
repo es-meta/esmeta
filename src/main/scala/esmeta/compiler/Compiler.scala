@@ -834,7 +834,7 @@ class Compiler(
             )
           case Duplicated =>
             val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_DUPLICATED, List(x)))
+            fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
             bExpr
           case Present =>
             not(isAbsent(x))
