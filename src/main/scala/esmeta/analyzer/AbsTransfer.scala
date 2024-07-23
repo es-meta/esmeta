@@ -502,10 +502,10 @@ trait AbsTransferDecl { self: Analyzer =>
             }
           }
         case ELexical(name, expr) => notSupported("ELexical")
-        case e @ EMap(tname, props) =>
+        case e @ EMap(tname, fields) =>
           val asite = AllocSite(e.asite, np.view)
           for {
-            pairs <- join(props.map {
+            pairs <- join(fields.map {
               case (kexpr, vexpr) =>
                 for {
                   k <- transfer(kexpr)
@@ -568,26 +568,28 @@ trait AbsTransferDecl { self: Analyzer =>
       }
 
     /** transfer function for references */
-    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefValue] =
+    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefTarget] =
       ref match
-        case id: Id => AbsRefId(id)
-        case prop @ Prop(base, expr) =>
+        case x: Var => AbsVarTarget(x)
+        case field @ Field(base, expr) =>
           for {
             rv <- transfer(base)
             b <- transfer(rv)
             p <- transfer(expr)
-          } yield AbsRefProp(refinePropBase(np, prop, b), p)
+          } yield AbsFieldTarget(refineFieldBase(np, field, b), p)
 
-    /** refine invalid base for property reference */
-    def refinePropBase(
+    /** refine invalid base for field reference */
+    def refineFieldBase(
       np: NodePoint[Node],
-      prop: Prop,
+      field: Field,
       base: AbsValue,
     ): AbsValue = base
 
     /** transfer function for reference values */
-    def transfer(rv: AbsRefValue)(using np: NodePoint[Node]): Result[AbsValue] =
-      for { v <- get(_.get(rv, np)) } yield v
+    def transfer(rt: AbsRefTarget)(using
+      np: NodePoint[Node],
+    ): Result[AbsValue] =
+      for { v <- get(_.get(rt, np)) } yield v
 
     /** transfer function for unary operators */
     def transfer(

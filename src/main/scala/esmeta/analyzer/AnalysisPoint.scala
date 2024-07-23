@@ -58,19 +58,19 @@ trait AnalysisPointDecl { self: Analyzer =>
     inline def node = nodePoint.node
   }
 
-  /** base in property reference points */
-  case class PropBasePoint(
-    propPoint: PropPoint,
+  /** base in field reference points */
+  case class FieldBasePoint(
+    fieldPoint: FieldPoint,
   ) extends TypeErrorPoint {
-    inline def view = propPoint.view
-    inline def func = propPoint.func
-    inline def node = propPoint.node
+    inline def view = fieldPoint.view
+    inline def func = fieldPoint.func
+    inline def node = fieldPoint.node
   }
 
-  /** property reference points */
-  case class PropPoint(
+  /** field reference points */
+  case class FieldPoint(
     nodePoint: NodePoint[Node],
-    prop: Prop,
+    field: Field,
   ) extends TypeErrorPoint {
     inline def view = nodePoint.view
     inline def func = nodePoint.func

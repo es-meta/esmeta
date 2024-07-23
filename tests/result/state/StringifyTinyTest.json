@@ -4,7 +4,7 @@
   "Cursor" : true,
   "Heap" : true,
   "Object" : true,
-  "RefValue" : true,
+  "RefTarget" : true,
   "State" : true,
   "Value" : true
 }

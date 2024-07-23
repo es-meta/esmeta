@@ -72,10 +72,10 @@ trait StringifierDecl { self: Self =>
           app >> "ReturnIfAbrupt"
           app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
           app >> "in " >> cp.func.name >> riaExpr
-        case PropBasePoint(propPoint) =>
-          app >> "base in" >> propPoint
-        case PropPoint(cp, prop) =>
-          app >> "property lookup in " >> cp.func.name >> prop
+        case FieldBasePoint(fieldPoint) =>
+          app >> "base in" >> fieldPoint
+        case FieldPoint(cp, field) =>
+          app >> "field lookup in " >> cp.func.name >> field
         case UnaryOpPoint(cp, unary) =>
           app >> "unary operation (" >> unary.uop >> ") in " >> cp.func.name
           app >> unary

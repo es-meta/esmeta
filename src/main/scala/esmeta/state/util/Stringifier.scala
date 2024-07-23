@@ -31,7 +31,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Heap        => heapRule(app, elem)
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
-      case elem: RefValue    => refValRule(app, elem)
+      case elem: RefTarget   => refTargetRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -61,7 +61,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
-    val CallContext(retId, context) = callCtxt
+    val CallContext(context, retId) = callCtxt
     app >> retId >> " @ " >> context.cursor
 
   // heaps
@@ -167,11 +167,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Absent     => app >> "absent"
 
   // reference value
-  lazy val inlineProp = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refValRule: Rule[RefValue] = (app, refValue) =>
-    refValue match {
-      case IdValue(id)                           => app >> id
-      case PropValue(base, Str(inlineProp(str))) => app >> base >> "." >> str
-      case PropValue(base, prop) => app >> base >> "[" >> prop >> "]"
+  lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
+  given refTargetRule: Rule[RefTarget] = (app, refTarget) =>
+    refTarget match {
+      case VarTarget(id)                            => app >> id
+      case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
+      case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
 }

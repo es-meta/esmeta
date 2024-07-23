@@ -28,27 +28,27 @@ trait StateDomainDecl { self: Self =>
 
       /** getters */
       def get(
-        rv: AbsRefValue,
+        rt: AbsRefTarget,
         cp: ControlPoint,
-      ): AbsValue = rv match
-        case AbsRefId(x)            => elem.get(x, cp)
-        case AbsRefProp(base, prop) => elem.get(base, prop)
+      ): AbsValue = rt match
+        case AbsVarTarget(x)             => elem.get(x, cp)
+        case AbsFieldTarget(base, field) => elem.get(base, field)
 
       /** getters with identifiers */
-      def get(x: Id, cp: ControlPoint): AbsValue =
+      def get(x: Var, cp: ControlPoint): AbsValue =
         val v = directLookup(x)
         if (cp.isBuiltin && AbsValue.absentTop ⊑ v)
           v.removeAbsent ⊔ AbsValue.undefTop
         else v
 
-      /** getters with bases and properties */
-      def get(base: AbsValue, prop: AbsValue): AbsValue
+      /** getters with bases and fields */
+      def get(base: AbsValue, field: AbsValue): AbsValue
 
       /** getters with an address partition */
       def get(part: Part): AbsObj
 
       /** lookup variables */
-      def directLookup(x: Id): AbsValue = x match
+      def directLookup(x: Var): AbsValue = x match
         case x: Local  => lookupLocal(x)
         case x: Global => lookupGlobal(x)
 
@@ -60,10 +60,10 @@ trait StateDomainDecl { self: Self =>
       def lookupGlobal(x: Global): AbsValue
 
       /** existence checks */
-      def exists(ref: AbsRefValue): AbsValue = ref match
-        case AbsRefId(id) => !directLookup(id).isAbsent
-        case AbsRefProp(base, prop) =>
-          !elem.get(base, prop).isAbsent
+      def exists(rt: AbsRefTarget): AbsValue = rt match
+        case AbsVarTarget(x) => !directLookup(x).isAbsent
+        case AbsFieldTarget(base, field) =>
+          !elem.get(base, field).isAbsent
 
       /** define local variables */
       def defineLocal(pairs: (Local, AbsValue)*): Elem
@@ -72,18 +72,18 @@ trait StateDomainDecl { self: Self =>
       def defineGlobal(pairs: (Global, AbsValue)*): Elem
 
       /** setter with reference values */
-      def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
-        case AbsRefId(x)            => update(x, value)
-        case AbsRefProp(base, prop) => update(base, prop, value)
+      def update(rt: AbsRefTarget, value: AbsValue): Elem = rt match
+        case AbsVarTarget(x)             => update(x, value)
+        case AbsFieldTarget(base, field) => update(base, field, value)
 
       /** identifier setter */
-      def update(x: Id, value: AbsValue): Elem
+      def update(x: Var, value: AbsValue): Elem
 
-      /** property setter */
-      def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem
+      /** field setter */
+      def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem
 
       /** deletion with reference values */
-      def delete(refV: AbsRefValue): Elem
+      def delete(rt: AbsRefTarget): Elem
 
       /** push values to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem

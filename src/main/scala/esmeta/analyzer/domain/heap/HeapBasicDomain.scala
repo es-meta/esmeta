@@ -137,26 +137,26 @@ trait HeapBasicDomainDecl { self: Self =>
       /** lookup abstract address partitions */
       def apply(part: Part): AbsObj =
         elem.map.getOrElse(part, base.getOrElse(part, AbsObj.Bot))
-      def apply(part: AbsPart, prop: AbsValue): AbsValue =
-        part.map(elem(_, prop)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
-      def apply(part: Part, prop: AbsValue): AbsValue = part match
+      def apply(part: AbsPart, field: AbsValue): AbsValue =
+        part.map(elem(_, field)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
+      def apply(part: Part, field: AbsValue): AbsValue = part match
         case Named(es.builtin.INTRINSICS) =>
-          prop.getSingle match
+          field.getSingle match
             case Zero => AbsValue.Bot
             case One(str: SimpleValue) =>
               AbsValue(Heap.getIntrinsics(str))
             case One(_) => AbsValue.Bot
             case Many =>
               AbsValue.Top
-        case _ => elem(part).get(prop)
+        case _ => elem(part).get(field)
 
       /** setters */
-      def update(part: AbsPart, prop: AbsValue, value: AbsValue): Elem =
-        applyEach(elem, part)(_.update(prop, value, _))
+      def update(part: AbsPart, field: AbsValue, value: AbsValue): Elem =
+        applyEach(elem, part)(_.update(field, value, _))
 
       /** delete */
-      def delete(part: AbsPart, prop: AbsValue): Elem =
-        applyEach(elem, part)(_.delete(prop, _))
+      def delete(part: AbsPart, field: AbsValue): Elem =
+        applyEach(elem, part)(_.delete(field, _))
 
       /** concat */
       def concat(part: AbsPart, value: AbsValue): Elem =
