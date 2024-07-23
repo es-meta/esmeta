@@ -834,7 +834,10 @@ class Compiler(
             val lv = toERef(fb, x, EStr("length"))
             is(lv, zero)
           case StrictMode => T // XXX assume strict mode
-          case ArrayIndex => EIsArrayIndex(x)
+          case ArrayIndex =>
+            val (b, bExpr) = fb.newTIdWithExpr
+            fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
+            bExpr
           case FalseToken => is(ESourceText(x), EStr("false"))
           case TrueToken  => is(ESourceText(x), EStr("true"))
           case DataProperty =>

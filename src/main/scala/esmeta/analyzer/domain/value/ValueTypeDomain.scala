@@ -385,7 +385,6 @@ trait ValueTypeDomainDecl { self: Self =>
             else IntTy
           else MathTopTy
         Elem(ValueTy(math = mathTy))
-      def isArrayIndex: Elem = boolTop
 
       /** completion helpers */
       def wrapCompletion: Elem =

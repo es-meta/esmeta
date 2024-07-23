@@ -422,16 +422,6 @@ trait ValueBasicDomainDecl { self: Self =>
         case Many        => exploded("ETrim")
         case One(Str(s)) => apply(trimString(s, isStarting, cfg.esParser))
         case _           => Bot
-      def isArrayIndex: Elem = elem.getSingle match
-        case Zero => Bot
-        case One(Str(s)) =>
-          val d = ESValueParser.str2number(s).double
-          val ds = toStringHelper(d)
-          val UPPER = (1L << 32) - 1
-          val l = d.toLong
-          apply(ds == s && 0 <= l && d == l && l < UPPER)
-        case One(_) => apply(F)
-        case Many   => exploded("EIsArrayIndex")
 
       /** completion helpers */
       def wrapCompletion: Elem = wrapCompletion("normal")
