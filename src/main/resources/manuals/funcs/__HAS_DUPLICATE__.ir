@@ -1,0 +1,15 @@
+def <AUX>:__HAS_DUPLICATE__(
+  list: List
+): Boolean = {
+  let i = 1
+  let len = list.length
+  while (< i len) {
+    let j = 0
+    while (< j i) {
+      if (= list[i] list[j]) return true
+      j = (+ j 1)
+    }
+    i = (+ i 1)
+  }
+  return false
+}
