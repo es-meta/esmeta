@@ -18,12 +18,14 @@ sealed trait Obj extends StateElem {
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
     case (ListObj(values), Str("length")) => Math(values.length)
+    case (RecordObj(fields), Str(prop))   => fields.getOrElse(prop, Absent)
     case _                                => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
     case MapObj(tname, fields, size) => MapObj(tname, LMMap.from(fields), size)
     case ListObj(values)             => ListObj(Vector.from(values))
+    case RecordObj(fields)           => RecordObj(LMMap.from(fields))
     case _                           => this
 }
 
@@ -120,12 +122,11 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 }
 
 case class RecordObj(fields: MMap[String, Value]) extends Obj {
-  // Any fields that are not explicitly listed are considered to be absent.
 
-  /** pairs of map */
-  def pairs: Map[String, Value] = (fields.map {
-    case (k, v) => k -> v
-  }).toMap
+  /** updates a value */
+  def update(field: String, value: Value): this.type =
+    fields += field -> value
+    this
 
 }
 

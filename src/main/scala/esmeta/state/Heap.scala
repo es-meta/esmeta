@@ -25,6 +25,7 @@ case class Heap(
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
+    case (r: RecordObj)                     => r(key)
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
@@ -32,7 +33,13 @@ case class Heap(
     apply(addr) match {
       case (m: MapObj)  => m.update(field, value); this
       case (l: ListObj) => l.update(field, value); this
-      case v            => error(s"not a map: $v")
+      case (r: RecordObj) => {
+        field match
+          case Str(prop) => r.update(prop, value)
+          case _         => throw InvalidObjField(r, field)
+        this
+      }
+      case v => error(s"not a map: $v")
     }
 
   /** delete */
@@ -102,6 +109,11 @@ case class Heap(
 
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
+
+  def allocRecord(m: Map[String, Value]): Addr =
+    val fields = RecordObj(LMMap())
+    for ((k, v) <- m) fields.update(k, v)
+    alloc(fields)
 
   /** symbol allocations */
   def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))

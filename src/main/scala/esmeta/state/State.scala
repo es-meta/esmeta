@@ -136,6 +136,8 @@ case class State(
   ): Addr = heap.allocMap(tname, map)
   def allocList(list: List[Value]): Addr =
     heap.allocList(list)
+  def allocRecord(m: Map[String, Value]): Addr =
+    heap.allocRecord(m)
   def allocSymbol(desc: PureValue): Addr =
     heap.allocSymbol(desc)
   def setType(addr: Addr, tname: String): this.type =
