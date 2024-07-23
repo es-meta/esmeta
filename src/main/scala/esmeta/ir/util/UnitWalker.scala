@@ -138,6 +138,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case EListConcat(exprs) =>
       walkList(exprs, walk)
+    case ERecord(fields) =>
+      walkList(fields, { case (p, e) => (walk(p), walk(e)) })
     case ESymbol(desc) =>
       walk(desc)
     case ECopy(obj) =>
