@@ -145,8 +145,8 @@ trait StateBasicDomainDecl { self: Self =>
 
       /** deletion with reference values */
       def delete(refV: AbsRefTarget): Elem = refV match
-        case AbsRefVar(x) => error(s"cannot delete variable $x")
-        case AbsRefField(base, field) =>
+        case AbsVarTarget(x) => error(s"cannot delete variable $x")
+        case AbsFieldTarget(base, field) =>
           elem.bottomCheck(AbsValue)(base, field) {
             elem.copy(heap = elem.heap.delete(base.part, field))
           }

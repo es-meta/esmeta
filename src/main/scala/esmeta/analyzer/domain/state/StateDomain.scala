@@ -31,8 +31,8 @@ trait StateDomainDecl { self: Self =>
         rt: AbsRefTarget,
         cp: ControlPoint,
       ): AbsValue = rt match
-        case AbsRefVar(x)             => elem.get(x, cp)
-        case AbsRefField(base, field) => elem.get(base, field)
+        case AbsVarTarget(x)             => elem.get(x, cp)
+        case AbsFieldTarget(base, field) => elem.get(base, field)
 
       /** getters with identifiers */
       def get(x: Var, cp: ControlPoint): AbsValue =
@@ -61,8 +61,8 @@ trait StateDomainDecl { self: Self =>
 
       /** existence checks */
       def exists(rt: AbsRefTarget): AbsValue = rt match
-        case AbsRefVar(x) => !directLookup(x).isAbsent
-        case AbsRefField(base, field) =>
+        case AbsVarTarget(x) => !directLookup(x).isAbsent
+        case AbsFieldTarget(base, field) =>
           !elem.get(base, field).isAbsent
 
       /** define local variables */
@@ -73,8 +73,8 @@ trait StateDomainDecl { self: Self =>
 
       /** setter with reference values */
       def update(rt: AbsRefTarget, value: AbsValue): Elem = rt match
-        case AbsRefVar(x)             => update(x, value)
-        case AbsRefField(base, field) => update(base, field, value)
+        case AbsVarTarget(x)             => update(x, value)
+        case AbsFieldTarget(base, field) => update(base, field, value)
 
       /** identifier setter */
       def update(x: Var, value: AbsValue): Elem

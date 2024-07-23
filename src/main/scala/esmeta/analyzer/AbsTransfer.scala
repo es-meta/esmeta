@@ -570,13 +570,13 @@ trait AbsTransferDecl { self: Analyzer =>
     /** transfer function for references */
     def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsRefTarget] =
       ref match
-        case x: Var => AbsRefVar(x)
+        case x: Var => AbsVarTarget(x)
         case field @ Field(base, expr) =>
           for {
             rv <- transfer(base)
             b <- transfer(rv)
             p <- transfer(expr)
-          } yield AbsRefField(refineFieldBase(np, field, b), p)
+          } yield AbsFieldTarget(refineFieldBase(np, field, b), p)
 
     /** refine invalid base for field reference */
     def refineFieldBase(
