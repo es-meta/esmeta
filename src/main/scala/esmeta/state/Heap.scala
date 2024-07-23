@@ -67,12 +67,6 @@ case class Heap(
     case v            => error(s"not a list: $v")
   }
 
-  /** remove given elements from list */
-  def remove(addr: Addr, value: PureValue): this.type = apply(addr) match {
-    case (l: ListObj) => l.remove(value); this
-    case v            => error(s"not a list: $v")
-  }
-
   /** copy objects */
   def copyObj(addr: Addr): Addr = alloc(apply(addr).copied)
 
