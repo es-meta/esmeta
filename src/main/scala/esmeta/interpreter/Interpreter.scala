@@ -417,15 +417,6 @@ class Interpreter(
     case EDuplicated(expr) =>
       val vs = eval(expr).getList(expr, st).values
       Bool(vs.toSet.size != vs.length)
-    case EIsArrayIndex(expr) =>
-      eval(expr) match
-        case Str(s) =>
-          val d = ESValueParser.str2number(s).double
-          val ds = toStringHelper(d)
-          val UPPER = (1L << 32) - 1
-          val l = d.toLong
-          Bool(ds == s && 0 <= l && d == l && l < UPPER)
-        case _ => Bool(false)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
