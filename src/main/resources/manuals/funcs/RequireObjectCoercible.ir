@@ -3,15 +3,15 @@ def RequireObjectCoercible(
 ): Normal[ESValue] | Abrupt[throw] = {
   if (= (typeof argument) @Undefined) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
-  } else {}
+  }
   if (= (typeof argument) @Null) {
     return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
-  } else {}
-  if (= (typeof argument) @Boolean) return argument else {}
-  if (= (typeof argument) @Number) return argument else {}
-  if (= (typeof argument) @String) return argument else {}
-  if (= (typeof argument) @Symbol) return argument else {}
-  if (= (typeof argument) @BigInt) return argument else {}
-  if (= (typeof argument) @Object) return argument else {}
+  }
+  if (= (typeof argument) @Boolean) return argument
+  if (= (typeof argument) @Number) return argument
+  if (= (typeof argument) @String) return argument
+  if (= (typeof argument) @Symbol) return argument
+  if (= (typeof argument) @BigInt) return argument
+  if (= (typeof argument) @Object) return argument
   assert false
 }

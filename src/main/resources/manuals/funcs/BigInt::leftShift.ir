@@ -5,6 +5,6 @@ def <NUM>:BigInt::leftShift(
   return (<< x y)
   // if (< y 0n) {
   //   return ([bigInt] (/ ([math] x) (** 2 (- ([math] y)))))
-  // } else {}
+  // }
   // return ([bigInt] (* ([math] x) (** 2 ([math] y))))
 }
