@@ -51,5 +51,6 @@ case class ListTy(elem: Option[ValueTy] = None)
 }
 object ListTy extends Parser.From(Parser.listTy) {
   lazy val Top: ListTy = ListTy(Some(ValueTy.Top))
+  lazy val Nil: ListTy = ListTy(Some(ValueTy.Bot))
   lazy val Bot: ListTy = ListTy()
 }

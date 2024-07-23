@@ -218,7 +218,8 @@ trait Parsers extends BasicParsers {
 
   private lazy val singleListTy: Parser[ListTy] = {
     "List[" ~> valueTy <~ "]" ^^ { case v => ListTy(Some(v)) } |
-    "Nil" ^^^ ListTy(Some(ValueTy.Bot))
+    "List" ^^^ { ListTy.Top } |
+    "Nil" ^^^ ListTy.Nil
   }.named("ty.ListTy (single)")
 
   /** AST value types */
