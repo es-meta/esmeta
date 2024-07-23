@@ -122,12 +122,6 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
     val v = if (front) vs.head else vs.last
     values = if (front) vs.drop(1) else vs.dropRight(1)
     v
-
-  /** remove a value from list */
-  def remove(value: PureValue): this.type = {
-    values = values.filter(_ != value)
-    this
-  }
 }
 
 /** symbol objects */
