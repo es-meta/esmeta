@@ -491,7 +491,12 @@ class Compiler(
           to.map(compile(fb, _)),
         )
       case TrimExpression(expr, leading, trailing) =>
-        ETrim(compile(fb, expr), leading, trailing)
+        (leading, trailing) match {
+          case (false, false) => compile(fb, expr)
+          case (true, false)  => ETrim(compile(fb, expr), true)
+          case (false, true)  => ETrim(compile(fb, expr), false)
+          case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
+        }
       case NumberOfExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case NumberOfExpression(expr) =>

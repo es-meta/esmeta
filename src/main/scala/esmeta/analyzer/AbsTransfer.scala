@@ -385,10 +385,10 @@ trait AbsTransferDecl { self: Analyzer =>
             f <- transfer(from)
             t <- transfer(to)
           } yield v.substring(f, t)
-        case ETrim(expr, leading, trailing) =>
+        case ETrim(expr, isStarting) =>
           for {
             v <- transfer(expr)
-          } yield v.trim(leading, trailing)
+          } yield v.trim(isStarting)
         case ERef(ref) =>
           for {
             rv <- transfer(ref)

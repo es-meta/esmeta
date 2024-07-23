@@ -87,8 +87,8 @@ trait Walker extends BasicWalker {
       EContains(walk(list), walk(elem))
     case ESubstring(expr, from, to) =>
       ESubstring(walk(expr), walk(from), walkOpt(to, walk))
-    case ETrim(expr, leading, trailing) =>
-      ETrim(walk(expr), walk(leading), walk(trailing))
+    case ETrim(expr, isStarting) =>
+      ETrim(walk(expr), walk(isStarting))
     case ERef(ref) =>
       ERef(walk(ref))
     case EUnary(uop, expr) =>
