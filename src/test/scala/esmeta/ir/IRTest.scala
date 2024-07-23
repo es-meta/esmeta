@@ -44,6 +44,11 @@ object IRTest {
     seq,
     emptySeq,
   )
+  lazy val ifElseInst = IIf(
+    xExpr,
+    seq,
+    seq,
+  )
   lazy val whileInst = IWhile(
     xExpr,
     seq,
