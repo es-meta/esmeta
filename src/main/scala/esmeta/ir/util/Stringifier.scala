@@ -221,6 +221,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EListConcat(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(list-concat " >> exprs >> ")"
+      case ERecord(fields) =>
+        // TODO : Is using curly braces okay?
+        given Rule[Iterable[(Expr, Expr)]] = iterableRule("{", ", ", "}")
+        app >> "(new " >> fields >> ")"
       case ESymbol(desc) =>
         app >> "(new '" >> desc >> ")"
       case ECopy(obj) =>
