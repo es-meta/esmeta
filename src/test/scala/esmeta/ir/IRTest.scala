@@ -29,13 +29,13 @@ object IRTest {
   // instructions
   lazy val xExprInst = IExpr(xExpr)
   lazy val let = ILet(x, empty)
-  lazy val del = IDelete(prop)
+  lazy val del = IDelete(field)
   lazy val pushFront = IPush(xExpr, yExpr, true)
   lazy val pushBack = IPush(xExpr, yExpr, false)
   lazy val ret = IReturn(xExpr)
   lazy val assertInst = IAssert(xExpr)
   lazy val print = IPrint(xExpr)
-  lazy val assign = IAssign(prop, xExpr)
+  lazy val assign = IAssign(field, xExpr)
   lazy val nop = INop()
   lazy val seq = ISeq(List(let, del, ret))
   lazy val emptySeq = ISeq(List())
@@ -130,9 +130,9 @@ object IRTest {
   lazy val x = Name("x")
   lazy val y = Name("y")
   lazy val temp = Temp(42)
-  lazy val prop = Prop(x, EStr("p"))
-  lazy val propStr = Prop(x, EStr("!!"))
-  lazy val propId = Prop(x, xExpr)
+  lazy val field = Field(x, EStr("p"))
+  lazy val fieldStr = Field(x, EStr("!!"))
+  lazy val fieldId = Field(x, xExpr)
 
   // types
   lazy val ty = Type(NumberT)

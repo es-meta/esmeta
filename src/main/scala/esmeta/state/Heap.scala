@@ -28,16 +28,16 @@ case class Heap(
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
-  def update(addr: Addr, prop: PureValue, value: Value): this.type =
+  def update(addr: Addr, field: PureValue, value: Value): this.type =
     apply(addr) match {
-      case (m: MapObj)  => m.update(prop, value); this
-      case (l: ListObj) => l.update(prop, value); this
+      case (m: MapObj)  => m.update(field, value); this
+      case (l: ListObj) => l.update(field, value); this
       case v            => error(s"not a map: $v")
     }
 
   /** delete */
-  def delete(addr: Addr, prop: PureValue): this.type = apply(addr) match {
-    case (m: MapObj) => m.delete(prop); this
+  def delete(addr: Addr, field: PureValue): this.type = apply(addr) match {
+    case (m: MapObj) => m.delete(field); this
     case v           => error(s"not a map: $v")
   }
 
@@ -114,24 +114,24 @@ case class Heap(
     newAddr
   }
 
-  // property access helper
+  // field access helper
   private def getAddrValue(
     addr: Addr,
-    propName: String,
-  ): Addr = apply(addr, Str(propName)) match {
+    fieldName: String,
+  ): Addr = apply(addr, Str(fieldName)) match {
     case addr: Addr => addr
     case v          => error(s"not an address: $v")
   }
 
-  // property value getter
-  private def getPropValue(
+  // field value getter
+  private def getFieldValue(
     addr: Value,
-    propName: String,
+    fieldName: String,
   ): Value = addr match {
     case addr: Addr =>
       val submap = getAddrValue(addr, "SubMap")
-      val prop = getAddrValue(submap, propName)
-      apply(prop, Str("Value"))
+      val field = getAddrValue(submap, fieldName)
+      apply(field, Str("Value"))
     case _ => error(s"not an address: $addr")
   }
 

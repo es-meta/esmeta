@@ -37,9 +37,9 @@ trait TypeErrorDecl { self: Analyzer =>
     ty: ValueTy,
   ) extends TypeError
 
-  /** invalid base in property reference errors */
+  /** invalid base in field reference errors */
   case class InvalidBaseError(
-    point: PropBasePoint,
+    point: FieldBasePoint,
     baseTy: ValueTy,
   ) extends TypeError
 

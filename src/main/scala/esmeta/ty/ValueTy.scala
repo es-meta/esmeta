@@ -121,12 +121,12 @@ case class ValueTy(
           case MapObj(tname, props, _) =>
             isSubTy(tname, name.set) ||
             (tname == "Record" && (props.forall {
-              case (Str(key), MapObj.Prop(value, _)) =>
+              case (Str(key), MapObj.Field(value, _)) =>
                 record(key).contains(value, heap)
               case _ => false
             })) ||
             (tname == "SubMap" && (props.forall {
-              case (key, MapObj.Prop(value, _)) =>
+              case (key, MapObj.Field(value, _)) =>
                 ValueTy(pureValue = subMap.key).contains(key, heap) &&
                 ValueTy(pureValue = subMap.value).contains(value, heap)
             }))
@@ -219,7 +219,7 @@ case class ValueTy(
     this.subMap.getSingle
 
   /** types having no property */
-  def noProp: ValueTy = Bot.copy(pureValue = pureValue.noProp)
+  def noField: ValueTy = Bot.copy(pureValue = pureValue.noField)
 }
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(

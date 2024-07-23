@@ -29,92 +29,92 @@ case class State(
   def locals: MMap[Local, Value] = context.locals
 
   /** lookup variable directly */
-  def directLookup(x: Id): Value = (x match {
+  def directLookup(x: Var): Value = (x match {
     case x: Global => globals.get(x)
     case x: Local  => context.locals.get(x)
   }).getOrElse(throw UnknownId(x))
 
   /** getters */
-  def apply(refV: RefValue): Value = refV match
-    case IdValue(x)            => apply(x)
-    case PropValue(base, prop) => apply(base, prop)
-  def apply(x: Id): Value = directLookup(x) match
+  def apply(rt: RefTarget): Value = rt match
+    case VarTarget(x)             => apply(x)
+    case FieldTarget(base, field) => apply(base, field)
+  def apply(x: Var): Value = directLookup(x) match
     case Absent if func.isBuiltin => Undef
     case v                        => v
-  def apply(base: Value, prop: PureValue): Value = base match
+  def apply(base: Value, field: PureValue): Value = base match
     case comp: Comp =>
-      prop match
+      field match
         case Str("Type")   => comp.ty
         case Str("Value")  => comp.value
         case Str("Target") => comp.targetValue
-        case _             => throw InvalidCompProp(comp, prop)
-    case addr: Addr    => heap(addr, prop)
-    case AstValue(ast) => apply(ast, prop)
-    case Str(str)      => apply(str, prop)
+        case _             => throw InvalidCompField(comp, field)
+    case addr: Addr    => heap(addr, field)
+    case AstValue(ast) => apply(ast, field)
+    case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
-  def apply(ast: Ast, prop: PureValue): PureValue =
-    (ast, prop) match
+  def apply(ast: Ast, field: PureValue): PureValue =
+    (ast, field) match
       case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
-      case (syn: Syntactic, Str(propStr)) =>
+      case (syn: Syntactic, Str(fieldStr)) =>
         val Syntactic(name, _, rhsIdx, children) = syn
         val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        rhs.getNtIndex(propStr).flatMap(children(_)) match
+        rhs.getNtIndex(fieldStr).flatMap(children(_)) match
           case Some(child) => AstValue(child)
-          case _           => throw InvalidAstProp(syn, Str(propStr))
+          case _           => throw InvalidAstField(syn, Str(fieldStr))
       case (syn: Syntactic, Math(n)) if n.isValidInt =>
         syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
-      case _ => throw InvalidAstProp(ast, prop)
-  def apply(str: String, prop: PureValue): PureValue = prop match
+      case _ => throw InvalidAstField(ast, field)
+  def apply(str: String, field: PureValue): PureValue = field match
     case Str("length") => Math(BigDecimal(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
-    case _             => throw WrongStringRef(str, prop)
+    case _             => throw WrongStringRef(str, field)
   def apply(addr: Addr): Obj = heap(addr)
 
   /** setters */
-  def define(x: Id, value: Value): this.type = x match
+  def define(x: Var, value: Value): this.type = x match
     case x: Global => globals += x -> value; this
     case x: Local  => context.locals += x -> value; this
-  def update(refV: RefValue, value: Value): this.type = refV match {
-    case IdValue(x) => update(x, value); this
-    case PropValue(base, prop) =>
+  def update(rt: RefTarget, value: Value): this.type = rt match {
+    case VarTarget(x) => update(x, value); this
+    case FieldTarget(base, field) =>
       base match
         // XXX see https://github.com/es-meta/esmeta/issues/65
-        case comp: Comp if comp.isAbruptCompletion && prop.asStr == "Value" =>
+        case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
           comp.value = value.toPureValue; this
-        case addr: Addr => update(addr, prop, value); this
-        case _          => error(s"illegal reference update: $refV = $value")
+        case addr: Addr => update(addr, field, value); this
+        case _          => error(s"illegal reference update: $rt = $value")
   }
-  def update(x: Id, value: Value): this.type =
+  def update(x: Var, value: Value): this.type =
     x match
       case x: Global if hasBinding(x) => globals += x -> value
       case x: Name if hasBinding(x)   => context.locals += x -> value
       case x: Temp                    => context.locals += x -> value
       case _ => error(s"illegal variable update: $x = $value")
     this
-  def update(addr: Addr, prop: PureValue, value: Value): this.type =
-    heap.update(addr, prop, value); this
+  def update(addr: Addr, field: PureValue, value: Value): this.type =
+    heap.update(addr, field, value); this
 
   /** existence checks */
-  private def hasBinding(x: Id): Boolean = x match
+  private def hasBinding(x: Var): Boolean = x match
     case x: Global => globals contains x
     case x: Local  => context.locals contains x
-  def exists(x: Id): Boolean = hasBinding(x) && directLookup(x) != Absent
-  def exists(ref: RefValue): Boolean = ref match {
-    case IdValue(id)           => exists(id)
-    case PropValue(base, prop) => apply(base, prop) != Absent
+  def exists(x: Var): Boolean = hasBinding(x) && directLookup(x) != Absent
+  def exists(rt: RefTarget): Boolean = rt match {
+    case VarTarget(x)             => exists(x)
+    case FieldTarget(base, field) => apply(base, field) != Absent
   }
 
-  /** delete a property from a map */
-  def delete(refV: RefValue): this.type = refV match {
-    case IdValue(x) =>
+  /** delete a field from a map */
+  def delete(rt: RefTarget): this.type = rt match {
+    case VarTarget(x) =>
       error(s"cannot delete variable $x")
-    case PropValue(base, prop) =>
+    case FieldTarget(base, field) =>
       base match {
         case addr: Addr =>
-          heap.delete(addr, prop); this
+          heap.delete(addr, field); this
         case _ =>
-          error(s"illegal reference delete: delete $refV")
+          error(s"illegal reference delete: delete $rt")
       }
   }
 

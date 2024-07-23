@@ -182,20 +182,21 @@ trait Walker extends BasicWalker {
 
   // references
   def walk(ref: Ref): Ref = (ref match
-    case Prop(ref, expr) => Prop(walk(ref), walk(expr))
-    case x: Id           => walk(x)
+    case Field(ref, expr) => Field(walk(ref), walk(expr))
+    case x: Var           => walk(x)
   ).setLangOpt(ref.langOpt)
 
   // identifiers
-  def walk(x: Id): Id = x match
+  def walk(x: Var): Var = x match
     case Global(x)    => Global(walk(x))
     case local: Local => walk(local)
   def walk(x: Local): Local = x match
     case x: Name => walk(x)
-    case Temp(k) => Temp(walk(k))
+    case x: Temp => walk(x)
 
   // named local identifiers
   def walk(x: Name): Name = Name(walk(x.name))
+  def walk(x: Temp): Temp = Temp(walk(x.idx))
 
   // types
   def walk(ty: Type): Type = Type(ty.ty)

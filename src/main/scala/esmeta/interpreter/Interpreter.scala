@@ -80,7 +80,7 @@ class Interpreter(
         case Nil =>
           st.context.retVal.map((_, v) => st.globals += GLOBAL_RESULT -> v)
           false
-        case CallContext(retId, ctxt) :: rest =>
+        case CallContext(ctxt, retId) :: rest =>
           val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
           st.context = ctxt
           st.callStack = rest
@@ -144,7 +144,7 @@ class Interpreter(
           val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, clo) ++ captured
-          st.callStack ::= CallContext(lhs, st.context)
+          st.callStack ::= CallContext(st.context, lhs)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
           val needWrapped = st.context.func.isReturnComp
@@ -170,9 +170,9 @@ class Interpreter(
                 call,
                 Clo(sdo, Map()),
               )
-              st.callStack ::= CallContext(lhs, st.context)
+              st.callStack ::= CallContext(st.context, lhs)
               st.context = Context(sdo, newLocals)
-            case None => throw InvalidAstProp(syn, Str(method))
+            case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
   }
@@ -400,9 +400,9 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case EMap("Completion", props) =>
+    case EMap("Completion", fields) =>
       val map = (for {
-        (kexpr, vexpr) <- props
+        (kexpr, vexpr) <- fields
         k = eval(kexpr)
         v = eval(vexpr)
       } yield k -> v).toMap
@@ -418,9 +418,9 @@ class Interpreter(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
-    case EMap(tname, props) =>
+    case EMap(tname, fields) =>
       val addr = st.allocMap(tname)
-      for ((kexpr, vexpr) <- props)
+      for ((kexpr, vexpr) <- fields)
         val k = eval(kexpr).toPureValue
         val v = eval(vexpr)
         st.update(addr, k, v)
@@ -523,12 +523,12 @@ class Interpreter(
     case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
-  def eval(ref: Ref): RefValue = ref match
-    case x: Id => IdValue(x)
-    case Prop(ref, expr) =>
+  def eval(ref: Ref): RefTarget = ref match
+    case x: Var => VarTarget(x)
+    case Field(ref, expr) =>
       var base = st(eval(ref))
-      val p = eval(expr)
-      PropValue(base, p.toPureValue)
+      val f = eval(expr)
+      FieldTarget(base, f.toPureValue)
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
@@ -549,8 +549,8 @@ class Interpreter(
     st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */
-  def setCallResult(id: Id, value: Value): Unit =
-    st.define(id, value)
+  def setCallResult(x: Var, value: Value): Unit =
+    st.define(x, value)
     st.context.moveNext
 
   /** sdo with default case */
@@ -651,7 +651,7 @@ object Interpreter {
       case ("RegularExpressionLiteral", name) =>
         throw NotSupported(Feature)(List("RegExp"))
       case _ =>
-        throw InvalidAstProp(lex, Str(sdoName))
+        throw InvalidAstField(lex, Str(sdoName))
     }
   }
 

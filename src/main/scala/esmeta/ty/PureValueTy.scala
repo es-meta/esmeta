@@ -228,8 +228,8 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.nullv.isBottom) Zero else One(Null)) ||
     (if (this.absent.isBottom) Zero else One(Absent))
 
-  /** types having no property */
-  def noProp: PureValueTy = this match
+  /** types having no field */
+  def noField: PureValueTy = this match
     case PureValueTopTy =>
       PureValueElemTy(
         clo = Inf,
