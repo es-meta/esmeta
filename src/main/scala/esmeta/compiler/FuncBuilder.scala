@@ -65,11 +65,17 @@ case class FuncBuilder(
       ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
     )
 
-  /** get next temporal identifier */
+  /** get next temporal variable */
   def newTId: Temp = Temp(nextTId)
 
-  /** get next temporal identifier with expressions */
+  /** get next temporal variable with expressions */
   def newTIdWithExpr: (Temp, Expr) = { val x = newTId; (x, ERef(x)) }
+
+  /** get next temporal variable with expressions after expression assignment */
+  def newTIdWithExpr(expr: Expr): (Temp, Expr) =
+    val (x, xExpr) = newTIdWithExpr
+    addInst(IAssign(x, expr))
+    (x, xExpr)
 
   /** get closure name */
   def nextCloName: String = s"$name:clo${nextCId}"
@@ -91,7 +97,7 @@ case class FuncBuilder(
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
-  // temporal identifier id counter
+  // temporal variable index counter
   private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
   private var tidCount: Int = 0
 
