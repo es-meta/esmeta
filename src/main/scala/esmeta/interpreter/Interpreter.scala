@@ -508,7 +508,6 @@ class Interpreter(
     aux(params, args, 0)
     map
   }
-  enum CallKind { case Clo, Cont, Method, Sdo }
 
   /** helper for return-if-abrupt cases */
   def returnIfAbrupt(
