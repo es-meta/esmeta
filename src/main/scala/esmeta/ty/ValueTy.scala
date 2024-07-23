@@ -134,8 +134,9 @@ case class ValueTy(
             list.elem match
               case None     => false
               case Some(ty) => values.forall(ty.contains(_, heap))
-          case SymbolObj(_) => symbol
-          case YetObj(_, _) => true
+          case SymbolObj(_)     => symbol
+          case RecordObj(field) => ???
+          case YetObj(_, _)     => true // TODO : Check is this okay
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
       case AstValue(ast) =>

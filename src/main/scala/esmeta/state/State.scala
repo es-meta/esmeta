@@ -150,6 +150,7 @@ case class State(
         case m: MapObj    => NameT(m.ty)
         case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
         case s: SymbolObj => SymbolT
+        case r: RecordObj => ???
         case y: YetObj    => NameT(y.tname)
     case clo: Clo      => CloT(clo.func.name)
     case cont: Cont    => ContT(cont.func.id)

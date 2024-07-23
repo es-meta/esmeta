@@ -44,6 +44,7 @@ trait UnitWalker extends BasicUnitWalker {
     case MapObj(_, fields, _) => walkMMap(fields, walk, walk)
     case ListObj(values)      => walkIterable(values, walk)
     case SymbolObj(desc)      => walk(desc)
+    case RecordObj(fields)    => walkMMap(fields, walk, walk)
     case _: YetObj            =>
 
   // value

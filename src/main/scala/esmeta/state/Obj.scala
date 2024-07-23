@@ -4,7 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.ESValueParser
-import scala.collection.mutable.{LinkedHashMap => LMMap}
+import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 
 // Objects
 sealed trait Obj extends StateElem {
@@ -117,6 +117,16 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
     values = values.filter(_ != value)
     this
   }
+}
+
+case class RecordObj(fields: MMap[String, Value]) extends Obj {
+  // Any fields that are not explicitly listed are considered to be absent.
+
+  /** pairs of map */
+  def pairs: Map[String, Value] = (fields.map {
+    case (k, v) => k -> v
+  }).toMap
+
 }
 
 /** symbol objects */
