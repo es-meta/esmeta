@@ -160,7 +160,7 @@ class Initialize(cfg: CFG) {
       case _                  => RecordObj("BuiltinFunctionObject")
     val subMapObj = map.get(subAddr) match
       case Some(m: MapObj) => m
-      case _               => MapObj("SubMap")
+      case _               => MapObj()
     val nameRecordObj = map.get(nameAddr) match
       case Some(r: RecordObj) => r
       case _                  => RecordObj("PropertyDescriptor")

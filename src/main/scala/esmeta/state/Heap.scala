@@ -91,10 +91,10 @@ case class Heap(
     m: Map[PureValue, PureValue],
   )(using CFG): Addr = {
     val irMap =
-      if (tname == "Record") MapObj(tname, LMMap(), 0) else MapObj(tname)
+      if (tname == "Record") MapObj(tname, LMMap(), 0) else MapObj()
     for ((k, v) <- m) irMap.update(k, v)
     if (hasSubMap(tname))
-      val subMap = MapObj("SubMap")
+      val subMap = MapObj()
       irMap.update(Str("SubMap"), alloc(subMap))
     if (isObject(tname))
       val privateElems = ListObj()
@@ -121,7 +121,7 @@ case class Heap(
       if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
     for ((k, v) <- m) irMap.update(Str(k), v)
     if (hasSubMap(tname))
-      val subMap = MapObj("SubMap")
+      val subMap = MapObj()
       irMap.update(Str("SubMap"), alloc(subMap))
     if (isObject(tname))
       val privateElems = ListObj()

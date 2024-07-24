@@ -492,7 +492,7 @@ trait AbsTransferDecl { self: Analyzer =>
                   v <- transfer(vexpr)
                 } yield (k, v)
             })
-            lv <- id(_.allocMap(asite, tname, pairs))
+            lv <- id(_.allocRecord(asite, tname, pairs))
           } yield lv
         case e @ EList(exprs) =>
           val asite = AllocSite(e.asite, np.view)

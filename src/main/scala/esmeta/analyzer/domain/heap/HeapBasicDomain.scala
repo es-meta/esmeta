@@ -206,23 +206,11 @@ trait HeapBasicDomainDecl { self: Self =>
         pairs: Iterable[(AbsValue, AbsValue)],
       ): Elem =
         given CFG = cfg
-        val newObj = pairs.foldLeft(AbsObj(MapObj(tname))) {
+        // TODO : Check if this line is okay
+        val newObj = pairs.foldLeft(AbsObj(MapObj())) {
           case (m, (k, v)) => m.update(k, v, weak = false)
         }
-        if (hasSubMap(tname)) {
-          val subMapPart = SubMap(to)
-          val subMapObj = AbsObj(MapObj("SubMap"))
-          val newElem = alloc(
-            elem,
-            to,
-            newObj.update(
-              AbsValue("SubMap"),
-              AbsValue(subMapPart),
-              weak = false,
-            ),
-          )
-          alloc(newElem, subMapPart, subMapObj)
-        } else alloc(elem, to, newObj)
+        alloc(elem, to, newObj)
 
       /** allocation of record with address partitions */
       def allocRecord(
@@ -237,7 +225,7 @@ trait HeapBasicDomainDecl { self: Self =>
         }
         if (hasSubMap(tname)) {
           val subMapPart = SubMap(to)
-          val subMapObj = AbsObj(MapObj("SubMap"))
+          val subMapObj = AbsObj(MapObj())
           val newElem = alloc(
             elem,
             to,

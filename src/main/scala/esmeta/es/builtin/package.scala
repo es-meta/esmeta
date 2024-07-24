@@ -126,7 +126,7 @@ def getSubmapObjects(
   nmap: List[(String, Property)],
 )(using CFG): Map[Addr, Obj] =
   var map = Map[Addr, Obj]()
-  map += submapAddr(name) -> MapObj(SUBMAP)(nmap.map {
+  map += submapAddr(name) -> MapObj()(nmap.map {
     case (k, _) => // handle symbol
       val key = if k startsWith "@@" then symbolAddr(k.drop(2)) else Str(k)
       key -> descAddr(descBase, k)

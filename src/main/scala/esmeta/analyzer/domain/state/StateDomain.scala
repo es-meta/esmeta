@@ -133,6 +133,13 @@ trait StateDomainDecl { self: Self =>
         pairs: Iterable[(AbsValue, AbsValue)],
       ): (AbsValue, Elem)
 
+      /** allocation of record with address partitions */
+      def allocRecord(
+        to: AllocSite,
+        tname: String,
+        pairs: Iterable[(AbsValue, AbsValue)],
+      ): (AbsValue, Elem)
+
       /** allocation of list with address partitions */
       def allocList(
         to: AllocSite,

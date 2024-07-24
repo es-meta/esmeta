@@ -75,21 +75,15 @@ case class MapObj(
 }
 object MapObj {
 
-  /** apply with type model */
-  def apply(tname: String)(fields: (PureValue, Value)*)(using CFG): MapObj =
-    val obj: MapObj = MapObj(tname)
+  def apply()(fields: (PureValue, Value)*)(using CFG): MapObj =
+    val obj: MapObj = MapObj()
     for { ((k, v), idx) <- fields.zipWithIndex }
       obj.fields += k -> v
     obj.size += fields.size
     obj
 
-  def apply(tname: String)(using cfg: CFG): MapObj =
-    // TODO do not explicitly store methods in object but use a type model when
-    // accessing methods
-    val methods = cfg.tyModel.getMethod(tname)
-    val obj = MapObj(tname, LMMap(), methods.size)
-    for { ((name, fname), idx) <- methods.zipWithIndex }
-      obj.fields += Str(name) -> Clo(cfg.fnameMap(fname), Map())
+  def apply()(using cfg: CFG): MapObj =
+    val obj = MapObj("SubMap", LMMap(), 0)
     obj
 }
 
