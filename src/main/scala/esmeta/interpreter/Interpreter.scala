@@ -160,7 +160,7 @@ class Interpreter(
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
-          getSDO((syn, method)) match
+          getSdo((syn, method)) match
             case Some((ast0, sdo)) =>
               val vs = args.map(eval)
               val newLocals = getLocals(
@@ -541,13 +541,6 @@ class Interpreter(
     st.define(x, value)
     st.context.moveNext
 
-  /** sdo with default case */
-  val defaultCases = List(
-    "Contains",
-    "AllPrivateIdentifiersValid",
-    "ContainsArguments",
-  )
-
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
@@ -569,36 +562,8 @@ class Interpreter(
     mkdir(logDir)
     getPrintWriter(s"$logDir/log")
 
-  /** get syntax-directed operation(SDO) */
-  private val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
-    case (ast, operation) =>
-      val fnameMap = cfg.fnameMap
-      ast.chains.foldLeft[Option[(Ast, Func)]](None) {
-        case (None, ast0) =>
-          val subIdx = getSubIdx(ast0)
-          val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-          fnameMap.get(fname) match
-            case Some(sdo) => Some(ast0, sdo)
-            case None if defaultCases contains operation =>
-              Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-            case _ => None
-        case (res: Some[_], _) => res
-      }
-  }
-
-  /** get sub index of parsed Ast */
-  private val getSubIdx = cached[Ast, Int] {
-    case lex: Lexical => 0
-    case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      val optionals = (for {
-        ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
-      } yield !child.isEmpty)
-      optionals.reverse.zipWithIndex.foldLeft(0) {
-        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-        case (acc, _)           => acc
-      }
-  }
+  /** cache to get syntax-directed operation (SDO) */
+  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 }
 
 /** IR interpreter with a CFG */

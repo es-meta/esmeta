@@ -179,7 +179,7 @@ trait ValueDomainDecl { self: Self =>
       def refineThis(func: Func): Elem
 
       /** get syntactic SDO */
-      def getSDO(method: String): List[(Func, Elem)]
+      def getSdo(method: String): List[(Func, Elem)]
 
       /** get lexical result */
       def getLexical(method: String): Elem
