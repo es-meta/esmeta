@@ -331,9 +331,13 @@ class Interpreter(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
+            // TODO : Remove MapObj case
             case m: MapObj =>
               if (tyModel.isSubTy(m.ty, "Object")) "Object"
               else m.ty
+            case r: RecordObj =>
+              if (tyModel.isSubTy(r.ty, "Object")) "Object"
+              else r.ty
             case _: SymbolObj => "Symbol"
             case v            => "SpecType"
         case v => "SpecType",
@@ -362,6 +366,7 @@ class Interpreter(
         case addr: Addr =>
           st(addr) match
             case m: MapObj    => tyModel.isSubTy(m.ty, tyName)
+            case r: RecordObj => tyModel.isSubTy(r.ty, tyName)
             case _: ListObj   => tyName contains "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???

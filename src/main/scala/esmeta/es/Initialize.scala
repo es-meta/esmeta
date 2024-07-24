@@ -169,29 +169,29 @@ class Initialize(cfg: CFG) {
       case _                  => RecordObj("PropertyDescriptor")
 
     map += baseAddr -> baseObj
-      .findOrUpdate(("Extensible"), Bool(true))
-      .findOrUpdate(("ScriptOrModule"), Null)
-      .findOrUpdate(("Realm"), realmAddr)
-      .findOrUpdate(("Code"), intrClo(name))
-      .findOrUpdate(("Prototype"), intrAddr("Function.prototype"))
-      .findOrUpdate(("SubMap"), subAddr)
-      .findOrUpdate(("InitialName"), Str(defaultName))
+      .findOrUpdate(Str("Extensible"), Bool(true))
+      .findOrUpdate(Str("ScriptOrModule"), Null)
+      .findOrUpdate(Str("Realm"), realmAddr)
+      .findOrUpdate(Str("Code"), intrClo(name))
+      .findOrUpdate(Str("Prototype"), intrAddr("Function.prototype"))
+      .findOrUpdate(Str("SubMap"), subAddr)
+      .findOrUpdate(Str("InitialName"), Str(defaultName))
 
     map += subAddr -> subMapObj
       .findOrUpdate(Str("length"), lengthAddr)
       .findOrUpdate(Str("name"), nameAddr)
 
     map += nameAddr -> nameRecordObj
-      .findOrUpdate(("Value"), Str(defaultName))
-      .findOrUpdate(("Writable"), Bool(false))
-      .findOrUpdate(("Enumerable"), Bool(false))
-      .findOrUpdate(("Configurable"), Bool(true))
+      .findOrUpdate(Str("Value"), Str(defaultName))
+      .findOrUpdate(Str("Writable"), Bool(false))
+      .findOrUpdate(Str("Enumerable"), Bool(false))
+      .findOrUpdate(Str("Configurable"), Bool(true))
 
     map += lengthAddr -> lengthRecordObj
-      .findOrUpdate(("Value"), Number(defaultLength))
-      .findOrUpdate(("Writable"), Bool(false))
-      .findOrUpdate(("Enumerable"), Bool(false))
-      .findOrUpdate(("Configurable"), Bool(true))
+      .findOrUpdate(Str("Value"), Number(defaultLength))
+      .findOrUpdate(Str("Writable"), Bool(false))
+      .findOrUpdate(Str("Enumerable"), Bool(false))
+      .findOrUpdate(Str("Configurable"), Bool(true))
   }
   private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
     func <- cfg.funcs

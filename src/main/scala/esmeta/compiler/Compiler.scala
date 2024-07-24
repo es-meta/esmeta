@@ -477,7 +477,9 @@ class Compiler(
         val props = fields.map {
           case (f, e) => compile(fb, f) -> compile(fb, e)
         }
-        EMap(Type.normalizeName(tname), props)
+        val normalized = (Type.normalizeName(tname))
+        if normalized == "SubMap" then EMap(normalized, props)
+        else ERecord(normalized, props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
@@ -740,7 +742,7 @@ class Compiler(
       ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
     case ErrorObjectLiteral(name) =>
       val proto = Intrinsic(name, List("prototype"))
-      EMap(
+      ERecord(
         "OrdinaryObject",
         List(
           EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),

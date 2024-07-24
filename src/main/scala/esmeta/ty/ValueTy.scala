@@ -138,12 +138,12 @@ case class ValueTy(
           case RecordObj(tname, props, _) =>
             isSubTy(tname, name.set) ||
             (tname == "Record" && (props.forall {
-              case (key, value) =>
+              case (Str(key), value) =>
                 record(key).contains(value, heap)
             })) ||
             (tname == "SubMap" && (props.forall {
               case (key, value) =>
-                ValueTy(pureValue = subMap.key).contains(Str(key), heap) &&
+                ValueTy(pureValue = subMap.key).contains(key, heap) &&
                 ValueTy(pureValue = subMap.value).contains(value, heap)
             }))
           case YetObj(_, _) => true // TODO : Check is this okay

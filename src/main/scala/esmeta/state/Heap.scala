@@ -35,8 +35,8 @@ case class Heap(
       case (l: ListObj) => l.update(field, value); this
       case (r: RecordObj) => {
         field match
-          case Str(prop) => r.update(prop, value)
-          case _         => throw InvalidObjField(r, field)
+          case prop @ Str(_) => r.update(prop, value)
+          case _             => throw InvalidObjField(r, field)
         this
       }
       case v => error(s"not a map: $v")
@@ -44,8 +44,9 @@ case class Heap(
 
   /** delete */
   def delete(addr: Addr, field: PureValue): this.type = apply(addr) match {
-    case (m: MapObj) => m.delete(field); this
-    case v           => error(s"not a map: $v")
+    case (m: MapObj)    => m.delete(field); this
+    case (r: RecordObj) => error(s"cannot delete from record: $r")
+    case v              => error(s"not a map: $v")
   }
 
   /** appends */
@@ -78,8 +79,9 @@ case class Heap(
   /** keys of map */
   def keys(addr: Addr, intSorted: Boolean): Addr = {
     alloc(ListObj(apply(addr) match {
-      case (m: MapObj) => m.keys(intSorted)
-      case obj         => error(s"not a map: $obj")
+      case (m: MapObj)    => m.keys(intSorted)
+      case (r: RecordObj) => r.keys(intSorted)
+      case obj            => error(s"not a map: $obj")
     }))
   }
 
@@ -117,13 +119,13 @@ case class Heap(
   )(using CFG): Addr = {
     val irMap =
       if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
-    for ((k, v) <- m) irMap.update(k, v)
+    for ((k, v) <- m) irMap.update(Str(k), v)
     if (hasSubMap(tname))
       val subMap = MapObj("SubMap")
-      irMap.update("SubMap", alloc(subMap))
+      irMap.update(Str("SubMap"), alloc(subMap))
     if (isObject(tname))
       val privateElems = ListObj()
-      irMap.update("PrivateElements", alloc(privateElems))
+      irMap.update(Str("PrivateElements"), alloc(privateElems))
     alloc(irMap)
   }
 
@@ -161,7 +163,10 @@ case class Heap(
 
   /** set type of objects */
   def setType(addr: Addr, tname: String): this.type = apply(addr) match {
+    // TODO : Remove MapObj case (it will be only SubMap)
     case (irMap: MapObj) =>
+      irMap.ty = tname; this
+    case (irMap: RecordObj) =>
       irMap.ty = tname; this
     case _ => error(s"invalid type update: $addr")
   }
