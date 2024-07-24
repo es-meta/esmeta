@@ -149,6 +149,13 @@ class Injector(
             handleConstruct(addr, path)
             handlePropKeys(addr, path)
             handleProperty(addr, path)
+          case (_: RecordObj) =>
+            handlePrototype(addr, path)
+            handleExtensible(addr, path)
+            handleCall(addr, path)
+            handleConstruct(addr, path)
+            handlePropKeys(addr, path)
+            handleProperty(addr, path)
           case _ =>
       case _ =>
   private var handledObjects: Map[Addr, String] = (for {
@@ -225,7 +232,8 @@ class Injector(
     for (p <- getKeys(subMap, path)) access(subMap, p) match
       case addr: Addr =>
         exitSt(addr) match
-          case MapObj(
+          // NOTE : next line cannot be MapObj
+          case RecordObj(
                 "PropertyDescriptor" | "DataProperty" | "AccessorProperty",
                 props,
                 _,
@@ -283,7 +291,9 @@ class Injector(
   private def getKeys(value: Value, path: String): Set[PureValue] = value match
     case addr: Addr =>
       exitSt(addr) match
-        case m: MapObj => m.fields.keySet.toSet
+        // TODO : Check if MapObj case is removable
+        case m: MapObj    => m.fields.keySet.toSet
+        case r: RecordObj => r.fields.keySet.toSet
         case _ => warning("[[SubMap]] is not a map object: $path"); Set()
     case _ => warning("[[SubMap]] is not an address: $path"); Set()
 

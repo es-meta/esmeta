@@ -125,7 +125,7 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 
 case class RecordObj(
   var ty: String, // TODO handle type
-  private val fields: MMap[Str, Value],
+  val fields: MMap[Str, Value],
   var size: Int,
 ) extends Obj {
 
