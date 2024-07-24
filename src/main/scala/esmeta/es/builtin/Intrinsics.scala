@@ -21,9 +21,9 @@ case class Intrinsics(cfg: CFG) {
       case (name, Struct(typeName, imap, nmap))
           if !(yets contains name.split("\\.").head) =>
         // base object
-        _map += intrAddr(name) -> MapObj(typeName)(
+        _map += intrAddr(name) -> RecordObj(typeName)(
           (SUBMAP -> submapAddr(intrName(name)) :: imap).map {
-            case (k, v) => Str(k) -> v
+            case (k, v) => k -> v
           }: _*,
         )
 
@@ -40,7 +40,7 @@ case class Intrinsics(cfg: CFG) {
   }
 
   /** get intrinsic record */
-  def obj: MapObj = MapObj("Record")
+  def obj: RecordObj = RecordObj("Record")
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())

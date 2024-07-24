@@ -152,6 +152,12 @@ case class RecordObj(
     fields += field -> value
     this
 
+  /** setters */
+  def findOrUpdate(field: String, value: Value): this.type =
+    fields.get(field) match
+      case Some(_) => this
+      case _       => update(field, value)
+
   /** pairs of map */
   def pairs: Map[String, Value] = (fields.map {
     case (k, v) => k -> v
