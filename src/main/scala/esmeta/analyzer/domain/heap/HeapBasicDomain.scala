@@ -228,10 +228,6 @@ trait HeapBasicDomainDecl { self: Self =>
         values: Iterable[AbsValue],
       ): Elem = alloc(elem, to, AbsObj.getList(values))
 
-      /** allocation of symbol with address partitions */
-      def allocSymbol(to: AllocSite, desc: AbsValue): Elem =
-        alloc(elem, to, AbsObj.getSymbol(desc))
-
       /** set type of objects */
       def setType(part: AbsPart, tname: String): Elem =
         applyEach(elem, part)((obj, _) => obj.setType(tname))

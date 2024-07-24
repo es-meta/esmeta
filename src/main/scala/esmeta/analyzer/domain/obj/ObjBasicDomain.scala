@@ -94,7 +94,6 @@ trait ObjBasicDomainDecl { self: Self =>
 
     /** abstraction functions */
     def alpha(obj: Obj): Elem = obj match
-      case SymbolObj(desc) => SymbolElem(AbsValue(desc))
       case m @ MapObj(map) =>
         DetailMap(
           map = (for {

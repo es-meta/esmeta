@@ -88,7 +88,6 @@ object Stringifier {
         .add(ty.name, !ty.name.isBottom)
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
-        .add("Symbol", !ty.symbol.isBottom)
         .add(ty.astValue, !ty.astValue.isBottom)
         .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
         .add("CodeUnit", !ty.codeUnit.isBottom)

@@ -133,8 +133,6 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case EListConcat(exprs) =>
       walkList(exprs, walk)
-    case ESymbol(desc) =>
-      walk(desc)
     case ECopy(obj) =>
       walk(obj)
     case EKeys(map, intSorted) =>

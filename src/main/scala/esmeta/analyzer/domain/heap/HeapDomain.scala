@@ -101,9 +101,6 @@ trait HeapDomainDecl { self: Self =>
         values: Iterable[AbsValue] = Nil,
       ): Elem
 
-      /** allocation of symbol with address partitions */
-      def allocSymbol(to: AllocSite, desc: AbsValue): Elem
-
       /** set type of objects */
       def setType(part: AbsPart, tname: String): Elem
 

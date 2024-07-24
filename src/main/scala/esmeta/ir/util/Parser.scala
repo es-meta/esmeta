@@ -185,8 +185,6 @@ trait Parsers extends TyParsers {
       case es => EList(es)
     } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
       case es => EListConcat(es)
-    } | ("(" ~ "new" ~> "'" ~> expr <~ ")") ^^ {
-      case e => ESymbol(e)
     } | ("(" ~ "copy" ~> expr <~ ")") ^^ {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {

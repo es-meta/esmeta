@@ -154,7 +154,7 @@ class StringifyTinyTest extends IRTest {
       // allocation expressions
       rec -> """(new T { "A" : true, "B" : absent })""",
       list -> "(new [undefined, null, absent])",
-      symbol -> "(new 'null)",
+      symbol -> """(new Symbol { "Description" : undefined })""",
       copy -> "(copy x)",
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
@@ -163,7 +163,7 @@ class StringifyTinyTest extends IRTest {
       // allocation expressions with allocation sites
       recASite -> """(new T { "A" : true, "B" : absent })[#3]""".stripMargin,
       listASite -> "(new [undefined, null, absent])[#1]",
-      symbolASite -> "(new 'null)[#7]",
+      symbolASite -> """(new Symbol { "Description" : undefined })[#7]""",
       copyASite -> "(copy x)[#42]",
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",

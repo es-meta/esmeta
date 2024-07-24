@@ -11,16 +11,14 @@ sealed trait Obj extends StateElem {
 
   /** getters */
   def apply(field: Value): Value = (this, field) match
-    case (SymbolObj(desc), Str("Description")) => desc
-    case (MapObj(map), field)                  => map.getOrElse(field, Absent)
+    case (RecordObj(_, map), Str(field)) => map.getOrElse(field, Absent)
+    case (MapObj(map), key)              => map.getOrElse(key, Absent)
     case (ListObj(values), Math(decimal)) =>
       val idx = decimal.toInt
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
     case (ListObj(values), Str("length")) => Math(values.length)
-    case (RecordObj(_, map), Str(field)) =>
-      map.getOrElse(field, Absent)
-    case _ => throw InvalidObjField(this, field)
+    case _                                => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
@@ -116,9 +114,6 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
     values = if (front) vs.drop(1) else vs.dropRight(1)
     v
 }
-
-/** symbol objects */
-case class SymbolObj(desc: Value) extends Obj
 
 /** not yet supported objects */
 case class YetObj(tname: String, msg: String) extends Obj

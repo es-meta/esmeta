@@ -70,8 +70,6 @@ trait Parsers extends BasicParsers {
     singleRecordTy ^^ { case r => PureValueTy(record = r) } |
     // list
     singleListTy ^^ { case l => PureValueTy(list = l) } |
-    // symbol
-    "Symbol" ^^^ PureValueTy(symbol = true) |
     // AST value
     singleAstValueTy ^^ { case ast => PureValueTy(astValue = ast) } |
     // nt
