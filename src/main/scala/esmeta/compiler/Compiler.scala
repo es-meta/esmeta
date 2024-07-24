@@ -478,6 +478,7 @@ class Compiler(
           case (f, e) => compile(fb, f) -> compile(fb, e)
         }
         val normalized = (Type.normalizeName(tname))
+        // TODO : remove if branch - I think normalized = "SubMap" does NOT happen since SubMap is created IN RecordObj
         if normalized == "SubMap" then EMap(normalized, props)
         else ERecord(normalized, props)
       case LengthExpression(ReferenceExpression(ref)) =>
