@@ -92,12 +92,19 @@ class StringifyTinyTest extends StateTest {
     lazy val map = MapObj("A", LMMap(), 0)
     lazy val singleMap =
       MapObj("A", LMMap(Str("p") -> Str("p")), 1)
+    lazy val rec = RecordObj("A", LMMap(), 0)
+    lazy val singleRec =
+      RecordObj("A", MMap(Str("p") -> Str("p")), 1)
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")
     checkStringify("Object")(
       map -> "[TYPE = A] {}",
       singleMap -> """[TYPE = A] {
+      |  "p" -> "p"
+      |}""".stripMargin,
+      rec -> "[TYPE = A] {}",
+      singleRec -> """[TYPE = A] {
       |  "p" -> "p"
       |}""".stripMargin,
       list -> """[42, "x"]""",
