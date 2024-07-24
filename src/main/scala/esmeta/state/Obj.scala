@@ -12,78 +12,80 @@ sealed trait Obj extends StateElem {
   /** getters */
   def apply(field: PureValue): Value = (this, field) match
     case (SymbolObj(desc), Str("Description")) => desc
-    case (MapObj(_, fields, _), field) => fields.getOrElse(field, Absent)
+    case (MapObj(map), field)                  => map.getOrElse(field, Absent)
     case (ListObj(values), Math(decimal)) =>
       val idx = decimal.toInt
       if (0 <= idx && idx < values.length) values(idx)
       else Absent
     case (ListObj(values), Str("length")) => Math(values.length)
-    case (RecordObj(_, fields, _), Str(field)) =>
-      fields.getOrElse(Str(field), Absent)
+    case (RecordObj(_, map), Str(field)) =>
+      map.getOrElse(field, Absent)
     case _ => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
-    case MapObj(tname, fields, size) => MapObj(tname, LMMap.from(fields), size)
-    case ListObj(values)             => ListObj(Vector.from(values))
-    case RecordObj(tname, fields, size) =>
-      RecordObj(tname, LMMap.from(fields), size)
-    case _ => this
+    case MapObj(map)           => MapObj(LMMap.from(map))
+    case ListObj(values)       => ListObj(Vector.from(values))
+    case RecordObj(tname, map) => RecordObj(tname, LMMap.from(map))
+    case _                     => this
 }
 
 /** map objects */
 case class MapObj(
-  var ty: "SubMap", // TODO handle type
-  val fields: LMMap[PureValue, Value],
-  var size: Int,
+  val map: LMMap[PureValue, Value] = LMMap(),
 ) extends Obj {
 
-  /** setters */
-  def findOrUpdate(field: PureValue, value: Value): this.type =
-    fields.get(field) match
-      case Some(_) => this
-      case _       => update(field, value)
-
   /** updates */
-  def update(field: PureValue, value: Value): this.type =
-    fields += field -> value
+  def update(key: PureValue, value: Value): this.type =
+    map += key -> value
     this
 
   /** deletes */
-  def delete(field: PureValue): this.type = { fields -= field; this }
-
-  /** pairs of map */
-  def pairs: Map[PureValue, Value] = (fields.map {
-    case (k, v) => k -> v
-  }).toMap
+  def delete(key: PureValue): this.type = { map -= key; this }
 
   /** keys of map */
   def keys: Vector[PureValue] = keys(intSorted = false)
-  def keys(intSorted: Boolean): Vector[PureValue] = {
-    if (!intSorted) {
-      if (ty == "SubMap") fields.keys.toVector
-      else fields.keys.toVector.sortBy(_.toString)
-    } else
-      (for {
-        case (Str(s), _) <- fields.toVector
-        d = ESValueParser.str2number(s).double
-        if toStringHelper(d) == s
-        i = d.toLong // should handle unsigned integer
-        if d == i
-      } yield (s, i)).sortBy(_._2).map { case (s, _) => Str(s) }
-  }
+  def keys(intSorted: Boolean): Vector[PureValue] = if (intSorted) {
+    (for {
+      case (Str(s), _) <- map.toVector
+      d = ESValueParser.str2number(s).double
+      if toStringHelper(d) == s
+      i = d.toLong // should handle unsigned integer
+      if d == i
+    } yield (s, i)).sortBy(_._2).map { case (s, _) => Str(s) }
+  } else map.keys.toVector
 }
 object MapObj {
+  def apply(pairs: Iterable[(PureValue, Value)]): MapObj =
+    MapObj(LMMap.from(pairs))
+}
 
-  def apply()(fields: (PureValue, Value)*)(using CFG): MapObj =
-    val obj: MapObj = MapObj()
-    for { ((k, v), idx) <- fields.zipWithIndex }
-      obj.fields += k -> v
-    obj.size += fields.size
+case class RecordObj(
+  var tname: String,
+  val map: MMap[String, Value] = MMap(),
+) extends Obj {
+
+  /** updates a value */
+  def update(field: PureValue, value: Value): this.type = field match
+    case Str(field) => map += field -> value; this
+    case _          => throw InvalidObjField(this, field)
+}
+object RecordObj {
+
+  /** apply with type model */
+  def apply(tname: String)(map: (String, Value)*)(using CFG): RecordObj =
+    val obj: RecordObj = RecordObj(tname)
+    for { ((k, v), idx) <- map.zipWithIndex }
+      obj.map += k -> v
     obj
 
-  def apply()(using cfg: CFG): MapObj =
-    val obj = MapObj("SubMap", LMMap(), 0)
+  def apply(tname: String)(using cfg: CFG): RecordObj =
+    // TODO do not explicitly store methods in object but use a type model when
+    // accessing methods
+    val methods = cfg.tyModel.getMethod(tname)
+    val obj = RecordObj(tname, MMap())
+    for { ((name, fname), idx) <- methods.zipWithIndex }
+      obj.map += name -> Clo(cfg.fnameMap(fname), Map())
     obj
 }
 
@@ -115,83 +117,6 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
     values = values.filter(_ != value)
     this
   }
-}
-
-case class RecordObj(
-  var ty: String, // TODO handle type
-  val fields: MMap[Str, Value],
-  var size: Int,
-) extends Obj {
-
-  /** Tracks */
-  // private var cache: Option[Boolean] = None
-
-  // def isCompletion(using st: State): Boolean = cache match
-  //   case Some(v) => v
-  //   case None =>
-  //     val valueCheck = fields.get("Value").map(_.isCompletion)
-  //     cache = Some(
-  //       fields.size == 3 &&
-  //       COMPLETION_TYPES.contains(fields.getOrElse("Type", Absent)) && (
-  //         (fields.getOrElse("Target", Absent)) match
-  //           case `ENUM_EMPTY` => true
-  //           case Str(_)       => true
-  //           case _            => false
-  //       ),
-  //     )
-  //     isCompletion
-
-  /** updates a value */
-  def update(field: Str, value: Value): this.type =
-    fields += field -> value
-    this
-
-  /** setters */
-  def findOrUpdate(field: Str, value: Value): this.type =
-    fields.get(field) match
-      case Some(_) => this
-      case _       => update(field, value)
-
-  /** pairs of map */
-  def pairs: Map[Str, Value] = (fields.map {
-    case (k, v) => k -> v
-  }).toMap
-
-  /** keys of map */
-  def keys: Vector[Str] = keys(intSorted = false)
-  def keys(intSorted: Boolean): Vector[Str] = {
-    if (!intSorted) {
-      if (ty == "SubMap") fields.keys.toVector
-      else fields.keys.toVector.sortBy(_.toString)
-    } else
-      (for {
-        case (Str(s), _) <- fields.toVector
-        d = ESValueParser.str2number(s).double
-        if toStringHelper(d) == s
-        i = d.toLong // should handle unsigned integer
-        if d == i
-      } yield (s, i)).sortBy(_._2).map { case (s, _) => Str(s) }
-  }
-
-}
-object RecordObj {
-
-  /** apply with type model */
-  def apply(tname: String)(fields: (String, Value)*)(using CFG): RecordObj =
-    val obj: RecordObj = RecordObj(tname)
-    for { ((k, v), idx) <- fields.zipWithIndex }
-      obj.fields += Str(k) -> v
-    obj.size += fields.size
-    obj
-
-  def apply(tname: String)(using cfg: CFG): RecordObj =
-    // TODO do not explicitly store methods in object but use a type model when
-    // accessing methods
-    val methods = cfg.tyModel.getMethod(tname)
-    val obj = RecordObj(tname, MMap(), methods.size)
-    for { ((name, fname), idx) <- methods.zipWithIndex }
-      obj.fields += Str(name) -> Clo(cfg.fnameMap(fname), Map())
-    obj
 }
 
 /** symbol objects */

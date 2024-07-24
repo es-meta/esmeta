@@ -236,13 +236,12 @@ class Injector(
           case RecordObj(
                 "PropertyDescriptor" | "DataProperty" | "AccessorProperty",
                 props,
-                _,
               ) =>
             var set = Set[String]()
             val2str(p).map(propStr => {
               for {
                 field <- fields
-                value <- props.get(Str(field)).map(_.toPureValue)
+                value <- props.get(field).map(_.toPureValue)
               } value match
                 case sv: SimpleValue =>
                   set += s"${field.toLowerCase}: ${sv2str(sv)}"
@@ -291,9 +290,7 @@ class Injector(
   private def getKeys(value: Value, path: String): Set[PureValue] = value match
     case addr: Addr =>
       exitSt(addr) match
-        // TODO : Check if MapObj case is removable
-        case m: MapObj    => m.fields.keySet.toSet
-        case r: RecordObj => r.fields.keySet.toSet
+        case m: MapObj => m.map.keySet.toSet
         case _ => warning("[[SubMap]] is not a map object: $path"); Set()
     case _ => warning("[[SubMap]] is not an address: $path"); Set()
 

@@ -197,15 +197,12 @@ trait StateTypeDomainDecl { self: Self =>
       def allocRecord(
         to: AllocSite,
         tname: String,
-        pairs: Iterable[(AbsValue, AbsValue)],
+        pairs: Iterable[(String, AbsValue)],
       ): (AbsValue, Elem) =
         val value =
           if (tname == "Record") RecordT((for {
-            (k, v) <- pairs
-          } yield k.getSingle match
-            case One(Str(key)) => key -> v.ty
-            case _             => exploded(s"imprecise field name: $k")
-          ).toMap)
+            (f, v) <- pairs
+          } yield f -> v.ty).toMap)
           else NameT(tname)
         (AbsValue(value), elem)
 
@@ -392,9 +389,8 @@ trait StateTypeDomainDecl { self: Self =>
           addr = intrAddr(fieldStr)
           obj = opt(analyzer.init.initHeap(addr))
           tname <- obj match
-            case Some(MapObj(tname, _, _))    => Some(tname)
-            case Some(RecordObj(tname, _, _)) => Some(tname)
-            case _                            => None
+            case Some(RecordObj(tname, _)) => Some(tname)
+            case _                         => None
         } yield tname)
 
     // record lookup

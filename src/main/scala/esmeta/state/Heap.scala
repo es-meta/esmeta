@@ -79,20 +79,9 @@ case class Heap(
   /** keys of map */
   def keys(addr: Addr, intSorted: Boolean): Addr = {
     alloc(ListObj(apply(addr) match {
-      case (m: MapObj)    => m.keys(intSorted)
-      case (r: RecordObj) => r.keys(intSorted)
-      case obj            => error(s"not a map: $obj")
+      case (m: MapObj) => m.keys(intSorted)
+      case obj         => error(s"not a map: $obj")
     }))
-  }
-
-  /** map allocations */
-  def allocMap(
-    tname: String,
-    m: Map[PureValue, PureValue],
-  )(using CFG): Addr = {
-    val irMap = MapObj()
-    for ((k, v) <- m) irMap.update(k, v)
-    alloc(irMap)
   }
 
   /** record allocations */
@@ -101,11 +90,13 @@ case class Heap(
     m: Map[String, Value],
   )(using CFG): Addr = {
     val irMap =
-      if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
+      if (tname == "Record") RecordObj(tname, LMMap()) else RecordObj(tname)
     for ((k, v) <- m) irMap.update(Str(k), v)
+    // TODO check it is the best way to handle this
     if (hasSubMap(tname))
       val subMap = MapObj()
       irMap.update(Str("SubMap"), alloc(subMap))
+    // TODO check it is the best way to handle this
     if (isObject(tname))
       val privateElems = ListObj()
       irMap.update(Str("PrivateElements"), alloc(privateElems))
@@ -156,14 +147,8 @@ case class Heap(
 
   /** set type of objects */
   def setType(addr: Addr, tname: String): this.type = apply(addr) match {
-    case (irMap: MapObj) =>
-      // TODO : Check if this line is correct
-      if (tname != "SubMap") then
-        InterpreterError(s"MapObj cannot set tname as $tname, (!= SubMap)")
-      irMap.ty = "SubMap"; this
-    case (irMap: RecordObj) =>
-      irMap.ty = tname; this
-    case _ => error(s"invalid type update: $addr")
+    case (irMap: RecordObj) => irMap.tname = tname; this
+    case _                  => error(s"invalid type update: $addr")
   }
 
   /** copied */

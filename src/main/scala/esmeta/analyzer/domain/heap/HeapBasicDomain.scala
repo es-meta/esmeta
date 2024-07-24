@@ -216,12 +216,11 @@ trait HeapBasicDomainDecl { self: Self =>
       def allocRecord(
         to: AllocSite,
         tname: String,
-        // TODO : AbsValue -> AbsStr
-        pairs: Iterable[(AbsValue, AbsValue)],
+        pairs: Iterable[(String, AbsValue)],
       ): Elem =
         given CFG = cfg
         val newObj = pairs.foldLeft(AbsObj(RecordObj(tname))) {
-          case (m, (k, v)) => m.update(k, v, weak = false)
+          case (m, (f, v)) => m.update(AbsValue(Str(f)), v, weak = false)
         }
         if (hasSubMap(tname)) {
           val subMapPart = SubMap(to)

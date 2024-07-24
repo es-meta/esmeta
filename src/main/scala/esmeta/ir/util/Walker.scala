@@ -140,8 +140,8 @@ trait Walker extends BasicWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): AllocExpr = alloc match
-    case EMap(tname, fields) =>
-      EMap(
+    case ERecord(tname, fields) =>
+      ERecord(
         walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
@@ -149,11 +149,6 @@ trait Walker extends BasicWalker {
       EList(walkList(exprs, walk))
     case EListConcat(exprs) =>
       EListConcat(walkList(exprs, walk))
-    case ERecord(tname, fields) =>
-      ERecord(
-        walk(tname),
-        walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
-      )
     case ESymbol(desc) =>
       ESymbol(walk(desc))
     case ECopy(obj) =>

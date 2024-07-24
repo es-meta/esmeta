@@ -475,12 +475,9 @@ class Compiler(
         )
       case RecordExpression(tname, fields) =>
         val props = fields.map {
-          case (f, e) => compile(fb, f) -> compile(fb, e)
+          case (FieldLiteral(f), e) => f -> compile(fb, e)
         }
-        val normalized = (Type.normalizeName(tname))
-        // TODO : remove if branch - I think normalized = "SubMap" does NOT happen since SubMap is created IN RecordObj
-        if normalized == "SubMap" then EMap(normalized, props)
-        else ERecord(normalized, props)
+        ERecord(Type.normalizeName(tname), props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
@@ -746,8 +743,8 @@ class Compiler(
       ERecord(
         "OrdinaryObject",
         List(
-          EStr("Prototype") -> toEIntrinsic(currentIntrinsics, proto),
-          EStr("ErrorData") -> EUndef(),
+          "Prototype" -> toEIntrinsic(currentIntrinsics, proto),
+          "ErrorData" -> EUndef(),
         ),
       )
     case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)

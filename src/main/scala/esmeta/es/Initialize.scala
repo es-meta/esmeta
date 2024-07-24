@@ -103,14 +103,14 @@ class Initialize(cfg: CFG) {
   private val glob = GlobalObject(cfg)
   private val sym = builtin.Symbol(cfg)
   private val agent = RecordObj("AgentRecord")(
-    ("LittleEndian") -> Bool(true),
-    ("CanBlock") -> Bool(true),
-    ("Signifier") -> NamedAddr(AGENT_SIGNIFIER),
-    ("IsLockFree1") -> Bool(true),
-    ("IsLockFree2") -> Bool(true),
-    ("IsLockFree8") -> Bool(true),
-    ("CandidateExecution") -> NamedAddr(CANDIDATE_EXECUTION),
-    ("KeptAlive") -> NamedAddr(KEPT_ALIVE),
+    "LittleEndian" -> Bool(true),
+    "CanBlock" -> Bool(true),
+    "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
+    "IsLockFree1" -> Bool(true),
+    "IsLockFree2" -> Bool(true),
+    "IsLockFree8" -> Bool(true),
+    "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
+    "KeptAlive" -> NamedAddr(KEPT_ALIVE),
   )
 
   // get closures
@@ -168,30 +168,46 @@ class Initialize(cfg: CFG) {
       case Some(r: RecordObj) => r
       case _                  => RecordObj("PropertyDescriptor")
 
-    map += baseAddr -> baseObj
-      .findOrUpdate(Str("Extensible"), Bool(true))
-      .findOrUpdate(Str("ScriptOrModule"), Null)
-      .findOrUpdate(Str("Realm"), realmAddr)
-      .findOrUpdate(Str("Code"), intrClo(name))
-      .findOrUpdate(Str("Prototype"), intrAddr("Function.prototype"))
-      .findOrUpdate(Str("SubMap"), subAddr)
-      .findOrUpdate(Str("InitialName"), Str(defaultName))
+    def updateRecord(obj: RecordObj)(
+      pairs: (String, Value)*,
+    ): obj.type =
+      for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
+      obj
 
-    map += subAddr -> subMapObj
-      .findOrUpdate(Str("length"), lengthAddr)
-      .findOrUpdate(Str("name"), nameAddr)
+    def updateMap(obj: MapObj)(
+      pairs: (PureValue, Value)*,
+    ): obj.type =
+      for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
+      obj
 
-    map += nameAddr -> nameRecordObj
-      .findOrUpdate(Str("Value"), Str(defaultName))
-      .findOrUpdate(Str("Writable"), Bool(false))
-      .findOrUpdate(Str("Enumerable"), Bool(false))
-      .findOrUpdate(Str("Configurable"), Bool(true))
+    map += baseAddr -> updateRecord(baseObj)(
+      "Extensible" -> Bool(true),
+      "ScriptOrModule" -> Null,
+      "Realm" -> realmAddr,
+      "Code" -> intrClo(name),
+      "Prototype" -> intrAddr("Function.prototype"),
+      "SubMap" -> subAddr,
+      "InitialName" -> Str(defaultName),
+    )
 
-    map += lengthAddr -> lengthRecordObj
-      .findOrUpdate(Str("Value"), Number(defaultLength))
-      .findOrUpdate(Str("Writable"), Bool(false))
-      .findOrUpdate(Str("Enumerable"), Bool(false))
-      .findOrUpdate(Str("Configurable"), Bool(true))
+    map += subAddr -> updateMap(subMapObj)(
+      Str("length") -> lengthAddr,
+      Str("name") -> nameAddr,
+    )
+
+    map += nameAddr -> updateRecord(nameRecordObj)(
+      "Value" -> Str(defaultName),
+      "Writable" -> Bool(false),
+      "Enumerable" -> Bool(false),
+      "Configurable" -> Bool(true),
+    )
+
+    map += lengthAddr -> updateRecord(lengthRecordObj)(
+      "Value" -> Number(defaultLength),
+      "Writable" -> Bool(false),
+      "Enumerable" -> Bool(false),
+      "Configurable" -> Bool(true),
+    )
   }
   private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
     func <- cfg.funcs
@@ -210,9 +226,7 @@ class Initialize(cfg: CFG) {
       (base, prop, propV, defaultName, isData, isGetter) <- fname.getData
       baseMapObj <- map.get(submapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
-        // TODO : Check if following assumption is correct: This is a "SubMap" so this line won't reached
-        case Some(r: RecordObj) => ???
-        case _                  => None
+        case _               => None
       desc = descAddr(base, prop)
       defaultLength = func.head.fold(0)(getLength(_))
       _ = baseMapObj.update(propV, desc)

@@ -118,24 +118,22 @@ case class ValueTy(
       case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
       case a: Addr =>
         heap(a) match
-          case MapObj(tname, props, _) =>
-            isSubTy(tname, name.set) ||
-            (tname == "SubMap" && (props.forall {
+          case MapObj(props) =>
+            props.forall {
               case (key, value) =>
                 ValueTy(pureValue = subMap.key).contains(key, heap) &&
                 ValueTy(pureValue = subMap.value).contains(value, heap)
+            }
+          case RecordObj(tname, props) =>
+            isSubTy(tname, name.set) ||
+            (tname == "Record" && (props.forall {
+              case (key, value) => record(key).contains(value, heap)
             }))
           case ListObj(values) =>
             list.elem match
               case None     => false
               case Some(ty) => values.forall(ty.contains(_, heap))
           case SymbolObj(_) => symbol
-          case RecordObj(tname, props, _) =>
-            isSubTy(tname, name.set) ||
-            (tname == "Record" && (props.forall {
-              case (Str(key), value) =>
-                record(key).contains(value, heap)
-            }))
           case YetObj(_, _) => true // TODO : Check is this okay
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id

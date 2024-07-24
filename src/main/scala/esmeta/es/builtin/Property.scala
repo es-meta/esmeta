@@ -11,17 +11,17 @@ sealed trait Property {
   def toObject(using CFG): RecordObj = this match
     case DataProperty(v, w, e, c) =>
       RecordObj("PropertyDescriptor")(
-        ("Value") -> v,
-        ("Writable") -> Bool(w),
-        ("Enumerable") -> Bool(e),
-        ("Configurable") -> Bool(c),
+        "Value" -> v,
+        "Writable" -> Bool(w),
+        "Enumerable" -> Bool(e),
+        "Configurable" -> Bool(c),
       )
     case AccessorProperty(g, s, e, c) =>
       RecordObj("PropertyDescriptor")(
-        ("Get") -> g,
-        ("Set") -> s,
-        ("Enumerable") -> Bool(e),
-        ("Configurable") -> Bool(c),
+        "Get" -> g,
+        "Set" -> s,
+        "Enumerable" -> Bool(e),
+        "Configurable" -> Bool(c),
       )
 
 }

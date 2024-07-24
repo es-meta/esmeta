@@ -331,13 +331,9 @@ class Interpreter(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
-            // TODO : Remove MapObj case
-            case m: MapObj =>
-              if (tyModel.isSubTy(m.ty, "Object")) "Object"
-              else m.ty
             case r: RecordObj =>
-              if (tyModel.isSubTy(r.ty, "Object")) "Object"
-              else r.ty
+              if (tyModel.isSubTy(r.tname, "Object")) "Object"
+              else r.tname
             case _: SymbolObj => "Symbol"
             case v            => "SpecType"
         case v => "SpecType",
@@ -365,8 +361,7 @@ class Interpreter(
         case _: Clo => tyName == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
-            case m: MapObj    => tyModel.isSubTy(m.ty, tyName)
-            case r: RecordObj => tyModel.isSubTy(r.ty, tyName)
+            case r: RecordObj => tyModel.isSubTy(r.tname, tyName)
             case _: ListObj   => tyName contains "List"
             case _: SymbolObj => tyName == "Symbol"
             case _            => ???
@@ -394,16 +389,15 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case EMap("Completion", fields) =>
+    case ERecord("Completion", fields) =>
       val map = (for {
-        (kexpr, vexpr) <- fields
-        k = eval(kexpr)
-        v = eval(vexpr)
-      } yield k -> v).toMap
+        (f, expr) <- fields
+        v = eval(expr)
+      } yield f -> v).toMap
       (
-        map.get(Str("Type")),
-        map.get(Str("Value")),
-        map.get(Str("Target")),
+        map.get("Type"),
+        map.get("Value"),
+        map.get("Target"),
       ) match
         case (Some(ty: Enum), Some(value), Some(target)) =>
           val targetOpt = target match
@@ -412,25 +406,17 @@ class Interpreter(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
-    case EMap(tname, fields) =>
-      val addr = st.allocMap(tname)
-      for ((kexpr, vexpr) <- fields)
-        val k = eval(kexpr).toPureValue
-        val v = eval(vexpr)
-        st.update(addr, k, v)
+    case ERecord(tname, fields) =>
+      val addr = st.allocRecord(tname)
+      for ((f, expr) <- fields)
+        val v = eval(expr)
+        st.update(addr, Str(f), v)
       addr
     case EList(exprs) =>
       st.allocList(exprs.map(expr => eval(expr).toPureValue))
     case EListConcat(exprs) =>
       val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
       st.allocList(ls)
-    case ERecord(tname, fields) =>
-      val addr = st.allocRecord(tname)
-      for ((kexpr, vexpr) <- fields)
-        val k = eval(kexpr).toPureValue
-        val v = eval(vexpr)
-        st.update(addr, k, v)
-      addr
     case ESymbol(desc) =>
       eval(desc) match
         case (str: Str) => st.allocSymbol(str)

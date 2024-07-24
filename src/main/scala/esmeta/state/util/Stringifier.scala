@@ -72,12 +72,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
     obj match
-      case map @ MapObj(tname, _, _) =>
+      case MapObj(map) =>
+        given Rule[Iterable[(PureValue, Value)]] = sortedMapRule("(", ")")
         given Ordering[PureValue] = Ordering.by(_.toString)
-        app >> "(Map [TYPE = " >> tname >> "] " >> map.pairs >> ")"
-      case record @ RecordObj(tname, _, _) =>
-        given Ordering[PureValue] = Ordering.by(_.toString)
-        app >> "(Record [TYPE = " >> tname >> "] " >> record.pairs >> ")"
+        app >> "Map(" >> map >> ")"
+      case RecordObj(tname, map) =>
+        given Rule[Iterable[(String, Value)]] = sortedMapRule("{", "}", ":")
+        app >> "[TYPE = " >> tname >> "] " >> map
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList

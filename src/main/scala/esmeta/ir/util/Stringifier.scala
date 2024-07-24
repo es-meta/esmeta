@@ -212,8 +212,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case EMap(tname, fields) =>
-        given Rule[Iterable[(Expr, Expr)]] = iterableRule("(", ", ", ")")
+      case ERecord(tname, fields) =>
+        // TODO : Is using curly braces okay?
+        given Rule[Iterable[(Expr, Expr)]] = iterableRule("{", ", ", "}")
         app >> "(new " >> tname >> fields >> ")"
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
@@ -221,10 +222,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EListConcat(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(list-concat " >> exprs >> ")"
-      case ERecord(tname, fields) =>
-        // TODO : Is using curly braces okay?
-        given Rule[Iterable[(Expr, Expr)]] = iterableRule("{", ", ", "}")
-        app >> "(new " >> tname >> fields >> ")"
       case ESymbol(desc) =>
         app >> "(new '" >> desc >> ")"
       case ECopy(obj) =>
