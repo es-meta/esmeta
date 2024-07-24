@@ -32,17 +32,10 @@ case class IWhile(cond: Expr, body: Inst) extends BranchInst
 object BranchInst extends Parser.From(Parser.branchInst)
 
 // call instructions
-sealed trait CallInst extends Inst {
-  val lhs: Local
-  def fexpr: Expr
-}
+sealed trait CallInst extends Inst { val lhs: Local }
 case class ICall(lhs: Local, fexpr: Expr, args: List[Expr]) extends CallInst
-case class ISdoCall(lhs: Local, base: Expr, method: String, args: List[Expr])
-  extends CallInst {
-  lazy val fexpr: Expr = base match
-    case ERef(base) => ERef(Field(base, EStr(method)))
-    case _          => ??? // XXX error -> see compiler
-}
+case class ISdoCall(lhs: Local, base: Expr, op: String, args: List[Expr])
+  extends CallInst
 
 // special instructions
 case class ISeq(insts: List[Inst]) extends Inst

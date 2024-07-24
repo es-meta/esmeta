@@ -1,5 +1,6 @@
 package esmeta.es
 
+import esmeta.cfg.*
 import esmeta.es.util.*
 import esmeta.error.InvalidASTItem
 import esmeta.ir.Type
@@ -91,6 +92,33 @@ sealed trait Ast extends ESElem with Locational {
       for { child <- syn.children.flatten } child.setChildLoc(locOpt)
       syn.loc = locOpt; syn
     case lex: Lexical => lex.loc = locOpt; lex
+
+  /** get syntax-directed operation (SDO) */
+  def getSdo(name: String)(using cfg: CFG): Option[(Ast, Func)] =
+    val fnameMap = cfg.fnameMap
+    chains.foldLeft[Option[(Ast, Func)]](None) {
+      case (None, ast0) =>
+        val subIdx = ast0.getSubIdx
+        val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
+        fnameMap
+          .get(fname)
+          .orElse(fnameMap.get(s"<DEFAULT>.$name"))
+          .map((ast0, _))
+      case (res: Some[_], _) => res
+    }
+
+  /** get sub index of parsed Ast */
+  def getSubIdx(using cfg: CFG): Int = this match
+    case lex: Lexical => 0
+    case Syntactic(name, _, rhsIdx, children) =>
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val optionals = (for {
+        ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
+      } yield !child.isEmpty)
+      optionals.reverse.zipWithIndex.foldLeft(0) {
+        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+        case (acc, _)           => acc
+      }
 
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode

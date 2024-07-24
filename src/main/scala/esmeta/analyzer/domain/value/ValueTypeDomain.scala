@@ -442,7 +442,7 @@ trait ValueTypeDomainDecl { self: Self =>
       )
 
       /** get syntactic SDO */
-      def getSDO(method: String): List[(Func, Elem)] = elem.ty.astValue match
+      def getSdo(method: String): List[(Func, Elem)] = elem.ty.astValue match
         case AstTopTy =>
           for {
             func <- cfg.funcs if func.isSDO

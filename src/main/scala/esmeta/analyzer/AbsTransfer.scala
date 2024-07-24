@@ -23,6 +23,9 @@ trait AbsTransferDecl { self: Analyzer =>
     /** loading monads */
     import AbsState.monad.*
 
+    /** given instance for CFG */
+    given CFG = cfg
+
     /** fixpiont computation */
     @tailrec
     final def fixpoint: Unit = sem.worklist.next match
@@ -167,43 +170,8 @@ trait AbsTransferDecl { self: Analyzer =>
       val st = sem.getState(np)
       transfer(expr)(st)._1
 
-    /** sdo with default case */
-    val defaultCases = List(
-      "Contains",
-      "AllPrivateIdentifiersValid",
-      "ContainsArguments",
-    )
-
     /** get syntax-directed operation (SDO) */
-    val getSDO = cached[(Ast, String), Option[(Ast, Func)]] {
-      case (ast, operation) =>
-        val fnameMap = cfg.fnameMap
-        ast.chains.foldLeft[Option[(Ast, Func)]](None) {
-          case (None, ast0) =>
-            val subIdx = getSubIdx(ast0)
-            val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$operation"
-            fnameMap.get(fname) match
-              case Some(sdo) => Some(ast0, sdo)
-              case None if defaultCases contains operation =>
-                Some(ast0, fnameMap(s"<DEFAULT>.$operation"))
-              case _ => None
-          case (res: Some[_], _) => res
-        }
-    }
-
-    /** get sub index of parsed Ast */
-    val getSubIdx = cached[Ast, Int] {
-      case lex: Lexical => 0
-      case Syntactic(name, _, rhsIdx, children) =>
-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        val optionals = (for {
-          ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
-        } yield !child.isEmpty)
-        optionals.reverse.zipWithIndex.foldLeft(0) {
-          case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-          case (acc, _)           => acc
-        }
-    }
+    val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
     /** transfer function for normal instructions */
     def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater =
@@ -291,7 +259,7 @@ trait AbsTransferDecl { self: Analyzer =>
             var newV: AbsValue = AbsValue.Bot
             bv.getSingle match
               case One(AstValue(syn: Syntactic)) =>
-                getSDO((syn, method)) match
+                getSdo((syn, method)) match
                   case Some((ast, sdo)) =>
                     val callPoint = CallPoint(callerNp, sdo)
                     val astV = AbsValue(ast)
@@ -304,7 +272,7 @@ trait AbsTransferDecl { self: Analyzer =>
                 newV ⊔= bv.getLexical(method)
 
                 // syntactic sdo
-                for ((sdo, ast) <- bv.getSDO(method))
+                for ((sdo, ast) <- bv.getSdo(method))
                   val callPoint = CallPoint(callerNp, sdo)
                   doCall(callPoint, st, args, ast :: vs, method = true)
               case _ => /* do nothing */
