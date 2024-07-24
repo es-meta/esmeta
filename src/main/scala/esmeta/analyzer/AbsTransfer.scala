@@ -482,6 +482,18 @@ trait AbsTransferDecl { self: Analyzer =>
             })
             lv <- id(_.allocMap(asite, tname, pairs))
           } yield lv
+        case e @ ERecord(tname, fields) =>
+          val asite = AllocSite(e.asite, np.view)
+          for {
+            pairs <- join(fields.map {
+              case (kexpr, vexpr) =>
+                for {
+                  k <- transfer(kexpr)
+                  v <- transfer(vexpr)
+                } yield (k, v)
+            })
+            lv <- id(_.allocMap(asite, tname, pairs))
+          } yield lv
         case e @ EList(exprs) =>
           val asite = AllocSite(e.asite, np.view)
           for {
