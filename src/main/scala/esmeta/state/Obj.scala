@@ -33,7 +33,7 @@ sealed trait Obj extends StateElem {
 
 /** map objects */
 case class MapObj(
-  var ty: String, // TODO handle type
+  var ty: "SubMap", // TODO handle type
   val fields: LMMap[PureValue, Value],
   var size: Int,
 ) extends Obj {

@@ -90,9 +90,19 @@ case class Heap(
     tname: String,
     m: Map[PureValue, PureValue],
   )(using CFG): Addr = {
-    val irMap =
-      if (tname == "Record") MapObj(tname, LMMap(), 0) else MapObj()
+    val irMap = MapObj()
     for ((k, v) <- m) irMap.update(k, v)
+    alloc(irMap)
+  }
+
+  /** record allocations */
+  def allocRecord(
+    tname: String,
+    m: Map[String, Value],
+  )(using CFG): Addr = {
+    val irMap =
+      if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
+    for ((k, v) <- m) irMap.update(Str(k), v)
     if (hasSubMap(tname))
       val subMap = MapObj()
       irMap.update(Str("SubMap"), alloc(subMap))
@@ -111,23 +121,6 @@ case class Heap(
 
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
-
-  /** record allocations */
-  def allocRecord(
-    tname: String,
-    m: Map[String, Value],
-  )(using CFG): Addr = {
-    val irMap =
-      if (tname == "Record") RecordObj(tname, LMMap(), 0) else RecordObj(tname)
-    for ((k, v) <- m) irMap.update(Str(k), v)
-    if (hasSubMap(tname))
-      val subMap = MapObj()
-      irMap.update(Str("SubMap"), alloc(subMap))
-    if (isObject(tname))
-      val privateElems = ListObj()
-      irMap.update(Str("PrivateElements"), alloc(privateElems))
-    alloc(irMap)
-  }
 
   /** symbol allocations */
   def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))
@@ -163,9 +156,11 @@ case class Heap(
 
   /** set type of objects */
   def setType(addr: Addr, tname: String): this.type = apply(addr) match {
-    // TODO : Remove MapObj case (it will be only SubMap)
     case (irMap: MapObj) =>
-      irMap.ty = tname; this
+      // TODO : Check if this line is correct
+      if (tname != "SubMap") then
+        InterpreterError(s"MapObj cannot set tname as $tname, (!= SubMap)")
+      irMap.ty = "SubMap"; this
     case (irMap: RecordObj) =>
       irMap.ty = tname; this
     case _ => error(s"invalid type update: $addr")
