@@ -101,6 +101,14 @@ trait ObjBasicDomainDecl { self: Self =>
           } yield AValue.from(k) -> AbsValue(fieldV)).toMap,
           order = Some(m.keys.map(AValue.from)),
         )
+      case r @ RecordObj(tname, fields, size) =>
+        FieldMap(
+          tname = tname,
+          map = (for {
+            (k, fieldV) <- fields
+          } yield AValue.from(k) -> AbsValue(fieldV)).toMap,
+          order = Some(r.keys.map(AValue.from)),
+        )
       case ListObj(values)     => KeyWiseList(values.map(AbsValue(_)))
       case YetObj(tname, desc) => NotSupportedElem(tname, desc)
 

@@ -374,7 +374,11 @@ trait StateTypeDomainDecl { self: Self =>
           if s.startsWith("%") && s.endsWith("%")
           fieldStr = s.substring(1, s.length - 1)
           addr = intrAddr(fieldStr)
-          case MapObj(tname, _, _) <- opt(analyzer.init.initHeap(addr))
+          obj = opt(analyzer.init.initHeap(addr))
+          tname <- obj match
+            case Some(MapObj(tname, _, _))    => Some(tname)
+            case Some(RecordObj(tname, _, _)) => Some(tname)
+            case _                            => None
         } yield tname)
 
     // record lookup

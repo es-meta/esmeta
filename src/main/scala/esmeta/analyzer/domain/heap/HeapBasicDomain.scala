@@ -224,6 +224,32 @@ trait HeapBasicDomainDecl { self: Self =>
           alloc(newElem, subMapPart, subMapObj)
         } else alloc(elem, to, newObj)
 
+      /** allocation of record with address partitions */
+      def allocRecord(
+        to: AllocSite,
+        tname: String,
+        // TODO : AbsValue -> AbsStr
+        pairs: Iterable[(AbsValue, AbsValue)],
+      ): Elem =
+        given CFG = cfg
+        val newObj = pairs.foldLeft(AbsObj(RecordObj(tname))) {
+          case (m, (k, v)) => m.update(k, v, weak = false)
+        }
+        if (hasSubMap(tname)) {
+          val subMapPart = SubMap(to)
+          val subMapObj = AbsObj(MapObj("SubMap"))
+          val newElem = alloc(
+            elem,
+            to,
+            newObj.update(
+              AbsValue("SubMap"),
+              AbsValue(subMapPart),
+              weak = false,
+            ),
+          )
+          alloc(newElem, subMapPart, subMapObj)
+        } else alloc(elem, to, newObj)
+
       /** allocation of list with address partitions */
       def allocList(
         to: AllocSite,
