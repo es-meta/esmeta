@@ -213,9 +213,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
       case ERecord(tname, fields) =>
-        // TODO : Is using curly braces okay?
         given Rule[Iterable[(Expr, Expr)]] = iterableRule("{", ", ", "}")
-        app >> "(new " >> tname >> fields >> ")"
+        app >> "(new " >> tname >> " " >> fields >> ")"
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(new " >> exprs >> ")"

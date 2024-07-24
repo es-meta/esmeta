@@ -74,7 +74,7 @@ object RecordObj {
 
   /** apply with type model */
   def apply(tname: String)(map: (String, Value)*)(using CFG): RecordObj =
-    val obj: RecordObj = RecordObj(tname)
+    val obj = RecordObj(tname)
     for { ((k, v), idx) <- map.zipWithIndex }
       obj.map += k -> v
     obj

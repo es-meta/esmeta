@@ -89,12 +89,10 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Objects
     // -------------------------------------------------------------------------
-    lazy val map = MapObj("A", LMMap(), 0)
-    lazy val singleMap =
-      MapObj("A", LMMap(Str("p") -> Str("p")), 1)
-    lazy val rec = RecordObj("A", LMMap(), 0)
-    lazy val singleRec =
-      RecordObj("A", MMap(Str("p") -> Str("p")), 1)
+    lazy val map = MapObj(LMMap())
+    lazy val singleMap = MapObj(LMMap(Str("p") -> Str("p")))
+    lazy val rec = RecordObj("A", LMMap())
+    lazy val singleRec = RecordObj("A", MMap("p" -> Str("p")))
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")
