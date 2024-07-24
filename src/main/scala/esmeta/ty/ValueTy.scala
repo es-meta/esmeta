@@ -120,11 +120,6 @@ case class ValueTy(
         heap(a) match
           case MapObj(tname, props, _) =>
             isSubTy(tname, name.set) ||
-            (tname == "Record" && (props.forall {
-              case (Str(key), value) =>
-                record(key).contains(value, heap)
-              case _ => false
-            })) ||
             (tname == "SubMap" && (props.forall {
               case (key, value) =>
                 ValueTy(pureValue = subMap.key).contains(key, heap) &&
@@ -140,11 +135,6 @@ case class ValueTy(
             (tname == "Record" && (props.forall {
               case (Str(key), value) =>
                 record(key).contains(value, heap)
-            })) ||
-            (tname == "SubMap" && (props.forall {
-              case (key, value) =>
-                ValueTy(pureValue = subMap.key).contains(key, heap) &&
-                ValueTy(pureValue = subMap.value).contains(value, heap)
             }))
           case YetObj(_, _) => true // TODO : Check is this okay
       case Clo(func, captured)             => clo contains func.irFunc.name
