@@ -194,7 +194,7 @@ object RecordObj {
     // TODO do not explicitly store methods in object but use a type model when
     // accessing methods
     val methods = cfg.tyModel.getMethod(tname)
-    val obj = RecordObj(tname, LMMap(), methods.size)
+    val obj = RecordObj(tname, MMap(), methods.size)
     for { ((name, fname), idx) <- methods.zipWithIndex }
       obj.fields += Str(name) -> Clo(cfg.fnameMap(fname), Map())
     obj
