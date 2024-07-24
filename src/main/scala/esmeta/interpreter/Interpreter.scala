@@ -176,7 +176,7 @@ class Interpreter(
     case EComp(tyExpr, valExpr, tgtExpr) =>
       val y = eval(tyExpr)
       val t = eval(tgtExpr)
-      val v = eval(valExpr).toPureValue
+      val v = eval(valExpr)
       (y, t) match
         case (y: Enum, Str(t))     => Comp(y, v, Some(t))
         case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
@@ -261,10 +261,10 @@ class Interpreter(
       val r = eval(right)
       Interpreter.eval(bop, l, r)
     case EVariadic(vop, exprs) =>
-      val vs = for (e <- exprs) yield eval(e).toPureValue
+      val vs = for (e <- exprs) yield eval(e)
       Interpreter.eval(vop, vs)
     case EMathOp(mop, exprs) =>
-      val vs = for (e <- exprs) yield eval(e).toPureValue
+      val vs = for (e <- exprs) yield eval(e)
       Interpreter.eval(mop, st, vs)
     case EConvert(cop, expr) =>
       import COp.*
@@ -381,7 +381,7 @@ class Interpreter(
             case Str(target) => Some(target)
             case ENUM_EMPTY  => None
             case v           => throw InvalidCompTarget(v)
-          Comp(ty, value.toPureValue, targetOpt)
+          Comp(ty, value, targetOpt)
         case _ => throw InvalidComp
     case ERecord(tname, fields) =>
       val addr = st.allocRecord(tname)
@@ -389,10 +389,10 @@ class Interpreter(
       addr
     case EMap(pairs) =>
       val addr = st.allocMap
-      for ((k, v) <- pairs) st.update(addr, eval(k).toPureValue, eval(v))
+      for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
       addr
     case EList(exprs) =>
-      st.allocList(exprs.map(expr => eval(expr).toPureValue))
+      st.allocList(exprs.map(expr => eval(expr)))
     case EListConcat(exprs) =>
       val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
       st.allocList(ls)
@@ -473,7 +473,7 @@ class Interpreter(
     case comp: Comp =>
       if (check) throw ReturnValue(value, ria)
       else throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure // XXX remove?
+    case pure: Value => pure // XXX remove?
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
@@ -481,7 +481,7 @@ class Interpreter(
     case Field(ref, expr) =>
       var base = st(eval(ref))
       val f = eval(expr)
-      FieldTarget(base, f.toPureValue)
+      FieldTarget(base, f)
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
@@ -550,7 +550,7 @@ object Interpreter {
   )
 
   /** transition for lexical SDO */
-  def eval(lex: Lexical, sdoName: String): PureValue = {
+  def eval(lex: Lexical, sdoName: String): Value = {
     import ESValueParser.*
     val Lexical(name, str) = lex
     (name, sdoName) match {
@@ -708,7 +708,7 @@ object Interpreter {
     }
 
   /** transition for variadic operators */
-  def eval(vop: VOp, vs: List[PureValue]): PureValue =
+  def eval(vop: VOp, vs: List[Value]): Value =
     import VOp.*
     if (vs.isEmpty) throw InvalidVariadicOp(vop)
     vop match
@@ -730,7 +730,7 @@ object Interpreter {
       case Concat => vopEval(_.asStr, _ + _, Str(_), vs)
 
   /** transition for mathematical operators */
-  def eval(mop: MOp, st: State, vs: List[PureValue]): PureValue =
+  def eval(mop: MOp, st: State, vs: List[Value]): Value =
     import math.*
     (mop, vs) match
       case (MOp.Expm1, List(Math(x))) => Math(expm1(x.toDouble))
@@ -771,9 +771,9 @@ object Interpreter {
 
   /** helpers for make transition for variadic operators */
   def vopEval[T](
-    f: PureValue => T,
+    f: Value => T,
     op: (T, T) => T,
-    g: T => PureValue,
-    vs: List[PureValue],
+    g: T => Value,
+    vs: List[Value],
   ) = g(vs.map(f).reduce(op))
 }

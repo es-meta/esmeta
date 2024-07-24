@@ -30,9 +30,6 @@ sealed trait Value extends StateElem {
   /** convert value to pure value see:
     * https://github.com/es-meta/esmeta/issues/66
     */
-  def toPureValue: PureValue = this match
-    case comp: Comp      => throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure
 
   /** type conversion */
   def asStr: String = this match
@@ -60,7 +57,7 @@ sealed trait Value extends StateElem {
 /** completion values */
 case class Comp(
   ty: Enum,
-  var value: PureValue, // XXX YieldExpression[2,0].Evaluation
+  var value: Value, // XXX YieldExpression[2,0].Evaluation
   target: Option[String],
 ) extends Value {
   def targetValue: PureValue = target.fold[PureValue](ENUM_EMPTY)(Str(_))
@@ -68,9 +65,9 @@ case class Comp(
 
 /** normal completion */
 object NormalComp {
-  def apply(value: PureValue): Comp =
+  def apply(value: Value): Comp =
     Comp(ENUM_NORMAL, value, None)
-  def unapply(comp: Comp): Option[PureValue] = comp match {
+  def unapply(comp: Comp): Option[Value] = comp match {
     case Comp(ENUM_NORMAL, value, None) => Some(value)
     case _                              => None
   }

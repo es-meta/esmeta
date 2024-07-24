@@ -50,7 +50,7 @@ case class InvalidBinaryOp(bop: BOp, lv: Value, rv: Value)
   extends InterpreterError(s"wrong type for the operator $bop: $lv and $rv")
 case class InvalidVariadicOp(vop: VOp)
   extends InterpreterError(s"no arguments for the operator $vop")
-case class InvalidMathOp(mop: MOp, vs: List[PureValue])
+case class InvalidMathOp(mop: MOp, vs: List[Value])
   extends InterpreterError(
     s"invalid mathematical operation: $mop with ${vs.mkString(", ")}",
   )

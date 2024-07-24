@@ -99,7 +99,7 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
   /** updates a value */
   def update(field: Value, value: Value): this.type =
     val idx = field.asInt
-    values = values.updated(idx, value.toPureValue)
+    values = values.updated(idx, value)
     this
 
   /** appends a value */
@@ -118,7 +118,7 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 }
 
 /** symbol objects */
-case class SymbolObj(desc: PureValue) extends Obj
+case class SymbolObj(desc: Value) extends Obj
 
 /** not yet supported objects */
 case class YetObj(tname: String, msg: String) extends Obj

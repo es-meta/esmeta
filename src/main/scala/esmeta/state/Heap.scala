@@ -96,7 +96,7 @@ case class Heap(
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
 
   /** symbol allocations */
-  def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))
+  def allocSymbol(desc: Value): Addr = alloc(SymbolObj(desc))
 
   // allocation helper
   private def alloc(obj: Obj): Addr = {

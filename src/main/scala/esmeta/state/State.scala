@@ -52,7 +52,7 @@ case class State(
     case AstValue(ast) => apply(ast, field)
     case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
-  def apply(ast: Ast, field: Value): PureValue =
+  def apply(ast: Ast, field: Value): Value =
     (ast, field) match
       case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
       case (syn: Syntactic, Str(fieldStr)) =>
@@ -64,7 +64,7 @@ case class State(
       case (syn: Syntactic, Math(n)) if n.isValidInt =>
         syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
       case _ => throw InvalidAstField(ast, field)
-  def apply(str: String, field: Value): PureValue = field match
+  def apply(str: String, field: Value): Value = field match
     case Str("length") => Math(BigDecimal(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
     case Number(k)     => CodeUnit(str(k.toInt))
@@ -81,7 +81,7 @@ case class State(
       base match
         // XXX see https://github.com/es-meta/esmeta/issues/65
         case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
-          comp.value = value.toPureValue; this
+          comp.value = value; this
         case addr: Addr => update(addr, field, value); this
         case _          => error(s"illegal reference update: $rt = $value")
   }
@@ -135,7 +135,7 @@ case class State(
     heap.allocMap
   def allocList(list: List[Value]): Addr =
     heap.allocList(list)
-  def allocSymbol(desc: PureValue): Addr =
+  def allocSymbol(desc: Value): Addr =
     heap.allocSymbol(desc)
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this

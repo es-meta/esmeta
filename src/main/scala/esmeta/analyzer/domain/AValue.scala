@@ -30,7 +30,7 @@ trait AValueDecl { self: Self =>
     Enum | CodeUnit | SimpleValue
   object APureValue:
     /** from original pure values */
-    def from(pureValue: PureValue): APureValue = pureValue match
+    def from(pureValue: Value): APureValue = pureValue match
       case addr: Addr               => Part.from(addr)
       case clo: Clo                 => AClo.from(clo)
       case cont: Cont               => ACont.from(cont)
@@ -41,6 +41,7 @@ trait AValueDecl { self: Self =>
       case enumv: Enum              => enumv
       case codeUnit: CodeUnit       => codeUnit
       case simpleValue: SimpleValue => simpleValue
+      case _                        => error("error")
 
   /** address partitions */
   sealed trait Part:
