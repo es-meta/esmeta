@@ -74,14 +74,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     obj match
       case map @ MapObj(tname, _, _) =>
         given Ordering[PureValue] = Ordering.by(_.toString)
-        app >> "[TYPE = " >> tname >> "] " >> map.pairs
+        app >> "(Map [TYPE = " >> tname >> "] " >> map.pairs >> ")"
+      case record @ RecordObj(tname, _, _) =>
+        given Ordering[PureValue] = Ordering.by(_.toString)
+        app >> "(Record [TYPE = " >> tname >> "] " >> record.pairs >> ")"
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList
       case SymbolObj(desc) => app >> "(Symbol " >> desc >> ")"
-      case record @ RecordObj(tname, _, _) =>
-        given Ordering[PureValue] = Ordering.by(_.toString)
-        app >> "[TYPE = " >> tname >> "] " >> record.pairs
       case YetObj(tname, msg) =>
         app >> "(Yet [TYPE = " >> tname >> "] \"" >> msg >> "\")"
 

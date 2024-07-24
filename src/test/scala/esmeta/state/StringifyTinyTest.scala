@@ -79,7 +79,7 @@ class StringifyTinyTest extends StateTest {
     checkStringify("Heap")(
       heap -> "(SIZE = 0): {}",
       heapSingle -> """(SIZE = 0): {
-      |  #Global -> [TYPE = A] {}
+      |  #Global -> (Map [TYPE = A] {})
       |}""".stripMargin,
       heapMulti -> """(SIZE = 43): {
       |  #Global -> (Symbol "description")
@@ -99,14 +99,14 @@ class StringifyTinyTest extends StateTest {
     lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")
     checkStringify("Object")(
-      map -> "[TYPE = A] {}",
-      singleMap -> """[TYPE = A] {
+      map -> "(Map [TYPE = A] {})",
+      singleMap -> """(Map [TYPE = A] {
       |  "p" -> "p"
-      |}""".stripMargin,
-      rec -> "[TYPE = A] {}",
-      singleRec -> """[TYPE = A] {
+      |})""".stripMargin,
+      rec -> "(Record [TYPE = A] {})",
+      singleRec -> """(Record [TYPE = A] {
       |  "p" -> "p"
-      |}""".stripMargin,
+      |})""".stripMargin,
       list -> """[42, "x"]""",
       symbol -> """(Symbol "description")""",
       yet -> """(Yet [TYPE = A] "message")""",

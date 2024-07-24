@@ -184,8 +184,10 @@ trait Parsers extends TyParsers {
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
-    ("(" ~ "new" ~> word ~ opt(fields) <~ ")") ^^ {
-      case t ~ fields => EMap(t, fields.getOrElse(Nil))
+    ("(" ~ "new" ~> word ~ fieldsMap <~ ")") ^^ {
+      case t ~ fields => EMap(t, fields)
+    } | ("(" ~ "new" ~> word ~ fieldsRec <~ ")") ^^ {
+      case t ~ fields => ERecord(t, fields)
     } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
     } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
@@ -204,7 +206,10 @@ trait Parsers extends TyParsers {
   )
 
   // fields
-  lazy val fields: Parser[List[(Expr, Expr)]] = "(" ~> repsep(field, ",") <~ ")"
+  lazy val fieldsRec: Parser[List[(Expr, Expr)]] =
+    "{" ~> repsep(field, ",") <~ "}"
+  lazy val fieldsMap: Parser[List[(Expr, Expr)]] =
+    "(" ~> repsep(field, ",") <~ ")"
   lazy val field: Parser[(Expr, Expr)] =
     expr ~ ("->" ~> expr) ^^ { case k ~ v => k -> v }
 
