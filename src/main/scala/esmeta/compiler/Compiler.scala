@@ -764,7 +764,7 @@ class Compiler(
     case ErrorObjectLiteral(name) =>
       val proto = EStr(Intrinsic(name, List("prototype")).toString)
       val (x, xExpr) = fb.newTIdWithExpr
-      ICall(x, AUX_NEW_ERROR_OBJ, List(proto))
+      fb.addInst(ICall(x, AUX_NEW_ERROR_OBJ, List(proto)))
       xExpr
     case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)
     case _: NegativeInfinityMathValueLiteral => EInfinity(pos = false)
