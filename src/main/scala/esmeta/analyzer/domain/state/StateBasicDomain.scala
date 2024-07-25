@@ -262,14 +262,6 @@ trait StateBasicDomainDecl { self: Self =>
           (partV, elem.copy(heap = heap.allocList(to, list)))
         }
 
-      /** allocation of symbol with address partitions */
-      def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem) =
-        val partV = AbsValue(to)
-        val descV = AbsValue(str = desc.str, undef = desc.undef)
-        elem.bottomCheck(AbsValue)(descV) {
-          (partV, elem.copy(heap = elem.heap.allocSymbol(to, descV)))
-        }
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         heap.contains(list.part, value)

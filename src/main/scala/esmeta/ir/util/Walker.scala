@@ -144,8 +144,6 @@ trait Walker extends BasicWalker {
       EList(walkList(exprs, walk))
     case EListConcat(exprs) =>
       EListConcat(walkList(exprs, walk))
-    case ESymbol(desc) =>
-      ESymbol(walk(desc))
     case ECopy(obj) =>
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>

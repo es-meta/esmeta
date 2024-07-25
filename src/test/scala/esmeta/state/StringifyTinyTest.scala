@@ -75,14 +75,14 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val heap = Heap(MMap(), 0)
     lazy val heapSingle = Heap(MMap(namedAddr -> map), 0)
-    lazy val heapMulti = Heap(MMap(namedAddr -> symbol, addr -> list), 43)
+    lazy val heapMulti = Heap(MMap(namedAddr -> map, addr -> list), 43)
     checkStringify("Heap")(
       heap -> "(SIZE = 0): {}",
       heapSingle -> """(SIZE = 0): {
       |  #Global -> Map {}
       |}""".stripMargin,
       heapMulti -> """(SIZE = 43): {
-      |  #Global -> (Symbol "description")
+      |  #Global -> Map {}
       |  #42 -> [42, "x"]
       |}""".stripMargin,
     )
@@ -94,7 +94,6 @@ class StringifyTinyTest extends StateTest {
     lazy val rec = RecordObj("A", MMap())
     lazy val singleRec = RecordObj("A", MMap("p" -> Str("p")))
     lazy val list = ListObj(Vector(Math(42), Str("x")))
-    lazy val symbol = SymbolObj(Str("description"))
     lazy val yet = YetObj("A", "message")
     checkStringify("Object")(
       map -> "Map {}",
@@ -106,7 +105,6 @@ class StringifyTinyTest extends StateTest {
       |  "p" : "p"
       |}""".stripMargin,
       list -> """[42, "x"]""",
-      symbol -> """(Symbol "description")""",
       yet -> """[TYPE = A] Yet("message")""",
     )
     // -------------------------------------------------------------------------

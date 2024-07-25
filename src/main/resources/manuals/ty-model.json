@@ -662,6 +662,13 @@
         "StringData" : "String"
       }
     },
+    "Symbol" : {
+      "parent" : null,
+      "methods" : { },
+      "fields" : {
+        "Description" : "String | Undefined"
+      }
+    },
     "SymbolObject" : {
       "parent" : "OrdinaryObject",
       "methods" : { },

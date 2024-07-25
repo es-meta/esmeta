@@ -22,7 +22,6 @@ case class Heap(
       case obj            => obj
   def apply(addr: Addr, key: Value): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
-    case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
     case (r: RecordObj)                     => r(key)
@@ -94,9 +93,6 @@ case class Heap(
 
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
-
-  /** symbol allocations */
-  def allocSymbol(desc: Value): Addr = alloc(SymbolObj(desc))
 
   // allocation helper
   private def alloc(obj: Obj): Addr = {

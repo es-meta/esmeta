@@ -135,8 +135,6 @@ case class State(
     heap.allocMap
   def allocList(list: List[Value]): Addr =
     heap.allocList(list)
-  def allocSymbol(desc: Value): Addr =
-    heap.allocSymbol(desc)
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
 
@@ -149,7 +147,6 @@ case class State(
         case m: MapObj    => MapT
         case r: RecordObj => NameT(r.tname)
         case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
-        case s: SymbolObj => SymbolT
         case y: YetObj    => NameT(y.tname)
     case clo: Clo      => CloT(clo.func.name)
     case cont: Cont    => ContT(cont.func.id)

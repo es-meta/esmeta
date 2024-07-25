@@ -41,7 +41,6 @@
   "substring.ir" : true,
   "sudomergesort.ir" : true,
   "sum.ir" : true,
-  "symbol.ir" : true,
   "syntactic.ir" : true,
   "typecheck.ir" : true,
   "typeof.ir" : true,

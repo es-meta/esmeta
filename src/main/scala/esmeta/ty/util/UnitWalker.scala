@@ -46,7 +46,6 @@ trait UnitWalker extends BasicUnitWalker {
     walkName(ty.name)
     walk(ty.record)
     walk(ty.list)
-    walk(ty.symbol)
     walkAst(ty.astValue)
     walkNt(ty.nt)
     walkCodeUnit(ty.codeUnit)

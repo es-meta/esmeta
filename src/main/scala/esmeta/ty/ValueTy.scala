@@ -95,7 +95,6 @@ case class ValueTy(
   def name: NameTy = pureValue.name
   def record: RecordTy = pureValue.record
   def list: ListTy = pureValue.list
-  def symbol: Boolean = pureValue.symbol
   def astValue: AstValueTy = pureValue.astValue
   def nt: BSet[Nt] = pureValue.nt
   def codeUnit: Boolean = pureValue.codeUnit
@@ -133,8 +132,7 @@ case class ValueTy(
             list.elem match
               case None     => false
               case Some(ty) => values.forall(ty.contains(_, heap))
-          case SymbolObj(_) => symbol
-          case YetObj(_, _) => true // TODO : Check is this okay
+          case YetObj(_, _) => true
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
       case AstValue(ast) =>
@@ -170,7 +168,6 @@ case class ValueTy(
     name: NameTy = name,
     record: RecordTy = record,
     list: ListTy = list,
-    symbol: Boolean = symbol,
     astValue: AstValueTy = astValue,
     nt: BSet[Nt] = nt,
     codeUnit: Boolean = codeUnit,
@@ -193,7 +190,6 @@ case class ValueTy(
       name,
       record,
       list,
-      symbol,
       astValue,
       nt,
       codeUnit,
@@ -231,7 +227,6 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     name: NameTy = NameTy.Bot,
     record: RecordTy = RecordTy.Bot,
     list: ListTy = ListTy.Bot,
-    symbol: Boolean = false,
     astValue: AstValueTy = AstValueTy.Bot,
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
@@ -254,7 +249,6 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       name,
       record,
       list,
-      symbol,
       astValue,
       nt,
       codeUnit,

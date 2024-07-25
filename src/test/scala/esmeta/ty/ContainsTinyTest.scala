@@ -49,7 +49,7 @@ class ContainsTinyTest extends TyTest {
     lazy val listAddr = NamedAddr("listAddr")
     lazy val listObj = ListObj(Vector(Math(5)))
     lazy val symbolAddr = NamedAddr("symbolAddr")
-    lazy val symbolObj = SymbolObj(Str("desc"))
+    lazy val symbolObj = RecordObj("Symbol", MMap("Description" -> Str("desc")))
     given Heap = Heap(
       MMap(
         mapAddr -> mapObj,

@@ -221,8 +221,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EListConcat(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(list-concat " >> exprs >> ")"
-      case ESymbol(desc) =>
-        app >> "(new '" >> desc >> ")"
       case ECopy(obj) =>
         app >> "(copy " >> obj >> ")"
       case EKeys(map, intSorted) =>

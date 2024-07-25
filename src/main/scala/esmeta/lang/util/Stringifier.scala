@@ -810,9 +810,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       val sub = valueTyRule(true, true)(new Appender, vty)
       tys :+= s"a List of $sub"
 
-    // symbols
-    if (!ty.symbol.isBottom) tys :+= "a Symbol"
-
     // AST values
     ty.astValue match
       case AstTopTy => tys :+= "Parse Node".withArticle(plural)

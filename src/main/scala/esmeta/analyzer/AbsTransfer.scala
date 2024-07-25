@@ -493,12 +493,6 @@ trait AbsTransferDecl { self: Analyzer =>
             ls <- join(exprs.map(transfer))
             lv <- id(_.concat(asite, ls))
           } yield lv
-        case e @ ESymbol(desc) =>
-          val asite = AllocSite(e.asite, np.view)
-          for {
-            v <- transfer(desc)
-            lv <- id(_.allocSymbol(asite, v))
-          } yield lv
         case e @ ECopy(obj) =>
           val asite = AllocSite(e.asite, np.view)
           for {

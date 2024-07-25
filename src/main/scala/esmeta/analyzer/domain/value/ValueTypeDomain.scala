@@ -314,7 +314,11 @@ trait ValueTypeDomainDecl { self: Self =>
             case Inf      => true
             case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Object"))
         ) names += "Object"
-        if (ty.symbol) names += "Symbol"
+        if (
+          ty.name.set match
+            case Inf      => true
+            case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Symbol"))
+        ) names += "Symbol"
         if (
           ty.name.set match
             case Inf      => true

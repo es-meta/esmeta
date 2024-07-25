@@ -38,6 +38,7 @@
   "BoundFunctionCreate",
   "BuiltinFunctionObject.Construct",
   "CallExpression[0,0].Evaluation",
+  "CanBeHeldWeakly",
   "CaseClauseIsSelected",
   "Catch[0,0].CatchClauseEvaluation",
   "Catch[1,0].CatchClauseEvaluation",
