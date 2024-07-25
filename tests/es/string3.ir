@@ -1,4 +1,4 @@
-let map = @REALM.GlobalObject.SubMap
+let map = @REALM.GlobalObject.__MAP__
 assert (= map.x.Value "A")
 assert (= map.y.Value "B")
 assert (= map.z.Value "C")

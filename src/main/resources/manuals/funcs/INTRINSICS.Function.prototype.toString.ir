@@ -23,5 +23,5 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
     return "function () { [native code] }"
   }
 
-  return comp[~throw~/~empty~]((new OrdinaryObject("Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" -> undefined)))
+  return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined }))
 }

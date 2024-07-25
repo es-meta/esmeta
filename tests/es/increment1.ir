@@ -1,5 +1,5 @@
 let varNames = @REALM.GlobalEnv.VarNames
-let map = @REALM.GlobalObject.SubMap
+let map = @REALM.GlobalObject.__MAP__
 let x = map.x
 let y = map.y
 

@@ -14,7 +14,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ty: PureValueTy => walk(ty)
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
-    case ty: SubMapTy    => walk(ty)
+    case ty: MapTy       => walk(ty)
     case ty: MathTy      => walk(ty)
     case ty: InfinityTy  => walk(ty)
     case ty: BoolTy      => walk(ty)
@@ -32,7 +32,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: ValueTy): Unit =
     walk(ty.comp)
     walk(ty.pureValue)
-    walk(ty.subMap)
+    walk(ty.map)
 
   /** completion record types */
   def walk(ty: CompTy): Unit =
@@ -135,8 +135,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: ListTy): Unit =
     walkOpt(ty.elem, walk)
 
-  /** sub map types */
-  def walk(ty: SubMapTy): Unit =
+  /** map types */
+  def walk(ty: MapTy): Unit =
     walk(ty.key)
     walk(ty.value)
 }

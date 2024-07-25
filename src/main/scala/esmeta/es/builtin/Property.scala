@@ -8,20 +8,20 @@ import scala.collection.mutable.{Map => MMap}
 sealed trait Property {
 
   /** convert to ir map object */
-  def toObject(using CFG): MapObj = this match
+  def toObject(using CFG): RecordObj = this match
     case DataProperty(v, w, e, c) =>
-      MapObj("PropertyDescriptor")(
-        Str("Value") -> v,
-        Str("Writable") -> Bool(w),
-        Str("Enumerable") -> Bool(e),
-        Str("Configurable") -> Bool(c),
+      RecordObj("PropertyDescriptor")(
+        "Value" -> v,
+        "Writable" -> Bool(w),
+        "Enumerable" -> Bool(e),
+        "Configurable" -> Bool(c),
       )
     case AccessorProperty(g, s, e, c) =>
-      MapObj("PropertyDescriptor")(
-        Str("Get") -> g,
-        Str("Set") -> s,
-        Str("Enumerable") -> Bool(e),
-        Str("Configurable") -> Bool(c),
+      RecordObj("PropertyDescriptor")(
+        "Get" -> g,
+        "Set" -> s,
+        "Enumerable" -> Bool(e),
+        "Configurable" -> Bool(c),
       )
 
 }

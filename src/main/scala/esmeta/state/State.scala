@@ -131,9 +131,10 @@ case class State(
     heap.copyObj(addr)
   def keys(addr: Addr, intSorted: Boolean): Addr =
     heap.keys(addr, intSorted)
-  def allocMap(tname: String, map: Map[PureValue, PureValue] = Map())(using
-    CFG,
-  ): Addr = heap.allocMap(tname, map)
+  def allocRecord(tname: String)(using CFG): Addr =
+    heap.allocRecord(tname)
+  def allocMap: Addr =
+    heap.allocMap
   def allocList(list: List[Value]): Addr =
     heap.allocList(list)
   def allocSymbol(desc: PureValue): Addr =
@@ -147,7 +148,8 @@ case class State(
     case comp: Comp    => AbruptT(comp.ty.name)
     case addr: Addr =>
       apply(addr) match
-        case m: MapObj    => NameT(m.ty)
+        case m: MapObj    => MapT
+        case r: RecordObj => NameT(r.tname)
         case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
         case s: SymbolObj => SymbolT
         case y: YetObj    => NameT(y.tname)

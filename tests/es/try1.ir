@@ -1,6 +1,6 @@
 let realm = @REALM
 let varNames = realm.GlobalEnv.VarNames
-let map = realm.GlobalObject.SubMap
+let map = realm.GlobalObject.__MAP__
 assert (contains varNames "x")
 assert (= map.x.Value 42.0f)
 assert (= map.x.Writable true)

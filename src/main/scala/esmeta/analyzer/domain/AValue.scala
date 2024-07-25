@@ -46,8 +46,8 @@ trait AValueDecl { self: Self =>
   sealed trait Part:
     /** check named elements */
     def isNamed: Boolean = this match
-      case Named(_) | SubMap(Named(_)) => true
-      case _                           => false
+      case Named(_) | InnerMap(Named(_)) => true
+      case _                             => false
 
     /** get base elements */
     def base: Base
@@ -56,14 +56,15 @@ trait AValueDecl { self: Self =>
     def from(addr: Addr): Part = addr match
       case NamedAddr(name) =>
         name match
-          case subMapPattern(base) => SubMap(Named(base))
-          case name                => Named(name)
+          case mapPattern(base) => InnerMap(Named(base))
+          case name             => Named(name)
       case _ => error(s"impossible to convert to Loc: $addr")
-    private val subMapPattern = "(.+).SubMap".r
+    private val mapPattern = "(.+).Map".r
   sealed trait Base extends Part { def base = this }
   case class Named(name: String) extends Base
   case class AllocSite(k: Int, view: View) extends Base
-  case class SubMap(base: Base) extends Part
+  // TODO remove
+  case class InnerMap(base: Base) extends Part
 
   /** closures */
   case class AClo(func: Func, captured: Map[Name, AbsValue])

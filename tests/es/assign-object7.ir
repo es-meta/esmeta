@@ -1,1 +1,1 @@
-assert (= @REALM.GlobalObject.SubMap.obj.Value.SubMap.break.Value 42.0f)
+assert (= @REALM.GlobalObject.__MAP__.obj.Value.__MAP__.break.Value 42.0f)

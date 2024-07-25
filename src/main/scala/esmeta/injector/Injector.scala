@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.es.*
+import esmeta.es.builtin.INNER_MAP
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -113,11 +114,11 @@ class Injector(
   }
 
   // get created variables
-  private lazy val globalMap = "@REALM.GlobalObject.SubMap"
+  private lazy val globalMap = s"@REALM.GlobalObject.$INNER_MAP"
   private lazy val globalThis =
     getValue(s"$globalMap.globalThis.Value")
   private lazy val createdVars: Set[String] =
-    val initial = getStrKeys(getValue("@GLOBAL.SubMap"), "<global>")
+    val initial = getStrKeys(getValue(s"@GLOBAL.$INNER_MAP"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
     current -- initial
 
@@ -143,6 +144,13 @@ class Injector(
           .map(name => app :> s"""$$algo.set($path, "$name")""")
         exitSt(addr) match
           case (_: MapObj) =>
+            handlePrototype(addr, path)
+            handleExtensible(addr, path)
+            handleCall(addr, path)
+            handleConstruct(addr, path)
+            handlePropKeys(addr, path)
+            handleProperty(addr, path)
+          case (_: RecordObj) =>
             handlePrototype(addr, path)
             handleExtensible(addr, path)
             handleCall(addr, path)
@@ -221,20 +229,20 @@ class Injector(
     List("Get", "Set", "Value", "Writable", "Enumerable", "Configurable")
   private def handleProperty(addr: Addr, path: String): Unit =
     log(s"handleProperty: $addr, $path")
-    val subMap = access(addr, Str("SubMap"))
-    for (p <- getKeys(subMap, path)) access(subMap, p) match
+    val map = access(addr, Str(INNER_MAP))
+    for (p <- getKeys(map, path)) access(map, p) match
       case addr: Addr =>
         exitSt(addr) match
-          case MapObj(
+          // NOTE : next line cannot be MapObj
+          case RecordObj(
                 "PropertyDescriptor" | "DataProperty" | "AccessorProperty",
                 props,
-                _,
               ) =>
             var set = Set[String]()
             val2str(p).map(propStr => {
               for {
                 field <- fields
-                value <- props.get(Str(field)).map(_.toPureValue)
+                value <- props.get(field).map(_.toPureValue)
               } value match
                 case sv: SimpleValue =>
                   set += s"${field.toLowerCase}: ${sv2str(sv)}"
@@ -272,8 +280,7 @@ class Injector(
     props.foldLeft(base) { case (base, p) => exitSt(base, p) }
 
   // get created lexical variables
-  private lazy val lexRecord =
-    "@REALM.GlobalEnv.DeclarativeRecord.SubMap"
+  private lazy val lexRecord = s"@REALM.GlobalEnv.DeclarativeRecord.$INNER_MAP"
   private lazy val createdLets: Set[String] =
     getStrKeys(getValue(lexRecord), "<global-decl-record>")
 
@@ -283,9 +290,9 @@ class Injector(
   private def getKeys(value: Value, path: String): Set[PureValue] = value match
     case addr: Addr =>
       exitSt(addr) match
-        case m: MapObj => m.fields.keySet.toSet
-        case _ => warning("[[SubMap]] is not a map object: $path"); Set()
-    case _ => warning("[[SubMap]] is not an address: $path"); Set()
+        case m: MapObj => m.map.keySet.toSet
+        case _ => warning(s"[[$INNER_MAP]] is not a map object: $path"); Set()
+    case _ => warning(s"[[$INNER_MAP]] is not an address: $path"); Set()
 
   // conversion to ECMAScript code
   private def val2str(value: Value): Option[String] = value match

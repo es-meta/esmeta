@@ -13,12 +13,13 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
 
   /** get method map */
   // TODO optimize
-  def getMethod(tname: String): Map[String, String] = infos.get(tname) match {
-    case Some(info) =>
-      val parentMethods = info.parent.map(getMethod).getOrElse(Map())
-      parentMethods ++ info.methods
-    case None => Map()
-  }
+  def getMethod(tname: String): Map[String, String] =
+    infos.get(tname) match {
+      case Some(info) =>
+        val parentMethods = info.parent.map(getMethod).getOrElse(Map())
+        parentMethods ++ info.methods
+      case None => Map()
+    }
 
   /** direct subtypes */
   private lazy val directSubTys: Map[String, Set[String]] = {

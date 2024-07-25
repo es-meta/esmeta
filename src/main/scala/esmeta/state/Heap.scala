@@ -25,6 +25,7 @@ case class Heap(
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
+    case (r: RecordObj)                     => r(key)
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
@@ -32,13 +33,20 @@ case class Heap(
     apply(addr) match {
       case (m: MapObj)  => m.update(field, value); this
       case (l: ListObj) => l.update(field, value); this
-      case v            => error(s"not a map: $v")
+      case (r: RecordObj) => {
+        field match
+          case prop @ Str(_) => r.update(prop, value)
+          case _             => throw InvalidObjField(r, field)
+        this
+      }
+      case v => error(s"not a map: $v")
     }
 
   /** delete */
   def delete(addr: Addr, field: PureValue): this.type = apply(addr) match {
-    case (m: MapObj) => m.delete(field); this
-    case v           => error(s"not a map: $v")
+    case (m: MapObj)    => m.delete(field); this
+    case (r: RecordObj) => error(s"cannot delete from record: $r")
+    case v              => error(s"not a map: $v")
   }
 
   /** appends */
@@ -71,34 +79,30 @@ case class Heap(
   /** keys of map */
   def keys(addr: Addr, intSorted: Boolean): Addr = {
     alloc(ListObj(apply(addr) match {
-      case (m: MapObj) => m.keys(intSorted)
-      case obj         => error(s"not a map: $obj")
+      case (r: RecordObj) => r.keys
+      case (m: MapObj)    => m.keys(intSorted)
+      case obj            => error(s"not a map: $obj")
     }))
   }
 
-  /** map allocations */
-  def allocMap(
-    tname: String,
-    m: Map[PureValue, PureValue],
-  )(using CFG): Addr = {
-    val irMap =
-      if (tname == "Record") MapObj(tname, LMMap(), 0) else MapObj(tname)
-    for ((k, v) <- m) irMap.update(k, v)
-    if (hasSubMap(tname))
-      val subMap = MapObj("SubMap")
-      irMap.update(Str("SubMap"), alloc(subMap))
-    if (isObject(tname))
-      val privateElems = ListObj()
-      irMap.update(Str("PrivateElements"), alloc(privateElems))
-    alloc(irMap)
-  }
+  /** record allocations */
+  def allocRecord(tname: String)(using CFG): Addr =
+    val record = RecordObj(tname)
+    // TODO check it is the best way to handle this
+    if (hasMap(tname)) record.update(Str(INNER_MAP), alloc(MapObj()))
+    // TODO check it is the best way to handle this
+    if (isObject(tname)) record.update(Str("PrivateElements"), alloc(ListObj()))
+    alloc(record)
 
   private def isObject(tname: String): Boolean =
     tname endsWith "Object"
   private def isEnvRec(tname: String): Boolean =
     tname endsWith "EnvironmentRecord"
-  private def hasSubMap(tname: String): Boolean =
+  private def hasMap(tname: String): Boolean =
     isObject(tname) || isEnvRec(tname)
+
+  /** map allocations */
+  def allocMap: Addr = alloc(MapObj())
 
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
@@ -129,17 +133,16 @@ case class Heap(
     fieldName: String,
   ): Value = addr match {
     case addr: Addr =>
-      val submap = getAddrValue(addr, "SubMap")
-      val field = getAddrValue(submap, fieldName)
+      val map = getAddrValue(addr, INNER_MAP)
+      val field = getAddrValue(map, fieldName)
       apply(field, Str("Value"))
     case _ => error(s"not an address: $addr")
   }
 
   /** set type of objects */
   def setType(addr: Addr, tname: String): this.type = apply(addr) match {
-    case (irMap: MapObj) =>
-      irMap.ty = tname; this
-    case _ => error(s"invalid type update: $addr")
+    case (irMap: RecordObj) => irMap.tname = tname; this
+    case _                  => error(s"invalid type update: $addr")
   }
 
   /** copied */

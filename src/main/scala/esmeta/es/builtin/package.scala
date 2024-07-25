@@ -26,7 +26,7 @@ val JOB_QUEUE = "JOB_QUEUE"
 val PRIMITIVE = "PRIMITIVE"
 val SOURCE_TEXT = "SOURCE_TEXT"
 val SYMBOL_REGISTRY = "SYMBOL_REGISTRY"
-val SUBMAP = "SubMap"
+val INNER_MAP = "__MAP__"
 val DESCRIPTOR = "DESCRIPTOR"
 val UNDEF_TYPE = "Undefined"
 val NULL_TYPE = "Null"
@@ -98,11 +98,11 @@ def intrName(name: String): String = s"$INTRINSICS.$name"
 /** intrinsics addr */
 def intrAddr(name: String): NamedAddr = NamedAddr(intrName(name))
 
-/** submap name */
-def submapName(name: String): String = s"$name.$SUBMAP"
+/** map name */
+def mapName(name: String): String = s"$name.$INNER_MAP"
 
-/** submap addr */
-def submapAddr(name: String): NamedAddr = NamedAddr(submapName(name))
+/** map addr */
+def mapAddr(name: String): NamedAddr = NamedAddr(mapName(name))
 
 /** symbol name */
 def symbolName(name: String): String = s"Symbol.$name"
@@ -119,17 +119,17 @@ def descName(name: String, key: String): String =
 def descAddr(name: String, key: String): NamedAddr =
   NamedAddr(descName(name, key))
 
-/** get submap */
-def getSubmapObjects(
+/** get map */
+def getMapObjects(
   name: String,
   descBase: String,
   nmap: List[(String, Property)],
 )(using CFG): Map[Addr, Obj] =
   var map = Map[Addr, Obj]()
-  map += submapAddr(name) -> MapObj(SUBMAP)(nmap.map {
+  map += mapAddr(name) -> MapObj(nmap.map {
     case (k, _) => // handle symbol
       val key = if k startsWith "@@" then symbolAddr(k.drop(2)) else Str(k)
       key -> descAddr(descBase, k)
-  }: _*)
+  })
   map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }
   map

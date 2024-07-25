@@ -28,7 +28,7 @@ trait Parsers extends BasicParsers {
   private lazy val singleValueTy: Parser[ValueTy] = {
     "Any" ^^^ AnyT ||| (
       singleCompTy ^^ { case t => ValueTy(comp = t) } |
-      singleSubMapTy ^^ { case t => ValueTy(subMap = t) } |
+      singleMapTy ^^ { case t => ValueTy(map = t) } |
       singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
     )
   }.named("ty.ValueTy (single)")
@@ -237,15 +237,15 @@ trait Parsers extends BasicParsers {
     } | "Ast" ^^^ AstTopTy
   }.named("ty.ListTy (single)")
 
-  /** sub map types */
-  given subMapTy: Parser[SubMapTy] = {
-    rep1sep(singleSubMapTy, "|") ^^ {
-      case ts => ts.foldLeft(SubMapTy.Bot)(_ || _)
+  /** map types */
+  given mapTy: Parser[MapTy] = {
+    rep1sep(singleMapTy, "|") ^^ {
+      case ts => ts.foldLeft(MapTy.Bot)(_ || _)
     }
-  }.named("ty.SubMapTy")
+  }.named("ty.MapTy")
 
-  private lazy val singleSubMapTy: Parser[SubMapTy] = {
-    "SubMap[" ~> pureValueTy ~
-    ("|->" ~> pureValueTy) <~ "]" ^^ { case k ~ v => SubMapTy(k, v) }
-  }.named("ty.SubMapTy (single)")
+  private lazy val singleMapTy: Parser[MapTy] = {
+    "Map[" ~> pureValueTy ~
+    ("|->" ~> pureValueTy) <~ "]" ^^ { case k ~ v => MapTy(k, v) }
+  }.named("ty.MapTy (single)")
 }

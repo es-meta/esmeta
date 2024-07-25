@@ -1,6 +1,5 @@
 def StringToNumber(
   str: String,
 ): Number = {
-  // IGNORE original algo
   return ([number] str)
 }
