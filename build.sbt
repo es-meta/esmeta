@@ -251,6 +251,8 @@ lazy val root = project
     interpreterEvalTest := (Test / testOnly)
       .toTask(" *.interpreter.Eval*Test")
       .value,
+    interpreterTest / watchSources ++= (baseDirectory.value / "tests" ** "*.ir").get,
+    interpreterEvalTest / watchSources ++= (baseDirectory.value / "tests" ** "*.ir").get,
     // state
     stateTest := (Test / testOnly).toTask(" *.state.*Test").value,
     stateStringifyTest := (Test / testOnly)
