@@ -1,5 +1,5 @@
 def <AUX>:__HAS_DUPLICATE__(
-  list: List
+  list: List,
 ): Boolean = {
   let i = 1
   let len = list.length
