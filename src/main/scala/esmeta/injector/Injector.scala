@@ -15,7 +15,6 @@ import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.TimeoutException
-import scala.annotation.meta.field
 
 /** assertion injector */
 object Injector:
