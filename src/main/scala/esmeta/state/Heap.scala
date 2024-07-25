@@ -79,29 +79,20 @@ case class Heap(
   /** keys of map */
   def keys(addr: Addr, intSorted: Boolean): Addr = {
     alloc(ListObj(apply(addr) match {
-      case (m: MapObj) => m.keys(intSorted)
-      case obj         => error(s"not a map: $obj")
+      case (r: RecordObj) => r.keys
+      case (m: MapObj)    => m.keys(intSorted)
+      case obj            => error(s"not a map: $obj")
     }))
   }
 
   /** record allocations */
-  def allocRecord(
-    tname: String,
-    m: Map[String, Value],
-  )(using CFG): Addr = {
-    val irMap =
-      if (tname == "Record") RecordObj(tname, LMMap()) else RecordObj(tname)
-    for ((k, v) <- m) irMap.update(Str(k), v)
+  def allocRecord(tname: String)(using CFG): Addr =
+    val record = RecordObj(tname)
     // TODO check it is the best way to handle this
-    if (hasSubMap(tname))
-      val subMap = MapObj()
-      irMap.update(Str("SubMap"), alloc(subMap))
+    if (hasSubMap(tname)) record.update(Str("SubMap"), alloc(MapObj()))
     // TODO check it is the best way to handle this
-    if (isObject(tname))
-      val privateElems = ListObj()
-      irMap.update(Str("PrivateElements"), alloc(privateElems))
-    alloc(irMap)
-  }
+    if (isObject(tname)) record.update(Str("PrivateElements"), alloc(ListObj()))
+    alloc(record)
 
   private def isObject(tname: String): Boolean =
     tname endsWith "Object"
@@ -109,6 +100,9 @@ case class Heap(
     tname endsWith "EnvironmentRecord"
   private def hasSubMap(tname: String): Boolean =
     isObject(tname) || isEnvRec(tname)
+
+  /** map allocations */
+  def allocMap: Addr = alloc(MapObj())
 
   /** list allocations */
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))

@@ -202,11 +202,9 @@ trait HeapBasicDomainDecl { self: Self =>
       /** allocation of map with address partitions */
       def allocMap(
         to: AllocSite,
-        tname: String,
         pairs: Iterable[(AbsValue, AbsValue)],
       ): Elem =
         given CFG = cfg
-        // TODO : Check if this line is okay
         val newObj = pairs.foldLeft(AbsObj(MapObj())) {
           case (m, (k, v)) => m.update(k, v, weak = false)
         }

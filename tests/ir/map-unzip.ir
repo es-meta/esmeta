@@ -12,11 +12,11 @@ def unzip(map: SubMap[Math |-> String]) = {
 }
 
 @main def main() = {
-  let map = (new Map(1 -> "a", 2 -> "b", 3 -> "c"))[#1]
+  let map = (map { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
   call pair = clo<unzip>(map)
   assert (contains pair[0] 1)
-  assert (contains pair[0] 2)
-  assert (contains pair[0] 3)
+  assert (contains pair[0] 2n)
+  assert (contains pair[0] 0.3f)
   assert (contains pair[1] "a")
   assert (contains pair[1] "b")
   assert (contains pair[1] "c")

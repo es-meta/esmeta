@@ -131,12 +131,12 @@ case class State(
     heap.copyObj(addr)
   def keys(addr: Addr, intSorted: Boolean): Addr =
     heap.keys(addr, intSorted)
+  def allocRecord(tname: String)(using CFG): Addr =
+    heap.allocRecord(tname)
+  def allocMap: Addr =
+    heap.allocMap
   def allocList(list: List[Value]): Addr =
     heap.allocList(list)
-  def allocRecord(
-    tname: String,
-    map: Map[String, PureValue] = Map(),
-  )(using CFG): Addr = heap.allocRecord(tname, map)
   def allocSymbol(desc: PureValue): Addr =
     heap.allocSymbol(desc)
   def setType(addr: Addr, tname: String): this.type =

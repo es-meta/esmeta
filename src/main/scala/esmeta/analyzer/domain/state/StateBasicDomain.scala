@@ -240,14 +240,13 @@ trait StateBasicDomainDecl { self: Self =>
       /** allocation of map with address partitions */
       def allocMap(
         to: AllocSite,
-        tname: String,
         pairs: Iterable[(AbsValue, AbsValue)],
       ): (AbsValue, Elem) =
         val partV = AbsValue(to)
         elem.bottomCheck(AbsValue)(
           pairs.flatMap { case (k, v) => List(k, v) },
         ) {
-          (partV, elem.copy(heap = heap.allocMap(to, tname, pairs)))
+          (partV, elem.copy(heap = heap.allocMap(to, pairs)))
         }
 
       /** allocation of record with address partitions */

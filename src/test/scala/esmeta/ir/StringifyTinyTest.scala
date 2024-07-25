@@ -152,10 +152,7 @@ class StringifyTinyTest extends IRTest {
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
       // allocation expressions
-      rec -> """(new T {
-      |  A -> true
-      |  B -> absent
-      |})""".stripMargin,
+      rec -> """(new T { "A" : true, "B" : absent })""",
       list -> "(new [undefined, null, absent])",
       symbol -> "(new 'null)",
       copy -> "(copy x)",
@@ -164,10 +161,7 @@ class StringifyTinyTest extends IRTest {
       getChildren -> "(get-children x)",
       getItems -> "(get-items x x)",
       // allocation expressions with allocation sites
-      recASite -> """"(new T {
-      |  A -> true
-      |  B -> absent
-      |})[#3]""".stripMargin,
+      recASite -> """(new T { "A" : true, "B" : absent })[#3]""".stripMargin,
       listASite -> "(new [undefined, null, absent])[#1]",
       symbolASite -> "(new 'null)[#7]",
       copyASite -> "(copy x)[#42]",

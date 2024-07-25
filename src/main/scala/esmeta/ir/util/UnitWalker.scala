@@ -133,7 +133,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(alloc: AllocExpr): Unit = alloc match {
     case ERecord(tname, fields) =>
       walk(tname)
-      walkList(fields, { case (p, e) => (walk(p), walk(e)) })
+      walkList(fields, { case (f, e) => (walk(f), walk(e)) })
+    case EMap(pairs) =>
+      walkList(pairs, { case (k, v) => (walk(k), walk(v)) })
     case EList(exprs) =>
       walkList(exprs, walk)
     case EListConcat(exprs) =>

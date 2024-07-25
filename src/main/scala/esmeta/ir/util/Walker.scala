@@ -145,6 +145,8 @@ trait Walker extends BasicWalker {
         walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
+    case EMap(pairs) =>
+      EMap(walkList(pairs, { case (k, v) => (walk(k), walk(v)) }))
     case EList(exprs) =>
       EList(walkList(exprs, walk))
     case EListConcat(exprs) =>

@@ -180,18 +180,12 @@ trait StateTypeDomainDecl { self: Self =>
       /** allocation of map with address partitions */
       def allocMap(
         to: AllocSite,
-        tname: String,
         pairs: Iterable[(AbsValue, AbsValue)],
       ): (AbsValue, Elem) =
-        val value =
-          if (tname == "Record") RecordT((for {
-            (k, v) <- pairs
-          } yield k.getSingle match
-            case One(Str(key)) => key -> v.ty
-            case _             => exploded(s"imprecise field name: $k")
-          ).toMap)
-          else NameT(tname)
-        (AbsValue(value), elem)
+        val (keys, values) = pairs.unzip
+        val key = keys.foldLeft(BotT)(_ || _.ty)
+        val value = values.foldLeft(BotT)(_ || _.ty)
+        (AbsValue(SubMapT(key, value)), elem)
 
       /** allocation of record with address partitions */
       def allocRecord(

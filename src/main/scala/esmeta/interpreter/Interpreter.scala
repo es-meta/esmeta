@@ -408,9 +408,11 @@ class Interpreter(
         case _ => throw InvalidComp
     case ERecord(tname, fields) =>
       val addr = st.allocRecord(tname)
-      for ((f, expr) <- fields)
-        val v = eval(expr)
-        st.update(addr, Str(f), v)
+      for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
+      addr
+    case EMap(pairs) =>
+      val addr = st.allocMap
+      for ((k, v) <- pairs) st.update(addr, eval(k).toPureValue, eval(v))
       addr
     case EList(exprs) =>
       st.allocList(exprs.map(expr => eval(expr).toPureValue))

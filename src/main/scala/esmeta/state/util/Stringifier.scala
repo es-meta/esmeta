@@ -73,18 +73,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given objRule: Rule[Obj] = (app, obj) =>
     obj match
       case MapObj(map) =>
-        given Rule[Iterable[(PureValue, Value)]] = sortedMapRule("(", ")")
-        given Ordering[PureValue] = Ordering.by(_.toString)
-        app >> "Map(" >> map >> ")"
+        app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
       case RecordObj(tname, map) =>
-        given Rule[Iterable[(String, Value)]] = sortedMapRule("{", "}", ":")
-        app >> "[TYPE = " >> tname >> "] " >> map
+        given Rule[Iterable[(String, Value)]] = sortedMapRule("{", "}", " : ")
+        app >> "[TYPE = " >> tname >> "] "
+        app >> map.map { case (k, v) => (s"\"$k\"", v) }
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList
       case SymbolObj(desc) => app >> "(Symbol " >> desc >> ")"
       case YetObj(tname, msg) =>
-        app >> "(Yet [TYPE = " >> tname >> "] \"" >> msg >> "\")"
+        app >> "[TYPE = " >> tname >> "] Yet(\"" >> msg >> "\")"
 
   // values
   given valueRule: Rule[Value] = (app, value) =>

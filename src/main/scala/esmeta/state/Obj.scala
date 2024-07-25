@@ -30,6 +30,39 @@ sealed trait Obj extends StateElem {
     case _                     => this
 }
 
+/** record objects */
+case class RecordObj(
+  var tname: String,
+  val map: MMap[String, Value] = MMap(),
+) extends Obj {
+
+  /** updates a value */
+  def update(field: PureValue, value: Value): this.type = field match
+    case Str(field) => map += field -> value; this
+    case _          => throw InvalidObjField(this, field)
+
+  /** keys of map */
+  def keys: Vector[Value] = map.keys.toVector.map(Str.apply)
+}
+object RecordObj {
+
+  /** apply with type model */
+  def apply(tname: String)(map: (String, Value)*)(using CFG): RecordObj =
+    val obj = RecordObj(tname)
+    for { ((k, v), idx) <- map.zipWithIndex }
+      obj.map += k -> v
+    obj
+
+  def apply(tname: String)(using cfg: CFG): RecordObj =
+    // TODO do not explicitly store methods in object but use a type model when
+    // accessing methods
+    val methods = cfg.tyModel.getMethod(tname)
+    val obj = RecordObj(tname, MMap())
+    for { ((name, fname), idx) <- methods.zipWithIndex }
+      obj.map += name -> Clo(cfg.fnameMap(fname), Map())
+    obj
+}
+
 /** map objects */
 case class MapObj(
   val map: LMMap[PureValue, Value] = LMMap(),
@@ -58,35 +91,6 @@ case class MapObj(
 object MapObj {
   def apply(pairs: Iterable[(PureValue, Value)]): MapObj =
     MapObj(LMMap.from(pairs))
-}
-
-case class RecordObj(
-  var tname: String,
-  val map: MMap[String, Value] = MMap(),
-) extends Obj {
-
-  /** updates a value */
-  def update(field: PureValue, value: Value): this.type = field match
-    case Str(field) => map += field -> value; this
-    case _          => throw InvalidObjField(this, field)
-}
-object RecordObj {
-
-  /** apply with type model */
-  def apply(tname: String)(map: (String, Value)*)(using CFG): RecordObj =
-    val obj = RecordObj(tname)
-    for { ((k, v), idx) <- map.zipWithIndex }
-      obj.map += k -> v
-    obj
-
-  def apply(tname: String)(using cfg: CFG): RecordObj =
-    // TODO do not explicitly store methods in object but use a type model when
-    // accessing methods
-    val methods = cfg.tyModel.getMethod(tname)
-    val obj = RecordObj(tname, MMap())
-    for { ((name, fname), idx) <- methods.zipWithIndex }
-      obj.map += name -> Clo(cfg.fnameMap(fname), Map())
-    obj
 }
 
 /** list objects */

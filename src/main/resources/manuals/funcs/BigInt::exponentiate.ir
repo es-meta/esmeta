@@ -4,8 +4,8 @@ def <NUM>:BigInt::exponentiate(
 ): Normal[BigInt] | Abrupt[throw] = {
   if (< exponent 0n) {
     return comp[~throw~/~empty~]((new OrdinaryObject {
-      "Prototype" -> @EXECUTION_STACK[0].Realm.Intrinsics["%RangeError.prototype%"],
-      "ErrorData" -> undefined
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%RangeError.prototype%"],
+      "ErrorData" : undefined
     }))
   }
   if (&& (= base 0n) (= exponent 0n)) {
