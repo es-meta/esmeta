@@ -14,7 +14,7 @@ trait Walker extends BasicWalker {
     case ty: PureValueTy => walk(ty)
     case ty: RecordTy    => walk(ty)
     case ty: ListTy      => walk(ty)
-    case ty: SubMapTy    => walk(ty)
+    case ty: MapTy       => walk(ty)
     case ty: MathTy      => walk(ty)
     case ty: InfinityTy  => walk(ty)
     case ty: BoolTy      => walk(ty)
@@ -33,7 +33,7 @@ trait Walker extends BasicWalker {
   def walk(ty: ValueTy): ValueTy = ValueTy(
     walk(ty.comp),
     walk(ty.pureValue),
-    walk(ty.subMap),
+    walk(ty.map),
   )
 
   /** completion record types */
@@ -146,8 +146,8 @@ trait Walker extends BasicWalker {
     walkOpt(ty.elem, walk),
   )
 
-  /** sub map types */
-  def walk(ty: SubMapTy): SubMapTy = SubMapTy(
+  /** map types */
+  def walk(ty: MapTy): MapTy = MapTy(
     walk(ty.key),
     walk(ty.value),
   )

@@ -148,7 +148,7 @@ case class State(
     case comp: Comp    => AbruptT(comp.ty.name)
     case addr: Addr =>
       apply(addr) match
-        case m: MapObj    => SubMapT
+        case m: MapObj    => MapT
         case r: RecordObj => NameT(r.tname)
         case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
         case s: SymbolObj => SymbolT

@@ -151,14 +151,14 @@ class Initialize(cfg: CFG) {
     map: MMap[Addr, Obj],
   ): Unit = {
     val (baseName, baseAddr) = (intrName(name), intrAddr(name))
-    val subAddr = submapAddr(baseName)
+    val subAddr = mapAddr(baseName)
     val nameAddr = descAddr(name, "name")
     val lengthAddr = descAddr(name, "length")
 
     val baseObj = map.get(baseAddr) match
       case Some(r: RecordObj) => r
       case _                  => RecordObj("BuiltinFunctionObject")
-    val subMapObj = map.get(subAddr) match
+    val mapObj = map.get(subAddr) match
       case Some(m: MapObj) => m
       case _               => MapObj()
     val nameRecordObj = map.get(nameAddr) match
@@ -186,11 +186,11 @@ class Initialize(cfg: CFG) {
       "Realm" -> realmAddr,
       "Code" -> intrClo(name),
       "Prototype" -> intrAddr("Function.prototype"),
-      "SubMap" -> subAddr,
       "InitialName" -> Str(defaultName),
+      INNER_MAP -> subAddr,
     )
 
-    map += subAddr -> updateMap(subMapObj)(
+    map += subAddr -> updateMap(mapObj)(
       Str("length") -> lengthAddr,
       Str("name") -> nameAddr,
     )
@@ -224,7 +224,7 @@ class Initialize(cfg: CFG) {
       func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
       fname = func.name.stripPrefix("INTRINSICS.")
       (base, prop, propV, defaultName, isData, isGetter) <- fname.getData
-      baseMapObj <- map.get(submapAddr(intrName(base))) match
+      baseMapObj <- map.get(mapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
         case _               => None
       desc = descAddr(base, prop)

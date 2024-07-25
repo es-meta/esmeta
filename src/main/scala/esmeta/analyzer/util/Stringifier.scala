@@ -104,7 +104,7 @@ trait StringifierDecl { self: Self =>
           app >> "(" >> value >> ")"
         case Named(name)        => app >> "#" >> name
         case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
-        case SubMap(baseLoc)    => app >> baseLoc >> ":SubMap"
+        case InnerMap(baseLoc)  => app >> baseLoc >> ":Map"
         case AClo(func, _) =>
           app >> "clo<" >> func.irFunc.name >> ">"
         case ACont(target, _) =>

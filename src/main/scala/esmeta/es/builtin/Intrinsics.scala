@@ -22,13 +22,13 @@ case class Intrinsics(cfg: CFG) {
           if !(yets contains name.split("\\.").head) =>
         // base object
         _map += intrAddr(name) -> RecordObj(typeName)(
-          (SUBMAP -> submapAddr(intrName(name)) :: imap).map {
+          (INNER_MAP -> mapAddr(intrName(name)) :: imap).map {
             case (k, v) => k -> v
           }: _*,
         )
 
-        // submap object
-        _map ++= getSubmapObjects(intrName(name), name, nmap)
+        // map object
+        _map ++= getMapObjects(intrName(name), name, nmap)
       case _ =>
     }
 

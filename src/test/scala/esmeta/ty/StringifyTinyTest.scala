@@ -16,10 +16,10 @@ class StringifyTinyTest extends TyTest {
       PureValueT -> "PureValue",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
-      SubMapT(
+      MapT(
         StrT,
         NameT("Binding"),
-      ) -> "SubMap[String |-> Binding]",
+      ) -> "Map[String |-> Binding]",
       CloT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContT -> "Cont",

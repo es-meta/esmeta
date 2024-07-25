@@ -4,7 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.es
+import esmeta.es.builtin.{INTRINSICS, INNER_MAP}
 import esmeta.ir.*
 import esmeta.state.*
 import esmeta.util.*
@@ -140,7 +140,7 @@ trait HeapBasicDomainDecl { self: Self =>
       def apply(part: AbsPart, field: AbsValue): AbsValue =
         part.map(elem(_, field)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
       def apply(part: Part, field: AbsValue): AbsValue = part match
-        case Named(es.builtin.INTRINSICS) =>
+        case Named(INTRINSICS) =>
           field.getSingle match
             case Zero => AbsValue.Bot
             case One(str: SimpleValue) =>
@@ -195,8 +195,8 @@ trait HeapBasicDomainDecl { self: Self =>
       def keys(part: AbsPart, intSorted: Boolean)(to: AllocSite): Elem =
         alloc(elem, to, applyFold(elem, part)(_.keys(intSorted)))
 
-      /** has SubMap */
-      def hasSubMap(tname: String): Boolean =
+      /** has Map */
+      def hasMap(tname: String): Boolean =
         (tname endsWith "Object") || (tname endsWith "EnvironmentRecord")
 
       /** allocation of map with address partitions */
@@ -220,19 +220,19 @@ trait HeapBasicDomainDecl { self: Self =>
         val newObj = pairs.foldLeft(AbsObj(RecordObj(tname))) {
           case (m, (f, v)) => m.update(AbsValue(Str(f)), v, weak = false)
         }
-        if (hasSubMap(tname)) {
-          val subMapPart = SubMap(to)
-          val subMapObj = AbsObj(MapObj())
+        if (hasMap(tname)) {
+          val mapPart = InnerMap(to)
+          val mapObj = AbsObj(MapObj())
           val newElem = alloc(
             elem,
             to,
             newObj.update(
-              AbsValue("SubMap"),
-              AbsValue(subMapPart),
+              AbsValue(INNER_MAP),
+              AbsValue(mapPart),
               weak = false,
             ),
           )
-          alloc(newElem, subMapPart, subMapObj)
+          alloc(newElem, mapPart, mapObj)
         } else alloc(elem, to, newObj)
 
       /** allocation of list with address partitions */

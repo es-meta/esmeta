@@ -1,2 +1,2 @@
-assert (= @REALM.GlobalObject.SubMap.noerror.Value 0.0f)
-assert (= @REALM.GlobalObject.SubMap.base.Value.SubMap.a.Value 1.0f)
+assert (= @REALM.GlobalObject.__MAP__.noerror.Value 0.0f)
+assert (= @REALM.GlobalObject.__MAP__.base.Value.__MAP__.a.Value 1.0f)

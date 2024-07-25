@@ -1,6 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
+import esmeta.es.builtin.INNER_MAP
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,
@@ -278,7 +279,7 @@ class Compiler(
       val (key, keyExpr) = compileWithExpr(x)
       val intSorted = order == ForEachOwnPropertyKeyStepOrder.NumericIndexOrder
       fb.addInst(
-        IAssign(list, EKeys(toStrERef(compile(fb, obj), "SubMap"), intSorted)),
+        IAssign(list, EKeys(toStrERef(compile(fb, obj), INNER_MAP), intSorted)),
         if (ascending) IAssign(i, zero)
         else IAssign(i, toStrERef(list, "length")),
         IWhile(
@@ -448,7 +449,7 @@ class Compiler(
       case FieldProperty(name)     => Field(baseRef, EStr(name))
       case ComponentProperty(name) => Field(baseRef, EStr(name))
       case BindingProperty(expr) =>
-        Field(toStrRef(baseRef, "SubMap"), compile(fb, expr))
+        Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
       case IndexProperty(index)      => Field(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Field(baseRef, EStr(name))
@@ -793,7 +794,7 @@ class Compiler(
         if (neg) e else not(e)
       case HasBindingCondition(ref, neg, binding) =>
         val e = isAbsent(
-          toERef(compile(fb, ref), EStr("SubMap"), compile(fb, binding)),
+          toERef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
         )
         if (neg) e else not(e)
       // XXX need to be generalized?

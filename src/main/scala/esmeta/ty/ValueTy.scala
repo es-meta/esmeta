@@ -9,7 +9,7 @@ import esmeta.ty.util.Parser
 case class ValueTy(
   comp: CompTy,
   pureValue: PureValueTy,
-  subMap: SubMapTy,
+  map: MapTy,
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
@@ -23,7 +23,7 @@ case class ValueTy(
       (
         this.comp.isTop &&
         this.pureValue.isTop &&
-        this.subMap.isTop
+        this.map.isTop
       )
 
   /** bottom check */
@@ -34,14 +34,14 @@ case class ValueTy(
       (
         this.comp.isBottom &&
         this.pureValue.isBottom &&
-        this.subMap.isBottom
+        this.map.isBottom
       )
 
   /** partial order/subset operator */
   def <=(that: => ValueTy): Boolean = (this eq that) || (
     this.comp <= that.comp &&
     this.pureValue <= that.pureValue &&
-    this.subMap <= that.subMap
+    this.map <= that.map
   )
 
   /** union type */
@@ -51,7 +51,7 @@ case class ValueTy(
       ValueTy(
         this.comp || that.comp,
         this.pureValue || that.pureValue,
-        this.subMap || that.subMap,
+        this.map || that.map,
       )
 
   /** intersection type */
@@ -61,7 +61,7 @@ case class ValueTy(
       ValueTy(
         this.comp && that.comp,
         this.pureValue && that.pureValue,
-        this.subMap && that.subMap,
+        this.map && that.map,
       )
 
   /** prune type */
@@ -71,20 +71,20 @@ case class ValueTy(
       ValueTy(
         this.comp -- that.comp,
         this.pureValue -- that.pureValue,
-        this.subMap -- that.subMap,
+        this.map -- that.map,
       )
 
   /** completion check */
   def isCompletion: Boolean =
     !comp.isBottom &&
     pureValue.isBottom &&
-    subMap.isBottom
+    map.isBottom
 
   /** remove absent types */
   def removeAbsent: ValueTy = copy(
     comp = CompTy(normal.removeAbsent, abrupt),
     pureValue = pureValue.removeAbsent,
-    subMap = subMap,
+    map = map,
   )
 
   /** getters */
@@ -121,8 +121,8 @@ case class ValueTy(
           case MapObj(props) =>
             props.forall {
               case (key, value) =>
-                ValueTy(pureValue = subMap.key).contains(key, heap) &&
-                ValueTy(pureValue = subMap.value).contains(value, heap)
+                ValueTy(pureValue = map.key).contains(key, heap) &&
+                ValueTy(pureValue = map.value).contains(value, heap)
             }
           case RecordObj(tname, props) =>
             isSubTy(tname, name.set) ||
@@ -184,7 +184,7 @@ case class ValueTy(
     undef: Boolean = undef,
     nullv: Boolean = nullv,
     absent: Boolean = absent,
-    subMap: SubMapTy = subMap,
+    map: MapTy = map,
   ): ValueTy = ValueTy(
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
@@ -208,14 +208,14 @@ case class ValueTy(
       nullv,
       absent,
     ),
-    subMap = subMap,
+    map = map,
   )
 
   /** get single value */
   def getSingle: Flat[Value] =
     this.comp.getSingle ||
     this.pureValue.getSingle ||
-    this.subMap.getSingle
+    this.map.getSingle
 
   /** types having no property */
   def noField: ValueTy = Bot.copy(pureValue = pureValue.noField)
@@ -245,7 +245,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     undef: Boolean = false,
     nullv: Boolean = false,
     absent: Boolean = false,
-    subMap: SubMapTy = SubMapTy.Bot,
+    map: MapTy = MapTy.Bot,
   ): ValueTy = ValueTy(
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
@@ -269,8 +269,8 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       nullv,
       absent,
     ),
-    subMap = subMap,
+    map = map,
   )
-  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top, SubMapTy.Top)
+  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top, MapTy.Top)
   lazy val Bot: ValueTy = ValueTy()
 }

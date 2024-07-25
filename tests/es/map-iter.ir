@@ -1,2 +1,2 @@
-assert (= @REALM.GlobalObject.SubMap.ksum.Value 3.0f)
-assert (= @REALM.GlobalObject.SubMap.vsum.Value 5.0f)
+assert (= @REALM.GlobalObject.__MAP__.ksum.Value 3.0f)
+assert (= @REALM.GlobalObject.__MAP__.vsum.Value 5.0f)

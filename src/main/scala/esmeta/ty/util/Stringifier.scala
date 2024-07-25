@@ -21,7 +21,7 @@ object Stringifier {
       case elem: ListTy      => listTyRule(app, elem)
       case elem: NameTy      => nameTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
-      case elem: SubMapTy    => subMapTyRule(app, elem)
+      case elem: MapTy       => mapTyRule(app, elem)
       case elem: MathTy      => mathTyRule(app, elem)
       case elem: InfinityTy  => infinityTyRule(app, elem)
       case elem: NumberTy    => numberTyRule(app, elem)
@@ -45,7 +45,7 @@ object Stringifier {
       FilterApp(app)
         .add(ty.comp, !ty.comp.isBottom)
         .add(ty.pureValue, !ty.pureValue.isBottom)
-        .add(ty.subMap, !ty.subMap.isBottom)
+        .add(ty.map, !ty.map.isBottom)
         .app
     else app >> "Bot"
 
@@ -167,9 +167,9 @@ object Stringifier {
       case set if set.size == 1 => app >> (if (set.head) "True" else "False")
       case _                    => app >> "Boolean"
 
-  /** sub map types */
-  given subMapTyRule: Rule[SubMapTy] = (app, ty) =>
-    app >> "SubMap[" >> ty.key >> " |-> " >> ty.value >> "]"
+  /** map types */
+  given mapTyRule: Rule[MapTy] = (app, ty) =>
+    app >> "Map[" >> ty.key >> " |-> " >> ty.value >> "]"
 
   // rule for bounded set lattice
   private given bsetRule[T: Ordering](using Rule[T]): Rule[BSet[T]] =

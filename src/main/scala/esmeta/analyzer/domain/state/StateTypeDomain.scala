@@ -98,7 +98,7 @@ trait StateTypeDomainDecl { self: Self =>
           lookupName(baseTy.name, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
           lookupSymbol(baseTy.symbol, fieldTy) ||
-          lookupSubMap(baseTy.subMap, fieldTy),
+          lookupMap(baseTy.map, fieldTy),
         )
 
       /** getters with an address partition */
@@ -146,7 +146,7 @@ trait StateTypeDomainDecl { self: Self =>
         intSorted: Boolean,
       ): (AbsValue, Elem) =
         val value =
-          if (v.ty.subMap.isBottom) AbsValue.Bot
+          if (v.ty.map.isBottom) AbsValue.Bot
           else AbsValue(ListT(StrT))
         (value, elem)
 
@@ -185,7 +185,7 @@ trait StateTypeDomainDecl { self: Self =>
         val (keys, values) = pairs.unzip
         val key = keys.foldLeft(BotT)(_ || _.ty)
         val value = values.foldLeft(BotT)(_ || _.ty)
-        (AbsValue(SubMapT(key, value)), elem)
+        (AbsValue(MapT(key, value)), elem)
 
       /** allocation of record with address partitions */
       def allocRecord(
@@ -412,9 +412,9 @@ trait StateTypeDomainDecl { self: Self =>
       if (symbol && field.str.contains("Description")) StrT
       else BotT
 
-    // submap lookup
-    private def lookupSubMap(subMap: SubMapTy, field: ValueTy): ValueTy =
-      if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
+    // map lookup
+    private def lookupMap(map: MapTy, field: ValueTy): ValueTy =
+      if (!map.isBottom) ValueTy(pureValue = map.value)
       else BotT
 
     // bound check
