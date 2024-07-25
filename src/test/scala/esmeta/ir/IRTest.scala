@@ -106,7 +106,7 @@ object IRTest {
   // allocation expressions
   lazy val rec = ERecord("T", List("A" -> EBool(true), "B" -> EAbsent()))
   lazy val list = EList(List(EUndef(), ENull(), EAbsent()))
-  lazy val symbol = ESymbol(ENull())
+  lazy val symbol = ERecord("Symbol", List("Description" -> EUndef()))
   lazy val copy = ECopy(xExpr)
   lazy val keys = EKeys(xExpr, false)
   lazy val keysInt = EKeys(xExpr, true)

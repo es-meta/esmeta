@@ -57,7 +57,6 @@ case class ERecord(tname: String, pairs: List[(String, Expr)]) extends AllocExpr
 case class EMap(pairs: List[(Expr, Expr)]) extends AllocExpr
 case class EList(exprs: List[Expr]) extends AllocExpr
 case class EListConcat(exprs: List[Expr]) extends AllocExpr
-case class ESymbol(desc: Expr) extends AllocExpr
 case class ECopy(obj: Expr) extends AllocExpr
 case class EKeys(map: Expr, intSorted: Boolean) extends AllocExpr
 case class EGetChildren(ast: Expr) extends AllocExpr

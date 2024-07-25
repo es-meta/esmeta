@@ -14,7 +14,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def name: NameTy
   def record: RecordTy
   def list: ListTy
-  def symbol: Boolean
   def astValue: AstValueTy
   def nt: BSet[Nt]
   def codeUnit: Boolean
@@ -43,7 +42,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.name.isBottom &&
         this.record.isBottom &&
         this.list.isBottom &&
-        this.symbol.isBottom &&
         this.astValue.isBottom &&
         this.nt.isBottom &&
         this.codeUnit.isBottom &&
@@ -69,7 +67,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.name <= that.name &&
       this.record <= that.record &&
       this.list <= that.list &&
-      this.symbol <= that.symbol &&
       this.astValue <= that.astValue &&
       this.nt <= that.nt &&
       this.codeUnit <= that.codeUnit &&
@@ -98,7 +95,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.name || that.name,
         this.record || that.record,
         this.list || that.list,
-        this.symbol || that.symbol,
         this.astValue || that.astValue,
         this.nt || that.nt,
         this.codeUnit || that.codeUnit,
@@ -128,7 +124,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.name && that.name,
         this.record && that.record,
         this.list && that.list,
-        this.symbol && that.symbol,
         this.astValue && that.astValue,
         this.nt && that.nt,
         this.codeUnit && that.codeUnit,
@@ -157,7 +152,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.name -- that.name,
         this.record -- that.record,
         this.list -- that.list,
-        this.symbol -- that.symbol,
         this.astValue -- that.astValue,
         this.nt -- that.nt,
         this.codeUnit -- that.codeUnit,
@@ -180,7 +174,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     name.isTop &&
     record.isTop &&
     list.isTop &&
-    symbol.isTop &&
     astValue.isTop &&
     nt.isTop &&
     codeUnit.isTop &&
@@ -213,7 +206,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (if (this.name.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
     (if (this.list.isBottom) Zero else Many) ||
-    (if (this.symbol.isBottom) Zero else Many) ||
     (if (this.astValue.isBottom) Zero else Many) ||
     nt.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
@@ -250,7 +242,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         name = NameTy.Bot,
         record = RecordTy.Bot,
         list = ListTy.Bot,
-        symbol = false,
         astValue = AstValueTy.Bot,
         str = Fin(),
       )
@@ -262,7 +253,6 @@ case object PureValueTopTy extends PureValueTy {
   def name: NameTy = NameTy.Top
   def record: RecordTy = RecordTy.Top
   def list: ListTy = ListTy.Bot // unsound but need to remove cycle
-  def symbol: Boolean = true
   def astValue: AstValueTy = AstValueTy.Top
   def nt: BSet[Nt] = Inf
   def codeUnit: Boolean = true
@@ -284,7 +274,6 @@ case class PureValueElemTy(
   name: NameTy = NameTy.Bot,
   record: RecordTy = RecordTy.Bot,
   list: ListTy = ListTy.Bot,
-  symbol: Boolean = false,
   astValue: AstValueTy = AstValueTy.Bot,
   nt: BSet[Nt] = Fin(),
   codeUnit: Boolean = false,
@@ -306,7 +295,6 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     name: NameTy = NameTy.Bot,
     record: RecordTy = RecordTy.Bot,
     list: ListTy = ListTy.Bot,
-    symbol: Boolean = false,
     astValue: AstValueTy = AstValueTy.Bot,
     nt: BSet[Nt] = Fin(),
     codeUnit: Boolean = false,
@@ -326,7 +314,6 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     name,
     record,
     list,
-    symbol,
     astValue,
     nt,
     codeUnit,

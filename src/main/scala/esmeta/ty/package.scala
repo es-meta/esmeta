@@ -52,7 +52,7 @@ lazy val ObjectT: ValueTy = NameT("Object")
 lazy val FunctionT: ValueTy = NameT("FunctionObject")
 lazy val ConstructorT: ValueTy = NameT("Constructor")
 lazy val ESPrimT: ValueTy = ValueTy(
-  symbol = true,
+  name = NameTy("Symbol"),
   number = NumberTy.Top,
   bigInt = true,
   str = Inf,
@@ -77,7 +77,7 @@ def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy =
   if (ty.isBottom) ValueTy.Bot
   else ValueTy(list = ListTy(Some(ty)))
-lazy val SymbolT: ValueTy = ValueTy(symbol = true)
+lazy val SymbolT: ValueTy = NameT("Symbol")
 lazy val AstT: ValueTy = ValueTy(astValue = AstTopTy)
 def AstT(xs: String*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot

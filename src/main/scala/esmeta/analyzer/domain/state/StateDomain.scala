@@ -142,9 +142,6 @@ trait StateDomainDecl { self: Self =>
         list: Iterable[AbsValue] = Nil,
       ): (AbsValue, Elem)
 
-      /** allocation of symbol with address partitions */
-      def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem)
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue
 

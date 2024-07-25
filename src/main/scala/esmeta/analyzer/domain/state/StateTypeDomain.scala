@@ -97,7 +97,6 @@ trait StateTypeDomainDecl { self: Self =>
           lookupList(baseTy.list, fieldTy) ||
           lookupName(baseTy.name, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
-          lookupSymbol(baseTy.symbol, fieldTy) ||
           lookupMap(baseTy.map, fieldTy),
         )
 
@@ -204,10 +203,6 @@ trait StateTypeDomainDecl { self: Self =>
       ): (AbsValue, Elem) =
         val listT = ListT(list.foldLeft(BotT) { case (l, r) => l || r.ty })
         (AbsValue(listT), elem)
-
-      /** allocation of symbol with address partitions */
-      def allocSymbol(to: AllocSite, desc: AbsValue): (AbsValue, Elem) =
-        (AbsValue(SymbolT), elem)
 
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =

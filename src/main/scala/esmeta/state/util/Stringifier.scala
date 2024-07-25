@@ -81,7 +81,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
         app >> values.toList
-      case SymbolObj(desc) => app >> "(Symbol " >> desc >> ")"
       case YetObj(tname, msg) =>
         app >> "[TYPE = " >> tname >> "] Yet(\"" >> msg >> "\")"
 

@@ -308,11 +308,11 @@ class Interpreter(
         case Null      => "Null"
         case addr: Addr =>
           st(addr) match
+            case RecordObj("Symbol", _) => "Symbol"
             case r: RecordObj =>
               if (tyModel.isSubTy(r.tname, "Object")) "Object"
               else r.tname
-            case _: SymbolObj => "Symbol"
-            case v            => "SpecType"
+            case v => "SpecType"
         case v => "SpecType",
       )
     case ETypeCheck(expr, tyExpr) =>
@@ -340,7 +340,6 @@ class Interpreter(
           st(addr) match
             case r: RecordObj => tyModel.isSubTy(r.tname, tyName)
             case _: ListObj   => tyName contains "List"
-            case _: SymbolObj => tyName == "Symbol"
             case _            => ???
         case v => ???,
       )
@@ -396,11 +395,6 @@ class Interpreter(
     case EListConcat(exprs) =>
       val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
       st.allocList(ls)
-    case ESymbol(desc) =>
-      eval(desc) match
-        case (str: Str) => st.allocSymbol(str)
-        case Undef      => st.allocSymbol(Undef)
-        case v          => throw NoString(desc, v)
     case ECopy(obj) =>
       eval(obj) match
         case addr: Addr => st.copyObj(addr)
