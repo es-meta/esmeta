@@ -2,10 +2,14 @@ def ToObject(
   argument: ESValue,
 ): Normal[Object] | Abrupt[throw] = {
   if (= (typeof argument) @Undefined) {
-    return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined, "__MAP__" : (map) }))
+    call %0 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
+    call %1 = clo<ThrowCompletion>(%0)
+    return %1
   }
   if (= (typeof argument) @Null) {
-    return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined, "__MAP__" : (map) }))
+    call %2 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
+    call %3 = clo<ThrowCompletion>(%2)
+    return %3
   }
   if (= (typeof argument) @Boolean) {
     return (new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"], "BooleanData" : argument, "Extensible" : true, "__MAP__" : (map) })

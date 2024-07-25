@@ -325,9 +325,15 @@ class Compiler(
           },
         ),
       )
-    case ThrowStep(expr) =>
-      val comp = EComp(EENUM_THROW, compile(fb, expr), EENUM_EMPTY)
-      fb.addInst(IReturn(comp))
+    case ThrowStep(name) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val (y, yExpr) = fb.newTIdWithExpr
+      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      fb.addInst(
+        ICall(x, AUX_NEW_ERROR_OBJ, List(proto)),
+        ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
+        IReturn(yExpr),
+      )
     case PerformStep(expr) =>
       compile(fb, expr) match
         case era: EReturnIfAbrupt => fb.addInst(IExpr(era))
@@ -756,15 +762,10 @@ class Compiler(
       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
       ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
     case ErrorObjectLiteral(name) =>
-      val proto = Intrinsic(name, List("prototype"))
-      ERecord(
-        "OrdinaryObject",
-        List(
-          "Prototype" -> toEIntrinsic(currentIntrinsics, proto),
-          "ErrorData" -> EUndef(),
-          INNER_MAP -> EMap(Nil),
-        ),
-      )
+      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      val (x, xExpr) = fb.newTIdWithExpr
+      ICall(x, AUX_NEW_ERROR_OBJ, List(proto))
+      xExpr
     case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)
     case _: NegativeInfinityMathValueLiteral => EInfinity(pos = false)
     case DecimalMathValueLiteral(n)          => EMath(n)
