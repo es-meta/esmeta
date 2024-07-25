@@ -178,8 +178,8 @@ class Interpreter(
       val t = eval(tgtExpr)
       val v = eval(valExpr)
       (y, t) match
-        case (y: Enum, Str(t))     => Comp(y, v, Some(t))
-        case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
+        case (y: Enum, Str(t))     => Comp(y, v.toPureValue, Some(t))
+        case (y: Enum, ENUM_EMPTY) => Comp(y, v.toPureValue, None)
         case (y: Enum, t)          => throw InvalidCompTarget(y)
         case (y, t)                => throw InvalidCompType(t)
     case EIsCompletion(expr) =>
@@ -381,7 +381,7 @@ class Interpreter(
             case Str(target) => Some(target)
             case ENUM_EMPTY  => None
             case v           => throw InvalidCompTarget(v)
-          Comp(ty, value, targetOpt)
+          Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
     case ERecord(tname, fields) =>
       val addr = st.allocRecord(tname)

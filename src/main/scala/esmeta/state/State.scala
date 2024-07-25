@@ -81,7 +81,7 @@ case class State(
       base match
         // XXX see https://github.com/es-meta/esmeta/issues/65
         case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
-          comp.value = value; this
+          comp.value = value.toPureValue; this
         case addr: Addr => update(addr, field, value); this
         case _          => error(s"illegal reference update: $rt = $value")
   }

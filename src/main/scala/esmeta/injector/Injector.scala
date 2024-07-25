@@ -15,6 +15,7 @@ import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.TimeoutException
+import scala.annotation.meta.field
 
 /** assertion injector */
 object Injector:
@@ -272,12 +273,12 @@ class Injector(
   private def getValue(expr: Expr): Value =
     (new Interpreter(exitSt.copied)).eval(expr)
   private def getValue(rt: RefTarget): Value = exitSt(rt)
-  private def getValue(addr: Addr, field: String): Value =
-    getValue(FieldTarget(addr, Str(field)))
+  private def getValue(addr: Addr, prop: String): Value =
+    getValue(FieldTarget(addr, Str(prop)))
 
-  // access fields
-  private def access(base: Value, fields: Value*): Value =
-    fields.foldLeft(base) { case (base, p) => exitSt(base, p) }
+  // access properties
+  private def access(base: Value, props: Value*): Value =
+    props.foldLeft(base) { case (base, p) => exitSt(base, p) }
 
   // get created lexical variables
   private lazy val lexRecord = s"@REALM.GlobalEnv.DeclarativeRecord.$INNER_MAP"
