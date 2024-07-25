@@ -2,12 +2,14 @@ def RequireObjectCoercible(
   argument: ESValue,
 ): Normal[ESValue] | Abrupt[throw] = {
   if (= (typeof argument) @Undefined) {
-    call %0 = clo<__THROW__>("%TypeError.prototype%")
-    return %0
+    call %0 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
+    call %1 = clo<ThrowCompletion>(%0)
+    return %1
   }
   if (= (typeof argument) @Null) {
-    call %1 = clo<__THROW__>("%TypeError.prototype%")
-    return %1
+    call %2 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
+    call %3 = clo<ThrowCompletion>(%2)
+    return %3
   }
   if (= (typeof argument) @Boolean) return argument
   if (= (typeof argument) @Number) return argument

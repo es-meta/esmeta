@@ -1,6 +1,0 @@
-def <AUX>:__THROW__(
-  proto: String,
-): Abrupt[throw] = {
-  call %0 = clo<ThrowCompletion>((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics[proto], "ErrorData" : undefined } ))
-  return %0
-}

@@ -23,6 +23,7 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
     return "function () { [native code] }"
   }
 
-  call %1 = clo<__THROW__>("%TypeError.prototype%")
-  return %1
+  call %1 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
+  call %2 = clo<ThrowCompletion>(%1)
+  return %2
 }

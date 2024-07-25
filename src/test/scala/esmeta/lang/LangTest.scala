@@ -70,7 +70,7 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
-  lazy val throwStep = ThrowStep(errObj)
+  lazy val throwStep = ThrowStep("ReferenceError")
   lazy val performStep = PerformStep(invokeAOExpr)
   lazy val appendStep = AppendStep(refExpr, fieldRef)
   lazy val prependStep = PrependStep(refExpr, fieldRef)

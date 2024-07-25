@@ -49,7 +49,7 @@
     "If all Job Queues are empty, the result is implementation-defined.": "if (= @JOB_QUEUE.length 0) return errors",
     "If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (= ec absent) return null else return ec.ScriptOrModule",
     "If only one argument was passed, return _to_.": "if (= ArgumentsList.length 0) return to",
-    "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].initialized) { call __comp__ = clo<__THROW__>(\"%ReferenceError.prototype%\") return __comp__ }",
+    "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].initialized) { call __errObj__ = clo<__NEW_ERROR_OBJ__>(\"%ReferenceError.prototype%\") call __comp__ = clo<ThrowCompletion>(__errObj__) return __comp__ }",
     "If the execution context stack is empty, return *null*.": "if (= @EXECUTION_STACK.length 0) return null",
     "If the host requires that the `this` binding in _realm_'s global scope return an object other than the global object, let _thisValue_ be such an object created in a host-defined manner. Otherwise, let _thisValue_ be *undefined*, indicating that _realm_'s global `this` binding should be the global object.": "let thisValue = undefined",
     "If the host requires use of an exotic object to serve as _realm_'s global object, let _global_ be such an object created in a host-defined manner. Otherwise, let _global_ be *undefined*, indicating that an ordinary object should be created as the global object.": "let global = undefined",
