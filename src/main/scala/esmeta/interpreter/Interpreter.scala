@@ -473,7 +473,7 @@ class Interpreter(
     case comp: Comp =>
       if (check) throw ReturnValue(value, ria)
       else throw UncheckedAbrupt(comp)
-    case pure: Value => pure // XXX remove?
+    case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
