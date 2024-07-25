@@ -2518,4 +2518,5 @@ YieldExpression[2,0].Evaluation
 __CLAMP__
 __HAS_DUPLICATE__
 __IS_ARRAY_INDEX__
+__NEW_ERROR_OBJ__
 __REMOVE_ELEM__
