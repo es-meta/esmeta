@@ -3,19 +3,34 @@ def ToBigInt(
 ): Normal[BigInt] | Abrupt[throw] = {
   call %0 = clo<ToPrimitive>(argument, ~number~)
   let prim = [? %0]
-  if (= (typeof prim) @Undefined) return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined }))
-  if (= (typeof prim) @Null) return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined }))
+  if (= (typeof prim) @Undefined) {
+    call %1 = clo<__THROW__>("%TypeError.prototype%")
+    return %1
+  }
+  if (= (typeof prim) @Null) {
+    call %2 = clo<__THROW__>("%TypeError.prototype%")
+    return %2
+  }
   if (= (typeof prim) @Boolean) {
     if prim return 1n else return 0n
   }
   if (= (typeof prim) @BigInt) return prim
-  if (= (typeof prim) @Number) return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined }))
+  if (= (typeof prim) @Number) {
+    call %3 = clo<__THROW__>("%TypeError.prototype%")
+    return %3
+  }
   if (= (typeof prim) @String) {
-    call %1 = clo<StringToBigInt>(prim)
-    let n = %1
-    if (= n undefined) return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%SyntaxError.prototype%"], "ErrorData" : undefined }))
+    call %4 = clo<StringToBigInt>(prim)
+    let n = %4
+    if (= n undefined) {
+      call %5 = clo<__THROW__>("%SyntaxError.prototype%")
+      return %5
+    }
     return n
   }
-  if (= (typeof prim) @Symbol) return comp[~throw~/~empty~]((new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%TypeError.prototype%"], "ErrorData" : undefined }))
+  if (= (typeof prim) @Symbol) {
+    call %6 = clo<__THROW__>("%TypeError.prototype%")
+    return %6
+  }
   assert false
 }
