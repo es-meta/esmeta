@@ -1,9 +1,9 @@
 def <AUX>:__CLAMP__(
   target: Math | INF,
   lower: Math,
-  upper: Math
+  upper: Math,
 ): Math = {
   if (< target lower) return lower
-  else if (< upper target) return upper
-  else return target
+  if (< upper target) return upper
+  return target
 }
