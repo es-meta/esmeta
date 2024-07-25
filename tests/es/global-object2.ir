@@ -1,5 +1,5 @@
 assert (contains @REALM.GlobalEnv.VarNames "a")
 assert (contains @REALM.GlobalEnv.VarNames "b")
 assert (contains @REALM.GlobalEnv.VarNames "c")
-assert (= @REALM.GlobalObject.SubMap.a.Value.SubMap.f.Value 1.0f)
-assert (= @REALM.GlobalObject.SubMap.c.Value.SubMap.o.Value 2.0f)
+assert (= @REALM.GlobalObject.__MAP__.a.Value.__MAP__.f.Value 1.0f)
+assert (= @REALM.GlobalObject.__MAP__.c.Value.__MAP__.o.Value 2.0f)

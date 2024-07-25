@@ -4,13 +4,13 @@ import esmeta.util.*
 import esmeta.state.Value
 import esmeta.ty.util.Parser
 
-/** sub map types */
-case class SubMapTy(
+/** map types */
+case class MapTy(
   key: PureValueTy = PureValueTy.Bot,
   value: PureValueTy = PureValueTy.Bot,
 ) extends TyElem
-  with Lattice[SubMapTy] {
-  import SubMapTy.*
+  with Lattice[MapTy] {
+  import MapTy.*
 
   /** top check */
   def isTop: Boolean = (this eq Top) || (
@@ -25,34 +25,34 @@ case class SubMapTy(
   )
 
   /** partial order/subset operator */
-  def <=(that: => SubMapTy): Boolean = (this eq that) || (
+  def <=(that: => MapTy): Boolean = (this eq that) || (
     this.key <= that.key &&
     this.value <= that.value
   )
 
   /** union type */
-  def ||(that: => SubMapTy): SubMapTy =
+  def ||(that: => MapTy): MapTy =
     if (this eq that) this
     else
-      SubMapTy(
+      MapTy(
         this.key || that.key,
         this.value || that.value,
       )
 
   /** intersection type */
-  def &&(that: => SubMapTy): SubMapTy =
+  def &&(that: => MapTy): MapTy =
     if (this eq that) this
     else
-      SubMapTy(
+      MapTy(
         this.key && that.key,
         this.value && that.value,
       ).normalized
 
   /** prune type */
-  def --(that: => SubMapTy): SubMapTy =
+  def --(that: => MapTy): MapTy =
     if (that.isBottom) this
     else
-      SubMapTy(
+      MapTy(
         this.key -- that.key,
         this.value -- that.value,
       ).normalized
@@ -61,11 +61,11 @@ case class SubMapTy(
   def getSingle: Flat[Value] = if (this.isBottom) Zero else Many
 
   /** normalized type */
-  def normalized: SubMapTy =
+  def normalized: MapTy =
     if (key.isBottom || value.isBottom) Bot
     else this
 }
-object SubMapTy extends Parser.From(Parser.subMapTy) {
-  val Top = SubMapTy(PureValueTy.Top, PureValueTy.Top)
-  val Bot: SubMapTy = SubMapTy()
+object MapTy extends Parser.From(Parser.mapTy) {
+  val Top = MapTy(PureValueTy.Top, PureValueTy.Top)
+  val Bot: MapTy = MapTy()
 }

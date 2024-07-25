@@ -41,24 +41,19 @@ class ContainsTinyTest extends TyTest {
 
     // pre-defined heap
     lazy val mapAddr = NamedAddr("mapAddr")
-    lazy val mapObj = MapObj("A", LMMap(), 0)
+    lazy val mapObj = MapObj(LMMap())
     lazy val recordAddr = NamedAddr("recordAddr")
-    lazy val recordObj =
-      MapObj("Record", LMMap(Str("P") -> Number(42)), 1)
+    lazy val recordObj = RecordObj("Record", MMap("P" -> Number(42)))
     lazy val nilAddr = NamedAddr("nilAddr")
     lazy val nilObj = ListObj(Vector())
     lazy val listAddr = NamedAddr("listAddr")
     lazy val listObj = ListObj(Vector(Math(5)))
     lazy val symbolAddr = NamedAddr("symbolAddr")
     lazy val symbolObj = SymbolObj(Str("desc"))
-    lazy val subMapAddr = NamedAddr("subMapAddr")
-    lazy val subMapObj =
-      MapObj("SubMap", LMMap(symbolAddr -> Number(42)), 1)
     given Heap = Heap(
       MMap(
         mapAddr -> mapObj,
         recordAddr -> recordObj,
-        subMapAddr -> subMapObj,
         nilAddr -> nilObj,
         listAddr -> listObj,
         symbolAddr -> symbolObj,
@@ -86,16 +81,10 @@ class ContainsTinyTest extends TyTest {
       RecordT -> recordAddr,
       RecordT(Set("P")) -> recordAddr,
       RecordT("P" -> NumberT) -> recordAddr,
-      SubMapT -> subMapAddr,
-      SubMapT(SymbolT, NumberT) -> subMapAddr,
     ).neg(
-      NameT("B") -> mapAddr,
       NameT("B") -> recordAddr,
-      RecordT -> mapAddr,
       RecordT(Set("Q")) -> recordAddr,
       RecordT("P" -> BoolT) -> recordAddr,
-      SubMapT(SymbolT, BoolT) -> subMapAddr,
-      SubMapT(StrT, NumberT) -> subMapAddr,
     )
 
     checkContains("list objects")(

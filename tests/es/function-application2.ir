@@ -1,7 +1,7 @@
 let globalEnv = @REALM.GlobalEnv
 let varNames = globalEnv.VarNames
-let map = globalEnv.DeclarativeRecord.SubMap
-let f = @REALM.GlobalObject.SubMap.f
+let map = globalEnv.DeclarativeRecord.__MAP__
+let f = @REALM.GlobalObject.__MAP__.f
 
 assert (contains varNames "f")
 assert (? f.Value: "ECMAScriptFunctionObject")

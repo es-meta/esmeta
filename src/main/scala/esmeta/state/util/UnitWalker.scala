@@ -41,10 +41,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   // object
   def walk(obj: Obj): Unit = obj match
-    case MapObj(_, fields, _) => walkMMap(fields, walk, walk)
-    case ListObj(values)      => walkIterable(values, walk)
-    case SymbolObj(desc)      => walk(desc)
-    case _: YetObj            =>
+    case MapObj(map)       => walkMMap(map, walk, walk)
+    case RecordObj(_, map) => walkMMap(map, walk, walk)
+    case ListObj(values)   => walkIterable(values, walk)
+    case SymbolObj(desc)   => walk(desc)
+    case _: YetObj         =>
 
   // value
   def walk(v: Value): Unit = v match

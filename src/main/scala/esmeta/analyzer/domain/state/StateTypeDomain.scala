@@ -98,7 +98,7 @@ trait StateTypeDomainDecl { self: Self =>
           lookupName(baseTy.name, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
           lookupSymbol(baseTy.symbol, fieldTy) ||
-          lookupSubMap(baseTy.subMap, fieldTy),
+          lookupMap(baseTy.map, fieldTy),
         )
 
       /** getters with an address partition */
@@ -146,7 +146,7 @@ trait StateTypeDomainDecl { self: Self =>
         intSorted: Boolean,
       ): (AbsValue, Elem) =
         val value =
-          if (v.ty.subMap.isBottom) AbsValue.Bot
+          if (v.ty.map.isBottom) AbsValue.Bot
           else AbsValue(ListT(StrT))
         (value, elem)
 
@@ -180,16 +180,23 @@ trait StateTypeDomainDecl { self: Self =>
       /** allocation of map with address partitions */
       def allocMap(
         to: AllocSite,
-        tname: String,
         pairs: Iterable[(AbsValue, AbsValue)],
+      ): (AbsValue, Elem) =
+        val (keys, values) = pairs.unzip
+        val key = keys.foldLeft(BotT)(_ || _.ty)
+        val value = values.foldLeft(BotT)(_ || _.ty)
+        (AbsValue(MapT(key, value)), elem)
+
+      /** allocation of record with address partitions */
+      def allocRecord(
+        to: AllocSite,
+        tname: String,
+        pairs: Iterable[(String, AbsValue)],
       ): (AbsValue, Elem) =
         val value =
           if (tname == "Record") RecordT((for {
-            (k, v) <- pairs
-          } yield k.getSingle match
-            case One(Str(key)) => key -> v.ty
-            case _             => exploded(s"imprecise field name: $k")
-          ).toMap)
+            (f, v) <- pairs
+          } yield f -> v.ty).toMap)
           else NameT(tname)
         (AbsValue(value), elem)
 
@@ -374,7 +381,10 @@ trait StateTypeDomainDecl { self: Self =>
           if s.startsWith("%") && s.endsWith("%")
           fieldStr = s.substring(1, s.length - 1)
           addr = intrAddr(fieldStr)
-          case MapObj(tname, _, _) <- opt(analyzer.init.initHeap(addr))
+          obj = opt(analyzer.init.initHeap(addr))
+          tname <- obj match
+            case Some(RecordObj(tname, _)) => Some(tname)
+            case _                         => None
         } yield tname)
 
     // record lookup
@@ -402,9 +412,9 @@ trait StateTypeDomainDecl { self: Self =>
       if (symbol && field.str.contains("Description")) StrT
       else BotT
 
-    // submap lookup
-    private def lookupSubMap(subMap: SubMapTy, field: ValueTy): ValueTy =
-      if (!subMap.isBottom) ValueTy(pureValue = subMap.value)
+    // map lookup
+    private def lookupMap(map: MapTy, field: ValueTy): ValueTy =
+      if (!map.isBottom) ValueTy(pureValue = map.value)
       else BotT
 
     // bound check

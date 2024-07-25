@@ -197,7 +197,7 @@
       "methods" : { },
       "fields" : {
         "OuterEnv" : "EnvironmentRecord | Null",
-        "SubMap" : "SubMap[String |-> Binding]"
+        "Map" : "Map[String |-> Binding]"
       }
     },
     "ErrorInstance" : {
@@ -457,7 +457,7 @@
         "Extensible" : "Boolean",
         "PrivateElements" : "List[PrivateElement]",
         "Prototype" : "Object | Null",
-        "SubMap" : "SubMap[Symbol | String |-> PropertyDescriptor]"
+        "Map" : "Map[Symbol | String |-> PropertyDescriptor]"
       }
     },
     "ObjectEnvironmentRecord" : {

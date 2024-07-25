@@ -20,8 +20,8 @@ case class Symbol(cfg: CFG) {
   )
 
   /** get symbol record */
-  def obj: MapObj = MapObj("Record")(
-    (for { symKey <- symbols } yield Str(symKey) -> symbolAddr(symKey)): _*,
+  def obj: RecordObj = RecordObj("Record")(
+    (for { symKey <- symbols } yield symKey -> symbolAddr(symKey)): _*,
   )
 
   /** get map for heap */

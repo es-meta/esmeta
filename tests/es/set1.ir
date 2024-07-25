@@ -1,1 +1,1 @@
-assert (= @REALM.GlobalObject.SubMap.counter.Value 2.0f)
+assert (= @REALM.GlobalObject.__MAP__.counter.Value 2.0f)

@@ -1,6 +1,6 @@
 let realm = @REALM
 let varNames = realm.GlobalEnv.VarNames
-let map = realm.GlobalObject.SubMap
+let map = realm.GlobalObject.__MAP__
 assert (contains varNames "assert")
 assert (contains varNames "Test262Error")
 assert (contains varNames "$DONOTEVALUATE")

@@ -1,2 +1,2 @@
-assert (= @REALM.GlobalObject.SubMap.a.Value undefined)
-assert (= @REALM.GlobalObject.SubMap.b.Value 42.0f)
+assert (= @REALM.GlobalObject.__MAP__.a.Value undefined)
+assert (= @REALM.GlobalObject.__MAP__.b.Value 42.0f)

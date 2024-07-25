@@ -79,14 +79,20 @@ trait HeapDomainDecl { self: Self =>
       /** keys of map */
       def keys(part: AbsPart, intSorted: Boolean)(to: AllocSite): Elem
 
-      /** has SubMap */
-      def hasSubMap(tname: String): Boolean
+      /** has Map */
+      def hasMap(tname: String): Boolean
 
       /** allocation of map with address partitions */
       def allocMap(
         to: AllocSite,
-        tname: String,
         pairs: Iterable[(AbsValue, AbsValue)] = Nil,
+      ): Elem
+
+      /** allocation of record with address partitions */
+      def allocRecord(
+        to: AllocSite,
+        tname: String,
+        pairs: Iterable[(String, AbsValue)] = Nil,
       ): Elem
 
       /** allocation of list with address partitions */

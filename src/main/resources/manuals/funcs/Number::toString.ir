@@ -2,6 +2,5 @@ def <NUM>:Number::toString(
   x: Number,
   radix?: Math,
 ): String = {
-  if (= radix absent) return ([str] x)
-  else return ([str radix] x)
+  if (= radix absent) return ([str] x) else return ([str radix] x)
 }

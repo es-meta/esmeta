@@ -1,4 +1,4 @@
-let map = @REALM.GlobalObject.SubMap
-assert (= map.f.Value.SubMap.prototype.Value map.x.Value.Prototype) 
+let map = @REALM.GlobalObject.__MAP__
+assert (= map.f.Value.__MAP__.prototype.Value map.x.Value.Prototype) 
 assert (= map.a.Value true)
 assert (= map.b.Value true)

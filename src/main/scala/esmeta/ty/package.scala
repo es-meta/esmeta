@@ -28,13 +28,13 @@ lazy val NormalT: ValueTy = ValueTy(normal = PureValueTy.Top)
 def NormalT(value: ValueTy): ValueTy =
   if (value.pureValue.isBottom) ValueTy.Bot
   else ValueTy(normal = value.pureValue)
-def SubMapT: ValueTy = ValueTy(subMap = SubMapTy.Top)
-def SubMapT(key: ValueTy, value: ValueTy): ValueTy =
+def MapT: ValueTy = ValueTy(map = MapTy.Top)
+def MapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
-  else ValueTy(subMap = SubMapTy(key.pureValue, value.pureValue))
-def SubMapT(key: PureValueTy, value: PureValueTy): ValueTy =
+  else ValueTy(map = MapTy(key.pureValue, value.pureValue))
+def MapT(key: PureValueTy, value: PureValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
-  else ValueTy(subMap = SubMapTy(key, value))
+  else ValueTy(map = MapTy(key, value))
 lazy val CloT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy =
   if (names.isEmpty) ValueTy.Bot

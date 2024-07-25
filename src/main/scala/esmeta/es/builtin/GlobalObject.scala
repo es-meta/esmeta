@@ -15,7 +15,7 @@ case class GlobalObject(cfg: CFG) {
   given CFG = cfg
 
   /** get global object */
-  def obj: MapObj = MapObj("Object")(Str(SUBMAP) -> submapAddr(GLOBAL))
+  def obj: RecordObj = RecordObj("Object")(INNER_MAP -> mapAddr(GLOBAL))
 
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {
@@ -35,6 +35,6 @@ case class GlobalObject(cfg: CFG) {
       globKey = globCell.replace("`", "")
     } { nmap ::= globKey -> DataProperty(intrAddr(intrKey), T, F, T) }
 
-    getSubmapObjects(GLOBAL, GLOBAL, nmap)
+    getMapObjects(GLOBAL, GLOBAL, nmap)
   }
 }
