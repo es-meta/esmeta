@@ -2,7 +2,7 @@ def HostEnsureCanCompileStrings(
   calleeRealm: RealmRecord,
   parameterStrings: List[String],
   bodyString: String,
-  direct: Boolean
+  direct: Boolean,
 ): Normal[Enum[~unused~]] | Abrupt[throw] = {
   call %0 = clo<NormalCompletion>(~unused~)
   return %0

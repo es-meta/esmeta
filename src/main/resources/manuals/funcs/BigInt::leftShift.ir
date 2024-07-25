@@ -3,8 +3,4 @@ def <NUM>:BigInt::leftShift(
   y: BigInt,
 ): BigInt = {
   return (<< x y)
-  // if (< y 0n) {
-  //   return ([bigInt] (/ ([math] x) (** 2 (- ([math] y)))))
-  // }
-  // return ([bigInt] (* ([math] x) (** 2 ([math] y))))
 }
