@@ -3,18 +3,26 @@ def f(): Normal[Math] = {
 }
 
 @main def main() = {
-  // define reference
-  let i = 0
-  let str = "abc"
-  let list = (new [2, 1]) [#1]
+  // completion record
   call comp = clo<f>()
-  assert (= i 0)
-  assert (= list[0] 2)
-  assert (= list[1] 1)
-  assert (= str[0] 97cu)
-  assert (= str[1] 98cu)
-  assert (= str[2] 99cu)
   assert (= comp.Type ~normal~)
   assert (= comp.Value 42)
   assert (= comp.Target ~empty~)
+
+  // list
+  let list = (new [2, 1]) [#1]
+  assert (= list[0] 2)
+  assert (= list[1] 1)
+
+  // map is in map.ir
+
+  // str
+  let str = "abc"
+  assert (= str[0] 97cu)
+  assert (= str[0f] 97cu)
+  assert (= str[1] 98cu)
+  assert (= str[1f] 98cu)
+  assert (= str[2] 99cu)
+  assert (= str[2f] 99cu)
+  assert (= str.length 3)
 }

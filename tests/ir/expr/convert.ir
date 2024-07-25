@@ -1,6 +1,30 @@
-// TODO implementation is missing
 @main def main() = {
-  //assert (= ([number] x) ???)
-  //assert (= ([bigint] x) ???)
-  //assert (= ([str] x) ???)
+  // code unit
+  assert (= ([math] 42cu) 42)
+  assert (= ([number] +INF) +NUM_INF)
+  assert (= ([number] -INF) -NUM_INF)
+
+  // extended mathematical value  
+  // assert (= ([approx-number] -INF) 42)
+  assert (= ([number] 42) 42f)
+  assert (= ([bigInt] 42) 42n)
+  assert (= ([math] 42) 42)
+
+  // string
+  assert (= ([number] "42") 42f)
+  assert (= ([bigInt] "42") 42n)
+  assert (= ([str] "42") "42")
+  assert (= ([str 16] "42") "42")
+  
+  // number
+  assert (= ([math] 42f) 42)
+  assert (= ([str] 42f) "42")
+  assert (= ([str 16] 42f) "2a")
+  assert (= ([number] 42f) 42f)
+  assert (= ([bigInt] 42f) 42n)
+
+  // big integer
+  assert (= ([math] 42n) 42)
+  assert (= ([str 16] 42n) "2a")
+  assert (= ([bigInt] 42n) 42n) 
 }

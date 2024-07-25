@@ -1,2 +1,25 @@
-// TODO
-@main def main() = {}
+def a() = {
+  return 3
+}
+
+def b() = {
+  return v
+}
+
+@main def main() = {
+  call x = clo<a>()
+  assert (= x 3)
+
+
+  // capture v
+  let v = 1
+  let c = clo<b, [v]>
+  
+  // mutate v
+  v = 2
+  assert (= v 2)
+
+  call y = c()
+  // mutate after capture don't affect
+  assert (= y 1)
+}
