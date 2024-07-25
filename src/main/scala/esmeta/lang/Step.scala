@@ -60,7 +60,7 @@ case class ForEachParseNodeStep(
 ) extends Step
 
 // throw steps
-case class ThrowStep(expr: Expression) extends Step
+case class ThrowStep(name: String) extends Step
 
 // perform steps
 case class PerformStep(expr: Expression) extends Step

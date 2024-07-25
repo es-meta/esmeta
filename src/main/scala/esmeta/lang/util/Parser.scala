@@ -186,7 +186,11 @@ trait Parsers extends IndentParsers {
 
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
-    "throw" ~> errObjLiteral <~ end ^^ { ThrowStep(_) }
+    lazy val errorName =
+      "*" ~> word.filter(_.endsWith("Error")) <~ "*"
+    "throw" ~> ("a" | "an") ~> errorName <~ "exception" <~ end ^^ {
+      ThrowStep(_)
+    }
 
   // perform steps
   lazy val performStep: PL[PerformStep] =
@@ -668,7 +672,7 @@ trait Parsers extends IndentParsers {
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*" ^^ {
       ErrorObjectLiteral(_)
     }
-    "a newly created" ~> errorName <~ "object" | "a" ~> errorName <~ "exception"
+    "a newly created" ~> errorName <~ "object"
 
   // clamping expression
   lazy val clampExpr: PL[ClampExpression] =

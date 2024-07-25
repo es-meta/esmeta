@@ -129,7 +129,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
       case ThrowStep(expr) =>
-        app >> First("throw ") >> expr >> "."
+        app >> First("throw a *") >> expr >> "* exception."
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
       case PerformBlockStep(block) =>

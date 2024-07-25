@@ -86,7 +86,7 @@ class StringifyTinyTest extends LangTest {
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
         "let _x_ be _x_."
       ),
-      throwStep -> "throw a newly created *TypeError* object.",
+      throwStep -> "throw a *ReferenceError* exception.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
       prependStep -> "prepend _x_ to _x_.[[Value]].",
