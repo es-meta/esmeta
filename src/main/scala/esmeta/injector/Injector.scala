@@ -242,7 +242,7 @@ class Injector(
             val2str(p).map(propStr => {
               for {
                 field <- fields
-                value <- props.get(field).map(_.toPureValue)
+                value <- props.get(field)
               } value match
                 case sv: SimpleValue =>
                   set += s"${field.toLowerCase}: ${sv2str(sv)}"
@@ -276,7 +276,7 @@ class Injector(
     getValue(FieldTarget(addr, Str(prop)))
 
   // access properties
-  private def access(base: Value, props: PureValue*): Value =
+  private def access(base: Value, props: Value*): Value =
     props.foldLeft(base) { case (base, p) => exitSt(base, p) }
 
   // get created lexical variables
@@ -287,7 +287,7 @@ class Injector(
   // get keys
   private def getStrKeys(value: Value, path: String): Set[String] =
     getKeys(value, path).collect { case Str(p) => p }
-  private def getKeys(value: Value, path: String): Set[PureValue] = value match
+  private def getKeys(value: Value, path: String): Set[Value] = value match
     case addr: Addr =>
       exitSt(addr) match
         case m: MapObj => m.map.keySet.toSet

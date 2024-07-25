@@ -68,8 +68,8 @@ case class Comp(
 
 /** normal completion */
 object NormalComp {
-  def apply(value: PureValue): Comp =
-    Comp(ENUM_NORMAL, value, None)
+  def apply(value: Value): Comp =
+    Comp(ENUM_NORMAL, value.toPureValue, None)
   def unapply(comp: Comp): Option[PureValue] = comp match {
     case Comp(ENUM_NORMAL, value, None) => Some(value)
     case _                              => None
