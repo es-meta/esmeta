@@ -20,7 +20,7 @@ case class Heap(
     map.getOrElse(addr, throw UnknownAddr(addr)) match
       case YetObj(_, msg) => throw NotSupported(Feature)(msg)
       case obj            => obj
-  def apply(addr: Addr, key: PureValue): Value = apply(addr) match
+  def apply(addr: Addr, key: Value): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
     case (s: SymbolObj)                     => s(key)
     case (m: MapObj)                        => m(key)
@@ -29,7 +29,7 @@ case class Heap(
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
-  def update(addr: Addr, field: PureValue, value: Value): this.type =
+  def update(addr: Addr, field: Value, value: Value): this.type =
     apply(addr) match {
       case (m: MapObj)  => m.update(field, value); this
       case (l: ListObj) => l.update(field, value); this
@@ -43,7 +43,7 @@ case class Heap(
     }
 
   /** delete */
-  def delete(addr: Addr, field: PureValue): this.type = apply(addr) match {
+  def delete(addr: Addr, field: Value): this.type = apply(addr) match {
     case (m: MapObj)    => m.delete(field); this
     case (r: RecordObj) => error(s"cannot delete from record: $r")
     case v              => error(s"not a map: $v")
@@ -96,7 +96,7 @@ case class Heap(
   def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
 
   /** symbol allocations */
-  def allocSymbol(desc: PureValue): Addr = alloc(SymbolObj(desc))
+  def allocSymbol(desc: Value): Addr = alloc(SymbolObj(desc))
 
   // allocation helper
   private def alloc(obj: Obj): Addr = {
@@ -131,7 +131,7 @@ case class Heap(
 object Heap {
 
   /** special getter for intrinsics */
-  def getIntrinsics(key: PureValue): Value =
+  def getIntrinsics(key: Value): Value =
     val keyStr = key match
       case Str(s) if s.startsWith("%") && s.endsWith("%") =>
         s.substring(1, s.length - 1)

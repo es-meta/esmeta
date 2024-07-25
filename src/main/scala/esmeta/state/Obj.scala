@@ -10,7 +10,7 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 sealed trait Obj extends StateElem {
 
   /** getters */
-  def apply(field: PureValue): Value = (this, field) match
+  def apply(field: Value): Value = (this, field) match
     case (SymbolObj(desc), Str("Description")) => desc
     case (MapObj(map), field)                  => map.getOrElse(field, Absent)
     case (ListObj(values), Math(decimal)) =>
@@ -65,20 +65,20 @@ object RecordObj {
 
 /** map objects */
 case class MapObj(
-  val map: LMMap[PureValue, Value] = LMMap(),
+  val map: LMMap[Value, Value] = LMMap(),
 ) extends Obj {
 
   /** updates */
-  def update(key: PureValue, value: Value): this.type =
+  def update(key: Value, value: Value): this.type =
     map += key -> value
     this
 
   /** deletes */
-  def delete(key: PureValue): this.type = { map -= key; this }
+  def delete(key: Value): this.type = { map -= key; this }
 
   /** keys of map */
-  def keys: Vector[PureValue] = keys(intSorted = false)
-  def keys(intSorted: Boolean): Vector[PureValue] = if (intSorted) {
+  def keys: Vector[Value] = keys(intSorted = false)
+  def keys(intSorted: Boolean): Vector[Value] = if (intSorted) {
     (for {
       case (Str(s), _) <- map.toVector
       d = ESValueParser.str2number(s).double
@@ -89,7 +89,7 @@ case class MapObj(
   } else map.keys.toVector
 }
 object MapObj {
-  def apply(pairs: Iterable[(PureValue, Value)]): MapObj =
+  def apply(pairs: Iterable[(Value, Value)]): MapObj =
     MapObj(LMMap.from(pairs))
 }
 
@@ -97,9 +97,9 @@ object MapObj {
 case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 
   /** updates a value */
-  def update(prop: PureValue, value: Value): this.type =
-    val idx = prop.asInt
-    values = values.updated(idx, value.toPureValue)
+  def update(field: Value, value: Value): this.type =
+    val idx = field.asInt
+    values = values.updated(idx, value)
     this
 
   /** appends a value */
@@ -118,7 +118,7 @@ case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
 }
 
 /** symbol objects */
-case class SymbolObj(desc: PureValue) extends Obj
+case class SymbolObj(desc: Value) extends Obj
 
 /** not yet supported objects */
 case class YetObj(tname: String, msg: String) extends Obj

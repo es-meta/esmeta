@@ -217,7 +217,7 @@ case class ValueTy(
     this.pureValue.getSingle ||
     this.map.getSingle
 
-  /** types having no property */
+  /** types having no field */
   def noField: ValueTy = Bot.copy(pureValue = pureValue.noField)
 }
 object ValueTy extends Parser.From(Parser.valueTy) {
