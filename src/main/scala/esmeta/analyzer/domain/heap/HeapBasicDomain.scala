@@ -4,7 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.*
-import esmeta.es.builtin.{INTRINSICS, INNER_MAP}
+import esmeta.es.builtin.INTRINSICS
 import esmeta.ir.*
 import esmeta.state.*
 import esmeta.util.*
@@ -220,20 +220,7 @@ trait HeapBasicDomainDecl { self: Self =>
         val newObj = pairs.foldLeft(AbsObj(RecordObj(tname))) {
           case (m, (f, v)) => m.update(AbsValue(Str(f)), v, weak = false)
         }
-        if (hasMap(tname)) {
-          val mapPart = InnerMap(to)
-          val mapObj = AbsObj(MapObj())
-          val newElem = alloc(
-            elem,
-            to,
-            newObj.update(
-              AbsValue(INNER_MAP),
-              AbsValue(mapPart),
-              weak = false,
-            ),
-          )
-          alloc(newElem, mapPart, mapObj)
-        } else alloc(elem, to, newObj)
+        alloc(elem, to, newObj)
 
       /** allocation of list with address partitions */
       def allocList(

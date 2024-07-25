@@ -104,6 +104,13 @@ class Compiler(
     "IfAbruptRejectPromise",
   )
 
+  private def isObject(tname: String): Boolean =
+    tname endsWith "Object"
+  private def isEnvRec(tname: String): Boolean =
+    tname endsWith "EnvironmentRecord"
+  private def hasMap(tname: String): Boolean =
+    isObject(tname) || isEnvRec(tname)
+
   /* set of function names not to compile */
   // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
   val excluded = manualAlgoNames ++ shorthands ++ Set(
@@ -474,11 +481,13 @@ class Compiler(
           compile(fb, fmap(v)),
           compile(fb, fmap(tgt)),
         )
-      case RecordExpression(tname, fields) =>
+      case RecordExpression(rawName, fields) =>
         val props = fields.map {
           case (FieldLiteral(f), e) => f -> compile(fb, e)
         }
-        ERecord(Type.normalizeName(tname), props)
+        val tname = Type.normalizeName(rawName)
+        if (hasMap(tname)) ERecord(tname, props :+ (INNER_MAP -> EMap(Nil)))
+        else ERecord(tname, props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
@@ -746,6 +755,7 @@ class Compiler(
         List(
           "Prototype" -> toEIntrinsic(currentIntrinsics, proto),
           "ErrorData" -> EUndef(),
+          INNER_MAP -> EMap(Nil),
         ),
       )
     case _: PositiveInfinityMathValueLiteral => EInfinity(pos = true)

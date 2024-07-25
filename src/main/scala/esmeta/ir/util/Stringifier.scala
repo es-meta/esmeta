@@ -219,11 +219,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Iterable[(String, Expr)]] = iterableRule("{ ", ", ", " }")
         app >> "(new " >> tname >> " " >> fields >> ")"
       case EMap(pairs) =>
-        given Rule[(Expr, Expr)] = {
-          case (app, (k, v)) => app >> k >> " -> " >> v
-        }
         given Rule[Iterable[(Expr, Expr)]] = iterableRule("{ ", ", ", " }")
-        app >> "(map " >> pairs >> ")"
+        if (pairs.isEmpty) app >> "(map)"
+        else app >> "(map " >> pairs >> ")"
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(new " >> exprs >> ")"
