@@ -176,7 +176,7 @@ class Interpreter(
     case EComp(tyExpr, valExpr, tgtExpr) =>
       val y = eval(tyExpr)
       val t = eval(tgtExpr)
-      val v = eval(valExpr)
+      val v = eval(valExpr).toPureValue
       (y, t) match
         case (y: Enum, Str(t))     => Comp(y, v.toPureValue, Some(t))
         case (y: Enum, ENUM_EMPTY) => Comp(y, v.toPureValue, None)
