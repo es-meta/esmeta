@@ -4,7 +4,7 @@ def <NUM>:BigInt::exponentiate(
 ): Normal[BigInt] | Abrupt[throw] = {
   if (< exponent 0n) {
     call %0 = clo<__NEW_ERROR_OBJ__>("%RangeError.prototype%")
-    call %1 = clo<ThrowCompletion>(%1)
+    call %1 = clo<ThrowCompletion>(%0)
     return %1
   }
   if (&& (= base 0n) (= exponent 0n)) {
