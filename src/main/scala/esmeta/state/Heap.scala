@@ -89,17 +89,11 @@ case class Heap(
   def allocRecord(tname: String)(using CFG): Addr =
     val record = RecordObj(tname)
     // TODO check it is the best way to handle this
-    if (hasMap(tname)) record.update(Str(INNER_MAP), alloc(MapObj()))
-    // TODO check it is the best way to handle this
     if (isObject(tname)) record.update(Str("PrivateElements"), alloc(ListObj()))
     alloc(record)
 
   private def isObject(tname: String): Boolean =
     tname endsWith "Object"
-  private def isEnvRec(tname: String): Boolean =
-    tname endsWith "EnvironmentRecord"
-  private def hasMap(tname: String): Boolean =
-    isObject(tname) || isEnvRec(tname)
 
   /** map allocations */
   def allocMap: Addr = alloc(MapObj())
@@ -125,18 +119,6 @@ case class Heap(
   ): Addr = apply(addr, Str(fieldName)) match {
     case addr: Addr => addr
     case v          => error(s"not an address: $v")
-  }
-
-  // field value getter
-  private def getFieldValue(
-    addr: Value,
-    fieldName: String,
-  ): Value = addr match {
-    case addr: Addr =>
-      val map = getAddrValue(addr, INNER_MAP)
-      val field = getAddrValue(map, fieldName)
-      apply(field, Str("Value"))
-    case _ => error(s"not an address: $addr")
   }
 
   /** set type of objects */
