@@ -365,7 +365,7 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case ERecord("Completion", fields) =>
+    case ERecord(Some("Completion"), fields) =>
       val map = (for {
         (f, expr) <- fields
         v = eval(expr)
@@ -382,8 +382,8 @@ class Interpreter(
             case v           => throw InvalidCompTarget(v)
           Comp(ty, value.toPureValue, targetOpt)
         case _ => throw InvalidComp
-    case ERecord(tname, fields) =>
-      val addr = st.allocRecord(tname)
+    case ERecord(tnameOpt, fields) =>
+      val addr = st.allocRecord(tnameOpt)
       for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
       addr
     case EMap(pairs) =>

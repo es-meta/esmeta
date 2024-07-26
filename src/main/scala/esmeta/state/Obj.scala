@@ -45,20 +45,24 @@ case class RecordObj(
 object RecordObj {
 
   /** apply with type model */
-  def apply(tname: String)(map: (String, Value)*)(using CFG): RecordObj =
+  def apply(tname: String)(fs: (String, Value)*)(using CFG): RecordObj =
     val obj = RecordObj(tname)
-    for { ((k, v), idx) <- map.zipWithIndex }
+    for { ((k, v), idx) <- fs.zipWithIndex }
       obj.map += k -> v
     obj
 
   def apply(tname: String)(using cfg: CFG): RecordObj =
-    // TODO do not explicitly store methods in object but use a type model when
-    // accessing methods
     val methods = cfg.tyModel.getMethod(tname)
     val obj = RecordObj(tname, MMap())
     for { ((name, fname), idx) <- methods.zipWithIndex }
       obj.map += name -> Clo(cfg.fnameMap(fname), Map())
     obj
+
+  def apply(tname: Option[String])(using cfg: CFG): RecordObj =
+    RecordObj(tname.getOrElse("Record"))
+
+  def apply(tname: Option[String])(fs: (String, Value)*)(using CFG): RecordObj =
+    RecordObj(tname.getOrElse("Record"))(fs: _*)
 }
 
 /** map objects */

@@ -5,7 +5,7 @@
   assert (= a 42)
 
   // prop-braket
-  let obj = (new A { "a": 0, "b": 0 })[#1]
+  let obj = (record [A] { "a": 0, "b": 0 })[#1]
   let prop = "a"
   obj[prop] = 1
   obj["c"] = 2
@@ -15,7 +15,7 @@
   assert (= obj["c"] 2)
 
   // prop-dot
-  let obj2 = (new A { "x": 0, "y": 0 })[#1]
+  let obj2 = (record [A] { "x": 0, "y": 0 })[#1]
   obj2.x = 3
   obj2.z = 5
   assert (= obj2.x 3)

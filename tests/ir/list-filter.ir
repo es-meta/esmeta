@@ -17,7 +17,7 @@ def even(i: Math) = {
 }
 
 @main def main() = {
-  let list = (new [1, 2, 3, 4, 5])[#1]
+  let list = (list [1, 2, 3, 4, 5])[#1]
   call evenlist = clo<filter>(list, clo<even>)
   assert (= evenlist[0] 2)
   assert (= evenlist[1] 4)

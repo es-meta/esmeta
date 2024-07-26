@@ -1,5 +1,5 @@
 def <AUX>:__NEW_ERROR_OBJ__(
   proto: String,
 ): OrdinaryObject = {
-  return (new OrdinaryObject { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics[proto], "ErrorData" : undefined, "__MAP__" : (map) } )
+  return (record [OrdinaryObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics[proto], "ErrorData" : undefined, "__MAP__" : (map) } )
 }

@@ -246,11 +246,11 @@ trait StateBasicDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tname: String,
+        tnameOpt: Option[String],
         pairs: Iterable[(String, AbsValue)],
       ): (AbsValue, Elem) =
         val partV = AbsValue(to)
-        (partV, elem.copy(heap = heap.allocRecord(to, tname, pairs)))
+        (partV, elem.copy(heap = heap.allocRecord(to, tnameOpt, pairs)))
 
       /** allocation of list with address partitions */
       def allocList(

@@ -13,7 +13,7 @@ def add(i: Math, j: Math) = {
 }
 
 @main def main() = {
-  let list = (new [1, 2, 3, 4, 5])[#1]
+  let list = (list [1, 2, 3, 4, 5])[#1]
   call sum = clo<foldleft>(0, list, clo<add>)
   assert (= sum 15)
 }

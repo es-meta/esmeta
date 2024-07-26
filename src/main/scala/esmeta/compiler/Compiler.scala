@@ -498,8 +498,10 @@ class Compiler(
           case (FieldLiteral(f), e) => f -> compile(fb, e)
         }
         val tname = Type.normalizeName(rawName)
-        if (hasMap(tname)) ERecord(tname, props :+ (INNER_MAP -> EMap(Nil)))
-        else ERecord(tname, props)
+        val updatedProps =
+          if (hasMap(tname)) props :+ (INNER_MAP -> EMap(Nil))
+          else props
+        ERecord(if (tname == "Record") None else Some(tname), updatedProps)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>

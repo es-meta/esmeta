@@ -186,14 +186,12 @@ trait StateTypeDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tname: String,
+        tnameOpt: Option[String],
         pairs: Iterable[(String, AbsValue)],
       ): (AbsValue, Elem) =
-        val value =
-          if (tname == "Record") RecordT((for {
-            (f, v) <- pairs
-          } yield f -> v.ty).toMap)
-          else NameT(tname)
+        val value = tnameOpt match
+          case None => RecordT(pairs.map { case (f, v) => f -> v.ty }.toMap)
+          case Some(tname) => NameT(tname)
         (AbsValue(value), elem)
 
       /** allocation of list with address partitions */
