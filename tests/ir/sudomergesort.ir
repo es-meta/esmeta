@@ -20,8 +20,8 @@ def sudomergesort(list: List[Math]) = {
       %0 = (pop < right)
       push left < %0
     }
-    call sortedleft = clo<sudomergesort>(left)
-    call sortedright = clo<sudomergesort>(right)
+    call sortedleft = clo<"sudomergesort">(left)
+    call sortedright = clo<"sudomergesort">(right)
     sortedlist = (list-concat [? sortedleft] [? sortedright])[#1]
   }
   return sortedlist
@@ -30,7 +30,7 @@ def sudomergesort(list: List[Math]) = {
 
 @main def main() = {
   let list = (list [2, 1, 3, 4, 6, 5, 8, 7]) [#1]
-  call sortedlist = clo<sudomergesort>(list)
+  call sortedlist = clo<"sudomergesort">(list)
   assert (= sortedlist[0] 1)
   assert (= sortedlist[1] 2)
   assert (= sortedlist[2] 3)

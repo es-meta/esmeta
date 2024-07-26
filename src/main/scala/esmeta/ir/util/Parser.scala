@@ -12,7 +12,6 @@ object Parser extends Parsers
 
 /** IR parsers */
 trait Parsers extends TyParsers {
-  override protected val whiteSpace = whiteSpaceWithComment
 
   // programs
   given program: Parser[Program] = {
@@ -148,9 +147,11 @@ trait Parsers extends TyParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
+    } | "clo<" ~> string ~ opt(
+      "," ~ "[" ~> repsep(name, ",") <~ "]",
+    ) <~ ">" ^^ {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
-    } | ("cont<" ~> fname <~ ">") ^^ {
+    } | ("cont<" ~> string <~ ">") ^^ {
       case s => ECont(s)
     } | "(" ~ "debug" ~> expr <~ ")" ^^ {
       case e => EDebug(e)
@@ -158,9 +159,6 @@ trait Parsers extends TyParsers {
       ERandom()
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
   }.named("ir.Expr")
-
-  // function name
-  lazy val fname: Parser[String] = "[^<>, ]+".r
 
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =

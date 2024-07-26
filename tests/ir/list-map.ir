@@ -4,7 +4,7 @@ def map(list: List[Math], f: Clo) = {
   else {
     let hd = (pop < clist)
     call fhd = f(hd)
-    call ftl = clo<map>(clist, f)
+    call ftl = clo<"map">(clist, f)
     push fhd > ftl
     %0 = ftl
   }
@@ -17,7 +17,7 @@ def double(i: Math) = {
 
 @main def main() = {
   let list = (list [1, 2, 3, 4, 5])[#1]
-  call doublelist = clo<map>(list, clo<double>)
+  call doublelist = clo<"map">(list, clo<"double">)
   assert (= doublelist[0] 2)
   assert (= doublelist[1] 4)
   assert (= doublelist[2] 6)

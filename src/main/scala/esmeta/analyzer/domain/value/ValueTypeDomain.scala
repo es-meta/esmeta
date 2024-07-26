@@ -607,7 +607,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** get parent types */
     private def parent(name: String): Option[String] = for {
-      TyInfo(parent, _, _) <- cfg.tyModel.infos.get(name)
+      TyDecl(_, parent, _) <- cfg.tyModel.decls.get(name)
       p <- parent
     } yield p
 
@@ -697,8 +697,8 @@ trait ValueTypeDomainDecl { self: Self =>
           case _ =>
       }
       val worklist = QueueWorklist[String](List())
-      val infos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-      var defaultInfos: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      val map: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      var defaultmap: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
       for {
         func <- cfg.funcs if func.isSDO
         isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
@@ -712,28 +712,28 @@ trait ValueTypeDomainDecl { self: Self =>
         val isDefaultSdo = defaultSdos contains method
 
         // update target info
-        val targetInfos = if (isDefaultSdo) defaultInfos else infos
-        if (targetInfos contains key) targetInfos(key) += newInfo
-        else targetInfos(key) = MSet(newInfo)
-        if (targetInfos contains name) targetInfos(name) += newInfo
-        else targetInfos(name) = MSet(newInfo)
+        val targetmap = if (isDefaultSdo) defaultmap else map
+        if (targetmap contains key) targetmap(key) += newInfo
+        else targetmap(key) = MSet(newInfo)
+        if (targetmap contains name) targetmap(name) += newInfo
+        else targetmap(name) = MSet(newInfo)
 
         // propagate chain production
         if (!isDefaultSdo) worklist += name
       }
 
-      // record original infos
-      val origInfos = (for { (k, set) <- infos } yield k -> set.toSet).toMap
+      // record original map
+      val origmap = (for { (k, set) <- map } yield k -> set.toSet).toMap
 
       // propagate chain productions
       @tailrec
       def aux(): Unit = worklist.next match
         case Some(key) =>
-          val childInfo = infos.getOrElse(key, MSet())
+          val childInfo = map.getOrElse(key, MSet())
           for {
             next <- edges.getOrElse(key, MSet())
-            info = infos.getOrElse(next, MSet())
-            oldInfoSize = info.size
+            info = map.getOrElse(next, MSet())
+            oldmapize = info.size
 
             newInfo =
               // A[i,j] -> A
@@ -741,25 +741,25 @@ trait ValueTypeDomainDecl { self: Self =>
               // A.method -> B[i,j].method
               // only if B[i,j].method not exists (chain production)
               else {
-                val origInfo = origInfos.getOrElse(next, Set())
+                val origInfo = origmap.getOrElse(next, Set())
                 info ++ (for {
                   triple <- childInfo
                   if !(origInfo.exists(_._3 == triple._3))
                 } yield triple)
               }
 
-            _ = infos(next) = newInfo
-            if newInfo.size > oldInfoSize
+            _ = map(next) = newInfo
+            if newInfo.size > oldmapize
           } worklist += next
           aux()
         case None => /* do nothing */
       aux()
 
-      // merge default infos
+      // merge default map
       (for {
-        key <- infos.keySet ++ defaultInfos.keySet
-        info = infos.getOrElse(key, MSet())
-        defaultInfo = defaultInfos.getOrElse(key, MSet())
+        key <- map.keySet ++ defaultmap.keySet
+        info = map.getOrElse(key, MSet())
+        defaultInfo = defaultmap.getOrElse(key, MSet())
         finalInfo = (info ++ defaultInfo).toSet
       } yield key -> finalInfo).toMap
     }

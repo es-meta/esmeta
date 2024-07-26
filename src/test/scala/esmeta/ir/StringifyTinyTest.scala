@@ -190,9 +190,9 @@ class StringifyTinyTest extends IRTest {
       EAbsent() -> "absent",
       normal -> "~normal~",
       empty -> "~empty~",
-      clo -> "clo<f>",
-      cloWithCaptured -> "clo<f, [x]>",
-      cont -> "cont<g>",
+      clo -> """clo<"f">""",
+      cloWithCaptured -> """clo<"f", [x]>""",
+      cont -> """cont<"g">""",
     )
 
     // -------------------------------------------------------------------------

@@ -8,7 +8,7 @@ def f() = {
   assert (= [? a] 0)
   assert (= [! a] 0)
   // completion
-  call comp = clo<f>()
+  call comp = clo<"f">()
   assert (= [? comp] 0)
   assert (= [! comp] 0)
 }

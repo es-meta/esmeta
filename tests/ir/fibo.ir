@@ -3,14 +3,14 @@ def fibo(n: Math) = {
   else {
     let n1 = (- n 1)
     let n2 = (- n 2)
-    call f1 = clo<fibo>(n1)
-    call f2 = clo<fibo>(n2)
+    call f1 = clo<"fibo">(n1)
+    call f2 = clo<"fibo">(n2)
     %0 = (+ f1 f2)
   }
   return %0
 }
 
 @main def main() = {
-  call f9 = clo<fibo>(9)
+  call f9 = clo<"fibo">(9)
   assert (= f9 34)
 }

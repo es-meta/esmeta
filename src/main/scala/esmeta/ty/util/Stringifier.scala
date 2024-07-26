@@ -13,6 +13,8 @@ object Stringifier {
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
+      case elem: TyModel     => tyModelRule(app, elem)
+      case elem: TyDecl      => tyDeclRule(app, elem)
       case elem: UnknownTy   => unknownTyRule(app, elem)
       case elem: ValueTy     => valueTyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
@@ -26,6 +28,23 @@ object Stringifier {
       case elem: InfinityTy  => infinityTyRule(app, elem)
       case elem: NumberTy    => numberTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
+
+  /** type models */
+  given tyModelRule: Rule[TyModel] = (app, model) =>
+    given Rule[List[TyDecl]] = iterableRule(sep = LINE_SEP + LINE_SEP)
+    app >> (for { (name, decl) <- model.decls.toList.sortBy(_._1) } yield decl)
+    app
+
+  /** type declarations */
+  given tyDeclRule: Rule[TyDecl] = (app, ty) =>
+    val TyDecl(name, parent, fields) = ty
+    app >> "type " >> name
+    parent.fold(app)(app >> " extends " >> _)
+    if (fields.nonEmpty) (app >> " ").wrap("{", "}") {
+      for ((name, t) <- fields.toList.sortBy(_._1))
+        app :> name >> ": " >> t
+    }
+    app
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>

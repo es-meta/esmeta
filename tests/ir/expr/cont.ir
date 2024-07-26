@@ -3,7 +3,7 @@ def f(x: Math) = {
 
   // captured context
   let x = 0
-  let cont2 = cont<g>
+  let cont2 = cont<"g">
   x = 1
   call y2 = cont2()
 }
@@ -13,6 +13,6 @@ def g(x: Math) = {
 }
 
 @main def main() = {
-  let cont1 = cont<f>
+  let cont1 = cont<"f">
   call y1 = cont1(1)
 }

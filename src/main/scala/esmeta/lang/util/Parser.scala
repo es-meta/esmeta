@@ -1267,7 +1267,7 @@ trait Parsers extends IndentParsers {
       case ss =>
         val name = ss.mkString(" ")
         val normalizedName = Type.normalizeName(name)
-        if (ManualInfo.tyModel.infos.contains(normalizedName))
+        if (ManualInfo.tyModel.decls.contains(normalizedName))
           success(NameT(name))
         else failure("unknown type name")
     }

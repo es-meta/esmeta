@@ -1,0 +1,482 @@
+type AgentRecord {
+  CanBlock: Boolean
+  CandidateExecution: CandidateExecutionRecord
+  IsLockFree1: Boolean
+  IsLockFree2: Boolean
+  IsLockFree8: Boolean
+  KeptAlive: List[Object | Symbol]
+  LittleEndian: Boolean
+  Signifier: AgentSignifier
+}
+
+type ArgumentsExoticObject extends Object {
+  DefineOwnProperty: Clo["ArgumentsExoticObject.DefineOwnProperty"]
+  Delete: Clo["ArgumentsExoticObject.Delete"]
+  Get: Clo["ArgumentsExoticObject.Get"]
+  GetOwnProperty: Clo["ArgumentsExoticObject.GetOwnProperty"]
+  Set: Clo["ArgumentsExoticObject.Set"]
+  ParameterMap: OrdinaryObject
+}
+
+type ArrayBufferObject extends Object {
+  ArrayBufferByteLength: NonNegInt
+  ArrayBufferData: SharedDataBlock | Null
+  ArrayBufferDetachKey: ESValue
+}
+
+type ArrayExoticObject extends Object {
+  DefineOwnProperty: Clo["ArrayExoticObject.DefineOwnProperty"]
+}
+
+type AsyncFromSyncIteratorInstance extends OrdinaryObject {
+  SyncIteratorRecord: IteratorRecord
+}
+
+type AsyncGeneratorInstance extends OrdinaryObject {
+  AsyncGeneratorContext: ExecutionContext
+  AsyncGeneratorQueue: List[AsyncGeneratorRequestRecord]
+  AsyncGeneratorState: Enum[~awaitingDASHreturn~, ~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined
+  GeneratorBrand: Enum[~empty~] | String
+}
+
+type AsyncGeneratorRequestRecord {
+  Capability: PromiseCapabilityRecord
+}
+
+type BigIntObject extends OrdinaryObject {
+  BigIntData: BigInt
+}
+
+type Binding {
+  BoundValue: ESValue
+  initialized: Boolean
+}
+
+type BooleanObject extends OrdinaryObject {
+  BooleanData: Boolean
+}
+
+type BoundFunctionExoticObject extends Constructor {
+  Call: Clo["BoundFunctionExoticObject.Call"]
+  Construct: Clo["BoundFunctionExoticObject.Construct"]
+  BoundArguments: List[ESValue]
+  BoundTargetFunction: FunctionObject
+  BoundThis: ESValue
+}
+
+type BuiltinFunctionObject extends Constructor {
+  Call: Clo["BuiltinFunctionObject.Call"]
+  Code: Clo
+  InitialName: String | Null
+  Realm: RealmRecord
+}
+
+type ClassFieldDefinitionRecord {
+  Initializer: FunctionObject | Enum[~empty~]
+  Name: PrivateName | Symbol | String
+}
+
+type ClassStaticBlockDefinitionRecord {
+  BodyFunction: FunctionObject
+}
+
+type Constructor extends FunctionObject
+
+type CyclicModuleRecord extends ModuleRecord {
+  Evaluate: Clo["CyclicModuleRecord.Evaluate"]
+  Link: Clo["CyclicModuleRecord.Link"]
+  AsyncEvaluation: Boolean
+  AsyncParentModules: List[CyclicModuleRecord]
+  CycleRoot: CyclicModuleRecord | Enum[~empty~]
+  DFSAncestorIndex: Enum[~empty~] | Int
+  DFSIndex: Enum[~empty~] | Int
+  EvaluationError: Abrupt[throw] | Enum[~empty~]
+  HasTLA: Boolean
+  PendingAsyncDependencies: Enum[~empty~] | Int
+  RequestedModules: List[String]
+  Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~]
+  TopLevelCapability: PromiseCapabilityRecord | Enum[~empty~]
+}
+
+type DeclarativeEnvironmentRecord extends EnvironmentRecord {
+  CreateImmutableBinding: Clo["DeclarativeEnvironmentRecord.CreateImmutableBinding"]
+  CreateMutableBinding: Clo["DeclarativeEnvironmentRecord.CreateMutableBinding"]
+  DeleteBinding: Clo["DeclarativeEnvironmentRecord.DeleteBinding"]
+  GetBindingValue: Clo["DeclarativeEnvironmentRecord.GetBindingValue"]
+  HasBinding: Clo["DeclarativeEnvironmentRecord.HasBinding"]
+  HasSuperBinding: Clo["DeclarativeEnvironmentRecord.HasSuperBinding"]
+  HasThisBinding: Clo["DeclarativeEnvironmentRecord.HasThisBinding"]
+  InitializeBinding: Clo["DeclarativeEnvironmentRecord.InitializeBinding"]
+  SetMutableBinding: Clo["DeclarativeEnvironmentRecord.SetMutableBinding"]
+  WithBaseObject: Clo["DeclarativeEnvironmentRecord.WithBaseObject"]
+}
+
+type ECMAScriptFunctionObject extends Constructor {
+  Call: Clo["ECMAScriptFunctionObject.Call"]
+  Construct: Clo["ECMAScriptFunctionObject.Construct"]
+  ClassFieldInitializerName: PrivateName | Symbol | Enum[~empty~] | String
+  ConstructorKind: Enum[~base~, ~derived~]
+  ECMAScriptCode: Ast
+  Environment: EnvironmentRecord
+  Fields: List[ClassFieldDefinitionRecord]
+  FormalParameters: Ast
+  HomeObject: Object | Undefined
+  IsClassConstructor: Boolean
+  PrivateEnvironment: PrivateEnvironmentRecord | Null
+  PrivateMethods: List[PrivateElement]
+  Realm: RealmRecord
+  ScriptOrModule: ModuleRecord | ScriptRecord | Null
+  SourceText: String
+  Strict: Boolean
+  ThisMode: Enum[~global~, ~lexical~, ~strict~]
+}
+
+type EnvironmentRecord {
+  Map: Map[String |-> Binding]
+  OuterEnv: EnvironmentRecord | Null
+}
+
+type ErrorInstance extends OrdinaryObject {
+  ErrorData: Undefined
+}
+
+type ExecutionContext {
+  Function: FunctionObject | Null
+  Generator: Object
+  LexicalEnvironment: EnvironmentRecord
+  PrivateEnvironment: PrivateEnvironmentRecord | Null
+  Realm: RealmRecord
+  ScriptOrModule: ModuleRecord | ScriptRecord | Null
+  VariableEnvironment: EnvironmentRecord
+}
+
+type ExportEntryRecord {
+  ExportName: String | Null
+  ImportName: Enum[~all-but-default~, ~all~] | String | Null
+  LocalName: String | Null
+  ModuleRequest: String | Null
+}
+
+type ForInIteratorInstance extends OrdinaryObject {
+  Object: Object
+  ObjectWasVisited: Boolean
+  RemainingKeys: List[String]
+  VisitedKeys: List[String]
+}
+
+type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
+  BindThisValue: Clo["FunctionEnvironmentRecord.BindThisValue"]
+  GetSuperBase: Clo["FunctionEnvironmentRecord.GetSuperBase"]
+  GetThisBinding: Clo["FunctionEnvironmentRecord.GetThisBinding"]
+  HasSuperBinding: Clo["FunctionEnvironmentRecord.HasSuperBinding"]
+  HasThisBinding: Clo["FunctionEnvironmentRecord.HasThisBinding"]
+  FunctionObject: FunctionObject
+  NewTarget: Object | Undefined
+  ThisBindingStatus: Enum[~initialized~, ~lexical~, ~uninitialized~]
+  ThisValue: ESValue
+}
+
+type FunctionObject extends OrdinaryObject
+
+type GeneratorInstance extends OrdinaryObject {
+  GeneratorBrand: Enum[~empty~] | String
+  GeneratorContext: ExecutionContext
+  GeneratorState: Enum[~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined
+}
+
+type GlobalEnvironmentRecord extends EnvironmentRecord {
+  CanDeclareGlobalFunction: Clo["GlobalEnvironmentRecord.CanDeclareGlobalFunction"]
+  CanDeclareGlobalVar: Clo["GlobalEnvironmentRecord.CanDeclareGlobalVar"]
+  CreateGlobalFunctionBinding: Clo["GlobalEnvironmentRecord.CreateGlobalFunctionBinding"]
+  CreateGlobalVarBinding: Clo["GlobalEnvironmentRecord.CreateGlobalVarBinding"]
+  CreateImmutableBinding: Clo["GlobalEnvironmentRecord.CreateImmutableBinding"]
+  CreateMutableBinding: Clo["GlobalEnvironmentRecord.CreateMutableBinding"]
+  DeleteBinding: Clo["GlobalEnvironmentRecord.DeleteBinding"]
+  GetBindingValue: Clo["GlobalEnvironmentRecord.GetBindingValue"]
+  GetThisBinding: Clo["GlobalEnvironmentRecord.GetThisBinding"]
+  HasBinding: Clo["GlobalEnvironmentRecord.HasBinding"]
+  HasLexicalDeclaration: Clo["GlobalEnvironmentRecord.HasLexicalDeclaration"]
+  HasRestrictedGlobalProperty: Clo["GlobalEnvironmentRecord.HasRestrictedGlobalProperty"]
+  HasSuperBinding: Clo["GlobalEnvironmentRecord.HasSuperBinding"]
+  HasThisBinding: Clo["GlobalEnvironmentRecord.HasThisBinding"]
+  HasVarDeclaration: Clo["GlobalEnvironmentRecord.HasVarDeclaration"]
+  InitializeBinding: Clo["GlobalEnvironmentRecord.InitializeBinding"]
+  SetMutableBinding: Clo["GlobalEnvironmentRecord.SetMutableBinding"]
+  WithBaseObject: Clo["GlobalEnvironmentRecord.WithBaseObject"]
+  DeclarativeRecord: DeclarativeEnvironmentRecord
+  GlobalThisValue: Object
+  ObjectRecord: ObjectEnvironmentRecord
+  VarNames: List[String]
+}
+
+type GlobalSymbolRegistryRecord {
+  Key: String
+  Symbol: Symbol
+}
+
+type ImmutableBinding extends Binding {
+  strict: Boolean
+}
+
+type ImmutablePrototypeExoticObject extends Object {
+  SetPrototypeOf: Clo["ImmutablePrototypeExoticObject.SetPrototypeOf"]
+}
+
+type ImportEntryRecord {
+  ImportName: Enum[~namespace-object~] | String
+  LocalName: String
+  ModuleRequest: String
+}
+
+type IntegerIndexedExoticObject extends Object {
+  DefineOwnProperty: Clo["IntegerIndexedExoticObject.DefineOwnProperty"]
+  Delete: Clo["IntegerIndexedExoticObject.Delete"]
+  Get: Clo["IntegerIndexedExoticObject.Get"]
+  GetOwnProperty: Clo["IntegerIndexedExoticObject.GetOwnProperty"]
+  HasProperty: Clo["IntegerIndexedExoticObject.HasProperty"]
+  OwnPropertyKeys: Clo["IntegerIndexedExoticObject.OwnPropertyKeys"]
+  Set: Clo["IntegerIndexedExoticObject.Set"]
+  ArrayLength: NonNegInt
+  ByteOffset: NonNegInt
+  ContentType: Enum[~BigInt~, ~Number~]
+  TypedArrayName: String
+  ViewedArrayBuffer: ArrayBufferObject
+}
+
+type Intrinsics
+
+type IteratorRecord {
+  Done: Boolean
+  Iterator: OrdinaryObject
+  NextMethod: FunctionObject
+}
+
+type JobCallbackRecord {
+  Callback: FunctionObject
+  HostDefined: Enum[~empty~]
+}
+
+type MapInstance extends OrdinaryObject {
+  MapData: List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]
+}
+
+type MatchRecord {
+  EndIndex: Int
+  StartIndex: Int
+}
+
+type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
+  CreateImportBinding: Clo["ModuleEnvironmentRecord.CreateImportBinding"]
+  GetBindingValue: Clo["ModuleEnvironmentRecord.GetBindingValue"]
+  GetThisBinding: Clo["ModuleEnvironmentRecord.GetThisBinding"]
+  HasThisBinding: Clo["ModuleEnvironmentRecord.HasThisBinding"]
+}
+
+type ModuleNamespaceExoticObject extends Object {
+  DefineOwnProperty: Clo["ModuleNamespaceExoticObject.DefineOwnProperty"]
+  Delete: Clo["ModuleNamespaceExoticObject.Delete"]
+  Get: Clo["ModuleNamespaceExoticObject.Get"]
+  GetOwnProperty: Clo["ModuleNamespaceExoticObject.GetOwnProperty"]
+  GetPrototypeOf: Clo["ModuleNamespaceExoticObject.GetPrototypeOf"]
+  HasProperty: Clo["ModuleNamespaceExoticObject.HasProperty"]
+  IsExtensible: Clo["ModuleNamespaceExoticObject.IsExtensible"]
+  OwnPropertyKeys: Clo["ModuleNamespaceExoticObject.OwnPropertyKeys"]
+  PreventExtensions: Clo["ModuleNamespaceExoticObject.PreventExtensions"]
+  Set: Clo["ModuleNamespaceExoticObject.Set"]
+  SetPrototypeOf: Clo["ModuleNamespaceExoticObject.SetPrototypeOf"]
+  Exports: List[String]
+  Module: ModuleRecord
+}
+
+type ModuleRecord {
+  Environment: ModuleEnvironmentRecord | Enum[~empty~]
+  HostDefined: Undefined
+  Namespace: ModuleNamespaceExoticObject | Enum[~empty~]
+  Realm: RealmRecord
+}
+
+type MutableBinding extends Binding
+
+type NumberObject extends OrdinaryObject {
+  NumberData: Number
+}
+
+type Object {
+  DefineOwnProperty: Clo["OrdinaryObject.DefineOwnProperty"]
+  Delete: Clo["OrdinaryObject.Delete"]
+  Get: Clo["OrdinaryObject.Get"]
+  GetOwnProperty: Clo["OrdinaryObject.GetOwnProperty"]
+  GetPrototypeOf: Clo["OrdinaryObject.GetPrototypeOf"]
+  HasProperty: Clo["OrdinaryObject.HasProperty"]
+  IsExtensible: Clo["OrdinaryObject.IsExtensible"]
+  OwnPropertyKeys: Clo["OrdinaryObject.OwnPropertyKeys"]
+  PreventExtensions: Clo["OrdinaryObject.PreventExtensions"]
+  Set: Clo["OrdinaryObject.Set"]
+  SetPrototypeOf: Clo["OrdinaryObject.SetPrototypeOf"]
+  Extensible: Boolean
+  Map: Map[Symbol | String |-> PropertyDescriptor]
+  PrivateElements: List[PrivateElement]
+  Prototype: Object | Null
+}
+
+type ObjectEnvironmentRecord extends EnvironmentRecord {
+  CreateMutableBinding: Clo["ObjectEnvironmentRecord.CreateMutableBinding"]
+  DeleteBinding: Clo["ObjectEnvironmentRecord.DeleteBinding"]
+  GetBindingValue: Clo["ObjectEnvironmentRecord.GetBindingValue"]
+  HasBinding: Clo["ObjectEnvironmentRecord.HasBinding"]
+  HasSuperBinding: Clo["ObjectEnvironmentRecord.HasSuperBinding"]
+  HasThisBinding: Clo["ObjectEnvironmentRecord.HasThisBinding"]
+  InitializeBinding: Clo["ObjectEnvironmentRecord.InitializeBinding"]
+  SetMutableBinding: Clo["ObjectEnvironmentRecord.SetMutableBinding"]
+  WithBaseObject: Clo["ObjectEnvironmentRecord.WithBaseObject"]
+  BindingObject: Object
+  IsWithEnvironment: Boolean
+}
+
+type OrdinaryObject extends Object
+
+type PendingJob {
+  Job: Clo
+  Realm: RealmRecord
+  ScriptOrModule: ModuleRecord | ScriptRecord | Null
+}
+
+type PrivateElement {
+  Get: FunctionObject | Undefined | Absent
+  Key: PrivateName
+  Kind: Enum[~accessor~, ~field~, ~method~]
+  Set: FunctionObject | Undefined | Absent
+  Value: ESValue | Absent
+}
+
+type PrivateEnvironmentRecord {
+  Names: List[PrivateName]
+  OuterPrivateEnvironment: PrivateEnvironmentRecord | Null
+}
+
+type PrivateName {
+  Description: String
+}
+
+type Promise extends OrdinaryObject {
+  PromiseFulfillReactions: List[PromiseReaction]
+  PromiseIsHandled: Boolean
+  PromiseRejectReactions: List[PromiseReaction]
+  PromiseResult: ESValue
+  PromiseState: Enum[~fulfilled~, ~pending~, ~rejected~]
+}
+
+type PromiseCapabilityRecord {
+  Promise: Promise
+  Reject: FunctionObject
+  Resolve: FunctionObject
+}
+
+type PromiseReaction {
+  Capability: PromiseCapabilityRecord | Undefined
+  Handler: JobCallbackRecord | Enum[~empty~]
+  Type: Enum[~Fulfill~, ~Reject~]
+}
+
+type PropertyDescriptor {
+  Configurable: Boolean | Absent
+  Enumerable: Boolean | Absent
+  Get: FunctionObject | Undefined | Absent
+  Set: FunctionObject | Undefined | Absent
+  Value: ESValue | Absent
+  Writable: Boolean | Absent
+}
+
+type ProxyExoticObject extends Constructor {
+  Call: Clo["ProxyExoticObject.Call"]
+  Construct: Clo["ProxyExoticObject.Construct"]
+  DefineOwnProperty: Clo["ProxyExoticObject.DefineOwnProperty"]
+  Delete: Clo["ProxyExoticObject.Delete"]
+  Get: Clo["ProxyExoticObject.Get"]
+  GetOwnProperty: Clo["ProxyExoticObject.GetOwnProperty"]
+  GetPrototypeOf: Clo["ProxyExoticObject.GetPrototypeOf"]
+  HasProperty: Clo["ProxyExoticObject.HasProperty"]
+  IsExtensible: Clo["ProxyExoticObject.IsExtensible"]
+  OwnPropertyKeys: Clo["ProxyExoticObject.OwnPropertyKeys"]
+  PreventExtensions: Clo["ProxyExoticObject.PreventExtensions"]
+  Set: Clo["ProxyExoticObject.Set"]
+  SetPrototypeOf: Clo["ProxyExoticObject.SetPrototypeOf"]
+  ProxyHandler: Object | Null
+  ProxyTarget: Object | Null
+}
+
+type RealmRecord {
+  GlobalEnv: GlobalEnvironmentRecord
+  GlobalObject: Object | Undefined
+  HostDefined: Undefined
+  Intrinsics: Intrinsics
+  TemplateMap: List[TemplatePair]
+}
+
+type ReferenceRecord {
+  Base: ESValue | EnvironmentRecord | Enum[~unresolvable~]
+  ReferencedName: PrivateName | Symbol | String
+  Strict: Boolean
+  ThisValue: ESValue | Enum[~empty~]
+}
+
+type RegExpObject extends Object {
+  RegExpMatcher: Clo
+}
+
+type ResolvedBindingRecord {
+  BindingName: Enum[~NAMESPACE~] | String
+  Module: ModuleRecord
+}
+
+type ScriptRecord {
+  ECMAScriptCode: Ast[Script]
+  HostDefined: Enum[~empty~]
+  Realm: RealmRecord | Undefined
+}
+
+type SetInstance extends OrdinaryObject {
+  SetData: List[ESValue]
+}
+
+type SourceTextModuleRecord extends CyclicModuleRecord {
+  ExecuteModule: Clo["SourceTextModuleRecord.ExecuteModule"]
+  GetExportedNames: Clo["SourceTextModuleRecord.GetExportedNames"]
+  InitializeEnvironment: Clo["SourceTextModuleRecord.InitializeEnvironment"]
+  ResolveExport: Clo["SourceTextModuleRecord.ResolveExport"]
+  Context: ExecutionContext
+  ECMAScriptCode: Ast[Module]
+  ImportEntries: List[ImportEntryRecord]
+  ImportMeta: Object | Enum[~empty~]
+  IndirectExportEntries: List[ExportEntryRecord]
+  LocalExportEntries: List[ExportEntryRecord]
+  StarExportEntries: List[ExportEntryRecord]
+}
+
+type StringExoticObject extends Object {
+  DefineOwnProperty: Clo["StringExoticObject.DefineOwnProperty"]
+  GetOwnProperty: Clo["StringExoticObject.GetOwnProperty"]
+  OwnPropertyKeys: Clo["StringExoticObject.OwnPropertyKeys"]
+  StringData: String
+}
+
+type Symbol {
+  Description: String | Undefined
+}
+
+type SymbolObject extends OrdinaryObject {
+  SymbolData: Symbol
+}
+
+type TemplatePair {
+  Array: ArrayExoticObject
+  Site: Ast[TemplateLiteral]
+}
+
+type WeakMapInstance extends OrdinaryObject {
+  WeakMapData: List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]
+}
+
+type WeakSetInstance extends OrdinaryObject {
+  WeakSetData: List[ESValue]
+}

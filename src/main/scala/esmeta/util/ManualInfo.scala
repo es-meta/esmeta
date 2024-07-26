@@ -40,7 +40,7 @@ object ManualInfo {
   /** type model */
   lazy val tyModel: TyModel = optional {
     import esmeta.ty.util.JsonProtocol.given
-    readJson[TyModel](s"$MANUALS_DIR/ty-model.json")
+    TyModel.fromFile(s"$MANUALS_DIR/types")
   }.getOrElse(TyModel())
 
   /** get test262 manual configuration */

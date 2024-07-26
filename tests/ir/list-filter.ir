@@ -4,7 +4,7 @@ def filter(list: List[Math], f: Clo) = {
   else {
     let hd = (pop < clist)
     call fhd = f(hd)
-    call ftl = clo<filter>(clist, f)
+    call ftl = clo<"filter">(clist, f)
     if fhd push hd > ftl else {}
     %0 = ftl
   }
@@ -18,7 +18,7 @@ def even(i: Math) = {
 
 @main def main() = {
   let list = (list [1, 2, 3, 4, 5])[#1]
-  call evenlist = clo<filter>(list, clo<even>)
+  call evenlist = clo<"filter">(list, clo<"even">)
   assert (= evenlist[0] 2)
   assert (= evenlist[1] 4)
 }

@@ -9,6 +9,25 @@ import esmeta.util.BasicParsers
 /** metalanguage parser */
 object Parser extends Parsers
 trait Parsers extends BasicParsers {
+
+  override protected val whiteSpace = whiteSpaceWithComment
+
+  // type model
+  given tyModel: Parser[TyModel] = {
+    rep(tyDecl) ^^ { case ds => TyModel(ds.map(x => x.name -> x).toMap) }
+  }.named("ty.TyModel")
+
+  // type declarations
+  given tyDecl: Parser[TyDecl] = {
+    val extend = "extends " ~> ident
+    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(tyField) <~ "}") ^^ {
+      case x ~ p ~ ms => TyDecl(x, p, ms.getOrElse(Nil).toMap)
+    }
+  }.named("ty.TyDecl")
+
+  lazy val tyField: Parser[(String, ValueTy)] =
+    ident ~ (":" ~> valueTy) ^^ { case x ~ t => x -> t }
+
   // types
   given ty: Parser[Ty] = {
     unknownTy |
@@ -16,7 +35,7 @@ trait Parsers extends BasicParsers {
   }.named("ty.Ty")
 
   lazy val unknownTy: Parser[UnknownTy] = {
-    "Unknown" ~> opt("[" ~> str <~ "]") ^^ { UnknownTy(_) }
+    "Unknown" ~> opt("[" ~> string <~ "]") ^^ { UnknownTy(_) }
   }.named("ty.UnknownTy")
 
   lazy val valueTy: Parser[ValueTy] = {
@@ -59,7 +78,7 @@ trait Parsers extends BasicParsers {
     // ECMAScript value
     "ESValue" ^^^ ESValueT.pureValue |
     // closure
-    "Clo[" ~> rep1sep(str, ",") <~ "]" ^^ {
+    "Clo[" ~> rep1sep(string, ",") <~ "]" ^^ {
       case s => PureValueTy(clo = Fin(s.toSet))
     } | "Clo" ^^^ PureValueTy(clo = Inf) |
     // continuation
@@ -91,7 +110,7 @@ trait Parsers extends BasicParsers {
     // big integer
     "BigInt" ^^^ PureValueTy(bigInt = true) |
     // string
-    "String[" ~> rep1sep(str, ",") <~ "]" ^^ {
+    "String[" ~> rep1sep(string, ",") <~ "]" ^^ {
       case s => PureValueTy(str = Fin(s.toSet))
     } | "String" ^^^ PureValueTy(str = Inf) |
     // boolean
@@ -124,8 +143,6 @@ trait Parsers extends BasicParsers {
     "T" ^^^ true | "F" ^^^ false
   private lazy val enumv: Parser[String] =
     "~" ~> "[^~]+".r <~ "~"
-  private lazy val str: Parser[String] =
-    """"[^"]*"""".r ^^ { case s => s.substring(1, s.length - 1) }
 
   /** named record types */
   given nameTy: Parser[NameTy] = {

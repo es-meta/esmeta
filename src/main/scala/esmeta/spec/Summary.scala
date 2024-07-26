@@ -47,7 +47,7 @@ object Summary extends Parser.From[Summary](Parser.summary) {
         yet = yetTypes,
       ),
       tables = tables.size,
-      tyModel = tyModel.infos.size,
+      tyModel = tyModel.decls.size,
     )
   } else Summary()
 }

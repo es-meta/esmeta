@@ -360,7 +360,7 @@ trait StateTypeDomainDecl { self: Self =>
         (for {
           name <- obj.set
           fieldStr <- field.str
-        } yield cfg.tyModel.getProp(name, fieldStr)).foldLeft(BotT)(_ || _)
+        } yield cfg.tyModel.getField(name, fieldStr)).foldLeft(BotT)(_ || _)
 
     // intrinsics lookup
     private def lookupIntrinsics(field: ValueTy): ValueTy = field.str match

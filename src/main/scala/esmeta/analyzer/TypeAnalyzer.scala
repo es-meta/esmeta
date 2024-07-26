@@ -555,7 +555,7 @@ class TypeAnalyzer(
           case One(Str(s))   => Some(s)
           case One(Nt(n, _)) => Some(n)
           case _             => None
-        if cfg.tyModel.infos.contains(tname)
+        if cfg.tyModel.decls.contains(tname)
       } yield {
         if (positive) AbsValue(NameT(tname))
         else lv -- AbsValue(NameT(tname))

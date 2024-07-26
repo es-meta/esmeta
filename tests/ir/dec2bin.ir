@@ -13,6 +13,6 @@ def dec2bin(n: Math) = {
 }
 
 @main def main() = {
-  call b = clo<dec2bin>(35)
+  call b = clo<"dec2bin">(35)
   assert (= b 100011)
 }

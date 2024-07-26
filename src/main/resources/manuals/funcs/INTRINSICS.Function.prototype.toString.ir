@@ -18,12 +18,12 @@ def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   }
 
   // 1. If Type(_func_) is Object and IsCallable(_func_) is *true*, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|.
-  call %0 = clo<IsCallable>(func)
+  call %0 = clo<"IsCallable">(func)
   if (&& (= (typeof func) @Object) (= %0 true)) {
     return "function () { [native code] }"
   }
 
-  call %1 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
-  call %2 = clo<ThrowCompletion>(%1)
+  call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %2 = clo<"ThrowCompletion">(%1)
   return %2
 }

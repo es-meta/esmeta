@@ -1,23 +1,24 @@
 package esmeta.ty
 
+import esmeta.ty.util.Parser
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 /** type modeling */
 // TODO consider refactoring
-case class TyModel(infos: Map[String, TyInfo] = Map()) {
+case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
 
   /** merge two type models */
-  def ++(that: TyModel): TyModel = TyModel(this.infos ++ that.infos)
+  def ++(that: TyModel): TyModel = TyModel(this.decls ++ that.decls)
 
   /** get method map */
   // TODO optimize
   def getMethod(tname: String): Map[String, String] =
-    infos.get(tname) match {
-      case Some(info) =>
-        val parentMethods = info.parent.map(getMethod).getOrElse(Map())
-        parentMethods ++ info.methods
+    decls.get(tname) match {
+      case Some(decl) =>
+        val parentMethods = decl.parent.map(getMethod).getOrElse(Map())
+        parentMethods ++ decl.methods
       case None => Map()
     }
 
@@ -25,8 +26,8 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   private lazy val directSubTys: Map[String, Set[String]] = {
     var children = Map[String, Set[String]]()
     for {
-      (name, info) <- infos
-      parent <- info.parent
+      (name, decl) <- decls
+      parent <- decl.parent
       set = children.getOrElse(parent, Set())
     } children += parent -> (set + name)
     children
@@ -45,7 +46,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
         descs += name -> set
         set
     }
-    infos.collect { case (name, TyInfo(None, _, _)) => aux(name) }
+    decls.collect { case (name, TyDecl(_, None, _)) => aux(name) }
     descs
   }
   def isSubTy(l: String, r: String): Boolean =
@@ -83,51 +84,51 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
     )
     noName && name
 
-  /** property map alias */
-  type PropMap = Map[String, ValueTy]
+  /** field map alias */
+  type FieldMap = Map[String, ValueTy]
 
-  /** get types of property */
-  def getProp(tname: String, p: String, check: Boolean = false): ValueTy =
+  /** get types of field */
+  def getField(tname: String, p: String, check: Boolean = false): ValueTy =
     propMap
       .getOrElse(tname, Map())
       .getOrElse(
         p, {
-          if (check) warn(s"unknown property access: $tname.$p")
+          if (check) warn(s"unknown field access: $tname.$p")
           AbsentT
         },
       )
 
-  /** property type */
-  private lazy val propMap: Map[String, PropMap] = (for {
-    name <- infos.keySet
-  } yield name -> getPropMap(name)).toMap
+  /** field type */
+  private lazy val propMap: Map[String, FieldMap] = (for {
+    name <- decls.keySet
+  } yield name -> getFieldMap(name)).toMap
 
-  /** get property map */
-  private def getPropMap(name: String): PropMap =
-    val upper = getUpperPropMap(name)
-    val lower = getLowerPropMap(name)
+  /** get field map */
+  private def getFieldMap(name: String): FieldMap =
+    val upper = getUpperFieldMap(name)
+    val lower = getLowerFieldMap(name)
     lower.foldLeft(upper) {
       case (map, (k, t)) =>
         val newT = t || map.getOrElse(k, BotT)
         map + (k -> newT)
     }
 
-  /** get property map from ancestors */
-  private def getUpperPropMap(name: String): PropMap = infos.get(name) match
-    case Some(info) =>
-      val parentProps = info.parent.map(getUpperPropMap).getOrElse(Map())
-      val props = info.props
-      weakMerge(parentProps, props)
+  /** get field map from ancestors */
+  private def getUpperFieldMap(name: String): FieldMap = decls.get(name) match
+    case Some(decl) =>
+      val parentfields = decl.parent.map(getUpperFieldMap).getOrElse(Map())
+      val fields = decl.fields
+      weakMerge(parentfields, fields)
     case None => Map()
 
-  /** get property map of name */
-  private def getSamePropMap(name: String): PropMap =
-    infos.get(name).map(_.props).getOrElse(Map())
+  /** get field map of name */
+  private def getSameFieldMap(name: String): FieldMap =
+    decls.get(name).map(_.fields).getOrElse(Map())
 
   /** get subtypes with field existence */
   lazy val getSubTypes: ((String, String)) => List[String] =
     cached((name, key) =>
-      val exist = getSamePropMap(name).contains(key)
+      val exist = getSameFieldMap(name).contains(key)
       if (exist) List(name)
       else
         directSubTys
@@ -135,21 +136,21 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
           .fold(Nil)(_.flatMap(child => getSubTypes(child, key)).toList),
     )
 
-  /** get property map from ancestors */
-  private def getLowerPropMap(name: String): PropMap =
+  /** get field map from ancestors */
+  private def getLowerFieldMap(name: String): FieldMap =
     directSubTys.get(name) match
       case Some(children) =>
         children
           .map(child => {
-            val lower = getLowerPropMap(child)
-            val props = getSamePropMap(child)
-            weakMerge(lower, props)
+            val lower = getLowerFieldMap(child)
+            val fields = getSameFieldMap(child)
+            weakMerge(lower, fields)
           })
           .reduce(parallelWeakMerge)
-      case None => getSamePropMap(name)
+      case None => getSameFieldMap(name)
 
   /** weak merge */
-  private def weakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
+  private def weakMerge(lmap: FieldMap, rmap: FieldMap): FieldMap = {
     val keys = lmap.keySet ++ rmap.keySet
     keys.toList
       .map(k => {
@@ -161,7 +162,7 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   }
 
   /** parallel weak merge */
-  private def parallelWeakMerge(lmap: PropMap, rmap: PropMap): PropMap = {
+  private def parallelWeakMerge(lmap: FieldMap, rmap: FieldMap): FieldMap = {
     val keys = lmap.keySet ++ rmap.keySet
     keys.toList
       .map(k => {
@@ -173,63 +174,19 @@ case class TyModel(infos: Map[String, TyInfo] = Map()) {
   }
 
 }
-object TyModel {
+object TyModel extends Parser.From(Parser.tyModel)
 
-  /** alias */
-  val EMPTY = EnumT("empty")
-  val UNRESOLVABLE = EnumT("unresolvable")
-  val LEXICAL = EnumT("lexical")
-  val INITIALIZED = EnumT("initialized")
-  val UNINITIALIZED = EnumT("uninitialized")
-  val FIELD = EnumT("field")
-  val METHOD = EnumT("method")
-  val ACCESSOR = EnumT("accessor")
-  val BASE = EnumT("base")
-  val DERIVED = EnumT("derived")
-  val STRICT = EnumT("strict")
-  val GLOBAL = EnumT("global")
-  val UNLINKED = EnumT("unlinked")
-  val LINKING = EnumT("linking")
-  val LINKED = EnumT("linked")
-  val EVALUATING = EnumT("evaluating")
-  val EVALUATING_ASYNC = EnumT("evaluating-async")
-  val EVALUATED = EnumT("evaluated")
-  val NUMBER = EnumT("Number")
-  val BIGINT = EnumT("BigInt")
-  val ALL = EnumT("all")
-  val ALL_BUT_DEFAULT = EnumT("all-but-default")
-  val NORMAL = EnumT("normal")
-  val BREAK = EnumT("break")
-  val CONTINUE = EnumT("continue")
-  val RETURN = EnumT("return")
-  val THROW = EnumT("throw")
-  val SUSPENDED_START = EnumT("suspendedStart")
-  val SUSPENDED_YIELD = EnumT("suspendedYield")
-  val EXECUTING = EnumT("executing")
-  val AWAITING_RETURN = EnumT("awaitingDASHreturn")
-  val COMPLETED = EnumT("completed")
-  val PENDING = EnumT("pending")
-  val FULFILLED = EnumT("fulfilled")
-  val REJECTED = EnumT("rejected")
-  val FULFILL = EnumT("Fulfill")
-  val REJECT = EnumT("Reject")
-  val NAMESPACE_OBJ = EnumT("namespace-object")
-  val NAMESPACE = EnumT("NAMESPACE")
-}
-
-/** type information */
-case class TyInfo(
+/** type declrmation */
+case class TyDecl(
+  name: String,
   parent: Option[String] = None,
-  methods: Map[String, String] = Map(),
-  fields: Map[String, String] = Map(),
-) {
-  lazy val props: Map[String, ValueTy] =
-    val keys = methods.keySet ++ fields.keySet
-    (for {
-      k <- keys
-      fs = fields.get(k).fold(BotT)(ValueTy.from)
-      tys = methods.get(k) match
-        case None         => fs
-        case Some(method) => fs || CloT(method)
-    } yield k -> tys).toMap
+  fields: Map[String, ValueTy] = Map(),
+) extends TyElem {
+  def methods: Map[String, String] = (for {
+    (field, ty) <- fields
+    fname <- ty.clo match
+      case Fin(set) if set.size == 1 => Some(set.head)
+      case _                         => None
+  } yield field -> fname).toMap
 }
+object TyDecl extends Parser.From(Parser.tyDecl)

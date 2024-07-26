@@ -11,16 +11,16 @@ def <BUILTIN>:INTRINSICS.SyntaxError(
   } else {
     let newTarget = NewTarget
   }
-  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%SyntaxError.prototype%", (list ["ErrorData"]))
+  call %1 = clo<"OrdinaryCreateFromConstructor">(newTarget, "%SyntaxError.prototype%", (list ["ErrorData"]))
   let O = [? %1]
   %2 = (! (= message undefined))
   if %2 {
-    call %3 = clo<ToString>(message)
+    call %3 = clo<"ToString">(message)
     let msg = [? %3]
-    call %4 = clo<CreateNonEnumerableDataPropertyOrThrow>(O, "message", msg)
+    call %4 = clo<"CreateNonEnumerableDataPropertyOrThrow">(O, "message", msg)
     [! %4]
   }
-  call %5 = clo<InstallErrorCause>(O, options)
+  call %5 = clo<"InstallErrorCause">(O, options)
   [? %5]
   return O
 }

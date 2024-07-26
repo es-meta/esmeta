@@ -30,7 +30,7 @@ case class NameTy(set: BSet[String] = Fin())
     case (_, Inf) | (Inf, _)    => Top
     case _ if this.isBottom     => that
     case _ if that.isBottom     => this
-    case (Fin(lset), Fin(rset)) => NameTy(Fin(lset ++ rset)).normalized
+    case (Fin(lset), Fin(rset)) => NameTy(Fin(lset ++ rset))
 
   /** intersection type */
   def &&(that: => NameTy): NameTy = (this.set, that.set) match
@@ -40,7 +40,7 @@ case class NameTy(set: BSet[String] = Fin())
     case (Fin(lset), Fin(rset)) =>
       val newSet =
         lset.filter(isSubTy(_, rset)) ++ rset.filter(isSubTy(_, lset))
-      NameTy(Fin(newSet)).normalized
+      NameTy(Fin(newSet))
 
   /** prune type */
   def --(that: => NameTy): NameTy = (this.set, that.set) match

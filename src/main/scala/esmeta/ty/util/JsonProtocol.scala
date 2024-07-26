@@ -35,6 +35,6 @@ object JsonProtocol extends BasicJsonProtocol {
   // type modeling
   given Decoder[TyModel] = deriveDecoder
   given Encoder[TyModel] = deriveEncoder
-  given Decoder[TyInfo] = deriveDecoder
-  given Encoder[TyInfo] = deriveEncoder
+  given Decoder[TyDecl] = deriveDecoder
+  given Encoder[TyDecl] = deriveEncoder
 }

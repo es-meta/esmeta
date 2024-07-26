@@ -3,7 +3,7 @@ def g() = {
 }
 
 @main def main() = {
-  let clo = clo<g>
+  let clo = clo<"g">
   call x = clo()
   assert (= x 42)
 }

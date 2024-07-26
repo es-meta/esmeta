@@ -165,11 +165,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
-        app >> "clo<" >> fname
+        app >> "clo<" >> "\"" >> fname >> "\""
         if (!captured.isEmpty) app >> ", " >> captured
         app >> ">"
       case ECont(fname) =>
-        app >> "cont<" >> fname >> ">"
+        app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>
