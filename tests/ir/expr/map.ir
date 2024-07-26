@@ -1,6 +1,7 @@
-// TODO need more test (access property)
 @main def main() = {
+  let k = "x"
   let m = (map { 1 -> true, "x" -> null })[#1]
   assert (= m[1] true)
   assert (= m["x"] null)
+  assert (= m[k] null)
 }

@@ -7,4 +7,13 @@
   assert (= (substring str 0f 1f) "0")
   assert (= (substring str 0f 10f) "0123456789")
   assert (= (substring str 4f 6f) "45")
+
+  // optional `to` expr
+  assert (= (substring str 0) "0123456789")
+
+  // out of index
+  assert (= (substring str 0 11) "0123456789")
+
+  // code point
+  assert (= (substring 97cu 0 1) "a")
 }

@@ -1,2 +1,70 @@
-// TODO implementation is missing
-@main def main() = {}
+def a() = { }
+
+@main def main() = {
+  let clo = clo<a>
+  let list = (new [])
+  let record = (new Record {})
+  let comp = comp[~return~/~empty~](undefined)
+  
+  // simple values
+  assert (= (? 1n: "BigInt") true)
+  assert (= (? "string": "String") true)
+  assert (= (? true: "Boolean") true)
+  assert (= (? ~empty~: "Enum") true)
+  assert (= (? comp: "CompletionRecord") true)
+  assert (= (? Undefined: "Undefined") true)
+  assert (= (? Null: "Null") true)
+  assert (= (? clo: "AbstractClosure") true)
+  assert (= (? record: "Record") true)
+  assert (= (? list: "List") true)
+
+  // math
+  assert (= (? 42: "Int") true)
+  assert (= (? 42: "Math") true)
+  assert (= (? 42: "Number") false)    // 42 is math, not number
+  assert (= (? 42: "NonNegInt") true)  // x >= 0
+  assert (= (? 42: "NonPosInt") false) // x <= 0
+  assert (= (? 42: "PosInt") true)     // x > 0
+  assert (= (? 42: "NegInt") false)    // x < 0
+  
+  assert (= (? 0: "Int") true)
+  assert (= (? 0: "Math") true)
+  assert (= (? 0: "NonNegInt") true)   // x >= 0
+  assert (= (? 0: "NonPosInt") true)   // x <= 0
+  assert (= (? 0: "PosInt") false)     // x > 0
+  assert (= (? 0: "NegInt") false)     // x < 0
+  
+  assert (= (? (- 42): "Int") true)
+  assert (= (? (- 42): "Math") true)
+  assert (= (? (- 42): "NonNegInt") false) // x >= 0
+  assert (= (? (- 42): "NonPosInt") true)  // x <= 0
+  assert (= (? (- 42): "PosInt") false)    // x > 0
+  assert (= (? (- 42): "NegInt") true)     // x < 0
+
+  // int
+  assert (= (? 42f: "NumberInt") true)
+  assert (= (? 42.42f: "NumberInt") false)
+  assert (= (? 42f: "Number") true)
+  assert (= (? 42f: "Number[]") false)
+  assert (= (? 42.42f: "Number") true)
+  assert (= (? 42.42f: "Number[42]") false)
+  assert (= (? 42.42f: "Number[42.42]") true)
+  assert (= (? 42.42f: "Number[42, 42.42]") true)
+
+  assert (= (? 0f: "Number[+0]") true)
+  assert (= (? (- 0f): "Number[0]") false) // signed zero
+  assert (= (? (- 0f): "Number[-0]") true)
+
+  assert (= (? +INF: "Number[INF]") true)
+  assert (= (? -INF: "Number[INF]") false)
+  assert (= (? +INF: "Number[+INF]") true)
+  assert (= (? +INF: "Number[-INF]") false)
+
+  assert (= (? NaN: "Number") true)
+  assert (= (? NaN: "NumberInt") false)
+  assert (= (? NaN: "Number[NaN]") true) // NaN
+
+  // second param can be expression
+  let x = "String"
+  assert (= (? "string": x) true)
+}
