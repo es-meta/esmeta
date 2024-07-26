@@ -1,7 +1,7 @@
 @main def main() = {
-  let x = (new [])[#1]
-  let y = (new [1,null,"A"])[#1]
-  let z = (new [4f])[#1]
+  let x = (list [])[#1]
+  let y = (list [1,null,"A"])[#1]
+  let z = (list [4f])[#1]
   
   let empty = (list-concat)[#1]
   let xs = (list-concat x)[#1]

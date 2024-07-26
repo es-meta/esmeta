@@ -124,8 +124,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): Unit = alloc match {
-    case ERecord(tname, fields) =>
-      walk(tname)
+    case ERecord(tnameOpt, fields) =>
+      walkOpt(tnameOpt, walk)
       walkList(fields, { case (f, e) => (walk(f), walk(e)) })
     case EMap(pairs) =>
       walkList(pairs, { case (k, v) => (walk(k), walk(v)) })

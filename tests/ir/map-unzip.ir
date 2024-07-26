@@ -1,13 +1,13 @@
 def unzip(map: Map[Math |-> String]) = {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
-  let values = (new [])[#1]
+  let values = (list [])[#1]
   while (! (= ckeys.length 0)) {
     let key = (pop < ckeys)
     let value = map[key]
     push value > values
   }
-  let pair = (new [keys, values])[#1]
+  let pair = (list [keys, values])[#1]
   return pair
 }
 

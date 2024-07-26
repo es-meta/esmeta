@@ -179,7 +179,7 @@ class Interpreter(
       val v = eval(valExpr).toPureValue(using st)
       (y, t) match
         case (y: Enum, Str(_) | ENUM_EMPTY) =>
-          val addr = st.allocRecord("CompletionRecord")
+          val addr = st.allocRecord(Some("CompletionRecord"))
           val evaluatedFields = List(
             "Type" -> y,
             "Value" -> v,
@@ -381,7 +381,7 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case ERecord("CompletionRecord", fields) =>
+    case ERecord(Some("CompletionRecord"), fields) =>
       val map = (for {
         (f, expr) <- fields
         v = eval(expr)
@@ -402,12 +402,12 @@ class Interpreter(
             "Value" -> value.toPureValue(using st),
             "Target" -> targetChecked,
           )
-          val addr = st.allocRecord("CompletionRecord")
+          val addr = st.allocRecord(Some("CompletionRecord"))
           for ((k, v) <- evaluatedFields) st.update(addr, Str(k), v)(using st)
           addr
         case _ => throw InvalidComp
-    case ERecord(tname, fields) =>
-      val addr = st.allocRecord(tname)
+    case ERecord(tnameOpt, fields) =>
+      val addr = st.allocRecord(tnameOpt)
       for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))(using st)
       addr
     case EMap(pairs) =>

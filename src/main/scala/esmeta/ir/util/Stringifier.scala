@@ -205,19 +205,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case ERecord(tname, fields) =>
-        given Rule[(String, Expr)] = {
-          case (app, (f, e)) => app >> "\"" >> f >> "\" : " >> e
-        }
-        given Rule[Iterable[(String, Expr)]] = iterableRule("{ ", ", ", " }")
-        app >> "(new " >> tname >> " " >> fields >> ")"
+      case ERecord(tnameOpt, fields) =>
+        app >> "(record "
+        tnameOpt.map(app >> "[" >> _ >> "] ")
+        app.wrap("{", "}")(for {
+          (field, expr) <- fields
+        } app :> "\"" >> field >> "\" : " >> expr >> ",") >> ")"
+      case EMap(Nil) => app >> "(map)"
       case EMap(pairs) =>
-        given Rule[Iterable[(Expr, Expr)]] = iterableRule("{ ", ", ", " }")
-        if (pairs.isEmpty) app >> "(map)"
-        else app >> "(map " >> pairs >> ")"
+        (app >> "(map ").wrap("{", "}")(for {
+          (key, value) <- pairs
+        } app :> key >> " -> " >> value >> ",") >> ")"
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
-        app >> "(new " >> exprs >> ")"
+        app >> "(list " >> exprs >> ")"
       case EListConcat(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule(sep = " ")
         app >> "(list-concat " >> exprs >> ")"

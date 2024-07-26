@@ -1,5 +1,5 @@
 @main def main() = {
-  let list = (new [3, 7, 5])[#1]
+  let list = (list [3, 7, 5])[#1]
   push list < 4
   push 3 > list
   push list < 5

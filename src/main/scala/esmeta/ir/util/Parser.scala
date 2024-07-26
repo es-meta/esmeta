@@ -177,11 +177,11 @@ trait Parsers extends TyParsers {
 
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
-    ("(" ~ "new" ~> opt(word) ~ opt(fields) <~ ")") ^^ {
-      case t ~ fs => ERecord(t.getOrElse("Record"), fs.getOrElse(Nil))
+    ("(" ~ "record" ~> opt("[" ~> word <~ "]") ~ opt(fields) <~ ")") ^^ {
+      case t ~ fs => ERecord(t, fs.getOrElse(Nil))
     } | ("(" ~ "map" ~> opt(pairs) <~ ")") ^^ {
       case ps => EMap(ps.getOrElse(Nil))
-    } | ("(" ~ "new" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
+    } | ("(" ~ "list" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
     } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
       case es => EListConcat(es)
@@ -198,11 +198,11 @@ trait Parsers extends TyParsers {
 
   // fields
   lazy val fields: Parser[List[(String, Expr)]] =
-    "{" ~> repsep(pair(string ~ (":" ~> expr)), ",") <~ "}"
+    "{" ~> repsep(pair(string ~ (":" ~> expr)), ",") <~ opt(",") ~ "}"
 
   // key-value pairs
   lazy val pairs: Parser[List[(Expr, Expr)]] =
-    "{" ~> repsep(pair(expr ~ ("->" ~> expr)), ",") <~ "}"
+    "{" ~> repsep(pair(expr ~ ("->" ~> expr)), ",") <~ opt(",") <~ "}"
 
   // allocation sites
   def asite(parser: Parser[AllocExpr]): Parser[AllocExpr] =

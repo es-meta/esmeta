@@ -6,7 +6,7 @@ def f(): Normal[Math] = {
   // define reference
   let i = 0
   let str = "abc"
-  let list = (new [2, 1]) [#1]
+  let list = (list [2, 1]) [#1]
   call comp = clo<f>()
   assert (= i 0)
   assert (= list[0] 2)

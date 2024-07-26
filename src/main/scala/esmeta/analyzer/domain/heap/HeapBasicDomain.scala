@@ -213,11 +213,11 @@ trait HeapBasicDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tname: String,
+        tnameOpt: Option[String],
         pairs: Iterable[(String, AbsValue)],
       ): Elem =
         given CFG = cfg
-        val newObj = pairs.foldLeft(AbsObj(RecordObj(tname))) {
+        val newObj = pairs.foldLeft(AbsObj(RecordObj(tnameOpt))) {
           case (m, (f, v)) => m.update(AbsValue(Str(f)), v, weak = false)
         }
         alloc(elem, to, newObj)
