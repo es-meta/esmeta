@@ -104,9 +104,8 @@ object IRTest {
   )
   lazy val lex = ELexical("Identifier", xExpr)
   // allocation expressions
-  lazy val rec = ERecord("T", List("A" -> EBool(true), "B" -> EAbsent()))
+  lazy val rec = ERecord(Some("T"), List("A" -> EBool(true), "B" -> EAbsent()))
   lazy val list = EList(List(EUndef(), ENull(), EAbsent()))
-  lazy val symbol = ERecord("Symbol", List("Description" -> EUndef()))
   lazy val copy = ECopy(xExpr)
   lazy val keys = EKeys(xExpr, false)
   lazy val keysInt = EKeys(xExpr, true)
@@ -115,7 +114,6 @@ object IRTest {
   def assignASite(e: AllocExpr, k: Int): AllocExpr = { e.asite = k; e }
   lazy val recASite = assignASite(rec.copy(), 3)
   lazy val listASite = assignASite(list.copy(), 1)
-  lazy val symbolASite = assignASite(symbol.copy(), 7)
   lazy val copyASite = assignASite(copy.copy(), 42)
   lazy val keysASite = assignASite(keys.copy(), 5)
   lazy val keysIntASite = assignASite(keysInt.copy(), 6)

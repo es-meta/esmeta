@@ -458,7 +458,7 @@ trait AbsTransferDecl { self: Analyzer =>
             }
           }
         case ELexical(name, expr) => notSupported("ELexical")
-        case e @ ERecord(tname, fields) =>
+        case e @ ERecord(tnameOpt, fields) =>
           val asite = AllocSite(e.asite, np.view)
           for {
             pairs <- join(fields.map {
@@ -467,7 +467,7 @@ trait AbsTransferDecl { self: Analyzer =>
                   v <- transfer(expr)
                 } yield (f, v)
             })
-            lv <- id(_.allocRecord(asite, tname, pairs))
+            lv <- id(_.allocRecord(asite, tnameOpt, pairs))
           } yield lv
         case e @ EMap(pairs) =>
           val asite = AllocSite(e.asite, np.view)

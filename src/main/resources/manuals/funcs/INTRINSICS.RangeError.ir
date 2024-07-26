@@ -11,7 +11,7 @@ def <BUILTIN>:INTRINSICS.RangeError(
   } else {
     let newTarget = NewTarget
   }
-  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%RangeError.prototype%", (new ["ErrorData"]))
+  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%RangeError.prototype%", (list ["ErrorData"]))
   let O = [? %1]
   %2 = (! (= message undefined))
   if %2 {

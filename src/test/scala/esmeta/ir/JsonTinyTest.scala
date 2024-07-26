@@ -139,18 +139,22 @@ class JsonTinyTest extends IRTest {
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
       // allocation expressions
-      rec -> """(new T { "A" : true, "B" : absent })""",
-      list -> "(new [undefined, null, absent])",
-      symbol -> """(new Symbol { "Description" : undefined })""",
+      rec -> """(record [T] {
+      |  "A" : true,
+      |  "B" : absent,
+      |})""".stripMargin,
+      list -> "(list [undefined, null, absent])",
       copy -> "(copy x)",
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
       getChildren -> "(get-children x)",
       getItems -> "(get-items x x)",
       // allocation expressions with allocation sites
-      recASite -> """(new T { "A" : true, "B" : absent })[#3]""".stripMargin,
-      listASite -> "(new [undefined, null, absent])[#1]",
-      symbolASite -> """(new Symbol { "Description" : undefined })[#7]""",
+      recASite -> """(record [T] {
+      |  "A" : true,
+      |  "B" : absent,
+      |})[#3]""".stripMargin,
+      listASite -> "(list [undefined, null, absent])[#1]",
       copyASite -> "(copy x)[#42]",
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",

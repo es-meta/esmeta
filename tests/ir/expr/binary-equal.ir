@@ -4,9 +4,9 @@ def h() = { }
 
 @main def main() = {
   // objects
-  let x = (new A {})[#1]
+  let x = (record [A] {})[#1]
   let y = x
-  let z = (new A {})[#1]
+  let z = (record [A] {})[#1]
   assert (= x y)
   assert (! (= x z)) // because `x` and `z` have point to different addresses
   // ASTs
