@@ -328,7 +328,7 @@ class Compiler(
     case ThrowStep(name) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val (y, yExpr) = fb.newTIdWithExpr
-      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
       fb.addInst(
         ICall(x, AUX_NEW_ERROR_OBJ, List(proto)),
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
@@ -764,7 +764,7 @@ class Compiler(
       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
       ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
     case ErrorObjectLiteral(name) =>
-      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, AUX_NEW_ERROR_OBJ, List(proto)))
       xExpr

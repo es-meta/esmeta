@@ -30,7 +30,7 @@ inline def toETypeCheck(expr: Expr, ty: Type): Expr =
 // conversion to intrinsics
 inline def toIntrinsic(base: Ref, intr: Intrinsic): Field =
   // convert intr to string for exceptional case in GetPrototypeFromConstructor
-  Field(base, EStr(intr.toString))
+  Field(base, EStr(intr.toString(true, false)))
 inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
   toERef(toIntrinsic(base, intr))
 

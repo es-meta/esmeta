@@ -75,9 +75,9 @@ trait Parsers extends IndentParsers {
     removeCtxtStep |
     ifStep |
     forEachOwnPropertyKeyStep |
-    forEachStep |
     forEachIntStep |
     forEachParseNodeStep |
+    forEachStep |
     resumeStep |
     resumeYieldStep |
     blockStep
@@ -1259,39 +1259,64 @@ trait Parsers extends IndentParsers {
 
   // pure value types
   lazy val pureValueTy: P[ValueTy] = multi(singlePureValueTy)
-  lazy val singlePureValueTy: P[ValueTy] = nameTy | recordTy | listTy | simpleTy
+  lazy val singlePureValueTy: P[ValueTy] =
+    nameTy ||| (listTy | cloTy | recordTy | simpleTy)
 
   // named record types
   lazy val nameTy: P[ValueTy] =
-    opt("an " | "a ") ~> rep1("[-a-zA-Z]+".r.filter(_ != "or")).flatMap {
+    opt("an " | "a ") ~>
+    rep1(camel) ^^ {
       case ss =>
         val name = ss.mkString(" ")
         val normalizedName = Type.normalizeName(name)
-        if (ManualInfo.tyModel.decls.contains(normalizedName))
-          success(NameT(name))
-        else failure("unknown type name")
+        NameT(normalizedName)
     }
 
-  // record types TODO
-  lazy val recordTy: P[ValueTy] = failure("TODO")
+  // TODO closure types
+  lazy val cloTy: P[ValueTy] =
+    "an" ~ "Abstract Closure" ~ "with" ~>
+    ("no" ~ "parameters") ^^ { case _ => CloT }
+
+  // TODO record types
+  lazy val recordTy: P[ValueTy] =
+    "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
+      case fs => RecordT(fs.map(_.name).toSet)
+    }
 
   // list types
   lazy val listTy: P[ValueTy] =
     opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
 
   // simple types
+  private def normNameT(str: String): ValueTy = NameT(Type.normalizeName(str))
   lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
-    "Symbol" ^^^ SymbolT |
     "String" ^^^ StrT |
-    "Object" ^^^ ObjectT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
-    "*true*" ^^^ TrueT |
     "*false*" ^^^ FalseT |
+    "*true*" ^^^ TrueT |
     "integer" ^^^ IntT |
+    (
+      "Symbol" |
+      "Object" |
+      "ordinary object" |
+      "function object" |
+      "constructor" |
+      "ECMAScript function object" |
+      "built-in function object" |
+      "Array exotic object" |
+      "arguments exotic object" |
+      "Proxy exotic object" |
+      "bound function exotic object" |
+      "immutable prototype exotic object" |
+      "module namespace exotic object" |
+      "mutable binding" |
+      "execution context" |
+      "error"
+    ) ^^ { normNameT(_) } |
     "non-negative integer" ^^^ NonNegIntT |
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
@@ -1317,8 +1342,6 @@ trait Parsers extends IndentParsers {
   lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
-    } | "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
-      case fs => UnknownTy(s"Record { ${fs.mkString(", ")} }")
     } | (nt | tname) ^^ {
       case s => UnknownTy(s)
     }

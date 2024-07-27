@@ -335,7 +335,7 @@ class Interpreter(
         case Null      => tyName == "Null"
         case AstValue(ast) =>
           tyName == "ParseNode" || (ast.types contains tyName)
-        case _: Clo => tyName == "AbstractClosure"
+        case _: Clo => tyName == "Clo"
         case addr: Addr =>
           st(addr) match
             case r: RecordObj => tyModel.isSubTy(r.tname, tyName)

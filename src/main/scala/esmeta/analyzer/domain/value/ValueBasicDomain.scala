@@ -310,7 +310,7 @@ trait ValueBasicDomainDecl { self: Self =>
           bv ⊔= AbsBool(Bool(tname == "Undefined"))
         if (!elem.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
         if (!elem.clo.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "AbstractClosure"))
+          bv ⊔= AbsBool(Bool(tname == "Clo"))
         elem.astValue.getSingle match
           case Zero => /* do nothing */
           case Many => bv = AB
