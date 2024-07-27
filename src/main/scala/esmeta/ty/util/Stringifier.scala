@@ -135,7 +135,7 @@ object Stringifier {
     import RecordTy.*
     given Rule[(String, ValueTy)] = {
       case (app, (key, value)) =>
-        app >> "[[" >> key >> "]]"
+        app >> key
         if (!value.isTop) app >> ": " >> value
         else app
     }

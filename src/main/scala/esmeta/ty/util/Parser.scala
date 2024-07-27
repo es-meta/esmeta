@@ -20,13 +20,10 @@ trait Parsers extends BasicParsers {
   // type declarations
   given tyDecl: Parser[TyDecl] = {
     val extend = "extends " ~> ident
-    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(tyField) <~ "}") ^^ {
+    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(field) <~ "}") ^^ {
       case x ~ p ~ ms => TyDecl(x, p, ms.getOrElse(Nil).toMap)
     }
   }.named("ty.TyDecl")
-
-  lazy val tyField: Parser[(String, ValueTy)] =
-    ident ~ (":" ~> valueTy) ^^ { case x ~ t => x -> t }
 
   // types
   given ty: Parser[Ty] = {
@@ -222,9 +219,7 @@ trait Parsers extends BasicParsers {
     "False" ^^^ BoolTy(Set(false))
 
   private lazy val field: Parser[(String, ValueTy)] =
-    ("[[" ~> word <~ "]]") ~ opt(":" ~> valueTy) ^^ {
-      case k ~ v => (k, v.getOrElse(ValueTy.Top))
-    }
+    word ~ opt(":" ~> valueTy) ^^ { case k ~ v => (k, v.getOrElse(AnyT)) }
 
   /** list types */
   given listTy: Parser[ListTy] = {

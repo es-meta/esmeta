@@ -257,7 +257,7 @@ type JobCallbackRecord {
 }
 
 type MapInstance extends OrdinaryObject {
-  MapData: List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]
+  MapData: List[{ Key: ESValue | Enum[~empty~], Value: ESValue }]
 }
 
 type MatchRecord {
@@ -474,7 +474,7 @@ type TemplatePair {
 }
 
 type WeakMapInstance extends OrdinaryObject {
-  WeakMapData: List[{ [[Key]]: ESValue | Enum[~empty~], [[Value]]: ESValue }]
+  WeakMapData: List[{ Key: ESValue | Enum[~empty~], Value: ESValue }]
 }
 
 type WeakSetInstance extends OrdinaryObject {
