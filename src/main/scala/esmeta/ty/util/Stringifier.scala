@@ -20,6 +20,7 @@ object Stringifier {
       case elem: CompTy      => compTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
+      case elem: NewRecordTy => newRecordTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
       case elem: NameTy      => nameTyRule(app, elem)
       case elem: AstValueTy  => astValueTyRule(app, elem)
@@ -42,7 +43,7 @@ object Stringifier {
     parent.fold(app)(app >> " extends " >> _)
     if (fields.nonEmpty) (app >> " ").wrap("{", "}") {
       for ((name, t) <- fields.toList.sortBy(_._1))
-        app :> name >> ": " >> t
+        app :> name >> " : " >> t
     }
     app
 
@@ -136,13 +137,28 @@ object Stringifier {
     given Rule[(String, ValueTy)] = {
       case (app, (key, value)) =>
         app >> key
-        if (!value.isTop) app >> ": " >> value
+        if (!value.isTop) app >> " : " >> value
         else app
     }
     given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
     ty match
       case Top       => app >> "AnyRecord"
       case Elem(map) => app >> map.toList.sortBy(_._1)
+
+  /** new record types */
+  given newRecordTyRule: Rule[NewRecordTy] = (app, ty) =>
+    app >> "Record"
+    given Rule[(String, ValueTy)] = {
+      case (app, (field, ty)) => app >> field >> " : " >> ty
+    }
+    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
+    ty match
+      case NewRecordTy.Detail(name, map) =>
+        app >> "[" >> name >> " " >> map.toList.sortBy(_._1) >> "]"
+      case NewRecordTy.Simple(set) =>
+        given Rule[Set[String]] = setRule("", OR, "")
+        if (ty.isTop) app
+        else app >> "[" >> set >> "]"
 
   /** AST value types */
   given astValueTyRule: Rule[AstValueTy] = (app, ty) =>

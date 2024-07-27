@@ -82,6 +82,8 @@ trait Parsers extends BasicParsers {
     "Cont[" ~> rep1sep(int, ",") <~ "]" ^^ {
       case s => PureValueTy(cont = Fin(s.toSet))
     } | "Cont" ^^^ PureValueTy(cont = Inf) |
+    // new record
+    newRecordTy ^^ { case r => ??? } |
     // record
     singleRecordTy ^^ { case r => PureValueTy(record = r) } |
     // list
@@ -140,6 +142,23 @@ trait Parsers extends BasicParsers {
     "T" ^^^ true | "F" ^^^ false
   private lazy val enumv: Parser[String] =
     "~" ~> "[^~]+".r <~ "~"
+
+  /** new record types */
+  given newRecordTy: Parser[NewRecordTy] = {
+    rep1sep(singleNewRecordTy, "|") ^^ {
+      case ts => ts.foldLeft(NewRecordTy.Bot)(_ || _)
+    }
+  }.named("ty.NewRecordTy")
+
+  private lazy val singleNewRecordTy: Parser[NewRecordTy] = {
+    "Record" ^^^ NewRecordTy.Top |
+    "Record[" ~> word ~ ("{" ~> rep1sep(field, ",") <~ "}") <~ "]" ^^ {
+      case x ~ ps => NewRecordTy.Detail(x, ps.toMap)
+    } |
+    "Record[" ~> rep1sep(word, "|") <~ "]" ^^ {
+      case xs => NewRecordTy.Simple(xs.toSet)
+    }
+  }.named("ty.NewRecordTy (single)")
 
   /** named record types */
   given nameTy: Parser[NameTy] = {

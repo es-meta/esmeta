@@ -32,7 +32,7 @@ class StringifyTinyTest extends TyTest {
       NameT("Cat", "Dog") -> "Cat | Dog",
       RecordT -> "AnyRecord",
       RecordT("A" -> NumberT, "B" -> BoolT) ->
-      "{ A: Number, B: Boolean }",
+      "{ A : Number, B : Boolean }",
       RecordT(Set("Key", "Value")) ->
       "{ Key, Value }",
       RecordT("Key" -> ValueTy.Top, "Value" -> ValueTy.Top, "Dummy" -> BotT) ->
@@ -42,7 +42,7 @@ class StringifyTinyTest extends TyTest {
         "S" -> ValueTy.Top,
         "Q" -> NumberT,
         "R" -> BoolT,
-      )) -> "Object | { P, Q: Number, R: Boolean, S }",
+      )) -> "Object | { P, Q : Number, R : Boolean, S }",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Symbol",

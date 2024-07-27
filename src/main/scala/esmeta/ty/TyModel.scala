@@ -56,6 +56,8 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
   def isSubTy(l: String, rset: BSet[String]): Boolean = rset match
     case Inf       => true
     case Fin(rset) => isSubTy(l, rset)
+  def isSubTy(lset: Set[String], r: String): Boolean =
+    lset.forall(l => isSubTy(l, r))
   def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
     lset.forall(l => isSubTy(l, rset))
 
@@ -88,23 +90,11 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
   type FieldMap = Map[String, ValueTy]
 
   /** get types of field */
-  def getField(tname: String, p: String, check: Boolean = false): ValueTy =
-    propMap
-      .getOrElse(tname, Map())
-      .getOrElse(
-        p, {
-          if (check) warn(s"unknown field access: $tname.$p")
-          AbsentT
-        },
-      )
-
-  /** field type */
-  private lazy val propMap: Map[String, FieldMap] = (for {
-    name <- decls.keySet
-  } yield name -> getFieldMap(name)).toMap
+  def getField(tname: String, p: String): ValueTy =
+    fieldMaps.getOrElse(tname, Map()).getOrElse(p, AnyT)
 
   /** get field map */
-  private def getFieldMap(name: String): FieldMap =
+  def getFieldMap(name: String): FieldMap =
     val upper = getUpperFieldMap(name)
     val lower = getLowerFieldMap(name)
     lower.foldLeft(upper) {
@@ -112,6 +102,11 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
         val newT = t || map.getOrElse(k, BotT)
         map + (k -> newT)
     }
+
+  /** field type */
+  private lazy val fieldMaps: Map[String, FieldMap] = (for {
+    name <- decls.keySet
+  } yield name -> getFieldMap(name)).toMap
 
   /** get field map from ancestors */
   private def getUpperFieldMap(name: String): FieldMap = decls.get(name) match
