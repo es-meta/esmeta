@@ -23,7 +23,7 @@ sealed trait Value extends StateElem {
         ) =>
       addr
     case notCompValue =>
-      val compAddr = st.allocRecord("CompletionRecord")
+      val compAddr = st.allocRecord(Some("CompletionRecord"))
       val fields =
         List("Type" -> ty, "Value" -> notCompValue, "Target" -> ENUM_EMPTY)
       for ((k, v) <- fields) st.update(compAddr, Str(k), v)
