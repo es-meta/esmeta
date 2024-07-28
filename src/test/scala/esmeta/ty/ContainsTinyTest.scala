@@ -50,6 +50,27 @@ class ContainsTinyTest extends TyTest {
     lazy val listObj = ListObj(Vector(Math(5)))
     lazy val symbolAddr = NamedAddr("symbolAddr")
     lazy val symbolObj = RecordObj("Symbol", MMap("Description" -> Str("desc")))
+
+    lazy val normalCompAddr = NamedAddr("normalCompAddr")
+    lazy val normalComp = RecordObj(
+      "CompletionRecord",
+      MMap("Type" -> ENUM_NORMAL, "Value" -> Str("a"), "Target" -> ENUM_EMPTY),
+    ) // NormalComp(Str("a"))
+
+    lazy val throwCompAddr = NamedAddr("throwCompAddr")
+    lazy val throwComp = RecordObj(
+      "CompletionRecord",
+      MMap("Type" -> ENUM_THROW, "Value" -> Str("a"), "Target" -> ENUM_EMPTY),
+    )
+    // Comp(Enum("throw"), Str("a"), None)
+
+    lazy val returnCompAddr = NamedAddr("returnCompAddr")
+    lazy val returnComp = RecordObj(
+      "CompletionRecord",
+      MMap("Type" -> ENUM_RETURN, "Value" -> Str("a"), "Target" -> ENUM_EMPTY),
+    )
+    // Comp(Enum("return"), Str("a"), None)
+
     given Heap = Heap(
       MMap(
         mapAddr -> mapObj,
@@ -57,22 +78,22 @@ class ContainsTinyTest extends TyTest {
         nilAddr -> nilObj,
         listAddr -> listObj,
         symbolAddr -> symbolObj,
+        normalCompAddr -> normalComp,
+        throwCompAddr -> throwComp,
+        returnCompAddr -> returnComp,
       ),
     )
 
-    lazy val normalComp = NormalComp(Str("a"))
-    lazy val throwComp = Comp(Enum("throw"), Str("a"), None)
-    lazy val returnComp = Comp(Enum("return"), Str("a"), None)
     checkContains("completion values")(
-      NormalT -> normalComp,
-      NormalT(StrT) -> normalComp,
-      AbruptT -> throwComp,
-      AbruptT("throw") -> throwComp,
+      NormalT -> normalCompAddr,
+      NormalT(StrT) -> normalCompAddr,
+      AbruptT -> throwCompAddr,
+      AbruptT("throw") -> throwCompAddr,
     ).neg(
-      NormalT -> throwComp,
-      NormalT(NumberT) -> normalComp,
-      AbruptT -> normalComp,
-      AbruptT("throw") -> returnComp,
+      NormalT -> throwCompAddr,
+      NormalT(NumberT) -> normalCompAddr,
+      AbruptT -> normalCompAddr,
+      AbruptT("throw") -> returnCompAddr,
     )
 
     checkContains("map objects")(
