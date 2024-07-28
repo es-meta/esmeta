@@ -18,8 +18,8 @@ class ExitStateExtractor(val initSt: State) extends Interpreter(initSt) {
     catch { case e: InterpreterError => throw InterpreterErrorAt(e, cursor) }
 
   /** hook return points to keep address name mapping */
-  override def setReturn(value: Value, ret: Return): Unit = {
-    super.setReturn(value, ret)
+  override def setReturn(value: Value, ret: Return)(using st: State): Unit = {
+    super.setReturn(value, ret)(using st)
     if (this.st.context.name == "MakeBasicObject") {
       val contexts = (this.st.context :: this.st.callStack.map(_.context))
         .filter(c => c.func.isSDO || c.func.isBuiltin)

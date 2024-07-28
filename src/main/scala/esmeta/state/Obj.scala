@@ -5,12 +5,19 @@ import esmeta.error.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.ESValueParser
 import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
+import esmeta.util.ManualInfo.tyModel
 
 // Objects
 sealed trait Obj extends StateElem {
 
   /** getters */
   def apply(field: Value): Value = (this, field) match
+    case (r @ RecordObj(_, map), Str(field)) if (r.isCompletion) =>
+      field match
+        case "Type" | "Value" | "Target" => map.getOrElse(field, Absent)
+        case _                           => throw InvalidObjField(r, Str(field))
+      map.getOrElse(field, Absent)
+
     case (RecordObj(_, map), Str(field)) => map.getOrElse(field, Absent)
     case (MapObj(map), key)              => map.getOrElse(key, Absent)
     case (ListObj(values), Math(decimal)) =>
@@ -26,6 +33,34 @@ sealed trait Obj extends StateElem {
     case ListObj(values)       => ListObj(Vector.from(values))
     case RecordObj(tname, map) => RecordObj(tname, LMMap.from(map))
     case _                     => this
+
+  /** check abrupt completion */
+  def isCompletion: Boolean = this match
+    case RecordObj("CompletionRecord", map) => true
+    case RecordObj(tname, map) => tyModel.isSubTy(tname, "CompletionRecord")
+    case _                     => false
+
+  /** check abrupt completion */
+  def isAbruptCompletion: Boolean = this match
+    case RecordObj(tname, map) =>
+      isCompletion && (map.get("Type") match
+        case Some(value) => value != ENUM_NORMAL
+        case None        => false
+      )
+    case _ => false
+
+  /** check abrupt completion */
+  def isNormalCompletion: Boolean = this match
+    case RecordObj(tname, map) =>
+      isCompletion && (!isAbruptCompletion) && (map.getOrElse(
+        "Target",
+        Absent,
+      ) match
+        case ENUM_EMPTY => true
+        case v          => throw InvalidCompTarget(v)
+      )
+    case _ => false
+
 }
 
 /** record objects */
@@ -59,6 +94,29 @@ object RecordObj {
     for { ((name, fname), idx) <- methods.zipWithIndex }
       obj.map += name -> Clo(cfg.fnameMap(fname), Map())
     obj
+}
+
+object NormalCompObj {
+  def apply(value: Value)(using State): RecordObj =
+    RecordObj(
+      "CompletionRecord",
+      MMap(
+        "Type" -> ENUM_NORMAL,
+        "Value" -> value.toPureValue,
+        "Target" -> ENUM_EMPTY,
+      ),
+    )
+
+  def unapply(obj: Obj): Option[Value] =
+    obj match
+      case r @ RecordObj(tname, map)
+          if (tyModel.isSubTy(tname, "CompletionRecord")) => {
+        (r(Str("Type")), r(Str("Target"))) match
+          case (ENUM_NORMAL, ENUM_EMPTY) =>
+            Some(r(Str("Value")))
+          case _ => None
+      }
+      case _ => None
 }
 
 /** map objects */

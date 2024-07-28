@@ -1,38 +1,41 @@
 package esmeta.state
 
-import esmeta.cfg.Func
+import esmeta.cfg.{CFG, Func}
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
+import esmeta.util.ManualInfo.tyModel
 
 /** IR values */
 sealed trait Value extends StateElem {
 
-  /** check abrupt completion */
-  def isCompletion: Boolean = this match
-    case comp: Comp => true
-    case _          => false
-
-  /** check abrupt completion */
-  def isAbruptCompletion: Boolean = this match
-    case comp: Comp => comp.ty != ENUM_NORMAL
-    case _          => false
-
   /** wrap completion */
-  def wrapCompletion: Comp = wrapCompletion(ENUM_NORMAL)
-  def wrapCompletion(ty: Enum): Comp = this match
-    case comp: Comp      => comp
-    case pure: PureValue => Comp(ty, pure, None)
+  def wrapCompletion(using st: State, cfg: CFG): Addr = wrapCompletion(
+    ENUM_NORMAL,
+  )
+  def wrapCompletion(ty: Enum)(using st: State, cfg: CFG): Addr = this match
+    case addr: Addr if (st(addr) match
+          case r: RecordObj if r.isCompletion => true
+          case _                              => false
+        ) =>
+      addr
+    case notCompValue =>
+      val compAddr = st.allocRecord("CompletionRecord")
+      val fields =
+        List("Type" -> ty, "Value" -> notCompValue, "Target" -> ENUM_EMPTY)
+      for ((k, v) <- fields) st.update(compAddr, Str(k), v)
+      compAddr
 
   /** convert value to pure value see:
     * https://github.com/es-meta/esmeta/issues/66
     */
-  def toPureValue: PureValue = this match
-    case comp: Comp      => throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure
+  def toPureValue(using st: State): PureValue = this match
+    case comp: Comp => throw UncheckedAbruptComp(comp)
+    case addr: Addr if (st(addr).isCompletion) => throw UncheckedAbrupt(addr)
+    case v: PureValue                          => v
 
   /** type conversion */
   def asStr: String = this match
@@ -49,6 +52,9 @@ sealed trait Value extends StateElem {
   def asMath: BigDecimal = this match
     case Math(n) => n
     case v       => throw NotDecimalType(this)
+  def asEnum: Enum = this match
+    case Enum(e) => Enum(e)
+    case _       => throw NotEnumType(this)
   def getList(e: Expr, st: State): ListObj = this match
     case addr: Addr =>
       st(addr) match
@@ -65,16 +71,21 @@ case class Comp(
 ) extends Value {
   def targetValue: PureValue = target.fold[PureValue](ENUM_EMPTY)(Str(_))
 }
+// case class Comp private (
+//   ty: Enum,
+//   var value: PureValue, // XXX YieldExpression[2,0].Evaluation
+//   target: Option[String],
+// ) extends Value {
+//   def targetValue: PureValue = target.fold[PureValue](ENUM_EMPTY)(Str(_))
+// }
+// object Comp {
+//   def apply(
+//     ty: Enum,
+//     value: PureValue, // XXX YieldExpression[2,0].Evaluation
+//     target: Option[String],
+//   ): Comp = ???
 
-/** normal completion */
-object NormalComp {
-  def apply(value: Value): Comp =
-    Comp(ENUM_NORMAL, value.toPureValue, None)
-  def unapply(comp: Comp): Option[PureValue] = comp match {
-    case Comp(ENUM_NORMAL, value, None) => Some(value)
-    case _                              => None
-  }
-}
+// }
 
 /** pure values (values except completion records) */
 sealed trait PureValue extends Value

@@ -4,6 +4,7 @@ import esmeta.cfg.Func
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.ty.util.Parser
+import esmeta.error.*
 
 /** value types */
 case class ValueTy(
@@ -111,10 +112,12 @@ case class ValueTy(
 
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean =
-    (pureValue.isTop && value.isInstanceOf[PureValue]) || (value match
-      case NormalComp(value) =>
-        ValueTy(pureValue = comp.normal).contains(value, heap)
-      case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
+    (pureValue.isTop && (value match
+      case Comp(ty, value, target) => false
+      case addr: Addr              => !(heap(addr).isCompletion)
+      case _                       => true
+    )) || (value match
+      case comp: Comp => ???
       case a: Addr =>
         heap(a) match
           case MapObj(props) =>
@@ -123,6 +126,13 @@ case class ValueTy(
                 ValueTy(pureValue = map.key).contains(key, heap) &&
                 ValueTy(pureValue = map.value).contains(value, heap)
             }
+          case NormalCompObj(value) =>
+            ValueTy(pureValue = comp.normal).contains(value, heap)
+          case r @ RecordObj(tname, props) if (r.isCompletion) => (
+            r(Str("Type")) match
+              case Enum(tyStr) => comp.abrupt contains tyStr
+              case v           => throw NotEnumType(v)
+          )
           case RecordObj(tname, props) =>
             isSubTy(tname, name.set) ||
             (tname == "Record" && (props.forall {

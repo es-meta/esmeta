@@ -28,10 +28,18 @@ case class Heap(
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
 
   /** setters */
-  def update(addr: Addr, field: Value, value: Value): this.type =
+  def update(addr: Addr, field: Value, value: Value)(using State): this.type =
     apply(addr) match {
       case (m: MapObj)  => m.update(field, value); this
       case (l: ListObj) => l.update(field, value); this
+      // XXX see https://github.com/es-meta/esmeta/issues/65
+      case (r: RecordObj) if (r.isCompletion) => {
+        field match
+          case prop @ Str("Value") => r.update(prop, value.toPureValue)
+          case prop @ Str(_)       => r.update(prop, value)
+          case _                   => throw InvalidObjField(r, field)
+        this
+      }
       case (r: RecordObj) => {
         field match
           case prop @ Str(_) => r.update(prop, value)

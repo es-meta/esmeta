@@ -75,16 +75,14 @@ case class State(
   def define(x: Var, value: Value): this.type = x match
     case x: Global => globals += x -> value; this
     case x: Local  => context.locals += x -> value; this
-  def update(rt: RefTarget, value: Value): this.type = rt match {
-    case VarTarget(x) => update(x, value); this
-    case FieldTarget(base, field) =>
-      base match
-        // XXX see https://github.com/es-meta/esmeta/issues/65
-        case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
-          comp.value = value.toPureValue; this
-        case addr: Addr => update(addr, field, value); this
-        case _          => error(s"illegal reference update: $rt = $value")
-  }
+  def update(rt: RefTarget, value: Value)(using State): this.type =
+    rt match {
+      case VarTarget(x) => update(x, value); this
+      case FieldTarget(base, field) =>
+        base match
+          case addr: Addr => update(addr, field, value); this
+          case _          => error(s"illegal reference update: $rt = $value")
+    }
   def update(x: Var, value: Value): this.type =
     x match
       case x: Global if hasBinding(x) => globals += x -> value
@@ -92,7 +90,7 @@ case class State(
       case x: Temp                    => context.locals += x -> value
       case _ => error(s"illegal variable update: $x = $value")
     this
-  def update(addr: Addr, field: Value, value: Value): this.type =
+  def update(addr: Addr, field: Value, value: Value)(using State): this.type =
     heap.update(addr, field, value); this
 
   /** existence checks */
@@ -140,11 +138,13 @@ case class State(
 
   /** get types of values */
   def typeOf(value: Value): ValueTy = value match
-    case NormalComp(v) => NormalT(typeOf(v))
-    case comp: Comp    => AbruptT(comp.ty.name)
+    case comp: Comp => ???
     case addr: Addr =>
       apply(addr) match
-        case m: MapObj    => MapT
+        case m: MapObj => MapT
+        case r: RecordObj if (r.isCompletion) =>
+          if (r.isNormalCompletion) then NormalT(typeOf(r(Str("Value"))))
+          else AbruptT(r(Str("Type")).asEnum.name)
         case r: RecordObj => NameT(r.tname)
         case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
         case y: YetObj    => NameT(y.tname)
@@ -176,11 +176,6 @@ case class State(
 
   /** get string for a given address */
   def getString(value: Value): String = value match {
-    case comp: Comp =>
-      comp.toString + (comp.value match {
-        case addr: Addr => " -> " + heap(addr).toString
-        case _          => ""
-      })
     case addr: Addr => addr.toString + " -> " + heap(addr).toString
     case _          => value.toString
   }

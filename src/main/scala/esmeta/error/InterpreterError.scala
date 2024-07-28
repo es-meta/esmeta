@@ -100,6 +100,8 @@ case class NotIntType(v: Value)
   extends InvalidTypeConversion(Some(s"$v is not integer"))
 case class NotDecimalType(v: Value)
   extends InvalidTypeConversion(Some(s"$v is not decimal number"))
+case class NotEnumType(v: Value)
+  extends InvalidTypeConversion(Some(s"$v is not enum"))
 
 // undefined values
 case class UnknownId(x: Var) extends InterpreterError(s"unknown variable: $x")
@@ -111,8 +113,11 @@ case class WrongStringRef(str: String, field: Value)
   extends InterpreterError(s"wrong access of string reference: $str.$field")
 
 // missing cases
-case class UncheckedAbrupt(comp: Comp)
+
+case class UncheckedAbruptComp(comp: Comp)
   extends InterpreterError(s"unchecked abrupt completion: $comp")
+case class UncheckedAbrupt(addr: Addr)
+  extends InterpreterError(s"unchecked abrupt completion: $addr")
 
 // assertion failed
 case class AssertionFail(expr: Expr)

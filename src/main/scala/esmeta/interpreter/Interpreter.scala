@@ -62,7 +62,7 @@ class Interpreter(
       // cursor
       eval(st.context.cursor)
     } catch {
-      case ReturnValue(value, ret) => { setReturn(value, ret); true }
+      case ReturnValue(value, ret) => { setReturn(value, ret)(using st); true }
       case e =>
         if (log)
           pw.println(st)
@@ -108,7 +108,7 @@ class Interpreter(
   def eval(inst: NormalInst): Unit = inst match {
     case IExpr(expr)        => eval(expr)
     case ILet(lhs, expr)    => st.context.locals += lhs -> eval(expr)
-    case IAssign(ref, expr) => st.update(eval(ref), eval(expr))
+    case IAssign(ref, expr) => st.update(eval(ref), eval(expr))(using st)
     case IDelete(ref)       => st.delete(eval(ref))
     case IPush(from, to, front) =>
       val fromValue = eval(from)
@@ -145,7 +145,7 @@ class Interpreter(
           val vs =
             args
               .map(eval)
-              .map(v => if (needWrapped) v.wrapCompletion else v)
+              .map(v => if (needWrapped) v.wrapCompletion(using st, cfg) else v)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
@@ -176,21 +176,37 @@ class Interpreter(
     case EComp(tyExpr, valExpr, tgtExpr) =>
       val y = eval(tyExpr)
       val t = eval(tgtExpr)
-      val v = eval(valExpr).toPureValue
+      val v = eval(valExpr).toPureValue(using st)
       (y, t) match
-        case (y: Enum, Str(t))     => Comp(y, v, Some(t))
-        case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
-        case (y: Enum, t)          => throw InvalidCompTarget(y)
-        case (y, t)                => throw InvalidCompType(t)
+        case (y: Enum, Str(_) | ENUM_EMPTY) =>
+          val addr = st.allocRecord("CompletionRecord")
+          val evaluatedFields = List(
+            "Type" -> y,
+            "Value" -> v,
+            "Target" -> t,
+          )
+          for ((k, vv) <- evaluatedFields) st.update(addr, Str(k), vv)(using st)
+          addr
+        case (y: Enum, t) => throw InvalidCompTarget(y)
+        case (y, t)       => throw InvalidCompType(t)
+    // TODO : this can be merged to ETypeCheck?
     case EIsCompletion(expr) =>
-      Bool(eval(expr).isCompletion)
+      Bool(eval(expr) match
+        case addr: Addr => (
+          st(addr) match
+            case RecordObj(tname, _) =>
+              tyModel.isSubTy(tname, "CompletionRecord")
+            case _ => false
+        )
+        case _ => false,
+      )
     case ria @ EReturnIfAbrupt(ERef(ref), check) =>
       val refV = eval(ref)
-      val value = returnIfAbrupt(ria, st(refV), check)
-      st.update(refV, value)
+      val value = returnIfAbrupt(ria, st(refV), check)(using st)
+      st.update(refV, value)(using st)
       value
     case ria @ EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(ria, eval(expr), check)
+      returnIfAbrupt(ria, eval(expr), check)(using st)
     case EPop(list, front) =>
       eval(list) match
         case (addr: Addr) => st.pop(addr, front)
@@ -330,7 +346,6 @@ class Interpreter(
         case _: Str    => tyName == "String"
         case _: Bool   => tyName == "Boolean"
         case _: Enum   => tyName == "Enum"
-        case _: Comp   => tyName == "CompletionRecord"
         case Undef     => tyName == "Undefined"
         case Null      => tyName == "Null"
         case AstValue(ast) =>
@@ -338,6 +353,7 @@ class Interpreter(
         case _: Clo => tyName == "AbstractClosure"
         case addr: Addr =>
           st(addr) match
+            // TODO : Check deleted line (tyName == CompletionRecord?)
             case r: RecordObj => tyModel.isSubTy(r.tname, tyName)
             case _: ListObj   => tyName contains "List"
             case _            => ???
@@ -365,7 +381,7 @@ class Interpreter(
     case ELexical(name, expr) =>
       val str = eval(expr).asStr
       AstValue(Lexical(name, str))
-    case ERecord("Completion", fields) =>
+    case ERecord("CompletionRecord", fields) =>
       val map = (for {
         (f, expr) <- fields
         v = eval(expr)
@@ -376,19 +392,27 @@ class Interpreter(
         map.get("Target"),
       ) match
         case (Some(ty: Enum), Some(value), Some(target)) =>
-          val targetOpt = target match
-            case Str(target) => Some(target)
-            case ENUM_EMPTY  => None
+          val targetChecked = target match
+            case Str(target) => Str(target)
+            case ENUM_EMPTY  => ENUM_EMPTY
             case v           => throw InvalidCompTarget(v)
-          Comp(ty, value.toPureValue, targetOpt)
+
+          val evaluatedFields = List(
+            "Type" -> ty,
+            "Value" -> value.toPureValue(using st),
+            "Target" -> targetChecked,
+          )
+          val addr = st.allocRecord("CompletionRecord")
+          for ((k, v) <- evaluatedFields) st.update(addr, Str(k), v)(using st)
+          addr
         case _ => throw InvalidComp
     case ERecord(tname, fields) =>
       val addr = st.allocRecord(tname)
-      for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
+      for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))(using st)
       addr
     case EMap(pairs) =>
       val addr = st.allocMap
-      for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
+      for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))(using st)
       addr
     case EList(exprs) =>
       st.allocList(exprs.map(expr => eval(expr)))
@@ -462,11 +486,15 @@ class Interpreter(
     ria: EReturnIfAbrupt,
     value: Value,
     check: Boolean,
-  ): Value = value match
-    case NormalComp(value) => value
-    case comp: Comp =>
-      if (check) throw ReturnValue(value, ria)
-      else throw UncheckedAbrupt(comp)
+  )(using st: State): Value = value match
+    case comp: Comp => ???
+    case addr: Addr if (st(addr).isCompletion) => (
+      st(addr) match
+        case NormalCompObj(value) => value
+        case _ =>
+          if (check) throw ReturnValue(value, ria)
+          else throw UncheckedAbrupt(addr)
+    )
     case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
@@ -478,12 +506,12 @@ class Interpreter(
       FieldTarget(base, f)
 
   /** set return value and move to the exit node */
-  def setReturn(value: Value, ret: Return): Unit =
+  def setReturn(value: Value, ret: Return)(using State): Unit =
     // set type map
     (value, setTypeMap.get(st.context.name)) match
-      case (addr: Addr, Some(tname))             => st.setType(addr, tname)
-      case (NormalComp(addr: Addr), Some(tname)) => st.setType(addr, tname)
-      case _                                     => /* do nothing */
+      case (addr: Addr, Some(tname)) => st.setType(addr, tname)
+      // case (NormalCompValue(addr: Addr), Some(tname)) => st.setType(addr, tname)
+      case _ => /* do nothing */
     st.context.retVal = Some(
       (
         ret,

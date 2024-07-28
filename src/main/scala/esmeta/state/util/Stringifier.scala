@@ -93,7 +93,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // completion values
   given compRule: Rule[Comp] = (app, comp) =>
     comp match
-      case NormalComp(value) =>
+      // case NormalComp(value) =>
+      case Comp(ENUM_NORMAL, value, None) =>
         app >> "N(" >> value >> ")"
       case Comp(ty, value, target) =>
         app >> "comp[" >> ty
