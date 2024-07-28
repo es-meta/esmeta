@@ -209,8 +209,15 @@ class Injector(
         Interpreter(newSt)
         val propsAddr = newSt(GLOBAL_RESULT) match
           case Comp(_, addr: Addr, _) => addr
-          case addr: Addr             => addr
-          case v                      => error("not an address: $v")
+          case addr: Addr if (newSt(addr).isCompletion) => (
+            newSt(addr)(Str("Value")) match
+              case valueAddr: Addr => valueAddr
+              // TODO : Is this next line correct? should we throw error?
+              case _ => addr
+            // error(s"not an address: $v")
+          )
+          case addr: Addr => addr
+          case v          => error(s"not an address: $v")
         val len = newSt(propsAddr, Str("length")).asMath.toInt
         val array = (0 until len)
           .map(k => newSt(propsAddr, Math(k)))

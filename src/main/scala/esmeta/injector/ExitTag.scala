@@ -17,6 +17,19 @@ object ExitTag:
   def apply(st: => State): ExitTag = try {
     st(GLOBAL_RESULT) match
       case Undef => NormalTag
+      case addr: Addr if (st(addr) match
+            case r: RecordObj => r.isCompletion && r(Str("Type")) == ENUM_THROW
+            case _            => false
+          ) =>
+        st(addr)(Str("Value")) match
+          case dynamicAddr: DynamicAddr => (
+            st(dynamicAddr)(Str("Prototype")) match
+              case NamedAddr(errorNameRegex(errorName)) =>
+                ThrowErrorTag(errorName)
+              case _ => ThrowValueTag(dynamicAddr)
+          )
+          case v => ThrowValueTag(st(addr)(v))
+
       case comp @ Comp(ENUM_THROW, addr: DynamicAddr, _) =>
         st(addr)(Str("Prototype")) match
           case NamedAddr(errorNameRegex(errorName)) => ThrowErrorTag(errorName)
