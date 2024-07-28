@@ -101,6 +101,16 @@ given Ordering[Addr] = Ordering.by(_ match
   case DynamicAddr(long) => (long, ""),
 )
 
+object NormalCompValue {
+  // def apply(value: Value)(using st: State): Addr =
+  //   val addr = st.allocRecord(Some("CompletionRecord"))
+  //   NormalCompObj(ENUM_NORMAL, value.toPureValue, ENUM_EMPTY)
+  //   addr
+
+  def unapply(addr: Addr)(using st: State): Option[Value] =
+    NormalCompObj.unapply(st(addr))
+}
+
 /** function values */
 sealed trait FuncValue extends PureValue {
   def func: Func

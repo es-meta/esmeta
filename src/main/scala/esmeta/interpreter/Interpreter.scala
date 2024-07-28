@@ -200,11 +200,11 @@ class Interpreter(
         )
         case _ => false,
       )
-    case ria @ EReturnIfAbrupt(ERef(ref), check) =>
-      val refV = eval(ref)
-      val value = returnIfAbrupt(ria, st(refV), check)(using st)
-      st.update(refV, value)(using st)
-      value
+    // case ria @ EReturnIfAbrupt(ERef(ref), check) =>
+    //   val refV = eval(ref)
+    //   val value = returnIfAbrupt(ria, st(refV), check)(using st)
+    //   st.update(refV, value)(using st)
+    //   value
     case ria @ EReturnIfAbrupt(expr, check) =>
       returnIfAbrupt(ria, eval(expr), check)(using st)
     case EPop(list, front) =>
@@ -509,9 +509,10 @@ class Interpreter(
   def setReturn(value: Value, ret: Return)(using State): Unit =
     // set type map
     (value, setTypeMap.get(st.context.name)) match
-      case (addr: Addr, Some(tname)) => st.setType(addr, tname)
-      // case (NormalCompValue(addr: Addr), Some(tname)) => st.setType(addr, tname)
-      case _ => /* do nothing */
+      case (addr: Addr, Some(tname)) if (!(st(addr).isCompletion)) =>
+        st.setType(addr, tname)
+      case (NormalCompValue(addr: Addr), Some(tname)) => st.setType(addr, tname)
+      case _                                          => /* do nothing */
     st.context.retVal = Some(
       (
         ret,
