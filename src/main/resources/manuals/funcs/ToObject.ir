@@ -12,22 +12,57 @@ def ToObject(
     return %3
   }
   if (= (typeof argument) @Boolean) {
-    return (record [OrdinaryObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"], "BooleanData" : argument, "Extensible" : true, "__MAP__" : (map) })
+    return (record [OrdinaryObject] {
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"],
+      "BooleanData" : argument,
+      "Extensible" : true,
+      "__MAP__" : (map),
+      "PrivateElements" : (list []),
+    })
   }
   if (= (typeof argument) @Number) {
-    return (record [OrdinaryObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Number.prototype%"], "NumberData" : argument, "Extensible" : true, "__MAP__" : (map) })
+    return (record [OrdinaryObject] {
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Number.prototype%"],
+      "NumberData" : argument,
+      "Extensible" : true,
+      "__MAP__" : (map),
+      "PrivateElements" : (list []),
+    })
   }
   if (= (typeof argument) @String) {
-    let obj = (record [StringExoticObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"], "StringData" : argument, "Extensible" : true, "__MAP__" : (map) })
-    obj.__MAP__.length = (record [PropertyDescriptor] { "Value" : ([number] argument.length), "Writable" : false, "Enumerable" : false, "Configurable" : false })
+    let obj = (record [StringExoticObject] {
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"],
+      "StringData" : argument,
+      "Extensible" : true,
+      "__MAP__" : (map),
+      "PrivateElements" : (list []),
+    })
+    obj.__MAP__.length = (record [PropertyDescriptor] {
+      "Value" : ([number] argument.length),
+      "Writable" : false,
+      "Enumerable" : false,
+      "Configurable" : false,
+    })
     return obj
   }
   if (= (typeof argument) @Symbol) {
-    let obj = (record [OrdinaryObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Symbol.prototype%"], "SymbolData" : argument, "Extensible" : true, "__MAP__" : (map) })
+    let obj = (record [OrdinaryObject] {
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Symbol.prototype%"],
+      "SymbolData" : argument,
+      "Extensible" : true,
+      "__MAP__" : (map),
+      "PrivateElements" : (list []),
+    })
     return obj
   }
   if (= (typeof argument) @BigInt) {
-    let obj = (record [OrdinaryObject] { "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"], "BigIntData" : argument, "Extensible" : true, "__MAP__" : (map) })
+    let obj = (record [OrdinaryObject] {
+      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"],
+      "BigIntData" : argument,
+      "Extensible" : true,
+      "__MAP__" : (map),
+      "PrivateElements" : (list []),
+    })
     return obj
   }
   if (= (typeof argument) @Object) return argument
