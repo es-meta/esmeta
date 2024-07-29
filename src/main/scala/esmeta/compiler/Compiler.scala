@@ -8,7 +8,7 @@ import esmeta.ir.{
   Param => IRParam,
   *,
 }
-import esmeta.ir.util.{Walker => IRWalker}
+import esmeta.ir.util.{isPure, Walker => IRWalker}
 import esmeta.lang.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 import esmeta.spec.*
@@ -18,7 +18,6 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.ListBuffer
-import esmeta.ir.util.isPure
 
 /** compiler from metalangauge to IR */
 object Compiler:
@@ -146,7 +145,13 @@ class Compiler(
             ILet(Name(name), EList(Nil)),
             IWhile(
               lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
-              IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
+              ISeq(
+                List(
+                  // TODO : use proper tId allocation instead of hard coding
+                  IPop(Temp(0), ENAME_ARGS_LIST, true),
+                  IPush(ERef(Temp(0)), toERef(Name(name)), false),
+                ),
+              ),
             ),
           )
         case Param(name, _, kind) =>
@@ -154,7 +159,7 @@ class Compiler(
           List(
             IIf(
               lessThan(zero, argsLen),
-              ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
+              IPop(Name(name), ENAME_ARGS_LIST, true),
               ILet(Name(name), EAbsent()),
             ),
           )
@@ -358,7 +363,10 @@ class Compiler(
     case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val tId = fb.newTId
+      fb.addInst(
+        IPop(tId, EGLOBAL_EXECUTION_STACK, true),
+      )
     case RemoveStep(elem, list) =>
       fb.addInst(
         ICall(
@@ -368,9 +376,11 @@ class Compiler(
         ),
       )
     case RemoveFirstStep(expr) =>
-      fb.addInst(IExpr(EPop(compile(fb, expr), true)))
+      val tId = fb.newTId
+      fb.addInst(IPop(tId, compile(fb, expr), true))
     case RemoveContextStep(_, _) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val tId = fb.newTId
+      fb.addInst(IPop(tId, EGLOBAL_EXECUTION_STACK, true))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
