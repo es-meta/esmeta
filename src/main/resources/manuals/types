@@ -50,6 +50,7 @@ type BigIntObject extends OrdinaryObject {
 type Binding {
   BoundValue: ESValue;
   initialized: Boolean;
+  mutable: Boolean;
 }
 
 type BooleanObject extends OrdinaryObject {
@@ -216,6 +217,7 @@ type GlobalSymbolRegistryRecord {
 
 type ImmutableBinding extends Binding {
   strict: Boolean;
+  mutable: False;
 }
 
 type ImmutablePrototypeExoticObject extends Object {
@@ -295,7 +297,9 @@ type ModuleRecord {
   Realm: Record[RealmRecord];
 }
 
-type MutableBinding extends Binding
+type MutableBinding extends Binding {
+  mutable: True;
+}
 
 type NumberObject extends OrdinaryObject {
   NumberData: Number;

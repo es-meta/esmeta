@@ -85,7 +85,7 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
     case Some(decl) =>
       val parentfields = decl.parent.map(getUpperFieldMap).getOrElse(Map())
       val fields = decl.fields
-      weakMerge(parentfields, fields)
+      parentfields ++ fields
     case None => Map()
 
   /** get field map of name */
