@@ -17,11 +17,7 @@ sealed trait Value extends StateElem {
     ENUM_NORMAL,
   )
   def wrapCompletion(ty: Enum)(using st: State, cfg: CFG): Addr = this match
-    case addr: Addr if (st(addr) match
-          case r: RecordObj if r.isCompletion => true
-          case _                              => false
-        ) =>
-      addr
+    case addr: Addr if (st(addr).isCompletion) => addr
     case notCompValue =>
       val compAddr = st.allocRecord(Some("CompletionRecord"))
       val fields =
