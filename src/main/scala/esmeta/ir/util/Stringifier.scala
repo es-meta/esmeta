@@ -127,11 +127,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(pop " >> (if (front) "<" else ">") >> " " >> list >> ")"
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
-      case ENt(name, params) =>
-        app >> "(nt |" >> name >> "|"
+      case EGrammarSymbol(name, params) =>
+        app >> "(grammar-symbol |" >> name >> "|"
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule("[", "", "]")
-        app >> params >> ")"
+        if (params.nonEmpty) app >> params
+        app >> ")"
       case ESourceText(expr) =>
         app >> "(source-text " >> expr >> ")"
       case EYet(msg) =>
@@ -161,6 +162,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> cop >> " " >> expr >> ")"
       case ETypeOf(base) =>
         app >> "(typeof " >> base >> ")"
+      case EInstanceOf(expr, target) =>
+        app >> "(instanceof " >> expr >> " " >> target >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EClo(fname, captured) =>

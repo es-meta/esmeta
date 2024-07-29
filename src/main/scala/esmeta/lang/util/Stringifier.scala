@@ -482,6 +482,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         name.map(app >> " (" >> _ >> ")")
         app
       case CodeLiteral(code) => app >> "`" >> code >> "`"
+      case GrammarSymbolLiteral(name, flags) =>
+        given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
+        app >> "the grammar symbol "
+        app >> "|" >> name
+        if (!flags.isEmpty) app >> flags
+        app >> "|"
       case NonterminalLiteral(ordinal, name, flags) =>
         given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
         ordinal.map(ordinal => app >> "the " >> ordinal.toOrdinal >> " ")
@@ -578,7 +584,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
-      case InstanceOfCondition(expr, neg, ty) =>
+      case TypeCheckCondition(expr, neg, ty) =>
         app >> expr
         // TODO use a/an based on the types
         given Rule[Type] = (app, ty) => typeRule(app >> "a ", ty)
@@ -802,8 +808,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     for ((pred, name) <- predTys if pred <= ty)
       tys :+= name.withArticle(plural); ty --= pred
 
-    // names
-    for (name <- ty.name.set) tys :+= name.withArticle(plural)
+    // TODO named records
+    // for (name <- ty.name.set) tys :+= name.withArticle(plural)
 
     // lists
     for (vty <- ty.list.elem)
@@ -811,10 +817,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       tys :+= s"a List of $sub"
 
     // AST values
-    ty.astValue match
-      case AstTopTy => tys :+= "Parse Node".withArticle(plural)
-      case ty: AstNonTopTy =>
-        val set = ty.toName.names
+    ty.ast.names match
+      case Inf => tys :+= "Parse Node".withArticle(plural)
+      case Fin(set) =>
         for (name <- set.toList.sorted)
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"

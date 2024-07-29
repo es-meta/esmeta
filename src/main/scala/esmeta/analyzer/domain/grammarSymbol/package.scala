@@ -5,9 +5,9 @@ import esmeta.analyzer.{Analyzer, domain}
 type Self = Decl & domain.Decl & Analyzer
 
 trait Decl
-  extends NtDomainDecl
-  with NtSimpleDomainDecl
-  with NtFlatDomainDecl
-  with NtSetDomainDecl {
+  extends GrammarSymbolDomainDecl
+  with GrammarSymbolSimpleDomainDecl
+  with GrammarSymbolFlatDomainDecl
+  with GrammarSymbolSetDomainDecl {
   self: Self =>
 }

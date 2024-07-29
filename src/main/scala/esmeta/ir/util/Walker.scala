@@ -76,8 +76,8 @@ trait Walker extends BasicWalker {
       EPop(walk(list), walk(front))
     case EParse(code, rule) =>
       EParse(walk(code), walk(rule))
-    case ENt(name, params) =>
-      ENt(walk(name), walkList(params, walk))
+    case EGrammarSymbol(name, params) =>
+      EGrammarSymbol(walk(name), walkList(params, walk))
     case ESourceText(expr) =>
       ESourceText(walk(expr))
     case EYet(msg) =>
@@ -102,6 +102,8 @@ trait Walker extends BasicWalker {
       EConvert(walk(cop), walk(expr))
     case ETypeOf(base) =>
       ETypeOf(walk(base))
+    case EInstanceOf(expr, target) =>
+      EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
     case EClo(fname, captured) =>

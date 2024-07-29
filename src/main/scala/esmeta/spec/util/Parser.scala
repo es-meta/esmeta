@@ -242,16 +242,14 @@ trait Parsers extends LangParsers {
   // concrete method head generator
   lazy val concMethodHeadGen: Parser[Param => ConcreteMethodHead] = {
     name ~ params ~ retTy ^^ {
-      case name ~ params ~ rty =>
-        ConcreteMethodHead(name, _, params, rty)
+      case name ~ params ~ rty => ConcreteMethodHead(name, _, params, rty)
     }
   }.named("spec.ConcreteMethodHead")
 
   // internal method head generator
   lazy val inMethodHeadGen: Parser[Param => InternalMethodHead] = {
     ("[[" ~> name <~ "]]") ~ params ~ retTy ^^ {
-      case name ~ params ~ rty =>
-        InternalMethodHead(name, _, params, rty)
+      case name ~ params ~ rty => InternalMethodHead(name, _, params, rty)
     }
   }.named("spec.InternalMethodHead")
 

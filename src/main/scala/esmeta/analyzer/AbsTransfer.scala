@@ -311,7 +311,8 @@ trait AbsTransferDecl { self: Analyzer =>
             c <- transfer(code)
             r <- transfer(rule)
           } yield c.parse(r)
-        case ENt(name, params) => AbsValue(Nt(name, params))
+        case EGrammarSymbol(name, params) =>
+          AbsValue(GrammarSymbol(name, params))
         case ESourceText(expr) =>
           for { v <- transfer(expr) } yield v.sourceText
         case e @ EGetChildren(ast) =>
@@ -398,16 +399,8 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(base)
             st <- get
           } yield v.typeOf(st)
-        case ETypeCheck(expr, tyExpr) =>
-          for {
-            v <- transfer(expr)
-            tv <- transfer(tyExpr)
-            st <- get
-          } yield tv.getSingle match
-            case One(Str(s))   => v.typeCheck(s, st)
-            case One(Nt(n, _)) => v.typeCheck(n, st)
-            case _             => AbsValue.boolTop
-
+        case EInstanceOf(expr, target) => ???
+        case ETypeCheck(expr, tyExpr)  => ???
         case EClo(fname, cap) =>
           cfg.fnameMap.get(fname) match {
             case Some(f) =>
@@ -773,48 +766,50 @@ trait AbsTransferDecl { self: Analyzer =>
     object OptimizedCall {
       def unapply(callInst: CallInst)(using
         np: NodePoint[_],
-      ): Option[Result[AbsValue]] = callInst match
-        case ICall(_, EClo("Completion", Nil), List(expr)) =>
-          Some(for {
-            v <- transfer(expr)
-            _ <- modify(prune(ETypeCheck(expr, EStr("CompletionRecord")), true))
-          } yield v)
-        case ICall(_, EClo("NormalCompletion", Nil), List(expr)) =>
-          Some(transfer(expr).map(_.normalCompletion))
-        case ICall(_, EClo("UpdateEmpty", Nil), List(compExpr, valueExpr)) =>
-          AbsValue match
-            case ValueBasicDomain =>
-              Some(for {
-                compValue <- transfer(compExpr)
-                newValue <- transfer(valueExpr)
-              } yield {
-                val AbsComp(map) = compValue.comp
-                val empty = AbsPureValue(ENUM_EMPTY)
-                val newMap = map.map {
-                  case (ty, res @ AbsComp.Result(value, target)) =>
-                    ty -> (
-                      if (empty !⊑ value) res
-                      else
-                        res.copy(value = (value -- empty) ⊔ newValue.pureValue)
-                    )
-                }
-                AbsValue(AbsComp(newMap))
-              })
-            case ValueTypeDomain =>
-              Some(for {
-                compValue <- transfer(compExpr)
-                newValue <- transfer(valueExpr)
-              } yield {
-                val compTy = compValue.ty.comp
-                val normalTy = compTy.normal
-                val newValueTy = newValue.ty.pureValue
-                val emptyTy = EnumT("empty").pureValue
-                val updated =
-                  compTy.copy(normal = (normalTy -- emptyTy) ⊔ newValueTy)
-                AbsValue(ValueTy(comp = updated))
-              })
-            case _ => None
-        case _ => None
+      ): Option[Result[AbsValue]] = ???
+      // TODO
+      // callInst match
+      //   case ICall(_, EClo("Completion", Nil), List(expr)) =>
+      //     Some(for {
+      //       v <- transfer(expr)
+      //       _ <- modify(prune(ETypeCheck(expr, EStr("CompletionRecord")), true))
+      //     } yield v)
+      //   case ICall(_, EClo("NormalCompletion", Nil), List(expr)) =>
+      //     Some(transfer(expr).map(_.normalCompletion))
+      //   case ICall(_, EClo("UpdateEmpty", Nil), List(compExpr, valueExpr)) =>
+      //     AbsValue match
+      //       case ValueBasicDomain =>
+      //         Some(for {
+      //           compValue <- transfer(compExpr)
+      //           newValue <- transfer(valueExpr)
+      //         } yield {
+      //           val AbsComp(map) = compValue.comp
+      //           val empty = AbsPureValue(ENUM_EMPTY)
+      //           val newMap = map.map {
+      //             case (ty, res @ AbsComp.Result(value, target)) =>
+      //               ty -> (
+      //                 if (empty !⊑ value) res
+      //                 else
+      //                   res.copy(value = (value -- empty) ⊔ newValue.pureValue)
+      //               )
+      //           }
+      //           AbsValue(AbsComp(newMap))
+      //         })
+      //       case ValueTypeDomain =>
+      //         Some(for {
+      //           compValue <- transfer(compExpr)
+      //           newValue <- transfer(valueExpr)
+      //         } yield {
+      //           val compTy = compValue.ty.comp
+      //           val normalTy = compTy.normal
+      //           val newValueTy = newValue.ty.pureValue
+      //           val emptyTy = EnumT("empty").pureValue
+      //           val updated =
+      //             compTy.copy(normal = (normalTy -- emptyTy) ⊔ newValueTy)
+      //           AbsValue(ValueTy(comp = updated))
+      //         })
+      //       case _ => None
+      //   case _ => None
     }
 
     /** prune condition */

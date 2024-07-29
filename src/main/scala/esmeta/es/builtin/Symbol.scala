@@ -11,21 +11,21 @@ case class Symbol(cfg: CFG) {
 
   private lazy val symbols: List[String] = (for {
     row <- spec.tables(WELL_KNOWN_SYMBOLS).rows
-    symbolKey <- row.headOption.map(_.stripPrefix("@@"))
-  } yield symbolKey)
+    symbolField <- row.headOption.map(_.stripPrefix("@@"))
+  } yield symbolField)
 
   /** get symbol record */
   def ty: ValueTy = RecordT(
-    (for (symKey <- symbols) yield symKey -> SymbolT): _*,
+    (for (symField <- symbols) yield symField -> SymbolT).toMap,
   )
 
   /** get symbol record */
   def obj: RecordObj = RecordObj("Record")(
-    (for { symKey <- symbols } yield symKey -> symbolAddr(symKey)): _*,
+    (for { symField <- symbols } yield symField -> symbolAddr(symField)): _*,
   )
 
   /** get map for heap */
-  def map: Map[Addr, Obj] = (for { symKey <- symbols } yield symbolAddr(
-    symKey,
-  ) -> RecordObj("Symbol")("Description" -> Str(symbolName(symKey)))).toMap
+  def map: Map[Addr, Obj] = (for { symField <- symbols } yield symbolAddr(
+    symField,
+  ) -> RecordObj("Symbol")("Description" -> Str(symbolName(symField)))).toMap
 }

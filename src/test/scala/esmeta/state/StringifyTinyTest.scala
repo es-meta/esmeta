@@ -127,7 +127,7 @@ class StringifyTinyTest extends StateTest {
     lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
     lazy val astArgs =
       AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
-    lazy val nt = Nt("Identifier", List(true, false))
+    lazy val grammarSymbol = GrammarSymbol("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(
       comp -> "comp[~throw~/to](42)",
@@ -141,7 +141,7 @@ class StringifyTinyTest extends StateTest {
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",
       lex -> "|Identifier|(x)",
-      nt -> "|Identifier|[TF]",
+      grammarSymbol -> "|Identifier|[TF]",
       Math(3.2) -> "3.2",
       Number(3.2) -> "3.2",
       BigInt(324) -> "324n",

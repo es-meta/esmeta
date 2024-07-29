@@ -3,10 +3,8 @@ package esmeta.ty
 import esmeta.ty.util.Parser
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.annotation.tailrec
 
 /** type modeling */
-// TODO consider refactoring
 case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
 
   /** merge two type models */
@@ -50,7 +48,7 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
     descs
   }
   def isSubTy(l: String, r: String): Boolean =
-    (l == r) || subTys.get(r).fold(false)(_ contains l)
+    l == r || r == "" || subTys.get(r).fold(false)(_ contains l)
   def isSubTy(l: String, rset: Set[String]): Boolean =
     rset.exists(r => isSubTy(l, r))
   def isSubTy(l: String, rset: BSet[String]): Boolean = rset match
@@ -61,31 +59,6 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
   def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
     lset.forall(l => isSubTy(l, rset))
 
-  /** loose subtyping relation between two value types */
-  def isLooseSubTy(
-    l: ValueTy,
-    r: ValueTy,
-  ): Boolean =
-    val pureValue = isLooseSubTy(l.pureValue, r.pureValue)
-    val normal = isLooseSubTy(l.normal, r.normal)
-    val abrupt = l.abrupt <= r.abrupt
-    pureValue && normal && abrupt
-
-  /** loose subtyping relation between two pure value types */
-  def isLooseSubTy(
-    l: PureValueTy,
-    r: PureValueTy,
-  ): Boolean =
-    val noName =
-      ((l -- NameT.pureValue) <= (r -- NameT.pureValue))
-    val name = ((l.name.set, r.name.set) match
-      case (_, Inf) => true
-      case (Inf, _) => false
-      case (Fin(lset), Fin(rset)) =>
-        lset.forall(l => rset.exists(r => isSubTy(l, r) || isSubTy(r, l)))
-    )
-    noName && name
-
   /** field map alias */
   type FieldMap = Map[String, ValueTy]
 
@@ -94,19 +67,12 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
     fieldMaps.getOrElse(tname, Map()).getOrElse(p, AnyT)
 
   /** get field map */
-  def getFieldMap(name: String): FieldMap =
-    val upper = getUpperFieldMap(name)
-    val lower = getLowerFieldMap(name)
-    lower.foldLeft(upper) {
-      case (map, (k, t)) =>
-        val newT = t || map.getOrElse(k, BotT)
-        map + (k -> newT)
-    }
+  def getFieldMap(name: String): FieldMap = fieldMaps.getOrElse(name, Map())
 
   /** field type */
-  private lazy val fieldMaps: Map[String, FieldMap] = (for {
+  lazy val fieldMaps: Map[String, FieldMap] = (for {
     name <- decls.keySet
-  } yield name -> getFieldMap(name)).toMap
+  } yield name -> getUpperFieldMap(name)).toMap
 
   /** get field map from ancestors */
   private def getUpperFieldMap(name: String): FieldMap = decls.get(name) match
@@ -170,18 +136,3 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
 
 }
 object TyModel extends Parser.From(Parser.tyModel)
-
-/** type declrmation */
-case class TyDecl(
-  name: String,
-  parent: Option[String] = None,
-  fields: Map[String, ValueTy] = Map(),
-) extends TyElem {
-  def methods: Map[String, String] = (for {
-    (field, ty) <- fields
-    fname <- ty.clo match
-      case Fin(set) if set.size == 1 => Some(set.head)
-      case _                         => None
-  } yield field -> fname).toMap
-}
-object TyDecl extends Parser.From(Parser.tyDecl)

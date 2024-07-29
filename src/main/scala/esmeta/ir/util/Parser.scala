@@ -119,8 +119,8 @@ trait Parsers extends TyParsers {
       case f ~ e => EPop(e, f)
     } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
-    } | "(" ~ "nt" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
-      case x ~ ps => ENt(x, ps)
+    } | "(" ~ "grammar-symbol" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => EGrammarSymbol(x, ps)
     } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
@@ -145,7 +145,9 @@ trait Parsers extends TyParsers {
       case c ~ e => EConvert(c, e)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
       case e => ETypeOf(e)
-    } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
+    } | "(" ~ "instanceof" ~> expr ~ expr <~ ")" ^^ {
+      case e ~ s => EInstanceOf(e, s)
+    } | "(" ~ "?" ~> expr ~ (":" ~> irType) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
     } | "clo<" ~> string ~ opt(
       "," ~ "[" ~> repsep(name, ",") <~ "]",

@@ -1,6 +1,6 @@
 def ToObject(
   argument: ESValue,
-): Normal[Object] | Abrupt[throw] = {
+): Normal[Record[Object]] | Abrupt[throw] = {
   if (= (typeof argument) @Undefined) {
     call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call %1 = clo<"ThrowCompletion">(%0)

@@ -63,8 +63,8 @@ object IRTest {
   lazy val riaNoCheck = EReturnIfAbrupt(xExpr, false)
   lazy val popFront = EPop(xExpr, true)
   lazy val popBack = EPop(xExpr, false)
-  lazy val parse = EParse(xExpr, nt)
-  lazy val nt = ENt("A", List(true, false))
+  lazy val parse = EParse(xExpr, grammarSymbol)
+  lazy val grammarSymbol = EGrammarSymbol("A", List(true, false))
   lazy val yet = EYet("NOT YET")
   lazy val contains = EContains(xExpr, xExpr)
   lazy val substring = ESubstring(xExpr, xExpr, None)
@@ -80,7 +80,8 @@ object IRTest {
   lazy val mathOp = EMathOp(MOp.Tan, List(xExpr))
   lazy val convert = EConvert(COp.ToBigInt, xExpr)
   lazy val typeOf = ETypeOf(xExpr)
-  lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
+  lazy val instanceOf = EInstanceOf(xExpr, xExpr)
+  lazy val typeCheck = ETypeCheck(xExpr, ty)
   // debugging expressions
   lazy val debug = EDebug(xExpr)
   // random number expressions

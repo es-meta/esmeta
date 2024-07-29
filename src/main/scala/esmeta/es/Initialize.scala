@@ -31,21 +31,21 @@ class Initialize(cfg: CFG) {
     initTypedGlobal.map { case (k, (v, _)) => k -> v }
   lazy val initTypedGlobal: Map[Global, (Value, Ty)] = Map(
     EXECUTION_STACK ->
-    (NamedAddr(EXECUTION_STACK), ListT(NameT("ExecutionContext"))),
+    (NamedAddr(EXECUTION_STACK), ListT(RecordT("ExecutionContext"))),
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
     SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
     MATH_PI -> (Math(scala.math.Pi), MathT),
-    AGENT_RECORD -> (NamedAddr(AGENT_RECORD), NameT("AgentRecord")),
+    AGENT_RECORD -> (NamedAddr(AGENT_RECORD), RecordT("AgentRecord")),
     AGENT_SIGNIFIER -> (NamedAddr(AGENT_SIGNIFIER), StrT("AgentSignifier")),
     CANDIDATE_EXECUTION -> (
       NamedAddr("CandidateExecution"),
-      NameT("CandidateExecution"),
+      RecordT("CandidateExecution"),
     ),
     KEPT_ALIVE -> (NamedAddr("KeptAlive"), ListT(ObjectT || SymbolT)),
-    REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
-    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
+    REALM -> (NamedAddr(REALM), RecordT("RealmRecord")),
+    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(RecordT("PendingJob"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
     UNDEF_TYPE -> (Str("Undefined"), StrT("Undefined")),
     NULL_TYPE -> (Str("Null"), StrT("Null")),

@@ -51,7 +51,8 @@ trait ValueBasicDomainDecl { self: Self =>
     val contTop: Elem = Bot.copy(pureValue = AbsPureValue.contTop)
     val partTop: Elem = Bot.copy(pureValue = AbsPureValue.partTop)
     val astValueTop: Elem = Bot.copy(pureValue = AbsPureValue.astValueTop)
-    val ntTop: Elem = Bot.copy(pureValue = AbsPureValue.ntTop)
+    val grammarSymbolTop: Elem =
+      Bot.copy(pureValue = AbsPureValue.grammarSymbolTop)
     val codeUnitTop: Elem = Bot.copy(pureValue = AbsPureValue.codeUnitTop)
     val enumTop: Elem = Bot.copy(pureValue = AbsPureValue.enumTop)
     val mathTop: Elem = Bot.copy(pureValue = AbsPureValue.mathTop)
@@ -73,7 +74,7 @@ trait ValueBasicDomainDecl { self: Self =>
       cont: AbsCont = AbsCont.Bot,
       part: AbsPart = AbsPart.Bot,
       astValue: AbsAstValue = AbsAstValue.Bot,
-      nt: AbsNt = AbsNt.Bot,
+      grammarSymbol: AbsGrammarSymbol = AbsGrammarSymbol.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
@@ -93,7 +94,7 @@ trait ValueBasicDomainDecl { self: Self =>
         cont,
         part,
         astValue,
-        nt,
+        grammarSymbol,
         codeUnit,
         enumv,
         math,
@@ -386,7 +387,7 @@ trait ValueBasicDomainDecl { self: Self =>
         }
         // parse
         for {
-          Nt(name, params) <- rule.nt
+          GrammarSymbol(name, params) <- rule.grammarSymbol
           (str, args) <- codes
           parseArgs = if (params.isEmpty) args else params
         } newV ⊔= apply(cfg.esParser(name, parseArgs).from(str))
@@ -466,7 +467,7 @@ trait ValueBasicDomainDecl { self: Self =>
       def cont: AbsCont = elem.pureValue.cont
       def part: AbsPart = elem.pureValue.part
       def astValue: AbsAstValue = elem.pureValue.astValue
-      def nt: AbsNt = elem.pureValue.nt
+      def grammarSymbol: AbsGrammarSymbol = elem.pureValue.grammarSymbol
       def codeUnit: AbsCodeUnit = elem.pureValue.codeUnit
       def enumv: AbsEnum = elem.pureValue.enumv
       def math: AbsMath = elem.pureValue.math

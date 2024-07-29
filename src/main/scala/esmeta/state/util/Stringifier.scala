@@ -103,16 +103,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // pure values (not completion values)
   given pureValueRule: Rule[PureValue] = (app, value) =>
     value match
-      case addr: Addr      => addrRule(app, addr)
-      case clo: Clo        => cloRule(app, clo)
-      case cont: Cont      => contRule(app, cont)
-      case AstValue(ast)   => app >> ast
-      case gr: Nt          => ntRule(app, gr)
-      case m: Math         => mathRule(app, m)
-      case i: Infinity     => infinityRule(app, i)
-      case e: Enum         => enumRule(app, e)
-      case cu: CodeUnit    => cuRule(app, cu)
-      case sv: SimpleValue => svRule(app, sv)
+      case addr: Addr        => addrRule(app, addr)
+      case clo: Clo          => cloRule(app, clo)
+      case cont: Cont        => cogrammarSymbolRule(app, cont)
+      case AstValue(ast)     => app >> ast
+      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
+      case m: Math           => mathRule(app, m)
+      case i: Infinity       => infinityRule(app, i)
+      case e: Enum           => enumRule(app, e)
+      case cu: CodeUnit      => cuRule(app, cu)
+      case sv: SimpleValue   => svRule(app, sv)
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
@@ -129,7 +129,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> ">"
 
   // continuations
-  given contRule: Rule[Cont] = (app, cont) =>
+  given cogrammarSymbolRule: Rule[Cont] = (app, cont) =>
     val Cont(func, captured, _) = cont
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
     app >> "cont<" >> func.irFunc.name
@@ -137,7 +137,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> ">"
 
   // nonterminals
-  given ntRule: Rule[Nt] = (app, gr) =>
+  given grammarSymbolRule: Rule[GrammarSymbol] = (app, gr) =>
     given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
     given Rule[List[Boolean]] = iterableRule()
     app >> "|" >> gr.name >> "|"

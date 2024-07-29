@@ -4,11 +4,19 @@ import esmeta.util.*
 import esmeta.ty.util.Parser
 
 /** record types */
-sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
+enum RecordTy extends TyElem with Lattice[RecordTy] {
+
+  /** a detailed record type with its type name and extended fields */
+  case Detail(name: String, map: Map[String, ValueTy])
+
+  /** a simple record type with a set of record names */
+  case Simple(set: Set[String])
+
+  import ManualInfo.tyModel.*
   import RecordTy.*
 
   /** top check */
-  def isTop: Boolean = this eq Top
+  def isTop: Boolean = this == Top
 
   /** bottom check */
   def isBottom: Boolean = this == Bot
@@ -16,66 +24,62 @@ sealed trait RecordTy extends TyElem with Lattice[RecordTy] {
   /** partial order/subset operator */
   def <=(that: => RecordTy): Boolean = (this, that) match
     case _ if this eq that => true
-    case (_, Top)          => true
-    case (Top, _)          => false
-    case (Elem(lmap), Elem(rmap)) =>
-      (lmap.keySet ++ rmap.keySet).forall(field => this(field) <= that(field))
+    case (Detail(l, lmap), Detail(r, rmap)) =>
+      (l == r && rmap.forall { this(_) <= _ }) || isSubTy(l, r)
+    case (Detail(l, _), Simple(rs)) => isSubTy(l, rs)
+    case (Simple(ls), Simple(rs))   => isSubTy(ls, rs)
+    case (Simple(ls), Detail(r, map)) =>
+      isSubTy(ls, r) && map.forall { this(_) <= _ }
 
   /** union type */
-  def ||(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that   => this
-    case (Top, _) | (_, Top) => Top
-    case (Elem(lmap), Elem(rmap)) =>
-      Elem(
-        (for {
-          field <- (lmap.keySet ++ rmap.keySet).toList
-        } yield field -> (this(field) || that(field))).toMap,
-      )
+  def ||(that: => RecordTy): RecordTy =
+    if (this <= that) that
+    else if (that <= this) this
+    else
+      val (ls, rs) = (this.names, that.names)
+      Simple(ls.filter(!isSubTy(_, rs)) ++ rs.filter(!isSubTy(_, ls)))
 
   /** intersection type */
-  def &&(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that   => this
-    case (Top, _) | (_, Top) => Top
-    case (Elem(lmap), Elem(rmap)) =>
-      Elem(
-        (for {
-          field <- (lmap.keySet ++ rmap.keySet).toList
-        } yield field -> (this(field) && that(field))).toMap,
-      ).normalized
+  def &&(that: => RecordTy): RecordTy =
+    if (this <= that) this
+    else if (that <= this) that
+    else
+      val (ls, rs) = (this.names, that.names)
+      Simple(ls.filter(isSubTy(_, rs)) ++ rs.filter(isSubTy(_, ls)))
 
   /** prune type */
-  def --(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that => this
-    case (Top, _)          => Top
-    case (_, Top)          => Bot
-    case (Elem(lmap), Elem(rmap)) =>
-      Elem(
-        (for {
-          field <- (lmap.keySet ++ rmap.keySet).toList
-        } yield field -> (this(field) -- that(field))).toMap,
-      ).normalized
+  def --(that: => RecordTy): RecordTy = this match
+    case Simple(set) => Simple(set.filter(!isSubTy(_, that.names)))
+    case _           => this
+
+  /** fields */
+  def fieldMap: Map[String, Ty] = this match
+    case Detail(name, map) => getFieldMap(name) ++ map
+    case Simple(set) =>
+      val fields = for {
+        name <- set
+        (field, _) <- getFieldMap(name)
+      } yield field
+      fields.toList.map(f => f -> apply(f)).toMap
+
+  /** type names */
+  def names: Set[String] = this match
+    case Detail(name, _) => Set(name)
+    case Simple(set)     => set
 
   /** field accessor */
   def apply(field: String): ValueTy = this match
-    case Top       => ValueTy.Top
-    case Elem(map) => map.getOrElse(field, ValueTy.Bot)
-
-  /** normalized type */
-  def normalized: RecordTy = this match
-    case Top => Top
-    case Bot => Bot
-    case Elem(map) =>
-      val newMap = map.filter { case (_, v) => !v.isBottom }
-      if (newMap.isEmpty) Bot else Elem(newMap)
+    case Detail(name, map) => map.getOrElse(field, getField(name, field))
+    case Simple(set)       => set.foldLeft(BotT)(_ || getField(_, field))
 }
-case object RecordTopTy extends RecordTy
-case class RecordElemTy(map: Map[String, ValueTy] = Map()) extends RecordTy
+
 object RecordTy extends Parser.From(Parser.recordTy) {
-  def apply(fields: Set[String]): RecordTy =
-    apply(fields.map(_ -> ValueTy.Top).toMap)
-  def apply(fields: Map[String, ValueTy]): RecordTy = Elem(fields).normalized
-  val Elem = RecordElemTy
-  type Elem = RecordElemTy
-  lazy val Top = RecordTopTy
-  lazy val Bot = Elem()
+  lazy val Top: RecordTy = Simple(Set(""))
+  lazy val Bot: RecordTy = Simple(Set.empty)
+  def apply(names: String*): RecordTy =
+    apply(names.toSet)
+  def apply(names: Set[String]): RecordTy =
+    if (names.isEmpty) Bot else Simple(names)
+  def apply(fields: Map[String, ValueTy]): RecordTy =
+    if (fields.isEmpty) Top else Detail("", fields)
 }

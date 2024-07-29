@@ -217,19 +217,19 @@ class TypeAnalyzer(
       import RefinementKind.*
       Map(
         "IsCallable" -> List(
-          (0, True, NameT("FunctionObject")),
+          (0, True, RecordT("FunctionObject")),
         ),
         "IsConstructor" -> List(
-          (0, True, NameT("Constructor")),
+          (0, True, RecordT("Constructor")),
         ),
         "ValidateTypedArray" -> List(
-          (0, Normal, NameT("IntegerIndexedExoticObject")),
+          (0, Normal, RecordT("IntegerIndexedExoticObject")),
         ),
         "IsPromise" -> List(
-          (0, True, NameT("Promise")),
+          (0, True, RecordT("Promise")),
         ),
         "NewPromiseCapability" -> List(
-          (0, Normal, NameT("Constructor")),
+          (0, Normal, RecordT("Constructor")),
         ),
       )
 
@@ -368,7 +368,8 @@ class TypeAnalyzer(
         pruneType(x, expr, positive)
       // prune type checks
       case ETypeCheck(ERef(x: Local), expr) =>
-        pruneTypeCheck(x, expr, positive)
+        // TODO pruneTypeCheck(x, expr, positive)
+        ???
       // prune logical negation
       case EUnary(UOp.Not, e) =>
         prune(e, !positive)
@@ -466,49 +467,52 @@ class TypeAnalyzer(
       field: String,
       expr: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
-      l <- transfer(x)
-      lv <- transfer(l)
-      rv <- transfer(expr)
-      lty = lv.ty
-      rty = rv.ty
-      prunedV = expr match
-        case EAbsent() if positive => lv
-        case EAbsent() =>
-          val subTys = (for {
-            name <- lty.name.set
-          } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
-          lv ⊓ AbsValue(subTys.foldLeft(ValueTy.Bot) { _ ⊔ NameT(_) })
-        case _ =>
-          if (field == "Value")
-            val normal = lty.normal.prune(rty.pureValue, positive)
-            AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
-          else if (field == "Type")
-            AbsValue(rty.enumv.getSingle match
-              case One("normal") =>
-                if (positive) ValueTy(normal = lty.normal)
-                else ValueTy(abrupt = lty.abrupt)
-              case One(tname) =>
-                if (positive) ValueTy(abrupt = Fin(tname))
-                else
-                  ValueTy(
-                    normal = lty.normal,
-                    abrupt = lty.abrupt -- Fin(tname),
-                  )
-              case _ => lty,
-            )
-          else
-            val recordTy = lty.record
-            val ty = recordTy(field)
-            val prunedTy = if (positive) ty ⊓ rty else ty -- rty
-            AbsValue(lty.copied(record = recordTy match
-              case RecordTopTy => RecordTopTy
-              case RecordElemTy(map) =>
-                if (prunedTy.isBottom) RecordElemTy(map - field)
-                else RecordElemTy(map + (field -> prunedTy)),
-            ))
-      _ <- modify(_.update(l, prunedV))
-    } yield ()
+    )(using np: NodePoint[_]): Updater =
+      // TODO
+      // for {
+      //   l <- transfer(x)
+      //   lv <- transfer(l)
+      //   rv <- transfer(expr)
+      //   lty = lv.ty
+      //   rty = rv.ty
+      //   prunedV = expr match
+      //     case EAbsent() if positive => lv
+      //     case EAbsent() =>
+      //       val subTys = (for {
+      //         name <- lty.name.set
+      //       } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
+      //       lv ⊓ AbsValue(subTys.foldLeft(ValueTy.Bot) { _ ⊔ NameT(_) })
+      //     case _ =>
+      //       if (field == "Value")
+      //         val normal = lty.normal.prune(rty.pureValue, positive)
+      //         AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
+      //       else if (field == "Type")
+      //         AbsValue(rty.enumv.getSingle match
+      //           case One("normal") =>
+      //             if (positive) ValueTy(normal = lty.normal)
+      //             else ValueTy(abrupt = lty.abrupt)
+      //           case One(tname) =>
+      //             if (positive) ValueTy(abrupt = Fin(tname))
+      //             else
+      //               ValueTy(
+      //                 normal = lty.normal,
+      //                 abrupt = lty.abrupt -- Fin(tname),
+      //               )
+      //           case _ => lty,
+      //         )
+      //       else
+      //         val recordTy = lty.record
+      //         val ty = recordTy(field)
+      //         val prunedTy = if (positive) ty ⊓ rty else ty -- rty
+      //         AbsValue(lty.copied(record = recordTy match
+      //           case RecordTopTy => RecordTopTy
+      //           case RecordElemTy(map) =>
+      //             if (prunedTy.isBottom) RecordElemTy(map - field)
+      //             else RecordElemTy(map + (field -> prunedTy)),
+      //         ))
+      //   _ <- modify(_.update(l, prunedV))
+      // } yield ()
+      ???
 
     /** prune types with `typeof` constraints */
     def pruneType(
@@ -524,7 +528,7 @@ class TypeAnalyzer(
       prunedV = rty.str.getSingle match
         case One(tname) =>
           val value = AbsValue(tname match
-            case "Object"    => NameT("Object")
+            case "Object"    => RecordT("Object")
             case "Symbol"    => SymbolT
             case "Number"    => NumberT
             case "BigInt"    => BigIntT
@@ -552,13 +556,13 @@ class TypeAnalyzer(
       rty = rv.ty
       prunedV = (for {
         tname <- rv.getSingle match
-          case One(Str(s))   => Some(s)
-          case One(Nt(n, _)) => Some(n)
-          case _             => None
+          case One(Str(s))              => Some(s)
+          case One(GrammarSymbol(n, _)) => Some(n)
+          case _                        => None
         if cfg.tyModel.decls.contains(tname)
       } yield {
-        if (positive) AbsValue(NameT(tname))
-        else lv -- AbsValue(NameT(tname))
+        if (positive) AbsValue(RecordT(tname))
+        else lv -- AbsValue(RecordT(tname))
       }).getOrElse(lv)
       _ <- modify(_.update(l, prunedV))
     } yield ()

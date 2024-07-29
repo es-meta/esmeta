@@ -5,7 +5,7 @@ import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}
-import esmeta.error.NotSupported.Category.*
+import esmeta.error.NotSupported.Category.{Type => _, *}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
@@ -205,20 +205,21 @@ class Interpreter(
       try {
         (str, eval(rule), st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
-          case (x, Nt("Script", Nil), Some(y), Some(ast)) if x == y =>
+          case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
+              if x == y =>
             AstValue(ast)
-          case (x, Nt(name, params), _, _) =>
+          case (x, GrammarSymbol(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
             // TODO handle span of re-parsed ast
             ast.clearLoc
             ast.setChildLoc(locOpt)
             AstValue(ast)
-          case (_, r, _, _) => throw NoNt(rule, r)
+          case (_, r, _, _) => throw NoGrammarSymbol(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
-    case ENt(name, params) => Nt(name, params)
+    case EGrammarSymbol(name, params) => GrammarSymbol(name, params)
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
@@ -230,8 +231,8 @@ class Interpreter(
         case ast => throw InvalidASTChildren(ast)
     case EGetItems(nt, ast) =>
       val name = eval(nt) match
-        case Nt(name, _) => name
-        case v           => throw NoNt(nt, v)
+        case GrammarSymbol(name, _) => name
+        case v                      => throw NoGrammarSymbol(nt, v)
       st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(List(msg))
@@ -315,34 +316,15 @@ class Interpreter(
             case v => "SpecType"
         case v => "SpecType",
       )
-    case ETypeCheck(expr, tyExpr) =>
-      val v = eval(expr)
-      val tyName = eval(tyExpr) match
-        case Str(s)   => s
-        case Nt(s, _) => s
-        case v        => throw InvalidTypeExpr(expr, v)
-      Bool(v match
-        case m: Math =>
-          optional(MathTy.from(tyName)).fold(false)(_.contains(m))
-        case n: Number =>
-          optional(NumberTy.from(tyName)).fold(false)(_.contains(n))
-        case _: BigInt => tyName == "BigInt"
-        case _: Str    => tyName == "String"
-        case _: Bool   => tyName == "Boolean"
-        case _: Enum   => tyName == "Enum"
-        case _: Comp   => tyName == "CompletionRecord"
-        case Undef     => tyName == "Undefined"
-        case Null      => tyName == "Null"
-        case AstValue(ast) =>
-          tyName == "ParseNode" || (ast.types contains tyName)
-        case _: Clo => tyName == "Clo"
-        case addr: Addr =>
-          st(addr) match
-            case r: RecordObj => tyModel.isSubTy(r.tname, tyName)
-            case _: ListObj   => tyName contains "List"
-            case _            => ???
-        case v => ???,
-      )
+    case EInstanceOf(expr, target) =>
+      (eval(expr), eval(target)) match
+        case (AstValue(ast), GrammarSymbol("Nonterminal", _)) =>
+          Bool(ast.isInstanceOf[Syntactic])
+        case (AstValue(ast), GrammarSymbol(name, params)) =>
+          Bool(ast.name == name && ast.getArgs == params)
+        case _ => Bool(false)
+    case ETypeCheck(expr, ty) =>
+      Bool(ty.ty.contains(eval(expr), st))
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       Clo(func, Map.from(captured.map(x => x -> st(x))))

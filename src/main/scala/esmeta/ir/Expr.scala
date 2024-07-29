@@ -2,6 +2,7 @@ package esmeta.ir
 
 import esmeta.ir.util.Parser
 import esmeta.lang.Syntax
+import esmeta.ty.Ty
 import esmeta.util.DoubleEquals
 import scala.annotation.meta.field
 
@@ -13,7 +14,7 @@ case class EIsCompletion(expr: Expr) extends Expr
 case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr with Return
 case class EPop(list: Expr, front: Boolean) extends Expr
 case class EParse(code: Expr, rule: Expr) extends Expr
-case class ENt(name: String, params: List[Boolean]) extends Expr
+case class EGrammarSymbol(name: String, params: List[Boolean]) extends Expr
 case class ESourceText(expr: Expr) extends Expr
 case class EYet(msg: String) extends Expr
 case class EContains(list: Expr, expr: Expr) extends Expr
@@ -26,7 +27,8 @@ case class EVariadic(vop: VOp, exprs: List[Expr]) extends Expr
 case class EMathOp(mop: MOp, args: List[Expr]) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
 case class ETypeOf(base: Expr) extends Expr
-case class ETypeCheck(base: Expr, tyExpr: Expr) extends Expr
+case class EInstanceOf(base: Expr, target: Expr) extends Expr
+case class ETypeCheck(base: Expr, ty: Type) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr
 

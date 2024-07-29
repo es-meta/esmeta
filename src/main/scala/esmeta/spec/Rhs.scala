@@ -65,7 +65,7 @@ case class Rhs(
     case _            => false
 
   /** get index of non-terminal */
-  def getNtIndex(ntName: String): Option[Int] =
+  def getRhsIndex(ntName: String): Option[Int] =
     nts.zipWithIndex.find(_.head.name == ntName).map(_.last)
 
   /** get parameters from RHSs */

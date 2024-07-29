@@ -1,5 +1,6 @@
 package esmeta.ty
 
+import esmeta.ESMetaTest
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, FuncKind => IRFuncKind, *}
 import esmeta.state.*
@@ -9,6 +10,8 @@ import esmeta.es.*
 /** contains test */
 class ContainsTinyTest extends TyTest {
   val name: String = "tyContainsTest"
+
+  given CFG = ESMetaTest.cfg
 
   case class Neg(name: String, heap: Heap) {
     def neg(ps: (Ty, Value)*): Unit =
@@ -41,9 +44,9 @@ class ContainsTinyTest extends TyTest {
 
     // pre-defined heap
     lazy val mapAddr = NamedAddr("mapAddr")
-    lazy val mapObj = MapObj(LMMap())
+    lazy val mapObj = MapObj(LMMap(Number(42) -> Undef))
     lazy val recordAddr = NamedAddr("recordAddr")
-    lazy val recordObj = RecordObj("Record", MMap("P" -> Number(42)))
+    lazy val recordObj = RecordObj("Object", MMap("P" -> Number(42)))
     lazy val nilAddr = NamedAddr("nilAddr")
     lazy val nilObj = ListObj(Vector())
     lazy val listAddr = NamedAddr("listAddr")
@@ -76,15 +79,20 @@ class ContainsTinyTest extends TyTest {
     )
 
     checkContains("map objects")(
-      NameT -> mapAddr,
-      NameT("A") -> mapAddr,
-      RecordT -> recordAddr,
-      RecordT(Set("P")) -> recordAddr,
-      RecordT("P" -> NumberT) -> recordAddr,
+      MapT -> mapAddr,
+      MapT(NumberT, UndefT) -> mapAddr,
+      MapT(AnyT, AnyT) -> mapAddr,
     ).neg(
-      NameT("B") -> recordAddr,
-      RecordT(Set("Q")) -> recordAddr,
-      RecordT("P" -> BoolT) -> recordAddr,
+      MapT(StrT, UndefT) -> mapAddr,
+      MapT(NumberT, StrT) -> mapAddr,
+    )
+    checkContains("record objects")(
+      RecordT -> recordAddr,
+      RecordT("Object") -> recordAddr,
+      RecordT(Map("P" -> NumberT)) -> recordAddr,
+    ).neg(
+      RecordT(Map("P" -> AnyT, "Q" -> AnyT)) -> recordAddr,
+      RecordT(Map("P" -> BoolT)) -> recordAddr,
     )
 
     checkContains("list objects")(
@@ -127,21 +135,20 @@ class ContainsTinyTest extends TyTest {
     checkContains("abstract syntax tree (AST) values")(
       AstT -> astValue1,
       AstT("A") -> astValue1,
-      AstSingleT("B", 5, 2) -> astValue2,
+      AstT("B", 5) -> astValue2,
     ).neg(
       AstT("B") -> astValue1,
-      AstSingleT("A", 5, 2) -> astValue2,
-      AstSingleT("B", 3, 2) -> astValue2,
-      AstSingleT("B", 5, 1) -> astValue2,
+      AstT("A", 5) -> astValue2,
+      AstT("B", 3) -> astValue2,
     )
 
-    lazy val ntA = Nt("A", List(true, false, true))
-    lazy val ntB = Nt("B", Nil)
+    lazy val grammarSymbolA = GrammarSymbol("A", List(true, false, true))
+    lazy val grammarSymbolB = GrammarSymbol("B", Nil)
     checkContains("nonterminals")(
-      NtT -> ntA,
-      NtT(ntA) -> ntA,
+      GrammarSymbolT -> grammarSymbolA,
+      GrammarSymbolT(grammarSymbolA) -> grammarSymbolA,
     ).neg(
-      NtT(ntB) -> ntA,
+      GrammarSymbolT(grammarSymbolB) -> grammarSymbolA,
     )
 
     checkContains("math values")(

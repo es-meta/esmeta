@@ -1,6 +1,6 @@
 package esmeta.ty
 
-import esmeta.cfg.Func
+import esmeta.cfg.{CFG, Func}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.ty.util.Parser
@@ -92,11 +92,10 @@ case class ValueTy(
   def abrupt: BSet[String] = comp.abrupt
   def clo: BSet[String] = pureValue.clo
   def cont: BSet[Int] = pureValue.cont
-  def name: NameTy = pureValue.name
   def record: RecordTy = pureValue.record
   def list: ListTy = pureValue.list
-  def astValue: AstValueTy = pureValue.astValue
-  def nt: BSet[Nt] = pureValue.nt
+  def ast: AstTy = pureValue.ast
+  def grammarSymbol: BSet[GrammarSymbol] = pureValue.grammarSymbol
   def codeUnit: Boolean = pureValue.codeUnit
   def enumv: BSet[String] = pureValue.enumv
   def math: MathTy = pureValue.math
@@ -123,11 +122,14 @@ case class ValueTy(
                 ValueTy(pureValue = map.key).contains(key, heap) &&
                 ValueTy(pureValue = map.value).contains(value, heap)
             }
-          case RecordObj(tname, props) =>
-            isSubTy(tname, name.set) ||
-            (tname == "Record" && (props.forall {
-              case (key, value) => record(key).contains(value, heap)
-            }))
+          case RecordObj(tname, map) =>
+            val r = record
+            !r.isBottom && ((r match
+              case RecordTy.Detail(tname, _) => false
+              case RecordTy.Simple(names)    => names.exists(isSubTy(tname, _))
+            ) || r.fieldMap.forall {
+              case (f, ty) => map.get(f).fold(false)(ty.contains(_, heap))
+            })
           case ListObj(values) =>
             list.elem match
               case None     => false
@@ -136,25 +138,22 @@ case class ValueTy(
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
       case AstValue(ast) =>
-        astValue match
-          case AstTopTy         => true
-          case AstNameTy(names) => names contains ast.name
-          case AstSingleTy(name, idx, subIdx) =>
-            ast.name == name &&
-            ast.idx == idx &&
-            ast.subIdx == subIdx
-      case x @ Nt(name, params) => nt contains x
-      case m: Math              => math contains m
-      case Infinity(p)          => infinity contains p
-      case Enum(name)           => enumv contains name
-      case CodeUnit(c)          => codeUnit
-      case n: Number            => number contains n
-      case BigInt(n)            => bigInt
-      case Str(s)               => str contains s
-      case Bool(b)              => bool contains b
-      case Undef                => undef
-      case Null                 => nullv
-      case Absent               => absent
+        this.ast match
+          case AstTy.Top               => true
+          case AstTy.Simple(names)     => names.exists(ast.types.contains)
+          case AstTy.Detail(name, idx) => ast.name == name && ast.idx == idx
+      case x @ GrammarSymbol(name, params) => grammarSymbol contains x
+      case m: Math                         => math contains m
+      case Infinity(p)                     => infinity contains p
+      case Enum(name)                      => enumv contains name
+      case CodeUnit(c)                     => codeUnit
+      case n: Number                       => number contains n
+      case BigInt(n)                       => bigInt
+      case Str(s)                          => str contains s
+      case Bool(b)                         => bool contains b
+      case Undef                           => undef
+      case Null                            => nullv
+      case Absent                          => absent
     )
 
   /** copy value type */
@@ -165,11 +164,10 @@ case class ValueTy(
     pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = clo,
     cont: BSet[Int] = cont,
-    name: NameTy = name,
     record: RecordTy = record,
     list: ListTy = list,
-    astValue: AstValueTy = astValue,
-    nt: BSet[Nt] = nt,
+    ast: AstTy = ast,
+    grammarSymbol: BSet[GrammarSymbol] = grammarSymbol,
     codeUnit: Boolean = codeUnit,
     enumv: BSet[String] = enumv,
     math: MathTy = math,
@@ -187,11 +185,10 @@ case class ValueTy(
     pureValue = pureValue || PureValueTy(
       clo,
       cont,
-      name,
       record,
       list,
-      astValue,
-      nt,
+      ast,
+      grammarSymbol,
       codeUnit,
       enumv,
       math,
@@ -224,11 +221,10 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
-    name: NameTy = NameTy.Bot,
     record: RecordTy = RecordTy.Bot,
     list: ListTy = ListTy.Bot,
-    astValue: AstValueTy = AstValueTy.Bot,
-    nt: BSet[Nt] = Fin(),
+    ast: AstTy = AstTy.Bot,
+    grammarSymbol: BSet[GrammarSymbol] = Fin(),
     codeUnit: Boolean = false,
     enumv: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
@@ -246,11 +242,10 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     pureValue = pureValue || PureValueTy(
       clo,
       cont,
-      name,
       record,
       list,
-      astValue,
-      nt,
+      ast,
+      grammarSymbol,
       codeUnit,
       enumv,
       math,

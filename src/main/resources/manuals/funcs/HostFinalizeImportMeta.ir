@@ -1,6 +1,6 @@
 def HostFinalizeImportMeta(
-  importMeta: Object,
-  moduleRecord: ModuleRecord,
+  importMeta: Record[Object],
+  moduleRecord: Record[ModuleRecord],
 ): Enum[~unused~] = {
   return ~unused~
 }

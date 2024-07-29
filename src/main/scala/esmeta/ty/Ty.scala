@@ -1,5 +1,6 @@
 package esmeta.ty
 
+import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.util.Parser
 

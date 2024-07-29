@@ -222,10 +222,10 @@ trait StateBasicDomainDecl { self: Self =>
       /** get items of AST */
       def getItems(
         to: AllocSite,
-        nt: AbsValue,
+        grammarSymbol: AbsValue,
         ast: AbsValue,
-      ): (AbsValue, Elem) = (nt.getSingle, ast.getSingle) match
-        case (One(Nt(name, _)), One(AstValue(ast))) =>
+      ): (AbsValue, Elem) = (grammarSymbol.getSingle, ast.getSingle) match
+        case (One(GrammarSymbol(name, _)), One(AstValue(ast))) =>
           val vs = ast.getItems(name).map(AbsValue(_))
           allocList(to, vs)
         case (Many, _) | (_, Many) => exploded("EGetItems")
@@ -411,7 +411,7 @@ trait StateBasicDomainDecl { self: Self =>
         case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
           val es.Syntactic(name, _, rhsIdx, children) = syn
           val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-          rhs.getNtIndex(fieldStr).flatMap(children(_)) match
+          rhs.getRhsIndex(fieldStr).flatMap(children(_)) match
             case Some(child) => AbsValue(child)
             case _           => AbsValue.Bot
         case (One(AstValue(syn: es.Syntactic)), One(Math(n))) if n.isValidInt =>

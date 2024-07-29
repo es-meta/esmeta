@@ -253,8 +253,8 @@ trait Walker extends BasicWalker {
   def walk(cond: Condition): Condition = cond match {
     case ExpressionCondition(expr) =>
       ExpressionCondition(walk(expr))
-    case InstanceOfCondition(expr, neg, ty) =>
-      InstanceOfCondition(walk(expr), walk(neg), walkList(ty, walk))
+    case TypeCheckCondition(expr, neg, ty) =>
+      TypeCheckCondition(walk(expr), walk(neg), walkList(ty, walk))
     case HasFieldCondition(ref, neg, field) =>
       HasFieldCondition(walk(ref), walk(neg), walk(field))
     case HasBindingCondition(ref, neg, binding) =>

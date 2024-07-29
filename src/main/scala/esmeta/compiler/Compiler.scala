@@ -746,6 +746,8 @@ class Compiler(
     case HexLiteral(hex, name) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
+    case GrammarSymbolLiteral(name, flags) =>
+      EGrammarSymbol(name, flags.map(_ startsWith "+"))
     case NonterminalLiteral(ordinal, name, flags) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
@@ -754,15 +756,17 @@ class Compiler(
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
-      } else ENt(name, flags.map(_ startsWith "+"))
-    case EnumLiteral(name)                   => EEnum(name)
-    case StringLiteral(s)                    => EStr(s)
-    case FieldLiteral(field)                 => EStr(field)
-    case SymbolLiteral(sym)                  => toERef(GLOBAL_SYMBOL, EStr(sym))
+      } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
+    case EnumLiteral(name)   => EEnum(name)
+    case StringLiteral(s)    => EStr(s)
+    case FieldLiteral(field) => EStr(field)
+    case SymbolLiteral(sym)  => toERef(GLOBAL_SYMBOL, EStr(sym))
     case ProductionLiteral(lhsName, rhsName) =>
-      // XXX need to handle arguments, children?
-      val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
-      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+      getProductionData(lhsName, rhsName) match
+        case Some((lhs, rhsIdx)) =>
+          ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+        case None =>
+          EYet(lit.toString(true, false))
     case ErrorObjectLiteral(name) =>
       val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
       val (x, xExpr) = fb.newTIdWithExpr
@@ -805,10 +809,10 @@ class Compiler(
     fb.withLang(cond)(cond match {
       case ExpressionCondition(expr) =>
         compile(fb, expr)
-      case InstanceOfCondition(expr, neg, tys) =>
-        val xExpr = compile(fb, expr)
-        val e = tys.map(toETypeCheck(xExpr, _)).reduce(or(_, _))
-        if (neg) not(e) else e
+      case TypeCheckCondition(expr, neg, tys) =>
+        val e = compile(fb, expr)
+        val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
+        if (neg) not(c) else c
       case HasFieldCondition(ref, neg, field) =>
         val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
         if (neg) e else not(e)
@@ -820,9 +824,11 @@ class Compiler(
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>
         val base = compile(fb, nt)
-        val (_, rhsIdx) = getProductionData(lhsName, rhsName)
-        fb.ntBindings ++= List((rhsName, base, Some(0)))
-        ETypeCheck(base, EStr(lhsName + rhsIdx))
+        getProductionData(lhsName, rhsName) match
+          case Some((_, rhsIdx)) =>
+            fb.ntBindings ++= List((rhsName, base, Some(0)))
+            ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
+          case None => EYet(cond.toString(true, false))
       case PredicateCondition(expr, neg, op) =>
         import PredicateConditionOperator.*
         val x = compile(fb, expr)
@@ -877,7 +883,7 @@ class Compiler(
               List("Get", "Set", "Enumerable", "Configurable")
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
-            ETypeCheck(x, EStr("Nonterminal"))
+            EInstanceOf(x, EGrammarSymbol("Nonterminal", Nil))
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
@@ -958,7 +964,7 @@ class Compiler(
           fb.addInst(
             IAssign(
               b,
-              tyOpt.fold(cond)(ty => and(toETypeCheck(ERef(x), ty), cond)),
+              tyOpt.fold(cond)(t => and(ETypeCheck(ERef(x), compile(t)), cond)),
             ),
             IAssign(i, add(iExpr, one)),
           )
@@ -1036,15 +1042,15 @@ class Compiler(
   }
 
   /** production helpers */
-  def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+  def getProductionData(lhsName: String, rhsName: String): Option[(Lhs, Int)] =
     val prod = grammar.nameMap(lhsName)
     val rhsList = prod.rhsList.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
     rhsList match
-      case (rhs, idx) :: Nil => (prod.lhs, idx)
-      case _                 => error("invalid production")
+      case (rhs, idx) :: Nil => Some(prod.lhs, idx)
+      case _                 => None
 
   /** instruction helpers */
   inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
@@ -1069,7 +1075,7 @@ class Compiler(
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
-    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
+    and(ETypeCheck(x, IRType(NumberT)), is(m, floor(m)))
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr

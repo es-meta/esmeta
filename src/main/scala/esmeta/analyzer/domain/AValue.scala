@@ -26,21 +26,21 @@ trait AValueDecl { self: Self =>
       AComp(ty, APureValue.from(value), target)
 
   /** pure values for analysis */
-  type APureValue = Part | AClo | ACont | AstValue | Nt | Math | Infinity |
-    Enum | CodeUnit | SimpleValue
+  type APureValue = Part | AClo | ACont | AstValue | GrammarSymbol | Math |
+    Infinity | Enum | CodeUnit | SimpleValue
   object APureValue:
     /** from original pure values */
     def from(pureValue: PureValue): APureValue = pureValue match
-      case addr: Addr               => Part.from(addr)
-      case clo: Clo                 => AClo.from(clo)
-      case cont: Cont               => ACont.from(cont)
-      case astValue: AstValue       => astValue
-      case nt: Nt                   => nt
-      case math: Math               => math
-      case infinity: Infinity       => infinity
-      case enumv: Enum              => enumv
-      case codeUnit: CodeUnit       => codeUnit
-      case simpleValue: SimpleValue => simpleValue
+      case addr: Addr                   => Part.from(addr)
+      case clo: Clo                     => AClo.from(clo)
+      case cont: Cont                   => ACont.from(cont)
+      case astValue: AstValue           => astValue
+      case grammarSymbol: GrammarSymbol => grammarSymbol
+      case math: Math                   => math
+      case infinity: Infinity           => infinity
+      case enumv: Enum                  => enumv
+      case codeUnit: CodeUnit           => codeUnit
+      case simpleValue: SimpleValue     => simpleValue
 
   /** address partitions */
   sealed trait Part:

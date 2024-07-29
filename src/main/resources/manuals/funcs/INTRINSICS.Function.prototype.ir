@@ -1,7 +1,7 @@
 def <BUILTIN>:INTRINSICS.Function.prototype(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Object | Undefined,
+  NewTarget: Record[Object] | Undefined,
 ): Unknown = {
   return undefined
 }

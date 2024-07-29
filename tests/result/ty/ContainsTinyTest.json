@@ -22,6 +22,8 @@
   "nonterminals (negative)" : true,
   "numeric values" : true,
   "numeric values (negative)" : true,
+  "record objects" : true,
+  "record objects (negative)" : true,
   "symbol objects" : true,
   "symbol objects (negative)" : true
 }

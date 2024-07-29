@@ -23,6 +23,7 @@ object NotSupported:
     case Fixture extends Category("fixture")
     case Feature extends Category("feature")
     case Metalanguage extends Category("metalanguage")
+    case Type extends Category("type")
     case Long extends Category("long")
     case Wrong extends Category("wrong")
     case YetCategorized extends Category("yet-categorized")

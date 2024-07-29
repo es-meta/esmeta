@@ -58,7 +58,7 @@ case class State(
       case (syn: Syntactic, Str(fieldStr)) =>
         val Syntactic(name, _, rhsIdx, children) = syn
         val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        rhs.getNtIndex(fieldStr).flatMap(children(_)) match
+        rhs.getRhsIndex(fieldStr).flatMap(children(_)) match
           case Some(child) => AstValue(child)
           case _           => throw InvalidAstField(syn, Str(fieldStr))
       case (syn: Syntactic, Math(n)) if n.isValidInt =>
@@ -137,32 +137,6 @@ case class State(
     heap.allocList(list)
   def setType(addr: Addr, tname: String): this.type =
     heap.setType(addr, tname); this
-
-  /** get types of values */
-  def typeOf(value: Value): ValueTy = value match
-    case NormalComp(v) => NormalT(typeOf(v))
-    case comp: Comp    => AbruptT(comp.ty.name)
-    case addr: Addr =>
-      apply(addr) match
-        case m: MapObj    => MapT
-        case r: RecordObj => NameT(r.tname)
-        case l: ListObj   => l.values.map(typeOf).foldLeft(BotT)(_ || _)
-        case y: YetObj    => NameT(y.tname)
-    case clo: Clo      => CloT(clo.func.name)
-    case cont: Cont    => ContT(cont.func.id)
-    case AstValue(ast) => AstSingleT(ast.name, ast.idx, ast.subIdx)
-    case nt: Nt        => NtT(nt)
-    case Math(d)       => MathT(d)
-    case Infinity(d)   => InfinityT
-    case Enum(name)    => EnumT(name)
-    case _: CodeUnit   => CodeUnitT
-    case _: Number     => NumberT
-    case _: BigInt     => BigIntT
-    case _: Str        => StrT
-    case _: Bool       => BoolT
-    case Undef         => UndefT
-    case Null          => NullT
-    case Absent        => AbsentT
 
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)

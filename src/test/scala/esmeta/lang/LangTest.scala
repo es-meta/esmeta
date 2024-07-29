@@ -230,9 +230,11 @@ object LangTest {
   lazy val hex = HexLiteral(0x0024, None)
   lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
   lazy val code = CodeLiteral("|")
-  lazy val nt = NonterminalLiteral(None, "Identifier", List())
-  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", List())
-  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", List())
+  lazy val grSym = GrammarSymbolLiteral("A", Nil)
+  lazy val grSymIdx = GrammarSymbolLiteral("A", List("~Yield", "+Await"))
+  lazy val nt = NonterminalLiteral(None, "Identifier", Nil)
+  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", Nil)
+  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", Nil)
   lazy val ntFlags = NonterminalLiteral(None, "A", List("~Yield", "+Await"))
   lazy val empty = EnumLiteral("empty")
   lazy val emptyStr = StringLiteral("")
@@ -266,17 +268,17 @@ object LangTest {
 
   // algorithm conditions
   lazy val exprCond = ExpressionCondition(refExpr)
-  lazy val instanceOfCond = InstanceOfCondition(refExpr, false, List(ty))
-  lazy val notInstanceOfCond = InstanceOfCondition(refExpr, true, List(ty))
-  lazy val eitherInstanceOfCond =
-    InstanceOfCondition(refExpr, false, List(ty, ty, ty))
-  lazy val neitherInstanceOfCond =
-    InstanceOfCondition(refExpr, true, List(ty, ty))
+  lazy val instanceOfCond = TypeCheckCondition(refExpr, false, List(ty))
+  lazy val notTypeCheckCond = TypeCheckCondition(refExpr, true, List(ty))
+  lazy val eitherTypeCheckCond =
+    TypeCheckCondition(refExpr, false, List(ty, ty, ty))
+  lazy val neitherTypeCheckCond =
+    TypeCheckCondition(refExpr, true, List(ty, ty))
   lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
   lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
   lazy val hasBindingCond = HasBindingCondition(x, false, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, true, refExpr)
-  lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
+  lazy val prodCond = ProductionCondition(nt, "A", "B")
   lazy val finiteCond =
     PredicateCondition(refExpr, false, PredicateConditionOperator.Finite)
   lazy val abruptCond =

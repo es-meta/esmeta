@@ -98,7 +98,7 @@ abstract class Analyzer
   protected var contDomain: Option[ContDomain] = None
   protected var partDomain: Option[PartDomain] = None
   protected var astValueDomain: Option[AstValueDomain] = None
-  protected var ntDomain: Option[NtDomain] = None
+  protected var grammarSymbolDomain: Option[GrammarSymbolDomain] = None
   protected var mathDomain: Option[MathDomain] = None
   protected var infinityDomain: Option[InfinityDomain] = None
   protected var codeUnitDomain: Option[CodeUnitDomain] = None
@@ -145,8 +145,9 @@ abstract class Analyzer
   final lazy val AbsAstValue = astValueDomain.getOrElse(AstValueFlatDomain)
   type AbsAstValue = AbsAstValue.Elem
 
-  final lazy val AbsNt = ntDomain.getOrElse(NtFlatDomain)
-  type AbsNt = AbsNt.Elem
+  final lazy val AbsGrammarSymbol =
+    grammarSymbolDomain.getOrElse(GrammarSymbolFlatDomain)
+  type AbsGrammarSymbol = AbsGrammarSymbol.Elem
 
   final lazy val AbsMath = mathDomain.getOrElse(MathFlatDomain)
   type AbsMath = AbsMath.Elem

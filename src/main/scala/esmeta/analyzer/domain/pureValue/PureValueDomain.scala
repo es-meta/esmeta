@@ -17,7 +17,7 @@ trait PureValueDomainDecl { self: Self =>
     def contTop: Elem
     def partTop: Elem
     def astValueTop: Elem
-    def ntTop: Elem
+    def grammarSymbolTop: Elem
     def codeUnitTop: Elem
     def enumTop: Elem
     def mathTop: Elem
@@ -37,7 +37,7 @@ trait PureValueDomainDecl { self: Self =>
       cont: AbsCont = AbsCont.Bot,
       part: AbsPart = AbsPart.Bot,
       astValue: AbsAstValue = AbsAstValue.Bot,
-      nt: AbsNt = AbsNt.Bot,
+      grammarSymbol: AbsGrammarSymbol = AbsGrammarSymbol.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
@@ -58,7 +58,7 @@ trait PureValueDomainDecl { self: Self =>
       AbsCont,
       AbsPart,
       AbsAstValue,
-      AbsNt,
+      AbsGrammarSymbol,
       AbsCodeUnit,
       AbsEnum,
       AbsMath,
@@ -77,7 +77,7 @@ trait PureValueDomainDecl { self: Self =>
       def cont: AbsCont
       def part: AbsPart
       def astValue: AbsAstValue
-      def nt: AbsNt
+      def grammarSymbol: AbsGrammarSymbol
       def codeUnit: AbsCodeUnit
       def enumv: AbsEnum
       def math: AbsMath

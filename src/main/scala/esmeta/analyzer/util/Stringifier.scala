@@ -111,7 +111,7 @@ trait StringifierDecl { self: Self =>
           app >> "cont<" >> target >> ">"
         case AstValue(ast) =>
           app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
-        case Nt(name, params) =>
+        case GrammarSymbol(name, params) =>
           given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
           given Rule[List[Boolean]] = iterableRule()
           app >> "nt<" >> name

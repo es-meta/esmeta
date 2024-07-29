@@ -1,5 +1,5 @@
 def HostEnsureCanCompileStrings(
-  calleeRealm: RealmRecord,
+  calleeRealm: Record[RealmRecord],
   parameterStrings: List[String],
   bodyString: String,
   direct: Boolean,

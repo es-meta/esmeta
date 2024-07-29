@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number, Math}
+import esmeta.state.{GrammarSymbol, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -9,15 +9,28 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** type elements */
   def walk(ty: TyElem): Unit = ty match
-    case ty: Ty          => walk(ty)
-    case ty: CompTy      => walk(ty)
-    case ty: PureValueTy => walk(ty)
-    case ty: RecordTy    => walk(ty)
-    case ty: ListTy      => walk(ty)
-    case ty: MapTy       => walk(ty)
-    case ty: MathTy      => walk(ty)
-    case ty: InfinityTy  => walk(ty)
-    case ty: BoolTy      => walk(ty)
+    case elem: TyModel     => walk(elem)
+    case elem: TyDecl      => walk(elem)
+    case elem: Ty          => walk(elem)
+    case elem: CompTy      => walk(elem)
+    case elem: PureValueTy => walk(elem)
+    case elem: RecordTy    => walk(elem)
+    case elem: ListTy      => walk(elem)
+    case elem: AstTy       => walk(elem)
+    case elem: MapTy       => walk(elem)
+    case elem: MathTy      => walk(elem)
+    case elem: InfinityTy  => walk(elem)
+    case elem: NumberTy    => walk(elem)
+    case elem: BoolTy      => walk(elem)
+
+  /** type models */
+  def walk(ty: TyModel): Unit = walkMap(ty.decls, walk, walk)
+
+  /** type declarations */
+  def walk(ty: TyDecl): Unit =
+    walk(ty.name)
+    walkOpt(ty.parent, walk)
+    walkMap(ty.fields, walk, walk)
 
   /** types */
   def walk(ty: Ty): Unit = ty match
@@ -43,11 +56,10 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: PureValueTy): Unit = if (!ty.isTop)
     walkClo(ty.clo)
     walkCont(ty.cont)
-    walkName(ty.name)
     walk(ty.record)
     walk(ty.list)
-    walkAst(ty.astValue)
-    walkNt(ty.nt)
+    walkAst(ty.ast)
+    walkGrammarSymbol(ty.grammarSymbol)
     walkCodeUnit(ty.codeUnit)
     walkEnum(ty.enumv)
     walkMath(ty.math)
@@ -67,19 +79,21 @@ trait UnitWalker extends BasicUnitWalker {
   def walkCont(cont: BSet[Int]): Unit = walkBSet(cont, walk)
 
   /** AST value types */
-  def walkAst(ast: AstValueTy): Unit = ast match
-    case AstTopTy                       =>
-    case AstNameTy(names)               => walkSet(names, walk)
-    case AstSingleTy(name, idx, subIdx) => walk(name); walk(idx); walk(subIdx)
+  def walkAst(ast: AstTy): Unit =
+    import AstTy.*
+    ast match
+      case Top               =>
+      case Simple(names)     => walkSet(names, walk)
+      case Detail(name, idx) => walk(name); walk(idx)
 
-  /** nt types */
-  def walkNt(nt: BSet[Nt]): Unit =
-    walkBSet(nt, walk)
+  /** grammarSymbol types */
+  def walkGrammarSymbol(grammarSymbol: BSet[GrammarSymbol]): Unit =
+    walkBSet(grammarSymbol, walk)
 
-  /** nt */
-  def walk(nt: Nt): Unit =
-    walk(nt.name)
-    walkList(nt.params, walk)
+  /** grammarSymbol */
+  def walk(grammarSymbol: GrammarSymbol): Unit =
+    walk(grammarSymbol.name)
+    walkList(grammarSymbol.params, walk)
 
   /** code unit types */
   def walkCodeUnit(codeUnit: Boolean): Unit = walk(codeUnit)
@@ -120,15 +134,15 @@ trait UnitWalker extends BasicUnitWalker {
   /** absent types */
   def walkAbsent(absent: Boolean): Unit = walk(absent)
 
-  /** name types */
-  def walkName(name: NameTy): Unit = walkBSet(name.set, walk)
-
   /** record types */
   def walk(ty: RecordTy): Unit =
     import RecordTy.*
     ty match
-      case Top       =>
-      case Elem(map) => walkMap(map, walk, walk)
+      case Detail(name, map) =>
+        walk(name)
+        walkMap(map, walk, walk)
+      case Simple(set) =>
+        walkSet(set, walk)
 
   /** list types */
   def walk(ty: ListTy): Unit =

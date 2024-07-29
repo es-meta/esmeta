@@ -43,16 +43,11 @@ lazy val ContT: ValueTy = ValueTy(cont = Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) ValueTy.Bot
   else ValueTy(cont = Fin(nids.toSet))
-lazy val NameT: ValueTy = ValueTy(name = NameTy.Top)
-def NameT(names: String*): ValueTy = NameT(names.toSet)
-def NameT(set: Set[String]): ValueTy =
-  if (set.isEmpty) ValueTy.Bot
-  else ValueTy(name = NameTy(Fin(set)))
-lazy val ObjectT: ValueTy = NameT("Object")
-lazy val FunctionT: ValueTy = NameT("FunctionObject")
-lazy val ConstructorT: ValueTy = NameT("Constructor")
+lazy val ObjectT: ValueTy = RecordT("Object")
+lazy val FunctionT: ValueTy = RecordT("FunctionObject")
+lazy val ConstructorT: ValueTy = RecordT("Constructor")
 lazy val ESPrimT: ValueTy = ValueTy(
-  name = NameTy("Symbol"),
+  record = RecordTy("Symbol"),
   number = NumberTy.Top,
   bigInt = true,
   str = Inf,
@@ -63,31 +58,26 @@ lazy val ESPrimT: ValueTy = ValueTy(
 lazy val ESValueT: ValueTy = ObjectT || ESPrimT
 lazy val ESPureValueT: PureValueTy = ESValueT.pureValue
 lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
-def RecordT(fields: Set[String]): ValueTy =
-  if (fields.isEmpty) ValueTy.Bot
-  else ValueTy(record = RecordTy(fields))
-def RecordT(map: Map[String, ValueTy]): ValueTy =
-  if (map.isEmpty) ValueTy.Bot
-  else ValueTy(record = RecordTy(map).normalized)
-def RecordT(pairs: (String, ValueTy)*): ValueTy =
-  if (pairs.isEmpty) ValueTy.Bot
-  else ValueTy(record = RecordTy(pairs.toMap).normalized)
+def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
+def RecordT(names: String*): ValueTy = RecordT(names.toSet)
+def RecordT(m: Map[String, ValueTy]): ValueTy = ValueTy(record = RecordTy(m))
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy =
   if (ty.isBottom) ValueTy.Bot
   else ValueTy(list = ListTy(Some(ty)))
-lazy val SymbolT: ValueTy = NameT("Symbol")
-lazy val AstT: ValueTy = ValueTy(astValue = AstTopTy)
-def AstT(xs: String*): ValueTy =
+lazy val SymbolT: ValueTy = RecordT("Symbol")
+lazy val AstT: ValueTy = ValueTy(ast = AstTy.Top)
+def AstT(xs: Set[String]): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
-  else ValueTy(astValue = AstNameTy(xs.toSet))
-def AstSingleT(name: String, idx: Int, subIdx: Int): ValueTy =
-  ValueTy(astValue = AstSingleTy(name, idx, subIdx))
-def NtT: ValueTy = ValueTy(nt = Inf)
-def NtT(xs: Nt*): ValueTy =
+  else ValueTy(ast = AstTy.Simple(xs.toSet))
+def AstT(xs: String*): ValueTy = AstT(xs.toSet)
+def AstT(name: String, idx: Int): ValueTy =
+  ValueTy(ast = AstTy.Detail(name, idx))
+def GrammarSymbolT: ValueTy = ValueTy(grammarSymbol = Inf)
+def GrammarSymbolT(xs: GrammarSymbol*): ValueTy =
   if (xs.isEmpty) ValueTy.Bot
-  else ValueTy(nt = Fin(xs.toSet))
+  else ValueTy(grammarSymbol = Fin(xs.toSet))
 lazy val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
 def EnumT: ValueTy = ValueTy(enumv = Inf)
 def EnumT(xs: String*): ValueTy =

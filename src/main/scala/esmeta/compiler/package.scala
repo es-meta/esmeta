@@ -23,10 +23,6 @@ inline def getRef(fb: FuncBuilder, expr: Expr): Ref = expr match {
   case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
 }
 
-// conversion to type check expressions
-inline def toETypeCheck(expr: Expr, ty: Type): Expr =
-  ETypeCheck(expr, EStr(if (ty.ty == AstT) "ParseNode" else ty.normalizedName))
-
 // conversion to intrinsics
 inline def toIntrinsic(base: Ref, intr: Intrinsic): Field =
   // convert intr to string for exceptional case in GetPrototypeFromConstructor

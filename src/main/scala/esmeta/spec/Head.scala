@@ -22,13 +22,12 @@ sealed trait Head extends SpecElem {
   def funcParams: List[Param] = this match
     case head: AbstractOperationHead => head.params
     case head: NumericMethodHead     => head.params
-    case head: ConcreteMethodHead    => head.receiverParam :: head.params
-    case head: InternalMethodHead    => head.receiverParam :: head.params
+    case head: ConcreteMethodHead    => head.receiver :: head.params
+    case head: InternalMethodHead    => head.receiver :: head.params
     case head: SyntaxDirectedOperationHead =>
       val thisTy = head.target match
-        case Some(target) =>
-          AstSingleT(target.lhsName, target.idx, target.subIdx)
-        case None => AstT
+        case Some(target) => AstT(target.lhsName, target.idx)
+        case None         => AstT
       Param("this", Type(thisTy)) :: head.withParams
     case head: BuiltinHead =>
       List(
@@ -50,9 +49,9 @@ sealed trait Head extends SpecElem {
       }
       s"$pre.${head.methodName}"
     case head: ConcreteMethodHead =>
-      s"${head.receiverParam.ty.normalizedName}.${head.concMethodName}"
+      s"${head.receiver.ty.ty}.${head.concMethodName}"
     case head: InternalMethodHead =>
-      s"${head.receiverParam.ty.normalizedName}.${head.methodName}"
+      s"${head.receiver.ty.ty}.${head.methodName}"
     case head: BuiltinHead =>
       val str = head.path.toString
       val patched =
@@ -106,7 +105,7 @@ type SdoHeadTarget = SyntaxDirectedOperationHead.Target
 /** concrete method heads */
 case class ConcreteMethodHead(
   concMethodName: String,
-  receiverParam: Param,
+  receiver: Param,
   params: List[Param],
   retTy: Type,
 ) extends Head
@@ -114,7 +113,7 @@ case class ConcreteMethodHead(
 /** internal method heads */
 case class InternalMethodHead(
   methodName: String,
-  receiverParam: Param,
+  receiver: Param,
   params: List[Param],
   retTy: Type,
 ) extends Head

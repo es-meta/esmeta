@@ -22,14 +22,13 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
 
-  /** sub index */
-  def subIdx: Int = this match
-    case lex: Lexical => 0
-    case Syntactic(_, _, _, children) =>
-      children.map(child => if (child.isDefined) 1 else 0).fold(0)(_ * 2 + _)
-
   /** validity check */
   def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)
+
+  /** get arguments */
+  def getArgs: List[Boolean] = this match
+    case lex: Lexical   => Nil
+    case syn: Syntactic => syn.args
 
   /** size */
   lazy val size: Int = this match
@@ -38,12 +37,13 @@ sealed trait Ast extends ESElem with Locational {
       syn.children.map(_.fold(1)(_.size)).foldLeft(1)(_ + _)
 
   /** production chains */
-  lazy val chains: List[Ast] = this match
-    case lex: Lexical => List(this)
+  lazy val chains: List[Ast] = this :: (this match
+    case lex: Lexical => Nil
     case syn: Syntactic =>
       syn.children.flatten match
-        case child :: Nil => this :: child.chains
-        case _            => List(this)
+        case child :: Nil => child.chains
+        case _            => Nil
+  )
 
   /** get items */
   def getItems(name: String): List[Ast] = this match
@@ -58,15 +58,13 @@ sealed trait Ast extends ESElem with Locational {
       } yield item
 
   /** types */
-  lazy val types: Set[String] =
-    Set(name, s"$name$idx") union (this match
-      case Syntactic(_, _, _, cs) =>
-        (cs match
-          case List(Some(child)) => child.types
-          case _                 => Set()
-        ) + "Nonterminal"
-      case _: Lexical => Set()
-    ) + "ParseNode"
+  lazy val types: Set[String] = (this match
+    case _: Lexical => Set()
+    case syn: Syntactic =>
+      syn.children.flatten match
+        case child :: Nil => child.types
+        case _            => Set()
+  ) + name
 
   /** flatten statements */
   // TODO refactoring
@@ -98,7 +96,7 @@ sealed trait Ast extends ESElem with Locational {
     val fnameMap = cfg.fnameMap
     chains.foldLeft[Option[(Ast, Func)]](None) {
       case (None, ast0) =>
-        val subIdx = ast0.getSubIdx
+        val subIdx = ast0.subIdx
         val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
         fnameMap
           .get(fname)
@@ -108,16 +106,18 @@ sealed trait Ast extends ESElem with Locational {
     }
 
   /** get sub index of parsed Ast */
-  def getSubIdx(using cfg: CFG): Int = this match
+  def subIdx(using cfg: CFG): Int = this match
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      val optionals = (for {
-        ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
-      } yield !child.isEmpty)
-      optionals.reverse.zipWithIndex.foldLeft(0) {
-        case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
-        case (acc, _)           => acc
+      cfg.grammar.nameMap.get(name).fold(0) { prod =>
+        val rhs = prod.rhsList(rhsIdx)
+        val optionals = (for {
+          ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
+        } yield !child.isEmpty)
+        optionals.reverse.zipWithIndex.foldLeft(0) {
+          case (acc, (true, idx)) => acc + scala.math.pow(2, idx).toInt
+          case (acc, _)           => acc
+        }
       }
 
   /** not use case class' hash code */

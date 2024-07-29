@@ -61,13 +61,13 @@ trait UnitWalker extends BasicUnitWalker {
     case Clo(_, captured) => walkMap(captured, walk, walk)
     case Cont(_, captured, callStack) =>
       walkMap(captured, walk, walk); walkList(callStack, walk)
-    case _: AstValue     =>
-    case _: Nt           =>
-    case _: Math         =>
-    case _: Infinity     =>
-    case _: Enum         =>
-    case _: CodeUnit     =>
-    case sv: SimpleValue => walk(sv)
+    case _: AstValue      =>
+    case _: GrammarSymbol =>
+    case _: Math          =>
+    case _: Infinity      =>
+    case _: Enum          =>
+    case _: CodeUnit      =>
+    case sv: SimpleValue  => walk(sv)
 
   // address
   def walk(addr: Addr): Unit = {}

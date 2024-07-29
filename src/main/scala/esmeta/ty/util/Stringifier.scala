@@ -15,15 +15,12 @@ object Stringifier {
     elem match
       case elem: TyModel     => tyModelRule(app, elem)
       case elem: TyDecl      => tyDeclRule(app, elem)
-      case elem: UnknownTy   => unknownTyRule(app, elem)
-      case elem: ValueTy     => valueTyRule(app, elem)
+      case elem: Ty          => tyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
-      case elem: NewRecordTy => newRecordTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
-      case elem: NameTy      => nameTyRule(app, elem)
-      case elem: AstValueTy  => astValueTyRule(app, elem)
+      case elem: AstTy       => astTyRule(app, elem)
       case elem: MapTy       => mapTyRule(app, elem)
       case elem: MathTy      => mathTyRule(app, elem)
       case elem: InfinityTy  => infinityTyRule(app, elem)
@@ -38,11 +35,11 @@ object Stringifier {
 
   /** type declarations */
   given tyDeclRule: Rule[TyDecl] = (app, ty) =>
-    val TyDecl(name, parent, fields) = ty
+    val TyDecl(name, parent, rawFields) = ty
     app >> "type " >> name
     parent.fold(app)(app >> " extends " >> _)
-    if (fields.nonEmpty) (app >> " ").wrap("{", "}") {
-      for ((name, t) <- fields.toList.sortBy(_._1))
+    if (rawFields.nonEmpty) (app >> " ").wrap("{", "}") {
+      for ((name, t) <- rawFields.toList.sortBy(_._1))
         app :> name >> " : " >> t
     }
     app
@@ -105,11 +102,14 @@ object Stringifier {
         }
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
-        .add(ty.name, !ty.name.isBottom)
         .add(ty.record, !ty.record.isBottom)
         .add(ty.list, !ty.list.isBottom)
-        .add(ty.astValue, !ty.astValue.isBottom)
-        .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
+        .add(ty.ast, !ty.ast.isBottom)
+        .add(
+          ty.grammarSymbol.map(_.toString),
+          !ty.grammarSymbol.isBottom,
+          "GrammarSymbol",
+        )
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
@@ -123,51 +123,36 @@ object Stringifier {
         .add("Absent", !ty.absent.isBottom)
         .app
 
-  /** named record types */
-  given nameTyRule: Rule[NameTy] = (app, ty) =>
-    ty.set match
-      case Inf => app >> "AnyName"
-      case Fin(set) =>
-        given Rule[Set[String]] = setRule("", OR, "")
-        app >> set
-
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
-    import RecordTy.*
-    given Rule[(String, ValueTy)] = {
-      case (app, (key, value)) =>
-        app >> key
-        if (!value.isTop) app >> " : " >> value
-        else app
-    }
-    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
-    ty match
-      case Top       => app >> "AnyRecord"
-      case Elem(map) => app >> map.toList.sortBy(_._1)
-
-  /** new record types */
-  given newRecordTyRule: Rule[NewRecordTy] = (app, ty) =>
     app >> "Record"
     given Rule[(String, ValueTy)] = {
-      case (app, (field, ty)) => app >> field >> " : " >> ty
+      case (app, (field, ty)) =>
+        app >> field
+        if (!ty.isTop) app >> " : " >> ty
+        app
     }
     given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
     ty match
-      case NewRecordTy.Detail(name, map) =>
-        app >> "[" >> name >> " " >> map.toList.sortBy(_._1) >> "]"
-      case NewRecordTy.Simple(set) =>
-        given Rule[Set[String]] = setRule("", OR, "")
+      case RecordTy.Detail(name, map) =>
+        app >> "[" >> name
+        if (name.nonEmpty) app >> " "
+        app >> map.toList.sortBy(_._1) >> "]"
+      case RecordTy.Simple(set) =>
+        given Rule[Set[String]] = setRule("[", OR, "]")
         if (ty.isTop) app
-        else app >> "[" >> set >> "]"
+        else
+          app >> set
 
   /** AST value types */
-  given astValueTyRule: Rule[AstValueTy] = (app, ty) =>
+  given astTyRule: Rule[AstTy] = (app, ty) =>
+    import AstTy.*
+    given Rule[Set[String]] = setRule("[", OR, "]")
     app >> "Ast"
     ty match
-      case AstTopTy         => app
-      case AstNameTy(names) => app >> names
-      case AstSingleTy(x, i, j) =>
-        app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
+      case Top           => app
+      case Simple(names) => app >> names
+      case Detail(x, i)  => app >> "[" >> x >> "[" >> i >> "]" >> "]"
 
   /** mathematical value types */
   given mathTyRule: Rule[MathTy] = (app, ty) =>

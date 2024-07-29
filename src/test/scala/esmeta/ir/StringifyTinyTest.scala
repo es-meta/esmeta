@@ -123,8 +123,8 @@ class StringifyTinyTest extends IRTest {
       riaNoCheck -> "[! x]",
       popFront -> "(pop < x)",
       popBack -> "(pop > x)",
-      parse -> "(parse x (nt |A|[TF]))",
-      nt -> "(nt |A|[TF])",
+      parse -> "(parse x (grammar-symbol |A|[TF]))",
+      grammarSymbol -> "(grammar-symbol |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
       substring -> "(substring x x)",
@@ -139,7 +139,8 @@ class StringifyTinyTest extends IRTest {
       mathOp -> "([math:tan] x)",
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
-      typeCheck -> "(? x: \"Number\")",
+      instanceOf -> "(instanceof x x)",
+      typeCheck -> "(? x: Number)",
       // debugging expressions
       debug -> "(debug x)",
       // random number expressions

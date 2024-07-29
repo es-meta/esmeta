@@ -4,11 +4,11 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.state.*
 
-trait NtSetDomainDecl { self: Self =>
+trait GrammarSymbolSetDomainDecl { self: Self =>
 
   /** set domain for nonterminals */
-  class NtSetDomain(
+  class GrammarSymbolSetDomain(
     maxSizeOpt: Option[Int] = None, // max size of set
-  ) extends NtDomain
-    with SetDomain[Nt]("nt", maxSizeOpt)
+  ) extends GrammarSymbolDomain
+    with SetDomain[GrammarSymbol]("nt", maxSizeOpt)
 }

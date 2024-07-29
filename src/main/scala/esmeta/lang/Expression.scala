@@ -251,6 +251,12 @@ case class HexLiteral(hex: Int, name: Option[String]) extends Literal
 // code literals
 case class CodeLiteral(code: String) extends Literal
 
+// grammar symbol literals
+case class GrammarSymbolLiteral(
+  name: String,
+  flags: List[String],
+) extends Literal
+
 // nonterminal literals
 case class NonterminalLiteral(
   ordinal: Option[Int],

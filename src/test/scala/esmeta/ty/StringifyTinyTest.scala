@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.{Nt, Number}
+import esmeta.state.{GrammarSymbol, Number}
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
@@ -18,8 +18,8 @@ class StringifyTinyTest extends TyTest {
       NormalT(NumberT) -> "Normal[Number]",
       MapT(
         StrT,
-        NameT("Binding"),
-      ) -> "Map[String |-> Binding]",
+        RecordT("Binding"),
+      ) -> "Map[String |-> Record[Binding]]",
       CloT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContT -> "Cont",
@@ -27,32 +27,29 @@ class StringifyTinyTest extends TyTest {
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
-      NameT -> "AnyName",
-      NameT("Cat") -> "Cat",
-      NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT -> "AnyRecord",
-      RecordT("A" -> NumberT, "B" -> BoolT) ->
-      "{ A : Number, B : Boolean }",
-      RecordT(Set("Key", "Value")) ->
-      "{ Key, Value }",
-      RecordT("Key" -> ValueTy.Top, "Value" -> ValueTy.Top, "Dummy" -> BotT) ->
-      "{ Key, Value }",
-      (ObjectT || RecordT(
-        "P" -> ValueTy.Top,
-        "S" -> ValueTy.Top,
-        "Q" -> NumberT,
-        "R" -> BoolT,
-      )) -> "Object | { P, Q : Number, R : Boolean, S }",
+      RecordT -> "Record",
+      RecordT("Cat") -> "Record[Cat]",
+      RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
+      RecordT(Map("A" -> NumberT, "B" -> BoolT)) ->
+      "Record[{ A : Number, B : Boolean }]",
+      RecordT(
+        Map(
+          "P" -> AnyT,
+          "S" -> AnyT,
+          "Q" -> NumberT,
+          "R" -> BoolT,
+        ),
+      ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
-      SymbolT -> "Symbol",
+      SymbolT -> "Record[Symbol]",
       AstT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
-      AstSingleT("Member", 1, 3) -> "Ast:Member[1,3]",
-      NtT(
-        Nt("Literal", List(true)),
-        Nt("Identifier", List(false, true, false)),
-      ) -> "Nt[|Identifier|[FTF], |Literal|[T]]",
+      AstT("Member", 1) -> "Ast[Member[1]]",
+      GrammarSymbolT(
+        GrammarSymbol("Literal", List(true)),
+        GrammarSymbol("Identifier", List(false, true, false)),
+      ) -> "GrammarSymbol[|Identifier|[FTF], |Literal|[T]]",
       CodeUnitT -> "CodeUnit",
       EnumT("key") -> "Enum[~key~]",
       EnumT("key", "value") -> "Enum[~key~, ~value~]",

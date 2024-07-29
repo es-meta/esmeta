@@ -595,6 +595,7 @@ trait Parsers extends IndentParsers {
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
+    grammarSymbolLiteral |
     ntLiteral |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumLiteral(_) } |
     "the empty String" ^^! StringLiteral("") |
@@ -639,15 +640,20 @@ trait Parsers extends IndentParsers {
       case n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x)
     }
+  // grammar symboll iterals
+  lazy val grammarSymbolLiteral: PL[GrammarSymbolLiteral] =
+    "the grammar symbol" ~ "|" ~> (word <~ opt("?")) ~ flags <~ "|" ^^ {
+      case x ~ fs => GrammarSymbolLiteral(x, fs)
+    }
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    lazy val flags: P[List[String]] =
-      "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
-    opt("the grammar symbol" | "the") ~> opt(ordinal) ~
-    ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
+    opt("the") ~> opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
       case ord ~ x ~ fs => NonterminalLiteral(ord, x, fs)
     }
+
+  lazy val flags: P[List[String]] =
+    "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
 
   // string literals
   lazy val strLiteral: PL[StringLiteral] =
@@ -663,7 +669,7 @@ trait Parsers extends IndentParsers {
   // production literals
   // XXX need to be generalized?
   private lazy val prodLiteral: PL[ProductionLiteral] =
-    tagged((word <~ ":") ~ ("[\\[\\]A-Za-z]+".r)) ^^ {
+    opt("the production") ~> tagged((word <~ ":") ~ ("[\\[\\]A-Za-z]+".r)) ^^ {
       case l ~ r => ProductionLiteral(l, r)
     }
 
@@ -861,7 +867,7 @@ trait Parsers extends IndentParsers {
     // Array.prototype.join
     "the single-element String" ~> strLiteral |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
-    "an instance of the production" ~> prodLiteral |
+    "an instance of" ~> prodLiteral |
     // NumberBitwiseOp
     "the 32-bit two's complement bit string representing" ~> expr
 
@@ -899,7 +905,7 @@ trait Parsers extends IndentParsers {
   // base conditions
   lazy val baseCond: PL[Condition] =
     exprCond |||
-    instanceOfCond |||
+    typeCheckCond |||
     hasFieldCond |||
     hasBindingCond |||
     productionCond |||
@@ -915,10 +921,10 @@ trait Parsers extends IndentParsers {
     ExpressionCondition(_)
   }
 
-  // instance check conditions
-  lazy val instanceOfCond: PL[InstanceOfCondition] =
+  // type check conditions
+  lazy val typeCheckCond: PL[TypeCheckCondition] =
     expr ~ isEither(singleLangType) ^^ {
-      case e ~ (n ~ t) => InstanceOfCondition(e, n, t)
+      case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
     }
 
   // field includsion conditions
@@ -943,7 +949,7 @@ trait Parsers extends IndentParsers {
   // production conditions
   // Ex: If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
   lazy val productionCond: PL[ProductionCondition] =
-    (expr <~ "is") ~ prodLiteral ^^ {
+    (expr <~ "is" ~ opt("an instance of")) ~ prodLiteral ^^ {
       case nt ~ prod => ProductionCondition(nt, prod.lhs, prod.rhs) // TODO
     }
 
@@ -1260,35 +1266,50 @@ trait Parsers extends IndentParsers {
   // pure value types
   lazy val pureValueTy: P[ValueTy] = multi(singlePureValueTy)
   lazy val singlePureValueTy: P[ValueTy] =
-    nameTy ||| (listTy | cloTy | recordTy | simpleTy)
+    recordTy ||| (listTy | cloTy | astTy | grammarSymbolTy | simpleTy)
 
   // named record types
-  lazy val nameTy: P[ValueTy] =
-    opt("an " | "a ") ~>
-    rep1(camel) ^^ {
-      case ss =>
-        val name = ss.mkString(" ")
-        val normalizedName = Type.normalizeName(name)
-        NameT(normalizedName)
-    }
-
-  // TODO closure types
-  lazy val cloTy: P[ValueTy] =
-    "an" ~ "Abstract Closure" ~ "with" ~>
-    ("no" ~ "parameters") ^^ { case _ => CloT }
-
-  // TODO record types
   lazy val recordTy: P[ValueTy] =
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
       case fs => RecordT(fs.map(_.name).toSet)
-    }
+    } | opt("an " | "a ") ~> {
+      rep1(camel) ^^ { case ss => normRecordT(ss.mkString(" ")) } ||| (
+        "ordinary object" |
+        "function object" |
+        "constructor" |
+        "ECMAScript function object" |
+        "built-in function object" |
+        "Array exotic object" |
+        "arguments exotic object" |
+        "String exotic object" |
+        "Proxy exotic object" |
+        "bound function exotic object" |
+        "immutable prototype exotic object" |
+        "module namespace exotic object" |
+        "mutable binding" |
+        "execution context" |
+        "error"
+      ) ^^ { normRecordT(_) }
+    } <~ opt("s")
 
   // list types
   lazy val listTy: P[ValueTy] =
     opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
 
+  // closure types
+  // TODO more details
+  lazy val cloTy: P[ValueTy] =
+    "an" ~ "Abstract Closure" ~ "with" ~>
+    ("no" ~ "parameters") ^^ { case _ => CloT }
+
+  // AST types
+  lazy val astTy: P[ValueTy] =
+    rep1sep(opt("an" | "a") ~> nt, sep("or")) ^^ { ss => AstT(ss.toSet) }
+
+  // grammar symbol types
+  lazy val grammarSymbolTy: P[ValueTy] = "a grammar symbol" ^^^ GrammarSymbolT
+
   // simple types
-  private def normNameT(str: String): ValueTy = NameT(Type.normalizeName(str))
   lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
@@ -1299,24 +1320,6 @@ trait Parsers extends IndentParsers {
     "*false*" ^^^ FalseT |
     "*true*" ^^^ TrueT |
     "integer" ^^^ IntT |
-    (
-      "Symbol" |
-      "Object" |
-      "ordinary object" |
-      "function object" |
-      "constructor" |
-      "ECMAScript function object" |
-      "built-in function object" |
-      "Array exotic object" |
-      "arguments exotic object" |
-      "Proxy exotic object" |
-      "bound function exotic object" |
-      "immutable prototype exotic object" |
-      "module namespace exotic object" |
-      "mutable binding" |
-      "execution context" |
-      "error"
-    ) ^^ { normNameT(_) } |
     "non-negative integer" ^^^ NonNegIntT |
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
@@ -1331,12 +1334,6 @@ trait Parsers extends IndentParsers {
     nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
-
-  private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
-    val multiParser = (if (either) "either" else "") ~> {
-      rep1sep(parser, ",") ~ (sep("or") ~> parser)
-    } ^^ { case ts ~ t => ts.foldLeft(t)(_ || _) }
-    multiParser | parser
 
   // rarely used expressions
   lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
@@ -1359,6 +1356,14 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
+
+  private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
+    val multiParser = (if (either) "either" else "") ~> {
+      rep1sep(parser, ",") ~ (sep("or") ~> parser)
+    } ^^ { case ts ~ t => ts.foldLeft(t)(_ || _) }
+    multiParser | parser
+
   // html tags
   private lazy val tagStart: Parser[String] = "<[^>]+>".r
   private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r

@@ -183,11 +183,11 @@ object Stringifier {
         if (isStatic) app >> "[" >> "S" >> "]"
         else app >> "[" >> "R" >> "]"
         app >> withParams >> ": " >> rty
-      case ConcreteMethodHead(methodName, receiverParam, params, rty) =>
-        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
+      case method @ ConcreteMethodHead(methodName, receiver, params, rty) =>
+        app >> "[METHOD] " >> methodName >> "(" >> receiver >> ")"
         app >> params >> ": " >> rty
-      case InternalMethodHead(methodName, receiverParam, params, rty) =>
-        app >> "[METHOD] " >> methodName >> "(" >> receiverParam.name >> ")"
+      case InternalMethodHead(methodName, receiver, params, rty) =>
+        app >> "[INTERNAL] " >> methodName >> "(" >> receiver >> ")"
         app >> params >> ": " >> rty
       case BuiltinHead(path, params, rty) =>
         app >> "[BUILTIN] " >> path >> params >> ": " >> rty

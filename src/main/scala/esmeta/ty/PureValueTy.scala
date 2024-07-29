@@ -11,11 +11,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 
   def clo: BSet[String]
   def cont: BSet[Int]
-  def name: NameTy
   def record: RecordTy
   def list: ListTy
-  def astValue: AstValueTy
-  def nt: BSet[Nt]
+  def ast: AstTy
+  def grammarSymbol: BSet[GrammarSymbol]
   def codeUnit: Boolean
   def enumv: BSet[String]
   def math: MathTy
@@ -39,11 +38,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       (
         this.clo.isBottom &&
         this.cont.isBottom &&
-        this.name.isBottom &&
         this.record.isBottom &&
         this.list.isBottom &&
-        this.astValue.isBottom &&
-        this.nt.isBottom &&
+        this.ast.isBottom &&
+        this.grammarSymbol.isBottom &&
         this.codeUnit.isBottom &&
         this.enumv.isBottom &&
         this.math.isBottom &&
@@ -64,11 +62,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     else
       this.clo <= that.clo &&
       this.cont <= that.cont &&
-      this.name <= that.name &&
       this.record <= that.record &&
       this.list <= that.list &&
-      this.astValue <= that.astValue &&
-      this.nt <= that.nt &&
+      this.ast <= that.ast &&
+      this.grammarSymbol <= that.grammarSymbol &&
       this.codeUnit <= that.codeUnit &&
       this.enumv <= that.enumv &&
       this.math <= that.math &&
@@ -92,11 +89,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       PureValueTy(
         this.clo || that.clo,
         this.cont || that.cont,
-        this.name || that.name,
         this.record || that.record,
         this.list || that.list,
-        this.astValue || that.astValue,
-        this.nt || that.nt,
+        this.ast || that.ast,
+        this.grammarSymbol || that.grammarSymbol,
         this.codeUnit || that.codeUnit,
         this.enumv || that.enumv,
         this.math || that.math,
@@ -121,11 +117,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       PureValueTy(
         this.clo && that.clo,
         this.cont && that.cont,
-        this.name && that.name,
         this.record && that.record,
         this.list && that.list,
-        this.astValue && that.astValue,
-        this.nt && that.nt,
+        this.ast && that.ast,
+        this.grammarSymbol && that.grammarSymbol,
         this.codeUnit && that.codeUnit,
         this.enumv && that.enumv,
         this.math && that.math,
@@ -149,11 +144,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       PureValueTy(
         this.clo -- that.clo,
         this.cont -- that.cont,
-        this.name -- that.name,
         this.record -- that.record,
         this.list -- that.list,
-        this.astValue -- that.astValue,
-        this.nt -- that.nt,
+        this.ast -- that.ast,
+        this.grammarSymbol -- that.grammarSymbol,
         this.codeUnit -- that.codeUnit,
         this.enumv -- that.enumv,
         this.math -- that.math,
@@ -171,11 +165,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def norm: PureValueTy = if (
     clo.isTop &&
     cont.isTop &&
-    name.isTop &&
     record.isTop &&
     list.isTop &&
-    astValue.isTop &&
-    nt.isTop &&
+    ast.isTop &&
+    grammarSymbol.isTop &&
     codeUnit.isTop &&
     enumv.isTop &&
     math.isTop &&
@@ -203,11 +196,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def getSingle: Flat[PureValue] =
     (if (this.clo.isBottom) Zero else Many) ||
     (if (this.cont.isBottom) Zero else Many) ||
-    (if (this.name.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
     (if (this.list.isBottom) Zero else Many) ||
-    (if (this.astValue.isBottom) Zero else Many) ||
-    nt.getSingle ||
+    (if (this.ast.isBottom) Zero else Many) ||
+    grammarSymbol.getSingle ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
     (enumv.getSingle.map(Enum(_): PureValue)) ||
     math.getSingle ||
@@ -226,7 +218,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       PureValueElemTy(
         clo = Inf,
         cont = Inf,
-        nt = Inf,
+        grammarSymbol = Inf,
         codeUnit = true,
         enumv = Inf,
         math = MathTy.Top,
@@ -239,10 +231,9 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       )
     case elem: PureValueElemTy =>
       elem.copy(
-        name = NameTy.Bot,
         record = RecordTy.Bot,
         list = ListTy.Bot,
-        astValue = AstValueTy.Bot,
+        ast = AstTy.Bot,
         str = Fin(),
       )
 }
@@ -250,11 +241,10 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
 case object PureValueTopTy extends PureValueTy {
   def clo: BSet[String] = Inf
   def cont: BSet[Int] = Inf
-  def name: NameTy = NameTy.Top
   def record: RecordTy = RecordTy.Top
   def list: ListTy = ListTy.Bot // unsound but need to remove cycle
-  def astValue: AstValueTy = AstValueTy.Top
-  def nt: BSet[Nt] = Inf
+  def ast: AstTy = AstTy.Top
+  def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true
   def enumv: BSet[String] = Inf
   def math: MathTy = MathTy.Top
@@ -271,11 +261,10 @@ case object PureValueTopTy extends PureValueTy {
 case class PureValueElemTy(
   clo: BSet[String] = Fin(),
   cont: BSet[Int] = Fin(),
-  name: NameTy = NameTy.Bot,
   record: RecordTy = RecordTy.Bot,
   list: ListTy = ListTy.Bot,
-  astValue: AstValueTy = AstValueTy.Bot,
-  nt: BSet[Nt] = Fin(),
+  ast: AstTy = AstTy.Bot,
+  grammarSymbol: BSet[GrammarSymbol] = Fin(),
   codeUnit: Boolean = false,
   enumv: BSet[String] = Fin(),
   math: MathTy = MathTy.Bot,
@@ -292,11 +281,10 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
   def apply(
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
-    name: NameTy = NameTy.Bot,
     record: RecordTy = RecordTy.Bot,
     list: ListTy = ListTy.Bot,
-    astValue: AstValueTy = AstValueTy.Bot,
-    nt: BSet[Nt] = Fin(),
+    ast: AstTy = AstTy.Bot,
+    grammarSymbol: BSet[GrammarSymbol] = Fin(),
     codeUnit: Boolean = false,
     enumv: BSet[String] = Fin(),
     math: MathTy = MathTy.Bot,
@@ -311,11 +299,10 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
   ): PureValueTy = PureValueElemTy(
     clo,
     cont,
-    name,
     record,
     list,
-    astValue,
-    nt,
+    ast,
+    grammarSymbol,
     codeUnit,
     enumv,
     math,

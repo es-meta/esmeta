@@ -17,7 +17,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       cont: AbsCont = AbsCont.Bot,
       part: AbsPart = AbsPart.Bot,
       astValue: AbsAstValue = AbsAstValue.Bot,
-      nt: AbsNt = AbsNt.Bot,
+      grammarSymbol: AbsGrammarSymbol = AbsGrammarSymbol.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
@@ -37,7 +37,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       AbsCont(xs.collect { case x: ACont => x }),
       AbsPart(xs.collect { case x: Part => x }),
       AbsAstValue(xs.collect { case x: AstValue => x }),
-      AbsNt(xs.collect { case x: Nt => x }),
+      AbsGrammarSymbol(xs.collect { case x: GrammarSymbol => x }),
       AbsCodeUnit(xs.collect { case x: CodeUnit => x }),
       AbsEnum(xs.collect { case x: Enum => x }),
       AbsMath(xs.collect { case x: Math => x }),
@@ -50,7 +50,7 @@ trait PureValueBasicDomainDecl { self: Self =>
     val contTop: Elem = Bot.copy(cont = AbsCont.Top)
     val partTop: Elem = Bot.copy(part = AbsPart.Top)
     val astValueTop: Elem = Bot.copy(astValue = AbsAstValue.Top)
-    val ntTop: Elem = Bot.copy(nt = AbsNt.Top)
+    val grammarSymbolTop: Elem = Bot.copy(grammarSymbol = AbsGrammarSymbol.Top)
     val codeUnitTop: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
     val enumTop: Elem = Bot.copy(enumv = AbsEnum.Top)
     val mathTop: Elem = Bot.copy(math = AbsMath.Top)
@@ -70,7 +70,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       cont: AbsCont = AbsCont.Bot,
       part: AbsPart = AbsPart.Bot,
       astValue: AbsAstValue = AbsAstValue.Bot,
-      nt: AbsNt = AbsNt.Bot,
+      grammarSymbol: AbsGrammarSymbol = AbsGrammarSymbol.Bot,
       codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
       enumv: AbsEnum = AbsEnum.Bot,
       math: AbsMath = AbsMath.Bot,
@@ -88,7 +88,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       cont,
       part,
       astValue,
-      nt,
+      grammarSymbol,
       codeUnit,
       enumv,
       math,
@@ -103,7 +103,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont,
         elem.part,
         elem.astValue,
-        elem.nt,
+        elem.grammarSymbol,
         elem.codeUnit,
         elem.enumv,
         elem.math,
@@ -121,7 +121,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         if (!elem.cont.isBottom) strs :+= elem.cont.toString
         if (!elem.part.isBottom) strs :+= elem.part.toString
         if (!elem.astValue.isBottom) strs :+= elem.astValue.toString
-        if (!elem.nt.isBottom) strs :+= elem.nt.toString
+        if (!elem.grammarSymbol.isBottom) strs :+= elem.grammarSymbol.toString
         if (!elem.codeUnit.isBottom) strs :+= elem.codeUnit.toString
         if (!elem.enumv.isBottom) strs :+= elem.enumv.toString
         if (!elem.math.isBottom) strs :+= elem.math.toString
@@ -140,7 +140,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont ⊑ that.cont &&
         elem.part ⊑ that.part &&
         elem.astValue ⊑ that.astValue &&
-        elem.nt ⊑ that.nt &&
+        elem.grammarSymbol ⊑ that.grammarSymbol &&
         elem.codeUnit ⊑ that.codeUnit &&
         elem.enumv ⊑ that.enumv &&
         elem.math ⊑ that.math &&
@@ -153,7 +153,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont ⊔ that.cont,
         elem.part ⊔ that.part,
         elem.astValue ⊔ that.astValue,
-        elem.nt ⊔ that.nt,
+        elem.grammarSymbol ⊔ that.grammarSymbol,
         elem.codeUnit ⊔ that.codeUnit,
         elem.enumv ⊔ that.enumv,
         elem.math ⊔ that.math,
@@ -167,7 +167,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont ⊓ that.cont,
         elem.part ⊓ that.part,
         elem.astValue ⊓ that.astValue,
-        elem.nt ⊓ that.nt,
+        elem.grammarSymbol ⊓ that.grammarSymbol,
         elem.codeUnit ⊓ that.codeUnit,
         elem.enumv ⊓ that.enumv,
         elem.math ⊓ that.math,
@@ -181,7 +181,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont -- that.cont,
         elem.part -- that.part,
         elem.astValue -- that.astValue,
-        elem.nt -- that.nt,
+        elem.grammarSymbol -- that.grammarSymbol,
         elem.codeUnit -- that.codeUnit,
         elem.enumv -- that.enumv,
         elem.math -- that.math,
@@ -195,7 +195,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont.gamma ⊔
         elem.part.gamma ⊔
         elem.astValue.gamma ⊔
-        elem.nt.gamma ⊔
+        elem.grammarSymbol.gamma ⊔
         elem.codeUnit.gamma ⊔
         elem.enumv.gamma ⊔
         elem.math.gamma ⊔
@@ -208,7 +208,7 @@ trait PureValueBasicDomainDecl { self: Self =>
         elem.cont.getSingle ⊔
         elem.part.getSingle ⊔
         elem.astValue.getSingle ⊔
-        elem.nt.getSingle ⊔
+        elem.grammarSymbol.getSingle ⊔
         elem.codeUnit.getSingle ⊔
         elem.enumv.getSingle ⊔
         elem.math.getSingle ⊔
@@ -220,7 +220,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       def cont: AbsCont = elem.cont
       def part: AbsPart = elem.part
       def astValue: AbsAstValue = elem.astValue
-      def nt: AbsNt = elem.nt
+      def grammarSymbol: AbsGrammarSymbol = elem.grammarSymbol
       def codeUnit: AbsCodeUnit = elem.codeUnit
       def enumv: AbsEnum = elem.enumv
       def math: AbsMath = elem.math
