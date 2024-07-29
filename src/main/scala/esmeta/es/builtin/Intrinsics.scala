@@ -22,9 +22,10 @@ case class Intrinsics(cfg: CFG) {
           if !(yets contains name.split("\\.").head) =>
         // base object
         _map += intrAddr(name) -> RecordObj(typeName)(
-          (INNER_MAP -> mapAddr(intrName(name)) :: imap).map {
-            case (k, v) => k -> v
-          }: _*,
+          List(
+            INNER_MAP -> mapAddr(intrName(name)),
+            PRIVATE_ELEMENTS -> elemsAddr(intrName(name)),
+          ) ++ imap: _*,
         )
 
         // map object

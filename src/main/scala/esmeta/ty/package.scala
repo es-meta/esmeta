@@ -60,6 +60,8 @@ lazy val ESPureValueT: PureValueTy = ESValueT.pureValue
 lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
 def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
 def RecordT(names: String*): ValueTy = RecordT(names.toSet)
+def RecordT(name: String, fields: Map[String, ValueTy]): ValueTy =
+  ValueTy(record = RecordTy(name, fields))
 def RecordT(m: Map[String, ValueTy]): ValueTy = ValueTy(record = RecordTy(m))
 def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
 def ListT: ValueTy = ValueTy(list = ListTy.Top)

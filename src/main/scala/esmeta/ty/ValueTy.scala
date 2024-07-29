@@ -13,7 +13,7 @@ case class ValueTy(
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
-  import ManualInfo.tyModel.isSubTy
+  import ManualInfo.tyModel.{isSubTy, getBase}
 
   /** top check */
   def isTop: Boolean =
@@ -123,13 +123,15 @@ case class ValueTy(
                 ValueTy(pureValue = map.value).contains(value, heap)
             }
           case RecordObj(tname, map) =>
-            val r = record
-            !r.isBottom && ((r match
-              case RecordTy.Detail(tname, _) => false
-              case RecordTy.Simple(names)    => names.exists(isSubTy(tname, _))
-            ) || r.fieldMap.forall {
+            lazy val fieldCheck = record.fieldMap.forall {
               case (f, ty) => map.get(f).fold(false)(ty.contains(_, heap))
-            })
+            }
+            record match
+              case RecordTy.Detail(t, _) =>
+                getBase(t) == getBase(tname) && fieldCheck
+              case RecordTy.Simple(names) =>
+                names.exists(isSubTy(tname, _)) ||
+                (record.bases.contains(getBase(tname)) && fieldCheck)
           case ListObj(values) =>
             list.elem match
               case None     => false

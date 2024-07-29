@@ -152,6 +152,7 @@ class Initialize(cfg: CFG) {
   ): Unit = {
     val (baseName, baseAddr) = (intrName(name), intrAddr(name))
     val subAddr = mapAddr(baseName)
+    val listAddr = elemsAddr(baseName)
     val nameAddr = descAddr(name, "name")
     val lengthAddr = descAddr(name, "length")
 
@@ -161,6 +162,9 @@ class Initialize(cfg: CFG) {
     val mapObj = map.get(subAddr) match
       case Some(m: MapObj) => m
       case _               => MapObj()
+    val listObj = map.get(listAddr) match
+      case Some(m: ListObj) => m
+      case _                => ListObj()
     val nameRecordObj = map.get(nameAddr) match
       case Some(r: RecordObj) => r
       case _                  => RecordObj("PropertyDescriptor")
@@ -188,12 +192,15 @@ class Initialize(cfg: CFG) {
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
       INNER_MAP -> subAddr,
+      PRIVATE_ELEMENTS -> listAddr,
     )
 
     map += subAddr -> updateMap(mapObj)(
       Str("length") -> lengthAddr,
       Str("name") -> nameAddr,
     )
+
+    map += listAddr -> listObj
 
     map += nameAddr -> updateRecord(nameRecordObj)(
       "Value" -> Str(defaultName),

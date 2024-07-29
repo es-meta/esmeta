@@ -27,6 +27,7 @@ val PRIMITIVE = "PRIMITIVE"
 val SOURCE_TEXT = "SOURCE_TEXT"
 val SYMBOL_REGISTRY = "SYMBOL_REGISTRY"
 val INNER_MAP = "__MAP__"
+val PRIVATE_ELEMENTS = "PrivateElements"
 val DESCRIPTOR = "DESCRIPTOR"
 val UNDEF_TYPE = "Undefined"
 val NULL_TYPE = "Null"
@@ -103,6 +104,12 @@ def mapName(name: String): String = s"$name.$INNER_MAP"
 
 /** map addr */
 def mapAddr(name: String): NamedAddr = NamedAddr(mapName(name))
+
+/** PrivateElements name */
+def elemsName(name: String): String = s"$name.$PRIVATE_ELEMENTS"
+
+/** PrivateElements addr */
+def elemsAddr(name: String): NamedAddr = NamedAddr(elemsName(name))
 
 /** symbol name */
 def symbolName(name: String): String = s"Symbol.$name"

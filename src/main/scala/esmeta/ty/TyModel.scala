@@ -62,6 +62,12 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
   /** field map alias */
   type FieldMap = Map[String, ValueTy]
 
+  /** get base type name */
+  def getBase(tname: String): String = (for {
+    decl <- decls.get(tname)
+    parent <- decl.parent
+  } yield getBase(parent)).getOrElse(tname)
+
   /** get types of field */
   def getField(tname: String, p: String): ValueTy =
     fieldMaps.getOrElse(tname, Map()).getOrElse(p, AnyT)

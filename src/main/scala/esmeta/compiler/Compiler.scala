@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.es.builtin.INNER_MAP
+import esmeta.es.builtin.{INNER_MAP, PRIVATE_ELEMENTS}
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,
@@ -499,7 +499,7 @@ class Compiler(
         }
         val tname = Type.normalizeName(rawName)
         if (hasMap(tname)) props :+= INNER_MAP -> EMap(Nil)
-        if (isObject(tname)) props :+= "PrivateElements" -> EList(Nil)
+        if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
         ERecord(if (tname == "Record") None else Some(tname), props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")

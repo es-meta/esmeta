@@ -15,7 +15,10 @@ case class GlobalObject(cfg: CFG) {
   given CFG = cfg
 
   /** get global object */
-  def obj: RecordObj = RecordObj("Object")(INNER_MAP -> mapAddr(GLOBAL))
+  def obj: RecordObj = RecordObj("Object")(
+    INNER_MAP -> mapAddr(GLOBAL),
+    PRIVATE_ELEMENTS -> elemsAddr(GLOBAL),
+  )
 
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {

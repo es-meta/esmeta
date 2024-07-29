@@ -81,9 +81,6 @@ case class Heap(
   /** record allocations */
   def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
     val record = RecordObj(tnameOpt)
-    // TODO check it is the best way to handle this
-    if (isObject(record.tname))
-      record.update(Str("PrivateElements"), alloc(ListObj()))
     alloc(record)
 
   private def isObject(tname: String): Boolean =

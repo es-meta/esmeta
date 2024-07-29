@@ -62,6 +62,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       } yield field
       fields.toList.map(f => f -> apply(f)).toMap
 
+  /** base type names */
+  def bases: Set[String] = this match
+    case Detail(name, _) => Set(getBase(name))
+    case Simple(set)     => set.map(getBase)
+
   /** type names */
   def names: Set[String] = this match
     case Detail(name, _) => Set(name)
@@ -80,6 +85,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     apply(names.toSet)
   def apply(names: Set[String]): RecordTy =
     if (names.isEmpty) Bot else Simple(names)
+  def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
+    if (fields.isEmpty) Simple(Set(name)) else Detail(name, fields)
   def apply(fields: Map[String, ValueTy]): RecordTy =
     if (fields.isEmpty) Top else Detail("", fields)
 }
