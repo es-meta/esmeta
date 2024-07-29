@@ -494,14 +494,13 @@ class Compiler(
           compile(fb, fmap(tgt)),
         )
       case RecordExpression(rawName, fields) =>
-        val props = fields.map {
+        var props = fields.map {
           case (FieldLiteral(f), e) => f -> compile(fb, e)
         }
         val tname = Type.normalizeName(rawName)
-        val updatedProps =
-          if (hasMap(tname)) props :+ (INNER_MAP -> EMap(Nil))
-          else props
-        ERecord(if (tname == "Record") None else Some(tname), updatedProps)
+        if (hasMap(tname)) props :+= INNER_MAP -> EMap(Nil)
+        if (isObject(tname)) props :+= "PrivateElements" -> EList(Nil)
+        ERecord(if (tname == "Record") None else Some(tname), props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>
