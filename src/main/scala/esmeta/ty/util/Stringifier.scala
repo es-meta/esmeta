@@ -35,14 +35,25 @@ object Stringifier {
 
   /** type declarations */
   given tyDeclRule: Rule[TyDecl] = (app, ty) =>
-    val TyDecl(name, parent, rawFields) = ty
+    val TyDecl(name, parent, elems) = ty
     app >> "type " >> name
     parent.fold(app)(app >> " extends " >> _)
-    if (rawFields.nonEmpty) (app >> " ").wrap("{", "}") {
-      for ((name, t) <- rawFields.toList.sortBy(_._1))
-        app :> name >> " : " >> t
-    }
+    if (elems.nonEmpty) (app >> " ").wrap("{", "}") { elems.map(app :> _) }
     app
+
+  /** type declaration elements */
+  given tyDeclElemRule: Rule[TyDecl.Elem] = (app, elem) =>
+    import TyDecl.Elem.*
+    elem match
+      case Method(name, optional, target) =>
+        app >> "def " >> name
+        if (optional) app >> "?"
+        target.fold(app)(app >> " = " >> _)
+      case Field(name, optional, typeStr) =>
+        app >> name
+        if (optional) app >> "?"
+        app >> " : " >> typeStr
+    app >> ";"
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>

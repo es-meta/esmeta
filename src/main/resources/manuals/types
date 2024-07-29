@@ -10,11 +10,11 @@ type AgentRecord {
 }
 
 type ArgumentsExoticObject extends Object {
-  DefineOwnProperty: Clo["Record[ArgumentsExoticObject].DefineOwnProperty"];
-  Delete: Clo["Record[ArgumentsExoticObject].Delete"];
-  Get: Clo["Record[ArgumentsExoticObject].Get"];
-  GetOwnProperty: Clo["Record[ArgumentsExoticObject].GetOwnProperty"];
-  Set: Clo["Record[ArgumentsExoticObject].Set"];
+  def DefineOwnProperty = Record[ArgumentsExoticObject].DefineOwnProperty;
+  def Delete = Record[ArgumentsExoticObject].Delete;
+  def Get = Record[ArgumentsExoticObject].Get;
+  def GetOwnProperty = Record[ArgumentsExoticObject].GetOwnProperty;
+  def Set = Record[ArgumentsExoticObject].Set;
   ParameterMap: Record[OrdinaryObject];
 }
 
@@ -25,7 +25,7 @@ type ArrayBufferObject extends Object {
 }
 
 type ArrayExoticObject extends Object {
-  DefineOwnProperty: Clo["Record[ArrayExoticObject].DefineOwnProperty"];
+  def DefineOwnProperty = Record[ArrayExoticObject].DefineOwnProperty;
 }
 
 type AsyncFromSyncIteratorInstance extends OrdinaryObject {
@@ -58,16 +58,16 @@ type BooleanObject extends OrdinaryObject {
 }
 
 type BoundFunctionExoticObject extends Constructor {
-  Call: Clo["Record[BoundFunctionExoticObject].Call"];
-  Construct: Clo["Record[BoundFunctionExoticObject].Construct"];
+  def Call = Record[BoundFunctionExoticObject].Call;
+  def Construct = Record[BoundFunctionExoticObject].Construct;
   BoundArguments: List[ESValue];
   BoundTargetFunction: Record[FunctionObject];
   BoundThis: ESValue;
 }
 
 type BuiltinFunctionObject extends Constructor {
-  Call: Clo["Record[BuiltinFunctionObject].Call"];
-  Code: Clo;
+  def Call = Record[BuiltinFunctionObject].Call;
+  def Code;
   InitialName: String | Null;
   Realm: Record[RealmRecord];
 }
@@ -84,8 +84,8 @@ type ClassStaticBlockDefinitionRecord {
 type Constructor extends FunctionObject
 
 type CyclicModuleRecord extends ModuleRecord {
-  Evaluate: Clo["CyclicModuleRecord.Evaluate"];
-  Link: Clo["CyclicModuleRecord.Link"];
+  def Evaluate = CyclicModuleRecord.Evaluate;
+  def Link = CyclicModuleRecord.Link;
   AsyncEvaluation: Boolean;
   AsyncParentModules: List[Record[CyclicModuleRecord]];
   CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
@@ -100,21 +100,21 @@ type CyclicModuleRecord extends ModuleRecord {
 }
 
 type DeclarativeEnvironmentRecord extends EnvironmentRecord {
-  CreateImmutableBinding: Clo["Record[DeclarativeEnvironmentRecord].CreateImmutableBinding"];
-  CreateMutableBinding: Clo["Record[DeclarativeEnvironmentRecord].CreateMutableBinding"];
-  DeleteBinding: Clo["Record[DeclarativeEnvironmentRecord].DeleteBinding"];
-  GetBindingValue: Clo["Record[DeclarativeEnvironmentRecord].GetBindingValue"];
-  HasBinding: Clo["Record[DeclarativeEnvironmentRecord].HasBinding"];
-  HasSuperBinding: Clo["Record[DeclarativeEnvironmentRecord].HasSuperBinding"];
-  HasThisBinding: Clo["Record[DeclarativeEnvironmentRecord].HasThisBinding"];
-  InitializeBinding: Clo["Record[DeclarativeEnvironmentRecord].InitializeBinding"];
-  SetMutableBinding: Clo["Record[DeclarativeEnvironmentRecord].SetMutableBinding"];
-  WithBaseObject: Clo["Record[DeclarativeEnvironmentRecord].WithBaseObject"];
+  def CreateImmutableBinding = Record[DeclarativeEnvironmentRecord].CreateImmutableBinding;
+  def CreateMutableBinding = Record[DeclarativeEnvironmentRecord].CreateMutableBinding;
+  def DeleteBinding = Record[DeclarativeEnvironmentRecord].DeleteBinding;
+  def GetBindingValue = Record[DeclarativeEnvironmentRecord].GetBindingValue;
+  def HasBinding = Record[DeclarativeEnvironmentRecord].HasBinding;
+  def HasSuperBinding = Record[DeclarativeEnvironmentRecord].HasSuperBinding;
+  def HasThisBinding = Record[DeclarativeEnvironmentRecord].HasThisBinding;
+  def InitializeBinding = Record[DeclarativeEnvironmentRecord].InitializeBinding;
+  def SetMutableBinding = Record[DeclarativeEnvironmentRecord].SetMutableBinding;
+  def WithBaseObject = Record[DeclarativeEnvironmentRecord].WithBaseObject;
 }
 
 type ECMAScriptFunctionObject extends Constructor {
-  Call: Clo["Record[ECMAScriptFunctionObject].Call"];
-  Construct: Clo["Record[ECMAScriptFunctionObject].Construct"];
+  def Call = Record[ECMAScriptFunctionObject].Call;
+  def Construct? = Record[ECMAScriptFunctionObject].Construct;
   ClassFieldInitializerName: Record[PrivateName | Symbol] | Enum[~empty~] | String;
   ConstructorKind: Enum[~base~, ~derived~];
   ECMAScriptCode: Ast;
@@ -166,11 +166,11 @@ type ForInIteratorInstance extends OrdinaryObject {
 }
 
 type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  BindThisValue: Clo["Record[FunctionEnvironmentRecord].BindThisValue"];
-  GetSuperBase: Clo["Record[FunctionEnvironmentRecord].GetSuperBase"];
-  GetThisBinding: Clo["Record[FunctionEnvironmentRecord].GetThisBinding"];
-  HasSuperBinding: Clo["Record[FunctionEnvironmentRecord].HasSuperBinding"];
-  HasThisBinding: Clo["Record[FunctionEnvironmentRecord].HasThisBinding"];
+  def BindThisValue = Record[FunctionEnvironmentRecord].BindThisValue;
+  def GetSuperBase = Record[FunctionEnvironmentRecord].GetSuperBase;
+  def GetThisBinding = Record[FunctionEnvironmentRecord].GetThisBinding;
+  def HasSuperBinding = Record[FunctionEnvironmentRecord].HasSuperBinding;
+  def HasThisBinding = Record[FunctionEnvironmentRecord].HasThisBinding;
   FunctionObject: Record[FunctionObject];
   NewTarget: Record[Object] | Undefined;
   ThisBindingStatus: Enum[~initialized~, ~lexical~, ~uninitialized~];
@@ -186,24 +186,24 @@ type GeneratorInstance extends OrdinaryObject {
 }
 
 type GlobalEnvironmentRecord extends EnvironmentRecord {
-  CanDeclareGlobalFunction: Clo["Record[GlobalEnvironmentRecord].CanDeclareGlobalFunction"];
-  CanDeclareGlobalVar: Clo["Record[GlobalEnvironmentRecord].CanDeclareGlobalVar"];
-  CreateGlobalFunctionBinding: Clo["Record[GlobalEnvironmentRecord].CreateGlobalFunctionBinding"];
-  CreateGlobalVarBinding: Clo["Record[GlobalEnvironmentRecord].CreateGlobalVarBinding"];
-  CreateImmutableBinding: Clo["Record[GlobalEnvironmentRecord].CreateImmutableBinding"];
-  CreateMutableBinding: Clo["Record[GlobalEnvironmentRecord].CreateMutableBinding"];
-  DeleteBinding: Clo["Record[GlobalEnvironmentRecord].DeleteBinding"];
-  GetBindingValue: Clo["Record[GlobalEnvironmentRecord].GetBindingValue"];
-  GetThisBinding: Clo["Record[GlobalEnvironmentRecord].GetThisBinding"];
-  HasBinding: Clo["Record[GlobalEnvironmentRecord].HasBinding"];
-  HasLexicalDeclaration: Clo["Record[GlobalEnvironmentRecord].HasLexicalDeclaration"];
-  HasRestrictedGlobalProperty: Clo["Record[GlobalEnvironmentRecord].HasRestrictedGlobalProperty"];
-  HasSuperBinding: Clo["Record[GlobalEnvironmentRecord].HasSuperBinding"];
-  HasThisBinding: Clo["Record[GlobalEnvironmentRecord].HasThisBinding"];
-  HasVarDeclaration: Clo["Record[GlobalEnvironmentRecord].HasVarDeclaration"];
-  InitializeBinding: Clo["Record[GlobalEnvironmentRecord].InitializeBinding"];
-  SetMutableBinding: Clo["Record[GlobalEnvironmentRecord].SetMutableBinding"];
-  WithBaseObject: Clo["Record[GlobalEnvironmentRecord].WithBaseObject"];
+  def CanDeclareGlobalFunction = Record[GlobalEnvironmentRecord].CanDeclareGlobalFunction;
+  def CanDeclareGlobalVar = Record[GlobalEnvironmentRecord].CanDeclareGlobalVar;
+  def CreateGlobalFunctionBinding = Record[GlobalEnvironmentRecord].CreateGlobalFunctionBinding;
+  def CreateGlobalVarBinding = Record[GlobalEnvironmentRecord].CreateGlobalVarBinding;
+  def CreateImmutableBinding = Record[GlobalEnvironmentRecord].CreateImmutableBinding;
+  def CreateMutableBinding = Record[GlobalEnvironmentRecord].CreateMutableBinding;
+  def DeleteBinding = Record[GlobalEnvironmentRecord].DeleteBinding;
+  def GetBindingValue = Record[GlobalEnvironmentRecord].GetBindingValue;
+  def GetThisBinding = Record[GlobalEnvironmentRecord].GetThisBinding;
+  def HasBinding = Record[GlobalEnvironmentRecord].HasBinding;
+  def HasLexicalDeclaration = Record[GlobalEnvironmentRecord].HasLexicalDeclaration;
+  def HasRestrictedGlobalProperty = Record[GlobalEnvironmentRecord].HasRestrictedGlobalProperty;
+  def HasSuperBinding = Record[GlobalEnvironmentRecord].HasSuperBinding;
+  def HasThisBinding = Record[GlobalEnvironmentRecord].HasThisBinding;
+  def HasVarDeclaration = Record[GlobalEnvironmentRecord].HasVarDeclaration;
+  def InitializeBinding = Record[GlobalEnvironmentRecord].InitializeBinding;
+  def SetMutableBinding = Record[GlobalEnvironmentRecord].SetMutableBinding;
+  def WithBaseObject = Record[GlobalEnvironmentRecord].WithBaseObject;
   DeclarativeRecord: Record[DeclarativeEnvironmentRecord];
   GlobalThisValue: Record[Object];
   ObjectRecord: Record[ObjectEnvironmentRecord];
@@ -221,7 +221,7 @@ type ImmutableBinding extends Binding {
 }
 
 type ImmutablePrototypeExoticObject extends Object {
-  SetPrototypeOf: Clo["Record[ImmutablePrototypeExoticObject].SetPrototypeOf"];
+  def SetPrototypeOf = Record[ImmutablePrototypeExoticObject].SetPrototypeOf;
 }
 
 type ImportEntryRecord {
@@ -231,13 +231,13 @@ type ImportEntryRecord {
 }
 
 type IntegerIndexedExoticObject extends Object {
-  DefineOwnProperty: Clo["Record[IntegerIndexedExoticObject].DefineOwnProperty"];
-  Delete: Clo["Record[IntegerIndexedExoticObject].Delete"];
-  Get: Clo["Record[IntegerIndexedExoticObject].Get"];
-  GetOwnProperty: Clo["Record[IntegerIndexedExoticObject].GetOwnProperty"];
-  HasProperty: Clo["Record[IntegerIndexedExoticObject].HasProperty"];
-  OwnPropertyKeys: Clo["Record[IntegerIndexedExoticObject].OwnPropertyKeys"];
-  Set: Clo["Record[IntegerIndexedExoticObject].Set"];
+  def DefineOwnProperty = Record[IntegerIndexedExoticObject].DefineOwnProperty;
+  def Delete = Record[IntegerIndexedExoticObject].Delete;
+  def Get = Record[IntegerIndexedExoticObject].Get;
+  def GetOwnProperty = Record[IntegerIndexedExoticObject].GetOwnProperty;
+  def HasProperty = Record[IntegerIndexedExoticObject].HasProperty;
+  def OwnPropertyKeys = Record[IntegerIndexedExoticObject].OwnPropertyKeys;
+  def Set = Record[IntegerIndexedExoticObject].Set;
   ArrayLength: NonNegInt;
   ByteOffset: NonNegInt;
   ContentType: Enum[~BigInt~, ~Number~];
@@ -268,24 +268,24 @@ type MatchRecord {
 }
 
 type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  CreateImportBinding: Clo["Record[ModuleEnvironmentRecord].CreateImportBinding"];
-  GetBindingValue: Clo["Record[ModuleEnvironmentRecord].GetBindingValue"];
-  GetThisBinding: Clo["Record[ModuleEnvironmentRecord].GetThisBinding"];
-  HasThisBinding: Clo["Record[ModuleEnvironmentRecord].HasThisBinding"];
+  def CreateImportBinding = Record[ModuleEnvironmentRecord].CreateImportBinding;
+  def GetBindingValue = Record[ModuleEnvironmentRecord].GetBindingValue;
+  def GetThisBinding = Record[ModuleEnvironmentRecord].GetThisBinding;
+  def HasThisBinding = Record[ModuleEnvironmentRecord].HasThisBinding;
 }
 
 type ModuleNamespaceExoticObject extends Object {
-  DefineOwnProperty: Clo["Record[ModuleNamespaceExoticObject].DefineOwnProperty"];
-  Delete: Clo["Record[ModuleNamespaceExoticObject].Delete"];
-  Get: Clo["Record[ModuleNamespaceExoticObject].Get"];
-  GetOwnProperty: Clo["Record[ModuleNamespaceExoticObject].GetOwnProperty"];
-  GetPrototypeOf: Clo["Record[ModuleNamespaceExoticObject].GetPrototypeOf"];
-  HasProperty: Clo["Record[ModuleNamespaceExoticObject].HasProperty"];
-  IsExtensible: Clo["Record[ModuleNamespaceExoticObject].IsExtensible"];
-  OwnPropertyKeys: Clo["Record[ModuleNamespaceExoticObject].OwnPropertyKeys"];
-  PreventExtensions: Clo["Record[ModuleNamespaceExoticObject].PreventExtensions"];
-  Set: Clo["Record[ModuleNamespaceExoticObject].Set"];
-  SetPrototypeOf: Clo["Record[ModuleNamespaceExoticObject].SetPrototypeOf"];
+  def DefineOwnProperty = Record[ModuleNamespaceExoticObject].DefineOwnProperty;
+  def Delete = Record[ModuleNamespaceExoticObject].Delete;
+  def Get = Record[ModuleNamespaceExoticObject].Get;
+  def GetOwnProperty = Record[ModuleNamespaceExoticObject].GetOwnProperty;
+  def GetPrototypeOf = Record[ModuleNamespaceExoticObject].GetPrototypeOf;
+  def HasProperty = Record[ModuleNamespaceExoticObject].HasProperty;
+  def IsExtensible = Record[ModuleNamespaceExoticObject].IsExtensible;
+  def OwnPropertyKeys = Record[ModuleNamespaceExoticObject].OwnPropertyKeys;
+  def PreventExtensions = Record[ModuleNamespaceExoticObject].PreventExtensions;
+  def Set = Record[ModuleNamespaceExoticObject].Set;
+  def SetPrototypeOf = Record[ModuleNamespaceExoticObject].SetPrototypeOf;
   Exports: List[String];
   Module: Record[ModuleRecord];
 }
@@ -306,17 +306,17 @@ type NumberObject extends OrdinaryObject {
 }
 
 type Object {
-  DefineOwnProperty: Clo["Record[OrdinaryObject].DefineOwnProperty"];
-  Delete: Clo["Record[OrdinaryObject].Delete"];
-  Get: Clo["Record[OrdinaryObject].Get"];
-  GetOwnProperty: Clo["Record[OrdinaryObject].GetOwnProperty"];
-  GetPrototypeOf: Clo["Record[OrdinaryObject].GetPrototypeOf"];
-  HasProperty: Clo["Record[OrdinaryObject].HasProperty"];
-  IsExtensible: Clo["Record[OrdinaryObject].IsExtensible"];
-  OwnPropertyKeys: Clo["Record[OrdinaryObject].OwnPropertyKeys"];
-  PreventExtensions: Clo["Record[OrdinaryObject].PreventExtensions"];
-  Set: Clo["Record[OrdinaryObject].Set"];
-  SetPrototypeOf: Clo["Record[OrdinaryObject].SetPrototypeOf"];
+  def DefineOwnProperty = Record[OrdinaryObject].DefineOwnProperty;
+  def Delete = Record[OrdinaryObject].Delete;
+  def Get = Record[OrdinaryObject].Get;
+  def GetOwnProperty = Record[OrdinaryObject].GetOwnProperty;
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def Set = Record[OrdinaryObject].Set;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   Extensible: Boolean;
   Map: Map[Record[Symbol] | String |-> Record[PropertyDescriptor]];
   PrivateElements: List[Record[PrivateElement]];
@@ -324,15 +324,15 @@ type Object {
 }
 
 type ObjectEnvironmentRecord extends EnvironmentRecord {
-  CreateMutableBinding: Clo["Record[ObjectEnvironmentRecord].CreateMutableBinding"];
-  DeleteBinding: Clo["Record[ObjectEnvironmentRecord].DeleteBinding"];
-  GetBindingValue: Clo["Record[ObjectEnvironmentRecord].GetBindingValue"];
-  HasBinding: Clo["Record[ObjectEnvironmentRecord].HasBinding"];
-  HasSuperBinding: Clo["Record[ObjectEnvironmentRecord].HasSuperBinding"];
-  HasThisBinding: Clo["Record[ObjectEnvironmentRecord].HasThisBinding"];
-  InitializeBinding: Clo["Record[ObjectEnvironmentRecord].InitializeBinding"];
-  SetMutableBinding: Clo["Record[ObjectEnvironmentRecord].SetMutableBinding"];
-  WithBaseObject: Clo["Record[ObjectEnvironmentRecord].WithBaseObject"];
+  def CreateMutableBinding = Record[ObjectEnvironmentRecord].CreateMutableBinding;
+  def DeleteBinding = Record[ObjectEnvironmentRecord].DeleteBinding;
+  def GetBindingValue = Record[ObjectEnvironmentRecord].GetBindingValue;
+  def HasBinding = Record[ObjectEnvironmentRecord].HasBinding;
+  def HasSuperBinding = Record[ObjectEnvironmentRecord].HasSuperBinding;
+  def HasThisBinding = Record[ObjectEnvironmentRecord].HasThisBinding;
+  def InitializeBinding = Record[ObjectEnvironmentRecord].InitializeBinding;
+  def SetMutableBinding = Record[ObjectEnvironmentRecord].SetMutableBinding;
+  def WithBaseObject = Record[ObjectEnvironmentRecord].WithBaseObject;
   BindingObject: Record[Object];
   IsWithEnvironment: Boolean;
 }
@@ -340,17 +340,17 @@ type ObjectEnvironmentRecord extends EnvironmentRecord {
 type OrdinaryObject extends Object
 
 type PendingJob {
-  Job: Clo;
+  def Job;
   Realm: Record[RealmRecord];
   ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
 }
 
 type PrivateElement {
-  Get: Record[FunctionObject] | Undefined | Absent;
   Key: Record[PrivateName];
-  Kind: Enum[~accessor~, ~field~, ~method~];
-  Set: Record[FunctionObject] | Undefined | Absent;
-  Value: ESValue | Absent;
+  Kind: Enum[~field~, ~method~, ~accessor~];
+  Value?: ESValue;
+  Get?: Record[FunctionObject] | Undefined;
+  Set?: Record[FunctionObject] | Undefined;
 }
 
 type PrivateEnvironmentRecord {
@@ -383,28 +383,28 @@ type PromiseReaction {
 }
 
 type PropertyDescriptor {
-  Configurable: Boolean | Absent;
-  Enumerable: Boolean | Absent;
-  Get: Record[FunctionObject] | Undefined | Absent;
-  Set: Record[FunctionObject] | Undefined | Absent;
-  Value: ESValue | Absent;
-  Writable: Boolean | Absent;
+  Value?: ESValue;
+  Writable?: Boolean;
+  Get?: Record[Object] | Undefined;
+  Set?: Record[Object] | Undefined;
+  Enumerable: Boolean;
+  Configurable: Boolean;
 }
 
 type ProxyExoticObject extends Constructor {
-  Call: Clo["Record[ProxyExoticObject].Call"];
-  Construct: Clo["Record[ProxyExoticObject].Construct"];
-  DefineOwnProperty: Clo["Record[ProxyExoticObject].DefineOwnProperty"];
-  Delete: Clo["Record[ProxyExoticObject].Delete"];
-  Get: Clo["Record[ProxyExoticObject].Get"];
-  GetOwnProperty: Clo["Record[ProxyExoticObject].GetOwnProperty"];
-  GetPrototypeOf: Clo["Record[ProxyExoticObject].GetPrototypeOf"];
-  HasProperty: Clo["Record[ProxyExoticObject].HasProperty"];
-  IsExtensible: Clo["Record[ProxyExoticObject].IsExtensible"];
-  OwnPropertyKeys: Clo["Record[ProxyExoticObject].OwnPropertyKeys"];
-  PreventExtensions: Clo["Record[ProxyExoticObject].PreventExtensions"];
-  Set: Clo["Record[ProxyExoticObject].Set"];
-  SetPrototypeOf: Clo["Record[ProxyExoticObject].SetPrototypeOf"];
+  def Call = Record[ProxyExoticObject].Call;
+  def Construct = Record[ProxyExoticObject].Construct;
+  def DefineOwnProperty = Record[ProxyExoticObject].DefineOwnProperty;
+  def Delete = Record[ProxyExoticObject].Delete;
+  def Get = Record[ProxyExoticObject].Get;
+  def GetOwnProperty = Record[ProxyExoticObject].GetOwnProperty;
+  def GetPrototypeOf = Record[ProxyExoticObject].GetPrototypeOf;
+  def HasProperty = Record[ProxyExoticObject].HasProperty;
+  def IsExtensible = Record[ProxyExoticObject].IsExtensible;
+  def OwnPropertyKeys = Record[ProxyExoticObject].OwnPropertyKeys;
+  def PreventExtensions = Record[ProxyExoticObject].PreventExtensions;
+  def Set = Record[ProxyExoticObject].Set;
+  def SetPrototypeOf = Record[ProxyExoticObject].SetPrototypeOf;
   ProxyHandler: Record[Object] | Null;
   ProxyTarget: Record[Object] | Null;
 }
@@ -425,7 +425,7 @@ type ReferenceRecord {
 }
 
 type RegExpObject extends Object {
-  RegExpMatcher: Clo;
+  def RegExpMatcher;
 }
 
 type ResolvedBindingRecord {
@@ -444,10 +444,10 @@ type SetInstance extends OrdinaryObject {
 }
 
 type SourceTextModuleRecord extends CyclicModuleRecord {
-  ExecuteModule: Clo["SourceTextModuleRecord.ExecuteModule"];
-  GetExportedNames: Clo["SourceTextModuleRecord.GetExportedNames"];
-  InitializeEnvironment: Clo["SourceTextModuleRecord.InitializeEnvironment"];
-  ResolveExport: Clo["SourceTextModuleRecord.ResolveExport"];
+  def ExecuteModule = SourceTextModuleRecord.ExecuteModule;
+  def GetExportedNames = SourceTextModuleRecord.GetExportedNames;
+  def InitializeEnvironment = SourceTextModuleRecord.InitializeEnvironment;
+  def ResolveExport = SourceTextModuleRecord.ResolveExport;
   Context: Record[ExecutionContext];
   ECMAScriptCode: Ast[Module];
   ImportEntries: List[Record[ImportEntryRecord]];
@@ -458,9 +458,9 @@ type SourceTextModuleRecord extends CyclicModuleRecord {
 }
 
 type StringExoticObject extends Object {
-  DefineOwnProperty: Clo["Record[StringExoticObject].DefineOwnProperty"];
-  GetOwnProperty: Clo["Record[StringExoticObject].GetOwnProperty"];
-  OwnPropertyKeys: Clo["Record[StringExoticObject].OwnPropertyKeys"];
+  def DefineOwnProperty = Record[StringExoticObject].DefineOwnProperty;
+  def GetOwnProperty = Record[StringExoticObject].GetOwnProperty;
+  def OwnPropertyKeys = Record[StringExoticObject].OwnPropertyKeys;
   StringData: String;
 }
 

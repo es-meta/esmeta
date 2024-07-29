@@ -24,10 +24,20 @@ trait Parsers extends BasicParsers {
     lazy val field = word ~ opt(":" ~> tyStr) <~ ";" ^^ {
       case k ~ v => (k, v.getOrElse("Any"))
     }
-    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(field) <~ "}") ^^ {
-      case x ~ p ~ ms => TyDecl(x, p, ms.getOrElse(Nil).toMap)
+    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(tyDeclElem) <~ "}") ^^ {
+      case x ~ p ~ es => TyDecl(x, p, es.getOrElse(Nil))
     }
   }.named("ty.TyDecl")
+
+  // type declaration elements
+  given tyDeclElem: Parser[TyDecl.Elem] = {
+    lazy val remain = "[^;]+".r ^^ { _.trim }
+    "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) <~ ";" ^^ {
+      case x ~ q ~ t => TyDecl.Elem.Method(x, q.isDefined, t)
+    } | ident ~ opt("?") ~ (":" ~> remain) <~ ";" ^^ {
+      case x ~ q ~ t => TyDecl.Elem.Field(x, q.isDefined, t)
+    }
+  }.named("ty.TyDecl.Elem")
 
   // types
   given ty: Parser[Ty] = {

@@ -83,62 +83,8 @@ case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
   /** get field map from ancestors */
   private def getUpperFieldMap(name: String): FieldMap = decls.get(name) match
     case Some(decl) =>
-      val parentfields = decl.parent.map(getUpperFieldMap).getOrElse(Map())
-      val fields = decl.fields
-      parentfields ++ fields
+      decl.parent.map(getUpperFieldMap).getOrElse(Map()) ++
+      decl.typeMap.map { case (k, (_, ty)) => k -> ty }
     case None => Map()
-
-  /** get field map of name */
-  private def getSameFieldMap(name: String): FieldMap =
-    decls.get(name).map(_.fields).getOrElse(Map())
-
-  /** get subtypes with field existence */
-  lazy val getSubTypes: ((String, String)) => List[String] =
-    cached((name, key) =>
-      val exist = getSameFieldMap(name).contains(key)
-      if (exist) List(name)
-      else
-        directSubTys
-          .get(name)
-          .fold(Nil)(_.flatMap(child => getSubTypes(child, key)).toList),
-    )
-
-  /** get field map from ancestors */
-  private def getLowerFieldMap(name: String): FieldMap =
-    directSubTys.get(name) match
-      case Some(children) =>
-        children
-          .map(child => {
-            val lower = getLowerFieldMap(child)
-            val fields = getSameFieldMap(child)
-            weakMerge(lower, fields)
-          })
-          .reduce(parallelWeakMerge)
-      case None => getSameFieldMap(name)
-
-  /** weak merge */
-  private def weakMerge(lmap: FieldMap, rmap: FieldMap): FieldMap = {
-    val keys = lmap.keySet ++ rmap.keySet
-    keys.toList
-      .map(k => {
-        val lt = lmap.getOrElse(k, BotT)
-        val rt = rmap.getOrElse(k, BotT)
-        k -> (lt || rt)
-      })
-      .toMap
-  }
-
-  /** parallel weak merge */
-  private def parallelWeakMerge(lmap: FieldMap, rmap: FieldMap): FieldMap = {
-    val keys = lmap.keySet ++ rmap.keySet
-    keys.toList
-      .map(k => {
-        val lt = lmap.getOrElse(k, AbsentT)
-        val rt = rmap.getOrElse(k, AbsentT)
-        k -> (lt || rt)
-      })
-      .toMap
-  }
-
 }
 object TyModel extends Parser.From(Parser.tyModel)
