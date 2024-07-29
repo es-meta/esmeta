@@ -100,6 +100,7 @@ case class Test262(
     paths: Option[List[String]] = None,
     features: Option[List[String]] = None,
     log: Boolean = false,
+    detail: Boolean = false,
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
@@ -144,7 +145,8 @@ case class Test262(
       check = test =>
         val filename = test.path
         val st =
-          if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
+          if (!useCoverage)
+            evalFile(filename, log && !multiple, detail, timeLimit)
           else cov.run(filename)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
@@ -210,6 +212,7 @@ case class Test262(
   private def evalFile(
     filename: String,
     log: Boolean = false,
+    detail: Boolean = false,
     timeLimit: Option[Int] = None,
   ): State =
     val ast = loadTest(filename)
@@ -218,6 +221,7 @@ case class Test262(
     Interpreter(
       st = st,
       log = log,
+      detail = detail,
       logDir = TEST262TEST_LOG_DIR,
       timeLimit = timeLimit,
     )

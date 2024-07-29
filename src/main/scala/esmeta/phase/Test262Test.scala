@@ -47,6 +47,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       targets,
       config.features,
       config.log,
+      config.detail,
       config.progress,
       config.coverage,
       config.timeLimit,
@@ -98,6 +99,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       "turn on logging mode.",
     ),
     (
+      "detail-log",
+      BoolOption(c => { c.log = true; c.detail = true }),
+      "turn on logging mode with detailed information.",
+    ),
+    (
       "concurrent",
       NumOption((c, k) =>
         c.concurrent =
@@ -119,6 +125,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
     var log: Boolean = false,
+    var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     var features: Option[List[String]] = None,
     var verbose: Boolean = false,
