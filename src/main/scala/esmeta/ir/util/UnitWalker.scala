@@ -45,6 +45,7 @@ trait UnitWalker extends BasicUnitWalker {
     case IAssign(ref, expr)     => walk(ref); walk(expr)
     case IDelete(ref)           => walk(ref)
     case IPush(from, to, front) => walk(from); walk(to); walk(front)
+    case IPop(lhs, expr, front) => walk(lhs); walk(expr); walk(front)
     case IReturn(expr)          => walk(expr)
     case IAssert(expr)          => walk(expr)
     case IPrint(expr)           => walk(expr)
@@ -64,8 +65,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case EReturnIfAbrupt(expr, check) =>
       walk(expr); walk(check)
-    case EPop(list, front) =>
-      walk(list); walk(front)
     case EParse(code, rule) =>
       walk(code); walk(rule)
     case ENt(name, params) =>

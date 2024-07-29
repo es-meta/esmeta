@@ -52,6 +52,7 @@ trait Walker extends BasicWalker {
     case IAssign(ref, expr)     => IAssign(walk(ref), walk(expr))
     case IDelete(ref)           => IDelete(walk(ref))
     case IPush(from, to, front) => IPush(walk(from), walk(to), walk(front))
+    case IPop(lhs, expr, front) => IPop(walk(lhs), walk(expr), walk(front))
     case IReturn(expr)          => IReturn(walk(expr))
     case IAssert(expr)          => IAssert(walk(expr))
     case IPrint(expr)           => IPrint(walk(expr))
@@ -72,8 +73,6 @@ trait Walker extends BasicWalker {
       EIsCompletion(walk(expr))
     case EReturnIfAbrupt(expr, check) =>
       EReturnIfAbrupt(walk(expr), walk(check))
-    case EPop(list, front) =>
-      EPop(walk(list), walk(front))
     case EParse(code, rule) =>
       EParse(walk(code), walk(rule))
     case ENt(name, params) =>

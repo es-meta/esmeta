@@ -1,7 +1,7 @@
 def foldleft(init: Math, list: List[Math], f: Clo) = {
   if (= list.length 0) %0 = init
   else {
-    let hd = (pop < list)
+    pop hd < list
     call newinit = f(init, hd)
     call %0 = clo<foldleft>(newinit, list, f)
   }

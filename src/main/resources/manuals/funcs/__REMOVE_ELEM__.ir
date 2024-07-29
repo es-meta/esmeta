@@ -11,6 +11,6 @@ def <AUX>:__REMOVE_ELEM__(
     }
     from = (+ from 1)
   }
-  while (< to list.length) (pop > list)
+  while (< to list.length) { pop list > _ }
   return list
 }

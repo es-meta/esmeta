@@ -204,6 +204,13 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             _ <- modify(_.push(l, v, front))
           } yield ()
+        case IPop(lhs, list, front) =>
+          for {
+            v <- transfer(list)
+            pv <- id(_.pop(v, front))
+            _ <- modify(_.defineLocal(lhs -> pv))
+            st <- get
+          } yield ()
         case inst @ IReturn(expr) =>
           for {
             v <- transfer(expr)
@@ -301,11 +308,6 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             newV <- returnIfAbrupt(riaExpr, v, check)
           } yield newV
-        case EPop(list, front) =>
-          for {
-            v <- transfer(list)
-            pv <- id(_.pop(v, front))
-          } yield pv
         case EParse(code, rule) =>
           for {
             c <- transfer(code)

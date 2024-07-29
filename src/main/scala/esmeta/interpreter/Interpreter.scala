@@ -118,6 +118,13 @@ class Interpreter(
           else st.append(addr, fromValue)
         case v => throw NoAddr(to, v)
       }
+    case IPop(lhs, list, front) => {
+      eval(list) match
+        case (addr: Addr) =>
+          val elem = st.pop(addr, front)
+          st.context.locals += lhs -> elem
+        case v => throw NoAddr(list, v)
+    }
     case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
     case IAssert(expr) =>
       optional(eval(expr)) match
@@ -207,10 +214,6 @@ class Interpreter(
       value
     case ria @ EReturnIfAbrupt(expr, check) =>
       returnIfAbrupt(ria, eval(expr), check)(using st)
-    case EPop(list, front) =>
-      eval(list) match
-        case (addr: Addr) => st.pop(addr, front)
-        case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)

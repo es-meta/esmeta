@@ -2,7 +2,7 @@ def filter(list: List[Math], f: Clo) = {
   let clist = (copy list)[#1]
   if (= clist.length 0) %0 = clist
   else {
-    let hd = (pop < clist)
+    pop hd < clist
     call fhd = f(hd)
     call ftl = clo<filter>(clist, f)
     if fhd push hd > ftl else {}
