@@ -63,7 +63,6 @@ trait Walker extends BasicWalker {
   def walk(ty: ValueTy): ValueTy = ValueTy(
     walk(ty.comp),
     walk(ty.pureValue),
-    walk(ty.map),
   )
 
   /** completion record types */
@@ -80,6 +79,7 @@ trait Walker extends BasicWalker {
         walkClo(ty.clo),
         walkCont(ty.cont),
         walk(ty.record),
+        walk(ty.map),
         walk(ty.list),
         walkAst(ty.ast),
         walkGrammarSymbol(ty.grammarSymbol),
@@ -170,13 +170,12 @@ trait Walker extends BasicWalker {
       case Simple(set)       => Simple(walkSet(set, walk))
 
   /** list types */
-  def walk(ty: ListTy): ListTy = ListTy(
-    walkOpt(ty.elem, walk),
-  )
+  def walk(ty: ListTy): ListTy = ty match
+    case ListTy.Elem(elem) => ListTy.Elem(walk(elem))
+    case _                 => ty
 
   /** map types */
-  def walk(ty: MapTy): MapTy = MapTy(
-    walk(ty.key),
-    walk(ty.value),
-  )
+  def walk(ty: MapTy): MapTy = ty match
+    case MapTy.Elem(key, value) => MapTy.Elem(walk(key), walk(value))
+    case _                      => ty
 }

@@ -125,8 +125,8 @@ trait StateTypeDomainDecl { self: Self =>
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem
 
       /** pop a value in a list */
-      def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
-        (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
+      def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
+      // (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
 
       /** set a type to an address partition */
       def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
@@ -152,12 +152,12 @@ trait StateTypeDomainDecl { self: Self =>
       def concat(
         to: AllocSite,
         lists: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem) =
-        val value = AbsValue(ListT((for {
-          list <- lists
-          elem <- list.ty.list.elem
-        } yield elem).foldLeft(BotT)(_ || _)))
-        (value, elem)
+      ): (AbsValue, Elem) = ???
+      // val value = AbsValue(ListT((for {
+      //   list <- lists
+      //   elem <- list.ty.list.elem
+      // } yield elem).foldLeft(BotT)(_ || _)))
+      // (value, elem)
 
       /** get childeren of AST */
       def getChildren(

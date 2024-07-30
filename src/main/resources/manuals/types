@@ -135,7 +135,7 @@ type ECMAScriptFunctionObject extends Constructor {
 }
 
 type EnvironmentRecord {
-  Map: Map[String |-> Record[Binding]];
+  Map: Map[String -> Record[Binding]];
   OuterEnv: Record[EnvironmentRecord] | Null;
 }
 
@@ -320,7 +320,7 @@ type Object {
   def Set = Record[OrdinaryObject].Set;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   Extensible: Boolean;
-  Map: Map[Record[Symbol] | String |-> Record[PropertyDescriptor]];
+  Map: Map[Record[Symbol] | String -> Record[PropertyDescriptor]];
   PrivateElements: List[Record[PrivateElement]];
   Prototype: Record[Object] | Null;
 }

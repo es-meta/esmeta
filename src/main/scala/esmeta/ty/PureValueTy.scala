@@ -12,6 +12,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def clo: BSet[String]
   def cont: BSet[Int]
   def record: RecordTy
+  def map: MapTy
   def list: ListTy
   def ast: AstTy
   def grammarSymbol: BSet[GrammarSymbol]
@@ -39,6 +40,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.clo.isBottom &&
         this.cont.isBottom &&
         this.record.isBottom &&
+        this.map.isBottom &&
         this.list.isBottom &&
         this.ast.isBottom &&
         this.grammarSymbol.isBottom &&
@@ -63,6 +65,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.clo <= that.clo &&
       this.cont <= that.cont &&
       this.record <= that.record &&
+      this.map <= that.map &&
       this.list <= that.list &&
       this.ast <= that.ast &&
       this.grammarSymbol <= that.grammarSymbol &&
@@ -90,6 +93,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.clo || that.clo,
         this.cont || that.cont,
         this.record || that.record,
+        this.map || that.map,
         this.list || that.list,
         this.ast || that.ast,
         this.grammarSymbol || that.grammarSymbol,
@@ -118,6 +122,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.clo && that.clo,
         this.cont && that.cont,
         this.record && that.record,
+        this.map && that.map,
         this.list && that.list,
         this.ast && that.ast,
         this.grammarSymbol && that.grammarSymbol,
@@ -145,6 +150,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.clo -- that.clo,
         this.cont -- that.cont,
         this.record -- that.record,
+        this.map -- that.map,
         this.list -- that.list,
         this.ast -- that.ast,
         this.grammarSymbol -- that.grammarSymbol,
@@ -166,6 +172,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     clo.isTop &&
     cont.isTop &&
     record.isTop &&
+    map.isTop &&
     list.isTop &&
     ast.isTop &&
     grammarSymbol.isTop &&
@@ -187,16 +194,14 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def removeAbsent: PureValueTy = this match
     case PureValueTopTy => PureValueTy.Top
     case elem: PureValueElemTy =>
-      elem.copy(
-        list = elem.list.copy(elem.list.elem.map(_.removeAbsent)),
-        absent = false,
-      )
+      elem.copy(list = elem.list.removeAbsent, absent = false)
 
   /** get single value */
   def getSingle: Flat[PureValue] =
     (if (this.clo.isBottom) Zero else Many) ||
     (if (this.cont.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
+    (if (this.map.isBottom) Zero else Many) ||
     (if (this.list.isBottom) Zero else Many) ||
     (if (this.ast.isBottom) Zero else Many) ||
     grammarSymbol.getSingle ||
@@ -232,6 +237,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     case elem: PureValueElemTy =>
       elem.copy(
         record = RecordTy.Bot,
+        map = MapTy.Bot,
         list = ListTy.Bot,
         ast = AstTy.Bot,
         str = Fin(),
@@ -242,6 +248,7 @@ case object PureValueTopTy extends PureValueTy {
   def clo: BSet[String] = Inf
   def cont: BSet[Int] = Inf
   def record: RecordTy = RecordTy.Top
+  def map: MapTy = MapTy.Top
   def list: ListTy = ListTy.Bot // unsound but need to remove cycle
   def ast: AstTy = AstTy.Top
   def grammarSymbol: BSet[GrammarSymbol] = Inf
@@ -262,6 +269,7 @@ case class PureValueElemTy(
   clo: BSet[String] = Fin(),
   cont: BSet[Int] = Fin(),
   record: RecordTy = RecordTy.Bot,
+  map: MapTy = MapTy.Bot,
   list: ListTy = ListTy.Bot,
   ast: AstTy = AstTy.Bot,
   grammarSymbol: BSet[GrammarSymbol] = Fin(),
@@ -282,6 +290,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
     record: RecordTy = RecordTy.Bot,
+    map: MapTy = MapTy.Bot,
     list: ListTy = ListTy.Bot,
     ast: AstTy = AstTy.Bot,
     grammarSymbol: BSet[GrammarSymbol] = Fin(),
@@ -300,6 +309,7 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     clo,
     cont,
     record,
+    map,
     list,
     ast,
     grammarSymbol,

@@ -1,8 +1,8 @@
 package esmeta.ty
 
-import esmeta.util.*
 import esmeta.state.*
 import esmeta.ty.util.Parser
+import esmeta.util.*
 
 /** AST value types */
 enum AstTy extends TyElem with Lattice[AstTy] {
@@ -71,6 +71,14 @@ enum AstTy extends TyElem with Lattice[AstTy] {
     case Top             => Inf
     case Simple(names)   => Fin(names)
     case Detail(name, _) => Fin(Set(name))
+
+  /** AST containment check */
+  def contains(value: AstValue): Boolean =
+    val AstValue(ast) = value
+    this match
+      case Top               => true
+      case Simple(names)     => names.exists(ast.types.contains)
+      case Detail(name, idx) => ast.name == name && ast.idx == idx
 }
 object AstTy extends Parser.From(Parser.astTy) {
   lazy val Bot: Simple = Simple(Set())

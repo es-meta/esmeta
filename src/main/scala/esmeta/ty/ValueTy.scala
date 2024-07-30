@@ -9,7 +9,6 @@ import esmeta.ty.util.Parser
 case class ValueTy(
   comp: CompTy,
   pureValue: PureValueTy,
-  map: MapTy,
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
@@ -19,72 +18,41 @@ case class ValueTy(
   def isTop: Boolean =
     if (this eq Top) true
     else if (this eq Bot) false
-    else
-      (
-        this.comp.isTop &&
-        this.pureValue.isTop &&
-        this.map.isTop
-      )
+    else this.comp.isTop && this.pureValue.isTop
 
   /** bottom check */
   def isBottom: Boolean =
     if (this eq Bot) true
     else if (this eq Top) false
-    else
-      (
-        this.comp.isBottom &&
-        this.pureValue.isBottom &&
-        this.map.isBottom
-      )
+    else this.comp.isBottom && this.pureValue.isBottom
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean = (this eq that) || (
-    this.comp <= that.comp &&
-    this.pureValue <= that.pureValue &&
-    this.map <= that.map
-  )
+  def <=(that: => ValueTy): Boolean =
+    (this eq that) ||
+    (this.comp <= that.comp && this.pureValue <= that.pureValue)
 
   /** union type */
   def ||(that: => ValueTy): ValueTy =
     if (this eq that) this
-    else
-      ValueTy(
-        this.comp || that.comp,
-        this.pureValue || that.pureValue,
-        this.map || that.map,
-      )
+    else ValueTy(this.comp || that.comp, this.pureValue || that.pureValue)
 
   /** intersection type */
   def &&(that: => ValueTy): ValueTy =
     if (this eq that) this
-    else
-      ValueTy(
-        this.comp && that.comp,
-        this.pureValue && that.pureValue,
-        this.map && that.map,
-      )
+    else ValueTy(this.comp && that.comp, this.pureValue && that.pureValue)
 
   /** prune type */
   def --(that: => ValueTy): ValueTy =
     if (that.isBottom) this
-    else
-      ValueTy(
-        this.comp -- that.comp,
-        this.pureValue -- that.pureValue,
-        this.map -- that.map,
-      )
+    else ValueTy(this.comp -- that.comp, this.pureValue -- that.pureValue)
 
   /** completion check */
-  def isCompletion: Boolean =
-    !comp.isBottom &&
-    pureValue.isBottom &&
-    map.isBottom
+  def isCompletion: Boolean = !comp.isBottom && pureValue.isBottom
 
   /** remove absent types */
   def removeAbsent: ValueTy = copy(
     comp = CompTy(normal.removeAbsent, abrupt),
     pureValue = pureValue.removeAbsent,
-    map = map,
   )
 
   /** getters */
@@ -93,6 +61,7 @@ case class ValueTy(
   def clo: BSet[String] = pureValue.clo
   def cont: BSet[Int] = pureValue.cont
   def record: RecordTy = pureValue.record
+  def map: MapTy = pureValue.map
   def list: ListTy = pureValue.list
   def ast: AstTy = pureValue.ast
   def grammarSymbol: BSet[GrammarSymbol] = pureValue.grammarSymbol
@@ -116,34 +85,13 @@ case class ValueTy(
       case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
       case a: Addr =>
         heap(a) match
-          case MapObj(props) =>
-            props.forall {
-              case (key, value) =>
-                ValueTy(pureValue = map.key).contains(key, heap) &&
-                ValueTy(pureValue = map.value).contains(value, heap)
-            }
-          case RecordObj(tname, map) =>
-            lazy val fieldCheck = record.fieldMap.forall {
-              case (f, ty) => map.get(f).fold(false)(ty.contains(_, heap))
-            }
-            record match
-              case RecordTy.Detail(t, _) =>
-                getBase(t) == getBase(tname) && fieldCheck
-              case RecordTy.Simple(names) =>
-                names.exists(isSubTy(tname, _)) ||
-                (record.bases.contains(getBase(tname)) && fieldCheck)
-          case ListObj(values) =>
-            list.elem match
-              case None     => false
-              case Some(ty) => values.forall(ty.contains(_, heap))
-          case YetObj(_, _) => true
+          case obj: RecordObj => record.contains(obj, heap)
+          case obj: MapObj    => map.contains(obj, heap)
+          case obj: ListObj   => list.contains(obj, heap)
+          case obj: YetObj    => true
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
-      case AstValue(ast) =>
-        this.ast match
-          case AstTy.Top               => true
-          case AstTy.Simple(names)     => names.exists(ast.types.contains)
-          case AstTy.Detail(name, idx) => ast.name == name && ast.idx == idx
+      case v: AstValue                     => ast.contains(v)
       case x @ GrammarSymbol(name, params) => grammarSymbol contains x
       case m: Math                         => math contains m
       case Infinity(p)                     => infinity contains p
@@ -167,6 +115,7 @@ case class ValueTy(
     clo: BSet[String] = clo,
     cont: BSet[Int] = cont,
     record: RecordTy = record,
+    map: MapTy = map,
     list: ListTy = list,
     ast: AstTy = ast,
     grammarSymbol: BSet[GrammarSymbol] = grammarSymbol,
@@ -181,13 +130,13 @@ case class ValueTy(
     undef: Boolean = undef,
     nullv: Boolean = nullv,
     absent: Boolean = absent,
-    map: MapTy = map,
   ): ValueTy = ValueTy(
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
       clo,
       cont,
       record,
+      map,
       list,
       ast,
       grammarSymbol,
@@ -203,7 +152,6 @@ case class ValueTy(
       nullv,
       absent,
     ),
-    map = map,
   )
 
   /** get single value */
@@ -224,6 +172,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
     record: RecordTy = RecordTy.Bot,
+    map: MapTy = MapTy.Bot,
     list: ListTy = ListTy.Bot,
     ast: AstTy = AstTy.Bot,
     grammarSymbol: BSet[GrammarSymbol] = Fin(),
@@ -238,13 +187,13 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     undef: Boolean = false,
     nullv: Boolean = false,
     absent: Boolean = false,
-    map: MapTy = MapTy.Bot,
   ): ValueTy = ValueTy(
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
       clo,
       cont,
       record,
+      map,
       list,
       ast,
       grammarSymbol,
@@ -260,8 +209,7 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       nullv,
       absent,
     ),
-    map = map,
   )
-  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top, MapTy.Top)
+  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top)
   lazy val Bot: ValueTy = ValueTy()
 }

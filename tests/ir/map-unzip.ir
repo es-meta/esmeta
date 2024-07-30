@@ -1,4 +1,4 @@
-def unzip(map: Map[Math |-> String]) = {
+def unzip(map: Map[Math -> String]) = {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
   let values = (list [])[#1]

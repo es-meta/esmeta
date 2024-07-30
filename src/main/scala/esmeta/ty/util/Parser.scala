@@ -66,7 +66,6 @@ trait Parsers extends BasicParsers {
   private lazy val singleValueTy: Parser[ValueTy] = {
     "Any" ^^^ AnyT ||| (
       singleCompTy ^^ { case t => ValueTy(comp = t) } |
-      singleMapTy ^^ { case t => ValueTy(map = t) } |
       singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
     )
   }.named("ty.ValueTy (single)")
@@ -106,6 +105,8 @@ trait Parsers extends BasicParsers {
     } | "Cont" ^^^ PureValueTy(cont = Inf) |
     // record
     singleRecordTy ^^ { case r => PureValueTy(record = r) } |
+    // map
+    singleMapTy ^^ { case t => PureValueTy(map = t) } |
     // list
     singleListTy ^^ { case l => PureValueTy(list = l) } |
     // AST value
@@ -236,9 +237,10 @@ trait Parsers extends BasicParsers {
   }.named("ty.ListTy")
 
   private lazy val singleListTy: Parser[ListTy] = {
-    "List[" ~> valueTy <~ "]" ^^ { case v => ListTy(Some(v)) } |
-    "List" ^^^ { ListTy.Top } |
-    "Nil" ^^^ ListTy.Nil
+    import ListTy.*
+    "List[" ~> valueTy <~ "]" ^^ { case v => Elem(v) } |
+    "List" ^^^ Top |
+    "Nil" ^^^ Nil
   }.named("ty.ListTy (single)")
 
   /** AST value types */
@@ -264,7 +266,9 @@ trait Parsers extends BasicParsers {
   }.named("ty.MapTy")
 
   private lazy val singleMapTy: Parser[MapTy] = {
-    "Map[" ~> pureValueTy ~
-    ("|->" ~> pureValueTy) <~ "]" ^^ { case k ~ v => MapTy(k, v) }
+    import MapTy.*
+    "Map[" ~> valueTy ~ ("->" ~> valueTy) <~ "]" ^^ {
+      case k ~ v => Elem(k, v)
+    } | "Map" ^^^ Top
   }.named("ty.MapTy (single)")
 }

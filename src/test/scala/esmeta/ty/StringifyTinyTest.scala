@@ -70,10 +70,8 @@ class StringifyTinyTest extends TyTest {
       PureValueT -> "PureValue",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
-      MapT(
-        StrT,
-        RecordT("Binding"),
-      ) -> "Map[String |-> Record[Binding]]",
+      MapT -> "Map",
+      MapT(StrT, RecordT("Binding")) -> "Map[String -> Record[Binding]]",
       CloT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContT -> "Cont",

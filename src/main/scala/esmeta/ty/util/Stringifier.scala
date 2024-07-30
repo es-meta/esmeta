@@ -88,7 +88,6 @@ object Stringifier {
       FilterApp(app)
         .add(ty.comp, !ty.comp.isBottom)
         .add(ty.pureValue, !ty.pureValue.isBottom)
-        .add(ty.map, !ty.map.isBottom)
         .app
     else app >> "Bot"
 
@@ -104,11 +103,12 @@ object Stringifier {
 
   /** list types */
   given listTyRule: Rule[ListTy] = (app, ty) =>
-    ty.elem match
-      case None => app
-      case Some(elem) =>
+    import ListTy.*
+    ty match
+      case Top => app >> "List"
+      case Bot => app >> ""
+      case Elem(elem) =>
         if (elem.isBottom) app >> "Nil"
-        else if (elem.isTop) app >> "List"
         else app >> "List[" >> elem >> "]"
 
   // predefined types
@@ -129,6 +129,7 @@ object Stringifier {
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
         .add(ty.record, !ty.record.isBottom)
+        .add(ty.map, !ty.map.isBottom)
         .add(ty.list, !ty.list.isBottom)
         .add(ty.ast, !ty.ast.isBottom)
         .add(
@@ -214,7 +215,11 @@ object Stringifier {
 
   /** map types */
   given mapTyRule: Rule[MapTy] = (app, ty) =>
-    app >> "Map[" >> ty.key >> " |-> " >> ty.value >> "]"
+    import MapTy.*
+    ty match
+      case Top              => app >> "Map"
+      case Bot              => app >> ""
+      case Elem(key, value) => app >> "Map[" >> key >> " -> " >> value >> "]"
 
   // rule for bounded set lattice
   private given bsetRule[T: Ordering](using Rule[T]): Rule[BSet[T]] =

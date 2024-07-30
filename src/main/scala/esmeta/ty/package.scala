@@ -31,9 +31,6 @@ def NormalT(value: ValueTy): ValueTy =
 def MapT: ValueTy = ValueTy(map = MapTy.Top)
 def MapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) ValueTy.Bot
-  else ValueTy(map = MapTy(key.pureValue, value.pureValue))
-def MapT(key: PureValueTy, value: PureValueTy): ValueTy =
-  if (key.isBottom || value.isBottom) ValueTy.Bot
   else ValueTy(map = MapTy(key, value))
 lazy val CloT: ValueTy = ValueTy(clo = Inf)
 def CloT(names: String*): ValueTy =
@@ -63,11 +60,9 @@ def RecordT(names: String*): ValueTy = RecordT(names.toSet)
 def RecordT(name: String, fields: Map[String, ValueTy]): ValueTy =
   ValueTy(record = RecordTy(name, fields))
 def RecordT(m: Map[String, ValueTy]): ValueTy = ValueTy(record = RecordTy(m))
-def NilT: ValueTy = ValueTy(list = ListTy(Some(BotT)))
+def NilT: ValueTy = ValueTy(list = ListTy.Nil)
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
-def ListT(ty: ValueTy): ValueTy =
-  if (ty.isBottom) ValueTy.Bot
-  else ValueTy(list = ListTy(Some(ty)))
+def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(ty))
 lazy val SymbolT: ValueTy = RecordT("Symbol")
 lazy val AstT: ValueTy = ValueTy(ast = AstTy.Top)
 def AstT(xs: Set[String]): ValueTy =

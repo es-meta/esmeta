@@ -812,9 +812,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // for (name <- ty.name.set) tys :+= name.withArticle(plural)
 
     // lists
-    for (vty <- ty.list.elem)
-      val sub = valueTyRule(true, true)(new Appender, vty)
-      tys :+= s"a List of $sub"
+    ty.list match
+      case ListTy.Top => tys :+= "a List"
+      case ListTy.Elem(ty) =>
+        val sub = valueTyRule(true, true)(new Appender, ty)
+        tys :+= s"a List of $sub"
+      case _ =>
 
     // AST values
     ty.ast.names match

@@ -1,6 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.*
+import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
 
 /** record types */
@@ -76,6 +77,19 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def apply(field: String): ValueTy = this match
     case Detail(name, map) => map.getOrElse(field, getField(name, field))
     case Simple(set)       => set.foldLeft(BotT)(_ || getField(_, field))
+
+  /** record containment check */
+  def contains(record: RecordObj, heap: Heap): Boolean =
+    val RecordObj(tname, map) = record
+    lazy val fieldCheck = fieldMap.forall {
+      case (f, ty) => map.get(f).fold(false)(ty.contains(_, heap))
+    }
+    this match
+      case Detail(t, _) =>
+        getBase(t) == getBase(tname) && fieldCheck
+      case Simple(names) =>
+        names.exists(isSubTy(tname, _)) ||
+        (bases.contains(getBase(tname)) && fieldCheck)
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {

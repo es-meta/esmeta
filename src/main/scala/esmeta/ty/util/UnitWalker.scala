@@ -59,7 +59,6 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: ValueTy): Unit =
     walk(ty.comp)
     walk(ty.pureValue)
-    walk(ty.map)
 
   /** completion record types */
   def walk(ty: CompTy): Unit =
@@ -71,6 +70,7 @@ trait UnitWalker extends BasicUnitWalker {
     walkClo(ty.clo)
     walkCont(ty.cont)
     walk(ty.record)
+    walk(ty.map)
     walk(ty.list)
     walkAst(ty.ast)
     walkGrammarSymbol(ty.grammarSymbol)
@@ -159,11 +159,12 @@ trait UnitWalker extends BasicUnitWalker {
         walkSet(set, walk)
 
   /** list types */
-  def walk(ty: ListTy): Unit =
-    walkOpt(ty.elem, walk)
+  def walk(ty: ListTy): Unit = ty match
+    case ListTy.Elem(elem) => walk(elem)
+    case _                 =>
 
   /** map types */
-  def walk(ty: MapTy): Unit =
-    walk(ty.key)
-    walk(ty.value)
+  def walk(ty: MapTy): Unit = ty match
+    case MapTy.Elem(key, value) => walk(key); walk(value)
+    case _                      =>
 }
