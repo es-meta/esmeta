@@ -31,10 +31,12 @@ object JsonProtocol extends BasicJsonProtocol {
   given [T](using encoder: Encoder[T]): Encoder[Map[String, T]] = strMapEncoder
 
   // type modeling
-  given Decoder[TyModel] = deriveDecoder
-  given Encoder[TyModel] = deriveEncoder
-  given Decoder[TyDecl] = deriveDecoder
-  given Encoder[TyDecl] = deriveEncoder
-  given Decoder[TyDecl.Elem] = deriveDecoder
-  given Encoder[TyDecl.Elem] = deriveEncoder
+  given Decoder[TyModel] = decoderWithParser(TyModel.from)
+  given Encoder[TyModel] = encoderWithStringifier(stringify)
+  given Decoder[TyDecl] = decoderWithParser(TyDecl.from)
+  given Encoder[TyDecl] = encoderWithStringifier(stringify)
+  given Decoder[TyDecl.Elem] = decoderWithParser(TyDecl.Elem.from)
+  given Encoder[TyDecl.Elem] = encoderWithStringifier(stringify)
+  given Decoder[FieldMap] = decoderWithParser(FieldMap.from)
+  given Encoder[FieldMap] = encoderWithStringifier(stringify)
 }

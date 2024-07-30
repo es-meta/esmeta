@@ -11,6 +11,60 @@ class StringifyTinyTest extends TyTest {
 
   // registration
   def init: Unit = {
+
+    checkParseAndStringify("TyModel", TyModel)(
+      tyModel0 -> "",
+      tyModel1 -> """type A""",
+      tyModel2 -> """type A extends B
+      |
+      |type A {
+      |  def a = some-clo-name;
+      |}""".stripMargin,
+      tyModel3 -> """type A
+      |
+      |type A extends B {
+      |  def a = some-clo-name;
+      |}
+      |
+      |type A {
+      |  def a = some-clo-name;
+      |  def d?;
+      |}""".stripMargin,
+    )
+
+    checkParseAndStringify("TyDecl", TyDecl)(
+      decl0 -> """type A""",
+      decl1 -> """type A {
+      |  def a = some-clo-name;
+      |}""".stripMargin,
+      decl2 -> """type A {
+      |  def a = some-clo-name;
+      |  def d?;
+      |}""".stripMargin,
+      declParent0 -> """type A extends B""",
+      declParent1 -> """type A extends B {
+      |  def a = some-clo-name;
+      |}""".stripMargin,
+      declParent2 -> """type A extends B {
+      |  def a = some-clo-name;
+      |  def d?;
+      |}""".stripMargin,
+    )
+
+    checkParseAndStringify("TyDecl.Elem", TyDecl.Elem)(
+      method -> "def a = some-clo-name",
+      methodTop -> "def b",
+      methodOpt -> "def c? = some-clo-name",
+      methodOptTop -> "def d?",
+    )
+
+    checkParseAndStringify("FieldMap", FieldMap)(
+      fieldMap0 -> """{}""",
+      fieldMap1 -> """{ p }""".stripMargin,
+      fieldMap2 -> """{ p, q : Boolean }""",
+      fieldMap3 -> """{ p, q : Boolean, r : Record[Object] | Null }""",
+    )
+
     checkParseAndStringify("Ty", Ty)(
       AnyT -> "Any",
       PureValueT -> "PureValue",

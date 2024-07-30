@@ -11,20 +11,16 @@ case class TyDecl(
 ) extends TyElem {
   import TyDecl.Elem.*
 
-  lazy val typeMap: Map[String, (Boolean, ValueTy)] = elems.map {
+  /** type map */
+  lazy val typeMap: Map[String, ValueTy] = elems.map {
     case Method(name, optional, target) =>
-      name -> (optional, target.fold(CloT)(CloT(_)))
+      name -> handleOption(optional, target.fold(CloT)(CloT(_)))
     case Field(name, optional, typeStr) =>
-      name -> (optional, ValueTy.from(typeStr))
+      name -> handleOption(optional, ValueTy.from(typeStr))
   }.toMap
 
-  // TODO move to TyModel
-  lazy val methods: Map[String, String] = (for {
-    (field, (opt, ty)) <- typeMap
-    fname <- ty.clo match
-      case Fin(set) if !opt && set.size == 1 => Some(set.head)
-      case _                                 => None
-  } yield field -> fname).toMap
+  private def handleOption(bool: Boolean, ty: ValueTy): ValueTy =
+    if (bool) ty || AbsentT else ty
 }
 object TyDecl extends Parser.From(Parser.tyDecl) {
   enum Elem extends TyElem {

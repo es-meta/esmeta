@@ -9,6 +9,8 @@ type AgentRecord {
   Signifier: Record[AgentSignifier];
 }
 
+type AgentSignifier
+
 type ArgumentsExoticObject extends Object {
   def DefineOwnProperty = Record[ArgumentsExoticObject].DefineOwnProperty;
   def Delete = Record[ArgumentsExoticObject].Delete;

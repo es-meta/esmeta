@@ -12,6 +12,7 @@ trait Walker extends BasicWalker {
     case elem: TyModel     => walk(elem)
     case elem: TyDecl      => walk(elem)
     case elem: TyDecl.Elem => walk(elem)
+    case elem: FieldMap    => walk(elem)
     case elem: Ty          => walk(elem)
     case elem: CompTy      => walk(elem)
     case elem: PureValueTy => walk(elem)
@@ -25,7 +26,7 @@ trait Walker extends BasicWalker {
     case elem: BoolTy      => walk(elem)
 
   /** type models */
-  def walk(ty: TyModel): TyModel = TyModel(walkMap(ty.decls, walk, walk))
+  def walk(ty: TyModel): TyModel = TyModel(walkList(ty.decls, walk))
 
   /** type declarations */
   def walk(ty: TyDecl): TyDecl = TyDecl(
@@ -42,6 +43,11 @@ trait Walker extends BasicWalker {
         Method(walk(name), walk(optional), walkOpt(target, walk))
       case Field(name, optional, typeStr) =>
         Field(walk(name), walk(optional), walk(typeStr))
+
+  /** type map */
+  def walk(fieldMap: FieldMap): FieldMap = FieldMap(
+    walkMap(fieldMap.map, walk, walk),
+  )
 
   /** types */
   def walk(ty: Ty): Ty = ty match

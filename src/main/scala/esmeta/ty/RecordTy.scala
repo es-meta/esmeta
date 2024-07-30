@@ -54,11 +54,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** fields */
   def fieldMap: Map[String, Ty] = this match
-    case Detail(name, map) => getFieldMap(name) ++ map
+    case Detail(name, map) => getFieldMap(name).map ++ map
     case Simple(set) =>
       val fields = for {
         name <- set
-        (field, _) <- getFieldMap(name)
+        (field, _) <- getFieldMap(name).map
       } yield field
       fields.toList.map(f => f -> apply(f)).toMap
 

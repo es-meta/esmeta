@@ -162,6 +162,9 @@ val ENUMT_REJECTED = EnumT("rejected")
 val ENUMT_FULFILL = EnumT("Fulfill")
 val ENUMT_REJECT = EnumT("Reject")
 
+/** method map */
+type MethodMap = Map[String, String]
+
 extension (elem: Boolean) {
   def isTop: Boolean = elem == true
   def isBottom: Boolean = elem == false

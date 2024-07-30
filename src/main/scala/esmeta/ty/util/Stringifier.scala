@@ -15,6 +15,8 @@ object Stringifier {
     elem match
       case elem: TyModel     => tyModelRule(app, elem)
       case elem: TyDecl      => tyDeclRule(app, elem)
+      case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
+      case elem: FieldMap    => fieldMapRule(app, elem)
       case elem: Ty          => tyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
@@ -30,15 +32,16 @@ object Stringifier {
   /** type models */
   given tyModelRule: Rule[TyModel] = (app, model) =>
     given Rule[List[TyDecl]] = iterableRule(sep = LINE_SEP + LINE_SEP)
-    app >> (for { (name, decl) <- model.decls.toList.sortBy(_._1) } yield decl)
-    app
+    app >> model.decls
 
   /** type declarations */
   given tyDeclRule: Rule[TyDecl] = (app, ty) =>
     val TyDecl(name, parent, elems) = ty
     app >> "type " >> name
     parent.fold(app)(app >> " extends " >> _)
-    if (elems.nonEmpty) (app >> " ").wrap("{", "}") { elems.map(app :> _) }
+    if (elems.nonEmpty) (app >> " ").wrap("{", "}") {
+      elems.map(app :> _ >> ";")
+    }
     app
 
   /** type declaration elements */
@@ -53,7 +56,19 @@ object Stringifier {
         app >> name
         if (optional) app >> "?"
         app >> " : " >> typeStr
-    app >> ";"
+
+  /** type map */
+  given fieldMapRule: Rule[FieldMap] = (app, fieldMap) =>
+    val FieldMap(map) = fieldMap
+    given Rule[(String, ValueTy)] = {
+      case (app, (field, ty)) =>
+        app >> field
+        if (ty.isTop) app
+        else app >> " : " >> ty
+    }
+    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
+    if (map.isEmpty) app >> "{}"
+    else app >> map.toList.sortBy(_._1)
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>

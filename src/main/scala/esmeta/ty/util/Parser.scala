@@ -14,7 +14,7 @@ trait Parsers extends BasicParsers {
 
   // type model
   given tyModel: Parser[TyModel] = {
-    rep(tyDecl) ^^ { case ds => TyModel(ds.map(x => x.name -> x).toMap) }
+    rep(tyDecl) ^^ { case ds => TyModel(ds) }
   }.named("ty.TyModel")
 
   // type declarations
@@ -24,7 +24,8 @@ trait Parsers extends BasicParsers {
     lazy val field = word ~ opt(":" ~> tyStr) <~ ";" ^^ {
       case k ~ v => (k, v.getOrElse("Any"))
     }
-    "type " ~> ident ~ opt(extend) ~ opt("{" ~> rep(tyDeclElem) <~ "}") ^^ {
+    "type " ~> ident ~ opt(extend) ~
+    opt("{" ~> rep(tyDeclElem <~ ";") <~ "}") ^^ {
       case x ~ p ~ es => TyDecl(x, p, es.getOrElse(Nil))
     }
   }.named("ty.TyDecl")
@@ -32,12 +33,19 @@ trait Parsers extends BasicParsers {
   // type declaration elements
   given tyDeclElem: Parser[TyDecl.Elem] = {
     lazy val remain = "[^;]+".r ^^ { _.trim }
-    "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) <~ ";" ^^ {
+    "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) ^^ {
       case x ~ q ~ t => TyDecl.Elem.Method(x, q.isDefined, t)
-    } | ident ~ opt("?") ~ (":" ~> remain) <~ ";" ^^ {
+    } | ident ~ opt("?") ~ (":" ~> remain) ^^ {
       case x ~ q ~ t => TyDecl.Elem.Field(x, q.isDefined, t)
     }
   }.named("ty.TyDecl.Elem")
+
+  // type map
+  given fieldMap: Parser[FieldMap] = {
+    "{" ~> rep(ident ~ opt(":" ~> valueTy) <~ opt(",")) <~ "}" ^^ {
+      case ts => FieldMap(ts.map { case k ~ v => (k, v.getOrElse(AnyT)) }.toMap)
+    }
+  }.named("ty.FieldMap")
 
   // types
   given ty: Parser[Ty] = {

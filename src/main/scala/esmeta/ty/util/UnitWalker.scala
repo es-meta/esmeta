@@ -12,6 +12,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: TyModel     => walk(elem)
     case elem: TyDecl      => walk(elem)
     case elem: TyDecl.Elem => walk(elem)
+    case elem: FieldMap    => walk(elem)
     case elem: Ty          => walk(elem)
     case elem: CompTy      => walk(elem)
     case elem: PureValueTy => walk(elem)
@@ -25,7 +26,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: BoolTy      => walk(elem)
 
   /** type models */
-  def walk(ty: TyModel): Unit = walkMap(ty.decls, walk, walk)
+  def walk(ty: TyModel): Unit = walkList(ty.decls, walk)
 
   /** type declarations */
   def walk(ty: TyDecl): Unit =
@@ -41,6 +42,9 @@ trait UnitWalker extends BasicUnitWalker {
         walk(name); walk(optional); walkOpt(target, walk)
       case Field(name, optional, typeStr) =>
         walk(name); walk(optional); walk(typeStr)
+
+  /** type map */
+  def walk(fieldMap: FieldMap): Unit = walkMap(fieldMap.map, walk, walk)
 
   /** types */
   def walk(ty: Ty): Unit = ty match

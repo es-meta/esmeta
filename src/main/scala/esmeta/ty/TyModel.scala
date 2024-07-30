@@ -5,86 +5,73 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
 /** type modeling */
-case class TyModel(decls: Map[String, TyDecl] = Map()) extends TyElem {
+case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
-  /** merge two type models */
-  def ++(that: TyModel): TyModel = TyModel(this.decls ++ that.decls)
+  /** type declaration map */
+  val declMap: Map[String, TyDecl] = (for {
+    decl <- decls
+  } yield decl.name -> decl).toMap
 
-  /** get method map */
-  // TODO optimize
-  def getMethod(tname: String): Map[String, String] =
-    decls.get(tname) match {
-      case Some(decl) =>
-        val parentMethods = decl.parent.map(getMethod).getOrElse(Map())
-        parentMethods ++ decl.methods
-      case None => Map()
-    }
+  /** get field type map */
+  val getFieldMap: String => FieldMap = cached(tname => {
+    FieldMap((for {
+      decl <- declMap.get(tname)
+      parentMap = decl.parent.fold(Map())(getFieldMap(_).map)
+    } yield parentMap ++ decl.typeMap).getOrElse(Map()))
+  })
+
+  /** get field type */
+  def getField(tname: String, p: String): ValueTy =
+    getFieldMap(tname)(p)
+
+  /** get base type name */
+  val getBase: String => String = cached(tname => {
+    (for {
+      decl <- declMap.get(tname)
+      parent <- decl.parent
+    } yield getBase(parent)).getOrElse(tname)
+  })
+
+  /** get methods */
+  val getMethod: String => MethodMap = cached(tname => {
+    (for {
+      (field, ty) <- getFieldMap(tname).map
+      fname <- ty.clo match
+        case Fin(set) if !ty.absent && set.size == 1 => Some(set.head)
+        case _                                       => None
+    } yield field -> fname).toMap
+  })
+
+  def isSubTy(l: String, r: String): Boolean =
+    l == r || getSubTys(r).contains(l)
+  def isSubTy(l: String, rs: Set[String]): Boolean =
+    rs.exists(isSubTy(l, _))
+  def isSubTy(ls: Set[String], r: String): Boolean =
+    ls.forall(isSubTy(_, r))
+  def isSubTy(ls: Set[String], rs: Set[String]): Boolean =
+    ls.forall(isSubTy(_, rs))
+
+  /** strict subtypes */
+  lazy val getSubTys: String => Set[String] =
+    cached(tname => getStrictSubTys(tname) + tname)
+
+  /** strict subtypes */
+  lazy val getStrictSubTys: String => Set[String] = cached(tname => {
+    for {
+      sub <- directSubTys.getOrElse(tname, Set())
+      name <- getSubTys(sub)
+    } yield name
+  })
 
   /** direct subtypes */
   private lazy val directSubTys: Map[String, Set[String]] = {
     var children = Map[String, Set[String]]()
     for {
-      (name, decl) <- decls
+      decl <- decls
       parent <- decl.parent
       set = children.getOrElse(parent, Set())
-    } children += parent -> (set + name)
+    } children += parent -> (set + decl.name)
     children
   }
-
-  /** subtypes */
-  lazy val subTys: Map[String, Set[String]] = {
-    var descs = Map[String, Set[String]]()
-    def aux(name: String): Set[String] = descs.get(name) match {
-      case Some(set) => set
-      case None =>
-        val set = (for {
-          sub <- directSubTys.getOrElse(name, Set())
-          elem <- aux(sub)
-        } yield elem) + name
-        descs += name -> set
-        set
-    }
-    decls.collect { case (name, TyDecl(_, None, _)) => aux(name) }
-    descs
-  }
-  def isSubTy(l: String, r: String): Boolean =
-    l == r || r == "" || subTys.get(r).fold(false)(_ contains l)
-  def isSubTy(l: String, rset: Set[String]): Boolean =
-    rset.exists(r => isSubTy(l, r))
-  def isSubTy(l: String, rset: BSet[String]): Boolean = rset match
-    case Inf       => true
-    case Fin(rset) => isSubTy(l, rset)
-  def isSubTy(lset: Set[String], r: String): Boolean =
-    lset.forall(l => isSubTy(l, r))
-  def isSubTy(lset: Set[String], rset: Set[String]): Boolean =
-    lset.forall(l => isSubTy(l, rset))
-
-  /** field map alias */
-  type FieldMap = Map[String, ValueTy]
-
-  /** get base type name */
-  def getBase(tname: String): String = (for {
-    decl <- decls.get(tname)
-    parent <- decl.parent
-  } yield getBase(parent)).getOrElse(tname)
-
-  /** get types of field */
-  def getField(tname: String, p: String): ValueTy =
-    fieldMaps.getOrElse(tname, Map()).getOrElse(p, AnyT)
-
-  /** get field map */
-  def getFieldMap(name: String): FieldMap = fieldMaps.getOrElse(name, Map())
-
-  /** field type */
-  lazy val fieldMaps: Map[String, FieldMap] = (for {
-    name <- decls.keySet
-  } yield name -> getUpperFieldMap(name)).toMap
-
-  /** get field map from ancestors */
-  private def getUpperFieldMap(name: String): FieldMap = decls.get(name) match
-    case Some(decl) =>
-      decl.parent.map(getUpperFieldMap).getOrElse(Map()) ++
-      decl.typeMap.map { case (k, (_, ty)) => k -> ty }
-    case None => Map()
 }
 object TyModel extends Parser.From(Parser.tyModel)
