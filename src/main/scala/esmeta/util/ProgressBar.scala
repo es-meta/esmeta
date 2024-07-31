@@ -92,9 +92,12 @@ case class ProgressBar[T](
       gcount.incrementAndGet
 
     concurrent match
-      case CP.Single   => tests.foreach(_.apply)
-      case CP.Fixed(n) => doConcurrent(tests)(using fixedThread(n))
-      case CP.Auto     => doConcurrent(tests)
+      case CP.Single => tests.foreach(_.apply)
+      case CP.Fixed(n) =>
+        val (service, eCtxt) = fixedThread(n)
+        doConcurrent(tests)(using eCtxt)
+        service.shutdown()
+      case CP.Auto => doConcurrent(tests)
 
     updateTime
 

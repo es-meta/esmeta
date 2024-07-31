@@ -2,7 +2,7 @@ package esmeta.util
 
 import java.io.{Reader, File, PrintWriter}
 import java.nio.file.{Files, StandardCopyOption, Paths}
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, ExecutorService}
 import esmeta.*
 import esmeta.error.*
 import esmeta.util.BaseUtils.*
@@ -207,14 +207,17 @@ object SystemUtils {
     fs: Iterable[() => T],
     duration: Duration = Duration.Inf,
   )(using ctxt: ExecutionContext = ExecutionContext.global): Iterable[T] =
-    implicit val context: ExecutionContext = ctxt
     Await
       .result(
-        Future.sequence(fs.map(f => Future(Try(f())))),
+        {
+          implicit val context: ExecutionContext = ctxt
+          Future.sequence(fs.map(f => Future(Try(f()))))
+        },
         duration,
       )
       .map(_.get)
 
-  def fixedThread(nThread: Int): ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(nThread))
+  def fixedThread(nThread: Int): (ExecutorService, ExecutionContext) =
+    val service = Executors.newFixedThreadPool(nThread)
+    (service, ExecutionContext.fromExecutor(service))
 }
