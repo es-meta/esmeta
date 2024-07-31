@@ -3,7 +3,8 @@ package esmeta.util
 import esmeta.LINE_SEP
 import esmeta.error.NotSupported.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.SystemUtils.{concurrent => doConcurrent}
+import esmeta.util.{ConcurrentPolicy => CP}
+import esmeta.util.SystemUtils.{concurrent => doConcurrent, fixedThread}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -20,7 +21,7 @@ case class ProgressBar[T](
   timeLimit: Option[Int] = None, // seconds
   verbose: Boolean = true,
   detail: Boolean = true,
-  concurrent: Boolean = false,
+  concurrent: CP = CP.Single,
 ) extends Iterable[T] {
   // summary
   val summary =
@@ -90,8 +91,10 @@ case class ProgressBar[T](
       }.map(errorHandler(_, summary, name))
       gcount.incrementAndGet
 
-    if (concurrent) doConcurrent(tests)
-    else tests.foreach(_.apply)
+    concurrent match
+      case CP.Single   => tests.foreach(_.apply)
+      case CP.Fixed(n) => doConcurrent(tests)(using fixedThread(n))
+      case CP.Auto     => doConcurrent(tests)
 
     updateTime
 

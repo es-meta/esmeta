@@ -2,6 +2,7 @@ package esmeta.util
 
 import java.io.{Reader, File, PrintWriter}
 import java.nio.file.{Files, StandardCopyOption, Paths}
+import java.util.concurrent.Executors
 import esmeta.*
 import esmeta.error.*
 import esmeta.util.BaseUtils.*
@@ -205,10 +206,15 @@ object SystemUtils {
   def concurrent[T](
     fs: Iterable[() => T],
     duration: Duration = Duration.Inf,
-  ): Iterable[T] = Await
-    .result(
-      Future.sequence(fs.map(f => Future(Try(f())))),
-      duration,
-    )
-    .map(_.get)
+  )(using ctxt: ExecutionContext = ExecutionContext.global): Iterable[T] =
+    implicit val context: ExecutionContext = ctxt
+    Await
+      .result(
+        Future.sequence(fs.map(f => Future(Try(f())))),
+        duration,
+      )
+      .map(_.get)
+
+  def fixedThread(nThread: Int): ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(nThread))
 }

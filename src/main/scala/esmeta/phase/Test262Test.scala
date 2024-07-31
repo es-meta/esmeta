@@ -7,6 +7,7 @@ import esmeta.interpreter.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
 import esmeta.es.util.Coverage
@@ -91,8 +92,10 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "concurrent",
-      BoolOption(c => c.concurrent = true),
-      "turn on concurrent mode.",
+      NumOption((c, k) =>
+        c.concurrent = if (k <= 1) then CP.Single else CP.Fixed(k),
+      ),
+      "set the number of thread to use concurrently (default: no concurrent mode).",
     ),
     (
       "verbose",
@@ -107,7 +110,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
     var log: Boolean = false,
-    var concurrent: Boolean = false,
+    var concurrent: CP = CP.Single,
     var features: Option[List[String]] = None,
     var verbose: Boolean = false,
   )
