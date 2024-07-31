@@ -87,6 +87,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "push "
         if (front) app >> from >> " > " >> to
         else app >> to >> " < " >> from
+      case IPop(lhs, list, front) =>
+        app >> "pop "
+        if (front) app >> lhs >> " < " >> list
+        else app >> list >> " > " >> lhs
       case IReturn(expr) =>
         app >> "return " >> expr
       case IAssert(expr) =>
@@ -123,8 +127,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(comp? " >> expr >> ")"
       case EReturnIfAbrupt(expr, check) =>
         app >> "[" >> (if (check) "?" else "!") >> " " >> expr >> "]"
-      case EPop(list, front) =>
-        app >> "(pop " >> (if (front) "<" else ">") >> " " >> list >> ")"
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
       case EGrammarSymbol(name, params) =>

@@ -131,7 +131,7 @@ class Compiler(
   }
 
   /** get prefix instructions for builtin functions */
-  def getBuiltinPrefix(ps: List[Param]): List[Inst] =
+  def getBuiltinPrefix(fb: FuncBuilder, ps: List[Param]): List[Inst] =
     import ParamKind.*
     if (ps.exists(_.kind == Ellipsis)) Nil
     else {
@@ -142,11 +142,17 @@ class Compiler(
         case Param(name, _, Variadic) if remaining == 0 =>
           List(ILet(Name(name), ENAME_ARGS_LIST))
         case Param(name, _, Variadic) =>
+          val (x, xExpr) = fb.newTIdWithExpr
           List(
             ILet(Name(name), EList(Nil)),
             IWhile(
               lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
-              IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
+              ISeq(
+                List(
+                  IPop(x, ENAME_ARGS_LIST, true),
+                  IPush(xExpr, toERef(Name(name)), false),
+                ),
+              ),
             ),
           )
         case Param(name, _, kind) =>
@@ -154,7 +160,7 @@ class Compiler(
           List(
             IIf(
               lessThan(zero, argsLen),
-              ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
+              IPop(Name(name), ENAME_ARGS_LIST, true),
               ILet(Name(name), EAbsent()),
             ),
           )
@@ -181,18 +187,19 @@ class Compiler(
   /** compile an algorithm to an IR function */
   // TODO consider refactor
   def compile(algo: Algorithm): Unit =
+    val fb = FuncBuilder(
+      spec,
+      getKind(algo.head),
+      algo.head.fname,
+      algo.head.funcParams.map(compile),
+      compile(algo.retTy),
+      algo,
+    )
     val prefix = algo.head match
-      case head: BuiltinHead => getBuiltinPrefix(head.params)
+      case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
     addFunc(
-      fb = FuncBuilder(
-        spec,
-        getKind(algo.head),
-        algo.head.fname,
-        algo.head.funcParams.map(compile),
-        compile(algo.retTy),
-        algo,
-      ),
+      fb = fb,
       body = algo.body,
       prefix = prefix,
     )
@@ -358,7 +365,8 @@ class Compiler(
     case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
     case RemoveStep(elem, list) =>
       fb.addInst(
         ICall(
@@ -368,9 +376,11 @@ class Compiler(
         ),
       )
     case RemoveFirstStep(expr) =>
-      fb.addInst(IExpr(EPop(compile(fb, expr), true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, compile(fb, expr), true))
     case RemoveContextStep(_, _) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
@@ -648,30 +658,27 @@ class Compiler(
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
         val algoName = fb.algo.head.fname
-        val (ck, cn, ps, prefix) =
-          if (fixClosurePrefixAOs.exists(_.matches(algoName)))
+        val hasPrefix = fixClosurePrefixAOs.exists(_.matches(algoName))
+        val (ck, cn, ps) =
+          if (hasPrefix)
             (
               FuncKind.BuiltinClo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-              getBuiltinPrefix(params.map(x => Param(x.name, UnknownType))),
             )
           else
             (
               FuncKind.Clo,
               fb.nextCloName,
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
-              Nil,
             )
+        val cloFB = FuncBuilder(spec, ck, cn, ps, IRUnknownType, fb.algo)
+        val prefix =
+          if (hasPrefix)
+            getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))
+          else Nil
         addFunc(
-          fb = FuncBuilder(
-            spec,
-            ck,
-            cn,
-            ps,
-            IRUnknownType,
-            fb.algo,
-          ),
+          fb = cloFB,
           body = body,
           prefix = prefix,
         )

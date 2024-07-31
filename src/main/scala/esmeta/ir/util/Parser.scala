@@ -84,6 +84,10 @@ trait Parsers extends TyParsers {
       case r => IDelete(r)
     } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
       case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
+    } | "pop" ~> local ~ ("<" ^^^ true) ~ expr ^^ {
+      case x ~ f ~ l => IPop(x, l, f)
+    } | "pop" ~> expr ~ (">" ^^^ false) ~ local ^^ {
+      case l ~ f ~ x => IPop(x, l, f)
     } | "return" ~> expr ^^ {
       case e => IReturn(e)
     } | "assert" ~> expr ^^ {
@@ -115,8 +119,6 @@ trait Parsers extends TyParsers {
       case e => EIsCompletion(e)
     } | "[" ~> ("?" ^^^ true | "!" ^^^ false) ~ expr <~ "]" ^^ {
       case c ~ e => EReturnIfAbrupt(e, c)
-    } | "(" ~ "pop" ~> ("<" ^^^ true | ">" ^^^ false) ~ expr <~ ")" ^^ {
-      case f ~ e => EPop(e, f)
     } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
     } | "(" ~ "grammar-symbol" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {

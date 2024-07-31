@@ -61,8 +61,10 @@ case class FuncBuilder(
 
   /** add return to resume instruction */
   def addReturnToResume(context: Ref, value: Expr): Unit =
+    val (x, xExpr) = newTIdWithExpr
     addInst(
-      ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
+      IPop(x, toStrERef(context, "ReturnCont"), true),
+      ICall(newTId, xExpr, List(value)),
     )
 
   /** get next temporal variable */

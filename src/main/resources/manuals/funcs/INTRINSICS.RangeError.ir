@@ -3,8 +3,8 @@ def <BUILTIN>:INTRINSICS.RangeError(
   ArgumentsList: List[ESValue],
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
-  if (< 0 ArgumentsList.length) let message = (pop < ArgumentsList) else let message = absent
-  if (< 0 ArgumentsList.length) let options = (pop < ArgumentsList) else let options = absent
+  if (< 0 ArgumentsList.length) pop message < ArgumentsList else let message = absent
+  if (< 0 ArgumentsList.length) pop options < ArgumentsList else let options = absent
   %0 = (= NewTarget undefined)
   if %0 {
     let newTarget = @EXECUTION_STACK[0].Function

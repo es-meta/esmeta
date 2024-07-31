@@ -2,15 +2,19 @@ def <AUX>:__REMOVE_ELEM__(
   elem: Any,
   list: List,
 ): List = {
-  let from = 0
-  let to = 0
-  while (< from list.length) {
+  let length = list.length
+  let from = length
+  let to = length
+  while (< 0 from) {
+    from = (- from 1)
     if (! (= list[from] elem)) {
+      to = (- to 1)
       list[to] = list[from]
-      to = (+ to 1)
     }
-    from = (+ from 1)
   }
-  while (< to list.length) (pop > list)
+  while (< 0 to) {
+    pop x < list
+    to = (- to 1)
+  }
   return list
 }
