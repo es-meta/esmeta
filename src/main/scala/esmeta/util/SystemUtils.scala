@@ -46,9 +46,9 @@ object SystemUtils {
   /** print writer */
   def getPrintWriter(filename: String, append: Boolean = false): PrintWriter =
     val file = File(filename)
-    val out = FileOutputStream(file, append)
     val parent = file.getParent
     if (parent != null) mkdir(parent)
+    val out = FileOutputStream(file, append)
     PrintWriter(out)
 
   /** dump given data to a file */
