@@ -210,9 +210,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case ERecord(tnameOpt, fields) =>
+      case ERecord(tname, fields) =>
         app >> "(record "
-        tnameOpt.map(app >> "[" >> _ >> "] ")
+        if (tname.nonEmpty) app >> "[" >> tname >> "] "
         app.wrap("{", "}")(for {
           (field, expr) <- fields
         } app :> "\"" >> field >> "\" : " >> expr >> ",") >> ")"

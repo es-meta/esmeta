@@ -134,9 +134,9 @@ trait Walker extends BasicWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): AllocExpr = alloc match
-    case ERecord(tnameOpt, fields) =>
+    case ERecord(tname, fields) =>
       ERecord(
-        walkOpt(tnameOpt, walk),
+        walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
     case EMap(pairs) =>

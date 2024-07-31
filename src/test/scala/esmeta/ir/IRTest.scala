@@ -105,7 +105,8 @@ object IRTest {
   )
   lazy val lex = ELexical("Identifier", xExpr)
   // allocation expressions
-  lazy val rec = ERecord(Some("T"), List("A" -> EBool(true), "B" -> EAbsent()))
+  lazy val recEmpty = ERecord("", List("A" -> EBool(true), "B" -> EAbsent()))
+  lazy val rec = ERecord("T", List("A" -> EBool(true), "B" -> EAbsent()))
   lazy val list = EList(List(EUndef(), ENull(), EAbsent()))
   lazy val copy = ECopy(xExpr)
   lazy val keys = EKeys(xExpr, false)

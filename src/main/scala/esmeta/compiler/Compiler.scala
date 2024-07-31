@@ -510,7 +510,7 @@ class Compiler(
         val tname = Type.normalizeName(rawName)
         if (hasMap(tname)) props :+= INNER_MAP -> EMap(Nil)
         if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
-        ERecord(if (tname == "Record") None else Some(tname), props)
+        ERecord(if (tname == "Record") "" else tname, props)
       case LengthExpression(ReferenceExpression(ref)) =>
         toStrERef(compile(fb, ref), "length")
       case LengthExpression(expr) =>

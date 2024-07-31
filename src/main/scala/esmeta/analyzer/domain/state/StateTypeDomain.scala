@@ -188,7 +188,7 @@ trait StateTypeDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tnameOpt: Option[String],
+        tname: String,
         pairs: Iterable[(String, AbsValue)],
       ): (AbsValue, Elem) =
         // val value = tnameOpt match

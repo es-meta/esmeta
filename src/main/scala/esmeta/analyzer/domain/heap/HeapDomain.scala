@@ -91,7 +91,7 @@ trait HeapDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tname: Option[String],
+        tname: String,
         pairs: Iterable[(String, AbsValue)] = Nil,
       ): Elem
 

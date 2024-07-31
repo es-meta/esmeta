@@ -180,7 +180,7 @@ trait Parsers extends TyParsers {
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
     ("(" ~ "record" ~> opt("[" ~> word <~ "]") ~ opt(fields) <~ ")") ^^ {
-      case t ~ fs => ERecord(t, fs.getOrElse(Nil))
+      case t ~ fs => ERecord(t.getOrElse(""), fs.getOrElse(Nil))
     } | ("(" ~ "map" ~> opt(pairs) <~ ")") ^^ {
       case ps => EMap(ps.getOrElse(Nil))
     } | ("(" ~ "list" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {

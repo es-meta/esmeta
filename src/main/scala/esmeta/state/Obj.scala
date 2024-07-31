@@ -57,12 +57,6 @@ object RecordObj {
     for ((name, fname) <- cfg.tyModel.getMethod(tname))
       obj.map += name -> Clo(cfg.fnameMap(fname), Map())
     obj
-
-  def apply(tname: Option[String])(using cfg: CFG): RecordObj =
-    RecordObj(tname.getOrElse("Record"))
-
-  def apply(tname: Option[String])(fs: (String, Value)*)(using CFG): RecordObj =
-    RecordObj(tname.getOrElse("Record"))(fs: _*)
 }
 
 /** map objects */

@@ -213,7 +213,7 @@ trait HeapBasicDomainDecl { self: Self =>
       /** allocation of record with address partitions */
       def allocRecord(
         to: AllocSite,
-        tnameOpt: Option[String],
+        tnameOpt: String,
         pairs: Iterable[(String, AbsValue)],
       ): Elem =
         given CFG = cfg

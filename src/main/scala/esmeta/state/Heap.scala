@@ -79,12 +79,9 @@ case class Heap(
   }
 
   /** record allocations */
-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
-    val record = RecordObj(tnameOpt)
-    alloc(record)
+  def allocRecord(tname: String)(using CFG): Addr = alloc(RecordObj(tname))
 
-  private def isObject(tname: String): Boolean =
-    tname endsWith "Object"
+  private def isObject(tname: String): Boolean = tname endsWith "Object"
 
   /** map allocations */
   def allocMap: Addr = alloc(MapObj())

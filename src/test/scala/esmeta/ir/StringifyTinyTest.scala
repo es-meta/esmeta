@@ -153,6 +153,10 @@ class StringifyTinyTest extends IRTest {
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
       // allocation expressions
+      recEmpty -> """(record {
+      |  "A" : true,
+      |  "B" : absent,
+      |})""".stripMargin,
       rec -> """(record [T] {
       |  "A" : true,
       |  "B" : absent,
