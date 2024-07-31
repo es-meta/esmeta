@@ -96,6 +96,7 @@ trait StringifierDecl { self: Self =>
     // values for analysis
     given avRule: Rule[AValue] = (app, av) =>
       av match
+        case Absent => app >> "absent"
         case AComp(Enum("normal"), v, _) =>
           app >> "N(" >> v >> ")"
         case AComp(ty, value, target) =>

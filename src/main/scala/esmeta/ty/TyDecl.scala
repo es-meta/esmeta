@@ -12,12 +12,12 @@ case class TyDecl(
   import TyDecl.Elem.*
 
   /** type map */
-  lazy val typeMap: Map[String, ValueTy] = elems.map {
+  lazy val fieldMap: FieldMap = FieldMap(elems.map {
     case Method(name, optional, target) =>
       name -> handleOption(optional, target.fold(CloT)(CloT(_)))
     case Field(name, optional, typeStr) =>
       name -> handleOption(optional, ValueTy.from(typeStr))
-  }.toMap
+  }.toMap)
 
   private def handleOption(bool: Boolean, ty: ValueTy): ValueTy =
     if (bool) ty || AbsentT else ty

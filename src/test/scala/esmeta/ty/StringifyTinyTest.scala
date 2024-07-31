@@ -67,7 +67,6 @@ class StringifyTinyTest extends TyTest {
 
     checkParseAndStringify("Ty", Ty)(
       AnyT -> "Any",
-      PureValueT -> "PureValue",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
       MapT -> "Map",
@@ -82,9 +81,10 @@ class StringifyTinyTest extends TyTest {
       RecordT -> "Record",
       RecordT("Cat") -> "Record[Cat]",
       RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
-      RecordT(Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record[{ A : Number, B : Boolean }]",
+      RecordT("Object", Map("A" -> NumberT, "B" -> BoolT)) ->
+      "Record[Object { A : Number, B : Boolean }]",
       RecordT(
+        "",
         Map(
           "P" -> AnyT,
           "S" -> AnyT,

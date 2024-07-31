@@ -19,7 +19,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
       bool: AbsBool = AbsBool.Bot,
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
-      absent: AbsAbsent = AbsAbsent.Bot,
     ) extends Appendable
 
     /** top element */
@@ -30,7 +29,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
       bool = AbsBool.Top,
       undef = AbsUndef.Top,
       nullv = AbsNull.Top,
-      absent = AbsAbsent.Top,
     )
 
     /** bottom element */
@@ -44,7 +42,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
       AbsBool(xs.collect { case x: Bool => x }),
       AbsUndef(xs.collect { case x: Undef => x }),
       AbsNull(xs.collect { case x: Null => x }),
-      AbsAbsent(xs.collect { case x: Absent => x }),
     )
 
     /** predefined top values */
@@ -54,7 +51,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
     val boolTop: Elem = Bot.copy(bool = AbsBool.Top)
     val undefTop: Elem = Bot.copy(undef = AbsUndef.Top)
     val nullTop: Elem = Bot.copy(nullv = AbsNull.Top)
-    val absentTop: Elem = Bot.copy(absent = AbsAbsent.Top)
 
     /** constructors */
     def apply(
@@ -64,8 +60,7 @@ trait SimpleValueBasicDomainDecl { self: Self =>
       bool: AbsBool = AbsBool.Bot,
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
-      absent: AbsAbsent = AbsAbsent.Bot,
-    ): Elem = Elem(number, bigInt, str, bool, undef, nullv, absent)
+    ): Elem = Elem(number, bigInt, str, bool, undef, nullv)
 
     /** extractors */
     def unapply(elem: Elem): Option[RawTuple] = Some(
@@ -76,7 +71,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.bool,
         elem.undef,
         elem.nullv,
-        elem.absent,
       ),
     )
 
@@ -84,7 +78,7 @@ trait SimpleValueBasicDomainDecl { self: Self =>
     given rule: Rule[Elem] = (app, elem) => {
       if (elem.isBottom) app >> "⊥"
       else {
-        val Elem(number, bigInt, str, bool, undef, nullv, absent) = elem
+        val Elem(number, bigInt, str, bool, undef, nullv) = elem
         var strs = Vector[String]()
         if (!number.isBottom) strs :+= number.toString
         if (!bigInt.isBottom) strs :+= bigInt.toString
@@ -92,7 +86,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         if (!bool.isBottom) strs :+= bool.toString
         if (!undef.isBottom) strs :+= undef.toString
         if (!nullv.isBottom) strs :+= nullv.toString
-        if (!absent.isBottom) strs :+= absent.toString
         app >> strs.mkString(", ")
       }
     }
@@ -101,15 +94,13 @@ trait SimpleValueBasicDomainDecl { self: Self =>
     extension (elem: Elem) {
 
       /** partial order */
-      def ⊑(that: Elem): Boolean = (
+      def ⊑(that: Elem): Boolean =
         elem.number ⊑ that.number &&
-          elem.bigInt ⊑ that.bigInt &&
-          elem.str ⊑ that.str &&
-          elem.bool ⊑ that.bool &&
-          elem.undef ⊑ that.undef &&
-          elem.nullv ⊑ that.nullv &&
-          elem.absent ⊑ that.absent
-      )
+        elem.bigInt ⊑ that.bigInt &&
+        elem.str ⊑ that.str &&
+        elem.bool ⊑ that.bool &&
+        elem.undef ⊑ that.undef &&
+        elem.nullv ⊑ that.nullv
 
       /** join operator */
       def ⊔(that: Elem): Elem = Elem(
@@ -119,7 +110,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.bool ⊔ that.bool,
         elem.undef ⊔ that.undef,
         elem.nullv ⊔ that.nullv,
-        elem.absent ⊔ that.absent,
       )
 
       /** meet operator */
@@ -130,7 +120,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.bool ⊓ that.bool,
         elem.undef ⊓ that.undef,
         elem.nullv ⊓ that.nullv,
-        elem.absent ⊓ that.absent,
       )
 
       /** minus operator */
@@ -141,7 +130,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.bool -- that.bool,
         elem.undef -- that.undef,
         elem.nullv -- that.nullv,
-        elem.absent -- that.absent,
       )
 
       /** concretization function */
@@ -151,8 +139,7 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.str.gamma ⊔
         elem.bool.gamma ⊔
         elem.undef.gamma ⊔
-        elem.nullv.gamma ⊔
-        elem.absent.gamma
+        elem.nullv.gamma
 
       /** get single value */
       override def getSingle: Flat[SimpleValue] =
@@ -161,8 +148,7 @@ trait SimpleValueBasicDomainDecl { self: Self =>
         elem.str.getSingle ⊔
         elem.bool.getSingle ⊔
         elem.undef.getSingle ⊔
-        elem.nullv.getSingle ⊔
-        elem.absent.getSingle
+        elem.nullv.getSingle
 
       /** getters */
       def number: AbsNumber = elem.number
@@ -171,7 +157,6 @@ trait SimpleValueBasicDomainDecl { self: Self =>
       def bool: AbsBool = elem.bool
       def undef: AbsUndef = elem.undef
       def nullv: AbsNull = elem.nullv
-      def absent: AbsAbsent = elem.absent
     }
   }
 }

@@ -23,7 +23,6 @@ trait SimpleValueDomainDecl { self: Self =>
     def boolTop: Elem
     def undefTop: Elem
     def nullTop: Elem
-    def absentTop: Elem
 
     /** constructors */
     def apply(
@@ -33,7 +32,6 @@ trait SimpleValueDomainDecl { self: Self =>
       bool: AbsBool = AbsBool.Bot,
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
-      absent: AbsAbsent = AbsAbsent.Bot,
     ): Elem
 
     /** raw tuple of each simple value type */
@@ -44,7 +42,6 @@ trait SimpleValueDomainDecl { self: Self =>
       AbsBool,
       AbsUndef,
       AbsNull,
-      AbsAbsent,
     )
 
     /** extractors */
@@ -53,9 +50,6 @@ trait SimpleValueDomainDecl { self: Self =>
     /** simple value element interfaces */
     extension (elem: Elem) {
 
-      /** remove absent values */
-      def removeAbsent: Elem = elem -- absentTop
-
       /** getters */
       def number: AbsNumber
       def bigInt: AbsBigInt
@@ -63,7 +57,6 @@ trait SimpleValueDomainDecl { self: Self =>
       def bool: AbsBool
       def undef: AbsUndef
       def nullv: AbsNull
-      def absent: AbsAbsent
     }
   }
 }

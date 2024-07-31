@@ -111,6 +111,7 @@ case class WrongStringRef(str: String, field: Value)
   extends InterpreterError(s"wrong access of string reference: $str.$field")
 
 // missing cases
+case object UncheckedAbsent extends InterpreterError(s"unchecked absent")
 case class UncheckedAbrupt(comp: Comp)
   extends InterpreterError(s"unchecked abrupt completion: $comp")
 

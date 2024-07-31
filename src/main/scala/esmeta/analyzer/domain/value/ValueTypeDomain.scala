@@ -99,6 +99,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** constructors */
     def apply(
+      absent: AbsAbsent,
       comp: AbsComp,
       pureValue: AbsPureValue,
       clo: AbsClo,
@@ -117,7 +118,6 @@ trait ValueTypeDomainDecl { self: Self =>
       bool: AbsBool,
       undef: AbsUndef,
       nullv: AbsNull,
-      absent: AbsAbsent,
     ): Elem = Top
 
     /** extractors */

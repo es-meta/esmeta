@@ -87,6 +87,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // values
   given valueRule: Rule[Value] = (app, value) =>
     value match
+      case Absent          => app >> "absent"
       case comp: Comp      => compRule(app, comp)
       case pure: PureValue => pureValueRule(app, pure)
 
@@ -166,7 +167,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Bool(bool) => app >> bool
       case Undef      => app >> "undefined"
       case Null       => app >> "null"
-      case Absent     => app >> "absent"
 
   // reference value
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r

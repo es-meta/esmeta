@@ -761,11 +761,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
       case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
-  // predefined types
-  lazy val predTys: List[(PureValueTy, String)] = List(
-    ESPureValueT -> "ECMAScript language value",
-  )
-
   // value types
   def valueTyRule(
     plural: Boolean,
@@ -805,8 +800,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   ): Rule[PureValueTy] = (app, originTy) =>
     var ty: PureValueTy = originTy
     var tys: Vector[String] = Vector()
-    for ((pred, name) <- predTys if pred <= ty)
-      tys :+= name.withArticle(plural); ty --= pred
+    // TODO
+    // for ((pred, name) <- predTys if pred <= ty)
+    //   tys :+= name.withArticle(plural); ty --= pred
 
     // TODO named records
     // for (name <- ty.name.set) tys :+= name.withArticle(plural)

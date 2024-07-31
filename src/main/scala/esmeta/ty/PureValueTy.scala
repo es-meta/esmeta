@@ -26,7 +26,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
   def bool: BoolTy
   def undef: Boolean
   def nullv: Boolean
-  def absent: Boolean
 
   /** top check */
   def isTop: Boolean = this eq Top
@@ -53,8 +52,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.str.isBottom &&
         this.bool.isBottom &&
         this.undef.isBottom &&
-        this.nullv.isBottom &&
-        this.absent.isBottom
+        this.nullv.isBottom
       )
 
   /** partial order/subset operator */
@@ -78,8 +76,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
       this.str <= that.str &&
       this.bool <= that.bool &&
       this.undef <= that.undef &&
-      this.nullv <= that.nullv &&
-      this.absent <= that.absent
+      this.nullv <= that.nullv
 
   /** union type */
   def ||(that: => PureValueTy): PureValueTy =
@@ -107,7 +104,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.bool || that.bool,
         this.undef || that.undef,
         this.nullv || that.nullv,
-        this.absent || that.absent,
       ).norm
 
   /** intersection type */
@@ -136,7 +132,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.bool && that.bool,
         this.undef && that.undef,
         this.nullv && that.nullv,
-        this.absent && that.absent,
       )
 
   /** prune type */
@@ -164,7 +159,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         this.bool -- that.bool,
         this.undef -- that.undef,
         this.nullv -- that.nullv,
-        this.absent -- that.absent,
       )
 
   /** normalization */
@@ -185,16 +179,9 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     str.isTop &&
     bool.isTop &&
     undef.isTop &&
-    nullv.isTop &&
-    absent.isTop
+    nullv.isTop
   ) PureValueTy.Top
   else this
-
-  /** remove absent types */
-  def removeAbsent: PureValueTy = this match
-    case PureValueTopTy => PureValueTy.Top
-    case elem: PureValueElemTy =>
-      elem.copy(list = elem.list.removeAbsent, absent = false)
 
   /** get single value */
   def getSingle: Flat[PureValue] =
@@ -214,8 +201,7 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
     (str.getSingle.map(Str(_): PureValue)) ||
     (bool.getSingle.map(Bool(_): PureValue)) ||
     (if (this.undef.isBottom) Zero else One(Undef)) ||
-    (if (this.nullv.isBottom) Zero else One(Null)) ||
-    (if (this.absent.isBottom) Zero else One(Absent))
+    (if (this.nullv.isBottom) Zero else One(Null))
 
   /** types having no field */
   def noField: PureValueTy = this match
@@ -232,7 +218,6 @@ sealed trait PureValueTy extends TyElem with Lattice[PureValueTy] {
         bool = BoolTy.Top,
         undef = true,
         nullv = true,
-        absent = true,
       )
     case elem: PureValueElemTy =>
       elem.copy(
@@ -262,7 +247,6 @@ case object PureValueTopTy extends PureValueTy {
   def bool: BoolTy = BoolTy.Top
   def undef: Boolean = true
   def nullv: Boolean = true
-  def absent: Boolean = true
 }
 
 case class PureValueElemTy(
@@ -283,7 +267,6 @@ case class PureValueElemTy(
   bool: BoolTy = BoolTy.Bot,
   undef: Boolean = false,
   nullv: Boolean = false,
-  absent: Boolean = false,
 ) extends PureValueTy
 object PureValueTy extends Parser.From(Parser.pureValueTy) {
   def apply(
@@ -304,7 +287,6 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,
-    absent: Boolean = false,
   ): PureValueTy = PureValueElemTy(
     clo,
     cont,
@@ -323,7 +305,6 @@ object PureValueTy extends Parser.From(Parser.pureValueTy) {
     bool,
     undef,
     nullv,
-    absent,
   ).norm
   lazy val Top: PureValueTy = PureValueTopTy
   lazy val Bot: PureValueTy = PureValueElemTy()

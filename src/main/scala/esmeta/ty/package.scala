@@ -16,8 +16,9 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
-lazy val AnyT: ValueTy = ValueTy.Top
-lazy val PureValueT: ValueTy = ValueTy(pureValue = PureValueTy.Top)
+lazy val TopT: ValueTy = ValueTy.Top
+lazy val AnyT: ValueTy = ValueTy.Any
+lazy val AbsentT: ValueTy = ValueTy(true, CompTy.Bot, PureValueTy.Bot)
 lazy val CompT: ValueTy = ValueTy(comp = CompTy.Top)
 def CompT(normal: ValueTy, abrupt: BSet[String]): ValueTy =
   if (normal.pureValue.isBottom && abrupt.isBottom) ValueTy.Bot
@@ -53,13 +54,11 @@ lazy val ESPrimT: ValueTy = ValueTy(
   nullv = true,
 )
 lazy val ESValueT: ValueTy = ObjectT || ESPrimT
-lazy val ESPureValueT: PureValueTy = ESValueT.pureValue
 lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
 def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
 def RecordT(names: String*): ValueTy = RecordT(names.toSet)
 def RecordT(name: String, fields: Map[String, ValueTy]): ValueTy =
   ValueTy(record = RecordTy(name, fields))
-def RecordT(m: Map[String, ValueTy]): ValueTy = ValueTy(record = RecordTy(m))
 def NilT: ValueTy = ValueTy(list = ListTy.Nil)
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(ty))
@@ -121,7 +120,6 @@ lazy val TrueT: ValueTy = BoolT(true)
 lazy val FalseT: ValueTy = BoolT(false)
 lazy val UndefT: ValueTy = ValueTy(undef = true)
 lazy val NullT: ValueTy = ValueTy(nullv = true)
-lazy val AbsentT: ValueTy = ValueTy(absent = true)
 lazy val BotT: ValueTy = ValueTy.Bot
 
 /** predefined enum types */

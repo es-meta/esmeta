@@ -24,6 +24,7 @@ sealed trait Value extends StateElem {
   /** wrap completion */
   def wrapCompletion: Comp = wrapCompletion(ENUM_NORMAL)
   def wrapCompletion(ty: Enum): Comp = this match
+    case absent: Absent  => throw UncheckedAbsent
     case comp: Comp      => comp
     case pure: PureValue => Comp(ty, pure, None)
 
@@ -31,6 +32,7 @@ sealed trait Value extends StateElem {
     * https://github.com/es-meta/esmeta/issues/66
     */
   def toPureValue: PureValue = this match
+    case Absent          => throw UncheckedAbsent
     case comp: Comp      => throw UncheckedAbrupt(comp)
     case pure: PureValue => pure
 
@@ -56,6 +58,9 @@ sealed trait Value extends StateElem {
         case obj        => throw NoList(e, obj)
     case _ => throw NoAddr(e, this)
 }
+
+/** absent values to represent missing references */
+case object Absent extends Value
 
 /** completion values */
 case class Comp(
@@ -171,4 +176,3 @@ case class Str(str: String) extends SimpleValue
 case class Bool(bool: Boolean) extends SimpleValue
 case object Undef extends SimpleValue
 case object Null extends SimpleValue
-case object Absent extends SimpleValue

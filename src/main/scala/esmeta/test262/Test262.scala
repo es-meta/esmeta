@@ -14,6 +14,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
+import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 
 /** data in Test262 */
@@ -70,6 +71,8 @@ case class Test262(
   def getProgressBar(
     name: String,
     targetTests: List[Test],
+    log: Boolean = false,
+    pw: PrintWriter,
     removed: Iterable[(Test, ReasonPath)] = Nil,
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
@@ -85,10 +88,12 @@ case class Test262(
         case NotSupported(reasons) =>
           summary.notSupported.add(name, reasons)
         case _: TimeoutException =>
-          if (verbose) println(s"[TIMEOUT] $name")
+          if (log) pw.println(s"[TIMEOUT] $name")
           summary.timeout.add(name)
         case e: Throwable =>
-          if (verbose) println(s"[FAIL   ] $name")
+          if (log)
+            pw.println(s"[FAIL   ] $name")
+            pw.println(e.getStackTrace.mkString(LINE_SEP))
           summary.fail.add(name, getMessage(e))
       else throw e,
     verbose = useProgress,
@@ -116,15 +121,18 @@ case class Test262(
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)
 
+    // open log file
+    val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
+
     // get progress bar for extracted tests
     val progressBar = getProgressBar(
       name = "eval",
       targetTests = targetTests,
+      pw = logPW,
       removed = removed,
       useProgress = useProgress,
       useErrorHandler = multiple,
       concurrent = concurrent,
-      verbose = verbose,
     )
 
     // coverage with time limit
@@ -138,6 +146,7 @@ case class Test262(
     logForTests(
       name = "eval",
       progressBar = progressBar,
+      pw = logPW,
       postSummary = if (useCoverage) cov.toString else "",
       log = log && multiple,
     )(
@@ -146,7 +155,7 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage)
-            evalFile(filename, log && !multiple, detail, timeLimit)
+            evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
           else cov.run(filename)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
@@ -154,6 +163,9 @@ case class Test262(
       // dump coverage
       logDir => if (useCoverage) cov.dumpTo(logDir),
     )
+
+    // close log file
+    logPW.close()
 
     progressBar.summary
   }
@@ -173,20 +185,24 @@ case class Test262(
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)
 
+    // open log file
+    val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
+
     // get progress bar for extracted tests
     val progressBar = getProgressBar(
       name = "parse",
       targetTests = targetTests,
+      pw = logPW,
       removed = removed,
       useProgress = useProgress,
       concurrent = concurrent,
-      verbose = verbose,
     )
 
     // run tests with logging
     logForTests(
       name = "parse",
       progressBar = progressBar,
+      pw = logPW,
       log = log,
     )(
       // check parsing result with its corresponding code
@@ -196,6 +212,9 @@ case class Test262(
         val newAst = parse(ast.toString(grammar = Some(cfg.grammar)))
         if (ast != newAst) throw UnexpectedParseResult,
     )
+
+    // close log file
+    logPW.close()
 
     progressBar.summary
   }
@@ -213,6 +232,7 @@ case class Test262(
     filename: String,
     log: Boolean = false,
     detail: Boolean = false,
+    logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
     val ast = loadTest(filename)
@@ -222,7 +242,7 @@ case class Test262(
       st = st,
       log = log,
       detail = detail,
-      logDir = TEST262TEST_LOG_DIR,
+      logPW = logPW,
       timeLimit = timeLimit,
     )
 
@@ -230,6 +250,7 @@ case class Test262(
   private def logForTests(
     name: String,
     progressBar: ProgressBar[Test],
+    pw: PrintWriter,
     postSummary: => String = "",
     log: Boolean = false,
   )(

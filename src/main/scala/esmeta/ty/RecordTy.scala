@@ -7,11 +7,10 @@ import esmeta.ty.util.Parser
 /** record types */
 enum RecordTy extends TyElem with Lattice[RecordTy] {
 
-  /** a detailed record type with its type name and extended fields */
-  case Detail(name: String, map: Map[String, ValueTy])
+  case Top
 
-  /** a simple record type with a set of record names */
-  case Simple(set: Set[String])
+  /** a record type with a named record types and refined fields */
+  case Elem(map: Map[String, FieldMap])
 
   import ManualInfo.tyModel.*
   import RecordTy.*
@@ -23,84 +22,118 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => RecordTy): Boolean = (this, that) match
-    case _ if this eq that => true
-    case (Detail(l, lmap), Detail(r, rmap)) =>
-      (l == r && rmap.forall { this(_) <= _ }) || isSubTy(l, r)
-    case (Detail(l, _), Simple(rs)) => isSubTy(l, rs)
-    case (Simple(ls), Simple(rs))   => isSubTy(ls, rs)
-    case (Simple(ls), Detail(r, map)) =>
-      isSubTy(ls, r) && map.forall { this(_) <= _ }
+  def <=(that: => RecordTy): Boolean = (this eq that) || {
+    (this, that) match
+      case (_, Top) => true
+      case (Top, _) => false
+      case (Elem(lmap), Elem(rmap)) =>
+        lmap.forall { (l, lfm) =>
+          rmap.exists { (r, rfm) =>
+            isStrictSubTy(l, r) || (l == r && lfm <= rfm)
+          }
+        }
+  }
 
   /** union type */
-  def ||(that: => RecordTy): RecordTy =
-    if (this <= that) that
-    else if (that <= this) this
-    else
-      val (ls, rs) = (this.names, that.names)
-      Simple(ls.filter(!isSubTy(_, rs)) ++ rs.filter(!isSubTy(_, ls)))
+  def ||(that: => RecordTy): RecordTy = (this, that) match
+    case _ if this eq that   => this
+    case (Bot, _) | (_, Top) => that
+    case (Top, _) | (_, Bot) => this
+    case (Elem(lmap), Elem(rmap)) =>
+      val ls = lmap.keySet
+      val rs = rmap.keySet
+      Elem((for {
+        t <- {
+          ls.filter(!isStrictSubTy(_, rs)) ++
+          rs.filter(!isStrictSubTy(_, ls))
+        }
+        fm = {
+          lmap.getOrElse(t, FieldMap.Top) ||
+          rmap.getOrElse(t, FieldMap.Top)
+        }
+      } yield t -> fm).toMap)
 
   /** intersection type */
-  def &&(that: => RecordTy): RecordTy =
-    if (this <= that) this
-    else if (that <= this) that
-    else
-      val (ls, rs) = (this.names, that.names)
-      Simple(ls.filter(isSubTy(_, rs)) ++ rs.filter(isSubTy(_, ls)))
+  def &&(that: => RecordTy): RecordTy = (this, that) match
+    case _ if this eq that   => this
+    case (Bot, _) | (_, Top) => this
+    case (Top, _) | (_, Bot) => that
+    case (Elem(lmap), Elem(rmap)) =>
+      val ls = lmap.keySet
+      val rs = rmap.keySet
+      Elem((for {
+        t <- {
+          ls.filter(isStrictSubTy(_, rs)) ++
+          rs.filter(isStrictSubTy(_, ls))
+        }
+        fm = {
+          lmap.getOrElse(t, FieldMap.Top) &&
+          rmap.getOrElse(t, FieldMap.Top)
+        }
+      } yield t -> fm).toMap)
 
   /** prune type */
-  def --(that: => RecordTy): RecordTy = this match
-    case Simple(set) => Simple(set.filter(!isSubTy(_, that.names)))
-    case _           => this
+  def --(that: => RecordTy): RecordTy = (this, that) match
+    case (Bot, _) | (_, Top) => Bot
+    case (Top, _) | (_, Bot) => this
+    case (Elem(lmap), Elem(rmap)) =>
+      Elem(lmap.filter { (l, lfm) =>
+        rmap.exists { (r, rfm) =>
+          !(isStrictSubTy(l, r) || (l == r && lfm <= rfm))
+        }
+      })
 
-  /** fields */
-  def fieldMap: Map[String, Ty] = this match
-    case Detail(name, map) => getFieldMap(name).map ++ map
-    case Simple(set) =>
-      val fields = for {
-        name <- set
-        (field, _) <- getFieldMap(name).map
-      } yield field
-      fields.toList.map(f => f -> apply(f)).toMap
+  /** field type map */
+  def fieldMap: Option[FieldMap] = this match
+    case Top       => Some(FieldMap.Top)
+    case Elem(map) => map.map(getFieldMap(_) && _).reduceOption(_ || _)
 
   /** base type names */
-  def bases: Set[String] = this match
-    case Detail(name, _) => Set(getBase(name))
-    case Simple(set)     => set.map(getBase)
+  def bases: BSet[String] = this match
+    case Top       => Inf
+    case Elem(map) => Fin(map.keySet.map(getBase))
 
   /** type names */
-  def names: Set[String] = this match
-    case Detail(name, _) => Set(name)
-    case Simple(set)     => set
+  def names: BSet[String] = this match
+    case Top       => Inf
+    case Elem(map) => Fin(map.keySet)
 
   /** field accessor */
-  def apply(field: String): ValueTy = this match
-    case Detail(name, map) => map.getOrElse(field, getField(name, field))
-    case Simple(set)       => set.foldLeft(BotT)(_ || getField(_, field))
+  def apply(f: String): ValueTy = this match
+    case Top       => TopT
+    case Elem(map) => map.map(getField(_, f) && _(f)).foldLeft(BotT)(_ || _)
 
   /** record containment check */
-  def contains(record: RecordObj, heap: Heap): Boolean =
-    val RecordObj(tname, map) = record
-    lazy val fieldCheck = fieldMap.forall {
-      case (f, ty) => map.get(f).fold(false)(ty.contains(_, heap))
-    }
-    this match
-      case Detail(t, _) =>
-        getBase(t) == getBase(tname) && fieldCheck
-      case Simple(names) =>
-        names.exists(isSubTy(tname, _)) ||
-        (bases.contains(getBase(tname)) && fieldCheck)
+  def contains(record: RecordObj, heap: Heap): Boolean = this match
+    case Top => true
+    case Elem(map) =>
+      val RecordObj(l, lfm) = record
+      map.exists { (r, rfm) =>
+        isStrictSubTy(l, r) ||
+        (l == r && rfm.contains(record, heap)) ||
+        (getLCA(l, r).exists { getDiffFieldMap(r, _).contains(record, heap) })
+      }
+
+  /** normalized type */
+  def normalized: RecordTy = this match
+    case Top => Top
+    case Elem(map) =>
+      Elem(map.filter { (l, lfm) =>
+        !map.exists { (r, rfm) =>
+          l != r && (isStrictSubTy(l, r) || (l == r && lfm <= rfm))
+        }
+      })
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
-  lazy val Top: RecordTy = Simple(Set(""))
-  lazy val Bot: RecordTy = Simple(Set.empty)
+  lazy val Bot: RecordTy = Elem(Map.empty)
+
   def apply(names: String*): RecordTy =
     apply(names.toSet)
   def apply(names: Set[String]): RecordTy =
-    if (names.isEmpty) Bot else Simple(names)
+    apply(names.toList.map(_ -> FieldMap.Top).toMap)
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
-    if (fields.isEmpty) Simple(Set(name)) else Detail(name, fields)
-  def apply(fields: Map[String, ValueTy]): RecordTy =
-    if (fields.isEmpty) Top else Detail("", fields)
+    apply(Map(name -> FieldMap(fields)))
+  def apply(map: Map[String, FieldMap]): RecordTy =
+    Elem(map).normalized
 }

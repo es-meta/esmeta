@@ -52,7 +52,6 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.timeLimit,
       config.concurrent,
-      config.verbose,
     )
 
     // if summary has failed test case, throws an exception
@@ -112,11 +111,6 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
-    (
-      "verbose",
-      BoolOption(c => c.verbose = true),
-      "turn on verbose mode.",
-    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -128,6 +122,5 @@ case object Test262Test extends Phase[CFG, Summary] {
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     var features: Option[List[String]] = None,
-    var verbose: Boolean = false,
   )
 }

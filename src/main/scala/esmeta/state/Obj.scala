@@ -11,20 +11,17 @@ sealed trait Obj extends StateElem {
 
   /** getters */
   def apply(field: Value): Value = (this, field) match
-    case (RecordObj(_, map), Str(field)) => map.getOrElse(field, Absent)
-    case (MapObj(map), key)              => map.getOrElse(key, Absent)
-    case (ListObj(values), Math(decimal)) =>
-      val idx = decimal.toInt
-      if (0 <= idx && idx < values.length) values(idx)
-      else Absent
-    case (ListObj(values), Str("length")) => Math(values.length)
-    case _                                => throw InvalidObjField(this, field)
+    case (r: RecordObj, Str(field))                        => r(field)
+    case (m: MapObj, key)                                  => m(key)
+    case (l: ListObj, Math(decimal)) if decimal.isValidInt => l(decimal.toInt)
+    case (ListObj(vs), Str("length"))                      => Math(vs.length)
+    case _ => throw InvalidObjField(this, field)
 
   /** copy of object */
   def copied: Obj = this match
+    case RecordObj(tname, map) => RecordObj(tname, LMMap.from(map))
     case MapObj(map)           => MapObj(LMMap.from(map))
     case ListObj(values)       => ListObj(Vector.from(values))
-    case RecordObj(tname, map) => RecordObj(tname, LMMap.from(map))
     case _                     => this
 }
 
@@ -34,7 +31,10 @@ case class RecordObj(
   val map: MMap[String, Value] = MMap(),
 ) extends Obj {
 
-  /** updates a value */
+  /** field lookup */
+  def apply(field: String): Value = map.getOrElse(field, Absent)
+
+  /** field update */
   def update(field: PureValue, value: Value): this.type = field match
     case Str(field) => map += field -> value; this
     case _          => throw InvalidObjField(this, field)
@@ -70,6 +70,9 @@ case class MapObj(
   val map: LMMap[Value, Value] = LMMap(),
 ) extends Obj {
 
+  /** getters */
+  override def apply(field: Value): Value = map.getOrElse(field, Absent)
+
   /** updates */
   def update(key: Value, value: Value): this.type =
     map += key -> value
@@ -97,6 +100,11 @@ object MapObj {
 
 /** list objects */
 case class ListObj(var values: Vector[Value] = Vector()) extends Obj {
+
+  /** lookup a value */
+  def apply(idx: Int): Value =
+    if (0 <= idx && idx < values.length) values(idx)
+    else Absent
 
   /** updates a value */
   def update(field: Value, value: Value): this.type =

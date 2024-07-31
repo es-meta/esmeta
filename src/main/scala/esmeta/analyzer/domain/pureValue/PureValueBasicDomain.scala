@@ -62,7 +62,6 @@ trait PureValueBasicDomainDecl { self: Self =>
     val boolTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.boolTop)
     val undefTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.undefTop)
     val nullTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.nullTop)
-    val absentTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.absentTop)
 
     /** constructors */
     def apply(
@@ -82,7 +81,6 @@ trait PureValueBasicDomainDecl { self: Self =>
       bool: AbsBool = AbsBool.Bot,
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
-      absent: AbsAbsent = AbsAbsent.Bot,
     ): Elem = Elem(
       clo,
       cont,
@@ -93,7 +91,7 @@ trait PureValueBasicDomainDecl { self: Self =>
       enumv,
       math,
       infinity,
-      simpleValue ⊔ AbsSimpleValue(num, bigInt, str, bool, undef, nullv, absent),
+      simpleValue ⊔ AbsSimpleValue(num, bigInt, str, bool, undef, nullv),
     )
 
     /** extractors */
@@ -232,7 +230,6 @@ trait PureValueBasicDomainDecl { self: Self =>
       def bool: AbsBool = elem.simpleValue.bool
       def undef: AbsUndef = elem.simpleValue.undef
       def nullv: AbsNull = elem.simpleValue.nullv
-      def absent: AbsAbsent = elem.simpleValue.absent
 
       /** get reachable address partitions */
       def reachableParts: Set[Part] =

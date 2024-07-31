@@ -1,7 +1,8 @@
 package esmeta.ty
 
-import esmeta.util.*
+import esmeta.state.{RecordObj, Heap, Str}
 import esmeta.ty.util.Parser
+import esmeta.util.*
 
 /** field type map */
 case class FieldMap(map: Map[String, ValueTy] = Map())
@@ -40,10 +41,14 @@ case class FieldMap(map: Map[String, ValueTy] = Map())
   def --(that: => FieldMap): FieldMap = this
 
   /** field accessor */
-  def apply(field: String): ValueTy = map.getOrElse(field, AnyT)
+  def apply(field: String): ValueTy = map.getOrElse(field, TopT)
 
   /** fields */
   def fields: Set[String] = map.keySet
+
+  /** field map containment check */
+  def contains(record: RecordObj, heap: Heap): Boolean =
+    map.forall { case (f, ty) => ty.contains(record(Str(f)), heap) }
 }
 
 object FieldMap extends Parser.From(Parser.fieldMap) {

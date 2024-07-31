@@ -87,14 +87,14 @@ class ContainsTinyTest extends TyTest {
       MapT(NumberT, StrT) -> mapAddr,
     )
     checkContains("record objects")(
-      // TODO RecordT -> recordAddr,
+      RecordT -> recordAddr,
       RecordT("A") -> recordAddr,
       RecordT("A", Map("P" -> NumberT)) -> recordAddr,
     ).neg(
       RecordT("B") -> recordAddr,
       RecordT("A", Map("P" -> AnyT, "Q" -> AnyT)) -> recordAddr,
-      RecordT(Map("P" -> AnyT, "Q" -> AnyT)) -> recordAddr,
-      RecordT(Map("P" -> BoolT)) -> recordAddr,
+      RecordT("", Map("P" -> AnyT, "Q" -> AnyT)) -> recordAddr,
+      RecordT("", Map("P" -> BoolT)) -> recordAddr,
     )
 
     checkContains("list objects")(

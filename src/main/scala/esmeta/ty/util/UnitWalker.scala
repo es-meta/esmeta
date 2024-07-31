@@ -57,6 +57,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** value types */
   def walk(ty: ValueTy): Unit =
+    walk(ty.absent)
     walk(ty.comp)
     walk(ty.pureValue)
 
@@ -84,7 +85,6 @@ trait UnitWalker extends BasicUnitWalker {
     walkBool(ty.bool)
     walkUndef(ty.undef)
     walkNull(ty.nullv)
-    walkAbsent(ty.absent)
 
   /** closure types */
   def walkClo(clo: BSet[String]): Unit = walkBSet(clo, walk)
@@ -152,11 +152,8 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: RecordTy): Unit =
     import RecordTy.*
     ty match
-      case Detail(name, map) =>
-        walk(name)
-        walkMap(map, walk, walk)
-      case Simple(set) =>
-        walkSet(set, walk)
+      case Top       =>
+      case Elem(map) => walkMap(map, walk, walk)
 
   /** list types */
   def walk(ty: ListTy): Unit = ty match

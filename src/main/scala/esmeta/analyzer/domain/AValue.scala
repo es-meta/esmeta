@@ -10,10 +10,11 @@ import esmeta.util.BaseUtils.*
 trait AValueDecl { self: Self =>
 
   /** values for analysis */
-  type AValue = AComp | APureValue
+  type AValue = Absent | AComp | APureValue
   object AValue:
     /** from original values */
     def from(value: Value): AValue = value match
+      case absent: Absent       => absent
       case comp: Comp           => AComp.from(comp)
       case pureValue: PureValue => APureValue.from(pureValue)
 

@@ -21,13 +21,14 @@ trait CompBasicDomainDecl { self: Self =>
     val Bot = Elem()
 
     /** abstraction functions */
-    def alpha(xs: Iterable[AComp]): Elem = Elem(
-      (for (ty <- xs.map(_.ty))
-        yield ty.name -> Result(
-          AbsPureValue(xs.filter(_.ty == ty).map(_.value)),
-          AbsPureValue(xs.filter(_.ty == ty).map(_.target.fold(Absent)(Str(_)))),
-        )).toMap,
-    )
+    def alpha(xs: Iterable[AComp]): Elem = ???
+    // Elem(
+    //   (for (ty <- xs.map(_.ty))
+    //     yield ty.name -> Result(
+    //       AbsPureValue(xs.filter(_.ty == ty).map(_.value)),
+    //       AbsPureValue(xs.filter(_.ty == ty).map(_.target.fold(Absent)(Str(_)))),
+    //     )).toMap,
+    // )
 
     /** abstraction functions */
     def alpha(ty: AbsValue, value: AbsValue, target: AbsValue): Elem =

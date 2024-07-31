@@ -140,14 +140,15 @@ class TypeAnalyzer(
       idx: Int,
       param: Param,
       arg: AbsValue,
-    ): AbsValue = param.ty.ty match
-      case _: UnknownTy => arg
-      case paramTy: ValueTy =>
-        val argTy = arg.ty.removeAbsent
-        if (method && idx == 0) () /* ignore `this` for method calls */
-        else if (config.checkParamType && !(argTy <= paramTy))
-          addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
-        AbsValue(paramTy)
+    ): AbsValue = ???
+    // param.ty.ty match
+    //   case _: UnknownTy => arg
+    //   case paramTy: ValueTy =>
+    //     val argTy = arg.ty.removeAbsent
+    //     if (method && idx == 0) () /* ignore `this` for method calls */
+    //     else if (config.checkParamType && !(argTy <= paramTy))
+    //       addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
+    //     AbsValue(paramTy)
 
     /** callee entries */
     override def getCalleeEntries(
@@ -258,22 +259,22 @@ class TypeAnalyzer(
     override def doReturn(
       irp: InternalReturnPoint,
       givenRet: AbsRet,
-    ): Unit =
-      val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
-      // wrap completion by conditions specified in
-      // [5.2.3.5 Implicit Normal Completion]
-      // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-      val newRet =
-        if (func.isReturnComp) givenRet.wrapCompletion else givenRet
-      val givenTy = newRet.value.ty.removeAbsent
-      val expected = func.retTy.ty match
-        case _: UnknownTy        => newRet
-        case expectedTy: ValueTy =>
-          // return type check when it is a known type
-          if (config.checkReturnType && !(givenTy <= expectedTy))
-            addError(ReturnTypeMismatch(irp, givenTy))
-          AbsRet(AbsValue(expectedTy))
-      super.doReturn(irp, expected)
+    ): Unit = ???
+    // val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
+    // // wrap completion by conditions specified in
+    // // [5.2.3.5 Implicit Normal Completion]
+    // // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+    // val newRet =
+    //   if (func.isReturnComp) givenRet.wrapCompletion else givenRet
+    // val givenTy = newRet.value.ty.removeAbsent
+    // val expected = func.retTy.ty match
+    //   case _: UnknownTy        => newRet
+    //   case expectedTy: ValueTy =>
+    //     // return type check when it is a known type
+    //     if (config.checkReturnType && !(givenTy <= expectedTy))
+    //       addError(ReturnTypeMismatch(irp, givenTy))
+    //     AbsRet(AbsValue(expectedTy))
+    // super.doReturn(irp, expected)
 
     /** transfer function for unary operators */
     override def transfer(
@@ -741,7 +742,7 @@ object TypeAnalyzer:
     checkParamType: Boolean = true,
     checkReturnType: Boolean = true,
     checkUncheckedAbrupt: Boolean = false, // TODO
-    checkInvalidBase: Boolean = false,
+    checkInvalidBase: Boolean = false, // TODO
     checkUnaryOp: Boolean = true,
     checkBinaryOp: Boolean = true,
   )

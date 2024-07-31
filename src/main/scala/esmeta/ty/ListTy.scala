@@ -47,11 +47,6 @@ enum ListTy extends TyElem with Lattice[ListTy] {
   /** prune type */
   def --(that: => ListTy): ListTy = if (this <= that) Bot else this
 
-  /** remove absent types */
-  def removeAbsent: ListTy = this match
-    case Elem(elem) => Elem(elem.removeAbsent)
-    case _          => this
-
   /** list containment check */
   def contains(l: ListObj, heap: Heap): Boolean = this match
     case Top      => true

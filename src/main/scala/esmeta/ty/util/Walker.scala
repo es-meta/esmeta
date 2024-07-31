@@ -61,6 +61,7 @@ trait Walker extends BasicWalker {
 
   /** value types */
   def walk(ty: ValueTy): ValueTy = ValueTy(
+    walk(ty.absent),
     walk(ty.comp),
     walk(ty.pureValue),
   )
@@ -93,7 +94,6 @@ trait Walker extends BasicWalker {
         walkBool(ty.bool),
         walkUndef(ty.undef),
         walkNull(ty.nullv),
-        walkAbsent(ty.absent),
       )
 
   /** closure types */
@@ -166,8 +166,8 @@ trait Walker extends BasicWalker {
   def walk(ty: RecordTy): RecordTy =
     import RecordTy.*
     ty match
-      case Detail(name, map) => Detail(name, walkMap(map, walk, walk))
-      case Simple(set)       => Simple(walkSet(set, walk))
+      case Top       => Top
+      case Elem(map) => Elem(walkMap(map, walk, walk))
 
   /** list types */
   def walk(ty: ListTy): ListTy = ty match

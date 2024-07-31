@@ -29,7 +29,6 @@ trait PureValueDomainDecl { self: Self =>
     def boolTop: Elem
     def undefTop: Elem
     def nullTop: Elem
-    def absentTop: Elem
 
     /** constructors */
     def apply(
@@ -49,7 +48,6 @@ trait PureValueDomainDecl { self: Self =>
       bool: AbsBool = AbsBool.Bot,
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
-      absent: AbsAbsent = AbsAbsent.Bot,
     ): Elem
 
     /** raw tuple of each simple value type */
@@ -89,10 +87,6 @@ trait PureValueDomainDecl { self: Self =>
       def bool: AbsBool
       def undef: AbsUndef
       def nullv: AbsNull
-      def absent: AbsAbsent
-
-      /** remove absent values */
-      def removeAbsent: Elem = elem -- absentTop
 
       /** get reachable address partitions */
       def reachableParts: Set[Part]

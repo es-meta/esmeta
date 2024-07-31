@@ -42,9 +42,7 @@ trait Parsers extends BasicParsers {
 
   // type map
   given fieldMap: Parser[FieldMap] = {
-    "{" ~> rep(ident ~ opt(":" ~> valueTy) <~ opt(",")) <~ "}" ^^ {
-      case ts => FieldMap(ts.map { case k ~ v => (k, v.getOrElse(AnyT)) }.toMap)
-    }
+    "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { case ts => FieldMap(ts.toMap) }
   }.named("ty.FieldMap")
 
   // types
@@ -64,7 +62,9 @@ trait Parsers extends BasicParsers {
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
-    "Any" ^^^ AnyT ||| (
+    "Top" ^^^ TopT |
+    "Any" ^^^ AnyT | (
+      "Absent" ^^^ AbsentT |
       singleCompTy ^^ { case t => ValueTy(comp = t) } |
       singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
     )
@@ -138,9 +138,7 @@ trait Parsers extends BasicParsers {
     // undefined
     "Undefined" ^^^ PureValueTy(undef = true) |
     // null
-    "Null" ^^^ PureValueTy(nullv = true) |
-    // absent
-    "Absent" ^^^ PureValueTy(absent = true)
+    "Null" ^^^ PureValueTy(nullv = true)
   }.named("ty.PureValueTy (single)")
 
   private lazy val numberWithSpecial: Parser[Number] =
@@ -170,11 +168,13 @@ trait Parsers extends BasicParsers {
   }.named("ty.RecordTy")
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
-    "Record[" ~> opt(word) ~ ("{" ~> rep1sep(field, ",") <~ "}") <~ "]" ^^ {
-      case x ~ ps => RecordTy.Detail(x.getOrElse(""), ps.toMap)
-    } | "Record[" ~> rep1sep(word, "|") <~ "]" ^^ {
-      case xs => RecordTy.Simple(xs.toSet)
-    } | "Record" ^^^ RecordTy.Top
+    import RecordTy.*
+    lazy val pair = opt(word) ~ opt(fieldMap) ^^ {
+      case k ~ v => (k.getOrElse(""), v.getOrElse(FieldMap.Top))
+    }
+    "Record[" ~> repsep(pair, "|") <~ "]" ^^ {
+      case fs => Elem(fs.toMap).normalized
+    } | "Record" ^^^ Top
   }.named("ty.RecordTy (single)")
 
   /** mathematical value types */

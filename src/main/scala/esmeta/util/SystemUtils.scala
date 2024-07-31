@@ -1,6 +1,6 @@
 package esmeta.util
 
-import java.io.{Reader, File, PrintWriter}
+import java.io.{Reader, File, FileOutputStream, PrintWriter}
 import java.nio.file.{Files, StandardCopyOption, Paths}
 import java.util.concurrent.{Executors, ExecutorService}
 import esmeta.*
@@ -44,15 +44,20 @@ object SystemUtils {
   lazy val patchFilter = extFilter("patch")
 
   /** print writer */
-  def getPrintWriter(filename: String): PrintWriter =
+  def getPrintWriter(filename: String, append: Boolean = false): PrintWriter =
     val file = File(filename)
+    val out = FileOutputStream(file, append)
     val parent = file.getParent
     if (parent != null) mkdir(parent)
-    PrintWriter(file)
+    PrintWriter(out)
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String): Unit =
-    val nf = getPrintWriter(filename)
+    dumpFile(data, filename, false)
+
+  /** dump given data to a file */
+  def dumpFile(data: Any, filename: String, append: Boolean): Unit =
+    val nf = getPrintWriter(filename, append)
     nf.print(data)
     nf.close()
 
@@ -63,10 +68,11 @@ object SystemUtils {
     dirname: String,
     getName: T => String,
     getData: T => Any = (x: T) => x,
+    append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
     mkdir(dirname)
-    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
+    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}", append)
     println(s"- Dumped $name into `$dirname` .")
 
   /** dump given data into a file and show message */
@@ -74,9 +80,10 @@ object SystemUtils {
     name: String,
     data: Any,
     filename: String,
+    append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
-    dumpFile(data, filename)
+    dumpFile(data, filename, append)
     if (!silent) println(s"- Dumped $name into `$filename` .")
 
   /** dump given data in a JSON format */
@@ -90,7 +97,7 @@ object SystemUtils {
     noSpace: Boolean,
   )(using Encoder[T]): Unit =
     val json = data.asJson
-    dumpFile(if (noSpace) json.noSpaces else json.spaces2, filename)
+    dumpFile(if (noSpace) json.noSpaces else json.spaces2, filename, false)
 
   /** dump given data in a JSON format and show message */
   def dumpJson[T](

@@ -48,6 +48,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   // value
   def walk(v: Value): Unit = v match
+    case absent: Absent  =>
     case comp: Comp      => walk(comp)
     case pure: PureValue => walk(pure)
 

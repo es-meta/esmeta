@@ -25,7 +25,7 @@ class Interpreter(
   val st: State,
   val log: Boolean = false,
   val detail: Boolean = false,
-  val logDir: String = EVAL_LOG_DIR,
+  val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
@@ -60,9 +60,9 @@ class Interpreter(
       if (!detail && iter % 100_000 == 0) GC(st)
 
       // cursor
-      eval(st.context.cursor)
+      try eval(st.context.cursor)
+      catch case ReturnValue(value, ret) => { setReturn(value, ret); true }
     } catch {
-      case ReturnValue(value, ret) => { setReturn(value, ret); true }
       case e =>
         if (log)
           pw.println(st)
@@ -445,6 +445,7 @@ class Interpreter(
     value: Value,
     check: Boolean,
   ): Value = value match
+    case Absent            => Absent // XXX remove?
     case NormalComp(value) => value
     case comp: Comp =>
       if (check) throw ReturnValue(value, ria)
@@ -499,9 +500,7 @@ class Interpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $logDir/log ...")
-    mkdir(logDir)
-    getPrintWriter(s"$logDir/log")
+    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
@@ -513,9 +512,9 @@ object Interpreter {
     st: State,
     log: Boolean = false,
     detail: Boolean = false,
-    logDir: String = EVAL_LOG_DIR,
+    logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, detail, logDir, timeLimit).result
+  ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
 
   // type update algorithms
   val setTypeMap: Map[String, String] = Map(
