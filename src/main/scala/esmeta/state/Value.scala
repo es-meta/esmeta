@@ -24,7 +24,6 @@ sealed trait Value extends StateElem {
   /** wrap completion */
   def wrapCompletion: Comp = wrapCompletion(ENUM_NORMAL)
   def wrapCompletion(ty: Enum): Comp = this match
-    case absent: Absent  => throw UncheckedAbsent
     case comp: Comp      => comp
     case pure: PureValue => Comp(ty, pure, None)
 
@@ -32,35 +31,41 @@ sealed trait Value extends StateElem {
     * https://github.com/es-meta/esmeta/issues/66
     */
   def toPureValue: PureValue = this match
-    case Absent          => throw UncheckedAbsent
     case comp: Comp      => throw UncheckedAbrupt(comp)
     case pure: PureValue => pure
 
-  /** type conversion */
+  /** check if the value is an expected type */
   def asStr: String = this match
-    case Str(s)      => s
-    case CodeUnit(c) => c.toString
-    case _           => throw NotStringType(this)
+    case Str(s) => s
+    case _      => throw NoString(this)
+  def asBool: Boolean = this match
+    case Bool(b) => b
+    case _       => throw NoBoolean(this)
   def asInt: Int = this match
-    case Number(n) if n.isValidInt => n.toInt
-    case Math(n) if n.isValidInt   => n.toInt
-    case _                         => throw NotIntType(this)
+    case Math(n) if n.isValidInt => n.toInt
+    case _                       => throw NoInteger(this)
   def asAst: Ast = this match
     case AstValue(ast) => ast
-    case v             => throw NotAstType(this)
+    case v             => throw NoAst(this)
   def asMath: BigDecimal = this match
     case Math(n) => n
-    case v       => throw NotDecimalType(this)
-  def getList(e: Expr, st: State): ListObj = this match
+    case v       => throw NoMath(this)
+  def asCallable: Callable = this match
+    case func: Callable => func
+    case v              => throw NoCallable(v)
+  def asGrammarSymbol: GrammarSymbol = this match
+    case g: GrammarSymbol => g
+    case v                => throw NoGrammarSymbol(v)
+  def asAddr: Addr = this match
+    case addr: Addr => addr
+    case v          => throw NoAddr(this)
+  def asList(st: State): ListObj = this match
     case addr: Addr =>
       st(addr) match
         case l: ListObj => l
-        case obj        => throw NoList(e, obj)
-    case _ => throw NoAddr(e, this)
+        case obj        => throw NoList(obj)
+    case _ => throw NoAddr(this)
 }
-
-/** absent values to represent missing references */
-case object Absent extends Value
 
 /** completion values */
 case class Comp(
@@ -96,20 +101,20 @@ given Ordering[Addr] = Ordering.by(_ match
 )
 
 /** function values */
-sealed trait FuncValue extends PureValue {
+sealed trait Callable extends PureValue {
   def func: Func
   def captured: Map[Name, Value]
 }
 
 /** closures */
-case class Clo(func: Func, captured: Map[Name, Value]) extends FuncValue
+case class Clo(func: Func, captured: Map[Name, Value]) extends Callable
 
 /** continuations */
 case class Cont(
   func: Func,
   captured: Map[Name, Value],
   callStack: List[CallContext],
-) extends FuncValue
+) extends Callable
 
 /** abstract syntax tree (AST) values */
 case class AstValue(ast: Ast) extends PureValue

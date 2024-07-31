@@ -83,7 +83,7 @@ class StringifyTinyTest extends StateTest {
       |}""".stripMargin,
       heapMulti -> """(SIZE = 43): {
       |  #Global -> Map {}
-      |  #42 -> [42, "x"]
+      |  #42 -> List[42, "x"]
       |}""".stripMargin,
     )
     // -------------------------------------------------------------------------
@@ -92,6 +92,7 @@ class StringifyTinyTest extends StateTest {
     lazy val map = MapObj(LMMap())
     lazy val singleMap = MapObj(LMMap(Str("p") -> Str("p")))
     lazy val rec = RecordObj("A", MMap())
+    lazy val recEmpty = RecordObj("", MMap())
     lazy val singleRec = RecordObj("A", MMap("p" -> Str("p")))
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val yet = YetObj("A", "message")
@@ -100,12 +101,13 @@ class StringifyTinyTest extends StateTest {
       singleMap -> """Map {
       |  "p" -> "p"
       |}""".stripMargin,
-      rec -> "[TYPE = A] {}",
-      singleRec -> """[TYPE = A] {
+      rec -> "Record[A] {}",
+      recEmpty -> "Record {}",
+      singleRec -> """Record[A] {
       |  "p" : "p"
       |}""".stripMargin,
-      list -> """[42, "x"]""",
-      yet -> """[TYPE = A] Yet("message")""",
+      list -> """List[42, "x"]""",
+      yet -> """Yet[A]("message")""",
     )
     // -------------------------------------------------------------------------
     // Values
@@ -150,7 +152,7 @@ class StringifyTinyTest extends StateTest {
       Bool(false) -> "false",
       Undef -> "undefined",
       Null -> "null",
-      Absent -> "absent",
+      Uninit -> "uninit",
       Enum("empty") -> "~empty~",
       CodeUnit(97) -> "97cu",
     )

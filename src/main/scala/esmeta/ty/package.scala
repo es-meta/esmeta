@@ -16,9 +16,11 @@ trait TyElem {
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
-lazy val TopT: ValueTy = ValueTy.Top
-lazy val AnyT: ValueTy = ValueTy.Any
-lazy val AbsentT: ValueTy = ValueTy(true, CompTy.Bot, PureValueTy.Bot)
+def May(ty: ValueTy): OptValueTy = OptValueTy(ty, true)
+def Must(ty: ValueTy): OptValueTy = OptValueTy(ty, false)
+lazy val MayAnyT: OptValueTy = OptValueTy(AnyT, true)
+lazy val MustBotT: OptValueTy = OptValueTy(BotT, false)
+lazy val AnyT: ValueTy = ValueTy.Top
 lazy val CompT: ValueTy = ValueTy(comp = CompTy.Top)
 def CompT(normal: ValueTy, abrupt: BSet[String]): ValueTy =
   if (normal.pureValue.isBottom && abrupt.isBottom) ValueTy.Bot
@@ -159,7 +161,7 @@ val ENUMT_REJECT = EnumT("Reject")
 type MethodMap = Map[String, String]
 
 extension (elem: Boolean) {
-  def isTop: Boolean = elem == true
-  def isBottom: Boolean = elem == false
-  def --(that: Boolean): Boolean = elem && !that
+  inline def isTop: Boolean = elem == true
+  inline def isBottom: Boolean = elem == false
+  inline def --(that: Boolean): Boolean = elem && !that
 }

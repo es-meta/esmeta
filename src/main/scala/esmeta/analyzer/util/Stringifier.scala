@@ -94,35 +94,35 @@ trait StringifierDecl { self: Self =>
       else app >> ":" >> cp.view
 
     // values for analysis
-    given avRule: Rule[AValue] = (app, av) =>
-      av match
-        case Absent => app >> "absent"
-        case AComp(Enum("normal"), v, _) =>
-          app >> "N(" >> v >> ")"
-        case AComp(ty, value, target) =>
-          app >> "comp[" >> ty
-          app >> "/" >> target.getOrElse(ENUM_EMPTY.toString) >> "]"
-          app >> "(" >> value >> ")"
-        case Named(name)        => app >> "#" >> name
-        case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
-        case InnerMap(baseLoc)  => app >> baseLoc >> ":Map"
-        case AClo(func, _) =>
-          app >> "clo<" >> func.irFunc.name >> ">"
-        case ACont(target, _) =>
-          app >> "cont<" >> target >> ">"
-        case AstValue(ast) =>
-          app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
-        case GrammarSymbol(name, params) =>
-          given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-          given Rule[List[Boolean]] = iterableRule()
-          app >> "nt<" >> name
-          if (!params.isEmpty) app >> "[" >> params >> "]"
-          app >> ">"
-        case Math(n)         => app >> n
-        case Infinity(p)     => app >> (if (p) "+" else "-") >> "∞"
-        case Enum(name)      => app >> "~" >> name >> "~"
-        case CodeUnit(c)     => app >> c.toInt >> "cu"
-        case sv: SimpleValue => app >> sv.toString
+    given avRule: Rule[AValue] = (app, av) => ???
+    // av match
+    //   case Uninit => app >> "uninit"
+    //   case AComp(Enum("normal"), v, _) =>
+    //     app >> "N(" >> v >> ")"
+    //   case AComp(ty, value, target) =>
+    //     app >> "comp[" >> ty
+    //     app >> "/" >> target.getOrElse(ENUM_EMPTY.toString) >> "]"
+    //     app >> "(" >> value >> ")"
+    //   case Named(name)        => app >> "#" >> name
+    //   case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
+    //   case InnerMap(baseLoc)  => app >> baseLoc >> ":Map"
+    //   case AClo(func, _) =>
+    //     app >> "clo<" >> func.irFunc.name >> ">"
+    //   case ACont(target, _) =>
+    //     app >> "cont<" >> target >> ">"
+    //   case AstValue(ast) =>
+    //     app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
+    //   case GrammarSymbol(name, params) =>
+    //     given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    //     given Rule[List[Boolean]] = iterableRule()
+    //     app >> "nt<" >> name
+    //     if (!params.isEmpty) app >> "[" >> params >> "]"
+    //     app >> ">"
+    //   case Math(n)         => app >> n
+    //   case Infinity(p)     => app >> (if (p) "+" else "-") >> "∞"
+    //   case Enum(name)      => app >> "~" >> name >> "~"
+    //   case CodeUnit(c)     => app >> c.toInt >> "cu"
+    //   case sv: SimpleValue => app >> sv.toString
 
     // specification type errors
     given errorRule: Rule[TypeError] = (app, error) =>

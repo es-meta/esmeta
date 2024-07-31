@@ -26,8 +26,9 @@
   assert (! (= true false))
   assert (= false false)
 
-  // absent
-  assert (! (= nx absent))
+  // existence check
+  assert (exists nx)
+  assert (! (exists nz))
 
   // numbers
   assert (< nx ny)

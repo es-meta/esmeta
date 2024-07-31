@@ -101,9 +101,6 @@ trait HeapDomainDecl { self: Self =>
         values: Iterable[AbsValue] = Nil,
       ): Elem
 
-      /** set type of objects */
-      def setType(part: AbsPart, tname: String): Elem
-
       /** check contains */
       def contains(part: AbsPart, value: AbsValue): AbsValue
 

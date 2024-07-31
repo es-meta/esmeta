@@ -110,7 +110,7 @@ abstract class Analyzer
   protected var boolDomain: Option[BoolDomain] = None
   protected var undefDomain: Option[UndefDomain] = None
   protected var nullDomain: Option[NullDomain] = None
-  protected var absentDomain: Option[AbsentDomain] = None
+  protected var uninitDomain: Option[UninitDomain] = None
 
   final lazy val AbsState = stateDomain.getOrElse(StateBasicDomain)
   type AbsState = AbsState.Elem
@@ -183,6 +183,6 @@ abstract class Analyzer
   final lazy val AbsNull = nullDomain.getOrElse(NullSimpleDomain)
   type AbsNull = AbsNull.Elem
 
-  final lazy val AbsAbsent = absentDomain.getOrElse(AbsentSimpleDomain)
+  final lazy val AbsAbsent = uninitDomain.getOrElse(UninitSimpleDomain)
   type AbsAbsent = AbsAbsent.Elem
 }

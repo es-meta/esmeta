@@ -184,6 +184,8 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
       obj
 
+    intr.obj.map += s"%$name%" -> baseAddr
+
     map += baseAddr -> updateRecord(baseObj)(
       "Extensible" -> Bool(true),
       "ScriptOrModule" -> Null,

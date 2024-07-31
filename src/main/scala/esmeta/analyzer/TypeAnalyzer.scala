@@ -83,32 +83,32 @@ class TypeAnalyzer(
   class Semantics extends AbsSemantics(getInitNpMap(targetFuncs)) {
 
     /** type analysis result string */
-    def typesString: String =
-      given getRule: Rule[Iterable[Func]] = (app, funcs) =>
-        import TyStringifier.given
-        given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
-        app >> "-" * 80
-        for (func <- funcs) {
-          val rp = ReturnPoint(func, View())
-          app :> "   " >> func.headString
-          val fname = func.name
-          val entryNp = NodePoint(func, func.entry, View())
-          val st = this(entryNp)
-          val newParams =
-            for (p <- func.params) yield p.lhs.name -> st.get(p.lhs, entryNp).ty
-          app :> "-> " >> "def "
-          app >> func.irFunc.kind.toString >> fname >> newParams
-          app >> ": " >> rpMap.get(rp).fold(func.retTy.ty)(_.value.ty)
-          app :> "-" * 80
-        }
-        app
-      given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
-        import TyStringifier.given
-        val (param, ty) = pair
-        app >> param
-        if (ty.absent) app >> "?"
-        app >> ": " >> ty -- AbsentT
-      (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
+    def typesString: String = ???
+    // given getRule: Rule[Iterable[Func]] = (app, funcs) =>
+    //   import TyStringifier.given
+    //   given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
+    //   app >> "-" * 80
+    //   for (func <- funcs) {
+    //     val rp = ReturnPoint(func, View())
+    //     app :> "   " >> func.headString
+    //     val fname = func.name
+    //     val entryNp = NodePoint(func, func.entry, View())
+    //     val st = this(entryNp)
+    //     val newParams =
+    //       for (p <- func.params) yield p.lhs.name -> st.get(p.lhs, entryNp).ty
+    //     app :> "-> " >> "def "
+    //     app >> func.irFunc.kind.toString >> fname >> newParams
+    //     app >> ": " >> rpMap.get(rp).fold(func.retTy.ty)(_.value.ty)
+    //     app :> "-" * 80
+    //   }
+    //   app
+    // given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
+    //   import TyStringifier.given
+    //   val (param, ty) = pair
+    //   app >> param
+    //   if (ty.uninit) app >> "?"
+    //   app >> ": " >> ty -- UninitT
+    // (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
   }
 
   /** transfer function */
@@ -629,13 +629,13 @@ class TypeAnalyzer(
   private def getView(func: Func): View = View()
 
   /** get initial state of function */
-  private def getState(func: Func): AbsState =
-    func.params.foldLeft(AbsState.Empty) {
-      case (st, Param(x, ty, opt, _)) =>
-        var v = AbsValue(ty.ty)
-        if (opt) v ⊔= AbsValue.absentTop
-        st.update(x, v)
-    }
+  private def getState(func: Func): AbsState = ???
+  // func.params.foldLeft(AbsState.Empty) {
+  //   case (st, Param(x, ty, opt, _)) =>
+  //     var v = AbsValue(ty.ty)
+  //     if (opt) v ⊔= AbsValue.uninitTop
+  //     st.update(x, v)
+  // }
 
   /** logging mode */
   private def logging: Unit = {

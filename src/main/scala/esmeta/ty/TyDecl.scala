@@ -14,13 +14,10 @@ case class TyDecl(
   /** type map */
   lazy val fieldMap: FieldMap = FieldMap(elems.map {
     case Method(name, optional, target) =>
-      name -> handleOption(optional, target.fold(CloT)(CloT(_)))
+      name -> OptValueTy(target.fold(CloT)(CloT(_)), optional)
     case Field(name, optional, typeStr) =>
-      name -> handleOption(optional, ValueTy.from(typeStr))
+      name -> OptValueTy(ValueTy.from(typeStr), optional)
   }.toMap)
-
-  private def handleOption(bool: Boolean, ty: ValueTy): ValueTy =
-    if (bool) ty || AbsentT else ty
 }
 object TyDecl extends Parser.From(Parser.tyDecl) {
   enum Elem extends TyElem {

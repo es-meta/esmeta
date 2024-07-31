@@ -125,22 +125,6 @@ trait AbsTransferDecl { self: Analyzer =>
     def apply(rp: ReturnPoint): Unit = {
       var AbsRet(value, st) = getReturn(rp)
 
-      // proper type handle
-      Interpreter.setTypeMap
-        .get(rp.func.name)
-        .map(ty => {
-          if (!value.unwrapCompletion.isBottom) {
-            val (newV, newSt) = st.setType(value.unwrapCompletion, ty)
-            // wrap completion by conditions specified in
-            // [5.2.3.5 Implicit Normal Completion]
-            // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-            val abrupt = value.abruptCompletion
-            value = if (rp.func.isReturnComp) newV.wrapCompletion else newV
-            value ⊔= abrupt
-            st = newSt
-          }
-        })
-
       // return wrapped values
       for {
         np @ NodePoint(func, call, view) <- sem.getRetEdges(rp)
@@ -193,11 +177,8 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             _ <- modify(_.update(rv, v))
           } yield ()
-        case IDelete(ref) =>
-          for {
-            rv <- transfer(ref)
-            _ <- modify(_.delete(rv))
-          } yield ()
+        case IExpand(base, expr) => ???
+        case IDelete(base, expr) => ???
         case IPush(expr, list, front) =>
           for {
             l <- transfer(list)
@@ -363,11 +344,6 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(expr)
             v0 <- get(transfer(_, unary, v))
           } yield v0
-        case EBinary(BOp.Eq, ERef(ref), EAbsent()) =>
-          for {
-            rv <- transfer(ref)
-            b <- get(_.exists(rv))
-          } yield !b
         case binary @ EBinary(BOp.And, left, right) =>
           shortCircuit(binary, left, right)
         case binary @ EBinary(BOp.Or, left, right) =>
@@ -395,6 +371,7 @@ trait AbsTransferDecl { self: Analyzer =>
               case ToStr(None)        => pure(AbsValue(Math(10)))
               case _                  => pure(AbsValue.Bot)
           } yield v.convertTo(cop, r)
+        case EExists(ref) => ???
         case ETypeOf(base) =>
           for {
             v <- transfer(base)
@@ -508,7 +485,6 @@ trait AbsTransferDecl { self: Analyzer =>
         case EBool(b)              => AbsValue(Bool(b))
         case EUndef()              => AbsValue(Undef)
         case ENull()               => AbsValue(Null)
-        case EAbsent()             => AbsValue(Absent)
         case EEnum(name)           => AbsValue(Enum(name))
         case ECodeUnit(c)          => AbsValue(CodeUnit(c))
       }
@@ -743,17 +719,17 @@ trait AbsTransferDecl { self: Analyzer =>
       callPoint: CallPoint,
       method: Boolean,
       vs: List[AbsValue],
-    ): List[(Local, AbsValue)] =
-      val CallPoint(callerNp, callee) = callPoint
-      // get parameters
-      val params: List[Param] = callee.irFunc.params
-      // full arguments with optional parameters
-      val fullVs =
-        vs ++ List.fill(params.length - vs.length)(AbsValue.absentTop)
-      // construct local type environment
-      (for {
-        ((param, arg), idx) <- (params zip fullVs).zipWithIndex
-      } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
+    ): List[(Local, AbsValue)] = ???
+    // val CallPoint(callerNp, callee) = callPoint
+    // // get parameters
+    // val params: List[Param] = callee.irFunc.params
+    // // full arguments with optional parameters
+    // val fullVs =
+    //   vs ++ List.fill(params.length - vs.length)(AbsValue.uninitTop)
+    // // construct local type environment
+    // (for {
+    //   ((param, arg), idx) <- (params zip fullVs).zipWithIndex
+    // } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
 
     /** assign argument to parameter */
     def assignArg(

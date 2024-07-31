@@ -7,6 +7,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
+import scala.util.Try
 
 /** IR states */
 case class State(
@@ -20,27 +21,28 @@ case class State(
   val heap: Heap = Heap(),
 ) extends StateElem {
 
-  /** get the current function */
+  given CFG = cfg
+
+  /** current function */
   def func: Func = context.cursor match
     case NodeCursor(node) => cfg.funcOf(node)
     case ExitCursor(func) => func
 
-  /** get local variable maps */
+  /** local enviornment */
   def locals: MMap[Local, Value] = context.locals
 
-  /** lookup variable directly */
-  def directLookup(x: Var): Value = (x match {
-    case x: Global => globals.get(x)
-    case x: Local  => context.locals.get(x)
-  }).getOrElse(throw UnknownId(x))
+  /** safe getter */
+  def get(rt: RefTarget): Try[Value] = Try(apply(rt))
+  def get(x: Var): Try[Value] = Try(apply(x))
+  def get(base: Value, field: Value): Try[Value] = Try(apply(base, field))
 
-  /** getters */
+  /** getter */
   def apply(rt: RefTarget): Value = rt match
     case VarTarget(x)             => apply(x)
     case FieldTarget(base, field) => apply(base, field)
-  def apply(x: Var): Value = directLookup(x) match
-    case Absent if func.isBuiltin => Undef
-    case v                        => v
+  def apply(x: Var): Value = x match
+    case x: Global => globals.getOrElse(x, throw UnknownVar(x))
+    case x: Local  => context.locals.getOrElse(x, throw UnknownVar(x))
   def apply(base: Value, field: Value): Value = base match
     case comp: Comp =>
       field match
@@ -49,94 +51,65 @@ case class State(
         case Str("Target") => comp.targetValue
         case _             => throw InvalidCompField(comp, field)
     case addr: Addr    => heap(addr, field)
-    case AstValue(ast) => apply(ast, field)
+    case AstValue(ast) => AstValue(ast(field))
     case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
-  def apply(ast: Ast, field: Value): Value =
-    (ast, field) match
-      case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
-      case (syn: Syntactic, Str(fieldStr)) =>
-        val Syntactic(name, _, rhsIdx, children) = syn
-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-        rhs.getRhsIndex(fieldStr).flatMap(children(_)) match
-          case Some(child) => AstValue(child)
-          case _           => throw InvalidAstField(syn, Str(fieldStr))
-      case (syn: Syntactic, Math(n)) if n.isValidInt =>
-        syn.children(n.toInt).map(AstValue(_)).getOrElse(Absent)
-      case _ => throw InvalidAstField(ast, field)
   def apply(str: String, field: Value): Value = field match
     case Str("length") => Math(BigDecimal(str.length))
     case Math(k)       => CodeUnit(str(k.toInt))
-    case Number(k)     => CodeUnit(str(k.toInt))
     case _             => throw WrongStringRef(str, field)
   def apply(addr: Addr): Obj = heap(addr)
 
   /** setters */
-  def define(x: Var, value: Value): this.type = x match
-    case x: Global => globals += x -> value; this
-    case x: Local  => context.locals += x -> value; this
-  def update(rt: RefTarget, value: Value): this.type = rt match {
-    case VarTarget(x) => update(x, value); this
-    case FieldTarget(base, field) =>
-      base match
-        // XXX see https://github.com/es-meta/esmeta/issues/65
-        case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
-          comp.value = value.toPureValue; this
-        case addr: Addr => update(addr, field, value); this
-        case _          => error(s"illegal reference update: $rt = $value")
-  }
-  def update(x: Var, value: Value): this.type =
-    x match
-      case x: Global if hasBinding(x) => globals += x -> value
-      case x: Name if hasBinding(x)   => context.locals += x -> value
-      case x: Temp                    => context.locals += x -> value
-      case _ => error(s"illegal variable update: $x = $value")
-    this
-  def update(addr: Addr, field: Value, value: Value): this.type =
-    heap.update(addr, field, value); this
+  def define(x: Var, value: Value): Unit = x match
+    case x: Global => globals += x -> value
+    case x: Local  => context.locals += x -> value
+  def update(rt: RefTarget, value: Value): Unit = rt match
+    case VarTarget(x)             => update(x, value)
+    case FieldTarget(base, field) => update(base, field, value)
+  def update(x: Var, value: Value): Unit = x match
+    case x: Global => globals += x -> value
+    case x: Local  => context.locals += x -> value
+  def update(base: Value, field: Value, value: Value): Unit = base match
+    // XXX see https://github.com/es-meta/esmeta/issues/65
+    case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
+      comp.value = value.toPureValue
+    case addr: Addr => heap.update(addr, field, value)
+    case _          => error(s"illegal field update: $base[$field] = $value")
 
   /** existence checks */
-  private def hasBinding(x: Var): Boolean = x match
-    case x: Global => globals contains x
-    case x: Local  => context.locals contains x
-  def exists(x: Var): Boolean = hasBinding(x) && directLookup(x) != Absent
-  def exists(rt: RefTarget): Boolean = rt match {
+  def exists(rt: RefTarget): Boolean = rt match
     case VarTarget(x)             => exists(x)
-    case FieldTarget(base, field) => apply(base, field) != Absent
-  }
+    case FieldTarget(base, field) => exists(base, field)
+  def exists(x: Var): Boolean = x match
+    case x: Global => globals.contains(x)
+    case x: Local  => context.locals.contains(x)
+  def exists(base: Value, field: Value): Boolean = base match
+    case addr: Addr    => heap.exists(addr, field)
+    case AstValue(ast) => ast.exists(field)
+    case _             => error(s"illegal field existence check: $base[$field]")
 
-  /** delete a field from a map */
-  def delete(rt: RefTarget): this.type = rt match {
-    case VarTarget(x) =>
-      error(s"cannot delete variable $x")
-    case FieldTarget(base, field) =>
-      base match {
-        case addr: Addr =>
-          heap.delete(addr, field); this
-        case _ =>
-          error(s"illegal reference delete: delete $rt")
-      }
-  }
+  /** expand */
+  def expand(base: Value, field: Value): Unit = heap.expand(base.asAddr, field)
 
-  /** object operators */
-  def append(addr: Addr, value: Value): this.type =
-    heap.append(addr, value); this
-  def prepend(addr: Addr, value: Value): this.type =
-    heap.prepend(addr, value); this
+  /** delete */
+  def delete(base: Value, key: Value): Unit = heap.delete(base.asAddr, key)
+
+  /** push */
+  def push(addr: Addr, value: Value, front: Boolean): Unit =
+    heap.push(addr, value, front)
   def pop(addr: Addr, front: Boolean): Value =
     heap.pop(addr, front)
-  def copyObj(addr: Addr): Addr =
-    heap.copyObj(addr)
+  def copy(addr: Addr): Addr =
+    heap.copy(addr)
   def keys(addr: Addr, intSorted: Boolean): Addr =
     heap.keys(addr, intSorted)
   def allocRecord(tname: String)(using CFG): Addr =
     heap.allocRecord(tname)
   def allocMap: Addr =
     heap.allocMap
-  def allocList(list: List[Value]): Addr =
-    heap.allocList(list)
-  def setType(addr: Addr, tname: String): this.type =
-    heap.setType(addr, tname); this
+  def allocList(vs: Iterable[Value]): Addr =
+    heap.allocList(vs)
 
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)

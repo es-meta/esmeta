@@ -50,7 +50,8 @@ trait Walker extends BasicWalker {
     case IExpr(expr)            => IExpr(walk(expr))
     case ILet(lhs, expr)        => ILet(walk(lhs), walk(expr))
     case IAssign(ref, expr)     => IAssign(walk(ref), walk(expr))
-    case IDelete(ref)           => IDelete(walk(ref))
+    case IExpand(base, expr)    => IExpand(walk(base), walk(expr))
+    case IDelete(base, expr)    => IDelete(walk(base), walk(expr))
     case IPush(from, to, front) => IPush(walk(from), walk(to), walk(front))
     case IPop(lhs, list, front) => IPop(walk(lhs), walk(list), walk(front))
     case IReturn(expr)          => IReturn(walk(expr))
@@ -99,6 +100,8 @@ trait Walker extends BasicWalker {
       EMathOp(walk(mop), walkList(exprs, walk))
     case EConvert(cop, expr) =>
       EConvert(walk(cop), walk(expr))
+    case EExists(ref) =>
+      EExists(walk(ref))
     case ETypeOf(base) =>
       ETypeOf(walk(base))
     case EInstanceOf(expr, target) =>
@@ -176,8 +179,8 @@ trait Walker extends BasicWalker {
 
   // references
   def walk(ref: Ref): Ref = (ref match
-    case Field(ref, expr) => Field(walk(ref), walk(expr))
-    case x: Var           => walk(x)
+    case Field(base, expr) => Field(walk(base), walk(expr))
+    case x: Var            => walk(x)
   ).setLangOpt(ref.langOpt)
 
   // identifiers

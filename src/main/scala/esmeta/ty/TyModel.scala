@@ -34,7 +34,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     }
 
   /** get field type */
-  def getField(tname: String, p: String): ValueTy = getAllFieldMap(tname)(p)
+  def getField(tname: String, p: String): OptValueTy = getAllFieldMap(tname)(p)
 
   /** get least common ancestor */
   val getLCA: ((String, String)) => Option[String] = cached { (l, r) =>
@@ -66,10 +66,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   /** get methods */
   val getMethod: String => MethodMap = cached { tname =>
     (for {
-      (field, ty) <- getAllFieldMap(tname).map
+      (field, OptValueTy(ty, opt)) <- getAllFieldMap(tname).map
       fname <- ty.clo match
-        case Fin(set) if !ty.absent && set.size == 1 => Some(set.head)
-        case _                                       => None
+        case Fin(set) if !opt && set.size == 1 => Some(set.head)
+        case _                                 => None
     } yield field -> fname).toMap
   }
 

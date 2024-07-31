@@ -128,11 +128,6 @@ trait StateTypeDomainDecl { self: Self =>
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
       // (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
 
-      /** set a type to an address partition */
-      def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
-        // (AbsValue(NameT(tname)), elem)
-        ???
-
       /** copy object */
       def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) =
         (from, elem)
@@ -327,7 +322,7 @@ trait StateTypeDomainDecl { self: Self =>
     //     val fieldIdx = n.toInt
     //     val rhs = cfg.grammar.nameMap(name).rhsList(idx)
     //     val nts = rhs.getGrammarSymbols(subIdx)
-    //     nts(fieldIdx).fold(AbsentT)(AstT(_))
+    //     nts(fieldIdx).fold(UninitT)(AstT(_))
     //   case Zero | One(_) => BotT
     //   case _             => AstT // TODO more precise
 

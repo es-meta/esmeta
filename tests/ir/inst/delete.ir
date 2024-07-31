@@ -3,11 +3,11 @@
 
   // dot
   delete m.x
-  assert (= absent m.x)
-  assert (! (= absent m["y"]))
+  assert (! (exists m.x))
+  assert (exists m.y)
 
   // braket
   delete m["y"]
-  assert (= absent m.y)
-  assert (! (= absent m["z"]))
+  assert (! (exists m.y))
+  assert (exists m["z"])
 }

@@ -94,11 +94,7 @@ class Interpreter(
         for (inst <- insts) eval(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
         st.context.cursor = Cursor(
-          eval(cond) match {
-            case Bool(true)  => thenNode
-            case Bool(false) => elseNode
-            case v           => throw NoBoolean(cond, v)
-          },
+          if (eval(cond).asBool) thenNode else elseNode,
           st.func,
         )
       case call: Call => eval(call)
@@ -106,22 +102,18 @@ class Interpreter(
 
   /** transition for normal instructions */
   def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)        => eval(expr)
-    case ILet(lhs, expr)    => st.context.locals += lhs -> eval(expr)
-    case IAssign(ref, expr) => st.update(eval(ref), eval(expr))
-    case IDelete(ref)       => st.delete(eval(ref))
-    case IPush(from, to, front) =>
-      val fromValue = eval(from)
-      eval(to) match {
-        case (addr: Addr) =>
-          if (front) st.prepend(addr, fromValue)
-          else st.append(addr, fromValue)
-        case v => throw NoAddr(to, v)
-      }
+    case IExpr(expr)         => eval(expr)
+    case ILet(lhs, expr)     => st.context.locals += lhs -> eval(expr)
+    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+    case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
+    case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
+    case IPush(elem, list, front) =>
+      val value = eval(elem)
+      val addr = eval(list).asAddr
+      st.push(addr, value, front)
     case IPop(lhs, list, front) =>
-      eval(list) match
-        case (addr: Addr) => st.context.locals += lhs -> st.pop(addr, front)
-        case v            => throw NoAddr(list, v)
+      val addr = eval(list).asAddr
+      st.context.locals += lhs -> st.pop(addr, front)
     case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
     case IAssert(expr) =>
       optional(eval(expr)) match
@@ -155,7 +147,7 @@ class Interpreter(
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
-        case v => throw NoFunc(fexpr, v)
+        case v => throw NoCallable(v)
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
@@ -203,7 +195,7 @@ class Interpreter(
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule), st.sourceText, st.cachedAst) match
+        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
           case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
               if x == y =>
@@ -215,7 +207,6 @@ class Interpreter(
             ast.clearLoc
             ast.setChildLoc(locOpt)
             AstValue(ast)
-          case (_, r, _, _) => throw NoGrammarSymbol(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
@@ -230,14 +221,12 @@ class Interpreter(
           st.allocList(syn.children.flatten.map(AstValue(_)))
         case ast => throw InvalidASTChildren(ast)
     case EGetItems(nt, ast) =>
-      val name = eval(nt) match
-        case GrammarSymbol(name, _) => name
-        case v                      => throw NoGrammarSymbol(nt, v)
+      val name = eval(nt).asGrammarSymbol.name
       st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(List(msg))
     case EContains(list, elem) =>
-      val l = eval(list).getList(list, st)
+      val l = eval(list).asList(st)
       val e = eval(elem)
       Bool(l.values.contains(e))
     case ESubstring(expr, from, to) =>
@@ -256,7 +245,6 @@ class Interpreter(
       Interpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
-    case EBinary(BOp.Eq, ERef(ref), EAbsent()) => Bool(!st.exists(eval(ref)))
     case EBinary(bop, left, right) =>
       val l = eval(left)
       val r = eval(right)
@@ -299,6 +287,7 @@ class Interpreter(
         // invalid cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
+    case EExists(ref) => Bool(st.exists(eval(ref)))
     case ETypeOf(base) =>
       Str(eval(base) match
         case n: Number => "Number"
@@ -326,27 +315,18 @@ class Interpreter(
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
     case EClo(fname, captured) =>
-      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
-      Clo(func, Map.from(captured.map(x => x -> st(x))))
+      val func = cfg.getFunc(fname)
+      Clo(func, captured.map(x => x -> st(x)).toMap)
     case ECont(fname) =>
-      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
+      val func = cfg.getFunc(fname)
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
-      Cont(func, Map.from(captured), st.callStack)
+      Cont(func, captured.toMap, st.callStack)
     case EDebug(expr) => debug(eval(expr))
     case ERandom()    => Number(math.random)
     case ESyntactic(name, args, rhsIdx, children) =>
-      val asts = children.map(childOpt =>
-        childOpt.map(child =>
-          eval(child) match {
-            case AstValue(ast) => ast
-            case v             => throw NoAst(child, v)
-          },
-        ),
-      )
+      val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))
-    case ELexical(name, expr) =>
-      val str = eval(expr).asStr
-      AstValue(Lexical(name, str))
+    case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
     case ERecord("Completion", fields) =>
       val map = (for {
         (f, expr) <- fields
@@ -372,19 +352,14 @@ class Interpreter(
       val addr = st.allocMap
       for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
       addr
-    case EList(exprs) =>
-      st.allocList(exprs.map(expr => eval(expr)))
+    case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
     case EListConcat(exprs) =>
-      val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
-      st.allocList(ls)
-    case ECopy(obj) =>
-      eval(obj) match
-        case addr: Addr => st.copyObj(addr)
-        case v          => throw NoAddr(obj, v)
-    case EKeys(map, intSorted) =>
-      eval(map) match
-        case addr: Addr => st.keys(addr, intSorted)
-        case v          => throw NoAddr(map, v)
+      st.allocList((for {
+        e <- exprs
+        v <- eval(e).asList(st).values
+      } yield v).toVector)
+    case ECopy(obj)            => st.copy(eval(obj).asAddr)
+    case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
@@ -394,7 +369,6 @@ class Interpreter(
     case EBool(b)              => Bool(b)
     case EUndef()              => Undef
     case ENull()               => Null
-    case EAbsent()             => Absent
     case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
@@ -414,18 +388,16 @@ class Interpreter(
     params: List[Param],
     args: List[Value],
     caller: Call,
-    callee: FuncValue,
+    callee: Callable,
   ): MMap[Local, Value] = {
     val func = callee.func
     val map = MMap[Local, Value]()
     @tailrec
-    def aux(ps: List[Param], as: List[Value], idx: Int): Unit = (ps, as) match {
+    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        if (optional) {
-          map += lhs -> Absent
-          aux(pl, Nil, idx + 1)
-        } else RemainingParams(ps)
+        if (optional) aux(pl, Nil)
+        else RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match
@@ -433,9 +405,9 @@ class Interpreter(
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
-        aux(pl, al, idx + 1)
+        aux(pl, al)
     }
-    aux(params, args, 0)
+    aux(params, args)
     map
   }
 
@@ -445,7 +417,6 @@ class Interpreter(
     value: Value,
     check: Boolean,
   ): Value = value match
-    case Absent            => Absent // XXX remove?
     case NormalComp(value) => value
     case comp: Comp =>
       if (check) throw ReturnValue(value, ria)
@@ -462,11 +433,6 @@ class Interpreter(
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
-    // set type map
-    (value, setTypeMap.get(st.context.name)) match
-      case (addr: Addr, Some(tname))             => st.setType(addr, tname)
-      case (NormalComp(addr: Addr), Some(tname)) => st.setType(addr, tname)
-      case _                                     => /* do nothing */
     st.context.retVal = Some(
       (
         ret,
@@ -702,7 +668,12 @@ object Interpreter {
           else vopEval(_.asMath, _ min _, Math(_), filtered)
         }
         vopEval(_.asMath, _ max _, Math(_), vs)
-      case Concat => vopEval(_.asStr, _ + _, Str(_), vs)
+      case Concat =>
+        def toString(v: Value): String = v match
+          case Str(s)      => s
+          case CodeUnit(c) => c.toString
+          case v           => throw NoString(v)
+        vopEval(toString, _ + _, Str(_), vs)
 
   /** transition for mathematical operators */
   def eval(mop: MOp, st: State, vs: List[Value]): Value =

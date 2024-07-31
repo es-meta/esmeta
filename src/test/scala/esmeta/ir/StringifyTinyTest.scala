@@ -76,6 +76,7 @@ class StringifyTinyTest extends IRTest {
     checkParseAndStringify("Inst", Inst)(
       xExprInst -> "x",
       let -> "let x = ~empty~",
+      exp -> "expand x.p",
       del -> "delete x.p",
       pushFront -> "push x > y",
       pushBack -> "push y < x",
@@ -138,6 +139,7 @@ class StringifyTinyTest extends IRTest {
       variadic -> "(min x x x)",
       mathOp -> "([math:tan] x)",
       convert -> "([bigInt] x)",
+      exists -> "(exists x)",
       typeOf -> "(typeof x)",
       instanceOf -> "(instanceof x x)",
       typeCheck -> "(? x: Number)",
@@ -155,13 +157,13 @@ class StringifyTinyTest extends IRTest {
       // allocation expressions
       recEmpty -> """(record {
       |  "A" : true,
-      |  "B" : absent,
+      |  "B" : "a",
       |})""".stripMargin,
       rec -> """(record [T] {
       |  "A" : true,
-      |  "B" : absent,
+      |  "B" : "a",
       |})""".stripMargin,
-      list -> "(list [undefined, null, absent])",
+      list -> "(list [undefined, null])",
       copy -> "(copy x)",
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
@@ -170,9 +172,9 @@ class StringifyTinyTest extends IRTest {
       // allocation expressions with allocation sites
       recASite -> """(record [T] {
       |  "A" : true,
-      |  "B" : absent,
+      |  "B" : "a",
       |})[#3]""".stripMargin,
-      listASite -> "(list [undefined, null, absent])[#1]",
+      listASite -> "(list [undefined, null])[#1]",
       copyASite -> "(copy x)[#42]",
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",
@@ -192,7 +194,6 @@ class StringifyTinyTest extends IRTest {
       EBool(false) -> "false",
       EUndef() -> "undefined",
       ENull() -> "null",
-      EAbsent() -> "absent",
       normal -> "~normal~",
       empty -> "~empty~",
       clo -> """clo<"f">""",

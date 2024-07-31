@@ -168,12 +168,6 @@ trait StateBasicDomainDecl { self: Self =>
         }
         (v, st)
 
-      /** set a type to an address partition */
-      def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
-        elem.bottomCheck(AbsPart)(v.part) {
-          (v, elem.copy(heap = elem.heap.setType(v.part, tname)))
-        }
-
       /** copy object */
       def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) =
         val partV = AbsValue(to)
@@ -403,21 +397,21 @@ trait StateBasicDomainDecl { self: Self =>
       else app >> "⊥"
 
     // lookup ASTs
-    private def lookupAst(ast: AbsAstValue, field: AbsValue): AbsValue =
-      (ast.getSingle, field.getSingle) match
-        case (Zero, _) | (_, Zero) => AbsValue.Bot
-        case (One(AstValue(ast)), One(Str("parent"))) =>
-          ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
-          val es.Syntactic(name, _, rhsIdx, children) = syn
-          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-          rhs.getRhsIndex(fieldStr).flatMap(children(_)) match
-            case Some(child) => AbsValue(child)
-            case _           => AbsValue.Bot
-        case (One(AstValue(syn: es.Syntactic)), One(Math(n))) if n.isValidInt =>
-          syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Absent))
-        case (_: One[_], _: One[_]) => AbsValue.Bot
-        case _                      => exploded("ast field access")
+    private def lookupAst(ast: AbsAstValue, field: AbsValue): AbsValue = ???
+    // (ast.getSingle, field.getSingle) match
+    //   case (Zero, _) | (_, Zero) => AbsValue.Bot
+    //   case (One(AstValue(ast)), One(Str("parent"))) =>
+    //     ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Uninit))
+    //   case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
+    //     val es.Syntactic(name, _, rhsIdx, children) = syn
+    //     val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+    //     rhs.getRhsIndex(fieldStr).flatMap(children(_)) match
+    //       case Some(child) => AbsValue(child)
+    //       case _           => AbsValue.Bot
+    //   case (One(AstValue(syn: es.Syntactic)), One(Math(n))) if n.isValidInt =>
+    //     syn.children(n.toInt).map(AbsValue(_)).getOrElse(AbsValue(Uninit))
+    //   case (_: One[_], _: One[_]) => AbsValue.Bot
+    //   case _                      => exploded("ast field access")
 
     // lookup strings
     private def lookupStr(str: AbsStr, field: AbsValue): AbsValue =

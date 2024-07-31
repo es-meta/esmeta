@@ -5,7 +5,7 @@ import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** field type map */
-case class FieldMap(map: Map[String, ValueTy] = Map())
+case class FieldMap(map: Map[String, OptValueTy] = Map())
   extends TyElem
   with Lattice[FieldMap] {
 
@@ -41,14 +41,14 @@ case class FieldMap(map: Map[String, ValueTy] = Map())
   def --(that: => FieldMap): FieldMap = this
 
   /** field accessor */
-  def apply(field: String): ValueTy = map.getOrElse(field, TopT)
+  def apply(field: String): OptValueTy = map.getOrElse(field, OptValueTy.Top)
 
   /** fields */
   def fields: Set[String] = map.keySet
 
   /** field map containment check */
   def contains(record: RecordObj, heap: Heap): Boolean =
-    map.forall { case (f, ty) => ty.contains(record(Str(f)), heap) }
+    map.forall { case (f, ty) => ty.contains(record.get(Str(f)), heap) }
 }
 
 object FieldMap extends Parser.From(Parser.fieldMap) {

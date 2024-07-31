@@ -41,7 +41,9 @@ case class Intrinsics(cfg: CFG) {
   }
 
   /** get intrinsic record */
-  def obj: RecordObj = RecordObj("Record")
+  val obj: RecordObj =
+    val names = intrinsics.keySet ++ yets
+    RecordObj("", names.toList.map(x => s"%$x%" -> intrAddr(x)).toMap)
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())

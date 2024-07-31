@@ -131,7 +131,6 @@ class JsonTinyTest extends TyTest {
       BoolT -> "Boolean",
       UndefT -> "Undefined",
       NullT -> "Null",
-      AbsentT -> "Absent",
     )
   }
 

@@ -139,16 +139,17 @@ trait HeapBasicDomainDecl { self: Self =>
         elem.map.getOrElse(part, base.getOrElse(part, AbsObj.Bot))
       def apply(part: AbsPart, field: AbsValue): AbsValue =
         part.map(elem(_, field)).foldLeft(AbsValue.Bot: AbsValue)(_ ⊔ _)
-      def apply(part: Part, field: AbsValue): AbsValue = part match
-        case Named(INTRINSICS) =>
-          field.getSingle match
-            case Zero => AbsValue.Bot
-            case One(str: SimpleValue) =>
-              AbsValue(Heap.getIntrinsics(str))
-            case One(_) => AbsValue.Bot
-            case Many =>
-              AbsValue.Top
-        case _ => elem(part).get(field)
+      def apply(part: Part, field: AbsValue): AbsValue = ???
+      // part match
+      //   case Named(INTRINSICS) =>
+      //     field.getSingle match
+      //       case Zero => AbsValue.Bot
+      //       case One(str: SimpleValue) =>
+      //         AbsValue(Heap.getIntrinsics(str))
+      //       case One(_) => AbsValue.Bot
+      //       case Many =>
+      //         AbsValue.Top
+      //   case _ => elem(part).get(field)
 
       /** setters */
       def update(part: AbsPart, field: AbsValue, value: AbsValue): Elem =
@@ -227,10 +228,6 @@ trait HeapBasicDomainDecl { self: Self =>
         to: AllocSite,
         values: Iterable[AbsValue],
       ): Elem = alloc(elem, to, AbsObj.getList(values))
-
-      /** set type of objects */
-      def setType(part: AbsPart, tname: String): Elem =
-        applyEach(elem, part)((obj, _) => obj.setType(tname))
 
       /** check contains */
       def contains(part: AbsPart, value: AbsValue): AbsValue =

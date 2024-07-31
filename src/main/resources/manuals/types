@@ -49,12 +49,6 @@ type BigIntObject extends OrdinaryObject {
   BigIntData: BigInt;
 }
 
-type Binding {
-  BoundValue: ESValue;
-  initialized: Boolean;
-  mutable: Boolean;
-}
-
 type BooleanObject extends OrdinaryObject {
   BooleanData: Boolean;
 }
@@ -114,11 +108,11 @@ type DeclarativeEnvironmentRecord extends EnvironmentRecord {
   def WithBaseObject = Record[DeclarativeEnvironmentRecord].WithBaseObject;
 }
 
-type ECMAScriptFunctionObject extends Constructor {
+type ECMAScriptFunctionObject extends FunctionObject {
   def Call = Record[ECMAScriptFunctionObject].Call;
   def Construct? = Record[ECMAScriptFunctionObject].Construct;
   ClassFieldInitializerName: Record[PrivateName | Symbol] | Enum[~empty~] | String;
-  ConstructorKind: Enum[~base~, ~derived~];
+  ConstructorKind?: Enum[~base~, ~derived~];
   ECMAScriptCode: Ast;
   Environment: Record[EnvironmentRecord];
   Fields: List[Record[ClassFieldDefinitionRecord]];
@@ -217,9 +211,21 @@ type GlobalSymbolRegistryRecord {
   Symbol: Record[Symbol];
 }
 
+type Binding {
+  BoundValue: ESValue;
+  initialized: Boolean;
+  strict: Boolean;
+  mutable: Boolean;
+}
+
 type ImmutableBinding extends Binding {
   strict: Boolean;
   mutable: False;
+}
+
+type MutableBinding extends Binding {
+  strict: False;
+  mutable: True;
 }
 
 type ImmutablePrototypeExoticObject extends Object {
@@ -297,10 +303,6 @@ type ModuleRecord {
   HostDefined: Undefined;
   Namespace: Record[ModuleNamespaceExoticObject] | Enum[~empty~];
   Realm: Record[RealmRecord];
-}
-
-type MutableBinding extends Binding {
-  mutable: True;
 }
 
 type NumberObject extends OrdinaryObject {
@@ -394,8 +396,8 @@ type PropertyDescriptor {
 }
 
 type ProxyExoticObject extends Constructor {
-  def Call = Record[ProxyExoticObject].Call;
-  def Construct = Record[ProxyExoticObject].Construct;
+  def Call? = Record[ProxyExoticObject].Call;
+  def Construct? = Record[ProxyExoticObject].Construct;
   def DefineOwnProperty = Record[ProxyExoticObject].DefineOwnProperty;
   def Delete = Record[ProxyExoticObject].Delete;
   def Get = Record[ProxyExoticObject].Get;

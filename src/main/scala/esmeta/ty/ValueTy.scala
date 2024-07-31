@@ -1,41 +1,29 @@
 package esmeta.ty
 
-import esmeta.cfg.{CFG, Func}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.ty.util.Parser
 
 /** value types */
 case class ValueTy(
-  absent: Boolean,
   comp: CompTy,
   pureValue: PureValueTy,
 ) extends Ty
   with Lattice[ValueTy] {
   import ValueTy.*
-  import ManualInfo.tyModel.{isSubTy, getBase}
 
   /** top check */
   def isTop: Boolean =
-    this.absent.isTop &&
-    this.comp.isTop &&
-    this.pureValue.isTop
-
-  /** any type (top without absent) check */
-  def isAny: Boolean =
-    this.absent.isBottom &&
     this.comp.isTop &&
     this.pureValue.isTop
 
   /** bottom check */
   def isBottom: Boolean =
-    this.absent.isBottom &&
     this.comp.isBottom &&
     this.pureValue.isBottom
 
   /** partial order/subset operator */
   def <=(that: => ValueTy): Boolean = (this eq that) || {
-    this.absent <= that.absent &&
     this.comp <= that.comp &&
     this.pureValue <= that.pureValue
   }
@@ -45,7 +33,6 @@ case class ValueTy(
     if (this eq that) this
     else
       ValueTy(
-        this.absent || that.absent,
         this.comp || that.comp,
         this.pureValue || that.pureValue,
       )
@@ -55,7 +42,6 @@ case class ValueTy(
     if (this eq that) this
     else
       ValueTy(
-        this.absent && that.absent,
         this.comp && that.comp,
         this.pureValue && that.pureValue,
       )
@@ -65,14 +51,12 @@ case class ValueTy(
     if (that.isBottom) this
     else
       ValueTy(
-        this.absent -- that.absent,
         this.comp -- that.comp,
         this.pureValue -- that.pureValue,
       )
 
   /** completion check */
   def isCompletion: Boolean =
-    this.absent.isBottom &&
     !this.comp.isBottom &&
     this.pureValue.isBottom
 
@@ -100,7 +84,6 @@ case class ValueTy(
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean =
     (pureValue.isTop && value.isInstanceOf[PureValue]) || (value match
-      case Absent => absent
       case NormalComp(value) =>
         ValueTy(pureValue = comp.normal).contains(value, heap)
       case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
@@ -128,7 +111,6 @@ case class ValueTy(
 
   /** copy value type */
   def copied(
-    absent: Boolean = absent,
     comp: CompTy = CompTy.Bot,
     normal: PureValueTy = normal,
     abrupt: BSet[String] = abrupt,
@@ -151,7 +133,6 @@ case class ValueTy(
     undef: Boolean = undef,
     nullv: Boolean = nullv,
   ): ValueTy = ValueTy(
-    absent = absent,
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
       clo,
@@ -185,7 +166,6 @@ case class ValueTy(
 }
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(
-    absent: Boolean = false,
     comp: CompTy = CompTy.Bot,
     normal: PureValueTy = PureValueTy.Bot,
     abrupt: BSet[String] = Fin(),
@@ -208,7 +188,6 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     undef: Boolean = false,
     nullv: Boolean = false,
   ): ValueTy = ValueTy(
-    absent = absent,
     comp = comp || CompTy(normal, abrupt),
     pureValue = pureValue || PureValueTy(
       clo,
@@ -230,7 +209,6 @@ object ValueTy extends Parser.From(Parser.valueTy) {
       nullv,
     ),
   )
-  lazy val Top: ValueTy = ValueTy(true, CompTy.Top, PureValueTy.Top)
-  lazy val Any: ValueTy = ValueTy(false, CompTy.Top, PureValueTy.Top)
-  lazy val Bot: ValueTy = ValueTy(false, CompTy.Bot, PureValueTy.Bot)
+  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top)
+  lazy val Bot: ValueTy = ValueTy(CompTy.Bot, PureValueTy.Bot)
 }

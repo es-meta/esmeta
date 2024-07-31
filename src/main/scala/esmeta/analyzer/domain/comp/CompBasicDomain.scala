@@ -26,7 +26,7 @@ trait CompBasicDomainDecl { self: Self =>
     //   (for (ty <- xs.map(_.ty))
     //     yield ty.name -> Result(
     //       AbsPureValue(xs.filter(_.ty == ty).map(_.value)),
-    //       AbsPureValue(xs.filter(_.ty == ty).map(_.target.fold(Absent)(Str(_)))),
+    //       AbsPureValue(xs.filter(_.ty == ty).map(_.target.fold(Uninit)(Str(_)))),
     //     )).toMap,
     // )
 

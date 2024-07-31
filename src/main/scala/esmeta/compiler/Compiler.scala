@@ -161,7 +161,7 @@ class Compiler(
             IIf(
               lessThan(zero, argsLen),
               IPop(Name(name), ENAME_ARGS_LIST, true),
-              ILet(Name(name), EAbsent()),
+              ILet(Name(name), EUndef()),
             ),
           )
       }
@@ -418,7 +418,7 @@ class Compiler(
       )
       fb.addInst(
         IIf(
-          isAbsent(eReturnCont),
+          not(exists(returnCont)),
           IAssign(returnCont, emptyList),
           emptyInst,
         ),
@@ -792,7 +792,6 @@ class Compiler(
     case FalseLiteral()         => EBool(false)
     case UndefinedLiteral()     => EUndef()
     case NullLiteral()          => ENull()
-    case AbsentLiteral()        => EAbsent()
     case UndefinedTypeLiteral() => EGLOBAL_UNDEF_TYPE
     case NullTypeLiteral()      => EGLOBAL_NULL_TYPE
     case BooleanTypeLiteral()   => EGLOBAL_BOOL_TYPE
@@ -820,13 +819,13 @@ class Compiler(
         val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
         if (neg) not(c) else c
       case HasFieldCondition(ref, neg, field) =>
-        val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
-        if (neg) e else not(e)
+        val e = exists(toRef(compile(fb, ref), compile(fb, field)))
+        if (neg) not(e) else e
       case HasBindingCondition(ref, neg, binding) =>
-        val e = isAbsent(
-          toERef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
+        val e = exists(
+          toRef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
         )
-        if (neg) e else not(e)
+        if (neg) not(e) else e
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>
         val base = compile(fb, nt)
@@ -862,8 +861,7 @@ class Compiler(
             val (b, bExpr) = fb.newTIdWithExpr
             fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
             bExpr
-          case Present =>
-            not(isAbsent(x))
+          case Present => exists(x)
           case Empty =>
             val lv = toERef(fb, x, EStr("length"))
             is(lv, zero)
@@ -1078,7 +1076,10 @@ class Compiler(
   def F = EBool(false)
 
   /** operation helpers */
-  inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
+  inline def exists(r: Ref): Expr = EExists(r)
+  inline def exists(e: Expr): Expr = e match
+    case ERef(r) => exists(r)
+    case _       => EYet(s"exists($e)")
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
     and(ETypeCheck(x, IRType(NumberT)), is(m, floor(m)))
@@ -1100,9 +1101,7 @@ class Compiler(
     fb: FuncBuilder,
     base: Expr,
     fs: List[String],
-  ): Expr =
-    val conds = fs.map(f => isAbsent(toERef(fb, base, EStr(f))))
-    not(conds.reduce { case (a, b) => or(a, b) })
+  ): Expr = fs.map(f => exists(toRef(fb, base, EStr(f)))).reduce(and(_, _))
 
   /** simple operations */
   type SimpleOp = PartialFunction[List[Expr], Expr]

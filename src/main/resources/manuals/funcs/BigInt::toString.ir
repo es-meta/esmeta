@@ -2,5 +2,6 @@ def <NUM>:BigInt::toString(
   x: BigInt,
   radix?: Math,
 ): String = {
-  if (= radix absent) return ([str] x) else return ([str radix] x)
+  if (exists radix) return ([str radix] x)
+  return ([str] x)
 }

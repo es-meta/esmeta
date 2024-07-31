@@ -57,7 +57,6 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** value types */
   def walk(ty: ValueTy): Unit =
-    walk(ty.absent)
     walk(ty.comp)
     walk(ty.pureValue)
 
@@ -144,9 +143,6 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** null types */
   def walkNull(nullv: Boolean): Unit = walk(nullv)
-
-  /** absent types */
-  def walkAbsent(absent: Boolean): Unit = walk(absent)
 
   /** record types */
   def walk(ty: RecordTy): Unit =

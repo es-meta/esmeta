@@ -25,6 +25,7 @@ case class EBinary(bop: BOp, left: Expr, right: Expr) extends Expr
 case class EVariadic(vop: VOp, exprs: List[Expr]) extends Expr
 case class EMathOp(mop: MOp, args: List[Expr]) extends Expr
 case class EConvert(cop: COp, expr: Expr) extends Expr
+case class EExists(ref: Ref) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class EInstanceOf(base: Expr, target: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
@@ -73,6 +74,5 @@ case class EStr(str: String) extends LiteralExpr
 case class EBool(b: Boolean) extends LiteralExpr
 case class EUndef() extends LiteralExpr
 case class ENull() extends LiteralExpr
-case class EAbsent() extends LiteralExpr
 case class EEnum(name: String) extends LiteralExpr
 case class ECodeUnit(c: Char) extends esmeta.ir.LiteralExpr

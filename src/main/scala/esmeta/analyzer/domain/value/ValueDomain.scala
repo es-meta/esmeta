@@ -43,7 +43,6 @@ trait ValueDomainDecl { self: Self =>
     def apply(d: BigDecimal): Elem = apply(Math(d))
 
     /** predefined top values */
-    def absentTop: Elem
     def compTop: Elem
     def pureValueTop: Elem
     def cloTop: Elem
@@ -65,7 +64,6 @@ trait ValueDomainDecl { self: Self =>
 
     /** constructors */
     def apply(
-      absent: AbsAbsent = AbsAbsent.Bot,
       comp: AbsComp = AbsComp.Bot,
       pureValue: AbsPureValue = AbsPureValue.Bot,
       clo: AbsClo = AbsClo.Bot,
@@ -88,7 +86,6 @@ trait ValueDomainDecl { self: Self =>
 
     /** raw tuple of each simple value type */
     type RawTuple = (
-      AbsAbsent,
       AbsComp,
       AbsPureValue,
     )
@@ -169,10 +166,6 @@ trait ValueDomainDecl { self: Self =>
       def normalCompletion: Elem
       def abruptCompletion: Elem
 
-      /** absent helpers */
-      def removeAbsent: Elem
-      def isAbsent: Elem
-
       /** refine receiver object */
       def refineThis(func: Func): Elem
 
@@ -183,7 +176,6 @@ trait ValueDomainDecl { self: Self =>
       def getLexical(method: String): Elem
 
       /** getters */
-      def absent: AbsAbsent
       def comp: AbsComp
       def pureValue: AbsPureValue
       def clo: AbsClo

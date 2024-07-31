@@ -2,6 +2,7 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
+import esmeta.error.*
 import esmeta.ir.Program
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
@@ -50,13 +51,17 @@ case class CFG(
   } yield node -> func).toMap
 
   /** get a type model */
-  def tyModel: TyModel = spec.tyModel
+  lazy val tyModel: TyModel = spec.tyModel
 
   /** get the corresponding specification */
-  def spec: Spec = program.spec
+  lazy val spec: Spec = program.spec
 
   /** get the corresponding grammar */
-  def grammar: Grammar = spec.grammar
+  lazy val grammar: Grammar = spec.grammar
+
+  /** get function by name */
+  def getFunc(fname: String): Func =
+    fnameMap.getOrElse(fname, throw UnknownFunc(fname))
 
   /** dump CFG */
   def dumpTo(baseDir: String): Unit =

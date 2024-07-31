@@ -80,8 +80,10 @@ trait Parsers extends TyParsers {
   lazy val normalInst: Parser[NormalInst] =
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)
-    } | "delete" ~> ref ^^ {
-      case r => IDelete(r)
+    } | "expand" ~> ref ^? {
+      case Field(b, e) => IExpand(b, e)
+    } | "delete" ~> ref ^? {
+      case Field(b, e) => IDelete(b, e)
     } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
       case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
     } | "pop" ~> local ~ ("<" ^^^ true) ~ expr ^^ {
@@ -145,6 +147,8 @@ trait Parsers extends TyParsers {
       case m ~ es => EMathOp(m, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {
       case c ~ e => EConvert(c, e)
+    } | "(" ~ "exists" ~> ref <~ ")" ^^ {
+      case r => EExists(r)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
       case e => ETypeOf(e)
     } | "(" ~ "instanceof" ~> expr ~ expr <~ ")" ^^ {
@@ -227,7 +231,6 @@ trait Parsers extends TyParsers {
     bool ^^ { EBool(_) } |
     "undefined" ^^^ EUndef() |
     "null" ^^^ ENull() |
-    "absent" ^^^ EAbsent() |
     "~" ~> "[^~]+".r <~ "~" ^^ { EEnum(_) }
 
   // unary operators

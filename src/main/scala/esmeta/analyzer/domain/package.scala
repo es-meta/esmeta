@@ -13,7 +13,7 @@ trait Decl
   with OptionDomainDecl
   with SetDomainDecl
   with SimpleDomainDecl
-  with absent.Decl
+  with uninit.Decl
   with astValue.Decl
   with bigInt.Decl
   with bool.Decl

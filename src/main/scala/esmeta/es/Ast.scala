@@ -1,10 +1,11 @@
 package esmeta.es
 
 import esmeta.cfg.*
+import esmeta.error.*
 import esmeta.es.util.*
-import esmeta.error.InvalidASTItem
 import esmeta.ir.Type
 import esmeta.spec.*
+import esmeta.state.*
 import esmeta.util.*
 import scala.annotation.tailrec
 
@@ -90,6 +91,24 @@ sealed trait Ast extends ESElem with Locational {
       for { child <- syn.children.flatten } child.setChildLoc(locOpt)
       syn.loc = locOpt; syn
     case lex: Lexical => lex.loc = locOpt; lex
+
+  /** safe getter */
+  def get(field: Value)(using cfg: CFG): Option[Ast] = (this, field) match
+    case (_, Str("parent")) => parent
+    case (syn: Syntactic, Str(fieldStr)) =>
+      val Syntactic(name, _, rhsIdx, children) = syn
+      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      rhs.getRhsIndex(fieldStr).flatMap(children(_))
+    case (syn: Syntactic, Math(n)) if n.isValidInt =>
+      syn.children(n.toInt)
+    case _ => None
+
+  /** getter */
+  def apply(field: Value)(using cfg: CFG): Ast =
+    get(field).getOrElse(throw InvalidAstField(this, field))
+
+  /** existence check */
+  def exists(field: Value)(using cfg: CFG): Boolean = get(field).isDefined
 
   /** get syntax-directed operation (SDO) */
   def getSdo(name: String)(using cfg: CFG): Option[(Ast, Func)] =

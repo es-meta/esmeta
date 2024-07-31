@@ -35,9 +35,10 @@ trait ObjBasicDomainDecl { self: Self =>
     sealed trait MapElem extends Elem:
 
       /** merged keys */
-      def mergedKey: AbsValue = this match
-        case MergedMap(key, _) => key
-        case DetailMap(map, _) => AbsValue(map.keys)
+      def mergedKey: AbsValue = ???
+      // this match
+      //   case MergedMap(key, _) => key
+      //   case DetailMap(map, _) => AbsValue(map.keys)
 
       /** merged values */
       def mergedValue: AbsValue = this match
@@ -93,23 +94,24 @@ trait ObjBasicDomainDecl { self: Self =>
     def getSymbol(desc: AbsValue): Elem = SymbolElem(desc)
 
     /** abstraction functions */
-    def alpha(obj: Obj): Elem = obj match
-      case m @ MapObj(map) =>
-        DetailMap(
-          map = (for {
-            (k, v) <- map
-          } yield AValue.from(k) -> AbsValue(v)).toMap,
-          order = Some(m.keys.map(AValue.from)),
-        )
-      case r @ RecordObj(tname, map) =>
-        RecordElem(
-          tname = tname,
-          map = (for {
-            (k, v) <- map
-          } yield k -> AbsValue(v)).toMap,
-        )
-      case ListObj(values)     => KeyWiseList(values.map(AbsValue(_)))
-      case YetObj(tname, desc) => NotSupportedElem(tname, desc)
+    def alpha(obj: Obj): Elem = ???
+    // obj match
+    //   case m @ MapObj(map) =>
+    //     DetailMap(
+    //       map = (for {
+    //         (k, v) <- map
+    //       } yield AValue.from(k) -> AbsValue(v)).toMap,
+    //       order = Some(m.keys.map(AValue.from)),
+    //     )
+    //   case r @ RecordObj(tname, map) =>
+    //     RecordElem(
+    //       tname = tname,
+    //       map = (for {
+    //         (k, v) <- map
+    //       } yield k -> AbsValue(v)).toMap,
+    //     )
+    //   case ListObj(values)     => KeyWiseList(values.map(AbsValue(_)))
+    //   case YetObj(tname, desc) => NotSupportedElem(tname, desc)
 
     /** abstraction functions for a single concrete object */
     def alpha(xs: Iterable[Obj]): Elem =
@@ -171,71 +173,73 @@ trait ObjBasicDomainDecl { self: Self =>
         case _ => false
 
       /** join operator */
-      def ⊔(that: Elem): Elem = (elem, that) match
-        case (Bot, _)                               => that
-        case (_, Bot)                               => elem
-        case _ if elem ⊑ that                       => that
-        case _ if that ⊑ elem                       => elem
-        case (SymbolElem(ldesc), SymbolElem(rdesc)) => SymbolElem(ldesc ⊔ rdesc)
-        case (DetailMap(lmap, lorder), DetailMap(rmap, rorder)) =>
-          DetailMap(
-            map = (lmap.keys ++ rmap.keys).toList
-              .map(x => x -> (elem(x) ⊔ that(x)))
-              .toMap,
-            order = lorder ⊔ rorder,
-          )
-        case (l: MapElem, r: MapElem) =>
-          MergedMap(
-            key = l.mergedKey ⊔ r.mergedKey,
-            value = l.mergedValue ⊔ r.mergedValue,
-          )
-        case (l: RecordElem, r: RecordElem) if l.tname == r.tname =>
-          RecordElem(
-            tname = l.tname,
-            map = (l.map.keySet ++ r.map.keySet).toList
-              .map(x => x -> (elem(Str(x)) ⊔ that(Str(x))))
-              .toMap,
-          )
-        case (l @ KeyWiseList(lvs), r @ KeyWiseList(rvs)) =>
-          if (lvs.length == rvs.length) {
-            KeyWiseList((lvs zip rvs).map { case (l, r) => l ⊔ r })
-          } else MergedList(l.mergedValue ⊔ r.mergedValue)
-        case (l: ListElem, r: ListElem) =>
-          MergedList(l.mergedValue ⊔ r.mergedValue)
-        case (
-              NotSupportedElem(lty, ld),
-              NotSupportedElem(rty, rd),
-            ) if lty == rty && ld == rd =>
-          elem
-        case _ =>
-          exploded(s"cannot merge: ${elem.getTy} with ${that.getTy}")
+      def ⊔(that: Elem): Elem = ???
+      // (elem, that) match
+      //   case (Bot, _)                               => that
+      //   case (_, Bot)                               => elem
+      //   case _ if elem ⊑ that                       => that
+      //   case _ if that ⊑ elem                       => elem
+      //   case (SymbolElem(ldesc), SymbolElem(rdesc)) => SymbolElem(ldesc ⊔ rdesc)
+      //   case (DetailMap(lmap, lorder), DetailMap(rmap, rorder)) =>
+      //     DetailMap(
+      //       map = (lmap.keys ++ rmap.keys).toList
+      //         .map(x => x -> (elem(x) ⊔ that(x)))
+      //         .toMap,
+      //       order = lorder ⊔ rorder,
+      //     )
+      //   case (l: MapElem, r: MapElem) =>
+      //     MergedMap(
+      //       key = l.mergedKey ⊔ r.mergedKey,
+      //       value = l.mergedValue ⊔ r.mergedValue,
+      //     )
+      //   case (l: RecordElem, r: RecordElem) if l.tname == r.tname =>
+      //     RecordElem(
+      //       tname = l.tname,
+      //       map = (l.map.keySet ++ r.map.keySet).toList
+      //         .map(x => x -> (elem(Str(x)) ⊔ that(Str(x))))
+      //         .toMap,
+      //     )
+      //   case (l @ KeyWiseList(lvs), r @ KeyWiseList(rvs)) =>
+      //     if (lvs.length == rvs.length) {
+      //       KeyWiseList((lvs zip rvs).map { case (l, r) => l ⊔ r })
+      //     } else MergedList(l.mergedValue ⊔ r.mergedValue)
+      //   case (l: ListElem, r: ListElem) =>
+      //     MergedList(l.mergedValue ⊔ r.mergedValue)
+      //   case (
+      //         NotSupportedElem(lty, ld),
+      //         NotSupportedElem(rty, rd),
+      //       ) if lty == rty && ld == rd =>
+      //     elem
+      //   case _ =>
+      //     exploded(s"cannot merge: ${elem.getTy} with ${that.getTy}")
 
       /** lookup */
-      def apply(key: AValue): AbsValue = elem match
-        case Bot => AbsValue.Bot
-        case SymbolElem(desc) =>
-          key match
-            case Str("Description") => desc
-            case _                  => AbsValue.Bot
-        case MergedMap(key, value) =>
-          if (AbsValue(key) ⊑ key) value
-          else AbsValue.absentTop
-        case m: DetailMap      => m.map.getOrElse(key, AbsValue.absentTop)
-        case MergedList(value) => value
-        case RecordElem(_, map) =>
-          key match
-            case Str(field) => map.getOrElse(field, AbsValue.absentTop)
-            case _          => AbsValue.Bot
-        case KeyWiseList(values) =>
-          key match
-            case Math(math) =>
-              val idx = math.toInt
-              if (0 <= idx && idx < values.length) values(idx)
-              else AbsValue.absentTop
-            case Str("length") =>
-              AbsValue(Math(values.length))
-            case _ => AbsValue.Bot
-        case NotSupportedElem(_, desc) => AbsValue.Bot
+      def apply(key: AValue): AbsValue = ???
+      // elem match
+      //   case Bot => AbsValue.Bot
+      //   case SymbolElem(desc) =>
+      //     key match
+      //       case Str("Description") => desc
+      //       case _                  => AbsValue.Bot
+      //   case MergedMap(key, value) =>
+      //     if (AbsValue(key) ⊑ key) value
+      //     else AbsValue.uninitTop
+      //   case m: DetailMap      => m.map.getOrElse(key, AbsValue.uninitTop)
+      //   case MergedList(value) => value
+      //   case RecordElem(_, map) =>
+      //     key match
+      //       case Str(field) => map.getOrElse(field, AbsValue.uninitTop)
+      //       case _          => AbsValue.Bot
+      //   case KeyWiseList(values) =>
+      //     key match
+      //       case Math(math) =>
+      //         val idx = math.toInt
+      //         if (0 <= idx && idx < values.length) values(idx)
+      //         else AbsValue.uninitTop
+      //       case Str("length") =>
+      //         AbsValue(Math(values.length))
+      //       case _ => AbsValue.Bot
+      //   case NotSupportedElem(_, desc) => AbsValue.Bot
 
       /** lookup */
       def get(akey: AbsValue): AbsValue = akey.getSingle match
@@ -293,47 +297,47 @@ trait ObjBasicDomainDecl { self: Self =>
           Set()
 
       /** updates */
-      def update(field: AbsValue, value: AbsValue, weak: Boolean): Elem =
-        def aux(key: AValue): MapUpdater = _ match {
-          case MergedMap(p, v) => MergedMap(p ⊔ field, v ⊔ value)
-          case DetailMap(map, order) =>
-            val newOrder = order match
-              case Some(order) if !map.contains(key) => Some(order :+ key)
-              case _                                 => order
-            DetailMap(map + (key -> value), newOrder)
-        }
-        def mergedAux: MapUpdater = m =>
-          MergedMap(
-            m.mergedKey ⊔ field,
-            m.mergedValue ⊔ value,
-          )
-        def recordAux(key: String): RecordUpdater = _ match {
-          case RecordElem(tname, map) =>
-            RecordElem(tname, map + (key -> value))
-        }
-        modifyMap(elem, field, aux, mergedAux, recordAux, weak)
+      def update(field: AbsValue, value: AbsValue, weak: Boolean): Elem = ???
+      // def aux(key: AValue): MapUpdater = _ match {
+      //   case MergedMap(p, v) => MergedMap(p ⊔ field, v ⊔ value)
+      //   case DetailMap(map, order) =>
+      //     val newOrder = order match
+      //       case Some(order) if !map.contains(key) => Some(order :+ key)
+      //       case _                                 => order
+      //     DetailMap(map + (key -> value), newOrder)
+      // }
+      // def mergedAux: MapUpdater = m =>
+      //   MergedMap(
+      //     m.mergedKey ⊔ field,
+      //     m.mergedValue ⊔ value,
+      //   )
+      // def recordAux(key: String): RecordUpdater = _ match {
+      //   case RecordElem(tname, map) =>
+      //     RecordElem(tname, map + (key -> value))
+      // }
+      // modifyMap(elem, field, aux, mergedAux, recordAux, weak)
 
       /** delete */
-      def delete(field: AbsValue, weak: Boolean): Elem =
-        def aux(key: AValue): MapUpdater = _ match {
-          case DetailMap(map, order) =>
-            val newOrder = order match
-              case Some(order) if map contains key =>
-                Some(order.filter(_ != key))
-              case _ => order
-            DetailMap(map - key, newOrder)
-          case m => m
-        }
-        def mergedAux: MapUpdater = m =>
-          MergedMap(
-            m.mergedKey,
-            m.mergedValue,
-          )
-        def recordAux(key: String): RecordUpdater = _ match {
-          case RecordElem(tname, map) =>
-            RecordElem(tname, map - key)
-        }
-        modifyMap(elem, field, aux, mergedAux, recordAux, weak)
+      def delete(field: AbsValue, weak: Boolean): Elem = ???
+      // def aux(key: AValue): MapUpdater = _ match {
+      //   case DetailMap(map, order) =>
+      //     val newOrder = order match
+      //       case Some(order) if map contains key =>
+      //         Some(order.filter(_ != key))
+      //       case _ => order
+      //     DetailMap(map - key, newOrder)
+      //   case m => m
+      // }
+      // def mergedAux: MapUpdater = m =>
+      //   MergedMap(
+      //     m.mergedKey,
+      //     m.mergedValue,
+      //   )
+      // def recordAux(key: String): RecordUpdater = _ match {
+      //   case RecordElem(tname, map) =>
+      //     RecordElem(tname, map - key)
+      // }
+      // modifyMap(elem, field, aux, mergedAux, recordAux, weak)
 
       /** concat */
       def concat(list: AbsObj, weak: Boolean): Elem = list match
@@ -373,30 +377,26 @@ trait ObjBasicDomainDecl { self: Self =>
         case _ => (AbsValue.Bot, Bot)
 
       /** keys of map */
-      def keys(intSorted: Boolean): Elem = elem match
-        case MergedMap(field, _) => MergedList(field)
-        case DetailMap(map, Some(fields)) =>
-          KeyWiseList(if (intSorted) {
-            (for {
-              case Str(s) <- fields
-              d = ESValueParser.str2number(s).double
-              if toStringHelper(d) == s
-              i = d.toLong
-              if d == i
-            } yield (s, i))
-              .sortBy(_._2)
-              .map { case (s, _) => AbsValue(Str(s)) }
-          } else {
-            fields.map(AbsValue(_))
-          })
-        case RecordElem(_, map) =>
-          KeyWiseList(map.keys.toVector.map(s => AbsValue(Str(s))))
-        case _ => Bot
-
-      /** set type of objects */
-      def setType(tname: String): Elem = elem match
-        case RecordElem(_, map) => RecordElem(tname, map)
-        case _ => error("cannot set type of non-record abstract objects.")
+      def keys(intSorted: Boolean): Elem = ???
+      // elem match
+      //   case MergedMap(field, _) => MergedList(field)
+      //   case DetailMap(map, Some(fields)) =>
+      //     KeyWiseList(if (intSorted) {
+      //       (for {
+      //         case Str(s) <- fields
+      //         d = ESValueParser.str2number(s).double
+      //         if toStringHelper(d) == s
+      //         i = d.toLong
+      //         if d == i
+      //       } yield (s, i))
+      //         .sortBy(_._2)
+      //         .map { case (s, _) => AbsValue(Str(s)) }
+      //     } else {
+      //       fields.map(AbsValue(_))
+      //     })
+      //   case RecordElem(_, map) =>
+      //     KeyWiseList(map.keys.toVector.map(s => AbsValue(Str(s))))
+      //   case _ => Bot
 
       /** check contains */
       def contains(value: AbsValue): AbsValue = (elem, value.getSingle) match

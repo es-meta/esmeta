@@ -618,7 +618,6 @@ trait Parsers extends IndentParsers {
     "*false*" ^^! FalseLiteral() |
     "*undefined*" ^^! UndefinedLiteral() |
     "*null*" ^^! NullLiteral() |
-    "absent" ^^! AbsentLiteral() |
     "Undefined" ^^! UndefinedTypeLiteral() |
     "Null" ^^! NullTypeLiteral() |
     "Boolean" ^^! BooleanTypeLiteral() |

@@ -40,10 +40,15 @@ trait Parsers extends BasicParsers {
     }
   }.named("ty.TyDecl.Elem")
 
-  // type map
+  // field map
   given fieldMap: Parser[FieldMap] = {
     "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { case ts => FieldMap(ts.toMap) }
   }.named("ty.FieldMap")
+
+  // optional value types
+  given optValueTy: Parser[OptValueTy] = {
+    valueTy ~ opt("?") ^^ { case v ~ o => OptValueTy(v, o.isDefined) }
+  }.named("ty.OptValueTy")
 
   // types
   given ty: Parser[Ty] = {
@@ -62,9 +67,7 @@ trait Parsers extends BasicParsers {
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
-    "Top" ^^^ TopT |
-    "Any" ^^^ AnyT | (
-      "Absent" ^^^ AbsentT |
+    "Any" ^^^ AnyT | "Bot" ^^^ BotT | (
       singleCompTy ^^ { case t => ValueTy(comp = t) } |
       singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
     )
@@ -228,8 +231,10 @@ trait Parsers extends BasicParsers {
     "True" ^^^ BoolTy(Set(true)) |
     "False" ^^^ BoolTy(Set(false))
 
-  private lazy val field: Parser[(String, ValueTy)] =
-    word ~ opt(":" ~> valueTy) ^^ { case k ~ v => (k, v.getOrElse(AnyT)) }
+  private lazy val field: Parser[(String, OptValueTy)] =
+    word ~ opt("?") ~ opt(":" ~> valueTy) ^^ {
+      case k ~ o ~ v => (k, OptValueTy(v.getOrElse(AnyT), o.isDefined))
+    }
 
   /** list types */
   given listTy: Parser[ListTy] = {

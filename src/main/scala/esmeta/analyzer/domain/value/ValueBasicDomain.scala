@@ -18,7 +18,6 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** elements */
     case class Elem(
-      absent: AbsAbsent = AbsAbsent.Bot,
       comp: AbsComp = AbsComp.Bot,
       pureValue: AbsPureValue = AbsPureValue.Bot,
     ) extends Appendable
@@ -31,7 +30,6 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** abstraction functions */
     def alpha(xs: Iterable[AValue]): Elem = Elem(
-      AbsAbsent(xs.collect { case x: Absent => x }),
       AbsComp(xs.collect { case x: AComp => x }),
       AbsPureValue(xs.collect { case x: APureValue => x }),
     )
@@ -47,7 +45,6 @@ trait ValueBasicDomainDecl { self: Self =>
     ): Elem = Elem(comp = AbsComp(ty, value, target))
 
     /** predefined top values */
-    val absentTop: Elem = Bot.copy(absent = AbsAbsent.Top)
     def compTop: Elem = Bot.copy(comp = AbsComp.Top)
     def pureValueTop: Elem = Bot.copy(pureValue = AbsPureValue.Top)
     val cloTop: Elem = Bot.copy(pureValue = AbsPureValue.cloTop)
@@ -70,7 +67,6 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** constructors */
     def apply(
-      absent: AbsAbsent = AbsAbsent.Bot,
       comp: AbsComp = AbsComp.Bot,
       pureValue: AbsPureValue = AbsPureValue.Bot,
       clo: AbsClo = AbsClo.Bot,
@@ -90,7 +86,6 @@ trait ValueBasicDomainDecl { self: Self =>
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
     ): Elem = Elem(
-      absent,
       comp,
       pureValue ⊔ AbsPureValue(
         clo,
@@ -115,14 +110,13 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** extractors */
     def unapply(elem: Elem): Option[RawTuple] =
-      Some(elem.absent, elem.comp, elem.pureValue)
+      Some(elem.comp, elem.pureValue)
 
     /** appender */
     given rule: Rule[Elem] = (app, elem) =>
       if (!elem.isBottom) {
-        val Elem(absent, comp, pureValue) = elem
+        val Elem(comp, pureValue) = elem
         var strs = Vector[String]()
-        if (!absent.isBottom) strs :+= absent.toString
         if (!comp.isBottom) strs :+= comp.toString
         if (!pureValue.isBottom) strs :+= pureValue.toString
         app >> strs.mkString(", ")
@@ -182,40 +176,34 @@ trait ValueBasicDomainDecl { self: Self =>
 
       /** partial order */
       def ⊑(that: Elem): Boolean =
-        elem.absent ⊑ that.absent
         elem.comp ⊑ that.comp &&
         elem.pureValue ⊑ that.pureValue
 
       /** join operator */
       def ⊔(that: Elem): Elem = Elem(
-        elem.absent ⊔ that.absent,
         elem.comp ⊔ that.comp,
         elem.pureValue ⊔ that.pureValue,
       )
 
       /** meet operator */
       override def ⊓(that: Elem): Elem = Elem(
-        elem.absent ⊓ that.absent,
         elem.comp ⊓ that.comp,
         elem.pureValue ⊓ that.pureValue,
       )
 
       /** prune operator */
       override def --(that: Elem): Elem = Elem(
-        elem.absent -- that.absent,
         elem.comp -- that.comp,
         elem.pureValue -- that.pureValue,
       )
 
       /** concretization function */
       override def gamma: BSet[AValue] =
-        elem.absent.gamma ⊔
         elem.comp.gamma ⊔
         elem.pureValue.gamma
 
       /** get single value */
       override def getSingle: Flat[AValue] =
-        elem.absent.getSingle ⊔
         elem.comp.getSingle ⊔
         elem.pureValue.getSingle
 
@@ -448,14 +436,6 @@ trait ValueBasicDomainDecl { self: Self =>
           Elem(comp = AbsComp(Map("normal" -> res)))
       def abruptCompletion: Elem = apply(comp = comp.removeNormal)
 
-      /** absent helpers */
-      def removeAbsent: Elem = elem -- absentTop
-      def isAbsent: Elem =
-        var b: AbsBool = AbsBool.Bot
-        if (!absent.isBottom) b ⊔= AT
-        if (!removeAbsent.isBottom) b ⊔= AF
-        apply(bool = b)
-
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem
 
@@ -466,7 +446,6 @@ trait ValueBasicDomainDecl { self: Self =>
       def getLexical(method: String): Elem = ???
 
       /** getters */
-      def absent: AbsAbsent = elem.absent
       def comp: AbsComp = elem.comp
       def pureValue: AbsPureValue = elem.pureValue
       def clo: AbsClo = elem.pureValue.clo

@@ -83,7 +83,7 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val boolTop: Elem = Elem(BoolT)
     lazy val undefTop: Elem = Elem(UndefT)
     lazy val nullTop: Elem = Elem(NullT)
-    lazy val absentTop: Elem = Elem(AbsentT)
+    lazy val uninitTop: Elem = ??? // Elem(UninitT)
 
     /** TODO AST type names whose MV returns a positive integer */
     lazy val posIntMVTyNames: Set[String] = Set(
@@ -99,7 +99,6 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** constructors */
     def apply(
-      absent: AbsAbsent,
       comp: AbsComp,
       pureValue: AbsPureValue,
       clo: AbsClo,
@@ -420,13 +419,13 @@ trait ValueTypeDomainDecl { self: Self =>
       def normalCompletion: Elem = Elem(ValueTy(normal = elem.ty.pureValue))
       def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
 
-      /** absent helpers */
-      def removeAbsent: Elem = Elem(elem.ty -- AbsentT)
-      def isAbsent: Elem =
-        var bs: Set[Boolean] = Set()
-        if (elem.ty.absent) bs += true
-        if (!elem.removeAbsent.ty.isBottom) bs += false
-        Elem(BoolT(bs))
+      /** uninit helpers */
+      def removeAbsent: Elem = ??? // Elem(elem.ty -- UninitT)
+      def isAbsent: Elem = ???
+      // var bs: Set[Boolean] = Set()
+      // if (elem.ty.uninit) bs += true
+      // if (!elem.removeAbsent.ty.isBottom) bs += false
+      // Elem(BoolT(bs))
 
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem
@@ -508,7 +507,6 @@ trait ValueTypeDomainDecl { self: Self =>
       def bool: AbsBool = AbsBool.alpha(elem.ty.bool.set.map(Bool.apply))
       def undef: AbsUndef = notSupported("ValueTypeDomain.Elem.undef")
       def nullv: AbsNull = notSupported("ValueTypeDomain.Elem.nullv")
-      def absent: AbsAbsent = notSupported("ValueTypeDomain.Elem.absent")
       def ty: ValueTy = elem.ty
       def refinements: Refinements = elem.refinements
     }
@@ -539,7 +537,7 @@ trait ValueTypeDomainDecl { self: Self =>
     //   case Bool(false)              => FalseT
     //   case Undef                    => UndefT
     //   case Null                     => NullT
-    //   case Absent                   => AbsentT
+    //   case Uninit                   => UninitT
     //   case v => notSupported(s"impossible to convert to pure type ($v)")
 
     // // numeric operator helper

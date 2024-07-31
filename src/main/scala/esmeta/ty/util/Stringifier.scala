@@ -17,6 +17,7 @@ object Stringifier {
       case elem: TyDecl      => tyDeclRule(app, elem)
       case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
       case elem: FieldMap    => fieldMapRule(app, elem)
+      case elem: OptValueTy  => optValueTyRule(app, elem)
       case elem: Ty          => tyRule(app, elem)
       case elem: CompTy      => compTyRule(app, elem)
       case elem: PureValueTy => pureValueTyRule(app, elem)
@@ -57,18 +58,26 @@ object Stringifier {
         if (optional) app >> "?"
         app >> " : " >> typeStr
 
-  /** type map */
+  /** field map */
   given fieldMapRule: Rule[FieldMap] = (app, fieldMap) =>
     val FieldMap(map) = fieldMap
-    given Rule[(String, ValueTy)] = {
-      case (app, (field, ty)) =>
+    given Rule[(String, OptValueTy)] = {
+      case (app, (field, OptValueTy(ty, opt))) =>
         app >> field
-        if (ty.isAny) app
-        else app >> " : " >> ty
+        if (opt) app >> "?"
+        if (!ty.isTop) app >> " : " >> ty
+        app
     }
-    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
+    given Rule[List[(String, OptValueTy)]] = iterableRule("{ ", ", ", " }")
     if (map.isEmpty) app >> "{}"
     else app >> map.toList.sortBy(_._1)
+
+  /** optional value types */
+  given optValueTyRule: Rule[OptValueTy] = (app, ty) =>
+    val OptValueTy(value, optional) = ty
+    app >> value
+    if (optional) app >> "?"
+    app
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>
@@ -83,14 +92,14 @@ object Stringifier {
 
   // predefined types
   private lazy val predTys: List[(ValueTy, String)] = List(
-    AnyT -> "Any",
     ESValueT -> "ESValue",
   )
 
   /** value types */
   given valueTyRule: Rule[ValueTy] = (app, origTy) =>
     var ty: ValueTy = origTy
-    if (ty.isBottom) app >> "Bot"
+    if (ty.isTop) app >> "Any"
+    else if (ty.isBottom) app >> "Bot"
     else
       predTys
         .foldLeft(FilterApp(app)) {
@@ -119,7 +128,6 @@ object Stringifier {
         .add(ty.bool, !ty.bool.isBottom)
         .add("Undefined", !ty.undef.isBottom)
         .add("Null", !ty.nullv.isBottom)
-        .add("Absent", !ty.absent.isBottom)
         .app
 
   /** completion record types */

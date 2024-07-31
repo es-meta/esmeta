@@ -35,11 +35,11 @@ trait StateDomainDecl { self: Self =>
         case AbsFieldTarget(base, field) => elem.get(base, field)
 
       /** getters with identifiers */
-      def get(x: Var, cp: ControlPoint): AbsValue =
-        val v = directLookup(x)
-        if (cp.isBuiltin && AbsValue.absentTop ⊑ v)
-          v.removeAbsent ⊔ AbsValue.undefTop
-        else v
+      def get(x: Var, cp: ControlPoint): AbsValue = ???
+      // val v = directLookup(x)
+      // if (cp.isBuiltin && AbsValue.uninitTop ⊑ v)
+      //   v.removeAbsent ⊔ AbsValue.undefTop
+      // else v
 
       /** getters with bases and fields */
       def get(base: AbsValue, field: AbsValue): AbsValue
@@ -60,10 +60,10 @@ trait StateDomainDecl { self: Self =>
       def lookupGlobal(x: Global): AbsValue
 
       /** existence checks */
-      def exists(rt: AbsRefTarget): AbsValue = rt match
-        case AbsVarTarget(x) => !directLookup(x).isAbsent
-        case AbsFieldTarget(base, field) =>
-          !elem.get(base, field).isAbsent
+      def exists(rt: AbsRefTarget): AbsValue = ???
+      // rt match
+      //   case AbsVarTarget(x) => !directLookup(x).isAbsent
+      //   case AbsFieldTarget(base, field) => !elem.get(base, field).isAbsent
 
       /** define local variables */
       def defineLocal(pairs: (Local, AbsValue)*): Elem
@@ -90,9 +90,6 @@ trait StateDomainDecl { self: Self =>
 
       /** pop a value in a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem)
-
-      /** set a type to an address partition */
-      def setType(part: AbsValue, tname: String): (AbsValue, Elem)
 
       /** copy object */
       def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem)

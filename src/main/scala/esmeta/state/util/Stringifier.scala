@@ -32,6 +32,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
       case elem: RefTarget   => refTargetRule(app, elem)
+      case elem: Uninit      => uninitRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -75,19 +76,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MapObj(map) =>
         app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
       case RecordObj(tname, map) =>
-        given Rule[Iterable[(String, Value)]] = sortedMapRule("{", "}", " : ")
-        app >> "[TYPE = " >> tname >> "] "
-        app >> map.map { case (k, v) => (s"\"$k\"", v) }
+        app >> "Record"
+        given Rule[Iterable[(String, Value | Uninit)]] =
+          sortedMapRule("{", "}", " : ")
+        if (tname.nonEmpty) app >> "[" >> tname >> "]"
+        app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
-        app >> values.toList
+        app >> "List" >> values.toList
       case YetObj(tname, msg) =>
-        app >> "[TYPE = " >> tname >> "] Yet(\"" >> msg >> "\")"
+        app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
   // values
   given valueRule: Rule[Value] = (app, value) =>
     value match
-      case Absent          => app >> "absent"
       case comp: Comp      => compRule(app, comp)
       case pure: PureValue => pureValueRule(app, pure)
 
@@ -176,4 +178,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
+
+  // uninit
+  given uninitRule: Rule[Uninit] = (app, _) => app >> "uninit"
 }

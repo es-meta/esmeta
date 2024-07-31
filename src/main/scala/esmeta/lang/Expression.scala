@@ -303,7 +303,6 @@ case class FalseLiteral() extends BooleanLiteral
 // other special literals
 case class UndefinedLiteral() extends Literal
 case class NullLiteral() extends Literal
-case class AbsentLiteral() extends Literal
 
 // ECMAScript type literals
 sealed trait ESTypeLiteral extends Literal

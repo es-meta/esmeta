@@ -6,23 +6,22 @@ def IsInTailPosition(
 
   // If _call_ is not contained within a |FunctionBody|, |ConciseBody|, or |AsyncConciseBody|, return *false*.
   // Let _body_ be the |FunctionBody|, |ConciseBody|, or |AsyncConciseBody| that most closely contains _call_.
-  %0 = false
-  %1 = call
-  while (&& (! %0) (! (= %1 absent))) {
-    %0 = (|| %0 (? %1: Ast[FunctionBody | ConciseBody | AsyncConciseBody]))
-    if (! %0) %1 = %1.parent
+  %0 = call
+  %1 = (? %0: Ast[FunctionBody | ConciseBody | AsyncConciseBody])
+  while (&& (! %1) (exists %0.parent)) {
+    %0 = %0.parent
+    %1 = (? %0: Ast[FunctionBody | ConciseBody | AsyncConciseBody])
   }
-  if (! %0) return false
-  let body = %1
+  if (! %1) return false
+  let body = %0
   
   // If _body_ is the |FunctionBody| of a |GeneratorBody|, return *false*.
   // If _body_ is the |FunctionBody| of an |AsyncFunctionBody|, return *false*.
   // If _body_ is the |FunctionBody| of an |AsyncGeneratorBody|, return *false*.
-  %2 = body.parent
-  if (! (= %2 absent)) {
-    if (&& (? body: Ast[FunctionBody]) (? %2: Ast[GeneratorBody])) return false
-    if (&& (? body: Ast[FunctionBody]) (? %2: Ast[AsyncFunctionBody])) return false
-    if (&& (? body: Ast[FunctionBody]) (? %2: Ast[AsyncGeneratorBody])) return false
+  if (exists body.parent) {
+    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[GeneratorBody])) return false
+    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[AsyncFunctionBody])) return false
+    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[AsyncGeneratorBody])) return false
   }
 
   // If body is an |AsyncConciseBody|, return false.

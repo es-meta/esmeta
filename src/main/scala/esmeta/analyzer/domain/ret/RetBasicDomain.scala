@@ -25,9 +25,9 @@ trait RetBasicDomainDecl { self: Self =>
     lazy val Bot = Elem()
 
     /** abstraction functions */
-    def alpha(xs: Iterable[(AValue, State)]): Elem =
-      val (vs, ss) = xs.unzip
-      Elem(AbsValue(vs), AbsState(ss))
+    def alpha(xs: Iterable[(AValue, State)]): Elem = ???
+    // val (vs, ss) = xs.unzip
+    // Elem(AbsValue(vs), AbsState(ss))
 
     /** constructors */
     def apply(

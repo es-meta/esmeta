@@ -63,9 +63,6 @@ trait ObjDomainDecl { self: Self =>
       /** keys of map */
       def keys(intSorted: Boolean): Elem
 
-      /** set type of objects */
-      def setType(tname: String): Elem
-
       /** check contains */
       def contains(value: AbsValue): AbsValue
 

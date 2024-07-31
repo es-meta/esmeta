@@ -186,7 +186,6 @@ class ContainsTinyTest extends TyTest {
       BoolT(true) -> Bool(true),
       UndefT -> Undef,
       NullT -> Null,
-      AbsentT -> Absent,
     ).neg(
       StrT("a") -> Str("b"),
       BoolT(true) -> Bool(false),

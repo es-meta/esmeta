@@ -14,7 +14,7 @@ trait OptionDomainDecl { self: Self =>
     type AbsV = AbsV.Elem
 
     /** elements */
-    case class Elem(value: AbsV, absent: AbsAbsent) extends Appendable
+    case class Elem(value: AbsV, uninit: AbsAbsent) extends Appendable
 
     /** top element */
     val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)
@@ -33,7 +33,7 @@ trait OptionDomainDecl { self: Self =>
 
     /** appender */
     given rule: Rule[Elem] = (app, elem) =>
-      app >> elem.value >> (if (elem.absent.isTop) "?" else "")
+      app >> elem.value >> (if (elem.uninit.isTop) "?" else "")
 
     /** element interfaces */
     extension (elem: Elem) {
@@ -41,41 +41,41 @@ trait OptionDomainDecl { self: Self =>
       /** partial order */
       def ⊑(that: Elem): Boolean =
         elem.value ⊑ that.value &&
-        elem.absent ⊑ that.absent
+        elem.uninit ⊑ that.uninit
 
       /** join operator */
       def ⊔(that: Elem): Elem = Elem(
         elem.value ⊔ that.value,
-        elem.absent ⊔ that.absent,
+        elem.uninit ⊔ that.uninit,
       )
 
       /** meet operator */
       override def ⊓(that: Elem): Elem = Elem(
         elem.value ⊓ that.value,
-        elem.absent ⊓ that.absent,
+        elem.uninit ⊓ that.uninit,
       )
 
       /** prune operator */
       override def --(that: Elem): Elem = Elem(
         elem.value -- that.value,
-        elem.absent -- that.absent,
+        elem.uninit -- that.uninit,
       )
 
       /** concretization function */
       override def gamma: BSet[Option[V]] =
         elem.value.gamma.map(Some(_)) ⊔
-        (if (elem.absent.isTop) Fin(None) else Fin())
+        (if (elem.uninit.isTop) Fin(None) else Fin())
 
       /** get single value */
       override def getSingle: Flat[Option[V]] =
         elem.value.getSingle.map(Some(_)) ⊔
-        (if (elem.absent.isTop) One(None) else Zero)
+        (if (elem.uninit.isTop) One(None) else Zero)
 
       /** fold operator */
       def fold(
         domain: Domain[_] with Singleton,
       )(default: domain.Elem)(f: AbsV => domain.Elem): domain.Elem =
-        f(elem.value) ⊔ (if (elem.absent.isTop) default else domain.Bot)
+        f(elem.value) ⊔ (if (elem.uninit.isTop) default else domain.Bot)
     }
   }
 }

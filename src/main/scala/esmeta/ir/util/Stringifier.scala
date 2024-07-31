@@ -81,8 +81,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "let " >> lhs >> " = " >> expr
       case IAssign(ref, expr) =>
         app >> ref >> " = " >> expr
-      case IDelete(ref) =>
-        app >> "delete " >> ref
+      case IExpand(base, expr) =>
+        app >> "expand " >> Field(base, expr)
+      case IDelete(base, expr) =>
+        app >> "delete " >> Field(base, expr)
       case IPush(from, to, front) =>
         app >> "push "
         if (front) app >> from >> " > " >> to
@@ -104,9 +106,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app.wrap(for { i <- insts } app :> i)
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " " >> thenInst
-        elseInst match
-          case ISeq(List()) => app
-          case _            => app >> " else " >> elseInst
+        (thenInst, elseInst) match
+          case (_, ISeq(List())) => app
+          case (ISeq(_), _)      => app >> " else " >> elseInst
+          case _                 => app :> "else " >> elseInst
       case IWhile(cond, body) =>
         app >> "while " >> cond >> " " >> body
       case ICall(lhs, fexpr, args) =>
@@ -162,6 +165,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> mop >> " " >> exprs >> ")"
       case EConvert(cop, expr) =>
         app >> "(" >> cop >> " " >> expr >> ")"
+      case EExists(ref) =>
+        app >> "(exists " >> ref >> ")"
       case ETypeOf(base) =>
         app >> "(typeof " >> base >> ")"
       case EInstanceOf(expr, target) =>
@@ -254,7 +259,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EBool(b)     => app >> b
       case EUndef()     => app >> "undefined"
       case ENull()      => app >> "null"
-      case EAbsent()    => app >> "absent"
       case EEnum(name)  => app >> "~" >> name >> "~"
       case ECodeUnit(c) => app >> c.toInt >> "cu"
     }
@@ -349,9 +353,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refRule: Rule[Ref] = withLoc { (app, ref) =>
     ref match {
-      case Field(ref, EStr(inlineField(str))) => app >> ref >> "." >> str
-      case Field(ref, expr) => app >> ref >> "[" >> expr >> "]"
-      case x: Var           => varRule(app, x)
+      case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
+      case Field(base, expr) => app >> base >> "[" >> expr >> "]"
+      case x: Var            => varRule(app, x)
     }
   }
 

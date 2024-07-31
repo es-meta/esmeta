@@ -116,7 +116,7 @@ class StringifyTinyTest extends CFGTest {
     lazy val xParam = Param(x, ty, false)
     lazy val yParam = Param(y, ty, true)
     lazy val let = ILet(x, empty)
-    lazy val del = IDelete(field)
+    lazy val del = IDelete(x, EStr("p"))
     lazy val ret = IReturn(xExpr)
     lazy val callInst = ICall(temp, xExpr, List(xExpr, yExpr))
     lazy val xExpr = ERef(x)

@@ -43,7 +43,8 @@ trait UnitWalker extends BasicUnitWalker {
     case IExpr(expr)            => walk(expr)
     case ILet(lhs, expr)        => walk(lhs); walk(expr)
     case IAssign(ref, expr)     => walk(ref); walk(expr)
-    case IDelete(ref)           => walk(ref)
+    case IExpand(base, expr)    => walk(base); walk(expr)
+    case IDelete(base, expr)    => walk(base); walk(expr)
     case IPush(from, to, front) => walk(from); walk(to); walk(front)
     case IPop(lhs, list, front) => walk(lhs); walk(list); walk(front)
     case IReturn(expr)          => walk(expr)
@@ -91,6 +92,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(vop); walkList(exprs, walk)
     case EConvert(cop, expr) =>
       walk(cop); walk(expr)
+    case EExists(ref) =>
+      walk(ref)
     case ETypeOf(base) =>
       walk(base)
     case EInstanceOf(expr, target) =>
@@ -167,8 +170,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   // references
   def walk(ref: Ref): Unit = ref match {
-    case Field(ref, expr) => walk(ref); walk(expr)
-    case x: Var           => walk(x)
+    case Field(base, expr) => walk(base); walk(expr)
+    case x: Var            => walk(x)
   }
 
   // identifiers

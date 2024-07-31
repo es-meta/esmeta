@@ -99,9 +99,9 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) => Fin(map.keySet)
 
   /** field accessor */
-  def apply(f: String): ValueTy = this match
-    case Top       => TopT
-    case Elem(map) => map.map(getField(_, f) && _(f)).foldLeft(BotT)(_ || _)
+  def apply(f: String): OptValueTy = this match
+    case Top       => MayAnyT
+    case Elem(map) => map.map(getField(_, f) && _(f)).foldLeft(MustBotT)(_ || _)
 
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
@@ -111,7 +111,10 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       map.exists { (r, rfm) =>
         isStrictSubTy(l, r) ||
         (l == r && rfm.contains(record, heap)) ||
-        (getLCA(l, r).exists { getDiffFieldMap(r, _).contains(record, heap) })
+        (for {
+          lca <- getLCA(l, r)
+          fm <- getDiffFieldMap(r, lca)
+        } yield fm && rfm).exists(_.contains(record, heap))
       }
 
   /** normalized type */
@@ -133,7 +136,9 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(names: Set[String]): RecordTy =
     apply(names.toList.map(_ -> FieldMap.Top).toMap)
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
-    apply(Map(name -> FieldMap(fields)))
+    apply(Map(name -> FieldMap(fields.map(_ -> OptValueTy(_, false)).toMap)))
+  def apply(name: String, fieldMap: FieldMap): RecordTy =
+    apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
     Elem(map).normalized
 }

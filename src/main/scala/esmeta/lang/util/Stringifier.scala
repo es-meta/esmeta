@@ -527,7 +527,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: FalseLiteral         => app >> "*false*"
       case _: UndefinedLiteral     => app >> "*undefined*"
       case _: NullLiteral          => app >> "*null*"
-      case _: AbsentLiteral        => app >> "absent"
       case _: UndefinedTypeLiteral => app >> "Undefined"
       case _: NullTypeLiteral      => app >> "Null"
       case _: BooleanTypeLiteral   => app >> "Boolean"
