@@ -13,7 +13,7 @@ case class Func(
   params: List[Param],
   retTy: Type,
   body: Inst,
-  algo: Option[Algorithm] = None,
+  var algo: Option[Algorithm] = None,
 ) extends IRElem {
 
   /** not yet supported instructions */

@@ -39,14 +39,14 @@ class Compiler(
     Program(funcs.toList, spec)
 
   /** load manually created AOs */
-  val manualAlgos = (for {
+  val manualFuncs = (for {
     file <- ManualInfo.funcFiles
     func = Func.fromFile(file.toString)
-  } yield func).toList
-  val manualAlgoNames = manualAlgos.map(_.name).toSet
+    name = func.name
+  } yield name -> func).toMap
 
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
+  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs.values)
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
@@ -113,9 +113,10 @@ class Compiler(
 
   /* set of function names not to compile */
   // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
-  val excluded = manualAlgoNames ++ shorthands ++ Set(
-    "INTRINSICS.Array.prototype[@@unscopables]",
-  )
+  val excluded =
+    manualFuncs.keySet ++
+    shorthands +
+    "INTRINSICS.Array.prototype[@@unscopables]"
 
   /* get function kind */
   def getKind(head: Head): FuncKind = {
@@ -177,7 +178,9 @@ class Compiler(
     body: Step,
     prefix: List[Inst] = Nil,
   ): Unit =
-    if (!excluded.contains(fb.name))
+    val name = fb.name
+    manualFuncs.get(name).map(_.algo = Some(fb.algo))
+    if (!excluded.contains(name))
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
         case Nil => inst

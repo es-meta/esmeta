@@ -929,9 +929,12 @@ case class Intrinsics(cfg: CFG) {
         typeName = "BuiltinFunctionObject",
         imap = List(
           "Extensible" -> Bool(true),
-          "Prototype" -> intrAddr("Error"),
+          "ScriptOrModule" -> Null,
+          "Realm" -> realmAddr,
           "Code" -> intrClo(errName),
+          "Prototype" -> intrAddr("Error"),
           "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
+          "InitialName" -> Str(errName),
         ),
         nmap = List(
           "length" -> DataProperty(Number(1.0), F, F, T),
