@@ -1,8 +1,11 @@
 package esmeta.ty
 
+import esmeta.error.*
+import esmeta.error.NotSupported.{*, given}
+import esmeta.error.NotSupported.Category.*
 import esmeta.state.*
-import esmeta.util.*
 import esmeta.ty.util.Parser
+import esmeta.util.*
 
 /** value types */
 case class ValueTy(
@@ -92,7 +95,7 @@ case class ValueTy(
           case obj: RecordObj => record.contains(obj, heap)
           case obj: MapObj    => map.contains(obj, heap)
           case obj: ListObj   => list.contains(obj, heap)
-          case obj: YetObj    => true
+          case obj: YetObj    => throw NotSupported(Feature)(obj.msg)
       case Clo(func, captured)             => clo contains func.irFunc.name
       case Cont(func, captured, callStack) => cont contains func.id
       case v: AstValue                     => ast.contains(v)
