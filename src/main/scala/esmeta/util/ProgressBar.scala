@@ -95,8 +95,11 @@ case class ProgressBar[T](
       case CP.Single => tests.foreach(_.apply)
       case CP.Fixed(n) =>
         val (service, eCtxt) = fixedThread(n)
-        doConcurrent(tests)(using eCtxt)
-        service.shutdown()
+        try {
+          doConcurrent(tests)(using eCtxt)
+        } finally {
+          service.shutdown()
+        }
       case CP.Auto => doConcurrent(tests)
 
     updateTime

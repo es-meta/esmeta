@@ -207,12 +207,10 @@ object SystemUtils {
     fs: Iterable[() => T],
     duration: Duration = Duration.Inf,
   )(using ctxt: ExecutionContext = ExecutionContext.global): Iterable[T] =
+    implicit val context: ExecutionContext = ctxt
     Await
       .result(
-        {
-          implicit val context: ExecutionContext = ctxt
-          Future.sequence(fs.map(f => Future(Try(f()))))
-        },
+        Future.sequence(fs.map(f => Future(Try(f())))),
         duration,
       )
       .map(_.get)

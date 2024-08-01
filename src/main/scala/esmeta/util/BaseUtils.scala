@@ -82,10 +82,7 @@ object BaseUtils {
   /** get caught error message */
   def getError[T](f: => T): Option[Throwable] =
     try { f; None }
-    catch {
-      case e: ExecutionException => Some(e.getCause())
-      case e: Throwable          => Some(e)
-    }
+    catch case e: Throwable => Some(e)
 
   /** get indentation */
   def getIndent(str: String): Int =
