@@ -56,8 +56,11 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("Function.prototype"),
+        "ScriptOrModule" -> Null,
+        "Realm" -> realmAddr,
         "Code" -> intrClo("print"),
+        "Prototype" -> intrAddr("Function.prototype"),
+        "InitialName" -> Str("print"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, T),

@@ -302,7 +302,8 @@ class Interpreter(
             case r: RecordObj =>
               if (tyModel.isSubTy(r.tname, "Object")) "Object"
               else r.tname
-            case v => "SpecType"
+            case y: YetObj => throw NotSupported(Feature)(y.msg)
+            case v         => "SpecType"
         case v => "SpecType",
       )
     case EInstanceOf(expr, target) =>

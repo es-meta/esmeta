@@ -19,15 +19,15 @@ def IsInTailPosition(
   // If _body_ is the |FunctionBody| of an |AsyncFunctionBody|, return *false*.
   // If _body_ is the |FunctionBody| of an |AsyncGeneratorBody|, return *false*.
   if (exists body.parent) {
-    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[GeneratorBody])) return false
-    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[AsyncFunctionBody])) return false
-    if (&& (? body: Ast[FunctionBody]) (? %0: Ast[AsyncGeneratorBody])) return false
+    if (&& (? body: Ast[FunctionBody]) (? body.parent: Ast[GeneratorBody])) return false
+    if (&& (? body: Ast[FunctionBody]) (? body.parent: Ast[AsyncFunctionBody])) return false
+    if (&& (? body: Ast[FunctionBody]) (? body.parent: Ast[AsyncGeneratorBody])) return false
   }
 
   // If body is an |AsyncConciseBody|, return false.
   if (? body: Ast[AsyncConciseBody]) return false
 
   // Return the result of HasCallInTailPosition of _body_ with argument _call_.
-  sdo-call %3 = body->HasCallInTailPosition(call)
-  return %3
+  sdo-call %2 = body->HasCallInTailPosition(call)
+  return %2
 }

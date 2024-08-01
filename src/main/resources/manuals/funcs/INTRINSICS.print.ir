@@ -3,7 +3,11 @@ def <BUILTIN>:INTRINSICS.print(
   ArgumentsList: List[ESValue],
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
-  if (< 0 ArgumentsList.length) pop x < ArgumentsList else let x = undefined
+  let __args__ = (record)
+  if (< 0 ArgumentsList.length) {
+    pop x < ArgumentsList
+    expand __args__.x
+  } else let x = undefined
   print x
   return undefined
 }

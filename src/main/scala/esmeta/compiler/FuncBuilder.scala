@@ -27,6 +27,11 @@ case class FuncBuilder(
     Some(algo),
   )
 
+  /** check whether it is builtin */
+  lazy val isBuiltin: Boolean =
+    kind == FuncKind.Builtin ||
+    kind == FuncKind.BuiltinClo
+
   /** bindings for nonterminals */
   var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
     case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
@@ -38,6 +43,9 @@ case class FuncBuilder(
       if (rhsNames contains target.lhsName) rhsBindings
       else (target.lhsName, ENAME_THIS, None) :: rhsBindings
     case _ => List()
+
+  /** bindings for built-in function parameters */
+  var builtinBindings: Set[String] = Set()
 
   /** create a new scope with a given procedure */
   def newScope(f: => Unit): Inst =

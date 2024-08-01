@@ -216,11 +216,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
       case ERecord(tname, fields) =>
-        app >> "(record "
-        if (tname.nonEmpty) app >> "[" >> tname >> "] "
-        app.wrap("{", "}")(for {
+        app >> "(record"
+        if (tname.nonEmpty) app >> " [" >> tname >> "]"
+        if (fields.nonEmpty) (app >> " ").wrap("{", "}")(for {
           (field, expr) <- fields
-        } app :> "\"" >> field >> "\" : " >> expr >> ",") >> ")"
+        } app :> "\"" >> field >> "\" : " >> expr >> ",")
+        app >> ")"
       case EMap(Nil) => app >> "(map)"
       case EMap(pairs) =>
         (app >> "(map ").wrap("{", "}")(for {

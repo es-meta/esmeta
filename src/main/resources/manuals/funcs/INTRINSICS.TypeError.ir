@@ -3,8 +3,15 @@ def <BUILTIN>:INTRINSICS.TypeError(
   ArgumentsList: List[ESValue],
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
-  if (< 0 ArgumentsList.length) pop message < ArgumentsList else let message = undefined
-  if (< 0 ArgumentsList.length) pop options < ArgumentsList else let options = undefined
+  let __args__ = (record)
+  if (< 0 ArgumentsList.length) {
+    pop message < ArgumentsList
+    expand __args__.message
+  } else let message = undefined
+  if (< 0 ArgumentsList.length) {
+    pop options < ArgumentsList
+    expand __args__.options
+  } else let options = undefined
   %0 = (= NewTarget undefined)
   if %0 {
     let newTarget = @EXECUTION_STACK[0].Function
@@ -13,7 +20,7 @@ def <BUILTIN>:INTRINSICS.TypeError(
   }
   call %1 = clo<"OrdinaryCreateFromConstructor">(newTarget, "%TypeError.prototype%", (list ["ErrorData"]))
   let O = [? %1]
-  %2 = (! (= message undefined))
+  %2 = (exists __args__.message)
   if %2 {
     call %3 = clo<"ToString">(message)
     let msg = [? %3]

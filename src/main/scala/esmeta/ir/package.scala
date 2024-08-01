@@ -87,11 +87,13 @@ def EGLOBAL_OBJECT_TYPE = ERef(GLOBAL_OBJECT_TYPE)
 def THIS_STR = "this"
 def ARGS_LIST_STR = "ArgumentsList"
 def NEW_TARGET_STR = "NewTarget"
+def ARGS_STR = "__args__"
 
 /** predefined local variables */
 def NAME_THIS = Name(THIS_STR)
 def NAME_ARGS_LIST = Name(ARGS_LIST_STR)
 def NAME_NEW_TARGET = Name(NEW_TARGET_STR)
+def NAME_ARGS = Name(ARGS_STR)
 
 /** predefined globals identifier expressions */
 def ENAME_THIS = ERef(NAME_THIS)

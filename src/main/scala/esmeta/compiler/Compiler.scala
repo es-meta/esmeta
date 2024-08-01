@@ -139,7 +139,8 @@ class Compiler(
       // add bindings for original arguments
       val argsLen = toStrERef(NAME_ARGS_LIST, "length")
       var remaining = ps.count(_.kind == Normal)
-      ps.flatMap {
+      fb.builtinBindings = ps.map(_.name).toSet
+      ILet(NAME_ARGS, ERecord("", Nil)) :: ps.flatMap {
         case Param(name, _, Variadic) if remaining == 0 =>
           List(ILet(Name(name), ENAME_ARGS_LIST))
         case Param(name, _, Variadic) =>
@@ -161,7 +162,12 @@ class Compiler(
           List(
             IIf(
               lessThan(zero, argsLen),
-              IPop(Name(name), ENAME_ARGS_LIST, true),
+              ISeq(
+                List(
+                  IPop(Name(name), ENAME_ARGS_LIST, true),
+                  IExpand(NAME_ARGS, EStr(name)),
+                ),
+              ),
               ILet(Name(name), EUndef()),
             ),
           )
@@ -864,7 +870,12 @@ class Compiler(
             val (b, bExpr) = fb.newTIdWithExpr
             fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
             bExpr
-          case Present => exists(x)
+          case Present =>
+            x match
+              case ERef(Name(name))
+                  if fb.isBuiltin && fb.builtinBindings.contains(name) =>
+                exists(Field(NAME_ARGS, EStr(name)))
+              case _ => exists(x)
           case Empty =>
             val lv = toERef(fb, x, EStr("length"))
             is(lv, zero)
@@ -907,8 +918,8 @@ class Compiler(
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)
         op match {
-          case Eq               => EBinary(BOp.Equal, l, r)
-          case NEq              => not(EBinary(BOp.Equal, l, r))
+          case Eq               => equal(l, r)
+          case NEq              => not(equal(l, r))
           case LessThan         => lessThan(l, r)
           case LessThanEqual    => not(lessThan(r, l))
           case GreaterThan      => lessThan(r, l)
@@ -1086,6 +1097,7 @@ class Compiler(
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
     and(ETypeCheck(x, IRType(NumberT)), is(m, floor(m)))
+  inline def equal(l: Expr, r: Expr) = EBinary(BOp.Equal, l, r)
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
