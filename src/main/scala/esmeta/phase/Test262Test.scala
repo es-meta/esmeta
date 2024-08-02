@@ -1,12 +1,13 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.{CommandConfig, TEST_MODE}
 import esmeta.cfg.CFG
 import esmeta.error.*
 import esmeta.interpreter.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
 import esmeta.es.util.Coverage
@@ -33,6 +34,13 @@ case object Test262Test extends Phase[CFG, Summary] {
     val targets =
       if (cmdConfig.targets.isEmpty) None
       else Some(cmdConfig.targets)
+
+    if (config.timeLimit.isDefined && config.concurrent == CP.Auto)
+      error(
+        "Turing on both time limit option (-test262-test:timeout and " +
+        "the concurrent mode (-test262-test:concurrent) with " +
+        "automatic thread number is not allowed.",
+      )
 
     // run test262 eval test
     val summary = test262.evalTest(
@@ -91,8 +99,12 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "concurrent",
-      BoolOption(c => c.concurrent = true),
-      "turn on concurrent mode.",
+      NumOption((c, k) =>
+        c.concurrent =
+          if (k <= 0) then CP.Auto else if (k == 1) CP.Single else CP.Fixed(k),
+      ),
+      "set the number of thread to use concurrently (default: no concurrent)." +
+      " If number <= 0, use automatically determined number of threads.",
     ),
     (
       "verbose",
@@ -107,7 +119,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
     var log: Boolean = false,
-    var concurrent: Boolean = false,
+    var concurrent: CP = CP.Single,
     var features: Option[List[String]] = None,
     var verbose: Boolean = false,
   )

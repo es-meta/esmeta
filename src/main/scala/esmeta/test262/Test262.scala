@@ -12,6 +12,7 @@ import esmeta.state.*
 import esmeta.test262.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import java.util.concurrent.TimeoutException
 
@@ -72,7 +73,7 @@ case class Test262(
     removed: Iterable[(Test, ReasonPath)] = Nil,
     useProgress: Boolean = false,
     useErrorHandler: Boolean = true,
-    concurrent: Boolean = false,
+    concurrent: CP = CP.Single,
     verbose: Boolean = false,
   ): ProgressBar[Test] = ProgressBar(
     msg = s"Run Test262 $name tests",
@@ -102,7 +103,7 @@ case class Test262(
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
-    concurrent: Boolean = false,
+    concurrent: CP = CP.Single,
     verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
@@ -161,7 +162,7 @@ case class Test262(
     log: Boolean = false,
     useProgress: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
-    concurrent: Boolean = false,
+    concurrent: CP = CP.Single,
     verbose: Boolean = false,
   ): Summary = {
     // extract tests from paths
