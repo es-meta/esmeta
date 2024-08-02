@@ -1,12 +1,14 @@
 package esmeta.test262
 
+import esmeta.util.{ConcurrentPolicy => CP}
+
 class EvalLargeTest extends Test262Test {
   val name: String = "test262EvalTest"
 
   // registration
   def init: Unit = check(name) {
     val summary = Test262Test.test262.evalTest(
-      concurrent = true,
+      concurrent = CP.Auto,
       verbose = true,
     )
     val f = summary.failCount

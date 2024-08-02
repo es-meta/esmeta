@@ -7,6 +7,7 @@ import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
+import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
 
@@ -79,7 +80,7 @@ case class CFG(
       iterable = funcs,
       getName = (x, _) => x.name,
       detail = false,
-      concurrent = true,
+      concurrent = CP.Auto,
     )
     for (func <- progress)
       val path = s"$baseDir/${func.normalizedName}"
