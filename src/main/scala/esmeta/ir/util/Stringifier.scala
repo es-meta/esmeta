@@ -124,10 +124,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // expressions
   given exprRule: Rule[Expr] = withLoc { (app, expr) =>
     expr match
-      case EComp(tyExpr, valExpr, tgtExpr) =>
-        app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
-      case EIsCompletion(expr) =>
-        app >> "(comp? " >> expr >> ")"
       case EReturnIfAbrupt(expr, check) =>
         app >> "[" >> (if (check) "?" else "!") >> " " >> expr >> "]"
       case EParse(code, rule) =>

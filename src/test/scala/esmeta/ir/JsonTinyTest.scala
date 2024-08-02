@@ -107,8 +107,6 @@ class JsonTinyTest extends IRTest {
     // expressions
     // -------------------------------------------------------------------------
     checkJsonWithString("Expr")(
-      comp -> "comp[~normal~/~empty~](x)",
-      isComp -> "(comp? x)",
       riaCheck -> "[? x]",
       riaNoCheck -> "[! x]",
       parse -> "(parse x (grammar-symbol |A|[TF]))",

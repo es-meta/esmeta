@@ -22,7 +22,7 @@ sealed trait Value extends StateElem {
   def wrapCompletion(st: State)(using CFG): Value =
     if (isCompletion(st)) this
     else
-      val addr = st.allocRecord("Normal")
+      val addr = st.allocRecord("NormalCompletion")
       st.update(addr, Str("Type"), Enum("normal"))
       st.update(addr, Str("Value"), this)
       st.update(addr, Str("Target"), Enum("empty"))

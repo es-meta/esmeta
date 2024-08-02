@@ -21,15 +21,15 @@ def Must(ty: ValueTy): OptValueTy = OptValueTy(ty, false)
 lazy val MayAnyT: OptValueTy = OptValueTy(AnyT, true)
 lazy val MustBotT: OptValueTy = OptValueTy(BotT, false)
 lazy val AnyT: ValueTy = ValueTy.Top
-lazy val CompT: ValueTy = ValueTy(record = RecordTy("Completion"))
-lazy val AbruptT: ValueTy = ValueTy(record = RecordTy("Abrupt"))
-def AbruptT(names: String*): ValueTy = AbruptT(names.toSet)
-def AbruptT(names: Set[String]): ValueTy =
-  ValueTy(record = RecordTy("Abrupt", Map("Type" -> EnumT(names.toSet))))
-lazy val NormalT: ValueTy = ValueTy(record = RecordTy("Normal"))
+lazy val CompT: ValueTy = ValueTy(record = RecordTy("CompletionRecord"))
+lazy val AbruptT: ValueTy = ValueTy(record = RecordTy("AbruptCompletion"))
+def AbruptT(xs: String*): ValueTy = AbruptT(xs.toSet)
+def AbruptT(xs: Set[String]): ValueTy =
+  ValueTy(record = RecordTy("AbruptCompletion", Map("Type" -> EnumT(xs.toSet))))
+lazy val NormalT: ValueTy = ValueTy(record = RecordTy("NormalCompletion"))
 def NormalT(value: ValueTy): ValueTy =
   if (value.isBottom) BotT
-  else ValueTy(record = RecordTy("Normal", Map("Value" -> value)))
+  else ValueTy(record = RecordTy("NormalCompletion", Map("Value" -> value)))
 def MapT: ValueTy = ValueTy(map = MapTy.Top)
 def MapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) BotT

@@ -68,10 +68,6 @@ trait Walker extends BasicWalker {
 
   // expressions
   def walk(expr: Expr): Expr = (expr match
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      EComp(walk(tyExpr), walk(valExpr), walk(tgtExpr))
-    case EIsCompletion(expr) =>
-      EIsCompletion(walk(expr))
     case EReturnIfAbrupt(expr, check) =>
       EReturnIfAbrupt(walk(expr), walk(check))
     case EParse(code, rule) =>

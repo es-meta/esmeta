@@ -264,16 +264,6 @@ trait AbsTransferDecl { self: Analyzer =>
     /** transfer function for expressions */
     def transfer(expr: Expr)(using np: NodePoint[Node]): Result[AbsValue] =
       expr match {
-        case EComp(ty, value, target) =>
-          for {
-            tyV <- transfer(ty)
-            v <- transfer(value)
-            targetV <- transfer(target)
-          } yield AbsValue.createCompletion(tyV, v, targetV)
-        case EIsCompletion(expr) =>
-          for {
-            v <- transfer(expr)
-          } yield v.isCompletion
         case riaExpr @ EReturnIfAbrupt(ERef(ref), check) =>
           for {
             rv <- transfer(ref)

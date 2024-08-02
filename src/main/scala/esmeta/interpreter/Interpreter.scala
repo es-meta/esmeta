@@ -172,14 +172,6 @@ class Interpreter(
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      val addr = st.allocRecord("Completion")
-      st.update(addr, Str("Type"), eval(tyExpr))
-      st.update(addr, Str("Value"), eval(valExpr))
-      st.update(addr, Str("Target"), eval(tgtExpr))
-      addr
-    case EIsCompletion(expr) =>
-      Bool(eval(expr).isCompletion(st))
     case ria @ EReturnIfAbrupt(ERef(ref), check) =>
       val refV = eval(ref)
       val value = returnIfAbrupt(ria, st(refV), check)

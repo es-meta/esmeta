@@ -115,11 +115,7 @@ trait Parsers extends TyParsers {
 
   // expressions
   given expr: Parser[Expr] = {
-    "comp" ~> ("[" ~> expr ~ ("/" ~> expr) <~ "]") ~ ("(" ~> expr <~ ")") ^^ {
-      case ty ~ tgt ~ e => EComp(ty, e, tgt)
-    } | "(" ~ "comp?" ~> expr <~ ")" ^^ {
-      case e => EIsCompletion(e)
-    } | "[" ~> ("?" ^^^ true | "!" ^^^ false) ~ expr <~ "]" ^^ {
+    "[" ~> ("?" ^^^ true | "!" ^^^ false) ~ expr <~ "]" ^^ {
       case c ~ e => EReturnIfAbrupt(e, c)
     } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)

@@ -1,15 +1,15 @@
-type Completion {
+type CompletionRecord {
   Type: Enum[~normal~, ~break~, ~continue~, ~return~, ~throw~];
   Value: Any;
   Target: String | Enum[~empty~];
 }
 
-type Normal extends Completion {
+type NormalCompletion extends CompletionRecord {
   Type: Enum[~normal~];
   Target: Enum[~empty~];
 }
 
-type Abrupt extends Completion {
+type AbruptCompletion extends CompletionRecord {
   Type: Enum[~break~, ~continue~, ~return~, ~throw~];
 }
 

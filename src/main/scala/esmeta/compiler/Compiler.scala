@@ -500,18 +500,6 @@ class Compiler(
       case ListConcatExpression(exprs) =>
         EListConcat(exprs.map(compile(fb, _)))
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
-      case RecordExpression("Completion Record", fields) =>
-        val fmap = fields.toMap
-        val fs @ List(ty, v, tgt) =
-          List("Type", "Value", "Target").map(FieldLiteral(_))
-        val keys = fmap.keySet
-        if (keys != fs.toSet)
-          error(s"invalid completion keys: ${keys.mkString(", ")}")
-        EComp(
-          compile(fb, fmap(ty)),
-          compile(fb, fmap(v)),
-          compile(fb, fmap(tgt)),
-        )
       case RecordExpression(rawName, fields) =>
         var props = fields.map {
           case (FieldLiteral(f), e) => f -> compile(fb, e)
@@ -849,10 +837,10 @@ class Compiler(
         val cond = op match {
           case Abrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            and(EIsCompletion(x), not(is(tv, EENUM_NORMAL)))
+            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
           case NeverAbrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            or(not(EIsCompletion(x)), is(tv, EENUM_NORMAL))
+            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
           case op @ (Normal | Throw | Return | Break | Continue) =>
             val tv = toERef(fb, x, EStr("Type"))
             val expected = op match
@@ -861,7 +849,7 @@ class Compiler(
               case Return   => EENUM_RETURN
               case Break    => EENUM_BREAK
               case Continue => EENUM_CONTINUE
-            and(EIsCompletion(x), is(tv, expected))
+            and(isCompletion(x), is(tv, expected))
           case Finite =>
             not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
@@ -1128,6 +1116,7 @@ class Compiler(
       ),
     )
   }
+  inline def isCompletion(e: Expr): Expr = ETypeCheck(e, IRType(CompT))
   val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
     arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
