@@ -76,6 +76,11 @@ case class Func(
     case FuncKind.Builtin | FuncKind.BuiltinClo                   => true
     case _ => irFunc.retTy.isCompletion
 
+  private val baseNamePattern = """([^:]*)(:clo.*|:cont.*)""".r
+  def baseName: String = name match
+    case baseNamePattern(base, _) => base
+    case _                        => name
+
   /** function name */
   def name: String = irFunc.name
 

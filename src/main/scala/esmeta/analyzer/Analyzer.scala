@@ -92,8 +92,6 @@ abstract class Analyzer
   protected var heapDomain: Option[HeapDomain] = None
   protected var objDomain: Option[ObjDomain] = None
   protected var valueDomain: Option[ValueDomain] = None
-  protected var compDomain: Option[CompDomain] = None
-  protected var pureValueDomain: Option[PureValueDomain] = None
   protected var cloDomain: Option[CloDomain] = None
   protected var contDomain: Option[ContDomain] = None
   protected var partDomain: Option[PartDomain] = None
@@ -126,12 +124,6 @@ abstract class Analyzer
 
   final lazy val AbsValue = valueDomain.getOrElse(ValueBasicDomain)
   type AbsValue = AbsValue.Elem
-
-  final lazy val AbsComp = compDomain.getOrElse(CompBasicDomain)
-  type AbsComp = AbsComp.Elem
-
-  final lazy val AbsPureValue = pureValueDomain.getOrElse(PureValueBasicDomain)
-  type AbsPureValue = AbsPureValue.Elem
 
   final lazy val AbsClo = cloDomain.getOrElse(CloSetDomain())
   type AbsClo = AbsClo.Elem

@@ -112,8 +112,6 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Values
     // -------------------------------------------------------------------------
-    lazy val normalComp = Comp(Enum("normal"), Math(42), None)
-    lazy val comp = Comp(Enum("throw"), Math(42), Some("to"))
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
     lazy val func =
@@ -132,8 +130,6 @@ class StringifyTinyTest extends StateTest {
     lazy val grammarSymbol = GrammarSymbol("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(
-      comp -> "comp[~throw~/to](42)",
-      normalComp -> "N(42)",
       namedAddr -> "#Global",
       addr -> "#42",
       clo -> "clo<f>",

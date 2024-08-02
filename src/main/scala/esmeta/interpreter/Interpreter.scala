@@ -137,11 +137,14 @@ class Interpreter(
           st.callStack ::= CallContext(st.context, lhs)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
-          val needWrapped = st.context.func.isReturnComp
+          val needWrapped =
+            func.isReturnComp ||
+            ((func.isClo || func.isCont) &&
+            cfg.getFunc(func.baseName).isReturnComp)
           val vs =
             args
               .map(eval)
-              .map(v => if (needWrapped) v.wrapCompletion else v)
+              .map(v => if (needWrapped) v.wrapCompletion(st) else v)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
@@ -170,16 +173,13 @@ class Interpreter(
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EComp(tyExpr, valExpr, tgtExpr) =>
-      val y = eval(tyExpr)
-      val t = eval(tgtExpr)
-      val v = eval(valExpr).toPureValue
-      (y, t) match
-        case (y: Enum, Str(t))     => Comp(y, v, Some(t))
-        case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
-        case (y: Enum, t)          => throw InvalidCompTarget(y)
-        case (y, t)                => throw InvalidCompType(t)
+      val addr = st.allocRecord("Completion")
+      st.update(addr, Str("Type"), eval(tyExpr))
+      st.update(addr, Str("Value"), eval(valExpr))
+      st.update(addr, Str("Target"), eval(tgtExpr))
+      addr
     case EIsCompletion(expr) =>
-      Bool(eval(expr).isCompletion)
+      Bool(eval(expr).isCompletion(st))
     case ria @ EReturnIfAbrupt(ERef(ref), check) =>
       val refV = eval(ref)
       val value = returnIfAbrupt(ria, st(refV), check)
@@ -328,23 +328,6 @@ class Interpreter(
       val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
-    case ERecord("Completion", fields) =>
-      val map = (for {
-        (f, expr) <- fields
-        v = eval(expr)
-      } yield f -> v).toMap
-      (
-        map.get("Type"),
-        map.get("Value"),
-        map.get("Target"),
-      ) match
-        case (Some(ty: Enum), Some(value), Some(target)) =>
-          val targetOpt = target match
-            case Str(target) => Some(target)
-            case ENUM_EMPTY  => None
-            case v           => throw InvalidCompTarget(v)
-          Comp(ty, value.toPureValue, targetOpt)
-        case _ => throw InvalidComp
     case ERecord(tname, fields) =>
       val addr = st.allocRecord(tname)
       for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
@@ -417,12 +400,12 @@ class Interpreter(
     ria: EReturnIfAbrupt,
     value: Value,
     check: Boolean,
-  ): Value = value match
-    case NormalComp(value) => value
-    case comp: Comp =>
+  ): Value =
+    if (value.isAbruptCompletion(st))
       if (check) throw ReturnValue(value, ria)
-      else throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure // XXX remove?
+      else throw UncheckedAbrupt(value)
+    else if (value.isCompletion(st)) st(value, Str("Value"))
+    else ???
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
@@ -434,13 +417,19 @@ class Interpreter(
 
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
+    val func = st.context.func
     st.context.retVal = Some(
       (
         ret,
         // wrap completion by conditions specified in
         // [5.2.3.5 Implicit Normal Completion]
         // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-        if (st.context.func.isReturnComp) value.wrapCompletion else value,
+        if (
+          func.isReturnComp ||
+          ((func.isClo || func.isCont) &&
+          cfg.getFunc(func.baseName).isReturnComp)
+        ) value.wrapCompletion(st)
+        else value,
       ),
     )
     st.context.cursor = ExitCursor(st.func)

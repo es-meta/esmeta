@@ -18,8 +18,8 @@ case class InterpreterErrorAt(error: InterpreterError, cursor: Cursor)
 // invalid cases
 case class InvalidNodeId(nid: Int)
   extends InterpreterError(s"invalid node id: $nid")
-case class InvalidCompField(comp: Comp, field: Value)
-  extends InterpreterError(s"invalid completion field: $field for $comp")
+case class InvalidCompField(value: Value, field: Value)
+  extends InterpreterError(s"invalid completion field: $field for $value")
 case class InvalidObjField(obj: Obj, field: Value)
   extends InterpreterError(s"invalid object field: $field for $obj")
 case class InvalidObjOp(obj: Obj, op: String)
@@ -108,8 +108,8 @@ case class WrongStringRef(str: String, field: Value)
 
 // missing cases
 case object UncheckedAbsent extends InterpreterError(s"unchecked uninit")
-case class UncheckedAbrupt(comp: Comp)
-  extends InterpreterError(s"unchecked abrupt completion: $comp")
+case class UncheckedAbrupt(value: Value) // TODO remove
+  extends InterpreterError(s"unchecked abrupt completion: $value")
 
 // assertion failed
 case class AssertionFail(expr: Expr)

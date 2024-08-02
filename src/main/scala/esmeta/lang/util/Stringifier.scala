@@ -764,41 +764,35 @@ class Stringifier(detail: Boolean, location: Boolean) {
   def valueTyRule(
     plural: Boolean,
     withEither: Boolean,
-  ): Rule[ValueTy] = (app, ty) =>
-    val pure = !ty.pureValue.isBottom
-    if (!ty.comp.isBottom)
-      given Rule[PureValueTy] = pureValueTyRule(plural, true)
-      val normal = !ty.normal.isBottom
-      val abrupt = !ty.abrupt.isBottom
-      val both = normal && abrupt
-      if (both) app >> "either "
-      val normalStr =
-        if (normal)
-          val app = new Appender
-          app >> "a normal completion"
-          if (!ty.normal.isTop) app >> " containing " >> ty.normal
-          app.toString
-        else ""
-      app >> normalStr
-      if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
-      if (abrupt) ty.abrupt match
-        case Inf => app >> "an abrupt completion"
-        case Fin(names) =>
-          given Rule[List[String]] = listNamedSepRule(namedSep = "or")
-          app >> names.toList.map("a " + _ + " completion")
-      if (pure) app >> " or "
-    if (pure)
-      given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
-      app >> ty.pureValue
-    app
-
-  // pure value types
-  def pureValueTyRule(
-    plural: Boolean,
-    withEither: Boolean,
-  ): Rule[PureValueTy] = (app, originTy) =>
-    var ty: PureValueTy = originTy
+  ): Rule[ValueTy] = (app, originTy) =>
+    var ty: ValueTy = originTy
     var tys: Vector[String] = Vector()
+    // TODO
+    // if (!ty.comp.isBottom)
+    //   given Rule[PureValueTy] = pureValueTyRule(plural, true)
+    //   val normal = !ty.normal.isBottom
+    //   val abrupt = !ty.abrupt.isBottom
+    //   val both = normal && abrupt
+    //   if (both) app >> "either "
+    //   val normalStr =
+    //     if (normal)
+    //       val app = new Appender
+    //       app >> "a normal completion"
+    //       if (!ty.normal.isTop) app >> " containing " >> ty.normal
+    //       app.toString
+    //     else ""
+    //   app >> normalStr
+    //   if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+    //   if (abrupt) ty.abrupt match
+    //     case Inf => app >> "an abrupt completion"
+    //     case Fin(names) =>
+    //       given Rule[List[String]] = listNamedSepRule(namedSep = "or")
+    //       app >> names.toList.map("a " + _ + " completion")
+    //   if (pure) app >> " or "
+    // if (pure)
+    //   given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
+    //   app >> ty.pureValue
+    // app
     // TODO
     // for ((pred, name) <- predTys if pred <= ty)
     //   tys :+= name.withArticle(plural); ty --= pred

@@ -19,8 +19,6 @@ object Stringifier {
       case elem: FieldMap    => fieldMapRule(app, elem)
       case elem: OptValueTy  => optValueTyRule(app, elem)
       case elem: Ty          => tyRule(app, elem)
-      case elem: CompTy      => compTyRule(app, elem)
-      case elem: PureValueTy => pureValueTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
       case elem: AstTy       => astTyRule(app, elem)
@@ -106,7 +104,6 @@ object Stringifier {
           case (app, (pred, name)) =>
             app.add({ ty --= pred; name }, pred <= ty)
         }
-        .add(ty.comp, !ty.comp.isBottom)
         .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
         .add(ty.record, !ty.record.isBottom)
@@ -130,16 +127,6 @@ object Stringifier {
         .add("Null", !ty.nullv.isBottom)
         .app
 
-  /** completion record types */
-  given compTyRule: Rule[CompTy] = (app, ty) =>
-    given Rule[PureValueTy] = topRule(pureValueTyRule)
-    if (ty.isTop) app >> "CompletionRecord"
-    else
-      FilterApp(app)
-        .add(ty.normal, !ty.normal.isBottom, "Normal")
-        .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
-        .app
-
   /** list types */
   given listTyRule: Rule[ListTy] = (app, ty) =>
     import ListTy.*
@@ -150,26 +137,44 @@ object Stringifier {
         if (elem.isBottom) app >> "Nil"
         else app >> "List[" >> elem >> "]"
 
-  /** pure value types (non-completion record types) */
-  given pureValueTyRule: Rule[PureValueTy] = (app, ty) =>
-    app >> ValueTy(pureValue = ty)
-
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
     import RecordTy.*
     given Rule[(String, FieldMap)] = {
-      case (app, (name, fields)) =>
+      case (app, (name, fm)) =>
         app >> name
-        if (!fields.isTop)
+        if (!fm.isTop)
           if (name.nonEmpty) app >> " "
-          app >> fields
+          app >> fm
         app
     }
+    given Rule[Iterable[String]] = iterableRule(sep = OR)
     given Rule[List[(String, FieldMap)]] = iterableRule(sep = OR)
     ty match
       case Top => app >> "Record"
       case Elem(map) =>
-        app >> "Record[" >> map.toList.sortBy(_._1) >> "]"
+        var m = map
+        var prevExists = false
+        map.get("Normal").map { fm =>
+          if (prevExists) app >> OR
+          prevExists = true
+          m -= "Normal"
+          app >> "Normal"
+          if (fm.map.keySet == Set("Value")) app >> "[" >> fm("Value") >> "]"
+          else if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("Abrupt").map { fm =>
+          if (prevExists) app >> OR
+          prevExists = true
+          m -= "Abrupt"
+          app >> "Abrupt"
+          if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
+          else if (!fm.isTop) app >> " " >> fm
+        }
+        if (m.nonEmpty)
+          if (prevExists) app >> OR
+          app >> "Record[" >> m.toList.sortBy(_._1) >> "]"
+        else app
 
   /** AST value types */
   given astTyRule: Rule[AstTy] = (app, ty) =>

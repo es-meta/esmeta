@@ -110,12 +110,12 @@ trait StateBasicDomainDecl { self: Self =>
           else Elem(true, newLocals, newGlobals, newHeap)
 
       /** getters with bases and fields */
-      def get(base: AbsValue, field: AbsValue): AbsValue =
-        val compValue = AbsValue(pureValue = base.comp(field.str))
-        val partValue = elem.heap(base.part, field)
-        val astValue = lookupAst(base.astValue, field)
-        val strValue = lookupStr(base.str, field)
-        compValue ⊔ partValue ⊔ astValue ⊔ strValue
+      def get(base: AbsValue, field: AbsValue): AbsValue = ???
+      // val compValue = AbsValue(pureValue = base.comp(field.str))
+      // val partValue = elem.heap(base.part, field)
+      // val astValue = lookupAst(base.astValue, field)
+      // val strValue = lookupStr(base.str, field)
+      // compValue ⊔ partValue ⊔ astValue ⊔ strValue
 
       /** getters with an address partition */
       def get(part: Part): AbsObj = elem.heap(part)

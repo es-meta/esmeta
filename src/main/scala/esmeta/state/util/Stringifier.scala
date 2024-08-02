@@ -90,22 +90,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // values
   given valueRule: Rule[Value] = (app, value) =>
     value match
-      case comp: Comp      => compRule(app, comp)
-      case pure: PureValue => pureValueRule(app, pure)
-
-  // completion values
-  given compRule: Rule[Comp] = (app, comp) =>
-    comp match
-      case NormalComp(value) =>
-        app >> "N(" >> value >> ")"
-      case Comp(ty, value, target) =>
-        app >> "comp[" >> ty
-        target.map(app >> "/" >> _)
-        app >> "]" >> "(" >> value >> ")"
-
-  // pure values (not completion values)
-  given pureValueRule: Rule[PureValue] = (app, value) =>
-    value match
       case addr: Addr        => addrRule(app, addr)
       case clo: Clo          => cloRule(app, clo)
       case cont: Cont        => cogrammarSymbolRule(app, cont)

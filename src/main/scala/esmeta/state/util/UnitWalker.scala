@@ -49,15 +49,6 @@ trait UnitWalker extends BasicUnitWalker {
 
   // value
   def walk(v: Value): Unit = v match
-    case comp: Comp      => walk(comp)
-    case pure: PureValue => walk(pure)
-
-  // completion value
-  def walk(comp: Comp): Unit =
-    walk(comp.ty); walk(comp.value)
-
-  // pure value
-  def walk(pure: PureValue): Unit = pure match
     case addr: Addr       => walk(addr)
     case Clo(_, captured) => walkMap(captured, walk, walk)
     case Cont(_, captured, callStack) =>

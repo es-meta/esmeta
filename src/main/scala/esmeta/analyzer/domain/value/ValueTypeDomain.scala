@@ -56,8 +56,6 @@ trait ValueTypeDomainDecl { self: Self =>
       ???
 
     /** predefined top values */
-    lazy val compTop: Elem = notSupported("value.TypeDomain.compTop")
-    lazy val pureValueTop: Elem = notSupported("value.TypeDomain.pureValueTop")
     lazy val cloTop: Elem = Elem(CloT)
     lazy val contTop: Elem = Elem(ContT)
     lazy val partTop: Elem = notSupported("value.TypeDomain.partTop")
@@ -99,8 +97,6 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** constructors */
     def apply(
-      comp: AbsComp,
-      pureValue: AbsPureValue,
       clo: AbsClo,
       cont: AbsCont,
       part: AbsPart,
@@ -399,25 +395,27 @@ trait ValueTypeDomainDecl { self: Self =>
         Elem(ValueTy(math = mathTy))
 
       /** completion helpers */
-      def wrapCompletion: Elem =
-        val ty = elem.ty
-        Elem(
-          ValueTy(
-            normal = ty.normal || ty.pureValue,
-            abrupt = ty.abrupt,
-          ),
-        )
-      def unwrapCompletion: Elem =
-        val ty = elem.ty
-        Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
-      def isCompletion: Elem =
-        val ty = elem.ty
-        var bs: Set[Boolean] = Set()
-        if (!ty.comp.isBottom) bs += true
-        if (!ty.pureValue.isBottom) bs += false
-        Elem(ValueTy(bool = BoolTy(bs)))
-      def normalCompletion: Elem = Elem(ValueTy(normal = elem.ty.pureValue))
-      def abruptCompletion: Elem = Elem(ValueTy(abrupt = elem.ty.abrupt))
+      def wrapCompletion: Elem = ???
+      // val ty = elem.ty
+      // Elem(
+      //   ValueTy(
+      //     normal = ty.normal || ty.pureValue,
+      //     abrupt = ty.abrupt,
+      //   ),
+      // )
+      def unwrapCompletion: Elem = ???
+      // val ty = elem.ty
+      // Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
+      def isCompletion: Elem = ???
+      // val ty = elem.ty
+      // var bs: Set[Boolean] = Set()
+      // if (!ty.comp.isBottom) bs += true
+      // if (!ty.pureValue.isBottom) bs += false
+      // Elem(ValueTy(bool = BoolTy(bs)))
+      def normalCompletion: Elem = ???
+      // Elem(ValueTy(normal = elem.ty.pureValue))
+      def abruptCompletion: Elem = ???
+      // Elem(ValueTy(abrupt = elem.ty.abrupt))
 
       /** uninit helpers */
       def removeAbsent: Elem = ??? // Elem(elem.ty -- UninitT)
@@ -472,9 +470,6 @@ trait ValueTypeDomainDecl { self: Self =>
         ???
 
       /** getters */
-      def comp: AbsComp = notSupported("value.TypeDomain.Elem.comp")
-      def pureValue: AbsPureValue =
-        notSupported("value.TypeDomain.Elem.pureValue")
       def clo: AbsClo = ty.clo match
         case Inf => AbsClo.Top
         case Fin(set) =>

@@ -18,8 +18,16 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** elements */
     case class Elem(
-      comp: AbsComp = AbsComp.Bot,
-      pureValue: AbsPureValue = AbsPureValue.Bot,
+      clo: AbsClo = AbsClo.Bot,
+      cont: AbsCont = AbsCont.Bot,
+      part: AbsPart = AbsPart.Bot,
+      astValue: AbsAstValue = AbsAstValue.Bot,
+      grammarSymbol: AbsGrammarSymbol = AbsGrammarSymbol.Bot,
+      codeUnit: AbsCodeUnit = AbsCodeUnit.Bot,
+      enumv: AbsEnum = AbsEnum.Bot,
+      math: AbsMath = AbsMath.Bot,
+      infinity: AbsInfinity = AbsInfinity.Bot,
+      simpleValue: AbsSimpleValue = AbsSimpleValue.Bot,
     ) extends Appendable
 
     /** top element */
@@ -30,8 +38,16 @@ trait ValueBasicDomainDecl { self: Self =>
 
     /** abstraction functions */
     def alpha(xs: Iterable[AValue]): Elem = Elem(
-      AbsComp(xs.collect { case x: AComp => x }),
-      AbsPureValue(xs.collect { case x: APureValue => x }),
+      AbsClo(xs.collect { case x: AClo => x }),
+      AbsCont(xs.collect { case x: ACont => x }),
+      AbsPart(xs.collect { case x: Part => x }),
+      AbsAstValue(xs.collect { case x: AstValue => x }),
+      AbsGrammarSymbol(xs.collect { case x: GrammarSymbol => x }),
+      AbsCodeUnit(xs.collect { case x: CodeUnit => x }),
+      AbsEnum(xs.collect { case x: Enum => x }),
+      AbsMath(xs.collect { case x: Math => x }),
+      AbsInfinity(xs.collect { case x: Infinity => x }),
+      AbsSimpleValue(xs.collect { case x: SimpleValue => x }),
     )
 
     /** constructor with types */
@@ -42,33 +58,28 @@ trait ValueBasicDomainDecl { self: Self =>
       ty: AbsValue,
       value: AbsValue,
       target: AbsValue,
-    ): Elem = Elem(comp = AbsComp(ty, value, target))
+    ): Elem = ???
 
     /** predefined top values */
-    def compTop: Elem = Bot.copy(comp = AbsComp.Top)
-    def pureValueTop: Elem = Bot.copy(pureValue = AbsPureValue.Top)
-    val cloTop: Elem = Bot.copy(pureValue = AbsPureValue.cloTop)
-    val contTop: Elem = Bot.copy(pureValue = AbsPureValue.contTop)
-    val partTop: Elem = Bot.copy(pureValue = AbsPureValue.partTop)
-    val astValueTop: Elem = Bot.copy(pureValue = AbsPureValue.astValueTop)
-    val grammarSymbolTop: Elem =
-      Bot.copy(pureValue = AbsPureValue.grammarSymbolTop)
-    val codeUnitTop: Elem = Bot.copy(pureValue = AbsPureValue.codeUnitTop)
-    val enumTop: Elem = Bot.copy(pureValue = AbsPureValue.enumTop)
-    val mathTop: Elem = Bot.copy(pureValue = AbsPureValue.mathTop)
-    val infinityTop: Elem = Bot.copy(pureValue = AbsPureValue.infinityTop)
-    val simpleValueTop: Elem = Bot.copy(pureValue = AbsPureValue.simpleValueTop)
-    val numberTop: Elem = Bot.copy(pureValue = AbsPureValue.numberTop)
-    val bigIntTop: Elem = Bot.copy(pureValue = AbsPureValue.bigIntTop)
-    val strTop: Elem = Bot.copy(pureValue = AbsPureValue.strTop)
-    val boolTop: Elem = Bot.copy(pureValue = AbsPureValue.boolTop)
-    val undefTop: Elem = Bot.copy(pureValue = AbsPureValue.undefTop)
-    val nullTop: Elem = Bot.copy(pureValue = AbsPureValue.nullTop)
+    val cloTop: Elem = Bot.copy(clo = AbsClo.Top)
+    val contTop: Elem = Bot.copy(cont = AbsCont.Top)
+    val partTop: Elem = Bot.copy(part = AbsPart.Top)
+    val astValueTop: Elem = Bot.copy(astValue = AbsAstValue.Top)
+    val grammarSymbolTop: Elem = Bot.copy(grammarSymbol = AbsGrammarSymbol.Top)
+    val codeUnitTop: Elem = Bot.copy(codeUnit = AbsCodeUnit.Top)
+    val enumTop: Elem = Bot.copy(enumv = AbsEnum.Top)
+    val mathTop: Elem = Bot.copy(math = AbsMath.Top)
+    val infinityTop: Elem = Bot.copy(infinity = AbsInfinity.Top)
+    val simpleValueTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.Top)
+    val numberTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.numberTop)
+    val bigIntTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.bigIntTop)
+    val strTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.strTop)
+    val boolTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.boolTop)
+    val undefTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.undefTop)
+    val nullTop: Elem = Bot.copy(simpleValue = AbsSimpleValue.nullTop)
 
     /** constructors */
     def apply(
-      comp: AbsComp = AbsComp.Bot,
-      pureValue: AbsPureValue = AbsPureValue.Bot,
       clo: AbsClo = AbsClo.Bot,
       cont: AbsCont = AbsCont.Bot,
       part: AbsPart = AbsPart.Bot,
@@ -86,41 +97,52 @@ trait ValueBasicDomainDecl { self: Self =>
       undef: AbsUndef = AbsUndef.Bot,
       nullv: AbsNull = AbsNull.Bot,
     ): Elem = Elem(
-      comp,
-      pureValue ⊔ AbsPureValue(
-        clo,
-        cont,
-        part,
-        astValue,
-        grammarSymbol,
-        codeUnit,
-        enumv,
-        math,
-        infinity,
-        simpleValue ⊔ AbsSimpleValue(
-          num,
-          bigInt,
-          str,
-          bool,
-          undef,
-          nullv,
-        ),
-      ),
+      clo,
+      cont,
+      part,
+      astValue,
+      grammarSymbol,
+      codeUnit,
+      enumv,
+      math,
+      infinity,
+      simpleValue ⊔ AbsSimpleValue(num, bigInt, str, bool, undef, nullv),
     )
 
     /** extractors */
-    def unapply(elem: Elem): Option[RawTuple] =
-      Some(elem.comp, elem.pureValue)
+    def unapply(elem: Elem): Option[RawTuple] = Some(
+      (
+        elem.clo,
+        elem.cont,
+        elem.part,
+        elem.astValue,
+        elem.grammarSymbol,
+        elem.codeUnit,
+        elem.enumv,
+        elem.math,
+        elem.infinity,
+        elem.simpleValue,
+      ),
+    )
 
     /** appender */
-    given rule: Rule[Elem] = (app, elem) =>
-      if (!elem.isBottom) {
-        val Elem(comp, pureValue) = elem
+    given rule: Rule[Elem] = (app, elem) => {
+      if (elem.isBottom) app >> "⊥"
+      else {
         var strs = Vector[String]()
-        if (!comp.isBottom) strs :+= comp.toString
-        if (!pureValue.isBottom) strs :+= pureValue.toString
+        if (!elem.clo.isBottom) strs :+= elem.clo.toString
+        if (!elem.cont.isBottom) strs :+= elem.cont.toString
+        if (!elem.part.isBottom) strs :+= elem.part.toString
+        if (!elem.astValue.isBottom) strs :+= elem.astValue.toString
+        if (!elem.grammarSymbol.isBottom) strs :+= elem.grammarSymbol.toString
+        if (!elem.codeUnit.isBottom) strs :+= elem.codeUnit.toString
+        if (!elem.enumv.isBottom) strs :+= elem.enumv.toString
+        if (!elem.math.isBottom) strs :+= elem.math.toString
+        if (!elem.infinity.isBottom) strs :+= elem.infinity.toString
+        if (!elem.simpleValue.isBottom) strs :+= elem.simpleValue.toString
         app >> strs.mkString(", ")
-      } else app >> "⊥"
+      }
+    }
 
     /** transfer for variadic operation */
     def vopTransfer(vop: VOp, vs: List[Elem]): Elem =
@@ -172,44 +194,119 @@ trait ValueBasicDomainDecl { self: Self =>
     extension (elem: Elem) {
 
       /** get key values */
-      def keyValue: Elem = apply(part = part, str = str)
+      def keyValue: Elem = apply(part = elem.part, str = elem.str)
 
       /** partial order */
       def ⊑(that: Elem): Boolean =
-        elem.comp ⊑ that.comp &&
-        elem.pureValue ⊑ that.pureValue
+        elem.clo ⊑ that.clo &&
+        elem.cont ⊑ that.cont &&
+        elem.part ⊑ that.part &&
+        elem.astValue ⊑ that.astValue &&
+        elem.grammarSymbol ⊑ that.grammarSymbol &&
+        elem.codeUnit ⊑ that.codeUnit &&
+        elem.enumv ⊑ that.enumv &&
+        elem.math ⊑ that.math &&
+        elem.infinity ⊑ that.infinity &&
+        elem.simpleValue ⊑ that.simpleValue
 
       /** join operator */
       def ⊔(that: Elem): Elem = Elem(
-        elem.comp ⊔ that.comp,
-        elem.pureValue ⊔ that.pureValue,
+        elem.clo ⊔ that.clo,
+        elem.cont ⊔ that.cont,
+        elem.part ⊔ that.part,
+        elem.astValue ⊔ that.astValue,
+        elem.grammarSymbol ⊔ that.grammarSymbol,
+        elem.codeUnit ⊔ that.codeUnit,
+        elem.enumv ⊔ that.enumv,
+        elem.math ⊔ that.math,
+        elem.infinity ⊔ that.infinity,
+        elem.simpleValue ⊔ that.simpleValue,
       )
 
       /** meet operator */
       override def ⊓(that: Elem): Elem = Elem(
-        elem.comp ⊓ that.comp,
-        elem.pureValue ⊓ that.pureValue,
+        elem.clo ⊓ that.clo,
+        elem.cont ⊓ that.cont,
+        elem.part ⊓ that.part,
+        elem.astValue ⊓ that.astValue,
+        elem.grammarSymbol ⊓ that.grammarSymbol,
+        elem.codeUnit ⊓ that.codeUnit,
+        elem.enumv ⊓ that.enumv,
+        elem.math ⊓ that.math,
+        elem.infinity ⊓ that.infinity,
+        elem.simpleValue ⊓ that.simpleValue,
       )
 
       /** prune operator */
       override def --(that: Elem): Elem = Elem(
-        elem.comp -- that.comp,
-        elem.pureValue -- that.pureValue,
+        elem.clo -- that.clo,
+        elem.cont -- that.cont,
+        elem.part -- that.part,
+        elem.astValue -- that.astValue,
+        elem.grammarSymbol -- that.grammarSymbol,
+        elem.codeUnit -- that.codeUnit,
+        elem.enumv -- that.enumv,
+        elem.math -- that.math,
+        elem.infinity -- that.infinity,
+        elem.simpleValue -- that.simpleValue,
       )
 
       /** concretization function */
       override def gamma: BSet[AValue] =
-        elem.comp.gamma ⊔
-        elem.pureValue.gamma
+        (elem.clo.gamma: BSet[AValue]) ⊔
+        elem.cont.gamma ⊔
+        elem.part.gamma ⊔
+        elem.astValue.gamma ⊔
+        elem.grammarSymbol.gamma ⊔
+        elem.codeUnit.gamma ⊔
+        elem.enumv.gamma ⊔
+        elem.math.gamma ⊔
+        elem.infinity.gamma ⊔
+        elem.simpleValue.gamma
 
       /** get single value */
       override def getSingle: Flat[AValue] =
-        elem.comp.getSingle ⊔
-        elem.pureValue.getSingle
+        (elem.clo.getSingle: Flat[AValue]) ⊔
+        elem.cont.getSingle ⊔
+        elem.part.getSingle ⊔
+        elem.astValue.getSingle ⊔
+        elem.grammarSymbol.getSingle ⊔
+        elem.codeUnit.getSingle ⊔
+        elem.enumv.getSingle ⊔
+        elem.math.getSingle ⊔
+        elem.infinity.getSingle ⊔
+        elem.simpleValue.getSingle
+
+      /** getters */
+      def clo: AbsClo = elem.clo
+      def cont: AbsCont = elem.cont
+      def part: AbsPart = elem.part
+      def astValue: AbsAstValue = elem.astValue
+      def grammarSymbol: AbsGrammarSymbol = elem.grammarSymbol
+      def codeUnit: AbsCodeUnit = elem.codeUnit
+      def enumv: AbsEnum = elem.enumv
+      def math: AbsMath = elem.math
+      def infinity: AbsInfinity = elem.infinity
+      def simpleValue: AbsSimpleValue = elem.simpleValue
+      def number: AbsNumber = elem.simpleValue.number
+      def bigInt: AbsBigInt = elem.simpleValue.bigInt
+      def str: AbsStr = elem.simpleValue.str
+      def bool: AbsBool = elem.simpleValue.bool
+      def undef: AbsUndef = elem.simpleValue.undef
+      def nullv: AbsNull = elem.simpleValue.nullv
 
       /** get reachable address partitions */
       def reachableParts: Set[Part] =
-        comp.reachableParts ++ pureValue.reachableParts
+        var parts = elem.part.toSet
+        for {
+          AClo(_, captured) <- elem.clo
+          (_, value) <- captured
+        } parts ++= value.reachableParts
+        for {
+          ACont(_, captured) <- elem.cont
+          (_, value) <- captured
+        } parts ++= value.reachableParts
+        parts
 
       /** bitwise operations */
       def &(that: Elem): Elem = ??? // TODO
@@ -298,8 +395,6 @@ trait ValueBasicDomainDecl { self: Self =>
         if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
         if (!elem.enumv.isBottom)
           bv ⊔= AbsBool(Bool(tname == "Enum"))
-        if (!elem.comp.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "CompletionRecord"))
         if (!elem.undef.isBottom)
           bv ⊔= AbsBool(Bool(tname == "Undefined"))
         if (!elem.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
@@ -414,27 +509,12 @@ trait ValueBasicDomainDecl { self: Self =>
         case _           => Bot
 
       /** completion helpers */
-      def wrapCompletion: Elem = wrapCompletion("normal")
-      def wrapCompletion(ty: String): Elem = apply(comp = {
-        if (!pureValue.isBottom)
-          comp ⊔ AbsComp(
-            Map(ty -> AbsComp.Result(pureValue, AbsPureValue(ENUM_EMPTY))),
-          )
-        else comp
-      })
-      def unwrapCompletion: Elem =
-        Elem(pureValue = comp.normal.value ⊔ elem.pureValue)
-      def isCompletion: Elem =
-        var b: AbsBool = AbsBool.Bot
-        if (!comp.isBottom) b ⊔= AT
-        if (!pureValue.isBottom) b ⊔= AF
-        apply(bool = b)
-      def normalCompletion: Elem =
-        if (pureValue.isBottom) Bot
-        else
-          val res = AbsComp.Result(pureValue, AbsPureValue(ENUM_EMPTY))
-          Elem(comp = AbsComp(Map("normal" -> res)))
-      def abruptCompletion: Elem = apply(comp = comp.removeNormal)
+      def wrapCompletion: Elem = ???
+      def wrapCompletion(ty: String): Elem = ???
+      def unwrapCompletion: Elem = ???
+      def isCompletion: Elem = ???
+      def normalCompletion: Elem = ???
+      def abruptCompletion: Elem = ???
 
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem
@@ -446,24 +526,6 @@ trait ValueBasicDomainDecl { self: Self =>
       def getLexical(method: String): Elem = ???
 
       /** getters */
-      def comp: AbsComp = elem.comp
-      def pureValue: AbsPureValue = elem.pureValue
-      def clo: AbsClo = elem.pureValue.clo
-      def cont: AbsCont = elem.pureValue.cont
-      def part: AbsPart = elem.pureValue.part
-      def astValue: AbsAstValue = elem.pureValue.astValue
-      def grammarSymbol: AbsGrammarSymbol = elem.pureValue.grammarSymbol
-      def codeUnit: AbsCodeUnit = elem.pureValue.codeUnit
-      def enumv: AbsEnum = elem.pureValue.enumv
-      def math: AbsMath = elem.pureValue.math
-      def infinity: AbsInfinity = elem.pureValue.infinity
-      def simpleValue: AbsSimpleValue = elem.pureValue.simpleValue
-      def number: AbsNumber = elem.pureValue.number
-      def bigInt: AbsBigInt = elem.pureValue.bigInt
-      def str: AbsStr = elem.pureValue.str
-      def bool: AbsBool = elem.pureValue.bool
-      def undef: AbsUndef = elem.pureValue.undef
-      def nullv: AbsNull = elem.pureValue.nullv
       def ty: ValueTy = notSupported("ValueBasicDomain.ty")
       def refinements: Refinements = notSupported(
         "ValueBasicDomain.refinements",

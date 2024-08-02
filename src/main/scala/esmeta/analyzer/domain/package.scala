@@ -19,7 +19,6 @@ trait Decl
   with bool.Decl
   with clo.Decl
   with codeUnit.Decl
-  with comp.Decl
   with enumv.Decl
   with cont.Decl
   with heap.Decl
@@ -30,7 +29,6 @@ trait Decl
   with number.Decl
   with obj.Decl
   with part.Decl
-  with pureValue.Decl
   with ret.Decl
   with simpleValue.Decl
   with state.Decl

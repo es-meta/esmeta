@@ -1,5 +1,9 @@
-def f(): Normal[Math] = {
-  return 42
+def f(): Record[Normal { Value : Math }] = {
+  return (record [Normal] {
+    "Type" : ~normal~,
+    "Value" : 42,
+    "Target" : ~empty~
+  })
 }
 
 @main def main() = {

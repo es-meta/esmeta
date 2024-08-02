@@ -4,8 +4,6 @@
   "closures" : true,
   "closures (negative)" : true,
   "code units" : true,
-  "completion values" : true,
-  "completion values (negative)" : true,
   "continuations" : true,
   "continuations (negative)" : true,
   "enum values" : true,

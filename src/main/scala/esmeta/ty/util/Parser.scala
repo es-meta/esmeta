@@ -67,82 +67,63 @@ trait Parsers extends BasicParsers {
   }.named("ty.ValueTy")
 
   private lazy val singleValueTy: Parser[ValueTy] = {
-    "Any" ^^^ AnyT | "Bot" ^^^ BotT | (
-      singleCompTy ^^ { case t => ValueTy(comp = t) } |
-      singlePureValueTy ^^ { case t => ValueTy(pureValue = t) }
-    )
-  }.named("ty.ValueTy (single)")
-
-  /** completion record types */
-  given compTy: Parser[CompTy] = {
-    rep1sep(singleCompTy, "|") ^^ { case ts => ts.foldLeft(CompTy.Bot)(_ || _) }
-  }.named("ty.CompTy")
-
-  private lazy val singleCompTy: Parser[CompTy] = {
-    "Normal" ~> opt("[" ~> pureValueTy <~ "]") ^^ {
-      case v => CompTy(normal = v.getOrElse(PureValueTy.Top))
+    "Any" ^^^ AnyT |
+    "Bot" ^^^ BotT |
+    // completion record
+    "Normal" ~> opt("[" ~> valueTy <~ "]") ^^ {
+      case None    => NormalT
+      case Some(v) => NormalT(v)
     } | "Abrupt" ~> opt("[" ~> rep1(ident) <~ "]") ^^ {
-      case s => CompTy(abrupt = s.fold(Inf)(Fin(_: _*)))
-    }
-  }.named("ty.CompTy (single)")
-
-  /** pure value types (non-completion record types) */
-  given pureValueTy: Parser[PureValueTy] = {
-    rep1sep(singlePureValueTy, "|") ^^ {
-      case ts => ts.foldLeft(PureValueTy.Bot)(_ || _)
-    }
-  }.named("ty.PureValueTy")
-
-  private lazy val singlePureValueTy: Parser[PureValueTy] = {
-    // any pure value
-    "PureValue" ^^^ PureValueTy.Top |
+      case None        => AbruptT
+      case Some(names) => AbruptT(names.toSet)
+    } |
     // ECMAScript value
-    "ESValue" ^^^ ESValueT.pureValue |
+    "ESValue" ^^^ ESValueT |
     // closure
     "Clo[" ~> rep1sep(string, ",") <~ "]" ^^ {
-      case s => PureValueTy(clo = Fin(s.toSet))
-    } | "Clo" ^^^ PureValueTy(clo = Inf) |
+      case s => ValueTy(clo = Fin(s.toSet))
+    } | "Clo" ^^^ ValueTy(clo = Inf) |
     // continuation
     "Cont[" ~> rep1sep(int, ",") <~ "]" ^^ {
-      case s => PureValueTy(cont = Fin(s.toSet))
-    } | "Cont" ^^^ PureValueTy(cont = Inf) |
+      case s => ValueTy(cont = Fin(s.toSet))
+    } | "Cont" ^^^ ValueTy(cont = Inf) |
     // record
-    singleRecordTy ^^ { case r => PureValueTy(record = r) } |
+    singleRecordTy ^^ { case r => ValueTy(record = r) } |
     // map
-    singleMapTy ^^ { case t => PureValueTy(map = t) } |
+    singleMapTy ^^ { case t => ValueTy(map = t) } |
     // list
-    singleListTy ^^ { case l => PureValueTy(list = l) } |
+    singleListTy ^^ { case l => ValueTy(list = l) } |
     // AST value
-    singleAstTy ^^ { case ast => PureValueTy(ast = ast) } |
+    singleAstTy ^^ { case ast => ValueTy(ast = ast) } |
     // grammar symbol
     "GrammarSymbol[" ~> rep1sep(grammarSymbol, ",") <~ "]" ^^ {
-      case s => PureValueTy(grammarSymbol = Fin(s.toSet))
-    } | "GrammarSymbol" ^^^ PureValueTy(grammarSymbol = Inf) |
+      case s => ValueTy(grammarSymbol = Fin(s.toSet))
+    } | "GrammarSymbol" ^^^ ValueTy(grammarSymbol = Inf) |
     // code unit
-    "CodeUnit" ^^^ PureValueTy(codeUnit = true) |
+    "CodeUnit" ^^^ ValueTy(codeUnit = true) |
     // enum
     "Enum[" ~> rep1sep(enumv, ",") <~ "]" ^^ {
-      case s => PureValueTy(enumv = Fin(s.toSet))
+      case s => ValueTy(enumv = Fin(s.toSet))
     } |
     // mathematical value
-    singleMathTy ^^ { case m => PureValueTy(math = m) } |
+    singleMathTy ^^ { case m => ValueTy(math = m) } |
     // infinity
-    singleInfinityTy ^^ { case i => PureValueTy(infinity = i) } |
+    singleInfinityTy ^^ { case i => ValueTy(infinity = i) } |
     // number
-    singleNumberTy ^^ { case n => PureValueTy(number = n) } |
+    singleNumberTy ^^ { case n => ValueTy(number = n) } |
     // big integer
-    "BigInt" ^^^ PureValueTy(bigInt = true) |
+    "BigInt" ^^^ ValueTy(bigInt = true) |
     // string
     "String[" ~> rep1sep(string, ",") <~ "]" ^^ {
-      case s => PureValueTy(str = Fin(s.toSet))
-    } | "String" ^^^ PureValueTy(str = Inf) |
+      case s => ValueTy(str = Fin(s.toSet))
+    } | "String" ^^^ ValueTy(str = Inf) |
     // boolean
-    singleBoolTy ^^ { case b => PureValueTy(bool = b) } |
+    singleBoolTy ^^ { case b => ValueTy(bool = b) } |
     // undefined
-    "Undefined" ^^^ PureValueTy(undef = true) |
+    "Undefined" ^^^ ValueTy(undef = true) |
     // null
-    "Null" ^^^ PureValueTy(nullv = true)
-  }.named("ty.PureValueTy (single)")
+    "Null" ^^^ ValueTy(nullv = true)
+  }.named("ty.ValueTy (single)")
 
   private lazy val numberWithSpecial: Parser[Number] =
     doubleWithSpecial ^^ { Number(_) }

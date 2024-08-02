@@ -9,28 +9,12 @@ import esmeta.util.BaseUtils.*
 
 trait AValueDecl { self: Self =>
 
-  /** values for analysis */
-  type AValue = Uninit | AComp | APureValue
-  object AValue:
-    /** from original values */
-    def from(value: Value): AValue = value match
-      case comp: Comp           => AComp.from(comp)
-      case pureValue: PureValue => APureValue.from(pureValue)
-
-  /** completion values for analysis */
-  case class AComp(ty: Enum, value: APureValue, target: Option[String])
-  object AComp:
-    /** from original completions */
-    def from(comp: Comp): AComp =
-      val Comp(ty, value, target) = comp
-      AComp(ty, APureValue.from(value), target)
-
   /** pure values for analysis */
-  type APureValue = Part | AClo | ACont | AstValue | GrammarSymbol | Math |
+  type AValue = Part | AClo | ACont | AstValue | GrammarSymbol | Math |
     Infinity | Enum | CodeUnit | SimpleValue
-  object APureValue:
+  object AValue:
     /** from original pure values */
-    def from(pureValue: PureValue): APureValue = pureValue match
+    def from(value: Value): AValue = value match
       case addr: Addr                   => Part.from(addr)
       case clo: Clo                     => AClo.from(clo)
       case cont: Cont                   => ACont.from(cont)

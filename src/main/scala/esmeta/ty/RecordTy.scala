@@ -47,10 +47,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           ls.filter(!isStrictSubTy(_, rs)) ++
           rs.filter(!isStrictSubTy(_, ls))
         }
-        fm = {
-          lmap.getOrElse(t, FieldMap.Top) ||
-          rmap.getOrElse(t, FieldMap.Top)
-        }
+        fm = (lmap.get(t), rmap.get(t)) match
+          case (Some(lfm), Some(rfm)) => lfm || rfm
+          case (Some(lfm), None)      => lfm
+          case (None, Some(rfm))      => rfm
+          case _                      => FieldMap.Top
       } yield t -> fm).toMap)
 
   /** intersection type */
@@ -78,8 +79,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case (Top, _) | (_, Bot) => this
     case (Elem(lmap), Elem(rmap)) =>
       Elem(lmap.filter { (l, lfm) =>
-        rmap.exists { (r, rfm) =>
-          !(isStrictSubTy(l, r) || (l == r && lfm <= rfm))
+        !rmap.exists { (r, rfm) =>
+          isStrictSubTy(l, r) || (l == r && lfm <= rfm)
         }
       })
 

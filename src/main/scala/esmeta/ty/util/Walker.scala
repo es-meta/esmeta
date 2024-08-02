@@ -15,8 +15,6 @@ trait Walker extends BasicWalker {
     case elem: FieldMap    => walk(elem)
     case elem: OptValueTy  => walk(elem)
     case elem: Ty          => walk(elem)
-    case elem: CompTy      => walk(elem)
-    case elem: PureValueTy => walk(elem)
     case elem: RecordTy    => walk(elem)
     case elem: ListTy      => walk(elem)
     case elem: AstTy       => walk(elem)
@@ -67,22 +65,10 @@ trait Walker extends BasicWalker {
   )
 
   /** value types */
-  def walk(ty: ValueTy): ValueTy = ValueTy(
-    walk(ty.comp),
-    walk(ty.pureValue),
-  )
-
-  /** completion record types */
-  def walk(ty: CompTy): CompTy = CompTy(
-    walk(ty.normal),
-    walkBSet(ty.abrupt, walk),
-  )
-
-  /** pure value types */
-  def walk(ty: PureValueTy): PureValueTy =
+  def walk(ty: ValueTy): ValueTy =
     if (ty.isTop) ty
     else
-      PureValueTy(
+      ValueTy(
         walkClo(ty.clo),
         walkCont(ty.cont),
         walk(ty.record),

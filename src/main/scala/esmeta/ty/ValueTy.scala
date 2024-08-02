@@ -1,123 +1,194 @@
 package esmeta.ty
 
+import esmeta.cfg.Func
 import esmeta.error.*
-import esmeta.error.NotSupported.{*, given}
 import esmeta.error.NotSupported.Category.*
+import esmeta.error.NotSupported.{*, given}
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** value types */
-case class ValueTy(
-  comp: CompTy,
-  pureValue: PureValueTy,
-) extends Ty
-  with Lattice[ValueTy] {
+sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   import ValueTy.*
 
+  def clo: BSet[String]
+  def cont: BSet[Int]
+  def record: RecordTy
+  def map: MapTy
+  def list: ListTy
+  def ast: AstTy
+  def grammarSymbol: BSet[GrammarSymbol]
+  def codeUnit: Boolean
+  def enumv: BSet[String]
+  def math: MathTy
+  def infinity: InfinityTy
+  def number: NumberTy
+  def bigInt: Boolean
+  def str: BSet[String]
+  def bool: BoolTy
+  def undef: Boolean
+  def nullv: Boolean
+
   /** top check */
-  def isTop: Boolean =
-    this.comp.isTop &&
-    this.pureValue.isTop
+  def isTop: Boolean = this eq Top
 
   /** bottom check */
   def isBottom: Boolean =
-    this.comp.isBottom &&
-    this.pureValue.isBottom
+    if (this eq Bot) true
+    else if (this eq Top) false
+    else
+      (
+        this.clo.isBottom &&
+        this.cont.isBottom &&
+        this.record.isBottom &&
+        this.map.isBottom &&
+        this.list.isBottom &&
+        this.ast.isBottom &&
+        this.grammarSymbol.isBottom &&
+        this.codeUnit.isBottom &&
+        this.enumv.isBottom &&
+        this.math.isBottom &&
+        this.infinity.isBottom &&
+        this.number.isBottom &&
+        this.bigInt.isBottom &&
+        this.str.isBottom &&
+        this.bool.isBottom &&
+        this.undef.isBottom &&
+        this.nullv.isBottom
+      )
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean = (this eq that) || {
-    this.comp <= that.comp &&
-    this.pureValue <= that.pureValue
-  }
+  def <=(that: => ValueTy): Boolean =
+    if ((this eq that) || (this eq Bot) || (that eq Top)) true
+    else if (this eq Top) false
+    else
+      this.clo <= that.clo &&
+      this.cont <= that.cont &&
+      this.record <= that.record &&
+      this.map <= that.map &&
+      this.list <= that.list &&
+      this.ast <= that.ast &&
+      this.grammarSymbol <= that.grammarSymbol &&
+      this.codeUnit <= that.codeUnit &&
+      this.enumv <= that.enumv &&
+      this.math <= that.math &&
+      this.infinity <= that.infinity &&
+      this.number <= that.number &&
+      this.bigInt <= that.bigInt &&
+      this.str <= that.str &&
+      this.bool <= that.bool &&
+      this.undef <= that.undef &&
+      this.nullv <= that.nullv
 
   /** union type */
   def ||(that: => ValueTy): ValueTy =
     if (this eq that) this
+    else if (this eq Bot) that
+    else if (this eq Top) Top
+    else if (that eq Bot) this
+    else if (that eq Top) Top
     else
       ValueTy(
-        this.comp || that.comp,
-        this.pureValue || that.pureValue,
-      )
+        this.clo || that.clo,
+        this.cont || that.cont,
+        this.record || that.record,
+        this.map || that.map,
+        this.list || that.list,
+        this.ast || that.ast,
+        this.grammarSymbol || that.grammarSymbol,
+        this.codeUnit || that.codeUnit,
+        this.enumv || that.enumv,
+        this.math || that.math,
+        this.infinity || that.infinity,
+        this.number || that.number,
+        this.bigInt || that.bigInt,
+        this.str || that.str,
+        this.bool || that.bool,
+        this.undef || that.undef,
+        this.nullv || that.nullv,
+      ).norm
 
   /** intersection type */
   def &&(that: => ValueTy): ValueTy =
     if (this eq that) this
+    else if (this eq Bot) Bot
+    else if (this eq Top) that
+    else if (that eq Bot) Bot
+    else if (that eq Top) this
     else
       ValueTy(
-        this.comp && that.comp,
-        this.pureValue && that.pureValue,
+        this.clo && that.clo,
+        this.cont && that.cont,
+        this.record && that.record,
+        this.map && that.map,
+        this.list && that.list,
+        this.ast && that.ast,
+        this.grammarSymbol && that.grammarSymbol,
+        this.codeUnit && that.codeUnit,
+        this.enumv && that.enumv,
+        this.math && that.math,
+        this.infinity && that.infinity,
+        this.number && that.number,
+        this.bigInt && that.bigInt,
+        this.str && that.str,
+        this.bool && that.bool,
+        this.undef && that.undef,
+        this.nullv && that.nullv,
       )
 
   /** prune type */
   def --(that: => ValueTy): ValueTy =
-    if (that.isBottom) this
+    if (this eq that) Bot
+    else if (this eq Bot) Bot
+    else if (that eq Bot) this
+    else if (that eq Top) Bot
     else
       ValueTy(
-        this.comp -- that.comp,
-        this.pureValue -- that.pureValue,
+        this.clo -- that.clo,
+        this.cont -- that.cont,
+        this.record -- that.record,
+        this.map -- that.map,
+        this.list -- that.list,
+        this.ast -- that.ast,
+        this.grammarSymbol -- that.grammarSymbol,
+        this.codeUnit -- that.codeUnit,
+        this.enumv -- that.enumv,
+        this.math -- that.math,
+        this.infinity -- that.infinity,
+        this.number -- that.number,
+        this.bigInt -- that.bigInt,
+        this.str -- that.str,
+        this.bool -- that.bool,
+        this.undef -- that.undef,
+        this.nullv -- that.nullv,
       )
 
-  /** completion check */
-  def isCompletion: Boolean =
-    !this.comp.isBottom &&
-    this.pureValue.isBottom
-
-  /** getters */
-  def normal: PureValueTy = comp.normal
-  def abrupt: BSet[String] = comp.abrupt
-  def clo: BSet[String] = pureValue.clo
-  def cont: BSet[Int] = pureValue.cont
-  def record: RecordTy = pureValue.record
-  def map: MapTy = pureValue.map
-  def list: ListTy = pureValue.list
-  def ast: AstTy = pureValue.ast
-  def grammarSymbol: BSet[GrammarSymbol] = pureValue.grammarSymbol
-  def codeUnit: Boolean = pureValue.codeUnit
-  def enumv: BSet[String] = pureValue.enumv
-  def math: MathTy = pureValue.math
-  def infinity: InfinityTy = pureValue.infinity
-  def number: NumberTy = pureValue.number
-  def bigInt: Boolean = pureValue.bigInt
-  def str: BSet[String] = pureValue.str
-  def bool: BoolTy = pureValue.bool
-  def undef: Boolean = pureValue.undef
-  def nullv: Boolean = pureValue.nullv
-
   /** value containment check */
-  def contains(value: Value, heap: Heap): Boolean =
-    (pureValue.isTop && value.isInstanceOf[PureValue]) || (value match
-      case NormalComp(value) =>
-        ValueTy(pureValue = comp.normal).contains(value, heap)
-      case Comp(Enum(tyStr), _, _) => comp.abrupt contains tyStr
-      case a: Addr =>
-        heap(a) match
-          case obj: RecordObj => record.contains(obj, heap)
-          case obj: MapObj    => map.contains(obj, heap)
-          case obj: ListObj   => list.contains(obj, heap)
-          case obj: YetObj    => throw NotSupported(Feature)(obj.msg)
-      case Clo(func, captured)             => clo contains func.irFunc.name
-      case Cont(func, captured, callStack) => cont contains func.id
-      case v: AstValue                     => ast.contains(v)
-      case x @ GrammarSymbol(name, params) => grammarSymbol contains x
-      case m: Math                         => math contains m
-      case Infinity(p)                     => infinity contains p
-      case Enum(name)                      => enumv contains name
-      case CodeUnit(c)                     => codeUnit
-      case n: Number                       => number contains n
-      case BigInt(n)                       => bigInt
-      case Str(s)                          => str contains s
-      case Bool(b)                         => bool contains b
-      case Undef                           => undef
-      case Null                            => nullv
-    )
+  def contains(value: Value, heap: Heap): Boolean = value match
+    case a: Addr =>
+      heap(a) match
+        case obj: RecordObj => record.contains(obj, heap)
+        case obj: MapObj    => map.contains(obj, heap)
+        case obj: ListObj   => list.contains(obj, heap)
+        case obj: YetObj    => throw NotSupported(Feature)(obj.msg)
+    case Clo(func, captured)             => clo contains func.irFunc.name
+    case Cont(func, captured, callStack) => cont contains func.id
+    case v: AstValue                     => ast.contains(v)
+    case x @ GrammarSymbol(name, params) => grammarSymbol contains x
+    case m: Math                         => math contains m
+    case Infinity(p)                     => infinity contains p
+    case Enum(name)                      => enumv contains name
+    case CodeUnit(c)                     => codeUnit
+    case n: Number                       => number contains n
+    case BigInt(n)                       => bigInt
+    case Str(s)                          => str contains s
+    case Bool(b)                         => bool contains b
+    case Undef                           => undef
+    case Null                            => nullv
 
   /** copy value type */
   def copied(
-    comp: CompTy = CompTy.Bot,
-    normal: PureValueTy = normal,
-    abrupt: BSet[String] = abrupt,
-    pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = clo,
     cont: BSet[Int] = cont,
     record: RecordTy = record,
@@ -136,43 +207,137 @@ case class ValueTy(
     undef: Boolean = undef,
     nullv: Boolean = nullv,
   ): ValueTy = ValueTy(
-    comp = comp || CompTy(normal, abrupt),
-    pureValue = pureValue || PureValueTy(
-      clo,
-      cont,
-      record,
-      map,
-      list,
-      ast,
-      grammarSymbol,
-      codeUnit,
-      enumv,
-      math,
-      infinity,
-      number,
-      bigInt,
-      str,
-      bool,
-      undef,
-      nullv,
-    ),
+    clo,
+    cont,
+    record,
+    map,
+    list,
+    ast,
+    grammarSymbol,
+    codeUnit,
+    enumv,
+    math,
+    infinity,
+    number,
+    bigInt,
+    str,
+    bool,
+    undef,
+    nullv,
   )
+
+  /** completion check */
+  def isCompletion: Boolean = this <= CompT
+
+  /** normalization */
+  def norm: ValueTy = if (
+    clo.isTop &&
+    cont.isTop &&
+    record.isTop &&
+    map.isTop &&
+    list.isTop &&
+    ast.isTop &&
+    grammarSymbol.isTop &&
+    codeUnit.isTop &&
+    enumv.isTop &&
+    math.isTop &&
+    infinity.isTop &&
+    number.isTop &&
+    bigInt.isTop &&
+    str.isTop &&
+    bool.isTop &&
+    undef.isTop &&
+    nullv.isTop
+  ) ValueTy.Top
+  else this
 
   /** get single value */
   def getSingle: Flat[Value] =
-    this.comp.getSingle ||
-    this.pureValue.getSingle ||
-    this.map.getSingle
+    (if (this.clo.isBottom) Zero else Many) ||
+    (if (this.cont.isBottom) Zero else Many) ||
+    (if (this.record.isBottom) Zero else Many) ||
+    (if (this.map.isBottom) Zero else Many) ||
+    (if (this.list.isBottom) Zero else Many) ||
+    (if (this.ast.isBottom) Zero else Many) ||
+    grammarSymbol.getSingle ||
+    (if (this.codeUnit.isBottom) Zero else Many) ||
+    (enumv.getSingle.map(Enum(_): Value)) ||
+    math.getSingle ||
+    (infinity.getSingle.map(Infinity(_): Value)) ||
+    number.getSingle ||
+    (if (this.bigInt.isBottom) Zero else Many) ||
+    (str.getSingle.map(Str(_): Value)) ||
+    (bool.getSingle.map(Bool(_): Value)) ||
+    (if (this.undef.isBottom) Zero else One(Undef)) ||
+    (if (this.nullv.isBottom) Zero else One(Null))
 
   /** types having no field */
-  def noField: ValueTy = Bot.copy(pureValue = pureValue.noField)
+  def noField: ValueTy = this match
+    case ValueTopTy =>
+      ValueElemTy(
+        clo = Inf,
+        cont = Inf,
+        grammarSymbol = Inf,
+        codeUnit = true,
+        enumv = Inf,
+        math = MathTy.Top,
+        number = NumberTy.Top,
+        bigInt = true,
+        bool = BoolTy.Top,
+        undef = true,
+        nullv = true,
+      )
+    case elem: ValueElemTy =>
+      elem.copy(
+        record = RecordTy.Bot,
+        map = MapTy.Bot,
+        list = ListTy.Bot,
+        ast = AstTy.Bot,
+        str = Fin(),
+      )
 }
+
+case object ValueTopTy extends ValueTy {
+  def clo: BSet[String] = Inf
+  def cont: BSet[Int] = Inf
+  def record: RecordTy = RecordTy.Top
+  def map: MapTy = MapTy.Top
+  def list: ListTy = ListTy.Bot // unsound but need to remove cycle
+  def ast: AstTy = AstTy.Top
+  def grammarSymbol: BSet[GrammarSymbol] = Inf
+  def codeUnit: Boolean = true
+  def enumv: BSet[String] = Inf
+  def math: MathTy = MathTy.Top
+  def infinity: InfinityTy = InfinityTy.Top
+  def number: NumberTy = NumberTy.Top
+  def bigInt: Boolean = true
+  def str: BSet[String] = Inf
+  def bool: BoolTy = BoolTy.Top
+  def undef: Boolean = true
+  def nullv: Boolean = true
+}
+
+case class ValueElemTy(
+  clo: BSet[String] = Fin(),
+  cont: BSet[Int] = Fin(),
+  record: RecordTy = RecordTy.Bot,
+  map: MapTy = MapTy.Bot,
+  list: ListTy = ListTy.Bot,
+  ast: AstTy = AstTy.Bot,
+  grammarSymbol: BSet[GrammarSymbol] = Fin(),
+  codeUnit: Boolean = false,
+  enumv: BSet[String] = Fin(),
+  math: MathTy = MathTy.Bot,
+  infinity: InfinityTy = InfinityTy.Bot,
+  number: NumberTy = NumberTy.Bot,
+  bigInt: Boolean = false,
+  str: BSet[String] = Fin(),
+  bool: BoolTy = BoolTy.Bot,
+  undef: Boolean = false,
+  nullv: Boolean = false,
+) extends ValueTy
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(
-    comp: CompTy = CompTy.Bot,
-    normal: PureValueTy = PureValueTy.Bot,
-    abrupt: BSet[String] = Fin(),
-    pureValue: PureValueTy = PureValueTy.Bot,
     clo: BSet[String] = Fin(),
     cont: BSet[Int] = Fin(),
     record: RecordTy = RecordTy.Bot,
@@ -190,28 +355,25 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,
-  ): ValueTy = ValueTy(
-    comp = comp || CompTy(normal, abrupt),
-    pureValue = pureValue || PureValueTy(
-      clo,
-      cont,
-      record,
-      map,
-      list,
-      ast,
-      grammarSymbol,
-      codeUnit,
-      enumv,
-      math,
-      infinity,
-      number,
-      bigInt,
-      str,
-      bool,
-      undef,
-      nullv,
-    ),
-  )
-  lazy val Top: ValueTy = ValueTy(CompTy.Top, PureValueTy.Top)
-  lazy val Bot: ValueTy = ValueTy(CompTy.Bot, PureValueTy.Bot)
+  ): ValueTy = ValueElemTy(
+    clo,
+    cont,
+    record,
+    map,
+    list,
+    ast,
+    grammarSymbol,
+    codeUnit,
+    enumv,
+    math,
+    infinity,
+    number,
+    bigInt,
+    str,
+    bool,
+    undef,
+    nullv,
+  ).norm
+  lazy val Top: ValueTy = ValueTopTy
+  lazy val Bot: ValueTy = ValueElemTy()
 }

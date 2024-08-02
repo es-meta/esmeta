@@ -63,21 +63,6 @@ class ContainsTinyTest extends TyTest {
       ),
     )
 
-    lazy val normalComp = NormalComp(Str("a"))
-    lazy val throwComp = Comp(Enum("throw"), Str("a"), None)
-    lazy val returnComp = Comp(Enum("return"), Str("a"), None)
-    checkContains("completion values")(
-      NormalT -> normalComp,
-      NormalT(StrT) -> normalComp,
-      AbruptT -> throwComp,
-      AbruptT("throw") -> throwComp,
-    ).neg(
-      NormalT -> throwComp,
-      NormalT(NumberT) -> normalComp,
-      AbruptT -> normalComp,
-      AbruptT("throw") -> returnComp,
-    )
-
     checkContains("map objects")(
       MapT -> mapAddr,
       MapT(NumberT, UndefT) -> mapAddr,

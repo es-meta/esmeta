@@ -9,8 +9,6 @@ import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 object JsonProtocol extends BasicJsonProtocol {
   import Stringifier.given
 
-  given Decoder[CompTy] = decoderWithParser(CompTy.from)
-  given Encoder[CompTy] = encoderWithStringifier(stringify)
   given Decoder[BoolTy] = decoderWithParser(BoolTy.from)
   given Encoder[BoolTy] = encoderWithStringifier(stringify)
   given Decoder[MapTy] = decoderWithParser(MapTy.from)
@@ -23,8 +21,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ValueTy] = encoderWithStringifier(stringify)
   given Decoder[AstTy] = decoderWithParser(AstTy.from)
   given Encoder[AstTy] = encoderWithStringifier(stringify)
-  given Decoder[PureValueTy] = decoderWithParser(PureValueTy.from)
-  given Encoder[PureValueTy] = encoderWithStringifier(stringify)
   given Decoder[Ty] = decoderWithParser(Ty.from)
   given Encoder[Ty] = encoderWithStringifier(stringify)
   given [T](using decoder: Decoder[T]): Decoder[Map[String, T]] = strMapDecoder

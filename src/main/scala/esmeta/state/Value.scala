@@ -1,9 +1,10 @@
 package esmeta.state
 
-import esmeta.cfg.Func
+import esmeta.cfg.{CFG, Func}
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ty.*
 import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
@@ -12,27 +13,20 @@ import scala.collection.mutable.{Map => MMap}
 sealed trait Value extends StateElem {
 
   /** check abrupt completion */
-  def isCompletion: Boolean = this match
-    case comp: Comp => true
-    case _          => false
+  def isCompletion(st: State): Boolean = CompT.contains(this, st)
 
   /** check abrupt completion */
-  def isAbruptCompletion: Boolean = this match
-    case comp: Comp => comp.ty != ENUM_NORMAL
-    case _          => false
+  def isAbruptCompletion(st: State): Boolean = AbruptT.contains(this, st)
 
   /** wrap completion */
-  def wrapCompletion: Comp = wrapCompletion(ENUM_NORMAL)
-  def wrapCompletion(ty: Enum): Comp = this match
-    case comp: Comp      => comp
-    case pure: PureValue => Comp(ty, pure, None)
-
-  /** convert value to pure value see:
-    * https://github.com/es-meta/esmeta/issues/66
-    */
-  def toPureValue: PureValue = this match
-    case comp: Comp      => throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure
+  def wrapCompletion(st: State)(using CFG): Value =
+    if (isCompletion(st)) this
+    else
+      val addr = st.allocRecord("Normal")
+      st.update(addr, Str("Type"), Enum("normal"))
+      st.update(addr, Str("Value"), this)
+      st.update(addr, Str("Target"), Enum("empty"))
+      addr
 
   /** check if the value is an expected type */
   def asStr: String = this match
@@ -67,30 +61,8 @@ sealed trait Value extends StateElem {
     case _ => throw NoAddr(this)
 }
 
-/** completion values */
-case class Comp(
-  ty: Enum,
-  var value: PureValue, // XXX YieldExpression[2,0].Evaluation
-  target: Option[String],
-) extends Value {
-  def targetValue: PureValue = target.fold[PureValue](ENUM_EMPTY)(Str(_))
-}
-
-/** normal completion */
-object NormalComp {
-  def apply(value: Value): Comp =
-    Comp(ENUM_NORMAL, value.toPureValue, None)
-  def unapply(comp: Comp): Option[PureValue] = comp match {
-    case Comp(ENUM_NORMAL, value, None) => Some(value)
-    case _                              => None
-  }
-}
-
-/** pure values (values except completion records) */
-sealed trait PureValue extends Value
-
 /** addresses */
-sealed trait Addr extends PureValue
+sealed trait Addr extends Value
 case class NamedAddr(name: String) extends Addr
 case class DynamicAddr(long: Long) extends Addr
 
@@ -101,7 +73,7 @@ given Ordering[Addr] = Ordering.by(_ match
 )
 
 /** function values */
-sealed trait Callable extends PureValue {
+sealed trait Callable extends Value {
   def func: Func
   def captured: Map[Name, Value]
 }
@@ -117,13 +89,13 @@ case class Cont(
 ) extends Callable
 
 /** abstract syntax tree (AST) values */
-case class AstValue(ast: Ast) extends PureValue
+case class AstValue(ast: Ast) extends Value
 
 /** grammar symbols */
-case class GrammarSymbol(name: String, params: List[Boolean]) extends PureValue
+case class GrammarSymbol(name: String, params: List[Boolean]) extends Value
 
 /** mathematical values */
-case class Math(decimal: BigDecimal) extends PureValue
+case class Math(decimal: BigDecimal) extends Value
 object Math {
   val zero: Math = Math(0)
   val one: Math = Math(1)
@@ -153,20 +125,20 @@ object Math {
 }
 
 /** infinity values */
-case class Infinity(pos: Boolean) extends PureValue
+case class Infinity(pos: Boolean) extends Value
 
 /** enums */
-case class Enum(name: String) extends PureValue
+case class Enum(name: String) extends Value
 
 /** code units */
-case class CodeUnit(c: Char) extends PureValue
+case class CodeUnit(c: Char) extends Value
 
 /** simple values
   *
   * Simple values are ECMAScript values except objects and symbols. ECMAScript
   * objects and symbols need to be stored in a heap.
   */
-sealed trait SimpleValue extends PureValue
+sealed trait SimpleValue extends Value
 
 /** numeric values */
 sealed trait Numeric extends SimpleValue:

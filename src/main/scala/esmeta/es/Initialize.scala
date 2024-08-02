@@ -119,11 +119,11 @@ class Initialize(cfg: CFG) {
 
   // get data from builtin head
   extension (str: String) {
-    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
+    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
       BuiltinPath.from(str).getData
   }
   extension (path: BuiltinPath) {
-    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
+    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
       import BuiltinPath.*
       path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
@@ -178,9 +178,7 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
       obj
 
-    def updateMap(obj: MapObj)(
-      pairs: (PureValue, Value)*,
-    ): obj.type =
+    def updateMap(obj: MapObj)(pairs: (Value, Value)*): obj.type =
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
       obj
 

@@ -44,12 +44,6 @@ case class State(
     case x: Global => globals.getOrElse(x, throw UnknownVar(x))
     case x: Local  => context.locals.getOrElse(x, throw UnknownVar(x))
   def apply(base: Value, field: Value): Value = base match
-    case comp: Comp =>
-      field match
-        case Str("Type")   => comp.ty
-        case Str("Value")  => comp.value
-        case Str("Target") => comp.targetValue
-        case _             => throw InvalidCompField(comp, field)
     case addr: Addr    => heap(addr, field)
     case AstValue(ast) => AstValue(ast(field))
     case Str(str)      => apply(str, field)
@@ -70,12 +64,8 @@ case class State(
   def update(x: Var, value: Value): Unit = x match
     case x: Global => globals += x -> value
     case x: Local  => context.locals += x -> value
-  def update(base: Value, field: Value, value: Value): Unit = base match
-    // XXX see https://github.com/es-meta/esmeta/issues/65
-    case comp: Comp if comp.isAbruptCompletion && field.asStr == "Value" =>
-      comp.value = value.toPureValue
-    case addr: Addr => heap.update(addr, field, value)
-    case _          => error(s"illegal field update: $base[$field] = $value")
+  def update(base: Value, field: Value, value: Value): Unit =
+    heap.update(base.asAddr, field, value)
 
   /** existence checks */
   def exists(rt: RefTarget): Boolean = rt match
@@ -122,15 +112,9 @@ case class State(
       s"[${irFunc.kind}${irFunc.name}] Exited"
 
   /** get string for a given address */
-  def getString(value: Value): String = value match {
-    case comp: Comp =>
-      comp.toString + (comp.value match {
-        case addr: Addr => " -> " + heap(addr).toString
-        case _          => ""
-      })
+  def getString(value: Value): String = value match
     case addr: Addr => addr.toString + " -> " + heap(addr).toString
     case _          => value.toString
-  }
 
   /** copied */
   def copied: State =

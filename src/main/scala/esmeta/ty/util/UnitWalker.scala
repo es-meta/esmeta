@@ -14,8 +14,6 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: TyDecl.Elem => walk(elem)
     case elem: FieldMap    => walk(elem)
     case elem: Ty          => walk(elem)
-    case elem: CompTy      => walk(elem)
-    case elem: PureValueTy => walk(elem)
     case elem: RecordTy    => walk(elem)
     case elem: ListTy      => walk(elem)
     case elem: AstTy       => walk(elem)
@@ -56,17 +54,7 @@ trait UnitWalker extends BasicUnitWalker {
     walkOpt(ty.msg, walk)
 
   /** value types */
-  def walk(ty: ValueTy): Unit =
-    walk(ty.comp)
-    walk(ty.pureValue)
-
-  /** completion record types */
-  def walk(ty: CompTy): Unit =
-    walk(ty.normal)
-    walkBSet(ty.abrupt, walk)
-
-  /** pure value types */
-  def walk(ty: PureValueTy): Unit = if (!ty.isTop)
+  def walk(ty: ValueTy): Unit = if (!ty.isTop)
     walkClo(ty.clo)
     walkCont(ty.cont)
     walk(ty.record)

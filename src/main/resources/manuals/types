@@ -1,3 +1,18 @@
+type Completion {
+  Type: Enum[~normal~, ~break~, ~continue~, ~return~, ~throw~];
+  Value: Any;
+  Target: String | Enum[~empty~];
+}
+
+type Normal extends Completion {
+  Type: Enum[~normal~];
+  Target: Enum[~empty~];
+}
+
+type Abrupt extends Completion {
+  Type: Enum[~break~, ~continue~, ~return~, ~throw~];
+}
+
 type AgentRecord {
   CanBlock: Boolean;
   CandidateExecution: Record[CandidateExecutionRecord];

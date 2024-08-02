@@ -22,7 +22,7 @@ def sudomergesort(list: List[Math]) = {
     }
     call sortedleft = clo<"sudomergesort">(left)
     call sortedright = clo<"sudomergesort">(right)
-    sortedlist = (list-concat [? sortedleft] [? sortedright])[#1]
+    sortedlist = (list-concat sortedleft sortedright)[#1]
   }
   return sortedlist
 }

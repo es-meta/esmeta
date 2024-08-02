@@ -25,7 +25,6 @@ def <BUILTIN>:INTRINSICS.RangeError(
     call %3 = clo<"ToString">(message)
     let msg = [? %3]
     call %4 = clo<"CreateNonEnumerableDataPropertyOrThrow">(O, "message", msg)
-    [! %4]
   }
   call %5 = clo<"InstallErrorCause">(O, options)
   [? %5]
