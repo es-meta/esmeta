@@ -203,18 +203,13 @@ object SystemUtils {
     Await.result(Future(Try(f)), duration).get
 
   /** concurrently execute a list of functions */
-  def concurrent[T](
-    fs: Iterable[() => T],
-    duration: Duration = Duration.Inf,
-  )(using ctxt: ExecutionContext = ExecutionContext.global): Iterable[T] =
-    implicit val context: ExecutionContext = ctxt
-    Await
-      .result(
-        Future.sequence(fs.map(f => Future(Try(f())))),
-        duration,
-      )
-      .map(_.get)
+  def concurrent[T](fs: Iterable[() => T], duration: Duration = Duration.Inf)(
+    using ctxt: ExecutionContext = ExecutionContext.global,
+  ): Iterable[T] = Await
+    .result(Future.sequence(fs.map(f => Future(Try(f())))), duration)
+    .map(_.get)
 
+  /** use fixed thread pool */
   def fixedThread(nThread: Int): (ExecutorService, ExecutionContext) =
     val service = Executors.newFixedThreadPool(nThread)
     (service, ExecutionContext.fromExecutor(service))

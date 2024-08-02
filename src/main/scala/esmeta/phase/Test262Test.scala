@@ -96,7 +96,8 @@ case object Test262Test extends Phase[CFG, Summary] {
         c.concurrent =
           if (k <= 0) then CP.Auto else if (k == 1) CP.Single else CP.Fixed(k),
       ),
-      "set the number of thread to use concurrently (default: no concurrent mode). If number <= 0, use automatically determined number of threads.",
+      "set the number of thread to use concurrently (default: no concurrent)." +
+      " If number <= 0, use automatically determined number of threads.",
     ),
     (
       "verbose",
