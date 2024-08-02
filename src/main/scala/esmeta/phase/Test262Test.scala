@@ -1,6 +1,6 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.{CommandConfig, TEST_MODE}
 import esmeta.cfg.CFG
 import esmeta.error.*
 import esmeta.interpreter.*
@@ -34,6 +34,13 @@ case object Test262Test extends Phase[CFG, Summary] {
     val targets =
       if (cmdConfig.targets.isEmpty) None
       else Some(cmdConfig.targets)
+
+    if (config.timeLimit.isDefined && config.concurrent == CP.Auto)
+      error(
+        "Turing on both time limit option (-test262-test:timeout and " +
+        "the concurrent mode (-test262-test:concurrent) with " +
+        "automatic thread number is not allowed.",
+      )
 
     // run test262 eval test
     val summary = test262.evalTest(
