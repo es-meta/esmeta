@@ -42,7 +42,6 @@ trait Parsers extends TyParsers {
     "<BUILTIN>:" ^^^ Builtin |
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
-    "<BUILTIN-CLO>:" ^^^ BuiltinClo |
     "<AUX>:" ^^^ Aux |
     "" ^^^ AbsOp
   }.named("ir.FuncKind")

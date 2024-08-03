@@ -36,5 +36,6 @@ def <BUILTIN>:INTRINSICS.URIError(
   assert (? %5: Completion)
   if (? %5: Abrupt) return %5
   else %5 = %5.Value
-  return O
+  call %6 = clo<"NormalCompletion">(O)
+  return %6
 }

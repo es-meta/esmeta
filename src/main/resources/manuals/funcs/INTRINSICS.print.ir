@@ -9,5 +9,6 @@ def <BUILTIN>:INTRINSICS.print(
     expand __args__.x
   } else let x = undefined
   print x
-  return undefined
+  call %0 = clo<"NormalCompletion">(undefined)
+  return %0
 }

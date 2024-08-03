@@ -17,28 +17,38 @@ def ToBigInt(
     return %4
   }
   if (= (typeof prim) @Boolean) {
-    if prim return 1n else return 0n
+    if prim {
+      call %5 = clo<"NormalCompletion">(1n)
+      return %5
+    } else {
+      call %6 = clo<"NormalCompletion">(0n)
+      return %6
+    }
   }
-  if (= (typeof prim) @BigInt) return prim
+  if (= (typeof prim) @BigInt) {
+    call %7 = clo<"NormalCompletion">(prim)
+    return %7
+  }
   if (= (typeof prim) @Number) {
-    call %5 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call %6 = clo<"ThrowCompletion">(%5)
-    return %6
+    call %8 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %9 = clo<"ThrowCompletion">(%8)
+    return %9
   }
   if (= (typeof prim) @String) {
-    call %7 = clo<"StringToBigInt">(prim)
-    let n = %7
+    call %10 = clo<"StringToBigInt">(prim)
+    let n = %10
     if (= n undefined) {
-      call %8 = clo<"__NEW_ERROR_OBJ__">("%SyntaxError.prototype%")
-      call %9 = clo<"ThrowCompletion">(%8)
-      return %9
+      call %11 = clo<"__NEW_ERROR_OBJ__">("%SyntaxError.prototype%")
+      call %12 = clo<"ThrowCompletion">(%11)
+      return %12
     }
-    return n
+    call %13 = clo<"NormalCompletion">(n)
+    return %13
   }
   if (= (typeof prim) @Symbol) {
-    call %10 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-    call %11 = clo<"ThrowCompletion">(%10)
-    return %11
+    call %14 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+    call %15 = clo<"ThrowCompletion">(%14)
+    return %15
   }
   assert false
 }

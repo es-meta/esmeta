@@ -12,59 +12,65 @@ def ToObject(
     return %3
   }
   if (= (typeof argument) @Boolean) {
-    return (record [OrdinaryObject] {
+    call %4 = clo<"NormalCompletion">((record [OrdinaryObject] {
       "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"],
       "BooleanData" : argument,
       "Extensible" : true,
       "__MAP__" : (map),
       "PrivateElements" : (list []),
-    })
+    }))
+    return %4
   }
   if (= (typeof argument) @Number) {
-    return (record [OrdinaryObject] {
+    call %5 = clo<"NormalCompletion">((record [OrdinaryObject] {
       "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Number.prototype%"],
       "NumberData" : argument,
       "Extensible" : true,
       "__MAP__" : (map),
       "PrivateElements" : (list []),
-    })
+    }))
+    return %5
   }
   if (= (typeof argument) @String) {
-    let obj = (record [StringExoticObject] {
+    call %6 = clo<"NormalCompletion">((record [StringExoticObject] {
       "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"],
       "StringData" : argument,
       "Extensible" : true,
-      "__MAP__" : (map),
+      "__MAP__" : (map {
+        "length" -> (record [PropertyDescriptor] {
+          "Value" : ([number] argument.length),
+          "Writable" : false,
+          "Enumerable" : false,
+          "Configurable" : false,
+        }),
+      }),
       "PrivateElements" : (list []),
-    })
-    obj.__MAP__.length = (record [PropertyDescriptor] {
-      "Value" : ([number] argument.length),
-      "Writable" : false,
-      "Enumerable" : false,
-      "Configurable" : false,
-    })
-    return obj
+    }))
+    return %6
   }
   if (= (typeof argument) @Symbol) {
-    let obj = (record [OrdinaryObject] {
+    call %7 = clo<"NormalCompletion">((record [OrdinaryObject] {
       "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Symbol.prototype%"],
       "SymbolData" : argument,
       "Extensible" : true,
       "__MAP__" : (map),
       "PrivateElements" : (list []),
-    })
-    return obj
+    }))
+    return %7
   }
   if (= (typeof argument) @BigInt) {
-    let obj = (record [OrdinaryObject] {
+    call %8 = clo<"NormalCompletion">((record [OrdinaryObject] {
       "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"],
       "BigIntData" : argument,
       "Extensible" : true,
       "__MAP__" : (map),
       "PrivateElements" : (list []),
-    })
-    return obj
+    }))
+    return %8
   }
-  if (= (typeof argument) @Object) return argument
+  if (= (typeof argument) @Object) {
+    call %9 = clo<"NormalCompletion">(argument)
+    return %9
+  }
   assert false
 }

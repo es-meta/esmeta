@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.ir.util.{Walker => IRWalker}
-import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.{Type => IRType, Param => IRParam, *}
 import esmeta.lang.*
 import esmeta.ty.*
 
@@ -36,3 +36,16 @@ inline def currentRealm: Ref = toStrRef(GLOBAL_CONTEXT, "Realm")
 // current intrinsics
 inline def currentIntrinsics: Ref =
   toStrRef(currentRealm, "Intrinsics")
+
+inline def isCompletion(e: Expr): Expr = ETypeCheck(e, IRType(CompT))
+
+/** instruction helpers */
+inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
+  paramOpt.map(toParam(_)).toList
+inline def toParam(x: Variable): IRParam = IRParam(Name(x.name))
+inline def emptyInst = ISeq(List())
+
+/** expression helpers */
+inline def emptyList = EList(List())
+inline def dataPropClo = EClo("IsDataDescriptor", Nil)
+inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)

@@ -137,14 +137,7 @@ class Interpreter(
           st.callStack ::= CallContext(st.context, lhs)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
-          val needWrapped =
-            func.isReturnComp ||
-            ((func.isClo || func.isCont) &&
-            cfg.getFunc(func.baseName).isReturnComp)
-          val vs =
-            args
-              .map(eval)
-              .map(v => if (needWrapped) v.wrapCompletion(st) else v)
+          val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
@@ -391,20 +384,7 @@ class Interpreter(
   /** set return value and move to the exit node */
   def setReturn(value: Value, ret: Return): Unit =
     val func = st.context.func
-    st.context.retVal = Some(
-      (
-        ret,
-        // wrap completion by conditions specified in
-        // [5.2.3.5 Implicit Normal Completion]
-        // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-        if (
-          func.isReturnComp ||
-          ((func.isClo || func.isCont) &&
-          cfg.getFunc(func.baseName).isReturnComp)
-        ) value.wrapCompletion(st)
-        else value,
-      ),
-    )
+    st.context.retVal = Some(ret, value)
     st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */

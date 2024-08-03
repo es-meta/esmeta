@@ -11,11 +11,6 @@ def RequireObjectCoercible(
     call %3 = clo<"ThrowCompletion">(%2)
     return %3
   }
-  if (= (typeof argument) @Boolean) return argument
-  if (= (typeof argument) @Number) return argument
-  if (= (typeof argument) @String) return argument
-  if (= (typeof argument) @Symbol) return argument
-  if (= (typeof argument) @BigInt) return argument
-  if (= (typeof argument) @Object) return argument
-  assert false
+  call %0 = clo<"NormalCompletion">(argument)
+  return %0
 }

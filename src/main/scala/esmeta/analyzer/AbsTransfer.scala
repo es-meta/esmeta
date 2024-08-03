@@ -624,19 +624,19 @@ trait AbsTransferDecl { self: Analyzer =>
     } yield ()
 
     /** update return points */
-    def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =
-      val InternalReturnPoint(NodePoint(func, _, view), _) = irp
-      val retRp = ReturnPoint(func, sem.getEntryView(view))
-      // wrap completion by conditions specified in
-      // [5.2.3.5 Implicit Normal Completion]
-      // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-      val newRet = if (func.isReturnComp) givenRet.wrapCompletion else givenRet
-      if (!newRet.value.isBottom)
-        val oldRet = sem(retRp)
-        if (!oldRet.isBottom && useRepl) Repl.merged = true
-        if (newRet !⊑ oldRet)
-          sem.rpMap += retRp -> (oldRet ⊔ newRet)
-          sem.worklist += retRp
+    def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit = ???
+    // val InternalReturnPoint(NodePoint(func, _, view), _) = irp
+    // val retRp = ReturnPoint(func, sem.getEntryView(view))
+    // // wrap completion by conditions specified in
+    // // [5.2.3.5 Implicit Normal Completion]
+    // // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
+    // val newRet = if (func.isReturnComp) givenRet.wrapCompletion else givenRet
+    // if (!newRet.value.isBottom)
+    //   val oldRet = sem(retRp)
+    //   if (!oldRet.isBottom && useRepl) Repl.merged = true
+    //   if (newRet !⊑ oldRet)
+    //     sem.rpMap += retRp -> (oldRet ⊔ newRet)
+    //     sem.worklist += retRp
 
     // short circuit evaluation
     def shortCircuit(

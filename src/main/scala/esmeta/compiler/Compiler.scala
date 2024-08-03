@@ -196,22 +196,21 @@ class Compiler(
   /** compile an algorithm to an IR function */
   // TODO consider refactor
   def compile(algo: Algorithm): Unit =
-    val fb = FuncBuilder(
-      spec,
-      getKind(algo.head),
-      algo.head.fname,
-      algo.head.funcParams.map(compile),
-      compile(algo.retTy),
-      algo,
-    )
+    import FuncKind.*
+    val kind = getKind(algo.head)
+    val name = algo.head.fname
+    val params = algo.head.funcParams.map(compile)
+    val retTy = compile(algo.retTy)
+    val needReturnComp = kind match
+      case SynDirOp if name.endsWith(".Evaluation") => true
+      case Builtin                                  => true
+      case _                                        => retTy.isCompletion
+    val fb =
+      FuncBuilder(spec, kind, name, params, retTy, algo, None, needReturnComp)
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
-    addFunc(
-      fb = fb,
-      body = algo.body,
-      prefix = prefix,
-    )
+    addFunc(fb, algo.body, prefix)
 
   /** compile algorithm steps */
   def compile(
@@ -243,6 +242,18 @@ class Compiler(
     case ReturnStep(expr) =>
       val e = expr.fold(EUndef())(compile(fb, _))
       fb.returnContext match
+        case None if fb.needReturnComp =>
+          val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
+          val (y, yExpr) = fb.newTIdWithExpr
+          fb.addInst(
+            IIf(
+              isCompletion(x),
+              IReturn(x),
+              emptyInst,
+            ),
+            ICall(y, EClo("NormalCompletion", Nil), List(x)),
+            IReturn(yExpr),
+          )
         case None          => fb.addInst(IReturn(e))
         case Some(context) => fb.addReturnToResume(context, e)
     case AssertStep(cond) =>
@@ -401,6 +412,7 @@ class Compiler(
           fb.retTy,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+          fb.needReturnComp,
         ),
         body = body,
       )
@@ -421,6 +433,8 @@ class Compiler(
           ps,
           fb.retTy,
           fb.algo,
+          None,
+          fb.needReturnComp,
         ),
         body = bodyStep,
       )
@@ -445,6 +459,7 @@ class Compiler(
           fb.retTy,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+          fb.needReturnComp,
         ),
         body = BlockStep(StepBlock(steps)),
       )
@@ -457,7 +472,8 @@ class Compiler(
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
-      val inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      var inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      if (fb.needReturnComp) inst = fb.returnModifier.walk(inst)
       unusedRules -= yetStr
       fb.addInst(inst)
   })
@@ -658,7 +674,7 @@ class Compiler(
         val (ck, cn, ps) =
           if (hasPrefix)
             (
-              FuncKind.BuiltinClo,
+              FuncKind.Clo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
             )
@@ -668,7 +684,8 @@ class Compiler(
               fb.nextCloName,
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
             )
-        val cloFB = FuncBuilder(spec, ck, cn, ps, IRUnknownType, fb.algo)
+        val retTy = IRUnknownType
+        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, None, true)
         val prefix =
           if (hasPrefix)
             getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))
@@ -1057,17 +1074,6 @@ class Compiler(
       case (rhs, idx) :: Nil => Some(prod.lhs, idx)
       case _                 => None
 
-  /** instruction helpers */
-  inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
-    paramOpt.map(toParam(_)).toList
-  inline def toParam(x: Variable): IRParam = IRParam(Name(x.name))
-  inline def emptyInst = ISeq(List())
-
-  /** expression helpers */
-  inline def emptyList = EList(List())
-  inline def dataPropClo = EClo("IsDataDescriptor", Nil)
-  inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
-
   /** literal helpers */
   def zero = EMath(BigDecimal(0, UNLIMITED))
   def one = EMath(BigDecimal(1, UNLIMITED))
@@ -1134,7 +1140,6 @@ class Compiler(
         IAssign(x, ERef(Field(x, EStr("Value")))),
       )
     xExpr
-  inline def isCompletion(e: Expr): Expr = ETypeCheck(e, IRType(CompT))
   val simpleOps: Map[String, SimpleOp] = Map(
     arityCheck("ParseText" -> {
       case (_, List(code, rule)) => EParse(code, rule)

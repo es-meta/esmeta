@@ -31,11 +31,6 @@ case class Func(
     IRElem.getStringifier(true, false).funcHeadRule(true)(app, this)
     app.toString
 
-  /** check whether it is builtin */
-  lazy val isBuiltin: Boolean =
-    kind == FuncKind.Builtin ||
-    kind == FuncKind.BuiltinClo
-
   /** compute arity */
   def arity: (Int, Int) =
     val idx = params.indexWhere(_.optional)
@@ -49,6 +44,5 @@ object Func extends Parser.From(Parser.func)
 
 /** function kinds */
 enum FuncKind extends IRElem:
-  case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
-  BuiltinClo, Aux
+  case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont, Aux
 object FuncKind extends Parser.From(Parser.funcKind)

@@ -8,7 +8,9 @@ def <NUM>:BigInt::exponentiate(
     return %1
   }
   if (&& (= base 0n) (= exponent 0n)) {
-    return 1n
+    call %2 = clo<"NormalCompletion">(1n)
+    return %2
   }
-  return (** base exponent)
+  call %3 = clo<"NormalCompletion">((** base exponent))
+  return %3
 }

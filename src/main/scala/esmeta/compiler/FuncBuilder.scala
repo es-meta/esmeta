@@ -13,8 +13,10 @@ case class FuncBuilder(
   params: List[IRParam],
   retTy: IRType,
   algo: Algorithm,
-  returnContext: Option[Ref] = None,
+  returnContext: Option[Ref],
+  needReturnComp: Boolean,
 ) {
+  import FuncKind.*
 
   /** get an IR function as the result of compilation of an algorithm */
   def getFunc(body: => Inst): Func = Func(
@@ -28,9 +30,7 @@ case class FuncBuilder(
   )
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean =
-    kind == FuncKind.Builtin ||
-    kind == FuncKind.BuiltinClo
+  lazy val isBuiltin: Boolean = kind == Builtin
 
   /** bindings for nonterminals */
   var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
@@ -103,6 +103,8 @@ case class FuncBuilder(
   val langs: Stack[Syntax] = Stack()
 
   lazy val backEdgeWalker: BackEdgeWalker = BackEdgeWalker(this)
+
+  lazy val returnModifier: ReturnModifier = ReturnModifier(this)
 
   // ---------------------------------------------------------------------------
   // Private Helpers

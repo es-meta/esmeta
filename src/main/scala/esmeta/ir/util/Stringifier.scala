@@ -63,7 +63,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Builtin      => "<BUILTIN>:"
       case Clo          => "<CLO>:"
       case Cont         => "<CONT>:"
-      case BuiltinClo   => "<BUILTIN-CLO>:"
       case Aux          => "<AUX>:"
     })
 

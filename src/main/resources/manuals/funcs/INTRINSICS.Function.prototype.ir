@@ -3,5 +3,6 @@ def <BUILTIN>:INTRINSICS.Function.prototype(
   ArgumentsList: List[ESValue],
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
-  return undefined
+  call %0 = clo<"NormalCompletion">(undefined)
+  return %0
 }
