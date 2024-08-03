@@ -9,7 +9,6 @@ import scala.annotation.meta.field
 // IR expressions
 sealed trait Expr extends IRElem with LangEdge
 object Expr extends Parser.From(Parser.expr)
-case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr with Return
 case class EParse(code: Expr, rule: Expr) extends Expr
 case class EGrammarSymbol(name: String, params: List[Boolean]) extends Expr
 case class ESourceText(expr: Expr) extends Expr

@@ -172,13 +172,6 @@ class Interpreter(
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
-    case ria @ EReturnIfAbrupt(ERef(ref), check) =>
-      val refV = eval(ref)
-      val value = returnIfAbrupt(ria, st(refV), check)
-      st.update(refV, value)
-      value
-    case ria @ EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(ria, eval(expr), check)
     case EParse(code, rule) =>
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
@@ -386,18 +379,6 @@ class Interpreter(
     aux(params, args)
     map
   }
-
-  /** helper for return-if-abrupt cases */
-  def returnIfAbrupt(
-    ria: EReturnIfAbrupt,
-    value: Value,
-    check: Boolean,
-  ): Value =
-    if (value.isAbruptCompletion(st))
-      if (check) throw ReturnValue(value, ria)
-      else throw UncheckedAbrupt(value)
-    else if (value.isCompletion(st)) st(value, Str("Value"))
-    else ???
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match

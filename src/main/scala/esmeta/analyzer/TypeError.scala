@@ -31,12 +31,6 @@ trait TypeErrorDecl { self: Analyzer =>
     actual: Int,
   ) extends TypeError
 
-  /** unchecked abrupt completion errors */
-  case class UncheckedAbruptError(
-    point: ReturnIfAbruptPoint,
-    ty: ValueTy,
-  ) extends TypeError
-
   /** invalid base in field reference errors */
   case class InvalidBaseError(
     point: FieldBasePoint,

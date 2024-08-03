@@ -35,7 +35,6 @@ class StringifyTinyTest extends AnalyzerTest {
     // lazy val callPoint = CallPoint(NodePoint(mainFunc, call, View()), mainFunc)
     // lazy val argAssignPoint = ArgAssignPoint(callPoint, 0)
     // lazy val internalReturnPoint = InternalReturnPoint(nodePoint, ret)
-    // lazy val riaPoint = ReturnIfAbruptPoint(nodePoint, riaCheck)
     // lazy val fieldBasePoint = FieldBasePoint(fieldPoint)
     // lazy val fieldPoint = FieldPoint(nodePoint, field)
     // lazy val unaryOpPoint = UnaryOpPoint(nodePoint, unary)
@@ -49,7 +48,6 @@ class StringifyTinyTest extends AnalyzerTest {
     //   callPoint -> "function call from f to f",
     //   argAssignPoint -> "argument assignment to first parameter _x_ when function call from f to f",
     //   internalReturnPoint -> "return statement in f",
-    //   riaPoint -> "ReturnIfAbrupt(?) in f",
     //   fieldBasePoint -> "base infield lookup in f",
     //   fieldPoint -> "field lookup in f",
     //   unaryOpPoint -> "unary operation (-) in f",
@@ -84,9 +82,6 @@ class StringifyTinyTest extends AnalyzerTest {
     //   """[ArityMismatch] function call from f to f
     //     |- expected: [1, 2]
     //     |- actual  : 3""".stripMargin,
-    //   uncheckedAbruptError ->
-    //   """[UncheckedAbruptError] ReturnIfAbrupt(?) in f
-    //     |- type    : T""".stripMargin,
     //   invalidBaseError ->
     //   """[InvalidBaseError] base infield lookup in f
     //     |- base    : T""".stripMargin,
@@ -132,7 +127,6 @@ class StringifyTinyTest extends AnalyzerTest {
     // lazy val let = ILet(x, empty)
     // lazy val del = IDelete(field)
     // lazy val ret = IReturn(xExpr)
-    // lazy val riaCheck = EReturnIfAbrupt(xExpr, true)
     // lazy val unary = EUnary(UOp.Neg, xExpr)
     // lazy val binary = EBinary(BOp.Add, xExpr, xExpr)
     // lazy val callInst = ICall(temp, xExpr, List(xExpr, yExpr))

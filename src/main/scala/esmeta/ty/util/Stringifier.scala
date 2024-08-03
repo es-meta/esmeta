@@ -155,19 +155,22 @@ object Stringifier {
       case Elem(map) =>
         var m = map
         var prevExists = false
-        map.get("NormalCompletion").map { fm =>
+        def mayOR =
           if (prevExists) app >> OR
           prevExists = true
+          app
+        if (RecordTy("CompletionRecord") <= ty)
+          m -= "CompletionRecord"
+          mayOR >> "Completion"
+        map.get("NormalCompletion").map { fm =>
           m -= "NormalCompletion"
-          app >> "Normal"
+          mayOR >> "Normal"
           if (fm.map.keySet == Set("Value")) app >> "[" >> fm("Value") >> "]"
           else if (!fm.isTop) app >> " " >> fm
         }
         map.get("AbruptCompletion").map { fm =>
-          if (prevExists) app >> OR
-          prevExists = true
           m -= "AbruptCompletion"
-          app >> "Abrupt"
+          mayOR >> "Abrupt"
           if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
           else if (!fm.isTop) app >> " " >> fm
         }

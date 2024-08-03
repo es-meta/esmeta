@@ -19,14 +19,22 @@ def <BUILTIN>:INTRINSICS.EvalError(
     let newTarget = NewTarget
   }
   call %1 = clo<"OrdinaryCreateFromConstructor">(newTarget, "%EvalError.prototype%", (list ["ErrorData"]))
-  let O = [? %1]
+  assert (? %1: Completion)
+  if (? %1: Abrupt) return %1
+  else %1 = %1.Value
+  let O = %1
   %2 = (exists __args__.message)
   if %2 {
     call %3 = clo<"ToString">(message)
-    let msg = [? %3]
+    assert (? %3: Completion)
+    if (? %3: Abrupt) return %3
+    else %3 = %3.Value
+    let msg = %3
     call %4 = clo<"CreateNonEnumerableDataPropertyOrThrow">(O, "message", msg)
   }
   call %5 = clo<"InstallErrorCause">(O, options)
-  [? %5]
+  assert (? %5: Completion)
+  if (? %5: Abrupt) return %5
+  else %5 = %5.Value
   return O
 }

@@ -351,9 +351,8 @@ class Compiler(
         IReturn(yExpr),
       )
     case PerformStep(expr) =>
-      compile(fb, expr) match
-        case era: EReturnIfAbrupt => fb.addInst(IExpr(era))
-        case _                    =>
+      val e = compile(fb, expr)
+      if (!isPure(e)) fb.addInst(IExpr(e))
     case PerformBlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
@@ -543,8 +542,8 @@ class Compiler(
         EGetItems(compile(fb, nt), compile(fb, expr))
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
-        if simpleOps contains name then simpleOps(name)(as)
-        else if shorthands contains name then compileShorthand(fb, name, as)
+        if (simpleOps contains name) simpleOps(name)(fb, as)
+        else if (shorthands contains name) compileShorthand(fb, name, as)
         else
           val (x, xExpr) = fb.newTIdWithExpr
           val f = EClo(name, Nil)
@@ -575,7 +574,7 @@ class Compiler(
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
-        EReturnIfAbrupt(compile(fb, expr), check)
+        returnIfAbrupt(fb, compile(fb, expr), check)
       case ListExpression(entries) =>
         EList(entries.map(compile(fb, _)))
       case IntListExpression(from, fInc, to, tInc, asc) =>
@@ -1107,21 +1106,44 @@ class Compiler(
   ): Expr = fs.map(f => exists(toRef(fb, base, EStr(f)))).reduce(and(_, _))
 
   /** simple operations */
-  type SimpleOp = PartialFunction[List[Expr], Expr]
+  type SimpleOp = PartialFunction[(FuncBuilder, List[Expr]), Expr]
   def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
     val (name, f) = pair
-    name -> (args =>
-      optional(f(args)).getOrElse(
+    name -> { (fb, args) =>
+      optional(f(fb, args)).getOrElse(
         error(s"invalid arguments: $name(${args.mkString(", ")})"),
-      ),
-    )
+      )
+    }
   }
+  def returnIfAbrupt(fb: FuncBuilder, e: Expr, c: Boolean): Expr =
+    val (x, xExpr) = e match
+      case ERef(local: Local) => (local, e)
+      case _                  => fb.newTIdWithExpr
+    if (c)
+      fb.addInst(
+        IAssert(ETypeCheck(xExpr, IRType(CompT))),
+        IIf(
+          ETypeCheck(xExpr, IRType(AbruptT)),
+          IReturn(xExpr),
+          IAssign(x, ERef(Field(x, EStr("Value")))),
+        ),
+      )
+    else
+      fb.addInst(
+        IAssert(ETypeCheck(xExpr, IRType(NormalT))),
+        IAssign(x, ERef(Field(x, EStr("Value")))),
+      )
+    xExpr
   inline def isCompletion(e: Expr): Expr = ETypeCheck(e, IRType(CompT))
   val simpleOps: Map[String, SimpleOp] = Map(
-    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
-    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    arityCheck("ParseText" -> {
+      case (_, List(code, rule)) => EParse(code, rule)
+    }),
+    arityCheck("Type" -> {
+      case (_, List(expr)) => ETypeOf(expr)
+    }),
     arityCheck("ReturnIfAbrupt" -> {
-      case List(expr) => EReturnIfAbrupt(expr, true)
+      case (fb, List(expr)) => returnIfAbrupt(fb, expr, true)
     }),
   )
 }

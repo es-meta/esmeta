@@ -264,20 +264,6 @@ trait AbsTransferDecl { self: Analyzer =>
     /** transfer function for expressions */
     def transfer(expr: Expr)(using np: NodePoint[Node]): Result[AbsValue] =
       expr match {
-        case riaExpr @ EReturnIfAbrupt(ERef(ref), check) =>
-          for {
-            rv <- transfer(ref)
-            v <- transfer(rv)
-            newV <- returnIfAbrupt(riaExpr, v, check)
-            _ <-
-              if (!newV.isBottom) modify(_.update(rv, newV))
-              else put(AbsState.Bot)
-          } yield newV
-        case riaExpr @ EReturnIfAbrupt(expr, check) =>
-          for {
-            v <- transfer(expr)
-            newV <- returnIfAbrupt(riaExpr, v, check)
-          } yield newV
         case EParse(code, rule) =>
           for {
             c <- transfer(code)
@@ -651,18 +637,6 @@ trait AbsTransferDecl { self: Analyzer =>
         if (newRet !⊑ oldRet)
           sem.rpMap += retRp -> (oldRet ⊔ newRet)
           sem.worklist += retRp
-
-    /** return-if-abrupt completion */
-    def returnIfAbrupt(
-      riaExpr: EReturnIfAbrupt,
-      value: AbsValue,
-      check: Boolean,
-    )(using np: NodePoint[Node]): Result[AbsValue] = {
-      val checkReturn: Result[Unit] =
-        if (check) doReturn(riaExpr, value.abruptCompletion)
-        else ()
-      for (_ <- checkReturn) yield value.unwrapCompletion
-    }
 
     // short circuit evaluation
     def shortCircuit(

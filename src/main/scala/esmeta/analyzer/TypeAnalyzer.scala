@@ -118,21 +118,6 @@ class TypeAnalyzer(
     /** loading monads */
     import AbsState.monad.*
 
-    /** return-if-abrupt completion */
-    override def returnIfAbrupt(
-      riaExpr: EReturnIfAbrupt,
-      value: AbsValue,
-      check: Boolean,
-    )(using np: NodePoint[Node]): Result[AbsValue] =
-      if (config.checkUncheckedAbrupt)
-        if (!check && !value.abruptCompletion.isBottom)
-          val riap = ReturnIfAbruptPoint(np, riaExpr)
-          addError(UncheckedAbruptError(riap, value.ty))
-      for {
-        prunedV <- super.returnIfAbrupt(riaExpr, value, check)
-        _ <- prune(value, prunedV)
-      } yield prunedV
-
     /** assign argument to parameter */
     override def assignArg(
       callPoint: CallPoint,

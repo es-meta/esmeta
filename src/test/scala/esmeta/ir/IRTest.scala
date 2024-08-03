@@ -60,8 +60,6 @@ object IRTest {
   lazy val sdoCall = ISdoCall(temp, xExpr, "Evaluation", List(xExpr, yExpr))
 
   // expressions
-  lazy val riaCheck = EReturnIfAbrupt(xExpr, true)
-  lazy val riaNoCheck = EReturnIfAbrupt(xExpr, false)
   lazy val parse = EParse(xExpr, grammarSymbol)
   lazy val grammarSymbol = EGrammarSymbol("A", List(true, false))
   lazy val yet = EYet("NOT YET")

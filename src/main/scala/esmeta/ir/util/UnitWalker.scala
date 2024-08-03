@@ -60,8 +60,6 @@ trait UnitWalker extends BasicUnitWalker {
 
   // expressions
   def walk(expr: Expr): Unit = expr match {
-    case EReturnIfAbrupt(expr, check) =>
-      walk(expr); walk(check)
     case EParse(code, rule) =>
       walk(code); walk(rule)
     case EGrammarSymbol(name, params) =>

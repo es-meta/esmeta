@@ -66,6 +66,7 @@ class JsonTinyTest extends TyTest {
 
     checkJsonWithString("Ty")(
       AnyT -> "Any",
+      CompT -> "Completion",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
       MapT -> "Map",

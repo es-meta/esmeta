@@ -48,16 +48,6 @@ trait AnalysisPointDecl { self: Analyzer =>
     inline def node = returnNp.node
   }
 
-  /** return-if-abrupt points */
-  case class ReturnIfAbruptPoint(
-    nodePoint: NodePoint[Node],
-    riaExpr: EReturnIfAbrupt,
-  ) extends TypeErrorPoint {
-    inline def view = nodePoint.view
-    inline def func = nodePoint.func
-    inline def node = nodePoint.node
-  }
-
   /** base in field reference points */
   case class FieldBasePoint(
     fieldPoint: FieldPoint,

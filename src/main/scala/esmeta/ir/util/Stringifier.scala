@@ -124,8 +124,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // expressions
   given exprRule: Rule[Expr] = withLoc { (app, expr) =>
     expr match
-      case EReturnIfAbrupt(expr, check) =>
-        app >> "[" >> (if (check) "?" else "!") >> " " >> expr >> "]"
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
       case EGrammarSymbol(name, params) =>

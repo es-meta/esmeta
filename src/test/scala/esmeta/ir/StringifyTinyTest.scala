@@ -120,8 +120,6 @@ class StringifyTinyTest extends IRTest {
     // expressions
     // -------------------------------------------------------------------------
     checkParseAndStringify("Expr", Expr)(
-      riaCheck -> "[? x]",
-      riaNoCheck -> "[! x]",
       parse -> "(parse x (grammar-symbol |A|[TF]))",
       grammarSymbol -> "(grammar-symbol |A|[TF])",
       yet -> "(yet \"NOT YET\")",

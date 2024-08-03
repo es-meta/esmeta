@@ -2,7 +2,10 @@ def ToBigInt(
   argument: ESValue,
 ): Normal[BigInt] | Abrupt[throw] = {
   call %0 = clo<"ToPrimitive">(argument, ~number~)
-  let prim = [? %0]
+  assert (? %0: Completion)
+  if (? %0: Abrupt) return %0
+  else %0 = %0.Value
+  let prim = %0
   if (= (typeof prim) @Undefined) {
     call %1 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call %2 = clo<"ThrowCompletion">(%1)

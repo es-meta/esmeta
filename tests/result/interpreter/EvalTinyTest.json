@@ -34,7 +34,6 @@
   "push.ir" : true,
   "ref.ir" : true,
   "return.ir" : true,
-  "returnifabrupt.ir" : true,
   "str-concat.ir" : true,
   "substring.ir" : true,
   "sudomergesort.ir" : true,

@@ -70,6 +70,7 @@ trait Parsers extends BasicParsers {
     "Any" ^^^ AnyT |
     "Bot" ^^^ BotT |
     // completion record
+    "Completion" ^^^ CompT |
     "Normal" ~> opt("[" ~> valueTy <~ "]") ^^ {
       case None    => NormalT
       case Some(v) => NormalT(v)

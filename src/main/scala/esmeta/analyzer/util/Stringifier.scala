@@ -68,10 +68,6 @@ trait StringifierDecl { self: Self =>
           app >> " when " >> cp
         case InternalReturnPoint(returnNp, irReturn) =>
           app >> "return statement in " >> returnNp.func.name >> irReturn
-        case ReturnIfAbruptPoint(cp, riaExpr) =>
-          app >> "ReturnIfAbrupt"
-          app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
-          app >> "in " >> cp.func.name >> riaExpr
         case FieldBasePoint(fieldPoint) =>
           app >> "base in" >> fieldPoint
         case FieldPoint(cp, field) =>
@@ -138,8 +134,6 @@ trait StringifierDecl { self: Self =>
           val (from, to) = point.func.arity
           app :> "- expected: " >> "[" >> from >> ", " >> to >> "]"
           app :> "- actual  : " >> actual
-        case UncheckedAbruptError(point, ty) =>
-          app :> "- type    : " >> ty
         case InvalidBaseError(point, baseTy) =>
           app :> "- base    : " >> baseTy
         case UnaryOpTypeMismatch(point, operandTy) =>
