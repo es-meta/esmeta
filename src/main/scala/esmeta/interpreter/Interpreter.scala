@@ -60,8 +60,7 @@ class Interpreter(
       if (!detail && iter % 100_000 == 0) GC(st)
 
       // cursor
-      try eval(st.context.cursor)
-      catch case ReturnValue(value, ret) => { setReturn(value, ret); true }
+      eval(st.context.cursor)
     } catch {
       case e =>
         if (log)
@@ -114,7 +113,8 @@ class Interpreter(
     case IPop(lhs, list, front) =>
       val addr = eval(list).asAddr
       st.context.locals += lhs -> st.pop(addr, front)
-    case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
+    case ret @ IReturn(expr) =>
+      st.context.retVal = Some(ret, eval(expr))
     case IAssert(expr) =>
       optional(eval(expr)) match
         case None             => /* skip not yet compiled assertions */
@@ -380,12 +380,6 @@ class Interpreter(
       var base = st(eval(ref))
       val f = eval(expr)
       FieldTarget(base, f)
-
-  /** set return value and move to the exit node */
-  def setReturn(value: Value, ret: Return): Unit =
-    val func = st.context.func
-    st.context.retVal = Some(ret, value)
-    st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */
   def setCallResult(x: Var, value: Value): Unit =

@@ -240,9 +240,13 @@ class Compiler(
         ),
       )
     case ReturnStep(expr) =>
-      val e = expr.fold(EUndef())(compile(fb, _))
-      fb.returnContext match
-        case None if fb.needReturnComp =>
+      lazy val e = expr.fold(EUndef())(compile(fb, _))
+      (expr, fb.returnContext, fb.needReturnComp) match
+        case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
+          val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
+          fb.addInst(IReturn(e))
+        case (_, None, true) =>
+          val e = expr.fold(EUndef())(compile(fb, _))
           val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
           val (y, yExpr) = fb.newTIdWithExpr
           fb.addInst(
@@ -254,8 +258,9 @@ class Compiler(
             ICall(y, EClo("NormalCompletion", Nil), List(x)),
             IReturn(yExpr),
           )
-        case None          => fb.addInst(IReturn(e))
-        case Some(context) => fb.addReturnToResume(context, e)
+        case (_, None, false) =>
+          fb.addInst(IReturn(e))
+        case (_, Some(context), _) => fb.addReturnToResume(context, e)
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, x, expr, true, body) =>
@@ -590,7 +595,7 @@ class Compiler(
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
-        returnIfAbrupt(fb, compile(fb, expr), check)
+        returnIfAbrupt(fb, compile(fb, expr), check, false)
       case ListExpression(entries) =>
         EList(entries.map(compile(fb, _)))
       case IntListExpression(from, fInc, to, tInc, asc) =>
@@ -1121,23 +1126,28 @@ class Compiler(
       )
     }
   }
-  def returnIfAbrupt(fb: FuncBuilder, e: Expr, c: Boolean): Expr =
-    val (x, xExpr) = e match
-      case ERef(local: Local) => (local, e)
+  def returnIfAbrupt(
+    fb: FuncBuilder,
+    expr: Expr,
+    check: Boolean,
+    imeediateReturn: Boolean = false,
+  ): Expr =
+    val (x, xExpr) = expr match
+      case ERef(local: Local) => (local, expr)
       case _                  => fb.newTIdWithExpr
-    if (c)
+    fb.addInst(
+      if (check) IAssert(ETypeCheck(xExpr, IRType(CompT)))
+      else IAssert(ETypeCheck(xExpr, IRType(NormalT))),
+    )
+    if (!imeediateReturn)
       fb.addInst(
-        IAssert(ETypeCheck(xExpr, IRType(CompT))),
-        IIf(
-          ETypeCheck(xExpr, IRType(AbruptT)),
-          IReturn(xExpr),
-          IAssign(x, ERef(Field(x, EStr("Value")))),
-        ),
-      )
-    else
-      fb.addInst(
-        IAssert(ETypeCheck(xExpr, IRType(NormalT))),
-        IAssign(x, ERef(Field(x, EStr("Value")))),
+        if (check)
+          IIf(
+            ETypeCheck(xExpr, IRType(AbruptT)),
+            IReturn(xExpr),
+            IAssign(x, ERef(Field(x, EStr("Value")))),
+          )
+        else IAssign(x, ERef(Field(x, EStr("Value")))),
       )
     xExpr
   val simpleOps: Map[String, SimpleOp] = Map(
@@ -1148,7 +1158,7 @@ class Compiler(
       case (_, List(expr)) => ETypeOf(expr)
     }),
     arityCheck("ReturnIfAbrupt" -> {
-      case (fb, List(expr)) => returnIfAbrupt(fb, expr, true)
+      case (fb, List(expr)) => returnIfAbrupt(fb, expr, true, false)
     }),
   )
 }
