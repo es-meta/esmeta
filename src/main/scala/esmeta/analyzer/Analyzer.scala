@@ -21,7 +21,7 @@ abstract class Analyzer
 
   /** abstract semantics */
   type Semantics <: AbsSemantics
-  lazy val sem: Semantics
+  given sem: Semantics
 
   /** transfer function */
   type Transfer <: AbsTransfer
@@ -125,6 +125,9 @@ abstract class Analyzer
   final lazy val AbsValue = valueDomain.getOrElse(ValueBasicDomain)
   type AbsValue = AbsValue.Elem
 
+  final lazy val AbsOptValue = AbsValue.optional
+  type AbsOptValue = AbsOptValue.Elem
+
   final lazy val AbsClo = cloDomain.getOrElse(CloSetDomain())
   type AbsClo = AbsClo.Elem
 
@@ -175,6 +178,6 @@ abstract class Analyzer
   final lazy val AbsNull = nullDomain.getOrElse(NullSimpleDomain)
   type AbsNull = AbsNull.Elem
 
-  final lazy val AbsAbsent = uninitDomain.getOrElse(UninitSimpleDomain)
-  type AbsAbsent = AbsAbsent.Elem
+  final lazy val AbsUnint = uninitDomain.getOrElse(UninitSimpleDomain)
+  type AbsUnint = AbsUnint.Elem
 }

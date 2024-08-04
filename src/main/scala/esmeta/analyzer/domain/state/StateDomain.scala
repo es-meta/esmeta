@@ -26,52 +26,24 @@ trait StateDomainDecl { self: Self =>
     /** abstract state interfaces */
     extension (elem: Elem) {
 
-      /** getters */
-      def get(
-        rt: AbsRefTarget,
-        cp: ControlPoint,
-      ): AbsValue = rt match
-        case AbsVarTarget(x)             => elem.get(x, cp)
-        case AbsFieldTarget(base, field) => elem.get(base, field)
+      /** getter */
+      def get(rt: AbsRefTarget): AbsValue = rt match
+        case AbsVarTarget(x)             => get(x)
+        case AbsFieldTarget(base, field) => get(base, field)
 
-      /** getters with identifiers */
-      def get(x: Var, cp: ControlPoint): AbsValue = ???
-      // val v = directLookup(x)
-      // if (cp.isBuiltin && AbsValue.uninitTop ⊑ v)
-      //   v.removeAbsent ⊔ AbsValue.undefTop
-      // else v
+      /** variable getter */
+      def get(x: Var): AbsValue
 
-      /** getters with bases and fields */
+      /** field getter */
       def get(base: AbsValue, field: AbsValue): AbsValue
 
-      /** getters with an address partition */
+      /** address getter */
       def get(part: Part): AbsObj
 
-      /** lookup variables */
-      def directLookup(x: Var): AbsValue = x match
-        case x: Local  => lookupLocal(x)
-        case x: Global => lookupGlobal(x)
+      /** define variables */
+      def define(x: Var, value: AbsValue): Elem
 
-      /** lookup local variables */
-      def lookupLocal(x: Local): AbsValue =
-        elem.locals.getOrElse(x, AbsValue.Bot)
-
-      /** lookup global variables */
-      def lookupGlobal(x: Global): AbsValue
-
-      /** existence checks */
-      def exists(rt: AbsRefTarget): AbsValue = ???
-      // rt match
-      //   case AbsVarTarget(x) => !directLookup(x).isAbsent
-      //   case AbsFieldTarget(base, field) => !elem.get(base, field).isAbsent
-
-      /** define local variables */
-      def defineLocal(pairs: (Local, AbsValue)*): Elem
-
-      /** define global variables */
-      def defineGlobal(pairs: (Global, AbsValue)*): Elem
-
-      /** setter with reference values */
+      /** setter */
       def update(rt: AbsRefTarget, value: AbsValue): Elem = rt match
         case AbsVarTarget(x)             => update(x, value)
         case AbsFieldTarget(base, field) => update(base, field, value)
@@ -82,24 +54,39 @@ trait StateDomainDecl { self: Self =>
       /** field setter */
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem
 
-      /** deletion with reference values */
-      def delete(rt: AbsRefTarget): Elem
+      /** existence check */
+      def exists(rt: AbsRefTarget): AbsValue = rt match
+        case AbsVarTarget(x)             => exists(x)
+        case AbsFieldTarget(base, field) => exists(base, field)
 
-      /** push values to a list */
+      /** variable existence check */
+      def exists(x: Var): AbsValue
+
+      /** field existence check */
+      def exists(base: AbsValue, field: AbsValue): AbsValue
+
+      /** expand a field of a record object */
+      def expand(base: AbsValue, field: AbsValue): Elem
+
+      /** delete a key from an map object */
+      def delete(base: AbsValue, field: AbsValue): Elem
+
+      /** push a value to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem
 
-      /** pop a value in a list */
+      /** pop a value from a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem)
 
       /** copy object */
-      def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem)
+      def copy(from: AbsValue)(asite: AllocSite): (AbsValue, Elem)
 
-      /** get object keys */
+      /** get keys of a record/map object as a list */
       def keys(
-        to: AllocSite,
-        part: AbsValue,
+        obj: AbsValue,
         intSorted: Boolean,
-      ): (AbsValue, Elem)
+      )(asite: AllocSite): (AbsValue, Elem)
+
+      // ------------------------------ TODO ------------------------------
 
       /** list concatenation */
       def concat(

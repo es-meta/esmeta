@@ -61,18 +61,16 @@ trait AbsTransferDecl { self: Analyzer =>
       case (rp: ReturnPoint)  => this(rp)
 
     /** transfer function for node points */
-    def apply(np: NodePoint[_]): Unit = {
+    def apply(np: NodePoint[_]): Unit =
       // record current control point for alarm
       given NodePoint[_] = np
       val st = sem(np)
       val NodePoint(func, node, view) = np
-
-      node match {
+      node match
         case Block(_, insts, next) =>
           val newSt = insts.foldLeft(st) {
-            case (nextSt, inst) =>
-              if (!nextSt.isBottom) transfer(inst)(nextSt)
-              else nextSt
+            case (nextSt, _) if nextSt.isBottom => nextSt
+            case (nextSt, inst)                 => transfer(inst)(nextSt)
           }
           next.foreach(to => sem += getNextNp(np, to) -> newSt)
         case call: Call =>
@@ -80,27 +78,16 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(call)
             _ <-
               if (v.isBottom) put(AbsState.Bot)
-              else modify(_.defineLocal(call.lhs -> v))
+              else modify(_.define(call.lhs, v))
           } yield ())(st)
           call.next.foreach(to => sem += getNextNp(np, to) -> newSt)
         case br @ Branch(_, kind, cond, thenNode, elseNode) =>
-          (for {
-            v <- transfer(cond)
-            newSt <- get
-          } yield {
+          (for { v <- transfer(cond); newSt <- get } yield {
             if (AVT ⊑ v)
-              thenNode.foreach(to =>
-                sem += getNextNp(np, to) -> prune(cond, true)(newSt),
-              )
+              thenNode.map(sem += getNextNp(np, _) -> prune(cond, true)(newSt))
             if (AVF ⊑ v)
-              elseNode.foreach(to =>
-                sem += getNextNp(np, to, br.isLoop) -> prune(cond, false)(
-                  newSt,
-                ),
-              )
+              elseNode.map(sem += getNextNp(np, _) -> prune(cond, false)(newSt))
           })(st)
-      }
-    }
 
     /** get next node point */
     def getNextNp(
@@ -109,7 +96,6 @@ trait AbsTransferDecl { self: Analyzer =>
       loopOut: Boolean = false,
     ): NodePoint[Node] =
       val NodePoint(func, from, view) = fromCp
-
       // handle loop sensitivity
       val fromView = if (loopOut) sem.loopExit(view) else view
       val toView = to match
@@ -117,15 +103,12 @@ trait AbsTransferDecl { self: Analyzer =>
           if (from.isLoopPred) sem.loopEnter(view, br)
           else sem.loopNext(view)
         case _ => fromView
-
       // next node point
       NodePoint(func, to, toView)
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = {
       var AbsRet(value, st) = getReturn(rp)
-
-      // return wrapped values
       for {
         np @ NodePoint(func, call, view) <- sem.getRetEdges(rp)
         nextNode <- call.next
@@ -139,13 +122,7 @@ trait AbsTransferDecl { self: Analyzer =>
             case _                       => view
           },
         )
-
-        val newSt = st.doReturn(
-          callerSt,
-          call.lhs -> value,
-        )
-
-        sem += nextNp -> newSt
+        sem += nextNp -> st.doReturn(callerSt, call.lhs -> value)
       }
     }
 
@@ -158,56 +135,64 @@ trait AbsTransferDecl { self: Analyzer =>
     val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
     /** transfer function for normal instructions */
-    def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater =
-      inst match {
-        case IExpr(expr) =>
-          for {
-            v <- transfer(expr)
-            _ <- if (v.isBottom) put(AbsState.Bot) else pure(())
-          } yield v
-        case ILet(id, expr) =>
-          for {
-            v <- transfer(expr)
-            _ <- modify(_.defineLocal(id -> v))
-            st <- get
-          } yield ()
-        case IAssign(ref, expr) =>
-          for {
-            rv <- transfer(ref)
-            v <- transfer(expr)
-            _ <- modify(_.update(rv, v))
-          } yield ()
-        case IExpand(base, expr) => ???
-        case IDelete(base, expr) => ???
-        case IPush(expr, list, front) =>
-          for {
-            l <- transfer(list)
-            v <- transfer(expr)
-            _ <- modify(_.push(l, v, front))
-          } yield ()
-        case IPop(lhs, list, front) =>
-          for {
-            v <- transfer(list)
-            pv <- id(_.pop(v, front))
-            _ <- modify(_.defineLocal(lhs -> pv))
-          } yield ()
-        case inst @ IReturn(expr) =>
-          for {
-            v <- transfer(expr)
-            _ <- doReturn(inst, v)
-            _ <- put(AbsState.Bot)
-          } yield ()
-        case IAssert(expr: EYet) =>
-          st => st /* skip not yet compiled assertions */
-        case IAssert(expr) =>
-          for {
-            v <- transfer(expr)
-            _ <- modify(prune(expr, true))
-            _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
-          } yield ()
-        case IPrint(expr) => st => st /* skip */
-        case INop()       => st => st /* skip */
-      }
+    def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater = inst match
+      case IExpr(expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- if (v.isBottom) put(AbsState.Bot) else pure(())
+        } yield ()
+      case ILet(id, expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(_.define(id, v))
+          st <- get
+        } yield ()
+      case IAssign(ref, expr) =>
+        for {
+          rv <- transfer(ref)
+          v <- transfer(expr)
+          _ <- modify(_.update(rv, v))
+        } yield ()
+      case IExpand(base, expr) =>
+        for {
+          b <- transfer(base)
+          v <- transfer(expr)
+          _ <- modify(st => st.expand(st.get(b), v))
+        } yield ()
+      case IDelete(base, expr) =>
+        for {
+          b <- transfer(base)
+          v <- transfer(expr)
+          _ <- modify(st => st.expand(st.get(b), v))
+        } yield ()
+      case IPush(expr, list, front) =>
+        for {
+          l <- transfer(list)
+          v <- transfer(expr)
+          _ <- modify(_.push(l, v, front))
+        } yield ()
+      case IPop(lhs, list, front) =>
+        for {
+          v <- transfer(list)
+          pv <- id(_.pop(v, front))
+          _ <- modify(_.define(lhs, pv))
+        } yield ()
+      case inst @ IReturn(expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- doReturn(inst, v)
+          _ <- put(AbsState.Bot)
+        } yield ()
+      case IAssert(expr: EYet) =>
+        st => st /* skip not yet compiled assertions */
+      case IAssert(expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(prune(expr, true))
+          _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
+        } yield ()
+      case IPrint(expr) => st => st /* skip */
+      case INop()       => st => st /* skip */
 
     /** transfer function for call instructions */
     def transfer(call: Call)(using np: NodePoint[_]): Result[AbsValue] =
@@ -347,7 +332,11 @@ trait AbsTransferDecl { self: Analyzer =>
               case ToStr(None)        => pure(AbsValue(Math(10)))
               case _                  => pure(AbsValue.Bot)
           } yield v.convertTo(cop, r)
-        case EExists(ref) => ???
+        case EExists(ref) =>
+          for {
+            rv <- transfer(ref)
+            v <- get(_.exists(rv))
+          } yield v
         case ETypeOf(base) =>
           for {
             v <- transfer(base)
@@ -360,7 +349,7 @@ trait AbsTransferDecl { self: Analyzer =>
             case Some(f) =>
               for {
                 st <- get
-                captured = cap.map(x => x -> st.lookupLocal(x)).toMap
+                captured = cap.map(x => x -> st.get(x)).toMap
               } yield AbsValue(AClo(f, captured))
             case None =>
               for { _ <- put(AbsState.Bot) } yield AbsValue.Bot
@@ -444,13 +433,13 @@ trait AbsTransferDecl { self: Analyzer =>
           val asite = AllocSite(e.asite, np.view)
           for {
             v <- transfer(obj)
-            lv <- id(_.copyObj(asite, v))
+            lv <- id(_.copy(v)(asite))
           } yield lv
         case e @ EKeys(map, intSorted) =>
           val asite = AllocSite(e.asite, np.view)
           for {
             v <- transfer(map)
-            lv <- id(_.keys(asite, v, intSorted))
+            lv <- id(_.keys(v, intSorted)(asite))
           } yield lv
         case EMath(n)              => AbsValue(Math(n))
         case EInfinity(pos)        => AbsValue(Infinity(pos))
@@ -487,7 +476,7 @@ trait AbsTransferDecl { self: Analyzer =>
     def transfer(rt: AbsRefTarget)(using
       np: NodePoint[Node],
     ): Result[AbsValue] =
-      for { v <- get(_.get(rt, np)) } yield v
+      for { v <- get(_.get(rt)) } yield v
 
     /** transfer function for unary operators */
     def transfer(

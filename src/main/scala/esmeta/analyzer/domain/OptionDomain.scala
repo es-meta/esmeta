@@ -14,22 +14,28 @@ trait OptionDomainDecl { self: Self =>
     type AbsV = AbsV.Elem
 
     /** elements */
-    case class Elem(value: AbsV, uninit: AbsAbsent) extends Appendable
+    case class Elem(value: AbsV, uninit: AbsUnint) extends Appendable
 
     /** top element */
-    val Top: Elem = Elem(AbsV.Top, AbsAbsent.Top)
+    lazy val Top: Elem = Elem(AbsV.Top, AbsUnint.Top)
 
     /** bottom element */
-    val Bot: Elem = Elem(AbsV.Bot, AbsAbsent.Bot)
+    lazy val Bot: Elem = Elem(AbsV.Bot, AbsUnint.Bot)
 
     /** empty element */
-    val Empty: Elem = Elem(AbsV.Bot, AbsAbsent.Top)
+    lazy val Empty: Elem = Elem(AbsV.Bot, AbsUnint.Top)
 
     /** abstraction functions */
     def alpha(xs: Iterable[Option[V]]): Elem = Elem(
       AbsV(xs.collect { case Some(x) => x }),
-      if (xs.exists(_ == None)) AbsAbsent.Top else AbsAbsent.Bot,
+      if (xs.exists(_ == None)) AbsUnint.Top else AbsUnint.Bot,
     )
+
+    /** constructor */
+    def apply(
+      value: AbsV = AbsV.Bot,
+      uninit: AbsUnint = AbsUnint.Bot,
+    ): Elem = Elem(value, uninit)
 
     /** appender */
     given rule: Rule[Elem] = (app, elem) =>
@@ -70,6 +76,11 @@ trait OptionDomainDecl { self: Self =>
       override def getSingle: Flat[Option[V]] =
         elem.value.getSingle.map(Some(_)) ⊔
         (if (elem.uninit.isTop) One(None) else Zero)
+
+      /** single check */
+      def isSingle: Boolean = elem.getSingle match
+        case One(_) => true
+        case _      => false
 
       /** fold operator */
       def fold(

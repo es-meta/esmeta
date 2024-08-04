@@ -45,10 +45,10 @@ trait StateTypeDomainDecl { self: Self =>
     def alpha(xs: Iterable[State]): Elem = Top
 
     /** appender */
-    given rule: Rule[Elem] = ??? // mkRule(true)
+    given rule: Rule[Elem] = mkRule(true)
 
     /** simpler appender */
-    private val shortRule: Rule[Elem] = ??? // mkRule(false)
+    private val shortRule: Rule[Elem] = mkRule(false)
 
     /** element interfaces */
     extension (elem: Elem) {
@@ -62,7 +62,7 @@ trait StateTypeDomainDecl { self: Self =>
         case _ if that.isBottom => false
         case (Elem(_, llocals), Elem(_, rlocals)) =>
           (llocals.keySet ++ rlocals.keySet).forall(x => {
-            elem.lookupLocal(x) ⊑ that.lookupLocal(x)
+            elem.get(x) ⊑ that.get(x)
           })
 
       /** join operator */
@@ -72,7 +72,7 @@ trait StateTypeDomainDecl { self: Self =>
         case (l, r) =>
           val newLocals = (for {
             x <- (l.locals.keySet ++ r.locals.keySet).toList
-            v = elem.lookupLocal(x) ⊔ that.lookupLocal(x)
+            v = elem.get(x) ⊔ that.get(x)
           } yield x -> v).toMap
           Elem(true, newLocals)
 
@@ -82,66 +82,84 @@ trait StateTypeDomainDecl { self: Self =>
         case (l, r) =>
           val newLocals = (for {
             x <- (l.locals.keySet ++ r.locals.keySet).toList
-            v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
+            v = elem.get(x) ⊓ that.get(x)
           } yield x -> v).toMap
           Elem(true, newLocals)
 
-      /** getters with bases and fields */
+      // -----------------------------------------------------------------------
+      // Operations for Abstract States
+      // -----------------------------------------------------------------------
+
+      /** getter */
+      def get(x: Var): AbsValue = x match
+        case x: Global => base.getOrElse(x, AbsValue.Bot)
+        case x: Local  => elem.locals.getOrElse(x, AbsValue.Bot)
+
+      /** getter */
       def get(base: AbsValue, field: AbsValue): AbsValue =
-        // val baseTy = base.ty
-        // val fieldTy = field.ty
-        // AbsValue(
-        //   lookupComp(baseTy.comp, fieldTy) ||
-        //   lookupAst(baseTy.astValue, fieldTy) ||
-        //   lookupStr(baseTy.str, fieldTy) ||
-        //   lookupList(baseTy.list, fieldTy) ||
-        //   lookupName(baseTy.name, fieldTy) ||
-        //   lookupRecord(baseTy.record, fieldTy) ||
-        //   lookupMap(baseTy.map, fieldTy),
-        // )
-        ???
+        val baseTy = base.ty
+        val fieldTy = field.ty
+        AbsValue(
+          lookupAst(baseTy.ast, fieldTy) ||
+          lookupStr(baseTy.str, fieldTy) ||
+          lookupList(baseTy.list, fieldTy) ||
+          lookupRecord(baseTy.record, fieldTy) ||
+          lookupMap(baseTy.map, fieldTy),
+        )
 
-      /** getters with an address partition */
-      def get(part: Part): AbsObj = AbsObj.Bot
+      /** getter */
+      def get(part: Part): AbsObj = error("do not support address partitions")
 
-      /** lookup global variables */
-      def lookupGlobal(x: Global): AbsValue = base.getOrElse(x, AbsValue.Bot)
+      /** define variables */
+      def define(x: Var, value: AbsValue): Elem = x match
+        case x: Local  => elem.copy(locals = locals + (x -> value))
+        case x: Global => error("do not support defining global variables")
 
       /** identifier setter */
       def update(x: Var, value: AbsValue): Elem = x match
-        case x: Local  => defineLocal(x -> value)
-        case x: Global =>
-          // TODO if (value !⊑ base(x))
-          //   warning(s"invalid global variable update: $x = $value")
-          elem
+        case x: Local  => elem.copy(locals = locals + (x -> value))
+        case x: Global => elem
 
       /** field setter */
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem = elem
 
-      /** deletion with reference values */
-      def delete(rt: AbsRefTarget): Elem = elem
+      /** variable existence check */
+      def exists(x: Var): AbsValue = AbsValue(x match
+        case x: Global => base.contains(x)
+        case x: Local  => elem.locals.contains(x),
+      )
 
-      /** push values to a list */
+      /** field existence check */
+      def exists(base: AbsValue, field: AbsValue): AbsValue = ???
+
+      /** expand a field of a record object */
+      def expand(base: AbsValue, field: AbsValue): Elem = elem
+
+      /** delete a key from an map object */
+      def delete(base: AbsValue, field: AbsValue): Elem = elem
+
+      /** push a value to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem
 
-      /** pop a value in a list */
+      /** pop a value from a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
       // (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
 
       /** copy object */
-      def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) =
+      def copy(from: AbsValue)(asite: AllocSite): (AbsValue, Elem) =
         (from, elem)
 
-      /** get object keys */
+      /** get keys of a record/map object as a list */
       def keys(
-        to: AllocSite,
-        v: AbsValue,
+        obj: AbsValue,
         intSorted: Boolean,
-      ): (AbsValue, Elem) =
+      )(asite: AllocSite): (AbsValue, Elem) =
         val value =
-          if (v.ty.map.isBottom) AbsValue.Bot
+          if (obj.ty.map.isBottom) AbsValue.Bot
           else AbsValue(ListT(StrT))
         (value, elem)
+
+      // ------------------------------ TODO ------------------------------
 
       /** list concatenation */
       def concat(
@@ -205,13 +223,6 @@ trait StateTypeDomainDecl { self: Self =>
         if (list.ty.list.isBottom) AbsValue.Bot
         else AbsValue.boolTop
 
-      /** define global variables */
-      def defineGlobal(pairs: (Global, AbsValue)*): Elem = elem
-
-      /** define local variables */
-      def defineLocal(pairs: (Local, AbsValue)*): Elem =
-        elem.copy(locals = locals ++ pairs)
-
       /** singleton checks */
       override def isSingle: Boolean = false
 
@@ -260,159 +271,95 @@ trait StateTypeDomainDecl { self: Self =>
       def heap: AbsHeap = AbsHeap.Bot
     }
 
-    // // appender generator
-    // private def mkRule(detail: Boolean): Rule[Elem] = (app, elem) =>
-    //   if (!elem.isBottom) {
-    //     val irStringifier = IRElem.getStringifier(detail, false)
-    //     import irStringifier.given
-    //     given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-    //     app >> elem.locals
-    //   } else app >> "⊥"
+    // appender generator
+    private def mkRule(detail: Boolean): Rule[Elem] = (app, elem) =>
+      if (!elem.isBottom) {
+        val irStringifier = IRElem.getStringifier(detail, false)
+        import irStringifier.given
+        given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
+        app >> elem.locals
+      } else app >> "⊥"
 
-    // // completion record lookup
-    // lazy val enumTyForAbruptTarget =
-    //   ENUMT_BREAK || ENUMT_CONTINUE || ENUMT_RETURN || ENUMT_THROW
-    // private def lookupComp(comp: CompTy, field: ValueTy): ValueTy =
-    //   val str = field.str
-    //   val normal = !comp.normal.isBottom
-    //   val abrupt = !comp.abrupt.isBottom
-    //   var res = BotT
-    //   if (str contains "Value")
-    //     if (normal) res ||= ValueTy(pureValue = comp.normal)
-    //     if (abrupt) {
-    //       if (comp.abrupt.contains("return") || comp.abrupt.contains("throw"))
-    //         res ||= ESValueT
-    //       if (comp.abrupt.contains("continue") || comp.abrupt.contains("break"))
-    //         res || ENUMT_EMPTY
-    //     }
-    //   if (str contains "Target")
-    //     if (normal) res ||= ENUMT_EMPTY
-    //     if (abrupt) res ||= StrT || ENUMT_EMPTY
-    //   if (str contains "Type")
-    //     if (normal) res ||= ENUMT_NORMAL
-    //     if (abrupt) res ||= enumTyForAbruptTarget
-    //   // TODO if (!comp.isBottom)
-    //   //   boundCheck(
-    //   //     field,
-    //   //     StrT("Value", "Target", "Type"),
-    //   //     t => s"invalid access: $t of $comp",
-    //   //   )
-    //   res
+    // completion record lookup
+    lazy val enumTyForAbruptTarget =
+      ENUMT_BREAK || ENUMT_CONTINUE || ENUMT_RETURN || ENUMT_THROW
 
-    // // AST lookup
-    // private def lookupAst(ast: AstValueTy, field: ValueTy): ValueTy = ast match
-    //   case AstValueTy.Bot => BotT
-    //   case AstSingleTy(name, idx, subIdx) =>
-    //     lookupAstIdxField(name, idx, subIdx)(field) ||
-    //     lookupAstStrField(field)
-    //   case AstNameTy(names) =>
-    //     if (!field.math.isBottom) AstT // TODO more precise
-    //     else lookupAstStrField(field)
-    //   case _ => AstT
-    // // TODO if (!ast.isBottom)
-    // //   boundCheck(field, MathT || StrT, t => s"invalid access: $t of $ast")
+    // AST lookup
+    private def lookupAst(ast: AstTy, field: ValueTy): ValueTy =
+      import AstTy.*
+      ast match
+        case AstTy.Bot => BotT
+        case Detail(name, idx) =>
+          lookupAstIdxField(name, idx)(field) ||
+          lookupAstStrField(field)
+        case Simple(names) =>
+          if (!field.math.isBottom) AstT // TODO more precise
+          else lookupAstStrField(field)
+        case _ => AstT
 
-    // // lookup index fields of ASTs
-    // private def lookupAstIdxField(
-    //   name: String,
-    //   idx: Int,
-    //   subIdx: Int,
-    // )(field: ValueTy): ValueTy = field.math.getSingle match
-    //   case One(Math(n)) if n.isValidInt =>
-    //     val fieldIdx = n.toInt
-    //     val rhs = cfg.grammar.nameMap(name).rhsList(idx)
-    //     val nts = rhs.getGrammarSymbols(subIdx)
-    //     nts(fieldIdx).fold(UninitT)(AstT(_))
-    //   case Zero | One(_) => BotT
-    //   case _             => AstT // TODO more precise
+    // lookup index fields of ASTs
+    private def lookupAstIdxField(
+      name: String,
+      idx: Int,
+    )(field: ValueTy): ValueTy = field.math.getSingle match
+      case Zero => BotT
+      case _    => AstT // TODO more precise
 
-    // // lookup string fields of ASTs
-    // private def lookupAstStrField(field: ValueTy): ValueTy =
-    //   val nameMap = cfg.grammar.nameMap
-    //   field.str.getSingle match
-    //     case Zero                               => BotT
-    //     case One(name) if nameMap contains name => AstT(name)
-    //     case _ => AstT // TODO warning(s"invalid access: $name of $ast")
+    // lookup string fields of ASTs
+    private def lookupAstStrField(field: ValueTy): ValueTy =
+      val nameMap = cfg.grammar.nameMap
+      field.str.getSingle match
+        case Zero                               => BotT
+        case One(name) if nameMap contains name => AstT(name)
+        case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
-    // // string lookup
-    // private def lookupStr(str: BSet[String], field: ValueTy): ValueTy =
-    //   if (str.isBottom) BotT
-    //   else {
-    //     var res = BotT
-    //     if (field.str contains "length") res ||= NonNegIntT
-    //     if (!field.math.isBottom) res ||= CodeUnitT
-    //     // TODO if (!str.isBottom)
-    //     //   boundCheck(
-    //     //     field,
-    //     //     MathT || StrT("length"),
-    //     //     t => s"invalid access: $t of ${PureValueTy(str = str)}",
-    //     //   )
-    //     res
-    //   }
+    // string lookup
+    private def lookupStr(str: BSet[String], field: ValueTy): ValueTy =
+      if (str.isBottom) BotT
+      else {
+        var res = BotT
+        if (field.str contains "length") res ||= NonNegIntT
+        if (!field.math.isBottom) res ||= CodeUnitT
+        res
+      }
 
-    // // named record lookup
-    // private val INTRINSICS_NAME_TY = NameTy("Intrinsics")
-    // private def lookupName(obj: NameTy, field: ValueTy): ValueTy =
-    //   if (obj == INTRINSICS_NAME_TY) lookupIntrinsics(field)
-    //   else
-    //     (for {
-    //       name <- obj.set
-    //       fieldStr <- field.str
-    //     } yield cfg.tyModel.getField(name, fieldStr)).foldLeft(BotT)(_ || _)
+    // record lookup
+    private def lookupRecord(record: RecordTy, field: ValueTy): ValueTy =
+      val str = field.str
+      var res = BotT
+      def add(fieldStr: String): Unit = res ||= record(fieldStr).value
+      if (!record.isBottom) for (fieldStr <- str) add(fieldStr)
+      res
 
-    // // intrinsics lookup
-    // private def lookupIntrinsics(field: ValueTy): ValueTy = field.str match
-    //   case Inf => ObjectT
-    //   case Fin(set) =>
-    //     NameT(for {
-    //       s <- set
-    //       if s.startsWith("%") && s.endsWith("%")
-    //       fieldStr = s.substring(1, s.length - 1)
-    //       addr = intrAddr(fieldStr)
-    //       obj = opt(analyzer.init.initHeap(addr))
-    //       tname <- obj match
-    //         case Some(RecordObj(tname, _)) => Some(tname)
-    //         case _                         => None
-    //     } yield tname)
+    // list lookup
+    private def lookupList(list: ListTy, field: ValueTy): ValueTy =
+      var res = BotT
+      val str = field.str
+      val math = field.math
+      list match
+        case ListTy.Top        => AnyT
+        case ListTy.Elem(elem) => elem
+        case ListTy.Bot        => BotT
 
-    // // record lookup
-    // private def lookupRecord(record: RecordTy, field: ValueTy): ValueTy =
-    //   val str = field.str
-    //   var res = BotT
-    //   def add(fieldStr: String): Unit = record match
-    //     case RecordTy.Top       =>
-    //     case RecordTy.Elem(map) => map.get(fieldStr).map(res ||= _)
-    //   if (!record.isBottom) for (fieldStr <- str) add(fieldStr)
-    //   res
+    // symbol lookup
+    private def lookupSymbol(symbol: Boolean, field: ValueTy): ValueTy =
+      if (symbol && field.str.contains("Description")) StrT
+      else BotT
 
-    // // list lookup
-    // private def lookupList(list: ListTy, field: ValueTy): ValueTy =
-    //   var res = BotT
-    //   val str = field.str
-    //   val math = field.math
-    //   for (ty <- list.elem)
-    //     if (str contains "length") res ||= NonNegIntT
-    //     if (!math.isBottom) res ||= ty
-    //   res
+    // map lookup
+    private def lookupMap(map: MapTy, field: ValueTy): ValueTy = map match
+      case MapTy.Top              => AnyT
+      case MapTy.Elem(key, value) => value
+      case MapTy.Bot              => BotT
 
-    // // symbol lookup
-    // private def lookupSymbol(symbol: Boolean, field: ValueTy): ValueTy =
-    //   if (symbol && field.str.contains("Description")) StrT
-    //   else BotT
-
-    // // map lookup
-    // private def lookupMap(map: MapTy, field: ValueTy): ValueTy =
-    //   if (!map.isBottom) ValueTy(pureValue = map.value)
-    //   else BotT
-
-    // // bound check
-    // private def boundCheck(
-    //   ty: ValueTy,
-    //   boundTy: => ValueTy,
-    //   f: ValueTy => String,
-    // ): Unit =
-    //   // val other = ty -- boundTy
-    //   // if (!other.isBottom) warning(f(other))
-    //   ()
+    // bound check
+    private def boundCheck(
+      ty: ValueTy,
+      boundTy: => ValueTy,
+      f: ValueTy => String,
+    ): Unit =
+      // val other = ty -- boundTy
+      // if (!other.isBottom) warning(f(other))
+      ()
   }
 }

@@ -42,8 +42,9 @@ class ESAnalyzer(
   private def initNpMap(
     sourceText: String,
   ): Map[NodePoint[Node], AbsState] = Map(
-    initCp -> AbsState.Empty.defineGlobal(
-      Global(builtin.SOURCE_TEXT) -> AbsValue(sourceText),
+    initCp -> AbsState.Empty.define(
+      Global(builtin.SOURCE_TEXT),
+      AbsValue(sourceText),
     ),
   )
 }

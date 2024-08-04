@@ -129,7 +129,7 @@ class TypeAnalyzer(
     // param.ty.ty match
     //   case _: UnknownTy => arg
     //   case paramTy: ValueTy =>
-    //     val argTy = arg.ty.removeAbsent
+    //     val argTy = arg.ty.removeUnint
     //     if (method && idx == 0) () /* ignore `this` for method calls */
     //     else if (config.checkParamType && !(argTy <= paramTy))
     //       addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
@@ -194,7 +194,7 @@ class TypeAnalyzer(
             nextNode <- callerNp.node.next
             nextNp = NodePoint(callerNp.func, nextNode, View())
             retV = AbsValue(retTy, refinements)
-            newSt = callerSt.defineLocal(call.lhs -> retV)
+            newSt = callerSt.define(call.lhs, retV)
           } sem += nextNp -> newSt
         case None =>
           super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
@@ -251,7 +251,7 @@ class TypeAnalyzer(
     // // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
     // val newRet =
     //   if (func.isReturnComp) givenRet.wrapCompletion else givenRet
-    // val givenTy = newRet.value.ty.removeAbsent
+    // val givenTy = newRet.value.ty.removeUnint
     // val expected = func.retTy.ty match
     //   case _: UnknownTy        => newRet
     //   case expectedTy: ValueTy =>
@@ -394,7 +394,7 @@ class TypeAnalyzer(
         map <- value.refinements.get(kind).toList
         (x, ty) <- map
       } yield for {
-        origV <- get(_.get(x, np))
+        origV <- get(_.get(x))
         _ <- modify(_.update(x, AbsValue(ty) ⊓ origV))
       } yield ())
 
@@ -462,8 +462,8 @@ class TypeAnalyzer(
       //   lty = lv.ty
       //   rty = rv.ty
       //   prunedV = expr match
-      //     case EAbsent() if positive => lv
-      //     case EAbsent() =>
+      //     case EUnint() if positive => lv
+      //     case EUnint() =>
       //       val subTys = (for {
       //         name <- lty.name.set
       //       } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
@@ -614,13 +614,10 @@ class TypeAnalyzer(
   private def getView(func: Func): View = View()
 
   /** get initial state of function */
-  private def getState(func: Func): AbsState = ???
-  // func.params.foldLeft(AbsState.Empty) {
-  //   case (st, Param(x, ty, opt, _)) =>
-  //     var v = AbsValue(ty.ty)
-  //     if (opt) v ⊔= AbsValue.uninitTop
-  //     st.update(x, v)
-  // }
+  private def getState(func: Func): AbsState =
+    func.params.foldLeft(AbsState.Empty) {
+      case (st, Param(x, ty, _, _)) => st.update(x, AbsValue(ty.ty))
+    }
 
   /** logging mode */
   private def logging: Unit = {

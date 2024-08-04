@@ -418,11 +418,11 @@ trait ValueTypeDomainDecl { self: Self =>
       // Elem(ValueTy(abrupt = elem.ty.abrupt))
 
       /** uninit helpers */
-      def removeAbsent: Elem = ??? // Elem(elem.ty -- UninitT)
-      def isAbsent: Elem = ???
+      def removeUnint: Elem = ??? // Elem(elem.ty -- UninitT)
+      def isUnint: Elem = ???
       // var bs: Set[Boolean] = Set()
       // if (elem.ty.uninit) bs += true
-      // if (!elem.removeAbsent.ty.isBottom) bs += false
+      // if (!elem.removeUnint.ty.isBottom) bs += false
       // Elem(BoolT(bs))
 
       /** refine receiver object */

@@ -15,9 +15,6 @@ trait ObjDomainDecl { self: Self =>
     /** get list with a merged abstract value */
     def getMergedList(value: AbsValue): Elem
 
-    /** get symbol with abstract description value */
-    def getSymbol(desc: AbsValue): Elem
-
     /** object element interfaces */
     extension (elem: Elem) {
 
@@ -41,6 +38,9 @@ trait ObjDomainDecl { self: Self =>
 
       /** updates */
       def update(field: AbsValue, value: AbsValue, weak: Boolean): Elem
+
+      /** expand */
+      def expand(field: AbsValue, weak: Boolean): Elem
 
       /** delete */
       def delete(field: AbsValue, weak: Boolean): Elem

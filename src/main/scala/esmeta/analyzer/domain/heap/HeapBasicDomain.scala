@@ -155,6 +155,10 @@ trait HeapBasicDomainDecl { self: Self =>
       def update(part: AbsPart, field: AbsValue, value: AbsValue): Elem =
         applyEach(elem, part)(_.update(field, value, _))
 
+      /** epxand */
+      def expand(part: AbsPart, field: AbsValue): Elem =
+        applyEach(elem, part)(_.expand(field, _))
+
       /** delete */
       def delete(part: AbsPart, field: AbsValue): Elem =
         applyEach(elem, part)(_.delete(field, _))
@@ -189,7 +193,7 @@ trait HeapBasicDomainDecl { self: Self =>
         applyEach(elem, part)(_.remove(value, _))
 
       /** copy objects */
-      def copyObj(from: AbsPart)(to: AllocSite): Elem =
+      def copy(from: AbsPart)(to: AllocSite): Elem =
         alloc(elem, to, applyFold(elem, from)(obj => obj))
 
       /** keys of map */

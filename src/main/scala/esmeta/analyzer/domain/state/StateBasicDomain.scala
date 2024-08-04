@@ -66,10 +66,10 @@ trait StateBasicDomainDecl { self: Self =>
               Elem(_, rlocals, rglobals, rheap),
             ) =>
           val localsB = (llocals.keySet ++ rlocals.keySet).forall(x => {
-            elem.lookupLocal(x) ⊑ that.lookupLocal(x)
+            elem.get(x) ⊑ that.get(x)
           })
           val globalsB = (lglobals.keySet ++ rglobals.keySet).forall(x => {
-            elem.lookupGlobal(x) ⊑ that.lookupGlobal(x)
+            elem.get(x) ⊑ that.get(x)
           })
           val heapB = lheap ⊑ rheap
           localsB && globalsB && heapB
@@ -81,11 +81,11 @@ trait StateBasicDomainDecl { self: Self =>
         case (l, r) =>
           val newLocals = (for {
             x <- (l.locals.keySet ++ r.locals.keySet).toList
-            v = elem.lookupLocal(x) ⊔ that.lookupLocal(x)
+            v = elem.get(x) ⊔ that.get(x)
           } yield x -> v).toMap
           val newGlobals = (for {
             x <- (l.globals.keySet ++ r.globals.keySet).toList
-            v = elem.lookupGlobal(x) ⊔ that.lookupGlobal(x)
+            v = elem.get(x) ⊔ that.get(x)
           } yield x -> v).toMap
           val newHeap = elem.heap ⊔ that.heap
           Elem(true, newLocals, newGlobals, newHeap)
@@ -97,19 +97,26 @@ trait StateBasicDomainDecl { self: Self =>
           var isBottom = false
           val newLocals = (for {
             x <- (l.locals.keySet ++ r.locals.keySet).toList
-            v = elem.lookupLocal(x) ⊓ that.lookupLocal(x)
+            v = elem.get(x) ⊓ that.get(x)
             _ = isBottom ||= v.isBottom
           } yield x -> v).toMap
           val newGlobals = (for {
             x <- (l.globals.keySet ++ r.globals.keySet).toList
-            v = elem.lookupGlobal(x) ⊓ that.lookupGlobal(x)
+            v = elem.get(x) ⊓ that.get(x)
             _ = isBottom ||= v.isBottom
           } yield x -> v).toMap
           val newHeap = elem.heap ⊓ that.heap
           if (newHeap.isBottom || isBottom) Bot
           else Elem(true, newLocals, newGlobals, newHeap)
 
-      /** getters with bases and fields */
+      // -----------------------------------------------------------------------
+      // Operations for Abstract States
+      // -----------------------------------------------------------------------
+
+      /** getter */
+      def get(x: Var): AbsValue = ???
+
+      /** getter */
       def get(base: AbsValue, field: AbsValue): AbsValue = ???
       // val compValue = AbsValue(pureValue = base.comp(field.str))
       // val partValue = elem.heap(base.part, field)
@@ -117,12 +124,13 @@ trait StateBasicDomainDecl { self: Self =>
       // val strValue = lookupStr(base.str, field)
       // compValue ⊔ partValue ⊔ astValue ⊔ strValue
 
-      /** getters with an address partition */
+      /** getter */
       def get(part: Part): AbsObj = elem.heap(part)
 
-      /** lookup global variables */
-      def lookupGlobal(x: Global): AbsValue =
-        elem.globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
+      /** define variables */
+      def define(x: Var, value: AbsValue): Elem = x match
+        case x: Global => elem.copy(globals = globals + (x -> value))
+        case x: Local  => elem.copy(locals = locals + (x -> value))
 
       /** identifier setter */
       def update(x: Var, value: AbsValue): Elem =
@@ -143,22 +151,32 @@ trait StateBasicDomainDecl { self: Self =>
           elem.copy(heap = elem.heap.update(base.part, field, value))
         }
 
-      /** deletion with reference values */
-      def delete(refV: AbsRefTarget): Elem = refV match
-        case AbsVarTarget(x) => error(s"cannot delete variable $x")
-        case AbsFieldTarget(base, field) =>
-          elem.bottomCheck(AbsValue)(base, field) {
-            elem.copy(heap = elem.heap.delete(base.part, field))
-          }
+      /** variable existence check */
+      def exists(x: Var): AbsValue = ???
 
-      /** push values to a list */
+      /** field existence check */
+      def exists(base: AbsValue, field: AbsValue): AbsValue = ???
+
+      /** expand a field of a record object */
+      def expand(base: AbsValue, field: AbsValue): Elem =
+        elem.bottomCheck(AbsValue)(base, field) {
+          elem.copy(heap = elem.heap.expand(base.part, field))
+        }
+
+      /** delete a key from an map object */
+      def delete(base: AbsValue, field: AbsValue): Elem =
+        elem.bottomCheck(AbsValue)(base, field) {
+          elem.copy(heap = elem.heap.delete(base.part, field))
+        }
+
+      /** push a value to a list */
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem =
         elem.bottomCheck(AbsValue)(list, value) {
           if (front) elem.copy(heap = elem.heap.prepend(list.part, value))
           else elem.copy(heap = elem.heap.append(list.part, value))
         }
 
-      /** pop a value in a list */
+      /** pop a value from a list */
       def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
         var v: AbsValue = AbsValue.Bot
         val st: Elem = elem.bottomCheck(AbsPart)(list.part) {
@@ -169,22 +187,23 @@ trait StateBasicDomainDecl { self: Self =>
         (v, st)
 
       /** copy object */
-      def copyObj(to: AllocSite, from: AbsValue): (AbsValue, Elem) =
-        val partV = AbsValue(to)
+      def copy(from: AbsValue)(asite: AllocSite): (AbsValue, Elem) =
+        val partV = AbsValue(asite)
         elem.bottomCheck(AbsPart)(from.part) {
-          (partV, elem.copy(heap = elem.heap.copyObj(from.part)(to)))
+          (partV, elem.copy(heap = elem.heap.copy(from.part)(asite)))
         }
 
-      /** get object keys */
+      /** get keys of a record/map object as a list */
       def keys(
-        to: AllocSite,
-        v: AbsValue,
+        obj: AbsValue,
         intSorted: Boolean,
-      ): (AbsValue, Elem) =
-        val partV = AbsValue(to)
-        elem.bottomCheck(AbsPart)(v.part) {
-          (partV, elem.copy(heap = elem.heap.keys(v.part, intSorted)(to)))
+      )(asite: AllocSite): (AbsValue, Elem) =
+        val partV = AbsValue(asite)
+        elem.bottomCheck(AbsPart)(obj.part) {
+          (partV, elem.copy(heap = elem.heap.keys(obj.part, intSorted)(asite)))
         }
+
+      // ------------------------------ TODO ------------------------------
 
       /** list concatenation */
       def concat(
@@ -259,18 +278,6 @@ trait StateBasicDomainDecl { self: Self =>
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         heap.contains(list.part, value)
-
-      /** define global variables */
-      def defineGlobal(pairs: (Global, AbsValue)*): Elem =
-        elem.bottomCheck(AbsValue)(pairs.unzip._2) {
-          elem.copy(globals = elem.globals ++ pairs)
-        }
-
-      /** define local variables */
-      def defineLocal(pairs: (Local, AbsValue)*): Elem =
-        elem.bottomCheck(AbsValue)(pairs.unzip._2) {
-          elem.copy(locals = elem.locals ++ pairs)
-        }
 
       /** singleton checks */
       override def isSingle: Boolean =

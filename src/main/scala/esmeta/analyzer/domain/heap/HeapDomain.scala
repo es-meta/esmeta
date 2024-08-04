@@ -55,6 +55,9 @@ trait HeapDomainDecl { self: Self =>
       /** setters */
       def update(part: AbsPart, field: AbsValue, value: AbsValue): Elem
 
+      /** epxand */
+      def expand(part: AbsPart, field: AbsValue): Elem
+
       /** delete */
       def delete(part: AbsPart, field: AbsValue): Elem
 
@@ -74,7 +77,7 @@ trait HeapDomainDecl { self: Self =>
       def remove(part: AbsPart, value: AbsValue): Elem
 
       /** copy objects */
-      def copyObj(from: AbsPart)(to: AllocSite): Elem
+      def copy(from: AbsPart)(to: AllocSite): Elem
 
       /** keys of map */
       def keys(part: AbsPart, intSorted: Boolean)(to: AllocSite): Elem

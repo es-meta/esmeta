@@ -102,7 +102,7 @@ class Interpreter(
   /** transition for normal instructions */
   def eval(inst: NormalInst): Unit = inst match {
     case IExpr(expr)         => eval(expr)
-    case ILet(lhs, expr)     => st.context.locals += lhs -> eval(expr)
+    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
     case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
     case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
     case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
