@@ -7,6 +7,7 @@ import esmeta.ir.Type
 import esmeta.spec.*
 import esmeta.util.*
 import scala.annotation.tailrec
+import esmeta.util.BaseUtils.error
 
 /** abstract syntax tree (AST) values */
 sealed trait Ast extends ESElem with Locational {
@@ -122,6 +123,42 @@ sealed trait Ast extends ESElem with Locational {
 
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode
+
+  /** helper for pattern extracting */
+  def extract(nodePattern: String): (String, Option[Int]) =
+    val pattern = """^(\w+)(?::(\d+))?$""".r
+    nodePattern match {
+      case pattern(name, idx) => (name, Option(idx).map(_.toInt))
+      case _                  => error("Invalid pattern")
+    }
+
+  /** check the existence of pattern */
+  def contains(patterns: List[String]): Boolean =
+    patterns.forall(pattern =>
+      pattern match
+        case nodePattern: String => contains(nodePattern),
+    )
+
+  def contains(nodePattern: String): Boolean = {
+    val (nodeName, rhsIdx) = extract(nodePattern)
+
+    def aux(asts: List[Ast]): Boolean = asts match
+      case Nil => false
+      case head :: tail =>
+        head match {
+          case lex: Lexical if lex.name == nodeName => true
+          case syn: Syntactic if syn.name == nodeName =>
+            rhsIdx match {
+              case Some(idx) if syn.rhsIdx == idx => true
+              case None                           => true
+              case _ => aux(tail ++ syn.children.flatten)
+            }
+          case syn: Syntactic => aux(tail ++ syn.children.flatten)
+          case _              => aux(tail)
+        }
+
+    aux(List(this))
+  }
 }
 
 /** ASTs constructed by syntactic productions */
