@@ -49,13 +49,14 @@ sealed trait Obj extends StateElem {
 
   /** expand */
   def expand(field: Value): Unit = (this, field) match
-    case (m: RecordObj, Str(field)) => m.map += field -> Uninit
-    case _ => throw InvalidObjOp(this, s"delete $field")
+    case (m: RecordObj, Str(field)) =>
+      if (!m.map.contains(field)) m.map += field -> Uninit
+    case _ => throw InvalidObjOp(this, s"expand $field")
 
   /** delete */
   def delete(key: Value): Unit = this match
     case m: MapObj => m.map -= key
-    case _         => throw InvalidObjOp(this, "delete")
+    case _         => throw InvalidObjOp(this, s"delete $key")
 
   /** push */
   def push(value: Value, front: Boolean): Unit = this match

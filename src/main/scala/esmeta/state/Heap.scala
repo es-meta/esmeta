@@ -47,10 +47,13 @@ case class Heap(
     allocList(apply(addr).keys(intSorted))
 
   /** record allocations */
-  def allocRecord(tname: String)(using CFG): Addr = alloc(RecordObj(tname))
+  def allocRecord(
+    tname: String,
+    pairs: Iterable[(String, Value)] = Nil,
+  )(using CFG): Addr = alloc(RecordObj(tname, pairs))
 
   /** map allocations */
-  def allocMap: Addr = alloc(MapObj())
+  def allocMap(pairs: Iterable[(Value, Value)]): Addr = alloc(MapObj(pairs))
 
   /** list allocations */
   def allocList(vs: Iterable[Value]): Addr = alloc(ListObj(vs.toVector))

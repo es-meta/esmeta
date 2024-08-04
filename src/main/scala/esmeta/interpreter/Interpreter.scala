@@ -307,13 +307,9 @@ class Interpreter(
       AstValue(Syntactic(name, args, rhsIdx, asts))
     case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
     case ERecord(tname, fields) =>
-      val addr = st.allocRecord(tname)
-      for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
-      addr
+      st.allocRecord(tname, for ((f, expr) <- fields) yield f -> eval(expr))
     case EMap(pairs) =>
-      val addr = st.allocMap
-      for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
-      addr
+      st.allocMap(for ((k, v) <- pairs) yield eval(k) -> eval(v))
     case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
     case ECopy(obj)   => st.copy(eval(obj).asAddr)
     case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)

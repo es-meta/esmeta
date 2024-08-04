@@ -203,23 +203,35 @@ trait StateBasicDomainDecl { self: Self =>
           (partV, elem.copy(heap = elem.heap.keys(obj.part, intSorted)(asite)))
         }
 
-      // ------------------------------ TODO ------------------------------
+      /** allocate a record object */
+      def allocRecord(
+        tname: String,
+        pairs: Iterable[(String, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        val partV = AbsValue(asite)
+        (partV, elem.copy(heap = heap.allocRecord(asite, tname, pairs)))
 
-      /** list concatenation */
-      def concat(
-        to: AllocSite,
-        lists: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem) =
-        elem.bottomCheck(AbsValue)(lists) {
-          import monad.*
-          (for {
-            partV <- id(_.allocList(to))
-            part = partV.part
-            _ <- join(for {
-              list <- lists
-            } yield modify(st => st.copy(heap = st.heap.concat(part, list))))
-          } yield partV)(elem)
+      /** allocate a map object */
+      def allocMap(
+        pairs: Iterable[(AbsValue, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        val partV = AbsValue(asite)
+        elem.bottomCheck(AbsValue)(
+          pairs.flatMap { case (k, v) => List(k, v) },
+        ) {
+          (partV, elem.copy(heap = heap.allocMap(asite, pairs)))
         }
+
+      /** allocate a list object */
+      def allocList(
+        vs: Iterable[AbsValue] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        val partV = AbsValue(asite)
+        elem.bottomCheck(AbsValue)(vs) {
+          (partV, elem.copy(heap = heap.allocList(asite, vs)))
+        }
+
+      // ------------------------------ TODO ------------------------------
 
       /** get childeren of AST */
       def getChildren(
@@ -228,7 +240,7 @@ trait StateBasicDomainDecl { self: Self =>
       ): (AbsValue, Elem) = ast.getSingle match
         case One(AstValue(syn: Syntactic)) =>
           val vs = syn.children.flatten.map(AbsValue(_))
-          allocList(to, vs)
+          allocList(vs)(to)
         case Many => exploded("EGetChildren")
         case _    => (AbsValue.Bot, Bot)
 
@@ -240,40 +252,9 @@ trait StateBasicDomainDecl { self: Self =>
       ): (AbsValue, Elem) = (grammarSymbol.getSingle, ast.getSingle) match
         case (One(GrammarSymbol(name, _)), One(AstValue(ast))) =>
           val vs = ast.getItems(name).map(AbsValue(_))
-          allocList(to, vs)
+          allocList(vs)(to)
         case (Many, _) | (_, Many) => exploded("EGetItems")
         case _                     => (AbsValue.Bot, Bot)
-
-      /** allocation of map with address partitions */
-      def allocMap(
-        to: AllocSite,
-        pairs: Iterable[(AbsValue, AbsValue)],
-      ): (AbsValue, Elem) =
-        val partV = AbsValue(to)
-        elem.bottomCheck(AbsValue)(
-          pairs.flatMap { case (k, v) => List(k, v) },
-        ) {
-          (partV, elem.copy(heap = heap.allocMap(to, pairs)))
-        }
-
-      /** allocation of record with address partitions */
-      def allocRecord(
-        to: AllocSite,
-        tname: String,
-        pairs: Iterable[(String, AbsValue)],
-      ): (AbsValue, Elem) =
-        val partV = AbsValue(to)
-        (partV, elem.copy(heap = heap.allocRecord(to, tname, pairs)))
-
-      /** allocation of list with address partitions */
-      def allocList(
-        to: AllocSite,
-        list: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem) =
-        val partV = AbsValue(to)
-        elem.bottomCheck(AbsValue)(list) {
-          (partV, elem.copy(heap = heap.allocList(to, list)))
-        }
 
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =

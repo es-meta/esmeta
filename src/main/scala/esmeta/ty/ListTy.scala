@@ -7,7 +7,7 @@ import esmeta.util.*
 /** list types */
 enum ListTy extends TyElem with Lattice[ListTy] {
   case Top
-  case Elem(elem: ValueTy)
+  case Elem(value: ValueTy)
   case Bot
 
   import ListTy.*
@@ -46,6 +46,12 @@ enum ListTy extends TyElem with Lattice[ListTy] {
 
   /** prune type */
   def --(that: => ListTy): ListTy = if (this <= that) Bot else this
+
+  /** list element type */
+  def elem: ValueTy = this match
+    case Top      => AnyT
+    case Elem(ty) => ty
+    case Bot      => BotT
 
   /** list containment check */
   def contains(l: ListObj, heap: Heap): Boolean = this match

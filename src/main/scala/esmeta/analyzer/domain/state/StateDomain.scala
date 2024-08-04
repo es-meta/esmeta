@@ -86,13 +86,23 @@ trait StateDomainDecl { self: Self =>
         intSorted: Boolean,
       )(asite: AllocSite): (AbsValue, Elem)
 
-      // ------------------------------ TODO ------------------------------
+      /** allocate a record object */
+      def allocRecord(
+        tname: String,
+        pairs: Iterable[(String, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem)
 
-      /** list concatenation */
-      def concat(
-        to: AllocSite,
-        ls: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem)
+      /** allocate a map object */
+      def allocMap(
+        pairs: Iterable[(AbsValue, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem)
+
+      /** allocate a list object */
+      def allocList(
+        vs: Iterable[AbsValue] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem)
+
+      // ------------------------------ TODO ------------------------------
 
       /** get childeren of AST */
       def getChildren(
@@ -105,25 +115,6 @@ trait StateDomainDecl { self: Self =>
         to: AllocSite,
         nt: AbsValue,
         ast: AbsValue,
-      ): (AbsValue, Elem)
-
-      /** allocation of map with address partitions */
-      def allocMap(
-        to: AllocSite,
-        pairs: Iterable[(AbsValue, AbsValue)],
-      ): (AbsValue, Elem)
-
-      /** allocation of record with address partitions */
-      def allocRecord(
-        to: AllocSite,
-        tname: String,
-        pairs: Iterable[(String, AbsValue)],
-      ): (AbsValue, Elem)
-
-      /** allocation of list with address partitions */
-      def allocList(
-        to: AllocSite,
-        list: Iterable[AbsValue] = Nil,
       ): (AbsValue, Elem)
 
       /** check contains */

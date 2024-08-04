@@ -130,7 +130,7 @@ trait StateTypeDomainDecl { self: Self =>
       )
 
       /** field existence check */
-      def exists(base: AbsValue, field: AbsValue): AbsValue = ???
+      def exists(base: AbsValue, field: AbsValue): AbsValue = AbsValue(BoolT)
 
       /** expand a field of a record object */
       def expand(base: AbsValue, field: AbsValue): Elem = elem
@@ -142,8 +142,8 @@ trait StateTypeDomainDecl { self: Self =>
       def push(list: AbsValue, value: AbsValue, front: Boolean): Elem = elem
 
       /** pop a value from a list */
-      def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = ???
-      // (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
+      def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
+        (AbsValue(list.ty.list.elem), elem)
 
       /** copy object */
       def copy(from: AbsValue)(asite: AllocSite): (AbsValue, Elem) =
@@ -154,23 +154,33 @@ trait StateTypeDomainDecl { self: Self =>
         obj: AbsValue,
         intSorted: Boolean,
       )(asite: AllocSite): (AbsValue, Elem) =
-        val value =
-          if (obj.ty.map.isBottom) AbsValue.Bot
-          else AbsValue(ListT(StrT))
-        (value, elem)
+        val ty = obj.ty
+        if (ty.record.isBottom && ty.map.isBottom) (AbsValue.Bot, Bot)
+        else (AbsValue(ListT(StrT)), elem)
+
+      /** allocate a record object */
+      def allocRecord(
+        tname: String,
+        pairs: Iterable[(String, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        (AbsValue(RecordT(tname)), elem)
+
+      /** allocate a map object */
+      def allocMap(
+        pairs: Iterable[(AbsValue, AbsValue)] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        val (keys, values) = pairs.unzip
+        val key = keys.foldLeft(BotT)(_ || _.ty)
+        val value = values.foldLeft(BotT)(_ || _.ty)
+        (AbsValue(MapT(key, value)), elem)
+
+      /** allocate a list object */
+      def allocList(
+        vs: Iterable[AbsValue] = Nil,
+      )(asite: AllocSite): (AbsValue, Elem) =
+        (AbsValue(ListT(vs.foldLeft(BotT)(_ || _.ty))), elem)
 
       // ------------------------------ TODO ------------------------------
-
-      /** list concatenation */
-      def concat(
-        to: AllocSite,
-        lists: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem) = ???
-      // val value = AbsValue(ListT((for {
-      //   list <- lists
-      //   elem <- list.ty.list.elem
-      // } yield elem).foldLeft(BotT)(_ || _)))
-      // (value, elem)
 
       /** get childeren of AST */
       def getChildren(
@@ -187,36 +197,6 @@ trait StateTypeDomainDecl { self: Self =>
         case One(GrammarSymbol(name, _)) => (AbsValue(ListT(AstT(name))), elem)
         case Many => exploded(s"imprecise grammarSymbol name: $grammarSymbol")
         case Zero => (AbsValue.Bot, Bot)
-
-      /** allocation of map with address partitions */
-      def allocMap(
-        to: AllocSite,
-        pairs: Iterable[(AbsValue, AbsValue)],
-      ): (AbsValue, Elem) =
-        val (keys, values) = pairs.unzip
-        val key = keys.foldLeft(BotT)(_ || _.ty)
-        val value = values.foldLeft(BotT)(_ || _.ty)
-        (AbsValue(MapT(key, value)), elem)
-
-      /** allocation of record with address partitions */
-      def allocRecord(
-        to: AllocSite,
-        tname: String,
-        pairs: Iterable[(String, AbsValue)],
-      ): (AbsValue, Elem) =
-        // val value = tnameOpt match
-        //   case None => RecordT(pairs.map { case (f, v) => f -> v.ty }.toMap)
-        //   case Some(tname) => NameT(tname)
-        // (AbsValue(value), elem)
-        ???
-
-      /** allocation of list with address partitions */
-      def allocList(
-        to: AllocSite,
-        list: Iterable[AbsValue] = Nil,
-      ): (AbsValue, Elem) =
-        val listT = ListT(list.foldLeft(BotT) { case (l, r) => l || r.ty })
-        (AbsValue(listT), elem)
 
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =

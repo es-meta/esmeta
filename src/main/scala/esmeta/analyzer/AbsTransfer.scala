@@ -403,7 +403,7 @@ trait AbsTransferDecl { self: Analyzer =>
                   v <- transfer(expr)
                 } yield (f, v)
             })
-            lv <- id(_.allocRecord(asite, tnameOpt, pairs))
+            lv <- id(_.allocRecord(tnameOpt, pairs)(asite))
           } yield lv
         case e @ EMap(pairs) =>
           val asite = AllocSite(e.asite, np.view)
@@ -415,13 +415,13 @@ trait AbsTransferDecl { self: Analyzer =>
                   value <- transfer(v)
                 } yield (key, value)
             })
-            lv <- id(_.allocMap(asite, ps))
+            lv <- id(_.allocMap(ps)(asite))
           } yield lv
         case e @ EList(exprs) =>
           val asite = AllocSite(e.asite, np.view)
           for {
             vs <- join(exprs.map(transfer))
-            lv <- id(_.allocList(asite, vs))
+            lv <- id(_.allocList(vs)(asite))
           } yield lv
         case e @ ECopy(obj) =>
           val asite = AllocSite(e.asite, np.view)

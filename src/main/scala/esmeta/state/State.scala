@@ -117,10 +117,13 @@ case class State(
   def keys(addr: Addr, intSorted: Boolean): Addr = heap.keys(addr, intSorted)
 
   /** allocate a record object */
-  def allocRecord(tname: String)(using CFG): Addr = heap.allocRecord(tname)
+  def allocRecord(
+    tname: String,
+    pairs: Iterable[(String, Value)] = Nil,
+  )(using CFG): Addr = heap.allocRecord(tname, pairs)
 
   /** allocate a map object */
-  def allocMap: Addr = heap.allocMap
+  def allocMap(pairs: Iterable[(Value, Value)]): Addr = heap.allocMap(pairs)
 
   /** allocate a list object */
   def allocList(vs: Iterable[Value]): Addr = heap.allocList(vs)
