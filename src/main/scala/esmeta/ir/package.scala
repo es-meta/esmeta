@@ -107,8 +107,10 @@ def PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)
 
 /** predefined auxiliary functions */
 inline def getAux(name: String): EClo = EClo("__" + name + "__", Nil)
+def AUX_APPEND_LIST = getAux("APPEND_LIST")
 def AUX_CLAMP = getAux("CLAMP")
+def AUX_FLAT_LIST = getAux("FLAT_LIST")
 def AUX_HAS_DUPLICATE = getAux("HAS_DUPLICATE")
 def AUX_IS_ARRAY_INDEX = getAux("IS_ARRAY_INDEX")
-def AUX_REMOVE_ELEM = getAux("REMOVE_ELEM")
 def AUX_NEW_ERROR_OBJ = getAux("NEW_ERROR_OBJ")
+def AUX_REMOVE_ELEM = getAux("REMOVE_ELEM")

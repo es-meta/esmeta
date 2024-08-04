@@ -223,9 +223,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(list " >> exprs >> ")"
-      case EListConcat(exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(list-concat " >> exprs >> ")"
       case ECopy(obj) =>
         app >> "(copy " >> obj >> ")"
       case EKeys(map, intSorted) =>

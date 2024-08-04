@@ -1,3 +1,13 @@
+def appendList(to: List, from: List): List = {
+  let i = 0
+  let len = from.length
+  while (< i len) {
+    push to < from[i]
+    i = (+ i 1)
+  }
+  return to
+}
+
 def sudomergesort(list: List[Math]) = {
   let length = list.length
   let sortedlist = (copy list)[#1]
@@ -22,7 +32,7 @@ def sudomergesort(list: List[Math]) = {
     }
     call sortedleft = clo<"sudomergesort">(left)
     call sortedright = clo<"sudomergesort">(right)
-    sortedlist = (list-concat sortedleft sortedright)[#1]
+    call sortedlist = clo<"appendList">(sortedleft, sortedright)
   }
   return sortedlist
 }

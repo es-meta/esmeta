@@ -28,7 +28,7 @@
   "inst": {
     "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.__MAP__[N].initialized = true",
     "Append the pair (a two element List) consisting of _nextKey_ and _desc_ to the end of _descriptors_.": "push descriptors < (list [nextKey, desc])",
-    "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "internalSlotsList = (list-concat internalSlotsList additionalInternalSlotsList)",
+    "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "call interanlSlotsList = clo<\"__APPEND_LIST__\">(internalSlotsList, additionalInternalSlotsList)",
     "Change its bound value to _V_.": "envRec.__MAP__[N].BoundValue = V",
     "Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.__MAP__[N] = (record [MutableBinding] { \"initialized\" : false, \"mutable\" : true, \"strict\" : false })  if (= D true) envRec.__MAP__[N].maybeDeleted = true }",
     "Create an immutable binding in _envRec_ for _N_ and record that it is uninitialized. If _S_ is *true*, record that the newly created binding is a strict binding.": "envRec.__MAP__[N] = (record [ImmutableBinding] { \"initialized\" : false, \"mutable\" : false, \"strict\" : S })",

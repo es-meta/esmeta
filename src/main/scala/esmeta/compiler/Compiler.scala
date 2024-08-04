@@ -517,8 +517,10 @@ class Compiler(
     fb.withLang(expr)(expr match {
       case StringConcatExpression(exprs) =>
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
-      case ListConcatExpression(exprs) =>
-        EListConcat(exprs.map(compile(fb, _)))
+      case ListConcatExpression(es) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
+        xExpr
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
       case RecordExpression(rawName, fields) =>
         var props = fields.map {

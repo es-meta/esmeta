@@ -182,8 +182,6 @@ trait Parsers extends TyParsers {
       case ps => EMap(ps.getOrElse(Nil))
     } | ("(" ~ "list" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
-    } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
-      case es => EListConcat(es)
     } | ("(" ~ "copy" ~> expr <~ ")") ^^ {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {

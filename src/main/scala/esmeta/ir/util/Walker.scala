@@ -140,8 +140,6 @@ trait Walker extends BasicWalker {
       EMap(walkList(pairs, { case (k, v) => (walk(k), walk(v)) }))
     case EList(exprs) =>
       EList(walkList(exprs, walk))
-    case EListConcat(exprs) =>
-      EListConcat(walkList(exprs, walk))
     case ECopy(obj) =>
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>

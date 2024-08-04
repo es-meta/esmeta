@@ -2515,7 +2515,9 @@ Yield
 YieldExpression[0,0].Evaluation
 YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
+__APPEND_LIST__
 __CLAMP__
+__FLAT_LIST__
 __HAS_DUPLICATE__
 __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__

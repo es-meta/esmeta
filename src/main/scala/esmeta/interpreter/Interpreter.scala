@@ -315,12 +315,7 @@ class Interpreter(
       for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
       addr
     case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
-    case EListConcat(exprs) =>
-      st.allocList((for {
-        e <- exprs
-        v <- eval(e).asList(st).values
-      } yield v).toVector)
-    case ECopy(obj)            => st.copy(eval(obj).asAddr)
+    case ECopy(obj)   => st.copy(eval(obj).asAddr)
     case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)

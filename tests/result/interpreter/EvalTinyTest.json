@@ -19,7 +19,6 @@
   "keys.ir" : true,
   "let.ir" : true,
   "lexical.ir" : true,
-  "list-concat.ir" : true,
   "list-filter.ir" : true,
   "list-foldleft.ir" : true,
   "list-map.ir" : true,

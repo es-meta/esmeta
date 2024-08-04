@@ -129,8 +129,6 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(pairs, { case (k, v) => (walk(k), walk(v)) })
     case EList(exprs) =>
       walkList(exprs, walk)
-    case EListConcat(exprs) =>
-      walkList(exprs, walk)
     case ECopy(obj) =>
       walk(obj)
     case EKeys(map, intSorted) =>

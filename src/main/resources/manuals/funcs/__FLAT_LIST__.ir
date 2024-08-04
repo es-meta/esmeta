@@ -1,0 +1,12 @@
+def <AUX>:__FLAT_LIST__(
+  lists: List[List],
+): List = {
+  let list = (list [])
+  let i = 0
+  let len = lists.length
+  while (< i len) {
+    call list = clo<"__APPEND_LIST__">(list, lists[i])
+    i = (+ i 1)
+  }
+  return list
+}
