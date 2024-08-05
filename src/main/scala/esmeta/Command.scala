@@ -196,3 +196,27 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
   )
   override val targetName = "<js>+"
 }
+
+// -----------------------------------------------------------------------------
+// IR-ES Interpreter
+// -----------------------------------------------------------------------------
+/** `ireval` command */
+case object CmdIRInterp extends Command("irinterp", CmdBase >> IRInterp) {
+  val help = "interpret an IR-ES (ESMeta IR) file."
+  val examples = List(
+    "esmeta interp a.ir                         # run a.ir (IR-ES) file.",
+  )
+  override val targetName = "<ir>+"
+}
+
+// -----------------------------------------------------------------------------
+// IR-ES Partial Interpreter
+// -----------------------------------------------------------------------------
+/** `irpeval` command */
+case object CmdIRPeval extends Command("irpeval", CmdBase >> IRPeval) {
+  val help = "partial-evaluate an IR-ES (ESMeta IR) file, and print it to log"
+  val examples = List(
+    "esmeta interp a.ir                         # peval a.ir (IR-ES) file.",
+  )
+  override val targetName = "<ir>+"
+}

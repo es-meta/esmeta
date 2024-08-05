@@ -80,6 +80,10 @@ object ESMeta extends Git(BASE_DIR) {
     CmdMutate,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     CmdAnalyze,
+    // Interpreter for IR-ES
+    CmdIRInterp,
+    // Partial Evaluator for IR-ES
+    CmdIRPeval,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
