@@ -83,7 +83,8 @@ class SpecStringMutator(using cfg: CFG)(
         case _ => super.walk(inst)
       }
     }
-    _specProps = Set()
+    // TODO: how to get property list from specification correctly?
+    _specProps = Set("toString", "valueOf")
     PropFinder.walk(cfg.program)
     _specProps.toVector
   }
@@ -109,7 +110,6 @@ object SpecStringMutator {
   val primaryCounter = Util.AstCounter(isPrimary)
 
   // manually selected algorithms for extracting property
-  // TODO: we have to check not only property but also method name
   val propReadingAlgos = Set(
     "HasProperty",
     "GetMethod",
