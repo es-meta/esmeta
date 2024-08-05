@@ -180,6 +180,9 @@ class Fuzzer(
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
+      // handling HostLoadImportedModule AO in ImportCall
+      case Failure(e: UnknownFunc) =>
+        debugging(failMsg(s"UNKNOWN FUNC (${e.name})")); false
       case Failure(e: ESMetaError) => throw e
       case Failure(e) =>
         e.getMessage match
