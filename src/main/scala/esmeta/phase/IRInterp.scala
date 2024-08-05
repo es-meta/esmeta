@@ -11,25 +11,21 @@ import esmeta.es.*
 
 /** `irinterp` phase */
 case object IRInterp extends Phase[Unit, State] {
-  val name = "irinterp"
+  val name = "ir-interp"
   val help = "interpret an IR-ES (ESMeta Intermediate Representation) file."
 
   def apply(
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): State =
-    run(config, getFirstFilename(cmdConfig, this.name))
+  ): State = run(config, getFirstFilename(cmdConfig, this.name))
 
   def run(config: Config, filename: String): State =
     Interpreter(
-      State(
-        CFGBuilder(
-          Program.fromFile(filename),
-        ),
-      ),
-      log = false,
+      State(CFGBuilder(Program.fromFile(filename))),
+      log = config.log,
       detail = false,
+      logPW = Some(getPrintWriter(s"$IRINTERP_LOG_DIR/log")),
       timeLimit = config.timeLimit,
     )
 
@@ -40,8 +36,14 @@ case object IRInterp extends Phase[Unit, State] {
       NumOption((c, k) => c.timeLimit = Some(k)),
       "set the time limit in seconds (default: no limit).",
     ),
+    (
+      "log",
+      BoolOption(c => c.log = true),
+      "turn on logging mode.",
+    ),
   )
   case class Config(
     var timeLimit: Option[Int] = None,
+    var log: Boolean = false,
   )
 }
