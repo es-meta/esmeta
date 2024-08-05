@@ -2,7 +2,7 @@ def <AUX>:__REMOVE_ELEM__(
   elem: Any,
   list: List,
 ): List = {
-  let length = list.length
+  let length = (sizeof list)
   let from = length
   let to = length
   while (< 0 from) {

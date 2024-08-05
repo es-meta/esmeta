@@ -233,29 +233,6 @@ trait StateBasicDomainDecl { self: Self =>
 
       // ------------------------------ TODO ------------------------------
 
-      /** get childeren of AST */
-      def getChildren(
-        to: AllocSite,
-        ast: AbsValue,
-      ): (AbsValue, Elem) = ast.getSingle match
-        case One(AstValue(syn: Syntactic)) =>
-          val vs = syn.children.flatten.map(AbsValue(_))
-          allocList(vs)(to)
-        case Many => exploded("EGetChildren")
-        case _    => (AbsValue.Bot, Bot)
-
-      /** get items of AST */
-      def getItems(
-        to: AllocSite,
-        grammarSymbol: AbsValue,
-        ast: AbsValue,
-      ): (AbsValue, Elem) = (grammarSymbol.getSingle, ast.getSingle) match
-        case (One(GrammarSymbol(name, _)), One(AstValue(ast))) =>
-          val vs = ast.getItems(name).map(AbsValue(_))
-          allocList(vs)(to)
-        case (Many, _) | (_, Many) => exploded("EGetItems")
-        case _                     => (AbsValue.Bot, Bot)
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         heap.contains(list.part, value)

@@ -137,7 +137,7 @@ class Compiler(
     if (ps.exists(_.kind == Ellipsis)) Nil
     else {
       // add bindings for original arguments
-      val argsLen = toStrERef(NAME_ARGS_LIST, "length")
+      val argsLen = ESizeOf(toERef(NAME_ARGS_LIST))
       var remaining = ps.count(_.kind == Normal)
       fb.builtinBindings = ps.map(_.name).toSet
       ILet(NAME_ARGS, ERecord("", Nil)) :: ps.flatMap {
@@ -272,7 +272,7 @@ class Compiler(
       )
       fb.addInst(
         IWhile(
-          lessThan(iExpr, toStrERef(list, "length")),
+          lessThan(iExpr, ESizeOf(listExpr)),
           fb.newScope {
             fb.addInst(ILet(compile(x), toERef(list, iExpr)))
             compile(fb, body)
@@ -285,7 +285,7 @@ class Compiler(
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
-        IAssign(i, toStrERef(list, "length")),
+        IAssign(i, ESizeOf(listExpr)),
       )
       fb.addInst(
         IWhile(
@@ -320,9 +320,9 @@ class Compiler(
       fb.addInst(
         IAssign(list, EKeys(toStrERef(compile(fb, obj), INNER_MAP), intSorted)),
         if (ascending) IAssign(i, zero)
-        else IAssign(i, toStrERef(list, "length")),
+        else IAssign(i, ESizeOf(listExpr)),
         IWhile(
-          if (ascending) lessThan(iExpr, toStrERef(list, "length"))
+          if (ascending) lessThan(iExpr, ESizeOf(listExpr))
           else lessThan(zero, iExpr),
           fb.newScope {
             if (!ascending) fb.addInst(IAssign(i, sub(iExpr, one)))
@@ -340,19 +340,27 @@ class Compiler(
       )
     case ForEachParseNodeStep(x, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      val (length, lengthExpr) = fb.newTIdWithExpr
+      val (ast, astExpr) = fb.newTIdWithExpr
+      val (size, sizeExpr) = fb.newTIdWithExpr
       fb.addInst(
-        IAssign(list, EGetChildren(compile(fb, expr))),
+        IAssign(ast, compile(fb, expr)),
         IAssign(i, zero),
-        IAssign(length, toStrERef(list, "length")),
+        IAssign(size, ESizeOf(astExpr)),
       )
       fb.addInst(
         IWhile(
-          lessThan(iExpr, lengthExpr),
+          lessThan(iExpr, sizeExpr),
           fb.newScope {
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            fb.addInst(
+              IIf(
+                exists(toRef(ast, iExpr)),
+                fb.newScope {
+                  fb.addInst(ILet(compile(x), toERef(ast, iExpr)))
+                  compile(fb, body)
+                },
+                emptyInst,
+              ),
+            )
             fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
@@ -531,11 +539,11 @@ class Compiler(
         if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
         ERecord(if (tname == "Record") "" else tname, props)
       case LengthExpression(ReferenceExpression(ref)) =>
-        toStrERef(compile(fb, ref), "length")
+        ESizeOf(ERef(compile(fb, ref)))
       case LengthExpression(expr) =>
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(IAssign(x, compile(fb, expr)))
-        toStrERef(x, "length")
+        ESizeOf(xExpr)
       case SubstringExpression(expr, from, to) =>
         ESubstring(
           compile(fb, expr),
@@ -550,19 +558,26 @@ class Compiler(
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
       case NumberOfExpression(ReferenceExpression(ref)) =>
-        toStrERef(compile(fb, ref), "length")
+        ESizeOf(ERef(compile(fb, ref)))
       case NumberOfExpression(expr) =>
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(IAssign(x, compile(fb, expr)))
-        toStrERef(x, "length")
+        ESizeOf(xExpr)
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
       case SourceTextExpression(expr) =>
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetItemsExpression(nt, expr) =>
-        EGetItems(compile(fb, nt), compile(fb, expr))
+      case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
+        val n = compile(fb, nt)
+        val e = compile(fb, expr)
+        val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(x, AUX_GET_ITEMS, args))
+        xExpr
+      case expr: GetItemsExpression =>
+        EYet(expr.toString(true, false))
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
         if (simpleOps contains name) simpleOps(name)(fb, as)
@@ -887,9 +902,7 @@ class Compiler(
                   if fb.isBuiltin && fb.builtinBindings.contains(name) =>
                 exists(Field(NAME_ARGS, EStr(name)))
               case _ => exists(x)
-          case Empty =>
-            val lv = toERef(fb, x, EStr("length"))
-            is(lv, zero)
+          case Empty      => is(ESizeOf(x), zero)
           case StrictMode => T // XXX assume strict mode
           case ArrayIndex =>
             val (b, bExpr) = fb.newTIdWithExpr
@@ -912,7 +925,7 @@ class Compiler(
               List("Get", "Set", "Enumerable", "Configurable")
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
-            EInstanceOf(x, EGrammarSymbol("Nonterminal", Nil))
+            EInstanceOf(x, EGrammarSymbol("", Nil))
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
@@ -983,7 +996,7 @@ class Compiler(
       IAssign(i, zero),
       IAssign(b, F),
       IWhile(
-        and(not(bExpr), lessThan(iExpr, toStrERef(l, "length"))),
+        and(not(bExpr), lessThan(iExpr, ESizeOf(lExpr))),
         fb.newScope {
           fb.addInst(
             x match

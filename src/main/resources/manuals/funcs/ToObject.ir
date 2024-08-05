@@ -38,7 +38,7 @@ def ToObject(
       "Extensible" : true,
       "__MAP__" : (map {
         "length" -> (record [PropertyDescriptor] {
-          "Value" : ([number] argument.length),
+          "Value" : ([number] (sizeof argument)),
           "Writable" : false,
           "Enumerable" : false,
           "Configurable" : false,

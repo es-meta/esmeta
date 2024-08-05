@@ -258,19 +258,6 @@ trait AbsTransferDecl { self: Analyzer =>
           AbsValue(GrammarSymbol(name, params))
         case ESourceText(expr) =>
           for { v <- transfer(expr) } yield v.sourceText
-        case e @ EGetChildren(ast) =>
-          val asite = AllocSite(e.asite, np.view)
-          for {
-            av <- transfer(ast)
-            lv <- id(_.getChildren(asite, av))
-          } yield lv
-        case e @ EGetItems(nt, ast) =>
-          val asite = AllocSite(e.asite, np.view)
-          for {
-            nv <- transfer(nt)
-            av <- transfer(ast)
-            lv <- id(_.getItems(asite, nv, av))
-          } yield lv
         case EYet(msg) =>
           if (yetThrow) notSupported(msg)
           else AbsValue.Bot
@@ -344,6 +331,7 @@ trait AbsTransferDecl { self: Analyzer =>
           } yield v.typeOf(st)
         case EInstanceOf(expr, target) => ???
         case ETypeCheck(expr, tyExpr)  => ???
+        case ESizeOf(expr)             => ???
         case EClo(fname, cap) =>
           cfg.fnameMap.get(fname) match {
             case Some(f) =>

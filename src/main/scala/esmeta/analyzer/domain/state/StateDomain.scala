@@ -104,19 +104,6 @@ trait StateDomainDecl { self: Self =>
 
       // ------------------------------ TODO ------------------------------
 
-      /** get childeren of AST */
-      def getChildren(
-        to: AllocSite,
-        ast: AbsValue,
-      ): (AbsValue, Elem)
-
-      /** get items of AST */
-      def getItems(
-        to: AllocSite,
-        nt: AbsValue,
-        ast: AbsValue,
-      ): (AbsValue, Elem)
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue
 

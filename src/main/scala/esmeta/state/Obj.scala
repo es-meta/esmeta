@@ -17,9 +17,8 @@ sealed trait Obj extends StateElem {
     case (m: MapObj, key)       => m.map.get(key)
     case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
-    case (ListObj(vs), Str("length")) => Some(Math(vs.length))
-    case (y: YetObj, _)               => throw NotSupported(Feature)(y.msg)
-    case _                            => None
+    case (y: YetObj, _) => throw NotSupported(Feature)(y.msg)
+    case _              => None
 
   /** getter */
   def apply(field: Value): Value =
@@ -46,6 +45,11 @@ sealed trait Obj extends StateElem {
       0 <= decimal.toInt && decimal.toInt < l.values.length
     case (y: YetObj, _) => throw NotSupported(Feature)(y.msg)
     case _              => false
+
+  /** size */
+  def size: Int = this match
+    case l: ListObj => l.values.length
+    case _          => throw InvalidSizeOf(this)
 
   /** expand */
   def expand(field: Value): Unit = (this, field) match

@@ -163,8 +163,6 @@ class StringifyTinyTest extends IRTest {
       copy -> "(copy x)",
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
-      getChildren -> "(get-children x)",
-      getItems -> "(get-items x x)",
       // allocation expressions with allocation sites
       recASite -> """(record [T] {
       |  "A" : true,
@@ -174,8 +172,6 @@ class StringifyTinyTest extends IRTest {
       copyASite -> "(copy x)[#42]",
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",
-      getChildrenASite -> "(get-children x)[#9]",
-      getItemsASite -> "(get-items x x)[#10]",
       // literals
       EMath(4) -> "4",
       EInfinity(true) -> "+INF",

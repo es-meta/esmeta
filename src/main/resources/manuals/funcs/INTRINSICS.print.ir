@@ -4,7 +4,7 @@ def <BUILTIN>:INTRINSICS.print(
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
   let __args__ = (record)
-  if (< 0 ArgumentsList.length) {
+  if (< 0 (sizeof ArgumentsList)) {
     pop x < ArgumentsList
     expand __args__.x
   } else let x = undefined

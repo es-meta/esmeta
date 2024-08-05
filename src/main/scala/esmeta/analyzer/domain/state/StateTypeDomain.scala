@@ -182,22 +182,6 @@ trait StateTypeDomainDecl { self: Self =>
 
       // ------------------------------ TODO ------------------------------
 
-      /** get childeren of AST */
-      def getChildren(
-        to: AllocSite,
-        ast: AbsValue,
-      ): (AbsValue, Elem) = (AbsValue(ListT(AstT)), elem)
-
-      /** get items of AST */
-      def getItems(
-        to: AllocSite,
-        grammarSymbol: AbsValue,
-        ast: AbsValue,
-      ): (AbsValue, Elem) = grammarSymbol.ty.grammarSymbol.getSingle match
-        case One(GrammarSymbol(name, _)) => (AbsValue(ListT(AstT(name))), elem)
-        case Many => exploded(s"imprecise grammarSymbol name: $grammarSymbol")
-        case Zero => (AbsValue.Bot, Bot)
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         if (list.ty.list.isBottom) AbsValue.Bot

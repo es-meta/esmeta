@@ -148,6 +148,8 @@ trait Parsers extends TyParsers {
       case e ~ s => EInstanceOf(e, s)
     } | "(" ~ "?" ~> expr ~ (":" ~> irType) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
+    } | "(" ~ "sizeof" ~> expr <~ ")" ^^ {
+      case e => ESizeOf(e)
     } | "clo<" ~> string ~ opt(
       "," ~ "[" ~> repsep(name, ",") <~ "]",
     ) <~ ">" ^^ {
@@ -186,10 +188,6 @@ trait Parsers extends TyParsers {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {
       case i ~ e => EKeys(e, i.isDefined)
-    } | "(" ~ "get-children" ~> expr <~ ")" ^^ {
-      case e => EGetChildren(e)
-    } | "(" ~ "get-items" ~> expr ~ expr <~ ")" ^^ {
-      case n ~ a => EGetItems(n, a)
     },
   )
 

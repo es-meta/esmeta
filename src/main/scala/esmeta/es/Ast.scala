@@ -18,6 +18,9 @@ sealed trait Ast extends ESElem with Locational {
   /** parent */
   var parent: Option[Ast] = None
 
+  /** children */
+  def children: List[Option[Ast]]
+
   /** idx of production */
   def idx: Int = this match
     case lex: Lexical               => 0
@@ -31,12 +34,6 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical   => Nil
     case syn: Syntactic => syn.args
 
-  /** size */
-  lazy val size: Int = this match
-    case lex: Lexical => 1
-    case syn: Syntactic =>
-      syn.children.map(_.fold(1)(_.size)).foldLeft(1)(_ + _)
-
   /** production chains */
   lazy val chains: List[Ast] = this :: (this match
     case lex: Lexical => Nil
@@ -45,18 +42,6 @@ sealed trait Ast extends ESElem with Locational {
         case child :: Nil => child.chains
         case _            => Nil
   )
-
-  /** get items */
-  def getItems(name: String): List[Ast] = this match
-    case _: Lexical => Nil
-    case syn: Syntactic =>
-      for {
-        child <- syn.children.flatten
-        item <-
-          if (child.name == this.name) child.getItems(name)
-          else if (child.name == name) List(child)
-          else throw InvalidASTItem(child, name)
-      } yield item
 
   /** types */
   lazy val types: Set[String] = (this match
@@ -95,6 +80,7 @@ sealed trait Ast extends ESElem with Locational {
   /** safe getter */
   def get(field: Value)(using cfg: CFG): Option[Ast] = (this, field) match
     case (_, Str("parent")) => parent
+    // TODO remove this case if possible
     case (syn: Syntactic, Str(fieldStr)) =>
       val Syntactic(name, _, rhsIdx, children) = syn
       val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
@@ -155,4 +141,6 @@ case class Syntactic(
 case class Lexical(
   name: String,
   str: String,
-) extends Ast
+) extends Ast {
+  def children: List[Option[Ast]] = Nil
+}

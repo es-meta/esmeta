@@ -26,6 +26,7 @@ case class EExists(ref: Ref) extends Expr
 case class ETypeOf(base: Expr) extends Expr
 case class EInstanceOf(base: Expr, target: Expr) extends Expr
 case class ETypeCheck(base: Expr, ty: Type) extends Expr
+case class ESizeOf(base: Expr) extends Expr
 case class EClo(fname: String, captured: List[Name]) extends Expr
 case class ECont(fname: String) extends Expr
 
@@ -57,8 +58,6 @@ case class EMap(pairs: List[(Expr, Expr)]) extends AllocExpr
 case class EList(exprs: List[Expr]) extends AllocExpr
 case class ECopy(obj: Expr) extends AllocExpr
 case class EKeys(map: Expr, intSorted: Boolean) extends AllocExpr
-case class EGetChildren(ast: Expr) extends AllocExpr
-case class EGetItems(nt: Expr, ast: Expr) extends AllocExpr
 
 // literals
 sealed trait LiteralExpr extends Expr

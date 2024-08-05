@@ -4,11 +4,11 @@ def <BUILTIN>:INTRINSICS.TypeError(
   NewTarget: Record[Object] | Undefined,
 ): Unknown = {
   let __args__ = (record)
-  if (< 0 ArgumentsList.length) {
+  if (< 0 (sizeof ArgumentsList)) {
     pop message < ArgumentsList
     expand __args__.message
   } else let message = undefined
-  if (< 0 ArgumentsList.length) {
+  if (< 0 (sizeof ArgumentsList)) {
     pop options < ArgumentsList
     expand __args__.options
   } else let options = undefined

@@ -1,6 +1,6 @@
 def appendList(to: List, from: List): List = {
   let i = 0
-  let len = from.length
+  let len = (sizeof from)
   while (< i len) {
     push to < from[i]
     i = (+ i 1)
@@ -9,7 +9,7 @@ def appendList(to: List, from: List): List = {
 }
 
 def sudomergesort(list: List[Math]) = {
-  let length = list.length
+  let length = (sizeof list)
   let sortedlist = (copy list)[#1]
   if (= length 2) {
     pop fst < sortedlist

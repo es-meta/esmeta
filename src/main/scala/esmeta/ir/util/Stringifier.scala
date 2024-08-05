@@ -166,6 +166,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(instanceof " >> expr >> " " >> target >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
+      case ESizeOf(expr) =>
+        app >> "(sizeof " >> expr >> ")"
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
         app >> "clo<" >> "\"" >> fname >> "\""
@@ -228,10 +230,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EKeys(map, intSorted) =>
         app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
         app >> map >> ")"
-      case EGetChildren(ast) =>
-        app >> "(get-children " >> ast >> ")"
-      case EGetItems(nt, ast) =>
-        app >> "(get-items " >> nt >> " " >> ast >> ")"
     }
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"

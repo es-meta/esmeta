@@ -193,14 +193,6 @@ class Interpreter(
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
-    case EGetChildren(ast) =>
-      eval(ast).asAst match
-        case syn: Syntactic =>
-          st.allocList(syn.children.flatten.map(AstValue(_)))
-        case ast => throw InvalidASTChildren(ast)
-    case EGetItems(nt, ast) =>
-      val name = eval(nt).asGrammarSymbol.name
-      st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(List(msg))
     case EContains(list, elem) =>
@@ -274,25 +266,25 @@ class Interpreter(
         case b: Bool   => "Boolean"
         case Undef     => "Undefined"
         case Null      => "Null"
-        case addr: Addr =>
-          st(addr) match
-            case RecordObj("Symbol", _) => "Symbol"
-            case r: RecordObj =>
-              if (tyModel.isSubTy(r.tname, "Object")) "Object"
-              else r.tname
-            case y: YetObj => throw NotSupported(Feature)(y.msg)
-            case v         => "SpecType"
-        case v => "SpecType",
+        case v =>
+          if (ObjectT.contains(v, st)) "Object"
+          else if (SymbolT.contains(v, st)) "Symbol"
+          else "SpecType",
       )
     case EInstanceOf(expr, target) =>
       (eval(expr), eval(target)) match
-        case (AstValue(ast), GrammarSymbol("Nonterminal", _)) =>
-          Bool(ast.isInstanceOf[Syntactic])
-        case (AstValue(ast), GrammarSymbol(name, params)) =>
-          Bool(ast.name == name && ast.getArgs == params)
-        case _ => Bool(false)
+        case (AstValue(_: Syntactic), GrammarSymbol("", _)) => Bool(true)
+        case (AstValue(ast), GrammarSymbol(name, _)) => Bool(ast.name == name)
+        case _                                       => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
+    case ESizeOf(expr) =>
+      Math(eval(expr) match
+        case Str(s)        => s.length
+        case addr: Addr    => st(addr).size
+        case AstValue(ast) => ast.children.size
+        case v             => throw InvalidSizeOf(v),
+      )
     case EClo(fname, captured) =>
       val func = cfg.getFunc(fname)
       Clo(func, captured.map(x => x -> st(x)).toMap)

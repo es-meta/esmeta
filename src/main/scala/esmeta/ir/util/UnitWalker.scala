@@ -94,6 +94,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(target)
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
+    case ESizeOf(expr) =>
+      walk(expr)
     case EClo(fname, captured) =>
       walk(fname); walkList(captured, walk)
     case ECont(fname) =>
@@ -133,10 +135,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(obj)
     case EKeys(map, intSorted) =>
       walk(map); walk(intSorted)
-    case EGetChildren(ast) =>
-      walk(ast)
-    case EGetItems(nt, ast) =>
-      walk(nt); walk(ast)
   }
 
   // literals

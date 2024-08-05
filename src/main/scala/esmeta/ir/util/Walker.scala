@@ -102,6 +102,8 @@ trait Walker extends BasicWalker {
       EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
+    case ESizeOf(expr) =>
+      ESizeOf(walk(expr))
     case EClo(fname, captured) =>
       EClo(walk(fname), walkList(captured, walk))
     case ECont(fname) =>
@@ -144,10 +146,6 @@ trait Walker extends BasicWalker {
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>
       EKeys(walk(map), walk(intSorted))
-    case EGetChildren(ast) =>
-      EGetChildren(walk(ast))
-    case EGetItems(nt, ast) =>
-      EGetItems(walk(nt), walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit

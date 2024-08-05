@@ -14,7 +14,7 @@ def IsInTailPosition(
   }
   if (! %1) return false
   let body = %0
-  
+
   // If _body_ is the |FunctionBody| of a |GeneratorBody|, return *false*.
   // If _body_ is the |FunctionBody| of an |AsyncFunctionBody|, return *false*.
   // If _body_ is the |FunctionBody| of an |AsyncGeneratorBody|, return *false*.

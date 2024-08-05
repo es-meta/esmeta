@@ -109,16 +109,12 @@ object IRTest {
   lazy val copy = ECopy(xExpr)
   lazy val keys = EKeys(xExpr, false)
   lazy val keysInt = EKeys(xExpr, true)
-  lazy val getChildren = EGetChildren(xExpr)
-  lazy val getItems = EGetItems(xExpr, xExpr)
   def assignASite(e: AllocExpr, k: Int): AllocExpr = { e.asite = k; e }
   lazy val recASite = assignASite(rec.copy(), 3)
   lazy val listASite = assignASite(list.copy(), 1)
   lazy val copyASite = assignASite(copy.copy(), 42)
   lazy val keysASite = assignASite(keys.copy(), 5)
   lazy val keysIntASite = assignASite(keysInt.copy(), 6)
-  lazy val getChildrenASite = assignASite(getChildren.copy(), 9)
-  lazy val getItemsASite = assignASite(getItems.copy(), 10)
   // literals
   lazy val normal = EEnum("normal")
   lazy val empty = EEnum("empty")

@@ -1,6 +1,6 @@
 def filter(list: List[Math], f: Clo) = {
   let clist = (copy list)[#1]
-  if (= clist.length 0) %0 = clist
+  if (= (sizeof clist) 0) %0 = clist
   else {
     pop hd < clist
     call fhd = f(hd)

@@ -1,7 +1,7 @@
 @main def main() = {
   let m = (map { 42 -> true, "x" -> null })[#1]
   let keys = (keys m)[#1]
-  assert (= keys.length 2)
+  assert (= (sizeof keys) 2)
   assert (contains keys 42)
   assert (contains keys "x")
 }

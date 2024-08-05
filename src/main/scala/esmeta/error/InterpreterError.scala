@@ -44,6 +44,8 @@ case class InvalidASTItem(ast: Ast, name: String)
   extends InterpreterError(s"invalid item: |${ast.name}| (expected: |$name|)")
 case class InvalidTypedValue(value: Value, ty: Ty)
   extends InterpreterError(s"unexpected typed value: $value (expected: $ty)")
+case class InvalidSizeOf(x: Value | Obj)
+  extends InterpreterError(s"invalid size of: $x")
 
 // invalid operands for an operator
 case class InvalidUnaryOp(uop: UOp, v: Value)

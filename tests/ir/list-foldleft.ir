@@ -1,5 +1,5 @@
 def foldleft(init: Math, list: List[Math], f: Clo) = {
-  if (= list.length 0) %0 = init
+  if (= (sizeof list) 0) %0 = init
   else {
     pop hd < list
     call newinit = f(init, hd)

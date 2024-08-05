@@ -1,0 +1,20 @@
+def <AUX>:__GET_ITEMS__(
+  ast: Ast,
+  target: GrammarSymbol,
+  parent: GrammarSymbol,
+): List[Ast] = {
+  let stack = (list [ast])
+  let items = (list [])
+  while (< 0 (sizeof stack)) {
+    pop stack > ast
+    if (instanceof ast target) push items < ast
+    else if (instanceof ast parent) {
+      let i = (sizeof ast)
+      while (< 0 i) {
+        i = (- i 1)
+        if (exists ast[i]) push stack < ast[i]
+      }
+    }
+  }
+  return items
+}
