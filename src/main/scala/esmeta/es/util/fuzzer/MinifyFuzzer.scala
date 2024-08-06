@@ -147,7 +147,7 @@ class MinifyFuzzer(
             s"const k = (function () {\n$instrumentedCode\n$ret\n})();\n"
           val original = directive ++ iife
           val tracerHeader =
-            "const arr = []; const tracer = i => arr.push(i);\n"
+            "const arr = []; const t = i => arr.push(i);\n"
           val tracedOriginal = directive ++ tracerHeader ++ instrumentedIife
           for (code <- List(original, tracedOriginal))
             minifyTester.test(code) match
