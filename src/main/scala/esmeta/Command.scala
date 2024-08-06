@@ -173,6 +173,17 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   override val targetName = "<js>+"
 }
 
+/** `inject-tracer` command */
+case object CmdInjectTracer
+  extends Command("inject-tracer", CmdBuildCFG >> InjectTracer) {
+  val help = "injects assertions to check final state of an ECMAScript file."
+  val examples = List(
+    "esmeta inject-tracer a.js                    # inject assertions.",
+    "esmeta inject-tracer a.js -inject-tracer:out=b.js   # dump with definitions.",
+  )
+  override val targetName = "<js>+"
+}
+
 /** `mutate` command */
 case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
   def help = "mutates an ECMAScript program."

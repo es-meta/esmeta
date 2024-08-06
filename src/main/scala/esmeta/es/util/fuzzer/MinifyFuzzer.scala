@@ -72,6 +72,8 @@ class MinifyFuzzer(
     ),
   )
 
+  val tracerInjector = TracerInjector(using cfg)
+
   lazy val result: Coverage = fuzzer.result
 
   lazy val db: MinifierDB = MinifierDB.fromResource
@@ -137,32 +139,41 @@ class MinifyFuzzer(
         val returns = injector.assertions
         // TODO: some simple programs cannot be checked by this logic due to the empty return assertion
         for (ret <- returns.par) {
-          val original =
-            s"${USE_STRICT}const k = (function () {\n$code\n$ret\n})();\n"
-          minifyTester.test(original) match
-            case None =>
-            case Some(
-                  MinifyTesterResult(original, minified, injected, exception),
-                ) =>
-              val delta =
-                DeltaDebugger(
-                  cfg, {
-                    minifyTester.test(_) match
-                      case Some(result) => exception == result.exception
-                      case _            => false
-                  },
-                ).result(original)
-              log(
-                MinifyFuzzResult(
-                  iter,
-                  covered,
-                  original,
-                  minified,
-                  delta,
-                  injected,
-                  exception,
-                ),
-              )
+          // TODO: we have to try in sloppy mode but ESMeta doesn't respect execution mode yet
+          val directive = USE_STRICT
+          val fn = s"function () {\n$code\n$ret\n}"
+          val iife = s"const k = ($fn)();\n"
+          val instrumentedFn = tracerInjector(fn)
+          val instrumentedIife = s"const k = ($instrumentedFn)();\n"
+          val original = directive ++ iife
+          val tracerHeader =
+            "const arr = []; const tracer = i => arr.push(i);\n"
+          val tracedOriginal = directive ++ tracerHeader ++ instrumentedIife
+          for (code <- List(original, tracedOriginal))
+            minifyTester.test(code) match
+              case None =>
+              case Some(
+                    MinifyTesterResult(code, minified, injected, exception),
+                  ) =>
+                val delta =
+                  DeltaDebugger(
+                    cfg, {
+                      minifyTester.test(_) match
+                        case Some(result) => exception == result.exception
+                        case _            => false
+                    },
+                  ).result(code)
+                log(
+                  MinifyFuzzResult(
+                    iter,
+                    covered,
+                    code,
+                    minified,
+                    delta,
+                    injected,
+                    exception,
+                  ),
+                )
         }
       case _ =>
 
