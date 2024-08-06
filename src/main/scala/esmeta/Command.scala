@@ -217,6 +217,8 @@ case object CmdIRPeval extends Command("ir-peval", CmdBase >> IRPeval) {
   val help = "partial-evaluate an IR-ES (ESMeta IR) file, and print it to log"
   val examples = List(
     "esmeta ir-peval a.ir                         # partial-eval a.ir (IR-ES) file.",
+    "esmeta ir-peval a.ir -ir-peval:out-auto      # partial-eval a.ir (IR-ES) file and print result to logs/ir-peval/out.ir",
+    "esmeta ir-peval a.ir -ir-peval:out='b.ir'    # partial-eval a.ir (IR-ES) file and print result to b.ir",
   )
   override val targetName = "<ir>+"
 }

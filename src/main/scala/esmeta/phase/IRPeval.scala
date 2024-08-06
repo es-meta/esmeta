@@ -1,12 +1,13 @@
 package esmeta.phase
 
-import esmeta.*
+import esmeta.{CommandConfig, IRPEVAL_LOG_DIR}
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.interpreter.*
 import esmeta.ir.Program
 import esmeta.peval.PartialEvaluator
 import esmeta.state.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
 
@@ -20,12 +21,22 @@ case object IRPeval extends Phase[Unit, Unit] {
     unit: Unit,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit = run(config, getFirstFilename(cmdConfig, this.name))
+  ): Unit =
+    if (config.outAuto && config.out.isDefined)
+      error(
+        "Turning on both out-auto option (-ir-peval:out-auto) and " +
+        "the out option (-ir-peval:out) with is not allowed.",
+      )
+
+    run(config, getFirstFilename(cmdConfig, this.name))
 
   def run(config: Config, filename: String): Unit =
-    val pevaled =
-      PartialEvaluator(Program.fromFile(filename), log = true).result
-    for (filename <- config.out)
+    val pevaled = PartialEvaluator(Program.fromFile(filename), log = true)
+    for (
+      filename <-
+        (if config.outAuto then Some(s"$IRPEVAL_LOG_DIR/out.ir")
+         else config.out)
+    )
       dumpFile(
         name = "the partialy evaluated IR-ES program",
         data = pevaled,
@@ -40,6 +51,11 @@ case object IRPeval extends Phase[Unit, Unit] {
       "set the filepath to print partial-evalated program (default: no print).",
     ),
     (
+      "out-auto",
+      BoolOption((c) => c.outAuto = true),
+      "use 'logs/ir-peval/out.ir' as filepath to print partial-evaluated program.",
+    ),
+    (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
       "set the time limit in seconds (default: no limit).",
@@ -52,6 +68,7 @@ case object IRPeval extends Phase[Unit, Unit] {
   )
   case class Config(
     var out: Option[String] = None,
+    var outAuto: Boolean = false,
     var timeLimit: Option[Int] = None,
     var log: Boolean = false,
   )

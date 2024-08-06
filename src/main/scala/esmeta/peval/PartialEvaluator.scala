@@ -8,80 +8,108 @@ import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 
 class PartialEvaluator(
-  val program: Program,
+  val prog: Program,
+  val targetFunc: Func,
   val log: Boolean = false,
   val output: Option[String] = None,
   val logPW: Option[PrintWriter] = None,
 ) {
 
-  /** resulting program */
-  lazy val result: Program = program
+  /** resulting function */
+  lazy val result: Func = targetFunc
 
-  def peval(prog: Program): Program =
-    Program(funcs = prog.funcs.map(peval), spec = prog.spec)
-
-  def peval(expr: Expr): Either[Expr, Value] = expr match
-    case EParse(code, rule)                       => ???
-    case EGrammarSymbol(name, params)             => ???
-    case ESourceText(expr)                        => ???
-    case EYet(msg)                                => ???
-    case EContains(list, expr)                    => ???
-    case ESubstring(expr, from, to)               => ???
-    case ETrim(expr, isStarting)                  => ???
-    case ERef(ref)                                => ???
-    case EUnary(uop, expr)                        => ???
-    case EBinary(bop, left, right)                => ???
-    case EVariadic(vop, exprs)                    => ???
-    case EMathOp(mop, args)                       => ???
-    case EConvert(cop, expr)                      => ???
-    case EExists(ref)                             => ???
-    case ETypeOf(base)                            => ???
-    case EInstanceOf(base, target)                => ???
-    case ETypeCheck(base, ty)                     => ???
-    case ESizeOf(base)                            => ???
-    case EClo(fname, captured)                    => ???
-    case ECont(fname)                             => ???
-    case EDebug(expr)                             => ???
-    case ERandom()                                => ???
-    case ESyntactic(name, args, rhsIdx, children) => ???
-    case ELexical(name, expr)                     => ???
-    case ERecord(tname, pairs)                    => ???
-    case EMap(pairs)                              => ???
-    case EList(exprs)                             => ???
-    case ECopy(obj)                               => ???
-    case EKeys(map, intSorted)                    => ???
-    case EMath(n)                                 => Right(Math(n))
-    case EInfinity(pos)                           => Right(Infinity(pos))
-    case ENumber(double)                          => Right(Number(double))
-    case EBigInt(bigInt)                          => Right(BigInt(bigInt))
-    case EStr(str)                                => Right(Str(str))
-    case EBool(b)                                 => Right(Bool(b))
-    case EUndef()                                 => Right(Undef)
-    case ENull()                                  => Right(Null)
-    case EEnum(name)                              => Right(Enum(name))
-    case ECodeUnit(c)                             => Right(CodeUnit(c))
+  def peval(expr: Expr): Expr = expr match
+    case EParse(code, rule)                       => expr
+    case EGrammarSymbol(name, params)             => expr
+    case ESourceText(expr)                        => expr
+    case EYet(msg)                                => expr
+    case EContains(list, expr)                    => expr
+    case ESubstring(expr, from, to)               => expr
+    case ETrim(expr, isStarting)                  => expr
+    case ERef(ref)                                => expr
+    case EUnary(uop, expr)                        => expr
+    case EBinary(bop, left, right)                => expr
+    case EVariadic(vop, exprs)                    => expr
+    case EMathOp(mop, args)                       => expr
+    case EConvert(cop, expr)                      => expr
+    case EExists(ref)                             => expr
+    case ETypeOf(base)                            => expr
+    case EInstanceOf(base, target)                => expr
+    case ETypeCheck(base, ty)                     => expr
+    case ESizeOf(base)                            => expr
+    case EClo(fname, captured)                    => expr
+    case ECont(fname)                             => expr
+    case EDebug(expr)                             => expr
+    case ERandom()                                => expr
+    case ESyntactic(name, args, rhsIdx, children) => expr
+    case ELexical(name, expr)                     => expr
+    case ERecord(tname, pairs)                    => expr
+    case EMap(pairs)                              => expr
+    case EList(exprs)                             => expr
+    case ECopy(obj)                               => expr
+    case EKeys(map, intSorted)                    => expr
+    case EMath(n)                                 => expr
+    case EInfinity(pos)                           => expr
+    case ENumber(double)                          => expr
+    case EBigInt(bigInt)                          => expr
+    case EStr(str)                                => expr
+    case EBool(b)                                 => expr
+    case EUndef()                                 => expr
+    case ENull()                                  => expr
+    case EEnum(name)                              => expr
+    case ECodeUnit(c)                             => expr
 
   def peval(inst: Inst): List[Inst] = inst match
-    case IExpr(expr)                   => ???
-    case ILet(lhs, expr)               => ???
-    case IAssign(ref, expr)            => ???
-    case IExpand(base, expr)           => ???
-    case IDelete(base, expr)           => ???
-    case IPush(elem, list, front)      => ???
-    case IPop(lhs, list, front)        => ???
-    case IReturn(expr)                 => ???
-    case IAssert(expr)                 => ???
-    case IPrint(expr)                  => ???
+    case IExpr(expr)                   => inst.toList
+    case ILet(lhs, expr)               => inst.toList
+    case IAssign(ref, expr)            => inst.toList
+    case IExpand(base, expr)           => inst.toList
+    case IDelete(base, expr)           => inst.toList
+    case IPush(elem, list, front)      => inst.toList
+    case IPop(lhs, list, front)        => inst.toList
+    case IReturn(expr)                 => inst.toList
+    case IAssert(expr)                 => inst.toList
+    case IPrint(expr)                  => inst.toList
     case INop()                        => Nil
-    case IIf(cond, thenInst, elseInst) => ???
-    case IWhile(cond, body)            => ???
-    case ICall(lhs, fexpr, args)       => ???
-    case ISdoCall(lhs, base, op, args) => ???
-    case ISeq(insts)                   => ???
+    case IIf(cond, thenInst, elseInst) => inst.toList
+    case IWhile(cond, body)            => inst.toList
+    case ICall(lhs, fexpr, args)       => inst.toList
+    case ISdoCall(lhs, base, op, args) => inst.toList
+    case ISeq(insts)                   => ISeq(insts.flatMap(peval)).toList
 
-  def peval(func: Func): Func = func
+  def peval(func: Func): Func = Func(
+    func.main,
+    func.kind,
+    func.name,
+    func.params,
+    func.retTy,
+    peval(func.body).toInst,
+    func.algo,
+  )
+
+  extension (insts: Iterable[Inst])
+    def toInst: Inst =
+      insts.size match
+        case 0 => ISeq(Nil)
+        case 1 => insts.head
+        case _ => ISeq(insts.toList)
 
   /** logging */
   private lazy val pw: PrintWriter =
     logPW.getOrElse(getPrintWriter(s"$IRPEVAL_LOG_DIR/log"))
+}
+
+object PartialEvaluator {
+  def apply(
+    prog: Program,
+    log: Boolean = false,
+    output: Option[String] = None,
+    logPW: Option[PrintWriter] = None,
+  ): Program =
+    Program(
+      funcs = prog.funcs.map(
+        new PartialEvaluator(prog, _, log, output, logPW).result,
+      ),
+      spec = prog.spec,
+    )
 }

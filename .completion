@@ -26,7 +26,7 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"
   irinterpOpt="-ir-interp:format -ir-interp:timeout -ir-interp:log"
-  irpevalOpt="-ir-peval:out -ir-peval:timeout -ir-peval:log"
+  irpevalOpt="-ir-peval:out -ir-peval:out-auto -ir-peval:timeout -ir-peval:log"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
