@@ -39,25 +39,19 @@ class TracerInjector(using cfg: CFG) extends Walker {
         walkChildren(children).map(_.toString(grammar = Some(grammar)))
       val ast =
         esParser("Block", args).from("{" + counterStmt + walked.mkString + "}")
-      ast match
-        case syn @ Syntactic("Block", _, _, _) => syn
-        case _                                 => ???
+      ast.asInstanceOf[Syntactic]
     case Syntactic("FunctionBody", args, _, children) =>
       val walked =
         walkChildren(children).map(_.toString(grammar = Some(grammar)))
       val ast =
         esParser("FunctionBody", args).from(counterStmt + walked.mkString)
-      ast match
-        case syn @ Syntactic("FunctionBody", _, _, _) => syn
-        case _                                        => ???
+      ast.asInstanceOf[Syntactic]
     case Syntactic("StatementList", args, _, children) =>
       val walked =
         walkChildren(children).map(_.toString(grammar = Some(grammar)))
       val ast =
         esParser("StatementList", args).from(walked.mkString + counterStmt)
-      ast match
-        case syn @ Syntactic("StatementList", _, _, _) => syn
-        case _                                         => ???
+      ast.asInstanceOf[Syntactic]
     case _ => super.walk(syn)
 
 }
