@@ -141,16 +141,15 @@ class MinifyFuzzer(
         for (ret <- returns.par) {
           // TODO: we have to try in sloppy mode but ESMeta doesn't respect execution mode yet
           val directive = USE_STRICT
-          val fn = s"function () {\n$code\n$ret\n}"
-          val iife = s"const k = ($fn)();\n"
-          val instrumentedFn = tracerInjector(fn)
-          val instrumentedIife = s"const k = ($instrumentedFn)();\n"
+          val instrumentedCode = tracerInjector(code)
+          val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
+          val instrumentedIife =
+            s"const k = (function () {\n$instrumentedCode\n$ret\n})();\n"
           val original = directive ++ iife
           val tracerHeader =
             "const arr = []; const tracer = i => arr.push(i);\n"
           val tracedOriginal = directive ++ tracerHeader ++ instrumentedIife
           for (code <- List(original, tracedOriginal))
-            dumpFile(code, s"$logDir/tmp.js")
             minifyTester.test(code) match
               case None =>
               case Some(
