@@ -109,6 +109,8 @@ object ESMeta extends Git(BASE_DIR) {
     Mutate,
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
+    IRInterp,
+    IRPeval,
   )
 
   /** command options */

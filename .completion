@@ -25,8 +25,8 @@ _esmeta_completions() {
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"
-  irinterpOpt="-ir-interp:log -ir-interp:timeout"
-  irpevalOpt="-ir-peval:log -ir-peval:out -ir-peval:timeout"
+  irinterpOpt="-ir-interp:format -ir-interp:timeout -ir-interp:log"
+  irpevalOpt="-ir-peval:out -ir-peval:timeout -ir-peval:log"
   # completion for commands
   case "${COMP_CWORD}" in
     1)

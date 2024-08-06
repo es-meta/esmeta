@@ -21,8 +21,15 @@ case object IRInterp extends Phase[Unit, State] {
   ): State = run(config, getFirstFilename(cmdConfig, this.name))
 
   def run(config: Config, filename: String): State =
+    val prog = Program.fromFile(filename)
+    if (config.format) then
+      dumpFile(
+        name = "the formatted IR-ES program",
+        data = prog,
+        filename = filename,
+      )
     Interpreter(
-      State(CFGBuilder(Program.fromFile(filename))),
+      State(CFGBuilder(prog)),
       log = config.log,
       detail = false,
       logPW = Some(getPrintWriter(s"$IRINTERP_LOG_DIR/log")),
@@ -31,6 +38,11 @@ case object IRInterp extends Phase[Unit, State] {
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "format",
+      BoolOption(c => c.format = true),
+      "format (reprint) the input ir file.",
+    ),
     (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
@@ -43,6 +55,7 @@ case object IRInterp extends Phase[Unit, State] {
     ),
   )
   case class Config(
+    var format: Boolean = false,
     var timeLimit: Option[Int] = None,
     var log: Boolean = false,
   )

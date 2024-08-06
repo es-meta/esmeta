@@ -36,7 +36,7 @@ case object IRPeval extends Phase[Unit, Unit] {
   val options: List[PhaseOption[Config]] = List(
     (
       "out",
-      StrOption((c, k) => c.out = None),
+      StrOption((c, k) => c.out = Some(k)),
       "set the filepath to print partial-evalated program (default: no print).",
     ),
     (
