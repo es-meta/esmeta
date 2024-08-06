@@ -150,6 +150,7 @@ class MinifyFuzzer(
             "const arr = []; const tracer = i => arr.push(i);\n"
           val tracedOriginal = directive ++ tracerHeader ++ instrumentedIife
           for (code <- List(original, tracedOriginal))
+            dumpFile(code, s"$logDir/tmp.js")
             minifyTester.test(code) match
               case None =>
               case Some(
