@@ -3,9 +3,13 @@ package esmeta.peval
 import esmeta.{IRPEVAL_LOG_DIR}
 import esmeta.ir.{Expr, Func, Inst, Program, Ref}
 import esmeta.ir.*
+import esmeta.peval.domain.*
+import esmeta.peval.pstate.*
 import esmeta.state.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
+import esmeta.ty.InfinityT
+import esmeta.interpreter.{Interpreter}
 
 class PartialEvaluator(
   val pst: PState,
@@ -17,85 +21,130 @@ class PartialEvaluator(
 ) {
 
   /** resulting function */
-  lazy val result: Func = targetFunc
+  lazy val result: Func = peval(targetFunc)
 
-  def peval(ref: Ref): Ref = ref match
-    case Field(base, expr) => Field(peval(base), peval(expr))
-    case _                 => ref
+  def peval(ref: Ref): PRefTarget = ref match
+    case Field(base, expr) => ???
+    // (peval(base), peval(expr)) match
+    // case (r : PartialRef.R, e : PartialValue.V ) => PartialRef.R(Field(r, e), )
+    // case _ => ???
+    //  Field(peval(base), peval(expr))
+    case v: Var => PRefTarget.RT(VarTarget(v), ref)
 
-  def peval(expr: Expr): Expr = expr match
-    case EParse(code, rule)                       => expr
-    case EGrammarSymbol(name, params)             => expr
-    case ESourceText(expr)                        => expr
-    case EYet(msg)                                => expr
-    case EContains(list, expr)                    => expr
-    case ESubstring(expr, from, to)               => expr
-    case ETrim(expr, isStarting)                  => expr
-    case ERef(ref)                                => expr
-    case EUnary(uop, expr)                        => expr
-    case EBinary(bop, left, right)                => expr
-    case EVariadic(vop, exprs)                    => expr
-    case EMathOp(mop, args)                       => expr
-    case EConvert(cop, expr)                      => expr
-    case EExists(ref)                             => expr
-    case ETypeOf(base)                            => expr
-    case EInstanceOf(base, target)                => expr
-    case ETypeCheck(base, ty)                     => expr
-    case ESizeOf(base)                            => expr
-    case EClo(fname, captured)                    => expr
-    case ECont(fname)                             => expr
-    case EDebug(expr)                             => expr
-    case ERandom()                                => expr
-    case ESyntactic(name, args, rhsIdx, children) => expr
-    case ELexical(name, expr)                     => expr
-    case ERecord(tname, pairs)                    => expr
-    case EMap(pairs)                              => expr
-    case EList(exprs)                             => expr
-    case ECopy(obj)                               => expr
-    case EKeys(map, intSorted)                    => expr
-    case EMath(n)                                 => expr
-    case EInfinity(pos)                           => expr
-    case ENumber(double)                          => expr
-    case EBigInt(bigInt)                          => expr
-    case EStr(str)                                => expr
-    case EBool(b)                                 => expr
-    case EUndef()                                 => expr
-    case ENull()                                  => expr
-    case EEnum(name)                              => expr
-    case ECodeUnit(c)                             => expr
+  def peval(expr: Expr): PValue =
+    if (log) then
+      pw.print(s"[peval][Expr] $expr")
+      pw.flush()
+    val e = expr
+    expr match
+      case EParse(code, rule)           => PValue.E(e, e)
+      case EGrammarSymbol(name, params) => PValue.E(e, e)
+      case ESourceText(expr)            => PValue.E(e, e)
+      case EYet(msg)                    => PValue.E(e, e)
+      case EContains(list, expr)        => PValue.E(e, e)
+      case ESubstring(expr, from, to)   => PValue.E(e, e)
+      case ETrim(expr, isStarting)      => PValue.E(e, e)
+      case ERef(ref) =>
+        val pref = peval(ref)
+        pref match
+          case PRefTarget.R(absref, ref)  => ???
+          case PRefTarget.RT(target, ref) => ???
 
-  def peval(inst: Inst): List[Inst] = inst match
-    case IExpr(expr) => inst.toList
+      case EUnary(uop, expr) =>
+        val pexpr = peval(expr)
+        pexpr match
+          case e: PValue.E =>
+            PValue.E(
+              e.absExpr,
+              EUnary(uop, pexpr.asValidExpr),
+            )
+          case v: PValue.V =>
+            PValue.V(
+              Interpreter.eval(uop, v.value),
+              EUnary(uop, pexpr.asValidExpr),
+            )
 
-    case ILet(lhs, expr) =>
-      val pexpr = peval(expr)
-      pst.define(lhs, pexpr)
-      List(ILet(lhs, pexpr))
+      case EBinary(bop, left, right) =>
+        val pleft = peval(left)
+        val pright = peval(right)
+        (pleft, pright) match
+          case (v1: PValue.V, v2: PValue.V) =>
+            PValue.V(
+              Interpreter.eval(bop, v1.value, v2.value),
+              EBinary(bop, pleft.asValidExpr, pright.asValidExpr),
+            )
+          case (p1, p2) =>
+            PValue.E(
+              // TODO : use
+              e,
+              EBinary(bop, pleft.asValidExpr, pright.asValidExpr),
+            )
 
-    case IAssign(ref, expr) =>
-      val pref = peval(ref)
-      val pexpr = peval(expr)
-      pref.knownTarget match
-        case Some(tgt) =>
-          pst.update(tgt, pexpr)
-        case None =>
-          // kill over approximation of ref.
-          ???
-      List(IAssign(pref, pexpr))
+      case EVariadic(vop, exprs)                    => PValue.E(e, e)
+      case EMathOp(mop, args)                       => PValue.E(e, e)
+      case EConvert(cop, expr)                      => PValue.E(e, e)
+      case EExists(ref)                             => PValue.E(e, e)
+      case ETypeOf(base)                            => PValue.E(e, e)
+      case EInstanceOf(base, target)                => PValue.E(e, e)
+      case ETypeCheck(base, ty)                     => PValue.E(e, e)
+      case ESizeOf(base)                            => PValue.E(e, e)
+      case EClo(fname, captured)                    => PValue.E(e, e)
+      case ECont(fname)                             => PValue.E(e, e)
+      case EDebug(expr)                             => PValue.E(e, e)
+      case ERandom()                                => PValue.E(e, e)
+      case ESyntactic(name, args, rhsIdx, children) => PValue.E(e, e)
+      case ELexical(name, expr)                     => PValue.E(e, e)
+      case ERecord(tname, pairs)                    => PValue.E(e, e)
+      case EMap(pairs)                              => PValue.E(e, e)
+      case EList(exprs)                             => PValue.E(e, e)
+      case ECopy(obj)                               => PValue.E(e, e)
+      case EKeys(map, intSorted)                    => PValue.E(e, e)
 
-    case IExpand(base, expr)           => inst.toList
-    case IDelete(base, expr)           => inst.toList
-    case IPush(elem, list, front)      => inst.toList
-    case IPop(lhs, list, front)        => inst.toList
-    case IReturn(expr)                 => inst.toList
-    case IAssert(expr)                 => inst.toList
-    case IPrint(expr)                  => inst.toList
-    case INop()                        => Nil
-    case IIf(cond, thenInst, elseInst) => inst.toList
-    case IWhile(cond, body)            => inst.toList
-    case ICall(lhs, fexpr, args)       => inst.toList
-    case ISdoCall(lhs, base, op, args) => inst.toList
-    case ISeq(insts)                   => ISeq(insts.flatMap(peval)).toList
+      case EMath(n)     => PValue.V(Math(n), e)
+      case EInfinity(p) => PValue.V(Infinity(p), e)
+      case ENumber(d)   => PValue.V(Number(d), e)
+      case EBigInt(n)   => PValue.V(BigInt(n), e)
+      case EStr(str)    => PValue.V(Str(str), e)
+      case EBool(b)     => PValue.V(Bool(b), e)
+      case EUndef()     => PValue.V(Undef, e)
+      case ENull()      => PValue.V(Null, e)
+      case EEnum(name)  => PValue.V(Enum(name), e)
+      case ECodeUnit(c) => PValue.V(CodeUnit(c), e)
+
+  def peval(inst: Inst): List[Inst] =
+    if (log) then
+      pw.print(s"[peval][Inst] $inst")
+      pw.close()
+    inst match
+      case IExpr(expr) => List(IExpr(peval(expr).asValidExpr))
+
+      case ILet(lhs, expr) =>
+        val pexpr = peval(expr)
+        pst.define(lhs, pexpr)
+        List(ILet(lhs, pexpr.asValidExpr))
+
+      case IAssign(ref, expr) =>
+        val pref = peval(ref)
+        val pexpr = peval(expr)
+        pref match
+          case PRefTarget.R(ar, r) => ???
+          case PRefTarget.RT(tgt, r) =>
+            pst.update(tgt, pexpr)
+            List(IAssign(pref.asValidRef, pexpr.asValidExpr))
+
+      case IExpand(base, expr)           => inst.toList
+      case IDelete(base, expr)           => inst.toList
+      case IPush(elem, list, front)      => inst.toList
+      case IPop(lhs, list, front)        => inst.toList
+      case IReturn(expr)                 => inst.toList
+      case IAssert(expr)                 => inst.toList
+      case IPrint(expr)                  => inst.toList
+      case INop()                        => Nil
+      case IIf(cond, thenInst, elseInst) => inst.toList
+      case IWhile(cond, body)            => inst.toList
+      case ICall(lhs, fexpr, args)       => inst.toList
+      case ISdoCall(lhs, base, op, args) => inst.toList
+      case ISeq(insts)                   => ISeq(insts.flatMap(peval)).toList
 
   def peval(func: Func): Func = Func(
     func.main,
@@ -132,18 +181,9 @@ class PartialEvaluator(
         )
       case _ => None
 
-  extension (ref: Ref)
-    def knownTarget: Option[RefTarget] = ref match
-      case x: Var => Some(VarTarget(x))
-      case Field(base, expr) =>
-        for {
-          b <- base.knownTarget
-          e <- expr.knownValue
-        } yield FieldTarget(pst(b), e)
-
   /** logging */
   private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$IRPEVAL_LOG_DIR/log"))
+    logPW.getOrElse(getPrintWriter(s"$IRPEVAL_LOG_DIR/func/${targetFunc.name}"))
 }
 
 object PartialEvaluator {
