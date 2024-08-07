@@ -5,6 +5,11 @@ let AsyncGeneratorFunction = Object.getPrototypeOf(
   async function* () {},
 ).constructor;
 let GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
+let ArrayIteratorPrototype = Object.getPrototypeOf([][Symbol.iterator]());
+let StringIteratorPrototype = Object.getPrototypeOf(""[Symbol.iterator]());
+let MapIteratorPrototype = Object.getPrototypeOf(new Map()[Symbol.iterator]());
+let SetIteratorPrototype = Object.getPrototypeOf(new Set()[Symbol.iterator]());
+let IteratorPrototype = Object.getPrototypeOf(ArrayIteratorPrototype);
 
 // logging errors
 let $error = (globalThis.console && globalThis.console.log) || globalThis.print;
