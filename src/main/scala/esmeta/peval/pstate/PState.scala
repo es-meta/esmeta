@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 import esmeta.ir.{Expr, Field, Func, Global, Local, Name, Ref, Temp, Var}
 import esmeta.state.{

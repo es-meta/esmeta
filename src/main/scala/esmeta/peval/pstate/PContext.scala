@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 import esmeta.ir.{Local, Expr, Func => IRFunc}
 import esmeta.state.{StateElem, Value}

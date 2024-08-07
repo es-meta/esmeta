@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 // TODO sort imports
 import esmeta.state.StateElem
