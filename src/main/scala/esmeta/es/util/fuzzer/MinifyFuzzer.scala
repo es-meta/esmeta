@@ -69,6 +69,7 @@ class MinifyFuzzer(
     cfg,
     MinifyTesterConfig(
       timeLimit = timeLimit,
+      ignoreProperties = List("name").map(prop => s"\"$prop\""),
     ),
   )
 
@@ -81,7 +82,6 @@ class MinifyFuzzer(
   val filteredAOs: List[String] = List(
     "INTRINSICS.Function.prototype.toString",
   )
-  val ignoreProperties: List[String] = List("name").map(prop => s"\"$prop\"")
 
   // delta -> unique bug counter in this iteration
   var minimalIterMap: MMap[String, Int] = MMap.empty
