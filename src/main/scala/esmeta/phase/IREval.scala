@@ -9,10 +9,10 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
 
-/** `irinterp` phase */
-case object IRInterp extends Phase[Unit, State] {
-  val name = "ir-interp"
-  val help = "interpret an IR-ES (ESMeta Intermediate Representation) file."
+/** `ir-eval` phase */
+case object IREval extends Phase[Unit, State] {
+  val name = "ir-eval"
+  val help = "evaluate an IR-ES (ESMeta Intermediate Representation) file."
 
   def apply(
     unit: Unit,

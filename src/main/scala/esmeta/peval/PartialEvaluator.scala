@@ -8,6 +8,7 @@ import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 
 class PartialEvaluator(
+  val pst: PState,
   val prog: Program,
   val targetFunc: Func,
   val log: Boolean = false,
@@ -17,6 +18,10 @@ class PartialEvaluator(
 
   /** resulting function */
   lazy val result: Func = targetFunc
+
+  def peval(ref: Ref): Ref = ref match
+    case Field(base, expr) => Field(peval(base), peval(expr))
+    case _                 => ref
 
   def peval(expr: Expr): Expr = expr match
     case EParse(code, rule)                       => expr
@@ -60,9 +65,24 @@ class PartialEvaluator(
     case ECodeUnit(c)                             => expr
 
   def peval(inst: Inst): List[Inst] = inst match
-    case IExpr(expr)                   => inst.toList
-    case ILet(lhs, expr)               => inst.toList
-    case IAssign(ref, expr)            => inst.toList
+    case IExpr(expr) => inst.toList
+
+    case ILet(lhs, expr) =>
+      val pexpr = peval(expr)
+      pst.define(lhs, pexpr)
+      List(ILet(lhs, pexpr))
+
+    case IAssign(ref, expr) =>
+      val pref = peval(ref)
+      val pexpr = peval(expr)
+      pref.knownTarget match
+        case Some(tgt) =>
+          pst.update(tgt, pexpr)
+        case None =>
+          // kill over approximation of ref.
+          ???
+      List(IAssign(pref, pexpr))
+
     case IExpand(base, expr)           => inst.toList
     case IDelete(base, expr)           => inst.toList
     case IPush(elem, list, front)      => inst.toList
@@ -94,6 +114,33 @@ class PartialEvaluator(
         case 1 => insts.head
         case _ => ISeq(insts.toList)
 
+  extension (expr: Expr)
+    def knownValue: Option[Value] = expr match
+      case lit: LiteralExpr =>
+        Some(
+          lit match
+            case EMath(n)        => Math(n)
+            case EInfinity(pos)  => Infinity(pos)
+            case ENumber(double) => Number(double)
+            case EBigInt(bigInt) => BigInt(bigInt)
+            case EStr(str)       => Str(str)
+            case EBool(b)        => Bool(b)
+            case EUndef()        => Undef
+            case ENull()         => Null
+            case EEnum(name)     => Enum(name)
+            case ECodeUnit(c)    => CodeUnit(c),
+        )
+      case _ => None
+
+  extension (ref: Ref)
+    def knownTarget: Option[RefTarget] = ref match
+      case x: Var => Some(VarTarget(x))
+      case Field(base, expr) =>
+        for {
+          b <- base.knownTarget
+          e <- expr.knownValue
+        } yield FieldTarget(pst(b), e)
+
   /** logging */
   private lazy val pw: PrintWriter =
     logPW.getOrElse(getPrintWriter(s"$IRPEVAL_LOG_DIR/log"))
@@ -105,11 +152,20 @@ object PartialEvaluator {
     log: Boolean = false,
     output: Option[String] = None,
     logPW: Option[PrintWriter] = None,
+    simplify: Boolean = false,
   ): Program =
-    Program(
-      funcs = prog.funcs.map(
-        new PartialEvaluator(prog, _, log, output, logPW).result,
+    val newProg = Program(
+      funcs = prog.funcs.map(func =>
+        new PartialEvaluator(
+          PState(func),
+          prog,
+          func,
+          log,
+          output,
+          logPW,
+        ).result,
       ),
       spec = prog.spec,
     )
+    if (simplify) then Simplifier(newProg) else newProg
 }

@@ -201,10 +201,11 @@ case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
 // IR-ES Interpreter
 // -----------------------------------------------------------------------------
 /** `ireval` command */
-case object CmdIRInterp extends Command("ir-interp", CmdBase >> IRInterp) {
-  val help = "interpret an IR-ES (ESMeta IR) file."
+case object CmdIRInterp extends Command("ir-eval", CmdBase >> IREval) {
+  val help = "evaluate an IR-ES (ESMeta IR) file."
   val examples = List(
-    "esmeta ir-interp a.ir                         # run a.ir (IR-ES) file.",
+    "esmeta ir-eval a.ir                          # run a.ir (IR-ES) file.",
+    "esmeta ir-eval a.ir -ir-eval:format          # run a.ir (IR-ES) file and format it in a cannonical form.",
   )
   override val targetName = "<ir>+"
 }
@@ -214,7 +215,7 @@ case object CmdIRInterp extends Command("ir-interp", CmdBase >> IRInterp) {
 // -----------------------------------------------------------------------------
 /** `irpeval` command */
 case object CmdIRPeval extends Command("ir-peval", CmdBase >> IRPeval) {
-  val help = "partial-evaluate an IR-ES (ESMeta IR) file, and print it to log"
+  val help = "partial-evaluate an IR-ES (ESMeta IR) file."
   val examples = List(
     "esmeta ir-peval a.ir                         # partial-eval a.ir (IR-ES) file.",
     "esmeta ir-peval a.ir -ir-peval:out-auto      # partial-eval a.ir (IR-ES) file and print result to logs/ir-peval/out.ir",

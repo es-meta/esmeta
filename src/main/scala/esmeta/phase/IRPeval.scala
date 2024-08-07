@@ -11,7 +11,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.es.*
 
-/** `irpeval` phase */
+/** `ir-peval` phase */
 case object IRPeval extends Phase[Unit, Unit] {
   val name = "ir-peval"
   val help =
@@ -31,7 +31,11 @@ case object IRPeval extends Phase[Unit, Unit] {
     run(config, getFirstFilename(cmdConfig, this.name))
 
   def run(config: Config, filename: String): Unit =
-    val pevaled = PartialEvaluator(Program.fromFile(filename), log = true)
+    val pevaled = PartialEvaluator(
+      Program.fromFile(filename),
+      log = config.log,
+      simplify = config.simplify,
+    )
     for (
       filename <-
         (if config.outAuto then Some(s"$IRPEVAL_LOG_DIR/out.ir")
@@ -56,6 +60,11 @@ case object IRPeval extends Phase[Unit, Unit] {
       "use 'logs/ir-peval/out.ir' as filepath to print partial-evaluated program.",
     ),
     (
+      "simplify",
+      BoolOption(c => c.simplify = true),
+      "simplify partial-evaluated ir program using techniques such as cleaning up unused definitions.",
+    ),
+    (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
       "set the time limit in seconds (default: no limit).",
@@ -69,6 +78,7 @@ case object IRPeval extends Phase[Unit, Unit] {
   case class Config(
     var out: Option[String] = None,
     var outAuto: Boolean = false,
+    var simplify: Boolean = false,
     var timeLimit: Option[Int] = None,
     var log: Boolean = false,
   )
