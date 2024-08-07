@@ -1,6 +1,7 @@
 package esmeta.peval.pstate
 
 // TODO sort imports
+import esmeta.peval.domain.*
 import esmeta.state.StateElem
 import esmeta.state.Value
 import esmeta.state.Math
@@ -19,8 +20,8 @@ import esmeta.ir.EClo
 sealed trait PObj extends StateElem {
 
   /** safe getter */
-  def get(field: Value): Option[Expr] = (this, field) match
-    case (r: PRecordObj, Str(f)) => r.map.get(f).collect { case v: Expr => v }
+  def get(field: Value): Option[PValue] = (this, field) match
+    case (r: PRecordObj, Str(f)) => r.map.get(f).collect { case v: PValue => v }
     case (m: PMapObj, key)       => m.map.get(key)
     case (l: PListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
@@ -28,13 +29,13 @@ sealed trait PObj extends StateElem {
     case _               => None
 
   /** getter */
-  def apply(field: Value): Expr =
+  def apply(field: Value): PValue =
     get(field).getOrElse(
       ???, // throw InvalidObjField(this, field)
     )
 
   /** setter */
-  def update(field: Value, value: Expr): Unit = (this, field) match
+  def update(field: Value, value: PValue): Unit = (this, field) match
     case (r: PRecordObj, Str(field)) => // TODO if r.map.contains(field) =>
       r.map += field -> value
     case (m: PMapObj, key) => m.map += key -> value
@@ -72,14 +73,14 @@ sealed trait PObj extends StateElem {
     case _          => ??? // throw InvalidObjOp(this, s"delete $key")
 
   /** push */
-  def push(value: Expr, front: Boolean): Unit = this match
+  def push(value: PValue, front: Boolean): Unit = this match
     case l: PListObj =>
       if (front) l.values +:= value
       else l.values :+= value
     case _ => ??? // throw InvalidObjOp(this, "push")
 
   /** pop */
-  def pop(front: Boolean): Expr = this match
+  def pop(front: Boolean): PValue = this match
     case l: PListObj if l.values.nonEmpty =>
       val value = if (front) l.values.head else l.values.last
       l.values = if (front) l.values.drop(1) else l.values.dropRight(1)
@@ -111,20 +112,20 @@ sealed trait PObj extends StateElem {
 /** record objects */
 case class PRecordObj(
   var tname: String,
-  map: MMap[String, Expr | Uninit],
+  map: MMap[String, PValue | Uninit],
 ) extends PObj
 object PRecordObj {
 
   /** apply with type model */
   def apply(
     tname: String,
-    fs: Iterable[(String, Expr | Uninit)],
+    fs: Iterable[(String, PValue | Uninit)],
   )(using CFG): PRecordObj =
     val obj = PRecordObj(tname)
     for { ((k, v), idx) <- fs.zipWithIndex }
       obj.map += k -> v
     obj
-  def apply(tname: String)(fs: (String, Expr)*)(using CFG): PRecordObj =
+  def apply(tname: String)(fs: (String, PValue)*)(using CFG): PRecordObj =
     apply(tname, fs)
   def apply(tname: String)(using cfg: CFG): PRecordObj =
     val obj = PRecordObj(tname, MMap())
@@ -140,15 +141,15 @@ object PRecordObj {
 }
 
 /** map objects */
-case class PMapObj(map: LMMap[Value, Expr] = LMMap()) extends PObj
+case class PMapObj(map: LMMap[Value, PValue] = LMMap()) extends PObj
 object PMapObj {
-  def apply(pairs: Iterable[(Value, Expr)]): PMapObj = PMapObj(
+  def apply(pairs: Iterable[(Value, PValue)]): PMapObj = PMapObj(
     LMMap.from(pairs),
   )
 }
 
 /** list objects */
-case class PListObj(var values: Vector[Expr] = Vector()) extends PObj
+case class PListObj(var values: Vector[PValue] = Vector()) extends PObj
 
 /** not yet supported objects */
 case class PYetObj(tname: String, msg: String) extends PObj

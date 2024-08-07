@@ -3,6 +3,7 @@ package esmeta.peval
 import esmeta.{IRPEVAL_LOG_DIR}
 import esmeta.ir.{Expr, Func, Inst, Program, Ref}
 import esmeta.ir.*
+import esmeta.peval.pstate.*
 import esmeta.state.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter

@@ -1,13 +1,14 @@
 package esmeta.peval.pstate
 
 import esmeta.ir.{Local, Expr, Func => IRFunc}
+import esmeta.peval.domain.*
 import esmeta.state.{StateElem, Value}
 import scala.collection.mutable.{Map => MMap}
 
 /** IR Context for partial Evaluation. similar to state/Context.scala */
 case class PContext private (
   val func: IRFunc,
-  val locals: MMap[Local, Expr] = MMap(),
+  val locals: MMap[Local, PValue] = MMap(),
 ) extends StateElem {
 
   /** copy contexts */

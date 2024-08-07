@@ -1,16 +1,9 @@
 package esmeta.peval.pstate
 
+import esmeta.error.*
 import esmeta.ir.{Expr, Field, Func, Global, Local, Name, Ref, Temp, Var}
-import esmeta.state.{
-  Addr,
-  FieldTarget,
-  Heap,
-  Obj,
-  RefTarget,
-  StateElem,
-  Value,
-  VarTarget,
-}
+import esmeta.peval.domain.*
+import esmeta.state.*
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try}
 
@@ -18,63 +11,58 @@ import scala.util.{Try}
 case class PState private (
   var context: PContext,
   var callStack: List[PCallContext] = Nil,
-  val globals: MMap[Global, Expr] = MMap(),
-  val heap: Heap = Heap(),
+  val globals: MMap[Global, PValue] = MMap(),
+  val heap: PHeap = PHeap(),
 ) extends StateElem {
 
   /** safe getter */
-  def get(rt: RefTarget): Try[Value] = ??? // Try(apply(rt))
-  def get(x: Var): Try[Value] = ??? // Try(apply(x))
-  def get(base: Value, field: Value): Try[Value] =
-    ??? // Try(apply(base, field))
+  def get(rt: RefTarget): Try[PValue] = Try(apply(rt))
+  def get(x: Var): Try[PValue] = Try(apply(x))
+  def get(base: Value, field: Value): Try[PValue] = Try(apply(base, field))
 
   /** getter */
-  def apply(rt: RefTarget): Value = ???
-  //  rt match
-  //   case VarTarget(x)             => apply(x)
-  //   case FieldTarget(base, field) => apply(base, field)
+  def apply(rt: RefTarget): PValue = rt match
+    case VarTarget(x)             => apply(x)
+    case FieldTarget(base, field) => apply(base, field)
 
   /** variable getter */
-  def apply(x: Var): Value = ???
-  // x match
-  // case x: Global => globals.getOrElse(x, throw UnknownVar(x))
-  // case x: Local  => context.locals.getOrElse(x, throw UnknownVar(x))
+  def apply(x: Var): PValue = x match
+    case x: Global => globals.getOrElse(x, throw UnknownVar(x))
+    case x: Local  => context.locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value): Value = ???
-  //  base match
-  //   case addr: Addr    => heap(addr, field)
-  //   case AstValue(ast) => AstValue(ast(field))
-  //   case Str(str)      => apply(str, field)
-  //   case v             => throw InvalidRefBase(v)
+  def apply(base: Value, field: Value): PValue = base match
+    case addr: Addr    => heap(addr, field)
+    case AstValue(ast) => ??? // AstValue(ast(field))
+    case Str(str)      => apply(str, field)
+    case v             => throw InvalidRefBase(v)
 
   /** string field getter */
-  def apply(str: String, field: Value): Value = ???
-  // field match
-  //   case Str("length") => Math(BigDecimal(str.length))
-  //   case Math(k)       => CodeUnit(str(k.toInt))
-  //   case _             => throw WrongStringRef(str, field)
+  def apply(str: String, field: Value): PValue = field match
+    case Str("length") => Math(BigDecimal(str.length)).toPValue
+    case Math(k)       => CodeUnit(str(k.toInt)).toPValue
+    case _             => throw WrongStringRef(str, field)
 
   /** address getter */
-  def apply(addr: Addr): Obj = heap(addr)
+  def apply(addr: Addr): PObj = heap(addr)
 
   /** define variables */
-  def define(x: Var, expr: Expr): Unit = x match
-    case x: Global => globals += x -> expr
-    case x: Local  => context.locals += x -> expr
+  def define(x: Var, pv: PValue): Unit = x match
+    case x: Global => globals += x -> pv
+    case x: Local  => context.locals += x -> pv
 
   /** setter */
-  def update(rt: RefTarget, expr: Expr): Unit = rt match
-    case VarTarget(x)             => update(x, expr)
-    case FieldTarget(base, field) => update(base, field, expr)
+  def update(rt: RefTarget, pv: PValue): Unit = rt match
+    case VarTarget(x)             => update(x, pv)
+    case FieldTarget(base, field) => update(base, field, pv)
 
   /** variable setter */
-  def update(x: Var, expr: Expr): Unit = x match
-    case x: Global => globals += x -> expr
-    case x: Local  => context.locals += x -> expr
+  def update(x: Var, pv: PValue): Unit = x match
+    case x: Global => globals += x -> pv
+    case x: Local  => context.locals += x -> pv
 
   /** field setter */
-  def update(base: Value, field: Value, expr: Expr): Unit = ???
+  def update(base: Value, field: Value, expr: PValue): Unit = ???
 
   /** existence checks */
   def exists(rt: RefTarget): Boolean = ???
@@ -110,6 +98,6 @@ object PState {
     PContext(func),
     Nil,
     MMap(),
-    Heap(),
+    PHeap(),
   )
 }
