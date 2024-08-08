@@ -402,14 +402,6 @@ object Interpreter {
     timeLimit: Option[Int] = None,
   ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
 
-  // type update algorithms
-  val setTypeMap: Map[String, String] = Map(
-    "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
-    "ArrayCreate" -> "ArrayExoticObject",
-    "OrdinaryObjectCreate" -> "OrdinaryObject",
-    "ProxyCreate" -> "ProxyExoticObject",
-  )
-
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
     import ESValueParser.*

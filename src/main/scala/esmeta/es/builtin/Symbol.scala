@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.*
@@ -18,12 +19,12 @@ case class Symbol(cfg: CFG) {
   def ty: ValueTy = RecordT("", symbols.map(_ -> SymbolT).toMap)
 
   /** get symbol record */
-  def obj: RecordObj = RecordObj("Record")(
+  def obj: RecordObj = recordObj("")(
     (for { symField <- symbols } yield symField -> symbolAddr(symField)): _*,
   )
 
   /** get map for heap */
   def map: Map[Addr, Obj] = (for { symField <- symbols } yield symbolAddr(
     symField,
-  ) -> RecordObj("Symbol")("Description" -> Str(symbolName(symField)))).toMap
+  ) -> recordObj("Symbol")("Description" -> Str(symbolName(symField)))).toMap
 }

@@ -1,0 +1,18 @@
+def <AUX>:__NEW_OBJ__(
+): Record[Object] = {
+  return (record [Object] {
+    "GetPrototypeOf" : clo<"Record[OrdinaryObject].GetPrototypeOf">,
+    "SetPrototypeOf" : clo<"Record[OrdinaryObject].SetPrototypeOf">,
+    "IsExtensible" : clo<"Record[OrdinaryObject].IsExtensible">,
+    "PreventExtensions" : clo<"Record[OrdinaryObject].PreventExtensions">,
+    "GetOwnProperty" : clo<"Record[OrdinaryObject].GetOwnProperty">,
+    "DefineOwnProperty" : clo<"Record[OrdinaryObject].DefineOwnProperty">,
+    "HasProperty" : clo<"Record[OrdinaryObject].HasProperty">,
+    "Get" : clo<"Record[OrdinaryObject].Get">,
+    "Set" : clo<"Record[OrdinaryObject].Set">,
+    "Delete" : clo<"Record[OrdinaryObject].Delete">,
+    "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
+    "PrivateElements" : (list []),
+    "__MAP__" : (map),
+  })
+}

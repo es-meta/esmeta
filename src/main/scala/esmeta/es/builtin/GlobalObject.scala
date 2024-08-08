@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.spec.*
@@ -15,7 +16,7 @@ case class GlobalObject(cfg: CFG) {
   given CFG = cfg
 
   /** get global object */
-  def obj: RecordObj = RecordObj("Object")(
+  def obj: RecordObj = recordObj("Object")(
     INNER_MAP -> mapAddr(GLOBAL),
     PRIVATE_ELEMENTS -> elemsAddr(GLOBAL),
   )

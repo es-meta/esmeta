@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.spec.*
@@ -21,7 +22,7 @@ case class Intrinsics(cfg: CFG) {
       case (name, Struct(typeName, imap, nmap))
           if !(yets contains name.split("\\.").head) =>
         // base object
-        _map += intrAddr(name) -> RecordObj(typeName)(
+        _map += intrAddr(name) -> recordObj(typeName)(
           List(
             INNER_MAP -> mapAddr(intrName(name)),
             PRIVATE_ELEMENTS -> elemsAddr(intrName(name)),
@@ -40,10 +41,10 @@ case class Intrinsics(cfg: CFG) {
     _map
   }
 
-  /** get intrinsic record */
-  val obj: RecordObj =
+  /** get intrinsic map */
+  val obj: MapObj =
     val names = intrinsics.keySet ++ yets
-    RecordObj("", names.toList.map(x => s"%$x%" -> intrAddr(x)).toMap)
+    MapObj(names.toList.map(x => Str(s"%$x%") -> intrAddr(x)))
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
@@ -58,7 +59,7 @@ case class Intrinsics(cfg: CFG) {
         "Extensible" -> Bool(true),
         "ScriptOrModule" -> Null,
         "Realm" -> realmAddr,
-        "Code" -> intrClo("print"),
+        INNER_CODE -> intrClo("print"),
         "Prototype" -> intrAddr("Function.prototype"),
         "InitialName" -> Str("print"),
       ),
@@ -109,7 +110,7 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
-        "Code" -> intrClo("Function.prototype"),
+        INNER_CODE -> intrClo("Function.prototype"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, T),
@@ -464,7 +465,7 @@ case class Intrinsics(cfg: CFG) {
       ),
     ),
     "Array.prototype" -> Struct(
-      typeName = "ArrayExoticObject",
+      typeName = "Array",
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
@@ -934,7 +935,7 @@ case class Intrinsics(cfg: CFG) {
           "Extensible" -> Bool(true),
           "ScriptOrModule" -> Null,
           "Realm" -> realmAddr,
-          "Code" -> intrClo(errName),
+          INNER_CODE -> intrClo(errName),
           "Prototype" -> intrAddr("Error"),
           "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
           "InitialName" -> Str(errName),

@@ -114,4 +114,32 @@ def AUX_GET_ITEMS = getAux("GET_ITEMS")
 def AUX_HAS_DUPLICATE = getAux("HAS_DUPLICATE")
 def AUX_IS_ARRAY_INDEX = getAux("IS_ARRAY_INDEX")
 def AUX_NEW_ERROR_OBJ = getAux("NEW_ERROR_OBJ")
+def AUX_NEW_OBJ = getAux("NEW_OBJ")
 def AUX_REMOVE_ELEM = getAux("REMOVE_ELEM")
+
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+extension (e: Expr) {
+
+  /** check if the expression does not have any side effects */
+  def isPure: Boolean = e match
+    case ERef(r)        => r.isPure
+    case _: LiteralExpr => true
+    case _              => false
+
+  /** check if the expression is a literal */
+  def isLiteral: Boolean = e match
+    case _: LiteralExpr => true
+    case _              => false
+}
+
+extension (r: Ref) {
+
+  /** check if the reference does not have any side effects */
+  def isPure: Boolean = r match
+    case Field(ref, expr) => false
+    case Global(name)     => true
+    case Name(name)       => true
+    case Temp(idx)        => true
+}

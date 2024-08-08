@@ -7,14 +7,52 @@ import esmeta.util.BaseUtils.*
 /** type modeling */
 case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
+  import TyDecl.Elem.*
+
   /** type declaration map */
   val declMap: Map[String, TyDecl] = (for {
     decl <- decls
   } yield decl.name -> decl).toMap
 
+  type MethodMap = Map[String, (Option[String], Boolean)]
+
+  /** get method map */
+  val getMethodMap: String => MethodMap = cached { tname =>
+    getParent(tname).fold(Map())(getMethodMap) ++
+    declMap
+      .get(tname)
+      .fold(Map())(_.elems.collect {
+        case AbsMethod(name) => name -> (None, false)
+        case ConMethod(name, optional, targetOpt) =>
+          name -> (targetOpt.orElse(Some(s"Record[$tname].$name")), optional)
+      }.toMap)
+  }
+
+  /** get all methods as field map */
+  val getMethods: String => FieldMap = cached { tname =>
+    val base = getMethodMap(tname).map {
+      case (field, (name, opt)) => field -> OptValueTy(CloT(name.toSet), opt)
+    }
+    FieldMap(getDirectSubTys(tname).foldLeft(base) { (acc, sub) =>
+      getMethods(sub).map.foldLeft(acc) {
+        case (acc, (x, v)) =>
+          acc + (x -> (acc.getOrElse(x, OptValueTy.Empty) || v))
+      }
+    })
+  }
+
   /** get field type map */
-  val getFieldMap: String => FieldMap =
-    cached { declMap.get(_).fold(FieldMap.Top)(_.fieldMap) }
+  val getFieldMap: String => FieldMap = cached { tname =>
+    FieldMap(
+      getMethods(tname).map ++ declMap
+        .get(tname)
+        .fold(Map())(_.elems.collect {
+          case Field(name, optional, typeStr) =>
+            name -> OptValueTy(ValueTy.from(typeStr), optional)
+        })
+        .toMap,
+    )
+  }
 
   val getAllFieldMap: String => FieldMap = cached { tname =>
     FieldMap(
@@ -34,7 +72,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     }
 
   /** get field type */
-  def getField(tname: String, p: String): OptValueTy = getAllFieldMap(tname)(p)
+  def getField(tname: String, f: String): OptValueTy = getAllFieldMap(tname)(f)
 
   /** get least common ancestor */
   val getLCA: ((String, String)) => Option[String] = cached { (l, r) =>
@@ -63,16 +101,6 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     } yield getAncestors(parent)).getOrElse(Nil)
   }
 
-  /** get methods */
-  val getMethod: String => MethodMap = cached { tname =>
-    (for {
-      (field, OptValueTy(ty, opt)) <- getAllFieldMap(tname).map
-      fname <- ty.clo match
-        case Fin(set) if !opt && set.size == 1 => Some(set.head)
-        case _                                 => None
-    } yield field -> fname).toMap
-  }
-
   /** check if a type is a strict (proper) subtype of another */
   def isStrictSubTy(l: String, r: String): Boolean =
     getStrictSubTys(r).contains(l)
@@ -86,6 +114,23 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   /** check if a type is a subtype of another */
   def isSubTy(l: String, r: String): Boolean =
     l == r || isStrictSubTy(l, r)
+  def isSubTy(l: String, rs: Set[String]): Boolean =
+    rs.exists(isSubTy(l, _))
+  def isSubTy(ls: Set[String], r: String): Boolean =
+    ls.forall(isSubTy(_, r))
+  def isSubTy(ls: Set[String], rs: Set[String]): Boolean =
+    ls.forall(isSubTy(_, rs))
+
+  /** get subtypes having the given field */
+  lazy val getSubTysWithField: ((String, String)) => Set[String] =
+    cached((name, field) => {
+      if (!getField(name, field).isTop) Set(name)
+      else
+        for {
+          sub <- directSubTys.getOrElse(name, Set())
+          x <- getSubTysWithField(sub, field)
+        } yield x
+    })
 
   /** strict subtypes */
   lazy val getStrictSubTys: String => Set[String] = cached { tname =>
@@ -96,6 +141,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   }
 
   /** direct subtypes */
+  lazy val getDirectSubTys: String => Set[String] = cached { tname =>
+    directSubTys.getOrElse(tname, Set())
+  }
+
   private lazy val directSubTys: Map[String, Set[String]] = {
     var children = Map[String, Set[String]]()
     for {

@@ -55,9 +55,8 @@ case class State(
 
   /** string field getter */
   def apply(str: String, field: Value): Value = field match
-    case Str("length") => Math(BigDecimal(str.length))
-    case Math(k)       => CodeUnit(str(k.toInt))
-    case _             => throw WrongStringRef(str, field)
+    case Math(k) => CodeUnit(str(k.toInt))
+    case _       => throw WrongStringRef(str, field)
 
   /** address getter */
   def apply(addr: Addr): Obj = heap(addr)
@@ -128,21 +127,6 @@ case class State(
   /** allocate a list object */
   def allocList(vs: Iterable[Value]): Addr = heap.allocList(vs)
 
-  /** get string for a current cursor */
-  def getCursorString: String = getCursorString(false)
-  def getCursorString(location: Boolean): String = context.cursor match
-    case NodeCursor(node) =>
-      val irFunc = cfg.funcOf(node).irFunc
-      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
-    case ExitCursor(func) =>
-      val irFunc = func.irFunc
-      s"[${irFunc.kind}${irFunc.name}] Exited"
-
-  /** get string for a given address */
-  def getString(value: Value): String = value match
-    case addr: Addr => addr.toString + " -> " + heap(addr).toString
-    case _          => value.toString
-
   /** copied */
   def copied: State =
     val newGlobals = MMap.from(globals)
@@ -159,6 +143,21 @@ case class State(
       newGlobals,
       newHeap,
     )
+
+  /** get string for a current cursor */
+  def getCursorString: String = getCursorString(false)
+  def getCursorString(location: Boolean): String = context.cursor match
+    case NodeCursor(node) =>
+      val irFunc = cfg.funcOf(node).irFunc
+      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
+    case ExitCursor(func) =>
+      val irFunc = func.irFunc
+      s"[${irFunc.kind}${irFunc.name}] Exited"
+
+  /** get string for a given address */
+  def getString(value: Value): String = value match
+    case addr: Addr => addr.toString + " -> " + heap(addr).toString
+    case _          => value.toString
 }
 object State {
 

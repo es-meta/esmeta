@@ -53,13 +53,6 @@ trait ValueBasicDomainDecl { self: Self =>
     /** constructor with types */
     def apply(ty: Ty, refinements: Refinements) = Top
 
-    /** constructor for completions */
-    def createCompletion(
-      ty: AbsValue,
-      value: AbsValue,
-      target: AbsValue,
-    ): Elem = ???
-
     /** predefined top values */
     val cloTop: Elem = Bot.copy(clo = AbsClo.Top)
     val contTop: Elem = Bot.copy(cont = AbsCont.Top)
@@ -387,35 +380,7 @@ trait ValueBasicDomainDecl { self: Self =>
         apply(str = AbsStr(set.map(Str.apply)))
 
       /** type check */
-      def typeCheck(tname: String, st: AbsState): Elem =
-        var bv: AbsBool = AbsBool.Bot
-        if (!elem.number.isBottom) bv ⊔= AbsBool(Bool(tname == "Number"))
-        if (!elem.bigInt.isBottom) bv ⊔= AbsBool(Bool(tname == "BigInt"))
-        if (!elem.str.isBottom) bv ⊔= AbsBool(Bool(tname == "String"))
-        if (!elem.bool.isBottom) bv ⊔= AbsBool(Bool(tname == "Boolean"))
-        if (!elem.enumv.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "Enum"))
-        if (!elem.undef.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "Undefined"))
-        if (!elem.nullv.isBottom) bv ⊔= AbsBool(Bool(tname == "Null"))
-        if (!elem.clo.isBottom)
-          bv ⊔= AbsBool(Bool(tname == "Clo"))
-        elem.astValue.getSingle match
-          case Zero => /* do nothing */
-          case Many => bv = AB
-          case One(AstValue(ast)) =>
-            bv ⊔= AbsBool(
-              Bool(tname == "ParseNode" || (ast.types contains tname)),
-            )
-        for (part <- elem.part) {
-          val newTName = st.get(part).getTy
-          bv ⊔= AbsBool(
-            Bool(
-              newTName == tname || cfg.tyModel.isSubTy(newTName, tname),
-            ),
-          )
-        }
-        apply(bool = bv)
+      def typeCheck(ty: Ty, st: AbsState): Elem = ???
 
       /** helper functions for abstract transfer */
       def convertTo(cop: COp, radix: Elem): Elem =
@@ -507,14 +472,9 @@ trait ValueBasicDomainDecl { self: Self =>
         case Many        => exploded("ETrim")
         case One(Str(s)) => apply(trimString(s, isStarting, cfg.esParser))
         case _           => Bot
-
-      /** completion helpers */
-      def wrapCompletion: Elem = ???
-      def wrapCompletion(ty: String): Elem = ???
-      def unwrapCompletion: Elem = ???
-      def isCompletion: Elem = ???
-      def normalCompletion: Elem = ???
-      def abruptCompletion: Elem = ???
+      def instanceOf(ty: Elem): Elem = ???
+      def sizeOf(value: Elem): Elem = ???
+      def sizeOf(st: AbsState): Elem = ???
 
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem

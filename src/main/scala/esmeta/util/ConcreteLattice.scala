@@ -146,17 +146,17 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
   /** foreach function */
   def foreach(f: A => Unit): Unit = this match
     case Fin(set) => set.foreach(f)
-    case Inf      => warn("iterate on infinite set", showTrace = true)
+    case Inf      => warn("iterate on infinite set")
 
   /** foldLeft function */
   def foldLeft[B](init: B)(f: (B, A) => B): B = this match
     case Fin(set) => set.foldLeft(init)(f)
-    case Inf      => warn("fold on infinite set", showTrace = true); init
+    case Inf      => warn("fold on infinite set"); init
 
   /** get list function */
   def toList: List[A] = this match
     case Fin(set) => set.toList
-    case Inf      => warn("convert infinite set to list", showTrace = true); Nil
+    case Inf      => warn("convert infinite set to list"); Nil
 
   /** inclusion check */
   def contains[B >: A](x: B): Boolean = this match

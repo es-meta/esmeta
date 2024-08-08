@@ -2,6 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.Node
 import esmeta.state.*
+import esmeta.ir.*
 import esmeta.ty.util.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -12,6 +13,13 @@ trait TyElem {
     import Stringifier.elemRule
     stringify(this)
 }
+
+/** type refinements */
+type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
+
+/** type refinement kinds */
+enum RefinementKind:
+  case True, False, Normal, Abrupt
 
 // -----------------------------------------------------------------------------
 // helpers
@@ -26,6 +34,7 @@ lazy val AbruptT: ValueTy = ValueTy(record = RecordTy("AbruptCompletion"))
 def AbruptT(xs: String*): ValueTy = AbruptT(xs.toSet)
 def AbruptT(xs: Set[String]): ValueTy =
   ValueTy(record = RecordTy("AbruptCompletion", Map("Type" -> EnumT(xs.toSet))))
+lazy val ThrowT: ValueTy = AbruptT("throw")
 lazy val NormalT: ValueTy = ValueTy(record = RecordTy("NormalCompletion"))
 def NormalT(value: ValueTy): ValueTy =
   if (value.isBottom) BotT
@@ -35,9 +44,10 @@ def MapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) BotT
   else ValueTy(map = MapTy(key, value))
 lazy val CloT: ValueTy = ValueTy(clo = Inf)
-def CloT(names: String*): ValueTy =
+def CloT(names: String*): ValueTy = CloT(names.toSet)
+def CloT(names: Set[String]): ValueTy =
   if (names.isEmpty) BotT
-  else ValueTy(clo = Fin(names.toSet))
+  else ValueTy(clo = Fin(names))
 lazy val ContT: ValueTy = ValueTy(cont = Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) BotT
@@ -45,6 +55,8 @@ def ContT(nids: Int*): ValueTy =
 lazy val ObjectT: ValueTy = RecordT("Object")
 lazy val FunctionT: ValueTy = RecordT("FunctionObject")
 lazy val ConstructorT: ValueTy = RecordT("Constructor")
+lazy val ArrayT: ValueTy = RecordT("Array")
+lazy val TypedArrayT: ValueTy = RecordT("TypedArray")
 lazy val ESPrimT: ValueTy = ValueTy(
   record = RecordTy("Symbol"),
   number = NumberTy.Top,
@@ -156,9 +168,6 @@ val ENUMT_FULFILLED = EnumT("fulfilled")
 val ENUMT_REJECTED = EnumT("rejected")
 val ENUMT_FULFILL = EnumT("Fulfill")
 val ENUMT_REJECT = EnumT("Reject")
-
-/** method map */
-type MethodMap = Map[String, String]
 
 extension (elem: Boolean) {
   inline def isTop: Boolean = elem == true

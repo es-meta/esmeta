@@ -108,7 +108,7 @@ trait AbsTransferDecl { self: Analyzer =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = {
-      var AbsRet(value, st) = getReturn(rp)
+      var AbsRet(value, st) = sem(rp)
       for {
         np @ NodePoint(func, call, view) <- sem.getRetEdges(rp)
         nextNode <- call.next
@@ -122,7 +122,7 @@ trait AbsTransferDecl { self: Analyzer =>
             case _                       => view
           },
         )
-        sem += nextNp -> st.doReturn(callerSt, call.lhs -> value)
+        sem += nextNp -> st.doReturn(callerSt, call.lhs, value)
       }
     }
 
@@ -198,7 +198,6 @@ trait AbsTransferDecl { self: Analyzer =>
     def transfer(call: Call)(using np: NodePoint[_]): Result[AbsValue] =
       val callerNp = NodePoint(np.func, call, np.view)
       call.callInst match {
-        case OptimizedCall(result) => result
         case ICall(_, fexpr, args) =>
           for {
             fv <- transfer(fexpr)
@@ -210,7 +209,7 @@ trait AbsTransferDecl { self: Analyzer =>
               val callPoint = CallPoint(callerNp, f)
               doCall(callPoint, st, args, vs, captured, f.isMethod)
             // continuation call (XXX: unsound for inifinitely many continuations)
-            for (ACont(tgt, captured) <- fv.cont)
+            for (ACont(tgt, captured) <- fv.cont.toIterable(stop = false))
               val f = tgt.func
               val callPoint = CallPoint(callerNp, f)
               doCall(callPoint, st, args, vs, captured, f.isMethod, Some(tgt))
@@ -329,9 +328,21 @@ trait AbsTransferDecl { self: Analyzer =>
             v <- transfer(base)
             st <- get
           } yield v.typeOf(st)
-        case EInstanceOf(expr, target) => ???
-        case ETypeCheck(expr, tyExpr)  => ???
-        case ESizeOf(expr)             => ???
+        case EInstanceOf(expr, target) =>
+          for {
+            v <- transfer(expr)
+            t <- transfer(target)
+          } yield v.instanceOf(t)
+        case ETypeCheck(expr, ty) =>
+          for {
+            v <- transfer(expr)
+            st <- get
+          } yield v.typeCheck(ty.ty, st)
+        case ESizeOf(expr) =>
+          for {
+            v <- transfer(expr)
+            st <- get
+          } yield v.sizeOf(st)
         case EClo(fname, cap) =>
           cfg.fnameMap.get(fname) match {
             case Some(f) =>
@@ -561,27 +572,24 @@ trait AbsTransferDecl { self: Analyzer =>
       // keep caller state to restore it
       contTarget match
         case Some(target) =>
-          sem += target -> callerSt.copied(locals = locals.toMap)
+          sem += target -> callerSt.setLocal(locals.toMap)
         case None =>
           sem.callInfo += callerNp -> callerSt
           for {
             (calleeView, newLocals) <- getCalleeEntries(callerNp, locals)
-            calleeSt = callerSt.copied(locals = newLocals.toMap)
+            calleeSt = callerSt.setLocal(newLocals.toMap)
             calleeNp = NodePoint(callee, callee.entry, calleeView)
           } {
             // add callee to worklist
-            sem += calleeNp -> calleeSt.doCall
+            sem += calleeNp -> calleeSt
             // add return edges from callee to caller
             val rp = ReturnPoint(callee, calleeNp.view)
             val set = sem.getRetEdges(rp)
             sem.retEdges += rp -> (set + callerNp)
             // propagate callee analysis result
-            val retT = getReturn(rp)
+            val retT = sem(rp)
             if (!retT.isBottom) sem.worklist += rp
           }
-
-    /** get return value for a return point */
-    def getReturn(rp: ReturnPoint): AbsRet = sem(rp)
 
     // return specific value
     def doReturn(
@@ -589,25 +597,21 @@ trait AbsTransferDecl { self: Analyzer =>
       v: AbsValue,
     )(using returnNp: NodePoint[Node]): Result[Unit] = for {
       st <- get
-      ret = AbsRet(v, st.copied(locals = Map()))
+      ret = AbsRet(v, st.setLocal(Map()))
       irp = InternalReturnPoint(returnNp, irReturn)
       _ = doReturn(irp, ret)
     } yield ()
 
     /** update return points */
-    def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit = ???
-    // val InternalReturnPoint(NodePoint(func, _, view), _) = irp
-    // val retRp = ReturnPoint(func, sem.getEntryView(view))
-    // // wrap completion by conditions specified in
-    // // [5.2.3.5 Implicit Normal Completion]
-    // // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-    // val newRet = if (func.isReturnComp) givenRet.wrapCompletion else givenRet
-    // if (!newRet.value.isBottom)
-    //   val oldRet = sem(retRp)
-    //   if (!oldRet.isBottom && useRepl) Repl.merged = true
-    //   if (newRet !⊑ oldRet)
-    //     sem.rpMap += retRp -> (oldRet ⊔ newRet)
-    //     sem.worklist += retRp
+    def doReturn(irp: InternalReturnPoint, newRet: AbsRet): Unit =
+      val InternalReturnPoint(NodePoint(func, _, view), _) = irp
+      val retRp = ReturnPoint(func, sem.getEntryView(view))
+      if (!newRet.value.isBottom)
+        val oldRet = sem(retRp)
+        if (!oldRet.isBottom && useRepl) Repl.merged = true
+        if (newRet !⊑ oldRet)
+          sem.rpMap += retRp -> (oldRet ⊔ newRet)
+          sem.worklist += retRp
 
     // short circuit evaluation
     def shortCircuit(
@@ -654,17 +658,15 @@ trait AbsTransferDecl { self: Analyzer =>
       callPoint: CallPoint,
       method: Boolean,
       vs: List[AbsValue],
-    ): List[(Local, AbsValue)] = ???
-    // val CallPoint(callerNp, callee) = callPoint
-    // // get parameters
-    // val params: List[Param] = callee.irFunc.params
-    // // full arguments with optional parameters
-    // val fullVs =
-    //   vs ++ List.fill(params.length - vs.length)(AbsValue.uninitTop)
-    // // construct local type environment
-    // (for {
-    //   ((param, arg), idx) <- (params zip fullVs).zipWithIndex
-    // } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
+    ): List[(Local, AbsValue)] =
+      val CallPoint(callerNp, callee) = callPoint
+      // get parameters
+      val params: List[Param] = callee.irFunc.params
+      // full arguments with optional parameters
+      // construct local type environment
+      (for {
+        ((param, arg), idx) <- (params zip vs).zipWithIndex
+      } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
 
     /** assign argument to parameter */
     def assignArg(
@@ -674,55 +676,6 @@ trait AbsTransferDecl { self: Analyzer =>
       param: Param,
       arg: AbsValue,
     ): AbsValue = arg
-
-    object OptimizedCall {
-      def unapply(callInst: CallInst)(using
-        np: NodePoint[_],
-      ): Option[Result[AbsValue]] = ???
-      // TODO
-      // callInst match
-      //   case ICall(_, EClo("Completion", Nil), List(expr)) =>
-      //     Some(for {
-      //       v <- transfer(expr)
-      //       _ <- modify(prune(ETypeCheck(expr, EStr("CompletionRecord")), true))
-      //     } yield v)
-      //   case ICall(_, EClo("NormalCompletion", Nil), List(expr)) =>
-      //     Some(transfer(expr).map(_.normalCompletion))
-      //   case ICall(_, EClo("UpdateEmpty", Nil), List(compExpr, valueExpr)) =>
-      //     AbsValue match
-      //       case ValueBasicDomain =>
-      //         Some(for {
-      //           compValue <- transfer(compExpr)
-      //           newValue <- transfer(valueExpr)
-      //         } yield {
-      //           val AbsComp(map) = compValue.comp
-      //           val empty = AbsPureValue(ENUM_EMPTY)
-      //           val newMap = map.map {
-      //             case (ty, res @ AbsComp.Result(value, target)) =>
-      //               ty -> (
-      //                 if (empty !⊑ value) res
-      //                 else
-      //                   res.copy(value = (value -- empty) ⊔ newValue.pureValue)
-      //               )
-      //           }
-      //           AbsValue(AbsComp(newMap))
-      //         })
-      //       case ValueTypeDomain =>
-      //         Some(for {
-      //           compValue <- transfer(compExpr)
-      //           newValue <- transfer(valueExpr)
-      //         } yield {
-      //           val compTy = compValue.ty.comp
-      //           val normalTy = compTy.normal
-      //           val newValueTy = newValue.ty.pureValue
-      //           val emptyTy = EnumT("empty").pureValue
-      //           val updated =
-      //             compTy.copy(normal = (normalTy -- emptyTy) ⊔ newValueTy)
-      //           AbsValue(ValueTy(comp = updated))
-      //         })
-      //       case _ => None
-      //   case _ => None
-    }
 
     /** prune condition */
     def prune(

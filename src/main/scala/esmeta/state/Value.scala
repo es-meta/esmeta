@@ -12,22 +12,6 @@ import scala.collection.mutable.{Map => MMap}
 /** IR values */
 sealed trait Value extends StateElem {
 
-  /** check abrupt completion */
-  def isCompletion(st: State): Boolean = CompT.contains(this, st)
-
-  /** check abrupt completion */
-  def isAbruptCompletion(st: State): Boolean = AbruptT.contains(this, st)
-
-  /** wrap completion */
-  def wrapCompletion(st: State)(using CFG): Value =
-    if (isCompletion(st)) this
-    else
-      val addr = st.allocRecord("NormalCompletion")
-      st.update(addr, Str("Type"), Enum("normal"))
-      st.update(addr, Str("Value"), this)
-      st.update(addr, Str("Target"), Enum("empty"))
-      addr
-
   /** check if the value is an expected type */
   def asStr: String = this match
     case Str(s) => s

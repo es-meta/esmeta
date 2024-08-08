@@ -32,10 +32,6 @@ trait HeapDomainDecl { self: Self =>
       def isSingle(apart: AbsPart): Boolean
       def isSingle(part: Part): Boolean
 
-      /** handle calls */
-      def doCall: Elem
-      def doProcStart(fixed: Set[Part]): Elem
-
       /** handle returns (this: caller heaps / retHeap: return heaps) */
       def doReturn(to: Elem): Elem
       def doProcEnd(to: Elem): Elem

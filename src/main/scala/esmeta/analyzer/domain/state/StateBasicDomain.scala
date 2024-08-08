@@ -231,21 +231,52 @@ trait StateBasicDomainDecl { self: Self =>
           (partV, elem.copy(heap = heap.allocList(asite, vs)))
         }
 
-      // ------------------------------ TODO ------------------------------
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         heap.contains(list.part, value)
 
-      /** singleton checks */
-      override def isSingle: Boolean =
-        reachable &&
-        locals.forall { case (_, v) => v.isSingle } &&
-        globals.forall { case (_, v) => v.isSingle } &&
-        heap.isSingle
+      /** handle returns (elem: return states / to: caller states) */
+      def doReturn(to: Elem, lhs: Local, value: AbsValue): Elem = Elem(
+        reachable = true,
+        locals = to.locals + (lhs -> value),
+        globals = globals,
+        heap = heap.doReturn(to.heap),
+      )
 
       /** singleton address partition checks */
       def isSingle(part: Part): Boolean = elem.heap.isSingle(part)
+
+      /** set local environments */
+      def setLocal(locals: Map[Local, AbsValue]): Elem =
+        elem.copy(locals = locals)
+
+      /** get string */
+      def getString(detail: Boolean): String =
+        val app = Appender()
+        given Rule[Elem] = if (detail) rule else shortRule
+        app >> elem
+        app.toString
+
+      /** get string with detailed shapes of locations */
+      def getString(value: AbsValue): String =
+        val app = Appender()
+        app >> value.toString
+        val parts = value.reachableParts
+        if (!parts.isEmpty) (app >> " @ ").wrap(for (part <- parts) {
+          val obj = heap(part)
+          app :> s"$part -> " >> obj >> LINE_SEP
+        })
+        app.toString
+
+      /** getters */
+      def reachable: Boolean = elem.reachable
+      def locals: Map[Local, AbsValue] = elem.locals
+      def globals: Map[Global, AbsValue] = elem.globals
+      def heap: AbsHeap = elem.heap
+
+      // -----------------------------------------------------------------------
+      // Helpers for Debugging
+      // -----------------------------------------------------------------------
 
       /** find merged parts */
       def findMerged: Unit = {
@@ -279,72 +310,12 @@ trait StateBasicDomainDecl { self: Self =>
           auxPart(part, s"<unreachable>")
       }
 
-      /** handle calls */
-      def doCall: Elem = elem
-        .copy(heap = heap.doCall)
-        .garbageCollected
-      def doProcStart(fixed: Set[Part]): Elem = elem
-        .copy(heap = heap.doProcStart(fixed))
-        .garbageCollected
-
-      /** handle returns (elem: return states / to: caller states) */
-      def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
-        reachable = true,
-        locals = to.locals ++ defs,
-        globals = globals,
-        heap = heap.doReturn(to.heap),
-      ).garbageCollected
-      def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem =
-        doProcEnd(to, defs)
-      def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = Elem(
-        reachable = true,
-        locals = to.locals ++ defs,
-        globals = globals,
-        heap = heap.doProcEnd(to.heap),
-      ).garbageCollected
-
-      // TODO garbage collection
-      def garbageCollected: Elem = elem
-      // if (USE_GC) {
-      //   val unreachParts = (heap.map.keySet -- reachableParts).filter(!_.isNamed)
-      //   copy(heap = heap.removeParts(unreachParts))
-      // } else elem
-
       /** get reachable address partitions */
       def reachableParts: Set[Part] =
         var parts = Set[Part]()
         for ((_, v) <- locals) parts ++= v.reachableParts
         for ((_, v) <- globals) parts ++= v.reachableParts
         heap.reachableParts(parts)
-
-      /** copy */
-      def copied(
-        locals: Map[Local, AbsValue] = Map(),
-      ): Elem = elem.copy(locals = locals)
-
-      /** get string */
-      def getString(detail: Boolean): String =
-        val app = Appender()
-        given Rule[Elem] = if (detail) rule else shortRule
-        app >> elem
-        app.toString
-
-      /** get string with detailed shapes of locations */
-      def getString(value: AbsValue): String =
-        val app = Appender()
-        app >> value.toString
-        val parts = value.reachableParts
-        if (!parts.isEmpty) (app >> " @ ").wrap(for (part <- parts) {
-          val obj = heap(part)
-          app :> s"$part -> " >> obj >> LINE_SEP
-        })
-        app.toString
-
-      /** getters */
-      def reachable: Boolean = elem.reachable
-      def locals: Map[Local, AbsValue] = elem.locals
-      def globals: Map[Global, AbsValue] = elem.globals
-      def heap: AbsHeap = elem.heap
     }
     // -------------------------------------------------------------------------
     // private helpers

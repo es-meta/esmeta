@@ -8,18 +8,19 @@ trait TyTest extends ESMetaTest {
 
   // type declaration elements
   import TyDecl.Elem.*
-  val method = Method("a", false, Some("some-clo-name"))
-  val methodTop = Method("b", false, None)
-  val methodOpt = Method("c", true, Some("some-clo-name"))
-  val methodOptTop = Method("d", true, None)
+  val absMethod = AbsMethod("a")
+  val conMethod = ConMethod("b", false, None)
+  val conMethodOpt = ConMethod("c", true, None)
+  val conMethodTarget = ConMethod("d", false, Some("foo"))
+  val conMethodOptTarget = ConMethod("e", true, Some("bar"))
 
   // type declarations
   val decl0 = TyDecl("A", None, Nil)
-  val decl1 = TyDecl("A", None, List(method))
-  val decl2 = TyDecl("A", None, List(method, methodOptTop))
+  val decl1 = TyDecl("A", None, List(absMethod))
+  val decl2 = TyDecl("A", None, List(absMethod, conMethodOpt))
   val declParent0 = TyDecl("A", Some("B"), Nil)
-  val declParent1 = TyDecl("A", Some("B"), List(method))
-  val declParent2 = TyDecl("A", Some("B"), List(method, methodOptTop))
+  val declParent1 = TyDecl("A", Some("B"), List(absMethod))
+  val declParent2 = TyDecl("A", Some("B"), List(absMethod, conMethodOpt))
 
   // type models
   val tyModel0 = TyModel(Nil)

@@ -109,10 +109,6 @@ trait HeapBasicDomainDecl { self: Self =>
         case _         => false
       def isSingle(part: Part): Boolean = !(elem.merged contains part)
 
-      /** handle calls */
-      def doCall: Elem = elem
-      def doProcStart(fixed: Set[Part]): Elem = elem
-
       /** handle returns (elem: caller heaps / retHeap: return heaps) */
       def doReturn(to: Elem): Elem = elem
       def doProcEnd(to: Elem): Elem = elem

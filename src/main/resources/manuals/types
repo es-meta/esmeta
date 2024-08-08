@@ -1,229 +1,193 @@
+// -----------------------------------------------------------------------------
+// Symbol
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-ecmascript-language-types-symbol-type
+type Symbol {
+  Description: String | Undefined;
+}
+
+// https://tc39.es/ecma262/#table-globalsymbolregistry-record-fields
+type GlobalSymbolRegistryRecord {
+  Key: String;
+  Symbol: Record[Symbol];
+}
+
+// -----------------------------------------------------------------------------
+// Completion Records
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#table-completion-record-fields
 type CompletionRecord {
   Type: Enum[~normal~, ~break~, ~continue~, ~return~, ~throw~];
   Value: Any;
   Target: String | Enum[~empty~];
 }
 
+// https://tc39.es/ecma262/#sec-completion-record-specification-type
 type NormalCompletion extends CompletionRecord {
   Type: Enum[~normal~];
   Target: Enum[~empty~];
 }
 
+// https://tc39.es/ecma262/#sec-completion-record-specification-type
 type AbruptCompletion extends CompletionRecord {
   Type: Enum[~break~, ~continue~, ~return~, ~throw~];
 }
 
-type AgentRecord {
-  CanBlock: Boolean;
-  CandidateExecution: Record[CandidateExecutionRecord];
-  IsLockFree1: Boolean;
-  IsLockFree2: Boolean;
-  IsLockFree8: Boolean;
-  KeptAlive: List[Record[Object | Symbol]];
-  LittleEndian: Boolean;
-  Signifier: Record[AgentSignifier];
+// -----------------------------------------------------------------------------
+// Reference Records
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#table-reference-record-fields
+type ReferenceRecord {
+  Base: ESValue | Record[EnvironmentRecord] | Enum[~unresolvable~];
+  ReferencedName: ESValue | Record[PrivateName];
+  Strict: Boolean;
+  ThisValue: ESValue | Enum[~empty~];
 }
 
-type AgentSignifier
-
-type ArgumentsExoticObject extends Object {
-  def DefineOwnProperty = Record[ArgumentsExoticObject].DefineOwnProperty;
-  def Delete = Record[ArgumentsExoticObject].Delete;
-  def Get = Record[ArgumentsExoticObject].Get;
-  def GetOwnProperty = Record[ArgumentsExoticObject].GetOwnProperty;
-  def Set = Record[ArgumentsExoticObject].Set;
-  ParameterMap: Record[OrdinaryObject];
+// https://tc39.es/ecma262/#sec-private-names
+type PrivateName {
+  Description: String;
 }
 
-type ArrayBufferObject extends Object {
-  ArrayBufferByteLength: NonNegInt;
-  ArrayBufferData: Record[SharedDataBlock] | Null;
-  ArrayBufferDetachKey: ESValue;
+// -----------------------------------------------------------------------------
+// Property Descriptor
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#table-object-property-attributes
+type PropertyDescriptor {
+  Value?: ESValue;
+  Writable?: Boolean;
+  Get?: Record[Object] | Undefined;
+  Set?: Record[Object] | Undefined;
+  Enumerable?: Boolean;
+  Configurable?: Boolean;
 }
 
-type ArrayExoticObject extends Object {
-  def DefineOwnProperty = Record[ArrayExoticObject].DefineOwnProperty;
+// https://tc39.es/ecma262/#table-privateelement-fields
+type PrivateElement {
+  Key: Record[PrivateName];
+  Kind: Enum[~field~, ~method~, ~accessor~];
+  Value?: ESValue;
+  Get?: Record[FunctionObject] | Undefined;
+  Set?: Record[FunctionObject] | Undefined;
 }
 
-type AsyncFromSyncIteratorInstance extends OrdinaryObject {
-  SyncIteratorRecord: Record[IteratorRecord];
-}
+// -----------------------------------------------------------------------------
+// ClassFieldDefinition Record
+// -----------------------------------------------------------------------------
 
-type AsyncGeneratorInstance extends OrdinaryObject {
-  AsyncGeneratorContext: Record[ExecutionContext];
-  AsyncGeneratorQueue: List[Record[AsyncGeneratorRequestRecord]];
-  AsyncGeneratorState: Enum[~awaitingDASHreturn~, ~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined;
-  GeneratorBrand: Enum[~empty~] | String;
-}
-
-type AsyncGeneratorRequestRecord {
-  Capability: Record[PromiseCapabilityRecord];
-}
-
-type BigIntObject extends OrdinaryObject {
-  BigIntData: BigInt;
-}
-
-type BooleanObject extends OrdinaryObject {
-  BooleanData: Boolean;
-}
-
-type BoundFunctionExoticObject extends Constructor {
-  def Call = Record[BoundFunctionExoticObject].Call;
-  def Construct = Record[BoundFunctionExoticObject].Construct;
-  BoundArguments: List[ESValue];
-  BoundTargetFunction: Record[FunctionObject];
-  BoundThis: ESValue;
-}
-
-type BuiltinFunctionObject extends Constructor {
-  def Call = Record[BuiltinFunctionObject].Call;
-  def Code;
-  InitialName: String | Null;
-  Realm: Record[RealmRecord];
-}
-
+// https://tc39.es/ecma262/#table-classfielddefinition-fields
 type ClassFieldDefinitionRecord {
-  Initializer: Record[FunctionObject] | Enum[~empty~];
   Name: Record[PrivateName | Symbol] | String;
+  Initializer: Record[ECMAScriptFunctionObject] | Enum[~empty~];
 }
 
+// -----------------------------------------------------------------------------
+// ClassStaticBlockDefinition Record
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#table-classstaticblockdefinition-record-fields
 type ClassStaticBlockDefinitionRecord {
   BodyFunction: Record[FunctionObject];
 }
 
-type Constructor extends FunctionObject
+// -----------------------------------------------------------------------------
+// Environment Record
+// -----------------------------------------------------------------------------
 
-type CyclicModuleRecord extends ModuleRecord {
-  def Evaluate = CyclicModuleRecord.Evaluate;
-  def Link = CyclicModuleRecord.Link;
-  AsyncEvaluation: Boolean;
-  AsyncParentModules: List[Record[CyclicModuleRecord]];
-  CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
-  DFSAncestorIndex: Enum[~empty~] | Int;
-  DFSIndex: Enum[~empty~] | Int;
-  EvaluationError: Abrupt[throw] | Enum[~empty~];
-  HasTLA: Boolean;
-  PendingAsyncDependencies: Enum[~empty~] | Int;
-  RequestedModules: List[String];
-  Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~];
-  TopLevelCapability: Record[PromiseCapabilityRecord] | Enum[~empty~];
-}
-
-type DeclarativeEnvironmentRecord extends EnvironmentRecord {
-  def CreateImmutableBinding = Record[DeclarativeEnvironmentRecord].CreateImmutableBinding;
-  def CreateMutableBinding = Record[DeclarativeEnvironmentRecord].CreateMutableBinding;
-  def DeleteBinding = Record[DeclarativeEnvironmentRecord].DeleteBinding;
-  def GetBindingValue = Record[DeclarativeEnvironmentRecord].GetBindingValue;
-  def HasBinding = Record[DeclarativeEnvironmentRecord].HasBinding;
-  def HasSuperBinding = Record[DeclarativeEnvironmentRecord].HasSuperBinding;
-  def HasThisBinding = Record[DeclarativeEnvironmentRecord].HasThisBinding;
-  def InitializeBinding = Record[DeclarativeEnvironmentRecord].InitializeBinding;
-  def SetMutableBinding = Record[DeclarativeEnvironmentRecord].SetMutableBinding;
-  def WithBaseObject = Record[DeclarativeEnvironmentRecord].WithBaseObject;
-}
-
-type ECMAScriptFunctionObject extends FunctionObject {
-  def Call = Record[ECMAScriptFunctionObject].Call;
-  def Construct? = Record[ECMAScriptFunctionObject].Construct;
-  ClassFieldInitializerName: Record[PrivateName | Symbol] | Enum[~empty~] | String;
-  ConstructorKind?: Enum[~base~, ~derived~];
-  ECMAScriptCode: Ast;
-  Environment: Record[EnvironmentRecord];
-  Fields: List[Record[ClassFieldDefinitionRecord]];
-  FormalParameters: Ast;
-  HomeObject: Record[Object] | Undefined;
-  IsClassConstructor: Boolean;
-  PrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
-  PrivateMethods: List[Record[PrivateElement]];
-  Realm: Record[RealmRecord];
-  ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
-  SourceText: String;
-  Strict: Boolean;
-  ThisMode: Enum[~global~, ~lexical~, ~strict~];
-}
-
+// https://tc39.es/ecma262/#sec-environment-records
 type EnvironmentRecord {
-  Map: Map[String -> Record[Binding]];
+  abstract def HasBinding;
+  abstract def CreateMutableBinding;
+  abstract def CreateImmutableBinding;
+  abstract def InitializeBinding;
+  abstract def SetMutableBinding;
+  abstract def GetBindingValue;
+  abstract def DeleteBinding;
+  abstract def HasThisBinding;
+  abstract def HasSuperBinding;
+  abstract def WithBaseObject;
   OuterEnv: Record[EnvironmentRecord] | Null;
+  __MAP__: Map[String -> Record[Binding]];
 }
 
-type ErrorInstance extends OrdinaryObject {
-  ErrorData: Undefined;
+// https://tc39.es/ecma262/2024/#sec-declarative-environment-records
+type DeclarativeEnvironmentRecord extends EnvironmentRecord {
+  def CreateImmutableBinding;
+  def CreateMutableBinding;
+  def DeleteBinding;
+  def GetBindingValue;
+  def HasBinding;
+  def HasSuperBinding;
+  def HasThisBinding;
+  def InitializeBinding;
+  def SetMutableBinding;
+  def WithBaseObject;
 }
 
-type ExecutionContext {
-  Function: Record[FunctionObject] | Null;
-  Generator: Record[Object];
-  LexicalEnvironment: Record[EnvironmentRecord];
-  PrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
-  Realm: Record[RealmRecord];
-  ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
-  VariableEnvironment: Record[EnvironmentRecord];
+// https://tc39.es/ecma262/2024/#sec-object-environment-records
+type ObjectEnvironmentRecord extends EnvironmentRecord {
+  def CreateMutableBinding;
+  def DeleteBinding;
+  def GetBindingValue;
+  def HasBinding;
+  def HasSuperBinding;
+  def HasThisBinding;
+  def InitializeBinding;
+  def SetMutableBinding;
+  def WithBaseObject;
+  BindingObject: Record[Object];
+  IsWithEnvironment: Boolean;
 }
 
-type ExportEntryRecord {
-  ExportName: String | Null;
-  ImportName: Enum[~all-but-default~, ~all~] | String | Null;
-  LocalName: String | Null;
-  ModuleRequest: String | Null;
-}
-
-type ForInIteratorInstance extends OrdinaryObject {
-  Object: Record[Object];
-  ObjectWasVisited: Boolean;
-  RemainingKeys: List[String];
-  VisitedKeys: List[String];
-}
-
+// https://tc39.es/ecma262/2024/#sec-function-environment-records
 type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  def BindThisValue = Record[FunctionEnvironmentRecord].BindThisValue;
-  def GetSuperBase = Record[FunctionEnvironmentRecord].GetSuperBase;
-  def GetThisBinding = Record[FunctionEnvironmentRecord].GetThisBinding;
-  def HasSuperBinding = Record[FunctionEnvironmentRecord].HasSuperBinding;
-  def HasThisBinding = Record[FunctionEnvironmentRecord].HasThisBinding;
-  FunctionObject: Record[FunctionObject];
+  def BindThisValue;
+  def GetSuperBase;
+  def GetThisBinding;
+  def HasSuperBinding;
+  def HasThisBinding;
+  FunctionObject: Record[ECMAScriptFunctionObject];
   NewTarget: Record[Object] | Undefined;
   ThisBindingStatus: Enum[~initialized~, ~lexical~, ~uninitialized~];
   ThisValue: ESValue;
 }
 
-type FunctionObject extends OrdinaryObject
-
-type GeneratorInstance extends OrdinaryObject {
-  GeneratorBrand: Enum[~empty~] | String;
-  GeneratorContext: Record[ExecutionContext];
-  GeneratorState: Enum[~completed~, ~executing~, ~suspendedStart~, ~suspendedYield~] | Undefined;
-}
-
+// https://tc39.es/ecma262/2024/#sec-global-environment-records
 type GlobalEnvironmentRecord extends EnvironmentRecord {
-  def CanDeclareGlobalFunction = Record[GlobalEnvironmentRecord].CanDeclareGlobalFunction;
-  def CanDeclareGlobalVar = Record[GlobalEnvironmentRecord].CanDeclareGlobalVar;
-  def CreateGlobalFunctionBinding = Record[GlobalEnvironmentRecord].CreateGlobalFunctionBinding;
-  def CreateGlobalVarBinding = Record[GlobalEnvironmentRecord].CreateGlobalVarBinding;
-  def CreateImmutableBinding = Record[GlobalEnvironmentRecord].CreateImmutableBinding;
-  def CreateMutableBinding = Record[GlobalEnvironmentRecord].CreateMutableBinding;
-  def DeleteBinding = Record[GlobalEnvironmentRecord].DeleteBinding;
-  def GetBindingValue = Record[GlobalEnvironmentRecord].GetBindingValue;
-  def GetThisBinding = Record[GlobalEnvironmentRecord].GetThisBinding;
-  def HasBinding = Record[GlobalEnvironmentRecord].HasBinding;
-  def HasLexicalDeclaration = Record[GlobalEnvironmentRecord].HasLexicalDeclaration;
-  def HasRestrictedGlobalProperty = Record[GlobalEnvironmentRecord].HasRestrictedGlobalProperty;
-  def HasSuperBinding = Record[GlobalEnvironmentRecord].HasSuperBinding;
-  def HasThisBinding = Record[GlobalEnvironmentRecord].HasThisBinding;
-  def HasVarDeclaration = Record[GlobalEnvironmentRecord].HasVarDeclaration;
-  def InitializeBinding = Record[GlobalEnvironmentRecord].InitializeBinding;
-  def SetMutableBinding = Record[GlobalEnvironmentRecord].SetMutableBinding;
-  def WithBaseObject = Record[GlobalEnvironmentRecord].WithBaseObject;
+  def CanDeclareGlobalFunction;
+  def CanDeclareGlobalVar;
+  def CreateGlobalFunctionBinding;
+  def CreateGlobalVarBinding;
+  def CreateImmutableBinding;
+  def CreateMutableBinding;
+  def DeleteBinding;
+  def GetBindingValue;
+  def GetThisBinding;
+  def HasBinding;
+  def HasLexicalDeclaration;
+  def HasRestrictedGlobalProperty;
+  def HasSuperBinding;
+  def HasThisBinding;
+  def HasVarDeclaration;
+  def InitializeBinding;
+  def SetMutableBinding;
+  def WithBaseObject;
   DeclarativeRecord: Record[DeclarativeEnvironmentRecord];
   GlobalThisValue: Record[Object];
   ObjectRecord: Record[ObjectEnvironmentRecord];
   VarNames: List[String];
 }
 
-type GlobalSymbolRegistryRecord {
-  Key: String;
-  Symbol: Record[Symbol];
+// https://tc39.es/ecma262/2024/#sec-module-environment-records
+type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
+  def CreateImportBinding;
+  def GetBindingValue;
+  def GetThisBinding;
+  def HasThisBinding;
 }
 
 type Binding {
@@ -243,263 +207,578 @@ type MutableBinding extends Binding {
   mutable: True;
 }
 
-type ImmutablePrototypeExoticObject extends Object {
-  def SetPrototypeOf = Record[ImmutablePrototypeExoticObject].SetPrototypeOf;
+// -----------------------------------------------------------------------------
+// Objects
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/2024/#sec-object-internal-methods-and-internal-slots
+type Object {
+  abstract def GetPrototypeOf;
+  abstract def SetPrototypeOf;
+  abstract def IsExtensible;
+  abstract def PreventExtensions;
+  abstract def GetOwnProperty;
+  abstract def DefineOwnProperty;
+  abstract def HasProperty;
+  abstract def Get;
+  abstract def Set;
+  abstract def Delete;
+  abstract def OwnPropertyKeys;
+  PrivateElements: List[Record[PrivateElement]];
+  __MAP__: Map[Record[Symbol] | String -> Record[PropertyDescriptor]];
 }
 
-type ImportEntryRecord {
-  ImportName: Enum[~namespace-object~] | String;
-  LocalName: String;
-  ModuleRequest: String;
+// https://tc39.es/ecma262/2024/#function-object
+type FunctionObject extends Object {
+  abstract def Call;
 }
 
-type IntegerIndexedExoticObject extends Object {
-  def DefineOwnProperty = Record[IntegerIndexedExoticObject].DefineOwnProperty;
-  def Delete = Record[IntegerIndexedExoticObject].Delete;
-  def Get = Record[IntegerIndexedExoticObject].Get;
-  def GetOwnProperty = Record[IntegerIndexedExoticObject].GetOwnProperty;
-  def HasProperty = Record[IntegerIndexedExoticObject].HasProperty;
-  def OwnPropertyKeys = Record[IntegerIndexedExoticObject].OwnPropertyKeys;
-  def Set = Record[IntegerIndexedExoticObject].Set;
+// https://tc39.es/ecma262/2024/#constructor
+type Constructor extends FunctionObject {
+  abstract def Construct;
+}
+
+// https://tc39.es/ecma262/2024/#ordinary-object
+type OrdinaryObject extends Object {
+  def GetPrototypeOf;
+  def SetPrototypeOf;
+  def IsExtensible;
+  def PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty;
+  def Get;
+  def Set;
+  def Delete;
+  def OwnPropertyKeys;
+  Prototype: Record[Object] | Null;
+  Extensible: Boolean;
+}
+
+// https://tc39.es/ecma262/2024/#sec-ecmascript-function-objects
+type ECMAScriptFunctionObject extends OrdinaryObject {
+  def Call;
+  def Construct?;
+  Environment: Record[EnvironmentRecord];
+  PrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
+  FormalParameters: Ast;
+  ECMAScriptCode: Ast;
+  ConstructorKind?: Enum[~base~, ~derived~];
+  Realm: Record[RealmRecord];
+  ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null; // TODO: PR - Null
+  ThisMode: Enum[~global~, ~lexical~, ~strict~];
+  Strict: Boolean;
+  HomeObject: Record[Object] | Undefined; // TODO: PR - Undefined
+  SourceText: String;
+  Fields: List[Record[ClassFieldDefinitionRecord]];
+  PrivateMethods: List[Record[PrivateElement]];
+  ClassFieldInitializerName: Record[PrivateName | Symbol] | Enum[~empty~] | String;
+  IsClassConstructor: Boolean;
+}
+
+// https://tc39.es/ecma262/2024/#sec-built-in-function-objects
+type BuiltinFunctionObject extends OrdinaryObject {
+  def Call;
+  def Construct?;
+  Realm: Record[RealmRecord];
+  InitialName: String | Null;
+  __CODE__: Clo;
+}
+
+// https://tc39.es/ecma262/2024/#sec-bound-function-exotic-objects
+type BoundFunctionExoticObject extends Constructor {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty = Record[OrdinaryObject].GetOwnProperty;
+  def DefineOwnProperty = Record[OrdinaryObject].DefineOwnProperty;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def Get = Record[OrdinaryObject].Get;
+  def Set = Record[OrdinaryObject].Set;
+  def Delete = Record[OrdinaryObject].Delete;
+  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
+  def Call;
+  def Construct?;
+  BoundTargetFunction: Record[FunctionObject];
+  BoundThis: ESValue;
+  BoundArguments: List[ESValue];
+}
+
+// https://tc39.es/ecma262/2024/#sec-array-exotic-objects
+type Array extends Object {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty = Record[OrdinaryObject].GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def Get = Record[OrdinaryObject].Get;
+  def Set = Record[OrdinaryObject].Set;
+  def Delete = Record[OrdinaryObject].Delete;
+  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
+}
+
+// https://tc39.es/ecma262/2024/#sec-string-exotic-objects
+type StringExoticObject extends Object {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def Get = Record[OrdinaryObject].Get;
+  def Set = Record[OrdinaryObject].Set;
+  def Delete = Record[OrdinaryObject].Delete;
+  def OwnPropertyKeys;
+  StringData: String;
+}
+
+// https://tc39.es/ecma262/2024/#sec-arguments-exotic-objects
+type ArgumentsExoticObject extends Object {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def Get;
+  def Set;
+  def Delete;
+  def OwnPropertyKeys;
+  ParameterMap: Record[Object];
+}
+
+// https://tc39.es/ecma262/#sec-typedarray-exotic-objects
+type TypedArray extends Object {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty;
+  def Get;
+  def Set;
+  def Delete;
+  def OwnPropertyKeys;
+  ViewedArrayBuffer: Record[ArrayBufferObject];
   ArrayLength: NonNegInt;
   ByteOffset: NonNegInt;
-  ContentType: Enum[~BigInt~, ~Number~];
+  ContentType: Enum[~bigint~, ~number~];
   TypedArrayName: String;
-  ViewedArrayBuffer: Record[ArrayBufferObject];
 }
 
-type Intrinsics
-
-type IteratorRecord {
-  Done: Boolean;
-  Iterator: Record[OrdinaryObject];
-  NextMethod: Record[FunctionObject];
+// https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
+type ModuleNamespaceExoticObject extends Object {
+  def GetPrototypeOf;
+  def SetPrototypeOf;
+  def IsExtensible;
+  def PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty;
+  def Get;
+  def Set;
+  def Delete;
+  def OwnPropertyKeys;
+  Module: Record[ModuleRecord];
+  Exports: List[String];
 }
 
+// https://tc39.es/ecma262/#sec-immutable-prototype-exotic-objects
+type ImmutablePrototypeExoticObject extends Object {
+  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
+  def SetPrototypeOf;
+  def IsExtensible = Record[OrdinaryObject].IsExtensible;
+  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def GetOwnProperty = Record[OrdinaryObject].GetOwnProperty;
+  def DefineOwnProperty = Record[OrdinaryObject].DefineOwnProperty;
+  def HasProperty = Record[OrdinaryObject].HasProperty;
+  def Get = Record[OrdinaryObject].Get;
+  def Set = Record[OrdinaryObject].Set;
+  def Delete = Record[OrdinaryObject].Delete;
+  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
+}
+
+// https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
+type ProxyExoticObject extends Constructor {
+  def GetPrototypeOf;
+  def SetPrototypeOf;
+  def IsExtensible;
+  def PreventExtensions;
+  def GetOwnProperty;
+  def DefineOwnProperty;
+  def HasProperty;
+  def Get;
+  def Set;
+  def Delete;
+  def OwnPropertyKeys;
+  def Call?;
+  def Construct?;
+  ProxyHandler: Record[Object] | Null;
+  ProxyTarget: Record[Object] | Null;
+}
+
+// -----------------------------------------------------------------------------
+// Executable Code and Execution Contexts
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#realm-record
+type RealmRecord {
+  AgentSignifier: Record[AgentSignifier];
+  Intrinsics: Map[String -> Record[Object]];
+  GlobalObject: Record[Object] | Undefined;
+  GlobalEnv: Record[GlobalEnvironmentRecord];
+  TemplateMap: List[Record[{ Site: Ast[TemplateLiteral], Array: Record[Array] }]];
+  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecor] }]];
+  HostDefined: Undefined;
+}
+
+// https://tc39.es/ecma262/#table-state-components-for-all-execution-contexts
+type ExecutionContext {
+  // TODO code evaluation state
+  Function: Record[FunctionObject] | Null;
+  Realm: Record[RealmRecord];
+  ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
+}
+
+// https://tc39.es/ecma262/#ecmascript-code-execution-context
+type ECMAScriptCodeExecutionContext extends ExecutionContext {
+  LexicalEnvironment: Record[EnvironmentRecord];
+  VariableEnvironment: Record[EnvironmentRecord];
+  PrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
+}
+
+// https://tc39.es/ecma262/#privateenvironment-record
+type PrivateEnvironmentRecord {
+  OuterPrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
+  Names: List[Record[PrivateName]];
+}
+
+// https://tc39.es/ecma262/#table-additional-state-components-for-generator-execution-contexts
+type GeneratorExecutionContext extends ExecutionContext {
+  Generator: Record[Generator];
+}
+
+// https://tc39.es/ecma262/#sec-promisecapability-records
 type JobCallbackRecord {
   Callback: Record[FunctionObject];
   HostDefined: Enum[~empty~];
 }
 
-type MapInstance extends OrdinaryObject {
-  MapData: List[Record[{ Key: ESValue | Enum[~empty~], Value: ESValue }]];
+// https://tc39.es/ecma262/#agent-record
+type AgentRecord {
+  LittleEndian: Boolean;
+  CanBlock: Boolean;
+  Signifier: Record[AgentSignifier];
+  IsLockFree1: Boolean;
+  IsLockFree2: Boolean;
+  IsLockFree8: Boolean;
+  CandidateExecution: Record[CandidateExecutionRecord];
+  KeptAlive: List[Record[Object | Symbol]];
 }
 
-type MatchRecord {
-  EndIndex: Int;
-  StartIndex: Int;
+// https://tc39.es/ecma262/#sec-candidate-executions
+type CandidateExecutionRecord {
+  EventsRecords: List[Record[AgentEventsRecord]];
+  ChosenValues: List[Record[ChosenValueRecord]];
 }
 
-type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  def CreateImportBinding = Record[ModuleEnvironmentRecord].CreateImportBinding;
-  def GetBindingValue = Record[ModuleEnvironmentRecord].GetBindingValue;
-  def GetThisBinding = Record[ModuleEnvironmentRecord].GetThisBinding;
-  def HasThisBinding = Record[ModuleEnvironmentRecord].HasThisBinding;
+// https://tc39.es/ecma262/#sec-agent-event-records
+type AgentEventsRecord {
+  AgentSignifier: Record[AgentSignifier];
+  EventList: List[Record[Event]];
+  AgentSynchronizesWith: List[List[Record[SynchronizeEvent]]]; // TODO Pair
 }
 
-type ModuleNamespaceExoticObject extends Object {
-  def DefineOwnProperty = Record[ModuleNamespaceExoticObject].DefineOwnProperty;
-  def Delete = Record[ModuleNamespaceExoticObject].Delete;
-  def Get = Record[ModuleNamespaceExoticObject].Get;
-  def GetOwnProperty = Record[ModuleNamespaceExoticObject].GetOwnProperty;
-  def GetPrototypeOf = Record[ModuleNamespaceExoticObject].GetPrototypeOf;
-  def HasProperty = Record[ModuleNamespaceExoticObject].HasProperty;
-  def IsExtensible = Record[ModuleNamespaceExoticObject].IsExtensible;
-  def OwnPropertyKeys = Record[ModuleNamespaceExoticObject].OwnPropertyKeys;
-  def PreventExtensions = Record[ModuleNamespaceExoticObject].PreventExtensions;
-  def Set = Record[ModuleNamespaceExoticObject].Set;
-  def SetPrototypeOf = Record[ModuleNamespaceExoticObject].SetPrototypeOf;
-  Exports: List[String];
-  Module: Record[ModuleRecord];
+// https://tc39.es/ecma262/#sec-chosen-value-records
+type ChosenValueRecord {
+  Event: Record[SharedDataBlockEvent];
+  ChosenValue: List[Integer]; // TODO Byte
 }
 
-type ModuleRecord {
-  Environment: Record[ModuleEnvironmentRecord] | Enum[~empty~];
-  HostDefined: Undefined;
-  Namespace: Record[ModuleNamespaceExoticObject] | Enum[~empty~];
-  Realm: Record[RealmRecord];
+// -----------------------------------------------------------------------------
+// Iterators
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-iterator-records
+type IteratorRecord {
+  Iterator: Record[Object];
+  NextMethod: Record[ESValue];
+  Done: Boolean;
 }
 
-type NumberObject extends OrdinaryObject {
-  NumberData: Number;
+// https://tc39.es/ecma262/#sec-properties-of-for-in-iterator-instances
+type ForInIterator extends OrdinaryObject {
+  Object: Record[Object];
+  ObjectWasVisited: Boolean;
+  VisitedKeys: List[String];
+  RemainingKeys: List[String];
 }
 
-type Object {
-  def DefineOwnProperty = Record[OrdinaryObject].DefineOwnProperty;
-  def Delete = Record[OrdinaryObject].Delete;
-  def Get = Record[OrdinaryObject].Get;
-  def GetOwnProperty = Record[OrdinaryObject].GetOwnProperty;
-  def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
-  def HasProperty = Record[OrdinaryObject].HasProperty;
-  def IsExtensible = Record[OrdinaryObject].IsExtensible;
-  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
-  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
-  def Set = Record[OrdinaryObject].Set;
-  def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
-  Extensible: Boolean;
-  Map: Map[Record[Symbol] | String -> Record[PropertyDescriptor]];
-  PrivateElements: List[Record[PrivateElement]];
-  Prototype: Record[Object] | Null;
-}
+// -----------------------------------------------------------------------------
+// Scripts and Modules
+// -----------------------------------------------------------------------------
 
-type ObjectEnvironmentRecord extends EnvironmentRecord {
-  def CreateMutableBinding = Record[ObjectEnvironmentRecord].CreateMutableBinding;
-  def DeleteBinding = Record[ObjectEnvironmentRecord].DeleteBinding;
-  def GetBindingValue = Record[ObjectEnvironmentRecord].GetBindingValue;
-  def HasBinding = Record[ObjectEnvironmentRecord].HasBinding;
-  def HasSuperBinding = Record[ObjectEnvironmentRecord].HasSuperBinding;
-  def HasThisBinding = Record[ObjectEnvironmentRecord].HasThisBinding;
-  def InitializeBinding = Record[ObjectEnvironmentRecord].InitializeBinding;
-  def SetMutableBinding = Record[ObjectEnvironmentRecord].SetMutableBinding;
-  def WithBaseObject = Record[ObjectEnvironmentRecord].WithBaseObject;
-  BindingObject: Record[Object];
-  IsWithEnvironment: Boolean;
-}
-
-type OrdinaryObject extends Object
-
-type PendingJob {
-  def Job;
-  Realm: Record[RealmRecord];
-  ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
-}
-
-type PrivateElement {
-  Key: Record[PrivateName];
-  Kind: Enum[~field~, ~method~, ~accessor~];
-  Value?: ESValue;
-  Get?: Record[FunctionObject] | Undefined;
-  Set?: Record[FunctionObject] | Undefined;
-}
-
-type PrivateEnvironmentRecord {
-  Names: List[Record[PrivateName]];
-  OuterPrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
-}
-
-type PrivateName {
-  Description: String;
-}
-
-type Promise extends OrdinaryObject {
-  PromiseFulfillReactions: List[Record[PromiseReaction]];
-  PromiseIsHandled: Boolean;
-  PromiseRejectReactions: List[Record[PromiseReaction]];
-  PromiseResult: ESValue;
-  PromiseState: Enum[~fulfilled~, ~pending~, ~rejected~];
-}
-
-type PromiseCapabilityRecord {
-  Promise: Record[Promise];
-  Reject: Record[FunctionObject];
-  Resolve: Record[FunctionObject];
-}
-
-type PromiseReaction {
-  Capability: Record[PromiseCapabilityRecord] | Undefined;
-  Handler: Record[JobCallbackRecord] | Enum[~empty~];
-  Type: Enum[~Fulfill~, ~Reject~];
-}
-
-type PropertyDescriptor {
-  Value?: ESValue;
-  Writable?: Boolean;
-  Get?: Record[Object] | Undefined;
-  Set?: Record[Object] | Undefined;
-  Enumerable: Boolean;
-  Configurable: Boolean;
-}
-
-type ProxyExoticObject extends Constructor {
-  def Call? = Record[ProxyExoticObject].Call;
-  def Construct? = Record[ProxyExoticObject].Construct;
-  def DefineOwnProperty = Record[ProxyExoticObject].DefineOwnProperty;
-  def Delete = Record[ProxyExoticObject].Delete;
-  def Get = Record[ProxyExoticObject].Get;
-  def GetOwnProperty = Record[ProxyExoticObject].GetOwnProperty;
-  def GetPrototypeOf = Record[ProxyExoticObject].GetPrototypeOf;
-  def HasProperty = Record[ProxyExoticObject].HasProperty;
-  def IsExtensible = Record[ProxyExoticObject].IsExtensible;
-  def OwnPropertyKeys = Record[ProxyExoticObject].OwnPropertyKeys;
-  def PreventExtensions = Record[ProxyExoticObject].PreventExtensions;
-  def Set = Record[ProxyExoticObject].Set;
-  def SetPrototypeOf = Record[ProxyExoticObject].SetPrototypeOf;
-  ProxyHandler: Record[Object] | Null;
-  ProxyTarget: Record[Object] | Null;
-}
-
-type RealmRecord {
-  GlobalEnv: Record[GlobalEnvironmentRecord];
-  GlobalObject: Record[Object] | Undefined;
-  HostDefined: Undefined;
-  Intrinsics: Record[Intrinsics];
-  TemplateMap: List[Record[TemplatePair]];
-}
-
-type ReferenceRecord {
-  Base: ESValue | Record[EnvironmentRecord] | Enum[~unresolvable~];
-  ReferencedName: Record[PrivateName | Symbol] | String;
-  Strict: Boolean;
-  ThisValue: ESValue | Enum[~empty~];
-}
-
-type RegExpObject extends Object {
-  def RegExpMatcher;
-}
-
-type ResolvedBindingRecord {
-  BindingName: Enum[~NAMESPACE~] | String;
-  Module: Record[ModuleRecord];
-}
-
+// https://tc39.es/ecma262/#script-record
 type ScriptRecord {
   ECMAScriptCode: Ast[Script];
   HostDefined: Enum[~empty~];
   Realm: Record[RealmRecord] | Undefined;
 }
 
-type SetInstance extends OrdinaryObject {
-  SetData: List[ESValue];
+// https://tc39.es/ecma262/#sec-abstract-module-records
+type ModuleRecord {
+  abstract def LoadRequestedModules;
+  abstract def GetExportedNames;
+  abstract def ResolveExport;
+  abstract def Link;
+  abstract def Evaluate;
+  Realm: Record[RealmRecord];
+  Environment: Record[ModuleEnvironmentRecord] | Enum[~empty~];
+  Namespace: Record[ModuleNamespaceExoticObject] | Enum[~empty~];
+  HostDefined: Undefined;
 }
 
+// https://tc39.es/ecma262/#sec-cyclic-module-records
+type CyclicModuleRecord extends ModuleRecord {
+  def LoadRequestedModules;
+  def Link;
+  def Evaluate;
+  abstract def InitializeEnvironment;
+  abstract def ExecuteModule;
+  Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~];
+  EvaluationError: Abrupt[throw] | Enum[~empty~];
+  DFSIndex: Enum[~empty~] | Int;
+  DFSAncestorIndex: Enum[~empty~] | Int;
+  RequestedModules: List[String];
+  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecor] }]];
+  CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
+  HasTLA: Boolean;
+  AsyncEvaluation: Boolean;
+  TopLevelCapability: Record[PromiseCapabilityRecord] | Enum[~empty~];
+  AsyncParentModules: List[Record[CyclicModuleRecord]];
+  PendingAsyncDependencies: Enum[~empty~] | Int;
+}
+
+// https://tc39.es/ecma262/#graphloadingstate-record
+type GraphLoadingStateRecord {
+  PromiseCapability: Record[PromiseCapabilityRecord];
+  IsLoading: Boolean;
+  PendingModulesCount: NonNegInt;
+  Visited: List[CyclicModuleRecord];
+  HostDefined: Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/#sec-source-text-module-records
 type SourceTextModuleRecord extends CyclicModuleRecord {
-  def ExecuteModule = SourceTextModuleRecord.ExecuteModule;
-  def GetExportedNames = SourceTextModuleRecord.GetExportedNames;
-  def InitializeEnvironment = SourceTextModuleRecord.InitializeEnvironment;
-  def ResolveExport = SourceTextModuleRecord.ResolveExport;
-  Context: Record[ExecutionContext];
+  def GetExportedNames;
+  def ResolveExport;
+  def InitializeEnvironment;
+  def ExecuteModule;
   ECMAScriptCode: Ast[Module];
-  ImportEntries: List[Record[ImportEntryRecord]];
+  Context: Record[ExecutionContext];
   ImportMeta: Record[Object] | Enum[~empty~];
-  IndirectExportEntries: List[Record[ExportEntryRecord]];
+  ImportEntries: List[Record[ImportEntryRecord]];
   LocalExportEntries: List[Record[ExportEntryRecord]];
+  IndirectExportEntries: List[Record[ExportEntryRecord]];
   StarExportEntries: List[Record[ExportEntryRecord]];
 }
 
-type StringExoticObject extends Object {
-  def DefineOwnProperty = Record[StringExoticObject].DefineOwnProperty;
-  def GetOwnProperty = Record[StringExoticObject].GetOwnProperty;
-  def OwnPropertyKeys = Record[StringExoticObject].OwnPropertyKeys;
-  StringData: String;
+// https://tc39.es/ecma262/#resolvedbinding-record
+type ResolvedBindingRecord {
+  Module: Record[ModuleRecord];
+  BindingName: String | Enum[~namespace~];
 }
 
-type Symbol {
-  Description: String | Undefined;
+// https://tc39.es/ecma262/#importentry-record
+type ImportEntryRecord {
+  ModuleRequest: String;
+  ImportName: String | Enum[~namespace-object~];
+  LocalName: String;
 }
 
+// https://tc39.es/ecma262/#exportentry-record
+type ExportEntryRecord {
+  ExportName: String | Null;
+  ModuleRequest: String | Null;
+  ImportName: String | Null | Enum[~all~, ~all-but-default~];
+  LocalName: String | Null;
+}
+
+// -----------------------------------------------------------------------------
+// Builtin Objects
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-boolean-instances
+type BooleanObject extends OrdinaryObject {
+  BooleanData: Boolean;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-symbol-instances
 type SymbolObject extends OrdinaryObject {
   SymbolData: Record[Symbol];
 }
 
-type TemplatePair {
-  Array: Record[ArrayExoticObject];
-  Site: Ast[TemplateLiteral];
+// https://tc39.es/ecma262/#sec-properties-of-error-instances
+type Error extends OrdinaryObject {
+  ErrorData: Undefined;
 }
 
-type WeakMapInstance extends OrdinaryObject {
+// https://tc39.es/ecma262/#sec-properties-of-number-instances
+type NumberObject extends OrdinaryObject {
+  NumberData: Number;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-bigint-instances
+type BigIntObject extends OrdinaryObject {
+  BigIntData: BigInt;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-date-instances
+type Date extends OrdinaryObject {
+  DateValue: Number;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-regexp-instances
+type RegExp extends Object {
+  RegExpMatcher: Clo;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-map-instances
+type Map extends OrdinaryObject {
+  MapData: List[Record[{ Key: ESValue | Enum[~empty~], Value: ESValue }]];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-set-instances
+type Set extends OrdinaryObject {
+  SetData: List[ESValue];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-weakmap-instances
+type WeakMap extends OrdinaryObject {
   WeakMapData: List[Record[{ Key: ESValue | Enum[~empty~], Value: ESValue }]];
 }
 
-type WeakSetInstance extends OrdinaryObject {
+// https://tc39.es/ecma262/#sec-properties-of-weakset-instances
+type WeakSet extends OrdinaryObject {
   WeakSetData: List[ESValue];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-instances
+type ArrayBuffer extends Object {
+  ArrayBufferData: Record[SharedDataBlock] | Null;
+  ArrayBufferByteLength: NonNegInt;
+  ArrayBufferDetachKey: ESValue;
+  ArrayBufferMaxByteLength?: ESValue;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-instances
+type SharedArrayBuffer extends Object {
+  ArrayBufferData: Record[SharedDataBlock] | Null;
+  ArrayBufferByteLength?: NonNegInt;
+  ArrayBufferByteLengthData?: NonNegInt;
+  ArrayBufferMaxByteLength?: ESValue;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-dataview-instances
+type DataView extends OrdinaryObject {
+  DataView: Bot;
+  ViewedArrayBuffer: ESValue;
+  ByteLength: NonNegInt | Enum[~auto~];
+  ByteOffset: NonNegInt;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-weak-ref-instances
+type WeakRef extends OrdinaryObject {
+  WeakRefTarget: Record[Object | Symbol];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-finalization-registry-instances
+type FinalizationRegistry extends OrdinaryObject {
+  Cells: List[Record[{ WeakRefTarget: Record[Object | Symbol], HeldValue: ESValue, UnregisterToken: Record[Object | Symbol] | Enum[~empty~] }]];
+  CleanupCallback: Record[JobCallbackRecord];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-async-from-sync-iterator-instances
+type AsyncFromSyncIterator extends OrdinaryObject {
+  SyncIteratorRecord: Record[IteratorRecord];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-promise-instances
+type Promise extends OrdinaryObject {
+  PromiseState: Enum[~pending~, ~fulfilled~, ~rejected~];
+  PromiseResult: ESValue;
+  PromiseFulfillReactions: List[Record[PromiseReactionRecord]];
+  PromiseRejectReactions: List[Record[PromiseReactionRecord]];
+  PromiseIsHandled: Boolean;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-generator-instances
+type Generator extends OrdinaryObject {
+  GeneratorState: Enum[~completed~, ~executing~, ~suspended-start~, ~suspended-yield~] | Undefined;
+  GeneratorContext: Record[ExecutionContext];
+  GeneratorBrand: String | Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-intances
+type AsyncGenerator extends OrdinaryObject {
+  AsyncGeneratorState: Undefined | Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
+  AsyncGeneratorContext: Record[ExecutionContext];
+  AsyncGeneratorQueue: List[Record[AsyncGeneratorRequestRecord]];
+  GeneratorBrand: String | Enum[~empty~];
+}
+
+// -----------------------------------------------------------------------------
+// Records for Control Abstraction
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-promisereaction-records
+type PromiseReactionRecord {
+  Capability: Record[PromiseCapabilityRecord] | Undefined;
+  Type: Enum[~fulfill~, ~reject~];
+  Handler: Record[JobCallbackRecord] | Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/#sec-promisecapability-records
+type PromiseCapabilityRecord {
+  Promise: Record[Promise];
+  Resolve: Record[FunctionObject];
+  Reject: Record[FunctionObject];
+}
+
+// https://tc39.es/ecma262/#sec-asyncgeneratorrequest-records
+type AsyncGeneratorRequestRecord {
+  Completion: Record[CompletionRecord];
+  Capability: Record[PromiseCapabilityRecord];
+}
+
+// -----------------------------------------------------------------------------
+// Records for Regular Expressions
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-match-records
+type MatchRecord {
+  StartIndex: NonNegInt;
+  EndIndex: NonNegInt;
+}
+
+// -----------------------------------------------------------------------------
+// Records for Data Blocks
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-typedarray-with-buffer-witness-records
+type TypedArrayWithBufferWitnessRecord {
+  Object: Record[TypedArray];
+  CachedBufferByteLength: NonNegInt | Enum[~detached~];
+}
+
+// https://tc39.es/ecma262/#sec-dataview-with-buffer-witness-records
+type DataViewWithBufferWitnessRecord {
+  Object: Record[DataView];
+  CachedBufferByteLength: NonNegInt | Enum[~detached~];
 }

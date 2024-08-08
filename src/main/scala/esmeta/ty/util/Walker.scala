@@ -38,8 +38,10 @@ trait Walker extends BasicWalker {
   def walk(ty: TyDecl.Elem): TyDecl.Elem =
     import TyDecl.Elem.*
     ty match
-      case Method(name, optional, target) =>
-        Method(walk(name), walk(optional), walkOpt(target, walk))
+      case AbsMethod(name) =>
+        AbsMethod(walk(name))
+      case ConMethod(name, optional, target) =>
+        ConMethod(walk(name), walk(optional), walkOpt(target, walk))
       case Field(name, optional, typeStr) =>
         Field(walk(name), walk(optional), walk(typeStr))
 

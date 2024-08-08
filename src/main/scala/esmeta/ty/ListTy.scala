@@ -40,8 +40,8 @@ enum ListTy extends TyElem with Lattice[ListTy] {
     if (this eq that) this
     else
       (this, that) match
-        case (Bot, _) | (_, Top) => that
-        case (Top, _) | (_, Bot) => this
+        case (Bot, _) | (_, Top) => this
+        case (Top, _) | (_, Bot) => that
         case (Elem(l), Elem(r))  => Elem(l && r).normalized
 
   /** prune type */

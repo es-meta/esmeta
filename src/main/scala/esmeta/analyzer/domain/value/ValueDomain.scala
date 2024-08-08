@@ -21,20 +21,6 @@ trait ValueDomainDecl { self: Self =>
     def apply(ty: Ty): Elem = apply(ty, Map.empty)
     def apply(ty: Ty, refinements: Refinements): Elem
 
-    /** type refinements */
-    type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
-
-    /** type refinement kinds */
-    enum RefinementKind:
-      case True, False, Normal, Abrupt
-
-    /** constructor for completions */
-    def createCompletion(
-      ty: AbsValue,
-      value: AbsValue,
-      target: AbsValue,
-    ): Elem
-
     /** abstraction functions for raw data */
     def apply(ast: Ast): Elem = apply(AstValue(ast))
     def apply(n: Double): Elem = apply(Number(n))
@@ -145,7 +131,7 @@ trait ValueDomainDecl { self: Self =>
 
       /** type operations */
       def typeOf(st: AbsState): Elem
-      def typeCheck(tname: String, st: AbsState): Elem
+      def typeCheck(ty: Ty, st: AbsState): Elem
 
       /** helper functions for abstract transfer */
       def convertTo(cop: COp, radix: Elem): Elem
@@ -154,6 +140,8 @@ trait ValueDomainDecl { self: Self =>
       def substring(from: Elem): Elem
       def substring(from: Elem, to: Elem): Elem
       def trim(isStarting: Boolean): Elem
+      def instanceOf(ty: Elem): Elem
+      def sizeOf(st: AbsState): Elem
 
       /** single check */
       def isSingle: Boolean = elem.getSingle match
@@ -162,13 +150,6 @@ trait ValueDomainDecl { self: Self =>
 
       /** get reachable address partitions */
       def reachableParts: Set[Part]
-
-      /** completion helpers */
-      def wrapCompletion: Elem
-      def unwrapCompletion: Elem
-      def isCompletion: Elem
-      def normalCompletion: Elem
-      def abruptCompletion: Elem
 
       /** refine receiver object */
       def refineThis(func: Func): Elem

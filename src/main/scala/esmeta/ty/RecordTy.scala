@@ -64,8 +64,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       val rs = rmap.keySet
       Elem((for {
         t <- {
-          ls.filter(isStrictSubTy(_, rs)) ++
-          rs.filter(isStrictSubTy(_, ls))
+          ls.filter(isSubTy(_, rs)) ++
+          rs.filter(isSubTy(_, ls))
         }
         fm = {
           lmap.getOrElse(t, FieldMap.Top) &&
@@ -104,6 +104,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Top       => MayAnyT
     case Elem(map) => map.map(getField(_, f) && _(f)).foldLeft(MustBotT)(_ || _)
 
+  /** field accessor for specific record type */
+  def apply(name: String, f: String): OptValueTy = this match
+    case Top       => MayAnyT
+    case Elem(map) => map.get(name).fold(MustBotT)(getField(name, f) && _(f))
+
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
     case Top => true
@@ -117,6 +122,23 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           fm <- getDiffFieldMap(r, lca)
         } yield fm && rfm).exists(_.contains(record, heap))
       }
+
+  /** get subtypes having the given field */
+  def getSubTy(f: String): RecordTy = names match
+    case Inf => Top
+    case Fin(names) =>
+      Elem((for {
+        name <- names.toList
+        sub <- getSubTysWithField(name, f)
+      } yield sub -> FieldMap.Top).toMap)
+
+  /** filter with possible field types */
+  def filter(field: String, ty: ValueTy): RecordTy = this match
+    case Top => Top
+    case Elem(map) =>
+      Elem(map.filter {
+        case (name, _) => !(apply(name, field).value && ty).isBottom
+      })
 
   /** normalized type */
   def normalized: RecordTy = this match
@@ -141,5 +163,5 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(name: String, fieldMap: FieldMap): RecordTy =
     apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
-    Elem(map).normalized
+    Elem(map)
 }

@@ -32,9 +32,12 @@ trait Parsers extends BasicParsers {
 
   // type declaration elements
   given tyDeclElem: Parser[TyDecl.Elem] = {
+    import TyDecl.Elem.*
     lazy val remain = "[^;]+".r ^^ { _.trim }
-    "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) ^^ {
-      case x ~ q ~ t => TyDecl.Elem.Method(x, q.isDefined, t)
+    "abstract " ~ "def " ~> ident ^^ {
+      case x => AbsMethod(x)
+    } | "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) ^^ {
+      case x ~ q ~ t => ConMethod(x, q.isDefined, t)
     } | ident ~ opt("?") ~ (":" ~> remain) ^^ {
       case x ~ q ~ t => TyDecl.Elem.Field(x, q.isDefined, t)
     }
@@ -158,7 +161,7 @@ trait Parsers extends BasicParsers {
       case k ~ v => (k.getOrElse(""), v.getOrElse(FieldMap.Top))
     }
     "Record[" ~> repsep(pair, "|") <~ "]" ^^ {
-      case fs => Elem(fs.toMap).normalized
+      case fs => Elem(fs.toMap)
     } | "Record" ^^^ Top
   }.named("ty.RecordTy (single)")
 

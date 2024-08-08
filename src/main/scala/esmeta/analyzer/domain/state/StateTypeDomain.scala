@@ -124,10 +124,7 @@ trait StateTypeDomainDecl { self: Self =>
       def update(base: AbsValue, field: AbsValue, value: AbsValue): Elem = elem
 
       /** variable existence check */
-      def exists(x: Var): AbsValue = AbsValue(x match
-        case x: Global => base.contains(x)
-        case x: Local  => elem.locals.contains(x),
-      )
+      def exists(x: Var): AbsValue = AbsValue.boolTop
 
       /** field existence check */
       def exists(base: AbsValue, field: AbsValue): AbsValue = AbsValue(BoolT)
@@ -163,7 +160,7 @@ trait StateTypeDomainDecl { self: Self =>
         tname: String,
         pairs: Iterable[(String, AbsValue)] = Nil,
       )(asite: AllocSite): (AbsValue, Elem) =
-        (AbsValue(RecordT(tname)), elem)
+        (AbsValue(RecordT(tname, pairs.map(_ -> _.ty).toMap)), elem)
 
       /** allocate a map object */
       def allocMap(
@@ -180,46 +177,22 @@ trait StateTypeDomainDecl { self: Self =>
       )(asite: AllocSite): (AbsValue, Elem) =
         (AbsValue(ListT(vs.foldLeft(BotT)(_ || _.ty))), elem)
 
-      // ------------------------------ TODO ------------------------------
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue =
         if (list.ty.list.isBottom) AbsValue.Bot
         else AbsValue.boolTop
 
-      /** singleton checks */
-      override def isSingle: Boolean = false
+      /** handle returns (elem: return states / to: caller states) */
+      def doReturn(to: Elem, lhs: Local, value: AbsValue): Elem = Elem(
+        reachable = true,
+        locals = to.locals + (lhs -> value),
+      )
 
       /** singleton address partition checks */
       def isSingle(part: Part): Boolean = false
 
-      /** find merged parts */
-      def findMerged: Unit = {}
-
-      /** handle calls */
-      def doCall: Elem = elem
-      def doProcStart(fixed: Set[Part]): Elem = elem
-
-      /** handle returns (elem: return states / to: caller states) */
-      def doReturn(
-        to: Elem,
-        defs: Iterable[(Local, AbsValue)],
-      ): Elem = Elem(
-        reachable = true,
-        locals = to.locals ++ defs,
-      )
-
-      def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem = elem
-      def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem = elem
-
-      /** garbage collection */
-      def garbageCollected: Elem = elem
-
-      /** get reachable address partitions */
-      def reachableParts: Set[Part] = Set()
-
-      /** copy */
-      def copied(locals: Map[Local, AbsValue] = Map()): Elem =
+      /** set local environments */
+      def setLocal(locals: Map[Local, AbsValue]): Elem =
         elem.copy(locals = locals)
 
       /** get string */
@@ -233,6 +206,16 @@ trait StateTypeDomainDecl { self: Self =>
       def locals: Map[Local, AbsValue] = locals
       def globals: Map[Global, AbsValue] = base
       def heap: AbsHeap = AbsHeap.Bot
+
+      // -----------------------------------------------------------------------
+      // Helpers for Debugging
+      // -----------------------------------------------------------------------
+
+      /** find merged parts */
+      def findMerged: Unit = {}
+
+      /** get reachable address partitions */
+      def reachableParts: Set[Part] = Set()
     }
 
     // appender generator
@@ -315,15 +298,5 @@ trait StateTypeDomainDecl { self: Self =>
       case MapTy.Top              => AnyT
       case MapTy.Elem(key, value) => value
       case MapTy.Bot              => BotT
-
-    // bound check
-    private def boundCheck(
-      ty: ValueTy,
-      boundTy: => ValueTy,
-      f: ValueTy => String,
-    ): Unit =
-      // val other = ty -- boundTy
-      // if (!other.isBottom) warning(f(other))
-      ()
   }
 }

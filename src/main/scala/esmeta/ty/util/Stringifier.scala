@@ -47,7 +47,9 @@ object Stringifier {
   given tyDeclElemRule: Rule[TyDecl.Elem] = (app, elem) =>
     import TyDecl.Elem.*
     elem match
-      case Method(name, optional, target) =>
+      case AbsMethod(name) =>
+        app >> "abstract def " >> name
+      case ConMethod(name, optional, target) =>
         app >> "def " >> name
         if (optional) app >> "?"
         target.fold(app)(app >> " = " >> _)

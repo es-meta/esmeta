@@ -1,6 +1,7 @@
 def ToObject(
   argument: ESValue,
 ): Normal[Record[Object]] | Abrupt[throw] = {
+  let intrinsics = @EXECUTION_STACK[0].Realm.Intrinsics
   if (= (typeof argument) @Undefined) {
     call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
     call %1 = clo<"ThrowCompletion">(%0)
@@ -12,65 +13,56 @@ def ToObject(
     return %3
   }
   if (= (typeof argument) @Boolean) {
-    call %4 = clo<"NormalCompletion">((record [OrdinaryObject] {
-      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Boolean.prototype%"],
-      "BooleanData" : argument,
-      "Extensible" : true,
-      "__MAP__" : (map),
-      "PrivateElements" : (list []),
-    }))
-    return %4
-  }
-  if (= (typeof argument) @Number) {
-    call %5 = clo<"NormalCompletion">((record [OrdinaryObject] {
-      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Number.prototype%"],
-      "NumberData" : argument,
-      "Extensible" : true,
-      "__MAP__" : (map),
-      "PrivateElements" : (list []),
-    }))
+    call %4 = clo<"__NEW_OBJ__">()
+    %4.Prototype = intrinsics["%Boolean.prototype%"]
+    %4.BooleanData = argument
+    %4.Extensible = true
+    call %5 = clo<"NormalCompletion">(%4)
     return %5
   }
-  if (= (typeof argument) @String) {
-    call %6 = clo<"NormalCompletion">((record [StringExoticObject] {
-      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%String.prototype%"],
-      "StringData" : argument,
-      "Extensible" : true,
-      "__MAP__" : (map {
-        "length" -> (record [PropertyDescriptor] {
-          "Value" : ([number] (sizeof argument)),
-          "Writable" : false,
-          "Enumerable" : false,
-          "Configurable" : false,
-        }),
-      }),
-      "PrivateElements" : (list []),
-    }))
-    return %6
-  }
-  if (= (typeof argument) @Symbol) {
-    call %7 = clo<"NormalCompletion">((record [OrdinaryObject] {
-      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%Symbol.prototype%"],
-      "SymbolData" : argument,
-      "Extensible" : true,
-      "__MAP__" : (map),
-      "PrivateElements" : (list []),
-    }))
+  if (= (typeof argument) @Number) {
+    call %6 = clo<"__NEW_OBJ__">()
+    %6.Prototype = intrinsics["%Number.prototype%"]
+    %6.NumberData = argument
+    %6.Extensible = true
+    call %7 = clo<"NormalCompletion">(%6)
     return %7
   }
-  if (= (typeof argument) @BigInt) {
-    call %8 = clo<"NormalCompletion">((record [OrdinaryObject] {
-      "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics["%BigInt.prototype%"],
-      "BigIntData" : argument,
-      "Extensible" : true,
-      "__MAP__" : (map),
-      "PrivateElements" : (list []),
-    }))
-    return %8
-  }
-  if (= (typeof argument) @Object) {
-    call %9 = clo<"NormalCompletion">(argument)
+  if (= (typeof argument) @String) {
+    call %8 = clo<"__NEW_OBJ__">()
+    %8.GetOwnProperty = clo<"Record[StringExoticObject].GetOwnProperty">
+    %8.DefineOwnProperty = clo<"Record[StringExoticObject].DefineOwnProperty">
+    %8.OwnPropertyKeys = clo<"Record[StringExoticObject].OwnPropertyKeys">
+    %8.Prototype = intrinsics["%String.prototype%"]
+    %8.StringData = argument
+    %8.Extensible = true
+    %8.__MAP__.length = (record [PropertyDescriptor] {
+      "Value" : ([number] (sizeof argument)),
+      "Writable" : false,
+      "Enumerable" : false,
+      "Configurable" : false,
+    })
+    call %9 = clo<"NormalCompletion">(%8)
     return %9
   }
-  assert false
+  if (= (typeof argument) @Symbol) {
+    call %10 = clo<"__NEW_OBJ__">()
+    %10.Prototype = intrinsics["%Symbol.prototype%"]
+    %10.SymbolData = argument
+    %10.Extensible = true
+    call %11 = clo<"NormalCompletion">(%10)
+    return %11
+  }
+  if (= (typeof argument) @BigInt) {
+    call %12 = clo<"__NEW_OBJ__">()
+    %12.Prototype = intrinsics["%BigInt.prototype%"]
+    %12.BigIntData = argument
+    %12.Extensible = true
+    call %13 = clo<"NormalCompletion">(%12)
+    return %13
+  }
+  if (= (typeof argument) @Object) {
+    call %14 = clo<"NormalCompletion">(argument)
+    return %14
+  }
 }

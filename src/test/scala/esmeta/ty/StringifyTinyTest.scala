@@ -18,44 +18,45 @@ class StringifyTinyTest extends TyTest {
       tyModel2 -> """type A extends B
       |
       |type A {
-      |  def a = some-clo-name;
+      |  abstract def a;
       |}""".stripMargin,
       tyModel3 -> """type A
       |
       |type A extends B {
-      |  def a = some-clo-name;
+      |  abstract def a;
       |}
       |
       |type A {
-      |  def a = some-clo-name;
-      |  def d?;
+      |  abstract def a;
+      |  def c?;
       |}""".stripMargin,
     )
 
     checkParseAndStringify("TyDecl", TyDecl)(
       decl0 -> """type A""",
       decl1 -> """type A {
-      |  def a = some-clo-name;
+      |  abstract def a;
       |}""".stripMargin,
       decl2 -> """type A {
-      |  def a = some-clo-name;
-      |  def d?;
+      |  abstract def a;
+      |  def c?;
       |}""".stripMargin,
       declParent0 -> """type A extends B""",
       declParent1 -> """type A extends B {
-      |  def a = some-clo-name;
+      |  abstract def a;
       |}""".stripMargin,
       declParent2 -> """type A extends B {
-      |  def a = some-clo-name;
-      |  def d?;
+      |  abstract def a;
+      |  def c?;
       |}""".stripMargin,
     )
 
     checkParseAndStringify("TyDecl.Elem", TyDecl.Elem)(
-      method -> "def a = some-clo-name",
-      methodTop -> "def b",
-      methodOpt -> "def c? = some-clo-name",
-      methodOptTop -> "def d?",
+      absMethod -> "abstract def a",
+      conMethod -> "def b",
+      conMethodOpt -> "def c?",
+      conMethodTarget -> "def d = foo",
+      conMethodOptTarget -> "def e? = bar",
     )
 
     checkParseAndStringify("FieldMap", FieldMap)(

@@ -34,26 +34,12 @@ trait ValueTypeDomainDecl { self: Self =>
     val Bot: Elem = Elem(ValueTy())
 
     /** abstraction functions */
-    def alpha(vs: Iterable[AValue]): Elem = ??? // Elem(getValueTy(vs))
+    def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
     /** constructor with types */
     def apply(ty: Ty, refinements: Refinements): Elem = ty match
       case _: UnknownTy => Bot
       case vty: ValueTy => Elem(vty, refinements)
-
-    /** constructor for completions */
-    def createCompletion(
-      ty: AbsValue,
-      value: AbsValue,
-      target: AbsValue,
-    ): Elem =
-      // val enums = ty.ty.enumv
-      // val normal =
-      //   if (enums contains "normal") value.ty.pureValue
-      //   else PureValueTy()
-      // val abrupt = enums -- Fin("normal")
-      // Elem(ValueTy(normal = normal, abrupt = abrupt))
-      ???
 
     /** predefined top values */
     lazy val cloTop: Elem = Elem(CloT)
@@ -81,7 +67,6 @@ trait ValueTypeDomainDecl { self: Self =>
     lazy val boolTop: Elem = Elem(BoolT)
     lazy val undefTop: Elem = Elem(UndefT)
     lazy val nullTop: Elem = Elem(NullT)
-    lazy val uninitTop: Elem = ??? // Elem(UninitT)
 
     /** TODO AST type names whose MV returns a positive integer */
     lazy val posIntMVTyNames: Set[String] = Set(
@@ -209,9 +194,9 @@ trait ValueTypeDomainDecl { self: Self =>
       def reachableParts: Set[Part] = Set()
 
       /** bitwise operations */
-      def &(that: Elem): Elem = ??? // mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def |(that: Elem): Elem = ??? // mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def ^(that: Elem): Elem = ??? // mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def &(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def |(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def ^(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
 
       /** comparison operations */
       def =^=(that: Elem): Elem =
@@ -220,36 +205,32 @@ trait ValueTypeDomainDecl { self: Self =>
           case (One(l), One(r))            => Elem(BoolT(l == r))
           case _ if (elem ⊓ that).isBottom => Elem(FalseT)
           case _                           => boolTop
-      def ==^==(that: Elem): Elem = ??? // numericCompareOP(elem, that)
-      def <(that: Elem): Elem = ??? // numericCompareOP(elem, that)
+      def ==^==(that: Elem): Elem = numericCompareOP(elem, that)
+      def <(that: Elem): Elem = numericCompareOP(elem, that)
 
       /** logical operations */
-      def &&(that: Elem): Elem = ??? // logicalOp(_ && _)(elem, that)
-      def ||(that: Elem): Elem = ??? // logicalOp(_ || _)(elem, that)
-      def ^^(that: Elem): Elem = ??? // logicalOp(_ ^ _)(elem, that)
+      def &&(that: Elem): Elem = logicalOp(_ && _)(elem, that)
+      def ||(that: Elem): Elem = logicalOp(_ || _)(elem, that)
+      def ^^(that: Elem): Elem = logicalOp(_ ^ _)(elem, that)
 
       /** numeric operations */
       def +(that: Elem): Elem =
-        // if (that.ty.math.isPosInt) Elem(ValueTy(math = elem.ty.math match
-        //   case m if m.isBottom    => MathTy.Bot
-        //   case m if m.isNonNegInt => PosIntTy
-        //   case m if m.isInt       => IntTy
-        //   case _                  => MathTopTy,
-        // ))
-        // else numericOp(elem, that)
-        ???
-      def sub(that: Elem): Elem = ??? // numericOp(elem, that)
-      def /(that: Elem): Elem =
-        ??? // numericOp(elem, that, intPreserve = ??? // false)
-      def *(that: Elem): Elem = ??? // numericOp(elem, that)
-      def %(that: Elem): Elem = ??? // numericOp(elem, that)
-      def %%(that: Elem): Elem = ??? // numericOp(elem, that)
-      def **(that: Elem): Elem = ??? // numericOp(elem, that)
-      def <<(that: Elem): Elem =
-        ??? // mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def >>(that: Elem): Elem =
-        ??? // mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def >>>(that: Elem): Elem = ??? // mathOp(elem, that)
+        if (that.ty.math.isPosInt) Elem(ValueTy(math = elem.ty.math match
+          case m if m.isBottom    => MathTy.Bot
+          case m if m.isNonNegInt => PosIntTy
+          case m if m.isInt       => IntTy
+          case _                  => MathTopTy,
+        ))
+        else numericOp(elem, that)
+      def sub(that: Elem): Elem = numericOp(elem, that)
+      def /(that: Elem): Elem = numericOp(elem, that, intPreserve = false)
+      def *(that: Elem): Elem = numericOp(elem, that)
+      def %(that: Elem): Elem = numericOp(elem, that)
+      def %%(that: Elem): Elem = numericOp(elem, that)
+      def **(that: Elem): Elem = numericOp(elem, that)
+      def <<(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def >>(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def >>>(that: Elem): Elem = mathOp(elem, that)
 
       /** unary negation operation */
       def unary_- : Elem =
@@ -268,7 +249,7 @@ trait ValueTypeDomainDecl { self: Self =>
         Elem(ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt))
 
       /** unary logical negation operation */
-      def unary_! : Elem = ??? // logicalUnaryOp(!_)(elem)
+      def unary_! : Elem = logicalUnaryOp(!_)(elem)
 
       /** unary bitwise negation operation */
       def unary_~ : Elem =
@@ -303,40 +284,21 @@ trait ValueTypeDomainDecl { self: Self =>
 
       /** type operations */
       def typeOf(st: AbsState): Elem =
-        // val ty = elem.ty
-        // var names: Set[String] = Set()
-        // if (!ty.number.isBottom) names += "Number"
-        // if (ty.bigInt) names += "BigInt"
-        // if (!ty.str.isBottom) names += "String"
-        // if (!ty.bool.isBottom) names += "Boolean"
-        // if (ty.undef) names += "Undefined"
-        // if (ty.nullv) names += "Null"
-        // if (
-        //   ty.name.set match
-        //     case Inf      => true
-        //     case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Object"))
-        // ) names += "Object"
-        // if (
-        //   ty.name.set match
-        //     case Inf      => true
-        //     case Fin(set) => set.exists(cfg.tyModel.isSubTy(_, "Symbol"))
-        // ) names += "Symbol"
-        // if (
-        //   ty.name.set match
-        //     case Inf      => true
-        //     case Fin(set) => set.exists(!cfg.tyModel.isSubTy(_, "Object"))
-        // ) names += "SpecType"
-        // Elem(StrT(names))
-        ???
+        val ty = elem.ty
+        var names: Set[String] = Set()
+        if (!ty.number.isBottom) names += "Number"
+        if (ty.bigInt) names += "BigInt"
+        if (!ty.str.isBottom) names += "String"
+        if (!ty.bool.isBottom) names += "Boolean"
+        if (ty.undef) names += "Undefined"
+        if (ty.nullv) names += "Null"
+        if (!(ty && ObjectT).isBottom) names += "Object"
+        if (!(ty && SymbolT).isBottom) names += "Symbol"
+        if (!(ty -- ESValueT).isBottom) names += "SpecType"
+        Elem(StrT(names))
 
       /** type check */
-      def typeCheck(tname: String, st: AbsState): Elem =
-        // val names = instanceNameSet(elem.ty)
-        // if (names.isEmpty) Bot
-        // else if (names == Set(tname)) Elem(TrueT)
-        // else if (!names.contains(tname)) Elem(FalseT)
-        // else boolTop
-        ???
+      def typeCheck(ty: Ty, st: AbsState): Elem = boolTop
 
       /** helper functions for abstract transfer */
       def convertTo(cop: COp, radix: Elem): Elem =
@@ -372,14 +334,15 @@ trait ValueTypeDomainDecl { self: Self =>
       def parse(rule: Elem): Elem = rule.ty.grammarSymbol match
         case Inf => exploded("too imprecise grammarSymbol rule for parsing")
         case Fin(set) =>
-          // Elem(ValueTy(astValue = AstNameTy((for {
-          //   grammarSymbol <- set
-          //   name = grammarSymbol.name
-          // } yield name).toSet)))
-          ???
+          Elem(AstT((for {
+            grammarSymbol <- set
+            name = grammarSymbol.name
+          } yield name).toSet))
       def substring(from: Elem): Elem = strTop
       def substring(from: Elem, to: Elem): Elem = strTop
       def trim(isStarting: Boolean): Elem = strTop
+      def instanceOf(ty: Elem): Elem = boolTop
+      def sizeOf(st: AbsState): Elem = nonNegIntTop
       def clamp(lower: Elem, upper: Elem): Elem =
         val xty = elem.ty.math
         val lowerTy = lower.ty.math
@@ -394,80 +357,46 @@ trait ValueTypeDomainDecl { self: Self =>
           else MathTopTy
         Elem(ValueTy(math = mathTy))
 
-      /** completion helpers */
-      def wrapCompletion: Elem = ???
-      // val ty = elem.ty
-      // Elem(
-      //   ValueTy(
-      //     normal = ty.normal || ty.pureValue,
-      //     abrupt = ty.abrupt,
-      //   ),
-      // )
-      def unwrapCompletion: Elem = ???
-      // val ty = elem.ty
-      // Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
-      def isCompletion: Elem = ???
-      // val ty = elem.ty
-      // var bs: Set[Boolean] = Set()
-      // if (!ty.comp.isBottom) bs += true
-      // if (!ty.pureValue.isBottom) bs += false
-      // Elem(ValueTy(bool = BoolTy(bs)))
-      def normalCompletion: Elem = ???
-      // Elem(ValueTy(normal = elem.ty.pureValue))
-      def abruptCompletion: Elem = ???
-      // Elem(ValueTy(abrupt = elem.ty.abrupt))
-
-      /** uninit helpers */
-      def removeUnint: Elem = ??? // Elem(elem.ty -- UninitT)
-      def isUnint: Elem = ???
-      // var bs: Set[Boolean] = Set()
-      // if (elem.ty.uninit) bs += true
-      // if (!elem.removeUnint.ty.isBottom) bs += false
-      // Elem(BoolT(bs))
-
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem
 
       /** get lexical result */
-      def getLexical(method: String): Elem = ???
-      // Elem(
-      //   if (elem.ty.astValue.isBottom) ValueTy()
-      //   else
-      //     method match
-      //       case "SV" | "TRV" | "StringValue" => StrT
-      //       // TODO handle `list of code points` type
-      //       case "IdentifierCodePoints" => StrT
-      //       case "MV" =>
-      //         elem.ty.astValue.getNames match
-      //           case Fin(set) =>
-      //             if (set subsetOf posIntMVTyNames) PosIntT
-      //             else if (set subsetOf nonNegIntMVTyNames) NonNegIntT
-      //             else MathT
-      //           case Inf => MathT
-      //       case "NumericValue"          => NumericT
-      //       case "TV"                    => StrT // XXX ignore UndefT case
-      //       case "BodyText" | "FlagText" => StrT
-      //       case "Contains"              => BoolT
-      //       case _                       => ValueTy(),
-      // )
+      def getLexical(method: String): Elem = Elem(
+        if (elem.ty.ast.isBottom) ValueTy()
+        else
+          method match
+            case "SV" | "TRV" | "StringValue" => StrT
+            // TODO handle `list of code points` type
+            case "IdentifierCodePoints" => StrT
+            case "MV" =>
+              elem.ty.ast.names match
+                case Fin(set) =>
+                  if (set subsetOf posIntMVTyNames) PosIntT
+                  else if (set subsetOf nonNegIntMVTyNames) NonNegIntT
+                  else MathT
+                case Inf => MathT
+            case "NumericValue"          => NumericT
+            case "TV"                    => StrT // XXX ignore UndefT case
+            case "BodyText" | "FlagText" => StrT
+            case "Contains"              => BoolT
+            case _                       => ValueTy(),
+      )
 
       /** get syntactic SDO */
-      def getSdo(method: String): List[(Func, Elem)] =
-        // elem.ty.astValue match
-        //   case AstTopTy =>
-        //     for {
-        //       func <- cfg.funcs if func.isSDO
-        //       List(_, newMethod) <- allSdoPattern.unapplySeq(func.name)
-        //       if newMethod == method
-        //     } yield (func, Elem(AstT))
-        //   case AstNameTy(names) =>
-        //     for {
-        //       name <- names.toList
-        //       pair <- astSdoCache((name, method))
-        //     } yield pair
-        //   case AstSingleTy(name, idx, subIdx) =>
-        //     synSdoCache((name, idx, subIdx, method))
-        ???
+      def getSdo(method: String): List[(Func, Elem)] = elem.ty.ast match
+        case AstTy.Top =>
+          for {
+            func <- cfg.funcs if func.isSDO
+            List(_, newMethod) <- allSdoPattern.unapplySeq(func.name)
+            if newMethod == method
+          } yield (func, Elem(AstT))
+        case AstTy.Simple(names) =>
+          for {
+            name <- names.toList
+            pair <- astSdoCache((name, method))
+          } yield pair
+        case AstTy.Detail(name, idx) =>
+          synSdoCache((name, idx, method))
 
       /** getters */
       def clo: AbsClo = ty.clo match
@@ -486,7 +415,7 @@ trait ValueTypeDomainDecl { self: Self =>
             func = cfg.funcOf(node)
           } yield ACont(NodePoint(func, node, View()), Map())) // TODO captured
       def part: AbsPart = notSupported("ValueTypeDomain.Elem.part")
-      def astValue: AbsAstValue = notSupported("ValueTypeDomain.Elem.astValue")
+      def astValue: AbsAstValue = notSupported("ValueTypeDomain.Elem.ast")
       def grammarSymbol: AbsGrammarSymbol = notSupported(
         "ValueTypeDomain.Elem.grammarSymbol",
       )
@@ -509,263 +438,244 @@ trait ValueTypeDomainDecl { self: Self =>
     // -------------------------------------------------------------------------
     // private helpers
     // -------------------------------------------------------------------------
-    // // value type getter
-    // private def getValueTy(vs: Iterable[AValue]): ValueTy =
-    //   vs.foldLeft(ValueTy()) { case (vty, v) => vty || getValueTy(v) }
+    // value type getter
+    private def getValueTy(vs: Iterable[AValue]): ValueTy =
+      vs.foldLeft(ValueTy()) { case (vty, v) => vty || getValueTy(v) }
 
-    // // value type getter
-    // private def getValueTy(v: AValue): ValueTy = v match
-    //   case AComp(ENUM_NORMAL, v, _) => NormalT(getValueTy(v))
-    //   case _: AComp                 => AbruptT
-    //   case AClo(func, _)            => CloT(func.name)
-    //   case ACont(target, _)         => ContT(target.node.id)
-    //   case AstValue(ast)            => AstT(ast.name)
-    //   case grammarSymbol: GrammarSymbol                   => GrammarSymbolT(grammarSymbol)
-    //   case CodeUnit(_)              => CodeUnitT
-    //   case Enum(name)               => EnumT(name)
-    //   case Math(n)                  => MathT(n)
-    //   case Infinity(pos)            => InfinityT(pos)
-    //   case n: Number                => NumberT(n)
-    //   case BigInt(_)                => BigIntT
-    //   case Str(n)                   => StrT(n)
-    //   case Bool(true)               => TrueT
-    //   case Bool(false)              => FalseT
-    //   case Undef                    => UndefT
-    //   case Null                     => NullT
-    //   case Uninit                   => UninitT
-    //   case v => notSupported(s"impossible to convert to pure type ($v)")
+    // value type getter
+    private def getValueTy(v: AValue): ValueTy = v match
+      case AClo(func, _)                => CloT(func.name)
+      case ACont(target, _)             => ContT(target.node.id)
+      case AstValue(ast)                => AstT(ast.name)
+      case grammarSymbol: GrammarSymbol => GrammarSymbolT(grammarSymbol)
+      case CodeUnit(_)                  => CodeUnitT
+      case Enum(name)                   => EnumT(name)
+      case Math(n)                      => MathT(n)
+      case Infinity(pos)                => InfinityT(pos)
+      case n: Number                    => NumberT(n)
+      case BigInt(_)                    => BigIntT
+      case Str(n)                       => StrT(n)
+      case Bool(true)                   => TrueT
+      case Bool(false)                  => FalseT
+      case Undef                        => UndefT
+      case Null                         => NullT
+      case v => notSupported(s"impossible to convert to pure type ($v)")
 
-    // // numeric operator helper
-    // private def numericOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
-    //   mathOp(l, r, intPreserve) ⊔ numberOp(l, r, intPreserve) ⊔ bigIntOp(l, r)
+    // numeric operator helper
+    private def numericOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      mathOp(l, r, intPreserve) ⊔ numberOp(l, r, intPreserve) ⊔ bigIntOp(l, r)
 
-    // // mathematical operator helper
-    // private def mathOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
-    //   val lty = l.ty.math
-    //   val rty = r.ty.math
-    //   if (lty.isBottom || rty.isBottom) Bot
-    //   else if (intPreserve && lty.isInt && rty.isInt) intTop
-    //   else mathTop
+    // mathematical operator helper
+    private def mathOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      val lty = l.ty.math
+      val rty = r.ty.math
+      if (lty.isBottom || rty.isBottom) Bot
+      else if (intPreserve && lty.isInt && rty.isInt) intTop
+      else mathTop
 
-    // // number operator helper
-    // private def numberOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
-    //   val lty = l.ty.number
-    //   val rty = r.ty.number
-    //   if (lty.isBottom || rty.isBottom) Bot
-    //   else if (intPreserve && lty.isInt && rty.isInt) numberIntTop
-    //   else numberTop
+    // number operator helper
+    private def numberOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+      val lty = l.ty.number
+      val rty = r.ty.number
+      if (lty.isBottom || rty.isBottom) Bot
+      else if (intPreserve && lty.isInt && rty.isInt) numberIntTop
+      else numberTop
 
-    // // big integer operator helper
-    // private def bigIntOp(l: Elem, r: Elem) =
-    //   if (l.ty.bigInt && r.ty.bigInt) bigIntTop
-    //   else Bot
+    // big integer operator helper
+    private def bigIntOp(l: Elem, r: Elem) =
+      if (l.ty.bigInt && r.ty.bigInt) bigIntTop
+      else Bot
 
-    // // logical unary operator helper
-    // private def logicalUnaryOp(
-    //   op: Boolean => Boolean,
-    // ): Elem => Elem =
-    //   b => Elem(ValueTy(bool = BoolTy(for (x <- b.ty.bool.set) yield op(x))))
+    // logical unary operator helper
+    private def logicalUnaryOp(
+      op: Boolean => Boolean,
+    ): Elem => Elem =
+      b => Elem(ValueTy(bool = BoolTy(for (x <- b.ty.bool.set) yield op(x))))
 
-    // // logical operator helper
-    // private def logicalOp(
-    //   op: (Boolean, Boolean) => Boolean,
-    // ): (Elem, Elem) => Elem = (l, r) =>
-    //   Elem(ValueTy(bool = BoolTy(for {
-    //     x <- l.ty.bool.set
-    //     y <- r.ty.bool.set
-    //   } yield op(x, y))))
+    // logical operator helper
+    private def logicalOp(
+      op: (Boolean, Boolean) => Boolean,
+    ): (Elem, Elem) => Elem = (l, r) =>
+      Elem(ValueTy(bool = BoolTy(for {
+        x <- l.ty.bool.set
+        y <- r.ty.bool.set
+      } yield op(x, y))))
 
-    // // numeric comparison operator helper
-    // private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
-    //   Elem(
-    //     ValueTy(
-    //       bool = BoolTy(
-    //         if (
-    //           (
-    //             (!l.ty.math.isBottom || !l.ty.number.isBottom) &&
-    //             (!r.ty.math.isBottom || !r.ty.number.isBottom)
-    //           ) || (l.ty.bigInt && r.ty.bigInt)
-    //         ) Set(true, false)
-    //         else Set(),
-    //       ),
-    //     ),
-    //   )
+    // numeric comparison operator helper
+    private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
+      Elem(
+        ValueTy(
+          bool = BoolTy(
+            if (
+              (
+                (!l.ty.math.isBottom || !l.ty.number.isBottom) &&
+                (!r.ty.math.isBottom || !r.ty.number.isBottom)
+              ) || (l.ty.bigInt && r.ty.bigInt)
+            ) Set(true, false)
+            else Set(),
+          ),
+        ),
+      )
 
-    // /** instance name */
-    // private def instanceNameSet(ty: ValueTy): Set[String] =
-    //   var names: Set[String] = Set()
-    //   for (name <- ty.name.set)
-    //     names ++= cfg.tyModel.subTys.getOrElse(name, Set(name))
-    //     names ++= ancestors(name)
-    //   if (!ty.astValue.isBottom) ty.astValue match
-    //     case AstTopTy =>
-    //       names ++= astChildMap.keySet + "ParseNode" + "Nonterminal"
-    //     case ty: AstNonTopTy =>
-    //       val astNames = ty.toName.names
-    //       names += "ParseNode"
-    //       for (astName <- astNames)
-    //         names ++= astChildMap.getOrElse(astName, Set(astName))
-    //   names
+    /** get ancestor types */
+    private def ancestors(tname: String): Set[String] =
+      ancestorList(tname).toSet
+    private def ancestorList(tname: String): List[String] =
+      tname :: parent(tname).map(ancestorList).getOrElse(Nil)
 
-    // /** get ancestor types */
-    // private def ancestors(tname: String): Set[String] =
-    //   ancestorList(tname).toSet
-    // private def ancestorList(tname: String): List[String] =
-    //   tname :: parent(tname).map(ancestorList).getOrElse(Nil)
+    /** get parent types */
+    private def parent(name: String): Option[String] = for {
+      TyDecl(_, parent, _) <- cfg.tyModel.declMap.get(name)
+      p <- parent
+    } yield p
 
-    // /** get parent types */
-    // private def parent(name: String): Option[String] = for {
-    //   TyDecl(_, parent, _) <- cfg.tyModel.decls.get(name)
-    //   p <- parent
-    // } yield p
+    /** ast type check helper */
+    lazy val astDirectChildMap: Map[String, Set[String]] =
+      (cfg.grammar.prods.map {
+        case Production(lhs, _, _, rhsList) =>
+          val name = lhs.name
+          val subs = rhsList.collect {
+            case Rhs(_, List(Nonterminal(name, _)), _) => name
+          }.toSet
+          name -> subs
+      }).toMap
+    lazy val astChildMap: Map[String, Set[String]] =
+      var descs = Map[String, Set[String]]()
+      def aux(name: String): Set[String] = descs.get(name) match
+        case Some(set) => set
+        case None =>
+          val set = (for {
+            sub <- astDirectChildMap.getOrElse(name, Set())
+            elem <- aux(sub)
+          } yield elem) + name
+          descs += name -> set
+          set
+      cfg.grammar.prods.foreach(prod => aux(prod.name))
+      descs
 
-    // /** ast type check helper */
-    // lazy val astDirectChildMap: Map[String, Set[String]] =
-    //   (cfg.grammar.prods.map {
-    //     case Production(lhs, _, _, rhsList) =>
-    //       val name = lhs.name
-    //       val subs = rhsList.collect {
-    //         case Rhs(_, List(Nonterminal(name, _)), _) => name
-    //       }.toSet
-    //       name -> subs
-    //   }).toMap
-    // lazy val astChildMap: Map[String, Set[String]] =
-    //   var descs = Map[String, Set[String]]()
-    //   def aux(name: String): Set[String] = descs.get(name) match
-    //     case Some(set) => set
-    //     case None =>
-    //       val set = (for {
-    //         sub <- astDirectChildMap.getOrElse(name, Set())
-    //         elem <- aux(sub)
-    //       } yield elem) + name
-    //       descs += name -> set
-    //       set
-    //   cfg.grammar.prods.foreach(prod => aux(prod.name))
-    //   descs
+    /** sdo access helper */
+    private lazy val astSdoCache: ((String, String)) => List[(Func, Elem)] =
+      cached[(String, String), List[(Func, Elem)]] {
+        case (name, method) =>
+          val result = (for {
+            (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set())
+            if hint == method
+          } yield (cfg.funcMap(fid), Elem(thisTy))).toList
+          if (result.isEmpty) {
+            if (defaultSdos contains method) {
+              val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+              for {
+                (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
+              } yield (defaultFunc, Elem(AstT(name, idx)))
+            } else Nil
+          } else result
+      }
+    private lazy val synSdoCache =
+      cached[(String, Int, String), List[(Func, Elem)]] {
+        case (name, idx, method) =>
+          val result = (for {
+            (fid, thisTy, hint) <- sdoMap.getOrElse(
+              s"$name[$idx]",
+              Set(),
+            )
+            if hint == method
+          } yield (cfg.funcMap(fid), Elem(thisTy))).toList
+          if (result.isEmpty) {
+            if (defaultSdos contains method) {
+              val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+              List((defaultFunc, Elem(AstT(name, idx))))
+            } else Nil
+          } else result
+      }
 
-    // /** sdo access helper */
-    // private lazy val astSdoCache: ((String, String)) => List[(Func, Elem)] =
-    //   cached[(String, String), List[(Func, Elem)]] {
-    //     case (name, method) =>
-    //       val result = (for {
-    //         (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set())
-    //         if hint == method
-    //       } yield (cfg.funcMap(fid), Elem(thisTy))).toList
-    //       if (result.isEmpty) {
-    //         if (defaultSdos contains method) {
-    //           val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
-    //           for {
-    //             (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
-    //             subIdx <- (0 until rhs.countSubs)
-    //           } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
-    //         } else Nil
-    //       } else result
-    //   }
-    // private lazy val synSdoCache =
-    //   cached[(String, Int, Int, String), List[(Func, Elem)]] {
-    //     case (name, idx, subIdx, method) =>
-    //       val result = (for {
-    //         (fid, thisTy, hint) <- sdoMap.getOrElse(
-    //           s"$name[$idx,$subIdx]",
-    //           Set(),
-    //         )
-    //         if hint == method
-    //       } yield (cfg.funcMap(fid), Elem(thisTy))).toList
-    //       if (result.isEmpty) {
-    //         if (defaultSdos contains method) {
-    //           val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
-    //           List((defaultFunc, Elem(AstSingleT(name, idx, subIdx))))
-    //         } else Nil
-    //       } else result
-    //   }
+    /** sdo with default case */
+    val defaultSdos = List(
+      "Contains",
+      "AllPrivateIdentifiersValid",
+      "ContainsArguments",
+    )
 
-    // /** sdo with default case */
-    // val defaultSdos = List(
-    //   "Contains",
-    //   "AllPrivateIdentifiersValid",
-    //   "ContainsArguments",
-    // )
+    private lazy val allSdoPattern = """(<DEFAULT>|\w+\[\d+,\d+\])\.(\w+)""".r
+    private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
+    private lazy val sdoMap = {
+      val edges: MMap[String, MSet[String]] = MMap()
+      for {
+        prod <- cfg.grammar.prods
+        name = prod.name if !(cfg.grammar.lexicalNames contains name)
+        (rhs, idx) <- prod.rhsList.zipWithIndex
+        subIdx <- (0 until rhs.countSubs)
+      } {
+        val syntacticName = s"$name[$idx,$subIdx]"
+        edges += (syntacticName -> MSet(name))
+        rhs.getNts(subIdx) match
+          case List(Some(chain)) =>
+            if (edges contains chain) edges(chain) += syntacticName
+            else edges(chain) = MSet(syntacticName)
+          case _ =>
+      }
+      val worklist = QueueWorklist[String](List())
+      val map: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      var defaultmap: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
+      for {
+        func <- cfg.funcs if func.isSDO
+        isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
+        List(name, idxStr, subIdxStr, method) <- sdoPattern.unapplySeq(
+          func.name,
+        )
+        (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
+        key = s"$name[$idx,$subIdx]"
+      } {
+        val newInfo = (func.id, AstT(name, idx), method)
+        val isDefaultSdo = defaultSdos contains method
 
-    // private lazy val allSdoPattern = """(<DEFAULT>|\w+\[\d+,\d+\])\.(\w+)""".r
-    // private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
-    // private lazy val sdoMap = {
-    //   val edges: MMap[String, MSet[String]] = MMap()
-    //   for {
-    //     prod <- cfg.grammar.prods
-    //     name = prod.name if !(cfg.grammar.lexicalNames contains name)
-    //     (rhs, idx) <- prod.rhsList.zipWithIndex
-    //     subIdx <- (0 until rhs.countSubs)
-    //   } {
-    //     val syntacticName = s"$name[$idx,$subIdx]"
-    //     edges += (syntacticName -> MSet(name))
-    //     rhs.getGrammarSymbols(subIdx) match
-    //       case List(Some(chain)) =>
-    //         if (edges contains chain) edges(chain) += syntacticName
-    //         else edges(chain) = MSet(syntacticName)
-    //       case _ =>
-    //   }
-    //   val worklist = QueueWorklist[String](List())
-    //   val map: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-    //   var defaultmap: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-    //   for {
-    //     func <- cfg.funcs if func.isSDO
-    //     isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
-    //     List(name, idxStr, subIdxStr, method) <- sdoPattern.unapplySeq(
-    //       func.name,
-    //     )
-    //     (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
-    //     key = s"$name[$idx,$subIdx]"
-    //   } {
-    //     val newInfo = (func.id, AstSingleT(name, idx, subIdx), method)
-    //     val isDefaultSdo = defaultSdos contains method
+        // update target info
+        val targetmap = if (isDefaultSdo) defaultmap else map
+        if (targetmap contains key) targetmap(key) += newInfo
+        else targetmap(key) = MSet(newInfo)
+        if (targetmap contains name) targetmap(name) += newInfo
+        else targetmap(name) = MSet(newInfo)
+      }
 
-    //     // update target info
-    //     val targetmap = if (isDefaultSdo) defaultmap else map
-    //     if (targetmap contains key) targetmap(key) += newInfo
-    //     else targetmap(key) = MSet(newInfo)
-    //     if (targetmap contains name) targetmap(name) += newInfo
-    //     else targetmap(name) = MSet(newInfo)
+      // record original map
+      val origmap = (for { (k, set) <- map } yield k -> set.toSet).toMap
 
-    //   // record original map
-    //   val origmap = (for { (k, set) <- map } yield k -> set.toSet).toMap
+      // propagate chain productions
+      @tailrec
+      def aux(): Unit = worklist.next match
+        case Some(key) =>
+          val childInfo = map.getOrElse(key, MSet())
+          for {
+            next <- edges.getOrElse(key, MSet())
+            info = map.getOrElse(next, MSet())
+            oldmapize = info.size
 
-    //   // propagate chain productions
-    //   @tailrec
-    //   def aux(): Unit = worklist.next match
-    //     case Some(key) =>
-    //       val childInfo = map.getOrElse(key, MSet())
-    //       for {
-    //         next <- edges.getOrElse(key, MSet())
-    //         info = map.getOrElse(next, MSet())
-    //         oldmapize = info.size
+            newInfo =
+              // A[i,j] -> A
+              if (key endsWith "]") info ++ childInfo
+              // A.method -> B[i,j].method
+              // only if B[i,j].method not exists (chain production)
+              else {
+                val origInfo = origmap.getOrElse(next, Set())
+                info ++ (for {
+                  triple <- childInfo
+                  if !(origInfo.exists(_._3 == triple._3))
+                } yield triple)
+              }
 
-    //         newInfo =
-    //           // A[i,j] -> A
-    //           if (key endsWith "]") info ++ childInfo
-    //           // A.method -> B[i,j].method
-    //           // only if B[i,j].method not exists (chain production)
-    //           else {
-    //             val origInfo = origmap.getOrElse(next, Set())
-    //             info ++ (for {
-    //               triple <- childInfo
-    //               if !(origInfo.exists(_._3 == triple._3))
-    //             } yield triple)
-    //           }
+            _ = map(next) = newInfo
+            if newInfo.size > oldmapize
+          } worklist += next
+          aux()
+        case None => /* do nothing */
+      aux()
 
-    //         _ = map(next) = newInfo
-    //         if newInfo.size > oldmapize
-    //       } worklist += next
-    //       aux()
-    //     case None => /* do nothing */
-    //   aux()
-
-    //   // merge default map
-    //   (for {
-    //     key <- map.keySet ++ defaultmap.keySet
-    //     info = map.getOrElse(key, MSet())
-    //     defaultInfo = defaultmap.getOrElse(key, MSet())
-    //     finalInfo = (info ++ defaultInfo).toSet
-    //   } yield key -> finalInfo).toMap
-    // }
+      // merge default map
+      (for {
+        key <- map.keySet ++ defaultmap.keySet
+        info = map.getOrElse(key, MSet())
+        defaultInfo = defaultmap.getOrElse(key, MSet())
+        finalInfo = (info ++ defaultInfo).toSet
+      } yield key -> finalInfo).toMap
+    }
   }
 }

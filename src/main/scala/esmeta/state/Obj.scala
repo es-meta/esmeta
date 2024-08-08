@@ -118,11 +118,7 @@ object RecordObj {
   def apply(tname: String)(fs: (String, Value)*)(using CFG): RecordObj =
     apply(tname, fs)
   def apply(tname: String)(using cfg: CFG): RecordObj =
-    val obj = RecordObj(tname, MMap())
-    // TODO remove after refactoring compiler
-    for ((name, fname) <- cfg.tyModel.getMethod(tname))
-      obj.map += name -> Clo(cfg.fnameMap(fname), Map())
-    obj
+    new RecordObj(tname, MMap())
 }
 
 /** map objects */

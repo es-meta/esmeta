@@ -60,5 +60,6 @@ case class OptValueTy(
 }
 object OptValueTy extends Parser.From(Parser.optValueTy) {
   lazy val Top: OptValueTy = OptValueTy(ValueTy.Top, true)
+  lazy val Empty: OptValueTy = OptValueTy(ValueTy.Bot, true)
   lazy val Bot: OptValueTy = OptValueTy(ValueTy.Bot, false)
 }

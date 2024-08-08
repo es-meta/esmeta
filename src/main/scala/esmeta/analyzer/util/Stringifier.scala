@@ -55,6 +55,9 @@ trait StringifierDecl { self: Self =>
     // analysis points
     given apRule: Rule[AnalysisPoint] = (app, ap) =>
       given Rule[IRElem with LangEdge] = addLocRule
+      if (detail) ap match
+        case tp: TypeErrorPoint => app >> tp.node.simpleString >> " "
+        case _                  =>
       ap match
         case cp: ControlPoint => cpRule(app, cp)
         case CallPoint(callerNp, callee) =>

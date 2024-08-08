@@ -65,13 +65,13 @@ class Initialize(cfg: CFG) {
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
       NamedAddr(AGENT_RECORD) -> agent,
-      NamedAddr(AGENT_SIGNIFIER) -> RecordObj("AgentSignifier"),
+      NamedAddr(AGENT_SIGNIFIER) -> recordObj("AgentSignifier"),
       NamedAddr(CANDIDATE_EXECUTION) -> YetObj(
         "CandidateExecution",
         "AgentRecord.[[CandidateExecution]]",
       ),
       NamedAddr(KEPT_ALIVE) -> ListObj(),
-      NamedAddr(REALM) -> RecordObj("RealmRecord"),
+      NamedAddr(REALM) -> recordObj("RealmRecord"),
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
@@ -102,7 +102,7 @@ class Initialize(cfg: CFG) {
   private val intr = Intrinsics(cfg)
   private val glob = GlobalObject(cfg)
   private val sym = builtin.Symbol(cfg)
-  private val agent = RecordObj("AgentRecord")(
+  private val agent = recordObj("AgentRecord")(
     "LittleEndian" -> Bool(true),
     "CanBlock" -> Bool(true),
     "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
@@ -158,19 +158,19 @@ class Initialize(cfg: CFG) {
 
     val baseObj = map.get(baseAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("BuiltinFunctionObject")
+      case _                  => recordObj("BuiltinFunctionObject")
     val mapObj = map.get(subAddr) match
       case Some(m: MapObj) => m
       case _               => MapObj()
     val listObj = map.get(listAddr) match
       case Some(m: ListObj) => m
       case _                => ListObj()
-    val nameRecordObj = map.get(nameAddr) match
+    val namerecordObj = map.get(nameAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("PropertyDescriptor")
-    val lengthRecordObj = map.get(lengthAddr) match
+      case _                  => recordObj("PropertyDescriptor")
+    val lengthrecordObj = map.get(lengthAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("PropertyDescriptor")
+      case _                  => recordObj("PropertyDescriptor")
 
     def updateRecord(obj: RecordObj)(
       pairs: (String, Value)*,
@@ -182,15 +182,15 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
       obj
 
-    intr.obj.map += s"%$name%" -> baseAddr
+    intr.obj.map += Str(s"%$name%") -> baseAddr
 
     map += baseAddr -> updateRecord(baseObj)(
       "Extensible" -> Bool(true),
       "ScriptOrModule" -> Null,
       "Realm" -> realmAddr,
-      "Code" -> intrClo(name),
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
+      INNER_CODE -> intrClo(name),
       INNER_MAP -> subAddr,
       PRIVATE_ELEMENTS -> listAddr,
     )
@@ -202,14 +202,14 @@ class Initialize(cfg: CFG) {
 
     map += listAddr -> listObj
 
-    map += nameAddr -> updateRecord(nameRecordObj)(
+    map += nameAddr -> updateRecord(namerecordObj)(
       "Value" -> Str(defaultName),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
 
-    map += lengthAddr -> updateRecord(lengthRecordObj)(
+    map += lengthAddr -> updateRecord(lengthrecordObj)(
       "Value" -> Number(defaultLength),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),

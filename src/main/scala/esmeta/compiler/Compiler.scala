@@ -18,7 +18,6 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.ListBuffer
-import esmeta.ir.util.isPure
 
 /** compiler from metalangauge to IR */
 object Compiler:
@@ -50,6 +49,9 @@ class Compiler(
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
+
+  /** load manual compile rules */
+  val tyModel: TyModel = ManualInfo.tyModel
 
   /** load manual compile rules for expressions */
   val exprRules: Map[String, Expr] = for {
@@ -249,12 +251,15 @@ class Compiler(
           val e = expr.fold(EUndef())(compile(fb, _))
           val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
           val (y, yExpr) = fb.newTIdWithExpr
+          if (!x.isLiteral)
+            fb.addInst(
+              IIf(
+                isCompletion(x),
+                IReturn(x),
+                emptyInst,
+              ),
+            )
           fb.addInst(
-            IIf(
-              isCompletion(x),
-              IReturn(x),
-              emptyInst,
-            ),
             ICall(y, EClo("NormalCompletion", Nil), List(x)),
             IReturn(yExpr),
           )
@@ -376,7 +381,7 @@ class Compiler(
       )
     case PerformStep(expr) =>
       val e = compile(fb, expr)
-      if (!isPure(e)) fb.addInst(IExpr(e))
+      if (!e.isPure) fb.addInst(IExpr(e))
     case PerformBlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
@@ -531,13 +536,15 @@ class Compiler(
         xExpr
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
       case RecordExpression(rawName, fields) =>
-        var props = fields.map {
-          case (FieldLiteral(f), e) => f -> compile(fb, e)
-        }
         val tname = Type.normalizeName(rawName)
+        var props = (for {
+          case (name, (Some(f), false)) <- tyModel.getMethodMap(tname).toList
+        } yield name -> EClo(f, Nil)) ++ (for {
+          (FieldLiteral(f), e) <- fields
+        } yield f -> compile(fb, e))
         if (hasMap(tname)) props :+= INNER_MAP -> EMap(Nil)
         if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
-        ERecord(if (tname == "Record") "" else tname, props)
+        ERecord(if (tname == "Record") "" else tname, props.toList)
       case LengthExpression(ReferenceExpression(ref)) =>
         ESizeOf(ERef(compile(fb, ref)))
       case LengthExpression(expr) =>
@@ -599,7 +606,7 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         val Field(base, method) = compile(fb, ref)
         val (b, bExpr) =
-          if (isPure(base)) (base, ERef(base))
+          if (base.isPure) (base, ERef(base))
           else fb.newTIdWithExpr(ERef(base))
         val fexpr = ERef(Field(b, method))
         val (x, xExpr) = fb.newTIdWithExpr

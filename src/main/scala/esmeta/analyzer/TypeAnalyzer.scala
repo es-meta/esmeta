@@ -27,7 +27,6 @@ class TypeAnalyzer(
   override val replContinue: Boolean = false,
 ) extends Analyzer {
   import TypeAnalyzer.*
-  import AbsValue.{Refinements, RefinementKind}
 
   /** initialization of ECMAScript environment */
   lazy val init: Initialize = new Initialize(cfg)
@@ -83,32 +82,30 @@ class TypeAnalyzer(
   class Semantics extends AbsSemantics(getInitNpMap(targetFuncs)) {
 
     /** type analysis result string */
-    def typesString: String = ???
-    // given getRule: Rule[Iterable[Func]] = (app, funcs) =>
-    //   import TyStringifier.given
-    //   given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
-    //   app >> "-" * 80
-    //   for (func <- funcs) {
-    //     val rp = ReturnPoint(func, View())
-    //     app :> "   " >> func.headString
-    //     val fname = func.name
-    //     val entryNp = NodePoint(func, func.entry, View())
-    //     val st = this(entryNp)
-    //     val newParams =
-    //       for (p <- func.params) yield p.lhs.name -> st.get(p.lhs, entryNp).ty
-    //     app :> "-> " >> "def "
-    //     app >> func.irFunc.kind.toString >> fname >> newParams
-    //     app >> ": " >> rpMap.get(rp).fold(func.retTy.ty)(_.value.ty)
-    //     app :> "-" * 80
-    //   }
-    //   app
-    // given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
-    //   import TyStringifier.given
-    //   val (param, ty) = pair
-    //   app >> param
-    //   if (ty.uninit) app >> "?"
-    //   app >> ": " >> ty -- UninitT
-    // (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
+    def typesString: String =
+      given getRule: Rule[Iterable[Func]] = (app, funcs) =>
+        import TyStringifier.given
+        given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
+        app >> "-" * 80
+        for (func <- funcs) {
+          val rp = ReturnPoint(func, View())
+          app :> "   " >> func.headString
+          val fname = func.name
+          val entryNp = NodePoint(func, func.entry, View())
+          val st = this(entryNp)
+          val newParams =
+            for (p <- func.params) yield p.lhs.name -> st.get(p.lhs).ty
+          app :> "-> " >> "def "
+          app >> func.irFunc.kind.toString >> fname >> newParams
+          app >> ": " >> rpMap.get(rp).fold(func.retTy.ty)(_.value.ty)
+          app :> "-" * 80
+        }
+        app
+      given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
+        import TyStringifier.given
+        val (param, ty) = pair
+        app >> param >> ": " >> ty
+      (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
   }
 
   /** transfer function */
@@ -125,30 +122,22 @@ class TypeAnalyzer(
       idx: Int,
       param: Param,
       arg: AbsValue,
-    ): AbsValue = ???
-    // param.ty.ty match
-    //   case _: UnknownTy => arg
-    //   case paramTy: ValueTy =>
-    //     val argTy = arg.ty.removeUnint
-    //     if (method && idx == 0) () /* ignore `this` for method calls */
-    //     else if (config.checkParamType && !(argTy <= paramTy))
-    //       addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
-    //     AbsValue(paramTy)
+    ): AbsValue = param.ty.ty match
+      case _: UnknownTy => arg
+      case paramTy: ValueTy =>
+        val argTy = arg.ty
+        if (method && idx == 0) () /* ignore `this` for method calls */
+        else if (config.checkParamType && !(argTy <= paramTy))
+          addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
+        AbsValue(paramTy)
 
     /** callee entries */
     override def getCalleeEntries(
       callerNp: NodePoint[Call],
       locals: List[(Local, AbsValue)],
-    ): List[(View, List[(Local, AbsValue)])] =
-      // type sensitivity
-      // if (TY_SENS) tySensCalleeEntries(locals).map(list => {
-      //   val view = View(tys = list.map((_, ty) => ty.upcast))
-      //   val locals = list.map((x, ty) => x -> AbsValue(ty))
-      //   view -> locals
-      // })
-      List(View() -> (for {
-        (local, value) <- locals
-      } yield local -> AbsValue(value.ty)))
+    ): List[(View, List[(Local, AbsValue)])] = List(View() -> (for {
+      (local, value) <- locals
+    } yield local -> AbsValue(value.ty)))
 
     /** get local variables */
     override def getLocals(
@@ -174,15 +163,19 @@ class TypeAnalyzer(
       tgt: Option[NodePoint[Node]] = None,
     ): Unit =
       val CallPoint(callerNp, callee) = callPoint
-      typeGuards.get(callee.name) match
-        case Some(list) =>
-          val call = callerNp.node
-          val retTy = callee.retTy.ty
-          val xs = args.map {
-            case ERef(x: Local) => Some(x)
-            case _              => None
-          }
-          val refinements = list.foldLeft[Refinements](Map()) {
+      if (callee.retTy.isDefined) {
+        val call = callerNp.node
+        val retTy = callee.retTy.ty
+        val newRetTy = generic
+          .get(callee.name)
+          .fold(callee.retTy.ty) { case (idx, f) => f(vs(idx).ty) }
+        val xs = args.map {
+          case ERef(x: Local) => Some(x)
+          case _              => None
+        }
+        val refinements = typeGuards
+          .getOrElse(callee.name, Nil)
+          .foldLeft[Refinements](Map()) {
             case (acc, (idx, b, ty)) =>
               xs(idx) match
                 case Some(x) =>
@@ -190,14 +183,26 @@ class TypeAnalyzer(
                   acc + (b -> (m + (x -> ty)))
                 case None => acc
           }
-          for {
-            nextNode <- callerNp.node.next
-            nextNp = NodePoint(callerNp.func, nextNode, View())
-            retV = AbsValue(retTy, refinements)
-            newSt = callerSt.define(call.lhs, retV)
-          } sem += nextNp -> newSt
-        case None =>
-          super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
+        for {
+          nextNode <- callerNp.node.next
+          nextNp = NodePoint(callerNp.func, nextNode, View())
+          retV = AbsValue(newRetTy, refinements)
+          newSt = callerSt.define(call.lhs, retV)
+        } sem += nextNp -> newSt
+      }
+      super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
+
+    /** transfer function for return points */
+    override def apply(rp: ReturnPoint): Unit =
+      if (!generic.contains(rp.func.name)) super.apply(rp)
+
+    val generic: Map[String, (Int, ValueTy => ValueTy)] = Map(
+      "Completion" -> (0, (_ && CompT)),
+      "NormalCompletion" -> (0, (t => NormalT(t -- CompT))),
+      "IteratorClose" -> (1, (_ || ThrowT)),
+      "AsyncIteratorClose" -> (1, (_ || ThrowT)),
+      "__FLAT_LIST__" -> (0, (_.list.elem)),
+    )
 
     val typeGuards: Map[String, List[(Int, RefinementKind, ValueTy)]] =
       import RefinementKind.*
@@ -219,47 +224,21 @@ class TypeAnalyzer(
         ),
       )
 
-    /** TODO callee entries with type sensitivity */
-    // private def tySensCalleeEntries(
-    //   locals: List[(Local, AbsValue)],
-    // ): List[List[(Local, ValueTy)]] =
-    //   def aux(
-    //     list: List[(Local, Set[ValueTy])],
-    //   ): List[List[(Local, ValueTy)]] = list match
-    //     case Nil => List(Nil)
-    //     case (local, tys) :: rest =>
-    //       for {
-    //         locals <- aux(rest)
-    //         ty <- tys
-    //       } yield local -> ty :: locals
-    //   aux(locals.map((local, value) => local -> value.ty.flatten))
-
-    /** get return value for a return point */
-    override def getReturn(rp: ReturnPoint): AbsRet =
-      val retTy = rp.func.retTy.ty
-      if (retTy.isDefined) AbsRet(AbsValue(retTy))
-      else sem(rp)
-
     /** update return points */
     override def doReturn(
       irp: InternalReturnPoint,
-      givenRet: AbsRet,
-    ): Unit = ???
-    // val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
-    // // wrap completion by conditions specified in
-    // // [5.2.3.5 Implicit Normal Completion]
-    // // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-    // val newRet =
-    //   if (func.isReturnComp) givenRet.wrapCompletion else givenRet
-    // val givenTy = newRet.value.ty.removeUnint
-    // val expected = func.retTy.ty match
-    //   case _: UnknownTy        => newRet
-    //   case expectedTy: ValueTy =>
-    //     // return type check when it is a known type
-    //     if (config.checkReturnType && !(givenTy <= expectedTy))
-    //       addError(ReturnTypeMismatch(irp, givenTy))
-    //     AbsRet(AbsValue(expectedTy))
-    // super.doReturn(irp, expected)
+      newRet: AbsRet,
+    ): Unit =
+      val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
+      val givenTy = newRet.value.ty
+      val expected = func.retTy.ty match
+        case _: UnknownTy        => newRet
+        case expectedTy: ValueTy =>
+          // return type check when it is a known type
+          if (config.checkReturnType && !(givenTy <= expectedTy))
+            addError(ReturnTypeMismatch(irp, givenTy))
+          AbsRet(AbsValue(givenTy && expectedTy))
+      super.doReturn(irp, expected)
 
     /** transfer function for unary operators */
     override def transfer(
@@ -346,16 +325,25 @@ class TypeAnalyzer(
       // prune local variables
       case EBinary(BOp.Eq, ERef(x: Local), expr) =>
         pruneLocal(x, expr, positive)
-      // prune fields
+      // prune field equality
+      case EBinary(
+            BOp.Eq,
+            ERef(Field(x: Local, EStr("Type"))),
+            EEnum("return"),
+          ) =>
+        modify(_.update(x, AbsValue(ESValueT || EnumT("empty"))))
+      // prune field equality
       case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
         pruneField(x, field, expr, positive)
+      // prune field existence
+      case EExists(Field(x: Local, EStr(field))) =>
+        pruneExistField(x, field, positive)
       // prune types
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
         pruneType(x, expr, positive)
       // prune type checks
-      case ETypeCheck(ERef(x: Local), expr) =>
-        // TODO pruneTypeCheck(x, expr, positive)
-        ???
+      case ETypeCheck(ERef(x: Local), ty) =>
+        pruneTypeCheck(x, ty.ty, positive)
       // prune logical negation
       case EUnary(UOp.Not, e) =>
         prune(e, !positive)
@@ -385,10 +373,6 @@ class TypeAnalyzer(
       var kinds = Vector.empty[RefinementKind]
       if (prunedValue ⊑ AVT) kinds :+= RefinementKind.True
       if (prunedValue ⊑ AVF) kinds :+= RefinementKind.False
-      if (!prunedValue.normalCompletion.isBottom)
-        kinds :+= RefinementKind.Normal
-      if (!prunedValue.abruptCompletion.isBottom)
-        kinds :+= RefinementKind.Abrupt
       join(for {
         kind <- kinds
         map <- value.refinements.get(kind).toList
@@ -453,52 +437,34 @@ class TypeAnalyzer(
       field: String,
       expr: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater =
-      // TODO
-      // for {
-      //   l <- transfer(x)
-      //   lv <- transfer(l)
-      //   rv <- transfer(expr)
-      //   lty = lv.ty
-      //   rty = rv.ty
-      //   prunedV = expr match
-      //     case EUnint() if positive => lv
-      //     case EUnint() =>
-      //       val subTys = (for {
-      //         name <- lty.name.set
-      //       } yield cfg.tyModel.getSubTypes(name, field)).toList.flatten
-      //       lv ⊓ AbsValue(subTys.foldLeft(ValueTy.Bot) { _ ⊔ NameT(_) })
-      //     case _ =>
-      //       if (field == "Value")
-      //         val normal = lty.normal.prune(rty.pureValue, positive)
-      //         AbsValue(lty.copy(comp = CompTy(normal, lty.abrupt)))
-      //       else if (field == "Type")
-      //         AbsValue(rty.enumv.getSingle match
-      //           case One("normal") =>
-      //             if (positive) ValueTy(normal = lty.normal)
-      //             else ValueTy(abrupt = lty.abrupt)
-      //           case One(tname) =>
-      //             if (positive) ValueTy(abrupt = Fin(tname))
-      //             else
-      //               ValueTy(
-      //                 normal = lty.normal,
-      //                 abrupt = lty.abrupt -- Fin(tname),
-      //               )
-      //           case _ => lty,
-      //         )
-      //       else
-      //         val recordTy = lty.record
-      //         val ty = recordTy(field)
-      //         val prunedTy = if (positive) ty ⊓ rty else ty -- rty
-      //         AbsValue(lty.copied(record = recordTy match
-      //           case RecordTopTy => RecordTopTy
-      //           case RecordElemTy(map) =>
-      //             if (prunedTy.isBottom) RecordElemTy(map - field)
-      //             else RecordElemTy(map + (field -> prunedTy)),
-      //         ))
-      //   _ <- modify(_.update(l, prunedV))
-      // } yield ()
-      ???
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      lv <- transfer(l)
+      rv <- transfer(expr)
+      lty = lv.ty
+      rty = rv.ty
+      prunedTy = ValueTy(
+        ast = lty.ast,
+        record = lty.record.filter(field, rty),
+      )
+      _ <- modify(_.update(l, AbsValue(prunedTy)))
+    } yield ()
+
+    /** prune types with field existence */
+    def pruneExistField(
+      x: Local,
+      field: String,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
+      l <- transfer(x)
+      v <- transfer(l)
+      ty = v.ty
+      prunedTy = ValueTy(
+        ast = ty.ast,
+        record = if (positive) ty.record.getSubTy(field) else ty.record,
+      )
+      _ <- modify(_.update(l, AbsValue(prunedTy)))
+    } yield ()
 
     /** prune types with `typeof` constraints */
     def pruneType(
@@ -532,24 +498,14 @@ class TypeAnalyzer(
     /** prune types with type checks */
     def pruneTypeCheck(
       x: Local,
-      expr: Expr,
+      ty: Ty,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
       l <- transfer(x)
-      lv <- transfer(l)
-      rv <- transfer(expr)
-      lty = lv.ty
-      rty = rv.ty
-      prunedV = (for {
-        tname <- rv.getSingle match
-          case One(Str(s))              => Some(s)
-          case One(GrammarSymbol(n, _)) => Some(n)
-          case _                        => None
-        if cfg.tyModel.decls.contains(tname)
-      } yield {
-        if (positive) AbsValue(RecordT(tname))
-        else lv -- AbsValue(RecordT(tname))
-      }).getOrElse(lv)
+      v <- transfer(l)
+      prunedV =
+        if (positive) v ⊓ AbsValue(ty)
+        else v -- AbsValue(ty)
       _ <- modify(_.update(l, prunedV))
     } yield ()
   }
@@ -660,7 +616,8 @@ class TypeAnalyzer(
     )
     dumpFile(
       name = "detected type errors",
-      data = errors.toList.map(_.toString).sorted.mkString(LINE_SEP),
+      data =
+        errors.toList.map(_.toString(detail = true)).sorted.mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )
@@ -688,7 +645,8 @@ class TypeAnalyzer(
           .sortBy(_._1)
           .map {
             case (f, ns) =>
-              f.nameWithId + ns.map(LINE_SEP + "  " + _.name).mkString
+              f.nameWithId +
+              ns.sorted.map(LINE_SEP + "  " + _.name).mkString
           }
           .mkString(LINE_SEP),
         filename = s"$unreachableDir/nodes",

@@ -29,7 +29,7 @@ abstract class Analyzer
 
   /** analyzer elements */
   trait AnalyzerElem {
-    override def toString: String = toString(true, false, false)
+    override def toString: String = toString(false, false, false)
 
     /** stringify with options */
     def toString(

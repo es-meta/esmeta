@@ -1,11 +1,9 @@
 def <AUX>:__NEW_ERROR_OBJ__(
   proto: String,
 ): Record[OrdinaryObject] = {
-  return (record [OrdinaryObject] {
-    "Prototype" : @EXECUTION_STACK[0].Realm.Intrinsics[proto],
-    "Extensible" : true,
-    "ErrorData" : undefined,
-    "__MAP__" : (map),
-    "PrivateElements" : (list []),
-  })
+  call obj = clo<"__NEW_OBJ__">()
+  obj.Prototype = @EXECUTION_STACK[0].Realm.Intrinsics[proto]
+  obj.Extensible = true
+  obj.ErrorData = undefined
+  return obj
 }

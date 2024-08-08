@@ -2,8 +2,7 @@ def IsInTailPosition(
   call: Ast[CallExpression | MemberExpression | OptionalChain],
 ): Boolean = {
   // If the source text matched by _call_ is non-strict code, return *false*.
-  if false return false
-
+  nop
   // If _call_ is not contained within a |FunctionBody|, |ConciseBody|, or |AsyncConciseBody|, return *false*.
   // Let _body_ be the |FunctionBody|, |ConciseBody|, or |AsyncConciseBody| that most closely contains _call_.
   %0 = call

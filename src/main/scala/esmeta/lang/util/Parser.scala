@@ -1278,7 +1278,7 @@ trait Parsers extends IndentParsers {
         "constructor" |
         "ECMAScript function object" |
         "built-in function object" |
-        "Array exotic object" |
+        "Array exotic object" ^^^ "Array" |
         "arguments exotic object" |
         "String exotic object" |
         "Proxy exotic object" |
@@ -1327,6 +1327,8 @@ trait Parsers extends IndentParsers {
     "+∞" ^^^ PosInfinityT |
     "-∞" ^^^ NegInfinityT |
     "ECMAScript language value" ^^^ ESValueT |
+    "Array" ^^^ ArrayT |
+    "TypedArray" ^^^ TypedArrayT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |

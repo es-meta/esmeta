@@ -102,39 +102,17 @@ trait StateDomainDecl { self: Self =>
         vs: Iterable[AbsValue] = Nil,
       )(asite: AllocSite): (AbsValue, Elem)
 
-      // ------------------------------ TODO ------------------------------
-
       /** check contains */
       def contains(list: AbsValue, value: AbsValue): AbsValue
 
-      /** find merged parts */
-      def findMerged: Unit
-
-      /** handle calls */
-      def doCall: Elem
-      def doProcStart(fixed: Set[Part]): Elem
-
       /** handle returns (elem: return states / to: caller states) */
-      def doReturn(to: Elem, defs: (Local, AbsValue)*): Elem =
-        doReturn(to, defs)
-      def doReturn(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
-      def doProcEnd(to: Elem, defs: (Local, AbsValue)*): Elem
-      def doProcEnd(to: Elem, defs: Iterable[(Local, AbsValue)]): Elem
-      def garbageCollected: Elem
-
-      /** get reachable address partitions */
-      def reachableParts: Set[Part]
-
-      /** singleton checks */
-      def isSingle: Boolean
+      def doReturn(to: Elem, lhs: Local, value: AbsValue): Elem
 
       /** singleton address partition checks */
       def isSingle(part: Part): Boolean
 
-      /** copy */
-      def copied(
-        locals: Map[Local, AbsValue] = Map(),
-      ): Elem
+      /** set local environments */
+      def setLocal(locals: Map[Local, AbsValue]): Elem
 
       /** conversion to string */
       def getString(detail: Boolean): String
@@ -147,6 +125,20 @@ trait StateDomainDecl { self: Self =>
       def locals: Map[Local, AbsValue]
       def globals: Map[Global, AbsValue]
       def heap: AbsHeap
+
+      // -----------------------------------------------------------------------
+      // Helpers for Debugging
+      // -----------------------------------------------------------------------
+
+      /** find merged parts */
+      def findMerged: Unit
+
+      /** get reachable address partitions */
+      def reachableParts: Set[Part]
+
+      // -----------------------------------------------------------------------
+      // Helpers for Bottom Check
+      // -----------------------------------------------------------------------
 
       /** check bottom elements in abstract semantics */
       protected def bottomCheck[A](dom: Domain[A])(

@@ -36,7 +36,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ty: TyDecl.Elem): Unit =
     import TyDecl.Elem.*
     ty match
-      case Method(name, optional, target) =>
+      case AbsMethod(name) =>
+        walk(name)
+      case ConMethod(name, optional, target) =>
         walk(name); walk(optional); walkOpt(target, walk)
       case Field(name, optional, typeStr) =>
         walk(name); walk(optional); walk(typeStr)
