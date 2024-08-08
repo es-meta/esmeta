@@ -149,7 +149,7 @@ trait Parsers extends TyParsers {
     } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
     } | "clo<" ~> fname ~ opt(
-      "," ~ "[" ~> repsep(name ~ opt("=" ~> expr), ",") <~ "]",
+      "," ~ "{" ~> repsep(name ~ opt(":" ~> expr), ",") <~ "}",
     ) <~ ">" ^^ {
       case s ~ cs =>
         EClo(

@@ -178,7 +178,8 @@ class JsonTinyTest extends IRTest {
       normal -> "~normal~",
       empty -> "~empty~",
       clo -> "clo<f>",
-      cloWithCaptured -> "clo<f, [x]>",
+      cloWithCaptured -> "clo<f, {x}>",
+      cloWithCapturedComplex -> "clo<f, {x : (+ y 1)}>",
       cont -> "cont<g>",
     )
 
