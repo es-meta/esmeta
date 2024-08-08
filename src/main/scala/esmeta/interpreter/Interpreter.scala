@@ -224,7 +224,7 @@ class Interpreter(
       Interpreter.eval(vop, vs)
     case EMathOp(mop, exprs) =>
       val vs = for (e <- exprs) yield eval(e)
-      Interpreter.eval(mop, st, vs)
+      Interpreter.eval(mop, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (eval(expr), cop) match {
@@ -588,7 +588,7 @@ object Interpreter {
         vopEval(toString, _ + _, Str(_), vs)
 
   /** transition for mathematical operators */
-  def eval(mop: MOp, st: State, vs: List[Value]): Value =
+  def eval(mop: MOp, vs: List[Value]): Value =
     import math.*
     (mop, vs) match
       case (MOp.Expm1, List(Math(x))) => Math(expm1(x.toDouble))

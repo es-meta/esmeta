@@ -74,9 +74,31 @@ class PartialEvaluator(
             val newExpr = EBinary(bop, pleft.asValidExpr, pright.asValidExpr)
             PValue(ValueTopTy, newExpr)
 
-      case EVariadic(vop, es) => PValue(ValueTopTy, expr)
-      case EMathOp(mop, args) => PValue(ValueTopTy, expr)
-      case EConvert(cop, e)   => PValue(ValueTopTy, expr)
+      case EVariadic(vop, es) =>
+        val pvs = es.map(peval)
+        (pvs.forall(_.knownValue.isDefined)) match
+          case true =>
+            val v = Interpreter.eval(vop, pvs.map(_.knownValue.get))
+            v.toPValue
+          case false =>
+            PValue(
+              pvs.map(_.ty).fold(BotT)((t, u) => t ⊔ u),
+              EVariadic(vop, pvs.map(_.asValidExpr)),
+            )
+
+      case EMathOp(mop, es) =>
+        val pvs = es.map(peval)
+        (pvs.forall(_.knownValue.isDefined)) match
+          case true =>
+            val v = Interpreter.eval(mop, pvs.map(_.knownValue.get))
+            v.toPValue
+          case false =>
+            PValue(
+              pvs.map(_.ty).fold(BotT)((t, u) => t ⊔ u),
+              EMathOp(mop, pvs.map(_.asValidExpr)),
+            )
+
+      case EConvert(cop, e) => PValue(ValueTopTy, expr)
 
       case EExists(ref) => PValue(BoolT, expr)
       case ETypeOf(base) =>
