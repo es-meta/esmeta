@@ -28,11 +28,13 @@ case object IRPeval extends Phase[Unit, Unit] {
         "the out option (-ir-peval:out) with is not allowed.",
       )
 
-    run(config, getFirstFilename(cmdConfig, this.name))
+    run(cmdConfig, config, getFirstFilename(cmdConfig, this.name))
 
-  def run(config: Config, filename: String): Unit =
+  def run(cmdConfig: CommandConfig, config: Config, filename: String): Unit =
+    val prog = Program.fromFile(filename)
     val pevaled = PartialEvaluator(
-      Program.fromFile(filename),
+      BuildCFG(prog, cmdConfig, BuildCFG.defaultConfig),
+      prog,
       log = config.log,
       simplify = config.simplify,
     )

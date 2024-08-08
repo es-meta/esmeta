@@ -52,27 +52,7 @@ case class PHeap(
     allocList(
       apply(addr)
         .keys(intSorted)
-        .map((v) => {
-          v match
-            case NamedAddr(name)                 => ???
-            case DynamicAddr(long)               => ???
-            case Clo(func, captured)             => ???
-            case Cont(func, captured, callStack) => ???
-            case AstValue(ast)                   => ???
-            case GrammarSymbol(name, params) =>
-              PValue.V(v, EGrammarSymbol(name, params))
-            case Math(decimal)  => PValue.V(v, EMath(decimal))
-            case Infinity(pos)  => PValue.V(v, EInfinity(pos))
-            case Enum(name)     => PValue.V(v, EEnum(name))
-            case CodeUnit(c)    => PValue.V(v, ECodeUnit(c))
-            case Number(double) => PValue.V(v, ENumber(double))
-            case BigInt(bigInt) => PValue.V(v, EBigInt(bigInt))
-            case Str(str)       => PValue.V(v, EStr(str))
-            case Bool(bool)     => PValue.V(v, EBool(bool))
-            case Undef          => PValue.V(v, EUndef())
-            case Null           => PValue.V(v, ENull())
-
-        }),
+        .map(_.toPValue),
     )
 
   /** record allocations */

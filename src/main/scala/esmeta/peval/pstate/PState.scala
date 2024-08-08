@@ -1,5 +1,6 @@
 package esmeta.peval.pstate
 
+import esmeta.cfg.CFG
 import esmeta.error.*
 import esmeta.ir.{Expr, Field, Func, Global, Local, Name, Ref, Temp, Var}
 import esmeta.peval.domain.*
@@ -90,6 +91,31 @@ case class PState private (
   /** delete a key from an map object */
   def delete(base: Value, key: Value): Unit =
     ??? //  heap.delete(base.asAddr, key)
+
+  /** push a value to a list */
+  def push(addr: Addr, value: PValue, front: Boolean): Unit =
+    heap.push(addr, value, front)
+
+  /** pop a value from a list */
+  def pop(addr: Addr, front: Boolean): PValue = heap.pop(addr, front)
+
+  /** copy object */
+  def copy(addr: Addr): Addr = heap.copy(addr)
+
+  /** get keys of a record/map object as a list */
+  def keys(addr: Addr, intSorted: Boolean): Addr = heap.keys(addr, intSorted)
+
+  /** allocate a record object */
+  def allocRecord(
+    tname: String,
+    pairs: Iterable[(String, PValue)] = Nil,
+  )(using CFG): Addr = heap.allocRecord(tname, pairs)
+
+  /** allocate a map object */
+  def allocMap(pairs: Iterable[(Value, PValue)]): Addr = heap.allocMap(pairs)
+
+  /** allocate a list object */
+  def allocList(vs: Iterable[PValue]): Addr = heap.allocList(vs)
 
 }
 
