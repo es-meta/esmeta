@@ -412,9 +412,13 @@ trait AbsTransferDecl { self: Analyzer =>
           cfg.fnameMap.get(fname) match {
             case Some(f) =>
               for {
-                st <- get
-                captured = cap.map(x => x -> st.lookupLocal(x)).toMap
-              } yield AbsValue(AClo(f, captured))
+                captured <- join(cap.map {
+                  case (x, e) =>
+                    for {
+                      v <- transfer(e)
+                    } yield (x, v)
+                })
+              } yield AbsValue(AClo(f, captured.toMap))
             case None =>
               for { _ <- put(AbsState.Bot) } yield AbsValue.Bot
           }

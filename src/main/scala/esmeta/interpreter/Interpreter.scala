@@ -345,7 +345,7 @@ class Interpreter(
       )
     case EClo(fname, captured) =>
       val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
-      Clo(func, Map.from(captured.map(x => x -> st(x))))
+      Clo(func, Map.from(captured.map { (x, e) => x -> eval(e) }))
     case ECont(fname) =>
       val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }

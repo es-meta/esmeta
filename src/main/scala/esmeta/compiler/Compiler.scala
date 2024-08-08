@@ -676,7 +676,10 @@ class Compiler(
           body = body,
           prefix = prefix,
         )
-        EClo(cn, captured.map(compile))
+        EClo(
+          cn,
+          captured.map(x => { val n = compile(x); (n, ERef(n)) }),
+        )
       case XRefExpression(XRefExpressionOperator.Algo, id) =>
         EClo(spec.getAlgoById(id).head.fname, Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>

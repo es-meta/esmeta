@@ -166,7 +166,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
         app >> "clo<" >> fname
-        if (!captured.isEmpty) app >> ", " >> captured
+        if (!captured.isEmpty) then
+          app >> ", "
+          app.wrap("[", "]")(for {
+            (name, expr) <- captured
+          } app >> name >> " = " >> expr >> ",")
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> fname >> ">"
