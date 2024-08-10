@@ -222,6 +222,12 @@ class TypeAnalyzer(
         "NewPromiseCapability" -> List(
           (0, Normal, RecordT("Constructor")),
         ),
+        "IsPropertyReference" -> List(
+          (0, True, RecordT("ReferenceRecord", Map("Base" -> ESValueT))),
+        ),
+        "IsSuperReference" -> List(
+          (0, True, RecordT("SupreReferenceRecord")),
+        ),
       )
 
     /** update return points */
@@ -239,6 +245,18 @@ class TypeAnalyzer(
             addError(ReturnTypeMismatch(irp, givenTy))
           AbsRet(AbsValue(givenTy && expectedTy))
       super.doReturn(irp, expected)
+
+    /** transfer function for normal instructions */
+    override def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater =
+      inst match
+        case IAssign(Field(x: Var, EStr(f)), expr) =>
+          for {
+            v <- transfer(expr)
+            ty <- get(_.get(x).ty)
+            record = ty.record.update(f, v.ty)
+            _ <- modify(_.update(x, AbsValue(ty.copied(record = record))))
+          } yield ()
+        case _ => super.transfer(inst)
 
     /** transfer function for unary operators */
     override def transfer(
@@ -445,7 +463,7 @@ class TypeAnalyzer(
       rty = rv.ty
       prunedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.filter(field, rty),
+        record = lty.record.filter(field, OptValueTy(rty)),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -461,7 +479,9 @@ class TypeAnalyzer(
       ty = v.ty
       prunedTy = ValueTy(
         ast = ty.ast,
-        record = if (positive) ty.record.getSubTy(field) else ty.record,
+        record =
+          if (positive) ty.record.filter(field, OptValueTy.Exist)
+          else ty.record,
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()

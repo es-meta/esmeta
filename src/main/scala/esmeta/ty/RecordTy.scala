@@ -29,7 +29,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       case (Elem(lmap), Elem(rmap)) =>
         lmap.forall { (l, lfm) =>
           rmap.exists { (r, rfm) =>
-            isStrictSubTy(l, r) || (l == r && lfm <= rfm)
+            isSubTy(l, lfm, r, rfm)
           }
         }
   }
@@ -71,7 +71,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lmap.getOrElse(t, FieldMap.Top) &&
           rmap.getOrElse(t, FieldMap.Top)
         }
-      } yield t -> fm).toMap)
+        pair <- normalize(t -> fm)
+      } yield pair).toMap)
 
   /** prune type */
   def --(that: => RecordTy): RecordTy = (this, that) match
@@ -109,6 +110,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Top       => MayAnyT
     case Elem(map) => map.get(name).fold(MustBotT)(getField(name, f) && _(f))
 
+  /** field update */
+  def update(field: String, ty: ValueTy): RecordTy = this match
+    case Top       => Top
+    case Elem(map) => Elem(map.map { _ -> _.update(field, ty) })
+
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
     case Top => true
@@ -123,35 +129,18 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         } yield fm && rfm).exists(_.contains(record, heap))
       }
 
-  /** get subtypes having the given field */
-  def getSubTy(f: String): RecordTy = names match
-    case Inf => Top
-    case Fin(names) =>
-      Elem((for {
-        name <- names.toList
-        sub <- getSubTysWithField(name, f)
-      } yield sub -> FieldMap.Top).toMap)
-
   /** filter with possible field types */
-  def filter(field: String, ty: ValueTy): RecordTy = this match
+  def filter(field: String, ty: OptValueTy): RecordTy = this match
     case Top => Top
     case Elem(map) =>
       Elem(map.filter {
-        case (name, _) => !(apply(name, field).value && ty).isBottom
-      })
-
-  /** normalized type */
-  def normalized: RecordTy = this match
-    case Top => Top
-    case Elem(map) =>
-      Elem(map.filter { (l, lfm) =>
-        !map.exists { (r, rfm) =>
-          l != r && (isStrictSubTy(l, r) || (l == r && lfm <= rfm))
-        }
+        case (name, _) => !(apply(name, field) && ty).isBottom
       })
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
+  import ManualInfo.tyModel.*
+
   lazy val Bot: RecordTy = Elem(Map.empty)
 
   def apply(names: String*): RecordTy =
@@ -164,4 +153,15 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
     Elem(map)
+
+  /** normalized type */
+  def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =
+    val (l, lfm @ FieldMap(lm)) = pair
+    val pairs = for {
+      r <- getDirectSubTys(l).toList
+      dfm <- getDiffFieldMap(r, l)
+      if lfm <= dfm
+    } yield r -> lfm.filter(!dfm.map.contains(_))
+    if (pairs.isEmpty) Map(l -> lfm)
+    else pairs.toMap
 }

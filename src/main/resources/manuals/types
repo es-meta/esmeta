@@ -47,6 +47,12 @@ type ReferenceRecord {
   ThisValue: ESValue | Enum[~empty~];
 }
 
+// https://tc39.es/ecma262/#super-reference-record
+type SuperReferenceRecord extends ReferenceRecord {
+  Base: ESValue | Enum[~unresolvable~];
+  ThisValue: ESValue;
+}
+
 // https://tc39.es/ecma262/#sec-private-names
 type PrivateName {
   Description: String;
@@ -224,6 +230,8 @@ type Object {
   abstract def Set;
   abstract def Delete;
   abstract def OwnPropertyKeys;
+  Prototype?: Record[Object] | Null;
+  Extensible?: Boolean;
   PrivateElements: List[Record[PrivateElement]];
   __MAP__: Map[Record[Symbol] | String -> Record[PropertyDescriptor]];
 }
@@ -286,7 +294,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
 }
 
 // https://tc39.es/ecma262/2024/#sec-bound-function-exotic-objects
-type BoundFunctionExoticObject extends Constructor {
+type BoundFunctionExoticObject extends Object {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -370,6 +378,7 @@ type TypedArray extends Object {
   ByteOffset: NonNegInt;
   ContentType: Enum[~bigint~, ~number~];
   TypedArrayName: String;
+  ByteLength: NonNegInt | Enum[~auto~];
 }
 
 // https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
@@ -405,7 +414,7 @@ type ImmutablePrototypeExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
-type ProxyExoticObject extends Constructor {
+type ProxyExoticObject extends Object {
   def GetPrototypeOf;
   def SetPrototypeOf;
   def IsExtensible;
@@ -570,7 +579,7 @@ type GraphLoadingStateRecord {
   PromiseCapability: Record[PromiseCapabilityRecord];
   IsLoading: Boolean;
   PendingModulesCount: NonNegInt;
-  Visited: List[CyclicModuleRecord];
+  Visited: List[Record[CyclicModuleRecord]];
   HostDefined: Enum[~empty~];
 }
 

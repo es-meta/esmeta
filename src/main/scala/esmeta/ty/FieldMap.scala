@@ -40,8 +40,16 @@ case class FieldMap(map: Map[String, OptValueTy] = Map())
   /** prune type */
   def --(that: => FieldMap): FieldMap = this
 
+  /** filter fields */
+  def filter(pred: String => Boolean): FieldMap =
+    FieldMap(map.filter { case (field, _) => pred(field) })
+
   /** field accessor */
   def apply(field: String): OptValueTy = map.getOrElse(field, OptValueTy.Top)
+
+  /** field update */
+  def update(field: String, ty: ValueTy): FieldMap =
+    FieldMap(map + (field -> OptValueTy(ty, false)))
 
   /** fields */
   def fields: Set[String] = map.keySet

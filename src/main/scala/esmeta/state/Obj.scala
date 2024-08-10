@@ -26,9 +26,8 @@ sealed trait Obj extends StateElem {
 
   /** setter */
   def update(field: Value, value: Value): Unit = (this, field) match
-    case (r: RecordObj, Str(field)) => // TODO if r.map.contains(field) =>
-      r.map += field -> value
-    case (m: MapObj, key) => m.map += key -> value
+    case (r: RecordObj, Str(field)) => r.map += field -> value
+    case (m: MapObj, key)           => m.map += key -> value
     case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
       val i = decimal.toInt
       val vs = l.values

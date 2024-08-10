@@ -16,9 +16,13 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   type MethodMap = Map[String, (Option[String], Boolean)]
 
+  val getUpperMethodMap: String => MethodMap = cached { tname =>
+    getParent(tname).fold(Map())(getUpperMethodMap) ++
+    getMethodMap(tname)
+  }
+
   /** get method map */
   val getMethodMap: String => MethodMap = cached { tname =>
-    getParent(tname).fold(Map())(getMethodMap) ++
     declMap
       .get(tname)
       .fold(Map())(_.elems.collect {
@@ -28,15 +32,28 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       }.toMap)
   }
 
+  /** all possible methods of a base type */
+  val getBaseMethods: String => Map[String, Set[String]] = cached {
+    case tname =>
+      val base = getBase(tname)
+      val pairs = for {
+        x <- getStrictSubTys(base) + base
+        case (field, (Some(name), _)) <- getMethodMap(x)
+      } yield field -> name
+      pairs.groupMap(_._1)(_._2)
+  }
+
   /** get all methods as field map */
   val getMethods: String => FieldMap = cached { tname =>
-    val base = getMethodMap(tname).map {
-      case (field, (name, opt)) => field -> OptValueTy(CloT(name.toSet), opt)
+    val methods = getBaseMethods(tname)
+    val map = getMethodMap(tname).map {
+      case (field, (Some(name), opt)) => field -> OptValueTy(CloT(name), opt)
+      case (field, (None, opt)) =>
+        field -> OptValueTy(CloT(methods.getOrElse(field, Set())), opt)
     }
-    FieldMap(getDirectSubTys(tname).foldLeft(base) { (acc, sub) =>
+    FieldMap(getDirectSubTys(tname).foldLeft(map) { (acc, sub) =>
       getMethods(sub).map.foldLeft(acc) {
-        case (acc, (x, v)) =>
-          acc + (x -> (acc.getOrElse(x, OptValueTy.Empty) || v))
+        case (acc, (x, r)) => acc.get(x).fold(acc)(l => acc + (x -> (l || r)))
       }
     })
   }
@@ -54,6 +71,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     )
   }
 
+  /** get all field type map */
   val getAllFieldMap: String => FieldMap = cached { tname =>
     FieldMap(
       getParent(tname).fold(Map())(getAllFieldMap(_).map) ++
@@ -66,7 +84,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     cached { (l, r) =>
       if (l == r) Some(FieldMap.Top)
       else if (isStrictSubTy(l, r))
-        val upper = getDiffFieldMap(getParent(l).get, r).get.map
+        val parent = getParent(l).get
+        val upper = getDiffFieldMap(parent, r).get.map
         Some(FieldMap(upper ++ getFieldMap(l).map))
       else None
     }
@@ -93,6 +112,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   /** get base type name */
   val getBase: String => String = cached(getAncestors(_).last)
 
+  /** check if a type is a base type */
+  val isBase: String => Boolean = cached(x => getBase(x) == x)
+
   /** get ancestor types */
   val getAncestors: String => List[String] = cached { tname =>
     tname :: (for {
@@ -112,6 +134,15 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     ls.forall(isStrictSubTy(_, rs))
 
   /** check if a type is a subtype of another */
+  def isSubTy(
+    l: String,
+    lfm: FieldMap,
+    r: String,
+    rfm: FieldMap,
+  ): Boolean = (for {
+    lca <- getLCA(l, r)
+    fm <- getDiffFieldMap(r, lca)
+  } yield lfm <= (fm && rfm)).getOrElse(false)
   def isSubTy(l: String, r: String): Boolean =
     l == r || isStrictSubTy(l, r)
   def isSubTy(l: String, rs: Set[String]): Boolean =

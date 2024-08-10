@@ -7,7 +7,7 @@ import esmeta.ty.util.Parser
 /** optinoal value types */
 case class OptValueTy(
   value: ValueTy,
-  optional: Boolean,
+  optional: Boolean = false,
 ) extends TyElem
   with Lattice[OptValueTy] {
 
@@ -61,5 +61,6 @@ case class OptValueTy(
 object OptValueTy extends Parser.From(Parser.optValueTy) {
   lazy val Top: OptValueTy = OptValueTy(ValueTy.Top, true)
   lazy val Empty: OptValueTy = OptValueTy(ValueTy.Bot, true)
+  lazy val Exist: OptValueTy = OptValueTy(ValueTy.Top, false)
   lazy val Bot: OptValueTy = OptValueTy(ValueTy.Bot, false)
 }
