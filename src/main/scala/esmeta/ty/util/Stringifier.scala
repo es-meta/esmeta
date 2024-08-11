@@ -13,20 +13,20 @@ object Stringifier {
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
-      case elem: TyModel     => tyModelRule(app, elem)
-      case elem: TyDecl      => tyDeclRule(app, elem)
-      case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
-      case elem: FieldMap    => fieldMapRule(app, elem)
-      case elem: OptValueTy  => optValueTyRule(app, elem)
-      case elem: Ty          => tyRule(app, elem)
-      case elem: RecordTy    => recordTyRule(app, elem)
-      case elem: ListTy      => listTyRule(app, elem)
-      case elem: AstTy       => astTyRule(app, elem)
-      case elem: MapTy       => mapTyRule(app, elem)
-      case elem: MathTy      => mathTyRule(app, elem)
-      case elem: InfinityTy  => infinityTyRule(app, elem)
-      case elem: NumberTy    => numberTyRule(app, elem)
-      case elem: BoolTy      => boolTyRule(app, elem)
+      case elem: TyModel       => tyModelRule(app, elem)
+      case elem: TyDecl        => tyDeclRule(app, elem)
+      case elem: TyDecl.Elem   => tyDeclElemRule(app, elem)
+      case elem: FieldMap      => fieldMapRule(app, elem)
+      case elem: FieldMap.Elem => fieldMapElemRule(app, elem)
+      case elem: Ty            => tyRule(app, elem)
+      case elem: RecordTy      => recordTyRule(app, elem)
+      case elem: ListTy        => listTyRule(app, elem)
+      case elem: AstTy         => astTyRule(app, elem)
+      case elem: MapTy         => mapTyRule(app, elem)
+      case elem: MathTy        => mathTyRule(app, elem)
+      case elem: InfinityTy    => infinityTyRule(app, elem)
+      case elem: NumberTy      => numberTyRule(app, elem)
+      case elem: BoolTy        => boolTyRule(app, elem)
 
   /** type models */
   given tyModelRule: Rule[TyModel] = (app, model) =>
@@ -58,26 +58,27 @@ object Stringifier {
         if (optional) app >> "?"
         app >> " : " >> typeStr
 
-  /** field map */
+  /** field type map */
   given fieldMapRule: Rule[FieldMap] = (app, fieldMap) =>
     val FieldMap(map) = fieldMap
-    given Rule[(String, OptValueTy)] = {
-      case (app, (field, OptValueTy(ty, opt))) =>
+    given Rule[(String, FieldMap.Elem)] = {
+      case (app, (field, elem)) =>
         app >> field
-        if (opt) app >> "?"
-        if (!ty.isTop) app >> " : " >> ty
+        if (elem != FieldMap.Elem.Init) app >> " : " >> elem
         app
     }
-    given Rule[List[(String, OptValueTy)]] = iterableRule("{ ", ", ", " }")
+    given Rule[List[(String, FieldMap.Elem)]] = iterableRule("{ ", ", ", " }")
     if (map.isEmpty) app >> "{}"
     else app >> map.toList.sortBy(_._1)
 
-  /** optional value types */
-  given optValueTyRule: Rule[OptValueTy] = (app, ty) =>
-    val OptValueTy(value, optional) = ty
+  /** field type map element */
+  given fieldMapElemRule: Rule[FieldMap.Elem] = (app, ty) =>
+    val FieldMap.Elem(value, uninit, absent) = ty
+    var tags = ""
+    if (uninit) tags += "U"
+    if (absent) tags += "A"
+    if (tags.nonEmpty) app >> "[" >> tags >> "] "
     app >> value
-    if (optional) app >> "?"
-    app
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>

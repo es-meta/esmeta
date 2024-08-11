@@ -21,9 +21,6 @@ trait Parsers extends BasicParsers {
   given tyDecl: Parser[TyDecl] = {
     lazy val extend = "extends " ~> ident
     lazy val tyStr = "[^;]+".r ^^ { _.trim }
-    lazy val field = word ~ opt(":" ~> tyStr) <~ ";" ^^ {
-      case k ~ v => (k, v.getOrElse("Any"))
-    }
     "type " ~> ident ~ opt(extend) ~
     opt("{" ~> rep(tyDeclElem <~ ";") <~ "}") ^^ {
       case x ~ p ~ es => TyDecl(x, p, es.getOrElse(Nil))
@@ -43,15 +40,23 @@ trait Parsers extends BasicParsers {
     }
   }.named("ty.TyDecl.Elem")
 
-  // field map
+  // field type map
   given fieldMap: Parser[FieldMap] = {
-    "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { case ts => FieldMap(ts.toMap) }
+    lazy val field = word ~ opt(":" ~> fieldMapElem) ^^ {
+      case f ~ v => f -> v.getOrElse(FieldMap.Elem.Init)
+    }
+    "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { ts => FieldMap(ts.toMap) }
   }.named("ty.FieldMap")
 
-  // optional value types
-  given optValueTy: Parser[OptValueTy] = {
-    valueTy ~ opt("?") ^^ { case v ~ o => OptValueTy(v, o.isDefined) }
-  }.named("ty.OptValueTy")
+  // field type map element
+  given fieldMapElem: Parser[FieldMap.Elem] = {
+    val uninit = "U" ^^^ true | "" ^^^ false
+    val absent = "A" ^^^ true | "" ^^^ false
+    opt("[" ~> uninit ~ absent <~ "]") ~ valueTy ^^ {
+      case None ~ v        => FieldMap.Elem(v, false, false)
+      case Some(u ~ a) ~ v => FieldMap.Elem(v, u, a)
+    }
+  }.named("ty.FieldMap.Elem")
 
   // types
   given ty: Parser[Ty] = {
@@ -215,11 +220,6 @@ trait Parsers extends BasicParsers {
     "Boolean" ^^^ BoolTy(Set(false, true)) |
     "True" ^^^ BoolTy(Set(true)) |
     "False" ^^^ BoolTy(Set(false))
-
-  private lazy val field: Parser[(String, OptValueTy)] =
-    word ~ opt("?") ~ opt(":" ~> valueTy) ^^ {
-      case k ~ o ~ v => (k, OptValueTy(v.getOrElse(AnyT), o.isDefined))
-    }
 
   /** list types */
   given listTy: Parser[ListTy] = {

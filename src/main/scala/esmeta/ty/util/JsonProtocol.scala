@@ -35,4 +35,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[TyDecl.Elem] = encoderWithStringifier(stringify)
   given Decoder[FieldMap] = decoderWithParser(FieldMap.from)
   given Encoder[FieldMap] = encoderWithStringifier(stringify)
+  given fmeDec: Decoder[FieldMap.Elem] = decoderWithParser(FieldMap.Elem.from)
+  given fmeEnc: Encoder[FieldMap.Elem] = encoderWithStringifier(stringify)
 }

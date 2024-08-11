@@ -463,7 +463,7 @@ class TypeAnalyzer(
       rty = rv.ty
       prunedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.filter(field, OptValueTy(rty)),
+        record = lty.record.filter(field, FieldMap.Elem(rty, false, false)),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -480,7 +480,7 @@ class TypeAnalyzer(
       prunedTy = ValueTy(
         ast = ty.ast,
         record =
-          if (positive) ty.record.filter(field, OptValueTy.Exist)
+          if (positive) ty.record.filter(field, FieldMap.Elem.Exist)
           else ty.record,
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))

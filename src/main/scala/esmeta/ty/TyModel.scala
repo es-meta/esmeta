@@ -47,9 +47,14 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   val getMethods: String => FieldMap = cached { tname =>
     val methods = getBaseMethods(tname)
     val map = getMethodMap(tname).map {
-      case (field, (Some(name), opt)) => field -> OptValueTy(CloT(name), opt)
+      case (field, (Some(name), opt)) =>
+        field -> FieldMap.Elem(CloT(name), false, opt)
       case (field, (None, opt)) =>
-        field -> OptValueTy(CloT(methods.getOrElse(field, Set())), opt)
+        field -> FieldMap.Elem(
+          CloT(methods.getOrElse(field, Set())),
+          false,
+          opt,
+        )
     }
     FieldMap(getDirectSubTys(tname).foldLeft(map) { (acc, sub) =>
       getMethods(sub).map.foldLeft(acc) {
@@ -65,7 +70,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
         .get(tname)
         .fold(Map())(_.elems.collect {
           case Field(name, optional, typeStr) =>
-            name -> OptValueTy(ValueTy.from(typeStr), optional)
+            name -> FieldMap.Elem(ValueTy.from(typeStr), false, optional)
         })
         .toMap,
     )
@@ -91,7 +96,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     }
 
   /** get field type */
-  def getField(tname: String, f: String): OptValueTy = getAllFieldMap(tname)(f)
+  def getField(tname: String, f: String): FieldMap.Elem =
+    getAllFieldMap(tname)(f)
 
   /** get least common ancestor */
   val getLCA: ((String, String)) => Option[String] = cached { (l, r) =>

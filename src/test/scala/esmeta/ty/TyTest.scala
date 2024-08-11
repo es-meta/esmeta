@@ -30,9 +30,18 @@ trait TyTest extends ESMetaTest {
 
   // field type map
   val fieldMap0 = FieldMap(Map())
-  val fieldMap1 = FieldMap(Map("p" -> Must(AnyT)))
-  val fieldMap2 = FieldMap(Map("p" -> Must(AnyT), "q" -> Must(BoolT)))
+  val fieldMap1 = FieldMap(Map("p" -> FieldMap.Elem(AnyT, false, false)))
+  val fieldMap2 = FieldMap(
+    Map(
+      "p" -> FieldMap.Elem(AnyT, false, false),
+      "q" -> FieldMap.Elem(BoolT, true, false),
+    ),
+  )
   val fieldMap3 = FieldMap(
-    Map("p" -> Must(AnyT), "q" -> Must(BoolT), "r" -> Must(ObjectT || NullT)),
+    Map(
+      "p" -> FieldMap.Elem(AnyT, false, false),
+      "q" -> FieldMap.Elem(BoolT, false, true),
+      "r" -> FieldMap.Elem(ObjectT || NullT, true, true),
+    ),
   )
 }

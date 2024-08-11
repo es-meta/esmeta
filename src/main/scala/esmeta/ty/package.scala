@@ -24,10 +24,6 @@ enum RefinementKind:
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
-def May(ty: ValueTy): OptValueTy = OptValueTy(ty, true)
-def Must(ty: ValueTy): OptValueTy = OptValueTy(ty, false)
-lazy val MayAnyT: OptValueTy = OptValueTy(AnyT, true)
-lazy val MustBotT: OptValueTy = OptValueTy(BotT, false)
 lazy val AnyT: ValueTy = ValueTy.Top
 lazy val CompT: ValueTy = ValueTy(record = RecordTy("CompletionRecord"))
 lazy val AbruptT: ValueTy = ValueTy(record = RecordTy("AbruptCompletion"))

@@ -61,8 +61,8 @@ class JsonTinyTest extends TyTest {
     checkJsonWithString("FieldMap")(
       fieldMap0 -> """{}""",
       fieldMap1 -> """{ p }""".stripMargin,
-      fieldMap2 -> """{ p, q : Boolean }""",
-      fieldMap3 -> """{ p, q : Boolean, r : Record[Object] | Null }""",
+      fieldMap2 -> """{ p, q : [U] Boolean }""",
+      fieldMap3 -> """{ p, q : [A] Boolean, r : [UA] Record[Object] | Null }""",
     )
 
     checkJsonWithString("Ty")(

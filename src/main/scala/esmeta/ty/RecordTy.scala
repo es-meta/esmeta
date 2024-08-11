@@ -88,14 +88,16 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) => Fin(map.keySet)
 
   /** field accessor */
-  def apply(f: String): OptValueTy = this match
-    case Top       => MayAnyT
-    case Elem(map) => map.map(getField(_, f) && _(f)).foldLeft(MustBotT)(_ || _)
+  def apply(f: String): FieldMap.Elem = this match
+    case Top => FieldMap.Elem.Top
+    case Elem(map) =>
+      map.map(getField(_, f) && _(f)).foldLeft(FieldMap.Elem.Bot)(_ || _)
 
   /** field accessor for specific record type */
-  def apply(name: String, f: String): OptValueTy = this match
-    case Top       => MayAnyT
-    case Elem(map) => map.get(name).fold(MustBotT)(getField(name, f) && _(f))
+  def apply(name: String, f: String): FieldMap.Elem = this match
+    case Top => FieldMap.Elem.Top
+    case Elem(map) =>
+      map.get(name).fold(FieldMap.Elem.Bot)(getField(name, f) && _(f))
 
   /** field update */
   def update(field: String, ty: ValueTy): RecordTy = this match
@@ -117,7 +119,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       }
 
   /** filter with possible field types */
-  def filter(field: String, ty: OptValueTy): RecordTy = this match
+  def filter(field: String, ty: FieldMap.Elem): RecordTy = this match
     case Top => Top
     case Elem(map) =>
       Elem(map.filter {
@@ -134,8 +136,9 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     apply(names.toSet)
   def apply(names: Set[String]): RecordTy =
     apply(names.toList.map(_ -> FieldMap.Top).toMap)
-  def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
-    apply(Map(name -> FieldMap(fields.map(_ -> OptValueTy(_, false)).toMap)))
+  def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
+    Map(name -> FieldMap(fields.map(_ -> FieldMap.Elem(_, false, false)).toMap)),
+  )
   def apply(name: String, fieldMap: FieldMap): RecordTy =
     apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
