@@ -137,7 +137,12 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(names: Set[String]): RecordTy =
     apply(names.toList.map(_ -> FieldMap.Top).toMap)
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
-    Map(name -> FieldMap(fields.map(_ -> FieldMap.Elem(_, false, false)).toMap)),
+    Map(
+      name -> FieldMap(
+        map = fields.map(_ -> FieldMap.Elem(_, false, false)).toMap,
+        default = FieldMap.Elem.Top,
+      ),
+    ),
   )
   def apply(name: String, fieldMap: FieldMap): RecordTy =
     apply(Map(name -> fieldMap))
@@ -146,12 +151,15 @@ object RecordTy extends Parser.From(Parser.recordTy) {
 
   /** normalized type */
   def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =
-    val (l, lfm @ FieldMap(lm)) = pair
+    val (l, lfm @ FieldMap(lm, default)) = pair
     val pairs = for {
       r <- getDirectSubTys(l).toList
       dfm <- getDiffFieldMap(l, r)
       if lfm <= dfm
-      fm = FieldMap(lfm.map.filter { case (field, ty) => dfm(field) != ty })
+      fm = FieldMap(
+        lfm.map.filter { case (field, ty) => dfm(field) != ty },
+        default,
+      )
     } yield r -> fm
     if (pairs.isEmpty) Map(l -> lfm)
     else pairs.toMap

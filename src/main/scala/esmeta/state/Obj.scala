@@ -12,8 +12,8 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 sealed trait Obj extends StateElem {
 
   /** safe getter */
-  def get(field: Value): Option[Value] = (this, field) match
-    case (r: RecordObj, Str(f)) => r.map.get(f).collect { case v: Value => v }
+  def get(field: Value): Option[Value | Uninit] = (this, field) match
+    case (r: RecordObj, Str(f)) => r.map.get(f)
     case (m: MapObj, key)       => m.map.get(key)
     case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
@@ -21,8 +21,9 @@ sealed trait Obj extends StateElem {
     case _              => None
 
   /** getter */
-  def apply(field: Value): Value =
-    get(field).getOrElse(throw InvalidObjField(this, field))
+  def apply(field: Value): Value = get(field) match
+    case Some(value: Value) => value
+    case _                  => throw InvalidObjField(this, field)
 
   /** setter */
   def update(field: Value, value: Value): Unit = (this, field) match

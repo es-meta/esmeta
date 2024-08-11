@@ -166,6 +166,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
 
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean = value match
+    case _ if this eq Top => true
     case a: Addr =>
       heap(a) match
         case obj: RecordObj => record.contains(obj, heap)

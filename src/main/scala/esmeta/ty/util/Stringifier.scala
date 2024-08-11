@@ -60,16 +60,22 @@ object Stringifier {
 
   /** field type map */
   given fieldMapRule: Rule[FieldMap] = (app, fieldMap) =>
-    val FieldMap(map) = fieldMap
+    val SEP = ", "
+    val COLON = " : "
+    val FieldMap(map, default) = fieldMap
     given Rule[(String, FieldMap.Elem)] = {
       case (app, (field, elem)) =>
         app >> field
-        if (elem != FieldMap.Elem.Init) app >> " : " >> elem
+        if (elem != FieldMap.Elem.Init) app >> COLON >> elem
         app
     }
-    given Rule[List[(String, FieldMap.Elem)]] = iterableRule("{ ", ", ", " }")
+    given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
     if (map.isEmpty) app >> "{}"
-    else app >> map.toList.sortBy(_._1)
+    else
+      app >> "{ "
+      app >> map.toList.sortBy(_._1)
+      if (!default.isTop) app >> SEP >> "*" >> COLON >> default
+      app >> " }"
 
   /** field type map element */
   given fieldMapElemRule: Rule[FieldMap.Elem] = (app, ty) =>

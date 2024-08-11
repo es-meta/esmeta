@@ -45,53 +45,57 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   /** get all methods as field map */
   val getMethods: String => FieldMap = cached { tname =>
+    import FieldMap.Elem
     val methods = getBaseMethods(tname)
     val map = getMethodMap(tname).map {
-      case (field, (Some(name), opt)) =>
-        field -> FieldMap.Elem(CloT(name), false, opt)
+      case (field, (Some(name), opt)) => field -> Elem(CloT(name), opt, opt)
       case (field, (None, opt)) =>
-        field -> FieldMap.Elem(
-          CloT(methods.getOrElse(field, Set())),
-          false,
-          opt,
-        )
+        field -> Elem(CloT(methods.getOrElse(field, Set())), opt, opt)
     }
-    FieldMap(getDirectSubTys(tname).foldLeft(map) { (acc, sub) =>
-      getMethods(sub).map.foldLeft(acc) {
-        case (acc, (x, r)) => acc.get(x).fold(acc)(l => acc + (x -> (l || r)))
-      }
-    })
+    FieldMap(
+      map = getDirectSubTys(tname).foldLeft(map) { (acc, sub) =>
+        getMethods(sub).map.foldLeft(acc) {
+          case (acc, (x, r)) => acc.get(x).fold(acc)(l => acc + (x -> (l || r)))
+        }
+      },
+      default = Elem.Top,
+    )
   }
 
   /** get field type map */
   val getFieldMap: String => FieldMap = cached { tname =>
+    import FieldMap.Elem
     FieldMap(
-      getMethods(tname).map ++ declMap
+      map = getMethods(tname).map ++ declMap
         .get(tname)
         .fold(Map())(_.elems.collect {
-          case Field(name, optional, typeStr) =>
-            name -> FieldMap.Elem(ValueTy.from(typeStr), false, optional)
+          case Field(name, opt, typeStr) =>
+            name -> Elem(ValueTy.from(typeStr), opt, opt)
         })
         .toMap,
+      default = Elem.Top,
     )
   }
 
   /** get all field type map */
   val getAllFieldMap: String => FieldMap = cached { tname =>
+    import FieldMap.Elem
     FieldMap(
-      getParent(tname).fold(Map())(getAllFieldMap(_).map) ++
-      getFieldMap(tname).map,
+      map = getParent(tname).fold(Map())(getAllFieldMap(_).map) ++
+        getFieldMap(tname).map,
+      default = Elem.Top,
     )
   }
 
   /** get diff field type map */
   val getDiffFieldMap: ((String, String)) => Option[FieldMap] =
     cached { (l, r) =>
+      import FieldMap.Elem
       if (l == r) Some(FieldMap.Top)
       else if (isStrictSubTy(r, l))
         val parent = getParent(r).get
         val upper = getDiffFieldMap(l, parent).get.map
-        Some(FieldMap(upper ++ getFieldMap(r).map))
+        Some(FieldMap(upper ++ getFieldMap(r).map, Elem.Top))
       else None
     }
 

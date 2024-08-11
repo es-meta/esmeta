@@ -48,6 +48,7 @@ trait Walker extends BasicWalker {
   /** field type map */
   def walk(fieldMap: FieldMap): FieldMap = FieldMap(
     walkMap(fieldMap.map, walk, walk),
+    walk(fieldMap.default),
   )
 
   /** field type map element */

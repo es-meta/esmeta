@@ -4,65 +4,75 @@ import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
 
+import FieldMap.Elem
+
 /** field type map */
-case class FieldMap(map: Map[String, FieldMap.Elem] = Map())
+case class FieldMap(map: Map[String, Elem], default: Elem)
   extends TyElem
   with Lattice[FieldMap] {
 
-  import FieldMap.Elem
-
   /** top check */
-  def isTop: Boolean = map.isEmpty
+  def isTop: Boolean = map.forall(_._2.isTop) && default.isTop
 
   /** bottom check */
-  def isBottom: Boolean = false
+  def isBottom: Boolean = map.forall(_._2.isBottom) && default.isBottom
 
   /** partial order/subset operator */
-  def <=(that: => FieldMap): Boolean =
-    (this eq that) || that.map.forall { this(_) <= _ }
+  def <=(that: => FieldMap): Boolean = (this eq that) ||
+    ((this.default <= that.default) && that.map.forall { this(_) <= _ })
 
   /** union type */
   def ||(that: => FieldMap): FieldMap =
     if (this eq that) this
     else
-      FieldMap((for {
-        field <- (this.fields intersect that.fields)
-        value = this(field) || that(field)
-      } yield field -> value).toMap)
+      FieldMap(
+        map = (for {
+          field <- (this.fields intersect that.fields)
+          value = this(field) || that(field)
+        } yield field -> value).toMap,
+        default = this.default || that.default,
+      )
 
   /** intersection type */
   def &&(that: => FieldMap): FieldMap =
     if (this eq that) this
     else
-      FieldMap((for {
-        field <- (this.fields ++ that.fields)
-        value = this(field) && that(field)
-      } yield field -> value).toMap)
+      FieldMap(
+        map = (for {
+          field <- (this.fields ++ that.fields)
+          value = this(field) && that(field)
+        } yield field -> value).toMap,
+        default = this.default && that.default,
+      )
 
+  // TODO
   /** prune type */
   def --(that: => FieldMap): FieldMap = this
 
+  // TODO
   /** filter fields */
   def filter(pred: String => Boolean): FieldMap =
-    FieldMap(map.filter { case (field, _) => pred(field) })
+    FieldMap(map.filter { case (field, _) => pred(field) }, default)
 
   /** field accessor */
-  def apply(field: String): Elem = map.getOrElse(field, Elem.Top)
+  def apply(field: String): Elem = map.getOrElse(field, default)
 
   /** field update */
   def update(field: String, ty: ValueTy): FieldMap =
-    FieldMap(map + (field -> Elem(ty, false, false)))
+    FieldMap(map + (field -> Elem(ty, false, false)), default)
 
   /** fields */
   def fields: Set[String] = map.keySet
 
   /** field map containment check */
   def contains(record: RecordObj, heap: Heap): Boolean =
-    map.forall { case (f, ty) => ty.contains(record.get(Str(f)), heap) }
+    val fields = record.map.keySet ++ map.keySet
+    fields.forall { f => this(f).contains(record.get(Str(f)), heap) }
 }
 
 object FieldMap extends Parser.From(Parser.fieldMap) {
-  lazy val Top: FieldMap = FieldMap(Map())
+  lazy val Top: FieldMap = FieldMap(Map(), Elem.Top)
+  lazy val Bot: FieldMap = FieldMap(Map(), Elem.Bot)
 
   /** optinoal value types */
   case class Elem(
@@ -121,11 +131,10 @@ object FieldMap extends Parser.From(Parser.fieldMap) {
       (if (absent) Set(false) else Set())
 
     /** containment check */
-    def contains(optValue: Option[Value | Uninit], heap: Heap): Boolean =
-      optValue match
-        case Some(value: Value) => this.value.contains(value, heap)
-        case Some(Uninit)       => this.uninit
-        case None               => this.absent
+    def contains(v: Option[Value | Uninit], heap: Heap): Boolean = v match
+      case Some(value: Value) => this.value.contains(value, heap)
+      case Some(Uninit)       => this.uninit
+      case None               => this.absent
   }
   object Elem extends Parser.From(Parser.fieldMapElem) {
     lazy val Top: Elem = Elem(AnyT, true, true)

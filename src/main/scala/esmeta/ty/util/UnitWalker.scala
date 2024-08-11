@@ -45,7 +45,9 @@ trait UnitWalker extends BasicUnitWalker {
         walk(name); walk(optional); walk(typeStr)
 
   /** field type map */
-  def walk(fieldMap: FieldMap): Unit = walkMap(fieldMap.map, walk, walk)
+  def walk(fieldMap: FieldMap): Unit =
+    walkMap(fieldMap.map, walk, walk)
+    walk(fieldMap.default)
 
   /** field type map element */
   def walk(ty: FieldMap.Elem): Unit =
