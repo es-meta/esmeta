@@ -168,7 +168,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
       /** meet operator */
       override def ⊓(that: Elem): Elem =
-        val keys = elem.refinements.keySet ++ that.refinements.keySet
+        val keys = elem.refinements.keySet intersect that.refinements.keySet
         val refinements = keys.map { key =>
           val lmap = elem.refinements.getOrElse(key, Map.empty)
           val rmap = that.refinements.getOrElse(key, Map.empty)
@@ -524,10 +524,8 @@ trait ValueTypeDomainDecl { self: Self =>
       tname :: parent(tname).map(ancestorList).getOrElse(Nil)
 
     /** get parent types */
-    private def parent(name: String): Option[String] = for {
-      TyDecl(_, parent, _) <- cfg.tyModel.declMap.get(name)
-      p <- parent
-    } yield p
+    private def parent(name: String): Option[String] =
+      cfg.tyModel.getParent(name)
 
     /** ast type check helper */
     lazy val astDirectChildMap: Map[String, Set[String]] =

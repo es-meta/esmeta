@@ -24,14 +24,9 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** partial order/subset operator */
   def <=(that: => RecordTy): Boolean = (this eq that) || {
     (this, that) match
-      case (_, Top) => true
-      case (Top, _) => false
-      case (Elem(lmap), Elem(rmap)) =>
-        lmap.forall { (l, lfm) =>
-          rmap.exists { (r, rfm) =>
-            isSubTy(l, lfm, r, rfm)
-          }
-        }
+      case (_, Top)                 => true
+      case (Top, _)                 => false
+      case (Elem(lmap), Elem(rmap)) => isSubTy(lmap, rmap)
   }
 
   /** union type */
@@ -40,19 +35,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case (Bot, _) | (_, Top) => that
     case (Top, _) | (_, Bot) => this
     case (Elem(lmap), Elem(rmap)) =>
-      val ls = lmap.keySet
-      val rs = rmap.keySet
-      Elem((for {
-        t <- {
-          ls.filter(!isStrictSubTy(_, rs)) ++
-          rs.filter(!isStrictSubTy(_, ls))
-        }
-        fm = (lmap.get(t), rmap.get(t)) match
-          case (Some(lfm), Some(rfm)) => lfm || rfm
-          case (Some(lfm), None)      => lfm
-          case (None, Some(rfm))      => rfm
-          case _                      => FieldMap.Top
-      } yield t -> fm).toMap)
+      var map = lmap.filter(!isStrictSubTy(_, rmap))
+      for {
+        (t, fm) <- rmap.filter(!isStrictSubTy(_, lmap))
+      } map += t -> map.get(t).fold(fm)(_ || fm)
+      Elem(map)
 
   /** intersection type */
   def &&(that: => RecordTy): RecordTy = (this, that) match
@@ -88,7 +75,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** field type map */
   def fieldMap: Option[FieldMap] = this match
     case Top       => Some(FieldMap.Top)
-    case Elem(map) => map.map(getFieldMap(_) && _).reduceOption(_ || _)
+    case Elem(map) => map.map(getAllFieldMap(_) && _).reduceOption(_ || _)
 
   /** base type names */
   def bases: BSet[String] = this match
@@ -125,7 +112,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         (l == r && rfm.contains(record, heap)) ||
         (for {
           lca <- getLCA(l, r)
-          fm <- getDiffFieldMap(r, lca)
+          fm <- getDiffFieldMap(lca, r)
         } yield fm && rfm).exists(_.contains(record, heap))
       }
 
@@ -159,9 +146,10 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     val (l, lfm @ FieldMap(lm)) = pair
     val pairs = for {
       r <- getDirectSubTys(l).toList
-      dfm <- getDiffFieldMap(r, l)
+      dfm <- getDiffFieldMap(l, r)
       if lfm <= dfm
-    } yield r -> lfm.filter(!dfm.map.contains(_))
+      fm = FieldMap(lfm.map.filter { case (field, ty) => dfm(field) != ty })
+    } yield r -> fm
     if (pairs.isEmpty) Map(l -> lfm)
     else pairs.toMap
 }

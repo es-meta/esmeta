@@ -32,6 +32,7 @@ class Initialize(cfg: CFG) {
   lazy val initTypedGlobal: Map[Global, (Value, Ty)] = Map(
     EXECUTION_STACK ->
     (NamedAddr(EXECUTION_STACK), ListT(RecordT("ExecutionContext"))),
+    SOURCE_TEXT -> (Str(""), StrT),
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),

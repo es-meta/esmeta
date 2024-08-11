@@ -83,10 +83,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   val getDiffFieldMap: ((String, String)) => Option[FieldMap] =
     cached { (l, r) =>
       if (l == r) Some(FieldMap.Top)
-      else if (isStrictSubTy(l, r))
-        val parent = getParent(l).get
-        val upper = getDiffFieldMap(parent, r).get.map
-        Some(FieldMap(upper ++ getFieldMap(l).map))
+      else if (isStrictSubTy(r, l))
+        val parent = getParent(r).get
+        val upper = getDiffFieldMap(l, parent).get.map
+        Some(FieldMap(upper ++ getFieldMap(r).map))
       else None
     }
 
@@ -124,6 +124,18 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   }
 
   /** check if a type is a strict (proper) subtype of another */
+  def isStrictSubTy(
+    lmap: Map[String, FieldMap],
+    rmap: Map[String, FieldMap],
+  ): Boolean = lmap.forall(isStrictSubTy(_, rmap))
+  def isStrictSubTy(
+    lpair: (String, FieldMap),
+    rmap: Map[String, FieldMap],
+  ): Boolean = rmap.exists(isStrictSubTy(lpair, _))
+  def isStrictSubTy(
+    lpair: (String, FieldMap),
+    rpair: (String, FieldMap),
+  ): Boolean = lpair != rpair && isSubTy(lpair, rpair)
   def isStrictSubTy(l: String, r: String): Boolean =
     getStrictSubTys(r).contains(l)
   def isStrictSubTy(l: String, rs: Set[String]): Boolean =
@@ -135,14 +147,19 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   /** check if a type is a subtype of another */
   def isSubTy(
-    l: String,
-    lfm: FieldMap,
-    r: String,
-    rfm: FieldMap,
-  ): Boolean = (for {
-    lca <- getLCA(l, r)
-    fm <- getDiffFieldMap(r, lca)
-  } yield lfm <= (fm && rfm)).getOrElse(false)
+    lmap: Map[String, FieldMap],
+    rmap: Map[String, FieldMap],
+  ): Boolean = lmap.forall(isSubTy(_, rmap))
+  def isSubTy(lpair: (String, FieldMap), rmap: Map[String, FieldMap]): Boolean =
+    rmap.exists(isSubTy(lpair, _))
+  def isSubTy(lpair: (String, FieldMap), rpair: (String, FieldMap)): Boolean =
+    val (l, lfm) = lpair
+    val (r, rfm) = rpair
+    (for {
+      lca <- getLCA(l, r)
+      ldfm <- getDiffFieldMap(lca, l)
+      rdfm <- getDiffFieldMap(lca, r)
+    } yield (ldfm && lfm) <= (rdfm && rfm)).getOrElse(false)
   def isSubTy(l: String, r: String): Boolean =
     l == r || isStrictSubTy(l, r)
   def isSubTy(l: String, rs: Set[String]): Boolean =

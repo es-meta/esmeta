@@ -195,8 +195,11 @@ class Compiler(
         case _   => ISeq(prefix ++ inst.toList),
       )
 
+  val noReturnComp: Set[String] = Set(
+    "Completion",
+  )
+
   /** compile an algorithm to an IR function */
-  // TODO consider refactor
   def compile(algo: Algorithm): Unit =
     import FuncKind.*
     val kind = getKind(algo.head)
@@ -206,6 +209,7 @@ class Compiler(
     val needReturnComp = kind match
       case SynDirOp if name.endsWith(".Evaluation") => true
       case Builtin                                  => true
+      case _ if noReturnComp contains name          => false
       case _                                        => retTy.isCompletion
     val fb =
       FuncBuilder(spec, kind, name, params, retTy, algo, None, needReturnComp)

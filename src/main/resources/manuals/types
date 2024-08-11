@@ -453,6 +453,9 @@ type ExecutionContext {
   Function: Record[FunctionObject] | Null;
   Realm: Record[RealmRecord];
   ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
+  LexicalEnvironment?: Record[EnvironmentRecord];
+  VariableEnvironment?: Record[EnvironmentRecord];
+  PrivateEnvironment?: Record[PrivateEnvironmentRecord] | Null;
 }
 
 // https://tc39.es/ecma262/#ecmascript-code-execution-context
