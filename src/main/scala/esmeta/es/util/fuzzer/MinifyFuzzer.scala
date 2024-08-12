@@ -107,6 +107,13 @@ class MinifyFuzzer(
   ) {
     override lazy val logDir = MinifyFuzzer.logDir
     override lazy val symlink = MinifyFuzzer.symlink
+    
+    // adjust weight for active random fuzzing
+    override val selector: TargetSelector = WeightedSelector(
+      RandomSelector -> 8,
+      BranchSelector -> 2,
+    )
+
     override def add(code: String, info: CandInfo): Boolean = handleResult(
       Try {
         if (info.visited)
