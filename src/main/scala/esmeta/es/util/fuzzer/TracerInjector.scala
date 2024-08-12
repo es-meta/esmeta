@@ -23,9 +23,7 @@ class TracerInjector(using cfg: CFG) extends Walker {
     val ast = cfg.scriptParser.from(code)
     walk(ast).toString(grammar = Some(grammar))
 
-  val tracerSymbol: String = "t"
-  def counterExp: String = s"${tracerSymbol}(${counter})"
-  def counterStmt: String = s"${tracerSymbol}(${counter});"
+  def counterStmt: String = s"$TRACER_SYMBOL($counter);"
 
   def walkChildren(children: Vector[Option[Ast]]) =
     for {

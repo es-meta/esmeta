@@ -55,6 +55,7 @@ case object Mutate extends Phase[CFG, String] {
       StrOption((c, s) =>
         c.builder = s match
           case "random" => RandomMutator()
+          case "tracer" => TracerExprMutator()
           case _        => RandomMutator(),
       ),
       "select a mutator (default: random).",

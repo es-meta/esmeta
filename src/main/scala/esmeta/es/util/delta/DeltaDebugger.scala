@@ -20,9 +20,19 @@ class DeltaDebugger(
   lazy val esParser = cfg.esParser
   lazy val scriptParser: AstFrom = cfg.scriptParser
 
+  def once(code: String) = DeltaWalker
+    .result(scriptParser.from(code))
+    .toString(grammar = Some(grammar))
+
   def result(code: String) = {
-    val ast = scriptParser.from(code)
-    DeltaWalker.result(ast).toString(grammar = Some(grammar))
+    var ast = scriptParser.from(code)
+    while {
+      log("iteration starts")
+      val prev = ast.toString(grammar = Some(grammar))
+      ast = DeltaWalker.result(ast)
+      prev != ast.toString(grammar = Some(grammar))
+    } do ()
+    ast.toString(grammar = Some(grammar))
   }
 
   private def log(x: Any): Unit = if (detail) println(s"[dd] $x")

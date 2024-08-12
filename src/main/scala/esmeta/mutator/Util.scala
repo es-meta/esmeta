@@ -85,18 +85,22 @@ object Util {
     def walk(ast: Syntactic): List[Syntactic] =
       val Syntactic(name, args, rhsIdx, children) = ast
       // pair of processed childrens and unprocessed childrens
-      val initStat: (Childrens, Childrens) = (List(), List(Vector()))
-      val newStat = children
-        .foldLeft[(Childrens, Childrens)](initStat)((stat, child) => {
+      walkVector(children, walkOpt).map(Syntactic(name, args, rhsIdx, _))
+
+    def walkVector[T](vec: Vector[T], tWalk: T => List[T]): List[Vector[T]] =
+      val initStat = (List[Vector[T]](), List(Vector[T]()))
+      val newStat = vec.foldLeft[(List[Vector[T]], List[Vector[T]])](initStat)(
+        (stat, child) => {
           val (done, yet) = stat
           val done1 = done.map(_ :+ child)
-          val done2: Childrens = for {
-            child <- walkOpt(child)
+          val done2: List[Vector[T]] = for {
+            child <- tWalk(child)
             children <- yet
           } yield (children :+ child)
           (done1 ++ done2, yet.map(_ :+ child))
-        })
-      newStat._1.map(newChildren => Syntactic(name, args, rhsIdx, newChildren))
+        },
+      )
+      newStat._1
   }
 
 }
