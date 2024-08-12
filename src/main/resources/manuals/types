@@ -356,7 +356,7 @@ type ArgumentsExoticObject extends Object {
   def Get;
   def Set;
   def Delete;
-  def OwnPropertyKeys;
+  def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
   ParameterMap: Record[Object];
 }
 
@@ -443,7 +443,7 @@ type RealmRecord {
   GlobalObject: Record[Object] | Undefined;
   GlobalEnv: Record[GlobalEnvironmentRecord];
   TemplateMap: List[Record[{ Site: Ast[TemplateLiteral], Array: Record[Array] }]];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecor] }]];
+  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
   HostDefined: Undefined;
 }
 
@@ -473,7 +473,7 @@ type PrivateEnvironmentRecord {
 
 // https://tc39.es/ecma262/#table-additional-state-components-for-generator-execution-contexts
 type GeneratorExecutionContext extends ExecutionContext {
-  Generator: Record[Generator];
+  Generator: Record[Generator | AsyncGenerator];
 }
 
 // https://tc39.es/ecma262/#sec-promisecapability-records
@@ -538,9 +538,10 @@ type ForInIterator extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#script-record
 type ScriptRecord {
-  ECMAScriptCode: Ast[Script];
-  HostDefined: Enum[~empty~];
   Realm: Record[RealmRecord] | Undefined;
+  ECMAScriptCode: Ast[Script];
+  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
+  HostDefined: Enum[~empty~];
 }
 
 // https://tc39.es/ecma262/#sec-abstract-module-records
@@ -568,7 +569,7 @@ type CyclicModuleRecord extends ModuleRecord {
   DFSIndex: Enum[~empty~] | Int;
   DFSAncestorIndex: Enum[~empty~] | Int;
   RequestedModules: List[String];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecor] }]];
+  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecordN] }]];
   CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
   HasTLA: Boolean;
   AsyncEvaluation: Boolean;
@@ -741,7 +742,7 @@ type Generator extends OrdinaryObject {
 type AsyncGenerator extends OrdinaryObject {
   AsyncGeneratorState: Undefined | Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
   AsyncGeneratorContext: Record[ExecutionContext];
-  AsyncGeneratorQueue: List[Record[AsyncGeneratorRequestRecord]];
+  AsyncGeneratorQueue: List[Record[AsyncGeneratorRequest]];
   GeneratorBrand: String | Enum[~empty~];
 }
 
@@ -764,7 +765,7 @@ type PromiseCapabilityRecord {
 }
 
 // https://tc39.es/ecma262/#sec-asyncgeneratorrequest-records
-type AsyncGeneratorRequestRecord {
+type AsyncGeneratorRequest {
   Completion: Record[CompletionRecord];
   Capability: Record[PromiseCapabilityRecord];
 }

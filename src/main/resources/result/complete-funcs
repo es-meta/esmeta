@@ -1246,6 +1246,7 @@ INTRINSICS.EvalError
 INTRINSICS.FinalizationRegistry
 INTRINSICS.FinalizationRegistry.prototype.register
 INTRINSICS.FinalizationRegistry.prototype.unregister
+INTRINSICS.ForInIteratorPrototype.next
 INTRINSICS.Function
 INTRINSICS.Function.prototype
 INTRINSICS.Function.prototype.apply

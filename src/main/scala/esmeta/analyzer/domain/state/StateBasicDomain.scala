@@ -316,6 +316,9 @@ trait StateBasicDomainDecl { self: Self =>
         for ((_, v) <- locals) parts ++= v.reachableParts
         for ((_, v) <- globals) parts ++= v.reachableParts
         heap.reachableParts(parts)
+
+      /** has top elements */
+      def hasTop: Boolean = false
     }
     // -------------------------------------------------------------------------
     // private helpers

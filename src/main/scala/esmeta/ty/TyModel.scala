@@ -14,7 +14,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     decl <- decls
   } yield decl.name -> decl).toMap
 
-  type MethodMap = Map[String, (Option[String], Boolean)]
+  type MethodMap = Map[String, (Option[String], Boolean, Boolean)]
 
   val getUpperMethodMap: String => MethodMap = cached { tname =>
     getParent(tname).fold(Map())(getUpperMethodMap) ++
@@ -26,9 +26,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     declMap
       .get(tname)
       .fold(Map())(_.elems.collect {
-        case AbsMethod(name) => name -> (None, false)
-        case ConMethod(name, optional, targetOpt) =>
-          name -> (targetOpt.orElse(Some(s"Record[$tname].$name")), optional)
+        case AbsMethod(name) => name -> (None, true, false)
+        case ConMethod(name, opt, targetOpt) =>
+          name -> (targetOpt.orElse(Some(s"Record[$tname].$name")), opt, opt)
       }.toMap)
   }
 
@@ -38,7 +38,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       val base = getBase(tname)
       val pairs = for {
         x <- getStrictSubTys(base) + base
-        case (field, (Some(name), _)) <- getMethodMap(x)
+        case (field, (Some(name), _, _)) <- getMethodMap(x)
       } yield field -> name
       pairs.groupMap(_._1)(_._2)
   }
@@ -48,9 +48,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     import FieldMap.Elem
     val methods = getBaseMethods(tname)
     val map = getMethodMap(tname).map {
-      case (field, (Some(name), opt)) => field -> Elem(CloT(name), opt, opt)
-      case (field, (None, opt)) =>
-        field -> Elem(CloT(methods.getOrElse(field, Set())), opt, opt)
+      case (field, (Some(name), uninit, absent)) =>
+        field -> Elem(CloT(name), uninit, absent)
+      case (field, (None, uninit, absent)) =>
+        field -> Elem(CloT(methods.getOrElse(field, Set())), uninit, absent)
     }
     FieldMap(
       map = getDirectSubTys(tname).foldLeft(map) { (acc, sub) =>

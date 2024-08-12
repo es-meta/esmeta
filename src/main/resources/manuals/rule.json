@@ -3,6 +3,7 @@
     "If control reaches here, then _genContext_ is the running execution context again.": "(= genContext @EXECUTION_STACK[0])",
     "The execution context stack has at least two elements.": "(< 1 (sizeof @EXECUTION_STACK))",
     "The execution context stack is empty.": "(= (sizeof @EXECUTION_STACK) 0)",
+    "_O_ has all of the internal slots of a For-In Iterator Instance (<emu-xref href=\"#sec-properties-of-for-in-iterator-instances\"></emu-xref>).": "(? O: Record[ForInIterator])",
     "The execution context stack is not empty.": "(! (= (sizeof @EXECUTION_STACK) 0))",
     "This is an attempt to change the value of an immutable binding.": "true",
     "When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.": "(&& (= prevContext @EXECUTION_STACK[0]) (! (= asyncContext @EXECUTION_STACK[0])))",
@@ -21,7 +22,7 @@
     "_envRec_ does not already have a binding for _N_.": "(! (exists envRec.__MAP__[N]))",
     "_envRec_ must have an uninitialized binding for _N_.": "(= envRec.__MAP__[N].initialized false)",
     "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>.": "(! (|| (= exponent 0.0f) (= exponent -0.0f)))",
-    "_genContext_ is the execution context of a generator.": "(? genContext: Record[ExecutionContext])",
+    "_genContext_ is the execution context of a generator.": "(? genContext: Record[GeneratorExecutionContext])",
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized.": "(exists realm.Intrinsics[\"%ThrowTypeError%\"])",
     "_x_ and _y_ are both finite.": "(&& (! (|| (= x +INF) (= x -INF))) (! (|| (= y +INF) (= y -INF))))"
   },

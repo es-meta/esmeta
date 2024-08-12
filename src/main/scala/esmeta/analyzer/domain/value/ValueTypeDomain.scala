@@ -194,9 +194,12 @@ trait ValueTypeDomainDecl { self: Self =>
       def reachableParts: Set[Part] = Set()
 
       /** bitwise operations */
-      def &(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def |(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def ^(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
+      def &(that: Elem): Elem =
+        mathOp(elem, that, "&") ⊔ bigIntOp(elem, that, "&")
+      def |(that: Elem): Elem =
+        mathOp(elem, that, "|") ⊔ bigIntOp(elem, that, "|")
+      def ^(that: Elem): Elem =
+        mathOp(elem, that, "^") ⊔ bigIntOp(elem, that, "^")
 
       /** comparison operations */
       def =^=(that: Elem): Elem =
@@ -209,28 +212,23 @@ trait ValueTypeDomainDecl { self: Self =>
       def <(that: Elem): Elem = numericCompareOP(elem, that)
 
       /** logical operations */
-      def &&(that: Elem): Elem = logicalOp(_ && _)(elem, that)
-      def ||(that: Elem): Elem = logicalOp(_ || _)(elem, that)
-      def ^^(that: Elem): Elem = logicalOp(_ ^ _)(elem, that)
+      def &&(that: Elem): Elem = logicalOp(elem, that, "&&")
+      def ||(that: Elem): Elem = logicalOp(elem, that, "||")
+      def ^^(that: Elem): Elem = logicalOp(elem, that, "^")
 
       /** numeric operations */
-      def +(that: Elem): Elem =
-        if (that.ty.math.isPosInt) Elem(ValueTy(math = elem.ty.math match
-          case m if m.isBottom    => MathTy.Bot
-          case m if m.isNonNegInt => PosIntTy
-          case m if m.isInt       => IntTy
-          case _                  => MathTopTy,
-        ))
-        else numericOp(elem, that)
-      def sub(that: Elem): Elem = numericOp(elem, that)
-      def /(that: Elem): Elem = numericOp(elem, that, intPreserve = false)
-      def *(that: Elem): Elem = numericOp(elem, that)
-      def %(that: Elem): Elem = numericOp(elem, that)
-      def %%(that: Elem): Elem = numericOp(elem, that)
-      def **(that: Elem): Elem = numericOp(elem, that)
-      def <<(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def >>(that: Elem): Elem = mathOp(elem, that) ⊔ bigIntOp(elem, that)
-      def >>>(that: Elem): Elem = mathOp(elem, that)
+      def +(that: Elem): Elem = numericOp(elem, that, "+")
+      def sub(that: Elem): Elem = numericOp(elem, that, "-")
+      def /(that: Elem): Elem = numericOp(elem, that, "/")
+      def *(that: Elem): Elem = numericOp(elem, that, "*")
+      def %(that: Elem): Elem = numericOp(elem, that, "%")
+      def %%(that: Elem): Elem = numericOp(elem, that, "%%")
+      def **(that: Elem): Elem = numericOp(elem, that, "**")
+      def <<(that: Elem): Elem =
+        mathOp(elem, that, "<<") ⊔ bigIntOp(elem, that, "<<")
+      def >>(that: Elem): Elem =
+        mathOp(elem, that, ">>") ⊔ bigIntOp(elem, that, ">>")
+      def >>>(that: Elem): Elem = mathOp(elem, that, ">>>")
 
       /** unary negation operation */
       def unary_- : Elem =
@@ -249,7 +247,7 @@ trait ValueTypeDomainDecl { self: Self =>
         Elem(ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt))
 
       /** unary logical negation operation */
-      def unary_! : Elem = logicalUnaryOp(!_)(elem)
+      def unary_! : Elem = logicalUnaryOp(elem, "!")
 
       /** unary bitwise negation operation */
       def unary_~ : Elem =
@@ -309,10 +307,8 @@ trait ValueTypeDomainDecl { self: Self =>
             else ValueTy.Bot
           case COp.ToNumber =>
             lazy val fromMath = ty.math match
-              case MathTopTy => NumberTopTy
-              case MathSetTy(set) =>
-                NumberSetTy(set.map(m => Number(m.decimal.toDouble)))
-              case _ => NumberIntTy
+              case m if m.isInt => NumberIntTy
+              case _            => NumberTopTy
             if (!ty.str.isBottom) NumberT
             else ValueTy(number = ty.number || fromMath)
           case COp.ToBigInt
@@ -462,44 +458,60 @@ trait ValueTypeDomainDecl { self: Self =>
       case v => notSupported(s"impossible to convert to pure type ($v)")
 
     // numeric operator helper
-    private def numericOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
-      mathOp(l, r, intPreserve) ⊔ numberOp(l, r, intPreserve) ⊔ bigIntOp(l, r)
+    private def numericOp(l: Elem, r: Elem, op: String) =
+      mathOp(l, r, op) ⊔ numberOp(l, r, op) ⊔ bigIntOp(l, r, op)
 
     // mathematical operator helper
-    private def mathOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+    private def mathOp(l: Elem, r: Elem, op: String) =
       val lty = l.ty.math
       val rty = r.ty.math
-      if (lty.isBottom || rty.isBottom) Bot
-      else if (intPreserve && lty.isInt && rty.isInt) intTop
-      else mathTop
+      op match
+        case _ if lty.isBottom || rty.isBottom => Bot
+        case "+"   => Elem(ValueTy(math = lty + rty))
+        case "-"   => Elem(ValueTy(math = lty - rty))
+        case "%"   => Elem(ValueTy(math = lty % rty))
+        case "**"  => Elem(ValueTy(math = lty ** rty))
+        case "*"   => Elem(ValueTy(math = lty * rty))
+        case "&"   => Elem(ValueTy(math = lty & rty))
+        case "|"   => Elem(ValueTy(math = lty | rty))
+        case "^"   => Elem(ValueTy(math = lty ^ rty))
+        case "<<"  => Elem(ValueTy(math = lty << rty))
+        case ">>"  => Elem(ValueTy(math = lty >> rty))
+        case ">>>" => Elem(ValueTy(math = lty >>> rty))
+        case _     => mathTop
 
     // number operator helper
-    private def numberOp(l: Elem, r: Elem, intPreserve: Boolean = true) =
+    private def numberOp(l: Elem, r: Elem, op: String) =
       val lty = l.ty.number
       val rty = r.ty.number
       if (lty.isBottom || rty.isBottom) Bot
-      else if (intPreserve && lty.isInt && rty.isInt) numberIntTop
       else numberTop
 
     // big integer operator helper
-    private def bigIntOp(l: Elem, r: Elem) =
-      if (l.ty.bigInt && r.ty.bigInt) bigIntTop
-      else Bot
+    private def bigIntOp(l: Elem, r: Elem, op: String) =
+      val lty = l.ty.bigInt
+      val rty = r.ty.bigInt
+      if (!lty || !rty) Bot
+      else bigIntTop
 
     // logical unary operator helper
-    private def logicalUnaryOp(
-      op: Boolean => Boolean,
-    ): Elem => Elem =
-      b => Elem(ValueTy(bool = BoolTy(for (x <- b.ty.bool.set) yield op(x))))
+    private def logicalUnaryOp(b: Elem, op: "!") =
+      Elem(BoolT(for {
+        x <- b.ty.bool.set
+      } yield op match
+        case "!" => !x,
+      ))
 
     // logical operator helper
-    private def logicalOp(
-      op: (Boolean, Boolean) => Boolean,
-    ): (Elem, Elem) => Elem = (l, r) =>
-      Elem(ValueTy(bool = BoolTy(for {
+    private def logicalOp(l: Elem, r: Elem, op: "&&" | "||" | "^") =
+      Elem(BoolT(for {
         x <- l.ty.bool.set
         y <- r.ty.bool.set
-      } yield op(x, y))))
+      } yield op match
+        case "&&" => x && y
+        case "||" => x || y
+        case "^"  => x ^ y,
+      ))
 
     // numeric comparison operator helper
     private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>

@@ -18,31 +18,37 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
   def isBottom: Boolean = map.forall(_._2.isBottom) && default.isBottom
 
   /** partial order/subset operator */
-  def <=(that: => FieldMap): Boolean = (this eq that) ||
-    ((this.default <= that.default) && that.map.forall { this(_) <= _ })
+  def <=(that: => FieldMap): Boolean = (this eq that) || (
+    this.default <= that.default &&
+    (this.fields ++ that.fields).forall { f => this(f) <= that(f) }
+  )
 
   /** union type */
   def ||(that: => FieldMap): FieldMap =
     if (this eq that) this
     else
+      val default = this.default || that.default
       FieldMap(
         map = (for {
-          field <- (this.fields intersect that.fields)
+          field <- (this.fields ++ that.fields)
           value = this(field) || that(field)
+          if value != default
         } yield field -> value).toMap,
-        default = this.default || that.default,
+        default = default,
       )
 
   /** intersection type */
   def &&(that: => FieldMap): FieldMap =
     if (this eq that) this
     else
+      val default = this.default && that.default
       FieldMap(
         map = (for {
           field <- (this.fields ++ that.fields)
           value = this(field) && that(field)
+          if value != default
         } yield field -> value).toMap,
-        default = this.default && that.default,
+        default = default,
       )
 
   // TODO
@@ -58,8 +64,10 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
   def apply(field: String): Elem = map.getOrElse(field, default)
 
   /** field update */
+  def update(field: String, elem: Elem): FieldMap =
+    FieldMap(map + (field -> elem), default)
   def update(field: String, ty: ValueTy): FieldMap =
-    FieldMap(map + (field -> Elem(ty, false, false)), default)
+    update(field, Elem(ty, false, false))
 
   /** fields */
   def fields: Set[String] = map.keySet
@@ -72,6 +80,7 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
 
 object FieldMap extends Parser.From(Parser.fieldMap) {
   lazy val Top: FieldMap = FieldMap(Map(), Elem.Top)
+  lazy val Empty: FieldMap = FieldMap(Map(), Elem(BotT, true, true))
   lazy val Bot: FieldMap = FieldMap(Map(), Elem.Bot)
 
   /** optinoal value types */

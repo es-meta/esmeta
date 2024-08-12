@@ -168,7 +168,7 @@ class TypeAnalyzer(
         val retTy = callee.retTy.ty
         val newRetTy = generic
           .get(callee.name)
-          .fold(callee.retTy.ty) { case (idx, f) => f(vs(idx).ty) }
+          .fold(callee.retTy.ty)(_(vs.map(_.ty)))
         val xs = args.map {
           case ERef(x: Local) => Some(x)
           case _              => None
@@ -196,12 +196,49 @@ class TypeAnalyzer(
     override def apply(rp: ReturnPoint): Unit =
       if (!generic.contains(rp.func.name)) super.apply(rp)
 
-    val generic: Map[String, (Int, ValueTy => ValueTy)] = Map(
-      "Completion" -> (0, (_ && CompT)),
-      "NormalCompletion" -> (0, (t => NormalT(t -- CompT))),
-      "IteratorClose" -> (1, (_ || ThrowT)),
-      "AsyncIteratorClose" -> (1, (_ || ThrowT)),
-      "__FLAT_LIST__" -> (0, (_.list.elem)),
+    val generic: Map[String, List[ValueTy] => ValueTy] = Map(
+      "__FLAT_LIST__" -> (_(0).list.elem),
+      "Completion" -> (_(0) && CompT),
+      "UpdateEmpty" -> (_(0) && CompT),
+      "NormalCompletion" -> (tys => NormalT(tys(0) -- CompT)),
+      "IteratorClose" -> (_(1) || ThrowT),
+      "AsyncIteratorClose" -> (_(1) || ThrowT),
+      "OrdinaryObjectCreate" -> { _ => RecordT("OrdinaryObject") },
+      "UpdateEmpty" -> { tys =>
+        val r = tys(0).record
+        ValueTy(record =
+          r.update("Value", (r("Value").value -- EnumT("empty")) || tys(1)),
+        )
+      },
+      "MakeBasicObject" -> { _ =>
+        def getElem(name: String) =
+          FieldMap.Elem(CloT(s"Record[OrdinaryObject].$name"), false, false)
+        RecordT(
+          "Object",
+          FieldMap(
+            map = Map(
+              "GetPrototypeOf" -> getElem("GetPrototypeOf"),
+              "SetPrototypeOf" -> getElem("SetPrototypeOf"),
+              "IsExtensible" -> getElem("IsExtensible"),
+              "PreventExtensions" -> getElem("PreventExtensions"),
+              "GetOwnProperty" -> getElem("GetOwnProperty"),
+              "DefineOwnProperty" -> getElem("DefineOwnProperty"),
+              "HasProperty" -> getElem("HasProperty"),
+              "Get" -> getElem("Get"),
+              "Set" -> getElem("Set"),
+              "Delete" -> getElem("Delete"),
+              "OwnPropertyKeys" -> getElem("OwnPropertyKeys"),
+            ),
+            default = FieldMap.Elem(BotT, true, true),
+          ),
+        )
+      },
+      "CreateListFromArrayLike" -> (tys => {
+        val elem =
+          if (tys.lift(1) != Some(ListT(StrT("String", "Symbol")))) ESValueT
+          else StrT || SymbolT
+        NormalT(ListT(elem)) || ThrowT
+      }),
     )
 
     val typeGuards: Map[String, List[(Int, RefinementKind, ValueTy)]] =
@@ -463,7 +500,8 @@ class TypeAnalyzer(
       rty = rv.ty
       prunedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.filter(field, FieldMap.Elem(rty, false, false)),
+        record =
+          lty.record.filter(field, FieldMap.Elem(rty, false, false), positive),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -479,9 +517,7 @@ class TypeAnalyzer(
       ty = v.ty
       prunedTy = ValueTy(
         ast = ty.ast,
-        record =
-          if (positive) ty.record.filter(field, FieldMap.Elem.Exist)
-          else ty.record,
+        record = ty.record.filter(field, FieldMap.Elem.Exist, positive),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -636,8 +672,10 @@ class TypeAnalyzer(
     )
     dumpFile(
       name = "detected type errors",
-      data =
-        errors.toList.map(_.toString(detail = true)).sorted.mkString(LINE_SEP),
+      data = errors.toList
+        .map(_.toString(detail = true))
+        .sorted
+        .mkString(LINE_SEP + LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )

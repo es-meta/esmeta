@@ -170,8 +170,8 @@ trait ReplDecl { self: Self =>
           case (CmdBreak.block, uid) => uid.toInt == node.id
           case _                     => false
         }
-      case NodePoint(_, node, _) =>
-        breakpoints.exists {
+      case np @ NodePoint(_, node, _) =>
+        sem(np).hasTop || breakpoints.exists {
           case (CmdBreak.block, uid) => uid.toInt == node.id
           case _                     => false
         }

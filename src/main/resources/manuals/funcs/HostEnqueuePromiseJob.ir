@@ -9,5 +9,5 @@ def HostEnqueuePromiseJob(
     "ScriptOrModule" : %0,
   })
   push @JOB_QUEUE < newJob
-  return null
+  return ~unused~
 }

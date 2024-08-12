@@ -1287,6 +1287,7 @@ trait Parsers extends IndentParsers {
         "module namespace exotic object" |
         "mutable binding" |
         "execution context" |
+        "Module Namespace Object" ^^^ "ModuleNamespaceExoticObject" |
         "error"
       ) ^^ { normRecordT(_) }
     } <~ opt("s")

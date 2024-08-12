@@ -119,12 +119,18 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       }
 
   /** filter with possible field types */
-  def filter(field: String, ty: FieldMap.Elem): RecordTy = this match
+  def filter(f: String, ty: FieldMap.Elem, pos: Boolean): RecordTy = this match
     case Top => Top
     case Elem(map) =>
-      Elem(map.filter {
-        case (name, _) => !(apply(name, field) && ty).isBottom
-      })
+      (for {
+        (name, fm) <- map
+        subs = getSubTysWithField(name, f)
+        sub <- if (pos) subs else if (subs.isEmpty) Set() else Set(name)
+        vty = getField(sub, f) && fm(f)
+        rty = if (pos) vty && ty else vty -- ty
+        if !rty.isBottom
+        pair <- normalize(sub -> fm.update(f, rty))
+      } yield Elem(Map(pair))).foldLeft(Bot)(_ || _)
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
@@ -161,6 +167,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
         default,
       )
     } yield r -> fm
-    if (pairs.isEmpty) Map(l -> lfm)
-    else pairs.toMap
+    val map =
+      if (pairs.isEmpty) Map(l -> lfm)
+      else pairs.toMap
+    map.map { case (r, fm) => r -> fm.filter(f => fm(f) != getField(r, f)) }
 }

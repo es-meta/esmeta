@@ -68,6 +68,10 @@ def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
 def RecordT(names: String*): ValueTy = RecordT(names.toSet)
 def RecordT(name: String, fields: Map[String, ValueTy]): ValueTy =
   ValueTy(record = RecordTy(name, fields))
+def RecordT(name: String, fieldMap: FieldMap): ValueTy =
+  ValueTy(record = RecordTy(name, fieldMap))
+def RecordT(map: Map[String, FieldMap]): ValueTy =
+  ValueTy(record = RecordTy(map))
 def NilT: ValueTy = ValueTy(list = ListTy.Nil)
 def ListT: ValueTy = ValueTy(list = ListTy.Top)
 def ListT(ty: ValueTy): ValueTy = ValueTy(list = ListTy(ty))

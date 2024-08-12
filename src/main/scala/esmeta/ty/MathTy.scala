@@ -143,6 +143,65 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal > 0)))
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
 
+  /** addition */
+  def +(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
+    case (l, r) if l.isInt && r.isInt             => IntTy
+    case _                                        => MathTopTy
+
+  /** subtraction */
+  def -(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** multiplcation */
+  def *(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
+    case (l, r) if l.isInt && r.isInt             => IntTy
+    case _                                        => MathTopTy
+
+  /** modulo */
+  def %(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
+    case (l, r) if l.isInt && r.isInt             => IntTy
+    case _                                        => MathTopTy
+
+  /** exponentiation */
+  def **(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
+    case (l, r) if l.isInt && r.isInt             => IntTy
+    case _                                        => MathTopTy
+
+  /** bitwise operation (&) */
+  def &(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** bitwise operation (|) */
+  def |(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** bitwise operation (^) */
+  def ^(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** shift left */
+  def <<(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** shift right */
+  def >>(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
+  /** unsigned shift right */
+  def >>>(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isInt && r.isInt => IntTy
+    case _                            => MathTopTy
+
   /** min operation */
   def min(that: MathTy): MathTy = (this, that) match
     case (MathTopTy, _) | (_, MathTopTy)         => MathTopTy

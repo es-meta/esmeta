@@ -70,7 +70,7 @@ object Stringifier {
         app
     }
     given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
-    if (map.isEmpty) app >> "{}"
+    if (fieldMap.isTop) app >> "{}"
     else
       app >> "{ "
       app >> map.toList.sortBy(_._1)
