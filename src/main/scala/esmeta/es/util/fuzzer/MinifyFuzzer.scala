@@ -19,6 +19,7 @@ import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 import io.circe.Json
 import java.util.concurrent.atomic.AtomicInteger
+import esmeta.mutator.TracerExprMutator
 
 object MinifyFuzzer {
   def apply(
@@ -73,6 +74,7 @@ class MinifyFuzzer(
     ),
   )
 
+  val tracerExprMutator = TracerExprMutator(using cfg)
   val tracerInjector = TracerInjector(using cfg)
 
   lazy val result: Coverage = fuzzer.result
@@ -141,16 +143,16 @@ class MinifyFuzzer(
         for (ret <- returns.par) {
           // TODO: we have to try in sloppy mode but ESMeta doesn't respect execution mode yet
           val directive = USE_STRICT
-          val instrumentedCode = tracerInjector(code)
-          val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
-          val instrumentedIife =
-            s"const k = (function () {\n$instrumentedCode\n$ret\n})();\n"
-          val original = directive ++ iife
-          val tracerHeader =
-            "const arr = []; const t = i => arr.push(i);\n"
-          val tracedOriginal = directive ++ tracerHeader ++ instrumentedIife
-          for (code <- List(original, tracedOriginal))
-            minifyTester.test(code) match
+          val codes = code +: tracerExprMutator(code, 5, None).map(
+            _._2.toString(grammar = Some(cfg.grammar)),
+          )
+          for (code <- codes)
+            val instrumentedCode = tracerInjector(code)
+            val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
+            val tracerHeader =
+              s"const arr = []; const $TRACER_SYMBOL = x => (arr.push(x), x)\n"
+            val original = directive ++ tracerHeader ++ iife
+            minifyTester.test(original) match
               case None =>
               case Some(
                     MinifyTesterResult(code, minified, injected, exception),
@@ -163,17 +165,24 @@ class MinifyFuzzer(
                         case _            => false
                     },
                   ).result(code)
-                log(
-                  MinifyFuzzResult(
-                    iter,
-                    covered,
-                    code,
-                    minified,
-                    delta,
-                    injected,
-                    exception,
-                  ),
-                )
+                // re-run tester with dd output
+                minifyTester.test(delta) match
+                  case None =>
+                  case Some(
+                        MinifyTesterResult(delta, minified, injected, exception),
+                      ) =>
+                    log(
+                      MinifyFuzzResult(
+                        iter,
+                        covered,
+                        original,
+                        minified,
+                        delta,
+                        injected,
+                        exception,
+                      ),
+                    )
+
         }
       case _ =>
 
@@ -193,7 +202,6 @@ class MinifyFuzzer(
       minimalIterMap += (delta -> count)
       val dirpath = s"$logDir/$count"
       mkdir(dirpath)
-      dumpFile(original, s"$dirpath/original.js")
       dumpFile(minified, s"$dirpath/minified.js")
       dumpFile(injected, s"$dirpath/injected.js")
       dumpFile(delta, s"$dirpath/delta.js")
@@ -215,7 +223,8 @@ class MinifyFuzzer(
         mkdir(dirpath)
         dumpFile(original, s"$dirpath/$iter.js")
         minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
-      case None if db.getLabel(delta).isDefined =>
+      case None
+          if db.getLabel(delta).isDefined || db.getLabel(original).isDefined =>
         val label = db.getLabel(delta).get
         val dirpath = s"$logDir/labels/$label"
         mkdir(dirpath)
