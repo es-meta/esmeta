@@ -104,6 +104,12 @@ class MinifyFuzzer(
     symlink = symlink,
     init = init,
   ) {
+    // adjust weight for active random fuzzing
+    override val selector: TargetSelector = WeightedSelector(
+      RandomSelector -> 8,
+      BranchSelector -> 2,
+    )
+
     override def add(code: String, info: CandInfo): Boolean = handleResult(
       Try {
         if (info.visited)
