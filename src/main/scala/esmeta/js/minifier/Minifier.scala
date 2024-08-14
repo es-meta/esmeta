@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException
 
 object Minifier {
   val minifyCmd = Map(
-    "swc" -> "minify-runner swc@1.4.6",
+    "swc" -> "minify-runner -v swc@1.4.6",
   )
 
   lazy val useSwc: Boolean = minifySwc(";").isSuccess
