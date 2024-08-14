@@ -71,6 +71,7 @@ class MinifyFuzzer(
     MinifyTesterConfig(
       timeLimit = timeLimit,
       ignoreProperties = List("name").map(prop => s"\"$prop\""),
+      debugLevel = debug,
     ),
   )
 
