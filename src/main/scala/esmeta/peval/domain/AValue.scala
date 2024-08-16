@@ -10,8 +10,8 @@ import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** partial value types */
-sealed trait PVTy extends Ty with Lattice[PVTy] {
-  import PVTy.*
+sealed trait AValue extends Ty with Lattice[AValue] {
+  import AValue.*
 
   def addr: BSet[Addr]
   def grammarSymbol: BSet[GrammarSymbol]
@@ -50,7 +50,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
       )
 
   /** partial order/subset operator */
-  def <=(that: => PVTy): Boolean =
+  def <=(that: => AValue): Boolean =
     if ((this eq that) || (this eq Bot) || (that eq Top)) true
     else if (this eq Top) false
     else
@@ -68,14 +68,14 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
       this.nullv <= that.nullv
 
   /** union type */
-  def ||(that: => PVTy): PVTy =
+  def ||(that: => AValue): AValue =
     if (this eq that) this
     else if (this eq Bot) that
     else if (this eq Top) Top
     else if (that eq Bot) this
     else if (that eq Top) Top
     else
-      PVTy(
+      AValue(
         this.addr || this.addr,
         this.grammarSymbol || that.grammarSymbol,
         this.codeUnit || that.codeUnit,
@@ -91,14 +91,14 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
       ).norm
 
   /** intersection type */
-  def &&(that: => PVTy): PVTy =
+  def &&(that: => AValue): AValue =
     if (this eq that) this
     else if (this eq Bot) Bot
     else if (this eq Top) that
     else if (that eq Bot) Bot
     else if (that eq Top) this
     else
-      PVTy(
+      AValue(
         this.addr && that.addr,
         this.grammarSymbol && that.grammarSymbol,
         this.codeUnit && that.codeUnit,
@@ -114,13 +114,13 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
       )
 
   /** prune type */
-  def --(that: => PVTy): PVTy =
+  def --(that: => AValue): AValue =
     if (this eq that) Bot
     else if (this eq Bot) Bot
     else if (that eq Bot) this
     else if (that eq Top) Bot
     else
-      PVTy(
+      AValue(
         this.addr -- that.addr,
         this.grammarSymbol -- that.grammarSymbol,
         this.codeUnit -- that.codeUnit,
@@ -165,7 +165,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
     bool: BoolTy = bool,
     undef: Boolean = undef,
     nullv: Boolean = nullv,
-  ): PVTy = PVTy(
+  ): AValue = AValue(
     addr,
     grammarSymbol,
     codeUnit,
@@ -184,7 +184,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
   def isCompletion: Boolean = ??? // this <= CompT
 
   /** normalization */
-  def norm: PVTy = if (
+  def norm: AValue = if (
     addr.isTop &&
     grammarSymbol.isTop &&
     codeUnit.isTop &&
@@ -197,7 +197,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
     bool.isTop &&
     undef.isTop &&
     nullv.isTop
-  ) PVTy.Top
+  ) AValue.Top
   else this
 
   /** get single value */
@@ -216,7 +216,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
     (if (this.nullv.isBottom) Zero else One(Null))
 
   /** types having no field */
-  def noField: PVTy = this match
+  def noField: AValue = this match
     case PVTopTy =>
       PVElemTy(
         addr = Inf,
@@ -237,7 +237,7 @@ sealed trait PVTy extends Ty with Lattice[PVTy] {
       )
 }
 
-case object PVTopTy extends PVTy {
+case object PVTopTy extends AValue {
   def addr: BSet[Addr] = Inf
   def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true
@@ -265,8 +265,8 @@ case class PVElemTy(
   bool: BoolTy = BoolTy.Bot,
   undef: Boolean = false,
   nullv: Boolean = false,
-) extends PVTy
-object PVTy { // extends Parser.From(Parser.PVTy)
+) extends AValue
+object AValue { // extends Parser.From(Parser.AValue)
   def apply(
     addr: BSet[Addr] = Fin(),
     grammarSymbol: BSet[GrammarSymbol] = Fin(),
@@ -280,7 +280,7 @@ object PVTy { // extends Parser.From(Parser.PVTy)
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,
-  ): PVTy = PVElemTy(
+  ): AValue = PVElemTy(
     addr,
     grammarSymbol,
     codeUnit,
@@ -294,8 +294,8 @@ object PVTy { // extends Parser.From(Parser.PVTy)
     undef,
     nullv,
   ).norm
-  lazy val Top: PVTy = PVTopTy
-  lazy val Bot: PVTy = PVElemTy()
+  lazy val Top: AValue = PVTopTy
+  lazy val Bot: AValue = PVElemTy()
   lazy val StrT = PVElemTy(str = Inf)
   lazy val NullT = PVElemTy(nullv = true)
   lazy val UndefT = PVElemTy(undef = true)

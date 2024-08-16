@@ -44,34 +44,36 @@ class PartialEvaluator(
     )
 
   def peval(ref: Ref): PRefTarget = ref match
-    case v: Var => PRefTarget(PRef.PVar(v), ref)
+    case v: Var => PRefTarget(ARefTarget.AVar(v), ref)
     case Field(base, expr) =>
       val pbase = peval(base)
-      pbase.knownTarget match
-        case None      => ???
-        case Some(tgt) => PRefTarget(PRef.PField(pst(tgt), peval(expr)), ref)
+      val pexpr = peval(expr)
+      PRefTarget(
+        ARefTarget.AField(pst(pbase), pexpr),
+        Field(pbase.asValidRef, pexpr.asValidExpr),
+      )
 
   def peval(expr: Expr): PValue =
     if (log) then
       pw.print(s"[peval][Expr] $expr")
       pw.flush()
     expr match
-      case EParse(code, rule) => PValue(PVTy.Top, expr)
+      case EParse(code, rule) => PValue(AValue.Top, expr)
 
-      case EGrammarSymbol(name, params) => PValue(PVTy.Top, expr)
+      case EGrammarSymbol(name, params) => PValue(AValue.Top, expr)
 
-      case ESourceText(e) => PValue(PVTy.Top, expr)
+      case ESourceText(e) => PValue(AValue.Top, expr)
 
-      case EYet(msg) => PValue(PVTy.Bot, expr)
+      case EYet(msg) => PValue(AValue.Bot, expr)
 
-      case EContains(list, e) => PValue(PVTy.Top, expr)
+      case EContains(list, e) => PValue(AValue.Top, expr)
 
-      case ESubstring(e, from, to) => PValue(PVTy.Top, expr)
+      case ESubstring(e, from, to) => PValue(AValue.Top, expr)
 
       case ETrim(e, isStarting) =>
         val pv = peval(e)
         pv.knownValue match
-          case None => PValue(PVTy.StrT, pv.asValidExpr)
+          case None => PValue(AValue.StrT, pv.asValidExpr)
           case Some(value) =>
             Str(trimString(value.asStr, isStarting, cfg.esParser)).toPValue
 
@@ -86,7 +88,7 @@ class PartialEvaluator(
         pv.knownValue match
           case None =>
             PValue(
-              PVTy.Top,
+              AValue.Top,
               EUnary(uop, pv.asValidExpr),
             )
           case Some(v) => Interpreter.eval(uop, v).toPValue
@@ -100,7 +102,7 @@ class PartialEvaluator(
             v.toPValue
           case (p1, p2) =>
             val newExpr = EBinary(bop, pleft.asValidExpr, pright.asValidExpr)
-            PValue(PVTy.Top, newExpr)
+            PValue(AValue.Top, newExpr)
 
       case EVariadic(vop, es) =>
         val pvs = es.map(peval)
@@ -110,7 +112,7 @@ class PartialEvaluator(
             v.toPValue
           case false =>
             PValue(
-              pvs.map(_.ty).fold(PVTy.Bot)((t, u) => t ⊔ u),
+              pvs.map(_.ty).fold(AValue.Bot)((t, u) => t ⊔ u),
               EVariadic(vop, pvs.map(_.asValidExpr)),
             )
 
@@ -122,7 +124,7 @@ class PartialEvaluator(
             v.toPValue
           case false =>
             PValue(
-              pvs.map(_.ty).fold(PVTy.Bot)((t, u) => t ⊔ u),
+              pvs.map(_.ty).fold(AValue.Bot)((t, u) => t ⊔ u),
               EMathOp(mop, pvs.map(_.asValidExpr)),
             )
 
@@ -169,17 +171,17 @@ class PartialEvaluator(
               case (v, cop) => throw InvalidConversion(cop, expr, v)
             }
 
-      case EExists(ref) => PValue(PVTy.BoolT, expr)
+      case EExists(ref) => PValue(AValue.BoolT, expr)
       case ETypeOf(base) =>
         val pbase @ PValue(ty, _) = peval(base)
         val tyStr = ty match
-          case _ if ty <= PVTy.NumberT => Some("Number")
-          case _ if ty <= PVTy.BigIntT => Some("BigInt")
-          case _ if ty <= PVTy.StrT    => Some("String")
-          case _ if ty <= PVTy.BoolT   => Some("Boolean")
-          case _ if ty <= PVTy.UndefT  => Some("Undefined")
-          case _ if ty <= PVTy.NullT   => Some("Null")
-          case v                       => None
+          case _ if ty <= AValue.NumberT => Some("Number")
+          case _ if ty <= AValue.BigIntT => Some("BigInt")
+          case _ if ty <= AValue.StrT    => Some("String")
+          case _ if ty <= AValue.BoolT   => Some("Boolean")
+          case _ if ty <= AValue.UndefT  => Some("Undefined")
+          case _ if ty <= AValue.NullT   => Some("Null")
+          case v                         => None
         // if (ObjectT.contains(v, st)) "Object"
         // else if (SymbolT.contains(v, st)) "Symbol"
         // else "SpecType"
@@ -187,18 +189,18 @@ class PartialEvaluator(
       // val t = tyStr.map(StrT(_)).getOrElse(StrT)
       // PValue(t, pbase.asValidExpr)
 
-      case EInstanceOf(base, target) => PValue(PVTy.Top, expr)
-      case ETypeCheck(base, ty)      => PValue(PVTy.Top, expr)
-      case ESizeOf(base)             => PValue(PVTy.Top, expr)
+      case EInstanceOf(base, target) => PValue(AValue.Top, expr)
+      case ETypeCheck(base, ty)      => PValue(AValue.Top, expr)
+      case ESizeOf(base)             => PValue(AValue.Top, expr)
       case EClo(fname, captured)     => ??? // PValue(CloT, expr)
       case ECont(fname)              => ??? // PValue(ContT, expr)
 
       case EDebug(e) => peval(e)
 
-      case ERandom() => PValue(PVTy.NumberT, expr)
+      case ERandom() => PValue(AValue.NumberT, expr)
 
-      case ESyntactic(name, args, rhsIdx, children) => PValue(PVTy.Top, expr)
-      case ELexical(name, e)                        => PValue(PVTy.Top, expr)
+      case ESyntactic(name, args, rhsIdx, children) => PValue(AValue.Top, expr)
+      case ELexical(name, e)                        => PValue(AValue.Top, expr)
 
       case ERecord(tname, fields) =>
         val pfields = for ((f, expr) <- fields) yield f -> peval(expr)
@@ -208,12 +210,16 @@ class PartialEvaluator(
         )(using cfg)
         addr.toPValue
 
-      case EMap(pairs) => PValue(PVTy.Top, expr)
+      case EMap(pairs) =>
+        val ppairs = for ((k, v) <- pairs) yield peval(k) -> peval(v)
+        val addr = pst.allocMap(???)
+        addr.toPValue
+
       case EList(exprs) =>
         pst.allocList(exprs.map(expr => peval(expr)).toVector).toPValue
 
       case ECopy(obj)            => ???
-      case EKeys(map, intSorted) => PValue(PVTy.Top, expr)
+      case EKeys(map, intSorted) => PValue(AValue.Top, expr)
 
       // Literals
       case EMath(n)     => Math(n).toPValue
@@ -284,10 +290,14 @@ class PartialEvaluator(
       case IIf(cond, thenInst, elseInst) =>
         val pcond = peval(cond)
         pcond match
-          case PValue(ty, expr) if (ty <= PVTy.Bot)    => ???
-          case PValue(ty, expr) if (ty <= PVTy.TrueT)  => peval(thenInst)
-          case PValue(ty, expr) if (ty <= PVTy.FalseT) => peval(elseInst)
-          case PValue(ty, expr) if (ty <= PVTy.BoolT)  =>
+          case PValue(ty, expr) if (ty <= AValue.Bot) => ???
+          case PValue(ty, expr) if (ty <= AValue.TrueT) =>
+            val that = this.and(cond)
+            that.peval(thenInst)
+          // this.pst.join(that)
+          case PValue(ty, expr) if (ty <= AValue.FalseT) =>
+            this.and(EUnary(UOp.Not, cond)).peval(thenInst)
+          case PValue(ty, expr) if (ty <= AValue.BoolT) =>
             // TODO : Add path condition
             // TODO : Properly handle mutable state
             List(
