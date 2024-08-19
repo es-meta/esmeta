@@ -2,15 +2,17 @@ package esmeta.es.util.fuzzer
 
 import scala.util.*
 import esmeta.cfg.CFG
-import esmeta.es.util.fuzzer.MinifyTesterResult
 import esmeta.js.minifier.Minifier
 import esmeta.injector.Injector
 import esmeta.injector.NormalTag
 import esmeta.js.JSEngine
 import esmeta.es.util.delta.DeltaDebugger
+import esmeta.injector.ConformTest
+import esmeta.injector.ExitStateExtractor
+import esmeta.state.*
 
 case class MinifyTesterConfig(
-  timeLimit: Option[Int] = Some(1000),
+  timeLimit: Option[Int] = Some(1),
   ignoreProperties: List[String] = Nil,
   debugLevel: Int = 0,
 )
@@ -23,25 +25,18 @@ class MinifyTester(
 
   def dd(code: String): String =
     test(code) match
-      case None => log("minify-tester", "pass"); code
-      case Some(MinifyTesterResult(original, minified, injected, exception)) =>
-        DeltaDebugger(
-          cfg, {
-            test(_) match {
-              case Some(result) => result.exception == exception
-              case _            => false
-            }
-          },
-          debugLevel > 1,
-        )
+      case Some(AssertionFailure(original, minified, injected, reason)) =>
+        DeltaDebugger(cfg, test(_).fold(false)(!_.isSuccess), debugLevel > 1)
           .result(original)
+      case Some(_: AssertionSuccess) => log("minify-tester", "pass"); code
+      case _                         => log("minify-tester", "invalid"); code
 
-  def test(code: String): Option[MinifyTesterResult] =
+  def test(code: String): Option[MinifyTestResult] =
     Minifier.minifySwc(code) match
       case Failure(exception) => log("minify-tester", s"$exception"); None
       case Success(minified) => {
         val injected = Try {
-          Injector.replaceBody(
+          RuntimeCompatInjector.replaceBody(
             cfg,
             code,
             minified,
@@ -55,35 +50,40 @@ class MinifyTester(
         log("minify-tester/minified", s"\n$minified\n")
         injected match
           case Success(i) if i.exitTag == NormalTag =>
-            val injectedCode = i.toString
-            JSEngine.runGraal(injectedCode, Some(1000)) match
+            val injected = i.toString
+            JSEngine.runGraal(injected, timeLimit) match
               // minified program passes assertions
               case Success(v) if v.isEmpty =>
-                log("minify-tester", "pass"); None
-              // minified program fails on assertions
-              case Success(v) =>
-                log("minify-tester", "return value exists")
+                log("minify-tester", "assertion pass");
                 Some(
-                  MinifyTesterResult(
+                  AssertionSuccess(
                     code,
                     minified,
-                    injectedCode,
-                    v,
+                    injected,
+                  ),
+                )
+              // minified program fails on assertions
+              case Success(reason) =>
+                log("minify-tester", s"assertion failure with:\n$reason\n")
+                Some(
+                  AssertionFailure(
+                    code,
+                    minified,
+                    injected,
+                    reason,
                   ),
                 )
               // minified program throws exception
               // TODO(@hyp3rflow): we have to mask span in exception description
-              case Failure(exception) =>
-                log(
-                  "minify-tester",
-                  s"exception throws\n${exception.toString}\n",
-                )
+              case Failure(e) =>
+                val exception = e.getMessage
+                log("minify-tester", s"exception throws with:\n$exception\n")
                 Some(
-                  MinifyTesterResult(
+                  ExceptionFailure(
                     code,
                     minified,
-                    injectedCode,
-                    exception.toString,
+                    injected,
+                    exception,
                   ),
                 )
           case Success(_) =>
@@ -99,9 +99,72 @@ class MinifyTester(
     if (debugLevel > 0) System.err.println(s"[$label] $description")
 }
 
-case class MinifyTesterResult(
-  originalCode: String,
-  minifiedCode: String,
-  injectedCode: String,
+sealed trait MinifyTestResult {
+  def original: String
+  def minified: String
+  def injected: String
+
+  def tag: String
+
+  def isSuccess = this match
+    case _: AssertionSuccess => true
+    case _                   => false
+
+  def getReason: Option[String] = this match
+    case AssertionFailure(_, _, _, reason)    => Some(reason)
+    case ExceptionFailure(_, _, _, exception) => Some(exception)
+    case _                                    => None
+}
+case class AssertionSuccess(
+  original: String,
+  minified: String,
+  injected: String,
+) extends MinifyTestResult {
+  def tag: String = "AssertionSuccess"
+}
+case class AssertionFailure(
+  original: String,
+  minified: String,
+  injected: String,
+  reason: String,
+) extends MinifyTestResult {
+  def tag: String = "AssertionFailure"
+}
+case class ExceptionFailure(
+  original: String,
+  minified: String,
+  injected: String,
   exception: String,
-)
+) extends MinifyTestResult {
+  def tag: String = "ExceptionFailure"
+}
+
+// this injector intentionally ignores runtime details
+object RuntimeCompatInjector {
+  def replaceBody(
+    cfg: CFG,
+    src: String,
+    body: String,
+    defs: Boolean = false,
+    timeLimit: Option[Int] = None,
+    log: Boolean = false,
+    ignoreProperties: List[String] = Nil,
+  ): ConformTest =
+    val exitSt = ExitStateExtractor(cfg.init.from(src), timeLimit).result
+    new Injector(
+      cfg,
+      exitSt,
+      body,
+      defs,
+      log,
+      ignoreProperties,
+    ) {
+      override def handlePropKeys(addr: Addr, path: String): Unit =
+        exitSt(addr) match
+          case obj @ RecordObj(tname, _)
+              if tname == "ECMAScriptFunctionObject" =>
+          // ignore assertions for checking property keys of user-defined function
+          case _ => super.handlePropKeys(addr, path)
+
+    }.conformTest
+}

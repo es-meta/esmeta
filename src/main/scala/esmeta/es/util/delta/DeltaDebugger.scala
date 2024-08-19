@@ -133,6 +133,55 @@ class DeltaDebugger(
                 else baseWalk(candidate, f)
               case false => baseWalk(syn, f)
           }).sortBy(_.toString(grammar = Some(grammar)).length).head
+        case "CallExpression" if rhsIdx == 0 =>
+          // bail-out call expression for removing tracers inserted by TracerExprMutator
+          log(s"walk: $name:$rhsIdx ${syn.toString(grammar = Some(grammar))}")
+          // CallExpression[0] -> CoverCallExpressionAndAsyncArrowHead
+          val coverCallExpressionAndAsyncArrowHeadSyn = children(0)
+          val candidate = coverCallExpressionAndAsyncArrowHeadSyn match
+            case Some(
+                  Syntactic(
+                    "CoverCallExpressionAndAsyncArrowHead",
+                    _,
+                    rhsIdx,
+                    children,
+                  ),
+                ) if rhsIdx == 0 =>
+              // CoverCallExpressionAndAsyncArrowHead[0] -> MemberExpression Arguments
+              val arguments = children(1)
+              arguments match
+                case Some(Syntactic("Arguments", _, rhsIdx, children))
+                    if rhsIdx == 1 =>
+                  val argumentList = children(0)
+                  argumentList match
+                    case Some(Syntactic("ArgumentList", args, rhsIdx, children))
+                        if rhsIdx == 0 =>
+                      val assignExprSyn = children(0)
+                      assignExprSyn match
+                        case Some(syn) =>
+                          Some(
+                            esParser("NewExpression", args)
+                              .from(syn.toString(grammar = Some(grammar)))
+                              .asInstanceOf[Syntactic],
+                          )
+                        case _ => None
+                    case _ => None
+                case _ => None
+            case _ => None
+          val candidates = List(candidate, Some(syn))
+          (for {
+            candidateOpt <- candidates
+            candidate <- candidateOpt
+          } yield {
+            checker(f(candidate).toString(grammar = Some(grammar))) match
+              case true =>
+                log(
+                  s"walk: $name ${f(candidate).toString(grammar = Some(grammar))}",
+                ); minimal +:= f(candidate);
+                if (candidate.name != name) walk(candidate, f)
+                else baseWalk(candidate, f)
+              case false => baseWalk(syn, f)
+          }).sortBy(_.toString(grammar = Some(grammar)).length).head
         case "ArgumentList" if rhsIdx == 1 =>
           log(s"walk: $name:$rhsIdx")
           walk(Syntactic(name, args, 0, children), f)

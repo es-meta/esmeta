@@ -148,72 +148,52 @@ class MinifyFuzzer(
       case NormalTag =>
         val returns = injector.assertions
         // TODO: some simple programs cannot be checked by this logic due to the empty return assertion
-        for (ret <- returns.par) {
+        val codes =
           // TODO: we have to try in sloppy mode but ESMeta doesn't respect execution mode yet
-          val directive = USE_STRICT
-          val codes = code +: tracerExprMutator(code, 5, None).map(
+          code +: tracerExprMutator(code, 5, None).map(
             _._2.toString(grammar = Some(cfg.grammar)),
           )
-          for (code <- codes)
-            val instrumentedCode = tracerInjector(code)
-            val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
-            val tracerHeader =
-              s"const arr = []; const $TRACER_SYMBOL = x => (arr.push(x), x)\n"
-            val original = directive ++ tracerHeader ++ iife
-            minifyTester.test(original) match
-              case None =>
-              case Some(
-                    MinifyTesterResult(code, minified, injected, exception),
-                  ) =>
-                val delta =
-                  DeltaDebugger(
-                    cfg, {
-                      minifyTester.test(_) match
-                        case Some(result) => exception == result.exception
-                        case _            => false
-                    },
-                  ).result(code)
-                // re-run tester with dd output
-                minifyTester.test(delta) match
-                  case None =>
-                  case Some(
-                        MinifyTesterResult(delta, minified, injected, exception),
-                      ) =>
-                    log(
-                      MinifyFuzzResult(
-                        iter,
-                        covered,
-                        original,
-                        minified,
-                        delta,
-                        injected,
-                        exception,
-                      ),
-                    )
-
+        for {
+          ret <- returns.par
+          code <- codes.par
+        } {
+          val instrumentedCode = tracerInjector(code)
+          val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
+          val tracerHeader =
+            s"const arr = []; const $TRACER_SYMBOL = x => (arr.push(x), x)\n"
+          val original = USE_STRICT ++ tracerHeader ++ iife
+          minifyTester.test(original) match
+            case None | Some(_: AssertionSuccess) =>
+            case Some(failure) =>
+              val delta =
+                DeltaDebugger(
+                  cfg,
+                  minifyTester.test(_).fold(false)(_.tag == failure.tag),
+                ).result(code)
+              // re-run tester with dd output
+              minifyTester.test(delta) match
+                case None | Some(_: AssertionSuccess) =>
+                case Some(result) =>
+                  log(MinifyFuzzResult(iter, covered, result))
         }
+
       case _ =>
 
   private def log(result: MinifyFuzzResult) = minimalIterMap.synchronized {
-    val MinifyFuzzResult(
-      iter,
-      covered,
-      original,
-      minified,
-      delta,
-      injected,
-      exception,
-    ) = result
+    val MinifyFuzzResult(iter, covered, test) = result
+    val original = test.original
+    val minified = test.minified
+    val injected = test.injected
     // if it is new, we have to log
-    if (!pass.contains(delta)) {
+    if (!pass.contains(original)) {
       val count = counter.incrementAndGet()
-      minimalIterMap += (delta -> count)
+      minimalIterMap += (original -> count)
       val dirpath = s"$logDir/$count"
       mkdir(dirpath)
       dumpFile(minified, s"$dirpath/minified.js")
       dumpFile(injected, s"$dirpath/injected.js")
-      dumpFile(delta, s"$dirpath/delta.js")
-      dumpFile(exception, s"$dirpath/reason")
+      dumpFile(original, s"$dirpath/delta.js")
+      test.getReason.map(dumpFile(_, s"$dirpath/reason"))
       dumpJson(
         Json.obj(
           "iter" -> Json.fromInt(iter),
@@ -225,19 +205,21 @@ class MinifyFuzzer(
       // dumpJson(db.asJson, s"$dirpath/db.json")
     }
     // we have to log original program even if it is not new
-    minimalIterMap.get(delta) match
+    minimalIterMap.get(original) match
       case Some(count) =>
         val dirpath = s"$logDir/$count/bugs"
         mkdir(dirpath)
         dumpFile(original, s"$dirpath/$iter.js")
-        minimalMap.getOrElseUpdate(delta, MSet.empty).add(original)
+        minimalMap.getOrElseUpdate(original, MSet.empty).add(original)
       case None
-          if db.getLabel(delta).isDefined || db.getLabel(original).isDefined =>
-        val label = db.getLabel(delta).get
+          if db.getLabel(original).isDefined || db
+            .getLabel(original)
+            .isDefined =>
+        val label = db.getLabel(original).get
         val dirpath = s"$logDir/labels/$label"
         mkdir(dirpath)
         dumpFile(original, s"$dirpath/$iter.js")
-        dumpFile(exception, s"$dirpath/$iter.reason.txt")
+        test.getReason.map(dumpFile(_, s"$dirpath/$iter.reason.txt"))
       // do not add minimalMap to keep memory size small
       case _ =>
         error("Unexpected program in log")
@@ -249,9 +231,5 @@ class MinifyFuzzer(
 case class MinifyFuzzResult(
   iteration: Int,
   covered: Boolean,
-  originalCode: String,
-  minifiedCode: String,
-  deltaDebugged: String,
-  injectedCode: String,
-  exception: String,
+  result: MinifyTestResult,
 )

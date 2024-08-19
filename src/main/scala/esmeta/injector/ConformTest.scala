@@ -44,7 +44,7 @@ case class ConformTest(
     failedAssertions: Vector[(Assertion, String)],
   ) = JSEngine
     .createGraalContext((context, out) => {
-      JSEngine.runGraalUsingContext(script, context, Some(1000))
+      JSEngine.runGraalUsingContext(script, context, Some(1))
       JSEngine.runGraalUsingContext(Injector.header, context)
       val (passes, fails) = assertions
         .map(assertion =>

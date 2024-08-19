@@ -25,7 +25,7 @@ object Minifier {
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     def cmd(main: String) = timeout match
-      case Some(timeout) => s"timeout ${timeout / 1000f}s $main $escapedSrc"
+      case Some(timeout) => s"timeout ${timeout}s $main $escapedSrc"
       case None          => s"$main $escapedSrc"
     val pb: ProcessBuilder = if command.contains("|") then {
       val Array(main, envInfo) = command.split("\\|")

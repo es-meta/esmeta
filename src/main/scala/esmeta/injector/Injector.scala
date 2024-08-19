@@ -245,7 +245,7 @@ class Injector(
     )
 
   // handle property names
-  private def handlePropKeys(addr: Addr, path: String): Unit =
+  protected def handlePropKeys(addr: Addr, path: String): Unit =
     log(s"handlePropKeys: $addr, $path")
     val newSt = exitSt.copied
     getValue(addr, "OwnPropertyKeys") match
@@ -327,7 +327,7 @@ class Injector(
     getValue(FieldTarget(addr, Str(prop)))
 
   // access properties
-  private def access(base: Value, props: Value*): Value =
+  protected def access(base: Value, props: Value*): Value =
     props.foldLeft(base) { case (base, p) => exitSt(base, p) }
 
   // get created lexical variables
