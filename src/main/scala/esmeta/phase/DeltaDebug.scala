@@ -13,7 +13,6 @@ import esmeta.js.JSEngine
 import esmeta.js.minifier.Minifier
 import esmeta.util.BaseUtils.error
 import esmeta.injector.ReturnInjector
-import esmeta.es.util.fuzzer.MinifyTesterResult
 import esmeta.injector.NormalTag
 import esmeta.util.SystemUtils.*
 import scala.collection.parallel.CollectionConverters._
@@ -35,7 +34,10 @@ case object DeltaDebug extends Phase[CFG, String] {
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
     _config = Some(config)
     val minifyTester =
-      MinifyTester(cfg, MinifyTesterConfig(debugLevel = config.debug))
+      MinifyTester(
+        cfg,
+        MinifyTesterConfig(debugLevel = config.debug, timeLimit = Some(1)),
+      )
     // TODO: fix this after separating silent option
     val result = if (config.multiple) {
       val count = AtomicInteger(0)

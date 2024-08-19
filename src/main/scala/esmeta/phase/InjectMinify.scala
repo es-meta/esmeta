@@ -40,7 +40,7 @@ case object InjectMinify extends Phase[CFG, List[String]] {
                 wrapped,
                 minified,
                 defs = config.defs,
-                timeLimit = Some(1000),
+                timeLimit = Some(1),
                 log = false,
                 ignoreProperties = "\"name\"" :: Nil,
               )

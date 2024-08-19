@@ -49,11 +49,11 @@ object JSEngine {
   // TODO(@hyp3rflow): fix this thread issue
   case class Status(var running: Boolean = false, var done: Boolean = false)
 
-  /** register timeout to context in milliseconds */
+  /** register timeout to context in seconds */
   def registerTimeout(context: Context, timeout: Int, stat: Status) =
     Future {
       while (!stat.done) {
-        Thread.sleep(timeout)
+        Thread.sleep(timeout * 1000)
         if (!stat.done && stat.running)
           // TODO race condition:
           // new eval is performed between
@@ -62,7 +62,7 @@ object JSEngine {
       }
     }
 
-  /** run JavaScript program with timeout(ms) using GraalVM Polyglot API */
+  /** run JavaScript program with timeout(secs) using GraalVM Polyglot API */
   def runGraal(src: String, timeout: Option[Int] = None): Try[String] =
     createGraalContext((context, out) =>
       runGraalUsingContextOut(src, context, out, timeout),
@@ -92,7 +92,7 @@ object JSEngine {
   ): Unit =
     if (!useGraal) throw NoGraalError
     val stat = Status()
-    limit.foreach(millis => registerTimeout(context, millis, stat))
+    limit.foreach(seconds => registerTimeout(context, seconds, stat))
     stat.running = true
     try context.eval("js", src)
     finally context.close
@@ -107,7 +107,7 @@ object JSEngine {
     if (!useGraal) throw NoGraalError
     val stat = Status()
     out.reset
-    limit.foreach(millis => registerTimeout(context, millis, stat))
+    limit.foreach(seconds => registerTimeout(context, seconds, stat))
     stat.running = true
     try {
       context.eval("js", src)
@@ -145,7 +145,7 @@ object JSEngine {
     val stdout = new StringJoiner(LINE_SEP)
     val stderr = new StringJoiner(LINE_SEP)
     def cmd(main: String) = timeout match
-      case Some(timeout) => s"timeout ${timeout / 1000f}s $main $escapedSrc"
+      case Some(timeout) => s"timeout ${timeout}s $main $escapedSrc"
       case None          => s"$main $escapedSrc"
     val pb: ProcessBuilder = if command.contains("|") then {
       val Array(main, envInfo) = command.split("\\|")
@@ -165,7 +165,7 @@ object JSEngine {
   }
 
   lazy val useJs: Boolean =
-    runJs(";", Some(1000)) match
+    runJs(";", Some(1)) match
       case Success(value)             => true
       case Failure(NoCommandError(_)) => warn("No Graal.js"); false
       case _                          => false
@@ -174,7 +174,7 @@ object JSEngine {
     execScript(defaultCmd("js"), src, timeout)
 
   lazy val useNode: Boolean =
-    runNode(";", Some(1000)) match
+    runNode(";", Some(1)) match
       case Success(value)             => true
       case Failure(NoCommandError(_)) => warn("No Node.js"); false
       case _                          => false
@@ -183,7 +183,7 @@ object JSEngine {
     execScript(defaultCmd("node"), src, timeout)
 
   lazy val useD8: Boolean =
-    runD8(";", Some(1000)) match
+    runD8(";", Some(1)) match
       case Success(value)             => true
       case Failure(NoCommandError(_)) => warn("No D8"); false
       case _                          => false
