@@ -4,18 +4,20 @@ import esmeta.ir.*
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
-import esmeta.peval.domain.PVTopTy.bigInt
+import esmeta.peval.domain.AValueTop.bigInt
 
-/** Partial Value - Either Expr or Value */
-sealed trait PartialValue
-case class PValue(val ty: AValue, private val expr: Expr) extends PartialValue:
+/** Partial Value - Abstract Value */
+
+case class PValue(val ty: AValue, private val expr: Expr)
+  extends PartialElem[Value, Expr]:
   // Use a type with a finer granularity than Expr for absExpr
 
-  lazy val knownValue: Option[Value] =
-    this.ty.getSingle match
-      case Many      => None
-      case One(elem) => Some(elem)
-      case Zero      => None
+  lazy val known: Option[Value] = this.ty.getSingle match
+    case One(elem) => Some(elem)
+    case _         => None
 
-  /** to print */
-  lazy val asValidExpr: Expr = this.expr
+  lazy val asValidForm: Expr = this.expr
+
+  def addr: BSet[Addr] = this.ty.addr
+
+/** to print */

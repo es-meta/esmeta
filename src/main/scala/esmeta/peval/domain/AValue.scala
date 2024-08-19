@@ -217,8 +217,8 @@ sealed trait AValue extends Ty with Lattice[AValue] {
 
   /** types having no field */
   def noField: AValue = this match
-    case PVTopTy =>
-      PVElemTy(
+    case AValueTop =>
+      AValueElem(
         addr = Inf,
         grammarSymbol = Inf,
         codeUnit = true,
@@ -230,14 +230,14 @@ sealed trait AValue extends Ty with Lattice[AValue] {
         undef = true,
         nullv = true,
       )
-    case elem: PVElemTy =>
+    case elem: AValueElem =>
       elem.copy(
         addr = Fin(),
         str = Fin(),
       )
 }
 
-case object PVTopTy extends AValue {
+case object AValueTop extends AValue {
   def addr: BSet[Addr] = Inf
   def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true
@@ -252,7 +252,7 @@ case object PVTopTy extends AValue {
   def nullv: Boolean = true
 }
 
-case class PVElemTy(
+case class AValueElem(
   addr: BSet[Addr] = Fin(),
   grammarSymbol: BSet[GrammarSymbol] = Fin(),
   codeUnit: Boolean = false,
@@ -280,7 +280,7 @@ object AValue { // extends Parser.From(Parser.AValue)
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,
-  ): AValue = PVElemTy(
+  ): AValue = AValueElem(
     addr,
     grammarSymbol,
     codeUnit,
@@ -294,15 +294,16 @@ object AValue { // extends Parser.From(Parser.AValue)
     undef,
     nullv,
   ).norm
-  lazy val Top: AValue = PVTopTy
-  lazy val Bot: AValue = PVElemTy()
-  lazy val StrT = PVElemTy(str = Inf)
-  lazy val NullT = PVElemTy(nullv = true)
-  lazy val UndefT = PVElemTy(undef = true)
-  lazy val BoolT = PVElemTy(bool = BoolTy.Top)
-  lazy val TrueT = PVElemTy(bool = BoolTy(Set(true)))
-  lazy val FalseT = PVElemTy(bool = BoolTy(Set(false)))
-  lazy val NumberT = PVElemTy(number = NumberTopTy)
-  lazy val BigIntT = PVElemTy(bigInt = true)
+  lazy val Top: AValue = AValueTop
+  lazy val Bot: AValue = AValueElem()
+  lazy val StrT = AValueElem(str = Inf)
+  lazy val NullT = AValueElem(nullv = true)
+  lazy val UndefT = AValueElem(undef = true)
+  lazy val BoolT = AValueElem(bool = BoolTy.Top)
+  lazy val TrueT = AValueElem(bool = BoolTy(Set(true)))
+  lazy val FalseT = AValueElem(bool = BoolTy(Set(false)))
+  lazy val NumberT = AValueElem(number = NumberTopTy)
+  lazy val BigIntT = AValueElem(bigInt = true)
+  lazy val AddrT = AValueElem(addr = Inf)
 
 }
