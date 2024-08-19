@@ -75,10 +75,16 @@ object JSEngine {
   ): Try[T] =
     if (!useGraal) throw NoGraalError
     val out = new ByteArrayOutputStream
+    // TODO(@hyp3rflow): thread-based timeout
+    val limits = ResourceLimits
+      .newBuilder()
+      .statementLimit(1000, null)
+      .build();
     Using(
       Context
         .newBuilder("js")
         .option("engine.WarnInterpreterOnly", "false")
+        .resourceLimits(limits)
         .out(out)
         .build(),
     ) { context =>
