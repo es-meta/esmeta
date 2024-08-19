@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.simplifier
 
 import esmeta.{IRPEVAL_LOG_DIR}
 import esmeta.ir.{Expr, Func, Inst, Program, Ref}
@@ -20,7 +20,17 @@ class Simplifier(
 
   // TODO
   /** resulting function */
-  lazy val result: Func = targetFunc
+  lazy val result: Func = Func(
+    targetFunc.main,
+    targetFunc.kind,
+    targetFunc.name,
+    targetFunc.params,
+    targetFunc.retTy,
+    simplify(targetFunc.body),
+    targetFunc.algo,
+  )
+
+  def simplify(inst : Inst): Inst = RedundantSyntax(UseDef(inst))
 
   /** logging */
   private lazy val pw: PrintWriter =
