@@ -59,7 +59,9 @@ case class PHeap(
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, PValue)] = Nil,
-  )(using CFG): Addr = alloc(PRecordObj(tname, pairs))
+  )(using CFG): Addr = alloc(
+    PRecordObj(tname, pairs.map(_ -> PValueExistence.from(_))),
+  )
 
   /** map allocations */
   def allocMap(pairs: Iterable[(Value, PValue)]): Addr = alloc(PMapObj(pairs))

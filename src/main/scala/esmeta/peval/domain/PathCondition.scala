@@ -11,6 +11,9 @@ case class PathCondition(exprs: List[Expr]):
     aux(this.exprs)
 
   def and(expr: Expr): PathCondition = new PathCondition(expr :: exprs)
+  def and(pc: PathCondition): PathCondition = new PathCondition(
+    pc.exprs ::: exprs,
+  )
 
 object PathCondition:
   def apply(): PathCondition = PathCondition(Nil)

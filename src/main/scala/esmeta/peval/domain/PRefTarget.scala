@@ -3,18 +3,18 @@ package esmeta.peval.domain
 import esmeta.ir.*
 import esmeta.state.*
 import esmeta.ty.{BoolTy, InfinityTy, MathSetTy, NumberSetTy}
-import esmeta.util.Fin
+import esmeta.util.*
 
-case class PRefTarget(val tgt: ARefTarget, private val ref: Ref):
-
-  def knownTarget: Option[RefTarget] = this.tgt match
-    case ARefTarget.AVar(x) => Some(VarTarget(x))
-    case ARefTarget.AField(base, field) =>
-      (base.knownValue, field.knownValue) match
+case class PRefTarget(val tgt: ARefTarget, private val ref: Ref)
+  extends PartialElem[RefTarget, Ref]:
+  def known: Option[RefTarget] = this.tgt match
+    case ARefTarget.AVarTarget(x) => Some(VarTarget(x))
+    case ARefTarget.AFieldTarget(base, field) =>
+      (base.known, field.known) match
         case (Some(base), Some(field)) => Some(FieldTarget(base, field))
         case _                         => None
 
-  lazy val asValidRef: Ref = ref
+  lazy val asValidForm: Ref = ref
 
 extension (value: Value)
   def asLitExpr: Expr = value match
@@ -35,22 +35,29 @@ extension (value: Value)
     case Undef                           => EUndef()
     case Null                            => ENull()
 
+  def toAValue: AValue = value match
+    case addr: Addr                      => AValue(addr = Fin(addr))
+    case Clo(func, captured)             => ???
+    case Cont(func, captured, callStack) => ???
+    case AstValue(ast)                   => ???
+    case GrammarSymbol(name, params)     => ???
+    case Math(d)     => AValue(math = MathSetTy(Set(Math(d))))
+    case Infinity(p) => AValue(infinity = InfinityTy(Set(p)))
+    case Enum(name)  => AValue(enumv = Fin(name))
+    case CodeUnit(c) => AValue(codeUnit = true)
+    case Number(d)   => AValue(number = NumberSetTy(Set(Number(d))))
+    case BigInt(_)   => AValue(bigInt = true)
+    case Str(s)      => AValue(str = Fin(s))
+    case Bool(b)     => AValue(bool = BoolTy(Set(b)))
+    case Undef       => AValue(undef = true)
+    case Null        => AValue(nullv = true)
+
   def toPValue: PValue = value match
-    case addr: Addr          => PValue(AValue(addr = Fin(addr)), ???)
+    case addr: Addr          => ??? // PValue(AValue(addr = Fin(addr)))
     case Clo(func, captured) => ???
     case Cont(func, captured, callStack) => ???
     case AstValue(ast)                   => ???
     case GrammarSymbol(name, params)     => ???
-    case Math(d) =>
-      PValue(AValue(math = MathSetTy(Set(Math(d)))), value.asLitExpr)
-    case Infinity(p) =>
-      PValue(AValue(infinity = InfinityTy(Set(p))), value.asLitExpr)
-    case Enum(name)  => PValue(AValue(enumv = Fin(name)), value.asLitExpr)
-    case CodeUnit(c) => PValue(AValue(codeUnit = true), value.asLitExpr)
-    case Number(d) =>
-      PValue(AValue(number = NumberSetTy(Set(Number(d)))), value.asLitExpr)
-    case BigInt(_) => PValue(AValue(bigInt = true), value.asLitExpr)
-    case Str(s)    => PValue(AValue(str = Fin(s)), value.asLitExpr)
-    case Bool(b)   => PValue(AValue(bool = BoolTy(Set(b))), value.asLitExpr)
-    case Undef     => PValue(AValue(undef = true), value.asLitExpr)
-    case Null      => PValue(AValue(nullv = true), value.asLitExpr)
+    case _ => PValue(value.toAValue, value.asLitExpr)
+
+  def toPValueWithVar(v: Var) = PValue(value.toAValue, ERef(v))

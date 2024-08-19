@@ -16,6 +16,9 @@ case class PState private (
   val heap: PHeap = PHeap(),
 ) extends StateElem {
 
+  override def clone: PState =
+    new PState(context.copied, List.from(callStack), globals, heap)
+
   /** safe getter */
   def get(rt: RefTarget): Try[PValue] = Try(apply(rt))
   def get(x: Var): Try[PValue] = Try(apply(x))
@@ -38,6 +41,14 @@ case class PState private (
     case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
 
+  /* abstract getter */
+  def apply(prt: PRefTarget): PValue = prt.tgt match
+    case ARefTarget.AVarTarget(x)             => apply(x)
+    case ARefTarget.AFieldTarget(base, field) => apply(base, field)
+
+  /** abstract field getter */
+  def apply(base: PValue, field: PValue): PValue = ???
+
   /** string field getter */
   def apply(str: String, field: Value): PValue = field match
     case Str("length") => Math(BigDecimal(str.length)).toPValue
@@ -57,6 +68,11 @@ case class PState private (
     case VarTarget(x)             => update(x, pv)
     case FieldTarget(base, field) => update(base, field, pv)
 
+  /** partial setter */
+  def update(prt: PRefTarget, pv: PValue): Unit = prt.tgt match
+    case ARefTarget.AVarTarget(x)             => update(x, pv)
+    case ARefTarget.AFieldTarget(base, field) => update(base, field, pv)
+
   /** variable setter */
   def update(x: Var, pv: PValue): Unit = x match
     case x: Global => globals += x -> pv
@@ -64,6 +80,9 @@ case class PState private (
 
   /** field setter */
   def update(base: Value, field: Value, expr: PValue): Unit = ???
+
+  /** abstract field setter */
+  def update(base: PValue, field: PValue, expr: PValue): Unit = ???
 
   /** existence checks */
   def exists(rt: RefTarget): Boolean = ???
@@ -84,12 +103,12 @@ case class PState private (
   //   case AstValue(ast) => ast.exists(field)
   //   case _             => error(s"illegal field existence check: $base[$field]")
 
-  /** expand a field of a record object */
-  def expand(base: Value, field: Value): Unit =
+  /** expand a field of a record object (abstract) */
+  def expand(base: PValue, field: PValue): Unit =
     ??? // heap.expand(base.asAddr, field)
 
   /** delete a key from an map object */
-  def delete(base: Value, key: Value): Unit =
+  def delete(base: PValue, key: PValue): Unit =
     ??? //  heap.delete(base.asAddr, key)
 
   /** push a value to a list */
@@ -113,6 +132,9 @@ case class PState private (
 
   /** allocate a map object */
   def allocMap(pairs: Iterable[(Value, PValue)]): Addr = heap.allocMap(pairs)
+
+  /** allocate a map object with abstract pairs */
+  def allocMapAbs(pairs: Iterable[(PValue, PValue)]): Addr = ???
 
   /** allocate a list object */
   def allocList(vs: Iterable[PValue]): Addr = heap.allocList(vs)

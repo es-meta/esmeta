@@ -21,8 +21,11 @@ sealed trait PObj extends StateElem {
 
   /** safe getter */
   def get(field: Value): Option[PValue] = (this, field) match
-    case (r: PRecordObj, Str(f)) => r.map.get(f).collect { case v: PValue => v }
-    case (m: PMapObj, key)       => m.map.get(key)
+    case (r: PRecordObj, Str(f)) =>
+      r.map.get(f).collect {
+        case v if (!v.ty.avalue.isBottom) => PValue(v.ty.avalue, v.asValidExpr)
+      }
+    case (m: PMapObj, key) => m.map.get(key)
     case (l: PListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
     case (y: PYetObj, _) => ??? // throw NotSupported(Feature)(y.msg)
@@ -37,7 +40,7 @@ sealed trait PObj extends StateElem {
   /** setter */
   def update(field: Value, value: PValue): Unit = (this, field) match
     case (r: PRecordObj, Str(field)) => // TODO if r.map.contains(field) =>
-      r.map += field -> value
+      ??? // r.map += field -> value
     case (m: PMapObj, key) => m.map += key -> value
     case (l: PListObj, Math(decimal)) if decimal.isValidInt =>
       val i = decimal.toInt
@@ -64,7 +67,8 @@ sealed trait PObj extends StateElem {
   /** expand */
   def expand(field: Value): Unit = (this, field) match
     case (m: PRecordObj, Str(field)) =>
-      if (!m.map.contains(field)) m.map += field -> Uninit
+      if (!m.map.contains(field))
+        m.map += field -> PValueExistence.uninit
     case _ => ??? // throw InvalidObjOp(this, s"expand $field")
 
   /** delete */
@@ -112,23 +116,25 @@ sealed trait PObj extends StateElem {
 /** record objects */
 case class PRecordObj(
   var tname: String,
-  map: MMap[String, PValue | Uninit],
+  map: MMap[String, PValueExistence],
 ) extends PObj
 object PRecordObj {
 
   /** apply with type model */
   def apply(
     tname: String,
-    fs: Iterable[(String, PValue | Uninit)],
+    fs: Iterable[(String, PValueExistence)],
   )(using CFG): PRecordObj =
     val obj = PRecordObj(tname)
     for { ((k, v), idx) <- fs.zipWithIndex }
       obj.map += k -> v
     obj
-  def apply(tname: String)(fs: (String, PValue)*)(using CFG): PRecordObj =
+  def apply(tname: String)(fs: (String, PValueExistence)*)(using
+    CFG,
+  ): PRecordObj =
     apply(tname, fs)
   def apply(tname: String)(using cfg: CFG): PRecordObj =
-    val obj = PRecordObj(tname, MMap())
+    val obj = PRecordObj(tname, MMap.empty[String, PValueExistence])
     // TODO : type model..
     // TODO : "EClo" is not okay for this case..
 
