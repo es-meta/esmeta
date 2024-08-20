@@ -6,7 +6,7 @@ import esmeta.error.NoEnvVarError
 val LINE_SEP = System.getProperty("line.separator")
 
 /** base project directory root */
-val VERSION = "0.4.1"
+val VERSION = "0.4.2"
 
 /** base project directory root */
 val BASE_DIR =
