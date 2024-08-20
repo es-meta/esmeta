@@ -132,6 +132,7 @@ lazy val assemblyJavaOpts = Seq(
   "-Xms1g",
   "-Xmx3g",
   "-XX:ReservedCodeCacheSize=512m",
+  "-Xss4m",
   "-Dfile.encoding=utf8",
 )
 
