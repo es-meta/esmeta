@@ -64,7 +64,7 @@ class MinifyFuzzer(
 ) {
   import MinifyFuzzer.*
 
-  val counter = AtomicInteger(0)
+  val bugIndexCounter = AtomicInteger(0)
 
   val minifyTester = MinifyTester(
     cfg,
@@ -86,14 +86,14 @@ class MinifyFuzzer(
     "INTRINSICS.Function.prototype.toString",
   )
 
-  // delta -> unique bug counter in this iteration
-  var minimalIterMap: MMap[String, Int] = MMap.empty
+  // delta -> unique bug index
+  val deltaIndex: MMap[String, Int] = MMap.empty
 
   // delta -> original programs
-  val minimalMap: MMap[String, MSet[String]] = MMap.empty
+  val deltaProvenances: MMap[String, MSet[String]] = MMap.empty
 
-  // set of programs we already saw
-  def pass: Set[String] = (db.minimals ++ minimalIterMap.keys).toSet
+  // set of already seen programs (deltas)
+  def pass: Set[String] = (db.minimals ++ deltaIndex.keys).toSet
 
   lazy val fuzzer = new Fuzzer(
     cfg = cfg,
@@ -174,25 +174,25 @@ class MinifyFuzzer(
               minifyTester.test(delta) match
                 case None | Some(_: AssertionSuccess) =>
                 case Some(result) =>
-                  log(MinifyFuzzResult(iter, covered, result))
+                  log(MinifyFuzzResult(iter, covered, original, result))
         }
 
       case _ =>
 
-  private def log(result: MinifyFuzzResult) = minimalIterMap.synchronized {
-    val MinifyFuzzResult(iter, covered, test) = result
-    val original = test.original
+  private def log(result: MinifyFuzzResult) = deltaIndex.synchronized {
+    val MinifyFuzzResult(iter, covered, original, test) = result
+    val delta = test.original
     val minified = test.minified
     val injected = test.injected
     // if it is new, we have to log
-    if (!pass.contains(original)) {
-      val count = counter.incrementAndGet()
-      minimalIterMap += (original -> count)
+    if (!pass.contains(delta)) {
+      val count = bugIndexCounter.incrementAndGet()
+      deltaIndex += (original -> count)
       val dirpath = s"$logDir/$count"
       mkdir(dirpath)
       dumpFile(minified, s"$dirpath/minified.js")
       dumpFile(injected, s"$dirpath/injected.js")
-      dumpFile(original, s"$dirpath/delta.js")
+      dumpFile(delta, s"$dirpath/delta.js")
       test.getReason.map(dumpFile(_, s"$dirpath/reason"))
       dumpJson(
         Json.obj(
@@ -204,25 +204,22 @@ class MinifyFuzzer(
       // TODO(@hyp3rflow): extends Fuzzer and dumps DB periodically.
       // dumpJson(db.asJson, s"$dirpath/db.json")
     }
-    // we have to log original program even if it is not new
-    minimalIterMap.get(original) match
-      case Some(count) =>
-        val dirpath = s"$logDir/$count/bugs"
+    deltaIndex.get(delta) match
+      // if it is found in this execution, dump original to bug index directory.
+      case Some(index) =>
+        val dirpath = s"$logDir/$index/bugs"
         mkdir(dirpath)
         dumpFile(original, s"$dirpath/$iter.js")
-        minimalMap.getOrElseUpdate(original, MSet.empty).add(original)
-      case None
-          if db.getLabel(original).isDefined || db
-            .getLabel(original)
-            .isDefined =>
-        val label = db.getLabel(original).get
+        deltaProvenances.getOrElseUpdate(delta, MSet.empty).add(original)
+      // if it is already known bug, dump original to label directory.
+      case None if db.getLabel(delta).isDefined =>
+        val label = db.getLabel(delta).get
         val dirpath = s"$logDir/labels/$label"
         mkdir(dirpath)
         dumpFile(original, s"$dirpath/$iter.js")
         test.getReason.map(dumpFile(_, s"$dirpath/$iter.reason.txt"))
-      // do not add minimalMap to keep memory size small
-      case _ =>
-        error("Unexpected program in log")
+      // unreachable path
+      case _ => ???
 
   }
 
@@ -231,5 +228,6 @@ class MinifyFuzzer(
 case class MinifyFuzzResult(
   iteration: Int,
   covered: Boolean,
+  original: String,
   result: MinifyTestResult,
 )
