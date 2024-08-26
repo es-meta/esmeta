@@ -136,6 +136,13 @@ class MinifyFuzzer(
     )
   }
 
+  private def buildTestProgram(code: String, ret: ReturnAssertion): String =
+    val instrumentedCode = tracerInjector(code)
+    val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
+    val tracerHeader =
+      s"const arr = []; const $TRACER_SYMBOL = x => (arr.push(x), x)\n"
+    USE_STRICT ++ tracerHeader ++ iife
+
   private def minifyTest(
     // TODO(@hyp3rflow): we should consider about same iter number among different programs due to return injector
     iter: Int,
@@ -157,21 +164,20 @@ class MinifyFuzzer(
           ret <- returns.par
           code <- codes.par
         } {
-          val instrumentedCode = tracerInjector(code)
-          val iife = s"const k = (function () {\n$code\n$ret\n})();\n"
-          val tracerHeader =
-            s"const arr = []; const $TRACER_SYMBOL = x => (arr.push(x), x)\n"
-          val original = USE_STRICT ++ tracerHeader ++ iife
+          val original = buildTestProgram(code, ret)
           minifyTester.test(original) match
             case None | Some(_: AssertionSuccess) =>
             case Some(failure) =>
               val delta =
                 DeltaDebugger(
                   cfg,
-                  minifyTester.test(_).fold(false)(_.tag == failure.tag),
+                  code =>
+                    minifyTester
+                      .test(buildTestProgram(code, ret))
+                      .fold(false)(_.tag == failure.tag),
                 ).result(code)
               // re-run tester with dd output
-              minifyTester.test(delta) match
+              minifyTester.test(buildTestProgram(delta, ret)) match
                 case None | Some(_: AssertionSuccess) =>
                 case Some(result) =>
                   log(MinifyFuzzResult(iter, covered, original, result))
