@@ -148,12 +148,15 @@ trait StateTypeDomainDecl { self: Self =>
 
       /** get keys of a record/map object as a list */
       def keys(
-        obj: AbsValue,
+        base: AbsValue,
         intSorted: Boolean,
       )(asite: AllocSite): (AbsValue, Elem) =
-        val ty = obj.ty
-        if (ty.record.isBottom && ty.map.isBottom) (AbsValue.Bot, Bot)
-        else (AbsValue(ListT(StrT)), elem)
+        val ty = base.ty
+        var elemTy = BotT
+        if (!ty.record.isBottom) elemTy ||= ty.record.getKey
+        if (!ty.map.isBottom) elemTy ||= ty.map.getKey
+        if (elemTy.isBottom) (AbsValue.Bot, Bot)
+        else (AbsValue(ListT(elemTy)), elem)
 
       /** allocate a record object */
       def allocRecord(

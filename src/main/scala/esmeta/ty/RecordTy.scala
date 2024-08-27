@@ -72,6 +72,15 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         }
       })
 
+  /** get key type */
+  def getKey: ValueTy = this match
+    case Top => StrT
+    case Elem(map) =>
+      StrT((for {
+        (name, fm) <- map.toList
+        f <- fm.map.keySet ++ getAllFieldMap(name).map.keySet
+      } yield f).toSet)
+
   /** field type map */
   def fieldMap: Option[FieldMap] = this match
     case Top       => Some(FieldMap.Top)

@@ -47,6 +47,12 @@ enum MapTy extends TyElem with Lattice[MapTy] {
   /** prune type */
   def --(that: => MapTy): MapTy = if (this <= that) Bot else this
 
+  /** get key type */
+  def getKey: ValueTy = this match
+    case Top        => AnyT
+    case Bot        => BotT
+    case Elem(k, _) => k
+
   /** get single value */
   def getSingle: Flat[Value] = if (this.isBottom) Zero else Many
 

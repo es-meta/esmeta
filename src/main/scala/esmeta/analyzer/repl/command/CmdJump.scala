@@ -6,7 +6,7 @@ import esmeta.util.BaseUtils.*
 
 trait CmdJumpDecl { self: Self =>
 
-// jump command
+  // jump command
   case object CmdJump
     extends Command(
       "jump",
