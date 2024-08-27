@@ -163,7 +163,7 @@ trait AbsTransferDecl { self: Analyzer =>
         for {
           b <- transfer(base)
           v <- transfer(expr)
-          _ <- modify(st => st.expand(st.get(b), v))
+          _ <- modify(st => st.delete(st.get(b), v))
         } yield ()
       case IPush(expr, list, front) =>
         for {
