@@ -257,13 +257,13 @@ class Fuzzer(
   val selectorStat: MMap[String, Counter] = MMap()
 
   /** mutator */
-  given Grammar = grammar
+  given CFG = cfg
   val mutator: Mutator = WeightedMutator(
-    // NearestMutator(),
+    NearestMutator(),
     RandomMutator(),
-    // StatementInserter(),
-    // Remover(),
-    // SpecStringMutator(),
+    StatementInserter(),
+    Remover(),
+    SpecStringMutator(),
   )
 
   /** mutator stat */

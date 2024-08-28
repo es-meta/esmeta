@@ -149,6 +149,9 @@ object BaseUtils {
   /** random boolean */
   def randBool: Boolean = rand.nextBoolean
 
+  /** random boolean with a given probability [0, 1] */
+  def randBool(prob: Double): Boolean = rand.nextDouble < prob
+
   /** random integer */
   def randInt(n: Int): Int = rand.nextInt(n)
 
