@@ -34,21 +34,6 @@ class Initialize(cfg: CFG) {
     heap = initHeap.copied,
   )
 
-  /** the result state of initialization */
-  def getResult(
-    sourceText: String,
-    cachedAst: Option[Ast],
-    filename: Option[String],
-  ): State = State(
-    cfg,
-    context = Context(cfg.main),
-    sourceText = Some(sourceText),
-    cachedAst = cachedAst,
-    filename = filename,
-    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
-    heap = initHeap,
-  )
-
   // initial globals
   lazy val initGlobal: Map[Global, Value] =
     initTypedGlobal.map { case (k, (v, _)) => k -> v }
