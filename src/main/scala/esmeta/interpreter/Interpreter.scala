@@ -63,11 +63,11 @@ class Interpreter(
 
       // garbage collection
       iter += 1
-      if (!detail && iter % 100_000 == 0) {
+      if (iter % 100_000 == 0) {
         for (limit <- timeLimit)
           val duration = System.currentTimeMillis - startTime
           if (duration / 1000 > limit) throw TimeoutException("interp")
-        GC(st)
+        if (!detail) GC(st)
       }
 
       // cursor
