@@ -25,7 +25,9 @@ case class Test262(
 
   /** cache for parsing results for necessary harness files */
   lazy val getHarness =
-    cached[String, String](name => readFile(s"$TEST262_DIR/harness/$name"))
+    cached[String, List[Ast]](name =>
+      parseFile(s"$TEST262_DIR/harness/$name").flattenStmt,
+    )
 
   /** test262 filter */
   lazy val testFilter: TestFilter = TestFilter(cfg.spec)
@@ -37,24 +39,22 @@ case class Test262(
   lazy val (allTargetTests, allRemoved) = testFilter(allTests, withYet)
 
   /** basic harness files */
-  lazy val basicHarness = Vector(getHarness("assert.js"), getHarness("sta.js"))
+  lazy val basicHarness = getHarness("assert.js") ++ getHarness("sta.js")
 
   /** specification */
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): String =
+  def loadTest(filename: String): Ast =
     loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): String =
+  def loadTest(filename: String, includes: List[String]): Ast =
     // load harness
-    val harnessStmts = includes.foldLeft(basicHarness)(_ :+ getHarness(_))
-
+    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_))
     // merge with harnesses
-    val code = readFile(filename)
-
-    (harnessStmts :+ code).mkString(LINE_SEP)
+    val stmts = parseFile(filename).flattenStmt
+    mergeStmt(harnessStmts ++ stmts)
 
   /** get tests */
   def getTests(
@@ -144,7 +144,7 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
-          else cov.runAndCheck(Script(loadTest(filename), filename))._1
+          else cov.runAndCheck(loadTest(filename), filename)._1
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
@@ -212,11 +212,11 @@ case class Test262(
     timeLimit: Option[Int] = None,
   ): State = eval(loadTest(filename), log, timeLimit)
   private def eval(
-    code: String,
+    ast: Ast,
     log: Boolean = false,
     timeLimit: Option[Int] = None,
   ): State =
-    val st = cfg.init.from(code)
+    val st = cfg.init.from(ast)
     Interpreter(
       st = st,
       log = log,

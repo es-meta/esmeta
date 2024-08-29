@@ -24,6 +24,9 @@ class Initialize(cfg: CFG) {
     val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
     from(semiInjected, ast)
 
+  def from(ast: Ast): State =
+    from(ast.toString(grammar = Some(cfg.grammar)), ast)
+
   /** get initial state with source text and cached AST */
   private def from(sourceText: String, cachedAst: Ast): State = State(
     cfg,

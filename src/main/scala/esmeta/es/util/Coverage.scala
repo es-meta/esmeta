@@ -56,16 +56,27 @@ case class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(
-    script: Script,
-  ): (State, Boolean, Boolean) = {
+  def runAndCheck(script: Script): (State, Boolean, Boolean) = {
     val interp = run(script.code)
     this.synchronized(check(script, interp))
+  }
+
+  def runAndCheck(ast: Ast, name: String): (State, Boolean, Boolean) = {
+    val code = ast.toString(grammar = Some(cfg.grammar))
+    val interp = run(code)
+    this.synchronized(check(Script(code, name), interp))
   }
 
   /** evaluate a given ECMAScript program */
   def run(code: String): Interp = {
     val initSt = cfg.init.from(code)
+    val interp = Interp(initSt, timeLimit)
+    interp.result; interp
+  }
+
+  /** evaluate a given ECMAScript AST */
+  def run(ast: Ast): Interp = {
+    val initSt = cfg.init.from(ast)
     val interp = Interp(initSt, timeLimit)
     interp.result; interp
   }
