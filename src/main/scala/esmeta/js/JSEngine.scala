@@ -88,7 +88,7 @@ object JSEngine {
         .build(),
     ) { context =>
       f(context, out)
-    }.recoverWith(e => polyglotExceptionResolver(e))
+    }.recoverWith(e => polyglotExceptionResolver(e, out))
 
   /** execute given JavaScript program */
   def runGraalUsingContext(
@@ -125,14 +125,14 @@ object JSEngine {
   // ---------------------------------------------------------------------------
 
   /** Exception from JavaScript code */
-  class JSException(message: String) extends Exception(message)
+  class JSException(message: String, val stdout: String) extends Exception(message)
 
   /** resolve PolyglotException to other exceptions */
-  def polyglotExceptionResolver[T](e: Throwable): Try[T] = e match {
+  def polyglotExceptionResolver[T](e: Throwable, out: ByteArrayOutputStream): Try[T] = e match {
     case e: PolyglotException if (e.isInterrupted || e.isCancelled) =>
       Failure(TimeoutException("JSEngine timeout"))
     case e: PolyglotException if e.isGuestException =>
-      Failure(JSException(e.getMessage))
+      Failure(JSException(e.getMessage, out.toString))
     case e: PolyglotException if e.isHostException =>
       Failure(e.asHostException)
     case _ =>

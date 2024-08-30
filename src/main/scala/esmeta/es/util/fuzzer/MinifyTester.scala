@@ -11,6 +11,8 @@ import esmeta.injector.ConformTest
 import esmeta.injector.ExitStateExtractor
 import esmeta.state.Addr
 import esmeta.state.MapObj
+import esmeta.error.TimeoutException
+import esmeta.js.JSEngine.JSException
 
 case class MinifyTesterConfig(
   timeLimit: Option[Int] = Some(1),
@@ -74,17 +76,41 @@ class MinifyTester(
                     reason,
                   ),
                 )
-              // minified program throws exception
-              // TODO(@hyp3rflow): we have to mask span in exception description
-              case Failure(e) =>
-                val exception = e.getMessage
-                log("minify-tester", s"exception throws with:\n$exception\n")
+              // minified program throws timeout exception
+              case Failure(exception: TimeoutException) =>
+                val reason = exception.getMessage
+                log("minify-tester", s"exception throws with:\n$reason\n")
                 Some(
                   ExceptionFailure(
                     code,
                     minified,
                     injected,
-                    exception,
+                    reason,
+                  ),
+                )
+              // minified program throws exception
+              // TODO(@hyp3rflow): we have to mask span in exception description
+              case Failure(exception: JSException) =>
+                val reason = exception.getMessage
+                val stdout = exception.stdout
+                log("minify-tester", s"exception throws with:\n$reason\n")
+                Some(
+                  ExceptionFailure(
+                    code,
+                    minified,
+                    injected,
+                    stdout ++ reason,
+                  ),
+                )
+              case Failure(exception) =>
+                val reason = exception.getMessage
+                log("minify-tester", s"exception throws with:\n$reason\n")
+                Some(
+                  ExceptionFailure(
+                    code,
+                    minified,
+                    injected,
+                    reason,
                   ),
                 )
           case Success(_) =>
