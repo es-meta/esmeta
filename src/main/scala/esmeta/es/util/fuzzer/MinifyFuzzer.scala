@@ -189,7 +189,7 @@ class MinifyFuzzer(
     // if it is new, we have to log
     if (!pass.contains(delta)) {
       val count = bugIndexCounter.incrementAndGet()
-      deltaIndex += (original -> count)
+      deltaIndex += (delta -> count)
       val dirpath = s"$logDir/$count"
       mkdir(dirpath)
       dumpFile(minified, s"$dirpath/minified.js")
