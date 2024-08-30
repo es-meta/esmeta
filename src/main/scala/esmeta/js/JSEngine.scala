@@ -125,10 +125,14 @@ object JSEngine {
   // ---------------------------------------------------------------------------
 
   /** Exception from JavaScript code */
-  class JSException(message: String, val stdout: String) extends Exception(message)
+  class JSException(message: String, val stdout: String)
+    extends Exception(message)
 
   /** resolve PolyglotException to other exceptions */
-  def polyglotExceptionResolver[T](e: Throwable, out: ByteArrayOutputStream): Try[T] = e match {
+  def polyglotExceptionResolver[T](
+    e: Throwable,
+    out: ByteArrayOutputStream,
+  ): Try[T] = e match {
     case e: PolyglotException if (e.isInterrupted || e.isCancelled) =>
       Failure(TimeoutException("JSEngine timeout"))
     case e: PolyglotException if e.isGuestException =>
