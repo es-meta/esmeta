@@ -20,40 +20,7 @@ import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
 
-// TODO(@hyp3rflow): why object?
 /** ECMAScript program fuzzer with ECMA-262 */
-object Fuzzer {
-  def apply(
-    cfg: CFG,
-    logInterval: Option[Int] = Some(600), // default is 10 minutes.
-    debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
-    stdOut: Boolean = false,
-    timeLimit: Option[Int] = None, // time limitation for each evaluation
-    trial: Option[Int] = None, // `None` denotes no bound
-    duration: Option[Int] = None, // `None` denotes no bound
-    init: Option[String] = None, // initial pool directory path given by user
-    kFs: Int = 0,
-    cp: Boolean = false,
-  ): Coverage = new Fuzzer(
-    cfg,
-    logInterval,
-    debug,
-    stdOut,
-    timeLimit,
-    trial,
-    duration,
-    init,
-    kFs,
-    cp,
-  ).result
-
-  // debugging levels
-  val ALL = 2
-  val PARTIAL = 1
-  val NO_DEBUG = 0
-}
-
-/** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
   logInterval: Option[Int] = Some(600), // default is 10 minutes.
@@ -404,4 +371,11 @@ class Fuzzer(
     s"$logDir/mutation-stat.tsv",
   )
 
+}
+
+object Fuzzer {
+  // debugging levels
+  val ALL = 2
+  val PARTIAL = 1
+  val NO_DEBUG = 0
 }

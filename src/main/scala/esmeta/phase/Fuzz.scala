@@ -37,7 +37,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       duration = config.duration,
       kFs = config.kFs,
       cp = config.cp,
-    )
+    ).result
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
