@@ -97,7 +97,7 @@ trait UnitWalker extends BasicUnitWalker {
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
     case EClo(fname, captured) =>
-      walk(fname); walkList(captured, walk)
+      walk(fname); walkList(captured, { case (n, e) => (walk(n), walk(e)) })
     case ECont(fname) =>
       walk(fname)
     case EDebug(expr) =>

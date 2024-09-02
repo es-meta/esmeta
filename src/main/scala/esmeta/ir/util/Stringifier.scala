@@ -164,9 +164,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
       case EClo(fname, captured) =>
-        given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
+        given Rule[Iterable[(Name, Expr)]] = iterableRule("{", ", ", "}")
+        given Rule[(Name, Expr)] = {
+          case (app, (name, expr)) =>
+            expr match
+              case ERef(`name`) => app >> name
+              case _            => app >> name >> " : " >> expr
+        }
         app >> "clo<" >> fname
-        if (!captured.isEmpty) app >> ", " >> captured
+        if (!captured.isEmpty) then app >> ", " >> captured
         app >> ">"
       case ECont(fname) =>
         app >> "cont<" >> fname >> ">"

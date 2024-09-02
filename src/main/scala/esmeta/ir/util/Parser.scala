@@ -148,8 +148,16 @@ trait Parsers extends TyParsers {
       case e => ETypeOf(e)
     } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
-      case s ~ cs => EClo(s, cs.getOrElse(Nil))
+    } | "clo<" ~> fname ~ opt(
+      "," ~ "{" ~> repsep(name ~ opt(":" ~> expr), ",") <~ "}",
+    ) <~ ">" ^^ {
+      case s ~ cs =>
+        EClo(
+          s,
+          cs.map(lst =>
+            lst.map { case x ~ eopt => x -> eopt.getOrElse(ERef(x)) },
+          ).getOrElse(Nil),
+        )
     } | ("cont<" ~> fname <~ ">") ^^ {
       case s => ECont(s)
     } | "(" ~ "debug" ~> expr <~ ")" ^^ {

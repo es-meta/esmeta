@@ -123,7 +123,9 @@ object IRTest {
   lazy val normal = EEnum("normal")
   lazy val empty = EEnum("empty")
   lazy val clo = EClo("f", Nil)
-  lazy val cloWithCaptured = EClo("f", List(x))
+  lazy val cloWithCaptured = EClo("f", List((x -> ERef(x))))
+  lazy val cloWithCapturedComplex =
+    EClo("f", List((x -> EBinary(BOp.Add, ERef(y), EMath(1)))))
   lazy val cont = ECont("g")
 
   // references

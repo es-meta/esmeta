@@ -105,7 +105,10 @@ trait Walker extends BasicWalker {
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
     case EClo(fname, captured) =>
-      EClo(walk(fname), walkList(captured, walk))
+      EClo(
+        walk(fname),
+        walkList(captured, { case (n, e) => (walk(n), walk(e)) }),
+      )
     case ECont(fname) =>
       ECont(walk(fname))
     case EDebug(expr) =>
