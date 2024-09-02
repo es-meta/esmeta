@@ -10,7 +10,6 @@ import esmeta.state.*
 import esmeta.util.Loc
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import esmeta.util.BaseUtils.error
 
 /** debugger extension of IR interpreter */
 class Debugger(st: State) extends Interpreter(st, log = true) {

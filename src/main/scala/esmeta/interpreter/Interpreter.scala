@@ -21,6 +21,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
+import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}

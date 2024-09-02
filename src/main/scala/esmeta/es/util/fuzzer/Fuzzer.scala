@@ -15,6 +15,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
+import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*

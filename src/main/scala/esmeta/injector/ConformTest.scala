@@ -2,7 +2,8 @@ package esmeta.injector
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.{NoGraalError, TimeoutException}
+import esmeta.error.NoGraalError
+import java.util.concurrent.TimeoutException
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.js.*

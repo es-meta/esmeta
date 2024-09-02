@@ -7,7 +7,6 @@ import esmeta.ir.Type
 import esmeta.spec.*
 import esmeta.util.*
 import scala.annotation.tailrec
-import scala.collection.immutable.Nil
 
 /** abstract syntax tree (AST) values */
 sealed trait Ast extends ESElem with Locational {

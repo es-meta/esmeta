@@ -2,6 +2,7 @@ package esmeta.js
 
 import java.io.ByteArrayOutputStream
 import java.util.StringJoiner
+import java.util.concurrent.TimeoutException
 import java.time.Duration.ZERO
 import scala.util.*
 import scala.concurrent.*

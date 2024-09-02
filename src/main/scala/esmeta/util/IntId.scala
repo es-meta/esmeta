@@ -1,4 +1,4 @@
 package esmeta.util
 
-/** unique ids */
+/** integer ids */
 trait IntId { def id: Int }

@@ -13,6 +13,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
+import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.TimeoutException
 import scala.collection.mutable.ListBuffer

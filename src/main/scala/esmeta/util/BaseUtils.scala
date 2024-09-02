@@ -216,12 +216,6 @@ object BaseUtils {
     case Nil        => error(s"no $name")
     case _          => error(s"multiple ${name}s")
 
-  /** escape a string into a JavaScript string */
-  def escapeToJsString(string: String) =
-    val replaced =
-      string.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
-    s"`$replaced`"
-
   /** escape a string into a shell string */
   def escapeToShellString(string: String): String =
     val replaced = string.replace("'", "'\"'\"'")
