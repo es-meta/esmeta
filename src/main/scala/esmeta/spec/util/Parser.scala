@@ -39,11 +39,11 @@ trait Parsers extends LangParsers {
     lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
       case l ~ k ~ Some(_) ~ origRs =>
         val rs = for {
-          r <- origRs
+          r <- origRs.toVector
           s <- r.symbols
         } yield Rhs(Nil, List(s), None)
         Production(l, k, true, rs)
-      case l ~ k ~ None ~ rs => Production(l, k, false, rs)
+      case l ~ k ~ None ~ rs => Production(l, k, false, rs.toVector)
     }
   }.named("spec.Production")
 

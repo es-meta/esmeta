@@ -2,15 +2,17 @@ package esmeta.ir
 
 import esmeta.ir.util.Parser
 import esmeta.lang.Syntax
-import esmeta.util.DoubleEquals
-import scala.annotation.meta.field
+import esmeta.util.{DoubleEquals, WeakUId}
 
 // IR expressions
-sealed trait Expr extends IRElem with LangEdge
+sealed trait Expr extends IRElem with LangEdge with WeakUId[Expr] with NodeEdge
 object Expr extends Parser.From(Parser.expr)
 case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
 case class EIsCompletion(expr: Expr) extends Expr
-case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr with Return
+case class EReturnIfAbrupt(expr: Expr, check: Boolean)
+  extends Expr
+  with Return
+  with WeakUId[EReturnIfAbrupt]
 case class EPop(list: Expr, front: Boolean) extends Expr
 case class EParse(code: Expr, rule: Expr) extends Expr
 case class ENt(name: String, params: List[Boolean]) extends Expr
@@ -44,7 +46,7 @@ case class ESyntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  children: List[Option[Expr]],
+  children: Vector[Option[Expr]],
 ) extends AstExpr
 case class ELexical(
   name: String,

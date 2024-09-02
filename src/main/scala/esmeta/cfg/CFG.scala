@@ -2,7 +2,9 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
-import esmeta.ir.Program
+import esmeta.es.Initialize
+import esmeta.ir.util.*
+import esmeta.ir.{Program, EReturnIfAbrupt}
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.TyModel
@@ -26,6 +28,9 @@ case class CFG(
   lazy val esParser: ESParser = program.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
 
+  /** ECMAScript initializer */
+  lazy val init: Initialize = new Initialize(this)
+
   /** mapping from fid to functions */
   lazy val funcMap: Map[Int, Func] =
     (for (func <- funcs) yield func.id -> func).toMap
@@ -48,6 +53,12 @@ case class CFG(
     func <- funcs
     node <- func.nodes
   } yield node -> func).toMap
+
+  /** all return if abrupt expressions */
+  lazy val riaExprs: List[EReturnIfAbrupt] = ReturnIfAbruptCollector(program)
+  lazy val riaExprMap: Map[Int, EReturnIfAbrupt] = (for {
+    riaExpr <- riaExprs
+  } yield riaExpr.id -> riaExpr).toMap
 
   /** get a type model */
   def tyModel: TyModel = spec.tyModel
@@ -87,4 +98,16 @@ case class CFG(
       val dotPath = s"$path.dot"
       val pdfPath = if (pdf) Some(s"$path.pdf") else None
       func.dumpDot(dotPath, pdfPath)
+}
+object CFG {
+
+  /** a default cfg */
+  lazy val defaultCFG = getDefaultCFG
+
+  /** create a new default cfg */
+  def getDefaultCFG =
+    import esmeta.cfgBuilder.CFGBuilder
+    import esmeta.compiler.Compiler
+    import esmeta.extractor.Extractor
+    CFGBuilder(Compiler(Extractor()))
 }

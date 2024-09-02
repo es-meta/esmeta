@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.cfg.util.*
-import esmeta.util.{UId, Locational}
+import esmeta.util.{UId, Loc}
 import esmeta.ir.*
 import scala.collection.mutable.{Queue, ListBuffer}
 
@@ -29,6 +29,18 @@ sealed trait Node extends CFGElem with UId {
         case branch: Branch => add(branch.thenNode); add(branch.elseNode)
     }
     visited
+
+  /** get source locations */
+  def loc: Option[Loc] = this match
+    case block: Block =>
+      for {
+        head <- block.insts.headOption
+        headLoc <- head.loc
+        last <- block.insts.lastOption
+        lastLoc <- last.loc
+      } yield Loc(headLoc.start, lastLoc.end, headLoc.steps)
+    case call: Call     => call.callInst.loc
+    case branch: Branch => branch.cond.loc
 }
 
 /** block nodes */
@@ -72,6 +84,21 @@ case class Branch(
   def isLoop: Boolean = kind match
     case BranchKind.If    => false
     case BranchKind.While => true
+
+  def isChildPresentCheck(cfg: CFG): Boolean =
+    import UOp.*
+    import BOp.*
+    cfg.funcOf(this).isSDO && (cond match {
+      //  (! (= this[_] absent))
+      case EUnary(
+            Not,
+            EBinary(Eq, ERef(Field(Name("this"), EMath(_))), EAbsent()),
+          ) =>
+        true
+      //  (= this[_] absent)
+      case EBinary(Eq, ERef(Field(Name("this"), EMath(_))), EAbsent()) => true
+      case _                                                           => false
+    })
 }
 enum BranchKind extends CFGElem:
   case If

@@ -11,21 +11,26 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 
 /** IR heaps */
 case class Heap(
-  val map: MMap[Addr, Obj] = MMap(),
+  val map: MMap[Addr, (Obj, Option[Provenance])] = MMap(),
   var size: Int = 0,
 ) extends StateElem {
 
   /** getters */
   def apply(addr: Addr): Obj =
     map.getOrElse(addr, throw UnknownAddr(addr)) match
-      case YetObj(_, msg) => throw NotSupported(Feature)(msg)
-      case obj            => obj
+      case (YetObj(_, msg), _) => throw NotSupported(Feature)(msg)
+      case (obj, _)            => obj
   def apply(addr: Addr, key: Value): Value = apply(addr) match
     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
     case (m: MapObj)                        => m(key)
     case (l: ListObj)                       => l(key)
     case (r: RecordObj)                     => r(key)
     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
+
+  def getProvenance(value: Value): Option[Provenance] = value match
+    case NormalComp(value) => getProvenance(value)
+    case addr: Addr        => map.get(addr).flatMap { case (_, prov) => prov }
+    case _                 => None
 
   /** setters */
   def update(addr: Addr, field: Value, value: Value): this.type =
@@ -67,10 +72,11 @@ case class Heap(
   }
 
   /** copy objects */
-  def copyObj(addr: Addr): Addr = alloc(apply(addr).copied)
+  def copyObj(addr: Addr)(using Option[Provenance]): Addr =
+    alloc(apply(addr).copied)
 
   /** keys of map */
-  def keys(addr: Addr, intSorted: Boolean): Addr = {
+  def keys(addr: Addr, intSorted: Boolean)(using Option[Provenance]): Addr = {
     alloc(ListObj(apply(addr) match {
       case (r: RecordObj) => r.keys
       case (m: MapObj)    => m.keys(intSorted)
@@ -79,7 +85,9 @@ case class Heap(
   }
 
   /** record allocations */
-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
+  def allocRecord(
+    tnameOpt: Option[String],
+  )(using CFG, Option[Provenance]): Addr =
     val record = RecordObj(tnameOpt)
     // TODO check it is the best way to handle this
     if (isObject(record.tname))
@@ -90,15 +98,17 @@ case class Heap(
     tname endsWith "Object"
 
   /** map allocations */
-  def allocMap: Addr = alloc(MapObj())
+  def allocMap(using Option[Provenance]): Addr = alloc(MapObj())
 
   /** list allocations */
-  def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
+  def allocList(list: List[Value])(using Option[Provenance]): Addr = alloc(
+    ListObj(list.toVector),
+  )
 
   // allocation helper
-  private def alloc(obj: Obj): Addr = {
+  private def alloc(obj: Obj)(using provenance: Option[Provenance]): Addr = {
     val newAddr = DynamicAddr(size)
-    map += newAddr -> obj
+    map += newAddr -> (obj, provenance)
     size += 1
     newAddr
   }
@@ -121,11 +131,13 @@ case class Heap(
   /** copied */
   def copied: Heap =
     val newMap = MMap.from(map.toList.map {
-      case (addr, obj) => addr -> obj.copied
+      case (addr, (obj, provenance)) => addr -> (obj.copied, provenance)
     })
     Heap(newMap, size)
 }
 object Heap {
+  def initialize(map: MMap[Addr, Obj] = MMap(), size: Int = 0): Heap =
+    new Heap(map.map { case (addr, obj) => addr -> (obj, None) }, size)
 
   /** special getter for intrinsics */
   def getIntrinsics(key: Value): Value =

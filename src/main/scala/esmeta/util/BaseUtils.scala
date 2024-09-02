@@ -129,10 +129,18 @@ object BaseUtils {
     .replace("\n", "\\n")
     .replace("\b", "\\b")
 
-  private def rand = Random()
+  private var _seed: Int = Random().nextInt
+  private val rand = Random(_seed)
+
+  /** getter and setter for the seed */
+  def getSeed = _seed
+  def setSeed(seed: Int) = { _seed = seed; rand.setSeed(seed) }
+  def resetSeed = setSeed(getSeed)
 
   /** randomly choose an element in a list */
-  def choose[T](seq: Seq[T]): T = seq(rand.nextInt(seq.length))
+  def choose[T](vec: Vector[T]): T = vec(rand.nextInt(vec.length))
+  def choose[T](iter: Iterable[T]): T = choose(iter.toVector)
+  def choose[T](x: => T, y: => T): T = if randBool then x else y
 
   /** randomly choose an element in a list and return it with its index */
   def chooseWithIndex[T](seq: Seq[T]): (T, Int) =
@@ -141,10 +149,16 @@ object BaseUtils {
   /** random boolean */
   def randBool: Boolean = rand.nextBoolean
 
+  /** random boolean with a given probability [0, 1] */
+  def randBool(prob: Double): Boolean = rand.nextDouble < prob
+
   /** random integer */
   def randInt(n: Int): Int = rand.nextInt(n)
 
   /** randomly choose an element in a list with different weights */
+  def weightedChoose[T](seq: (T, Int)*): T = weightedChoose(seq)
+  def weightedChoose[T](iter: Iterable[(T, Int)]): T =
+    weightedChoose(iter.toArray)
   def weightedChoose[T](arr: Array[(T, Int)]): T = {
     val _arr = arr.filter(_._2 != 0)
     val n = rand.nextInt(_arr.map(_._2).sum) + 1
@@ -155,6 +169,9 @@ object BaseUtils {
     }
     aux()
   }
+
+  /** shuffle a sequence */
+  def shuffle[T](seq: Seq[T]) = rand.shuffle(seq)
 
   /** stringify */
   def stringify[T](t: T)(using rule: Appender.Rule[T]): String =
@@ -198,6 +215,11 @@ object BaseUtils {
     case List(elem) => elem
     case Nil        => error(s"no $name")
     case _          => error(s"multiple ${name}s")
+
+  /** escape a string into a shell string */
+  def escapeToShellString(string: String): String =
+    val replaced = string.replace("'", "'\"'\"'")
+    s"'$replaced'"
 
   /** extensions for integers */
   extension (int: Int) {

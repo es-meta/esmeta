@@ -6,4 +6,6 @@ import esmeta.es.Ast
 trait AstFrom {
   def fromFile(str: String): Ast
   def from(str: String): Ast
+  def fromFileWithCode(str: String): (Ast, String)
+  def fromWithCode(str: String): (Ast, String)
 }

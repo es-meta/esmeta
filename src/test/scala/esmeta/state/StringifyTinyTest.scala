@@ -20,7 +20,7 @@ class StringifyTinyTest extends StateTest {
     checkStringify("State")(
       st -> """{
       |  context: {
-      |    cursor: Block[0] @ f
+      |    cursor: Func[0]:Block[0]:0 @ f
       |    local-vars: {}
       |  }
       |  call-stack: []
@@ -33,7 +33,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val callCtxt = CallContext(ctxt, Name("x"))
     checkStringify("CallContext")(
-      callCtxt -> "x @ Block[0]",
+      callCtxt -> "x @ Func[0]:Block[0]:0",
     )
     // -------------------------------------------------------------------------
     // Contexts
@@ -44,17 +44,17 @@ class StringifyTinyTest extends StateTest {
       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
     checkStringify("Context")(
       ctxt -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {}
       |}""".stripMargin,
       ctxtSingle -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {
       |    x -> 42
       |  }
       |}""".stripMargin,
       ctxtMulti -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {
       |    x -> 42
       |    y -> "abc"
@@ -64,18 +64,19 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Cursor
     // -------------------------------------------------------------------------
-    lazy val nodeCursor = NodeCursor(Block(3, ListBuffer()))
+    lazy val nodeCursor = NodeCursor(func, Block(3, ListBuffer()))
     lazy val exitCursor = ExitCursor(func)
     checkStringify("Cursor")(
-      nodeCursor -> "Block[3]",
+      nodeCursor -> "Func[0]:Block[3]:0",
       exitCursor -> "Func[0]",
     )
     // -------------------------------------------------------------------------
     // Heaps
     // -------------------------------------------------------------------------
     lazy val heap = Heap(MMap(), 0)
-    lazy val heapSingle = Heap(MMap(namedAddr -> map), 0)
-    lazy val heapMulti = Heap(MMap(namedAddr -> map, addr -> list), 43)
+    lazy val heapSingle = Heap.initialize(MMap(namedAddr -> map), 0)
+    lazy val heapMulti =
+      Heap.initialize(MMap(namedAddr -> map, addr -> list), 43)
     checkStringify("Heap")(
       heap -> "(SIZE = 0): {}",
       heapSingle -> """(SIZE = 0): {
@@ -124,9 +125,9 @@ class StringifyTinyTest extends StateTest {
     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
     lazy val cont = Cont(func, Map(), Nil)
     lazy val contCaptured = Cont(func, Map(Name("x") -> Str("abc")), Nil)
-    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
+    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Vector()))
     lazy val astArgs =
-      AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
+      AstValue(Syntactic("Identifier", List(true, false), 1, Vector()))
     lazy val nt = Nt("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(

@@ -1,9 +1,9 @@
 package esmeta.util
 
 /** unique ids */
-trait UId {
+trait UId extends IntId {
   // unique ids
-  val id: Int
+  def id: Int
 
   // get simple string
   def simpleString: String = s"${getClass.getSimpleName}[$id]"

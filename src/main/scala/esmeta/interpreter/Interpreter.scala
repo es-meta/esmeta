@@ -10,12 +10,18 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
+import esmeta.spec.{
+  SyntaxDirectedOperationHead,
+  AbstractOperationHead,
+  BuiltinHead,
+}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
+import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
@@ -27,21 +33,21 @@ class Interpreter(
   val detail: Boolean = false,
   val logDir: String = EVAL_LOG_DIR,
   val timeLimit: Option[Int] = None,
+  val keepProvenance: Boolean = false,
 ) {
   import Interpreter.*
 
+  lazy val startTime: Long = System.currentTimeMillis
+
   /** final state */
-  lazy val result: State = timeout(
-    {
-      while (step) {}
-      if (log)
-        pw.println(st)
-        pw.close
-        println("[Interpreter] Logging finished")
-      st
-    },
-    timeLimit,
-  )
+  lazy val result: State = {
+    while (step) {}
+    if (log)
+      pw.println(st)
+      pw.close
+      println("[Interpreter] Logging finished")
+    st
+  }
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
@@ -57,7 +63,12 @@ class Interpreter(
 
       // garbage collection
       iter += 1
-      if (!detail && iter % 100_000 == 0) GC(st)
+      if (iter % 100_000 == 0) {
+        for (limit <- timeLimit)
+          val duration = System.currentTimeMillis - startTime
+          if (duration / 1000 > limit) throw TimeoutException("interp")
+        if (!detail) GC(st)
+      }
 
       // cursor
       eval(st.context.cursor)
@@ -74,7 +85,7 @@ class Interpreter(
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(node) => eval(node); true
+    case NodeCursor(_, node, _) => eval(node); true
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
@@ -91,16 +102,15 @@ class Interpreter(
   def eval(node: Node): Unit =
     node match {
       case Block(_, insts, _) =>
-        for (inst <- insts) eval(inst); st.context.moveNext
-      case Branch(_, _, cond, thenNode, elseNode) =>
-        st.context.cursor = Cursor(
-          eval(cond) match {
-            case Bool(true)  => thenNode
-            case Bool(false) => elseNode
-            case v           => throw NoBoolean(cond, v)
-          },
-          st.func,
-        )
+        for (inst <- insts) {
+          eval(inst)
+          st.context.step
+        }
+        st.context.moveNext
+      case branch: Branch =>
+        eval(branch.cond) match
+          case Bool(bool) => moveBranch(branch, bool)
+          case v          => throw NoBoolean(branch.cond, v)
       case call: Call => eval(call)
     }
 
@@ -139,7 +149,7 @@ class Interpreter(
           val newLocals =
             getLocals(func.irFunc.params, vs, call, clo) ++ captured
           st.callStack ::= CallContext(st.context, lhs)
-          st.context = Context(func, newLocals)
+          st.context = createContext(call, func, newLocals, st.context)
         case cont @ Cont(func, captured, callStack) => {
           val needWrapped = st.context.func.isReturnComp
           val vs =
@@ -149,7 +159,8 @@ class Interpreter(
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
-          st.context = Context(func, newLocals)
+          val prevCtxt = st.callStack.headOption.map(_.context)
+          st.context = createContext(call, func, newLocals, prevCtxt)
         }
         case v => throw NoFunc(fexpr, v)
     case ISdoCall(lhs, base, method, args) =>
@@ -165,7 +176,7 @@ class Interpreter(
                 Clo(sdo, Map()),
               )
               st.callStack ::= CallContext(st.context, lhs)
-              st.context = Context(sdo, newLocals)
+              st.context = createContext(call, sdo, newLocals, st.context)
             case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
@@ -226,7 +237,7 @@ class Interpreter(
     case EGetChildren(ast) =>
       eval(ast).asAst match
         case syn: Syntactic =>
-          st.allocList(syn.children.flatten.map(AstValue(_)))
+          st.allocList(syn.children.flatten.map(AstValue(_)).toList)
         case ast => throw InvalidASTChildren(ast)
     case EGetItems(nt, ast) =>
       val name = eval(nt) match
@@ -493,12 +504,25 @@ class Interpreter(
         if (st.context.func.isReturnComp) value.wrapCompletion else value,
       ),
     )
-    st.context.cursor = ExitCursor(st.func)
+    moveExit
 
   /** define call result to state and move to next */
   def setCallResult(x: Var, value: Value): Unit =
     st.define(x, value)
     st.context.moveNext
+
+  // directly ported from https://github.com/kaist-plrg/esmeta/commit/79a879e0f5e8bee528e2d2f1ebb20b658f0112f0
+  /** set return value and move to the exit node */
+  def moveBranch(branch: Branch, cond: Boolean): Unit =
+    st.context.cursor = Cursor(
+      if (cond) branch.thenNode
+      else branch.elseNode,
+      st.func,
+    )
+
+  /** set return value and move to the exit node */
+  def moveExit: Unit =
+    st.context.cursor = ExitCursor(st.func)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -523,6 +547,48 @@ class Interpreter(
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+
+  // get current provenance
+  private inline given Option[Provenance] =
+    if (keepProvenance) Some(st.provenance) else None
+
+  // create a new context
+  private def createContext(
+    call: Call,
+    func: Func,
+    locals: MMap[Local, Value],
+    prevCtxt: Context,
+  ): Context = createContext(call, func, locals, Some(prevCtxt))
+  private def createContext(
+    call: Call,
+    func: Func,
+    locals: MMap[Local, Value],
+    prevCtxt: Option[Context] = None,
+  ): Context = if (keepProvenance) {
+    lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
+    lazy val prevCallPath = prevCtxt.fold(CallPath())(_.callPath)
+    lazy val prevNearest = prevCtxt.flatMap(_.nearest)
+    func.head match
+      case Some(head: SyntaxDirectedOperationHead) =>
+        val feature = SyntacticFeature(func, head)
+        val nearest = for {
+          case AstValue(ast @ Syntactic(name, _, idx, _)) <- locals.get(
+            Name("this"),
+          )
+          loc <- ast.loc
+          ty = AstSingleTy(name, idx, ast.subIdx)
+        } yield Nearest(ty, loc)
+        Context(func, locals, feature :: prevFeatureStack, nearest)
+      case Some(head: BuiltinHead) => Context(func, locals)
+      case _ =>
+        Context(
+          func,
+          locals,
+          prevFeatureStack,
+          prevNearest,
+          prevCallPath + call,
+        )
+  } else Context(func, locals)
 }
 
 /** IR interpreter with a CFG */

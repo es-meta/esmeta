@@ -322,7 +322,7 @@ trait StateTypeDomainDecl { self: Self =>
     )(field: ValueTy): ValueTy = field.math.getSingle match
       case One(Math(n)) if n.isValidInt =>
         val fieldIdx = n.toInt
-        val rhs = cfg.grammar.nameMap(name).rhsList(idx)
+        val rhs = cfg.grammar.nameMap(name).rhsVec(idx)
         val nts = rhs.getNts(subIdx)
         nts(fieldIdx).fold(AbsentT)(AstT(_))
       case Zero | One(_) => BotT

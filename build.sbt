@@ -162,6 +162,8 @@ lazy val root = project
       "org.jline" % "jline" % "3.13.3",
       ("org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2")
         .cross(CrossVersion.for3Use2_13),
+      ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4")
+        .cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
         .cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-stream" % AkkaVersion)
@@ -170,6 +172,8 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("ch.megard" %% "akka-http-cors" % "1.1.2")
         .cross(CrossVersion.for3Use2_13), // cors
+      "org.graalvm.polyglot" % "polyglot" % "23.1.2",
+      "org.graalvm.polyglot" % "js" % "23.1.2" pomOnly (),
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
@@ -188,6 +192,15 @@ lazy val root = project
     // assembly setting
     assembly / test := {},
     assembly / assemblyOutputPath := file("bin/esmeta"),
+    // fix deduplicate issue of polyglot dependencies
+    // https://stackoverflow.com/questions/54834125/sbt-assembly-deduplicate-module-info-class
+    assembly / assemblyMergeStrategy := {
+      case PathList("module-info.class")               => MergeStrategy.last
+      case path if path.endsWith("/module-info.class") => MergeStrategy.last
+      case x =>
+        val oldStrategy = (assembly / assemblyMergeStrategy).value
+        oldStrategy(x)
+    },
 
     /** tasks for tests */
     // basic tests

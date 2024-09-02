@@ -32,6 +32,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
       case elem: RefTarget   => refTargetRule(app, elem)
+      case elem: Provenance  => provenanceRule(app, elem)
+      case elem: Feature     => featureRule(app, elem)
+      case elem: CallPath    => callPathRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -56,7 +59,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // cursor
   given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
-      case NodeCursor(node) => app >> node.simpleString
+      case NodeCursor(func, node, idx) =>
+        app >> func.simpleString
+        app >> ":" >> node.simpleString
+        app >> ":" >> idx
+        node.loc.fold(app)(app >> " (" >> _ >> ")")
       case ExitCursor(func) => app >> func.simpleString
 
   // calling contexts
@@ -68,6 +75,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given heapRule: Rule[Heap] = (app, heap) =>
     val Heap(map, size) = heap
     app >> s"(SIZE = " >> size.toString >> "): " >> map
+
+  // heap elements
+  given heapElemRule: Rule[(Obj, Option[Provenance])] = (app, pair) =>
+    val (obj, provenance) = pair
+    app >> obj
+    provenance.fold(app)(app >> " @ " >> _)
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
@@ -176,4 +189,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
+
+  // provenance
+  given provenanceRule: Rule[Provenance] = (app, provenance) =>
+    val Provenance(cursor, sdo) = provenance
+    app >> cursor.func.name
+    cursor.loc.fold(app)(app >> " (" >> _ >> ")")
+    sdo.fold(app)(app >> _)
+
+  // syntax directed operation information
+  given featureRule: Rule[Feature] = (app, feature) =>
+    val irFunc = feature.func.irFunc
+    app >> irFunc.kind >> irFunc.name
+
+  // abstraction of call stack as simple path
+  given callPathRule: Rule[CallPath] = (app, path) =>
+    given Rule[Call] = (app, call) => app >> call.id
+    given Rule[Iterable[Call]] = iterableRule("[", " <- ", "]")
+    app >> "CallPath" >> path.path
 }

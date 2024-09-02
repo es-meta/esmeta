@@ -762,7 +762,7 @@ class Compiler(
     case ProductionLiteral(lhsName, rhsName) =>
       // XXX need to handle arguments, children?
       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
-      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Vector())
     case ErrorObjectLiteral(name) =>
       val proto = EStr(Intrinsic(name, List("prototype")).toString)
       val (x, xExpr) = fb.newTIdWithExpr
@@ -1038,13 +1038,13 @@ class Compiler(
   /** production helpers */
   def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
     val prod = grammar.nameMap(lhsName)
-    val rhsList = prod.rhsList.zipWithIndex.filter {
+    val rhsVec = prod.rhsVec.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
-    rhsList match
-      case (rhs, idx) :: Nil => (prod.lhs, idx)
-      case _                 => error("invalid production")
+    rhsVec match
+      case Vector((rhs, idx)) => (prod.lhs, idx)
+      case _                  => error("invalid production")
 
   /** instruction helpers */
   inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
