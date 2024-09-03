@@ -29,6 +29,9 @@ class ESAnalyzer(
   /** throw exception for not yet compiled expressions */
   override val yetThrow: Boolean = true
 
+  /** logging the current analysis result */
+  def logging: Unit = println("Logging is not supported in ESAnalyzer.")
+
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------

@@ -47,6 +47,9 @@ abstract class Analyzer
     }
   }
 
+  /** logging the current analysis result */
+  def logging: Unit
+
   // ---------------------------------------------------------------------------
   // analysis options
   // ---------------------------------------------------------------------------

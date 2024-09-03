@@ -630,8 +630,8 @@ class TypeAnalyzer(
       case (st, Param(x, ty, _, _)) => st.update(x, AbsValue(ty.ty))
     }
 
-  /** logging mode */
-  private def logging: Unit = {
+  /** logging the current analysis result */
+  def logging: Unit = {
     val analyzedFuncs = sem.analyzedFuncs
     val analyzedNodes = sem.analyzedNodes
     val analyzedReturns = sem.analyzedReturns
