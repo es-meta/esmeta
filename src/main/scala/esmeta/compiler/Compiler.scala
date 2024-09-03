@@ -37,15 +37,14 @@ class Compiler(
     for (algo <- spec.algorithms) compile(algo)
     Program(funcs.toList, spec)
 
-  /** load manually created AOs */
-  val manualFuncs = (for {
-    file <- ManualInfo.funcFiles
-    func = Func.fromFile(file.toString)
-    name = func.name
-  } yield name -> func).toMap
+  /** load manually created IR functions */
+  val manualFuncs: List[Func] = ManualInfo.funcFiles.sorted.map(Func.fromFile)
+
+  /** load manually created IR functions */
+  val manualFuncMap = manualFuncs.map(func => func.name -> func).toMap
 
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs.values)
+  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs)
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
@@ -116,7 +115,7 @@ class Compiler(
   /* set of function names not to compile */
   // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
   val excluded =
-    manualFuncs.keySet ++
+    manualFuncMap.keySet ++
     shorthands +
     "INTRINSICS.Array.prototype[@@unscopables]"
 
@@ -187,7 +186,7 @@ class Compiler(
     prefix: List[Inst] = Nil,
   ): Unit =
     val name = fb.name
-    manualFuncs.get(name).map(_.algo = Some(fb.algo))
+    manualFuncMap.get(name).map(_.algo = Some(fb.algo))
     if (!excluded.contains(name))
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
