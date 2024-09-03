@@ -47,5 +47,8 @@ class PriorityQueueWorklist[T](init: Iterable[T])(using ord: Ordering[T])
 
   protected def add(x: T): Unit = pq.enqueue(x)
   protected def pop: T = pq.dequeue
-  def foreach(f: T => Unit): Unit = pq.foreach(f)
+  def foreach(f: T => Unit): Unit =
+    val all = pq.dequeueAll
+    all.foreach(f)
+    pq ++= all
 }

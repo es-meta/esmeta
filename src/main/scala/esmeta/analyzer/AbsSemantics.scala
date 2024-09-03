@@ -39,6 +39,9 @@ trait AbsSemanticsDecl { self: Analyzer =>
     /** set start time of analyzer */
     var startTime: Long = System.currentTimeMillis
 
+    /** set start time of analyzer */
+    def allCPs: Set[ControlPoint] = npMap.keySet ++ rpMap.keySet
+
     /** reset the analysis */
     def reset(that: AbsSemantics): Unit = {
       npMap = that.npMap
@@ -49,7 +52,7 @@ trait AbsSemanticsDecl { self: Analyzer =>
       curCp = that.curCp
       iter = that.iter
       counter = that.counter
-      worklist = QueueWorklist(npMap.keySet)
+      worklist = PriorityQueueWorklist(npMap.keySet)
       startTime = System.currentTimeMillis
     }
 
@@ -76,9 +79,7 @@ trait AbsSemanticsDecl { self: Analyzer =>
     def resultStrings(
       color: Option[String] = None,
       detail: Boolean = false,
-    ): List[String] =
-      npMap.keys.toList.sortBy(_.node.id).map(resultString(_, color, detail)) ++
-      rpMap.keys.toList.sortBy(_.func.id).map(resultString(_, color, detail))
+    ): List[String] = allCPs.toList.sorted.map(resultString(_, color, detail))
 
     /** get string for result of control points */
     def resultString(cp: ControlPoint, color: String, detail: Boolean): String =

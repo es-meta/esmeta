@@ -152,6 +152,10 @@ class TypeAnalyzer(
         addError(ArityMismatch(callPoint, len))
       super.getLocals(callPoint, method, vs)
 
+    /** check if the return type can be used */
+    private def canUseReturnTy(func: Func): Boolean =
+      !func.retTy.isImprec || generic.contains(func.name)
+
     /** handle calls */
     override def doCall(
       callPoint: CallPoint,
@@ -163,7 +167,7 @@ class TypeAnalyzer(
       tgt: Option[NodePoint[Node]] = None,
     ): Unit =
       val CallPoint(callerNp, callee) = callPoint
-      if (!callee.retTy.isImprec || generic.contains(callee.name)) {
+      if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty
         val newRetTy = generic
@@ -194,7 +198,7 @@ class TypeAnalyzer(
 
     /** transfer function for return points */
     override def apply(rp: ReturnPoint): Unit =
-      if (!generic.contains(rp.func.name)) super.apply(rp)
+      if (!canUseReturnTy(rp.func)) super.apply(rp)
 
     val generic: Map[String, List[ValueTy] => ValueTy] = Map(
       "__FLAT_LIST__" -> (_(0).list.elem),
