@@ -34,7 +34,7 @@ trait AbsSemanticsDecl { self: Analyzer =>
   ) {
 
     /** a worklist of control points */
-    var worklist: Worklist[ControlPoint] = QueueWorklist(npMap.keySet)
+    var worklist: Worklist[ControlPoint] = PriorityQueueWorklist(npMap.keySet)
 
     /** set start time of analyzer */
     var startTime: Long = System.currentTimeMillis

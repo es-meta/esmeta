@@ -1,46 +1,51 @@
 package esmeta.util
 
-import scala.collection.mutable.{Stack, Queue}
+import scala.collection.mutable.{Stack, Queue, PriorityQueue}
 
 // worklist
 trait Worklist[T] {
-  def all: Set[T]
-  def +=(x: T): Unit
+  protected var set = Set[T]()
+  protected def add(x: T): Unit
+  protected def pop: T
+  def all: Set[T] = set
+  def +=(x: T): Unit = if (!set.contains(x)) { add(x); set += x }
   def ++=(xs: Iterable[T]): Unit = xs.foreach(this += _)
-  def next: Option[T]
-  def size: Int
-  def foreach(f: T => Unit): Unit
-  def headOption: Option[T]
+  def next: Option[T] =
+    if (isEmpty) None
+    else { val x = pop; set -= x; Some(x) }
+  def size: Int = set.size
   def isEmpty: Boolean = all.isEmpty
+  def foreach(f: T => Unit): Unit
   def has(x: T): Boolean = all contains x
 }
 
 // stack-based worklist
 class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
   private var stack = Stack[T]()
-  private var set = Set[T]()
   init.foreach(this += _)
-  def all = set
-  def size = stack.size
+
+  protected def add(x: T): Unit = stack.push(x)
+  protected def pop: T = stack.pop
   def foreach(f: T => Unit): Unit = stack.foreach(f)
-  def +=(x: T) = if (!set.contains(x)) { stack.push(x); set += x; }
-  def next =
-    if (isEmpty) None
-    else { val x = stack.pop; set -= x; Some(x) }
-  def headOption: Option[T] = stack.headOption
 }
 
 // queue-based worklist
 class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
   private var queue = Queue[T]()
-  private var set = Set[T]()
   init.foreach(this += _)
-  def all = set
-  def size = queue.size
+
+  protected def add(x: T): Unit = queue.enqueue(x)
+  protected def pop: T = queue.dequeue
   def foreach(f: T => Unit): Unit = queue.foreach(f)
-  def +=(x: T): Unit = if (!set.contains(x)) { queue.enqueue(x); set += x; }
-  def next =
-    if (isEmpty) None
-    else { val x = queue.dequeue; set -= x; Some(x) }
-  def headOption: Option[T] = queue.lastOption
+}
+
+// priority-queue-based worklist
+class PriorityQueueWorklist[T](init: Iterable[T])(using ord: Ordering[T])
+  extends Worklist[T] {
+  private var pq = PriorityQueue[T]()(ord.reverse)
+  init.foreach(this += _)
+
+  protected def add(x: T): Unit = pq.enqueue(x)
+  protected def pop: T = pq.dequeue
+  def foreach(f: T => Unit): Unit = pq.foreach(f)
 }

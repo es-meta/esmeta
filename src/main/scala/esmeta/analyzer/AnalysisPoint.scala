@@ -102,4 +102,9 @@ trait AnalysisPointDecl { self: Analyzer =>
     func: Func,
     view: View,
   ) extends ControlPoint
+
+  given Ordering[ControlPoint] = Ordering.by(_ match
+    case NodePoint(f, n, _) => (f.id, n.id)
+    case ReturnPoint(f, _)  => (f.id, Int.MaxValue),
+  )
 }
