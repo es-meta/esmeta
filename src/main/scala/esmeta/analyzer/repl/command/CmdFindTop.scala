@@ -1,12 +1,12 @@
 package esmeta.analyzer.repl.command
 
-trait CmdFindTopDecl { self: Self =>
+trait CmdFindImprecDecl { self: Self =>
 
-  // find-top command
-  case object CmdFindTop
+  // find-imprec command
+  case object CmdFindImprec
     extends Command(
-      "find-top",
-      "Find Top values.",
+      "find-imprec",
+      "Find imprecise values.",
     ) {
     // options
     val options = Nil
@@ -16,7 +16,7 @@ trait CmdFindTopDecl { self: Self =>
       cpOpt: Option[ControlPoint],
       args: List[String],
     ): Unit =
-      Repl.untilTop = true
+      Repl.untilImprec = true
       Repl.continue = true
   }
 }

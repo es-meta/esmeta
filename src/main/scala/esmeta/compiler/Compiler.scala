@@ -542,10 +542,7 @@ class Compiler(
       case RecordExpression(rawName, fields) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {
-          case (name, (Some(f), _, false)) <- tyModel
-            .getUpperMethodMap(tname)
-            .toList
-            .sortBy(_._1)
+          (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
         } yield name -> EClo(f, Nil)) ++ (for {
           (FieldLiteral(f), e) <- fields
         } yield f -> compile(fb, e))

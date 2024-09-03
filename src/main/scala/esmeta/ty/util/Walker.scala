@@ -34,6 +34,11 @@ trait Walker extends BasicWalker {
     walkList(ty.elems, walk),
   )
 
+  /** parent of a type declaration */
+  def walk(parent: (String, Boolean)): (String, Boolean) =
+    val (name, extended) = parent
+    (walk(name), walk(extended))
+
   /** type declaration elements */
   def walk(ty: TyDecl.Elem): TyDecl.Elem =
     import TyDecl.Elem.*

@@ -18,9 +18,9 @@ trait TyTest extends ESMetaTest {
   val decl0 = TyDecl("A", None, Nil)
   val decl1 = TyDecl("A", None, List(absMethod))
   val decl2 = TyDecl("A", None, List(absMethod, conMethodOpt))
-  val declParent0 = TyDecl("A", Some("B"), Nil)
-  val declParent1 = TyDecl("A", Some("B"), List(absMethod))
-  val declParent2 = TyDecl("A", Some("B"), List(absMethod, conMethodOpt))
+  val declParent0 = TyDecl("A", Some("B", true), Nil)
+  val declParent1 = TyDecl("A", Some("B", false), List(absMethod))
+  val declParent2 = TyDecl("A", Some("B", true), List(absMethod, conMethodOpt))
 
   // type models
   val tyModel0 = TyModel(Nil)
@@ -30,8 +30,8 @@ trait TyTest extends ESMetaTest {
 
   // field type map
   import FieldMap.Elem
-  val fieldMap0 = FieldMap(Map(), Elem.Top)
-  val fieldMap1 = FieldMap(Map("p" -> Elem(AnyT, false, false)), Elem.Top)
+  val fieldMap0 = FieldMap(Map(), Elem.Absent)
+  val fieldMap1 = FieldMap(Map("p" -> Elem(AnyT, false, false)), Elem.Absent)
   val fieldMap2 = FieldMap(
     Map(
       "p" -> Elem(AnyT, false, false),
@@ -45,6 +45,6 @@ trait TyTest extends ESMetaTest {
       "q" -> Elem(BoolT, false, true),
       "r" -> Elem(NullT, true, true),
     ),
-    Elem.Absent,
+    Elem(StrT, true, true),
   )
 }

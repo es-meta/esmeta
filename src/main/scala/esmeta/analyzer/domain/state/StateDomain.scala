@@ -136,8 +136,8 @@ trait StateDomainDecl { self: Self =>
       /** get reachable address partitions */
       def reachableParts: Set[Part]
 
-      /** has top elements */
-      def hasTop: Boolean
+      /** has imprecise elements */
+      def hasImprec: Boolean
 
       // -----------------------------------------------------------------------
       // Helpers for Bottom Check

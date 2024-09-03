@@ -529,16 +529,6 @@ trait ValueTypeDomainDecl { self: Self =>
         ),
       )
 
-    /** get ancestor types */
-    private def ancestors(tname: String): Set[String] =
-      ancestorList(tname).toSet
-    private def ancestorList(tname: String): List[String] =
-      tname :: parent(tname).map(ancestorList).getOrElse(Nil)
-
-    /** get parent types */
-    private def parent(name: String): Option[String] =
-      cfg.tyModel.getParent(name)
-
     /** ast type check helper */
     lazy val astDirectChildMap: Map[String, Set[String]] =
       (cfg.grammar.prods.map {

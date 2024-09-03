@@ -7,10 +7,15 @@ import esmeta.ty.util.Parser
 /** types */
 trait Ty extends TyElem {
 
-  /** completion check */
+  /** definite type check */
   def isDefined: Boolean = this match
-    case _: UnknownTy => false
-    case _            => true
+    case _: ValueTy => true
+    case _          => false
+
+  /** imprecise type check */
+  def isImprec: Boolean = this match
+    case ty: ValueTy => AbruptT <= ty || NormalT <= ty
+    case _           => true
 
   /** completion check */
   def isCompletion: Boolean

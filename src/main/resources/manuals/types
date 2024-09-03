@@ -20,7 +20,7 @@ type GlobalSymbolRegistryRecord {
 // https://tc39.es/ecma262/#table-completion-record-fields
 type CompletionRecord {
   Type: Enum[~normal~, ~break~, ~continue~, ~return~, ~throw~];
-  Value: Any;
+  Value;
   Target: String | Enum[~empty~];
 }
 
@@ -237,14 +237,10 @@ type Object {
 }
 
 // https://tc39.es/ecma262/2024/#function-object
-type FunctionObject extends Object {
-  abstract def Call;
-}
+type FunctionObject = Object { Call; }
 
 // https://tc39.es/ecma262/2024/#constructor
-type Constructor extends FunctionObject {
-  abstract def Construct;
-}
+type Constructor = FunctionObject { Construct; }
 
 // https://tc39.es/ecma262/2024/#ordinary-object
 type OrdinaryObject extends Object {

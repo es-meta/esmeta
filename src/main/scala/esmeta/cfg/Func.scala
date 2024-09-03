@@ -32,6 +32,9 @@ case class Func(
   /** check whether parameter types are defined */
   lazy val isParamTysDefined: Boolean = paramTys.forall(_.isDefined)
 
+  /** check whether parameter types are defined */
+  lazy val isParamTysPrecise: Boolean = paramTys.forall(!_.isImprec)
+
   /** not yet supported instructions */
   lazy val yets: List[EYet] = irFunc.yets
 

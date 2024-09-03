@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.util.*
 import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
+import FieldMap.{Elem => FMElem}
 
 /** record types */
 enum RecordTy extends TyElem with Lattice[RecordTy] {
@@ -12,7 +13,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** a record type with a named record types and refined fields */
   case Elem(map: Map[String, FieldMap])
 
-  import ManualInfo.tyModel.*
+  import ManualInfo.tyModel
+  import tyModel.*
   import RecordTy.*
 
   /** top check */
@@ -58,7 +60,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lmap.getOrElse(t, FieldMap.Top) &&
           rmap.getOrElse(t, FieldMap.Top)
         }
-        pair <- normalize(t -> fm)
+        pair = t -> fm
+        // TODO pair <- normalize(t -> fm)
       } yield pair).toMap)
 
   /** prune type */
@@ -78,18 +81,18 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       StrT((for {
         (name, fm) <- map.toList
-        f <- fm.map.keySet ++ getAllFieldMap(name).map.keySet
+        f <- fm.map.keySet ++ fieldMapOf(name).map.keySet
       } yield f).toSet)
 
   /** field type map */
   def fieldMap: Option[FieldMap] = this match
     case Top       => Some(FieldMap.Top)
-    case Elem(map) => map.map(getAllFieldMap(_) && _).reduceOption(_ || _)
+    case Elem(map) => map.map(fieldMapOf(_) && _).reduceOption(_ || _)
 
   /** base type names */
   def bases: BSet[String] = this match
     case Top       => Inf
-    case Elem(map) => Fin(map.keySet.map(getBase))
+    case Elem(map) => Fin(map.keySet.map(baseOf))
 
   /** type names */
   def names: BSet[String] = this match
@@ -97,16 +100,16 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) => Fin(map.keySet)
 
   /** field accessor */
-  def apply(f: String): FieldMap.Elem = this match
-    case Top => FieldMap.Elem.Top
+  def apply(f: String): FMElem = this match
+    case Top => FMElem.Top
     case Elem(map) =>
-      map.map(getField(_, f) && _(f)).foldLeft(FieldMap.Elem.Bot)(_ || _)
+      map.map(getField(_, f) && _(f)).foldLeft(FMElem.Bot)(_ || _)
 
   /** field accessor for specific record type */
-  def apply(name: String, f: String): FieldMap.Elem = this match
-    case Top => FieldMap.Elem.Top
+  def apply(name: String, f: String): FMElem = this match
+    case Top => FMElem.Top
     case Elem(map) =>
-      map.get(name).fold(FieldMap.Elem.Bot)(getField(name, f) && _(f))
+      map.get(name).fold(FMElem.Bot)(getField(name, f) && _(f))
 
   /** field update */
   def update(field: String, ty: ValueTy): RecordTy = this match
@@ -122,23 +125,24 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         isStrictSubTy(l, r) ||
         (l == r && rfm.contains(record, heap)) ||
         (for {
-          lca <- getLCA(l, r)
-          fm <- getDiffFieldMap(lca, r)
+          lca <- lcaOf(l, r)
+          fm <- diffOf(lca, r)
         } yield fm && rfm).exists(_.contains(record, heap))
       }
 
-  /** filter with possible field types */
-  def filter(f: String, ty: FieldMap.Elem, pos: Boolean): RecordTy = this match
+  /** prune with possible field types */
+  def pruneField(f: String, ty: FMElem, pos: Boolean): RecordTy = this match
     case Top => Top
     case Elem(map) =>
       (for {
         (name, fm) <- map
-        subs = getSubTysWithField(name, f)
+        subs = tyModel.pruneField(name, f)
         sub <- if (pos) subs else if (subs.isEmpty) Set() else Set(name)
         vty = getField(sub, f) && fm(f)
         rty = if (pos) vty && ty else vty -- ty
         if !rty.isBottom
-        pair <- normalize(sub -> fm.update(f, rty))
+        pair = sub -> fm.update(f, rty)
+        // TODO pair <- normalize(sub -> fm.update(f, rty))
       } yield Elem(Map(pair))).foldLeft(Bot)(_ || _)
 }
 
@@ -154,8 +158,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
     Map(
       name -> FieldMap(
-        map = fields.map(_ -> FieldMap.Elem(_, false, false)).toMap,
-        default = FieldMap.Elem.Top,
+        map = fields.map(_ -> FMElem(_, false, false)).toMap,
+        default = FMElem.Top,
       ),
     ),
   )
@@ -165,19 +169,19 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     Elem(map)
 
   /** normalized type */
-  def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =
-    val (l, lfm @ FieldMap(lm, default)) = pair
-    val pairs = for {
-      r <- getDirectSubTys(l).toList
-      dfm <- getDiffFieldMap(l, r)
-      if lfm <= dfm
-      fm = FieldMap(
-        lfm.map.filter { case (field, ty) => dfm(field) != ty },
-        default,
-      )
-    } yield r -> fm
-    val map =
-      if (pairs.isEmpty) Map(l -> lfm)
-      else pairs.toMap
-    map.map { case (r, fm) => r -> fm.filter(f => fm(f) != getField(r, f)) }
+  // def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =
+  //   val (l, lfm @ FieldMap(lm, default)) = pair
+  //   val pairs = for {
+  //     r <- directSubTysOf(l).toList
+  //     dfm <- diffOf(l, r)
+  //     if lfm <= dfm
+  //     fm = FieldMap(
+  //       lfm.map.filter { case (field, ty) => dfm(field) != ty },
+  //       default,
+  //     )
+  //   } yield r -> fm
+  //   val map =
+  //     if (pairs.isEmpty) Map(l -> lfm)
+  //     else pairs.toMap
+  //   map.map { case (r, fm) => r -> fm.filter(f => fm(f) != getField(r, f)) }
 }

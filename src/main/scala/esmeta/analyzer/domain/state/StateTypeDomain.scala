@@ -220,8 +220,9 @@ trait StateTypeDomainDecl { self: Self =>
       /** get reachable address partitions */
       def reachableParts: Set[Part] = Set()
 
-      /** has top elements */
-      def hasTop: Boolean = locals.values.exists(_.ty.isTop)
+      /** has imprecise elements */
+      def hasImprec: Boolean =
+        locals.values.exists(_.ty.isImprec)
     }
 
     // appender generator

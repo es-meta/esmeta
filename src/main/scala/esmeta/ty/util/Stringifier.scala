@@ -16,7 +16,7 @@ object Stringifier {
       case elem: TyModel       => tyModelRule(app, elem)
       case elem: TyDecl        => tyDeclRule(app, elem)
       case elem: TyDecl.Elem   => tyDeclElemRule(app, elem)
-      case elem: FieldMap      => fieldMapRule(app, elem)
+      case elem: FieldMap      => fieldMapRule(using false)(app, elem)
       case elem: FieldMap.Elem => fieldMapElemRule(app, elem)
       case elem: Ty            => tyRule(app, elem)
       case elem: RecordTy      => recordTyRule(app, elem)
@@ -37,7 +37,9 @@ object Stringifier {
   given tyDeclRule: Rule[TyDecl] = (app, ty) =>
     val TyDecl(name, parent, elems) = ty
     app >> "type " >> name
-    parent.fold(app)(app >> " extends " >> _)
+    parent.fold(app) { (name, extended) =>
+      app >> (if (extended) " extends " else " = ") >> name
+    }
     if (elems.nonEmpty) (app >> " ").wrap("{", "}") {
       elems.map(app :> _ >> ";")
     }
@@ -59,8 +61,7 @@ object Stringifier {
         app >> " : " >> typeStr
 
   /** field type map */
-  given fieldMapRule: Rule[FieldMap] = (app, fieldMap) =>
-    val SEP = ", "
+  given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
     val COLON = " : "
     val FieldMap(map, default) = fieldMap
     given Rule[(String, FieldMap.Elem)] = {
@@ -69,13 +70,19 @@ object Stringifier {
         if (elem != FieldMap.Elem.Init) app >> COLON >> elem
         app
     }
-    given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
-    if (fieldMap.isTop) app >> "{}"
-    else
+    if (fieldMap.isEmpty) app >> "{}"
+    else if (inline)
+      val SEP = ", "
+      given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
       app >> "{ "
       app >> map.toList.sortBy(_._1)
-      if (!default.isTop) app >> SEP >> "*" >> COLON >> default
+      if (!default.isAbsent) app >> SEP >> "*" >> COLON >> default
       app >> " }"
+    else
+      app.wrap("{", "}") {
+        for (pair <- map.toList.sortBy(_._1)) app :> pair
+        if (!default.isAbsent) app :> "*" >> COLON >> default
+      }
 
   /** field type map element */
   given fieldMapElemRule: Rule[FieldMap.Elem] = (app, ty) =>
@@ -149,6 +156,7 @@ object Stringifier {
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
     import RecordTy.*
+    given Rule[FieldMap] = fieldMapRule(using true)
     given Rule[(String, FieldMap)] = {
       case (app, (name, fm)) =>
         app >> name

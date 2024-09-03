@@ -3,7 +3,6 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
-
 import FieldMap.Elem
 
 /** field type map */
@@ -16,6 +15,9 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
 
   /** bottom check */
   def isBottom: Boolean = map.forall(_._2.isBottom) && default.isBottom
+
+  /** empty check */
+  def isEmpty: Boolean = map.isEmpty && default.isAbsent
 
   /** partial order/subset operator */
   def <=(that: => FieldMap): Boolean = (this eq that) || (
@@ -74,20 +76,21 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
 
   /** field map containment check */
   def contains(record: RecordObj, heap: Heap): Boolean =
-    val fields = record.map.keySet ++ map.keySet
+    var fields = map.keySet
+    if (!default.isTop) fields ++= record.map.keySet
     fields.forall { f => this(f).contains(record.get(Str(f)), heap) }
 }
 
 object FieldMap extends Parser.From(Parser.fieldMap) {
   lazy val Top: FieldMap = FieldMap(Map(), Elem.Top)
-  lazy val Empty: FieldMap = FieldMap(Map(), Elem(BotT, true, true))
+  lazy val Empty: FieldMap = FieldMap(Map(), Elem(BotT, false, true))
   lazy val Bot: FieldMap = FieldMap(Map(), Elem.Bot)
 
   /** optinoal value types */
   case class Elem(
     value: ValueTy,
-    uninit: Boolean,
-    absent: Boolean,
+    uninit: Boolean = false,
+    absent: Boolean = false,
   ) extends TyElem
     with Lattice[Elem] {
 
@@ -96,6 +99,9 @@ object FieldMap extends Parser.From(Parser.fieldMap) {
 
     /** bottom check */
     def isBottom: Boolean = value.isBottom && uninit.isBottom && absent.isBottom
+
+    /** Absent check */
+    def isAbsent: Boolean = value.isBottom && !uninit && absent
 
     /** partial order/subset operator */
     def <=(that: => Elem): Boolean = (this eq that) || {

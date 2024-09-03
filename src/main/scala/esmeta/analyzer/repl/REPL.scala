@@ -157,8 +157,8 @@ trait ReplDecl { self: Self =>
     // jump to the next ECMAScript entry
     var nextEntry: Boolean = false
 
-    // jump to when the analysis result has a top value
-    var untilTop: Boolean = false
+    // jump to when the analysis result has an imprecise value
+    var untilImprec: Boolean = false
 
     // jump to when the analysis result is merged
     var untilMerged: Boolean = false
@@ -173,8 +173,8 @@ trait ReplDecl { self: Self =>
           case (CmdBreak.block, uid) => uid.toInt == node.id
           case _                     => false
         }
-      case np: NodePoint[_] if untilTop && sem(np).hasTop =>
-        untilTop = false; true
+      case np: NodePoint[_] if untilImprec && sem(np).hasImprec =>
+        untilImprec = false; true
       case np @ NodePoint(_, node, _) =>
         breakpoints.exists {
           case (CmdBreak.block, uid) => uid.toInt == node.id

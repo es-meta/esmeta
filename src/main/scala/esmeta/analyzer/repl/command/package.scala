@@ -10,8 +10,8 @@ trait Decl
   with CmdContinueDecl
   with CmdEntryDecl
   with CmdExitDecl
+  with CmdFindImprecDecl
   with CmdFindMergedDecl
-  with CmdFindTopDecl
   with CmdGraphDecl
   with CmdHelpDecl
   with CmdInfoDecl

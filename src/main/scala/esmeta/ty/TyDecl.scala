@@ -6,9 +6,11 @@ import esmeta.util.*
 /** type declrmation */
 case class TyDecl(
   name: String,
-  parent: Option[String] = None,
+  parent: Option[(String, Boolean)] = None,
   elems: List[TyDecl.Elem] = Nil,
-) extends TyElem
+) extends TyElem {
+  def isExtended: Boolean = parent.exists(_._2)
+}
 
 object TyDecl extends Parser.From(Parser.tyDecl) {
   enum Elem extends TyElem {

@@ -317,8 +317,8 @@ trait StateBasicDomainDecl { self: Self =>
         for ((_, v) <- globals) parts ++= v.reachableParts
         heap.reachableParts(parts)
 
-      /** has top elements */
-      def hasTop: Boolean = false
+      /** has imprecise elements */
+      def hasImprec: Boolean = false
     }
     // -------------------------------------------------------------------------
     // private helpers

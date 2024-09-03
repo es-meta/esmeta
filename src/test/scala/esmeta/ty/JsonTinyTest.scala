@@ -21,7 +21,7 @@ class JsonTinyTest extends TyTest {
       |}""".stripMargin,
       tyModel3 -> """type A
       |
-      |type A extends B {
+      |type A = B {
       |  abstract def a;
       |}
       |
@@ -41,7 +41,7 @@ class JsonTinyTest extends TyTest {
       |  def c?;
       |}""".stripMargin,
       declParent0 -> """type A extends B""",
-      declParent1 -> """type A extends B {
+      declParent1 -> """type A = B {
       |  abstract def a;
       |}""".stripMargin,
       declParent2 -> """type A extends B {
@@ -59,10 +59,21 @@ class JsonTinyTest extends TyTest {
     )
 
     checkJsonWithString("FieldMap")(
-      fieldMap0 -> "{}",
-      fieldMap1 -> "{ p }".stripMargin,
-      fieldMap2 -> "{ p, q : [U] Boolean, * : Number }",
-      fieldMap3 -> "{ p, q : [A] Boolean, r : [UA] Null, * : [A] Bot }",
+      fieldMap0 -> """{}""",
+      fieldMap1 -> """{
+      |  p
+      |}""".stripMargin,
+      fieldMap2 -> """{
+      |  p
+      |  q : [U] Boolean
+      |  * : Number
+      |}""".stripMargin,
+      fieldMap3 -> """{
+      |  p
+      |  q : [A] Boolean
+      |  r : [UA] Null
+      |  * : [UA] String
+      |}""".stripMargin,
     )
 
     checkJsonWithString("Ty")(
@@ -83,7 +94,7 @@ class JsonTinyTest extends TyTest {
       RecordT("Cat") -> "Record[Cat]",
       RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
       RecordT("Object", Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record[Object { A : Number, B : Boolean }]",
+      "Record[Object { A : Number, B : Boolean, * : [UA] Any }]",
       RecordT(
         "",
         Map(
@@ -92,7 +103,7 @@ class JsonTinyTest extends TyTest {
           "Q" -> NumberT,
           "R" -> BoolT,
         ),
-      ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
+      ) -> "Record[{ P, Q : Number, R : Boolean, S, * : [UA] Any }]",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Record[Symbol]",

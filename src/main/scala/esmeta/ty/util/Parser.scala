@@ -19,9 +19,10 @@ trait Parsers extends BasicParsers {
 
   // type declarations
   given tyDecl: Parser[TyDecl] = {
-    lazy val extend = "extends " ~> ident
+    lazy val parent =
+      ("extends " ^^^ true | "=" ^^^ false) ~ ident ^^ { case e ~ x => (x, e) }
     lazy val tyStr = "[^;]+".r ^^ { _.trim }
-    "type " ~> ident ~ opt(extend) ~
+    "type " ~> ident ~ opt(parent) ~
     opt("{" ~> rep(tyDeclElem <~ ";") <~ "}") ^^ {
       case x ~ p ~ es => TyDecl(x, p, es.getOrElse(Nil))
     }
@@ -35,8 +36,8 @@ trait Parsers extends BasicParsers {
       case x => AbsMethod(x)
     } | "def " ~> ident ~ opt("?") ~ opt("=" ~> remain) ^^ {
       case x ~ q ~ t => ConMethod(x, q.isDefined, t)
-    } | ident ~ opt("?") ~ (":" ~> remain) ^^ {
-      case x ~ q ~ t => TyDecl.Elem.Field(x, q.isDefined, t)
+    } | ident ~ opt("?") ~ opt(":" ~> remain) ^^ {
+      case x ~ q ~ t => TyDecl.Elem.Field(x, q.isDefined, t.getOrElse("Any"))
     }
   }.named("ty.TyDecl.Elem")
 
@@ -48,7 +49,7 @@ trait Parsers extends BasicParsers {
     }
     lazy val default = "*" ~ ":" ~> fieldMapElem
     "{" ~> rep(field <~ opt(",")) ~ opt(default) <~ "}" ^^ {
-      case ts ~ d => FieldMap(ts.toMap, d.getOrElse(Elem.Top))
+      case ts ~ d => FieldMap(ts.toMap, d.getOrElse(Elem.Absent))
     }
   }.named("ty.FieldMap")
 
@@ -86,7 +87,7 @@ trait Parsers extends BasicParsers {
     "Normal" ~> opt("[" ~> valueTy <~ "]") ^^ {
       case None    => NormalT
       case Some(v) => NormalT(v)
-    } | "Abrupt" ~> opt("[" ~> rep1(ident) <~ "]") ^^ {
+    } | "Abrupt" ~> opt("[" ~> rep1sep(ident, ",") <~ "]") ^^ {
       case None        => AbruptT
       case Some(names) => AbruptT(names.toSet)
     } |

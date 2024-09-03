@@ -33,6 +33,12 @@ trait UnitWalker extends BasicUnitWalker {
     walkOpt(ty.parent, walk)
     walkList(ty.elems, walk)
 
+  /** parent of a type declaration */
+  def walk(parent: (String, Boolean)): Unit =
+    val (name, extended) = parent
+    walk(name)
+    walk(extended)
+
   /** type declaration elements */
   def walk(ty: TyDecl.Elem): Unit =
     import TyDecl.Elem.*

@@ -45,7 +45,7 @@ trait CommandDecl { self: Self =>
       CmdInfo,
       CmdEntry,
       CmdWorklist,
-      CmdFindTop,
+      CmdFindImprec,
       CmdFindMerged,
     )
     val cmdMap: Map[String, Command] =

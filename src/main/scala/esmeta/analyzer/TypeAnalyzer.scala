@@ -51,7 +51,7 @@ class TypeAnalyzer(
 
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =
-    val allFuncs = cfg.funcs.filter(_.isParamTysDefined)
+    val allFuncs = cfg.funcs.filter(_.isParamTysPrecise)
     val funcs = targetPattern.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
@@ -163,7 +163,7 @@ class TypeAnalyzer(
       tgt: Option[NodePoint[Node]] = None,
     ): Unit =
       val CallPoint(callerNp, callee) = callPoint
-      if (callee.retTy.isDefined) {
+      if (!callee.retTy.isImprec) {
         val call = callerNp.node
         val retTy = callee.retTy.ty
         val newRetTy = generic
@@ -500,8 +500,7 @@ class TypeAnalyzer(
       rty = rv.ty
       prunedTy = ValueTy(
         ast = lty.ast,
-        record =
-          lty.record.filter(field, FieldMap.Elem(rty, false, false), positive),
+        record = lty.record.pruneField(field, FieldMap.Elem(rty), positive),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -517,7 +516,7 @@ class TypeAnalyzer(
       ty = v.ty
       prunedTy = ValueTy(
         ast = ty.ast,
-        record = ty.record.filter(field, FieldMap.Elem.Exist, positive),
+        record = ty.record.pruneField(field, FieldMap.Elem.Exist, positive),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()

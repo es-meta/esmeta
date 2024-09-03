@@ -37,7 +37,7 @@ def recordObj(tname: String)(
 )(using cfg: CFG): RecordObj = {
   val obj = RecordObj(tname, fields.toMap)
   for {
-    case (name, (Some(f), _, false)) <- cfg.tyModel.getUpperMethodMap(tname)
+    (name, f) <- cfg.tyModel.methodOf(tname)
   } obj.map += name -> Clo(cfg.fnameMap(f), Map())
   obj
 }
