@@ -163,7 +163,7 @@ class TypeAnalyzer(
       tgt: Option[NodePoint[Node]] = None,
     ): Unit =
       val CallPoint(callerNp, callee) = callPoint
-      if (!callee.retTy.isImprec) {
+      if (!callee.retTy.isImprec || generic.contains(callee.name)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty
         val newRetTy = generic
