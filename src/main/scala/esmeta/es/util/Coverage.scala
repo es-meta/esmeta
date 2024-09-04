@@ -7,6 +7,7 @@ import esmeta.interpreter.*
 import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.fuzzer.FSTrie
 import esmeta.es.util.Coverage.Interp
 import esmeta.state.*
 import esmeta.util.*
@@ -41,6 +42,8 @@ case class Coverage(
   private var condViewMap: Map[Cond, Map[View, Script]] = Map()
   private var condViews: Set[CondView] = Set()
 
+  private var fsTrie: FSTrie[String] = FSTrie.root[String]
+
   def apply(node: Node): Map[View, Script] = nodeViewMap.getOrElse(node, Map())
   def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
 
@@ -74,14 +77,14 @@ case class Coverage(
   /** evaluate a given ECMAScript program */
   def run(code: String): Interp = {
     val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, kFs, cp, timeLimit)
+    val interp = Interp(initSt, cp, timeLimit)
     interp.result; interp
   }
 
   /** evaluate a given ECMAScript AST */
   def run(ast: Ast): Interp = {
     val initSt = cfg.init.from(ast)
-    val interp = Interp(initSt, kFs, cp, timeLimit)
+    val interp = Interp(initSt, cp, timeLimit)
     interp.result; interp
   }
 
@@ -97,8 +100,28 @@ case class Coverage(
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
+    // update fsTrie
+    val isHit = true
+    val rawStacks =
+      interp.touchedCondViews.keys
+        .flatMap(_.view)
+        .map(v => v._2 :: v._1)
+        .map(_.map(_.func.name))
+    if isHit then fsTrie.touchWithHit(rawStacks)
+    else fsTrie.touchWithMiss(rawStacks)
+
     // update node coverage
-    for ((nodeView, nearest) <- interp.touchedNodeViews)
+    for ((rawNodeView, nearest) <- interp.touchedNodeViews)
+      // cut out features TODO: do this in the interpreter (Kanguk Lee)
+      val NodeView(node, rawView) = rawNodeView
+      val view: View = rawView.flatMap {
+        case (rawEnclosing, feature, path) =>
+          val rawStack = feature :: rawEnclosing
+          val featureStack = rawStack.take(fsTrie((rawStack).map(_.func.name)))
+          if featureStack.isEmpty then None
+          else Some((featureStack.tail, featureStack.head, path))
+      }
+      val nodeView = NodeView(node, view)
       touchedNodeViews += nodeView -> nearest
       getScript(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
@@ -109,7 +132,17 @@ case class Coverage(
         case Some(blockScript) => blockingScripts += blockScript
 
     // update branch coverage
-    for ((condView, nearest) <- interp.touchedCondViews)
+    for ((rawCondView, nearest) <- interp.touchedCondViews)
+      // cut out features TODO: do this in the interpreter (Kanguk Lee)
+      val CondView(cond, rawView) = rawCondView
+      val view: View = rawView.flatMap {
+        case (rawEnclosing, feature, path) =>
+          val rawStack = feature :: rawEnclosing
+          val featureStack = rawStack.take(fsTrie((rawStack).map(_.func.name)))
+          if featureStack.isEmpty then None
+          else Some((featureStack.tail, featureStack.head, path))
+      }
+      val condView: CondView = CondView(cond, view)
       touchedCondViews += condView -> nearest
       getScript(condView) match
         case None =>
@@ -148,6 +181,7 @@ case class Coverage(
     withMsg = withMsg,
   )
 
+  // TODO: DUMP FSTRIE (Kanguk Lee)
   /** dump results */
   def dumpTo(
     baseDir: String,
@@ -343,10 +377,10 @@ case class Coverage(
     } yield CondViewInfo(idx, condView, script.name)
 }
 
+// TODO: fromLog implementation? (Kanguk Lee)
 object Coverage {
   class Interp(
     initSt: State,
-    kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
   ) extends Interpreter(initSt, timeLimit = timeLimit, keepProvenance = true) {
@@ -380,7 +414,7 @@ object Coverage {
 
     // get syntax-sensitive views
     private def getView(node: Node | Cond): View =
-      val stack = st.context.featureStack.take(kFs)
+      val stack = st.context.featureStack // WARNING: RAW
       val path = if (cp) then Some(st.context.callPath) else None
       stack match {
         case Nil                  => None
