@@ -70,18 +70,20 @@ object Stringifier {
         if (elem != FieldMap.Elem.Init) app >> COLON >> elem
         app
     }
-    if (fieldMap.isEmpty) app >> "{}"
+    if (fieldMap.isTop) app >> "{}"
     else if (inline)
       val SEP = ", "
       given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
       app >> "{ "
       app >> map.toList.sortBy(_._1)
-      if (!default.isAbsent) app >> SEP >> "*" >> COLON >> default
+      if (!default.isTop)
+        if (map.nonEmpty) app >> SEP
+        app >> "*" >> COLON >> default
       app >> " }"
     else
       app.wrap("{", "}") {
         for (pair <- map.toList.sortBy(_._1)) app :> pair
-        if (!default.isAbsent) app :> "*" >> COLON >> default
+        if (!default.isTop) app :> "*" >> COLON >> default
       }
 
   /** field type map element */
@@ -160,9 +162,8 @@ object Stringifier {
     given Rule[(String, FieldMap)] = {
       case (app, (name, fm)) =>
         app >> name
-        if (!fm.isTop)
-          if (name.nonEmpty) app >> " "
-          app >> fm
+        if (name.isEmpty) app >> fm
+        else if (!fm.isTop) app >> " " >> fm
         app
     }
     given Rule[Iterable[String]] = iterableRule(sep = OR)

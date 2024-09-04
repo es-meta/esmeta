@@ -114,7 +114,12 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** field update */
   def update(field: String, ty: ValueTy): RecordTy = this match
     case Top       => Top
-    case Elem(map) => Elem(map.map { _ -> _.update(field, ty) })
+    case Elem(map) => Elem(map.map { _ -> _.update(field, FMElem(ty)) })
+
+  /** field update */
+  def expand(field: String): RecordTy = this match
+    case Top       => Top
+    case Elem(map) => Elem(map.map { _ -> _.update(field, FMElem.Uninit) })
 
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match

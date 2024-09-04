@@ -94,7 +94,7 @@ class JsonTinyTest extends TyTest {
       RecordT("Cat") -> "Record[Cat]",
       RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
       RecordT("Object", Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record[Object { A : Number, B : Boolean, * : [UA] Any }]",
+      "Record[Object { A : Number, B : Boolean }]",
       RecordT(
         "",
         Map(
@@ -103,7 +103,7 @@ class JsonTinyTest extends TyTest {
           "Q" -> NumberT,
           "R" -> BoolT,
         ),
-      ) -> "Record[{ P, Q : Number, R : Boolean, S, * : [UA] Any }]",
+      ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Record[Symbol]",

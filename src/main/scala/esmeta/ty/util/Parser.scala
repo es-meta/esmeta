@@ -49,7 +49,7 @@ trait Parsers extends BasicParsers {
     }
     lazy val default = "*" ~ ":" ~> fieldMapElem
     "{" ~> rep(field <~ opt(",")) ~ opt(default) <~ "}" ^^ {
-      case ts ~ d => FieldMap(ts.toMap, d.getOrElse(Elem.Absent))
+      case ts ~ d => FieldMap(ts.toMap, d.getOrElse(Elem.Top))
     }
   }.named("ty.FieldMap")
 

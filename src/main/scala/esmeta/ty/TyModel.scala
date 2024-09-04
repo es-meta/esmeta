@@ -42,7 +42,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
             }
         }
       },
-      default = FMElem.Absent,
+      default = FMElem.Top,
     )
   }
 

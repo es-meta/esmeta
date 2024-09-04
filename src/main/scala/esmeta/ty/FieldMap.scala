@@ -68,8 +68,6 @@ case class FieldMap(map: Map[String, Elem], default: Elem)
   /** field update */
   def update(field: String, elem: Elem): FieldMap =
     FieldMap(map + (field -> elem), default)
-  def update(field: String, ty: ValueTy): FieldMap =
-    update(field, Elem(ty, false, false))
 
   /** fields */
   def fields: Set[String] = map.keySet

@@ -30,8 +30,8 @@ trait TyTest extends ESMetaTest {
 
   // field type map
   import FieldMap.Elem
-  val fieldMap0 = FieldMap(Map(), Elem.Absent)
-  val fieldMap1 = FieldMap(Map("p" -> Elem(AnyT, false, false)), Elem.Absent)
+  val fieldMap0 = FieldMap(Map(), Elem.Top)
+  val fieldMap1 = FieldMap(Map("p" -> Elem(AnyT, false, false)), Elem.Top)
   val fieldMap2 = FieldMap(
     Map(
       "p" -> Elem(AnyT, false, false),
