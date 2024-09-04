@@ -42,8 +42,8 @@ class TypeAnalyzer(
   inline def unusedSet: Set[String] = _unusedSet
 
   /** perform type analysis with the given control flow graph */
-  lazy val errors: Set[TypeError] = errorMap.values.toSet
-  lazy val detected = errors.filter(error => {
+  def errors: Set[TypeError] = errorMap.values.toSet
+  def detected = errors.filter(error => {
     val name = error.func.name
     _unusedSet -= name
     !ignore.names.contains(name)
