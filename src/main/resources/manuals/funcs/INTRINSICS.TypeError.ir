@@ -12,30 +12,29 @@ def <BUILTIN>:INTRINSICS.TypeError(
     pop options < ArgumentsList
     expand __args__.options
   } else let options = undefined
-  %0 = (= NewTarget undefined)
-  if %0 {
+  if (= NewTarget undefined) {
     let newTarget = @EXECUTION_STACK[0].Function
   } else {
     let newTarget = NewTarget
   }
-  call %1 = clo<"OrdinaryCreateFromConstructor">(newTarget, "%TypeError.prototype%", (list ["ErrorData"]))
-  assert (? %1: Completion)
-  if (? %1: Abrupt) return %1
-  else %1 = %1.Value
-  let O = %1
-  %2 = (exists __args__.message)
-  if %2 {
-    call %3 = clo<"ToString">(message)
-    assert (? %3: Completion)
-    if (? %3: Abrupt) return %3
-    else %3 = %3.Value
-    let msg = %3
-    call %4 = clo<"CreateNonEnumerableDataPropertyOrThrow">(O, "message", msg)
+  call %0 = clo<"OrdinaryCreateFromConstructor">(newTarget, "%TypeError.prototype%", (list ["ErrorData"]))
+  assert (? %0: Completion)
+  if (? %0: Abrupt) return %0
+  else %0 = %0.Value
+  let O = %0
+  %1 = (exists __args__.message)
+  if %1 {
+    call %2 = clo<"ToString">(message)
+    assert (? %2: Completion)
+    if (? %2: Abrupt) return %2
+    else %2 = %2.Value
+    let msg = %2
+    call %3 = clo<"CreateNonEnumerableDataPropertyOrThrow">(O, "message", msg)
   }
-  call %5 = clo<"InstallErrorCause">(O, options)
-  assert (? %5: Completion)
-  if (? %5: Abrupt) return %5
-  else %5 = %5.Value
-  call %6 = clo<"NormalCompletion">(O)
-  return %6
+  call %4 = clo<"InstallErrorCause">(O, options)
+  assert (? %4: Completion)
+  if (? %4: Abrupt) return %4
+  else %4 = %4.Value
+  call %5 = clo<"NormalCompletion">(O)
+  return %5
 }
