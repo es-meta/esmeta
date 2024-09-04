@@ -41,7 +41,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       for {
         (t, fm) <- rmap.filter(!isStrictSubTy(_, lmap))
       } map += t -> map.get(t).fold(fm)(_ || fm)
-      Elem(map)
+      Elem(map).normalized
 
   /** intersection type */
   def &&(that: => RecordTy): RecordTy = (this, that) match
@@ -149,6 +149,14 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         pair = sub -> fm.update(f, rty)
         // TODO pair <- normalize(sub -> fm.update(f, rty))
       } yield Elem(Map(pair))).foldLeft(Bot)(_ || _)
+
+  /** normalize record type */
+  def normalized: RecordTy = this match
+    case Top => Top
+    case Elem(map) =>
+      Elem(map.map {
+        case (t, fm) => t -> fm.filter(f => !(getField(t, f) <= fm(f)))
+      })
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {

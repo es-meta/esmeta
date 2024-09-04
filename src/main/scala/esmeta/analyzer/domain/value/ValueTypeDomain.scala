@@ -313,7 +313,8 @@ trait ValueTypeDomainDecl { self: Self =>
             else ValueTy(number = ty.number || fromMath)
           case COp.ToBigInt
               if (!ty.math.isBottom || !ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
-            BigIntT
+            if (!ty.str.isBottom) BigIntT || UndefT
+            else BigIntT
           case COp.ToMath =>
             val fromNumber = ty.number match
               case NumberTopTy      => MathTopTy
