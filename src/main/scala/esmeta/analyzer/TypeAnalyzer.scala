@@ -299,6 +299,21 @@ class TypeAnalyzer(
           } yield ()
         case _ => super.transfer(inst)
 
+    /** transfer function for expressions */
+    override def transfer(
+      expr: Expr,
+    )(using np: NodePoint[Node]): Result[AbsValue] =
+      expr match
+        // a precise type of `the active function object` in built-in functions
+        case ERef(
+              Field(
+                Field(Global("EXECUTION_STACK"), EMath(0)),
+                EStr("Function"),
+              ),
+            ) if np.func.isBuiltin =>
+          AbsValue(RecordT("Constructor"))
+        case _ => super.transfer(expr)
+
     /** transfer function for unary operators */
     override def transfer(
       st: AbsState,
