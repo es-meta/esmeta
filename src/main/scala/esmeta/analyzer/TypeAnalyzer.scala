@@ -657,6 +657,7 @@ class TypeAnalyzer(
         ),
       ),
       filename = s"$ANALYZE_LOG_DIR/summary.yml",
+      silent = silent,
     )
     dumpFile(
       name = "type analysis result for each function",
@@ -697,6 +698,7 @@ class TypeAnalyzer(
         name = "unreachable functions",
         data = unreachableFuncs.sorted.map(_.nameWithId).mkString(LINE_SEP),
         filename = s"$unreachableDir/funcs",
+        silent = silent,
       )
       dumpFile(
         name = "unreachable nodes",
@@ -711,16 +713,19 @@ class TypeAnalyzer(
           }
           .mkString(LINE_SEP),
         filename = s"$unreachableDir/nodes",
+        silent = silent,
       )
       dumpFile(
         name = "unreachable function returns",
         data = unreachableReturns.sorted.map(_.nameWithId).mkString(LINE_SEP),
         filename = s"$unreachableDir/returns",
+        silent = silent,
       )
       dumpFile(
         name = "detailed type analysis result for each control point",
         data = sem.resultStrings(detail = true).mkString(LINE_SEP),
         filename = s"$ANALYZE_LOG_DIR/detailed-types",
+        silent = silent,
       )
   }
 }
