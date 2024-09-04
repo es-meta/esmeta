@@ -1,7 +1,7 @@
 def <BUILTIN>:INTRINSICS.RangeError(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Record[Object] | Undefined,
+  NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
   let __args__ = (record)
   if (< 0 (sizeof ArgumentsList)) {
