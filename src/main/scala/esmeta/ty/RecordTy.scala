@@ -152,11 +152,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** normalize record type */
   def normalized: RecordTy = this match
-    case Top => Top
-    case Elem(map) =>
-      Elem(map.map {
-        case (t, fm) => t -> fm.filter(f => !(getField(t, f) <= fm(f)))
-      })
+    case Top       => Top
+    case Elem(map) => Elem(map.map(normalize))
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
@@ -171,7 +168,11 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
     Map(
       name -> FieldMap(
-        map = fields.map(_ -> FMElem(_, false, false)).toMap,
+        map = (for {
+          (field, ty) <- fields
+          elem = FMElem(ty, false, false)
+          if isValidField(name, field, elem)
+        } yield field -> elem).toMap,
         default = FMElem.Top,
       ),
     ),
@@ -180,6 +181,15 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
     Elem(map)
+
+  /** normalized type */
+  def normalize(pair: (String, FieldMap)): (String, FieldMap) =
+    val (t, fm) = pair
+    t -> fm.filter(f => isValidField(t, f, fm(f)))
+
+  /** normalized type */
+  def isValidField(t: String, field: String, elem: FMElem): Boolean =
+    !(getField(t, field) <= elem)
 
   /** normalized type */
   // def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =

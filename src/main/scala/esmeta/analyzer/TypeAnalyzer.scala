@@ -217,25 +217,7 @@ class TypeAnalyzer(
       "MakeBasicObject" -> { _ =>
         def getElem(name: String) =
           FieldMap.Elem(CloT(s"Record[OrdinaryObject].$name"), false, false)
-        RecordT(
-          "Object",
-          FieldMap(
-            map = Map(
-              "GetPrototypeOf" -> getElem("GetPrototypeOf"),
-              "SetPrototypeOf" -> getElem("SetPrototypeOf"),
-              "IsExtensible" -> getElem("IsExtensible"),
-              "PreventExtensions" -> getElem("PreventExtensions"),
-              "GetOwnProperty" -> getElem("GetOwnProperty"),
-              "DefineOwnProperty" -> getElem("DefineOwnProperty"),
-              "HasProperty" -> getElem("HasProperty"),
-              "Get" -> getElem("Get"),
-              "Set" -> getElem("Set"),
-              "Delete" -> getElem("Delete"),
-              "OwnPropertyKeys" -> getElem("OwnPropertyKeys"),
-            ),
-            default = FieldMap.Elem(BotT, true, true),
-          ),
-        )
+        RecordT("Object")
       },
       "CreateListFromArrayLike" -> (tys => {
         val elem =
