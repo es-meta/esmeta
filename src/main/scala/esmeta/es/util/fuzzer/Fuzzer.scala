@@ -356,7 +356,7 @@ class Fuzzer(
     row ++= Vector(tc)
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
-    // dump coveragge
+    // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
