@@ -47,10 +47,7 @@ trait Parsers extends BasicParsers {
     lazy val field = word ~ opt(":" ~> fieldMapElem) ^^ {
       case f ~ v => f -> v.getOrElse(FieldMap.Elem.Init)
     }
-    lazy val default = "*" ~ ":" ~> fieldMapElem
-    "{" ~> rep(field <~ opt(",")) ~ opt(default) <~ "}" ^^ {
-      case ts ~ d => FieldMap(ts.toMap, d.getOrElse(Elem.Top))
-    }
+    "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { case ts => FieldMap(ts.toMap) }
   }.named("ty.FieldMap")
 
   // field type map element

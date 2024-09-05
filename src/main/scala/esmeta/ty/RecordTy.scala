@@ -60,8 +60,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lmap.getOrElse(t, FieldMap.Top) &&
           rmap.getOrElse(t, FieldMap.Top)
         }
-        pair = t -> fm
-        // TODO pair <- normalize(t -> fm)
+        pair = normalize(t -> fm)
       } yield pair).toMap)
 
   /** prune type */
@@ -112,14 +111,29 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       map.get(name).fold(FMElem.Bot)(getField(name, f) && _(f))
 
   /** field update */
-  def update(field: String, ty: ValueTy): RecordTy = this match
-    case Top       => Top
-    case Elem(map) => Elem(map.map { _ -> _.update(field, FMElem(ty)) })
+  def update(field: String, ty: ValueTy): RecordTy = update(field, FMElem(ty))
 
   /** field update */
-  def expand(field: String): RecordTy = this match
-    case Top       => Top
-    case Elem(map) => Elem(map.map { _ -> _.update(field, FMElem.Uninit) })
+  def update(field: String, elem: FMElem): RecordTy = this match
+    case Top => Top
+    case Elem(map) =>
+      Elem(map.foldLeft(Map[String, FieldMap]()) {
+        case (map, (t, fm)) =>
+          map + ((for {
+            map <- refinerOf(t).get(field)
+            (_, u) <- map.find { case (e, _) => elem <= e }
+          } yield u) match
+            case Some(u) => normalize(u -> fm.update(field, elem))
+            case None =>
+              normalize(
+                t -> (
+                  map.getOrElse(t, FieldMap.Top) &&
+                  diffOf(baseOf(t), t).get &&
+                  fm.update(field, elem)
+                ),
+              )
+          )
+      })
 
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
@@ -134,21 +148,6 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           fm <- diffOf(lca, r)
         } yield fm && rfm).exists(_.contains(record, heap))
       }
-
-  /** prune with possible field types */
-  def pruneField(f: String, ty: FMElem, pos: Boolean): RecordTy = this match
-    case Top => Top
-    case Elem(map) =>
-      (for {
-        (name, fm) <- map
-        subs = tyModel.pruneField(name, f)
-        sub <- if (pos) subs else if (subs.isEmpty) Set() else Set(name)
-        vty = getField(sub, f) && fm(f)
-        rty = if (pos) vty && ty else vty -- ty
-        if !rty.isBottom
-        pair = sub -> fm.update(f, rty)
-        // TODO pair <- normalize(sub -> fm.update(f, rty))
-      } yield Elem(Map(pair))).foldLeft(Bot)(_ || _)
 
   /** normalize record type */
   def normalized: RecordTy = this match
@@ -168,12 +167,11 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
     Map(
       name -> FieldMap(
-        map = (for {
+        (for {
           (field, ty) <- fields
           elem = FMElem(ty, false, false)
           if isValidField(name, field, elem)
         } yield field -> elem).toMap,
-        default = FMElem.Top,
       ),
     ),
   )
@@ -190,21 +188,4 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   /** normalized type */
   def isValidField(t: String, field: String, elem: FMElem): Boolean =
     !(getField(t, field) <= elem)
-
-  /** normalized type */
-  // def normalize(pair: (String, FieldMap)): Map[String, FieldMap] =
-  //   val (l, lfm @ FieldMap(lm, default)) = pair
-  //   val pairs = for {
-  //     r <- directSubTysOf(l).toList
-  //     dfm <- diffOf(l, r)
-  //     if lfm <= dfm
-  //     fm = FieldMap(
-  //       lfm.map.filter { case (field, ty) => dfm(field) != ty },
-  //       default,
-  //     )
-  //   } yield r -> fm
-  //   val map =
-  //     if (pairs.isEmpty) Map(l -> lfm)
-  //     else pairs.toMap
-  //   map.map { case (r, fm) => r -> fm.filter(f => fm(f) != getField(r, f)) }
 }

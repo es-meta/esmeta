@@ -51,10 +51,8 @@ trait Walker extends BasicWalker {
         Field(walk(name), walk(optional), walk(typeStr))
 
   /** field type map */
-  def walk(fieldMap: FieldMap): FieldMap = FieldMap(
-    walkMap(fieldMap.map, walk, walk),
-    walk(fieldMap.default),
-  )
+  def walk(fieldMap: FieldMap): FieldMap =
+    FieldMap(walkMap(fieldMap.map, walk, walk))
 
   /** field type map element */
   def walk(ty: FieldMap.Elem): FieldMap.Elem = FieldMap.Elem(

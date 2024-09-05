@@ -63,7 +63,7 @@ object Stringifier {
   /** field type map */
   given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
     val COLON = " : "
-    val FieldMap(map, default) = fieldMap
+    val FieldMap(map) = fieldMap
     given Rule[(String, FieldMap.Elem)] = {
       case (app, (field, elem)) =>
         app >> field
@@ -74,17 +74,9 @@ object Stringifier {
     else if (inline)
       val SEP = ", "
       given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
-      app >> "{ "
-      app >> map.toList.sortBy(_._1)
-      if (!default.isTop)
-        if (map.nonEmpty) app >> SEP
-        app >> "*" >> COLON >> default
-      app >> " }"
+      app >> "{ " >> map.toList.sortBy(_._1) >> " }"
     else
-      app.wrap("{", "}") {
-        for (pair <- map.toList.sortBy(_._1)) app :> pair
-        if (!default.isTop) app :> "*" >> COLON >> default
-      }
+      app.wrap("{", "}") { for (pair <- map.toList.sortBy(_._1)) app :> pair }
 
   /** field type map element */
   given fieldMapElemRule: Rule[FieldMap.Elem] = (app, ty) =>

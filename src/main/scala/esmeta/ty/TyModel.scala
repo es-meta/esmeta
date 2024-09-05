@@ -27,13 +27,34 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     } yield f -> method
   }
 
+  /** refiner map */
+  type Refiner = Map[String, Vector[(FMElem, String)]]
+
+  /** get refiner map */
+  lazy val refinerOf: String => Refiner = cached { tname =>
+    childrenOf(tname)
+      .collect { case d if d.isExtended => d.name }
+      .map(x => x -> refinerOf(x))
+      .foldLeft[Refiner](Map()) {
+        case (lref, (rt, rref)) =>
+          lref ++ (fieldsOf(rt).map((f, e) => f -> Vector(e -> rt)) ++ rref)
+            .map { (f, rm) =>
+              f -> lref.get(f).fold(rm) { lm =>
+                lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
+                rm.filter((r, _) => lm.forall((l, _) => (l && r).isBottom))
+              }
+            }
+            .filter((_, v) => v.nonEmpty)
+      }
+  }
+
   /** get field type */
   def getField(tname: String, f: String): FMElem = fieldMapOf(tname)(f)
 
   /** get all field type map */
   lazy val fieldMapOf: String => FieldMap = cached { t =>
     FieldMap(
-      map = declMap.get(t).fold(Map()) { decl =>
+      declMap.get(t).fold(Map()) { decl =>
         decl.parent.fold(lowerFieldsOf(t)) { (parent, extended) =>
           if (extended) upperFieldsOf(parent) ++ lowerFieldsOf(t)
           else
@@ -42,27 +63,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
             }
         }
       },
-      default = FMElem.Top,
     )
-  }
-
-  /** get upper field types */
-  lazy val upperFieldsOf: String => Map[String, FMElem] = cached { tname =>
-    parentOf(tname).fold(Map())(upperFieldsOf) ++ fieldsOf(tname)
-  }
-
-  /** get lower field types */
-  lazy val lowerFieldsOf: String => Map[String, FMElem] = cached { tname =>
-    val pairs = for {
-      decl <- childrenOf(tname)
-      if decl.isExtended
-      x = decl.name
-      pair <- lowerFieldsOf(x)
-    } yield pair
-    pairs.foldLeft(fieldsOf(tname)) {
-      case (fs, (f, e)) =>
-        fs + (f -> (fs.getOrElse(f, FMElem.Absent) || e))
-    }
   }
 
   /** get direct field types */
@@ -85,13 +86,55 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     else if (isStrictSubTy(l, u))
       val parent = parentOf(l).get
       val upper = diffOf(u, parent).get.map
-      Some(FieldMap(upper ++ fieldsOf(l), FMElem.Top))
+      Some(FieldMap(upper ++ fieldsOf(l)))
     else None
   }
 
   /** check if a type is a strict (proper) subtype of another */
+  def isStrictSubTy(
+    lmap: Map[String, FieldMap],
+    rmap: Map[String, FieldMap],
+  ): Boolean = lmap.forall(isStrictSubTy(_, rmap))
+  def isStrictSubTy(
+    lpair: (String, FieldMap),
+    rmap: Map[String, FieldMap],
+  ): Boolean = rmap.exists(isStrictSubTy(lpair, _))
+  def isStrictSubTy(
+    lpair: (String, FieldMap),
+    rpair: (String, FieldMap),
+  ): Boolean = lpair != rpair && isSubTy(lpair, rpair)
+  def isStrictSubTy(l: String, rs: Set[String]): Boolean =
+    rs.exists(isStrictSubTy(l, _))
+  def isStrictSubTy(ls: Set[String], r: String): Boolean =
+    ls.forall(isStrictSubTy(_, r))
+  def isStrictSubTy(ls: Set[String], rs: Set[String]): Boolean =
+    ls.forall(isStrictSubTy(_, rs))
   def isStrictSubTy(l: String, r: String): Boolean =
     strictSubTysOf(r).contains(l)
+
+  /** check if a type is a subtype of another */
+  def isSubTy(
+    lmap: Map[String, FieldMap],
+    rmap: Map[String, FieldMap],
+  ): Boolean = lmap.forall(isSubTy(_, rmap))
+  def isSubTy(lpair: (String, FieldMap), rmap: Map[String, FieldMap]): Boolean =
+    rmap.exists(isSubTy(lpair, _))
+  def isSubTy(lpair: (String, FieldMap), rpair: (String, FieldMap)): Boolean =
+    val (l, lfm) = lpair
+    val (r, rfm) = rpair
+    (for {
+      lca <- lcaOf(l, r)
+      ldfm <- diffOf(lca, l)
+      rdfm <- diffOf(lca, r)
+    } yield (ldfm && lfm) <= (rdfm && rfm)).getOrElse(false)
+  def isSubTy(l: String, r: String): Boolean =
+    l == r || isStrictSubTy(l, r)
+  def isSubTy(l: String, rs: Set[String]): Boolean =
+    rs.exists(isSubTy(l, _))
+  def isSubTy(ls: Set[String], r: String): Boolean =
+    ls.forall(isSubTy(_, r))
+  def isSubTy(ls: Set[String], rs: Set[String]): Boolean =
+    ls.forall(isSubTy(_, rs))
 
   /** get strict subtypes */
   lazy val strictSubTysOf: String => Set[String] = cached { tname =>
@@ -151,73 +194,24 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     } yield children += parent -> (decl :: list)
     children.map { case (k, v) => k -> v.reverse }
 
-  // ---------------------------------------------------------------------------
-  // TODO
-  // ---------------------------------------------------------------------------
+  /** get upper field types */
+  private lazy val upperFieldsOf: String => Map[String, FMElem] = cached {
+    tname => parentOf(tname).fold(Map())(upperFieldsOf) ++ fieldsOf(tname)
+  }
 
-  /** check if a type is a strict (proper) subtype of another */
-  def isStrictSubTy(
-    lmap: Map[String, FieldMap],
-    rmap: Map[String, FieldMap],
-  ): Boolean = lmap.forall(isStrictSubTy(_, rmap))
-  def isStrictSubTy(
-    lpair: (String, FieldMap),
-    rmap: Map[String, FieldMap],
-  ): Boolean = rmap.exists(isStrictSubTy(lpair, _))
-  def isStrictSubTy(
-    lpair: (String, FieldMap),
-    rpair: (String, FieldMap),
-  ): Boolean = lpair != rpair && isSubTy(lpair, rpair)
-  def isStrictSubTy(l: String, rs: Set[String]): Boolean =
-    rs.exists(isStrictSubTy(l, _))
-  def isStrictSubTy(ls: Set[String], r: String): Boolean =
-    ls.forall(isStrictSubTy(_, r))
-  def isStrictSubTy(ls: Set[String], rs: Set[String]): Boolean =
-    ls.forall(isStrictSubTy(_, rs))
-
-  /** check if a type is a subtype of another */
-  def isSubTy(
-    lmap: Map[String, FieldMap],
-    rmap: Map[String, FieldMap],
-  ): Boolean = lmap.forall(isSubTy(_, rmap))
-  def isSubTy(lpair: (String, FieldMap), rmap: Map[String, FieldMap]): Boolean =
-    rmap.exists(isSubTy(lpair, _))
-  def isSubTy(lpair: (String, FieldMap), rpair: (String, FieldMap)): Boolean =
-    val (l, lfm) = lpair
-    val (r, rfm) = rpair
-    (for {
-      lca <- lcaOf(l, r)
-      ldfm <- diffOf(lca, l)
-      rdfm <- diffOf(lca, r)
-    } yield (ldfm && lfm) <= (rdfm && rfm)).getOrElse(false)
-  def isSubTy(l: String, r: String): Boolean =
-    l == r || isStrictSubTy(l, r)
-  def isSubTy(l: String, rs: Set[String]): Boolean =
-    rs.exists(isSubTy(l, _))
-  def isSubTy(ls: Set[String], r: String): Boolean =
-    ls.forall(isSubTy(_, r))
-  def isSubTy(ls: Set[String], rs: Set[String]): Boolean =
-    ls.forall(isSubTy(_, rs))
-
-  /** get subtypes having the given field */
-  lazy val pruneField: ((String, String)) => Set[String] =
-    cached((name, field) => {
-      if (!getField(name, field).isTop) Set(name)
-      else
-        for {
-          sub <- directSubTys.getOrElse(name, Set())
-          x <- pruneField(sub, field)
-        } yield x
-    })
-
-  private lazy val directSubTys: Map[String, Set[String]] = {
-    var children = Map[String, Set[String]]()
-    for {
-      decl <- decls
-      parent <- parentOf(decl.name)
-      set = children.getOrElse(parent, Set())
-    } children += parent -> (set + decl.name)
-    children
+  /** get lower field types */
+  private lazy val lowerFieldsOf: String => Map[String, FMElem] = cached {
+    tname =>
+      val pairs = for {
+        decl <- childrenOf(tname)
+        if decl.isExtended
+        x = decl.name
+        pair <- lowerFieldsOf(x)
+      } yield pair
+      pairs.foldLeft(fieldsOf(tname)) {
+        case (fs, (f, e)) =>
+          fs + (f -> (fs.getOrElse(f, FMElem.Absent) || e))
+      }
   }
 }
 object TyModel extends Parser.From(Parser.tyModel)

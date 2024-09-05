@@ -7,6 +7,7 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
+import esmeta.ty.FieldMap.{Elem => FMElem}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.state.*
@@ -201,6 +202,7 @@ class TypeAnalyzer(
       if (!canUseReturnTy(rp.func)) super.apply(rp)
 
     val generic: Map[String, List[ValueTy] => ValueTy] = Map(
+      "__APPEND_LIST__" -> (tys => tys(0) || tys(1)),
       "__FLAT_LIST__" -> (_(0).list.elem),
       "Completion" -> (_(0) && CompT),
       "UpdateEmpty" -> (_(0) && CompT),
@@ -215,8 +217,7 @@ class TypeAnalyzer(
         )
       },
       "MakeBasicObject" -> { _ =>
-        def getElem(name: String) =
-          FieldMap.Elem(CloT(s"Record[OrdinaryObject].$name"), false, false)
+        def getElem(f: String) = FMElem(CloT(s"Record[OrdinaryObject].$f"))
         RecordT("Object")
       },
       "CreateListFromArrayLike" -> (tys => {
@@ -391,9 +392,11 @@ class TypeAnalyzer(
       // prune field equality
       case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
         pruneField(x, field, expr, positive)
+        st => st
       // prune field existence
       case EExists(Field(x: Local, EStr(field))) =>
         pruneExistField(x, field, positive)
+        st => st
       // prune types
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
         pruneType(x, expr, positive)
@@ -487,7 +490,7 @@ class TypeAnalyzer(
       _ <- prune(lv, prunedV)
     } yield ()
 
-    /** prune types with field equality */
+    /** TODO prune types with field equality */
     def pruneField(
       x: Local,
       field: String,
@@ -499,9 +502,11 @@ class TypeAnalyzer(
       rv <- transfer(expr)
       lty = lv.ty
       rty = rv.ty
+      relem = FMElem(rty)
+      elem = if (positive) relem else lty.record(field) -- relem
       prunedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.pruneField(field, FieldMap.Elem(rty), positive),
+        record = lty.record.update(field, elem),
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()
@@ -515,9 +520,10 @@ class TypeAnalyzer(
       l <- transfer(x)
       v <- transfer(l)
       ty = v.ty
+      record = ty.record
       prunedTy = ValueTy(
         ast = ty.ast,
-        record = ty.record.pruneField(field, FieldMap.Elem.Exist, positive),
+        record = if (positive) record.update(field, FMElem.Exist) else record,
       )
       _ <- modify(_.update(l, AbsValue(prunedTy)))
     } yield ()

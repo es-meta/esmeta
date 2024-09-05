@@ -67,13 +67,11 @@ class StringifyTinyTest extends TyTest {
       fieldMap2 -> """{
       |  p
       |  q : [U] Boolean
-      |  * : Number
       |}""".stripMargin,
       fieldMap3 -> """{
       |  p
       |  q : [A] Boolean
       |  r : [UA] Null
-      |  * : [UA] String
       |}""".stripMargin,
     )
 
