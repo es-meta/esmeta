@@ -154,8 +154,9 @@ class TypeAnalyzer(
       super.getLocals(callPoint, method, vs)
 
     /** check if the return type can be used */
-    private def canUseReturnTy(func: Func): Boolean =
+    private lazy val canUseReturnTy: Func => Boolean = cached { func =>
       !func.retTy.isImprec || generic.contains(func.name)
+    }
 
     /** handle calls */
     override def doCall(
@@ -196,6 +197,10 @@ class TypeAnalyzer(
         } sem += nextNp -> newSt
       }
       super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
+
+    /** propagate callee analysis result */
+    override def propagate(rp: ReturnPoint): Unit =
+      if (!canUseReturnTy(rp.func)) super.propagate(rp)
 
     /** transfer function for return points */
     override def apply(rp: ReturnPoint): Unit =

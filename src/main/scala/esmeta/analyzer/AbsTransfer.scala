@@ -587,9 +587,13 @@ trait AbsTransferDecl { self: Analyzer =>
             val set = sem.getRetEdges(rp)
             sem.retEdges += rp -> (set + callerNp)
             // propagate callee analysis result
-            val retT = sem(rp)
-            if (!retT.isBottom) sem.worklist += rp
+            propagate(rp)
           }
+
+    /** propagate callee analysis result */
+    def propagate(rp: ReturnPoint): Unit =
+      val retT = sem(rp)
+      if (!retT.isBottom) sem.worklist += rp
 
     // return specific value
     def doReturn(
