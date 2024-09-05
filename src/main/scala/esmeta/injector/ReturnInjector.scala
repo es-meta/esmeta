@@ -133,7 +133,7 @@ class ReturnInjector(
   // access properties
   private def access(base: Value, props: Value*): Value =
     props.foldLeft(base) { case (base, p) => exitSt(base, p) }
-  
+
   // get created lexical variables
   private lazy val lexRecord = s"@REALM.GlobalEnv.DeclarativeRecord.$INNER_MAP"
   private lazy val createdLets: Set[String] =
@@ -146,9 +146,10 @@ class ReturnInjector(
     case addr: Addr =>
       exitSt(addr) match
         case m: MapObj => m.map.keySet.toSet
-        case _ => 
+        case _ =>
           if (log) println(s"[[$INNER_MAP]] is not a map object: $path"); Set()
-    case _ => if (log) println(s"[[$INNER_MAP]] is not an address: $path"); Set()
+    case _ =>
+      if (log) println(s"[[$INNER_MAP]] is not an address: $path"); Set()
 
   // conversion to ECMAScript code
   private def val2str(value: Value): Option[String] = value match

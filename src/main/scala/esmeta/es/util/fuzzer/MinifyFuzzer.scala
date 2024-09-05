@@ -108,7 +108,7 @@ class MinifyFuzzer(
   ) {
     override lazy val logDir = MinifyFuzzer.logDir
     override lazy val symlink = MinifyFuzzer.symlink
-    
+
     // adjust weight for active random fuzzing
     override val selector: TargetSelector = WeightedSelector(
       RandomSelector -> 8,
