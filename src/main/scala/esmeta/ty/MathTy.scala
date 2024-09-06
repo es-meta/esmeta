@@ -337,6 +337,9 @@ case object PosIntTy extends MathTy
 
 /** types for set of mathematical values */
 case class MathSetTy(set: Set[Math]) extends MathTy
+object MathSetTy {
+  def applySeq(set: Math*): Set[Math] = set.toSet
+}
 
 object MathTy extends Parser.From(Parser.mathTy) {
   lazy val Top: MathTy = MathTopTy

@@ -357,19 +357,6 @@ class TypeAnalyzer(
         val binaryPoint = BinaryOpPoint(np, binary)
         addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
 
-    /** refine invalid base for field reference */
-    override def refineFieldBase(
-      np: NodePoint[Node],
-      field: Field,
-      base: AbsValue,
-    ): AbsValue =
-      val baseTy = base.ty
-      if (config.checkInvalidBase && !baseTy.noField.isBottom)
-        addError(
-          InvalidBaseError(FieldBasePoint(FieldPoint(np, field)), baseTy),
-        )
-      AbsValue(baseTy)
-
     /** prune condition */
     override def prune(
       cond: Expr,
@@ -378,12 +365,9 @@ class TypeAnalyzer(
       // prune boolean local variables
       case ERef(x: Local) =>
         pruneBool(x, positive)
-      // prune inequality: x < 0
-      case EBinary(BOp.Lt, ERef(x: Local), EMath(0)) =>
-        pruneIneq(x, !positive, !positive)
-      // prune inequality: 0 < x
-      case EBinary(BOp.Lt, EMath(0), ERef(x: Local)) =>
-        pruneIneq(x, positive, !positive)
+      // prune inequality
+      case EBinary(BOp.Lt, l, r) =>
+        pruneIneq(l, r, positive)
       // prune local variables
       case EBinary(BOp.Eq, ERef(x: Local), expr) =>
         pruneLocal(x, expr, positive)
@@ -460,23 +444,37 @@ class TypeAnalyzer(
 
     /** prune types with inequalities */
     def pruneIneq(
-      x: Local,
+      l: Expr,
+      r: Expr,
       positive: Boolean,
-      withZero: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
-      l <- transfer(x)
-      lv <- transfer(l)
-      prunedV = AbsValue(
-        ValueTy(math =
-          (positive, withZero) match
-            case (true, true)   => NonNegIntTy // x >= 0
-            case (true, false)  => PosIntTy // x > 0
-            case (false, true)  => NonPosIntTy // x <= 0
-            case (false, false) => NegIntTy, // x < 0
-        ),
-      )
-      _ <- modify(_.update(l, prunedV))
-    } yield ()
+    )(using np: NodePoint[_]): Updater =
+      def toLocal(e: Expr): Option[Local] = e match
+        case ERef(x: Local) => Some(x)
+        case _              => None
+      for {
+        lv <- transfer(l)
+        rv <- transfer(r)
+        lmath = lv.ty.math
+        rmath = rv.ty.math
+        _ <- modify { st =>
+          val lst = toLocal(l).fold(st) { x =>
+            val pruned = (r, rmath) match
+              case (EMath(0), _) => if (positive) NegIntTy else NonNegIntTy
+              case (_, IntTy) =>
+                if (positive) lmath -- PosIntTy else lmath -- NegIntTy
+              case l => lmath
+            st.update(x, AbsValue(ValueTy(math = pruned)))
+          }
+          toLocal(r).fold(st) { x =>
+            val pruned = (l, lmath) match
+              case (EMath(0), _) => if (positive) PosIntTy else NonPosIntTy
+              case (_, IntTy) =>
+                if (positive) rmath -- NegIntTy else rmath -- PosIntTy
+              case _ => rmath
+            st.update(x, AbsValue(ValueTy(math = pruned)))
+          }
+        }
+      } yield ()
 
     /** prune types of local variables with equality */
     def pruneLocal(

@@ -456,14 +456,7 @@ trait AbsTransferDecl { self: Analyzer =>
             rv <- transfer(base)
             b <- transfer(rv)
             p <- transfer(expr)
-          } yield AbsFieldTarget(refineFieldBase(np, field, b), p)
-
-    /** refine invalid base for field reference */
-    def refineFieldBase(
-      np: NodePoint[Node],
-      field: Field,
-      base: AbsValue,
-    ): AbsValue = base
+          } yield AbsFieldTarget(b, p)
 
     /** transfer function for reference values */
     def transfer(rt: AbsRefTarget)(using
