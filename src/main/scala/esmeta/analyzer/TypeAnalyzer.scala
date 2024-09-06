@@ -455,7 +455,11 @@ class TypeAnalyzer(
         lv <- transfer(l)
         rv <- transfer(r)
         lmath = lv.ty.math
+        lnum = lv.ty.number
+        lbigInt = lv.ty.bigInt
         rmath = rv.ty.math
+        rnum = rv.ty.number
+        rbigInt = rv.ty.bigInt
         _ <- modify { st =>
           val lst = toLocal(l).fold(st) { x =>
             val pruned = (r, rmath) match
@@ -463,7 +467,16 @@ class TypeAnalyzer(
               case (_, IntTy) =>
                 if (positive) lmath -- PosIntTy else lmath -- NegIntTy
               case l => lmath
-            st.update(x, AbsValue(ValueTy(math = pruned)))
+            st.update(
+              x,
+              AbsValue(
+                ValueTy(
+                  math = pruned,
+                  number = lnum,
+                  bigInt = lbigInt,
+                ),
+              ),
+            )
           }
           toLocal(r).fold(st) { x =>
             val pruned = (l, lmath) match
@@ -471,7 +484,16 @@ class TypeAnalyzer(
               case (_, IntTy) =>
                 if (positive) rmath -- NegIntTy else rmath -- PosIntTy
               case _ => rmath
-            st.update(x, AbsValue(ValueTy(math = pruned)))
+            st.update(
+              x,
+              AbsValue(
+                ValueTy(
+                  math = pruned,
+                  number = rnum,
+                  bigInt = rbigInt,
+                ),
+              ),
+            )
           }
         }
       } yield ()

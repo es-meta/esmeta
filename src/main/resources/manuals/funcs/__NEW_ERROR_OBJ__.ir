@@ -1,6 +1,6 @@
 def <AUX>:__NEW_ERROR_OBJ__(
   proto: String,
-): Record[OrdinaryObject] = {
+): Record[ErrorObject] = {
   call obj = clo<"__NEW_OBJ__">()
   obj.Prototype = @EXECUTION_STACK[0].Realm.Intrinsics[proto]
   obj.Extensible = true

@@ -644,7 +644,7 @@ type SymbolObject extends OrdinaryObject {
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-error-instances
-type Error extends OrdinaryObject {
+type ErrorObject extends OrdinaryObject {
   ErrorData: Undefined;
 }
 
