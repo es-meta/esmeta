@@ -3,12 +3,13 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import FieldMap.Elem
 
 /** field type map */
-case class FieldMap(map: Map[String, Elem])
+case class FieldMap(map: Map[String, FieldMap.Elem])
   extends TyElem
   with Lattice[FieldMap] {
+
+  import FieldMap.*
 
   /** top check */
   def isTop: Boolean = map.forall(_._2.isTop)
@@ -17,13 +18,14 @@ case class FieldMap(map: Map[String, Elem])
   def isBottom: Boolean = false
 
   /** partial order/subset operator */
-  def <=(that: => FieldMap): Boolean = (this eq that) || (
-    (this.fields ++ that.fields).forall { f => this(f) <= that(f) },
+  def <=(that: => FieldMap): Boolean = (this eq that) || that.isTop || (
+    that.fields.forall { f => this(f) <= that(f) },
   )
 
   /** union type */
   def ||(that: => FieldMap): FieldMap =
     if (this eq that) this
+    else if (this.isTop || that.isTop) Top
     else
       FieldMap(
         (for {
@@ -36,6 +38,8 @@ case class FieldMap(map: Map[String, Elem])
   /** intersection type */
   def &&(that: => FieldMap): FieldMap =
     if (this eq that) this
+    else if (this.isTop) that
+    else if (that.isTop) this
     else
       FieldMap(
         (for {

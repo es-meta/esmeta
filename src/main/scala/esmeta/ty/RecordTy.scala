@@ -26,8 +26,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** partial order/subset operator */
   def <=(that: => RecordTy): Boolean = (this eq that) || {
     (this, that) match
-      case (_, Top)                 => true
-      case (Top, _)                 => false
+      case (Bot, _) | (_, Top)      => true
+      case (Top, _) | (_, Bot)      => false
       case (Elem(lmap), Elem(rmap)) => isSubTy(lmap, rmap)
   }
 
