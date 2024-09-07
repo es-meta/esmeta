@@ -46,7 +46,7 @@ class Initialize(cfg: CFG) {
     ),
     KEPT_ALIVE -> (NamedAddr("KeptAlive"), ListT(ObjectT || SymbolT)),
     REALM -> (NamedAddr(REALM), RecordT("RealmRecord")),
-    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(RecordT("PendingJob"))),
+    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(RecordT("JobRecord"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
     UNDEF_TYPE -> (Str("Undefined"), StrT("Undefined")),
     NULL_TYPE -> (Str("Null"), StrT("Null")),

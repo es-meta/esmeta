@@ -63,10 +63,17 @@ case class Func(
   /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == SynDirOp
 
+  /** check whether it is a closure */
+  lazy val isClo: Boolean = irFunc.kind == Clo
+
+  /** check whether it is a continuation */
+  lazy val isCont: Boolean = irFunc.kind == Cont
+
   /** check whether it is method operation */
   lazy val isMethod: Boolean =
     irFunc.kind == ConcMeth || irFunc.kind == InternalMeth
 
+  /** check whether it is a closure in a builtin function */
   lazy val isBuiltInClo: Boolean = irFunc.kind == Builtin
 
   private val baseNamePattern = """([^:]*)(:clo.*|:cont.*)""".r

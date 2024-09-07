@@ -28,7 +28,7 @@ trait ValueTypeDomainDecl { self: Self =>
     ) extends Appendable
 
     /** top element */
-    lazy val Top: Elem = exploded("top abstract value")
+    lazy val Top: Elem = Elem(AnyT)
 
     /** bottom element */
     val Bot: Elem = Elem(ValueTy())

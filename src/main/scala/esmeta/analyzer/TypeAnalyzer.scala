@@ -52,7 +52,7 @@ class TypeAnalyzer(
 
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =
-    val allFuncs = cfg.funcs.filter(_.isParamTysPrecise)
+    val allFuncs = cfg.funcs.filter(f => f.isParamTysPrecise && !f.isCont)
     val funcs = targetPattern.fold(allFuncs)(pattern => {
       val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
@@ -255,8 +255,16 @@ class TypeAnalyzer(
           (0, True, RecordT("ReferenceRecord", Map("Base" -> ESValueT))),
         ),
         "IsSuperReference" -> List(
-          (0, True, RecordT("SupreReferenceRecord")),
+          (0, True, RecordT("SuperReferenceRecord")),
         ),
+        "IsPrivateReference" -> {
+          def get(name: ValueTy) =
+            RecordT("ReferenceRecord", Map("ReferencedName" -> name))
+          List(
+            (0, True, get(RecordT("PrivateName"))),
+            (0, False, get(SymbolT || StrT)), // TODO ESValue in latest version
+          )
+        },
       )
 
     /** update return points */
@@ -381,11 +389,9 @@ class TypeAnalyzer(
       // prune field equality
       case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
         pruneField(x, field, expr, positive)
-        st => st
       // prune field existence
       case EExists(Field(x: Local, EStr(field))) =>
         pruneExistField(x, field, positive)
-        st => st
       // prune types
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
         pruneType(x, expr, positive)
@@ -455,42 +461,46 @@ class TypeAnalyzer(
         lv <- transfer(l)
         rv <- transfer(r)
         lmath = lv.ty.math
-        lnum = lv.ty.number
-        lbigInt = lv.ty.bigInt
         rmath = rv.ty.math
-        rnum = rv.ty.number
-        rbigInt = rv.ty.bigInt
         _ <- modify { st =>
           val lst = toLocal(l).fold(st) { x =>
+            var math = lmath
+            var infinity = lv.ty.infinity
             val pruned = (r, rmath) match
-              case (EMath(0), _) => if (positive) NegIntTy else NonNegIntTy
-              case (_, IntTy) =>
-                if (positive) lmath -- PosIntTy else lmath -- NegIntTy
-              case l => lmath
+              case (EMath(0), _) =>
+                math = if (positive) NegIntTy else NonNegIntTy
+              case (_, MathTopTy) =>
+                infinity --= (if (positive) InfinityTy.Pos else InfinityTy.Neg)
+              case l =>
             st.update(
               x,
               AbsValue(
                 ValueTy(
-                  math = pruned,
-                  number = lnum,
-                  bigInt = lbigInt,
+                  math = math,
+                  infinity = infinity,
+                  number = lv.ty.number,
+                  bigInt = lv.ty.bigInt,
                 ),
               ),
             )
           }
-          toLocal(r).fold(st) { x =>
+          toLocal(r).fold(lst) { x =>
+            var math = rmath
+            var infinity = rv.ty.infinity
             val pruned = (l, lmath) match
-              case (EMath(0), _) => if (positive) PosIntTy else NonPosIntTy
-              case (_, IntTy) =>
-                if (positive) rmath -- NegIntTy else rmath -- PosIntTy
+              case (EMath(0), _) =>
+                math = if (positive) PosIntTy else NonPosIntTy
+              case (_, MathTopTy) =>
+                infinity --= (if (positive) InfinityTy.Neg else InfinityTy.Pos)
               case _ => rmath
-            st.update(
+            lst.update(
               x,
               AbsValue(
                 ValueTy(
-                  math = pruned,
-                  number = rnum,
-                  bigInt = rbigInt,
+                  math = math,
+                  infinity = infinity,
+                  number = rv.ty.number,
+                  bigInt = rv.ty.bigInt,
                 ),
               ),
             )

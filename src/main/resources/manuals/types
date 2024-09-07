@@ -42,7 +42,8 @@ type AbruptCompletion extends CompletionRecord {
 // https://tc39.es/ecma262/#table-reference-record-fields
 type ReferenceRecord {
   Base: ESValue | Record[EnvironmentRecord] | Enum[~unresolvable~];
-  ReferencedName: ESValue | Record[PrivateName];
+  // TODO: `Record[Symbol] | String` to `ESValue` in latest version
+  ReferencedName: Record[Symbol | PrivateName] | String;
   Strict: Boolean;
   ThisValue: ESValue | Enum[~empty~];
 }
@@ -480,6 +481,13 @@ type PrivateEnvironmentRecord {
 // https://tc39.es/ecma262/#table-additional-state-components-for-generator-execution-contexts
 type GeneratorExecutionContext extends ExecutionContext {
   Generator: Record[Generator | AsyncGenerator]; // TODO: PR - AsyncGenerator
+}
+
+// MANUAL MODELING FOR JOB QUEUE
+type JobRecord {
+  Job: Clo;
+  Realm: Record[RealmRecord];
+  ScriptOrModule: Record[ScriptRecord | ModuleRecord];
 }
 
 // https://tc39.es/ecma262/#sec-promisecapability-records

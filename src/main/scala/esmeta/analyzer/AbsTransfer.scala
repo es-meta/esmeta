@@ -213,7 +213,8 @@ trait AbsTransferDecl { self: Analyzer =>
               val f = tgt.func
               val callPoint = CallPoint(callerNp, f)
               doCall(callPoint, st, args, vs, captured, f.isMethod, Some(tgt))
-            AbsValue.Bot
+            if (fv.clo.isTop || fv.cont.isTop) AbsValue.Top
+            else AbsValue.Bot
           }
         case ISdoCall(_, base, method, args) =>
           for {
