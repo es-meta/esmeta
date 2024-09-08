@@ -110,19 +110,11 @@ trait AbsTransferDecl { self: Analyzer =>
     def apply(rp: ReturnPoint): Unit = {
       var AbsRet(value, st) = sem(rp)
       for {
-        np @ NodePoint(func, call, view) <- sem.getRetEdges(rp)
-        nextNode <- call.next
+        callerNp <- sem.getRetEdges(rp)
+        nextNp <- getAfterCallNp(callerNp)
       } {
-        val callerSt = sem.callInfo(np)
-        val nextNp = NodePoint(
-          func,
-          nextNode,
-          nextNode match {
-            case br: Branch if br.isLoop => sem.loopEnter(view, br)
-            case _                       => view
-          },
-        )
-        sem += nextNp -> st.doReturn(callerSt, call.lhs, value)
+        val callerSt = sem.callInfo(callerNp)
+        sem += nextNp -> st.doReturn(callerSt, callerNp.node.lhs, value)
       }
     }
 
@@ -581,11 +573,24 @@ trait AbsTransferDecl { self: Analyzer =>
             val set = sem.getRetEdges(rp)
             sem.retEdges += rp -> (set + callerNp)
             // propagate callee analysis result
-            propagate(rp)
+            propagate(rp, callerNp)
           }
 
+    /** get after call node point */
+    def getAfterCallNp(callerNp: NodePoint[Call]): Option[NodePoint[Node]] =
+      val NodePoint(func, call, view) = callerNp
+      callerNp.node.next.map { nextNode =>
+        NodePoint(
+          func,
+          nextNode,
+          nextNode match
+            case br: Branch if br.isLoop => sem.loopEnter(view, br)
+            case _                       => view,
+        )
+      }
+
     /** propagate callee analysis result */
-    def propagate(rp: ReturnPoint): Unit =
+    def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit =
       val retT = sem(rp)
       if (!retT.isBottom) sem.worklist += rp
 

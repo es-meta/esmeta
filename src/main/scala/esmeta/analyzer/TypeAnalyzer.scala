@@ -190,8 +190,7 @@ class TypeAnalyzer(
                 case None => acc
           }
         for {
-          nextNode <- callerNp.node.next
-          nextNp = NodePoint(callerNp.func, nextNode, View())
+          nextNp <- getAfterCallNp(callerNp)
           retV = AbsValue(newRetTy, refinements)
           newSt = callerSt.define(call.lhs, retV)
         } sem += nextNp -> newSt
@@ -199,8 +198,18 @@ class TypeAnalyzer(
       super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
 
     /** propagate callee analysis result */
-    override def propagate(rp: ReturnPoint): Unit =
-      if (!canUseReturnTy(rp.func)) super.propagate(rp)
+    override def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit =
+      if (!canUseReturnTy(rp.func))
+        val AbsRet(value, st) = sem(rp)
+        (for {
+          nextNp <- getAfterCallNp(callerNp)
+          if !value.isBottom
+          callerSt = sem.callInfo(callerNp)
+        } yield sem += nextNp -> st.doReturn(
+          callerSt,
+          callerNp.node.lhs,
+          value,
+        )).getOrElse(super.propagate(rp, callerNp))
 
     /** transfer function for return points */
     override def apply(rp: ReturnPoint): Unit =
