@@ -49,4 +49,6 @@ trait TypeErrorDecl { self: Analyzer =>
     lhsTy: ValueTy,
     rhsTy: ValueTy,
   ) extends TypeError
+
+  given Ordering[TypeError] = Ordering.by(_.point.node.id)
 }

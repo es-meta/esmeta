@@ -723,9 +723,8 @@ class TypeAnalyzer(
     )
     dumpFile(
       name = "detected type errors",
-      data = errors.toList
+      data = errors.toList.sorted
         .map(_.toString(detail = true))
-        .sorted
         .mkString(LINE_SEP + LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
