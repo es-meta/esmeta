@@ -132,6 +132,7 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
     "esmeta eval a.js                         # eval a.js file.",
     "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
+    "esmeta eval a.js -eval:peval             # eval with partial evaluation.",
   )
   override val targetName = "<js>+"
 }
@@ -206,20 +207,6 @@ case object CmdIRInterp extends Command("ir-eval", CmdBase >> IREval) {
   val examples = List(
     "esmeta ir-eval a.ir                          # run a.ir (IR-ES) file.",
     "esmeta ir-eval a.ir -ir-eval:format          # run a.ir (IR-ES) file and format it in a cannonical form.",
-  )
-  override val targetName = "<ir>+"
-}
-
-// -----------------------------------------------------------------------------
-// IR-ES Partial Interpreter
-// -----------------------------------------------------------------------------
-/** `irpeval` command */
-case object CmdIRPeval extends Command("ir-peval", CmdBase >> IRPeval) {
-  val help = "partial-evaluate an IR-ES (ESMeta IR) file."
-  val examples = List(
-    "esmeta ir-peval a.ir                         # partial-eval a.ir (IR-ES) file.",
-    "esmeta ir-peval a.ir -ir-peval:out-auto      # partial-eval a.ir (IR-ES) file and print result to logs/ir-peval/out.ir",
-    "esmeta ir-peval a.ir -ir-peval:out='b.ir'    # partial-eval a.ir (IR-ES) file and print result to b.ir",
   )
   override val targetName = "<ir>+"
 }

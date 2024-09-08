@@ -83,7 +83,6 @@ object ESMeta extends Git(BASE_DIR) {
     // Interpreter for IR-ES
     CmdIRInterp,
     // Partial Evaluator for IR-ES
-    CmdIRPeval,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -110,7 +109,6 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
     IREval,
-    IRPeval,
   )
 
   /** command options */

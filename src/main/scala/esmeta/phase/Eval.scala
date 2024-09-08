@@ -57,11 +57,17 @@ case object Eval extends Phase[CFG, State] {
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
+    (
+      "peval",
+      BoolOption(c => { c.log = true; c.detail = true }),
+      "do partial evaluation just before execution.",
+    ),
   )
   case class Config(
     var timeLimit: Option[Int] = None,
     var multiple: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
+    var peval: Boolean = false,
   )
 }
