@@ -30,7 +30,7 @@ class Simplifier(
     targetFunc.algo,
   )
 
-  def simplify(inst : Inst): Inst = RedundantSyntax(UseDef(inst))
+  def simplify(inst: Inst): Inst = RedundantSyntax(UseDef(inst))
 
   /** logging */
   private lazy val pw: PrintWriter =

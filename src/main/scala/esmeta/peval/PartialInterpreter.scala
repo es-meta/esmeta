@@ -1,4 +1,4 @@
-package esmeta.interpreter
+package esmeta.peval
 
 import esmeta.{EVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
@@ -21,14 +21,14 @@ import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
 /** extensible helper of IR interpreter with a CFG */
-class Interpreter(
+class PartialInterpreter(
   val st: State,
   val log: Boolean = false,
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
-  import Interpreter.*
+  import PartialInterpreter.*
 
   /** final state */
   lazy val result: State = timeout(
@@ -37,7 +37,7 @@ class Interpreter(
       if (log)
         pw.println(st)
         pw.close
-        println("[Interpreter] Logging finished")
+        println("[PartialInterpreter] Logging finished")
       st
     },
     timeLimit,
@@ -65,7 +65,7 @@ class Interpreter(
       case e =>
         if (log)
           pw.println(st)
-          pw.println("[Interpreter] unexpected error: " + e)
+          pw.println("[PartialInterpreter] unexpected error: " + e)
           pw.println(e.getStackTrace.mkString(LINE_SEP))
           pw.flush
         throw e
@@ -160,7 +160,7 @@ class Interpreter(
               st.context = Context(sdo, newLocals)
             case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
-          setCallResult(lhs, Interpreter.eval(lex, method))
+          setCallResult(lhs, PartialInterpreter.eval(lex, method))
   }
 
   /** transition for expressions */
@@ -212,19 +212,19 @@ class Interpreter(
       st(eval(ref))
     case EUnary(uop, expr) =>
       val x = eval(expr)
-      Interpreter.eval(uop, x)
+      PartialInterpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
     case EBinary(bop, left, right) =>
       val l = eval(left)
       val r = eval(right)
-      Interpreter.eval(bop, l, r)
+      PartialInterpreter.eval(bop, l, r)
     case EVariadic(vop, exprs) =>
       val vs = for (e <- exprs) yield eval(e)
-      Interpreter.eval(vop, vs)
+      PartialInterpreter.eval(vop, vs)
     case EMathOp(mop, exprs) =>
       val vs = for (e <- exprs) yield eval(e)
-      Interpreter.eval(mop, vs)
+      PartialInterpreter.eval(mop, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (eval(expr), cop) match {
@@ -300,7 +300,7 @@ class Interpreter(
     case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
     case ERecord(tname, fields) =>
       st.allocRecord(tname, for ((f, expr) <- fields) yield f -> eval(expr))
-    case EMap(_, pairs) =>
+    case EMap(pairs) =>
       st.allocMap(for ((k, v) <- pairs) yield eval(k) -> eval(v))
     case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
     case ECopy(obj)   => st.copy(eval(obj).asAddr)
@@ -326,7 +326,7 @@ class Interpreter(
       case (BOp.Or, Bool(true))   => Bool(true)
       case _ =>
         val r = eval(right)
-        Interpreter.eval(bop, l, r)
+        PartialInterpreter.eval(bop, l, r)
 
   /** get initial local variables */
   def getLocals(
@@ -392,15 +392,15 @@ class Interpreter(
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 }
 
-/** IR interpreter with a CFG */
-object Interpreter {
+/** IR PartialInterpreter with a CFG */
+object PartialInterpreter {
   def apply(
     st: State,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
+  ): State = new PartialInterpreter(st, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {

@@ -210,3 +210,16 @@ case object CmdIRInterp extends Command("ir-eval", CmdBase >> IREval) {
   )
   override val targetName = "<ir>+"
 }
+
+// -----------------------------------------------------------------------------
+// Partial Evaluator
+// -----------------------------------------------------------------------------
+/** `astpeval` command */
+case object CmdAstPeval extends Command("astpeval", CmdBuildCFG >> AstPeval) {
+  val help =
+    "partial-evaluates 'FunctionDeclarationInstantiation' using an ECMAScript file."
+  val examples = List(
+    "esmeta astpeval a.js                         # partial-eval using a.js file.",
+  )
+  override val targetName = "<js>+"
+}

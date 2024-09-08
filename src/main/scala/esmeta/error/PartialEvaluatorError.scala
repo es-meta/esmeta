@@ -25,7 +25,6 @@ class NotSupportedSyntax(ire: IRElem)
     s"Partial-evaluating program having $ire is not yet supported",
   )
 
-
 class ExpiredAllocator
   extends PartialEvaluatorError(
     s"Tried expired temporal variable allocator",
