@@ -48,6 +48,12 @@ type ReferenceRecord {
   ThisValue: ESValue | Enum[~empty~];
 }
 
+// MANUAL MODELING
+type IdentifierReferenceRecord extends ReferenceRecord {
+  Base: Record[EnvironmentRecord];
+  ReferencedName: String;
+}
+
 // https://tc39.es/ecma262/#super-reference-record
 type SuperReferenceRecord extends ReferenceRecord {
   Base: ESValue | Enum[~unresolvable~];

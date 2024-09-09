@@ -155,7 +155,7 @@ class TypeAnalyzer(
 
     /** check if the return type can be used */
     private lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      !func.retTy.isImprec || generic.contains(func.name)
+      !func.retTy.isImprec || typeGuards.contains(func.name)
     }
 
     /** handle calls */
@@ -172,27 +172,16 @@ class TypeAnalyzer(
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty
-        val newRetTy = generic
-          .get(callee.name)
-          .fold(callee.retTy.ty)(_(vs.map(_.ty)))
         val xs = args.map {
           case ERef(x: Local) => Some(x)
           case _              => None
         }
-        val refinements = typeGuards
-          .getOrElse(callee.name, Nil)
-          .foldLeft[Refinements](Map()) {
-            case (acc, (idx, b, ty)) =>
-              xs(idx) match
-                case Some(x) =>
-                  val m = acc.getOrElse(b, Map())
-                  acc + (b -> (m + (x -> ty)))
-                case None => acc
-          }
+        val newRetV = typeGuards
+          .get(callee.name)
+          .fold(AbsValue(retTy))(_(xs, vs, retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
-          retV = AbsValue(newRetTy, refinements)
-          newSt = callerSt.define(call.lhs, retV)
+          newSt = callerSt.define(call.lhs, newRetV)
         } sem += nextNp -> newSt
       }
       super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
@@ -215,64 +204,137 @@ class TypeAnalyzer(
     override def apply(rp: ReturnPoint): Unit =
       if (!canUseReturnTy(rp.func)) super.apply(rp)
 
-    val generic: Map[String, List[ValueTy] => ValueTy] = Map(
-      "__APPEND_LIST__" -> (tys => tys(0) || tys(1)),
-      "__FLAT_LIST__" -> (_(0).list.elem),
-      "Completion" -> (_(0) && CompT),
-      "UpdateEmpty" -> (_(0) && CompT),
-      "NormalCompletion" -> (tys => NormalT(tys(0) -- CompT)),
-      "IteratorClose" -> (_(1) || ThrowT),
-      "AsyncIteratorClose" -> (_(1) || ThrowT),
-      "OrdinaryObjectCreate" -> { _ => RecordT("OrdinaryObject") },
-      "UpdateEmpty" -> { tys =>
-        val r = tys(0).record
-        ValueTy(record =
-          r.update("Value", (r("Value").value -- EnumT("empty")) || tys(1)),
-        )
-      },
-      "MakeBasicObject" -> { _ =>
-        def getElem(f: String) = FMElem(CloT(s"Record[OrdinaryObject].$f"))
-        RecordT("Object")
-      },
-      "CreateListFromArrayLike" -> (tys => {
-        val elem =
-          if (tys.lift(1) != Some(ListT(StrT("String", "Symbol")))) ESValueT
-          else StrT || SymbolT
-        NormalT(ListT(elem)) || ThrowT
-      }),
-    )
-
-    val typeGuards: Map[String, List[(Int, RefinementKind, ValueTy)]] =
+    type TypeGuard = (List[Option[Local]], List[AbsValue], Ty) => AbsValue
+    val typeGuards: Map[String, TypeGuard] =
       import RefinementKind.*
       Map(
-        "IsCallable" -> List(
-          (0, True, RecordT("FunctionObject")),
-        ),
-        "IsConstructor" -> List(
-          (0, True, RecordT("Constructor")),
-        ),
-        "ValidateTypedArray" -> List(
-          (0, Normal, RecordT("IntegerIndexedExoticObject")),
-        ),
-        "IsPromise" -> List(
-          (0, True, RecordT("Promise")),
-        ),
-        "NewPromiseCapability" -> List(
-          (0, Normal, RecordT("Constructor")),
-        ),
-        "IsPropertyReference" -> List(
-          (0, True, RecordT("ReferenceRecord", Map("Base" -> ESValueT))),
-        ),
-        "IsSuperReference" -> List(
-          (0, True, RecordT("SuperReferenceRecord")),
-        ),
-        "IsPrivateReference" -> {
-          def get(name: ValueTy) =
-            RecordT("ReferenceRecord", Map("ReferencedName" -> name))
-          List(
-            (0, True, get(RecordT("PrivateName"))),
-            (0, False, get(SymbolT || StrT)), // TODO ESValue in latest version
+        "__APPEND_LIST__" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty || vs(1).ty, Map())
+        },
+        "__FLAT_LIST__" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty.list.elem, Map())
+        },
+        "Completion" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty && CompT, Map())
+        },
+        "UpdateEmpty" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty && CompT, Map())
+        },
+        "NormalCompletion" -> { (xs, vs, retTy) =>
+          AbsValue(NormalT(vs(0).ty -- CompT), Map())
+        },
+        "IteratorClose" -> { (xs, vs, retTy) =>
+          AbsValue(vs(1).ty || ThrowT, Map())
+        },
+        "AsyncIteratorClose" -> { (xs, vs, retTy) =>
+          AbsValue(vs(1).ty || ThrowT, Map())
+        },
+        "OrdinaryObjectCreate" -> { (xs, vs, retTy) =>
+          AbsValue(RecordT("OrdinaryObject"), Map())
+        },
+        "UpdateEmpty" -> { (xs, vs, retTy) =>
+          val record = vs(0).ty.record
+          val valueField = record("Value").value
+          val updated = record.update(
+            "Value",
+            vs(1).ty || (valueField -- EnumT("empty")),
           )
+          AbsValue(ValueTy(record = updated), Map())
+        },
+        "MakeBasicObject" -> { (xs, vs, retTy) =>
+          AbsValue(RecordT("Object"), Map())
+        },
+        "IsCallable" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x => map += True -> Map(x -> RecordT("FunctionObject")) }
+          AbsValue(retTy, map)
+        },
+        "IsConstructor" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x => map += True -> Map(x -> RecordT("Constructor")) }
+          AbsValue(retTy, map)
+        },
+        "ValidateTypedArray" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += Normal -> Map(x -> RecordT("IntegerIndexedExoticObject"))
+          }
+          AbsValue(retTy, map)
+        },
+        "IsPromise" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x => map += True -> Map(x -> RecordT("Promise")) }
+          AbsValue(retTy, map)
+        },
+        "NewPromiseCapability" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x => map += Normal -> Map(x -> RecordT("Constructor")) }
+          AbsValue(retTy, map)
+        },
+        "IsUnresolvableReference" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += True -> Map(
+              x -> RecordT(
+                "ReferenceRecord",
+                Map("Base" -> EnumT("unresolvable")),
+              ),
+            )
+            map += False -> Map(
+              x -> RecordT(
+                "ReferenceRecord",
+                Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
+              ),
+            )
+          }
+          AbsValue(retTy, map)
+        },
+        "IsPropertyReference" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += True -> Map(
+              x -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
+            )
+          }
+          xs(0).map { x =>
+            map += False -> Map(
+              x -> RecordT(
+                "ReferenceRecord",
+                Map(
+                  "Base" ->
+                  (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
+                ),
+              ),
+            )
+          }
+          AbsValue(retTy, map)
+        },
+        "IsSuperReference" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += True -> Map(x -> RecordT("SuperReferenceRecord"))
+          }
+          AbsValue(retTy, map)
+        },
+        "IsPrivateReference" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += True -> Map(
+              x -> RecordT(
+                "ReferenceRecord",
+                Map("ReferencedName" -> RecordT("PrivateName")),
+              ),
+            )
+            map += False -> Map(
+              x -> RecordT(
+                "ReferenceRecord",
+                Map(
+                  "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
+                ),
+              ),
+            )
+          }
+          AbsValue(retTy, map)
         },
       )
 

@@ -119,20 +119,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
         case (map, (t, fm)) =>
-          map + ((for {
+          val refined = (for {
             map <- refinerOf(t).get(field)
             (_, u) <- map.find { case (e, _) => elem <= e }
-          } yield u) match
-            case Some(u) => normalize(u -> fm.update(field, elem))
-            case None =>
-              normalize(
-                t -> (
-                  map.getOrElse(t, FieldMap.Top) &&
-                  diffOf(baseOf(t), t).get &&
-                  fm.update(field, elem)
-                ),
-              )
-          )
+          } yield u).getOrElse(t)
+          map + normalize(refined -> fm.update(field, elem))
       })
 
   /** record containment check */
