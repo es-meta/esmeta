@@ -74,12 +74,12 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "progress",
-      BoolOption(c => c.progress = true),
+      BoolOption(_.progress = _),
       "show progress bar.",
     ),
     (
       "coverage",
-      BoolOption(c => c.coverage = true),
+      BoolOption(_.coverage = _),
       "measure node/branch coverage in CFG of ECMA-262.",
     ),
     (
@@ -89,17 +89,17 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "with-yet",
-      BoolOption(c => c.withYet = true),
+      BoolOption(_.withYet = _),
       "test with currently ignored tests because of unknown issues.",
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "detail-log",
-      BoolOption(c => { c.log = true; c.detail = true }),
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
     (

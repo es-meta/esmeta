@@ -49,12 +49,12 @@ case object Compile extends Phase[Spec, Program] {
   val options: List[PhaseOption[Config]] = List(
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "log-with-loc",
-      BoolOption(c => { c.log = true; c.loc = true }),
+      BoolOption((c, b) => { c.log ||= b; c.loc = b }),
       "turn on logging mode with location info.",
     ),
   )

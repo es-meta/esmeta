@@ -23,7 +23,7 @@ case object Analyze extends Phase[CFG, ESAnalyzer#Semantics] {
   val options: List[PhaseOption[Config]] = List(
     (
       "repl",
-      BoolOption(c => c.useRepl = true),
+      BoolOption(_.useRepl = _),
       "use a REPL for meta-level static analysis.",
     ),
   )

@@ -61,7 +61,7 @@ case object Mutate extends Phase[CFG, String] {
     ),
     (
       "untilValid",
-      BoolOption(c => c.untilValid = true),
+      BoolOption(_.untilValid = _),
       "repeat until the mutated program becomes valid.",
     ),
   )

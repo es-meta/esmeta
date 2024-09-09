@@ -109,10 +109,10 @@ object ESMeta extends Git(BASE_DIR) {
 
   /** command options */
   val options: List[PhaseOption[CommandConfig]] = List(
-    ("silent", BoolOption(c => c.silent = true), "do not show final results."),
-    ("error", BoolOption(_ => ERROR_MODE = true), "show error stack traces."),
-    ("status", BoolOption(_ => STATUS_MODE = true), "exit with status."),
-    ("time", BoolOption(c => c.time = true), "display the duration time."),
+    ("silent", BoolOption(_.silent = _), "do not show final results."),
+    ("error", BoolOption((_, b) => ERROR_MODE = b), "show error stack traces."),
+    ("status", BoolOption((_, b) => STATUS_MODE = b), "exit with status."),
+    ("time", BoolOption(_.time = _), "display the duration time."),
     (
       "test262dir",
       StrOption((c, s) => TEST262_DIR = s),

@@ -47,12 +47,12 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     ),
     (
       "repl",
-      BoolOption(c => c.useRepl = true),
+      BoolOption(_.useRepl = _),
       "use a REPL for type analysis of ECMA-262.",
     ),
     (
       "repl-continue",
-      BoolOption(c => c.replContinue = true),
+      BoolOption(_.replContinue = _),
       "run `continue` command at startup when using REPL",
     ),
     (
@@ -62,22 +62,22 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     ),
     (
       "update-ignore",
-      BoolOption(c => c.updateIgnore = true),
+      BoolOption(_.updateIgnore = _),
       "update the given JSON file used in ignoring type errors.",
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "detail-log",
-      BoolOption(c => { c.log = true; c.detail = true }),
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
     (
       "tysens",
-      BoolOption(c => c.tySens = true),
+      BoolOption(_.tySens = _),
       "turn on type sensitivity.",
     ),
   )

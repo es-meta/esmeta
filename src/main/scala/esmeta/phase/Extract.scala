@@ -101,17 +101,17 @@ case object Extract extends Phase[Unit, Spec] {
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "eval",
-      BoolOption(c => c.eval = true),
+      BoolOption(_.eval = _),
       "evaluate the extractor.",
     ),
     (
       "repl",
-      BoolOption(c => c.repl = true),
+      BoolOption(_.repl = _),
       "use a REPL for metalanguage parser.",
     ),
   )
