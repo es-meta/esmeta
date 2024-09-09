@@ -174,7 +174,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   /** normalized type */
   def normalize(pair: (String, FieldMap)): (String, FieldMap) =
     val (t, fm) = pair
-    t -> fm.filter(f => isValidField(t, f, fm(f)))
+    t -> FieldMap(fm.map.filter { (f, elem) => isValidField(t, f, elem) })
 
   /** normalized type */
   def isValidField(t: String, field: String, elem: FMElem): Boolean =

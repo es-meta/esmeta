@@ -52,10 +52,6 @@ case class FieldMap(map: Map[String, FieldMap.Elem])
   /** TODO prune type */
   def --(that: => FieldMap): FieldMap = this
 
-  /** TODO filter fields */
-  def filter(pred: String => Boolean): FieldMap =
-    FieldMap(map.filter { case (field, _) => pred(field) })
-
   /** field accessor */
   def apply(field: String): Elem = map.getOrElse(field, Elem.Top)
 
