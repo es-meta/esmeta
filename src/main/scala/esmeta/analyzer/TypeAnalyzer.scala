@@ -18,7 +18,8 @@ import esmeta.util.SystemUtils.*
 class TypeAnalyzer(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
-  val tySens: Boolean = false,
+  val typeSens: Boolean = false, // TODO
+  val typeGuard: Boolean = true,
   val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
   val ignore: TypeAnalyzer.Ignore = Ignore(),
   val log: Boolean = false,
@@ -155,7 +156,7 @@ class TypeAnalyzer(
 
     /** check if the return type can be used */
     private lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      !func.retTy.isImprec || typeGuards.contains(func.name)
+      !func.retTy.isImprec || (typeGuard && typeGuards.contains(func.name))
     }
 
     /** handle calls */
@@ -176,9 +177,10 @@ class TypeAnalyzer(
           case ERef(x: Local) => Some(x)
           case _              => None
         }
-        val newRetV = typeGuards
-          .get(callee.name)
-          .fold(AbsValue(retTy))(_(xs, vs, retTy))
+        val newRetV = (for {
+          guard <- typeGuards.get(callee.name)
+          if typeGuard
+        } yield guard(xs, vs, retTy)).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)

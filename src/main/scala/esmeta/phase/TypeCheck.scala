@@ -23,7 +23,8 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     val analyzer: TypeAnalyzer = TypeAnalyzer(
       cfg = cfg,
       targetPattern = config.target,
-      tySens = config.tySens,
+      typeSens = config.typeSens,
+      typeGuard = config.typeGuard,
       config = TypeAnalyzer.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
@@ -68,17 +69,22 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     (
       "log",
       BoolOption(_.log = _),
-      "turn on logging mode.",
+      "logging mode.",
     ),
     (
       "detail-log",
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
-      "turn on logging mode with detailed information.",
+      "logging mode with detailed information.",
     ),
     (
-      "tysens",
-      BoolOption(_.tySens = _),
-      "turn on type sensitivity.",
+      "type-sens",
+      BoolOption(_.typeSens = _),
+      "type sensitivity (not-yet supported).",
+    ),
+    (
+      "type-guard",
+      BoolOption(_.typeGuard = _),
+      "automatic inference of type guards (default: true).",
     ),
   )
   case class Config(
@@ -89,6 +95,7 @@ case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
     var replContinue: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var tySens: Boolean = false,
+    var typeSens: Boolean = false,
+    var typeGuard: Boolean = true,
   )
 }
