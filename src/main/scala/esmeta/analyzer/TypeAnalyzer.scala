@@ -453,13 +453,6 @@ class TypeAnalyzer(
       case EBinary(BOp.Eq, ERef(x: Local), expr) =>
         pruneLocal(x, expr, positive)
       // prune field equality
-      case EBinary(
-            BOp.Eq,
-            ERef(Field(x: Local, EStr("Type"))),
-            EEnum("return"),
-          ) =>
-        modify(_.update(x, AbsValue(ESValueT || EnumT("empty"))))
-      // prune field equality
       case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
         pruneField(x, field, expr, positive)
       // prune field existence
