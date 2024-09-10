@@ -54,9 +54,25 @@ type IdentifierReferenceRecord extends ReferenceRecord {
   ReferencedName: String;
 }
 
+// MANUAL MODELING
+type PropertyReferenceRecord extends ReferenceRecord {
+  Base: ESValue;
+}
+
+// MANUAL MODELING
+type UnresolvableReferenceRecord extends ReferenceRecord {
+  Base: Enum[~unresolvable~];
+  ReferencedName: String;
+}
+
+// MANUAL MODELING
+type PrivateReferenceRecord extends ReferenceRecord {
+  ReferencedName: Record[PrivateName];
+}
+
 // https://tc39.es/ecma262/#super-reference-record
 type SuperReferenceRecord extends ReferenceRecord {
-  Base: ESValue | Enum[~unresolvable~];
+  Base: ESValue;
   ThisValue: ESValue;
 }
 

@@ -531,12 +531,11 @@ class TypeAnalyzer(
         _ <- modify { st =>
           val lst = toLocal(l).fold(st) { x =>
             var math = lmath
-            var infinity = lv.ty.infinity
+            var infinity = lv.ty.infinity --
+              (if (positive) InfinityTy.Pos else InfinityTy.Neg)
             val pruned = (r, rmath) match
               case (EMath(0), _) =>
                 math = if (positive) NegIntTy else NonNegIntTy
-              case (_, MathTopTy) =>
-                infinity --= (if (positive) InfinityTy.Pos else InfinityTy.Neg)
               case l =>
             st.update(
               x,
@@ -552,12 +551,11 @@ class TypeAnalyzer(
           }
           toLocal(r).fold(lst) { x =>
             var math = rmath
-            var infinity = rv.ty.infinity
+            var infinity = rv.ty.infinity --
+              (if (positive) InfinityTy.Neg else InfinityTy.Pos)
             val pruned = (l, lmath) match
               case (EMath(0), _) =>
                 math = if (positive) PosIntTy else NonPosIntTy
-              case (_, MathTopTy) =>
-                infinity --= (if (positive) InfinityTy.Neg else InfinityTy.Pos)
               case _ => rmath
             lst.update(
               x,

@@ -60,7 +60,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lmap.getOrElse(t, FieldMap.Top) &&
           rmap.getOrElse(t, FieldMap.Top)
         }
-        pair = normalize(t -> fm)
+        pair = update(t, fm)
       } yield pair).toMap)
 
   /** prune type */
@@ -118,13 +118,29 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Top => Top
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
-        case (map, (t, fm)) =>
-          val refined = (for {
-            map <- refinerOf(t).get(field)
-            (_, u) <- map.find { case (e, _) => elem <= e }
-          } yield u).getOrElse(t)
-          map + normalize(refined -> fm.update(field, elem))
+        case (map, pair) =>
+          val (t, fm) = update(pair, field, elem)
+          map + (t -> map.get(t).fold(fm)(_ || fm))
       })
+
+  /** field update */
+  private def update(t: String, fm: FieldMap): (String, FieldMap) =
+    fm.map.foldLeft(t -> FieldMap.Top) {
+      case (pair, (f, elem)) => update(pair, f, elem)
+    }
+
+  /** field update */
+  private def update(
+    pair: (String, FieldMap),
+    field: String,
+    elem: FMElem,
+  ): (String, FieldMap) =
+    val (t, fm) = pair
+    val refined = (for {
+      map <- refinerOf(t).get(field)
+      (_, u) <- map.find { case (e, _) => elem <= e }
+    } yield u).getOrElse(t)
+    normalize(refined -> fm.update(field, elem))
 
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
@@ -144,6 +160,15 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def normalized: RecordTy = this match
     case Top       => Top
     case Elem(map) => Elem(map.map(normalize))
+
+  /** normalized type */
+  private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
+    val (t, fm) = pair
+    t -> FieldMap(fm.map.filter { (f, elem) => isValidField(t, f, elem) })
+
+  /** normalized type */
+  private def isValidField(t: String, field: String, elem: FMElem): Boolean =
+    !(getField(t, field) <= elem)
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
@@ -161,22 +186,12 @@ object RecordTy extends Parser.From(Parser.recordTy) {
         (for {
           (field, ty) <- fields
           elem = FMElem(ty, false, false)
-          if isValidField(name, field, elem)
         } yield field -> elem).toMap,
       ),
     ),
-  )
+  ).normalized
   def apply(name: String, fieldMap: FieldMap): RecordTy =
     apply(Map(name -> fieldMap))
   def apply(map: Map[String, FieldMap]): RecordTy =
     Elem(map)
-
-  /** normalized type */
-  def normalize(pair: (String, FieldMap)): (String, FieldMap) =
-    val (t, fm) = pair
-    t -> FieldMap(fm.map.filter { (f, elem) => isValidField(t, f, elem) })
-
-  /** normalized type */
-  def isValidField(t: String, field: String, elem: FMElem): Boolean =
-    !(getField(t, field) <= elem)
 }
