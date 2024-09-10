@@ -51,17 +51,21 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case (Elem(lmap), Elem(rmap)) =>
       val ls = lmap.keySet
       val rs = rmap.keySet
-      Elem((for {
-        t <- {
-          ls.filter(isSubTy(_, rs)) ++
-          rs.filter(isSubTy(_, ls))
-        }
-        fm = {
-          lmap.getOrElse(t, FieldMap.Top) &&
-          rmap.getOrElse(t, FieldMap.Top)
-        }
-        pair = update(t, fm)
-      } yield pair).toMap)
+      Elem(
+        (for {
+          t <-
+            ls.filter(isSubTy(_, rs)) ++
+            rs.filter(isSubTy(_, ls))
+          fm =
+            lmap.getOrElse(t, FieldMap.Top) &&
+              rmap.getOrElse(t, FieldMap.Top)
+          pair <- update(t, fm)
+        } yield pair)
+          .groupBy(_._1)
+          .view
+          .mapValues(_.map(_._2).reduce(_ || _))
+          .toMap,
+      )
 
   /** prune type */
   def --(that: => RecordTy): RecordTy = (this, that) match
@@ -119,14 +123,16 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
         case (map, pair) =>
-          val (t, fm) = update(pair, field, elem)
-          map + (t -> map.get(t).fold(fm)(_ || fm))
+          update(pair, field, elem).fold(map) { (t, fm) =>
+            map + (t -> map.get(t).fold(fm)(_ || fm))
+          }
       })
 
   /** field update */
-  private def update(t: String, fm: FieldMap): (String, FieldMap) =
-    fm.map.foldLeft(t -> FieldMap.Top) {
-      case (pair, (f, elem)) => update(pair, f, elem)
+  private def update(t: String, fm: FieldMap): Option[(String, FieldMap)] =
+    fm.map.foldLeft(Option(t -> FieldMap.Top)) {
+      case (None, _)               => None
+      case (Some(pair), (f, elem)) => update(pair, f, elem)
     }
 
   /** field update */
@@ -134,13 +140,15 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     pair: (String, FieldMap),
     field: String,
     elem: FMElem,
-  ): (String, FieldMap) =
+  ): Option[(String, FieldMap)] =
     val (t, fm) = pair
-    val refined = (for {
+    val x = (for {
       map <- refinerOf(t).get(field)
       (_, u) <- map.find { case (e, _) => elem <= e }
     } yield u).getOrElse(t)
-    normalize(refined -> fm.update(field, elem))
+    val xfm = fieldMapOf(x)
+    if (!xfm.map.contains(field) || (elem && xfm(field)).isBottom) None
+    else Some(normalize(x -> fm.update(field, elem)))
 
   /** record containment check */
   def contains(record: RecordObj, heap: Heap): Boolean = this match
