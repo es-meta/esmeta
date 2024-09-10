@@ -556,7 +556,7 @@ type ChosenValueRecord {
 // https://tc39.es/ecma262/#sec-iterator-records
 type IteratorRecord {
   Iterator: Record[Object];
-  NextMethod: Record[ESValue];
+  NextMethod: ESValue;
   Done: Boolean;
 }
 
