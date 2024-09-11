@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze ir-eval ir-peval"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test inject mutate analyze ir-eval astpeval"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl"
@@ -26,7 +26,7 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"
   irevalOpt="-ir-eval:format -ir-eval:timeout -ir-eval:log"
-  irpevalOpt="-ir-peval:out -ir-peval:out-auto -ir-peval:simplify -ir-peval:timeout -ir-peval:log"
+  astpevalOpt="-astpeval:log -astpeval:detail-log -astpeval:peval"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -91,8 +91,8 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${irevalOpt}"))
           return 0
           ;;
-        ir-peval)
-          COMPREPLY=($(compgen -W "${globalOpt} ${irpevalOpt}"))
+        astpeval)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${astpevalOpt}"))
           return 0
           ;;
       esac
