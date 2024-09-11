@@ -21,9 +21,6 @@ type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
 enum RefinementKind:
   case True, False, Normal, Abrupt
 
-/** indexed type refinements */
-case class IdxRefine(idx: Int, kind: RefinementKind, ty: ValueTy)
-
 // -----------------------------------------------------------------------------
 // helpers
 // -----------------------------------------------------------------------------
