@@ -92,16 +92,26 @@ class PartialInterpreter(
   def eval(node: Node): Unit =
     node match {
       case Block(_, insts, _) =>
-        for (inst <- insts) eval(inst); st.context.moveNext
-      case Branch(_, _, cond, thenNode, elseNode) =>
+        for (inst <- insts)
+          if (detail) println(s"eval(node) - inst: ${inst}");
+          eval(inst);
+        st.context.moveNext
+      case b @ Branch(_, _, cond, thenNode, elseNode) =>
+        if (detail) println(s"eval(node) - branch: ${b}");
         st.context.cursor = Cursor(
-          eval(cond) match
-            case RuntimeValue => throw DynamicValue()
-            case b            => if (b.asBool) thenNode else elseNode
-          ,
+          {
+            val condval = eval(cond)
+            if (detail)
+              println(s"eval(node) - branch, condition is ${condval}");
+            condval match
+              case RuntimeValue => throw BranchNotYetSupported()
+              case b            => if (b.asBool) thenNode else elseNode
+          },
           st.func,
         )
-      case call: Call => eval(call)
+      case call: Call =>
+        if (detail) println(s"eval(node) - call: ${call}");
+        eval(call)
     }
 
   /** transition for normal instructions */
