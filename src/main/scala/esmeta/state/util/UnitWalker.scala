@@ -71,7 +71,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(rv: RefTarget): Unit = rv match
     case _: VarTarget             =>
     case FieldTarget(base, field) => walk(base); walk(field)
-    case RuntimeTarget            => // PEVAL : temp fix warning
+
   // ir id
   def walk(id: Var): Unit = {}
 

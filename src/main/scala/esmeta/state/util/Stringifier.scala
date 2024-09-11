@@ -7,6 +7,8 @@ import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
+import esmeta.peval.pstate.*
+
 /** stringifier for state elements */
 class Stringifier(detail: Boolean, location: Boolean) {
   // load IR Stringifier
@@ -24,15 +26,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // elements
   given elemRule: Rule[StateElem] = (app, elem) =>
     elem match
-      case elem: State       => stRule(app, elem)
-      case elem: Context     => ctxtRule(app, elem)
-      case elem: Cursor      => cursorRule(app, elem)
-      case elem: CallContext => callCtxtRule(app, elem)
-      case elem: Heap        => heapRule(app, elem)
-      case elem: Obj         => objRule(app, elem)
-      case elem: Value       => valueRule(app, elem)
-      case elem: RefTarget   => refTargetRule(app, elem)
-      case elem: Uninit      => uninitRule(app, elem)
+      case elem: State        => stRule(app, elem)
+      case elem: PState       => pstRule(app, elem)
+      case elem: Context      => ctxtRule(app, elem)
+      case elem: PContext     => pctxtRule(app, elem)
+      case elem: Cursor       => cursorRule(app, elem)
+      case elem: CallContext  => callCtxtRule(app, elem)
+      case elem: PCallContext => pcallCtxtRule(app, elem)
+      case elem: Heap         => heapRule(app, elem)
+      case elem: Obj          => objRule(app, elem)
+      case elem: Value        => valueRule(app, elem)
+      case elem: RefTarget    => refTargetRule(app, elem)
+      case elem: Uninit       => uninitRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -46,8 +51,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
       app :> "heap: " >> st.heap
     }
 
+  // pstates
+  given pstRule: Rule[PState] = (app, pst) =>
+    app.wrap {
+      pst.filename.map(app :> "filename: " >> _)
+      app :> "context: " >> pst.context
+      given Rule[List[String]] = iterableRule("[", ", ", "]")
+      app :> "call-stack: "
+      app.wrapIterable("[", ",", "]")(pst.callStack)
+      app :> "globals: " >> pst.globals
+      app :> "heap: " >> pst.heap
+    }
+
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
+    app.wrap {
+      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
+      app :> "local-vars: " >> ctxt.locals
+      ctxt.retVal.map(app :> "return: " >> _)
+    }
+
+  // pcontexts
+  given pctxtRule: Rule[PContext] = (app, ctxt) =>
     app.wrap {
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: " >> ctxt.locals
@@ -63,6 +88,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
     val CallContext(context, retId) = callCtxt
+    app >> retId >> " @ " >> context.cursor
+
+  // calling contexts
+  given pcallCtxtRule: Rule[PCallContext] = (app, pcallCtxt) =>
+    val PCallContext(context, retId) = pcallCtxt
     app >> retId >> " @ " >> context.cursor
 
   // heaps
@@ -100,7 +130,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
       case sv: SimpleValue   => svRule(app, sv)
-      case _                 => ??? // PEVAL : temp fix warning
+      case _ => app >> "<RUNTIME VALUE>" // PEVAL : temp fix warning
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
@@ -162,8 +192,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case VarTarget(id)                            => app >> id
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
-      case RuntimeTarget =>
-        app >> "<Runtime Target>" // PEVAL : temp fix warning
     }
 
   // uninit
