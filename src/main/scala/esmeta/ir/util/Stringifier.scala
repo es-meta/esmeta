@@ -217,9 +217,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           (field, expr) <- fields
         } app :> "\"" >> field >> "\" : " >> expr >> ",")
         app >> ")"
-      case EMap(Nil) => app >> "(map)"
-      case EMap(pairs) =>
-        (app >> "(map ").wrap("{", "}")(for {
+      case EMap((kty, vyt), Nil) => app >> "(map[" >> kty >> ", " >> vyt >> "])"
+      case EMap((kty, vty), pairs) =>
+        app >> "(map [" >> kty >> ", " >> vty >> "] "
+        app.wrap("{", "}")(for {
           (key, value) <- pairs
         } app :> key >> " -> " >> value >> ",") >> ")"
       case EList(exprs) =>

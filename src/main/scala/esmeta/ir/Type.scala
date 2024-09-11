@@ -18,6 +18,9 @@ case class Type(
 
   /** completion check */
   inline def isCompletion: Boolean = ty.isCompletion
+
+  /** conversion to value type */
+  inline def toValue: ValueTy = ty.toValue
 }
 object Type extends Parser.From(Parser.irType)
 

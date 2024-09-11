@@ -109,8 +109,11 @@ class Compiler(
     tname endsWith "Object"
   private def isEnvRec(tname: String): Boolean =
     tname endsWith "EnvironmentRecord"
-  private def hasMap(tname: String): Boolean =
-    isObject(tname) || isEnvRec(tname)
+  private def getMapTy(tname: String): Option[(Ty, Ty)] =
+    if (isObject(tname))
+      Some((StrT || SymbolT) -> RecordT("PropertyDescriptor"))
+    else if (isEnvRec(tname)) Some(StrT -> RecordT("Binding"))
+    else None
 
   /* set of function names not to compile */
   // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
@@ -545,7 +548,9 @@ class Compiler(
         } yield name -> EClo(f, Nil)) ++ (for {
           (FieldLiteral(f), e) <- fields
         } yield f -> compile(fb, e))
-        if (hasMap(tname)) props :+= INNER_MAP -> EMap(Nil)
+        getMapTy(tname).map { (k, v) =>
+          props :+= INNER_MAP -> EMap(IRType(k) -> IRType(v), Nil)
+        }
         if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
         ERecord(if (tname == "Record") "" else tname, props.toList)
       case LengthExpression(ReferenceExpression(ref)) =>

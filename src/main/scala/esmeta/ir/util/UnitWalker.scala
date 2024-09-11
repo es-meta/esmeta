@@ -127,8 +127,9 @@ trait UnitWalker extends BasicUnitWalker {
     case ERecord(tname, fields) =>
       walk(tname)
       walkList(fields, { case (f, e) => (walk(f), walk(e)) })
-    case EMap(pairs) =>
-      walkList(pairs, { case (k, v) => (walk(k), walk(v)) })
+    case EMap(ty, pairs) =>
+      walkPair(ty, walk, walk)
+      walkList(pairs, walkPair(_, walk, walk))
     case EList(exprs) =>
       walkList(exprs, walk)
     case ECopy(obj) =>

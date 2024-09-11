@@ -24,6 +24,12 @@ trait BasicUnitWalker {
     tWalk: T => Unit,
   ): Unit = list.foreach(tWalk)
 
+  def walkPair[K, V](
+    pair: (K, V),
+    kWalk: K => Unit,
+    vWalk: V => Unit,
+  ): Unit = kWalk(pair._1) -> vWalk(pair._2)
+
   def walkVector[T](
     vec: Vector[T],
     tWalk: T => Unit,

@@ -13,6 +13,6 @@ def <AUX>:__NEW_OBJ__(
     "Delete" : clo<"Record[OrdinaryObject].Delete">,
     "OwnPropertyKeys" : clo<"Record[OrdinaryObject].OwnPropertyKeys">,
     "PrivateElements" : (list []),
-    "__MAP__" : (map),
+    "__MAP__" : (map [Record[Symbol] | String, Record[PropertyDescriptor]]),
   })
 }

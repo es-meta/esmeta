@@ -300,7 +300,7 @@ class Interpreter(
     case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
     case ERecord(tname, fields) =>
       st.allocRecord(tname, for ((f, expr) <- fields) yield f -> eval(expr))
-    case EMap(pairs) =>
+    case EMap(_, pairs) =>
       st.allocMap(for ((k, v) <- pairs) yield eval(k) -> eval(v))
     case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
     case ECopy(obj)   => st.copy(eval(obj).asAddr)

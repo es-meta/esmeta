@@ -20,6 +20,11 @@ trait Ty extends TyElem {
   /** completion check */
   def isCompletion: Boolean
 
+  /** conversion to value type */
+  def toValue: ValueTy = this match
+    case ty: ValueTy => ty
+    case _           => AnyT
+
   /** value containment check */
   def contains(value: Value, st: State): Boolean = contains(value, st.heap)
   def contains(value: Value, heap: Heap): Boolean

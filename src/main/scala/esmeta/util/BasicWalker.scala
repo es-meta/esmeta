@@ -24,6 +24,12 @@ trait BasicWalker {
     tWalk: T => T,
   ): List[T] = list.map(tWalk)
 
+  def walkPair[K, V](
+    pair: (K, V),
+    kWalk: K => K,
+    vWalk: V => V,
+  ): (K, V) = (kWalk(pair._1), vWalk(pair._2))
+
   def walkVector[T](
     vec: Vector[T],
     tWalk: T => T,
