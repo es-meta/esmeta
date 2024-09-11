@@ -71,61 +71,6 @@ case object AstPeval extends Phase[CFG, Unit] {
       }
     }
 
-  // if (config.multiple)
-  //   var st = State(cfg, Context(cfg.main))
-  //   for {
-  //     path <- cmdConfig.targets
-  //     file <- walkTree(path)
-  //     filename = file.toString
-  //     if jsFilter(filename)
-  //   } st = run(cfg, config, filename)
-  //   st
-  // else run(cfg, config, getFirstFilename(cmdConfig, this.name))
-
-  // def run(cfg: CFG, config: Config, filename: String): State =
-  //   val (newCfg, overloads) =
-  //     if (!config.peval) then
-  //       (
-  //         Initialize.fromFile(cfg, filename),
-  //         Map.empty[String, Set[OverloadedFunc]],
-  //       )
-  //     else
-  //       val st = Initialize.fromFile(cfg, filename)
-  //       val map = PartialInterpreter(
-  //         st = st,
-  //         log = config.log,
-  //         detail = config.detail,
-  //       )
-  //       val newCfg = (new CFGBuilder(
-  //         Program(
-  //           // this line is so bad
-  //           st.cfg.program.funcs ::: (map
-  //             .map(_._2.map { case OverloadedIRFunc(_, func) => func }.toList)
-  //             .toList
-  //             .flatten),
-  //         ),
-  //         false,
-  //       )).result
-  //       (
-  //         Initialize.fromFile(cfg, filename),
-  //         map.map((k, set) =>
-  //           (
-  //             k,
-  //             set.map {
-  //               case OverloadedIRFunc(cond, func) =>
-  //                 OverloadedFunc(cond, func.name)
-  //             },
-  //           ),
-  //         ),
-  // //       )
-
-  //   Interpreter(
-  //     newCfg,
-  //     log = config.log,
-  //     detail = config.detail,
-  //     overloads = overloads,
-  //   )
-
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
