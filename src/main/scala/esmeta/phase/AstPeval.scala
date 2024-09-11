@@ -14,6 +14,8 @@ import esmeta.peval.{OverloadedFunc, PartialInterpreter, OverloadedIRFunc}
 
 import esmeta.peval.pstate.*
 import scala.collection.mutable.{Map as MMap}
+import esmeta.es.builtin.EXECUTION_STACK
+import esmeta.ir.{Global, Name, Temp}
 
 def findByName(ast: Ast, name: String): List[Ast] = ast match
   case l @ Lexical(n, str) if (n == name) => List(l)
@@ -44,13 +46,22 @@ case object AstPeval extends Phase[CFG, Unit] {
     val fds = findByName(ast, "FunctionDeclaration")
     println(s"Found ${fds.size} FunctionDeclaration.");
 
-    val st = PState.fromState(Initialize.fromFile(cfg, filename))
-    st.context = PContext(
-      func = pevalTarget,
-      locals = MMap(),
-    )
-
     for (fd <- fds) {
+
+      val st = PState.fromState(Initialize.fromFile(cfg, filename))
+      st.context = PContext(
+        func = pevalTarget,
+      )
+      st.globals += (Global(EXECUTION_STACK) -> RuntimeValue)
+      val addr = st.heap.allocRecord(
+        "ECMAScriptFunctionObject",
+        List(
+          "FormalParameters" -> "FormalParameters",
+          "ECMAScriptCode" -> "FunctionBody",
+        ).map((k, n) => k -> AstValue.apply(findByName(fd, n).head)),
+      )(using cfg)
+      st.context.locals += Name("func") -> addr
+
       println {
         PartialInterpreter(
           st = st,
