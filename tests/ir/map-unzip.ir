@@ -12,7 +12,7 @@ def unzip(map: Map[Math -> String]) = {
 }
 
 @main def main() = {
-  let map = (map { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
+  let map = (map [Math | BigInt | Number, String] { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
   call pair = clo<"unzip">(map)
   assert (contains pair[0] 1)
   assert (contains pair[0] 2n)
