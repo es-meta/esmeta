@@ -45,7 +45,6 @@ case class PState(
     rt match
       case VarTarget(x)             => apply(x)
       case FieldTarget(base, field) => apply(base, field)
-      case RuntimeTarget            => RuntimeValue
 
   /** variable getter */
   def apply(x: Var): Value = x match
@@ -54,9 +53,11 @@ case class PState(
 
   /** field getter */
   def apply(base: Value, field: Value): Value = base match
-    case addr: Addr    => heap(addr, field)
+    case addr: Addr =>
+      if heap(addr).exists(field) then heap(addr, field) else RuntimeValue
     case AstValue(ast) => AstValue(ast(field))
     case Str(str)      => apply(str, field)
+    case RuntimeValue  => RuntimeValue
     case v             => throw InvalidRefBase(v)
 
   /** string field getter */
@@ -76,7 +77,6 @@ case class PState(
   def update(rt: RefTarget, value: Value): Unit = rt match
     case VarTarget(x)             => update(x, value)
     case FieldTarget(base, field) => update(base, field, value)
-    case RuntimeTarget            => ???
 
   /** variable setter */
   def update(x: Var, value: Value): Unit = x match
@@ -91,7 +91,6 @@ case class PState(
   def exists(rt: RefTarget): Boolean = rt match
     case VarTarget(x)             => exists(x)
     case FieldTarget(base, field) => exists(base, field)
-    case RuntimeTarget            => ???
 
   /** variable existence check */
   def exists(x: Var): Boolean = x match
@@ -100,6 +99,7 @@ case class PState(
 
   /** field existence check */
   def exists(base: Value, field: Value): Boolean = base match
+    case RuntimeValue  => ???
     case addr: Addr    => heap.exists(addr, field)
     case AstValue(ast) => ast.exists(field)
     case _             => error(s"illegal field existence check: $base[$field]")
