@@ -100,6 +100,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
       case sv: SimpleValue   => svRule(app, sv)
+      case _                 => ??? // PEVAL : temp fix warning
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
@@ -161,6 +162,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case VarTarget(id)                            => app >> id
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
+      case RuntimeTarget =>
+        app >> "<Runtime Target>" // PEVAL : temp fix warning
     }
 
   // uninit

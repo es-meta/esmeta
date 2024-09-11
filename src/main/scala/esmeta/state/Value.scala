@@ -9,6 +9,8 @@ import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
 
+import esmeta.peval.pstate.*
+
 /** IR values */
 sealed trait Value extends StateElem {
 
@@ -40,6 +42,12 @@ sealed trait Value extends StateElem {
   def asList(st: State): ListObj = this match
     case addr: Addr =>
       st(addr) match
+        case l: ListObj => l
+        case obj        => throw NoList(obj)
+    case _ => throw NoAddr(this)
+  def asList(pst: PState): ListObj = this match
+    case addr: Addr =>
+      pst(addr) match
         case l: ListObj => l
         case obj        => throw NoList(obj)
     case _ => throw NoAddr(this)
@@ -137,3 +145,5 @@ case class Str(str: String) extends SimpleValue
 case class Bool(bool: Boolean) extends SimpleValue
 case object Undef extends SimpleValue
 case object Null extends SimpleValue
+
+case object RuntimeValue extends Value

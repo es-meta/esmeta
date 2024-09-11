@@ -12,6 +12,9 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.peval.{OverloadedFunc, PartialInterpreter, OverloadedIRFunc}
 
+import esmeta.peval.pstate.*
+import scala.collection.mutable.{Map as MMap}
+
 def findByName(ast: Ast, name: String): List[Ast] = ast match
   case l @ Lexical(n, str) if (n == name) => List(l)
   case s @ Syntactic(n, _, _, children) =>
@@ -40,8 +43,21 @@ case object AstPeval extends Phase[CFG, Unit] {
       ESParser(cfg.spec.grammar, debug = false)("Script").fromFile(filename)
     val fds = findByName(ast, "FunctionDeclaration")
     println(s"Found ${fds.size} FunctionDeclaration.");
+
+    val st = PState.fromState(Initialize.fromFile(cfg, filename))
+    st.context = PContext(
+      func = pevalTarget,
+      locals = MMap(),
+    )
+
     for (fd <- fds) {
-      println(fd.name)
+      println {
+        PartialInterpreter(
+          st = st,
+          log = config.log,
+          detail = config.detail,
+        )
+      }
     }
 
   // if (config.multiple)
@@ -103,17 +119,17 @@ case object AstPeval extends Phase[CFG, Unit] {
   val options: List[PhaseOption[Config]] = List(
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "detail-log",
-      BoolOption(c => { c.log = true; c.detail = true }),
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
     (
       "peval",
-      BoolOption(c => c.peval = true),
+      BoolOption(_.peval = _),
       "do partial evaluation just before execution.",
     ),
   )

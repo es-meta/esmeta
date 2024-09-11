@@ -34,6 +34,7 @@ extension (value: Value)
     case Bool(b)                         => EBool(b)
     case Undef                           => EUndef()
     case Null                            => ENull()
+    case _                               => ??? // PEVAL : temp fix warning
 
   def toAValue: AValue = value match
     case addr: Addr                      => AValue(addr = Fin(addr))
@@ -51,6 +52,7 @@ extension (value: Value)
     case Bool(b)     => AValue(bool = BoolTy(Set(b)))
     case Undef       => AValue(undef = true)
     case Null        => AValue(nullv = true)
+    case _           => ??? // PEVAL : temp fix warning
 
   def toPValue: PValue = value match
     case addr: Addr          => ??? // PValue(AValue(addr = Fin(addr)))

@@ -1,11 +1,14 @@
 package esmeta.peval
 
 import esmeta.cfg.{Func => CfgFunc}
-import esmeta.error.{ExpiredAllocator}
+import esmeta.error.{DynamicValue, ExpiredAllocator}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.peval.domain.*
 import esmeta.state.{RecordObj}
 import scala.collection.mutable.{Set as MSet}
+import scala.util.Try
+import scala.util.Failure
+import scala.util.Success
 
 extension [A, B](a: A) inline def |>(f: A => B): B = f(a)
 
@@ -38,3 +41,17 @@ class TempAllocator(private val from: Int):
 
 type OverloadsIRMap = Map[String, Set[OverloadedIRFunc]]
 type OverloadsMap = Map[String, Set[OverloadedFunc]]
+
+sealed trait Expect[+A]
+case class Static[+A](a: A) extends Expect[A]
+case object Dynamic extends Expect[Nothing]
+
+def TryStatic[A](value: => A): Expect[A] = Try(value) match
+  case Success(value)                   => Static(value)
+  case Failure(exception: DynamicValue) => Dynamic
+  case Failure(e)                       => throw e
+
+extension [A](a: Expect[A])
+  def unpack: A = a match
+    case Static(value) => value
+    case Dynamic       => throw DynamicValue()

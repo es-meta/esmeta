@@ -4,6 +4,8 @@ import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.util.Parser
 
+import esmeta.peval.pstate.*
+
 /** types */
 trait Ty extends TyElem {
 
@@ -27,6 +29,7 @@ trait Ty extends TyElem {
 
   /** value containment check */
   def contains(value: Value, st: State): Boolean = contains(value, st.heap)
+  def contains(value: Value, pst: PState): Boolean = contains(value, pst.heap)
   def contains(value: Value, heap: Heap): Boolean
 }
 object Ty extends Parser.From(Parser.ty)

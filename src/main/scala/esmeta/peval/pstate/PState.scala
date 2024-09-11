@@ -1,122 +1,121 @@
 package esmeta.peval.pstate
 
-import esmeta.cfg.CFG
+import esmeta.cfg.*
 import esmeta.error.*
-import esmeta.ir.{Expr, Field, Func, Global, Local, Name, Ref, Temp, Var}
-import esmeta.peval.domain.*
-import esmeta.state.*
+import esmeta.es.*
+import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ty.*
+import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
-import scala.util.{Try}
+import scala.util.{Try, Success}
 
-/** IR State for partial Evaluation. similar to state/State.scala */
-case class PState private (
+import esmeta.state.*
+import esmeta.peval.*
+
+/** IR PStates */
+case class PState(
+  val cfg: CFG,
   var context: PContext,
+  val sourceText: Option[String] = None,
+  val cachedAst: Option[Ast] = None,
+  val filename: Option[String] = None,
   var callStack: List[PCallContext] = Nil,
-  val globals: MMap[Global, PValue] = MMap(),
-  val heap: PHeap = PHeap(),
+  val globals: MMap[Global, Value] = MMap(),
+  val heap: Heap = Heap(),
 ) extends StateElem {
 
-  override def clone: PState =
-    new PState(context.copied, List.from(callStack), globals, heap)
+  given CFG = cfg
+
+  /** current function */
+  def func: Func = context.cursor match
+    case NodeCursor(node) => cfg.funcOf(node)
+    case ExitCursor(func) => func
+
+  /** local enviornment */
+  def locals: MMap[Local, Value] = context.locals
 
   /** safe getter */
-  def get(rt: RefTarget): Try[PValue] = Try(apply(rt))
-  def get(x: Var): Try[PValue] = Try(apply(x))
-  def get(base: Value, field: Value): Try[PValue] = Try(apply(base, field))
+  def get(rt: RefTarget): Try[Value] = Try(apply(rt))
+
+  def get(x: Var): Try[Value] = Try(apply(x))
+  def get(base: Value, field: Value): Try[Value] = Try(apply(base, field))
 
   /** getter */
-  def apply(rt: RefTarget): PValue = rt match
-    case VarTarget(x)             => apply(x)
-    case FieldTarget(base, field) => apply(base, field)
+  def apply(rt: RefTarget): Value =
+    rt match
+      case VarTarget(x)             => apply(x)
+      case FieldTarget(base, field) => apply(base, field)
+      case RuntimeTarget            => RuntimeValue
 
   /** variable getter */
-  def apply(x: Var): PValue = x match
-    case x: Global => globals.getOrElse(x, throw UnknownVar(x))
+  def apply(x: Var): Value = x match
+    case x: Global => globals.getOrElse(x, RuntimeValue)
     case x: Local  => context.locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value): PValue = base match
+  def apply(base: Value, field: Value): Value = base match
     case addr: Addr    => heap(addr, field)
-    case AstValue(ast) => ??? // AstValue(ast(field))
+    case AstValue(ast) => AstValue(ast(field))
     case Str(str)      => apply(str, field)
     case v             => throw InvalidRefBase(v)
 
-  /* abstract getter */
-  def apply(prt: PRefTarget): PValue = prt.tgt match
-    case ARefTarget.AVarTarget(x)             => apply(x)
-    case ARefTarget.AFieldTarget(base, field) => apply(base, field)
-
-  /** abstract field getter */
-  def apply(base: PValue, field: PValue): PValue = ???
-
   /** string field getter */
-  def apply(str: String, field: Value): PValue = field match
-    case Str("length") => Math(BigDecimal(str.length)).toPValue
-    case Math(k)       => CodeUnit(str(k.toInt)).toPValue
-    case _             => throw WrongStringRef(str, field)
+  def apply(str: String, field: Value): Value = field match
+    case Math(k) => CodeUnit(str(k.toInt))
+    case _       => throw WrongStringRef(str, field)
 
   /** address getter */
-  def apply(addr: Addr): PObj = heap(addr)
+  def apply(addr: Addr): Obj = heap(addr)
 
   /** define variables */
-  def define(x: Var, pv: PValue): Unit = x match
-    case x: Global => globals += x -> pv
-    case x: Local  => context.locals += x -> pv
+  def define(x: Var, value: Value): Unit = x match
+    case x: Global => globals += x -> value
+    case x: Local  => context.locals += x -> value
 
   /** setter */
-  def update(rt: RefTarget, pv: PValue): Unit = rt match
-    case VarTarget(x)             => update(x, pv)
-    case FieldTarget(base, field) => update(base, field, pv)
-
-  /** partial setter */
-  def update(prt: PRefTarget, pv: PValue): Unit = prt.tgt match
-    case ARefTarget.AVarTarget(x)             => update(x, pv)
-    case ARefTarget.AFieldTarget(base, field) => update(base, field, pv)
+  def update(rt: RefTarget, value: Value): Unit = rt match
+    case VarTarget(x)             => update(x, value)
+    case FieldTarget(base, field) => update(base, field, value)
+    case RuntimeTarget            => ???
 
   /** variable setter */
-  def update(x: Var, pv: PValue): Unit = x match
-    case x: Global => globals += x -> pv
-    case x: Local  => context.locals += x -> pv
+  def update(x: Var, value: Value): Unit = x match
+    case x: Global => globals += x -> value
+    case x: Local  => context.locals += x -> value
 
   /** field setter */
-  def update(base: Value, field: Value, expr: PValue): Unit = ???
-
-  /** abstract field setter */
-  def update(base: PValue, field: PValue, expr: PValue): Unit = ???
+  def update(base: Value, field: Value, value: Value): Unit =
+    heap.update(base.asAddr, field, value)
 
   /** existence checks */
-  def exists(rt: RefTarget): Boolean = ???
-  // rt match
-  // case VarTarget(x)             => exists(x)
-  // case FieldTarget(base, field) => exists(base, field)
+  def exists(rt: RefTarget): Boolean = rt match
+    case VarTarget(x)             => exists(x)
+    case FieldTarget(base, field) => exists(base, field)
+    case RuntimeTarget            => ???
 
   /** variable existence check */
-  def exists(x: Var): Boolean = ???
-  // x match
-  // case x: Global => globals.contains(x)
-  // case x: Local  => context.locals.contains(x)
+  def exists(x: Var): Boolean = x match
+    case x: Global => globals.contains(x)
+    case x: Local  => context.locals.contains(x)
 
   /** field existence check */
-  def exists(base: Value, field: Value): Boolean = ???
-  // base match
-  //   case addr: Addr    => heap.exists(addr, field)
-  //   case AstValue(ast) => ast.exists(field)
-  //   case _             => error(s"illegal field existence check: $base[$field]")
+  def exists(base: Value, field: Value): Boolean = base match
+    case addr: Addr    => heap.exists(addr, field)
+    case AstValue(ast) => ast.exists(field)
+    case _             => error(s"illegal field existence check: $base[$field]")
 
-  /** expand a field of a record object (abstract) */
-  def expand(base: PValue, field: PValue): Unit =
-    ??? // heap.expand(base.asAddr, field)
+  /** expand a field of a record object */
+  def expand(base: Value, field: Value): Unit = heap.expand(base.asAddr, field)
 
   /** delete a key from an map object */
-  def delete(base: PValue, key: PValue): Unit =
-    ??? //  heap.delete(base.asAddr, key)
+  def delete(base: Value, key: Value): Unit = heap.delete(base.asAddr, key)
 
   /** push a value to a list */
-  def push(addr: Addr, value: PValue, front: Boolean): Unit =
+  def push(addr: Addr, value: Value, front: Boolean): Unit =
     heap.push(addr, value, front)
 
   /** pop a value from a list */
-  def pop(addr: Addr, front: Boolean): PValue = heap.pop(addr, front)
+  def pop(addr: Addr, front: Boolean): Value = heap.pop(addr, front)
 
   /** copy object */
   def copy(addr: Addr): Addr = heap.copy(addr)
@@ -127,25 +126,63 @@ case class PState private (
   /** allocate a record object */
   def allocRecord(
     tname: String,
-    pairs: Iterable[(String, PValue)] = Nil,
+    pairs: Iterable[(String, Value)] = Nil,
   )(using CFG): Addr = heap.allocRecord(tname, pairs)
 
   /** allocate a map object */
-  def allocMap(pairs: Iterable[(Value, PValue)]): Addr = heap.allocMap(pairs)
-
-  /** allocate a map object with abstract pairs */
-  def allocMapAbs(pairs: Iterable[(PValue, PValue)]): Addr = ???
+  def allocMap(pairs: Iterable[(Value, Value)]): Addr = heap.allocMap(pairs)
 
   /** allocate a list object */
-  def allocList(vs: Iterable[PValue]): Addr = heap.allocList(vs)
+  def allocList(vs: Iterable[Value]): Addr = heap.allocList(vs)
 
+  /** copied */
+  def copied: PState =
+    val newGlobals = MMap.from(globals)
+    val newHeap = heap.copied
+    val newContext = context.copied
+    val newCallStack = callStack.map(_.copied)
+    PState(
+      cfg,
+      newContext,
+      sourceText,
+      cachedAst,
+      filename,
+      newCallStack,
+      newGlobals,
+      newHeap,
+    )
+
+  /** get string for a current cursor */
+  def getCursorString: String = getCursorString(false)
+  def getCursorString(location: Boolean): String = context.cursor match
+    case NodeCursor(node) =>
+      val irFunc = cfg.funcOf(node).irFunc
+      s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
+    case ExitCursor(func) =>
+      val irFunc = func.irFunc
+      s"[${irFunc.kind}${irFunc.name}] Exited"
+
+  /** get string for a given address */
+  def getString(value: Value): String = value match
+    case addr: Addr => addr.toString + " -> " + heap(addr).toString
+    case _          => value.toString
 }
-
 object PState {
-  def apply(func: Func): PState = new PState(
-    PContext(func),
-    Nil,
-    MMap(),
-    PHeap(),
-  )
+
+  /** initialize PStates with a CFG */
+  def apply(cfg: CFG): PState = PState(cfg, PContext(cfg.main))
+
+  def fromState(st: State): PState =
+    val newSt = st.copied
+    PState(
+      newSt.cfg,
+      PContext.fromContext(newSt.context),
+      newSt.sourceText,
+      newSt.cachedAst,
+      newSt.filename,
+      newSt.callStack.map(PCallContext.fromCallContext),
+      newSt.globals,
+      newSt.heap,
+    )
+
 }

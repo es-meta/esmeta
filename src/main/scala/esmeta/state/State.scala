@@ -40,6 +40,7 @@ case class State(
   def apply(rt: RefTarget): Value = rt match
     case VarTarget(x)             => apply(x)
     case FieldTarget(base, field) => apply(base, field)
+    case RuntimeTarget            => ??? // PEVAL : temp fix warning
 
   /** variable getter */
   def apply(x: Var): Value = x match
@@ -70,6 +71,7 @@ case class State(
   def update(rt: RefTarget, value: Value): Unit = rt match
     case VarTarget(x)             => update(x, value)
     case FieldTarget(base, field) => update(base, field, value)
+    case RuntimeTarget            => ??? // PEVAL : temp fix warning
 
   /** variable setter */
   def update(x: Var, value: Value): Unit = x match
@@ -84,6 +86,7 @@ case class State(
   def exists(rt: RefTarget): Boolean = rt match
     case VarTarget(x)             => exists(x)
     case FieldTarget(base, field) => exists(base, field)
+    case RuntimeTarget            => ??? // PEVAL : temp fix warning
 
   /** variable existence check */
   def exists(x: Var): Boolean = x match

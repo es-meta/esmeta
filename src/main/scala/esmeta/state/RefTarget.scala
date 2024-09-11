@@ -6,3 +6,4 @@ import esmeta.ir.Var
 sealed trait RefTarget extends StateElem
 case class VarTarget(x: Var) extends RefTarget
 case class FieldTarget(base: Value, field: Value) extends RefTarget
+case object RuntimeTarget extends RefTarget

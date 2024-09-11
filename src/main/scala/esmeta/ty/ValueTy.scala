@@ -187,6 +187,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Bool(b)                         => bool contains b
     case Undef                           => undef
     case Null                            => nullv
+    case RuntimeValue                    => ??? // PEVAL : temp fix warning
 
   /** copy value type */
   def copied(

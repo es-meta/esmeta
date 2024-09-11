@@ -40,7 +40,7 @@ case object IREval extends Phase[Unit, State] {
   val options: List[PhaseOption[Config]] = List(
     (
       "format",
-      BoolOption(c => c.format = true),
+      BoolOption(_.format = _),
       "format (reprint) the input ir file.",
     ),
     (
@@ -50,7 +50,7 @@ case object IREval extends Phase[Unit, State] {
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
   )
