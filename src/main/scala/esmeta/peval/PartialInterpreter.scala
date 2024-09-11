@@ -6,6 +6,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}
 import esmeta.error.NotSupported.Category.{Type => _, *}
+import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}

@@ -12,12 +12,14 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.peval.{OverloadedFunc, PartialInterpreter, OverloadedIRFunc}
 
-def findByName(ast : Ast, name : String): List[Ast] = ast match
+def findByName(ast: Ast, name: String): List[Ast] = ast match
   case l @ Lexical(n, str) if (n == name) => List(l)
   case s @ Syntactic(n, _, _, children) =>
-    val fromChildren = children.map(
-    _.map(findByName(_, name)).getOrElse(Nil)
-   ).flatten
+    val fromChildren = children
+      .map(
+        _.map(findByName(_, name)).getOrElse(Nil),
+      )
+      .flatten
     val fromS = if (n == name) then List(s) else Nil
     fromS ::: fromChildren
   case _ => Nil
@@ -34,25 +36,24 @@ case object AstPeval extends Phase[CFG, Unit] {
     val filename = getFirstFilename(cmdConfig, name)
     val pevalTargetName = "FunctionDeclarationInstantiation"
     val pevalTarget = cfg.fnameMap(pevalTargetName)
-    val ast = ESParser(cfg.spec.grammar, debug = false)("Script").fromFile(filename)
+    val ast =
+      ESParser(cfg.spec.grammar, debug = false)("Script").fromFile(filename)
     val fds = findByName(ast, "FunctionDeclaration")
     println(s"Found ${fds.size} FunctionDeclaration.");
     for (fd <- fds) {
       println(fd.name)
     }
 
-
-    
-    // if (config.multiple)
-    //   var st = State(cfg, Context(cfg.main))
-    //   for {
-    //     path <- cmdConfig.targets
-    //     file <- walkTree(path)
-    //     filename = file.toString
-    //     if jsFilter(filename)
-    //   } st = run(cfg, config, filename)
-    //   st
-    // else run(cfg, config, getFirstFilename(cmdConfig, this.name))
+  // if (config.multiple)
+  //   var st = State(cfg, Context(cfg.main))
+  //   for {
+  //     path <- cmdConfig.targets
+  //     file <- walkTree(path)
+  //     filename = file.toString
+  //     if jsFilter(filename)
+  //   } st = run(cfg, config, filename)
+  //   st
+  // else run(cfg, config, getFirstFilename(cmdConfig, this.name))
 
   // def run(cfg: CFG, config: Config, filename: String): State =
   //   val (newCfg, overloads) =
