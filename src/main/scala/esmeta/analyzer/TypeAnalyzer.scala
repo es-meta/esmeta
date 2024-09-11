@@ -438,61 +438,61 @@ class TypeAnalyzer(
         val binaryPoint = BinaryOpPoint(np, binary)
         addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
 
-    /** prune condition */
-    override def prune(
+    /** refine condition */
+    override def refine(
       cond: Expr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = cond match {
-      // prune boolean local variables
+      // refine boolean local variables
       case ERef(x: Local) =>
-        pruneBool(x, positive)
-      // prune inequality
+        refineBool(x, positive)
+      // refine inequality
       case EBinary(BOp.Lt, l, r) =>
-        pruneIneq(l, r, positive)
-      // prune local variables
+        refineIneq(l, r, positive)
+      // refine local variables
       case EBinary(BOp.Eq, ERef(x: Local), expr) =>
-        pruneLocal(x, expr, positive)
-      // prune field equality
+        refineLocal(x, expr, positive)
+      // refine field equality
       case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
-        pruneField(x, field, expr, positive)
-      // prune field existence
+        refineField(x, field, expr, positive)
+      // refine field existence
       case EExists(Field(x: Local, EStr(field))) =>
-        pruneExistField(x, field, positive)
-      // prune types
+        refineExistField(x, field, positive)
+      // refine types
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
-        pruneType(x, expr, positive)
-      // prune type checks
+        refineType(x, expr, positive)
+      // refine type checks
       case ETypeCheck(ERef(x: Local), ty) =>
-        pruneTypeCheck(x, ty.ty, positive)
-      // prune logical negation
+        refineTypeCheck(x, ty.ty, positive)
+      // refine logical negation
       case EUnary(UOp.Not, e) =>
-        prune(e, !positive)
-      // prune logical disjunction
+        refine(e, !positive)
+      // refine logical disjunction
       case EBinary(BOp.Or, l, r) =>
         st =>
-          lazy val ltst = prune(l, true)(st)
-          lazy val lfst = prune(l, false)(st)
-          val rst = prune(r, positive)(lfst)
+          lazy val ltst = refine(l, true)(st)
+          lazy val lfst = refine(l, false)(st)
+          val rst = refine(r, positive)(lfst)
           if (positive) ltst ⊔ rst else lfst ⊓ rst
-      // prune logical conjunction
+      // refine logical conjunction
       case EBinary(BOp.And, l, r) =>
         st =>
-          lazy val ltst = prune(l, true)(st)
-          lazy val lfst = prune(l, false)(st)
-          val rst = prune(r, positive)(ltst)
+          lazy val ltst = refine(l, true)(st)
+          lazy val lfst = refine(l, false)(st)
+          val rst = refine(r, positive)(ltst)
           if (positive) ltst ⊓ rst else lfst ⊔ rst
       // no pruning
       case _ => st => st
     }
 
-    /** prune types */
-    def prune(
+    /** refine types */
+    def refine(
       value: AbsValue,
-      prunedValue: AbsValue,
+      refinedValue: AbsValue,
     )(using np: NodePoint[_]): Result[List[Unit]] =
       var kinds = Vector.empty[RefinementKind]
-      if (prunedValue ⊑ AVT) kinds :+= RefinementKind.True
-      if (prunedValue ⊑ AVF) kinds :+= RefinementKind.False
+      if (refinedValue ⊑ AVT) kinds :+= RefinementKind.True
+      if (refinedValue ⊑ AVF) kinds :+= RefinementKind.False
       join(for {
         kind <- kinds
         map <- value.refinements.get(kind).toList
@@ -502,20 +502,20 @@ class TypeAnalyzer(
         _ <- modify(_.update(x, AbsValue(ty) ⊓ origV))
       } yield ())
 
-    /** prune types for boolean local variables */
-    def pruneBool(
+    /** refine types for boolean local variables */
+    def refineBool(
       x: Local,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
       l <- transfer(x)
       lv <- transfer(l)
-      prunedV = if (positive) AVT else AVF
-      _ <- modify(_.update(l, prunedV))
-      _ <- prune(lv, prunedV)
+      refinedV = if (positive) AVT else AVF
+      _ <- modify(_.update(l, refinedV))
+      _ <- refine(lv, refinedV)
     } yield ()
 
-    /** prune types with inequalities */
-    def pruneIneq(
+    /** refine types with inequalities */
+    def refineIneq(
       l: Expr,
       r: Expr,
       positive: Boolean,
@@ -533,7 +533,7 @@ class TypeAnalyzer(
             var math = lmath
             var infinity = lv.ty.infinity --
               (if (positive) InfinityTy.Pos else InfinityTy.Neg)
-            val pruned = (r, rmath) match
+            val refined = (r, rmath) match
               case (EMath(0), _) =>
                 math = if (positive) NegIntTy else NonNegIntTy
               case l =>
@@ -553,7 +553,7 @@ class TypeAnalyzer(
             var math = rmath
             var infinity = rv.ty.infinity --
               (if (positive) InfinityTy.Neg else InfinityTy.Pos)
-            val pruned = (l, lmath) match
+            val refined = (l, lmath) match
               case (EMath(0), _) =>
                 math = if (positive) PosIntTy else NonPosIntTy
               case _ => rmath
@@ -572,8 +572,8 @@ class TypeAnalyzer(
         }
       } yield ()
 
-    /** prune types of local variables with equality */
-    def pruneLocal(
+    /** refine types of local variables with equality */
+    def refineLocal(
       x: Local,
       expr: Expr,
       positive: Boolean,
@@ -581,16 +581,16 @@ class TypeAnalyzer(
       rv <- transfer(expr)
       l <- transfer(x)
       lv <- transfer(l)
-      prunedV =
+      refinedV =
         if (positive) lv ⊓ rv
         else if (rv.isSingle) lv -- rv
         else lv
-      _ <- modify(_.update(l, prunedV))
-      _ <- prune(lv, prunedV)
+      _ <- modify(_.update(l, refinedV))
+      _ <- refine(lv, refinedV)
     } yield ()
 
-    /** TODO prune types with field equality */
-    def pruneField(
+    /** TODO refine types with field equality */
+    def refineField(
       x: Local,
       field: String,
       expr: Expr,
@@ -603,15 +603,15 @@ class TypeAnalyzer(
       rty = rv.ty
       relem = FMElem(rty)
       elem = if (positive) relem else lty.record(field) -- relem
-      prunedTy = ValueTy(
+      refinedTy = ValueTy(
         ast = lty.ast,
         record = lty.record.update(field, elem),
       )
-      _ <- modify(_.update(l, AbsValue(prunedTy)))
+      _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()
 
-    /** prune types with field existence */
-    def pruneExistField(
+    /** refine types with field existence */
+    def refineExistField(
       x: Local,
       field: String,
       positive: Boolean,
@@ -620,15 +620,15 @@ class TypeAnalyzer(
       v <- transfer(l)
       ty = v.ty
       record = ty.record
-      prunedTy = ValueTy(
+      refinedTy = ValueTy(
         ast = ty.ast,
         record = if (positive) record.update(field, FMElem.Exist) else record,
       )
-      _ <- modify(_.update(l, AbsValue(prunedTy)))
+      _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()
 
-    /** prune types with `typeof` constraints */
-    def pruneType(
+    /** refine types with `typeof` constraints */
+    def refineType(
       x: Local,
       expr: Expr,
       positive: Boolean,
@@ -638,7 +638,7 @@ class TypeAnalyzer(
       rv <- transfer(expr)
       lty = lv.ty
       rty = rv.ty
-      prunedV = rty.str.getSingle match
+      refinedV = rty.str.getSingle match
         case One(tname) =>
           val value = AbsValue(tname match
             case "Object"    => RecordT("Object")
@@ -653,21 +653,21 @@ class TypeAnalyzer(
           )
           if (positive) lv ⊓ value else lv -- value
         case _ => lv
-      _ <- modify(_.update(l, prunedV))
+      _ <- modify(_.update(l, refinedV))
     } yield ()
 
-    /** prune types with type checks */
-    def pruneTypeCheck(
+    /** refine types with type checks */
+    def refineTypeCheck(
       x: Local,
       ty: Ty,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
       l <- transfer(x)
       v <- transfer(l)
-      prunedV =
+      refinedV =
         if (positive) v ⊓ AbsValue(ty)
         else v -- AbsValue(ty)
-      _ <- modify(_.update(l, prunedV))
+      _ <- modify(_.update(l, refinedV))
     } yield ()
   }
 

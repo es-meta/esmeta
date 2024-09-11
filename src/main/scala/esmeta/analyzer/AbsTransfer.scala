@@ -81,12 +81,12 @@ trait AbsTransferDecl { self: Analyzer =>
               else modify(_.define(call.lhs, v))
           } yield ())(st)
           call.next.foreach(to => sem += getNextNp(np, to) -> newSt)
-        case br @ Branch(_, kind, cond, thenNode, elseNode) =>
-          (for { v <- transfer(cond); newSt <- get } yield {
+        case br @ Branch(_, kind, c, thenNode, elseNode) =>
+          (for { v <- transfer(c); newSt <- get } yield {
             if (AVT ⊑ v)
-              thenNode.map(sem += getNextNp(np, _) -> prune(cond, true)(newSt))
+              thenNode.map(sem += getNextNp(np, _) -> refine(c, true)(newSt))
             if (AVF ⊑ v)
-              elseNode.map(sem += getNextNp(np, _) -> prune(cond, false)(newSt))
+              elseNode.map(sem += getNextNp(np, _) -> refine(c, false)(newSt))
           })(st)
 
     /** get next node point */
@@ -180,7 +180,7 @@ trait AbsTransferDecl { self: Analyzer =>
       case IAssert(expr) =>
         for {
           v <- transfer(expr)
-          _ <- modify(prune(expr, true))
+          _ <- modify(refine(expr, true))
           _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
         } yield ()
       case IPrint(expr) => st => st /* skip */
@@ -627,13 +627,13 @@ trait AbsTransferDecl { self: Analyzer =>
       v <- binary.bop match {
         case BOp.And =>
           l.bool.cond(AbsState)(AbsValue)(
-            thenBranch = transfer(right).eval(prune(left, true)(st)),
+            thenBranch = transfer(right).eval(refine(left, true)(st)),
             elseBranch = AVF,
           )
         case BOp.Or =>
           l.bool.cond(AbsState)(AbsValue)(
             thenBranch = AVT,
-            elseBranch = transfer(right).eval(prune(left, false)(st)),
+            elseBranch = transfer(right).eval(refine(left, false)(st)),
           )
         case _ =>
           for {
@@ -680,8 +680,8 @@ trait AbsTransferDecl { self: Analyzer =>
       arg: AbsValue,
     ): AbsValue = arg
 
-    /** prune condition */
-    def prune(
+    /** refine condition */
+    def refine(
       cond: Expr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = st => st
