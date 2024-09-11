@@ -257,7 +257,13 @@ trait StateTypeDomainDecl { self: Self =>
       idx: Int,
     )(field: ValueTy): ValueTy = field.math.getSingle match
       case Zero => BotT
-      case _    => AstT // TODO more precise
+      case One(k) =>
+        (for {
+          prod <- cfg.grammar.nameMap.get(name)
+          rhs <- prod.rhsList.lift(idx)
+          nt <- rhs.nts.lift(k.toInt)
+        } yield AstT(nt.name)).getOrElse(BotT)
+      case Many => AstT
 
     // lookup string fields of ASTs
     private def lookupAstStrField(field: ValueTy): ValueTy =
