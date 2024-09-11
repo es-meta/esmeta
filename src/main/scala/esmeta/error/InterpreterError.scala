@@ -119,5 +119,5 @@ case class AssertionFail(expr: Expr)
 case class OutOfRange(list: ListObj, k: Int)
   extends InterpreterError(s"out of range: $k of $list")
 
-case class DynamicValue()
-  extends InterpreterError("Partial Interpreter can't handle dynamic value")
+case class BranchNotYetSupported()
+  extends InterpreterError("Partial Interpreter can't handle branch for now")
