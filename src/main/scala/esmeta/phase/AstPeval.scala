@@ -17,12 +17,12 @@ import scala.collection.mutable.{Map as MMap}
 import esmeta.es.builtin.EXECUTION_STACK
 import esmeta.ir.{Global, Name, Temp}
 
-def findByName(ast: Ast, name: String): List[Ast] = ast match
+def getAstsbyName(ast: Ast, name: String): List[Ast] = ast match
   case l @ Lexical(n, str) if (n == name) => List(l)
   case s @ Syntactic(n, _, _, children) =>
     val fromChildren = children
       .map(
-        _.map(findByName(_, name)).getOrElse(Nil),
+        _.map(getAstsbyName(_, name)).getOrElse(Nil),
       )
       .flatten
     val fromS = if (n == name) then List(s) else Nil
@@ -43,7 +43,7 @@ case object AstPeval extends Phase[CFG, Unit] {
     val pevalTarget = cfg.fnameMap(pevalTargetName)
     val ast =
       ESParser(cfg.spec.grammar, debug = false)("Script").fromFile(filename)
-    val fds = findByName(ast, "FunctionDeclaration")
+    val fds = getAstsbyName(ast, "FunctionDeclaration")
     println(s"Found ${fds.size} FunctionDeclaration.");
 
     for (fd <- fds) {
@@ -57,9 +57,9 @@ case object AstPeval extends Phase[CFG, Unit] {
         "ECMAScriptFunctionObject",
         List(
           "FormalParameters" -> AstValue(
-            findByName(fd, "FormalParameters").head,
+            getAstsbyName(fd, "FormalParameters").head,
           ),
-          "ECMAScriptCode" -> AstValue(findByName(fd, "FunctionBody").head),
+          "ECMAScriptCode" -> AstValue(getAstsbyName(fd, "FunctionBody").head),
           "ThisMode" -> ENUM_STRICT,
         ),
       )(using cfg)
