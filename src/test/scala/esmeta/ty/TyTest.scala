@@ -29,16 +29,15 @@ trait TyTest extends ESMetaTest {
   val tyModel3 = TyModel(List(decl0, declParent1, decl2))
 
   // field type map
-  import FieldMap.Elem
   val fieldMap0 = FieldMap()
-  val fieldMap1 = FieldMap("p" -> Elem(AnyT, false, false))
+  val fieldMap1 = FieldMap("p" -> Binding(AnyT, false, false))
   val fieldMap2 = FieldMap(
-    "p" -> Elem(AnyT, false, false),
-    "q" -> Elem(BoolT, true, false),
+    "p" -> Binding(AnyT, false, false),
+    "q" -> Binding(BoolT, true, false),
   )
   val fieldMap3 = FieldMap(
-    "p" -> Elem(AnyT, false, false),
-    "q" -> Elem(BoolT, false, true),
-    "r" -> Elem(NullT, true, true),
+    "p" -> Binding(AnyT, false, false),
+    "q" -> Binding(BoolT, false, true),
+    "r" -> Binding(NullT, true, true),
   )
 }
