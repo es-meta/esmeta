@@ -1,6 +1,6 @@
 package esmeta.peval
 
-import esmeta.{EVAL_LOG_DIR, LINE_SEP}
+import esmeta.{ASTPEVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
@@ -93,16 +93,19 @@ class PartialInterpreter(
     node match {
       case Block(_, insts, _) =>
         for (inst <- insts)
-          if (detail) println(s"eval(node) - inst: ${inst}");
+          if (log)
+            pw.println(s"eval[cs:${st.callStack.size}]: inst = ${inst}");
           eval(inst);
         st.context.moveNext
       case b @ Branch(_, _, cond, thenNode, elseNode) =>
-        if (detail) println(s"eval(node) - branch: ${b}");
+        if (log) pw.println(s"eval[cs:${st.callStack.size}]: branch = ${b}");
         st.context.cursor = Cursor(
           {
             val condval = eval(cond)
-            if (detail)
-              println(s"eval(node) - branch, condition is ${condval}");
+            if (log)
+              pw.println(
+                s"eval[cs:${st.callStack.size}]: condition = ${condval}",
+              );
             condval match
               case RuntimeValue => throw BranchNotYetSupported()
               case b            => if (b.asBool) thenNode else elseNode
@@ -110,7 +113,7 @@ class PartialInterpreter(
           st.func,
         )
       case call: Call =>
-        if (detail) println(s"eval(node) - call: ${call}");
+        if (log) pw.println(s"eval[cs:${st.callStack.size}]: call: ${call}");
         eval(call)
     }
 
@@ -415,7 +418,7 @@ class PartialInterpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
+    logPW.getOrElse(getPrintWriter(s"$ASTPEVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
@@ -480,6 +483,8 @@ object PartialInterpreter {
   def eval(bop: BOp, left: Value, right: Value): Value =
     import BOp.*
     (bop, left, right) match {
+      case (_, RuntimeValue, _) | (_, _, RuntimeValue) => RuntimeValue
+
       // double operations
       case (Add, Number(l), Number(r))  => Number(l + r)
       case (Sub, Number(l), Number(r))  => Number(l - r)
@@ -586,7 +591,6 @@ object PartialInterpreter {
       case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
 
-      case (_, RuntimeValue, _) | (_, _, RuntimeValue) => RuntimeValue
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
 
