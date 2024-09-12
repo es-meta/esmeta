@@ -9,20 +9,20 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** type elements */
   def walk(ty: TyElem): Unit = ty match
-    case elem: TyModel       => walk(elem)
-    case elem: TyDecl        => walk(elem)
-    case elem: TyDecl.Elem   => walk(elem)
-    case elem: FieldMap      => walk(elem)
-    case elem: FieldMap.Elem => walk(elem)
-    case elem: Ty            => walk(elem)
-    case elem: RecordTy      => walk(elem)
-    case elem: ListTy        => walk(elem)
-    case elem: AstTy         => walk(elem)
-    case elem: MapTy         => walk(elem)
-    case elem: MathTy        => walk(elem)
-    case elem: InfinityTy    => walk(elem)
-    case elem: NumberTy      => walk(elem)
-    case elem: BoolTy        => walk(elem)
+    case elem: TyModel     => walk(elem)
+    case elem: TyDecl      => walk(elem)
+    case elem: TyDecl.Elem => walk(elem)
+    case elem: FieldMap    => walk(elem)
+    case elem: Binding     => walk(elem)
+    case elem: Ty          => walk(elem)
+    case elem: RecordTy    => walk(elem)
+    case elem: ListTy      => walk(elem)
+    case elem: AstTy       => walk(elem)
+    case elem: MapTy       => walk(elem)
+    case elem: MathTy      => walk(elem)
+    case elem: InfinityTy  => walk(elem)
+    case elem: NumberTy    => walk(elem)
+    case elem: BoolTy      => walk(elem)
 
   /** type models */
   def walk(ty: TyModel): Unit = walkList(ty.decls, walk)
@@ -54,11 +54,11 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(fieldMap: FieldMap): Unit =
     walkMap(fieldMap.map, walk, walk)
 
-  /** field type map element */
-  def walk(ty: FieldMap.Elem): Unit =
-    walk(ty.value)
-    walk(ty.uninit)
-    walk(ty.absent)
+  /** field binding */
+  def walk(binding: Binding): Unit =
+    walk(binding.value)
+    walk(binding.uninit)
+    walk(binding.absent)
 
   /** types */
   def walk(ty: Ty): Unit = ty match

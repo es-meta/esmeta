@@ -7,7 +7,6 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
-import esmeta.ty.FieldMap.{Elem => FMElem}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.state.*
@@ -601,7 +600,7 @@ class TypeAnalyzer(
       rv <- transfer(expr)
       lty = lv.ty
       rty = rv.ty
-      relem = FMElem(rty)
+      relem = Binding(rty)
       elem = if (positive) relem else lty.record(field) -- relem
       refinedTy = ValueTy(
         ast = lty.ast,
@@ -622,7 +621,7 @@ class TypeAnalyzer(
       record = ty.record
       refinedTy = ValueTy(
         ast = ty.ast,
-        record = if (positive) record.update(field, FMElem.Exist) else record,
+        record = if (positive) record.update(field, Binding.Exist) else record,
       )
       _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()

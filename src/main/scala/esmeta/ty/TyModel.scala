@@ -8,7 +8,6 @@ import esmeta.util.BaseUtils.*
 case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   import TyDecl.Elem.*
-  import FieldMap.{Elem => FMElem}
 
   /** type declaration map */
   lazy val declMap: Map[String, TyDecl] = (for {
@@ -18,9 +17,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   /** get method map */
   lazy val methodOf: String => Map[String, String] = cached { tname =>
     for {
-      (f, elem) <- upperFieldsOf(tname)
-      ty = elem.value
-      if ty <= CloT && !elem.absent
+      (f, binding) <- upperFieldsOf(tname)
+      ty = binding.value
+      if ty <= CloT && !binding.absent
       method <- ty.clo.getSingle match
         case One(method) => Some(method)
         case _           => None
@@ -28,7 +27,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   }
 
   /** refiner map */
-  type Refiner = Map[String, Vector[(FMElem, String)]]
+  type Refiner = Map[String, Vector[(Binding, String)]]
 
   /** get refiner map */
   lazy val refinerOf: String => Refiner = cached { tname =>
@@ -37,7 +36,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       .map(x => x -> refinerOf(x))
       .foldLeft[Refiner](Map()) {
         case (lref, (rt, rref)) =>
-          lref ++ (fieldsOf(rt).map((f, e) => f -> Vector(e -> rt)) ++ rref)
+          lref ++ (ownFieldsOf(rt).map((f, e) => f -> Vector(e -> rt)) ++ rref)
             .map { (f, rm) =>
               f -> lref.get(f).fold(rm) { lm =>
                 lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
@@ -49,35 +48,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   }
 
   /** get field type */
-  def getField(tname: String, f: String): FMElem = fieldMapOf(tname)(f)
-
-  /** get all field type map */
-  lazy val fieldMapOf: String => FieldMap = cached { t =>
-    FieldMap(
-      declMap.get(t).fold(Map()) { decl =>
-        decl.parent.fold(lowerFieldsOf(t)) { (parent, extended) =>
-          if (extended) upperFieldsOf(parent) ++ lowerFieldsOf(t)
-          else
-            fieldsOf(t).foldLeft(fieldMapOf(parent).map) {
-              case (map, (f, e)) => map + (f -> (map.get(f).fold(e)(_ && e)))
-            }
-        }
-      },
-    )
-  }
-
-  /** get direct field types */
-  lazy val fieldsOf: String => Map[String, FMElem] = cached { tname =>
-    declMap
-      .get(tname)
-      .fold(Map())(_.elems.collect {
-        case AbsMethod(m) => m -> FMElem.Bot
-        case ConMethod(m, opt, tgt) =>
-          m -> FMElem(CloT(tgt.getOrElse(s"Record[$tname].$m")), opt, opt)
-        case Field(f, opt, typeStr) =>
-          f -> FMElem(ValueTy.from(typeStr), opt, opt)
-      })
-      .toMap
+  lazy val getField: ((String, String)) => Binding = cached { (t, f) =>
+    fieldsOf(t).getOrElse(f, Binding.Absent)
   }
 
   /** get diff field type map */
@@ -86,7 +58,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     else if (isStrictSubTy(l, u))
       val parent = parentOf(l).get
       val upper = diffOf(u, parent).get.map
-      Some(FieldMap(upper ++ fieldsOf(l)))
+      Some(FieldMap(upper ++ ownFieldsOf(l)))
     else None
   }
 
@@ -99,6 +71,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     lpair: (String, FieldMap),
     rmap: Map[String, FieldMap],
   ): Boolean = rmap.exists(isStrictSubTy(lpair, _))
+  def isStrictSubTy(
+    lmap: Map[String, FieldMap],
+    rpair: (String, FieldMap),
+  ): Boolean = lmap.forall(isStrictSubTy(_, rpair))
   def isStrictSubTy(
     lpair: (String, FieldMap),
     rpair: (String, FieldMap),
@@ -122,7 +98,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   def isSubTy(lpair: (String, FieldMap), rpair: (String, FieldMap)): Boolean =
     val (l, lfm) = lpair
     val (r, rfm) = rpair
-    def check = (for {
+    isStrictSubTy(l, r) || (for {
       lca <- lcaOf(l, r)
       ldfm <- diffOf(lca, l)
       rdfm <- diffOf(lca, r)
@@ -132,7 +108,6 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
         rfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rfm(f) }
       aux
     }).getOrElse(false)
-    isStrictSubTy(l, r) || check
   def isSubTy(l: String, r: String): Boolean =
     l == r || isStrictSubTy(l, r)
   def isSubTy(l: String, rs: Set[String]): Boolean =
@@ -152,6 +127,52 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   /** direct subtypes */
   lazy val directSubTysOf: String => Set[String] = cached { tname =>
     childrenOf(tname).map(_.name).toSet
+  }
+
+  /** get all field type map */
+  lazy val fieldsOf: String => Map[String, Binding] = cached { t =>
+    declMap.get(t).fold(Map()) { decl =>
+      decl.parent.fold(lowerFieldsOf(t)) { (parent, extended) =>
+        if (extended) upperFieldsOf(parent) ++ lowerFieldsOf(t)
+        else
+          ownFieldsOf(t).foldLeft(fieldsOf(parent)) {
+            case (map, (f, e)) => map + (f -> (map.get(f).fold(e)(_ && e)))
+          }
+      }
+    }
+  }
+
+  /** get direct field types */
+  lazy val ownFieldsOf: String => Map[String, Binding] = cached { t =>
+    declMap
+      .get(t)
+      .fold(Map())(_.elems.collect {
+        case AbsMethod(m) => m -> Binding.Bot
+        case ConMethod(m, opt, tgt) =>
+          m -> Binding(CloT(tgt.getOrElse(s"Record[$t].$m")), opt, opt)
+        case Field(f, opt, typeStr) =>
+          f -> Binding(ValueTy.from(typeStr), opt, opt)
+      })
+      .toMap
+  }
+
+  /** get upper field types */
+  lazy val upperFieldsOf: String => Map[String, Binding] = cached { tname =>
+    parentOf(tname).fold(Map())(upperFieldsOf) ++ ownFieldsOf(tname)
+  }
+
+  /** get lower field types */
+  lazy val lowerFieldsOf: String => Map[String, Binding] = cached { tname =>
+    val pairs = for {
+      decl <- childrenOf(tname)
+      if decl.isExtended
+      x = decl.name
+      pair <- lowerFieldsOf(x)
+    } yield pair
+    pairs.foldLeft(ownFieldsOf(tname)) {
+      case (fs, (f, e)) =>
+        fs + (f -> (fs.getOrElse(f, Binding.Absent) || e))
+    }
   }
 
   /** get base type name */
@@ -199,25 +220,5 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       list = children.getOrElse(parent, Nil)
     } yield children += parent -> (decl :: list)
     children.map { case (k, v) => k -> v.reverse }
-
-  /** get upper field types */
-  private lazy val upperFieldsOf: String => Map[String, FMElem] = cached {
-    tname => parentOf(tname).fold(Map())(upperFieldsOf) ++ fieldsOf(tname)
-  }
-
-  /** get lower field types */
-  private lazy val lowerFieldsOf: String => Map[String, FMElem] = cached {
-    tname =>
-      val pairs = for {
-        decl <- childrenOf(tname)
-        if decl.isExtended
-        x = decl.name
-        pair <- lowerFieldsOf(x)
-      } yield pair
-      pairs.foldLeft(fieldsOf(tname)) {
-        case (fs, (f, e)) =>
-          fs + (f -> (fs.getOrElse(f, FMElem.Absent) || e))
-      }
-  }
 }
 object TyModel extends Parser.From(Parser.tyModel)

@@ -9,20 +9,20 @@ trait Walker extends BasicWalker {
 
   /** type elements */
   def walk(ty: TyElem): TyElem = ty match
-    case elem: TyModel       => walk(elem)
-    case elem: TyDecl        => walk(elem)
-    case elem: TyDecl.Elem   => walk(elem)
-    case elem: FieldMap      => walk(elem)
-    case elem: FieldMap.Elem => walk(elem)
-    case elem: Ty            => walk(elem)
-    case elem: RecordTy      => walk(elem)
-    case elem: ListTy        => walk(elem)
-    case elem: AstTy         => walk(elem)
-    case elem: MapTy         => walk(elem)
-    case elem: MathTy        => walk(elem)
-    case elem: InfinityTy    => walk(elem)
-    case elem: NumberTy      => walk(elem)
-    case elem: BoolTy        => walk(elem)
+    case elem: TyModel     => walk(elem)
+    case elem: TyDecl      => walk(elem)
+    case elem: TyDecl.Elem => walk(elem)
+    case elem: FieldMap    => walk(elem)
+    case elem: Binding     => walk(elem)
+    case elem: Ty          => walk(elem)
+    case elem: RecordTy    => walk(elem)
+    case elem: ListTy      => walk(elem)
+    case elem: AstTy       => walk(elem)
+    case elem: MapTy       => walk(elem)
+    case elem: MathTy      => walk(elem)
+    case elem: InfinityTy  => walk(elem)
+    case elem: NumberTy    => walk(elem)
+    case elem: BoolTy      => walk(elem)
 
   /** type models */
   def walk(ty: TyModel): TyModel = TyModel(walkList(ty.decls, walk))
@@ -54,11 +54,11 @@ trait Walker extends BasicWalker {
   def walk(fieldMap: FieldMap): FieldMap =
     FieldMap(walkMap(fieldMap.map, walk, walk))
 
-  /** field type map element */
-  def walk(ty: FieldMap.Elem): FieldMap.Elem = FieldMap.Elem(
-    walk(ty.value),
-    walk(ty.uninit),
-    walk(ty.absent),
+  /** field binding */
+  def walk(binding: Binding): Binding = Binding(
+    walk(binding.value),
+    walk(binding.uninit),
+    walk(binding.absent),
   )
 
   /** types */

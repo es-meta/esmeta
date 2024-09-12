@@ -3,7 +3,6 @@ package esmeta.ty
 import esmeta.util.*
 import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
-import FieldMap.{Elem => FMElem}
 
 /** record types */
 enum RecordTy extends TyElem with Lattice[RecordTy] {
@@ -53,17 +52,14 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       val rs = rmap.keySet
       Elem(
         (for {
-          t <-
-            ls.filter(isSubTy(_, rs)) ++
-            rs.filter(isSubTy(_, ls))
-          fm =
-            lmap.getOrElse(t, FieldMap.Top) &&
-              rmap.getOrElse(t, FieldMap.Top)
+          t <- ls.filter(isSubTy(_, rs)) ++ rs.filter(isSubTy(_, ls))
+          lfm = lmap.getOrElse(t, FieldMap.Top)
+          rfm = rmap.getOrElse(t, FieldMap.Top)
+          fm = lfm && rfm
           pair <- update(t, fm)
         } yield pair)
           .groupBy(_._1)
-          .view
-          .mapValues(_.map(_._2).reduce(_ || _))
+          .map { case (t, pairs) => t -> pairs.map(_._2).reduce(_ && _) }
           .toMap,
       )
 
@@ -84,13 +80,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       StrT((for {
         (name, fm) <- map.toList
-        f <- fm.map.keySet ++ fieldMapOf(name).map.keySet
+        f <- fm.map.keySet ++ fieldsOf(name).keySet
       } yield f).toSet)
-
-  /** field type map */
-  def fieldMap: Option[FieldMap] = this match
-    case Top       => Some(FieldMap.Top)
-    case Elem(map) => map.map(fieldMapOf(_) && _).reduceOption(_ || _)
 
   /** base type names */
   def bases: BSet[String] = this match
@@ -103,22 +94,22 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) => Fin(map.keySet)
 
   /** field accessor */
-  def apply(f: String): FMElem = this match
-    case Top => FMElem.Top
+  def apply(f: String): Binding = this match
+    case Top => Binding.Top
     case Elem(map) =>
-      map.map(getField(_, f) && _(f)).foldLeft(FMElem.Bot)(_ || _)
+      map.map(getField(_, f) && _(f)).foldLeft(Binding.Bot)(_ || _)
 
   /** field accessor for specific record type */
-  def apply(name: String, f: String): FMElem = this match
-    case Top => FMElem.Top
+  def apply(name: String, f: String): Binding = this match
+    case Top => Binding.Top
     case Elem(map) =>
-      map.get(name).fold(FMElem.Bot)(getField(name, f) && _(f))
+      map.get(name).fold(Binding.Bot)(getField(name, f) && _(f))
 
   /** field update */
-  def update(field: String, ty: ValueTy): RecordTy = update(field, FMElem(ty))
+  def update(field: String, ty: ValueTy): RecordTy = update(field, Binding(ty))
 
   /** field update */
-  def update(field: String, elem: FMElem): RecordTy = this match
+  def update(field: String, elem: Binding): RecordTy = this match
     case Top => Top
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
@@ -139,15 +130,15 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   private def update(
     pair: (String, FieldMap),
     field: String,
-    elem: FMElem,
+    elem: Binding,
   ): Option[(String, FieldMap)] =
     val (t, fm) = pair
     val x = (for {
       map <- refinerOf(t).get(field)
       (_, u) <- map.find { case (e, _) => elem <= e }
     } yield u).getOrElse(t)
-    val xfm = fieldMapOf(x)
-    if (!xfm.map.contains(field) || (elem && xfm(field)).isBottom) None
+    val xfm = fieldsOf(x)
+    if (!xfm.contains(field) || (elem && xfm(field)).isBottom) None
     else Some(normalize(x -> fm.update(field, elem)))
 
   /** record containment check */
@@ -172,11 +163,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
     val (t, fm) = pair
-    t -> FieldMap(fm.map.filter { (f, elem) => isValidField(t, f, elem) })
-
-  /** normalized type */
-  private def isValidField(t: String, field: String, elem: FMElem): Boolean =
-    !(getField(t, field) <= elem)
+    t -> FieldMap(fm.map.filter { (f, elem) => !(getField(t, f) <= elem) })
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
@@ -193,7 +180,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       name -> FieldMap(
         (for {
           (field, ty) <- fields
-          elem = FMElem(ty, false, false)
+          elem = Binding(ty, false, false)
         } yield field -> elem).toMap,
       ),
     ),

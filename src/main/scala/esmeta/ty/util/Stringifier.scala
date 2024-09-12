@@ -13,20 +13,20 @@ object Stringifier {
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
-      case elem: TyModel       => tyModelRule(app, elem)
-      case elem: TyDecl        => tyDeclRule(app, elem)
-      case elem: TyDecl.Elem   => tyDeclElemRule(app, elem)
-      case elem: FieldMap      => fieldMapRule(using false)(app, elem)
-      case elem: FieldMap.Elem => fieldMapElemRule(app, elem)
-      case elem: Ty            => tyRule(app, elem)
-      case elem: RecordTy      => recordTyRule(app, elem)
-      case elem: ListTy        => listTyRule(app, elem)
-      case elem: AstTy         => astTyRule(app, elem)
-      case elem: MapTy         => mapTyRule(app, elem)
-      case elem: MathTy        => mathTyRule(app, elem)
-      case elem: InfinityTy    => infinityTyRule(app, elem)
-      case elem: NumberTy      => numberTyRule(app, elem)
-      case elem: BoolTy        => boolTyRule(app, elem)
+      case elem: TyModel     => tyModelRule(app, elem)
+      case elem: TyDecl      => tyDeclRule(app, elem)
+      case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
+      case elem: FieldMap    => fieldMapRule(using false)(app, elem)
+      case elem: Binding     => bindingRule(app, elem)
+      case elem: Ty          => tyRule(app, elem)
+      case elem: RecordTy    => recordTyRule(app, elem)
+      case elem: ListTy      => listTyRule(app, elem)
+      case elem: AstTy       => astTyRule(app, elem)
+      case elem: MapTy       => mapTyRule(app, elem)
+      case elem: MathTy      => mathTyRule(app, elem)
+      case elem: InfinityTy  => infinityTyRule(app, elem)
+      case elem: NumberTy    => numberTyRule(app, elem)
+      case elem: BoolTy      => boolTyRule(app, elem)
 
   /** type models */
   given tyModelRule: Rule[TyModel] = (app, model) =>
@@ -64,23 +64,23 @@ object Stringifier {
   given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
     val COLON = " : "
     val FieldMap(map) = fieldMap
-    given Rule[(String, FieldMap.Elem)] = {
-      case (app, (field, elem)) =>
+    given Rule[(String, Binding)] = {
+      case (app, (field, binding)) =>
         app >> field
-        if (elem != FieldMap.Elem.Init) app >> COLON >> elem
+        if (binding != Binding.Init) app >> COLON >> binding
         app
     }
     if (fieldMap.isTop) app >> "{}"
     else if (inline)
       val SEP = ", "
-      given Rule[List[(String, FieldMap.Elem)]] = iterableRule(sep = SEP)
+      given Rule[List[(String, Binding)]] = iterableRule(sep = SEP)
       app >> "{ " >> map.toList.sortBy(_._1) >> " }"
     else
       app.wrap("{", "}") { for (pair <- map.toList.sortBy(_._1)) app :> pair }
 
-  /** field type map element */
-  given fieldMapElemRule: Rule[FieldMap.Elem] = (app, ty) =>
-    val FieldMap.Elem(value, uninit, absent) = ty
+  /** field binding */
+  given bindingRule: Rule[Binding] = (app, ty) =>
+    val Binding(value, uninit, absent) = ty
     var tags = ""
     if (uninit) tags += "U"
     if (absent) tags += "A"

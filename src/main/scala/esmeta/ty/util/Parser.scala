@@ -43,22 +43,21 @@ trait Parsers extends BasicParsers {
 
   // field type map
   given fieldMap: Parser[FieldMap] = {
-    import FieldMap.Elem
-    lazy val field = word ~ opt(":" ~> fieldMapElem) ^^ {
-      case f ~ v => f -> v.getOrElse(FieldMap.Elem.Init)
+    lazy val field = word ~ opt(":" ~> binding) ^^ {
+      case f ~ v => f -> v.getOrElse(Binding.Init)
     }
     "{" ~> rep(field <~ opt(",")) <~ "}" ^^ { case ts => FieldMap(ts.toMap) }
   }.named("ty.FieldMap")
 
-  // field type map element
-  given fieldMapElem: Parser[FieldMap.Elem] = {
+  // field bindings
+  given binding: Parser[Binding] = {
     val uninit = "U" ^^^ true | "" ^^^ false
     val absent = "A" ^^^ true | "" ^^^ false
     opt("[" ~> uninit ~ absent <~ "]") ~ valueTy ^^ {
-      case None ~ v        => FieldMap.Elem(v, false, false)
-      case Some(u ~ a) ~ v => FieldMap.Elem(v, u, a)
+      case None ~ v        => Binding(v, false, false)
+      case Some(u ~ a) ~ v => Binding(v, u, a)
     }
-  }.named("ty.FieldMap.Elem")
+  }.named("ty.Binding")
 
   // types
   given ty: Parser[Ty] = {
