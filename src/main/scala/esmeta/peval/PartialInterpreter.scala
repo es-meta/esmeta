@@ -107,7 +107,7 @@ class PartialInterpreter(
                 s"eval[cs:${st.callStack.size}]: condition = ${condval}",
               );
             condval match
-              case RuntimeValue => throw BranchNotYetSupported()
+              case RuntimeValue => throw RuntimeValueNotSupported("branch")
               case b            => if (b.asBool) thenNode else elseNode
           },
           st.func,
