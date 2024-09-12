@@ -56,9 +56,12 @@ case object AstPeval extends Phase[CFG, Unit] {
       val addr = st.heap.allocRecord(
         "ECMAScriptFunctionObject",
         List(
-          "FormalParameters" -> "FormalParameters",
-          "ECMAScriptCode" -> "FunctionBody",
-        ).map((k, n) => k -> AstValue.apply(findByName(fd, n).head)),
+          "FormalParameters" -> AstValue(
+            findByName(fd, "FormalParameters").head,
+          ),
+          "ECMAScriptCode" -> AstValue(findByName(fd, "FunctionBody").head),
+          "ThisMode" -> ENUM_STRICT,
+        ),
       )(using cfg)
       st.context.locals += Name("func") -> addr
 

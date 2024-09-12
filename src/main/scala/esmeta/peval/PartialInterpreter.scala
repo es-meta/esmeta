@@ -145,6 +145,7 @@ class PartialInterpreter(
   def eval(call: Call): Unit = call.callInst match {
     case ICall(lhs, fexpr, args) =>
       eval(fexpr) match
+        case RuntimeValue => ???
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
           val newLocals =
@@ -585,6 +586,7 @@ object PartialInterpreter {
       case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
       case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
 
+      case (_, RuntimeValue, _) | (_, _, RuntimeValue) => RuntimeValue
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }
 
