@@ -67,30 +67,50 @@ case object AstPeval extends Phase[CFG, Unit] {
         ),
       )(using cfg)
 
-      def CloFer(name: String) : Clo = Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty)
-      def CloDecl(name: String) : Clo = Clo(cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"), Map.empty)
+      def CloFer(name: String): Clo =
+        Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty)
+      def CloDecl(name: String): Clo = Clo(
+        cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"),
+        Map.empty,
+      )
 
       val addr_lexical_env = st.heap.allocRecord(
         "FunctionEnvironmentRecord",
         List(
-          "BindThisValue" -> CloFer("BindThisValue"), 
+          "BindThisValue" -> CloFer("BindThisValue"),
           "CreateImmutableBinding" -> CloDecl("CreateImmutableBinding"),
           "CreateMutableBinding" -> CloDecl("CreateMutableBinding"),
           "DeleteBinding" -> CloDecl("DeleteBinding"),
           "FunctionObject" -> addr_func_obj_record, //  #2043,
           "GetBindingValue" -> CloDecl("GetBindingValue"),
-          "GetSuperBase" -> CloFer("GetSuperBase"), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
-          "GetThisBinding" -> CloFer("GetThisBinding"), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
-          "HasBinding" -> CloDecl("HasBinding"), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
-          "HasSuperBinding" -> CloFer("HasSuperBinding"), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
-          "HasThisBinding" -> CloFer("HasThisBinding"), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
-          "InitializeBinding" -> CloDecl("InitializeBinding"), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
+          "GetSuperBase" -> CloFer(
+            "GetSuperBase",
+          ), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
+          "GetThisBinding" -> CloFer(
+            "GetThisBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
+          "HasBinding" -> CloDecl(
+            "HasBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
+          "HasSuperBinding" -> CloFer(
+            "HasSuperBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
+          "HasThisBinding" -> CloFer(
+            "HasThisBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
+          "InitializeBinding" -> CloDecl(
+            "InitializeBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
           "NewTarget" -> RuntimeValue, //  undefined,
           "OuterEnv" -> RuntimeValue, // RuntimeValue,
-          "SetMutableBinding" -> CloDecl("SetMutableBinding"), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
+          "SetMutableBinding" -> CloDecl(
+            "SetMutableBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
           "ThisBindingStatus" -> RuntimeValue, //  ~initialized~,
           "ThisValue" -> RuntimeValue, //  undefined,
-          "WithBaseObject" -> CloDecl("WithBaseObject"), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
+          "WithBaseObject" -> CloDecl(
+            "WithBaseObject",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
           "__MAP__" -> addr_empty_map, // some address,
         ),
       )(using cfg);
@@ -111,7 +131,9 @@ case object AstPeval extends Phase[CFG, Unit] {
       st.globals += (Global(EXECUTION_STACK) -> addr_exec_stck)
 
       st.context.locals += Name("func") -> addr_func_obj_record
-      st.context.locals += Name("argumentsList") -> RuntimeValue // f(10) then ListObj(10).
+      st.context.locals += Name(
+        "argumentsList",
+      ) -> RuntimeValue // f(10) then ListObj(10).
 
       println(s"Starting interpertaton from ${st.context}");
       Try {
