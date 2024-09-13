@@ -223,3 +223,13 @@ case object CmdAstPeval extends Command("astpeval", CmdBuildCFG >> AstPeval) {
   )
   override val targetName = "<js>+"
 }
+
+/** `astpeval` command */
+case object CmdPeval extends Command("peval", CmdBuildCFG >> Peval) {
+  val help =
+    "partial-evaluates 'FunctionDeclarationInstantiation' using an ECMAScript file."
+  val examples = List(
+    "esmeta peval a.js                         # partial-eval using a.js file.",
+  )
+  override val targetName = "<js>+"
+}
