@@ -94,11 +94,16 @@ class PartialInterpreter(
       case Block(_, insts, _) =>
         for (inst <- insts)
           if (log)
-            pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: inst = ${inst}");
+            pw.println(
+              s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: inst = ${inst}",
+            );
           eval(inst);
         st.context.moveNext
       case b @ Branch(_, _, cond, thenNode, elseNode) =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: branch = ${b}");
+        if (log)
+          pw.println(
+            s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: branch = ${b}",
+          );
         st.context.cursor = Cursor(
           {
             val condval = eval(cond)
@@ -113,7 +118,10 @@ class PartialInterpreter(
           st.func,
         )
       case call: Call =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: call: ${call}");
+        if (log)
+          pw.println(
+            s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: call: ${call}",
+          );
         eval(call)
     }
 
