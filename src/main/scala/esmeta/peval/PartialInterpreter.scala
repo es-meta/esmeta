@@ -94,17 +94,17 @@ class PartialInterpreter(
       case Block(_, insts, _) =>
         for (inst <- insts)
           if (log)
-            pw.println(s"eval[cs:${st.callStack.size}]: inst = ${inst}");
+            pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: inst = ${inst}");
           eval(inst);
         st.context.moveNext
       case b @ Branch(_, _, cond, thenNode, elseNode) =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size}]: branch = ${b}");
+        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: branch = ${b}");
         st.context.cursor = Cursor(
           {
             val condval = eval(cond)
             if (log)
               pw.println(
-                s"eval[cs:${st.callStack.size}]: condition = ${condval}",
+                s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: condition = ${condval}",
               );
             condval match
               case RuntimeValue => throw RuntimeValueNotSupported("branch")
@@ -113,7 +113,7 @@ class PartialInterpreter(
           st.func,
         )
       case call: Call =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size}]: call: ${call}");
+        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: call: ${call}");
         eval(call)
     }
 
@@ -151,10 +151,15 @@ class PartialInterpreter(
         case RuntimeValue => ???
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          val newLocals =
-            getLocals(func.irFunc.params, vs, call, clo) ++ captured
-          st.callStack ::= PCallContext(st.context, lhs)
-          st.context = PContext(func, newLocals)
+          if (vs.forall(_ == RuntimeValue)) then {
+            st.globals.clear(); // func를 따라가서 영향 미치는 것만 찾아서 삭제해도 좋을 것 같긴 한데
+            setCallResult(lhs, RuntimeValue)
+          } else {
+            val newLocals =
+              getLocals(func.irFunc.params, vs, call, clo) ++ captured
+            st.callStack ::= PCallContext(st.context, lhs)
+            st.context = PContext(func, newLocals)
+          }
         case cont @ Cont(func, captured, callStack) => {
           val vs = args.map(eval)
           val newLocals =
