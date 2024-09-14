@@ -112,9 +112,10 @@ trait Parsers extends BasicParsers {
     // code unit
     "CodeUnit" ^^^ ValueTy(codeUnit = true) |
     // enum
-    "Enum[" ~> rep1sep(enumv, ",") <~ "]" ^^ {
-      case s => ValueTy(enumv = Fin(s.toSet))
+    "Enum" ~> opt("[" ~> rep1sep(enumv, ",") <~ "]") ^^ {
+      case s => ValueTy(enumv = s.fold(Inf)(es => Fin(es.toSet)))
     } |
+    "Enum" ^^^ ValueTy(enumv = Inf) |
     // mathematical value
     singleMathTy ^^ { case m => ValueTy(math = m) } |
     // infinity
