@@ -56,7 +56,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lfm = lmap.getOrElse(t, FieldMap.Top)
           rfm = rmap.getOrElse(t, FieldMap.Top)
           fm = lfm && rfm
-          pair <- update(t, fm, refine = true)
+          pair <- RecordTy.update(t, fm, refine = true)
         } yield pair)
           .groupBy(_._1)
           .map { case (t, pairs) => t -> pairs.map(_._2).reduce(_ && _) }
@@ -96,14 +96,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** field accessor */
   def apply(f: String): Binding = this match
     case Top       => Binding.Top
-    case Elem(map) => map.map(apply(_, f)).foldLeft(Binding.Bot)(_ || _)
-
-  /** field accessor for specific record type */
-  private def apply(pair: (String, FieldMap), f: String): Binding = this match
-    case Top => Binding.Top
-    case Elem(map) =>
-      val (t, fm) = pair
-      getField(t, f) && fm(f)
+    case Elem(map) => map.map(RecordTy(_, f)).foldLeft(Binding.Bot)(_ || _)
 
   /** field update */
   def update(field: String, ty: ValueTy, refine: Boolean): RecordTy =
@@ -119,10 +112,58 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
         case (map, pair) =>
-          update(pair, field, elem, refine).fold(map) { (t, fm) =>
+          RecordTy.update(pair, field, elem, refine).fold(map) { (t, fm) =>
             map + (t -> map.get(t).fold(fm)(_ || fm))
           }
       })
+
+  /** record containment check */
+  def contains(record: RecordObj, heap: Heap): Boolean = this match
+    case Top => true
+    case Elem(map) =>
+      val RecordObj(l, lfm) = record
+      map.exists { (r, rfm) =>
+        isStrictSubTy(l, r) ||
+        (l == r && rfm.contains(record, heap)) ||
+        (for {
+          lca <- lcaOf(l, r)
+          fm <- diffOf(lca, r)
+        } yield fm && rfm).exists(_.contains(record, heap))
+      }
+
+  /** normalize record type */
+  def normalized: RecordTy = this match
+    case Top       => Top
+    case Elem(map) => Elem(map.map(normalize))
+}
+
+object RecordTy extends Parser.From(Parser.recordTy) {
+  import ManualInfo.tyModel.*
+
+  lazy val Bot: RecordTy = Elem(Map.empty)
+
+  def apply(names: String*): RecordTy =
+    apply(names.toSet)
+  def apply(names: Set[String]): RecordTy =
+    apply(names.toList.map(_ -> FieldMap.Top).toMap)
+  def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
+    fields
+      .foldLeft(Option(name -> FieldMap.Top)) {
+        case (None, _) => None
+        case (Some(pair), (f, ty)) =>
+          update(pair, f, Binding(ty), refine = false)
+      }
+      .fold(Bot)(apply)
+  def apply(pair: (String, FieldMap)): RecordTy = apply(Map(pair))
+  def apply(name: String, fieldMap: FieldMap): RecordTy =
+    apply(Map(name -> fieldMap))
+  def apply(map: Map[String, FieldMap]): RecordTy =
+    Elem(map)
+
+  /** field accessor for specific record type */
+  private def apply(pair: (String, FieldMap), f: String): Binding =
+    val (t, fm) = pair
+    getField(t, f) && fm(f)
 
   /** field update */
   private def update(
@@ -153,52 +194,8 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       else Some(normalize(x -> fm.update(field, refined)))
     else Some(normalize(x -> fm.update(field, elem)))
 
-  /** record containment check */
-  def contains(record: RecordObj, heap: Heap): Boolean = this match
-    case Top => true
-    case Elem(map) =>
-      val RecordObj(l, lfm) = record
-      map.exists { (r, rfm) =>
-        isStrictSubTy(l, r) ||
-        (l == r && rfm.contains(record, heap)) ||
-        (for {
-          lca <- lcaOf(l, r)
-          fm <- diffOf(lca, r)
-        } yield fm && rfm).exists(_.contains(record, heap))
-      }
-
-  /** normalize record type */
-  def normalized: RecordTy = this match
-    case Top       => Top
-    case Elem(map) => Elem(map.map(normalize))
-
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
     val (t, fm) = pair
     t -> FieldMap(fm.map.filter { (f, elem) => !(getField(t, f) <= elem) })
-}
-
-object RecordTy extends Parser.From(Parser.recordTy) {
-  import ManualInfo.tyModel.*
-
-  lazy val Bot: RecordTy = Elem(Map.empty)
-
-  def apply(names: String*): RecordTy =
-    apply(names.toSet)
-  def apply(names: Set[String]): RecordTy =
-    apply(names.toList.map(_ -> FieldMap.Top).toMap)
-  def apply(name: String, fields: Map[String, ValueTy]): RecordTy = apply(
-    Map(
-      name -> FieldMap(
-        (for {
-          (field, ty) <- fields
-          elem = Binding(ty, false, false)
-        } yield field -> elem).toMap,
-      ),
-    ),
-  ).normalized
-  def apply(name: String, fieldMap: FieldMap): RecordTy =
-    apply(Map(name -> fieldMap))
-  def apply(map: Map[String, FieldMap]): RecordTy =
-    Elem(map)
 }

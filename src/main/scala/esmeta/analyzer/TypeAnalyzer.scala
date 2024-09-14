@@ -263,6 +263,17 @@ class TypeAnalyzer(
           }
           AbsValue(retTy, map)
         },
+        "ValidateNonRevokedProxy" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += Normal -> Map(
+              x -> ValueTy.from(
+                "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
+              ),
+            )
+          }
+          AbsValue(retTy, map)
+        },
         "IsPromise" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x => map += True -> Map(x -> RecordT("Promise")) }
@@ -491,8 +502,10 @@ class TypeAnalyzer(
       refinedValue: AbsValue,
     )(using np: NodePoint[_]): Result[List[Unit]] =
       var kinds = Vector.empty[RefinementKind]
-      if (refinedValue ⊑ AVT) kinds :+= RefinementKind.True
-      if (refinedValue ⊑ AVF) kinds :+= RefinementKind.False
+      if (refinedValue.ty <= TrueT) kinds :+= RefinementKind.True
+      if (refinedValue.ty <= FalseT) kinds :+= RefinementKind.False
+      if (refinedValue.ty <= NormalT) kinds :+= RefinementKind.Normal
+      if (refinedValue.ty <= AbruptT) kinds :+= RefinementKind.Abrupt
       join(for {
         kind <- kinds
         map <- value.refinements.get(kind).toList
@@ -667,9 +680,12 @@ class TypeAnalyzer(
       l <- transfer(x)
       v <- transfer(l)
       refinedV =
-        if (positive) v ⊓ AbsValue(ty)
+        if (positive)
+          if (v.ty <= ty.toValue) v
+          else v ⊓ AbsValue(ty)
         else v -- AbsValue(ty)
       _ <- modify(_.update(l, refinedV))
+      _ <- refine(v, refinedV)
     } yield ()
   }
 
