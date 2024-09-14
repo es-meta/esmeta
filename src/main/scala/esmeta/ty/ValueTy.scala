@@ -377,4 +377,16 @@ object ValueTy extends Parser.From(Parser.valueTy) {
   ).norm
   lazy val Top: ValueTy = ValueTopTy
   lazy val Bot: ValueTy = ValueElemTy()
+
+  /** get type from `typeof` string */
+  def fromTypeOf(str: String): ValueTy = str match
+    case "Object"    => RecordT("Object")
+    case "Symbol"    => SymbolT
+    case "Number"    => NumberT
+    case "BigInt"    => BigIntT
+    case "String"    => StrT
+    case "Boolean"   => BoolT
+    case "Undefined" => UndefT
+    case "Null"      => NullT
+    case _           => Bot
 }

@@ -27,12 +27,22 @@ type CompletionRecord {
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 type NormalCompletion extends CompletionRecord {
   Type: Enum[~normal~];
+  Value;
   Target: Enum[~empty~];
 }
 
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 type AbruptCompletion extends CompletionRecord {
   Type: Enum[~break~, ~continue~, ~return~, ~throw~];
+  Value;
+  Target: String | Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/2024/#sec-throwcompletion
+type ThrowCompletion extends AbruptCompletion {
+  Type: Enum[~throw~];
+  Value: ESValue;
+  Target: Enum[~empty~];
 }
 
 // -----------------------------------------------------------------------------

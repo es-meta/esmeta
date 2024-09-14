@@ -184,6 +184,11 @@ object Stringifier {
           if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
           else if (!fm.isTop) app >> " " >> fm
         }
+        map.get("ThrowCompletion").map { fm =>
+          m -= "ThrowCompletion"
+          mayOR >> "Throw"
+          if (!fm.isTop) app >> " " >> fm
+        }
         if (m.nonEmpty)
           if (prevExists) app >> OR
           app >> "Record[" >> m.toList.sortBy(_._1) >> "]"

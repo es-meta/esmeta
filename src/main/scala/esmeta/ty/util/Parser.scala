@@ -80,13 +80,17 @@ trait Parsers extends BasicParsers {
     "Bot" ^^^ BotT |
     // completion record
     "Completion" ^^^ CompT |
-    "Normal" ~> opt("[" ~> valueTy <~ "]") ^^ {
-      case None    => NormalT
-      case Some(v) => NormalT(v)
-    } | "Abrupt" ~> opt("[" ~> rep1sep(ident, ",") <~ "]") ^^ {
-      case None        => AbruptT
-      case Some(names) => AbruptT(names.toSet)
-    } |
+    "Normal" ~> opt(
+      "[" ~> valueTy <~ "]" ^^ { NormalT(_) } |
+      fieldMap ^^ { RecordT("NormalCompletion", _) },
+    ) ^^ { _.getOrElse(NormalT) } |
+    "Abrupt" ~> opt(
+      "[" ~> rep1sep(ident, ",") <~ "]" ^^ { xs => AbruptT(xs.toSet) } |
+      fieldMap ^^ { RecordT("AbruptCompletion", _) },
+    ) ^^ { _.getOrElse(AbruptT) } |
+    "Throw" ~> opt(
+      fieldMap ^^ { RecordT("ThrowCompletion", _) },
+    ) ^^ { _.getOrElse(ThrowT) } |
     // ECMAScript value
     "ESValue" ^^^ ESValueT |
     // closure

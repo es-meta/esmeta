@@ -63,6 +63,11 @@ enum ListTy extends TyElem with Lattice[ListTy] {
   def normalized: ListTy = this match
     case Elem(elem) if elem.isTop => Top
     case _                        => this
+
+  /** mapping function */
+  def map(f: ValueTy => ValueTy): ListTy = this match
+    case Elem(elem) => Elem(f(elem))
+    case _          => this
 }
 object ListTy extends Parser.From(Parser.listTy) {
   def apply(elem: ValueTy): ListTy = Elem(elem).normalized

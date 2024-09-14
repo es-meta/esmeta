@@ -284,6 +284,17 @@ class TypeAnalyzer(
           xs(0).map { x => map += Normal -> Map(x -> RecordT("Constructor")) }
           AbsValue(retTy, map)
         },
+        "CreateListFromArrayLike" -> { (xs, vs, retTy) =>
+          AbsValue((for {
+            v <- vs.lift(1)
+            str = v.ty.list.elem.str
+            ss <- str match
+              case Inf     => None
+              case Fin(ss) => Some(ss)
+            ty = ss.map(ValueTy.fromTypeOf).foldLeft(BotT)(_ || _)
+            refined = retTy.toValue && NormalT(ListT(ty))
+          } yield refined).getOrElse(retTy))
+        },
         "IsUnresolvableReference" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x =>
@@ -655,17 +666,7 @@ class TypeAnalyzer(
       rty = rv.ty
       refinedV = rty.str.getSingle match
         case One(tname) =>
-          val value = AbsValue(tname match
-            case "Object"    => RecordT("Object")
-            case "Symbol"    => SymbolT
-            case "Number"    => NumberT
-            case "BigInt"    => BigIntT
-            case "String"    => StrT
-            case "Boolean"   => BoolT
-            case "Undefined" => UndefT
-            case "Null"      => NullT
-            case _           => ValueTy(),
-          )
+          val value = AbsValue(ValueTy.fromTypeOf(tname))
           if (positive) lv ⊓ value else lv -- value
         case _ => lv
       _ <- modify(_.update(l, refinedV))
