@@ -56,7 +56,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           lfm = lmap.getOrElse(t, FieldMap.Top)
           rfm = rmap.getOrElse(t, FieldMap.Top)
           fm = lfm && rfm
-          pair <- update(t, fm)
+          pair <- update(t, fm, refine = true)
         } yield pair)
           .groupBy(_._1)
           .map { case (t, pairs) => t -> pairs.map(_._2).reduce(_ && _) }
@@ -95,35 +95,44 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** field accessor */
   def apply(f: String): Binding = this match
-    case Top => Binding.Top
-    case Elem(map) =>
-      map.map(getField(_, f) && _(f)).foldLeft(Binding.Bot)(_ || _)
+    case Top       => Binding.Top
+    case Elem(map) => map.map(apply(_, f)).foldLeft(Binding.Bot)(_ || _)
 
   /** field accessor for specific record type */
-  def apply(name: String, f: String): Binding = this match
+  private def apply(pair: (String, FieldMap), f: String): Binding = this match
     case Top => Binding.Top
     case Elem(map) =>
-      map.get(name).fold(Binding.Bot)(getField(name, f) && _(f))
+      val (t, fm) = pair
+      getField(t, f) && fm(f)
 
   /** field update */
-  def update(field: String, ty: ValueTy): RecordTy = update(field, Binding(ty))
+  def update(field: String, ty: ValueTy, refine: Boolean): RecordTy =
+    update(field, Binding(ty), refine)
 
   /** field update */
-  def update(field: String, elem: Binding): RecordTy = this match
+  def update(
+    field: String,
+    elem: Binding,
+    refine: Boolean,
+  ): RecordTy = this match
     case Top => Top
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
         case (map, pair) =>
-          update(pair, field, elem).fold(map) { (t, fm) =>
+          update(pair, field, elem, refine).fold(map) { (t, fm) =>
             map + (t -> map.get(t).fold(fm)(_ || fm))
           }
       })
 
   /** field update */
-  private def update(t: String, fm: FieldMap): Option[(String, FieldMap)] =
+  private def update(
+    t: String,
+    fm: FieldMap,
+    refine: Boolean,
+  ): Option[(String, FieldMap)] =
     fm.map.foldLeft(Option(t -> FieldMap.Top)) {
       case (None, _)               => None
-      case (Some(pair), (f, elem)) => update(pair, f, elem)
+      case (Some(pair), (f, elem)) => update(pair, f, elem, refine)
     }
 
   /** field update */
@@ -131,14 +140,17 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     pair: (String, FieldMap),
     field: String,
     elem: Binding,
+    refine: Boolean,
   ): Option[(String, FieldMap)] =
     val (t, fm) = pair
     val x = (for {
       map <- refinerOf(t).get(field)
       (_, u) <- map.find { case (e, _) => elem <= e }
     } yield u).getOrElse(t)
-    val xfm = fieldsOf(x)
-    if (!xfm.contains(field) || (elem && xfm(field)).isBottom) None
+    if (refine)
+      val refined = elem && apply(pair, field)
+      if (refined.isBottom) None
+      else Some(normalize(x -> fm.update(field, refined)))
     else Some(normalize(x -> fm.update(field, elem)))
 
   /** record containment check */

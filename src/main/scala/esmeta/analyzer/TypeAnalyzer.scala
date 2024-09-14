@@ -239,6 +239,7 @@ class TypeAnalyzer(
           val updated = record.update(
             "Value",
             vs(1).ty || (valueField -- EnumT("empty")),
+            refine = false,
           )
           AbsValue(ValueTy(record = updated), Map())
         },
@@ -362,7 +363,7 @@ class TypeAnalyzer(
           for {
             v <- transfer(expr)
             ty <- get(_.get(x).ty)
-            record = ty.record.update(f, v.ty)
+            record = ty.record.update(f, v.ty, refine = false)
             _ <- modify(_.update(x, AbsValue(ty.copied(record = record))))
           } yield ()
         case _ => super.transfer(inst)
@@ -604,7 +605,7 @@ class TypeAnalyzer(
       elem = if (positive) relem else lty.record(field) -- relem
       refinedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.update(field, elem),
+        record = lty.record.update(field, elem, refine = true),
       )
       _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()
@@ -621,7 +622,9 @@ class TypeAnalyzer(
       record = ty.record
       refinedTy = ValueTy(
         ast = ty.ast,
-        record = if (positive) record.update(field, Binding.Exist) else record,
+        record =
+          if (positive) record.update(field, Binding.Exist, refine = true)
+          else record.update(field, Binding.Absent, refine = true),
       )
       _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()
