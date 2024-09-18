@@ -245,6 +245,9 @@ class TypeAnalyzer(
         "MakeBasicObject" -> { (xs, vs, retTy) =>
           AbsValue(RecordT("Object"), Map())
         },
+        "Await" -> { (xs, vs, retTy) =>
+          AbsValue(NormalT(ESValueT) || ThrowT, Map())
+        },
         "IsCallable" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x => map += True -> Map(x -> RecordT("FunctionObject")) }

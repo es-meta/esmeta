@@ -176,7 +176,13 @@ trait AbsSemanticsDecl { self: Analyzer =>
           s"$k -> $st"
         case rp: ReturnPoint =>
           val st = this(rp).getString(detail = detail)
-          s"$k -> $st"
+          s"$k -> $st" + (
+            if (detail)
+              getRetEdges(rp).toList.sorted
+                .map("\n  " + _.toString)
+                .mkString(" -> [", ",", "\n]")
+            else ""
+          )
 
     /** conversion to string */
     override def toString: String = shortString
