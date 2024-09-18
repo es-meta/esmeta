@@ -45,6 +45,13 @@ type ThrowCompletion extends AbruptCompletion {
   Target: Enum[~empty~];
 }
 
+// MANUAL MODELING
+type ReturnCompletion extends AbruptCompletion {
+  Type: Enum[~return~];
+  Value: ESValue;
+  Target: Enum[~empty~];
+}
+
 // -----------------------------------------------------------------------------
 // Reference Records
 // -----------------------------------------------------------------------------

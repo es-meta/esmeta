@@ -91,6 +91,9 @@ trait Parsers extends BasicParsers {
     "Throw" ~> opt(
       fieldMap ^^ { RecordT("ThrowCompletion", _) },
     ) ^^ { _.getOrElse(ThrowT) } |
+    "Return" ~> opt(
+      fieldMap ^^ { RecordT("ReturnCompletion", _) },
+    ) ^^ { _.getOrElse(ReturnT) } |
     // ECMAScript value
     "ESValue" ^^^ ESValueT |
     // closure

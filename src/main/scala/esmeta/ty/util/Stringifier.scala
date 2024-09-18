@@ -189,6 +189,11 @@ object Stringifier {
           mayOR >> "Throw"
           if (!fm.isTop) app >> " " >> fm
         }
+        map.get("ReturnCompletion").map { fm =>
+          m -= "ReturnCompletion"
+          mayOR >> "Return"
+          if (!fm.isTop) app >> " " >> fm
+        }
         if (m.nonEmpty)
           if (prevExists) app >> OR
           app >> "Record[" >> m.toList.sortBy(_._1) >> "]"
