@@ -14,7 +14,7 @@ trait Ty extends TyElem {
 
   /** imprecise type check */
   def isImprec: Boolean = this match
-    case ty: ValueTy => AbruptT <= ty || NormalT <= ty
+    case ty: ValueTy => AbruptT <= ty || NormalT <= ty || AstT <= ty
     case _           => true
 
   /** completion check */

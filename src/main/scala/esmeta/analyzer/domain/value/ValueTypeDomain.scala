@@ -2,7 +2,7 @@ package esmeta.analyzer.domain.value
 
 import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
-import esmeta.cfg.Func
+import esmeta.cfg.*
 import esmeta.ir.{COp, Name, VOp, MOp, UOp, Local}
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESValueParser
@@ -380,20 +380,22 @@ trait ValueTypeDomainDecl { self: Self =>
       )
 
       /** get syntactic SDO */
-      def getSdo(method: String): List[(Func, Elem)] = elem.ty.ast match
-        case AstTy.Top =>
-          for {
-            func <- cfg.funcs if func.isSDO
-            List(_, newMethod) <- allSdoPattern.unapplySeq(func.name)
-            if newMethod == method
-          } yield (func, Elem(AstT))
-        case AstTy.Simple(names) =>
-          for {
-            name <- names.toList
-            pair <- astSdoCache((name, method))
-          } yield pair
-        case AstTy.Detail(name, idx) =>
-          synSdoCache((name, idx, method))
+      def getSdo(method: String): List[(Func, Elem)] =
+        import cfg.sdoInfo.*
+        elem.ty.ast match
+          case AstTy.Top =>
+            for {
+              base <- noBase.getOrElse(method, Set()).toList
+            } yield base.func -> Elem(base.thisTy)
+          case AstTy.Simple(names) =>
+            for {
+              name <- names.toList
+              base <- simple.getOrElse((name, method), Set())
+            } yield base.func -> Elem(base.thisTy)
+          case AstTy.Detail(name, idx) =>
+            for {
+              base <- indexed.getOrElse(((name, idx), method), Set()).toList
+            } yield base.func -> Elem(base.thisTy)
 
       /** getters */
       def clo: AbsClo = ty.clo match
@@ -529,154 +531,5 @@ trait ValueTypeDomainDecl { self: Self =>
           ),
         ),
       )
-
-    /** ast type check helper */
-    lazy val astDirectChildMap: Map[String, Set[String]] =
-      (cfg.grammar.prods.map {
-        case Production(lhs, _, _, rhsList) =>
-          val name = lhs.name
-          val subs = rhsList.collect {
-            case Rhs(_, List(Nonterminal(name, _)), _) => name
-          }.toSet
-          name -> subs
-      }).toMap
-    lazy val astChildMap: Map[String, Set[String]] =
-      var descs = Map[String, Set[String]]()
-      def aux(name: String): Set[String] = descs.get(name) match
-        case Some(set) => set
-        case None =>
-          val set = (for {
-            sub <- astDirectChildMap.getOrElse(name, Set())
-            elem <- aux(sub)
-          } yield elem) + name
-          descs += name -> set
-          set
-      cfg.grammar.prods.foreach(prod => aux(prod.name))
-      descs
-
-    /** sdo access helper */
-    private lazy val astSdoCache: ((String, String)) => List[(Func, Elem)] =
-      cached[(String, String), List[(Func, Elem)]] {
-        case (name, method) =>
-          val result = (for {
-            (fid, thisTy, hint) <- sdoMap.getOrElse(name, Set())
-            if hint == method
-          } yield (cfg.funcMap(fid), Elem(thisTy))).toList
-          if (result.isEmpty) {
-            if (defaultSdos contains method) {
-              val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
-              for {
-                (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
-              } yield (defaultFunc, Elem(AstT(name, idx)))
-            } else Nil
-          } else result
-      }
-    private lazy val synSdoCache =
-      cached[(String, Int, String), List[(Func, Elem)]] {
-        case (name, idx, method) =>
-          val result = (for {
-            (fid, thisTy, hint) <- sdoMap.getOrElse(
-              s"$name[$idx]",
-              Set(),
-            )
-            if hint == method
-          } yield (cfg.funcMap(fid), Elem(thisTy))).toList
-          if (result.isEmpty) {
-            if (defaultSdos contains method) {
-              val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
-              List((defaultFunc, Elem(AstT(name, idx))))
-            } else Nil
-          } else result
-      }
-
-    /** sdo with default case */
-    val defaultSdos = List(
-      "Contains",
-      "AllPrivateIdentifiersValid",
-      "ContainsArguments",
-    )
-
-    private lazy val allSdoPattern = """(<DEFAULT>|\w+\[\d+,\d+\])\.(\w+)""".r
-    private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
-    private lazy val sdoMap = {
-      val edges: MMap[String, MSet[String]] = MMap()
-      for {
-        prod <- cfg.grammar.prods
-        name = prod.name if !(cfg.grammar.lexicalNames contains name)
-        (rhs, idx) <- prod.rhsList.zipWithIndex
-        subIdx <- (0 until rhs.countSubs)
-      } {
-        val syntacticName = s"$name[$idx,$subIdx]"
-        edges += (syntacticName -> MSet(name))
-        rhs.getNts(subIdx) match
-          case List(Some(chain)) =>
-            if (edges contains chain) edges(chain) += syntacticName
-            else edges(chain) = MSet(syntacticName)
-          case _ =>
-      }
-      val worklist = QueueWorklist[String](List())
-      val map: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-      var defaultmap: MMap[String, MSet[(Int, ValueTy, String)]] = MMap()
-      for {
-        func <- cfg.funcs if func.isSDO
-        isDefaultSdo = func.name.startsWith("<DEFAULT>") if !isDefaultSdo
-        List(name, idxStr, subIdxStr, method) <- sdoPattern.unapplySeq(
-          func.name,
-        )
-        (idx, subIdx) = (idxStr.toInt, subIdxStr.toInt)
-        key = s"$name[$idx,$subIdx]"
-      } {
-        val newInfo = (func.id, AstT(name, idx), method)
-        val isDefaultSdo = defaultSdos contains method
-
-        // update target info
-        val targetmap = if (isDefaultSdo) defaultmap else map
-        if (targetmap contains key) targetmap(key) += newInfo
-        else targetmap(key) = MSet(newInfo)
-        if (targetmap contains name) targetmap(name) += newInfo
-        else targetmap(name) = MSet(newInfo)
-      }
-
-      // record original map
-      val origmap = (for { (k, set) <- map } yield k -> set.toSet).toMap
-
-      // propagate chain productions
-      @tailrec
-      def aux(): Unit = worklist.next match
-        case Some(key) =>
-          val childInfo = map.getOrElse(key, MSet())
-          for {
-            next <- edges.getOrElse(key, MSet())
-            info = map.getOrElse(next, MSet())
-            oldmapize = info.size
-
-            newInfo =
-              // A[i,j] -> A
-              if (key endsWith "]") info ++ childInfo
-              // A.method -> B[i,j].method
-              // only if B[i,j].method not exists (chain production)
-              else {
-                val origInfo = origmap.getOrElse(next, Set())
-                info ++ (for {
-                  triple <- childInfo
-                  if !(origInfo.exists(_._3 == triple._3))
-                } yield triple)
-              }
-
-            _ = map(next) = newInfo
-            if newInfo.size > oldmapize
-          } worklist += next
-          aux()
-        case None => /* do nothing */
-      aux()
-
-      // merge default map
-      (for {
-        key <- map.keySet ++ defaultmap.keySet
-        info = map.getOrElse(key, MSet())
-        defaultInfo = defaultmap.getOrElse(key, MSet())
-        finalInfo = (info ++ defaultInfo).toSet
-      } yield key -> finalInfo).toMap
-    }
   }
 }

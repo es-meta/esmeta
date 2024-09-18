@@ -63,6 +63,14 @@ case class Func(
   /** check whether it is SDO */
   lazy val isSDO: Boolean = irFunc.kind == SynDirOp
 
+  /** get SDO information */
+  lazy val sdoInfo: Option[SdoInfo] = name match
+    case Func.sdoPattern(base, i, j, method) =>
+      Some(SdoInfo.Base(this, base, i.toInt, j.toInt, method))
+    case Func.defaultSdoPattern(method) =>
+      Some(SdoInfo.Default(this, method))
+    case _ => None
+
   /** check whether it is a closure */
   lazy val isClo: Boolean = irFunc.kind == Clo
 
@@ -135,4 +143,7 @@ object Func {
         addTo(app)
       }.toString
   }
+
+  private lazy val defaultSdoPattern = """<DEFAULT>\.(\w+)""".r
+  private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
 }

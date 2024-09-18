@@ -13,8 +13,9 @@ trait Worklist[T] {
   def next: Option[T] =
     if (isEmpty) None
     else { val x = pop; set -= x; Some(x) }
-  def size: Int = set.size
-  def isEmpty: Boolean = all.isEmpty
+  inline def size: Int = set.size
+  inline def isEmpty: Boolean = all.isEmpty
+  inline def nonEmpty: Boolean = !isEmpty
   def foreach(f: T => Unit): Unit
   def has(x: T): Boolean = all contains x
 }

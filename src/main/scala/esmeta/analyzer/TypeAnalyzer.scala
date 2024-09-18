@@ -123,14 +123,13 @@ class TypeAnalyzer(
       idx: Int,
       param: Param,
       arg: AbsValue,
-    ): AbsValue = param.ty.ty match
-      case _: UnknownTy => arg
-      case paramTy: ValueTy =>
-        val argTy = arg.ty
-        if (method && idx == 0) () /* ignore `this` for method calls */
-        else if (config.checkParamType && !(argTy <= paramTy))
-          addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
-        AbsValue(paramTy)
+    ): AbsValue =
+      val paramTy = param.ty.ty.toValue
+      val argTy = arg.ty
+      if (method && idx == 0) () /* ignore `this` for method calls */
+      else if (config.checkParamType && !(argTy <= paramTy))
+        addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
+      AbsValue(paramTy && argTy)
 
     /** callee entries */
     override def getCalleeEntries(
