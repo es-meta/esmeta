@@ -214,6 +214,12 @@ class TypeAnalyzer(
         "__FLAT_LIST__" -> { (xs, vs, retTy) =>
           AbsValue(vs(0).ty.list.elem, Map())
         },
+        "__GET_ITEMS__" -> { (xs, vs, retTy) =>
+          val ast = vs(1).ty.toValue.grammarSymbol match
+            case Fin(set) => AstT(set.map(_.name))
+            case Inf      => AstT
+          AbsValue(ListT(ast), Map())
+        },
         "Completion" -> { (xs, vs, retTy) =>
           AbsValue(vs(0).ty && CompT, Map())
         },
