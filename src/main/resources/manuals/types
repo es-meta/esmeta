@@ -585,6 +585,9 @@ type ForInIterator extends OrdinaryObject {
   RemainingKeys: List[String];
 }
 
+// https://tc39.es/ecma262/#sec-iterator-interface
+type Iterator extends Object
+
 // -----------------------------------------------------------------------------
 // Scripts and Modules
 // -----------------------------------------------------------------------------
