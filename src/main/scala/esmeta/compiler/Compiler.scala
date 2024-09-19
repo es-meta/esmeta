@@ -199,6 +199,7 @@ class Compiler(
 
   val noReturnComp: Set[String] = Set(
     "Completion",
+    "NormalCompletion",
   )
 
   /** compile an algorithm to an IR function */

@@ -486,8 +486,8 @@ class TypeAnalyzer(
       case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
         refineType(x, expr, positive)
       // refine type checks
-      case ETypeCheck(ERef(x: Local), ty) =>
-        refineTypeCheck(x, ty.ty, positive)
+      case ETypeCheck(ERef(ref), ty) =>
+        refineTypeCheck(ref, ty.ty.toValue, positive)
       // refine logical negation
       case EUnary(UOp.Not, e) =>
         refine(e, !positive)
@@ -622,16 +622,23 @@ class TypeAnalyzer(
       expr: Expr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
+      rv <- transfer(expr)
+      _ <- refineField(x, field, Binding(rv.ty), positive)
+    } yield ()
+
+    def refineField(
+      x: Local,
+      field: String,
+      rbinding: Binding,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater = for {
       l <- transfer(x)
       lv <- transfer(l)
-      rv <- transfer(expr)
       lty = lv.ty
-      rty = rv.ty
-      relem = Binding(rty)
-      elem = if (positive) relem else lty.record(field) -- relem
+      binding = if (positive) rbinding else lty.record(field) -- rbinding
       refinedTy = ValueTy(
         ast = lty.ast,
-        record = lty.record.update(field, elem, refine = true),
+        record = lty.record.update(field, binding, refine = true),
       )
       _ <- modify(_.update(l, AbsValue(refinedTy)))
     } yield ()
@@ -641,19 +648,8 @@ class TypeAnalyzer(
       x: Local,
       field: String,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
-      l <- transfer(x)
-      v <- transfer(l)
-      ty = v.ty
-      record = ty.record
-      refinedTy = ValueTy(
-        ast = ty.ast,
-        record =
-          if (positive) record.update(field, Binding.Exist, refine = true)
-          else record.update(field, Binding.Absent, refine = true),
-      )
-      _ <- modify(_.update(l, AbsValue(refinedTy)))
-    } yield ()
+    )(using np: NodePoint[_]): Updater =
+      refineField(x, field, Binding.Exist, positive)
 
     /** refine types with `typeof` constraints */
     def refineType(
@@ -676,18 +672,23 @@ class TypeAnalyzer(
 
     /** refine types with type checks */
     def refineTypeCheck(
-      x: Local,
-      ty: Ty,
+      ref: Ref,
+      ty: ValueTy,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = for {
-      l <- transfer(x)
+      l <- transfer(ref)
       v <- transfer(l)
       refinedV =
         if (positive)
           if (v.ty <= ty.toValue) v
           else v ⊓ AbsValue(ty)
         else v -- AbsValue(ty)
-      _ <- modify(_.update(l, refinedV))
+      _ <- modify(ref match
+        case _: Local => _.update(l, refinedV)
+        case Field(x: Local, EStr(field)) =>
+          refineField(x, field, Binding(ty), positive)
+        case _ => identity,
+      )
       _ <- refine(v, refinedV)
     } yield ()
   }
