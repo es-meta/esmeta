@@ -36,14 +36,16 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       .map(x => x -> refinerOf(x))
       .foldLeft[Refiner](Map()) {
         case (lref, (rt, rref)) =>
-          lref ++ (ownFieldsOf(rt).map((f, e) => f -> Vector(e -> rt)) ++ rref)
-            .map { (f, rm) =>
-              f -> lref.get(f).fold(rm) { lm =>
-                lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
-                rm.filter((r, _) => lm.forall((l, _) => (l && r).isBottom))
-              }
+          val own = ownFieldsOf(rt).foldLeft[Refiner](rref) {
+            case (m, (f, e)) =>
+              m + (f -> (m.getOrElse(f, Vector()) :+ (e -> rt)))
+          }
+          (lref ++ own.map { (f, rm) =>
+            f -> lref.get(f).fold(rm) { lm =>
+              lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
+              rm.filter((r, _) => lm.forall((l, _) => (l && r).isBottom))
             }
-            .filter((_, v) => v.nonEmpty)
+          }).filter((_, v) => v.nonEmpty)
       }
   }
 
