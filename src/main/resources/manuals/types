@@ -34,7 +34,7 @@ type NormalCompletion extends CompletionRecord {
 // https://tc39.es/ecma262/#sec-completion-record-specification-type
 type AbruptCompletion extends CompletionRecord {
   Type: Enum[~break~, ~continue~, ~return~, ~throw~];
-  Value;
+  Value: ESValue | Enum[~empty~];
   Target: String | Enum[~empty~];
 }
 

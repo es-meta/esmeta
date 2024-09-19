@@ -96,7 +96,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** field accessor */
   def apply(f: String): Binding = this match
     case Top       => Binding.Top
-    case Elem(map) => map.map(RecordTy(_, f)).foldLeft(Binding.Bot)(_ || _)
+    case Elem(map) => map.map(get(_, f)).foldLeft(Binding.Bot)(_ || _)
 
   /** field update */
   def update(field: String, ty: ValueTy, refine: Boolean): RecordTy =
@@ -161,7 +161,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     Elem(map)
 
   /** field accessor for specific record type */
-  private def apply(pair: (String, FieldMap), f: String): Binding =
+  private def get(pair: (String, FieldMap), f: String): Binding =
     val (t, fm) = pair
     getField(t, f) && fm(f)
 
@@ -189,7 +189,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       (_, u) <- map.find { case (e, _) => elem <= e }
     } yield u).getOrElse(t)
     if (refine)
-      val refined = elem && apply(pair, field)
+      val refined = elem && get(pair, field)
       if (refined.isBottom) None
       else Some(normalize(x -> fm.update(field, refined)))
     else Some(normalize(x -> fm.update(field, elem)))
