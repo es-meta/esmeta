@@ -211,6 +211,7 @@ class TypeAnalyzer(
       "__APPEND_LIST__",
       "__FLAT_LIST__",
       "__GET_ITEMS__",
+      "__CLAMP__",
       "Completion",
       "NormalCompletion",
     )
@@ -231,6 +232,10 @@ class TypeAnalyzer(
             case Fin(set) => AstT(set.map(_.name))
             case Inf      => AstT
           AbsValue(ListT(ast), Map())
+        },
+        "__CLAMP__" -> { (xs, vs, retTy) =>
+          if (vs(0).ty.toValue <= (IntT || InfinityT)) AbsValue(IntT, Map())
+          else AbsValue(retTy, Map())
         },
         "Completion" -> { (xs, vs, retTy) =>
           AbsValue(vs(0).ty && CompT, Map())
