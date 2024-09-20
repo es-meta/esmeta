@@ -137,16 +137,14 @@ object PRecordObj {
   def apply(
     tname: String,
     fs: Iterable[(String, Predict[Value | Uninit])],
-  )(using CFG): PRecordObj =
+  ): PRecordObj =
     val obj = PRecordObj(tname)
     for { ((k, v), idx) <- fs.zipWithIndex }
       obj.map += k -> v
     obj
-  def apply(tname: String)(fs: (String, Predict[Value | Uninit])*)(using
-    CFG,
-  ): PRecordObj =
+  def apply(tname: String)(fs: (String, Predict[Value | Uninit])*): PRecordObj =
     apply(tname, fs)
-  def apply(tname: String)(using cfg: CFG): PRecordObj =
+  def apply(tname: String): PRecordObj =
     val obj = PRecordObj(tname, MMap.empty[String, Predict[Value | Uninit]])
     // TODO : type model..
     // TODO : "EClo" is not okay for this case..

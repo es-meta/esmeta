@@ -24,7 +24,7 @@ import scala.math.{BigInt => SBigInt}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
-  val pst: PState,
+  val cfg: CFG,
   val log: Boolean = false,
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
@@ -32,19 +32,21 @@ class PartialEvaluator(
 ) {
   import PartialEvaluator.*
 
-  def peval(ref: Ref): (Predict[RefTarget]) = ref match
+  /** control flow graphs */
+  given CFG = cfg
+
+  def peval(ref: Ref, pst: PState): (Predict[RefTarget]) = ref match
     case x: Var => Known(VarTarget(x))
     case Field(ref, expr) =>
-      val base = pst(peval(ref))
-      val (field, _) = peval(expr)
+      val base = pst(peval(ref, pst))
+      val (field, _) = peval(expr, pst)
       (base, field) match
         case (Known(b), Known(f)) => Known(FieldTarget(b, f))
         case _                    => Unknown
 
-  def peval(expr: Expr): (Predict[Value], Expr) =
-    logging("expr", expr)
+  def peval(expr: Expr, pst: PState): (Predict[Value], Expr) =
     val result = expr match
-      case ERef(ref) => (pst(peval(ref)), expr)
+      case ERef(ref) => (pst(peval(ref, pst)), expr)
       case e: LiteralExpr =>
         e match
           case EMath(n)        => (Known(Math(n)), e)
@@ -57,100 +59,105 @@ class PartialEvaluator(
           case ENull()         => (Known(Null), e)
           case EEnum(name)     => (Known(Enum(name)), e)
           case ECodeUnit(c)    => (Known(CodeUnit(c)), e)
+      // case EParse(code, rule)                       => ???
+      // case EGrammarSymbol(name, params)             => ???
+      // case ESourceText(expr)                        => ???
+      // case EYet(msg)                                => ???
+      // case EContains(list, expr)                    => ???
+      // case ESubstring(expr, from, to)               => ???
+      // case ETrim(expr, isStarting)                  => ???
+      // case EUnary(uop, expr)                        => ???
+      // case EBinary(bop, left, right)                => ???
+      // case EVariadic(vop, exprs)                    => ???
+      // case EMathOp(mop, args)                       => ???
+      // case EConvert(cop, expr)                      => ???
+      // case EExists(ref)                             => ???
+      // case ETypeOf(base)                            => ???
+      // case EInstanceOf(base, target)                => ???
+      // case ETypeCheck(base, ty)                     => ???
+      // case ESizeOf(base)                            => ???
+      // case EClo(fname, captured)                    => ???
+      // case ECont(fname)                             => ???
+      // case EDebug(expr)                             => ???
+      // case ERandom()                                => ???
+      // case ESyntactic(name, args, rhsIdx, children) => ???
+      // case ELexical(name, expr)                     => ???
+      // case ERecord(tname, pairs)                    => ???
+      // case EMap(ty, pairs)                          => ???
+      // case EList(exprs)                             => ???
+      // case ECopy(obj)                               => ???
+      // case EKeys(map, intSorted)                    => ???
       case _ => (Unknown, expr)
-    logging("pst", pst)
+    logging("expr", s"$expr -> $result")
     result
-  // case EParse(code, rule)                       => ???
-  // case EGrammarSymbol(name, params)             => ???
-  // case ESourceText(expr)                        => ???
-  // case EYet(msg)                                => ???
-  // case EContains(list, expr)                    => ???
-  // case ESubstring(expr, from, to)               => ???
-  // case ETrim(expr, isStarting)                  => ???
-  // case EUnary(uop, expr)                        => ???
-  // case EBinary(bop, left, right)                => ???
-  // case EVariadic(vop, exprs)                    => ???
-  // case EMathOp(mop, args)                       => ???
-  // case EConvert(cop, expr)                      => ???
-  // case EExists(ref)                             => ???
-  // case ETypeOf(base)                            => ???
-  // case EInstanceOf(base, target)                => ???
-  // case ETypeCheck(base, ty)                     => ???
-  // case ESizeOf(base)                            => ???
-  // case EClo(fname, captured)                    => ???
-  // case ECont(fname)                             => ???
-  // case EDebug(expr)                             => ???
-  // case ERandom()                                => ???
-  // case ESyntactic(name, args, rhsIdx, children) => ???
-  // case ELexical(name, expr)                     => ???
-  // case ERecord(tname, pairs)                    => ???
-  // case EMap(ty, pairs)                          => ???
-  // case EList(exprs)                             => ???
-  // case ECopy(obj)                               => ???
-  // case EKeys(map, intSorted)                    => ???
 
-  def peval(inst: Inst): (Inst) =
+  def peval(inst: Inst, pst: PState): (Inst, PState) =
     logging("inst", inst.toString(detail = false))
     val newInst = inst match
       case ILet(lhs, expr) =>
-        val (pv, _) = peval(expr)
+        val (pv, _) = peval(expr, pst)
         pst.define(lhs, pv)
-        inst
+        (inst, pst)
       case ISeq(insts) =>
-        ISeq(insts.map(peval))
+        val (newInsts, newPst) = insts.foldLeft((List[Inst](), pst)) {
+          case ((acc, pst), inst) =>
+            val (newInst, newPst) = peval(inst, pst)
+            (acc :+ newInst, newPst)
+        }
+        (ISeq(newInsts), newPst)
       case ISdoCall(lhs, base, method, args) =>
         pst.define(lhs, Unknown)
-        inst
+        (inst, pst)
       case call @ ICall(lhs, fexpr, args) =>
         pst.define(lhs, Unknown)
-        inst
-      case INop() => ISeq(Nil)
-      case _      => inst
-    // case IAssign(ref, expr)             => (inst)
-    // case IExpand(base, expr)            => (inst)
-    // case IDelete(base, expr)            => (inst)
-    // case IPush(elem, list, front)       => (inst)
-    // case IPop(lhs, list, front)         => (inst)
-    // case IReturn(expr)                  => (inst)
-    // case IAssert(expr)                  => (inst)
-    // case IPrint(expr)                   => (inst)
-    // case IIf(cond, thenInst, elseInst)  => (inst)
-    // case IWhile(cond, body)             => (inst)
-    // peval(fexpr) match
-    // case Known(clo @ Clo(calleeFunc, captured)) -> _ => ???
-    //   val vs = args.map(peval).map(_._1)
-    //   val newLocals =
-    //     getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
-    //   pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
-    //   pst.func = calleeFunc.irFunc
-    //   pst.locals = newLocals
-    //   call
-    // case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
-    // case v => ??? // throw NoCallable(v)
-    // peval(base).asKnown.asAst match
-    //   case syn: Syntactic =>
-    //     getSdo((syn, method)) match
-    //       case Some((ast0, sdo)) =>
-    //         val vs = args.map(peval).map(_._1)
-    //         val newLocals = getLocals(
-    //           sdo.irFunc.params,
-    //           AstValue(ast0) :: vs,
-    //           Clo(sdo, Map()),
-    //         )
-    //         st.callStack = CallContext(st.context, lhs)
-    //         st.context = Context(sdo, newLocals)
-    //       case None => throw InvalidAstField(syn, Str(method))
-    // case lex: Lexical => ???
-    // setCallResult(lhs, Interpreter.eval(lex, method))
+        (inst, pst)
+      case INop() => (ISeq(Nil), pst)
+      // case IAssign(ref, expr)             => (inst)
+      // case IExpand(base, expr)            => (inst)
+      // case IDelete(base, expr)            => (inst)
+      // case IPush(elem, list, front)       => (inst)
+      // case IPop(lhs, list, front)         => (inst)
+      // case IReturn(expr)                  => (inst)
+      // case IAssert(expr)                  => (inst)
+      // case IPrint(expr)                   => (inst)
+      // case IIf(cond, thenInst, elseInst)  => (inst)
+      // case IWhile(cond, body)             => (inst)
+      // peval(fexpr) match
+      // case Known(clo @ Clo(calleeFunc, captured)) -> _ => ???
+      //   val vs = args.map(peval).map(_._1)
+      //   val newLocals =
+      //     getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
+      //   pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
+      //   pst.func = calleeFunc.irFunc
+      //   pst.locals = newLocals
+      //   call
+      // case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
+      // case v => ??? // throw NoCallable(v)
+      // peval(base).asKnown.asAst match
+      //   case syn: Syntactic =>
+      //     getSdo((syn, method)) match
+      //       case Some((ast0, sdo)) =>
+      //         val vs = args.map(peval).map(_._1)
+      //         val newLocals = getLocals(
+      //           sdo.irFunc.params,
+      //           AstValue(ast0) :: vs,
+      //           Clo(sdo, Map()),
+      //         )
+      //         st.callStack = CallContext(st.context, lhs)
+      //         st.context = Context(sdo, newLocals)
+      //       case None => throw InvalidAstField(syn, Str(method))
+      // case lex: Lexical => ???
+      // setCallResult(lhs, Interpreter.eval(lex, method))
+      case _ => (inst, pst)
     logging("pst", pst)
     newInst
 
   /** final state */
-  lazy val result: (Inst, PState) = timeout(
+  def run(inst: Inst, pst: PState): (Inst, PState) = timeout(
     {
-      val newBody = peval(pst.func.body)
+      val result @ (newBody, newPst) = peval(inst, pst)
       logging("final", newBody)
-      (newBody, pst)
+      result
     },
     timeLimit,
   )
@@ -202,8 +209,6 @@ class PartialEvaluator(
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  /** control flow graphs */
-  private given cfg: CFG = pst.cfg
 
   /** type model */
   private def tyModel = cfg.tyModel
@@ -224,14 +229,6 @@ class PartialEvaluator(
 
 /** IR PartialEvaluator with a CFG */
 object PartialEvaluator {
-  def apply(
-    initial: PState,
-    log: Boolean = false,
-    detail: Boolean = false,
-    logPW: Option[PrintWriter] = None,
-    timeLimit: Option[Int] = None,
-  ): (Inst, PState) =
-    new PartialEvaluator(initial, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
