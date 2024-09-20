@@ -69,9 +69,9 @@ case class PState(
   def apply(addr: Addr): PObj = ??? // heap(addr)
 
   /** define variables */
-  def define(x: Var, value: Predict[Value]): PState = x match
-    case x: Global => this.replaced(globals = globals + (x -> value))
-    case x: Local  => this.replaced(locals = locals + (x -> value))
+  def define(x: Var, value: Predict[Value]): Unit = x match
+    case x: Global => this.globals = globals + (x -> value)
+    case x: Local  => this.locals = locals + (x -> value)
 
   /** setter */
   def update(rt: RefTarget, value: Predict[Value]): PState = rt match

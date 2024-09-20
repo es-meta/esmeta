@@ -102,7 +102,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "nop"
       case ISeq(insts) =>
         if (insts.isEmpty) app >> "{}"
-        else app.wrap(for { i <- insts } app :> i)
+        else if (detail) app.wrap(for { i <- insts } app :> i)
+        else app >> "{ ... }"
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " " >> thenInst
         (thenInst, elseInst) match
