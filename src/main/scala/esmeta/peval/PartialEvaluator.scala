@@ -106,8 +106,13 @@ class PartialEvaluator(
         }
         (ISeq(newInsts), newPst)
       case ISdoCall(lhs, base, method, args) =>
-        pst.define(lhs, Unknown)
-        (inst, pst)
+        val (pv, newBase) = peval(base, pst)
+        pv match
+          // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
+          // case Known(AstValue(ast)) =>
+          case _ =>
+            pst.define(lhs, Unknown)
+            (inst, pst)
       case call @ ICall(lhs, fexpr, args) =>
         pst.define(lhs, Unknown)
         (inst, pst)

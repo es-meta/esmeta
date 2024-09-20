@@ -57,11 +57,16 @@ case object PEval extends Phase[CFG, Unit] {
 
     for (fd <- fds) {
 
-      val st = PState(globals = globals)
+      val func = pevalTarget.irFunc
+      val st = PState(
+        globals = globals,
+        callStack = Nil,
+        context = PContext(func = func, locals = MMap()),
+        heap = PHeap(),
+      )
       // .fromState(Initialize.fromFile(cfg, filename))
       // .setContext(pevalTarget.irFunc)
       // val (addr_empty_map, st) = st.allocMap(Nil)
-      val func = pevalTarget.irFunc
       val addr_func_obj_record = st.allocRecord(
         "ECMAScriptFunctionObject",
         List(

@@ -12,24 +12,16 @@ import scala.util.{Try, Success}
 import esmeta.state.*
 import esmeta.peval.*
 
-type PContext = Map[Local, Predict[Value]]
-
 /** IR PStates */
 case class PState(
-  // var func: IRFunc,
-  // var callStack: List[PCallContext] = Nil,
-  val globals: Map[Global, Predict[Value]] = Map(),
-  var locals: PContext = Map(),
-  val heap: PHeap = PHeap(),
+  val globals: Map[Global, Predict[Value]],
+  var callStack: List[PContext],
+  val context: PContext,
+  val heap: PHeap,
 ) extends StateElem {
 
-  def setContext(func: IRFunc): PState = PState(
-    // func,
-    // callStack,
-    globals,
-    locals,
-    heap,
-  )
+  inline def func = context.func
+  inline def locals = context.locals
 
   /** getter */
   def apply(rt: Predict[RefTarget])(using CFG): Predict[Value] = rt match
@@ -65,12 +57,12 @@ case class PState(
     case _       => throw WrongStringRef(str, field)
 
   /** address getter */
-  def apply(addr: Addr): PObj = ??? // heap(addr)
+  def apply(addr: Addr): PObj = heap(addr)
 
   /** define variables */
   def define(x: Var, value: Predict[Value]): Unit = x match
-    case x: Global =>
-    case x: Local  => this.locals = locals + (x -> value)
+    case x: Global => /* do nothing */
+    case x: Local  => locals += x -> value
 
   /** setter */
   def update(rt: RefTarget, value: Predict[Value]): Unit = rt match
@@ -79,8 +71,8 @@ case class PState(
 
   /** variable setter */
   def update(x: Var, value: Predict[Value]): Unit = x match
-    case x: Global =>
-    case x: Local  => this.locals = locals + (x -> value)
+    case x: Global => /* do nothing */
+    case x: Local  => locals += x -> value
 
   /** field setter */
   def update(base: Value, field: Value, value: Predict[Value]): PState = ???
@@ -137,20 +129,4 @@ case class PState(
   def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) = ???
   // val addr -> pheap = heap.allocList(vs)
   // (addr, this.replaced(heap = pheap))
-}
-object PState {
-
-  def fromState(st: State): PState = PState(
-    // st.func.irFunc,
-    // st.callStack.map((cc) =>
-    //   PCallContext(
-    //     cc.context.func.irFunc,
-    //     Map.from(cc.context.locals).map((l, v) => (l, Known(v))),
-    //   ),
-    // ),
-    Map.from(st.globals).map((l, v) => (l, Known(v))),
-    Map.from(st.context.locals).map((l, v) => (l, Known(v))),
-    PHeap.fromHeap(st.heap),
-  )
-
 }
