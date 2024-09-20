@@ -14,8 +14,6 @@ import esmeta.peval.*
 
 type PContext = Map[Local, Predict[Value]]
 
-case class PCallContext(func: IRFunc, locals: PContext, returnPoint : Local)
-
 /** IR PStates */
 case class PState(
   val cfg: CFG,
@@ -37,12 +35,11 @@ case class PState(
     heap,
   )
 
-
   /** getter */
   def apply(rt: Predict[RefTarget]): Predict[Value] = rt match
     case Known(rt) => apply(rt)
-    case Unknown => Unknown
-  
+    case Unknown   => Unknown
+
   /** getter */
   def apply(rt: RefTarget): Predict[Value] =
     rt match
@@ -130,7 +127,7 @@ case class PState(
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  )(using CFG): (Addr, PState) = 
+  )(using CFG): (Addr, PState) =
     val addr -> pheap = heap.allocRecord(tname, pairs)
     (addr, this.replaced(heap = pheap))
 
@@ -147,7 +144,7 @@ case class PState(
   private def replaced(
     cfg: CFG = cfg,
     func: IRFunc = func,
-    callStack: List[(IRFunc, PContext)] = callStack,
+    callStack: List[PCallContext] = callStack,
     globals: Map[Global, Predict[Value]] = globals,
     locals: PContext = locals,
     heap: PHeap = heap,
@@ -168,7 +165,12 @@ object PState {
     PState(
       newSt.cfg,
       newSt.func.irFunc,
-      newSt.callStack.map((cc) => (cc.context.func.irFunc, Map.from(cc.context.locals).map((l, v) => (l, Known(v))))),
+      newSt.callStack.map((cc) =>
+        PCallContext(
+          cc.context.func.irFunc,
+          Map.from(cc.context.locals).map((l, v) => (l, Known(v))),
+        ),
+      ),
       Map.from(newSt.globals).map((l, v) => (l, Known(v))),
       Map.from(newSt.context.locals).map((l, v) => (l, Known(v))),
       PHeap.fromHeap(newSt.heap),
