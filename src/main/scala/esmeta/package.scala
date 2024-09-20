@@ -25,6 +25,7 @@ val TEST262TEST_LOG_DIR = s"$LOG_DIR/test262"
 val IRINTERP_LOG_DIR = s"$LOG_DIR/ir-interp"
 val IRPEVAL_LOG_DIR = s"$LOG_DIR/ir-peval"
 val ASTPEVAL_LOG_DIR = s"$LOG_DIR/astpeval"
+val PEVAL_LOG_DIR = s"$LOG_DIR/peval"
 
 /** stack trace depth */
 val STACK_TRACE_DEPTH = 15

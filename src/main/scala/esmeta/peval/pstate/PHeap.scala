@@ -1,4 +1,5 @@
-package esmeta.peval.pstate
+package esmeta.peval
+package pstate
 
 import esmeta.cfg.*
 import esmeta.error.*
@@ -11,7 +12,6 @@ import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 
 // TODO sort imports
-import esmeta.peval.domain.*
 import esmeta.state.*
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
@@ -22,10 +22,10 @@ case class PHeap(
 
   /** getter */
   def apply(addr: Addr): PObj = map.getOrElse(addr, throw UnknownAddr(addr))
-  def apply(addr: Addr, field: Value): PValue = apply(addr)(field)
+  def apply(addr: Addr, field: Value): Predict[Value] = apply(addr)(field)
 
   /** setter */
-  def update(addr: Addr, field: Value, value: PValue): Unit =
+  def update(addr: Addr, field: Value, value: Predict[Value]): Unit =
     apply(addr).update(field, value)
 
   /** existence check */
@@ -38,11 +38,11 @@ case class PHeap(
   def delete(addr: Addr, key: Value): Unit = apply(addr).delete(key)
 
   /** push */
-  def push(addr: Addr, value: PValue, front: Boolean): Unit =
+  def push(addr: Addr, value: Predict[Value], front: Boolean): Unit =
     apply(addr).push(value, front)
 
   /** pops */
-  def pop(addr: Addr, front: Boolean): PValue = apply(addr).pop(front)
+  def pop(addr: Addr, front: Boolean): Predict[Value] = apply(addr).pop(front)
 
   /** copy */
   def copy(addr: Addr): (Addr, PHeap) = alloc(apply(addr).copied)
@@ -50,26 +50,27 @@ case class PHeap(
   /** keys */
   def keys(addr: Addr, intSorted: Boolean): (Addr, PHeap) =
     allocList(
-      apply(addr)
-        .keys(intSorted)
-        .map(_.toPValue),
+      ???
+      //apply(addr)
+        //.keys(intSorted)
+        //.map(_.toPValue),
     )
 
   /** record allocations */
   def allocRecord(
     tname: String,
-    pairs: Iterable[(String, PValue)] = Nil,
+    pairs: Iterable[(String, Predict[Value])] = Nil,
   )(using CFG): (Addr, PHeap) = alloc(
-    PRecordObj(tname, pairs.map(_ -> PValueExistence.from(_))),
+    PRecordObj(tname, pairs),
   )
 
   /** map allocations */
-  def allocMap(pairs: Iterable[(Value, PValue)]): (Addr, PHeap) = alloc(
+  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PHeap) = alloc(
     PMapObj(pairs),
   )
 
   /** list allocations */
-  def allocList(vs: Iterable[PValue]): (Addr, PHeap) = alloc(
+  def allocList(vs: Iterable[Predict[Value]]): (Addr, PHeap) = alloc(
     PListObj(vs.toVector),
   )
 
@@ -96,7 +97,7 @@ case class PHeap(
 
 object PHeap {
   def fromHeap(heap: esmeta.state.Heap): PHeap = PHeap(
-    ???, // Map.from(heap.map),
+    Map.from(heap.map).map((addr, obj) => (addr, PObj.from(obj))),
     heap.size,
   )
 }
