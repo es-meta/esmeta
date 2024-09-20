@@ -24,7 +24,7 @@ import scala.math.{BigInt => SBigInt}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
-  val st: PState,
+  val initial: PState,
   val log: Boolean = false,
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
@@ -32,338 +32,82 @@ class PartialEvaluator(
 ) {
   import PartialEvaluator.*
 
+  def peval(expr: Expr)(pst: PState): (Predict[Value], Expr, PState) =
+    expr match
+      case EParse(code, rule)                       => ???
+      case EGrammarSymbol(name, params)             => ???
+      case ESourceText(expr)                        => ???
+      case EYet(msg)                                => ???
+      case EContains(list, expr)                    => ???
+      case ESubstring(expr, from, to)               => ???
+      case ETrim(expr, isStarting)                  => ???
+      case ERef(ref)                                => ???
+      case EUnary(uop, expr)                        => ???
+      case EBinary(bop, left, right)                => ???
+      case EVariadic(vop, exprs)                    => ???
+      case EMathOp(mop, args)                       => ???
+      case EConvert(cop, expr)                      => ???
+      case EExists(ref)                             => ???
+      case ETypeOf(base)                            => ???
+      case EInstanceOf(base, target)                => ???
+      case ETypeCheck(base, ty)                     => ???
+      case ESizeOf(base)                            => ???
+      case EClo(fname, captured)                    => ???
+      case ECont(fname)                             => ???
+      case EDebug(expr)                             => ???
+      case ERandom()                                => ???
+      case ESyntactic(name, args, rhsIdx, children) => ???
+      case ELexical(name, expr)                     => ???
+      case ERecord(tname, pairs)                    => ???
+      case EMap(ty, pairs)                          => ???
+      case EList(exprs)                             => ???
+      case ECopy(obj)                               => ???
+      case EKeys(map, intSorted)                    => ???
+      case e: LiteralExpr => (
+        e match
+          case EMath(n)        => (Known(Math(n)), e, pst)
+          case EInfinity(pos)  => (Known(Infinity(pos)), e, pst)
+          case ENumber(double) => (Known(Number(double)), e, pst)
+          case EBigInt(bigInt) => (Known(BigInt(bigInt)), e, pst)
+          case EStr(str)       => (Known(Str(str)), e, pst)
+          case EBool(b)        => (Known(Bool(b)), e, pst)
+          case EUndef()        => (Known(Undef), e, pst)
+          case ENull()         => (Known(Null), e, pst)
+          case EEnum(name)     => (Known(Enum(name)), e, pst)
+          case ECodeUnit(c)    => (Known(CodeUnit(c)), e, pst)
+      )
+
+  def peval(inst: Inst)(pst: PState): (Inst, PState) = inst match
+    case IExpr(expr) => (inst, pst)
+    case ILet(lhs, expr) => {
+      (peval(expr)(pst)) match
+        case (pv, e, pst) => (
+          ???
+        )
+    }
+    case IAssign(ref, expr)            => (inst, pst)
+    case IExpand(base, expr)           => (inst, pst)
+    case IDelete(base, expr)           => (inst, pst)
+    case IPush(elem, list, front)      => (inst, pst)
+    case IPop(lhs, list, front)        => (inst, pst)
+    case IReturn(expr)                 => (inst, pst)
+    case IAssert(expr)                 => (inst, pst)
+    case IPrint(expr)                  => (inst, pst)
+    case INop()                        => (INop(), pst)
+    case IIf(cond, thenInst, elseInst) => (inst, pst)
+    case IWhile(cond, body)            => (inst, pst)
+    case ICall(lhs, fexpr, args)       => (inst, pst)
+    case ISdoCall(lhs, base, op, args) => (inst, pst)
+    case ISeq(insts)                   => (inst, pst)
+
   /** final state */
   lazy val result: PState = timeout(
-    {
-      while (step) {}
-      if (log)
-        pw.println(st)
-        pw.close
-        println("[PartialEvaluator] Logging finished")
-      st
-    },
+    initial,
     timeLimit,
   )
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
-
-  /** step */
-  def step: Boolean =
-    try {
-      // text-based logging
-      if (log)
-        pw.println(st.getCursorString)
-        if (detail) pw.println(st.context)
-        pw.flush
-
-      // garbage collection
-      iter += 1
-      if (!detail && iter % 100_000 == 0) GC(st)
-
-      // cursor
-      eval(st.context.cursor)
-    } catch {
-      case e =>
-        if (log)
-          pw.println(st)
-          pw.println("[PartialEvaluator] unexpected error: " + e)
-          pw.println(e.getStackTrace.mkString(LINE_SEP))
-          pw.flush
-        throw e
-    }
-
-  /** transition for cursors */
-  def eval(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(node) => eval(node); true
-    case ExitCursor(func) =>
-      st.callStack match
-        case Nil =>
-          st.context.retVal.map((_, v) => st.globals += GLOBAL_RESULT -> v)
-          false
-        case PCallContext(ctxt, retId) :: rest =>
-          val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
-          st.context = ctxt
-          st.callStack = rest
-          setCallResult(retId, value)
-          true
-
-  /** transition for nodes */
-  def eval(node: Node): Unit =
-    node match {
-      case Block(_, insts, _) =>
-        for (inst <- insts)
-          if (log)
-            pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: inst = ${inst}");
-          eval(inst);
-        st.context.moveNext
-      case b @ Branch(_, _, cond, thenNode, elseNode) =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: branch = ${b}");
-        st.context.cursor = Cursor(
-          {
-            val condval = eval(cond)
-            if (log)
-              pw.println(
-                s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: condition = ${condval}",
-              );
-            condval match
-              case RuntimeValue => throw RuntimeValueNotSupported("branch")
-              case b            => if (b.asBool) thenNode else elseNode
-          },
-          st.func,
-        )
-      case call: Call =>
-        if (log) pw.println(s"eval[cs:${st.callStack.size} on ${st.context.func.name}]: call: ${call}");
-        eval(call)
-    }
-
-  /** transition for normal instructions */
-  def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)         => eval(expr)
-    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
-    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
-    case IExpand(base, expr) => ??? // st.expand(st(eval(base)), eval(expr))
-    case IDelete(base, expr) => ??? // st.delete(st(eval(base)), eval(expr))
-    case IPush(elem, list, front) =>
-      val value = eval(elem)
-      val addr = eval(list).asAddr
-      st.push(addr, value, front)
-    case IPop(lhs, list, front) =>
-      val addr = eval(list).asAddr
-      st.context.locals += lhs -> st.pop(addr, front)
-    case ret @ IReturn(expr) =>
-      st.context.retVal = Some(ret, eval(expr))
-    case IAssert(expr) =>
-      optional(eval(expr)) match
-        case None             => /* skip not yet compiled assertions */
-        case Some(Bool(true)) =>
-        case v                => throw AssertionFail(expr)
-    case IPrint(expr) =>
-      val v = eval(expr)
-      if (!TEST_MODE) println(st.getString(v))
-    case INop() => /* do nothing */
-  }
-
-  /** transition for calls */
-  def eval(call: Call): Unit = call.callInst match {
-    case ICall(lhs, fexpr, args) =>
-      eval(fexpr) match
-        case RuntimeValue => ???
-        case clo @ Clo(func, captured) =>
-          val vs = args.map(eval)
-          if (vs.forall(_ == RuntimeValue)) then {
-            st.globals.clear(); // func를 따라가서 영향 미치는 것만 찾아서 삭제해도 좋을 것 같긴 한데
-            setCallResult(lhs, RuntimeValue)
-          } else {
-            val newLocals =
-              getLocals(func.irFunc.params, vs, call, clo) ++ captured
-            st.callStack ::= PCallContext(st.context, lhs)
-            st.context = PContext(func, newLocals)
-          }
-        case cont @ Cont(func, captured, callStack) => {
-          val vs = args.map(eval)
-          val newLocals =
-            getLocals(func.irFunc.params, vs, call, cont) ++ captured
-          st.callStack = callStack.map(PCallContext.fromCallContext)
-          st.context = PContext(func, newLocals)
-        }
-        case v => throw NoCallable(v)
-    case ISdoCall(lhs, base, method, args) =>
-      eval(base).asAst match
-        case syn: Syntactic =>
-          getSdo((syn, method)) match
-            case Some((ast0, sdo)) =>
-              val vs = args.map(eval)
-              val newLocals = getLocals(
-                sdo.irFunc.params,
-                AstValue(ast0) :: vs,
-                call,
-                Clo(sdo, Map()),
-              )
-              st.callStack ::= PCallContext(st.context, lhs)
-              st.context = PContext(sdo, newLocals)
-            case None => throw InvalidAstField(syn, Str(method))
-        case lex: Lexical =>
-          setCallResult(lhs, PartialEvaluator.eval(lex, method))
-  }
-
-  /** transition for expressions */
-  def eval(expr: Expr): Value =
-    expr match {
-      case EParse(code, rule) =>
-        val (str, args, locOpt) = eval(code) match
-          case Str(s) => (s, List(), None)
-          case AstValue(syn: Syntactic) =>
-            (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
-          case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
-          case v                      => throw InvalidParseSource(code, v)
-        try {
-          (
-            str,
-            eval(rule).asGrammarSymbol,
-            st.sourceText,
-            st.cachedAst,
-          ) match
-            // optimize the initial parsing using the given cached AST
-            case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
-                if x == y =>
-              AstValue(ast)
-            case (x, GrammarSymbol(name, params), _, _) =>
-              val ast =
-                esParser(name, if (params.isEmpty) args else params).from(x)
-              // TODO handle span of re-parsed ast
-              ast.clearLoc
-              ast.setChildLoc(locOpt)
-              AstValue(ast)
-        } catch {
-          case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
-        }
-      case EGrammarSymbol(name, params) => GrammarSymbol(name, params)
-      case ESourceText(expr) =>
-        val ast = eval(expr).asAst
-        // XXX fix last space in ECMAScript stringifier
-        Str(ast.toString(grammar = Some(grammar)).trim)
-      case EYet(msg) =>
-        throw NotSupported(Metalanguage)(List(msg))
-      case EContains(list, elem) =>
-        val l = eval(list).asList(st)
-        val e = eval(elem)
-        Bool(l.values.contains(e))
-      case ESubstring(expr, from, to) =>
-        val s = eval(expr).asStr
-        val f = eval(from).asInt
-        Str(to.fold(s.substring(f))(eval(_) match
-          case Math(n) if s.length < n => s.substring(f)
-          case v                       => s.substring(f, v.asInt),
-        ))
-      case ETrim(expr, isStarting) =>
-        Str(trimString(eval(expr).asStr, isStarting, esParser))
-      case ERef(ref) =>
-        st(eval(ref))
-      case EUnary(uop, expr) =>
-        val x = eval(expr)
-        PartialEvaluator.eval(uop, x)
-      case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
-      case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
-      case EBinary(bop, left, right) =>
-        val l = eval(left)
-        val r = eval(right)
-        PartialEvaluator.eval(bop, l, r)
-      case EVariadic(vop, exprs) =>
-        val vs = for (e <- exprs) yield eval(e)
-        PartialEvaluator.eval(vop, vs)
-      case EMathOp(mop, exprs) =>
-        val vs = for (e <- exprs) yield eval(e)
-        PartialEvaluator.eval(mop, vs)
-      case EConvert(cop, expr) =>
-        import COp.*
-        (eval(expr), cop) match {
-          // code unit
-          case (CodeUnit(c), ToMath) => Math(c.toInt)
-          // extended mathematical value
-          case (Infinity(true), ToNumber)  => NUMBER_POS_INF
-          case (Infinity(false), ToNumber) => NUMBER_NEG_INF
-          case (Math(n), ToApproxNumber)   => Number(n.toDouble) // TODO
-          case (Math(n), ToNumber)         => Number(n.toDouble)
-          case (Math(n), ToBigInt)         => BigInt(n.toBigInt)
-          case (Math(n), ToMath)           => Math(n)
-          // string
-          case (Str(s), ToNumber) => ESValueParser.str2number(s)
-          case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
-          case (Str(s), _: ToStr) => Str(s)
-          // numbers
-          case (Number(d), ToMath) => Math(d)
-          case (Number(d), ToStr(radixOpt)) =>
-            val radix = radixOpt.fold(10)(e => eval(e).asInt)
-            Str(toStringHelper(d, radix))
-          case (Number(d), ToNumber) => Number(d)
-          case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
-          // big integer
-          case (BigInt(n), ToMath) => Math(n)
-          case (BigInt(n), ToStr(radixOpt)) =>
-            val radix = radixOpt.fold(10)(e => eval(e).asInt)
-            Str(n.toString(radix))
-          case (BigInt(n), ToBigInt) => BigInt(n)
-          // invalid cases
-          case (v, cop) => throw InvalidConversion(cop, expr, v)
-        }
-      case EExists(ref) => Bool(st.exists(eval(ref)))
-      case ETypeOf(base) =>
-        Str(eval(base) match
-          case n: Number => "Number"
-          case b: BigInt => "BigInt"
-          case s: Str    => "String"
-          case b: Bool   => "Boolean"
-          case Undef     => "Undefined"
-          case Null      => "Null"
-          case v =>
-            if (ObjectT.contains(v, st)) "Object"
-            else if (SymbolT.contains(v, st)) "Symbol"
-            else "SpecType",
-        )
-      case EInstanceOf(expr, target) =>
-        (eval(expr), eval(target)) match
-          case (AstValue(_: Syntactic), GrammarSymbol("", _)) => Bool(true)
-          case (AstValue(ast), GrammarSymbol(name, _)) => Bool(ast.name == name)
-          case _                                       => Bool(false)
-      case ETypeCheck(expr, ty) =>
-        Bool(ty.ty.contains(eval(expr), st))
-      case ESizeOf(expr) =>
-        Math(eval(expr) match
-          case Str(s)        => s.length
-          case addr: Addr    => st(addr).size
-          case AstValue(ast) => ast.children.size
-          case v             => throw InvalidSizeOf(v),
-        )
-      case EClo(fname, captured) =>
-        val func = cfg.getFunc(fname)
-        Clo(func, captured.map(x => x -> st(x)).toMap)
-      case ECont(fname) =>
-        val func = cfg.getFunc(fname)
-        val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
-        ??? // Cont(func, captured.toMap, st.callStack)
-      case EDebug(expr) => debug(eval(expr))
-      case ERandom()    => Number(math.random)
-      case ESyntactic(name, args, rhsIdx, children) =>
-        val asts = children.map(_.map(child => eval(child).asAst))
-        AstValue(Syntactic(name, args, rhsIdx, asts))
-      case ELexical(name, expr) =>
-        AstValue(Lexical(name, eval(expr).asStr))
-      case ERecord(tname, fields) =>
-        st.allocRecord(
-          tname,
-          for ((f, expr) <- fields) yield f -> eval(expr),
-        )
-      case EMap(_, pairs) =>
-        st.allocMap(
-          for ((k, v) <- pairs) yield (eval(k)) -> (eval(v)),
-        )
-      case EList(exprs) =>
-        st.allocList(exprs.map(expr => eval(expr)).toVector)
-      case ECopy(obj)            => st.copy(eval(obj).asAddr)
-      case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)
-      case EMath(n)              => Math(n)
-      case EInfinity(pos)        => Infinity(pos)
-      case ENumber(n) if n.isNaN => Number(Double.NaN)
-      case ENumber(n)            => Number(n)
-      case EBigInt(n)            => BigInt(n)
-      case EStr(str)             => Str(str)
-      case EBool(b)              => Bool(b)
-      case EUndef()              => Undef
-      case ENull()               => Null
-      case EEnum(name)           => Enum(name)
-      case ECodeUnit(c)          => CodeUnit(c)
-    }
-
-  /** short circuit evaluation */
-  def shortCircuit(bop: BOp, left: Expr, right: Expr): Value =
-    val l = eval(left)
-    (bop, l) match
-      case (BOp.And, Bool(false)) => Bool(false)
-      case (BOp.Or, Bool(true))   => Bool(true)
-      case _ =>
-        val r = eval(right)
-        PartialEvaluator.eval(bop, l, r)
 
   /** get initial local variables */
   def getLocals(
@@ -395,22 +139,17 @@ class PartialEvaluator(
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
-    case x: Var => VarTarget(x)
-    case Field(ref, expr) =>
-      var base = st(eval(ref))
-      val f = eval(expr)
-      FieldTarget(base, f)
-
-  /** define call result to state and move to next */
-  def setCallResult(x: Var, value: Value): Unit =
-    st.define(x, value)
-    st.context.moveNext
+    case x: Var           => VarTarget(x)
+    case Field(ref, expr) => ???
+  // var base = pst(eval(ref))
+  // val f = eval(expr)
+  // FieldTarget(base, f)
 
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
   /** control flow graphs */
-  private given cfg: CFG = st.cfg
+  private given cfg: CFG = initial.cfg
 
   /** type model */
   private def tyModel = cfg.tyModel
@@ -432,12 +171,13 @@ class PartialEvaluator(
 /** IR PartialEvaluator with a CFG */
 object PartialEvaluator {
   def apply(
-    st: PState,
+    initial: PState,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): PState = new PartialEvaluator(st, log, detail, logPW, timeLimit).result
+  ): PState =
+    new PartialEvaluator(initial, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
@@ -488,8 +228,6 @@ object PartialEvaluator {
   def eval(bop: BOp, left: Value, right: Value): Value =
     import BOp.*
     (bop, left, right) match {
-      case (_, RuntimeValue, _) | (_, _, RuntimeValue) => RuntimeValue
-
       // double operations
       case (Add, Number(l), Number(r))  => Number(l + r)
       case (Sub, Number(l), Number(r))  => Number(l - r)

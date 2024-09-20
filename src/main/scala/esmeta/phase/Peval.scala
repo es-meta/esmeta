@@ -10,8 +10,9 @@ import esmeta.parser.{ESParser}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.peval.{OverloadedFunc, PartialInterpreter, OverloadedIRFunc}
+import esmeta.peval.{OverloadedFunc, PartialEvaluator, OverloadedIRFunc}
 
+import esmeta.peval.*
 import esmeta.peval.pstate.*
 import scala.collection.mutable.{Map as MMap}
 import esmeta.es.builtin.EXECUTION_STACK
@@ -31,15 +32,30 @@ def getAstsbyName(ast: Ast, name: String): List[Ast] = ast match
     fromS ::: fromChildren
   case _ => Nil
 
+object PevalInitialize:
+  def CloFer(name: String)(using cfg: CFG): Known[Clo] =
+    Known(
+      Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty),
+    )
+  def CloDecl(name: String)(using cfg: CFG): Known[Clo] = Known(
+    Clo(
+      cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"),
+      Map.empty,
+    ),
+  )
+
 /** `astirpeval` phase */
 case object Peval extends Phase[CFG, Unit] {
   val name = "peval"
   val help = "partial-evaluated an ECMAScript file."
+
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
+    given CFG = cfg
+
     val filename = getFirstFilename(cmdConfig, name)
     val pevalTargetName = "FunctionDeclarationInstantiation"
     val pevalTarget = cfg.fnameMap(pevalTargetName)
@@ -50,73 +66,94 @@ case object Peval extends Phase[CFG, Unit] {
 
     for (fd <- fds) {
 
-      val st = PState.fromState(Initialize.fromFile(cfg, filename))
-      st.context = PContext(func = pevalTarget)
-
-      val addr_empty_map = st.heap.allocMap(Nil)
-
-      val addr_func_obj_record = st.heap.allocRecord(
+      val st1 = PState
+        .fromState(Initialize.fromFile(cfg, filename))
+        .setContext(pevalTarget.irFunc)
+      val (addr_empty_map, st2) = st1.allocMap(Nil)
+      val (addr_func_obj_record, st3) = st2.allocRecord(
         "ECMAScriptFunctionObject",
         List(
-          "FormalParameters" -> AstValue(
-            getAstsbyName(fd, "FormalParameters").head,
+          "FormalParameters" -> Known(
+            AstValue(
+              getAstsbyName(fd, "FormalParameters").head,
+            ),
           ),
-          "ECMAScriptCode" -> AstValue(getAstsbyName(fd, "FunctionBody").head),
-          "ThisMode" -> ENUM_STRICT,
-          "Strict" -> Bool(true), // ESMeta is always strict
+          "ECMAScriptCode" -> Known(
+            AstValue(getAstsbyName(fd, "FunctionBody").head),
+          ),
+          "ThisMode" -> Known(ENUM_STRICT),
+          "Strict" -> Known(Bool(true)), // ESMeta is always strict
         ),
       )(using cfg)
 
-      def CloFer(name: String) : Clo = Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty)
-      def CloDecl(name: String) : Clo = Clo(cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"), Map.empty)
-
-      val addr_lexical_env = st.heap.allocRecord(
+      val (addr_lexical_env, st4) = st3.allocRecord(
         "FunctionEnvironmentRecord",
         List(
-          "BindThisValue" -> CloFer("BindThisValue"), 
-          "CreateImmutableBinding" -> CloDecl("CreateImmutableBinding"),
-          "CreateMutableBinding" -> CloDecl("CreateMutableBinding"),
-          "DeleteBinding" -> CloDecl("DeleteBinding"),
-          "FunctionObject" -> addr_func_obj_record, //  #2043,
-          "GetBindingValue" -> CloDecl("GetBindingValue"),
-          "GetSuperBase" -> CloFer("GetSuperBase"), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
-          "GetThisBinding" -> CloFer("GetThisBinding"), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
-          "HasBinding" -> CloDecl("HasBinding"), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
-          "HasSuperBinding" -> CloFer("HasSuperBinding"), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
-          "HasThisBinding" -> CloFer("HasThisBinding"), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
-          "InitializeBinding" -> CloDecl("InitializeBinding"), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
-          "NewTarget" -> RuntimeValue, //  undefined,
-          "OuterEnv" -> RuntimeValue, // RuntimeValue,
-          "SetMutableBinding" -> CloDecl("SetMutableBinding"), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
-          "ThisBindingStatus" -> RuntimeValue, //  ~initialized~,
-          "ThisValue" -> RuntimeValue, //  undefined,
-          "WithBaseObject" -> CloDecl("WithBaseObject"), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
-          "__MAP__" -> addr_empty_map, // some address,
+          "BindThisValue" -> PevalInitialize.CloFer("BindThisValue"),
+          "CreateImmutableBinding" -> PevalInitialize.CloDecl(
+            "CreateImmutableBinding",
+          ),
+          "CreateMutableBinding" -> PevalInitialize.CloDecl(
+            "CreateMutableBinding",
+          ),
+          "DeleteBinding" -> PevalInitialize.CloDecl("DeleteBinding"),
+          "FunctionObject" -> Known(addr_func_obj_record), //  #2043,
+          "GetBindingValue" -> PevalInitialize.CloDecl("GetBindingValue"),
+          "GetSuperBase" -> PevalInitialize.CloFer(
+            "GetSuperBase",
+          ), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
+          "GetThisBinding" -> PevalInitialize.CloFer(
+            "GetThisBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
+          "HasBinding" -> PevalInitialize.CloDecl(
+            "HasBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
+          "HasSuperBinding" -> PevalInitialize.CloFer(
+            "HasSuperBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
+          "HasThisBinding" -> PevalInitialize.CloFer(
+            "HasThisBinding",
+          ), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
+          "InitializeBinding" -> PevalInitialize.CloDecl(
+            "InitializeBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
+          "NewTarget" -> Unknown, //  undefined,
+          "OuterEnv" -> Unknown, // RuntimeValue,
+          "SetMutableBinding" -> PevalInitialize.CloDecl(
+            "SetMutableBinding",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
+          "ThisBindingStatus" -> Unknown, //  ~initialized~,
+          "ThisValue" -> Unknown, //  undefined,
+          "WithBaseObject" -> PevalInitialize.CloDecl(
+            "WithBaseObject",
+          ), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
+          "__MAP__" -> Known(addr_empty_map), // some address,
         ),
       )(using cfg);
 
-      val addr_exec_ctxt = st.heap.allocRecord(
+      val (addr_exec_ctxt, st5) = st4.allocRecord(
         "ExecutionContext",
         List(
-          "Function" -> RuntimeValue,
-          "Realm" -> RuntimeValue,
-          "ScriptOrModule" -> RuntimeValue,
-          "LexicalEnvironment" -> addr_lexical_env,
-          "VariableEnvironment" -> RuntimeValue,
-          "PrivateEnvironment" -> RuntimeValue,
+          "Function" -> Unknown,
+          "Realm" -> Unknown,
+          "ScriptOrModule" -> Unknown,
+          "LexicalEnvironment" -> Known(addr_lexical_env),
+          "VariableEnvironment" -> Unknown,
+          "PrivateEnvironment" -> Unknown,
         ),
       )(using cfg);
 
-      val addr_exec_stck = st.heap.allocList(List(addr_exec_ctxt));
-      st.globals += (Global(EXECUTION_STACK) -> addr_exec_stck)
+      val (addr_exec_stck, st6) = st5.allocList(List(addr_exec_ctxt));
+      val st7 = st6
+        .define(Global(EXECUTION_STACK), Known(addr_exec_stck))
+        .define(Name("func"), Known(addr_func_obj_record))
+        .define(Name("argumentsList"), Unknown);
 
-      st.context.locals += Name("func") -> addr_func_obj_record
-      st.context.locals += Name("argumentsList") -> RuntimeValue // f(10) then ListObj(10).
-
-      println(s"Starting interpertaton from ${st.context}");
+      val st = st7
+      println(s"Starting interpertaton from ${st.func.name}");
       Try {
-        PartialInterpreter(
-          st = st,
+        PartialEvaluator(
+          initial = st,
           log = config.log,
           detail = config.detail,
         )
