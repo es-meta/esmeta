@@ -1,30 +1,25 @@
 package esmeta.peval.pstate
 
 // TODO sort imports
-import esmeta.peval.domain.*
-import esmeta.state.StateElem
-import esmeta.state.Value
-import esmeta.state.Math
-import esmeta.ir.Expr
+import esmeta.ir.{Expr, EClo}
 import scala.collection.mutable.{LinkedHashMap as LMMap, Map as MMap}
 import scala.collection.immutable.Map
 import esmeta.cfg.CFG
-import esmeta.state.Clo
-import esmeta.state.Uninit
-import esmeta.state.Str
+import esmeta.state.{StateElem, Value, Math, Clo, Str, Uninit, Obj, toStringHelper}
 import esmeta.parser.ESValueParser
-import esmeta.state.toStringHelper
-import esmeta.ir.EClo
+import esmeta.state.RecordObj
+import esmeta.state.MapObj
+import esmeta.state.ListObj
+import esmeta.state.YetObj
+
+import esmeta.peval.*
 
 // Objects
 sealed trait PObj extends StateElem {
 
   /** safe getter */
-  def get(field: Value): Option[PValue] = (this, field) match
-    case (r: PRecordObj, Str(f)) =>
-      r.map.get(f).collect {
-        case v if (!v.ty.avalue.isBottom) => PValue(v.ty.avalue, v.asValidExpr)
-      }
+  def get(field: Value): Option[Predict[Value | Uninit]] = (this, field) match
+    case (r: PRecordObj, Str(f)) => r.map.get(f)
     case (m: PMapObj, key) => m.map.get(key)
     case (l: PListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
@@ -32,13 +27,13 @@ sealed trait PObj extends StateElem {
     case _               => None
 
   /** getter */
-  def apply(field: Value): PValue =
-    get(field).getOrElse(
-      ???, // throw InvalidObjField(this, field)
-    )
+  def apply(field: Value): Predict[Value] = get(field) match
+    case Some(Known(value: Value)) => Known(value)
+    case Some(Known(Uninit)) => ??? // throw
+    case _                  => ??? // throw InvalidObjField(this, field)
 
   /** setter */
-  def update(field: Value, value: PValue): Unit = (this, field) match
+  def update(field: Value, value: Predict[Value]): Unit = (this, field) match
     case (r: PRecordObj, Str(field)) => // TODO if r.map.contains(field) =>
       ??? // r.map += field -> value
     case (m: PMapObj, key) => m.map += key -> value
@@ -68,7 +63,7 @@ sealed trait PObj extends StateElem {
   def expand(field: Value): Unit = (this, field) match
     case (m: PRecordObj, Str(field)) =>
       if (!m.map.contains(field))
-        m.map += field -> PValueExistence.uninit
+        m.map += field -> Known(Uninit)
     case _ => ??? // throw InvalidObjOp(this, s"expand $field")
 
   /** delete */
@@ -77,14 +72,14 @@ sealed trait PObj extends StateElem {
     case _          => ??? // throw InvalidObjOp(this, s"delete $key")
 
   /** push */
-  def push(value: PValue, front: Boolean): Unit = this match
+  def push(value: Predict[Value], front: Boolean): Unit = this match
     case l: PListObj =>
       if (front) l.values +:= value
       else l.values :+= value
     case _ => ??? // throw InvalidObjOp(this, "push")
 
   /** pop */
-  def pop(front: Boolean): PValue = this match
+  def pop(front: Boolean): Predict[Value] = this match
     case l: PListObj if l.values.nonEmpty =>
       val value = if (front) l.values.head else l.values.last
       l.values = if (front) l.values.drop(1) else l.values.dropRight(1)
@@ -113,28 +108,36 @@ sealed trait PObj extends StateElem {
     case _          => ??? // throw InvalidObjOp(this, "keys")
 }
 
+object PObj {
+  def from(obj: Obj): PObj = obj match
+    case RecordObj(tname, map) => PRecordObj(tname, map.map((k, v) => (k, Known(v))))
+    case MapObj(map) => PMapObj(map.map((k, v) => (k, Known(v))))
+    case ListObj(values) => PListObj(values.map(Known.apply))
+    case YetObj(tname, msg) => PYetObj(tname, msg)
+}
+
 /** record objects */
 case class PRecordObj(
   var tname: String,
-  map: MMap[String, PValueExistence],
+  map: MMap[String, Predict[Value | Uninit]],
 ) extends PObj
 object PRecordObj {
 
   /** apply with type model */
   def apply(
     tname: String,
-    fs: Iterable[(String, PValueExistence)],
+    fs: Iterable[(String, Predict[Value | Uninit])],
   )(using CFG): PRecordObj =
     val obj = PRecordObj(tname)
     for { ((k, v), idx) <- fs.zipWithIndex }
       obj.map += k -> v
     obj
-  def apply(tname: String)(fs: (String, PValueExistence)*)(using
+  def apply(tname: String)(fs: (String, Predict[Value | Uninit])*)(using
     CFG,
   ): PRecordObj =
     apply(tname, fs)
   def apply(tname: String)(using cfg: CFG): PRecordObj =
-    val obj = PRecordObj(tname, MMap.empty[String, PValueExistence])
+    val obj = PRecordObj(tname, MMap.empty[String, Predict[Value | Uninit]])
     // TODO : type model..
     // TODO : "EClo" is not okay for this case..
 
@@ -147,15 +150,15 @@ object PRecordObj {
 }
 
 /** map objects */
-case class PMapObj(map: LMMap[Value, PValue] = LMMap()) extends PObj
+case class PMapObj(map: LMMap[Value, Predict[Value]] = LMMap()) extends PObj
 object PMapObj {
-  def apply(pairs: Iterable[(Value, PValue)]): PMapObj = PMapObj(
+  def apply(pairs: Iterable[(Value, Predict[Value])]): PMapObj = PMapObj(
     LMMap.from(pairs),
   )
 }
 
 /** list objects */
-case class PListObj(var values: Vector[PValue] = Vector()) extends PObj
+case class PListObj(var values: Vector[Predict[Value]] = Vector()) extends PObj
 
 /** not yet supported objects */
 case class PYetObj(tname: String, msg: String) extends PObj

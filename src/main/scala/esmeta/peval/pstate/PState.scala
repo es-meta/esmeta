@@ -14,13 +14,15 @@ import esmeta.peval.*
 
 type PContext = Map[Local, Predict[Value]]
 
+case class PCallContext(func: IRFunc, locals: PContext, returnPoint : Local)
+
 /** IR PStates */
 case class PState(
   val cfg: CFG,
-  val func: IRFunc,
-  val callStack: List[(IRFunc, PContext)] = Nil,
-  val globals: Map[Global, Predict[Value]] = Map(),
-  val locals: PContext = Map(),
+  var func: IRFunc,
+  var callStack: List[PCallContext] = Nil,
+  var globals: Map[Global, Predict[Value]] = Map(),
+  var locals: PContext = Map(),
   val heap: PHeap = PHeap(),
 ) extends StateElem {
 
@@ -35,6 +37,12 @@ case class PState(
     heap,
   )
 
+
+  /** getter */
+  def apply(rt: Predict[RefTarget]): Predict[Value] = rt match
+    case Known(rt) => apply(rt)
+    case Unknown => Unknown
+  
   /** getter */
   def apply(rt: RefTarget): Predict[Value] =
     rt match
@@ -49,7 +57,7 @@ case class PState(
   /** field getter */
   def apply(base: Value, field: Value): Predict[Value] = base match
     case addr: Addr =>
-      if heap(addr).exists(field) then ??? /* heap(addr, field) */
+      if heap(addr).exists(field) then heap(addr, field)
       else Unknown
     case AstValue(ast) => Known(AstValue(ast(field)))
     case Str(str)      => apply(str, field)
@@ -122,22 +130,19 @@ case class PState(
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  )(using CFG): (Addr, PState) = ??? // heap.allocRecord(tname, pairs)
+  )(using CFG): (Addr, PState) = 
+    val addr -> pheap = heap.allocRecord(tname, pairs)
+    (addr, this.replaced(heap = pheap))
 
   /** allocate a map object */
-  def allocMap(pairs: Iterable[(Value, Value)]): (Addr, PState) = ???
-  // val addr -> pheap = heap.allocMap(pairs)
-  // (addr, PState(
-  //   cfg,
-  //    func,
-  //    callStack,
-  //    globals,
-  //    locals,
-  //    heap,
-  // ))
+  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PState) =
+    val addr -> pheap = heap.allocMap(pairs)
+    (addr, this.replaced(heap = pheap))
 
   /** allocate a list object */
-  def allocList(vs: Iterable[Value]): (Addr, PState) = ??? // heap.allocList(vs)
+  def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) =
+    val addr -> pheap = heap.allocList(vs)
+    (addr, this.replaced(heap = pheap))
 
   private def replaced(
     cfg: CFG = cfg,
@@ -163,9 +168,9 @@ object PState {
     PState(
       newSt.cfg,
       newSt.func.irFunc,
-      ???, // newSt.callStack.map((cc) => (cc.context.func.irFunc, cc.context.locals)),
-      ???, // Map.from(newSt.globals),
-      ???, // / Map.from(newSt.context.locals),
+      newSt.callStack.map((cc) => (cc.context.func.irFunc, Map.from(cc.context.locals).map((l, v) => (l, Known(v))))),
+      Map.from(newSt.globals).map((l, v) => (l, Known(v))),
+      Map.from(newSt.context.locals).map((l, v) => (l, Known(v))),
       PHeap.fromHeap(newSt.heap),
     )
 

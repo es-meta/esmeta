@@ -1,10 +1,18 @@
 package esmeta.peval
 
+import esmeta.error.PartialEvaluatorError
+
 sealed trait Predict[+A] extends IterableOnce[A] {
   self =>
 
   final def isEmpty: Boolean = this eq Unknown
   final def isDefined: Boolean = !isEmpty
+
+  def asKnown: A = if isEmpty then
+      throw new PartialEvaluatorError("not known value")
+    else get
+    
+  
 
   override final def knownSize: Int = if (isEmpty) 0 else 1
   def get: A

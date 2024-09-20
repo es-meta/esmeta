@@ -1,6 +1,6 @@
 package esmeta.peval
 
-import esmeta.{ASTPEVAL_LOG_DIR, LINE_SEP}
+import esmeta.{PEVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
@@ -24,7 +24,7 @@ import scala.math.{BigInt => SBigInt}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
-  val initial: PState,
+  val pst: PState,
   val log: Boolean = false,
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
@@ -32,7 +32,18 @@ class PartialEvaluator(
 ) {
   import PartialEvaluator.*
 
-  def peval(expr: Expr)(pst: PState): (Predict[Value], Expr, PState) =
+  def peval(ref: Ref): (Predict[RefTarget]) = ref match
+    case x: Var => Known(VarTarget(x))
+    case Field(ref, expr) =>
+      val base = pst(peval(ref))
+      val (field, _) = peval(expr)
+      (base, field) match
+          case (Known(b), Known(f)) => Known(FieldTarget(b, f))
+          case _ => Unknown
+
+  def peval(expr: Expr): (Predict[Value], Expr) =
+    pw.println(s"peval(expr = $expr)");
+    pw.flush();
     expr match
       case EParse(code, rule)                       => ???
       case EGrammarSymbol(name, params)             => ???
@@ -41,7 +52,7 @@ class PartialEvaluator(
       case EContains(list, expr)                    => ???
       case ESubstring(expr, from, to)               => ???
       case ETrim(expr, isStarting)                  => ???
-      case ERef(ref)                                => ???
+      case ERef(ref)                                => (pst(peval(ref)), expr)
       case EUnary(uop, expr)                        => ???
       case EBinary(bop, left, right)                => ???
       case EVariadic(vop, exprs)                    => ???
@@ -65,44 +76,73 @@ class PartialEvaluator(
       case EKeys(map, intSorted)                    => ???
       case e: LiteralExpr => (
         e match
-          case EMath(n)        => (Known(Math(n)), e, pst)
-          case EInfinity(pos)  => (Known(Infinity(pos)), e, pst)
-          case ENumber(double) => (Known(Number(double)), e, pst)
-          case EBigInt(bigInt) => (Known(BigInt(bigInt)), e, pst)
-          case EStr(str)       => (Known(Str(str)), e, pst)
-          case EBool(b)        => (Known(Bool(b)), e, pst)
-          case EUndef()        => (Known(Undef), e, pst)
-          case ENull()         => (Known(Null), e, pst)
-          case EEnum(name)     => (Known(Enum(name)), e, pst)
-          case ECodeUnit(c)    => (Known(CodeUnit(c)), e, pst)
+          case EMath(n)        => (Known(Math(n)), e)
+          case EInfinity(pos)  => (Known(Infinity(pos)), e)
+          case ENumber(double) => (Known(Number(double)), e)
+          case EBigInt(bigInt) => (Known(BigInt(bigInt)), e)
+          case EStr(str)       => (Known(Str(str)), e)
+          case EBool(b)        => (Known(Bool(b)), e)
+          case EUndef()        => (Known(Undef), e)
+          case ENull()         => (Known(Null), e)
+          case EEnum(name)     => (Known(Enum(name)), e)
+          case ECodeUnit(c)    => (Known(CodeUnit(c)), e)
       )
 
-  def peval(inst: Inst)(pst: PState): (Inst, PState) = inst match
-    case IExpr(expr) => (inst, pst)
+  def peval(inst: Inst): (Inst) =
+    pw.println(s"peval(inst = $inst)");
+    pw.flush();
+    inst match
+    case IExpr(expr) => (inst)
     case ILet(lhs, expr) => {
-      (peval(expr)(pst)) match
-        case (pv, e, pst) => (
-          ???
-        )
+      val (pv, _) = peval(expr) 
+      inst
     }
-    case IAssign(ref, expr)            => (inst, pst)
-    case IExpand(base, expr)           => (inst, pst)
-    case IDelete(base, expr)           => (inst, pst)
-    case IPush(elem, list, front)      => (inst, pst)
-    case IPop(lhs, list, front)        => (inst, pst)
-    case IReturn(expr)                 => (inst, pst)
-    case IAssert(expr)                 => (inst, pst)
-    case IPrint(expr)                  => (inst, pst)
-    case INop()                        => (INop(), pst)
-    case IIf(cond, thenInst, elseInst) => (inst, pst)
-    case IWhile(cond, body)            => (inst, pst)
-    case ICall(lhs, fexpr, args)       => (inst, pst)
-    case ISdoCall(lhs, base, op, args) => (inst, pst)
-    case ISeq(insts)                   => (inst, pst)
+    case IAssign(ref, expr)            => (inst)
+    case IExpand(base, expr)           => (inst)
+    case IDelete(base, expr)           => (inst)
+    case IPush(elem, list, front)      => (inst)
+    case IPop(lhs, list, front)        => (inst)
+    case IReturn(expr)                 => (inst)
+    case IAssert(expr)                 => (inst)
+    case IPrint(expr)                  => (inst)
+    case INop()                        => (inst)
+    case IIf(cond, thenInst, elseInst) => (inst)
+    case IWhile(cond, body)            => (inst)
+    case call @ ICall(lhs, fexpr, args) =>
+      peval(fexpr) match
+        case Known(clo @ Clo(calleeFunc, captured)) -> _ =>
+          val vs = args.map(peval).map(_._1)
+          val newLocals =
+            getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
+          pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
+          pst.func = calleeFunc.irFunc
+          pst.locals = newLocals
+          call
+        case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
+        case v => ??? // throw NoCallable(v)
+    case ISdoCall(lhs, base, method, args) => ???
+      peval(base).asKnown.asAst match
+        case syn: Syntactic =>
+          getSdo((syn, method)) match
+            case Some((ast0, sdo)) =>
+              val vs = args.map(peval).map(_._1)
+              val newLocals = getLocals(
+                sdo.irFunc.params,
+                AstValue(ast0) :: vs,
+                Clo(sdo, Map()),
+              )
+              st.callStack = CallContext(st.context, lhs)
+              st.context = Context(sdo, newLocals)
+            case None => throw InvalidAstField(syn, Str(method))
+        case lex: Lexical =>
+          setCallResult(lhs, Interpreter.eval(lex, method))
+    case ISeq(insts)                   => ISeq(insts.map(peval))
 
   /** final state */
-  lazy val result: PState = timeout(
-    initial,
+  lazy val result: (Inst, PState) = timeout(
+    (
+      peval(pst.func.body), pst
+    ),
     timeLimit,
   )
 
@@ -112,29 +152,27 @@ class PartialEvaluator(
   /** get initial local variables */
   def getLocals(
     params: List[Param],
-    args: List[Value],
-    caller: Call,
+    args: List[Predict[Value]],
+    // caller: Call,
     callee: Callable,
-  ): MMap[Local, Value] = {
+  ): Map[Local, Predict[Value]] = {
     val func = callee.func
-    val map = MMap[Local, Value]()
     @tailrec
-    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
-      case (Nil, Nil) =>
+    def aux(map : Map[Local, Predict[Value]])(ps: List[Param], as: List[Predict[Value]]): Map[Local, Predict[Value]] = (ps, as) match {
+      case (Nil, Nil) => map
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        if (optional) aux(pl, Nil)
-        else RemainingParams(ps)
+        if (optional) aux(map)(pl, Nil)
+        else throw RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match
-          case _: Cont =>
-          case _       => throw RemainingArgs(args)
+          case _: Cont => map
+          case _       => ??? // throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
-        map += param.lhs -> arg
-        aux(pl, al)
+        val newMap = map + (param.lhs -> arg)
+        aux(newMap)(pl, al)
     }
-    aux(params, args)
-    map
+    aux(Map.empty[Local, Predict[Value]])(params, args)
   }
 
   /** transition for references */
@@ -149,7 +187,7 @@ class PartialEvaluator(
   // private helpers
   // ---------------------------------------------------------------------------
   /** control flow graphs */
-  private given cfg: CFG = initial.cfg
+  private given cfg: CFG = pst.cfg
 
   /** type model */
   private def tyModel = cfg.tyModel
@@ -162,7 +200,7 @@ class PartialEvaluator(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$ASTPEVAL_LOG_DIR/log"))
+    logPW.getOrElse(getPrintWriter(s"$PEVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
@@ -176,7 +214,7 @@ object PartialEvaluator {
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): PState =
+  ): (Inst, PState) =
     new PartialEvaluator(initial, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */

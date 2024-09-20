@@ -143,7 +143,7 @@ case object Peval extends Phase[CFG, Unit] {
         ),
       )(using cfg);
 
-      val (addr_exec_stck, st6) = st5.allocList(List(addr_exec_ctxt));
+      val (addr_exec_stck, st6) = st5.allocList(List(Known(addr_exec_ctxt)));
       val st7 = st6
         .define(Global(EXECUTION_STACK), Known(addr_exec_stck))
         .define(Name("func"), Known(addr_func_obj_record))
@@ -163,7 +163,8 @@ case object Peval extends Phase[CFG, Unit] {
           sst
       }).recover({
         case (throwable) =>
-          println(s"FAILED EXECUTION: $throwable");
+          println(s"FAILED EXECUTION: ${throwable}");
+          throwable.printStackTrace();
           st
       }).map((_) => println("Omit printing state..."))
     }
