@@ -17,7 +17,7 @@ import esmeta.state.*
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
   val map: MMap[Addr, PObj] = MMap(),
-  var size: Int = 0,
+  var size: Int = 0, // TODO: move to PartialEvaluator
 ) extends StateElem {
 
   /** getter */
@@ -83,12 +83,4 @@ case class PHeap(
     ???, // MMap.from(map),
     size,
   )
-}
-
-object PHeap {
-  def fromHeap(heap: esmeta.state.Heap): PHeap = ???
-  // PHeap(
-  //   Map.from(heap.map).map((addr, obj) => (addr, PObj.from(obj))),
-  //   heap.size,
-  // )
 }
