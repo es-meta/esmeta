@@ -18,7 +18,7 @@ class TypeAnalyzer(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val typeSens: Boolean = false, // TODO
-  val typeGuard: Boolean = true,
+  val useTypeGuard: Boolean = true,
   val config: TypeAnalyzer.Config = TypeAnalyzer.Config(),
   val ignore: TypeAnalyzer.Ignore = Ignore(),
   val log: Boolean = false,
@@ -154,7 +154,9 @@ class TypeAnalyzer(
 
     /** check if the return type can be used */
     private lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      !func.retTy.isImprec || (typeGuard && typeGuards.contains(func.name))
+      !func.retTy.isImprec ||
+      (useTypeGuard && typeGuards.contains(func.name)) ||
+      defaultTypeGuards.contains(func.name)
     }
 
     /** handle calls */
@@ -177,7 +179,7 @@ class TypeAnalyzer(
         }
         val newRetV = (for {
           guard <- typeGuards.get(callee.name)
-          if typeGuard
+          if useTypeGuard || defaultTypeGuards.contains(callee.name)
         } yield guard(xs, vs, retTy)).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
@@ -204,6 +206,16 @@ class TypeAnalyzer(
     override def apply(rp: ReturnPoint): Unit =
       if (!canUseReturnTy(rp.func)) super.apply(rp)
 
+    /** default type guards */
+    val defaultTypeGuards: Set[String] = Set(
+      "__APPEND_LIST__",
+      "__FLAT_LIST__",
+      "__GET_ITEMS__",
+      "Completion",
+      "NormalCompletion",
+    )
+
+    /** type guards */
     type TypeGuard = (List[Option[Local]], List[AbsValue], Ty) => AbsValue
     val typeGuards: Map[String, TypeGuard] =
       import RefinementKind.*

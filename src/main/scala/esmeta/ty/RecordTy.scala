@@ -188,11 +188,12 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       map <- refinerOf(t).get(field)
       (_, u) <- map.find { case (e, _) => elem <= e }
     } yield u).getOrElse(t)
-    if (refine)
-      val refined = elem && get(pair, field)
-      if (refined.isBottom) None
-      else Some(normalize(x -> fm.update(field, refined)))
-    else Some(normalize(x -> fm.update(field, elem)))
+    val refined =
+      if (refine) elem && get(pair, field)
+      else if (t != "") elem && getField(t, field)
+      else elem
+    if (refined.isBottom) None
+    else Some(normalize(x -> fm.update(field, refined)))
 
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =

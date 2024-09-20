@@ -5,7 +5,7 @@
     1. Perform ? InitializeHostDefinedRealm().
     1. Let _scriptEvaluationJob_ be a new Abstract Closure with no parameters that captures nothing and performs the following steps when called:
       1. Let _sourceText_ be the source code of a script.
-      1. Let _script_ be ParseScript(_sourceText_, the current Realm Record, *undefined*).
+      1. Let _script_ be ParseScript(_sourceText_, the current Realm Record, ~empty~).
       1. Perform ? ScriptEvaluation(_script_).
       1. Return *undefined*.
     1. Perform HostEnqueuePromiseJob(_scriptEvaluationJob_, the current Realm Record).

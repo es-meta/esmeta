@@ -92,8 +92,8 @@ class StringifyTinyTest extends TyTest {
       RecordT -> "Record",
       RecordT("Cat") -> "Record[Cat]",
       RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
-      RecordT("Object", Map("A" -> NumberT, "B" -> BoolT)) ->
-      "Record[Object { A : Number, B : Boolean }]",
+      RecordT("Object", Map("PrivateElements" -> NilT)) ->
+      "Record[Object { PrivateElements : Nil }]",
       RecordT(
         "",
         Map(
