@@ -9,10 +9,8 @@ sealed trait Predict[+A] extends IterableOnce[A] {
   final def isDefined: Boolean = !isEmpty
 
   def asKnown: A = if isEmpty then
-      throw new PartialEvaluatorError("not known value")
-    else get
-    
-  
+    throw new PartialEvaluatorError("not known value")
+  else get
 
   override final def knownSize: Int = if (isEmpty) 0 else 1
   def get: A

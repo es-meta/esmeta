@@ -38,8 +38,8 @@ class PartialEvaluator(
       val base = pst(peval(ref))
       val (field, _) = peval(expr)
       (base, field) match
-          case (Known(b), Known(f)) => Known(FieldTarget(b, f))
-          case _ => Unknown
+        case (Known(b), Known(f)) => Known(FieldTarget(b, f))
+        case _                    => Unknown
 
   def peval(expr: Expr): (Predict[Value], Expr) =
     pw.println(s"peval(expr = $expr)");
@@ -92,56 +92,57 @@ class PartialEvaluator(
     pw.println(s"peval(inst = $inst)");
     pw.flush();
     inst match
-    case IExpr(expr) => (inst)
-    case ILet(lhs, expr) => {
-      val (pv, _) = peval(expr) 
-      inst
-    }
-    case IAssign(ref, expr)            => (inst)
-    case IExpand(base, expr)           => (inst)
-    case IDelete(base, expr)           => (inst)
-    case IPush(elem, list, front)      => (inst)
-    case IPop(lhs, list, front)        => (inst)
-    case IReturn(expr)                 => (inst)
-    case IAssert(expr)                 => (inst)
-    case IPrint(expr)                  => (inst)
-    case INop()                        => (inst)
-    case IIf(cond, thenInst, elseInst) => (inst)
-    case IWhile(cond, body)            => (inst)
-    case call @ ICall(lhs, fexpr, args) =>
-      peval(fexpr) match
-        case Known(clo @ Clo(calleeFunc, captured)) -> _ =>
-          val vs = args.map(peval).map(_._1)
-          val newLocals =
-            getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
-          pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
-          pst.func = calleeFunc.irFunc
-          pst.locals = newLocals
-          call
-        case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
-        case v => ??? // throw NoCallable(v)
-    case ISdoCall(lhs, base, method, args) => ???
-      peval(base).asKnown.asAst match
-        case syn: Syntactic =>
-          getSdo((syn, method)) match
-            case Some((ast0, sdo)) =>
-              val vs = args.map(peval).map(_._1)
-              val newLocals = getLocals(
-                sdo.irFunc.params,
-                AstValue(ast0) :: vs,
-                Clo(sdo, Map()),
-              )
-              st.callStack = CallContext(st.context, lhs)
-              st.context = Context(sdo, newLocals)
-            case None => throw InvalidAstField(syn, Str(method))
-        case lex: Lexical =>
-          setCallResult(lhs, Interpreter.eval(lex, method))
-    case ISeq(insts)                   => ISeq(insts.map(peval))
+      case IExpr(expr) => (inst)
+      case ILet(lhs, expr) => {
+        val (pv, _) = peval(expr)
+        inst
+      }
+      case IAssign(ref, expr)             => (inst)
+      case IExpand(base, expr)            => (inst)
+      case IDelete(base, expr)            => (inst)
+      case IPush(elem, list, front)       => (inst)
+      case IPop(lhs, list, front)         => (inst)
+      case IReturn(expr)                  => (inst)
+      case IAssert(expr)                  => (inst)
+      case IPrint(expr)                   => (inst)
+      case INop()                         => (inst)
+      case IIf(cond, thenInst, elseInst)  => (inst)
+      case IWhile(cond, body)             => (inst)
+      case call @ ICall(lhs, fexpr, args) => ???
+      // peval(fexpr) match
+      // case Known(clo @ Clo(calleeFunc, captured)) -> _ => ???
+      //   val vs = args.map(peval).map(_._1)
+      //   val newLocals =
+      //     getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
+      //   pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
+      //   pst.func = calleeFunc.irFunc
+      //   pst.locals = newLocals
+      //   call
+      // case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
+      // case v => ??? // throw NoCallable(v)
+      case ISdoCall(lhs, base, method, args) => ???
+      // peval(base).asKnown.asAst match
+      //   case syn: Syntactic =>
+      //     getSdo((syn, method)) match
+      //       case Some((ast0, sdo)) =>
+      //         val vs = args.map(peval).map(_._1)
+      //         val newLocals = getLocals(
+      //           sdo.irFunc.params,
+      //           AstValue(ast0) :: vs,
+      //           Clo(sdo, Map()),
+      //         )
+      //         st.callStack = CallContext(st.context, lhs)
+      //         st.context = Context(sdo, newLocals)
+      //       case None => throw InvalidAstField(syn, Str(method))
+      // case lex: Lexical => ???
+      // setCallResult(lhs, Interpreter.eval(lex, method))
+      case ISeq(insts) => ISeq(insts.map(peval))
 
   /** final state */
   lazy val result: (Inst, PState) = timeout(
     (
-      peval(pst.func.body), pst
+      peval(pst.func.body),
+      pst,
     ),
     timeLimit,
   )
@@ -158,20 +159,23 @@ class PartialEvaluator(
   ): Map[Local, Predict[Value]] = {
     val func = callee.func
     @tailrec
-    def aux(map : Map[Local, Predict[Value]])(ps: List[Param], as: List[Predict[Value]]): Map[Local, Predict[Value]] = (ps, as) match {
-      case (Nil, Nil) => map
-      case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        if (optional) aux(map)(pl, Nil)
-        else throw RemainingParams(ps)
-      case (Nil, args) =>
-        // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-        callee match
-          case _: Cont => map
-          case _       => ??? // throw RemainingArgs(args)
-      case (param :: pl, arg :: al) =>
-        val newMap = map + (param.lhs -> arg)
-        aux(newMap)(pl, al)
-    }
+    def aux(
+      map: Map[Local, Predict[Value]],
+    )(ps: List[Param], as: List[Predict[Value]]): Map[Local, Predict[Value]] =
+      (ps, as) match {
+        case (Nil, Nil) => map
+        case (Param(lhs, ty, optional, _) :: pl, Nil) =>
+          if (optional) aux(map)(pl, Nil)
+          else throw RemainingParams(ps)
+        case (Nil, args) =>
+          // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+          callee match
+            case _: Cont => map
+            case _       => ??? // throw RemainingArgs(args)
+        case (param :: pl, arg :: al) =>
+          val newMap = map + (param.lhs -> arg)
+          aux(newMap)(pl, al)
+      }
     aux(Map.empty[Local, Predict[Value]])(params, args)
   }
 

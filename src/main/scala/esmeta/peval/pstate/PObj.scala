@@ -5,7 +5,16 @@ import esmeta.ir.{Expr, EClo}
 import scala.collection.mutable.{LinkedHashMap as LMMap, Map as MMap}
 import scala.collection.immutable.Map
 import esmeta.cfg.CFG
-import esmeta.state.{StateElem, Value, Math, Clo, Str, Uninit, Obj, toStringHelper}
+import esmeta.state.{
+  StateElem,
+  Value,
+  Math,
+  Clo,
+  Str,
+  Uninit,
+  Obj,
+  toStringHelper,
+}
 import esmeta.parser.ESValueParser
 import esmeta.state.RecordObj
 import esmeta.state.MapObj
@@ -20,7 +29,7 @@ sealed trait PObj extends StateElem {
   /** safe getter */
   def get(field: Value): Option[Predict[Value | Uninit]] = (this, field) match
     case (r: PRecordObj, Str(f)) => r.map.get(f)
-    case (m: PMapObj, key) => m.map.get(key)
+    case (m: PMapObj, key)       => m.map.get(key)
     case (l: PListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
     case (y: PYetObj, _) => ??? // throw NotSupported(Feature)(y.msg)
@@ -29,8 +38,8 @@ sealed trait PObj extends StateElem {
   /** getter */
   def apply(field: Value): Predict[Value] = get(field) match
     case Some(Known(value: Value)) => Known(value)
-    case Some(Known(Uninit)) => ??? // throw
-    case _                  => ??? // throw InvalidObjField(this, field)
+    case Some(Known(Uninit))       => ??? // throw
+    case _                         => ??? // throw InvalidObjField(this, field)
 
   /** setter */
   def update(field: Value, value: Predict[Value]): Unit = (this, field) match
@@ -110,9 +119,10 @@ sealed trait PObj extends StateElem {
 
 object PObj {
   def from(obj: Obj): PObj = obj match
-    case RecordObj(tname, map) => PRecordObj(tname, map.map((k, v) => (k, Known(v))))
-    case MapObj(map) => PMapObj(map.map((k, v) => (k, Known(v))))
-    case ListObj(values) => PListObj(values.map(Known.apply))
+    case RecordObj(tname, map) =>
+      PRecordObj(tname, map.map((k, v) => (k, Known(v))))
+    case MapObj(map)        => PMapObj(map.map((k, v) => (k, Known(v))))
+    case ListObj(values)    => PListObj(values.map(Known.apply))
     case YetObj(tname, msg) => PYetObj(tname, msg)
 }
 
