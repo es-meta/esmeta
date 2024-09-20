@@ -20,20 +20,8 @@ import esmeta.ir.{Global, Name, Temp}
 
 import scala.util.{Try}
 
-object PevalInitialize:
-  def CloFer(name: String)(using cfg: CFG): Known[Clo] =
-    Known(
-      Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty),
-    )
-  def CloDecl(name: String)(using cfg: CFG): Known[Clo] = Known(
-    Clo(
-      cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"),
-      Map.empty,
-    ),
-  )
-
 /** `astirpeval` phase */
-case object Peval extends Phase[CFG, Unit] {
+case object PEval extends Phase[CFG, Unit] {
   val name = "peval"
   val help = "partial-evaluated an ECMAScript file."
 
@@ -77,42 +65,42 @@ case object Peval extends Phase[CFG, Unit] {
       val (addr_lexical_env, st4) = st3.allocRecord(
         "FunctionEnvironmentRecord",
         List(
-          "BindThisValue" -> PevalInitialize.CloFer("BindThisValue"),
-          "CreateImmutableBinding" -> PevalInitialize.CloDecl(
+          "BindThisValue" -> CloFer("BindThisValue"),
+          "CreateImmutableBinding" -> CloDecl(
             "CreateImmutableBinding",
           ),
-          "CreateMutableBinding" -> PevalInitialize.CloDecl(
+          "CreateMutableBinding" -> CloDecl(
             "CreateMutableBinding",
           ),
-          "DeleteBinding" -> PevalInitialize.CloDecl("DeleteBinding"),
+          "DeleteBinding" -> CloDecl("DeleteBinding"),
           "FunctionObject" -> Known(addr_func_obj_record), //  #2043,
-          "GetBindingValue" -> PevalInitialize.CloDecl("GetBindingValue"),
-          "GetSuperBase" -> PevalInitialize.CloFer(
+          "GetBindingValue" -> CloDecl("GetBindingValue"),
+          "GetSuperBase" -> CloFer(
             "GetSuperBase",
           ), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
-          "GetThisBinding" -> PevalInitialize.CloFer(
+          "GetThisBinding" -> CloFer(
             "GetThisBinding",
           ), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
-          "HasBinding" -> PevalInitialize.CloDecl(
+          "HasBinding" -> CloDecl(
             "HasBinding",
           ), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
-          "HasSuperBinding" -> PevalInitialize.CloFer(
+          "HasSuperBinding" -> CloFer(
             "HasSuperBinding",
           ), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
-          "HasThisBinding" -> PevalInitialize.CloFer(
+          "HasThisBinding" -> CloFer(
             "HasThisBinding",
           ), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
-          "InitializeBinding" -> PevalInitialize.CloDecl(
+          "InitializeBinding" -> CloDecl(
             "InitializeBinding",
           ), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
           "NewTarget" -> Unknown, //  undefined,
           "OuterEnv" -> Unknown, // RuntimeValue,
-          "SetMutableBinding" -> PevalInitialize.CloDecl(
+          "SetMutableBinding" -> CloDecl(
             "SetMutableBinding",
           ), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
           "ThisBindingStatus" -> Unknown, //  ~initialized~,
           "ThisValue" -> Unknown, //  undefined,
-          "WithBaseObject" -> PevalInitialize.CloDecl(
+          "WithBaseObject" -> CloDecl(
             "WithBaseObject",
           ), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
           "__MAP__" -> Known(addr_empty_map), // some address,
@@ -193,4 +181,15 @@ case object Peval extends Phase[CFG, Unit] {
       val fromS = if (n == name) then List(s) else Nil
       fromS ::: fromChildren
     case _ => Nil
+
+  def CloFer(name: String)(using cfg: CFG): Known[Clo] =
+    Known(
+      Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty),
+    )
+  def CloDecl(name: String)(using cfg: CFG): Known[Clo] = Known(
+    Clo(
+      cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"),
+      Map.empty,
+    ),
+  )
 }

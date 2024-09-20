@@ -216,7 +216,7 @@ case object CmdIRInterp extends Command("ir-eval", CmdBase >> IREval) {
 // -----------------------------------------------------------------------------
 
 /** `astpeval` command */
-case object CmdPeval extends Command("peval", CmdBuildCFG >> Peval) {
+case object CmdPEval extends Command("peval", CmdBuildCFG >> PEval) {
   val help =
     "partial-evaluates 'FunctionDeclarationInstantiation' using an ECMAScript file."
   val examples = List(
