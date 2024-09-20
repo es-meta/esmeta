@@ -16,32 +16,28 @@ type PContext = Map[Local, Predict[Value]]
 
 /** IR PStates */
 case class PState(
-  val cfg: CFG,
-  var func: IRFunc,
-  var callStack: List[PCallContext] = Nil,
-  var globals: Map[Global, Predict[Value]] = Map(),
+  // var func: IRFunc,
+  // var callStack: List[PCallContext] = Nil,
+  val globals: Map[Global, Predict[Value]] = Map(),
   var locals: PContext = Map(),
   val heap: PHeap = PHeap(),
 ) extends StateElem {
 
-  given CFG = cfg
-
   def setContext(func: IRFunc): PState = PState(
-    cfg,
-    func,
-    callStack,
+    // func,
+    // callStack,
     globals,
     locals,
     heap,
   )
 
   /** getter */
-  def apply(rt: Predict[RefTarget]): Predict[Value] = rt match
+  def apply(rt: Predict[RefTarget])(using CFG): Predict[Value] = rt match
     case Known(rt) => apply(rt)
     case Unknown   => Unknown
 
   /** getter */
-  def apply(rt: RefTarget): Predict[Value] =
+  def apply(rt: RefTarget)(using CFG): Predict[Value] =
     rt match
       case VarTarget(x)             => apply(x)
       case FieldTarget(base, field) => apply(base, field)
@@ -52,7 +48,10 @@ case class PState(
     case x: Local  => locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value): Predict[Value] = base match
+  def apply(
+    base: Value,
+    field: Value,
+  )(using CFG): Predict[Value] = base match
     case addr: Addr =>
       if heap(addr).exists(field) then heap(addr, field)
       else Unknown
@@ -70,18 +69,18 @@ case class PState(
 
   /** define variables */
   def define(x: Var, value: Predict[Value]): Unit = x match
-    case x: Global => this.globals = globals + (x -> value)
+    case x: Global =>
     case x: Local  => this.locals = locals + (x -> value)
 
   /** setter */
-  def update(rt: RefTarget, value: Predict[Value]): PState = rt match
+  def update(rt: RefTarget, value: Predict[Value]): Unit = rt match
     case VarTarget(x)             => update(x, value)
     case FieldTarget(base, field) => update(base, field, value)
 
   /** variable setter */
-  def update(x: Var, value: Predict[Value]): PState = x match
-    case x: Global => this.replaced(globals = globals + (x -> value))
-    case x: Local  => this.replaced(locals = locals + (x -> value))
+  def update(x: Var, value: Predict[Value]): Unit = x match
+    case x: Global =>
+    case x: Local  => this.locals = locals + (x -> value)
 
   /** field setter */
   def update(base: Value, field: Value, value: Predict[Value]): PState = ???
@@ -127,53 +126,31 @@ case class PState(
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  )(using CFG): (Addr, PState) =
-    val addr -> pheap = heap.allocRecord(tname, pairs)
-    (addr, this.replaced(heap = pheap))
+  ): Addr = heap.allocRecord(tname, pairs)
 
   /** allocate a map object */
-  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PState) =
-    val addr -> pheap = heap.allocMap(pairs)
-    (addr, this.replaced(heap = pheap))
+  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PState) = ???
+  // val addr -> pheap = heap.allocMap(pairs)
+  // (addr, this.replaced(heap = pheap))
 
   /** allocate a list object */
-  def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) =
-    val addr -> pheap = heap.allocList(vs)
-    (addr, this.replaced(heap = pheap))
-
-  private def replaced(
-    cfg: CFG = cfg,
-    func: IRFunc = func,
-    callStack: List[PCallContext] = callStack,
-    globals: Map[Global, Predict[Value]] = globals,
-    locals: PContext = locals,
-    heap: PHeap = heap,
-  ) = PState(
-    cfg,
-    func,
-    callStack,
-    globals,
-    locals,
-    heap,
-  )
-
+  def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) = ???
+  // val addr -> pheap = heap.allocList(vs)
+  // (addr, this.replaced(heap = pheap))
 }
 object PState {
 
-  def fromState(st: State): PState =
-    val newSt = st.copied
-    PState(
-      newSt.cfg,
-      newSt.func.irFunc,
-      newSt.callStack.map((cc) =>
-        PCallContext(
-          cc.context.func.irFunc,
-          Map.from(cc.context.locals).map((l, v) => (l, Known(v))),
-        ),
-      ),
-      Map.from(newSt.globals).map((l, v) => (l, Known(v))),
-      Map.from(newSt.context.locals).map((l, v) => (l, Known(v))),
-      PHeap.fromHeap(newSt.heap),
-    )
+  def fromState(st: State): PState = PState(
+    // st.func.irFunc,
+    // st.callStack.map((cc) =>
+    //   PCallContext(
+    //     cc.context.func.irFunc,
+    //     Map.from(cc.context.locals).map((l, v) => (l, Known(v))),
+    //   ),
+    // ),
+    Map.from(st.globals).map((l, v) => (l, Known(v))),
+    Map.from(st.context.locals).map((l, v) => (l, Known(v))),
+    PHeap.fromHeap(st.heap),
+  )
 
 }

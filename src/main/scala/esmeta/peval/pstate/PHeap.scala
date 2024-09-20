@@ -16,8 +16,8 @@ import esmeta.state.*
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
-  val map: Map[Addr, PObj] = Map(),
-  val size: Int = 0,
+  val map: MMap[Addr, PObj] = MMap(),
+  var size: Int = 0,
 ) extends StateElem {
 
   /** getter */
@@ -45,46 +45,36 @@ case class PHeap(
   def pop(addr: Addr, front: Boolean): Predict[Value] = apply(addr).pop(front)
 
   /** copy */
-  def copy(addr: Addr): (Addr, PHeap) = alloc(apply(addr).copied)
+  def copy(addr: Addr): Addr = alloc(apply(addr).copied)
 
   /** keys */
-  def keys(addr: Addr, intSorted: Boolean): (Addr, PHeap) =
-    allocList(
-      ???,
-      // apply(addr)
-      // .keys(intSorted)
-      // .map(_.toPValue),
-    )
+  def keys(addr: Addr, intSorted: Boolean): Addr = allocList(
+    ???,
+    // apply(addr)
+    // .keys(intSorted)
+    // .map(_.toPValue),
+  )
 
   /** record allocations */
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  )(using CFG): (Addr, PHeap) = alloc(
-    PRecordObj(tname, pairs),
-  )
+  ): Addr = alloc(PRecordObj(tname, pairs))
 
   /** map allocations */
-  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PHeap) = alloc(
-    PMapObj(pairs),
-  )
+  def allocMap(pairs: Iterable[(Value, Predict[Value])]): Addr =
+    alloc(PMapObj(pairs))
 
   /** list allocations */
-  def allocList(vs: Iterable[Predict[Value]]): (Addr, PHeap) = alloc(
-    PListObj(vs.toVector),
-  )
+  def allocList(vs: Iterable[Predict[Value]]): Addr =
+    alloc(PListObj(vs.toVector))
 
   // allocation helper
-  private def alloc(obj: PObj): (Addr, PHeap) = {
+  private def alloc(obj: PObj): Addr =
     val newAddr = DynamicAddr(size)
-    (
-      newAddr,
-      PHeap(
-        map + (newAddr -> obj),
-        size + 1,
-      ),
-    )
-  }
+    this.map += newAddr -> obj
+    this.size += 1
+    newAddr
 
   /** copied */
   def copied: PHeap = this
@@ -96,8 +86,9 @@ case class PHeap(
 }
 
 object PHeap {
-  def fromHeap(heap: esmeta.state.Heap): PHeap = PHeap(
-    Map.from(heap.map).map((addr, obj) => (addr, PObj.from(obj))),
-    heap.size,
-  )
+  def fromHeap(heap: esmeta.state.Heap): PHeap = ???
+  // PHeap(
+  //   Map.from(heap.map).map((addr, obj) => (addr, PObj.from(obj))),
+  //   heap.size,
+  // )
 }
