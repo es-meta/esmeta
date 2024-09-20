@@ -223,9 +223,6 @@ class TypeAnalyzer(
         "Completion" -> { (xs, vs, retTy) =>
           AbsValue(vs(0).ty && CompT, Map())
         },
-        "UpdateEmpty" -> { (xs, vs, retTy) =>
-          AbsValue(vs(0).ty && CompT, Map())
-        },
         "NormalCompletion" -> { (xs, vs, retTy) =>
           AbsValue(NormalT(vs(0).ty -- CompT), Map())
         },
