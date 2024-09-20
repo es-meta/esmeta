@@ -20,18 +20,6 @@ import esmeta.ir.{Global, Name, Temp}
 
 import scala.util.{Try}
 
-def getAstsbyName(ast: Ast, name: String): List[Ast] = ast match
-  case l @ Lexical(n, str) if (n == name) => List(l)
-  case s @ Syntactic(n, _, _, children) =>
-    val fromChildren = children
-      .map(
-        _.map(getAstsbyName(_, name)).getOrElse(Nil),
-      )
-      .flatten
-    val fromS = if (n == name) then List(s) else Nil
-    fromS ::: fromChildren
-  case _ => Nil
-
 object PevalInitialize:
   def CloFer(name: String)(using cfg: CFG): Known[Clo] =
     Known(
@@ -131,23 +119,23 @@ case object Peval extends Phase[CFG, Unit] {
         ),
       )(using cfg);
 
-      val (addr_exec_ctxt, st5) = st4.allocRecord(
-        "ExecutionContext",
-        List(
-          "Function" -> Unknown,
-          "Realm" -> Unknown,
-          "ScriptOrModule" -> Unknown,
-          "LexicalEnvironment" -> Known(addr_lexical_env),
-          "VariableEnvironment" -> Unknown,
-          "PrivateEnvironment" -> Unknown,
-        ),
-      )(using cfg);
+      // val (addr_exec_ctxt, st5) = st4.allocRecord(
+      //   "ExecutionContext",
+      //   List(
+      //     "Function" -> Unknown,
+      //     "Realm" -> Unknown,
+      //     "ScriptOrModule" -> Unknown,
+      //     "LexicalEnvironment" -> Known(addr_lexical_env),
+      //     "VariableEnvironment" -> Unknown,
+      //     "PrivateEnvironment" -> Unknown,
+      //   ),
+      // )(using cfg);
 
-      val (addr_exec_stck, st6) = st5.allocList(List(Known(addr_exec_ctxt)));
-      val st7 = st6
-        .define(Global(EXECUTION_STACK), Known(addr_exec_stck))
-        .define(Name("func"), Known(addr_func_obj_record))
-        .define(Name("argumentsList"), Unknown);
+      // val (addr_exec_stck, st6) = st5.allocList(List(Known(addr_exec_ctxt)));
+      // st6.define(Global(EXECUTION_STACK), Known(addr_exec_stck))
+      st4.define(Name("func"), Known(addr_func_obj_record))
+      st4.define(Name("argumentsList"), Unknown);
+      val st7 = st4
 
       val st = st7
       println(s"Starting interpertaton from ${st.func.name}");
@@ -158,14 +146,13 @@ case object Peval extends Phase[CFG, Unit] {
           detail = config.detail,
         )
       }.map({
-        case sst =>
+        case (inst, _) =>
           println(s"SUCCESSED EXECUTION");
-          sst
+          println(inst)
       }).recover({
         case (throwable) =>
           println(s"FAILED EXECUTION: ${throwable}");
           throwable.printStackTrace();
-          st
       }).map((_) => println("Omit printing state..."))
     }
 
@@ -194,4 +181,16 @@ case object Peval extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var peval: Boolean = false,
   )
+
+  def getAstsbyName(ast: Ast, name: String): List[Ast] = ast match
+    case l @ Lexical(n, str) if (n == name) => List(l)
+    case s @ Syntactic(n, _, _, children) =>
+      val fromChildren = children
+        .map(
+          _.map(getAstsbyName(_, name)).getOrElse(Nil),
+        )
+        .flatten
+      val fromS = if (n == name) then List(s) else Nil
+      fromS ::: fromChildren
+    case _ => Nil
 }

@@ -7,6 +7,7 @@ import esmeta.es.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
+import esmeta.peval.*
 import esmeta.peval.pstate.*
 
 /** stringifier for state elements */
@@ -52,15 +53,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // pstates
-  given pstRule: Rule[PState] = (app, pst) => ???
-  // app.wrap {
-  //   app :> "context: " >> pst.context
-  //   given Rule[List[String]] = iterableRule("[", ", ", "]")
-  //   app :> "call-stack: "
-  //   app.wrapIterable("[", ",", "]")(pst.callStack)
-  //   app :> "globals: " >> pst.globals
-  //   app :> "heap: " >> pst.heap
-  // }
+  given pstRule: Rule[PState] = (app, pst) =>
+    app.wrap {
+      // TODO app :> "globals: " >> pst.globals
+      app :> "locals: " >> pst.locals
+      app :> "heap: " >> pst.heap
+    }
+
+  // predict
+  given predictRule: Rule[Predict[Value]] = (app, predict) =>
+    predict match
+      case Known(value) => app >> value
+      case Unknown      => app >> "???"
 
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
@@ -87,9 +91,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> s"(SIZE = " >> size.toString >> "): " >> map
 
   // pheaps
-  given pheapRule: Rule[PHeap] = (app, pheap) => ???
-  // val Heap(map, size) = heap
-  // app >> s"(SIZE = " >> size.toString >> "): " >> map
+  given pheapRule: Rule[PHeap] = (app, pheap) =>
+    val PHeap(map, size) = pheap
+    // TODO app >> map
+    app >> s"(SIZE = " >> size.toString >> ")"
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
