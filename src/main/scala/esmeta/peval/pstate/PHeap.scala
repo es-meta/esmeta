@@ -16,8 +16,8 @@ import esmeta.state.*
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
-  val map: MMap[Addr, PObj] = MMap(),
-  var size: Int = 0,
+  val map: Map[Addr, PObj] = Map(),
+  val size: Int = 0,
 ) extends StateElem {
 
   /** getter */
@@ -45,10 +45,10 @@ case class PHeap(
   def pop(addr: Addr, front: Boolean): PValue = apply(addr).pop(front)
 
   /** copy */
-  def copy(addr: Addr): Addr = alloc(apply(addr).copied)
+  def copy(addr: Addr): (Addr, PHeap) = alloc(apply(addr).copied)
 
   /** keys */
-  def keys(addr: Addr, intSorted: Boolean): Addr =
+  def keys(addr: Addr, intSorted: Boolean): (Addr, PHeap) =
     allocList(
       apply(addr)
         .keys(intSorted)
@@ -59,24 +59,44 @@ case class PHeap(
   def allocRecord(
     tname: String,
     pairs: Iterable[(String, PValue)] = Nil,
-  )(using CFG): Addr = alloc(
+  )(using CFG): (Addr, PHeap) = alloc(
     PRecordObj(tname, pairs.map(_ -> PValueExistence.from(_))),
   )
 
   /** map allocations */
-  def allocMap(pairs: Iterable[(Value, PValue)]): Addr = alloc(PMapObj(pairs))
+  def allocMap(pairs: Iterable[(Value, PValue)]): (Addr, PHeap) = alloc(
+    PMapObj(pairs),
+  )
 
   /** list allocations */
-  def allocList(vs: Iterable[PValue]): Addr = alloc(PListObj(vs.toVector))
+  def allocList(vs: Iterable[PValue]): (Addr, PHeap) = alloc(
+    PListObj(vs.toVector),
+  )
 
   // allocation helper
-  private def alloc(obj: PObj): Addr = {
+  private def alloc(obj: PObj): (Addr, PHeap) = {
     val newAddr = DynamicAddr(size)
-    map += newAddr -> obj
-    size += 1
-    newAddr
+    (
+      newAddr,
+      PHeap(
+        map + (newAddr -> obj),
+        size + 1,
+      ),
+    )
   }
 
   /** copied */
-  def copied: PHeap = PHeap(MMap.from(map.toList.map { _ -> _.copied }), size)
+  def copied: PHeap = this
+
+  def toHeap: esmeta.state.Heap = esmeta.state.Heap(
+    ???, // MMap.from(map),
+    size,
+  )
+}
+
+object PHeap {
+  def fromHeap(heap: esmeta.state.Heap): PHeap = PHeap(
+    ???, // Map.from(heap.map),
+    heap.size,
+  )
 }

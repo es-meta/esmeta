@@ -46,10 +46,10 @@ sealed trait Value extends StateElem {
         case obj        => throw NoList(obj)
     case _ => throw NoAddr(this)
   def asList(pst: PState): ListObj = this match
-    case addr: Addr =>
-      pst(addr) match
-        case l: ListObj => l
-        case obj        => throw NoList(obj)
+    case addr: Addr => ???
+    // pst(addr) match
+    //   case l: ListObj => l
+    //   case obj        => throw NoList(obj)
     case _ => throw NoAddr(this)
 }
 
@@ -145,5 +145,3 @@ case class Str(str: String) extends SimpleValue
 case class Bool(bool: Boolean) extends SimpleValue
 case object Undef extends SimpleValue
 case object Null extends SimpleValue
-
-case object RuntimeValue extends Value

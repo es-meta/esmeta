@@ -60,7 +60,7 @@ trait UnitWalker extends BasicUnitWalker {
     case _: Enum          =>
     case _: CodeUnit      =>
     case sv: SimpleValue  => walk(sv)
-    case RuntimeValue     => // PEVAL : temp fix warning
+
   // address
   def walk(addr: Addr): Unit = {}
 

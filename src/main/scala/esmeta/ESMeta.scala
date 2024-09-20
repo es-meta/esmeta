@@ -82,7 +82,6 @@ object ESMeta extends Git(BASE_DIR) {
     CmdAnalyze,
     // Interpreter for IR-ES
     CmdIRInterp,
-    CmdAstPeval,
     CmdPeval,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -110,7 +109,6 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Static Analysis (Meta-Level Static Analysis)
     Analyze,
     IREval,
-    AstPeval,
     Peval,
   )
 
