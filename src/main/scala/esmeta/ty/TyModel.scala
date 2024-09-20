@@ -51,7 +51,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
 
   /** get field type */
   lazy val getField: ((String, String)) => Binding = cached { (t, f) =>
-    fieldsOf(t).getOrElse(f, Binding.Absent)
+    if (t == "") Binding.Top
+    else fieldsOf(t).getOrElse(f, Binding.Absent)
   }
 
   /** get diff field type map */
