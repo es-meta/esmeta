@@ -254,7 +254,7 @@ class TypeAnalyzer(
           AbsValue(vs(1).ty || ThrowT, Map())
         },
         "OrdinaryObjectCreate" -> { (xs, vs, retTy) =>
-          AbsValue(RecordT("OrdinaryObject"), Map())
+          AbsValue(RecordT("Object"), Map())
         },
         "UpdateEmpty" -> { (xs, vs, retTy) =>
           val record = vs(0).ty.record
@@ -420,6 +420,46 @@ class TypeAnalyzer(
             map += Abrupt -> Map(x -> ObjectT)
           }
           AbsValue(retTy, map)
+        },
+        "IsDetachedBuffer" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          def getTy(ty: ValueTy, sty: ValueTy) = RecordT(
+            Map(
+              "ArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(ty)),
+              "SharedArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(sty)),
+            ),
+          )
+          xs(0).map { x =>
+            map += True -> Map(x -> getTy(NullT, NullT))
+            map += False -> Map(
+              x -> getTy(RecordT("DataBlock"), RecordT("SharedDataBlock")),
+            )
+          }
+          AbsValue(retTy, map)
+        },
+        "AllocateArrayBuffer" -> { (xs, vs, retTy) =>
+          AbsValue(
+            NormalT(
+              RecordT(
+                "ArrayBuffer",
+                FieldMap("ArrayBufferData" -> Binding(RecordT("DataBlock"))),
+              ),
+            ) || ThrowT,
+            Map(),
+          )
+        },
+        "AllocateSharedArrayBuffer" -> { (xs, vs, retTy) =>
+          AbsValue(
+            NormalT(
+              RecordT(
+                "SharedArrayBuffer",
+                FieldMap(
+                  "ArrayBufferData" -> Binding(RecordT("SharedDataBlock")),
+                ),
+              ),
+            ) || ThrowT,
+            Map(),
+          )
         },
       )
 

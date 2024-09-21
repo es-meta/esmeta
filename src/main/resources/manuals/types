@@ -297,6 +297,7 @@ type OrdinaryObject extends Object {
   def OwnPropertyKeys;
   Prototype: Record[Object] | Null;
   Extensible: Boolean;
+  ParameterMap?: Record[Object] | Undefined;
 }
 
 // https://tc39.es/ecma262/2024/#sec-ecmascript-function-objects
@@ -740,7 +741,7 @@ type WeakSet extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-instances
 type ArrayBuffer extends Object {
-  ArrayBufferData: Record[SharedDataBlock] | Null;
+  ArrayBufferData: Record[DataBlock] | Null;
   ArrayBufferByteLength: NonNegInt;
   ArrayBufferDetachKey: ESValue;
   ArrayBufferMaxByteLength?: NonNegInt;

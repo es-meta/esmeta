@@ -112,9 +112,9 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       Elem(map.foldLeft(Map[String, FieldMap]()) {
         case (map, pair) =>
-          RecordTy.update(pair, field, elem, refine).fold(map) { (t, fm) =>
-            map + (t -> map.get(t).fold(fm)(_ || fm))
-          }
+          map ++ (for {
+            (t, fm) <- RecordTy.update(pair, field, elem, refine)
+          } yield t -> map.get(t).fold(fm)(_ || fm))
       })
 
   /** record containment check */
@@ -147,13 +147,15 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   def apply(names: Set[String]): RecordTy =
     apply(names.toList.map(_ -> FieldMap.Top).toMap)
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
-    fields
-      .foldLeft(Option(name -> FieldMap.Top)) {
-        case (None, _) => None
-        case (Some(pair), (f, ty)) =>
-          update(pair, f, Binding(ty), refine = false)
-      }
-      .fold(Bot)(apply)
+    apply(
+      fields.foldLeft(Map(name -> FieldMap.Top)) {
+        case (map, (f, ty)) =>
+          for {
+            pair <- map
+            pair <- update(pair, f, Binding(ty), refine = false)
+          } yield pair
+      },
+    )
   def apply(pair: (String, FieldMap)): RecordTy = apply(Map(pair))
   def apply(name: String, fieldMap: FieldMap): RecordTy =
     apply(Map(name -> fieldMap))
@@ -170,10 +172,13 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     t: String,
     fm: FieldMap,
     refine: Boolean,
-  ): Option[(String, FieldMap)] =
-    fm.map.foldLeft(Option(t -> FieldMap.Top)) {
-      case (None, _)               => None
-      case (Some(pair), (f, elem)) => update(pair, f, elem, refine)
+  ): Map[String, FieldMap] =
+    fm.map.foldLeft(Map(t -> FieldMap.Top)) {
+      case (map, (f, binding)) =>
+        for {
+          pair <- map
+          pair <- update(pair, f, binding, refine)
+        } yield pair
     }
 
   /** field update */
@@ -182,19 +187,17 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     field: String,
     bind: Binding,
     refine: Boolean,
-  ): Option[(String, FieldMap)] =
+  ): Map[String, FieldMap] =
     val (t, fm) = pair
     val newBind = fieldsOf(t).get(field).fold(bind)(_ && bind)
-    val x = (for {
-      map <- refinerOf(t).get(field)
-      (_, u) <- map.find { case (ty, _) => newBind.value <= ty }
-    } yield u).getOrElse(t)
-    val refined =
-      if (refine) get(pair, field) && bind
-      else if (t != "") getField(t, field) && bind
-      else newBind
-    if (refined.isBottom) None
-    else Some(normalize(x -> fm.update(field, refined)))
+    val set = ((for {
+      map <- refinerOf(t).get(field).toSet
+      (_, u) <- map.filter { case (ty, _) => newBind <= Binding(ty) }
+    } yield u) + t)
+    val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
+    val refined = if (refine) get(pair, field) && bind else newBind
+    if (refined.isBottom) Map()
+    else xs.map(x => normalize(x -> fm.update(field, refined))).toMap
 
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
