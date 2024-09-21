@@ -234,8 +234,12 @@ class TypeAnalyzer(
           AbsValue(ListT(ast), Map())
         },
         "__CLAMP__" -> { (xs, vs, retTy) =>
-          if (vs(0).ty.toValue <= (IntT || InfinityT)) AbsValue(IntT, Map())
-          else AbsValue(retTy, Map())
+          val refined =
+            if (vs(0).ty.toValue <= (IntT || InfinityT))
+              if (vs(1).ty.toValue <= MathT(0)) NonNegIntT
+              else IntT
+            else retTy
+          AbsValue(refined, Map())
         },
         "Completion" -> { (xs, vs, retTy) =>
           AbsValue(vs(0).ty && CompT, Map())
