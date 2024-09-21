@@ -27,7 +27,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   }
 
   /** refiner map */
-  type Refiner = Map[String, Vector[(Binding, String)]]
+  type Refiner = Map[String, Vector[(ValueTy, String)]]
 
   /** get refiner map */
   lazy val refinerOf: String => Refiner = cached { tname =>
@@ -37,13 +37,16 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       .foldLeft[Refiner](Map()) {
         case (lref, (rt, rref)) =>
           val own = ownFieldsOf(rt).foldLeft[Refiner](rref) {
-            case (m, (f, e)) =>
-              m + (f -> (m.getOrElse(f, Vector()) :+ (e -> rt)))
+            case (m, (f, r)) =>
+              m + (f -> (m.getOrElse(f, Vector()) :+ (r.value -> rt)))
           }
           (lref ++ own.map { (f, rm) =>
+            val hasF = fieldsOf(tname).get(f).fold(false)(!_.absent)
             f -> lref.get(f).fold(rm) { lm =>
-              lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
-              rm.filter((r, _) => lm.forall((l, _) => (l && r).isBottom))
+              if (hasF)
+                lm.filter((l, _) => rm.forall((r, _) => (l && r).isBottom)) ++
+                rm.filter((r, _) => lm.forall((l, _) => (l && r).isBottom))
+              else lm ++ rm
             }
           }).filter((_, v) => v.nonEmpty)
       }
