@@ -19,7 +19,7 @@ type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
 
 /** type refinement kinds */
 enum RefinementKind:
-  case True, False, Normal, Abrupt
+  case True, False, Normal, Abrupt, NormalTrue, NormalFalse
 
 // -----------------------------------------------------------------------------
 // helpers

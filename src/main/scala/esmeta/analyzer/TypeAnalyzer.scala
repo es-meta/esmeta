@@ -305,6 +305,14 @@ class TypeAnalyzer(
           xs(0).map { x => map += True -> Map(x -> RecordT("Promise")) }
           AbsValue(retTy, map)
         },
+        "IsRegExp" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += NormalTrue -> Map(x -> ObjectT)
+            map += Abrupt -> Map(x -> ObjectT)
+          }
+          AbsValue(retTy, map)
+        },
         "NewPromiseCapability" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x => map += Normal -> Map(x -> RecordT("Constructor")) }
@@ -538,14 +546,17 @@ class TypeAnalyzer(
       value: AbsValue,
       refinedValue: AbsValue,
     )(using np: NodePoint[_]): Result[List[Unit]] =
-      var kinds = Vector.empty[RefinementKind]
-      if (refinedValue.ty <= TrueT) kinds :+= RefinementKind.True
-      if (refinedValue.ty <= FalseT) kinds :+= RefinementKind.False
-      if (refinedValue.ty <= NormalT) kinds :+= RefinementKind.Normal
-      if (refinedValue.ty <= AbruptT) kinds :+= RefinementKind.Abrupt
+      import RefinementKind.*
+      val refined = refinedValue.ty
       join(for {
-        kind <- kinds
-        map <- value.refinements.get(kind).toList
+        map <- value.refinements.collect {
+          case (True, map) if refined <= TrueT                  => map
+          case (False, map) if refined <= FalseT                => map
+          case (Normal, map) if refined <= NormalT              => map
+          case (Abrupt, map) if refined <= AbruptT              => map
+          case (NormalTrue, map) if refined <= NormalT(TrueT)   => map
+          case (NormalFalse, map) if refined <= NormalT(FalseT) => map
+        }
         (x, ty) <- map
       } yield for {
         origV <- get(_.get(x))

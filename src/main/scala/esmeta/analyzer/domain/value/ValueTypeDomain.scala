@@ -153,36 +153,36 @@ trait ValueTypeDomainDecl { self: Self =>
 
       /** join operator */
       def ⊔(that: Elem): Elem =
+        val keys = elem.refinements.keySet intersect that.refinements.keySet
+        val refinements = keys.map { key =>
+          val lmap = elem.refinements.getOrElse(key, Map.empty)
+          val rmap = that.refinements.getOrElse(key, Map.empty)
+          val keys = lmap.keySet intersect rmap.keySet
+          key -> (keys.map { key => key -> (lmap(key) || rmap(key)) }.toMap)
+        }.toMap
+        Elem(elem.ty || that.ty, refinements)
+
+      /** meet operator */
+      override def ⊓(that: Elem): Elem =
         val keys = elem.refinements.keySet ++ that.refinements.keySet
         val refinements = keys.map { key =>
           val lmap = elem.refinements.getOrElse(key, Map.empty)
           val rmap = that.refinements.getOrElse(key, Map.empty)
           val keys = lmap.keySet ++ rmap.keySet
           key -> (keys.map { key =>
-            val l = lmap.getOrElse(key, ValueTy.Bot)
-            val r = rmap.getOrElse(key, ValueTy.Bot)
-            key -> (l || r)
-          }.toMap)
-        }.toMap
-        Elem(elem.ty || that.ty, refinements)
-
-      /** meet operator */
-      override def ⊓(that: Elem): Elem =
-        val keys = elem.refinements.keySet intersect that.refinements.keySet
-        val refinements = keys.map { key =>
-          val lmap = elem.refinements.getOrElse(key, Map.empty)
-          val rmap = that.refinements.getOrElse(key, Map.empty)
-          val keys = lmap.keySet ++ rmap.keySet
-          key -> (keys.map { key =>
-            val l = lmap.getOrElse(key, ValueTy.Bot)
-            val r = rmap.getOrElse(key, ValueTy.Bot)
-            key -> (l ⊓ r)
+            key -> ((lmap.get(key), rmap.get(key)) match
+              case (Some(l), Some(r)) => (l ⊓ r)
+              case (Some(l), None)    => l
+              case (None, Some(r))    => r
+              case _                  => ValueTy.Bot
+            )
           }.toMap)
         }.toMap
         Elem(elem.ty && that.ty, refinements)
 
       /** prune operator */
-      override def --(that: Elem): Elem = Elem(elem.ty -- that.ty)
+      override def --(that: Elem): Elem =
+        Elem(elem.ty -- that.ty, elem.refinements)
 
       /** concretization function */
       override def gamma: BSet[AValue] = Inf

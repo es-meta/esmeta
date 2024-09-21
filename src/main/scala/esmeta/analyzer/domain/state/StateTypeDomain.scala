@@ -105,7 +105,19 @@ trait StateTypeDomainDecl { self: Self =>
           lookupList(baseTy.list, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
           lookupMap(baseTy.map, fieldTy),
+          get(base.refinements, field: AbsValue),
         )
+
+      /** getter */
+      def get(base: Refinements, field: AbsValue): Refinements =
+        import RefinementKind.*
+        field.ty.str.getSingle match
+          case One("Value") =>
+            base.collect {
+              case (NormalTrue, map)  => True -> map
+              case (NormalFalse, map) => False -> map
+            }
+          case _ => Map()
 
       /** getter */
       def get(part: Part): AbsObj = error("do not support address partitions")
