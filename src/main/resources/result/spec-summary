@@ -11,9 +11,9 @@
 - algorithm steps: 20532 (96.91%)
   - complete: 19898
   - incomplete: 634
-- types: 7330 (95.06%)
-  - known: 6968
-  - yet: 362
+- types: 7330 (95.08%)
+  - known: 6969
+  - yet: 361
   - unknown: 625
 - tables: 94
 - type model: 90

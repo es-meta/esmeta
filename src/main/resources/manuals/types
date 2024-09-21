@@ -750,7 +750,7 @@ type ArrayBuffer extends Object {
 type SharedArrayBuffer extends Object {
   ArrayBufferData: Record[SharedDataBlock] | Null;
   ArrayBufferByteLength?: NonNegInt;
-  ArrayBufferByteLengthData?: NonNegInt;
+  ArrayBufferByteLengthData?: Record[SharedDataBlock];
   ArrayBufferMaxByteLength?: ESValue;
 }
 

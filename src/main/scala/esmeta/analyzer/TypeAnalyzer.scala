@@ -405,6 +405,22 @@ class TypeAnalyzer(
           }
           AbsValue(retTy, map)
         },
+        "IsArray" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += NormalTrue -> Map(x -> ObjectT)
+            map += Abrupt -> Map(x -> ObjectT)
+          }
+          AbsValue(retTy, map)
+        },
+        "IsConcatSpreadable" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += NormalTrue -> Map(x -> ObjectT)
+            map += Abrupt -> Map(x -> ObjectT)
+          }
+          AbsValue(retTy, map)
+        },
       )
 
     /** update return points */
