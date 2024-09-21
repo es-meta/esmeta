@@ -180,10 +180,11 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   private def update(
     pair: (String, FieldMap),
     field: String,
-    elem: Binding,
+    givenElem: Binding,
     refine: Boolean,
   ): Option[(String, FieldMap)] =
     val (t, fm) = pair
+    val elem = fieldsOf(t).get(field).fold(givenElem)(_ && givenElem)
     val x = (for {
       map <- refinerOf(t).get(field)
       (_, u) <- map.find { case (e, _) => elem <= e }

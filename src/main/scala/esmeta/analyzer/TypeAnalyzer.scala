@@ -540,17 +540,13 @@ class TypeAnalyzer(
       // refine logical disjunction
       case EBinary(BOp.Or, l, r) =>
         st =>
-          lazy val ltst = refine(l, true)(st)
-          lazy val lfst = refine(l, false)(st)
-          val rst = refine(r, positive)(lfst)
-          if (positive) ltst ⊔ rst else lfst ⊓ rst
+          if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
+          else refine(r, false)(refine(l, false)(st))
       // refine logical conjunction
       case EBinary(BOp.And, l, r) =>
         st =>
-          lazy val ltst = refine(l, true)(st)
-          lazy val lfst = refine(l, false)(st)
-          val rst = refine(r, positive)(ltst)
-          if (positive) ltst ⊓ rst else lfst ⊔ rst
+          if (positive) refine(r, true)(refine(l, true)(st))
+          else refine(l, false)(st) ⊔ refine(r, false)(st)
       // no pruning
       case _ => st => st
     }
