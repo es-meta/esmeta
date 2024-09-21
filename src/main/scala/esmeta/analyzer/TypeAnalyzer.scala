@@ -282,6 +282,17 @@ class TypeAnalyzer(
           xs(0).map { x => map += True -> Map(x -> RecordT("Constructor")) }
           AbsValue(retTy, map)
         },
+        "RequireInternalSlot" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          val refined = vs(1).ty.str.getSingle match
+            case One(f) =>
+              ValueTy(
+                record = ObjectT.record.update(f, Binding.Exist, refine = true),
+              )
+            case _ => ObjectT
+          xs(0).map { x => map += Normal -> Map(x -> refined) }
+          AbsValue(retTy, map)
+        },
         "ValidateTypedArray" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x =>

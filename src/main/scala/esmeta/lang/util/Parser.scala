@@ -1330,6 +1330,7 @@ trait Parsers extends IndentParsers {
     "ECMAScript language value" ^^^ ESValueT |
     "Array" ^^^ ArrayT |
     "TypedArray" ^^^ TypedArrayT |
+    opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |

@@ -54,6 +54,7 @@ lazy val FunctionT: ValueTy = RecordT("FunctionObject")
 lazy val ConstructorT: ValueTy = RecordT("Constructor")
 lazy val ArrayT: ValueTy = RecordT("Array")
 lazy val TypedArrayT: ValueTy = RecordT("TypedArray")
+lazy val RegExpT: ValueTy = RecordT("RegExp")
 lazy val ESPrimT: ValueTy = ValueTy(
   record = RecordTy("Symbol"),
   number = NumberTy.Top,
