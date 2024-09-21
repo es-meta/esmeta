@@ -743,7 +743,7 @@ type ArrayBuffer extends Object {
   ArrayBufferData: Record[SharedDataBlock] | Null;
   ArrayBufferByteLength: NonNegInt;
   ArrayBufferDetachKey: ESValue;
-  ArrayBufferMaxByteLength?: ESValue;
+  ArrayBufferMaxByteLength?: NonNegInt;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-instances
@@ -751,7 +751,7 @@ type SharedArrayBuffer extends Object {
   ArrayBufferData: Record[SharedDataBlock] | Null;
   ArrayBufferByteLength?: NonNegInt;
   ArrayBufferByteLengthData?: Record[SharedDataBlock];
-  ArrayBufferMaxByteLength?: ESValue;
+  ArrayBufferMaxByteLength?: NonNegInt;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-dataview-instances
