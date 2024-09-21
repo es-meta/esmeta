@@ -436,6 +436,20 @@ class TypeAnalyzer(
             ),
           ) if np.func.isBuiltin =>
         AbsValue(RecordT("Constructor"))
+      // a precise type for intrinsic objects
+      case ERef(
+            Field(
+              Field(
+                Field(
+                  Field(Global("EXECUTION_STACK"), EMath(0)),
+                  EStr("Realm"),
+                ),
+                EStr("Intrinsics"),
+              ),
+              EStr(name),
+            ),
+          ) =>
+        AbsValue(cfg.init.intr.kinds.getOrElse(name, ObjectT))
       case EMap((kty, vty), _) => AbsValue(MapT(kty.toValue, vty.toValue))
       case _                   => super.transfer(expr)
 

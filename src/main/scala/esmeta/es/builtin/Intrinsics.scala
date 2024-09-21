@@ -4,6 +4,7 @@ import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.spec.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 
 /** model for intrinsics */
@@ -35,16 +36,28 @@ case class Intrinsics(cfg: CFG) {
     }
 
     // not yet objects
-    yets.foreach { name => _map += (intrAddr(name) -> YetObj(name, name)) }
+    yets.foreach { (name, _) => _map += (intrAddr(name) -> YetObj(name, name)) }
 
     // result
     _map
   }
 
+  lazy val kinds: Map[String, ValueTy] =
+    val xs = (for {
+      x <- names.toList
+      addr = intrAddr(x)
+      case (obj: RecordObj) <- map.get(addr)
+      ty =
+        if (obj.map contains "Construct") ConstructorT
+        else if (obj.map contains "Call") FunctionT
+        else ObjectT
+    } yield x -> ty).toMap ++ yets
+    xs.map { case (x, ty) => s"%$x%" -> ty }
+
+  val names: Set[String] = intrinsics.keySet ++ yets.keySet
+
   /** get intrinsic map */
-  val obj: MapObj =
-    val names = intrinsics.keySet ++ yets
-    MapObj(names.toList.map(x => Str(s"%$x%") -> intrAddr(x)))
+  val obj: MapObj = MapObj(names.toList.map(x => Str(s"%$x%") -> intrAddr(x)))
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())

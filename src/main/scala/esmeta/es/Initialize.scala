@@ -100,10 +100,10 @@ class Initialize(cfg: CFG) {
   // implicit CFG
   given CFG = cfg
 
-  private val intr = Intrinsics(cfg)
-  private val glob = GlobalObject(cfg)
-  private val sym = builtin.Symbol(cfg)
-  private val agent = recordObj("AgentRecord")(
+  val intr = Intrinsics(cfg)
+  val glob = GlobalObject(cfg)
+  val sym = builtin.Symbol(cfg)
+  val agent = recordObj("AgentRecord")(
     "LittleEndian" -> Bool(true),
     "CanBlock" -> Bool(true),
     "Signifier" -> NamedAddr(AGENT_SIGNIFIER),

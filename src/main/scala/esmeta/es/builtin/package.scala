@@ -3,6 +3,7 @@ package esmeta.es.builtin
 import esmeta.state.*
 import esmeta.spec.*
 import esmeta.cfg.CFG
+import esmeta.ty.*
 import scala.collection.mutable.{Map => MMap}
 
 /** predefined shortcuts */
@@ -40,38 +41,39 @@ val BIGINT_TYPE = "BigInt"
 val OBJECT_TYPE = "Object"
 
 /** not yet supported objects */
-val yets: Set[String] = Set(
-  // 21. Numbers and Dates
-  "Date",
-  // 22. Text Processing
-  "RegExp",
-  // 23. Indexed Collections
-  "TypedArray",
-  "Int8Array",
-  "Uint8Array",
-  "Uint8ClampedArray",
-  "Int16Array",
-  "Uint16Array",
-  "Int32Array",
-  "Uint32Array",
-  "BigInt64Array",
-  "BigUint64Array",
-  "Float32Array",
-  "Float64Array",
-  // 25. Structured Data
-  "ArrayBuffer",
-  "SharedArrayBuffer",
-  "DataView",
-  "Atomics",
-  "JSON",
-  // 26. Managing Memory
-  "WeakRef",
-  "FinalizationRegistry",
-  // test262
-  "$262",
-  // ShadowRealm
-  "ShadowRealm",
-)
+val yets: Map[String, ValueTy] =
+  Map(
+    // 21. Numbers and Dates
+    "Date" -> ConstructorT,
+    // 22. Text Processing
+    "RegExp" -> ConstructorT,
+    // 23. Indexed Collections
+    "TypedArray" -> ConstructorT,
+    "Int8Array" -> ConstructorT,
+    "Uint8Array" -> ConstructorT,
+    "Uint8ClampedArray" -> ConstructorT,
+    "Int16Array" -> ConstructorT,
+    "Uint16Array" -> ConstructorT,
+    "Int32Array" -> ConstructorT,
+    "Uint32Array" -> ConstructorT,
+    "BigInt64Array" -> ConstructorT,
+    "BigUint64Array" -> ConstructorT,
+    "Float32Array" -> ConstructorT,
+    "Float64Array" -> ConstructorT,
+    // 25. Structured Data
+    "ArrayBuffer" -> ConstructorT,
+    "SharedArrayBuffer" -> ConstructorT,
+    "DataView" -> ConstructorT,
+    "Atomics" -> ObjectT,
+    "JSON" -> ObjectT,
+    // 26. Managing Memory
+    "WeakRef" -> ConstructorT,
+    "FinalizationRegistry" -> ConstructorT,
+    // test262
+    "$262" -> ConstructorT,
+    // ShadowRealm
+    "ShadowRealm" -> ObjectT,
+  )
 
 /** not yet supported functions */
 val yetFuncs: Set[String] = Set(
