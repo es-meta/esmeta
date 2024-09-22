@@ -296,7 +296,21 @@ class TypeAnalyzer(
         "ValidateTypedArray" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x =>
-            map += Normal -> Map(x -> RecordT("IntegerIndexedExoticObject"))
+            map += Normal -> Map(x -> RecordT("TypedArray"))
+          }
+          AbsValue(retTy, map)
+        },
+        "ValidateIntegerTypedArray" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += Normal -> Map(x -> RecordT("TypedArray"))
+          }
+          AbsValue(retTy, map)
+        },
+        "ValidateAtomicAccessOnIntegerTypedArray" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += Normal -> Map(x -> RecordT("TypedArray"))
           }
           AbsValue(retTy, map)
         },
