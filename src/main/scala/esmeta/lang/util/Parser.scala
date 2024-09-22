@@ -1270,7 +1270,7 @@ trait Parsers extends IndentParsers {
   // named record types
   lazy val recordTy: P[ValueTy] =
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
-      case fs => RecordT(fs.map(_.name).toSet)
+      case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
     } | opt("an " | "a ") ~> {
       rep1(camel) ^^ { case ss => normRecordT(ss.mkString(" ")) } ||| (
         "ordinary object" |

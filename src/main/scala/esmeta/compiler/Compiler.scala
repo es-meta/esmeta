@@ -275,7 +275,7 @@ class Compiler(
         case (_, Some(context), _) => fb.addReturnToResume(context, e)
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
-    case ForEachStep(ty, x, expr, true, body) =>
+    case ForEachStep(ty, variable, expr, true, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
@@ -286,13 +286,22 @@ class Compiler(
         IWhile(
           lessThan(iExpr, ESizeOf(listExpr)),
           fb.newScope {
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            val x = compile(variable)
+            fb.addInst(ILet(x, toERef(list, iExpr)))
+            ty.fold(compile(fb, body)) { ty =>
+              fb.addInst(
+                IIf(
+                  ETypeCheck(ERef(x), compile(ty)),
+                  compileWithScope(fb, body),
+                  emptyInst,
+                ),
+              )
+            }
             fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
       )
-    case ForEachStep(ty, x, expr, false, body) =>
+    case ForEachStep(ty, variable, expr, false, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
@@ -304,8 +313,17 @@ class Compiler(
           lessThan(zero, iExpr),
           fb.newScope {
             fb.addInst(IAssign(i, sub(iExpr, one)))
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            val x = compile(variable)
+            fb.addInst(ILet(x, toERef(list, iExpr)))
+            ty.fold(compile(fb, body)) { ty =>
+              fb.addInst(
+                IIf(
+                  ETypeCheck(ERef(x), compile(ty)),
+                  compileWithScope(fb, body),
+                  emptyInst,
+                ),
+              )
+            }
           },
         ),
       )
