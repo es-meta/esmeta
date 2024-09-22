@@ -824,7 +824,7 @@ type PromiseCapabilityRecord {
 
 // https://tc39.es/ecma262/#sec-asyncgeneratorrequest-records
 type AsyncGeneratorRequest {
-  Completion: Record[CompletionRecord];
+  Completion: Normal[ESValue] | Abrupt { Value: ESValue };
   Capability: Record[PromiseCapabilityRecord];
 }
 
