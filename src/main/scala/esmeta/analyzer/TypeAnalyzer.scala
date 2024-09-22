@@ -660,7 +660,7 @@ class TypeAnalyzer(
     def refine(
       value: AbsValue,
       refinedValue: AbsValue,
-    )(using np: NodePoint[_]): Result[List[Unit]] =
+    )(using np: NodePoint[_]): Updater =
       import RefinementKind.*
       val refined = refinedValue.ty
       join(for {
