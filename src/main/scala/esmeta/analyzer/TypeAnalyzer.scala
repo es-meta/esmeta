@@ -214,6 +214,7 @@ class TypeAnalyzer(
       "__CLAMP__",
       "Completion",
       "NormalCompletion",
+      "UpdateEmpty",
     )
 
     /** type guards */
