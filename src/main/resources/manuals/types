@@ -770,6 +770,7 @@ type WeakRef extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-finalization-registry-instances
 type FinalizationRegistry extends OrdinaryObject {
+  Realm: Record[RealmRecord];
   Cells: List[Record[{ WeakRefTarget: Record[Object | Symbol], HeldValue: ESValue, UnregisterToken: Record[Object | Symbol] | Enum[~empty~] }]];
   CleanupCallback: Record[JobCallbackRecord];
 }
@@ -790,14 +791,14 @@ type Promise extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-generator-instances
 type Generator extends OrdinaryObject {
-  GeneratorState: Enum[~completed~, ~executing~, ~suspended-start~, ~suspended-yield~] | Undefined;
+  GeneratorState: Enum[~completed~, ~executing~, ~suspended-start~, ~suspended-yield~];
   GeneratorContext: Record[ExecutionContext];
   GeneratorBrand: String | Enum[~empty~];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-intances
 type AsyncGenerator extends OrdinaryObject {
-  AsyncGeneratorState: Undefined | Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
+  AsyncGeneratorState: Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
   AsyncGeneratorContext: Record[ExecutionContext];
   AsyncGeneratorQueue: List[Record[AsyncGeneratorRequest]];
   GeneratorBrand: String | Enum[~empty~];

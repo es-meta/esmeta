@@ -190,15 +190,21 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   ): Map[String, FieldMap] =
     val (t, fm) = pair
     val existCheck = bind == Binding.Exist
-    val newBind = fieldsOf(t).get(field).fold(bind)(_ && bind)
-    val set = ((for {
-      map <- refinerOf(t).get(field).toSet
-      (_, u) <- map.filter { (ty, _) => existCheck || (newBind <= Binding(ty)) }
-    } yield u) + t)
-    val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
-    val refined = if (refine) get(pair, field) && bind else newBind
-    if (refined.isBottom) Map()
-    else xs.map(x => normalize(x -> fm.update(field, refined))).toMap
+    val newBind = getField(t, field) && bind
+    if (newBind.isBottom)
+      if (!refine && !(bind <= getField(baseOf(t), field))) Map(pair)
+      else Map()
+    else
+      val set = ((for {
+        map <- refinerOf(t).get(field).toSet
+        (_, u) <- map.filter { (ty, _) =>
+          existCheck || (newBind <= Binding(ty))
+        }
+      } yield u) + t)
+      val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
+      val refined = if (refine) get(pair, field) && bind else newBind
+      if (refined.isBottom) Map()
+      else xs.map(x => normalize(x -> fm.update(field, refined))).toMap
 
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
