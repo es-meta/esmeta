@@ -790,7 +790,9 @@ class TypeAnalyzer(
         ast = lty.ast,
         record = lty.record.update(field, binding, refine = true),
       )
-      _ <- modify(_.update(l, AbsValue(refinedTy)))
+      refinedV = AbsValue(refinedTy)
+      _ <- modify(_.update(l, refinedV))
+      _ <- refine(lv, refinedV)
     } yield ()
 
     /** refine types with field existence */
