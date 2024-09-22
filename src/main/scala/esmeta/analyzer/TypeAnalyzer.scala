@@ -487,6 +487,11 @@ class TypeAnalyzer(
             Map(),
           )
         },
+        "CanBeHeldWeakly" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x => map += True -> Map(x -> (ObjectT || SymbolT)) }
+          AbsValue(retTy, map)
+        },
       )
 
     /** update return points */
