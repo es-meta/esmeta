@@ -242,7 +242,7 @@ class TypeAnalyzer(
           AbsValue(refined, Map())
         },
         "Completion" -> { (xs, vs, retTy) =>
-          AbsValue(vs(0).ty && CompT, Map())
+          vs(0) ⊓ AbsValue(CompT)
         },
         "NormalCompletion" -> { (xs, vs, retTy) =>
           AbsValue(NormalT(vs(0).ty -- CompT), Map())
@@ -490,6 +490,13 @@ class TypeAnalyzer(
         "CanBeHeldWeakly" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x => map += True -> Map(x -> (ObjectT || SymbolT)) }
+          AbsValue(retTy, map)
+        },
+        "AsyncGeneratorValidate" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += Normal -> Map(x -> RecordT("AsyncGenerator"))
+          }
           AbsValue(retTy, map)
         },
       )
