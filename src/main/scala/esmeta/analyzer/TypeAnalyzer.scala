@@ -413,6 +413,18 @@ class TypeAnalyzer(
           }
           AbsValue(retTy, map)
         },
+        "IsSharedArrayBuffer" -> { (xs, vs, retTy) =>
+          var map: Refinements = Map()
+          xs(0).map { x =>
+            map += True -> Map(
+              x -> RecordT(
+                "SharedArrayBuffer",
+                Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
+              ),
+            )
+          }
+          AbsValue(retTy, map)
+        },
         "IsConcatSpreadable" -> { (xs, vs, retTy) =>
           var map: Refinements = Map()
           xs(0).map { x =>

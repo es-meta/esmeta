@@ -419,7 +419,7 @@ type TypedArray extends Object {
   def Set;
   def Delete;
   def OwnPropertyKeys;
-  ViewedArrayBuffer: Record[ArrayBuffer];
+  ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
   ArrayLength: NonNegInt;
   ByteOffset: NonNegInt;
   ContentType: Enum[~bigint~, ~number~];
@@ -758,7 +758,7 @@ type SharedArrayBuffer extends Object {
 // https://tc39.es/ecma262/#sec-properties-of-dataview-instances
 type DataView extends OrdinaryObject {
   DataView: Undefined;
-  ViewedArrayBuffer: ESValue;
+  ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
   ByteLength: NonNegInt | Enum[~auto~];
   ByteOffset: NonNegInt;
 }
