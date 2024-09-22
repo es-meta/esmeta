@@ -907,16 +907,21 @@ class Compiler(
         import PredicateConditionOperator.*
         val x = compile(fb, expr)
         val cond = op match {
-          case Abrupt      => ETypeCheck(x, IRType(AbruptT))
-          case NeverAbrupt => not(ETypeCheck(x, IRType(AbruptT)))
+          case Abrupt =>
+            val tv = toERef(fb, x, EStr("Type"))
+            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
+          case NeverAbrupt =>
+            val tv = toERef(fb, x, EStr("Type"))
+            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
           case op @ (Normal | Throw | Return | Break | Continue) =>
-            val ty = op match
-              case Normal   => NormalT
-              case Throw    => ThrowT
-              case Return   => ReturnT
-              case Break    => AbruptT("break")
-              case Continue => AbruptT("continue")
-            ETypeCheck(x, IRType(ty))
+            val tv = toERef(fb, x, EStr("Type"))
+            val expected = op match
+              case Normal   => EENUM_NORMAL
+              case Throw    => EENUM_THROW
+              case Return   => EENUM_RETURN
+              case Break    => EENUM_BREAK
+              case Continue => EENUM_CONTINUE
+            and(isCompletion(x), is(tv, expected))
           case Finite =>
             not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
