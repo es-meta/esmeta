@@ -1,4 +1,4 @@
-package esmeta.peval.pstate
+package esmeta.peval
 
 // TODO sort imports
 import esmeta.ir.{Expr, EClo}

@@ -4,7 +4,7 @@ import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.util.Parser
 
-import esmeta.peval.pstate.*
+import esmeta.peval.*
 import scala.collection.mutable.{Map as MMap}
 
 /** types */

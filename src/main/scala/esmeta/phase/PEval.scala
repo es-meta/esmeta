@@ -13,7 +13,6 @@ import esmeta.util.SystemUtils.*
 import esmeta.peval.{OverloadedFunc, PartialEvaluator, OverloadedIRFunc}
 
 import esmeta.peval.*
-import esmeta.peval.pstate.*
 import scala.collection.mutable.{Map as MMap}
 import esmeta.es.builtin.EXECUTION_STACK
 import esmeta.ir.{Global, Name, Temp}
@@ -61,12 +60,11 @@ case object PEval extends Phase[CFG, Unit] {
       val st = PState(
         globals = globals,
         callStack = Nil,
-        context = PContext(func = func, locals = MMap()),
+        context =
+          PContext(func = func, locals = MMap(), /* TODO : this is ad-hoc */ 0),
         heap = PHeap(),
       )
-      // .fromState(Initialize.fromFile(cfg, filename))
-      // .setContext(pevalTarget.irFunc)
-      // val (addr_empty_map, st) = st.allocMap(Nil)
+
       val addr_func_obj_record = st.allocRecord(
         "ECMAScriptFunctionObject",
         List(
@@ -144,7 +142,7 @@ case object PEval extends Phase[CFG, Unit] {
       st.define(Name("argumentsList"), Unknown);
       println(s"Starting interpertaton from ${func.name}");
       Try {
-        peval.run(func.body, st)
+        peval.run(func, st)
       }
         .map({
           case (inst, _) =>

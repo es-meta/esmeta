@@ -9,7 +9,7 @@ import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
 
-import esmeta.peval.pstate.*
+import esmeta.peval.*
 
 /** IR values */
 sealed trait Value extends StateElem {

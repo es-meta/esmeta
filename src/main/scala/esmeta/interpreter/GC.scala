@@ -2,7 +2,7 @@ package esmeta.interpreter
 
 import esmeta.state.*
 import esmeta.state.util.*
-import esmeta.peval.pstate.*
+import esmeta.peval.*
 
 // Garbage Collector
 object GC {
