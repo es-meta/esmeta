@@ -11,7 +11,14 @@ import scala.util.{Try, Success}
 
 import esmeta.state.*
 
-/** IR PStates */
+/**
+  * Partial-States for Specializer
+  *
+  * @param globals is usually same in every PState, since it is not intended to be modified
+  * @param callStack
+  * @param context
+  * @param heap
+  */
 case class PState(
   val globals: Map[Global, Predict[Value]],
   var callStack: List[PContext],
