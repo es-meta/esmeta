@@ -1,4 +1,4 @@
-package esmeta.peval.pstate
+package esmeta.peval
 
 import esmeta.cfg.*
 import esmeta.error.*
@@ -10,7 +10,6 @@ import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success}
 
 import esmeta.state.*
-import esmeta.peval.*
 
 /** IR PStates */
 case class PState(

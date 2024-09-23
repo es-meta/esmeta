@@ -1,5 +1,4 @@
 package esmeta.peval
-package pstate
 
 import esmeta.cfg.*
 import esmeta.error.*

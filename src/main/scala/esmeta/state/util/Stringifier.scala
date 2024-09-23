@@ -8,7 +8,6 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
 import esmeta.peval.*
-import esmeta.peval.pstate.*
 
 /** stringifier for state elements */
 class Stringifier(detail: Boolean, location: Boolean) {
