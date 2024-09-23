@@ -10,7 +10,6 @@ import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
-import esmeta.peval.pstate.*
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
@@ -158,10 +157,25 @@ class PartialEvaluator(
     newInst
 
   /** final state */
-  def run(inst: Inst, pst: PState): (Inst, PState) = timeout(
+  def run(func: IRFunc, pst: PState): (Inst, PState) = timeout(
     {
+      val inst = func.body
       val result @ (newBody, newPst) = peval(inst, pst)
-      logging("final", newBody)
+
+      if (log) then
+        val writer = getPrintWriter(s"$PEVAL_LOG_DIR/result.ir")
+        writer.print(
+          IRFunc(
+            func.main,
+            func.kind,
+            s"${func.name}PEvaled",
+            func.params,
+            func.retTy,
+            newBody,
+            func.algo,
+          ),
+        );
+        writer.flush();
       result
     },
     timeLimit,
@@ -230,6 +244,8 @@ class PartialEvaluator(
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+
+  val renamer = Renamer()
 }
 
 /** IR PartialEvaluator with a CFG */
