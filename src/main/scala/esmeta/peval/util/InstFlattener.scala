@@ -1,8 +1,8 @@
-package esmeta.peval.simplifier
+package esmeta.peval.util
 
 import esmeta.ir.*
 
-object RedundantSyntax:
+object InstFlattener:
   def apply(inst: Inst): Inst =
     val insts = (inst match
       case IIf(cond, thenInst, elseInst) =>
