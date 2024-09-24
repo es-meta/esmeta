@@ -8,5 +8,15 @@ import scala.collection.mutable.{Map => MMap}
 case class PContext(
   func: Func,
   locals: MMap[Local, Predict[Value]],
-  callCount: Int,
-)
+  sensitivity: Int, // use callCount
+) {
+  self =>
+
+  def callCount = self.sensitivity
+
+  def copied: PContext = PContext(
+    func,
+    locals.clone(),
+    sensitivity,
+  )
+}

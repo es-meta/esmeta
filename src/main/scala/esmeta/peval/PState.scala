@@ -11,10 +11,10 @@ import scala.util.{Try, Success}
 
 import esmeta.state.*
 
-/**
-  * Partial-States for Specializer
+/** Partial-States for Specializer
   *
-  * @param globals is usually same in every PState, since it is not intended to be modified
+  * @param globals
+  *   is usually same in every PState, since it is not intended to be modified
   * @param callStack
   * @param context
   * @param heap
@@ -82,43 +82,6 @@ case class PState(
 
   /** field setter */
   def update(base: Value, field: Value, value: Predict[Value]): PState = ???
-  // heap.update(base.asAddr, field, value)
-
-  /** existence checks */
-  def exists(rt: RefTarget): Predict[Boolean] = rt match
-    case VarTarget(x) => exists(x)
-    case FieldTarget(base, field) =>
-      base match
-        case addr: Addr    => ??? // heap.exists(addr, field)
-        case AstValue(ast) => ??? // ast.exists(field)
-        case _ => error(s"illegal field existence check: $base[$field]")
-
-  /** variable existence check */
-  def exists(x: Var): Predict[Boolean] = x match
-    case x: Global => if globals.contains(x) then Known(true) else Unknown
-    case x: Local  => Known(locals.contains(x))
-
-  /** expand a field of a record object */
-  def expand(base: Value, field: Value): Unit =
-    ??? // heap.expand(base.asAddr, field)
-
-  /** delete a key from an map object */
-  def delete(base: Value, key: Value): Unit =
-    ??? // heap.delete(base.asAddr, key)
-
-  /** push a value to a list */
-  def push(addr: Addr, value: Value, front: Boolean): Unit = ??? //
-  // heap.push(addr, value, front)
-
-  /** pop a value from a list */
-  def pop(addr: Addr, front: Boolean): Value = ??? // heap.pop(addr, front)
-
-  /** copy object */
-  def copy(addr: Addr): Addr = ??? // heap.copy(addr)
-
-  /** get keys of a record/map object as a list */
-  def keys(addr: Addr, intSorted: Boolean): Addr =
-    ??? // heap.keys(addr, intSorted)
 
   /** allocate a record object */
   def allocRecord(
@@ -128,11 +91,14 @@ case class PState(
 
   /** allocate a map object */
   def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PState) = ???
-  // val addr -> pheap = heap.allocMap(pairs)
-  // (addr, this.replaced(heap = pheap))
 
   /** allocate a list object */
   def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) = ???
-  // val addr -> pheap = heap.allocList(vs)
-  // (addr, this.replaced(heap = pheap))
+
+  def copied: PState = PState(
+    globals,
+    callStack,
+    context.copied,
+    heap.copied,
+  )
 }
