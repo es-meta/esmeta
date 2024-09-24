@@ -109,6 +109,9 @@ object SystemUtils {
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =
     cmdConfig.targets.headOption.getOrElse(throw NoFileError(msg))
 
+  def getSecondFilename(cmdConfig: CommandConfig, msg: String): String =
+    cmdConfig.targets.drop(1).headOption.getOrElse(throw NoFileError(msg))
+
   /** read file */
   def readFile(filename: String): String =
     val source = Source.fromFile(filename, ENC)

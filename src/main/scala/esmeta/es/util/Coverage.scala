@@ -471,4 +471,31 @@ object Coverage {
     cp: Boolean,
     timeLimit: Option[Int],
   )
+
+  def fromLogSimpl(baseDir: String, cfg: CFG): Coverage =
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
+    def readJsonHere[T](json: String)(using Decoder[T]) =
+      readJson[T](s"$baseDir/$json")
+
+    val con: CoverageConstructor = readJsonHere("constructor.json")
+    val cov = new Coverage(cfg, con.kFs, con.cp, con.timeLimit)
+    println("Coverage constructed")
+
+    for {
+      minimal <- listFiles(s"$baseDir/minimal")
+      name = minimal.getName
+      code = readFile(minimal.getPath).drop(USE_STRICT.length).strip
+      script = Script(code, name)
+    } {
+      try {
+        cov.runAndCheck(script)
+      } catch {
+        case e =>
+          println(f"Error in $name%-12s: $e  :  $code")
+      }
+    }
+
+    cov
 }

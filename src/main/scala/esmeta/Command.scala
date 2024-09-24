@@ -232,6 +232,15 @@ case object CmdDeltaDebug
   )
 }
 
+/** `coverage-investigate` command */
+case object CmdCoverageInvestigate
+  extends Command("coverage-investigate", CmdBuildCFG >> CoverageInvestigate) {
+  val help = "investigate newly covered parts by checking additional scripts."
+  val examples = List(
+    "esmeta coverage-investigate cov-dump-dir new-js-dir -coverage-investigate:out=out.json",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Static Analysis (Meta-Level Static Analysis)
 // -----------------------------------------------------------------------------
