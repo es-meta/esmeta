@@ -79,79 +79,26 @@ case object PEval extends Phase[CFG, Unit] {
         ),
       )
 
-      // val (addr_lexical_env, st) = st.allocRecord(
-      //   "FunctionEnvironmentRecord",
-      //   List(
-      //     "BindThisValue" -> CloFer("BindThisValue"),
-      //     "CreateImmutableBinding" -> CloDecl(
-      //       "CreateImmutableBinding",
-      //     ),
-      //     "CreateMutableBinding" -> CloDecl(
-      //       "CreateMutableBinding",
-      //     ),
-      //     "DeleteBinding" -> CloDecl("DeleteBinding"),
-      //     "FunctionObject" -> Known(addr_func_obj_record), //  #2043,
-      //     "GetBindingValue" -> CloDecl("GetBindingValue"),
-      //     "GetSuperBase" -> CloFer(
-      //       "GetSuperBase",
-      //     ), //  clo<Record[FunctionEnvironmentRecord].GetSuperBase>,
-      //     "GetThisBinding" -> CloFer(
-      //       "GetThisBinding",
-      //     ), //  clo<Record[FunctionEnvironmentRecord].GetThisBinding>,
-      //     "HasBinding" -> CloDecl(
-      //       "HasBinding",
-      //     ), //  clo<Record[DeclarativeEnvironmentRecord].HasBinding>,
-      //     "HasSuperBinding" -> CloFer(
-      //       "HasSuperBinding",
-      //     ), //  clo<Record[FunctionEnvironmentRecord].HasSuperBinding>,
-      //     "HasThisBinding" -> CloFer(
-      //       "HasThisBinding",
-      //     ), //  clo<Record[FunctionEnvironmentRecord].HasThisBinding>,
-      //     "InitializeBinding" -> CloDecl(
-      //       "InitializeBinding",
-      //     ), //  clo<Record[DeclarativeEnvironmentRecord].InitializeBinding>,
-      //     "NewTarget" -> Unknown, //  undefined,
-      //     "OuterEnv" -> Unknown, // RuntimeValue,
-      //     "SetMutableBinding" -> CloDecl(
-      //       "SetMutableBinding",
-      //     ), //  clo<Record[DeclarativeEnvironmentRecord].SetMutableBinding>,
-      //     "ThisBindingStatus" -> Unknown, //  ~initialized~,
-      //     "ThisValue" -> Unknown, //  undefined,
-      //     "WithBaseObject" -> CloDecl(
-      //       "WithBaseObject",
-      //     ), //  clo<Record[DeclarativeEnvironmentRecord].WithBaseObject>,
-      //     "__MAP__" -> Known(addr_empty_map), // some address,
-      //   ),
-      // )(using cfg);
+      st.define(
+        Name(s"${"func"}_${cfg.fnameMap(TARGET_NAME).id}_0"),
+        Known(addr_func_obj_record),
+      )
+      st.define(
+        Name(s"${"argumentsList"}_${cfg.fnameMap(TARGET_NAME).id}_0"),
+        Unknown,
+      );
 
-      // val (addr_exec_ctxt, st) = st.allocRecord(
-      //   "ExecutionContext",
-      //   List(
-      //     "Function" -> Unknown,
-      //     "Realm" -> Unknown,
-      //     "ScriptOrModule" -> Unknown,
-      //     "LexicalEnvironment" -> Known(addr_lexical_env),
-      //     "VariableEnvironment" -> Unknown,
-      //     "PrivateEnvironment" -> Unknown,
-      //   ),
-      // )(using cfg);
-
-      // val (addr_exec_stck, st) = st.allocList(List(Known(addr_exec_ctxt)));
-      // st.define(Global(EXECUTION_STACK), Known(addr_exec_stck))
-      st.define(Name("func"), Known(addr_func_obj_record))
-      st.define(Name("argumentsList"), Unknown);
       println(s"Starting interpertaton from ${func.name}");
       Try {
         peval.run(func, st)
       }
         .map({
           case (inst, _) =>
-            println(s"SUCCESSED EXECUTION");
-            println(inst)
+            println(s"SUCCESSED PEVAL")
         })
         .recover({
           case (throwable) =>
-            println(s"FAILED EXECUTION: ${throwable}");
+            println(s"FAILED PEVAL: ${throwable}");
             throwable.printStackTrace();
         })
         .map((_) => println("Omit printing state..."))
