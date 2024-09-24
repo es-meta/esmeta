@@ -34,18 +34,27 @@ class PartialEvaluator(
   /** control flow graphs */
   given CFG = cfg
 
-  def peval(ref: Ref, pst: PState): (Predict[RefTarget]) = ref match
-    case x: Var => Known(VarTarget(x))
+  def peval(ref: Ref, pst: PState): (Predict[RefTarget], Ref) = ref match
+
+    case x: Var =>
+      val newVar = renamer.get(x, pst.context)
+      (Known(VarTarget(newVar)), newVar)
     case Field(ref, expr) =>
-      val base = pst(peval(ref, pst))
-      val (field, _) = peval(expr, pst)
-      (base, field) match
+      val (base, newBase) =
+        val (tgt, newRef) = peval(ref, pst);
+        (pst(tgt), newRef)
+      val (field, newField) = peval(expr, pst)
+      val tgt = (base, field) match
         case (Known(b), Known(f)) => Known(FieldTarget(b, f))
-        case _                    => Unknown
+        case _                    => (Unknown)
+      (tgt, Field(newBase, newField))
 
   def peval(expr: Expr, pst: PState): (Predict[Value], Expr) =
     val result = expr match
-      case ERef(ref) => (pst(peval(ref, pst)), expr)
+      case ERef(ref) =>
+        val (tgt, newRef) = peval(ref, pst);
+        (pst(tgt), ERef(newRef))
+
       case e: LiteralExpr =>
         e match
           case EMath(n)        => (Known(Math(n)), e)
@@ -92,11 +101,12 @@ class PartialEvaluator(
 
   def peval(inst: Inst, pst: PState): (Inst, PState) =
     logging("inst", inst.toString(detail = false))
-    val newInst = inst match
+    val (newInst, newPst) = inst match
       case ILet(lhs, expr) =>
-        val (pv, _) = peval(expr, pst)
-        pst.define(lhs, pv)
-        (inst, pst)
+        val newLhs = renamer.get(lhs, pst.context)
+        val (pv, newExpr) = peval(expr, pst)
+        pst.define(newLhs, pv)
+        (ILet(newLhs, newExpr), pst)
       case ISeq(insts) =>
         val (newInsts, newPst) = insts.foldLeft((List[Inst](), pst)) {
           case ((acc, pst), inst) =>
@@ -104,23 +114,44 @@ class PartialEvaluator(
             (acc :+ newInst, newPst)
         }
         (ISeq(newInsts), newPst)
+
       case ISdoCall(lhs, base, method, args) =>
         val (pv, newBase) = peval(base, pst)
         pv match
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
           // case Known(AstValue(ast)) =>
           case _ =>
-            pst.define(lhs, Unknown)
-            (inst, pst)
+            val newLhs = renamer.get(lhs, pst.context)
+            pst.define(newLhs, Unknown)
+            (ISdoCall(newLhs, base, method, args), pst)
       case call @ ICall(lhs, fexpr, args) =>
-        pst.define(lhs, Unknown)
-        (inst, pst)
+        val newLhs = renamer.get(lhs, pst.context)
+        pst.define(newLhs, Unknown)
+
+        (ICall(newLhs, fexpr, args), pst)
       case INop() => (ISeq(Nil), pst)
-      // case IAssign(ref, expr)             => (inst)
+      case IAssign(ref, expr) =>
+        ref match
+          case x: Var =>
+            val newVar = renamer.get(x, pst.context);
+            val (pv, newExpr) = peval(expr, pst)
+            pst.update(newVar, pv)
+            (IAssign(newVar, newExpr), pst)
+          case Field(_, _) =>
+            (inst, pst)
+
+      case IPop(lhs, list, front) =>
+        val newLhs = renamer.get(lhs, pst.context);
+        val (pv, newListExpr) = peval(list, pst);
+        pv match
+          case Known(_) => ??? // TODO : modify heap
+          case Unknown  => ??? // TODO : killall heap (일단 지금은 없음)
+        pst.define(newLhs, Unknown)
+        (IPop(newLhs, newListExpr, front), pst)
+
       // case IExpand(base, expr)            => (inst)
       // case IDelete(base, expr)            => (inst)
       // case IPush(elem, list, front)       => (inst)
-      // case IPop(lhs, list, front)         => (inst)
       // case IReturn(expr)                  => (inst)
       // case IAssert(expr)                  => (inst)
       // case IPrint(expr)                   => (inst)
@@ -154,7 +185,11 @@ class PartialEvaluator(
       // setCallResult(lhs, Interpreter.eval(lex, method))
       case _ => (inst, pst)
     logging("pst", pst)
-    newInst
+    logging(
+      "inst",
+      s"${inst.toString(detail = false)} -> ${newInst.toString(detail = false)}\n",
+    )
+    (newInst, newPst)
 
   /** final state */
   def run(func: IRFunc, pst: PState): (Inst, PState) = timeout(
@@ -213,14 +248,6 @@ class PartialEvaluator(
     aux(Map.empty[Local, Predict[Value]])(params, args)
   }
 
-  /** transition for references */
-  def eval(ref: Ref): RefTarget = ref match
-    case x: Var           => VarTarget(x)
-    case Field(ref, expr) => ???
-  // var base = pst(eval(ref))
-  // val f = eval(expr)
-  // FieldTarget(base, f)
-
   def logging(tag: String, data: Any): Unit = if (log)
     pw.println(s"[$tag] $data")
     pw.flush()
@@ -245,6 +272,7 @@ class PartialEvaluator(
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
+  // NOTE : renamer should NOT be copied when copying PState - renamer is, specializer-level global state.
   val renamer = Renamer()
 }
 
