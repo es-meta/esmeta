@@ -16,7 +16,6 @@ import esmeta.state.*
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
   val map: MMap[Addr, PObj] = MMap(),
-  var size: Int = 0, // TODO: move to PartialEvaluator
 ) extends StateElem {
 
   /** getter */
@@ -44,42 +43,38 @@ case class PHeap(
   def pop(addr: Addr, front: Boolean): Predict[Value] = apply(addr).pop(front)
 
   /** copy */
-  def copy(addr: Addr): Addr = alloc(apply(addr).copied)
+  def copy(newAddr: Addr, addr: Addr): Unit = alloc(newAddr, apply(addr).copied)
 
   /** keys */
-  def keys(addr: Addr, intSorted: Boolean): Addr = allocList(
-    ???,
-    // apply(addr)
-    // .keys(intSorted)
-    // .map(_.toPValue),
-  )
+  def keys(addr: Addr, intSorted: Boolean): Addr = ??? // allocList(
+  // ???,
+  // apply(addr)
+  // .keys(intSorted)
+  // .map(_.toPValue),
+  // )
 
   /** record allocations */
   def allocRecord(
+    addr: Addr,
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  ): Addr = alloc(PRecordObj(tname, pairs))
+  ): Unit = alloc(addr, PRecordObj(tname, pairs))
 
   /** map allocations */
-  def allocMap(pairs: Iterable[(Value, Predict[Value])]): Addr =
-    alloc(PMapObj(pairs))
+  def allocMap(addr: Addr, pairs: Iterable[(Value, Predict[Value])]): Unit =
+    alloc(addr, PMapObj(pairs))
 
   /** list allocations */
-  def allocList(vs: Iterable[Predict[Value]]): Addr =
-    alloc(PListObj(vs.toVector))
+  def allocList(addr: Addr, vs: Iterable[Predict[Value]]): Unit =
+    alloc(addr, PListObj(vs.toVector))
 
   // allocation helper
-  private def alloc(obj: PObj): Addr =
-    val newAddr = DynamicAddr(size)
-    this.map += newAddr -> obj
-    this.size += 1
-    newAddr
+  private def alloc(addr: Addr, obj: PObj): Unit =
+    this.map += addr -> obj
 
   /** copied */
-  def copied: PHeap = this
-
-  def toHeap: esmeta.state.Heap = esmeta.state.Heap(
-    ???, // MMap.from(map),
-    size,
+  def copied: PHeap = PHeap(
+    map.clone(),
   )
+
 }

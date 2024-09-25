@@ -10,7 +10,8 @@ import esmeta.interpreter.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
-import esmeta.state.*
+import esmeta.peval.util.*
+import esmeta.state.{BigInt, *}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
@@ -20,8 +21,8 @@ import java.math.MathContext.DECIMAL128
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
-import esmeta.state.BigInt
-import esmeta.peval.util.InstFlattener
+
+import scala.util.{Try}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
@@ -31,6 +32,8 @@ class PartialEvaluator(
   val simplifyLevel: Int = 1,
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
+  val renamer: Renamer,
+  // NOTE : renamer should NOT be copied when copying PState - renamer is, specializer-level global state.
 ) {
   import PartialEvaluator.*
 
@@ -56,7 +59,9 @@ class PartialEvaluator(
     val result = expr match
       case ERef(ref) =>
         val (tgt, newRef) = peval(ref, pst);
-        (pst(tgt), ERef(newRef))
+        pst(tgt) match
+          case Known(v) if v.isPrintable => (pst(tgt), v.toExpr)
+          case _                         => (pst(tgt), ERef(newRef))
       // TODO : how to properly handle control flow?
 
       // case EClo(fname, captured) =>
@@ -75,6 +80,11 @@ class PartialEvaluator(
           case ENull()         => (Known(Null), e)
           case EEnum(name)     => (Known(Enum(name)), e)
           case ECodeUnit(c)    => (Known(CodeUnit(c)), e)
+      case EList(exprs) =>
+        val vs = exprs.map(expr => peval(expr, pst))
+        val addr = renamer.newAddr
+        pst.allocList(addr, vs.map(_._1).toVector)
+        (Known(addr), EList(vs.map(_._2)))
       // case EParse(code, rule)                       => ???
       // case EGrammarSymbol(name, params)             => ???
       // case ESourceText(expr)                        => ???
@@ -127,21 +137,43 @@ class PartialEvaluator(
         (ISeq(newInsts), newPst)
 
       case ISdoCall(lhs, base, method, args) =>
+        logCallStack(
+          s"ISdoCall : ${pst.callStack.size}",
+          s"Found ISdoCall, inst is =${ISdoCall(lhs, base, method, args)}...",
+        )
+        logCallStack(
+          s"ISdoCall : ${pst.callStack.size}",
+          s"let's evaluate base=${base}...",
+        )
+        logCallStack(
+          s"ISdoCall : ${pst.callStack.size}",
+          s"just before that.. this is ctxt.locals=${pst.context.locals}, and ctxt.sensitivity=${pst.context.sensitivity}",
+        )
         val newCallCount = renamer.newCallCount
         val newLhs = renamer.get(lhs, pst.context)
         val (pv, newBase) = peval(base, pst)
         pv match
           case Unknown =>
-            logging("sdo", "Unknown Call")
+            logCallStack(
+              s"ISdoCall : ${pst.callStack.size}",
+              s"(pv ~> ???) : UNKNOWN CALL",
+            )
             // we can skip evaluating args
             pst.define(newLhs, Unknown)
             (ISdoCall(newLhs, newBase, method, /* unused */ args), pst)
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
           // case Known(AstValue(ast)) =>
           case Known(value) =>
+            logCallStack(
+              s"ISdoCall : ${pst.callStack.size}",
+              s"(pv ~> ${value})",
+            )
             value.asAst match {
               case syn: Syntactic =>
-                logging("sdo", "known call : syntactic")
+                logCallStack(
+                  s"ISdoCall : ${pst.callStack.size}",
+                  s"(pv ~> ${value}) : syntactic",
+                )
                 getSdo((syn, method)) match
                   case None => throw InvalidAstField(syn, Str(method))
                   case Some((ast0, sdo)) => {
@@ -151,7 +183,8 @@ class PartialEvaluator(
                       locals = MMap.empty,
                       sensitivity = newCallCount,
                       ret = None,
-                      pathCondition = ???,
+                      pathCondition = Nil,
+                      // empty path condition for 'new' function context
                     );
                     val allocations = setLocals(
                       at = newContext,
@@ -172,15 +205,15 @@ class PartialEvaluator(
 
                     pst.callStack ::= PCallContext(pst.context, newLhs)
                     pst.context = newContext
-                    if (log) then
-                      logging("call:sdo - this", AstValue(ast0))
-                      logging("call:sdo - func", sdo.irFunc.name)
-                      logging("call:sdo - (new) context", newContext)
+                    logCallStack("call:sdo - this", AstValue(ast0))
+                    logCallStack("call:sdo - func", sdo.irFunc.name)
+                    logCallStack("call:sdo - (new) context", newContext)
                     val (body, newPst) = peval(sdo.irFunc.body, pst)
                     newPst.callStack match
                       case Nil => /* this branch should never happen */ ???
                       case (PCallContext(callerContext, _)) :: rest =>
                         val calleeContext = newPst.context
+                        newPst.callStack = rest
                         newPst.context = callerContext
                         pst.define(
                           newLhs,
@@ -189,12 +222,16 @@ class PartialEvaluator(
                         (ISeq(List(allocations, body)), newPst)
                   }
               case lex: Lexical =>
-                logging("sdo", "known call : lexical")
+                logCallStack(
+                  s"ISdoCall : ${pst.callStack.size}",
+                  s"(pv ~> ${value}) : lexical",
+                )
                 val v = PartialEvaluator.eval(lex, method);
                 pst.define(newLhs, Known(v))
                 (IAssign(newLhs, v.toExprOpt.getOrElse(???)), pst)
             }
       case call @ ICall(lhs, fexpr, args) =>
+        logCallStack(s"ICall : ${pst.callStack.size}", s"${call}")
         val newLhs = renamer.get(lhs, pst.context)
         val (f, newFexpr) = peval(fexpr, pst)
         f match
@@ -212,7 +249,7 @@ class PartialEvaluator(
             pst.update(newVar, pv)
             (IAssign(newVar, newExpr), pst)
           case Field(_, _) =>
-            (inst, pst)
+            (inst, pst) // TODO
 
       case IPop(lhs, list, front) =>
         val newLhs = renamer.get(lhs, pst.context);
@@ -234,26 +271,38 @@ class PartialEvaluator(
             pst.context.ret = Some(pv)
             (IReturn(newExpr), pst)
 
-      case IIf(cond, thenInst, elseInst) =>
-        val (pv, newCond) = peval(cond, pst)
-        pv match
-          case Known(Bool(true))  => peval(thenInst, pst)
-          case Known(Bool(false)) => peval(elseInst, pst)
-          case Known(value)       => throw NoBoolean(value)
-          case Unknown => {
-            val (newThen, thenPst) = peval(thenInst, pst.copied)
-            val (newElse, elsePst) = peval(elseInst, pst.copied)
-            (thenPst.context.ret, elsePst.context.ret) match
-              case (None, None) =>
-                (IIf(newCond, newThen, newElse), /* TODO : Merge */ ???)
-              case _ => /* Handle Return */ ???
-          }
+      // case IIf(cond, thenInst, elseInst) =>
+      // val (pv, newCond) = peval(cond, pst)
+      // pv match
+      //   case Known(Bool(true))  => peval(thenInst, pst)
+      //   case Known(Bool(false)) => peval(elseInst, pst)
+      //   case Known(value)       => throw NoBoolean(value)
+      //   case Unknown => {
+      //     ???
+      //     /*
+      //     val (thenPst, elsePst) = (pst.copied, pst.copied)
+
+      //     thenPst.context.pathCondition ::= newCond
+      //     elsePst.context.pathCondition ::= EUnary(UOp.Not, newCond);
+
+      //     val (newThen, newThenPst) = peval(thenInst, thenPst)
+      //     val (newElse, newElsePst) = peval(elseInst, elsePst)
+      //     (newThenPst.context.ret, newElsePst.context.ret) match
+      //       case (None, None) =>
+      //         (
+      //           IIf(newCond, newThen, newElse),
+      //           newThenPst.join(elsePst),
+      //         ) /* TODO : Join */
+      //       case (_, _) =>
+      //         /* Handle Return */
+      //         ???
+      //      */
+      //   }
       // case IExpand(base, expr)            => (inst)
       // case IDelete(base, expr)            => (inst)
       // case IPush(elem, list, front)       => (inst)
       // case IAssert(expr)                  => (inst)
       // case IPrint(expr)                   => (inst)
-      // case IIf(cond, thenInst, elseInst)  => (inst)
       // case IWhile(cond, body)             => (inst)
 
       case _ => (inst, pst)
@@ -261,7 +310,6 @@ class PartialEvaluator(
     logging(
       s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
       s"${inst.toString(detail = false)} -> ${newInst.toString(detail = false)}\n",
-      tab = 8,
     )
     (newInst, newPst)
 
@@ -281,7 +329,7 @@ class PartialEvaluator(
             func.params,
             func.retTy,
             simplifyLevel match
-              case 0 => inst
+              case 0 => newBody
               case 1 => InstFlattener(newBody)
               case _ => InstFlattener(newBody) // TODO : add usedef
             ,
@@ -320,18 +368,28 @@ class PartialEvaluator(
           if (isCont) then (evalArgs) else ??? // throw RemainingArgs(args)
         case (param :: pl, (arg, argExpr) :: al) =>
           map += (param.lhs -> arg)
-          aux(IAssign(param.lhs, argExpr) :: evalArgs)(pl, al)
+          aux(
+            IAssign(param.lhs, argExpr)
+              .addComment("NOTE : should be removed") :: evalArgs,
+          )(
+            pl,
+            al,
+          )
       }
     // reverse needed to keep order
     ISeq(aux(Nil)(params, args).reverse.toList)
   }
 
-  def logging(tag: String, data: Any, tab: Int = 0): Unit = if (log)
-    val text = s"[$tag] $data";
-    val tabbed =
-      if (tab <= 0) then text else text.replace("\n", s"\n${" " * tab}")
-    pw.println(tabbed)
-    pw.flush()
+  def buildLogger = (writer: PrintWriter) =>
+    (tag: String, data: Any) =>
+      if (log)
+        writer.println(s"[$tag] $data")
+        writer.flush()
+
+  lazy val logging = buildLogger(pw)
+  lazy val logCallStack = buildLogger(
+    getPrintWriter(s"$PEVAL_LOG_DIR/callstack"),
+  )
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -353,26 +411,29 @@ class PartialEvaluator(
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
-  // NOTE : renamer should NOT be copied when copying PState - renamer is, specializer-level global state.
-  val renamer = Renamer()
 }
 
 /** IR PartialEvaluator with a CFG */
 object PartialEvaluator {
 
   extension (v: Value) {
-    def toExprOpt: Option[Expr] = v match
-      case Math(decimal)  => Some(EMath(decimal))
-      case Infinity(pos)  => Some(EInfinity(pos))
-      case Enum(name)     => Some(EEnum(name))
-      case CodeUnit(c)    => Some(ECodeUnit(c))
-      case Number(double) => Some(ENumber(double))
-      case BigInt(bigInt) => Some(EBigInt(bigInt))
-      case Str(str)       => Some(EStr(str))
-      case Bool(bool)     => Some(EBool(bool))
-      case Undef          => Some(EUndef())
-      case Null           => Some(ENull())
-      case _              => None
+
+    def toExpr: Expr = v match
+      case Math(decimal)  => EMath(decimal)
+      case Infinity(pos)  => EInfinity(pos)
+      case Enum(name)     => EEnum(name)
+      case CodeUnit(c)    => ECodeUnit(c)
+      case Number(double) => ENumber(double)
+      case BigInt(bigInt) => EBigInt(bigInt)
+      case Str(str)       => EStr(str)
+      case Bool(bool)     => EBool(bool)
+      case Undef          => EUndef()
+      case Null           => ENull()
+      case _              => throw new NonLiteral(v)
+
+    def toExprOpt: Option[Expr] = Try(v.toExpr).toOption
+
+    def isPrintable: Boolean = toExprOpt.isDefined
   }
 
   /** transition for lexical SDO - copied from Interpreter.scala */
