@@ -20,12 +20,15 @@ import java.math.MathContext.DECIMAL128
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
+import esmeta.state.BigInt
+import esmeta.peval.util.InstFlattener
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
   val cfg: CFG,
   val log: Boolean = false,
   val detail: Boolean = false,
+  val simplifyLevel: Int = 1,
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
@@ -54,6 +57,11 @@ class PartialEvaluator(
       case ERef(ref) =>
         val (tgt, newRef) = peval(ref, pst);
         (pst(tgt), ERef(newRef))
+      // TODO : how to properly handle control flow?
+
+      // case EClo(fname, captured) =>
+      // val func = cfg.getFunc(fname)
+      // (PClo(func, captured.map(x => x -> pst(x)).toMap), expr)
 
       case e: LiteralExpr =>
         e match
@@ -100,7 +108,10 @@ class PartialEvaluator(
     result
 
   def peval(inst: Inst, pst: PState): (Inst, PState) =
-    logging("inst", inst.toString(detail = false))
+    logging(
+      s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
+      inst.toString(detail = false),
+    )
     val (newInst, newPst) = inst match
       case ILet(lhs, expr) =>
         val newLhs = renamer.get(lhs, pst.context)
@@ -116,19 +127,82 @@ class PartialEvaluator(
         (ISeq(newInsts), newPst)
 
       case ISdoCall(lhs, base, method, args) =>
+        val newCallCount = renamer.newCallCount
+        val newLhs = renamer.get(lhs, pst.context)
         val (pv, newBase) = peval(base, pst)
         pv match
+          case Unknown =>
+            logging("sdo", "Unknown Call")
+            // we can skip evaluating args
+            pst.define(newLhs, Unknown)
+            (ISdoCall(newLhs, newBase, method, /* unused */ args), pst)
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
           // case Known(AstValue(ast)) =>
-          case _ =>
-            val newLhs = renamer.get(lhs, pst.context)
-            pst.define(newLhs, Unknown)
-            (ISdoCall(newLhs, base, method, args), pst)
+          case Known(value) =>
+            value.asAst match {
+              case syn: Syntactic =>
+                logging("sdo", "known call : syntactic")
+                getSdo((syn, method)) match
+                  case None => throw InvalidAstField(syn, Str(method))
+                  case Some((ast0, sdo)) => {
+                    val vs = args.map((e) => peval(e, pst))
+                    val newContext = PContext(
+                      func = sdo.irFunc,
+                      locals = MMap.empty,
+                      sensitivity = newCallCount,
+                      ret = None,
+                      pathCondition = ???,
+                    );
+                    val allocations = setLocals(
+                      at = newContext,
+                      params = sdo.irFunc.params.map(p =>
+                        Param(
+                          renamer.get(p.lhs, newContext),
+                          p.ty,
+                          p.optional,
+                          p.specParam,
+                        ),
+                      ),
+                      // TODO : There is no way to print ast0 as expression this should be removed somehow
+                      /* Ad-hoc fix */
+                      args = Known(AstValue(ast0)) -> ERef(Temp(-1)) :: vs,
+                      func = sdo,
+                      isCont = false,
+                    )
+
+                    pst.callStack ::= PCallContext(pst.context, newLhs)
+                    pst.context = newContext
+                    if (log) then
+                      logging("call:sdo - this", AstValue(ast0))
+                      logging("call:sdo - func", sdo.irFunc.name)
+                      logging("call:sdo - (new) context", newContext)
+                    val (body, newPst) = peval(sdo.irFunc.body, pst)
+                    newPst.callStack match
+                      case Nil => /* this branch should never happen */ ???
+                      case (PCallContext(callerContext, _)) :: rest =>
+                        val calleeContext = newPst.context
+                        newPst.context = callerContext
+                        pst.define(
+                          newLhs,
+                          calleeContext.ret.getOrElse(throw NoReturnValue),
+                        )
+                        (ISeq(List(allocations, body)), newPst)
+                  }
+              case lex: Lexical =>
+                logging("sdo", "known call : lexical")
+                val v = PartialEvaluator.eval(lex, method);
+                pst.define(newLhs, Known(v))
+                (IAssign(newLhs, v.toExprOpt.getOrElse(???)), pst)
+            }
       case call @ ICall(lhs, fexpr, args) =>
         val newLhs = renamer.get(lhs, pst.context)
+        val (f, newFexpr) = peval(fexpr, pst)
+        f match
+          case Known(value) => // TODO
+          case Unknown      => // TODO
         pst.define(newLhs, Unknown)
+        (ICall(newLhs, newFexpr, args), pst)
 
-        (ICall(newLhs, fexpr, args), pst)
       case INop() => (ISeq(Nil), pst)
       case IAssign(ref, expr) =>
         ref match
@@ -149,45 +223,45 @@ class PartialEvaluator(
         pst.define(newLhs, Unknown)
         (IPop(newLhs, newListExpr, front), pst)
 
+      case IReturn(expr) =>
+        logging("tring return, pst is : ", pst)
+        val (pv, newExpr) = peval(expr, pst)
+        pst.callStack match
+          case head :: _ =>
+            pst.context.ret = Some(pv)
+            (IAssign(head.retId, newExpr), pst)
+          case Nil =>
+            pst.context.ret = Some(pv)
+            (IReturn(newExpr), pst)
+
+      case IIf(cond, thenInst, elseInst) =>
+        val (pv, newCond) = peval(cond, pst)
+        pv match
+          case Known(Bool(true))  => peval(thenInst, pst)
+          case Known(Bool(false)) => peval(elseInst, pst)
+          case Known(value)       => throw NoBoolean(value)
+          case Unknown => {
+            val (newThen, thenPst) = peval(thenInst, pst.copied)
+            val (newElse, elsePst) = peval(elseInst, pst.copied)
+            (thenPst.context.ret, elsePst.context.ret) match
+              case (None, None) =>
+                (IIf(newCond, newThen, newElse), /* TODO : Merge */ ???)
+              case _ => /* Handle Return */ ???
+          }
       // case IExpand(base, expr)            => (inst)
       // case IDelete(base, expr)            => (inst)
       // case IPush(elem, list, front)       => (inst)
-      // case IReturn(expr)                  => (inst)
       // case IAssert(expr)                  => (inst)
       // case IPrint(expr)                   => (inst)
       // case IIf(cond, thenInst, elseInst)  => (inst)
       // case IWhile(cond, body)             => (inst)
-      // peval(fexpr) match
-      // case Known(clo @ Clo(calleeFunc, captured)) -> _ => ???
-      //   val vs = args.map(peval).map(_._1)
-      //   val newLocals =
-      //     getLocals(calleeFunc.irFunc.params, vs, clo) ++ (captured.map((k, v) => (k, Known(v)))) // XXX handle Unknown capture
-      //   pst.callStack = ((pst.func, pst.locals) :: pst.callStack)
-      //   pst.func = calleeFunc.irFunc
-      //   pst.locals = newLocals
-      //   call
-      // case Known(cont @ Cont(func, captured, callStack)) -> _ => ???
-      // case v => ??? // throw NoCallable(v)
-      // peval(base).asKnown.asAst match
-      //   case syn: Syntactic =>
-      //     getSdo((syn, method)) match
-      //       case Some((ast0, sdo)) =>
-      //         val vs = args.map(peval).map(_._1)
-      //         val newLocals = getLocals(
-      //           sdo.irFunc.params,
-      //           AstValue(ast0) :: vs,
-      //           Clo(sdo, Map()),
-      //         )
-      //         st.callStack = CallContext(st.context, lhs)
-      //         st.context = Context(sdo, newLocals)
-      //       case None => throw InvalidAstField(syn, Str(method))
-      // case lex: Lexical => ???
-      // setCallResult(lhs, Interpreter.eval(lex, method))
+
       case _ => (inst, pst)
     logging("pst", pst)
     logging(
-      "inst",
+      s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
       s"${inst.toString(detail = false)} -> ${newInst.toString(detail = false)}\n",
+      tab = 8,
     )
     (newInst, newPst)
 
@@ -206,7 +280,11 @@ class PartialEvaluator(
             s"${func.name}PEvaled",
             func.params,
             func.retTy,
-            newBody,
+            simplifyLevel match
+              case 0 => inst
+              case 1 => InstFlattener(newBody)
+              case _ => InstFlattener(newBody) // TODO : add usedef
+            ,
             func.algo,
           ),
         );
@@ -220,36 +298,39 @@ class PartialEvaluator(
   lazy val esParser: ESParser = cfg.esParser
 
   /** get initial local variables */
-  def getLocals(
+  def setLocals(
+    at: PContext,
     params: List[Param],
-    args: List[Predict[Value]],
-    // caller: Call,
-    callee: Callable,
-  ): Map[Local, Predict[Value]] = {
-    val func = callee.func
+    args: List[(Predict[Value], Expr)],
+    func: Func,
+    isCont: Boolean,
+  ): Inst = {
+    val map = at.locals;
     @tailrec
     def aux(
-      map: Map[Local, Predict[Value]],
-    )(ps: List[Param], as: List[Predict[Value]]): Map[Local, Predict[Value]] =
+      evalArgs: List[Inst],
+    )(ps: List[Param], as: List[(Predict[Value], Expr)]): List[Inst] =
       (ps, as) match {
-        case (Nil, Nil) => map
+        case (Nil, Nil) => (evalArgs)
         case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-          if (optional) aux(map)(pl, Nil)
+          if (optional) aux(evalArgs)(pl, Nil)
           else throw RemainingParams(ps)
         case (Nil, args) =>
           // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
-          callee match
-            case _: Cont => map
-            case _       => ??? // throw RemainingArgs(args)
-        case (param :: pl, arg :: al) =>
-          val newMap = map + (param.lhs -> arg)
-          aux(newMap)(pl, al)
+          if (isCont) then (evalArgs) else ??? // throw RemainingArgs(args)
+        case (param :: pl, (arg, argExpr) :: al) =>
+          map += (param.lhs -> arg)
+          aux(IAssign(param.lhs, argExpr) :: evalArgs)(pl, al)
       }
-    aux(Map.empty[Local, Predict[Value]])(params, args)
+    // reverse needed to keep order
+    ISeq(aux(Nil)(params, args).reverse.toList)
   }
 
-  def logging(tag: String, data: Any): Unit = if (log)
-    pw.println(s"[$tag] $data")
+  def logging(tag: String, data: Any, tab: Int = 0): Unit = if (log)
+    val text = s"[$tag] $data";
+    val tabbed =
+      if (tab <= 0) then text else text.replace("\n", s"\n${" " * tab}")
+    pw.println(tabbed)
     pw.flush()
 
   // ---------------------------------------------------------------------------
@@ -279,8 +360,23 @@ class PartialEvaluator(
 /** IR PartialEvaluator with a CFG */
 object PartialEvaluator {
 
-  /** transition for lexical SDO */
-  def eval(lex: Lexical, sdoName: String): Value = {
+  extension (v: Value) {
+    def toExprOpt: Option[Expr] = v match
+      case Math(decimal)  => Some(EMath(decimal))
+      case Infinity(pos)  => Some(EInfinity(pos))
+      case Enum(name)     => Some(EEnum(name))
+      case CodeUnit(c)    => Some(ECodeUnit(c))
+      case Number(double) => Some(ENumber(double))
+      case BigInt(bigInt) => Some(EBigInt(bigInt))
+      case Str(str)       => Some(EStr(str))
+      case Bool(bool)     => Some(EBool(bool))
+      case Undef          => Some(EUndef())
+      case Null           => Some(ENull())
+      case _              => None
+  }
+
+  /** transition for lexical SDO - copied from Interpreter.scala */
+  def eval(lex: Lexical, sdoName: String): Str | Numeric | Math | Undef = {
     import ESValueParser.*
     val Lexical(name, str) = lex
     (name, sdoName) match {
@@ -511,4 +607,5 @@ object PartialEvaluator {
     g: T => Value,
     vs: List[Value],
   ) = g(vs.map(f).reduce(op))
+
 }
