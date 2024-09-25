@@ -71,6 +71,13 @@ case class Coverage(
     this.synchronized(check(Script(code, name), interp))
   }
 
+  def runAndCheckWithBlocking(
+    script: Script,
+  ): (State, Boolean, Boolean, Set[Script], Set[NodeView], Set[CondView]) = {
+    val interp = run(script.code)
+    this.synchronized(checkWithBlocking(script, interp))
+  }
+
   /** evaluate a given ECMAScript program */
   def run(code: String): Interp = {
     val initSt = cfg.init.from(code)
@@ -129,6 +136,65 @@ case class Coverage(
 
     // TODO: impl checkWithBlocking using `blockingScripts`
     (finalSt, updated, covered)
+
+  def checkWithBlocking(
+    script: Script,
+    interp: Interp,
+  ): (State, Boolean, Boolean, Set[Script], Set[NodeView], Set[CondView]) =
+    val Script(code, _) = script
+    val initSt = cfg.init.from(code)
+    val finalSt = interp.result
+
+    var covered = false
+    var updated = false
+    var blockingScripts: Set[Script] = Set.empty
+    var coveredNodeViews = Set.empty[NodeView]
+    var coveredCondViews = Set.empty[CondView]
+
+    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
+    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+
+    // update node coverage
+    for ((nodeView, nearest) <- interp.touchedNodeViews)
+      touchedNodeViews += nodeView -> nearest
+      getScript(nodeView) match
+        case None =>
+          update(nodeView, script); coveredNodeViews += nodeView;
+          updated = true; covered = true
+        case Some(originalScript) if originalScript.code.length > code.length =>
+          update(nodeView, script)
+          updated = true
+          blockingScripts += originalScript
+        case Some(blockScript) => blockingScripts += blockScript
+
+    // update branch coverage
+    for ((condView, nearest) <- interp.touchedCondViews)
+      touchedCondViews += condView -> nearest
+      getScript(condView) match
+        case None =>
+          update(condView, nearest, script); coveredCondViews += condView;
+          updated = true; covered = true
+        case Some(origScript) if origScript.code.length > code.length =>
+          update(condView, nearest, script)
+          updated = true
+          blockingScripts += origScript
+        case Some(blockScript) => blockingScripts += blockScript
+
+    if (updated)
+      _minimalInfo += script.name -> ScriptInfo(
+        ConformTest.createTest(cfg, finalSt),
+        touchedNodeViews.keys,
+        touchedCondViews.keys,
+      )
+
+    (
+      finalSt,
+      updated,
+      covered,
+      blockingScripts,
+      coveredNodeViews,
+      coveredCondViews,
+    )
 
   /** get node coverage */
   def nodeCov: Int = nodeViewMap.size
