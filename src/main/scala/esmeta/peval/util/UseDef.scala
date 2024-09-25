@@ -1,128 +1,69 @@
-package esmeta.peval.util
+// package esmeta.peval.util
 
-import esmeta.cfg.{Node}
-import esmeta.ir.*
-import esmeta.ir.util.*
-import esmeta.cfgBuilder.CFGBuilder
-import scala.annotation.tailrec
-import scala.collection.mutable.{Set as MSet, Map as MMap}
-import esmeta.cfg.Block
-import esmeta.cfg.Call
-import esmeta.cfg.Branch
+// import esmeta.cfg.{Block, Branch, Call, Node}
+// import esmeta.cfgBuilder.CFGBuilder
+// import esmeta.ir.*
+// import esmeta.ir.util.*
+// import esmeta.util.BaseUtils.cached
 
-/** WIP */
-class UseDef(func: Func) {
-  import UseDef.*
+// import scala.annotation.tailrec
+// import scala.collection.mutable.{Set as MSet, Map as MMap}
 
-  lazy val cfg = CFGBuilder(Program(List(func)), log = false)
-  lazy val cfgFunc = cfg.fnameMap(func.name)
-  lazy val definitions: Map[Local, Set[Definition]] = cfgFunc.nodes
-    .flatMap((node) => {
-      node match
-        case Block(id, insts, _) =>
-          List
-            .from[NormalInst](insts)
-            .zipWithIndex
-            .map[Set[Definition]] {
-              case (inst, i) =>
-                inst match
-                  case ILet(lhs, expr) => Set(Definition(lhs, id -> Some(i)))
-                  case IAssign(lhs: Local, expr) =>
-                    Set(Definition(lhs, id -> Some(i)))
-                  case IPop(lhs, list, front) =>
-                    Set(Definition(lhs, id -> Some(i)))
-                  case _ => Set.empty[Definition]
-            }
-            .reduce[Set[Definition]](_ | _)
-        case Call(id, callInst, _) => Set(Definition(callInst.lhs, id -> None))
-        case _: Branch             => Set.empty
-    })
-    .groupMap[Local, Definition] { case Definition(local, _) => local } {
-      case x => x
-    }
+// /** WIP */
+// class UseDef(func: Func) {
+//   import UseDef.*
 
-  // private lazy val workingSet = Set(cfgFunc.entry.id)
-  private lazy val map = Map.empty[Int, GenKill]
+//   lazy val cfg = CFGBuilder(Program(List(func)), log = false)
+//   lazy val cfgFunc = cfg.fnameMap(func.name)
+//   lazy val nodesWithPos = cfg.nodes
+//     .map[Set[(InstCoordinate, Inst)]](_ match
+//       case Block(id, insts, _) =>
+//         insts.zipWithIndex.map {
+//           case (inst, idx) => id -> Some(idx) -> inst
+//         }.toSet
+//       case Call(id, callInst, _)     => Set(id -> None -> callInst)
+//       case Branch(id, _, cond, _, _) => Set(id -> None -> IExpr(cond)),
+//     )
+//     .reduce(_ | _)
 
-  lazy val reduced: Func = {
-    // while (!workingSet.isEmpty) {
-    //   ???
-    // };
-    ???
-  }
+//   lazy val pred = cached { ((nodeId,): InstCoordinate) =>
+//     val node = cfg.nodeMap(nodeId)
+//     cfg.nodes.filter(n => next(n.id).contains(nodeId)).map(_.id).toSet
+//   }
 
-  extension (node: Node) {
+//   lazy val next = cached { (nodeId: InstCoordiate) =>
+//     cfg.nodeMap(nodeId) match
+//       case Block(id, insts, next)   => next.map(_.id).toSet
+//       case Call(id, callInst, next) => next.map(_.id).toSet
+//       case Branch(id, kind, cond, thenNode, elseNode) =>
+//         thenNode.map(_.id).toSet | elseNode.map(_.id).toSet
+//   }
 
-    def gen = memoized[Node, Set[Definition]](cache = genMap, key = node) {
-      ???
-    }
+//   lazy val workingSet: MSet[InstCoordinate] = MSet.from(nodesWithPos.map(_._1))
 
-    def kill = memoized[Node, Set[Definition]](cache = killMap, key = node) {
-      node match
-        case Block(id, _, _) => Set.empty
-        case Call(id, callInst, next) =>
-          Set(Definition(callInst.lhs, id -> None))
-        case Branch(_, _, _, _, _) => Set.empty
-    }
+//   lazy private val inOut = MMap.empty[InstCoordinate, (Set[Local], Set[Local])]
 
-    def in = ???
-    def out = ???
-  }
+//   lazy val fixedInOut: Map[InstCoordinate, (Set[Local], Set[Local])] = {
+//     while (!workingSet.isEmpty) {
+//       val nodeId = workingSet.head
+//       workingSet -= nodeId;
+//       val node = cfg.nodeMap(nodeId);
+//       val (inOld, outOld) = inOut(nodeId);
 
-  private def genMap = MMap[Node, Set[Definition]]()
-  private def killMap = MMap[Node, Set[Definition]]()
-}
+//       val inNew = pred(nodeId).map(k => inOut(k)._2).reduce(_ | _)
+//       val outNew = genKill(nodeId)._1 | (inNew -- genKill(nodeId)._2)
 
-object UseDef {
+//       inOut += nodeId -> (inNew -> outNew);
 
-  case class GenKill(var gen: Set[Local], var kill: Set[Local])
+//       if (inNew != inOld || outNew != outOld) {
+//         workingSet ++= next(nodeId)
+//       }
+//     };
+//     Map.from(inOut)
+//   }
 
-  // extension (expr: Expr) {
-  //   object Hi {
-  //     def apply() : Unit = ()
-  //   }
-  // }
+// }
 
-  // class FindBoundVars extends UnitWalker {
-  //   lazy val get: Set[Var] = ???
-
-  //   val vars = MSet.empty[Var]
-
-  //   override def walk(expr: Expr): Unit = ???
-
-  // }
-
-  // private def findBoundNames(expr : Expr): Set[Var] = expr
-
-  extension (inst: Inst) {
-    def gen = inst match
-      case IExpr(expr)                   =>
-      case ILet(lhs, expr)               =>
-      case IAssign(ref, expr)            =>
-      case IExpand(base, expr)           =>
-      case IDelete(base, expr)           =>
-      case IPush(elem, list, front)      =>
-      case IPop(lhs, list, front)        =>
-      case IReturn(expr)                 =>
-      case IAssert(expr)                 =>
-      case IPrint(expr)                  =>
-      case INop()                        =>
-      case IIf(cond, thenInst, elseInst) =>
-      case IWhile(cond, body)            =>
-      case ICall(lhs, fexpr, args)       =>
-      case ISdoCall(lhs, base, op, args) =>
-      case ISeq(insts)                   =>
-
-  }
-
-  private def memoized[K, V](cache: MMap[K, V], key: K)(value: => V): V =
-    cache.get(key) match
-      case None       => cache += key -> value; value
-      case Some(memo) => memo
-
-  @tailrec
-  private def fix[A](f: A => A, x: A): A =
-    val fx = f(x)
-    if (fx == x) then fx else fix(f, fx)
-
-}
+// object UseDef {
+//   type InstCoordinate = (Int, Option[Int])
+// }
