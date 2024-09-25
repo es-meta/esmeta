@@ -67,9 +67,10 @@ case object PEval extends Phase[CFG, Unit] {
         callStack = Nil,
         context = PContext(
           func = func,
-          locals = MMap(), /* TODO : this is ad-hoc */ 0,
-          None,
-          Nil,
+          sensitivity = /* ad-hoc, TODO */ 0,
+          locals = MMap(),
+          ret = None,
+          pathCondition = Nil,
         ),
         heap = PHeap(),
       )
