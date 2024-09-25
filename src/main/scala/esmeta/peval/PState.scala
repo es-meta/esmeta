@@ -46,7 +46,11 @@ case class PState(
     case x: Local  => locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value)(using CFG): Predict[Value] = ???
+  def apply(base: Value, field: Value)(using CFG): Predict[Value] = base match
+    case addr: Addr    => heap(addr, field)
+    case AstValue(ast) => Known(AstValue(ast(field)))
+    case Str(str)      => apply(str, field)
+    case v             => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Predict[Value] = field match
@@ -76,15 +80,18 @@ case class PState(
 
   /** allocate a record object */
   def allocRecord(
+    addr: Addr,
     tname: String,
     pairs: Iterable[(String, Predict[Value])] = Nil,
-  ): Addr = heap.allocRecord(tname, pairs)
+  ): Unit = heap.allocRecord(addr, tname, pairs)
 
   /** allocate a map object */
-  def allocMap(pairs: Iterable[(Value, Predict[Value])]): (Addr, PState) = ???
+  def allocMap(addr: Addr, pairs: Iterable[(Value, Predict[Value])]): Unit =
+    ???
 
   /** allocate a list object */
-  def allocList(vs: Iterable[Predict[Value]]): (Addr, PState) = ???
+  def allocList(addr: Addr, vs: Iterable[Predict[Value]]): Unit =
+    heap.allocList(addr, vs)
 
   def copied: PState = PState(
     globals,
@@ -93,6 +100,6 @@ case class PState(
     heap.copied,
   )
 
-  def join(other: PState): PState = ???
+  def join(other: PState): PState = /* TODO : join states */ ???
 
 }

@@ -52,22 +52,25 @@ case object PEval extends Phase[CFG, Unit] {
         case _       => Known(v)
     } yield x -> pv
 
-    val peval = PartialEvaluator(
-      cfg = cfg,
-      log = config.log,
-      detail = config.detail,
-      simplifyLevel = config.simplify,
-    )
-
     for (fd <- fds) {
 
+      val renamer = Renamer()
+      val peval = PartialEvaluator(
+        cfg = cfg,
+        log = config.log,
+        detail = config.detail,
+        simplifyLevel = config.simplify,
+        renamer = renamer,
+      )
+
+      val thisCallCount = renamer.newCallCount
       val func = pevalTarget.irFunc
       val st = PState(
         globals = globals,
         callStack = Nil,
         context = PContext(
           func = func,
-          sensitivity = /* ad-hoc, TODO */ 0,
+          sensitivity = thisCallCount,
           locals = MMap(),
           ret = None,
           pathCondition = Nil,
@@ -75,7 +78,10 @@ case object PEval extends Phase[CFG, Unit] {
         heap = PHeap(),
       )
 
-      val addr_func_obj_record = st.allocRecord(
+      val addr_func_obj_record = renamer.newAddr
+
+      st.allocRecord(
+        addr_func_obj_record,
         "ECMAScriptFunctionObject",
         List(
           "FormalParameters" -> Known(
@@ -90,11 +96,11 @@ case object PEval extends Phase[CFG, Unit] {
       )
 
       st.define(
-        Name(s"${"func"}_${cfg.fnameMap(TARGET_NAME).id}_0"),
+        renamer.get(Name("func"), st.context),
         Known(addr_func_obj_record),
       )
       st.define(
-        Name(s"${"argumentsList"}_${cfg.fnameMap(TARGET_NAME).id}_0"),
+        renamer.get(Name("func"), st.context),
         Unknown,
       );
 
