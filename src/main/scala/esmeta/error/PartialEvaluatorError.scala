@@ -28,3 +28,5 @@ class ExpiredAllocator
   extends PartialEvaluatorError(
     s"Tried expired temporal variable allocator",
   )
+
+class PEvalOptError(msg: String) extends PartialEvaluatorError(msg)
