@@ -30,7 +30,16 @@ case object CoverageInvestigate extends Phase[CFG, Unit] {
       name = jsFile.getName
       code = readFile(jsFile.getPath).drop(USE_STRICT.length).strip
       script = Script(code, name)
-      (finalSt, updated, covered) = cov.runAndCheck(script)
+      (finalSt, updated, covered, error) =
+        try
+          cov.runAndCheck(script) match
+            case (finalSt, updated, covered) =>
+              (finalSt, updated, covered, None)
+        catch
+          case e: Throwable =>
+            println(s"Error in $name")
+            e.printStackTrace()
+            (script, Set.empty, false, Some(e))
     } yield {
       (name, covered)
     }).sortBy(_._2)
