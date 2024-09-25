@@ -187,6 +187,8 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Bool(b)                         => bool contains b
     case Undef                           => undef
     case Null                            => nullv
+    case PClo(_, _)                      => ???
+    case PCont(_, _, _)                  => ???
 
   /** copy value type */
   def copied(
