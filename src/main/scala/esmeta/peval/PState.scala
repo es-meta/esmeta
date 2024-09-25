@@ -21,8 +21,8 @@ import esmeta.state.*
   */
 case class PState(
   val globals: Map[Global, Predict[Value]],
-  var callStack: List[PContext],
-  val context: PContext,
+  var callStack: List[PCallContext],
+  var context: PContext,
   val heap: PHeap,
 ) extends StateElem {
 
@@ -46,16 +46,7 @@ case class PState(
     case x: Local  => locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(
-    base: Value,
-    field: Value,
-  )(using CFG): Predict[Value] = base match
-    case addr: Addr =>
-      if heap(addr).exists(field) then heap(addr, field)
-      else Unknown
-    case AstValue(ast) => Known(AstValue(ast(field)))
-    case Str(str)      => apply(str, field)
-    case v             => throw InvalidRefBase(v)
+  def apply(base: Value, field: Value)(using CFG): Predict[Value] = ???
 
   /** string field getter */
   def apply(str: String, field: Value): Predict[Value] = field match
@@ -101,4 +92,7 @@ case class PState(
     context.copied,
     heap.copied,
   )
+
+  def join(other: PState): PState = ???
+
 }
