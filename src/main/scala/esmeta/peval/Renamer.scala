@@ -21,10 +21,10 @@ class Renamer private (
     case idx: Temp  => get(idx, ctx)
 
   def get(name: Name, ctx: PContext)(using cfg: CFG): Name =
-    Name(s"${name.name}_${cfg.fnameMap(ctx.func.name).id}_${ctx.callCount}")
+    Name(s"${name.name}_${cfg.fnameMap(ctx.func.name).id}_${ctx.sensitivity}")
 
   def get(idx: Temp, ctx: PContext)(using cfg: CFG): Temp =
-    val key = (idx.idx, cfg.fnameMap(ctx.func.name).id, ctx.callCount);
+    val key = (idx.idx, cfg.fnameMap(ctx.func.name).id, ctx.sensitivity);
     temps.get(key) match
       case None =>
         val i = newTempCount;
