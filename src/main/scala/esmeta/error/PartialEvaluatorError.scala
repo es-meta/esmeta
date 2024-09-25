@@ -29,4 +29,9 @@ class ExpiredAllocator
     s"Tried expired temporal variable allocator",
   )
 
+class NonLiteral(v: Value)
+  extends PartialEvaluatorError(
+    s"Non-literal value $v is not printable",
+  )
+
 class PEvalOptError(msg: String) extends PartialEvaluatorError(msg)
