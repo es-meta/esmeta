@@ -2,6 +2,7 @@ package esmeta.peval
 
 import esmeta.cfg.CFG
 import esmeta.ir.{Name, Temp, Var, Global, Local}
+import esmeta.state.{DynamicAddr}
 import scala.collection.mutable.{Map as MMap}
 
 class Renamer private (
@@ -9,7 +10,7 @@ class Renamer private (
   temps: MMap[(Int, Int, Int), Int],
   private var countCall: Int = 0,
   private var countTemp: Int = 0,
-  private var dynamicAddr: Int = 0,
+  private var dynamicAddr: Long = 0,
 ) {
 
   def get(x: Var, ctx: PContext)(using CFG): Var = x match
@@ -38,6 +39,10 @@ class Renamer private (
   def newTempCount =
     countTemp += 1;
     countTemp
+
+  def newAddr =
+    dynamicAddr += 1;
+    DynamicAddr(dynamicAddr)
 
   // 변수_함수id_callcount
   // (temp_함수id_callcount) -> map
