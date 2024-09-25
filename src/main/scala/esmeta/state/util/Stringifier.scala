@@ -55,6 +55,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given pstRule: Rule[PState] = (app, pst) =>
     app.wrap {
       // TODO app :> "globals: " >> pst.globals
+      app :> "context.func.name: " >> pst.context.func.name
+      given Rule[Option[Predict[Value]]] =
+        optionRule("/* no return value (None) */")
+      app :> "context.ret: " >> pst.context.ret
       app :> "locals: " >> pst.locals
       app :> "heap: " >> pst.heap
     }
