@@ -8,45 +8,65 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.es.util.USE_STRICT
 import esmeta.es.Script
-import esmeta.js.minifier.Minifier
-import esmeta.injector.Injector
 import scala.util.*
 import java.util.concurrent.atomic.AtomicLong
 import esmeta.util.SystemUtils.*
+import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 case object CoverageInvestigate extends Phase[CFG, Unit] {
   val name = "coverage-investigate"
   val help = "investigate newly covered parts by checking additional scripts."
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
+    import esmeta.ty.util.JsonProtocol.given
+    given ConInvDataEncoder: Encoder[CovInvData] = deriveEncoder
+
     val cov_dir = getFirstFilename(cmdConfig, "coverage-investigate")
     val new_js_dir = getSecondFilename(cmdConfig, "coverage-investigate")
 
     val cov = Coverage.fromLogSimpl(cov_dir, cfg)
-    println(s"Coverage restored from $cov_dir")
+    println(
+      s"Coverage restored from $cov_dir (${cov.kFs}-F${if cov.cp then "CP"
+      else ""}S)",
+    )
 
     val res = (for {
       jsFile <- listFiles(new_js_dir)
       name = jsFile.getName
       code = readFile(jsFile.getPath).drop(USE_STRICT.length).strip
       script = Script(code, name)
-      (finalSt, updated, covered, error) =
-        try
-          cov.runAndCheck(script) match
-            case (finalSt, updated, covered) =>
-              (finalSt, updated, covered, None)
-        catch
-          case e: Throwable =>
-            println(s"Error in $name")
-            e.printStackTrace()
-            (script, Set.empty, false, Some(e))
     } yield {
-      (name, covered)
-    }).sortBy(_._2)
+      try
+        cov.runAndCheckWithBlocking(script) match
+          case (
+                finalSt,
+                updated,
+                covered,
+                blockings,
+                coveredNode,
+                coveredBranch,
+              ) =>
+            Some(
+              CovInvData(
+                name,
+                covered,
+                blockings.map(_.code),
+                coveredNode.map(_.toString),
+                coveredBranch.map(_.toString),
+              ),
+            )
+      catch
+        case e: Throwable =>
+          println(s"Error in $name")
+          e.printStackTrace()
+          None
+    }).flatten.sortBy(_._2)
 
-    res.foreach((name, covered) => {
-      println(f"$name%50s: ${if (covered) "alive" else "dead"}")
-    })
+    res.foreach {
+      case CovInvData(name, covered, blockings, coveredNode, coveredBranch) => {
+        println(f"$name%30s: ${if (covered) "alive" else "dead"}")
+      }
+    }
 
     for (filename <- config.out)
       dumpJson(
@@ -69,3 +89,11 @@ case object CoverageInvestigate extends Phase[CFG, Unit] {
     var out: Option[String] = None,
   )
 }
+
+sealed case class CovInvData(
+  name: String,
+  covered: Boolean,
+  blockings: Set[String],
+  coveredNode: Set[String],
+  coveredBranch: Set[String],
+)

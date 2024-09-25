@@ -547,7 +547,6 @@ object Coverage {
 
     val con: CoverageConstructor = readJsonHere("constructor.json")
     val cov = new Coverage(cfg, con.kFs, con.cp, con.timeLimit)
-    println("Coverage constructed")
 
     for {
       minimal <- listFiles(s"$baseDir/minimal")
