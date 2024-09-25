@@ -119,6 +119,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[List[Expr]] = iterableRule("(", ", ", ")")
         app >> "sdo-call " >> lhs >> " = "
         app >> ast >> "->" >> method >> args
+    (detail, inst.comment) match
+      case (false, _) | (_, None) => app
+      case (true, Some(value)) if !value.contains("\n") =>
+        app >> " // " >> value
+      case (true, Some(value)) =>
+        val escaped = s"""\n/* ${value.replace(raw"*/", raw"*\/")} */"""
+        app >> escaped
   }
 
   // expressions
