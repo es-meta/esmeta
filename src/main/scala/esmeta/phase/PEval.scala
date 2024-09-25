@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
+import esmeta.error.*
 import esmeta.es.*
 import esmeta.interpreter.*
 import esmeta.ir.Program
@@ -33,6 +34,9 @@ case object PEval extends Phase[CFG, Unit] {
   ): Unit =
     given CFG = cfg
 
+    if (config.simplify < 0) then
+      throw new PEvalOptError("config.simplify should be non-negative")
+
     val filename = getFirstFilename(cmdConfig, name)
     val pevalTarget = cfg.fnameMap(TARGET_NAME)
     val ast =
@@ -52,6 +56,7 @@ case object PEval extends Phase[CFG, Unit] {
       cfg = cfg,
       log = config.log,
       detail = config.detail,
+      simplifyLevel = config.simplify,
     )
 
     for (fd <- fds) {
@@ -60,8 +65,12 @@ case object PEval extends Phase[CFG, Unit] {
       val st = PState(
         globals = globals,
         callStack = Nil,
-        context =
-          PContext(func = func, locals = MMap(), /* TODO : this is ad-hoc */ 0),
+        context = PContext(
+          func = func,
+          locals = MMap(), /* TODO : this is ad-hoc */ 0,
+          None,
+          Nil,
+        ),
         heap = PHeap(),
       )
 
@@ -121,6 +130,11 @@ case object PEval extends Phase[CFG, Unit] {
       BoolOption(_.peval = _),
       "do partial evaluation just before execution.",
     ),
+    (
+      "s",
+      NumOption(_.simplify = _),
+      "set level of simplify strategy. (0: do nothing, 1 (default): flatten, 2: flatten & usedef)",
+    ),
   )
   case class Config(
     // var timeLimit: Option[Int] = None,
@@ -128,6 +142,7 @@ case object PEval extends Phase[CFG, Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var peval: Boolean = false,
+    var simplify: Int = 1,
   )
 
   def getAstsByName(ast: Ast, name: String): List[Ast] = ast match
