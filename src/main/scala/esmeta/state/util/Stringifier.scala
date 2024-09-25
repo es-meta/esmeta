@@ -95,9 +95,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // pheaps
   given pheapRule: Rule[PHeap] = (app, pheap) =>
-    val PHeap(map, size) = pheap
+    val PHeap(map) = pheap
     // TODO app >> map
-    app >> s"(SIZE = " >> size.toString >> ")"
+    app >> s"(SIZE = " >> map.knownSize >> ")"
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
@@ -146,6 +146,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
       case sv: SimpleValue   => svRule(app, sv)
+      case pclo: PClo        => ???
+      case pcont: PCont      => ???
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>

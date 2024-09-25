@@ -25,6 +25,8 @@ trait AValueDecl { self: Self =>
       case enumv: Enum                  => enumv
       case codeUnit: CodeUnit           => codeUnit
       case simpleValue: SimpleValue     => simpleValue
+      case pclo: PClo                   => ???
+      case pcont: PCont                 => ???
 
   /** address partitions */
   sealed trait Part:
