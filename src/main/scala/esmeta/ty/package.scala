@@ -29,6 +29,7 @@ enum SymExpr:
 /** symbolic references */
 enum SymRef:
   case SSym(sym: Sym)
+  case SLocal(x: Local)
   case SField(base: SymRef, field: SymExpr)
 
 /** type guard */

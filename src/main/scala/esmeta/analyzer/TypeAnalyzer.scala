@@ -218,323 +218,291 @@ class TypeAnalyzer(
     )
 
     /** type guards */
-    type TypeGuard = (List[Option[Local]], List[AbsValue], Ty) => AbsValue
-    val typeGuards: Map[String, TypeGuard] =
-      import RefinementKind.*
+    type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
+    type Refinement = (List[Option[Local]], List[AbsValue], Ty) => AbsValue
+    val typeGuards: Map[String, Refinement] =
+      import RefinementKind.*, SymExpr.*, SymRef.*
       Map(
-        "__APPEND_LIST__" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(vs(0).ty || vs(1).ty, Map())
-        // },
-        "__FLAT_LIST__" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(vs(0).ty.list.elem, Map())
-        // },
-        "__GET_ITEMS__" -> ???,
-        // { (xs, vs, retTy) =>
-        //   val ast = vs(1).ty.toValue.grammarSymbol match
-        //     case Fin(set) => AstT(set.map(_.name))
-        //     case Inf      => AstT
-        //   AbsValue(ListT(ast), Map())
-        // },
-        "__CLAMP__" -> ???,
-        // { (xs, vs, retTy) =>
-        //   val refined =
-        //     if (vs(0).ty.toValue <= (IntT || InfinityT))
-        //       if (vs(1).ty.toValue <= MathT(0)) NonNegIntT
-        //       else IntT
-        //     else retTy
-        //   AbsValue(refined, Map())
-        // },
-        "Completion" -> ???,
-        // { (xs, vs, retTy) =>
-        //   vs(0) ⊓ AbsValue(CompT)
-        // },
-        "NormalCompletion" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(NormalT(vs(0).ty -- CompT), Map())
-        // },
-        "IteratorClose" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(vs(1).ty || ThrowT, Map())
-        // },
-        "AsyncIteratorClose" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(vs(1).ty || ThrowT, Map())
-        // },
-        "OrdinaryObjectCreate" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(RecordT("Object"), Map())
-        // },
-        "UpdateEmpty" -> ???,
-        // { (xs, vs, retTy) =>
-        //   val record = vs(0).ty.record
-        //   val valueField = record("Value").value
-        //   val updated = record.update(
-        //     "Value",
-        //     vs(1).ty || (valueField -- EnumT("empty")),
-        //     refine = false,
-        //   )
-        //   AbsValue(ValueTy(record = updated), Map())
-        // },
-        "MakeBasicObject" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(RecordT("Object"), Map())
-        // },
-        "Await" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(NormalT(ESValueT) || ThrowT, Map())
-        // },
-        "IsCallable" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x => map += True -> Map(x -> RecordT("FunctionObject")) }
-        //   AbsValue(retTy, map)
-        // },
-        "IsConstructor" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x => map += True -> Map(x -> RecordT("Constructor")) }
-        //   AbsValue(retTy, map)
-        // },
-        "RequireInternalSlot" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   val refined = vs(1).ty.str.getSingle match
-        //     case One(f) =>
-        //       ValueTy(
-        //         record = ObjectT.record.update(f, Binding.Exist, refine = true),
-        //       )
-        //     case _ => ObjectT
-        //   xs(0).map { x => map += Normal -> Map(x -> refined) }
-        //   AbsValue(retTy, map)
-        // },
-        "ValidateTypedArray" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += Normal -> Map(x -> RecordT("TypedArray"))
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "ValidateIntegerTypedArray" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += Normal -> Map(x -> RecordT("TypedArray"))
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "ValidateAtomicAccessOnIntegerTypedArray" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += Normal -> Map(x -> RecordT("TypedArray"))
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "ValidateNonRevokedProxy" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += Normal -> Map(
-        //       x -> ValueTy.from(
-        //         "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
-        //       ),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsPromise" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x => map += True -> Map(x -> RecordT("Promise")) }
-        //   AbsValue(retTy, map)
-        // },
-        "IsRegExp" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += NormalTrue -> Map(x -> ObjectT)
-        //     map += Abrupt -> Map(x -> ObjectT)
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "NewPromiseCapability" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x => map += Normal -> Map(x -> RecordT("Constructor")) }
-        //   AbsValue(retTy, map)
-        // },
-        "CreateListFromArrayLike" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue((for {
-        //     v <- vs.lift(1)
-        //     str = v.ty.list.elem.str
-        //     ss <- str match
-        //       case Inf     => None
-        //       case Fin(ss) => Some(ss)
-        //     ty = ss.map(ValueTy.fromTypeOf).foldLeft(BotT)(_ || _)
-        //     refined = retTy.toValue && NormalT(ListT(ty))
-        //   } yield refined).getOrElse(retTy))
-        // },
-        "IsUnresolvableReference" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += True -> Map(
-        //       x -> RecordT(
-        //         "ReferenceRecord",
-        //         Map("Base" -> EnumT("unresolvable")),
-        //       ),
-        //     )
-        //     map += False -> Map(
-        //       x -> RecordT(
-        //         "ReferenceRecord",
-        //         Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
-        //       ),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsPropertyReference" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += True -> Map(
-        //       x -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
-        //     )
-        //   }
-        //   xs(0).map { x =>
-        //     map += False -> Map(
-        //       x -> RecordT(
-        //         "ReferenceRecord",
-        //         Map(
-        //           "Base" ->
-        //           (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
-        //         ),
-        //       ),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsSuperReference" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += True -> Map(x -> RecordT("SuperReferenceRecord"))
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsPrivateReference" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += True -> Map(
-        //       x -> RecordT(
-        //         "ReferenceRecord",
-        //         Map("ReferencedName" -> RecordT("PrivateName")),
-        //       ),
-        //     )
-        //     map += False -> Map(
-        //       x -> RecordT(
-        //         "ReferenceRecord",
-        //         Map(
-        //           "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
-        //         ),
-        //       ),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsArray" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += NormalTrue -> Map(x -> ObjectT)
-        //     map += Abrupt -> Map(x -> ObjectT)
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsSharedArrayBuffer" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += True -> Map(
-        //       x -> RecordT(
-        //         "SharedArrayBuffer",
-        //         Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
-        //       ),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsConcatSpreadable" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += NormalTrue -> Map(x -> ObjectT)
-        //     map += Abrupt -> Map(x -> ObjectT)
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "IsDetachedBuffer" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   def getTy(ty: ValueTy, sty: ValueTy) = RecordT(
-        //     Map(
-        //       "ArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(ty)),
-        //       "SharedArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(sty)),
-        //     ),
-        //   )
-        //   xs(0).map { x =>
-        //     map += True -> Map(x -> getTy(NullT, NullT))
-        //     map += False -> Map(
-        //       x -> getTy(RecordT("DataBlock"), RecordT("SharedDataBlock")),
-        //     )
-        //   }
-        //   AbsValue(retTy, map)
-        // },
-        "AllocateArrayBuffer" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(
-        //     NormalT(
-        //       RecordT(
-        //         "ArrayBuffer",
-        //         FieldMap("ArrayBufferData" -> Binding(RecordT("DataBlock"))),
-        //       ),
-        //     ) || ThrowT,
-        //     Map(),
-        //   )
-        // },
-        "AllocateSharedArrayBuffer" -> ???,
-        // { (xs, vs, retTy) =>
-        //   AbsValue(
-        //     NormalT(
-        //       RecordT(
-        //         "SharedArrayBuffer",
-        //         FieldMap(
-        //           "ArrayBufferData" -> Binding(RecordT("SharedDataBlock")),
-        //         ),
-        //       ),
-        //     ) || ThrowT,
-        //     Map(),
-        //   )
-        // },
-        "CanBeHeldWeakly" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x => map += True -> Map(x -> (ObjectT || SymbolT)) }
-        //   AbsValue(retTy, map)
-        // },
-        "AsyncGeneratorValidate" -> ???,
-        // { (xs, vs, retTy) =>
-        //   var map: TypeGuard = Map()
-        //   xs(0).map { x =>
-        //     map += Normal -> Map(x -> RecordT("AsyncGenerator"))
-        //   }
-        //   AbsValue(retTy, map)
-        // },
+        "__APPEND_LIST__" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty || vs(1).ty, Map())
+        },
+        "__FLAT_LIST__" -> { (xs, vs, retTy) =>
+          AbsValue(vs(0).ty.list.elem, Map())
+        },
+        "__GET_ITEMS__" -> { (xs, vs, retTy) =>
+          val ast = vs(1).ty.toValue.grammarSymbol match
+            case Fin(set) => AstT(set.map(_.name))
+            case Inf      => AstT
+          AbsValue(ListT(ast), Map())
+        },
+        "__CLAMP__" -> { (xs, vs, retTy) =>
+          val refined =
+            if (vs(0).ty.toValue <= (IntT || InfinityT))
+              if (vs(1).ty.toValue <= MathT(0)) NonNegIntT
+              else IntT
+            else retTy
+          AbsValue(refined, Map())
+        },
+        "Completion" -> { (xs, vs, retTy) =>
+          vs(0) ⊓ AbsValue(CompT)
+        },
+        "NormalCompletion" -> { (xs, vs, retTy) =>
+          AbsValue(NormalT(vs(0).ty -- CompT), Map())
+        },
+        "IteratorClose" -> { (xs, vs, retTy) =>
+          AbsValue(vs(1).ty || ThrowT, Map())
+        },
+        "AsyncIteratorClose" -> { (xs, vs, retTy) =>
+          AbsValue(vs(1).ty || ThrowT, Map())
+        },
+        "OrdinaryObjectCreate" -> { (xs, vs, retTy) =>
+          AbsValue(RecordT("Object"), Map())
+        },
+        "UpdateEmpty" -> { (xs, vs, retTy) =>
+          val record = vs(0).ty.record
+          val valueField = record("Value").value
+          val updated = record.update(
+            "Value",
+            vs(1).ty || (valueField -- EnumT("empty")),
+            refine = false,
+          )
+          AbsValue(ValueTy(record = updated), Map())
+        },
+        "MakeBasicObject" -> { (xs, vs, retTy) =>
+          AbsValue(RecordT("Object"), Map())
+        },
+        "Await" -> { (xs, vs, retTy) =>
+          AbsValue(NormalT(ESValueT) || ThrowT, Map())
+        },
+        "IsCallable" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), FunctionT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsConstructor" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), ConstructorT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "RequireInternalSlot" -> { (xs, vs, retTy) =>
+          val refined = vs(1).ty.str.getSingle match
+            case One(f) =>
+              ValueTy(
+                record = ObjectT.record.update(f, Binding.Exist, refine = true),
+              )
+            case _ => ObjectT
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), refined),
+          )
+          AbsValue(retTy, guard)
+        },
+        "ValidateTypedArray" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "ValidateIntegerTypedArray" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "ValidateAtomicAccessOnIntegerTypedArray" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "ValidateNonRevokedProxy" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(
+              SERef(SSym(0)),
+              ValueTy.from(
+                "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
+              ),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsPromise" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), RecordT("Promise")),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsRegExp" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "NewPromiseCapability" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), ConstructorT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "CreateListFromArrayLike" -> { (xs, vs, retTy) =>
+          AbsValue((for {
+            v <- vs.lift(1)
+            str = v.ty.list.elem.str
+            ss <- str match
+              case Inf     => None
+              case Fin(ss) => Some(ss)
+            ty = ss.map(ValueTy.fromTypeOf).foldLeft(BotT)(_ || _)
+            refined = retTy.toValue && NormalT(ListT(ty))
+          } yield refined).getOrElse(retTy))
+        },
+        "IsUnresolvableReference" -> { (xs, vs, retTy) =>
+          var guard: TypeGuard = Map(
+            True -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map("Base" -> EnumT("unresolvable")),
+              ),
+            ),
+            False -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
+              ),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsPropertyReference" -> { (xs, vs, retTy) =>
+          var guard: TypeGuard = Map(
+            True -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map("Base" -> ESValueT),
+              ),
+            ),
+            False -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map(
+                  "Base" ->
+                  (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
+                ),
+              ),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsSuperReference" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), RecordT("SuperReferenceRecord")),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsPrivateReference" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map("ReferencedName" -> RecordT("PrivateName")),
+              ),
+            ),
+            False -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "ReferenceRecord",
+                Map(
+                  "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
+                ),
+              ),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsArray" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsSharedArrayBuffer" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(
+              SERef(SSym(0)),
+              RecordT(
+                "SharedArrayBuffer",
+                Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
+              ),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsConcatSpreadable" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "IsDetachedBuffer" -> { (xs, vs, retTy) =>
+          def getTy(ty: ValueTy, sty: ValueTy) = RecordT(
+            Map(
+              "ArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(ty)),
+              "SharedArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(sty)),
+            ),
+          )
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), getTy(NullT, NullT)),
+            False -> SETypeCheck(
+              SERef(SSym(0)),
+              getTy(RecordT("DataBlock"), RecordT("SharedDataBlock")),
+            ),
+          )
+          AbsValue(retTy, guard)
+        },
+        "AllocateArrayBuffer" -> { (xs, vs, retTy) =>
+          AbsValue(
+            NormalT(
+              RecordT(
+                "ArrayBuffer",
+                FieldMap("ArrayBufferData" -> Binding(RecordT("DataBlock"))),
+              ),
+            ) || ThrowT,
+            Map(),
+          )
+        },
+        "AllocateSharedArrayBuffer" -> { (xs, vs, retTy) =>
+          AbsValue(
+            NormalT(
+              RecordT(
+                "SharedArrayBuffer",
+                FieldMap(
+                  "ArrayBufferData" -> Binding(RecordT("SharedDataBlock")),
+                ),
+              ),
+            ) || ThrowT,
+            Map(),
+          )
+        },
+        "CanBeHeldWeakly" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            True -> SETypeCheck(SERef(SSym(0)), ObjectT || SymbolT),
+          )
+          AbsValue(retTy, guard)
+        },
+        "AsyncGeneratorValidate" -> { (xs, vs, retTy) =>
+          val guard: TypeGuard = Map(
+            Normal -> SETypeCheck(SERef(SSym(0)), RecordT("AsyncGenerator")),
+          )
+          AbsValue(retTy, guard)
+        },
       )
 
     /** update return points */
@@ -639,6 +607,16 @@ class TypeAnalyzer(
           case Eq =>
       super.transfer(st, binary, left, right)
 
+    /** transfer function for symbolic expressions */
+    def transfer(
+      expr: SymExpr,
+    )(using np: NodePoint[Node]): Result[ValueTy] = ???
+
+    /** transfer function for symbolic references */
+    def transfer(
+      ref: SymRef,
+    )(using np: NodePoint[Node]): Result[ValueTy] = ???
+
     private def checkBinary(
       binary: EBinary,
       lhsTy: ValueTy,
@@ -708,12 +686,87 @@ class TypeAnalyzer(
           case (NormalTrue, pred) if refined <= NormalT(TrueT)   => pred
           case (NormalFalse, pred) if refined <= NormalT(FalseT) => pred
         }
-      } yield refine(pred))
+      } yield refine(pred, true))
 
     /** refine types using symbolic predicates */
     def refine(
       pred: SymExpr,
-    )(using np: NodePoint[_]): Updater = ???
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater =
+      import SymExpr.*, SymRef.*
+      pred match {
+        // refine boolean local variables
+        case SERef(x: Local) =>
+          refineBool(x, positive)
+        // refine inequality
+        // case SEBinary(BOp.Lt, l, r) =>
+        //   refineIneq(l, r, positive)
+        // // refine local variables
+        // case SEBinary(BOp.Eq, ERef(x: Local), expr) =>
+        //   refineLocal(x, expr, positive)
+        // // refine field equality
+        // case SEBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
+        //   refineField(x, field, expr, positive)
+        // // refine field existence
+        // case SEExists(Field(x: Local, EStr(field))) =>
+        //   refineExistField(x, field, positive)
+        // // refine types
+        // case SEBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
+        //   refineType(x, expr, positive)
+        // refine type checks
+        case SETypeCheck(SERef(ref), ty) =>
+          refine(ref, ty, positive)
+        // refine logical negation
+        case SEUnary(UOp.Not, e) =>
+          refine(e, !positive)
+        // refine logical disjunction
+        case SEBinary(BOp.Or, l, r) =>
+          st =>
+            if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
+            // TODO short circuiting
+            else refine(r, false)(refine(l, false)(st))
+        // refine logical conjunction
+        case SEBinary(BOp.And, l, r) =>
+          st =>
+            if (positive) refine(r, true)(refine(l, true)(st))
+            // TODO short circuiting
+            else refine(l, false)(st) ⊔ refine(r, false)(st)
+        // no pruning
+        case _ => st => st
+      }
+
+    /** refine references using types */
+    def refine(
+      ref: SymRef,
+      ty: ValueTy,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater =
+      import SymExpr.*, SymRef.*
+      ref match
+        case SSym(sym) => ???
+        case SLocal(x) =>
+          for {
+            l <- transfer(x)
+            v <- transfer(l)
+            refinedV =
+              if (positive)
+                if (v.ty <= ty.toValue) v
+                else v ⊓ AbsValue(ty)
+              else v -- AbsValue(ty)
+            _ <- modify(_.update(l, refinedV))
+            _ <- refine(v, refinedV) // propagate type guard
+          } yield ()
+        case SField(base, SEStr(field)) =>
+          for {
+            bty <- transfer(base)
+            rbinding = Binding(ty)
+            binding = if (positive) rbinding else bty.record(field) -- rbinding
+            refinedTy = ValueTy(
+              record = bty.record.update(field, binding, refine = true),
+            )
+            _ <- refine(base, refinedTy, positive)
+          } yield ()
+        case _ => st => st
 
     /** refine types for boolean local variables */
     def refineBool(

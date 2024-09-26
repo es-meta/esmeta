@@ -132,6 +132,7 @@ trait ValueTypeDomainDecl { self: Self =>
       given Rule[SymRef] = (app, ref) =>
         ref match
           case SSym(sym)                           => app >> "#" >> sym
+          case SLocal(x)                           => app >> x
           case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
           case SField(base, field) => app >> base >> "[" >> field >> "]"
       given Rule[TypeGuard] = sortedMapRule("{", "}", " => ")
