@@ -19,7 +19,7 @@ trait ValueDomainDecl { self: Self =>
 
     /** constructor with types */
     def apply(ty: Ty): Elem = apply(ty, Map.empty)
-    def apply(ty: Ty, refinements: Refinements): Elem
+    def apply(ty: Ty, guard: TypeGuard): Elem
 
     /** abstraction functions for raw data */
     def apply(ast: Ast): Elem = apply(AstValue(ast))
@@ -178,7 +178,7 @@ trait ValueDomainDecl { self: Self =>
       def undef: AbsUndef
       def nullv: AbsNull
       def ty: ValueTy
-      def refinements: Refinements
+      def guard: TypeGuard
     }
   }
 }

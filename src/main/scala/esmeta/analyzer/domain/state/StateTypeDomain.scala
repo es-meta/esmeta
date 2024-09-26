@@ -105,11 +105,11 @@ trait StateTypeDomainDecl { self: Self =>
           lookupList(baseTy.list, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
           lookupMap(baseTy.map, fieldTy),
-          get(base.refinements, field: AbsValue),
+          get(base.guard, field: AbsValue),
         )
 
       /** getter */
-      def get(base: Refinements, field: AbsValue): Refinements =
+      def get(base: TypeGuard, field: AbsValue): TypeGuard =
         import RefinementKind.*
         field.ty.str.getSingle match
           case One("Value") =>

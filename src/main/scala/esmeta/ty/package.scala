@@ -14,8 +14,25 @@ trait TyElem {
     stringify(this)
 }
 
-/** type refinements */
-type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
+/** Symbol */
+type Sym = Int
+
+/** symbolic expressions */
+enum SymExpr:
+  case SEBool(b: Boolean)
+  case SEStr(s: String)
+  case SERef(ref: SymRef)
+  case SETypeCheck(base: SymExpr, ty: ValueTy)
+  case SEBinary(bop: BOp, left: SymExpr, right: SymExpr)
+  case SEUnary(uop: UOp, expr: SymExpr)
+
+/** symbolic references */
+enum SymRef:
+  case SSym(sym: Sym)
+  case SField(base: SymRef, field: SymExpr)
+
+/** type guard */
+type TypeGuard = Map[RefinementKind, SymExpr]
 
 /** type refinement kinds */
 enum RefinementKind:
