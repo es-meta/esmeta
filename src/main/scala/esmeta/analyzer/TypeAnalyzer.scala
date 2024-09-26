@@ -184,7 +184,8 @@ class TypeAnalyzer(
             (kind, pred) <- v.guard
             newPred <- instantiate(pred, map)
           } yield kind -> newPred
-        } yield AbsValue(v.ty, guard)).getOrElse(AbsValue(retTy))
+          newV = AbsValue(v.ty, guard)
+        } yield newV).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)

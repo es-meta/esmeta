@@ -180,12 +180,11 @@ trait ValueTypeDomainDecl { self: Self =>
         val Elem(lty, lexpr, lguard) = elem
         val Elem(rty, rexpr, rguard) = that
         val kinds = lguard.keySet intersect rguard.keySet
-        val guard = kinds.map { kind =>
+        val guard = kinds.flatMap { kind =>
           val g: Option[SymExpr] = lguard.get(kind)
-          val expr = (lguard.get(kind), rguard.get(kind)) match
-            case (Some(l), Some(r)) => SEBinary(BOp.Or, l, r)
-            case _                  => SEBool(true)
-          kind -> expr
+          (lguard.get(kind), rguard.get(kind)) match
+            case (Some(l), Some(r)) if l == r => Some(kind -> l)
+            case _                            => None
         }.toMap
         (lexpr, rexpr) match
           case (_, None)           => Elem(lty || rty, lexpr, guard)
@@ -200,13 +199,12 @@ trait ValueTypeDomainDecl { self: Self =>
         val Elem(lty, lexpr, lguard) = elem
         val Elem(rty, rexpr, rguard) = that
         val kinds = lguard.keySet ++ rguard.keySet
-        val guard = kinds.map { kind =>
-          val expr = (lguard.get(kind), rguard.get(kind)) match
-            case (Some(l), Some(r)) => SEBinary(BOp.And, l, r)
-            case (Some(l), None)    => l
-            case (None, Some(r))    => r
-            case _                  => SEBool(true)
-          kind -> expr
+        val guard = kinds.flatMap { kind =>
+          (lguard.get(kind), rguard.get(kind)) match
+            case (Some(l), Some(r)) if l == r => Some(kind -> l)
+            case (Some(l), None)              => Some(kind -> l)
+            case (None, Some(r))              => Some(kind -> r)
+            case _                            => None
         }.toMap
         (lexpr, rexpr) match
           case (Some(e), None) if getTy(e) <= rty =>
