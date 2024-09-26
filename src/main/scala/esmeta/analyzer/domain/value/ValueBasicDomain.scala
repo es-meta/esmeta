@@ -487,9 +487,8 @@ trait ValueBasicDomainDecl { self: Self =>
 
       /** getters */
       def ty: ValueTy = notSupported("ValueBasicDomain.ty")
-      def guard: TypeGuard = notSupported(
-        "ValueBasicDomain.guard",
-      )
+      def expr: Option[SymExpr] = notSupported("ValueBasicDomain.expr")
+      def guard: TypeGuard = notSupported("ValueBasicDomain.guard")
 
       // -------------------------------------------------------------------------
       // private helpers

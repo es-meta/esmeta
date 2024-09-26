@@ -173,20 +173,53 @@ class TypeAnalyzer(
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty
-        val xs = args.map {
-          case ERef(x: Local) => Some(x)
-          case _              => None
-        }
+        val map = args.zipWithIndex.collect {
+          case (ERef(x: Local), i) => i -> SymRef.SLocal(x)
+        }.toMap
         val newRetV = (for {
-          guard <- typeGuards.get(callee.name)
+          refine <- typeGuards.get(callee.name)
           if useTypeGuard || defaultTypeGuards.contains(callee.name)
-        } yield guard(xs, vs, retTy)).getOrElse(AbsValue(retTy))
+          v = refine(vs, retTy)
+          guard = for {
+            (kind, pred) <- v.guard
+            newPred <- instantiate(pred, map)
+          } yield kind -> newPred
+        } yield AbsValue(v.ty, guard)).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)
         } sem += nextNp -> newSt
       }
       super.doCall(callPoint, callerSt, args, vs, captured, method, tgt)
+
+    /** instantiation of symbolic expressions */
+    def instantiate(sexpr: SymExpr, map: Map[Sym, SymRef]): Option[SymExpr] =
+      import SymExpr.*
+      sexpr match
+        case SEBool(b) => Some(SEBool(b))
+        case SEStr(s)  => Some(SEStr(s))
+        case SERef(ref) =>
+          for { r <- instantiate(ref, map) } yield SERef(r)
+        case SETypeCheck(base, ty) =>
+          for { b <- instantiate(base, map) } yield SETypeCheck(b, ty)
+        case SEBinary(bop, left, right) =>
+          for {
+            l <- instantiate(left, map)
+            r <- instantiate(right, map)
+          } yield SEBinary(bop, l, r)
+        case SEUnary(uop, expr) =>
+          for { e <- instantiate(expr, map) } yield SEUnary(uop, e)
+
+    def instantiate(sref: SymRef, map: Map[Sym, SymRef]): Option[SymRef] =
+      import SymRef.*
+      sref match
+        case SSym(sym) => map.get(sym)
+        case SLocal(x) => Some(SLocal(x))
+        case SField(base, field) =>
+          for {
+            b <- instantiate(base, map)
+            f <- instantiate(field, map)
+          } yield SField(b, f)
 
     /** propagate callee analysis result */
     override def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit =
@@ -219,23 +252,23 @@ class TypeAnalyzer(
 
     /** type guards */
     type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
-    type Refinement = (List[Option[Local]], List[AbsValue], Ty) => AbsValue
+    type Refinement = (List[AbsValue], Ty) => AbsValue
     val typeGuards: Map[String, Refinement] =
       import RefinementKind.*, SymExpr.*, SymRef.*
       Map(
-        "__APPEND_LIST__" -> { (xs, vs, retTy) =>
+        "__APPEND_LIST__" -> { (vs, retTy) =>
           AbsValue(vs(0).ty || vs(1).ty, Map())
         },
-        "__FLAT_LIST__" -> { (xs, vs, retTy) =>
+        "__FLAT_LIST__" -> { (vs, retTy) =>
           AbsValue(vs(0).ty.list.elem, Map())
         },
-        "__GET_ITEMS__" -> { (xs, vs, retTy) =>
+        "__GET_ITEMS__" -> { (vs, retTy) =>
           val ast = vs(1).ty.toValue.grammarSymbol match
             case Fin(set) => AstT(set.map(_.name))
             case Inf      => AstT
           AbsValue(ListT(ast), Map())
         },
-        "__CLAMP__" -> { (xs, vs, retTy) =>
+        "__CLAMP__" -> { (vs, retTy) =>
           val refined =
             if (vs(0).ty.toValue <= (IntT || InfinityT))
               if (vs(1).ty.toValue <= MathT(0)) NonNegIntT
@@ -243,22 +276,22 @@ class TypeAnalyzer(
             else retTy
           AbsValue(refined, Map())
         },
-        "Completion" -> { (xs, vs, retTy) =>
+        "Completion" -> { (vs, retTy) =>
           vs(0) ⊓ AbsValue(CompT)
         },
-        "NormalCompletion" -> { (xs, vs, retTy) =>
+        "NormalCompletion" -> { (vs, retTy) =>
           AbsValue(NormalT(vs(0).ty -- CompT), Map())
         },
-        "IteratorClose" -> { (xs, vs, retTy) =>
+        "IteratorClose" -> { (vs, retTy) =>
           AbsValue(vs(1).ty || ThrowT, Map())
         },
-        "AsyncIteratorClose" -> { (xs, vs, retTy) =>
+        "AsyncIteratorClose" -> { (vs, retTy) =>
           AbsValue(vs(1).ty || ThrowT, Map())
         },
-        "OrdinaryObjectCreate" -> { (xs, vs, retTy) =>
+        "OrdinaryObjectCreate" -> { (vs, retTy) =>
           AbsValue(RecordT("Object"), Map())
         },
-        "UpdateEmpty" -> { (xs, vs, retTy) =>
+        "UpdateEmpty" -> { (vs, retTy) =>
           val record = vs(0).ty.record
           val valueField = record("Value").value
           val updated = record.update(
@@ -268,25 +301,25 @@ class TypeAnalyzer(
           )
           AbsValue(ValueTy(record = updated), Map())
         },
-        "MakeBasicObject" -> { (xs, vs, retTy) =>
+        "MakeBasicObject" -> { (vs, retTy) =>
           AbsValue(RecordT("Object"), Map())
         },
-        "Await" -> { (xs, vs, retTy) =>
+        "Await" -> { (vs, retTy) =>
           AbsValue(NormalT(ESValueT) || ThrowT, Map())
         },
-        "IsCallable" -> { (xs, vs, retTy) =>
+        "IsCallable" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(SERef(SSym(0)), FunctionT),
           )
           AbsValue(retTy, guard)
         },
-        "IsConstructor" -> { (xs, vs, retTy) =>
+        "IsConstructor" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(SERef(SSym(0)), ConstructorT),
           )
           AbsValue(retTy, guard)
         },
-        "RequireInternalSlot" -> { (xs, vs, retTy) =>
+        "RequireInternalSlot" -> { (vs, retTy) =>
           val refined = vs(1).ty.str.getSingle match
             case One(f) =>
               ValueTy(
@@ -298,25 +331,25 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "ValidateTypedArray" -> { (xs, vs, retTy) =>
+        "ValidateTypedArray" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
           )
           AbsValue(retTy, guard)
         },
-        "ValidateIntegerTypedArray" -> { (xs, vs, retTy) =>
+        "ValidateIntegerTypedArray" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
           )
           AbsValue(retTy, guard)
         },
-        "ValidateAtomicAccessOnIntegerTypedArray" -> { (xs, vs, retTy) =>
+        "ValidateAtomicAccessOnIntegerTypedArray" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
           )
           AbsValue(retTy, guard)
         },
-        "ValidateNonRevokedProxy" -> { (xs, vs, retTy) =>
+        "ValidateNonRevokedProxy" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(
               SERef(SSym(0)),
@@ -327,26 +360,26 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "IsPromise" -> { (xs, vs, retTy) =>
+        "IsPromise" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(SERef(SSym(0)), RecordT("Promise")),
           )
           AbsValue(retTy, guard)
         },
-        "IsRegExp" -> { (xs, vs, retTy) =>
+        "IsRegExp" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
             Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
           )
           AbsValue(retTy, guard)
         },
-        "NewPromiseCapability" -> { (xs, vs, retTy) =>
+        "NewPromiseCapability" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(SERef(SSym(0)), ConstructorT),
           )
           AbsValue(retTy, guard)
         },
-        "CreateListFromArrayLike" -> { (xs, vs, retTy) =>
+        "CreateListFromArrayLike" -> { (vs, retTy) =>
           AbsValue((for {
             v <- vs.lift(1)
             str = v.ty.list.elem.str
@@ -357,7 +390,7 @@ class TypeAnalyzer(
             refined = retTy.toValue && NormalT(ListT(ty))
           } yield refined).getOrElse(retTy))
         },
-        "IsUnresolvableReference" -> { (xs, vs, retTy) =>
+        "IsUnresolvableReference" -> { (vs, retTy) =>
           var guard: TypeGuard = Map(
             True -> SETypeCheck(
               SERef(SSym(0)),
@@ -376,7 +409,7 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "IsPropertyReference" -> { (xs, vs, retTy) =>
+        "IsPropertyReference" -> { (vs, retTy) =>
           var guard: TypeGuard = Map(
             True -> SETypeCheck(
               SERef(SSym(0)),
@@ -398,13 +431,13 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "IsSuperReference" -> { (xs, vs, retTy) =>
+        "IsSuperReference" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(SERef(SSym(0)), RecordT("SuperReferenceRecord")),
           )
           AbsValue(retTy, guard)
         },
-        "IsPrivateReference" -> { (xs, vs, retTy) =>
+        "IsPrivateReference" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(
               SERef(SSym(0)),
@@ -425,14 +458,14 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "IsArray" -> { (xs, vs, retTy) =>
+        "IsArray" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
             Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
           )
           AbsValue(retTy, guard)
         },
-        "IsSharedArrayBuffer" -> { (xs, vs, retTy) =>
+        "IsSharedArrayBuffer" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(
               SERef(SSym(0)),
@@ -444,14 +477,14 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "IsConcatSpreadable" -> { (xs, vs, retTy) =>
+        "IsConcatSpreadable" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
             Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
           )
           AbsValue(retTy, guard)
         },
-        "IsDetachedBuffer" -> { (xs, vs, retTy) =>
+        "IsDetachedBuffer" -> { (vs, retTy) =>
           def getTy(ty: ValueTy, sty: ValueTy) = RecordT(
             Map(
               "ArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(ty)),
@@ -467,7 +500,7 @@ class TypeAnalyzer(
           )
           AbsValue(retTy, guard)
         },
-        "AllocateArrayBuffer" -> { (xs, vs, retTy) =>
+        "AllocateArrayBuffer" -> { (vs, retTy) =>
           AbsValue(
             NormalT(
               RecordT(
@@ -478,7 +511,7 @@ class TypeAnalyzer(
             Map(),
           )
         },
-        "AllocateSharedArrayBuffer" -> { (xs, vs, retTy) =>
+        "AllocateSharedArrayBuffer" -> { (vs, retTy) =>
           AbsValue(
             NormalT(
               RecordT(
@@ -491,13 +524,13 @@ class TypeAnalyzer(
             Map(),
           )
         },
-        "CanBeHeldWeakly" -> { (xs, vs, retTy) =>
+        "CanBeHeldWeakly" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             True -> SETypeCheck(SERef(SSym(0)), ObjectT || SymbolT),
           )
           AbsValue(retTy, guard)
         },
-        "AsyncGeneratorValidate" -> { (xs, vs, retTy) =>
+        "AsyncGeneratorValidate" -> { (vs, retTy) =>
           val guard: TypeGuard = Map(
             Normal -> SETypeCheck(SERef(SSym(0)), RecordT("AsyncGenerator")),
           )

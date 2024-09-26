@@ -22,59 +22,52 @@ trait ValueTypeDomainDecl { self: Self =>
   object ValueTypeDomain extends ValueDomain {
 
     /** elements */
-    trait Elem extends Appendable {
-      def ty: ValueTy
-      def guard: TypeGuard
-    }
-
-    /** type-based abstract values */
-    case class TyElem(ty: ValueTy, guard: TypeGuard = Map()) extends Elem
-
-    /** symbol-based abstract values */
-    case class SymElem(expr: SymExpr, guard: TypeGuard = Map()) extends Elem {
-      def ty: ValueTy = ???
-    }
+    case class Elem(
+      vty: ValueTy = BotT,
+      expr: Option[SymExpr] = None,
+      guard: TypeGuard = Map(),
+    ) extends Appendable
 
     /** top element */
-    lazy val Top: Elem = TyElem(AnyT)
+    lazy val Top: Elem = Elem(AnyT, None, Map())
 
     /** bottom element */
-    val Bot: Elem = TyElem(ValueTy())
+    val Bot: Elem = Elem(BotT, None, Map())
 
     /** abstraction functions */
-    def alpha(vs: Iterable[AValue]): Elem = TyElem(getValueTy(vs))
+    def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
     /** constructor with types */
     def apply(ty: Ty, guard: TypeGuard): Elem = ty match
       case _: UnknownTy => Bot
-      case vty: ValueTy => TyElem(vty, guard)
+      case vty: ValueTy => Elem(vty, guard = guard)
 
     /** predefined top values */
-    lazy val cloTop: Elem = TyElem(CloT)
-    lazy val contTop: Elem = TyElem(ContT)
+    lazy val cloTop: Elem = Elem(CloT)
+    lazy val contTop: Elem = Elem(ContT)
     lazy val partTop: Elem = notSupported("value.TypeDomain.partTop")
-    lazy val astValueTop: Elem = TyElem(AstT)
+    lazy val astValueTop: Elem = Elem(AstT)
     lazy val grammarSymbolTop: Elem = notSupported(
       "value.TypeDomain.grammarSymbolTop",
     )
-    lazy val codeUnitTop: Elem = TyElem(CodeUnitT)
+    lazy val codeUnitTop: Elem = Elem(CodeUnitT)
     lazy val enumTop: Elem = notSupported("value.TypeDomain.enumTop")
-    lazy val mathTop: Elem = TyElem(MathT)
-    lazy val intTop: Elem = TyElem(IntT)
-    lazy val nonPosIntTop: Elem = TyElem(NonPosIntT)
-    lazy val nonNegIntTop: Elem = TyElem(NonNegIntT)
-    lazy val negIntTop: Elem = TyElem(NegIntT)
-    lazy val posIntTop: Elem = TyElem(PosIntT)
-    lazy val infinityTop: Elem = TyElem(InfinityT)
+    lazy val mathTop: Elem = Elem(MathT)
+    lazy val intTop: Elem = Elem(IntT)
+    lazy val nonPosIntTop: Elem = Elem(NonPosIntT)
+    lazy val nonNegIntTop: Elem = Elem(NonNegIntT)
+    lazy val negIntTop: Elem = Elem(NegIntT)
+    lazy val posIntTop: Elem = Elem(PosIntT)
+    lazy val infinityTop: Elem = Elem(InfinityT)
     lazy val simpleValueTop: Elem =
       notSupported("value.TypeDomain.simpleValueTop")
-    lazy val numberTop: Elem = TyElem(NumberT)
-    lazy val numberIntTop: Elem = TyElem(NumberIntT)
-    lazy val bigIntTop: Elem = TyElem(BigIntT)
-    lazy val strTop: Elem = TyElem(StrT)
-    lazy val boolTop: Elem = TyElem(BoolT)
-    lazy val undefTop: Elem = TyElem(UndefT)
-    lazy val nullTop: Elem = TyElem(NullT)
+    lazy val numberTop: Elem = Elem(NumberT)
+    lazy val numberIntTop: Elem = Elem(NumberIntT)
+    lazy val bigIntTop: Elem = Elem(BigIntT)
+    lazy val strTop: Elem = Elem(StrT)
+    lazy val boolTop: Elem = Elem(BoolT)
+    lazy val undefTop: Elem = Elem(UndefT)
+    lazy val nullTop: Elem = Elem(NullT)
 
     /** TODO AST type names whose MV returns a positive integer */
     lazy val posIntMVTyNames: Set[String] = Set(
@@ -141,7 +134,8 @@ trait ValueTypeDomainDecl { self: Self =>
       given Rule[RefinementKind] = (app, kind) => app >> kind.toString
       given Ordering[RefinementKind] = Ordering.by(_.toString)
       given Ordering[Local] = Ordering.by(_.toString)
-      app >> elem.ty
+      app >> elem.vty
+      elem.expr.map(app >> " | " >> _)
       if (elem.guard.nonEmpty) app >> " " >> elem.guard
       app
 
@@ -150,7 +144,7 @@ trait ValueTypeDomainDecl { self: Self =>
       case VOp.Min =>
         val math = vs.map(_.ty.math).reduce(_ min _)
         val inf = vs.map(_.ty.infinity).reduce(_ || _)
-        TyElem(
+        Elem(
           ValueTy(
             math = math,
             infinity = if (math.isBottom) inf else inf && InfinityTy.Neg,
@@ -160,7 +154,7 @@ trait ValueTypeDomainDecl { self: Self =>
       case VOp.Max =>
         val math = vs.map(_.ty.math).reduce(_ max _)
         val inf = vs.map(_.ty.infinity).reduce(_ || _)
-        TyElem(
+        Elem(
           ValueTy(
             math = math,
             infinity = if (math.isBottom) inf else inf && InfinityTy.Pos,
@@ -183,44 +177,48 @@ trait ValueTypeDomainDecl { self: Self =>
       /** join operator */
       def ⊔(that: Elem): Elem =
         import SymExpr.*
-        val kinds = elem.guard.keySet intersect that.guard.keySet
+        val Elem(lty, lexpr, lguard) = elem
+        val Elem(rty, rexpr, rguard) = that
+        val kinds = lguard.keySet intersect rguard.keySet
         val guard = kinds.map { kind =>
-          val g: Option[SymExpr] = elem.guard.get(kind)
-          val expr = (elem.guard.get(kind), that.guard.get(kind)) match
+          val g: Option[SymExpr] = lguard.get(kind)
+          val expr = (lguard.get(kind), rguard.get(kind)) match
             case (Some(l), Some(r)) => SEBinary(BOp.Or, l, r)
             case _                  => SEBool(true)
           kind -> expr
         }.toMap
-        (elem, that) match
-          case (SymElem(l, _), SymElem(r, _)) if l == r =>
-            SymElem(l, guard)
-          case (SymElem(e, _), TyElem(t, _)) if t.isBottom =>
-            SymElem(e, guard)
-          case (TyElem(t, _), SymElem(e, _)) if t.isBottom =>
-            SymElem(e, guard)
-          case (l, r) => TyElem(l.ty || r.ty, guard)
+        (lexpr, rexpr) match
+          case (_, None)           => Elem(lty || rty, lexpr, guard)
+          case (None, _)           => Elem(lty || rty, rexpr, guard)
+          case _ if lexpr == rexpr => Elem(lty || rty, lexpr, guard)
+          case (Some(lexpr), Some(rexpr)) =>
+            Elem(elem.ty || that.ty, None, guard)
 
       /** meet operator */
       override def ⊓(that: Elem): Elem =
         import SymExpr.*
-        val kinds = elem.guard.keySet ++ that.guard.keySet
+        val Elem(lty, lexpr, lguard) = elem
+        val Elem(rty, rexpr, rguard) = that
+        val kinds = lguard.keySet ++ rguard.keySet
         val guard = kinds.map { kind =>
-          val expr = (elem.guard.get(kind), that.guard.get(kind)) match
+          val expr = (lguard.get(kind), rguard.get(kind)) match
             case (Some(l), Some(r)) => SEBinary(BOp.And, l, r)
             case (Some(l), None)    => l
             case (None, Some(r))    => r
             case _                  => SEBool(true)
           kind -> expr
         }.toMap
-        (elem, that) match
-          case (SymElem(l, _), SymElem(r, _)) if l == r => SymElem(l, guard)
-          case (l: SymElem, r: TyElem) if l.ty <= r.ty => SymElem(l.expr, guard)
-          case (l: TyElem, r: SymElem) if r.ty <= l.ty => SymElem(r.expr, guard)
-          case (l, r) => TyElem(l.ty && r.ty, guard)
+        (lexpr, rexpr) match
+          case (Some(e), None) if getTy(e) <= rty =>
+            Elem(lty && rty, lexpr, guard)
+          case (None, Some(e)) if getTy(e) <= lty =>
+            Elem(lty && rty, rexpr, guard)
+          case _ if lexpr == rexpr => Elem(lty && rty, lexpr, guard)
+          case _                   => Elem(elem.ty && that.ty, None, guard)
 
       /** prune operator */
       override def --(that: Elem): Elem =
-        TyElem(elem.ty -- that.ty, elem.guard)
+        Elem(elem.ty -- that.ty, None, elem.guard)
 
       /** concretization function */
       override def gamma: BSet[AValue] = Inf
@@ -243,8 +241,8 @@ trait ValueTypeDomainDecl { self: Self =>
       def =^=(that: Elem): Elem =
         (elem.getSingle, that.getSingle) match
           case (Zero, _) | (_, Zero)       => Bot
-          case (One(l), One(r))            => TyElem(BoolT(l == r))
-          case _ if (elem ⊓ that).isBottom => TyElem(FalseT)
+          case (One(l), One(r))            => Elem(BoolT(l == r))
+          case _ if (elem ⊓ that).isBottom => Elem(FalseT)
           case _                           => boolTop
       def ==^==(that: Elem): Elem = numericCompareOP(elem, that)
       def <(that: Elem): Elem = numericCompareOP(elem, that)
@@ -282,7 +280,7 @@ trait ValueTypeDomainDecl { self: Self =>
           case NumberTopTy      => NumberTopTy
           case NumberIntTy      => NumberIntTy
           case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
-        TyElem(
+        Elem(
           ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt),
         )
 
@@ -301,7 +299,7 @@ trait ValueTypeDomainDecl { self: Self =>
           case NumberTopTy      => NumberTopTy
           case NumberIntTy      => NumberIntTy
           case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
-        TyElem(
+        Elem(
           ValueTy(math = mathTy, number = numberTy, bigInt = elem.ty.bigInt),
         )
 
@@ -312,7 +310,7 @@ trait ValueTypeDomainDecl { self: Self =>
           case IntTy | NonNegIntTy | NonPosIntTy => NonNegIntTy
           case NegIntTy | PosIntTy               => PosIntTy
           case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
-        TyElem(ValueTy(math = mathTy))
+        Elem(ValueTy(math = mathTy))
 
       /** floor operation */
       def floor: Elem =
@@ -320,7 +318,7 @@ trait ValueTypeDomainDecl { self: Self =>
           case MathTopTy | IntTy                                     => IntTy
           case m @ (NonNegIntTy | NonPosIntTy | NegIntTy | PosIntTy) => m
           case MathSetTy(set) => MathSetTy(set.map(Interpreter.floor))
-        TyElem(ValueTy(math = mathTy))
+        Elem(ValueTy(math = mathTy))
 
       /** type operations */
       def typeOf(st: AbsState): Elem =
@@ -335,7 +333,7 @@ trait ValueTypeDomainDecl { self: Self =>
         if (!(ty && ObjectT).isBottom) names += "Object"
         if (!(ty && SymbolT).isBottom) names += "Symbol"
         if (!(ty -- ESValueT).isBottom) names += "SpecType"
-        TyElem(StrT(names))
+        Elem(StrT(names))
 
       /** type check */
       def typeCheck(ty: Ty, st: AbsState): Elem = boolTop
@@ -343,7 +341,7 @@ trait ValueTypeDomainDecl { self: Self =>
       /** helper functions for abstract transfer */
       def convertTo(cop: COp, radix: Elem): Elem =
         val ty = elem.ty
-        TyElem(cop match
+        Elem(cop match
           case COp.ToApproxNumber =>
             if (!ty.math.isBottom) NumberT
             else ValueTy.Bot
@@ -373,7 +371,7 @@ trait ValueTypeDomainDecl { self: Self =>
       def parse(rule: Elem): Elem = rule.ty.grammarSymbol match
         case Inf => exploded("too imprecise grammarSymbol rule for parsing")
         case Fin(set) =>
-          TyElem(AstT((for {
+          Elem(AstT((for {
             grammarSymbol <- set
             name = grammarSymbol.name
           } yield name).toSet))
@@ -394,13 +392,13 @@ trait ValueTypeDomainDecl { self: Self =>
             else if (upperTy.isNonPosInt) NonPosIntTy
             else IntTy
           else MathTopTy
-        TyElem(ValueTy(math = mathTy))
+        Elem(ValueTy(math = mathTy))
 
       /** refine receiver object */
       def refineThis(func: Func): Elem = elem
 
       /** get lexical result */
-      def getLexical(method: String): Elem = TyElem(
+      def getLexical(method: String): Elem = Elem(
         if (elem.ty.ast.isBottom) ValueTy()
         else
           method match
@@ -428,16 +426,16 @@ trait ValueTypeDomainDecl { self: Self =>
           case AstTy.Top =>
             for {
               base <- noBase.getOrElse(method, Set()).toList
-            } yield base.func -> TyElem(base.thisTy)
+            } yield base.func -> Elem(base.thisTy)
           case AstTy.Simple(names) =>
             for {
               name <- names.toList
               base <- simple.getOrElse((name, method), Set())
-            } yield base.func -> TyElem(base.thisTy)
+            } yield base.func -> Elem(base.thisTy)
           case AstTy.Detail(name, idx) =>
             for {
               base <- indexed.getOrElse(((name, idx), method), Set()).toList
-            } yield base.func -> TyElem(base.thisTy)
+            } yield base.func -> Elem(base.thisTy)
 
       /** getters */
       def clo: AbsClo = ty.clo match
@@ -472,7 +470,8 @@ trait ValueTypeDomainDecl { self: Self =>
       def bool: AbsBool = AbsBool.alpha(elem.ty.bool.set.map(Bool.apply))
       def undef: AbsUndef = notSupported("ValueTypeDomain.Elem.undef")
       def nullv: AbsNull = notSupported("ValueTypeDomain.Elem.nullv")
-      def ty: ValueTy = elem.ty
+      def ty: ValueTy = elem.vty // TODO elem.expr
+      def expr: Option[SymExpr] = elem.expr
       def guard: TypeGuard = elem.guard
     }
 
@@ -502,6 +501,9 @@ trait ValueTypeDomainDecl { self: Self =>
       case Null                         => NullT
       case v => notSupported(s"impossible to convert to pure type ($v)")
 
+    /** type getter for symbolic expressions */
+    private def getTy(sexpr: SymExpr): ValueTy = ???
+
     // numeric operator helper
     private def numericOp(l: Elem, r: Elem, op: String) =
       mathOp(l, r, op) ⊔ numberOp(l, r, op) ⊔ bigIntOp(l, r, op)
@@ -512,17 +514,17 @@ trait ValueTypeDomainDecl { self: Self =>
       val rty = r.ty.math
       op match
         case _ if lty.isBottom || rty.isBottom => Bot
-        case "+"   => TyElem(ValueTy(math = lty + rty))
-        case "-"   => TyElem(ValueTy(math = lty - rty))
-        case "%"   => TyElem(ValueTy(math = lty % rty))
-        case "**"  => TyElem(ValueTy(math = lty ** rty))
-        case "*"   => TyElem(ValueTy(math = lty * rty))
-        case "&"   => TyElem(ValueTy(math = lty & rty))
-        case "|"   => TyElem(ValueTy(math = lty | rty))
-        case "^"   => TyElem(ValueTy(math = lty ^ rty))
-        case "<<"  => TyElem(ValueTy(math = lty << rty))
-        case ">>"  => TyElem(ValueTy(math = lty >> rty))
-        case ">>>" => TyElem(ValueTy(math = lty >>> rty))
+        case "+"   => Elem(ValueTy(math = lty + rty))
+        case "-"   => Elem(ValueTy(math = lty - rty))
+        case "%"   => Elem(ValueTy(math = lty % rty))
+        case "**"  => Elem(ValueTy(math = lty ** rty))
+        case "*"   => Elem(ValueTy(math = lty * rty))
+        case "&"   => Elem(ValueTy(math = lty & rty))
+        case "|"   => Elem(ValueTy(math = lty | rty))
+        case "^"   => Elem(ValueTy(math = lty ^ rty))
+        case "<<"  => Elem(ValueTy(math = lty << rty))
+        case ">>"  => Elem(ValueTy(math = lty >> rty))
+        case ">>>" => Elem(ValueTy(math = lty >>> rty))
         case _     => mathTop
 
     // number operator helper
@@ -541,7 +543,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
     // logical unary operator helper
     private def logicalUnaryOp(b: Elem, op: "!") =
-      TyElem(BoolT(for {
+      Elem(BoolT(for {
         x <- b.ty.bool.set
       } yield op match
         case "!" => !x,
@@ -549,7 +551,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
     // logical operator helper
     private def logicalOp(l: Elem, r: Elem, op: "&&" | "||" | "^") =
-      TyElem(BoolT(for {
+      Elem(BoolT(for {
         x <- l.ty.bool.set
         y <- r.ty.bool.set
       } yield op match
@@ -560,7 +562,7 @@ trait ValueTypeDomainDecl { self: Self =>
 
     // numeric comparison operator helper
     private lazy val numericCompareOP: (Elem, Elem) => Elem = (l, r) =>
-      TyElem(
+      Elem(
         ValueTy(
           bool = BoolTy(
             if (

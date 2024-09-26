@@ -178,6 +178,7 @@ trait ValueDomainDecl { self: Self =>
       def undef: AbsUndef
       def nullv: AbsNull
       def ty: ValueTy
+      def expr: Option[SymExpr]
       def guard: TypeGuard
     }
   }
