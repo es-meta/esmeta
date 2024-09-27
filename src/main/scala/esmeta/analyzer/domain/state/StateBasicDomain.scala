@@ -8,6 +8,7 @@ import esmeta.ir.{*, given}
 import esmeta.es
 import esmeta.es.*
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender
 import esmeta.util.Appender.{*, given}
@@ -249,6 +250,9 @@ trait StateBasicDomainDecl { self: Self =>
       /** set local environments */
       def setLocal(locals: Map[Local, AbsValue]): Elem =
         elem.copy(locals = locals)
+
+      /** set symbolic environments */
+      def setSymEnv(symEnv: Map[Sym, ValueTy]): Elem = elem
 
       /** get string */
       def getString(detail: Boolean): String =

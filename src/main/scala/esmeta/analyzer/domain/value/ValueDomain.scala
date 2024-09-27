@@ -18,8 +18,8 @@ trait ValueDomainDecl { self: Self =>
     def apply(value: Value): Elem = alpha(AValue.from(value))
 
     /** constructor with types */
-    def apply(ty: Ty): Elem = apply(ty, Map.empty)
-    def apply(ty: Ty, guard: TypeGuard): Elem
+    def apply(ty: Ty): Elem = apply(ty, Zero, Map.empty)
+    def apply(ty: Ty, expr: Flat[SymExpr], guard: TypeGuard): Elem
 
     /** abstraction functions for raw data */
     def apply(ast: Ast): Elem = apply(AstValue(ast))
@@ -178,7 +178,7 @@ trait ValueDomainDecl { self: Self =>
       def undef: AbsUndef
       def nullv: AbsNull
       def ty: ValueTy
-      def expr: Option[SymExpr]
+      def expr: Flat[SymExpr]
       def guard: TypeGuard
     }
   }

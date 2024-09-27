@@ -5,6 +5,7 @@ import esmeta.analyzer.domain.*
 import esmeta.es.Initialize
 import esmeta.ir.*
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.util.StateMonad
@@ -113,6 +114,9 @@ trait StateDomainDecl { self: Self =>
 
       /** set local environments */
       def setLocal(locals: Map[Local, AbsValue]): Elem
+
+      /** set symbolic environments */
+      def setSymEnv(symEnv: Map[Sym, ValueTy]): Elem
 
       /** conversion to string */
       def getString(detail: Boolean): String

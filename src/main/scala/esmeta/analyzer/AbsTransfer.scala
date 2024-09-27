@@ -558,12 +558,12 @@ trait AbsTransferDecl { self: Analyzer =>
       // keep caller state to restore it
       contTarget match
         case Some(target) =>
-          sem += target -> callerSt.setLocal(locals.toMap)
+          sem += target -> getCalleeState(callerSt, locals)
         case None =>
           sem.callInfo += callerNp -> callerSt
           for {
             (calleeView, newLocals) <- getCalleeEntries(callerNp, locals)
-            calleeSt = callerSt.setLocal(newLocals.toMap)
+            calleeSt = getCalleeState(callerSt, newLocals)
             calleeNp = NodePoint(callee, callee.entry, calleeView)
           } {
             // add callee to worklist
@@ -575,6 +575,12 @@ trait AbsTransferDecl { self: Analyzer =>
             // propagate callee analysis result
             propagate(rp, callerNp)
           }
+
+    /** get callee state */
+    def getCalleeState(
+      callerSt: AbsState,
+      locals: List[(Local, AbsValue)],
+    ): AbsState = callerSt.setLocal(locals.toMap)
 
     /** get after call node point */
     def getAfterCallNp(callerNp: NodePoint[Call]): Option[NodePoint[Node]] =
