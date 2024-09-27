@@ -25,6 +25,9 @@ enum SymExpr:
   case SETypeCheck(base: SymExpr, ty: ValueTy)
   case SEBinary(bop: BOp, left: SymExpr, right: SymExpr)
   case SEUnary(uop: UOp, expr: SymExpr)
+object SymExpr:
+  val T: SymExpr = SEBool(true)
+  val F: SymExpr = SEBool(false)
 
 /** symbolic references */
 enum SymRef:

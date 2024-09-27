@@ -22,8 +22,9 @@ trait StateTypeDomainDecl { self: Self =>
 
     /** elements */
     case class Elem(
-      reachable: Boolean = false,
-      locals: Map[Local, AbsValue] = Map(),
+      reachable: Boolean,
+      locals: Map[Local, AbsValue],
+      symEnv: Map[Sym, ValueTy],
     ) extends Appendable
 
     /** top element */
@@ -36,10 +37,10 @@ trait StateTypeDomainDecl { self: Self =>
     private var base: Map[Global, AbsValue] = Map()
 
     /** bottom element */
-    val Bot: Elem = Elem()
+    val Bot: Elem = Elem(false, Map(), Map())
 
     /** empty element */
-    val Empty: Elem = Elem(reachable = true)
+    val Empty: Elem = Elem(true, Map(), Map())
 
     /** abstraction functions */
     def alpha(xs: Iterable[State]): Elem = Top
@@ -60,10 +61,9 @@ trait StateTypeDomainDecl { self: Self =>
       def ⊑(that: Elem): Boolean = (elem, that) match
         case _ if elem.isBottom => true
         case _ if that.isBottom => false
-        case (Elem(_, llocals), Elem(_, rlocals)) =>
-          (llocals.keySet ++ rlocals.keySet).forall(x => {
-            elem.get(x) ⊑ that.get(x)
-          })
+        case (Elem(_, llocals, lsymEnv), Elem(_, rlocals, rsymEnv)) =>
+          llocals.forall { (x, v) => rlocals.get(x).fold(false)(v ⊑ _) } &&
+          lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty ⊑ _) }
 
       /** join operator */
       def ⊔(that: Elem): Elem = (elem, that) match
@@ -72,23 +72,33 @@ trait StateTypeDomainDecl { self: Self =>
         case (l, r) =>
           val newLocals = (for {
             x <- (l.locals.keySet ++ r.locals.keySet).toList
-            v = elem.get(x) ⊔ that.get(x)
+            v = l.get(x) ⊔ r.get(x)
           } yield x -> v).toMap
-          Elem(true, newLocals)
+          val newSymEnv = (for {
+            sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
+            ty = l.get(sym) ⊔ r.get(sym)
+          } yield sym -> ty).toMap
+          Elem(true, newLocals, newSymEnv)
 
       /** meet operator */
       override def ⊓(that: Elem): Elem = (elem, that) match
         case _ if elem.isBottom || that.isBottom => Bot
         case (l, r) =>
           val newLocals = (for {
-            x <- (l.locals.keySet ++ r.locals.keySet).toList
+            x <- (l.locals.keySet intersect r.locals.keySet).toList
             v = elem.get(x) ⊓ that.get(x)
           } yield x -> v).toMap
-          Elem(true, newLocals)
+          val newSymEnv = (for {
+            sym <- (l.symEnv.keySet intersect r.symEnv.keySet).toList
+            ty = l.get(sym) ⊓ r.get(sym)
+          } yield sym -> ty).toMap
+          Elem(true, newLocals, newSymEnv)
 
       // -----------------------------------------------------------------------
       // Operations for Abstract States
       // -----------------------------------------------------------------------
+      /** getter */
+      def get(sym: Sym): ValueTy = elem.symEnv.getOrElse(sym, BotT)
 
       /** getter */
       def get(x: Var): AbsValue = x match
@@ -105,6 +115,7 @@ trait StateTypeDomainDecl { self: Self =>
           lookupList(baseTy.list, fieldTy) ||
           lookupRecord(baseTy.record, fieldTy) ||
           lookupMap(baseTy.map, fieldTy),
+          Zero,
           get(base.guard, field: AbsValue),
         )
 
@@ -201,6 +212,7 @@ trait StateTypeDomainDecl { self: Self =>
       def doReturn(to: Elem, lhs: Local, value: AbsValue): Elem = Elem(
         reachable = true,
         locals = to.locals + (lhs -> value),
+        symEnv = to.symEnv,
       )
 
       /** singleton address partition checks */
@@ -209,6 +221,10 @@ trait StateTypeDomainDecl { self: Self =>
       /** set local environments */
       def setLocal(locals: Map[Local, AbsValue]): Elem =
         elem.copy(locals = locals)
+
+      /** set symbolic environments */
+      def setSymEnv(symEnv: Map[Sym, ValueTy]): Elem =
+        elem.copy(symEnv = symEnv)
 
       /** get string */
       def getString(detail: Boolean): String = elem.toString
@@ -242,8 +258,12 @@ trait StateTypeDomainDecl { self: Self =>
       if (!elem.isBottom) {
         val irStringifier = IRElem.getStringifier(detail, false)
         import irStringifier.given
-        given Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
+        given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
+        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")(
+          using kRule = (app, sym) => app >> "#" >> sym
+        )
         app >> elem.locals
+        app >> elem.symEnv
       } else app >> "⊥"
 
     // completion record lookup

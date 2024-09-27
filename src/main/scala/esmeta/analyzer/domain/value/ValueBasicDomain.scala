@@ -51,7 +51,7 @@ trait ValueBasicDomainDecl { self: Self =>
     )
 
     /** constructor with types */
-    def apply(ty: Ty, guard: TypeGuard) = Top
+    def apply(ty: Ty, expr: Flat[SymExpr], guard: TypeGuard): Elem = Top
 
     /** predefined top values */
     val cloTop: Elem = Bot.copy(clo = AbsClo.Top)
@@ -487,7 +487,7 @@ trait ValueBasicDomainDecl { self: Self =>
 
       /** getters */
       def ty: ValueTy = notSupported("ValueBasicDomain.ty")
-      def expr: Option[SymExpr] = notSupported("ValueBasicDomain.expr")
+      def expr: Flat[SymExpr] = notSupported("ValueBasicDomain.expr")
       def guard: TypeGuard = notSupported("ValueBasicDomain.guard")
 
       // -------------------------------------------------------------------------

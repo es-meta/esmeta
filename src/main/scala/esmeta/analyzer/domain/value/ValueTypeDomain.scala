@@ -23,24 +23,24 @@ trait ValueTypeDomainDecl { self: Self =>
 
     /** elements */
     case class Elem(
-      vty: ValueTy = BotT,
-      expr: Option[SymExpr] = None,
+      lowerTy: ValueTy = BotT,
+      expr: Flat[SymExpr] = Zero,
       guard: TypeGuard = Map(),
     ) extends Appendable
 
     /** top element */
-    lazy val Top: Elem = Elem(AnyT, None, Map())
+    lazy val Top: Elem = Elem(AnyT, Many, Map())
 
     /** bottom element */
-    val Bot: Elem = Elem(BotT, None, Map())
+    val Bot: Elem = Elem(BotT, Zero, Map())
 
     /** abstraction functions */
     def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
 
     /** constructor with types */
-    def apply(ty: Ty, guard: TypeGuard): Elem = ty match
-      case _: UnknownTy => Bot
-      case vty: ValueTy => Elem(vty, guard = guard)
+    def apply(ty: Ty, expr: Flat[SymExpr], guard: TypeGuard): Elem = ty match
+      case _: UnknownTy     => Bot
+      case lowerTy: ValueTy => Elem(lowerTy, expr, guard = guard)
 
     /** predefined top values */
     lazy val cloTop: Elem = Elem(CloT)
@@ -134,8 +134,11 @@ trait ValueTypeDomainDecl { self: Self =>
       given Rule[RefinementKind] = (app, kind) => app >> kind.toString
       given Ordering[RefinementKind] = Ordering.by(_.toString)
       given Ordering[Local] = Ordering.by(_.toString)
-      app >> elem.vty
-      elem.expr.map(app >> " | " >> _)
+      app >> elem.lowerTy
+      elem.expr match
+        case Zero      =>
+        case One(expr) => app >> " | " >> expr
+        case Many      => app >> " | *"
       if (elem.guard.nonEmpty) app >> " " >> elem.guard
       app
 
@@ -172,13 +175,13 @@ trait ValueTypeDomainDecl { self: Self =>
       def keyValue: Elem = notSupported("value.TypeDomain.Elem.keyValue")
 
       /** partial order */
-      def ⊑(that: Elem): Boolean = elem.ty <= that.ty
+      def ⊑(that: Elem): Boolean = elem.ty <= that.lowerTy
 
       /** join operator */
       def ⊔(that: Elem): Elem =
         import SymExpr.*
-        val Elem(lty, lexpr, lguard) = elem
-        val Elem(rty, rexpr, rguard) = that
+        val l @ Elem(llty, lexpr, lguard) = elem
+        val r @ Elem(rlty, rexpr, rguard) = that
         val kinds = lguard.keySet intersect rguard.keySet
         val guard = kinds.flatMap { kind =>
           val g: Option[SymExpr] = lguard.get(kind)
@@ -187,17 +190,22 @@ trait ValueTypeDomainDecl { self: Self =>
             case _                            => None
         }.toMap
         (lexpr, rexpr) match
-          case (_, None)           => Elem(lty || rty, lexpr, guard)
-          case (None, _)           => Elem(lty || rty, rexpr, guard)
-          case _ if lexpr == rexpr => Elem(lty || rty, lexpr, guard)
-          case (Some(lexpr), Some(rexpr)) =>
-            Elem(elem.ty || that.ty, None, guard)
+          case (Zero, Zero)               => Elem(llty || rlty, Zero, guard)
+          case (Zero, One(r))             => Elem(llty || rlty, One(r), guard)
+          case (One(l), Zero)             => Elem(llty || rlty, One(l), guard)
+          case (One(l), One(r)) if l == r => Elem(llty || rlty, One(l), guard)
+          case (One(_), One(_))           => Elem(l.ty || r.ty, Many, guard)
+          case (One(_), Many)             => Elem(l.ty || rlty, Many, guard)
+          case (Many, One(_))             => Elem(llty || r.ty, Many, guard)
+          case (Zero, Many)               => Elem(llty || rlty, Many, guard)
+          case (Many, Zero)               => Elem(llty || rlty, Many, guard)
+          case (Many, Many)               => Elem(llty || rlty, Many, guard)
 
       /** meet operator */
       override def ⊓(that: Elem): Elem =
         import SymExpr.*
-        val Elem(lty, lexpr, lguard) = elem
-        val Elem(rty, rexpr, rguard) = that
+        val l @ Elem(llty, lexpr, lguard) = elem
+        val r @ Elem(rlty, rexpr, rguard) = that
         val kinds = lguard.keySet ++ rguard.keySet
         val guard = kinds.flatMap { kind =>
           (lguard.get(kind), rguard.get(kind)) match
@@ -207,16 +215,20 @@ trait ValueTypeDomainDecl { self: Self =>
             case _                            => None
         }.toMap
         (lexpr, rexpr) match
-          case (Some(e), None) if getTy(e) <= rty =>
-            Elem(lty && rty, lexpr, guard)
-          case (None, Some(e)) if getTy(e) <= lty =>
-            Elem(lty && rty, rexpr, guard)
-          case _ if lexpr == rexpr => Elem(lty && rty, lexpr, guard)
-          case _                   => Elem(elem.ty && that.ty, None, guard)
+          case (Zero, Zero)               => Elem(llty && rlty, Zero, guard)
+          case (Zero, One(r))             => Elem(llty && rlty, One(r), guard)
+          case (One(l), Zero)             => Elem(llty && rlty, One(l), guard)
+          case (One(l), One(r)) if l == r => Elem(llty && rlty, One(l), guard)
+          case (One(_), One(_))           => Elem(l.ty && r.ty, Many, guard)
+          case (One(_), Many)             => Elem(l.ty && rlty, Many, guard)
+          case (Many, One(_))             => Elem(llty && r.ty, Many, guard)
+          case (Zero, Many)               => Elem(llty && rlty, Many, guard)
+          case (Many, Zero)               => Elem(llty && rlty, Many, guard)
+          case (Many, Many)               => Elem(llty && rlty, Many, guard)
 
       /** prune operator */
       override def --(that: Elem): Elem =
-        Elem(elem.ty -- that.ty, None, elem.guard)
+        Elem(elem.ty -- that.lowerTy, Many, elem.guard)
 
       /** concretization function */
       override def gamma: BSet[AValue] = Inf
@@ -468,8 +480,8 @@ trait ValueTypeDomainDecl { self: Self =>
       def bool: AbsBool = AbsBool.alpha(elem.ty.bool.set.map(Bool.apply))
       def undef: AbsUndef = notSupported("ValueTypeDomain.Elem.undef")
       def nullv: AbsNull = notSupported("ValueTypeDomain.Elem.nullv")
-      def ty: ValueTy = elem.vty // TODO elem.expr
-      def expr: Option[SymExpr] = elem.expr
+      def ty: ValueTy = elem.lowerTy // TODO elem.expr
+      def expr: Flat[SymExpr] = elem.expr
       def guard: TypeGuard = elem.guard
     }
 
@@ -478,7 +490,7 @@ trait ValueTypeDomainDecl { self: Self =>
     // -------------------------------------------------------------------------
     // value type getter
     private def getValueTy(vs: Iterable[AValue]): ValueTy =
-      vs.foldLeft(ValueTy()) { case (vty, v) => vty || getValueTy(v) }
+      vs.foldLeft(ValueTy()) { case (lowerTy, v) => lowerTy || getValueTy(v) }
 
     // value type getter
     private def getValueTy(v: AValue): ValueTy = v match
