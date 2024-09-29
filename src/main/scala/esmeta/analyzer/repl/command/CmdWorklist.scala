@@ -19,11 +19,10 @@ trait CmdWorklistDecl { self: Self =>
       cpOpt: Option[ControlPoint],
       args: List[String],
     ): Unit = {
-      val worklist = sem.worklist
       val size = worklist.size
       println(s"Total $size elements exist in the worklist.")
       args match {
-        case s"-${`detail`}" :: _ => sem.worklist.foreach(println(_))
+        case s"-${`detail`}" :: _ => worklist.foreach(println(_))
         case _                    =>
       }
     }

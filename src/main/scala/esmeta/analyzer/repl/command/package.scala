@@ -11,7 +11,6 @@ trait Decl
   with CmdEntryDecl
   with CmdExitDecl
   with CmdFindImprecDecl
-  with CmdFindMergedDecl
   with CmdGraphDecl
   with CmdHelpDecl
   with CmdInfoDecl

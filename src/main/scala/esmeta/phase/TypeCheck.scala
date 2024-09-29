@@ -1,9 +1,9 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.analyzer.*
-import esmeta.analyzer.TypeAnalyzer.Ignore
-import esmeta.analyzer.domain
+// import esmeta.analyzer.*
+// import esmeta.analyzer.TypeAnalyzer.Ignore
+// import esmeta.analyzer.domain
 import esmeta.cfg.{CFG, Func}
 import esmeta.error.TypeCheckFail
 import esmeta.util.*
@@ -11,33 +11,34 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `tycheck` phase */
-case object TypeCheck extends Phase[CFG, TypeAnalyzer#Semantics] {
+case object TypeCheck extends Phase[CFG, Unit] {
   val name = "tycheck"
   val help = "performs a type analysis of ECMA-262."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): TypeAnalyzer#Semantics =
-    val silent = cmdConfig.silent
-    val analyzer: TypeAnalyzer = TypeAnalyzer(
-      cfg = cfg,
-      targetPattern = config.target,
-      typeSens = config.typeSens,
-      useTypeGuard = config.typeGuard,
-      config = TypeAnalyzer.Config(),
-      ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
-      log = config.log,
-      detail = config.detail,
-      silent = silent,
-      useRepl = config.useRepl,
-      replContinue = config.replContinue,
-    )
-    analyzer.analyze
-    if (analyzer.needUpdate)
-      if (config.updateIgnore) analyzer.updateIgnore
-      throw TypeCheckFail(if (silent) None else Some(analyzer.toString))
-    analyzer.sem
+  ): Unit =
+    // val silent = cmdConfig.silent
+    // val analyzer: TypeAnalyzer = TypeAnalyzer(
+    //   cfg = cfg,
+    //   targetPattern = config.target,
+    //   typeSens = config.typeSens,
+    //   useTypeGuard = config.typeGuard,
+    //   config = TypeAnalyzer.Config(),
+    //   ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
+    //   log = config.log,
+    //   detail = config.detail,
+    //   silent = silent,
+    //   useRepl = config.useRepl,
+    //   replContinue = config.replContinue,
+    // )
+    // analyzer.analyze
+    // if (analyzer.needUpdate)
+    //   if (config.updateIgnore) analyzer.updateIgnore
+    //   throw TypeCheckFail(if (silent) None else Some(analyzer.toString))
+    // analyzer.sem
+    ???
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

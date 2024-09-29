@@ -1,7 +1,6 @@
 package esmeta.analyzer.repl.command
 
 import esmeta.analyzer.*
-import esmeta.analyzer.domain
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
 import scala.Console.*
@@ -20,7 +19,7 @@ trait CmdMoveDecl { self: Self =>
     // get node points of given nid
     def getNps(nid: Int): Array[NodePoint[Node]] = {
       val node = cfg.nodeMap(nid)
-      sem.npMap.keys.toArray.filter(_.node.id == node.id)
+      npMap.keys.toArray.filter(_.node.id == node.id)
     }
 
     // print node points

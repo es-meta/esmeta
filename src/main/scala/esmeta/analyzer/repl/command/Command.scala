@@ -46,7 +46,6 @@ trait CommandDecl { self: Self =>
       CmdEntry,
       CmdWorklist,
       CmdFindImprec,
-      CmdFindMerged,
     )
     val cmdMap: Map[String, Command] =
       commands.map(cmd => (cmd.name, cmd)).toMap

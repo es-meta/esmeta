@@ -88,7 +88,11 @@ trait AnalysisPointDecl { self: Analyzer =>
   }
 
   /** control points */
-  sealed trait ControlPoint extends AnalysisPoint
+  sealed trait ControlPoint extends AnalysisPoint {
+    def toReturnPoint: ReturnPoint = this match
+      case np: NodePoint[Node] => ReturnPoint(np.func, np.view)
+      case rp: ReturnPoint     => rp
+  }
 
   /** node points */
   case class NodePoint[+T <: Node](

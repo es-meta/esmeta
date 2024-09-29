@@ -182,17 +182,3 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
   )
 }
-
-// -----------------------------------------------------------------------------
-// ECMAScript Static Analysis (Meta-Level Static Analysis)
-// -----------------------------------------------------------------------------
-/** `analyze` command */
-case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
-  val help = "analyzes an ECMAScript file using meta-level static analysis."
-  val examples = List(
-    "esmeta analyze a.js                         # analyze a.js file.",
-    "esmeta analyze a.js -extract:target=es2022  # analyze with es2022 spec.",
-    "esmeta analyze a.js -analyze:repl           # analyze in a REPL mode.",
-  )
-  override val targetName = "<js>+"
-}
