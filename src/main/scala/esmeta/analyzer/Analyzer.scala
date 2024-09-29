@@ -1,31 +1,135 @@
 package esmeta.analyzer
 
-import esmeta.analyzer.util.*
 import esmeta.cfg.{util => _, *}
-import esmeta.state.{util => _, *}
+import esmeta.error.*
+import esmeta.error.NotSupported.given
+import esmeta.es.Ast
+import esmeta.ir.{Func => _, util => _, *}
+import esmeta.util.*
+import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** static analyzer */
 abstract class Analyzer
-  extends AbsTransferDecl
-  with AbsSemanticsDecl
+  extends AbsTransferLikeDecl
   with AnalysisPointDecl
-  with TypeErrorDecl
-  with ViewDecl
-  with domain.Decl
-  with repl.Decl
-  with util.Decl {
+  with DomainLikeDecl
+  with ViewLikeDecl
+  with util.Decl
+  with repl.Decl {
 
+  // ---------------------------------------------------------------------------
+  // Needs to be Implemented
+  // ---------------------------------------------------------------------------
   /** control flow graph */
   val cfg: CFG
 
-  /** abstract semantics */
-  type Semantics <: AbsSemantics
-  given sem: Semantics
+  /** view abstraction for analysis sensitivities */
+  type View <: ViewLike
 
-  /** transfer function */
-  type Transfer <: AbsTransfer
-  lazy val transfer: Transfer
+  /** abstract transfer function */
+  type AbsTransfer <: AbsTransferLike
+  val transfer: AbsTransfer
+
+  /** empty view */
+  val emptyView: View
+
+  /** appender rule for views */
+  given viewRule: Rule[View]
+
+  /** get entry views of loops */
+  def getEntryView(view: View): View
+
+  /** check reachability of node points */
+  def reachable(np: NodePoint[Node]): Boolean
+
+  /** check reachability of return points */
+  def reachable(rp: ReturnPoint): Boolean
+
+  /** abstract states */
+  type AbsState <: AbsStateLike
+
+  /** abstract return values */
+  type AbsRet <: AbsRetLike
+
+  /** abstract values */
+  type AbsValue <: AbsValueLike
+
+  /** lookup for node points */
+  def getResult(np: NodePoint[Node]): AbsState
+
+  /** lookup for return points */
+  def getResult(rp: ReturnPoint): AbsRet
+
+  /** get string for result of control points */
+  def getString(
+    cp: ControlPoint,
+    color: String,
+    detail: Boolean,
+  ): String = getString(cp, Some(color), detail)
+
+  /** get string for result of control points */
+  def getString(
+    cp: ControlPoint,
+    color: Option[String] = None,
+    detail: Boolean = false,
+  ): String
+
+  /** logging the current analysis result */
+  def logging: Unit
+
+  // ---------------------------------------------------------------------------
+  // Mutable Analysis Status
+  // ---------------------------------------------------------------------------
+  /** abstract states in each node point */
+  var npMap: Map[NodePoint[Node], AbsState] = Map()
+
+  /** abstract states in each return point */
+  var rpMap: Map[ReturnPoint, AbsRet] = Map()
+
+  /** abstract states right before calling functions */
+  var callInfo: Map[NodePoint[Call], AbsState] = Map()
+
+  /** return edges */
+  var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map()
+
+  /** current control point */
+  var curCp: Option[ControlPoint] = None
+
+  /** the number of iterations */
+  var iter: Int = 0
+
+  /** count for each control point */
+  var counter: Map[ControlPoint, Int] = Map()
+
+  /** worklist of control points */
+  var worklist: Worklist[ControlPoint]
+
+  /** set start time of analyzer */
+  var startTime: Long = System.currentTimeMillis
+
+  /** analysis time limit */
+  var timeLimit: Option[Long] = None
+
+  /** debugging mode */
+  var debugMode: Boolean = false
+
+  /** REPL mode */
+  var useRepl: Boolean = false
+
+  /** Run continue command at startup when using repl */
+  var replContinue: Boolean = false
+
+  /** check period */
+  var checkPeriod: Int = 10000
+
+  /** throw exception for not yet compiled expressions */
+  val yetThrow: Boolean = false
+
+  // ---------------------------------------------------------------------------
+  // Predefined Definitions
+  // ---------------------------------------------------------------------------
+  given CFG = cfg
 
   /** analyzer elements */
   trait AnalyzerElem {
@@ -47,140 +151,25 @@ abstract class Analyzer
     }
   }
 
-  /** logging the current analysis result */
-  def logging: Unit
+  /** get syntax-directed operation (SDO) */
+  val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
-  // ---------------------------------------------------------------------------
-  // analysis options
-  // ---------------------------------------------------------------------------
-  /** analysis time limit */
-  val timeLimit: Option[Long] = None
+  /** monad helper */
+  val monad: StateMonad[AbsState] = StateMonad[AbsState]()
 
-  /** debugging mode */
-  val debugMode: Boolean = false
+  /** RunJobs function */
+  val runJobs = cfg.fnameMap("RunJobs")
 
-  /** REPL mode */
-  val useRepl: Boolean = false
+  /** get return point of RunJobs */
+  val runJobsRp = ReturnPoint(runJobs, emptyView)
 
-  /** Run continue command at startup when using repl */
-  val replContinue: Boolean = false
+  /** increase the counter */
+  def count(cp: ControlPoint): Unit =
+    counter += cp -> (counter.getOrElse(cp, 0) + 1)
 
-  /** check period */
-  val checkPeriod: Int = 10000
+  /** exploded */
+  def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
-  /** IR sensitivity */
-  val irSens: Boolean = true
-
-  /** throw exception for not yet compiled expressions */
-  val yetThrow: Boolean = false
-
-  // ---------------------------------------------------------------------------
-  // shortcuts
-  // ---------------------------------------------------------------------------
-  lazy val AB = AbsBool.Top
-  lazy val AT = AbsBool(T)
-  lazy val AF = AbsBool(F)
-  lazy val AVT = AbsValue(T)
-  lazy val AVF = AbsValue(F)
-  lazy val AVB = AbsValue(T, F)
-  lazy val AV_TYPE = AbsValue(Str("Type"))
-  lazy val AV_VALUE = AbsValue(Str("Value"))
-  lazy val AV_TARGET = AbsValue(Str("Target"))
-
-  // ---------------------------------------------------------------------------
-  // abstract domains
-  // ---------------------------------------------------------------------------
-  protected var stateDomain: Option[StateDomain] = None
-  protected var retDomain: Option[RetDomain] = None
-  protected var heapDomain: Option[HeapDomain] = None
-  protected var objDomain: Option[ObjDomain] = None
-  protected var valueDomain: Option[ValueDomain] = None
-  protected var cloDomain: Option[CloDomain] = None
-  protected var contDomain: Option[ContDomain] = None
-  protected var partDomain: Option[PartDomain] = None
-  protected var astValueDomain: Option[AstValueDomain] = None
-  protected var grammarSymbolDomain: Option[GrammarSymbolDomain] = None
-  protected var mathDomain: Option[MathDomain] = None
-  protected var infinityDomain: Option[InfinityDomain] = None
-  protected var codeUnitDomain: Option[CodeUnitDomain] = None
-  protected var enumDomain: Option[EnumDomain] = None
-  protected var simpleValueDomain: Option[SimpleValueDomain] = None
-  protected var numberDomain: Option[NumberDomain] = None
-  protected var bigIntDomain: Option[BigIntDomain] = None
-  protected var strDomain: Option[StrDomain] = None
-  protected var boolDomain: Option[BoolDomain] = None
-  protected var undefDomain: Option[UndefDomain] = None
-  protected var nullDomain: Option[NullDomain] = None
-  protected var uninitDomain: Option[UninitDomain] = None
-
-  final lazy val AbsState = stateDomain.getOrElse(StateBasicDomain)
-  type AbsState = AbsState.Elem
-
-  final lazy val AbsRet = retDomain.getOrElse(RetBasicDomain)
-  type AbsRet = AbsRet.Elem
-
-  final lazy val AbsHeap = heapDomain.getOrElse(HeapBasicDomain)
-  type AbsHeap = AbsHeap.Elem
-
-  final lazy val AbsObj = objDomain.getOrElse(ObjBasicDomain)
-  type AbsObj = AbsObj.Elem
-
-  final lazy val AbsValue = valueDomain.getOrElse(ValueBasicDomain)
-  type AbsValue = AbsValue.Elem
-
-  final lazy val AbsOptValue = AbsValue.optional
-  type AbsOptValue = AbsOptValue.Elem
-
-  final lazy val AbsClo = cloDomain.getOrElse(CloSetDomain())
-  type AbsClo = AbsClo.Elem
-
-  final lazy val AbsCont = contDomain.getOrElse(ContSetDomain())
-  type AbsCont = AbsCont.Elem
-
-  final lazy val AbsPart = partDomain.getOrElse(PartSetDomain())
-  type AbsPart = AbsPart.Elem
-
-  final lazy val AbsAstValue = astValueDomain.getOrElse(AstValueFlatDomain)
-  type AbsAstValue = AbsAstValue.Elem
-
-  final lazy val AbsGrammarSymbol =
-    grammarSymbolDomain.getOrElse(GrammarSymbolFlatDomain)
-  type AbsGrammarSymbol = AbsGrammarSymbol.Elem
-
-  final lazy val AbsMath = mathDomain.getOrElse(MathFlatDomain)
-  type AbsMath = AbsMath.Elem
-
-  final lazy val AbsInfinity = infinityDomain.getOrElse(InfinityFlatDomain)
-  type AbsInfinity = AbsInfinity.Elem
-
-  final lazy val AbsCodeUnit = codeUnitDomain.getOrElse(CodeUnitFlatDomain)
-  type AbsCodeUnit = AbsCodeUnit.Elem
-
-  final lazy val AbsEnum = enumDomain.getOrElse(EnumFlatDomain)
-  type AbsEnum = AbsEnum.Elem
-
-  final lazy val AbsSimpleValue =
-    simpleValueDomain.getOrElse(SimpleValueBasicDomain)
-  type AbsSimpleValue = AbsSimpleValue.Elem
-
-  final lazy val AbsNumber = numberDomain.getOrElse(NumberFlatDomain)
-  type AbsNumber = AbsNumber.Elem
-
-  final lazy val AbsBigInt = bigIntDomain.getOrElse(BigIntFlatDomain)
-  type AbsBigInt = AbsBigInt.Elem
-
-  final lazy val AbsStr = strDomain.getOrElse(StrSetDomain())
-  type AbsStr = AbsStr.Elem
-
-  final lazy val AbsBool = boolDomain.getOrElse(BoolFlatDomain)
-  type AbsBool = AbsBool.Elem
-
-  final lazy val AbsUndef = undefDomain.getOrElse(UndefSimpleDomain)
-  type AbsUndef = AbsUndef.Elem
-
-  final lazy val AbsNull = nullDomain.getOrElse(NullSimpleDomain)
-  type AbsNull = AbsNull.Elem
-
-  final lazy val AbsUnint = uninitDomain.getOrElse(UninitSimpleDomain)
-  type AbsUnint = AbsUnint.Elem
+  /** not supported */
+  def notSupported(msg: String): Nothing = throw NotSupported(msg)
 }

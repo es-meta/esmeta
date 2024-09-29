@@ -2,7 +2,6 @@ package esmeta.analyzer.repl
 
 import esmeta.LINE_SEP
 import esmeta.analyzer.*
-import esmeta.analyzer.domain
 import esmeta.analyzer.repl.command.*
 import esmeta.cfg.*
 import esmeta.error.ESMetaError
@@ -41,14 +40,11 @@ trait ReplDecl { self: Self =>
       case _ => Nil
     }
 
-    // get the number of iterations
-    inline def iter: Int = sem.iter
-
     // show current status
     def showStatus(cp: Option[ControlPoint]): Unit = cp.map(showStatus)
     def showStatus(cp: ControlPoint): Unit = println(s"[$iter] ${cpInfo(cp)}")
     def cpInfo(cp: ControlPoint, detail: Boolean = false): String =
-      sem.resultString(cp, CYAN, detail) + (cp match
+      getString(cp, CYAN, detail) + (cp match
         case np: NodePoint[_] => LINE_SEP + np.node.toString
         case rp: ReturnPoint  => ""
       )
@@ -80,7 +76,7 @@ trait ReplDecl { self: Self =>
     def isSkip(cp: ControlPoint): Boolean = jumpTo match {
       case _ if nextEntry => true
       case _ if untilMerged =>
-        if (sem.worklist.isEmpty && !merged) true
+        if (worklist.isEmpty && !merged) true
         else { untilMerged = false; merged = false; false }
       case Some(targetIter) =>
         if (iter < targetIter) true
@@ -93,7 +89,7 @@ trait ReplDecl { self: Self =>
     }
 
     // run REPL
-    def apply(transfer: AbsTransfer, cp: ControlPoint): Unit = try {
+    def apply(cp: ControlPoint): Unit = try {
       if (!isSkip(cp)) {
         setCp(Some(cp))
         continue = false
@@ -173,7 +169,7 @@ trait ReplDecl { self: Self =>
           case (CmdBreak.block, uid) => uid.toInt == node.id
           case _                     => false
         }
-      case np: NodePoint[_] if untilImprec && sem(np).hasImprec =>
+      case np: NodePoint[_] if untilImprec && getResult(np).hasImprec =>
         untilImprec = false; true
       case np @ NodePoint(_, node, _) =>
         breakpoints.exists {

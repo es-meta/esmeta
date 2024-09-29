@@ -1,7 +1,6 @@
 package esmeta.interpreter
 
 import esmeta.{EVAL_LOG_DIR, LINE_SEP}
-import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}

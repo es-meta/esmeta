@@ -2,7 +2,6 @@ package esmeta.error
 
 import esmeta.LINE_SEP
 import esmeta.ir.Param
-import esmeta.analyzer.*
 
 sealed abstract class AnalysisError(msg: String)
   extends ESMetaError(msg, s"AnalysisError")

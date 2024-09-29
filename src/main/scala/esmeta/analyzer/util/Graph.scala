@@ -7,7 +7,6 @@ import esmeta.util.Appender
 trait GraphDecl { self: Self =>
 
   class Graph(
-    sem: AbsSemantics,
     cur: Option[ControlPoint],
     depthOpt: Option[Int],
     pathOpt: Option[Path],
@@ -36,7 +35,7 @@ trait GraphDecl { self: Self =>
           case _ =>
             var visited = Set[ReturnPoint]()
             for {
-              (calleeRp, callerNps) <- sem.retEdges
+              (calleeRp, callerNps) <- retEdges
               callerNp <- callerNps
               calleePrinter = DotPrinter(calleeRp, cur)
               callerPrinter = DotPrinter(callerNp, cur)
@@ -61,9 +60,10 @@ trait GraphDecl { self: Self =>
       var visited = Set[ReturnPoint](printer.rp)
       def aux(calleePrinter: DotPrinter, depth: Int): Unit = if (depth > 0) {
         val calleeRp = calleePrinter.rp
-        for (
-          callerNp @ NodePoint(_, call, callView) <- sem.getRetEdges(calleeRp)
-        )
+        for {
+          nps <- retEdges.get(calleeRp)
+          callerNp @ NodePoint(_, call, callView) <- nps
+        } {
           val callerPrinter = DotPrinter(callerNp)
           val callerRp = callerPrinter.rp
           if (!visited.contains(callerRp))
@@ -71,6 +71,7 @@ trait GraphDecl { self: Self =>
             callerPrinter.addTo(app)
             aux(callerPrinter, depth - 1)
           drawCall(callerPrinter, callerNp.node, calleePrinter)
+        }
       }
       aux(printer, depth)
 

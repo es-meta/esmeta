@@ -18,7 +18,7 @@ trait DotPrinterDecl { self: Self =>
     val WORKLIST = """"gray""""
 
     // helpers for views
-    lazy val view = sem.getEntryView(cp.view)
+    lazy val view = getEntryView(cp.view)
     lazy val viewStr: String = norm(view)
     lazy val rp: ReturnPoint = ReturnPoint(func, view)
     def getNp[T <: Node](node: T): NodePoint[T] =
@@ -32,26 +32,26 @@ trait DotPrinterDecl { self: Self =>
 
     // helpers for function exit
     override lazy val exitColor: String =
-      if (sem.reachable(rp)) REACH else NON_REACH
+      if (reachable(rp)) REACH else NON_REACH
     override lazy val exitBgColor: String =
       if (cur == Some(rp)) CURRENT
-      else if (sem.worklist has rp) WORKLIST
+      else if (worklist has rp) WORKLIST
       else NORMAL
     override def exitEdgeColor(from: Node): String =
-      if (sem.reachable(getNp(from)) && sem.reachable(rp)) REACH
+      if (reachable(getNp(from)) && reachable(rp)) REACH
       else NON_REACH
 
     // helpers for nodes
     override def getId(node: Node): String = s"node${node.id}_$viewStr"
     override def getColor(node: Node): String =
-      if (sem.reachable(getNp(node))) REACH else NON_REACH
+      if (reachable(getNp(node))) REACH else NON_REACH
     override def getBgColor(node: Node): String =
       val np = getNp(node)
       if (cur == Some(np)) CURRENT
-      else if (sem.worklist has np) WORKLIST
+      else if (worklist has np) WORKLIST
       else NORMAL
     override def getEdgeColor(from: Node, to: Node): String =
-      if (sem.reachable(getNp(from)) && sem.reachable(getNp(to))) REACH
+      if (reachable(getNp(from)) && reachable(getNp(to))) REACH
       else NON_REACH
 
     // normalize strings for view
@@ -70,7 +70,7 @@ trait DotPrinterDecl { self: Self =>
       depth: Option[Int] = None,
       path: Option[Path] = None,
     ): Unit = try {
-      dumpDot(Graph(sem, cp, depth, path).toDot, pdf)
+      dumpDot(Graph(cp, depth, path).toDot, pdf)
     } catch {
       case _: Throwable => printlnColor(RED)(s"Cannot dump CFG")
     }
