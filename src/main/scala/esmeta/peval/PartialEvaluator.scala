@@ -68,6 +68,11 @@ class PartialEvaluator(
       // val func = cfg.getFunc(fname)
       // (PClo(func, captured.map(x => x -> pst(x)).toMap), expr)
 
+      case EClo(fname, captured) =>
+        val func = cfg.getFunc(fname)
+        val v = PClo(func, captured.map(x => x -> pst(x)).toMap)
+        (Known(v), EClo(fname, captured))
+
       case e: LiteralExpr =>
         e match
           case EMath(n)        => (Known(Math(n)), e)
@@ -85,6 +90,19 @@ class PartialEvaluator(
         val addr = renamer.newAddr
         pst.allocList(addr, vs.map(_._1).toVector)
         (Known(addr), EList(vs.map(_._2)))
+
+      case ERecord(tname, pairs) =>
+        val addr = renamer.newAddr
+        val pvs = for {
+          (f, expr) <- pairs
+          (pv, newExpr) = peval(expr, pst)
+        } yield (f -> pv, f -> newExpr)
+        pst.allocRecord(
+          addr,
+          tname,
+          pvs.map(_._1),
+        )
+        (Known(addr), ERecord(tname, pvs.map(_._2)))
       // case EParse(code, rule)                       => ???
       // case EGrammarSymbol(name, params)             => ???
       // case ESourceText(expr)                        => ???
@@ -137,28 +155,12 @@ class PartialEvaluator(
         (ISeq(newInsts), newPst)
 
       case ISdoCall(lhs, base, method, args) =>
-        logCallStack(
-          s"ISdoCall : ${pst.callStack.size}",
-          s"Found ISdoCall, inst is =${ISdoCall(lhs, base, method, args)}...",
-        )
-        logCallStack(
-          s"ISdoCall : ${pst.callStack.size}",
-          s"let's evaluate base=${base}...",
-        )
-        logCallStack(
-          s"ISdoCall : ${pst.callStack.size}",
-          s"just before that.. this is ctxt.locals=${pst.context.locals}, and ctxt.sensitivity=${pst.context.sensitivity}",
-        )
         val newCallCount = renamer.newCallCount
         val newLhs = renamer.get(lhs, pst.context)
         val (pv, newBase) = peval(base, pst)
         pv match
           case Unknown =>
-            logCallStack(
-              s"ISdoCall : ${pst.callStack.size}",
-              s"(pv ~> ???) : UNKNOWN CALL",
-            )
-            // we can skip evaluating args
+            // we can safely skip evaluating args
             pst.define(newLhs, Unknown)
             (ISdoCall(newLhs, newBase, method, /* unused */ args), pst)
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
