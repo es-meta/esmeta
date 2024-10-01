@@ -101,7 +101,6 @@ sealed trait PObj extends StateElem {
     case PMapObj(map)           => PMapObj(LMMap.from(map))
     case PListObj(values)       => PListObj(Vector.from(values))
     case PYetObj(tname, msg)    => PYetObj(tname, msg)
-    case PUnknownObj()          => ???
 
   /** keys of map */
   def keys(intSorted: Boolean): Vector[Value] = this match
@@ -146,16 +145,7 @@ object PRecordObj {
   def apply(tname: String)(fs: (String, Predict[Value | Uninit])*): PRecordObj =
     apply(tname, fs)
   def apply(tname: String): PRecordObj =
-    val obj = PRecordObj(tname, MMap.empty[String, Predict[Value | Uninit]])
-    // TODO : type model..
-    // TODO : "EClo" is not okay for this case..
-
-    // for ((name, fname) <- cfg.tyModel.getMethod(tname))
-    //   obj.map += name -> EClo(
-    //     cfg.fnameMap(fname).name,
-    //     Nil,
-    //   ) // Clo(cfg.fnameMap(fname), Map())
-    obj
+    PRecordObj(tname, MMap.empty[String, Predict[Value | Uninit]])
 }
 
 /** map objects */
@@ -171,5 +161,3 @@ case class PListObj(var values: Vector[Predict[Value]] = Vector()) extends PObj
 
 /** not yet supported objects */
 case class PYetObj(tname: String, msg: String) extends PObj
-
-case class PUnknownObj() extends PObj

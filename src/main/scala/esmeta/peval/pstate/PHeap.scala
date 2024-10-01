@@ -17,35 +17,39 @@ import esmeta.peval.pstate.{PListObj, PMapObj, PObj, PRecordObj}
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
-    val map: MMap[Addr, PObj] = MMap()
+  val map: MMap[Addr, Predict[PObj]] = MMap(),
 ) extends StateElem {
 
   /** getter */
-  def apply(addr: Addr): PObj = map.getOrElse(addr, throw UnknownAddr(addr))
-  def apply(addr: Addr, field: Value): Predict[Value] = apply(addr)(field)
+  def apply(addr: Addr): Predict[PObj] =
+    map.getOrElse(addr, throw UnknownAddr(addr))
+  def apply(addr: Addr, field: Value): Predict[Value] =
+    apply(addr).flatMap(_(field))
 
   /** setter */
   def update(addr: Addr, field: Value, value: Predict[Value]): Unit =
-    apply(addr).update(field, value)
+    for (obj <- apply(addr)) obj.update(field, value)
 
   /** existence check */
-  def exists(addr: Addr, field: Value): Boolean = apply(addr).exists(field)
+  // def exists(addr: Addr, field: Value): Boolean = apply(addr).exists(field)
 
   /** expand */
-  def expand(addr: Addr, field: Value): Unit = apply(addr).expand(field)
+  // def expand(addr: Addr, field: Value): Unit = apply(addr).expand(field)
 
   /** delete */
-  def delete(addr: Addr, key: Value): Unit = apply(addr).delete(key)
+  // def delete(addr: Addr, key: Value): Unit = apply(addr).delete(key)
 
   /** push */
   def push(addr: Addr, value: Predict[Value], front: Boolean): Unit =
-    apply(addr).push(value, front)
+    apply(addr).map(_.push(value, front))
 
   /** pops */
-  def pop(addr: Addr, front: Boolean): Predict[Value] = apply(addr).pop(front)
+  def pop(addr: Addr, front: Boolean): Predict[Value] =
+    apply(addr).flatMap(_.pop(front))
 
   /** copy */
-  def copy(newAddr: Addr, addr: Addr): Unit = alloc(newAddr, apply(addr).copied)
+  def copy(newAddr: Addr, addr: Addr): Unit =
+    alloc(newAddr, for (obj <- apply(addr)) yield obj.copied)
 
   /** keys */
   def keys(addr: Addr, intSorted: Boolean): Addr = ??? // allocList(
@@ -57,9 +61,9 @@ case class PHeap(
 
   /** record allocations */
   def allocRecord(
-      addr: Addr,
-      tname: String,
-      pairs: Iterable[(String, Predict[Value])] = Nil
+    addr: Addr,
+    tname: String,
+    pairs: Iterable[(String, Predict[Value])] = Nil,
   ): Unit = alloc(addr, PRecordObj(tname, pairs))
 
   /** map allocations */
@@ -72,11 +76,15 @@ case class PHeap(
 
   // allocation helper
   private def alloc(addr: Addr, obj: PObj): Unit =
-    this.map += addr -> obj
+    this.map += addr -> Known(obj)
+
+  private def alloc(addr: Addr, ppo: Predict[PObj]): Unit = ppo match
+    case Known(po) => alloc(addr, po)
+    case Unknown   =>
 
   /** copied */
   def copied: PHeap = PHeap(
-    map.clone()
+    map.clone(),
   )
 
   def clear: Unit = this.map.clear()

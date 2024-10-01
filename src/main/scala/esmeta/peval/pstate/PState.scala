@@ -22,10 +22,10 @@ import esmeta.peval.pstate.*
   * @param heap
   */
 case class PState(
-    val globals: Map[Global, Predict[Value]],
-    var callStack: List[PCallContext],
-    var context: PContext,
-    val heap: PHeap
+  val globals: Map[Global, Predict[Value]],
+  var callStack: List[PCallContext],
+  var context: PContext,
+  val heap: PHeap,
 ) extends StateElem {
 
   inline def func = context.func
@@ -60,7 +60,7 @@ case class PState(
     case _       => throw WrongStringRef(str, field)
 
   /** address getter */
-  def apply(addr: Addr): PObj = heap(addr)
+  def apply(addr: Addr): Predict[PObj] = heap(addr)
 
   /** define variables */
   def define(x: Var, value: Predict[Value]): Unit = x match
@@ -82,9 +82,9 @@ case class PState(
 
   /** allocate a record object */
   def allocRecord(
-      addr: Addr,
-      tname: String,
-      pairs: Iterable[(String, Predict[Value])] = Nil
+    addr: Addr,
+    tname: String,
+    pairs: Iterable[(String, Predict[Value])] = Nil,
   ): Unit = heap.allocRecord(addr, tname, pairs)
 
   /** allocate a map object */
@@ -99,7 +99,7 @@ case class PState(
     globals,
     callStack,
     context.copied,
-    heap.copied
+    heap.copied,
   )
 
   def join(other: PState): PState = /* TODO : join states */ ???

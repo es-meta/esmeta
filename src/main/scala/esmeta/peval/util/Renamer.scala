@@ -7,11 +7,11 @@ import scala.collection.mutable.{Map as MMap}
 import esmeta.peval.pstate.*
 
 class Renamer private (
-    // names: MMap[(String, Int, Int), String] ,
-    temps: MMap[(Int, Int, Int), Int],
-    private var countCall: Int = 0,
-    private var countTemp: Int = 0,
-    private var dynamicAddr: Long = 0
+  // names: MMap[(String, Int, Int), String] ,
+  temps: MMap[(Int, Int, Int), Int],
+  private var countCall: Int = 0,
+  private var countTemp: Int = 0,
+  private var dynamicAddr: Long = 0,
 ) {
 
   def get(x: Var, ctx: PContext)(using CFG): Var = x match

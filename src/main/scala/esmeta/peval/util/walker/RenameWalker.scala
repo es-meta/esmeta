@@ -92,7 +92,7 @@ class RenameWalker(renamer: Renamer, pst: PState, cfg: CFG) extends Walker {
         walk(name),
         walkList(args, walk),
         walk(rhsIdx),
-        walkList(children, walkOpt(_, walk))
+        walkList(children, walkOpt(_, walk)),
       )
     case ELexical(name, expr) =>
       ELexical(walk(name), walk(expr))
@@ -102,7 +102,7 @@ class RenameWalker(renamer: Renamer, pst: PState, cfg: CFG) extends Walker {
     case ERecord(tname, fields) =>
       ERecord(
         walk(tname),
-        walkList(fields, { case (p, e) => (walk(p), walk(e)) })
+        walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
     case EMap(ty, pairs) =>
       EMap(walkPair(ty, walk, walk), walkList(pairs, walkPair(_, walk, walk)))
