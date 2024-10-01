@@ -358,8 +358,10 @@ class Fuzzer(
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coverage
-    // todo(@tmdghks): add dumpDetail option
-    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+    if (dumpDetail == 2)
+      cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+    else if (dumpDetail == 1)
+      cov.dumpTo(logDir)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
