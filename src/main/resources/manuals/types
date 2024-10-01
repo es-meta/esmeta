@@ -763,6 +763,15 @@ type DataView extends OrdinaryObject {
   ByteOffset: NonNegInt;
 }
 
+// TODO https://tc39.es/ecma262/#table-json-serialization-record
+// type JSONSerializationRecord {
+//   ReplacerFunction:	Record[FunctionObject] | Undefined;
+//   PropertyList: List[String] | Undefined;
+//   Gap: String;
+//   Stack: List[Record[Object]];
+//   Indent: String;
+// }
+
 // https://tc39.es/ecma262/#sec-properties-of-weak-ref-instances
 type WeakRef extends OrdinaryObject {
   WeakRefTarget: Record[Object | Symbol];

@@ -52,6 +52,18 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       }
   }
 
+  lazy val normalizedOf: String => Option[(String, FieldMap)] = cached { t =>
+    for {
+      case TyDecl(_, Some(parent, false), elems) <- declMap.get(t)
+      (p, fm) = normalizedOf(parent).getOrElse(parent -> FieldMap())
+      fs = ownFieldsOf(t)
+      nfm = elems.foldLeft(fm) { (fm, elem) =>
+        val f = elem.name
+        fm.update(f, getField(p, f) && fs(f))
+      }
+    } yield p -> nfm
+  }
+
   /** get field type */
   lazy val getField: ((String, String)) => Binding = cached { (t, f) =>
     if (t == "") Binding.Top
@@ -114,8 +126,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
         rfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rfm(f) }
       aux
     }).getOrElse(false)
-  def isSubTy(l: String, r: String): Boolean =
-    l == r || isStrictSubTy(l, r)
+  lazy val isSubTy: ((String, String)) => Boolean = cached { (l, r) =>
+    isSubTy(l -> FieldMap(), r -> FieldMap())
+  }
   def isSubTy(l: String, rs: Set[String]): Boolean =
     rs.exists(isSubTy(l, _))
   def isSubTy(ls: Set[String], r: String): Boolean =
@@ -188,8 +201,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   lazy val lcaOf: ((String, String)) => Option[String] = cached { (l, r) =>
     val lances = ancestorsOf(l)
     val rances = ancestorsOf(r)
-    if (isSubTy(l, r)) Some(r)
-    else if (isSubTy(r, l)) Some(l)
+    if (l == r || isStrictSubTy(r, l)) Some(l)
+    else if (isStrictSubTy(l, r)) Some(r)
     else
       (parentOf(l), parentOf(r)) match
         case (Some(lp), Some(rp)) => lcaOf(lp, rp)

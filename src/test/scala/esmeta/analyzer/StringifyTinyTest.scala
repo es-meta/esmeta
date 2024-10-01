@@ -6,7 +6,7 @@ import esmeta.ty.*
 import scala.collection.mutable.ListBuffer
 
 class StringifyTinyTest extends AnalyzerTest {
-  import AnalyzerTest.*, analyzer.*
+  import AnalyzerTest.*
 
   val name: String = "analyzerStringifyTest"
 

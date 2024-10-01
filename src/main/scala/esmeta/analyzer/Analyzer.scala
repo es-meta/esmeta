@@ -6,14 +6,14 @@ import esmeta.error.NotSupported.given
 import esmeta.es.Ast
 import esmeta.ir.{Func => _, util => _, *}
 import esmeta.util.*
-import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** static analyzer */
 abstract class Analyzer
   extends AbsTransferLikeDecl
-  with AnalysisPointDecl
+  with ControlPointDecl
   with DomainLikeDecl
+  with TypeErrorDecl
   with ViewLikeDecl
   with util.Decl
   with repl.Decl {
@@ -24,21 +24,15 @@ abstract class Analyzer
   /** control flow graph */
   val cfg: CFG
 
+  /** worklist of control points */
+  val worklist: Worklist[ControlPoint]
+
   /** view abstraction for analysis sensitivities */
   type View <: ViewLike
 
   /** abstract transfer function */
   type AbsTransfer <: AbsTransferLike
   val transfer: AbsTransfer
-
-  /** empty view */
-  val emptyView: View
-
-  /** appender rule for views */
-  given viewRule: Rule[View]
-
-  /** get entry views of loops */
-  def getEntryView(view: View): View
 
   /** check reachability of node points */
   def reachable(np: NodePoint[Node]): Boolean
@@ -56,17 +50,12 @@ abstract class Analyzer
   type AbsValue <: AbsValueLike
 
   /** lookup for node points */
-  def getResult(np: NodePoint[Node]): AbsState
+  def getResult(np: NodePoint[Node]): AbsState =
+    npMap.getOrElse(np, AbsState.Bot)
 
   /** lookup for return points */
-  def getResult(rp: ReturnPoint): AbsRet
-
-  /** get string for result of control points */
-  def getString(
-    cp: ControlPoint,
-    color: String,
-    detail: Boolean,
-  ): String = getString(cp, Some(color), detail)
+  def getResult(rp: ReturnPoint): AbsRet =
+    rpMap.getOrElse(rp, AbsRet.Bot)
 
   /** get string for result of control points */
   def getString(
@@ -75,11 +64,13 @@ abstract class Analyzer
     detail: Boolean = false,
   ): String
 
+  val log: Boolean
+
   /** logging the current analysis result */
   def logging: Unit
 
   // ---------------------------------------------------------------------------
-  // Mutable Analysis Status
+  // Analysis Status
   // ---------------------------------------------------------------------------
   /** abstract states in each node point */
   var npMap: Map[NodePoint[Node], AbsState] = Map()
@@ -102,26 +93,23 @@ abstract class Analyzer
   /** count for each control point */
   var counter: Map[ControlPoint, Int] = Map()
 
-  /** worklist of control points */
-  var worklist: Worklist[ControlPoint]
-
   /** set start time of analyzer */
   var startTime: Long = System.currentTimeMillis
 
   /** analysis time limit */
-  var timeLimit: Option[Long] = None
+  val timeLimit: Option[Long] = None
 
   /** debugging mode */
-  var debugMode: Boolean = false
+  val debugMode: Boolean = false
 
   /** REPL mode */
-  var useRepl: Boolean = false
+  val useRepl: Boolean = false
 
   /** Run continue command at startup when using repl */
-  var replContinue: Boolean = false
+  val replContinue: Boolean = false
 
   /** check period */
-  var checkPeriod: Int = 10000
+  val checkPeriod: Int = 10000
 
   /** throw exception for not yet compiled expressions */
   val yetThrow: Boolean = false
@@ -130,6 +118,11 @@ abstract class Analyzer
   // Predefined Definitions
   // ---------------------------------------------------------------------------
   given CFG = cfg
+
+  /** perform type analysis */
+  lazy val analyze: Unit =
+    transfer.fixpoint
+    if (log) logging
 
   /** analyzer elements */
   trait AnalyzerElem {
@@ -166,6 +159,35 @@ abstract class Analyzer
   /** increase the counter */
   def count(cp: ControlPoint): Unit =
     counter += cp -> (counter.getOrElse(cp, 0) + 1)
+
+  /** get elapsed time of analyzer */
+  def elapsedTime: Long = System.currentTimeMillis - startTime
+
+  /** set start time of analyzer */
+  def allCPs: Set[ControlPoint] = npMap.keySet ++ rpMap.keySet
+
+  /** set of analyzed functions */
+  def analyzedFuncs: Set[Func] = npMap.keySet.map(_.func) ++ analyzedReturns
+
+  /** set of analyzed nodes */
+  def analyzedNodes: Set[Node] = npMap.keySet.map(_.node)
+
+  /** set of analyzed function returns */
+  def analyzedReturns: Set[Func] = rpMap.keySet.map(_.func)
+
+  /** get string for result of all control points */
+  def getStrings: List[String] = getStrings(None, false)
+  def getStrings(
+    color: Option[String] = None,
+    detail: Boolean = false,
+  ): List[String] = allCPs.toList.sorted.map(getString(_, color, detail))
+
+  /** get string for result of control points */
+  def getString(
+    cp: ControlPoint,
+    color: String,
+    detail: Boolean,
+  ): String = getString(cp, Some(color), detail)
 
   /** exploded */
   def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)

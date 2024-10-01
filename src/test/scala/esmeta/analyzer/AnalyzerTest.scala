@@ -1,7 +1,8 @@
 package esmeta.analyzer
 
 import esmeta.ESMetaTest
-import esmeta.analyzer.TypeAnalyzer.Ignore
+import esmeta.analyzer.tychecker.TyChecker
+import esmeta.analyzer.tychecker.TyChecker.Ignore
 import esmeta.cfg.CFG
 import esmeta.util.*
 
@@ -11,13 +12,13 @@ trait AnalyzerTest extends ESMetaTest {
 }
 object AnalyzerTest {
   import ESMetaTest.*
-  lazy val analyzer: TypeAnalyzer = getAnalyzer(cfg)
+  lazy val tychecker: TyChecker = TyChecker(cfg)
   inline def ignore: Ignore = ManualInfo.tycheckIgnore
 
   // helper methods
-  def getAnalyzer(target: String): TypeAnalyzer = getAnalyzer(getCFG(target))
-  def getAnalyzer(cfg: CFG): TypeAnalyzer = getAnalyzer(cfg, ignore)
-  def getAnalyzer(cfg: CFG, ignore: Ignore): TypeAnalyzer = TypeAnalyzer(
+  def getAnalyzer(target: String): TyChecker = getAnalyzer(getCFG(target))
+  def getAnalyzer(cfg: CFG): TyChecker = getAnalyzer(cfg, ignore)
+  def getAnalyzer(cfg: CFG, ignore: Ignore): TyChecker = TyChecker(
     cfg = cfg,
     ignore = ignore,
     silent = true,

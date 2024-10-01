@@ -31,8 +31,9 @@ trait CmdPrintDecl { self: Self =>
           cp match
             case np: NodePoint[Node] =>
               given NodePoint[Node] = np
-              val v = transfer.transfer(Expr.from(str))
-              println(getString(np))
+              val st = getResult(np)
+              val (v, _) = transfer.transfer(Expr.from(str))(st)
+              println(v.getString(st))
 
             case rp: ReturnPoint =>
               println("cannot evaluate expression in return point")

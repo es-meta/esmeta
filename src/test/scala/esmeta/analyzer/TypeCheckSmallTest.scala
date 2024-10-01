@@ -1,7 +1,7 @@
 package esmeta.analyzer
 
 class TypeCheckSmallTest extends AnalyzerTest {
-  import AnalyzerTest.*, analyzer.*
+  import AnalyzerTest.*
 
   val name: String = "analyzerTypeCheckTest"
 
