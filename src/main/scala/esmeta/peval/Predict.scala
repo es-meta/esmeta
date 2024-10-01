@@ -1,8 +1,9 @@
 package esmeta.peval
 
 import esmeta.error.PartialEvaluatorError
+import esmeta.state.StateElem
 
-sealed trait Predict[+A] extends IterableOnce[A] {
+sealed trait Predict[+A] extends IterableOnce[A] with StateElem {
   self =>
 
   final def isEmpty: Boolean = this eq Unknown
@@ -37,7 +38,7 @@ sealed trait Predict[+A] extends IterableOnce[A] {
   @inline final def filterNot(p: A => Boolean): Predict[A] =
     if (isEmpty || !p(this.get)) this else Unknown
 
-  final def Unknownmpty: Boolean = isDefined
+  final def nonEmpty: Boolean = isDefined
 
   @inline final def withFilter(p: A => Boolean): WithFilter = new WithFilter(p)
 

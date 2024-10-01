@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 import esmeta.peval.*
 import esmeta.state.*

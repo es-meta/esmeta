@@ -4,8 +4,8 @@ import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.util.Parser
 
-import esmeta.peval.*
 import scala.collection.mutable.{Map as MMap}
+import esmeta.peval.pstate.PState
 
 /** types */
 trait Ty extends TyElem {

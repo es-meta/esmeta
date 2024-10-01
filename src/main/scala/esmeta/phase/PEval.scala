@@ -14,11 +14,15 @@ import esmeta.util.SystemUtils.*
 import esmeta.peval.{OverloadedFunc, PartialEvaluator, OverloadedIRFunc}
 
 import esmeta.peval.*
+import esmeta.peval.util.*
 import scala.collection.mutable.{Map as MMap}
 import esmeta.es.builtin.EXECUTION_STACK
 import esmeta.ir.{Global, Name, Temp}
 
 import scala.util.{Try}
+import esmeta.peval.pstate.PContext
+import esmeta.peval.pstate.PHeap
+import esmeta.peval.pstate.PState
 
 /** `astirpeval` phase */
 case object PEval extends Phase[CFG, Unit] {
@@ -28,9 +32,9 @@ case object PEval extends Phase[CFG, Unit] {
   val TARGET_NAME = "FunctionDeclarationInstantiation"
 
   def apply(
-    cfg: CFG,
-    cmdConfig: CommandConfig,
-    config: Config,
+      cfg: CFG,
+      cmdConfig: CommandConfig,
+      config: Config
   ): Unit =
     given CFG = cfg
 
@@ -60,7 +64,7 @@ case object PEval extends Phase[CFG, Unit] {
         log = config.log,
         detail = config.detail,
         simplifyLevel = config.simplify,
-        renamer = renamer,
+        renamer = renamer
       )
 
       val thisCallCount = renamer.newCallCount
@@ -73,9 +77,9 @@ case object PEval extends Phase[CFG, Unit] {
           sensitivity = thisCallCount,
           locals = MMap(),
           ret = None,
-          pathCondition = Nil,
+          pathCondition = Nil
         ),
-        heap = PHeap(),
+        heap = PHeap()
       )
 
       val addr_func_obj_record = renamer.newAddr
@@ -85,37 +89,35 @@ case object PEval extends Phase[CFG, Unit] {
         "ECMAScriptFunctionObject",
         List(
           "FormalParameters" -> Known(
-            AstValue(getAstsByName(fd, "FormalParameters").head),
+            AstValue(getAstsByName(fd, "FormalParameters").head)
           ),
           "ECMAScriptCode" -> Known(
-            AstValue(getAstsByName(fd, "FunctionBody").head),
+            AstValue(getAstsByName(fd, "FunctionBody").head)
           ),
           "ThisMode" -> Known(ENUM_STRICT),
-          "Strict" -> Known(Bool(true)), // ESMeta is always strict
-        ),
+          "Strict" -> Known(Bool(true)) // ESMeta is always strict
+        )
       )
 
       st.define(
         renamer.get(Name("func"), st.context),
-        Known(addr_func_obj_record),
+        Known(addr_func_obj_record)
       )
       st.define(
-        renamer.get(Name("func"), st.context),
-        Unknown,
+        renamer.get(Name("argumentsList"), st.context),
+        Unknown
       );
 
       println(s"Starting interpertaton from ${func.name}");
       Try {
         peval.run(func, st)
       }
-        .map({
-          case (inst, _) =>
-            println(s"SUCCESSED PEVAL")
+        .map({ case (inst, _) =>
+          println(s"SUCCESSED PEVAL")
         })
-        .recover({
-          case (throwable) =>
-            println(s"FAILED PEVAL: ${throwable}");
-            throwable.printStackTrace();
+        .recover({ case (throwable) =>
+          println(s"FAILED PEVAL: ${throwable}");
+          throwable.printStackTrace();
         })
         .map((_) => println("Omit printing state..."))
     }
@@ -125,31 +127,31 @@ case object PEval extends Phase[CFG, Unit] {
     (
       "log",
       BoolOption(_.log = _),
-      "turn on logging mode.",
+      "turn on logging mode."
     ),
     (
       "detail-log",
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
-      "turn on logging mode with detailed information.",
+      "turn on logging mode with detailed information."
     ),
     (
       "peval",
       BoolOption(_.peval = _),
-      "do partial evaluation just before execution.",
+      "do partial evaluation just before execution."
     ),
     (
       "s",
       NumOption(_.simplify = _),
-      "set level of simplify strategy. (0: do nothing, 1 (default): flatten, 2: flatten & usedef)",
-    ),
+      "set level of simplify strategy. (0: do nothing, 1 (default): flatten, 2: flatten & usedef)"
+    )
   )
   case class Config(
-    // var timeLimit: Option[Int] = None,
-    // var multiple: Boolean = false,
-    var log: Boolean = false,
-    var detail: Boolean = false,
-    var peval: Boolean = false,
-    var simplify: Int = 1,
+      // var timeLimit: Option[Int] = None,
+      // var multiple: Boolean = false,
+      var log: Boolean = false,
+      var detail: Boolean = false,
+      var peval: Boolean = false,
+      var simplify: Int = 1
   )
 
   def getAstsByName(ast: Ast, name: String): List[Ast] = ast match
@@ -157,7 +159,7 @@ case object PEval extends Phase[CFG, Unit] {
     case s @ Syntactic(n, _, _, children) =>
       val fromChildren = children
         .map(
-          _.map(getAstsByName(_, name)).getOrElse(Nil),
+          _.map(getAstsByName(_, name)).getOrElse(Nil)
         )
         .flatten
       val fromS = if (n == name) then List(s) else Nil
@@ -166,12 +168,12 @@ case object PEval extends Phase[CFG, Unit] {
 
   def CloFer(name: String)(using cfg: CFG): Known[Clo] =
     Known(
-      Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty),
+      Clo(cfg.fnameMap(s"Record[FunctionEnvironmentRecord].$name"), Map.empty)
     )
   def CloDecl(name: String)(using cfg: CFG): Known[Clo] = Known(
     Clo(
       cfg.fnameMap(s"Record[DeclarativeEnvironmentRecord].$name"),
-      Map.empty,
-    ),
+      Map.empty
+    )
   )
 }

@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 import esmeta.cfg.*
 import esmeta.error.*
@@ -12,10 +12,12 @@ import scala.collection.mutable.{Map => MMap}
 
 // TODO sort imports
 import esmeta.state.*
+import esmeta.peval.*
+import esmeta.peval.pstate.{PListObj, PMapObj, PObj, PRecordObj}
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
-  val map: MMap[Addr, PObj] = MMap(),
+    val map: MMap[Addr, PObj] = MMap()
 ) extends StateElem {
 
   /** getter */
@@ -55,9 +57,9 @@ case class PHeap(
 
   /** record allocations */
   def allocRecord(
-    addr: Addr,
-    tname: String,
-    pairs: Iterable[(String, Predict[Value])] = Nil,
+      addr: Addr,
+      tname: String,
+      pairs: Iterable[(String, Predict[Value])] = Nil
   ): Unit = alloc(addr, PRecordObj(tname, pairs))
 
   /** map allocations */
@@ -74,7 +76,9 @@ case class PHeap(
 
   /** copied */
   def copied: PHeap = PHeap(
-    map.clone(),
+    map.clone()
   )
+
+  def clear: Unit = this.map.clear()
 
 }

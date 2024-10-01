@@ -8,6 +8,9 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
 import esmeta.peval.*
+import esmeta.peval.pstate.PHeap
+import esmeta.peval.pstate.PObj
+import esmeta.peval.pstate.PState
 
 /** stringifier for state elements */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -38,6 +41,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Uninit      => uninitRule(app, elem)
       case elem: PHeap       => pheapRule(app, elem)
       case elem: PObj        => pobjRule(app, elem)
+      case elem: Predict[?]  => predictRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -64,10 +68,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // predict
-  given predictRule: Rule[Predict[Value]] = (app, predict) =>
+  given predictRule: Rule[Predict[?]] = (app, predict) =>
     predict match
-      case Known(value) => app >> value
-      case Unknown      => app >> "???"
+      case Known(value: Value) => app >> value
+      case Known(v)            => app >> v.toString()
+      case Unknown             => app >> "???"
 
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
@@ -146,7 +151,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
       case sv: SimpleValue   => svRule(app, sv)
-      case pclo: PClo        => ???
+      case pclo: PClo        => pcloRule(app, pclo)
       case pcont: PCont      => ???
 
   // addresses
@@ -160,6 +165,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     val Clo(func, captured) = clo
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
     app >> "clo<" >> func.irFunc.name
+    if (!captured.isEmpty) app >> ", " >> captured.toList
+    app >> ">"
+
+  // closures
+  given pcloRule: Rule[PClo] = (app, pclo) =>
+    val PClo(func, captured) = pclo
+    given Rule[List[(Name, Known[Value])]] = iterableRule("[", ", ", "]")
+    app >> "pclo<" >> func.irFunc.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 

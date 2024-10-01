@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 // TODO sort imports
 import esmeta.ir.{Expr, EClo}
@@ -101,6 +101,7 @@ sealed trait PObj extends StateElem {
     case PMapObj(map)           => PMapObj(LMMap.from(map))
     case PListObj(values)       => PListObj(Vector.from(values))
     case PYetObj(tname, msg)    => PYetObj(tname, msg)
+    case PUnknownObj()          => ???
 
   /** keys of map */
   def keys(intSorted: Boolean): Vector[Value] = this match
@@ -170,3 +171,5 @@ case class PListObj(var values: Vector[Predict[Value]] = Vector()) extends PObj
 
 /** not yet supported objects */
 case class PYetObj(tname: String, msg: String) extends PObj
+
+case class PUnknownObj() extends PObj
