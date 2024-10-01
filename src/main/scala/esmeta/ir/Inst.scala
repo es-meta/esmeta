@@ -11,8 +11,16 @@ sealed trait Inst extends IRElem with LangEdge:
     case i        => List(i)
 
   var comment: Option[String] = None
-  def addComment(comment: String): this.type =
+  def addCmt(comment: String): this.type =
     this.comment = Some(comment)
+    this
+
+  def setCmt(comment: Option[String]): this.type =
+    this.comment = comment
+    this
+
+  def passCmt(from: Inst): this.type =
+    this.comment = from.comment
     this
 object Inst extends Parser.From(Parser.inst)
 

@@ -34,4 +34,9 @@ class NonLiteral(v: Value)
     s"Non-literal value $v is not printable",
   )
 
+case class NoMoreInline()
+  extends PartialEvaluatorError(
+    "Faced too complicated case to inline; keep call inst. this error should be handled gracefully. if you encountered this as an unhandled failure, this is a bug.",
+  )
+
 class PEvalOptError(msg: String) extends PartialEvaluatorError(msg)

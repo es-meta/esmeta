@@ -1,4 +1,4 @@
-package esmeta.peval
+package esmeta.peval.pstate
 
 import esmeta.cfg.*
 import esmeta.error.*
@@ -10,6 +10,8 @@ import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success}
 
 import esmeta.state.*
+import esmeta.peval.*
+import esmeta.peval.pstate.*
 
 /** Partial-States for Specializer
   *
@@ -20,10 +22,10 @@ import esmeta.state.*
   * @param heap
   */
 case class PState(
-  val globals: Map[Global, Predict[Value]],
-  var callStack: List[PCallContext],
-  var context: PContext,
-  val heap: PHeap,
+    val globals: Map[Global, Predict[Value]],
+    var callStack: List[PCallContext],
+    var context: PContext,
+    val heap: PHeap
 ) extends StateElem {
 
   inline def func = context.func
@@ -80,9 +82,9 @@ case class PState(
 
   /** allocate a record object */
   def allocRecord(
-    addr: Addr,
-    tname: String,
-    pairs: Iterable[(String, Predict[Value])] = Nil,
+      addr: Addr,
+      tname: String,
+      pairs: Iterable[(String, Predict[Value])] = Nil
   ): Unit = heap.allocRecord(addr, tname, pairs)
 
   /** allocate a map object */
@@ -97,7 +99,7 @@ case class PState(
     globals,
     callStack,
     context.copied,
-    heap.copied,
+    heap.copied
   )
 
   def join(other: PState): PState = /* TODO : join states */ ???

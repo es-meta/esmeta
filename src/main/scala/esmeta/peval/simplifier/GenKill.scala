@@ -1,4 +1,4 @@
-package esmeta.peval.util
+package esmeta.peval.simplifier
 
 import esmeta.cfg.{Block, Branch, Call, Node}
 import esmeta.cfgBuilder.CFGBuilder

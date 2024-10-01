@@ -10,6 +10,8 @@ import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.{Map => MMap}
 
 import esmeta.peval.*
+import esmeta.peval.pstate.PState
+import esmeta.peval.pstate.PCallContext
 
 /** IR values */
 sealed trait Value extends StateElem {
