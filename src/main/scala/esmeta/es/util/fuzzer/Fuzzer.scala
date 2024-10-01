@@ -32,6 +32,7 @@ class Fuzzer(
   init: Option[String] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  dumpDetail: Int = 2, // 2: all, 1: partial, 0: no
 ) {
   import Fuzzer.*
 
@@ -54,7 +55,7 @@ class Fuzzer(
       genStatHeader(mutator.names, mutStatTsv)
     })
     time(
-      s"- initializing program pool with ${initPool.size} programs", {
+      s"- initializing program pool with ${initPool.size} programs\n", {
         var i = 1
         for {
           (synthesizer, rawCode) <- initPool
@@ -357,6 +358,7 @@ class Fuzzer(
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coverage
+    // todo(@tmdghks): add dumpDetail option
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =

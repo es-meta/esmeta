@@ -108,6 +108,7 @@ class MinifyFuzzer(
     kFs = kFs,
     cp = cp,
     init = init,
+    dumpDetail = dumpDetail,
   ) {
     override lazy val logDir = MinifyFuzzer.logDir
     override lazy val symlink = MinifyFuzzer.symlink

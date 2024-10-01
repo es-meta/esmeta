@@ -38,6 +38,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
+      dumpDetail = config.dumpDetail,
     ).result
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -104,6 +105,15 @@ case object Fuzz extends Phase[CFG, Coverage] {
       StrOption((c, s) => c.init = Some(s)),
       "explicitly use the given init pool",
     ),
+    (
+      "dumpDetail",
+      NumOption((c, k) =>
+        if (k < 0 || k > 2)
+          error("invalid dump detail level: please set 0 to 2")
+        else c.dumpDetail = k,
+      ),
+      "set the dump detail level (0: no, 1: partial, 2: all)",
+    ),
   )
   case class Config(
     var log: Boolean = false,
@@ -117,5 +127,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
+    var dumpDetail: Int = 2, // 2: all, 1: partial, 0: no
   )
 }
