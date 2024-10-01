@@ -225,6 +225,7 @@ case class Coverage(
     withMsg: Boolean = false,
   ): Unit =
     mkdir(baseDir)
+    // TODO(@tmdghks): optimize this part not to re-sort the list
     lazy val orderedNodeViews = nodeViews.toList.sorted
     lazy val orderedCondViews = condViews.toList.sorted
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
@@ -482,6 +483,16 @@ object Coverage {
 
   case class FuncView(func: Func, view: View) {
     override def toString: String = func.name + stringOfView(view)
+  }
+
+  // TODO(@tmdghks): cache for syntax-sensitive views
+  sealed trait NodeOrCondViewsCache() {}
+  case class NodeViewsCache(views: Set[NodeView]) extends NodeOrCondViewsCache {
+
+  }
+
+  case class CondViewsCache(views: Set[CondView]) extends NodeOrCondViewsCache {
+
   }
 
   // branch or reference to EReturnIfAbrupt with boolean values
