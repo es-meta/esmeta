@@ -1,6 +1,7 @@
 package esmeta.analyzer.util
 
 import esmeta.analyzer.*
+import esmeta.analyzer.tychecker.*
 import esmeta.cfg.*
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
@@ -29,16 +30,15 @@ trait StringifierDecl { self: Self =>
     /** elements */
     given elemRule: Rule[AnalyzerElem] = (app, elem) =>
       elem match
-        case elem: AnalysisPoint => apRule(app, elem)
+        case elem: TypeError      => errorRule(app, elem)
+        case elem: TypeErrorPoint => tpRule(app, elem)
+        case elem: ControlPoint   => cpRule(app, elem)
 
-    // analysis points
-    given apRule: Rule[AnalysisPoint] = (app, ap) =>
+    // type error points
+    given tpRule: Rule[TypeErrorPoint] = (app, tp) =>
       given Rule[IRElem with LangEdge] = addLocRule
-      if (detail) ap match
-        case tp: TypeErrorPoint => app >> tp.node.simpleString >> " "
-        case _                  =>
-      ap match
-        case cp: ControlPoint => cpRule(app, cp)
+      app >> tp.node.simpleString >> " "
+      tp match
         case CallPoint(callerNp, callee) =>
           app >> "function call from "
           app >> callerNp.func.name >> callerNp.node.callInst
@@ -70,6 +70,28 @@ trait StringifierDecl { self: Self =>
       )
       if (cp.view.isEmpty) app
       else app >> ":" >> cp.view
+
+    // specification type errors
+    given errorRule: Rule[TypeError] = (app, error) =>
+      app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
+      error match
+        case ParamTypeMismatch(point, argTy) =>
+          app :> "- expected: " >> point.param.ty
+          app :> "- actual  : " >> argTy
+        case ReturnTypeMismatch(point, retTy) =>
+          app :> "- expected: " >> point.func.retTy
+          app :> "- actual  : " >> retTy
+        case ArityMismatch(point, actual) =>
+          val (from, to) = point.func.arity
+          app :> "- expected: " >> "[" >> from >> ", " >> to >> "]"
+          app :> "- actual  : " >> actual
+        case InvalidBaseError(point, baseTy) =>
+          app :> "- base    : " >> baseTy
+        case UnaryOpTypeMismatch(point, operandTy) =>
+          app :> "- operand : " >> operandTy
+        case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
+          app :> "- left    : " >> lhsTy
+          app :> "- right   : " >> rhsTy
 
     private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
       for {

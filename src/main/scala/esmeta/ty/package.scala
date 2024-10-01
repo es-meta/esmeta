@@ -86,6 +86,7 @@ lazy val ESPrimT: ValueTy = ValueTy(
   nullv = true,
 )
 lazy val ESValueT: ValueTy = ObjectT || ESPrimT
+lazy val RealmT: ValueTy = RecordT("RealmRecord")
 lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
 def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
 def RecordT(names: String*): ValueTy = RecordT(names.toSet)

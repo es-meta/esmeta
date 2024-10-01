@@ -2,19 +2,62 @@ package esmeta.analyzer
 
 import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
+import esmeta.ty.*
+import esmeta.util.*
 
-trait AnalysisPointDecl { self: Analyzer =>
+trait TypeErrorDecl { self: Analyzer =>
 
-  /** analysis points */
-  sealed trait AnalysisPoint extends AnalyzerElem {
-    def view: View
-    def func: Func
-    def isBuiltin: Boolean = func.isBuiltin
+  /** type errors in specification */
+  sealed trait TypeError extends AnalyzerElem {
+    val point: TypeErrorPoint
+    inline def func: Func = point.func
   }
 
+  /** parameter type mismatches */
+  case class ParamTypeMismatch(
+    point: ArgAssignPoint,
+    argTy: ValueTy,
+  ) extends TypeError
+
+  /** return type mismatches */
+  case class ReturnTypeMismatch(
+    point: InternalReturnPoint,
+    retTy: ValueTy,
+  ) extends TypeError
+
+  /** arity mismatches */
+  case class ArityMismatch(
+    point: CallPoint,
+    actual: Int,
+  ) extends TypeError
+
+  /** invalid base in field reference errors */
+  case class InvalidBaseError(
+    point: FieldBasePoint,
+    baseTy: ValueTy,
+  ) extends TypeError
+
+  /** operand type mismatches for unary operators */
+  case class UnaryOpTypeMismatch(
+    point: UnaryOpPoint,
+    operandTy: ValueTy,
+  ) extends TypeError
+
+  /** operand type mismatches for binary operators */
+  case class BinaryOpTypeMismatch(
+    point: BinaryOpPoint,
+    lhsTy: ValueTy,
+    rhsTy: ValueTy,
+  ) extends TypeError
+
+  given Ordering[TypeError] = Ordering.by(e => e.point.node.id -> e.toString)
+
   /** type error points */
-  sealed trait TypeErrorPoint extends AnalysisPoint {
+  sealed trait TypeErrorPoint extends AnalyzerElem {
+    def view: View
+    def func: Func
     def node: Node
+    def isBuiltin: Boolean = func.isBuiltin
   }
 
   /** call points */
@@ -86,29 +129,4 @@ trait AnalysisPointDecl { self: Analyzer =>
     inline def func = nodePoint.func
     inline def node = nodePoint.node
   }
-
-  /** control points */
-  sealed trait ControlPoint extends AnalysisPoint {
-    def toReturnPoint: ReturnPoint = this match
-      case np: NodePoint[Node] => ReturnPoint(np.func, np.view)
-      case rp: ReturnPoint     => rp
-  }
-
-  /** node points */
-  case class NodePoint[+T <: Node](
-    func: Func,
-    node: T,
-    view: View,
-  ) extends ControlPoint
-
-  /** return points */
-  case class ReturnPoint(
-    func: Func,
-    view: View,
-  ) extends ControlPoint
-
-  given Ordering[ControlPoint] = Ordering.by(_ match
-    case NodePoint(f, n, _) => (f.id, n.id)
-    case ReturnPoint(f, _)  => (f.id, Int.MaxValue),
-  )
 }

@@ -102,8 +102,8 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 // Analysis of ECMA-262
 // -----------------------------------------------------------------------------
 /** `tycheck` command */
-case object CmdTypeCheck extends Command("tycheck", CmdBuildCFG >> TypeCheck) {
-  val help = "performs a type analysis of ECMA-262."
+case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
+  val help = "performs a type checking of ECMA-262."
   val examples = List(
     "esmeta tycheck                              # type check for spec.",
     "esmeta tycheck -tycheck:target='.*ToString' # type check with targets",

@@ -1,56 +1,52 @@
 package esmeta.phase
 
 import esmeta.*
-// import esmeta.analyzer.*
-// import esmeta.analyzer.TypeAnalyzer.Ignore
-// import esmeta.analyzer.domain
+import esmeta.analyzer.tychecker.*
 import esmeta.cfg.{CFG, Func}
-import esmeta.error.TypeCheckFail
+import esmeta.error.TyCheckFail
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `tycheck` phase */
-case object TypeCheck extends Phase[CFG, Unit] {
+case object TyCheck extends Phase[CFG, Unit] {
   val name = "tycheck"
-  val help = "performs a type analysis of ECMA-262."
+  val help = "performs a type checking of ECMA-262."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    // val silent = cmdConfig.silent
-    // val analyzer: TypeAnalyzer = TypeAnalyzer(
-    //   cfg = cfg,
-    //   targetPattern = config.target,
-    //   typeSens = config.typeSens,
-    //   useTypeGuard = config.typeGuard,
-    //   config = TypeAnalyzer.Config(),
-    //   ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
-    //   log = config.log,
-    //   detail = config.detail,
-    //   silent = silent,
-    //   useRepl = config.useRepl,
-    //   replContinue = config.replContinue,
-    // )
-    // analyzer.analyze
-    // if (analyzer.needUpdate)
-    //   if (config.updateIgnore) analyzer.updateIgnore
-    //   throw TypeCheckFail(if (silent) None else Some(analyzer.toString))
-    // analyzer.sem
-    ???
+    import TyChecker.*
+    val silent = cmdConfig.silent
+    val tychecker = TyChecker(
+      cfg = cfg,
+      targetPattern = config.target,
+      useTypeGuard = config.typeGuard,
+      config = TyChecker.Config(),
+      ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
+      log = config.log,
+      detail = config.detail,
+      silent = silent,
+      useRepl = config.useRepl,
+      replContinue = config.replContinue,
+    )
+    tychecker.analyze
+    if (tychecker.needUpdate)
+      if (config.updateIgnore) tychecker.updateIgnore
+      throw TyCheckFail(if (silent) None else Some(tychecker.getMessage))
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
       "target",
       StrOption((c, s) => c.target = Some(s)),
-      "set the target of type analysis with a regular expression pattern.",
+      "set the target of type checking with a regular expression pattern.",
     ),
     (
       "repl",
       BoolOption(_.useRepl = _),
-      "use a REPL for type analysis of ECMA-262.",
+      "use a REPL for type checking of ECMA-262.",
     ),
     (
       "repl-continue",
@@ -77,11 +73,11 @@ case object TypeCheck extends Phase[CFG, Unit] {
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "logging mode with detailed information.",
     ),
-    (
-      "type-sens",
-      BoolOption(_.typeSens = _),
-      "type sensitivity (not-yet supported).",
-    ),
+    // ( TODO: not yet supported
+    //   "type-sens",
+    //   BoolOption(_.typeSens = _),
+    //   "type sensitivity (not-yet supported).",
+    // ),
     (
       "type-guard",
       BoolOption(_.typeGuard = _),
@@ -96,7 +92,7 @@ case object TypeCheck extends Phase[CFG, Unit] {
     var replContinue: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var typeSens: Boolean = false,
+    // TODO var typeSens: Boolean = false,
     var typeGuard: Boolean = true,
   )
 }

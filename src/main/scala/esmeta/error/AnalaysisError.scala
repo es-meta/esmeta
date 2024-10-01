@@ -13,6 +13,6 @@ case class NotSupportedOperation(obj: Any, method: String)
 // imprecise
 case class AnalysisImprecise(msg: String) extends AnalysisError(msg)
 
-// type check failure
-case class TypeCheckFail(msg: Option[String])
-  extends AnalysisError("type check failed." + msg.fold("")(LINE_SEP + _))
+// type checking failure
+case class TyCheckFail(msg: Option[String])
+  extends AnalysisError("type checking failed." + msg.fold("")(LINE_SEP + _))
