@@ -46,10 +46,7 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       dumpDetail = config.dumpDetail,
     )
 
-    if (config.dumpDetail == 2)
-      for (dirname <- config.out) cov.dumpToWithDetail(dirname)
-    else if (config.dumpDetail == 1)
-      for (dirname <- config.out) cov.dumpTo(dirname)
+    for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     cov
 

@@ -55,7 +55,7 @@ class Fuzzer(
       genStatHeader(mutator.names, mutStatTsv)
     })
     time(
-      s"- initializing program pool with ${initPool.size} programs\n", {
+      s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
         for {
           (synthesizer, rawCode) <- initPool
@@ -358,10 +358,7 @@ class Fuzzer(
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
     // dump coverage
-    if (dumpDetail == 2)
-      cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
-    else if (dumpDetail == 1)
-      cov.dumpTo(logDir)
+    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
