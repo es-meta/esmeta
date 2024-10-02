@@ -272,6 +272,11 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     (if (this.undef.isBottom) Zero else One(Undef)) ||
     (if (this.nullv.isBottom) Zero else One(Null))
 
+  /** single value check */
+  def isSingle: Boolean = getSingle match
+    case One(_) => true
+    case _      => false
+
   /** types having no field */
   def noField: ValueTy = this match
     case ValueTopTy =>

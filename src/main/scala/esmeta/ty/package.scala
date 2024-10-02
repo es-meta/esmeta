@@ -25,15 +25,45 @@ enum SymExpr:
   case SETypeCheck(base: SymExpr, ty: ValueTy)
   case SEBinary(bop: BOp, left: SymExpr, right: SymExpr)
   case SEUnary(uop: UOp, expr: SymExpr)
+  def &&(that: SymExpr): SymExpr = (this, that) match
+    case (SEBool(true), _)                       => that
+    case (_, SEBool(true))                       => this
+    case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)
+    case _ => SEBinary(BOp.And, this, that)
+  def ||(that: SymExpr): SymExpr = (this, that) match
+    case (SEBool(false), _)                    => that
+    case (_, SEBool(false))                    => this
+    case (SEBool(true), _) | (_, SEBool(true)) => SEBool(true)
+    case _                                     => SEBinary(BOp.Or, this, that)
+  def has(sym: Sym): Boolean = this match
+    case SEBool(b)                  => false
+    case SEStr(s)                   => false
+    case SERef(ref)                 => ref.has(sym)
+    case SETypeCheck(base, ty)      => base.has(sym)
+    case SEBinary(bop, left, right) => left.has(sym) || right.has(sym)
+    case SEUnary(uop, expr)         => expr.has(sym)
 object SymExpr:
   val T: SymExpr = SEBool(true)
   val F: SymExpr = SEBool(false)
+  extension (l: Option[SymExpr])
+    def &&(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
+      case (Some(l), Some(r)) => Some(l && r)
+      case (Some(l), None)    => Some(l)
+      case (None, Some(r))    => Some(r)
+      case _                  => None
+    def ||(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
+      case (Some(l), Some(r)) => Some(l || r)
+      case _                  => None
 
 /** symbolic references */
 enum SymRef:
   case SSym(sym: Sym)
   case SLocal(x: Local)
   case SField(base: SymRef, field: SymExpr)
+  def has(sym: Sym): Boolean = this match
+    case SSym(s)         => s == sym
+    case SLocal(x)       => false
+    case SField(base, f) => base.has(sym) || f.has(sym)
 
 /** type guard */
 type TypeGuard = Map[RefinementKind, SymExpr]

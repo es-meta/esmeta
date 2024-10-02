@@ -41,14 +41,21 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => that
       case _ if that.isBottom => this
       case (l, r) =>
-        val newLocals = (for {
-          x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = l.get(x) ⊔ r.get(x)
-        } yield x -> v).toMap
+        var killed = Set[Sym]()
+        def handleKilled(v: AbsValue)(using AbsState): AbsValue =
+          if (killed.exists(v.has)) AbsValue(v.ty, Many, v.guard)
+          else v
         val newSymEnv = (for {
           sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
-          ty = l.getTy(sym) ⊔ r.getTy(sym)
+          lty = l.getTy(sym)
+          rty = r.getTy(sym)
+          _ = if (lty != rty) killed += sym
+          ty = lty || rty
         } yield sym -> ty).toMap
+        val newLocals = (for {
+          x <- (l.locals.keySet ++ r.locals.keySet).toList
+          v = handleKilled(l.get(x))(using l) ⊔ handleKilled(r.get(x))(using r)
+        } yield x -> v).toMap
         AbsState(true, newLocals, newSymEnv)
 
     /** meet operator */

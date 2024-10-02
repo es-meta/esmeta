@@ -214,15 +214,16 @@ class TyChecker(
   ): AbsState =
     import SymExpr.*, SymRef.*
     given AbsState = callerSt
-    val idxLocals = locals.zipWithIndex
-    val (newLocals, symEnv) = (for {
-      ((x, value), sym) <- idxLocals
-    } yield (
-      x -> value,
-      // TODO x -> AbsValue(BotT, One(SERef(SSym(sym))), Map()),
-      sym -> value.ty,
-    )).unzip
-    callerSt.copy(locals = newLocals.toMap) // TODO , symEnv = symEnv.toMap)
+    if (useTypeGuard) {
+      val idxLocals = locals.zipWithIndex
+      val (newLocals, symEnv) = (for {
+        ((x, value), sym) <- idxLocals
+      } yield (
+        x -> AbsValue(BotT, One(SERef(SSym(sym))), Map()),
+        sym -> value.ty,
+      )).unzip
+      callerSt.copy(locals = newLocals.toMap, symEnv = symEnv.toMap)
+    } else callerSt.copy(locals = locals.toMap)
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(
