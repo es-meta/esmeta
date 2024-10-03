@@ -605,38 +605,57 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   rty: ValueTy,
                   pos: Boolean,
                   isLt: Boolean,
-                ): ValueTy = {
+                ): Option[ValueTy] = {
                   var math = lty.math
                   val infinity = lty.infinity --
                     (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
-                  rty.getSingle match
+                  if (lty.math <= IntTy) rty.getSingle match
                     case One(Math(0)) =>
                       math = (isLt, pos) match
-                        case (true, true)   => NegIntTy
-                        case (true, false)  => NonNegIntTy
-                        case (false, true)  => PosIntTy
-                        case (false, false) => NonPosIntTy
+                        case (true, true)   => /* x < 0 */ NegIntTy
+                        case (true, false)  => /* x >= 0 */ NonNegIntTy
+                        case (false, true)  => /* x > 0 */ PosIntTy
+                        case (false, false) => /* x <= 0 */ NonPosIntTy
+                    case One(Math(v)) if v < 0 =>
+                      math = (isLt, pos) match
+                        case (true, true)   => /* x < N */ NegIntTy
+                        case (true, false)  => /* x >= N */ IntTy
+                        case (false, true)  => /* x > N */ IntTy
+                        case (false, false) => /* x <= N */ NegIntTy
+                    case One(Math(v)) if v > 0 =>
+                      math = (isLt, pos) match
+                        case (true, true)   => /* x < P */ IntTy
+                        case (true, false)  => /* x >= P */ PosIntTy
+                        case (false, true)  => /* x > P */ PosIntTy
+                        case (false, false) => /* x <= P */ IntTy
                     case _ =>
-                  ValueTy(
+                  val refinedTy = ValueTy(
                     math = math,
                     infinity = infinity,
                     number = lty.number,
                     bigInt = lty.bigInt,
                   )
+                  if (lty != refinedTy) Some(refinedTy) else None
                 }
-                val lguard = toLocal(l).fold(Map()) { x =>
+                var lguard: TypeGuard = Map()
+                toLocal(l).map { x =>
                   val expr = SERef(SLocal(x))
-                  Map(
-                    True -> SETypeCheck(expr, aux(lty, rty, true, true)),
-                    False -> SETypeCheck(expr, aux(lty, rty, false, true)),
-                  )
+                  aux(lty, rty, true, true).map { ty =>
+                    lguard += True -> SETypeCheck(expr, ty)
+                  }
+                  aux(lty, rty, false, true).map { ty =>
+                    lguard += False -> SETypeCheck(expr, ty)
+                  }
                 }
-                val rguard = toLocal(r).fold(Map()) { x =>
+                var rguard: TypeGuard = Map()
+                toLocal(r).map { x =>
                   val expr = SERef(SLocal(x))
-                  Map(
-                    True -> SETypeCheck(expr, aux(rty, lty, true, false)),
-                    False -> SETypeCheck(expr, aux(rty, lty, false, false)),
-                  )
+                  aux(rty, lty, true, false).map { ty =>
+                    rguard += True -> SETypeCheck(expr, ty)
+                  }
+                  aux(rty, lty, false, false).map { ty =>
+                    rguard += False -> SETypeCheck(expr, ty)
+                  }
                 }
                 val guard = (for {
                   kind <- Set(True, False)
