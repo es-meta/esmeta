@@ -4,7 +4,7 @@ import esmeta.cfg.*
 import esmeta.interpreter.Interpreter
 import esmeta.ir.{Name, BOp, COp, VOp, MOp, UOp, Local, IRElem}
 import esmeta.state.*
-import esmeta.ty.*
+import esmeta.ty.{*, given}
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -62,13 +62,14 @@ trait AbsValueDecl { self: TyChecker =>
       import SymExpr.*
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      val kinds = lguard.keySet intersect rguard.keySet
-      val guard = kinds.flatMap { kind =>
-        val g: Option[SymExpr] = lguard.get(kind)
-        (lguard.get(kind), rguard.get(kind)) match
-          case (Some(l), Some(r)) if l == r => Some(kind -> l)
-          case _                            => None
-      }.toMap
+      val kinds = (lguard.keySet intersect rguard.keySet).toList
+      val guard = (for {
+        kind <- kinds
+        l <- lguard.get(kind)
+        r <- rguard.get(kind)
+        pred = l || r
+        if !pred.isTop
+      } yield kind -> pred).toMap
       (lexpr, rexpr) match
         case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
         case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
@@ -89,10 +90,12 @@ trait AbsValueDecl { self: TyChecker =>
       val kinds = lguard.keySet ++ rguard.keySet
       val guard = kinds.flatMap { kind =>
         (lguard.get(kind), rguard.get(kind)) match
-          case (Some(l), Some(r)) if l == r => Some(kind -> l)
-          case (Some(l), None)              => Some(kind -> l)
-          case (None, Some(r))              => Some(kind -> r)
-          case _                            => None
+          case (Some(l), Some(r)) =>
+            val pred = l && r
+            if (pred.isTop) None else Some(kind -> pred)
+          case (Some(l), None) => Some(kind -> l)
+          case (None, Some(r)) => Some(kind -> r)
+          case _               => None
       }.toMap
       (lexpr, rexpr) match
         case (Zero, Zero)               => AbsValue(llty && rlty, Zero, guard)
