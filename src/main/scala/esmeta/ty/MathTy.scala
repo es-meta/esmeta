@@ -151,8 +151,9 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** subtraction */
   def -(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+    case (SingleTy(Math(l)), SingleTy(Math(r))) => MathSetTy(Math(l - r))
+    case (l, r) if l.isInt && r.isInt           => IntTy
+    case _                                      => MathTopTy
 
   /** multiplcation */
   def *(that: MathTy): MathTy = (this, that) match
@@ -168,6 +169,8 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** exponentiation */
   def **(that: MathTy): MathTy = (this, that) match
+    case (SingleTy(Math(l)), SingleTy(Math(r))) if r.isValidInt && r >= 0 =>
+      MathSetTy(Math(l.pow(r.toInt)))
     case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
     case (l, r) if l.isInt && r.isInt             => IntTy
     case _                                        => MathTopTy
@@ -337,8 +340,12 @@ case object PosIntTy extends MathTy
 
 /** types for set of mathematical values */
 case class MathSetTy(set: Set[Math]) extends MathTy
+object SingleTy {
+  def unapply(ty: MathSetTy): Option[Math] =
+    if (ty.set.size == 1) Some(ty.set.head) else None
+}
 object MathSetTy {
-  def applySeq(set: Math*): Set[Math] = set.toSet
+  def apply(seq: Math*): MathSetTy = MathSetTy(seq.toSet)
 }
 
 object MathTy extends Parser.From(Parser.mathTy) {
