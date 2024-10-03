@@ -116,7 +116,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
   def isSubTy(lpair: (String, FieldMap), rpair: (String, FieldMap)): Boolean =
     val (l, lfm) = lpair
     val (r, rfm) = rpair
-    isStrictSubTy(l, r) || (for {
+    (isStrictSubTy(l, r) && lfm.map.isEmpty && rfm.map.isEmpty) || (for {
       lca <- lcaOf(l, r)
       ldfm <- diffOf(lca, l)
       rdfm <- diffOf(lca, r)

@@ -64,6 +64,17 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     }
   }
 
+  def checkEqual[T](desc: String)(cases: (T, T)*): Unit =
+    check(desc)(cases.foreach {
+      case (result, expected) =>
+        if (result != expected) {
+          println(s"[FAILED] $desc")
+          println(s"- expected: $expected")
+          println(s"- result: $result")
+          assert(result == expected)
+        }
+    })
+
   // check stringify
   def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
     check(desc)(cases.foreach {

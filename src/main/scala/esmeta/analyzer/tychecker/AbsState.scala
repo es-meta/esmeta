@@ -3,6 +3,7 @@ package esmeta.analyzer.tychecker
 import esmeta.ir.{*, given}
 import esmeta.ty.*
 import esmeta.ty.util.Stringifier.{*, given}
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
@@ -101,23 +102,25 @@ trait AbsStateDecl { self: TyChecker =>
       ref match
         case SSym(sym)           => getTy(sym)
         case SLocal(x)           => get(x).ty
-        case SField(base, field) => ???
+        case SField(base, field) => get(getTy(base), getTy(field))
     }
 
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
-      val baseTy = base.ty
-      val fieldTy = field.ty
-      AbsValue(
-        lookupAst(baseTy.ast, fieldTy) ||
-        lookupStr(baseTy.str, fieldTy) ||
-        lookupList(baseTy.list, fieldTy) ||
-        lookupRecord(baseTy.record, fieldTy) ||
-        lookupMap(baseTy.map, fieldTy),
-        Zero,
-        lookupGuard(base.guard, field: AbsValue),
-      )
+      import SymExpr.*, SymRef.*
+      val guard = lookupGuard(base.guard, field)
+      (base.getSymExpr, field.ty.getSingle) match
+        case (Some(SERef(ref)), One(Str(f))) =>
+          AbsValue(BotT, One(SERef(SField(ref, SEStr(f)))), guard)
+        case _ =>
+          AbsValue(get(base.ty, field.ty), Zero, guard)
     }
+    def get(baseTy: ValueTy, fieldTy: ValueTy)(using AbsState): ValueTy =
+      lookupAst(baseTy.ast, fieldTy) ||
+      lookupStr(baseTy.str, fieldTy) ||
+      lookupList(baseTy.list, fieldTy) ||
+      lookupRecord(baseTy.record, fieldTy) ||
+      lookupMap(baseTy.map, fieldTy)
     // AST lookup
     private def lookupAst(ast: AstTy, field: ValueTy): ValueTy =
       import AstTy.*
