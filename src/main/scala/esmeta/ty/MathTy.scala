@@ -91,10 +91,10 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (NonPosIntTy, _)        => that
     case (NonNegIntTy, IntTy)    => NonNegIntTy
     case (NonNegIntTy, NegIntTy) => Zero
-    case (NonNegIntTy, PosIntTy) => Bot
+    case (NonNegIntTy, PosIntTy) => PosIntTy
     case (NonNegIntTy, MathSetTy(set)) =>
       MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal >= 0))
-    case (NonNegIntTy, _)                   => that
+    case (NonNegIntTy, NonPosIntTy)         => Zero
     case (NegIntTy, NonPosIntTy | IntTy)    => NegIntTy
     case (NegIntTy, NonNegIntTy | PosIntTy) => Bot
     case (NegIntTy, MathSetTy(set)) =>

@@ -721,6 +721,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case EUnary(UOp.Not, e) =>
               Some(for {
                 v <- transfer(e)
+                given AbsState <- get
+                ty = v.ty
                 guard = v.guard
                 lt = guard.get(True)
                 lf = guard.get(False)
@@ -728,7 +730,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 var guard: TypeGuard = Map()
                 lf.map { guard += True -> _ }
                 lt.map { guard += False -> _ }
-                AbsValue(BoolT, Many, guard)
+                AbsValue(ty.not, Many, guard)
               })
             case EBinary(BOp.Or, l, r) =>
               Some(for {
@@ -736,6 +738,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 st <- get
                 given AbsState = st
                 lty = lv.ty
+                rv <- transfer(r)
+                rty = rv.ty
                 hasT = lty.bool.contains(true)
                 lguard = lv.guard
                 lt = lguard.get(True)
@@ -753,7 +757,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   rf = rv.guard.get(False)
                 } yield lf && rf)(refinedSt)
                 elsePred.map { guard += False -> _ }
-                AbsValue(BoolT, Many, guard)
+                AbsValue(lty or rty, Many, guard)
               })
             case EBinary(BOp.And, l, r) =>
               Some(for {
@@ -761,6 +765,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 st <- get
                 given AbsState = st
                 lty = lv.ty
+                rv <- transfer(r)
+                rty = rv.ty
                 hasF = lty.bool.contains(false)
                 lguard = lv.guard
                 lt = lguard.get(True)
@@ -778,7 +784,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   rf = rv.guard.get(False)
                 } yield if (hasF) lf || rf else rf)(refinedSt)
                 elsePred.map { guard += False -> _ }
-                AbsValue(BoolT, Many, guard)
+                AbsValue(lty and rty, Many, guard)
               })
             case _ => None
           }

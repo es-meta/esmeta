@@ -301,6 +301,11 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         ast = AstTy.Bot,
         str = Fin(),
       )
+
+  /** boolean operations */
+  def and(that: ValueTy): ValueTy = ValueTy.and(this, that)
+  def or(that: ValueTy): ValueTy = ValueTy.or(this, that)
+  def not: ValueTy = ValueTy.not(this)
 }
 
 case object ValueTopTy extends ValueTy {
@@ -394,4 +399,20 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     case "Undefined" => UndefT
     case "Null"      => NullT
     case _           => Bot
+
+  /** boolean operations */
+  type UOp[T] = T => T
+  type BOp[T] = (T, T) => T
+  private def boolUOp(op: UOp[Boolean]): UOp[ValueTy] = v =>
+    BoolT(v.bool.set.map(op))
+  private def boolBOp(op: BOp[Boolean]): BOp[ValueTy] = (l, r) =>
+    BoolT(for {
+      l <- l.bool.set
+      r <- r.bool.set
+    } yield op(l, r))
+
+  /** boolean operations */
+  val and: BOp[ValueTy] = boolBOp(_ && _)
+  val or: BOp[ValueTy] = boolBOp(_ || _)
+  val not: UOp[ValueTy] = boolUOp(!_)
 }
