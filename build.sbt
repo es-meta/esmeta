@@ -73,6 +73,7 @@ lazy val tyContainsTest = taskKey[Unit]("Launch contains tests for ty (tiny)")
 lazy val tyStringifyTest =
   taskKey[Unit]("Launch stringify tests for ty (tiny)")
 lazy val tyJsonTest = taskKey[Unit]("Launch JSON tests for ty (tiny)")
+lazy val tyOpTest = taskKey[Unit]("Launch operation tests for ty (tiny)")
 
 // compiler
 lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
@@ -228,6 +229,7 @@ lazy val root = project
     tyContainsTest := (Test / testOnly).toTask(" *.ty.Contains*Test").value,
     tyStringifyTest := (Test / testOnly).toTask(" *.ty.Stringify*Test").value,
     tyJsonTest := (Test / testOnly).toTask(" *.ty.Json*Test").value,
+    tyOpTest := (Test / testOnly).toTask(" *.ty.Op*Test").value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
     compilerValidityTest := (Test / testOnly)

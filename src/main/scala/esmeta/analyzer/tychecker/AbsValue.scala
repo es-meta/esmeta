@@ -115,6 +115,11 @@ trait AbsValueDecl { self: TyChecker =>
       case One(expr) => expr.has(sym)
       case _         => false
 
+    /** get symbolic expression when it only has a symbolic expression */
+    def getSymExpr: Option[SymExpr] = expr match
+      case One(expr) if lowerTy.isBottom => Some(expr)
+      case _                             => None
+
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {
       val ty = this.ty

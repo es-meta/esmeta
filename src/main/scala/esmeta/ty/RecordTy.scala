@@ -36,11 +36,20 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case (Bot, _) | (_, Top) => that
     case (Top, _) | (_, Bot) => this
     case (Elem(lmap), Elem(rmap)) =>
-      var map = lmap.filter(!isStrictSubTy(_, rmap))
-      for {
-        (t, fm) <- rmap.filter(!isStrictSubTy(_, lmap))
-      } map += t -> map.get(t).fold(fm)(_ || fm)
-      Elem(map).normalized
+      def aux(
+        lmap: Map[String, FieldMap],
+        rmap: Map[String, FieldMap],
+      ): List[(String, FieldMap)] = lmap.toList.map { (t, fm) =>
+        rmap.find((u, _) => isSubTy(t, u)) match
+          case Some((u, ufm)) =>
+            u -> FieldMap(ufm.map.map((f, _) => f -> get((t, fm), f)))
+          case None => t -> fm
+      }
+      val lpairs = aux(lmap, rmap)
+      val rpairs = aux(rmap, lmap)
+      Elem((lpairs ++ rpairs).foldLeft(Map[String, FieldMap]()) {
+        case (map, (t, fm)) => map + (t -> map.get(t).fold(fm)(_ || fm))
+      }).normalized
 
   /** intersection type */
   def &&(that: => RecordTy): RecordTy = (this, that) match
