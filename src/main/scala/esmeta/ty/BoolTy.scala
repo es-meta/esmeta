@@ -34,6 +34,7 @@ case class BoolTy(set: Set[Boolean] = Set())
   def getSingle: Flat[Boolean] = Flat(set)
 }
 object BoolTy extends Parser.From(Parser.boolTy) {
+  def apply(b: Boolean): BoolTy = BoolTy(Set(b))
   lazy val Top: BoolTy = BoolTy(Set(false, true))
   lazy val Bot: BoolTy = BoolTy()
 }

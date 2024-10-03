@@ -65,7 +65,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val newSt = (for {
         ref <- toSymRef(expr, v)
         if useTypeGuard
-      } yield refine(SETypeCheck(SERef(ref), TrueT), positive)(st))
+      } yield refine(SymPred(Map(ref -> TrueT)), positive)(st))
         .getOrElse(st)
       v.guard.get(kind) match
         case Some(pred) => refine(pred, true)(newSt)
@@ -179,7 +179,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v = refine(vs, retTy, callerSt)
           guard = for {
             (kind, pred) <- v.guard
-            newPred <- instantiate(pred, map)
+            newPred = instantiate(pred, map)
           } yield kind -> newPred
           newV = AbsValue(v.ty, Zero, guard)
         } yield newV).getOrElse(AbsValue(retTy))
@@ -212,20 +212,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           }
     }
 
-    /** conversion to symbolic references */
+    /** conversion to symbolic bases */
     def toSymRef(pair: (Expr, AbsValue)): Option[SymRef] =
       val (expr, value) = pair
       toSymRef(expr, value)
 
     /** conversion to symbolic references */
-    def toSymRef(expr: Expr, value: AbsValue): Option[SymRef] =
-      import SymExpr.*
+    def toSymRef(expr: Expr, value: AbsValue): Option[SymRef] = expr match
+      case ERef(ref) => toSymRef(ref, value)
+      case _         => None
+
+    /** conversion to symbolic references */
+    def toSymRef(ref: Ref, value: AbsValue): Option[SymRef] =
+      import SymExpr.*, SymRef.*
       value.expr match
         case One(SERef(ref)) => Some(ref)
-        case _ =>
-          expr match
-            case ERef(ref) => toSymRef(ref)
-            case _         => None
+        case _               => toSymRef(ref)
 
     /** conversion to symbolic references */
     def toSymRef(ref: Ref): Option[SymRef] =
@@ -572,7 +574,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       def unapply(
         expr: Expr,
       )(using np: NodePoint[_]): Option[Result[AbsValue]] = {
-        def withPred(pred: SymExpr)(using st: AbsState): SymExpr =
+        def withPred(pred: SymPred)(using st: AbsState): SymPred =
           // TODO st.pred.fold(pred)(_ && pred)
           pred
         def refineField(
@@ -590,23 +592,19 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           val thenTy = aux(binding)
           val elseTy = aux(lty.record(field) -- binding)
-          val expr = lv.expr match
-            case One(expr) => expr
-            case _         => SERef(SLocal(x))
           var guard: TypeGuard = Map()
-          if (lty != thenTy)
-            guard += True -> withPred(SETypeCheck(expr, thenTy))
-          if (lty != elseTy)
-            guard += False -> withPred(SETypeCheck(expr, elseTy))
+          toSymRef(x, lv).map { ref =>
+            if (lty != thenTy)
+              guard += True -> withPred(SymPred(Map(ref -> thenTy)))
+            if (lty != elseTy)
+              guard += False -> withPred(SymPred(Map(ref -> elseTy)))
+          }
           AbsValue(BoolT, Many, guard)
         }
         if (!useTypeGuard) None
         else
           expr match {
             case EBinary(BOp.Lt, l, r) =>
-              def toLocal(e: Expr): Option[Local] = e match
-                case ERef(x: Local) => Some(x)
-                case _              => None
               Some(for {
                 lv <- transfer(l)
                 rv <- transfer(r)
@@ -654,49 +652,29 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   if (lty != refinedTy) Some(refinedTy) else None
                 }
                 var lguard: TypeGuard = Map()
-                toLocal(l).map { x =>
-                  val expr = SERef(SLocal(x))
+                toSymRef(l, lv).map { ref =>
                   aux(lty, rty, true, true).map { ty =>
-                    lguard += True -> withPred(SETypeCheck(expr, ty))
+                    lguard += True -> withPred(SymPred(Map(ref -> ty)))
                   }
                   aux(lty, rty, false, true).map { ty =>
-                    lguard += False -> withPred(SETypeCheck(expr, ty))
+                    lguard += False -> withPred(SymPred(Map(ref -> ty)))
                   }
                 }
                 var rguard: TypeGuard = Map()
-                toLocal(r).map { x =>
-                  val expr = SERef(SLocal(x))
+                toSymRef(r, rv).map { ref =>
                   aux(rty, lty, true, false).map { ty =>
-                    rguard += True -> withPred(SETypeCheck(expr, ty))
+                    rguard += True -> withPred(SymPred(Map(ref -> ty)))
                   }
                   aux(rty, lty, false, false).map { ty =>
-                    rguard += False -> withPred(SETypeCheck(expr, ty))
+                    rguard += False -> withPred(SymPred(Map(ref -> ty)))
                   }
                 }
                 val guard = (for {
                   kind <- Set(True, False)
-                  pred <- lguard.get(kind) && rguard.get(kind)
+                  pred =
+                    lguard.getOrElse(kind, SymPred()) &&
+                      rguard.getOrElse(kind, SymPred())
                 } yield kind -> withPred(pred)).toMap
-                AbsValue(BoolT, Many, guard)
-              })
-            case EBinary(BOp.Eq, ERef(x: Local), expr) =>
-              Some(for {
-                lv <- transfer(x)
-                rv <- transfer(expr)
-                given AbsState <- get
-              } yield {
-                val lty = lv.ty
-                val rty = rv.ty
-                val thenTy = lty && rty
-                val elseTy = if (rty.isSingle) lty -- rty else lty
-                val expr = lv.expr match
-                  case One(expr) => expr
-                  case _         => SERef(SLocal(x))
-                var guard: TypeGuard = Map()
-                if (lty != thenTy)
-                  guard += True -> withPred(SETypeCheck(expr, thenTy))
-                if (lty != elseTy)
-                  guard += False -> withPred(SETypeCheck(expr, elseTy))
                 AbsValue(BoolT, Many, guard)
               })
             case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
@@ -705,6 +683,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 given AbsState <- get
                 v <- refineField(x, field, Binding(rv.ty))
               } yield v)
+            case EBinary(BOp.Eq, ERef(ref), expr) =>
+              Some(for {
+                lv <- transfer(ref)
+                rv <- transfer(expr)
+                given AbsState <- get
+              } yield {
+                val lty = lv.ty
+                val rty = rv.ty
+                val thenTy = lty && rty
+                val elseTy = if (rty.isSingle) lty -- rty else lty
+                var guard: TypeGuard = Map()
+                toSymRef(ref, lv).map { ref =>
+                  if (lty != thenTy)
+                    guard += True -> withPred(SymPred(Map(ref -> thenTy)))
+                  if (lty != elseTy)
+                    guard += False -> withPred(SymPred(Map(ref -> elseTy)))
+                }
+                AbsValue(BoolT, Many, guard)
+              })
             case ETypeCheck(ERef(ref), givenTy) =>
               Some(for {
                 lv <- transfer(ref)
@@ -716,25 +713,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 val elseTy = lty -- rty
                 var guard: TypeGuard = Map()
                 var bools = Set(true, false)
-                val expr = lv.expr match
-                  case One(expr) => Some(expr)
-                  case _         => toSymRef(ref).map(SERef(_))
-                expr.map { expr =>
+                toSymRef(ref, lv).map { ref =>
                   if (lty != thenTy)
                     if (thenTy.isBottom) bools -= true
-                    else guard += True -> withPred(SETypeCheck(expr, thenTy))
+                    else guard += True -> withPred(SymPred(Map(ref -> thenTy)))
                   if (lty != elseTy)
                     if (elseTy.isBottom) bools -= false
-                    else guard += False -> withPred(SETypeCheck(expr, elseTy))
+                    else guard += False -> withPred(SymPred(Map(ref -> elseTy)))
                 }
                 AbsValue(BoolT(bools), Many, guard)
               })
             case EExists(Field(x: Local, EStr(field))) =>
               Some(refineField(x, field, Binding.Exist))
             case EBinary(BOp.Eq, ETypeOf(l), ETypeOf(r)) => None // TODO
-            case EBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
+            case EBinary(BOp.Eq, ETypeOf(ERef(ref)), expr) =>
               Some(for {
-                lv <- transfer(x)
+                lv <- transfer(ref)
                 rv <- transfer(expr)
                 given AbsState <- get
               } yield {
@@ -747,14 +741,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   case _ => lty
                 val thenTy = aux(true)
                 val elseTy = aux(false)
-                val expr = lv.expr match
-                  case One(expr) => expr
-                  case _         => SERef(SLocal(x))
                 var guard: TypeGuard = Map()
-                if (lty != thenTy)
-                  guard += True -> withPred(SETypeCheck(expr, thenTy))
-                if (lty != elseTy)
-                  guard += False -> withPred(SETypeCheck(expr, elseTy))
+                toSymRef(ref, lv).map { ref =>
+                  if (lty != thenTy)
+                    guard += True -> withPred(SymPred(Map(ref -> thenTy)))
+                  if (lty != elseTy)
+                    guard += False -> withPred(SymPred(Map(ref -> elseTy)))
+                }
                 AbsValue(BoolT, Many, guard)
               })
             case EUnary(UOp.Not, e) =>
@@ -781,21 +774,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 rty = rv.ty
                 hasT = lty.bool.contains(true)
                 lguard = lv.guard
-                lt = lguard.get(True)
-                lf = lguard.get(False)
+                lt = lguard.getOrElse(True, SymPred())
+                lf = lguard.getOrElse(False, SymPred())
               } yield {
                 var guard: TypeGuard = Map()
-                val refinedSt = lt.fold(st)(refine(_, false)(st))
+                val refinedSt = if (lt.isTop) st else refine(lt, false)(st)
                 val (thenPred, _) = (for {
                   rv <- transfer(r)
-                  rt = rv.guard.get(True)
+                  rt = rv.guard.getOrElse(True, SymPred())
                 } yield if (hasT) lt || rt else rt)(refinedSt)
-                thenPred.map { pred => guard += True -> withPred(pred) }
+                if (thenPred.nonTop) guard += True -> withPred(thenPred)
                 val (elsePred, _) = (for {
                   rv <- transfer(r)
-                  rf = rv.guard.get(False)
+                  rf = rv.guard.getOrElse(False, SymPred())
                 } yield lf && rf)(refinedSt)
-                elsePred.map { pred => guard += False -> withPred(pred) }
+                if (elsePred.nonTop) guard += False -> withPred(elsePred)
                 AbsValue(lty or rty, Many, guard)
               })
             case EBinary(BOp.And, l, r) =>
@@ -808,21 +801,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 rty = rv.ty
                 hasF = lty.bool.contains(false)
                 lguard = lv.guard
-                lt = lguard.get(True)
-                lf = lguard.get(False)
+                lt = lguard.getOrElse(True, SymPred())
+                lf = lguard.getOrElse(False, SymPred())
               } yield {
                 var guard: TypeGuard = Map()
-                val refinedSt = lt.fold(st)(refine(_, true)(st))
+                val refinedSt = if (lt.isTop) st else refine(lt, true)(st)
                 val (thenPred, _) = (for {
                   rv <- transfer(r)
-                  rt = rv.guard.get(True)
+                  rt = rv.guard.getOrElse(True, SymPred())
                 } yield lt && rt)(refinedSt)
-                thenPred.map { pred => guard += True -> withPred(pred) }
+                if (thenPred.nonTop) guard += True -> withPred(thenPred)
                 val (elsePred, _) = (for {
                   rv <- transfer(r)
-                  rf = rv.guard.get(False)
+                  rf = rv.guard.getOrElse(False, SymPred())
                 } yield if (hasF) lf || rf else rf)(refinedSt)
-                elsePred.map { pred => guard += False -> withPred(pred) }
+                if (elsePred.nonTop) guard += False -> withPred(elsePred)
                 AbsValue(lty and rty, Many, guard)
               })
             case _ => None
@@ -969,6 +962,18 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     // -------------------------------------------------------------------------
     // Instantiation of Symbolic Expressions and References
     // -------------------------------------------------------------------------
+    /** instantiation of symbolic predicate */
+    def instantiate(pred: SymPred, map: Map[Sym, SymRef]): SymPred = SymPred(
+      for {
+        case (ref, ty) <- pred.map
+        newRef <- instantiate(ref, map)
+      } yield newRef -> ty,
+      for {
+        e <- pred.expr
+        newExpr <- instantiate(e, map)
+      } yield newExpr,
+    )
+
     /** instantiation of symbolic expressions */
     def instantiate(sexpr: SymExpr, map: Map[Sym, SymRef]): Option[SymExpr] =
       import SymExpr.*
@@ -992,7 +997,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       import SymRef.*
       sref match
         case SSym(sym) => map.get(sym)
-        case SLocal(x) => Some(SLocal(x))
+        case SLocal(x) => None
         case SField(base, field) =>
           for {
             b <- instantiate(base, map)
@@ -1066,12 +1071,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** refine types using symbolic predicates */
     def refine(
-      pred: SymExpr,
+      pred: SymPred,
+      positive: Boolean,
+    )(using np: NodePoint[_]): Updater =
+      import SymExpr.*, SymRef.*
+      val SymPred(map, expr) = pred
+      for {
+        _ <- join(map.map { case (ref, ty) => refine(ref, ty, positive) })
+        _ <- expr.fold(pure(()))(e => modify(refine(e, positive)))
+        _ <- modify(st => st.copy(pred = st.pred && pred))
+      } yield ()
+
+    /** refine types using symbolic expressions */
+    def refine(
+      expr: SymExpr,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater =
       import SymExpr.*, SymRef.*
       for {
-        _ <- modify(pred match {
+        _ <- modify(expr match {
           // refine boolean local variables
           case SERef(x: Local) =>
             refineBool(x, positive)
@@ -1096,9 +1114,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           // no pruning
           case _ => st => st
         })
-        st <- get
-        newPred = st.pred.fold(pred)(_ && pred)
-        _ <- put(st.copy(pred = Some(newPred)))
       } yield ()
 
     /** refine references using types */
@@ -1127,11 +1142,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           } yield ()
         case SField(base, SEStr(field)) =>
           for {
-            st <- get
-            bty = st.getTy(base)
+            bty <- get(_.getTy(base))
             rbinding = Binding(ty)
             binding = if (positive) rbinding else bty.record(field) -- rbinding
             refinedTy = ValueTy(
+              ast = bty.ast,
               record = bty.record.update(field, binding, refine = true),
             )
             _ <- refine(base, refinedTy, positive)
@@ -1403,14 +1418,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsCallable" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), FunctionT),
+            True -> SymPred(Map(SSym(0) -> FunctionT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsConstructor" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), ConstructorT),
+            True -> SymPred(Map(SSym(0) -> ConstructorT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1423,38 +1438,39 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), refined),
+            Normal -> SymPred(Map(SSym(0) -> refined)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateIntegerTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateAtomicAccessOnIntegerTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), TypedArrayT),
+            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateNonRevokedProxy" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(
-              SERef(SSym(0)),
-              ValueTy.from(
-                "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
+            Normal -> SymPred(
+              Map(
+                SSym(0) -> ValueTy.from(
+                  "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
+                ),
               ),
             ),
           )
@@ -1463,22 +1479,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsPromise" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), RecordT("Promise")),
+            True -> SymPred(Map(SSym(0) -> RecordT("Promise"))),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsRegExp" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
-            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
+            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "NewPromiseCapability" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), ConstructorT),
+            Normal -> SymPred(Map(SSym(0) -> ConstructorT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1501,18 +1517,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsUnresolvableReference" -> { (vs, retTy, st) =>
           given AbsState = st
           var guard: TypeGuard = Map(
-            True -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map("Base" -> EnumT("unresolvable")),
+            True -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "ReferenceRecord",
+                  Map("Base" -> EnumT("unresolvable")),
+                ),
               ),
             ),
-            False -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
+            False -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "ReferenceRecord",
+                  Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
+                ),
               ),
             ),
           )
@@ -1521,20 +1541,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsPropertyReference" -> { (vs, retTy, st) =>
           given AbsState = st
           var guard: TypeGuard = Map(
-            True -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map("Base" -> ESValueT),
+            True ->
+            SymPred(
+              Map(
+                SSym(0) -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
               ),
             ),
-            False -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map(
-                  "Base" ->
-                  (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
+            False -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "ReferenceRecord",
+                  Map(
+                    "Base" ->
+                    (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
+                  ),
                 ),
               ),
             ),
@@ -1544,26 +1565,30 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsSuperReference" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), RecordT("SuperReferenceRecord")),
+            True -> SymPred(Map(SSym(0) -> RecordT("SuperReferenceRecord"))),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsPrivateReference" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map("ReferencedName" -> RecordT("PrivateName")),
+            True -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "ReferenceRecord",
+                  Map("ReferencedName" -> RecordT("PrivateName")),
+                ),
               ),
             ),
-            False -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "ReferenceRecord",
-                Map(
-                  "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
+            False -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "ReferenceRecord",
+                  Map(
+                    "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
+                  ),
                 ),
               ),
             ),
@@ -1573,19 +1598,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
-            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
+            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsSharedArrayBuffer" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(
-              SERef(SSym(0)),
-              RecordT(
-                "SharedArrayBuffer",
-                Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
+            True -> SymPred(
+              Map(
+                SSym(0) ->
+                RecordT(
+                  "SharedArrayBuffer",
+                  Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
+                ),
               ),
             ),
           )
@@ -1594,8 +1621,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsConcatSpreadable" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SETypeCheck(SERef(SSym(0)), ObjectT),
-            Abrupt -> SETypeCheck(SERef(SSym(0)), ObjectT),
+            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
+            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1608,10 +1635,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ),
           )
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), getTy(NullT, NullT)),
-            False -> SETypeCheck(
-              SERef(SSym(0)),
-              getTy(RecordT("DataBlock"), RecordT("SharedDataBlock")),
+            True -> SymPred(Map(SSym(0) -> getTy(NullT, NullT))),
+            False -> SymPred(
+              Map(
+                SSym(0) -> getTy(
+                  RecordT("DataBlock"),
+                  RecordT("SharedDataBlock"),
+                ),
+              ),
             ),
           )
           AbsValue(retTy, Zero, guard)
@@ -1647,14 +1678,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "CanBeHeldWeakly" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SETypeCheck(SERef(SSym(0)), ObjectT || SymbolT),
+            True -> SymPred(Map(SSym(0) -> (ObjectT || SymbolT))),
           )
           AbsValue(retTy, Zero, guard)
         },
         "AsyncGeneratorValidate" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SETypeCheck(SERef(SSym(0)), RecordT("AsyncGenerator")),
+            Normal -> SymPred(Map(SSym(0) -> RecordT("AsyncGenerator"))),
           )
           AbsValue(retTy, Zero, guard)
         },

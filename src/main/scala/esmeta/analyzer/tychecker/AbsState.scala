@@ -1,7 +1,6 @@
 package esmeta.analyzer.tychecker
-
 import esmeta.ir.{*, given}
-import esmeta.ty.*
+import esmeta.ty.{*, given}
 import esmeta.ty.util.Stringifier.{*, given}
 import esmeta.state.*
 import esmeta.util.*
@@ -15,7 +14,7 @@ trait AbsStateDecl { self: TyChecker =>
     reachable: Boolean,
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
-    pred: Option[SymExpr],
+    pred: SymPred,
   ) extends AbsStateLike {
     import AbsState.*
 
@@ -35,9 +34,12 @@ trait AbsStateDecl { self: TyChecker =>
             AbsState(_, llocals, lsymEnv, lpred),
             AbsState(_, rlocals, rsymEnv, rpred),
           ) =>
+        val SymPred(lmap, lexpr) = lpred
+        val SymPred(rmap, rexpr) = rpred
         llocals.forall { (x, v) => rlocals.get(x).fold(false)(v ⊑ _) } &&
         lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty ⊑ _) } &&
-        rpred.forall { r => lpred.fold(false)(_ == r) }
+        rmap.forall { (r, rty) => lmap.get(r).fold(false)(_ <= rty) } &&
+        rexpr.forall { r => lexpr.fold(false)(_ == r) }
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -62,9 +64,7 @@ trait AbsStateDecl { self: TyChecker =>
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = handleKilled(l.get(x))(using l) ⊔ handleKilled(r.get(x))(using r)
         } yield x -> v).toMap
-        val newPred = (l.pred, r.pred) match
-          case (Some(l), Some(r)) if l == r => Some(l)
-          case _                            => None
+        val newPred = l.pred || r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
 
     /** meet operator */
@@ -79,11 +79,7 @@ trait AbsStateDecl { self: TyChecker =>
           sym <- (l.symEnv.keySet intersect r.symEnv.keySet).toList
           ty = l.getTy(sym) ⊓ r.getTy(sym)
         } yield sym -> ty).toMap
-        val newPred = (l.pred, r.pred) match
-          case (Some(l), Some(r)) if l == r => Some(l)
-          case (Some(l), None)              => Some(l)
-          case (None, Some(r))              => Some(r)
-          case _                            => None
+        val newPred = l.pred && r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
 
     /** has imprecise elements */
@@ -241,12 +237,16 @@ trait AbsStateDecl { self: TyChecker =>
       val newLocals = locals.map { (y, v) =>
         val newGuard = for {
           (kind, pred) <- v.guard
-          newPred <- pred.kill(x)
+          newPred = pred.kill(x)
         } yield kind -> newPred
         y -> v.copy(guard = newGuard)
       }
-      val newPred = pred.flatMap(_.kill(x))
+      val newPred = pred.kill(x)
       AbsState(reachable, newLocals, symEnv, newPred)
+
+    /** type check */
+    def tycheck(value: AbsValue, ty: ValueTy): ValueTy =
+      if (value.ty <= ty) TrueT else BoolT
 
     /** variable existence check */
     def exists(ref: Ref): AbsValue = AbsValue.BoolTop
@@ -307,10 +307,10 @@ trait AbsStateDecl { self: TyChecker =>
     lazy val Top: AbsState = exploded("top abstract state")
 
     /** bottom element */
-    lazy val Bot: AbsState = AbsState(false, Map(), Map(), None)
+    lazy val Bot: AbsState = AbsState(false, Map(), Map(), SymPred())
 
     /** empty element */
-    lazy val Empty: AbsState = AbsState(true, Map(), Map(), None)
+    lazy val Empty: AbsState = AbsState(true, Map(), Map(), SymPred())
 
     /** appender */
     given rule: Rule[AbsState] = mkRule(true)
@@ -322,12 +322,11 @@ trait AbsStateDecl { self: TyChecker =>
         val irStringifier = IRElem.getStringifier(detail, false)
         import irStringifier.given
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")(
-          using kRule = (app, sym) => app >> "#" >> sym,
-        )
+        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
+        given predRule: Rule[Map[SymRef, ValueTy]] = sortedMapRule(sep = " <: ")
         app >> locals
         if (symEnv.nonEmpty) app >> symEnv
-        pred.map(app >> "[" >> _ >> "]")
+        app >> pred
         app
       } else app >> "⊥"
   }

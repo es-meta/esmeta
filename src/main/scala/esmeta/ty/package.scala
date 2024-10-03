@@ -61,24 +61,10 @@ enum SymExpr:
         r <- right.kill(x)
       } yield SEBinary(bop, l, r)
     case SEUnary(uop, expr) => expr.kill(x).map(SEUnary(uop, _))
+  override def toString: String = (new Appender >> this).toString
 object SymExpr:
   val T: SymExpr = SEBool(true)
   val F: SymExpr = SEBool(false)
-  given Rule[SymExpr] = (app, expr) =>
-    val irStringifier = IRElem.getStringifier(true, false)
-    import TyStringifier.given
-    import irStringifier.given
-    import SymRef.given
-    expr match
-      case SEBool(bool) => app >> bool
-      case SEStr(str)   => app >> "\"" >> normStr(str) >> "\""
-      case SERef(ref)   => app >> ref
-      case SETypeCheck(expr, ty) =>
-        app >> "(? " >> expr >> ": " >> ty >> ")"
-      case SEBinary(bop, left, right) =>
-        app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
-      case SEUnary(uop, expr) =>
-        app >> "(" >> uop >> " " >> expr >> ")"
   extension (l: Option[SymExpr])
     def &&(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
       case (Some(l), Some(r)) => Some(l && r)
@@ -89,11 +75,18 @@ object SymExpr:
       case (Some(l), Some(r)) => Some(l || r)
       case _                  => None
 
+/** symbolic bases */
+type SymBase = Sym | Local
+
 /** symbolic references */
 enum SymRef:
   case SSym(sym: Sym)
-  case SLocal(x: Local)
+  case SLocal(local: Local)
   case SField(base: SymRef, field: SymExpr)
+  def getBase: SymBase = this match
+    case SSym(s)         => s
+    case SLocal(x)       => x
+    case SField(base, f) => base.getBase
   def has(sym: Sym): Boolean = this match
     case SSym(s)         => s == sym
     case SLocal(x)       => false
@@ -106,20 +99,41 @@ enum SymRef:
         b <- base.kill(x)
         f <- f.kill(x)
       } yield SField(b, f)
-object SymRef:
-  given Rule[SymRef] = (app, ref) =>
-    val irStringifier = IRElem.getStringifier(true, false)
-    import irStringifier.given
-    import SymExpr.*
-    lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-    ref match
-      case SSym(sym)                           => app >> "#" >> sym
-      case SLocal(x)                           => app >> x
-      case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
-      case SField(base, field) => app >> base >> "[" >> field >> "]"
+  override def toString: String = (new Appender >> this).toString
+
+/** symbolic predicates */
+case class SymPred(
+  map: Map[SymRef, ValueTy] = Map(),
+  expr: Option[SymExpr] = None,
+) {
+  def isTop: Boolean = map.isEmpty && expr.isEmpty
+  def nonTop: Boolean = !isTop
+  def ||(that: SymPred): SymPred = SymPred(
+    (for {
+      ref <- (this.map.keySet intersect that.map.keySet).toList
+      ty = this.map(ref) || that.map(ref)
+    } yield ref -> ty).toMap,
+    this.expr || that.expr,
+  )
+  def &&(that: SymPred): SymPred = SymPred(
+    (for {
+      ref <- (this.map.keySet ++ that.map.keySet).toList
+      ty = this.map.getOrElse(ref, AnyT) && that.map.getOrElse(ref, AnyT)
+    } yield ref -> ty).toMap,
+    this.expr && that.expr,
+  )
+  def kill(x: Local): SymPred = SymPred(
+    for {
+      (ref, ty) <- map
+      newRef <- ref.kill(x)
+    } yield newRef -> ty,
+    expr.flatMap(_.kill(x)),
+  )
+  override def toString: String = (new Appender >> this).toString
+}
 
 /** type guard */
-type TypeGuard = Map[RefinementKind, SymExpr]
+type TypeGuard = Map[RefinementKind, SymPred]
 
 /** type refinement kinds */
 enum RefinementKind:
@@ -281,3 +295,34 @@ extension (elem: Boolean) {
   inline def isBottom: Boolean = elem == false
   inline def --(that: Boolean): Boolean = elem && !that
 }
+
+import TyStringifier.given
+val irStringifier = IRElem.getStringifier(true, false)
+import irStringifier.given
+given Ordering[SymRef] = Ordering.by(_.toString)
+given Rule[SymExpr] = (app, expr) =>
+  import SymExpr.*
+  expr match
+    case SEBool(bool) => app >> bool
+    case SEStr(str)   => app >> "\"" >> normStr(str) >> "\""
+    case SERef(ref)   => app >> ref
+    case SETypeCheck(expr, ty) =>
+      app >> "(? " >> expr >> ": " >> ty >> ")"
+    case SEBinary(bop, left, right) =>
+      app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+    case SEUnary(uop, expr) =>
+      app >> "(" >> uop >> " " >> expr >> ")"
+given Rule[SymRef] = (app, ref) =>
+  import SymExpr.*
+  lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
+  import SymRef.*
+  ref match
+    case SSym(sym)                           => app >> "#" >> sym
+    case SLocal(x)                           => app >> x
+    case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
+    case SField(base, field) => app >> base >> "[" >> field >> "]"
+given Rule[SymPred] = (app, pred) =>
+  import SymPred.*
+  given Rule[Map[SymRef, ValueTy]] = sortedMapRule(sep = " <: ")
+  if (pred.map.nonEmpty) app >> pred.map
+  pred.expr.fold(app)(app >> "[" >> _ >> "]")
