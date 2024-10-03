@@ -4,7 +4,9 @@ import esmeta.cfg.Node
 import esmeta.state.*
 import esmeta.ir.*
 import esmeta.ty.util.*
+import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
+import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** type elements */
@@ -42,9 +44,41 @@ enum SymExpr:
     case SETypeCheck(base, ty)      => base.has(sym)
     case SEBinary(bop, left, right) => left.has(sym) || right.has(sym)
     case SEUnary(uop, expr)         => expr.has(sym)
+  def kill(x: Local): Option[SymExpr] = this match
+    case SEBool(b)             => Some(this)
+    case SEStr(s)              => Some(this)
+    case SERef(ref)            => ref.kill(x).map(SERef(_))
+    case SETypeCheck(base, ty) => base.kill(x).map(SETypeCheck(_, ty))
+    case SEBinary(BOp.And, left, right) =>
+      (left.kill(x), right.kill(x)) match
+        case (Some(l), Some(r)) => Some(l && r)
+        case (Some(l), None)    => Some(l)
+        case (None, Some(r))    => Some(r)
+        case _                  => None
+    case SEBinary(bop, left, right) =>
+      for {
+        l <- left.kill(x)
+        r <- right.kill(x)
+      } yield SEBinary(bop, l, r)
+    case SEUnary(uop, expr) => expr.kill(x).map(SEUnary(uop, _))
 object SymExpr:
   val T: SymExpr = SEBool(true)
   val F: SymExpr = SEBool(false)
+  given Rule[SymExpr] = (app, expr) =>
+    val irStringifier = IRElem.getStringifier(true, false)
+    import TyStringifier.given
+    import irStringifier.given
+    import SymRef.given
+    expr match
+      case SEBool(bool) => app >> bool
+      case SEStr(str)   => app >> "\"" >> normStr(str) >> "\""
+      case SERef(ref)   => app >> ref
+      case SETypeCheck(expr, ty) =>
+        app >> "(? " >> expr >> ": " >> ty >> ")"
+      case SEBinary(bop, left, right) =>
+        app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+      case SEUnary(uop, expr) =>
+        app >> "(" >> uop >> " " >> expr >> ")"
   extension (l: Option[SymExpr])
     def &&(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
       case (Some(l), Some(r)) => Some(l && r)
@@ -64,6 +98,25 @@ enum SymRef:
     case SSym(s)         => s == sym
     case SLocal(x)       => false
     case SField(base, f) => base.has(sym) || f.has(sym)
+  def kill(x: Local): Option[SymRef] = this match
+    case SSym(s)   => Some(this)
+    case SLocal(y) => if (x == y) None else Some(this)
+    case SField(base, f) =>
+      for {
+        b <- base.kill(x)
+        f <- f.kill(x)
+      } yield SField(b, f)
+object SymRef:
+  given Rule[SymRef] = (app, ref) =>
+    val irStringifier = IRElem.getStringifier(true, false)
+    import irStringifier.given
+    import SymExpr.*
+    lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
+    ref match
+      case SSym(sym)                           => app >> "#" >> sym
+      case SLocal(x)                           => app >> x
+      case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
+      case SField(base, field) => app >> base >> "[" >> field >> "]"
 
 /** type guard */
 type TypeGuard = Map[RefinementKind, SymExpr]

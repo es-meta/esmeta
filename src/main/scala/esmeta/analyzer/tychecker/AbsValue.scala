@@ -21,7 +21,7 @@ trait AbsValueDecl { self: TyChecker =>
     import AbsValue.*
 
     /** bottom check */
-    def isBottom: Boolean = this == Bot
+    def isBottom: Boolean = lowerTy.isBottom && (expr == Zero || expr == Many)
 
     /** upper type */
     def ty(using st: AbsState): ValueTy = expr match
@@ -457,28 +457,8 @@ trait AbsValueDecl { self: TyChecker =>
     given rule: Rule[AbsValue] = (app, elem) =>
       val irStringifier = IRElem.getStringifier(true, false)
       import TyStringifier.given
-      import SymExpr.*, SymRef.*
       import irStringifier.given
-      lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-      given Rule[SymExpr] = (app, expr) =>
-        expr match
-          case SEBool(bool) => app >> bool
-          case SEStr(str)   => app >> "\"" >> normStr(str) >> "\""
-          case SERef(ref)   => app >> ref
-          case SETypeCheck(expr, ty) =>
-            app >> "(? " >> expr >> ": " >> ty >> ")"
-          case SEBinary(bop, left, right) =>
-            app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
-          case SEUnary(uop, expr) =>
-            app >> "(" >> uop >> " " >> expr >> ")"
-      given Rule[SymRef] = (app, ref) =>
-        ref match
-          case SSym(sym)                           => app >> "#" >> sym
-          case SLocal(x)                           => app >> x
-          case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
-          case SField(base, field) => app >> base >> "[" >> field >> "]"
       given Rule[TypeGuard] = sortedMapRule("{", "}", " => ")
-      given Rule[Local] = (app, local) => app >> local.toString
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       given Rule[RefinementKind] = (app, kind) => app >> kind.toString
       given Ordering[RefinementKind] = Ordering.by(_.toString)

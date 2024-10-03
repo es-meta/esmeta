@@ -60,11 +60,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       v: AbsValue,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = st =>
-      import RefinementKind.*
+      import RefinementKind.*, SymExpr.*
       val kind = if (positive) True else False
+      val newSt = (for {
+        ref <- toSymRef(expr, v)
+        if useTypeGuard
+      } yield refine(SETypeCheck(SERef(ref), TrueT), positive)(st))
+        .getOrElse(st)
       v.guard.get(kind) match
-        case Some(pred) => refine(pred, true)(st)
-        case None       => if (useTypeGuard) st else refine(expr, positive)(st)
+        case Some(pred) => refine(pred, true)(newSt)
+        case None => if (useTypeGuard) newSt else refine(expr, positive)(st)
 
     /** get next node point */
     def getNextNp(fromCp: NodePoint[Node], to: Node): NodePoint[Node] =
@@ -79,7 +84,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         nextNp <- getAfterCallNp(callerNp)
       } {
         val callerSt = callInfo(callerNp)
-        analyzer += nextNp -> callerSt.update(callerNp.node.lhs, value)
+        analyzer += nextNp -> callerSt.update(
+          callerNp.node.lhs,
+          value,
+          refine = false,
+        )
       }
     }
 
@@ -309,7 +318,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case IAssign(x: Local, expr) =>
         for {
           v <- transfer(expr)
-          _ <- modify(_.update(x, v))
+          _ <- modify(_.update(x, v, refine = false))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
         for {
@@ -317,7 +326,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           ty <- get(_.get(x).ty)
           record = ty.record.update(f, v.ty, refine = false)
-          _ <- modify(_.update(x, AbsValue(ty.copied(record = record))))
+          _ <- modify(
+            _.update(x, AbsValue(ty.copied(record = record)), refine = false),
+          )
         } yield ()
       case IAssign(ref, expr)       => st => st /* TODO */
       case IExpand(base, expr)      => st => st /* TODO */
@@ -561,6 +572,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       def unapply(
         expr: Expr,
       )(using np: NodePoint[_]): Option[Result[AbsValue]] = {
+        def withPred(pred: SymExpr)(using st: AbsState): SymExpr =
+          // TODO st.pred.fold(pred)(_ && pred)
+          pred
         def refineField(
           x: Local,
           field: String,
@@ -580,8 +594,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case One(expr) => expr
             case _         => SERef(SLocal(x))
           var guard: TypeGuard = Map()
-          if (lty != thenTy) guard += True -> SETypeCheck(expr, thenTy)
-          if (lty != elseTy) guard += False -> SETypeCheck(expr, elseTy)
+          if (lty != thenTy)
+            guard += True -> withPred(SETypeCheck(expr, thenTy))
+          if (lty != elseTy)
+            guard += False -> withPred(SETypeCheck(expr, elseTy))
           AbsValue(BoolT, Many, guard)
         }
         if (!useTypeGuard) None
@@ -641,26 +657,26 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 toLocal(l).map { x =>
                   val expr = SERef(SLocal(x))
                   aux(lty, rty, true, true).map { ty =>
-                    lguard += True -> SETypeCheck(expr, ty)
+                    lguard += True -> withPred(SETypeCheck(expr, ty))
                   }
                   aux(lty, rty, false, true).map { ty =>
-                    lguard += False -> SETypeCheck(expr, ty)
+                    lguard += False -> withPred(SETypeCheck(expr, ty))
                   }
                 }
                 var rguard: TypeGuard = Map()
                 toLocal(r).map { x =>
                   val expr = SERef(SLocal(x))
                   aux(rty, lty, true, false).map { ty =>
-                    rguard += True -> SETypeCheck(expr, ty)
+                    rguard += True -> withPred(SETypeCheck(expr, ty))
                   }
                   aux(rty, lty, false, false).map { ty =>
-                    rguard += False -> SETypeCheck(expr, ty)
+                    rguard += False -> withPred(SETypeCheck(expr, ty))
                   }
                 }
                 val guard = (for {
                   kind <- Set(True, False)
                   pred <- lguard.get(kind) && rguard.get(kind)
-                } yield kind -> pred).toMap
+                } yield kind -> withPred(pred)).toMap
                 AbsValue(BoolT, Many, guard)
               })
             case EBinary(BOp.Eq, ERef(x: Local), expr) =>
@@ -677,8 +693,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   case One(expr) => expr
                   case _         => SERef(SLocal(x))
                 var guard: TypeGuard = Map()
-                if (lty != thenTy) guard += True -> SETypeCheck(expr, thenTy)
-                if (lty != elseTy) guard += False -> SETypeCheck(expr, elseTy)
+                if (lty != thenTy)
+                  guard += True -> withPred(SETypeCheck(expr, thenTy))
+                if (lty != elseTy)
+                  guard += False -> withPred(SETypeCheck(expr, elseTy))
                 AbsValue(BoolT, Many, guard)
               })
             case EBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
@@ -704,10 +722,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 expr.map { expr =>
                   if (lty != thenTy)
                     if (thenTy.isBottom) bools -= true
-                    else guard += True -> SETypeCheck(expr, thenTy)
+                    else guard += True -> withPred(SETypeCheck(expr, thenTy))
                   if (lty != elseTy)
                     if (elseTy.isBottom) bools -= false
-                    else guard += False -> SETypeCheck(expr, elseTy)
+                    else guard += False -> withPred(SETypeCheck(expr, elseTy))
                 }
                 AbsValue(BoolT(bools), Many, guard)
               })
@@ -733,8 +751,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   case One(expr) => expr
                   case _         => SERef(SLocal(x))
                 var guard: TypeGuard = Map()
-                if (lty != thenTy) guard += True -> SETypeCheck(expr, thenTy)
-                if (lty != elseTy) guard += False -> SETypeCheck(expr, elseTy)
+                if (lty != thenTy)
+                  guard += True -> withPred(SETypeCheck(expr, thenTy))
+                if (lty != elseTy)
+                  guard += False -> withPred(SETypeCheck(expr, elseTy))
                 AbsValue(BoolT, Many, guard)
               })
             case EUnary(UOp.Not, e) =>
@@ -747,8 +767,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 lf = guard.get(False)
               } yield {
                 var guard: TypeGuard = Map()
-                lf.map { guard += True -> _ }
-                lt.map { guard += False -> _ }
+                lf.map { pred => guard += True -> withPred(pred) }
+                lt.map { pred => guard += False -> withPred(pred) }
                 AbsValue(ty.not, Many, guard)
               })
             case EBinary(BOp.Or, l, r) =>
@@ -770,12 +790,12 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   rv <- transfer(r)
                   rt = rv.guard.get(True)
                 } yield if (hasT) lt || rt else rt)(refinedSt)
-                thenPred.map { guard += True -> _ }
+                thenPred.map { pred => guard += True -> withPred(pred) }
                 val (elsePred, _) = (for {
                   rv <- transfer(r)
                   rf = rv.guard.get(False)
                 } yield lf && rf)(refinedSt)
-                elsePred.map { guard += False -> _ }
+                elsePred.map { pred => guard += False -> withPred(pred) }
                 AbsValue(lty or rty, Many, guard)
               })
             case EBinary(BOp.And, l, r) =>
@@ -797,12 +817,12 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   rv <- transfer(r)
                   rt = rv.guard.get(True)
                 } yield lt && rt)(refinedSt)
-                thenPred.map { guard += True -> _ }
+                thenPred.map { pred => guard += True -> withPred(pred) }
                 val (elsePred, _) = (for {
                   rv <- transfer(r)
                   rf = rv.guard.get(False)
                 } yield if (hasF) lf || rf else rf)(refinedSt)
-                elsePred.map { guard += False -> _ }
+                elsePred.map { pred => guard += False -> withPred(pred) }
                 AbsValue(lty and rty, Many, guard)
               })
             case _ => None
@@ -1050,46 +1070,36 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       positive: Boolean,
     )(using np: NodePoint[_]): Updater =
       import SymExpr.*, SymRef.*
-      pred match {
-        // refine boolean local variables
-        case SERef(x: Local) =>
-          refineBool(x, positive)
-        // refine inequality
-        // case SEBinary(BOp.Lt, l, r) =>
-        //   refineIneq(l, r, positive)
-        // // refine local variables
-        // case SEBinary(BOp.Eq, ERef(x: Local), expr) =>
-        //   refineLocal(x, expr, positive)
-        // // refine field equality
-        // case SEBinary(BOp.Eq, ERef(Field(x: Local, EStr(field))), expr) =>
-        //   refineField(x, field, expr, positive)
-        // // refine field existence
-        // case SEExists(Field(x: Local, EStr(field))) =>
-        //   refineExistField(x, field, positive)
-        // // refine types
-        // case SEBinary(BOp.Eq, ETypeOf(ERef(x: Local)), expr) =>
-        //   refineType(x, expr, positive)
-        // refine type checks
-        case SETypeCheck(SERef(ref), ty) =>
-          refine(ref, ty, positive)
-        // refine logical negation
-        case SEUnary(UOp.Not, e) =>
-          refine(e, !positive)
-        // refine logical disjunction
-        case SEBinary(BOp.Or, l, r) =>
-          st =>
-            if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
-            // TODO short circuiting
-            else refine(r, false)(refine(l, false)(st))
-        // refine logical conjunction
-        case SEBinary(BOp.And, l, r) =>
-          st =>
-            if (positive) refine(r, true)(refine(l, true)(st))
-            // TODO short circuiting
-            else refine(l, false)(st) ⊔ refine(r, false)(st)
-        // no pruning
-        case _ => st => st
-      }
+      for {
+        _ <- modify(pred match {
+          // refine boolean local variables
+          case SERef(x: Local) =>
+            refineBool(x, positive)
+          // refine type checks
+          case SETypeCheck(SERef(ref), ty) =>
+            refine(ref, ty, positive)
+          // refine logical negation
+          case SEUnary(UOp.Not, e) =>
+            refine(e, !positive)
+          // refine logical disjunction
+          case SEBinary(BOp.Or, l, r) =>
+            st =>
+              if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
+              // TODO short circuiting
+              else refine(r, false)(refine(l, false)(st))
+          // refine logical conjunction
+          case SEBinary(BOp.And, l, r) =>
+            st =>
+              if (positive) refine(r, true)(refine(l, true)(st))
+              // TODO short circuiting
+              else refine(l, false)(st) ⊔ refine(r, false)(st)
+          // no pruning
+          case _ => st => st
+        })
+        st <- get
+        newPred = st.pred.fold(pred)(_ && pred)
+        _ <- put(st.copy(pred = Some(newPred)))
+      } yield ()
 
     /** refine references using types */
     def refine(
@@ -1112,7 +1122,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 if (v.ty <= ty.toValue) v
                 else v ⊓ AbsValue(ty)
               else v -- AbsValue(ty)
-            _ <- modify(_.update(x, refinedV))
+            _ <- modify(_.update(x, refinedV, refine = true))
             _ <- refine(v, refinedV) // propagate type guard
           } yield ()
         case SField(base, SEStr(field)) =>
@@ -1135,7 +1145,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[_]): Updater = for {
       lv <- transfer(x)
       refinedV = if (positive) True else False
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.update(x, refinedV, refine = true))
       _ <- refine(lv, refinedV)
     } yield ()
 
@@ -1173,6 +1183,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   bigInt = lv.ty.bigInt,
                 ),
               ),
+              refine = true,
             )
           }
           toLocal(r).fold(lst) { x =>
@@ -1193,6 +1204,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   bigInt = rv.ty.bigInt,
                 ),
               ),
+              refine = true,
             )
           }
         }
@@ -1211,7 +1223,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         if (positive) lv ⊓ rv
         else if (rv.isSingle) lv -- rv
         else lv
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.update(x, refinedV, refine = true))
       _ <- refine(lv, refinedV)
     } yield ()
 
@@ -1242,7 +1254,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         record = lty.record.update(field, binding, refine = true),
       )
       refinedV = AbsValue(refinedTy)
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.update(x, refinedV, refine = true))
       _ <- refine(lv, refinedV)
     } yield ()
 
@@ -1270,7 +1282,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val value = AbsValue(ValueTy.fromTypeOf(tname))
           if (positive) lv ⊓ value else lv -- value
         case _ => lv
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.update(x, refinedV, refine = true))
     } yield ()
 
     /** refine types with type checks */
@@ -1287,7 +1299,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           else v ⊓ AbsValue(ty)
         else v -- AbsValue(ty)
       _ <- modify(ref match
-        case x: Local => _.update(x, refinedV)
+        case x: Local => _.update(x, refinedV, refine = true)
         case Field(x: Local, EStr(field)) =>
           refineField(x, field, Binding(ty), positive)
         case _ => identity,

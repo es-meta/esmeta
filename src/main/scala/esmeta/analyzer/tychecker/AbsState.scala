@@ -15,6 +15,7 @@ trait AbsStateDecl { self: TyChecker =>
     reachable: Boolean,
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
+    pred: Option[SymExpr],
   ) extends AbsStateLike {
     import AbsState.*
 
@@ -30,9 +31,13 @@ trait AbsStateDecl { self: TyChecker =>
     def ⊑(that: AbsState): Boolean = (this, that) match
       case _ if this.isBottom => true
       case _ if that.isBottom => false
-      case (AbsState(_, llocals, lsymEnv), AbsState(_, rlocals, rsymEnv)) =>
+      case (
+            AbsState(_, llocals, lsymEnv, lpred),
+            AbsState(_, rlocals, rsymEnv, rpred),
+          ) =>
         llocals.forall { (x, v) => rlocals.get(x).fold(false)(v ⊑ _) } &&
-        lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty ⊑ _) }
+        lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty ⊑ _) } &&
+        rpred.forall { r => lpred.fold(false)(_ == r) }
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -57,7 +62,10 @@ trait AbsStateDecl { self: TyChecker =>
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = handleKilled(l.get(x))(using l) ⊔ handleKilled(r.get(x))(using r)
         } yield x -> v).toMap
-        AbsState(true, newLocals, newSymEnv)
+        val newPred = (l.pred, r.pred) match
+          case (Some(l), Some(r)) if l == r => Some(l)
+          case _                            => None
+        AbsState(true, newLocals, newSymEnv, newPred)
 
     /** meet operator */
     def ⊓(that: AbsState): AbsState = (this, that) match
@@ -71,7 +79,12 @@ trait AbsStateDecl { self: TyChecker =>
           sym <- (l.symEnv.keySet intersect r.symEnv.keySet).toList
           ty = l.getTy(sym) ⊓ r.getTy(sym)
         } yield sym -> ty).toMap
-        AbsState(true, newLocals, newSymEnv)
+        val newPred = (l.pred, r.pred) match
+          case (Some(l), Some(r)) if l == r => Some(l)
+          case (Some(l), None)              => Some(l)
+          case (None, Some(r))              => Some(r)
+          case _                            => None
+        AbsState(true, newLocals, newSymEnv, newPred)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
@@ -216,9 +229,24 @@ trait AbsStateDecl { self: TyChecker =>
       case x: Global => error("do not support defining global variables")
 
     /** identifier setter */
-    def update(x: Var, value: AbsValue): AbsState = x match
-      case x: Local  => copy(locals = locals + (x -> value))
+    def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
+      case x: Local =>
+        val newSt = copy(locals = locals + (x -> value))
+        if (refine) newSt
+        else newSt.kill(x)
       case x: Global => this
+
+    /** kill a local variable */
+    def kill(x: Local): AbsState =
+      val newLocals = locals.map { (y, v) =>
+        val newGuard = for {
+          (kind, pred) <- v.guard
+          newPred <- pred.kill(x)
+        } yield kind -> newPred
+        y -> v.copy(guard = newGuard)
+      }
+      val newPred = pred.flatMap(_.kill(x))
+      AbsState(reachable, newLocals, symEnv, newPred)
 
     /** variable existence check */
     def exists(ref: Ref): AbsValue = AbsValue.BoolTop
@@ -279,10 +307,10 @@ trait AbsStateDecl { self: TyChecker =>
     lazy val Top: AbsState = exploded("top abstract state")
 
     /** bottom element */
-    lazy val Bot: AbsState = AbsState(false, Map(), Map())
+    lazy val Bot: AbsState = AbsState(false, Map(), Map(), None)
 
     /** empty element */
-    lazy val Empty: AbsState = AbsState(true, Map(), Map())
+    lazy val Empty: AbsState = AbsState(true, Map(), Map(), None)
 
     /** appender */
     given rule: Rule[AbsState] = mkRule(true)
@@ -290,7 +318,7 @@ trait AbsStateDecl { self: TyChecker =>
     // appender generator
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
       if (!elem.isBottom) {
-        val AbsState(reachable, locals, symEnv) = elem
+        val AbsState(reachable, locals, symEnv, pred) = elem
         val irStringifier = IRElem.getStringifier(detail, false)
         import irStringifier.given
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
@@ -299,6 +327,7 @@ trait AbsStateDecl { self: TyChecker =>
         )
         app >> locals
         if (symEnv.nonEmpty) app >> symEnv
+        pred.map(app >> "[" >> _ >> "]")
         app
       } else app >> "⊥"
   }
