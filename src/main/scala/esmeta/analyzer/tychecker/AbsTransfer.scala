@@ -600,7 +600,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 val rty = rv.ty
                 val lmath = lty.math
                 val rmath = rty.math
-                var guard: TypeGuard = Map()
                 def aux(
                   lty: ValueTy,
                   rty: ValueTy,
@@ -625,20 +624,24 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     bigInt = lty.bigInt,
                   )
                 }
-                toLocal(l).map { x =>
+                val lguard = toLocal(l).fold(Map()) { x =>
                   val expr = SERef(SLocal(x))
-                  guard ++= List(
+                  Map(
                     True -> SETypeCheck(expr, aux(lty, rty, true, true)),
                     False -> SETypeCheck(expr, aux(lty, rty, false, true)),
                   )
                 }
-                toLocal(r).map { x =>
+                val rguard = toLocal(r).fold(Map()) { x =>
                   val expr = SERef(SLocal(x))
-                  guard ++= List(
+                  Map(
                     True -> SETypeCheck(expr, aux(rty, lty, true, false)),
                     False -> SETypeCheck(expr, aux(rty, lty, false, false)),
                   )
                 }
+                val guard = (for {
+                  kind <- Set(True, False)
+                  pred <- lguard.get(kind) && rguard.get(kind)
+                } yield kind -> pred).toMap
                 AbsValue(BoolT, Many, guard)
               })
             case EBinary(BOp.Eq, ERef(x: Local), expr) =>
