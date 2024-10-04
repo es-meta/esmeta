@@ -219,7 +219,7 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield (
-        x -> AbsValue(BotT, One(SERef(SSym(sym))), Map()),
+        x -> AbsValue(BotT, One(SERef(SBase(sym))), Map()),
         sym -> value.ty,
       )).unzip
       callerSt.copy(locals = newLocals.toMap, symEnv = symEnv.toMap)

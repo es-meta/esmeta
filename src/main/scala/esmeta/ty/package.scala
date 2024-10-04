@@ -80,20 +80,16 @@ type SymBase = Sym | Local
 
 /** symbolic references */
 enum SymRef:
-  case SSym(sym: Sym)
-  case SLocal(local: Local)
+  case SBase(base: SymBase)
   case SField(base: SymRef, field: SymExpr)
   def getBase: SymBase = this match
-    case SSym(s)         => s
-    case SLocal(x)       => x
+    case SBase(s)        => s
     case SField(base, f) => base.getBase
   def has(sym: Sym): Boolean = this match
-    case SSym(s)         => s == sym
-    case SLocal(x)       => false
+    case SBase(s)        => s == sym
     case SField(base, f) => base.has(sym) || f.has(sym)
   def kill(x: Local): Option[SymRef] = this match
-    case SSym(s)   => Some(this)
-    case SLocal(y) => if (x == y) None else Some(this)
+    case SBase(y) => if (x == y) None else Some(this)
     case SField(base, f) =>
       for {
         b <- base.kill(x)
@@ -103,30 +99,30 @@ enum SymRef:
 
 /** symbolic predicates */
 case class SymPred(
-  map: Map[SymRef, ValueTy] = Map(),
+  map: Map[SymBase, ValueTy] = Map(),
   expr: Option[SymExpr] = None,
 ) {
   def isTop: Boolean = map.isEmpty && expr.isEmpty
   def nonTop: Boolean = !isTop
   def ||(that: SymPred): SymPred = SymPred(
     (for {
-      ref <- (this.map.keySet intersect that.map.keySet).toList
-      ty = this.map(ref) || that.map(ref)
-    } yield ref -> ty).toMap,
+      x <- (this.map.keySet intersect that.map.keySet).toList
+      ty = this.map(x) || that.map(x)
+    } yield x -> ty).toMap,
     this.expr || that.expr,
   )
   def &&(that: SymPred): SymPred = SymPred(
     (for {
-      ref <- (this.map.keySet ++ that.map.keySet).toList
-      ty = this.map.getOrElse(ref, AnyT) && that.map.getOrElse(ref, AnyT)
-    } yield ref -> ty).toMap,
+      x <- (this.map.keySet ++ that.map.keySet).toList
+      ty = this.map.getOrElse(x, AnyT) && that.map.getOrElse(x, AnyT)
+    } yield x -> ty).toMap,
     this.expr && that.expr,
   )
   def kill(x: Local): SymPred = SymPred(
     for {
-      (ref, ty) <- map
-      newRef <- ref.kill(x)
-    } yield newRef -> ty,
+      (y, ty) <- map
+      if y != x
+    } yield y -> ty,
     expr.flatMap(_.kill(x)),
   )
   override def toString: String = (new Appender >> this).toString
@@ -299,7 +295,11 @@ extension (elem: Boolean) {
 import TyStringifier.given
 val irStringifier = IRElem.getStringifier(true, false)
 import irStringifier.given
-given Ordering[SymRef] = Ordering.by(_.toString)
+given Rule[SymBase] = (app, base) =>
+  base match
+    case sym: Sym     => app >> "#" >> sym.toString
+    case local: Local => app >> local.toString
+given Ordering[SymBase] = Ordering.by(_.toString)
 given Rule[SymExpr] = (app, expr) =>
   import SymExpr.*
   expr match
@@ -317,12 +317,11 @@ given Rule[SymRef] = (app, ref) =>
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   import SymRef.*
   ref match
-    case SSym(sym)                           => app >> "#" >> sym
-    case SLocal(x)                           => app >> x
+    case SBase(x)                            => app >> x
     case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
     case SField(base, field) => app >> base >> "[" >> field >> "]"
 given Rule[SymPred] = (app, pred) =>
   import SymPred.*
-  given Rule[Map[SymRef, ValueTy]] = sortedMapRule(sep = " <: ")
+  given Rule[Map[SymBase, ValueTy]] = sortedMapRule(sep = " <: ")
   if (pred.map.nonEmpty) app >> pred.map
   pred.expr.fold(app)(app >> "[" >> _ >> "]")
