@@ -25,14 +25,17 @@ enum SymExpr:
   case SEStr(s: String)
   case SERef(ref: SymRef)
   case SETypeCheck(base: SymExpr, ty: ValueTy)
+  case SETypeOf(base: SymExpr)
   case SEBinary(bop: BOp, left: SymExpr, right: SymExpr)
   case SEUnary(uop: UOp, expr: SymExpr)
   def &&(that: SymExpr): SymExpr = (this, that) match
+    case _ if this == that                       => this
     case (SEBool(true), _)                       => that
     case (_, SEBool(true))                       => this
     case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)
     case _ => SEBinary(BOp.And, this, that)
   def ||(that: SymExpr): SymExpr = (this, that) match
+    case _ if this == that                     => this
     case (SEBool(false), _)                    => that
     case (_, SEBool(false))                    => this
     case (SEBool(true), _) | (_, SEBool(true)) => SEBool(true)
@@ -42,6 +45,7 @@ enum SymExpr:
     case SEStr(s)                   => false
     case SERef(ref)                 => ref.has(sym)
     case SETypeCheck(base, ty)      => base.has(sym)
+    case SETypeOf(base)             => base.has(sym)
     case SEBinary(bop, left, right) => left.has(sym) || right.has(sym)
     case SEUnary(uop, expr)         => expr.has(sym)
   def kill(x: Local): Option[SymExpr] = this match
@@ -49,6 +53,7 @@ enum SymExpr:
     case SEStr(s)              => Some(this)
     case SERef(ref)            => ref.kill(x).map(SERef(_))
     case SETypeCheck(base, ty) => base.kill(x).map(SETypeCheck(_, ty))
+    case SETypeOf(base)        => base.kill(x).map(SETypeOf(_))
     case SEBinary(BOp.And, left, right) =>
       (left.kill(x), right.kill(x)) match
         case (Some(l), Some(r)) => Some(l && r)
@@ -129,7 +134,32 @@ case class SymPred(
 }
 
 /** type guard */
-type TypeGuard = Map[RefinementKind, SymPred]
+case class TypeGuard(map: Map[RefinementKind, SymPred] = Map()) {
+  def isEmpty: Boolean = map.isEmpty
+  def nonEmpty: Boolean = !isEmpty
+  def kinds: Set[RefinementKind] = map.keySet
+  def get(kind: RefinementKind): Option[SymPred] = map.get(kind)
+  def apply(kind: RefinementKind): SymPred = map.getOrElse(kind, SymPred())
+  def <=(that: TypeGuard): Boolean = that.map.forall { (kind, r) =>
+    this.map.get(kind) match
+      case Some(l) => l == r
+      case None    => false
+  }
+  def ||(that: TypeGuard): TypeGuard = TypeGuard((for {
+    kind <- (this.kinds intersect that.kinds).toList
+    pred = this(kind) || that(kind)
+    if !pred.isTop
+  } yield kind -> pred).toMap)
+  def &&(that: TypeGuard): TypeGuard = TypeGuard((for {
+    kind <- (this.kinds ++ that.kinds).toList
+    pred = this(kind) && that(kind)
+    if !pred.isTop
+  } yield kind -> pred).toMap)
+}
+object TypeGuard {
+  val Empty: TypeGuard = TypeGuard()
+  def apply(ps: (RefinementKind, SymPred)*): TypeGuard = TypeGuard(ps.toMap)
+}
 
 /** type refinement kinds */
 enum RefinementKind:
@@ -308,6 +338,8 @@ given Rule[SymExpr] = (app, expr) =>
     case SERef(ref)   => app >> ref
     case SETypeCheck(expr, ty) =>
       app >> "(? " >> expr >> ": " >> ty >> ")"
+    case SETypeOf(base) =>
+      app >> "(typeof " >> base >> ")"
     case SEBinary(bop, left, right) =>
       app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
     case SEUnary(uop, expr) =>
@@ -325,3 +357,8 @@ given Rule[SymPred] = (app, pred) =>
   given Rule[Map[SymBase, ValueTy]] = sortedMapRule(sep = " <: ")
   if (pred.map.nonEmpty) app >> pred.map
   pred.expr.fold(app)(app >> "[" >> _ >> "]")
+given Rule[TypeGuard] = (app, guard) =>
+  given Rule[Map[RefinementKind, SymPred]] = sortedMapRule("{", "}", " => ")
+  app >> guard.map
+given Rule[RefinementKind] = (app, kind) => app >> kind.toString
+given Ordering[RefinementKind] = Ordering.by(_.toString)

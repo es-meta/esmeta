@@ -306,6 +306,21 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def and(that: ValueTy): ValueTy = ValueTy.and(this, that)
   def or(that: ValueTy): ValueTy = ValueTy.or(this, that)
   def not: ValueTy = ValueTy.not(this)
+
+  /** type operations */
+  def typeOfNames: Set[String] = {
+    var names: Set[String] = Set()
+    if (!this.number.isBottom) names += "Number"
+    if (this.bigInt) names += "BigInt"
+    if (!this.str.isBottom) names += "String"
+    if (!this.bool.isBottom) names += "Boolean"
+    if (this.undef) names += "Undefined"
+    if (this.nullv) names += "Null"
+    if (!(this && ObjectT).isBottom) names += "Object"
+    if (!(this && SymbolT).isBottom) names += "Symbol"
+    if (!(this -- ESValueT).isBottom) names += "SpecType"
+    names
+  }
 }
 
 case object ValueTopTy extends ValueTy {

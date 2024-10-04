@@ -98,6 +98,7 @@ trait AbsStateDecl { self: TyChecker =>
         case SEStr(s)                   => StrT(s)
         case SERef(ref)                 => getTy(ref)
         case SETypeCheck(base, ty)      => BoolT
+        case SETypeOf(base)             => ???
         case SEBinary(bop, left, right) => ???
         case SEUnary(uop, expr)         => ???
     }
@@ -207,17 +208,17 @@ trait AbsStateDecl { self: TyChecker =>
 
     // guard lookup
     private def lookupGuard(
-      base: TypeGuard,
+      guard: TypeGuard,
       field: AbsValue,
     )(using AbsState): TypeGuard = {
       import RefinementKind.*
       field.ty.str.getSingle match
         case One("Value") =>
-          base.collect {
+          TypeGuard(guard.map.collect {
             case (NormalTrue, map)  => True -> map
             case (NormalFalse, map) => False -> map
-          }
-        case _ => Map()
+          })
+        case _ => TypeGuard.Empty
     }
 
     /** define variables */
@@ -236,18 +237,21 @@ trait AbsStateDecl { self: TyChecker =>
     /** kill a local variable */
     def kill(x: Local): AbsState =
       val newLocals = locals.map { (y, v) =>
-        val newGuard = for {
-          (kind, pred) <- v.guard
+        val newGuard = TypeGuard(for {
+          (kind, pred) <- v.guard.map
           newPred = pred.kill(x)
-        } yield kind -> newPred
+        } yield kind -> newPred)
         y -> v.copy(guard = newGuard)
       }
       val newPred = pred.kill(x)
       AbsState(reachable, newLocals, symEnv, newPred)
 
     /** type check */
-    def tycheck(value: AbsValue, ty: ValueTy): ValueTy =
-      if (value.ty <= ty) TrueT else BoolT
+    def typeCheck(value: AbsValue, givenTy: ValueTy): ValueTy =
+      val ty = value.ty
+      if (ty <= givenTy) TrueT
+      else if ((ty && givenTy).isBottom) FalseT
+      else BoolT
 
     /** variable existence check */
     def exists(ref: Ref): AbsValue = AbsValue.BoolTop
