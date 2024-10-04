@@ -68,7 +68,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val newSt = (for {
         ref <- toSymRef(expr, v)
         if useTypeGuard
-      } yield refine(SymPred(Map(ref -> TrueT)), positive)(st))
+        pair <- getRefiner(ref -> TrueT)(using st)
+      } yield refine(SymPred(Map(pair)), positive)(st))
         .getOrElse(st)
       v.guard.get(kind) match
         case Some(pred) => refine(pred, true)(newSt)
@@ -235,7 +236,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** conversion to symbolic references */
     def toSymRef(ref: Ref): Option[SymRef] =
       ref match
-        case s: Local => Some(SLocal(s))
+        case x: Local => Some(SBase(x))
         case Field(base, EStr(field)) =>
           for {
             b <- toSymRef(base)
@@ -595,13 +596,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val thenTy = aux(binding)
           val elseTy = aux(lty.record(field) -- binding)
           var guard: TypeGuard = Map()
+          var bools = Set(true, false)
           toSymRef(x, lv).map { ref =>
             if (lty != thenTy)
-              guard += True -> withPred(SymPred(Map(ref -> thenTy)))
+              if (thenTy.isBottom) bools -= true
+              else
+                getRefiner(ref -> thenTy).map { pair =>
+                  guard += True -> withPred(SymPred(Map(pair)))
+                }
             if (lty != elseTy)
-              guard += False -> withPred(SymPred(Map(ref -> elseTy)))
+              if (elseTy.isBottom) bools -= false
+              else
+                getRefiner(ref -> elseTy).map { pair =>
+                  guard += False -> withPred(SymPred(Map(pair)))
+                }
           }
-          AbsValue(BoolT, Many, guard)
+          AbsValue(BoolT(bools), Many, guard)
         }
         if (!useTypeGuard) None
         else
@@ -765,13 +775,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 val thenTy = aux(true)
                 val elseTy = aux(false)
                 var guard: TypeGuard = Map()
+                var bools = Set(true, false)
                 toSymRef(ref, lv).map { ref =>
                   if (lty != thenTy)
-                    guard += True -> withPred(SymPred(Map(ref -> thenTy)))
+                    if (thenTy.isBottom) bools -= true
+                    else
+                      getRefiner(ref -> thenTy).map { pair =>
+                        guard += True -> withPred(SymPred(Map(pair)))
+                      }
                   if (lty != elseTy)
-                    guard += False -> withPred(SymPred(Map(ref -> elseTy)))
+                    if (elseTy.isBottom) bools -= false
+                    else
+                      getRefiner(ref -> elseTy).map { pair =>
+                        guard += False -> withPred(SymPred(Map(pair)))
+                      }
                 }
-                AbsValue(BoolT, Many, guard)
+                AbsValue(BoolT(bools), Many, guard)
               })
             case EUnary(UOp.Not, e) =>
               Some(for {
@@ -1021,13 +1040,18 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** instantiation of symbolic references */
     def instantiate(sref: SymRef, map: Map[Sym, SymRef]): Option[SymRef] =
       sref match
-        case SSym(sym) => map.get(sym)
-        case SLocal(x) => None
+        case SBase(x) => instantiate(x, map)
         case SField(base, field) =>
           for {
             b <- instantiate(base, map)
             f <- instantiate(field, map)
           } yield SField(b, f)
+
+    /** instantiation of symbolic bases */
+    def instantiate(x: SymBase, map: Map[Sym, SymRef]): Option[SymRef] =
+      x match
+        case x: Sym => map.get(x)
+        case x      => None
 
     // -------------------------------------------------------------------------
     // Type Refinement
@@ -1101,7 +1125,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[_]): Updater =
       val SymPred(map, expr) = pred
       for {
-        _ <- join(map.map { case (ref, ty) => refine(ref, ty, positive) })
+        _ <- join(map.map { case (x, ty) => refine(x, ty, positive) })
         _ <- expr.fold(pure(()))(e => modify(refine(e, positive)))
         _ <- modify(st => st.copy(pred = st.pred && pred))
       } yield ()
@@ -1113,27 +1137,27 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[_]): Updater =
       for {
         _ <- modify(expr match {
-          // refine boolean local variables
-          case SERef(x: Local) =>
-            refineBool(x, positive)
-          // refine type checks
-          case SETypeCheck(SERef(ref), ty) =>
-            refine(ref, ty, positive)
-          // refine logical negation
-          case SEUnary(UOp.Not, e) =>
-            refine(e, !positive)
-          // refine logical disjunction
-          case SEBinary(BOp.Or, l, r) =>
-            st =>
-              if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
-              // TODO short circuiting
-              else refine(r, false)(refine(l, false)(st))
-          // refine logical conjunction
-          case SEBinary(BOp.And, l, r) =>
-            st =>
-              if (positive) refine(r, true)(refine(l, true)(st))
-              // TODO short circuiting
-              else refine(l, false)(st) ⊔ refine(r, false)(st)
+          // // refine boolean local variables
+          // case SERef(x: Local) =>
+          //   refineBool(x, positive)
+          // // refine type checks
+          // case SETypeCheck(SERef(ref), ty) =>
+          //   refine(ref, ty, positive)
+          // // refine logical negation
+          // case SEUnary(UOp.Not, e) =>
+          //   refine(e, !positive)
+          // // refine logical disjunction
+          // case SEBinary(BOp.Or, l, r) =>
+          //   st =>
+          //     if (positive) refine(l, true)(st) ⊔ refine(r, true)(st)
+          //     // TODO short circuiting
+          //     else refine(r, false)(refine(l, false)(st))
+          // // refine logical conjunction
+          // case SEBinary(BOp.And, l, r) =>
+          //   st =>
+          //     if (positive) refine(r, true)(refine(l, true)(st))
+          //     // TODO short circuiting
+          //     else refine(l, false)(st) ⊔ refine(r, false)(st)
           // no pruning
           case _ => st => st
         })
@@ -1141,15 +1165,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** refine references using types */
     def refine(
-      ref: SymRef,
+      ref: SymBase,
       ty: ValueTy,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = ref match
-      case SSym(sym) =>
+      case sym: Sym =>
         st =>
           val refinedTy = st.symEnv.get(sym).fold(ty)(_ && ty)
           st.copy(symEnv = st.symEnv + (sym -> refinedTy))
-      case SLocal(x) =>
+      case x: Local =>
         for {
           v <- transfer(x)
           given AbsState <- get
@@ -1161,30 +1185,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           _ <- modify(_.update(x, refinedV, refine = true))
           _ <- refine(v, refinedV) // propagate type guard
         } yield ()
-      case SField(base, SEStr(field)) =>
-        println(s"[${np.node.id}] refine field: $base.$field")
-        for {
-          bty <- get(_.getTy(base))
-          rbinding = Binding(ty)
-          binding = if (positive) rbinding else bty.record(field) -- rbinding
-          refinedTy = ValueTy(
-            ast = bty.ast,
-            record = bty.record.update(field, binding, refine = true),
-          )
-          _ <- refine(base, refinedTy, positive)
-        } yield ()
-      case _ => st => st
 
     def getRefiner(
       pair: (SymRef, ValueTy),
-    )(using st: AbsState): Option[(SymRef, ValueTy)] = {
+    )(using st: AbsState): Option[(SymBase, ValueTy)] = {
       val (ref, givenTy) = pair
-      val ty = st.getTy(ref)
-      val res = ref match
-        case SSym(sym) =>
-          if (ty <= givenTy) None else Some(ref -> (ty && givenTy))
-        case SLocal(x) =>
-          if (ty <= givenTy) None else Some(ref -> (ty && givenTy))
+      ref match
+        case SBase(x) =>
+          val ty = st.getTy(x)
+          if (ty <= givenTy) None else Some(x -> (ty && givenTy))
         case SField(base, SEStr(field)) =>
           val bty = st.getTy(base)
           val refinedTy = ValueTy(
@@ -1193,7 +1202,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           getRefiner(base -> refinedTy)
         case _ => None
-      res
     }
 
     /** refine types for boolean local variables */
@@ -1461,14 +1469,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsCallable" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> FunctionT)),
+            True -> SymPred(Map(0 -> FunctionT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsConstructor" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> ConstructorT)),
+            True -> SymPred(Map(0 -> ConstructorT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1481,28 +1489,28 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> refined)),
+            Normal -> SymPred(Map(0 -> refined)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
+            Normal -> SymPred(Map(0 -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateIntegerTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
+            Normal -> SymPred(Map(0 -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "ValidateAtomicAccessOnIntegerTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> TypedArrayT)),
+            Normal -> SymPred(Map(0 -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1511,7 +1519,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val guard: TypeGuard = Map(
             Normal -> SymPred(
               Map(
-                SSym(0) -> ValueTy.from(
+                0 -> ValueTy.from(
                   "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
                 ),
               ),
@@ -1522,22 +1530,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsPromise" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> RecordT("Promise"))),
+            True -> SymPred(Map(0 -> RecordT("Promise"))),
           )
           AbsValue(retTy, Zero, guard)
         },
         "IsRegExp" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
-            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
+            NormalTrue -> SymPred(Map(0 -> ObjectT)),
+            Abrupt -> SymPred(Map(0 -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
         "NewPromiseCapability" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> ConstructorT)),
+            Normal -> SymPred(Map(0 -> ConstructorT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1562,7 +1570,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           var guard: TypeGuard = Map(
             True -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "ReferenceRecord",
                   Map("Base" -> EnumT("unresolvable")),
@@ -1571,7 +1579,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ),
             False -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "ReferenceRecord",
                   Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
@@ -1587,12 +1595,12 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             True ->
             SymPred(
               Map(
-                SSym(0) -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
+                0 -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
               ),
             ),
             False -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "ReferenceRecord",
                   Map(
@@ -1608,7 +1616,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsSuperReference" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> RecordT("SuperReferenceRecord"))),
+            True -> SymPred(Map(0 -> RecordT("SuperReferenceRecord"))),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1617,7 +1625,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val guard: TypeGuard = Map(
             True -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "ReferenceRecord",
                   Map("ReferencedName" -> RecordT("PrivateName")),
@@ -1626,7 +1634,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ),
             False -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "ReferenceRecord",
                   Map(
@@ -1641,8 +1649,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
-            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
+            NormalTrue -> SymPred(Map(0 -> ObjectT)),
+            Abrupt -> SymPred(Map(0 -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1651,7 +1659,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val guard: TypeGuard = Map(
             True -> SymPred(
               Map(
-                SSym(0) ->
+                0 ->
                 RecordT(
                   "SharedArrayBuffer",
                   Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
@@ -1664,8 +1672,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "IsConcatSpreadable" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            NormalTrue -> SymPred(Map(SSym(0) -> ObjectT)),
-            Abrupt -> SymPred(Map(SSym(0) -> ObjectT)),
+            NormalTrue -> SymPred(Map(0 -> ObjectT)),
+            Abrupt -> SymPred(Map(0 -> ObjectT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1678,10 +1686,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ),
           )
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> getTy(NullT, NullT))),
+            True -> SymPred(Map(0 -> getTy(NullT, NullT))),
             False -> SymPred(
               Map(
-                SSym(0) -> getTy(
+                0 -> getTy(
                   RecordT("DataBlock"),
                   RecordT("SharedDataBlock"),
                 ),
@@ -1721,14 +1729,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "CanBeHeldWeakly" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            True -> SymPred(Map(SSym(0) -> (ObjectT || SymbolT))),
+            True -> SymPred(Map(0 -> (ObjectT || SymbolT))),
           )
           AbsValue(retTy, Zero, guard)
         },
         "AsyncGeneratorValidate" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard: TypeGuard = Map(
-            Normal -> SymPred(Map(SSym(0) -> RecordT("AsyncGenerator"))),
+            Normal -> SymPred(Map(0 -> RecordT("AsyncGenerator"))),
           )
           AbsValue(retTy, Zero, guard)
         },

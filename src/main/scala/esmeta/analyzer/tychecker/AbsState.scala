@@ -1,5 +1,5 @@
 package esmeta.analyzer.tychecker
-import esmeta.ir.{*, given}
+import esmeta.ir.*
 import esmeta.ty.{*, given}
 import esmeta.ty.util.Stringifier.{*, given}
 import esmeta.state.*
@@ -90,9 +90,6 @@ trait AbsStateDecl { self: TyChecker =>
       case x: Global => base.getOrElse(x, AbsValue.Bot)
       case x: Local  => locals.getOrElse(x, AbsValue.Bot)
 
-    /** getter for symbols */
-    def getTy(sym: Sym): ValueTy = symEnv.getOrElse(sym, BotT)
-
     /** getter for symbolic expressions */
     def getTy(expr: SymExpr): ValueTy = {
       import SymExpr.*
@@ -109,10 +106,14 @@ trait AbsStateDecl { self: TyChecker =>
     def getTy(ref: SymRef): ValueTy = {
       import SymRef.*
       ref match
-        case SSym(sym)           => getTy(sym)
-        case SLocal(x)           => get(x).ty
+        case SBase(x)            => getTy(x)
         case SField(base, field) => get(getTy(base), getTy(field))
     }
+
+    /** getter for symbolic bases */
+    def getTy(x: SymBase): ValueTy = x match
+      case x: Sym   => symEnv.getOrElse(x, BotT)
+      case x: Local => get(x).ty
 
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
@@ -319,13 +320,10 @@ trait AbsStateDecl { self: TyChecker =>
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
       if (!elem.isBottom) {
         val AbsState(reachable, locals, symEnv, pred) = elem
-        val irStringifier = IRElem.getStringifier(detail, false)
-        import irStringifier.given
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")(
-          using kRule = (app, sym) => app >> "#" >> sym,
-        )
-        given predRule: Rule[Map[SymRef, ValueTy]] = sortedMapRule(sep = " <: ")
+        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
+        given predRule: Rule[Map[SymBase, ValueTy]] =
+          sortedMapRule(sep = " <: ")
         app >> locals
         if (symEnv.nonEmpty) app >> symEnv
         app >> pred
