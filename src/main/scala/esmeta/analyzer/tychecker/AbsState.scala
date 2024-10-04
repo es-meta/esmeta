@@ -322,7 +322,9 @@ trait AbsStateDecl { self: TyChecker =>
         val irStringifier = IRElem.getStringifier(detail, false)
         import irStringifier.given
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
-        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
+        given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")(
+          using kRule = (app, sym) => app >> "#" >> sym,
+        )
         given predRule: Rule[Map[SymRef, ValueTy]] = sortedMapRule(sep = " <: ")
         app >> locals
         if (symEnv.nonEmpty) app >> symEnv
