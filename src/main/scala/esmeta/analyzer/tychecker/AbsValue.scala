@@ -16,7 +16,7 @@ trait AbsValueDecl { self: TyChecker =>
   case class AbsValue(
     lowerTy: ValueTy = BotT,
     expr: Flat[SymExpr] = Zero,
-    guard: TypeGuard = Map(),
+    guard: TypeGuard = TypeGuard.Empty,
   ) extends AbsValueLike {
     import AbsValue.*
 
@@ -40,11 +40,7 @@ trait AbsValueDecl { self: TyChecker =>
     def ⊑(that: AbsValue)(using AbsState): Boolean =
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      (rguard.forall { (kind, r) =>
-        lguard.get(kind) match
-          case Some(l) => l == r
-          case None    => false
-      }) && ((lexpr, rexpr) match
+      (lguard <= rguard) && ((lexpr, rexpr) match
         case (Zero, Zero)     => llty ⊑ rlty
         case (Zero, One(_))   => llty ⊑ rlty
         case (One(x), One(y)) => (llty ⊑ rlty && x == y) || (l.ty ⊑ r.ty)
@@ -62,14 +58,7 @@ trait AbsValueDecl { self: TyChecker =>
       import SymExpr.*
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      val kinds = (lguard.keySet intersect rguard.keySet).toList
-      val guard = (for {
-        kind <- kinds
-        l <- lguard.get(kind)
-        r <- rguard.get(kind)
-        pred = l || r
-        if !pred.isTop
-      } yield kind -> pred).toMap
+      val guard = lguard || rguard
       (lexpr, rexpr) match
         case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
         case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
@@ -87,20 +76,11 @@ trait AbsValueDecl { self: TyChecker =>
       import SymExpr.*
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      val kinds = lguard.keySet ++ rguard.keySet
-      val guard = kinds.flatMap { kind =>
-        (lguard.get(kind), rguard.get(kind)) match
-          case (Some(l), Some(r)) =>
-            val pred = l && r
-            if (pred.isTop) None else Some(kind -> pred)
-          case (Some(l), None) => Some(kind -> l)
-          case (None, Some(r)) => Some(kind -> r)
-          case _               => None
-      }.toMap
+      val guard = lguard && rguard
       (lexpr, rexpr) match
         case (Zero, Zero)               => AbsValue(llty && rlty, Zero, guard)
-        case (Zero, One(r))             => AbsValue(llty && rlty, One(r), guard)
-        case (One(l), Zero)             => AbsValue(llty && rlty, One(l), guard)
+        case (Zero, One(_))             => AbsValue(llty && r.ty, Zero, guard)
+        case (One(_), Zero)             => AbsValue(l.ty && rlty, Zero, guard)
         case (One(l), One(r)) if l == r => AbsValue(llty && rlty, One(l), guard)
         case (One(_), One(_))           => AbsValue(l.ty && r.ty, Many, guard)
         case (One(_), Many)             => AbsValue(l.ty && rlty, Many, guard)
@@ -112,6 +92,10 @@ trait AbsValueDecl { self: TyChecker =>
     /** prune operator */
     def --(that: AbsValue)(using AbsState): AbsValue =
       this.copy(lowerTy = this.lowerTy -- that.lowerTy)
+
+    /** add type guard */
+    def addGuard(guard: TypeGuard): AbsValue =
+      this.copy(guard = this.guard && guard)
 
     /** has symbols */
     def has(sym: Sym): Boolean = expr match
@@ -223,7 +207,11 @@ trait AbsValueDecl { self: TyChecker =>
       mathOp(this, that, "^") ⊔ bigIntOp(this, that, "^")
 
     /** comparison operations */
-    def =^=(that: AbsValue)(using AbsState): AbsValue = BoolTop
+    def =^=(that: AbsValue)(using AbsState): AbsValue =
+      if (this.isBottom || that.isBottom) Bot
+      else if ((this ⊓ that).isBottom) False
+      else if (this == that && this.isSingle && that.isSingle) True
+      else BoolTop
     def ==^==(that: AbsValue)(using AbsState): AbsValue =
       numericCompareOP(this, that)
     def <(that: AbsValue)(using AbsState): AbsValue =
@@ -312,20 +300,7 @@ trait AbsValueDecl { self: TyChecker =>
       AbsValue(ValueTy(math = mathTy))
 
     /** type operations */
-    def typeOf(using AbsState): AbsValue = {
-      val ty = this.ty
-      var names: Set[String] = Set()
-      if (!ty.number.isBottom) names += "Number"
-      if (ty.bigInt) names += "BigInt"
-      if (!ty.str.isBottom) names += "String"
-      if (!ty.bool.isBottom) names += "Boolean"
-      if (ty.undef) names += "Undefined"
-      if (ty.nullv) names += "Null"
-      if (!(ty && ObjectT).isBottom) names += "Object"
-      if (!(ty && SymbolT).isBottom) names += "Symbol"
-      if (!(ty -- ESValueT).isBottom) names += "SpecType"
-      AbsValue(StrT(names))
-    }
+    def typeOf(using AbsState): AbsValue = AbsValue(StrT(this.ty.typeOfNames))
 
     // numeric operator helper
     private def numericOp(
@@ -423,16 +398,20 @@ trait AbsValueDecl { self: TyChecker =>
       ),
     )
 
-    /** TODO get string of abstract value with an abstract state */
-    def getString(state: AbsState): String = this.toString
+    /** get string of abstract value with an abstract state */
+    def getString(state: AbsState): String =
+      given AbsState = state
+      import TyStringifier.given
+      s"$this (${ty})"
+
   }
   object AbsValue extends DomainLike[AbsValue] {
 
     /** top element */
-    lazy val Top: AbsValue = AbsValue(AnyT, Many, Map())
+    lazy val Top: AbsValue = AbsValue(AnyT, Many, TypeGuard.Empty)
 
     /** bottom element */
-    lazy val Bot: AbsValue = AbsValue(BotT, Zero, Map())
+    lazy val Bot: AbsValue = AbsValue(BotT, Zero, TypeGuard.Empty)
 
     /** useful abstract values */
     lazy val True = AbsValue(TrueT)
@@ -461,10 +440,7 @@ trait AbsValueDecl { self: TyChecker =>
       val irStringifier = IRElem.getStringifier(true, false)
       import TyStringifier.given
       import irStringifier.given
-      given Rule[TypeGuard] = sortedMapRule("{", "}", " => ")
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
-      given Rule[RefinementKind] = (app, kind) => app >> kind.toString
-      given Ordering[RefinementKind] = Ordering.by(_.toString)
       given Ordering[Local] = Ordering.by(_.toString)
       val AbsValue(lowerTy, expr, guard) = elem
       if (!lowerTy.isBottom || expr == Zero)

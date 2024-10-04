@@ -158,6 +158,12 @@ class TyChecker(
         silent = silent,
       )
       dumpFile(
+        name = "node ids for error points",
+        data = errors.toList.map(_.point.node.id).sorted.mkString(LINE_SEP),
+        filename = s"$ANALYZE_LOG_DIR/error-nodes",
+        silent = silent,
+      )
+      dumpFile(
         name = "detailed type analysis result for each control point",
         data = getStrings(detail = true).mkString(LINE_SEP),
         filename = s"$ANALYZE_LOG_DIR/detailed-types",
@@ -219,11 +225,11 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield (
-        x -> AbsValue(BotT, One(SERef(SBase(sym))), Map()),
+        x -> AbsValue(BotT, One(SERef(SBase(sym))), TypeGuard()),
         sym -> value.ty,
       )).unzip
-      callerSt.copy(locals = newLocals.toMap, symEnv = symEnv.toMap)
-    } else callerSt.copy(locals = locals.toMap)
+      AbsState(true, newLocals.toMap, symEnv.toMap, SymPred())
+    } else AbsState(true, locals.toMap, Map(), SymPred())
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(

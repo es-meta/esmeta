@@ -420,7 +420,7 @@ type TypedArray extends Object {
   def Delete;
   def OwnPropertyKeys;
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
-  ArrayLength: NonNegInt;
+  ArrayLength: NonNegInt | Enum[~auto~];
   ByteOffset: NonNegInt;
   ContentType: Enum[~bigint~, ~number~];
   TypedArrayName: String;
