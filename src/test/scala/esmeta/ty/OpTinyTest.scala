@@ -8,7 +8,7 @@ class OpTinyTest extends TyTest {
   def init: Unit = {
     checkEqual("or")(
       (ObjectT || FunctionT) -> ObjectT,
-      (ReturnT || AbruptT("break")) -> AbruptT("break", "return"),
+      (ReturnT || AbruptT("break")) -> (ReturnT || BreakT),
       (FunctionT || RecordT("ECMAScriptFunctionObject")) -> FunctionT,
     )
 

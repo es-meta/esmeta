@@ -220,8 +220,10 @@ lazy val AbruptT: ValueTy = ValueTy(record = RecordTy("AbruptCompletion"))
 def AbruptT(xs: String*): ValueTy = AbruptT(xs.toSet)
 def AbruptT(xs: Set[String]): ValueTy =
   ValueTy(record = RecordTy("AbruptCompletion", Map("Type" -> EnumT(xs.toSet))))
-lazy val ThrowT: ValueTy = RecordT("ThrowCompletion")
+lazy val BreakT: ValueTy = RecordT("BreakCompletion")
+lazy val ContinueT: ValueTy = RecordT("ContinueCompletion")
 lazy val ReturnT: ValueTy = RecordT("ReturnCompletion")
+lazy val ThrowT: ValueTy = RecordT("ThrowCompletion")
 lazy val NormalT: ValueTy = ValueTy(record = RecordTy("NormalCompletion"))
 def NormalT(value: ValueTy): ValueTy =
   if (value.isBottom) BotT
