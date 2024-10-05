@@ -1468,15 +1468,24 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     }
 
     private lazy val analysisTargets: Set[String] = Set(
+      "CanBeHeldWeakly",
       "IsCallable",
       "IsConstructor",
+      "IsDetachedBuffer",
+      "IsPrivateReference",
+      "IsPromise",
+      "IsPropertyReference",
+      "IsSharedArrayBuffer",
+      "IsSuperReference",
+      "IsUnresolvableReference",
     )
 
     /** check if there is a manual type guard */
-    private lazy val getFuncTypeGuard: Func => Option[Refinement] = cached { func =>
-      if (useTypeGuard || defaultTypeGuards.contains(func.name))
-        typeGuards.get(func.name)
-      else None
+    private lazy val getFuncTypeGuard: Func => Option[Refinement] = cached {
+      func =>
+        if (useTypeGuard || defaultTypeGuards.contains(func.name))
+          typeGuards.get(func.name)
+        else None
     }
 
     // -------------------------------------------------------------------------
@@ -1612,13 +1621,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           AbsValue(retTy, Zero, guard)
         },
-        "IsPromise" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> RecordT("Promise"))),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
         "IsRegExp" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard = TypeGuard(
@@ -1650,87 +1652,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             TypeGuard.Empty,
           )
         },
-        "IsUnresolvableReference" -> { (vs, retTy, st) =>
-          given AbsState = st
-          var guard = TypeGuard(
-            True -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "ReferenceRecord",
-                  Map("Base" -> EnumT("unresolvable")),
-                ),
-              ),
-            ),
-            False -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "ReferenceRecord",
-                  Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
-                ),
-              ),
-            ),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsPropertyReference" -> { (vs, retTy, st) =>
-          given AbsState = st
-          var guard = TypeGuard(
-            True ->
-            SymPred(
-              Map(
-                0 -> RecordT("ReferenceRecord", Map("Base" -> ESValueT)),
-              ),
-            ),
-            False -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "ReferenceRecord",
-                  Map(
-                    "Base" ->
-                    (RecordT("EnvironmentRecord") || EnumT("unresolvable")),
-                  ),
-                ),
-              ),
-            ),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsSuperReference" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> RecordT("SuperReferenceRecord"))),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsPrivateReference" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "ReferenceRecord",
-                  Map("ReferencedName" -> RecordT("PrivateName")),
-                ),
-              ),
-            ),
-            False -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "ReferenceRecord",
-                  Map(
-                    "ReferencedName" -> (SymbolT || StrT /* TODO ESValue in latest version */ ),
-                  ),
-                ),
-              ),
-            ),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
         "IsArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard = TypeGuard(
@@ -1739,47 +1660,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           AbsValue(retTy, Zero, guard)
         },
-        "IsSharedArrayBuffer" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(
-              Map(
-                0 ->
-                RecordT(
-                  "SharedArrayBuffer",
-                  Map("ArrayBufferData" -> RecordT("SharedDataBlock")),
-                ),
-              ),
-            ),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
         "IsConcatSpreadable" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard = TypeGuard(
             NormalTrue -> SymPred(Map(0 -> ObjectT)),
             Abrupt -> SymPred(Map(0 -> ObjectT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsDetachedBuffer" -> { (vs, retTy, st) =>
-          given AbsState = st
-          def getTy(ty: ValueTy, sty: ValueTy) = RecordT(
-            Map(
-              "ArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(ty)),
-              "SharedArrayBuffer" -> FieldMap("ArrayBufferData" -> Binding(sty)),
-            ),
-          )
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> getTy(NullT, NullT))),
-            False -> SymPred(
-              Map(
-                0 -> getTy(
-                  RecordT("DataBlock"),
-                  RecordT("SharedDataBlock"),
-                ),
-              ),
-            ),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1810,13 +1695,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             Zero,
             TypeGuard.Empty,
           )
-        },
-        "CanBeHeldWeakly" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> (ObjectT || SymbolT))),
-          )
-          AbsValue(retTy, Zero, guard)
         },
         "AsyncGeneratorValidate" -> { (vs, retTy, st) =>
           given AbsState = st
