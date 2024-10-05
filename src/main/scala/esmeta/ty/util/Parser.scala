@@ -88,12 +88,18 @@ trait Parsers extends BasicParsers {
       "[" ~> rep1sep(ident, ",") <~ "]" ^^ { xs => AbruptT(xs.toSet) } |
       fieldMap ^^ { RecordT("AbruptCompletion", _) },
     ) ^^ { _.getOrElse(AbruptT) } |
-    "Throw" ~> opt(
-      fieldMap ^^ { RecordT("ThrowCompletion", _) },
-    ) ^^ { _.getOrElse(ThrowT) } |
+    "Break" ~> opt(
+      fieldMap ^^ { RecordT("BreakCompletion", _) },
+    ) ^^ { _.getOrElse(ReturnT) } |
+    "Continue" ~> opt(
+      fieldMap ^^ { RecordT("ContinueCompletion", _) },
+    ) ^^ { _.getOrElse(ReturnT) } |
     "Return" ~> opt(
       fieldMap ^^ { RecordT("ReturnCompletion", _) },
     ) ^^ { _.getOrElse(ReturnT) } |
+    "Throw" ~> opt(
+      fieldMap ^^ { RecordT("ThrowCompletion", _) },
+    ) ^^ { _.getOrElse(ThrowT) } |
     // ECMAScript value
     "ESValue" ^^^ ESValueT |
     // closure
