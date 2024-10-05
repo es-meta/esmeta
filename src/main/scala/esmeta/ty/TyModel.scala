@@ -52,6 +52,14 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       }
   }
 
+  /** manual refiner */
+  lazy val existRefinerOf: Map[String, Map[String, String]] = Map(
+    "Object" -> Map(
+      "Call" -> "FunctionObject",
+      "Construct" -> "Constructor",
+    ),
+  )
+
   lazy val normalizedOf: String => Option[(String, FieldMap)] = cached { t =>
     for {
       case TyDecl(_, Some(parent, false), elems) <- declMap.get(t)

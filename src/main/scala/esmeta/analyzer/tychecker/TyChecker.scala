@@ -248,6 +248,9 @@ class TyChecker(
     (x, (_, t)) <- init.initTypedGlobal.toMap
   } yield x -> AbsValue(t.toValue)
 
+  /** arguments information for each callsite */
+  protected var argsInfo: Map[NodePoint[Call], List[(Expr, AbsValue)]] = Map()
+
   /** unused ignore set */
   protected var _unusedSet: Set[String] = ignore.names
   inline def unusedSet: Set[String] = _unusedSet

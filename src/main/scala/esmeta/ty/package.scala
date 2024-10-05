@@ -24,6 +24,7 @@ enum SymExpr:
   case SEBool(b: Boolean)
   case SEStr(s: String)
   case SERef(ref: SymRef)
+  case SEExists(ref: SymRef)
   case SETypeCheck(base: SymExpr, ty: ValueTy)
   case SETypeOf(base: SymExpr)
   case SEBinary(bop: BOp, left: SymExpr, right: SymExpr)
@@ -44,14 +45,25 @@ enum SymExpr:
     case SEBool(b)                  => false
     case SEStr(s)                   => false
     case SERef(ref)                 => ref.has(sym)
+    case SEExists(ref)              => ref.has(sym)
     case SETypeCheck(base, ty)      => base.has(sym)
     case SETypeOf(base)             => base.has(sym)
     case SEBinary(bop, left, right) => left.has(sym) || right.has(sym)
     case SEUnary(uop, expr)         => expr.has(sym)
+  def getSyms: Set[Sym] = this match
+    case SEBool(b)                  => Set()
+    case SEStr(s)                   => Set()
+    case SERef(ref)                 => ref.getSyms
+    case SEExists(ref)              => ref.getSyms
+    case SETypeCheck(base, ty)      => base.getSyms
+    case SETypeOf(base)             => base.getSyms
+    case SEBinary(bop, left, right) => left.getSyms ++ right.getSyms
+    case SEUnary(uop, expr)         => expr.getSyms
   def kill(x: Local): Option[SymExpr] = this match
     case SEBool(b)             => Some(this)
     case SEStr(s)              => Some(this)
     case SERef(ref)            => ref.kill(x).map(SERef(_))
+    case SEExists(ref)         => ref.kill(x).map(SEExists(_))
     case SETypeCheck(base, ty) => base.kill(x).map(SETypeCheck(_, ty))
     case SETypeOf(base)        => base.kill(x).map(SETypeOf(_))
     case SEBinary(BOp.And, left, right) =>
@@ -93,6 +105,10 @@ enum SymRef:
   def has(sym: Sym): Boolean = this match
     case SBase(s)        => s == sym
     case SField(base, f) => base.has(sym) || f.has(sym)
+  def getSyms: Set[Sym] = this match
+    case SBase(s: Sym)   => Set(s)
+    case SBase(_)        => Set()
+    case SField(base, f) => base.getSyms ++ f.getSyms
   def kill(x: Local): Option[SymRef] = this match
     case SBase(y) => if (x == y) None else Some(this)
     case SField(base, f) =>
@@ -123,6 +139,13 @@ case class SymPred(
     } yield x -> ty).toMap,
     this.expr && that.expr,
   )
+  def getSyms: Set[Sym] =
+    map.keySet.collect { case s: Sym => s } ++
+    expr.fold(Set[Sym]())(_.getSyms)
+  def forReturn: SymPred = SymPred(
+    map.collect { case (x: Sym, ty) => x -> ty },
+    None, // TODO
+  )
   def kill(x: Local): SymPred = SymPred(
     for {
       (y, ty) <- map
@@ -140,6 +163,10 @@ case class TypeGuard(map: Map[RefinementKind, SymPred] = Map()) {
   def kinds: Set[RefinementKind] = map.keySet
   def get(kind: RefinementKind): Option[SymPred] = map.get(kind)
   def apply(kind: RefinementKind): SymPred = map.getOrElse(kind, SymPred())
+  def getSyms: Set[Sym] =
+    map.values.flatMap(_.getSyms).collect { case s: Sym => s }.toSet
+  def forReturn: TypeGuard =
+    TypeGuard(map.map { (kind, pred) => kind -> pred.forReturn })
   def <=(that: TypeGuard): Boolean = that.map.forall { (kind, r) =>
     this.map.get(kind) match
       case Some(l) => l == r
@@ -180,6 +207,9 @@ enum RefinementKind:
     case Abrupt      => AbruptT
     case NormalTrue  => NormalT(TrueT)
     case NormalFalse => NormalT(FalseT)
+object RefinementKind:
+  val compKinds: List[RefinementKind] =
+    List(NormalTrue, NormalFalse, Normal, Abrupt) // order is important
 
 // -----------------------------------------------------------------------------
 // helpers
@@ -349,9 +379,10 @@ given Ordering[SymBase] = Ordering.by(_.toString)
 given Rule[SymExpr] = (app, expr) =>
   import SymExpr.*
   expr match
-    case SEBool(bool) => app >> bool
-    case SEStr(str)   => app >> "\"" >> normStr(str) >> "\""
-    case SERef(ref)   => app >> ref
+    case SEBool(bool)  => app >> bool
+    case SEStr(str)    => app >> "\"" >> normStr(str) >> "\""
+    case SERef(ref)    => app >> ref
+    case SEExists(ref) => app >> "(exists " >> ref >> ")"
     case SETypeCheck(expr, ty) =>
       app >> "(? " >> expr >> ": " >> ty >> ")"
     case SETypeOf(base) =>

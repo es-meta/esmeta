@@ -50,6 +50,7 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if that.isBottom => this
       case (l, r) =>
         var killed = Set[Sym]()
+        val inDiffPred = l.pred != r.pred
         def handleKilled(v: AbsValue)(using AbsState): AbsValue =
           if (killed.exists(v.has)) AbsValue(v.ty, Many, v.guard)
           else v
@@ -57,7 +58,7 @@ trait AbsStateDecl { self: TyChecker =>
           sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
           lty = l.getTy(sym)
           rty = r.getTy(sym)
-          _ = if (lty != rty) killed += sym
+          _ = if (inDiffPred && lty != rty) killed += sym
           ty = lty || rty
         } yield sym -> ty).toMap
         val newLocals = (for {
@@ -85,6 +86,11 @@ trait AbsStateDecl { self: TyChecker =>
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
 
+    /** simplify a state for a return */
+    def forReturn(v: AbsValue): AbsState =
+      val syms = v.getSyms
+      Empty.copy(symEnv = symEnv.view.filterKeys(syms.contains).toMap)
+
     /** getter */
     def get(x: Var): AbsValue = x match
       case x: Global => base.getOrElse(x, AbsValue.Bot)
@@ -97,6 +103,7 @@ trait AbsStateDecl { self: TyChecker =>
         case SEBool(b)                  => BoolT(b)
         case SEStr(s)                   => StrT(s)
         case SERef(ref)                 => getTy(ref)
+        case SEExists(ref)              => BoolT
         case SETypeCheck(base, ty)      => BoolT
         case SETypeOf(base)             => ???
         case SEBinary(bop, left, right) => ???
@@ -328,7 +335,7 @@ trait AbsStateDecl { self: TyChecker =>
         given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
         given predRule: Rule[Map[SymBase, ValueTy]] =
           sortedMapRule(sep = " <: ")
-        app >> locals
+        if (locals.nonEmpty) app >> locals
         if (symEnv.nonEmpty) app >> symEnv
         app >> pred
         app

@@ -1328,6 +1328,7 @@ trait Parsers extends IndentParsers {
     "+∞" ^^^ PosInfinityT |
     "-∞" ^^^ NegInfinityT |
     "ECMAScript language value" ^^^ ESValueT |
+    "internal slot name" ^^^ StrT |
     "Array" ^^^ ArrayT |
     "TypedArray" ^^^ TypedArrayT |
     opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
