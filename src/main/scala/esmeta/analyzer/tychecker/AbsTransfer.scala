@@ -99,9 +99,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         nextNp <- getAfterCallNp(callerNp)
       } {
         val callerSt = callInfo(callerNp)
+        val newV = instantiate(value, callerNp)
         analyzer += nextNp -> callerSt.update(
           callerNp.node.lhs,
-          value,
+          newV,
           refine = false,
         )
       }
@@ -162,7 +163,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             // syntactic sdo
             for ((sdo, ast) <- bv.getSdo(method))
               val callPoint = CallPoint(callerNp, sdo)
-              doCall(callPoint, st, args, ast :: vs, method = true)
+              doCall(callPoint, st, base :: args, ast :: vs, method = true)
 
             newV
           }
@@ -179,18 +180,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       method: Boolean = false,
       contTarget: Option[NodePoint[Node]] = None,
     ): Unit = {
-      given AbsState = callerSt
       val CallPoint(callerNp, callee) = callPoint
+      callInfo += callerNp -> callerSt
+      val argsInfo = (args zip vs)
+      analyzer.argsInfo += callerNp -> argsInfo
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty.toValue
-        val map = (args zip vs).zipWithIndex.map { (pair, i) =>
-          i -> pair
-        }.toMap
         val newRetV = (for {
-          refine <- getTypeGuard(callee)
+          refine <- getFuncTypeGuard(callee)
           v = refine(vs, retTy, callerSt)
-          newV = instantiate(v, map)
+          newV = instantiate(v, callerNp)
         } yield newV).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
@@ -204,7 +204,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case Some(target) =>
           analyzer += target -> getCalleeState(callerSt, locals)
         case None =>
-          callInfo += callerNp -> callerSt
           for {
             (calleeView, newLocals) <- getCalleeEntries(callerNp, locals)
             calleeSt = getCalleeState(callerSt, newLocals)
@@ -300,9 +299,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val AbsRet(value, calleeSt) = getResult(rp)
         (for {
           nextNp <- getAfterCallNp(callerNp)
-          if !value.isBottom
           callerSt = callInfo(callerNp)
-        } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, value))
+          given AbsState = callerSt
+          newV = instantiate(value, callerNp)
+          if !newV.isBottom
+        } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, newV))
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }
@@ -374,7 +375,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       v: AbsValue,
     )(using returnNp: NodePoint[Node]): Result[Unit] = for {
       st <- get
-      ret = AbsRet(v, AbsState.Empty.copy(symEnv = st.symEnv))
+      ret = AbsRet(v.forReturn, st.forReturn(v))
       irp = InternalReturnPoint(returnNp, irReturn)
       _ = doReturn(irp, ret)
     } yield ()
@@ -410,8 +411,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[Node]): Result[AbsValue] = st => {
       val (v, newSt) = (for {
         v <- basicTransfer(expr)
-        guard <- getTypeGuard(expr)
-      } yield v.addGuard(guard))(st)
+        guard <- if (useTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
+        newV = if (useTypeGuard) v.addGuard(guard) else v
+      } yield newV)(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -577,7 +579,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       expr match {
         case EBool(bool) =>
           val kind = if (bool) True else False
-          get(st => TypeGuard(Map(kind -> withCur(SymPred(Map()))(using st))))
+          get(st => TypeGuard(Map(kind -> withCur(SymPred())(using st))))
+        case ERecord(tname @ "CompletionRecord", fields) =>
+          for {
+            pairs <- join(fields.map {
+              case (f, expr) =>
+                for {
+                  v <- transfer(expr)
+                } yield (f, v)
+            })
+            v <- id(_.allocRecord(tname, pairs))
+            given AbsState <- get
+            ty = v.ty
+          } yield {
+            TypeGuard((for {
+              kind <- compKinds.find { ty <= _.ty }
+              pred = withCur(SymPred())
+              if pred.nonTop
+            } yield Map(kind -> pred)).getOrElse(Map()))
+          }
         case EBinary(BOp.Lt, l, r) =>
           for {
             lv <- transfer(l)
@@ -752,6 +772,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     guard += False -> withCur(SymPred(Map(pair)))
                   }
             }
+            TypeGuard(guard)
+          }
+        case EExists(Field(x: Local, expr)) =>
+          for {
+            bv <- transfer(x)
+            fv <- transfer(expr)
+            given AbsState <- get
+          } yield {
+            var guard: Map[RefinementKind, SymPred] = Map()
+            for {
+              bref <- toSymRef(x, bv)
+              fref <- toSymRef(expr, fv)
+              expr = SEExists(SField(bref, SERef(fref)))
+            } guard += True -> SymPred(Map(), Some(expr))
             TypeGuard(guard)
           }
         case EBinary(BOp.Eq, ETypeOf(l), ETypeOf(r)) =>
@@ -1032,6 +1066,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** instantiation of abstract values */
     def instantiate(
       value: AbsValue,
+      callerNp: NodePoint[Call],
+    ): AbsValue =
+      given callerSt: AbsState = callInfo(callerNp)
+      val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
+      val map = argsInfo.zipWithIndex.map { (pair, i) => i -> pair }.toMap
+      instantiate(value, map)
+
+    /** instantiation of abstract values */
+    def instantiate(
+      value: AbsValue,
       map: Map[Sym, (Expr, AbsValue)],
     )(using AbsState): AbsValue =
       val AbsValue(ty, expr, guard) = value
@@ -1084,6 +1128,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case SEStr(s)  => Some(SEStr(s))
         case SERef(ref) =>
           for { r <- instantiate(ref, map) } yield SERef(r)
+        case SEExists(ref) =>
+          for { r <- instantiate(ref, map) } yield SEExists(r)
         case SETypeCheck(base, ty) =>
           for { b <- instantiate(base, map) } yield SETypeCheck(b, ty)
         case SETypeOf(base) => ???
@@ -1414,13 +1460,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** check if the return type can be used */
     private lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      !func.retTy.isImprec ||
-      (useTypeGuard && typeGuards.contains(func.name)) ||
-      defaultTypeGuards.contains(func.name)
+      !analysisTargets.contains(func.name) && (
+        !func.retTy.isImprec ||
+        (useTypeGuard && typeGuards.contains(func.name)) ||
+        defaultTypeGuards.contains(func.name)
+      )
     }
 
+    private lazy val analysisTargets: Set[String] = Set(
+      "IsCallable",
+      "IsConstructor",
+    )
+
     /** check if there is a manual type guard */
-    private lazy val getTypeGuard: Func => Option[Refinement] = cached { func =>
+    private lazy val getFuncTypeGuard: Func => Option[Refinement] = cached { func =>
       if (useTypeGuard || defaultTypeGuards.contains(func.name))
         typeGuards.get(func.name)
       else None
@@ -1511,20 +1564,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "Await" -> { (vs, retTy, st) =>
           given AbsState = st
           AbsValue(NormalT(ESValueT) || ThrowT, Zero, TypeGuard.Empty)
-        },
-        "IsCallable" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> FunctionT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsConstructor" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            True -> SymPred(Map(0 -> ConstructorT)),
-          )
-          AbsValue(retTy, Zero, guard)
         },
         "RequireInternalSlot" -> { (vs, retTy, st) =>
           given AbsState = st

@@ -104,10 +104,20 @@ trait AbsValueDecl { self: TyChecker =>
       case One(expr) => expr.has(sym)
       case _         => false
 
+    /** get symbols */
+    def getSyms: Set[Sym] =
+      val exprSyms = expr match
+        case One(expr) => expr.getSyms
+        case _         => Set()
+      exprSyms ++ guard.getSyms
+
     /** get symbolic expression when it only has a symbolic expression */
     def getSymExpr: Option[SymExpr] = expr match
       case One(expr) if lowerTy.isBottom => Some(expr)
       case _                             => None
+
+    /** simplify a value for a return */
+    def forReturn: AbsValue = this.copy(guard = this.guard.forReturn)
 
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {

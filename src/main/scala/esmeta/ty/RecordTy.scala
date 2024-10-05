@@ -204,12 +204,19 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       if (!refine && !(bind <= getField(baseOf(t), field))) Map(pair)
       else Map()
     else
-      val set = ((for {
-        map <- refinerOf(t).get(field).toSet
-        (_, u) <- map.filter { (ty, _) =>
-          existCheck || (newBind <= Binding(ty))
-        }
-      } yield u) + t)
+      val existBased = for {
+        map <- existRefinerOf.get(t)
+        u <- map.get(field)
+        if existCheck
+      } yield Set(u)
+      val set = existBased.getOrElse(
+        for {
+          map <- refinerOf(t).get(field).toSet
+          (_, u) <- map.filter { (ty, _) =>
+            existCheck || (newBind <= Binding(ty))
+          }
+        } yield u,
+      ) + t
       val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
       val refined = if (refine) get(pair, field) && bind else newBind
       if (refined.isBottom) Map()
