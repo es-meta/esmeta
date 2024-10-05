@@ -145,11 +145,20 @@ case class TypeGuard(map: Map[RefinementKind, SymPred] = Map()) {
       case Some(l) => l == r
       case None    => false
   }
-  def ||(that: TypeGuard): TypeGuard = TypeGuard((for {
-    kind <- (this.kinds intersect that.kinds).toList
-    pred = this(kind) || that(kind)
-    if !pred.isTop
-  } yield kind -> pred).toMap)
+  def ||(that: TypeGuard)(lty: ValueTy, rty: ValueTy): TypeGuard =
+    val (lkinds, rkinds) = (this.kinds, that.kinds)
+    val kinds =
+      lkinds.filter(k => (k.ty && rty).isBottom || rkinds.contains(k)) ++
+      rkinds.filter(k => (k.ty && lty).isBottom || lkinds.contains(k))
+    TypeGuard((for {
+      kind <- kinds.toList
+      pred = (this.get(kind), that.get(kind)) match
+        case (Some(l), Some(r)) => l || r
+        case (Some(l), None)    => l
+        case (None, Some(r))    => r
+        case _                  => SymPred()
+      if !pred.isTop
+    } yield kind -> pred).toMap)
   def &&(that: TypeGuard): TypeGuard = TypeGuard((for {
     kind <- (this.kinds ++ that.kinds).toList
     pred = this(kind) && that(kind)
@@ -164,6 +173,13 @@ object TypeGuard {
 /** type refinement kinds */
 enum RefinementKind:
   case True, False, Normal, Abrupt, NormalTrue, NormalFalse
+  lazy val ty: ValueTy = this match
+    case True        => TrueT
+    case False       => FalseT
+    case Normal      => NormalT
+    case Abrupt      => AbruptT
+    case NormalTrue  => NormalT(TrueT)
+    case NormalFalse => NormalT(FalseT)
 
 // -----------------------------------------------------------------------------
 // helpers

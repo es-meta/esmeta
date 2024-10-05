@@ -184,14 +184,24 @@ object Stringifier {
           if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
           else if (!fm.isTop) app >> " " >> fm
         }
-        map.get("ThrowCompletion").map { fm =>
-          m -= "ThrowCompletion"
-          mayOR >> "Throw"
+        map.get("BreakCompletion").map { fm =>
+          m -= "BreakCompletion"
+          mayOR >> "Break"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("ContinueCompletion").map { fm =>
+          m -= "ContinueCompletion"
+          mayOR >> "Continue"
           if (!fm.isTop) app >> " " >> fm
         }
         map.get("ReturnCompletion").map { fm =>
           m -= "ReturnCompletion"
           mayOR >> "Return"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("ThrowCompletion").map { fm =>
+          m -= "ThrowCompletion"
+          mayOR >> "Throw"
           if (!fm.isTop) app >> " " >> fm
         }
         if (m.nonEmpty)

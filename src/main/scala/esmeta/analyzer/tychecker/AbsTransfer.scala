@@ -92,7 +92,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = if (!canUseReturnTy(rp.func)) {
-      var AbsRet(value) = getResult(rp)
+      var AbsRet(value, _) = getResult(rp)
       for {
         callerNps <- retEdges.get(rp)
         callerNp <- callerNps
@@ -297,7 +297,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** propagate callee analysis result */
     def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit = {
       if (!canUseReturnTy(rp.func)) {
-        val AbsRet(value) = getResult(rp)
+        val AbsRet(value, calleeSt) = getResult(rp)
         (for {
           nextNp <- getAfterCallNp(callerNp)
           if !value.isBottom
@@ -374,7 +374,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       v: AbsValue,
     )(using returnNp: NodePoint[Node]): Result[Unit] = for {
       st <- get
-      ret = AbsRet(v)
+      ret = AbsRet(v, AbsState.Empty.copy(symEnv = st.symEnv))
       irp = InternalReturnPoint(returnNp, irReturn)
       _ = doReturn(irp, ret)
     } yield ()
@@ -385,15 +385,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       givenRet: AbsRet,
     ): Unit =
       val InternalReturnPoint(NodePoint(func, _, view), irReturn) = irp
-      given AbsState = givenRet.state
-      val givenTy = givenRet.value.ty
+      given st: AbsState = givenRet.state
+      val givenV = givenRet.value
       val newRet = func.retTy.ty match
         case _: UnknownTy        => givenRet
         case expectedTy: ValueTy =>
           // return type check when it is a known type
-          if (config.checkReturnType && !(givenTy <= expectedTy))
-            addError(ReturnTypeMismatch(irp, givenTy))
-          AbsRet(AbsValue(givenTy && expectedTy))
+          val givenTy = givenV.ty
+          val expectedV = AbsValue(expectedTy)
+          if (config.checkReturnType && !(givenTy ⊑ expectedTy))
+            addError(ReturnTypeMismatch(irp, givenV.ty))
+          AbsRet(givenV ⊓ expectedV, st)
       val retRp = ReturnPoint(func, getEntryView(view))
       if (!newRet.value.isBottom)
         val oldRet = getResult(retRp)
@@ -409,9 +411,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val (v, newSt) = (for {
         v <- basicTransfer(expr)
         guard <- getTypeGuard(expr)
-      } yield {
-        v.addGuard(guard)
-      })(st)
+      } yield v.addGuard(guard))(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -575,6 +575,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def getTypeGuard(expr: Expr)(using np: NodePoint[_]): Result[TypeGuard] = {
       import RefinementKind.*
       expr match {
+        case EBool(bool) =>
+          val kind = if (bool) True else False
+          get(st => TypeGuard(Map(kind -> withCur(SymPred(Map()))(using st))))
         case EBinary(BOp.Lt, l, r) =>
           for {
             lv <- transfer(l)

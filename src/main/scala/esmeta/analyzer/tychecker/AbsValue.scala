@@ -58,15 +58,17 @@ trait AbsValueDecl { self: TyChecker =>
       import SymExpr.*
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      val guard = lguard || rguard
+      val luty = l.ty
+      val ruty = r.ty
+      val guard = (lguard || rguard)(luty, ruty)
       (lexpr, rexpr) match
         case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
         case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
         case (One(l), Zero)             => AbsValue(llty || rlty, One(l), guard)
         case (One(l), One(r)) if l == r => AbsValue(llty || rlty, One(l), guard)
-        case (One(_), One(_))           => AbsValue(l.ty || r.ty, Many, guard)
-        case (One(_), Many)             => AbsValue(l.ty || rlty, Many, guard)
-        case (Many, One(_))             => AbsValue(llty || r.ty, Many, guard)
+        case (One(_), One(_))           => AbsValue(luty || ruty, Many, guard)
+        case (One(_), Many)             => AbsValue(luty || rlty, Many, guard)
+        case (Many, One(_))             => AbsValue(llty || ruty, Many, guard)
         case (Zero, Many)               => AbsValue(llty || rlty, Many, guard)
         case (Many, Zero)               => AbsValue(llty || rlty, Many, guard)
         case (Many, Many)               => AbsValue(llty || rlty, Many, guard)

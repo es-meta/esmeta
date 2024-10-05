@@ -38,16 +38,26 @@ type AbruptCompletion extends CompletionRecord {
   Target: String | Enum[~empty~];
 }
 
-// https://tc39.es/ecma262/2024/#sec-throwcompletion
-type ThrowCompletion extends AbruptCompletion {
-  Type: Enum[~throw~];
+type BreakCompletion extends AbruptCompletion {
+  Type: Enum[~break~];
+  Value: Enum[~empty~];
+  Target: String | Enum[~empty~];
+}
+
+type ContinueCompletion extends AbruptCompletion {
+  Type: Enum[~continue~];
+  Value: Enum[~empty~];
+  Target: String | Enum[~empty~];
+}
+
+type ReturnCompletion extends AbruptCompletion {
+  Type: Enum[~return~];
   Value: ESValue;
   Target: Enum[~empty~];
 }
 
-// MANUAL MODELING
-type ReturnCompletion extends AbruptCompletion {
-  Type: Enum[~return~];
+type ThrowCompletion extends AbruptCompletion {
+  Type: Enum[~throw~];
   Value: ESValue;
   Target: Enum[~empty~];
 }
@@ -833,7 +843,7 @@ type PromiseCapabilityRecord {
 
 // https://tc39.es/ecma262/#sec-asyncgeneratorrequest-records
 type AsyncGeneratorRequest {
-  Completion: Normal[ESValue] | Abrupt { Value: ESValue };
+  Completion: Normal[ESValue] | Return | Throw;
   Capability: Record[PromiseCapabilityRecord];
 }
 
