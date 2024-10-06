@@ -92,14 +92,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = if (!canUseReturnTy(rp.func)) {
-      var AbsRet(value, _) = getResult(rp)
+      var AbsRet(value, calleeSt) = getResult(rp)
       for {
         callerNps <- retEdges.get(rp)
         callerNp <- callerNps
         nextNp <- getAfterCallNp(callerNp)
       } {
         val callerSt = callInfo(callerNp)
-        val newV = instantiate(value, callerNp)
+        val ty = value.ty(using calleeSt)
+        val newV = instantiate(value, ty, callerNp)
         analyzer += nextNp -> callerSt.update(
           callerNp.node.lhs,
           newV,
@@ -190,7 +191,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val newRetV = (for {
           refine <- getFuncTypeGuard(callee)
           v = refine(vs, retTy, callerSt)
-          newV = instantiate(v, callerNp)
+          newV = instantiate(v, retTy, callerNp)
         } yield newV).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
@@ -300,8 +301,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         (for {
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
+          ty = value.ty(using calleeSt)
           given AbsState = callerSt
-          newV = instantiate(value, callerNp)
+          newV = instantiate(value, ty, callerNp)
           if !newV.isBottom
         } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, newV))
           .getOrElse {
@@ -529,8 +531,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case ERandom() => pure(NumberTop)
       case ESyntactic(name, _, rhsIdx, _) =>
         pure(AbsValue(AstT(name, rhsIdx)))
-      case ELexical(name, expr) =>
-        ???
+      case ELexical(name, expr) => pure(AbsValue(AstT))
       case ERecord(tname, fields) =>
         for {
           pairs <- join(fields.map {
@@ -1066,12 +1067,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** instantiation of abstract values */
     def instantiate(
       value: AbsValue,
+      ty: ValueTy,
       callerNp: NodePoint[Call],
     ): AbsValue =
+      import RefinementKind.*
       given callerSt: AbsState = callInfo(callerNp)
       val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
       val map = argsInfo.zipWithIndex.map { (pair, i) => i -> pair }.toMap
-      instantiate(value, map)
+      val newV = instantiate(value, map)
+      if (useTypeGuard)
+        val guard = TypeGuard((for {
+          kind <- compKinds.find { ty <= _.ty }
+          pred = withCur(SymPred())
+          if pred.nonTop
+        } yield Map(kind -> pred)).getOrElse(Map()))
+        newV.addGuard(guard)
+      else newV
 
     /** instantiation of abstract values */
     def instantiate(
@@ -1478,6 +1489,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       "IsSharedArrayBuffer",
       "IsSuperReference",
       "IsUnresolvableReference",
+      "ValidateTypedArray",
+      "ValidateNonRevokedProxy",
+      "ValidateIntegerTypedArray",
     )
 
     /** check if there is a manual type guard */
@@ -1587,37 +1601,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           AbsValue(retTy, Zero, guard)
         },
-        "ValidateTypedArray" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> TypedArrayT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "ValidateIntegerTypedArray" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> TypedArrayT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
         "ValidateAtomicAccessOnIntegerTypedArray" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard = TypeGuard(
             Normal -> SymPred(Map(0 -> TypedArrayT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "ValidateNonRevokedProxy" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(
-              Map(
-                0 -> ValueTy.from(
-                  "Record[ProxyExoticObject { ProxyHandler : Record[Object], ProxyTarget : Record[Object] }]",
-                ),
-              ),
-            ),
           )
           AbsValue(retTy, Zero, guard)
         },
