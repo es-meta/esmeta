@@ -258,7 +258,7 @@ class PartialEvaluator(
                 }.recoverWith {
                   case NoMoreInline() =>
                     pst.define(newLhs, Unknown)
-                    pst.heap.clear // ...
+                    pst.heap.clear(vs.map(_._1)) // ...
                     Success(
                       (
                         ISdoCall(
@@ -282,10 +282,9 @@ class PartialEvaluator(
         val newCallCount = renamer.newCallCount
         val newLhs = renamer.get(lhs, pst.context)
         val (f, newFexpr) = peval(fexpr, pst)
+        val vs = args.map(e => peval(e, pst)) // TODO check order
         f match
-          case Known(pclo @ PClo(callee, captured)) => // TODO
-            val vs = args.map(e => peval(e, pst))
-
+          case Known(pclo @ PClo(callee, captured)) =>
             val calleeCtx = PContext(
               func = callee.irFunc,
               locals = MMap.empty,
@@ -332,7 +331,7 @@ class PartialEvaluator(
             }.recoverWith {
               case NoMoreInline() =>
                 pst.define(newLhs, Unknown)
-                pst.heap.clear // ...
+                pst.heap.clear(vs.map(_._1))
                 Success(
                   (
                     ICall(newLhs, newFexpr, args).addCmt(s"== ${Unknown}"),
@@ -345,7 +344,7 @@ class PartialEvaluator(
           case Known(v)        => throw NoCallable(v)
           case Unknown =>
             pst.define(newLhs, Unknown)
-            pst.heap.clear // TODO Refine
+            pst.heap.clear(vs.map(_._1))
             (ICall(newLhs, newFexpr, args), pst)
 
       case INop() => (ISeq(Nil), pst)
