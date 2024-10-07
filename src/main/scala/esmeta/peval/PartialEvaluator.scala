@@ -228,6 +228,9 @@ class PartialEvaluator(
           case Unknown =>
             pst.define(newLhs, Unknown)
             (ISdoCall(newLhs, newBase, method, vs.map(_._2)), pst)
+          case Known(ast: AstValue) if vs.map(_._1).exists(_.isEmpty) =>
+            pst.define(newLhs, Unknown)
+            (ISdoCall(newLhs, newBase, method, vs.map(_._2)), pst)
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
           // case Known(AstValue(ast)) =>
           case Known(value) =>
@@ -311,7 +314,8 @@ class PartialEvaluator(
         val (f, newFexpr) = peval(fexpr, pst)
         val vs = args.map(e => peval(e, pst)) // TODO check order
         f match
-          case Known(pclo @ PClo(callee, captured)) =>
+          case Known(pclo @ PClo(callee, captured))
+              if vs.map(_._1).forall(_.isDefined) =>
             val calleeCtx = PContext(
               func = callee.irFunc,
               locals = MMap.empty,
@@ -362,6 +366,10 @@ class PartialEvaluator(
                 Success(ICall(newLhs, newFexpr, vs.map(_._2)), pst)
             }.get
 
+          case Known(_: PClo) /* with Unknown argument */ =>
+            pst.define(newLhs, Unknown)
+            pst.heap.clear(vs.map(_._1))
+            (ICall(newLhs, newFexpr, vs.map(_._2)), pst)
           case Known(_: PCont) => throwPeval"not yet supported"
           case Known(v)        => throw NoCallable(v)
           case Unknown =>
@@ -369,7 +377,7 @@ class PartialEvaluator(
             pst.heap.clear(vs.map(_._1))
             (ICall(newLhs, newFexpr, vs.map(_._2)), pst)
 
-      case INop() => (ISeq(Nil), pst)
+      case INop() => (INop(), pst)
       case IAssign(ref, expr) =>
         ref match
           case x: Var =>
@@ -428,14 +436,20 @@ class PartialEvaluator(
         (newInst.addCmt("not supported yet"), pst)
 
       case IAssert(expr) =>
-        val (_, newExpr) = peval(expr, pst);
+        val (pv, newExpr) = peval(expr, pst);
         val newInst = IAssert(newExpr);
-        (newInst.addCmt("assertion will be checked at runtime."), pst)
+        pv match
+          case Known(v) =>
+            v.asBool match
+              case true  => (INop(), pst)
+              case false => throw AssertionFail(expr)
+          case Unknown =>
+            (newInst.addCmt("will be checked at runtime."), pst)
 
       case IPrint(expr) =>
         val (_, newExpr) = peval(expr, pst);
         val newInst = IAssert(newExpr);
-        (newInst.addCmt("print will be done at runtime."), pst)
+        (newInst, pst)
 
       case IWhile(cond, body) =>
         val (cv, _) = peval(cond, pst)
