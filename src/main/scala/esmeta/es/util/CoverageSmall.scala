@@ -7,23 +7,24 @@ import esmeta.interpreter.*
 import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
 import esmeta.es.*
 import esmeta.es.util.*
-import esmeta.es.util.Coverage.Interp
+import esmeta.es.util.CoverageSmall.Interp
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
+import io.circe.generic.auto._
 
 import scala.math.Ordering.Implicits.seqOrdering
 
-/** coverage measurement of cfg */
-case class Coverage(
+/** coverage measurement of cfg with small memory usage */
+case class CoverageSmall(
   cfg: CFG,
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
   logDir: Option[String] = None, // TODO: use this
 ) {
-  import Coverage.{*, given}
+  import CoverageSmall.{*, given}
 
   val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.given
@@ -410,7 +411,7 @@ case class Coverage(
     } yield CondViewInfo(idx, condView, script.name)
 }
 
-object Coverage {
+object CoverageSmall {
   class Interp(
     initSt: State,
     kFs: Int,
