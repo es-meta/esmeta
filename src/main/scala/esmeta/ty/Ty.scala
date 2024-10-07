@@ -2,10 +2,11 @@ package esmeta.ty
 
 import esmeta.cfg.CFG
 import esmeta.state.*
+import esmeta.peval.{Predict}
+import esmeta.peval.pstate.{PState, PHeap}
 import esmeta.ty.util.Parser
 
 import scala.collection.mutable.{Map as MMap}
-import esmeta.peval.pstate.PState
 
 /** types */
 trait Ty extends TyElem {
@@ -30,8 +31,9 @@ trait Ty extends TyElem {
 
   /** value containment check */
   def contains(value: Value, st: State): Boolean = contains(value, st.heap)
-  def contains(value: Value, pst: PState): Boolean =
-    ??? // contains(value, pst.heap.toHeap)
+  def contains(pv: Predict[Value], pst: PState): Predict[Boolean] =
+    contains(pv, pst.heap)
   def contains(value: Value, heap: Heap): Boolean
+  def contains(value: Predict[Value], pheap: PHeap): Predict[Boolean]
 }
 object Ty extends Parser.From(Parser.ty)

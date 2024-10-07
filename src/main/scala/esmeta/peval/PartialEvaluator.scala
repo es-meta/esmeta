@@ -142,6 +142,11 @@ class PartialEvaluator(
             )
           case _ => (Unknown, EBinary(bop, newLeft, newRight))
 
+      case ETypeCheck(expr, ty) =>
+        val (pv, newExpr) = peval(expr, pst);
+        val ret = ty.ty.contains(pv, pst).map(Bool.apply)
+        (ret, ret.map((_: Value).toExpr).getOrElse(ETypeCheck(newExpr, ty)))
+
       // case EParse(code, rule)                       => ???
       // case EGrammarSymbol(name, params)             => ???
       // case ESourceText(expr)                        => ???
