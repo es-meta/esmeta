@@ -112,18 +112,23 @@ class PartialEvaluator(
         (Known(addr), ERecord(tname, pvs.map(_._2)))
       case ESizeOf(expr) =>
         val (pv, newE) = peval(expr, pst)
-        val er = pv match
-          case Unknown => Unknown
+        pv match
+          case Unknown => (Unknown, ESizeOf(newE))
           case Known(v) =>
             v match
               case addr: Addr =>
                 pst(addr) match
-                  case Unknown   => Unknown
-                  case Known(po) => Known(Math(po.size))
-              case Str(s)        => Known(Math(s.length))
-              case AstValue(ast) => Known(Math(ast.children.size))
-              case v             => throw InvalidSizeOf(v)
-        (er, ESizeOf(newE))
+                  case Unknown => (Unknown, ESizeOf(newE))
+                  case Known(po) =>
+                    val ret = Math(po.size)
+                    (Known(ret), ret.toExpr)
+              case Str(s) =>
+                val ret = Math(s.length)
+                (Known(ret), ret.toExpr)
+              case AstValue(ast) =>
+                val ret = Math(ast.children.size)
+                (Known(ret), ret.toExpr)
+              case v => throw InvalidSizeOf(v)
 
       // case EParse(code, rule)                       => ???
       // case EGrammarSymbol(name, params)             => ???
