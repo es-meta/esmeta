@@ -38,8 +38,8 @@ case object PEval extends Phase[CFG, Unit] {
   ): Unit =
     given CFG = cfg
 
-    if (config.simplify < 0) then
-      throw new PEvalOptError("config.simplify should be non-negative")
+    if (config.simplify < 0 || config.simplify > 3) then
+      throw new PEvalOptError("config.simplify should be in [0, 3]")
 
     val filename = getFirstFilename(cmdConfig, name)
     val pevalTarget = cfg.fnameMap(TARGET_NAME)
@@ -77,7 +77,7 @@ case object PEval extends Phase[CFG, Unit] {
           sensitivity = thisCallCount,
           locals = MMap(),
           ret = None,
-          pathCondition = Nil,
+          // pathCondition = Nil,
         ),
         heap = PHeap(),
       )
