@@ -130,14 +130,6 @@ class PartialEvaluator(
                 (Known(ret), ret.toExpr)
               case v => throw InvalidSizeOf(v)
 
-      // case EParse(code, rule)                       => ???
-      // case EGrammarSymbol(name, params)             => ???
-      // case ESourceText(expr)                        => ???
-      // case EYet(msg)                                => ???
-      // case EContains(list, expr)                    => ???
-      // case ESubstring(expr, from, to)               => ???
-      // case ETrim(expr, isStarting)                  => ???
-      // case EUnary(uop, expr)                        => ???
       case EBinary(bop, left, right) =>
         // TODO short circuit
         val (lv, newLeft) = peval(left, pst)
@@ -149,6 +141,15 @@ class PartialEvaluator(
               EBinary(bop, newLeft, newRight),
             )
           case _ => (Unknown, EBinary(bop, newLeft, newRight))
+
+      // case EParse(code, rule)                       => ???
+      // case EGrammarSymbol(name, params)             => ???
+      // case ESourceText(expr)                        => ???
+      // case EYet(msg)                                => ???
+      // case EContains(list, expr)                    => ???
+      // case ESubstring(expr, from, to)               => ???
+      // case ETrim(expr, isStarting)                  => ???
+      // case EUnary(uop, expr)                        => ???
 
       // case EVariadic(vop, exprs)                    => ???
       // case EMathOp(mop, args)                       => ???
