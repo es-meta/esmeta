@@ -23,12 +23,14 @@ trait TypeGuardDecl { self: TyChecker =>
       newPred = pred.kill(bases)
       if newPred.nonTop
     } yield kind -> newPred)
+    def filter(ty: ValueTy): TypeGuard =
+      TypeGuard(map.filter { (kind, _) => !(kind.ty && ty).isBottom })
     def forReturn: TypeGuard =
       TypeGuard(map.map { (kind, pred) => kind -> pred.forReturn })
     def has(x: SymBase): Boolean = map.values.exists(_.has(x))
     def <=(that: TypeGuard): Boolean = that.map.forall { (kind, r) =>
       this.map.get(kind) match
-        case Some(l) => l == r
+        case Some(l) => l <= r
         case None    => false
     }
     def ||(that: TypeGuard)(lty: ValueTy, rty: ValueTy): TypeGuard =
@@ -60,12 +62,6 @@ trait TypeGuardDecl { self: TyChecker =>
   /** type refinement kinds */
   enum RefinementKind {
     case True, False, Normal, Abrupt, NormalTrue, NormalFalse
-    def canGenGuard(givenTy: ValueTy): Boolean =
-      (givenTy <= canGenTy) && !(givenTy && ty).isBottom
-    lazy val canGenTy: ValueTy = this match
-      case True | False             => BoolT
-      case Normal | Abrupt          => CompT
-      case NormalTrue | NormalFalse => NormalT
     lazy val ty: ValueTy = this match
       case True        => TrueT
       case False       => FalseT
@@ -76,8 +72,22 @@ trait TypeGuardDecl { self: TyChecker =>
     override def toString: String = (new Appender >> this).toString
   }
   object RefinementKind {
-    val compKinds: List[RefinementKind] =
-      List(NormalTrue, NormalFalse, Normal, Abrupt) // order is important
+    def from(givenTy: ValueTy): Set[RefinementKind] = {
+      if (givenTy.isBottom) Set()
+      else if (givenTy <= BoolT) givenTy.bool.set.map(if (_) True else False)
+      else if (givenTy <= CompT) {
+        val normal = (givenTy && NormalT).record
+        val normalValue = normal("Value").value
+        val normalSet =
+          if (normalValue <= BoolT)
+            normalValue.bool.set.map(if (_) NormalTrue else NormalFalse)
+          else if (normalValue.isBottom) Set()
+          else Set(Normal)
+        val abrupt = (givenTy && AbruptT).record
+        val abruptSet = if (abrupt.isBottom) Set() else Set(Abrupt)
+        normalSet ++ abruptSet
+      } else Set()
+    }
   }
 
   /** Symbol */
@@ -90,6 +100,10 @@ trait TypeGuardDecl { self: TyChecker =>
   ) {
     def isTop: Boolean = map.isEmpty && expr.isEmpty
     def nonTop: Boolean = !isTop
+    def <=(that: SymPred): Boolean =
+      that.map.forall { (x, rty) =>
+        this.map.get(x).fold(false)(_ <= rty)
+      } && (this.expr == that.expr)
     def ||(that: SymPred): SymPred = SymPred(
       (for {
         x <- (this.map.keySet intersect that.map.keySet).toList

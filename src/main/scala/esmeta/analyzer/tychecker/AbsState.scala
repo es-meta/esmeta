@@ -235,7 +235,7 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match
-      case x: Local  => this.copy(locals = locals + (x -> value))
+      case x: Local  => this.update(x, value, refine = false)
       case x: Global => error("do not support defining global variables")
 
     /** identifier setter */
@@ -243,7 +243,7 @@ trait AbsStateDecl { self: TyChecker =>
       case x: Local =>
         val newSt = if (refine) this else this.kill(Set(x), update = true)
         val newV = if (refine) value else value.kill(Set(x), update = true)
-        newSt.copy(locals = newSt.locals + (x -> newV))
+        newSt.copy(locals = newSt.locals + (x -> newV), pred = newSt.pred)
       case x: Global => this
 
     /** type check */

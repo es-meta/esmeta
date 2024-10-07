@@ -134,6 +134,24 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
           map ++ (for {
             (t, fm) <- RecordTy.update(pair, field, elem, refine)
           } yield t -> map.get(t).fold(fm)(_ || fm))
+      }).boundFields(maxFieldDepth)
+
+  /** bound fields */
+  def boundFields(depth: Int): RecordTy = this match
+    case Top => Top
+    case Elem(map) =>
+      Elem(map.map { (t, fm) =>
+        t -> {
+          if (depth == 0) FieldMap.Top
+          else
+            FieldMap(fm.map.map { (f, elem) =>
+              f -> elem.copy(value = elem.value match
+                case ValueTopTy => ValueTopTy
+                case v: ValueElemTy =>
+                  v.copy(record = v.record.boundFields(depth - 1)),
+              )
+            })
+        }
       })
 
   /** record containment check */
@@ -160,6 +178,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   import ManualInfo.tyModel.*
 
   lazy val Bot: RecordTy = Elem(Map.empty)
+
+  lazy val maxFieldDepth: Int = 2
 
   def apply(names: String*): RecordTy =
     apply(names.toSet)
