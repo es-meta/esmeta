@@ -10,7 +10,7 @@ case class PContext(
   sensitivity: Int, // use callCount
   locals: MMap[Local, Predict[Value]],
   var ret: Option[Predict[Value]],
-  var pathCondition: List[Expr],
+  // var pathCondition: List[Expr],
 ) {
   self =>
 
@@ -19,7 +19,6 @@ case class PContext(
     sensitivity,
     locals.clone(),
     ret,
-    pathCondition,
   )
 
 }
