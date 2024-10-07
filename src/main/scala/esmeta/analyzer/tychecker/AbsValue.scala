@@ -62,18 +62,19 @@ trait AbsValueDecl { self: TyChecker =>
       import SymExpr.*
       val l @ AbsValue(llty, lexpr, lguard) = this
       val r @ AbsValue(rlty, rexpr, rguard) = that
-      val guard = lguard && rguard
-      (lexpr, rexpr) match
-        case (Zero, Zero)               => AbsValue(llty && rlty, Zero, guard)
-        case (Zero, One(_))             => AbsValue(llty && r.ty, Zero, guard)
-        case (One(_), Zero)             => AbsValue(l.ty && rlty, Zero, guard)
-        case (One(l), One(r)) if l == r => AbsValue(llty && rlty, One(l), guard)
-        case (One(_), One(_))           => AbsValue(l.ty && r.ty, Many, guard)
-        case (One(_), Many)             => AbsValue(l.ty && rlty, Many, guard)
-        case (Many, One(_))             => AbsValue(llty && r.ty, Many, guard)
-        case (Zero, Many)               => AbsValue(llty && rlty, Many, guard)
-        case (Many, Zero)               => AbsValue(llty && rlty, Many, guard)
-        case (Many, Many)               => AbsValue(llty && rlty, Many, guard)
+      val (lty, expr) = (lexpr, rexpr) match
+        case (Zero, Zero)               => (llty && rlty, Zero)
+        case (Zero, One(_))             => (llty && r.ty, Zero)
+        case (One(_), Zero)             => (l.ty && rlty, Zero)
+        case (One(l), One(r)) if l == r => (llty && rlty, One(l))
+        case (One(_), One(_))           => (l.ty && r.ty, Many)
+        case (One(_), Many)             => (l.ty && rlty, Many)
+        case (Many, One(_))             => (llty && r.ty, Many)
+        case (Zero, Many)               => (llty && rlty, Many)
+        case (Many, Zero)               => (llty && rlty, Many)
+        case (Many, Many)               => (llty && rlty, Many)
+      val guard = (lguard && rguard).filter(lty)
+      AbsValue(lty, expr, guard)
 
     /** prune operator */
     def --(that: AbsValue)(using AbsState): AbsValue =
@@ -104,16 +105,17 @@ trait AbsValueDecl { self: TyChecker =>
       case One(expr) if lowerTy.isBottom => Some(expr)
       case _                             => None
 
+    /** introduce a new type guard */
+    def getTypeGuard(using st: AbsState): TypeGuard = TypeGuard((for {
+      kind <- RefinementKind.from(this.ty).toList
+      pred = st.pred
+      if pred.nonTop
+    } yield kind -> pred).toMap)
+
     /** simplify a value for a return */
     def forReturn(using st: AbsState): AbsValue =
       val ty = this.ty
-      val newV = this.copy(guard = if (this.guard.map.isEmpty) {
-        TypeGuard((for {
-          kind <- RefinementKind.compKinds.find { _.canGenGuard(ty) }
-          pred = st.pred
-          if pred.nonTop
-        } yield Map(kind -> pred)).getOrElse(Map()))
-      } else this.guard)
+      val newV = copy(guard = if (guard.map.isEmpty) getTypeGuard else guard)
       newV
         .kill(bases.collect { case b: Local => b }, update = false)
         .copy(guard = newV.guard.forReturn)

@@ -29,7 +29,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case (NumberTopTy, _) | (_, NumberTopTy) => Top
     case (NumberIntTy, NumberIntTy)          => NumberIntTy
     case (NumberIntTy, NumberSetTy(set)) =>
-      if (set.exists(n => n.double.isWhole)) Top
+      if (set.exists(n => !n.double.isWhole)) Top
       else NumberIntTy
     case (NumberSetTy(lset), NumberSetTy(rset)) => NumberSetTy(lset union rset)
     case (NumberSetTy(set), _)                  => that || this

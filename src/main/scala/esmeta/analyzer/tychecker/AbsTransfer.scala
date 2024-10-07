@@ -181,6 +181,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       contTarget: Option[NodePoint[Node]] = None,
     ): Unit = {
       val CallPoint(callerNp, callee) = callPoint
+      given AbsState = callerSt
       callInfo += callerNp -> callerSt
       val argsInfo = (args zip vs)
       analyzer.argsInfo += callerNp -> argsInfo
@@ -191,7 +192,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           refine <- getFuncTypeGuard(callee)
           v = refine(vs, retTy, callerSt)
           newV = instantiate(v, callerNp)
-        } yield newV).getOrElse(AbsValue(retTy))
+        } yield newV).getOrElse {
+          val v = AbsValue(retTy)
+          v.addGuard(v.getTypeGuard)
+        }
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)
@@ -586,14 +590,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             })
             v <- id(_.allocRecord(tname, pairs))
             given AbsState <- get
-            ty = v.ty
-          } yield {
-            TypeGuard((for {
-              kind <- compKinds.find { _.canGenGuard(ty) }
-              pred = withCur(SymPred())
-              if pred.nonTop
-            } yield Map(kind -> pred)).getOrElse(Map()))
-          }
+          } yield v.getTypeGuard
         case EBinary(BOp.Lt, l, r) =>
           for {
             lv <- transfer(l)
@@ -1076,13 +1073,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       }.toMap
       val newV = instantiate(value, map)
       val newTy = newV.ty
-      if (useTypeGuard)
-        val guard = TypeGuard((for {
-          kind <- compKinds.find { _.canGenGuard(newTy) }
-          pred = withCur(SymPred())
-          if pred.nonTop
-        } yield Map(kind -> pred)).getOrElse(Map()))
-        newV.addGuard(guard)
+      if (useTypeGuard) newV.addGuard(newV.getTypeGuard)
       else newV
 
     /** instantiation of abstract values */
@@ -1466,23 +1457,31 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         defaultTypeGuards.contains(func.name)
       )
     }
+    // TODO private lazy val canUseReturnTy: Func => Boolean = cached { func =>
+    //   defaultTypeGuards.contains(func.name)
+    // }
 
     private lazy val analysisTargets: Set[String] = Set(
       "AsyncGeneratorValidate",
       "CanBeHeldWeakly",
+      "IsArray",
       "IsCallable",
+      "IsConcatSpreadable",
       "IsConstructor",
       "IsDetachedBuffer",
       "IsPrivateReference",
       "IsPromise",
       "IsPropertyReference",
+      "IsRegExp",
       "IsSharedArrayBuffer",
       "IsSuperReference",
       "IsUnresolvableReference",
-      "ValidateTypedArray",
-      "ValidateNonRevokedProxy",
-      "ValidateIntegerTypedArray",
       "ValidateAtomicAccessOnIntegerTypedArray",
+      "ValidateIntegerTypedArray",
+      "ValidateNonRevokedProxy",
+      "ValidateTypedArray",
+      "AllocateArrayBuffer",
+      "AllocateSharedArrayBuffer",
     )
 
     /** check if there is a manual type guard */
@@ -1592,14 +1591,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           AbsValue(retTy, Zero, guard)
         },
-        "IsRegExp" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            NormalTrue -> SymPred(Map(0 -> ObjectT)),
-            Abrupt -> SymPred(Map(0 -> ObjectT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
         "NewPromiseCapability" -> { (vs, retTy, st) =>
           given AbsState = st
           val guard = TypeGuard(
@@ -1619,50 +1610,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               ty = ss.map(ValueTy.fromTypeOf).foldLeft(BotT)(_ || _)
               refined = retTy.toValue && NormalT(ListT(ty))
             } yield refined).getOrElse(retTy),
-            Zero,
-            TypeGuard.Empty,
-          )
-        },
-        "IsArray" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            NormalTrue -> SymPred(Map(0 -> ObjectT)),
-            Abrupt -> SymPred(Map(0 -> ObjectT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "IsConcatSpreadable" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            NormalTrue -> SymPred(Map(0 -> ObjectT)),
-            Abrupt -> SymPred(Map(0 -> ObjectT)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "AllocateArrayBuffer" -> { (vs, retTy, st) =>
-          given AbsState = st
-          AbsValue(
-            NormalT(
-              RecordT(
-                "ArrayBuffer",
-                FieldMap("ArrayBufferData" -> Binding(RecordT("DataBlock"))),
-              ),
-            ) || ThrowT,
-            Zero,
-            TypeGuard.Empty,
-          )
-        },
-        "AllocateSharedArrayBuffer" -> { (vs, retTy, st) =>
-          given AbsState = st
-          AbsValue(
-            NormalT(
-              RecordT(
-                "SharedArrayBuffer",
-                FieldMap(
-                  "ArrayBufferData" -> Binding(RecordT("SharedDataBlock")),
-                ),
-              ),
-            ) || ThrowT,
             Zero,
             TypeGuard.Empty,
           )
