@@ -152,7 +152,6 @@ class PartialEvaluator(
       // case ETypeOf(base)                            => ???
       // case EInstanceOf(base, target)                => ???
       // case ETypeCheck(base, ty)                     => ???
-      // case ESizeOf(base)                            => ???
       // case EClo(fname, captured)                    => ???
       // case ECont(fname)                             => ???
       // case EDebug(expr)                             => ???

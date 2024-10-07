@@ -11,7 +11,8 @@ class HeapImpact(heap: PHeap) {
 
   type PV = Predict[Value]
 
-  def ofList(pvs: Iterable[PV]) = pvs.map(of).reduce(_ || _)
+  def ofList(pvs: Iterable[PV]): BSet[Addr] =
+    pvs.map(of).foldLeft[BSet[Addr]](Fin())(_ || _)
 
   lazy val of: PV => BSet[Addr] = cached[PV, BSet[Addr]] {
     case Unknown => Inf
