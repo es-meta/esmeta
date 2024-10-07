@@ -28,6 +28,8 @@ case class PState(
   val heap: PHeap,
 ) extends StateElem {
 
+  self =>
+
   inline def func = context.func
   inline def locals = context.locals
 
@@ -102,6 +104,55 @@ case class PState(
     heap.copied,
   )
 
-  def join(other: PState): PState = /* TODO : join states */ ???
+  def join(other: PState): PState = /* TODO : join states */ {
+    assert(
+      self.callStack.map(_.ctxt.func.name) == other.callStack.map(
+        _.ctxt.func,
+      ),
+    )
+    assert(
+      self.context.sensitivity == other.context.sensitivity,
+    )
+    val newHeap = PHeap {
+      val m = MMap.empty[Addr, Predict[PObj]]
+      val keys = self.heap.map.keys ++ other.heap.map.keys
+      for (k <- keys) {
+        val x = self.heap.map.get(k)
+        val y = other.heap.map.get(k)
+        (x, y) match
+          case (None, None)                           => /* never happens */
+          case (Some(pv), None)                       => m += k -> pv
+          case (None, Some(pv))                       => m += k -> pv
+          case (Some(pv1), Some(pv2)) if (pv1 == pv2) => m += k -> pv1
+          case _                                      => m += k -> Unknown
+      }
+      m
+    }
 
+    val newLocals = {
+      val m = MMap.empty[Local, Predict[Value]]
+      val keys = self.context.locals.keys ++ other.context.locals.keys
+      for (k <- keys) {
+        val x = self.context.locals.get(k)
+        val y = other.context.locals.get(k)
+        (x, y) match
+          case (None, None)                           => /* never happens */
+          case (Some(pv), None)                       => m += k -> pv
+          case (None, Some(pv))                       => m += k -> pv
+          case (Some(pv1), Some(pv2)) if (pv1 == pv2) => m += k -> pv1
+          case _                                      => m += k -> Unknown
+      }
+      m
+    }
+
+    val newCtx = PContext(
+      self.func,
+      self.context.sensitivity, // ???
+      newLocals,
+      (self.context.ret, other.context.ret) match
+        case (None, None) => None
+        case (_, _)       => Some(Unknown),
+    )
+    PState(globals, callStack, newCtx, newHeap)
+  }
 }
