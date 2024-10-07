@@ -34,6 +34,12 @@ class NonLiteral(v: Value)
     s"Non-literal value $v is not printable",
   )
 
+class UnexpectedKnown(s: StateElem, info: String = "")
+  extends PartialEvaluatorError(
+    s"$s is unexpected known value.${if (info.isEmpty()) then ""
+    else s" for more information: $info"}",
+  )
+
 case class NoMoreInline()
   extends PartialEvaluatorError(
     "Faced too complicated case to inline; keep call inst. this error should be handled gracefully. if you encountered this as an unhandled failure, this is a bug.",
