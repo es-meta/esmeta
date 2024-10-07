@@ -147,11 +147,31 @@ class PartialEvaluator(
         val ret = ty.ty.contains(pv, pst).map(Bool.apply)
         (ret, ret.map((_: Value).toExpr).getOrElse(ETypeCheck(newExpr, ty)))
 
+      case EContains(list, elem) =>
+        val (l, newL) = peval(list, pst)
+        val (e, newE) = peval(elem, pst) // TODO is this order okay
+        l match
+          case Unknown => (Unknown, EContains(newL, newE))
+          case Known(addr: Addr) =>
+            pst(addr) match
+              case Unknown => (Unknown, EContains(newL, newE))
+              // TODO make two branch linear
+              case Known(lobj: PListObj) if (lobj.values.contains(Unknown)) =>
+                (Unknown, EContains(newL, newE))
+              case Known(lobj: PListObj) =>
+                e match
+                  case Unknown => (Unknown, EContains(newL, newE))
+                  case Known(ev) =>
+                    val ret = Bool(lobj.values.contains(Known(ev)))
+                    (Known(ret), ret.toExpr)
+              case Known(o) =>
+                throw UnexpectedKnown(o, "not a list for EContains")
+          case Known(v) => throw UnexpectedKnown(v, "not an addr for EContains")
+
       // case EParse(code, rule)                       => ???
       // case EGrammarSymbol(name, params)             => ???
       // case ESourceText(expr)                        => ???
       // case EYet(msg)                                => ???
-      // case EContains(list, expr)                    => ???
       // case ESubstring(expr, from, to)               => ???
       // case ETrim(expr, isStarting)                  => ???
       // case EUnary(uop, expr)                        => ???
@@ -190,10 +210,7 @@ class PartialEvaluator(
         val newLhs = renamer.get(lhs, pst.context)
         val (pv, newExpr) = peval(expr, pst)
         pst.define(newLhs, pv)
-        (
-          ILet(newLhs, newExpr).addCmt(s"== ${pv}"),
-          pst,
-        )
+        (ILet(newLhs, newExpr), pst)
       case ISeq(insts) =>
         val (newInsts, newPst) = insts.foldLeft((List[Inst](), pst)) {
           case ((acc, pst), inst) =>
@@ -342,12 +359,7 @@ class PartialEvaluator(
               case NoMoreInline() =>
                 pst.define(newLhs, Unknown)
                 pst.heap.clear(vs.map(_._1))
-                Success(
-                  (
-                    ICall(newLhs, newFexpr, args).addCmt(s"== ${Unknown}"),
-                    pst,
-                  ),
-                )
+                Success(ICall(newLhs, newFexpr, vs.map(_._2)), pst)
             }.get
 
           case Known(_: PCont) => throwPeval"not yet supported"
@@ -355,7 +367,7 @@ class PartialEvaluator(
           case Unknown =>
             pst.define(newLhs, Unknown)
             pst.heap.clear(vs.map(_._1))
-            (ICall(newLhs, newFexpr, args), pst)
+            (ICall(newLhs, newFexpr, vs.map(_._2)), pst)
 
       case INop() => (ISeq(Nil), pst)
       case IAssign(ref, expr) =>
@@ -364,7 +376,7 @@ class PartialEvaluator(
             val newVar = renamer.get(x, pst.context);
             val (pv, newExpr) = peval(expr, pst)
             pst.update(newVar, pv)
-            (IAssign(newVar, newExpr).addCmt(s"== $pv"), pst)
+            (IAssign(newVar, newExpr), pst)
           case Field(_, _) =>
             (inst, pst) // TODO
 
@@ -384,14 +396,12 @@ class PartialEvaluator(
             pst.context.ret = Some(pv)
             (
               IAssign(head.retId, newExpr)
-                .addCmt(
-                  s"== ${pv}, return from ${pst.context.func.name}",
-                ),
+                .addCmt(s"<~ IReturn @ ${pst.context.func.name}"),
               pst,
             )
           case Nil =>
             pst.context.ret = Some(pv)
-            (IReturn(newExpr).addCmt(s"== ${pv}"), pst)
+            (IReturn(newExpr), pst)
 
       case iif @ IIf(cond, thenInst, elseInst) =>
         val (pv, newCond) = peval(cond, pst)
@@ -416,11 +426,19 @@ class PartialEvaluator(
         val newInst = RenameWalker(inst)(using renamer, pst, cfg)
         pst.heap.clear
         (newInst.addCmt("not supported yet"), pst)
-      case IAssert(_) | IPrint(_) =>
-        val newInst = RenameWalker(inst)(using renamer, pst, cfg)
-        (newInst.addCmt("not supported yet"), pst)
+
+      case IAssert(expr) =>
+        val (_, newExpr) = peval(expr, pst);
+        val newInst = IAssert(newExpr);
+        (newInst.addCmt("assertion will be checked at runtime."), pst)
+
+      case IPrint(expr) =>
+        val (_, newExpr) = peval(expr, pst);
+        val newInst = IAssert(newExpr);
+        (newInst.addCmt("print will be done at runtime."), pst)
+
       case IWhile(cond, body) =>
-        val (cv, newCond) = peval(cond, pst)
+        val (cv, _) = peval(cond, pst)
         cv match
           case Known(Bool(false)) => (INop(), pst)
           case Known(Bool(true)) =>
@@ -435,7 +453,7 @@ class PartialEvaluator(
             pst.heap.clear
             (
               RenameWalker(inst)(using renamer, pst, cfg).addCmt(
-                "not supported yet",
+                "unknown condition : heap is cleared",
               ),
               pst,
             )
