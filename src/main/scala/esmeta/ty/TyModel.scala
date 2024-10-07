@@ -129,10 +129,8 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       ldfm <- diffOf(lca, l)
       rdfm <- diffOf(lca, r)
     } yield {
-      def aux =
-        rdfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rdfm(f) } &&
-        rfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rfm(f) }
-      aux
+      rdfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rdfm(f) } &&
+      rfm.fields.forall { case f => (ldfm(f) && lfm(f)) <= rfm(f) }
     }).getOrElse(false)
   lazy val isSubTy: ((String, String)) => Boolean = cached { (l, r) =>
     isSubTy(l -> FieldMap(), r -> FieldMap())

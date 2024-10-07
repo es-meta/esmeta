@@ -56,12 +56,22 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case _ if this eq that   => this
     case (Bot, _) | (_, Top) => this
     case (Top, _) | (_, Bot) => that
-    case (Elem(lmap), Elem(rmap)) =>
-      val ls = lmap.keySet
-      val rs = rmap.keySet
+    case (Elem(lm), Elem(rm)) =>
+      val ls = lm.keySet
+      val rs = rm.keySet
+      val lmap = for { (t, fm) <- lm } yield {
+        if (isSubTy(t, rs)) t -> fm
+        else normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
+      }
+      val rmap = for { (t, fm) <- rm } yield {
+        if (isSubTy(t, ls)) t -> fm
+        else normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
+      }
+      val lns = lmap.keySet
+      val rns = rmap.keySet
       Elem(
         (for {
-          t <- ls.filter(isSubTy(_, rs)) ++ rs.filter(isSubTy(_, ls))
+          t <- lns.filter(isSubTy(_, rns)) ++ rns.filter(isSubTy(_, lns))
           lfm = lmap.getOrElse(t, FieldMap.Top)
           rfm = rmap.getOrElse(t, FieldMap.Top)
           fm = lfm && rfm

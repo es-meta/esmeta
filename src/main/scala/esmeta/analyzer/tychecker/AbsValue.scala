@@ -54,24 +54,8 @@ trait AbsValueDecl { self: TyChecker =>
     def !⊑(that: AbsValue)(using AbsState): Boolean = !(this ⊑ that)
 
     /** join operator */
-    def ⊔(that: AbsValue)(using AbsState): AbsValue =
-      import SymExpr.*
-      val l @ AbsValue(llty, lexpr, lguard) = this
-      val r @ AbsValue(rlty, rexpr, rguard) = that
-      val luty = l.ty
-      val ruty = r.ty
-      val guard = (lguard || rguard)(luty, ruty)
-      (lexpr, rexpr) match
-        case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
-        case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
-        case (One(l), Zero)             => AbsValue(llty || rlty, One(l), guard)
-        case (One(l), One(r)) if l == r => AbsValue(llty || rlty, One(l), guard)
-        case (One(_), One(_))           => AbsValue(luty || ruty, Many, guard)
-        case (One(_), Many)             => AbsValue(luty || rlty, Many, guard)
-        case (Many, One(_))             => AbsValue(llty || ruty, Many, guard)
-        case (Zero, Many)               => AbsValue(llty || rlty, Many, guard)
-        case (Many, Zero)               => AbsValue(llty || rlty, Many, guard)
-        case (Many, Many)               => AbsValue(llty || rlty, Many, guard)
+    def ⊔(that: AbsValue)(using st: AbsState): AbsValue =
+      joinHelper(this, st, that, st)
 
     /** meet operator */
     def ⊓(that: AbsValue)(using AbsState): AbsValue =
@@ -99,17 +83,21 @@ trait AbsValueDecl { self: TyChecker =>
     def addGuard(guard: TypeGuard): AbsValue =
       this.copy(guard = this.guard && guard)
 
-    /** has symbols */
-    def has(sym: Sym): Boolean = expr match
-      case One(expr) => expr.has(sym)
-      case _         => false
+    /** kill bases */
+    def kill(bases: Set[SymBase], update: Boolean)(using AbsState): AbsValue =
+      val (lowerTy, expr) = this.expr match
+        case One(expr) if expr.bases.exists(bases.contains) => (this.ty, Many)
+        case e                                              => (this.lowerTy, e)
+      val guard = if (update) this.guard.kill(bases) else this.guard
+      AbsValue(lowerTy, expr, guard)
 
     /** get symbols */
-    def getSyms: Set[Sym] =
-      val exprSyms = expr match
-        case One(expr) => expr.getSyms
+    def bases: Set[SymBase] =
+      val inExpr = expr match
+        case One(expr) => expr.bases
         case _         => Set()
-      exprSyms ++ guard.getSyms
+      val inGuard = guard.bases
+      inExpr ++ inGuard
 
     /** get symbolic expression when it only has a symbolic expression */
     def getSymExpr: Option[SymExpr] = expr match
@@ -117,7 +105,18 @@ trait AbsValueDecl { self: TyChecker =>
       case _                             => None
 
     /** simplify a value for a return */
-    def forReturn: AbsValue = this.copy(guard = this.guard.forReturn)
+    def forReturn(using st: AbsState): AbsValue =
+      val ty = this.ty
+      val newV = this.copy(guard = if (this.guard.map.isEmpty) {
+        TypeGuard((for {
+          kind <- RefinementKind.compKinds.find { _.canGenGuard(ty) }
+          pred = st.pred
+          if pred.nonTop
+        } yield Map(kind -> pred)).getOrElse(Map()))
+      } else this.guard)
+      newV
+        .kill(bases.collect { case b: Local => b }, update = false)
+        .copy(guard = newV.guard.forReturn)
 
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {
@@ -220,9 +219,11 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** comparison operations */
     def =^=(that: AbsValue)(using AbsState): AbsValue =
-      if (this.isBottom || that.isBottom) Bot
-      else if ((this ⊓ that).isBottom) False
-      else if (this == that && this.isSingle && that.isSingle) True
+      val lty = this.ty
+      val rty = that.ty
+      if (lty.isBottom || rty.isBottom) Bot
+      else if ((lty && rty).isBottom) False
+      else if (lty == rty && lty.isSingle && rty.isSingle) True
       else BoolTop
     def ==^==(that: AbsValue)(using AbsState): AbsValue =
       numericCompareOP(this, that)
@@ -446,6 +447,30 @@ trait AbsValueDecl { self: TyChecker =>
       "Hex4Digits",
       "HexEscapeSequence",
     ) ++ posIntMVTyNames
+
+    def joinHelper(
+      l: AbsValue,
+      lst: AbsState,
+      r: AbsValue,
+      rst: AbsState,
+    ): AbsValue =
+      import SymExpr.*
+      val AbsValue(llty, lexpr, lguard) = l
+      val AbsValue(rlty, rexpr, rguard) = r
+      val luty = l.ty(using lst)
+      val ruty = r.ty(using rst)
+      val guard = (lguard || rguard)(luty, ruty)
+      (lexpr, rexpr) match
+        case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
+        case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
+        case (One(l), Zero)             => AbsValue(llty || rlty, One(l), guard)
+        case (One(l), One(r)) if l == r => AbsValue(llty || rlty, One(l), guard)
+        case (One(_), One(_))           => AbsValue(luty || ruty, Many, guard)
+        case (One(_), Many)             => AbsValue(luty || rlty, Many, guard)
+        case (Many, One(_))             => AbsValue(llty || ruty, Many, guard)
+        case (Zero, Many)               => AbsValue(llty || rlty, Many, guard)
+        case (Many, Zero)               => AbsValue(llty || rlty, Many, guard)
+        case (Many, Many)               => AbsValue(llty || rlty, Many, guard)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) =>

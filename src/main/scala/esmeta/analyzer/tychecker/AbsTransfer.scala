@@ -99,8 +99,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         nextNp <- getAfterCallNp(callerNp)
       } {
         val callerSt = callInfo(callerNp)
-        val ty = value.ty(using calleeSt)
-        val newV = instantiate(value, ty, callerNp)
+        val newV = instantiate(value, callerNp)
         analyzer += nextNp -> callerSt.update(
           callerNp.node.lhs,
           newV,
@@ -191,7 +190,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val newRetV = (for {
           refine <- getFuncTypeGuard(callee)
           v = refine(vs, retTy, callerSt)
-          newV = instantiate(v, retTy, callerNp)
+          newV = instantiate(v, callerNp)
         } yield newV).getOrElse(AbsValue(retTy))
         for {
           nextNp <- getAfterCallNp(callerNp)
@@ -221,31 +220,27 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           }
     }
 
-    /** conversion to symbolic bases */
-    def toSymRef(pair: (Expr, AbsValue)): Option[SymRef] =
-      val (expr, value) = pair
-      toSymRef(expr, value)
+    /** conversion to symbolic references */
+    def toSymRef(expr: Expr, value: AbsValue): Option[SymRef] = value.expr match
+      case One(SERef(ref)) => Some(ref)
+      case _ =>
+        expr match
+          case ERef(ref) => toSymRef(ref)
+          case _         => None
 
     /** conversion to symbolic references */
-    def toSymRef(expr: Expr, value: AbsValue): Option[SymRef] = expr match
-      case ERef(ref) => toSymRef(ref, value)
-      case _         => None
+    def toSymRef(ref: Ref, value: AbsValue): Option[SymRef] = value.expr match
+      case One(SERef(ref)) => Some(ref)
+      case _               => toSymRef(ref)
 
     /** conversion to symbolic references */
-    def toSymRef(ref: Ref, value: AbsValue): Option[SymRef] =
-      value.expr match
-        case One(SERef(ref)) => Some(ref)
-        case _               => toSymRef(ref)
-
-    /** conversion to symbolic references */
-    def toSymRef(ref: Ref): Option[SymRef] =
-      ref match
-        case x: Local => Some(SBase(x))
-        case Field(base, EStr(field)) =>
-          for {
-            b <- toSymRef(base)
-          } yield SField(b, SEStr(field))
-        case _ => None
+    def toSymRef(ref: Ref): Option[SymRef] = ref match
+      case x: Local => Some(SBase(x))
+      case Field(base, EStr(field)) =>
+        for {
+          b <- toSymRef(base)
+        } yield SField(b, SEStr(field))
+      case _ => None
 
     /** get local variables */
     def getLocals(
@@ -301,9 +296,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         (for {
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
-          ty = value.ty(using calleeSt)
           given AbsState = callerSt
-          newV = instantiate(value, ty, callerNp)
+          newV = instantiate(value, callerNp)
           if !newV.isBottom
         } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, newV))
           .getOrElse {
@@ -377,6 +371,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       v: AbsValue,
     )(using returnNp: NodePoint[Node]): Result[Unit] = for {
       st <- get
+      given AbsState = st
       ret = AbsRet(v.forReturn, st.forReturn(v))
       irp = InternalReturnPoint(returnNp, irReturn)
       _ = doReturn(irp, ret)
@@ -594,7 +589,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ty = v.ty
           } yield {
             TypeGuard((for {
-              kind <- compKinds.find { ty <= _.ty }
+              kind <- compKinds.find { _.canGenGuard(ty) }
               pred = withCur(SymPred())
               if pred.nonTop
             } yield Map(kind -> pred)).getOrElse(Map()))
@@ -800,7 +795,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               rref <- toSymRef(r, rv)
               ltypeOf = SETypeOf(SERef(lref))
               rtypeOf = SETypeOf(SERef(rref))
-              expr = SEBinary(BOp.Eq, ltypeOf, rtypeOf)
+              expr = SEEq(ltypeOf, rtypeOf)
             } guard += True -> SymPred(Map(), Some(expr))
             TypeGuard(guard)
           }
@@ -1067,17 +1062,23 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** instantiation of abstract values */
     def instantiate(
       value: AbsValue,
-      ty: ValueTy,
       callerNp: NodePoint[Call],
     ): AbsValue =
       import RefinementKind.*
       given callerSt: AbsState = callInfo(callerNp)
       val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
-      val map = argsInfo.zipWithIndex.map { (pair, i) => i -> pair }.toMap
+      val map = argsInfo.zipWithIndex.map {
+        case ((e, v), i) =>
+          i -> (toSymRef(e, v) match
+            case Some(ref) => AbsValue(expr = One(SERef(ref)))
+            case None      => v
+          )
+      }.toMap
       val newV = instantiate(value, map)
+      val newTy = newV.ty
       if (useTypeGuard)
         val guard = TypeGuard((for {
-          kind <- compKinds.find { ty <= _.ty }
+          kind <- compKinds.find { _.canGenGuard(newTy) }
           pred = withCur(SymPred())
           if pred.nonTop
         } yield Map(kind -> pred)).getOrElse(Map()))
@@ -1087,86 +1088,78 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** instantiation of abstract values */
     def instantiate(
       value: AbsValue,
-      map: Map[Sym, (Expr, AbsValue)],
-    )(using AbsState): AbsValue =
+      map: Map[Sym, AbsValue],
+    )(using st: AbsState): AbsValue =
       val AbsValue(ty, expr, guard) = value
-      val refMap: Map[Sym, SymRef] = for {
-        (x, pair) <- map
-        ref <- toSymRef(pair)
-      } yield x -> ref
       val newGuard = TypeGuard((for {
         (kind, pred) <- guard.map
-        newPred = instantiate(pred, refMap)
+        newPred = instantiate(pred, map)
         if newPred.nonTop
       } yield kind -> newPred).toMap)
-      val AbsValue(ity, iexpr, iguard) = expr match
+      val ivalue @ AbsValue(ity, iexpr, iguard) = expr match
         case One(e) => instantiate(e, map)
         case _      => AbsValue.Bot
-      AbsValue(
-        ty || ity,
-        iexpr,
-        newGuard && iguard,
-      )
+      AbsValue(ty || ity, iexpr, newGuard && iguard)
 
     /** instantiation of symbolic predicate */
     def instantiate(
       pred: SymPred,
-      map: Map[Sym, SymRef],
+      map: Map[Sym, AbsValue],
     )(using AbsState): SymPred = SymPred(
       for {
-        case (x, ty) <- pred.map
-        y <- instantiate(x, map)
+        case (x: Sym, ty) <- pred.map
+        v <- map.get(x)
+        y <- v.getSymExpr match
+          case Some(SERef(ref)) => Some(ref)
+          case _                => None
         pair <- getRefiner(y -> ty)
       } yield pair,
       for {
         e <- pred.expr
-        newExpr <- instantiate(e, map)
+        newExpr <- instantiate(e, map).getSymExpr
       } yield newExpr,
     )
 
     /** instantiation of symbolic expressions */
     def instantiate(
       sexpr: SymExpr,
-      map: Map[Sym, (Expr, AbsValue)],
-    ): AbsValue = sexpr match
-      case SERef(SBase(x: Sym)) => map(x)._2
-      case _                    => ???
-
-    /** instantiation of symbolic expressions */
-    def instantiate(sexpr: SymExpr, map: Map[Sym, SymRef]): Option[SymExpr] =
-      sexpr match
-        case SEBool(b) => Some(SEBool(b))
-        case SEStr(s)  => Some(SEStr(s))
-        case SERef(ref) =>
-          for { r <- instantiate(ref, map) } yield SERef(r)
-        case SEExists(ref) =>
-          for { r <- instantiate(ref, map) } yield SEExists(r)
-        case SETypeCheck(base, ty) =>
-          for { b <- instantiate(base, map) } yield SETypeCheck(b, ty)
-        case SETypeOf(base) => ???
-        case SEBinary(bop, left, right) =>
-          for {
-            l <- instantiate(left, map)
-            r <- instantiate(right, map)
-          } yield SEBinary(bop, l, r)
-        case SEUnary(uop, expr) =>
-          for { e <- instantiate(expr, map) } yield SEUnary(uop, e)
+      map: Map[Sym, AbsValue],
+    )(using st: AbsState): AbsValue = sexpr match {
+      case SEBool(b)  => AbsValue(BoolT(b))
+      case SEStr(s)   => AbsValue(StrT(s))
+      case SERef(ref) => instantiate(ref, map)
+      case SEExists(ref) =>
+        instantiate(ref, map).getSymExpr match
+          case Some(SERef(e)) => AbsValue(expr = One(SEExists(e)))
+          case _              => AbsValue(BoolT)
+      case SETypeCheck(base, ty) =>
+        instantiate(base, map).getSymExpr match
+          case Some(e) => AbsValue(expr = One(SETypeCheck(e, ty)))
+          case _       => AbsValue(BoolT)
+      case SETypeOf(base) =>
+        instantiate(base, map).getSymExpr match
+          case Some(e) => AbsValue(expr = One(SETypeOf(e)))
+          case _       => AbsValue(StrT)
+      case SEEq(left, right)  => ???
+      case SEOr(left, right)  => ???
+      case SEAnd(left, right) => ???
+      case SENot(expr)        => ???
+      case SENormal(expr) =>
+        val v = instantiate(expr, map)
+        v.getSymExpr match
+          case Some(e) => AbsValue(expr = One(SENormal(e)))
+          case _       => AbsValue(NormalT(v.ty))
+    }
 
     /** instantiation of symbolic references */
-    def instantiate(sref: SymRef, map: Map[Sym, SymRef]): Option[SymRef] =
-      sref match
-        case SBase(x) => instantiate(x, map)
-        case SField(base, field) =>
-          for {
-            b <- instantiate(base, map)
-            f <- instantiate(field, map)
-          } yield SField(b, f)
-
-    /** instantiation of symbolic bases */
-    def instantiate(x: SymBase, map: Map[Sym, SymRef]): Option[SymRef] =
-      x match
-        case x: Sym => map.get(x)
-        case x      => None
+    def instantiate(
+      sref: SymRef,
+      map: Map[Sym, AbsValue],
+    )(using st: AbsState): AbsValue = sref match {
+      case SBase(x: Sym) => map.getOrElse(x, AbsValue.Bot)
+      case SField(b, f)  => st.get(instantiate(b, map), instantiate(f, map))
+      case _             => AbsValue.Bot
+    }
 
     // -------------------------------------------------------------------------
     // Syntactic Type Refinement
@@ -1289,11 +1282,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[_]): Updater =
       val SymPred(map, expr) = pred
       val alias: Map[SymBase, SymBase] = expr.fold(Map()) {
-        case SEBinary(
-              BOp.Eq,
-              SETypeOf(SERef(SBase(x))),
-              SETypeOf(SERef(SBase(y))),
-            ) =>
+        case SEEq(SETypeOf(SERef(SBase(x))), SETypeOf(SERef(SBase(y)))) =>
           Map(x -> y, y -> x)
         case _ => Map()
       }
@@ -1479,6 +1468,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     }
 
     private lazy val analysisTargets: Set[String] = Set(
+      "AsyncGeneratorValidate",
       "CanBeHeldWeakly",
       "IsCallable",
       "IsConstructor",
@@ -1492,6 +1482,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       "ValidateTypedArray",
       "ValidateNonRevokedProxy",
       "ValidateIntegerTypedArray",
+      "ValidateAtomicAccessOnIntegerTypedArray",
     )
 
     /** check if there is a manual type guard */
@@ -1552,7 +1543,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         },
         "NormalCompletion" -> { (vs, retTy, st) =>
           given AbsState = st
-          AbsValue(NormalT(vs(0).ty -- CompT), Zero, TypeGuard.Empty)
+          AbsValue(BotT, One(SENormal(SERef(SBase(0)))), TypeGuard.Empty)
         },
         "IteratorClose" -> { (vs, retTy, st) =>
           given AbsState = st
@@ -1598,13 +1589,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case _ => ObjectT
           val guard = TypeGuard(
             Normal -> SymPred(Map(0 -> refined)),
-          )
-          AbsValue(retTy, Zero, guard)
-        },
-        "ValidateAtomicAccessOnIntegerTypedArray" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> TypedArrayT)),
           )
           AbsValue(retTy, Zero, guard)
         },
@@ -1682,13 +1666,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             Zero,
             TypeGuard.Empty,
           )
-        },
-        "AsyncGeneratorValidate" -> { (vs, retTy, st) =>
-          given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> RecordT("AsyncGenerator"))),
-          )
-          AbsValue(retTy, Zero, guard)
         },
       )
     }
