@@ -14,6 +14,8 @@ import scala.collection.mutable.{Map => MMap}
 import esmeta.state.*
 import esmeta.peval.*
 import esmeta.peval.pstate.{PListObj, PMapObj, PObj, PRecordObj}
+import esmeta.peval.util.{HeapImpact}
+import esmeta.util.{Inf, Fin}
 
 /** IR PHeap for partial Evaluation. similar to state/PHeap.scala */
 case class PHeap(
@@ -87,6 +89,12 @@ case class PHeap(
     map.clone(),
   )
 
-  def clear: Unit = this.map.clear()
+  def clear: Unit = this.map.foreach(this.map += _._1 -> Unknown)
+
+  def clear(vs: Iterable[Predict[Value]]): Unit =
+    val target = HeapImpact(this).ofList(vs)
+    target match
+      case Inf      => this.map.foreach(this.map += _._1 -> Unknown)
+      case Fin(set) => set.foreach(this.map += _ -> Unknown)
 
 }
