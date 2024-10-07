@@ -25,7 +25,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
-import scala.util.{Try}
+import scala.util.{Try, Success}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
@@ -164,7 +164,9 @@ class PartialEvaluator(
       // case EList(exprs)                             => ???
       // case ECopy(obj)                               => ???
       // case EKeys(map, intSorted)                    => ???
-      case _ => (Unknown, RenameWalker(renamer, pst, cfg).walk(expr))
+      case _ =>
+        logging("expr", s"NOT SUPPORTED EXPR! $expr")
+        (Unknown, RenameWalker(expr)(using renamer, pst, cfg))
     logging("expr", s"$expr -> $result")
     result
 
@@ -179,9 +181,8 @@ class PartialEvaluator(
         val (pv, newExpr) = peval(expr, pst)
         pst.define(newLhs, pv)
         (
-          pv.map(_.isLiteralValue).getOrElse(false) match
-            case true  => (ISeq(Nil), pst) /* omit printing */
-            case false => (ILet(newLhs, newExpr).addCmt(s"== ${pv}"), pst)
+          ILet(newLhs, newExpr).addCmt(s"== ${pv}"),
+          pst,
         )
       case ISeq(insts) =>
         val (newInsts, newPst) = insts.foldLeft((List[Inst](), pst)) {
@@ -195,75 +196,87 @@ class PartialEvaluator(
         val newCallCount = renamer.newCallCount
         val newLhs = renamer.get(lhs, pst.context)
         val (pv, newBase) = peval(base, pst)
+        val vs = args.map((e) => peval(e, pst)) // TODO check order
         pv match
           case Unknown =>
-            // we can safely skip evaluating args
             pst.define(newLhs, Unknown)
-            (ISdoCall(newLhs, newBase, method, /* unused */ args), pst)
+            (ISdoCall(newLhs, newBase, method, vs.map(_._2)), pst)
           // TODO: local variable inline: <varname>_<fid>_<ctxtcounter>
           // case Known(AstValue(ast)) =>
           case Known(value) =>
             value.asAst match {
-              case syn: Syntactic =>
-                getSdo((syn, method)) match
-                  case None => throw InvalidAstField(syn, Str(method))
-                  case Some((ast0, sdo)) => {
-                    val vs = args.map((e) => peval(e, pst))
-                    val newContext = PContext(
-                      func = sdo.irFunc,
-                      locals = MMap.empty,
-                      sensitivity = newCallCount,
-                      ret = None,
-                      pathCondition = Nil,
-                      // empty path condition for 'new' function context
-                    );
-                    val allocations = setLocals(
-                      at = newContext,
-                      params = sdo.irFunc.params.map(p =>
-                        Param(
-                          renamer.get(p.lhs, newContext),
-                          p.ty,
-                          p.optional,
-                          p.specParam,
-                        ),
-                      ),
-                      // TODO : There is no way to print ast0 as expression this should be removed somehow
-                      /* Ad-hoc fix */
-                      args = Known(AstValue(ast0)) -> ERef(Temp(-1)) :: vs,
-                      func = sdo,
-                      isCont = false,
-                    )
+              case syn: Syntactic => {
+                val (ast0, sdo) = getSdo((syn, method)).getOrElse(
+                  throw InvalidAstField(syn, Str(method)),
+                )
 
-                    val newPst = pst.copied;
-                    newPst.callStack ::= PCallContext(pst.context, newLhs)
-                    newPst.context = newContext
-                    // to Option[Expr]
-                    val (body, newPst2) = Try {
-                      peval(sdo.irFunc.body, pst)
-                    }.toOption.get
-                    newPst2.callStack match
-                      case Nil => /* this branch should never happen */ ???
-                      case (PCallContext(callerContext, _)) :: rest =>
-                        val calleeContext = newPst.context
-                        assert(pst.callStack == rest)
-                        newPst.context = callerContext
-                        pst.define(
+                val calleeCtx = PContext(
+                  func = sdo.irFunc,
+                  locals = MMap.empty,
+                  sensitivity = newCallCount,
+                  ret = None,
+                );
+
+                val allocations = setLocals(
+                  at = calleeCtx,
+                  params = sdo.irFunc.params.map(p =>
+                    Param(
+                      renamer.get(p.lhs, calleeCtx),
+                      p.ty,
+                      p.optional,
+                      p.specParam,
+                    ),
+                  ),
+
+                  // TODO : There is no way to print ast0 as expression this should be removed somehow
+                  /* Ad-hoc fix */
+                  args = Known(AstValue(ast0)) -> ERef(Temp(-1)) :: vs,
+                  func = sdo,
+                  isCont = false,
+                )
+
+                val calleePst = {
+                  val fresh = pst.copied;
+                  fresh.callStack ::= PCallContext(pst.context, newLhs)
+                  fresh.context = calleeCtx
+                  fresh
+                }
+
+                Try {
+                  val (body, after) = peval(sdo.irFunc.body, calleePst)
+                  after.callStack match
+                    case Nil => /* never */ ???
+                    case callerCtx :: rest =>
+                      val calleeCtx = after.context;
+                      after.callStack = rest
+                      after.context = callerCtx.ctxt
+                      after.define(
+                        newLhs,
+                        calleeCtx.ret.getOrElse(Unknown),
+                      )
+                      (ISeq(List(allocations, body)), after)
+                }.recoverWith {
+                  case NoMoreInline() =>
+                    pst.define(newLhs, Unknown)
+                    pst.heap.clear // ...
+                    Success(
+                      (
+                        ISdoCall(
                           newLhs,
-                          calleeContext.ret.getOrElse(throw NoReturnValue),
-                        )
-                        (ISeq(List(allocations, body)), newPst)
-                  }
+                          newBase,
+                          method,
+                          vs.map(_._2),
+                        ),
+                        pst,
+                      ),
+                    )
+                }.get
+              }
+
               case lex: Lexical =>
                 val v = PartialEvaluator.eval(lex, method);
                 pst.define(newLhs, Known(v))
-                v.isLiteralValue match
-                  case true => (ISeq(Nil), pst)
-                  case false =>
-                    (
-                      IAssign(newLhs, v.toExprOpt.getOrElse(???))
-                        .addCmt(s"== $v"),
-                      pst,
-                    )
+                (IAssign(newLhs, v.toExpr), pst)
             }
       case call @ ICall(lhs, fexpr, args) =>
         val newCallCount = renamer.newCallCount
@@ -271,52 +284,68 @@ class PartialEvaluator(
         val (f, newFexpr) = peval(fexpr, pst)
         f match
           case Known(pclo @ PClo(callee, captured)) => // TODO
-            //     val vs = args.map((e) => peval(e, pst))
-            //     val newContext = PContext(
-            //       func = callee.irFunc,
-            //       locals = MMap.empty,
-            //       sensitivity = newCallCount,
-            //       ret = None,
-            //       pathCondition = Nil, // TEMP
-            //     );
-            //     newContext.locals ++= captured.map(pair =>
-            //       renamer.get(pair._1, newContext) -> pair._2,
-            //     )
-            //     val allocations = setLocals(
-            //       at = newContext,
-            //       params = callee.irFunc.params.map(p =>
-            //         Param(
-            //           renamer.get(p.lhs, newContext),
-            //           p.ty,
-            //           p.optional,
-            //           p.specParam,
-            //         ),
-            //       ),
-            //       args = vs,
-            //       func = callee,
-            //       isCont = false,
-            //     )
+            val vs = args.map(e => peval(e, pst))
 
-            //     pst.callStack ::= PCallContext(pst.context, newLhs)
-            //     pst.context = newContext
-            //     val (body, newPst) = peval(callee.irFunc.body, pst)
-            //     newPst.callStack match
-            //       case Nil => throwPeval"this branch should never happen"
-            //       case (PCallContext(callerContext, _)) :: rest =>
-            //         val calleeContext = newPst.context
-            //         newPst.callStack = rest
-            //         newPst.context = callerContext
-            //         pst.define(
-            //           newLhs,
-            //           calleeContext.ret.getOrElse(throw NoReturnValue),
-            //         )
-            //         (ISeq(List(allocations, body)), newPst)
-            pst.define(newLhs, Unknown)
-            (ICall(newLhs, newFexpr, args), pst)
+            val calleeCtx = PContext(
+              func = callee.irFunc,
+              locals = MMap.empty,
+              sensitivity = newCallCount,
+              ret = None,
+            );
+
+            val allocations = setLocals(
+              at = calleeCtx,
+              params = callee.irFunc.params.map(p =>
+                Param(
+                  renamer.get(p.lhs, calleeCtx),
+                  p.ty,
+                  p.optional,
+                  p.specParam,
+                ),
+              ),
+
+              // TODO : There is no way to print ast0 as expression this should be removed somehow
+              /* Ad-hoc fix */
+              args = vs,
+              func = callee,
+              isCont = false,
+            )
+
+            val calleePst = {
+              val fresh = pst.copied;
+              fresh.callStack ::= PCallContext(pst.context, newLhs)
+              fresh.context = calleeCtx
+              fresh
+            }
+
+            Try {
+              val (body, after) = peval(callee.irFunc.body, calleePst)
+              after.callStack match
+                case Nil => /* never */ ???
+                case callerCtx :: rest =>
+                  val calleeCtx = after.context;
+                  after.callStack = rest
+                  after.context = callerCtx.ctxt
+                  val retVal = calleeCtx.ret.getOrElse(throw NoReturnValue)
+                  after.define(newLhs, retVal)
+                  (ISeq(List(allocations, body)), after)
+            }.recoverWith {
+              case NoMoreInline() =>
+                pst.define(newLhs, Unknown)
+                pst.heap.clear // ...
+                Success(
+                  (
+                    ICall(newLhs, newFexpr, args).addCmt(s"== ${Unknown}"),
+                    pst,
+                  ),
+                )
+            }.get
+
           case Known(_: PCont) => throwPeval"not yet supported"
           case Known(v)        => throw NoCallable(v)
           case Unknown =>
             pst.define(newLhs, Unknown)
+            pst.heap.clear // TODO Refine
             (ICall(newLhs, newFexpr, args), pst)
 
       case INop() => (ISeq(Nil), pst)
@@ -335,27 +364,21 @@ class PartialEvaluator(
         val (pv, newListExpr) = peval(list, pst);
         pv match
           case Known(_) => ??? // TODO : modify heap
-          case Unknown  => pst.heap.clear // TODO : killall heap (일단 지금은 없음)
+          case Unknown  => pst.heap.clear // TODO : kill heap
         pst.define(newLhs, Unknown)
         (IPop(newLhs, newListExpr, front), pst)
 
       case IReturn(expr) =>
-        logging("tring return, pst is : ", pst)
         val (pv, newExpr) = peval(expr, pst)
         pst.callStack match
           case head :: _ =>
             pst.context.ret = Some(pv)
             (
-              pv.map(_.isLiteralValue).getOrElse(false) match
-                case true => (ISeq(Nil), pst)
-                case false =>
-                  (
-                    IAssign(head.retId, newExpr)
-                      .addCmt(
-                        s"== ${pv}, return from ${pst.context.func.name}",
-                      ),
-                    pst,
-                  )
+              IAssign(head.retId, newExpr)
+                .addCmt(
+                  s"== ${pv}, return from ${pst.context.func.name}",
+                ),
+              pst,
             )
           case Nil =>
             pst.context.ret = Some(pv)
@@ -364,46 +387,54 @@ class PartialEvaluator(
       case iif @ IIf(cond, thenInst, elseInst) =>
         val (pv, newCond) = peval(cond, pst)
         pv match
-          case Known(Bool(true))  => peval(thenInst, pst)
-          case Known(Bool(false)) => peval(elseInst, pst)
-          case Known(v)           => throw NoBoolean(v)
-          case Unknown if pst.callStack.size > 0 =>
-            throw NoMoreInline()
+          case Known(Bool(true))                 => peval(thenInst, pst)
+          case Known(Bool(false))                => peval(elseInst, pst)
+          case Known(v)                          => throw NoBoolean(v)
+          case Unknown if pst.callStack.size > 0 => throw NoMoreInline()
           case Unknown /* pst.callStack.size == 0 */ => {
 
             val (thenPst, elsePst) = (pst.copied, pst.copied)
-            thenPst.context.pathCondition ::= newCond
-            elsePst.context.pathCondition ::= EUnary(UOp.Not, newCond);
-
             val (newThen, newThenPst) = peval(thenInst, thenPst)
             val (newElse, newElsePst) = peval(elseInst, elsePst)
-            (newThenPst.context.ret, newElsePst.context.ret) match
-              case (None, None) =>
-                (
-                  IIf(newCond, newThen, newElse),
-                  newThenPst.join(elsePst),
-                ) /* TODO : Join */
-              case (_, _) =>
+            val newPst = newThenPst.join(elsePst)
+            (IIf(newCond, newThen, newElse), newPst)
+
             /* Handle Return */
-            (???, pst)
           }
-      // case IExpand(base, expr)            => (inst)
-      // case IDelete(base, expr)            => (inst)
-      // case IPush(elem, list, front)       => (inst)
-      // case IAssert(expr)                  => (inst)
-      // case IPrint(expr)                   => (inst)
-      // case IWhile(cond, body)             => (inst)
-      case _ =>
-        (
-          RenameWalker(renamer, pst, cfg)
-            .walk(inst)
-            .addCmt("NOT PEVALED"),
-          pst,
-        )
+      case IExpr(expr) => (IExpr(peval(expr, pst)._2), pst)
+      case IExpand(_, _) | IDelete(_, _) |
+          IPush(_, _, _) => /* heap modifying insts */
+        val newInst = RenameWalker(inst)(using renamer, pst, cfg)
+        pst.heap.clear
+        (newInst.addCmt("not supported yet"), pst)
+      case IAssert(_) | IPrint(_) =>
+        val newInst = RenameWalker(inst)(using renamer, pst, cfg)
+        (newInst.addCmt("not supported yet"), pst)
+      case IWhile(cond, body) =>
+        val (cv, newCond) = peval(cond, pst)
+        cv match
+          case Known(Bool(false)) => (INop(), pst)
+          case Known(Bool(true)) =>
+            val (newBody, newPst) = peval(body, pst)
+            val (rest, newPst2) = peval(inst, newPst)
+            (ISeq(newBody :: rest :: Nil), newPst2)
+          case Known(v) => throw NoBoolean(v)
+          case Unknown =>
+            val affectedLocals =
+              LocalImpact(body)(using renamer, pst.context, cfg)
+            for { l <- affectedLocals } pst.define(l, Unknown)
+            pst.heap.clear
+            (
+              RenameWalker(inst)(using renamer, pst, cfg).addCmt(
+                "not supported yet",
+              ),
+              pst,
+            )
+
     logging("pst", pst)
     logging(
       s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
-      s"${inst.toString(detail = false)} -> ${newInst.toString(detail = false)}\n",
+      s"${inst.toString(detail = false)} -> ${newInst.toString(detail = true).replace("\n", " ")}\n",
     )
     (newInst, newPst)
 
@@ -428,8 +459,14 @@ class PartialEvaluator(
             func.retTy,
             simplifyLevel match
               case 0 => newBody
-              case 1 => InstFlattener(newBody)
-              case _ => InstFlattener(newBody) // TODO : add usedef
+              case 1 => (InstFlattener(newBody))
+              case 2 => (
+                InstFlattener(NoLiterals(newBody)),
+              )
+              case 3 => (
+                InstFlattener(NoLiterals(newBody)),
+              )
+            // TODO : add usedef
             ,
             func.algo,
           ).toString(detail = true),
@@ -480,16 +517,13 @@ class PartialEvaluator(
     })
   }
 
-  def buildLogger = (writer: PrintWriter) =>
+  private def buildLogger = (writer: PrintWriter) =>
     (tag: String, data: Any) =>
       if (log)
         writer.println(s"[$tag] $data")
         writer.flush()
 
   lazy val logging = buildLogger(pw)
-  lazy val logCallStack = buildLogger(
-    getPrintWriter(s"$PEVAL_LOG_DIR/callstack"),
-  )
 
   // ---------------------------------------------------------------------------
   // private helpers
