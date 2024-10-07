@@ -193,6 +193,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         allocExprRule(app, expr)
       case expr: LiteralExpr =>
         literalExprRule(app, expr)
+    (detail, expr.comment) match
+      case (false, _) | (_, None) => app
+      case (true, Some(value)) =>
+        val escaped = s""" /* ${value.replace(raw"*/", raw"*\/")} */"""
+        app >> escaped
   }
 
   // random number expressions
