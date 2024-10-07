@@ -15,6 +15,8 @@ class OpTinyTest extends TyTest {
     checkEqual("and")(
       (ObjectT && FunctionT) -> FunctionT,
       (AbruptT && ReturnT) -> ReturnT,
+      (ConstructorT && RecordT("ECMAScriptFunctionObject")) ->
+      RecordT("ECMAScriptFunctionObject"),
     )
 
     checkEqual("order")(

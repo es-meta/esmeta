@@ -30,6 +30,7 @@ class TyChecker(
   with AbsRetDecl
   with AbsTransferDecl
   with TypeErrorDecl
+  with TypeGuardDecl
   with ViewDecl {
 
   npMap = getInitNpMap(targetFuncs)

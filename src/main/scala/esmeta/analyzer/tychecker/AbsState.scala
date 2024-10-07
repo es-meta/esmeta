@@ -1,4 +1,5 @@
 package esmeta.analyzer.tychecker
+
 import esmeta.ir.*
 import esmeta.ty.{*, given}
 import esmeta.ty.util.Stringifier.{*, given}
@@ -48,23 +49,19 @@ trait AbsStateDecl { self: TyChecker =>
     def ⊔(that: AbsState): AbsState = (this, that) match
       case _ if this.isBottom => that
       case _ if that.isBottom => this
-      case (l, r) =>
-        var killed = Set[Sym]()
-        val inDiffPred = l.pred != r.pred
-        def handleKilled(v: AbsValue)(using AbsState): AbsValue =
-          if (killed.exists(v.has)) AbsValue(v.ty, Many, v.guard)
-          else v
-        val newSymEnv = (for {
-          sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
-          lty = l.getTy(sym)
-          rty = r.getTy(sym)
-          _ = if (inDiffPred && lty != rty) killed += sym
-          ty = lty || rty
-        } yield sym -> ty).toMap
+      case _ =>
+        val lxs = this.pred.getImprecBases(that.pred)
+        val l = this.kill(lxs, update = false)
+        val rxs = that.pred.getImprecBases(this.pred)
+        val r = that.kill(rxs, update = false)
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = handleKilled(l.get(x))(using l) ⊔ handleKilled(r.get(x))(using r)
+          v = AbsValue.joinHelper(l.get(x), l, r.get(x), r)
         } yield x -> v).toMap
+        val newSymEnv = (for {
+          sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
+          ty = l.getTy(sym) || r.getTy(sym)
+        } yield sym -> ty).toMap
         val newPred = l.pred || r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
 
@@ -83,13 +80,18 @@ trait AbsStateDecl { self: TyChecker =>
         val newPred = l.pred && r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
 
+    /** kill bases */
+    def kill(bases: Set[SymBase], update: Boolean): AbsState =
+      val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
+      val newPred = if (update) pred.kill(bases) else pred
+      AbsState(reachable, newLocals, symEnv, newPred)
+
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
 
     /** simplify a state for a return */
     def forReturn(v: AbsValue): AbsState =
-      val syms = v.getSyms
-      Empty.copy(symEnv = symEnv.view.filterKeys(syms.contains).toMap)
+      Empty.copy(symEnv = symEnv.view.filterKeys(v.bases.contains).toMap)
 
     /** getter */
     def get(x: Var): AbsValue = x match
@@ -100,14 +102,17 @@ trait AbsStateDecl { self: TyChecker =>
     def getTy(expr: SymExpr): ValueTy = {
       import SymExpr.*
       expr match
-        case SEBool(b)                  => BoolT(b)
-        case SEStr(s)                   => StrT(s)
-        case SERef(ref)                 => getTy(ref)
-        case SEExists(ref)              => BoolT
-        case SETypeCheck(base, ty)      => BoolT
-        case SETypeOf(base)             => ???
-        case SEBinary(bop, left, right) => ???
-        case SEUnary(uop, expr)         => ???
+        case SEBool(b)             => BoolT(b)
+        case SEStr(s)              => StrT(s)
+        case SERef(ref)            => getTy(ref)
+        case SEExists(ref)         => BoolT
+        case SETypeCheck(base, ty) => BoolT
+        case SETypeOf(base)        => BoolT
+        case SEEq(left, right)     => BoolT
+        case SEOr(left, right)     => BoolT
+        case SEAnd(left, right)    => BoolT
+        case SENot(expr)           => BoolT
+        case SENormal(expr)        => NormalT(getTy(expr))
     }
 
     /** getter for symbolic references */
@@ -236,22 +241,10 @@ trait AbsStateDecl { self: TyChecker =>
     /** identifier setter */
     def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
       case x: Local =>
-        val newSt = copy(locals = locals + (x -> value))
-        if (refine) newSt
-        else newSt.kill(x)
+        val newSt = if (refine) this else this.kill(Set(x), update = true)
+        val newV = if (refine) value else value.kill(Set(x), update = true)
+        newSt.copy(locals = newSt.locals + (x -> newV))
       case x: Global => this
-
-    /** kill a local variable */
-    def kill(x: Local): AbsState =
-      val newLocals = locals.map { (y, v) =>
-        val newGuard = TypeGuard(for {
-          (kind, pred) <- v.guard.map
-          newPred = pred.kill(x)
-        } yield kind -> newPred)
-        y -> v.copy(guard = newGuard)
-      }
-      val newPred = pred.kill(x)
-      AbsState(reachable, newLocals, symEnv, newPred)
 
     /** type check */
     def typeCheck(value: AbsValue, givenTy: ValueTy): ValueTy =
