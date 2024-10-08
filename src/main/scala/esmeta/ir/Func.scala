@@ -1,6 +1,7 @@
 package esmeta.ir
 
 import esmeta.ir.util.{Parser, YetCollector, Stringifier}
+import esmeta.peval.{GetOverloads, NoOverloads}
 import esmeta.util.UId
 import esmeta.spec.{Algorithm, Head}
 import esmeta.util.Appender
@@ -13,6 +14,7 @@ case class Func(
   params: List[Param],
   retTy: Type,
   body: Inst,
+  overloads: GetOverloads = NoOverloads,
   var algo: Option[Algorithm] = None,
 ) extends IRElem {
 

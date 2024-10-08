@@ -11,7 +11,7 @@ import esmeta.parser.{ESParser}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.peval.{OverloadedFunc, PartialEvaluator, OverloadedIRFunc}
+import esmeta.peval.{PartialEvaluator}
 
 import esmeta.peval.*
 import esmeta.peval.util.*

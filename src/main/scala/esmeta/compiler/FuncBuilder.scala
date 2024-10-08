@@ -2,6 +2,7 @@ package esmeta.compiler
 
 import esmeta.ir.{Type => IRType, Param => IRParam, *}
 import esmeta.lang.*
+import esmeta.peval.{NoOverloads}
 import esmeta.spec.*
 import scala.collection.mutable.{ListBuffer, Stack}
 
@@ -26,6 +27,7 @@ case class FuncBuilder(
     params,
     retTy,
     body,
+    NoOverloads,
     Some(algo),
   )
 

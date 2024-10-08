@@ -42,7 +42,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> " = " >> func.body
 
   def funcHeadRule(inline: Boolean): Rule[Func] = (app, func) =>
-    val Func(main, kind, name, params, retTy, body, _) = func
+    val Func(main, kind, name, params, retTy, body, _, _) = func
     app >> (if (main) "@main " else "") >> "def " >> kind
     app >> name
     if (inline)
