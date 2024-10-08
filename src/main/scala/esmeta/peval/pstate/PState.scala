@@ -1,17 +1,16 @@
 package esmeta.peval.pstate
 
-import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.*
+import esmeta.peval.*
+import esmeta.peval.pstate.*
+import esmeta.state.*
+import esmeta.spec.{Grammar}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success}
-
-import esmeta.state.*
-import esmeta.peval.*
-import esmeta.peval.pstate.*
 
 /** Partial-States for Specializer
   *
@@ -34,12 +33,12 @@ case class PState(
   inline def locals = context.locals
 
   /** getter */
-  def apply(rt: Predict[RefTarget])(using CFG): Predict[Value] = rt match
+  def apply(rt: Predict[RefTarget])(using Grammar): Predict[Value] = rt match
     case Known(rt) => apply(rt)
     case Unknown   => Unknown
 
   /** getter */
-  def apply(rt: RefTarget)(using CFG): Predict[Value] =
+  def apply(rt: RefTarget)(using Grammar): Predict[Value] =
     rt match
       case VarTarget(x)             => apply(x)
       case FieldTarget(base, field) => apply(base, field)
@@ -50,11 +49,12 @@ case class PState(
     case x: Local  => locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value)(using CFG): Predict[Value] = base match
-    case addr: Addr    => heap(addr, field)
-    case AstValue(ast) => Known(AstValue(ast(field)))
-    case Str(str)      => apply(str, field)
-    case v             => throw InvalidRefBase(v)
+  def apply(base: Value, field: Value)(using Grammar): Predict[Value] =
+    base match
+      case addr: Addr    => heap(addr, field)
+      case AstValue(ast) => Known(AstValue(ast(field)))
+      case Str(str)      => apply(str, field)
+      case v             => throw InvalidRefBase(v)
 
   /** string field getter */
   def apply(str: String, field: Value): Predict[Value] = field match

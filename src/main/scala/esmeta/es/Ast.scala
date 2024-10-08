@@ -1,9 +1,9 @@
 package esmeta.es
 
-import esmeta.cfg.*
+import esmeta.cfg.{Func as CFGFunc}
 import esmeta.error.*
 import esmeta.es.util.*
-import esmeta.ir.Type
+import esmeta.ir.{Func as IRFunc, Type}
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -78,28 +78,31 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => lex.loc = locOpt; lex
 
   /** safe getter */
-  def get(field: Value)(using cfg: CFG): Option[Ast] = (this, field) match
-    case (_, Str("parent")) => parent
-    // TODO remove this case if possible
-    case (syn: Syntactic, Str(fieldStr)) =>
-      val Syntactic(name, _, rhsIdx, children) = syn
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
-      rhs.getRhsIndex(fieldStr).flatMap(children(_))
-    case (syn: Syntactic, Math(n)) if n.isValidInt =>
-      syn.children(n.toInt)
-    case _ => None
+  def get(field: Value)(using grammar: Grammar): Option[Ast] =
+    (this, field) match
+      case (_, Str("parent")) => parent
+      // TODO remove this case if possible
+      case (syn: Syntactic, Str(fieldStr)) =>
+        val Syntactic(name, _, rhsIdx, children) = syn
+        val rhs = grammar.nameMap(name).rhsList(rhsIdx)
+        rhs.getRhsIndex(fieldStr).flatMap(children(_))
+      case (syn: Syntactic, Math(n)) if n.isValidInt =>
+        syn.children(n.toInt)
+      case _ => None
 
   /** getter */
-  def apply(field: Value)(using cfg: CFG): Ast =
+  def apply(field: Value)(using Grammar): Ast =
     get(field).getOrElse(throw InvalidAstField(this, field))
 
   /** existence check */
-  def exists(field: Value)(using cfg: CFG): Boolean = get(field).isDefined
+  def exists(field: Value)(using Grammar): Boolean = get(field).isDefined
 
   /** get syntax-directed operation (SDO) */
-  def getSdo(name: String)(using cfg: CFG): Option[(Ast, Func)] =
-    val fnameMap = cfg.fnameMap
-    chains.foldLeft[Option[(Ast, Func)]](None) {
+  def getSdo[F <: CFGFunc | IRFunc](name: String)(using
+    grammar: Grammar,
+    fnameMap: Map[String, F],
+  ): Option[(Ast, F)] =
+    chains.foldLeft[Option[(Ast, F)]](None) {
       case (None, ast0) =>
         val subIdx = ast0.subIdx
         val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
@@ -111,10 +114,10 @@ sealed trait Ast extends ESElem with Locational {
     }
 
   /** get sub index of parsed Ast */
-  def subIdx(using cfg: CFG): Int = this match
+  def subIdx(using grammar: Grammar): Int = this match
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
-      cfg.grammar.nameMap.get(name).fold(0) { prod =>
+      grammar.nameMap.get(name).fold(0) { prod =>
         val rhs = prod.rhsList(rhsIdx)
         val optionals = (for {
           ((_, opt), child) <- rhs.ntsWithOptional zip children if opt

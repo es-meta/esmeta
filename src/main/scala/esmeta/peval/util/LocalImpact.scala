@@ -1,6 +1,5 @@
 package esmeta.peval.util
 
-import esmeta.cfg.{CFG}
 import esmeta.ir.*
 import esmeta.ir.util.{UnitWalker}
 import esmeta.peval.pstate.*
@@ -33,7 +32,7 @@ class LocalImpact private () extends UnitWalker {
 }
 
 object LocalImpact {
-  def apply(inst: Inst)(using renamer: Renamer, ctx: PContext, cfg: CFG) =
+  def apply(inst: Inst)(using renamer: Renamer, ctx: PContext) =
     val li = new LocalImpact()
     li.walk(inst)
     li.result.map(x => renamer.get(x, ctx))
