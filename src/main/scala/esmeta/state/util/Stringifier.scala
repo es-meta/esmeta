@@ -172,7 +172,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given pcloRule: Rule[PClo] = (app, pclo) =>
     val PClo(func, captured) = pclo
     given Rule[List[(Name, Known[Value])]] = iterableRule("[", ", ", "]")
-    app >> "pclo<" >> func.irFunc.name
+    app >> "pclo<" >> func.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 
@@ -180,7 +180,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given cogrammarSymbolRule: Rule[Cont] = (app, cont) =>
     val Cont(func, captured, _) = cont
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
-    app >> "cont<" >> func.irFunc.name
+    app >> "cont<" >> func.name
     if (!captured.isEmpty) app >> ", " >> captured.toList
     app >> ">"
 

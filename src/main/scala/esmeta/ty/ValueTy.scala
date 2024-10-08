@@ -190,8 +190,9 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Bool(b)                         => bool contains b
     case Undef                           => undef
     case Null                            => nullv
-    case PClo(func, _)                   => clo contains func.irFunc.name
-    case PCont(func, _, _)               => cont contains func.id
+    case PClo(func, _)                   => clo contains func.name
+    case PCont(func, _, _) =>
+      ??? // cont contains func.id // TODO can't use .id since PCont no longer CFG Func
 
   def contains(pv: Predict[Value], pheap: PHeap): Predict[Boolean] =
     pv.flatMap {
@@ -220,8 +221,9 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         case Bool(b)                         => Known(bool contains b)
         case Undef                           => Known(undef)
         case Null                            => Known(nullv)
-        case PClo(func, _)     => Known(clo contains func.irFunc.name)
-        case PCont(func, _, _) => Known(cont contains func.id)
+        case PClo(func, _)                   => Known(clo contains func.name)
+        case PCont(func, _, _) =>
+          ??? // Known(cont contains func.id) TODO PCont no longer CFG Func
     }
 
   /** copy value type */

@@ -132,7 +132,6 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
     "esmeta eval a.js                         # eval a.js file.",
     "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
-    "esmeta eval a.js -eval:peval             # eval with partial evaluation.",
   )
   override val targetName = "<js>+"
 }
@@ -215,12 +214,24 @@ case object CmdIRInterp extends Command("ir-eval", CmdBase >> IREval) {
 // Partial Evaluator
 // -----------------------------------------------------------------------------
 
-/** `astpeval` command */
-case object CmdPEval extends Command("peval", CmdBuildCFG >> PEval) {
+/** `peval` command */
+case object CmdPEval extends Command("peval", CmdCompile >> PEval) {
   val help =
-    "partial-evaluates 'FunctionDeclarationInstantiation' using an ECMAScript file."
+    "(WIP) partial-evaluates 'FunctionDeclarationInstantiation' using an ECMAScript file."
   val examples = List(
     "esmeta peval a.js                         # partial-eval using a.js file.",
+  )
+  override val targetName = "<js>+"
+}
+
+/** `peval-then-eval` command */
+case object CmdPThenEval extends Command("pte", CmdPEval >> BuildCFG >> Eval) {
+  val help =
+    "(WIP) peval-then-eval an ECMAScript file using overloaded `FunctionDeclarationInstantiation`."
+  val examples = List(
+    "esmeta pte a.js                         # peval-then-eval a.js file.",
+    "esmeta pte a.js -extract:target=es2022  # peval-then-eval with es2022 spec.",
+    "esmeta pte a.js -eval:log               # peval-then-eval in the logging mode.",
   )
   override val targetName = "<js>+"
 }

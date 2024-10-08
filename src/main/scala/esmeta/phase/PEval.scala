@@ -24,43 +24,44 @@ import esmeta.peval.pstate.PContext
 import esmeta.peval.pstate.PHeap
 import esmeta.peval.pstate.PState
 
-/** `astirpeval` phase */
-case object PEval extends Phase[CFG, Unit] {
+/** `peval` phase */
+case object PEval extends Phase[Program, Program] {
   val name = "peval"
   val help = "partial-evaluated an ECMAScript file."
 
   val TARGET_NAME = "FunctionDeclarationInstantiation"
 
   def apply(
-    cfg: CFG,
+    program: Program,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit =
-    given CFG = cfg
+  ): Program =
 
     if (config.simplify < 0 || config.simplify > 3) then
       throw new PEvalOptError("config.simplify should be in [0, 3]")
 
     val filename = getFirstFilename(cmdConfig, name)
-    val pevalTarget = cfg.fnameMap(TARGET_NAME)
+    val pevalTarget = program.funcs
+      .find(_.name == TARGET_NAME)
+      .getOrElse(throw PEvalOptError(s"${TARGET_NAME} not found"))
     val ast =
-      ESParser(cfg.spec.grammar, debug = false)("Script").fromFile(filename)
+      ESParser(program.spec.grammar, debug = false)("Script").fromFile(filename)
     val fds = getAstsByName(ast, "FunctionDeclaration")
     println(s"Found ${fds.size} FunctionDeclaration.");
 
-    val init = new Initialize(cfg)
-    val globals = for {
-      (x, v) <- init.initGlobal
-      pv = v match
-        case _: Addr => Unknown
-        case _       => Known(v)
-    } yield x -> pv
+    // val init = new Initialize(cfg)
+    // val globals = for {
+    //   (x, v) <- init.initGlobal
+    //   pv = v match
+    //     case _: Addr => Unknown
+    //     case _       => Known(v)
+    // } yield x -> pv
 
     for (fd <- fds) {
 
       val renamer = Renamer()
       val peval = PartialEvaluator(
-        cfg = cfg,
+        program = program,
         log = config.log,
         detail = config.detail,
         simplifyLevel = config.simplify,
@@ -68,9 +69,9 @@ case object PEval extends Phase[CFG, Unit] {
       )
 
       val thisCallCount = renamer.newCallCount
-      val func = pevalTarget.irFunc
+      val func = pevalTarget
       val st = PState(
-        globals = globals,
+        globals = Map.empty, // temp fix // globals,
         callStack = Nil,
         context = PContext(
           func = func,
@@ -123,6 +124,7 @@ case object PEval extends Phase[CFG, Unit] {
         })
         .map((_) => println("Omit printing state..."))
     }
+    ???
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

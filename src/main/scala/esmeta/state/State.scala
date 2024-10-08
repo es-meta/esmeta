@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.spec.{Grammar}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
@@ -22,6 +23,7 @@ case class State(
 ) extends StateElem {
 
   given CFG = cfg
+  given Grammar = cfg.grammar
 
   /** current function */
   def func: Func = context.cursor match

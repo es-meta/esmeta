@@ -74,7 +74,7 @@ sealed trait Callable extends Value {
 
 /** function values */
 sealed trait PCallable extends Value {
-  def func: Func
+  def func: IRFunc
   def captured: Map[Name, Predict[Value]]
 }
 
@@ -82,7 +82,7 @@ sealed trait PCallable extends Value {
 case class Clo(func: Func, captured: Map[Name, Value]) extends Callable
 
 /** closures for partial eval */
-case class PClo(func: Func, captured: Map[Name, Predict[Value]])
+case class PClo(func: IRFunc, captured: Map[Name, Predict[Value]])
   extends PCallable
 
 /** continuations */
@@ -94,7 +94,7 @@ case class Cont(
 
 /** continuations */
 case class PCont(
-  func: Func,
+  func: IRFunc,
   captured: Map[Name, Predict[Value]],
   callStack: List[PCallContext],
 ) extends PCallable

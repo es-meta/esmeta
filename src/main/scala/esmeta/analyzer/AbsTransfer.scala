@@ -124,7 +124,10 @@ trait AbsTransferDecl { self: Analyzer =>
       transfer(expr)(st)._1
 
     /** get syntax-directed operation (SDO) */
-    val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+    val getSdo =
+      cached[(Ast, String), Option[(Ast, Func)]](
+        _.getSdo(_)(using cfg.grammar, cfg.fnameMap),
+      )
 
     /** transfer function for normal instructions */
     def transfer(inst: NormalInst)(using np: NodePoint[_]): Updater = inst match

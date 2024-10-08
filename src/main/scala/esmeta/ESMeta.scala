@@ -83,6 +83,7 @@ object ESMeta extends Git(BASE_DIR) {
     // Interpreter for IR-ES
     CmdIRInterp,
     CmdPEval,
+    CmdPThenEval,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)

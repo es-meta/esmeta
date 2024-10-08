@@ -2,12 +2,11 @@ package esmeta.peval
 
 import esmeta.{PEVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
-import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}
 import esmeta.error.NotSupported.Category.{Type => _, *}
 import esmeta.interpreter.*
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.*
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.peval.pstate.*
@@ -15,6 +14,7 @@ import esmeta.peval.util.*
 import esmeta.peval.util.walker.*
 import esmeta.peval.simplifier.*
 import esmeta.state.{BigInt, *}
+import esmeta.spec.{Grammar}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
@@ -24,12 +24,11 @@ import java.math.MathContext.DECIMAL128
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
-
 import scala.util.{Try, Success}
 
 /** extensible helper of IR interpreter with a CFG */
 class PartialEvaluator(
-  val cfg: CFG,
+  val program: Program,
   val log: Boolean = false,
   val detail: Boolean = false,
   val simplifyLevel: Int = 1,
@@ -41,7 +40,13 @@ class PartialEvaluator(
   import PartialEvaluator.*
 
   /** control flow graphs */
-  given CFG = cfg
+  // given CFG = cfg
+
+  given Grammar = program.spec.grammar
+
+  lazy val funcMap = Map.from(program.funcs.map(p => p.name -> p))
+  lazy val getFunc = (fname: String) =>
+    funcMap.getOrElse(fname, throw UnknownFunc(fname))
 
   def peval(ref: Ref, pst: PState): (Predict[RefTarget], Ref) = ref match
 
@@ -72,7 +77,7 @@ class PartialEvaluator(
       // (PClo(func, captured.map(x => x -> pst(x)).toMap), expr)
 
       case EClo(fname, captured) =>
-        val func = cfg.getFunc(fname)
+        val func = getFunc(fname)
         // keep original name `x`
         val v = PClo(
           func,
@@ -196,7 +201,7 @@ class PartialEvaluator(
       // case EKeys(map, intSorted)                    => ???
       case _ =>
         logging("expr", s"NOT SUPPORTED EXPR! $expr")
-        (Unknown, RenameWalker(expr)(using renamer, pst, cfg))
+        (Unknown, RenameWalker(expr)(using renamer, pst))
     logging("expr", s"$expr -> $result")
     result
 
@@ -241,7 +246,7 @@ class PartialEvaluator(
                 )
 
                 val calleeCtx = PContext(
-                  func = sdo.irFunc,
+                  func = sdo,
                   locals = MMap.empty,
                   sensitivity = newCallCount,
                   ret = None,
@@ -249,7 +254,7 @@ class PartialEvaluator(
 
                 val allocations = setLocals(
                   at = calleeCtx,
-                  params = sdo.irFunc.params.map(p =>
+                  params = sdo.params.map(p =>
                     Param(
                       renamer.get(p.lhs, calleeCtx),
                       p.ty,
@@ -273,7 +278,7 @@ class PartialEvaluator(
                 }
 
                 Try {
-                  val (body, after) = peval(sdo.irFunc.body, calleePst)
+                  val (body, after) = peval(sdo.body, calleePst)
                   after.callStack match
                     case Nil => /* never */ ???
                     case callerCtx :: rest =>
@@ -317,7 +322,7 @@ class PartialEvaluator(
           case Known(pclo @ PClo(callee, captured))
               if vs.map(_._1).forall(_.isDefined) =>
             val calleeCtx = PContext(
-              func = callee.irFunc,
+              func = callee,
               locals = MMap.empty,
               sensitivity = newCallCount,
               ret = None,
@@ -325,7 +330,7 @@ class PartialEvaluator(
 
             val allocations = setLocals(
               at = calleeCtx,
-              params = callee.irFunc.params.map(p =>
+              params = callee.params.map(p =>
                 Param(
                   renamer.get(p.lhs, calleeCtx),
                   p.ty,
@@ -349,7 +354,7 @@ class PartialEvaluator(
             }
 
             Try {
-              val (body, after) = peval(callee.irFunc.body, calleePst)
+              val (body, after) = peval(callee.body, calleePst)
               after.callStack match
                 case Nil => /* never */ ???
                 case callerCtx :: rest =>
@@ -431,7 +436,7 @@ class PartialEvaluator(
       case IExpr(expr) => (IExpr(peval(expr, pst)._2), pst)
       case IExpand(_, _) | IDelete(_, _) |
           IPush(_, _, _) => /* heap modifying insts */
-        val newInst = RenameWalker(inst)(using renamer, pst, cfg)
+        val newInst = RenameWalker(inst)(using renamer, pst)
         pst.heap.clear
         (newInst.addCmt("not supported yet"), pst)
 
@@ -462,11 +467,11 @@ class PartialEvaluator(
           case Known(v) => throw NoBoolean(v)
           case Unknown =>
             val affectedLocals =
-              LocalImpact(body)(using renamer, pst.context, cfg)
+              LocalImpact(body)(using renamer, pst.context)
             for { l <- affectedLocals } pst.define(l, Unknown)
             pst.heap.clear
             (
-              RenameWalker(inst)(using renamer, pst, cfg).addCmt(
+              RenameWalker(inst)(using renamer, pst).addCmt(
                 "unknown condition : heap is cleared",
               ),
               pst,
@@ -480,7 +485,7 @@ class PartialEvaluator(
     (newInst, newPst)
 
   /** final state */
-  def run(func: IRFunc, pst: PState): (Inst, PState) = timeout(
+  def run(func: Func, pst: PState): (Inst, PState) = timeout(
     {
       val inst = func.body
       val newParams = func.params.map {
@@ -492,7 +497,7 @@ class PartialEvaluator(
       if (log) then
         val writer = getPrintWriter(s"$PEVAL_LOG_DIR/result.ir")
         writer.print(
-          IRFunc(
+          Func(
             func.main,
             func.kind,
             s"${func.name}PEvaled",
@@ -519,7 +524,7 @@ class PartialEvaluator(
   )
 
   /** ECMAScript parser */
-  lazy val esParser: ESParser = cfg.esParser
+  lazy val esParser: ESParser = program.esParser
 
   /** get initial local variables */
   def setLocals(
@@ -571,10 +576,10 @@ class PartialEvaluator(
   // ---------------------------------------------------------------------------
 
   /** type model */
-  private def tyModel = cfg.tyModel
+  private def tyModel = program.tyModel
 
   /** grammar */
-  private def grammar = cfg.grammar
+  private def grammar = program.spec.grammar
 
   /** itereration count */
   private var iter = 0
@@ -584,7 +589,10 @@ class PartialEvaluator(
     logPW.getOrElse(getPrintWriter(s"$PEVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
-  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+  private val getSdo =
+    cached[(Ast, String), Option[(Ast, Func)]](
+      _.getSdo[Func](_)(using grammar, funcMap),
+    )
 
 }
 
