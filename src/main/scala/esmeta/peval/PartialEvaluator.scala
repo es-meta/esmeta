@@ -514,6 +514,7 @@ class PartialEvaluator(
               )
             // TODO : add usedef
             ,
+            func.overloads,
             func.algo,
           ).toString(detail = true),
         );

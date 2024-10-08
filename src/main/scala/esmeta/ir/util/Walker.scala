@@ -26,7 +26,7 @@ trait Walker extends BasicWalker {
 
   // functions
   def walk(func: Func): Func =
-    val Func(main, kind, name, ps, rty, body, algo) = func
+    val Func(main, kind, name, ps, rty, body, overloads, algo) = func
     Func(
       walk(main),
       walk(kind),
@@ -34,6 +34,7 @@ trait Walker extends BasicWalker {
       walkList(ps, walk),
       walk(rty),
       walk(func.body),
+      overloads,
       algo,
     )
 
