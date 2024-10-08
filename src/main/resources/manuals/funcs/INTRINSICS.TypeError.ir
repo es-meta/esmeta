@@ -1,26 +1,25 @@
 def <BUILTIN>:INTRINSICS.TypeError(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Object | Undefined,
+  NewTarget: Constructor | Undefined,
 ): Unknown {
   if (< 0 ArgumentsList.length) let message = (pop < ArgumentsList) else let message = absent
   if (< 0 ArgumentsList.length) let options = (pop < ArgumentsList) else let options = absent
-  %0 = (= NewTarget undefined)
-  if %0 {
+  if (= NewTarget undefined) {
     let newTarget = @EXECUTION_STACK[0].Function
   } else {
     let newTarget = NewTarget
   }
-  call %1 = clo<OrdinaryCreateFromConstructor>(newTarget, "%TypeError.prototype%", (new ["ErrorData"]))
-  let O = [? %1]
-  %2 = (! (= message undefined))
-  if %2 {
-    call %3 = clo<ToString>(message)
-    let msg = [? %3]
-    call %4 = clo<CreateNonEnumerableDataPropertyOrThrow>(O, "message", msg)
-    [! %4]
+  call %0 = clo<OrdinaryCreateFromConstructor>(newTarget, "%TypeError.prototype%", (new ["ErrorData"]))
+  let O = [? %0]
+  %1 = (! (= message undefined))
+  if %1 {
+    call %2 = clo<ToString>(message)
+    let msg = [? %2]
+    call %3 = clo<CreateNonEnumerableDataPropertyOrThrow>(O, "message", msg)
+    [! %3]
   } else {}
-  call %5 = clo<InstallErrorCause>(O, options)
-  [? %5]
+  call %4 = clo<InstallErrorCause>(O, options)
+  [? %4]
   return O
 }

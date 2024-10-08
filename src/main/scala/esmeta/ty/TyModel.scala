@@ -332,6 +332,9 @@ object TyModel {
       "FunctionObject" -> TyInfo(
         parent = Some("OrdinaryObject"),
       ),
+      "Constructor" -> TyInfo(
+        parent = Some("FunctionObject"),
+      ),
       "ECMAScriptFunctionObject" -> TyInfo(
         parent = Some("FunctionObject"),
         methods = Map(
