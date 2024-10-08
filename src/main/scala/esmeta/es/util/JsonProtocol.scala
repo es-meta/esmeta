@@ -9,6 +9,7 @@ import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   import Coverage.*
+  import CoverageSmall.{ViewSmall, NodeViewSmall, CondViewSmall}
 
   // branch or reference to EReturnIfAbrupt with boolean values
   given condDecoder: Decoder[Cond] = deriveDecoder
@@ -68,4 +69,35 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // coverage constructor
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
+
+  // syntax-sensitive views with small information
+  // given viewSmallDecoder: Decoder[ViewSmall] = optionDecoder
+  given viewSmallEncoder: Encoder[ViewSmall] =
+    Encoder.instance {
+      case None => Json.Null
+      case Some((enclosing, feature, path)) =>
+        Json.obj(
+          "enclosing" -> Json.fromValues(
+            enclosing.map(f => f.func.id.asJson),
+          ),
+          "feature" -> feature.func.id.asJson,
+          "path" -> path.map(_.toString).asJson, // to be changed
+        )
+    }
+  given viewSmallDecoder: Decoder[ViewSmall] = deriveDecoder
+
+  // given nodeViewSmallDecoder: Decoder[NodeViewSmall] = deriveDecoder
+  given nodeViewSmallEncoder: Encoder[NodeViewSmall] =
+    Encoder.instance(nv =>
+      Json.obj(
+        "node" -> Json.obj(
+          "inst" -> nv.node.id.asJson,
+          "func" -> cfg.funcOf(nv.node).id.asJson,
+        ),
+        "view" -> viewSmallEncoder(nv.view),
+      ),
+    )
+
+  given condViewSmallDecoder: Decoder[CondViewSmall] = deriveDecoder
+  given condViewSmallEncoder: Encoder[CondViewSmall] = deriveEncoder
 }

@@ -111,7 +111,7 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       "explicitly use the given init pool",
     ),
     (
-      "dumpDetail",
+      "dump-detail",
       NumOption((c, k) =>
         if (k < 0 || k > 2)
           error("invalid dump detail level: please set 0 to 2")

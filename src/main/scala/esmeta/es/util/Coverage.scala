@@ -537,6 +537,7 @@ object Coverage {
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
+    dumpDetail: Int = 2,
   )
 
   def fromLogSimpl(baseDir: String, cfg: CFG): Coverage =
