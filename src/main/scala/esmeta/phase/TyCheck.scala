@@ -22,7 +22,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     val tychecker = TyChecker(
       cfg = cfg,
       targetPattern = config.target,
-      useTypeGuard = config.typeGuard,
+      inferTypeGuard = config.inferTypeGuard,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
@@ -79,8 +79,8 @@ case object TyCheck extends Phase[CFG, Unit] {
     //   "type sensitivity (not-yet supported).",
     // ),
     (
-      "type-guard",
-      BoolOption(_.typeGuard = _),
+      "infer-guard",
+      BoolOption(_.inferTypeGuard = _),
       "automatic inference of type guards (default: true).",
     ),
   )
@@ -93,6 +93,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     // TODO var typeSens: Boolean = false,
-    var typeGuard: Boolean = true,
+    var inferTypeGuard: Boolean = true,
   )
 }

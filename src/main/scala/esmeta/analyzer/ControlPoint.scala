@@ -13,6 +13,7 @@ trait ControlPointDecl { self: Analyzer =>
     def toReturnPoint: ReturnPoint = this match
       case np: NodePoint[Node] => ReturnPoint(np.func, np.view)
       case rp: ReturnPoint     => rp
+    def toEntryPoint: NodePoint[Node] = NodePoint(func, func.entry, view)
   }
 
   /** node points */

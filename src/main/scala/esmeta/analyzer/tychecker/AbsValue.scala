@@ -37,18 +37,8 @@ trait AbsValueDecl { self: TyChecker =>
       )
 
     /** partial order */
-    def ⊑(that: AbsValue)(using AbsState): Boolean =
-      val l @ AbsValue(llty, lexpr, lguard) = this
-      val r @ AbsValue(rlty, rexpr, rguard) = that
-      (lguard <= rguard) && ((lexpr, rexpr) match
-        case (Zero, Zero)     => llty ⊑ rlty
-        case (Zero, One(_))   => llty ⊑ rlty
-        case (One(x), One(y)) => (llty ⊑ rlty && x == y) || (l.ty ⊑ r.ty)
-        case (One(_), Many)   => l.ty ⊑ rlty
-        case (Zero, Many)     => llty ⊑ rlty
-        case (Many, Many)     => llty ⊑ rlty
-        case _                => false
-      )
+    def ⊑(that: AbsValue)(using st: AbsState): Boolean =
+      orderHelper(this, st, that, st)
 
     /** not partial order */
     def !⊑(that: AbsValue)(using AbsState): Boolean = !(this ⊑ that)
@@ -58,31 +48,16 @@ trait AbsValueDecl { self: TyChecker =>
       joinHelper(this, st, that, st)
 
     /** meet operator */
-    def ⊓(that: AbsValue)(using AbsState): AbsValue =
-      import SymExpr.*
-      val l @ AbsValue(llty, lexpr, lguard) = this
-      val r @ AbsValue(rlty, rexpr, rguard) = that
-      val (lty, expr) = (lexpr, rexpr) match
-        case (Zero, Zero)               => (llty && rlty, Zero)
-        case (Zero, One(_))             => (llty && r.ty, Zero)
-        case (One(_), Zero)             => (l.ty && rlty, Zero)
-        case (One(l), One(r)) if l == r => (llty && rlty, One(l))
-        case (One(_), One(_))           => (l.ty && r.ty, Many)
-        case (One(_), Many)             => (l.ty && rlty, Many)
-        case (Many, One(_))             => (llty && r.ty, Many)
-        case (Zero, Many)               => (llty && rlty, Many)
-        case (Many, Zero)               => (llty && rlty, Many)
-        case (Many, Many)               => (llty && rlty, Many)
-      val guard = (lguard && rguard).filter(lty)
-      AbsValue(lty, expr, guard)
+    def ⊓(that: AbsValue)(using st: AbsState): AbsValue =
+      meetHelper(this, st, that, st)
 
     /** prune operator */
     def --(that: AbsValue)(using AbsState): AbsValue =
       this.copy(lowerTy = this.lowerTy -- that.lowerTy)
 
     /** add type guard */
-    def addGuard(guard: TypeGuard): AbsValue =
-      this.copy(guard = this.guard && guard)
+    def addGuard(guard: TypeGuard)(using AbsState): AbsValue =
+      this.copy(guard = (this.guard && guard).filter(this.ty))
 
     /** kill bases */
     def kill(bases: Set[SymBase], update: Boolean)(using AbsState): AbsValue =
@@ -91,6 +66,22 @@ trait AbsValueDecl { self: TyChecker =>
         case e                                              => (this.lowerTy, e)
       val guard = if (update) this.guard.kill(bases) else this.guard
       AbsValue(lowerTy, expr, guard)
+
+    /** normalize abstract values for return */
+    def forReturn(
+      givenSt: AbsState,
+      func: Func,
+      entrySt: AbsState,
+    ): AbsValue =
+      given AbsState = givenSt
+      if (isTypeGuardCandidate(func)) {
+        val xs = givenSt.getImprecBases(entrySt)
+        this.forReturn(entrySt).kill(xs, update = false)
+      } else Bot.copy(this.ty)
+
+    /** normalize abstract values for return */
+    def forReturn(entrySt: AbsState): AbsValue =
+      copy(guard = guard.forReturn(entrySt.symEnv))
 
     /** get symbols */
     def bases: Set[SymBase] =
@@ -112,13 +103,14 @@ trait AbsValueDecl { self: TyChecker =>
       if pred.nonTop
     } yield kind -> pred).toMap)
 
-    /** simplify a value for a return */
-    def forReturn(using st: AbsState): AbsValue =
-      val ty = this.ty
-      val newV = copy(guard = if (guard.map.isEmpty) getTypeGuard else guard)
-      newV
-        .kill(bases.collect { case b: Local => b }, update = false)
-        .copy(guard = newV.guard.forReturn)
+    /** check whether it has a type guard */
+    def hasTypeGuard(entrySt: AbsState): Boolean =
+      (expr != Zero && expr != Many) || guard.map.exists { (kind, pred) =>
+        pred.map.exists {
+          case (x: Sym, ty) => !(entrySt.getTy(x) <= ty)
+          case _            => false
+        }
+      }
 
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {
@@ -450,13 +442,32 @@ trait AbsValueDecl { self: TyChecker =>
       "HexEscapeSequence",
     ) ++ posIntMVTyNames
 
+    def orderHelper(
+      l: AbsValue,
+      lst: AbsState,
+      r: AbsValue,
+      rst: AbsState,
+    ): Boolean =
+      val AbsValue(llty, lexpr, lguard) = l
+      val AbsValue(rlty, rexpr, rguard) = r
+      val luty = l.ty(using lst)
+      val ruty = r.ty(using rst)
+      (lguard <= rguard) && ((lexpr, rexpr) match
+        case (Zero, Zero)     => llty <= rlty
+        case (Zero, One(_))   => llty <= rlty
+        case (One(x), One(y)) => llty <= rlty && x == y
+        case (One(_), Many)   => luty <= rlty
+        case (Zero, Many)     => llty <= rlty
+        case (Many, Many)     => llty <= rlty
+        case _                => false
+      )
+
     def joinHelper(
       l: AbsValue,
       lst: AbsState,
       r: AbsValue,
       rst: AbsState,
     ): AbsValue =
-      import SymExpr.*
       val AbsValue(llty, lexpr, lguard) = l
       val AbsValue(rlty, rexpr, rguard) = r
       val luty = l.ty(using lst)
@@ -473,6 +484,30 @@ trait AbsValueDecl { self: TyChecker =>
         case (Zero, Many)               => AbsValue(llty || rlty, Many, guard)
         case (Many, Zero)               => AbsValue(llty || rlty, Many, guard)
         case (Many, Many)               => AbsValue(llty || rlty, Many, guard)
+
+    def meetHelper(
+      l: AbsValue,
+      lst: AbsState,
+      r: AbsValue,
+      rst: AbsState,
+    ): AbsValue =
+      val AbsValue(llty, lexpr, lguard) = l
+      val AbsValue(rlty, rexpr, rguard) = r
+      val luty = l.ty(using lst)
+      val ruty = r.ty(using rst)
+      val (lty, expr) = (lexpr, rexpr) match
+        case (Zero, Zero)               => (llty && rlty, Zero)
+        case (Zero, One(_))             => (llty && ruty, Zero)
+        case (One(_), Zero)             => (luty && rlty, Zero)
+        case (One(l), One(r)) if l == r => (llty && rlty, One(l))
+        case (One(_), One(_))           => (luty && ruty, Many)
+        case (One(_), Many)             => (luty && rlty, Many)
+        case (Many, One(_))             => (llty && ruty, Many)
+        case (Zero, Many)               => (llty && rlty, Many)
+        case (Many, Zero)               => (llty && rlty, Many)
+        case (Many, Many)               => (llty && rlty, Many)
+      val guard = (lguard && rguard).filter(lty)
+      AbsValue(lty, expr, guard)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) =>

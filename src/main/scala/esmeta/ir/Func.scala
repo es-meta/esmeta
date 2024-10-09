@@ -19,6 +19,9 @@ case class Func(
   /** not yet supported instructions */
   lazy val yets: List[EYet] = YetCollector(this)
 
+  /** not yet supported instructions (ignore in assertion instructions) */
+  lazy val usefulYets: List[EYet] = YetCollector(this, ignoreInAssert = true)
+
   /** check completeness */
   lazy val complete: Boolean = yets.isEmpty
 

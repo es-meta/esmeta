@@ -23,10 +23,13 @@ trait TypeGuardDecl { self: TyChecker =>
       newPred = pred.kill(bases)
       if newPred.nonTop
     } yield kind -> newPred)
+    def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
+      (kind, pred) <- map
+      newPred = pred.forReturn(symEnv)
+      if newPred.nonTop
+    } yield kind -> newPred)
     def filter(ty: ValueTy): TypeGuard =
       TypeGuard(map.filter { (kind, _) => !(kind.ty && ty).isBottom })
-    def forReturn: TypeGuard =
-      TypeGuard(map.map { (kind, pred) => kind -> pred.forReturn })
     def has(x: SymBase): Boolean = map.values.exists(_.has(x))
     def <=(that: TypeGuard): Boolean = that.map.forall { (kind, r) =>
       this.map.get(kind) match
@@ -124,15 +127,13 @@ trait TypeGuardDecl { self: TyChecker =>
       expr.fold(Set[SymBase]())(_.bases)
     def kill(bases: Set[SymBase])(using AbsState): SymPred =
       SymPred(map.filter { case (x, _) => !bases.contains(x) }, expr)
-    def forReturn: SymPred = SymPred(
-      map.collect { case (x: Sym, ty) => x -> ty },
-      None, // TODO
+    def forReturn(symEnv: Map[Sym, ValueTy]): SymPred = SymPred(
+      for {
+        case (x: Sym, ty) <- map
+        origTy = symEnv.getOrElse(x, BotT)
+      } yield x -> (origTy && ty),
+      None,
     )
-    def getImprecBases(that: SymPred): Set[SymBase] = (for {
-      (l, lty) <- this.map
-      rty = that.map.getOrElse(l, AnyT)
-      if !(rty <= lty)
-    } yield l).toSet
     override def toString: String = (new Appender >> this).toString
   }
 

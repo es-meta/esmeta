@@ -37,8 +37,12 @@ trait AbsStateDecl { self: TyChecker =>
           ) =>
         val SymPred(lmap, lexpr) = lpred
         val SymPred(rmap, rexpr) = rpred
-        llocals.forall { (x, v) => rlocals.get(x).fold(false)(v ⊑ _) } &&
-        lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty ⊑ _) } &&
+        llocals.forall { (x, lv) =>
+          rlocals.get(x).fold(false) { rv =>
+            AbsValue.orderHelper(lv, this, rv, that)
+          }
+        } &&
+        lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty <= _) } &&
         rmap.forall { (r, rty) => lmap.get(r).fold(false)(_ <= rty) } &&
         rexpr.forall { r => lexpr.fold(false)(_ == r) }
 
@@ -50,10 +54,12 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => that
       case _ if that.isBottom => this
       case _ =>
-        val lxs = this.pred.getImprecBases(that.pred)
-        val l = this.kill(lxs, update = false)
-        val rxs = that.pred.getImprecBases(this.pred)
-        val r = that.kill(rxs, update = false)
+        val (l, r) =
+          if (this.pred != that.pred)
+            val lxs = this.getImprecBases(that)
+            val rxs = that.getImprecBases(this)
+            (this.kill(lxs, update = false), that.kill(rxs, update = false))
+          else (this, that)
         val newLocals = (for {
           x <- (l.locals.keySet ++ r.locals.keySet).toList
           v = AbsValue.joinHelper(l.get(x), l, r.get(x), r)
@@ -64,6 +70,22 @@ trait AbsStateDecl { self: TyChecker =>
         } yield sym -> ty).toMap
         val newPred = l.pred || r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
+
+    /** get imprecise bases compared with another state */
+    def getImprecBases(that: AbsState): Set[SymBase] =
+      val locals = (for {
+        (x, lv) <- this.locals
+        if that.locals.get(x) match
+          case None     => true
+          case Some(rv) => !(rv.ty(using that) <= lv.ty(using this))
+      } yield x).toSet
+      val syms = (for {
+        (x, lty) <- this.symEnv
+        if that.symEnv.get(x) match
+          case None      => true
+          case Some(rty) => !(rty <= lty)
+      } yield x).toSet
+      locals ++ syms
 
     /** meet operator */
     def ⊓(that: AbsState): AbsState = (this, that) match
@@ -88,10 +110,6 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
-
-    /** simplify a state for a return */
-    def forReturn(v: AbsValue): AbsState =
-      Empty.copy(symEnv = symEnv.view.filterKeys(v.bases.contains).toMap)
 
     /** getter */
     def get(x: Var): AbsValue = x match
@@ -198,14 +216,10 @@ trait AbsStateDecl { self: TyChecker =>
       res
 
     // list lookup
-    private def lookupList(list: ListTy, field: ValueTy): ValueTy =
-      var res = BotT
-      val str = field.str
-      val math = field.math
-      list match
-        case ListTy.Top        => AnyT
-        case ListTy.Elem(elem) => elem
-        case ListTy.Bot        => BotT
+    private def lookupList(list: ListTy, field: ValueTy): ValueTy = list match
+      case ListTy.Top        => AnyT
+      case ListTy.Elem(elem) => elem
+      case ListTy.Bot        => BotT
 
     // symbol lookup
     private def lookupSymbol(symbol: Boolean, field: ValueTy): ValueTy =
