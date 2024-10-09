@@ -23,6 +23,9 @@ case class Func(
   /** arity */
   lazy val arity: (Int, Int) = irFunc.arity
 
+  /** kind */
+  lazy val kind: FuncKind = irFunc.kind
+
   /** all types */
   lazy val tys: List[Type] = retTy :: params.map(_.ty)
 
@@ -37,6 +40,12 @@ case class Func(
 
   /** not yet supported instructions */
   lazy val yets: List[EYet] = irFunc.yets
+
+  /** not yet supported instructions (ignore in assertion instructions) */
+  lazy val usefulYets: List[EYet] = irFunc.usefulYets
+
+  /** check completeness */
+  lazy val weakComplete: Boolean = usefulYets.isEmpty
 
   /** check completeness */
   lazy val complete: Boolean = irFunc.complete
@@ -81,8 +90,8 @@ case class Func(
   lazy val isMethod: Boolean =
     irFunc.kind == ConcMeth || irFunc.kind == InternalMeth
 
-  /** check whether it is a closure in a builtin function */
-  lazy val isBuiltInClo: Boolean = irFunc.kind == Builtin
+  /** check whether it is an auxiliary function */
+  lazy val isAux: Boolean = irFunc.kind == Aux
 
   private val baseNamePattern = """([^:]*)(:clo.*|:cont.*)""".r
   def baseName: String = name match

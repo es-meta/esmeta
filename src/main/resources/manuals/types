@@ -349,8 +349,12 @@ type PromiseAllResolveElementFunction extends BuiltinFunctionObject {
   AlreadyCalled: Boolean;
 }
 
+type ExoticObject extends Object {
+  Prototype?: Record[Object] | Null;
+}
+
 // https://tc39.es/ecma262/2024/#sec-bound-function-exotic-objects
-type BoundFunctionExoticObject extends Object {
+type BoundFunctionExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -370,7 +374,7 @@ type BoundFunctionExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/2024/#sec-array-exotic-objects
-type Array extends Object {
+type Array extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -382,10 +386,11 @@ type Array extends Object {
   def Set = Record[OrdinaryObject].Set;
   def Delete = Record[OrdinaryObject].Delete;
   def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
+  Prototype: Record[Object];
 }
 
 // https://tc39.es/ecma262/2024/#sec-string-exotic-objects
-type StringExoticObject extends Object {
+type StringExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -401,7 +406,7 @@ type StringExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/2024/#sec-arguments-exotic-objects
-type ArgumentsExoticObject extends Object {
+type ArgumentsExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -417,7 +422,7 @@ type ArgumentsExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/#sec-typedarray-exotic-objects
-type TypedArray extends Object {
+type TypedArray extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -438,7 +443,7 @@ type TypedArray extends Object {
 }
 
 // https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
-type ModuleNamespaceExoticObject extends Object {
+type ModuleNamespaceExoticObject extends ExoticObject {
   def GetPrototypeOf;
   def SetPrototypeOf;
   def IsExtensible;
@@ -455,7 +460,7 @@ type ModuleNamespaceExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/#sec-immutable-prototype-exotic-objects
-type ImmutablePrototypeExoticObject extends Object {
+type ImmutablePrototypeExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
@@ -470,7 +475,7 @@ type ImmutablePrototypeExoticObject extends Object {
 }
 
 // https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
-type ProxyExoticObject extends Object {
+type ProxyExoticObject extends ExoticObject {
   def GetPrototypeOf;
   def SetPrototypeOf;
   def IsExtensible;
@@ -725,7 +730,7 @@ type Date extends OrdinaryObject {
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-regexp-instances
-type RegExp extends Object {
+type RegExp extends OrdinaryObject {
   RegExpMatcher: Clo;
 }
 

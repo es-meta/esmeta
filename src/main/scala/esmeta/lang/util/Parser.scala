@@ -1314,13 +1314,27 @@ trait Parsers extends IndentParsers {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
-    "String" ^^^ StrT |
+    "String" ~ opt("which is[^,]*".r) ^^^ StrT |
     "*undefined*" ^^^ UndefT |
     "*null*" ^^^ NullT |
     "*false*" ^^^ FalseT |
     "*true*" ^^^ TrueT |
     "integer" ^^^ IntT |
     "non-negative integer" ^^^ NonNegIntT |
+    // TODO See https://tc39.es/ecma262/2024/#sec-typedarray-objects
+    // "TypedArray element type" ^^^ EnumT(
+    //   "int8",
+    //   "uint8",
+    //   "uint8clamped",
+    //   "int16",
+    //   "uint16",
+    //   "int32",
+    //   "uint32",
+    //   "bigint64",
+    //   "biguint64",
+    //   "float32",
+    //   "float64",
+    // ) |
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
     "positive integer" ^^^ PosIntT |
