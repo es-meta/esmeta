@@ -286,7 +286,7 @@ class TyChecker(
       name = "inline summary for evaluation in tsv format",
       data = Vector(
         this.iter, // iter
-        f"${time}%,d", // duration
+        time, // duration
         errors.size, // error
         this.analyzedFuncs.size, // analyzed funcs
         cfg.funcs.size, // total funcs
@@ -294,7 +294,7 @@ class TyChecker(
         cfg.nodes.size, // total nodes
         if (inferTypeGuard) typeGuards.size else 0, // guards
       ).mkString("\t"),
-      filename = s"$ANALYZE_LOG_DIR/summary.yml",
+      filename = s"$ANALYZE_LOG_DIR/summary",
       silent = silent,
     )
 
