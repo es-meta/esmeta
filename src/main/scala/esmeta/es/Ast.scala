@@ -78,28 +78,28 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => lex.loc = locOpt; lex
 
   /** safe getter */
-  def get(field: Value)(using grammar: Grammar): Option[Ast] =
+  def get(field: Value)(using spec: Spec): Option[Ast] =
     (this, field) match
       case (_, Str("parent")) => parent
       // TODO remove this case if possible
       case (syn: Syntactic, Str(fieldStr)) =>
         val Syntactic(name, _, rhsIdx, children) = syn
-        val rhs = grammar.nameMap(name).rhsList(rhsIdx)
+        val rhs = spec.grammar.nameMap(name).rhsList(rhsIdx)
         rhs.getRhsIndex(fieldStr).flatMap(children(_))
       case (syn: Syntactic, Math(n)) if n.isValidInt =>
         syn.children(n.toInt)
       case _ => None
 
   /** getter */
-  def apply(field: Value)(using Grammar): Ast =
+  def apply(field: Value)(using Spec): Ast =
     get(field).getOrElse(throw InvalidAstField(this, field))
 
   /** existence check */
-  def exists(field: Value)(using Grammar): Boolean = get(field).isDefined
+  def exists(field: Value)(using Spec): Boolean = get(field).isDefined
 
   /** get syntax-directed operation (SDO) */
   def getSdo[F <: CFGFunc | IRFunc](name: String)(using
-    grammar: Grammar,
+    spec: Spec,
     fnameMap: Map[String, F],
   ): Option[(Ast, F)] =
     chains.foldLeft[Option[(Ast, F)]](None) {
@@ -114,10 +114,10 @@ sealed trait Ast extends ESElem with Locational {
     }
 
   /** get sub index of parsed Ast */
-  def subIdx(using grammar: Grammar): Int = this match
+  def subIdx(using spec: Spec): Int = this match
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
-      grammar.nameMap.get(name).fold(0) { prod =>
+      spec.grammar.nameMap.get(name).fold(0) { prod =>
         val rhs = prod.rhsList(rhsIdx)
         val optionals = (for {
           ((_, opt), child) <- rhs.ntsWithOptional zip children if opt

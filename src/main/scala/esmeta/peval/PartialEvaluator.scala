@@ -14,8 +14,7 @@ import esmeta.peval.util.*
 import esmeta.peval.util.walker.*
 import esmeta.peval.simplifier.*
 import esmeta.state.{BigInt, *}
-import esmeta.spec.{Grammar}
-import esmeta.ty.*
+import esmeta.spec.{Spec}
 import esmeta.util.BaseUtils.{error => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.TEST_MODE
@@ -39,10 +38,8 @@ class PartialEvaluator(
 ) {
   import PartialEvaluator.*
 
-  /** control flow graphs */
-  // given CFG = cfg
-
-  given Grammar = program.spec.grammar
+  /** given spec */
+  given Spec = program.spec
 
   lazy val funcMap = Map.from(program.funcs.map(p => p.name -> p))
   lazy val getFunc = (fname: String) =>
@@ -139,7 +136,7 @@ class PartialEvaluator(
         val (pv, newExpr) = peval(expr, pst)
         pv match
           case Known(v) =>
-            val result = PartialEvaluator.eval(uop, v)
+            val result = Interpreter.eval(uop, v)
             (
               Known(result),
               result.toExprOpt match
@@ -195,7 +192,6 @@ class PartialEvaluator(
       // case EYet(msg)                                => ???
       // case ESubstring(expr, from, to)               => ???
       // case ETrim(expr, isStarting)                  => ???
-      // case EUnary(uop, expr)                        => ???
 
       // case EVariadic(vop, exprs)                    => ???
       // case EMathOp(mop, args)                       => ???
@@ -204,7 +200,7 @@ class PartialEvaluator(
       // case ETypeOf(base)                            => ???
       // case EInstanceOf(base, target)                => ???
       // case ETypeCheck(base, ty)                     => ???
-      // case EClo(fname, captured)                    => ???
+
       // case ECont(fname)                             => ???
       // case EDebug(expr)                             => ???
       // case ERandom()                                => ???
@@ -212,9 +208,9 @@ class PartialEvaluator(
       // case ELexical(name, expr)                     => ???
       // case ERecord(tname, pairs)                    => ???
       // case EMap(ty, pairs)                          => ???
-      // case EList(exprs)                             => ???
       // case ECopy(obj)                               => ???
       // case EKeys(map, intSorted)                    => ???
+
       case _ =>
         logging("expr", s"NOT SUPPORTED EXPR! $expr")
         (Unknown, RenameWalker(expr)(using renamer, pst))
@@ -314,21 +310,13 @@ class PartialEvaluator(
                     pst.define(newLhs, Unknown)
                     pst.heap.clear(vs.map(_._1)) // ...
                     Success(
-                      (
-                        ISdoCall(
-                          newLhs,
-                          newBase,
-                          method,
-                          vs.map(_._2),
-                        ),
-                        pst,
-                      ),
+                      (ISdoCall(newLhs, newBase, method, vs.map(_._2)), pst),
                     )
                 }.get
               }
 
               case lex: Lexical =>
-                val v = PartialEvaluator.eval(lex, method);
+                val v = Interpreter.eval(lex, method);
                 pst.define(newLhs, Known(v))
                 (IAssign(newLhs, v.toExpr), pst)
             }
@@ -585,8 +573,8 @@ class PartialEvaluator(
   /** type model */
   private def tyModel = program.tyModel
 
-  /** grammar */
-  private def grammar = program.spec.grammar
+  /** spec */
+  private def spec = program.spec
 
   /** itereration count */
   private var iter = 0
@@ -598,58 +586,13 @@ class PartialEvaluator(
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo =
     cached[(Ast, String), Option[(Ast, Func)]](
-      _.getSdo[Func](_)(using grammar, funcMap),
+      _.getSdo[Func](_)(using spec, funcMap),
     )
 
 }
 
 /** IR PartialEvaluator with a CFG */
 object PartialEvaluator {
-
-  /** transition for lexical SDO - copied from Interpreter.scala */
-  def eval(lex: Lexical, sdoName: String): Str | Numeric | Math | Undef = {
-    import ESValueParser.*
-    val Lexical(name, str) = lex
-    (name, sdoName) match {
-      case (_, "StringValue") if StringValue.of.contains(name) =>
-        StringValue.of(name)(str)
-      case (_, "NumericValue") if NumericValue.of.contains(name) =>
-        NumericValue.of(name)(str)
-      case (_, "MV") if MV.of.contains(name) =>
-        MV.of(name)(str)
-      case (_, "SV") if SV.of.contains(name) =>
-        SV.of(name)(str)
-      case (_, "TV") if TV.of.contains(name) =>
-        TV.of(name)(str)
-      case (_, "TRV") if TRV.of.contains(name) =>
-        TRV.of(name)(str)
-      case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(Feature)(List("RegExp"))
-      case _ =>
-        throw InvalidAstField(lex, Str(sdoName))
-    }
-  }
-
-  /** transition for unary operators */
-  def eval(uop: UOp, operand: Value): Value =
-    import UOp.*
-    (uop, operand) match
-      // mathematic values
-      case (Abs, m: Math)   => abs(m)
-      case (Floor, m: Math) => floor(m)
-      // numeric values
-      case (Neg, Number(n)) => Number(-n)
-      case (Neg, Math(n))   => Math(-n)
-      case (Neg, POS_INF)   => NEG_INF
-      case (Neg, NEG_INF)   => POS_INF
-      case (Neg, BigInt(b)) => BigInt(-b)
-      // boolean
-      case (Not, Bool(b)) => Bool(!b)
-      // bitwise
-      case (BNot, Math(n))   => Math(~(n.toInt))
-      case (BNot, Number(n)) => Number(~(n.toInt))
-      case (BNot, BigInt(b)) => BigInt(~b)
-      case (_, value)        => throw InvalidUnaryOp(uop, value)
 
   /** transition for binary operators */
   def eval(bop: BOp, left: Value, right: Value): Value =

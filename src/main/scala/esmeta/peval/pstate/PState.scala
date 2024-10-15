@@ -6,7 +6,7 @@ import esmeta.ir.*
 import esmeta.peval.*
 import esmeta.peval.pstate.*
 import esmeta.state.*
-import esmeta.spec.{Grammar}
+import esmeta.spec.{Spec}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap}
@@ -33,12 +33,12 @@ case class PState(
   inline def locals = context.locals
 
   /** getter */
-  def apply(rt: Predict[RefTarget])(using Grammar): Predict[Value] = rt match
+  def apply(rt: Predict[RefTarget])(using Spec): Predict[Value] = rt match
     case Known(rt) => apply(rt)
     case Unknown   => Unknown
 
   /** getter */
-  def apply(rt: RefTarget)(using Grammar): Predict[Value] =
+  def apply(rt: RefTarget)(using Spec): Predict[Value] =
     rt match
       case VarTarget(x)             => apply(x)
       case FieldTarget(base, field) => apply(base, field)
@@ -49,7 +49,7 @@ case class PState(
     case x: Local  => locals.getOrElse(x, throw UnknownVar(x))
 
   /** field getter */
-  def apply(base: Value, field: Value)(using Grammar): Predict[Value] =
+  def apply(base: Value, field: Value)(using Spec): Predict[Value] =
     base match
       case addr: Addr    => heap(addr, field)
       case AstValue(ast) => Known(AstValue(ast(field)))

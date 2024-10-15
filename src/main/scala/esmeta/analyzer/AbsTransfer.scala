@@ -126,7 +126,7 @@ trait AbsTransferDecl { self: Analyzer =>
     /** get syntax-directed operation (SDO) */
     val getSdo =
       cached[(Ast, String), Option[(Ast, Func)]](
-        _.getSdo(_)(using cfg.grammar, cfg.fnameMap),
+        _.getSdo(_)(using cfg.spec, cfg.fnameMap),
       )
 
     /** transfer function for normal instructions */

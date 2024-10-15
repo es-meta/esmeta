@@ -403,7 +403,7 @@ class Interpreter(
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](
-    _.getSdo(_)(using cfg.grammar, cfg.fnameMap),
+    _.getSdo(_)(using cfg.spec, cfg.fnameMap),
   )
 }
 
