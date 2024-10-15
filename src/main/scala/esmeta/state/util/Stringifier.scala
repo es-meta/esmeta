@@ -8,9 +8,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.Appender.{given, *}
 
 import esmeta.peval.*
-import esmeta.peval.pstate.PHeap
-import esmeta.peval.pstate.PObj
-import esmeta.peval.pstate.PState
+import esmeta.peval.pstate.*
 
 /** stringifier for state elements */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -68,7 +66,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // predict
-  given predictRule: Rule[Predict[?]] = (app, predict) =>
+  given predictRule[T]: Rule[Predict[T]] = (app, predict) =>
     predict match
       case Known(value: Value) => app >> value
       case Known(v)            => app >> v.toString()
@@ -101,7 +99,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // pheaps
   given pheapRule: Rule[PHeap] = (app, pheap) =>
     val PHeap(map) = pheap
-    // TODO app >> map
+    app >> map.map { case (k, v) => (k.toString, v) }
     app >> s"(SIZE = " >> map.knownSize >> ")"
 
   // objects
@@ -122,21 +120,21 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
   // pobjects
-  given pobjRule: Rule[PObj] = (app, pobj) => ???
-  // obj match
-  //   case MapObj(map) =>
-  //     app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
-  //   case RecordObj(tname, map) =>
-  //     app >> "Record"
-  //     given Rule[Iterable[(String, Value | Uninit)]] =
-  //       sortedMapRule("{", "}", " : ")
-  //     if (tname.nonEmpty) app >> "[" >> tname >> "]"
-  //     app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
-  //   case ListObj(values) =>
-  //     given Rule[List[Value]] = iterableRule("[", ", ", "]")
-  //     app >> "List" >> values.toList
-  //   case YetObj(tname, msg) =>
-  //     app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
+  given pobjRule: Rule[PObj] = (app, pobj) =>
+    pobj match
+      case PMapObj(map) =>
+        app >> "πMap " >> map.map { case (k, v) => (k.toString, v) }
+      case PRecordObj(tname, map) =>
+        app >> "πRecord"
+        given Rule[Iterable[(String, Predict[Value | Uninit])]] =
+          sortedMapRule("{", "}", " : ")
+        if (tname.nonEmpty) app >> "[" >> tname >> "]"
+        app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
+      case PListObj(values) =>
+        given Rule[List[Predict[Value]]] = iterableRule("[", ", ", "]")
+        app >> "πList" >> values.toList
+      case PYetObj(tname, msg) =>
+        app >> "πYet[" >> tname >> "](\"" >> msg >> "\")"
 
   // values
   given valueRule: Rule[Value] = (app, value) =>
