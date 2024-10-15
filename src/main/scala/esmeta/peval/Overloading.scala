@@ -1,10 +1,11 @@
 package esmeta.peval
 
 import esmeta.ir.{Func, Inst}
-import esmeta.state.{Value}
+import esmeta.state.{State, Value}
 
-class GetOverloads(map: (Iterable[Value]) => Option[String]) {
-  def apply(args: Iterable[Value]): Option[String] = map(args)
+class GetOverloads(map: (Iterable[Value], State) => Option[String]) {
+  def getByArgs(args: Iterable[Value], st: State): Option[String] =
+    map(args, st)
 }
 
-val NoOverloads = GetOverloads((_) => None)
+val NoOverloads = GetOverloads((_, _) => None)
