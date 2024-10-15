@@ -132,14 +132,17 @@ class Interpreter(
       eval(fexpr) match
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          func.irFunc.overloads.apply(vs) match
+          func.irFunc.overloads.getByArgs(vs, st) match
             case None =>
               val newLocals =
                 getLocals(func.irFunc.params, vs, call, clo) ++ captured
               st.callStack ::= CallContext(st.context, lhs)
               st.context = Context(func, newLocals)
-            case Some(newFuncName) =>
-              val newFunc = cfg.getFunc(newFuncName)
+            case Some(newN) =>
+              if (log) then
+                pw.println(s"[Interpreter] overloaded ${func.name} ~> ${newN}")
+                pw.flush
+              val newFunc = cfg.getFunc(newN)
               val newLocals =
                 // TODO : check captured's `Name` is correct
                 getLocals(newFunc.irFunc.params, vs, call, clo) ++ captured
