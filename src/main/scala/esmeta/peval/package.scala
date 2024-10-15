@@ -5,6 +5,12 @@ import esmeta.ir.*
 import esmeta.state.*
 import scala.util.{Try}
 
+extension (pv: Predict[Value]) {
+  def isKnownLiteral: Boolean = pv match
+    case Known(v) => v.isLiteralValue
+    case _        => false
+}
+
 extension (v: Value) {
 
   def toExpr: Expr = v match
