@@ -135,15 +135,31 @@ class PartialEvaluator(
                 (Known(ret), ret.toExpr)
               case v => throw InvalidSizeOf(v)
 
+      case EUnary(uop, expr) =>
+        val (pv, newExpr) = peval(expr, pst)
+        pv match
+          case Known(v) =>
+            val result = PartialEvaluator.eval(uop, v)
+            (
+              Known(result),
+              result.toExprOpt match
+                case None        => EUnary(uop, newExpr)
+                case Some(value) => value,
+            )
+          case Unknown => (Unknown, EUnary(uop, newExpr))
+
       case EBinary(bop, left, right) =>
         // TODO short circuit
         val (lv, newLeft) = peval(left, pst)
         val (rv, newRight) = peval(right, pst)
         (lv, rv) match
           case (Known(v1), Known(v2)) =>
+            val result = PartialEvaluator.eval(bop, v1, v2)
             (
-              Known(PartialEvaluator.eval(bop, v1, v2)),
-              EBinary(bop, newLeft, newRight),
+              Known(result),
+              result.toExprOpt match
+                case None        => EBinary(bop, newLeft, newRight)
+                case Some(value) => value,
             )
           case _ => (Unknown, EBinary(bop, newLeft, newRight))
 
@@ -203,7 +219,10 @@ class PartialEvaluator(
         logging("expr", s"NOT SUPPORTED EXPR! $expr")
         (Unknown, RenameWalker(expr)(using renamer, pst))
     logging("expr", s"$expr -> $result")
-    result
+    val (v, newE) = result
+    if (detail && !v.isKnownLiteral) then
+      (v, newE.addCmt(v.toString(detail = true)))
+    else (v, newE)
 
   def peval(inst: Inst, pst: PState): (Inst, PState) =
     logging(
@@ -391,7 +410,7 @@ class PartialEvaluator(
             pst.update(newVar, pv)
             (IAssign(newVar, newExpr), pst)
           case Field(_, _) =>
-            (inst, pst) // TODO
+            (RenameWalker(inst)(using renamer, pst), pst) // TODO
 
       case IPop(lhs, list, front) =>
         val newLhs = renamer.get(lhs, pst.context);
@@ -401,6 +420,15 @@ class PartialEvaluator(
           case Unknown  => pst.heap.clear // TODO : kill heap
         pst.define(newLhs, Unknown)
         (IPop(newLhs, newListExpr, front), pst)
+
+      case IPush(elem, list, front) =>
+        val (value, newElem) = peval(elem, pst)
+        val (pv, newListExpr) = peval(list, pst)
+        pv match
+          case Known(addr: Addr) => pst.heap.push(addr, value, front)
+          case Unknown           => pst.heap.clear // TODO : kill heap
+          case _                 => throwPeval"not an address"
+        (IPush(newElem, newListExpr, front), pst)
 
       case IReturn(expr) =>
         val (pv, newExpr) = peval(expr, pst)
@@ -434,8 +462,7 @@ class PartialEvaluator(
             /* Handle Return */
           }
       case IExpr(expr) => (IExpr(peval(expr, pst)._2), pst)
-      case IExpand(_, _) | IDelete(_, _) |
-          IPush(_, _, _) => /* heap modifying insts */
+      case IExpand(_, _) | IDelete(_, _) => /* heap modifying insts */
         val newInst = RenameWalker(inst)(using renamer, pst)
         pst.heap.clear
         (newInst.addCmt("not supported yet"), pst)
@@ -485,7 +512,7 @@ class PartialEvaluator(
     (newInst, newPst)
 
   /** final state */
-  def run(func: Func, pst: PState): (Inst, PState) = timeout(
+  def run(func: Func, pst: PState): (Inst, List[Param], PState) = timeout(
     {
       val inst = func.body
       val newParams = func.params.map {
@@ -493,33 +520,12 @@ class PartialEvaluator(
           Param(renamer.get(lhs, pst.context), ty, optional, specParam)
       }
       val result @ (newBody, newPst) = peval(inst, pst)
-
-      if (log) then
-        val writer = getPrintWriter(s"$PEVAL_LOG_DIR/result.ir")
-        writer.print(
-          Func(
-            func.main,
-            func.kind,
-            s"${func.name}PEvaled",
-            newParams,
-            func.retTy,
-            simplifyLevel match
-              case 0 => newBody
-              case 1 => (InstFlattener(newBody))
-              case 2 => (
-                InstFlattener(NoLiterals(newBody)),
-              )
-              case 3 => (
-                InstFlattener(NoLiterals(newBody)),
-              )
-            // TODO : add usedef
-            ,
-            func.overloads,
-            func.algo,
-          ).toString(detail = true),
-        );
-        writer.flush();
-      result
+      val simplifiedNewBody = simplifyLevel match
+        case 0 => newBody
+        case 1 => InstFlattener(newBody)
+        case 2 => InstFlattener(NoLiterals(newBody))
+        case 3 => InstFlattener(NoLiterals(newBody))
+      (simplifiedNewBody, newParams, newPst)
     },
     timeLimit,
   )
