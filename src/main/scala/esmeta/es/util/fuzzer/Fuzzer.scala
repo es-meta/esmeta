@@ -32,6 +32,7 @@ class Fuzzer(
   init: Option[String] = None,
   kFs: Int = 0,
   cp: Boolean = false,
+  dumpDetail: Int = 2, // 2: all, 1: partial, 0: no
 ) {
   import Fuzzer.*
 

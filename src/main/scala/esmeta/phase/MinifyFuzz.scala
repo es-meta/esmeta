@@ -43,6 +43,7 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
+      dumpDetail = config.dumpDetail,
     )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -109,18 +110,28 @@ case object MinifyFuzz extends Phase[CFG, Coverage] {
       StrOption((c, s) => c.init = Some(s)),
       "explicitly use the given init pool",
     ),
+    (
+      "dump-detail",
+      NumOption((c, k) =>
+        if (k < 0 || k > 2)
+          error("invalid dump detail level: please set 0 to 2")
+        else c.dumpDetail = k,
+      ),
+      "set the dump detail level (0: no, 1: partial, 2: all)",
+    ),
   )
   case class Config(
     var log: Boolean = false,
-    var logInterval: Option[Int] = Some(600), // 1 minute
+    var logInterval: Option[Int] = Some(600), // 10 minutes by default
     var out: Option[String] = None,
     var debug: Int = 0,
-    var timeLimit: Option[Int] = Some(1),
+    var timeLimit: Option[Int] = Some(1), // 1 second by default
     var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
+    var dumpDetail: Int = 2, // 2: full, 1: partial, 0: no
   )
 }
