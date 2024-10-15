@@ -43,7 +43,9 @@ case class PHeap(
 
   /** push */
   def push(addr: Addr, value: Predict[Value], front: Boolean): Unit =
-    apply(addr).map(_.push(value, front))
+    apply(addr) match
+      case Known(v) => v.push(value, front)
+      case Unknown  => clear
 
   /** pops */
   def pop(addr: Addr, front: Boolean): Predict[Value] =

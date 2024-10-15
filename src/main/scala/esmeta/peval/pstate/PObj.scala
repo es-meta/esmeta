@@ -38,8 +38,9 @@ sealed trait PObj extends StateElem {
   /** getter */
   def apply(field: Value): Predict[Value] = get(field) match
     case Some(Known(value: Value)) => Known(value)
-    case Some(Known(Uninit))       => ??? // throw
-    case _                         => ??? // throw InvalidObjField(this, field)
+    case Some(Known(Uninit))       => ??? // throw : TODO check soundness
+    case Some(Unknown)             => Unknown // TODO check soundness
+    case None                      => throwPeval"invalid get"
 
   /** setter */
   def update(field: Value, value: Predict[Value]): Unit = (this, field) match
@@ -85,7 +86,7 @@ sealed trait PObj extends StateElem {
     case l: PListObj =>
       if (front) l.values +:= value
       else l.values :+= value
-    case _ => ??? // throw InvalidObjOp(this, "push")
+    case _ => throwPeval"invalid obj op push"
 
   /** pop */
   def pop(front: Boolean): Predict[Value] = this match
