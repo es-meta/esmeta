@@ -27,6 +27,7 @@ class Interpreter(
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
+  val useOverload: Boolean = true,
 ) {
   import Interpreter.*
 
@@ -132,22 +133,22 @@ class Interpreter(
       eval(fexpr) match
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          func.irFunc.overloads.getByArgs(vs, st) match
-            case None =>
-              val newLocals =
-                getLocals(func.irFunc.params, vs, call, clo) ++ captured
-              st.callStack ::= CallContext(st.context, lhs)
-              st.context = Context(func, newLocals)
-            case Some(newN) =>
-              if (log) then
-                pw.println(s"[Interpreter] overloaded ${func.name} ~> ${newN}")
-                pw.flush
-              val newFunc = cfg.getFunc(newN)
-              val newLocals =
-                // TODO : check captured's `Name` is correct
-                getLocals(newFunc.irFunc.params, vs, call, clo) ++ captured
-              st.callStack ::= CallContext(st.context, lhs)
-              st.context = Context(newFunc, newLocals)
+          val targetFunc =
+            if (useOverload) then
+              (for {
+                oName <- func.irFunc.overloads.getByArgs(vs, st);
+                newFunc = cfg.getFunc(oName);
+                () = if (log) then
+                  pw.println(
+                    s"[Interpreter] overloaded ${func.name} ~> ${oName}",
+                  )
+                  pw.flush
+              } yield newFunc).getOrElse(func)
+            else func
+          val newLocals =
+            getLocals(targetFunc.irFunc.params, vs, call, clo) ++ captured
+          st.callStack ::= CallContext(st.context, lhs)
+          st.context = Context(targetFunc, newLocals)
 
         case cont @ Cont(func, captured, callStack) => {
           val vs = args.map(eval)
@@ -415,7 +416,9 @@ object Interpreter {
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
+    useOverload: Boolean = true,
+  ): State =
+    new Interpreter(st, log, detail, logPW, timeLimit, useOverload).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
