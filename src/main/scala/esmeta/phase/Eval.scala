@@ -34,6 +34,7 @@ case object Eval extends Phase[CFG, State] {
     detail = config.detail,
     timeLimit = config.timeLimit,
     useOverload = config.useOverload,
+    summary = config.summary,
   )
 
   def defaultConfig: Config = Config()
@@ -50,18 +51,23 @@ case object Eval extends Phase[CFG, State] {
     ),
     (
       "log",
-      BoolOption(_.log = _),
+      BoolOption((c, b) => { c.summary ||= b; c.log = b }),
       "turn on logging mode.",
     ),
     (
       "detail-log",
-      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
+      BoolOption((c, b) => { c.summary ||= b; c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
     (
       "no-overload",
       BoolOption((c, b) => { c.useOverload = !b }),
       "turn off function overloading. (overloads are created at PEval phase)",
+    ),
+    (
+      "summary",
+      BoolOption((c, b) => { c.summary = b }),
+      "turn on logging for final state.",
     ),
   )
   case class Config(
@@ -70,5 +76,6 @@ case object Eval extends Phase[CFG, State] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var useOverload: Boolean = true,
+    var summary: Boolean = false,
   )
 }

@@ -397,6 +397,7 @@ class Interpreter(
 
   /** itereration count */
   private var iter = 0
+  def getIter = iter
 
   /** logging */
   private lazy val pw: PrintWriter =
@@ -417,8 +418,17 @@ object Interpreter {
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
     useOverload: Boolean = true,
+    summary: Boolean = false,
   ): State =
-    new Interpreter(st, log, detail, logPW, timeLimit, useOverload).result
+    val itp = new Interpreter(st, log, detail, logPW, timeLimit, useOverload)
+    val ret = itp.result
+    if (summary) then
+      val summaryPW = getPrintWriter(s"$EVAL_LOG_DIR/summary")
+      summaryPW.println(
+        s"[Interpreter] summary: total iter count : ${itp.getIter}",
+      )
+      summaryPW.flush
+    ret
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
