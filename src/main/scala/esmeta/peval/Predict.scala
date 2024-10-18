@@ -2,9 +2,20 @@ package esmeta.peval
 
 import esmeta.error.PartialEvaluatorError
 import esmeta.state.StateElem
+import esmeta.util.ConcreteLattice
 
-sealed trait Predict[+A] extends IterableOnce[A] with StateElem {
+sealed trait Predict[+A]
+  extends IterableOnce[A]
+  with StateElem
+  with ConcreteLattice[A, Predict] {
   self =>
+
+  def &&[B >: A](that: => Predict[B]): Predict[B] = ??? // TODO
+  def --[B >: A](that: => Predict[B]): Predict[B] = ??? // TODO
+  def ||[B >: A](that: => Predict[B]): Predict[B] = ??? // TODO
+  def <=[B >: A](that: => Predict[B]): Boolean = ??? // TODO
+  def isBottom: Boolean = ??? // TODO
+  def isTop: Boolean = ??? // TODO
 
   final def isEmpty: Boolean = this eq Unknown
   final def isDefined: Boolean = !isEmpty
