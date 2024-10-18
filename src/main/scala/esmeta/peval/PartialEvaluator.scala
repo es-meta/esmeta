@@ -145,18 +145,42 @@ class PartialEvaluator(
             )
           case Unknown => (Unknown, EUnary(uop, newExpr))
 
+      case EBinary(BOp.And, left, right) =>
+        val (lv, newLeft) = peval(left, pst)
+        lv match
+          case Known(Bool(false)) => Known(Bool(false)) -> EBool(false)
+          case _ =>
+            val (rv, newRight) = peval(right, pst)
+            (lv, rv) match
+              case (Known(lvv), Known(rvv)) =>
+                val result = Interpreter.eval(BOp.And, lvv, rvv)
+                Known(result) ->
+                result.toExprOpt.getOrElse(EBinary(BOp.And, newLeft, newRight))
+              case _ =>
+                (Unknown, EBinary(BOp.And, newLeft, newRight))
+
+      case EBinary(BOp.Or, left, right) =>
+        val (lv, newLeft) = peval(left, pst)
+        lv match
+          case Known(Bool(true)) => Known(Bool(true)) -> EBool(true)
+          case _ =>
+            val (rv, newRight) = peval(right, pst)
+            (lv, rv) match
+              case (Known(lvv), Known(rvv)) =>
+                val result = Interpreter.eval(BOp.Or, lvv, rvv)
+                Known(result) ->
+                result.toExprOpt.getOrElse(EBinary(BOp.Or, newLeft, newRight))
+              case _ =>
+                (Unknown, EBinary(BOp.Or, newLeft, newRight))
       case EBinary(bop, left, right) =>
-        // TODO short circuit
         val (lv, newLeft) = peval(left, pst)
         val (rv, newRight) = peval(right, pst)
         (lv, rv) match
           case (Known(v1), Known(v2)) =>
-            val result = PartialEvaluator.eval(bop, v1, v2)
+            val result = Interpreter.eval(bop, v1, v2)
             (
               Known(result),
-              result.toExprOpt match
-                case None        => EBinary(bop, newLeft, newRight)
-                case Some(value) => value,
+              result.toExprOpt.getOrElse(EBinary(bop, newLeft, newRight)),
             )
           case _ => (Unknown, EBinary(bop, newLeft, newRight))
 
@@ -592,194 +616,4 @@ class PartialEvaluator(
 }
 
 /** IR PartialEvaluator with a CFG */
-object PartialEvaluator {
-
-  /** transition for binary operators */
-  def eval(bop: BOp, left: Value, right: Value): Value =
-    import BOp.*
-    (bop, left, right) match {
-      // double operations
-      case (Add, Number(l), Number(r))  => Number(l + r)
-      case (Sub, Number(l), Number(r))  => Number(l - r)
-      case (Mul, Number(l), Number(r))  => Number(l * r)
-      case (Pow, Number(l), Number(r))  => Number(math.pow(l, r))
-      case (Div, Number(l), Number(r))  => Number(l / r)
-      case (Mod, Number(l), Number(r))  => Number(l % r)
-      case (UMod, Number(l), Number(r)) => Number(l %% r)
-      case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
-        Bool(true)
-      case (Lt, Number(l), Number(r)) => Bool(l < r)
-
-      // mathematical value operations
-      case (Add, Math(l), Math(r)) => Math(l + r)
-      case (Sub, Math(l), Math(r)) => Math(l - r)
-      case (Mul, Math(l), Math(r)) => Math(l * r)
-      case (Div, Math(l), Math(r)) =>
-        // XXX rounded by DECIMAL128 to handle non-terminating decimal
-        // expansion. For example, 1 / 3 = 1.3333...
-        Math(l(DECIMAL128) / r(DECIMAL128))
-      case (Mod, Math(l), Math(r)) =>
-        val m = l % r
-        Math(if (m * r) < 0 then r + m else m)
-      case (UMod, Math(l), Math(r)) => Math(l %% r)
-      case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
-        Math(l.pow(r.toInt))
-      case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
-      // TODO consider 2's complement 32-bit strings
-      case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
-      case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)
-      case (BXOr, Math(l), Math(r)) => Math(l.toLong ^ r.toLong)
-      case (LShift, Math(l), Math(r)) =>
-        Math((l.toInt << r.toInt).toLong)
-      case (SRShift, Math(l), Math(r)) =>
-        Math((l.toInt >> r.toInt).toLong)
-      case (URShift, Math(l), Math(r)) =>
-        Math((l.toLong << 32) >>> (32 + (r.toLong % 32)))
-      case (Lt, Math(l), Math(r)) => Bool(l < r)
-
-      // extended mathematical value operations
-      case (Add, POS_INF, Math(_))          => POS_INF
-      case (Add, Math(_), POS_INF)          => POS_INF
-      case (Add, POS_INF, POS_INF)          => POS_INF
-      case (Add, NEG_INF, Math(_))          => NEG_INF
-      case (Add, Math(_), NEG_INF)          => NEG_INF
-      case (Add, NEG_INF, NEG_INF)          => NEG_INF
-      case (Sub, POS_INF, Math(_))          => POS_INF
-      case (Sub, POS_INF, NEG_INF)          => POS_INF
-      case (Sub, Math(_), POS_INF)          => NEG_INF
-      case (Sub, NEG_INF, Math(_))          => NEG_INF
-      case (Sub, NEG_INF, POS_INF)          => NEG_INF
-      case (Sub, Math(_), NEG_INF)          => POS_INF
-      case (Mul, POS_INF, Math(r)) if r > 0 => POS_INF
-      case (Mul, POS_INF, Math(r)) if r < 0 => NEG_INF
-      case (Mul, Math(l), POS_INF) if l > 0 => POS_INF
-      case (Mul, Math(l), POS_INF) if l < 0 => NEG_INF
-      case (Mul, POS_INF, POS_INF)          => POS_INF
-      case (Mul, POS_INF, NEG_INF)          => NEG_INF
-      case (Mul, NEG_INF, POS_INF)          => NEG_INF
-      case (Mul, NEG_INF, Math(r)) if r > 0 => NEG_INF
-      case (Mul, NEG_INF, Math(r)) if r < 0 => POS_INF
-      case (Mul, Math(l), NEG_INF) if l > 0 => NEG_INF
-      case (Mul, Math(l), NEG_INF) if l < 0 => POS_INF
-      case (Mul, NEG_INF, NEG_INF)          => POS_INF
-      case (Lt, POS_INF, Math(_))           => Bool(false)
-      case (Lt, Math(_), POS_INF)           => Bool(true)
-      case (Lt, NEG_INF, Math(_))           => Bool(true)
-      case (Lt, Math(_), NEG_INF)           => Bool(false)
-      case (Lt, NEG_INF, POS_INF)           => Bool(true)
-      case (Lt, POS_INF, NEG_INF)           => Bool(false)
-
-      // logical operations
-      case (And, Bool(l), Bool(r)) => Bool(l && r)
-      case (Or, Bool(l), Bool(r))  => Bool(l || r)
-      case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
-
-      // equality operations
-      case (Eq, Number(l), Number(r))     => Bool(l equals r)
-      case (Eq, AstValue(l), AstValue(r)) => Bool(l eq r)
-      case (Eq, l, r)                     => Bool(l == r)
-
-      // numeric equality operations
-      case (Equal, Math(l), Math(r))         => Bool(l == r)
-      case (Equal, Infinity(l), Infinity(r)) => Bool(l == r)
-      case (Equal, Number(l), Number(r))     => Bool(l == r)
-      case (Equal, BigInt(l), BigInt(r))     => Bool(l == r)
-      case (Equal, POS_INF, Math(_))         => Bool(false)
-      case (Equal, Math(_), POS_INF)         => Bool(false)
-      case (Equal, NEG_INF, Math(_))         => Bool(false)
-      case (Equal, Math(_), NEG_INF)         => Bool(false)
-
-      // big integers
-      case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
-      case (LShift, BigInt(l), BigInt(r))  => BigInt(l << r.toInt)
-      case (SRShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
-      case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
-      case (Mul, BigInt(l), BigInt(r))     => BigInt(l * r)
-      case (Div, BigInt(l), BigInt(r))     => BigInt(l / r)
-      case (Mod, BigInt(l), BigInt(r))     => BigInt(l % r)
-      case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
-      case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
-      case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
-      case (BOr, BigInt(l), BigInt(r))     => BigInt(l | r)
-      case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
-      case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
-
-      case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
-    }
-
-  /** transition for variadic operators */
-  def eval(vop: VOp, vs: List[Value]): Value =
-    import VOp.*
-    if (vs.isEmpty) throw InvalidVariadicOp(vop)
-    vop match
-      case Min =>
-        if (vs.contains(NEG_INF)) NEG_INF
-        else {
-          val filtered = vs.filter(_ != POS_INF)
-          if (filtered.isEmpty) POS_INF
-          else vopEval(_.asMath, _ min _, Math(_), filtered)
-        }
-      case Max =>
-        if (vs.contains(POS_INF)) POS_INF
-        else {
-          val filtered = vs.filter(_ != NEG_INF)
-          if (filtered.isEmpty) NEG_INF
-          else vopEval(_.asMath, _ min _, Math(_), filtered)
-        }
-        vopEval(_.asMath, _ max _, Math(_), vs)
-      case Concat =>
-        def toString(v: Value): String = v match
-          case Str(s)      => s
-          case CodeUnit(c) => c.toString
-          case v           => throw NoString(v)
-        vopEval(toString, _ + _, Str(_), vs)
-
-  /** transition for mathematical operators */
-  def eval(mop: MOp, vs: List[Value]): Value =
-    import math.*
-    (mop, vs) match
-      case (MOp.Expm1, List(Math(x))) => Math(expm1(x.toDouble))
-      case (MOp.Log10, List(Math(x))) => Math(log10(x.toDouble))
-      case (MOp.Log2, List(Math(x)))  => Math(log(x.toDouble) / log(2))
-      case (MOp.Cos, List(Math(x)))   => Math(cos(x.toDouble))
-      case (MOp.Cbrt, List(Math(x)))  => Math(cbrt(x.toDouble))
-      case (MOp.Exp, List(Math(x)))   => Math(exp(x.toDouble))
-      case (MOp.Cosh, List(Math(x)))  => Math(cosh(x.toDouble))
-      case (MOp.Sinh, List(Math(x)))  => Math(sinh(x.toDouble))
-      case (MOp.Tanh, List(Math(x)))  => Math(tanh(x.toDouble))
-      case (MOp.Acos, List(Math(x)))  => Math(acos(x.toDouble))
-      case (MOp.Acosh, List(Math(x))) =>
-        throw NotSupported(Metalanguage)("acosh")
-      case (MOp.Asinh, List(Math(x))) =>
-        throw NotSupported(Metalanguage)("asinh")
-      case (MOp.Atanh, List(Math(x))) =>
-        throw NotSupported(Metalanguage)("atanh")
-      case (MOp.Asin, List(Math(x))) => Math(asin(x.toDouble))
-      case (MOp.Atan2, List(Math(x), Math(y))) =>
-        Math(atan2(x.toDouble, y.toDouble))
-      case (MOp.Atan, List(Math(x)))  => Math(atan(x.toDouble))
-      case (MOp.Log1p, List(Math(x))) => Math(log1p(x.toDouble))
-      case (MOp.Log, List(Math(x)))   => Math(log(x.toDouble))
-      case (MOp.Sin, List(Math(x)))   => Math(sin(x.toDouble))
-      case (MOp.Sqrt, List(Math(x)))  => Math(sqrt(x.toDouble))
-      case (MOp.Tan, List(Math(x)))   => Math(tan(x.toDouble))
-      case _                          => throw InvalidMathOp(mop, vs)
-
-  /** the absolute value operation for mathematical values */
-  def abs(m: Math): Math = Math(m.decimal.abs)
-
-  /** the floor operation for mathematical values */
-  def floor(m: Math): Math =
-    val Math(d) = m
-    if (d.isWhole) m
-    else Math(d - (d % 1) - (if (d < 0) 1 else 0))
-
-  /** helpers for make transition for variadic operators */
-  def vopEval[T](
-    f: Value => T,
-    op: (T, T) => T,
-    g: T => Value,
-    vs: List[Value],
-  ) = g(vs.map(f).reduce(op))
-
-}
+object PartialEvaluator {}
