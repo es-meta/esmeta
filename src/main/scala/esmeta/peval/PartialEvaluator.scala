@@ -11,7 +11,6 @@ import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.peval.pstate.*
 import esmeta.peval.util.*
-import esmeta.peval.util.walker.*
 import esmeta.peval.simplifier.*
 import esmeta.state.{BigInt, *}
 import esmeta.spec.{Spec}
@@ -422,6 +421,7 @@ class PartialEvaluator(
             pst.update(newVar, pv)
             (IAssign(newVar, newExpr), pst)
           case Field(_, _) =>
+            pst.heap.clear
             (RenameWalker(inst)(using renamer, pst), pst) // TODO
 
       case IPop(lhs, list, front) =>
@@ -524,7 +524,11 @@ class PartialEvaluator(
     (newInst, newPst)
 
   /** final state */
-  def run(func: Func, pst: PState): (Inst, List[Param], PState) = timeout(
+  def run(
+    func: Func,
+    pst: PState,
+    newName: Option[String] = None,
+  ): (Func, PState) = timeout(
     {
       val inst = func.body
       val newParams = func.params.map {
@@ -537,7 +541,20 @@ class PartialEvaluator(
         case 1 => InstFlattener(newBody)
         case 2 => InstFlattener(NoLiterals(newBody))
         case 3 => ??? // InstFlattener(NoLiterals(newBody)) // TODO
-      (simplifiedNewBody, newParams, newPst)
+
+      (
+        Func(
+          func.main,
+          func.kind,
+          newName.getOrElse(func.name),
+          newParams,
+          func.retTy,
+          simplifiedNewBody,
+          func.overloads,
+          func.algo,
+        ),
+        newPst,
+      )
     },
     timeLimit,
   )
@@ -616,4 +633,62 @@ class PartialEvaluator(
 }
 
 /** IR PartialEvaluator with a CFG */
-object PartialEvaluator {}
+object PartialEvaluator {
+
+  /** prepare new Renamer and PState for partial evaluation */
+  def prepare(func: Func): (Renamer, PState) = {
+    val renamer = Renamer()
+    val thisCallCount = renamer.newCallCount
+    val pst = PState.empty(PContext.empty(func, sensitivity = thisCallCount))
+    (renamer, pst)
+  }
+
+  /** create new PState for p-evaluating `FunctionDeclarationInstantation`
+    *
+    * @param func
+    *   ir function, must be `FunctionDeclarationInstantation`.
+    * @param esFuncDecl
+    *   es function declaration to use as an argument.
+    * @return
+    *   (renamer, pst)
+    */
+  def prepareForFDI(func: Func, esFuncDecl: Ast) = {
+
+    if (func.name != FUNC_DECL_INSTANT) {
+      throw PartialEvaluatorError(
+        s"`preparePst` is only callable with  ${FUNC_DECL_INSTANT}",
+      )
+    }
+
+    val (renamer, pst) = prepare(func)
+
+    val addr_func_obj_record = renamer.newAddr
+
+    pst.allocRecord(
+      addr_func_obj_record,
+      "ECMAScriptFunctionObject",
+      List(
+        FORMAL_PARAMS -> Known(
+          AstValue(AstHelper.getChildByName(esFuncDecl, FORMAL_PARAMS)),
+        ),
+        ECMASCRIPT_CODE -> Known(
+          AstValue(AstHelper.getChildByName(esFuncDecl, FUNC_BODY)),
+        ),
+        "ThisMode" -> Known(ENUM_STRICT),
+        "Strict" -> Known(Bool(true)), // ESMeta is always strict
+      ),
+    )
+
+    pst.define(
+      renamer.get(Name("func"), pst.context),
+      Known(addr_func_obj_record),
+    )
+    pst.define(
+      renamer.get(Name("argumentsList"), pst.context),
+      Unknown,
+    );
+
+    (renamer, pst)
+  }
+
+}

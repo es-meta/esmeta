@@ -22,3 +22,13 @@ case class PContext(
   )
 
 }
+
+object PContext {
+  def empty(func: Func, sensitivity: Int): PContext =
+    PContext(
+      func,
+      sensitivity,
+      MMap(),
+      None,
+    )
+}

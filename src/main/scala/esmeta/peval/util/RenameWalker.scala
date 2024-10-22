@@ -1,4 +1,4 @@
-package esmeta.peval.util.walker
+package esmeta.peval.util
 
 import esmeta.ir.*
 import esmeta.ir.util.Walker

@@ -156,3 +156,12 @@ case class PState(
     PState(globals, callStack, newCtx, newHeap)
   }
 }
+
+object PState {
+  def empty(ctx: PContext): PState = PState(
+    globals = Map.empty, // temp fix // globals,
+    callStack = Nil,
+    context = ctx,
+    heap = PHeap(),
+  )
+}
