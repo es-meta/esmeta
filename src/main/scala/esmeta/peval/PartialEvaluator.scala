@@ -20,8 +20,9 @@ import esmeta.TEST_MODE
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import scala.annotation.tailrec
-import scala.collection.mutable.{Map => MMap}
-import scala.math.{BigInt => SBigInt}
+import scala.collection.immutable.HashMap
+import scala.collection.mutable.{Map as MMap, Set as MSet}
+import scala.math.{BigInt as SBigInt}
 import scala.util.{Try, Success}
 
 /** extensible helper of IR interpreter with a CFG */
@@ -44,7 +45,9 @@ class PartialEvaluator(
   lazy val getFunc = (fname: String) =>
     funcMap.getOrElse(fname, throw UnknownFunc(fname))
 
-  def peval(ref: Ref, pst: PState): (Predict[RefTarget], Ref) = ref match
+  def peval(ref: Ref, pst: PState)(using
+    MSet[(Var, Var)],
+  ): (Predict[RefTarget], Ref) = ref match
 
     case x: Var =>
       val newVar = renamer.get(x, pst.context)
@@ -59,7 +62,10 @@ class PartialEvaluator(
         case _                    => (Unknown)
       (tgt, Field(newBase, newField))
 
-  def peval(expr: Expr, pst: PState): (Predict[Value], Expr) =
+  def peval(expr: Expr, pst: PState)(using
+    // ad-hoc fix for EClo
+    captures: MSet[(Var, Var)],
+  ): (Predict[Value], Expr) =
     val result = expr match
       case ERef(ref) =>
         val (tgt, newRef) = peval(ref, pst);
@@ -79,6 +85,7 @@ class PartialEvaluator(
           func,
           captured.map(x => x -> pst(renamer.get(x, pst.context))).toMap,
         )
+        captures ++= captured.map(old => old -> renamer.get(old, pst.context))
         (Known(v), EClo(fname, captured))
 
       case e: LiteralExpr =>
@@ -243,7 +250,9 @@ class PartialEvaluator(
       (v, newE.addCmt(v.toString(detail = true)))
     else (v, newE)
 
-  def peval(inst: Inst, pst: PState): (Inst, PState) =
+  def peval(inst: Inst, pst: PState)(using
+    captures: MSet[(Var, Var)],
+  ): (Inst, PState) =
     logging(
       s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
       inst.toString(detail = false),
@@ -428,7 +437,7 @@ class PartialEvaluator(
         val newLhs = renamer.get(lhs, pst.context);
         val (pv, newListExpr) = peval(list, pst);
         pv match
-          case Known(_) => ??? // TODO : modify heap
+          case Known(_) => pst.heap.clear // TODO : modify heap
           case Unknown  => pst.heap.clear // TODO : kill heap
         pst.define(newLhs, Unknown)
         (IPop(newLhs, newListExpr, front), pst)
@@ -521,7 +530,14 @@ class PartialEvaluator(
       s"inst @ ${pst.context.func.name} = cs[${pst.callStack.size}]",
       s"${inst.toString(detail = false)} -> ${newInst.toString(detail = true).replace("\n", " ")}\n",
     )
-    (newInst, newPst)
+    captures.size match
+      case 0 => (newInst, newPst)
+      case _ =>
+        val assigns = ISeq(captures.toList.map {
+          case (old -> newV) => IAssign(old, ERef(newV))
+        })
+        captures.clear
+        (ISeq(assigns :: newInst :: Nil), newPst)
 
   /** final state */
   def run(
@@ -535,7 +551,7 @@ class PartialEvaluator(
         case Param(lhs, ty, optional, specParam) =>
           Param(renamer.get(lhs, pst.context), ty, optional, specParam)
       }
-      val result @ (newBody, newPst) = peval(inst, pst)
+      val result @ (newBody, newPst) = peval(inst, pst)(using MSet.empty)
       val simplifiedNewBody = simplifyLevel match
         case 0 => newBody
         case 1 => InstFlattener(newBody)
@@ -643,52 +659,121 @@ object PartialEvaluator {
     (renamer, pst)
   }
 
-  /** create new PState for p-evaluating `FunctionDeclarationInstantation`
-    *
-    * @param func
-    *   ir function, must be `FunctionDeclarationInstantation`.
-    * @param esFuncDecl
-    *   es function declaration to use as an argument.
-    * @return
-    *   (renamer, pst)
-    */
-  def prepareForFDI(func: Func, esFuncDecl: Ast) = {
+  object ForECMAScript {
 
-    if (func.name != FUNC_DECL_INSTANT) {
-      throw PartialEvaluatorError(
-        s"`preparePst` is only callable with  ${FUNC_DECL_INSTANT}",
+    /** create new PState for p-evaluating `FunctionDeclarationInstantation`
+      *
+      * @param func
+      *   ir function, must be `FunctionDeclarationInstantation`.
+      * @param esFuncDecl
+      *   es function declaration to use as an argument.
+      * @return
+      *   (renamer, pst)
+      */
+    def prepareForFDI(func: Func, esFuncDecl: Ast) = {
+
+      if (func.name != FUNC_DECL_INSTANT) {
+        throw PartialEvaluatorError(
+          s"`preparePst` is only callable with  ${FUNC_DECL_INSTANT}",
+        )
+      }
+
+      val (renamer, pst) = prepare(func)
+
+      val addr_func_obj_record = renamer.newAddr
+
+      pst.allocRecord(
+        addr_func_obj_record,
+        "ECMAScriptFunctionObject",
+        List(
+          FORMAL_PARAMS -> Known(
+            AstValue(AstHelper.getChildByName(esFuncDecl, FORMAL_PARAMS)),
+          ),
+          ECMASCRIPT_CODE -> Known(
+            AstValue(AstHelper.getChildByName(esFuncDecl, FUNC_BODY)),
+          ),
+          "ThisMode" -> Known(ENUM_STRICT),
+          "Strict" -> Known(Bool(true)), // ESMeta is always strict
+        ),
       )
+
+      pst.define(
+        renamer.get(Name("func"), pst.context),
+        Known(addr_func_obj_record),
+      )
+      pst.define(
+        renamer.get(Name("argumentsList"), pst.context),
+        Unknown,
+      );
+
+      (renamer, pst)
     }
 
-    val (renamer, pst) = prepare(func)
+    def overloadFDI(
+      program: Program,
+      overloads: List[(Func, Ast)],
+    ): Program = {
+      val funcs = program.funcs.map {
+        case f if f.name != FUNC_DECL_INSTANT => f
+        case f                                =>
+          // TODO : optimize finding matching overloads
+          val overloadsMap = {
+            val astOfOverloads = overloads.map {
+              case (func, decl) => {
+                val formalParamsOfDecl =
+                  AstHelper
+                    .getAllChildrenByName(decl, FORMAL_PARAMS)
+                    .headOption
+                    .map(AstValue.apply)
+                    .getOrElse(throwPeval"formalParams not found")
+                val ecmaScriptCodeOfDecl =
+                  AstHelper
+                    .getAllChildrenByName(decl, FUNC_BODY)
+                    .headOption
+                    .map(AstValue.apply)
+                    .getOrElse(throwPeval"ecmaScriptCode not found")
+                (func, formalParamsOfDecl, ecmaScriptCodeOfDecl)
+              }
+            }
+            HashMap.from(astOfOverloads.map {
+              case (ol, fpOfDecl, escOfDecl) => (fpOfDecl, escOfDecl) -> ol.name
+            })
+          }
 
-    val addr_func_obj_record = renamer.newAddr
-
-    pst.allocRecord(
-      addr_func_obj_record,
-      "ECMAScriptFunctionObject",
-      List(
-        FORMAL_PARAMS -> Known(
-          AstValue(AstHelper.getChildByName(esFuncDecl, FORMAL_PARAMS)),
-        ),
-        ECMASCRIPT_CODE -> Known(
-          AstValue(AstHelper.getChildByName(esFuncDecl, FUNC_BODY)),
-        ),
-        "ThisMode" -> Known(ENUM_STRICT),
-        "Strict" -> Known(Bool(true)), // ESMeta is always strict
-      ),
-    )
-
-    pst.define(
-      renamer.get(Name("func"), pst.context),
-      Known(addr_func_obj_record),
-    )
-    pst.define(
-      renamer.get(Name("argumentsList"), pst.context),
-      Unknown,
-    );
-
-    (renamer, pst)
+          val go =
+            (args: Iterable[Value], st: State) =>
+              for {
+                addr <- args.headOption.flatMap {
+                  case addr: Addr => Some(addr)
+                  case _          => None
+                }
+                record <- st(addr) match
+                  case r: RecordObj => Some(r)
+                  case _            => None
+                asts <- record
+                  .get(Str(FORMAL_PARAMS))
+                  .zip(record.get(Str(ECMASCRIPT_CODE)))
+                  .flatMap {
+                    case (v1: AstValue, v2: AstValue) => Some((v1, v2))
+                    case _                            => None
+                  }
+                fname <- overloadsMap.get(asts)
+              } yield fname
+          Func(
+            f.main,
+            f.kind,
+            f.name,
+            f.params,
+            f.retTy,
+            f.body,
+            GetOverloads(go),
+            f.algo,
+          )
+      }
+      Program(
+        List.from(overloads.map(_._1)) ::: funcs,
+        program.spec,
+      )
+    }
   }
-
 }

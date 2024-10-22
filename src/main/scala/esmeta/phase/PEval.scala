@@ -49,7 +49,7 @@ case object PEval extends Phase[Program, Program] {
     val filename = getFirstFilename(cmdConfig, name)
     val fds = {
       val ast = program.spec.scriptParser.fromFile(filename)
-      AstHelper.getAllChildrenByName(ast, FUNC_DECL)
+      AstHelper.getFuncDecls(ast)
     }
 
     /* NOTE: globals are not modified, so we can use the same globals for all overloads
@@ -63,7 +63,8 @@ case object PEval extends Phase[Program, Program] {
 
     val overloads = fds.zipWithIndex.flatMap((fd, idx) =>
 
-      val (renamer, pst) = PartialEvaluator.prepareForFDI(target, fd);
+      val (renamer, pst) =
+        PartialEvaluator.ForECMAScript.prepareForFDI(target, fd);
 
       val peval = PartialEvaluator(
         program = program,
@@ -96,73 +97,7 @@ case object PEval extends Phase[Program, Program] {
       pw.flush
       dumpTo(PEVAL_LOG_DIR, overloads.map(_._1));
 
-    overloadedProgram(program, overloads)
-  }
-  private def overloadedProgram(
-    program: Program,
-    overloads: List[(Func, Ast)],
-  ): Program = {
-    val funcs = program.funcs.map {
-      case f if f.name != TARGET_NAME => f
-      case f                          =>
-        // TODO : optimize finding matching overloads
-        val overloadsMap = {
-          val astOfOverloads = overloads.map {
-            case (func, decl) => {
-              val formalParamsOfDecl =
-                AstHelper
-                  .getAllChildrenByName(decl, FORMAL_PARAMS)
-                  .headOption
-                  .map(AstValue.apply)
-                  .getOrElse(throwPeval"formalParams not found")
-              val ecmaScriptCodeOfDecl =
-                AstHelper
-                  .getAllChildrenByName(decl, FUNC_BODY)
-                  .headOption
-                  .map(AstValue.apply)
-                  .getOrElse(throwPeval"ecmaScriptCode not found")
-              (func, formalParamsOfDecl, ecmaScriptCodeOfDecl)
-            }
-          }
-          HashMap.from(astOfOverloads.map {
-            case (ol, fpOfDecl, escOfDecl) => (fpOfDecl, escOfDecl) -> ol.name
-          })
-        }
-
-        val go =
-          (args: Iterable[Value], st: State) =>
-            for {
-              addr <- args.headOption.flatMap {
-                case addr: Addr => Some(addr)
-                case _          => None
-              }
-              record <- st(addr) match
-                case r: RecordObj => Some(r)
-                case _            => None
-              asts <- record
-                .get(Str(FORMAL_PARAMS))
-                .zip(record.get(Str(ECMASCRIPT_CODE)))
-                .flatMap {
-                  case (v1: AstValue, v2: AstValue) => Some((v1, v2))
-                  case _                            => None
-                }
-              fname <- overloadsMap.get(asts)
-            } yield fname
-        Func(
-          f.main,
-          f.kind,
-          f.name,
-          f.params,
-          f.retTy,
-          f.body,
-          GetOverloads(go),
-          f.algo,
-        )
-    }
-    Program(
-      List.from(overloads.map(_._1)) ::: funcs,
-      program.spec,
-    )
+    PartialEvaluator.ForECMAScript.overloadFDI(program, overloads)
   }
 
   def defaultConfig: Config = Config()
