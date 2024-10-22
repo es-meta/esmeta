@@ -14,14 +14,14 @@ class PEvalIRTinyTest extends PEvalTest {
     for (file <- walkTree(IR_TEST_DIR)) {
       val filename = file.getName
       if (irFilter(filename)) check(filename) {
-        PEvaluatorIrSmallTest.interpFile(file.toString)
+        PEvalIRTinyTest.interpFile(file.toString)
       }
     }
 
   init
 }
 
-object PEvaluatorIrSmallTest {
+object PEvalIRTinyTest {
   import esmeta.interpreter.Interpreter
   import esmeta.state.State
   import esmeta.cfgBuilder.CFGBuilder

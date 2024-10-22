@@ -2,9 +2,10 @@ package esmeta.peval
 
 import esmeta.*
 import esmeta.ir.NormalInsts
+import esmeta.peval.util.{AstHelper}
 import esmeta.util.SystemUtils.*
-
-import esmeta.peval.util.Renamer
+import scala.util.{Try, Success, Failure}
+import esmeta.cfgBuilder.CFGBuilder
 
 /** eval test */
 class PEvalESSmallTest extends PEvalTest {
@@ -20,22 +21,43 @@ class PEvalESSmallTest extends PEvalTest {
       val insts = NormalInsts.fromFile(irName)
 
       val ast = PEvalTest.scriptParser.fromFile(jsName)
+      val target = ESMetaTest.program.funcs
+        .find(_.name == FUNC_DECL_INSTANT)
+        .getOrElse(fail(s"target ${FUNC_DECL_INSTANT} not found in Program"))
+      val decls = AstHelper.getFuncDecls(ast)
 
-      ()
-      // PartialEvaluator(
-      //   program = ESMetaTest.program, // : Program,
-      //   log = false, // : Boolean = false,
-      //   detail = false, // : Boolean = false,
-      //   simplifyLevel = 1, // : Int = 1,
-      //   logPW = None, // : Option[PrintWriter] = None,
-      //   timeLimit = None, // : Option[Int] = None,
-      //   renamer = Renamer(), // : Renamer,
-      //   // NOTE : renamer should NOT be copied when copying PState - renamer is, specializer-level global state.
-      // ).run
+      if !decls.isEmpty then {
 
-      // PEvaluatorTest.checkExit(
-      //   PEvaluatorTest.evalFile(ESMetaTest.cfg, jsName, checkAfter = insts),
-      // )
+        val overloads = decls.zipWithIndex.flatMap((fd, idx) =>
+
+          val (renamer, pst) =
+            PartialEvaluator.ForECMAScript.prepareForFDI(target, fd);
+
+          val peval = PartialEvaluator(
+            program = ESMetaTest.program,
+            renamer = renamer,
+          )
+
+          val pevalResult = Try(
+            peval.run(
+              target,
+              pst,
+              Some(s"${target.name}${idx}"),
+            ),
+          ).map(_._1)
+
+          pevalResult match
+            case Success(newFunc)   => Some((newFunc, fd))
+            case Failure(exception) => fail(s"peval failed for FDI"), // None
+        )
+
+        val newProg = PartialEvaluator.ForECMAScript
+          .overloadFDI(ESMetaTest.program, overloads)
+
+        PEvalTest.checkExit(
+          PEvalTest.evalFile(CFGBuilder(newProg), jsName, checkAfter = insts),
+        )
+      }
     }
   }
 
