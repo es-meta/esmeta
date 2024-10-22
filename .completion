@@ -25,8 +25,10 @@ _esmeta_completions() {
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"
-  irevalOpt="-ir-eval:format -ir-eval:timeout -ir-eval:log"
   pevalOpt="-peval:log -peval:detail-log -peval:s"
+  irreadOpt=""
+  irpevalOpt="-ir-peval:timeout -ir-peval:log -ir-peval:turn-on -ir-peval:s"
+  irevalOpt="-ir-eval:format -ir-eval:timeout -ir-eval:log"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -88,7 +90,7 @@ _esmeta_completions() {
           return 0
           ;;
         ir-eval)
-          COMPREPLY=($(compgen -W "${globalOpt} ${irevalOpt}"))
+          COMPREPLY=($(compgen -W "${globalOpt} ${irreadOpt} ${irpevalOpt} ${irevalOpt}"))
           return 0
           ;;
         peval)
