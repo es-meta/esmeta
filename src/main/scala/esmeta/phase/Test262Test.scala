@@ -24,6 +24,10 @@ case object Test262Test extends Phase[CFG, Summary] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Summary =
+
+    if (config.coverage && config.peval) then
+      throw OptConflictError("-test262-test:coverage", "-test262-test:peval")
+
     // set test mode
     TEST_MODE = true
 
@@ -44,6 +48,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.timeLimit,
       config.concurrent,
+      config.peval,
     )
 
     // if summary has failed test case, throws an exception
@@ -99,6 +104,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       BoolOption(_.concurrent = _),
       "turn on concurrent mode.",
     ),
+    (
+      "peval",
+      BoolOption(_.peval = _),
+      "turn on partial evaluation. (not possible with `coverage` option)",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -110,5 +120,6 @@ case object Test262Test extends Phase[CFG, Summary] {
     var detail: Boolean = false,
     var concurrent: Boolean = false,
     var features: Option[List[String]] = None,
+    var peval: Boolean = false,
   )
 }

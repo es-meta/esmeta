@@ -14,7 +14,7 @@ case class Func(
   params: List[Param],
   retTy: Type,
   body: Inst,
-  overloads: GetOverloads = NoOverloads,
+  var overloads: GetOverloads = NoOverloads,
   var algo: Option[Algorithm] = None,
 ) extends IRElem {
 

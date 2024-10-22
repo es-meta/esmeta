@@ -155,6 +155,7 @@ case object CmdTest262Test
     "esmeta test262-test                                           # all ",
     "esmeta test262-test tests/test262/test/built-ins/Map/map.js   # file",
     "esmeta test262-test tests/test262/test/language/expressions   # directory",
+    "esmeta test262-test -test262-test:peval                       # with partial-evaluation ",
   )
   override val targetName = "<js|dir>+"
   override val needTarget = false

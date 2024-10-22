@@ -2,9 +2,10 @@ package esmeta.cfg
 
 import esmeta.*
 import esmeta.cfg.util.*
+import esmeta.cfgBuilder.CFGBuilder
 import esmeta.error.*
 import esmeta.es.Initialize
-import esmeta.ir.Program
+import esmeta.ir.{Func as IRFunc, Program}
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.*
@@ -21,6 +22,11 @@ case class CFG(
 
   /** backward edge to a program */
   var program: ir.Program = ir.Program()
+
+  /** backward edge to a CFG builder, for incremental build */
+  var cfgBuilder: Option[CFGBuilder] = None
+
+  def increment(newFs: List[IRFunc]) = cfgBuilder.map(_.increment(newFs))
 
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")

@@ -21,7 +21,7 @@ _esmeta_completions() {
   parseOpt="-parse:debug"
   evalOpt="-eval:timeout -eval:multiple -eval:log -eval:detail-log -eval:no-overload -eval:summary"
   webOpt="-web:port"
-  test262testOpt="-test262-test:target -test262-test:features -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
+  test262testOpt="-test262-test:target -test262-test:features -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent -test262-test:peval"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   analyzeOpt="-analyze:repl"

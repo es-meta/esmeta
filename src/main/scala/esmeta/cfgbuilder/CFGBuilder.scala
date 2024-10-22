@@ -25,6 +25,21 @@ class CFGBuilder(
     for { f <- program.funcs } translate(f)
     val cfg = CFG(funcs.toList)
     cfg.program = program
+    cfg.cfgBuilder = Some(this)
+    cfg
+
+  def increment(newFuncs: List[IRFunc]): CFG =
+    val newProg = Program(newFuncs ::: this.program.funcs, program.spec)
+    val newBuilder = new CFGBuilder(newProg, log) // NOTE: don't compute .result
+    // newBuilder.asiteSetter = asiteSetter // XXX ???
+    newBuilder.fidCount = this.fidCount
+    newBuilder.nidCount = this.nidCount
+    newBuilder.funcs ++= this.funcs
+    for { f <- newFuncs } newBuilder.translate(f)
+    // ListBuffer `funcs` is updated
+    val cfg = CFG(funcs.toList)
+    cfg.program = newProg
+    cfg.cfgBuilder = Some(newBuilder)
     cfg
 
   /** translate IR function to cfg function */

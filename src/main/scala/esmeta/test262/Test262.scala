@@ -15,6 +15,11 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
+import esmeta.peval.util.AstHelper
+import esmeta.peval.FUNC_DECL_INSTANT
+import esmeta.peval.PartialEvaluator
+import scala.util.{Try, Success, Failure}
+import esmeta.cfgBuilder.CFGBuilder
 
 /** data in Test262 */
 case class Test262(
@@ -111,6 +116,7 @@ case class Test262(
     useCoverage: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: Boolean = false,
+    peval: Boolean = false,
   ): Summary = {
     // extract tests from paths
     val tests: List[Test] = getTests(paths, features)
@@ -156,7 +162,14 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage)
-            evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
+            evalFile(
+              filename,
+              log && !multiple,
+              detail,
+              Some(logPW),
+              timeLimit,
+              peval,
+            )
           else cov.run(filename)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
@@ -234,10 +247,47 @@ case class Test262(
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
+    peval: Boolean = false,
   ): State =
     val ast = loadTest(filename)
     val code = ast.toString(grammar = Some(cfg.grammar)).trim
-    val st = Initialize(cfg, code, Some(ast), Some(filename))
+    val st =
+      val target = cfg.fnameMap.getOrElse(FUNC_DECL_INSTANT, ???).irFunc
+      lazy val defaultSetting = Initialize(cfg, code, Some(ast), Some(filename))
+      if (!peval) then defaultSetting
+      else {
+        AstHelper.getFuncDecls(ast) match
+          case Nil => defaultSetting
+          case decls =>
+            val overloads = decls.zipWithIndex.flatMap((fd, idx) =>
+
+              val (renamer, pst) =
+                PartialEvaluator.ForECMAScript.prepareForFDI(target, fd);
+
+              val peval = PartialEvaluator(
+                program = cfg.program,
+                renamer = renamer,
+              )
+
+              val pevalResult = Try(
+                peval.run(target, pst, Some(s"${target.name}${idx}")),
+              ).map(_._1)
+
+              pevalResult match
+                case Success(newFunc) => Some((newFunc, fd))
+                case Failure(exception) =>
+                  print("Failed to run PEval: ")
+                  exception.printStackTrace();
+                  None,
+            )
+
+            val newCfg = cfg.increment(overloads.map(_._1)).getOrElse(???)
+            PartialEvaluator.ForECMAScript.overloadFDIofCfg(
+              newCfg,
+              overloads,
+            );
+            Initialize(newCfg, code, Some(ast), Some(filename))
+      }
     Interpreter(
       st = st,
       log = log,
