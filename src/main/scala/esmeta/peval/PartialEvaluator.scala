@@ -535,8 +535,7 @@ class PartialEvaluator(
       val simplifiedNewBody = simplifyLevel match
         case 0 => newBody
         case 1 => InstFlattener(newBody)
-        case 2 =>
-          throwPeval"current implementation of NoLiterals have a bug. please try with lower option" // InstFlattener(NoLiterals(newBody))
+        case 2 => InstFlattener(NoLiterals(newBody))
         case 3 => ??? // InstFlattener(NoLiterals(newBody)) // TODO
       (simplifiedNewBody, newParams, newPst)
     },
