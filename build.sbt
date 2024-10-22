@@ -111,6 +111,10 @@ lazy val analyzerStringifyTest =
 lazy val analyzerTypeCheckTest =
   taskKey[Unit]("Launch typecheck tests for analyzer (small)")
 
+// partial evaluator
+lazy val pevalIRTest = taskKey[Unit]("Launch partial evaluator ir tests")
+lazy val pevalESTest = taskKey[Unit]("Launch partial evaluator es tests")
+
 // es
 lazy val esTest = taskKey[Unit]("Launch ECMAScript tests")
 lazy val esEvalTest = taskKey[Unit]("Launch eval tests for ECMAScript (small)")
@@ -262,6 +266,9 @@ lazy val root = project
     analyzerTypeCheckTest := (Test / testOnly)
       .toTask(" *.analyzer.TypeCheck*Test")
       .value,
+    // partial evaluator
+    pevalIRTest := (Test / testOnly).toTask(" *.peval.PEvalIR*Test").value,
+    pevalESTest := (Test / testOnly).toTask(" *.peval.PEvalES*Test").value,
     // es
     esTest := (Test / testOnly).toTask(" *.es.*Test").value,
     esEvalTest := (Test / testOnly).toTask(" *.es.Eval*Test").value,
