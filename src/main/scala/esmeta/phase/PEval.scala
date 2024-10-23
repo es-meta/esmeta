@@ -78,7 +78,7 @@ case object PEval extends Phase[Program, Program] {
         peval.run(
           target,
           pst,
-          Some(s"${target.name}${idx}"),
+          Some(s"${target.name}PEvaled${idx}"),
         ),
       ).map(_._1)
 

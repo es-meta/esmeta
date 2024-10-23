@@ -259,34 +259,33 @@ case class Test262(
         AstHelper.getFuncDecls(ast) match
           case Nil => defaultSetting
           case decls =>
-            val overloads = decls.zipWithIndex.flatMap((fd, idx) =>
+            val overloads = decls.zipWithIndex.map {
+              case (fd, idx) =>
+                val (renamer, pst) =
+                  PartialEvaluator.ForECMAScript.prepareForFDI(target, fd);
 
-              val (renamer, pst) =
-                PartialEvaluator.ForECMAScript.prepareForFDI(target, fd);
+                val peval = PartialEvaluator(
+                  program = cfg.program,
+                  renamer = renamer,
+                )
 
-              val peval = PartialEvaluator(
-                program = cfg.program,
-                renamer = renamer,
-              )
+                val pevalResult = Try(
+                  peval.run(target, pst, Some(s"${target.name}PEvaled${idx}")),
+                ).map(_._1)
 
-              val pevalResult = Try(
-                peval.run(target, pst, Some(s"${target.name}${idx}")),
-              ).map(_._1)
+                pevalResult match
+                  case Success(newFunc)   => (newFunc, fd)
+                  case Failure(exception) => throw exception
+            }
 
-              pevalResult match
-                case Success(newFunc) => Some((newFunc, fd))
-                case Failure(exception) =>
-                  print("Failed to run PEval: ")
-                  exception.printStackTrace();
-                  None,
+            val newProg =
+              PartialEvaluator.ForECMAScript.overloadFDI(cfg.program, overloads)
+            Initialize(
+              CFGBuilder(newProg, log = false),
+              code,
+              Some(ast),
+              Some(filename),
             )
-
-            val newCfg = cfg.increment(overloads.map(_._1)).getOrElse(???)
-            PartialEvaluator.ForECMAScript.overloadFDIofCfg(
-              newCfg,
-              overloads,
-            );
-            Initialize(newCfg, code, Some(ast), Some(filename))
       }
     Interpreter(
       st = st,

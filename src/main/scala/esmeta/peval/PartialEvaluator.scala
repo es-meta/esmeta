@@ -2,6 +2,7 @@ package esmeta.peval
 
 import esmeta.{PEVAL_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
+import esmeta.cfg.{Func as CFGFunc}
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}
 import esmeta.error.NotSupported.Category.{Type => _, *}
@@ -104,7 +105,16 @@ class PartialEvaluator(
         val vs = exprs.map(expr => peval(expr, pst))
         val addr = renamer.newAddr
         pst.allocList(addr, vs.map(_._1).toVector)
-        (Known(addr), EList(vs.map(_._2)))
+        (
+          Known(addr),
+          EList(
+            vs.map((pv, newExpr) =>
+              pv match
+                case Known(value) => value.toExprOpt.getOrElse(newExpr)
+                case Unknown      => newExpr,
+            ),
+          ),
+        )
 
       case ERecord(tname, pairs) =>
         val addr = renamer.newAddr
@@ -117,7 +127,18 @@ class PartialEvaluator(
           tname,
           pvs.map(_._1),
         )
-        (Known(addr), ERecord(tname, pvs.map(_._2)))
+        (
+          Known(addr),
+          ERecord(
+            tname,
+            pvs.map {
+              case ((key, pv), (_, newExpr)) =>
+                pv match
+                  case Known(value) => key -> value.toExprOpt.getOrElse(newExpr)
+                  case Unknown      => key -> newExpr
+            },
+          ),
+        )
       case ESizeOf(expr) =>
         val (pv, newE) = peval(expr, pst)
         pv match
@@ -299,23 +320,32 @@ class PartialEvaluator(
                   ret = None,
                 );
 
-                val allocations = setLocals(
-                  at = calleeCtx,
-                  params = sdo.params.map(p =>
-                    Param(
-                      renamer.get(p.lhs, calleeCtx),
-                      p.ty,
-                      p.optional,
-                      p.specParam,
-                    ),
-                  ),
+                val baseRep = renamer.newTempCount;
+                val subpath = AstHelper.getSubgraphPath(syn, ast0);
 
-                  // TODO : There is no way to print ast0 as expression this should be removed somehow
-                  /* Ad-hoc fix */
-                  args = Known(AstValue(ast0)) -> ERef(Temp(-1)) :: vs,
-                  func = sdo,
-                  isCont = false,
-                )
+                val allocations =
+                  (IAssign(Temp(baseRep), newBase)) :: setLocals(
+                    at = calleeCtx,
+                    params = sdo.params.map(p =>
+                      Param(
+                        renamer.get(p.lhs, calleeCtx),
+                        p.ty,
+                        p.optional,
+                        p.specParam,
+                      ),
+                    ),
+
+                    // TODO : There is no way to print ast0 as expression this should be removed somehow
+                    /* Ad-hoc fix */
+
+                    args = (Known(AstValue(ast0)) -> ERef(
+                      subpath.foldLeft[Ref](Temp(baseRep))((acc, idx) =>
+                        Field(acc, EMath(idx)),
+                      ),
+                    )) :: vs,
+                    func = sdo,
+                    isCont = false,
+                  )
 
                 val calleePst = {
                   val fresh = pst.copied;
@@ -336,7 +366,7 @@ class PartialEvaluator(
                         newLhs,
                         calleeCtx.ret.getOrElse(Unknown),
                       )
-                      (ISeq(List(allocations, body)), after)
+                      (ISeq(List(ISeq(allocations), body)), after)
                 }.recoverWith {
                   case NoMoreInline() =>
                     pst.define(newLhs, Unknown)
@@ -402,7 +432,7 @@ class PartialEvaluator(
                   after.context = callerCtx.ctxt
                   val retVal = calleeCtx.ret.getOrElse(throw NoReturnValue)
                   after.define(newLhs, retVal)
-                  (ISeq(List(allocations, body)), after)
+                  (ISeq(List(ISeq(allocations), body)), after)
             }.recoverWith {
               case NoMoreInline() =>
                 pst.define(newLhs, Unknown)
@@ -455,12 +485,20 @@ class PartialEvaluator(
         val (pv, newExpr) = peval(expr, pst)
         pst.callStack match
           case head :: _ =>
-            pst.context.ret = Some(pv)
-            (
-              IAssign(head.retId, newExpr)
-                .addCmt(s"<~ IReturn @ ${pst.context.func.name}"),
-              pst,
-            )
+            pst.context.ret match
+              case None =>
+                pst.context.ret = Some(pv)
+                (
+                  IAssign(head.retId, newExpr)
+                    .addCmt(s"<~ IReturn @ ${pst.context.func.name}"),
+                  pst,
+                )
+              case Some(value) =>
+                // In this case - we already have one
+                // issue : StatementListItem[1,0].TopLevelVarDeclaredNames
+                // XXX : path condition might be better
+                throw NoMoreInline()
+
           case Nil =>
             pst.context.ret = Some(pv)
             (IReturn(newExpr), pst)
@@ -504,13 +542,13 @@ class PartialEvaluator(
         val newInst = IAssert(newExpr);
         (newInst, pst)
 
-      case IWhile(cond, body) =>
+      case iwhile @ IWhile(cond, body) =>
         val (cv, _) = peval(cond, pst)
         cv match
           case Known(Bool(false)) => (INop(), pst)
           case Known(Bool(true)) =>
             val (newBody, newPst) = peval(body, pst)
-            val (rest, newPst2) = peval(inst, newPst)
+            val (rest, newPst2) = peval(iwhile, newPst)
             (ISeq(newBody :: rest :: Nil), newPst2)
           case Known(v) => throw NoBoolean(v)
           case Unknown =>
@@ -524,6 +562,8 @@ class PartialEvaluator(
               ),
               pst,
             )
+
+    // case _ => RenameWalker(inst)(using renamer, pst) -> pst
 
     logging("pst", pst)
     logging(
@@ -585,7 +625,7 @@ class PartialEvaluator(
     args: List[(Predict[Value], Expr)],
     func: Func,
     isCont: Boolean,
-  ): Inst = {
+  ): List[Inst] = {
     val map = at.locals;
     @tailrec
     def aux(
@@ -609,10 +649,7 @@ class PartialEvaluator(
           )
       }
     // reverse needed to keep order
-    ISeq(aux(Nil)(params, args).reverse.toList.filter { /* adhoc */
-      case IAssign(_, ERef(Temp(-1))) => false
-      case _                          => true
-    })
+    aux(Nil)(params, args).reverse.toList
   }
 
   private def buildLogger = (writer: PrintWriter) =>
@@ -692,8 +729,8 @@ object PartialEvaluator {
           ECMASCRIPT_CODE -> Known(
             AstValue(AstHelper.getChildByName(esFuncDecl, FUNC_BODY)),
           ),
-          "ThisMode" -> Known(ENUM_STRICT),
-          "Strict" -> Known(Bool(true)), // ESMeta is always strict
+          "ThisMode" -> Unknown, // Known(ENUM_STRICT),
+          "Strict" -> Unknown, // Known(Bool(true)), // ESMeta is always strict
         ),
       )
 
@@ -775,63 +812,6 @@ object PartialEvaluator {
         List.from(overloads.map(_._1)) ::: funcs,
         program.spec,
       )
-    }
-
-    import esmeta.cfg.CFG
-
-    /** overload FDI of CFG using muation */
-    def overloadFDIofCfg(
-      cfg: CFG,
-      overloads: List[(Func, Ast)],
-    ): Unit = {
-      val funcs = cfg.funcs.foreach {
-        case f if f.name != FUNC_DECL_INSTANT =>
-        case f                                =>
-          // TODO : optimize finding matching overloads
-          val overloadsMap = {
-            val astOfOverloads = overloads.map {
-              case (func, decl) => {
-                val formalParamsOfDecl =
-                  AstHelper
-                    .getAllChildrenByName(decl, FORMAL_PARAMS)
-                    .headOption
-                    .map(AstValue.apply)
-                    .getOrElse(throwPeval"formalParams not found")
-                val ecmaScriptCodeOfDecl =
-                  AstHelper
-                    .getAllChildrenByName(decl, FUNC_BODY)
-                    .headOption
-                    .map(AstValue.apply)
-                    .getOrElse(throwPeval"ecmaScriptCode not found")
-                (func, formalParamsOfDecl, ecmaScriptCodeOfDecl)
-              }
-            }
-            HashMap.from(astOfOverloads.map {
-              case (ol, fpOfDecl, escOfDecl) => (fpOfDecl, escOfDecl) -> ol.name
-            })
-          }
-
-          val go =
-            (args: Iterable[Value], st: State) =>
-              for {
-                addr <- args.headOption.flatMap {
-                  case addr: Addr => Some(addr)
-                  case _          => None
-                }
-                record <- st(addr) match
-                  case r: RecordObj => Some(r)
-                  case _            => None
-                asts <- record
-                  .get(Str(FORMAL_PARAMS))
-                  .zip(record.get(Str(ECMASCRIPT_CODE)))
-                  .flatMap {
-                    case (v1: AstValue, v2: AstValue) => Some((v1, v2))
-                    case _                            => None
-                  }
-                fname <- overloadsMap.get(asts)
-              } yield fname
-          f.irFunc.overloads = GetOverloads(go)
-      }
     }
   }
 }
