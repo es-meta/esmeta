@@ -51,11 +51,13 @@ class PEvalESSmallTest extends PEvalTest {
             case Failure(exception) => fail(s"peval failed for FDI"), // None
         )
 
-        val newProg = PartialEvaluator.ForECMAScript
-          .overloadFDI(ESMetaTest.program, overloads)
+        val sfMap = PartialEvaluator.ForECMAScript.genMap(overloads)
+        val newCFG = CFGBuilder
+          .byIncremental(ESMetaTest.cfg, overloads.map(_._1), sfMap)
+          .getOrElse(fail("Cfg incremental build fail"))
 
         PEvalTest.checkExit(
-          PEvalTest.evalFile(CFGBuilder(newProg), jsName, checkAfter = insts),
+          PEvalTest.evalFile(newCFG, jsName, checkAfter = insts),
         )
       }
     }

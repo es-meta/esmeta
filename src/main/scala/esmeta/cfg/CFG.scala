@@ -7,6 +7,7 @@ import esmeta.error.*
 import esmeta.es.Initialize
 import esmeta.ir.{Func as IRFunc, Program}
 import esmeta.parser.{ESParser, AstFrom}
+import esmeta.peval.{SpecializedFuncs}
 import esmeta.spec.{Spec, Grammar}
 import esmeta.ty.*
 import esmeta.util.*
@@ -25,6 +26,9 @@ case class CFG(
 
   /** backward edge to a CFG builder, for incremental build */
   var cfgBuilder: Option[CFGBuilder] = None
+
+  /** specialized function map */
+  var sfMap: Option[SpecializedFuncs] = None
 
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")

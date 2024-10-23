@@ -278,14 +278,14 @@ case class Test262(
                   case Failure(exception) => throw exception
             }
 
-            val newProg =
-              PartialEvaluator.ForECMAScript.overloadFDI(cfg.program, overloads)
-            Initialize(
-              CFGBuilder(newProg, log = false),
-              code,
-              Some(ast),
-              Some(filename),
-            )
+            val sfMap =
+              PartialEvaluator.ForECMAScript.genMap(overloads)
+            val newCfg =
+              CFGBuilder
+                .byIncremental(cfg, overloads.map(_._1), sfMap)
+                .getOrElse(???) // Cfg incremental build fail
+
+            Initialize(newCfg, code, Some(ast), Some(filename))
       }
     Interpreter(
       st = st,

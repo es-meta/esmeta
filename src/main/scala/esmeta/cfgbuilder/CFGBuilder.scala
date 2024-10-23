@@ -4,6 +4,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ir.util.AllocSiteSetter
+import esmeta.peval.{SpecializedFuncs}
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 
 /** CFG builder */
@@ -14,9 +15,27 @@ object CFGBuilder:
   ): CFG = new CFGBuilder(program).result
 
   def byIncremental(
-    program: Program,
+    from: CFG,
+    newFs: List[IRFunc],
+    sfMap: SpecializedFuncs,
     log: Boolean = false,
-  ): CFG = ???
+  ): Option[CFG] = for {
+    fromBuilder <- from.cfgBuilder
+    builder = new CFGBuilder(from.program)
+  } yield {
+    // XXX asiteSetter is not needed, right?
+    builder.funcs ++= fromBuilder.funcs
+    builder.fidCount = fromBuilder.fidCount
+    builder.nidCount = fromBuilder.nidCount
+    for { f <- newFs } builder.translate(f)
+    val cfgFs = builder.funcs.toList
+    val program = Program(cfgFs.map(_.irFunc), from.program.spec)
+    val cfg = CFG(cfgFs)
+    cfg.program = program
+    cfg.sfMap = Some(sfMap)
+    cfg.cfgBuilder = Some(builder)
+    cfg
+  }
 
 /** extensible helper of CFG builder */
 class CFGBuilder(
@@ -30,6 +49,7 @@ class CFGBuilder(
     for { f <- program.funcs } translate(f)
     val cfg = CFG(funcs.toList)
     cfg.program = program
+    cfg.sfMap = Some(program.sfMap)
     cfg.cfgBuilder = Some(this)
     cfg
 

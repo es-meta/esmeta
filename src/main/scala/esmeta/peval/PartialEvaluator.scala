@@ -746,72 +746,54 @@ object PartialEvaluator {
       (renamer, pst)
     }
 
-    /** overload FDI of Program in a immutable way */
-    def overloadFDI(
-      program: Program,
+    def genMap(
       overloads: List[(Func, Ast)],
-    ): Program = {
-      val funcs = program.funcs.map {
-        case f if f.name != FUNC_DECL_INSTANT => f
-        case f                                =>
-          // TODO : optimize finding matching overloads
-          val overloadsMap = {
-            val astOfOverloads = overloads.map {
-              case (func, decl) => {
-                val formalParamsOfDecl =
-                  AstHelper
-                    .getAllChildrenByName(decl, FORMAL_PARAMS)
-                    .headOption
-                    .map(AstValue.apply)
-                    .getOrElse(throwPeval"formalParams not found")
-                val ecmaScriptCodeOfDecl =
-                  AstHelper
-                    .getAllChildrenByName(decl, FUNC_BODY)
-                    .headOption
-                    .map(AstValue.apply)
-                    .getOrElse(throwPeval"ecmaScriptCode not found")
-                (func, formalParamsOfDecl, ecmaScriptCodeOfDecl)
-              }
-            }
-            HashMap.from(astOfOverloads.map {
-              case (ol, fpOfDecl, escOfDecl) => (fpOfDecl, escOfDecl) -> ol.name
-            })
-          }
+    ): SpecializedFuncs = {
 
-          val go =
-            (args: Iterable[Value], st: State) =>
-              for {
-                addr <- args.headOption.flatMap {
-                  case addr: Addr => Some(addr)
-                  case _          => None
-                }
-                record <- st(addr) match
-                  case r: RecordObj => Some(r)
-                  case _            => None
-                asts <- record
-                  .get(Str(FORMAL_PARAMS))
-                  .zip(record.get(Str(ECMASCRIPT_CODE)))
-                  .flatMap {
-                    case (v1: AstValue, v2: AstValue) => Some((v1, v2))
-                    case _                            => None
-                  }
-                fname <- overloadsMap.get(asts)
-              } yield fname
-          Func(
-            f.main,
-            f.kind,
-            f.name,
-            f.params,
-            f.retTy,
-            f.body,
-            SpecializedFuncs(Map(f.name -> go)),
-            f.algo,
-          )
+      // TODO : optimize finding matching overloads
+      val overloadsMap = {
+        val astOfOverloads = overloads.map {
+          case (func, decl) => {
+            val formalParamsOfDecl =
+              AstHelper
+                .getAllChildrenByName(decl, FORMAL_PARAMS)
+                .headOption
+                .map(AstValue.apply)
+                .getOrElse(throwPeval"formalParams not found")
+            val ecmaScriptCodeOfDecl =
+              AstHelper
+                .getAllChildrenByName(decl, FUNC_BODY)
+                .headOption
+                .map(AstValue.apply)
+                .getOrElse(throwPeval"ecmaScriptCode not found")
+            (func, formalParamsOfDecl, ecmaScriptCodeOfDecl)
+          }
+        }
+        HashMap.from(astOfOverloads.map {
+          case (ol, fpOfDecl, escOfDecl) => (fpOfDecl, escOfDecl) -> ol.name
+        })
       }
-      Program(
-        List.from(overloads.map(_._1)) ::: funcs,
-        program.spec,
-      )
+
+      val go =
+        (args: Iterable[Value], st: State) =>
+          for {
+            addr <- args.headOption.flatMap {
+              case addr: Addr => Some(addr)
+              case _          => None
+            }
+            record <- st(addr) match
+              case r: RecordObj => Some(r)
+              case _            => None
+            asts <- record
+              .get(Str(FORMAL_PARAMS))
+              .zip(record.get(Str(ECMASCRIPT_CODE)))
+              .flatMap {
+                case (v1: AstValue, v2: AstValue) => Some((v1, v2))
+                case _                            => None
+              }
+            fname <- overloadsMap.get(asts)
+          } yield fname
+      SpecializedFuncs(Map(FUNC_DECL_INSTANT -> go))
     }
   }
 }

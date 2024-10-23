@@ -13,7 +13,8 @@ class SpecializedFuncs(
     args: Iterable[Value],
     st: State,
   ): Option[String] =
-    map(funcName)(args, st)
+    map.get(funcName).flatMap(_(args, st))
+
 }
 
 object SpecializedFuncs {

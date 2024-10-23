@@ -136,11 +136,7 @@ class Interpreter(
           val targetFunc =
             if (useOverload) then
               (for {
-                oName <- func.irFunc.specializedFuncs.getByArgs(
-                  func.name,
-                  vs,
-                  st,
-                );
+                oName <- cfg.sfMap.flatMap(_.getByArgs(func.name, vs, st))
                 newFunc = cfg.getFunc(oName);
                 () = if (log) then
                   pw.println(

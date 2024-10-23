@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.peval.{SpecializedFuncs}
 import esmeta.spec.{Spec}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*

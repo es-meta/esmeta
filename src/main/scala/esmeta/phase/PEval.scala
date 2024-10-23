@@ -97,7 +97,10 @@ case object PEval extends Phase[Program, Program] {
       pw.flush
       dumpTo(PEVAL_LOG_DIR, overloads.map(_._1));
 
-    PartialEvaluator.ForECMAScript.overloadFDI(program, overloads)
+    val sfMap = PartialEvaluator.ForECMAScript.genMap(overloads)
+    val newProg = Program(overloads.map(_._1) ::: program.funcs, program.spec)
+    newProg.sfMap = sfMap
+    newProg
   }
 
   def defaultConfig: Config = Config()

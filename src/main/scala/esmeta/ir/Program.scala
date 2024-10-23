@@ -3,6 +3,7 @@ package esmeta.ir
 import esmeta.*
 import esmeta.ir.util.{Parser, YetCollector}
 import esmeta.parser.{ESParser, AstFrom}
+import esmeta.peval.{SpecializedFuncs}
 import esmeta.spec.Spec
 import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
@@ -16,6 +17,9 @@ case class Program(
 
   /** backward edge to a specification */
   var spec: Spec = Spec()
+
+  /** specialized function map */
+  var sfMap: SpecializedFuncs = SpecializedFuncs.EMPTY
 
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.main, "main function")
