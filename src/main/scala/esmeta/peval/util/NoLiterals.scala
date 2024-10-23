@@ -23,17 +23,11 @@ class NoLiterals private () {
       case rest: Var         => vars += rest
 
     override def walk(x: Name): Unit = vars += x
-
-    def walkLeftRef(ref: Ref): Unit = ref match
-      case Field(base, expr) => walk(base); walk(expr)
-      case Global(name)      => // only exclude immediate-name vars
-      case Name(name)        =>
-      case Temp(idx)         =>
-
     override def walk(inst: Inst): Unit = inst match
-      case IExpr(expr)              => walk(expr)
-      case ILet(_, expr)            => walk(expr)
-      case IAssign(ref, expr)       => walkLeftRef(ref); walk(expr)
+      case IExpr(expr)   => walk(expr)
+      case ILet(_, expr) => walk(expr)
+      case IAssign(ref, expr) =>
+        if ref.isPure then () else walk(ref); walk(expr)
       case IExpand(base, expr)      => walk(base); walk(expr)
       case IDelete(base, expr)      => walk(base); walk(expr)
       case IPush(elem, list, front) => walk(elem); walk(list); walk(front)
