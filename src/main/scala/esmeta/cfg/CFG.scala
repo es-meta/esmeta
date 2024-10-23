@@ -26,8 +26,6 @@ case class CFG(
   /** backward edge to a CFG builder, for incremental build */
   var cfgBuilder: Option[CFGBuilder] = None
 
-  def increment(newFs: List[IRFunc]) = cfgBuilder.map(_.increment(newFs))
-
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
 
