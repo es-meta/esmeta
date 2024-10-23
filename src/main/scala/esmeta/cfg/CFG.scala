@@ -30,6 +30,30 @@ case class CFG(
   /** specialized function map */
   var sfMap: Option[SpecializedFuncs] = None
 
+  var computeMain: (List[Func]) => Func = (fs: List[Func]) =>
+    getUnique(fs, _.irFunc.main, "main function")
+
+  var computeFuncMap: (List[Func]) => Map[Int, Func] = (fs: List[Func]) =>
+    (for (func <- fs) yield func.id -> func).toMap
+
+  var computeFnameMap: (List[Func]) => Map[String, Func] = (fs: List[Func]) =>
+    (for (func <- fs) yield func.irFunc.name -> func).toMap
+
+  var computeNodes: (List[Func]) => List[Node] = (fs: List[Func]) =>
+    fs.flatMap(_.nodes)
+
+  var computeNodesMap: (List[Func]) => Map[Int, Node] = (fs: List[Func]) =>
+    (for {
+      func <- fs
+      node <- func.nodes
+    } yield node.id -> node).toMap
+
+  var computeFuncOf: (List[Func]) => Map[Node, Func] = (fs: List[Func]) =>
+    (for {
+      func <- fs
+      node <- func.nodes
+    } yield node -> func).toMap
+
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
 

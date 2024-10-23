@@ -14,6 +14,7 @@ object CFGBuilder:
     log: Boolean = false,
   ): CFG = new CFGBuilder(program).result
 
+  /* incremental CFG build for FDI */
   def byIncremental(
     from: CFG,
     newFs: List[IRFunc],
@@ -24,13 +25,36 @@ object CFGBuilder:
     builder = new CFGBuilder(from.program)
   } yield {
     // XXX asiteSetter is not needed, right?
-    builder.funcs ++= fromBuilder.funcs
     builder.fidCount = fromBuilder.fidCount
     builder.nidCount = fromBuilder.nidCount
+
     for { f <- newFs } builder.translate(f)
-    val cfgFs = builder.funcs.toList
-    val program = Program(cfgFs.map(_.irFunc), from.program.spec)
-    val cfg = CFG(cfgFs)
+
+    val newCfgFs = List.from(builder.funcs)
+    builder.funcs.prependAll(fromBuilder.funcs)
+    val totalCfgFs = List.from(builder.funcs)
+    val program = Program(totalCfgFs.map(_.irFunc), from.program.spec)
+    val cfg = CFG(
+      totalCfgFs,
+    )
+
+    cfg.computeMain = (_) => from.main
+    cfg.computeFuncMap = (_) =>
+      from.funcMap ++ (for (func <- newCfgFs)
+        yield func.id -> func)
+    cfg.computeFnameMap = (_) =>
+      from.fnameMap ++ (for (func <- newCfgFs)
+        yield func.irFunc.name -> func)
+    cfg.computeNodes = (_) => from.nodes ++ newCfgFs.flatMap(_.nodes)
+    cfg.computeNodesMap = (_) =>
+      from.nodeMap ++ (for {
+        func <- newCfgFs; node <- func.nodes
+      } yield node.id -> node)
+    cfg.computeFuncOf = (_) =>
+      from.funcOf ++ (for {
+        func <- newCfgFs; node <- func.nodes
+      } yield node -> func)
+
     cfg.program = program
     cfg.sfMap = Some(sfMap)
     cfg.cfgBuilder = Some(builder)
