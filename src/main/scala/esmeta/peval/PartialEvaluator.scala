@@ -606,7 +606,7 @@ class PartialEvaluator(
           newParams,
           func.retTy,
           simplifiedNewBody,
-          func.overloads,
+          func.specializedFuncs,
           func.algo,
         ),
         newPst,
@@ -804,7 +804,7 @@ object PartialEvaluator {
             f.params,
             f.retTy,
             f.body,
-            GetOverloads(go),
+            SpecializedFuncs(Map(f.name -> go)),
             f.algo,
           )
       }
