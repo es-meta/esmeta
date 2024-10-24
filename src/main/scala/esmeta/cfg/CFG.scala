@@ -55,7 +55,7 @@ case class CFG(
     } yield node -> func).toMap
 
   /** the main function */
-  lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
+  lazy val main: Func = computeMain(funcs)
 
   /** an ECMAScript parser */
   lazy val esParser: ESParser = program.esParser
@@ -65,27 +65,19 @@ case class CFG(
   lazy val init: Initialize = new Initialize(this)
 
   /** mapping from fid to functions */
-  lazy val funcMap: Map[Int, Func] =
-    (for (func <- funcs) yield func.id -> func).toMap
+  lazy val funcMap: Map[Int, Func] = computeFuncMap(funcs)
 
   /** mapping from function names to functions */
-  lazy val fnameMap: Map[String, Func] =
-    (for (func <- funcs) yield func.irFunc.name -> func).toMap
+  lazy val fnameMap: Map[String, Func] = computeFnameMap(funcs)
 
   /** all nodes */
-  lazy val nodes: List[Node] = funcs.flatMap(_.nodes)
+  lazy val nodes: List[Node] = computeNodes(funcs)
 
   /** mapping from nid to nodes */
-  lazy val nodeMap: Map[Int, Node] = (for {
-    func <- funcs
-    node <- func.nodes
-  } yield node.id -> node).toMap
+  lazy val nodeMap: Map[Int, Node] = computeNodesMap(funcs)
 
   /** mapping from nodes to functions */
-  lazy val funcOf: Map[Node, Func] = (for {
-    func <- funcs
-    node <- func.nodes
-  } yield node -> func).toMap
+  lazy val funcOf: Map[Node, Func] = computeFuncOf(funcs)
 
   /** get a type model */
   lazy val tyModel: TyModel = spec.tyModel
