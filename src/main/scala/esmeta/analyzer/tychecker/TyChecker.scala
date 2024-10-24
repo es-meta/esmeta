@@ -17,6 +17,7 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
+  val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
   val log: Boolean = false,
@@ -244,6 +245,10 @@ class TyChecker(
       name = "summary of type analysis",
       data = {
         var info = Vector(
+          "options" -> Map(
+            "typeSens" -> typeSens,
+            "inferTypeGuard" -> inferTypeGuard,
+          ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
           "iter" -> iter,
@@ -322,7 +327,7 @@ class TyChecker(
       )
       dumpFile(
         name = "node ids for error points",
-        data = errors.toList.map(_.point.node.id).sorted.mkString(LINE_SEP),
+        data = errors.toList.sorted.map(_.point.node.id).mkString(LINE_SEP),
         filename = s"$ANALYZE_LOG_DIR/error-nodes",
         silent = silent,
       )
@@ -390,13 +395,6 @@ class TyChecker(
     if (!silent) println(s"- ${funcs.size} functions are initial targets.")
     funcs
 
-  /** all entry node points */
-  private def getNps(targets: List[Func]): List[NodePoint[Node]] = for {
-    func <- targets
-    entry = func.entry
-    view = getView(func)
-  } yield NodePoint(func, entry, view)
-
   /** update internal map */
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
     val (np, newSt) = pair
@@ -405,16 +403,6 @@ class TyChecker(
     if (!newSt.hasBottom && !(newSt ⊑ oldSt))
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np
-
-  /** get view from a function */
-  private def getView(func: Func): View = emptyView
-
-  /** get initial state of function */
-  private def getState(func: Func): AbsState =
-    val locals = func.params.map {
-      case Param(x, ty, _, _) => x -> AbsValue(ty.ty.toValue)
-    }
-    getCalleeState(AbsState.Empty, locals)
 
   /** get callee state */
   def getCalleeState(
@@ -437,11 +425,20 @@ class TyChecker(
   /** get initial abstract states in each node point */
   private def getInitNpMap(
     targets: List[Func],
-  ): Map[NodePoint[Node], AbsState] =
-    (for {
-      np @ NodePoint(func, _, _) <- getNps(targets)
-      st = getState(func)
-    } yield np -> st).toMap
+  ): Map[NodePoint[Node], AbsState] = (for {
+    func <- targets
+    entry = func.entry
+    (view, st) <- getViewWithSt(func)
+    np = NodePoint(func, entry, view)
+  } yield np -> st).toMap
+
+  private def getViewWithSt(func: Func): List[(View, AbsState)] =
+    val pairs = func.params.map {
+      case Param(x, ty, _, _) => x -> ty.ty.toValue
+    }
+    val locals = pairs.map { (x, v) => x -> AbsValue(v) }
+    val view = if (typeSens) View(pairs.map(_._2)) else emptyView
+    List(view -> getCalleeState(AbsState.Empty, locals))
 
   /** initialization of ECMAScript environment */
   lazy val init: Initialize = new Initialize(cfg)
@@ -461,7 +458,7 @@ class TyChecker(
   /** detected type errors */
   def errors: Set[TypeError] = errorMap.values.toSet
   protected def addError(error: TypeError): Unit =
-    errorMap += error.point -> error
+    errorMap += error.point.noView -> error
   private var errorMap: Map[TypeErrorPoint, TypeError] = Map()
 
   /** detected type errors after filtering with ignore set */

@@ -95,11 +95,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       } {
         val callerSt = callInfo(callerNp)
         val newV = instantiate(value, callerNp)
-        analyzer += nextNp -> callerSt.update(
-          callerNp.node.lhs,
-          newV,
-          refine = false,
-        )
+        val nextSt = callerSt.update(callerNp.node.lhs, newV, refine = false)
+        analyzer += nextNp -> nextSt
       }
     }
 
@@ -134,7 +131,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             for {
               fid <- fty.cont.toIterable(stop = false)
               f <- cfg.funcMap.get(fid)
-              tgt = NodePoint(f, f.entry, emptyView)
+              view = if (typeSens) View(vs.map(_.ty)) else emptyView
+              tgt = NodePoint(f, f.entry, view)
             } {
               val callPoint = CallPoint(callerNp, f)
               val captured: Map[Name, AbsValue] = Map() // TODO
@@ -285,10 +283,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       locals: List[(Local, AbsValue)],
     ): List[(View, List[(Local, AbsValue)])] = {
       given AbsState = getResult(callerNp)
-      List(emptyView -> (for {
-        (local, value) <- locals
-      } yield local -> AbsValue(value.ty)))
+      if (typeSens) {
+        val tys = locals.map { (_, value) => value.ty }
+        val xs = locals.map { (x, _) => x }
+        for {
+          ts <- toAtomic(tys)
+          view = View(ts)
+          newLocals = xs zip ts.map(AbsValue(_))
+        } yield view -> newLocals
+      } else List(emptyView -> locals.map { (x, v) => x -> AbsValue(v.ty) })
     }
+
+    def toAtomic(tys: List[ValueTy]): List[List[ValueTy]] = tys match
+      case Nil => List(Nil)
+      case head :: tail =>
+        val tails = toAtomic(tail)
+        for {
+          h <- head.toAtomicTys
+          t <- tails
+        } yield h :: t
 
     /** propagate callee analysis result */
     def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit = {
@@ -1145,8 +1158,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val map = argsInfo.zipWithIndex.map {
         case ((e, v), i) =>
           i -> (toSymRef(e, v) match
-            case Some(ref) => AbsValue(expr = One(SERef(ref)))
-            case None      => v
+            case Some(ref) if inferTypeGuard => AbsValue(expr = One(SERef(ref)))
+            case _                           => v
           )
       }.toMap
       val newV = instantiate(value, map)

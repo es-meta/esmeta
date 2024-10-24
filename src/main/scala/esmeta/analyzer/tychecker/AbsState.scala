@@ -336,6 +336,7 @@ trait AbsStateDecl { self: TyChecker =>
 
     // appender generator
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
+      import esmeta.ir.given
       if (!elem.isBottom) {
         val AbsState(reachable, locals, symEnv, pred) = elem
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")

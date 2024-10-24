@@ -5,11 +5,14 @@ import esmeta.util.Appender.*
 trait ViewLikeDecl { self: Analyzer =>
 
   /** view abstraction for analysis sensitivities */
-  trait ViewLike extends AnalyzerElem {
+  trait ViewLike {
 
     /** empty check */
     def isEmpty: Boolean
   }
+
+  /** appender */
+  given viewRule: Rule[View]
 
   /** empty view */
   val emptyView: View

@@ -21,13 +21,17 @@ trait ControlPointDecl { self: Analyzer =>
     func: Func,
     node: T,
     view: View,
-  ) extends ControlPoint
+  ) extends ControlPoint {
+    inline def noView: NodePoint[T] = copy(view = emptyView)
+  }
 
   /** return points */
   case class ReturnPoint(
     func: Func,
     view: View,
-  ) extends ControlPoint
+  ) extends ControlPoint {
+    inline def noView: ReturnPoint = copy(view = emptyView)
+  }
 
   given Ordering[ControlPoint] = Ordering.by(_ match
     case NodePoint(f, n, _) => (f.id, n.id)

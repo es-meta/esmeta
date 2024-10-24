@@ -57,6 +57,7 @@ trait TypeErrorDecl { self: Analyzer =>
     def view: View
     def func: Func
     def node: Node
+    def noView: TypeErrorPoint
     def isBuiltin: Boolean = func.isBuiltin
   }
 
@@ -68,6 +69,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = callerNp.view
     inline def func = callerNp.func
     inline def node = callerNp.node
+    inline def noView: CallPoint = copy(callerNp = callerNp.noView)
   }
 
   /** argument assignment points */
@@ -79,6 +81,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def func = callPoint.func
     inline def node = callPoint.node
     inline def param = callPoint.callee.params(idx)
+    inline def noView: ArgAssignPoint = copy(callPoint = callPoint.noView)
   }
 
   /** internal return points */
@@ -89,6 +92,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = returnNp.view
     inline def func = returnNp.func
     inline def node = returnNp.node
+    inline def noView: InternalReturnPoint = copy(returnNp = returnNp.noView)
   }
 
   /** base in field reference points */
@@ -98,6 +102,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = fieldPoint.view
     inline def func = fieldPoint.func
     inline def node = fieldPoint.node
+    inline def noView: FieldBasePoint = copy(fieldPoint = fieldPoint.noView)
   }
 
   /** field reference points */
@@ -108,6 +113,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = nodePoint.view
     inline def func = nodePoint.func
     inline def node = nodePoint.node
+    inline def noView: FieldPoint = copy(nodePoint = nodePoint.noView)
   }
 
   /** unary operation points */
@@ -118,6 +124,7 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = nodePoint.view
     inline def func = nodePoint.func
     inline def node = nodePoint.node
+    inline def noView: UnaryOpPoint = copy(nodePoint = nodePoint.noView)
   }
 
   /** binary operation points */
@@ -128,5 +135,6 @@ trait TypeErrorDecl { self: Analyzer =>
     inline def view = nodePoint.view
     inline def func = nodePoint.func
     inline def node = nodePoint.node
+    inline def noView: BinaryOpPoint = copy(nodePoint = nodePoint.noView)
   }
 }

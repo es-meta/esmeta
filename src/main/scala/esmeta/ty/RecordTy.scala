@@ -172,6 +172,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def normalized: RecordTy = this match
     case Top       => Top
     case Elem(map) => Elem(map.map(normalize))
+
+  /** to list of atomic record types */
+  def toAtomicTys: List[RecordTy] = this match
+    case Top       => List(Top)
+    case Elem(map) => map.toList.map { (t, fm) => Elem(Map(t -> fm)) }
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
