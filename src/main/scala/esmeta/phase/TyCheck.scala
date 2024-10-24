@@ -23,6 +23,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       cfg = cfg,
       targetPattern = config.target,
       inferTypeGuard = config.inferTypeGuard,
+      typeSens = config.typeSens,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
@@ -73,11 +74,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "logging mode with detailed information.",
     ),
-    // ( TODO: not yet supported
-    //   "type-sens",
-    //   BoolOption(_.typeSens = _),
-    //   "type sensitivity (not-yet supported).",
-    // ),
+    (
+      "type-sens",
+      BoolOption(_.typeSens = _),
+      "type sensitivity for arguments.",
+    ),
     (
       "infer-guard",
       BoolOption(_.inferTypeGuard = _),
@@ -92,7 +93,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     var replContinue: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
-    // TODO var typeSens: Boolean = false,
+    var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
   )
 }

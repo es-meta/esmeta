@@ -79,6 +79,12 @@ enum AstTy extends TyElem with Lattice[AstTy] {
       case Top               => true
       case Simple(names)     => names.exists(ast.types.contains)
       case Detail(name, idx) => ast.name == name && ast.idx == idx
+
+  /** to list of atomic AST types */
+  def toAtomicTys: List[AstTy] = this match
+    case Top               => List(Top)
+    case Simple(names)     => names.toList.map(x => Simple(Set(x)))
+    case Detail(name, idx) => List(Detail(name, idx))
 }
 object AstTy extends Parser.From(Parser.astTy) {
   lazy val Bot: Simple = Simple(Set())

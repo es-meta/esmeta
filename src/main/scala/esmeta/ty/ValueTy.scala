@@ -321,6 +321,53 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     if (!(this -- ESValueT).isBottom) names += "SpecType"
     names
   }
+
+  /** to list of atomic types */
+  def toAtomicTys: List[ValueTy] = this match {
+    case ValueTopTy => List(ValueTopTy)
+    case ValueElemTy(
+          clo,
+          cont,
+          record,
+          map,
+          list,
+          ast,
+          grammarSymbol,
+          codeUnit,
+          enumv,
+          math,
+          infinity,
+          number,
+          bigInt,
+          str,
+          bool,
+          undef,
+          nullv,
+        ) =>
+      var tys: Vector[ValueTy] = Vector()
+      if (!clo.isBottom) tys :+= ValueElemTy(clo = clo)
+      if (!cont.isBottom) tys :+= ValueElemTy(cont = cont)
+      tys ++= record.toAtomicTys.map(record => ValueElemTy(record = record))
+      if (!map.isBottom) tys :+= ValueElemTy(map = map)
+      if (!list.isBottom) tys :+= ValueElemTy(list = list)
+      tys ++= ast.toAtomicTys.map(ast => ValueElemTy(ast = ast))
+      grammarSymbol match
+        case Inf    => tys :+= ValueElemTy(grammarSymbol = Inf)
+        case Fin(s) => tys ++= s.map(g => ValueElemTy(grammarSymbol = Fin(g)))
+      if (codeUnit) tys :+= ValueElemTy(codeUnit = true)
+      enumv match
+        case Inf    => tys :+= ValueElemTy(enumv = Inf)
+        case Fin(s) => tys ++= s.map(e => ValueElemTy(enumv = Fin(e)))
+      tys ++= math.toAtomicTys.map(math => ValueElemTy(math = math))
+      if (!infinity.isBottom) tys :+= ValueElemTy(infinity = InfinityTy.Top)
+      if (!number.isBottom) tys :+= ValueElemTy(number = NumberTy.Top)
+      if (bigInt) tys :+= ValueElemTy(bigInt = true)
+      if (!str.isBottom) tys :+= ValueElemTy(str = Inf)
+      if (!bool.isBottom) tys :+= ValueElemTy(bool = BoolTy.Top)
+      if (undef) tys :+= ValueElemTy(undef = true)
+      if (nullv) tys :+= ValueElemTy(nullv = true)
+      tys.toList
+  }
 }
 
 case object ValueTopTy extends ValueTy {

@@ -318,6 +318,20 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case PosIntTy       => true
     case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal > 0)
     case _              => false
+
+  /** to list of atomic math types */
+  def toAtomicTys: List[MathTy] = this match
+    case MathSetTy(set) =>
+      set
+        .map(n =>
+          if (n.decimal.isWhole)
+            if (n.decimal < 0) NegIntTy
+            else if (n.decimal > 0) PosIntTy
+            else MathSetTy(Set(Math.zero))
+          else MathTopTy,
+        )
+        .toList
+    case _ => List(this)
 }
 
 /** mathematical value types */
