@@ -1005,7 +1005,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           v <-
             if (b.ty <= RealmT) {
-              pure(AbsValue(cfg.init.intr.kinds.getOrElse(name, ObjectT)))
+              val ty = cfg.init.intr.kinds.getOrElse(
+                name,
+                if (name.startsWith("%Symbol.")) SymbolT else ObjectT,
+              )
+              pure(AbsValue(ty))
             } else transfer(base)
         } yield v
       case x: Var =>
@@ -1222,7 +1226,12 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         instantiate(base, map).getSymExpr match
           case Some(e) => AbsValue(expr = One(SETypeOf(e)))
           case _       => AbsValue(StrT)
-      case SEEq(left, right)  => ???
+      case SEEq(left, right) =>
+        val l = instantiate(left, map).getSymExpr
+        val r = instantiate(right, map).getSymExpr
+        (l, r) match
+          case (Some(l), Some(r)) => AbsValue(expr = One(SEEq(l, r)))
+          case _                  => AbsValue(BoolT)
       case SEOr(left, right)  => ???
       case SEAnd(left, right) => ???
       case SENot(expr)        => ???
@@ -1643,6 +1652,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             } yield refined).getOrElse(retTy),
             Zero,
             TypeGuard.Empty,
+          )
+        },
+        "SameType" -> { (vs, retTy, st) =>
+          given AbsState = st
+          val expr = SEEq(SETypeOf(SERef(SBase(0))), SETypeOf(SERef(SBase(1))))
+          AbsValue(
+            BoolT,
+            Zero,
+            TypeGuard(True -> SymPred(Map(), Some(expr))),
           )
         },
       )
