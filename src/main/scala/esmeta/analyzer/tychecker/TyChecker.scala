@@ -244,7 +244,9 @@ class TyChecker(
     dumpFile(
       name = "summary of type analysis",
       data = {
-        var info = Vector(
+        var info = Vector[(String, Any)]()
+        cfg.spec.version.map(v => info :+= "version" -> v.toString)
+        info ++= Vector(
           "options" -> Map(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
