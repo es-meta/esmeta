@@ -12,7 +12,7 @@ trait AnalyzerTest extends ESMetaTest {
 }
 object AnalyzerTest {
   import ESMetaTest.*
-  lazy val tychecker: TyChecker = TyChecker(cfg)
+  lazy val tychecker: TyChecker = getAnalyzer(cfg)
   inline def ignore: Ignore = ManualInfo.tycheckIgnore
 
   // helper methods
