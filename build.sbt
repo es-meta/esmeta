@@ -107,8 +107,6 @@ lazy val stateStringifyTest =
 
 // analyzer
 lazy val analyzerTest = taskKey[Unit]("Launch analyzer tests")
-lazy val analyzerStringifyTest =
-  taskKey[Unit]("Launch stringify tests for analyzer (tiny)")
 lazy val analyzerTyCheckTest =
   taskKey[Unit]("Launch tycheck tests for analyzer (small)")
 
@@ -259,9 +257,6 @@ lazy val root = project
       .value,
     // analyzer
     analyzerTest := (Test / testOnly).toTask(" *.analyzer.*Test").value,
-    analyzerStringifyTest := (Test / testOnly)
-      .toTask(" *.analyzer.Stringify*Test")
-      .value,
     analyzerTyCheckTest := (Test / testOnly)
       .toTask(" *.analyzer.TyCheck*Test")
       .value,
