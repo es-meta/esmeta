@@ -83,6 +83,7 @@ class StringifyTinyTest extends TyTest {
       MapT -> "Map",
       MapT(StrT, RecordT("Binding")) -> "Map[String -> Record[Binding]]",
       CloT -> "Clo",
+      CloT(List(NumberT, BoolT), StrT) -> "Clo[(Number, Boolean) => String]",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContT -> "Cont",
       ContT(42, 3) -> "Cont[3, 42]",

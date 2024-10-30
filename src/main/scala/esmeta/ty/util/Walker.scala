@@ -96,7 +96,11 @@ trait Walker extends BasicWalker {
       )
 
   /** closure types */
-  def walkClo(clo: BSet[String]): BSet[String] = walkBSet(clo, walk)
+  def walkClo(clo: CloTy): CloTy = clo match
+    case CloTopTy => CloTopTy
+    case CloArrowTy(params, ret) =>
+      CloArrowTy(walkList(params, walk), walk(ret))
+    case CloSetTy(names) => CloSetTy(walkSet(names, walk))
 
   /** continuation types */
   def walkCont(cont: BSet[Int]): BSet[Int] = walkBSet(cont, walk)

@@ -35,11 +35,13 @@ def MapT: ValueTy = ValueTy(map = MapTy.Top)
 def MapT(key: ValueTy, value: ValueTy): ValueTy =
   if (key.isBottom || value.isBottom) BotT
   else ValueTy(map = MapTy(key, value))
-lazy val CloT: ValueTy = ValueTy(clo = Inf)
+lazy val CloT: ValueTy = ValueTy(clo = CloTopTy)
 def CloT(names: String*): ValueTy = CloT(names.toSet)
+def CloT(params: List[ValueTy], ret: ValueTy): ValueTy =
+  ValueTy(clo = CloArrowTy(params, ret))
 def CloT(names: Set[String]): ValueTy =
   if (names.isEmpty) BotT
-  else ValueTy(clo = Fin(names))
+  else ValueTy(clo = CloSetTy(names))
 lazy val ContT: ValueTy = ValueTy(cont = Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) BotT

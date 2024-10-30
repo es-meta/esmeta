@@ -118,28 +118,34 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             fty = fv.ty
             vs <- join(args.map(transfer))
           } yield {
-            // closure call (XXX: unsound for inifinitely many closures)
-            for {
-              fname <- fty.clo.toIterable(stop = false)
-              f <- cfg.fnameMap.get(fname)
-            } {
-              val callPoint = CallPoint(callerNp, f)
-              val captured: Map[Name, AbsValue] = Map() // TODO
-              doCall(callPoint, st, args, vs, captured, f.isMethod)
-            }
-            // continuation call (XXX: unsound for inifinitely many continuations)
-            for {
-              fid <- fty.cont.toIterable(stop = false)
-              f <- cfg.funcMap.get(fid)
-              view = if (typeSens) View(vs.map(_.ty)) else emptyView
-              tgt = NodePoint(f, f.entry, view)
-            } {
-              val callPoint = CallPoint(callerNp, f)
-              val captured: Map[Name, AbsValue] = Map() // TODO
-              doCall(callPoint, st, args, vs, captured, f.isMethod, Some(tgt))
-            }
-            if (fty.clo.isTop || fty.cont.isTop) Top
-            else Bot
+            val cloRes = fty.clo match
+              case CloTopTy           => AnyT
+              case CloArrowTy(_, ret) => ret
+              case CloSetTy(names) =>
+                for {
+                  fname <- names
+                  f <- cfg.fnameMap.get(fname)
+                } {
+                  val callPoint = CallPoint(callerNp, f)
+                  val captured: Map[Name, AbsValue] = Map() // TODO
+                  doCall(callPoint, st, args, vs, captured, f.isMethod)
+                }
+                BotT
+            val contRes = fty.cont match
+              case Inf => AnyT
+              case Fin(fids) =>
+                for {
+                  fid <- fty.cont.toIterable(stop = false)
+                  f <- cfg.funcMap.get(fid)
+                  view = if (typeSens) View(vs.map(_.ty)) else emptyView
+                  tgt = Some(NodePoint(f, f.entry, view))
+                } {
+                  val callPoint = CallPoint(callerNp, f)
+                  val captured: Map[Name, AbsValue] = Map() // TODO
+                  doCall(callPoint, st, args, vs, captured, f.isMethod, tgt)
+                }
+                BotT
+            AbsValue(cloRes || contRes)
           }
         case ISdoCall(_, base, method, args) =>
           for {

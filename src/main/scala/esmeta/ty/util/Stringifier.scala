@@ -19,6 +19,7 @@ object Stringifier {
       case elem: FieldMap    => fieldMapRule(using false)(app, elem)
       case elem: Binding     => bindingRule(app, elem)
       case elem: Ty          => tyRule(app, elem)
+      case elem: CloTy       => cloTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
       case elem: AstTy       => astTyRule(app, elem)
@@ -114,7 +115,7 @@ object Stringifier {
           case (app, (pred, name)) =>
             app.add({ ty --= pred; name }, pred <= ty)
         }
-        .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
+        .add(ty.clo, !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
         .add(ty.record, !ty.record.isBottom)
         .add(ty.map, !ty.map.isBottom)
@@ -146,6 +147,15 @@ object Stringifier {
       case Elem(elem) =>
         if (elem.isBottom) app >> "Nil"
         else app >> "List[" >> elem >> "]"
+
+  /** closure types */
+  given cloTyRule: Rule[CloTy] = (app, ty) =>
+    given Rule[Iterable[ValueTy]] = iterableRule("(", ", ", ")")
+    ty match
+      case CloArrowTy(ps, ret) => app >> "[" >> ps >> " => " >> ret >> "]"
+      case CloSetTy(set) if set.nonEmpty => app >> set.map("\"" + _ + "\"")
+      case _                             =>
+    app
 
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>

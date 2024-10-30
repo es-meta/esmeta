@@ -20,9 +20,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       (f, binding) <- upperFieldsOf(tname)
       ty = binding.value
       if ty <= CloT && !binding.absent
-      method <- ty.clo.getSingle match
-        case One(method) => Some(method)
-        case _           => None
+      method <- ty.clo match
+        case CloSetTy(names) if names.size == 1 => Some(names.head)
+        case _                                  => None
     } yield f -> method
   }
 

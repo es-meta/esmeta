@@ -12,7 +12,7 @@ import esmeta.util.*
 sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   import ValueTy.*
 
-  def clo: BSet[String]
+  def clo: CloTy
   def cont: BSet[Int]
   def record: RecordTy
   def map: MapTy
@@ -190,7 +190,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
 
   /** copy value type */
   def copied(
-    clo: BSet[String] = clo,
+    clo: CloTy = clo,
     cont: BSet[Int] = cont,
     record: RecordTy = record,
     map: MapTy = map,
@@ -254,7 +254,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
 
   /** get single value */
   def getSingle: Flat[Value] =
-    (if (this.clo.isBottom) Zero else Many) ||
+    clo.getSingle ||
     (if (this.cont.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
     (if (this.map.isBottom) Zero else Many) ||
@@ -281,7 +281,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def noField: ValueTy = this match
     case ValueTopTy =>
       ValueElemTy(
-        clo = Inf,
+        clo = CloTopTy,
         cont = Inf,
         grammarSymbol = Inf,
         codeUnit = true,
@@ -345,7 +345,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
           nullv,
         ) =>
       var tys: Vector[ValueTy] = Vector()
-      if (!clo.isBottom) tys :+= ValueElemTy(clo = clo)
+      tys ++= clo.toAtomicTys.map(clo => ValueElemTy(clo = clo))
       if (!cont.isBottom) tys :+= ValueElemTy(cont = cont)
       tys ++= record.toAtomicTys.map(record => ValueElemTy(record = record))
       if (!map.isBottom) tys :+= ValueElemTy(map = map)
@@ -371,7 +371,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
 }
 
 case object ValueTopTy extends ValueTy {
-  def clo: BSet[String] = Inf
+  def clo: CloTy = CloTopTy
   def cont: BSet[Int] = Inf
   def record: RecordTy = RecordTy.Top
   def map: MapTy = MapTy.Top
@@ -391,7 +391,7 @@ case object ValueTopTy extends ValueTy {
 }
 
 case class ValueElemTy(
-  clo: BSet[String] = Fin(),
+  clo: CloTy = CloTy.Bot,
   cont: BSet[Int] = Fin(),
   record: RecordTy = RecordTy.Bot,
   map: MapTy = MapTy.Bot,
@@ -411,7 +411,7 @@ case class ValueElemTy(
 ) extends ValueTy
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(
-    clo: BSet[String] = Fin(),
+    clo: CloTy = CloTy.Bot,
     cont: BSet[Int] = Fin(),
     record: RecordTy = RecordTy.Bot,
     map: MapTy = MapTy.Bot,

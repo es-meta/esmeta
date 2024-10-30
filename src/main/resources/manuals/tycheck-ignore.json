@@ -4,7 +4,6 @@
   "AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody",
   "AsyncGeneratorYield",
   "Await",
-  "BuiltinCallOrConstruct",
   "Catch[0,0].CatchClauseEvaluation",
   "Catch[1,0].CatchClauseEvaluation",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",

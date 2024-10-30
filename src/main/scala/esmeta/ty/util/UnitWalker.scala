@@ -90,7 +90,11 @@ trait UnitWalker extends BasicUnitWalker {
     walkNull(ty.nullv)
 
   /** closure types */
-  def walkClo(clo: BSet[String]): Unit = walkBSet(clo, walk)
+  def walkClo(clo: CloTy): Unit = clo match
+    case CloTopTy =>
+    case CloArrowTy(params, ret) =>
+      walkList(params, walk); walk(ret)
+    case CloSetTy(names) => walkSet(names, walk)
 
   /** continuation types */
   def walkCont(cont: BSet[Int]): Unit = walkBSet(cont, walk)

@@ -102,10 +102,8 @@ trait Parsers extends BasicParsers {
     ) ^^ { _.getOrElse(ThrowT) } |
     // ECMAScript value
     "ESValue" ^^^ ESValueT |
-    // closure
-    "Clo[" ~> rep1sep(string, ",") <~ "]" ^^ {
-      case s => ValueTy(clo = Fin(s.toSet))
-    } | "Clo" ^^^ ValueTy(clo = Inf) |
+    // closures
+    singleCloTy ^^ { case c => ValueTy(clo = c) } |
     // continuation
     "Cont[" ~> rep1sep(int, ",") <~ "]" ^^ {
       case s => ValueTy(cont = Fin(s.toSet))
@@ -167,6 +165,18 @@ trait Parsers extends BasicParsers {
     "T" ^^^ true | "F" ^^^ false
   private lazy val enumv: Parser[String] =
     "~" ~> "[^~]+".r <~ "~"
+
+  /** closure types */
+  given cloTy: Parser[CloTy] = {
+    rep1sep(singleCloTy, "|") ^^ { case ts => ts.foldLeft(CloTy.Bot)(_ || _) }
+  }.named("ty.CloTy")
+
+  private lazy val singleCloTy: Parser[CloTy] =
+    "Clo[" ~> rep1sep(string, ",") <~ "]" ^^ {
+      case s => CloSetTy(s.toSet)
+    } | ("Clo[(" ~> rep1sep(valueTy, ",") <~ ")" ~ "=>") ~ valueTy <~ "]" ^^ {
+      case ps ~ r => CloArrowTy(ps, r)
+    } | "Clo" ^^^ CloTopTy
 
   /** record types */
   given recordTy: Parser[RecordTy] = {
