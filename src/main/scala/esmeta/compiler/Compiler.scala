@@ -1079,6 +1079,7 @@ class Compiler(
         case None     => x
     }
     val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
+    fb.backEdgeWalker(renamed, overriden = true)
     fb.addInst(renamed)
     EUndef() // NOTE: unused expression
 
