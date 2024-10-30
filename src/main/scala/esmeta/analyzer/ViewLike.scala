@@ -12,7 +12,7 @@ trait ViewLikeDecl { self: Analyzer =>
   }
 
   /** appender */
-  given viewRule: Rule[View]
+  def viewRule(detail: Boolean): Rule[View]
 
   /** empty view */
   val emptyView: View

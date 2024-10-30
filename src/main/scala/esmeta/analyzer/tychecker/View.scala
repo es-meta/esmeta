@@ -4,6 +4,7 @@ import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.Appender.*
 
+/** view abstraction */
 trait ViewDecl { self: TyChecker =>
 
   /** view abstraction for analysis sensitivities */
@@ -11,13 +12,10 @@ trait ViewDecl { self: TyChecker =>
 
     /** empty check */
     def isEmpty: Boolean = tys.isEmpty
-
-    /** conversion to string */
-    override def toString: String = ""
   }
 
   /** appender */
-  given viewRule: Rule[View] = (app, view) => {
+  def viewRule(detail: Boolean): Rule[View] = (app, view) => {
     import TyStringifier.given
     given Rule[List[ValueTy]] = iterableRule[ValueTy]("[", ", ", "]")
     app >> view.tys

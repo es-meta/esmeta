@@ -71,6 +71,8 @@ trait StringifierDecl { self: Self =>
       if (cp.view.isEmpty) app
       else app >> ":" >> cp.view
 
+    given Rule[View] = viewRule(detail)
+
     // specification type errors
     given errorRule: Rule[TypeError] = (app, error) =>
       app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
