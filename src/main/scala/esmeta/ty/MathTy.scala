@@ -365,6 +365,11 @@ object MathSetTy {
 object MathTy extends Parser.From(Parser.mathTy) {
   lazy val Top: MathTy = MathTopTy
   lazy val Bot: MathTy = MathSetTy(Set.empty)
+  lazy val Int: MathTy = IntTy
+  lazy val NonPosInt: MathTy = NonPosIntTy
+  lazy val NonNegInt: MathTy = NonNegIntTy
+  lazy val NegInt: MathTy = NegIntTy
+  lazy val PosInt: MathTy = PosIntTy
   lazy val Zero: MathTy = MathSetTy(Set(Math.zero))
   lazy val One: MathTy = MathSetTy(Set(Math.one))
 }

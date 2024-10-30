@@ -228,7 +228,11 @@ trait Parsers extends BasicParsers {
   }.named("ty.NumberTy")
 
   private lazy val singleNumberTy: Parser[NumberTy] =
-    "NumberInt" ^^^ NumberIntTy |
+    "Number[Int]" ^^^ NumberIntTy |
+    "Number[NonPosInt]" ^^^ NumberNonPosIntTy |
+    "Number[NonNegInt]" ^^^ NumberNonNegIntTy |
+    "Number[NegInt]" ^^^ NumberNegIntTy |
+    "Number[PosInt]" ^^^ NumberPosIntTy |
     "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
       case n => NumberSetTy(n.toSet)
     } | "Number" ^^^ NumberTopTy

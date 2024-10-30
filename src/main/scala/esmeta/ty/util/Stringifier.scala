@@ -130,7 +130,7 @@ object Stringifier {
         .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
         .add(ty.infinity, !ty.infinity.isBottom)
-        .add(ty.number, !ty.number.isBottom)
+        .add(ty.number, !ty.number.isBottom, "Number")
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
@@ -250,9 +250,13 @@ object Stringifier {
   /** number types */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
     ty match
-      case NumberTopTy      => app >> "Number"
-      case NumberIntTy      => app >> "NumberInt"
-      case NumberSetTy(set) => if (set.isEmpty) app else app >> "Number" >> set
+      case NumberTopTy       => app
+      case NumberIntTy       => app >> "[Int]"
+      case NumberNonPosIntTy => app >> "[NonPosInt]"
+      case NumberNonNegIntTy => app >> "[NonNegInt]"
+      case NumberNegIntTy    => app >> "[NegInt]"
+      case NumberPosIntTy    => app >> "[PosInt]"
+      case NumberSetTy(set)  => if (set.isEmpty) app else app >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>

@@ -2040,6 +2040,7 @@ Quantifier[0,0].CompileQuantifier
 Quantifier[1,0].CompileQuantifier
 Record[ArgumentsExoticObject].Delete
 Record[ArgumentsExoticObject].GetOwnProperty
+Record[Array].DefineOwnProperty
 Record[BoundFunctionExoticObject].Call
 Record[BoundFunctionExoticObject].Construct
 Record[BuiltinFunctionObject].Call
