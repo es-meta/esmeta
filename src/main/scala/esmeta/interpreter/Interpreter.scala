@@ -388,7 +388,9 @@ class Interpreter(
     logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
-  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](
+    _.getSdo(_)(using cfg.spec, cfg.fnameMap),
+  )
 }
 
 /** IR interpreter with a CFG */

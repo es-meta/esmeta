@@ -145,7 +145,10 @@ abstract class Analyzer
   }
 
   /** get syntax-directed operation (SDO) */
-  val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+  val getSdo =
+    cached[(Ast, String), Option[(Ast, Func)]](
+      _.getSdo(_)(using cfg.spec, cfg.fnameMap),
+    )
 
   /** monad helper */
   val monad: StateMonad[AbsState] = StateMonad[AbsState]()
