@@ -629,6 +629,12 @@ type ModuleRecord {
   HostDefined: Undefined;
 }
 
+// https://tc39.es/ecma262/#resolvedbinding-record
+type ResolvedBindingRecord {
+  Module: Record[ModuleRecord];
+  BindingName: String | Enum[~namespace~];
+}
+
 // https://tc39.es/ecma262/#sec-cyclic-module-records
 type CyclicModuleRecord extends ModuleRecord {
   def LoadRequestedModules;
