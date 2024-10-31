@@ -482,6 +482,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         name.map(app >> " (" >> _ >> ")")
         app
       case CodeLiteral(code) => app >> "`" >> code >> "`"
+      case GrammarSymbolLiteral(name, flags) =>
+        given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
+        app >> "the grammar symbol "
+        app >> "|" >> name
+        if (!flags.isEmpty) app >> flags
+        app >> "|"
       case NonterminalLiteral(ordinal, name, flags) =>
         given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
         ordinal.map(ordinal => app >> "the " >> ordinal.toOrdinal >> " ")
@@ -521,7 +527,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: FalseLiteral         => app >> "*false*"
       case _: UndefinedLiteral     => app >> "*undefined*"
       case _: NullLiteral          => app >> "*null*"
-      case _: AbsentLiteral        => app >> "absent"
       case _: UndefinedTypeLiteral => app >> "Undefined"
       case _: NullTypeLiteral      => app >> "Null"
       case _: BooleanTypeLiteral   => app >> "Boolean"
@@ -578,7 +583,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
-      case InstanceOfCondition(expr, neg, ty) =>
+      case TypeCheckCondition(expr, neg, ty) =>
         app >> expr
         // TODO use a/an based on the types
         given Rule[Type] = (app, ty) => typeRule(app >> "a ", ty)
@@ -755,66 +760,58 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
       case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
-  // predefined types
-  lazy val predTys: List[(PureValueTy, String)] = List(
-    ESPureValueT -> "ECMAScript language value",
-  )
-
   // value types
   def valueTyRule(
     plural: Boolean,
     withEither: Boolean,
-  ): Rule[ValueTy] = (app, ty) =>
-    val pure = !ty.pureValue.isBottom
-    if (!ty.comp.isBottom)
-      given Rule[PureValueTy] = pureValueTyRule(plural, true)
-      val normal = !ty.normal.isBottom
-      val abrupt = !ty.abrupt.isBottom
-      val both = normal && abrupt
-      if (both) app >> "either "
-      val normalStr =
-        if (normal)
-          val app = new Appender
-          app >> "a normal completion"
-          if (!ty.normal.isTop) app >> " containing " >> ty.normal
-          app.toString
-        else ""
-      app >> normalStr
-      if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
-      if (abrupt) ty.abrupt match
-        case Inf => app >> "an abrupt completion"
-        case Fin(names) =>
-          given Rule[List[String]] = listNamedSepRule(namedSep = "or")
-          app >> names.toList.map("a " + _ + " completion")
-      if (pure) app >> " or "
-    if (pure)
-      given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
-      app >> ty.pureValue
-    app
-
-  // pure value types
-  def pureValueTyRule(
-    plural: Boolean,
-    withEither: Boolean,
-  ): Rule[PureValueTy] = (app, originTy) =>
-    var ty: PureValueTy = originTy
+  ): Rule[ValueTy] = (app, originTy) =>
+    var ty: ValueTy = originTy
     var tys: Vector[String] = Vector()
-    for ((pred, name) <- predTys if pred <= ty)
-      tys :+= name.withArticle(plural); ty --= pred
+    // TODO
+    // if (!ty.comp.isBottom)
+    //   given Rule[PureValueTy] = pureValueTyRule(plural, true)
+    //   val normal = !ty.normal.isBottom
+    //   val abrupt = !ty.abrupt.isBottom
+    //   val both = normal && abrupt
+    //   if (both) app >> "either "
+    //   val normalStr =
+    //     if (normal)
+    //       val app = new Appender
+    //       app >> "a normal completion"
+    //       if (!ty.normal.isTop) app >> " containing " >> ty.normal
+    //       app.toString
+    //     else ""
+    //   app >> normalStr
+    //   if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+    //   if (abrupt) ty.abrupt match
+    //     case Inf => app >> "an abrupt completion"
+    //     case Fin(names) =>
+    //       given Rule[List[String]] = listNamedSepRule(namedSep = "or")
+    //       app >> names.toList.map("a " + _ + " completion")
+    //   if (pure) app >> " or "
+    // if (pure)
+    //   given Rule[PureValueTy] = pureValueTyRule(plural, withEither)
+    //   app >> ty.pureValue
+    // app
+    // TODO
+    // for ((pred, name) <- predTys if pred <= ty)
+    //   tys :+= name.withArticle(plural); ty --= pred
 
-    // names
-    for (name <- ty.name.set) tys :+= name.withArticle(plural)
+    // TODO named records
+    // for (name <- ty.name.set) tys :+= name.withArticle(plural)
 
     // lists
-    for (vty <- ty.list.elem)
-      val sub = valueTyRule(true, true)(new Appender, vty)
-      tys :+= s"a List of $sub"
+    ty.list match
+      case ListTy.Top => tys :+= "a List"
+      case ListTy.Elem(ty) =>
+        val sub = valueTyRule(true, true)(new Appender, ty)
+        tys :+= s"a List of $sub"
+      case _ =>
 
     // AST values
-    ty.astValue match
-      case AstTopTy => tys :+= "Parse Node".withArticle(plural)
-      case ty: AstNonTopTy =>
-        val set = ty.toName.names
+    ty.ast.names match
+      case Inf => tys :+= "Parse Node".withArticle(plural)
+      case Fin(set) =>
         for (name <- set.toList.sorted)
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"

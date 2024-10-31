@@ -63,7 +63,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Builtin      => "<BUILTIN>:"
       case Clo          => "<CLO>:"
       case Cont         => "<CONT>:"
-      case BuiltinClo   => "<BUILTIN-CLO>:"
       case Aux          => "<AUX>:"
     })
 
@@ -81,12 +80,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "let " >> lhs >> " = " >> expr
       case IAssign(ref, expr) =>
         app >> ref >> " = " >> expr
-      case IDelete(ref) =>
-        app >> "delete " >> ref
+      case IExpand(base, expr) =>
+        app >> "expand " >> Field(base, expr)
+      case IDelete(base, expr) =>
+        app >> "delete " >> Field(base, expr)
       case IPush(from, to, front) =>
         app >> "push "
         if (front) app >> from >> " > " >> to
         else app >> to >> " < " >> from
+      case IPop(lhs, list, front) =>
+        app >> "pop "
+        if (front) app >> lhs >> " < " >> list
+        else app >> list >> " > " >> lhs
       case IReturn(expr) =>
         app >> "return " >> expr
       case IAssert(expr) =>
@@ -100,9 +105,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app.wrap(for { i <- insts } app :> i)
       case IIf(cond, thenInst, elseInst) =>
         app >> "if " >> cond >> " " >> thenInst
-        elseInst match
-          case ISeq(List()) => app
-          case _            => app >> " else " >> elseInst
+        (thenInst, elseInst) match
+          case (_, ISeq(List())) => app
+          case (ISeq(_), _)      => app >> " else " >> elseInst
+          case _                 => app :> "else " >> elseInst
       case IWhile(cond, body) =>
         app >> "while " >> cond >> " " >> body
       case ICall(lhs, fexpr, args) =>
@@ -117,21 +123,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // expressions
   given exprRule: Rule[Expr] = withLoc { (app, expr) =>
     expr match
-      case EComp(tyExpr, valExpr, tgtExpr) =>
-        app >> "comp[" >> tyExpr >> "/" >> tgtExpr >> "](" >> valExpr >> ")"
-      case EIsCompletion(expr) =>
-        app >> "(comp? " >> expr >> ")"
-      case EReturnIfAbrupt(expr, check) =>
-        app >> "[" >> (if (check) "?" else "!") >> " " >> expr >> "]"
-      case EPop(list, front) =>
-        app >> "(pop " >> (if (front) "<" else ">") >> " " >> list >> ")"
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
-      case ENt(name, params) =>
-        app >> "(nt |" >> name >> "|"
+      case EGrammarSymbol(name, params) =>
+        app >> "(grammar-symbol |" >> name >> "|"
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
         given Rule[List[Boolean]] = iterableRule("[", "", "]")
-        app >> params >> ")"
+        if (params.nonEmpty) app >> params
+        app >> ")"
       case ESourceText(expr) =>
         app >> "(source-text " >> expr >> ")"
       case EYet(msg) =>
@@ -159,17 +158,23 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(" >> mop >> " " >> exprs >> ")"
       case EConvert(cop, expr) =>
         app >> "(" >> cop >> " " >> expr >> ")"
+      case EExists(ref) =>
+        app >> "(exists " >> ref >> ")"
       case ETypeOf(base) =>
         app >> "(typeof " >> base >> ")"
+      case EInstanceOf(expr, target) =>
+        app >> "(instanceof " >> expr >> " " >> target >> ")"
       case ETypeCheck(expr, ty) =>
         app >> "(? " >> expr >> ": " >> ty >> ")"
+      case ESizeOf(expr) =>
+        app >> "(sizeof " >> expr >> ")"
       case EClo(fname, captured) =>
         given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
-        app >> "clo<" >> fname
+        app >> "clo<" >> "\"" >> fname >> "\""
         if (!captured.isEmpty) app >> ", " >> captured
         app >> ">"
       case ECont(fname) =>
-        app >> "cont<" >> fname >> ">"
+        app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
       case EDebug(expr) =>
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>
@@ -205,32 +210,27 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // allocation expressions
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
-      case ERecord(tnameOpt, fields) =>
-        app >> "(record "
-        tnameOpt.map(app >> "[" >> _ >> "] ")
-        app.wrap("{", "}")(for {
+      case ERecord(tname, fields) =>
+        app >> "(record"
+        if (tname.nonEmpty) app >> " [" >> tname >> "]"
+        if (fields.nonEmpty) (app >> " ").wrap("{", "}")(for {
           (field, expr) <- fields
-        } app :> "\"" >> field >> "\" : " >> expr >> ",") >> ")"
-      case EMap(Nil) => app >> "(map)"
-      case EMap(pairs) =>
-        (app >> "(map ").wrap("{", "}")(for {
+        } app :> "\"" >> field >> "\" : " >> expr >> ",")
+        app >> ")"
+      case EMap((kty, vyt), Nil) => app >> "(map[" >> kty >> ", " >> vyt >> "])"
+      case EMap((kty, vty), pairs) =>
+        app >> "(map [" >> kty >> ", " >> vty >> "] "
+        app.wrap("{", "}")(for {
           (key, value) <- pairs
         } app :> key >> " -> " >> value >> ",") >> ")"
       case EList(exprs) =>
         given Rule[Iterable[Expr]] = iterableRule("[", ", ", "]")
         app >> "(list " >> exprs >> ")"
-      case EListConcat(exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(list-concat " >> exprs >> ")"
       case ECopy(obj) =>
         app >> "(copy " >> obj >> ")"
       case EKeys(map, intSorted) =>
         app >> "(keys" >> (if (intSorted) "-int" else "") >> " "
         app >> map >> ")"
-      case EGetChildren(ast) =>
-        app >> "(get-children " >> ast >> ")"
-      case EGetItems(nt, ast) =>
-        app >> "(get-items " >> nt >> " " >> ast >> ")"
     }
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"
@@ -249,7 +249,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case EBool(b)     => app >> b
       case EUndef()     => app >> "undefined"
       case ENull()      => app >> "null"
-      case EAbsent()    => app >> "absent"
       case EEnum(name)  => app >> "~" >> name >> "~"
       case ECodeUnit(c) => app >> c.toInt >> "cu"
     }
@@ -344,9 +343,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
   given refRule: Rule[Ref] = withLoc { (app, ref) =>
     ref match {
-      case Field(ref, EStr(inlineField(str))) => app >> ref >> "." >> str
-      case Field(ref, expr) => app >> ref >> "[" >> expr >> "]"
-      case x: Var           => varRule(app, x)
+      case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
+      case Field(base, expr) => app >> base >> "[" >> expr >> "]"
+      case x: Var            => varRule(app, x)
     }
   }
 

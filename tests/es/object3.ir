@@ -3,7 +3,7 @@ assert (= @REALM.GlobalObject.__MAP__.x.Value.__MAP__.foo.Writable true)
 assert (= @REALM.GlobalObject.__MAP__.x.Value.__MAP__.foo.Enumerable true)
 assert (= @REALM.GlobalObject.__MAP__.x.Value.__MAP__.foo.Configurable true)
 
-assert (? @REALM.GlobalObject.__MAP__.y.Value.__MAP__.foo.Get: "ECMAScriptFunctionObject")
+assert (? @REALM.GlobalObject.__MAP__.y.Value.__MAP__.foo.Get: Record[ECMAScriptFunctionObject])
 assert (= @REALM.GlobalObject.__MAP__.y.Value.__MAP__.foo.Set undefined)
 assert (= @REALM.GlobalObject.__MAP__.y.Value.__MAP__.foo.Enumerable true)
 assert (= @REALM.GlobalObject.__MAP__.y.Value.__MAP__.foo.Configurable true)

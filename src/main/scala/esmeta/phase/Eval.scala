@@ -44,17 +44,17 @@ case object Eval extends Phase[CFG, State] {
     ),
     (
       "multiple",
-      BoolOption(c => c.multiple = true),
+      BoolOption(_.multiple = _),
       "execute multiple programs (result is the state of the last program).",
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "detail-log",
-      BoolOption(c => { c.log = true; c.detail = true }),
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "turn on logging mode with detailed information.",
     ),
   )

@@ -1,7 +1,7 @@
 package esmeta.util
 
 import esmeta.MANUALS_DIR
-import esmeta.analyzer.TypeAnalyzer.Ignore
+import esmeta.analyzer.tychecker.TyChecker.Ignore
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
 import esmeta.ty.TyModel
@@ -22,9 +22,8 @@ object ManualInfo {
   lazy val funcFiles: List[String] = getFileNames(irFilter)
 
   /** manual compilation rule */
-  lazy val compileRule: CompileRule = optional {
+  lazy val compileRule: CompileRule =
     readJson[CompileRule](s"$MANUALS_DIR/rule.json")
-  }.getOrElse(Map.empty)
   type CompileRule = Map[String, Map[String, String]]
 
   /** bugfix patch map */
@@ -38,10 +37,9 @@ object ManualInfo {
   } yield hash -> file.toString).toMap
 
   /** type model */
-  lazy val tyModel: TyModel = optional {
+  lazy val tyModel: TyModel =
     import esmeta.ty.util.JsonProtocol.given
-    readJson[TyModel](s"$MANUALS_DIR/ty-model.json")
-  }.getOrElse(TyModel())
+    TyModel.fromFile(s"$MANUALS_DIR/types")
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

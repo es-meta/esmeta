@@ -1,11 +1,10 @@
 package esmeta.interpreter
 
 import esmeta.{EVAL_LOG_DIR, LINE_SEP}
-import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.{*, given}
-import esmeta.error.NotSupported.Category.*
+import esmeta.error.NotSupported.Category.{Type => _, *}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.*
 import esmeta.parser.{ESParser, ESValueParser}
@@ -25,7 +24,7 @@ class Interpreter(
   val st: State,
   val log: Boolean = false,
   val detail: Boolean = false,
-  val logDir: String = EVAL_LOG_DIR,
+  val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
@@ -62,7 +61,6 @@ class Interpreter(
       // cursor
       eval(st.context.cursor)
     } catch {
-      case ReturnValue(value, ret) => { setReturn(value, ret); true }
       case e =>
         if (log)
           pw.println(st)
@@ -94,11 +92,7 @@ class Interpreter(
         for (inst <- insts) eval(inst); st.context.moveNext
       case Branch(_, _, cond, thenNode, elseNode) =>
         st.context.cursor = Cursor(
-          eval(cond) match {
-            case Bool(true)  => thenNode
-            case Bool(false) => elseNode
-            case v           => throw NoBoolean(cond, v)
-          },
+          if (eval(cond).asBool) thenNode else elseNode,
           st.func,
         )
       case call: Call => eval(call)
@@ -106,19 +100,20 @@ class Interpreter(
 
   /** transition for normal instructions */
   def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)        => eval(expr)
-    case ILet(lhs, expr)    => st.context.locals += lhs -> eval(expr)
-    case IAssign(ref, expr) => st.update(eval(ref), eval(expr))
-    case IDelete(ref)       => st.delete(eval(ref))
-    case IPush(from, to, front) =>
-      val fromValue = eval(from)
-      eval(to) match {
-        case (addr: Addr) =>
-          if (front) st.prepend(addr, fromValue)
-          else st.append(addr, fromValue)
-        case v => throw NoAddr(to, v)
-      }
-    case ret @ IReturn(expr) => throw ReturnValue(eval(expr), ret)
+    case IExpr(expr)         => eval(expr)
+    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
+    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+    case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
+    case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
+    case IPush(elem, list, front) =>
+      val value = eval(elem)
+      val addr = eval(list).asAddr
+      st.push(addr, value, front)
+    case IPop(lhs, list, front) =>
+      val addr = eval(list).asAddr
+      st.context.locals += lhs -> st.pop(addr, front)
+    case ret @ IReturn(expr) =>
+      st.context.retVal = Some(ret, eval(expr))
     case IAssert(expr) =>
       optional(eval(expr)) match
         case None             => /* skip not yet compiled assertions */
@@ -141,17 +136,13 @@ class Interpreter(
           st.callStack ::= CallContext(st.context, lhs)
           st.context = Context(func, newLocals)
         case cont @ Cont(func, captured, callStack) => {
-          val needWrapped = st.context.func.isReturnComp
-          val vs =
-            args
-              .map(eval)
-              .map(v => if (needWrapped) v.wrapCompletion else v)
+          val vs = args.map(eval)
           val newLocals =
             getLocals(func.irFunc.params, vs, call, cont) ++ captured
           st.callStack = callStack.map(_.copied)
           st.context = Context(func, newLocals)
         }
-        case v => throw NoFunc(fexpr, v)
+        case v => throw NoCallable(v)
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
@@ -173,28 +164,6 @@ class Interpreter(
 
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      val y = eval(tyExpr)
-      val t = eval(tgtExpr)
-      val v = eval(valExpr).toPureValue
-      (y, t) match
-        case (y: Enum, Str(t))     => Comp(y, v, Some(t))
-        case (y: Enum, ENUM_EMPTY) => Comp(y, v, None)
-        case (y: Enum, t)          => throw InvalidCompTarget(y)
-        case (y, t)                => throw InvalidCompType(t)
-    case EIsCompletion(expr) =>
-      Bool(eval(expr).isCompletion)
-    case ria @ EReturnIfAbrupt(ERef(ref), check) =>
-      val refV = eval(ref)
-      val value = returnIfAbrupt(ria, st(refV), check)
-      st.update(refV, value)
-      value
-    case ria @ EReturnIfAbrupt(expr, check) =>
-      returnIfAbrupt(ria, eval(expr), check)
-    case EPop(list, front) =>
-      eval(list) match
-        case (addr: Addr) => st.pop(addr, front)
-        case v            => throw NoAddr(list, v)
     case EParse(code, rule) =>
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
@@ -203,40 +172,30 @@ class Interpreter(
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule), st.sourceText, st.cachedAst) match
+        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
-          case (x, Nt("Script", Nil), Some(y), Some(ast)) if x == y =>
+          case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
+              if x == y =>
             AstValue(ast)
-          case (x, Nt(name, params), _, _) =>
+          case (x, GrammarSymbol(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
             // TODO handle span of re-parsed ast
             ast.clearLoc
             ast.setChildLoc(locOpt)
             AstValue(ast)
-          case (_, r, _, _) => throw NoNt(rule, r)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
-    case ENt(name, params) => Nt(name, params)
+    case EGrammarSymbol(name, params) => GrammarSymbol(name, params)
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
       // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
-    case EGetChildren(ast) =>
-      eval(ast).asAst match
-        case syn: Syntactic =>
-          st.allocList(syn.children.flatten.map(AstValue(_)))
-        case ast => throw InvalidASTChildren(ast)
-    case EGetItems(nt, ast) =>
-      val name = eval(nt) match
-        case Nt(name, _) => name
-        case v           => throw NoNt(nt, v)
-      st.allocList(eval(ast).asAst.getItems(name).map(AstValue(_)))
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(List(msg))
     case EContains(list, elem) =>
-      val l = eval(list).getList(list, st)
+      val l = eval(list).asList(st)
       val e = eval(elem)
       Bool(l.values.contains(e))
     case ESubstring(expr, from, to) =>
@@ -255,7 +214,6 @@ class Interpreter(
       Interpreter.eval(uop, x)
     case EBinary(BOp.And, left, right) => shortCircuit(BOp.And, left, right)
     case EBinary(BOp.Or, left, right)  => shortCircuit(BOp.Or, left, right)
-    case EBinary(BOp.Eq, ERef(ref), EAbsent()) => Bool(!st.exists(eval(ref)))
     case EBinary(bop, left, right) =>
       val l = eval(left)
       val r = eval(right)
@@ -298,6 +256,7 @@ class Interpreter(
         // invalid cases
         case (v, cop) => throw InvalidConversion(cop, expr, v)
       }
+    case EExists(ref) => Bool(st.exists(eval(ref)))
     case ETypeOf(base) =>
       Str(eval(base) match
         case n: Number => "Number"
@@ -306,103 +265,45 @@ class Interpreter(
         case b: Bool   => "Boolean"
         case Undef     => "Undefined"
         case Null      => "Null"
-        case addr: Addr =>
-          st(addr) match
-            case RecordObj("Symbol", _) => "Symbol"
-            case r: RecordObj =>
-              if (tyModel.isSubTy(r.tname, "Object")) "Object"
-              else r.tname
-            case v => "SpecType"
-        case v => "SpecType",
+        case v =>
+          if (ObjectT.contains(v, st)) "Object"
+          else if (SymbolT.contains(v, st)) "Symbol"
+          else "SpecType",
       )
-    case ETypeCheck(expr, tyExpr) =>
-      val v = eval(expr)
-      val tyName = eval(tyExpr) match
-        case Str(s)   => s
-        case Nt(s, _) => s
-        case v        => throw InvalidTypeExpr(expr, v)
-      Bool(v match
-        case m: Math =>
-          optional(MathTy.from(tyName)).fold(false)(_.contains(m))
-        case n: Number =>
-          optional(NumberTy.from(tyName)).fold(false)(_.contains(n))
-        case _: BigInt => tyName == "BigInt"
-        case _: Str    => tyName == "String"
-        case _: Bool   => tyName == "Boolean"
-        case _: Enum   => tyName == "Enum"
-        case _: Comp   => tyName == "CompletionRecord"
-        case Undef     => tyName == "Undefined"
-        case Null      => tyName == "Null"
-        case AstValue(ast) =>
-          tyName == "ParseNode" || (ast.types contains tyName)
-        case _: Clo => tyName == "AbstractClosure"
-        case addr: Addr =>
-          st(addr) match
-            case r: RecordObj => tyModel.isSubTy(r.tname, tyName)
-            case _: ListObj   => tyName contains "List"
-            case _            => ???
-        case v => ???,
+    case EInstanceOf(expr, target) =>
+      (eval(expr), eval(target)) match
+        case (AstValue(_: Syntactic), GrammarSymbol("", _)) => Bool(true)
+        case (AstValue(ast), GrammarSymbol(name, _)) => Bool(ast.name == name)
+        case _                                       => Bool(false)
+    case ETypeCheck(expr, ty) =>
+      Bool(ty.ty.contains(eval(expr), st))
+    case ESizeOf(expr) =>
+      Math(eval(expr) match
+        case Str(s)        => s.length
+        case addr: Addr    => st(addr).size
+        case AstValue(ast) => ast.children.size
+        case v             => throw InvalidSizeOf(v),
       )
     case EClo(fname, captured) =>
-      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
-      Clo(func, Map.from(captured.map(x => x -> st(x))))
+      val func = cfg.getFunc(fname)
+      Clo(func, captured.map(x => x -> st(x)).toMap)
     case ECont(fname) =>
-      val func = cfg.fnameMap.getOrElse(fname, throw UnknownFunc(fname))
+      val func = cfg.getFunc(fname)
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
-      Cont(func, Map.from(captured), st.callStack)
+      Cont(func, captured.toMap, st.callStack)
     case EDebug(expr) => debug(eval(expr))
     case ERandom()    => Number(math.random)
     case ESyntactic(name, args, rhsIdx, children) =>
-      val asts = children.map(childOpt =>
-        childOpt.map(child =>
-          eval(child) match {
-            case AstValue(ast) => ast
-            case v             => throw NoAst(child, v)
-          },
-        ),
-      )
+      val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))
-    case ELexical(name, expr) =>
-      val str = eval(expr).asStr
-      AstValue(Lexical(name, str))
-    case ERecord(Some("Completion"), fields) =>
-      val map = (for {
-        (f, expr) <- fields
-        v = eval(expr)
-      } yield f -> v).toMap
-      (
-        map.get("Type"),
-        map.get("Value"),
-        map.get("Target"),
-      ) match
-        case (Some(ty: Enum), Some(value), Some(target)) =>
-          val targetOpt = target match
-            case Str(target) => Some(target)
-            case ENUM_EMPTY  => None
-            case v           => throw InvalidCompTarget(v)
-          Comp(ty, value.toPureValue, targetOpt)
-        case _ => throw InvalidComp
-    case ERecord(tnameOpt, fields) =>
-      val addr = st.allocRecord(tnameOpt)
-      for ((f, expr) <- fields) st.update(addr, Str(f), eval(expr))
-      addr
-    case EMap(pairs) =>
-      val addr = st.allocMap
-      for ((k, v) <- pairs) st.update(addr, eval(k), eval(v))
-      addr
-    case EList(exprs) =>
-      st.allocList(exprs.map(expr => eval(expr)))
-    case EListConcat(exprs) =>
-      val ls = exprs.map(e => eval(e).getList(e, st).values).flatten
-      st.allocList(ls)
-    case ECopy(obj) =>
-      eval(obj) match
-        case addr: Addr => st.copyObj(addr)
-        case v          => throw NoAddr(obj, v)
-    case EKeys(map, intSorted) =>
-      eval(map) match
-        case addr: Addr => st.keys(addr, intSorted)
-        case v          => throw NoAddr(map, v)
+    case ELexical(name, expr) => AstValue(Lexical(name, eval(expr).asStr))
+    case ERecord(tname, fields) =>
+      st.allocRecord(tname, for ((f, expr) <- fields) yield f -> eval(expr))
+    case EMap(_, pairs) =>
+      st.allocMap(for ((k, v) <- pairs) yield eval(k) -> eval(v))
+    case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
+    case ECopy(obj)   => st.copy(eval(obj).asAddr)
+    case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)
     case ENumber(n) if n.isNaN => Number(Double.NaN)
@@ -412,7 +313,6 @@ class Interpreter(
     case EBool(b)              => Bool(b)
     case EUndef()              => Undef
     case ENull()               => Null
-    case EAbsent()             => Absent
     case EEnum(name)           => Enum(name)
     case ECodeUnit(c)          => CodeUnit(c)
   }
@@ -432,18 +332,16 @@ class Interpreter(
     params: List[Param],
     args: List[Value],
     caller: Call,
-    callee: FuncValue,
+    callee: Callable,
   ): MMap[Local, Value] = {
     val func = callee.func
     val map = MMap[Local, Value]()
     @tailrec
-    def aux(ps: List[Param], as: List[Value], idx: Int): Unit = (ps, as) match {
+    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        if (optional) {
-          map += lhs -> Absent
-          aux(pl, Nil, idx + 1)
-        } else RemainingParams(ps)
+        if (optional) aux(pl, Nil)
+        else RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match
@@ -451,23 +349,11 @@ class Interpreter(
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
-        aux(pl, al, idx + 1)
+        aux(pl, al)
     }
-    aux(params, args, 0)
+    aux(params, args)
     map
   }
-
-  /** helper for return-if-abrupt cases */
-  def returnIfAbrupt(
-    ria: EReturnIfAbrupt,
-    value: Value,
-    check: Boolean,
-  ): Value = value match
-    case NormalComp(value) => value
-    case comp: Comp =>
-      if (check) throw ReturnValue(value, ria)
-      else throw UncheckedAbrupt(comp)
-    case pure: PureValue => pure // XXX remove?
 
   /** transition for references */
   def eval(ref: Ref): RefTarget = ref match
@@ -476,24 +362,6 @@ class Interpreter(
       var base = st(eval(ref))
       val f = eval(expr)
       FieldTarget(base, f)
-
-  /** set return value and move to the exit node */
-  def setReturn(value: Value, ret: Return): Unit =
-    // set type map
-    (value, setTypeMap.get(st.context.name)) match
-      case (addr: Addr, Some(tname))             => st.setType(addr, tname)
-      case (NormalComp(addr: Addr), Some(tname)) => st.setType(addr, tname)
-      case _                                     => /* do nothing */
-    st.context.retVal = Some(
-      (
-        ret,
-        // wrap completion by conditions specified in
-        // [5.2.3.5 Implicit Normal Completion]
-        // (https://tc39.es/ecma262/#sec-implicit-normal-completion)
-        if (st.context.func.isReturnComp) value.wrapCompletion else value,
-      ),
-    )
-    st.context.cursor = ExitCursor(st.func)
 
   /** define call result to state and move to next */
   def setCallResult(x: Var, value: Value): Unit =
@@ -517,9 +385,7 @@ class Interpreter(
 
   /** logging */
   private lazy val pw: PrintWriter =
-    println(s"[Interpreter] Logging into $logDir/log ...")
-    mkdir(logDir)
-    getPrintWriter(s"$logDir/log")
+    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
@@ -531,17 +397,9 @@ object Interpreter {
     st: State,
     log: Boolean = false,
     detail: Boolean = false,
-    logDir: String = EVAL_LOG_DIR,
+    logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, detail, logDir, timeLimit).result
-
-  // type update algorithms
-  val setTypeMap: Map[String, String] = Map(
-    "OrdinaryFunctionCreate" -> "ECMAScriptFunctionObject",
-    "ArrayCreate" -> "ArrayExoticObject",
-    "OrdinaryObjectCreate" -> "OrdinaryObject",
-    "ProxyCreate" -> "ProxyExoticObject",
-  )
+  ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
@@ -721,7 +579,12 @@ object Interpreter {
           else vopEval(_.asMath, _ min _, Math(_), filtered)
         }
         vopEval(_.asMath, _ max _, Math(_), vs)
-      case Concat => vopEval(_.asStr, _ + _, Str(_), vs)
+      case Concat =>
+        def toString(v: Value): String = v match
+          case Str(s)      => s
+          case CodeUnit(c) => c.toString
+          case v           => throw NoString(v)
+        vopEval(toString, _ + _, Str(_), vs)
 
   /** transition for mathematical operators */
   def eval(mop: MOp, st: State, vs: List[Value]): Value =

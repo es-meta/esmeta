@@ -1,12 +1,15 @@
 package esmeta.ty
 
-import esmeta.util.*
+import esmeta.state.{ListObj, Heap}
 import esmeta.ty.util.Parser
+import esmeta.util.*
 
 /** list types */
-case class ListTy(elem: Option[ValueTy] = None)
-  extends TyElem
-  with Lattice[ListTy] {
+enum ListTy extends TyElem with Lattice[ListTy] {
+  case Top
+  case Elem(value: ValueTy)
+  case Bot
+
   import ListTy.*
 
   /** top check */
@@ -16,41 +19,57 @@ case class ListTy(elem: Option[ValueTy] = None)
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => ListTy): Boolean = (this eq that) || (
-    (this.elem, that.elem) match
-      case (None, _)          => true
-      case (_, None)          => false
-      case (Some(l), Some(r)) => l <= r
-  )
+  def <=(that: => ListTy): Boolean = (this eq that) || {
+    (this, that) match
+      case (Bot, _) | (_, Top) => true
+      case (Top, _) | (_, Bot) => false
+      case (Elem(l), Elem(r))  => l <= r
+  }
 
   /** union type */
   def ||(that: => ListTy): ListTy =
     if (this eq that) this
     else
-      (this.elem, that.elem) match
-        case (None, _)          => that
-        case (_, None)          => this
-        case (Some(l), Some(r)) => ListTy(Some(l || r))
+      (this, that) match
+        case (Bot, _) | (_, Top) => that
+        case (Top, _) | (_, Bot) => this
+        case (Elem(l), Elem(r))  => Elem(l || r).normalized
 
   /** intersection type */
   def &&(that: => ListTy): ListTy =
     if (this eq that) this
     else
-      (this.elem, that.elem) match
-        case (None, _) | (_, None) => Bot
-        case (Some(l), Some(r))    => ListTy(Some(l && r))
+      (this, that) match
+        case (Bot, _) | (_, Top) => this
+        case (Top, _) | (_, Bot) => that
+        case (Elem(l), Elem(r))  => Elem(l && r).normalized
 
   /** prune type */
-  def --(that: => ListTy): ListTy =
-    if (that.isBottom) this
-    else
-      (this.elem, that.elem) match
-        case (None, _)          => Bot
-        case (_, None)          => this
-        case (Some(l), Some(r)) => ListTy(Some(l -- r))
+  def --(that: => ListTy): ListTy = if (this <= that) Bot else this
+
+  /** list element type */
+  def elem: ValueTy = this match
+    case Top      => AnyT
+    case Elem(ty) => ty
+    case Bot      => BotT
+
+  /** list containment check */
+  def contains(l: ListObj, heap: Heap): Boolean = this match
+    case Top      => true
+    case Bot      => false
+    case Elem(ty) => l.values.forall(ty.contains(_, heap))
+
+  /** normalized type */
+  def normalized: ListTy = this match
+    case Elem(elem) if elem.isTop => Top
+    case _                        => this
+
+  /** mapping function */
+  def map(f: ValueTy => ValueTy): ListTy = this match
+    case Elem(elem) => Elem(f(elem))
+    case _          => this
 }
 object ListTy extends Parser.From(Parser.listTy) {
-  lazy val Top: ListTy = ListTy(Some(ValueTy.Top))
-  lazy val Nil: ListTy = ListTy(Some(ValueTy.Bot))
-  lazy val Bot: ListTy = ListTy()
+  def apply(elem: ValueTy): ListTy = Elem(elem).normalized
+  lazy val Nil: ListTy = ListTy.Elem(ValueTy.Bot)
 }

@@ -3,12 +3,14 @@ def <NUM>:BigInt::exponentiate(
   exponent: BigInt,
 ): Normal[BigInt] | Abrupt[throw] = {
   if (< exponent 0n) {
-    call %0 = clo<__NEW_ERROR_OBJ__>("%RangeError.prototype%")
-    call %1 = clo<ThrowCompletion>(%0)
+    call %0 = clo<"__NEW_ERROR_OBJ__">("%RangeError.prototype%")
+    call %1 = clo<"ThrowCompletion">(%0)
     return %1
   }
   if (&& (= base 0n) (= exponent 0n)) {
-    return 1n
+    call %2 = clo<"NormalCompletion">(1n)
+    return %2
   }
-  return (** base exponent)
+  call %3 = clo<"NormalCompletion">((** base exponent))
+  return %3
 }

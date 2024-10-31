@@ -25,7 +25,7 @@ automatically generates language-based tools.
     + [Interactive Execution with ECMAScript Double Debugger](#interactive-execution-with-ecmascript-double-debugger)
     + [Conformance Test Synthesizer from ECMA-262](#conformance-test-synthesizer-from-ecma-262)
     + [Type Analysis on ECMA-262](#type-analysis-on-ecma-262)
-    + [Meta-Level Static Analyzer for ECMAScript](#meta-level-static-analyzer-for-ecmascript)
+    + [Meta-Level Static Analyzer for ECMAScript](#meta-level-static-analyzer-for-ecmascript) (temporarily removed)
   * [Academic Achievement](#academic-achievement)
     + [Publications](#publications)
     + [PLDI 2022 Tutorial](#pldi-2022-tutorial)
@@ -92,7 +92,7 @@ It supports the following commands:
 - `test262-test` tests Test262 tests with harness files (default: tests/test262).
 - `inject` injects assertions to check final state of an ECMAScript file.
 - `mutate` mutates an ECMAScript program.
-- `analyze` analyzes an ECMAScript file using meta-level static analysis.
+- `analyze` analyzes an ECMAScript file using meta-level static analysis. (temporarily removed)
 
 and global options:
 - `-silent` does not show final results.
@@ -324,6 +324,12 @@ $ esmeta tycheck -extract:target=2c78e6f
 
 
 ### Meta-Level Static Analyzer for ECMAScript
+
+> :NOTE:
+> The meta-level static analyzer is temporarily removed from the current version
+> of ESMeta. We are working on the improvement of the meta-level static analyzer
+> for ECMAScript/JavaScript programs. We will re-introduce this feature in the
+> future version of ESMeta.
 
 ESMeta also supports a meta-level static analyzer for ECMAScript/JavaScript
 programs based on mechanized specifications extracted from ECMA-262. A

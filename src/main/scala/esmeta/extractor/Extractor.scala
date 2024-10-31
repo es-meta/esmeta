@@ -244,8 +244,7 @@ class Extractor(
     val generator = parseBy(concMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
-    val receiverParam = parseBy(paramDesc)(forData)
-    List(generator(receiverParam))
+    List(generator(parseBy(paramDesc)(forData)))
 
   // get internal method heads
   private def extractInMethodHead(
@@ -256,8 +255,7 @@ class Extractor(
     val generator = parseBy(inMethodHeadGen)(headContent)
     val dataMap = elem.getPrevElem.toDataMap
     val forData = dataMap("for")
-    val receiverParam = parseBy(paramDesc)(forData)
-    List(generator(receiverParam))
+    List(generator(parseBy(paramDesc)(forData)))
 
   // get built-in heads
   private def extractBuiltinHead(

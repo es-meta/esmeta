@@ -35,7 +35,7 @@ case object Inject extends Phase[CFG, String] {
   val options: List[PhaseOption[Config]] = List(
     (
       "defs",
-      BoolOption(c => c.defs = true),
+      BoolOption(_.defs = _),
       "prepend definitions of helpers for assertions.",
     ),
     (
@@ -45,7 +45,7 @@ case object Inject extends Phase[CFG, String] {
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
   )

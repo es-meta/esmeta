@@ -43,8 +43,10 @@ trait UnitWalker extends BasicUnitWalker {
     case IExpr(expr)            => walk(expr)
     case ILet(lhs, expr)        => walk(lhs); walk(expr)
     case IAssign(ref, expr)     => walk(ref); walk(expr)
-    case IDelete(ref)           => walk(ref)
+    case IExpand(base, expr)    => walk(base); walk(expr)
+    case IDelete(base, expr)    => walk(base); walk(expr)
     case IPush(from, to, front) => walk(from); walk(to); walk(front)
+    case IPop(lhs, list, front) => walk(lhs); walk(list); walk(front)
     case IReturn(expr)          => walk(expr)
     case IAssert(expr)          => walk(expr)
     case IPrint(expr)           => walk(expr)
@@ -58,17 +60,9 @@ trait UnitWalker extends BasicUnitWalker {
 
   // expressions
   def walk(expr: Expr): Unit = expr match {
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      walk(tyExpr); walk(valExpr); walk(tgtExpr)
-    case EIsCompletion(expr) =>
-      walk(expr)
-    case EReturnIfAbrupt(expr, check) =>
-      walk(expr); walk(check)
-    case EPop(list, front) =>
-      walk(list); walk(front)
     case EParse(code, rule) =>
       walk(code); walk(rule)
-    case ENt(name, params) =>
+    case EGrammarSymbol(name, params) =>
       walk(name); walkList(params, walk)
     case ESourceText(expr) =>
       walk(expr)
@@ -92,10 +86,16 @@ trait UnitWalker extends BasicUnitWalker {
       walk(vop); walkList(exprs, walk)
     case EConvert(cop, expr) =>
       walk(cop); walk(expr)
+    case EExists(ref) =>
+      walk(ref)
     case ETypeOf(base) =>
       walk(base)
+    case EInstanceOf(expr, target) =>
+      walk(expr); walk(target)
     case ETypeCheck(expr, ty) =>
       walk(expr); walk(ty)
+    case ESizeOf(expr) =>
+      walk(expr)
     case EClo(fname, captured) =>
       walk(fname); walkList(captured, walk)
     case ECont(fname) =>
@@ -124,23 +124,18 @@ trait UnitWalker extends BasicUnitWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): Unit = alloc match {
-    case ERecord(tnameOpt, fields) =>
-      walkOpt(tnameOpt, walk)
+    case ERecord(tname, fields) =>
+      walk(tname)
       walkList(fields, { case (f, e) => (walk(f), walk(e)) })
-    case EMap(pairs) =>
-      walkList(pairs, { case (k, v) => (walk(k), walk(v)) })
+    case EMap(ty, pairs) =>
+      walkPair(ty, walk, walk)
+      walkList(pairs, walkPair(_, walk, walk))
     case EList(exprs) =>
-      walkList(exprs, walk)
-    case EListConcat(exprs) =>
       walkList(exprs, walk)
     case ECopy(obj) =>
       walk(obj)
     case EKeys(map, intSorted) =>
       walk(map); walk(intSorted)
-    case EGetChildren(ast) =>
-      walk(ast)
-    case EGetItems(nt, ast) =>
-      walk(nt); walk(ast)
   }
 
   // literals
@@ -166,8 +161,8 @@ trait UnitWalker extends BasicUnitWalker {
 
   // references
   def walk(ref: Ref): Unit = ref match {
-    case Field(ref, expr) => walk(ref); walk(expr)
-    case x: Var           => walk(x)
+    case Field(base, expr) => walk(base); walk(expr)
+    case x: Var            => walk(x)
   }
 
   // identifiers

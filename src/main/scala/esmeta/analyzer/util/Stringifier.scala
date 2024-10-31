@@ -1,7 +1,7 @@
 package esmeta.analyzer.util
 
 import esmeta.analyzer.*
-import esmeta.analyzer.domain.*
+import esmeta.analyzer.tychecker.*
 import esmeta.cfg.*
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.state.*
@@ -30,33 +30,15 @@ trait StringifierDecl { self: Self =>
     /** elements */
     given elemRule: Rule[AnalyzerElem] = (app, elem) =>
       elem match
-        case elem: View          => viewRule(app, elem)
-        case elem: AnalysisPoint => apRule(app, elem)
-        case elem: AValue        => avRule(app, elem)
-        case elem: TypeError     => errorRule(app, elem)
-    // TODO case ty: Type          => typeRule(app, ty)
+        case elem: TypeError      => errorRule(app, elem)
+        case elem: TypeErrorPoint => tpRule(app, elem)
+        case elem: ControlPoint   => cpRule(app, elem)
 
-    /** view */
-    given viewRule: Rule[View] = (app, view) =>
-      def auxRule[T](
-        name: String,
-      )(using Rule[T]): Rule[Iterable[T]] = (app, iter) =>
-        if (iter.isEmpty) app
-        else if (detail) iterableRule(s"[$name: ", ", ", "]")(app, iter)
-        else app >> s"[$name: " >> iter.size >> "]"
-      given cRule: Rule[Call] = (app, call) => app >> call.id
-      given csRule: Rule[Iterable[Call]] = auxRule("call")
-      given lRule: Rule[LoopCtxt] = {
-        case (app, LoopCtxt(loop, depth)) => app >> s"${loop.id}($depth)"
-      }
-      given lsRule: Rule[Iterable[LoopCtxt]] = auxRule("loop")
-      app >> view.calls >> view.loops
-
-    // analysis points
-    given apRule: Rule[AnalysisPoint] = (app, ap) =>
+    // type error points
+    given tpRule: Rule[TypeErrorPoint] = (app, tp) =>
       given Rule[IRElem with LangEdge] = addLocRule
-      ap match
-        case cp: ControlPoint => cpRule(app, cp)
+      app >> tp.node.simpleString >> " "
+      tp match
         case CallPoint(callerNp, callee) =>
           app >> "function call from "
           app >> callerNp.func.name >> callerNp.node.callInst
@@ -68,10 +50,6 @@ trait StringifierDecl { self: Self =>
           app >> " when " >> cp
         case InternalReturnPoint(returnNp, irReturn) =>
           app >> "return statement in " >> returnNp.func.name >> irReturn
-        case ReturnIfAbruptPoint(cp, riaExpr) =>
-          app >> "ReturnIfAbrupt"
-          app >> "(" >> (if (riaExpr.check) "?" else "!") >> ") "
-          app >> "in " >> cp.func.name >> riaExpr
         case FieldBasePoint(fieldPoint) =>
           app >> "base in" >> fieldPoint
         case FieldPoint(cp, field) =>
@@ -93,35 +71,7 @@ trait StringifierDecl { self: Self =>
       if (cp.view.isEmpty) app
       else app >> ":" >> cp.view
 
-    // values for analysis
-    given avRule: Rule[AValue] = (app, av) =>
-      av match
-        case AComp(Enum("normal"), v, _) =>
-          app >> "N(" >> v >> ")"
-        case AComp(ty, value, target) =>
-          app >> "comp[" >> ty
-          app >> "/" >> target.getOrElse(ENUM_EMPTY.toString) >> "]"
-          app >> "(" >> value >> ")"
-        case Named(name)        => app >> "#" >> name
-        case AllocSite(k, view) => app >> "#" >> k >> ":" >> view
-        case InnerMap(baseLoc)  => app >> baseLoc >> ":Map"
-        case AClo(func, _) =>
-          app >> "clo<" >> func.irFunc.name >> ">"
-        case ACont(target, _) =>
-          app >> "cont<" >> target >> ">"
-        case AstValue(ast) =>
-          app >> f"☊[${ast.name}]<${ast.idx}> @ 0x${ast.hashCode}%08x"
-        case Nt(name, params) =>
-          given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-          given Rule[List[Boolean]] = iterableRule()
-          app >> "nt<" >> name
-          if (!params.isEmpty) app >> "[" >> params >> "]"
-          app >> ">"
-        case Math(n)         => app >> n
-        case Infinity(p)     => app >> (if (p) "+" else "-") >> "∞"
-        case Enum(name)      => app >> "~" >> name >> "~"
-        case CodeUnit(c)     => app >> c.toInt >> "cu"
-        case sv: SimpleValue => app >> sv.toString
+    given Rule[View] = viewRule(detail)
 
     // specification type errors
     given errorRule: Rule[TypeError] = (app, error) =>
@@ -137,8 +87,6 @@ trait StringifierDecl { self: Self =>
           val (from, to) = point.func.arity
           app :> "- expected: " >> "[" >> from >> ", " >> to >> "]"
           app :> "- actual  : " >> actual
-        case UncheckedAbruptError(point, ty) =>
-          app :> "- type    : " >> ty
         case InvalidBaseError(point, baseTy) =>
           app :> "- base    : " >> baseTy
         case UnaryOpTypeMismatch(point, operandTy) =>
@@ -153,11 +101,5 @@ trait StringifierDecl { self: Self =>
         loc <- lang.loc
       } app >> " " >> loc.toString
       app
-
-    private val arityRangeRule: Rule[(Int, Int)] = {
-      case (app, (from, to)) =>
-        if (from == to) app >> from
-        else app >> "[" >> from >> ", " >> to >> "]"
-    }
   }
 }

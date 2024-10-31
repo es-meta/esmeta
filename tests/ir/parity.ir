@@ -1,20 +1,20 @@
 def is_even(n: Math) = {
   if (= n 0) %0 = true
-  else call %0 = clo<is_odd>((- n 1))
+  else call %0 = clo<"is_odd">((- n 1))
   return %0
 }
 
 def is_odd(n: Math) = {
   if (= n 0) %1 = false
-  else call %1 = clo<is_even>((- n 1))
+  else call %1 = clo<"is_even">((- n 1))
   return %1
 }
 
 @main def main() = {
-  call e = clo<is_even>(27)
-  call f = clo<is_odd>(27)
-  call g = clo<is_even>(28)
-  call h = clo<is_odd>(28)
+  call e = clo<"is_even">(27)
+  call f = clo<"is_odd">(27)
+  call g = clo<"is_even">(28)
+  call h = clo<"is_odd">(28)
   assert (= e false)
   assert (= f true)
   assert (= g true)

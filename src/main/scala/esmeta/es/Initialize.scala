@@ -31,21 +31,22 @@ class Initialize(cfg: CFG) {
     initTypedGlobal.map { case (k, (v, _)) => k -> v }
   lazy val initTypedGlobal: Map[Global, (Value, Ty)] = Map(
     EXECUTION_STACK ->
-    (NamedAddr(EXECUTION_STACK), ListT(NameT("ExecutionContext"))),
+    (NamedAddr(EXECUTION_STACK), ListT(RecordT("ExecutionContext"))),
+    SOURCE_TEXT -> (Str(""), StrT),
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
     SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
     MATH_PI -> (Math(scala.math.Pi), MathT),
-    AGENT_RECORD -> (NamedAddr(AGENT_RECORD), NameT("AgentRecord")),
+    AGENT_RECORD -> (NamedAddr(AGENT_RECORD), RecordT("AgentRecord")),
     AGENT_SIGNIFIER -> (NamedAddr(AGENT_SIGNIFIER), StrT("AgentSignifier")),
     CANDIDATE_EXECUTION -> (
       NamedAddr("CandidateExecution"),
-      NameT("CandidateExecution"),
+      RecordT("CandidateExecution"),
     ),
     KEPT_ALIVE -> (NamedAddr("KeptAlive"), ListT(ObjectT || SymbolT)),
-    REALM -> (NamedAddr(REALM), NameT("RealmRecord")),
-    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(NameT("PendingJob"))),
+    REALM -> (NamedAddr(REALM), RecordT("RealmRecord")),
+    JOB_QUEUE -> (NamedAddr(JOB_QUEUE), ListT(RecordT("JobRecord"))),
     SYMBOL_REGISTRY -> (NamedAddr(SYMBOL_REGISTRY), UnknownTy()),
     UNDEF_TYPE -> (Str("Undefined"), StrT("Undefined")),
     NULL_TYPE -> (Str("Null"), StrT("Null")),
@@ -65,13 +66,13 @@ class Initialize(cfg: CFG) {
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
       NamedAddr(AGENT_RECORD) -> agent,
-      NamedAddr(AGENT_SIGNIFIER) -> RecordObj("AgentSignifier"),
+      NamedAddr(AGENT_SIGNIFIER) -> recordObj("AgentSignifier"),
       NamedAddr(CANDIDATE_EXECUTION) -> YetObj(
         "CandidateExecution",
         "AgentRecord.[[CandidateExecution]]",
       ),
       NamedAddr(KEPT_ALIVE) -> ListObj(),
-      NamedAddr(REALM) -> RecordObj("RealmRecord"),
+      NamedAddr(REALM) -> recordObj("RealmRecord"),
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
@@ -99,10 +100,10 @@ class Initialize(cfg: CFG) {
   // implicit CFG
   given CFG = cfg
 
-  private val intr = Intrinsics(cfg)
-  private val glob = GlobalObject(cfg)
-  private val sym = builtin.Symbol(cfg)
-  private val agent = RecordObj("AgentRecord")(
+  val intr = Intrinsics(cfg)
+  val glob = GlobalObject(cfg)
+  val sym = builtin.Symbol(cfg)
+  val agent = recordObj("AgentRecord")(
     "LittleEndian" -> Bool(true),
     "CanBlock" -> Bool(true),
     "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
@@ -119,11 +120,11 @@ class Initialize(cfg: CFG) {
 
   // get data from builtin head
   extension (str: String) {
-    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
+    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
       BuiltinPath.from(str).getData
   }
   extension (path: BuiltinPath) {
-    def getData: Option[(String, String, PureValue, String, Boolean, Boolean)] =
+    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
       import BuiltinPath.*
       path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
@@ -152,21 +153,25 @@ class Initialize(cfg: CFG) {
   ): Unit = {
     val (baseName, baseAddr) = (intrName(name), intrAddr(name))
     val subAddr = mapAddr(baseName)
+    val listAddr = elemsAddr(baseName)
     val nameAddr = descAddr(name, "name")
     val lengthAddr = descAddr(name, "length")
 
     val baseObj = map.get(baseAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("BuiltinFunctionObject")
+      case _                  => recordObj("BuiltinFunctionObject")
     val mapObj = map.get(subAddr) match
       case Some(m: MapObj) => m
       case _               => MapObj()
-    val nameRecordObj = map.get(nameAddr) match
+    val listObj = map.get(listAddr) match
+      case Some(m: ListObj) => m
+      case _                => ListObj()
+    val namerecordObj = map.get(nameAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("PropertyDescriptor")
-    val lengthRecordObj = map.get(lengthAddr) match
+      case _                  => recordObj("PropertyDescriptor")
+    val lengthrecordObj = map.get(lengthAddr) match
       case Some(r: RecordObj) => r
-      case _                  => RecordObj("PropertyDescriptor")
+      case _                  => recordObj("PropertyDescriptor")
 
     def updateRecord(obj: RecordObj)(
       pairs: (String, Value)*,
@@ -174,20 +179,21 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
       obj
 
-    def updateMap(obj: MapObj)(
-      pairs: (PureValue, Value)*,
-    ): obj.type =
+    def updateMap(obj: MapObj)(pairs: (Value, Value)*): obj.type =
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
       obj
+
+    intr.obj.map += Str(s"%$name%") -> baseAddr
 
     map += baseAddr -> updateRecord(baseObj)(
       "Extensible" -> Bool(true),
       "ScriptOrModule" -> Null,
       "Realm" -> realmAddr,
-      "Code" -> intrClo(name),
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
+      INNER_CODE -> intrClo(name),
       INNER_MAP -> subAddr,
+      PRIVATE_ELEMENTS -> listAddr,
     )
 
     map += subAddr -> updateMap(mapObj)(
@@ -195,14 +201,16 @@ class Initialize(cfg: CFG) {
       Str("name") -> nameAddr,
     )
 
-    map += nameAddr -> updateRecord(nameRecordObj)(
+    map += listAddr -> listObj
+
+    map += nameAddr -> updateRecord(namerecordObj)(
       "Value" -> Str(defaultName),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
 
-    map += lengthAddr -> updateRecord(lengthRecordObj)(
+    map += lengthAddr -> updateRecord(lengthrecordObj)(
       "Value" -> Number(defaultLength),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),

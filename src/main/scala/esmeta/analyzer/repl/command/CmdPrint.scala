@@ -2,7 +2,6 @@ package esmeta.analyzer.repl.command
 
 import esmeta.analyzer.*
 import esmeta.analyzer.repl.*
-import esmeta.analyzer.domain.*
 import esmeta.cfg.*
 import esmeta.ir.Expr
 import esmeta.util.BaseUtils.*
@@ -24,24 +23,17 @@ trait CmdPrintDecl { self: Self =>
       cpOpt: Option[ControlPoint],
       args: List[String],
     ): Unit =
-      val cp = cpOpt.getOrElse(sem.runJobsRp)
+      val cp = cpOpt.getOrElse(runJobsRp)
       args match
-        case s"-${`reachLoc`}" :: _ =>
-          val st = sem.getState(cp)
-          st.reachableParts.foreach(println _)
-        case s"-${`ret`}" :: _ =>
-          val v = cp match
-            case np: NodePoint[Node] => println("no return value")
-            case rp: ReturnPoint =>
-              val ret = sem(rp)
-              println(ret.state.getString(ret.value))
+        case s"-${`ret`}" :: _ => println(getString(cp.toReturnPoint))
         case s"-${`expr`}" :: rest =>
           val str = rest.mkString(" ")
           cp match
             case np: NodePoint[Node] =>
               given NodePoint[Node] = np
-              val v = transfer(Expr.from(str))
-              println(sem(np).getString(v))
+              val st = getResult(np)
+              val (v, _) = transfer.transfer(Expr.from(str))(st)
+              println(v.getString(st))
 
             case rp: ReturnPoint =>
               println("cannot evaluate expression in return point")

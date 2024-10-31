@@ -19,7 +19,7 @@ case class Context(
   def moveNext: Unit = cursor match
     case NodeCursor(block: Block) => cursor = Cursor(block.next, func)
     case NodeCursor(call: Call)   => cursor = Cursor(call.next, func)
-    case _                        => error("cursor can't move to next")
+    case _                        => cursor = ExitCursor(func)
 
   /** return variable */
   var retVal: Option[(Return, Value)] = None

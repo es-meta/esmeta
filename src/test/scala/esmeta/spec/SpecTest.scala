@@ -105,10 +105,7 @@ object SpecTest {
   )
   lazy val concMethodHead = ConcreteMethodHead(
     "HasBinding",
-    Param(
-      "envRec",
-      UnknownType,
-    ),
+    Param("envRec", UnknownType),
     List(Param("N", Type(StrT))),
     UnknownType,
   )

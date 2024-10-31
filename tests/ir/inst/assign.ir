@@ -8,17 +8,15 @@
   let obj = (record [A] { "a": 0, "b": 0 })[#1]
   let prop = "a"
   obj[prop] = 1
-  obj["c"] = 2
+  obj["b"] = 2
   assert (= obj[prop] 1)
   assert (= obj["a"] 1)
-  assert (= obj["b"] 0)
-  assert (= obj["c"] 2)
+  assert (= obj["b"] 2)
 
   // prop-dot
   let obj2 = (record [A] { "x": 0, "y": 0 })[#1]
   obj2.x = 3
-  obj2.z = 5
+  obj2.y = 5
   assert (= obj2.x 3)
-  assert (= obj2.y 0)
-  assert (= obj2.z 5)
+  assert (= obj2.y 5)
 }

@@ -40,17 +40,17 @@ case object BuildCFG extends Phase[Program, CFG] {
   val options: List[PhaseOption[Config]] = List(
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
     ),
     (
       "dot",
-      BoolOption(c => c.dot = true),
+      BoolOption(_.dot = _),
       "dump the cfg in a DOT format.",
     ),
     (
       "pdf",
-      BoolOption(c => { c.dot = true; c.pdf = true }),
+      BoolOption((c, b) => { c.dot ||= b; c.pdf = b }),
       "dump the cfg in DOT and PDF formats.",
     ),
   )

@@ -68,7 +68,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdCompile,
     CmdBuildCFG,
     // Analysis of ECMA-262
-    CmdTypeCheck,
+    CmdTyCheck,
     // Interpreter & Double Debugger for ECMAScript
     CmdParse,
     CmdEval,
@@ -78,8 +78,6 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     CmdInject,
     CmdMutate,
-    // ECMAScript Static Analysis (Meta-Level Static Analysis)
-    CmdAnalyze,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -93,7 +91,7 @@ object ESMeta extends Git(BASE_DIR) {
     Compile,
     BuildCFG,
     // Analysis of ECMA-262
-    TypeCheck,
+    TyCheck,
     // Interpreter & Double Debugger for ECMAScript
     Parse,
     Eval,
@@ -103,16 +101,14 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Transformer
     Inject,
     Mutate,
-    // ECMAScript Static Analysis (Meta-Level Static Analysis)
-    Analyze,
   )
 
   /** command options */
   val options: List[PhaseOption[CommandConfig]] = List(
-    ("silent", BoolOption(c => c.silent = true), "do not show final results."),
-    ("error", BoolOption(_ => ERROR_MODE = true), "show error stack traces."),
-    ("status", BoolOption(_ => STATUS_MODE = true), "exit with status."),
-    ("time", BoolOption(c => c.time = true), "display the duration time."),
+    ("silent", BoolOption(_.silent = _), "do not show final results."),
+    ("error", BoolOption((_, b) => ERROR_MODE = b), "show error stack traces."),
+    ("status", BoolOption((_, b) => STATUS_MODE = b), "exit with status."),
+    ("time", BoolOption(_.time = _), "display the duration time."),
     (
       "test262dir",
       StrOption((c, s) => TEST262_DIR = s),

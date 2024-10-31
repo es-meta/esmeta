@@ -32,6 +32,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
       case elem: RefTarget   => refTargetRule(app, elem)
+      case elem: Uninit      => uninitRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -75,44 +76,30 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MapObj(map) =>
         app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
       case RecordObj(tname, map) =>
-        given Rule[Iterable[(String, Value)]] = sortedMapRule("{", "}", " : ")
-        app >> "[TYPE = " >> tname >> "] "
-        app >> map.map { case (k, v) => (s"\"$k\"", v) }
+        app >> "Record"
+        given Rule[Iterable[(String, Value | Uninit)]] =
+          sortedMapRule("{", "}", " : ")
+        if (tname.nonEmpty) app >> "[" >> tname >> "]"
+        app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
       case ListObj(values) =>
         given Rule[List[Value]] = iterableRule("[", ", ", "]")
-        app >> values.toList
+        app >> "List" >> values.toList
       case YetObj(tname, msg) =>
-        app >> "[TYPE = " >> tname >> "] Yet(\"" >> msg >> "\")"
+        app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
   // values
   given valueRule: Rule[Value] = (app, value) =>
     value match
-      case comp: Comp      => compRule(app, comp)
-      case pure: PureValue => pureValueRule(app, pure)
-
-  // completion values
-  given compRule: Rule[Comp] = (app, comp) =>
-    comp match
-      case NormalComp(value) =>
-        app >> "N(" >> value >> ")"
-      case Comp(ty, value, target) =>
-        app >> "comp[" >> ty
-        target.map(app >> "/" >> _)
-        app >> "]" >> "(" >> value >> ")"
-
-  // pure values (not completion values)
-  given pureValueRule: Rule[PureValue] = (app, value) =>
-    value match
-      case addr: Addr      => addrRule(app, addr)
-      case clo: Clo        => cloRule(app, clo)
-      case cont: Cont      => contRule(app, cont)
-      case AstValue(ast)   => app >> ast
-      case gr: Nt          => ntRule(app, gr)
-      case m: Math         => mathRule(app, m)
-      case i: Infinity     => infinityRule(app, i)
-      case e: Enum         => enumRule(app, e)
-      case cu: CodeUnit    => cuRule(app, cu)
-      case sv: SimpleValue => svRule(app, sv)
+      case addr: Addr        => addrRule(app, addr)
+      case clo: Clo          => cloRule(app, clo)
+      case cont: Cont        => cogrammarSymbolRule(app, cont)
+      case AstValue(ast)     => app >> ast
+      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
+      case m: Math           => mathRule(app, m)
+      case i: Infinity       => infinityRule(app, i)
+      case e: Enum           => enumRule(app, e)
+      case cu: CodeUnit      => cuRule(app, cu)
+      case sv: SimpleValue   => svRule(app, sv)
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
@@ -129,7 +116,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> ">"
 
   // continuations
-  given contRule: Rule[Cont] = (app, cont) =>
+  given cogrammarSymbolRule: Rule[Cont] = (app, cont) =>
     val Cont(func, captured, _) = cont
     given Rule[List[(Name, Value)]] = iterableRule("[", ", ", "]")
     app >> "cont<" >> func.irFunc.name
@@ -137,7 +124,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> ">"
 
   // nonterminals
-  given ntRule: Rule[Nt] = (app, gr) =>
+  given grammarSymbolRule: Rule[GrammarSymbol] = (app, gr) =>
     given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
     given Rule[List[Boolean]] = iterableRule()
     app >> "|" >> gr.name >> "|"
@@ -166,7 +153,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Bool(bool) => app >> bool
       case Undef      => app >> "undefined"
       case Null       => app >> "null"
-      case Absent     => app >> "absent"
 
   // reference value
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
@@ -176,4 +162,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
+
+  // uninit
+  given uninitRule: Rule[Uninit] = (app, _) => app >> "uninit"
 }

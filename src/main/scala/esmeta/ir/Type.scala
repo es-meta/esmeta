@@ -10,11 +10,17 @@ case class Type(
   langTy: Option[LangType] = None,
 ) extends IRElem {
 
-  /** completion check */
-  def isDefined: Boolean = ty.isDefined
+  /** definite type check */
+  inline def isDefined: Boolean = ty.isDefined
+
+  /** imprecise type check */
+  inline def isImprec: Boolean = ty.isImprec
 
   /** completion check */
-  def isCompletion: Boolean = ty.isCompletion
+  inline def isCompletion: Boolean = ty.isCompletion
+
+  /** conversion to value type */
+  inline def toValue: ValueTy = ty.toValue
 }
 object Type extends Parser.From(Parser.irType)
 

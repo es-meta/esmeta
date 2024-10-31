@@ -1,7 +1,7 @@
 package esmeta.ty
 
 import esmeta.ty.util.JsonProtocol.given
-import esmeta.state.{Nt, Number}
+import esmeta.state.{GrammarSymbol, Number}
 import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
 
 /** JSON test */
@@ -10,15 +10,77 @@ class JsonTinyTest extends TyTest {
 
   // registration
   def init: Unit = {
+
+    checkJsonWithString("TyModel")(
+      tyModel0 -> "",
+      tyModel1 -> """type A""",
+      tyModel2 -> """type A extends B
+      |
+      |type A {
+      |  abstract def a;
+      |}""".stripMargin,
+      tyModel3 -> """type A
+      |
+      |type A = B {
+      |  abstract def a;
+      |}
+      |
+      |type A {
+      |  abstract def a;
+      |  def c?;
+      |}""".stripMargin,
+    )
+
+    checkJsonWithString("TyDecl")(
+      decl0 -> """type A""",
+      decl1 -> """type A {
+      |  abstract def a;
+      |}""".stripMargin,
+      decl2 -> """type A {
+      |  abstract def a;
+      |  def c?;
+      |}""".stripMargin,
+      declParent0 -> """type A extends B""",
+      declParent1 -> """type A = B {
+      |  abstract def a;
+      |}""".stripMargin,
+      declParent2 -> """type A extends B {
+      |  abstract def a;
+      |  def c?;
+      |}""".stripMargin,
+    )
+
+    checkJsonWithString("TyDecl.Elem")(
+      absMethod -> "abstract def a",
+      conMethod -> "def b",
+      conMethodOpt -> "def c?",
+      conMethodTarget -> "def d = foo",
+      conMethodOptTarget -> "def e? = bar",
+    )
+
+    checkJsonWithString("FieldMap")(
+      fieldMap0 -> """{}""",
+      fieldMap1 -> """{
+      |  p
+      |}""".stripMargin,
+      fieldMap2 -> """{
+      |  p
+      |  q : [U] Boolean
+      |}""".stripMargin,
+      fieldMap3 -> """{
+      |  p
+      |  q : [A] Boolean
+      |  r : [UA] Null
+      |}""".stripMargin,
+    )
+
     checkJsonWithString("Ty")(
       AnyT -> "Any",
-      PureValueT -> "PureValue",
+      CompT -> "Completion",
       AbruptT -> "Abrupt",
       NormalT(NumberT) -> "Normal[Number]",
-      MapT(
-        StrT,
-        NameT("Binding"),
-      ) -> "Map[String |-> Binding]",
+      MapT -> "Map",
+      MapT(StrT, RecordT("Binding")) -> "Map[String -> Record[Binding]]",
       CloT -> "Clo",
       CloT("ToString:clo0") -> "Clo[\"ToString:clo0\"]",
       ContT -> "Cont",
@@ -26,32 +88,30 @@ class JsonTinyTest extends TyTest {
       ESValueT -> "ESValue",
       UnknownTy() -> "Unknown",
       UnknownTy(Some("T")) -> "Unknown[\"T\"]",
-      NameT -> "AnyName",
-      NameT("Cat") -> "Cat",
-      NameT("Cat", "Dog") -> "Cat | Dog",
-      RecordT -> "AnyRecord",
-      RecordT("A" -> NumberT, "B" -> BoolT) ->
-      "{ [[A]]: Number, [[B]]: Boolean }",
-      RecordT(Set("Key", "Value")) ->
-      "{ [[Key]], [[Value]] }",
-      RecordT("Key" -> ValueTy.Top, "Value" -> ValueTy.Top, "Dummy" -> BotT) ->
-      "{ [[Key]], [[Value]] }",
-      (ObjectT || RecordT(
-        "P" -> ValueTy.Top,
-        "S" -> ValueTy.Top,
-        "Q" -> NumberT,
-        "R" -> BoolT,
-      )) -> "Object | { [[P]], [[Q]]: Number, [[R]]: Boolean, [[S]] }",
+      RecordT -> "Record",
+      RecordT("Cat") -> "Record[Cat]",
+      RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
+      RecordT("Object", Map("PrivateElements" -> NilT)) ->
+      "Record[Object { PrivateElements : Nil }]",
+      RecordT(
+        "",
+        Map(
+          "P" -> AnyT,
+          "S" -> AnyT,
+          "Q" -> NumberT,
+          "R" -> BoolT,
+        ),
+      ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
-      SymbolT -> "Symbol",
+      SymbolT -> "Record[Symbol]",
       AstT -> "Ast",
       AstT("Literal") -> "Ast[Literal]",
-      AstSingleT("Member", 1, 3) -> "Ast:Member[1,3]",
-      NtT(
-        Nt("Literal", List(true)),
-        Nt("Identifier", List(false, true, false)),
-      ) -> "Nt[|Identifier|[FTF], |Literal|[T]]",
+      AstT("Member", 1) -> "Ast[Member[1]]",
+      GrammarSymbolT(
+        GrammarSymbol("Literal", List(true)),
+        GrammarSymbol("Identifier", List(false, true, false)),
+      ) -> "GrammarSymbol[|Identifier|[FTF], |Literal|[T]]",
       CodeUnitT -> "CodeUnit",
       EnumT("key") -> "Enum[~key~]",
       EnumT("key", "value") -> "Enum[~key~, ~value~]",
@@ -82,7 +142,6 @@ class JsonTinyTest extends TyTest {
       BoolT -> "Boolean",
       UndefT -> "Undefined",
       NullT -> "Null",
-      AbsentT -> "Absent",
     )
   }
 

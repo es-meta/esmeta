@@ -1,6 +1,6 @@
 package esmeta.util
 
-import esmeta.util.BaseUtils.warn
+import esmeta.util.BaseUtils.{warn, error}
 
 /** lattice with concrete values */
 trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
@@ -30,7 +30,7 @@ trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
 // -----------------------------------------------------------------------------
 // flat concrete lattice
 // -----------------------------------------------------------------------------
-sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
+sealed trait Flat[+A] extends ConcreteLattice[A, Flat] { self =>
 
   /** top check */
   def isTop: Boolean = this == Many
@@ -76,12 +76,21 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] {
 
   /** foreach function */
   def foreach(f: A => Unit): Unit = this match
-    case Zero      =>
+    case Zero      => ()
     case One(elem) => f(elem)
-    case Many      =>
+    case Many      => ()
 
   /** get single value */
   def getSingle[B >: A]: Flat[B] = this
+
+  /** conversion to iterable */
+  def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
+    final def iterator: Iterator[A] = self match
+      case Zero       => Nil.iterator
+      case One(value) => Iterator.single(value)
+      case Many =>
+        if (stop) error(s"impossible to iterate infinite values")
+        else Nil.iterator
 }
 object Flat:
   def apply[A](elems: Iterable[A]): Flat[A] = elems.toSet match
@@ -102,7 +111,7 @@ case object Zero extends Flat[Nothing]
 // -----------------------------------------------------------------------------
 // bounded concrete set lattice
 // -----------------------------------------------------------------------------
-sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
+sealed trait BSet[+A] extends ConcreteLattice[A, BSet] { self =>
 
   /** top check */
   def isTop: Boolean = this == Inf
@@ -151,12 +160,12 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
   /** foldLeft function */
   def foldLeft[B](init: B)(f: (B, A) => B): B = this match
     case Fin(set) => set.foldLeft(init)(f)
-    case Inf      => warn("fold on infinite set", showTrace = true); init
+    case Inf      => warn("fold on infinite set"); init
 
   /** get list function */
   def toList: List[A] = this match
     case Fin(set) => set.toList
-    case Inf      => warn("convert infinite set to list", showTrace = true); Nil
+    case Inf      => warn("convert infinite set to list"); Nil
 
   /** inclusion check */
   def contains[B >: A](x: B): Boolean = this match
@@ -168,6 +177,14 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] {
     case Fin(set) if set.size == 0 => Zero
     case Fin(set) if set.size == 1 => One(set.head)
     case _                         => Many
+
+  /** conversion to iterable */
+  def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
+    final def iterator: Iterator[A] = self match
+      case Fin(set) => set.iterator
+      case Inf =>
+        if (stop) error(s"impossible to iterate infinite values")
+        else Nil.iterator
 }
 case object Inf extends BSet[Nothing]
 case class Fin[A](set: Set[A]) extends BSet[A]

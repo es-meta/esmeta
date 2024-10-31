@@ -251,6 +251,12 @@ case class HexLiteral(hex: Int, name: Option[String]) extends Literal
 // code literals
 case class CodeLiteral(code: String) extends Literal
 
+// grammar symbol literals
+case class GrammarSymbolLiteral(
+  name: String,
+  flags: List[String],
+) extends Literal
+
 // nonterminal literals
 case class NonterminalLiteral(
   ordinal: Option[Int],
@@ -297,7 +303,6 @@ case class FalseLiteral() extends BooleanLiteral
 // other special literals
 case class UndefinedLiteral() extends Literal
 case class NullLiteral() extends Literal
-case class AbsentLiteral() extends Literal
 
 // ECMAScript type literals
 sealed trait ESTypeLiteral extends Literal

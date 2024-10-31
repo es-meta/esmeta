@@ -6,7 +6,7 @@ import esmeta.util.BaseUtils.*
 
 trait CmdJumpDecl { self: Self =>
 
-// jump command
+  // jump command
   case object CmdJump
     extends Command(
       "jump",
@@ -26,7 +26,7 @@ trait CmdJumpDecl { self: Self =>
         Repl.untilMerged = true; Repl.continue = true
       case arg :: _ if !optional(arg.toInt).isEmpty =>
         val iter = arg.toInt
-        if (iter > Repl.iter) { Repl.jumpTo = Some(iter); Repl.continue = true }
+        if (iter > self.iter) { Repl.jumpTo = Some(iter); Repl.continue = true }
         else println(s"The iteration [$iter] is already passed.")
       case _ => println("Inappropriate argument")
     }

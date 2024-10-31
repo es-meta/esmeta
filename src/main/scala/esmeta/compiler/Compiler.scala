@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.es.builtin.INNER_MAP
+import esmeta.es.builtin.{INNER_MAP, PRIVATE_ELEMENTS}
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,
@@ -18,7 +18,6 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.math.MathContext.UNLIMITED
 import scala.collection.mutable.ListBuffer
-import esmeta.ir.util.isPure
 
 /** compiler from metalangauge to IR */
 object Compiler:
@@ -38,18 +37,20 @@ class Compiler(
     for (algo <- spec.algorithms) compile(algo)
     Program(funcs.toList, spec)
 
-  /** load manually created AOs */
-  val manualAlgos = (for {
-    file <- ManualInfo.funcFiles
-    func = Func.fromFile(file.toString)
-  } yield func).toList
-  val manualAlgoNames = manualAlgos.map(_.name).toSet
+  /** load manually created IR functions */
+  val manualFuncs: List[Func] = ManualInfo.funcFiles.sorted.map(Func.fromFile)
+
+  /** load manually created IR functions */
+  val manualFuncMap = manualFuncs.map(func => func.name -> func).toMap
 
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualAlgos)
+  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs)
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
+
+  /** load manual compile rules */
+  val tyModel: TyModel = ManualInfo.tyModel
 
   /** load manual compile rules for expressions */
   val exprRules: Map[String, Expr] = for {
@@ -108,14 +109,18 @@ class Compiler(
     tname endsWith "Object"
   private def isEnvRec(tname: String): Boolean =
     tname endsWith "EnvironmentRecord"
-  private def hasMap(tname: String): Boolean =
-    isObject(tname) || isEnvRec(tname)
+  private def getMapTy(tname: String): Option[(Ty, Ty)] =
+    if (isObject(tname))
+      Some((StrT || SymbolT) -> RecordT("PropertyDescriptor"))
+    else if (isEnvRec(tname)) Some(StrT -> RecordT("Binding"))
+    else None
 
   /* set of function names not to compile */
   // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
-  val excluded = manualAlgoNames ++ shorthands ++ Set(
-    "INTRINSICS.Array.prototype[@@unscopables]",
-  )
+  val excluded =
+    manualFuncMap.keySet ++
+    shorthands +
+    "INTRINSICS.Array.prototype[@@unscopables]"
 
   /* get function kind */
   def getKind(head: Head): FuncKind = {
@@ -131,22 +136,29 @@ class Compiler(
   }
 
   /** get prefix instructions for builtin functions */
-  def getBuiltinPrefix(ps: List[Param]): List[Inst] =
+  def getBuiltinPrefix(fb: FuncBuilder, ps: List[Param]): List[Inst] =
     import ParamKind.*
     if (ps.exists(_.kind == Ellipsis)) Nil
     else {
       // add bindings for original arguments
-      val argsLen = toStrERef(NAME_ARGS_LIST, "length")
+      val argsLen = ESizeOf(toERef(NAME_ARGS_LIST))
       var remaining = ps.count(_.kind == Normal)
-      ps.flatMap {
+      fb.builtinBindings = ps.map(_.name).toSet
+      ILet(NAME_ARGS, ERecord("", Nil)) :: ps.flatMap {
         case Param(name, _, Variadic) if remaining == 0 =>
           List(ILet(Name(name), ENAME_ARGS_LIST))
         case Param(name, _, Variadic) =>
+          val (x, xExpr) = fb.newTIdWithExpr
           List(
             ILet(Name(name), EList(Nil)),
             IWhile(
               lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
-              IPush(EPop(ENAME_ARGS_LIST, true), toERef(Name(name)), false),
+              ISeq(
+                List(
+                  IPop(x, ENAME_ARGS_LIST, true),
+                  IPush(xExpr, toERef(Name(name)), false),
+                ),
+              ),
             ),
           )
         case Param(name, _, kind) =>
@@ -154,8 +166,13 @@ class Compiler(
           List(
             IIf(
               lessThan(zero, argsLen),
-              ILet(Name(name), EPop(ENAME_ARGS_LIST, true)),
-              ILet(Name(name), EAbsent()),
+              ISeq(
+                List(
+                  IPop(Name(name), ENAME_ARGS_LIST, true),
+                  IExpand(NAME_ARGS, EStr(name)),
+                ),
+              ),
+              ILet(Name(name), EUndef()),
             ),
           )
       }
@@ -171,31 +188,38 @@ class Compiler(
     body: Step,
     prefix: List[Inst] = Nil,
   ): Unit =
-    if (!excluded.contains(fb.name))
+    val name = fb.name
+    manualFuncMap.get(name).map(_.algo = Some(fb.algo))
+    if (!excluded.contains(name))
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
         case Nil => inst
         case _   => ISeq(prefix ++ inst.toList),
       )
 
+  val noReturnComp: Set[String] = Set(
+    "Completion",
+    "NormalCompletion",
+  )
+
   /** compile an algorithm to an IR function */
-  // TODO consider refactor
   def compile(algo: Algorithm): Unit =
+    import FuncKind.*
+    val kind = getKind(algo.head)
+    val name = algo.head.fname
+    val params = algo.head.funcParams.map(compile)
+    val retTy = compile(algo.retTy)
+    val needReturnComp = kind match
+      case SynDirOp if name.endsWith(".Evaluation") => true
+      case Builtin                                  => true
+      case _ if noReturnComp contains name          => false
+      case _                                        => retTy.isCompletion
+    val fb =
+      FuncBuilder(spec, kind, name, params, retTy, algo, None, needReturnComp)
     val prefix = algo.head match
-      case head: BuiltinHead => getBuiltinPrefix(head.params)
+      case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
-    addFunc(
-      fb = FuncBuilder(
-        spec,
-        getKind(algo.head),
-        algo.head.fname,
-        algo.head.funcParams.map(compile),
-        compile(algo.retTy),
-        algo,
-      ),
-      body = algo.body,
-      prefix = prefix,
-    )
+    addFunc(fb, algo.body, prefix)
 
   /** compile algorithm steps */
   def compile(
@@ -225,13 +249,33 @@ class Compiler(
         ),
       )
     case ReturnStep(expr) =>
-      val e = expr.fold(EUndef())(compile(fb, _))
-      fb.returnContext match
-        case None          => fb.addInst(IReturn(e))
-        case Some(context) => fb.addReturnToResume(context, e)
+      lazy val e = expr.fold(EUndef())(compile(fb, _))
+      (expr, fb.returnContext, fb.needReturnComp) match
+        case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
+          val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
+          fb.addInst(IReturn(e))
+        case (_, None, true) =>
+          val e = expr.fold(EUndef())(compile(fb, _))
+          val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
+          val (y, yExpr) = fb.newTIdWithExpr
+          if (!x.isLiteral)
+            fb.addInst(
+              IIf(
+                isCompletion(x),
+                IReturn(x),
+                emptyInst,
+              ),
+            )
+          fb.addInst(
+            ICall(y, EClo("NormalCompletion", Nil), List(x)),
+            IReturn(yExpr),
+          )
+        case (_, None, false) =>
+          fb.addInst(IReturn(e))
+        case (_, Some(context), _) => fb.addReturnToResume(context, e)
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
-    case ForEachStep(ty, x, expr, true, body) =>
+    case ForEachStep(ty, variable, expr, true, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
@@ -240,28 +284,46 @@ class Compiler(
       )
       fb.addInst(
         IWhile(
-          lessThan(iExpr, toStrERef(list, "length")),
+          lessThan(iExpr, ESizeOf(listExpr)),
           fb.newScope {
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            val x = compile(variable)
+            fb.addInst(ILet(x, toERef(list, iExpr)))
+            ty.fold(compile(fb, body)) { ty =>
+              fb.addInst(
+                IIf(
+                  ETypeCheck(ERef(x), compile(ty)),
+                  compileWithScope(fb, body),
+                  emptyInst,
+                ),
+              )
+            }
             fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
       )
-    case ForEachStep(ty, x, expr, false, body) =>
+    case ForEachStep(ty, variable, expr, false, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
-        IAssign(i, toStrERef(list, "length")),
+        IAssign(i, ESizeOf(listExpr)),
       )
       fb.addInst(
         IWhile(
           lessThan(zero, iExpr),
           fb.newScope {
             fb.addInst(IAssign(i, sub(iExpr, one)))
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            val x = compile(variable)
+            fb.addInst(ILet(x, toERef(list, iExpr)))
+            ty.fold(compile(fb, body)) { ty =>
+              fb.addInst(
+                IIf(
+                  ETypeCheck(ERef(x), compile(ty)),
+                  compileWithScope(fb, body),
+                  emptyInst,
+                ),
+              )
+            }
           },
         ),
       )
@@ -288,9 +350,9 @@ class Compiler(
       fb.addInst(
         IAssign(list, EKeys(toStrERef(compile(fb, obj), INNER_MAP), intSorted)),
         if (ascending) IAssign(i, zero)
-        else IAssign(i, toStrERef(list, "length")),
+        else IAssign(i, ESizeOf(listExpr)),
         IWhile(
-          if (ascending) lessThan(iExpr, toStrERef(list, "length"))
+          if (ascending) lessThan(iExpr, ESizeOf(listExpr))
           else lessThan(zero, iExpr),
           fb.newScope {
             if (!ascending) fb.addInst(IAssign(i, sub(iExpr, one)))
@@ -308,19 +370,27 @@ class Compiler(
       )
     case ForEachParseNodeStep(x, expr, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      val (length, lengthExpr) = fb.newTIdWithExpr
+      val (ast, astExpr) = fb.newTIdWithExpr
+      val (size, sizeExpr) = fb.newTIdWithExpr
       fb.addInst(
-        IAssign(list, EGetChildren(compile(fb, expr))),
+        IAssign(ast, compile(fb, expr)),
         IAssign(i, zero),
-        IAssign(length, toStrERef(list, "length")),
+        IAssign(size, ESizeOf(astExpr)),
       )
       fb.addInst(
         IWhile(
-          lessThan(iExpr, lengthExpr),
+          lessThan(iExpr, sizeExpr),
           fb.newScope {
-            fb.addInst(ILet(compile(x), toERef(list, iExpr)))
-            compile(fb, body)
+            fb.addInst(
+              IIf(
+                exists(toRef(ast, iExpr)),
+                fb.newScope {
+                  fb.addInst(ILet(compile(x), toERef(ast, iExpr)))
+                  compile(fb, body)
+                },
+                emptyInst,
+              ),
+            )
             fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
@@ -328,16 +398,15 @@ class Compiler(
     case ThrowStep(name) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val (y, yExpr) = fb.newTIdWithExpr
-      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
       fb.addInst(
         ICall(x, AUX_NEW_ERROR_OBJ, List(proto)),
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
     case PerformStep(expr) =>
-      compile(fb, expr) match
-        case era: EReturnIfAbrupt => fb.addInst(IExpr(era))
-        case _                    =>
+      val e = compile(fb, expr)
+      if (!e.isPure) fb.addInst(IExpr(e))
     case PerformBlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
@@ -358,7 +427,8 @@ class Compiler(
     case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
     case RemoveStep(elem, list) =>
       fb.addInst(
         ICall(
@@ -368,9 +438,11 @@ class Compiler(
         ),
       )
     case RemoveFirstStep(expr) =>
-      fb.addInst(IExpr(EPop(compile(fb, expr), true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, compile(fb, expr), true))
     case RemoveContextStep(_, _) =>
-      fb.addInst(IExpr(EPop(EGLOBAL_EXECUTION_STACK, true)))
+      val x = fb.newTId
+      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
     case SetEvaluationStateStep(context, paramOpt, body) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
@@ -383,6 +455,7 @@ class Compiler(
           fb.retTy,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+          fb.needReturnComp,
         ),
         body = body,
       )
@@ -403,12 +476,14 @@ class Compiler(
           ps,
           fb.retTy,
           fb.algo,
+          None,
+          fb.needReturnComp,
         ),
         body = bodyStep,
       )
       fb.addInst(
         IIf(
-          isAbsent(eReturnCont),
+          not(exists(returnCont)),
           IAssign(returnCont, emptyList),
           emptyInst,
         ),
@@ -427,6 +502,7 @@ class Compiler(
           fb.retTy,
           fb.algo,
           if (fixReturnAOs contains fb.name) Some(ctxt) else None,
+          fb.needReturnComp,
         ),
         body = BlockStep(StepBlock(steps)),
       )
@@ -439,7 +515,8 @@ class Compiler(
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
-      val inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      var inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
+      if (fb.needReturnComp) inst = fb.returnModifier.walk(inst)
       unusedRules -= yetStr
       fb.addInst(inst)
   })
@@ -478,36 +555,29 @@ class Compiler(
     fb.withLang(expr)(expr match {
       case StringConcatExpression(exprs) =>
         EVariadic(VOp.Concat, exprs.map(compile(fb, _)))
-      case ListConcatExpression(exprs) =>
-        EListConcat(exprs.map(compile(fb, _)))
+      case ListConcatExpression(es) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
+        xExpr
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
-      case RecordExpression("Completion Record", fields) =>
-        val fmap = fields.toMap
-        val fs @ List(ty, v, tgt) =
-          List("Type", "Value", "Target").map(FieldLiteral(_))
-        val keys = fmap.keySet
-        if (keys != fs.toSet)
-          error(s"invalid completion keys: ${keys.mkString(", ")}")
-        EComp(
-          compile(fb, fmap(ty)),
-          compile(fb, fmap(v)),
-          compile(fb, fmap(tgt)),
-        )
       case RecordExpression(rawName, fields) =>
-        val props = fields.map {
-          case (FieldLiteral(f), e) => f -> compile(fb, e)
-        }
         val tname = Type.normalizeName(rawName)
-        val updatedProps =
-          if (hasMap(tname)) props :+ (INNER_MAP -> EMap(Nil))
-          else props
-        ERecord(if (tname == "Record") None else Some(tname), updatedProps)
+        var props = (for {
+          (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
+        } yield name -> EClo(f, Nil)) ++ (for {
+          (FieldLiteral(f), e) <- fields
+        } yield f -> compile(fb, e))
+        getMapTy(tname).map { (k, v) =>
+          props :+= INNER_MAP -> EMap(IRType(k) -> IRType(v), Nil)
+        }
+        if (isObject(tname)) props :+= PRIVATE_ELEMENTS -> EList(Nil)
+        ERecord(if (tname == "Record") "" else tname, props.toList)
       case LengthExpression(ReferenceExpression(ref)) =>
-        toStrERef(compile(fb, ref), "length")
+        ESizeOf(ERef(compile(fb, ref)))
       case LengthExpression(expr) =>
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(IAssign(x, compile(fb, expr)))
-        toStrERef(x, "length")
+        ESizeOf(xExpr)
       case SubstringExpression(expr, from, to) =>
         ESubstring(
           compile(fb, expr),
@@ -522,23 +592,30 @@ class Compiler(
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
       case NumberOfExpression(ReferenceExpression(ref)) =>
-        toStrERef(compile(fb, ref), "length")
+        ESizeOf(ERef(compile(fb, ref)))
       case NumberOfExpression(expr) =>
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(IAssign(x, compile(fb, expr)))
-        toStrERef(x, "length")
+        ESizeOf(xExpr)
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
       case SourceTextExpression(expr) =>
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetItemsExpression(nt, expr) =>
-        EGetItems(compile(fb, nt), compile(fb, expr))
+      case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
+        val n = compile(fb, nt)
+        val e = compile(fb, expr)
+        val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(ICall(x, AUX_GET_ITEMS, args))
+        xExpr
+      case expr: GetItemsExpression =>
+        EYet(expr.toString(true, false))
       case InvokeAbstractOperationExpression(name, args) =>
         val as = args.map(compile(fb, _))
-        if simpleOps contains name then simpleOps(name)(as)
-        else if shorthands contains name then compileShorthand(fb, name, as)
+        if (simpleOps contains name) simpleOps(name)(fb, as)
+        else if (shorthands contains name) compileShorthand(fb, name, as)
         else
           val (x, xExpr) = fb.newTIdWithExpr
           val f = EClo(name, Nil)
@@ -556,7 +633,7 @@ class Compiler(
       case InvokeMethodExpression(ref, args) =>
         val Field(base, method) = compile(fb, ref)
         val (b, bExpr) =
-          if (isPure(base)) (base, ERef(base))
+          if (base.isPure) (base, ERef(base))
           else fb.newTIdWithExpr(ERef(base))
         val fexpr = ERef(Field(b, method))
         val (x, xExpr) = fb.newTIdWithExpr
@@ -569,7 +646,7 @@ class Compiler(
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
-        EReturnIfAbrupt(compile(fb, expr), check)
+        returnIfAbrupt(fb, compile(fb, expr), check, false)
       case ListExpression(entries) =>
         EList(entries.map(compile(fb, _)))
       case IntListExpression(from, fInc, to, tInc, asc) =>
@@ -649,30 +726,28 @@ class Compiler(
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
         val algoName = fb.algo.head.fname
-        val (ck, cn, ps, prefix) =
-          if (fixClosurePrefixAOs.exists(_.matches(algoName)))
+        val hasPrefix = fixClosurePrefixAOs.exists(_.matches(algoName))
+        val (ck, cn, ps) =
+          if (hasPrefix)
             (
-              FuncKind.BuiltinClo,
+              FuncKind.Clo,
               fb.nextCloName,
               List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-              getBuiltinPrefix(params.map(x => Param(x.name, UnknownType))),
             )
           else
             (
               FuncKind.Clo,
               fb.nextCloName,
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
-              Nil,
             )
+        val retTy = IRUnknownType
+        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, None, true)
+        val prefix =
+          if (hasPrefix)
+            getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))
+          else Nil
         addFunc(
-          fb = FuncBuilder(
-            spec,
-            ck,
-            cn,
-            ps,
-            IRUnknownType,
-            fb.algo,
-          ),
+          fb = cloFB,
           body = body,
           prefix = prefix,
         )
@@ -746,6 +821,8 @@ class Compiler(
     case HexLiteral(hex, name) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
+    case GrammarSymbolLiteral(name, flags) =>
+      EGrammarSymbol(name, flags.map(_ startsWith "+"))
     case NonterminalLiteral(ordinal, name, flags) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
@@ -754,17 +831,19 @@ class Compiler(
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
-      } else ENt(name, flags.map(_ startsWith "+"))
-    case EnumLiteral(name)                   => EEnum(name)
-    case StringLiteral(s)                    => EStr(s)
-    case FieldLiteral(field)                 => EStr(field)
-    case SymbolLiteral(sym)                  => toERef(GLOBAL_SYMBOL, EStr(sym))
+      } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
+    case EnumLiteral(name)   => EEnum(name)
+    case StringLiteral(s)    => EStr(s)
+    case FieldLiteral(field) => EStr(field)
+    case SymbolLiteral(sym)  => toERef(GLOBAL_SYMBOL, EStr(sym))
     case ProductionLiteral(lhsName, rhsName) =>
-      // XXX need to handle arguments, children?
-      val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
-      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+      getProductionData(lhsName, rhsName) match
+        case Some((lhs, rhsIdx)) =>
+          ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+        case None =>
+          EYet(lit.toString(true, false))
     case ErrorObjectLiteral(name) =>
-      val proto = EStr(Intrinsic(name, List("prototype")).toString)
+      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
       val (x, xExpr) = fb.newTIdWithExpr
       fb.addInst(ICall(x, AUX_NEW_ERROR_OBJ, List(proto)))
       xExpr
@@ -782,7 +861,6 @@ class Compiler(
     case FalseLiteral()         => EBool(false)
     case UndefinedLiteral()     => EUndef()
     case NullLiteral()          => ENull()
-    case AbsentLiteral()        => EAbsent()
     case UndefinedTypeLiteral() => EGLOBAL_UNDEF_TYPE
     case NullTypeLiteral()      => EGLOBAL_NULL_TYPE
     case BooleanTypeLiteral()   => EGLOBAL_BOOL_TYPE
@@ -805,34 +883,36 @@ class Compiler(
     fb.withLang(cond)(cond match {
       case ExpressionCondition(expr) =>
         compile(fb, expr)
-      case InstanceOfCondition(expr, neg, tys) =>
-        val xExpr = compile(fb, expr)
-        val e = tys.map(toETypeCheck(xExpr, _)).reduce(or(_, _))
-        if (neg) not(e) else e
+      case TypeCheckCondition(expr, neg, tys) =>
+        val e = compile(fb, expr)
+        val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
+        if (neg) not(c) else c
       case HasFieldCondition(ref, neg, field) =>
-        val e = isAbsent(toERef(compile(fb, ref), compile(fb, field)))
-        if (neg) e else not(e)
+        val e = exists(toRef(compile(fb, ref), compile(fb, field)))
+        if (neg) not(e) else e
       case HasBindingCondition(ref, neg, binding) =>
-        val e = isAbsent(
-          toERef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
+        val e = exists(
+          toRef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
         )
-        if (neg) e else not(e)
+        if (neg) not(e) else e
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>
         val base = compile(fb, nt)
-        val (_, rhsIdx) = getProductionData(lhsName, rhsName)
-        fb.ntBindings ++= List((rhsName, base, Some(0)))
-        ETypeCheck(base, EStr(lhsName + rhsIdx))
+        getProductionData(lhsName, rhsName) match
+          case Some((_, rhsIdx)) =>
+            fb.ntBindings ++= List((rhsName, base, Some(0)))
+            ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
+          case None => EYet(cond.toString(true, false))
       case PredicateCondition(expr, neg, op) =>
         import PredicateConditionOperator.*
         val x = compile(fb, expr)
         val cond = op match {
           case Abrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            and(EIsCompletion(x), not(is(tv, EENUM_NORMAL)))
+            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
           case NeverAbrupt =>
             val tv = toERef(fb, x, EStr("Type"))
-            or(not(EIsCompletion(x)), is(tv, EENUM_NORMAL))
+            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
           case op @ (Normal | Throw | Return | Break | Continue) =>
             val tv = toERef(fb, x, EStr("Type"))
             val expected = op match
@@ -841,7 +921,7 @@ class Compiler(
               case Return   => EENUM_RETURN
               case Break    => EENUM_BREAK
               case Continue => EENUM_CONTINUE
-            and(EIsCompletion(x), is(tv, expected))
+            and(isCompletion(x), is(tv, expected))
           case Finite =>
             not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
@@ -851,10 +931,12 @@ class Compiler(
             fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
             bExpr
           case Present =>
-            not(isAbsent(x))
-          case Empty =>
-            val lv = toERef(fb, x, EStr("length"))
-            is(lv, zero)
+            x match
+              case ERef(Name(name))
+                  if fb.isBuiltin && fb.builtinBindings.contains(name) =>
+                exists(Field(NAME_ARGS, EStr(name)))
+              case _ => exists(x)
+          case Empty      => is(ESizeOf(x), zero)
           case StrictMode => T // XXX assume strict mode
           case ArrayIndex =>
             val (b, bExpr) = fb.newTIdWithExpr
@@ -877,7 +959,7 @@ class Compiler(
               List("Get", "Set", "Enumerable", "Configurable")
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
-            ETypeCheck(x, EStr("Nonterminal"))
+            EInstanceOf(x, EGrammarSymbol("", Nil))
         }
         if (neg) not(cond) else cond
       case IsAreCondition(left, neg, right) =>
@@ -894,8 +976,8 @@ class Compiler(
         lazy val l = compile(fb, left)
         lazy val r = compile(fb, right)
         op match {
-          case Eq               => EBinary(BOp.Equal, l, r)
-          case NEq              => not(EBinary(BOp.Equal, l, r))
+          case Eq               => equal(l, r)
+          case NEq              => not(equal(l, r))
           case LessThan         => lessThan(l, r)
           case LessThanEqual    => not(lessThan(r, l))
           case GreaterThan      => lessThan(r, l)
@@ -948,7 +1030,7 @@ class Compiler(
       IAssign(i, zero),
       IAssign(b, F),
       IWhile(
-        and(not(bExpr), lessThan(iExpr, toStrERef(l, "length"))),
+        and(not(bExpr), lessThan(iExpr, ESizeOf(lExpr))),
         fb.newScope {
           fb.addInst(
             x match
@@ -958,7 +1040,7 @@ class Compiler(
           fb.addInst(
             IAssign(
               b,
-              tyOpt.fold(cond)(ty => and(toETypeCheck(ERef(x), ty), cond)),
+              tyOpt.fold(cond)(t => and(ETypeCheck(ERef(x), compile(t)), cond)),
             ),
             IAssign(i, add(iExpr, one)),
           )
@@ -997,6 +1079,7 @@ class Compiler(
         case None     => x
     }
     val renamed = renameWalker.walk(compileWithScope(fb, algo.body))
+    fb.backEdgeWalker(renamed, overriden = true)
     fb.addInst(renamed)
     EUndef() // NOTE: unused expression
 
@@ -1036,26 +1119,15 @@ class Compiler(
   }
 
   /** production helpers */
-  def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+  def getProductionData(lhsName: String, rhsName: String): Option[(Lhs, Int)] =
     val prod = grammar.nameMap(lhsName)
     val rhsList = prod.rhsList.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
     rhsList match
-      case (rhs, idx) :: Nil => (prod.lhs, idx)
-      case _                 => error("invalid production")
-
-  /** instruction helpers */
-  inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
-    paramOpt.map(toParam(_)).toList
-  inline def toParam(x: Variable): IRParam = IRParam(Name(x.name))
-  inline def emptyInst = ISeq(List())
-
-  /** expression helpers */
-  inline def emptyList = EList(List())
-  inline def dataPropClo = EClo("IsDataDescriptor", Nil)
-  inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)
+      case (rhs, idx) :: Nil => Some(prod.lhs, idx)
+      case _                 => None
 
   /** literal helpers */
   def zero = EMath(BigDecimal(0, UNLIMITED))
@@ -1066,10 +1138,14 @@ class Compiler(
   def F = EBool(false)
 
   /** operation helpers */
-  inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent())
+  inline def exists(r: Ref): Expr = EExists(r)
+  inline def exists(e: Expr): Expr = e match
+    case ERef(r) => exists(r)
+    case _       => EYet(s"exists($e)")
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
-    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
+    and(ETypeCheck(x, IRType(NumberT)), is(m, floor(m)))
+  inline def equal(l: Expr, r: Expr) = EBinary(BOp.Equal, l, r)
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr
@@ -1088,25 +1164,51 @@ class Compiler(
     fb: FuncBuilder,
     base: Expr,
     fs: List[String],
-  ): Expr =
-    val conds = fs.map(f => isAbsent(toERef(fb, base, EStr(f))))
-    not(conds.reduce { case (a, b) => or(a, b) })
+  ): Expr = fs.map(f => exists(toRef(fb, base, EStr(f)))).reduce(and(_, _))
 
   /** simple operations */
-  type SimpleOp = PartialFunction[List[Expr], Expr]
+  type SimpleOp = PartialFunction[(FuncBuilder, List[Expr]), Expr]
   def arityCheck(pair: (String, SimpleOp)): (String, SimpleOp) = {
     val (name, f) = pair
-    name -> (args =>
-      optional(f(args)).getOrElse(
+    name -> { (fb, args) =>
+      optional(f(fb, args)).getOrElse(
         error(s"invalid arguments: $name(${args.mkString(", ")})"),
-      ),
-    )
+      )
+    }
   }
+  def returnIfAbrupt(
+    fb: FuncBuilder,
+    expr: Expr,
+    check: Boolean,
+    imeediateReturn: Boolean = false,
+  ): Expr =
+    val (x, xExpr) = expr match
+      case ERef(local: Local) => (local, expr)
+      case _                  => fb.newTIdWithExpr
+    fb.addInst(
+      if (check) IAssert(ETypeCheck(xExpr, IRType(CompT)))
+      else IAssert(ETypeCheck(xExpr, IRType(NormalT))),
+    )
+    if (!imeediateReturn)
+      fb.addInst(
+        if (check)
+          IIf(
+            ETypeCheck(xExpr, IRType(AbruptT)),
+            IReturn(xExpr),
+            IAssign(x, ERef(Field(x, EStr("Value")))),
+          )
+        else IAssign(x, ERef(Field(x, EStr("Value")))),
+      )
+    xExpr
   val simpleOps: Map[String, SimpleOp] = Map(
-    arityCheck("ParseText" -> { case List(code, rule) => EParse(code, rule) }),
-    arityCheck("Type" -> { case List(expr) => ETypeOf(expr) }),
+    arityCheck("ParseText" -> {
+      case (_, List(code, rule)) => EParse(code, rule)
+    }),
+    arityCheck("Type" -> {
+      case (_, List(expr)) => ETypeOf(expr)
+    }),
     arityCheck("ReturnIfAbrupt" -> {
-      case List(expr) => EReturnIfAbrupt(expr, true)
+      case (fb, List(expr)) => returnIfAbrupt(fb, expr, true, false)
     }),
   )
 }

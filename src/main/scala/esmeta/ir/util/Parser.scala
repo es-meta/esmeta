@@ -12,7 +12,6 @@ object Parser extends Parsers
 
 /** IR parsers */
 trait Parsers extends TyParsers {
-  override protected val whiteSpace = whiteSpaceWithComment
 
   // programs
   given program: Parser[Program] = {
@@ -43,7 +42,6 @@ trait Parsers extends TyParsers {
     "<BUILTIN>:" ^^^ Builtin |
     "<CLO>:" ^^^ Clo |
     "<CONT>:" ^^^ Cont |
-    "<BUILTIN-CLO>:" ^^^ BuiltinClo |
     "<AUX>:" ^^^ Aux |
     "" ^^^ AbsOp
   }.named("ir.FuncKind")
@@ -81,10 +79,16 @@ trait Parsers extends TyParsers {
   lazy val normalInst: Parser[NormalInst] =
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)
-    } | "delete" ~> ref ^^ {
-      case r => IDelete(r)
+    } | "expand" ~> ref ^? {
+      case Field(b, e) => IExpand(b, e)
+    } | "delete" ~> ref ^? {
+      case Field(b, e) => IDelete(b, e)
     } | "push" ~> expr ~ (">" ^^^ true | "<" ^^^ false) ~ expr ^^ {
       case x ~ f ~ y => if (f) IPush(x, y, f) else IPush(y, x, f)
+    } | "pop" ~> local ~ ("<" ^^^ true) ~ expr ^^ {
+      case x ~ f ~ l => IPop(x, l, f)
+    } | "pop" ~> expr ~ (">" ^^^ false) ~ local ^^ {
+      case l ~ f ~ x => IPop(x, l, f)
     } | "return" ~> expr ^^ {
       case e => IReturn(e)
     } | "assert" ~> expr ^^ {
@@ -110,18 +114,10 @@ trait Parsers extends TyParsers {
 
   // expressions
   given expr: Parser[Expr] = {
-    "comp" ~> ("[" ~> expr ~ ("/" ~> expr) <~ "]") ~ ("(" ~> expr <~ ")") ^^ {
-      case ty ~ tgt ~ e => EComp(ty, e, tgt)
-    } | "(" ~ "comp?" ~> expr <~ ")" ^^ {
-      case e => EIsCompletion(e)
-    } | "[" ~> ("?" ^^^ true | "!" ^^^ false) ~ expr <~ "]" ^^ {
-      case c ~ e => EReturnIfAbrupt(e, c)
-    } | "(" ~ "pop" ~> ("<" ^^^ true | ">" ^^^ false) ~ expr <~ ")" ^^ {
-      case f ~ e => EPop(e, f)
-    } | "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
+    "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
-    } | "(" ~ "nt" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
-      case x ~ ps => ENt(x, ps)
+    } | "(" ~ "grammar-symbol" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => EGrammarSymbol(x, ps)
     } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
@@ -144,13 +140,21 @@ trait Parsers extends TyParsers {
       case m ~ es => EMathOp(m, es)
     } | "(" ~> cop ~ expr <~ ")" ^^ {
       case c ~ e => EConvert(c, e)
+    } | "(" ~ "exists" ~> ref <~ ")" ^^ {
+      case r => EExists(r)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
       case e => ETypeOf(e)
-    } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
+    } | "(" ~ "instanceof" ~> expr ~ expr <~ ")" ^^ {
+      case e ~ s => EInstanceOf(e, s)
+    } | "(" ~ "?" ~> expr ~ (":" ~> irType) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
-    } | "clo<" ~> fname ~ opt("," ~ "[" ~> repsep(name, ",") <~ "]") <~ ">" ^^ {
+    } | "(" ~ "sizeof" ~> expr <~ ")" ^^ {
+      case e => ESizeOf(e)
+    } | "clo<" ~> string ~ opt(
+      "," ~ "[" ~> repsep(name, ",") <~ "]",
+    ) <~ ">" ^^ {
       case s ~ cs => EClo(s, cs.getOrElse(Nil))
-    } | ("cont<" ~> fname <~ ">") ^^ {
+    } | ("cont<" ~> string <~ ">") ^^ {
       case s => ECont(s)
     } | "(" ~ "debug" ~> expr <~ ")" ^^ {
       case e => EDebug(e)
@@ -158,9 +162,6 @@ trait Parsers extends TyParsers {
       ERandom()
     } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
   }.named("ir.Expr")
-
-  // function name
-  lazy val fname: Parser[String] = "[^<>, ]+".r
 
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =
@@ -178,21 +179,17 @@ trait Parsers extends TyParsers {
   // allocation expressions
   lazy val allocExpr: Parser[AllocExpr] = asite(
     ("(" ~ "record" ~> opt("[" ~> word <~ "]") ~ opt(fields) <~ ")") ^^ {
-      case t ~ fs => ERecord(t, fs.getOrElse(Nil))
-    } | ("(" ~ "map" ~> opt(pairs) <~ ")") ^^ {
-      case ps => EMap(ps.getOrElse(Nil))
+      case t ~ fs => ERecord(t.getOrElse(""), fs.getOrElse(Nil))
+    } | "(" ~> {
+      "map" ~ "[" ~> irType ~ ("," ~> irType <~ "]") ~ opt(pairs)
+    } <~ ")" ^^ {
+      case k ~ v ~ ps => EMap(k -> v, ps.getOrElse(Nil))
     } | ("(" ~ "list" ~ "[" ~> repsep(expr, ",") <~ "]" ~ ")") ^^ {
       case es => EList(es)
-    } | ("(" ~ "list-concat" ~> rep(expr) <~ ")") ^^ {
-      case es => EListConcat(es)
     } | ("(" ~ "copy" ~> expr <~ ")") ^^ {
       case e => ECopy(e)
     } | ("(" ~ "keys" ~> opt("-int") ~ expr <~ ")") ^^ {
       case i ~ e => EKeys(e, i.isDefined)
-    } | "(" ~ "get-children" ~> expr <~ ")" ^^ {
-      case e => EGetChildren(e)
-    } | "(" ~ "get-items" ~> expr ~ expr <~ ")" ^^ {
-      case n ~ a => EGetItems(n, a)
     },
   )
 
@@ -225,7 +222,6 @@ trait Parsers extends TyParsers {
     bool ^^ { EBool(_) } |
     "undefined" ^^^ EUndef() |
     "null" ^^^ ENull() |
-    "absent" ^^^ EAbsent() |
     "~" ~> "[^~]+".r <~ "~" ^^ { EEnum(_) }
 
   // unary operators

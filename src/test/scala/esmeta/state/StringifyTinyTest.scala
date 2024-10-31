@@ -83,7 +83,7 @@ class StringifyTinyTest extends StateTest {
       |}""".stripMargin,
       heapMulti -> """(SIZE = 43): {
       |  #Global -> Map {}
-      |  #42 -> [42, "x"]
+      |  #42 -> List[42, "x"]
       |}""".stripMargin,
     )
     // -------------------------------------------------------------------------
@@ -92,6 +92,7 @@ class StringifyTinyTest extends StateTest {
     lazy val map = MapObj(LMMap())
     lazy val singleMap = MapObj(LMMap(Str("p") -> Str("p")))
     lazy val rec = RecordObj("A", MMap())
+    lazy val recEmpty = RecordObj("", MMap())
     lazy val singleRec = RecordObj("A", MMap("p" -> Str("p")))
     lazy val list = ListObj(Vector(Math(42), Str("x")))
     lazy val yet = YetObj("A", "message")
@@ -100,18 +101,17 @@ class StringifyTinyTest extends StateTest {
       singleMap -> """Map {
       |  "p" -> "p"
       |}""".stripMargin,
-      rec -> "[TYPE = A] {}",
-      singleRec -> """[TYPE = A] {
+      rec -> "Record[A] {}",
+      recEmpty -> "Record {}",
+      singleRec -> """Record[A] {
       |  "p" : "p"
       |}""".stripMargin,
-      list -> """[42, "x"]""",
-      yet -> """[TYPE = A] Yet("message")""",
+      list -> """List[42, "x"]""",
+      yet -> """Yet[A]("message")""",
     )
     // -------------------------------------------------------------------------
     // Values
     // -------------------------------------------------------------------------
-    lazy val normalComp = Comp(Enum("normal"), Math(42), None)
-    lazy val comp = Comp(Enum("throw"), Math(42), Some("to"))
     lazy val namedAddr = NamedAddr("Global")
     lazy val addr = DynamicAddr(42)
     lazy val func =
@@ -127,11 +127,9 @@ class StringifyTinyTest extends StateTest {
     lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
     lazy val astArgs =
       AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
-    lazy val nt = Nt("Identifier", List(true, false))
+    lazy val grammarSymbol = GrammarSymbol("Identifier", List(true, false))
     lazy val lex = AstValue(Lexical("Identifier", "x"))
     checkStringify("Value")(
-      comp -> "comp[~throw~/to](42)",
-      normalComp -> "N(42)",
       namedAddr -> "#Global",
       addr -> "#42",
       clo -> "clo<f>",
@@ -141,7 +139,7 @@ class StringifyTinyTest extends StateTest {
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",
       lex -> "|Identifier|(x)",
-      nt -> "|Identifier|[TF]",
+      grammarSymbol -> "|Identifier|[TF]",
       Math(3.2) -> "3.2",
       Number(3.2) -> "3.2",
       BigInt(324) -> "324n",
@@ -150,7 +148,7 @@ class StringifyTinyTest extends StateTest {
       Bool(false) -> "false",
       Undef -> "undefined",
       Null -> "null",
-      Absent -> "absent",
+      Uninit -> "uninit",
       Enum("empty") -> "~empty~",
       CodeUnit(97) -> "97cu",
     )

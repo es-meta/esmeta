@@ -1,6 +1,6 @@
 package esmeta.ty.util
 
-import esmeta.state.{Nt, Number, Math}
+import esmeta.state.{GrammarSymbol, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 
@@ -9,15 +9,57 @@ trait Walker extends BasicWalker {
 
   /** type elements */
   def walk(ty: TyElem): TyElem = ty match
-    case ty: Ty          => walk(ty)
-    case ty: CompTy      => walk(ty)
-    case ty: PureValueTy => walk(ty)
-    case ty: RecordTy    => walk(ty)
-    case ty: ListTy      => walk(ty)
-    case ty: MapTy       => walk(ty)
-    case ty: MathTy      => walk(ty)
-    case ty: InfinityTy  => walk(ty)
-    case ty: BoolTy      => walk(ty)
+    case elem: TyModel     => walk(elem)
+    case elem: TyDecl      => walk(elem)
+    case elem: TyDecl.Elem => walk(elem)
+    case elem: FieldMap    => walk(elem)
+    case elem: Binding     => walk(elem)
+    case elem: Ty          => walk(elem)
+    case elem: RecordTy    => walk(elem)
+    case elem: ListTy      => walk(elem)
+    case elem: AstTy       => walk(elem)
+    case elem: MapTy       => walk(elem)
+    case elem: MathTy      => walk(elem)
+    case elem: InfinityTy  => walk(elem)
+    case elem: NumberTy    => walk(elem)
+    case elem: BoolTy      => walk(elem)
+
+  /** type models */
+  def walk(ty: TyModel): TyModel = TyModel(walkList(ty.decls, walk))
+
+  /** type declarations */
+  def walk(ty: TyDecl): TyDecl = TyDecl(
+    walk(ty.name),
+    walkOpt(ty.parent, walk),
+    walkList(ty.elems, walk),
+  )
+
+  /** parent of a type declaration */
+  def walk(parent: (String, Boolean)): (String, Boolean) =
+    val (name, extended) = parent
+    (walk(name), walk(extended))
+
+  /** type declaration elements */
+  def walk(ty: TyDecl.Elem): TyDecl.Elem =
+    import TyDecl.Elem.*
+    ty match
+      case AbsMethod(name) =>
+        AbsMethod(walk(name))
+      case ConMethod(name, optional, target) =>
+        ConMethod(walk(name), walk(optional), walkOpt(target, walk))
+      case Field(name, optional, typeStr) =>
+        Field(walk(name), walk(optional), walk(typeStr))
+
+  /** field type map */
+  def walk(fieldMap: FieldMap): FieldMap =
+    FieldMap(walkMap(fieldMap.map, walk, walk))
+
+  /** field binding */
+  def walk(binding: Binding): Binding = Binding(
+    walk(binding.value),
+    walk(binding.uninit),
+    walk(binding.absent),
+  )
 
   /** types */
   def walk(ty: Ty): Ty = ty match
@@ -30,30 +72,17 @@ trait Walker extends BasicWalker {
   )
 
   /** value types */
-  def walk(ty: ValueTy): ValueTy = ValueTy(
-    walk(ty.comp),
-    walk(ty.pureValue),
-    walk(ty.map),
-  )
-
-  /** completion record types */
-  def walk(ty: CompTy): CompTy = CompTy(
-    walk(ty.normal),
-    walkBSet(ty.abrupt, walk),
-  )
-
-  /** pure value types */
-  def walk(ty: PureValueTy): PureValueTy =
+  def walk(ty: ValueTy): ValueTy =
     if (ty.isTop) ty
     else
-      PureValueTy(
+      ValueTy(
         walkClo(ty.clo),
         walkCont(ty.cont),
-        walkName(ty.name),
         walk(ty.record),
+        walk(ty.map),
         walk(ty.list),
-        walkAst(ty.astValue),
-        walkNt(ty.nt),
+        walkAst(ty.ast),
+        walkGrammarSymbol(ty.grammarSymbol),
         walkCodeUnit(ty.codeUnit),
         walkEnum(ty.enumv),
         walkMath(ty.math),
@@ -64,30 +93,36 @@ trait Walker extends BasicWalker {
         walkBool(ty.bool),
         walkUndef(ty.undef),
         walkNull(ty.nullv),
-        walkAbsent(ty.absent),
       )
 
   /** closure types */
-  def walkClo(clo: BSet[String]): BSet[String] = walkBSet(clo, walk)
+  def walkClo(clo: CloTy): CloTy = clo match
+    case CloTopTy => CloTopTy
+    case CloArrowTy(params, ret) =>
+      CloArrowTy(walkList(params, walk), walk(ret))
+    case CloSetTy(names) => CloSetTy(walkSet(names, walk))
 
   /** continuation types */
   def walkCont(cont: BSet[Int]): BSet[Int] = walkBSet(cont, walk)
 
   /** AST value types */
-  def walkAst(ast: AstValueTy): AstValueTy = ast match
-    case AstTopTy         => AstTopTy
-    case AstNameTy(names) => AstNameTy(walkSet(names, walk))
-    case AstSingleTy(name, idx, subIdx) =>
-      AstSingleTy(walk(name), walk(idx), walk(subIdx))
+  def walkAst(ast: AstTy): AstTy =
+    import AstTy.*
+    ast match
+      case Top               => Top
+      case Simple(names)     => Simple(walkSet(names, walk))
+      case Detail(name, idx) => Detail(walk(name), walk(idx))
 
-  /** nt types */
-  def walkNt(nt: BSet[Nt]): BSet[Nt] =
-    walkBSet(nt, walk)
+  /** grammar symbol types */
+  def walkGrammarSymbol(
+    grammarSymbol: BSet[GrammarSymbol],
+  ): BSet[GrammarSymbol] =
+    walkBSet(grammarSymbol, walk)
 
-  /** nt */
-  def walk(nt: Nt): Nt = Nt(
-    walk(nt.name),
-    walkList(nt.params, walk),
+  /** grammar symbols */
+  def walk(grammarSymbol: GrammarSymbol): GrammarSymbol = GrammarSymbol(
+    walk(grammarSymbol.name),
+    walkList(grammarSymbol.params, walk),
   )
 
   /** code unit types */
@@ -127,12 +162,6 @@ trait Walker extends BasicWalker {
   /** null types */
   def walkNull(nullv: Boolean): Boolean = walk(nullv)
 
-  /** absent types */
-  def walkAbsent(absent: Boolean): Boolean = walk(absent)
-
-  /** name types */
-  def walkName(name: NameTy): NameTy = NameTy(walkBSet(name.set, walk))
-
   /** record types */
   def walk(ty: RecordTy): RecordTy =
     import RecordTy.*
@@ -141,13 +170,12 @@ trait Walker extends BasicWalker {
       case Elem(map) => Elem(walkMap(map, walk, walk))
 
   /** list types */
-  def walk(ty: ListTy): ListTy = ListTy(
-    walkOpt(ty.elem, walk),
-  )
+  def walk(ty: ListTy): ListTy = ty match
+    case ListTy.Elem(elem) => ListTy.Elem(walk(elem))
+    case _                 => ty
 
   /** map types */
-  def walk(ty: MapTy): MapTy = MapTy(
-    walk(ty.key),
-    walk(ty.value),
-  )
+  def walk(ty: MapTy): MapTy = ty match
+    case MapTy.Elem(key, value) => MapTy.Elem(walk(key), walk(value))
+    case _                      => ty
 }

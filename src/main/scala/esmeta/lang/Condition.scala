@@ -9,8 +9,8 @@ object Condition extends Parser.From(Parser.cond)
 // expression conditions
 case class ExpressionCondition(expr: Expression) extends Condition
 
-// instance check conditions
-case class InstanceOfCondition(
+// type check conditions
+case class TypeCheckCondition(
   expr: Expression,
   negation: Boolean,
   ty: List[Type],

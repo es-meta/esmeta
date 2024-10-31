@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import scala.collection.mutable.{Map => MMap}
@@ -10,14 +11,14 @@ sealed trait Property {
   /** convert to ir map object */
   def toObject(using CFG): RecordObj = this match
     case DataProperty(v, w, e, c) =>
-      RecordObj("PropertyDescriptor")(
+      recordObj("PropertyDescriptor")(
         "Value" -> v,
         "Writable" -> Bool(w),
         "Enumerable" -> Bool(e),
         "Configurable" -> Bool(c),
       )
     case AccessorProperty(g, s, e, c) =>
-      RecordObj("PropertyDescriptor")(
+      recordObj("PropertyDescriptor")(
         "Get" -> g,
         "Set" -> s,
         "Enumerable" -> Bool(e),
@@ -28,7 +29,7 @@ sealed trait Property {
 
 // data properties
 case class DataProperty(
-  value: PureValue,
+  value: Value,
   writable: Boolean,
   enumerable: Boolean,
   configurable: Boolean,
@@ -36,8 +37,8 @@ case class DataProperty(
 
 // accessor properties
 case class AccessorProperty(
-  get: PureValue,
-  set: PureValue,
+  get: Value,
+  set: Value,
   enumerable: Boolean,
   configurable: Boolean,
 ) extends Property

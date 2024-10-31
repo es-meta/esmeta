@@ -15,5 +15,4 @@ def ToBoolean(
   }
   if (= (typeof argument) @Symbol) return true
   if (= (typeof argument) @Object) return true
-  assert false
 }

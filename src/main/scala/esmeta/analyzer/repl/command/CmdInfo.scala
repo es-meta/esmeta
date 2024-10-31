@@ -39,14 +39,14 @@ trait CmdInfoDecl { self: Self =>
       val info = (opt, optArgs) match {
         case (`ret`, target :: _) =>
           val fname = target
-          sem.rpMap.keySet.filter(_.func.name == fname)
+          rpMap.keySet.filter(_.func.name == fname)
         case (`block`, target :: _) if optional(target.toInt) != None =>
           val uid = target.toInt
-          sem.npMap.keySet.filter(_.node.id == uid)
+          npMap.keySet.filter(_.node.id == uid)
         case (`callsite`, _) =>
           val cp = Repl.curCp.get
           val rp = ReturnPoint(cp.func, cp.view)
-          sem.retEdges(rp)
+          retEdges(rp)
         case _ =>
           println("Inappropriate argument")
           Set()

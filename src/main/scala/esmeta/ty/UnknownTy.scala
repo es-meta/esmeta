@@ -1,5 +1,8 @@
 package esmeta.ty
 
+import esmeta.cfg.CFG
+import esmeta.error.NotSupported
+import esmeta.error.NotSupported.Category.Type
 import esmeta.state.*
 import esmeta.ty.util.*
 
@@ -10,7 +13,8 @@ case class UnknownTy(msg: Option[String] = None) extends Ty {
   def isCompletion: Boolean = msg.exists(_ contains "Completion")
 
   /** value containment check */
-  def contains(value: Value, heap: Heap): Boolean = true
+  def contains(value: Value, heap: Heap): Boolean =
+    throw NotSupported(Type)(msg.toList)
 }
 object UnknownTy extends Parser.From(Parser.unknownTy):
   def apply(str: String): UnknownTy = UnknownTy(Some(str))

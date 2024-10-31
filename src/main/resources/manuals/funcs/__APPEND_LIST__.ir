@@ -1,0 +1,12 @@
+def <AUX>:__APPEND_LIST__(
+  to: List,
+  from: List,
+): List = {
+  let i = 0
+  let len = (sizeof from)
+  while (< i len) {
+    push to < from[i]
+    i = (+ i 1)
+  }
+  return to
+}

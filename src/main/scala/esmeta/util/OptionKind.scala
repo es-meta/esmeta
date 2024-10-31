@@ -18,10 +18,11 @@ sealed abstract class OptionKind[T] {
 }
 
 /** boolean options */
-case class BoolOption[T](assign: T => Unit) extends OptionKind[T] {
+case class BoolOption[T](assign: (T, Boolean) => Unit) extends OptionKind[T] {
   def postfix: String = ""
   def argRegexList(name: String): List[ArgRegex[T]] = List(
-    (("-" + name).r, "".r, (c, _) => assign(c)),
+    (("-" + name + "=").r, "true|false".r, (c, b) => assign(c, b == "true")),
+    (("-" + name).r, "".r, (c, _) => assign(c, true)),
     (("-" + name + "=").r, ".*".r, (c, _) => throw ExtraArgError(name)),
   )
 }

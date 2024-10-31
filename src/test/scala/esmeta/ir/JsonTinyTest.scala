@@ -62,9 +62,12 @@ class JsonTinyTest extends IRTest {
     checkJsonWithString("Inst")(
       xExprInst -> "x",
       let -> "let x = ~empty~",
+      exp -> "expand x.p",
       del -> "delete x.p",
       pushFront -> "push x > y",
       pushBack -> "push y < x",
+      popFront -> "pop x < y",
+      popBack -> "pop y > x",
       ret -> "return x",
       assertInst -> "assert x",
       print -> "print x",
@@ -104,14 +107,8 @@ class JsonTinyTest extends IRTest {
     // expressions
     // -------------------------------------------------------------------------
     checkJsonWithString("Expr")(
-      comp -> "comp[~normal~/~empty~](x)",
-      isComp -> "(comp? x)",
-      riaCheck -> "[? x]",
-      riaNoCheck -> "[! x]",
-      popFront -> "(pop < x)",
-      popBack -> "(pop > x)",
-      parse -> "(parse x (nt |A|[TF]))",
-      nt -> "(nt |A|[TF])",
+      parse -> "(parse x (grammar-symbol |A|[TF]))",
+      grammarSymbol -> "(grammar-symbol |A|[TF])",
       yet -> "(yet \"NOT YET\")",
       contains -> "(contains x x)",
       substring -> "(substring x x)",
@@ -125,8 +122,10 @@ class JsonTinyTest extends IRTest {
       variadic -> "(min x x x)",
       mathOp -> "([math:tan] x)",
       convert -> "([bigInt] x)",
+      exists -> "(exists x)",
       typeOf -> "(typeof x)",
-      typeCheck -> "(? x: \"Number\")",
+      instanceOf -> "(instanceof x x)",
+      typeCheck -> "(? x: Number)",
       // debugging expressions
       debug -> "(debug x)",
       // random number expressions
@@ -139,27 +138,27 @@ class JsonTinyTest extends IRTest {
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
       // allocation expressions
+      recEmpty -> """(record {
+      |  "A" : true,
+      |  "B" : "a",
+      |})""".stripMargin,
       rec -> """(record [T] {
       |  "A" : true,
-      |  "B" : absent,
+      |  "B" : "a",
       |})""".stripMargin,
-      list -> "(list [undefined, null, absent])",
+      list -> "(list [undefined, null])",
       copy -> "(copy x)",
       keys -> "(keys x)",
       keysInt -> "(keys-int x)",
-      getChildren -> "(get-children x)",
-      getItems -> "(get-items x x)",
       // allocation expressions with allocation sites
       recASite -> """(record [T] {
       |  "A" : true,
-      |  "B" : absent,
+      |  "B" : "a",
       |})[#3]""".stripMargin,
-      listASite -> "(list [undefined, null, absent])[#1]",
+      listASite -> "(list [undefined, null])[#1]",
       copyASite -> "(copy x)[#42]",
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",
-      getChildrenASite -> "(get-children x)[#9]",
-      getItemsASite -> "(get-items x x)[#10]",
       // literals
       EMath(4) -> "4",
       EInfinity(true) -> "+INF",
@@ -174,12 +173,11 @@ class JsonTinyTest extends IRTest {
       EBool(false) -> "false",
       EUndef() -> "undefined",
       ENull() -> "null",
-      EAbsent() -> "absent",
       normal -> "~normal~",
       empty -> "~empty~",
-      clo -> "clo<f>",
-      cloWithCaptured -> "clo<f, [x]>",
-      cont -> "cont<g>",
+      clo -> """clo<"f">""",
+      cloWithCaptured -> """clo<"f", [x]>""",
+      cont -> """cont<"g">""",
     )
 
     // -------------------------------------------------------------------------

@@ -1,29 +1,34 @@
 def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Object | Undefined,
+  NewTarget: Record[Object] | Undefined,
 ): Unknown = {
 
   let func = this
 
   // 1. If Type(_func_) is Object and _func_ has a [[SourceText]] internal slot and _func_.[[SourceText]] is a sequence of Unicode code points and ! HostHasSourceTextAvailable(_func_) is *true*, then
   //   1. Return ! CodePointsToString(_func_.[[SourceText]]).
-  if (&& (= (typeof func) @Object) (&& (! (= func.SourceText absent)) (= (typeof func.SourceText) @String))) {
-    return func.SourceText
+  if (&& (= (typeof func) @Object) (&& (exists func.SourceText) (= (typeof func.SourceText) @String))) {
+    call %0 = clo<"NormalCompletion">(func.SourceText)
+    return %0
   }
 
   // 1. If _func_ is a <emu-xref href=\"#sec-built-in-function-objects\">built-in function object</emu-xref>, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|. Additionally, if _func_ has an [[InitialName]] internal slot and _func_.[[InitialName]] is a String, the portion of the returned String that would be matched by |NativeFunctionAccessor?| |PropertyName| must be the value of _func_.[[InitialName]].
-  if (? func: "BuiltinFunctionObject") {
-    return (concat "function " func.InitialName "() { [native code] }")
+  if (? func: Record[BuiltinFunctionObject]) {
+    call %1 = clo<"NormalCompletion">((concat "function " func.InitialName "() { [native code] }"))
+    return %1
   }
 
   // 1. If Type(_func_) is Object and IsCallable(_func_) is *true*, return an implementation-defined String source code representation of _func_. The representation must have the syntax of a |NativeFunction|.
-  call %0 = clo<IsCallable>(func)
-  if (&& (= (typeof func) @Object) (= %0 true)) {
-    return "function () { [native code] }"
+  if (= (typeof func) @Object) {
+    call %2 = clo<"IsCallable">(func)
+    if %2 {
+      call %3 = clo<"NormalCompletion">("function () { [native code] }")
+      return %3
+    }
   }
 
-  call %1 = clo<__NEW_ERROR_OBJ__>("%TypeError.prototype%")
-  call %2 = clo<ThrowCompletion>(%1)
-  return %2
+  call %4 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+  call %5 = clo<"ThrowCompletion">(%4)
+  return %5
 }

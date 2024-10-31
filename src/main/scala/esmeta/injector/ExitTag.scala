@@ -17,11 +17,12 @@ object ExitTag:
   def apply(st: => State): ExitTag = try {
     st(GLOBAL_RESULT) match
       case Undef => NormalTag
-      case comp @ Comp(ENUM_THROW, addr: DynamicAddr, _) =>
-        st(addr)(Str("Prototype")) match
-          case NamedAddr(errorNameRegex(errorName)) => ThrowErrorTag(errorName)
-          case _                                    => ThrowValueTag(addr)
-      case comp @ Comp(ENUM_THROW, value, _) => ThrowValueTag(value)
+      // TODO revert
+      // case comp @ Comp(ENUM_THROW, addr: DynamicAddr, _) =>
+      //   st(addr)(Str("Prototype")) match
+      //     case NamedAddr(errorNameRegex(errorName)) => ThrowErrorTag(errorName)
+      //     case _                                    => ThrowValueTag(addr)
+      // case comp @ Comp(ENUM_THROW, value, _) => ThrowValueTag(value)
       case v => error(s"unexpected exit status: $v")
   } catch {
     case _: TimeoutException   => TimeoutTag

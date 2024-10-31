@@ -12,8 +12,8 @@ object Yaml:
   def apply(any: Any): Yaml = any match
     case map: Map[_, _] =>
       YMap(map.toList.map { case (k, v) => k.toString -> apply(v) })
-    case list: List[_] => YList(list.map(apply))
-    case k: Int        => YString(f"$k%,d")
-    case _             => YString(any.toString)
+    case seq: Seq[_] => YList(seq.map(apply))
+    case k: Int      => YString(f"$k%,d")
+    case _           => YString(any.toString)
   def apply(seq: (String, Any)*): Yaml =
     YMap(seq.map { case (k, v) => k -> apply(v) })

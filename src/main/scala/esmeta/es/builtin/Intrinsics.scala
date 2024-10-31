@@ -1,8 +1,10 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.spec.*
+import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 
 /** model for intrinsics */
@@ -21,10 +23,11 @@ case class Intrinsics(cfg: CFG) {
       case (name, Struct(typeName, imap, nmap))
           if !(yets contains name.split("\\.").head) =>
         // base object
-        _map += intrAddr(name) -> RecordObj(typeName)(
-          (INNER_MAP -> mapAddr(intrName(name)) :: imap).map {
-            case (k, v) => k -> v
-          }: _*,
+        _map += intrAddr(name) -> recordObj(typeName)(
+          List(
+            INNER_MAP -> mapAddr(intrName(name)),
+            PRIVATE_ELEMENTS -> elemsAddr(intrName(name)),
+          ) ++ imap: _*,
         )
 
         // map object
@@ -33,14 +36,28 @@ case class Intrinsics(cfg: CFG) {
     }
 
     // not yet objects
-    yets.foreach { name => _map += (intrAddr(name) -> YetObj(name, name)) }
+    yets.foreach { (name, _) => _map += (intrAddr(name) -> YetObj(name, name)) }
 
     // result
     _map
   }
 
-  /** get intrinsic record */
-  def obj: RecordObj = RecordObj("Record")
+  lazy val kinds: Map[String, ValueTy] =
+    val xs = (for {
+      x <- names.toList
+      addr = intrAddr(x)
+      case (obj: RecordObj) <- map.get(addr)
+      ty =
+        if (obj.map contains "Construct") ConstructorT
+        else if (obj.map contains "Call") FunctionT
+        else ObjectT
+    } yield x -> ty).toMap ++ yets
+    xs.map { case (x, ty) => s"%$x%" -> ty }
+
+  val names: Set[String] = intrinsics.keySet ++ yets.keySet
+
+  /** get intrinsic map */
+  val obj: MapObj = MapObj(names.toList.map(x => Str(s"%$x%") -> intrAddr(x)))
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
@@ -53,8 +70,11 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Extensible" -> Bool(true),
+        "ScriptOrModule" -> Null,
+        "Realm" -> realmAddr,
+        INNER_CODE -> intrClo("print"),
         "Prototype" -> intrAddr("Function.prototype"),
-        "Code" -> intrClo("print"),
+        "InitialName" -> Str("print"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, T),
@@ -63,7 +83,7 @@ case class Intrinsics(cfg: CFG) {
     "Object" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -90,7 +110,7 @@ case class Intrinsics(cfg: CFG) {
     "Function" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -103,7 +123,7 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
-        "Code" -> intrClo("Function.prototype"),
+        INNER_CODE -> intrClo("Function.prototype"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, T),
@@ -120,7 +140,7 @@ case class Intrinsics(cfg: CFG) {
     "Boolean" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("Boolean.prototype"), F, F, F),
@@ -140,7 +160,7 @@ case class Intrinsics(cfg: CFG) {
     "Symbol" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "asyncIterator" -> DataProperty(symbolAddr("asyncIterator"), F, F, F),
@@ -180,7 +200,7 @@ case class Intrinsics(cfg: CFG) {
     "Error" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("Error.prototype"), F, F, F),
@@ -201,7 +221,7 @@ case class Intrinsics(cfg: CFG) {
     "Number" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "EPSILON" -> DataProperty(Number(math.ulp(1.0)), F, F, F),
@@ -240,7 +260,7 @@ case class Intrinsics(cfg: CFG) {
     "BigInt" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("BigInt.prototype"), F, F, F),
@@ -296,7 +316,7 @@ case class Intrinsics(cfg: CFG) {
     "Date" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(7.0), F, F, T),
@@ -382,7 +402,7 @@ case class Intrinsics(cfg: CFG) {
     "String" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("String.prototype"), F, F, F),
@@ -431,7 +451,7 @@ case class Intrinsics(cfg: CFG) {
     "RegExp" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("RegExp.prototype"), F, F, F),
@@ -450,7 +470,7 @@ case class Intrinsics(cfg: CFG) {
     "Array" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -458,7 +478,7 @@ case class Intrinsics(cfg: CFG) {
       ),
     ),
     "Array.prototype" -> Struct(
-      typeName = "ArrayExoticObject",
+      typeName = "Array",
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Object.prototype"),
@@ -528,7 +548,7 @@ case class Intrinsics(cfg: CFG) {
     "Map" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("Map.prototype"), F, F, F),
@@ -560,7 +580,7 @@ case class Intrinsics(cfg: CFG) {
     "Set" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("Set.prototype"), F, F, F),
@@ -592,7 +612,7 @@ case class Intrinsics(cfg: CFG) {
     "WeakMap" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("WeakMap.prototype"), F, F, F),
@@ -612,7 +632,7 @@ case class Intrinsics(cfg: CFG) {
     "WeakSet" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("WeakSet.prototype"), F, F, F),
@@ -632,7 +652,7 @@ case class Intrinsics(cfg: CFG) {
     "ArrayBuffer" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("ArrayBuffer.prototype"), F, F, F),
@@ -714,7 +734,7 @@ case class Intrinsics(cfg: CFG) {
     "Promise" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(intrAddr("Promise.prototype"), F, F, F),
@@ -735,7 +755,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Prototype" -> intrAddr("Function"),
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -764,7 +784,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Prototype" -> intrAddr("Function"),
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -828,7 +848,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "BuiltinFunctionObject",
       imap = List(
         "Prototype" -> intrAddr("Function"),
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "length" -> DataProperty(Number(1.0), F, F, T),
@@ -861,7 +881,7 @@ case class Intrinsics(cfg: CFG) {
     "Proxy" -> Struct(
       typeName = "BuiltinFunctionObject",
       imap = List(
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
     ),
     "AggregateError" -> Struct(
@@ -869,7 +889,7 @@ case class Intrinsics(cfg: CFG) {
       imap = List(
         "Extensible" -> Bool(true),
         "Prototype" -> intrAddr("Error"),
-        "Construct" -> clo("BuiltinFunctionObject.Construct"),
+        "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
         "prototype" -> DataProperty(
@@ -926,9 +946,12 @@ case class Intrinsics(cfg: CFG) {
         typeName = "BuiltinFunctionObject",
         imap = List(
           "Extensible" -> Bool(true),
+          "ScriptOrModule" -> Null,
+          "Realm" -> realmAddr,
+          INNER_CODE -> intrClo(errName),
           "Prototype" -> intrAddr("Error"),
-          "Code" -> intrClo(errName),
-          "Construct" -> clo("BuiltinFunctionObject.Construct"),
+          "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
+          "InitialName" -> Str(errName),
         ),
         nmap = List(
           "length" -> DataProperty(Number(1.0), F, F, T),

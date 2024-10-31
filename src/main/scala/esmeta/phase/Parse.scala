@@ -22,7 +22,7 @@ case object Parse extends Phase[Spec, Ast] {
   val options: List[PhaseOption[Config]] = List(
     (
       "debug",
-      BoolOption(c => c.debug = true),
+      BoolOption(_.debug = _),
       "turn on debugging mode.",
     ),
   )

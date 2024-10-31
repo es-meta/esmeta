@@ -18,19 +18,19 @@ def h() = { }
   assert (! (= ast1 ast3))
   assert (= ast4 ast4)
   // closures
-  assert (= clo<g> clo<g>)
-  assert (! (= clo<g> clo<h>)) // because different fids
+  assert (= clo<"g"> clo<"g">)
+  assert (! (= clo<"g"> clo<"h">)) // because different fids
   let a = 0
-  let clo1 = clo<g, [a]>
-  let clo2 = clo<g, [a]>
+  let clo1 = clo<"g", [a]>
+  let clo2 = clo<"g", [a]>
   assert (= clo1 clo2)
   a = 1
-  let clo3 = clo<g, [a]>
+  let clo3 = clo<"g", [a]>
   assert (! (= clo1 clo3)) // becuase `a` points to 0 in clo1 but 1 in clo3
   // continuations
-  assert (= cont<g> cont<g>)
-  let cont1 = cont<g>
-  let cont2 = cont<g>
+  assert (= cont<"g"> cont<"g">)
+  let cont1 = cont<"g">
+  let cont2 = cont<"g">
   assert (! (= cont1 cont2))  // because cont2 captures variable `cont1`
   // math values
   assert (= 2.4 2.4)

@@ -9,15 +9,15 @@ trait CmdLogDecl { self: Self =>
   case object CmdLog
     extends Command(
       "log",
-      "Dump the state.",
+      "Dump the current analysis result.",
     ) {
     // options
     val options = Nil
 
-    // TODO run command
+    // run command
     def apply(
       cpOpt: Option[ControlPoint],
       args: List[String],
-    ): Unit = notYetCmd
+    ): Unit = logging
   }
 }

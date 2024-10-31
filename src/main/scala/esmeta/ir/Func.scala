@@ -13,11 +13,14 @@ case class Func(
   params: List[Param],
   retTy: Type,
   body: Inst,
-  algo: Option[Algorithm] = None,
+  var algo: Option[Algorithm] = None,
 ) extends IRElem {
 
   /** not yet supported instructions */
   lazy val yets: List[EYet] = YetCollector(this)
+
+  /** not yet supported instructions (ignore in assertion instructions) */
+  lazy val usefulYets: List[EYet] = YetCollector(this, ignoreInAssert = true)
 
   /** check completeness */
   lazy val complete: Boolean = yets.isEmpty
@@ -44,6 +47,5 @@ object Func extends Parser.From(Parser.func)
 
 /** function kinds */
 enum FuncKind extends IRElem:
-  case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont,
-  BuiltinClo, Aux
+  case AbsOp, NumMeth, SynDirOp, ConcMeth, InternalMeth, Builtin, Clo, Cont, Aux
 object FuncKind extends Parser.From(Parser.funcKind)

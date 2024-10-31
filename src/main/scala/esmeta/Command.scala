@@ -102,8 +102,8 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
 // Analysis of ECMA-262
 // -----------------------------------------------------------------------------
 /** `tycheck` command */
-case object CmdTypeCheck extends Command("tycheck", CmdBuildCFG >> TypeCheck) {
-  val help = "performs a type analysis of ECMA-262."
+case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
+  val help = "performs a type checking of ECMA-262."
   val examples = List(
     "esmeta tycheck                              # type check for spec.",
     "esmeta tycheck -tycheck:target='.*ToString' # type check with targets",
@@ -181,18 +181,4 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js -mutate:out=b.js          # dump the mutated program.",
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
   )
-}
-
-// -----------------------------------------------------------------------------
-// ECMAScript Static Analysis (Meta-Level Static Analysis)
-// -----------------------------------------------------------------------------
-/** `analyze` command */
-case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
-  val help = "analyzes an ECMAScript file using meta-level static analysis."
-  val examples = List(
-    "esmeta analyze a.js                         # analyze a.js file.",
-    "esmeta analyze a.js -extract:target=es2022  # analyze with es2022 spec.",
-    "esmeta analyze a.js -analyze:repl           # analyze in a REPL mode.",
-  )
-  override val targetName = "<js>+"
 }

@@ -1,13 +1,13 @@
 @main def main() = {
-  let m = (map { "x" -> 1, "y" -> 2, "z" -> 3 })[#1]
+  let m = (map [String, Math] { "x" -> 1, "y" -> 2, "z" -> 3 })[#1]
 
   // dot
   delete m.x
-  assert (= absent m.x)
-  assert (! (= absent m["y"]))
+  assert (! (exists m.x))
+  assert (exists m.y)
 
   // braket
   delete m["y"]
-  assert (= absent m.y)
-  assert (! (= absent m["z"]))
+  assert (! (exists m.y))
+  assert (exists m["z"])
 }

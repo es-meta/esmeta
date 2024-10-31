@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.ir.util.{Walker => IRWalker}
-import esmeta.ir.{Type => IRType, *}
+import esmeta.ir.{Type => IRType, Param => IRParam, *}
 import esmeta.lang.*
 import esmeta.ty.*
 
@@ -23,14 +23,10 @@ inline def getRef(fb: FuncBuilder, expr: Expr): Ref = expr match {
   case _         => val x = fb.newTId; fb.addInst(IAssign(x, expr)); x
 }
 
-// conversion to type check expressions
-inline def toETypeCheck(expr: Expr, ty: Type): Expr =
-  ETypeCheck(expr, EStr(if (ty.ty == AstT) "ParseNode" else ty.normalizedName))
-
 // conversion to intrinsics
 inline def toIntrinsic(base: Ref, intr: Intrinsic): Field =
   // convert intr to string for exceptional case in GetPrototypeFromConstructor
-  Field(base, EStr(intr.toString))
+  Field(base, EStr(intr.toString(true, false)))
 inline def toEIntrinsic(base: Ref, intr: Intrinsic): ERef =
   toERef(toIntrinsic(base, intr))
 
@@ -40,3 +36,16 @@ inline def currentRealm: Ref = toStrRef(GLOBAL_CONTEXT, "Realm")
 // current intrinsics
 inline def currentIntrinsics: Ref =
   toStrRef(currentRealm, "Intrinsics")
+
+inline def isCompletion(e: Expr): Expr = ETypeCheck(e, IRType(CompT))
+
+/** instruction helpers */
+inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
+  paramOpt.map(toParam(_)).toList
+inline def toParam(x: Variable): IRParam = IRParam(Name(x.name))
+inline def emptyInst = ISeq(List())
+
+/** expression helpers */
+inline def emptyList = EList(List())
+inline def dataPropClo = EClo("IsDataDescriptor", Nil)
+inline def accessorPropClo = EClo("IsAccessorDescriptor", Nil)

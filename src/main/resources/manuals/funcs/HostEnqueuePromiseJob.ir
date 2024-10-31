@@ -1,9 +1,13 @@
 def HostEnqueuePromiseJob(
   job: Clo,
-  realm: RealmRecord | Null,
+  realm: Record[RealmRecord] | Null,
 ): Enum[~unused~] = {
-  call %0 = clo<GetActiveScriptOrModule>()
-  let newJob = (record [PendingJob] { "Job" : job, "Realm" : realm, "ScriptOrModule" : %0 })
+  call %0 = clo<"GetActiveScriptOrModule">()
+  let newJob = (record {
+    "Job" : job,
+    "Realm" : realm,
+    "ScriptOrModule" : %0,
+  })
   push @JOB_QUEUE < newJob
   return ~unused~
 }

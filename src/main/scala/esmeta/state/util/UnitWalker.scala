@@ -16,6 +16,7 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Obj         => walk(elem)
     case elem: Value       => walk(elem)
     case elem: RefTarget   => walk(elem)
+    case elem: Uninit      => walk(elem)
 
   // states
   def walk(st: State): Unit =
@@ -48,26 +49,17 @@ trait UnitWalker extends BasicUnitWalker {
 
   // value
   def walk(v: Value): Unit = v match
-    case comp: Comp      => walk(comp)
-    case pure: PureValue => walk(pure)
-
-  // completion value
-  def walk(comp: Comp): Unit =
-    walk(comp.ty); walk(comp.value)
-
-  // pure value
-  def walk(pure: PureValue): Unit = pure match
     case addr: Addr       => walk(addr)
     case Clo(_, captured) => walkMap(captured, walk, walk)
     case Cont(_, captured, callStack) =>
       walkMap(captured, walk, walk); walkList(callStack, walk)
-    case _: AstValue     =>
-    case _: Nt           =>
-    case _: Math         =>
-    case _: Infinity     =>
-    case _: Enum         =>
-    case _: CodeUnit     =>
-    case sv: SimpleValue => walk(sv)
+    case _: AstValue      =>
+    case _: GrammarSymbol =>
+    case _: Math          =>
+    case _: Infinity      =>
+    case _: Enum          =>
+    case _: CodeUnit      =>
+    case sv: SimpleValue  => walk(sv)
 
   // address
   def walk(addr: Addr): Unit = {}
@@ -82,4 +74,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   // ir id
   def walk(id: Var): Unit = {}
+
+  // uninit value
+  def walk(uninit: Uninit): Unit = {}
 }

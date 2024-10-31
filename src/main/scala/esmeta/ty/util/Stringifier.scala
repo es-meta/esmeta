@@ -13,19 +13,80 @@ object Stringifier {
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
-      case elem: UnknownTy   => unknownTyRule(app, elem)
-      case elem: ValueTy     => valueTyRule(app, elem)
-      case elem: CompTy      => compTyRule(app, elem)
-      case elem: PureValueTy => pureValueTyRule(app, elem)
+      case elem: TyModel     => tyModelRule(app, elem)
+      case elem: TyDecl      => tyDeclRule(app, elem)
+      case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
+      case elem: FieldMap    => fieldMapRule(using false)(app, elem)
+      case elem: Binding     => bindingRule(app, elem)
+      case elem: Ty          => tyRule(app, elem)
+      case elem: CloTy       => cloTyRule(app, elem)
       case elem: RecordTy    => recordTyRule(app, elem)
       case elem: ListTy      => listTyRule(app, elem)
-      case elem: NameTy      => nameTyRule(app, elem)
-      case elem: AstValueTy  => astValueTyRule(app, elem)
+      case elem: AstTy       => astTyRule(app, elem)
       case elem: MapTy       => mapTyRule(app, elem)
       case elem: MathTy      => mathTyRule(app, elem)
       case elem: InfinityTy  => infinityTyRule(app, elem)
       case elem: NumberTy    => numberTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
+
+  /** type models */
+  given tyModelRule: Rule[TyModel] = (app, model) =>
+    given Rule[List[TyDecl]] = iterableRule(sep = LINE_SEP + LINE_SEP)
+    app >> model.decls
+
+  /** type declarations */
+  given tyDeclRule: Rule[TyDecl] = (app, ty) =>
+    val TyDecl(name, parent, elems) = ty
+    app >> "type " >> name
+    parent.fold(app) { (name, extended) =>
+      app >> (if (extended) " extends " else " = ") >> name
+    }
+    if (elems.nonEmpty) (app >> " ").wrap("{", "}") {
+      elems.map(app :> _ >> ";")
+    }
+    app
+
+  /** type declaration elements */
+  given tyDeclElemRule: Rule[TyDecl.Elem] = (app, elem) =>
+    import TyDecl.Elem.*
+    elem match
+      case AbsMethod(name) =>
+        app >> "abstract def " >> name
+      case ConMethod(name, optional, target) =>
+        app >> "def " >> name
+        if (optional) app >> "?"
+        target.fold(app)(app >> " = " >> _)
+      case Field(name, optional, typeStr) =>
+        app >> name
+        if (optional) app >> "?"
+        app >> " : " >> typeStr
+
+  /** field type map */
+  given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
+    val COLON = " : "
+    val FieldMap(map) = fieldMap
+    given Rule[(String, Binding)] = {
+      case (app, (field, binding)) =>
+        app >> field
+        if (binding != Binding.Init) app >> COLON >> binding
+        app
+    }
+    if (fieldMap.isTop) app >> "{}"
+    else if (inline)
+      val SEP = ", "
+      given Rule[List[(String, Binding)]] = iterableRule(sep = SEP)
+      app >> "{ " >> map.toList.sortBy(_._1) >> " }"
+    else
+      app.wrap("{", "}") { for (pair <- map.toList.sortBy(_._1)) app :> pair }
+
+  /** field binding */
+  given bindingRule: Rule[Binding] = (app, ty) =>
+    val Binding(value, uninit, absent) = ty
+    var tags = ""
+    if (uninit) tags += "U"
+    if (absent) tags += "A"
+    if (tags.nonEmpty) app >> "[" >> tags >> "] "
+    app >> value
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>
@@ -38,101 +99,135 @@ object Stringifier {
     app >> "Unknown"
     ty.msg.fold(app)(app >> "[\"" >> _ >> "\"]")
 
-  /** value types */
-  given valueTyRule: Rule[ValueTy] = (app, ty) =>
-    if (ty.isTop) app >> "Any"
-    else if (!ty.isBottom)
-      FilterApp(app)
-        .add(ty.comp, !ty.comp.isBottom)
-        .add(ty.pureValue, !ty.pureValue.isBottom)
-        .add(ty.map, !ty.map.isBottom)
-        .app
-    else app >> "Bot"
-
-  /** completion record types */
-  given compTyRule: Rule[CompTy] = (app, ty) =>
-    given Rule[PureValueTy] = topRule(pureValueTyRule)
-    if (ty.isTop) app >> "CompletionRecord"
-    else
-      FilterApp(app)
-        .add(ty.normal, !ty.normal.isBottom, "Normal")
-        .add(ty.abrupt, !ty.abrupt.isBottom, "Abrupt")
-        .app
-
-  /** list types */
-  given listTyRule: Rule[ListTy] = (app, ty) =>
-    ty.elem match
-      case None => app
-      case Some(elem) =>
-        if (elem.isBottom) app >> "Nil"
-        else if (elem.isTop) app >> "List"
-        else app >> "List[" >> elem >> "]"
-
   // predefined types
-  lazy val predTys: List[(PureValueTy, String)] = List(
-    ESPureValueT -> "ESValue",
+  private lazy val predTys: List[(ValueTy, String)] = List(
+    ESValueT -> "ESValue",
   )
 
-  /** pure value types (non-completion record types) */
-  given pureValueTyRule: Rule[PureValueTy] = (app, origTy) =>
-    var ty: PureValueTy = origTy
-    if (ty.isTop) app >> "PureValue"
+  /** value types */
+  given valueTyRule: Rule[ValueTy] = (app, origTy) =>
+    var ty: ValueTy = origTy
+    if (ty.isTop) app >> "Any"
+    else if (ty.isBottom) app >> "Bot"
     else
       predTys
         .foldLeft(FilterApp(app)) {
           case (app, (pred, name)) =>
             app.add({ ty --= pred; name }, pred <= ty)
         }
-        .add(ty.clo.map(s => s"\"$s\""), !ty.clo.isBottom, "Clo")
+        .add(ty.clo, !ty.clo.isBottom, "Clo")
         .add(ty.cont, !ty.cont.isBottom, "Cont")
-        .add(ty.name, !ty.name.isBottom)
         .add(ty.record, !ty.record.isBottom)
+        .add(ty.map, !ty.map.isBottom)
         .add(ty.list, !ty.list.isBottom)
-        .add(ty.astValue, !ty.astValue.isBottom)
-        .add(ty.nt.map(_.toString), !ty.nt.isBottom, "Nt")
+        .add(ty.ast, !ty.ast.isBottom)
+        .add(
+          ty.grammarSymbol.map(_.toString),
+          !ty.grammarSymbol.isBottom,
+          "GrammarSymbol",
+        )
         .add("CodeUnit", !ty.codeUnit.isBottom)
         .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
         .add(ty.infinity, !ty.infinity.isBottom)
-        .add(ty.number, !ty.number.isBottom)
+        .add(ty.number, !ty.number.isBottom, "Number")
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
         .add("Undefined", !ty.undef.isBottom)
         .add("Null", !ty.nullv.isBottom)
-        .add("Absent", !ty.absent.isBottom)
         .app
 
-  /** named record types */
-  given nameTyRule: Rule[NameTy] = (app, ty) =>
-    ty.set match
-      case Inf => app >> "AnyName"
-      case Fin(set) =>
-        given Rule[Set[String]] = setRule("", OR, "")
-        app >> set
+  /** list types */
+  given listTyRule: Rule[ListTy] = (app, ty) =>
+    import ListTy.*
+    ty match
+      case Top => app >> "List"
+      case Bot => app >> ""
+      case Elem(elem) =>
+        if (elem.isBottom) app >> "Nil"
+        else app >> "List[" >> elem >> "]"
+
+  /** closure types */
+  given cloTyRule: Rule[CloTy] = (app, ty) =>
+    given Rule[Iterable[ValueTy]] = iterableRule("(", ", ", ")")
+    ty match
+      case CloArrowTy(ps, ret) => app >> "[" >> ps >> " => " >> ret >> "]"
+      case CloSetTy(set) if set.nonEmpty => app >> set.map("\"" + _ + "\"")
+      case _                             =>
+    app
 
   /** record types */
   given recordTyRule: Rule[RecordTy] = (app, ty) =>
     import RecordTy.*
-    given Rule[(String, ValueTy)] = {
-      case (app, (key, value)) =>
-        app >> "[[" >> key >> "]]"
-        if (!value.isTop) app >> ": " >> value
-        else app
+    given Rule[FieldMap] = fieldMapRule(using true)
+    given Rule[(String, FieldMap)] = {
+      case (app, (name, fm)) =>
+        app >> name
+        if (name.isEmpty) app >> fm
+        else if (!fm.isTop) app >> " " >> fm
+        app
     }
-    given Rule[List[(String, ValueTy)]] = iterableRule("{ ", ", ", " }")
+    given Rule[Iterable[String]] = iterableRule(sep = OR)
+    given Rule[List[(String, FieldMap)]] = iterableRule(sep = OR)
     ty match
-      case Top       => app >> "AnyRecord"
-      case Elem(map) => app >> map.toList.sortBy(_._1)
+      case Top => app >> "Record"
+      case Elem(map) =>
+        var m = map
+        var prevExists = false
+        def mayOR =
+          if (prevExists) app >> OR
+          prevExists = true
+          app
+        if (RecordTy("CompletionRecord") <= ty)
+          m -= "CompletionRecord"
+          mayOR >> "Completion"
+        map.get("NormalCompletion").map { fm =>
+          m -= "NormalCompletion"
+          mayOR >> "Normal"
+          if (fm.map.keySet == Set("Value")) app >> "[" >> fm("Value") >> "]"
+          else if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("AbruptCompletion").map { fm =>
+          m -= "AbruptCompletion"
+          mayOR >> "Abrupt"
+          if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
+          else if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("BreakCompletion").map { fm =>
+          m -= "BreakCompletion"
+          mayOR >> "Break"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("ContinueCompletion").map { fm =>
+          m -= "ContinueCompletion"
+          mayOR >> "Continue"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("ReturnCompletion").map { fm =>
+          m -= "ReturnCompletion"
+          mayOR >> "Return"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        map.get("ThrowCompletion").map { fm =>
+          m -= "ThrowCompletion"
+          mayOR >> "Throw"
+          if (!fm.isTop) app >> " " >> fm
+        }
+        if (m.nonEmpty)
+          if (prevExists) app >> OR
+          app >> "Record[" >> m.toList.sortBy(_._1) >> "]"
+        else app
 
   /** AST value types */
-  given astValueTyRule: Rule[AstValueTy] = (app, ty) =>
+  given astTyRule: Rule[AstTy] = (app, ty) =>
+    import AstTy.*
+    given Rule[Set[String]] = setRule("[", OR, "]")
     app >> "Ast"
     ty match
-      case AstTopTy         => app
-      case AstNameTy(names) => app >> names
-      case AstSingleTy(x, i, j) =>
-        app >> ":" >> x >> "[" >> i >> "," >> j >> "]"
+      case Top           => app
+      case Simple(names) => app >> names
+      case Detail(x, i)  => app >> "[" >> x >> "[" >> i >> "]" >> "]"
 
   /** mathematical value types */
   given mathTyRule: Rule[MathTy] = (app, ty) =>
@@ -155,9 +250,22 @@ object Stringifier {
   /** number types */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
     ty match
-      case NumberTopTy      => app >> "Number"
-      case NumberIntTy      => app >> "NumberInt"
-      case NumberSetTy(set) => if (set.isEmpty) app else app >> "Number" >> set
+      case NumberTopTy => app
+      case NumberIntTy(nan) =>
+        app >> "[Int"
+        if (nan) app >> ", NaN"
+        app >> "]"
+      case NumberSubIntTy(pos, zero, nan) =>
+        app >> "["
+        app >> ((pos, zero) match
+          case (true, true)   => "NonNegInt"
+          case (true, false)  => "PosInt"
+          case (false, true)  => "NonPosInt"
+          case (false, false) => "NegInt"
+        )
+        if (nan) app >> ", NaN"
+        app >> "]"
+      case NumberSetTy(set) => if (set.isEmpty) app else app >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>
@@ -168,7 +276,11 @@ object Stringifier {
 
   /** map types */
   given mapTyRule: Rule[MapTy] = (app, ty) =>
-    app >> "Map[" >> ty.key >> " |-> " >> ty.value >> "]"
+    import MapTy.*
+    ty match
+      case Top              => app >> "Map"
+      case Bot              => app >> ""
+      case Elem(key, value) => app >> "Map[" >> key >> " -> " >> value >> "]"
 
   // rule for bounded set lattice
   private given bsetRule[T: Ordering](using Rule[T]): Rule[BSet[T]] =

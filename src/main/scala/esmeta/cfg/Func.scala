@@ -15,12 +15,16 @@ case class Func(
   entry: Node,
 ) extends CFGElem
   with UId { func =>
+  import FuncKind.*
 
   /** parameters */
   lazy val params: List[Param] = irFunc.params
 
   /** arity */
   lazy val arity: (Int, Int) = irFunc.arity
+
+  /** kind */
+  lazy val kind: FuncKind = irFunc.kind
 
   /** all types */
   lazy val tys: List[Type] = retTy :: params.map(_.ty)
@@ -31,8 +35,17 @@ case class Func(
   /** check whether parameter types are defined */
   lazy val isParamTysDefined: Boolean = paramTys.forall(_.isDefined)
 
+  /** check whether parameter types are defined */
+  lazy val isParamTysPrecise: Boolean = paramTys.forall(!_.isImprec)
+
   /** not yet supported instructions */
   lazy val yets: List[EYet] = irFunc.yets
+
+  /** not yet supported instructions (ignore in assertion instructions) */
+  lazy val usefulYets: List[EYet] = irFunc.usefulYets
+
+  /** check completeness */
+  lazy val weakComplete: Boolean = usefulYets.isEmpty
 
   /** check completeness */
   lazy val complete: Boolean = irFunc.complete
@@ -54,28 +67,36 @@ case class Func(
   def headString: String = irFunc.headString
 
   /** check whether it is builtin */
-  lazy val isBuiltin: Boolean =
-    irFunc.kind == FuncKind.Builtin || irFunc.kind == FuncKind.BuiltinClo
+  lazy val isBuiltin: Boolean = irFunc.kind == Builtin
 
   /** check whether it is SDO */
-  lazy val isSDO: Boolean = irFunc.kind == FuncKind.SynDirOp
+  lazy val isSDO: Boolean = irFunc.kind == SynDirOp
+
+  /** get SDO information */
+  lazy val sdoInfo: Option[SdoInfo] = name match
+    case Func.sdoPattern(base, i, j, method) =>
+      Some(SdoInfo.Base(this, base, i.toInt, j.toInt, method))
+    case Func.defaultSdoPattern(method) =>
+      Some(SdoInfo.Default(this, method))
+    case _ => None
+
+  /** check whether it is a closure */
+  lazy val isClo: Boolean = irFunc.kind == Clo
+
+  /** check whether it is a continuation */
+  lazy val isCont: Boolean = irFunc.kind == Cont
 
   /** check whether it is method operation */
   lazy val isMethod: Boolean =
-    irFunc.kind == FuncKind.ConcMeth || irFunc.kind == FuncKind.InternalMeth
+    irFunc.kind == ConcMeth || irFunc.kind == InternalMeth
 
-  /** check whether it is closure */
-  lazy val isClo: Boolean =
-    irFunc.kind == FuncKind.Clo || irFunc.kind == FuncKind.BuiltinClo
+  /** check whether it is an auxiliary function */
+  lazy val isAux: Boolean = irFunc.kind == Aux
 
-  lazy val isCont: Boolean =
-    irFunc.kind == FuncKind.Cont
-
-  /** check whether it needs normal completion wrapping */
-  lazy val isReturnComp: Boolean = irFunc.kind match
-    case FuncKind.SynDirOp if irFunc.name.endsWith(".Evaluation") => true
-    case FuncKind.Builtin | FuncKind.BuiltinClo                   => true
-    case _ => irFunc.retTy.isCompletion
+  private val baseNamePattern = """([^:]*)(:clo.*|:cont.*)""".r
+  def baseName: String = name match
+    case baseNamePattern(base, _) => base
+    case _                        => name
 
   /** function name */
   def name: String = irFunc.name
@@ -131,4 +152,7 @@ object Func {
         addTo(app)
       }.toString
   }
+
+  private lazy val defaultSdoPattern = """<DEFAULT>\.(\w+)""".r
+  private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
 }

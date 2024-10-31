@@ -47,11 +47,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       targets,
       config.features,
       config.log,
+      config.detail,
       config.progress,
       config.coverage,
       config.timeLimit,
       config.concurrent,
-      config.verbose,
     )
 
     // if summary has failed test case, throws an exception
@@ -74,12 +74,12 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "progress",
-      BoolOption(c => c.progress = true),
+      BoolOption(_.progress = _),
       "show progress bar.",
     ),
     (
       "coverage",
-      BoolOption(c => c.coverage = true),
+      BoolOption(_.coverage = _),
       "measure node/branch coverage in CFG of ECMA-262.",
     ),
     (
@@ -89,13 +89,18 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "with-yet",
-      BoolOption(c => c.withYet = true),
+      BoolOption(_.withYet = _),
       "test with currently ignored tests because of unknown issues.",
     ),
     (
       "log",
-      BoolOption(c => c.log = true),
+      BoolOption(_.log = _),
       "turn on logging mode.",
+    ),
+    (
+      "detail-log",
+      BoolOption((c, b) => { c.log ||= b; c.detail = b }),
+      "turn on logging mode with detailed information.",
     ),
     (
       "concurrent",
@@ -106,11 +111,6 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
-    (
-      "verbose",
-      BoolOption(c => c.verbose = true),
-      "turn on verbose mode.",
-    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -119,8 +119,8 @@ case object Test262Test extends Phase[CFG, Summary] {
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
     var log: Boolean = false,
+    var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     var features: Option[List[String]] = None,
-    var verbose: Boolean = false,
   )
 }

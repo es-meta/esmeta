@@ -50,8 +50,10 @@ trait Walker extends BasicWalker {
     case IExpr(expr)            => IExpr(walk(expr))
     case ILet(lhs, expr)        => ILet(walk(lhs), walk(expr))
     case IAssign(ref, expr)     => IAssign(walk(ref), walk(expr))
-    case IDelete(ref)           => IDelete(walk(ref))
+    case IExpand(base, expr)    => IExpand(walk(base), walk(expr))
+    case IDelete(base, expr)    => IDelete(walk(base), walk(expr))
     case IPush(from, to, front) => IPush(walk(from), walk(to), walk(front))
+    case IPop(lhs, list, front) => IPop(walk(lhs), walk(list), walk(front))
     case IReturn(expr)          => IReturn(walk(expr))
     case IAssert(expr)          => IAssert(walk(expr))
     case IPrint(expr)           => IPrint(walk(expr))
@@ -66,18 +68,10 @@ trait Walker extends BasicWalker {
 
   // expressions
   def walk(expr: Expr): Expr = (expr match
-    case EComp(tyExpr, valExpr, tgtExpr) =>
-      EComp(walk(tyExpr), walk(valExpr), walk(tgtExpr))
-    case EIsCompletion(expr) =>
-      EIsCompletion(walk(expr))
-    case EReturnIfAbrupt(expr, check) =>
-      EReturnIfAbrupt(walk(expr), walk(check))
-    case EPop(list, front) =>
-      EPop(walk(list), walk(front))
     case EParse(code, rule) =>
       EParse(walk(code), walk(rule))
-    case ENt(name, params) =>
-      ENt(walk(name), walkList(params, walk))
+    case EGrammarSymbol(name, params) =>
+      EGrammarSymbol(walk(name), walkList(params, walk))
     case ESourceText(expr) =>
       ESourceText(walk(expr))
     case EYet(msg) =>
@@ -100,10 +94,16 @@ trait Walker extends BasicWalker {
       EMathOp(walk(mop), walkList(exprs, walk))
     case EConvert(cop, expr) =>
       EConvert(walk(cop), walk(expr))
+    case EExists(ref) =>
+      EExists(walk(ref))
     case ETypeOf(base) =>
       ETypeOf(walk(base))
+    case EInstanceOf(expr, target) =>
+      EInstanceOf(walk(expr), walk(target))
     case ETypeCheck(expr, ty) =>
       ETypeCheck(walk(expr), walk(ty))
+    case ESizeOf(expr) =>
+      ESizeOf(walk(expr))
     case EClo(fname, captured) =>
       EClo(walk(fname), walkList(captured, walk))
     case ECont(fname) =>
@@ -133,25 +133,19 @@ trait Walker extends BasicWalker {
 
   // allocation expressions
   def walk(alloc: AllocExpr): AllocExpr = alloc match
-    case ERecord(tnameOpt, fields) =>
+    case ERecord(tname, fields) =>
       ERecord(
-        walkOpt(tnameOpt, walk),
+        walk(tname),
         walkList(fields, { case (p, e) => (walk(p), walk(e)) }),
       )
-    case EMap(pairs) =>
-      EMap(walkList(pairs, { case (k, v) => (walk(k), walk(v)) }))
+    case EMap(ty, pairs) =>
+      EMap(walkPair(ty, walk, walk), walkList(pairs, walkPair(_, walk, walk)))
     case EList(exprs) =>
       EList(walkList(exprs, walk))
-    case EListConcat(exprs) =>
-      EListConcat(walkList(exprs, walk))
     case ECopy(obj) =>
       ECopy(walk(obj))
     case EKeys(map, intSorted) =>
       EKeys(walk(map), walk(intSorted))
-    case EGetChildren(ast) =>
-      EGetChildren(walk(ast))
-    case EGetItems(nt, ast) =>
-      EGetItems(walk(nt), walk(ast))
 
   // literals
   def walk(lit: LiteralExpr): LiteralExpr = lit
@@ -175,8 +169,8 @@ trait Walker extends BasicWalker {
 
   // references
   def walk(ref: Ref): Ref = (ref match
-    case Field(ref, expr) => Field(walk(ref), walk(expr))
-    case x: Var           => walk(x)
+    case Field(base, expr) => Field(walk(base), walk(expr))
+    case x: Var            => walk(x)
   ).setLangOpt(ref.langOpt)
 
   // identifiers

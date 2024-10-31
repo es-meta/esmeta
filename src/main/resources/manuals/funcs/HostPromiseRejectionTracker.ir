@@ -1,5 +1,5 @@
 def HostPromiseRejectionTracker(
-  promise: Promise,
+  promise: Record[Promise],
   operation: String["handle", "reject"],
 ): Enum[~unused~] = {
   return ~unused~

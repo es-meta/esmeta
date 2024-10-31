@@ -15,8 +15,6 @@ ThisBuild / organization := "esmeta"
 ThisBuild / scalacOptions := Seq(
   "-language:implicitConversions", // allow implicit conversions
   "-deprecation", // emit warning and location for usages of deprecated APIs
-  "-explain", // explain errors in more detail
-  "-explain-types", // explain type errors in more detail
   "-feature", // emit warning for features that should be imported explicitly
   "-unchecked", // enable warnings where generated code depends on assumptions
 )
@@ -75,6 +73,7 @@ lazy val tyContainsTest = taskKey[Unit]("Launch contains tests for ty (tiny)")
 lazy val tyStringifyTest =
   taskKey[Unit]("Launch stringify tests for ty (tiny)")
 lazy val tyJsonTest = taskKey[Unit]("Launch JSON tests for ty (tiny)")
+lazy val tyOpTest = taskKey[Unit]("Launch operation tests for ty (tiny)")
 
 // compiler
 lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
@@ -108,10 +107,8 @@ lazy val stateStringifyTest =
 
 // analyzer
 lazy val analyzerTest = taskKey[Unit]("Launch analyzer tests")
-lazy val analyzerStringifyTest =
-  taskKey[Unit]("Launch stringify tests for analyzer (tiny)")
-lazy val analyzerTypeCheckTest =
-  taskKey[Unit]("Launch typecheck tests for analyzer (small)")
+lazy val analyzerTyCheckTest =
+  taskKey[Unit]("Launch tycheck tests for analyzer (small)")
 
 // es
 lazy val esTest = taskKey[Unit]("Launch ECMAScript tests")
@@ -230,6 +227,7 @@ lazy val root = project
     tyContainsTest := (Test / testOnly).toTask(" *.ty.Contains*Test").value,
     tyStringifyTest := (Test / testOnly).toTask(" *.ty.Stringify*Test").value,
     tyJsonTest := (Test / testOnly).toTask(" *.ty.Json*Test").value,
+    tyOpTest := (Test / testOnly).toTask(" *.ty.Op*Test").value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
     compilerValidityTest := (Test / testOnly)
@@ -259,11 +257,8 @@ lazy val root = project
       .value,
     // analyzer
     analyzerTest := (Test / testOnly).toTask(" *.analyzer.*Test").value,
-    analyzerStringifyTest := (Test / testOnly)
-      .toTask(" *.analyzer.Stringify*Test")
-      .value,
-    analyzerTypeCheckTest := (Test / testOnly)
-      .toTask(" *.analyzer.TypeCheck*Test")
+    analyzerTyCheckTest := (Test / testOnly)
+      .toTask(" *.analyzer.TyCheck*Test")
       .value,
     // es
     esTest := (Test / testOnly).toTask(" *.es.*Test").value,

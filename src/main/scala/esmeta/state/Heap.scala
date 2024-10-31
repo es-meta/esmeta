@@ -7,7 +7,7 @@ import esmeta.error.NotSupported.Category.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.builtin.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
+import scala.collection.mutable.{Map => MMap}
 
 /** IR heaps */
 case class Heap(
@@ -15,85 +15,48 @@ case class Heap(
   var size: Int = 0,
 ) extends StateElem {
 
-  /** getters */
-  def apply(addr: Addr): Obj =
-    map.getOrElse(addr, throw UnknownAddr(addr)) match
-      case YetObj(_, msg) => throw NotSupported(Feature)(msg)
-      case obj            => obj
-  def apply(addr: Addr, key: Value): Value = apply(addr) match
-    case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
-    case (m: MapObj)                        => m(key)
-    case (l: ListObj)                       => l(key)
-    case (r: RecordObj)                     => r(key)
-    case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
+  /** getter */
+  def apply(addr: Addr): Obj = map.getOrElse(addr, throw UnknownAddr(addr))
+  def apply(addr: Addr, field: Value): Value = apply(addr)(field)
 
-  /** setters */
-  def update(addr: Addr, field: Value, value: Value): this.type =
-    apply(addr) match {
-      case (m: MapObj)  => m.update(field, value); this
-      case (l: ListObj) => l.update(field, value); this
-      case (r: RecordObj) => {
-        field match
-          case prop @ Str(_) => r.update(prop, value)
-          case _             => throw InvalidObjField(r, field)
-        this
-      }
-      case v => error(s"not a map: $v")
-    }
+  /** setter */
+  def update(addr: Addr, field: Value, value: Value): Unit =
+    apply(addr).update(field, value)
+
+  /** existence check */
+  def exists(addr: Addr, field: Value): Boolean = apply(addr).exists(field)
+
+  /** expand */
+  def expand(addr: Addr, field: Value): Unit = apply(addr).expand(field)
 
   /** delete */
-  def delete(addr: Addr, field: Value): this.type = apply(addr) match {
-    case (m: MapObj)    => m.delete(field); this
-    case (r: RecordObj) => error(s"cannot delete from record: $r")
-    case v              => error(s"not a map: $v")
-  }
+  def delete(addr: Addr, key: Value): Unit = apply(addr).delete(key)
 
-  /** appends */
-  def append(addr: Addr, value: Value): this.type = apply(addr) match {
-    case (l: ListObj) => l.append(value); this
-    case v            => error(s"not a list: $v")
-  }
-
-  /** prepends */
-  def prepend(addr: Addr, value: Value): this.type = apply(addr) match {
-    case (l: ListObj) => l.prepend(value); this
-    case v            => error(s"not a list: $v")
-  }
+  /** push */
+  def push(addr: Addr, value: Value, front: Boolean): Unit =
+    apply(addr).push(value, front)
 
   /** pops */
-  def pop(addr: Addr, front: Boolean): Value = apply(addr) match {
-    case (l: ListObj) => l.pop(front)
-    case v            => error(s"not a list: $v")
-  }
+  def pop(addr: Addr, front: Boolean): Value = apply(addr).pop(front)
 
-  /** copy objects */
-  def copyObj(addr: Addr): Addr = alloc(apply(addr).copied)
+  /** copy */
+  def copy(addr: Addr): Addr = alloc(apply(addr).copied)
 
-  /** keys of map */
-  def keys(addr: Addr, intSorted: Boolean): Addr = {
-    alloc(ListObj(apply(addr) match {
-      case (r: RecordObj) => r.keys
-      case (m: MapObj)    => m.keys(intSorted)
-      case obj            => error(s"not a map: $obj")
-    }))
-  }
+  /** keys */
+  def keys(addr: Addr, intSorted: Boolean): Addr =
+    allocList(apply(addr).keys(intSorted))
 
   /** record allocations */
-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
-    val record = RecordObj(tnameOpt)
-    // TODO check it is the best way to handle this
-    if (isObject(record.tname))
-      record.update(Str("PrivateElements"), alloc(ListObj()))
-    alloc(record)
-
-  private def isObject(tname: String): Boolean =
-    tname endsWith "Object"
+  def allocRecord(
+    tname: String,
+    pairs: Iterable[(String, Value)] = Nil,
+  )(using CFG): Addr = alloc(RecordObj(tname, pairs))
 
   /** map allocations */
-  def allocMap: Addr = alloc(MapObj())
+  def allocMap(pairs: Iterable[(Value, Value)]): Addr = alloc(MapObj(pairs))
 
   /** list allocations */
-  def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
+  def allocList(vs: Iterable[Value]): Addr = alloc(ListObj(vs.toVector))
 
   // allocation helper
   private def alloc(obj: Obj): Addr = {
@@ -103,35 +66,6 @@ case class Heap(
     newAddr
   }
 
-  // field access helper
-  private def getAddrValue(
-    addr: Addr,
-    fieldName: String,
-  ): Addr = apply(addr, Str(fieldName)) match {
-    case addr: Addr => addr
-    case v          => error(s"not an address: $v")
-  }
-
-  /** set type of objects */
-  def setType(addr: Addr, tname: String): this.type = apply(addr) match {
-    case (irMap: RecordObj) => irMap.tname = tname; this
-    case _                  => error(s"invalid type update: $addr")
-  }
-
   /** copied */
-  def copied: Heap =
-    val newMap = MMap.from(map.toList.map {
-      case (addr, obj) => addr -> obj.copied
-    })
-    Heap(newMap, size)
-}
-object Heap {
-
-  /** special getter for intrinsics */
-  def getIntrinsics(key: Value): Value =
-    val keyStr = key match
-      case Str(s) if s.startsWith("%") && s.endsWith("%") =>
-        s.substring(1, s.length - 1)
-      case v => error(s"invalid intrinsics key1: $key")
-    intrAddr(keyStr)
+  def copied: Heap = Heap(MMap.from(map.toList.map { _ -> _.copied }), size)
 }

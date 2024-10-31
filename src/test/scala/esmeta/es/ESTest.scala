@@ -2,7 +2,6 @@ package esmeta.es
 
 import esmeta.ESMetaTest
 import esmeta.analyzer.*
-import esmeta.analyzer.domain.*
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.es.util.*
@@ -64,13 +63,13 @@ object ESTest {
   // analyzer helpers
   // ---------------------------------------------------------------------------
   // analyzer
-  lazy val analyzer = ESAnalyzer(cfg)
-  import analyzer.*
+  // lazy val analyzer = ESAnalyzer(cfg)
+  // import analyzer.*
 
   // analyze ES codes
-  def analyzeFile(filename: String): analyzer.Semantics =
-    analyzer(readFile(filename).trim)
-  def analyze(str: String): Semantics = analyzer(str)
+  // def analyzeFile(filename: String): analyzer.Semantics =
+  //   analyzer(readFile(filename).trim)
+  // def analyze(str: String): Semantics = analyzer(str)
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =
@@ -95,11 +94,11 @@ object ESTest {
     cachedAst: Option[Ast] = None,
   ): State = checkExit(evalFile(filename, checkAfter, cachedAst))
 
-  // tests for ES analyzer
-  def checkExit(absSem: AbsSemantics): AbsSemantics =
-    assert(absSem.finalResult.value.getSingle == One(Undef))
-    absSem
-  def analyzeTest(str: String): AbsSemantics = checkExit(analyze(str))
-  def analyzeTestFile(filename: String): AbsSemantics =
-    checkExit(analyzeFile(filename))
+  // // tests for ES analyzer
+  // def checkExit(absSem: AbsSemantics): AbsSemantics =
+  //   assert(absSem.finalResult.value.getSingle == One(Undef))
+  //   absSem
+  // def analyzeTest(str: String): AbsSemantics = checkExit(analyze(str))
+  // def analyzeTestFile(filename: String): AbsSemantics =
+  //   checkExit(analyzeFile(filename))
 }

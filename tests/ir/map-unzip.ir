@@ -1,9 +1,9 @@
-def unzip(map: Map[Math |-> String]) = {
+def unzip(map: Map[Math -> String]) = {
   let keys = (keys map)[#1]
   let ckeys = (copy keys)[#1]
   let values = (list [])[#1]
-  while (! (= ckeys.length 0)) {
-    let key = (pop < ckeys)
+  while (! (= (sizeof ckeys) 0)) {
+    pop key < ckeys
     let value = map[key]
     push value > values
   }
@@ -12,8 +12,8 @@ def unzip(map: Map[Math |-> String]) = {
 }
 
 @main def main() = {
-  let map = (map { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
-  call pair = clo<unzip>(map)
+  let map = (map [Math | BigInt | Number, String] { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
+  call pair = clo<"unzip">(map)
   assert (contains pair[0] 1)
   assert (contains pair[0] 2n)
   assert (contains pair[0] 0.3f)

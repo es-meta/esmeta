@@ -87,11 +87,13 @@ def EGLOBAL_OBJECT_TYPE = ERef(GLOBAL_OBJECT_TYPE)
 def THIS_STR = "this"
 def ARGS_LIST_STR = "ArgumentsList"
 def NEW_TARGET_STR = "NewTarget"
+def ARGS_STR = "__args__"
 
 /** predefined local variables */
 def NAME_THIS = Name(THIS_STR)
 def NAME_ARGS_LIST = Name(ARGS_LIST_STR)
 def NAME_NEW_TARGET = Name(NEW_TARGET_STR)
+def NAME_ARGS = Name(ARGS_STR)
 
 /** predefined globals identifier expressions */
 def ENAME_THIS = ERef(NAME_THIS)
@@ -105,8 +107,39 @@ def PARAM_NEW_TARGET = Param(NAME_NEW_TARGET)
 
 /** predefined auxiliary functions */
 inline def getAux(name: String): EClo = EClo("__" + name + "__", Nil)
+def AUX_APPEND_LIST = getAux("APPEND_LIST")
 def AUX_CLAMP = getAux("CLAMP")
+def AUX_FLAT_LIST = getAux("FLAT_LIST")
+def AUX_GET_ITEMS = getAux("GET_ITEMS")
 def AUX_HAS_DUPLICATE = getAux("HAS_DUPLICATE")
 def AUX_IS_ARRAY_INDEX = getAux("IS_ARRAY_INDEX")
-def AUX_REMOVE_ELEM = getAux("REMOVE_ELEM")
 def AUX_NEW_ERROR_OBJ = getAux("NEW_ERROR_OBJ")
+def AUX_NEW_OBJ = getAux("NEW_OBJ")
+def AUX_REMOVE_ELEM = getAux("REMOVE_ELEM")
+
+// -----------------------------------------------------------------------------
+// Helper Functions
+// -----------------------------------------------------------------------------
+extension (e: Expr) {
+
+  /** check if the expression does not have any side effects */
+  def isPure: Boolean = e match
+    case ERef(r)        => r.isPure
+    case _: LiteralExpr => true
+    case _              => false
+
+  /** check if the expression is a literal */
+  def isLiteral: Boolean = e match
+    case _: LiteralExpr => true
+    case _              => false
+}
+
+extension (r: Ref) {
+
+  /** check if the reference does not have any side effects */
+  def isPure: Boolean = r match
+    case Field(ref, expr) => false
+    case Global(name)     => true
+    case Name(name)       => true
+    case Temp(idx)        => true
+}

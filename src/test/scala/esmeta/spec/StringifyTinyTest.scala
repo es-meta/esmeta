@@ -135,7 +135,7 @@ class StringifyTinyTest extends SpecTest {
       sdoHead2 -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam): unknown",
       sdoHead3 -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R](): unknown",
       concMethodHead -> "[METHOD] HasBinding(envRec)(N): unknown",
-      methodHead -> "[METHOD] SetPrototypeOf(O)(V): unknown",
+      methodHead -> "[INTERNAL] SetPrototypeOf(O)(V): unknown",
       builtinHead -> "[BUILTIN] Boolean(value): unknown",
     )
 

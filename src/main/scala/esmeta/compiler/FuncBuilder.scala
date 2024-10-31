@@ -13,8 +13,10 @@ case class FuncBuilder(
   params: List[IRParam],
   retTy: IRType,
   algo: Algorithm,
-  returnContext: Option[Ref] = None,
+  returnContext: Option[Ref],
+  needReturnComp: Boolean,
 ) {
+  import FuncKind.*
 
   /** get an IR function as the result of compilation of an algorithm */
   def getFunc(body: => Inst): Func = Func(
@@ -27,6 +29,9 @@ case class FuncBuilder(
     Some(algo),
   )
 
+  /** check whether it is builtin */
+  lazy val isBuiltin: Boolean = kind == Builtin
+
   /** bindings for nonterminals */
   var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
     case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
@@ -38,6 +43,9 @@ case class FuncBuilder(
       if (rhsNames contains target.lhsName) rhsBindings
       else (target.lhsName, ENAME_THIS, None) :: rhsBindings
     case _ => List()
+
+  /** bindings for built-in function parameters */
+  var builtinBindings: Set[String] = Set()
 
   /** create a new scope with a given procedure */
   def newScope(f: => Unit): Inst =
@@ -61,8 +69,10 @@ case class FuncBuilder(
 
   /** add return to resume instruction */
   def addReturnToResume(context: Ref, value: Expr): Unit =
+    val (x, xExpr) = newTIdWithExpr
     addInst(
-      ICall(newTId, EPop(toStrERef(context, "ReturnCont"), true), List(value)),
+      IPop(x, toStrERef(context, "ReturnCont"), true),
+      ICall(newTId, xExpr, List(value)),
     )
 
   /** get next temporal variable */
@@ -93,6 +103,8 @@ case class FuncBuilder(
   val langs: Stack[Syntax] = Stack()
 
   lazy val backEdgeWalker: BackEdgeWalker = BackEdgeWalker(this)
+
+  lazy val returnModifier: ReturnModifier = ReturnModifier(this)
 
   // ---------------------------------------------------------------------------
   // Private Helpers
