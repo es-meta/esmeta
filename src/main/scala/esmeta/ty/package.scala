@@ -116,6 +116,7 @@ lazy val NumberNonPosIntT: ValueTy = ValueTy(number = NumberTy.NonPosInt)
 lazy val NumberNonNegIntT: ValueTy = ValueTy(number = NumberTy.NonNegInt)
 lazy val NumberNegIntT: ValueTy = ValueTy(number = NumberTy.NegInt)
 lazy val NumberPosIntT: ValueTy = ValueTy(number = NumberTy.PosInt)
+lazy val NaNT: ValueTy = ValueTy(number = NumberTy.NaN)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) BotT
   else ValueTy(number = NumberSetTy(ns.toSet))

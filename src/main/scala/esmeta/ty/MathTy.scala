@@ -145,6 +145,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** addition */
   def +(that: MathTy): MathTy = (this, that) match
+    case (l, r) if l.isPosInt && r.isPosInt       => PosIntTy
     case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
     case (l, r) if l.isInt && r.isInt             => IntTy
     case _                                        => MathTopTy
@@ -297,13 +298,13 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** non-positive integral check */
   def isNonPosInt: Boolean = this match
-    case NonPosIntTy    => true
+    case NonPosIntTy | NegIntTy => true
     case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal <= 0)
     case _              => false
 
   /** non-negative integral check */
   def isNonNegInt: Boolean = this match
-    case NonNegIntTy    => true
+    case NonNegIntTy | PosIntTy => true
     case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal >= 0)
     case _              => false
 

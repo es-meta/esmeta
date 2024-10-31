@@ -1347,6 +1347,7 @@ trait Parsers extends IndentParsers {
     "TypedArray" ^^^ TypedArrayT |
     opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
     "non-negative integral Number" ^^^ NumberNonNegIntT |
+    "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "Parse Node" ^^^ AstT |

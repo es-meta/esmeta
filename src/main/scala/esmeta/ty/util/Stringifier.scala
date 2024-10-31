@@ -250,13 +250,22 @@ object Stringifier {
   /** number types */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
     ty match
-      case NumberTopTy       => app
-      case NumberIntTy       => app >> "[Int]"
-      case NumberNonPosIntTy => app >> "[NonPosInt]"
-      case NumberNonNegIntTy => app >> "[NonNegInt]"
-      case NumberNegIntTy    => app >> "[NegInt]"
-      case NumberPosIntTy    => app >> "[PosInt]"
-      case NumberSetTy(set)  => if (set.isEmpty) app else app >> set
+      case NumberTopTy => app
+      case NumberIntTy(nan) =>
+        app >> "[Int"
+        if (nan) app >> ", NaN"
+        app >> "]"
+      case NumberSubIntTy(pos, zero, nan) =>
+        app >> "["
+        app >> ((pos, zero) match
+          case (true, true)   => "NonNegInt"
+          case (true, false)  => "PosInt"
+          case (false, true)  => "NonPosInt"
+          case (false, false) => "NegInt"
+        )
+        if (nan) app >> ", NaN"
+        app >> "]"
+      case NumberSetTy(set) => if (set.isEmpty) app else app >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>

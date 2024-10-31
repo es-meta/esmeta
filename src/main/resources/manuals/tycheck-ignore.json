@@ -25,7 +25,6 @@
   "INTRINSICS.Atomics.add",
   "INTRINSICS.Atomics.notify",
   "INTRINSICS.Atomics.sub",
-  "INTRINSICS.Date.prototype.toTimeString",
   "INTRINSICS.Function",
   "INTRINSICS.GeneratorFunction",
   "INTRINSICS.Promise.resolve",
@@ -35,7 +34,6 @@
   "InstallErrorCause",
   "LabelledItem[1,0].LabelledEvaluation",
   "LabelledStatement[0,0].LabelledEvaluation",
-  "LocalTime",
   "MakeMatchIndicesIndexPairArray",
   "OrdinaryFunctionCreate",
   "PerformEval",
@@ -52,7 +50,6 @@
   "Statement[1,0].LabelledEvaluation",
   "Statement[2,0].LabelledEvaluation",
   "SuperCall[0,0].Evaluation",
-  "ToDateString",
   "TypedArrayLength",
   "YieldExpression[2,0].Evaluation"
 ]

@@ -228,11 +228,14 @@ trait Parsers extends BasicParsers {
   }.named("ty.NumberTy")
 
   private lazy val singleNumberTy: Parser[NumberTy] =
-    "Number[Int]" ^^^ NumberIntTy |
-    "Number[NonPosInt]" ^^^ NumberNonPosIntTy |
-    "Number[NonNegInt]" ^^^ NumberNonNegIntTy |
-    "Number[NegInt]" ^^^ NumberNegIntTy |
-    "Number[PosInt]" ^^^ NumberPosIntTy |
+    lazy val nan: Parser[Boolean] = "," ~ "NaN" ^^^ true | "" ^^^ false
+    "Number[" ~> {
+      "Int" ^^^ { NumberIntTy(_) } |
+      "NonNegInt" ^^^ { NumberSubIntTy(true, true, _) } |
+      "PosInt" ^^^ { NumberSubIntTy(true, false, _) } |
+      "NonPosInt" ^^^ { NumberSubIntTy(false, true, _) } |
+      "NegInt" ^^^ { NumberSubIntTy(false, false, _) }
+    } ~ nan <~ "]" ^^ { case f ~ n => f(n) } |
     "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
       case n => NumberSetTy(n.toSet)
     } | "Number" ^^^ NumberTopTy

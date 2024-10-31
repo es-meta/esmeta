@@ -133,6 +133,7 @@ class StringifyTinyTest extends TyTest {
       NumberNonNegIntT -> "Number[NonNegInt]",
       NumberNegIntT -> "Number[NegInt]",
       NumberPosIntT -> "Number[PosInt]",
+      (NumberNonNegIntT || NaNT) -> "Number[NonNegInt, NaN]",
       NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF]",
       NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF]",
       NumberT(Number(Double.NaN)) -> "Number[NaN]",

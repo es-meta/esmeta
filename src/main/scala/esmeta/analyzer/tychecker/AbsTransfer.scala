@@ -93,8 +93,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         callerNp <- callerNps
         nextNp <- getAfterCallNp(callerNp)
       } {
-        val callerSt = callInfo(callerNp)
-        val newV = instantiate(value, callerNp)
+        given callerSt: AbsState = callInfo(callerNp)
+        val retTy = rp.func.retTy.ty.toValue
+        val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
         val nextSt = callerSt.update(callerNp.node.lhs, newV, refine = false)
         analyzer += nextNp -> nextSt
       }
@@ -317,7 +318,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
           given AbsState = callerSt
-          newV = instantiate(value, callerNp)
+          retTy = rp.func.retTy.ty.toValue
+          newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
           if !newV.isBottom
         } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, newV))
           .getOrElse {

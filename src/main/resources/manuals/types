@@ -726,7 +726,7 @@ type BigIntObject extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-date-instances
 type Date extends OrdinaryObject {
-  DateValue: Number;
+  DateValue: Number[Int, NaN];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-regexp-instances
