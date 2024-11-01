@@ -289,6 +289,21 @@ class TyChecker(
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )
+    dumpFile(
+      name = "inline summary for evaluation in tsv format",
+      data = Vector(
+        this.iter, // iter
+        time, // duration
+        errors.size, // error
+        this.analyzedFuncs.size, // analyzed funcs
+        cfg.funcs.size, // total funcs
+        this.analyzedNodes.size, // analyzed nodes
+        cfg.nodes.size, // total nodes
+        if (inferTypeGuard) typeGuards.size else 0, // guards
+      ).mkString("\t"),
+      filename = s"$ANALYZE_LOG_DIR/summary",
+      silent = silent,
+    )
 
     // detailed logging
     if (detail)
