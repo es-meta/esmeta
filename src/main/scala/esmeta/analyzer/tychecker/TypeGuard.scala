@@ -1,9 +1,10 @@
 package esmeta.analyzer.tychecker
 
-import esmeta.ir.*
+import esmeta.cfg.{Func, Call}
+import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
-import esmeta.util.*
+import esmeta.util.{*, given}
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
@@ -95,46 +96,79 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** Symbol */
   type Sym = Int
+  case class Provenance(map: Map[Func, List[Call]] = Map()) {
+    def join(that: Provenance): Provenance = Provenance((for {
+      key <- (this.map.keySet union that.map.keySet).toList
+      calls <- (this.map.get(key), that.map.get(key)) match
+        case (Some(lcalls), Some(rcalls)) =>
+          Some(if (lcalls.length < rcalls.length) lcalls else rcalls)
+        case (Some(lcalls), None) => Some(lcalls)
+        case (None, Some(rcalls)) => Some(rcalls)
+        case (None, None)         => None
+    } yield key -> calls).toMap)
+    def forReturn(call: Call): Provenance = Provenance(
+      map.map { case (key, calls) => key -> (call :: calls) },
+    )
+    override def toString: String = (new Appender >> this).toString
+  }
+  object Provenance {
+    def apply(funcs: Func*): Provenance =
+      Provenance(funcs.map(_ -> Nil).toMap)
+  }
 
   /** symbolic predicates */
   case class SymPred(
-    map: Map[SymBase, ValueTy] = Map(),
-    expr: Option[SymExpr] = None,
+    map: Map[SymBase, (ValueTy, Provenance)] = Map(),
+    sexpr: Option[(SymExpr, Provenance)] = None,
   ) {
-    def isTop: Boolean = map.isEmpty && expr.isEmpty
+    def isTop: Boolean = map.isEmpty && sexpr.isEmpty
     def nonTop: Boolean = !isTop
     def <=(that: SymPred): Boolean =
-      that.map.forall { (x, rty) =>
-        this.map.get(x).fold(false)(_ <= rty)
-      } && (this.expr == that.expr)
+      that.map.forall {
+        case (x, (rty, _)) =>
+          this.map.get(x).fold(false) { case (lty, _) => lty <= rty }
+      } && (this.sexpr == that.sexpr)
     def ||(that: SymPred): SymPred = SymPred(
-      (for {
+      map = (for {
         x <- (this.map.keySet intersect that.map.keySet).toList
-        ty = this.map(x) || that.map(x)
-      } yield x -> ty).toMap,
-      this.expr || that.expr,
+        (lty, lprov) = this.map(x)
+        (rty, rprov) = that.map(x)
+        ty = lty || rty
+        prov = lprov join rprov
+      } yield x -> (ty, prov)).toMap,
+      sexpr = this.sexpr || that.sexpr,
     )
     def &&(that: SymPred): SymPred = SymPred(
-      (for {
+      map = (for {
         x <- (this.map.keySet ++ that.map.keySet).toList
-        ty = this.map.getOrElse(x, AnyT) && that.map.getOrElse(x, AnyT)
-      } yield x -> ty).toMap,
-      this.expr && that.expr,
+        (lty, lprov) = this.map.getOrElse(x, (AnyT, Provenance()))
+        (rty, rprov) = that.map.getOrElse(x, (AnyT, Provenance()))
+        ty = lty && rty
+        prov = lprov join rprov
+      } yield x -> (ty, prov)).toMap,
+      sexpr = this.sexpr && that.sexpr,
     )
-    def has(x: SymBase): Boolean = map.contains(x) || expr.fold(false)(_.has(x))
+    def has(x: SymBase): Boolean =
+      map.contains(x) || sexpr.fold(false) { case (sexpr, _) => sexpr.has(x) }
     def bases: Set[SymBase] =
       map.keySet.collect { case s: Sym => s } ++
-      expr.fold(Set[SymBase]())(_.bases)
+      sexpr.fold(Set[SymBase]()) { (sexpr, _) => sexpr.bases }
     def kill(bases: Set[SymBase])(using AbsState): SymPred =
-      SymPred(map.filter { case (x, _) => !bases.contains(x) }, expr)
+      this.copy(map.filter { case (x, _) => !bases.contains(x) }, sexpr)
     def forReturn(symEnv: Map[Sym, ValueTy]): SymPred = SymPred(
-      for {
-        case (x: Sym, ty) <- map
+      map = for {
+        case (x: Sym, (ty, prov)) <- map
         origTy = symEnv.getOrElse(x, BotT)
-      } yield x -> (origTy && ty),
-      None,
+      } yield x -> (origTy && ty, prov),
+      sexpr = None,
     )
     override def toString: String = (new Appender >> this).toString
+  }
+  object SymPred {
+    def apply(pair: (SymExpr, Provenance)): SymPred =
+      SymPred(sexpr = Some(pair))
+    def apply(pairs: (SymBase, (ValueTy, Provenance))*): SymPred =
+      SymPred(pairs.toMap, None)
   }
 
   /** symbolic bases */
@@ -219,15 +253,19 @@ trait TypeGuardDecl { self: TyChecker =>
   object SymExpr {
     val T: SymExpr = SEBool(true)
     val F: SymExpr = SEBool(false)
-    extension (l: Option[SymExpr])
-      def &&(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
-        case (Some(l), Some(r)) => Some(l && r)
-        case (Some(l), None)    => Some(l)
-        case (None, Some(r))    => Some(r)
-        case _                  => None
-      def ||(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
-        case (Some(l), Some(r)) => Some(l || r)
-        case _                  => None
+    extension (l: Option[(SymExpr, Provenance)])
+      def &&(
+        r: Option[(SymExpr, Provenance)],
+      ): Option[(SymExpr, Provenance)] = (l, r) match
+        case (Some(le, lp), Some(re, rp)) => Some(le && re, lp join rp)
+        case (Some(l), None)              => Some(l)
+        case (None, Some(r))              => Some(r)
+        case _                            => None
+      def ||(
+        r: Option[(SymExpr, Provenance)],
+      ): Option[(SymExpr, Provenance)] = (l, r) match
+        case (Some(le, lp), Some(re, rp)) => Some(le || re, lp join rp)
+        case _                            => None
   }
 
   /** symbolic references */
@@ -293,11 +331,25 @@ trait TypeGuardDecl { self: TyChecker =>
       case SBase(x)                            => app >> x
       case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
       case SField(base, field) => app >> base >> "[" >> field >> "]"
+  given Rule[Provenance] = (app, prov) =>
+    val Provenance(map) = prov
+    if (map.nonEmpty) (app >> " <from> ").wrap("{", "}") {
+      for ((func, calls) <- map.toList.sortBy(_._1)) {
+        app :> func.nameWithId
+        if (calls.nonEmpty) {
+          for (call <- calls.reverse)
+            app :> "<- " >> call.name >> " @ " >> cfg.funcOf(call).nameWithId
+        }
+      }
+    }
+    app
   given Rule[SymPred] = (app, pred) =>
     import SymPred.*
-    given Rule[Map[SymBase, ValueTy]] = sortedMapRule(sep = " <: ")
+    given Rule[(ValueTy, Provenance)] =
+      case (app, (ty, prov)) => app >> ty >> prov
+    given Rule[Map[SymBase, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
     if (pred.map.nonEmpty) app >> pred.map
-    pred.expr.fold(app)(app >> "[" >> _ >> "]")
+    pred.sexpr.fold(app) { (sexpr, prov) => app >> sexpr >> prov }
   given Rule[TypeGuard] = (app, guard) =>
     given Rule[Map[RefinementKind, SymPred]] = sortedMapRule("{", "}", " => ")
     app >> guard.map

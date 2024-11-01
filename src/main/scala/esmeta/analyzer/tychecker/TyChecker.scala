@@ -389,9 +389,10 @@ class TyChecker(
     guard = TypeGuard(for {
       (kind, pred) <- value.guard.map
       newPred = SymPred(for {
-        (x, ty) <- pred.map
+        pair <- pred.map
+        (x, (ty, prov)) = pair
         if !(entrySt.getTy(x) <= ty)
-      } yield x -> ty)
+      } yield pair)
       if newPred.nonTop
     } yield kind -> newPred)
   } yield func -> value.copy(guard = guard)

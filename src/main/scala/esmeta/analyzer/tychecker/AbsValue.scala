@@ -107,8 +107,8 @@ trait AbsValueDecl { self: TyChecker =>
     def hasTypeGuard(entrySt: AbsState): Boolean =
       (expr != Zero && expr != Many) || guard.map.exists { (kind, pred) =>
         pred.map.exists {
-          case (x: Sym, ty) => !(entrySt.getTy(x) <= ty)
-          case _            => false
+          case (x: Sym, (ty, _)) => !(entrySt.getTy(x) <= ty)
+          case _                 => false
         }
       }
 

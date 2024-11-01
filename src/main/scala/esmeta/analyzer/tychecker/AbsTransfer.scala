@@ -69,8 +69,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val kind = if (positive) True else False
         val newSt = (for {
           ref <- toSymRef(expr, v)
-          pair <- getRefiner(ref -> (if (positive) TrueT else FalseT))(using st)
-        } yield refine(SymPred(Map(pair)))(st))
+          (kind, ty) = if (positive) (True, TrueT) else (False, FalseT)
+          pair <- getRefiner(ref -> ty, expr, kind)(using np, st)
+        } yield refine(SymPred(pair))(st))
           .getOrElse(st)
         v.guard.get(kind).fold(newSt)(refine(_)(newSt))
       } else {
@@ -190,7 +191,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val retTy = callee.retTy.ty.toValue
         val newRetV = (for {
           refiner <- manualRefiners.get(callee.name)
-          v = refiner(vs, retTy, callerSt)
+          v = refiner(callee, vs, retTy, callerSt)
           newV = instantiate(v, callerNp)
         } yield newV).getOrElse {
           val v = AbsValue(retTy)
@@ -738,14 +739,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             toSymRef(l, lv).map { ref =>
               aux(lty, rty, true, true).map { thenTy =>
                 if (lty != thenTy && !thenTy.isBottom)
-                  getRefiner(ref -> thenTy).map { pair =>
-                    lmap += True -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> thenTy, expr, True).map { pair =>
+                    lmap += True -> withCur(SymPred(pair))
                   }
               }
               aux(lty, rty, false, true).map { elseTy =>
                 if (lty != elseTy && !elseTy.isBottom)
-                  getRefiner(ref -> elseTy).map { pair =>
-                    lmap += False -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> elseTy, expr, False).map { pair =>
+                    lmap += False -> withCur(SymPred(pair))
                   }
               }
             }
@@ -753,14 +754,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             toSymRef(r, rv).map { ref =>
               aux(rty, lty, true, false).map { thenTy =>
                 if (rty != thenTy && !thenTy.isBottom)
-                  getRefiner(ref -> thenTy).map { pair =>
-                    rmap += True -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> thenTy, expr, True).map { pair =>
+                    rmap += True -> withCur(SymPred(pair))
                   }
               }
               aux(rty, lty, false, false).map { elseTy =>
                 if (rty != elseTy && !elseTy.isBottom)
-                  getRefiner(ref -> elseTy).map { pair =>
-                    rmap += False -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> elseTy, expr, False).map { pair =>
+                    rmap += False -> withCur(SymPred(pair))
                   }
               }
             }
@@ -777,10 +778,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             } yield kind -> newPred).toMap
             TypeGuard(guard)
           }
-        case EBinary(BOp.Eq, ERef(ref), expr) =>
+        case EBinary(BOp.Eq, ERef(ref), r) =>
           for {
             lv <- transfer(ref)
-            rv <- transfer(expr)
+            rv <- transfer(r)
             given AbsState <- get
           } yield {
             val lty = lv.ty
@@ -792,13 +793,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             toSymRef(ref, lv).map { ref =>
               if (thenTy.isBottom) bools -= true
               else
-                getRefiner(ref -> thenTy).map { pair =>
-                  guard += True -> withCur(SymPred(Map(pair)))
+                getRefiner(ref -> thenTy, expr, True).map { pair =>
+                  guard += True -> withCur(SymPred(pair))
                 }
               if (elseTy.isBottom) bools -= false
               else
-                getRefiner(ref -> elseTy).map { pair =>
-                  guard += False -> withCur(SymPred(Map(pair)))
+                getRefiner(ref -> elseTy, expr, False).map { pair =>
+                  guard += False -> withCur(SymPred(pair))
                 }
             }
             TypeGuard(guard)
@@ -818,14 +819,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               if (lty != thenTy)
                 if (thenTy.isBottom) bools -= true
                 else
-                  getRefiner(ref -> thenTy).map { pair =>
-                    guard += True -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> thenTy, expr, True).map { pair =>
+                    guard += True -> withCur(SymPred(pair))
                   }
               if (lty != elseTy)
                 if (elseTy.isBottom) bools -= false
                 else
-                  getRefiner(ref -> elseTy).map { pair =>
-                    guard += False -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> elseTy, expr, False).map { pair =>
+                    guard += False -> withCur(SymPred(pair))
                   }
             }
             TypeGuard(guard)
@@ -849,30 +850,30 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               if (lty != thenTy)
                 if (thenTy.isBottom) bools -= true
                 else
-                  getRefiner(ref -> thenTy).map { pair =>
-                    guard += True -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> thenTy, expr, True).map { pair =>
+                    guard += True -> withCur(SymPred(pair))
                   }
               if (lty != elseTy)
                 if (elseTy.isBottom) bools -= false
                 else
-                  getRefiner(ref -> elseTy).map { pair =>
-                    guard += False -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> elseTy, expr, False).map { pair =>
+                    guard += False -> withCur(SymPred(pair))
                   }
             }
             TypeGuard(guard)
           }
-        case EExists(Field(x: Local, expr)) =>
+        case EExists(Field(x: Local, field)) =>
           for {
             bv <- transfer(x)
-            fv <- transfer(expr)
+            fv <- transfer(field)
             given AbsState <- get
           } yield {
             var guard: Map[RefinementKind, SymPred] = Map()
             for {
               bref <- toSymRef(x, bv)
-              fref <- toSymRef(expr, fv)
-              expr = SEExists(SField(bref, SERef(fref)))
-            } guard += True -> SymPred(Map(), Some(expr))
+              fref <- toSymRef(field, fv)
+              pexpr = SEExists(SField(bref, SERef(fref)))
+            } guard += True -> SymPred(Map(), Some(pexpr, Provenance(np.func)))
             TypeGuard(guard)
           }
         case EBinary(BOp.Eq, ETypeOf(l), ETypeOf(r)) =>
@@ -886,14 +887,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               rref <- toSymRef(r, rv)
               ltypeOf = SETypeOf(SERef(lref))
               rtypeOf = SETypeOf(SERef(rref))
-              expr = SEEq(ltypeOf, rtypeOf)
-            } guard += True -> SymPred(Map(), Some(expr))
+              pexpr = SEEq(ltypeOf, rtypeOf)
+            } guard += True -> SymPred(Map(), Some(pexpr, Provenance(np.func)))
             TypeGuard(guard)
           }
-        case EBinary(BOp.Eq, ETypeOf(ERef(ref)), expr) =>
+        case EBinary(BOp.Eq, ETypeOf(ERef(ref)), r) =>
           for {
             lv <- transfer(ref)
-            rv <- transfer(expr)
+            rv <- transfer(r)
             given AbsState <- get
           } yield {
             val lty = lv.ty
@@ -911,14 +912,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               if (lty != thenTy)
                 if (thenTy.isBottom) bools -= true
                 else
-                  getRefiner(ref -> thenTy).map { pair =>
-                    guard += True -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> thenTy, expr, True).map { pair =>
+                    guard += True -> withCur(SymPred(pair))
                   }
               if (lty != elseTy)
                 if (elseTy.isBottom) bools -= false
                 else
-                  getRefiner(ref -> elseTy).map { pair =>
-                    guard += False -> withCur(SymPred(Map(pair)))
+                  getRefiner(ref -> elseTy, expr, False).map { pair =>
+                    guard += False -> withCur(SymPred(pair))
                   }
             }
             TypeGuard(guard)
@@ -1166,6 +1167,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     ): AbsValue =
       import RefinementKind.*
       given callerSt: AbsState = callInfo(callerNp)
+      val call = callerNp.node
       val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
       val map = argsInfo.zipWithIndex.map {
         case ((e, v), i) =>
@@ -1174,19 +1176,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case _                           => v
           )
       }.toMap
-      val newV = instantiate(value, map)
+      val newV = instantiate(call, value, map)
       if (inferTypeGuard) newV.addGuard(newV.getTypeGuard)
       else newV
 
     /** instantiation of abstract values */
     def instantiate(
+      call: Call,
       value: AbsValue,
       map: Map[Sym, AbsValue],
     )(using st: AbsState): AbsValue =
       val AbsValue(ty, expr, guard) = value
       val newGuard = TypeGuard((for {
         (kind, pred) <- guard.map
-        newPred = instantiate(pred, map)
+        newPred = instantiate(call, pred, map)
         if newPred.nonTop
       } yield kind -> newPred).toMap)
       val ivalue @ AbsValue(ity, iexpr, iguard) = expr match
@@ -1196,22 +1199,23 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** instantiation of symbolic predicate */
     def instantiate(
+      call: Call,
       pred: SymPred,
       map: Map[Sym, AbsValue],
     )(using st: AbsState): SymPred = SymPred(
-      for {
-        case (x: Sym, ty) <- pred.map
+      map = for {
+        case (x: Sym, (ty, prov)) <- pred.map
         v <- map.get(x)
         y <- v.getSymExpr match
           case Some(SERef(ref)) => Some(ref)
           case _                => None
         (z, zty) <- getRefiner(y -> ty)
         if !(st.getTy(z) <= zty)
-      } yield z -> zty,
-      for {
-        e <- pred.expr
+      } yield z -> (zty, prov.forReturn(call)),
+      sexpr = for {
+        (e, prov) <- pred.sexpr
         newExpr <- instantiate(e, map).getSymExpr
-      } yield newExpr,
+      } yield (newExpr, prov.forReturn(call)),
     )
 
     /** instantiation of symbolic expressions */
@@ -1381,13 +1385,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using np: NodePoint[_]): Updater =
       val SymPred(map, expr) = pred
       val alias: Map[SymBase, SymBase] = expr.fold(Map()) {
-        case SEEq(SETypeOf(SERef(SBase(x))), SETypeOf(SERef(SBase(y)))) =>
+        case (SEEq(SETypeOf(SERef(SBase(x))), SETypeOf(SERef(SBase(y)))), _) =>
           Map(x -> y, y -> x)
         case _ => Map()
       }
       for {
         _ <- join(map.map {
-          case (x, ty) =>
+          case (x, (ty, prov)) =>
             for {
               _ <- modify(refine(x, ty))
               _ <- alias.get(x) match
@@ -1395,7 +1399,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 case None    => pure(())
             } yield ()
         })
-        _ <- expr.fold(pure(()))(e => modify(refine(e)))
+        _ <- expr.fold(pure(()))((e, prov) => modify(refine(e)))
         _ <- modify(st => st.copy(pred = st.pred && pred))
       } yield ()
 
@@ -1444,12 +1448,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     def getRefiner(
       pair: (SymRef, ValueTy),
+      expr: Expr,
+      kind: RefinementKind,
+    )(using
+      np: NodePoint[_],
+      st: AbsState,
+    ): Option[(SymBase, (ValueTy, Provenance))] =
+      getRefiner(pair).map { (base, ty) => base -> (ty, Provenance(np.func)) }
+
+    def getRefiner(
+      pair: (SymRef, ValueTy),
     )(using st: AbsState): Option[(SymBase, ValueTy)] = {
       val (ref, givenTy) = pair
       ref match
         case SBase(x) =>
           val ty = st.getTy(x)
-          Some(x -> (ty && givenTy))
+          if (ty <= givenTy) None else Some(x -> givenTy)
         case SField(base, SEStr(field)) =>
           val bty = st.getTy(base)
           val refinedTy = ValueTy(
@@ -1565,26 +1579,26 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** default type guards */
     type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
-    type Refinement = (List[AbsValue], ValueTy, AbsState) => AbsValue
+    type Refinement = (Func, List[AbsValue], ValueTy, AbsState) => AbsValue
     val manualRefiners: Map[String, Refinement] = {
       import RefinementKind.*, SymExpr.*, SymRef.*
       Map(
-        "__APPEND_LIST__" -> { (vs, retTy, st) =>
+        "__APPEND_LIST__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(vs(0).ty || vs(1).ty, Zero, TypeGuard.Empty)
         },
-        "__FLAT_LIST__" -> { (vs, retTy, st) =>
+        "__FLAT_LIST__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(vs(0).ty.list.elem, Zero, TypeGuard.Empty)
         },
-        "__GET_ITEMS__" -> { (vs, retTy, st) =>
+        "__GET_ITEMS__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val ast = vs(1).ty.toValue.grammarSymbol match
             case Fin(set) => AstT(set.map(_.name))
             case Inf      => AstT
           AbsValue(ListT(ast), Zero, TypeGuard.Empty)
         },
-        "__CLAMP__" -> { (vs, retTy, st) =>
+        "__CLAMP__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val refined =
             if (vs(0).ty.toValue <= (IntT || InfinityT))
@@ -1593,15 +1607,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             else retTy
           AbsValue(refined, Zero, TypeGuard.Empty)
         },
-        "Completion" -> { (vs, retTy, st) =>
+        "Completion" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(BotT, One(SERef(SBase(0))), TypeGuard.Empty)
         },
-        "NormalCompletion" -> { (vs, retTy, st) =>
+        "NormalCompletion" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(BotT, One(SENormal(SERef(SBase(0)))), TypeGuard.Empty)
         },
-        "UpdateEmpty" -> { (vs, retTy, st) =>
+        "UpdateEmpty" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val record = vs(0).ty.record
           val valueField = record("Value").value
@@ -1612,21 +1626,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
           AbsValue(ValueTy(record = updated), Zero, TypeGuard.Empty)
         },
-        "IteratorClose" -> { (vs, retTy, st) =>
+        "IteratorClose" -> { (func, vs, retTy, st) =>
           given AbsState = st
           // Throw | #1
           AbsValue(vs(1).ty || ThrowT, Zero, TypeGuard.Empty)
         },
-        "AsyncIteratorClose" -> { (vs, retTy, st) =>
+        "AsyncIteratorClose" -> { (func, vs, retTy, st) =>
           given AbsState = st
           // Throw | #1
           AbsValue(vs(1).ty || ThrowT, Zero, TypeGuard.Empty)
         },
-        "Await" -> { (vs, retTy, st) =>
+        "Await" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(NormalT(ESValueT) || ThrowT, Zero, TypeGuard.Empty)
         },
-        "RequireInternalSlot" -> { (vs, retTy, st) =>
+        "RequireInternalSlot" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val refined = vs(1).ty.str.getSingle match
             case One(f) =>
@@ -1634,19 +1648,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 record = ObjectT.record.update(f, Binding.Exist, refine = true),
               )
             case _ => ObjectT
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> refined)),
-          )
+          val prov = Provenance(func)
+          val guard = TypeGuard(Normal -> SymPred(0 -> (refined, prov)))
           AbsValue(retTy, Zero, guard)
         },
-        "NewPromiseCapability" -> { (vs, retTy, st) =>
+        "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          val guard = TypeGuard(
-            Normal -> SymPred(Map(0 -> ConstructorT)),
-          )
+          val prov = Provenance(func)
+          val guard = TypeGuard(Normal -> SymPred(0 -> (ConstructorT, prov)))
           AbsValue(retTy, Zero, guard)
         },
-        "CreateListFromArrayLike" -> { (vs, retTy, st) =>
+        "CreateListFromArrayLike" -> { (func, vs, retTy, st) =>
           given AbsState = st
           AbsValue(
             (for {
@@ -1662,14 +1674,33 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             TypeGuard.Empty,
           )
         },
-        "SameType" -> { (vs, retTy, st) =>
+        "SameType" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val expr = SEEq(SETypeOf(SERef(SBase(0))), SETypeOf(SERef(SBase(1))))
+          val prov = Provenance(func)
+          AbsValue(BoolT, Zero, TypeGuard(True -> SymPred(expr -> prov)))
+        },
+        "TypedArrayElementType" -> { (func, vs, retTy, st) =>
           AbsValue(
-            BoolT,
+            EnumT(
+              "int8",
+              "uint8",
+              "uint8clamped",
+              "int16",
+              "uint16",
+              "int32",
+              "uint32",
+              "bigint64",
+              "biguint64",
+              "float32",
+              "float64",
+            ),
             Zero,
-            TypeGuard(True -> SymPred(Map(), Some(expr))),
+            TypeGuard(),
           )
+        },
+        "TypedArrayElementSize" -> { (func, vs, retTy, st) =>
+          AbsValue(PosIntT, Zero, TypeGuard())
         },
       )
     }
