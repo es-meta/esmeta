@@ -1,9 +1,7 @@
 [
   "AsyncFromSyncIteratorContinuation",
-  "AsyncGeneratorAwaitReturn",
   "AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody",
   "AsyncGeneratorYield",
-  "Await",
   "Catch[0,0].CatchClauseEvaluation",
   "Catch[1,0].CatchClauseEvaluation",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
@@ -37,7 +35,6 @@
   "LabelledStatement[0,0].LabelledEvaluation",
   "MakeMatchIndicesIndexPairArray",
   "OrdinaryFunctionCreate",
-  "PerformEval",
   "Record[BuiltinFunctionObject].Construct",
   "Record[ECMAScriptFunctionObject].Call",
   "Record[ECMAScriptFunctionObject].Construct",

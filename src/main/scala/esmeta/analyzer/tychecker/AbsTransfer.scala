@@ -1573,8 +1573,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** check if the return type can be used */
     private lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      manualRefiners.contains(func.name) ||
-      (!typeGuardTargets.contains(func.name) && !func.retTy.isImprec)
+      manualRefiners.contains(func.name) || (
+        !func.retTy.isImprec &&
+        RefinementKind.from(func.retTy.ty.toValue).isEmpty
+      )
     }
 
     /** default type guards */
