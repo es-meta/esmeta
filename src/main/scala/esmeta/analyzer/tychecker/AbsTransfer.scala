@@ -22,9 +22,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** loading constructors */
     import SymExpr.*, SymRef.*
 
-    /** loading refinement targets */
-    import RefinementTarget.*
-
     // =========================================================================
     // Implementation for General AbsTransfer
     // =========================================================================
@@ -51,19 +48,24 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           } yield ())(st)
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
         case br @ Branch(_, kind, c, thenNode, elseNode) =>
+          import RefinementTarget.*
+          import RefinementKind.*
           (for { v <- transfer(c); newSt <- get } yield {
             if (v.ty.bool.contains(true))
-              val refinedSt = refine(c, v, true)(newSt)
-              if (detail) logRefined(BranchTarget(br, true), newSt, refinedSt)
-              thenNode.map(analyzer += getNextNp(np, _) -> refinedSt)
+              val rst = refine(c, v, true)(newSt)
+              val pred = v.guard.get(True)
+              if (detail) logRefined(BranchTarget(br, true), pred, newSt, rst)
+              thenNode.map(analyzer += getNextNp(np, _) -> rst)
             if (v.ty.bool.contains(false))
-              val refinedSt = refine(c, v, false)(newSt)
-              if (detail) logRefined(BranchTarget(br, false), newSt, refinedSt)
-              elseNode.map(analyzer += getNextNp(np, _) -> refinedSt)
+              val rst = refine(c, v, false)(newSt)
+              val pred = v.guard.get(False)
+              if (detail) logRefined(BranchTarget(br, false), pred, newSt, rst)
+              elseNode.map(analyzer += getNextNp(np, _) -> rst)
           })(st)
 
     def logRefined(
       target: RefinementTarget,
+      pred: Option[SymPred],
       st: AbsState,
       refinedSt: AbsState,
     ): Unit =
@@ -73,7 +75,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         refinedTy = refinedSt.get(x).ty(using refinedSt)
         if refinedTy != ty
       } yield x
-      refined += target -> xs.toSet
+      if (xs.isEmpty) refined -= target
+      else refined += target -> (xs.toSet, pred.fold(0)(_.depth))
 
     /** refine with an expression and its abstract value */
     def refine(
@@ -414,12 +417,18 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           st <- get
+          pred = v.guard.get(RefinementKind.True)
           _ <- modify(refine(expr, v, true))
           refinedSt <- get
           given AbsState = refinedSt
           _ = if (detail) np.node match
             case block: Block =>
-              logRefined(AssertTarget(block, idx), st, refinedSt)
+              logRefined(
+                RefinementTarget.AssertTarget(block, idx),
+                pred,
+                st,
+                refinedSt,
+              )
             case _ =>
           _ <- if (v ⊑ False) put(AbsState.Bot) else pure(())
         } yield ()

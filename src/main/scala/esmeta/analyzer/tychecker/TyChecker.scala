@@ -114,6 +114,7 @@ class TyChecker(
           info :+= "refined" -> Map(
             "targets" -> refinedTargets,
             "locals" -> refinedLocals,
+            "avg. depth" -> refinedAvgDepth,
           )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
         Yaml(info: _*)
@@ -231,16 +232,21 @@ class TyChecker(
   }
 
   /** refined targets */
-  var refined: Map[RefinementTarget, Set[Local]] = Map()
-  def refinedTargets: Int = refined.count { case (_, xs) => xs.nonEmpty }
-  def refinedLocals: Int = refined.values.map(_.size).sum
+  var refined: Map[RefinementTarget, (Set[Local], Int)] = Map()
+  def refinedTargets: Int = refined.size
+  def refinedLocals: Int = refined.values.map(_._1.size).sum
+  def refinedAvgDepth: Double =
+    refined.values.map(_._2).sum.toDouble / refined.size
   def refinedString: String =
-    given Rule[Map[RefinementTarget, Set[Local]]] = (app, refined) =>
-      val sorted = refined.toList.sortBy { (t, _) => t }
-      for ((target, xs) <- sorted)
-        app >> target >> ": "
-        app >> xs.toList.sorted.mkString("[", ", ", "]") >> LINE_SEP
-      app
+    given Rule[Map[RefinementTarget, (Set[Local], Int)]] =
+      (app, refined) =>
+        val sorted = refined.toList.sortBy { (t, _) => t }
+        for ((target, (xs, depth)) <- sorted)
+          app >> target >> " -> "
+          app >> xs.toList.sorted.mkString("[locals: ", ", ", "]")
+          app >> " [depth: " >> depth >> "]"
+          app >> LINE_SEP
+        app
     (new Appender >> refined).toString
 
   /** inferred type guards */

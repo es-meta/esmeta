@@ -106,6 +106,7 @@ trait TypeGuardDecl { self: TyChecker =>
   /** Symbol */
   type Sym = Int
   case class Provenance(map: Map[Func, List[Call]] = Map()) {
+    def depth: Int = map.values.map(_.length).max
     def join(that: Provenance): Provenance = Provenance((for {
       key <- (this.map.keySet union that.map.keySet).toList
       calls <- (this.map.get(key), that.map.get(key)) match
@@ -174,6 +175,9 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> (origTy && ty, prov),
       sexpr = None,
     )
+    def depth: Int =
+      val provs = map.values.map(_._2).toList
+      sexpr.fold(provs)(_._2 :: provs).map(_.depth).max
     override def toString: String = (new Appender >> this).toString
   }
   object SymPred {
