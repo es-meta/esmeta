@@ -157,6 +157,7 @@ class TyChecker(
         cfg.nodes.size, // total nodes
         if (detail) refinedTargets else 0, // refined targets
         if (detail) refinedLocals else 0, // refined locals
+        if (detail) refinedAvgDepth else 0, // refined avg. depth
         if (inferTypeGuard) typeGuards.size else 0, // guards
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
