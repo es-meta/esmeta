@@ -110,6 +110,11 @@ class TyChecker(
             "returns" -> ratioSimpleString(analyzedReturns.size, cfg.funcs.size),
           ),
         )
+        if (detail)
+          info :+= "refined" -> Map(
+            "targets" -> refined.size,
+            "locals" -> refined.values.map(_.size).sum,
+          )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
         Yaml(info: _*)
       },
@@ -149,6 +154,8 @@ class TyChecker(
         cfg.funcs.size, // total funcs
         this.analyzedNodes.size, // analyzed nodes
         cfg.nodes.size, // total nodes
+        if (detail) refined.size else 0, // refined targets
+        if (detail) refined.values.map(_.size).sum else 0, // refined locals
         if (inferTypeGuard) typeGuards.size else 0, // guards
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
@@ -204,6 +211,12 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/detailed-types",
         silent = silent,
       )
+      dumpFile(
+        name = "refined targets",
+        data = refinedString,
+        filename = s"$ANALYZE_LOG_DIR/refined",
+        silent = silent,
+      )
       if (inferTypeGuard)
         val names = typeGuards.map(_._1.name).toSet
         dumpFile(
@@ -217,6 +230,18 @@ class TyChecker(
         )
   }
 
+  /** refined targets */
+  var refined: Map[RefinementTarget, Set[Local]] = Map()
+  def refinedString: String =
+    given Rule[Map[RefinementTarget, Set[Local]]] = (app, refined) =>
+      val sorted = refined.toList.sortBy { (t, _) => t }
+      for ((target, xs) <- sorted)
+        app >> target >> ": "
+        app >> xs.toList.sorted.mkString("[", ", ", "]") >> LINE_SEP
+      app
+    (new Appender >> refined).toString
+
+  /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] = for {
     func <- cfg.funcs
     entrySt = getResult(NodePoint(func, func.entry, emptyView))
