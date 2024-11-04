@@ -39,156 +39,6 @@ class TyChecker(
   def isTypeGuardCandidate(func: Func): Boolean =
     !func.isBuiltin && !func.isSDO && !func.isAux && func.weakComplete
 
-  protected lazy val typeGuardTargets: Set[String] = Set(
-    "AddEntriesFromIterable",
-    "AllocateArrayBuffer",
-    "AllocateSharedArrayBuffer",
-    "ArrayBufferCopyAndDetach",
-    "ArrayCreate",
-    "ArraySetLength",
-    "AsyncFromSyncIteratorContinuation",
-    "AsyncGeneratorValidate",
-    "BoundFunctionCreate",
-    "Call",
-    "CanBeHeldWeakly",
-    "CloneArrayBuffer",
-    "CompareArrayElements",
-    "CompareTypedArrayElements",
-    "Completion",
-    "CopyDataProperties",
-    "CreateDynamicFunction",
-    "CreateListFromArrayLike",
-    "CreateMapIterator",
-    "CreateSetIterator",
-    "EvaluateCall",
-    "FindViaPredicate",
-    "GeneratorResume",
-    "GeneratorResumeAbrupt",
-    "GeneratorValidate",
-    "GetArrayBufferMaxByteLengthOption",
-    "GetFunctionRealm",
-    "GetIdentifierReference",
-    "GetIterator",
-    "GetMethod",
-    "GetOwnPropertyKeys",
-    "GetV",
-    "GetValue",
-    "GroupBy",
-    "InitializeBoundName",
-    "InitializeReferencedBinding",
-    "InitializeTypedArrayFromArrayBuffer",
-    "InstallErrorCause",
-    "InstanceofOperator",
-    "Invoke",
-    "IsAccessorDescriptor",
-    "IsArray",
-    "IsBigIntElementType",
-    "IsCallable",
-    "IsCompatiblePropertyDescriptor",
-    "IsConcatSpreadable",
-    "IsConstructor",
-    "IsDataDescriptor",
-    "IsDetachedBuffer",
-    "IsExtensible",
-    "IsFixedLengthArrayBuffer",
-    "IsGenericDescriptor",
-    "IsIntegralNumber",
-    "IsLooselyEqual",
-    "IsPrivateReference",
-    "IsPromise",
-    "IsPropertyKey",
-    "IsPropertyReference",
-    "IsRegExp",
-    "IsSharedArrayBuffer",
-    "IsSuperReference",
-    "IsUnresolvableReference",
-    "IsValidIntegerIndex",
-    "IteratorNext",
-    "IteratorStep",
-    "IteratorStepValue",
-    "LoopContinues",
-    "NormalCompletion",
-    "ObjectDefineProperties",
-    "OrdinaryGetPrototypeOf",
-    "OrdinaryHasInstance",
-    "OrdinaryIsExtensible",
-    "OrdinarySetPrototypeOf",
-    "PerformPromiseAll",
-    "PerformPromiseAllSettled",
-    "PerformPromiseAny",
-    "PerformPromiseRace",
-    "PrivateMethodOrAccessorAdd",
-    "ProxyCreate",
-    "PutValue",
-    "Record[BoundFunctionExoticObject].Construct",
-    "Record[CyclicModuleRecord].Link",
-    "Record[ECMAScriptFunctionObject].Call",
-    "Record[ECMAScriptFunctionObject].Construct",
-    "Record[FunctionEnvironmentRecord].BindThisValue",
-    "Record[FunctionEnvironmentRecord].GetSuperBase",
-    "Record[FunctionEnvironmentRecord].GetThisBinding",
-    "Record[FunctionEnvironmentRecord].HasSuperBinding",
-    "Record[FunctionEnvironmentRecord].HasThisBinding",
-    "Record[GlobalEnvironmentRecord].CanDeclareGlobalVar",
-    "Record[GlobalEnvironmentRecord].GetThisBinding",
-    "Record[ImmutablePrototypeExoticObject].SetPrototypeOf",
-    "Record[ModuleNamespaceExoticObject].DefineOwnProperty",
-    "Record[ModuleNamespaceExoticObject].Get",
-    "Record[ModuleNamespaceExoticObject].GetOwnProperty",
-    "Record[OrdinaryObject].GetPrototypeOf",
-    "Record[OrdinaryObject].IsExtensible",
-    "Record[ProxyExoticObject].Call",
-    "Record[ProxyExoticObject].Construct",
-    "Record[ProxyExoticObject].DefineOwnProperty",
-    "Record[ProxyExoticObject].Delete",
-    "Record[ProxyExoticObject].Get",
-    "Record[ProxyExoticObject].GetOwnProperty",
-    "Record[ProxyExoticObject].GetPrototypeOf",
-    "Record[ProxyExoticObject].HasProperty",
-    "Record[ProxyExoticObject].IsExtensible",
-    "Record[ProxyExoticObject].OwnPropertyKeys",
-    "Record[ProxyExoticObject].PreventExtensions",
-    "Record[ProxyExoticObject].Set",
-    "Record[ProxyExoticObject].SetPrototypeOf",
-    "Record[TypedArray].DefineOwnProperty",
-    "RegExpHasFlag",
-    "RequireInternalSlot",
-    "RequireObjectCoercible",
-    "SameValueNonNumber",
-    "SetImmutablePrototype",
-    "SetIntegrityLevel",
-    "StringIndexOf",
-    "StringToCodePoints",
-    "ThisBigIntValue",
-    "ThisBooleanValue",
-    "ThisNumberValue",
-    "ThisStringValue",
-    "ThisSymbolValue",
-    "ToIndex",
-    "ToInt16",
-    "ToInt32",
-    "ToInt8",
-    "ToIntegerOrInfinity",
-    "ToLength",
-    "ToNumber",
-    "ToObject",
-    "ToPrimitive",
-    "ToPropertyDescriptor",
-    "ToPropertyKey",
-    "ToString",
-    "ToUint16",
-    "ToUint32",
-    "ToUint8",
-    "TrimString",
-    "ValidateAndApplyPropertyDescriptor",
-    "ValidateAtomicAccess",
-    "ValidateAtomicAccessOnIntegerTypedArray",
-    "ValidateIntegerTypedArray",
-    "ValidateNonRevokedProxy",
-    "ValidateTypedArray",
-    "WeakRefDeref",
-  )
-
   // ---------------------------------------------------------------------------
   // Implementation for General Analyzer
   // ---------------------------------------------------------------------------
@@ -289,6 +139,21 @@ class TyChecker(
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
     )
+    dumpFile(
+      name = "inline summary for evaluation in tsv format",
+      data = Vector(
+        this.iter, // iter
+        time, // duration
+        errors.size, // error
+        this.analyzedFuncs.size, // analyzed funcs
+        cfg.funcs.size, // total funcs
+        this.analyzedNodes.size, // analyzed nodes
+        cfg.nodes.size, // total nodes
+        if (inferTypeGuard) typeGuards.size else 0, // guards
+      ).mkString("\t"),
+      filename = s"$ANALYZE_LOG_DIR/summary",
+      silent = silent,
+    )
 
     // detailed logging
     if (detail)
@@ -341,8 +206,6 @@ class TyChecker(
       )
       if (inferTypeGuard)
         val names = typeGuards.map(_._1.name).toSet
-        val failed = typeGuardTargets -- names
-        val more = names -- typeGuardTargets
         dumpFile(
           name = "type guard information",
           data = typeGuards
@@ -350,18 +213,6 @@ class TyChecker(
             .map { (f, v) => s"[${f.id}] ${f.name} -> $v" }
             .mkString(LINE_SEP),
           filename = s"$ANALYZE_LOG_DIR/guards",
-          silent = silent,
-        )
-        dumpFile(
-          name = "failed type guard inference",
-          data = failed.toList.sorted.mkString(LINE_SEP),
-          filename = s"$ANALYZE_LOG_DIR/failed-guards",
-          silent = silent,
-        )
-        dumpFile(
-          name = "more type guard inference",
-          data = more.toList.sorted.mkString(LINE_SEP),
-          filename = s"$ANALYZE_LOG_DIR/more-guards",
           silent = silent,
         )
   }
@@ -374,9 +225,10 @@ class TyChecker(
     guard = TypeGuard(for {
       (kind, pred) <- value.guard.map
       newPred = SymPred(for {
-        (x, ty) <- pred.map
+        pair <- pred.map
+        (x, (ty, prov)) = pair
         if !(entrySt.getTy(x) <= ty)
-      } yield x -> ty)
+      } yield pair)
       if newPred.nonTop
     } yield kind -> newPred)
   } yield func -> value.copy(guard = guard)
