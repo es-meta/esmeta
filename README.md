@@ -325,7 +325,8 @@ $ esmeta tycheck -extract:target=2c78e6f
 
 ### Meta-Level Static Analyzer for ECMAScript
 
-> :NOTE:
+> [!NOTE]
+>
 > The meta-level static analyzer is temporarily removed from the current version
 > of ESMeta. We are working on the improvement of the meta-level static analyzer
 > for ECMAScript/JavaScript programs. We will re-introduce this feature in the
