@@ -112,8 +112,8 @@ class TyChecker(
         )
         if (detail)
           info :+= "refined" -> Map(
-            "targets" -> refined.size,
-            "locals" -> refined.values.map(_.size).sum,
+            "targets" -> refinedTargets,
+            "locals" -> refinedLocals,
           )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
         Yaml(info: _*)
@@ -154,8 +154,8 @@ class TyChecker(
         cfg.funcs.size, // total funcs
         this.analyzedNodes.size, // analyzed nodes
         cfg.nodes.size, // total nodes
-        if (detail) refined.size else 0, // refined targets
-        if (detail) refined.values.map(_.size).sum else 0, // refined locals
+        if (detail) refinedTargets else 0, // refined targets
+        if (detail) refinedLocals else 0, // refined locals
         if (inferTypeGuard) typeGuards.size else 0, // guards
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
@@ -232,6 +232,8 @@ class TyChecker(
 
   /** refined targets */
   var refined: Map[RefinementTarget, Set[Local]] = Map()
+  def refinedTargets: Int = refined.count { case (_, xs) => xs.nonEmpty }
+  def refinedLocals: Int = refined.values.map(_.size).sum
   def refinedString: String =
     given Rule[Map[RefinementTarget, Set[Local]]] = (app, refined) =>
       val sorted = refined.toList.sortBy { (t, _) => t }

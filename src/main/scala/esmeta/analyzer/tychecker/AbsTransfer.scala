@@ -73,7 +73,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         refinedTy = refinedSt.get(x).ty(using refinedSt)
         if refinedTy != ty
       } yield x
-      if (xs.nonEmpty) refined += target -> xs.toSet
+      refined += target -> xs.toSet
 
     /** refine with an expression and its abstract value */
     def refine(
