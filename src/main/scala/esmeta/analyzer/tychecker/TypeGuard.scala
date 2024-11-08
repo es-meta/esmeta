@@ -154,7 +154,10 @@ trait TypeGuardDecl { self: TyChecker =>
       map.keySet.collect { case s: Sym => s } ++
       sexpr.fold(Set[SymBase]()) { (sexpr, _) => sexpr.bases }
     def kill(bases: Set[SymBase])(using AbsState): SymPred =
-      this.copy(map.filter { case (x, _) => !bases.contains(x) }, sexpr)
+      this.copy(
+        map.filter { case (x, _) => !bases.contains(x) },
+        sexpr.fold(None)((e, p) => e.kill(bases).map(_ -> p)),
+      )
     def forReturn(symEnv: Map[Sym, ValueTy]): SymPred = SymPred(
       map = for {
         case (x: Sym, (ty, prov)) <- map
