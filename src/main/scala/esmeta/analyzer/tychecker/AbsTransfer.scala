@@ -1410,12 +1410,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val refined = refinedValue.ty
       join(for {
         pred <- value.guard.map.collect {
-          case (True, pred) if refined <= TrueT                  => pred
-          case (False, pred) if refined <= FalseT                => pred
-          case (Normal, pred) if refined <= NormalT              => pred
-          case (Abrupt, pred) if refined <= AbruptT              => pred
-          case (NormalTrue, pred) if refined <= NormalT(TrueT)   => pred
-          case (NormalFalse, pred) if refined <= NormalT(FalseT) => pred
+          case (True, pred) if refined <= TrueT                         => pred
+          case (False, pred) if refined <= FalseT                       => pred
+          case (Normal, pred) if refined <= NormalT && !useBooleanGuard => pred
+          case (Abrupt, pred) if refined <= AbruptT && !useBooleanGuard => pred
+          case (NormalTrue, pred)
+              if refined <= NormalT(TrueT) && !useBooleanGuard =>
+            pred
+          case (NormalFalse, pred)
+              if refined <= NormalT(FalseT) && !useBooleanGuard =>
+            pred
         }
       } yield refine(pred))
 
