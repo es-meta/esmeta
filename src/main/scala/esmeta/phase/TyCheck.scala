@@ -22,7 +22,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     val tychecker = TyChecker(
       cfg = cfg,
       targetPattern = config.target,
-      inferTypeGuard = config.inferTypeGuard,
+      inferTypeGuard = config.inferTypeGuard && !config.removeRefine,
       removeRefine = config.removeRefine,
       useBooleanGuard = config.useBooleanGuard,
       typeSens = config.typeSens,

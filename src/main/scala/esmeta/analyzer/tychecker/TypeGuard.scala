@@ -88,7 +88,7 @@ trait TypeGuardDecl { self: TyChecker =>
     def from(givenTy: ValueTy): Set[RefinementKind] = {
       if (givenTy.isBottom) Set()
       else if (givenTy <= BoolT) givenTy.bool.set.map(if (_) True else False)
-      else if (givenTy <= CompT) {
+      else if (givenTy <= CompT && !useBooleanGuard) {
         val normal = (givenTy && NormalT).record
         val normalValue = normal("Value").value
         val normalSet =
