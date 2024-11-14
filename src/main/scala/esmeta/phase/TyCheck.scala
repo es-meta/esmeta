@@ -23,6 +23,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       cfg = cfg,
       targetPattern = config.target,
       inferTypeGuard = config.inferTypeGuard,
+      removeRefine = config.removeRefine,
       typeSens = config.typeSens,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
@@ -84,6 +85,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.inferTypeGuard = _),
       "automatic inference of type guards (default: true).",
     ),
+    (
+      "remove-refine",
+      BoolOption(_.removeRefine = _),
+      "Experiment option for removing ALL refinement techniques",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -95,5 +101,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
+    var removeRefine: Boolean = false,
   )
 }

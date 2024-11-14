@@ -85,7 +85,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       positive: Boolean,
     )(using np: NodePoint[_]): Updater = st =>
       import RefinementKind.*
-      if (inferTypeGuard) {
+      if (removeRefine) st
+      else if (inferTypeGuard) {
         // new analysis system
         val kind = if (positive) True else False
         val newSt = (for {
