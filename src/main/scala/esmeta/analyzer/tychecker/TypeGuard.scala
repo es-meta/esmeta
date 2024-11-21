@@ -1,6 +1,6 @@
 package esmeta.analyzer.tychecker
 
-import esmeta.cfg.{Func, Call}
+import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.ty.util.{Stringifier => TyStringifier}
@@ -63,6 +63,15 @@ trait TypeGuardDecl { self: TyChecker =>
     def apply(ps: (RefinementKind, SymPred)*): TypeGuard = TypeGuard(ps.toMap)
   }
 
+  /** type refinement target */
+  enum RefinementTarget:
+    case BranchTarget(branch: Branch, isTrue: Boolean)
+    case AssertTarget(block: Block, idx: Int)
+    def node: Node = this match
+      case BranchTarget(branch, _) => branch
+      case AssertTarget(block, _)  => block
+    def func: Func = cfg.funcOf(node)
+
   /** type refinement kinds */
   enum RefinementKind {
     case True, False, Normal, Abrupt, NormalTrue, NormalFalse
@@ -97,6 +106,7 @@ trait TypeGuardDecl { self: TyChecker =>
   /** Symbol */
   type Sym = Int
   case class Provenance(map: Map[Func, List[Call]] = Map()) {
+    def depth: Int = map.values.map(_.length).max
     def join(that: Provenance): Provenance = Provenance((for {
       key <- (this.map.keySet union that.map.keySet).toList
       calls <- (this.map.get(key), that.map.get(key)) match
@@ -165,6 +175,9 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> (origTy && ty, prov),
       sexpr = None,
     )
+    def depth: Int =
+      val provs = map.values.map(_._2).toList
+      sexpr.fold(provs)(_._2 :: provs).map(_.depth).max
     override def toString: String = (new Appender >> this).toString
   }
   object SymPred {
@@ -356,6 +369,22 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[TypeGuard] = (app, guard) =>
     given Rule[Map[RefinementKind, SymPred]] = sortedMapRule("{", "}", " => ")
     app >> guard.map
+  given Rule[RefinementTarget] = (app, target) =>
+    import RefinementTarget.*
+    val node = target.node
+    val func = target.func
+    app >> func.nameWithId >> ":" >> node.name >> ":"
+    target match
+      case BranchTarget(branch, isTrue) =>
+        app >> (if (isTrue) "T" else "F")
+      case AssertTarget(block, idx) =>
+        app >> idx
+  given Ordering[RefinementTarget] = Ordering.by { target =>
+    import RefinementTarget.*
+    target match
+      case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
+      case AssertTarget(block, idx)     => (block.id, idx)
+  }
   given Rule[RefinementKind] = (app, kind) =>
     import RefinementKind.*
     kind match

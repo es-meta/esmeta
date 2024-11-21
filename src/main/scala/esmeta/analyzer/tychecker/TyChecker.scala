@@ -110,6 +110,12 @@ class TyChecker(
             "returns" -> ratioSimpleString(analyzedReturns.size, cfg.funcs.size),
           ),
         )
+        if (detail)
+          info :+= "refined" -> Map(
+            "targets" -> refinedTargets,
+            "locals" -> refinedLocals,
+            "avg. depth" -> refinedAvgDepth,
+          )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
         Yaml(info: _*)
       },
@@ -149,6 +155,9 @@ class TyChecker(
         cfg.funcs.size, // total funcs
         this.analyzedNodes.size, // analyzed nodes
         cfg.nodes.size, // total nodes
+        if (detail) refinedTargets else 0, // refined targets
+        if (detail) refinedLocals else 0, // refined locals
+        if (detail) refinedAvgDepth else 0, // refined avg. depth
         if (inferTypeGuard) typeGuards.size else 0, // guards
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
@@ -204,6 +213,12 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/detailed-types",
         silent = silent,
       )
+      dumpFile(
+        name = "refined targets",
+        data = refinedString,
+        filename = s"$ANALYZE_LOG_DIR/refined",
+        silent = silent,
+      )
       if (inferTypeGuard)
         val names = typeGuards.map(_._1.name).toSet
         dumpFile(
@@ -217,6 +232,25 @@ class TyChecker(
         )
   }
 
+  /** refined targets */
+  var refined: Map[RefinementTarget, (Set[Local], Int)] = Map()
+  def refinedTargets: Int = refined.size
+  def refinedLocals: Int = refined.values.map(_._1.size).sum
+  def refinedAvgDepth: Double =
+    refined.values.map(_._2).sum.toDouble / refined.size
+  def refinedString: String =
+    given Rule[Map[RefinementTarget, (Set[Local], Int)]] =
+      (app, refined) =>
+        val sorted = refined.toList.sortBy { (t, _) => t }
+        for ((target, (xs, depth)) <- sorted)
+          app >> target >> " -> "
+          app >> xs.toList.sorted.mkString("[locals: ", ", ", "]")
+          app >> " [depth: " >> depth >> "]"
+          app >> LINE_SEP
+        app
+    (new Appender >> refined).toString
+
+  /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] = for {
     func <- cfg.funcs
     entrySt = getResult(NodePoint(func, func.entry, emptyView))
