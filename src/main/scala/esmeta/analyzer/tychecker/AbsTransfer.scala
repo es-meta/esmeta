@@ -20,7 +20,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     import AbsValue.*
 
     /** loading constructors */
-    import SymExpr.*, SymRef.*
+    import SymExpr.*, SymRef.*, SymTy.*
 
     // =========================================================================
     // Implementation for General AbsTransfer
@@ -178,7 +178,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             given AbsState = st
             bty = bv.ty
           } yield {
-            var newV: AbsValue = Bot
+            var newV: AbsValue = AbsValue.Bot
             // lexical sdo
             newV ⊔= bv.getLexical(method)
 
@@ -248,8 +248,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** conversion to symbolic references */
     def toSymRef(expr: Expr, value: AbsValue): Option[SymRef] =
-      value.getSymExpr match
-        case Some(SERef(ref)) => Some(ref)
+      value.symty match
+        case SRef(ref) => Some(ref)
         case _ =>
           expr match
             case ERef(ref) => toSymRef(ref)
@@ -257,9 +257,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** conversion to symbolic references */
     def toSymRef(ref: Ref, value: AbsValue): Option[SymRef] =
-      value.getSymExpr match
-        case Some(SERef(ref)) => Some(ref)
-        case _                => toSymRef(ref)
+      value.symty match
+        case SRef(ref) => Some(ref)
+        case _         => toSymRef(ref)
 
     /** conversion to symbolic references */
     def toSymRef(ref: Ref): Option[SymRef] = ref match
@@ -267,7 +267,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case Field(base, EStr(field)) =>
         for {
           b <- toSymRef(base)
-        } yield SField(b, SEStr(field))
+        } yield SField(b, STy(StrT(field)))
       case _ => None
 
     /** get local variables */
@@ -395,7 +395,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           l <- transfer(list)
           v <- transfer(expr)
           elem = l.ty.list.elem || v.ty
-          newV = AbsValue(ListT(elem), Many)
+          newV = AbsValue(ListT(elem))
           _ <- modify(_.update(list, newV, refine = false))
         } yield ()
       case IPush(expr, list, _) => st => st /* TODO */
@@ -459,7 +459,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           else
             if (config.checkReturnType)
               addError(ReturnTypeMismatch(irp, givenTy))
-            AbsValue(givenTy && expectedTy, Zero, givenV.guard)
+            AbsValue(STy(givenTy && expectedTy), givenV.guard)
       if (!newV.isBottom)
         val AbsRet(oldV) = getResult(rp)
         if (!oldV.isBottom && useRepl) Repl.merged = true
@@ -501,14 +501,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } yield StrTop
       case EYet(msg) =>
         if (yetThrow) notSupported(msg)
-        else Bot
+        else AbsValue.Bot
       case EContains(list, elem) =>
         for {
           l <- transfer(list)
           v <- transfer(elem)
           given AbsState <- get
         } yield
-          if (l.ty.list.isBottom) Bot
+          if (l.ty.list.isBottom) AbsValue.Bot
           else BoolTop
       case ESubstring(expr, from, None) =>
         for {
@@ -561,7 +561,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           r <- cop match
             case ToStr(Some(radix)) => transfer(radix)
             case ToStr(None)        => pure(AbsValue(MathT(10)))
-            case _                  => pure(Bot)
+            case _                  => pure(AbsValue.Bot)
           given AbsState <- get
         } yield v.convertTo(cop, r)
       case EExists(ref) =>
@@ -624,9 +624,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           given AbsState <- get
-          newV = v.getSymExpr match
-            case Some(expr) => AbsValue(expr = One(SENormal(expr)))
-            case None       => AbsValue(NormalT(v.ty))
+          newV = v.symty match
+            case STy(sty) => AbsValue(NormalT(sty))
+            case s        => AbsValue(SNormal(s))
         } yield newV
       case ERecord(tname, fields) =>
         for {
@@ -911,7 +911,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             for {
               bref <- toSymRef(x, bv)
               fref <- toSymRef(field, fv)
-              pexpr = SEExists(SField(bref, SERef(fref)))
+              pexpr = SEExists(SField(bref, SRef(fref)))
             } guard += True -> SymPred(Map(), Some(pexpr, Provenance(np.func)))
             TypeGuard(guard)
           }
@@ -1211,7 +1211,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val map = argsInfo.zipWithIndex.map {
         case ((e, v), i) =>
           i -> (toSymRef(e, v) match
-            case Some(ref) if inferTypeGuard => AbsValue(expr = One(SERef(ref)))
+            case Some(ref) if inferTypeGuard => AbsValue(SRef(ref))
             case _                           => v
           )
       }.toMap
@@ -1225,16 +1225,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       value: AbsValue,
       map: Map[Sym, AbsValue],
     )(using st: AbsState): AbsValue =
-      val AbsValue(ty, expr, guard) = value
+      val AbsValue(symty, guard) = value
       val newGuard = TypeGuard((for {
         (kind, pred) <- guard.map
         newPred = instantiate(call, pred, map)
         if newPred.nonTop
       } yield kind -> newPred).toMap)
-      val ivalue @ AbsValue(ity, iexpr, iguard) = expr match
-        case One(e) => instantiate(e, map)
-        case _      => AbsValue.Bot
-      AbsValue(ty || ity, iexpr, newGuard && iguard)
+      val ivalue @ AbsValue(isymty, iguard) = instantiate(symty, map)
+      AbsValue(isymty, newGuard && iguard)
 
     /** instantiation of symbolic predicate */
     def instantiate(
@@ -1245,53 +1243,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       map = for {
         case (x: Sym, (ty, prov)) <- pred.map
         v <- map.get(x)
-        y <- v.getSymExpr match
-          case Some(SERef(ref)) => Some(ref)
-          case _                => None
+        y <- v.symty match
+          case SRef(ref) => Some(ref)
+          case _         => None
         (z, zty) <- getRefiner(y -> ty)
         if !(st.getTy(z) <= zty)
       } yield z -> (zty, prov.forReturn(call)),
       sexpr = for {
         (e, prov) <- pred.sexpr
-        newExpr <- instantiate(e, map).getSymExpr
-      } yield (newExpr, prov.forReturn(call)),
+      } yield (???, prov.forReturn(call)),
     )
 
     /** instantiation of symbolic expressions */
     def instantiate(
       sexpr: SymExpr,
       map: Map[Sym, AbsValue],
-    )(using st: AbsState): AbsValue = sexpr match {
-      case SEBool(b)  => AbsValue(BoolT(b))
-      case SEStr(s)   => AbsValue(StrT(s))
-      case SERef(ref) => instantiate(ref, map)
-      case SEExists(ref) =>
-        instantiate(ref, map).getSymExpr match
-          case Some(SERef(e)) => AbsValue(expr = One(SEExists(e)))
-          case _              => AbsValue(BoolT)
-      case SETypeCheck(base, ty) =>
-        instantiate(base, map).getSymExpr match
-          case Some(e) => AbsValue(expr = One(SETypeCheck(e, ty)))
-          case _       => AbsValue(BoolT)
-      case SETypeOf(base) =>
-        instantiate(base, map).getSymExpr match
-          case Some(e) => AbsValue(expr = One(SETypeOf(e)))
-          case _       => AbsValue(StrT)
-      case SEEq(left, right) =>
-        val l = instantiate(left, map).getSymExpr
-        val r = instantiate(right, map).getSymExpr
-        (l, r) match
-          case (Some(l), Some(r)) => AbsValue(expr = One(SEEq(l, r)))
-          case _                  => AbsValue(BoolT)
-      case SEOr(left, right)  => ???
-      case SEAnd(left, right) => ???
-      case SENot(expr)        => ???
-      case SENormal(expr) =>
-        val v = instantiate(expr, map)
-        v.getSymExpr match
-          case Some(e) => AbsValue(expr = One(SENormal(e)))
-          case _       => AbsValue(NormalT(v.ty))
-    }
+    )(using st: AbsState): Option[SymExpr] = ???
 
     /** instantiation of symbolic references */
     def instantiate(
@@ -1302,6 +1269,19 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case SField(b, f)  => st.get(instantiate(b, map), instantiate(f, map))
       case _             => AbsValue.Bot
     }
+
+    /** instantiation of symbolic type */
+    def instantiate(
+      symty: SymTy,
+      map: Map[Sym, AbsValue],
+    )(using st: AbsState): AbsValue = symty match
+      case STy(ty)   => AbsValue(ty)
+      case SRef(ref) => instantiate(ref, map)
+      case SNormal(symty) =>
+        val ty = instantiate(symty, map).symty match
+          case STy(ty) => STy(NormalT(ty))
+          case s       => SNormal(s)
+        AbsValue(ty)
 
     // -------------------------------------------------------------------------
     // Syntactic Type Refinement
@@ -1503,8 +1483,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case SBase(x) =>
           val ty = st.getTy(x)
           if (ty <= givenTy) None else Some(x -> givenTy)
-        case SField(base, SEStr(field)) =>
+        case SField(base, STy(x)) if x <= StrT && x.isSingle =>
           val bty = st.getTy(base)
+          val field = x.str.getSingle match
+            case One(elem) => elem
+            case _         => return None
           val refinedTy = ValueTy(
             ast = bty.ast,
             record = bty.record.update(field, givenTy, refine = true),
@@ -1622,22 +1605,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     type Refinements = Map[RefinementKind, Map[Local, ValueTy]]
     type Refinement = (Func, List[AbsValue], ValueTy, AbsState) => AbsValue
     val manualRefiners: Map[String, Refinement] = {
-      import RefinementKind.*, SymExpr.*, SymRef.*
+      import RefinementKind.*, SymExpr.*, SymRef.*, SymTy.*
       Map(
         "__APPEND_LIST__" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          AbsValue(vs(0).ty || vs(1).ty, Zero, TypeGuard.Empty)
+          AbsValue(vs(0).ty || vs(1).ty)
         },
         "__FLAT_LIST__" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          AbsValue(vs(0).ty.list.elem, Zero, TypeGuard.Empty)
+          AbsValue(vs(0).ty.list.elem)
         },
         "__GET_ITEMS__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val ast = vs(1).ty.toValue.grammarSymbol match
             case Fin(set) => AstT(set.map(_.name))
             case Inf      => AstT
-          AbsValue(ListT(ast), Zero, TypeGuard.Empty)
+          AbsValue(ListT(ast))
         },
         "__CLAMP__" -> { (func, vs, retTy, st) =>
           given AbsState = st
@@ -1646,15 +1629,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               if (vs(1).ty.toValue <= MathT(0)) NonNegIntT
               else IntT
             else retTy
-          AbsValue(refined, Zero, TypeGuard.Empty)
+          AbsValue(refined)
         },
         "Completion" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          AbsValue(BotT, One(SERef(SBase(0))), TypeGuard.Empty)
+          AbsValue(SRef(SBase(0)))
         },
         "NormalCompletion" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          AbsValue(BotT, One(SENormal(SERef(SBase(0)))), TypeGuard.Empty)
+          AbsValue(SNormal(SRef(SBase(0))))
         },
         "UpdateEmpty" -> { (func, vs, retTy, st) =>
           given AbsState = st
@@ -1665,21 +1648,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             vs(1).ty || (valueField -- EnumT("empty")),
             refine = false,
           )
-          AbsValue(ValueTy(record = updated), Zero, TypeGuard.Empty)
+          AbsValue(ValueTy(record = updated))
         },
         "IteratorClose" -> { (func, vs, retTy, st) =>
           given AbsState = st
           // Throw | #1
-          AbsValue(vs(1).ty || ThrowT, Zero, TypeGuard.Empty)
+          AbsValue(vs(1).ty || ThrowT)
         },
         "AsyncIteratorClose" -> { (func, vs, retTy, st) =>
           given AbsState = st
           // Throw | #1
-          AbsValue(vs(1).ty || ThrowT, Zero, TypeGuard.Empty)
+          AbsValue(vs(1).ty || ThrowT)
         },
         "Await" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          AbsValue(NormalT(ESValueT) || ThrowT, Zero, TypeGuard.Empty)
+          AbsValue(NormalT(ESValueT) || ThrowT)
         },
         "RequireInternalSlot" -> { (func, vs, retTy, st) =>
           given AbsState = st
@@ -1691,13 +1674,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case _ => ObjectT
           val prov = Provenance(func)
           val guard = TypeGuard(Normal -> SymPred(0 -> (refined, prov)))
-          AbsValue(retTy, Zero, guard)
+          AbsValue(STy(retTy), guard)
         },
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val prov = Provenance(func)
           val guard = TypeGuard(Normal -> SymPred(0 -> (ConstructorT, prov)))
-          AbsValue(retTy, Zero, guard)
+          AbsValue(STy(retTy), guard)
         },
         "CreateListFromArrayLike" -> { (func, vs, retTy, st) =>
           given AbsState = st
@@ -1711,15 +1694,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               ty = ss.map(ValueTy.fromTypeOf).foldLeft(BotT)(_ || _)
               refined = retTy.toValue && NormalT(ListT(ty))
             } yield refined).getOrElse(retTy),
-            Zero,
-            TypeGuard.Empty,
           )
         },
         "SameType" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val expr = SEEq(SETypeOf(SERef(SBase(0))), SETypeOf(SERef(SBase(1))))
           val prov = Provenance(func)
-          AbsValue(BoolT, Zero, TypeGuard(True -> SymPred(expr -> prov)))
+          AbsValue(STy(BoolT), TypeGuard(True -> SymPred(expr -> prov)))
         },
         "TypedArrayElementType" -> { (func, vs, retTy, st) =>
           AbsValue(
@@ -1736,12 +1717,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               "float32",
               "float64",
             ),
-            Zero,
-            TypeGuard(),
           )
         },
         "TypedArrayElementSize" -> { (func, vs, retTy, st) =>
-          AbsValue(PosIntT, Zero, TypeGuard())
+          AbsValue(PosIntT)
         },
       )
     }

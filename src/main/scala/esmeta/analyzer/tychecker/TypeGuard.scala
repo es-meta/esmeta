@@ -287,7 +287,7 @@ trait TypeGuardDecl { self: TyChecker =>
   /** symbolic references */
   enum SymRef {
     case SBase(base: SymBase)
-    case SField(base: SymRef, field: SymExpr)
+    case SField(base: SymRef, field: SymTy)
     def getBase: SymBase = this match
       case SBase(s)        => s
       case SField(base, f) => base.getBase
@@ -340,12 +340,14 @@ trait TypeGuardDecl { self: TyChecker =>
       case SENormal(expr) =>
         app >> "Normal[" >> expr >> "]"
   given Rule[SymRef] = (app, ref) =>
-    import SymExpr.*
+    import SymExpr.*, SymRef.*, SymTy.*
     lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-    import SymRef.*
     ref match
-      case SBase(x)                            => app >> x
-      case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
+      case SBase(x) => app >> x
+      case SField(base, STy(x)) if !x.isBottom =>
+        x.getSingle match
+          case One(f: String) => app >> base >> "." >> f
+          case _              => app >> base >> "[" >> x >> "]"
       case SField(base, field) => app >> base >> "[" >> field >> "]"
   given Rule[Provenance] = (app, prov) =>
     val Provenance(map) = prov

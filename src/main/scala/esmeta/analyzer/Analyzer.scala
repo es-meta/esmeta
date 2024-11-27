@@ -40,6 +40,9 @@ abstract class Analyzer
   /** check reachability of return points */
   def reachable(rp: ReturnPoint): Boolean
 
+  /** symbolic types */
+  type SymTy <: SymTyLike
+
   /** abstract states */
   type AbsState <: AbsStateLike
 
