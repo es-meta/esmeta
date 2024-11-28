@@ -72,35 +72,21 @@ trait TypeGuardDecl { self: TyChecker =>
       case AssertTarget(block, _)  => block
     def func: Func = cfg.funcOf(node)
 
-  /** type refinement kinds */
-  enum RefinementKind {
-    case True, False, Normal, Abrupt, NormalTrue, NormalFalse
-    lazy val ty: ValueTy = this match
-      case True        => TrueT
-      case False       => FalseT
-      case Normal      => NormalT
-      case Abrupt      => AbruptT
-      case NormalTrue  => NormalT(TrueT)
-      case NormalFalse => NormalT(FalseT)
-    override def toString: String = (new Appender >> this).toString
+  case class RefinementKind(private val _ty: ValueTy) {
+    def ty: ValueTy = _ty
   }
   object RefinementKind {
-    def from(givenTy: ValueTy): Set[RefinementKind] = {
-      if (givenTy.isBottom) Set()
-      else if (givenTy <= BoolT) givenTy.bool.set.map(if (_) True else False)
-      else if (givenTy <= CompT) {
-        val normal = (givenTy && NormalT).record
-        val normalValue = normal("Value").value
-        val normalSet =
-          if (normalValue <= BoolT)
-            normalValue.bool.set.map(if (_) NormalTrue else NormalFalse)
-          else if (normalValue.isBottom) Set()
-          else Set(Normal)
-        val abrupt = (givenTy && AbruptT).record
-        val abruptSet = if (abrupt.isBottom) Set() else Set(Abrupt)
-        normalSet ++ abruptSet
-      } else Set()
-    }
+    val set: Set[ValueTy] =
+      Set(TrueT, FalseT, NormalT, AbruptT, NormalT(TrueT), NormalT(FalseT))
+
+    def apply(ty: ValueTy): RefinementKind =
+      if (RefinementKind.set.contains(ty)) new RefinementKind(ty)
+      else throw notSupported(s"Unsupported RefinementKind: $ty")
+
+    def from(givenTy: ValueTy): Set[RefinementKind] =
+      RefinementKind.set
+        .filter(ty => !(givenTy && ty).isBottom)
+        .map(RefinementKind(_))
   }
 
   /** Symbol */
@@ -255,7 +241,7 @@ trait TypeGuardDecl { self: TyChecker =>
           case (Some(l), None)    => Some(l)
           case (None, Some(r))    => Some(r)
           case _                  => None
-      case SENot(expr)    => expr.kill(bases).map(SENot(_))
+      case SENot(expr) => expr.kill(bases).map(SENot(_))
     override def toString: String = (new Appender >> this).toString
   }
   object SymExpr {
@@ -358,6 +344,8 @@ trait TypeGuardDecl { self: TyChecker =>
     if (pred.map.nonEmpty) app >> pred.map
     pred.sexpr.fold(app) { (sexpr, prov) => app >> sexpr >> prov }
   given Rule[TypeGuard] = (app, guard) =>
+    given Ordering[RefinementKind] = Ordering.by(_.toString)
+    given Rule[RefinementKind] = (app, kind) => app >> kind.ty
     given Rule[Map[RefinementKind, SymPred]] = sortedMapRule("{", "}", " => ")
     app >> guard.map
   given Rule[RefinementTarget] = (app, target) =>
@@ -376,14 +364,4 @@ trait TypeGuardDecl { self: TyChecker =>
       case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
       case AssertTarget(block, idx)     => (block.id, idx)
   }
-  given Rule[RefinementKind] = (app, kind) =>
-    import RefinementKind.*
-    kind match
-      case True        => app >> "True"
-      case False       => app >> "False"
-      case Normal      => app >> "Normal"
-      case Abrupt      => app >> "Abrupt"
-      case NormalTrue  => app >> "Normal[True]"
-      case NormalFalse => app >> "Normal[False]"
-  given Ordering[RefinementKind] = Ordering.by(_.toString)
 }

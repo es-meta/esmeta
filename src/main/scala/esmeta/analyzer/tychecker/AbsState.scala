@@ -244,8 +244,10 @@ trait AbsStateDecl { self: TyChecker =>
       field.ty.str.getSingle match
         case One("Value") =>
           TypeGuard(guard.map.collect {
-            case (NormalTrue, map)  => True -> map
-            case (NormalFalse, map) => False -> map
+            case (RefinementKind(ty), map) if ty == NormalT(TrueT) =>
+              RefinementKind(TrueT) -> map
+            case (RefinementKind(ty), map) if ty == NormalT(FalseT) =>
+              RefinementKind(FalseT) -> map
           })
         case _ => TypeGuard.Empty
     }
