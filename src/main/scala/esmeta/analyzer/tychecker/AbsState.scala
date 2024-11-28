@@ -124,7 +124,6 @@ trait AbsStateDecl { self: TyChecker =>
       import SymExpr.*
       expr match
         case SEBool(b)             => BoolT(b)
-        case SEStr(s)              => StrT(s)
         case SERef(ref)            => getTy(ref)
         case SEExists(ref)         => BoolT
         case SETypeCheck(base, ty) => BoolT
@@ -133,7 +132,6 @@ trait AbsStateDecl { self: TyChecker =>
         case SEOr(left, right)     => BoolT
         case SEAnd(left, right)    => BoolT
         case SENot(expr)           => BoolT
-        case SENormal(expr)        => NormalT(getTy(expr))
     }
 
     /** getter for symbolic references */

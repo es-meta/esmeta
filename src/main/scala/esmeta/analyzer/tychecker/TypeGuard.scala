@@ -193,7 +193,6 @@ trait TypeGuardDecl { self: TyChecker =>
   /** symbolic expressions */
   enum SymExpr {
     case SEBool(b: Boolean)
-    case SEStr(s: String)
     case SERef(ref: SymRef)
     case SEExists(ref: SymRef)
     case SETypeCheck(base: SymExpr, ty: ValueTy)
@@ -202,7 +201,6 @@ trait TypeGuardDecl { self: TyChecker =>
     case SEOr(left: SymExpr, right: SymExpr)
     case SEAnd(left: SymExpr, right: SymExpr)
     case SENot(expr: SymExpr)
-    case SENormal(expr: SymExpr)
     def ||(that: SymExpr): SymExpr = (this, that) match
       case _ if this == that                     => this
       case (SEBool(false), _)                    => that
@@ -217,7 +215,6 @@ trait TypeGuardDecl { self: TyChecker =>
       case _                                       => SEAnd(this, that)
     def has(x: SymBase): Boolean = this match
       case SEBool(b)             => false
-      case SEStr(s)              => false
       case SERef(ref)            => ref.has(x)
       case SEExists(ref)         => ref.has(x)
       case SETypeCheck(base, ty) => base.has(x)
@@ -226,10 +223,8 @@ trait TypeGuardDecl { self: TyChecker =>
       case SEOr(left, right)     => left.has(x) || right.has(x)
       case SEAnd(left, right)    => left.has(x) || right.has(x)
       case SENot(expr)           => expr.has(x)
-      case SENormal(expr)        => expr.has(x)
     def bases: Set[SymBase] = this match
       case SEBool(b)             => Set()
-      case SEStr(s)              => Set()
       case SERef(ref)            => ref.bases
       case SEExists(ref)         => ref.bases
       case SETypeCheck(base, ty) => base.bases
@@ -238,10 +233,8 @@ trait TypeGuardDecl { self: TyChecker =>
       case SEOr(left, right)     => left.bases ++ right.bases
       case SEAnd(left, right)    => left.bases ++ right.bases
       case SENot(expr)           => expr.bases
-      case SENormal(expr)        => expr.bases
     def kill(bases: Set[SymBase]): Option[SymExpr] = this match
       case SEBool(b)             => Some(this)
-      case SEStr(s)              => Some(this)
       case SERef(ref)            => ref.kill(bases).map(SERef(_))
       case SEExists(ref)         => ref.kill(bases).map(SEExists(_))
       case SETypeCheck(base, ty) => base.kill(bases).map(SETypeCheck(_, ty))
@@ -263,7 +256,6 @@ trait TypeGuardDecl { self: TyChecker =>
           case (None, Some(r))    => Some(r)
           case _                  => None
       case SENot(expr)    => expr.kill(bases).map(SENot(_))
-      case SENormal(expr) => expr.kill(bases).map(SENormal(_))
     override def toString: String = (new Appender >> this).toString
   }
   object SymExpr {
@@ -322,7 +314,6 @@ trait TypeGuardDecl { self: TyChecker =>
     import SymExpr.*
     expr match
       case SEBool(bool)  => app >> bool
-      case SEStr(str)    => app >> "\"" >> normStr(str) >> "\""
       case SERef(ref)    => app >> ref
       case SEExists(ref) => app >> "(exists " >> ref >> ")"
       case SETypeCheck(expr, ty) =>
@@ -337,8 +328,6 @@ trait TypeGuardDecl { self: TyChecker =>
         app >> "(&& " >> left >> " " >> right >> ")"
       case SENot(expr) =>
         app >> "(! " >> expr >> ")"
-      case SENormal(expr) =>
-        app >> "Normal[" >> expr >> "]"
   given Rule[SymRef] = (app, ref) =>
     import SymExpr.*, SymRef.*, SymTy.*
     lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
