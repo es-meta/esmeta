@@ -237,17 +237,16 @@ class Compiler(
       // apply shortcircuit for invoke expression
       val condExpr = cond match
         case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, xExpr) = fb.newTIdWithExpr
-          compileShortCircuit(fb, x, cond)
-          xExpr
-        case _ => compile(fb, cond)
-      fb.addInst(
-        IIf(
-          condExpr,
-          compileWithScope(fb, thenStep),
-          elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-        ),
-      )
+          val (x, _) = fb.newTIdWithExpr
+          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
+        case _ =>
+          fb.addInst(
+            IIf(
+              compile(fb, cond),
+              compileWithScope(fb, thenStep),
+              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+            ),
+          )
     case ReturnStep(expr) =>
       lazy val e = expr.fold(EUndef())(compile(fb, _))
       (expr, fb.returnContext, fb.needReturnComp) match
@@ -1088,21 +1087,40 @@ class Compiler(
     fb: FuncBuilder,
     x: Ref,
     cond: Condition,
-  ): Unit = fb.withLang(cond) {
+    thenStep: Step,
+    elseStep: Option[Step],
+  ): Inst = fb.withLang(cond) {
     val xExpr = toERef(x)
     import CompoundConditionOperator.*
     cond match
       case CompoundCondition(left, And, right) =>
-        fb.addInst(
-          IAssign(x, compile(fb, left)),
-          IIf(xExpr, fb.newScope(compileShortCircuit(fb, x, right)), emptyInst),
+        ISeq(
+          IAssign(x, compile(fb, left)) ::
+          IIf(
+            xExpr,
+            compileShortCircuit(fb, x, right, thenStep, elseStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+          ) :: Nil,
         )
       case CompoundCondition(left, Or, right) =>
-        fb.addInst(
-          IAssign(x, compile(fb, left)),
-          IIf(xExpr, emptyInst, fb.newScope(compileShortCircuit(fb, x, right))),
+        ISeq(
+          IAssign(x, compile(fb, left)) ::
+          IIf(
+            xExpr,
+            // thenStep is "copied". maybe bad
+            compileWithScope(fb, thenStep),
+            compileShortCircuit(fb, x, right, thenStep, elseStep),
+          ) :: Nil,
         )
-      case _ => fb.addInst(IAssign(x, compile(fb, cond)))
+      case _ =>
+        ISeq(
+          IAssign(x, compile(fb, cond)) ::
+          IIf(
+            xExpr,
+            compileWithScope(fb, thenStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+          ) :: Nil,
+        )
   }
 
   /** check if condition contains invoke expression */
