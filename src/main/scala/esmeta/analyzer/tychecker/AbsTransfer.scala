@@ -7,6 +7,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
+import esmeta.es.builtin.JOB_QUEUE
 
 trait AbsTransferDecl { analyzer: TyChecker =>
 
@@ -1277,14 +1278,36 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       } yield z -> (zty, prov.forReturn(call)),
       sexpr = for {
         (e, prov) <- pred.sexpr
-      } yield (???, prov.forReturn(call)),
+        newExpr <- instantiate(e, map)
+      } yield (newExpr, prov.forReturn(call)),
     )
 
     /** instantiation of symbolic expressions */
     def instantiate(
       sexpr: SymExpr,
       map: Map[Sym, AbsValue],
-    )(using st: AbsState): Option[SymExpr] = ???
+    )(using st: AbsState): Option[SymExpr] = sexpr match {
+      case SEBool(b)  => Some(sexpr)
+      case SERef(ref) => None
+      case SEExists(ref) => None
+      case SETypeCheck(base, ty) =>
+        instantiate(base, map) match
+          case Some(e) => Some(SETypeCheck(e, ty))
+          case _       => None
+      case SETypeOf(base) =>
+        instantiate(base, map) match
+          case Some(e) => Some(SETypeOf(e))
+          case _       => None
+      case SEEq(left, right) =>
+        val l = instantiate(left, map)
+        val r = instantiate(right, map)
+        (l, r) match
+          case (Some(l), Some(r)) => Some(SEEq(l, r))
+          case _                  => None
+      case SEOr(left, right)  => ???
+      case SEAnd(left, right) => ???
+      case SENot(expr)        => ???
+    }
 
     /** instantiation of symbolic references */
     def instantiate(
