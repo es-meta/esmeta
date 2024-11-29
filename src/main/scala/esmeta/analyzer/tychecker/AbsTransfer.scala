@@ -1059,6 +1059,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               guard += RefinementKind(FalseT) -> withCur(elsePred)
             TypeGuard(guard)
           }
+        case EEnum(name) =>
+          if RefinementKind.set.contains(EnumT(name)) then
+            get(st => {
+              TypeGuard(
+                Map(RefinementKind(EnumT(name)) -> withCur(SymPred())(using st)),
+              )
+            })
+          else TypeGuard.Empty
         case _ => TypeGuard.Empty
       }
     }
@@ -1287,8 +1295,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       sexpr: SymExpr,
       map: Map[Sym, AbsValue],
     )(using st: AbsState): Option[SymExpr] = sexpr match {
-      case SEBool(b)  => Some(sexpr)
-      case SERef(ref) => None
+      case SEBool(b)     => Some(sexpr)
+      case SERef(ref)    => None
       case SEExists(ref) => None
       case SETypeCheck(base, ty) =>
         instantiate(base, map) match

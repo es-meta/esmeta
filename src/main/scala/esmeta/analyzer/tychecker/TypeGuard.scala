@@ -77,7 +77,16 @@ trait TypeGuardDecl { self: TyChecker =>
   }
   object RefinementKind {
     val set: Set[ValueTy] =
-      Set(TrueT, FalseT, NormalT, AbruptT, NormalT(TrueT), NormalT(FalseT))
+      Set(
+        TrueT,
+        FalseT,
+        NormalT,
+        AbruptT,
+        NormalT(TrueT),
+        NormalT(FalseT),
+        ENUMT_SYNC,
+        ENUMT_ASYNC,
+      )
 
     def apply(ty: ValueTy): RefinementKind =
       if (RefinementKind.set.contains(ty)) new RefinementKind(ty)

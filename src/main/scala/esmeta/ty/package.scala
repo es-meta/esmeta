@@ -173,6 +173,8 @@ val ENUMT_FULFILLED = EnumT("fulfilled")
 val ENUMT_REJECTED = EnumT("rejected")
 val ENUMT_FULFILL = EnumT("Fulfill")
 val ENUMT_REJECT = EnumT("Reject")
+val ENUMT_SYNC = EnumT("sync")
+val ENUMT_ASYNC = EnumT("async")
 
 extension (elem: Boolean) {
   inline def isTop: Boolean = elem == true
