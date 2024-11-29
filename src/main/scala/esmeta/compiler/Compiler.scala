@@ -1092,35 +1092,39 @@ class Compiler(
   ): Inst = fb.withLang(cond) {
     val xExpr = toERef(x)
     import CompoundConditionOperator.*
-    cond match
-      case CompoundCondition(left, And, right) =>
-        ISeq(
-          IAssign(x, compile(fb, left)) ::
-          IIf(
-            xExpr,
-            compileShortCircuit(fb, x, right, thenStep, elseStep),
-            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-          ) :: Nil,
-        )
-      case CompoundCondition(left, Or, right) =>
-        ISeq(
-          IAssign(x, compile(fb, left)) ::
-          IIf(
-            xExpr,
-            // thenStep is "copied". maybe bad
-            compileWithScope(fb, thenStep),
-            compileShortCircuit(fb, x, right, thenStep, elseStep),
-          ) :: Nil,
-        )
-      case _ =>
-        ISeq(
-          IAssign(x, compile(fb, cond)) ::
-          IIf(
-            xExpr,
-            compileWithScope(fb, thenStep),
-            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-          ) :: Nil,
-        )
+    fb.newScope {
+      fb.addInst(
+        cond match
+          case CompoundCondition(left, And, right) =>
+            ISeq(
+              IAssign(x, compile(fb, left)) ::
+              IIf(
+                xExpr,
+                compileShortCircuit(fb, x, right, thenStep, elseStep),
+                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+              ) :: Nil,
+            )
+          case CompoundCondition(left, Or, right) =>
+            ISeq(
+              IAssign(x, compile(fb, left)) ::
+              IIf(
+                xExpr,
+                // thenStep is "copied". maybe bad
+                compileWithScope(fb, thenStep),
+                compileShortCircuit(fb, x, right, thenStep, elseStep),
+              ) :: Nil,
+            )
+          case _ =>
+            ISeq(
+              IAssign(x, compile(fb, cond)) ::
+              IIf(
+                xExpr,
+                compileWithScope(fb, thenStep),
+                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+              ) :: Nil,
+            ),
+      )
+    }
   }
 
   /** check if condition contains invoke expression */
