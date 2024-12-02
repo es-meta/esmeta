@@ -16,7 +16,8 @@ abstract class Analyzer
   with TypeErrorDecl
   with ViewLikeDecl
   with util.Decl
-  with repl.Decl {
+  // with repl.Decl
+  {
 
   // ---------------------------------------------------------------------------
   // Needs to be Implemented

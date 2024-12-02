@@ -287,7 +287,7 @@ class TyChecker(
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
     val (np, newSt) = pair
     val oldSt = getResult(np)
-    if (!oldSt.isBottom && useRepl) Repl.merged = true
+    // if (!oldSt.isBottom && useRepl) Repl.merged = true
     if (!newSt.hasBottom && !(newSt ⊑ oldSt))
       npMap += np -> (oldSt ⊔ newSt)
       worklist += np

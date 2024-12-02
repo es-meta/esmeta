@@ -30,7 +30,7 @@ trait AbsTransferLikeDecl { self: Analyzer =>
         // text-based debugging
         if (debugMode) println(s"${cp.func.name}:$cp")
         // run REPL
-        if (useRepl) Repl(cp)
+        // if (useRepl) Repl(cp)
         // abstract transfer for the current control point
         else apply(cp)
         // keep going
@@ -38,8 +38,8 @@ trait AbsTransferLikeDecl { self: Analyzer =>
       case None =>
         // set the current control point
         curCp = None
-        // finalize REPL
-        if (useRepl) Repl.finished
+    // finalize REPL
+    // if (useRepl) Repl.finished
 
     /** transfer function for control points */
     def apply(cp: ControlPoint): Unit = cp match
