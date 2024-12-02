@@ -467,7 +467,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             AbsValue(STy(givenTy && expectedTy), givenV.guard)
       if (!newV.isBottom)
         val AbsRet(oldV) = getResult(rp)
-        if (!oldV.isBottom && useRepl) Repl.merged = true
+        // if (!oldV.isBottom && useRepl) Repl.merged = true
         if (newV !⊑ oldV)
           val v = (oldV ⊔ newV)
           rpMap += rp -> AbsRet(v.forReturn(entrySt))
