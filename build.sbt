@@ -143,6 +143,36 @@ ThisBuild / assemblyPrependShellScript := Some(
 val AkkaVersion = "2.6.19"
 val AkkaHttpVersion = "10.2.8"
 
+import org.scalajs.linker.interface.ModuleInitializer
+import org.scalajs.linker.interface.ModuleSplitStyle
+import org.scalajs.linker.interface.ModuleKind
+
+lazy val worker = (project in file("worker"))
+  .aggregate(root)
+  .dependsOn(root)
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "esmeta-worker",
+    scalaVersion := "3.3.3",
+    scalacOptions ++= Seq("-encoding", "utf-8", "-deprecation", "-feature"),
+
+    // we are creating a library
+    scalaJSUseMainModuleInitializer := false,
+    scalaJSLinkerConfig ~= {
+      _.withModuleKind(ModuleKind.ESModule)
+        .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("example")))
+    },
+    // scalaJSMainModuleInitializer := Some(ModuleInitializer.mainMethod("worker.Main", "main")),
+    // webpackBundlingMode := BundlingMode.LibraryAndApplication(),
+
+    libraryDependencies ++= Seq(
+      // we don't need the DOM
+      // "org.scala-js" %%% "scalajs-dom" % "2.4.0",
+      "org.scala-lang.modules" %%% "scala-parser-combinators" % "2.4.0",
+      "org.typelevel" %% "cats-effect" % "3.5.7",
+    ),
+  )
+
 // project root
 lazy val root = project
   .in(file("."))
@@ -157,17 +187,17 @@ lazy val root = project
       "org.scalatest" %% "scalatest" % "3.2.11" % Test,
       "org.apache.commons" % "commons-text" % "1.9",
       "org.jsoup" % "jsoup" % "1.14.3",
-      "org.jline" % "jline" % "3.13.3",
+      // "org.jline" % "jline" % "3.13.3",
       ("org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2")
         .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-stream" % AkkaVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("ch.megard" %% "akka-http-cors" % "1.1.2")
-        .cross(CrossVersion.for3Use2_13), // cors
+      // ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
+      //   .cross(CrossVersion.for3Use2_13),
+      // ("com.typesafe.akka" %% "akka-stream" % AkkaVersion)
+      //   .cross(CrossVersion.for3Use2_13),
+      // ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion)
+      //   .cross(CrossVersion.for3Use2_13),
+      // ("ch.megard" %% "akka-http-cors" % "1.1.2")
+      //   .cross(CrossVersion.for3Use2_13), // cors
     ),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
