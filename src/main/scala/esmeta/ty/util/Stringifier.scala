@@ -25,6 +25,7 @@ object Stringifier {
       case elem: AstTy       => astTyRule(app, elem)
       case elem: MapTy       => mapTyRule(app, elem)
       case elem: MathTy      => mathTyRule(app, elem)
+      case elem: IntTy       => intTyRule(app, elem)
       case elem: InfinityTy  => infinityTyRule(app, elem)
       case elem: NumberTy    => numberTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
@@ -233,12 +234,21 @@ object Stringifier {
   given mathTyRule: Rule[MathTy] = (app, ty) =>
     ty match
       case MathTopTy      => app >> "Math"
-      case IntTy          => app >> "Int"
-      case NonPosIntTy    => app >> "NonPosInt"
-      case NonNegIntTy    => app >> "NonNegInt"
-      case NegIntTy       => app >> "NegInt"
-      case PosIntTy       => app >> "PosInt"
-      case MathSetTy(set) => if (set.isEmpty) app else app >> "Math" >> set
+      case MathIntTy(x)   => app >> x
+      case MathSetTy(set) => app >> "Math" >> set
+
+  /** Integer types */
+  given intTyRule: Rule[IntTy] = (app, ty) =>
+    ty match
+      case IntSetTy(set) => app >> "Int" >> set
+      case IntSignTy(sign) =>
+        if sign.isTop then app >> "Int"
+        else if sign == Sign.Pos then app >> "PosInt"
+        else if sign == Sign.Neg then app >> "NegInt"
+        else if sign == Sign.Zero then app >> IntSetTy(Set(0))
+        else if sign == Sign.NonNeg then app >> "NonNegInt"
+        else if sign == Sign.NonPos then app >> "NonPosInt"
+        else app >> "Int"
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>

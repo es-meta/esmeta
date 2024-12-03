@@ -98,6 +98,8 @@ object Math {
     def -(n: Math): Math = Math(m.decimal - n.decimal)
     def *(n: Math): Math = Math(m.decimal * n.decimal)
     def /(n: Math): Math = Math(m.decimal / n.decimal)
+    def <(n: Math): Boolean = m.decimal < n.decimal
+    def >(n: Math): Boolean = m.decimal > n.decimal
     def pow(n: Math): Math = Math(m.decimal.pow(n.toInt))
     def unary_- : Math = Math(-m.decimal)
     def toInt: Int = m.decimal.toInt
@@ -106,6 +108,8 @@ object Math {
     def toBigInt: BigInt = BigInt(m.decimal.toBigInt)
     def toBigDecimal: BigDecimal = m.decimal
   }
+
+  given Ordering[Math] = Ordering.by(_.decimal)
 }
 
 /** infinity values */

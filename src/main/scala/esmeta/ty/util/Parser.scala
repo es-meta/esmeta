@@ -205,11 +205,11 @@ trait Parsers extends BasicParsers {
     ^^ { case ds => MathSetTy(ds.toSet.map(Math(_))) } |
     camel
     ^? {
-      case "Int"       => IntTy
-      case "NonPosInt" => NonPosIntTy
-      case "NonNegInt" => NonNegIntTy
-      case "NegInt"    => NegIntTy
-      case "PosInt"    => PosIntTy
+      case "Int"       => MathTy.Int
+      case "NonPosInt" => MathTy.NonPosInt
+      case "NonNegInt" => MathTy.NonNegInt
+      case "NegInt"    => MathTy.NegInt
+      case "PosInt"    => MathTy.PosInt
       case "Math"      => MathTopTy
     }
 

@@ -95,11 +95,11 @@ def EnumT(set: Set[String]): ValueTy =
 def EnumT(xs: String*): ValueTy = EnumT(xs.toSet)
 lazy val MathT: ValueTy = ValueTy(math = MathTy.Top)
 lazy val ExtMathT: ValueTy = MathT || InfinityT
-lazy val IntT: ValueTy = ValueTy(math = IntTy)
-lazy val NonPosIntT: ValueTy = ValueTy(math = NonPosIntTy)
-lazy val NonNegIntT: ValueTy = ValueTy(math = NonNegIntTy)
-lazy val NegIntT: ValueTy = ValueTy(math = NegIntTy)
-lazy val PosIntT: ValueTy = ValueTy(math = PosIntTy)
+lazy val IntT: ValueTy = ValueTy(math = MathTy.Int)
+lazy val NonPosIntT: ValueTy = ValueTy(math = MathTy.NonPosInt)
+lazy val NonNegIntT: ValueTy = ValueTy(math = MathTy.NonNegInt)
+lazy val NegIntT: ValueTy = ValueTy(math = MathTy.NegInt)
+lazy val PosIntT: ValueTy = ValueTy(math = MathTy.PosInt)
 def MathT(ds: BigDecimal*): ValueTy =
   if (ds.isEmpty) BotT
   else ValueTy(math = MathSetTy(ds.toSet.map(Math(_))))
