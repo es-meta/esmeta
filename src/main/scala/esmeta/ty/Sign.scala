@@ -50,9 +50,30 @@ case class Sign(neg: Boolean, zero: Boolean, pos: Boolean)
     else if value < 0 then neg
     else pos
 
+  def contains(value: BigDecimal): Boolean =
+    if value == 0 then zero
+    else if value < 0 then neg
+    else pos
+
   def isZero: Boolean = this match
-    case Sign(_, true, _) => true
-    case _                => false
+    case Sign(false, true, false) => true
+    case _                        => false
+
+  def isPos: Boolean = this match
+    case Sign(false, false, _) => true
+    case _                     => false
+
+  def isNeg: Boolean = this match
+    case Sign(_, false, false) => true
+    case _                     => false
+
+  def isNonNeg: Boolean = this match
+    case Sign(false, _, _) => true
+    case _                 => false
+
+  def isNonPos: Boolean = this match
+    case Sign(_, _, false) => true
+    case _                 => false
 }
 
 object Sign {

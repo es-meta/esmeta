@@ -174,10 +174,9 @@ trait AbsValueDecl { self: TyChecker =>
           else ValueTy.Bot
         case COp.ToNumber =>
           lazy val fromMath = ty.math match
-            case MathTopTy => NumberTy.Top
-            case MathIntTy(int) => // Temporal Impl
+            case MathSignTy(_) => NumberTy.Top
+            case MathIntTy(int) => 
               int match
-                // case IntSetTy(set) => NumberSetTy(set.map(n => Number(n.toDouble)))
                 case IntSetTy(set) => NumberTy.Int
                 case IntSignTy(sign) =>
                   if int == IntTy.Top then NumberTy.Int
@@ -267,7 +266,7 @@ trait AbsValueDecl { self: TyChecker =>
     def unary_-(using AbsState): AbsValue =
       val ty = this.ty
       val mathTy = ty.math match
-        case MathTopTy      => MathTopTy
+        case MathSignTy(s)  => MathSignTy(-s)
         case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
       val numberTy = ty.number match
@@ -286,8 +285,8 @@ trait AbsValueDecl { self: TyChecker =>
     def unary_~(using AbsState): AbsValue =
       val ty = this.ty
       val mathTy = ty.math match
-        case MathTopTy    => MathTy.Int
-        case MathIntTy(x) => MathIntTy(~x)
+        case s @ MathSignTy(_) => if s.isBottom then MathTy.Bot else MathTy.Top
+        case MathIntTy(x)      => MathIntTy(~x)
         case MathSetTy(set) =>
           MathSetTy(set.map(m => Math(~(m.decimal.toInt))))
       val numberTy = ty.number match
@@ -300,7 +299,7 @@ trait AbsValueDecl { self: TyChecker =>
     /** absolute operation */
     def abs(using AbsState): AbsValue =
       val mathTy = this.ty.math match
-        case MathTopTy      => MathTopTy
+        case MathSignTy(_)  => MathTy.Top
         case MathIntTy(x)   => MathIntTy(x.abs)
         case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
       AbsValue(ValueTy(math = mathTy))
@@ -308,7 +307,7 @@ trait AbsValueDecl { self: TyChecker =>
     /** floor operation */
     def floor(using AbsState): AbsValue =
       val mathTy = this.ty.math match
-        case MathTopTy      => MathTy.Int
+        case MathSignTy(_)  => MathTy.Int
         case MathIntTy(x)   => MathIntTy(x.floor)
         case MathSetTy(set) => MathSetTy(set.map(Interpreter.floor))
       AbsValue(ValueTy(math = mathTy))

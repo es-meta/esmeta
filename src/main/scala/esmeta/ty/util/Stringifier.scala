@@ -233,7 +233,15 @@ object Stringifier {
   /** mathematical value types */
   given mathTyRule: Rule[MathTy] = (app, ty) =>
     ty match
-      case MathTopTy      => app >> "Math"
+      case MathSignTy(sign) =>
+        if sign.isTop then app >> "Math"
+        else if sign == Sign.Pos then app >> "PosMath"
+        else if sign == Sign.Neg then app >> "NegMath"
+        else if sign == Sign.Zero then app >> MathSetTy(Set(Math(0)))
+        else if sign == Sign.NonNeg then app >> "NonNegMath"
+        else if sign == Sign.NonPos then app >> "NonPosMath"
+        else if sign == Sign.Bot then app >> "Math[Bot]"
+        else throw new IllegalArgumentException(s"Invalid sign: $sign")
       case MathIntTy(x)   => app >> x
       case MathSetTy(set) => app >> "Math" >> set
 

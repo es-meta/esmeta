@@ -210,7 +210,7 @@ trait Parsers extends BasicParsers {
       case "NonNegInt" => MathTy.NonNegInt
       case "NegInt"    => MathTy.NegInt
       case "PosInt"    => MathTy.PosInt
-      case "Math"      => MathTopTy
+      case "Math"      => MathTy.Top
     }
 
   /** infinity types */
