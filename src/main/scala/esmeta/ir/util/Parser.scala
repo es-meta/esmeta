@@ -116,8 +116,10 @@ trait Parsers extends TyParsers {
   given expr: Parser[Expr] = {
     "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
-    } | "(" ~ "grammar-symbol" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
-      case x ~ ps => EGrammarSymbol(x, ps)
+    } | "(" ~ "grammar-symbol" ~> ("|" ~> opt(
+      word,
+    ) <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => EGrammarSymbol(x.getOrElse(""), ps)
     } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
