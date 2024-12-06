@@ -74,7 +74,7 @@ case class CFG(
     for {
       prod <- grammar.prods
       name = prod.name if !(grammar.lexicalNames contains name)
-      (rhs, idx) <- prod.rhsList.zipWithIndex
+      (rhs, idx) <- prod.rhsVec.zipWithIndex
       subIdx <- (0 until rhs.countSubs)
       to = (name, idx, subIdx)
     } rhs.getNts(subIdx) match

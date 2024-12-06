@@ -83,7 +83,7 @@ sealed trait Ast extends ESElem with Locational {
     // TODO remove this case if possible
     case (syn: Syntactic, Str(fieldStr)) =>
       val Syntactic(name, _, rhsIdx, children) = syn
-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
+      val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
       rhs.getRhsIndex(fieldStr).flatMap(children(_))
     case (syn: Syntactic, Math(n)) if n.isValidInt =>
       syn.children(n.toInt)
@@ -115,7 +115,7 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => 0
     case Syntactic(name, _, rhsIdx, children) =>
       cfg.grammar.nameMap.get(name).fold(0) { prod =>
-        val rhs = prod.rhsList(rhsIdx)
+        val rhs = prod.rhsVec(rhsIdx)
         val optionals = (for {
           ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
         } yield !child.isEmpty)

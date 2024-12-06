@@ -1,0 +1,4881 @@
+diff --git a/build.sbt b/build.sbt
+index 783f5ab4..28079231 100644
+--- a/build.sbt
++++ b/build.sbt
+@@ -171,6 +173,8 @@ lazy val root = project
+         .cross(CrossVersion.for3Use2_13),
+       ("ch.megard" %% "akka-http-cors" % "1.1.2")
+         .cross(CrossVersion.for3Use2_13), // cors
++      "org.graalvm.polyglot" % "polyglot" % "23.1.2",
++      "org.graalvm.polyglot" % "js" % "23.1.2" pomOnly (),
+     ),
+ 
+     // Copy all managed dependencies to <build-root>/lib_managed/ This is
+@@ -189,6 +193,15 @@ lazy val root = project
+     // assembly setting
+     assembly / test := {},
+     assembly / assemblyOutputPath := file("bin/esmeta"),
++    // fix deduplicate issue of polyglot dependencies
++    // https://stackoverflow.com/questions/54834125/sbt-assembly-deduplicate-module-info-class
++    assembly / assemblyMergeStrategy := {
++      case PathList("module-info.class")               => MergeStrategy.last
++      case path if path.endsWith("/module-info.class") => MergeStrategy.last
++      case x =>
++        val oldStrategy = (assembly / assemblyMergeStrategy).value
++        oldStrategy(x)
++    },
+ 
+     /** tasks for tests */
+     // basic tests
+diff --git a/src/main/scala/esmeta/analyzer/AbsTransfer.scala b/src/main/scala/esmeta/analyzer/AbsTransfer.scala
+index 7ecaf276..1cbcc0a0 100644
+--- a/src/main/scala/esmeta/analyzer/AbsTransfer.scala
++++ b/src/main/scala/esmeta/analyzer/AbsTransfer.scala
+@@ -454,7 +454,7 @@ trait AbsTransferDecl { self: Analyzer =>
+                   case _                    => exploded("ESyntactic")
+                 }),
+               )
+-              AbsValue(Syntactic(name, args, rhsIdx, cs0))
++              AbsValue(Syntactic(name, args, rhsIdx, cs0.toVector))
+             }
+           }
+         case ELexical(name, expr) => notSupported("ELexical")
+diff --git a/src/main/scala/esmeta/analyzer/domain/heap/HeapBasicDomain.scala b/src/main/scala/esmeta/analyzer/domain/heap/HeapBasicDomain.scala
+index 76dd2f0a..d675df05 100644
+--- a/src/main/scala/esmeta/analyzer/domain/heap/HeapBasicDomain.scala
++++ b/src/main/scala/esmeta/analyzer/domain/heap/HeapBasicDomain.scala
+@@ -48,7 +48,7 @@ trait HeapBasicDomainDecl { self: Self =>
+ 
+     /** set bases */
+     def setBase(heap: Heap): Unit = base = (for {
+-      (addr, obj) <- heap.map
++      (addr, (obj, _)) <- heap.map
+       part = Part.from(addr)
+       aobj = AbsObj(obj)
+     } yield part -> aobj).toMap
+diff --git a/src/main/scala/esmeta/analyzer/domain/state/StateBasicDomain.scala b/src/main/scala/esmeta/analyzer/domain/state/StateBasicDomain.scala
+index 49db5d7c..f392d8d1 100644
+--- a/src/main/scala/esmeta/analyzer/domain/state/StateBasicDomain.scala
++++ b/src/main/scala/esmeta/analyzer/domain/state/StateBasicDomain.scala
+@@ -410,7 +410,7 @@ trait StateBasicDomainDecl { self: Self =>
+           ast.parent.map(AbsValue(_)).getOrElse(AbsValue(Absent))
+         case (One(AstValue(syn: es.Syntactic)), One(Str(fieldStr))) =>
+           val es.Syntactic(name, _, rhsIdx, children) = syn
+-          val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
++          val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
+           rhs.getNtIndex(fieldStr).flatMap(children(_)) match
+             case Some(child) => AbsValue(child)
+             case _           => AbsValue.Bot
+diff --git a/src/main/scala/esmeta/analyzer/domain/state/StateTypeDomain.scala b/src/main/scala/esmeta/analyzer/domain/state/StateTypeDomain.scala
+index 22d96bec..85cc4d94 100644
+--- a/src/main/scala/esmeta/analyzer/domain/state/StateTypeDomain.scala
++++ b/src/main/scala/esmeta/analyzer/domain/state/StateTypeDomain.scala
+@@ -322,7 +322,7 @@ trait StateTypeDomainDecl { self: Self =>
+     )(field: ValueTy): ValueTy = field.math.getSingle match
+       case One(Math(n)) if n.isValidInt =>
+         val fieldIdx = n.toInt
+-        val rhs = cfg.grammar.nameMap(name).rhsList(idx)
++        val rhs = cfg.grammar.nameMap(name).rhsVec(idx)
+         val nts = rhs.getNts(subIdx)
+         nts(fieldIdx).fold(AbsentT)(AstT(_))
+       case Zero | One(_) => BotT
+diff --git a/src/main/scala/esmeta/analyzer/domain/value/ValueTypeDomain.scala b/src/main/scala/esmeta/analyzer/domain/value/ValueTypeDomain.scala
+index eed2fa50..c34fa95e 100644
+--- a/src/main/scala/esmeta/analyzer/domain/value/ValueTypeDomain.scala
++++ b/src/main/scala/esmeta/analyzer/domain/value/ValueTypeDomain.scala
+@@ -614,9 +614,9 @@ trait ValueTypeDomainDecl { self: Self =>
+     /** ast type check helper */
+     lazy val astDirectChildMap: Map[String, Set[String]] =
+       (cfg.grammar.prods.map {
+-        case Production(lhs, _, _, rhsList) =>
++        case Production(lhs, _, _, rhsVec) =>
+           val name = lhs.name
+-          val subs = rhsList.collect {
++          val subs = rhsVec.collect {
+             case Rhs(_, List(Nonterminal(name, _)), _) => name
+           }.toSet
+           name -> subs
+@@ -647,7 +647,11 @@ trait ValueTypeDomainDecl { self: Self =>
+             if (defaultSdos contains method) {
+               val defaultFunc = cfg.fnameMap(s"<DEFAULT>.$method")
+               for {
+-                (rhs, idx) <- cfg.grammar.nameMap(name).rhsList.zipWithIndex
++                (rhs, idx) <- cfg.grammar
++                  .nameMap(name)
++                  .rhsVec
++                  .toList
++                  .zipWithIndex
+                 subIdx <- (0 until rhs.countSubs)
+               } yield (defaultFunc, Elem(AstSingleT(name, idx, subIdx)))
+             } else Nil
+@@ -685,7 +689,7 @@ trait ValueTypeDomainDecl { self: Self =>
+       for {
+         prod <- cfg.grammar.prods
+         name = prod.name if !(cfg.grammar.lexicalNames contains name)
+-        (rhs, idx) <- prod.rhsList.zipWithIndex
++        (rhs, idx) <- prod.rhsVec.zipWithIndex
+         subIdx <- (0 until rhs.countSubs)
+       } {
+         val syntacticName = s"$name[$idx,$subIdx]"
+diff --git a/src/main/scala/esmeta/cfg/CFG.scala b/src/main/scala/esmeta/cfg/CFG.scala
+index c18b460a..6258af10 100644
+--- a/src/main/scala/esmeta/cfg/CFG.scala
++++ b/src/main/scala/esmeta/cfg/CFG.scala
+@@ -2,7 +2,9 @@ package esmeta.cfg
+ 
+ import esmeta.*
+ import esmeta.cfg.util.*
+-import esmeta.ir.Program
++import esmeta.es.Initialize
++import esmeta.ir.util.*
++import esmeta.ir.{Program, EReturnIfAbrupt}
+ import esmeta.parser.{ESParser, AstFrom}
+ import esmeta.spec.{Spec, Grammar}
+ import esmeta.ty.TyModel
+@@ -26,6 +28,9 @@ case class CFG(
+   lazy val esParser: ESParser = program.esParser
+   lazy val scriptParser: AstFrom = esParser("Script")
+ 
++  /** ECMAScript initializer */
++  lazy val init: Initialize = new Initialize(this)
++
+   /** mapping from fid to functions */
+   lazy val funcMap: Map[Int, Func] =
+     (for (func <- funcs) yield func.id -> func).toMap
+@@ -49,6 +54,12 @@ case class CFG(
+     node <- func.nodes
+   } yield node -> func).toMap
+ 
++  /** all return if abrupt expressions */
++  lazy val riaExprs: List[EReturnIfAbrupt] = ReturnIfAbruptCollector(program)
++  lazy val riaExprMap: Map[Int, EReturnIfAbrupt] = (for {
++    riaExpr <- riaExprs
++  } yield riaExpr.id -> riaExpr).toMap
++
+   /** get a type model */
+   def tyModel: TyModel = spec.tyModel
+ 
+@@ -88,3 +99,15 @@ case class CFG(
+       val pdfPath = if (pdf) Some(s"$path.pdf") else None
+       func.dumpDot(dotPath, pdfPath)
+ }
++object CFG {
++
++  /** a default cfg */
++  lazy val defaultCFG = getDefaultCFG
++
++  /** create a new default cfg */
++  def getDefaultCFG =
++    import esmeta.cfgBuilder.CFGBuilder
++    import esmeta.compiler.Compiler
++    import esmeta.extractor.Extractor
++    CFGBuilder(Compiler(Extractor()))
++}
+diff --git a/src/main/scala/esmeta/cfg/Node.scala b/src/main/scala/esmeta/cfg/Node.scala
+index d0347628..e05f4809 100644
+--- a/src/main/scala/esmeta/cfg/Node.scala
++++ b/src/main/scala/esmeta/cfg/Node.scala
+@@ -1,7 +1,7 @@
+ package esmeta.cfg
+ 
+ import esmeta.cfg.util.*
+-import esmeta.util.{UId, Locational}
++import esmeta.util.{UId, Loc}
+ import esmeta.ir.*
+ import scala.collection.mutable.{Queue, ListBuffer}
+ 
+@@ -29,6 +29,18 @@ sealed trait Node extends CFGElem with UId {
+         case branch: Branch => add(branch.thenNode); add(branch.elseNode)
+     }
+     visited
++
++  /** get source locations */
++  def loc: Option[Loc] = this match
++    case block: Block =>
++      for {
++        head <- block.insts.headOption
++        headLoc <- head.loc
++        last <- block.insts.lastOption
++        lastLoc <- last.loc
++      } yield Loc(headLoc.start, lastLoc.end, headLoc.steps)
++    case call: Call     => call.callInst.loc
++    case branch: Branch => branch.cond.loc
+ }
+ 
+ /** block nodes */
+@@ -72,6 +84,21 @@ case class Branch(
+   def isLoop: Boolean = kind match
+     case BranchKind.If    => false
+     case BranchKind.While => true
++
++  def isChildPresentCheck(cfg: CFG): Boolean =
++    import UOp.*
++    import BOp.*
++    cfg.funcOf(this).isSDO && (cond match {
++      //  (! (= this[_] absent))
++      case EUnary(
++            Not,
++            EBinary(Eq, ERef(Field(Name("this"), EMath(_))), EAbsent()),
++          ) =>
++        true
++      //  (= this[_] absent)
++      case EBinary(Eq, ERef(Field(Name("this"), EMath(_))), EAbsent()) => true
++      case _                                                           => false
++    })
+ }
+ enum BranchKind extends CFGElem:
+   case If
+diff --git a/src/main/scala/esmeta/cfg/util/JsonProtocol.scala b/src/main/scala/esmeta/cfg/util/JsonProtocol.scala
+new file mode 100644
+index 00000000..cb7c7db2
+--- /dev/null
++++ b/src/main/scala/esmeta/cfg/util/JsonProtocol.scala
+@@ -0,0 +1,30 @@
++package esmeta.cfg.util
++import esmeta.cfg.*
++import esmeta.util.*
++import io.circe.*, io.circe.syntax.*
++import io.circe.generic.auto.*, io.circe.generic.semiauto.*
++
++class JsonProtocol(cfg: CFG) extends BasicJsonProtocol {
++  // functions
++  given funcDecoder: Decoder[Func] = idDecoder(cfg.funcMap.get)
++  given funcEncoder: Encoder[Func] = idEncoder
++
++  // nodes
++  given nodeDecoder: Decoder[Node] = idDecoder(cfg.nodeMap.get)
++  given nodeEncoder: Encoder[Node] = idEncoder
++
++  // block nodes
++  given blockDecoder: Decoder[Block] =
++    idDecoder(cfg.nodeMap.get(_).collect { case block: Block => block })
++  given blockEncoder: Encoder[Block] = idEncoder
++
++  // call nodes
++  given callDecoder: Decoder[Call] =
++    idDecoder(cfg.nodeMap.get(_).collect { case call: Call => call })
++  given callEncoder: Encoder[Call] = idEncoder
++
++  // branch nodes
++  given branchDecoder: Decoder[Branch] =
++    idDecoder(cfg.nodeMap.get(_).collect { case branch: Branch => branch })
++  given branchEncoder: Encoder[Branch] = idEncoder
++}
+diff --git a/src/main/scala/esmeta/compiler/Compiler.scala b/src/main/scala/esmeta/compiler/Compiler.scala
+index e616f5ce..7ef7c0c8 100644
+--- a/src/main/scala/esmeta/compiler/Compiler.scala
++++ b/src/main/scala/esmeta/compiler/Compiler.scala
+@@ -762,7 +762,7 @@ class Compiler(
+     case ProductionLiteral(lhsName, rhsName) =>
+       // XXX need to handle arguments, children?
+       val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
+-      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
++      ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Vector())
+     case ErrorObjectLiteral(name) =>
+       val proto = EStr(Intrinsic(name, List("prototype")).toString)
+       val (x, xExpr) = fb.newTIdWithExpr
+@@ -1038,13 +1038,13 @@ class Compiler(
+   /** production helpers */
+   def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+     val prod = grammar.nameMap(lhsName)
+-    val rhsList = prod.rhsList.zipWithIndex.filter {
++    val rhsVec = prod.rhsVec.zipWithIndex.filter {
+       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
+       case (rhs, _)                         => rhs.allNames contains rhsName
+     }
+-    rhsList match
+-      case (rhs, idx) :: Nil => (prod.lhs, idx)
+-      case _                 => error("invalid production")
++    rhsVec match
++      case Vector((rhs, idx)) => (prod.lhs, idx)
++      case _                  => error("invalid production")
+ 
+   /** instruction helpers */
+   inline def toParams(paramOpt: Option[Variable]): List[IRParam] =
+diff --git a/src/main/scala/esmeta/compiler/FuncBuilder.scala b/src/main/scala/esmeta/compiler/FuncBuilder.scala
+index af270910..3e22ea3e 100644
+--- a/src/main/scala/esmeta/compiler/FuncBuilder.scala
++++ b/src/main/scala/esmeta/compiler/FuncBuilder.scala
+@@ -30,7 +30,7 @@ case class FuncBuilder(
+   /** bindings for nonterminals */
+   var ntBindings: List[(String, Expr, Option[Int])] = algo.head match
+     case SyntaxDirectedOperationHead(Some(target), _, _, _, _) =>
+-      val rhs = grammar.nameMap(target.lhsName).rhsList(target.idx)
++      val rhs = grammar.nameMap(target.lhsName).rhsVec(target.idx)
+       val rhsNames = rhs.nts.map(_.name)
+       val rhsBindings = rhsNames.zipWithIndex.map {
+         case (name, idx) => (name, ENAME_THIS, Some(idx))
+diff --git a/src/main/scala/esmeta/error/UtilError.scala b/src/main/scala/esmeta/error/UtilError.scala
+index beb6a3db..5c821d6a 100644
+--- a/src/main/scala/esmeta/error/UtilError.scala
++++ b/src/main/scala/esmeta/error/UtilError.scala
+@@ -8,3 +8,8 @@ case class InvalidGitVersion(msg: String)
+ 
+ case class GitTagMismatch(hash: String, tagName: String)
+   extends UtilError(s"Git tag mismatch: $hash != $tagName")
++
++case object NoGraalError extends UtilError("No Graal polyglot API")
++
++case class NoCommandError(command: String)
++  extends UtilError(s"Command not found: $command")
+diff --git a/src/main/scala/esmeta/es/Ast.scala b/src/main/scala/esmeta/es/Ast.scala
+index 479a6669..5bfe5040 100644
+--- a/src/main/scala/esmeta/es/Ast.scala
++++ b/src/main/scala/esmeta/es/Ast.scala
+@@ -42,28 +42,28 @@ sealed trait Ast extends ESElem with Locational {
+     case lex: Lexical => List(this)
+     case syn: Syntactic =>
+       syn.children.flatten match
+-        case child :: Nil => this :: child.chains
+-        case _            => List(this)
++        case Vector(child) => this :: child.chains
++        case _             => List(this)
+ 
+   /** get items */
+   def getItems(name: String): List[Ast] = this match
+     case _: Lexical => Nil
+     case syn: Syntactic =>
+-      for {
++      (for {
+         child <- syn.children.flatten
+         item <-
+           if (child.name == this.name) child.getItems(name)
+           else if (child.name == name) List(child)
+           else throw InvalidASTItem(child, name)
+-      } yield item
++      } yield item).toList
+ 
+   /** types */
+   lazy val types: Set[String] =
+     Set(name, s"$name$idx") union (this match
+       case Syntactic(_, _, _, cs) =>
+         (cs match
+-          case List(Some(child)) => child.types
+-          case _                 => Set()
++          case Vector(Some(child)) => child.types
++          case _                   => Set()
+         ) + "Nonterminal"
+       case _: Lexical => Set()
+     ) + "ParseNode"
+@@ -71,9 +71,9 @@ sealed trait Ast extends ESElem with Locational {
+   /** flatten statements */
+   // TODO refactoring
+   def flattenStmt: List[Ast] = this match
+-    case Syntactic("Script", _, 0, List(Some(body))) =>
++    case Syntactic("Script", _, 0, Vector(Some(body))) =>
+       body match
+-        case Syntactic("ScriptBody", _, 0, List(Some(stlist))) =>
++        case Syntactic("ScriptBody", _, 0, Vector(Some(stlist))) =>
+           flattenStmtList(stlist)
+         case _ => Nil
+     case _ => Nil
+@@ -111,7 +111,7 @@ sealed trait Ast extends ESElem with Locational {
+   def getSubIdx(using cfg: CFG): Int = this match
+     case lex: Lexical => 0
+     case Syntactic(name, _, rhsIdx, children) =>
+-      val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
++      val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
+       val optionals = (for {
+         ((_, opt), child) <- rhs.ntsWithOptional zip children if opt
+       } yield !child.isEmpty)
+@@ -129,7 +129,7 @@ case class Syntactic(
+   name: String,
+   args: List[Boolean],
+   rhsIdx: Int,
+-  children: List[Option[Ast]],
++  children: Vector[Option[Ast]],
+ ) extends Ast
+ 
+ /** ASTs constructed by lexical productions */
+diff --git a/src/main/scala/esmeta/es/Initialize.scala b/src/main/scala/esmeta/es/Initialize.scala
+index 2b3c20a5..ebd18e59 100644
+--- a/src/main/scala/esmeta/es/Initialize.scala
++++ b/src/main/scala/esmeta/es/Initialize.scala
+@@ -11,19 +11,30 @@ import scala.collection.mutable.{Map => MMap}
+ 
+ class Initialize(cfg: CFG) {
+ 
+-  /** the result state of initialization */
+-  def getResult(
+-    sourceText: String,
+-    cachedAst: Option[Ast],
+-    filename: Option[String],
+-  ): State = State(
++  /** get initial state from source text */
++  def from(sourceText: String): State =
++    val (ast, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
++    from(semiInjected, ast)
++
++  /** get initial state from script */
++  def from(script: Script): State = from(script.code)
++
++  /** get initial state from JS file */
++  def fromFile(filename: String): State =
++    val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
++    from(semiInjected, ast)
++
++  def from(ast: Ast): State =
++    from(ast.toString(grammar = Some(cfg.grammar)), ast)
++
++  /** get initial state with source text and cached AST */
++  private def from(sourceText: String, cachedAst: Ast): State = State(
+     cfg,
+     context = Context(cfg.main),
+     sourceText = Some(sourceText),
+-    cachedAst = cachedAst,
+-    filename = filename,
++    cachedAst = Some(cachedAst),
+     globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
+-    heap = initHeap,
++    heap = initHeap.copied,
+   )
+ 
+   // initial globals
+@@ -90,7 +101,7 @@ class Initialize(cfg: CFG) {
+     // add global object
+     map ++= glob.map
+ 
+-    Heap(map, map.size)
++    Heap.initialize(map, map.size)
+   }
+ 
+   // ---------------------------------------------------------------------------
+@@ -254,15 +265,3 @@ class Initialize(cfg: CFG) {
+   private def getLength(head: Head): Int =
+     head.originalParams.count(_.kind == ParamKind.Normal)
+ }
+-object Initialize {
+-  def apply(
+-    cfg: CFG,
+-    sourceText: String,
+-    cachedAst: Option[Ast] = None,
+-    filename: Option[String] = None,
+-  ): State = new Initialize(cfg).getResult(sourceText, cachedAst, filename)
+-
+-  /** initialize from file */
+-  def fromFile(cfg: CFG, filename: String): State =
+-    apply(cfg, readFile(filename), filename = Some(filename))
+-}
+diff --git a/src/main/scala/esmeta/es/Script.scala b/src/main/scala/esmeta/es/Script.scala
+new file mode 100644
+index 00000000..77c3acdf
+--- /dev/null
++++ b/src/main/scala/esmeta/es/Script.scala
+@@ -0,0 +1,4 @@
++package esmeta.es
++
++/** ECMAScript script program */
++case class Script(code: String, name: String) extends ESElem
+diff --git a/src/main/scala/esmeta/es/util/Coverage.scala b/src/main/scala/esmeta/es/util/Coverage.scala
+index b3b3d323..2af67bba 100644
+--- a/src/main/scala/esmeta/es/util/Coverage.scala
++++ b/src/main/scala/esmeta/es/util/Coverage.scala
+@@ -1,135 +1,247 @@
+ package esmeta.es.util
+ 
++import esmeta.LINE_SEP
+ import esmeta.cfg.*
++import esmeta.injector.*
+ import esmeta.interpreter.*
+-import esmeta.ir.*
++import esmeta.ir.{EReturnIfAbrupt, Expr, EParse, EBool}
+ import esmeta.es.*
+-import esmeta.test262.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.Interp
+ import esmeta.state.*
+ import esmeta.util.*
+ import esmeta.util.SystemUtils.*
+-import scala.collection.mutable.{Set => MSet, Map => MMap, ArrayBuffer}
+ import io.circe.*, io.circe.syntax.*
+ 
++import scala.math.Ordering.Implicits.seqOrdering
++
+ /** coverage measurement of cfg */
+ case class Coverage(
+   cfg: CFG,
+-  test262: Option[Test262] = None,
++  kFs: Int = 0,
++  cp: Boolean = false,
+   timeLimit: Option[Int] = None,
++  logDir: Option[String] = None, // TODO: use this
+ ) {
++  import Coverage.{*, given}
++
++  val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
++  import jsonProtocol.given
++
++  // minimal scripts
++  def minimalScripts: Set[Script] = _minimalScripts
++  private var _minimalScripts: Set[Script] = Set()
++
++  // meta-info of each script
++  private var _minimalInfo: Map[String, ScriptInfo] = Map()
++
++  // mapping from nodes/conditions to scripts
++  private var nodeViewMap: Map[Node, Map[View, Script]] = Map()
++  private var nodeViews: Set[NodeView] = Set()
++  private var condViewMap: Map[Cond, Map[View, Script]] = Map()
++  private var condViews: Set[CondView] = Set()
+ 
+-  /** data structures for coverage */
+-  private lazy val programs: ArrayBuffer[(String, Int)] = ArrayBuffer()
+-  private lazy val nodeMap: MMap[Int, Int] = MMap()
++  def apply(node: Node): Map[View, Script] = nodeViewMap.getOrElse(node, Map())
++  def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
++
++  def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
++  def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
++
++  // script reference counter
++  private var counter: Map[Script, Int] = Map()
++  def size: Int = counter.size
++
++  // target conditional branches
++  private var _targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = Map()
++  def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
+ 
+-  /** update coverage for a given ECMAScript program */
+   private lazy val scriptParser = cfg.scriptParser
+-  def run(path: String): State = {
+-    // script AST
+-    val script = test262 match
+-      case Some(test262) => test262.loadTest(path)
+-      case None          => scriptParser.fromFile(path)
+-
+-    // program name
+-    val programName = test262 match
+-      case Some(test262) => path
+-      case None          => path.split("/").reverse.head
+-
+-    // program infos
+-    val pid = programs.size
+-    val code = script.toString(grammar = Some(cfg.grammar)).trim
+-    val programSize = code.length
+-    programs += ((programName, programSize))
+-
+-    var markedAst = script.nodeSet
+-
+-    // run interpreter and record touched
+-    val touched: MSet[Int] = MSet()
+-    val finalSt = new Interpreter(
+-      Initialize(cfg, code, Some(script)),
+-      timeLimit = timeLimit,
+-    ) {
+-      // check if current state need to be recorded
+-      private def needRecord: Boolean =
+-        val contexts = st.context :: st.callStack.map(_.context)
+-        val astOpt = contexts.flatMap(_.astOpt).headOption
+-        astOpt.fold(false)(markedAst contains _)
+-
+-      // override eval for node
+-      override def eval(node: Node): Unit =
+-        // record touched
+-        if (needRecord) touched += node.id
+-        super.eval(node)
+-
+-      // handle dynamically created ast
+-      override def eval(expr: Expr): Value =
+-        val v = super.eval(expr)
+-        (expr, v) match
+-          case (_: EParse, AstValue(ast)) if needRecord =>
+-            markedAst ++= ast.nodeSet
+-          case _ => /* do nothing */
+-        v
+-    }.result
+-
+-    // update coverage
+-    for { nid <- touched } {
+-      nodeMap.get(nid) match
+-        case Some(pid0) if programs(pid0)._2 <= programSize => /* do nothing */
+-        case _ => nodeMap += (nid -> pid)
+-    }
+ 
+-    finalSt
++  /** evaluate a given ECMAScript program, update coverage, and return
++    * evaluation result with whether it succeeds to increase coverage
++    */
++  def runAndCheck(script: Script): (State, Boolean, Boolean) = {
++    val interp = run(script.code)
++    this.synchronized(check(script, interp))
+   }
+ 
++  def runAndCheck(ast: Ast, name: String): (State, Boolean, Boolean) = {
++    val code = ast.toString(grammar = Some(cfg.grammar))
++    val interp = run(code)
++    this.synchronized(check(Script(code, name), interp))
++  }
++
++  /** evaluate a given ECMAScript program */
++  def run(code: String): Interp = {
++    val initSt = cfg.init.from(code)
++    val interp = Interp(initSt, kFs, cp, timeLimit)
++    interp.result; interp
++  }
++
++  /** evaluate a given ECMAScript AST */
++  def run(ast: Ast): Interp = {
++    val initSt = cfg.init.from(ast)
++    val interp = Interp(initSt, kFs, cp, timeLimit)
++    interp.result; interp
++  }
++
++  def check(script: Script, interp: Interp): (State, Boolean, Boolean) =
++    val Script(code, _) = script
++    val initSt = cfg.init.from(code)
++    val finalSt = interp.result
++
++    var covered = false
++    var updated = false
++    var blockingScripts: Set[Script] = Set.empty
++
++    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
++    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
++
++    // update node coverage
++    for ((nodeView, nearest) <- interp.touchedNodeViews)
++      touchedNodeViews += nodeView -> nearest
++      getScript(nodeView) match
++        case None => update(nodeView, script); updated = true; covered = true
++        case Some(originalScript) if originalScript.code.length > code.length =>
++          update(nodeView, script)
++          updated = true
++          blockingScripts += originalScript
++        case Some(blockScript) => blockingScripts += blockScript
++
++    // update branch coverage
++    for ((condView, nearest) <- interp.touchedCondViews)
++      touchedCondViews += condView -> nearest
++      getScript(condView) match
++        case None =>
++          update(condView, nearest, script); updated = true; covered = true
++        case Some(origScript) if origScript.code.length > code.length =>
++          update(condView, nearest, script)
++          updated = true
++          blockingScripts += origScript
++        case Some(blockScript) => blockingScripts += blockScript
++
++    if (updated)
++      _minimalInfo += script.name -> ScriptInfo(
++        ConformTest.createTest(cfg, finalSt),
++        touchedNodeViews.keys,
++        touchedCondViews.keys,
++      )
++
++    // TODO: impl checkWithBlocking using `blockingScripts`
++    (finalSt, updated, covered)
++
+   /** get node coverage */
+-  def nodeCov: (Int, Int) = (nodeMap.size, cfg.nodeMap.size)
++  def nodeCov: Int = nodeViewMap.size
++  def nodeViewCov: Int = nodeViews.size
+ 
+   /** get branch coverage */
+-  // TODO handle return-if-abrupt
+-  def branchCov: (Int, Int) =
+-    val branches = cfg.nodeMap.values.collect { case br: Branch => br }
+-    val count = branches.foldLeft(0) {
+-      case (acc, Branch(bid, _, _, Some(thenNode), Some(elseNode))) =>
+-        nodeMap.get(bid) match
+-          case Some(_) =>
+-            val t = if (nodeMap contains thenNode.id) 1 else 0
+-            val e = if (nodeMap contains elseNode.id) 1 else 0
+-            acc + t + e
+-          case _ => acc
+-      case (acc, _) => acc
+-    }
+-    (count, branches.size * 2)
++  def branchCov: Int = condViewMap.size
++  def branchViewCov: Int = condViews.size
++
++  /** dump results with detail */
++  def dumpToWithDetail(baseDir: String, withMsg: Boolean = true): Unit = dumpTo(
++    baseDir = baseDir,
++    withScripts = true,
++    withScriptInfo = true,
++    withTargetCondViews = true,
++    withUnreachableFuncs = true,
++    withMsg = withMsg,
++  )
+ 
+   /** dump results */
+-  def dumpTo(baseDir: String): Unit =
++  def dumpTo(
++    baseDir: String,
++    withScripts: Boolean = false,
++    withScriptInfo: Boolean = false,
++    withTargetCondViews: Boolean = false,
++    withUnreachableFuncs: Boolean = false,
++    // TODO(@hyp3rflow): use this for ignoring dump messages
++    withMsg: Boolean = false,
++  ): Unit =
+     mkdir(baseDir)
+-    val covData = for {
+-      nid <- cfg.nodeMap.keySet.toList.sorted
+-    } yield nodeMap.get(nid).map(programs(_)._1)
+-    val sizeData = (for {
+-      pid <- nodeMap.values.toSet
+-      (name, size) = programs(pid)
+-    } yield name -> size).toList
++    lazy val orderedNodeViews = nodeViews.toList.sorted
++    lazy val orderedCondViews = condViews.toList.sorted
++    lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
++    lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
++    dumpJson(
++      CoverageConstructor(kFs, cp, timeLimit),
++      s"$baseDir/constructor.json",
++    )
++
++    val st = System.nanoTime()
++    def elapsedSec = (System.nanoTime() - st) / 1e9
++    def log(msg: Any): Unit = if (withMsg) println(s"[${elapsedSec}s] $msg")
++
+     dumpJson(
+-      JsonObject(
+-        "coverage" -> covData.asJson,
+-        "size" -> sizeData.asJson,
+-      ),
+-      s"$baseDir/coverage.json",
+-      noSpace = true,
++      name = "node coverage",
++      data = nodeViewInfos(orderedNodeViews),
++      filename = s"$baseDir/node-coverage.json",
++      noSpace = false,
+     )
++    log("Dumped node coverage")
++    dumpJson(
++      name = "branch coverage",
++      data = condViewInfos(orderedCondViews),
++      filename = s"$baseDir/branch-coverage.json",
++      noSpace = false,
++    )
++    log("Dumped branch coverage")
++    if (withScripts)
++      dumpDir[Script](
++        name = "minimal ECMAScript programs",
++        iterable = _minimalScripts,
++        dirname = s"$baseDir/minimal",
++        getName = _.name,
++        getData = USE_STRICT + _.code + LINE_SEP,
++        remove = true,
++      )
++      log("Dumped scripts")
++    if (withScriptInfo)
++      dumpDir[(String, ScriptInfo)](
++        name = "minimal ECMAScript assertions",
++        iterable = _minimalInfo,
++        dirname = s"$baseDir/minimal-assertion",
++        getName = _._1,
++        getData = _._2.test.core, // TODO: dump this as json?
++        remove = true,
++      )
++      log("Dumped assertions")
++    if (withTargetCondViews)
++      dumpJson(
++        name = "target conditional branches",
++        data = (for {
++          (cond, viewMap) <- _targetCondViews
++          (view, _) <- viewMap
++        } yield getCondViewsId(CondView(cond, view))).toSeq.sorted.asJson,
++        filename = s"$baseDir/target-conds.json",
++        noSpace = false,
++      )
++      log("dumped target conds")
++    if (withUnreachableFuncs)
++      dumpFile(
++        name = "unreachable functions",
++        data = cfg.funcs
++          .filter(f => !nodeViewMap.contains(f.entry))
++          .map(_.name)
++          .sorted
++          .mkString(LINE_SEP),
++        filename = s"$baseDir/unreach-funcs",
++      )
++      log("dumped unreachable functions")
+ 
+   /** conversion to string */
+   private def percent(n: Double, t: Double): Double = n / t * 100
+-  override def toString: String = {
+-    val (nCovered, nTotal) = nodeCov
+-    val (bCovered, bTotal) = branchCov
+-    val nPercent = percent(nCovered, nTotal)
+-    val bPercent = percent(bCovered, bTotal)
+-    f"""- coverage:
+-       |  - node: $nCovered%,d/$nTotal%,d ($nPercent%2.2f%%)
+-       |  - branch: $bCovered%,d/$bTotal%,d ($bPercent%2.2f%%)""".stripMargin
+-  }
++  override def toString: String =
++    val app = new Appender
++    (app >> "- coverage:").wrap("", "") {
++      app :> "- node: " >> nodeCov
++      app :> "- branch: " >> branchCov
++    }
++    if (kFs > 0) (app :> "- sensitive coverage:").wrap("", "") {
++      app :> "- node: " >> nodeViewCov
++      app :> "- branch: " >> branchViewCov
++    }
++    app.toString
+ 
+   /** extension for AST */
+   extension (ast: Ast) {
+@@ -146,4 +258,217 @@ case class Coverage(
+         case _ => /* do nothing */
+       nodes
+   }
++
++  // ---------------------------------------------------------------------------
++  // private helpers
++  // ---------------------------------------------------------------------------
++  // update mapping from nodes to scripts
++  private def update(nodeView: NodeView, script: Script): Unit =
++    val NodeView(node, view) = nodeView
++    nodeViews += nodeView
++    nodeViewMap += node -> updated(apply(node), view, script)
++
++  // update mapping from conditional branches to scripts
++  private def update(
++    condView: CondView,
++    nearest: Option[Nearest],
++    script: Script,
++  ): Unit =
++    condViews += condView
++    val CondView(cond, view) = condView
++
++    // update target branches
++    val neg = condView.neg
++    cond.elem match
++      case _ if nearest.isEmpty                               =>
++      case Branch(_, _, EBool(_), _, _)                       =>
++      case b: Branch if b.isChildPresentCheck(cfg)            =>
++      case ref: WeakUIdRef[EReturnIfAbrupt] if !ref.get.check =>
++      case _ if getScript(neg).isDefined => removeTargetCond(neg)
++      case _                             => addTargetCond(condView, nearest)
++
++    condViewMap += cond -> updated(apply(cond), view, script)
++
++  // update mapping
++  private def updated[View](
++    map: Map[View, Script],
++    view: View,
++    script: Script,
++  ): Map[View, Script] =
++    // decrease counter of original script
++    for (origScript <- map.get(view)) {
++      val count = counter(origScript) - 1
++      counter += (origScript -> count)
++      if (count == 0) {
++        counter -= origScript
++        _minimalScripts -= origScript
++        _minimalInfo -= origScript.name
++      }
++    }
++    // increse counter of new script
++    _minimalScripts += script
++    counter += script -> (counter.getOrElse(script, 0) + 1)
++    map + (view -> script)
++
++  // add a cond to targetConds
++  private def addTargetCond(cv: CondView, nearest: Option[Nearest]): Unit =
++    val CondView(cond, view) = cv
++    val origViews = _targetCondViews.getOrElse(cond, Map())
++    val newViews = origViews + (view -> nearest)
++    _targetCondViews += cond -> newViews
++
++  // remove a cond from targetConds
++  private def removeTargetCond(cv: CondView): Unit =
++    val CondView(cond, view) = cv
++    for (views <- _targetCondViews.get(cond)) {
++      val newViews = views - view
++      if (newViews.isEmpty)
++        _targetCondViews -= cond
++      else
++        _targetCondViews += cond -> (views - view)
++    }
++
++  // get JSON for node coverage
++  private def nodeViewInfos(ordered: List[NodeView]): List[NodeViewInfo] =
++    for {
++      (nodeView, idx) <- ordered.zipWithIndex
++      script <- getScript(nodeView)
++    } yield NodeViewInfo(idx, nodeView, script.name)
++
++  // get JSON for branch coverage
++  private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
++    for {
++      (condView, idx) <- ordered.zipWithIndex
++      script <- getScript(condView)
++    } yield CondViewInfo(idx, condView, script.name)
++}
++
++object Coverage {
++  class Interp(
++    initSt: State,
++    kFs: Int,
++    cp: Boolean,
++    timeLimit: Option[Int],
++  ) extends Interpreter(initSt, timeLimit = timeLimit, keepProvenance = true) {
++    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
++    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
++
++    // override eval for node
++    override def eval(node: Node): Unit =
++      // record touched nodes
++      touchedNodeViews += NodeView(node, getView(node)) -> getNearest
++      super.eval(node)
++
++    // override branch move
++    override def moveBranch(branch: Branch, b: Boolean): Unit =
++      // record touched conditional branch
++      val cond = Cond(branch, b)
++      touchedCondViews += CondView(cond, getView(cond)) -> getNearest
++      super.moveBranch(branch, b)
++
++    // override helper for return-if-abrupt cases
++    override def returnIfAbrupt(
++      riaExpr: EReturnIfAbrupt,
++      value: Value,
++      check: Boolean,
++    ): Value =
++      val abrupt = value.isAbruptCompletion
++      val cond = Cond(riaExpr.idRef, abrupt)
++
++      touchedCondViews += CondView(cond, getView(cond)) -> getNearest
++      super.returnIfAbrupt(riaExpr, value, check)
++
++    // get syntax-sensitive views
++    private def getView(node: Node | Cond): View =
++      val stack = st.context.featureStack.take(kFs)
++      val path = if (cp) then Some(st.context.callPath) else None
++      stack match {
++        case Nil                  => None
++        case feature :: enclosing => Some(enclosing, feature, path)
++      }
++
++    // get location information
++    private def getNearest: Option[Nearest] = st.context.nearest
++  }
++
++  /** meta-information for each script */
++  case class ScriptInfo(
++    test: ConformTest,
++    touchedNodeViews: Iterable[NodeView],
++    touchedCondViews: Iterable[CondView],
++  )
++
++  /** syntax-sensitive view */
++  type View = Option[(List[Feature], Feature, Option[CallPath])]
++  private def stringOfView(view: View) = view.fold("") {
++    case (enclosing, feature, path) =>
++      s"@ $feature${enclosing.mkString("[", ", ", "]")}:${path.getOrElse("")}"
++  }
++  sealed trait NodeOrCondView(view: View) {}
++  case class NodeView(node: Node, view: View) extends NodeOrCondView(view) {
++    override def toString: String = node.simpleString + stringOfView(view)
++  }
++
++  case class CondView(cond: Cond, view: View) extends NodeOrCondView(view) {
++    override def toString: String = cond.toString + stringOfView(view)
++    def neg: CondView = copy(cond = cond.neg)
++  }
++
++  case class FuncView(func: Func, view: View) {
++    override def toString: String = func.name + stringOfView(view)
++  }
++
++  // branch or reference to EReturnIfAbrupt with boolean values
++  // `true` (`false`) denotes then- (else-) branch or abrupt (non-abrupt) value
++  case class Cond(elem: Branch | WeakUIdRef[EReturnIfAbrupt], cond: Boolean) {
++    def neg: Cond = copy(cond = !cond)
++
++    // short kind string
++    def kindString: String = elem match
++      case (branch: Branch)     => "Branch"
++      case (ref: WeakUIdRef[_]) => "EReturnIfAbrupt"
++
++    def shortKindString: String = kindString.take(1)
++
++    // get id
++    def id: Int = elem match
++      case (branch: Branch)     => branch.id
++      case (ref: WeakUIdRef[_]) => ref.id
++
++    // condition string
++    def condString: String = if (cond) "T" else "F"
++
++    // get node
++    def node: Option[Node] = elem match
++      case branch: Branch                   => Some(branch)
++      case ref: WeakUIdRef[EReturnIfAbrupt] => ref.get.cfgNode
++
++    // get loc
++    def loc: Option[Loc] = elem match
++      case branch: Branch                   => branch.loc
++      case ref: WeakUIdRef[EReturnIfAbrupt] => ref.get.loc
++
++    // conversion to string
++    override def toString: String = s"$kindString[$id]:$condString"
++
++    def simpleString: String = s"$shortKindString[$id]:$condString"
++  }
++
++  /** ordering of syntax-sensitive views */
++  given Ordering[Feature] = Ordering.by(_.toString)
++  given Ordering[CallPath] = Ordering.by(_.toString)
++  given Ordering[Node] = Ordering.by(_.id)
++  given Ordering[NodeView] = Ordering.by(v => (v.node, v.view))
++  given Ordering[Cond] = Ordering.by(cond => (cond.kindString, cond.id))
++  given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
++
++  // meta-info for each view or features
++  case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
++  case class CondViewInfo(index: Int, condView: CondView, script: String)
++
++  case class CoverageConstructor(
++    kFs: Int,
++    cp: Boolean,
++    timeLimit: Option[Int],
++  )
+ }
+diff --git a/src/main/scala/esmeta/es/util/JsonProtocol.scala b/src/main/scala/esmeta/es/util/JsonProtocol.scala
+new file mode 100644
+index 00000000..2606da34
+--- /dev/null
++++ b/src/main/scala/esmeta/es/util/JsonProtocol.scala
+@@ -0,0 +1,71 @@
++package esmeta.es.util
++
++import esmeta.cfg.*
++import esmeta.util.*
++import esmeta.util.BaseUtils.*
++import esmeta.ir.EReturnIfAbrupt
++import esmeta.state.util.{JsonProtocol => StateJsonProtocol}
++import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
++
++class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
++  import Coverage.*
++
++  // branch or reference to EReturnIfAbrupt with boolean values
++  given condDecoder: Decoder[Cond] = deriveDecoder
++  given condEncoder: Encoder[Cond] = deriveEncoder
++  given condElemDecoder: Decoder[Branch | WeakUIdRef[EReturnIfAbrupt]] =
++    val branchDecoder = idDecoder[Branch | WeakUIdRef[EReturnIfAbrupt]](
++      "branch",
++      cfg.nodeMap.get(_).collect { case branch: Branch => branch },
++    )
++    val abruptDecoder = idDecoder[Branch | WeakUIdRef[EReturnIfAbrupt]](
++      "abrupt",
++      cfg.riaExprMap.get(_).map(_.idRef),
++    )
++    branchDecoder.handleErrorWith(_ => abruptDecoder)
++  given condElemEncoder: Encoder[Branch | WeakUIdRef[EReturnIfAbrupt]] =
++    Encoder.instance {
++      case branch: Branch                      => idEncoder("branch")(branch)
++      case abrupt: WeakUIdRef[EReturnIfAbrupt] => idEncoder("abrupt")(abrupt)
++    }
++
++  // syntax-sensitive views
++  // given viewDecoder: Decoder[View] = optionDecoder
++  given viewEncoder: Encoder[View] =
++    Encoder.instance {
++      case None => Json.Null
++      case Some((enclosing, feature, path)) =>
++        Json.obj(
++          "enclosing" -> Json.fromValues(
++            enclosing.map(f => f.func.name.asJson),
++          ),
++          "feature" -> feature.func.name.asJson,
++          "path" -> path.map(_.toString).asJson,
++        )
++    }
++  // given nodeViewDecoder: Decoder[NodeView] = deriveDecoder
++  given nodeViewEncoder: Encoder[NodeView] =
++    Encoder.instance(nv =>
++      Json.obj(
++        "node" -> Json.obj(
++          "inst" -> nv.node.toString.asJson,
++          "func" -> cfg.funcOf(nv.node).name.asJson,
++        ),
++        "view" -> viewEncoder(nv.view),
++      ),
++    )
++  given condViewDecoder: Decoder[CondView] = deriveDecoder
++  given condViewEncoder: Encoder[CondView] = deriveEncoder
++  given funcViewDecoder: Decoder[FuncView] = deriveDecoder
++  given funcViewEncoder: Encoder[FuncView] = deriveEncoder
++
++  // meta-info for each view or features
++  // given nodeViewInfoDecoder: Decoder[NodeViewInfo] = deriveDecoder
++  given nodeViewInfoEncoder: Encoder[NodeViewInfo] = deriveEncoder
++  // given condViewInfoDecoder: Decoder[CondViewInfo] = deriveDecoder
++  given condViewInfoEncoder: Encoder[CondViewInfo] = deriveEncoder
++
++  // coverage constructor
++  given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
++  given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
++}
+diff --git a/src/main/scala/esmeta/es/util/Stringifier.scala b/src/main/scala/esmeta/es/util/Stringifier.scala
+index a6938a5f..949fe7b4 100644
+--- a/src/main/scala/esmeta/es/util/Stringifier.scala
++++ b/src/main/scala/esmeta/es/util/Stringifier.scala
+@@ -5,6 +5,9 @@ import esmeta.util.*
+ import esmeta.util.Appender.*
+ import esmeta.util.BaseUtils.*
+ import esmeta.es.*
++import esmeta.injector.*
++import esmeta.injector.Injector.*
++import esmeta.state.*
+ 
+ /** stringifier for ECMAScript */
+ class Stringifier(
+@@ -14,9 +17,14 @@ class Stringifier(
+ ) {
+   // elements
+   given elemRule: Rule[ESElem] = (app, elem) =>
+-    elem match {
+-      case elem: Ast => astRule(app, elem)
+-    }
++    elem match
++      case elem: Script      => scriptRule(app, elem)
++      case elem: Ast         => astRule(app, elem)
++      case elem: ConformTest => testRule(app, elem)
++      case elem: Assertion   => assertRule(app, elem)
++
++  // ECMAScript script program
++  given scriptRule: Rule[Script] = (app, script) => app >> script.code
+ 
+   // abstract syntax tree (AST) values
+   given astRule: Rule[Ast] = (app, ast) =>
+@@ -35,12 +43,12 @@ class Stringifier(
+       case Lexical(name, str) => app >> str >> " "
+       case Syntactic(name, args, rhsIdx, children) =>
+         var cs = children
+-        for (symbol <- nameMap(name).rhsList(rhsIdx).symbols) symbol match
++        for (symbol <- nameMap(name).rhsVec(rhsIdx).symbols) symbol match
+           case Terminal(term)                          => app >> term >> " "
+           case Empty | NoLineTerminator | _: Lookahead =>
+           case _ =>
+-            cs match
+-              case hd :: tl => hd.map(aux); cs = tl
++            cs.headOption match
++              case Some(hd) => hd.map(aux); cs = cs.tail
+               case _        => error(s"invalid AST: $origAst")
+     aux(origAst)
+     app
+@@ -59,4 +67,63 @@ class Stringifier(
+       case Lexical(name, str) =>
+         app >> "|" >> name >> "|(" >> str >> ")"
+         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
++
++  // conformance tests
++  given testRule: Rule[ConformTest] = (app, test) =>
++    val ConformTest(id, script, exitTag, defs, isAsync, assertions) = test
++    val delayHead = "$delay(() => {"
++    val delayTail = "});"
++
++    app >> "// [EXIT] " >> exitTag.toString
++    app :> script
++    exitTag match {
++      case NormalTag =>
++        if (defs) {
++          app :> "(() => {"
++          app :> header
++          if (isAsync) app :> delayHead
++          assertions.foreach(app :> _)
++          if (isAsync) app :> delayTail
++          app :> "})();"
++        } else {
++          if (isAsync) app :> delayHead
++          assertions.foreach(app :> _)
++          if (isAsync) app :> delayTail
++        }
++      case _ =>
++    }
++    app
++
++  // assertions
++  given assertRule: Rule[Assertion] = (app, assert) =>
++    given Rule[SimpleValue] = (app, value) =>
++      app >> (
++        value match
++          case Number(n) => n.toString
++          case v         => v.toString
++      )
++
++    given Rule[Map[String, SimpleValue]] = (app, desc) =>
++      app.wrap(
++        desc.map((field, value) => app :> field >> ": " >> value >> ","),
++      )
++
++    // TODO(@hyp3rflow): ignore exception thrown during executing injectied assertions
++    // https://github.com/kaist-plrg/esmeta/commit/a083e94f26bc8b39a4c76d9e9372b0cadb5d827f
++    assert match
++      case HasValue(x, v) =>
++        app >> s"$$assert.sameValue($x, " >> v >> ");"
++      case IsExtensible(addr, path, b) =>
++        app >> s"$$assert.sameValue(Object.isExtensible($path), $b);"
++      case IsCallable(addr, path, b) =>
++        app >> s"$$assert.${if b then "c" else "notC"}allable($path);"
++      case IsConstructable(addr, path, b) =>
++        app >> s"$$assert.${if b then "c" else "notC"}onstructable($path);"
++      case CompareArray(addr, path, array) =>
++        app >> s"$$assert.compareArray($$Reflect.ownKeys($path), ${array
++          .mkString("[", ", ", "]")}, $path);"
++      case SameObject(addr, path, origPath) =>
++        app >> s"$$assert.sameValue($path, $origPath);"
++      case VerifyProperty(addr, path, propStr, desc) =>
++        app >> s"$$verifyProperty($path, $propStr, " >> desc >> ");"
+ }
+diff --git a/src/main/scala/esmeta/es/util/UnitWalker.scala b/src/main/scala/esmeta/es/util/UnitWalker.scala
+index 846cdbe5..82011504 100644
+--- a/src/main/scala/esmeta/es/util/UnitWalker.scala
++++ b/src/main/scala/esmeta/es/util/UnitWalker.scala
+@@ -14,8 +14,7 @@ trait UnitWalker extends BasicUnitWalker {
+     case ast: Lexical   => walk(ast)
+ 
+   /** syntactic productions */
+-  def walk(ast: Syntactic): Unit =
+-    walkList(ast.children, walkOpt(_, walk))
++  def walk(ast: Syntactic): Unit = walkVector(ast.children, walkOpt(_, walk))
+ 
+   /** lexical productions */
+   def walk(ast: Lexical): Unit = {}
+diff --git a/src/main/scala/esmeta/es/util/Walker.scala b/src/main/scala/esmeta/es/util/Walker.scala
+index 74dfc634..f5fd8ffb 100644
+--- a/src/main/scala/esmeta/es/util/Walker.scala
++++ b/src/main/scala/esmeta/es/util/Walker.scala
+@@ -16,7 +16,7 @@ trait Walker extends BasicWalker {
+   /** syntactic productions */
+   def walk(ast: Syntactic): Syntactic =
+     val Syntactic(name, args, rhsIdx, children) = ast
+-    Syntactic(name, args, rhsIdx, walkList(children, walkOpt(_, walk)))
++    Syntactic(name, args, rhsIdx, walkVector(children, walkOpt(_, walk)))
+ 
+   /** lexical productions */
+   def walk(ast: Lexical): Lexical = ast
+diff --git a/src/main/scala/esmeta/es/util/fuzzer/TargetSelector.scala b/src/main/scala/esmeta/es/util/fuzzer/TargetSelector.scala
+new file mode 100644
+index 00000000..ef6eab7e
+--- /dev/null
++++ b/src/main/scala/esmeta/es/util/fuzzer/TargetSelector.scala
+@@ -0,0 +1,58 @@
++package esmeta.es.util.fuzzer
++
++import esmeta.es.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.spec.Grammar
++import esmeta.util.*
++import esmeta.util.BaseUtils.*
++
++/** mutation target selector for fuzzer */
++trait TargetSelector {
++
++  /** target selection */
++  def apply(
++    pool: Iterable[Script],
++    cov: Coverage,
++  ): (String, Script, Option[CondView])
++
++  /** Possible names of underlying selectors */
++  val names: List[String]
++}
++
++/** weighted mutation target selector */
++class WeightedSelector(pairs: (TargetSelector, Int)*) extends TargetSelector {
++  def apply(
++    pool: Iterable[Script],
++    cov: Coverage,
++  ): (String, Script, Option[CondView]) = weightedChoose(pairs)(pool, cov)
++
++  val names = pairs.toList.flatMap(_._1.names)
++}
++
++/** branch coverage-based mutation target selector */
++object BranchSelector extends TargetSelector {
++  def apply(
++    pool: Iterable[Script],
++    cov: Coverage,
++  ): (String, Script, Option[CondView]) = if (!cov.targetCondViews.isEmpty) {
++    val cond = choose(cov.targetCondViews.keys)
++    val view = choose(cov.targetCondViews(cond))._1
++    val condView = CondView(cond, view)
++    cov.getScript(condView).fold(RandomSelector(pool, cov)) {
++      (names.head, _, Some(condView))
++    }
++  } else RandomSelector(pool, cov)
++
++  val names = List("BranchTarget")
++}
++
++/** random mutation target selector */
++object RandomSelector extends TargetSelector {
++  def apply(
++    pool: Iterable[Script],
++    cov: Coverage,
++  ): (String, Script, Option[CondView]) = (names.head, choose(pool), None)
++
++  val names = List("RandomTarget")
++}
+diff --git a/src/main/scala/esmeta/es/util/package.scala b/src/main/scala/esmeta/es/util/package.scala
+index 993e8156..1cf4569d 100644
+--- a/src/main/scala/esmeta/es/util/package.scala
++++ b/src/main/scala/esmeta/es/util/package.scala
+@@ -1,5 +1,6 @@
+ package esmeta.es.util
+ 
++import esmeta.*
+ import esmeta.es.*
+ 
+ /** merge statements to script */
+@@ -8,14 +9,14 @@ def mergeStmt(l: List[Ast]): Ast =
+   val params = List(false, false, false)
+   val bodyOpt = l match
+     case a :: rest =>
+-      val init: Ast = Syntactic("StatementList", params, 0, List(Some(a)))
++      val init: Ast = Syntactic("StatementList", params, 0, Vector(Some(a)))
+       val list = rest.foldLeft(init) {
+         case (x, y) =>
+-          Syntactic("StatementList", Nil, 1, List(Some(x), Some(y)))
++          Syntactic("StatementList", Nil, 1, Vector(Some(x), Some(y)))
+       }
+-      Some(Syntactic("ScriptBody", Nil, 0, List(Some(list))))
++      Some(Syntactic("ScriptBody", Nil, 0, Vector(Some(list))))
+     case Nil => None
+-  Syntactic("Script", Nil, 0, List(bodyOpt))
++  Syntactic("Script", Nil, 0, Vector(bodyOpt))
+ 
+ /** flatten statements */
+ // TODO refactoring
+@@ -23,15 +24,18 @@ def flattenStmtList(
+   s: Ast,
+   list: List[Ast] = Nil,
+ ): List[Ast] = s match
+-  case Syntactic("StatementList", _, 0, List(Some(x0))) =>
++  case Syntactic("StatementList", _, 0, Vector(Some(x0))) =>
+     x0 :: list
+-  case Syntactic("StatementList", _, 1, List(Some(x0), Some(x1))) =>
++  case Syntactic("StatementList", _, 1, Vector(Some(x0), Some(x1))) =>
+     flattenStmtList(x0, x1 :: list)
+   case _ => Nil
+ def flattenStmt(s: Ast): List[Ast] = s match
+-  case Syntactic("Script", _, 0, List(Some(body))) =>
++  case Syntactic("Script", _, 0, Vector(Some(body))) =>
+     body match
+-      case Syntactic("ScriptBody", _, 0, List(Some(stmtList))) =>
++      case Syntactic("ScriptBody", _, 0, Vector(Some(stmtList))) =>
+         flattenStmtList(stmtList)
+       case _ => Nil
+   case _ => Nil
++
++/** ECMAScript strict mode directive */
++val USE_STRICT = s"\"use strict\";$LINE_SEP"
+diff --git a/src/main/scala/esmeta/extractor/Extractor.scala b/src/main/scala/esmeta/extractor/Extractor.scala
+index 70a589b6..bcc11adc 100644
+--- a/src/main/scala/esmeta/extractor/Extractor.scala
++++ b/src/main/scala/esmeta/extractor/Extractor.scala
+@@ -217,7 +217,7 @@ class Extractor(
+       for {
+         prod <- parse[List[Production]](prevContent)
+         lhsName = prod.lhs.name
+-        rhs <- prod.rhsList
++        rhs <- prod.rhsVec
+         rhsName <- rhs.allNames
+         syntax = lhsName + ":" + rhsName
+         (idx, subIdx) = idxMap(syntax)
+diff --git a/src/main/scala/esmeta/injector/Assertion.scala b/src/main/scala/esmeta/injector/Assertion.scala
+new file mode 100644
+index 00000000..e9c89a6d
+--- /dev/null
++++ b/src/main/scala/esmeta/injector/Assertion.scala
+@@ -0,0 +1,30 @@
++package esmeta.injector
++
++import esmeta.es.ESElem
++import esmeta.state.*
++
++/** TODO assertions from conformance test */
++trait Assertion extends ESElem
++
++case class HasValue(x: String, v: SimpleValue) extends Assertion
++
++trait ObjectAssertion extends Assertion
++case class IsExtensible(addr: Addr, path: String, extensible: Boolean = true)
++  extends ObjectAssertion
++case class IsCallable(addr: Addr, path: String, callable: Boolean = true)
++  extends ObjectAssertion
++case class IsConstructable(
++  addr: Addr,
++  path: String,
++  constructable: Boolean = true,
++) extends ObjectAssertion
++case class CompareArray[T](addr: Addr, path: String, array: Iterable[T])
++  extends ObjectAssertion
++case class SameObject(addr: Addr, path: String, origPath: String)
++  extends Assertion
++case class VerifyProperty(
++  addr: Addr,
++  path: String,
++  prop: String,
++  desc: Map[String, SimpleValue],
++) extends ObjectAssertion
+diff --git a/src/main/scala/esmeta/injector/ConformTest.scala b/src/main/scala/esmeta/injector/ConformTest.scala
+new file mode 100644
+index 00000000..0959d6ef
+--- /dev/null
++++ b/src/main/scala/esmeta/injector/ConformTest.scala
+@@ -0,0 +1,122 @@
++package esmeta.injector
++
++import esmeta.*
++import esmeta.cfg.CFG
++import esmeta.error.NoGraalError
++import java.util.concurrent.TimeoutException
++import esmeta.es.*
++import esmeta.es.util.*
++import esmeta.js.*
++import esmeta.state.State
++import esmeta.util.*
++import esmeta.util.SystemUtils.*
++import scala.util.*
++
++/** conformance test */
++case class ConformTest(
++  id: Int,
++  script: String,
++  exitTag: ExitTag,
++  defs: Boolean,
++  isAsync: Boolean,
++  assertions: Vector[Assertion],
++) extends ESElem
++  with UId {
++
++  /** replace script */
++  def replaceScript(newScript: String) =
++    ConformTest(id, newScript, exitTag, defs, isAsync, assertions)
++
++  /** retain only passed assertions */
++  def filterAssertion: ConformTest =
++    ConformTest(id, script, exitTag, defs, isAsync, passedAssertions)
++
++  /** indicates if the test should exit normally */
++  val isNormal = exitTag == NormalTag
++
++  /** An optional comment to this test */
++  var comment = ""
++
++  /** Execute test and get result */
++  lazy val (
++    concreteExitTag: ExitTag,
++    passedAssertions: Vector[Assertion],
++    failedAssertions: Vector[(Assertion, String)],
++  ) = JSEngine
++    .createGraalContext((context, out) => {
++      JSEngine.runGraalUsingContext(script, context, Some(1000))
++      JSEngine.runGraalUsingContext(Injector.header, context)
++      val (passes, fails) = assertions
++        .map(assertion =>
++          (
++            assertion,
++            try
++              JSEngine.runGraalUsingContextOut(assertion.toString, context, out)
++            catch {
++              case e =>
++                s"An exception occured while checking this assertion.$LINE_SEP"
++            },
++          ),
++        )
++        .partition(_._2.isEmpty)
++      (NormalTag, passes.map(_._1), fails)
++    })
++    .recoverWith(_ match {
++      case e: JSEngine.JSException =>
++        // TODO handle ThrowValueTag more carefully
++        val msg = e.getMessage
++        val tag =
++          if msg.contains("Error:") then ThrowTag(msg.split(":").head)
++          // TODO(@hyp3rflow): port JSTranspiler for targeting transpilers
++          // else if msg.contains(JSTrans.failTag) then TranspileFailTag
++          else ThrowTag(esmeta.state.Str(msg))
++        Success((tag, Vector(), Vector()))
++      case e: TimeoutException =>
++        Success((TimeoutTag, Vector(), Vector()))
++      case e =>
++        Failure(e)
++    })
++    .get
++
++  /** Indicates if the expected exit tag mathces with the concrete exit tag */
++  lazy val sameExitTag = exitTag equivalent concreteExitTag
++
++  /** Indicates if the test is passed */
++  lazy val isPass =
++    try sameExitTag && failedAssertions.length == 0
++    catch { case NoGraalError => true }
++
++  /** human readable message indication the reason of test fail */
++  lazy val msg =
++    if isPass then ""
++    else if (!sameExitTag) then
++      s"[Exit Tag Mismatch]$LINE_SEP > Expected $exitTag but got $concreteExitTag$LINE_SEP"
++    else failedAssertions.map((a, m) => s"$a$LINE_SEP > $m").mkString("")
++
++  /** stringified exit tag and assertions */
++  lazy val core: String =
++    val sb = new StringBuilder()
++    sb.append("// [EXIT] ")
++    sb.append(exitTag)
++    sb.append(LINE_SEP)
++    assertions.foreach(a => {
++      sb.append(a)
++      sb.append(LINE_SEP)
++    })
++    sb.toString
++}
++
++object ConformTest {
++
++  /** Create a test using init state and exit state */
++  def createTest(cfg: CFG, exitSt: State): ConformTest =
++    new Injector(cfg, exitSt, true, false).conformTest
++
++  // TODO(@hyp3rflow): port manualRule to categorize known bugs
++  /** Manually written rule to categorize bugs kind */
++  // lazy val manualRule =
++  //   readFile(f"$RESOURCE_DIR/bugs/manual-categorize.rule")
++  //     .split(LINE_SEP)
++  //     .drop(1) // drop header
++  //     .map(l => l.split("\\|", -1))
++}
+diff --git a/src/main/scala/esmeta/injector/ExitTag.scala b/src/main/scala/esmeta/injector/ExitTag.scala
+index 2cd37c0a..fd7c10df 100644
+--- a/src/main/scala/esmeta/injector/ExitTag.scala
++++ b/src/main/scala/esmeta/injector/ExitTag.scala
+@@ -8,20 +8,31 @@ import java.util.concurrent.TimeoutException
+ /** exit status tag */
+ trait ExitTag:
+   override def toString: String = this match
+-    case NormalTag                        => s"normal"
+-    case TimeoutTag                       => s"timeout"
+-    case SpecErrorTag(error, cursor)      => s"spec-error: $cursor"
+-    case ThrowErrorTag(errorName: String) => s"throw-error: $errorName"
+-    case ThrowValueTag(value: Value)      => s"throw-value: $value"
++    case NormalTag                   => s"normal"
++    case TimeoutTag                  => s"timeout"
++    case SpecErrorTag(error, cursor) => s"spec-error: $cursor"
++    case ThrowTag(items, msg) =>
++      s"throw: ${items.mkString(", ")}${msg.fold("")(m => s"($m)")}"
++  def equivalent(that: ExitTag): Boolean = (this, that) match
++    case (ThrowTag(list1, _), ThrowTag(list2, _)) =>
++      (list1 zip list2).forall(_ equivalent _)
++    case _ => this == that
++
+ object ExitTag:
+   def apply(st: => State): ExitTag = try {
++    def getThrowItem(value: Value) = value match
++      case addr: DynamicAddr =>
++        st(addr)(Str("Prototype")) match
++          case NamedAddr(errorNameRegex(errorName)) =>
++            ThrowNativeError(errorName)
++          case _ => ThrowValue(addr)
++      case _ => ThrowValue(value)
+     st(GLOBAL_RESULT) match
+       case Undef => NormalTag
+-      case comp @ Comp(ENUM_THROW, addr: DynamicAddr, _) =>
+-        st(addr)(Str("Prototype")) match
+-          case NamedAddr(errorNameRegex(errorName)) => ThrowErrorTag(errorName)
+-          case _                                    => ThrowValueTag(addr)
+-      case comp @ Comp(ENUM_THROW, value, _) => ThrowValueTag(value)
++      case addr: Addr =>
++        st(addr) match
++          case ListObj(list) => ThrowTag(list.map(getThrowItem))
++          case _             => error(s"unexpected exit status: $addr")
+       case v => error(s"unexpected exit status: $v")
+   } catch {
+     case _: TimeoutException   => TimeoutTag
+@@ -40,8 +51,27 @@ case object TimeoutTag extends ExitTag
+ /** an error is thrown in specification */
+ case class SpecErrorTag(error: ESMetaError, cursor: Cursor) extends ExitTag
+ 
+-/** an error is thrown with an ECMAScript error */
+-case class ThrowErrorTag(errorName: String) extends ExitTag
++/** an error is thrown with ECMAScript error or ECMAScript value */
++// TODO(@hyp3rflow): `msg` can be used with provenance (maybe); add this and extend stringifier
++case class ThrowTag(items: Vector[ThrowItem], msg: Option[String] = None)
++  extends ExitTag
++
++object ThrowTag:
++  def apply(errorName: String): ThrowTag =
++    ThrowTag(Vector(ThrowNativeError(errorName)))
++  def apply(value: Value): ThrowTag =
++    ThrowTag(Vector(ThrowValue(value)))
++
++trait ThrowItem:
++  def equivalent(that: ThrowItem): Boolean =
++    (this, that) match
++      case (ThrowNativeError(error1), ThrowNativeError(error2)) =>
++        error1 == error2
++      case (ThrowValue(_), ThrowValue(_)) => true
++      case _                              => false
++
++/** an ECMAScript error */
++case class ThrowNativeError(errorName: String) extends ThrowItem
+ 
+-/** an error is thrown with a ECMAScript value */
+-case class ThrowValueTag(value: Value) extends ExitTag
++/** an ECMAScript value */
++case class ThrowValue(value: Value) extends ThrowItem
+diff --git a/src/main/scala/esmeta/injector/Injector.scala b/src/main/scala/esmeta/injector/Injector.scala
+index 5f59321d..842e5274 100644
+--- a/src/main/scala/esmeta/injector/Injector.scala
++++ b/src/main/scala/esmeta/injector/Injector.scala
+@@ -13,8 +13,10 @@ import esmeta.util.BaseUtils.*
+ import esmeta.util.SystemUtils.*
+ import esmeta.{LINE_SEP, RESOURCE_DIR}
+ import java.io.PrintWriter
++import java.util.concurrent.TimeoutException
+ import scala.collection.mutable.{Map => MMap}
+ import scala.concurrent.TimeoutException
++import scala.collection.mutable.ListBuffer
+ 
+ /** assertion injector */
+ object Injector:
+@@ -24,8 +26,8 @@ object Injector:
+     defs: Boolean = false,
+     log: Boolean = false,
+   ): String =
+-    val extractor = ExitStateExtractor(Initialize(cfg, src))
+-    new Injector(extractor, defs, log).result
++    val extractor = ExitStateExtractor(cfg.init.from(src))
++    new Injector(cfg, extractor.result, defs, log).result
+ 
+   /** injection from files */
+   def fromFile(
+@@ -34,42 +36,47 @@ object Injector:
+     defs: Boolean = false,
+     log: Boolean = false,
+   ): String =
+-    val extractor = ExitStateExtractor(Initialize.fromFile(cfg, filename))
+-    new Injector(extractor, defs, log).result
++    val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
++    new Injector(cfg, extractor.result, defs, log).result
+ 
+   /** assertion definitions */
+-  lazy val assertions: String = readFile(s"$RESOURCE_DIR/assertions.js")
++  lazy val header: String = readFile(s"$RESOURCE_DIR/assertions.js")
+ 
+ /** extensible helper of assertion injector */
+ class Injector(
+-  extractor: ExitStateExtractor,
++  cfg: CFG,
++  exitSt: State,
+   defs: Boolean,
+   log: Boolean,
+ ) {
+ 
+-  /** injected script */
+-  lazy val result: String =
+-    if (defs) app >> Injector.assertions >> LINE_SEP
+-    app >> "// [EXIT] " >> exitTag.toString // append exit status tag
+-    app :> original // append original script
++  /** generated assertions */
++  lazy val assertions: Vector[Assertion] =
++    _assertions.clear
+     if (normalExit)
+-      if (isAsync) startAsync // handle async
+       handleVariable // inject assertions from variables
+       handleLet // inject assertions from lexical variables
+-      if (isAsync) endAsync
+     if (log)
+       pw.close
+       println("[Injector] Logging finished")
+-    app.toString
++    _assertions.toVector
+ 
+-  /** initial state */
+-  lazy val initSt: State = extractor.initSt
++  /** generated conformance test */
++  lazy val conformTest: ConformTest =
++    ConformTest(
++      0,
++      script,
++      exitTag,
++      defs,
++      isAsync,
++      assertions,
++    )
+ 
+-  /** exit state */
+-  lazy val exitSt: State = extractor.result
++  /** injected script */
++  lazy val result: String = conformTest.toString
+ 
+-  /** original script */
+-  lazy val original = initSt.sourceText.get
++  /** target script */
++  lazy val script = exitSt.sourceText.get
+ 
+   /** exit status tag */
+   lazy val exitTag: ExitTag = ExitTag(exitSt)
+@@ -80,7 +87,7 @@ class Injector(
+   /** check whether it uses asynchronous features */
+   // TODO more precise detection
+   lazy val isAsync: Boolean =
+-    original.contains("async") || original.contains("Promise")
++    script.contains("async") || script.contains("Promise")
+ 
+   // ---------------------------------------------------------------------------
+   // private helpers
+@@ -93,24 +100,18 @@ class Injector(
+   private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
+   private def warning(msg: String): Unit = log(s"[Warning] $msg")
+ 
+-  // appender
+-  private val app: Appender = new Appender
+-
+-  // handle async
+-  private def startAsync: Unit =
+-    log("handling async..."); app :> "$delay(() => {"
+-  private def endAsync: Unit =
+-    app :> "});"
++  // internal assertions
++  private val _assertions: ListBuffer[Assertion] = ListBuffer()
+ 
+   // handle variables
+   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
+     log("handling variable...")
++    val path = s"globalThis[\"$x\"]"
+     getValue(s"""$globalMap["$x"].Value""") match
+-      case Absent => /* do nothing(handle global accessor property) */
+-      case sv: SimpleValue =>
+-        app :> s"$$assert.sameValue($x, ${sv2str(sv)});"
+-      case addr: Addr => handleObject(addr, x)
+-      case _          => /* do nothing */
++      case Absent          => /* do nothing(handle global accessor property) */
++      case sv: SimpleValue => _assertions += HasValue(path, sv)
++      case addr: Addr      => handleObject(addr, path)
++      case _               => /* do nothing */
+   }
+ 
+   // get created variables
+@@ -126,7 +127,7 @@ class Injector(
+   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
+     log("handling let...")
+     getValue(s"""$lexRecord["$x"].BoundValue""") match
+-      case sv: SimpleValue => app :> s"$$assert.sameValue($x, ${sv2str(sv)});"
++      case sv: SimpleValue => _assertions += HasValue(x, sv)
+       case addr: Addr      => handleObject(addr, x)
+       case _               => /* do nothing */
+   }
+@@ -136,12 +137,9 @@ class Injector(
+     log(s"handleObject: $addr, $path")
+     (addr, handledObjects.get(addr)) match
+       case (_, Some(origPath)) =>
+-        app :> s"$$assert.sameValue($path, $origPath);"
++        _assertions += SameObject(addr, path, origPath)
+       case (_: DynamicAddr, None) if addr != globalThis =>
+         handledObjects += addr -> path
+-        extractor.addrNames
+-          .get(addr)
+-          .map(name => app :> s"""$$algo.set($path, "$name")""")
+         exitSt(addr) match
+           case (_: MapObj) =>
+             handlePrototype(addr, path)
+@@ -159,8 +157,9 @@ class Injector(
+             handleProperty(addr, path)
+           case _ =>
+       case _ =>
++  private lazy val initHeap = cfg.init.initHeap.copied
+   private var handledObjects: Map[Addr, String] = (for {
+-    addr <- initSt.heap.map.keySet
++    addr <- initHeap.map.keySet
+     name <- addrToName(addr)
+   } yield addr -> name).toMap
+   private lazy val PREFIX_INTRINSIC = "INTRINSICS."
+@@ -181,22 +180,22 @@ class Injector(
+     log(s"handleExtensible: $addr, $path")
+     access(addr, Str("Extensible")) match
+       case Bool(b) =>
+-        app :> s"$$assert.sameValue(Object.isExtensible($path), $b);"
++        _assertions += IsExtensible(addr, path, b)
+       case _ => warning("non-boolean [[Extensible]]: $path")
+ 
+   // handle [[Call]]
+   private def handleCall(addr: Addr, path: String): Unit =
+     log(s"handleCall: $addr, $path")
+-    if (access(addr, Str("Call")) == Absent) {
+-      app :> s"$$assert.notCallable($path);"
+-    } else app :> s"$$assert.callable($path);"
++    _assertions += IsCallable(addr, path, access(addr, Str("Call")) != Absent)
+ 
+   // handle [[Construct]]
+   private def handleConstruct(addr: Addr, path: String): Unit =
+     log(s"handleConstruct: $addr, $path")
+-    if (access(addr, Str("Construct")) == Absent) {
+-      app :> s"$$assert.notConstructable($path);"
+-    } else app :> s"$$assert.constructable($path);"
++    _assertions += IsConstructable(
++      addr,
++      path,
++      access(addr, Str("Construct")) != Absent,
++    )
+ 
+   // handle property names
+   private def handlePropKeys(addr: Addr, path: String): Unit =
+@@ -206,22 +205,26 @@ class Injector(
+       case Clo(f, _) =>
+         newSt.context = Context(f, MMap(Name("O") -> addr))
+         newSt.callStack = Nil
+-        Interpreter(newSt)
+-        val propsAddr = newSt(GLOBAL_RESULT) match
+-          case Comp(_, addr: Addr, _) => addr
+-          case addr: Addr             => addr
+-          case v                      => error("not an address: $v")
+-        val len = newSt(propsAddr, Str("length")).asMath.toInt
+-        val array = (0 until len)
+-          .map(k => newSt(propsAddr, Math(k)))
+-          .flatMap(_ match {
+-            case Str(str)   => Some(s"'$str'")
+-            case addr: Addr => addrToName(addr)
+-            case _          => None
+-          })
+-        if (array.length == len)
+-          app :> s"$$assert.compareArray(Reflect.ownKeys($path), ${array
+-            .mkString("[", ", ", "]")}, $path);"
++        try {
++          // @TODO(@hyp3rflow): handle proxy correctly in interpreter
++          Interpreter(newSt)
++          val propsAddr = newSt(GLOBAL_RESULT) match
++            case Comp(_, addr: Addr, _) => addr
++            case addr: Addr             => addr
++            case v                      => error("not an address: $v")
++          val len = newSt(propsAddr, Str("length")).asMath.toInt
++          val array = (0 until len)
++            .map(k => newSt(propsAddr, Math(k)))
++            .flatMap(_ match {
++              case Str(str)   => Some(s"'$str'")
++              case addr: Addr => addrToName(addr)
++              case _          => None
++            })
++          if (array.length == len)
++            _assertions += CompareArray(addr, path, array)
++        } catch {
++          case e => warning("failed to interpret [[OwnPropertyKeys]]")
++        }
+       case _ => warning("non-closure [[OwnPropertyKeys]]: $path")
+ 
+   // handle properties
+@@ -238,14 +241,14 @@ class Injector(
+                 "PropertyDescriptor" | "DataProperty" | "AccessorProperty",
+                 props,
+               ) =>
+-            var set = Set[String]()
++            var desc: Map[String, SimpleValue] = Map.empty
+             val2str(p).map(propStr => {
+               for {
+                 field <- fields
+                 value <- props.get(field)
+               } value match
+                 case sv: SimpleValue =>
+-                  set += s"${field.toLowerCase}: ${sv2str(sv)}"
++                  desc += (field.toLowerCase -> sv)
+                 case addr: Addr =>
+                   field match
+                     case "Value" => handleObject(addr, s"$path[$propStr]")
+@@ -261,8 +264,7 @@ class Injector(
+                       )
+                     case _ =>
+                 case _ => warning("invalid property: $path")
+-              val desc = set.mkString("{ ", ", ", "}")
+-              app :> s"$$verifyProperty($path, $propStr, $desc);"
++              _assertions += VerifyProperty(addr, path, propStr, desc)
+             })
+           case x => warning("invalid property: $path")
+       case v => warning("invalid property: $path")
+@@ -299,7 +301,4 @@ class Injector(
+     case sv: SimpleValue => Some(sv.toString)
+     case addr: Addr      => addrToName(addr)
+     case x               => None
+-  private def sv2str(sv: SimpleValue): String = sv match
+-    case Number(n) => n.toString
+-    case v         => v.toString
+ }
+diff --git a/src/main/scala/esmeta/interpreter/Interpreter.scala b/src/main/scala/esmeta/interpreter/Interpreter.scala
+index e5207a7f..0f65c14b 100644
+--- a/src/main/scala/esmeta/interpreter/Interpreter.scala
++++ b/src/main/scala/esmeta/interpreter/Interpreter.scala
+@@ -10,12 +10,18 @@ import esmeta.ir.{Func => IRFunc, *}
+ import esmeta.es.*
+ import esmeta.parser.{ESParser, ESValueParser}
+ import esmeta.state.*
++import esmeta.spec.{
++  SyntaxDirectedOperationHead,
++  AbstractOperationHead,
++  BuiltinHead,
++}
+ import esmeta.ty.*
+ import esmeta.util.BaseUtils.{error => _, *}
+ import esmeta.util.SystemUtils.*
+ import esmeta.TEST_MODE
+ import java.io.PrintWriter
+ import java.math.MathContext.DECIMAL128
++import java.util.concurrent.TimeoutException
+ import scala.annotation.tailrec
+ import scala.collection.mutable.{Map => MMap}
+ import scala.math.{BigInt => SBigInt}
+@@ -27,21 +33,21 @@ class Interpreter(
+   val detail: Boolean = false,
+   val logDir: String = EVAL_LOG_DIR,
+   val timeLimit: Option[Int] = None,
++  val keepProvenance: Boolean = false,
+ ) {
+   import Interpreter.*
+ 
++  lazy val startTime: Long = System.currentTimeMillis
++
+   /** final state */
+-  lazy val result: State = timeout(
+-    {
+-      while (step) {}
+-      if (log)
+-        pw.println(st)
+-        pw.close
+-        println("[Interpreter] Logging finished")
+-      st
+-    },
+-    timeLimit,
+-  )
++  lazy val result: State = {
++    while (step) {}
++    if (log)
++      pw.println(st)
++      pw.close
++      println("[Interpreter] Logging finished")
++    st
++  }
+ 
+   /** ECMAScript parser */
+   lazy val esParser: ESParser = cfg.esParser
+@@ -57,7 +63,12 @@ class Interpreter(
+ 
+       // garbage collection
+       iter += 1
+-      if (!detail && iter % 100_000 == 0) GC(st)
++      if (iter % 100_000 == 0) {
++        for (limit <- timeLimit)
++          val duration = System.currentTimeMillis - startTime
++          if (duration / 1000 > limit) throw TimeoutException("interp")
++        if (!detail) GC(st)
++      }
+ 
+       // cursor
+       eval(st.context.cursor)
+@@ -74,7 +85,7 @@ class Interpreter(
+ 
+   /** transition for cursors */
+   def eval(cursor: Cursor): Boolean = cursor match
+-    case NodeCursor(node) => eval(node); true
++    case NodeCursor(_, node, _) => eval(node); true
+     case ExitCursor(func) =>
+       st.callStack match
+         case Nil =>
+@@ -91,16 +102,15 @@ class Interpreter(
+   def eval(node: Node): Unit =
+     node match {
+       case Block(_, insts, _) =>
+-        for (inst <- insts) eval(inst); st.context.moveNext
+-      case Branch(_, _, cond, thenNode, elseNode) =>
+-        st.context.cursor = Cursor(
+-          eval(cond) match {
+-            case Bool(true)  => thenNode
+-            case Bool(false) => elseNode
+-            case v           => throw NoBoolean(cond, v)
+-          },
+-          st.func,
+-        )
++        for (inst <- insts) {
++          eval(inst)
++          st.context.step
++        }
++        st.context.moveNext
++      case branch: Branch =>
++        eval(branch.cond) match
++          case Bool(bool) => moveBranch(branch, bool)
++          case v          => throw NoBoolean(branch.cond, v)
+       case call: Call => eval(call)
+     }
+ 
+@@ -139,7 +149,7 @@ class Interpreter(
+           val newLocals =
+             getLocals(func.irFunc.params, vs, call, clo) ++ captured
+           st.callStack ::= CallContext(st.context, lhs)
+-          st.context = Context(func, newLocals)
++          st.context = createContext(call, func, newLocals, st.context)
+         case cont @ Cont(func, captured, callStack) => {
+           val needWrapped = st.context.func.isReturnComp
+           val vs =
+@@ -149,7 +159,8 @@ class Interpreter(
+           val newLocals =
+             getLocals(func.irFunc.params, vs, call, cont) ++ captured
+           st.callStack = callStack.map(_.copied)
+-          st.context = Context(func, newLocals)
++          val prevCtxt = st.callStack.headOption.map(_.context)
++          st.context = createContext(call, func, newLocals, prevCtxt)
+         }
+         case v => throw NoFunc(fexpr, v)
+     case ISdoCall(lhs, base, method, args) =>
+@@ -165,7 +176,7 @@ class Interpreter(
+                 Clo(sdo, Map()),
+               )
+               st.callStack ::= CallContext(st.context, lhs)
+-              st.context = Context(sdo, newLocals)
++              st.context = createContext(call, sdo, newLocals, st.context)
+             case None => throw InvalidAstField(syn, Str(method))
+         case lex: Lexical =>
+           setCallResult(lhs, Interpreter.eval(lex, method))
+@@ -226,7 +237,7 @@ class Interpreter(
+     case EGetChildren(ast) =>
+       eval(ast).asAst match
+         case syn: Syntactic =>
+-          st.allocList(syn.children.flatten.map(AstValue(_)))
++          st.allocList(syn.children.flatten.map(AstValue(_)).toList)
+         case ast => throw InvalidASTChildren(ast)
+     case EGetItems(nt, ast) =>
+       val name = eval(nt) match
+@@ -493,13 +504,26 @@ class Interpreter(
+         if (st.context.func.isReturnComp) value.wrapCompletion else value,
+       ),
+     )
+-    st.context.cursor = ExitCursor(st.func)
++    moveExit
+ 
+   /** define call result to state and move to next */
+   def setCallResult(x: Var, value: Value): Unit =
+     st.define(x, value)
+     st.context.moveNext
+ 
++  // directly ported from https://github.com/kaist-plrg/esmeta/commit/79a879e0f5e8bee528e2d2f1ebb20b658f0112f0
++  /** set return value and move to the exit node */
++  def moveBranch(branch: Branch, cond: Boolean): Unit =
++    st.context.cursor = Cursor(
++      if (cond) branch.thenNode
++      else branch.elseNode,
++      st.func,
++    )
++
++  /** set return value and move to the exit node */
++  def moveExit: Unit =
++    st.context.cursor = ExitCursor(st.func)
++
+   // ---------------------------------------------------------------------------
+   // private helpers
+   // ---------------------------------------------------------------------------
+@@ -523,6 +547,48 @@ class Interpreter(
+ 
+   /** cache to get syntax-directed operation (SDO) */
+   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
++
++  // get current provenance
++  private inline given Option[Provenance] =
++    if (keepProvenance) Some(st.provenance) else None
++
++  // create a new context
++  private def createContext(
++    call: Call,
++    func: Func,
++    locals: MMap[Local, Value],
++    prevCtxt: Context,
++  ): Context = createContext(call, func, locals, Some(prevCtxt))
++  private def createContext(
++    call: Call,
++    func: Func,
++    locals: MMap[Local, Value],
++    prevCtxt: Option[Context] = None,
++  ): Context = if (keepProvenance) {
++    lazy val prevFeatureStack = prevCtxt.fold(Nil)(_.featureStack)
++    lazy val prevCallPath = prevCtxt.fold(CallPath())(_.callPath)
++    lazy val prevNearest = prevCtxt.flatMap(_.nearest)
++    func.head match
++      case Some(head: SyntaxDirectedOperationHead) =>
++        val feature = SyntacticFeature(func, head)
++        val nearest = for {
++          case AstValue(ast @ Syntactic(name, _, idx, _)) <- locals.get(
++            Name("this"),
++          )
++          loc <- ast.loc
++          ty = AstSingleTy(name, idx, ast.subIdx)
++        } yield Nearest(ty, loc)
++        Context(func, locals, feature :: prevFeatureStack, nearest)
++      case Some(head: BuiltinHead) => Context(func, locals)
++      case _ =>
++        Context(
++          func,
++          locals,
++          prevFeatureStack,
++          prevNearest,
++          prevCallPath + call,
++        )
++  } else Context(func, locals)
+ }
+ 
+ /** IR interpreter with a CFG */
+diff --git a/src/main/scala/esmeta/ir/Expr.scala b/src/main/scala/esmeta/ir/Expr.scala
+index bddc7991..5893c2c9 100644
+--- a/src/main/scala/esmeta/ir/Expr.scala
++++ b/src/main/scala/esmeta/ir/Expr.scala
+@@ -2,15 +2,17 @@ package esmeta.ir
+ 
+ import esmeta.ir.util.Parser
+ import esmeta.lang.Syntax
+-import esmeta.util.DoubleEquals
+-import scala.annotation.meta.field
++import esmeta.util.{DoubleEquals, WeakUId}
+ 
+ // IR expressions
+-sealed trait Expr extends IRElem with LangEdge
++sealed trait Expr extends IRElem with LangEdge with WeakUId[Expr] with NodeEdge
+ object Expr extends Parser.From(Parser.expr)
+ case class EComp(tyExpr: Expr, valExpr: Expr, tgtExpr: Expr) extends Expr
+ case class EIsCompletion(expr: Expr) extends Expr
+-case class EReturnIfAbrupt(expr: Expr, check: Boolean) extends Expr with Return
++case class EReturnIfAbrupt(expr: Expr, check: Boolean)
++  extends Expr
++  with Return
++  with WeakUId[EReturnIfAbrupt]
+ case class EPop(list: Expr, front: Boolean) extends Expr
+ case class EParse(code: Expr, rule: Expr) extends Expr
+ case class ENt(name: String, params: List[Boolean]) extends Expr
+@@ -44,7 +46,7 @@ case class ESyntactic(
+   name: String,
+   args: List[Boolean],
+   rhsIdx: Int,
+-  children: List[Option[Expr]],
++  children: Vector[Option[Expr]],
+ ) extends AstExpr
+ case class ELexical(
+   name: String,
+diff --git a/src/main/scala/esmeta/ir/Inst.scala b/src/main/scala/esmeta/ir/Inst.scala
+index aa3cac1b..e31aa0ad 100644
+--- a/src/main/scala/esmeta/ir/Inst.scala
++++ b/src/main/scala/esmeta/ir/Inst.scala
+@@ -2,9 +2,10 @@ package esmeta.ir
+ 
+ import esmeta.ir.util.Parser
+ import esmeta.lang.Syntax
++import esmeta.util.WeakUId
+ 
+ // IR instructions
+-sealed trait Inst extends IRElem with LangEdge:
++sealed trait Inst extends IRElem with LangEdge with WeakUId[Inst]:
+   // conversion to instruction lists
+   def toList: List[Inst] = this match
+     case ISeq(is) => is
+diff --git a/src/main/scala/esmeta/ir/LangEdge.scala b/src/main/scala/esmeta/ir/LangEdge.scala
+index 9a05069e..ce4ac7c6 100644
+--- a/src/main/scala/esmeta/ir/LangEdge.scala
++++ b/src/main/scala/esmeta/ir/LangEdge.scala
+@@ -1,6 +1,7 @@
+ package esmeta.ir
+ 
+ import esmeta.lang.Syntax
++import esmeta.util.Loc
+ 
+ /** backward edge to metalangauge */
+ trait LangEdge:
+@@ -13,3 +14,6 @@ trait LangEdge:
+   /** update backward edge to metalangauge */
+   def setLangOpt(langOpt: Option[Syntax]): this.type =
+     this.langOpt = langOpt; this
++
++  /** get source locations */
++  def loc: Option[Loc] = langOpt.flatMap(_.loc)
+diff --git a/src/main/scala/esmeta/ir/NodeEdge.scala b/src/main/scala/esmeta/ir/NodeEdge.scala
+new file mode 100644
+index 00000000..a48d0c8a
+--- /dev/null
++++ b/src/main/scala/esmeta/ir/NodeEdge.scala
+@@ -0,0 +1,8 @@
++package esmeta.ir
++
++import esmeta.cfg.Node
++
++/** edge to enclosing CFG nodes */
++trait NodeEdge:
++  /** edge to enclosing CFG nodes */
++  var cfgNode: Option[Node] = None
+diff --git a/src/main/scala/esmeta/ir/util/Parser.scala b/src/main/scala/esmeta/ir/util/Parser.scala
+index fe2d3be7..a24f759c 100644
+--- a/src/main/scala/esmeta/ir/util/Parser.scala
++++ b/src/main/scala/esmeta/ir/util/Parser.scala
+@@ -167,7 +167,7 @@ trait Parsers extends TyParsers {
+     ("|" ~> word <~ "|") ~ parseParams ~
+     ("<" ~> int <~ ">") ~
+     (opt("(" ~> repsep(opt(expr), ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
+-      case n ~ as ~ i ~ es => ESyntactic(n, as, i, es)
++      case n ~ as ~ i ~ es => ESyntactic(n, as, i, es.toVector)
+     } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
+       case n ~ e => ELexical(n, e)
+     }
+diff --git a/src/main/scala/esmeta/ir/util/ReturnIfAbruptCollector.scala b/src/main/scala/esmeta/ir/util/ReturnIfAbruptCollector.scala
+new file mode 100644
+index 00000000..bd967808
+--- /dev/null
++++ b/src/main/scala/esmeta/ir/util/ReturnIfAbruptCollector.scala
+@@ -0,0 +1,17 @@
++package esmeta.ir.util
++
++import esmeta.ir.*
++
++/** return-if-abrupt expression collector */
++object ReturnIfAbruptCollector:
++  def apply(elem: IRElem): List[EReturnIfAbrupt] =
++    val collector = new ReturnIfAbruptCollector
++    collector.walk(elem)
++    collector.exprs.toList
++private class ReturnIfAbruptCollector extends UnitWalker:
++  var exprs: Vector[EReturnIfAbrupt] = Vector()
++  override def walk(expr: Expr): Unit =
++    expr match
++      case expr: EReturnIfAbrupt => exprs :+= expr
++      case _                     =>
++    super.walk(expr)
+diff --git a/src/main/scala/esmeta/ir/util/Stringifier.scala b/src/main/scala/esmeta/ir/util/Stringifier.scala
+index 4a2551ce..957a44e4 100644
+--- a/src/main/scala/esmeta/ir/util/Stringifier.scala
++++ b/src/main/scala/esmeta/ir/util/Stringifier.scala
+@@ -195,7 +195,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
+         if (!args.isEmpty) app >> args
+         app >> "<" >> rhsIdx >> ">"
+         given eo: Rule[Option[Expr]] = optionRule("")
+-        given el: Rule[List[Option[Expr]]] = iterableRule("(", ", ", ")")
++        given el: Rule[Iterable[Option[Expr]]] = iterableRule("(", ", ", ")")
+         if (!children.isEmpty) app >> children
+         app
+       case ELexical(name, expr) =>
+diff --git a/src/main/scala/esmeta/ir/util/UnitWalker.scala b/src/main/scala/esmeta/ir/util/UnitWalker.scala
+index 268bd223..38583dbe 100644
+--- a/src/main/scala/esmeta/ir/util/UnitWalker.scala
++++ b/src/main/scala/esmeta/ir/util/UnitWalker.scala
+@@ -117,7 +117,7 @@ trait UnitWalker extends BasicUnitWalker {
+       walk(name)
+       walkList(args, walk)
+       walk(rhsIdx)
+-      walkList(children, walkOpt(_, walk))
++      walkVector(children, walkOpt(_, walk))
+     case ELexical(name, expr) =>
+       walk(name); walk(expr)
+   }
+diff --git a/src/main/scala/esmeta/ir/util/Walker.scala b/src/main/scala/esmeta/ir/util/Walker.scala
+index ee5304d5..cd5f948d 100644
+--- a/src/main/scala/esmeta/ir/util/Walker.scala
++++ b/src/main/scala/esmeta/ir/util/Walker.scala
+@@ -126,7 +126,7 @@ trait Walker extends BasicWalker {
+         walk(name),
+         walkList(args, walk),
+         walk(rhsIdx),
+-        walkList(children, walkOpt(_, walk)),
++        walkVector(children, walkOpt(_, walk)),
+       )
+     case ELexical(name, expr) =>
+       ELexical(walk(name), walk(expr))
+diff --git a/src/main/scala/esmeta/mutator/Mutator.scala b/src/main/scala/esmeta/mutator/Mutator.scala
+index 85a6d82f..309db4f5 100644
+--- a/src/main/scala/esmeta/mutator/Mutator.scala
++++ b/src/main/scala/esmeta/mutator/Mutator.scala
+@@ -2,14 +2,42 @@ package esmeta.mutator
+ 
+ import esmeta.es.*
+ import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
+ import esmeta.spec.Grammar
++import esmeta.util.*
++import esmeta.cfg.CFG
++import esmeta.parser.{ESParser, AstFrom}
+ 
+ /** ECMAScript AST mutator */
+-trait Mutator extends Walker {
+-  def apply(ast: Ast): Ast = walk(ast)
++trait Mutator(using val cfg: CFG) {
+ 
+-  /** ECMAScript grammar */
+-  def grammar: Grammar
++  /** ECMAScript parser */
++  lazy val esParser: ESParser = cfg.esParser
++  lazy val scriptParser: AstFrom = esParser("Script")
++
++  private type Result = Seq[(String, Ast)]
++
++  /*placeholder for weight*/
++  def calculateWeight(ast: Ast): Int
++
++  /** mutate string */
++  def apply(code: String, n: Int): Result =
++    apply(code, n, None)
++  def apply(
++    code: String,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Result = apply(scriptParser.from(code), n, target)
++
++  /** mutate asts */
++  def apply(ast: Ast, n: Int): Result = apply(ast, n, None)
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Result
++
++  /** Possible names of underlying mutators */
++  val names: List[String]
++  lazy val name: String = names.head
+ }
+-object Mutator:
+-  type Builder = Grammar => Mutator
+diff --git a/src/main/scala/esmeta/mutator/NearestMutator.scala b/src/main/scala/esmeta/mutator/NearestMutator.scala
+new file mode 100644
+index 00000000..255c368c
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/NearestMutator.scala
+@@ -0,0 +1,67 @@
++package esmeta.mutator
++
++import esmeta.es.*
++import esmeta.state.*
++import esmeta.spec.Grammar
++import esmeta.synthesizer.*
++import esmeta.ty.AstSingleTy
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.util.BaseUtils.*
++import esmeta.cfg.CFG
++
++/** A nearest ECMAScript AST mutator */
++class NearestMutator(using cfg: CFG)(
++  val synBuilder: Synthesizer.Builder = RandomSynthesizer,
++) extends Mutator {
++  import NearestMutator.*
++  val randomMutator = RandomMutator()
++
++  val names = "NearestMutator" :: randomMutator.names
++
++  /** synthesizer */
++  val synthesizer = synBuilder(cfg.grammar)
++
++  /** default weight for NearestMutator is 6 */
++  def calculateWeight(ast: Ast): Int = 6
++
++  /** mutate programs */
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] = (for {
++    (condView, cov) <- target
++    CondView(cond, view) = condView
++    nearest <- cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, None)
++  } yield Walker(nearest, n).walk(ast).map((name, _)))
++    .getOrElse(randomMutator(ast, n, target))
++
++  /** internal walker */
++  class Walker(nearest: Nearest, n: Int) extends Util.MultiplicativeListWalker {
++    val AstSingleTy(name, rhsIdx, subIdx) = nearest.ty
++    override def walk(ast: Syntactic): List[Syntactic] =
++      if (
++        ast.name == name &&
++        ast.rhsIdx == rhsIdx &&
++        ast.subIdx == subIdx &&
++        ast.loc == Some(nearest.loc)
++      )
++        TotalWalker(ast, n)
++      else
++        super.walk(ast)
++  }
++
++  /** internal walker that mutates all internal nodes with same prob. */
++  object TotalWalker extends Util.AdditiveListWalker {
++    var c = 0
++    def apply(ast: Syntactic, n: Int): List[Syntactic] =
++      val k = Util.simpleAstCounter(ast)
++      c = (n - 1) / k + 1
++      shuffle(walk(ast)).take(n).toList
++
++    override def walk(ast: Syntactic): List[Syntactic] =
++      val mutants = super.walk(ast)
++      List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
++  }
++}
+diff --git a/src/main/scala/esmeta/mutator/RandomMutator.scala b/src/main/scala/esmeta/mutator/RandomMutator.scala
+index 89cd7d6e..de09fa88 100644
+--- a/src/main/scala/esmeta/mutator/RandomMutator.scala
++++ b/src/main/scala/esmeta/mutator/RandomMutator.scala
+@@ -2,24 +2,70 @@ package esmeta.mutator
+ 
+ import esmeta.es.*
+ import esmeta.es.util.{Walker => AstWalker}
+-import esmeta.mutator.synthesizer.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.mutator.*
+ import esmeta.spec.Grammar
+ import esmeta.util.BaseUtils.*
++import esmeta.synthesizer.*
++import esmeta.cfg.CFG
+ 
+ /** A random ECMAScript AST mutator */
+-class RandomMutator(
+-  val grammar: Grammar,
++class RandomMutator(using cfg: CFG)(
+   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
+ ) extends Mutator {
+-  override def walk(ast: Syntactic): Syntactic = ast.name match
+-    case "AssignmentExpression" | "PrimaryExpression" | "Statement" |
+-        "VariableDeclaration" if randBool =>
+-      synthesizer(ast)
+-    case _ =>
+-      super.walk(ast)
++  import RandomMutator.*
+ 
+   /** synthesizer */
+-  val synthesizer = synBuilder(grammar)
++  val synthesizer = synBuilder(cfg.grammar)
++
++  /** default weight for RandomMutator is 3 */
++  def calculateWeight(ast: Ast): Int = 3
++
++  val names = List("RandomMutator")
++
++  /** mutate programs */
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] =
++    val k = targetAstCounter(ast)
++    if (k == 0)
++      List.fill(n)(ast)
++    else
++      c = (n - 1) / k + 1
++    shuffle(Walker.walk(ast)).take(n).map((name, _))
++
++  /* number of new candidates to make for each target */
++  var c = 0
++
++  /** internal walker */
++  object Walker extends Util.AdditiveListWalker {
++    override def walk(ast: Syntactic): List[Syntactic] =
++      val mutants = super.walk(ast)
++      if isTarget(ast) then List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
++      else mutants
++    override def walk(lex: Lexical): List[Lexical] = lex.name match {
++      case "NumericLiteral" =>
++        List("0", "1", "0n", "1n").map(n => Lexical(lex.name, n))
++      case "BooleanLiteral" =>
++        List("true", "false").map(b => Lexical(lex.name, b))
++      case _ => List(lex)
++    }
++  }
++}
++object RandomMutator {
++  // true if the given ast is target ast
++  def isTarget = (ast: Ast) =>
++    List(
++      "AssignmentExpression",
++      "PrimaryExpression",
++      "Statement",
++      "Declaration",
++    )
++      .contains(ast.name)
++
++  // count the number of target sub-ast
++  val targetAstCounter = new Util.AstCounter(isTarget)
+ }
+-object RandomMutator extends Mutator.Builder:
+-  def apply(grammar: Grammar) = new RandomMutator(grammar)
+diff --git a/src/main/scala/esmeta/mutator/Remover.scala b/src/main/scala/esmeta/mutator/Remover.scala
+new file mode 100644
+index 00000000..93c1cb74
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/Remover.scala
+@@ -0,0 +1,90 @@
++package esmeta.mutator
++
++import esmeta.es.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.util.BaseUtils.*
++import esmeta.spec.Grammar
++import esmeta.synthesizer.*
++import esmeta.cfg.CFG
++
++/** A mutator that removes nodes of ECMAScript AST */
++class Remover(using cfg: CFG)(
++  val synBuilder: Synthesizer.Builder = RandomSynthesizer,
++) extends Mutator
++  with Util.MultiplicativeListWalker {
++  import Remover.*
++
++  val randomMutator = RandomMutator()
++
++  val names = "Remover" :: randomMutator.names
++
++  val synthesizer = synBuilder(cfg.grammar)
++
++  /** default weight for Remover is 1 */
++  def calculateWeight(ast: Ast): Int = 1
++
++  /** mutate a program */
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] = {
++    // count of removal candidates
++    val k = victimCounter(ast)
++    if (k == 0) randomMutator(ast, n, target)
++    else
++      k1 = 0; k2 = k
++      // if n is bigger than 2^k (the total size of the search space),
++      // fill the remaining count with the randomly generated program.
++      if (Math.pow(2, k) < n)
++        walk(ast)
++          .map((name, _)) ++ randomMutator(ast, n - (1 << k), target)
++      else {
++        // calculate the most efficient parameters
++        // until 2^(k2 - 1) < n, increase k1 and decrease k2 (initially k)
++        // if we have 5 victims and n is 4, k1 = 2, k2 = 3 after this loop.
++        // k1: the number of survivors among victims
++        // k2: the number of casualties among victims
++        while (Math.pow(2, k2 - 1) >= n)
++          k1 = k1 + 1
++          k2 = k2 - 1
++        sample(ast, n)
++      }
++  }
++
++  /** parameter for sampler */
++  private var (k1, k2) = (0, 0)
++
++  private def sample(ast: Ast, n: Int) =
++    shuffle(walk(ast)).take(n).map((name, _))
++
++  private def doDrop: Boolean =
++    if k1 > 0 && randBool(k1 / (k1 + k2).toFloat) then
++      k1 -= 1; false
++    else if k2 > 0 then
++      k2 -= 1; true
++    else throw new Error("This is a bug in Remover")
++
++  /** ast walker */
++  override def walk(ast: Syntactic): List[Syntactic] =
++    val mutants = super.walk(ast)
++    val i = findSameChild(ast)
++    if i >= 0 && doDrop then
++      mutants ++ mutants.map(_.children(i).get.asInstanceOf[Syntactic])
++    else mutants
++}
++
++object Remover {
++  def findSameChild(ast: Ast): Int = ast match {
++    case Syntactic(name, args, rhsIdx, children) =>
++      children.indexWhere(_ match {
++        case Some(Syntactic(`name`, `args`, _, _)) => true
++        case _                                     => false
++      })
++    case _ => -1
++  }
++
++  // count the number of asts that have same child
++  val victimCounter = Util.AstCounter(ast => findSameChild(ast) >= 0)
++}
+diff --git a/src/main/scala/esmeta/mutator/SpecStringMutator.scala b/src/main/scala/esmeta/mutator/SpecStringMutator.scala
+new file mode 100644
+index 00000000..513a4dc6
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/SpecStringMutator.scala
+@@ -0,0 +1,144 @@
++package esmeta.mutator
++
++import esmeta.es.*
++import esmeta.cfg.CFG
++import esmeta.spec.Grammar
++import esmeta.synthesizer.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.util.BaseUtils.*
++
++/** A mutator that generates based on strings in spec literals */
++class SpecStringMutator(using cfg: CFG)(
++  val synBuilder: Synthesizer.Builder = RandomSynthesizer,
++) extends Mutator
++  with Walker {
++  import SpecStringMutator.*
++
++  val randomMutator = RandomMutator()
++
++  val names = "SpecStringMutator" :: randomMutator.names
++
++  val synthesizer = synBuilder(cfg.grammar)
++
++  /** default weight for SpecStringMutator is 1 */
++  def calculateWeight(ast: Ast): Int = 1
++
++  /** mutate a program */
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] = {
++    // count the number of primary expressions
++    val k = primaryCounter(ast)
++    if (k == 0) randomMutator(ast, n, target)
++    else
++      targetCondStr = target.flatMap(_._1.cond.elem match {
++        case esmeta.cfg.Branch(_, _, e, _, _) => findCondStr(e)
++        case _                                => None
++      })
++      sample(ast, n)
++  }
++
++  /** string in target branch */
++  private var targetCondStr: Option[String] = None
++
++  /** sample n distinct asts using spec-strings */
++  private def sample(ast: Ast, n: Int): Seq[(String, Ast)] =
++    Set.tabulate[Ast](n)(_ => walk(ast)).map((name, _)).toSeq
++
++  /** ast walker */
++  override def walk(syn: Syntactic): Syntactic =
++    if (isPrimary(syn))
++      val candidates = List(generateObjectWithWeight(syn.args), syn -> 1)
++      if (targetCondStr.isDefined)
++        val candidate = (generateString(targetCondStr.get, syn.args) -> 1)
++        weightedChoose(candidate :: candidates)
++      else weightedChoose(candidates)
++    else super.walk(syn)
++
++  // convert the given string to primary expression
++  def generateString(str: String, args: List[Boolean]): Syntactic =
++    cfg
++      .esParser(PRIMARY_EXPRESSION, args)
++      .from(s"\'$str\'")
++      .asInstanceOf[Syntactic]
++
++  // Properties appearing in specification
++  private var _specProps: Set[String] = Set()
++  lazy val specProps: Vector[String] = {
++    import esmeta.ir.*
++    object PropFinder extends util.UnitWalker {
++      def addIfProp(e: Expr): Unit = e match {
++        case EStr(str) =>
++          _specProps += str
++        case ERef(Field(Global("SYMBOL"), EStr(sym))) =>
++          _specProps += s"[ Symbol . $sym ]"
++        case _ =>
++      }
++      override def walk(inst: Inst) = inst match {
++        case ICall(_, EClo(name, _), as) if propReadingAlgos.contains(name) =>
++          as.foreach(addIfProp)
++        case _ => super.walk(inst)
++      }
++    }
++    _specProps = Set()
++    PropFinder.walk(cfg.program)
++    _specProps.toVector
++  }
++
++  // generate a random object, whose property is read in specification
++  def generateObjectWithWeight(args: List[Boolean]): (Syntactic, Int) =
++    val k = choose(specProps)
++    val v = choose(defaultValues)
++    val raw = s"{ $k : $v }"
++    cfg.esParser(PRIMARY_EXPRESSION, args).from(raw).asInstanceOf[Syntactic] ->
++    (specProps.size * defaultValues.size) // total search space of object generation
++}
++
++object SpecStringMutator {
++  // macro
++  val PRIMARY_EXPRESSION = "PrimaryExpression"
++
++  // count the number of primaryExpressions
++  def isPrimary(ast: Ast): Boolean = ast match {
++    case Syntactic(PRIMARY_EXPRESSION, _, _, _) => true
++    case _                                      => false
++  }
++  val primaryCounter = Util.AstCounter(isPrimary)
++
++  // manually selected algorithms,
++  // whoose purposes is reading property
++  val propReadingAlgos = Set(
++    "HasProperty",
++    "GetMethod",
++    "Get",
++    "OrdinaryGetOwnProperty",
++  )
++
++  // default value of property
++  val defaultValues: List[String] = List(
++    "true",
++    "false",
++    "''",
++    "function ( x ) { }",
++    "function * ( x ) { }",
++    "async function ( x ) { }",
++    "async function * ( x ) { }",
++    "0",
++    "null",
++    "( ) => { throw 0 ; }",
++  )
++
++  // find string literal in condition
++  def findCondStr(e: esmeta.ir.Expr): Option[String] = {
++    import esmeta.ir.*
++    e match {
++      case EBinary(BOp.Eq, EStr(str), _) => Some(str)
++      case EBinary(BOp.Eq, _, EStr(str)) => Some(str)
++      case _                             => None
++    }
++  }
++
++}
+diff --git a/src/main/scala/esmeta/mutator/StatementInserter.scala b/src/main/scala/esmeta/mutator/StatementInserter.scala
+new file mode 100644
+index 00000000..2a5c2713
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/StatementInserter.scala
+@@ -0,0 +1,226 @@
++package esmeta.mutator
++
++import esmeta.es.*
++import esmeta.es.util.{Walker => AstWalker}
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.spec.Grammar
++import esmeta.synthesizer.*
++import esmeta.util.BaseUtils.*
++import esmeta.cfg.CFG
++
++/** A mutator that inserts statements to ECMAScript AST */
++class StatementInserter(using cfg: CFG)(
++  val synBuilder: Synthesizer.Builder = RandomSynthesizer,
++) extends Mutator
++  with Util.MultiplicativeListWalker {
++  import StatementInserter.*
++
++  val randomMutator = RandomMutator()
++
++  val names = "StatementInserter" :: randomMutator.names
++
++  val synthesizer = synBuilder(cfg.grammar)
++
++  /** default weight for StatementInserter is 1 */
++  def calculateWeight(ast: Ast): Int = 1
++
++  /** mutate a program */
++  def apply(
++    ast: Ast,
++    n: Int,
++    _target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] = {
++    // count the number of stmtLists
++    val k = stmtListCounter(ast)
++
++    if (k == 0) randomMutator(ast, n, _target)
++    else if (n == 1)
++      // Insert one statement with 80% probability
++      k1 = k - 1
++      c1 = 1
++      k2 = 1
++      c2 = 5
++
++      sample(ast, n)
++    else {
++      // calculate the most efficient parameters
++      val (kc1, kc2) = calcParam(n, k)
++      k1 = kc1._1; c1 = kc1._2
++      k2 = kc2._1; c2 = kc2._2
++      sample(ast, n)
++    }
++  }
++
++  /** parameter for sampler */
++  private var (c1, c2, k1, k2) = (0, 0, 0, 0)
++
++  private def sample(ast: Ast, n: Int) =
++    shuffle(walk(ast)).take(n).map((name, _))
++
++  private def decideGenNum =
++    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
++      k1 -= 1; c1
++    else if k2 > 0 then
++      k2 -= 1; c2
++    else throw new Error("This is a bug in Stmt Inserter")
++
++  /** generate a new statement list item, either randomly or manually */
++  private def newStmtItem(args: List[Boolean]) = choose(
++    synthesizer(STATEMENT_LIST_ITEM, args),
++    choose(manualStmtItems(args)),
++  )
++
++  /** lift a single statementListItem to statementList */
++  private def item2list(item: Syntactic) =
++    Syntactic(STATEMENT_LIST, item.args, 0, Vector(Some(item)))
++
++  /** ast walker */
++  override def walk(ast: Syntactic): List[Syntactic] = ast match
++    // singleton statement list
++    case Syntactic(STATEMENT_LIST, args, 0, _) =>
++      val genNum = decideGenNum
++      val mutants = super.walk(ast)
++      List
++        .tabulate(genNum)(_ match
++          case 0 => // do Nothing
++            mutants
++          case _ => // append a stmt either front or behind
++            val newStmt = newStmtItem(args)
++            mutants.map(mutant =>
++              Syntactic(
++                STATEMENT_LIST,
++                args,
++                1,
++                if randBool then Vector(Some(mutant), Some(newStmt))
++                else Vector(Some(item2list(newStmt)), mutant.children(0)),
++              ),
++            ),
++        )
++        .flatten
++
++    // long statement list
++    case Syntactic(STATEMENT_LIST, args, 1, _) =>
++      val genNum = decideGenNum
++      val mutants = super.walk(ast)
++      List
++        .tabulate(genNum)(_ match
++          case 0 => // do Nothing
++            mutants
++          case _ => // append a stmt behind
++            val newStmt = newStmtItem(args)
++            mutants.map(mutant =>
++              Syntactic(
++                STATEMENT_LIST,
++                args,
++                1,
++                Vector(Some(mutant), Some(newStmt)),
++              ),
++            ),
++        )
++        .flatten
++
++    // ast who has an empty statement list as a child
++    case _ if containsEmptyStatementList(ast) =>
++      val Syntactic(name, args, rhsIdx, children) = ast
++      val container = STATEMENT_LIST_OPTIONAL_CONTAINERS.find(_._1 == name).get
++
++      // get args for new stmt to be added
++      val rhsArgModifier = container._4.toList
++      val newArgs = rhsArgModifier.zipWithIndex.map {
++        case (-1, _) => false
++        case (0, i)  => optional(args(i)).getOrElse(false)
++        case (1, _)  => true
++        case _       => false
++      }
++
++      // generate new stmts
++      val genNum = decideGenNum
++      val newStmts = List.tabulate(genNum)(_ match
++        case 0 => None
++        case _ => Some(item2list(newStmtItem(newArgs))),
++      )
++
++      // change children
++      val childIdx = container._3
++      val newChildrens =
++        children.zipWithIndex.foldRight(List(Vector[Option[Ast]]())) {
++          case ((child, i), childrens) => {
++            for {
++              child <- if (i == childIdx) newStmts else walkOpt(child)
++              children <- childrens
++            } yield (child +: children)
++          }
++        }
++      newChildrens.map(newChildren =>
++        Syntactic(name, args, rhsIdx, newChildren),
++      )
++
++    case _ => super.walk(ast)
++
++  // TODO: generalize to case where length of args is not 3
++  lazy val manualStmtItems: Map[List[Boolean], List[Syntactic]] = (
++    for (
++      a1 <- List(true, false);
++      a2 <- List(true, false);
++      a3 <- List(true, false);
++      args = List(a1, a2, a3)
++    )
++      yield (
++        args,
++        manualStmts.flatMap(code =>
++          optional(
++            esParser(STATEMENT_LIST_ITEM, args)
++              .from(code)
++              .asInstanceOf[Syntactic],
++          ),
++        ),
++      )
++  ).toMap
++}
++
++object StatementInserter {
++  val STATEMENT_LIST = "StatementList"
++  val STATEMENT_LIST_ITEM = "StatementListItem"
++  val STATEMENT_LIST_OPTIONAL_CONTAINERS = List(
++    // (name, rhsIdx, childIdx of optional statementList, rhs arg modifier)
++    // TODO: automatically generate this list
++    ("Block", 0, 0, (0, 0, 0)),
++    ("CaseClause", 0, 1, (0, 0, 0)),
++    ("DefaultClause", 0, 0, (0, 0, 0)),
++    ("FunctionStatementList", 0, 0, (0, 0, 1)),
++    ("ClassStaticBlockStatementList", 0, 0, (-1, 1, -1)),
++  )
++
++  def containsEmptyStatementList(ast: Ast) = ast match {
++    case Syntactic(name, args, rhsIdx, children) =>
++      STATEMENT_LIST_OPTIONAL_CONTAINERS.exists {
++        case (cName, cRhsIdx, cChildIdx, _) =>
++          cName == name &&
++          cRhsIdx == rhsIdx &&
++          children(cChildIdx) == None
++      }
++    case _ => false
++  }
++
++  val manualStmts = List(
++    "x ( ) ; ",
++    "x ( 0 ) ; ",
++    "return ; ",
++    "return 0 ; ",
++    "throw 0 ; ",
++    "yield 0 ; ",
++    "await x ( ) ; ",
++    "yield * x ( ) ; ",
++    "new x ( ) ; ",
++    "break ; ",
++    "break x ; ",
++    "continue ; ",
++    "continue x ; ",
++  )
++
++  // count the number of places where stmt can be inserted
++  val stmtListCounter = Util.AstCounter(ast => {
++    ast.name == STATEMENT_LIST || containsEmptyStatementList(ast)
++  })
++}
+diff --git a/src/main/scala/esmeta/mutator/Util.scala b/src/main/scala/esmeta/mutator/Util.scala
+new file mode 100644
+index 00000000..d0aded71
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/Util.scala
+@@ -0,0 +1,102 @@
++package esmeta.mutator
++
++import esmeta.es.*
++import esmeta.es.util.*
++import esmeta.es.util.Coverage.*
++import esmeta.spec.Grammar
++import esmeta.util.*
++
++object Util {
++  class AstCounter(pred: Ast => Boolean) extends UnitWalker {
++    def apply(ast: Ast): Int = {
++      _cnt = 0
++      walk(ast)
++      _cnt
++    }
++    private var _cnt = 0
++
++    override def walk(ast: Ast): Unit = {
++      if pred(ast) then _cnt += 1
++      super.walk(ast)
++    }
++  }
++  val simpleAstCounter = new AstCounter(_ => true)
++
++  trait ListWalker {
++    def walkOpt(opt: Option[Ast]): List[Option[Ast]] = opt match {
++      case None      => List(None)
++      case Some(ast) => walk(ast).map(ast => Some(ast))
++    }
++    def walk(ast: Ast): List[Ast] = ast match
++      case ast: Lexical   => walk(ast)
++      case ast: Syntactic => walk(ast)
++    def walk(ast: Lexical): List[Lexical] = List(ast)
++    def walk(ast: Syntactic): List[Syntactic]
++  }
++
++  private type Childrens = List[Vector[Option[Ast]]]
++
++  // should be used carefully because this can explode the size of created program so easily
++  trait MultiplicativeListWalker extends ListWalker {
++    def preChild(ast: Syntactic, i: Int): Unit = ()
++    def postChild(ast: Syntactic, i: Int): Unit = ()
++
++    def walk(ast: Syntactic): List[Syntactic] =
++      val Syntactic(name, args, rhsIdx, children) = ast
++      val newChildrens = children.zipWithIndex
++        .map((childOpt, i) => {
++          preChild(ast, i)
++          val result = walkOpt(childOpt)
++          postChild(ast, i)
++          result
++        })
++        .foldLeft[Childrens](List(Vector()))((childrens, childs) => {
++          for {
++            childrens <- childrens
++            child <- childs
++          } yield (childrens :+ child)
++        })
++      newChildrens.map(newChildren =>
++        Syntactic(name, args, rhsIdx, newChildren),
++      )
++
++    // Calculate the most efficient parameter for the multiplicative calculator.
++    // n: number of mutants to make
++    // k: number of candidate to make change
++    // ->
++    // (k1, c1): Make c1 mutants for k1 locations.
++    // (k2, c2): Make c2 mutants for k2 locations.
++    // Spec: c1 ^ k1 * c2 ^ k2 >= n, k1 + k2 == k
++    def calcParam(n: Int, k: Int): ((Int, Int), (Int, Int)) =
++      var c = 2
++      while (math.pow(c, k) < n)
++        c = c + 1
++      var k1 = 0
++      var c1 = c - 1
++      var k2 = k
++      var c2 = c
++      while (math.pow((c - 1), k1 + 1) * math.pow(c, k2 - 1) >= n)
++        k1 = k1 + 1
++        k2 = k2 - 1
++      ((k1, c1), (k2, c2))
++  }
++
++  trait AdditiveListWalker extends ListWalker {
++    def walk(ast: Syntactic): List[Syntactic] =
++      val Syntactic(name, args, rhsIdx, children) = ast
++      // pair of processed childrens and unprocessed childrens
++      val initStat: (Childrens, Childrens) = (List(), List(Vector()))
++      val newStat = children
++        .foldLeft[(Childrens, Childrens)](initStat)((stat, child) => {
++          val (done, yet) = stat
++          val done1 = done.map(_ :+ child)
++          val done2: Childrens = for {
++            child <- walkOpt(child)
++            children <- yet
++          } yield (children :+ child)
++          (done1 ++ done2, yet.map(_ :+ child))
++        })
++      newStat._1.map(newChildren => Syntactic(name, args, rhsIdx, newChildren))
++  }
++
++}
+diff --git a/src/main/scala/esmeta/mutator/WeightedMutator.scala b/src/main/scala/esmeta/mutator/WeightedMutator.scala
+new file mode 100644
+index 00000000..28a80e51
+--- /dev/null
++++ b/src/main/scala/esmeta/mutator/WeightedMutator.scala
+@@ -0,0 +1,31 @@
++package esmeta.mutator
++
++import esmeta.synthesizer.*
++import esmeta.mutator.*
++import esmeta.es.*
++import esmeta.es.util.{Walker => AstWalker, *}
++import esmeta.es.util.Coverage.*
++import esmeta.spec.Grammar
++import esmeta.util.*
++import esmeta.util.BaseUtils.*
++import esmeta.ty.AstSingleTy
++import esmeta.cfg.CFG
++
++/** A mutator selects one of given mutators under weight */
++class WeightedMutator(using cfg: CFG)(
++  val mutators: (Mutator)*,
++) extends Mutator {
++
++  def calculateWeight(ast: Ast): Int = 0
++
++  /** mutate programs */
++  def apply(
++    ast: Ast,
++    n: Int,
++    target: Option[(CondView, Coverage)],
++  ): Seq[(String, Ast)] =
++    val weights = mutators.map(_.calculateWeight(ast))
++    weightedChoose(mutators zip weights)(ast, n, target)
++
++  val names = mutators.toList.flatMap(_.names).sorted.distinct
++}
+diff --git a/src/main/scala/esmeta/mutator/synthesizer/SimpleSynthesizer.scala b/src/main/scala/esmeta/mutator/synthesizer/SimpleSynthesizer.scala
+deleted file mode 100644
+index ba87cc09..00000000
+--- a/src/main/scala/esmeta/mutator/synthesizer/SimpleSynthesizer.scala
++++ /dev/null
+@@ -1,79 +0,0 @@
+-package esmeta.mutator.synthesizer
+-
+-import esmeta.es.*
+-import esmeta.spec.*
+-import esmeta.util.BaseUtils.*
+-
+-// TODO refactoring
+-/** A simple ECMAScript AST synthesizer */
+-class SimpleSynthesizer(
+-  val grammar: Grammar,
+-) extends Synthesizer {
+-  import grammar.*
+-  import SimpleSynthesizer.*
+-
+-  /** for syntactic production */
+-  def apply(name: String, args: List[Boolean]): Syntactic = synNt(name, args)
+-
+-  /** for lexical production */
+-  def apply(name: String): Lexical = Lexical(name, reservedLexicals(name))
+-
+-  // ---------------------------------------------------------------------------
+-  // private helpers
+-  // ---------------------------------------------------------------------------
+-  private val synNt = cached[(String, List[Boolean]), Syntactic] {
+-    case target @ (name, args) =>
+-      if (visiting contains target) error(s"visiting $target")
+-      visiting += target
+-      val prod @ Production(lhs, _, _, rhsList) = nameMap(name)
+-      val argsMap = (lhs.params zip args).toMap
+-      val syns = for {
+-        (rhs, rhsIdx) <- rhsList.zipWithIndex
+-        if rhs.available(argsMap)
+-        children <- optional(rhs.symbols.flatMap(synSymbol(argsMap)))
+-        syn = Syntactic(name, args, rhsIdx, children)
+-      } yield syn
+-      visiting -= target
+-      syns.minBy(_.toString(grammar = Some(grammar)).length)
+-  }
+-
+-  private var visiting: Set[(String, List[Boolean])] = Set()
+-
+-  private def synSymbol(argsMap: Map[String, Boolean])(
+-    symbol: Symbol,
+-  ): Option[Option[Ast]] = symbol match
+-    case ButNot(nt, _)    => synSymbol(argsMap)(nt)
+-    case Optional(symbol) => Some(None)
+-    case Nonterminal(name, args) =>
+-      if (reservedLexicals contains name)
+-        Some(Some(Lexical(name, reservedLexicals(name))))
+-      else {
+-        import NonterminalArgumentKind.*
+-        val newArgs = for (arg <- args) yield arg.kind match
+-          case True  => true
+-          case False => false
+-          case Pass  => argsMap(arg.name)
+-        Some(Some(synNt(name, newArgs)))
+-      }
+-    case _ => None
+-
+-  // for correct order
+-  synNt("Statement", List(false, false, false))
+-}
+-object SimpleSynthesizer extends Synthesizer.Builder {
+-  def apply(grammar: Grammar) = new SimpleSynthesizer(grammar)
+-
+-  val reservedLexicals: Map[String, String] = Map(
+-    "IdentifierName" -> "x",
+-    "NullLiteral" -> "null",
+-    "BooleanLiteral" -> "true",
+-    "NumericLiteral" -> "42",
+-    "StringLiteral" -> "''",
+-    "NoSubstitutionTemplate" -> "``",
+-    "TemplateHead" -> "`${",
+-    "TemplateMiddle" -> "}${",
+-    "TemplateTail" -> "}`",
+-    "RegularExpressionLiteral" -> "/a/",
+-    "PrivateIdentifier" -> "#x",
+-  )
+-}
+diff --git a/src/main/scala/esmeta/parser/AstFrom.scala b/src/main/scala/esmeta/parser/AstFrom.scala
+index 8907f6e7..744ef35c 100644
+--- a/src/main/scala/esmeta/parser/AstFrom.scala
++++ b/src/main/scala/esmeta/parser/AstFrom.scala
+@@ -6,4 +6,6 @@ import esmeta.es.Ast
+ trait AstFrom {
+   def fromFile(str: String): Ast
+   def from(str: String): Ast
++  def fromFileWithCode(str: String): (Ast, String)
++  def fromWithCode(str: String): (Ast, String)
+ }
+diff --git a/src/main/scala/esmeta/parser/ESParser.scala b/src/main/scala/esmeta/parser/ESParser.scala
+index 958133f9..003dac1c 100644
+--- a/src/main/scala/esmeta/parser/ESParser.scala
++++ b/src/main/scala/esmeta/parser/ESParser.scala
+@@ -33,6 +33,14 @@ case class ESParser(
+       def from(str: String): Ast =
+         if (debug) println(debugWelcome)
+         parse(parser, str).get
++      def fromFileWithCode(filename: String): (Ast, String) =
++        if (debug) println(debugWelcome)
++        val res = parse(parser, fileReader(filename))
++        (res.get, res.next.source.toString)
++      def fromWithCode(str: String): (Ast, String) =
++        if (debug) println(debugWelcome)
++        val res = parse(parser, str)
++        (res.get, res.next.source.toString)
+     }
+ 
+   // parsers
+@@ -64,7 +72,7 @@ case class ESParser(
+     name: String,
+     args: List[Boolean],
+     idx: Int,
+-    children: List[Option[Ast]],
++    children: Vector[Option[Ast]],
+   ): Syntactic =
+     val syn = Syntactic(name, args, idx, children)
+     // set parent edge
+@@ -84,15 +92,15 @@ case class ESParser(
+   // get a parser
+   private def getParser(prod: Production): ESParser[Ast] = memo(args =>
+     locationed {
+-      val Production(lhs, _, _, rhsList) = prod
++      val Production(lhs, _, _, rhsVec) = prod
+       val Lhs(name, params) = lhs
+       val argsSet = getArgs(params, args)
+ 
+-      val lrs = rhsList.zipWithIndex
++      val lrs = rhsVec.zipWithIndex
+         .filter { case (r, _) => isLR(name, r) }
+         .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
+ 
+-      val nlrs = rhsList.zipWithIndex
++      val nlrs = rhsVec.zipWithIndex
+         .filter { case (r, _) => !isLR(name, r) }
+         .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
+ 
+@@ -121,7 +129,7 @@ case class ESParser(
+           (base: Ast) =>
+             val children = Some(base) :: cs.reverse
+             withLoc(
+-              syntactic(name, args, idx, children),
++              syntactic(name, args, idx, children.toVector),
+               base,
+               cs.flatten.headOption.getOrElse(base),
+             )
+@@ -141,7 +149,7 @@ case class ESParser(
+     log(if (rhs.available(argsSet)) {
+       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
+       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+-        case cs => syntactic(name, args, idx, cs.reverse)
++        case cs => syntactic(name, args, idx, cs.toVector.reverse)
+       }
+     } else MISMATCH)(s"$pre$rhs$LINE_SEP$cursor")
+ 
+@@ -187,7 +195,7 @@ case class ESParser(
+     val ts = (for {
+       prod <- grammar.prods
+       if prod.kind == ProductionKind.Syntactic
+-      rhs <- prod.rhsList
++      rhs <- prod.rhsVec
+       t <- rhs.symbols.collect { case Terminal(t) => t }
+     } yield t).toSet
+     // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
+@@ -459,7 +467,7 @@ case class ESParser(
+         resolveLR(
+           log(locationed(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
+             case _ ~ x0 =>
+-              syntactic("CoalesceExpressionHead", args, 1, List(Some(x0)))
++              syntactic("CoalesceExpressionHead", args, 1, Vector(Some(x0)))
+           }))("CoalesceExpressionHead1"),
+           log(
+             (MATCH <~ t("??")) ~ parsers("BitwiseORExpression")(args) ^^ {
+@@ -470,7 +478,7 @@ case class ESParser(
+                       "CoalesceExpression",
+                       args,
+                       0,
+-                      List(Some(x), Some(x0)),
++                      Vector(Some(x), Some(x0)),
+                     ),
+                     x,
+                     x0,
+@@ -480,7 +488,7 @@ case class ESParser(
+                       "CoalesceExpressionHead",
+                       args,
+                       0,
+-                      List(Some(expr)),
++                      Vector(Some(expr)),
+                     ),
+                     expr,
+                     expr,
+diff --git a/src/main/scala/esmeta/parser/Lexer.scala b/src/main/scala/esmeta/parser/Lexer.scala
+index 50562c56..e7d141f8 100644
+--- a/src/main/scala/esmeta/parser/Lexer.scala
++++ b/src/main/scala/esmeta/parser/Lexer.scala
+@@ -80,7 +80,7 @@ trait Lexer extends UnicodeParsers {
+     prod: Production,
+     argsSet: Set[String],
+   ): Lexer = {
+-    lazy val parser = prod.rhsList.map(getRhsParser(_, argsSet)).reduce(_ ||| _)
++    lazy val parser = prod.rhsVec.map(getRhsParser(_, argsSet)).reduce(_ ||| _)
+     parser
+   }
+ 
+diff --git a/src/main/scala/esmeta/phase/Eval.scala b/src/main/scala/esmeta/phase/Eval.scala
+index 78a00fee..d3bab0f1 100644
+--- a/src/main/scala/esmeta/phase/Eval.scala
++++ b/src/main/scala/esmeta/phase/Eval.scala
+@@ -29,7 +29,7 @@ case object Eval extends Phase[CFG, State] {
+     else run(cfg, config, getFirstFilename(cmdConfig, this.name))
+ 
+   def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
+-    Initialize.fromFile(cfg, filename),
++    cfg.init.fromFile(filename),
+     log = config.log,
+     detail = config.detail,
+     timeLimit = config.timeLimit,
+diff --git a/src/main/scala/esmeta/phase/Mutate.scala b/src/main/scala/esmeta/phase/Mutate.scala
+index a821ab87..42bd55df 100644
+--- a/src/main/scala/esmeta/phase/Mutate.scala
++++ b/src/main/scala/esmeta/phase/Mutate.scala
+@@ -20,15 +20,15 @@ case object Mutate extends Phase[CFG, String] {
+     val grammar = cfg.grammar
+     val filename = getFirstFilename(cmdConfig, this.name)
+     val ast = cfg.scriptParser.fromFile(filename)
+-    val mutator = config.builder(grammar)
++    val mutator = config.builder(using cfg)
+ 
+     // get a mutated AST
+-    var mutatedAst = mutator(ast)
++    var mutatedAst = mutator(ast, 1).head._2
+ 
+     // repeat until the mutated program becomes valid when
+     // `-mutate:untilValid` is turn on
+     while (config.untilValid && !mutatedAst.valid(grammar))
+-      mutatedAst = mutator(ast)
++      mutatedAst = mutator(ast, 1).head._2
+ 
+     // get string of mutated AST
+     val mutated = mutatedAst.toString(grammar = Some(grammar))
+@@ -54,8 +54,8 @@ case object Mutate extends Phase[CFG, String] {
+       "mutator",
+       StrOption((c, s) =>
+         c.builder = s match
+-          case "random" => RandomMutator
+-          case _        => RandomMutator,
++          case "random" => RandomMutator()
++          case _        => RandomMutator(),
+       ),
+       "select a mutator (default: random).",
+     ),
+@@ -65,9 +65,9 @@ case object Mutate extends Phase[CFG, String] {
+       "repeat until the mutated program becomes valid.",
+     ),
+   )
+-  case class Config(
++  class Config(
+     var out: Option[String] = None,
+-    var builder: Mutator.Builder = RandomMutator,
++    var builder: CFG ?=> Mutator = RandomMutator(),
+     var untilValid: Boolean = false,
+   )
+ }
+diff --git a/src/main/scala/esmeta/spec/Grammar.scala b/src/main/scala/esmeta/spec/Grammar.scala
+index 7e6aac2d..35fc2525 100644
+--- a/src/main/scala/esmeta/spec/Grammar.scala
++++ b/src/main/scala/esmeta/spec/Grammar.scala
+@@ -10,7 +10,7 @@ case class Grammar(
+   prodsForWeb: List[Production] = Nil,
+ ) extends SpecElem {
+ 
+-  /** a mappging from names to productions */
++  /** a mapping from names to productions */
+   lazy val nameMap: Map[String, Production] =
+     (for (prod <- prods) yield prod.lhs.name -> prod).toMap
+ 
+diff --git a/src/main/scala/esmeta/spec/Production.scala b/src/main/scala/esmeta/spec/Production.scala
+index 8a1d3f29..cd03705e 100644
+--- a/src/main/scala/esmeta/spec/Production.scala
++++ b/src/main/scala/esmeta/spec/Production.scala
+@@ -7,7 +7,7 @@ case class Production(
+   lhs: Lhs,
+   kind: ProductionKind,
+   oneof: Boolean,
+-  rhsList: List[Rhs],
++  rhsVec: Vector[Rhs],
+ ) extends SpecElem {
+ 
+   /** get name */
+@@ -15,25 +15,25 @@ case class Production(
+ 
+   /** get the index mapping for productions */
+   lazy val idxMap: Map[String, (Int, Int)] = (for {
+-    (rhs, i) <- rhsList.zipWithIndex
++    (rhs, i) <- rhsVec.zipWithIndex
+     (name, j) <- rhs.allNames.zipWithIndex
+   } yield lhs.name + ":" + name -> (i, j)).toMap
+ 
+   /** get non-terminals with whether it is optional in an RHS */
+   lazy val nts: List[Nonterminal] = for {
+-    rhs <- rhsList
++    rhs <- rhsVec.toList
+     nt <- rhs.nts
+   } yield nt
+ 
+   /** get non-terminals with whether it is optional in an RHS */
+   lazy val ntsWithOptional: List[(Nonterminal, Boolean)] = for {
+-    rhs <- rhsList
++    rhs <- rhsVec.toList
+     pair <- rhs.ntsWithOptional
+   } yield pair
+ 
+   /** get terminals in RHSs */
+   lazy val ts: List[Terminal] = for {
+-    rhs <- rhsList
++    rhs <- rhsVec.toList
+     t <- rhs.ts
+   } yield t
+ }
+diff --git a/src/main/scala/esmeta/spec/util/Parser.scala b/src/main/scala/esmeta/spec/util/Parser.scala
+index f3f77826..4064138e 100644
+--- a/src/main/scala/esmeta/spec/util/Parser.scala
++++ b/src/main/scala/esmeta/spec/util/Parser.scala
+@@ -39,11 +39,11 @@ trait Parsers extends LangParsers {
+     lhs ~ prodKind ~ opt("one of") ~ rep1(opt(newline) ~> rhs) ^^ {
+       case l ~ k ~ Some(_) ~ origRs =>
+         val rs = for {
+-          r <- origRs
++          r <- origRs.toVector
+           s <- r.symbols
+         } yield Rhs(Nil, List(s), None)
+         Production(l, k, true, rs)
+-      case l ~ k ~ None ~ rs => Production(l, k, false, rs)
++      case l ~ k ~ None ~ rs => Production(l, k, false, rs.toVector)
+     }
+   }.named("spec.Production")
+ 
+diff --git a/src/main/scala/esmeta/spec/util/Stringifier.scala b/src/main/scala/esmeta/spec/util/Stringifier.scala
+index 2b16b865..7d97a8d4 100644
+--- a/src/main/scala/esmeta/spec/util/Stringifier.scala
++++ b/src/main/scala/esmeta/spec/util/Stringifier.scala
+@@ -79,11 +79,11 @@ object Stringifier {
+ 
+   // for productions
+   given prodRule: Rule[Production] = (app, prod) =>
+-    val Production(lhs, kind, oneof, rhsList) = prod
++    val Production(lhs, kind, oneof, rhsVec) = prod
+     app >> lhs >> " " >> kind
+-    given Rule[List[Rhs]] = iterableRule(sep = " ")
+-    if (oneof) app.wrap(" one of", "")(app :> rhsList)
+-    else app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
++    given Rule[Iterable[Rhs]] = iterableRule(sep = " ")
++    if (oneof) app.wrap(" one of", "")(app :> rhsVec)
++    else app.wrap("", "")(for (rhs <- rhsVec) app :> rhs)
+ 
+   // for production left-hand-sides (LHSs)
+   given lhsRule: Rule[Lhs] = (app, lhs) =>
+diff --git a/src/main/scala/esmeta/state/CallPath.scala b/src/main/scala/esmeta/state/CallPath.scala
+new file mode 100644
+index 00000000..0696e568
+--- /dev/null
++++ b/src/main/scala/esmeta/state/CallPath.scala
+@@ -0,0 +1,24 @@
++package esmeta.state
++
++import esmeta.cfg.Call
++
++/** abstraction of call stacks as simple paths */
++case class CallPath(
++  path: List[Call] = Nil,
++  visited: Set[Call] = Set(),
++) extends StateElem {
++  def +(call: Call): CallPath =
++    if (visited contains call)
++      var stack = path
++      var newVisited = visited
++      while (
++        stack match
++          case head :: tail => stack = tail; newVisited -= head; head != call
++          case _            => false
++      ) {}
++      CallPath(call :: stack, newVisited + call)
++    else CallPath(call :: path, visited + call)
++}
++object CallPath {
++  def apply(call: Call): CallPath = CallPath(List(call), Set(call))
++}
+diff --git a/src/main/scala/esmeta/state/Context.scala b/src/main/scala/esmeta/state/Context.scala
+index c3b32887..ce82269c 100644
+--- a/src/main/scala/esmeta/state/Context.scala
++++ b/src/main/scala/esmeta/state/Context.scala
+@@ -10,16 +10,24 @@ import scala.collection.mutable.{Map => MMap}
+ case class Context(
+   val func: Func,
+   val locals: MMap[Local, Value] = MMap(),
++  val featureStack: List[Feature] = Nil,
++  val nearest: Option[Nearest] = None,
++  val callPath: CallPath = CallPath(),
+ ) extends StateElem {
+ 
+   /** current cursor in this context */
+-  var cursor: Cursor = NodeCursor(func.entry)
++  var cursor: Cursor = NodeCursor(func, func.entry)
++
++  /** move one instruction */
++  def step: Unit = cursor match
++    case cursor: NodeCursor => cursor.idx += 1
++    case _                  =>
+ 
+   /** move cursor to next */
+   def moveNext: Unit = cursor match
+-    case NodeCursor(block: Block) => cursor = Cursor(block.next, func)
+-    case NodeCursor(call: Call)   => cursor = Cursor(call.next, func)
+-    case _                        => error("cursor can't move to next")
++    case NodeCursor(_, block: Block, _) => cursor = Cursor(block.next, func)
++    case NodeCursor(_, call: Call, _)   => cursor = Cursor(call.next, func)
++    case _                              => error("cursor can't move to next")
+ 
+   /** return variable */
+   var retVal: Option[(Return, Value)] = None
+@@ -38,4 +46,6 @@ case class Context(
+   def astOpt: Option[Ast] =
+     if (func.isSDO) Some(locals(NAME_THIS).asAst)
+     else None
++
++  def provenance: Provenance = Provenance(cursor, featureStack.headOption)
+ }
+diff --git a/src/main/scala/esmeta/state/Cursor.scala b/src/main/scala/esmeta/state/Cursor.scala
+index 0892b5a6..b95cb4f7 100644
+--- a/src/main/scala/esmeta/state/Cursor.scala
++++ b/src/main/scala/esmeta/state/Cursor.scala
+@@ -1,14 +1,30 @@
+ package esmeta.state
+ 
+ import esmeta.cfg.*
++import esmeta.util.*
++import esmeta.util.BaseUtils.*
+ 
+ /** IR cursors */
+ sealed trait Cursor extends StateElem {
+-  var idx: Int = 0 // idx for block node (used in debugger)
++
++  /** CFG function */
++  def func: Func
++
++  /** get source locations */
++  def loc: Option[Loc] = this match
++    case NodeCursor(func, node, idx) =>
++      node match
++        case Block(_, insts, _) => optional(insts(idx)).flatMap(_.loc)
++        case _                  => node.loc
++    case _ => None
+ }
+-case class NodeCursor(node: Node) extends Cursor
++case class NodeCursor(
++  func: Func,
++  node: Node,
++  var idx: Int = 0, // idx for block node (used in debugger)
++) extends Cursor
+ case class ExitCursor(func: Func) extends Cursor
+ object Cursor {
+   def apply(nodeOpt: Option[Node], f: Func): Cursor =
+-    nodeOpt.fold(ExitCursor(f))(NodeCursor(_))
++    nodeOpt.fold(ExitCursor(f))(NodeCursor(f, _))
+ }
+diff --git a/src/main/scala/esmeta/state/Feature.scala b/src/main/scala/esmeta/state/Feature.scala
+new file mode 100644
+index 00000000..dc0c9db3
+--- /dev/null
++++ b/src/main/scala/esmeta/state/Feature.scala
+@@ -0,0 +1,23 @@
++package esmeta.state
++
++import esmeta.cfg.*
++import esmeta.es.*
++import esmeta.ir.Name
++import esmeta.spec.*
++import esmeta.ty.AstSingleTy
++import esmeta.util.UId
++
++/** ECMAScript features */
++sealed trait Feature extends StateElem with UId {
++  def func: Func
++  def head: Head
++  def id: Int = func.id
++}
++case class SyntacticFeature(
++  func: Func,
++  head: SyntaxDirectedOperationHead,
++) extends Feature
++case class BuiltinFeature(
++  func: Func,
++  head: BuiltinHead,
++) extends Feature
+diff --git a/src/main/scala/esmeta/state/Heap.scala b/src/main/scala/esmeta/state/Heap.scala
+index 5c9151fd..8d45b1d6 100644
+--- a/src/main/scala/esmeta/state/Heap.scala
++++ b/src/main/scala/esmeta/state/Heap.scala
+@@ -11,15 +11,15 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
+ 
+ /** IR heaps */
+ case class Heap(
+-  val map: MMap[Addr, Obj] = MMap(),
++  val map: MMap[Addr, (Obj, Option[Provenance])] = MMap(),
+   var size: Int = 0,
+ ) extends StateElem {
+ 
+   /** getters */
+   def apply(addr: Addr): Obj =
+     map.getOrElse(addr, throw UnknownAddr(addr)) match
+-      case YetObj(_, msg) => throw NotSupported(Feature)(msg)
+-      case obj            => obj
++      case (YetObj(_, msg), _) => throw NotSupported(Feature)(msg)
++      case (obj, _)            => obj
+   def apply(addr: Addr, key: Value): Value = apply(addr) match
+     case _ if addr == NamedAddr(INTRINSICS) => Heap.getIntrinsics(key)
+     case (m: MapObj)                        => m(key)
+@@ -27,6 +27,11 @@ case class Heap(
+     case (r: RecordObj)                     => r(key)
+     case YetObj(_, msg)                     => throw NotSupported(Feature)(msg)
+ 
++  def getProvenance(value: Value): Option[Provenance] = value match
++    case NormalComp(value) => getProvenance(value)
++    case addr: Addr        => map.get(addr).flatMap { case (_, prov) => prov }
++    case _                 => None
++
+   /** setters */
+   def update(addr: Addr, field: Value, value: Value): this.type =
+     apply(addr) match {
+@@ -67,10 +72,11 @@ case class Heap(
+   }
+ 
+   /** copy objects */
+-  def copyObj(addr: Addr): Addr = alloc(apply(addr).copied)
++  def copyObj(addr: Addr)(using Option[Provenance]): Addr =
++    alloc(apply(addr).copied)
+ 
+   /** keys of map */
+-  def keys(addr: Addr, intSorted: Boolean): Addr = {
++  def keys(addr: Addr, intSorted: Boolean)(using Option[Provenance]): Addr = {
+     alloc(ListObj(apply(addr) match {
+       case (r: RecordObj) => r.keys
+       case (m: MapObj)    => m.keys(intSorted)
+@@ -79,7 +85,9 @@ case class Heap(
+   }
+ 
+   /** record allocations */
+-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
++  def allocRecord(
++    tnameOpt: Option[String],
++  )(using CFG, Option[Provenance]): Addr =
+     val record = RecordObj(tnameOpt)
+     // TODO check it is the best way to handle this
+     if (isObject(record.tname))
+@@ -90,15 +98,17 @@ case class Heap(
+     tname endsWith "Object"
+ 
+   /** map allocations */
+-  def allocMap: Addr = alloc(MapObj())
++  def allocMap(using Option[Provenance]): Addr = alloc(MapObj())
+ 
+   /** list allocations */
+-  def allocList(list: List[Value]): Addr = alloc(ListObj(list.toVector))
++  def allocList(list: List[Value])(using Option[Provenance]): Addr = alloc(
++    ListObj(list.toVector),
++  )
+ 
+   // allocation helper
+-  private def alloc(obj: Obj): Addr = {
++  private def alloc(obj: Obj)(using provenance: Option[Provenance]): Addr = {
+     val newAddr = DynamicAddr(size)
+-    map += newAddr -> obj
++    map += newAddr -> (obj, provenance)
+     size += 1
+     newAddr
+   }
+@@ -121,11 +131,13 @@ case class Heap(
+   /** copied */
+   def copied: Heap =
+     val newMap = MMap.from(map.toList.map {
+-      case (addr, obj) => addr -> obj.copied
++      case (addr, (obj, provenance)) => addr -> (obj.copied, provenance)
+     })
+     Heap(newMap, size)
+ }
+ object Heap {
++  def initialize(map: MMap[Addr, Obj] = MMap(), size: Int = 0): Heap =
++    new Heap(map.map { case (addr, obj) => addr -> (obj, None) }, size)
+ 
+   /** special getter for intrinsics */
+   def getIntrinsics(key: Value): Value =
+diff --git a/src/main/scala/esmeta/state/Nearest.scala b/src/main/scala/esmeta/state/Nearest.scala
+new file mode 100644
+index 00000000..0c9399bd
+--- /dev/null
++++ b/src/main/scala/esmeta/state/Nearest.scala
+@@ -0,0 +1,7 @@
++package esmeta.state
++
++import esmeta.ty.AstSingleTy
++import esmeta.util.Loc
++
++/** Nearest syntax Information */
++case class Nearest(ty: AstSingleTy, loc: Loc)
+diff --git a/src/main/scala/esmeta/state/Provenance.scala b/src/main/scala/esmeta/state/Provenance.scala
+new file mode 100644
+index 00000000..882a3d00
+--- /dev/null
++++ b/src/main/scala/esmeta/state/Provenance.scala
+@@ -0,0 +1,9 @@
++package esmeta.state
++
++import esmeta.cfg.*
++
++/** provenance of addresses */
++case class Provenance(
++  cursor: Cursor,
++  feature: Option[Feature],
++) extends StateElem
+diff --git a/src/main/scala/esmeta/state/State.scala b/src/main/scala/esmeta/state/State.scala
+index 0c362daa..8748d694 100644
+--- a/src/main/scala/esmeta/state/State.scala
++++ b/src/main/scala/esmeta/state/State.scala
+@@ -21,9 +21,7 @@ case class State(
+ ) extends StateElem {
+ 
+   /** get the current function */
+-  def func: Func = context.cursor match
+-    case NodeCursor(node) => cfg.funcOf(node)
+-    case ExitCursor(func) => func
++  def func: Func = context.cursor.func
+ 
+   /** get local variable maps */
+   def locals: MMap[Local, Value] = context.locals
+@@ -57,7 +55,7 @@ case class State(
+       case (_, Str("parent")) => ast.parent.map(AstValue(_)).getOrElse(Absent)
+       case (syn: Syntactic, Str(fieldStr)) =>
+         val Syntactic(name, _, rhsIdx, children) = syn
+-        val rhs = cfg.grammar.nameMap(name).rhsList(rhsIdx)
++        val rhs = cfg.grammar.nameMap(name).rhsVec(rhsIdx)
+         rhs.getNtIndex(fieldStr).flatMap(children(_)) match
+           case Some(child) => AstValue(child)
+           case _           => throw InvalidAstField(syn, Str(fieldStr))
+@@ -71,6 +69,9 @@ case class State(
+     case _             => throw WrongStringRef(str, field)
+   def apply(addr: Addr): Obj = heap(addr)
+ 
++  def getProvenance(value: Value): Option[Provenance] =
++    heap.getProvenance(value)
++
+   /** setters */
+   def define(x: Var, value: Value): this.type = x match
+     case x: Global => globals += x -> value; this
+@@ -125,15 +126,17 @@ case class State(
+     heap.prepend(addr, value); this
+   def pop(addr: Addr, front: Boolean): Value =
+     heap.pop(addr, front)
+-  def copyObj(addr: Addr): Addr =
++  def copyObj(addr: Addr)(using Option[Provenance]): Addr =
+     heap.copyObj(addr)
+-  def keys(addr: Addr, intSorted: Boolean): Addr =
++  def keys(addr: Addr, intSorted: Boolean)(using Option[Provenance]): Addr =
+     heap.keys(addr, intSorted)
+-  def allocRecord(tnameOpt: Option[String])(using CFG): Addr =
++  def allocRecord(
++    tnameOpt: Option[String],
++  )(using CFG, Option[Provenance]): Addr =
+     heap.allocRecord(tnameOpt)
+-  def allocMap: Addr =
++  def allocMap(using Option[Provenance]): Addr =
+     heap.allocMap
+-  def allocList(list: List[Value]): Addr =
++  def allocList(list: List[Value])(using Option[Provenance]): Addr =
+     heap.allocList(list)
+   def setType(addr: Addr, tname: String): this.type =
+     heap.setType(addr, tname); this
+@@ -167,8 +170,8 @@ case class State(
+   /** get string for a current cursor */
+   def getCursorString: String = getCursorString(false)
+   def getCursorString(location: Boolean): String = context.cursor match
+-    case NodeCursor(node) =>
+-      val irFunc = cfg.funcOf(node).irFunc
++    case NodeCursor(func, node, _) =>
++      val irFunc = func.irFunc
+       s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
+     case ExitCursor(func) =>
+       val irFunc = func.irFunc
+@@ -201,6 +204,8 @@ case class State(
+       newGlobals,
+       newHeap,
+     )
++
++  def provenance: Provenance = context.provenance
+ }
+ object State {
+ 
+diff --git a/src/main/scala/esmeta/state/util/JsonProtocol.scala b/src/main/scala/esmeta/state/util/JsonProtocol.scala
+new file mode 100644
+index 00000000..0367f340
+--- /dev/null
++++ b/src/main/scala/esmeta/state/util/JsonProtocol.scala
+@@ -0,0 +1,36 @@
++package esmeta.state.util
++
++import esmeta.cfg.*
++import esmeta.cfg.util.{JsonProtocol => CFGJsonProtocol}
++import esmeta.spec.*
++import esmeta.util.*
++import esmeta.state.*
++import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
++
++class JsonProtocol(cfg: CFG) extends CFGJsonProtocol(cfg) {
++  // abstraction of call stacks as simple paths
++  given callPathDecoder: Decoder[CallPath] =
++    Decoder.instance(
++      _.value.as[List[Call]].map(calls => CallPath(calls, calls.toSet)),
++    )
++
++  given callPathEncoder: Encoder[CallPath] =
++    Encoder.instance(cp => Json.fromValues(cp.path.map(_.asJson)))
++
++  // ECMAScript features
++  given featureDecoder: Decoder[Feature] =
++    Decoder.instance(c =>
++      for {
++        func <- funcDecoder(c)
++        feature <- func.head match
++          case Some(head: SyntaxDirectedOperationHead) =>
++            Right(SyntacticFeature(func, head))
++          case Some(head: BuiltinHead) =>
++            Right(BuiltinFeature(func, head))
++          case _ =>
++            invalidFail("feature", c)
++      } yield feature,
++    )
++  given featureEncoder: Encoder[Feature] =
++    Encoder.instance(f => funcEncoder(f.func))
++}
+diff --git a/src/main/scala/esmeta/state/util/Stringifier.scala b/src/main/scala/esmeta/state/util/Stringifier.scala
+index 9521da66..279632d7 100644
+--- a/src/main/scala/esmeta/state/util/Stringifier.scala
++++ b/src/main/scala/esmeta/state/util/Stringifier.scala
+@@ -32,6 +32,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
+       case elem: Obj         => objRule(app, elem)
+       case elem: Value       => valueRule(app, elem)
+       case elem: RefTarget   => refTargetRule(app, elem)
++      case elem: Provenance  => provenanceRule(app, elem)
++      case elem: Feature     => featureRule(app, elem)
++      case elem: CallPath    => callPathRule(app, elem)
+ 
+   // states
+   given stRule: Rule[State] = (app, st) =>
+@@ -56,7 +59,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
+   // cursor
+   given cursorRule: Rule[Cursor] = (app, cursor) =>
+     cursor match
+-      case NodeCursor(node) => app >> node.simpleString
++      case NodeCursor(func, node, idx) =>
++        app >> func.simpleString
++        app >> ":" >> node.simpleString
++        app >> ":" >> idx
++        node.loc.fold(app)(app >> " (" >> _ >> ")")
+       case ExitCursor(func) => app >> func.simpleString
+ 
+   // calling contexts
+@@ -69,6 +76,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
+     val Heap(map, size) = heap
+     app >> s"(SIZE = " >> size.toString >> "): " >> map
+ 
++  // heap elements
++  given heapElemRule: Rule[(Obj, Option[Provenance])] = (app, pair) =>
++    val (obj, provenance) = pair
++    app >> obj
++    provenance.fold(app)(app >> " @ " >> _)
++
+   // objects
+   given objRule: Rule[Obj] = (app, obj) =>
+     obj match
+@@ -176,4 +189,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
+       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
+       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
+     }
++
++  // provenance
++  given provenanceRule: Rule[Provenance] = (app, provenance) =>
++    val Provenance(cursor, sdo) = provenance
++    app >> cursor.func.name
++    cursor.loc.fold(app)(app >> " (" >> _ >> ")")
++    sdo.fold(app)(app >> _)
++
++  // syntax directed operation information
++  given featureRule: Rule[Feature] = (app, feature) =>
++    val irFunc = feature.func.irFunc
++    app >> irFunc.kind >> irFunc.name
++
++  // abstraction of call stack as simple path
++  given callPathRule: Rule[CallPath] = (app, path) =>
++    given Rule[Call] = (app, call) => app >> call.id
++    given Rule[Iterable[Call]] = iterableRule("[", " <- ", "]")
++    app >> "CallPath" >> path.path
+ }
+diff --git a/src/main/scala/esmeta/state/util/UnitWalker.scala b/src/main/scala/esmeta/state/util/UnitWalker.scala
+index 3bfab8ad..4a86730d 100644
+--- a/src/main/scala/esmeta/state/util/UnitWalker.scala
++++ b/src/main/scala/esmeta/state/util/UnitWalker.scala
+@@ -39,6 +39,11 @@ trait UnitWalker extends BasicUnitWalker {
+   // heap
+   def walk(heap: Heap): Unit = walkMMap(heap.map, walk, walk)
+ 
++  // heap elements
++  def walk(pair: (Obj, Option[Provenance])): Unit =
++    val (obj, provenance) = pair
++    walk(obj); walkOpt(provenance, walk)
++
+   // object
+   def walk(obj: Obj): Unit = obj match
+     case RecordObj(_, map) => walkMMap(map, walk, walk)
+@@ -80,6 +85,12 @@ trait UnitWalker extends BasicUnitWalker {
+     case _: VarTarget             =>
+     case FieldTarget(base, field) => walk(base); walk(field)
+ 
++  // provenance
++  def walk(provenance: Provenance): Unit = {}
++
++  // ECMAScript features
++  def walk(feature: Feature): Unit = {}
++
+   // ir id
+   def walk(id: Var): Unit = {}
+ }
+diff --git a/src/main/scala/esmeta/synthesizer/BuiltinSynthesizer.scala b/src/main/scala/esmeta/synthesizer/BuiltinSynthesizer.scala
+new file mode 100644
+index 00000000..27468900
+--- /dev/null
++++ b/src/main/scala/esmeta/synthesizer/BuiltinSynthesizer.scala
+@@ -0,0 +1,88 @@
++package esmeta.synthesizer
++
++import esmeta.cfg.*
++import esmeta.error.*
++import esmeta.es.*
++import esmeta.es.util.*
++import esmeta.spec.*
++import esmeta.spec.BuiltinPath.*
++import esmeta.util.*
++import esmeta.util.Appender.*
++import esmeta.util.BaseUtils.*
++
++/** An ECMAScript AST synthesizer for built-in libraries */
++class BuiltinSynthesizer(
++  algorithms: List[Algorithm],
++) extends Synthesizer {
++
++  /** synthesizer name */
++  def name: String = "BuiltinSynthesizer"
++
++  /** get script */
++  def script: String = choose(initPool)
++
++  /** get initial pool */
++  lazy val initPool: Vector[String] = (for {
++    case BuiltinHead(path, _, _) <- algorithms.map(_.head)
++    code <- path match
++      case YetPath(_) => Nil
++      case Getter(base) =>
++        getString(base) :: (base match
++          case Prototype(proto, prop) =>
++            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
++          case _ => Nil
++        )
++      case Setter(base) =>
++        getString(base) :: (base match
++          case Prototype(proto, prop) =>
++            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
++          case _ => Nil
++        )
++      case path =>
++        val MAX_ARGS = 5
++        val pathStr = getString(path)
++        // calls
++        val calls = for {
++          argsLen <- Range(1, MAX_ARGS + 1).toList
++          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
++        } yield s"$pathStr.call$argsStr;"
++        // construct without arguments
++        val construct = s"new $pathStr;"
++        // constructs with arguments
++        val constructs = for {
++          argsLen <- Range(0, MAX_ARGS).toList
++          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
++        } yield s"new $pathStr$argsStr;"
++        calls ++ (construct :: constructs)
++  } yield code).toVector
++
++  // get prototype paths and properties
++  object Prototype:
++    def unapply(path: BuiltinPath): Option[(String, String)] = path match
++      case NormalAccess(NormalAccess(base, "prototype"), name) =>
++        Some((s"${getString(base)}.prototype", s".$name"))
++      case SymbolAccess(NormalAccess(base, "prototype"), symbol) =>
++        Some((s"${getString(base)}.prototype", s"[Symbol.$symbol]"))
++      case _ => None
++
++  // get string of builtin path
++  private def getString(path: BuiltinPath): String =
++    (new Appender >> path).toString
++  private given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
++    path match
++      case Base(name)               => app >> name
++      case NormalAccess(base, name) => app >> base >> "." >> name
++      case Getter(base)             => app >> base
++      case Setter(base)             => app >> base
++      case SymbolAccess(base, symbol) =>
++        app >> base >> "[Symbol." >> symbol >> "]"
++      case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
++
++  /** for syntactic production */
++  def apply(name: String, args: List[Boolean]): Syntactic =
++    throw NotSupported(List("BuiltinSynthesizer.apply"))
++
++  /** for lexical production */
++  def apply(name: String): Lexical =
++    throw NotSupported(List("BuiltinSynthesizer.apply"))
++}
+diff --git a/src/main/scala/esmeta/mutator/synthesizer/RandomSynthesizer.scala b/src/main/scala/esmeta/synthesizer/RandomSynthesizer.scala
+similarity index 75%
+rename from src/main/scala/esmeta/mutator/synthesizer/RandomSynthesizer.scala
+rename to src/main/scala/esmeta/synthesizer/RandomSynthesizer.scala
+index fc575df3..b65dedff 100644
+--- a/src/main/scala/esmeta/mutator/synthesizer/RandomSynthesizer.scala
++++ b/src/main/scala/esmeta/synthesizer/RandomSynthesizer.scala
+@@ -1,27 +1,28 @@
+-package esmeta.mutator.synthesizer
++package esmeta.synthesizer
+ 
+ import esmeta.es.*
+ import esmeta.spec.*
+ import esmeta.util.BaseUtils.*
+ 
+-// TODO refactoring
+ /** A random ECMAScript AST synthesizer */
+ class RandomSynthesizer(
+   val grammar: Grammar,
+ ) extends Synthesizer {
+   import grammar.*
+-  import SimpleSynthesizer.*
++
++  /** synthesizer name */
++  def name: String = "RandomSynthesizer"
+ 
+   /** for syntactic production */
+   def apply(name: String, args: List[Boolean]): Syntactic =
+-    val prod @ Production(lhs, _, _, rhsList) = nameMap(name)
++    val prod @ Production(lhs, _, _, rhsVec) = nameMap(name)
+     val argsMap = (lhs.params zip args).toMap
+     val pairs = for {
+-      (rhs, rhsIdx) <- rhsList.zipWithIndex
++      (rhs, rhsIdx) <- rhsVec.zipWithIndex
+       if rhs.available(argsMap)
+     } yield (rhs, rhsIdx)
+     val (rhs, rhsIdx) = choose(pairs)
+-    val children = rhs.symbols.flatMap(synSymbol(argsMap))
++    val children = rhs.symbols.map(synSymbol(argsMap)).toVector
+     Syntactic(name, args, rhsIdx, children)
+ 
+   /** for lexical production */
+@@ -34,13 +35,13 @@ class RandomSynthesizer(
+ 
+   private def synSymbol(argsMap: Map[String, Boolean])(
+     symbol: Symbol,
+-  ): Option[Option[Ast]] = symbol match
++  ): Option[Ast] = symbol match
+     case ButNot(nt, _) => synSymbol(argsMap)(nt)
+     case Optional(symbol) =>
+-      if (randBool) Some(None) else synSymbol(argsMap)(symbol)
++      if (randBool) None else synSymbol(argsMap)(symbol)
+     case Nonterminal(name, args) =>
+-      if (reservedLexicals contains name)
+-        Some(Some(Lexical(name, reservedLexicals(name))))
++      if (simpleSyn.reservedLexicals contains name)
++        Some(Lexical(name, simpleSyn.reservedLexicals(name)))
+       else {
+         import NonterminalArgumentKind.*
+         val newArgs = for (arg <- args) yield arg.kind match
+@@ -50,7 +51,7 @@ class RandomSynthesizer(
+         val syn =
+           if (randBool) simpleSyn(name, newArgs)
+           else apply(name, newArgs)
+-        Some(Some(syn))
++        Some(syn)
+       }
+     case _ => None
+ }
+diff --git a/src/main/scala/esmeta/synthesizer/SimpleSynthesizer.scala b/src/main/scala/esmeta/synthesizer/SimpleSynthesizer.scala
+new file mode 100644
+index 00000000..6a002fb4
+--- /dev/null
++++ b/src/main/scala/esmeta/synthesizer/SimpleSynthesizer.scala
+@@ -0,0 +1,200 @@
++package esmeta.synthesizer
++
++import esmeta.es.*
++import esmeta.spec.*
++import esmeta.util.*
++import esmeta.util.BaseUtils.*
++import esmeta.spec.util.GrammarGraph
++
++/** A simple ECMAScript AST synthesizer */
++class SimpleSynthesizer(
++  grammar: Grammar,
++) extends Synthesizer {
++
++  val graph = GrammarGraph(grammar)
++  import graph.*
++
++  /** synthesizer name */
++  def name: String = "SimpleSynthesizer"
++
++  /** get script */
++  def script: String = choose(initPool)
++
++  /** get initial pool */
++  lazy val initPool: Vector[String] =
++    lazy val pool = (for {
++      (node, scripts) <- scriptCovered.toList.sortBy(_._1.id)
++      ast <- scripts
++      code = handleInvalid(ast.toString(grammar = Some(grammar)).trim)
++    } yield code).toSet.toVector.sortBy(_.length)
++    pool
++
++  /** for syntactic production */
++  def apply(name: String, args: List[Boolean]): Syntactic =
++    val (ast, _) = cache(getSyn(name, args))
++    ast.asInstanceOf[Syntactic]
++
++  /** for lexical production */
++  def apply(name: String): Lexical = Lexical(name, reservedLexicals(name))
++
++  /** reserved lexicals */
++  lazy val reservedLexicals: Map[String, String] = Map(
++    "BooleanLiteral" -> "true",
++    "IdentifierName" -> "x",
++    "NoSubstitutionTemplate" -> "``",
++    "NullLiteral" -> "null",
++    "NumericLiteral" -> "42",
++    "PrivateIdentifier" -> "#x",
++    "RegularExpressionLiteral" -> "/a/",
++    "StringLiteral" -> "''",
++    "TemplateHead" -> "`${",
++    "TemplateMiddle" -> "}${",
++    "TemplateTail" -> "}`",
++  )
++
++  // ---------------------------------------------------------------------------
++  // private helpers
++  // ---------------------------------------------------------------------------
++  // cache for shortest AST for each grammar node
++  private lazy val cache: Map[Node, (Ast, String)] =
++    fixpoint(Map(), topological, auxNode)
++
++  private lazy val scriptCovered = getCoveredFrom(getSyn("Script", Nil))
++
++  // lexicographical ordering for code length and code string
++  private given Ordering[(Ast, String)] = Ordering.by {
++    case (_, code) => (code.length, code)
++  }
++
++  private def auxNode(
++    map: Map[Node, (Ast, String)],
++    node: Node,
++  ): (Ast, String) = node match
++    case synNode: SynNode => auxSyn(map, synNode)
++    case lexNode: LexNode => auxLex(map, lexNode)
++    case rhsNode: RhsNode => auxRhs(map, rhsNode)
++
++  private def auxSyn(
++    map: Map[Node, (Ast, String)],
++    synNode: SynNode,
++  ): (Ast, String) =
++    val SynNode(_, name, args) = synNode
++    val pairs = for {
++      rhsNode <- synEdges.getOrElse(synNode, Set())
++      pair @ (_, code) <- map.get(rhsNode)
++    } yield pair
++    pairs.min
++
++  private def auxLex(
++    map: Map[Node, (Ast, String)],
++    lexNode: LexNode,
++  ): (Ast, String) =
++    val LexNode(_, name) = lexNode
++    val code = reservedLexicals(name)
++    (Lexical(name, code), code)
++
++  private def auxRhs(
++    map: Map[Node, (Ast, String)],
++    rhsNode: RhsNode,
++  ): (Ast, String) =
++    val RhsNode(_, name, args, rhsIdx) = rhsNode
++    val children = for {
++      symbol <- rhsNode.rhs.symbols.toVector
++      nt <- symbol.getNt
++      child = symbol match
++        case Optional(_) => None
++        case _ => Some(auxSymbol(map, rhsNode.prod, nt, rhsNode.argMap)._2)
++    } yield child
++    val ast = Syntactic(name, args, rhsIdx, children)
++    val code = ast.toString(grammar = Some(grammar))
++    (ast, code)
++
++  private def auxSymbol(
++    map: Map[Node, (Ast, String)],
++    prod: Production,
++    nt: Nonterminal,
++    argMap: Map[String, Boolean],
++  ): (ProdNode, Ast) =
++    val Nonterminal(name, args) = nt
++    val prodNode = getProd(nt, argMap)
++    (
++      prodNode,
++      prodNode match
++        case lexNode: LexNode => Lexical(name, reservedLexicals(name))
++        case synNode: SynNode =>
++          val (ast, _) = map(synNode)
++          ast,
++    )
++
++  private def getCoveredFrom(node: SynNode): Map[RhsNode, Vector[Ast]] = {
++    val worklist: Worklist[(SynNode, Int, Syntactic => Syntactic)] =
++      QueueWorklist(List((node, 0, (x: Syntactic) => x)))
++    var map: Map[RhsNode, Vector[Ast]] = Map()
++    var minSizes: Map[SynNode, Int] = Map()
++
++    def aux(
++      rhsNode: RhsNode,
++      rhs: Rhs,
++      argMap: Map[String, Boolean],
++      astF: Syntactic => Syntactic,
++    ): Unit = {
++      val RhsNode(_, name, args, rhsIdx) = rhsNode
++      var scripts = Vector[Ast]()
++      val nts = rhs.symbols.flatMap(_.getNt).toVector
++      val opts = rhs.symbols
++        .collect {
++          case (nt: NtBase)    => nt
++          case (opt: Optional) => opt
++        }
++        .zipWithIndex
++        .collect { case (Optional(_), i) => i }
++        .toVector
++      // added scripts for current RHS node
++      val (prodNodes, children) = (for {
++        nt <- nts
++        (prodNode, child) = auxSymbol(cache, rhsNode.prod, nt, argMap)
++      } yield (prodNode, Some(child))).unzip
++      def create(children: Vector[Option[Ast]]): Syntactic =
++        astF(Syntactic(name, args, rhsIdx, children))
++      for {
++        removed <- opts.toSet.subsets
++        newChildren = for {
++          (child, idx) <- children.zipWithIndex
++        } yield if (removed contains idx) None else child
++        ast = create(newChildren)
++      } scripts :+= ast
++      map += rhsNode -> scripts
++      // propagate to symbols
++      val minChildren = children.zipWithIndex.map {
++        case (child, i) =>
++          if (opts.contains(i)) None else child
++      }
++      val size = create(minChildren).toString(grammar = Some(grammar)).length
++      for {
++        case (synNode @ SynNode(_, _, _), idx) <- prodNodes.zipWithIndex
++        newAstF = (ast: Ast) => create(minChildren.updated(idx, Some(ast)))
++      } minSizes.get(synNode) match
++        case Some(origSize) if origSize <= size =>
++        case _ =>
++          minSizes += synNode -> size
++          worklist += ((synNode, size, newAstF))
++    }
++
++    while (
++      worklist.next match
++        case Some((synNode @ SynNode(_, name, args), _, astF)) =>
++          for {
++            rhsNode <- synEdges.getOrElse(synNode, Set())
++          } aux(rhsNode, rhsNode.rhs, rhsNode.argMap, astF)
++          true
++        case None => false
++    ) {}
++
++    map
++  }
++
++  // handle invalid code
++  private def handleInvalid(code: String): String =
++    if (code.startsWith("{") && code.endsWith("} ;")) "var x = " + code
++    else code
++}
+diff --git a/src/main/scala/esmeta/mutator/synthesizer/Synthesizer.scala b/src/main/scala/esmeta/synthesizer/Synthesizer.scala
+similarity index 83%
+rename from src/main/scala/esmeta/mutator/synthesizer/Synthesizer.scala
+rename to src/main/scala/esmeta/synthesizer/Synthesizer.scala
+index 8ccf54fc..5bf4d2eb 100644
+--- a/src/main/scala/esmeta/mutator/synthesizer/Synthesizer.scala
++++ b/src/main/scala/esmeta/synthesizer/Synthesizer.scala
+@@ -1,11 +1,16 @@
+-package esmeta.mutator.synthesizer
++package esmeta.synthesizer
+ 
++import esmeta.cfg.*
++import esmeta.es.util.*
+ import esmeta.es.*
+ import esmeta.spec.Grammar
+ 
+ /** ECMAScript AST synthesizer */
+ trait Synthesizer {
+ 
++  /** synthesizer name */
++  def name: String
++
+   /** for general production */
+   def apply(ast: Ast): Ast = ast match
+     case ast: Syntactic => apply(ast)
+@@ -18,9 +23,6 @@ trait Synthesizer {
+   /** for lexical production */
+   def apply(name: String): Lexical
+   def apply(ast: Lexical): Lexical = apply(ast.name)
+-
+-  /** ECMAScript grammar */
+-  def grammar: Grammar
+ }
+ object Synthesizer:
+   type Builder = Grammar => Synthesizer
+diff --git a/src/main/scala/esmeta/test262/Test262.scala b/src/main/scala/esmeta/test262/Test262.scala
+index f5a8a529..2018982b 100644
+--- a/src/main/scala/esmeta/test262/Test262.scala
++++ b/src/main/scala/esmeta/test262/Test262.scala
+@@ -24,10 +24,10 @@ case class Test262(
+ ) {
+ 
+   /** cache for parsing results for necessary harness files */
+-  lazy val getHarness = cached(name =>
+-    val filename = s"$TEST262_DIR/harness/$name"
+-    () => parseFile(filename).flattenStmt,
+-  )
++  lazy val getHarness =
++    cached[String, List[Ast]](name =>
++      parseFile(s"$TEST262_DIR/harness/$name").flattenStmt,
++    )
+ 
+   /** test262 filter */
+   lazy val testFilter: TestFilter = TestFilter(cfg.spec)
+@@ -39,7 +39,7 @@ case class Test262(
+   lazy val (allTargetTests, allRemoved) = testFilter(allTests, withYet)
+ 
+   /** basic harness files */
+-  lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
++  lazy val basicHarness = getHarness("assert.js") ++ getHarness("sta.js")
+ 
+   /** specification */
+   val spec = cfg.spec
+@@ -51,10 +51,9 @@ case class Test262(
+   /** load test262 with harness files */
+   def loadTest(filename: String, includes: List[String]): Ast =
+     // load harness
+-    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_)())
+-
++    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_))
+     // merge with harnesses
+-    val stmts = flattenStmt(parseFile(filename))
++    val stmts = parseFile(filename).flattenStmt
+     mergeStmt(harnessStmts ++ stmts)
+ 
+   /** get tests */
+@@ -129,7 +128,6 @@ case class Test262(
+     // coverage with time limit
+     lazy val cov = Coverage(
+       cfg = cfg,
+-      test262 = Some(this),
+       timeLimit = timeLimit,
+     )
+ 
+@@ -145,12 +143,12 @@ case class Test262(
+         val filename = test.path
+         val st =
+           if (!useCoverage) evalFile(filename, log && !multiple, timeLimit)
+-          else cov.run(filename)
++          else cov.runAndCheck(loadTest(filename), filename)._1
+         val returnValue = st(GLOBAL_RESULT)
+         if (returnValue != Undef) throw InvalidExit(returnValue)
+       ,
+       // dump coverage
+-      logDir => if (useCoverage) cov.dumpTo(logDir),
++      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
+     )
+ 
+     progressBar.summary
+@@ -211,10 +209,13 @@ case class Test262(
+     filename: String,
+     log: Boolean = false,
+     timeLimit: Option[Int] = None,
++  ): State = eval(loadTest(filename), log, timeLimit)
++  private def eval(
++    ast: Ast,
++    log: Boolean = false,
++    timeLimit: Option[Int] = None,
+   ): State =
+-    val ast = loadTest(filename)
+-    val code = ast.toString(grammar = Some(cfg.grammar)).trim
+-    val st = Initialize(cfg, code, Some(ast), Some(filename))
++    val st = cfg.init.from(ast)
+     Interpreter(
+       st = st,
+       log = log,
+@@ -251,5 +252,8 @@ case class Test262(
+         if (postSummary.isEmpty) s"$summary"
+         else s"$summary$LINE_SEP$postSummary"
+       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
++
++    // post job
++    postJob(logDir)
+ }
+ object Test262 extends Git(TEST262_DIR)
+diff --git a/src/main/scala/esmeta/util/BasicJsonProtocol.scala b/src/main/scala/esmeta/util/BasicJsonProtocol.scala
+index 00215ec5..7836f6be 100644
+--- a/src/main/scala/esmeta/util/BasicJsonProtocol.scala
++++ b/src/main/scala/esmeta/util/BasicJsonProtocol.scala
+@@ -16,6 +16,17 @@ trait BasicJsonProtocol {
+       Json.fromFields(map.toList.sortBy(_._1).map { (k, v) => (k, v.asJson) })
+     }
+ 
++  // decoder for option
++  def optionDecoder[T](using decoder: Decoder[T]): Decoder[Option[T]] =
++    Decoder.instance(c =>
++      if c.value.isNull then Right(None)
++      else decoder(c).map(Some(_)),
++    )
++
++  // encoder for option
++  def optionEncoder[T](using encoder: Encoder[T]): Encoder[Option[T]] =
++    Encoder.instance(opt => opt.fold(Json.Null)(encoder.apply))
++
+   // decoder for double values
+   def doubleDecoder: Decoder[Double] = Decoder.instance(c =>
+     c.value.asString
+@@ -88,8 +99,37 @@ trait BasicJsonProtocol {
+         .getOrElse(decodeFail(s"expected a string instead of ${c.value}", c)),
+     )
+ 
+-  // encoder for UId with name: UId -> { name: id }
+-  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
++  // decoder for IntId: id -> IntId
++  def idDecoder[T <: IntId](getter: Int => Option[T]): Decoder[T] =
++    Decoder.instance(c =>
++      (for {
++        number <- c.value.asNumber
++        id <- number.toInt
++        x <- getter(id)
++      } yield Right(x)).getOrElse(invalidFail("id", c)),
++    )
++
++  // encoder for IntId: IntId -> id
++  def idEncoder[T <: IntId]: Encoder[T] =
++    Encoder.instance(x => Json.fromInt(x.id))
++
++  // decoder for IntId with name: { name: id } -> IntId
++  def idDecoder[T <: IntId](
++    name: String,
++    getter: Int => Option[T],
++  ): Decoder[T] =
++    Decoder.instance(c =>
++      (for {
++        obj <- c.value.asObject
++        value <- obj(name)
++        number <- value.asNumber
++        id <- number.toInt
++        x <- getter(id)
++      } yield Right(x)).getOrElse(invalidFail("id", c)),
++    )
++
++  // encoder for IntId with name: IntId -> { name: id }
++  def idEncoder[T <: IntId](name: String): Encoder[T] =
+     Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
+ 
+   // decoding failure
+diff --git a/src/main/scala/esmeta/util/IntId.scala b/src/main/scala/esmeta/util/IntId.scala
+new file mode 100644
+index 00000000..32f2b7fe
+--- /dev/null
++++ b/src/main/scala/esmeta/util/IntId.scala
+@@ -0,0 +1,4 @@
++package esmeta.util
++
++/** integer ids */
++trait IntId { def id: Int }
+diff --git a/src/main/scala/esmeta/util/SystemUtils.scala b/src/main/scala/esmeta/util/SystemUtils.scala
+index 44fe3881..21be41fa 100644
+--- a/src/main/scala/esmeta/util/SystemUtils.scala
++++ b/src/main/scala/esmeta/util/SystemUtils.scala
+@@ -63,8 +63,10 @@ object SystemUtils {
+     dirname: String,
+     getName: T => String,
+     getData: T => Any = (x: T) => x,
++    remove: Boolean = false,
+     silent: Boolean = false,
+   ): Unit =
++    if (remove) rmdir(dirname)
+     mkdir(dirname)
+     for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}")
+     println(s"- Dumped $name into `$dirname` .")
+@@ -160,8 +162,24 @@ object SystemUtils {
+     StandardCopyOption.REPLACE_EXISTING,
+   )
+ 
++  /** create symbolic link */
++  def createSymlink(
++    link: String,
++    target: String,
++    overwrite: Boolean = false,
++  ): Unit = {
++    if (overwrite)
++      deleteFile(link)
++    Files.createSymbolicLink(
++      File(link).toPath,
++      File(target).toPath,
++    )
++  }
++
+   /** create directories */
+-  def mkdir(name: String): Unit = File(name).mkdirs
++  def mkdir(name: String, remove: Boolean = false): Unit =
++    if (remove) rmdir(name)
++    File(name).mkdirs
+ 
+   /** clean directories */
+   def cleanDir(name: String) = for (file <- walkTree(name)) file.delete
+@@ -177,6 +195,14 @@ object SystemUtils {
+     deleteRecursively(File(name))
+   }
+ 
++  /** list directory */
++  def listFiles(name: String): List[File] = listFiles(File(name))
++  def listFiles(dir: File): List[File] =
++    Option(dir.listFiles)
++      .map(_.toList)
++      .getOrElse(List())
++      .filter(!_.getName.startsWith("."))
++
+   /** file existence check */
+   def exists(name: String): Boolean = File(name).exists
+ 
+diff --git a/src/main/scala/esmeta/util/UId.scala b/src/main/scala/esmeta/util/UId.scala
+index d7a29cf5..eee58acd 100644
+--- a/src/main/scala/esmeta/util/UId.scala
++++ b/src/main/scala/esmeta/util/UId.scala
+@@ -1,9 +1,9 @@
+ package esmeta.util
+ 
+ /** unique ids */
+-trait UId {
++trait UId extends IntId {
+   // unique ids
+-  val id: Int
++  def id: Int
+ 
+   // get simple string
+   def simpleString: String = s"${getClass.getSimpleName}[$id]"
+diff --git a/src/main/scala/esmeta/util/WeakUId.scala b/src/main/scala/esmeta/util/WeakUId.scala
+new file mode 100644
+index 00000000..da2bc6b9
+--- /dev/null
++++ b/src/main/scala/esmeta/util/WeakUId.scala
+@@ -0,0 +1,20 @@
++package esmeta.util
++
++/** weak unique ids */
++trait WeakUId[+T <: WeakUId[T]] extends IntId { self: T =>
++
++  /** unique ids */
++  var id: Int = -1
++
++  /** get simple string */
++  def simpleString: String = s"${getClass.getSimpleName}[$id]"
++
++  /** reference for weak unique ids */
++  def idRef: WeakUIdRef[T] = new WeakUIdRef[T](id) { def get: T = self }
++
++  /** override hashCode using unique ids */
++  override def hashCode: Int = id
++}
++
++/** reference for weak unique ids */
++trait WeakUIdRef[+T <: WeakUId[T]](val id: Int) extends UId { def get: T }
+diff --git a/src/main/scala/esmeta/web/Debugger.scala b/src/main/scala/esmeta/web/Debugger.scala
+index fc592770..271bbb8c 100644
+--- a/src/main/scala/esmeta/web/Debugger.scala
++++ b/src/main/scala/esmeta/web/Debugger.scala
+@@ -35,16 +35,15 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
+     case (res, _) => res
+   override def eval(node: Node): Unit = {
+     saveBpCounts; // save counter
+-    node match
+-      case block @ Block(_, insts, next) =>
++    (cursor, node) match
++      case (cursor: NodeCursor, block @ Block(_, insts, next)) =>
+         eval(insts(cursor.idx))
+         cursor.idx += 1
+         if (cursor.idx == insts.length) {
+           cursor.idx -= 1
+           st.context.moveNext
+         }
+-      case _ =>
+-        super.eval(node)
++      case _ => super.eval(node)
+     triggerBreaks // trigger breakpoints
+   }
+ 
+@@ -223,17 +222,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
+   /** extension for cursor */
+   extension (cursor: Cursor) {
+ 
+-    /** get cfg function of current cursor */
+-    def func = cursor match
+-      case NodeCursor(node) => cfg.funcOf(node)
+-      case ExitCursor(func) => func
+-
+     /** get ir instruction of current cursor */
+     def instOpt: Option[Inst] = cursor match
+-      case NodeCursor(node) =>
++      case NodeCursor(_, node, idx) =>
+         node match
+-          case Block(_, insts, _) =>
+-            Some(insts(cursor.idx))
++          case Block(_, insts, _) => Some(insts(idx))
+           case node: NodeWithInst => node.inst
+       case _: ExitCursor => None
+ 
+@@ -309,8 +302,8 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
+       case _ => (-1, -1)
+     val ctxt = ctxts.head
+     val (nid, isExit) = ctxt.cursor match
+-      case NodeCursor(n) => (n.id, false)
+-      case _: ExitCursor => (-1, true)
++      case NodeCursor(_, n, _) => (n.id, false)
++      case _: ExitCursor       => (-1, true)
+     val func = ctxt.func
+     val irFunc = func.irFunc
+     val code = irFunc.algo.map(_.code).getOrElse("")
+diff --git a/src/main/scala/esmeta/web/package.scala b/src/main/scala/esmeta/web/package.scala
+index 1f8f0af8..8645a7d0 100644
+--- a/src/main/scala/esmeta/web/package.scala
++++ b/src/main/scala/esmeta/web/package.scala
+@@ -1,10 +1,9 @@
+ package esmeta.web
+ 
+ import esmeta.cfg.CFG
+-import esmeta.es.Initialize
+ 
+ def debugger: Debugger = _debugger.get
+ def initDebugger(cfg: CFG, sourceText: String): Unit =
+   val cachedAst = cfg.scriptParser.from(sourceText)
+-  _debugger = Some(Debugger(Initialize(cfg, sourceText, Some(cachedAst))))
++  _debugger = Some(Debugger(cfg.init.from(sourceText)))
+ private var _debugger: Option[Debugger] = None
+diff --git a/src/test/scala/esmeta/es/ESTest.scala b/src/test/scala/esmeta/es/ESTest.scala
+index 246b9b1d..eff99aaf 100644
+--- a/src/test/scala/esmeta/es/ESTest.scala
++++ b/src/test/scala/esmeta/es/ESTest.scala
+@@ -53,7 +53,7 @@ object ESTest {
+     cachedAst: Option[Ast] = None,
+     filename: Option[String] = None,
+   ): State =
+-    new CheckAfter(Initialize(cfg, str, cachedAst, filename), checkAfter).result
++    new CheckAfter(cfg.init.from(str), checkAfter).result
+   def evalFile(
+     filename: String,
+     checkAfter: List[NormalInst] = Nil,
+diff --git a/src/test/scala/esmeta/ir/IRTest.scala b/src/test/scala/esmeta/ir/IRTest.scala
+index e1102dc4..c548b080 100644
+--- a/src/test/scala/esmeta/ir/IRTest.scala
++++ b/src/test/scala/esmeta/ir/IRTest.scala
+@@ -86,21 +86,21 @@ object IRTest {
+   // random number expressions
+   lazy val rand = ERandom()
+   // AST expressions
+-  lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
+-  lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
++  lazy val ast = ESyntactic("Identifier", Nil, 1, Vector())
++  lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Vector())
+   lazy val astSingle =
+-    ESyntactic("Identifier", List(true, false), 1, List(Some(xExpr)))
++    ESyntactic("Identifier", List(true, false), 1, Vector(Some(xExpr)))
+   lazy val astMultiple = ESyntactic(
+     "Identifier",
+     List(true, false),
+     1,
+-    List(Some(xExpr), Some(yExpr)),
++    Vector(Some(xExpr), Some(yExpr)),
+   )
+   lazy val astComplex = ESyntactic(
+     "Identifier",
+     List(true, false),
+     3,
+-    List(None, Some(xExpr), None, Some(yExpr)),
++    Vector(None, Some(xExpr), None, Some(yExpr)),
+   )
+   lazy val lex = ELexical("Identifier", xExpr)
+   // allocation expressions
+diff --git a/src/test/scala/esmeta/spec/JsonTinyTest.scala b/src/test/scala/esmeta/spec/JsonTinyTest.scala
+index cd14bf56..ae23e3b5 100644
+--- a/src/test/scala/esmeta/spec/JsonTinyTest.scala
++++ b/src/test/scala/esmeta/spec/JsonTinyTest.scala
+@@ -186,19 +186,19 @@ class JsonTinyTest extends SpecTest {
+       "lhs" -> lhsJson2,
+       "kind" -> Json.obj("Lexical" -> Json.obj()),
+       "oneof" -> Json.True,
+-      "rhsList" -> Json.arr(rhsJson3, rhsJson3),
++      "rhsVec" -> Json.arr(rhsJson3, rhsJson3),
+     )
+     lazy val prodJson2 = Json.obj(
+       "lhs" -> lhsJson2,
+       "kind" -> Json.obj("Syntactic" -> Json.obj()),
+       "oneof" -> Json.False,
+-      "rhsList" -> Json.arr(rhsJson1, rhsJson2),
++      "rhsVec" -> Json.arr(rhsJson1, rhsJson2),
+     )
+     lazy val prodJson3 = Json.obj(
+       "lhs" -> lhsJson1,
+       "kind" -> Json.obj("NumericString" -> Json.obj()),
+       "oneof" -> Json.False,
+-      "rhsList" -> Json.arr(rhsJson1),
++      "rhsVec" -> Json.arr(rhsJson1),
+     )
+     checkJson("Production")(
+       prod1 -> prodJson1,
+diff --git a/src/test/scala/esmeta/spec/SpecTest.scala b/src/test/scala/esmeta/spec/SpecTest.scala
+index 1bdc0f1c..44bcfab0 100644
+--- a/src/test/scala/esmeta/spec/SpecTest.scala
++++ b/src/test/scala/esmeta/spec/SpecTest.scala
+@@ -32,11 +32,11 @@ object SpecTest {
+   lazy val lhs1 = Lhs("Identifier", List("Yield", "Await", "In"))
+   lazy val lhs2 = Lhs("Identifier", Nil)
+   lazy val prod1 =
+-    Production(lhs2, ProductionKind.Lexical, true, List(rhs3, rhs3))
++    Production(lhs2, ProductionKind.Lexical, true, Vector(rhs3, rhs3))
+   lazy val prod2 =
+-    Production(lhs2, ProductionKind.Syntactic, false, List(rhs1, rhs2))
++    Production(lhs2, ProductionKind.Syntactic, false, Vector(rhs1, rhs2))
+   lazy val prod3 =
+-    Production(lhs1, ProductionKind.NumericString, false, List(rhs1))
++    Production(lhs1, ProductionKind.NumericString, false, Vector(rhs1))
+ 
+   // algorithms
+ 
+diff --git a/src/test/scala/esmeta/state/StringifyTinyTest.scala b/src/test/scala/esmeta/state/StringifyTinyTest.scala
+index 3ff3a056..f331f1d8 100644
+--- a/src/test/scala/esmeta/state/StringifyTinyTest.scala
++++ b/src/test/scala/esmeta/state/StringifyTinyTest.scala
+@@ -20,7 +20,7 @@ class StringifyTinyTest extends StateTest {
+     checkStringify("State")(
+       st -> """{
+       |  context: {
+-      |    cursor: Block[0] @ f
++      |    cursor: Func[0]:Block[0]:0 @ f
+       |    local-vars: {}
+       |  }
+       |  call-stack: []
+@@ -33,7 +33,7 @@ class StringifyTinyTest extends StateTest {
+     // -------------------------------------------------------------------------
+     lazy val callCtxt = CallContext(ctxt, Name("x"))
+     checkStringify("CallContext")(
+-      callCtxt -> "x @ Block[0]",
++      callCtxt -> "x @ Func[0]:Block[0]:0",
+     )
+     // -------------------------------------------------------------------------
+     // Contexts
+@@ -44,17 +44,17 @@ class StringifyTinyTest extends StateTest {
+       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
+     checkStringify("Context")(
+       ctxt -> """{
+-      |  cursor: Block[0] @ f
++      |  cursor: Func[0]:Block[0]:0 @ f
+       |  local-vars: {}
+       |}""".stripMargin,
+       ctxtSingle -> """{
+-      |  cursor: Block[0] @ f
++      |  cursor: Func[0]:Block[0]:0 @ f
+       |  local-vars: {
+       |    x -> 42
+       |  }
+       |}""".stripMargin,
+       ctxtMulti -> """{
+-      |  cursor: Block[0] @ f
++      |  cursor: Func[0]:Block[0]:0 @ f
+       |  local-vars: {
+       |    x -> 42
+       |    y -> "abc"
+@@ -64,18 +64,19 @@ class StringifyTinyTest extends StateTest {
+     // -------------------------------------------------------------------------
+     // Cursor
+     // -------------------------------------------------------------------------
+-    lazy val nodeCursor = NodeCursor(Block(3, ListBuffer()))
++    lazy val nodeCursor = NodeCursor(func, Block(3, ListBuffer()))
+     lazy val exitCursor = ExitCursor(func)
+     checkStringify("Cursor")(
+-      nodeCursor -> "Block[3]",
++      nodeCursor -> "Func[0]:Block[3]:0",
+       exitCursor -> "Func[0]",
+     )
+     // -------------------------------------------------------------------------
+     // Heaps
+     // -------------------------------------------------------------------------
+     lazy val heap = Heap(MMap(), 0)
+-    lazy val heapSingle = Heap(MMap(namedAddr -> map), 0)
+-    lazy val heapMulti = Heap(MMap(namedAddr -> map, addr -> list), 43)
++    lazy val heapSingle = Heap.initialize(MMap(namedAddr -> map), 0)
++    lazy val heapMulti =
++      Heap.initialize(MMap(namedAddr -> map, addr -> list), 43)
+     checkStringify("Heap")(
+       heap -> "(SIZE = 0): {}",
+       heapSingle -> """(SIZE = 0): {
+@@ -124,9 +125,9 @@ class StringifyTinyTest extends StateTest {
+     lazy val cloCaptured = Clo(func, Map(Name("x") -> Str("abc")))
+     lazy val cont = Cont(func, Map(), Nil)
+     lazy val contCaptured = Cont(func, Map(Name("x") -> Str("abc")), Nil)
+-    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Nil))
++    lazy val ast = AstValue(Syntactic("Identifier", Nil, 1, Vector()))
+     lazy val astArgs =
+-      AstValue(Syntactic("Identifier", List(true, false), 1, Nil))
++      AstValue(Syntactic("Identifier", List(true, false), 1, Vector()))
+     lazy val nt = Nt("Identifier", List(true, false))
+     lazy val lex = AstValue(Lexical("Identifier", "x"))
+     checkStringify("Value")(
+diff --git a/src/test/scala/esmeta/ty/ContainsTinyTest.scala b/src/test/scala/esmeta/ty/ContainsTinyTest.scala
+index 2ad47674..8f9d7582 100644
+--- a/src/test/scala/esmeta/ty/ContainsTinyTest.scala
++++ b/src/test/scala/esmeta/ty/ContainsTinyTest.scala
+@@ -50,7 +50,7 @@ class ContainsTinyTest extends TyTest {
+     lazy val listObj = ListObj(Vector(Math(5)))
+     lazy val symbolAddr = NamedAddr("symbolAddr")
+     lazy val symbolObj = RecordObj("Symbol", MMap("Description" -> Str("desc")))
+-    given Heap = Heap(
++    given Heap = Heap.initialize(
+       MMap(
+         mapAddr -> mapObj,
+         recordAddr -> recordObj,
+@@ -120,9 +120,10 @@ class ContainsTinyTest extends TyTest {
+       ContT(42) -> cont,
+     )
+ 
+-    lazy val ast1 = Syntactic("A", List(false, true), 5, Nil)
++    lazy val ast1 = Syntactic("A", List(false, true), 5, Vector())
+     lazy val astValue1 = AstValue(ast1)
+-    lazy val ast2 = Syntactic("B", List(false, true), 5, List(Some(ast1), None))
++    lazy val ast2 =
++      Syntactic("B", List(false, true), 5, Vector(Some(ast1), None))
+     lazy val astValue2 = AstValue(ast2)
+     checkContains("abstract syntax tree (AST) values")(
+       AstT -> astValue1,

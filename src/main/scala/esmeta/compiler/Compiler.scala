@@ -1121,11 +1121,11 @@ class Compiler(
   /** production helpers */
   def getProductionData(lhsName: String, rhsName: String): Option[(Lhs, Int)] =
     val prod = grammar.nameMap(lhsName)
-    val rhsList = prod.rhsList.zipWithIndex.filter {
+    val rhsVec = prod.rhsVec.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
-    rhsList match
+    rhsVec match
       case (rhs, idx) :: Nil => Some(prod.lhs, idx)
       case _                 => None
 

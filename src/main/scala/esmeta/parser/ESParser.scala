@@ -84,15 +84,15 @@ case class ESParser(
   // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args =>
     locationed {
-      val Production(lhs, _, _, rhsList) = prod
+      val Production(lhs, _, _, rhsVec) = prod
       val Lhs(name, params) = lhs
       val argsSet = getArgs(params, args)
 
-      val lrs = rhsList.zipWithIndex
+      val lrs = rhsVec.zipWithIndex
         .filter { case (r, _) => isLR(name, r) }
         .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
 
-      val nlrs = rhsList.zipWithIndex
+      val nlrs = rhsVec.zipWithIndex
         .filter { case (r, _) => !isLR(name, r) }
         .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
@@ -187,7 +187,7 @@ case class ESParser(
     val ts = (for {
       prod <- grammar.prods
       if prod.kind == ProductionKind.Syntactic
-      rhs <- prod.rhsList
+      rhs <- prod.rhsVec
       t <- rhs.symbols.collect { case Terminal(t) => t }
     } yield t).toSet
     // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`

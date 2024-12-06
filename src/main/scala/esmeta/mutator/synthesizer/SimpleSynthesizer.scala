@@ -25,10 +25,10 @@ class SimpleSynthesizer(
     case target @ (name, args) =>
       if (visiting contains target) error(s"visiting $target")
       visiting += target
-      val prod @ Production(lhs, _, _, rhsList) = nameMap(name)
+      val prod @ Production(lhs, _, _, rhsVec) = nameMap(name)
       val argsMap = (lhs.params zip args).toMap
       val syns = for {
-        (rhs, rhsIdx) <- rhsList.zipWithIndex
+        (rhs, rhsIdx) <- rhsVec.zipWithIndex
         if rhs.available(argsMap)
         children <- optional(rhs.symbols.flatMap(synSymbol(argsMap)))
         syn = Syntactic(name, args, rhsIdx, children)

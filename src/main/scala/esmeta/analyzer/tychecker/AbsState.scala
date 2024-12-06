@@ -187,7 +187,7 @@ trait AbsStateDecl { self: TyChecker =>
       case One(k) =>
         (for {
           prod <- cfg.grammar.nameMap.get(name)
-          rhs <- prod.rhsList.lift(idx)
+          rhs <- prod.rhsVec.lift(idx)
           nt <- rhs.nts.lift(k.toInt)
         } yield AstT(nt.name)).getOrElse(BotT)
       case Many => AstT
