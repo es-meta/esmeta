@@ -8,10 +8,14 @@ val LINE_SEP = System.getProperty("line.separator")
 /** base project directory root */
 val VERSION = "0.5.0"
 
+enum Platform:
+  case JS, JVM
+
 /** base project directory root */
-val BASE_DIR =
-  val path = System.getenv("ESMETA_HOME")
-  if (path == null) throw NoEnvVarError else path
+// XXX temp fix
+val BASE_DIR = ""
+  // val path = System.getenv("ESMETA_HOME")
+  // if (path == null) throw NoEnvVarError else path
 
 /** log directory */
 val LOG_DIR = s"$BASE_DIR/logs"

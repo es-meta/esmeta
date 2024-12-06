@@ -7,6 +7,8 @@ import esmeta.util.BaseUtils.*
 import scala.util.parsing.input.Position
 import scala.util.matching.Regex
 
+import scala.scalajs.js.Dynamic
+
 /** ECMAScript special unicodes */
 trait UnicodeParsers extends BasicParsers with EPackratParsers {
   val ZWNJ = 0x200c
@@ -38,7 +40,9 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
   lazy val StrWhiteSpaceCharCPs = WhiteSpaceCPs ++ LineTerminatorCPs
 
-  protected inline def toCodePoint(s: String): Int = s.codePoints.toArray.head
+  // 이 라인이 문제임!!
+  protected inline def toCodePoint(s: String): Int =  s.codePointAt(0)
+    //s.codePoints.toArray.head
 
   protected inline def toParser(seq: Int*): Parser[String] = toParser(seq.toSet)
   protected inline def toParser(cp: Int): Parser[String] =

@@ -1,7 +1,7 @@
 package esmeta.web
 
 import esmeta.cfg.*
-import esmeta.es.Ast
+import esmeta.es.{Ast, Initialize}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.interpreter.Interpreter
 import esmeta.lang.Syntax
@@ -10,6 +10,12 @@ import esmeta.state.*
 import esmeta.util.Loc
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+
+object Debugger:
+  def initDebugger(cfg: CFG, sourceText: String): Debugger =
+    val cachedAst = cfg.scriptParser.from(sourceText)
+    Debugger(Initialize(cfg, sourceText, Some(cachedAst)))
+
 
 /** debugger extension of IR interpreter */
 class Debugger(st: State) extends Interpreter(st, log = true) {

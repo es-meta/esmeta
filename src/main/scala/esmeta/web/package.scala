@@ -8,3 +8,5 @@ def initDebugger(cfg: CFG, sourceText: String): Unit =
   val cachedAst = cfg.scriptParser.from(sourceText)
   _debugger = Some(Debugger(Initialize(cfg, sourceText, Some(cachedAst))))
 private var _debugger: Option[Debugger] = None
+// TODO just a placeholder to suppress warnings
+val WEB_PLUG = "web"

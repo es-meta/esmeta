@@ -111,9 +111,13 @@ class Stats(spec: Spec) {
 
     /** getString */
     def getAlgoString: String =
-      getString(spec.document.body, elem => elem.algo)
+      // XXX temp suppress
+      ""
+      // getString(spec.document.body, elem => elem.algo)
     def getStepString: String =
-      getString(spec.document.body, elem => elem.step, true)
+      // XXX temp suppress
+      ""
+      // getString(spec.document.body, elem => elem.step, true)
     private def getString(
       elem: Element,
       pstat: ElemStat => PassStat,

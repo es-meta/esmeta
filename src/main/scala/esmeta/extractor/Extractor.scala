@@ -58,7 +58,7 @@ class Extractor(
       tables = tables,
       tyModel = tyModel, // TODO automatic extraction
     )
-    spec.document = document
+    // spec.document = document
     spec
 
   /** ECMAScript grammar */

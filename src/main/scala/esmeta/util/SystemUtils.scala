@@ -13,6 +13,9 @@ import scala.io.Source
 import scala.sys.process.*
 import scala.util.Try
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import cats.effect.{IO, Resource}
+import scala.io.{BufferedSource, Source}
+import cats.effect.unsafe.implicits.global
 
 /** file utilities */
 object SystemUtils {
@@ -21,7 +24,11 @@ object SystemUtils {
 
   /** file reader */
   def fileReader(filename: String): Reader =
-    Source.fromFile(filename, ENC).bufferedReader
+    // Source.fromFile(filename, ENC).bufferedReader
+    Resource.fromAutoCloseable(IO(Source.fromFile(filename).bufferedReader))
+    .allocated // Acquires the resource
+      .map(_._1) // Extracts the BufferedReader
+      .unsafeRunSync() // Runs the IO and returns the BufferedReader directly
 
   /** file trees with filename */
   def walkTree(filename: String): Iterable[File] = walkTree(File(filename))
@@ -116,10 +123,22 @@ object SystemUtils {
 
   /** read file */
   def readFile(filename: String): String =
-    val source = Source.fromFile(filename, ENC)
-    val str = source.mkString
-    source.close
-    str
+    def sourceResource: Resource[IO, BufferedSource] =
+        Resource.fromAutoCloseable(IO(Source.fromFile(filename)))
+    {
+      sourceResource.use(source => IO(source.mkString))
+    }.unsafeRunSync()
+
+  /** read JSON */
+  def readJsonContent[T](content: String)(implicit decoder: Decoder[T]): T =
+    parse(content) match {
+      case Left(err) => throw err
+      case Right(json) =>
+        json.as[T] match {
+          case Left(err) => throw err
+          case Right(v)  => v
+        }
+    }
 
   /** read JSON */
   def readJson[T](filename: String)(implicit decoder: Decoder[T]): T =

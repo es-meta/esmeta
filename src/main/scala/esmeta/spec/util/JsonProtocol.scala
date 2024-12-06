@@ -8,9 +8,11 @@ import esmeta.ty.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
+import scala.scalajs.js.annotation.JSExport
 
 object JsonProtocol extends BasicJsonProtocol {
   // ECMAScript specifications (ECMA-262)
+  
   given Decoder[Spec] = deriveDecoder
   given Encoder[Spec] = deriveEncoder
 

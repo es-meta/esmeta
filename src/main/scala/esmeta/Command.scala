@@ -2,6 +2,7 @@ package esmeta
 
 import esmeta.phase.*
 import esmeta.util.ArgParser
+import scala.scalajs.js.annotation.JSExportAll
 
 /** commands
   *

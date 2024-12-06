@@ -39,7 +39,7 @@ trait Lexer extends UnicodeParsers {
   lazy val LineTerminatorSequence =
     val cr = toParser(CR)
     val lf = toParser(LF)
-    toParser(LF, LS, PS) | cr <~ not(lf) | cr % lf
+    toParser(Set(LF, LS, PS)) | cr <~ not(lf) | cr % lf
   lazy val Comment =
     """/\*+[^*]*\*+(?:[^/*][^*]*\*+)*/|//[^\u000A\u000D\u2028\u2029]*""".r
   lazy val empty = "".r

@@ -5,6 +5,9 @@ import esmeta.phase.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
+import scala.scalajs.js.annotation.*
+
+@JSExportAll
 /** ESMeta top-level object */
 object ESMeta extends Git(BASE_DIR) {
 
@@ -29,6 +32,7 @@ object ESMeta extends Git(BASE_DIR) {
       Console.err.println(s"[ESMeta v$VERSION] Unexpected error occurred:")
       throw e
 
+  @JSExport("apply")
   /** execute ESMeta with a runner */
   def apply[Result](
     command: Command[Result],

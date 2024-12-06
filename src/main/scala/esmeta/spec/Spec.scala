@@ -11,6 +11,8 @@ import esmeta.util.HtmlUtils.*
 import esmeta.{error => ESMetaError, *}
 import org.jsoup.nodes.Document
 
+// import scala.scalajs.js.annotation.*
+
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
   version: Option[Spec.Version] = None, // git version
@@ -21,7 +23,7 @@ case class Spec(
 ) extends SpecElem {
 
   /** HTML Document element */
-  var document: Document = Document("")
+  // var document: Document = Document("")
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
