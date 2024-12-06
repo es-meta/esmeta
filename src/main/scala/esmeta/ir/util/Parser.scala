@@ -22,13 +22,21 @@ trait Parsers extends TyParsers {
   given func: Parser[Func] = {
     (main <~ "def") ~
     funcKind ~
-    "[<>\\w|:\\.\\[\\],@]+".r ~
+    funcName ~
     params ~
     retTy ~
     ("=" ~> inst) ^^ {
       case m ~ k ~ n ~ ps ~ rty ~ b => Func(m, k, n, ps, rty, b)
     }
   }.named("ir.Func")
+
+  lazy val funcName: Parser[String] =
+    // no space
+    ("""[<>\w|:\.\[\],@\/`]+""".r |||
+    // intrinsic functions contain space
+    (("""[<>\w|:\.\[\],@\/]+?(\.get|\.set)\s[<>\w|:\.\[\],@\/]+""".r) ^^ {
+      case (a) => a
+    }))
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
