@@ -36,7 +36,7 @@ trait BasicParsers extends JavaTokenParsers {
     parseBy(parser)(str)
 
   // string literal
-  lazy val string = ("\"[\u0000-\u000F]\"".r | stringLiteral) ^^ {
+  lazy val string = ("\"[\u0000-\u000F]\"".r ||| stringLiteral) ^^ {
     case s =>
       StringContext processEscapes s.substring(1, s.length - 1)
   }
