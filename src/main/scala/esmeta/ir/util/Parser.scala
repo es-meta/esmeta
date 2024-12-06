@@ -314,7 +314,9 @@ trait Parsers extends TyParsers {
 
   // references
   given ref: Parser[Ref] = {
-    val field = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
+    val field = "." ~> name ^^ {
+      case Name(str) => EStr(str)
+    } | "[" ~> expr <~ "]"
     x ~ rep(field) ^^ { case x ~ es => es.foldLeft[Ref](x)(Field(_, _)) }
   }.named("ir.Ref")
 
