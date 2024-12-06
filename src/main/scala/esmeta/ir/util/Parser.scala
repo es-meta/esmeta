@@ -170,7 +170,7 @@ trait Parsers extends TyParsers {
       case e => EDebug(e)
     } | "(" ~ "random" ~ ")" ^^^ {
       ERandom()
-    } | astExpr | allocExpr | (literal ||| ref ^^ { ERef(_) })
+    } | astExpr | allocExpr | (ref ^^ { ERef(_) } ||| literal)
   }.named("ir.Expr")
 
   // abstract syntax tree (AST) expressions
