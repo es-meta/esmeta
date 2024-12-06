@@ -191,3 +191,11 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
   )
 }
+
+/** grammar-dump command */
+case object CmdDump extends Command("dump", CmdBuildCFG >> WebDump) {
+  def help = "dump some esmeta data to json."
+  val examples = List(
+    "esmeta dump                          # dump data to data.json",
+  )
+}
