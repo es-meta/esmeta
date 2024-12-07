@@ -28,3 +28,7 @@ class WeightedMutator(using cfg: CFG)(
 
   val names = mutators.toList.flatMap(_.names).sorted.distinct
 }
+object WeightedMutator {
+  def apply(mutators: Mutator*)(using CFG): WeightedMutator =
+    new WeightedMutator(mutators)
+}

@@ -44,6 +44,6 @@ trait Mutator(using val cfg: CFG) {
 
 object Mutator {
 
-  /** Result of mutation */
-  case class Result(code: String, ast: Ast)
+  /** Result of mutation with mutator name and AST */
+  case class Result(name: String, ast: Ast)
 }

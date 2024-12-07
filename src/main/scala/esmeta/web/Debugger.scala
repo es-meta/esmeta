@@ -28,23 +28,22 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // transition for node to more fine-grained execution within block node
   override def step: Boolean = (super.step, cursor) match
     case (_, _: ExitCursor) if !st.callStack.isEmpty =>
-      saveBpCounts; // save counter
-      val res = step;
-      triggerBreaks; // trigger breakpoints
+      saveBpCounts // save counter
+      val res = step
+      triggerBreaks // trigger breakpoints
       res
     case (res, _) => res
   override def eval(node: Node): Unit = {
-    saveBpCounts; // save counter
-    node match
-      case block @ Block(_, insts, next) =>
+    saveBpCounts // save counter
+    (cursor, node) match
+      case (cursor: NodeCursor, block @ Block(_, insts, next)) =>
         eval(insts(cursor.idx))
         cursor.idx += 1
         if (cursor.idx == insts.length) {
           cursor.idx -= 1
-          st.context.moveNext
+          st.context.moveNode
         }
-      case _ =>
-        super.eval(node)
+      case _ => super.eval(node)
     triggerBreaks // trigger breakpoints
   }
 
@@ -223,17 +222,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   /** extension for cursor */
   extension (cursor: Cursor) {
 
-    /** get cfg function of current cursor */
-    def func = cursor match
-      case NodeCursor(node) => cfg.funcOf(node)
-      case ExitCursor(func) => func
-
     /** get ir instruction of current cursor */
     def instOpt: Option[Inst] = cursor match
-      case NodeCursor(node) =>
+      case NodeCursor(_, node, idx) =>
         node match
-          case Block(_, insts, _) =>
-            Some(insts(cursor.idx))
+          case Block(_, insts, _) => Some(insts(idx))
           case node: NodeWithInst => node.inst
       case _: ExitCursor => None
 
@@ -309,8 +302,8 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       case _ => (-1, -1)
     val ctxt = ctxts.head
     val (nid, isExit) = ctxt.cursor match
-      case NodeCursor(n) => (n.id, false)
-      case _: ExitCursor => (-1, true)
+      case NodeCursor(_, n, _) => (n.id, false)
+      case _: ExitCursor       => (-1, true)
     val func = ctxt.func
     val irFunc = func.irFunc
     val code = irFunc.algo.map(_.code).getOrElse("")

@@ -49,24 +49,22 @@ object ESTest {
   def eval(
     str: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
     filename: Option[String] = None,
   ): State =
-    new CheckAfter(Initialize(cfg, str, cachedAst, filename), checkAfter).result
+    new CheckAfter(cfg.init.from(str), checkAfter).result
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = eval(readFile(filename), checkAfter, cachedAst, Some(filename))
+  ): State = eval(readFile(filename), checkAfter, Some(filename))
 
   // ---------------------------------------------------------------------------
   // analyzer helpers
   // ---------------------------------------------------------------------------
-  // analyzer
+  // TODO ES code analyzer
   // lazy val analyzer = ESAnalyzer(cfg)
   // import analyzer.*
 
-  // analyze ES codes
+  // TODO analyze ES codes
   // def analyzeFile(filename: String): analyzer.Semantics =
   //   analyzer(readFile(filename).trim)
   // def analyze(str: String): Semantics = analyzer(str)
@@ -86,15 +84,13 @@ object ESTest {
   def evalTest(
     str: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = checkExit(eval(str, checkAfter, cachedAst))
+  ): State = checkExit(eval(str, checkAfter))
   def evalTestFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
-    cachedAst: Option[Ast] = None,
-  ): State = checkExit(evalFile(filename, checkAfter, cachedAst))
+  ): State = checkExit(evalFile(filename, checkAfter))
 
-  // // tests for ES analyzer
+  // TODO tests for ES analyzer
   // def checkExit(absSem: AbsSemantics): AbsSemantics =
   //   assert(absSem.finalResult.value.getSingle == One(Undef))
   //   absSem

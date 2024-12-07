@@ -329,7 +329,7 @@ class TyChecker(
     List(view -> getCalleeState(AbsState.Empty, locals))
 
   /** initialization of ECMAScript environment */
-  lazy val init: Initialize = new Initialize(cfg)
+  lazy val init: Initialize = cfg.init
 
   /** global environment */
   lazy val base: Map[Global, AbsValue] = for {

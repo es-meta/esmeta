@@ -72,63 +72,60 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
-    // logInterval.map(_ => {
-    //   // start logging
-    //   mkdir(logDir, remove = true)
-    //   createSymlink(symlink, logDir, overwrite = true)
-    //   dumpFile(ESMeta.currentVersion, s"$logDir/version")
-    //   dumpFile(getSeed, s"$logDir/seed")
-    //   // TODO(@hyp3rflow): impl JSEngine to check current default engine
-    //   // dumpFile(JSEngine.defaultEngineToString, s"$logDir/default-engine")
-    //   genSummaryHeader
-    //   genStatHeader(selector.names, selStatTsv)
-    //   genStatHeader(mutator.names, mutStatTsv)
-    // })
-    // time(
-    //   s"- initializing program pool with ${initPool.size} programs", {
-    //     var i = 1
-    //     for {
-    //       (synthesizer, rawCode) <- initPool
-    //       code <- optional(
-    //         scriptParser.from(rawCode).toString(grammar = Some(grammar)),
-    //       )
-    //     } {
-    //       debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
-    //       i += 1
-    //       add(code)
-    //     }
-    //   },
-    // )
-    // println(s"- the initial program pool consists of ${pool.size} programs.")
-    // time(
-    //   "- repeatedly trying to fuzz new programs to increase coverage", {
-    //     logInterval.foreach(_ => {
-    //       startTime = System.currentTimeMillis
-    //       startInterval = System.currentTimeMillis
-    //       logging
-    //     })
-    //     trial match
-    //       case Some(count) => for (_ <- Range(0, count)) if (!timeout) fuzz
-    //       case None        => while (!timeout) fuzz
-    //   },
-    // )
+    logInterval.map(_ => {
+      // start logging
+      mkdir(logDir, remove = true)
+      createSymLink(symlink, logDir, overwrite = true)
+      dumpFile(ESMeta.currentVersion, s"$logDir/version")
+      dumpFile(getSeed, s"$logDir/seed")
+      genSummaryHeader
+      genStatHeader(selector.names, selStatTsv)
+      genStatHeader(mutator.names, mutStatTsv)
+    })
+    time(
+      s"- initializing program pool with ${initPool.size} programs", {
+        var i = 1
+        for {
+          (synthesizer, rawCode) <- initPool
+          code <- optional(
+            scriptParser.from(rawCode).toString(grammar = Some(grammar)),
+          )
+        } {
+          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
+          i += 1
+          add(code)
+        }
+      },
+    )
+    println(s"- the initial program pool consists of ${pool.size} programs.")
+    time(
+      "- repeatedly trying to fuzz new programs to increase coverage", {
+        logInterval.foreach(_ => {
+          startTime = System.currentTimeMillis
+          startInterval = System.currentTimeMillis
+          logging
+        })
+        trial match
+          case Some(count) => for (_ <- Range(0, count)) if (!timeout) fuzz
+          case None        => while (!timeout) fuzz
+      },
+    )
 
-    // // finish logging
-    // logInterval.foreach(_ => {
-    //   logging
-    //   summaryTsv.close
-    //   selStatTsv.close
-    //   mutStatTsv.close
-    // })
+    // finish logging
+    logInterval.foreach(_ => {
+      logging
+      summaryTsv.close
+      selStatTsv.close
+      mutStatTsv.close
+    })
 
-    // cov
-    ???
+    cov
   }
 
   /** current program pool */
   def pool: Set[Script] = cov.minimalScripts
 
-  // /** one trial to fuzz new programs to increase coverage */
+  /** one trial to fuzz new programs to increase coverage */
   def fuzz: Unit = {
     iter += 1
 
@@ -147,24 +144,23 @@ class Fuzzer(
     debugging(f"[$selectorInfo%-30s] $code")
     debugFlush
 
-    // val mutants = mutator(code, 100, condView.map((_, cov)))
-    //   .map((name, ast) => (name, ast.toString(grammar = Some(grammar))))
-    //   .distinctBy(_._2)
-    //   .toArray
-    //   .par
-    //   .map(infoExtractor)
-    //   .toList
+    val mutants = mutator(code, 100, condView.map((_, cov)))
+      .map(res => (res.name, res.ast.toString(grammar = Some(grammar))))
+      .distinctBy(_._2)
+      .toArray
+      .par
+      .map(infoExtractor)
+      .toList
 
-    // for ((mutatorName, mutatedCode, info) <- mutants)
-    //   debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
+    for ((mutatorName, mutatedCode, info) <- mutants)
+      debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-    //   val result = add(mutatedCode, info)
-    //   update(selectorName, selectorStat, result)
-    //   update(mutatorName, mutatorStat, result)
+      val result = add(mutatedCode, info)
+      update(selectorName, selectorStat, result)
+      update(mutatorName, mutatorStat, result)
 
-    // val duration = Time(System.currentTimeMillis - startTime)
-    // debugging(s"iter/end: $iter - $duration")
-    ???
+    val duration = Time(System.currentTimeMillis - startTime)
+    debugging(s"iter/end: $iter - $duration")
   }
 
   /** the information about a candidate */
@@ -255,25 +251,23 @@ class Fuzzer(
   )
 
   /** target selector */
-  val selector: TargetSelector = ???
-  // WeightedSelector(
-  //   RandomSelector -> 2,
-  //   BranchSelector -> 8,
-  // )
+  val selector: TargetSelector = WeightedSelector(
+    RandomSelector -> 2,
+    BranchSelector -> 8,
+  )
 
   /** selector stat */
   val selectorStat: MMap[String, Counter] = MMap()
 
   /** mutator */
   given CFG = cfg
-  val mutator: Mutator = ???
-  // WeightedMutator(
-  //   NearestMutator(),
-  //   RandomMutator(),
-  //   StatementInserter(),
-  //   Remover(),
-  //   SpecStringMutator(),
-  // )
+  val mutator: Mutator = WeightedMutator(
+    NearestMutator(),
+    RandomMutator(),
+    StatementInserter(),
+    Remover(),
+    SpecStringMutator(),
+  )
 
   /** mutator stat */
   val mutatorStat: MMap[String, Counter] = MMap()
@@ -286,11 +280,10 @@ class Fuzzer(
       ),
     )
     .getOrElse(
-      // SimpleSynthesizer(grammar).initPool
-      //   .map(SimpleSynthesizer(grammar).name -> _) ++
-      // BuiltinSynthesizer(cfg.spec.algorithms).initPool
-      //   .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
-      ???,
+      SimpleSynthesizer(grammar).initPool
+        .map(SimpleSynthesizer(grammar).name -> _) ++
+      BuiltinSynthesizer(cfg.spec.algorithms).initPool
+        .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
     )
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
@@ -393,8 +386,7 @@ class Fuzzer(
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
-    // TODO dumpStat(mutator.names, mutatorStat, mutStatTsv)
-    ???
+    dumpStat(mutator.names, mutatorStat, mutStatTsv)
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
     if (stdOut) println(row)

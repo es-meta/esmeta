@@ -24,9 +24,7 @@ case class State(
   given CFG = cfg
 
   /** current function */
-  def func: Func = context.cursor match
-    case NodeCursor(node) => cfg.funcOf(node)
-    case ExitCursor(func) => func
+  def func: Func = context.cursor.func
 
   /** local enviornment */
   def locals: MMap[Local, Value] = context.locals
@@ -147,8 +145,8 @@ case class State(
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)
   def getCursorString(location: Boolean): String = context.cursor match
-    case NodeCursor(node) =>
-      val irFunc = cfg.funcOf(node).irFunc
+    case NodeCursor(func, node, _) =>
+      val irFunc = func.irFunc
       s"[${irFunc.kind}${irFunc.name}] ${node.toString(location = location)}"
     case ExitCursor(func) =>
       val irFunc = func.irFunc

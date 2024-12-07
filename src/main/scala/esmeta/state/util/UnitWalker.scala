@@ -17,6 +17,8 @@ trait UnitWalker extends BasicUnitWalker {
     case elem: Value       => walk(elem)
     case elem: RefTarget   => walk(elem)
     case elem: Uninit      => walk(elem)
+    case elem: Feature     => walk(elem)
+    case elem: CallPath    => walk(elem)
 
   // states
   def walk(st: State): Unit =
@@ -77,4 +79,10 @@ trait UnitWalker extends BasicUnitWalker {
 
   // uninit value
   def walk(uninit: Uninit): Unit = {}
+
+  // feature
+  def walk(feature: Feature): Unit = {}
+
+  // call path
+  def walk(callPath: CallPath): Unit = {}
 }

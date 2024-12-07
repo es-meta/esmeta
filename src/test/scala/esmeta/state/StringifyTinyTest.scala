@@ -20,7 +20,7 @@ class StringifyTinyTest extends StateTest {
     checkStringify("State")(
       st -> """{
       |  context: {
-      |    cursor: Block[0] @ f
+      |    cursor: Func[0]:Block[0]:0 @ f
       |    local-vars: {}
       |  }
       |  call-stack: []
@@ -33,7 +33,7 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     lazy val callCtxt = CallContext(ctxt, Name("x"))
     checkStringify("CallContext")(
-      callCtxt -> "x @ Block[0]",
+      callCtxt -> "x @ Func[0]:Block[0]:0",
     )
     // -------------------------------------------------------------------------
     // Contexts
@@ -44,17 +44,17 @@ class StringifyTinyTest extends StateTest {
       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
     checkStringify("Context")(
       ctxt -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {}
       |}""".stripMargin,
       ctxtSingle -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {
       |    x -> 42
       |  }
       |}""".stripMargin,
       ctxtMulti -> """{
-      |  cursor: Block[0] @ f
+      |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {
       |    x -> 42
       |    y -> "abc"
@@ -64,10 +64,10 @@ class StringifyTinyTest extends StateTest {
     // -------------------------------------------------------------------------
     // Cursor
     // -------------------------------------------------------------------------
-    lazy val nodeCursor = NodeCursor(Block(3, ListBuffer()))
+    lazy val nodeCursor = NodeCursor(func, Block(3, ListBuffer()))
     lazy val exitCursor = ExitCursor(func)
     checkStringify("Cursor")(
-      nodeCursor -> "Block[3]",
+      nodeCursor -> "Func[0]:Block[3]:0",
       exitCursor -> "Func[0]",
     )
     // -------------------------------------------------------------------------

@@ -293,15 +293,3 @@ class Initialize(cfg: CFG) {
   private def getLength(head: Head): Int =
     head.originalParams.count(_.kind == ParamKind.Normal)
 }
-object Initialize {
-  def apply(
-    cfg: CFG,
-    sourceText: String,
-    cachedAst: Option[Ast] = None,
-    filename: Option[String] = None,
-  ): State = new Initialize(cfg).getResult(sourceText, cachedAst, filename)
-
-  /** initialize from file */
-  def fromFile(cfg: CFG, filename: String): State =
-    apply(cfg, readFile(filename), filename = Some(filename))
-}

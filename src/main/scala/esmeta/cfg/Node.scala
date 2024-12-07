@@ -1,7 +1,7 @@
 package esmeta.cfg
 
 import esmeta.cfg.util.*
-import esmeta.util.{UId, Locational}
+import esmeta.util.{UId, Loc}
 import esmeta.ir.*
 import scala.collection.mutable.{Queue, ListBuffer}
 
@@ -29,6 +29,18 @@ sealed trait Node extends CFGElem with UId {
         case branch: Branch => add(branch.thenNode); add(branch.elseNode)
     }
     visited
+
+  /** get source locations */
+  def loc: Option[Loc] = this match
+    case block: Block =>
+      for {
+        head <- block.insts.headOption
+        headLoc <- head.loc
+        last <- block.insts.lastOption
+        lastLoc <- last.loc
+      } yield Loc(headLoc.start, lastLoc.end, headLoc.steps)
+    case call: Call     => call.callInst.loc
+    case branch: Branch => branch.cond.loc
 }
 
 /** block nodes */
