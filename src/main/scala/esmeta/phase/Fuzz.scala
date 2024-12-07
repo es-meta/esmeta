@@ -40,7 +40,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       cp = config.cp,
     )
 
-    // for (dirname <- config.out) cov.dumpToWithDetail(dirname)
+    for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
     // cov
     ???

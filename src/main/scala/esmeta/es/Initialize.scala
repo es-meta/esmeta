@@ -11,6 +11,37 @@ import scala.collection.mutable.{Map => MMap}
 
 class Initialize(cfg: CFG) {
 
+  /** get initial state from source text */
+  def from(sourceText: String): State =
+    val (ast, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
+    from(semiInjected, None, ast)
+
+  /** get initial state from script */
+  def from(script: Script): State = from(script.code)
+
+  /** get initial state from JS file */
+  def fromFile(filename: String): State =
+    val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
+    from(semiInjected, Some(filename), ast)
+
+  def from(ast: Ast): State =
+    from(ast.toString(grammar = Some(cfg.grammar)), None, ast)
+
+  /** get initial state with source text and cached AST */
+  private def from(
+    sourceText: String,
+    filename: Option[String],
+    cachedAst: Ast,
+  ): State = State(
+    cfg,
+    context = Context(cfg.main),
+    sourceText = Some(sourceText),
+    filename = filename,
+    cachedAst = Some(cachedAst),
+    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
+    heap = initHeap.copied,
+  )
+
   /** the result state of initialization */
   def getResult(
     sourceText: String,

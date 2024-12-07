@@ -33,6 +33,17 @@ trait BasicJsonProtocol {
   def doubleEncoder: Encoder[Double] =
     Encoder.instance(Json.fromDoubleOrString)
 
+  // decoder for option
+  def optionDecoder[T](using decoder: Decoder[T]): Decoder[Option[T]] =
+    Decoder.instance(c =>
+      if c.value.isNull then Right(None)
+      else decoder(c).map(Some(_)),
+    )
+
+  // encoder for option
+  def optionEncoder[T](using encoder: Encoder[T]): Encoder[Option[T]] =
+    Encoder.instance(opt => opt.fold(Json.Null)(encoder.apply))
+
   // decoder for UId: id -> UId
   def uidDecoder[T <: UId](getter: Int => Option[T]): Decoder[T] =
     Decoder.instance(c =>
@@ -61,6 +72,10 @@ trait BasicJsonProtocol {
     } yield Right(x)).getOrElse(invalidFail("id", c)),
   )
 
+  // encoder for UId with name: UId -> { name: id }
+  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
+    Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
+
   // encoder based on stringifiers
   def encoderWithStringifier[T](stringifier: T => String): Encoder[T] =
     Encoder.instance(x => Json.fromString(stringifier(x)))
@@ -87,10 +102,6 @@ trait BasicJsonProtocol {
         .map(Right(_))
         .getOrElse(decodeFail(s"expected a string instead of ${c.value}", c)),
     )
-
-  // encoder for UId with name: UId -> { name: id }
-  def uidEncoderWithName[T <: UId](name: String): Encoder[T] =
-    Encoder.instance(x => Json.fromFields(Seq(name -> Json.fromInt(x.id))))
 
   // decoding failure
   def decodeFail[T](msg: String, c: HCursor): Decoder.Result[T] =
