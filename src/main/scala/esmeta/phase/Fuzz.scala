@@ -42,8 +42,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
 
-    // cov
-    ???
+    cov
   }
 
   def defaultConfig: Config = Config()

@@ -19,7 +19,7 @@ sealed trait Ast extends ESElem with Locational {
   var parent: Option[Ast] = None
 
   /** children */
-  def children: List[Option[Ast]]
+  def children: Vector[Option[Ast]]
 
   /** idx of production */
   def idx: Int = this match
@@ -39,8 +39,8 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical => Nil
     case syn: Syntactic =>
       syn.children.flatten match
-        case child :: Nil => child.chains
-        case _            => Nil
+        case Vector(child) => this :: child.chains
+        case _             => List(this)
   )
 
   /** types */
@@ -48,16 +48,16 @@ sealed trait Ast extends ESElem with Locational {
     case _: Lexical => Set()
     case syn: Syntactic =>
       syn.children.flatten match
-        case child :: Nil => child.types
-        case _            => Set()
+        case Vector(child) => child.types
+        case _             => Set()
   ) + name
 
   /** flatten statements */
   // TODO refactoring
   def flattenStmt: List[Ast] = this match
-    case Syntactic("Script", _, 0, List(Some(body))) =>
+    case Syntactic("Script", _, 0, Vector(Some(body))) =>
       body match
-        case Syntactic("ScriptBody", _, 0, List(Some(stlist))) =>
+        case Syntactic("ScriptBody", _, 0, Vector(Some(stlist))) =>
           flattenStmtList(stlist)
         case _ => Nil
     case _ => Nil
@@ -134,7 +134,7 @@ case class Syntactic(
   name: String,
   args: List[Boolean],
   rhsIdx: Int,
-  children: List[Option[Ast]],
+  children: Vector[Option[Ast]],
 ) extends Ast
 
 /** ASTs constructed by lexical productions */
@@ -142,5 +142,5 @@ case class Lexical(
   name: String,
   str: String,
 ) extends Ast {
-  def children: List[Option[Ast]] = Nil
+  def children: Vector[Option[Ast]] = Vector.empty
 }

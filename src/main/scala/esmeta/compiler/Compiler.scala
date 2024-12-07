@@ -839,7 +839,7 @@ class Compiler(
     case ProductionLiteral(lhsName, rhsName) =>
       getProductionData(lhsName, rhsName) match
         case Some((lhs, rhsIdx)) =>
-          ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
+          ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Vector.empty)
         case None =>
           EYet(lit.toString(true, false))
     case ErrorObjectLiteral(name) =>
