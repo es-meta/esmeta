@@ -1,5 +1,3 @@
-"use strict";
-
 // hidden constructors
 var AsyncArrowFunction = Object.getPrototypeOf(async () => {}).constructor;
 var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;

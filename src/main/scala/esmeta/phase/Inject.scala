@@ -20,7 +20,8 @@ case object Inject extends Phase[CFG, String] {
     config: Config,
   ): String =
     val filename = getFirstFilename(cmdConfig, this.name)
-    val injected = Injector.fromFile(cfg, filename, config.defs, config.log)
+    val test = Injector.fromFile(cfg, filename, config.log)
+    val injected = test.toString(detail = config.defs)
 
     // dump the assertion-injected ECMAScript program
     for (filename <- config.out)

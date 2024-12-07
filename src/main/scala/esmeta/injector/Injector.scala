@@ -23,31 +23,34 @@ object Injector {
   def apply(
     cfg: CFG,
     src: String,
-    defs: Boolean = false,
     log: Boolean = false,
-  ): String =
+  ): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(cfg, extractor.result, defs, log).result
+    new Injector(cfg, extractor.result, log).result
 
   /** injection from files */
   def fromFile(
     cfg: CFG,
     filename: String,
-    defs: Boolean = false,
     log: Boolean = false,
-  ): String =
+  ): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(cfg, extractor.result, defs, log).result
+    new Injector(cfg, extractor.result, log).result
 
   /** assertion definitions */
-  lazy val header: String = readFile(s"$RESOURCE_DIR/assertions.js")
+  lazy val header: String =
+    val line = "// " + "-" * 77
+    line + LINE_SEP +
+    "// ASSERTION DEFINITIONS" + LINE_SEP +
+    line + LINE_SEP +
+    readFile(s"$RESOURCE_DIR/assertions.js").trim + LINE_SEP +
+    line
 }
 
 /** extensible helper of assertion injector */
 class Injector(
   cfg: CFG,
   exitSt: State,
-  defs: Boolean,
   log: Boolean,
 ) {
 
@@ -65,15 +68,14 @@ class Injector(
   /** generated conformance test */
   lazy val conformTest: ConformTest = ConformTest(
     0,
-    script,
+    script.trim,
     exitTag,
-    defs,
-    isAsync,
+    async,
     assertions,
   )
 
   /** injected script */
-  lazy val result: String = conformTest.toString
+  lazy val result: ConformTest = conformTest
 
   /** target script */
   lazy val script = exitSt.sourceText.get
@@ -82,11 +84,11 @@ class Injector(
   lazy val exitTag: ExitTag = ExitTag(exitSt)
 
   /** normal termination */
-  lazy val normalExit: Boolean = exitTag == NormalTag
+  lazy val normalExit: Boolean = exitTag == ExitTag.Normal
 
   /** check whether it uses asynchronous features */
   // TODO more precise detection
-  lazy val isAsync: Boolean =
+  lazy val async: Boolean =
     script.contains("async") || script.contains("Promise")
 
   // ---------------------------------------------------------------------------

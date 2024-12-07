@@ -8,16 +8,13 @@ trait InjectorElem {
   override def toString: String = toString()
 
   /** stringify with options */
-  def toString(
-    detail: Boolean = true,
-    location: Boolean = false,
-  ): String = {
-    val stringifier = InjectorElem.getStringifier(detail, location)
+  def toString(detail: Boolean = false): String = {
+    val stringifier = InjectorElem.getStringifier(detail)
     import stringifier.elemRule
     stringify(this)
   }
 }
 object InjectorElem {
   val getStringifier =
-    cached[(Boolean, Boolean), Stringifier] { Stringifier(_, _) }
+    cached[Boolean, Stringifier] { Stringifier(_) }
 }

@@ -107,11 +107,10 @@ class Interpreter(
           st.context.moveInst
         }
         st.context.moveNode
-      case Branch(_, _, cond, thenNode, elseNode) =>
-        st.context.cursor = Cursor(
-          if (eval(cond).asBool) thenNode else elseNode,
-          st.func,
-        )
+      case branch: Branch =>
+        eval(branch.cond) match
+          case Bool(bool) => moveBranch(branch, bool)
+          case v          => throw NoBoolean(v)
       case call: Call => eval(call)
     }
 
@@ -385,6 +384,18 @@ class Interpreter(
   def setCallResult(x: Var, value: Value): Unit =
     st.define(x, value)
     st.context.moveNode
+
+  /** set return value and move to the exit node */
+  def moveBranch(branch: Branch, cond: Boolean): Unit =
+    st.context.cursor = Cursor(
+      if (cond) branch.thenNode
+      else branch.elseNode,
+      st.func,
+    )
+
+  /** set return value and move to the exit node */
+  def moveExit: Unit =
+    st.context.cursor = ExitCursor(st.func)
 
   // ---------------------------------------------------------------------------
   // private helpers

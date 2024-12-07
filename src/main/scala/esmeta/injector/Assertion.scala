@@ -1,10 +1,9 @@
 package esmeta.injector
 
-import esmeta.es.ESElem
 import esmeta.state.*
 
-/** TODO assertions from conformance test */
-trait Assertion extends ESElem
+/** assertions from conformance test */
+trait Assertion extends InjectorElem
 
 case class HasValue(x: String, v: SimpleValue) extends Assertion
 

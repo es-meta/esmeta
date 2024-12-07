@@ -97,39 +97,38 @@ case class Coverage(
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
-    // // update node coverage
-    // for ((nodeView, nearest) <- interp.touchedNodeViews)
-    //   touchedNodeViews += nodeView -> nearest
-    //   getScript(nodeView) match
-    //     case None => update(nodeView, script); updated = true; covered = true
-    //     case Some(originalScript) if originalScript.code.length > code.length =>
-    //       update(nodeView, script)
-    //       updated = true
-    //       blockingScripts += originalScript
-    //     case Some(blockScript) => blockingScripts += blockScript
+    // update node coverage
+    for ((nodeView, nearest) <- interp.touchedNodeViews)
+      touchedNodeViews += nodeView -> nearest
+      getScript(nodeView) match
+        case None => update(nodeView, script); updated = true; covered = true
+        case Some(originalScript) if originalScript.code.length > code.length =>
+          update(nodeView, script)
+          updated = true
+          blockingScripts += originalScript
+        case Some(blockScript) => blockingScripts += blockScript
 
-    // // update branch coverage
-    // for ((condView, nearest) <- interp.touchedCondViews)
-    //   touchedCondViews += condView -> nearest
-    //   getScript(condView) match
-    //     case None =>
-    //       update(condView, nearest, script); updated = true; covered = true
-    //     case Some(origScript) if origScript.code.length > code.length =>
-    //       update(condView, nearest, script)
-    //       updated = true
-    //       blockingScripts += origScript
-    //     case Some(blockScript) => blockingScripts += blockScript
+    // update branch coverage
+    for ((condView, nearest) <- interp.touchedCondViews)
+      touchedCondViews += condView -> nearest
+      getScript(condView) match
+        case None =>
+          update(condView, nearest, script); updated = true; covered = true
+        case Some(origScript) if origScript.code.length > code.length =>
+          update(condView, nearest, script)
+          updated = true
+          blockingScripts += origScript
+        case Some(blockScript) => blockingScripts += blockScript
 
-    // if (updated)
-    //   _minimalInfo += script.name -> ScriptInfo(
-    //     ConformTest.createTest(cfg, finalSt),
-    //     touchedNodeViews.keys,
-    //     touchedCondViews.keys,
-    //   )
+    if (updated)
+      _minimalInfo += script.name -> ScriptInfo(
+        ConformTest.createTest(cfg, finalSt),
+        touchedNodeViews.keys,
+        touchedCondViews.keys,
+      )
 
-    // // TODO: impl checkWithBlocking using `blockingScripts`
-    // (finalSt, updated, covered)
-    ???
+    // TODO: impl checkWithBlocking using `blockingScripts`
+    (finalSt, updated, covered)
   }
 
   /** get node coverage */
@@ -207,7 +206,13 @@ case class Coverage(
         iterable = _minimalInfo,
         dirname = s"$baseDir/minimal-assertion",
         getName = _._1,
-        getData = _._2.test.core, // TODO: dump this as json?
+        getData = {
+          case (_, ScriptInfo(test, _, _)) =>
+            Yaml(
+              "tag" -> test.exitTag.toString,
+              "assertions" -> test.assertions.map(_.toString),
+            )
+        },
         remove = true,
       )
       log("Dumped assertions")
@@ -356,46 +361,34 @@ object Coverage {
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
-  ) extends Interpreter(initSt, timeLimit = timeLimit) { // TODO , keepProvenance = true) {
-    // var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
-    // var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+  ) extends Interpreter(initSt, timeLimit = timeLimit) {
+    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
+    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
-    // // override eval for node
-    // override def eval(node: Node): Unit =
-    //   // record touched nodes
-    //   touchedNodeViews += NodeView(node, getView(node)) -> getNearest
-    //   super.eval(node)
+    // override eval for node
+    override def eval(node: Node): Unit =
+      // record touched nodes
+      touchedNodeViews += NodeView(node, getView(node)) -> getNearest
+      super.eval(node)
 
-    // // override branch move
-    // override def moveBranch(branch: Branch, b: Boolean): Unit =
-    //   // record touched conditional branch
-    //   val cond = Cond(branch, b)
-    //   touchedCondViews += CondView(cond, getView(cond)) -> getNearest
-    //   super.moveBranch(branch, b)
+    // override branch move
+    override def moveBranch(branch: Branch, b: Boolean): Unit =
+      // record touched conditional branch
+      val cond = Cond(branch, b)
+      touchedCondViews += CondView(cond, getView(cond)) -> getNearest
+      super.moveBranch(branch, b)
 
-    // // override helper for return-if-abrupt cases
-    // override def returnIfAbrupt(
-    //   riaExpr: EReturnIfAbrupt,
-    //   value: Value,
-    //   check: Boolean,
-    // ): Value =
-    //   val abrupt = value.isAbruptCompletion
-    //   val cond = Cond(riaExpr.idRef, abrupt)
+    // get syntax-sensitive views
+    private def getView(node: Node | Cond): View =
+      val stack = st.context.featureStack.take(kFs)
+      val path = if (cp) then Some(st.context.callPath) else None
+      stack match {
+        case Nil                  => None
+        case feature :: enclosing => Some(enclosing, feature, path)
+      }
 
-    //   touchedCondViews += CondView(cond, getView(cond)) -> getNearest
-    //   super.returnIfAbrupt(riaExpr, value, check)
-
-    // // get syntax-sensitive views
-    // private def getView(node: Node | Cond): View =
-    //   val stack = st.context.featureStack.take(kFs)
-    //   val path = if (cp) then Some(st.context.callPath) else None
-    //   stack match {
-    //     case Nil                  => None
-    //     case feature :: enclosing => Some(enclosing, feature, path)
-    //   }
-
-    // // get location information
-    // private def getNearest: Option[Nearest] = st.context.nearest
+    // get location information
+    private def getNearest: Option[Nearest] = st.context.nearest
   }
 
   /** meta-information for each script */

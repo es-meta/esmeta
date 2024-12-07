@@ -1,5 +1,6 @@
 package esmeta.injector.util
 
+import esmeta.LINE_SEP
 import esmeta.injector.*
 import esmeta.injector.Injector.*
 import esmeta.state.*
@@ -7,41 +8,47 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 
 /** stringifier for ECMAScript */
-class Stringifier(
-  detail: Boolean,
-  location: Boolean,
-) {
+class Stringifier(detail: Boolean) {
   // elements
   given elemRule: Rule[InjectorElem] = (app, elem) =>
     elem match
       case elem: ConformTest => testRule(app, elem)
+      case elem: ExitTag     => exitTagRule(app, elem)
       case elem: Assertion   => assertRule(app, elem)
 
   // conformance tests
   given testRule: Rule[ConformTest] = (app, test) =>
-    val ConformTest(id, script, exitTag, defs, isAsync, assertions) = test
+    val ConformTest(id, script, exitTag, isAsync, assertions) = test
     val delayHead = "$delay(() => {"
     val delayTail = "});"
 
-    app >> "// [EXIT] " >> exitTag.toString
+    if (detail) app >> "\"use strict\";" >> LINE_SEP
+    app >> "// [EXIT] " >> exitTag
     app :> script
-    exitTag match {
-      case NormalTag =>
-        if (defs) {
-          app :> "(() => {"
-          app :> header
-          if (isAsync) app :> delayHead
+    if (exitTag.isNormal) {
+      app :> "// Assertions"
+      def body = {
+        // prepend auxiliary definitions for assertions
+        if (detail) app :> header
+        // handle async tests by delaying the execution
+        if (isAsync) app.wrap(delayHead, delayTail) {
           assertions.foreach(app :> _)
-          if (isAsync) app :> delayTail
-          app :> "})();"
-        } else {
-          if (isAsync) app :> delayHead
-          assertions.foreach(app :> _)
-          if (isAsync) app :> delayTail
         }
-      case _ =>
+        else assertions.foreach(app :> _)
+      }
+      if (detail) (app :> "").wrap("(() => {", "})();")(body)
+      else body
     }
     app
+
+  // exit tags
+  given exitTagRule: Rule[ExitTag] = (app, tag) =>
+    import ExitTag.*
+    tag match
+      case Normal                   => app >> s"normal"
+      case Timeout                  => app >> s"timeout"
+      case SpecError(error, cursor) => app >> s"spec-error: $cursor"
+      case ThrowValue(value)        => app >> s"throw: $value"
 
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>
