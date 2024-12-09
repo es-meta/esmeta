@@ -35,9 +35,9 @@ automatically generates language-based tools.
 ## Installation Guide
 
 We explain how to install ESMeta with the necessary environment settings from
-scratch. Our framework is developed in Scala, which works on JDK 8+, including
-GraalVM. So before installation, please install [JDK
-8+](https://www.oracle.com/java/technologies/downloads/) and
+scratch. Our framework is developed in Scala, which works on JDK 17+. So before
+installation, please install [JDK
+17+](https://www.oracle.com/java/technologies/downloads/) and
 [sbt](https://www.scala-sbt.org/), an interactive build tool for Scala.
 
 
