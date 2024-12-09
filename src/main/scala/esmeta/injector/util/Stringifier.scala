@@ -29,7 +29,7 @@ class Stringifier(detail: Boolean) {
       app :> "// Assertions"
       def body = {
         // prepend auxiliary definitions for assertions
-        if (detail) app :> header
+        if (detail) app >> header
         // handle async tests by delaying the execution
         if (isAsync) app.wrap(delayHead, delayTail) {
           assertions.foreach(app :> _)
@@ -48,7 +48,7 @@ class Stringifier(detail: Boolean) {
       case Normal                   => app >> s"normal"
       case Timeout                  => app >> s"timeout"
       case SpecError(error, cursor) => app >> s"spec-error: $cursor"
-      case ThrowValue(value)        => app >> s"throw: $value"
+      case ThrowValue(values)       => app >> s"throw: ${values.mkString(", ")}"
 
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>

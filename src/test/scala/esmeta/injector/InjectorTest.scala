@@ -29,7 +29,7 @@ trait InjectorTest extends ESMetaTest {
   lazy val normal = Normal
   lazy val timeout = Timeout
   lazy val specError = SpecError(InvalidNodeId(42), ExitCursor(func))
-  lazy val throwValue = ThrowValue(Null)
+  lazy val throwValue = ThrowValue(Vector(Null))
 
   // conformance tests
   lazy val conformTest = ConformTest(

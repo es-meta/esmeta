@@ -40,6 +40,7 @@ object Injector {
   /** assertion definitions */
   lazy val header: String =
     val line = "// " + "-" * 77
+    LINE_SEP +
     line + LINE_SEP +
     "// ASSERTION DEFINITIONS" + LINE_SEP +
     line + LINE_SEP +
