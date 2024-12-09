@@ -180,8 +180,8 @@ class Fuzzer(
   def getCandInfo(code: String): CandInfo =
     if (visited contains code)
       CandInfo(visited = true)
-    // TODO else if (!ValidityChecker(code))
-    //   CandInfo(invalid = true)
+    else if (!ValidityChecker(code))
+      CandInfo(invalid = true)
     else
       CandInfo(interp = optional(cov.run(code)))
 
