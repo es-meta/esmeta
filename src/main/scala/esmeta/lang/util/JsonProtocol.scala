@@ -31,7 +31,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Condition] = encoderWithStringifier(stringify)
   given Decoder[Condition] = decoderWithParser(Condition.from)
   given Encoder[Type] = encoderWithStringifier(stringify)
-  given Decoder[Type] = decoderWithParser(Type.from)
+  given Decoder[Type] = decoderWithParser(LangTypeFromTy.from)
   given Encoder[Block] = encoderWithStringifier(stringify)
   given Decoder[Block] = decoderWithParser(Block.from)
   given Encoder[Step] = encoderWithStringifier(stringify)
