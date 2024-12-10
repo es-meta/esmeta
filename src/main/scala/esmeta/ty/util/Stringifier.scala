@@ -6,6 +6,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.state.Math.zero
 
 /** stringifier for types */
 object Stringifier {
@@ -24,8 +25,8 @@ object Stringifier {
       case elem: ListTy      => listTyRule(app, elem)
       case elem: AstTy       => astTyRule(app, elem)
       case elem: MapTy       => mapTyRule(app, elem)
+      case elem: IntTy       => intRule(app, elem)
       case elem: MathTy      => mathTyRule(app, elem)
-      case elem: IntTy       => intTyRule(app, elem)
       case elem: InfinityTy  => infinityTyRule(app, elem)
       case elem: NumberTy    => numberTyRule(app, elem)
       case elem: BoolTy      => boolTyRule(app, elem)
@@ -131,7 +132,7 @@ object Stringifier {
         .add(ty.enumv.map(s => s"~$s~"), !ty.enumv.isBottom, "Enum")
         .add(ty.math, !ty.math.isBottom)
         .add(ty.infinity, !ty.infinity.isBottom)
-        .add(ty.number, !ty.number.isBottom, "Number")
+        .add(ty.number, !ty.number.isBottom)
         .add("BigInt", !ty.bigInt.isBottom)
         .add(ty.str.map(s => s"\"$s\""), !ty.str.isBottom, "String")
         .add(ty.bool, !ty.bool.isBottom)
@@ -230,33 +231,52 @@ object Stringifier {
       case Simple(names) => app >> names
       case Detail(x, i)  => app >> "[" >> x >> "[" >> i >> "]" >> "]"
 
-  /** mathematical value types */
-  given mathTyRule: Rule[MathTy] = (app, ty) =>
-    ty match
-      case MathSignTy(sign) =>
-        if sign.isTop then app >> "Math"
-        else if sign == Sign.Pos then app >> "PosMath"
-        else if sign == Sign.Neg then app >> "NegMath"
-        else if sign == Sign.Zero then app >> MathSetTy(Set(Math(0)))
-        else if sign == Sign.NonNeg then app >> "NonNegMath"
-        else if sign == Sign.NonPos then app >> "NonPosMath"
-        else if sign == Sign.Bot then app >> "Math[Bot]"
-        else throw new IllegalArgumentException(s"Invalid sign: $sign")
-      case MathIntTy(x)   => app >> x
-      case MathSetTy(set) => app >> "Math" >> set
+  /** sign domain */
+  given signRule: Rule[Sign] = (app, sign) =>
+    val Sign(neg, zero, pos) = sign
+    if sign.isTop then app
+    else
+      app >> "["
+      if (neg) app >> "-"
+      if (zero) app >> "0"
+      if (pos) app >> "+"
+      app >> "]"
 
-  /** Integer types */
-  given intTyRule: Rule[IntTy] = (app, ty) =>
-    ty match
+  /** integer types */
+  given intRule: Rule[IntTy] = (app, ty) =>
+    ty.canon match
+      case ty if ty.isTop => app >> "Int"
+      // case ty if ty.isBottom => app >> "Int[Bot]"
       case IntSetTy(set) => app >> "Int" >> set
       case IntSignTy(sign) =>
-        if sign.isTop then app >> "Int"
-        else if sign == Sign.Pos then app >> "PosInt"
-        else if sign == Sign.Neg then app >> "NegInt"
-        else if sign == Sign.Zero then app >> IntSetTy(Set(0))
-        else if sign == Sign.NonNeg then app >> "NonNegInt"
-        else if sign == Sign.NonPos then app >> "NonPosInt"
-        else app >> "Int"
+        app >> "Int" >> sign
+
+  /** mathematical value types */
+  given mathTyRule: Rule[MathTy] = (app, ty) =>
+    ty.canon match
+      case ty if ty.isTop => app >> "Math"
+      // case ty if ty.isBottom => app >> "Math[Bot]"
+      case MathSignTy(sign) => app >> "Math[" >> sign >> "]"
+      case MathIntTy(int) =>
+        given Rule[IntTy] = intRule
+        app >> int
+      case MathSetTy(set) => app >> "Math" >> set
+
+  /** number types */
+  given numberTyRule: Rule[NumberTy] = (app, ty) =>
+    ty.canon match
+      case t if t.isTop                 => app >> "Number"
+      case t if t == NumberTy.NaN.canon => app >> "NaN"
+      // case ty if ty.isBottom => app >> "Number[Bot]"
+      case NumberSignTy(sign, hasNaN) =>
+        app >> "Number" >> sign
+        app >> (if (hasNaN) " | NaN" else "")
+      case NumberIntTy(int, hasNaN) =>
+        int match
+          case IntSetTy(set)   => app >> "NumberInt" >> set
+          case IntSignTy(sign) => app >> "NumberInt" >> sign
+        app >> (if (hasNaN) " | NaN" else "")
+      case NumberSetTy(set) => app >> "Number" >> set
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>
@@ -264,26 +284,6 @@ object Stringifier {
       case set if set.isEmpty   => app
       case set if set.size == 1 => app >> (if (set.head) "+INF" else "-INF")
       case _                    => app >> "INF"
-
-  /** number types */
-  given numberTyRule: Rule[NumberTy] = (app, ty) =>
-    ty match
-      case NumberTopTy => app
-      case NumberIntTy(nan) =>
-        app >> "[Int"
-        if (nan) app >> ", NaN"
-        app >> "]"
-      case NumberSubIntTy(pos, zero, nan) =>
-        app >> "["
-        app >> ((pos, zero) match
-          case (true, true)   => "NonNegInt"
-          case (true, false)  => "PosInt"
-          case (false, true)  => "NonPosInt"
-          case (false, false) => "NegInt"
-        )
-        if (nan) app >> ", NaN"
-        app >> "]"
-      case NumberSetTy(set) => if (set.isEmpty) app else app >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>

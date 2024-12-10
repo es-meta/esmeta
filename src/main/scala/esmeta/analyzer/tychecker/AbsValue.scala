@@ -174,18 +174,9 @@ trait AbsValueDecl { self: TyChecker =>
           else ValueTy.Bot
         case COp.ToNumber =>
           lazy val fromMath = ty.math match
-            case MathSignTy(_) => NumberTy.Top
-            case MathIntTy(int) => 
-              int match
-                case IntSetTy(set) => NumberTy.Int
-                case IntSignTy(sign) =>
-                  if int == IntTy.Top then NumberTy.Int
-                  else if int == IntTy.NonNeg then NumberTy.NonNegInt
-                  else if int == IntTy.Pos then NumberTy.PosInt
-                  else if int == IntTy.NonPos then NumberTy.NonPosInt
-                  else if int == IntTy.Neg then NumberTy.NegInt
-                  else NumberTy.Int
-            case MathSetTy(set) => NumberSetTy(set.map(m => Number(m.toDouble)))
+            case MathSignTy(_)  => NumberTy.Top
+            case MathIntTy(int) => NumberIntTy(int, false)
+            case MathSetTy(set) => NumberSetTy(set.map(n => Number(n.toDouble)))
           if (!ty.str.isBottom) NumberT
           else ValueTy(number = ty.number || fromMath)
         case COp.ToBigInt
@@ -199,12 +190,8 @@ trait AbsValueDecl { self: TyChecker =>
           else BigIntT
         case COp.ToMath =>
           val fromNumber = ty.number match
-            case NumberTopTy                     => MathTy.Top
-            case NumberIntTy(_)                  => MathTy.Int
-            case NumberSubIntTy(true, true, _)   => MathTy.NonNegInt
-            case NumberSubIntTy(true, false, _)  => MathTy.PosInt
-            case NumberSubIntTy(false, true, _)  => MathTy.NonPosInt
-            case NumberSubIntTy(false, false, _) => MathTy.NegInt
+            case NumberSignTy(sign, _) => MathSignTy(sign)
+            case NumberIntTy(int, _)   => MathIntTy(int)
             case NumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
           val fromBigInt = if (ty.bigInt) MathTy.Int else MathTy.Bot
           ValueTy(math = ty.math || fromNumber || fromBigInt)
@@ -270,10 +257,9 @@ trait AbsValueDecl { self: TyChecker =>
         case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
       val numberTy = ty.number match
-        case NumberTopTy                  => NumberTopTy
-        case NumberIntTy(_)               => NumberIntTy(false)
-        case NumberSubIntTy(pos, zero, _) => NumberSubIntTy(!pos, zero, false)
-        case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
+        case NumberSignTy(s, _) => NumberSignTy(-s, false)
+        case NumberIntTy(x, _)  => NumberIntTy(-x, false)
+        case NumberSetTy(set)   => NumberSetTy(set.map(n => Number(-n.double)))
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = this.ty.bigInt),
       )
@@ -291,7 +277,7 @@ trait AbsValueDecl { self: TyChecker =>
           MathSetTy(set.map(m => Math(~(m.decimal.toInt))))
       val numberTy = ty.number match
         case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
-        case _                => NumberIntTy(false)
+        case _                => NumberIntTy(IntTy.Top, false)
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = ty.bigInt),
       )
