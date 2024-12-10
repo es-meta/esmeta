@@ -115,7 +115,7 @@ class Extractor(
     code = elem.html.unescapeHtml
     body = parser.parseBy(parser.step)(code)
     algo = Algorithm(head, body, code)
-    _ = algo.elem = elem
+    // _ = algo.elem = elem
   } yield algo
 
   /** TODO ignores elements whose parents' ids are in this list */

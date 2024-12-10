@@ -8,7 +8,9 @@ import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
+import scala.scalajs.js.annotation.{JSExport, JSExportAll}
 
+@JSExportAll
 class Initialize(cfg: CFG) {
 
   /** the result state of initialization */
@@ -262,7 +264,10 @@ class Initialize(cfg: CFG) {
   private def getLength(head: Head): Int =
     head.originalParams.count(_.kind == ParamKind.Normal)
 }
+
+@JSExportAll
 object Initialize {
+  @JSExport("apply")
   def apply(
     cfg: CFG,
     sourceText: String,
@@ -272,5 +277,6 @@ object Initialize {
 
   /** initialize from file */
   def fromFile(cfg: CFG, filename: String): State =
-    apply(cfg, readFile(filename), filename = Some(filename))
+    ???
+    // apply(cfg, readFile(filename), filename = Some(filename))
 }

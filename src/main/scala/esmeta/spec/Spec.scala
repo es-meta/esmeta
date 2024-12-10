@@ -9,7 +9,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
 import esmeta.{error => ESMetaError, *}
-import org.jsoup.nodes.Document
+// import org.jsoup.nodes.Document
 
 // import scala.scalajs.js.annotation.*
 
@@ -77,9 +77,10 @@ case class Spec(
 
   /** get an algorithm by id attribute */
   def getAlgoById(id: String): Algorithm =
-    algorithms.filter(_.elem.getId == id) match
-      case algo :: Nil => algo
-      case _           => error(s"no algorithms found for $id")
+    ???
+  //   algorithms.filter(_.elem.getId == id) match
+  //     case algo :: Nil => algo
+  //     case _           => error(s"no algorithms found for $id")
 
   /** empty check */
   def isEmpty: Boolean =
