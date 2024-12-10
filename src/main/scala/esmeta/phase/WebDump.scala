@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.ir.{Program}
 import esmeta.ir.util.JsonProtocol.given
-import esmeta.spec.{Grammar}
+import esmeta.spec.{Grammar, Spec}
 import esmeta.spec.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -15,6 +15,10 @@ import io.circe.parser.decode;
 
 import scala.util.chaining.*
 import scala.util.ChainingOps.*
+import esmeta.util.ManualInfo.tyModel
+import esmeta.spec.Table
+import esmeta.ty.TyModel
+import esmeta.spec.Algorithm
 
 /** `dump` phase */
 case object WebDump extends Phase[CFG, DumpData] {
@@ -30,17 +34,40 @@ case object WebDump extends Phase[CFG, DumpData] {
     dumpFile(cfg.spec.asJson.spaces2, s"$DUMP_LOG_DIR/spec.json")
     dumpFile(cfg.spec.grammar.asJson.spaces2, s"$DUMP_LOG_DIR/grammar.json")
 
+    // //////// just test only ////////////////////
+
+    checkRight("Spec.Version") {
+      decode[Spec.Version](cfg.spec.version.asJson.toString)
+    }
+
+    checkRight("Spec.Tables") {
+      decode[Map[String, Table]](cfg.spec.tables.asJson.toString)
+    }
+
+    checkRight("TyModel") {
+      decode[TyModel](cfg.spec.tyModel.asJson.toString)
+    }
+
+    checkRight("Algorithms") {
+      decode[List[Algorithm]](cfg.spec.algorithms.asJson.toString)
+    }
+
+    // ////////////////////////////////////////////
+
     val data =
       DumpData(
-        cfg.program.asJson,
-        cfg.program.funcs.asJson,
-        cfg.spec.asJson,
-        cfg.spec.grammar.asJson,
+        program = cfg.program.asJson,
+        funcs = cfg.program.funcs.asJson,
+        spec = cfg.spec.asJson,
       )
 
     data.tap {
 
-      case DumpData(program, funcs, spec, grammar) => {
+      case DumpData(program, funcs, spec) => {
+
+        checkRight("Spec") {
+          decode[Spec](spec.toString)
+        }
 
         checkRight("Program") {
           decode[Program](program.toString)
@@ -50,9 +77,9 @@ case object WebDump extends Phase[CFG, DumpData] {
           decode[Program](funcs.toString)
         }
 
-        checkRight("Grammar") {
-          decode[Grammar](grammar.toString)
-        }
+        // checkRight("Grammar") {
+        //   decode[Grammar](grammar.toString)
+        // }
 
       }
 

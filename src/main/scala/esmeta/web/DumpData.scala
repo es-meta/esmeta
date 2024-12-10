@@ -6,5 +6,4 @@ case class DumpData(
   program: Json,
   funcs: Json,
   spec: Json,
-  grammar: Json,
 )
