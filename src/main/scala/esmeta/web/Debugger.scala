@@ -10,6 +10,10 @@ import esmeta.state.*
 import esmeta.util.Loc
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.scalajs.js.annotation.JSExportAll
+import scala.scalajs.js.annotation.JSExportTopLevel
+import scala.scalajs.js.annotation.JSExportStatic
+
 
 object Debugger:
   def initDebugger(cfg: CFG, sourceText: String): Debugger =
@@ -18,6 +22,7 @@ object Debugger:
 
 
 /** debugger extension of IR interpreter */
+@JSExportTopLevel("Debugger")
 class Debugger(st: State) extends Interpreter(st, log = true) {
   // ---------------------------------------------------------------------------
   // shortcuts

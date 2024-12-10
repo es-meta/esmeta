@@ -24,7 +24,8 @@ class Interpreter(
   val st: State,
   val log: Boolean = false,
   val detail: Boolean = false,
-  val logPW: Option[PrintWriter] = None,
+  val logPW: Option[Unit] = None,
+  // val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
@@ -34,8 +35,8 @@ class Interpreter(
     {
       while (step) {}
       if (log)
-        pw.println(st)
-        pw.close
+        // pw.println(st)
+        // pw.close
         println("[Interpreter] Logging finished")
       st
     },
@@ -50,9 +51,10 @@ class Interpreter(
     try {
       // text-based logging
       if (log)
-        pw.println(st.getCursorString)
-        if (detail) pw.println(st.context)
-        pw.flush
+        // pw.println(st.getCursorString)
+        // if (detail) pw.println(st.context)
+        // pw.flush
+        ()
 
       // garbage collection
       iter += 1
@@ -63,10 +65,11 @@ class Interpreter(
     } catch {
       case e =>
         if (log)
-          pw.println(st)
-          pw.println("[Interpreter] unexpected error: " + e)
-          pw.println(e.getStackTrace.mkString(LINE_SEP))
-          pw.flush
+          ()
+          // pw.println(st)
+          // pw.println("[Interpreter] unexpected error: " + e)
+          // pw.println(e.getStackTrace.mkString(LINE_SEP))
+          // pw.flush
         throw e
     }
 
@@ -384,8 +387,11 @@ class Interpreter(
   private var iter = 0
 
   /** logging */
-  private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
+  private lazy val pw: Unit = // PrintWriter =
+    logPW.getOrElse(
+      ()
+      // getPrintWriter(s"$EVAL_LOG_DIR/log")
+      )
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](
@@ -399,7 +405,8 @@ object Interpreter {
     st: State,
     log: Boolean = false,
     detail: Boolean = false,
-    logPW: Option[PrintWriter] = None,
+    logPW: Option[Unit] = None,
+    // logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
 

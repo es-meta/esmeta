@@ -51,12 +51,12 @@ object SystemUtils {
   lazy val patchFilter = extFilter("patch")
 
   /** print writer */
-  def getPrintWriter(filename: String, append: Boolean = false): PrintWriter =
-    val file = File(filename)
-    val parent = file.getParent
-    if (parent != null) mkdir(parent)
-    val out = FileOutputStream(file, append)
-    PrintWriter(out)
+  // def getPrintWriter(filename: String, append: Boolean = false): PrintWriter =
+  //   val file = File(filename)
+  //   val parent = file.getParent
+  //   if (parent != null) mkdir(parent)
+  //   val out = FileOutputStream(file, append)
+  //   PrintWriter(out)
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String): Unit =
@@ -64,9 +64,10 @@ object SystemUtils {
 
   /** dump given data to a file */
   def dumpFile(data: Any, filename: String, append: Boolean): Unit =
-    val nf = getPrintWriter(filename, append)
-    nf.print(data)
-    nf.close()
+  //   val nf = getPrintWriter(filename, append)
+  //   nf.print(data)
+  //   nf.close()
+    ()
 
   /** dump given data collection into a directory and show message */
   def dumpDir[T](
@@ -78,9 +79,10 @@ object SystemUtils {
     append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
-    mkdir(dirname)
-    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}", append)
-    println(s"- Dumped $name into `$dirname` .")
+    // mkdir(dirname)
+    // for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}", append)
+    // println(s"- Dumped $name into `$dirname` .")
+    ()
 
   /** dump given data into a file and show message */
   def dumpFile(
@@ -90,7 +92,7 @@ object SystemUtils {
     append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
-    dumpFile(data, filename, append)
+    // dumpFile(data, filename, append)
     if (!silent) println(s"- Dumped $name into `$filename` .")
 
   /** dump given data in a JSON format */
@@ -104,7 +106,8 @@ object SystemUtils {
     noSpace: Boolean,
   )(using Encoder[T]): Unit =
     val json = data.asJson
-    dumpFile(if (noSpace) json.noSpaces else json.spaces2, filename, false)
+    // dumpFile(if (noSpace) json.noSpaces else json.spaces2, filename, false)
+    ()
 
   /** dump given data in a JSON format and show message */
   def dumpJson[T](

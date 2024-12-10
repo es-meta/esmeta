@@ -3,7 +3,9 @@ package esmeta.cfg.util
 import esmeta.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.util.{Appender, HtmlUtils}
+import esmeta.util.{Appender, 
+  //HtmlUtils
+}
 import scala.collection.mutable.Queue
 
 /** printer for Graphviz DOT format */
@@ -146,8 +148,11 @@ class DotPrinter(
     app :> id >> "_name -> " >> id
     app >> " [arrowhead=none, color=" >> color >> ", style=dashed]"
 
-  def norm(str: String): String =
-    HtmlUtils.escapeHtml(str).replaceAll("\u0000", "U+0000")
+  def norm(str: String): String = 
+    val r = "suppressed norm just for now"
+    println(r)
+    r
+    // HtmlUtils.escapeHtml(str).replaceAll("\u0000", "U+0000")
   def norm(node: IRElem): String =
     norm(node.toString(detail = false, location = false))
   protected def norm(insts: Iterable[Inst]): String = (for {
