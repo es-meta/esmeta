@@ -156,9 +156,9 @@ lazy val root = project
 
     // libraries
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % "0.14.1",
-      "io.circe" %% "circe-generic" % "0.14.1",
-      "io.circe" %% "circe-parser" % "0.14.1",
+      "io.circe" %% "circe-core" % "0.14.10",
+      "io.circe" %% "circe-generic" % "0.14.10",
+      "io.circe" %% "circe-parser" % "0.14.10",
       "org.scalatest" %% "scalatest" % "3.2.11" % Test,
       "org.apache.commons" % "commons-text" % "1.9",
       "org.jsoup" % "jsoup" % "1.14.3",
