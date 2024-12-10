@@ -14,6 +14,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Spec] = deriveDecoder
   given Encoder[Spec] = deriveEncoder
 
+  // version
+  given Decoder[Spec.Version] = deriveDecoder
+  given Encoder[Spec.Version] = deriveEncoder
+
   // tables
   given Decoder[Table] = deriveDecoder
   given Encoder[Table] = deriveEncoder
@@ -96,25 +100,25 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Algorithm] = deriveDecoder
   given Encoder[Algorithm] = deriveEncoder
   // algorithm heads
-  given Decoder[Head] =
-    decoderWithDiscriminator("algorithm head", headDiscriminators)
-  private lazy val headDiscriminators
-    : List[(String, HCursor => Decoder.Result[Head])] = List(
-    "isHostDefined" -> (_.as[AbstractOperationHead]),
-    "baseTy" -> (_.as[NumericMethodHead]),
-    "withParams" -> (_.as[SyntaxDirectedOperationHead]),
-    "concMethodName" -> (_.as[ConcreteMethodHead]),
-    "receiverParam" -> (_.as[InternalMethodHead]),
-    "path" -> (_.as[BuiltinHead]),
-  )
-  given Encoder[Head] = Encoder.instance {
-    case head: AbstractOperationHead       => head.asJson
-    case head: NumericMethodHead           => head.asJson
-    case head: SyntaxDirectedOperationHead => head.asJson
-    case head: ConcreteMethodHead          => head.asJson
-    case head: InternalMethodHead          => head.asJson
-    case head: BuiltinHead                 => head.asJson
-  }
+  // given Decoder[Head] =
+  //   decoderWithDiscriminator("algorithm head", headDiscriminators)
+  // private lazy val headDiscriminators
+  //   : List[(String, HCursor => Decoder.Result[Head])] = List(
+  //   "isHostDefined" -> (_.as[AbstractOperationHead]),
+  //   "baseTy" -> (_.as[NumericMethodHead]),
+  //   "withParams" -> (_.as[SyntaxDirectedOperationHead]),
+  //   "concMethodName" -> (_.as[ConcreteMethodHead]),
+  //   "receiverParam" -> (_.as[InternalMethodHead]),
+  //   "path" -> (_.as[BuiltinHead]),
+  // )
+  // given Encoder[Head] = Encoder.instance {
+  //   case head: AbstractOperationHead       => head.asJson
+  //   case head: NumericMethodHead           => head.asJson
+  //   case head: SyntaxDirectedOperationHead => head.asJson
+  //   case head: ConcreteMethodHead          => head.asJson
+  //   case head: InternalMethodHead          => head.asJson
+  //   case head: BuiltinHead                 => head.asJson
+  // }
   given Decoder[AbstractOperationHead] = deriveDecoder
   given Encoder[AbstractOperationHead] = deriveEncoder
   given Decoder[NumericMethodHead] = deriveDecoder
@@ -136,4 +140,9 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Param] = deriveEncoder
   given Decoder[ParamKind] = deriveDecoder
   given Encoder[ParamKind] = deriveEncoder
+
+  // type models
+  given Decoder[TyModel] = deriveDecoder
+  given Encoder[TyModel] = deriveEncoder
+
 }
