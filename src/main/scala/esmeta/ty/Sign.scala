@@ -1,6 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.Lattice
+import esmeta.ty.util.Parser
 
 case class Sign(neg: Boolean, zero: Boolean, pos: Boolean)
   extends Lattice[Sign] {
@@ -49,6 +50,11 @@ case class Sign(neg: Boolean, zero: Boolean, pos: Boolean)
     if value == 0 then zero
     else if value < 0 then neg
     else pos
+
+  def contains(value: Double): Boolean =
+    if value < 0 then neg
+    else if value > 0 then pos
+    else zero
 
   def contains(value: BigDecimal): Boolean =
     if value == 0 then zero

@@ -6,6 +6,7 @@ import esmeta.ty.util.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import scala.math.BigInt
 
 /** type elements */
 trait TyElem {
@@ -96,6 +97,10 @@ def EnumT(xs: String*): ValueTy = EnumT(xs.toSet)
 lazy val MathT: ValueTy = ValueTy(math = MathTy.Top)
 lazy val ExtMathT: ValueTy = MathT || InfinityT
 lazy val IntT: ValueTy = ValueTy(math = MathTy.Int)
+def IntT(set: Set[Long]): ValueTy =
+  if (set.isEmpty) BotT
+  else ValueTy(math = MathIntTy(IntSetTy(set)))
+def IntT(ds: Long*): ValueTy = IntT(ds.toSet)
 lazy val NonPosIntT: ValueTy = ValueTy(math = MathTy.NonPosInt)
 lazy val NonNegIntT: ValueTy = ValueTy(math = MathTy.NonNegInt)
 lazy val NegIntT: ValueTy = ValueTy(math = MathTy.NegInt)
