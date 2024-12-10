@@ -125,6 +125,10 @@ lazy val NaNT: ValueTy = ValueTy(number = NumberTy.NaN)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) BotT
   else ValueTy(number = NumberSetTy(ns.toSet))
+lazy val PosNumberT = ValueTy(number = NumberTy.Pos)
+lazy val NegNumberT = ValueTy(number = NumberTy.Neg)
+lazy val NonPosNumberT = ValueTy(number = NumberTy.NonPos)
+lazy val NonNegNumberT = ValueTy(number = NumberTy.NonNeg)
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
 lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
