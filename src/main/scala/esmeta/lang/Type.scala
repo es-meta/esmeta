@@ -2,6 +2,7 @@ package esmeta.lang
 
 import esmeta.lang.util.*
 import esmeta.ty.*
+import esmeta.ty.util.{Parser as TyParser}
 
 /** metalanguage types */
 case class Type(ty: Ty) extends Syntax {

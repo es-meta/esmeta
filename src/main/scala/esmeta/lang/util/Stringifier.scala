@@ -3,6 +3,7 @@ package esmeta.lang.util
 import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.ty.*
+import esmeta.ty.util.Stringifier.tyRule
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -756,9 +757,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // types
   given typeRule: Rule[Type] = (app, ty) =>
-    ty.ty match
-      case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-      case ty: ValueTy    => valueTyRule(false, false)(app, ty)
+    given Rule[Ty] = tyRule
+    app >> ty.ty
+  // TODO
+  // ty.ty match
+  // case UnknownTy(msg) => app >> msg.getOrElse("unknown")
+  // case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
   // value types
   def valueTyRule(

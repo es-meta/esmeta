@@ -2,10 +2,13 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.ir.{Program}
+import esmeta.ir.{Func, Program}
 import esmeta.ir.util.JsonProtocol.given
-import esmeta.spec.{Grammar, Spec}
+import esmeta.spec.{Algorithm, Grammar, Spec, Table}
 import esmeta.spec.util.JsonProtocol.given
+import esmeta.ty.TyModel
+import esmeta.lang.Type
+import esmeta.lang.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.web.DumpData
@@ -15,10 +18,6 @@ import io.circe.parser.decode;
 
 import scala.util.chaining.*
 import scala.util.ChainingOps.*
-import esmeta.util.ManualInfo.tyModel
-import esmeta.spec.Table
-import esmeta.ty.TyModel
-import esmeta.spec.Algorithm
 
 /** `dump` phase */
 case object WebDump extends Phase[CFG, DumpData] {
@@ -29,10 +28,15 @@ case object WebDump extends Phase[CFG, DumpData] {
     cmdConfig: CommandConfig,
     config: Config,
   ): DumpData = {
-    dumpFile(cfg.program.asJson.spaces2, s"$DUMP_LOG_DIR/program.dump")
-    dumpFile(cfg.program.funcs.asJson.spaces2, s"$DUMP_LOG_DIR/funcs.json")
-    dumpFile(cfg.spec.asJson.spaces2, s"$DUMP_LOG_DIR/spec.json")
-    dumpFile(cfg.spec.grammar.asJson.spaces2, s"$DUMP_LOG_DIR/grammar.json")
+    dumpFile(cfg.program.asJson.noSpaces, s"$DUMP_LOG_DIR/program.dump")
+    dumpFile(cfg.program.funcs.asJson.noSpaces, s"$DUMP_LOG_DIR/funcs.json")
+    dumpFile(cfg.spec.asJson.noSpaces, s"$DUMP_LOG_DIR/spec.json")
+    dumpFile(cfg.spec.grammar.asJson.noSpaces, s"$DUMP_LOG_DIR/grammar.json")
+    dumpFile(cfg.spec.tyModel.asJson.noSpaces, s"$DUMP_LOG_DIR/tyModel.json")
+    dumpFile(
+      cfg.spec.algorithms.asJson.noSpaces,
+      s"$DUMP_LOG_DIR/algorithms.json",
+    )
 
     // //////// just test only ////////////////////
 
@@ -51,8 +55,6 @@ case object WebDump extends Phase[CFG, DumpData] {
     checkRight("Algorithms") {
       decode[List[Algorithm]](cfg.spec.algorithms.asJson.toString)
     }
-
-    // ////////////////////////////////////////////
 
     val data =
       DumpData(
@@ -74,12 +76,8 @@ case object WebDump extends Phase[CFG, DumpData] {
         }
 
         checkRight("Funcs") {
-          decode[Program](funcs.toString)
+          decode[List[Func]](funcs.toString)
         }
-
-        // checkRight("Grammar") {
-        //   decode[Grammar](grammar.toString)
-        // }
 
       }
 
@@ -89,7 +87,7 @@ case object WebDump extends Phase[CFG, DumpData] {
   private def checkRight[T](tag: String)(result: Either[Error, T]): Unit = {
     result match {
       case Right(_)    => println(s"$tag is correct")
-      case Left(error) => println(s"$tag is incorrect: $error")
+      case Left(error) => println(s"$tag is incorrect")
     }
   }
 
