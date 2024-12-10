@@ -311,9 +311,10 @@ object NumberTy extends Parser.From(Parser.numberTy) {
   ): NumberTy =
     int match
       case i @ IntSetTy(iset) =>
+        val nset = iset.map(x => Number(x.toDouble))
         val s =
-          if hasNan then i.toNumberSet.get + Number(Double.NaN)
-          else i.toNumberSet.get // FIXME
+          if hasNan then nset + Number(Double.NaN)
+          else nset
         NumberSetTy(f(s, set)).canon
       case IntSignTy(sign) =>
         val s = Sign.alpha(

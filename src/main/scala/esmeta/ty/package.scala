@@ -6,7 +6,6 @@ import esmeta.ty.util.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import scala.math.BigInt
 
 /** type elements */
 trait TyElem {

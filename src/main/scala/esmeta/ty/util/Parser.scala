@@ -127,12 +127,12 @@ trait Parsers extends BasicParsers {
       case s => ValueTy(enumv = s.fold(Inf)(es => Fin(es.toSet)))
     } |
     "Enum" ^^^ ValueTy(enumv = Inf) |
-    // number
-    singleNumberTy ^^ { case n => ValueTy(number = n) } |
     // mathematical value
     singleMathTy ^^ { case m => ValueTy(math = m) } |
     // infinity
     singleInfinityTy ^^ { case i => ValueTy(infinity = i) } |
+    // number
+    singleNumberTy ^^ { case n => ValueTy(number = n) } |
     // big integer
     "BigInt" ^^^ ValueTy(bigInt = true) |
     // string
@@ -196,11 +196,10 @@ trait Parsers extends BasicParsers {
   }.named("ty.RecordTy (single)")
 
   given sign: Parser[Sign] = {
-    "-0+" ^^^ Sign.Top |
-    "-0" ^^^ Sign.NonPos |
-    "0+" ^^^ Sign.NonNeg |
-    "+" ^^^ Sign.Pos |
-    "-" ^^^ Sign.Neg
+    val neg = "-" ^^^ Sign.Neg | "" ^^^ Sign.Bot
+    val zero = "0" ^^^ Sign.Zero | "" ^^^ Sign.Bot
+    val pos = "+" ^^^ Sign.Pos | "" ^^^ Sign.Bot
+    neg ~ zero ~ pos ^^ { case n ~ z ~ p => n || z || p }
   }.named("ty.Sign")
 
   private lazy val intTy: Parser[IntTy] = {
