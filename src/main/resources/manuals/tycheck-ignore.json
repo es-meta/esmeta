@@ -30,7 +30,6 @@
   "INTRINSICS.String.prototype.replace",
   "INTRINSICS.String.prototype.replaceAll",
   "INTRINSICS.String.prototype.split",
-  "InstallErrorCause",
   "LabelledItem[1,0].LabelledEvaluation",
   "LabelledStatement[0,0].LabelledEvaluation",
   "MakeMatchIndicesIndexPairArray",

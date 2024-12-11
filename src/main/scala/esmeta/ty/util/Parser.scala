@@ -195,23 +195,39 @@ trait Parsers extends BasicParsers {
     } | "Record" ^^^ Top
   }.named("ty.RecordTy (single)")
 
+  given sign: Parser[Sign] = {
+    val neg = "-" ^^^ Sign.Neg | "" ^^^ Sign.Bot
+    val zero = "0" ^^^ Sign.Zero | "" ^^^ Sign.Bot
+    val pos = "+" ^^^ Sign.Pos | "" ^^^ Sign.Bot
+    neg ~ zero ~ pos ^^ { case n ~ z ~ p => n || z || p }
+  }.named("ty.Sign")
+
+  private lazy val intTy: Parser[IntTy] = {
+    lazy val intSignTy =
+      "Int" ~> "[" ~> sign <~ "]" ^^ { case s => IntSignTy(s) }
+    lazy val intSetTy =
+      "Int" ~> "[" ~> rep1sep(long, ",") <~ "]" ^^ {
+        case ds => IntSetTy(ds.toSet)
+      }
+    lazy val intTop = "Int" ^^^ IntSignTy(Sign.Top)
+    intSignTy | intSetTy | intTop
+  }.named("ty.IntTy")
+
   /** mathematical value types */
   given mathTy: Parser[MathTy] = {
     rep1sep(singleMathTy, "|") ^^ { case ts => ts.foldLeft(MathTy.Bot)(_ || _) }
   }.named("ty.MathTy")
 
   private lazy val singleMathTy: Parser[MathTy] =
-    "Math[" ~> rep1sep(decimal, ",") <~ "]"
-    ^^ { case ds => MathSetTy(ds.toSet.map(Math(_))) } |
-    camel
-    ^? {
-      case "Int"       => IntTy
-      case "NonPosInt" => NonPosIntTy
-      case "NonNegInt" => NonNegIntTy
-      case "NegInt"    => NegIntTy
-      case "PosInt"    => PosIntTy
-      case "Math"      => MathTopTy
-    }
+    lazy val mathSignTy =
+      "Math[" ~> sign <~ "]" ^^ { case s => MathSignTy(s) }
+    lazy val mathIntTy = intTy.map(MathIntTy(_))
+    lazy val mathSetTy =
+      "Math[" ~> rep1sep(decimal, ",") <~ "]" ^^ {
+        case ds => MathSetTy(ds.toSet.map(Math(_)))
+      }
+    lazy val mathTop = "Math" ^^^ MathSignTy(Sign.Top)
+    mathSignTy | mathIntTy | mathSetTy | mathTop
 
   /** infinity types */
   given infTy: Parser[InfinityTy] = {
@@ -227,18 +243,33 @@ trait Parsers extends BasicParsers {
     }
   }.named("ty.NumberTy")
 
+  private lazy val numberIntTy: Parser[(IntTy, Boolean)] = {
+    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
+    lazy val intSignTy =
+      ("NumberInt" ~> "[" ~> sign <~ "]") ~ nan ^^ {
+        case s ~ n => (IntSignTy(s), n)
+      }
+    lazy val intSetTy =
+      ("NumberInt" ~> "[" ~> rep1sep(long, ",") <~ "]") ~ nan ^^ {
+        case ds ~ n => (IntSetTy(ds.toSet), n)
+      }
+    lazy val intTop = "NumberInt" ~> nan ^^ {
+      case n => (IntSignTy(Sign.Top), n)
+    }
+    intSignTy | intSetTy | intTop
+  }.named("ty.NumberIntTy")
+
   private lazy val singleNumberTy: Parser[NumberTy] =
-    lazy val nan: Parser[Boolean] = "," ~ "NaN" ^^^ true | "" ^^^ false
-    "Number[" ~> {
-      "Int" ^^^ { NumberIntTy(_) } |
-      "NonNegInt" ^^^ { NumberSubIntTy(true, true, _) } |
-      "PosInt" ^^^ { NumberSubIntTy(true, false, _) } |
-      "NonPosInt" ^^^ { NumberSubIntTy(false, true, _) } |
-      "NegInt" ^^^ { NumberSubIntTy(false, false, _) }
-    } ~ nan <~ "]" ^^ { case f ~ n => f(n) } |
-    "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
-      case n => NumberSetTy(n.toSet)
-    } | "Number" ^^^ NumberTopTy
+    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
+    lazy val numSignTy =
+      ("Number[" ~> sign <~ "]") ~ nan ^^ { case s ~ n => NumberSignTy(s, n) }
+    lazy val numIntTy = numberIntTy.map(NumberIntTy(_, _))
+    lazy val numSetTy =
+      "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
+        case ns => NumberSetTy(ns.toSet)
+      }
+    lazy val numTop = "Number" ^^^ NumberTy.Top
+    numSignTy | numIntTy | numSetTy | numTop | "NaN" ^^^ NumberTy.NaN
 
   private lazy val singleInfinityTy: Parser[InfinityTy] =
     "INF" ^^^ InfinityTy.Top | "+INF" ^^^ InfinityTy.Pos | "-INF" ^^^ InfinityTy.Neg

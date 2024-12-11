@@ -751,25 +751,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               var math = lty.math
               val infinity = lty.infinity --
                 (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
-              if (lty.math <= IntTy) rty.getSingle match
+              if (lty.math <= MathTy.Int) rty.getSingle match
                 case One(Math(0)) =>
                   math = (isLt, pos) match
-                    case (true, true)   => /* x < 0 */ NegIntTy
-                    case (true, false)  => /* x >= 0 */ NonNegIntTy
-                    case (false, true)  => /* x > 0 */ PosIntTy
-                    case (false, false) => /* x <= 0 */ NonPosIntTy
+                    case (true, true)   => /* x < 0 */ MathTy.NegInt
+                    case (true, false)  => /* x >= 0 */ MathTy.NonNegInt
+                    case (false, true)  => /* x > 0 */ MathTy.PosInt
+                    case (false, false) => /* x <= 0 */ MathTy.NonPosInt
                 case One(Math(v)) if v < 0 =>
                   math = (isLt, pos) match
-                    case (true, true)   => /* x < N */ NegIntTy
-                    case (true, false)  => /* x >= N */ IntTy
-                    case (false, true)  => /* x > N */ IntTy
-                    case (false, false) => /* x <= N */ NegIntTy
+                    case (true, true)   => /* x < N */ MathTy.NegInt
+                    case (true, false)  => /* x >= N */ MathTy.Int
+                    case (false, true)  => /* x > N */ MathTy.Int
+                    case (false, false) => /* x <= N */ MathTy.NegInt
                 case One(Math(v)) if v > 0 =>
                   math = (isLt, pos) match
-                    case (true, true)   => /* x < P */ IntTy
-                    case (true, false)  => /* x >= P */ PosIntTy
-                    case (false, true)  => /* x > P */ PosIntTy
-                    case (false, false) => /* x <= P */ IntTy
+                    case (true, true)   => /* x < P */ MathTy.Int
+                    case (true, false)  => /* x >= P */ MathTy.PosInt
+                    case (false, true)  => /* x > P */ MathTy.PosInt
+                    case (false, false) => /* x <= P */ MathTy.Int
                 case _ =>
               val refinedTy = ValueTy(
                 math = math,
@@ -1366,7 +1366,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 (if (positive) InfinityTy.Pos else InfinityTy.Neg)
               val refined = (r, rmath) match
                 case (EMath(0), _) =>
-                  math = if (positive) NegIntTy else NonNegIntTy
+                  math = if (positive) MathTy.NegInt else MathTy.NonNegInt
                 case l =>
               st.update(
                 x,
@@ -1387,7 +1387,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 (if (positive) InfinityTy.Neg else InfinityTy.Pos)
               val refined = (l, lmath) match
                 case (EMath(0), _) =>
-                  math = if (positive) PosIntTy else NonPosIntTy
+                  math = if (positive) MathTy.PosInt else MathTy.NonPosInt
                 case _ => rmath
               lst.update(
                 x,

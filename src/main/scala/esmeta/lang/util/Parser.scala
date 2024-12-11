@@ -1338,6 +1338,10 @@ trait Parsers extends IndentParsers {
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
     "positive integer" ^^^ PosIntT |
+    "positive number" ^^^ PosNumberT |
+    "non-negative number" ^^^ NonNegNumberT |
+    "non-positive number" ^^^ NonPosNumberT |
+    "negative number" ^^^ NegNumberT |
     decimal ^^ { MathT(_) } |
     "+∞" ^^^ PosInfinityT |
     "-∞" ^^^ NegInfinityT |

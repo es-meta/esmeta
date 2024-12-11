@@ -342,7 +342,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
 
 // https://tc39.es/ecma262/2024/#sec-promise.all-resolve-element-functions
 type PromiseAllResolveElementFunction extends BuiltinFunctionObject {
-  Index: NonNegInt;
+  Index: Int[0+];
   Values: List[ESValue];
   Capability: Record[PromiseCapabilityRecord];
   RemainingElements: Record[{ Value: Int }];
@@ -435,11 +435,11 @@ type TypedArray extends ExoticObject {
   def Delete;
   def OwnPropertyKeys;
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
-  ArrayLength: NonNegInt | Enum[~auto~];
-  ByteOffset: NonNegInt;
+  ArrayLength: Int[0+] | Enum[~auto~];
+  ByteOffset: Int[0+];
   ContentType: Enum[~bigint~, ~number~];
   TypedArrayName: String;
-  ByteLength: NonNegInt | Enum[~auto~];
+  ByteLength: Int[0+] | Enum[~auto~];
 }
 
 // https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
@@ -660,7 +660,7 @@ type CyclicModuleRecord extends ModuleRecord {
 type GraphLoadingStateRecord {
   PromiseCapability: Record[PromiseCapabilityRecord];
   IsLoading: Boolean;
-  PendingModulesCount: NonNegInt;
+  PendingModulesCount: Int[0+];
   Visited: List[Record[CyclicModuleRecord]];
   HostDefined: Enum[~empty~];
 }
@@ -732,7 +732,7 @@ type BigIntObject extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-date-instances
 type Date extends OrdinaryObject {
-  DateValue: Number[Int, NaN];
+  DateValue: NumberInt | NaN;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-regexp-instances
@@ -763,25 +763,25 @@ type WeakSet extends OrdinaryObject {
 // https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-instances
 type ArrayBuffer extends Object {
   ArrayBufferData: Record[DataBlock] | Null;
-  ArrayBufferByteLength: NonNegInt;
+  ArrayBufferByteLength: Int[0+];
   ArrayBufferDetachKey: ESValue;
-  ArrayBufferMaxByteLength?: NonNegInt;
+  ArrayBufferMaxByteLength?: Int[0+];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-instances
 type SharedArrayBuffer extends Object {
   ArrayBufferData: Record[SharedDataBlock] | Null;
-  ArrayBufferByteLength?: NonNegInt;
+  ArrayBufferByteLength?: Int[0+];
   ArrayBufferByteLengthData?: Record[SharedDataBlock];
-  ArrayBufferMaxByteLength?: NonNegInt;
+  ArrayBufferMaxByteLength?: Int[0+];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-dataview-instances
 type DataView extends OrdinaryObject {
   DataView: Undefined;
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
-  ByteLength: NonNegInt | Enum[~auto~];
-  ByteOffset: NonNegInt;
+  ByteLength: Int[0+] | Enum[~auto~];
+  ByteOffset: Int[0+];
 }
 
 // TODO https://tc39.es/ecma262/#table-json-serialization-record
@@ -864,8 +864,8 @@ type AsyncGeneratorRequest {
 
 // https://tc39.es/ecma262/#sec-match-records
 type MatchRecord {
-  StartIndex: NonNegInt;
-  EndIndex: NonNegInt;
+  StartIndex: Int[0+];
+  EndIndex: Int[0+];
 }
 
 // -----------------------------------------------------------------------------
@@ -875,11 +875,11 @@ type MatchRecord {
 // https://tc39.es/ecma262/#sec-typedarray-with-buffer-witness-records
 type TypedArrayWithBufferWitnessRecord {
   Object: Record[TypedArray];
-  CachedBufferByteLength: NonNegInt | Enum[~detached~];
+  CachedBufferByteLength: Int[0+] | Enum[~detached~];
 }
 
 // https://tc39.es/ecma262/#sec-dataview-with-buffer-witness-records
 type DataViewWithBufferWitnessRecord {
   Object: Record[DataView];
-  CachedBufferByteLength: NonNegInt | Enum[~detached~];
+  CachedBufferByteLength: Int[0+] | Enum[~detached~];
 }

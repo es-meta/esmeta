@@ -3,7 +3,7 @@ def <AUX>:__IS_ARRAY_INDEX__(
 ): Boolean = {
   if (= (typeof P) @String) {
     call n = clo<"CanonicalNumericIndexString">(P)
-    if (? n: Number[Int]) {
+    if (? n: NumberInt) {
       return (&& (< -1.0f n) (< n (- (** 2.0f 32.0f) 1.0f)))
     }
   }

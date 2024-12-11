@@ -98,6 +98,8 @@ object Math {
     def -(n: Math): Math = Math(m.decimal - n.decimal)
     def *(n: Math): Math = Math(m.decimal * n.decimal)
     def /(n: Math): Math = Math(m.decimal / n.decimal)
+    def <(n: Math): Boolean = m.decimal < n.decimal
+    def >(n: Math): Boolean = m.decimal > n.decimal
     def pow(n: Math): Math = Math(m.decimal.pow(n.toInt))
     def unary_- : Math = Math(-m.decimal)
     def toInt: Int = m.decimal.toInt
@@ -106,6 +108,8 @@ object Math {
     def toBigInt: BigInt = BigInt(m.decimal.toBigInt)
     def toBigDecimal: BigDecimal = m.decimal
   }
+
+  given Ordering[Math] = Ordering.by(_.decimal)
 }
 
 /** infinity values */
@@ -129,7 +133,9 @@ sealed trait Numeric extends SimpleValue:
   def toMath: Math = this match
     case Number(double) => Math(double)
     case BigInt(bigInt) => Math(bigInt)
-case class Number(double: Double) extends Numeric with DoubleEquals
+case class Number(double: Double) extends Numeric with DoubleEquals {
+  def isNaN: Boolean = double.isNaN
+}
 case class BigInt(bigInt: scala.math.BigInt) extends Numeric
 
 /** non-numeric simple values */
