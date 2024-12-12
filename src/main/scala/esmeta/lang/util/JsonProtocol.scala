@@ -4,11 +4,52 @@ package util
 
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import io.circe.*, io.circe.syntax.*
+import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
+import esmeta.error.ESMetaError
 
 object JsonProtocol extends BasicJsonProtocol {
   val stringifier = LangElem.getStringifier(true, false)
   import stringifier.given
+
+  given Encoder[Syntax] = Encoder.instance {
+    _ match
+      case x: Block      => x.asJson
+      case x: Condition  => x.asJson
+      case x: Directive  => x.asJson
+      case x: Expression => x.asJson
+      case x: Intrinsic  => x.asJson
+      case x: Property   => x.asJson
+      case x: Reference  => x.asJson
+      case x: Step       => x.asJson
+      case x =>
+        throw ESMetaError(s"${x} is not known", "unknown syntax")
+  }
+
+  // TODO refactor. very bad, but it works for now
+  given Decoder[Syntax] = Decoder.instance { c =>
+    c.as[Block]
+      .orElse(
+        c.as[Condition]
+          .orElse(
+            c.as[Directive]
+              .orElse(
+                c.as[Expression]
+                  .orElse(
+                    c.as[Intrinsic]
+                      .orElse(
+                        c.as[Property]
+                          .orElse(
+                            c.as[Reference]
+                              .orElse(
+                                c.as[Step],
+                              ),
+                          ),
+                      ),
+                  ),
+              ),
+          ),
+      )
+  }
 
   given Encoder[Reference] = encoderWithStringifier(stringify)
   given Decoder[Reference] = decoderWithParser(Reference.from)
@@ -36,4 +77,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Block] = decoderWithParser(Block.from)
   given Encoder[Step] = encoderWithStringifier(stringify)
   given Decoder[Step] = decoderWithParser(Step.from)
+  given Encoder[Directive] = deriveEncoder
+  given Decoder[Directive] = deriveDecoder
 }
