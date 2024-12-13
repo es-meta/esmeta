@@ -3,11 +3,8 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.ir.{Func, Program}
-import esmeta.ir.util.JsonProtocolWithBackEdge.{
-  instanceCounter,
-  exprDecoder,
-  given,
-}
+import esmeta.ir.util.JsonProtocol.given
+import esmeta.ir.util.{UnitWalker as IRUnitWalker}
 import esmeta.spec.{Algorithm, Grammar, Spec, Table}
 import esmeta.spec.util.JsonProtocol.given
 import esmeta.ty.TyModel
@@ -34,6 +31,9 @@ import esmeta.ir.Inst
 import esmeta.util.BaseUtils.*
 import esmeta.ir.Expr
 import esmeta.ir.EBinary
+import esmeta.lang.Syntax
+import esmeta.ir.util.JsonProtocol
+import esmeta.ir.AllocExpr
 
 /** `dump` phase */
 case object WebDump extends Phase[CFG, Unit] {
@@ -44,34 +44,37 @@ case object WebDump extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit = {
-
-    println(instanceCounter)
-
     dumpAndCheck("program")(cfg.program.asJson.spaces2)
+    val newFuncs = dumpAndCheck("funcs")(cfg.program.funcs).get
 
-    println(instanceCounter)
+    print("check locs ...")
+    for {
+      f <- cfg.program.funcs
+      newF <- newFuncs.find(_.name == f.name)
+    } do {
+      class LocChecker extends IRUnitWalker {
+        var list = List.empty[Option[Loc]]
+        override def walk(inst: Inst): Unit = {
+          list :+ inst.langOpt.flatMap(_.loc)
+          super.walk(inst)
+        }
+        override def walk(expr: Expr): Unit = {
+          list :+ expr.langOpt.flatMap(_.loc)
+          super.walk(expr)
+        }
+      }
+      val x = LocChecker()
+      val y = LocChecker()
+      x.walk(f)
+      y.walk(newF)
+      assert(x.list.length == y.list.length)
+      x.list.zip(y.list).foreach {
+        case a -> b =>
+          assert(a == b)
+      }
+    }
+    print("check success")
 
-    // // dumpAndCheck("funcIndex") {
-    // //   cfg.program.funcs.map(_.name)
-    // // }
-
-    // //   println("json form is " + i.asJson)
-    // //   i
-    // // }
-
-    // for (func <- cfg.program.funcs) {
-    //   dumpAndCheck(s"func/${func.name}")(func)
-    // }
-
-    // // dumpAndCheck("parser test") {
-    // //   Inst
-    // //     .from("""
-    // //         let x = 10
-    // //         """)
-    // //     .asJson
-    // // }
-
-    dumpAndCheck("funcs")(cfg.program.funcs)
     dumpAndCheck("spec")(cfg.spec)
     dumpAndCheck("grammar")(cfg.spec.grammar)
     dumpAndCheck("tyModel")(cfg.spec.tyModel)
@@ -79,28 +82,30 @@ case object WebDump extends Phase[CFG, Unit] {
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
 
-    // fastDumpAndCheck("funcs")(cfg.program.funcs)
-
     ()
   }
 
-  private def dumpAndCheck[T: Encoder: Decoder](tag: String)(data: T): Unit = {
+  private def dumpAndCheck[T: Encoder: Decoder](
+    tag: String,
+  )(data: T): Option[T] = {
 
-    print("dump [...]")
+    print("dump ...")
     val (elapsed, json) = time { data.asJson }
     dumpFile(json.spaces2, s"$DUMP_LOG_DIR/$tag.json")
-    print("\rdumped [file], ...")
+    print("\rdump f...")
 
     val jsonString = json.toString
 
-    print("\rdumped [file], [memory], ...")
+    print("\rdump fm...")
     time { decode[T](jsonString) } match {
-      case read -> Right(_) =>
+      case read -> Right(t) =>
         println(
-          s"\b\b\b$tag is correct, write: $elapsed ms, read(parse): $read ms",
+          s"\b\b\b[O] $tag, write: $elapsed ms, read(parse): $read ms",
         )
+        Some(t)
       case _ -> Left(error) =>
-        println(s"\b\b\b$tag is incorrect, error: $error")
+        println(s"\b\b\b[X] $tag,\nerror: $error")
+        None
     }
   }
 

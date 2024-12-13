@@ -34,9 +34,7 @@ case class Loc(
   def getString(str: String): String = str.substring(start.offset, end.offset)
 
   /** get range string */
-  def rangeString: String =
-    val (Pos(sl, sc, _), Pos(el, ec, _)) = (start, end)
-    if (sl == el) s"$sl:$sc-$ec" else s"$sl:$sc - $el:$ec"
+  def rangeString: String = s"$start - $end"
 
   /** get step string */
   def stepString: String =
@@ -63,11 +61,8 @@ case class Pos(
   var offset: Int,
 ) {
 
-  /** get simple string */
-  def simpleString: String = s"$line:$column"
-
   /** conversion to string */
-  override def toString: String = s"$simpleString($offset)"
+  override def toString: String = s"$line:$column($offset)"
 }
 
 /** ordering of locations */

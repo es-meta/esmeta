@@ -72,7 +72,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> name >> (if (optional) "?" else "") >> ": " >> ty
 
   // instructions
-  given instRule: Rule[Inst] = withLoc { (app, inst) =>
+  given instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
     inst match
       case IExpr(expr) =>
         app >> expr
@@ -121,7 +121,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expr] = withLoc { (app, expr) =>
+  given exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
     expr match
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
@@ -341,7 +341,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // references
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refRule: Rule[Ref] = withLoc { (app, ref) =>
+  given refRule: Rule[Ref] = { (app, ref) =>
     ref match {
       case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
       case Field(base, expr) => app >> base >> "[" >> expr >> "]"
@@ -364,13 +364,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // private helpers
   // ---------------------------------------------------------------------------
   // append locations
-  private def withLoc[T <: IRElem with LangEdge](rule: Rule[T]): Rule[T] =
+  private def withLoc[T <: IRElem with LangEdge](tag: Char)(
+    rule: Rule[T],
+  ): Rule[T] =
     (app, elem) =>
       given Rule[Option[Syntax]] = (app, langOpt) =>
-        for {
+        (for {
           lang <- langOpt
           loc <- lang.loc
-        } app >> " @ " >> loc.toString
+        } yield loc) match
+          case None      => app // >> s" @@@$tag "
+          case Some(loc) => app >> s" @@$tag " >> loc.toString
         app
       rule(app, elem)
       if (location) app >> elem.langOpt else app
