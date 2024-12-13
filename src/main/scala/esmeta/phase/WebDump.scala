@@ -77,7 +77,7 @@ case object WebDump extends Phase[CFG, Unit] {
     dumpAndCheck("tyModel")(cfg.spec.tyModel)
     dumpAndCheck("algorithms")(cfg.spec.algorithms)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
-    // dumpAndCheck("spec.version")(cfg.spec.version)
+    dumpAndCheck("spec.version")(cfg.spec.version)
 
     // fastDumpAndCheck("funcs")(cfg.program.funcs)
 
