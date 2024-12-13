@@ -7,7 +7,7 @@ import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.syntax.*
 
 object JsonProtocol extends BasicJsonProtocol {
-  val stringifier = IRElem.getStringifier(true, false)
+  val stringifier = IRElem.getStringifier(true, true)
   import stringifier.given
 
   given Encoder[Type] = encoderWithStringifier(stringify)
