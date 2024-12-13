@@ -454,6 +454,7 @@ object JsonProtocolWithBackEdge extends BasicJsonProtocol {
   given Decoder[COp] = decoderWithParser(COp.from)
 
   private transparent inline def withLoc[T <: IRElem with LangEdge](
+    // this name should be "unique", so we modify
     name: String,
   )(rule: Encoder[T]): Encoder[T] =
     Encoder.instance { t =>
@@ -464,7 +465,7 @@ object JsonProtocolWithBackEdge extends BasicJsonProtocol {
             langOptLoc <- loc.loc
           } yield langOptLoc
         ).asJson,
-        name -> rule(t),
+        s"${name}__caseclassobject" -> rule(t),
       )
     }
 
@@ -473,7 +474,7 @@ object JsonProtocolWithBackEdge extends BasicJsonProtocol {
   )(rule: Decoder[T]): Decoder[T] =
     Decoder.instance { cursor =>
       for
-        t <- cursor.get[T](name)(using rule)
+        t <- cursor.get[T](s"${name}__caseclassobject")(using rule)
         langOptLoc <- cursor.get[Option[Loc]](LANG_OPT_LOC)
       yield {
         t.setLang(new Syntax { loc = langOptLoc })
