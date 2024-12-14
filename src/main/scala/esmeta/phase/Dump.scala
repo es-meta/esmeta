@@ -8,7 +8,11 @@ import esmeta.ir.util.{UnitWalker as IRUnitWalker}
 import esmeta.spec.{Algorithm, Grammar, Spec, Table}
 import esmeta.spec.util.JsonProtocol.given
 import esmeta.ty.*
-import esmeta.ty.util.JsonProtocol.{given}
+import esmeta.ty.util.JsonProtocol.{
+  given_Encoder_TyModel,
+  given_Decoder_TyModel,
+  given,
+}
 import esmeta.lang.Type
 import esmeta.lang.util.JsonProtocol.given
 import esmeta.util.*
@@ -86,7 +90,7 @@ case object Dump extends Phase[CFG, Unit] {
 
     dumpAndCheck("spec")(cfg.spec)
     dumpAndCheck("grammar")(cfg.spec.grammar)
-    dumpAndCheck("tyModel")(cfg.spec.tyModel)
+    dumpAndCheck("tyModel.decls")(cfg.spec.tyModel.decls)
     dumpAndCheck("algorithms")(cfg.spec.algorithms)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
