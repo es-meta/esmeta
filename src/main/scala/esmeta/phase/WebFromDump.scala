@@ -49,13 +49,15 @@ case object WebFromDump extends Phase[Unit, Unit] {
         s"$DUMP_LOG_DIR/spec.tables.json",
       ),
     ).getOrElse(???)
-    val tyModel = decode[TyModel](
-      readFile(
-        s"$DUMP_LOG_DIR/tyModel.json",
-      ),
-    )(using given_Decoder_TyModel) match
-      case Left(value)  => println(value); ???
-      case Right(value) => value
+    val tyModel = TyModel {
+      decode[List[TyDecl]](
+        readFile(
+          s"$DUMP_LOG_DIR/tyModel.decls.json",
+        ),
+      ) match
+        case Left(value)  => println(value); ???
+        case Right(value) => value
+    }
 
     val spec = Spec(Some(version), grammar, algo, tables, tyModel)
 
