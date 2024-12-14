@@ -176,7 +176,15 @@ trait Parsers extends TyParsers {
       case e => EDebug(e)
     } | "(" ~ "random" ~ ")" ^^^ {
       ERandom()
-    } | astExpr | allocExpr | (ref ^^ { ERef(_) } ||| literal)
+    } | astExpr | allocExpr | ((ref ^^ {
+      // temp fix
+      case Name("true")      => EBool(true)
+      case Name("false")     => EBool(false)
+      case Name("undefined") => EUndef()
+      case Name("null")      => ENull()
+      case Name("NaN")       => ENumber(Double.NaN)
+      case a                 => ERef(a)
+    }) ||| literal)
   }.named("ir.Expr")
 
   // abstract syntax tree (AST) expressions
