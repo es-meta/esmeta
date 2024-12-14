@@ -7,7 +7,8 @@ import esmeta.ir.util.JsonProtocol.given
 import esmeta.ir.util.{UnitWalker as IRUnitWalker}
 import esmeta.spec.{Algorithm, Grammar, Spec, Table}
 import esmeta.spec.util.JsonProtocol.given
-import esmeta.ty.TyModel
+import esmeta.ty.*
+import esmeta.ty.util.JsonProtocol.{given}
 import esmeta.lang.Type
 import esmeta.lang.util.JsonProtocol.given
 import esmeta.util.*
@@ -34,9 +35,10 @@ import esmeta.ir.EBinary
 import esmeta.lang.Syntax
 import esmeta.ir.util.JsonProtocol
 import esmeta.ir.AllocExpr
+import esmeta.ir.Name
 
 /** `dump` phase */
-case object WebDump extends Phase[CFG, Unit] {
+case object Dump extends Phase[CFG, Unit] {
   val name = "dump"
   val help = "dump grammar"
   def apply(
@@ -71,6 +73,13 @@ case object WebDump extends Phase[CFG, Unit] {
       x.list.zip(y.list).foreach {
         case a -> b =>
           assert(a == b)
+      }
+
+      class IllegalFinder extends IRUnitWalker {
+
+        override def walk(var1: Name): Unit = {
+          assert(var1.name != "false")
+        }
       }
     }
     print("check success")

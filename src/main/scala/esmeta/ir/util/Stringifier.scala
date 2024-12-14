@@ -144,8 +144,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ETrim(expr, isStarting) =>
         if (isStarting) app >> "(trim > " >> expr >> ")"
         else app >> "(trim " >> expr >> " <)"
-      case ERef(ref) =>
-        app >> ref
+      case ERef(ref) => app >> ref
       case EUnary(uop, expr) =>
         app >> "(" >> uop >> " " >> expr >> ")"
       case EBinary(bop, left, right) =>

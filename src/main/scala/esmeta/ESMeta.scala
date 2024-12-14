@@ -80,6 +80,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdInject,
     CmdMutate,
     CmdDump,
+    CmdWebFromDump,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -104,7 +105,8 @@ object ESMeta extends Git(BASE_DIR) {
     Fuzz,
     Inject,
     Mutate,
-    WebDump,
+    Dump,
+    WebFromDump,
   )
 
   /** command options */

@@ -192,10 +192,18 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
   )
 }
 
-/** grammar-dump command */
-case object CmdDump extends Command("dump", CmdBuildCFG >> WebDump) {
+/** debugger related command */
+case object CmdDump extends Command("dump", CmdBuildCFG >> Dump) {
   def help = "dump some esmeta data to json."
   val examples = List(
     "esmeta dump                          # dump data to data.json",
+  )
+}
+
+case object CmdWebFromDump
+  extends Command("web-from-dump", CmdDump >> WebFromDump) {
+  def help = "dump some esmeta data to json."
+  val examples = List(
+    "esmeta web-from-dump",
   )
 }
