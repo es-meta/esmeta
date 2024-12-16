@@ -8,3 +8,6 @@ def initDebugger(cfg: CFG, sourceText: String): Unit =
   val cachedAst = cfg.scriptParser.from(sourceText)
   _debugger = Some(Debugger(Initialize(cfg, sourceText, Some(cachedAst))))
 private var _debugger: Option[Debugger] = None
+
+/** web server host */
+val ESMETA_HOST = sys.env.getOrElse("ESMETA_HOST", "localhost")

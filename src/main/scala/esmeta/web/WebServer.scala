@@ -13,7 +13,6 @@ import StatusCodes.*
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.*
 import ch.megard.akka.http.cors.scaladsl.settings.*
 import scala.io.StdIn
-import scala.sys
 
 class WebServer(cfg: CFG, port: Int) {
   def run: Unit = {
@@ -45,10 +44,10 @@ class WebServer(cfg: CFG, port: Int) {
         ),
       )
     }
-    val host = sys.env.get("ESMETA_HOST").filter(_.nonEmpty).getOrElse("localhost")
-    val bindingFuture = Http().newServerAt(host, port).bind(rootRoute)
+    val bindingFuture = Http().newServerAt(ESMETA_HOST, port).bind(rootRoute)
 
-    println(s"Server now online at port $port.\nPress RETURN to stop...")
+    println(s"Server now online at http://$ESMETA_HOST:$port")
+    println("Press RETURN to stop...")
     StdIn.readLine() // let it run until user presses return
     bindingFuture
       .flatMap(_.unbind()) // trigger unbinding from the port
