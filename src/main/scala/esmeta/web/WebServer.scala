@@ -44,10 +44,10 @@ class WebServer(cfg: CFG, port: Int) {
         ),
       )
     }
+    val bindingFuture = Http().newServerAt(ESMETA_HOST, port).bind(rootRoute)
 
-    val bindingFuture = Http().newServerAt("localhost", port).bind(rootRoute)
-
-    println(s"Server now online at port $port.\nPress RETURN to stop...")
+    println(s"Server now online at http://$ESMETA_HOST:$port")
+    println("Press RETURN to stop...")
     StdIn.readLine() // let it run until user presses return
     bindingFuture
       .flatMap(_.unbind()) // trigger unbinding from the port
