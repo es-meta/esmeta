@@ -13,15 +13,12 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 
-import scala.math.Ordering.Implicits.seqOrdering
-
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
-  logDir: Option[String] = None, // TODO: use this
 ) {
   import Coverage.{*, given}
 
@@ -60,34 +57,32 @@ case class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, Boolean, Boolean) = {
-    val interp = run(script.code)
-    this.synchronized(check(script, interp))
-  }
+  def runAndCheck(script: Script): (State, Boolean, Boolean) =
+    runAndCheck(script, scriptParser.from(script.code))
 
-  def runAndCheck(ast: Ast, name: String): (State, Boolean, Boolean) = {
-    val code = ast.toString(grammar = Some(cfg.grammar))
-    val interp = run(code)
-    this.synchronized(check(Script(code, name), interp))
-  }
+  /** evaluate a given ECMAScript program, update coverage, and return
+    * evaluation result with whether it succeeds to increase coverage
+    */
+  def runAndCheck(script: Script, ast: Ast): (State, Boolean, Boolean) =
+    val interp = run(script.code, ast, Some(script.name))
+    this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
-  def run(code: String): Interp = {
-    val initSt = cfg.init.from(code)
-    val interp = Interp(initSt, kFs, cp, timeLimit)
-    interp.result; interp
-  }
+  def run(script: Script): Interp =
+    val (ast, code) = scriptParser.fromWithCode(script.code)
+    run(code, ast, Some(script.name))
 
-  /** evaluate a given ECMAScript AST */
-  def run(ast: Ast): Interp = {
-    val initSt = cfg.init.from(ast)
+  /** evaluate a given ECMAScript program */
+  def run(code: String): Interp = run(code, scriptParser.from(code), None)
+
+  /** evaluate a given ECMAScript program */
+  def run(code: String, ast: Ast, name: Option[String]): Interp =
+    val initSt = cfg.init.from(code, ast, name)
     val interp = Interp(initSt, kFs, cp, timeLimit)
     interp.result; interp
-  }
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
     val Script(code, _) = script
-    val initSt = cfg.init.from(code)
     val finalSt = interp.result
 
     var covered = false
@@ -122,7 +117,7 @@ case class Coverage(
 
     if (updated)
       _minimalInfo += script.name -> ScriptInfo(
-        ConformTest.createTest(cfg, finalSt),
+        // TODO ConformTest.createTest(cfg, finalSt),
         touchedNodeViews.keys,
         touchedCondViews.keys,
       )
@@ -156,7 +151,6 @@ case class Coverage(
     withScriptInfo: Boolean = false,
     withTargetCondViews: Boolean = false,
     withUnreachableFuncs: Boolean = false,
-    // TODO(@hyp3rflow): use this for ignoring dump messages
     withMsg: Boolean = false,
   ): Unit = {
     mkdir(baseDir)
@@ -164,32 +158,31 @@ case class Coverage(
     lazy val orderedCondViews = condViews.toList.sorted
     lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
     lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
-    // TODO
-    // dumpJson(
-    //   CoverageConstructor(kFs, cp, timeLimit),
-    //   s"$baseDir/constructor.json",
-    // )
+    dumpJson(
+      CoverageConstructor(kFs, cp, timeLimit),
+      s"$baseDir/constructor.json",
+    )
 
     val st = System.nanoTime()
     def elapsedSec = (System.nanoTime() - st) / 1e9
     def log(msg: Any): Unit = if (withMsg) println(s"[${elapsedSec}s] $msg")
 
-    // TODO
-    // dumpJson(
-    //   name = "node coverage",
-    //   data = nodeViewInfos(orderedNodeViews),
-    //   filename = s"$baseDir/node-coverage.json",
-    //   noSpace = false,
-    // )
+    dumpJson(
+      name = "node coverage",
+      data = nodeViewInfos(orderedNodeViews),
+      filename = s"$baseDir/node-coverage.json",
+      noSpace = false,
+    )
     log("Dumped node coverage")
-    // TODO
-    // dumpJson(
-    //   name = "branch coverage",
-    //   data = condViewInfos(orderedCondViews),
-    //   filename = s"$baseDir/branch-coverage.json",
-    //   noSpace = false,
-    // )
+
+    dumpJson(
+      name = "branch coverage",
+      data = condViewInfos(orderedCondViews),
+      filename = s"$baseDir/branch-coverage.json",
+      noSpace = false,
+    )
     log("Dumped branch coverage")
+
     if (withScripts)
       dumpDir[Script](
         name = "minimal ECMAScript programs",
@@ -200,22 +193,22 @@ case class Coverage(
         remove = true,
       )
       log("Dumped scripts")
-    if (withScriptInfo)
-      dumpDir[(String, ScriptInfo)](
-        name = "minimal ECMAScript assertions",
-        iterable = _minimalInfo,
-        dirname = s"$baseDir/minimal-assertion",
-        getName = _._1,
-        getData = {
-          case (_, ScriptInfo(test, _, _)) =>
-            Yaml(
-              "tag" -> test.exitTag.toString,
-              "assertions" -> test.assertions.map(_.toString),
-            )
-        },
-        remove = true,
-      )
-      log("Dumped assertions")
+    // TODO if (withScriptInfo)
+    // TODO   dumpDir[(String, ScriptInfo)](
+    // TODO     name = "minimal ECMAScript assertions",
+    // TODO     iterable = _minimalInfo,
+    // TODO     dirname = s"$baseDir/minimal-assertion",
+    // TODO     getName = _._1,
+    // TODO     getData = {
+    // TODO       case (_, ScriptInfo(test, _, _)) =>
+    // TODO         Yaml(
+    // TODO           "tag" -> test.exitTag.toString,
+    // TODO           "assertions" -> test.assertions.map(_.toString),
+    // TODO         )
+    // TODO     },
+    // TODO     remove = true,
+    // TODO   )
+    // TODO   log("Dumped assertions")
     if (withTargetCondViews)
       dumpJson(
         name = "target conditional branches",
@@ -288,15 +281,13 @@ case class Coverage(
     condViews += condView
     val CondView(cond, view) = condView
 
-    // TODO update target branches
-    // val neg = condView.neg
-    // cond.elem match
-    //   case _ if nearest.isEmpty                               =>
-    //   case Branch(_, _, EBool(_), _, _)                       =>
-    //   case b: Branch if b.isChildPresentCheck(cfg)            =>
-    //   case ref: WeakUIdRef[EReturnIfAbrupt] if !ref.get.check =>
-    //   case _ if getScript(neg).isDefined => removeTargetCond(neg)
-    //   case _                             => addTargetCond(condView, nearest)
+    // update target branches
+    val neg = condView.neg
+    cond.branch match
+      case _ if nearest.isEmpty          =>
+      case Branch(_, _, EBool(_), _, _)  =>
+      case _ if getScript(neg).isDefined => removeTargetCond(neg)
+      case _                             => addTargetCond(condView, nearest)
 
     condViewMap += cond -> updated(apply(cond), view, script)
   }
@@ -393,7 +384,7 @@ object Coverage {
 
   /** meta-information for each script */
   case class ScriptInfo(
-    test: ConformTest,
+    // TODO test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
     touchedCondViews: Iterable[CondView],
   )
@@ -429,8 +420,8 @@ object Coverage {
     // condition string
     inline def condString: String = if (cond) "T" else "F"
 
-    // TODO get loc
-    // inline def loc: Option[Loc] = branch.loc
+    // get loc
+    inline def loc: Option[Loc] = branch.loc
 
     // string representation
     def simpleString: String = s"${branch.simpleString}:$condString"
@@ -438,6 +429,8 @@ object Coverage {
     // conversion to string
     override def toString: String = simpleString
   }
+
+  import scala.math.Ordering.Implicits.seqOrdering
 
   /** ordering of syntax-sensitive views */
   given Ordering[Feature] = Ordering.by(_.toString)

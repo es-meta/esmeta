@@ -23,7 +23,8 @@ import scala.util.*
 object Fuzzer {
   def apply(
     cfg: CFG,
-    logInterval: Option[Int] = Some(600), // default is 10 minutes.
+    log: Boolean = false, // logging mode on/off
+    logInterval: Int = 600, // default is 600 s (10 m).
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
     stdOut: Boolean = false,
     timeLimit: Option[Int] = None, // time limitation for each evaluation
@@ -34,6 +35,7 @@ object Fuzzer {
     cp: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
+    log,
     logInterval,
     debug,
     stdOut,
@@ -54,15 +56,16 @@ object Fuzzer {
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
-  logInterval: Option[Int] = Some(600), // default is 10 minutes.
-  debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no
-  stdOut: Boolean = false,
-  timeLimit: Option[Int] = None, // time limitation for each evaluation
-  trial: Option[Int] = None, // `None` denotes no bound
-  duration: Option[Int] = None, // `None` denotes no bound
-  init: Option[String] = None,
-  kFs: Int = 0,
-  cp: Boolean = false,
+  log: Boolean,
+  logInterval: Int,
+  debug: Int,
+  stdOut: Boolean,
+  timeLimit: Option[Int],
+  trial: Option[Int],
+  duration: Option[Int],
+  init: Option[String],
+  kFs: Int,
+  cp: Boolean,
 ) {
   import Fuzzer.*
 
@@ -72,7 +75,7 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
-    logInterval.map(_ => {
+    if (log) {
       // start logging
       mkdir(logDir, remove = true)
       createSymLink(symlink, logDir, overwrite = true)
@@ -81,7 +84,7 @@ class Fuzzer(
       genSummaryHeader
       genStatHeader(selector.names, selStatTsv)
       genStatHeader(mutator.names, mutStatTsv)
-    })
+    }
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
@@ -100,11 +103,11 @@ class Fuzzer(
     println(s"- the initial program pool consists of ${pool.size} programs.")
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
-        logInterval.foreach(_ => {
+        if (log) {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
           logging
-        })
+        }
         trial match
           case Some(count) => for (_ <- Range(0, count)) if (!timeout) fuzz
           case None        => while (!timeout) fuzz
@@ -112,12 +115,12 @@ class Fuzzer(
     )
 
     // finish logging
-    logInterval.foreach(_ => {
+    if (log) {
       logging
       summaryTsv.close
       selStatTsv.close
       mutStatTsv.close
-    })
+    }
 
     cov
   }
@@ -131,12 +134,11 @@ class Fuzzer(
 
     val startTime = System.currentTimeMillis
     debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
-    for (bound <- logInterval) {
-      val seconds = bound * 1000
-      if (interval > seconds) {
+    if (log) {
+      val bound = logInterval * 1000
+      if (interval > bound)
         if (debug == NO_DEBUG) logging else time("Logging", logging)
-        startInterval += seconds
-      }
+        startInterval += bound
     }
     val (selectorName, script, condView) = selector(pool, cov)
     val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
@@ -177,24 +179,20 @@ class Fuzzer(
   ): (String, String, CandInfo) =
     (mutatorName, mutatedCode, getCandInfo(mutatedCode))
 
+  /** get candidate information */
   def getCandInfo(code: String): CandInfo =
-    if (visited contains code)
-      CandInfo(visited = true)
-    else if (!ValidityChecker(code))
-      CandInfo(invalid = true)
-    else
-      CandInfo(interp = optional(cov.run(code)))
+    if (visited contains code) CandInfo(visited = true)
+    else if (!ValidityChecker(code)) CandInfo(invalid = true)
+    else CandInfo(interp = optional(cov.run(code)))
 
   /** add new program */
   def add(code: String): Boolean = add(code, getCandInfo(code))
 
   /** add new program with precomputed info */
   def add(code: String, info: CandInfo): Boolean = handleResult(Try {
-    if (info.visited)
-      fail("ALREADY VISITED")
+    if (info.visited) fail("ALREADY VISITED")
     visited += code
-    if (info.invalid)
-      fail("INVALID PROGRAM")
+    if (info.invalid) fail("INVALID PROGRAM")
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
@@ -247,7 +245,6 @@ class Fuzzer(
     kFs,
     cp,
     timeLimit,
-    Some(logDir),
   )
 
   /** target selector */

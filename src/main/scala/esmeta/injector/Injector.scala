@@ -159,7 +159,7 @@ class Injector(
             handleProperty(addr, path)
           case _ =>
       case _ =>
-  private lazy val initHeap = cfg.init.initHeap.copied
+  private lazy val initHeap = cfg.init.initHeap
   private var handledObjects: Map[Addr, String] = (for {
     addr <- initHeap.map.keySet
     name <- addrToName(addr)

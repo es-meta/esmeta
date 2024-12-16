@@ -53,14 +53,13 @@ sealed trait Ast extends ESElem with Locational {
   ) + name
 
   /** flatten statements */
-  // TODO refactoring
-  def flattenStmt: List[Ast] = this match
+  def flattenStmt: Vector[Ast] = this match
     case Syntactic("Script", _, 0, Vector(Some(body))) =>
       body match
         case Syntactic("ScriptBody", _, 0, Vector(Some(stlist))) =>
           flattenStmtList(stlist)
-        case _ => Nil
-    case _ => Nil
+        case _ => Vector.empty
+    case _ => Vector.empty
 
   /** clear location */
   def clearLoc: Ast =

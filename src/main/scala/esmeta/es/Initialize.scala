@@ -14,7 +14,7 @@ class Initialize(cfg: CFG) {
   /** get initial state from source text */
   def from(sourceText: String): State =
     val (ast, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
-    from(semiInjected, None, ast)
+    from(semiInjected, ast)
 
   /** get initial state from script */
   def from(script: Script): State = from(script.code)
@@ -22,39 +22,21 @@ class Initialize(cfg: CFG) {
   /** get initial state from JS file */
   def fromFile(filename: String): State =
     val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
-    from(semiInjected, Some(filename), ast)
-
-  def from(ast: Ast): State =
-    from(ast.toString(grammar = Some(cfg.grammar)), None, ast)
+    from(semiInjected, ast, Some(filename))
 
   /** get initial state with source text and cached AST */
-  private def from(
+  def from(
     sourceText: String,
-    filename: Option[String],
-    cachedAst: Ast,
+    ast: Ast,
+    filename: Option[String] = None,
   ): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
     filename = filename,
-    cachedAst = Some(cachedAst),
+    cachedAst = Some(ast),
     globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
     heap = initHeap.copied,
-  )
-
-  /** the result state of initialization */
-  def getResult(
-    sourceText: String,
-    cachedAst: Option[Ast],
-    filename: Option[String],
-  ): State = State(
-    cfg,
-    context = Context(cfg.main),
-    sourceText = Some(sourceText),
-    cachedAst = cachedAst,
-    filename = filename,
-    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
-    heap = initHeap,
   )
 
   // initial globals
@@ -122,7 +104,7 @@ class Initialize(cfg: CFG) {
     // add global object
     map ++= glob.map
 
-    Heap(map, map.size)
+    Heap(map)
   }
 
   // ---------------------------------------------------------------------------

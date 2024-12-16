@@ -9,7 +9,6 @@ import esmeta.es.*
 import esmeta.fuzzer.Fuzzer
 import esmeta.es.util.{UnitWalker, Coverage}
 import esmeta.spec.util.GrammarGraph
-// TODO import esmeta.synthesizer.{SimpleSynthesizer, BuiltinSynthesizer}
 import scala.collection.mutable.ArrayBuffer
 
 /** `fuzz` phase */
@@ -31,6 +30,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     // run the fuzzer to get the coverage information
     val cov = Fuzzer(
       cfg = cfg,
+      log = config.log,
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
@@ -54,8 +54,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
     ),
     (
       "log-interval",
-      NumOption((c, k) => c.logInterval = Some(k)),
-      "turn on logging mode and set logging interval (default: 600 seconds).",
+      NumOption((c, k) => c.logInterval = k),
+      "set logging interval in seconds (default: 600 s) " +
+      "(meaningful in the logging mode).",
     ),
     (
       "out",
@@ -108,7 +109,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
   )
   case class Config(
     var log: Boolean = false,
-    var logInterval: Option[Int] = Some(600),
+    var logInterval: Int = 600,
     var out: Option[String] = None,
     var debug: Int = 0,
     var timeLimit: Option[Int] = Some(1),
