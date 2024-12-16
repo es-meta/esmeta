@@ -383,19 +383,19 @@ class Fuzzer(
     addRow(row)
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+    dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
+
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
     if (stdOut) println(row)
     nf.println(row)
     nf.flush
-  private lazy val summaryTsv: PrintWriter = getPrintWriter(
-    s"$logDir/summary.tsv",
-  )
-  private lazy val selStatTsv: PrintWriter = getPrintWriter(
-    s"$logDir/selector-stat.tsv",
-  )
-  private lazy val mutStatTsv: PrintWriter = getPrintWriter(
-    s"$logDir/mutation-stat.tsv",
-  )
+
+  private lazy val summaryTsv: PrintWriter =
+    getPrintWriter(s"$logDir/summary.tsv")
+  private lazy val selStatTsv: PrintWriter =
+    getPrintWriter(s"$logDir/selector-stat.tsv")
+  private lazy val mutStatTsv: PrintWriter =
+    getPrintWriter(s"$logDir/mutation-stat.tsv")
 }
